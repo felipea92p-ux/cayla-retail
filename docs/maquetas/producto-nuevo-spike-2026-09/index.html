@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nuevo producto · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Nuevo producto (2026-09-24)
+   Tokens = los oficiales de apps/web/app/globals.css (ADR-0169). Datos
+   inventados. No es la implementación: sirve para decidir la distribución.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;
+  --hueso:#eae1d2;--taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;
+  --t75:rgba(26,26,24,.75);--t60:rgba(26,26,24,.6);--t45:rgba(26,26,24,.45);--t25:rgba(26,26,24,.25);
+  --t15:rgba(26,26,24,.15);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:600;letter-spacing:-.005em}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--rojo)}
+.tab{font-variant-numeric:tabular-nums}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.taupe{color:var(--taupe)}.m60{color:var(--t60)}.m45{color:var(--t45)}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,6px,0)}to{opacity:1;transform:none}}
+@keyframes asentar{from{opacity:.35;transform:translate3d(0,3px,0)}to{opacity:1;transform:none}}
+.revela{animation:sube 320ms var(--ease) both}
+.asienta{animation:asentar 300ms var(--ease) both}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:1ms!important;transition-duration:1ms!important}}
+
+/* ---------- barra del spike (no es parte de la pantalla) ---------- */
+.spike{max-width:1240px;margin:14px auto 0;padding:0 24px}
+.spike>div{border:1px dashed var(--t25);border-radius:12px;padding:9px 14px;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;color:var(--t60);font-size:12px}
+.spike button{border:1px solid var(--t25);border-radius:8px;padding:4px 10px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t75)}
+.spike button[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+/* ---------- marco de la pantalla ---------- */
+.marco{max-width:1240px;margin:0 auto;padding:22px 24px 80px;transition:max-width 300ms var(--ease)}
+.celular .marco{max-width:375px;padding:16px 16px 0;border:1px solid var(--sand);border-radius:28px;margin-top:18px;background:var(--crema);min-height:760px}
+.app{container-type:inline-size}
+.cab{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px 32px;align-items:flex-start}
+.cab h1{font-size:30px;line-height:1.15;margin-top:6px}
+.cab p.bajada{margin-top:6px;font-size:15px;color:var(--taupe);max-width:620px}
+.migas{font-size:12.5px;color:var(--taupe);margin-bottom:10px}
+.migas a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+
+/* ruta de 4 pasos */
+.ruta{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:22px 0 18px}
+.ruta button{text-align:left;padding:8px 0 0;border-top:2px solid var(--sand);font-size:12.5px;color:var(--t60);display:flex;gap:8px;align-items:baseline;transition:border-color 250ms var(--ease),color 250ms}
+.ruta button b{font-weight:600}
+.ruta .hecho{border-color:var(--verde);color:var(--tinta)}
+.ruta .actual{border-color:var(--tinta);color:var(--tinta)}
+.ruta button:disabled{cursor:default}
+.ruta .n{font-size:11px;font-weight:700}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+
+/* ---------- pasos (acordeón) ---------- */
+.paso{background:var(--papel);border:1px solid var(--sand);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.paso.futuro{background:transparent;border-style:dashed}
+.paso-cab{display:flex;align-items:center;gap:12px;padding:14px 18px;width:100%;text-align:left}
+.num{flex:none;width:24px;height:24px;border-radius:50%;border:1px solid var(--t25);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--t75)}
+.paso.listo .num{background:var(--verde);border-color:var(--verde);color:var(--crema)}
+.paso.abierto .num{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.paso-tit{font-weight:600;font-size:14.5px}
+.paso.futuro .paso-tit{color:var(--t45);font-weight:500}
+.paso-res{flex:1;min-width:0;color:var(--taupe);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cambiar{font-size:12.5px;color:var(--tinta);text-decoration:underline;text-underline-offset:2px;flex:none}
+.paso-cuerpo{padding:2px 18px 18px 54px}
+.paso-pie{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:18px;padding-top:14px;border-top:1px solid var(--sand)}
+.paso-pie .falta{font-size:12.5px;color:var(--taupe);margin-right:auto}
+
+/* fila de campo: etiqueta a la izquierda, controles a la derecha */
+.fila{display:grid;grid-template-columns:120px minmax(0,1fr);gap:6px 16px;padding:12px 0;border-top:1px solid var(--sand)}
+.fila:first-child{border-top:0;padding-top:4px}
+.fila>.et{font-size:12.5px;font-weight:600;padding-top:7px}
+.fila>.et small{display:block;font-weight:400;color:var(--taupe);font-size:11.5px}
+.ayuda{font-size:12px;color:var(--taupe);margin-top:6px}
+
+/* controles */
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-height:34px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--t15);border-radius:8px;padding:5px 11px;font-size:13.5px;color:var(--t75);transition:border-color 150ms,background 150ms}
+.chip:hover{border-color:var(--t45)}
+.chip[aria-pressed=true]{border-color:var(--tinta);background:var(--t07);color:var(--tinta)}
+.chip[aria-pressed=true]::before{content:"✓";font-size:11px}
+.punto{width:11px;height:11px;border-radius:50%;border:1px solid var(--t25);flex:none}
+.caja{width:100%;background:var(--hueso);border:1px solid transparent;border-radius:8px;padding:9px 12px;font-size:14px;outline:none;transition:border-color 150ms}
+.caja:focus{border-color:var(--taupe)}
+.caja.monto{text-align:right}
+.campo label{display:block;font-size:12.5px;font-weight:600;margin-bottom:5px}
+.campo .pie{font-size:12px;color:var(--taupe);margin-top:5px;min-height:18px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.tres{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:8px;border:1px solid transparent;padding:8px 16px;font-size:13.5px;font-weight:500;white-space:nowrap;transition:background 150ms,border-color 150ms}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-primario{background:var(--tinta);color:var(--crema)}
+.btn-primario:hover:not(:disabled){background:var(--rojo-p)}
+.btn-secundario{border-color:var(--sand)}
+.btn-secundario:hover{background:rgba(232,224,208,.5)}
+.btn-enlace{text-decoration:underline;text-underline-offset:2px;padding:0;font-size:12.5px}
+.aviso{border-radius:8px;border:1px solid var(--t15);background:var(--t04);padding:9px 12px;font-size:13px;margin-top:8px}
+.aviso.rojo{border-color:rgba(184,65,45,.4);background:rgba(184,65,45,.05);color:var(--rojo-p)}
+.aviso.ambar{border-color:rgba(116,80,26,.4);background:rgba(116,80,26,.06);color:var(--ambar)}
+
+/* paso 1: familias y categorías */
+.buscar{position:relative;margin-bottom:12px}
+.buscar svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--taupe);fill:none;stroke-width:1.7}
+.buscar .caja{padding-left:34px}
+.familias{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fam{border:1px solid var(--sand);border-radius:12px;padding:12px 14px;text-align:left;transition:border-color 150ms,background 150ms}
+.fam:hover{border-color:var(--t45)}
+.fam[aria-pressed=true]{border-color:var(--tinta);background:var(--t04)}
+.fam b{display:block;font-size:14px;font-weight:600}
+.fam span{font-size:12px;color:var(--taupe)}
+.cats{margin-top:14px}
+
+/* paso 2: marca */
+.pareja{display:flex;flex-direction:column;align-items:flex-start;gap:0;min-height:44px;line-height:1.25}
+.pareja small{font-size:11.5px;color:var(--taupe)}
+.pareja[aria-pressed=true]::before{display:none}
+
+/* paso 3: patrones */
+.pat{width:92px;border:1px solid var(--t15);border-radius:8px;padding:5px;text-align:left;font-size:12.5px;color:var(--t75)}
+.pat svg{display:block;width:100%;height:36px;border-radius:5px;background:var(--hueso)}
+.pat[aria-pressed=true]{border-color:var(--tinta);background:var(--t07);color:var(--tinta)}
+.pat span{display:block;padding:4px 2px 0}
+.mas-colores{margin-top:10px}
+.grupo-color{margin-top:10px}
+.grupo-color p{font-size:11.5px;color:var(--taupe);margin-bottom:5px}
+
+/* paso 4: precio + matriz */
+.margen{border-radius:8px;background:var(--hueso);padding:9px 12px;height:40px;display:flex;align-items:center;justify-content:flex-end;font-weight:600}
+.margen.bajo{color:var(--ambar)}.margen.neg{color:var(--rojo-p)}.margen.ok{color:var(--verde)}
+.matriz-cab{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:20px 0 8px;flex-wrap:wrap}
+.matriz-scroll{overflow-x:auto;border:1px solid var(--sand);border-radius:10px}
+table.matriz{border-collapse:collapse;width:100%;font-size:13px}
+.matriz th,.matriz td{border-top:1px solid var(--sand);padding:0;text-align:center}
+.matriz thead th{border-top:0;background:var(--hueso);padding:7px 6px;font-weight:600;font-size:12px}
+.matriz th.col{cursor:pointer}
+.matriz th.fila-c{text-align:left;padding:6px 12px;font-weight:500;white-space:nowrap;cursor:pointer;background:var(--papel)}
+.matriz th.fila-c span{display:inline-flex;align-items:center;gap:7px}
+.celda{width:100%;min-width:64px;height:40px;display:flex;align-items:center;justify-content:center;gap:4px;font-size:12.5px;transition:background 150ms}
+.celda.si{color:var(--tinta)}
+.celda.si::before{content:"✓";font-size:10px;color:var(--verde)}
+.celda.no{color:var(--t25);background:repeating-linear-gradient(135deg,transparent 0 6px,var(--t04) 6px 7px)}
+.celda:hover{background:var(--t04)}
+.celda input{width:58px;border:0;border-bottom:1px solid var(--t25);background:transparent;text-align:right;font-size:12.5px;padding:2px;outline:none}
+.celda input:focus{border-color:var(--tinta)}
+.celda.distinto{color:var(--ambar);font-weight:600}
+.etiquetas-toggle{margin-top:18px;padding-top:14px;border-top:1px solid var(--sand)}
+
+/* ---------- la ficha que se va a crear ---------- */
+.ficha{position:sticky;top:16px}
+.ficha .tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.ficha .foto{height:120px;background:var(--hueso);display:grid;place-items:center;color:var(--taupe);font-size:12px;position:relative}
+.ficha .foto .puntos{position:absolute;left:14px;bottom:12px;display:flex;gap:4px}
+.ficha .foto .puntos i{width:14px;height:14px;border-radius:50%;border:1.5px solid var(--papel)}
+.ficha .cuerpo{padding:14px 16px 16px}
+.cod{font-size:12.5px;color:var(--taupe)}
+.ficha h2{font-size:24px;line-height:1.15;margin:2px 0 2px}
+.vacio{color:var(--t25)}
+.ficha dl{margin-top:12px;display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px}
+.ficha dt{color:var(--taupe)}
+.ficha dd{text-align:right;font-weight:500}
+.ficha .precio{display:flex;align-items:baseline;justify-content:space-between;margin-top:12px;padding-top:12px;border-top:1px solid var(--sand)}
+.ficha .precio b{font-size:22px}
+.siguiente{margin-top:12px;border-radius:10px;padding:10px 12px;font-size:13px;background:var(--hueso)}
+.siguiente .lbl{display:block;font-size:10.5px;color:var(--taupe);margin-bottom:2px}
+.siguiente.listo{background:rgba(72,96,63,.1);color:var(--verde)}
+.responsable{margin-top:12px}
+.responsable select{width:100%}
+.acciones{display:flex;gap:8px;margin-top:12px}
+.acciones .btn-primario{flex:1}
+.codigos{margin-top:6px;font-size:11px;color:var(--t45);word-break:break-all}
+
+/* ---------- nota ---------- */
+.nota{margin-top:28px;background:var(--hueso);border-radius:12px;padding:16px 18px;font-size:13px;color:var(--t75)}
+.nota h3{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;margin-bottom:8px;color:var(--tinta)}
+.nota ul{padding-left:18px;display:grid;gap:4px}
+
+@media (max-width:600px){.marco{padding:16px 16px 0}.spike{padding:0 16px}}
+/* ---------- barra de celular ---------- */
+.barra{display:none}
+
+/* ---------- ancho angosto (container query: sirve igual en el marco de 375) ---------- */
+@container (max-width:820px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .ficha-col{display:none}
+  .ruta{grid-template-columns:repeat(4,1fr);gap:4px}
+  .ruta button .t{display:none}
+  .paso-cuerpo{padding:2px 14px 16px}
+  .paso-cab{padding:13px 14px}
+  .fila{grid-template-columns:1fr}
+  .fila>.et{padding-top:0}
+  .dos,.tres{grid-template-columns:1fr}
+  .familias{grid-template-columns:1fr}
+  .cab h1{font-size:26px}
+  .barra{display:block;position:sticky;bottom:0;margin:16px -16px 0;background:var(--papel);border-top:1px solid var(--sand);padding:10px 16px 14px;z-index:5}
+  .barra .linea{display:flex;align-items:center;gap:10px}
+  .barra .linea div{flex:1;min-width:0;font-size:12.5px}
+  .barra .linea b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barra .falta{font-size:12px;color:var(--taupe);margin-top:4px}
+  .barra .hoja{display:none;margin-bottom:10px}
+  .barra.abierta .hoja{display:block}
+  .paso-res{display:none}
+  .celda{min-width:44px}.celda .pr{display:none}  /* en celular la celda dice solo ✓; el precio distinto sí se ve */
+  .paso.listo .paso-cab{flex-wrap:wrap;row-gap:2px}
+  .paso.listo .paso-tit{flex:1}
+  .paso.listo .paso-res{display:block;order:3;flex-basis:100%;padding-left:36px;white-space:normal;font-size:12.5px}
+}
+</style>
+</head>
+<body>
+
+<div class="spike"><div>
+  <span class="lbl">Spike · probar estados</span>
+  <button data-preset="vacio">Vacío</button>
+  <button data-preset="medio">A medio llenar</button>
+  <button data-preset="listo">Listo para crear</button>
+  <button data-preset="repetido">Nombre repetido</button>
+  <span style="flex:1"></span>
+  <button id="btn-celular" aria-pressed="false">Ver a 375 px</button>
+</div></div>
+
+<div class="marco"><div class="app" id="app">
+  <p class="migas"><a href="#">Productos</a> · Nuevo</p>
+  <header class="cab">
+    <div>
+      <p class="eyebrow">Catálogo · Productos</p>
+      <h1 class="disp">Nuevo producto</h1>
+      <p class="bajada">Cuatro pasos. Cada uno se cierra en una línea al terminarlo y a la derecha ves la prenda que se va a crear.</p>
+    </div>
+  </header>
+
+  <nav class="ruta" id="ruta" aria-label="Pasos"></nav>
+
+  <div class="grid">
+    <div id="pasos"></div>
+    <aside class="ficha-col"><div class="ficha" id="ficha"></div></aside>
+  </div>
+
+  <div class="barra" id="barra"></div>
+
+  <div class="nota">
+    <h3>Qué cambia respecto de hoy</h3>
+    <ul>
+      <li><b>7 tarjetas → 4 pasos.</b> Nombre y marca van juntos («quién es»); talla, tejido, patrón y colores juntos («cómo se hace»); precio, variantes y etiquetas juntos.</li>
+      <li><b>Un solo paso abierto a la vez.</b> Lo terminado se pliega en una línea con «Cambiar»; lo que viene es una línea punteada, no una tarjeta gris con texto.</li>
+      <li><b>Las variantes son una tabla talla × color</b>, no una fila de casillas. Clic en una celda la quita; clic en el nombre del color o de la talla quita la fila o la columna.</li>
+      <li><b>El resumen pasa a ser la prenda misma</b>: código, nombre, colores y precio como se van a ver. En vez de la lista «Falta» completa, una sola frase: el siguiente paso.</li>
+      <li><b>Los colores menos usados se esconden</b> detrás de «Más colores»; a la vista quedan los frecuentes de la categoría.</li>
+      <li><b>Celular:</b> la ficha baja a una barra fija con el botón Crear y el siguiente paso.</li>
+    </ul>
+  </div>
+</div></div>
+
+<script>
+/* ---------------- datos inventados ---------------- */
+const FAMILIAS = [
+  {cod:"indumentaria", nombre:"Indumentaria", ej:"Blusas, tops, vestidos…", exige:true,
+   cats:[["blusas","Blusas","BL",141],["tops","Tops","TO",88],["vestidos","Vestidos","VE",57],["pantalones","Pantalones","PA",63],["faldas","Faldas","FA",22],["casacas","Casacas","CA",19]]},
+  {cod:"accesorios", nombre:"Accesorios", ej:"Carteras, correas, pañuelos…", exige:false,
+   cats:[["carteras","Carteras","CR",40],["correas","Correas","CO",12],["panuelos","Pañuelos","PN",9]]},
+  {cod:"bisuteria", nombre:"Bisutería", ej:"Aretes, collares, pulseras…", exige:false,
+   cats:[["aretes","Aretes","AR",75],["collares","Collares","CL",31],["pulseras","Pulseras","PU",27]]},
+];
+const TALLAS_IND = ["XS","S","M","L","XL"], HABITUALES = ["S","M","L"];
+const TEJIDOS = ["Algodón","Lino","Viscosa","Crepé","Chifón"];
+const PATRONES = ["Liso","Rayas","Floral","Cuadros","Lunares"];
+const COLORES = {
+  NEG:["Negro","#1f1f1d"], HUE:["Blanco hueso","#f1ebdf"], BEI:["Beige","#d8c3a2"], TER:["Terracota","#b35d3f"], MAR:["Azul marino","#26344d"],
+  CAM:["Camel","#b8874f"], CHO:["Chocolate","#5a3a28"], CEL:["Celeste","#a9c3d8"], OLI:["Verde olivo","#6b6b3a"], SAL:["Verde salvia","#9aa88c"],
+  ROS:["Rosa palo","#dcb3ab"], VIN:["Vino","#6e2230"], GRI:["Gris perla","#c9c6bf"], MOS:["Mostaza","#c99a2e"],
+};
+const FRECUENTES = ["NEG","HUE","BEI","TER","MAR"];
+const GRUPOS = [["Neutros",["GRI"]],["Tierras",["CAM","CHO","MOS"]],["Azules",["CEL"]],["Verdes",["OLI","SAL"]],["Rojos y rosas",["ROS","VIN"]]];
+const PAREJAS = [["CAYLA","Taller Lima","12 blusas"],["CAYLA","Confecciones Andina","5 blusas"],["Mía Studio","Gamarra Textil","3 blusas"]];
+const ETIQUETAS = [["Nueva colección",null],["Primavera 26",null],["Cyber CAYLA","20 %"]];
+const EXISTENTES = [["Blusa Aurora","BL-0098"],["Blusa Aurora Manga Larga","BL-0121"]];
+
+/* ---------------- estado ---------------- */
+let s;
+function vacio(){ return {abierto:1, familia:null, cat:null, busca:"", nombre:"", desc:"", pareja:null, tallas:[], tejido:null, patron:null,
+  colores:[], masColores:false, precio:"", costo:"", fuera:[], distinto:false, precios:{}, verEtiquetas:false, etiquetas:[], barra:false}; }
+const PRESETS = {
+  vacio: () => vacio(),
+  medio: () => ({...vacio(), abierto:3, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", pareja:0, tallas:[...HABITUALES]}),
+  listo: () => ({...vacio(), abierto:4, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", desc:"Manga globo, botones forrados", pareja:0,
+    tallas:[...HABITUALES,"XL"], tejido:"Lino", patron:"Liso", colores:["HUE","TER","MAR"], precio:"89.90", costo:"38.50", fuera:["MAR|XL"], precios:{"HUE|XL":"94.90"}}),
+  repetido: () => ({...vacio(), abierto:2, familia:"indumentaria", cat:"blusas", nombre:"blusa  aurora", pareja:0}),
+};
+
+/* ---------------- reglas (en el ERP viven en lib/alta-producto.ts) ---------------- */
+const fam = () => FAMILIAS.find(f => f.cod === s.familia);
+const cat = () => fam()?.cats.find(c => c[0] === s.cat);
+const titulo = t => t.trim().replace(/\s+/g," ").toLowerCase().replace(/(^|\s)(\S)/g,(m,a,b)=>a+b.toUpperCase());
+const sinT = t => t.normalize("NFD").replace(/[̀-ͯ]/g,"").toLowerCase().trim();
+const tallasCat = () => fam()?.cod === "indumentaria" ? TALLAS_IND : ["Única"];
+const exige = () => Boolean(fam()?.exige);
+function parecidos(){
+  const n = sinT(titulo(s.nombre)); if (!n) return {identico:null, suaves:[]};
+  const identico = EXISTENTES.find(e => sinT(e[0]) === n) || null;
+  const pal = n.split(" ").filter(w => w.length > 3 && w !== "blusa");
+  const suaves = EXISTENTES.filter(e => e !== identico && pal.some(w => sinT(e[0]).includes(w)));
+  return {identico, suaves};
+}
+const listo = {
+  1: () => Boolean(s.cat),
+  2: () => Boolean(s.nombre.trim()) && !parecidos().identico && s.pareja !== null,
+  3: () => s.tallas.length > 0 && (!exige() || (s.tejido && s.patron)),
+  4: () => Number(s.precio) > 0 && celdasDentro().length > 0,
+};
+function faltaDe(n){
+  if (n===1) return "Elige qué producto es.";
+  if (n===2){ if(!s.nombre.trim()) return "Escribe el nombre."; if(parecidos().identico) return "Ese nombre ya existe."; if(s.pareja===null) return "Elige la marca y el proveedor."; }
+  if (n===3){ if(!s.tallas.length) return "Elige al menos una talla."; if(exige()&&!s.tejido) return "Elige el tejido."; if(exige()&&!s.patron) return "Elige el patrón (si no tiene diseño, Liso)."; }
+  if (n===4){ if(!(Number(s.precio)>0)) return "Pon el precio de venta."; if(!celdasDentro().length) return "Deja al menos una variante."; }
+  return "";
+}
+function siguiente(){ for (const n of [1,2,3,4]) if (!listo[n]()) return {paso:n, texto:faltaDe(n)}; return null; }
+const coloresFila = () => s.colores.length ? s.colores : [null];
+const tallasOrden = () => tallasCat().filter(t => s.tallas.includes(t));
+function celdas(){ const r=[]; for (const c of coloresFila()) for (const t of tallasOrden()) r.push({c,t,k:(c??"—")+"|"+t}); return r; }
+const celdasDentro = () => celdas().filter(x => !s.fuera.includes(x.k));
+function margen(){ const p=Number(s.precio), c=Number(s.costo); if(!(p>0)||s.costo.trim()==="") return null; return (p-c)/p*100; }
+function codigoBase(){ const c=cat(); return c ? `${c[2]}-${String(c[3]+1).padStart(4,"0")}` : null; }
+const soles = v => "S/ " + Number(v).toFixed(2);
+
+/* ---------------- pintar ---------------- */
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"]/g, m => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const TITULOS = {1:"Qué producto es",2:"Quién es y cómo se llama",3:"Cómo se hace",4:"Precio y variantes"};
+const CORTOS = {1:"Qué es",2:"Nombre y marca",3:"Cómo se hace",4:"Precio"};
+
+function resumenPaso(n){
+  if (n===1) return `${fam().nombre} › ${cat()[1]}`;
+  if (n===2) return `${titulo(s.nombre)} · ${PAREJAS[s.pareja][0]} (${PAREJAS[s.pareja][1]})`;
+  if (n===3) return [tallasOrden().join(" "), s.tejido, s.patron, s.colores.length ? s.colores.length+" colores" : "sin color"].filter(Boolean).join(" · ");
+  if (n===4) return `${soles(s.precio)} · ${celdasDentro().length} variantes`;
+}
+function puedeAbrir(n){ for (let i=1;i<n;i++) if(!listo[i]()) return false; return true; }
+
+function pintarRuta(){
+  $("ruta").innerHTML = [1,2,3,4].map(n => {
+    const cls = s.abierto===n ? "actual" : listo[n]() && puedeAbrir(n) ? "hecho" : "";
+    return `<button data-abrir="${n}" class="${cls}" ${puedeAbrir(n)?"":"disabled"}><span class="n tab">${listo[n]()&&puedeAbrir(n)&&s.abierto!==n?"✓":n}</span><span class="t"><b>${CORTOS[n]}</b></span></button>`;
+  }).join("");
+}
+
+function pintarPasos(){
+  $("pasos").innerHTML = [1,2,3,4].map(n => {
+    const abierto = s.abierto === n, hecho = listo[n]() && puedeAbrir(n) && !abierto, futuro = !abierto && !hecho;
+    const cls = abierto ? "abierto" : hecho ? "listo" : "futuro";
+    const cab = abierto
+      ? `<div class="paso-cab"><span class="num tab">${n}</span><span class="paso-tit">${TITULOS[n]}</span></div>`
+      : hecho
+      ? `<button class="paso-cab" data-abrir="${n}"><span class="num">✓</span><span class="paso-tit">${TITULOS[n]}</span><span class="paso-res">${esc(resumenPaso(n))}</span><span class="cambiar">Cambiar</span></button>`
+      : `<div class="paso-cab"><span class="num tab">${n}</span><span class="paso-tit">${TITULOS[n]}</span></div>`;
+    return `<section class="paso ${cls}">${cab}${abierto ? `<div class="paso-cuerpo revela">${cuerpo(n)}</div>` : ""}</section>`;
+  }).join("");
+}
+
+function pie(n, textoBoton){
+  const ok = listo[n]();
+  return `<div class="paso-pie"><span class="falta" id="falta-${n}">${ok ? "" : esc(faltaDe(n))}</span>
+    ${n<4 ? `<button class="btn btn-primario" data-seguir="${n}" ${ok?"":"disabled"}>${textoBoton} →</button>` : ""}</div>`;
+}
+
+function cuerpo(n){
+  if (n===1){
+    const q = sinT(s.busca);
+    const hits = q ? FAMILIAS.flatMap(f => f.cats.filter(c => sinT(c[1]).includes(q)).map(c => [f,c])) : [];
+    return `
+      <div class="buscar"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="caja" id="in-busca" placeholder="Busca la categoría: blusa, arete, cartera…" value="${esc(s.busca)}" autocomplete="off"></div>
+      ${q ? `<div class="chips" id="hits">${hits.length ? hits.map(([f,c]) => `<button class="chip" data-cat="${f.cod}:${c[0]}">${c[1]} <span class="m45">· ${f.nombre}</span></button>`).join("") : `<p class="m60">Nada con «${esc(s.busca)}».</p>`}</div>`
+      : `<div class="familias">${FAMILIAS.map(f => `<button class="fam" data-fam="${f.cod}" aria-pressed="${s.familia===f.cod}"><b>${f.nombre}</b><span>${f.ej}</span></button>`).join("")}</div>
+         <button class="btn-enlace m60" style="margin-top:8px">Ver más familias (Calzado, Hogar, Belleza)</button>
+         ${s.familia ? `<div class="cats revela"><p class="lbl m60" style="margin-bottom:6px">${fam().nombre}</p><div class="chips">${fam().cats.map(c => `<button class="chip" data-cat="${s.familia}:${c[0]}" aria-pressed="${s.cat===c[0]}">${c[1]}</button>`).join("")}</div></div>` : ""}`}
+      <p class="ayuda">La categoría decide el código (BL-, AR-…), las tallas y los tejidos. Al elegirla pasas solo al siguiente paso.</p>`;
+  }
+  if (n===2){
+    return `
+      <div class="fila"><div class="et">Nombre<small>Como lo dirías en tienda</small></div>
+        <div class="campo"><input class="caja" id="in-nombre" placeholder="Blusa Lirio" value="${esc(s.nombre)}" autocomplete="off">
+          <div class="pie" id="pie-nombre">${pieNombre()}</div><div id="parecidos">${avisoParecidos()}</div></div></div>
+      <div class="fila"><div class="et">Descripción<small>Opcional</small></div>
+        <div class="campo"><input class="caja" id="in-desc" placeholder="Tela, corte, detalle…" value="${esc(s.desc)}"></div></div>
+      <div class="fila"><div class="et">Marca y proveedor<small>Quién la hace y quién la trae</small></div>
+        <div><p class="ayuda" style="margin:0 0 6px">Los más usados en ${cat()[1]}:</p>
+          <div class="chips">${PAREJAS.map((p,i) => `<button class="chip pareja" data-pareja="${i}" aria-pressed="${s.pareja===i}"><span>${s.pareja===i?"✓ ":""}<b style="font-weight:600">${p[0]}</b> · ${p[1]}</span><small>${p[2]}</small></button>`).join("")}</div>
+          <p class="ayuda"><button class="btn-enlace">Buscar otra marca o proveedor</button> · <button class="btn-enlace">+ Nueva marca</button></p></div></div>
+      ${pie(2,"Seguir")}`;
+  }
+  if (n===3){
+    const pat = p => ({Liso:"",Rayas:'<path d="M0 6h120M0 14h120M0 22h120M0 30h120" stroke="#805c4c" stroke-width="2"/>',
+      Floral:'<g fill="#805c4c"><circle cx="14" cy="10" r="3"/><circle cx="44" cy="24" r="3"/><circle cx="74" cy="10" r="3"/><circle cx="104" cy="24" r="3"/></g>',
+      Cuadros:'<path d="M0 12h120M0 24h120M20 0v40M50 0v40M80 0v40" stroke="#805c4c" stroke-width="1.5"/>',
+      Lunares:'<g fill="#805c4c"><circle cx="10" cy="9" r="2.5"/><circle cx="30" cy="27" r="2.5"/><circle cx="50" cy="9" r="2.5"/><circle cx="70" cy="27" r="2.5"/><circle cx="90" cy="9" r="2.5"/></g>'}[p]);
+    const chipColor = c => `<button class="chip" data-color="${c}" aria-pressed="${s.colores.includes(c)}"><span class="punto" style="background:${COLORES[c][1]}"></span>${COLORES[c][0]}</button>`;
+    const curvaCambiada = HABITUALES.length !== s.tallas.length || s.tallas.some(t => !HABITUALES.includes(t));
+    return `
+      <div class="fila"><div class="et">Tallas<small>${fam().cod==="indumentaria" ? "Vienen las habituales" : "Una sola"}</small></div>
+        <div><div class="chips">${tallasCat().map(t => `<button class="chip tab" data-talla="${t}" aria-pressed="${s.tallas.includes(t)}">${t}</button>`).join("")}</div>
+        <p class="ayuda">${fam().cod==="indumentaria" && curvaCambiada ? `<button class="btn-enlace" id="curva">Volver a S · M · L</button> · ` : ""}<button class="btn-enlace">+ Otra talla</button></p></div></div>
+      ${exige() ? `
+      <div class="fila"><div class="et">Tejido<small>${fam().nombre} lo pide</small></div>
+        <div class="chips">${TEJIDOS.map(t => `<button class="chip" data-tejido="${t}" aria-pressed="${s.tejido===t}">${t}</button>`).join("")}</div></div>
+      <div class="fila"><div class="et">Patrón<small>Sin diseño = Liso</small></div>
+        <div class="chips">${PATRONES.map(p => `<button class="pat" data-patron="${p}" aria-pressed="${s.patron===p}"><svg viewBox="0 0 120 36">${pat(p)}</svg><span>${s.patron===p?"✓ ":""}${p}</span></button>`).join("")}</div></div>` : ""}
+      <div class="fila"><div class="et">Colores<small>${s.colores.length ? s.colores.length+" elegido"+(s.colores.length===1?"":"s") : "Sin colores = una variante sin color"}</small></div>
+        <div><p class="ayuda" style="margin:0 0 6px">Los más usados en ${cat()[1]}</p><div class="chips">${FRECUENTES.map(chipColor).join("")}</div>
+          ${s.masColores ? `<div class="revela">${GRUPOS.map(([g,cs]) => `<div class="grupo-color"><p>${g}</p><div class="chips">${cs.map(chipColor).join("")}</div></div>`).join("")}</div>`
+          : `<button class="btn-enlace mas-colores" id="mas-colores">Más colores (${GRUPOS.reduce((a,g)=>a+g[1].length,0)})</button>`}</div></div>
+      ${pie(3,"Seguir al precio")}`;
+  }
+  if (n===4){
+    return `
+      <div class="tres">
+        <div class="campo"><label for="in-precio">Precio de venta</label><input class="caja monto tab" id="in-precio" inputmode="decimal" placeholder="0.00" value="${esc(s.precio)}"><div class="pie">Para todas las variantes</div></div>
+        <div class="campo"><label for="in-costo">Costo</label><input class="caja monto tab" id="in-costo" inputmode="decimal" placeholder="0.00" value="${esc(s.costo)}"><div class="pie">Sugerido: 38.50 (última blusa)</div></div>
+        <div class="campo"><label>Margen</label><div id="margen">${pintaMargen()}</div><div class="pie" id="margen-pie">${pieMargen()}</div></div>
+      </div>
+      <div class="matriz-cab"><p><b id="n-var">${celdasDentro().length}</b> <span class="m60">variantes · clic en una celda para quitarla</span></p>
+        <button class="btn-enlace" id="distinto">${s.distinto ? "Listo, volver" : "Poner un precio distinto a alguna"}</button></div>
+      <div class="matriz-scroll" id="matriz">${pintaMatriz()}</div>
+      <div class="etiquetas-toggle">${s.verEtiquetas
+        ? `<p class="lbl m60" style="margin-bottom:6px">Etiquetas · opcional</p><div class="chips">${ETIQUETAS.map(([e,d]) => d
+            ? `<span class="chip" style="border-style:dashed;cursor:default">✓ ${e} · ${d} <span class="m45">· ya aplica por campaña</span></span>`
+            : `<button class="chip" data-etiqueta="${e}" aria-pressed="${s.etiquetas.includes(e)}">${e}</button>`).join("")}</div>`
+        : `<button class="btn-enlace" id="ver-etiquetas">+ Etiquetas (opcional)</button> <span class="m45" style="font-size:12px">· «Cyber CAYLA» ya aplica sola a Blusas</span>`}</div>
+      <p class="ayuda" id="falta-4" style="margin-top:12px">${listo[4]() ? "" : esc(faltaDe(4))}</p>`;
+  }
+}
+
+function pieNombre(){ const f = titulo(s.nombre); return f && f !== s.nombre.trim() ? `Se guardará como <b>${esc(f)}</b>` : ""; }
+function avisoParecidos(){
+  const {identico, suaves} = parecidos();
+  if (identico) return `<div class="aviso rojo" role="alert"><b>${identico[0]}</b> ya existe (${identico[1]}). Un nombre es un solo producto: cámbialo o <u>abre el que existe</u>.</div>`;
+  if (suaves.length) return `<div class="aviso">Parecido: ${suaves.map(e => `<b>${e[0]}</b> (${e[1]})`).join(", ")}. Si es otra prenda, sigue.</div>`;
+  return "";
+}
+function pintaMargen(){ const m = margen(); if (m===null) return `<div class="margen m45">—</div>`; const c = m<0?"neg":m<30?"bajo":"ok"; return `<div class="margen tab ${c}">${m.toFixed(0)} %</div>`; }
+function pieMargen(){ const m = margen(); if (m===null) return "Con costo, se calcula"; return m<0 ? "Pierdes dinero" : m<30 ? "Poco: un descuento se lo come" : "Sin descontar IGV"; }
+function pintaMatriz(){
+  const ts = tallasOrden();
+  if (!ts.length) return `<p class="m60" style="padding:14px">Elige tallas en el paso 3.</p>`;
+  const cab = `<thead><tr><th style="text-align:left;padding-left:12px">Color</th>${ts.map(t => `<th class="col tab" data-col="${t}" title="Quitar o poner toda la talla">${t}</th>`).join("")}</tr></thead>`;
+  const filas = coloresFila().map(c => `<tr><th class="fila-c" data-fila="${c??"—"}" title="Quitar o poner todo el color"><span>${c ? `<i class="punto" style="background:${COLORES[c][1]}"></i>${COLORES[c][0]}` : "Sin color"}</span></th>${ts.map(t => {
+      const k = (c??"—")+"|"+t, dentro = !s.fuera.includes(k), pr = s.precios[k];
+      if (!dentro) return `<td><button class="celda no" data-celda="${k}" title="Volver a incluir">—</button></td>`;
+      if (s.distinto) return `<td><div class="celda"><input class="tab" data-precio="${k}" placeholder="${esc(s.precio||"0.00")}" value="${esc(pr??"")}" aria-label="Precio ${k}"></div></td>`;
+      return `<td><button class="celda si tab ${pr?"distinto":""}" data-celda="${k}">${pr ? Number(pr).toFixed(2) : `<span class="pr">${Number(s.precio)>0 ? Number(s.precio).toFixed(2) : ""}</span>`}</button></td>`;
+    }).join("")}</tr>`).join("");
+  return `<table class="matriz">${cab}<tbody>${filas}</tbody></table>`;
+}
+
+function pintarFicha(){
+  const sig = siguiente(), c = cat(), base = codigoBase(), dentro = celdasDentro();
+  const codVar = base ? dentro.slice(0,3).map(x => [base, x.c, x.t==="Única" ? null : x.t].filter(Boolean).join("-")) : [];
+  const puntos = s.colores.map(c => `<i style="background:${COLORES[c][1]}"></i>`).join("");
+  const html = `
+    <div class="tarjeta">
+      <div class="foto">Las fotos se agregan por color al terminar<div class="puntos">${puntos}</div></div>
+      <div class="cuerpo">
+        <p class="cod mono tab">${base ?? '<span class="vacio">— código —</span>'}</p>
+        <h2 class="disp">${s.nombre.trim() ? esc(titulo(s.nombre)) : '<span class="vacio">Sin nombre</span>'}</h2>
+        <p class="taupe" style="font-size:13px">${c ? `${fam().nombre} › ${c[1]}` : '<span class="vacio">Sin categoría</span>'}${s.pareja!==null ? ` · ${PAREJAS[s.pareja][0]}` : ""}</p>
+        <dl>
+          <dt>Tallas</dt><dd class="tab">${tallasOrden().join(" · ") || '<span class="vacio">—</span>'}</dd>
+          <dt>Tejido y patrón</dt><dd>${[s.tejido,s.patron].filter(Boolean).join(" · ") || '<span class="vacio">—</span>'}</dd>
+          <dt>Variantes</dt><dd class="tab">${c && s.tallas.length ? dentro.length : '<span class="vacio">—</span>'}</dd>
+        </dl>
+        ${codVar.length ? `<p class="codigos mono">${codVar.join(" · ")}${dentro.length>3?` · +${dentro.length-3}`:""}</p>` : ""}
+        <div class="precio"><span class="taupe">Precio</span><b class="disp tab">${Number(s.precio)>0 ? soles(s.precio) : '<span class="vacio">S/ —</span>'}</b></div>
+      </div>
+    </div>
+    <div class="siguiente ${sig?"":"listo"}"><span class="lbl">${sig ? "Siguiente paso" : "Todo listo"}</span>${sig ? esc(sig.texto) : "Revisa la ficha y crea el producto."}</div>
+    <div class="responsable campo"><label>Responsable</label><select class="caja"><option>Rosa Quispe · de turno en TRU</option><option>Felipe Alvarez</option></select></div>
+    <div class="acciones"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario" ${sig?"disabled":""}>Crear producto</button></div>`;
+  $("ficha").innerHTML = html;
+  $("barra").innerHTML = `
+    <div class="hoja">${`<div class="tarjeta" style="background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:12px 14px">
+      <p class="cod mono">${base ?? "—"}</p><p class="disp" style="font-size:19px">${s.nombre.trim()?esc(titulo(s.nombre)):"Sin nombre"}</p>
+      <p class="taupe" style="font-size:12.5px">${tallasOrden().join(" · ")||"—"} · ${s.colores.length} colores · ${c && s.tallas.length ? dentro.length : 0} variantes</p></div>
+      <div class="responsable campo"><select class="caja"><option>Responsable: Rosa Quispe</option></select></div>`}</div>
+    <div class="linea"><div><b>${s.nombre.trim()?esc(titulo(s.nombre)):"Nuevo producto"}</b><span class="taupe tab">${base??"—"} · ${c && s.tallas.length ? dentro.length : 0} var. · ${Number(s.precio)>0?soles(s.precio):"S/ —"}</span></div>
+      <button class="btn btn-secundario" id="ver-barra" style="padding:8px 10px">${s.barra?"Ocultar":"Ver"}</button>
+      <button class="btn btn-primario" ${sig?"disabled":""}>Crear</button></div>
+    <p class="falta">${sig ? "Siguiente: "+esc(sig.texto) : "Todo listo."}</p>`;
+  $("barra").classList.toggle("abierta", s.barra);
+}
+
+function pintar(){ pintarRuta(); pintarPasos(); pintarFicha(); }
+/* Al escribir no se repinta el paso (perdería el foco): solo las piezas que dependen del texto. */
+function refrescarVivo(){
+  pintarRuta(); pintarFicha();
+  const n = s.abierto, f = $("falta-"+n), b = document.querySelector(`[data-seguir="${n}"]`);
+  if (f) f.textContent = listo[n]() ? "" : faltaDe(n);
+  if (b) b.disabled = !listo[n]();
+}
+
+/* ---------------- eventos ---------------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button,[data-fila],[data-col]"); if (!t) return;
+  const d = t.dataset;
+  if (d.preset){ s = PRESETS[d.preset](); document.querySelectorAll("[data-preset]").forEach(b => b.setAttribute("aria-pressed", b===t)); pintar(); return; }
+  if (t.id==="btn-celular"){ const on = !document.body.classList.contains("celular"); document.body.classList.toggle("celular", on); t.setAttribute("aria-pressed", on); return; }
+  if (d.abrir){ s.abierto = Number(d.abrir); pintar(); return; }
+  if (d.fam){ s.familia = d.fam; s.cat = null; pintar(); return; }
+  if (d.cat){ const [f,c] = d.cat.split(":"); s.familia=f; s.cat=c; s.busca=""; s.tallas = f==="indumentaria" ? [...HABITUALES] : ["Única"]; s.tejido=s.patron=null; s.fuera=[]; s.precios={}; s.abierto=2; pintar(); return; }
+  if (d.seguir){ const n = Number(d.seguir); if (listo[n]()) { s.abierto = n+1; pintar(); } return; }
+  if (d.pareja!==undefined){ s.pareja = Number(d.pareja); pintar(); return; }
+  if (d.talla){ s.tallas = s.tallas.includes(d.talla) ? s.tallas.filter(x=>x!==d.talla) : [...s.tallas,d.talla]; pintar(); return; }
+  if (t.id==="curva"){ s.tallas=[...HABITUALES]; pintar(); return; }
+  if (d.tejido){ s.tejido = s.tejido===d.tejido ? null : d.tejido; pintar(); return; }
+  if (d.patron){ s.patron = s.patron===d.patron ? null : d.patron; pintar(); return; }
+  if (d.color){ s.colores = s.colores.includes(d.color) ? s.colores.filter(x=>x!==d.color) : [...s.colores,d.color]; pintar(); return; }
+  if (t.id==="mas-colores"){ s.masColores = true; pintar(); return; }
+  if (d.celda){ s.fuera = s.fuera.includes(d.celda) ? s.fuera.filter(x=>x!==d.celda) : [...s.fuera,d.celda]; $("matriz").innerHTML = pintaMatriz(); refrescarVivo(); $("n-var").textContent = celdasDentro().length; return; }
+  if (d.fila||d.col){
+    const ks = celdas().filter(x => d.fila ? (x.c??"—")===d.fila : x.t===d.col).map(x=>x.k);
+    const todasFuera = ks.every(k => s.fuera.includes(k));
+    s.fuera = todasFuera ? s.fuera.filter(k=>!ks.includes(k)) : [...new Set([...s.fuera,...ks])];
+    $("matriz").innerHTML = pintaMatriz(); refrescarVivo(); $("n-var").textContent = celdasDentro().length; return;
+  }
+  if (t.id==="distinto"){ s.distinto = !s.distinto; pintar(); return; }
+  if (t.id==="ver-etiquetas"){ s.verEtiquetas = true; pintar(); return; }
+  if (d.etiqueta){ s.etiquetas = s.etiquetas.includes(d.etiqueta) ? s.etiquetas.filter(x=>x!==d.etiqueta) : [...s.etiquetas,d.etiqueta]; pintar(); return; }
+  if (t.id==="ver-barra"){ s.barra = !s.barra; pintarFicha(); return; }
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id==="in-busca"){ s.busca = t.value; const pos = t.selectionStart; pintarPasos(); const i=$("in-busca"); i.focus(); i.setSelectionRange(pos,pos); return; }
+  if (t.id==="in-nombre"){ s.nombre = t.value; $("pie-nombre").innerHTML = pieNombre(); $("parecidos").innerHTML = avisoParecidos(); refrescarVivo(); return; }
+  if (t.id==="in-desc"){ s.desc = t.value; return; }
+  if (t.id==="in-precio"||t.id==="in-costo"){ s[t.id==="in-precio"?"precio":"costo"] = t.value; $("margen").innerHTML = pintaMargen(); $("margen-pie").textContent = pieMargen(); if(!s.distinto) $("matriz").innerHTML = pintaMatriz(); refrescarVivo(); return; }
+  if (t.dataset.precio){ if (t.value) s.precios[t.dataset.precio] = t.value; else delete s.precios[t.dataset.precio]; return; }
+});
+
+s = PRESETS.listo();
+document.querySelector('[data-preset="listo"]').setAttribute("aria-pressed","true");
+pintar();
+</script>
+</body>
+</html>
