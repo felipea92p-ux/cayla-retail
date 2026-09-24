@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { ChevronDown, Clock, RefreshCw, UserRound } from "lucide-react";
+import { ChevronDown, Clock, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
@@ -31,6 +31,7 @@ function iniciales(nombre: string): string {
  *    que ya salieron solo se cuentan al pie.
  *  · Nadie presente: la operación se bloquea (sin «Otra persona») y se dice qué hacer — marcar entrada en el kiosco
  *    y «Actualizar lista». Igual para un líder, incluso trabajando desde casa (A9).
+ *  · El Admin (ADR-0178) no pasa por nada de esto: firma él y solo ve un aviso de que no necesita autorización.
  */
 export function ComboResponsable({ control, deshabilitado = false, className = "" }: Props) {
   const [abierto, setAbierto] = useState(false);
@@ -53,6 +54,17 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
     document.addEventListener("pointerdown", fuera);
     return () => document.removeEventListener("pointerdown", fuera);
   }, [abierto]);
+
+  if (estado === "admin") {
+    return (
+      <p role="status" className={`flex items-center gap-2 rounded-lg border border-pizarra/25 bg-pizarra/[0.06] px-3 py-2.5 text-[13px] text-tinta/80 ${className}`}>
+        <ShieldCheck className="h-4 w-4 shrink-0 text-pizarra" aria-hidden />
+        <span>
+          <b className="font-semibold text-tinta">Eres admin:</b> no necesitas autorización. Lo que guardes queda a tu nombre.
+        </span>
+      </p>
+    );
+  }
 
   if (estado === "nadie" || estado === "sin_lectura") {
     const nadie = estado === "nadie";

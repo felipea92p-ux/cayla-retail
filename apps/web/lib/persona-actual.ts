@@ -46,6 +46,9 @@ export type PersonaActualV2 = {
    *  combo «Responsable» viene ya elegido con quien inició sesión (salvo en el Punto de venta): una terminal no tiene a
    *  quién proponer y sigue viniendo vacía. Sale de `fn_actor_persona_id(false)`, que para una persona devuelve su id. */
   personaId: string | null;
+  /** ¿La sesión es de un ADMIN (ADR-0178, `fn_es_admin()`)? El Admin firma a su nombre sin marcar asistencia
+   *  (20260924171300): en vez del combo «Responsable», la pantalla le dice que no necesita autorización. */
+  esAdmin: boolean;
   /** Lo que puede hacer además de operar su tienda, resuelto UNA vez desde sus módulos (`permisosDeModulos`).
    *  Las pantallas y los botones preguntan por un permiso (`puede`), no por «¿es líder?». */
   permisos: readonly Permiso[];
@@ -88,13 +91,20 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
   // 20260923030000), la cuenta ve lo de hoy: ni más ni menos (principio 9).
   // Quién es la persona de la sesión (para proponerla en el combo «Responsable»): con `p_de_tienda = false`
   // `fn_actor_persona_id` devuelve el id propio sin mirar encabezados. En una terminal falla (exige responsable): null.
-  const [{ data, error }, { data: miTerminal, error: errorTerminal }, { data: filasModulos, error: errorModulos }, { data: miPersonaId, error: errorPersonaId }] =
-    await Promise.all([
-      supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
-      supabase.rpc("fn_mi_terminal"),
-      supabase.rpc("fn_mis_modulos"),
-      supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
-    ]);
+  // ¿Admin? También en paralelo; un error = no es admin (falla cerrado: se le pide el combo como a todos).
+  const [
+    { data, error },
+    { data: miTerminal, error: errorTerminal },
+    { data: filasModulos, error: errorModulos },
+    { data: miPersonaId, error: errorPersonaId },
+    { data: soyAdmin },
+  ] = await Promise.all([
+    supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
+    supabase.rpc("fn_mi_terminal"),
+    supabase.rpc("fn_mis_modulos"),
+    supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
+    supabase.rpc("fn_es_admin"),
+  ]);
 
   if (error || !data || !data.ubicacion_id) {
     redirect(`/login?error=${await motivoSinAcceso(supabase, claims.claims.sub)}`);
@@ -156,6 +166,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     puedeCambiarUbicacion: !!data.es_lider,
     terminal,
     personaId: !terminal && !errorPersonaId && typeof miPersonaId === "string" ? miPersonaId : null,
+    esAdmin: !terminal && soyAdmin === true,
     permisos,
     modulos,
     tiendasCompra,

@@ -67,16 +67,26 @@ export function useResponsable(
   const activa = useSedeActiva();
   const ubicacionId = ubicacion?.ubicacionId ?? activa?.ubicacionId ?? null;
   const sede = ubicacion?.etiqueta ?? activa?.etiqueta ?? "esta tienda";
+  // El Admin firma él, sin lista ni asistencia (20260924171300): ni se pregunta quién está de turno.
+  const adminId = activa?.esAdmin ? (activa.personaSesionId ?? null) : null;
+  const nombreAdmin = activa?.nombreSesion ?? "";
   const propuesto = proponeSesion(modo) ? (activa?.personaSesionId ?? null) : null;
-  const deTurno = useDeTurno(ubicacionId);
+  const deTurno = useDeTurno(adminId ? null : ubicacionId);
   // Lo que se tocó en el combo; `undefined` = nadie lo tocó todavía y vale el propuesto.
   const [tocado, setTocado] = useState<string | undefined>(undefined);
-  const elegido = responsableInicial(tocado, propuesto);
+  const elegido = adminId ?? responsableInicial(tocado, propuesto);
 
-  const lista = useMemo(() => listaResponsable(deTurno.filas), [deTurno.filas]);
+  // Con Admin, la lista es solo él: así las pantallas que buscan el nombre del elegido («Atendió», «Cerró») lo encuentran.
+  const lista = useMemo(
+    () =>
+      adminId
+        ? { elegibles: [{ personaId: adminId, nombre: nombreAdmin, enPausa: false, deOtraSede: false }], enPausa: [], salieron: 0 }
+        : listaResponsable(deTurno.filas),
+    [adminId, nombreAdmin, deTurno.filas],
+  );
   const elegidoId = useMemo(() => responsableVigente(lista, elegido), [lista, elegido]);
-  const estado = estadoCombo({ cargo: deTurno.cargo, fallo: deTurno.fallo, lista, elegidoId: elegido });
-  const listo = estado === "listo" && ubicacionId !== null;
+  const estado = estadoCombo({ cargo: deTurno.cargo, fallo: deTurno.fallo, lista, elegidoId: elegido, admin: adminId !== null });
+  const listo = (estado === "listo" || estado === "admin") && ubicacionId !== null;
 
   // «Limpiar» (venta nueva, cancelar) vuelve a como vino al abrir: la persona de la sesión, o vacío.
   const limpiar = useCallback(() => setTocado(undefined), []);
