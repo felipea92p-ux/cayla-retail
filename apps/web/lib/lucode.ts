@@ -54,6 +54,8 @@
 //     lo lee como PENDIENTE, que es la lectura conservadora — nunca da por
 //     anulado lo que no le confirmaron.
 
+import { capturarError } from "./errores";
+
 export type EntornoLucode = "sandbox" | "produccion";
 
 const BASE_URL: Record<EntornoLucode, string> = {
@@ -204,7 +206,9 @@ async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
       signal: AbortSignal.timeout(15000),
       cache: "no-store",
     });
-  } catch {
+  } catch (e) {
+    // A la pantalla le basta «no respondió»; al log, el motivo real (vencido, DNS, certificado…).
+    capturarError("lucode: sin respuesta", e, { ruta });
     return { ok: false, motivo: "sin_respuesta", detalle: "Lucode no respondió a tiempo" };
   }
 
@@ -215,7 +219,8 @@ async function llamar(ruta: string, body: unknown): Promise<LlamadaCruda> {
   let json: Record<string, unknown>;
   try {
     json = (await respuesta.json()) as Record<string, unknown>;
-  } catch {
+  } catch (e) {
+    capturarError("lucode: respuesta que no es JSON", e, { ruta, status: respuesta.status });
     return { ok: false, motivo: "sin_respuesta", detalle: "Lucode devolvió algo que no es JSON" };
   }
 
