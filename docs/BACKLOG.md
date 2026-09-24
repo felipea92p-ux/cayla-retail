@@ -28,6 +28,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — construido, NO pegado en producción
+Pedido de Dany: las cuentas de caja y almacén de cada tienda siguen pidiendo a alguien de turno; el Admin (ADR-0178) no, solo ve «Eres admin: no necesitas autorización».
+- [x] Migración `20260924171300_admin_firma_sin_asistencia.sql`: `fn_actor_persona_id` deja firmar al Admin a su nombre sin asistencia (sin responsable o eligiéndose a sí mismo). Definición de producción comparada antes (md5 `cad473a6…`, igual a `20260923010000`).
+- [x] Web: `esAdmin` en `requirePersonaActualV2` → `SedeActivaProveedor` → `useResponsable` (estado `admin`) → aviso en `ComboResponsable`. Probado a 375 px con una página temporal (borrada).
+- [x] Pruebas: 4 casos nuevos en `pruebas:terminales-sin-persona` (54/55 en seco; el rojo «RLS… permission denied for function intento» ya fallaba sin este cambio) y `estadoCombo` en vitest.
+- [ ] **Pegar en producción** (con OK explícito): la migración va con `retail.` y exige `fn_es_admin` (ya está en producción). Sin ella, la web muestra el aviso pero la base rechaza al Admin sin asistencia: **pegar la migración ANTES de publicar la web.**
+- [ ] Verlo con clics en `/vender` con la cuenta de un Admin, sin marcar entrada.
+- Cómo verificas: entra con una cuenta Admin a Vender en una tienda donde nadie marcó: en vez de «Nadie de turno» sale el aviso y la venta se guarda a tu nombre. Con la terminal de caja de esa tienda, sigue «Nadie de turno».
+
 ## 🔒 Varios usuarios a la vez: auditoría de concurrencia y volumen (2026-09-23, ADR-0188 a 0193) — EN PRODUCCIÓN: las 5 migraciones pegadas por Felipe y verificadas objeto por objeto (2026-09-23) y los 6 PRs fusionados
 Auditoría completa (343 funciones, 229 consultas web, estadísticas de producción). Ya estaba bien protegido: stock (sin negativos ni sobreventa), numeración, una caja abierta por sede, doble clic en ventas/comprobantes/cambios/compras. Las 5 etapas se hicieron en paralelo; integradas sobre `main` (2026-09-23): se fusionan sin conflictos, tipos/lint limpios, 24.363 pruebas web en verde, y las 5 migraciones corren en fila en el local (re-pegables: la segunda pasada no cambia nada).
 **Orden para pegar en producción (todas traen `set search_path`, sin prefijo `retail.`) y fusionar:**

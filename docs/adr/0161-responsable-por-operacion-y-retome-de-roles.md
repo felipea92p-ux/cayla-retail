@@ -341,3 +341,26 @@ Tras la (c) quedaron acciones que guardan sin anotar quién; Felipe pidió agreg
 Las filas anteriores quedan con el «quién» vacío: no se inventa quién fue. En la web, cada una de esas pantallas lleva el
 combo. Pruebas: `pnpm pruebas:quien-pendientes` (9 casos).
 
+
+## Actualización 2026-09-24 — el Admin firma sin marcar asistencia (excepción a A9)
+
+**Pedido (Dany, 2026-09-24):** hoy hay 3 tiendas y cada una tiene 2 cuentas compartidas (caja y almacén). En esas cuentas
+se exige elegir a alguien que marcó su entrada. **Si la cuenta es de un Admin (ADR-0178), no:** solo un aviso simple de que
+es el admin y no necesita autorización.
+
+**Qué cambia.** `fn_actor_persona_id(true)` (migración `20260924171300_admin_firma_sin_asistencia.sql`): con sesión de una
+PERSONA que es Admin (`fn_es_admin()`), si no manda responsable o se manda a sí misma, firma ella sin mirar la asistencia.
+En la web, `requirePersonaActualV2` pregunta `fn_es_admin` (en paralelo, falla cerrado), lo pasa por `SedeActivaProveedor`,
+y `useResponsable` deja el combo en estado `admin`: listo para guardar, firmado por el Admin, sin leer quién está de turno.
+`ComboResponsable` pinta «Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.»
+
+**Qué no cambia.** Las terminales, siempre con responsable presente. Los líderes que no son Admin, con el mismo candado (A9
+sigue vigente para ellos). Si el Admin manda a otra persona como responsable, esa persona pasa por el candado. Los permisos
+siguen siendo de la cuenta. Esto corrige la «Consecuencia» de A9 solo para el Admin: sin marcar, ya puede crear una prenda,
+ajustar stock o tocar la caja; queda a su nombre y el rastro no se pierde porque su cuenta no se comparte.
+
+**Lo que se rompería sin esto:** el Admin trabajando desde casa, o en una tienda donde nadie marcó (Lima sin asistencia
+cargada), no puede guardar nada. **Cómo se ve mal hecho:** saltarse el candado solo en la pantalla — la base lo rechazaría
+igual («Elige quién hace esta operación»); o hacerlo por `fn_es_lider()` — las terminales y los líderes perderían el rastro.
+Pruebas: 4 casos en `pnpm pruebas:terminales-sin-persona` (Admin sin responsable, Admin eligiéndose, Admin eligiendo a otra
+persona ausente, líder no admin sigue bloqueado) y `estadoCombo` en `lib/responsable-reglas.test.ts`.
