@@ -54,7 +54,7 @@ export function ProveedorAcciones({ proveedor, rubros }: { proveedor: ProveedorF
         </button>
         {proveedor.activo && (
           <Link href={`/compras/nueva?prov=${proveedor.id}`} className="label-cayla inline-flex items-center gap-2 rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
-            <Plus aria-hidden className="h-3.5 w-3.5" /> Registrar comprobante
+            <Plus aria-hidden className="h-3.5 w-3.5" /> Registrar factura
           </Link>
         )}
       </div>

@@ -75,7 +75,7 @@ export function HistorialVentasPulso({ totales, periodo }: { totales: TotalesHis
 
       {parcial ? (
         <p className="mt-4 rounded-xl border border-dashed border-tinta/15 px-3 py-5 text-center text-xs leading-relaxed text-tinta/65">
-          Hay más de 1,000 ventas en este rango: acótalo (una tienda, menos días) para ver el pulso y los totales.
+          Hay 1,000 ventas o más en este rango: acótalo (una tienda, menos días) para ver el pulso y los totales.
         </p>
       ) : hayDibujo && enfocado ? (
         <>
