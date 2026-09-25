@@ -13,6 +13,7 @@ import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { MasMovil } from "@/components/MasMovil";
 import { IconoAparato } from "@/components/ui/IconoAparato";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
@@ -72,6 +73,8 @@ import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 // falta traducir nada.
 type Persona = {
   nombre: string;
+  /** `public.personas.id`, para su foto de Dynamic en el pie del lateral. `null` en una terminal o sin dato: iniciales. */
+  personaId?: string | null;
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -826,15 +829,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const columnas = menu.movil;
   const indiceMovil = columnas.findIndex((c) => activo(c.href));
 
-  const iniciales =
-    persona.nombre
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p.charAt(0))
-      .join("")
-      .toUpperCase() || "·";
-
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
@@ -924,12 +918,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
                 aria-label={plegado ? "Mi perfil" : undefined}
                 className="group flex min-w-0 flex-1 items-center gap-3 text-left"
               >
-                <span
-                  aria-hidden
-                  className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
-                >
-                  {iniciales}
-                </span>
+                <AvatarPersona
+                  personaId={persona.personaId}
+                  nombre={persona.nombre}
+                  className="h-9 w-9 text-sm transition-colors group-hover:bg-rojo/15"
+                />
                 <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
                   <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
                   <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
@@ -1026,13 +1019,8 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
             {/* Un aparato (ADR-0162) no tiene "Mi perfil" que abrir: nada que hacer al tocarlo, así que
                 el botón ni se dibuja — mismo criterio que el avatar del lateral de escritorio. */}
             {!esAparato && (
-              <button
-                type="button"
-                onClick={() => setPerfilAbierto(true)}
-                aria-label="Mi perfil"
-                className="font-display grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sand text-xs text-tinta transition-colors hover:bg-rojo/15 sm:hidden"
-              >
-                {iniciales}
+              <button type="button" onClick={() => setPerfilAbierto(true)} aria-label="Mi perfil" className="shrink-0 sm:hidden">
+                <AvatarPersona personaId={persona.personaId} nombre={persona.nombre} className="h-8 w-8 text-xs" />
               </button>
             )}
           </div>
