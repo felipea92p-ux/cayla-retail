@@ -28,6 +28,19 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🌡️ Frescura del piso — plan del termómetro, tareas 1-4 (2026-09-25)
+El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cuatro tareas vienen de otro plan de la misma fecha y se reconciliaron con él antes de abrir los PR.
+- [x] **Termómetro semanal** (tarea 1): `docs/datos/consultas/frescura-termometro.sql` — 12 consultas SELECT con su rutina de los lunes. PR de docs.
+- [x] **La caja dice «está en el almacén»** (tarea 2): #437. Fusionar fuera de la hora punta de TRU; trae además un arreglo de precio de proforma (revisar con ese foco).
+- [x] **«Por colgar» en Existencias** (tarea 4): #438. Choca con #434 solo en `inventario/page.tsx` (una línea cada uno).
+- [ ] **Tarea 3 (Retirar del piso + motivos del ajuste): decisión de Felipe.** Rama `claude/frescura-t3-retiro-y-ajuste`, sin PR. Tiene dos partes:
+  - **Retirar del piso:** coincide con el bloque 2 del ADR-0208 (`mover_interno` invertido) y podría salir sobre #434.
+  - **Motivos nuevos** (`carga_existente` y el valor propio de «Encontré de más»): se descartan, porque cargan al piso sin pasar por el candado de «Reposición» (`20260926000400`).
+- [ ] **La caja no manda `p_emisor`** (`PuntoDeVenta.tsx:926-958`). Toda venta queda como «emite retail», contra D-56 («La emite Alegra» por defecto). Tarea aparte.
+- [ ] **Felipe:** cada lunes, boletas de Alegra por sede y día contra la consulta 01. Esta semana, pedir a Alegra el export de una semana (¿trae precio de lista y descuento por línea?) para la línea base de «% a precio completo».
+
+---
+
 ## 🧭 Estado verificado el 2026-09-25 — triaje de las 443 casillas abiertas contra el repo y producción (manda sobre lo de abajo)
 Lo hicieron 11 agentes (uno por trozo de este archivo) más un escéptico por trozo; producción se consultó solo con `SELECT` y **por efectos** (nunca por `supabase_migrations`, que no es fiable). Los números de línea que citaron son de este archivo antes de que #396 y #397 le sumaran líneas: aquí se cita por contenido.
 - **Este archivo está desfasado en ~44 %** (229 de 525 ítems clasificados): 128 ya estaban hechos, 61 son obsoletos, 65 solo se comprueban con clics reales y 110 esperan una decisión de Felipe, Dany o el contador. Solo 133 eran trabajo abierto, y de esos **15 sobrevivieron al escéptico como «Claude lo hace solo, sin decisión» y ninguno es de valor alto**. El cuello de botella no es construir: son decisiones y acciones de Felipe.
