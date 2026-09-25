@@ -45,6 +45,24 @@ describe("agruparCatalogo — una tarjeta por prenda + color", () => {
     expect(g.tallas.every((t) => t.stockAqui === 0)).toBe(true);
   });
 
+  it("suma lo del almacén de la sede aparte del piso: sin piso pero con almacén no es un grupo agotado (D-40)", () => {
+    const [g] = agruparCatalogo([
+      { ...v("1", "Blusa Paracas", "Beige", "S", 0), almacenAqui: 2 },
+      { ...v("2", "Blusa Paracas", "Beige", "M", 0), almacenAqui: null },
+      v("3", "Blusa Paracas", "Beige", "L", 0),
+    ]);
+    expect(g.stockTotal).toBe(0);
+    expect(g.almacenTotal).toBe(2);
+    expect(g.tallas.map((t) => t.almacenAqui)).toEqual([2, 0, 0]);
+    // Una tienda (alguna talla trae el dato del almacén): `stockTotal` es solo el piso.
+    expect(g.separaPiso).toBe(true);
+  });
+
+  it("en el Taller (sin almacén) o sin el dato, `stockTotal` es todo lo de la sede, no «el piso»", () => {
+    const [g] = agruparCatalogo([{ ...v("1", "Blusa Paracas", "Beige", "S", 3), almacenAqui: null }, v("2", "Blusa Paracas", "Beige", "M", 1)]);
+    expect(g.separaPiso).toBe(false);
+  });
+
   it("cada talla conserva su variante entera: es lo que va al ticket al tocarla", () => {
     const original = v("7", "Blusa Emma", "Beige", "M", 5);
     const [g] = agruparCatalogo([original]);

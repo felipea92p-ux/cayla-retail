@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { armarVariantesAjuste, type FilaAjuste } from "./ajuste-reglas";
+import {
+  armarVariantesAjuste,
+  MOTIVOS_AJUSTE,
+  motivosAjusteDisponibles,
+  NOTA_REPOSICION_CERRADA,
+  reposicionCerrada,
+  type FilaAjuste,
+} from "./ajuste-reglas";
 
 const PISO = "sub-piso";
 const ALMACEN = "sub-almacen";
@@ -109,5 +116,30 @@ describe("armarVariantesAjuste — stock y datos de la fila", () => {
     const [v] = armarVariantesAjuste([fila("1", "M", { sku: null, color: null })], PISO, ALMACEN);
     expect(v.sku).toBe("");
     expect(v.color).toBeNull();
+  });
+});
+
+describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", () => {
+  const valores = (xs: readonly { valor: string }[]) => xs.map((m) => m.valor);
+
+  it("en el piso de una tienda que separa piso y almacén, «Reposición» no se ofrece", () => {
+    expect(valores(motivosAjusteDisponibles("piso", true))).toEqual(["merma", "conteo_fisico", "otro"]);
+    expect(reposicionCerrada("piso", true)).toBe(true);
+  });
+
+  it("en el almacén sigue disponible", () => {
+    expect(valores(motivosAjusteDisponibles("almacen", true))).toContain("reposicion");
+    expect(reposicionCerrada("almacen", true)).toBe(false);
+  });
+
+  it("en una sede que no separa piso y almacén (el Taller) no cambia nada", () => {
+    expect(valores(motivosAjusteDisponibles("piso", false))).toEqual(valores(MOTIVOS_AJUSTE));
+    expect(reposicionCerrada("piso", false)).toBe(false);
+  });
+
+  it("la nota nombra los dos caminos que sí sacan del almacén y el motivo para lo encontrado de más", () => {
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Bajar al piso»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Reponer»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
   });
 });

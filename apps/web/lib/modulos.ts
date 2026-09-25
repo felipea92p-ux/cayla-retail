@@ -12,7 +12,7 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
-  "existencias", "conteos", "traslados", "movimientos",
+  "existencias", "bajada_piso", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
@@ -49,7 +49,10 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir y exportar" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
-  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, ajustar stock, apartar prendas" },
+  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer el piso, ajustar stock, apartar prendas" },
+  // Bajada al piso (ADR-0208, 20260926000000): bajar lo del almacén sin darle a nadie todo Existencias. Nace sin rol: solo
+  // lo ve el líder. Delegable: `bajar_al_piso` pregunta por este módulo, no por el líder.
+  { clave: "bajada_piso", grupo: "Inventario", nombre: "Bajada al piso", incluye: "Bajar al piso las prendas del almacén de su tienda, escaneándolas y confirmando de una vez" },
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },

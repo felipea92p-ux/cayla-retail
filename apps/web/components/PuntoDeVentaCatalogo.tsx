@@ -6,6 +6,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -50,6 +51,8 @@ type Props = {
   onSoloConStock: (valor: boolean) => void;
   /** Cuántas tarjetas esconde el filtro ahora mismo (0 si está apagado). */
   ocultasSinStock: number;
+  /** De esas, cuántas tienen prendas en el almacén de esta sede: no están agotadas, falta bajarlas (D-40). */
+  ocultasEnAlmacen: number;
   /** Tocar el cuerpo de una tarjeta: el padre abre el modal de talla. */
   onElegirTalla: (clave: string) => void;
   /** Tarjeta a la que se le acaba de pedir más de lo que hay. `pulso` sube en cada intento,
@@ -138,6 +141,7 @@ export function PuntoDeVentaCatalogo({
   soloConStock,
   onSoloConStock,
   ocultasSinStock,
+  ocultasEnAlmacen,
   onElegirTalla,
   topeTarjeta,
   grupos,
@@ -161,8 +165,12 @@ export function PuntoDeVentaCatalogo({
       <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
-            del campo y no entre los chips, donde le robaba ancho a las categorías. */}
-        <div className="flex items-stretch gap-2">
+            del campo y no entre los chips, donde le robaba ancho a las categorías.
+            En el teléfono la fila tiene tres botones y el campo mide ~155 px: la lista de resultados,
+            anclada al campo, cortaba el precio y el stock. Bajo `sm` la lista se ancla a la FILA
+            (el envoltorio del campo pasa a `static` y la fila toma el `relative z-20`) y usa todo el
+            ancho; desde `sm` sigue anclada al campo, como siempre. */}
+        <div className="relative flex items-stretch gap-2 max-sm:z-20">
           {modoCamara ? (
             // Teléfono: no hay lector que «escriba» el código, así que el lugar del campo lo toma la cámara. Mismo alto
             // (h-14) y mismo lugar: la encargada busca «escanear» donde siempre estuvo.
@@ -176,7 +184,7 @@ export function PuntoDeVentaCatalogo({
               Escanear QR
             </button>
           ) : (
-          <div className="relative z-20 min-w-0 flex-1">
+          <div className="relative z-20 min-w-0 flex-1 max-sm:static">
             <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
               {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
               <svg
@@ -228,7 +236,11 @@ export function PuntoDeVentaCatalogo({
                 className="card-cayla anim-globo absolute top-16 right-0 left-0 divide-y divide-sand overflow-hidden !p-0 shadow-lg"
               >
                 {resultados.length ? (
-                  resultados.map((v, i) => (
+                  resultados.map((v, i) => {
+                    // Con el piso en 0, «sin stock aquí» o, si está guardada en el almacén de esta sede, cuántas hay ahí
+                    // (D-40): la colaboradora no le dice «no hay» a la clienta con la prenda en la trastienda.
+                    const motivo = motivoNoCobrable(v);
+                    return (
                     <li key={v.varianteId} id={`venta-op-${i}`} role="option" aria-selected={i === activo} className="anim-entra" style={{ "--i": Math.min(i, 6) } as CSSProperties}>
                       <button
                         type="button"
@@ -237,7 +249,7 @@ export function PuntoDeVentaCatalogo({
                         onClick={() => onAgregar(v)}
                         className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
                           i === activo ? "bg-sand/60" : ""
-                        } ${v.stockAqui <= 0 ? "opacity-55" : ""}`}
+                        } ${motivo === "agotada" ? "opacity-55" : ""}`}
                       >
                         <span>
                           <span className="block font-semibold text-tinta">{v.referencia}</span>
@@ -247,8 +259,10 @@ export function PuntoDeVentaCatalogo({
                         </span>
                         <span className="shrink-0 text-right">
                           <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
-                          <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                            {v.stockAqui <= 0 ? `sin stock aquí` : `${v.stockAqui} aquí`}
+                          <span
+                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
+                          >
+                            {motivo === "agotada" ? "sin stock aquí" : motivo === "en_almacen" ? `${v.almacenAqui} en el almacén` : `${v.stockAqui} aquí`}
                           </span>
                           {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                           {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
@@ -257,7 +271,8 @@ export function PuntoDeVentaCatalogo({
                         </span>
                       </button>
                     </li>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="px-4 py-5 text-sm text-tinta/65">
                     No encontramos «{term}» en {ubicacionEtiqueta}.
@@ -335,7 +350,8 @@ export function PuntoDeVentaCatalogo({
               aria-checked={soloConStock}
               onClick={() => onSoloConStock(!soloConStock)}
               disabled={bloqueado}
-              className="group flex items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
+              // `shrink-0`: con el contador largo de al lado, el interruptor se partía en dos líneas y la fila crecía.
+              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
             >
               <span
                 aria-hidden
@@ -352,8 +368,14 @@ export function PuntoDeVentaCatalogo({
               <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
             </button>
             {soloConStock && ocultasSinStock > 0 && (
-              <span className="anim-asentar text-[11px] text-tinta/60">
-                {ocultasSinStock} {ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}
+              // Una tarjeta escondida porque su piso está en 0 no está «agotada» si tiene prendas en el almacén de esta
+              // sede (D-40): se dice cuántas, para que se sepa que apagando el filtro aparecen. «N con stock en el
+              // almacén» cuenta PRENDAS (tarjetas), no unidades. `leading-tight`: en dos líneas cabe en el alto del
+              // interruptor, y la fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
+              <span className="anim-asentar text-right text-[11px] leading-tight text-tinta/60">
+                {ocultasEnAlmacen > 0
+                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda oculta" : "prendas ocultas"} (${ocultasEnAlmacen} con stock en el almacén)`
+                  : `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}`}
               </span>
             )}
           </div>
@@ -390,6 +412,8 @@ export function PuntoDeVentaCatalogo({
             )}
             {grupos.map((g, i) => {
               const sinStock = g.stockTotal === 0;
+              // Sin nada en el piso pero con prendas en el almacén de esta sede: no se cobra todavía, pero no está agotada.
+              const soloEnAlmacen = sinStock && g.almacenTotal > 0;
               const enCarrito = g.tallas.reduce(
                 (acc, t) => acc + (carrito.find((it) => it.claveLinea === t.variante.varianteId)?.cantidad ?? 0),
                 0
@@ -403,8 +427,14 @@ export function PuntoDeVentaCatalogo({
                   key={g.clave}
                   aria-label={nombre}
                   style={{ "--i": Math.min(i, 11) } as CSSProperties}
+                  // «Solo en el almacén» NO se atenúa entera: al 55 % el ámbar sobre crema bajaba de 6,5:1 a ~2,5:1 y la
+                  // tarjeta se leía igual de muerta que una agotada. Se apaga solo la foto; el texto queda legible.
                   className={`anim-entra group relative flex h-full flex-col rounded-xl border p-3 ${
-                    sinStock ? "border-rojo-profundo/40 bg-crema opacity-55" : "alza-cayla border-sand bg-papel"
+                    soloEnAlmacen
+                      ? "border-ambar/60 bg-crema"
+                      : sinStock
+                        ? "border-rojo-profundo/40 bg-crema opacity-55"
+                        : "alza-cayla border-sand bg-papel"
                   }`}
                 >
                   {/* Toda la tarjeta es tocable: abre el modal de talla. Antes solo lo eran
@@ -426,11 +456,11 @@ export function PuntoDeVentaCatalogo({
                   {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
                       de la tarjeta y se comía el clic. */}
                   {g.fotoUrl ? (
-                                        <div className="pointer-events-none relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40">
+                                        <div className={`pointer-events-none relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
                       <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
                     </div>
                   ) : (
-                    <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
+                    <div aria-hidden className={`mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
                       <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
                     </div>
                   )}
@@ -439,10 +469,27 @@ export function PuntoDeVentaCatalogo({
 
                   {/* Tallas: tocar una agrega ESA variante al ticket (el color ya lo fija la
                       tarjeta). Una talla agotada se queda a la vista, tachada: no es lo mismo
-                      «no hay M» que «no existe M». */}
+                      «no hay M» que «no existe M». Y una talla con el piso en 0 pero guardada en el
+                      almacén de esta sede no se tacha (D-40): se ve punteada en ámbar y, al tocarla,
+                      el aviso dice cuántas hay y que la bajen — en el celular el tooltip no se ve. */}
                   <div className="relative z-10 mt-2 flex flex-wrap gap-1" aria-label="Tallas">
                     {g.tallas.map((t) =>
-                      t.stockAqui > 0 ? (
+                      t.stockAqui <= 0 && t.almacenAqui > 0 ? (
+                        <Tooltip key={t.variante.varianteId}>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => onAgregar(t.variante)}
+                              disabled={bloqueado}
+                              aria-label={`Talla ${t.talla} de ${nombre}: ${t.almacenAqui} en el almacén`}
+                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-ambar/60 px-1.5 text-[11px] text-ambar-profundo transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-ambar/10 active:translate-y-px"
+                            >
+                              {t.talla}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · que la bajen en ${DONDE_SE_BAJA}`}</TooltipContent>
+                        </Tooltip>
+                      ) : t.stockAqui > 0 ? (
                         <Tooltip key={t.variante.varianteId}>
                           <TooltipTrigger asChild>
                             <button
@@ -488,12 +535,16 @@ export function PuntoDeVentaCatalogo({
                     )}
                   </div>
 
-                  <div className="mt-auto flex items-end justify-between pt-3">
+                  {/* `flex-wrap` + `whitespace-nowrap`: a 375 px la tarjeta mide ~140 px; si precio y stock no caben en
+                      una fila, el stock baja entero a la siguiente en vez de partirse en dos encima del precio. */}
+                  <div className="mt-auto flex flex-wrap items-end justify-between gap-x-2 pt-3">
                     <span className="text-sm font-bold text-tinta">
                       {g.precioMin === g.precioMax ? money(g.precioMin) : `desde ${money(g.precioMin)}`}
                     </span>
-                    <span className={`text-[11px] ${sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                      {sinStock ? "Sin stock" : `${g.stockTotal} en sede`}
+                    {/* En una tienda `stockTotal` es solo el PISO: «3 en sede» junto a una talla «2 en el almacén» hacía
+                        creer que en la tienda había 3 en total. En el Taller (sin almacén) sí es todo lo de la sede. */}
+                    <span className={`whitespace-nowrap text-[11px] ${soloEnAlmacen ? "text-ambar-profundo" : sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
+                      {soloEnAlmacen ? `${g.almacenTotal} en almacén` : sinStock ? "Sin stock" : `${g.stockTotal} ${g.separaPiso ? "en piso" : "en sede"}`}
                     </span>
                   </div>
 
