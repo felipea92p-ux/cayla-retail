@@ -46,6 +46,9 @@ export type GrupoCatalogo<T> = {
   /** Lo que hay en el almacén de esta sede, sumando las tallas: con `stockTotal` en 0 y esto > 0, la tarjeta no está
    *  agotada — está en el almacén (D-40). */
   almacenTotal: number;
+  /** La sede separa piso y almacén (una tienda): `stockTotal` es solo el PISO y la tarjeta lo dice así. En el Taller
+   *  (sin almacén, `almacenAqui` null) `stockTotal` es todo lo que hay en la sede. */
+  separaPiso: boolean;
   precioMin: number;
   precioMax: number;
 };
@@ -69,6 +72,7 @@ export function agruparCatalogo<T extends VarianteAgrupable>(variantes: T[]): Gr
         tallas: [],
         stockTotal: 0,
         almacenTotal: 0,
+        separaPiso: false,
         precioMin: v.precio,
         precioMax: v.precio,
       };
@@ -78,6 +82,7 @@ export function agruparCatalogo<T extends VarianteAgrupable>(variantes: T[]): Gr
     grupo.tallas.push({ variante: v, talla: v.talla?.trim() || SIN_TALLA, stockAqui: v.stockAqui, almacenAqui });
     grupo.stockTotal += v.stockAqui;
     grupo.almacenTotal += almacenAqui;
+    grupo.separaPiso ||= v.almacenAqui != null;
     grupo.precioMin = Math.min(grupo.precioMin, v.precio);
     grupo.precioMax = Math.max(grupo.precioMax, v.precio);
   }

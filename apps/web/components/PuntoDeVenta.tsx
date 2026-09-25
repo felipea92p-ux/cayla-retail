@@ -1313,9 +1313,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             // 2026-09-18). El modal es para elegir, y solo se abre con 2+ tallas con stock —
             // o con ninguna, donde sirve para decir dónde sí hay (el almacén de esta sede u
             // otra sede). Si esa única talla ya está
-            // al tope en el ticket, `agregar()` avisa cuántas quedan.
-            const vendibles = grupos.find((g) => g.clave === clave)?.tallas.filter((t) => t.stockAqui > 0) ?? [];
-            if (vendibles.length === 1) agregar(vendibles[0].variante);
+            // al tope en el ticket, `agregar()` avisa cuántas quedan. Si OTRA talla está en el
+            // almacén, sí hay que elegir (D-40: también se vende): se abre el modal, que lo dice;
+            // si no, en el celular la S entraba sola y la clienta había pedido la M del almacén.
+            const tallas = grupos.find((g) => g.clave === clave)?.tallas ?? [];
+            const vendibles = tallas.filter((t) => t.stockAqui > 0);
+            const otraEnAlmacen = tallas.some((t) => motivoNoCobrable(t.variante) === "en_almacen");
+            if (vendibles.length === 1 && !otraEnAlmacen) agregar(vendibles[0].variante);
             else setTarjetaElegida(clave);
           }}
           grupos={grupos}

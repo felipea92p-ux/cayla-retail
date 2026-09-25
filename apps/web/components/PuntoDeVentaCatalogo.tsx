@@ -249,7 +249,7 @@ export function PuntoDeVentaCatalogo({
                         onClick={() => onAgregar(v)}
                         className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
                           i === activo ? "bg-sand/60" : ""
-                        } ${motivo !== "cobrable" ? "opacity-55" : ""}`}
+                        } ${motivo === "agotada" ? "opacity-55" : ""}`}
                       >
                         <span>
                           <span className="block font-semibold text-tinta">{v.referencia}</span>
@@ -350,7 +350,8 @@ export function PuntoDeVentaCatalogo({
               aria-checked={soloConStock}
               onClick={() => onSoloConStock(!soloConStock)}
               disabled={bloqueado}
-              className="group flex items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
+              // `shrink-0`: con el contador largo de al lado, el interruptor se partía en dos líneas y la fila crecía.
+              className="group flex shrink-0 items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
             >
               <span
                 aria-hidden
@@ -368,10 +369,12 @@ export function PuntoDeVentaCatalogo({
             </button>
             {soloConStock && ocultasSinStock > 0 && (
               // Una tarjeta escondida porque su piso está en 0 no está «agotada» si tiene prendas en el almacén de esta
-              // sede (D-40): se dice cuántas, para que se sepa que apagando el filtro aparecen.
-              <span className="anim-asentar text-right text-[11px] text-tinta/60">
+              // sede (D-40): se dice cuántas, para que se sepa que apagando el filtro aparecen. «N con stock en el
+              // almacén» cuenta PRENDAS (tarjetas), no unidades. `leading-tight`: en dos líneas cabe en el alto del
+              // interruptor, y la fila no cambia de alto al prenderlo o apagarlo (ADR-0185).
+              <span className="anim-asentar text-right text-[11px] leading-tight text-tinta/60">
                 {ocultasEnAlmacen > 0
-                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "oculta" : "ocultas"} · ${ocultasEnAlmacen} en el almacén`
+                  ? `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda oculta" : "prendas ocultas"} (${ocultasEnAlmacen} con stock en el almacén)`
                   : `${ocultasSinStock} ${ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}`}
               </span>
             )}
@@ -424,9 +427,11 @@ export function PuntoDeVentaCatalogo({
                   key={g.clave}
                   aria-label={nombre}
                   style={{ "--i": Math.min(i, 11) } as CSSProperties}
+                  // «Solo en el almacén» NO se atenúa entera: al 55 % el ámbar sobre crema bajaba de 6,5:1 a ~2,5:1 y la
+                  // tarjeta se leía igual de muerta que una agotada. Se apaga solo la foto; el texto queda legible.
                   className={`anim-entra group relative flex h-full flex-col rounded-xl border p-3 ${
                     soloEnAlmacen
-                      ? "border-ambar/50 bg-crema opacity-55"
+                      ? "border-ambar/60 bg-crema"
                       : sinStock
                         ? "border-rojo-profundo/40 bg-crema opacity-55"
                         : "alza-cayla border-sand bg-papel"
@@ -451,11 +456,11 @@ export function PuntoDeVentaCatalogo({
                   {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
                       de la tarjeta y se comía el clic. */}
                   {g.fotoUrl ? (
-                                        <div className="pointer-events-none relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40">
+                                        <div className={`pointer-events-none relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
                       <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
                     </div>
                   ) : (
-                    <div aria-hidden className="mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40">
+                    <div aria-hidden className={`mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
                       <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
                     </div>
                   )}
@@ -536,8 +541,10 @@ export function PuntoDeVentaCatalogo({
                     <span className="text-sm font-bold text-tinta">
                       {g.precioMin === g.precioMax ? money(g.precioMin) : `desde ${money(g.precioMin)}`}
                     </span>
+                    {/* En una tienda `stockTotal` es solo el PISO: «3 en sede» junto a una talla «2 en el almacén» hacía
+                        creer que en la tienda había 3 en total. En el Taller (sin almacén) sí es todo lo de la sede. */}
                     <span className={`whitespace-nowrap text-[11px] ${soloEnAlmacen ? "text-ambar-profundo" : sinStock ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                      {soloEnAlmacen ? `${g.almacenTotal} en almacén` : sinStock ? "Sin stock" : `${g.stockTotal} en sede`}
+                      {soloEnAlmacen ? `${g.almacenTotal} en almacén` : sinStock ? "Sin stock" : `${g.stockTotal} ${g.separaPiso ? "en piso" : "en sede"}`}
                     </span>
                   </div>
 
