@@ -191,6 +191,7 @@
             "icono": "gastos",
             "hijos": [
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
             ]
           }
@@ -267,6 +268,7 @@
             "icono": "gastos",
             "hijos": [
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
             ]
           }
@@ -507,6 +509,7 @@
             "icono": "gastos",
             "hijos": [
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
             ]
           }
@@ -592,6 +595,7 @@
             "icono": "gastos",
             "hijos": [
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
             ]
           }
@@ -803,6 +807,7 @@
             "icono": "gastos",
             "hijos": [
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
             ]
           }
@@ -879,6 +884,7 @@
             "icono": "gastos",
             "hijos": [
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
             ]
           }

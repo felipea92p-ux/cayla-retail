@@ -745,3 +745,144 @@
     }
   }
 }
+
+/* ---- F3 · Cuentas y dinero (ADR-0195; spike `vista-dinero.js` y `vista-config.js` «Cuentas y cobros») ---- */
+@layer components {
+  /* Sobretítulo de un grupo de cuentas («BANCOS · CUENTA 104»). */
+  .fin-etq {
+    margin: 4px 0 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  /* Las cuentas en tarjetas: nombre e insignia arriba, el saldo en serif, y de dónde le llega la plata. */
+  .fin-cuentas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .fin-cuenta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 16px 18px;
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+  }
+  .fin-cuenta-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .fin-cuenta-cab b {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-cuenta-saldo {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .fin-cuenta-saldo[data-debe] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-cuenta-saldo[data-oculto] {
+    font-family: inherit;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-taupe);
+  }
+  .fin-cuenta p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+
+  /* Plata del dueño: la deuda de CAYLA en serif y la lista de préstamos al lado. */
+  .fin-dueno-cifras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .fin-dueno-cifras .fin-cuenta-saldo {
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
+  /* Renglones «qué · detalle» (cierres con diferencia, préstamos del dueño): el detalle en taupe a la derecha. */
+  .fin-lista-mov {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-lista-mov li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-lista-mov li:first-child {
+    border-top: 0;
+  }
+  .fin-lista-mov li > span:last-child {
+    font-size: 12px;
+    text-align: right;
+    color: var(--color-taupe);
+  }
+
+  /* Conciliación: la línea ya revisada se atenúa; lo que sale, en rojo profundo. */
+  .fin-tabla tr.fin-hecha td {
+    opacity: 0.62;
+  }
+  .fin-tabla td.fin-sale {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-cambio {
+    color: var(--color-ambar-profundo);
+  }
+  /* «A qué cuenta entra cada cobro»: una casilla por medio, con el punto del color de cada medio (tokens de Caja). */
+  .fin-tabla-medios {
+    min-width: 720px;
+  }
+  .fin-metodo {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: 1px;
+  }
+  .fin-metodo[data-m="efectivo"] {
+    background: var(--color-metodo-efectivo);
+  }
+  .fin-metodo[data-m="yape"] {
+    background: var(--color-metodo-yape);
+  }
+  .fin-metodo[data-m="plin"] {
+    background: var(--color-metodo-plin);
+  }
+  .fin-metodo[data-m="tarjeta"] {
+    background: var(--color-metodo-tarjeta);
+  }
+  .fin-metodo[data-m="transferencia"] {
+    background: var(--color-metodo-transferencia);
+  }
+  .fin-tabla-medios select.fin-control {
+    min-width: 150px;
+  }
+}

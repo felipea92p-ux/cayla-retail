@@ -190,7 +190,6 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
       "produccion.eficiencia": "10 Gallito",
       // Finanzas y Gastos nacieron el 2026-09-24 (ADR-0195 F2); el resto de Finanzas sigue esperando su fase.
       "finanzas.resumen": "12 Urraca",
-      "finanzas.dinero": "12 Urraca",
       "finanzas.reportes": "12 Urraca",
       "finanzas.cierreDeMes": "12 Urraca",
       clientas: "07 Colibrí",
