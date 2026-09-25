@@ -187,14 +187,6 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
   return redondear2((precioUnitario * porcentaje) / 100);
 }
 
-/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
- *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
- *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo. */
-export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
-  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
-  return redondear2(Math.min(montoUnitario, precioUnitario));
-}
-
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
 // Un texto libre no se puede sumar; una lista sí, y a fin de mes se ve cuánto margen se
 // fue por cada motivo (R-45, punto 2). El candado de verdad vive en `registrar_venta`
@@ -212,8 +204,8 @@ export const RAZONES_DESCUENTO = [
 ] as const;
 
 /** Lo que acompaña a un descuento aplicado: el motivo (uno de `RAZONES_DESCUENTO`), el
- *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide la banda
- *  20-35% de un Líder (`necesitaArgumentoEscrito`). Viajan por línea, igual que
+ *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide todo
+ *  descuento pasado el 15 % (`necesitaArgumentoEscrito`). Viajan por línea, igual que
  *  `descuentoUnitario`: dos líneas con el mismo % pueden llevar motivos distintos si se
  *  aplicaron en dos acciones separadas del apartado. */
 export type DetalleDescuento = { razon: string; razonOtro: string; argumento: string };
@@ -348,12 +340,6 @@ export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porce
   return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
 }
 
-/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
- *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos). */
-export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
-}
-
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado
  *  (el monto es la verdad; el % es solo cómo se lo contamos a la colaboradora). */
 export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario: number }): number {
@@ -361,11 +347,43 @@ export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario
   return Math.round((l.descuentoUnitario / l.precioUnitario) * 100);
 }
 
-/** Si el apartado tiene que pedir el argumento escrito: solo a un Líder, y solo pasado el
- *  20% (R-45). El candado real vive en `registrar_venta`; esto es progresividad de la
- *  pantalla, no una segunda copia de la regla — por eso no bloquea nada por sí solo. */
-export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): boolean {
-  return esLider && porcentaje > 20;
+/** Desde qué % un descuento manual pide argumento escrito. Felipe, 2026-09-25: a cualquiera
+ *  que pase el 15 % (antes: solo a un Líder, pasado el 20 %). */
+export const UMBRAL_ARGUMENTO_PCT = 15;
+
+/** Si una línea pide el argumento escrito: su descuento por unidad pasa el 15 % del precio.
+ *  Misma cuenta que `registrar_venta` (el 15 % redondeado al céntimo, con 1 céntimo de
+ *  holgura) — así un 15 % justo que el redondeo deja en 15.003 % no lo pide en la pantalla
+ *  y sí en la base, ni al revés. El candado real vive en la base; esto decide cuándo el
+ *  apartado MUESTRA el campo. */
+export function necesitaArgumentoEscrito(precioUnitario: number, descuentoUnitario: number): boolean {
+  if (precioUnitario <= 0 || descuentoUnitario <= 0) return false;
+  return redondear2(descuentoUnitario - redondear2((precioUnitario * UMBRAL_ARGUMENTO_PCT) / 100)) > 0.01;
+}
+
+/** Los campos del apartado «Descuento», en el orden en que se llenan de arriba abajo. */
+export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "codigo" | "prendas" | "listo";
+
+/** El primer campo que falta llenar del apartado «Descuento»: la pantalla lo ilumina y, al
+ *  terminar uno, lleva el foco al siguiente. Solo GUÍA: lo que impide aplicar sigue siendo
+ *  el motivo del botón y, al cobrar, `registrar_venta`. */
+export function pasoDelDescuento(e: {
+  valorValido: boolean;
+  razon: string;
+  razonOtro: string;
+  pideArgumento: boolean;
+  argumento: string;
+  pideCodigo: boolean;
+  codigo: string;
+  prendas: number;
+}): PasoDescuento {
+  if (!e.valorValido) return "valor";
+  if (e.razon === "") return "motivo";
+  if (e.razon === "otro" && e.razonOtro.trim() === "") return "motivoOtro";
+  if (e.pideArgumento && e.argumento.trim() === "") return "argumento";
+  if (e.pideCodigo && e.codigo.trim() === "") return "codigo";
+  if (e.prendas === 0) return "prendas";
+  return "listo";
 }
 
 // ---- Quién atendió: el papel del ticket (ADR-0163 → ADR-0161) ------------------------------------------------------
