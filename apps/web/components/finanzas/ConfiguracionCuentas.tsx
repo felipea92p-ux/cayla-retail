@@ -9,6 +9,7 @@ import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CampoFin, InputFin, PieTabla, SelectFin, Superficie, TituloDeTarjeta } from "@/components/finanzas/kit";
+import { EditarCuentaModal } from "@/components/finanzas/EditarCuentaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { parsearMonto, solesRedondo } from "@/lib/gastos-reglas";
@@ -30,7 +31,8 @@ import {
 // Configuración ▸ Cuentas y cobros (ADR-0195 F3), dibujada como el spike (`vista-config.js`, `cfgCuentas`): las cuentas
 // de CAYLA (los cajones y cajas fuertes nacen con cada tienda; aquí se agregan bancos, billeteras, el POS y la tarjeta) y a
 // qué cuenta entra cada medio de cobro en cada tienda. Como en Tiendas y caja, CADA CASILLA SE GUARDA SOLA al cambiar,
-// firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve.
+// firmada con el responsable. Cambiar a qué cuenta entra un cobro rige desde hoy: lo pasado no se mueve. Cada cuenta se
+// corrige, archiva o elimina desde «Editar» (`EditarCuentaModal`, actualización 2026-09-25).
 
 type Consulta = PromiseLike<{ error: unknown }>;
 
@@ -39,6 +41,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
   const responsable = useResponsable();
   const [guardando, setGuardando] = useState(false);
   const [agregar, setAgregar] = useState(false);
+  const [editar, setEditar] = useState<CuentaDinero | null>(null);
 
   const guardar = async (hacer: () => Consulta, que: string, listo: string) => {
     if (!responsable.listo) {
@@ -71,7 +74,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
       </div>
 
       <Superficie className="anim-sube">
-        <TituloDeTarjeta titulo="Cuentas de CAYLA" bajada="Cada lugar donde hay plata. Una cuenta con movimientos no se borra: se archiva.">
+        <TituloDeTarjeta titulo="Cuentas de CAYLA" bajada="Cada lugar donde hay plata. Una cuenta sin movimientos se elimina; con movimientos, se archiva.">
           <button type="button" className="btn-cayla btn-primario btn-chico" onClick={() => setAgregar(true)}>
             + Agregar cuenta
           </button>
@@ -107,22 +110,9 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
                         <Chip tono={c.archivada ? "apagado" : "verde"} tachado={false}>
                           {c.archivada ? "archivada" : "activa"}
                         </Chip>
-                        {!TIPOS_AUTOMATICOS.includes(c.tipo) && (
-                          <button
-                            type="button"
-                            className="btn-enlace text-[12px]"
-                            disabled={guardando}
-                            onClick={() =>
-                              guardar(
-                                () => createClient().rpc("archivar_cuenta_dinero" as never, { p_id: c.id, p_archivar: !c.archivada } as never),
-                                c.archivada ? "reactivar la cuenta" : "archivar la cuenta",
-                                c.archivada ? `${c.nombre}: activa otra vez.` : `${c.nombre}: archivada. Sus movimientos se quedan.`,
-                              )
-                            }
-                          >
-                            {c.archivada ? "Reactivar" : "Archivar"}
-                          </button>
-                        )}
+                        <button type="button" className="btn-enlace text-[12px]" disabled={guardando} onClick={() => setEditar(c)} aria-label={`Editar ${c.nombre}`}>
+                          Editar
+                        </button>
                       </span>
                     </td>
                   </tr>
@@ -187,6 +177,7 @@ export function ConfiguracionCuentas({ cuentas, medios, hoy }: { cuentas: Cuenta
       </Superficie>
 
       {agregar && <AgregarCuentaModal hoy={hoy} onCerrar={() => setAgregar(false)} />}
+      {editar && <EditarCuentaModal cuenta={editar} hoy={hoy} onCerrar={() => setEditar(null)} />}
     </>
   );
 }
