@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
+Felipe eligió la opción A: de la tarea 3 del plan del termómetro se rescató solo el retiro, rebasado sobre `main` con el
+#434, el #437, el #438 y el #439, y se descartaron los motivos nuevos del ajuste. En Existencias, el menú «⋯» de cada
+talla con piso disponible ofrece «Retirar del piso» (`mover_interno` al revés, sin migración), con aviso y nota
+opcional. Movimientos nombra cada sentido por su destino («Bajada al piso» / «Retiro del piso»).
+Felipe se lleva:
+1. **La revisión encontró que el semáforo contradice al retiro**: solo mira cifras, así que al turno siguiente pide
+   volver a bajar lo que la encargada guardó a propósito. Hoy lo atenúan un aviso y la nota. El arreglo de fondo es
+   una marca de «retirada de la venta», y la decide él en el bloque 3.
+2. **Un nombre no se reutiliza para dos cosas**: el modal de la fila sigue siendo «Reponer piso» porque «Bajar al piso»
+   ya es la pantalla de escaneo. Lo que sí se unifica es la palabra con que la acción queda registrada.
+3. **Tres PR fusionados en la misma tarde dejaron la rama con conflictos**: rebasar antes de abrir el PR evitó
+   entregar uno que no se podía fusionar.
+
+Sin resolver: la marca de «retirada de la venta», el token contra el doble clic de `mover_interno` y la prueba del
+falso positivo de «bajada tardía».
+
 ## 2026-09-25 (Frescura: termómetro del ERP, la caja dice «en el almacén» y «Por colgar» — tareas 1, 2 y 4 del plan del termómetro)
 Felipe aprobó las tareas 1-4 del plan de 12 (sesión del termómetro). Salen tres PR separados:
 - **Termómetro:** 12 consultas de solo lectura en `docs/datos/consultas/frescura-termometro.sql`, verificadas contra producción y con la rutina de los lunes contra Alegra.
