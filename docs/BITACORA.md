@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Paleta esencial de moda: 63 colores de claro a oscuro)
+Felipe pidió completar las gamas esenciales de la moda, unas 9 por familia. Entraron 32 colores (de 32 a 63; 64 en producción con MAC), y la paleta de Nuevo producto pasó a ser una carta de 9 columnas alineadas, de claro a oscuro. La migración `20260926100000` está por pegar.
+Felipe se lleva: (1) **9 por familia es un tope, no una cuota.** Medidos con ΔE2000, Índigo, Cereza, Durazno y Menta se confundían con un color que ya existía. Sumarlos habría partido el stock de una misma prenda en dos filas; por eso son 63 y no 72. (2) No existe una lista oficial de Adobe: la lista sale del nombre que usa el retail de moda en Perú. (3) **Un duplicado ya se coló:** «Marrón chocolate» vive al lado de «Chocolate». El candado de nombre no lo frena porque los nombres son distintos. Lo que sí puede frenarlo es un buscador que conozca los sinónimos.
+
 ## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
 Felipe eligió la opción A: de la tarea 3 del plan del termómetro se rescató solo el retiro, rebasado sobre `main` con el
 #434, el #437, el #438 y el #439, y se descartaron los motivos nuevos del ajuste. En Existencias, el menú «⋯» de cada
@@ -31,6 +35,7 @@ Felipe se lleva: (1) **un service worker solo guarda pantallas, nunca responde p
 ## 2026-09-25 (Recibir mercadería sin conexión — paso 1 del modo sin conexión para agregar productos, ADR-0210)
 La cola de la venta sin red (ADR-0063) se sacó de Vender como pieza genérica: `lib/cola-offline.ts` (pura, con pruebas) y `useColaOffline`, con un único sincronizador en el layout (`ColasSinConexion`) que sube desde cualquier pantalla. `/recibir` y `/inventario/recibir` la usan: si al confirmar se cae la red, el envío o el lote se guardan en el navegador con su token y la hora de ese momento, y suben solos. Lo contado sale de «pendientes» mientras espera, y también en el rato hasta que llega la lista nueva, para que nadie cuente dos veces el mismo comprobante. Probado en local cortando la red: encola, sube al volver sin recargar, un segundo envío con el mismo token no duplicó el stock (346 → 347), un rechazo de la base queda en rojo con «Descartar», y una RPC fuera de la lista blanca metida a mano en el navegador no se ejecutó. `tsc`/`eslint`/77.019 pruebas en verde.
 Felipe se lleva: (1) **la base ya sabía no duplicar; faltaba quién reintente**: el `p_token` hace seguro el reintento, y la cola es solo la memoria del navegador que lo hace; (2) **ocultar lo ya contado es el «stock comprometido» de Recibir**: sin eso, dos personas cuentan el mismo comprobante y al volver la red suben dos recepciones; (3) **lo que numera la base se queda en la base**: el alta de producto (paso 2) guardará sin código y lo recibirá al subir, porque dos sedes sin red no pueden repartirse los correlativos.
+
 ## 2026-09-25 (Frescura: termómetro del ERP, la caja dice «en el almacén» y «Por colgar» — tareas 1, 2 y 4 del plan del termómetro)
 Felipe aprobó las tareas 1-4 del plan de 12 (sesión del termómetro). Salen tres PR separados:
 - **Termómetro:** 12 consultas de solo lectura en `docs/datos/consultas/frescura-termometro.sql`, verificadas contra producción y con la rutina de los lunes contra Alegra.
