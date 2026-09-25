@@ -131,16 +131,17 @@ describe("archivar, duplicar y asignar", () => {
     expect(rolesAsignables([LIDER, INTEGRANTE, archivado], { tipo: "terminal" }).map((r) => r.id)).toEqual(["i"]);
   });
 
-  it("entre líderes se cambia el rol, pero nadie se cambia el suyo", () => {
+  it("entre líderes se cambia el rol; un Admin también el suyo, sin serlo no (20260925210000)", () => {
     const cuentas = [
       { tipo: "persona" as const, id: "yo", nombre: "Felipe", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
       { tipo: "persona" as const, id: "1", nombre: "Otra líder", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
       { tipo: "persona" as const, id: "2", nombre: "Ana", ubicacion: "Tienda Trujillo", rolId: "i", esLider: false, estado: "activo" },
       { tipo: "terminal" as const, id: "3", nombre: "Terminal Ventas TRU", ubicacion: "Tienda Trujillo", rolId: "tv", esLider: false, estado: "activo" },
     ];
-    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["1", "3"]);
+    // soyAdmin por defecto true: la sesión (Felipe, Admin) se ofrece a sí misma — antes, el candado de «propio rol» la excluía siempre.
+    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["yo", "1", "3"]);
     expect(cuentasAsignables(cuentas, LIDER, "yo").map((c) => c.id)).toEqual(["2"]);
-    // Quien administra roles SIN ser líder (20260923131000): no toca a los líderes ni da el rol Líder.
+    // Quien administra roles SIN ser líder ni Admin (20260923131000): no toca a los líderes, no da el rol Líder, y sigue sin poder cambiarse el suyo.
     expect(cuentasAsignables(cuentas, INTEGRANTE, "yo", false).map((c) => c.id)).toEqual(["3"]);
     expect(cuentasAsignables(cuentas, LIDER, "yo", false)).toEqual([]);
     expect(rolesAsignables([LIDER, INTEGRANTE], { tipo: "persona" }, false).map((r) => r.id)).toEqual(["i"]);

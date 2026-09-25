@@ -46,6 +46,7 @@ const MIGRACION = [
   "20260923163000_escalon_admin_desde_dynamic.sql",
   "20260923174500_alcanzas_solo_a_quien_esta_debajo.sql",
   "20260924000000_colaborador_a_integrante_paso1_codigo.sql",
+  "20260925210000_admin_se_reasigna_su_propio_rol.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -512,7 +513,8 @@ caso(
     `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, :'nueva', tru)) from ids;\n` +
     `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
-    // El único líder activo es Felipe: bajarlo lo impide «tu propio rol» y, si no, el candado de «último líder».
+    // El único líder activo es Felipe: como es Admin, «tu propio rol» (20260925210000) ya no lo frena — pero sigue
+    // siendo el único líder activo, así que lo frena el candado de «último líder».
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;`,
   (s) => {
     const l = s.split("\n");
@@ -1058,9 +1060,13 @@ caso(
   "SIN_ERROR\nt|t|t"
 );
 caso(
-  "nadie se cambia su propio rol (así nunca falta un líder)",
+  // Antes de 20260925210000 esto lo frenaba «tu propio rol», sin mirar si era Admin. Ahora Felipe (Admin) sí pasa ese
+  // candado, pero sigue siendo el único líder activo del escenario: lo frena el candado de «último líder», no el de
+  // «propio rol». El candado de «último admin» (`fn_exigir_otro_admin`) queda sin ejercitar aquí: pedirle un segundo
+  // admin a este seed es más de lo que esta prueba necesita para probar la excepción.
+  "un Admin sí se cambia su propio rol (20260925210000); pero no si lo deja sin ningún líder activo",
   como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
-  (s) => s.startsWith("42501|")
+  (s) => s.startsWith("42501|") && s.includes("último líder activo")
 );
 
 // ---------------- Quién firma (convención del ADR-0162 F3, vigilada también en actor_firma_las_operaciones.mjs) ----------------
