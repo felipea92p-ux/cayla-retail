@@ -9,6 +9,7 @@ import {
   MS_AVISO,
   MS_VUELO,
   esLecturaRepetida,
+  estadoCorto,
   keyframesAviso,
   keyframesVuelo,
   mensajeEscaneo,
@@ -29,8 +30,10 @@ import {
        ticket»);
      · al leer: el visor se contrae con un destello, aparece la tarjeta de la prenda (foto o iniciales, color · talla,
        precio) y VUELA en arco hasta la bolsa. Recién cuando entra, la bolsa late, el número sube y el total cuenta —
-       el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, no es de la tienda) aparece en
-       ámbar y se apaga en su lugar: no viaja al ticket porque no entró.
+       el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, en el almacén, no es de la
+       tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo del almacén dice «No
+       entró · en almacén» (`estadoCorto`): aquí no sale el aviso largo de arriba, que lo dice UNA vez al cerrar la
+       cámara (`cerrarCamara` en `PuntoDeVenta`).
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Cómo lee: con el `BarcodeDetector` del navegador cuando existe (Chrome en Android: rápido, y lee también el Code 128
@@ -114,8 +117,6 @@ function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado:
 
 type Lectura = ResultadoEscaneo & { id: number };
 
-/** El estado de una lectura que no entró, en dos o tres palabras (la etiqueta ámbar de la fila y de la tarjeta). */
-const ESTADO_CORTO = { agotada: "Agotada aquí", tope: "Sin más stock", "no-encontrada": "No es de esta tienda" } as const;
 /** La segunda línea de una prenda leída: color · talla, o el código si no es de ninguna prenda. */
 const detalleDe = (l: ResultadoEscaneo) => l.prenda?.detalle || `Código ${l.codigo}`;
 
@@ -389,7 +390,7 @@ export function EscanerCamara({
                       ) : (
                         <span className="flex shrink-0 items-center gap-1.5 text-xs text-ambar-profundo">
                           <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-ambar" />
-                          {l.estado !== "agregada" && ESTADO_CORTO[l.estado]}
+                          {estadoCorto(l)}
                         </span>
                       )}
                     </li>
@@ -431,7 +432,7 @@ export function EscanerCamara({
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[15px] font-medium text-tinta">{vuelo.prenda?.referencia ?? vuelo.codigo}</span>
                   <span className="block truncate text-xs text-taupe">
-                    {detalleDe(vuelo)} · {vuelo.estado === "agregada" ? soles(vuelo.prenda?.precio ?? 0) : <span className="text-ambar-profundo">{ESTADO_CORTO[vuelo.estado]}</span>}
+                    {detalleDe(vuelo)} · {vuelo.estado === "agregada" ? soles(vuelo.prenda?.precio ?? 0) : <span className="text-ambar-profundo">{estadoCorto(vuelo)}</span>}
                   </span>
                 </span>
                 {vuelo.estado === "agregada" ? (
