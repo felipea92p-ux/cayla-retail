@@ -2,6 +2,8 @@
 // cliente y las pruebas. Las lecturas contra Postgres viven en
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
+import { compararTallas } from "./tallas";
+
 export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock";
 
 /** Con cuántas unidades en el piso de venta la tienda ya tiene que reponer.
@@ -62,6 +64,53 @@ export function calcularEstado(piso: number, almacen: number): EstadoStock {
  *  queda, no una cosa en vez de la otra. */
 export function necesitaReponerPiso(piso: number, almacen: number): boolean {
   return piso <= UMBRAL_REPOSICION_PISO && almacen > 0;
+}
+
+/** «Por colgar» (Frescura del piso, 2026-09-25): la talla tiene unidades DISPONIBLES en el almacén de
+ *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
+ *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
+ *
+ *  No usa `UMBRAL_REPOSICION_PISO` a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
+ *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
+ *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
+ *
+ *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que el semáforo y el modal de
+ *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
+ *  y la talla está por colgar; si lo del almacén está todo apartado, no hay nada que bajar y no lo está.
+ *  Donde la sede no separa piso de almacén (Taller: `null`) la pregunta no existe → nunca. */
+export function porColgar(c: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">): boolean {
+  if (c.pisoDisponible === null || c.almacenDisponible === null) return false;
+  return c.pisoDisponible <= 0 && c.almacenDisponible > 0;
+}
+
+/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo
+ *  disponible en el almacén de esas tallas — lo mismo que el modal de Reponer deja bajar). */
+export function resumirPorColgar(filas: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">[]): { tallas: number; unidades: number } {
+  let tallas = 0;
+  let unidades = 0;
+  for (const f of filas) {
+    if (!porColgar(f)) continue;
+    tallas += 1;
+    unidades += f.almacenDisponible ?? 0;
+  }
+  return { tallas, unidades };
+}
+
+/** Orden de la lista «Por colgar»: modelo, color y talla en su curva (S · M · L, 36 · 38). La encargada
+ *  cuelga por percha —un modelo en un color—, no talla por talla: si la M y la L de la misma casaca
+ *  negra salen separadas por otras prendas, baja una y se olvida de la otra. El `productoId` desempata
+ *  dos modelos con el mismo nombre para que sus tallas no se intercalen. Lo que no tiene color o talla
+ *  va al final de su grupo, no se pierde. Devuelve un arreglo nuevo: no reordena el que recibe. */
+export function ordenarPorModeloColorTalla<T extends { referencia: string; productoId: string; color: string | null; talla: string | null }>(filas: T[]): T[] {
+  const alFinal = (a: string | null, b: string | null, comparar: (x: string, y: string) => number) =>
+    a === b ? 0 : a === null ? 1 : b === null ? -1 : comparar(a, b);
+  return [...filas].sort(
+    (a, b) =>
+      a.referencia.localeCompare(b.referencia, "es") ||
+      a.productoId.localeCompare(b.productoId) ||
+      alFinal(a.color, b.color, (x, y) => x.localeCompare(y, "es")) ||
+      alFinal(a.talla, b.talla, compararTallas)
+  );
 }
 
 export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {
