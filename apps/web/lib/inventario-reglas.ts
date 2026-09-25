@@ -2,18 +2,6 @@
 // cliente y las pruebas. Las lecturas contra Postgres viven en
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
-export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock";
-
-/** Con cuántas unidades en el piso de venta la tienda ya tiene que reponer.
- *  Decisión de Felipe: «Reponer piso» aparece cuando en el piso quedan 7
- *  unidades o menos, no recién cuando llega a 0 — a esa altura la clienta ya
- *  se fue sin su talla. Subido de 4 a 7 el 2026-09-16, probando la pantalla
- *  con datos reales: con 4 el aviso llegaba demasiado tarde para alcanzar a
- *  reponer antes de que se notara en el piso. Una sola constante, para que
- *  el número no viva repartido entre la etiqueta, el filtro y la tarjeta de
- *  resumen. */
-export const UMBRAL_REPOSICION_PISO = 7;
-
 /** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
  *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
  *  reserva, no el piso. Bajó de 20 a 10 el 2026-09-17, probando la
@@ -30,64 +18,19 @@ export const UMBRAL_REPOSICION_PISO = 7;
  *  distintas, dos números. */
 export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 
-/** El estado de una prenda en una tienda que separa piso de almacén, del
- *  más grave al más leve — el primero que calza gana (los ifs están en
- *  orden de severidad a propósito, no es un `switch` sin orden):
- *  · sin_stock    — no hay nada, ni en el piso ni atrás.
- *  · stock_bajo   — el ALMACÉN (la reserva) llega al umbral o menos, tenga
- *                   el piso lo que tenga. Gana sobre reponer_piso como
- *                   ETIQUETA (es la alarma más seria: hay que pedir a otra
- *                   sede) — pero NO apaga la acción local: ver
- *                   `necesitaReponerPiso` más abajo, que sigue ofreciendo
- *                   "Reponer" mientras quede algo en el almacén, aunque sea
- *                   poco. Las dos cosas son ciertas a la vez: "pide
- *                   traslado" y "mientras tanto, baja lo que quede".
- *  · reponer_piso — el piso está en el umbral o por debajo, Y el almacén
- *                   TODAVÍA tiene una reserva sana (por encima del umbral
- *                   de stock bajo) para cubrirlo. Acción local, sin pedir
- *                   nada a nadie.
- *  · normal       — todo lo demás: piso y almacén cubiertos. */
-export function calcularEstado(piso: number, almacen: number): EstadoStock {
-  if (piso <= 0 && almacen <= 0) return "sin_stock";
-  if (almacen <= UMBRAL_STOCK_BAJO_ALMACEN) return "stock_bajo";
-  if (piso <= UMBRAL_REPOSICION_PISO) return "reponer_piso";
-  return "normal";
-}
+/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
+ *  sin ritmo medible) — ritmo de 30 días. Existencias YA NO lo usa (2026-09-25): tenía su propio
+ *  semáforo (`EstadoStock`/`calcularEstado`/`necesitaReponerPiso`), retirado por redundante con
+ *  el motor único de «Acción hoy» (`calcularAccionHoy`, `existencias-recomendaciones.ts`) — no
+ *  hay dos motores paralelos decidiendo lo mismo con números distintos (sección 9/12 del pedido
+ *  de Felipe). El umbral equivalente de Existencias vive, consciente y aparte, en
+ *  `politica-operativa-inventario.ts` (`umbralStockPisoReposicion` = 4 unidades de PISO, una
+ *  regla física — NO este número, y no es un umbral de días). */
+export const UMBRAL_REPOSICION_PISO = 7;
 
-/** Si conviene ofrecer el botón «Reponer» (bajar del almacén al piso) —
- *  independiente de qué CHIP de estado se esté mostrando. Corregido
- *  2026-09-17: hasta ahora el botón solo aparecía en el estado
- *  "reponer_piso" — pero en "Stock bajo" con algo de reserva (por poca que
- *  sea) la acción sigue teniendo sentido: pides el traslado Y bajas lo que
- *  queda, no una cosa en vez de la otra. */
-export function necesitaReponerPiso(piso: number, almacen: number): boolean {
-  return piso <= UMBRAL_REPOSICION_PISO && almacen > 0;
-}
-
-export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {
-  normal: "Normal",
-  reponer_piso: "Reponer piso",
-  stock_bajo: "Stock bajo",
-  sin_stock: "Sin stock",
-};
-
-/** Qué hacer con cada estado, en una línea — la leyenda de la tabla y el
- *  `title` del chip (y del propio «Normal», que no lleva chip pero sí
- *  tooltip). */
-export const ACCION_ESTADO_STOCK: Record<EstadoStock, string> = {
-  normal: "Cubre piso y almacén, todo correcto",
-  reponer_piso: "Bajar del almacén al piso",
-  stock_bajo: "Pedir traslado de otra sede",
-  sin_stock: "Nada en esta tienda — ver dónde hay",
-};
-
-/** Orden de urgencia para ordenar la tabla: lo que pide acción primero. */
-export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
-  sin_stock: 0,
-  stock_bajo: 1,
-  reponer_piso: 2,
-  normal: 3,
-};
+// `EstadoStock`/`calcularEstado`/`necesitaReponerPiso` (semáforo de Existencias, piso ≤ 7) se
+// retiraron el 2026-09-25: auditados como consumidos SOLO por Existencias (`inventario-v2.ts`,
+// `InventarioPanel.tsx`, este archivo y su test — nunca por Análisis/Producción).
 
 // ============================================================================
 // Umbrales del Resumen (ADR-0101; rehechos en ADR-0121) — los usa
@@ -245,7 +188,6 @@ export type Cantidades = {
   total: number;
   piso: number | null;
   almacen: number | null;
-  estado: EstadoStock | null;
   danado: number | null;
   apartado: number;
   disponible: number;
@@ -302,9 +244,6 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
       disponible: a.total - a.apartado,
       pisoDisponible: separaPisoAlmacen ? a.piso - a.apartadoPiso : null,
       almacenDisponible: separaPisoAlmacen ? a.almacen - a.apartadoAlmacen : null,
-      // El semáforo mira lo que se puede VENDER: una prenda con todo el piso apartado no tiene piso
-      // que ofrecer aunque físicamente esté ahí (el chip «Apartado» de la fila lo explica).
-      estado: separaPisoAlmacen ? calcularEstado(a.piso - a.apartadoPiso, a.almacen - a.apartadoAlmacen) : null,
     });
   }
   return cantidades;

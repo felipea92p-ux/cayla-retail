@@ -4,9 +4,11 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
 import { getTrasladosEnCurso } from "@/lib/traslados";
-import { getCoberturaPorVariante, getFilasRecientesDeSede, getFilasSemanaDeSede } from "@/lib/resumen-inventario";
+import { getFilasSemanaDeSede } from "@/lib/resumen-inventario";
+import { getRitmoRecientePorVariante } from "@/lib/existencias-ritmo-servidor";
 import { deltaDisponibleSede, recortarFilaSemana } from "@/lib/existencias-categorias";
-import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
+import { recomendacionesDeSede, accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
+import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
@@ -39,9 +41,9 @@ export default async function InventarioPage({
       : persona.ubicacionId;
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
 
-  // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
+  // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana, filasRecientes] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, filasSemana] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -49,20 +51,50 @@ export default async function InventarioPage({
     getSububicaciones(ubicacionActivaId),
     getTrasladosEnCurso(ubicacionActivaId),
     getPrendasDanadasPendientes(ubicacionActivaId),
-    vende ? getCoberturaPorVariante(ubicacionActivaId) : Promise.resolve(null),
     // Reservas para clientas (ADR-0141): solo donde se vende. Taller no aparta.
     // Una terminal libera cualquier apartado (Felipe, 2026-09-22, ADR-0162): `persona.terminal` lo dice.
     vende ? getApartadosAbiertos(ubicacionActivaId, { esTerminal: persona.terminal }) : Promise.resolve([]),
-    // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total»,
-    // «Ritmo de venta (7D)» de la tabla y el overlay de categorías — misma RPC que ya usaba la cobertura.
+    // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total» y el
+    // overlay de categorías — sin cambios (2026-09-25): sigue siendo un dato de 7 días aparte del
+    // Ritmo reciente, que ahora vive en `existencias-ritmo.ts`.
     getFilasSemanaDeSede(ubicacionActivaId),
-    // «Ver recomendaciones»: el ritmo de `DIAS_RITMO_RECIENTE` (30 días, no 7) — la misma ventana que ya
-    // usa `getCoberturaPorVariante` — es la que espera `planDeReposicion` (el motor de Producción).
-    vende ? getFilasRecientesDeSede(ubicacionActivaId) : Promise.resolve([]),
+    // REHECHO 2026-09-25: ya NO se pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días)
+    // para Existencias — el motor nuevo de «Acción hoy» (`calcularAccionHoy`) decide con lo que
+    // Existencias ya trae en `stock` (piso, almacén, en tránsito), sin una cuarta reconstrucción
+    // del ledger. Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
   ]);
-  // Dato secundario: si su cálculo falló, cada fila queda en «N/D» y se avisa; el stock no se cae.
-  const stock = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
-  const resumen = resumirExistencias(stock);
+
+  // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
+  // gobiernan «Acción hoy» — hoy global, con override futuro por sede (`politicaDe`).
+  const politica = politicaDe(ubicacionActivaId);
+
+  // Ritmo reciente / Cobertura piso (2026-09-25): sobre el ledger único (`fn_ledger_puntos`), no
+  // sobre `fn_resumen_variantes` — depende de conocer las variantes de esta sede primero.
+  const varianteIds = stockBase.map((f) => f.varianteId);
+  const pisoPorVariante = new Map(stockBase.map((f) => [f.varianteId, f.piso ?? 0]));
+  const ritmoReciente = vende
+    ? await getRitmoRecientePorVariante(ubicacionActivaId, varianteIds, pisoPorVariante)
+    : { datos: null, fallo: null };
+
+  // Motor único de «Acción hoy» (`existencias-recomendaciones.ts`, sin `planDeReposicion`): sobre
+  // `stockBase` directo — piso/almacén/en tránsito ya vienen ahí, ninguna otra reconstrucción.
+  // Regla física de piso (2026-09-25, cuarta ronda): ya NO recibe Ritmo reciente ni Cobertura
+  // piso — no le hacen falta para decidir nada (`politica.umbralStockPisoReposicion` manda solo).
+  const accionHoy = vende ? accionHoyPorVariante(stockBase, politica) : new Map();
+
+  // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
+  // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
+  // decisión de reponer (que no depende de la RPC) sigue firme.
+  const stock = stockBase.map((f) => ({
+    ...f,
+    ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
+    coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
+    accionHoy: accionHoy.get(f.varianteId) ?? null,
+  }));
+  // «Reponer a piso hoy» (tarjeta y filtro) cuenta por «Acción hoy» — MISMA fuente que la columna
+  // de la tabla y el botón inline «Reponer»: una tarjeta que contara distinto de lo que la fila
+  // muestra sería exactamente la incoherencia que Felipe pidió cerrar (sección 15/16, 2026-09-25).
+  const resumen = resumirExistencias(stock, [...accionHoy.values()].filter((a) => a.tipo === "reponer_a_piso").length);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 
@@ -83,7 +115,7 @@ export default async function InventarioPage({
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
   const deltaSede = deltaDisponibleSede(filasSemana);
-  const recomendaciones = ubicacionActiva && vende ? recomendacionesDeSede(filasRecientes, ubicacionActiva) : [];
+  const recomendaciones = vende ? recomendacionesDeSede(stockBase, politica) : [];
 
   return (
     <div className="space-y-4">
@@ -117,10 +149,11 @@ export default async function InventarioPage({
         apartados={apartados}
         esLider={persona.rol === "lider"}
         puedeAjustar={puede(persona, "ajustarInventario")}
-        coberturaFallo={cobertura?.fallo ?? null}
+        coberturaFallo={ritmoReciente.fallo}
         filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
         recomendaciones={recomendaciones}
+        politica={politica}
       />
     </div>
   );

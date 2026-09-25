@@ -1,13 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
-import { calcularEstado, fotoPrincipal, sumarCantidades, type Cantidades, type EstadoStock } from "@/lib/inventario-reglas";
+import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
+import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
+import type { AccionHoy } from "@/lib/existencias-recomendaciones";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
 export * from "@/lib/inventario-reglas";
-import type { Cobertura } from "@/lib/resumen-reglas";
 
 // Stock por ubicación para la pantalla de Inventario. `retail.stock` es un
 // snapshot derivado de `movimientos` (nunca se edita a mano) — acá solo se
@@ -38,7 +39,6 @@ export type FilaStock = {
   total: number;
   piso: number | null;
   almacen: number | null;
-  estado: EstadoStock | null;
   /** Unidades de esta variante hoy en `cuarentena`, pendientes de resolver
    *  (Liquidada/Se botó/Donada). `null` en ubicaciones que no separan piso
    *  de almacén (Taller) — mismo criterio que `piso`/`almacen`. */
@@ -61,7 +61,6 @@ export type ResumenInventario = {
   disponible: number;
   piso: number | null;
   almacen: number | null;
-  requierenReposicion: number;
   separaPisoAlmacen: boolean;
 };
 
@@ -190,7 +189,6 @@ export function resumirInventario(filas: FilaStock[]): ResumenInventario {
     disponible: filas.reduce((acc, f) => acc + f.disponible, 0),
     piso: separaPisoAlmacen ? filas.reduce((acc, f) => acc + (f.piso ?? 0), 0) : null,
     almacen: separaPisoAlmacen ? filas.reduce((acc, f) => acc + (f.almacen ?? 0), 0) : null,
-    requierenReposicion: filas.filter((f) => f.estado === "reponer_piso").length,
     separaPisoAlmacen,
   };
 }
@@ -211,9 +209,16 @@ export type FilaExistencias = FilaStock & {
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
   enRed: SedeConStock[];
-  /** Cuánto dura el stock de hoy al ritmo de venta reciente (`getCoberturaPorVariante`). Solo tiendas;
-   *  ausente o null = «N/D» (no vende, no hay historial o el cálculo falló). */
-  cobertura?: Cobertura | null;
+  /** Ritmo reciente (7 días, ledger único — `existencias-ritmo.ts`, 2026-09-25). Solo tiendas;
+   *  ausente o null = no se pudo calcular (falló la RPC; ver `coberturaFallo` en el panel). */
+  ritmoReciente?: RitmoReciente | null;
+  /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
+   *  ausente o null = no se pudo calcular. */
+  coberturaPiso?: CoberturaPiso | null;
+  /** «Acción hoy» (2026-09-25): la clasificación única de `planDeReposicion`, reducida a texto
+   *  cualitativo — MISMA fuente que la tarjeta «Reponer a piso hoy» y «Ver recomendaciones».
+   *  Ausente o null = sin Ritmo reciente para armar el plan (no se inventa una acción). */
+  accionHoy?: AccionHoy | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
 };
@@ -284,8 +289,8 @@ export async function getExistencias(
   // `stock` — y sin fila, la encargada no la vería llegar. Se le arma una
   // fila en cero con lo que trae el traslado (visto probando: Blusa Emma
   // viajando a Trujillo, que solo vendía Blusa Valentina, no aparecía).
-  // En Taller (`separaPisoAlmacen` falso) piso/almacén/estado quedan null
-  // como en cualquier fila suya.
+  // En Taller (`separaPisoAlmacen` falso) piso/almacén quedan null como en
+  // cualquier fila suya.
   const separa = stock.some((f) => f.piso !== null);
   const yaListadas = new Set(filas.map((f) => f.varianteId));
   for (const item of enCamino) {
@@ -312,7 +317,6 @@ export async function getExistencias(
       disponible: 0,
       pisoDisponible: separa ? 0 : null,
       almacenDisponible: separa ? 0 : null,
-      estado: separa ? calcularEstado(0, 0) : null,
       enTransito: transito.get(item.variante_id) ?? 0,
       enRed: red.get(item.variante_id)?.otrasSedes ?? [],
       esPrueba: productoEsPrueba,
@@ -322,21 +326,19 @@ export async function getExistencias(
 }
 
 export type ResumenExistencias = ResumenInventario & {
-  /** Prendas (variantes) en cada estado — para la tarjeta «Piden atención»
-   *  y su desglose. Solo tiene sentido si `separaPisoAlmacen`. */
-  porEstado: Record<EstadoStock, number>;
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
+  /** Variantes con Acción hoy = «Reponer a piso» (2026-09-25) — SIEMPRE lo calcula quien llama
+   *  (`accionHoyPorVariante`, `existencias-recomendaciones.ts`), nunca acá: una sola fuente de
+   *  verdad para la tarjeta, la tabla y el filtro (nunca un `EstadoStock` calculado aparte). */
+  requierenReposicion: number;
 };
 
-export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias {
-  const base = resumirInventario(filas);
-  const porEstado: Record<EstadoStock, number> = { normal: 0, reponer_piso: 0, stock_bajo: 0, sin_stock: 0 };
-  for (const f of filas) if (f.estado) porEstado[f.estado] += 1;
+export function resumirExistencias(filas: FilaExistencias[], requierenReposicion: number): ResumenExistencias {
   return {
-    ...base,
-    porEstado,
+    ...resumirInventario(filas),
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
+    requierenReposicion,
   };
 }
 
