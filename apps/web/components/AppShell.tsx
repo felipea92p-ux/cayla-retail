@@ -11,6 +11,7 @@ import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
+import { MasMovil } from "@/components/MasMovil";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
@@ -102,8 +103,9 @@ type Props = {
   children: React.ReactNode;
 };
 
-// Íconos de línea (brandbook: "íconos rellenos ×, solo línea") — trazo 1.5
-function Icono({ d, className }: { d: string; className?: string }) {
+// Íconos de línea (brandbook: "íconos rellenos ×, solo línea") — trazo 1.5. Exportado: `MasMovil`
+// pinta las mismas filas del árbol y no debe reinventar el diccionario de trazos.
+export function Icono({ d, className }: { d: string; className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" className={className ?? "h-5 w-5"}>
       <path d={d} />
@@ -111,7 +113,8 @@ function Icono({ d, className }: { d: string; className?: string }) {
   );
 }
 // Tipado contra `ClaveIcono` (lib/menu.ts): un nodo del árbol que nombre un ícono sin trazo acá no compila.
-const IC: Record<ClaveIcono | "chevron", string> = {
+// "mas" y "buscar" no son de `ClaveIcono` (no son nodos del árbol, ADR-0205) — igual que "chevron".
+export const IC: Record<ClaveIcono | "chevron" | "mas" | "buscar", string> = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
   apartados: "M6 3h12v18l-6-4-6 4V3zm3.5 6.5L11 11l3.5-3.5",
@@ -169,6 +172,10 @@ const IC: Record<ClaveIcono | "chevron", string> = {
   impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
   cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
   chevron: "M9 6l6 6-6 6",
+  // Tres puntos en fila: "Más" (celular, ADR-0205) abre `menu.riel` —el mismo árbol del lateral— en una hoja.
+  mas: "M4.5 12h.01M12 12h.01M19.5 12h.01",
+  // Lupa: atajo de cabecera a /buscar (celular).
+  buscar: "M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8",
 };
 
 /* ------------------------------------------------------------------
@@ -674,6 +681,8 @@ const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
   const [perfilAbierto, setPerfilAbierto] = useState(false);
+  // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
+  const [masAbierto, setMasAbierto] = useState(false);
   const esLider = persona.rol === "lider";
   const esAparato = !!persona.terminal;
 
@@ -998,12 +1007,33 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción
               (que ya tenían el suyo propio, local a esa pantalla). Un
-              integrante sigue viendo solo la etiqueta, sin poder tocarla. */}
-          <div className="ml-auto shrink-0">
+              integrante sigue viendo solo la etiqueta, sin poder tocarla.
+              En celular (ADR-0205) se agrupa con Buscar y el avatar, pegadas al borde como una sola
+              unidad — antes la ubicación sola llevaba el `ml-auto` y quedaba lejos de cualquier ícono. */}
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             {persona.puedeCambiarUbicacion ? (
               <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
             ) : (
               <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
+            )}
+            <Link
+              href="/buscar"
+              aria-label="Buscar"
+              className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+            >
+              <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
+            </Link>
+            {/* Un aparato (ADR-0162) no tiene "Mi perfil" que abrir: nada que hacer al tocarlo, así que
+                el botón ni se dibuja — mismo criterio que el avatar del lateral de escritorio. */}
+            {!esAparato && (
+              <button
+                type="button"
+                onClick={() => setPerfilAbierto(true)}
+                aria-label="Mi perfil"
+                className="font-display grid h-8 w-8 shrink-0 place-items-center rounded-full bg-sand text-xs text-tinta transition-colors hover:bg-rojo/15 sm:hidden"
+              >
+                {iniciales}
+              </button>
             )}
           </div>
         </div>
@@ -1022,14 +1052,16 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
       {/* ==================== Pestañas (celular) ==================== */}
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-tinta/10 bg-crema/90 backdrop-blur-md pb-[env(safe-area-inset-bottom)] sm:hidden">
-        {/* Las columnas salen del menú de esta cuenta: 4 para una persona, según su rol para una terminal (la que ve el Punto de venta no tiene Inicio). */}
-        <div className="relative grid" style={{ gridTemplateColumns: `repeat(${columnas.length}, minmax(0, 1fr))` }}>
+        {/* Las primeras columnas salen del menú de esta cuenta: 4 para una persona, según su rol para una
+            terminal (la que ve el Punto de venta no tiene Inicio). "Más" (ADR-0205) es la última, fija
+            para cualquiera: abre `menu.riel` completo en una hoja — no navega, nunca la marca el riel. */}
+        <div className="relative grid" style={{ gridTemplateColumns: `repeat(${columnas.length + 1}, minmax(0, 1fr))` }}>
           {/* El mismo riel del lateral, acostado: una sola marca que se desliza
-              entre pestañas en vez de cuatro que se prenden y se apagan. */}
+              entre pestañas en vez de prenderse y apagarse una por una. */}
           <span
             aria-hidden
             className="pointer-events-none absolute top-0 h-[2px] rounded-full bg-rojo transition-[transform,opacity] duration-300 ease-cayla"
-            style={{ width: `${100 / Math.max(columnas.length, 1)}%`, transform: `translateX(${Math.max(indiceMovil, 0) * 100}%)`, opacity: indiceMovil >= 0 ? 1 : 0 }}
+            style={{ width: `${100 / (columnas.length + 1)}%`, transform: `translateX(${Math.max(indiceMovil, 0) * 100}%)`, opacity: indiceMovil >= 0 ? 1 : 0 }}
           />
           {columnas.map((c, n) => (
             <Link
@@ -1045,8 +1077,19 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
               <span className="text-[11px]">{c.etiqueta}</span>
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => setMasAbierto(true)}
+            aria-haspopup="dialog"
+            aria-expanded={masAbierto}
+            className={`flex flex-col items-center gap-1 py-3 transition-colors ${masAbierto ? "text-rojo" : "text-tinta/70"}`}
+          >
+            <Icono d={IC.mas} className="h-[22px] w-[22px]" />
+            <span className="text-[11px]">Más</span>
+          </button>
         </div>
       </nav>
+      {masAbierto && <MasMovil riel={menu.riel} onClose={() => setMasAbierto(false)} />}
     </div>
   );
 }
