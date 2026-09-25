@@ -4,6 +4,7 @@ import {
   ARBOL,
   PERMISOS,
   TIPOS_UBICACION,
+  esGrupoMenu,
   menuPara,
   permisosDe,
   type Nodo,
@@ -259,7 +260,18 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
   it("una terminal de ventas a la que se le enciende Existencias ve Inventario (la terminal es una cuenta más con su rol)", () => {
     const tv = [...MODULOS_DE_HOY.ventas, { clave: "existencias" as const, completo: true }];
     const riel = menuPara(ahora({ nombre: "tv", rol: "integrante" }, "tienda", tv, true)).riel;
-    expect(riel.map((f) => f.etiqueta)).toEqual(["Ventas", "Inventario"]);
+    // Es la caja del mostrador: lo de Ventas sale suelto (2026-09-25); Inventario sigue siendo un grupo.
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario"]);
+  });
+
+  // La caja de TRU tal como la mostró Felipe (2026-09-25): ventas + catálogo + inventario. Lo de Ventas va primero y
+  // SUELTO; debajo, Inventario y Catálogo como grupos, en el orden de #402. Ocho filas: entra entera en el lateral de una laptop.
+  it("una caja que también ve Inventario y Catálogo: lo de Ventas suelto arriba, y debajo Inventario y Catálogo como grupos (Felipe, 2026-09-25)", () => {
+    const extra = ["productos", "atributos", "existencias", "movimientos", "traslados", "conteos", "recibir"] as const;
+    const caja = [...MODULOS_DE_HOY.ventas, ...extra.map((clave) => ({ clave, completo: true }))];
+    const riel = menuPara(ahora({ nombre: "caja", rol: "integrante" }, "tienda", caja, true)).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario", "Catálogo"]);
+    expect(riel.filter(esGrupoMenu).map((f) => f.etiqueta)).toEqual(["Inventario", "Catálogo"]);
   });
 
   it("sin módulos, una persona solo tiene Inicio", () => {

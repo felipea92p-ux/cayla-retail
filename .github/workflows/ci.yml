@@ -15,20 +15,22 @@
 # migraciones están aplicadas" ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
 #
-# PILOTO DESDE 2026-09-17 (Felipe pidió revisitar ADR-0026/ADR-0066 al crecer a 4 scripts
-# de RPC sin cubrir por este job). `pruebas-postgres`, abajo, SÍ levanta Postgres real
+# OBLIGATORIO DESDE 2026-09-25: si falla, el PR sale en rojo. Para que además impida
+# fusionar, el ruleset `main-protegida` tiene que exigir este check (CONTRIBUTING.md §2).
+# `pruebas-postgres`, abajo, SÍ levanta Postgres real
 # (`npx supabase start`) y corre `caja:verificar` + `scripts/pruebas/*.mjs` contra él.
-# ADR-0066 los había dejado fuera de CI a propósito ("cada PR futuro saldría rojo por
-# Docker, no por el código") sin haberse visto correr nunca en un runner real — por eso
-# el job entero lleva `continue-on-error: true`: no bloquea ningún push mientras se
-# confirma que la mecánica funciona igual que en el Postgres local de cada quien (y
-# `main` hoy no exige ningún check para mergear de todos modos — CONTRIBUTING.md §2). Se
-# saca esa línea cuando haya 2-3 corridas verdes reales.
+# Nació el 2026-09-17 como piloto con `continue-on-error: true`: ADR-0066 temía que "cada
+# PR futuro saldría rojo por Docker, no por el código". Se midió antes de quitarlo: de 79
+# corridas, 20 fallaron y 19 fueron fallas reales del código (una sola de infraestructura,
+# el límite de descargas de Docker Hub). Una de ellas, en `pruebas:roles`, salió en rojo
+# dos veces en su propio PR (#397, 2026-09-25) y aun así se fusionó porque el job no
+# bloqueaba; 7 PR más la heredaron hasta que se arregló a mano. Si falla SOLO por infraestructura
+# («toomanyrequests», «failed to pull»), se vuelve a correr el job; no se apaga la prueba.
 
 name: CI
 
-# Felipe trabaja directo sobre main, así que el push es el disparo que importa. El de PR
-# queda armado para el día que haya ramas — no cuesta nada hoy.
+# El equipo trabaja con ramas y PR (CONTRIBUTING.md §2): el PR corre todo antes de
+# fusionar, y el push a main lo vuelve a correr sobre el resultado ya fusionado.
 on:
   push:
     branches: [main]
@@ -114,10 +116,9 @@ jobs:
           node scripts/adr/numeros.mjs
 
   pruebas-postgres:
-    name: Pruebas de RPC contra Postgres (piloto, no bloquea)
+    name: Pruebas de RPC contra Postgres
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -230,6 +231,12 @@ jobs:
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
+
+      # Actividad de cada módulo (ADR-0207): cada venta, anulación, caja y cambio deja su línea; la tabla es de solo
+      # agregar; si anotar falla la venta se guarda igual; el alcance por sede (líder, líder de tienda, terminal). ROLLBACK.
+      - name: pruebas:actividad
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad
 
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ always() && steps.supabase.outcome == 'success' }}
