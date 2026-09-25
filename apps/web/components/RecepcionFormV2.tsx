@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
 import { CampoSelect, Desplegable } from "@/components/ui/campos";
@@ -12,6 +12,8 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { nuevaOperacion } from "@/lib/cola-offline";
+import { useColaRecibir } from "@/lib/useColaRecibir";
 
 // Fase UI 1 (2026-09-11): pantalla nueva sobre la RPC `recibir_lote` de V2
 // (`supabase/migrations/0003_funciones.sql:179`). No es una adaptación de
@@ -40,7 +42,9 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ unidades: number; loteId: string | null } | null>(null);
+  // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0210).
+  const [ok, setOk] = useState<{ unidades: number; loteId: string | null; sinConexion?: boolean } | null>(null);
+  const colaOffline = useColaRecibir();
   // Quién recibe (ADR-0161/0162): `recibir_lote` firma con esa persona, en la tienda que recibe.
   const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
   // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
@@ -78,7 +82,7 @@ export function RecepcionFormV2({
     setLoading(true);
 
     const supabase = createClient();
-    const { data: loteId, error } = await firmar(supabase.rpc("recibir_lote", {
+    const params = {
       p_ubicacion_id: ubicacionId,
       p_proveedor_id: proveedorId,
       p_items: validas.map((l) => ({
@@ -88,16 +92,37 @@ export function RecepcionFormV2({
       })),
       p_numero_guia: numeroGuia || undefined,
       p_token: token.current,
-    }), responsable.firma());
+    };
+    const firma = responsable.firma();
+    const { data: loteId, error, status } = await firmar(supabase.rpc("recibir_lote", params), firma);
 
     setLoading(false);
+    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
+    // Sin red (ADR-0210): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
+    if (error && debeEncolarse(error, status)) {
+      const proveedor = proveedores.find((p) => p.id === proveedorId)?.nombre ?? "proveedor";
+      const op = nuevaOperacion({
+        token: token.current,
+        rpc: "recibir_lote",
+        params,
+        firma,
+        resumen: `Lote de ${unidades} ${unidades === 1 ? "unidad" : "unidades"} · ${proveedor} · ${ubicacionEtiqueta}`,
+      });
+      if (!colaOffline.encolar(op)) {
+        avisar.error("Se cortó el internet y este navegador no pudo guardar el lote. Anota lo recibido y regístralo cuando vuelva la conexión.");
+        return;
+      }
+      token.current = crypto.randomUUID();
+      avisar.aviso("Lote guardado sin conexión", { detalle: "Sube solo cuando vuelva el internet." });
+      setOk({ unidades, loteId: null, sinConexion: true });
+      return;
+    }
     responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "recibir el lote"));
       return;
     }
     token.current = crypto.randomUUID();
-    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
     avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
     setOk({ unidades, loteId: loteId ?? null });
     router.refresh();
@@ -106,9 +131,13 @@ export function RecepcionFormV2({
   if (ok) {
     return (
       <div className="space-y-3 text-center">
-        <p className="label-cayla text-[11px] text-tinta/65">Lote recibido</p>
+        <p className="label-cayla text-[11px] text-tinta/65">{ok.sinConexion ? "Lote guardado sin conexión" : "Lote recibido"}</p>
         <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
-        <p className="text-sm text-tinta/70">Ya suman al stock de {ubicacionEtiqueta}.</p>
+        <p className="text-sm text-tinta/70">
+          {ok.sinConexion
+            ? `Sumarán al stock de ${ubicacionEtiqueta} cuando vuelva el internet. Las etiquetas de precio se imprimen después, desde el lote.`
+            : `Ya suman al stock de ${ubicacionEtiqueta}.`}
+        </p>
         {ok.loteId && (
           <Link href={urlEtiquetasDePrecio({ lotes: [ok.loteId] })} className="btn-cayla btn-primario w-full">
             Imprimir {ok.unidades === 1 ? "la etiqueta" : `${ok.unidades} etiquetas`} de precio
