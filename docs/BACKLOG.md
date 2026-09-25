@@ -28,10 +28,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — rama `claude/optimize-cayla-retail-team-03c071`, en PR
-- [ ] **Fusionar el PR.** La corrección anterior (2026-09-23, commits `248f6de3` y `2d0ba71d`) se perdió porque quedó en ramas sin PR.
+## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — FUSIONADO (#422); la prueba de Postgres deja de ser opcional (rama `claude/puertas-ci-y-agents`)
+- [ ] **Exigir los dos checks del CI para fusionar (Felipe, con permiso de administrador):** agregar `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` al ruleset `main-protegida`, con el comando de `CONTRIBUTING.md` §2, **después** de fusionar el PR que quita el «(piloto, no bloquea)» del nombre. Hasta entonces, un PR en rojo se sigue fusionando igual: pasó con el #397.
 - [ ] **Construir lo que Felipe decidió el 2026-09-25:** (1) R-38 — dentro de 15 días la devolución la aplica cualquiera en caja, sin líder; afloja el candado de ADR-0177 (quien registra no aprueba), así que lleva ADR y migración propios; (2) antes de cerrar caja, la pantalla de Caja resalta los descuentos de más de 15%; (3) R-20 — revisar el umbral por categoría cuando haya 8 semanas de ventas reales (hoy 14 días para todas).
-- [ ] **Sin decidir o fuera de este cambio:** si importar el consumo de Audaces se descartó o solo no se hizo (Felipe); `AGENTS.md:91` mantiene «migraciones SIN prefijo» y `sedes`/`personas`; el protocolo de pregunta y docencia depende de `~/.claude/CLAUDE.md`, que no está en el repo; `.claude/settings.json` llama a graphify con una ruta de Windows de una sola máquina; `supabase/config.toml:13-15` todavía dice que `seed.sql` renombra el schema.
+- [ ] **Sin decidir o fuera de este cambio:** si importar el consumo de Audaces se descartó o solo no se hizo (Felipe); el protocolo de pregunta y docencia depende de `~/.claude/CLAUDE.md`, que no está en el repo; `.claude/settings.json` llama a graphify con una ruta de Windows de una sola máquina; `supabase/config.toml:13-15` todavía dice que `seed.sql` renombra el schema.
 
 ## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412
 - [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
