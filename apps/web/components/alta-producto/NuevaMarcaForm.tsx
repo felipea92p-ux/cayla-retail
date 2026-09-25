@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { ChipOpcion } from "@/components/alta-producto/piezas";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import type { ProveedorOpcion } from "@/lib/marcas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -28,6 +28,10 @@ import { firmar } from "@/lib/responsable-reglas";
 // sesión; aquí se firma igual porque es parte del MISMO gesto de Catálogo, y el
 // encabezado solo lo lee la función que lo pide (a las demás no les cambia nada).
 // Si la 2 falla, el combo NO se vacía: el reintento es el mismo gesto.
+//
+// «¿Quién la trae?» es un buscador (ComboBuscable, 6 a la vista) y NO la lista entera de proveedores como botones: con
+// ~60 proveedores el muro de chips ocupaba media pantalla (captura de Felipe, 2026-09-24). Registrar uno nuevo es la
+// última opción de esa misma lista, con lo tipeado ya puesto como nombre.
 
 export type MarcaGuardada = {
   marcaId: string;
@@ -135,60 +139,80 @@ export function NuevaMarcaForm({
   };
 
   return (
-    <div className="space-y-3 rounded-md border border-tinta/20 p-4">
+    <div className="space-y-3 rounded-xl border border-sand bg-crema p-4">
       <p className="label-cayla text-[11px] text-tinta/70">
         {marcaFija ? `Otro proveedor para ${nombreInicial}` : proveedorFijo ? `Nueva marca de ${proveedorFijo.nombre}` : "Nueva marca"}
       </p>
-      {!marcaFija && (
-        <div>
-          <label htmlFor="nueva-marca" className="text-xs text-tinta/60">
-            Nombre de la marca
-          </label>
-          <input
-            id="nueva-marca"
-            autoFocus
-            value={nombreMarca}
-            onChange={(e) => setNombreMarca(e.target.value)}
-            onKeyDown={enter}
-            className="mt-1 h-9 w-full border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none focus:border-tinta"
-          />
-        </div>
-      )}
-
-      {!proveedorFijo && (
-        <div>
-          <p className="text-xs text-tinta/60">¿Quién la trae?</p>
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            <ChipOpcion elegido={modo === "existente"} onClick={() => setModo("existente")} disabled={lista.length === 0}>
-              Un proveedor que ya tengo
-            </ChipOpcion>
-            <ChipOpcion elegido={modo === "nuevo"} onClick={() => setModo("nuevo")}>
-              Un proveedor nuevo
-            </ChipOpcion>
+      <div className={`grid gap-3 ${!marcaFija && !proveedorFijo ? "sm:grid-cols-2" : ""}`}>
+        {!marcaFija && (
+          <div>
+            <label htmlFor="nueva-marca" className="text-xs text-tinta/60">
+              Nombre de la marca
+            </label>
+            <input
+              id="nueva-marca"
+              autoFocus
+              value={nombreMarca}
+              onChange={(e) => setNombreMarca(e.target.value)}
+              onKeyDown={enter}
+              className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none"
+            />
           </div>
-        </div>
-      )}
+        )}
 
-      {proveedorFijo ? null : modo === "existente" ? (
-        <div className="flex flex-wrap gap-1.5">
-          {lista.map((p) => (
-            <ChipOpcion key={p.id} elegido={proveedorId === p.id} onClick={() => setProveedorId(p.id)}>
-              {p.nombre}
-            </ChipOpcion>
-          ))}
-        </div>
-      ) : (
+        {!proveedorFijo && (
+          <div>
+            <label htmlFor="proveedor-marca" className="text-xs text-tinta/60">
+              ¿Quién la trae?
+            </label>
+            <div className="mt-1">
+              {modo === "existente" ? (
+                <ComboBuscable
+                  id="proveedor-marca"
+                  caja
+                  etiquetaAccesible="Proveedor que trae la marca"
+                  marcador={lista.length > 0 ? `Busca entre ${lista.length} proveedores…` : "Escribe el nombre del proveedor…"}
+                  valor={proveedorId}
+                  onValor={setProveedorId}
+                  opciones={lista.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                  limite={6}
+                  crear={{
+                    etiqueta: (q) => (q ? `+ Registrar «${q}» como proveedor nuevo` : "+ Registrar un proveedor nuevo"),
+                    onCrear: (q) => {
+                      setProvNombre(q);
+                      setProveedorId("");
+                      setModo("nuevo");
+                    },
+                  }}
+                />
+              ) : (
+                <div className="flex h-10 items-center justify-between gap-2 rounded-md bg-hueso px-3 text-sm text-tinta">
+                  Proveedor nuevo
+                  {lista.length > 0 && (
+                    <button type="button" onClick={() => setModo("existente")} className="btn-cayla btn-enlace text-xs">
+                      Elegir uno que ya tengo
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {!proveedorFijo && modo === "nuevo" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="nuevo-proveedor" className="text-xs text-tinta/60">
-              Nombre del proveedor
+              Razón social o nombre
             </label>
             <input
               id="nuevo-proveedor"
+              autoFocus
               value={provNombre}
               onChange={(e) => setProvNombre(e.target.value)}
               onKeyDown={enter}
-              className="mt-1 h-9 w-full border-b border-tinta/25 bg-transparent px-1 text-sm text-tinta outline-none focus:border-tinta"
+              className="caja-cayla mt-1 h-10 w-full px-3 text-sm text-tinta outline-none"
             />
           </div>
           <div>
@@ -202,7 +226,7 @@ export function NuevaMarcaForm({
               value={provRuc}
               onChange={(e) => setProvRuc(e.target.value.replace(/\D/g, ""))}
               onKeyDown={enter}
-              className="mt-1 h-9 w-full border-b border-tinta/25 bg-transparent px-1 text-sm tabular-nums text-tinta outline-none focus:border-tinta"
+              className="caja-cayla mt-1 h-10 w-full px-3 text-sm tabular-nums text-tinta outline-none"
             />
           </div>
           <p className="text-xs text-tinta/55 sm:col-span-2">Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.</p>

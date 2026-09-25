@@ -8,6 +8,8 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -117,6 +119,25 @@ export function RegistrarGastoModal({
   );
   const comprobantes = esActivo ? TIPOS_COMPROBANTE.filter((t) => t !== "recibo_por_honorarios") : TIPOS_COMPROBANTE;
 
+  // «Salió de» (ADR-0195 F3b, como el spike): se elige la CUENTA —el cajón, la caja fuerte, lo que tiene el líder, un banco o
+  // la tarjeta de crédito— y el medio sale de ella; con un banco se dice cómo (transferencia, Yape, Plin). Del cajón, la base
+  // crea su egreso en la misma operación. Sin cuentas (la base no respondió), queda el combo de medios de antes.
+  const ubicacionCuentas = b.ubicacion && b.ubicacion !== "empresa" ? b.ubicacion : null;
+  const cuentasPago = useCuentasParaElegir("pago", ubicacionCuentas, !egreso);
+  // Un gasto de una tienda solo sale del cajón de ESA tienda (la base lo exige); los «de la empresa», de cualquiera.
+  const cuentasGasto = useMemo(
+    () => cuentasPago.cuentas.filter((c) => c.tipo !== "cajon" || b.ubicacion === "empresa" || c.ubicacionId === b.ubicacion),
+    [cuentasPago.cuentas, b.ubicacion],
+  );
+  const conCuentas = cuentasPago.listo && cuentasGasto.length > 0;
+  const [medioBanco, setMedioBanco] = useState<"transferencia" | "yape" | "plin" | "deposito">(() =>
+    b.medio === "yape" || b.medio === "plin" || b.medio === "deposito" ? b.medio : "transferencia",
+  );
+  const cuentaSalida = cuentaDeSalida(cuentasGasto, "pago", b.cuentaId, b.medio || undefined);
+  const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
+  const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(conComprobante).includes(medioBanco) ? medioBanco : "transferencia") : null;
+  const medioSalida = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
+
   function elegirComprobante(t: TipoComprobante) {
     setB((x) => {
       const medios = mediosPara(t);
@@ -136,7 +157,15 @@ export function RegistrarGastoModal({
   }
 
   async function guardar() {
-    const conCaja = { ...b, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" };
+    const conCaja = conCuentas && !egreso && !aCredito
+      ? {
+          ...b,
+          medio: medioSalida as BorradorGasto["medio"],
+          cuentaId: cuentaSalida ?? undefined,
+          // Del cajón: su caja abierta (si no está en la lista, la base la busca por la cuenta).
+          cajaId: salida?.tipo === "cajon" ? (cajasAbiertas.find((c) => c.ubicacionId === salida.ubicacionId)?.id ?? "") : "",
+        }
+      : { ...b, cuentaId: undefined, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" };
     const v = esActivo ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy) : validarGasto(conCaja, hoy);
     if (!v.ok) return avisar.error(v.error);
     if (!responsable.listo) {
@@ -152,8 +181,10 @@ export function RegistrarGastoModal({
     avisar.exito(egreso ? `Egreso clasificado como ${que.toLowerCase()}` : `${que} registrado`, {
       detalle: aCredito
         ? `Quedó en Por pagar hasta el ${b.vence.split("-").reverse().join("/")}.`
-        : b.medio === "efectivo" && !egreso
+        : !egreso && (conCuentas ? salida?.tipo === "cajon" : b.medio === "efectivo")
           ? "Salió del cajón: la caja ya lo descuenta."
+          : !egreso && conCuentas && salida
+            ? `Salió de ${salida.nombre}.`
           : esActivo
             ? "Se deprecia desde el próximo mes."
             : undefined,
@@ -346,6 +377,18 @@ export function RegistrarGastoModal({
             <CampoFin etiqueta="Vence" htmlFor="gasto-vence" ayuda="Queda en Compras ▸ Por pagar hasta ese día.">
               <InputFin id="gasto-vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />
             </CampoFin>
+          ) : conCuentas ? (
+            <CampoCuentaFin
+              id="gasto-cuenta"
+              etiqueta="Salió de"
+              cuentas={cuentasGasto}
+              listo={cuentasPago.listo}
+              clase="pago"
+              medio={medioSalida || "transferencia"}
+              sinMedio
+              valor={cuentaSalida}
+              onValor={(v) => poner("cuentaId", v)}
+            />
           ) : (
             <CampoFin
               etiqueta="Salió de"
@@ -369,12 +412,28 @@ export function RegistrarGastoModal({
               </SelectFin>
             </CampoFin>
           )}
-          {!aCredito && b.medio && b.medio !== "efectivo" && (
+          {!aCredito && conCuentas && bancoConMedio && (
+            <CampoFin etiqueta="Cómo" htmlFor="gasto-medio-banco" ayuda="Del banco, por qué camino salió.">
+              <SelectFin id="gasto-medio-banco" value={bancoConMedio} onChange={(e) => setMedioBanco(e.target.value as typeof medioBanco)}>
+                {mediosDeBanco(conComprobante).map((m) => (
+                  <option key={m} value={m}>
+                    {TEXTO_MEDIO[m]}
+                  </option>
+                ))}
+              </SelectFin>
+            </CampoFin>
+          )}
+          {!aCredito && (conCuentas ? !bancoConMedio && medioSalida && medioSalida !== "efectivo" : b.medio && b.medio !== "efectivo") && (
             <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
               <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
             </CampoFin>
           )}
         </div>
+      )}
+      {!egreso && !aCredito && conCuentas && bancoConMedio && (
+        <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
+          <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+        </CampoFin>
       )}
 
       <ComboResponsable control={responsable} deshabilitado={guardando} />

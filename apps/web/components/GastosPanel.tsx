@@ -11,7 +11,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { RegistrarGastoModal, type ProveedorGasto } from "@/components/RegistrarGastoModal";
-import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, TablaActivos } from "@/components/GastosFijosYActivos";
+import { ActivoDetalleModal, FijosDelMes, GastoFijoModal, NoEsFijoModal, TablaActivos } from "@/components/GastosFijosYActivos";
 import { Buscador, CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PestanasFin, PieTabla, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -73,6 +73,7 @@ export function GastosPanel({
   hoy,
   fallas,
   pestanaInicial = "gastos",
+  destinosDeposito = [],
 }: {
   panel: PanelGastos | null;
   gastos: GastoFila[];
@@ -92,6 +93,9 @@ export function GastosPanel({
   hoy: string;
   fallas: string[];
   pestanaInicial?: PestanaGastos;
+  /** Los bancos a los que se deposita (Cuentas y dinero, F3). Vacío si la cuenta no tiene ese módulo: entonces un depósito
+   *  se marca «no es gasto» como antes, y quien tenga Cuentas y dinero dice después a qué banco llegó. */
+  destinosDeposito?: { id: string; nombre: string }[];
 }) {
   const router = useRouter();
   const ruta = usePathname();
@@ -101,6 +105,7 @@ export function GastosPanel({
   const [detalle, setDetalle] = useState<GastoFila | null>(null);
   const [activo, setActivo] = useState<ActivoFila | null>(null);
   const [nuevoFijo, setNuevoFijo] = useState<FijoSugerido | null>(null);
+  const [noEsFijo, setNoEsFijo] = useState<FijoSugerido | null>(null);
   const [clasificar, setClasificar] = useState<EgresoPorClasificar | null>(null);
   const rf = resumenFijos(fijos);
 
@@ -208,6 +213,7 @@ export function GastosPanel({
           esLider={esLider}
           onRegistrar={(f) => setRegistrar({ fijo: f })}
           onMarcarFijo={setNuevoFijo}
+          onNoEsFijo={setNoEsFijo}
         />
       )}
 
@@ -283,11 +289,13 @@ export function GastosPanel({
       {nuevoFijo && (
         <GastoFijoModal inicial={nuevoFijo} categorias={categorias} ubicaciones={ubicaciones} proveedores={proveedores} esLider={esLider} ubicacionInicial={ubicacionParaRegistrar} onCerrar={() => setNuevoFijo(null)} />
       )}
+      {noEsFijo && <NoEsFijoModal sugerido={noEsFijo} onCerrar={() => setNoEsFijo(null)} />}
       {detalle && <GastoDetalleModal gasto={detalle} onCerrar={() => setDetalle(null)} />}
       {clasificar && (
         <ClasificarEgresoModal
           egreso={clasificar}
           categorias={categorias}
+          destinosDeposito={destinosDeposito}
           hoy={hoy}
           onCerrar={() => setClasificar(null)}
           onRegistroCompleto={(clase) => {
@@ -523,16 +531,19 @@ function GastoDetalleModal({ gasto: g, onCerrar }: { gasto: GastoFila; onCerrar:
 }
 
 // «¿Qué fue esta salida?»: un gasto chico (el mototaxi) se guarda aquí mismo con su categoría; si trae factura o es un
-// activo, se sigue al registro completo con el monto y la tienda fijos.
+// activo, se sigue al registro completo con el monto y la tienda fijos. Un depósito al banco pide «¿A qué cuenta llegó?» y
+// queda como movimiento de dinero (ADR-0195 F3): el banco sube y el egreso ya no respalda otra cosa.
 function ClasificarEgresoModal({
   egreso: e,
   categorias,
+  destinosDeposito,
   hoy,
   onCerrar,
   onRegistroCompleto,
 }: {
   egreso: EgresoPorClasificar;
   categorias: CategoriaGasto[];
+  destinosDeposito: { id: string; nombre: string }[];
   hoy: string;
   onCerrar: () => void;
   onRegistroCompleto: (clase: "gasto" | "activo") => void;
@@ -543,12 +554,15 @@ function ClasificarEgresoModal({
   const [categoria, setCategoria] = useState("");
   const [descripcion, setDescripcion] = useState(e.nota ?? "");
   const [motivo, setMotivo] = useState("");
+  const [destino, setDestino] = useState(destinosDeposito[0]?.id ?? "");
   const [guardando, setGuardando] = useState(false);
   const cat = categorias.find((c) => c.codigo === categoria) ?? null;
+  const aBanco = que === "deposito" && destinosDeposito.length > 0;
 
   async function guardar() {
     if (que === "activo") return onRegistroCompleto("activo");
     if (que === "otro" && !motivo.trim()) return avisar.error("Escribe qué fue.");
+    if (aBanco && !destino) return avisar.error("Elige a qué cuenta llegó.");
     let payload: Record<string, unknown> | null = null;
     if (que === "gasto") {
       const v = validarGasto(
@@ -583,14 +597,25 @@ function ClasificarEgresoModal({
     const { error } = await firmar(
       que === "gasto"
         ? supabase.rpc("registrar_gasto" as never, { ...payload, p_token: crypto.randomUUID() } as never)
-        : supabase.rpc("marcar_egreso_no_gasto" as never, { p_caja_movimiento_id: e.id, p_tipo: que, p_motivo: motivo.trim() || null } as never),
+        : aBanco
+          ? // El origen es el cajón de esa tienda: la base lo toma del egreso.
+            supabase.rpc(
+              "registrar_movimiento_dinero" as never,
+              { p_tipo: "deposito", p_monto: e.monto, p_cuenta_destino_id: destino, p_referencia: motivo.trim() || e.nota || null, p_caja_movimiento_id: e.id, p_token: crypto.randomUUID() } as never,
+            )
+          : supabase.rpc("marcar_egreso_no_gasto" as never, { p_caja_movimiento_id: e.id, p_tipo: que, p_motivo: motivo.trim() || null } as never),
       responsable.firma(),
     );
     setGuardando(false);
     responsable.despues(error);
     if (error) return avisar.error(traducirError(error, que === "gasto" ? "registrar el gasto" : "clasificar el egreso"));
-    avisar.exito(que === "gasto" ? "Registrado como gasto" : `Registrado como ${TEXTO_NO_GASTO[que].titulo.replace(/^Un[a]? /, "").toLowerCase()}`, {
-      detalle: que === "gasto" ? undefined : "No cuenta como gasto. Si fue un error, se revierte en esta misma pestaña.",
+    avisar.exito(que === "gasto" ? "Registrado como gasto" : aBanco ? "Registrado como depósito al banco" : `Registrado como ${TEXTO_NO_GASTO[que].titulo.replace(/^Un[a]? /, "").toLowerCase()}`, {
+      detalle:
+        que === "gasto"
+          ? undefined
+          : aBanco
+            ? `${destinosDeposito.find((d) => d.id === destino)?.nombre ?? "El banco"} sube en Cuentas y dinero. No cuenta como gasto; si fue un error, se anula allí.`
+            : "No cuenta como gasto. Si fue un error, se revierte en esta misma pestaña.",
     });
     onCerrar();
     router.refresh();
@@ -641,9 +666,22 @@ function ClasificarEgresoModal({
           </p>
         </div>
       )}
+      {aBanco && (
+        <div data-sin-cascada>
+          <CampoFin etiqueta="¿A qué cuenta llegó?" htmlFor="clas-destino" ayuda="Queda como depósito en Cuentas y dinero: el cajón ya bajó con esta salida y ahora sube el banco.">
+            <SelectFin id="clas-destino" value={destino} onChange={(ev) => setDestino(ev.target.value)}>
+              {destinosDeposito.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </SelectFin>
+          </CampoFin>
+        </div>
+      )}
       {que !== "gasto" && que !== "activo" && (
         <div data-sin-cascada>
-          <CampoFin etiqueta={que === "otro" ? "Qué fue" : "Nota (opcional)"} htmlFor="clas-motivo">
+          <CampoFin etiqueta={que === "otro" ? "Qué fue" : aBanco ? "Voucher o nota (opcional)" : "Nota (opcional)"} htmlFor="clas-motivo">
             <InputFin id="clas-motivo" value={motivo} onChange={(ev) => setMotivo(ev.target.value)} placeholder={que === "deposito" ? "Depósito BCP, op. 12345" : ""} />
           </CampoFin>
         </div>

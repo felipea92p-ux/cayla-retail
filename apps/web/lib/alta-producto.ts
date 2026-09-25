@@ -170,7 +170,7 @@ export type EstadoAlta = {
   costoBase: string;
 };
 
-export type Problema = { bloque: "categoria" | "marca" | "nombre" | "atributos" | "precio"; texto: string };
+export type Problema = { bloque: "categoria" | "marca" | "nombre" | "atributos" | "variantes" | "precio"; texto: string };
 
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
@@ -190,7 +190,7 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
       if (!e.patronId) p.push({ bloque: "atributos", texto: "Elige el patrón (si no tiene diseño, elige Liso)." });
     }
   }
-  if (e.celdasIncluidas === 0) p.push({ bloque: "atributos", texto: "Deja al menos una variante en la matriz." });
+  if (e.celdasIncluidas === 0) p.push({ bloque: "variantes", texto: "Deja al menos una variante en la tabla." });
   const precio = Number(e.precioBase);
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
   const costo = Number(e.costoBase);
@@ -213,6 +213,58 @@ export function desbloqueos(e: EstadoAlta): Desbloqueos {
     e.tallasElegidas > 0 &&
     (!e.exigeTejidoPatron || (e.hayTejidosEnCategoria && e.hayPatronesEnCategoria && Boolean(e.tejidoId) && Boolean(e.patronId)));
   return { marca, nombre, atributos, colores: atributosResueltos, precio: atributosResueltos };
+}
+
+// ---------------------------------------------------------------------------
+// Los 4 pasos del alta (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09).
+// ---------------------------------------------------------------------------
+//
+// Los 7 bloques de antes se agrupan en 4 pasos. Solo uno está abierto a la vez, y el terminado se pliega en una línea:
+//   1 Qué es · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas, tejido, patrón,
+//   colores, fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color, etiquetas).
+// Cada problema de `problemasAlta` cae en un paso, así el paso dice qué le falta sin repetir las reglas.
+
+export type PasoAlta = 1 | 2 | 3 | 4;
+export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4];
+
+export function pasoDeProblema(p: Problema): PasoAlta {
+  if (p.bloque === "categoria") return 1;
+  if (p.bloque === "marca" || p.bloque === "nombre") return 2;
+  if (p.bloque === "atributos") return 3;
+  return 4;
+}
+
+/** Lo primero que le falta a un paso, o null si el paso está completo. */
+export function faltaDelPaso(problemas: Problema[], paso: PasoAlta): string | null {
+  return problemas.find((p) => pasoDeProblema(p) === paso)?.texto ?? null;
+}
+
+/** Un paso está hecho cuando ni él ni ninguno anterior tiene problemas: sin categoría, «Cómo se hace» no puede estar listo. */
+export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
+  return !problemas.some((p) => pasoDeProblema(p) <= paso);
+}
+
+/** El paso más lejano al que se puede entrar: el primero que todavía tiene algo pendiente. */
+export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
+  const primero = problemas[0];
+  return primero ? pasoDeProblema(primero) : 4;
+}
+
+// ---------------------------------------------------------------------------
+// Fotos elegidas durante el alta: se suben DESPUÉS de crear el producto.
+// ---------------------------------------------------------------------------
+
+/**
+ * El orden y la principal de las fotos del alta, igual que la galería de la edición: van primero las de color en el
+ * orden de los colores, al final las generales (sin color), y la principal es la primera. Así la foto de la grilla es
+ * la del primer color elegido, no la última que se agregó.
+ */
+export function ordenarFotosAlta<T extends { colorCodigo: string | null }>(fotos: T[], ordenColores: string[]): (T & { orden: number; esPrincipal: boolean })[] {
+  const rango = (c: string | null) => (c === null ? ordenColores.length : Math.max(0, ordenColores.indexOf(c)));
+  return fotos
+    .map((f, i) => ({ f, i }))
+    .sort((a, b) => rango(a.f.colorCodigo) - rango(b.f.colorCodigo) || a.i - b.i)
+    .map(({ f }, orden) => ({ ...f, orden, esPrincipal: orden === 0 }));
 }
 
 // ---------------------------------------------------------------------------

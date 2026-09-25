@@ -6,6 +6,11 @@ import {
   codigoVariantePrevisto,
   construirCeldas,
   desbloqueos,
+  faltaDelPaso,
+  ordenarFotosAlta,
+  pasoAlcanzable,
+  pasoDeProblema,
+  pasoHecho,
   leerErrorAlta,
   margenPorcentaje,
   nivelMargen,
@@ -268,5 +273,51 @@ describe("repartirFamilias — qué familias se ven de entrada y cuáles van tra
       const r = repartirFamilias(entrada);
       expect(codigos([...r.aLaVista, ...r.masFamilias]).sort()).toEqual(codigos(entrada).sort());
     }
+  });
+});
+
+describe("pasos del alta — cada problema cae en su paso", () => {
+  it("con todo resuelto, los 4 pasos están hechos y se llega al 4", () => {
+    const p = problemasAlta(base);
+    expect([1, 2, 3, 4].map((n) => pasoHecho(p, n as 1 | 2 | 3 | 4))).toEqual([true, true, true, true]);
+    expect(pasoAlcanzable(p)).toBe(4);
+  });
+  it("sin categoría todo está pendiente y solo se entra al paso 1", () => {
+    const p = problemasAlta({ ...base, categoriaId: "" });
+    expect(pasoAlcanzable(p)).toBe(1);
+    expect(pasoHecho(p, 3)).toBe(false);
+  });
+  it("nombre y marca son el paso 2; tallas, tejido y patrón el 3; tabla y precio el 4", () => {
+    expect(pasoDeProblema(problemasAlta({ ...base, marcaId: "" })[0])).toBe(2);
+    expect(pasoDeProblema(problemasAlta({ ...base, referencia: "" })[0])).toBe(2);
+    expect(pasoDeProblema(problemasAlta({ ...base, tejidoId: "" })[0])).toBe(3);
+    expect(pasoDeProblema(problemasAlta({ ...base, celdasIncluidas: 0 })[0])).toBe(4);
+    expect(pasoDeProblema(problemasAlta({ ...base, precioBase: "" })[0])).toBe(4);
+  });
+  it("un paso con lo suyo resuelto no está hecho si falta uno anterior", () => {
+    const p = problemasAlta({ ...base, marcaId: "" });
+    expect(faltaDelPaso(p, 3)).toBeNull();
+    expect(pasoHecho(p, 3)).toBe(false);
+    expect(faltaDelPaso(p, 2)).toMatch(/marca/);
+  });
+});
+
+describe("ordenarFotosAlta — la principal es la del primer color", () => {
+  it("ordena por color elegido, las generales al final, y marca principal a la primera", () => {
+    const r = ordenarFotosAlta(
+      [
+        { id: "g", colorCodigo: null },
+        { id: "b2", colorCodigo: "BLA" },
+        { id: "n", colorCodigo: "NEG" },
+        { id: "b1", colorCodigo: "BLA" },
+      ],
+      ["NEG", "BLA"]
+    );
+    expect(r.map((f) => f.id)).toEqual(["n", "b2", "b1", "g"]);
+    expect(r.map((f) => f.orden)).toEqual([0, 1, 2, 3]);
+    expect(r.filter((f) => f.esPrincipal).map((f) => f.id)).toEqual(["n"]);
+  });
+  it("sin fotos devuelve una lista vacía", () => {
+    expect(ordenarFotosAlta([], ["NEG"])).toEqual([]);
   });
 });

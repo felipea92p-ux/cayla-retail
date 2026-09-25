@@ -4090,6 +4090,7 @@ export type Database = {
         Row: {
           activo: boolean
           created_at: string
+          hora_cierre: string | null
           id: string
           meta_venta_diaria: number | null
           nombre: string
@@ -4099,6 +4100,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           created_at?: string
+          hora_cierre?: string | null
           id?: string
           meta_venta_diaria?: number | null
           nombre: string
@@ -4108,6 +4110,7 @@ export type Database = {
         Update: {
           activo?: boolean
           created_at?: string
+          hora_cierre?: string | null
           id?: string
           meta_venta_diaria?: number | null
           nombre?: string

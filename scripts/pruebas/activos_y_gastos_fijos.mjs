@@ -10,7 +10,8 @@
  *   · anular (sin pagos) y dar de baja; no se edita ni se borra; la factura de un activo no se anula desde Compras;
  *   · gastos fijos: registrado / viene / falta, uno por mes, archivar, y los que el sistema propone;
  *   · decisión B: con el módulo Gastos, solo su tienda; nadie lee las tablas directo;
- *   · la lista de gastos dice cómo se pagó también cuando el gasto tiene comprobante.
+ *   · la lista de gastos dice cómo se pagó también cuando el gasto tiene comprobante;
+ *   · «No es fijo» (20260925102000): lo descartado deja de proponerse.
  *
  * CÓMO. Igual que `gastos.mjs`: cada escenario en su transacción con ROLLBACK, sesión simulada con `request.jwt.claim.sub`.
  *
@@ -248,6 +249,32 @@ select medio_pago, compra_id is null from retail.fn_gastos_lista('2026-09-01', '
   const [conFactura, sinFactura] = lineas(r);
   esperar("con factura al contado, la lista dice «transferencia» (antes, nada)", r.ok && conFactura === "transferencia|t", r);
   esperar("sin comprobante, el medio del gasto", r.ok && sinFactura === "yape|t", r);
+}
+
+// 9. «No es fijo»: lo descartado deja de proponerse; cada quien descarta solo lo que ve.
+{
+  const r = correr(`${ESCENA}
+select retail.registrar_gasto(:'tru', 'transporte', 'Mototaxi', '2026-06-08', 8, null, 'yape') as g1 \\gset
+select retail.registrar_gasto(:'tru', 'transporte', 'Mototaxi', '2026-07-09', 9, null, 'yape') as g2 \\gset
+select retail.registrar_gasto(:'tru', 'transporte', 'Mototaxi', '2026-08-09', 7, null, 'yape') as g3 \\gset
+select count(*) from retail.fn_gastos_fijos_sugeridos() where ubicacion_id = :'tru' and categoria = 'transporte' and proveedor_id is null;
+select retail.descartar_fijo_sugerido(:'tru', 'transporte', null);
+select count(*) from retail.fn_gastos_fijos_sugeridos() where ubicacion_id = :'tru' and categoria = 'transporte' and proveedor_id is null;
+select pg_temp.intento(format('select retail.descartar_fijo_sugerido(%L, ''transporte'', null)', :'tru'));
+${cambiaA(MICAELA)}${conModulo("gastos")}
+select pg_temp.intento(format('select retail.descartar_fijo_sugerido(%L, ''publicidad'', null)', :'tru'));
+select pg_temp.intento(format('select retail.descartar_fijo_sugerido(%L, ''publicidad'', null)', :'lim'));
+select pg_temp.intento('select retail.descartar_fijo_sugerido(null, ''asesoria'', null)');
+set local role authenticated;
+select pg_temp.intento('select count(*) from retail.gastos_fijos_descartados');`);
+  const [antes, , despues, repetido, suTienda, otra, empresa, directo] = lineas(r); // la 2.ª es el void del descarte
+  esperar("tres mototaxis seguidos se proponen como fijo", r.ok && Number(antes) === 1, r);
+  esperar("«No es fijo»: deja de proponerse", r.ok && Number(despues) === 0, r);
+  esperar("descartarlo otra vez no falla ni duplica", r.ok && repetido === "SIN_ERROR", r);
+  esperar("con el módulo, descarta los de su tienda", r.ok && suTienda === "SIN_ERROR", r);
+  esperar("los de otra tienda, no", r.ok && otra.includes("No ves"), r);
+  esperar("los de la empresa, solo el líder", r.ok && empresa.includes("Solo el líder"), r);
+  esperar("nadie lee los descartes directo", r.ok && directo.includes("permission denied"), r);
 }
 
 console.log(fallos ? `\n${fallos} caso(s) fallaron` : "\nTodo en orden");

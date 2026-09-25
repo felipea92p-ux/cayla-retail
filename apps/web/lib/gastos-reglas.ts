@@ -344,6 +344,8 @@ export type BorradorGasto = {
   referencia: string;
   /** F2b: el gasto fijo del que sale este gasto, si viene de «Fijos del mes». */
   gastoFijoId?: string;
+  /** F3b: la cuenta de «Salió de» (cajón, caja fuerte, lo que tiene el líder, un banco o la tarjeta). La base la sella. */
+  cuentaId?: string;
 };
 
 export type PayloadGasto = {
@@ -366,6 +368,8 @@ export type PayloadGasto = {
   p_referencia: string | null;
   /** F2b: el gasto fijo del que sale (uno por mes). */
   p_gasto_fijo_id?: string | null;
+  /** F3b: de qué cuenta salió (se sella en el gasto o en el pago de su factura). */
+  p_cuenta_id?: string | null;
 };
 
 /** "F001-00140", "F001 140", "S120-560233" → serie y número. */
@@ -395,7 +399,8 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
   if (!aCredito && !b.egresoId) {
     if (!b.medio) return { ok: false, error: "Di cómo se pagó." };
     if (!mediosPara(b.comprobante).includes(b.medio)) return { ok: false, error: `${TEXTO_MEDIO[b.medio]} no va con este comprobante.` };
-    if (b.medio === "efectivo" && !b.cajaId) return { ok: false, error: "En efectivo, sale de la caja abierta de la tienda. Si la caja está cerrada, registra el egreso en Caja primero." };
+    // F3b: en efectivo sale de la caja abierta (el cajón) o de la cuenta elegida (una caja fuerte, lo que tiene el líder).
+    if (b.medio === "efectivo" && !b.cajaId && !b.cuentaId) return { ok: false, error: "En efectivo, sale de la caja abierta de la tienda. Si la caja está cerrada, registra el egreso en Caja primero." };
   }
   const medio: MedioGasto | null = aCredito ? null : b.egresoId ? "efectivo" : (b.medio as MedioGasto);
   return {
@@ -421,6 +426,7 @@ export function validarGasto(b: BorradorGasto, hoy: string): Resultado<PayloadGa
       p_caja_movimiento_id: b.egresoId || null,
       p_referencia: b.referencia.trim() || null,
       ...(b.gastoFijoId ? { p_gasto_fijo_id: b.gastoFijoId } : {}),
+      ...(b.cuentaId && !aCredito && !b.egresoId ? { p_cuenta_id: b.cuentaId } : {}),
     },
   };
 }
@@ -453,6 +459,7 @@ export function validarActivo(b: BorradorActivo, hoy: string) {
       p_referencia: v.p_referencia,
       p_vida_util_meses: vida,
       p_serie: b.serie.trim() || null,
+      ...(v.p_cuenta_id ? { p_cuenta_id: v.p_cuenta_id } : {}),
     },
   };
 }

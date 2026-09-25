@@ -61,11 +61,16 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - editarEtiquetas:        crear, editar y archivar etiquetas SIN descuento  (fn_puede_editar_etiquetas)
  *  - analizar:               Análisis de inventario de su sede                  (fn_puede_analizar)
  *  - registrarGastos:        ver y registrar los gastos de SU tienda (Finanzas ▸ Gastos, ADR-0195 F2; fn_gastos_ubicaciones)
+ *  - verCuentasDinero:       Finanzas ▸ Cuentas y dinero de SU tienda (ADR-0195 F3/F4)
+ *  - verReportesFinancieros: Finanzas ▸ Resumen y Reportes de SU tienda (ADR-0195 F5/F6/F7/F10)
+ *  - verImpuestos:           Finanzas ▸ Impuestos (ADR-0195 F8; solo líder por ahora)
+ *  - cerrarMes:              Finanzas ▸ Cierre de mes (ADR-0195 F9; siempre del líder)
  */
 export const PERMISOS = [
   "administrar", "verDinero", "analizar",
   "facturar", "gestionarCaja", "ajustarInventario", "editarCatalogo", "editarCuentasProveedor",
   "verDineroCompras", "editarEtiquetas", "registrarGastos",
+  "verCuentasDinero", "verReportesFinancieros", "verImpuestos", "cerrarMes",
 ] as const;
 export type Permiso = (typeof PERMISOS)[number];
 
@@ -102,7 +107,8 @@ export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly Cl
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
-  | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos";
+  | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
+  | "dinero" | "reportes" | "impuestos" | "cierre";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -317,15 +323,18 @@ export const ARBOL: readonly Nodo[] = [
 
   // Finanzas (ADR-0195, plan en docs/PLAN-FINANZAS.md): nace con Gastos (F2). Sin `exige` en el grupo: cada hija pide lo
   // suyo, y Gastos es de quien tenga el módulo (su tienda) o del líder (todas). Vive en todas las ubicaciones: el Taller
-  // también paga luz y alquiler. Las demás hijas siguen «futuras» hasta su fase.
+  // también paga luz y alquiler. Con el Resumen (F10) las seis hijas están vivas; `/finanzas` lleva al Resumen a quien lo ve.
   {
     id: "finanzas", etiqueta: "Finanzas", estado: "viva", icono: "gastos", raiz: "/finanzas", pajaro: "11 Garza",
     hijos: [
+      // Las 6 hijas del spike (docs/maquetas/finanzas-2026-09/, PLAN-FINANZAS §6); las 11 piezas son pestañas dentro de ellas.
+      // Cada fase pasa la suya a «viva» con su ruta, ícono y permiso (ADR-0195 F3–F10).
+      { id: "finanzas.resumen", modulo: "reportes_financieros", etiqueta: "Resumen", estado: "viva", ruta: "/finanzas/resumen", icono: "resumen", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
       { id: "finanzas.gastos", modulo: "gastos", etiqueta: "Gastos", estado: "viva", ruta: "/finanzas/gastos", icono: "gastos", pajaro: "11 Garza", exige: "registrarGastos" },
-      { id: "finanzas.resultados", etiqueta: "Resultados", estado: "futura", pajaro: "12 Urraca", nota: "Estado de resultados." },
-      { id: "finanzas.balance", etiqueta: "Balance", estado: "futura", pajaro: "12 Urraca", nota: "Balance general." },
-      { id: "finanzas.cierreDeMes", etiqueta: "Cierre de mes", estado: "futura", pajaro: "12 Urraca", nota: "Cierra el período contable." },
-      { id: "finanzas.activos", etiqueta: "Activos", estado: "futura", pajaro: "12 Urraca", nota: "`activos_fijos`." },
+      { id: "finanzas.dinero", modulo: "cuentas_dinero", etiqueta: "Cuentas y dinero", estado: "viva", ruta: "/finanzas/dinero", icono: "dinero", pajaro: "12 Urraca", exige: "verCuentasDinero" },
+      { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Reportes", estado: "viva", ruta: "/finanzas/reportes", icono: "reportes", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
+      { id: "finanzas.impuestos", modulo: "impuestos", etiqueta: "Impuestos", estado: "viva", ruta: "/finanzas/impuestos", icono: "impuestos", pajaro: "12 Urraca", exige: "verImpuestos" },
+      { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "viva", ruta: "/finanzas/cierre", icono: "cierre", pajaro: "12 Urraca", exige: "cerrarMes" },
     ],
   },
   { id: "clientas", etiqueta: "Clientas", estado: "futura", pajaro: "07 Colibrí", nota: "`clientes`: la libreta de clientas." },

@@ -1,10 +1,12 @@
 import { METODOS_PAGO, redondear2, type MetodoPago } from "./comprobantes-produccion-reglas";
+import { cuentaEfectiva, type CuentaElegible } from "./cuenta-sellada-reglas";
 
 // Pagar con uno o varios medios (ADR-0133, F4b/F4c). Puro. Un mismo pago se reparte entre medios cuando el dinero sale de más de un
 // sitio: 2000 por transferencia + 478 en efectivo. La base los guarda juntos (mismo `grupo_id`) y exige que sumen justo lo que se
 // paga; acá se muestra cuánto FALTA o SOBRA mientras se escribe, con la misma cuenta.
 
-export type MedioForm = { metodo: MetodoPago; monto: string; referencia: string };
+/** `cuentaId` (ADR-0195 F3b): la cuenta elegida en «Sale de». Vacía = la propuesta (`cuentaEfectiva`). */
+export type MedioForm = { metodo: MetodoPago; monto: string; referencia: string; cuentaId?: string };
 
 const num = (s: string) => Number(s.replace(",", "."));
 
@@ -46,11 +48,15 @@ export function repartoDeMedios(medios: MedioForm[], esperado: number, exacto: b
   return { suma, falta, sobra, cuadra, error };
 }
 
-/** Los medios como los recibe la base (`p_pago` / `p_pagos`): sin los vacíos, montos numéricos, referencia solo si se escribió. */
-export function mediosParaRpc(medios: MedioForm[], fecha?: string) {
+/** Los medios como los recibe la base (`p_pago` / `p_pagos`): sin los vacíos, montos numéricos, referencia solo si se escribió.
+ *  Con `cuentas` (F3b), cada medio lleva la cuenta de la que sale: la elegida o la propuesta. */
+export function mediosParaRpc(medios: MedioForm[], fecha?: string, cuentas?: readonly CuentaElegible[]) {
   return medios
     .filter((m) => m.monto.trim() !== "")
-    .map((m) => ({ metodo: m.metodo, monto: redondear2(num(m.monto)), fecha, referencia: m.referencia.trim() || undefined }));
+    .map((m) => {
+      const cuenta = cuentas ? cuentaEfectiva(cuentas, "pago", m.metodo, m.cuentaId) : null;
+      return { metodo: m.metodo, monto: redondear2(num(m.monto)), fecha, referencia: m.referencia.trim() || undefined, ...(cuenta ? { cuenta_id: cuenta } : {}) };
+    });
 }
 
 export function etiquetaMedio(m: MetodoPago): string {

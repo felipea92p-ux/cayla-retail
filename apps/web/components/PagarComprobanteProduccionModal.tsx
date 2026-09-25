@@ -15,6 +15,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 
 // Pagar un saldo desde Por pagar (ADR-0133, F4c). Entero o en partes, con uno o varios medios: `registrar_pago_comprobante_produccion` bloquea
 // el comprobante, no deja pasarse del saldo y con el mismo token no repite el pago (un reintento no cobra dos veces). Con `<Modal>` del sistema.
@@ -27,6 +28,8 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el pago firma con quien se elige en el combo (lista de la sede activa).
   const responsable = useResponsable();
+  // ADR-0195 F3b: «Sale de» en cada medio. El Taller no cobra: sin propuesta de medios de cobro, la primera cuenta que sirve.
+  const cuentas = useCuentasParaElegir("pago", null);
 
   const reparto = repartoDeMedios(medios, c.saldo, false);
   const errorFecha = fecha > hoy ? "La fecha del pago no puede ser futura." : fecha < c.fechaEmision ? "El pago no puede ser anterior a la emisión del comprobante." : null;
@@ -43,7 +46,7 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
     setCargando(true);
     const { error } = await firmar(createClient().rpc("registrar_pago_comprobante_produccion", {
       p_comprobante_id: c.id,
-      p_pagos: mediosParaRpc(medios),
+      p_pagos: mediosParaRpc(medios, undefined, cuentas.cuentas),
       p_fecha: fecha,
       p_token: token,
     }), responsable.firma());
@@ -76,7 +79,7 @@ export function PagarComprobanteProduccionModal({ comprobante: c, hoy, onClose }
           </div>
         </dl>
 
-        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} exacto={false} etiquetaEsperado="Saldo" />
+        <MediosDePago medios={medios} onCambio={setMedios} esperado={c.saldo} exacto={false} etiquetaEsperado="Saldo" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
         <CampoTexto etiqueta="Fecha del pago" type="date" value={fecha} min={c.fechaEmision} max={hoy} onChange={(e) => setFecha(e.target.value)} tono={errorFecha ? "error" : "neutro"} pie={errorFecha ?? undefined} />
 
