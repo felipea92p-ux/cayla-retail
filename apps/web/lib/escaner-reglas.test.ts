@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PAUSA_MISMO_CODIGO_MS, esLecturaRepetida, keyframesAviso, keyframesVuelo, mensajeEscaneo, normalizarLectura } from "./escaner-reglas";
+import { PAUSA_MISMO_CODIGO_MS, esLecturaRepetida, estadoCorto, keyframesAviso, keyframesVuelo, mensajeEscaneo, normalizarLectura } from "./escaner-reglas";
 
 describe("escaner-reglas", () => {
   it("normaliza la lectura como la dejaría el lector", () => {
@@ -26,6 +26,20 @@ describe("escaner-reglas", () => {
     expect(mensajeEscaneo({ estado: "agotada", codigo: "C1", nombre: "Blusa Emma · M" }).tono).toBe("ambar");
     expect(mensajeEscaneo({ estado: "tope", codigo: "C1", nombre: "Blusa Emma · M" }).texto).toContain("Ya están todas");
     expect(mensajeEscaneo({ estado: "no-encontrada", codigo: "XYZ" }).texto).toBe("No encontramos «XYZ» en esta tienda");
+    expect(mensajeEscaneo({ estado: "en_almacen", codigo: "C1", nombre: "Blusa Emma · M", almacen: 2 })).toEqual({
+      tono: "ambar",
+      texto: "Blusa Emma · M no entró: está en el almacén",
+    });
+  });
+
+  it("la etiqueta corta de lo que está en el almacén empieza por el NO: no entró al ticket (D-40)", () => {
+    expect(estadoCorto({ estado: "agregada", codigo: "C1" })).toBeNull();
+    expect(estadoCorto({ estado: "agotada", codigo: "C1" })).toBe("Agotada aquí");
+    expect(estadoCorto({ estado: "en_almacen", codigo: "C1", almacen: 2 })).toBe("No entró · en almacén");
+    // Todas las del piso ya están en el ticket y hay más en el almacén: la que se escaneó, para el sistema, está ahí.
+    expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: 3 })).toBe("No entró · en almacén");
+    expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: null })).toBe("Sin más stock");
+    expect(estadoCorto({ estado: "no-encontrada", codigo: "XYZ" })).toBe("No es de esta tienda");
   });
 });
 
