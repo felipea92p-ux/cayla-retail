@@ -386,6 +386,18 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-resumen-comparacion
 
+      # Ledger de piso/almacén con UNA sola fuente (ADR-0202): `fn_resumen_comparacion` y `fn_ledger_timeline` delegan de verdad en
+      # `fn_ledger_puntos` (se lee su código, no se confía en que «den el mismo número»), reconstruyen el mismo stock y los mismos días
+      # con stock para la misma ventana, la suma de `fn_movimientos` (Inventario ▸ Movimientos) cuadra con el ledger, y el stock de
+      # piso/almacén de hoy es NULL —nunca un 0 inventado— en una sede que no los separa. Elige sus actores por rol (una tienda, un
+      # admin, una colaboradora de otra sede), no por UUID, así que sobrevive a un reseed. Medido el 2026-09-25 en un Postgres 17
+      # desechable con todas las migraciones y el seed: 48/48 dos veces seguidas, con la misma salida, en cuatro zonas horarias de
+      # sesión, con un rol sin superusuario y en su lugar de este job (los 74 pasos en este orden, 74/74), sin dejar una sola
+      # fila. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-ledger-fuente-unica
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-ledger-fuente-unica
+
       # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
       # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
       # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.
