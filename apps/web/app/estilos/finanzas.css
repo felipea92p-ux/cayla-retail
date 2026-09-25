@@ -1069,3 +1069,222 @@
     }
   }
 }
+
+/* ---- F7 · Balance (spike `vista-reportes.js` → `vistaBalance`: `.chequeos`, `.balance`, `.guia` + `.aviso-franja`) ---- */
+@layer components {
+  /* La comprobación antes de dibujar: una tarjeta por cuenta, con su ícono, contra qué se compara y la cifra. */
+  .fin-chequeos {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-chequeos > li {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-lg);
+    background: var(--color-papel);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-chequeos > li > div > b {
+    font-weight: 600;
+  }
+  .fin-chequeos > li > div > p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-chequeos > li > span:last-child {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .fin-chequeos > li[data-estado="no_cuadra"] > span:last-child,
+  .fin-chequeos > li[data-estado="falta"] > span:last-child {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-ok-ic {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1;
+    background: color-mix(in oklab, var(--color-verde) 16%, transparent);
+    color: var(--color-verde);
+  }
+  .fin-ok-ic[data-tono="ambar"] {
+    background: color-mix(in oklab, var(--color-ambar) 16%, transparent);
+    color: var(--color-ambar);
+  }
+  .fin-ok-ic[data-tono="rojo"] {
+    background: color-mix(in oklab, var(--color-rojo) 14%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  /* Por qué no cuadra (o la aclaración): una línea por causa, con su monto. */
+  .fin-causas {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 8px 0 0;
+    border-top: 1px dashed var(--color-sand);
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-causas li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .fin-causas li b {
+    font-weight: 500;
+    color: var(--color-tinta);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* El Balance: lo que tiene | lo que debe + lo que es tuyo. */
+  .fin-balance {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .fin-balance h3 {
+    margin: 0 0 8px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--color-tinta);
+  }
+  .fin-balance ul + h3 {
+    margin-top: 18px;
+  }
+  .fin-balance ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-balance li {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-balance li > span:first-child {
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-balance li > span:last-child {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .fin-balance li small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-balance li.fin-balance-tot {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    border-top: 2px solid var(--color-tinta);
+  }
+
+  /* La franja de «Causa probable» dentro de la guía que dice que no cuadra. */
+  .fin-franja {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: baseline;
+    margin-top: 18px;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--color-ambar) 10%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-ambar) 28%, transparent);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+  }
+  .fin-franja b {
+    color: var(--color-ambar);
+  }
+
+  /* Los saldos de arranque (modal): tres grupos de líneas y el cuadre al pie. */
+  .fin-arranque-grupo + .fin-arranque-grupo {
+    margin-top: 16px;
+  }
+  .fin-arranque-grupo h4 {
+    margin: 0 0 6px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--color-tinta);
+  }
+  .fin-arranque-linea {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 150px;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-arranque-linea > span:first-child {
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-arranque-linea small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+    line-height: 1.4;
+  }
+  .fin-arranque-linea small[data-tono="aviso"] {
+    color: var(--color-ambar);
+  }
+  .fin-arranque-linea output,
+  .fin-arranque-linea input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-arranque-cuadre {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    background: var(--color-hueso);
+    font-size: 13px;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 860px) {
+    .fin-balance {
+      grid-template-columns: 1fr;
+    }
+    /* En angosto, la fecha del Balance baja bajo el título en vez de apretarlo. */
+    .fin-balance-tarjeta .fin-bloque-cab {
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .fin-arranque-linea {
+      grid-template-columns: 34px minmax(0, 1fr) 120px;
+    }
+  }
+}
