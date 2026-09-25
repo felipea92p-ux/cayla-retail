@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Frescura: termómetro del ERP, la caja dice «en el almacén» y «Por colgar» — tareas 1, 2 y 4 del plan del termómetro)
+Felipe aprobó las tareas 1-4 del plan de 12 (sesión del termómetro). Salen tres PR separados:
+- **Termómetro:** 12 consultas de solo lectura en `docs/datos/consultas/frescura-termometro.sql`, verificadas contra producción y con la rutina de los lunes contra Alegra.
+- **Caja «en el almacén» (#437):** dice «está en el almacén: hay N» en vez de «agotada» (D-40), sin cambiar lo que se cobra. De paso arregla el stock en vivo que se cortaba en 1.000 filas, y la prenda de una proforma que entraba a precio de etiqueta en vez del prometido.
+- **«Por colgar» (#438):** filtro en Existencias.
+
+La tarea 3 (Retirar del piso + motivos del ajuste) quedó construida pero **sin PR**: sus motivos nuevos habrían reabierto la «Reposición» que Felipe decidió cerrar en el piso en el bloque 1 de Frescura (#434, otra sesión del mismo día).
+Felipe se lleva:
+1. **Dos sesiones construyeron Frescura el mismo día con planes distintos**, y lo delató la memoria compartida antes de abrir un PR que contradijera su decisión. Revisar PRs abiertos al empezar no alcanza: el #434 se subió mientras se trabajaba.
+2. **La caja nunca manda `p_emisor`**, así que toda venta queda como «emite retail», aunque D-56 ponga Alegra por defecto. Por eso el termómetro compara Alegra contra el total de ventas del ERP.
+3. **Las capturas a 375 px (PL-105) se pueden sacar sin base de datos:** Chrome en modo headless, una página de prueba con prendas de mentira y el protocolo de DevTools. Quedaron en `docs/pr/`.
+
+Sin resolver:
+- decidir qué pasa con la tarea 3;
+- que la caja mande `p_emisor` (D-56);
+- la rutina de los lunes y pedir a Alegra el export de una semana (Felipe).
+
 ## 2026-09-25 (Buscador y paginado: la regla global de combos — ADR-0209, F2 completo)
 Tras ver F1 funcionando (núcleo + un piloto), Felipe pidió migrar TODO de una: `ComboResponsable` (69 usos) y `DesplegablePildora` (píldoras de filtro, reescrita a mano porque Radix `Select` no aloja bien un buscador propio; `ItemDesplegable` retirado) suman la regla, y ~25 pantallas de `SelectNativo`/`CampoSelectNativo`/`<select>` nativo (Compras, Producción, Catálogo, Caja) se migraron a `CampoSelect`/`Desplegable`, repartidas en 5 agentes en paralelo con el mismo patrón exacto del piloto. Verificado en navegador con páginas temporales (proveedores, tiendas y personas de prueba, borradas al terminar) y confirmado en producción real. Dos archivos quedaron sin migrar a propósito, documentados en el ADR: `DecisionFaltanteFila.tsx` (un `<optgroup>` real) y `CambioReemplazo.tsx` (un `ref` que su padre usa para foco-en-error).
 Felipe se lleva: (1) **verificar en el navegador encontró un bug que typecheck/lint/24 000 pruebas no vieron**: el autofoco del buscador de `ComboResponsable` dependía de `abierto` en vez de `posLista` (que recién queda listo un render después de abrir), así que el `<input>` todavía no existía en el DOM cuando el efecto intentaba enfocarlo — invisible para cualquier prueba automatizada, visible al primer clic real; (2) **delegar un patrón ya probado a agentes en paralelo funciona cuando el playbook es exacto**: los 5 agentes migraron 25 archivos sin pisarse, y cuando un archivo no calzaba con el patrón (un `<optgroup>`, un `ref` reenviado a un padre) pararon y lo anotaron en vez de improvisar, como se les pidió; (3) **trabajar en el mismo checkout que otras 2-3 sesiones a la vez** (retiro de «＋Nuevo», spike de menú móvil) exige revisar `git status`/`git diff` antes de tocar algo que parece huérfano y nunca hacer `git add -A`.
