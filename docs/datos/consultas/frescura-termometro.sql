@@ -10,12 +10,19 @@
 --   Frescura. Son también la vara con la que se mide cada arreglo del plan, antes y después.
 --
 -- CÓMO SE USA.
---   · SQL Editor del proyecto cayla-dynamic, UNA consulta a la vez: pégala sola (o resáltala)
---     desde su primera línea sin «--» hasta su punto y coma, y córrela. Todas nombran sus tablas
---     con `retail.`, así que no hace falta `set search_path`. También sirven tal cual con el MCP
---     de Supabase (execute_sql).
---   · Ninguna escribe: las 12 empiezan por SELECT o WITH. Si alguna vez una empieza por otra
---     cosa, alguien la cambió: no la corras.
+--   · SQL Editor del proyecto cayla-dynamic, UNA consulta a la vez, en una pestaña limpia. Primero
+--     escribe esta línea y, debajo, pega la consulta desde su primera línea sin «--» hasta su punto
+--     y coma:
+--         set transaction read only;
+--     Córrelas juntas (si resaltas, resalta las dos). Todas nombran sus tablas con `retail.`, así
+--     que no hace falta `set search_path`. Con el MCP de Supabase (execute_sql) funcionan igual.
+--   · Por qué esa línea: el SQL Editor corre todo lo pegado en UNA transacción y con permisos de
+--     dueño, así que nada frena una escritura. Con la transacción en solo lectura, si alguien
+--     cambiara una consulta para que escriba, Postgres la corta con el error 25006 («cannot execute
+--     … in a read-only transaction») antes de tocar un dato. Que empiece por SELECT o WITH NO
+--     basta: un WITH puede llevar un DELETE adentro, y un SELECT puede llamar a una función que
+--     escribe (retail.recalcular_stock, por ejemplo). Probado en producción el 25-09: con esa línea
+--     delante, transaction_read_only = on, y las 12 corren igual.
 --   · La 01 y la 02 miran UNA semana de lunes a domingo, que se elige en su primera línea
 --     (`semanas_atras`): 1 = la semana pasada (la de la rutina), 0 = la semana en curso.
 --   · Todo día y todo mes se calcula en HORA DE LIMA (`AT TIME ZONE 'America/Lima'`). Las horas
@@ -38,8 +45,9 @@
 --      no montos: una boleta es una venta en los dos sistemas, y la pregunta es cuántas ventas se
 --      le escapan al ERP, no cuánta plata. Es una sola cifra por sede y día a propósito: si la
 --      rutina pesa, se abandona, y con ella se pierde la señal más importante del plan.
---   4. Después, las que dicen «Cuándo: Cada lunes» (02 a 07). La 08 a la 11, una vez al mes. La
---      12, antes y después de pegar una migración de Frescura.
+--   4. Después, las que dicen «Cuándo: Cada lunes»: de la 02 a la 07 y, desde el arranque de cada
+--      sede, también la 10 (la métrica de éxito se mira cada semana de la carrera). Una vez al mes,
+--      la 08, la 09, la 10 y la 11. La 12, antes y después de pegar una migración de Frescura.
 --   Por qué contra `ventas_en_erp` y no contra `ventas_emite_alegra`: hoy la pantalla de Vender no
 --   le dice a la base quién emite (apps/web/components/PuntoDeVenta.tsx:926-958 arma los
 --   parámetros de `registrar_venta` sin `p_emisor`, y ningún archivo de apps/web lo manda),
@@ -61,7 +69,13 @@
 -- ORIGEN. Plan «Frescura del piso», tarea 1 (aprobada por Felipe el 25-09-2026). VERBATIM = la
 --   consulta de la fase 1 del análisis, sin cambios; AJUSTADA = dice qué se le cambió. Las 12 se
 --   verificaron en producción el 25-09-2026 entre las 21:51 y las 21:56 UTC: primero `explain`
---   (compila) y después la consulta tal cual. Ninguna necesitó corrección.
+--   (compila) y después la consulta tal cual.
+--   REVISIÓN del mismo día. Se corrigieron la 01 y la 02 (no servían para la rutina: sin semana, sin
+--   sede, sin ceros, y la 02 contaba devoluciones y cambios como ropa colgada sin bajada), la 05 (no medía
+--   «Por colgar»), la 08 y la 09 (contaban la «Prenda sin registrar»; la 08, además, se cortaba en 50
+--   filas), la 10 (ventana en hora UTC y con el mes más viejo a medias) y la 12 (no distinguía el
+--   libro único). Cada «Origen» dice qué cambió. Las siete se volvieron a correr en producción entre
+--   las 22:16 y las 22:19 UTC, con la transacción en solo lectura, y sus «Hoy:» dicen lo que dieron.
 -- ============================================================================
 
 -- ======================================================================
@@ -407,12 +421,16 @@ group by u.nombre order by u.nombre;
 -- ======================================================================
 -- 08.
 -- ¿Cada categoría tiene muestra suficiente para su vara, en la sede o juntando las 3 sedes? El mínimo del diseño es 20 modelo+color o 30 u. en 8 semanas.
--- Origen: VERBATIM de fase 1 (volumen-y-evidencia #12).
+-- Origen: AJUSTADA de fase 1 (volumen-y-evidencia #12), con dos cambios: 1) deja fuera la «Prenda sin
+-- registrar» (variante centinela 22222222-…, la de la 01): su producto no tiene categoría, y cada una que se
+-- cobra sumaría a una fila de categoría vacía que parece tener muestra cuando lo que falta es catálogo;
+-- 2) sin `limit 50`: con 13 categorías vendidas en las 3 tiendas el resultado pasa de 50 filas, y el corte
+-- se comía sin aviso las de Tienda TRU, que van al final. El resultado ya está acotado por categorías × sedes.
 -- Cuándo: Una vez al mes, y antes de la tarea 12.
 -- Hoy: 25-09, 21:54 UTC, con 7 ventas (34 u.), todas de TRU, así que «por sede» y «3 sedes» dan lo mismo:
 -- Hoy: - Tops: 2 modelo+color y 15 u.; Camisas y Blusas: 2 y 10 u.; Polos: 2 y 5 u.;
 -- Hoy: - Jeans: 1 y 3 u.; Blazers: 1 y 1 u.
--- Hoy: Ninguna categoría cumple el mínimo.
+-- Hoy: Ninguna categoría cumple el mínimo. Corrida otra vez tras la revisión (22:19 UTC): lo mismo, 10 filas.
 -- ======================================================================
 with base as (
   select ve.ubicacion_id, p.categoria_id, va.producto_id, va.color_codigo, vi.cantidad
@@ -421,6 +439,7 @@ with base as (
   join retail.variantes va on va.id = vi.variante_id
   join retail.productos p on p.id = va.producto_id
   where ve.estado = 'completada' and not ve.es_prueba and not p.es_prueba
+    and vi.variante_id <> '22222222-2222-4222-8222-222222222222'
     and ve.created_at >= now() - interval '8 weeks'
 ), por_sede as (
   select ubicacion_id, categoria_id, count(distinct (producto_id, color_codigo)) as modelo_color, sum(cantidad) as unidades
@@ -435,15 +454,17 @@ from por_sede ps join retail.ubicaciones u on u.id = ps.ubicacion_id left join r
 union all
 select '3 sedes', null, c.nombre, t.modelo_color, t.unidades, (t.modelo_color >= 20 or t.unidades >= 30)
 from tres_sedes t left join retail.categorias c on c.id = t.categoria_id
-order by 1, 2, 5 desc
-limit 50;
+order by 1, 2, 5 desc;
 
 -- ======================================================================
 -- 09.
 -- Por modelo+color y sede, cuántos tienen muestra según los cortes del diseño: menos de 5 ventas (sin datos), de 5 a 15 (señal) o más de 15 (firme), en ventanas de 90 y 120 días. Deja a la vista que «firme» no se alcanza con una profundidad de 8 u.
--- Origen: VERBATIM de fase 1 (volumen-y-evidencia #11).
+-- Origen: AJUSTADA de fase 1 (volumen-y-evidencia #11): deja fuera la «Prenda sin registrar» (variante
+-- centinela 22222222-…, la de la 01). Todas las que se cobran caen en un solo modelo+color, y con más de 15
+-- saldría «firme» un modelo que no existe.
 -- Cuándo: Una vez al mes.
 -- Hoy: 25-09, 21:54 UTC. TRU: 17 modelo+color; 15 sin datos, 2 con señal y 0 firmes; 34 u. vendidas. Da lo mismo en 90 y en 120 días.
+-- Hoy: Corrida otra vez tras la revisión (22:19 UTC): lo mismo (hoy no hay ninguna prenda sin registrar cobrada).
 -- ======================================================================
 with ventas_mc as (
   select w.ventana, ve.ubicacion_id, va.producto_id, va.color_codigo, sum(vi.cantidad) as unidades
@@ -453,6 +474,7 @@ with ventas_mc as (
   join retail.productos p on p.id = va.producto_id
   cross join (values (90), (120)) as w(ventana)
   where ve.estado = 'completada' and not ve.es_prueba and not p.es_prueba
+    and vi.variante_id <> '22222222-2222-4222-8222-222222222222'
     and ve.created_at >= now() - make_interval(days => w.ventana)
   group by 1,2,3,4
 ), universo as (
@@ -460,7 +482,7 @@ with ventas_mc as (
   select distinct w.ventana, s.ubicacion_id, va.producto_id, va.color_codigo
   from retail.stock s join retail.variantes va on va.id = s.variante_id
   cross join (values (90), (120)) as w(ventana)
-  where s.cantidad > 0
+  where s.cantidad > 0 and s.variante_id <> '22222222-2222-4222-8222-222222222222'
 ), todo as (
   select coalesce(u.ventana, v.ventana) as ventana, coalesce(u.ubicacion_id, v.ubicacion_id) as ubicacion_id,
          coalesce(v.unidades, 0) as unidades
@@ -482,12 +504,16 @@ group by 1,2 order by 1,2;
 -- 1) resta las unidades devueltas con devolución aprobada;
 -- 2) excluye las liquidaciones de prendas dañadas (motivo 'cuarentena_liquidada'), que graban su precio sin descuento.
 -- Los cambios cuentan como venta al precio cobrado.
+-- Revisión del 25-09: la ventana son los últimos 6 meses COMPLETOS desde el día 1, a medianoche de Lima. Antes
+-- cortaba en el día del mes de hoy y a medianoche UTC (las 19:00 de Lima del día anterior): el mes más viejo
+-- salía a medias y cambiaba de cifra según el día en que se corriera.
 -- Cuándo: Cada lunes desde el arranque de cada sede, y una vez al mes. Nunca como línea base antes de 6 semanas por sede.
 -- Hoy: 25-09, 21:55 UTC, TRU, septiembre de 2026:
 -- Hoy: - 34 u.; S/ 2 310,50 cobrados sobre S/ 2 491,50 a precio de lista;
 -- Hoy: - 24 u. a precio completo: 70,6 % de las unidades y 68,9 % de los soles;
 -- Hoy: - 10 u. de campaña y 0 con descuento manual (la columna sale vacía cuando no hay ninguna).
 -- Hoy: Es ruido: con 2 ventas daba 50 %, con 4 daba 75 %.
+-- Hoy: Con la ventana corregida (22:19 UTC): lo mismo; el corte cae el 01-04-2026 a las 05:00 UTC, las 00:00 de Lima.
 -- ======================================================================
 WITH lineas AS (
   SELECT u.nombre AS sede,
@@ -513,7 +539,8 @@ WITH lineas AS (
     AND NOT EXISTS (SELECT 1 FROM retail.venta_anulacion_items a WHERE a.venta_item_id = vi.id)
     -- AJUSTE 2: fuera la liquidación de prendas dañadas (su precio es el de liquidación, sin descuento)
     AND NOT EXISTS (SELECT 1 FROM retail.movimientos m WHERE m.venta_item_id = vi.id AND m.motivo = 'cuarentena_liquidada')
-    AND v.created_at >= (now() AT TIME ZONE 'America/Lima')::date - interval '6 months'
+    -- Día 1 del mes de hace 5 meses, 00:00 de Lima: este mes y los 5 anteriores, enteros.
+    AND v.created_at >= ((date_trunc('month', now() AT TIME ZONE 'America/Lima') - interval '5 months') AT TIME ZONE 'America/Lima')
 )
 SELECT sede, mes,
        sum(cantidad) AS unidades,
@@ -554,17 +581,25 @@ WHERE v.es_prueba = false AND v.estado = 'completada';
 -- 12.
 -- Detecta diferencias entre el repo y producción en las funciones de lectura de Frescura y en mover_interno. Por cada una trae:
 -- - la huella md5 de pg_get_functiondef, para compararla con la del Postgres local después de migrar;
--- - si es la versión del libro único (columna `version_rama_paralela`: busca la clave esMovimientoInterno, que
---   solo trae la versión de 20260924030000_ledger_fuente_unica.sql; en fn_resumen_comparacion, true = libro único);
+-- - si delega en el libro único (columna `delega_en_libro_unico`: el cuerpo llama a fn_ledger_puntos). Es la
+--   marca que distingue la versión de 20260924030000_ledger_fuente_unica.sql, donde fn_resumen_comparacion y
+--   fn_ledger_timeline dejan de reconstruir el piso por su cuenta;
+-- - `version_rama_paralela` (busca la clave esMovimientoInterno): true = la versión de 20260924010700 o una
+--   posterior, NO «libro único». La 010700 ya armaba esa clave dentro de fn_resumen_comparacion
+--   (supabase/migrations/20260924010700_analisis_comercial_piso_almacen.sql:389) reconociendo la bajada por
+--   motivo; si alguien re-pegara esa migración vieja, esta columna seguiría en true y solo
+--   `delega_en_libro_unico` avisaría;
 -- - si usa la definición única de venta;
 -- - si abre a Análisis;
 -- - si es security definer.
 -- Origen: AJUSTADA de fase 1 (registro-y-relojes #25). Se agregaron la huella md5, fn_puede_analizar() y prosecdef, y a la lista se sumaron fn_es_traslado_interno, fn_resumen_variantes y mover_interno.
+-- Revisión del 25-09: se agregó `delega_en_libro_unico`, porque `version_rama_paralela` no distingue el libro
+-- único de la versión 010700.
 -- Cuándo: Antes y después de pegar las migraciones de las tareas 5, 8, 9 y 11, y una vez al mes.
--- Hoy: 25-09, 21:55 UTC (las cinco huellas que fase 1 anotó a las 16:1x UTC siguen iguales):
--- Hoy: - fn_resumen_comparacion: md5 a126d7c8…; libro único, usa fn_es_venta_de_stock y abre a Análisis (el #405 ya está pegado);
--- Hoy: - fn_ledger_puntos: md5 64d71eea…; usa fn_es_venta_de_stock;
--- Hoy: - fn_ledger_timeline: md5 0aafdebd…; abre a Análisis;
+-- Hoy: 25-09, 21:55 UTC, y otra vez a las 22:19 UTC con la columna nueva (las cinco huellas que fase 1 anotó a las 16:1x UTC siguen iguales):
+-- Hoy: - fn_resumen_comparacion: md5 a126d7c8…; delega en el libro único (delega_en_libro_unico = true), usa fn_es_venta_de_stock y abre a Análisis (el #405 ya está pegado);
+-- Hoy: - fn_ledger_puntos: md5 64d71eea…; usa fn_es_venta_de_stock (es el libro único: no se llama a sí misma, así que su delega_en_libro_unico sale false);
+-- Hoy: - fn_ledger_timeline: md5 0aafdebd…; delega en el libro único y abre a Análisis;
 -- Hoy: - fn_resumen_variantes: md5 629da755…; abre a Análisis;
 -- Hoy: - mover_interno: md5 a4011704…; security definer;
 -- Hoy: - fn_es_traslado_interno: md5 a83eb0fc…; fn_es_venta_de_stock: md5 d7c259ec…; fn_resumen_comparacion_json: md5 1c815fab….
@@ -572,6 +607,7 @@ WHERE v.es_prueba = false AND v.estado = 'completada';
 -- ======================================================================
 select p.proname, pg_get_function_identity_arguments(p.oid) as args, length(p.prosrc) as largo,
        md5(pg_get_functiondef(p.oid)) as huella_md5,
+       p.prosrc ilike '%fn_ledger_puntos%' as delega_en_libro_unico,
        p.prosrc ilike '%esMovimientoInterno%' as version_rama_paralela,
        p.prosrc ilike '%fn_es_venta_de_stock%' as usa_es_venta_de_stock,
        p.prosrc ilike '%fn_puede_analizar()%' as abre_a_analisis,
