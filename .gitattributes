@@ -11,3 +11,7 @@
 *.js   text eol=lf
 *.cjs  text eol=lf
 *.sh   text eol=lf
+
+# Los hooks de git no llevan extensión, así que las reglas de arriba no los alcanzan.
+# Bash los corre y no tolera `\r`: con CRLF, el pre-commit fallaría antes de correr nada.
+.githooks/*  text eol=lf
