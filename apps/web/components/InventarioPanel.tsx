@@ -740,19 +740,6 @@ export function InventarioPanel({
                           Reponer
                         </button>
                       )}
-                      {/* D-41 (2026-09-25): el camino de vuelta, del piso al almacén. Mismo permiso y mismo
-                          modal que «Reponer», pero SIN umbral (`puedeRetirarPiso`): basta que quede algo libre
-                          colgado. Va como enlace discreto, no como botón lleno: esta columna es el semáforo y el
-                          único botón lleno tiene que seguir siendo la acción que la tienda debe hacer hoy. */}
-                      {puedeReponer && puedeRetirarPiso(f.pisoDisponible) && (
-                        <button
-                          type="button"
-                          onClick={() => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "retirar" })}
-                          className="btn-enlace text-xs"
-                        >
-                          Retirar del piso
-                        </button>
-                      )}
                       {/* Independiente del chip de estado: una prenda puede estar
                           "Normal" en piso/almacén y tener unidades dañadas en
                           cuarentena al mismo tiempo — no son el mismo eje. Solo
@@ -811,13 +798,31 @@ export function InventarioPanel({
                         </button>
                       )}
                     </span>
-                    {/* «···»: un solo destino real — el historial del producto (verificado que existe como
-                        página propia; `/productos/[id]` a secas SOLO existe como modal interceptado desde
-                        DENTRO de /productos, no como destino navegable — de ahí llegando, un `router.push`
-                        directo daba 404). No se inventan acciones que no llevan a ningún lado. */}
+                    {/* «···»: las acciones de la fila que no son urgentes. No se inventan acciones que no llevan
+                        a ningún lado.
+                        - «Retirar del piso» (D-41, 2026-09-25): el camino de vuelta, del piso al almacén. Mismo
+                          permiso y mismo modal que «Reponer», pero SIN umbral (`puedeRetirarPiso`): basta que quede
+                          algo libre colgado. Vive aquí y NO en «Prioridad / Estado» a propósito: esa celda es el
+                          semáforo y lo que hay en ella se lee como orden del sistema. Con «Reponer» al lado (piso 3,
+                          almacén 12) la misma celda decía «súbela» y «bájala» a la vez.
+                        - El historial del producto (verificado que existe como página propia; `/productos/[id]` a
+                          secas SOLO existe como modal interceptado desde DENTRO de /productos, no como destino
+                          navegable — de ahí llegando, un `router.push` directo daba 404). */}
                     <MenuAcciones
                       etiqueta={`Más acciones: ${f.referencia}`}
-                      items={[{ clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) }]}
+                      items={[
+                        ...(puedeReponer && puedeRetirarPiso(f.pisoDisponible)
+                          ? [
+                              {
+                                clave: "retirar",
+                                etiqueta: "Retirar del piso",
+                                // Como «Reponer»: el modal ofrece y valida contra lo DISPONIBLE (lo apartado no se mueve, ADR-0141).
+                                onSelect: () => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "retirar" }),
+                              },
+                            ]
+                          : []),
+                        { clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) },
+                      ]}
                     />
                   </span>
                 </span>
