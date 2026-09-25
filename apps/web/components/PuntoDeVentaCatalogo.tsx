@@ -165,8 +165,12 @@ export function PuntoDeVentaCatalogo({
       <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
-            del campo y no entre los chips, donde le robaba ancho a las categorías. */}
-        <div className="flex items-stretch gap-2">
+            del campo y no entre los chips, donde le robaba ancho a las categorías.
+            En el teléfono la fila tiene tres botones y el campo mide ~155 px: la lista de resultados,
+            anclada al campo, cortaba el precio y el stock. Bajo `sm` la lista se ancla a la FILA
+            (el envoltorio del campo pasa a `static` y la fila toma el `relative z-20`) y usa todo el
+            ancho; desde `sm` sigue anclada al campo, como siempre. */}
+        <div className="relative flex items-stretch gap-2 max-sm:z-20">
           {modoCamara ? (
             // Teléfono: no hay lector que «escriba» el código, así que el lugar del campo lo toma la cámara. Mismo alto
             // (h-14) y mismo lugar: la encargada busca «escanear» donde siempre estuvo.
@@ -180,7 +184,7 @@ export function PuntoDeVentaCatalogo({
               Escanear QR
             </button>
           ) : (
-          <div className="relative z-20 min-w-0 flex-1">
+          <div className="relative z-20 min-w-0 flex-1 max-sm:static">
             <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
               {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
               <svg
