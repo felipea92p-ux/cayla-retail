@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode, RefObject } from "react";
+import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
 import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
@@ -83,9 +83,15 @@ const iniciales = (referencia: string) =>
  * el catálogo (chips + grilla) es el plan B para cuando la etiqueta no lee — a un
  * toque, pero sin encabezado propio que le robe alto a la venta.
  *
- * Sin estado propio ni hooks — todo llega por props desde `PuntoDeVenta`, que sigue
- * siendo el dueño de la búsqueda, del catálogo filtrado, del foco y de `agregar()`.
- * Es la costura para trabajar el catálogo sin tocar el ticket (ADR-0043).
+ * Sin estado de NEGOCIO propio — todo eso (búsqueda, catálogo filtrado, foco,
+ * `agregar()`) sigue llegando por props desde `PuntoDeVenta`. Es la costura para
+ * trabajar el catálogo sin tocar el ticket (ADR-0043).
+ *
+ * `catalogoAbierto` (2026-09-25) es la única excepción, y a propósito: si "abrir o
+ * cerrar el catálogo en el celular" viviera en el padre, cada toque de este botón
+ * re-renderizaría el componente de 1300 líneas que además es dueño del carrito y del
+ * ticket — exactamente lo que la costura de arriba evita. Es un dato de PRESENTACIÓN
+ * puro (nadie más lo necesita, no cambia nada de negocio), así que se queda local.
  */
 export function PuntoDeVentaCatalogo({
   ubicacionEtiqueta,
@@ -116,6 +122,10 @@ export function PuntoDeVentaCatalogo({
   onAlternarVentasHoy,
   ventasHoyNode,
 }: Props) {
+  // Colapsado por defecto SOLO en celular (la vendedora escanea; explorar el catálogo a mano
+  // es el plan B). Desde `sm:` (640px) el bloque de abajo ignora este estado — siempre visible,
+  // como hoy — así que arrancar en `false` es seguro también en escritorio.
+  const [catalogoAbierto, setCatalogoAbierto] = useState(false);
   return (
     // En escritorio el alto lo fija el padre (pantalla fija, ADR-0044): `lg:min-h-0`
     // deja que esta columna encoja a la fila y la grilla scrollee por dentro, así el
@@ -233,59 +243,84 @@ export function PuntoDeVentaCatalogo({
           </p>
         )}
 
-        {/* «Solo con stock» es lo primero que decide qué ve la encargada, así que va en su
-            propia fila, con interruptor de verdad (se lee prendido/apagado de un vistazo, no
-            como un chip más entre las categorías donde se perdía al final de la fila) y con
-            cuántas tarjetas esconde: sin ese número, una prenda que no aparece parece que
-            no existe. */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={soloConStock}
-            onClick={() => onSoloConStock(!soloConStock)}
-            disabled={bloqueado}
-            className="group flex items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
-          >
-            <span
-              aria-hidden
-              className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-300 ease-[var(--ease-cayla)] ${
-                soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
-              }`}
+        {/* Solo en celular (`sm:hidden`): la ruta real ahí es escanear, así que explorar el
+            catálogo a mano arranca oculto y es un toque aparte. Sin subtítulo — el propio
+            texto ya dice qué hace, y `aria-expanded`/`aria-controls` cubren al lector de
+            pantalla igual que ya hace el campo de escaneo de arriba. */}
+        <button
+          type="button"
+          onClick={() => setCatalogoAbierto((v) => !v)}
+          aria-expanded={catalogoAbierto}
+          aria-controls="venta-catalogo-filtros venta-catalogo-grilla"
+          className="label-cayla mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-sand bg-papel text-[11px] font-semibold text-tinta transition-colors duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 active:translate-y-px sm:hidden"
+        >
+          {catalogoAbierto ? "Ocultar catálogo" : "Ver catálogo"}
+          <span aria-hidden className={`inline-block transition-transform duration-300 ease-[var(--ease-cayla)] ${catalogoAbierto ? "rotate-180" : ""}`}>
+            ⌄
+          </span>
+        </button>
+
+        {/* Desde `sm:` este bloque ignora `catalogoAbierto` y se ve exactamente como siempre
+            (`sm:block` gana sobre `hidden` en cuanto el viewport cruza el breakpoint) — en
+            celular, aparece solo con el botón de arriba. */}
+        <div id="venta-catalogo-filtros" className={catalogoAbierto ? "" : "hidden sm:block"}>
+          {/* «Solo con stock» es lo primero que decide qué ve la encargada, así que va en su
+              propia fila, con interruptor de verdad (se lee prendido/apagado de un vistazo, no
+              como un chip más entre las categorías donde se perdía al final de la fila) y con
+              cuántas tarjetas esconde: sin ese número, una prenda que no aparece parece que
+              no existe. */}
+          <div className="mt-3 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={soloConStock}
+              onClick={() => onSoloConStock(!soloConStock)}
+              disabled={bloqueado}
+              className="group flex items-center gap-2.5 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-rojo/30"
             >
               <span
-                className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform duration-300 ease-[var(--ease-cayla)] ${
-                  soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
+                aria-hidden
+                className={`relative h-5 w-9 shrink-0 rounded-full border transition-colors duration-300 ease-[var(--ease-cayla)] ${
+                  soloConStock ? "border-tinta bg-tinta" : "border-sand bg-sand/60"
                 }`}
-              />
-            </span>
-            <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
-          </button>
-          {soloConStock && ocultasSinStock > 0 && (
-            <span className="anim-asentar text-[11px] text-tinta/60">
-              {ocultasSinStock} {ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}
-            </span>
-          )}
-        </div>
-
-        {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
-        <div className="scroll-cayla mt-2 flex gap-2 overflow-x-auto pb-3">
-          {categorias.map((c, i) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => onCategoria(c)}
-              disabled={bloqueado}
-              className={`anim-entra ${chip(categoria === c)}`}
-              style={{ "--i": Math.min(i, 10) } as CSSProperties}
-            >
-              {c}
+              >
+                <span
+                  className={`absolute top-0.5 left-0.5 h-3.5 w-3.5 rounded-full shadow-sm transition-transform duration-300 ease-[var(--ease-cayla)] ${
+                    soloConStock ? "translate-x-4 bg-crema" : "bg-tinta/45"
+                  }`}
+                />
+              </span>
+              <span className="label-cayla text-[11px] font-semibold text-tinta">Solo con stock</span>
             </button>
-          ))}
+            {soloConStock && ocultasSinStock > 0 && (
+              <span className="anim-asentar text-[11px] text-tinta/60">
+                {ocultasSinStock} {ocultasSinStock === 1 ? "prenda agotada oculta" : "prendas agotadas ocultas"}
+              </span>
+            )}
+          </div>
+
+          {/* Catálogo, la ruta secundaria: las categorías tienen ahora toda la fila. */}
+          <div className="scroll-cayla mt-2 flex gap-2 overflow-x-auto pb-3">
+            {categorias.map((c, i) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => onCategoria(c)}
+                disabled={bloqueado}
+                className={`anim-entra ${chip(categoria === c)}`}
+                style={{ "--i": Math.min(i, 10) } as CSSProperties}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
+        {/* Solo la grilla se colapsa con el botón de arriba — «Ventas de hoy», más abajo, tiene
+            su propio control y no es parte de lo que pediste ocultar; sigue igual que siempre. */}
+        <div id="venta-catalogo-grilla" className={catalogoAbierto ? "" : "hidden sm:block"}>
         <TooltipProvider delayDuration={250}>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
             {grupos.length === 0 && (
@@ -434,6 +469,7 @@ export function PuntoDeVentaCatalogo({
             })}
           </div>
         </TooltipProvider>
+        </div>
 
         <div className="mt-7 border-t border-sand pt-5">
           <button
