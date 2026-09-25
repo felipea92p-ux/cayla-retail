@@ -28,15 +28,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` POR PEGAR en producción
+## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base)
 El PR #397 recreó `fn_resumen_comparacion` copiando el cuerpo de un archivo viejo (`20260919220000`), y con él volvió
 `… and fn_es_lider()`: desde entonces un rol con Análisis que no es líder ve su pantalla vacía (0 filas). Deshacía
 ADR-0161 P5, que se había aplicado en vivo (`20260923130000`) y por eso no estaba en ningún archivo copiable. Lo marcó
 `pnpm pruebas:roles` (69/70) en el job piloto, que no bloquea. La migración cambia solo el filtro, sobre la definición
 viva (cuerpo verificado idéntico al de producción, md5 `f5f8029b…`), y corrige el comentario de la función.
 - [x] Local: reproducido (70/70 → 69/70 al aplicar `010700`+`030000`) y arreglado (70/70); `fn-resumen-comparacion` 25/25, `fn-ledger-fuente-unica` 48/48, `fn-resumen-variantes` 38/38. Idempotente (pegada dos veces).
-- [ ] **Felipe:** pegar `20260925223000_analisis_vuelve_a_abrirse_al_rol.sql` en el SQL Editor (una sola parte, sin políticas ni tablas) y verificar con `select pg_get_functiondef('retail.fn_resumen_comparacion(uuid,date,date,date,date)'::regprocedure) like '%fn_puede_analizar()%';` → `true`.
+- [x] **En producción** (verificado con `pg_get_functiondef` el 2026-09-25 16:07 UTC): el filtro dice `and retail.fn_puede_analizar() as ok`, ya no exige líder, y el comentario es el nuevo (solo lo escribe esta migración).
+- [x] En paralelo, el PR #404 (`b633868c`) corrigió el filtro en los archivos de #397 (`010700`, `030000`), para que una base limpia no vuelva a cerrar Análisis. Es compatible: ahí esta migración encuentra el filtro ya puesto y no hace nada.
 - [ ] **Decidir (causa raíz):** sacar `continue-on-error` al menos del paso `pruebas:roles` en `.github/workflows/ci.yml`. El job piloto lo vio, pero no frenó el merge; el propio `ci.yml` dice que se saca «cuando haya 2-3 corridas verdes reales».
+
+## 🎯 Fotos de perfil desde Dynamic (2026-09-25) — migración `20260925210000` EN PRODUCCIÓN (verificada en la base); web en PR
+Retail muestra la foto que cada persona tiene en Dynamic (lateral, «Mi perfil», combo «Responsable», Colaboradores). Antes salía una imagen rota en «Mi perfil» y cambiar la foto desde retail fallaba al guardar.
+- [x] Migración `20260925210000` aplicada en producción (2026-09-25, por el conector, con OK de Felipe) y verificada preguntándole a la base: `security definer`, `authenticated` sí / `anon` no, devuelve las 17 fotos de colaboradores y deja fuera a la persona de Dynamic que no es de retail.
+- [ ] Pedir a DO que cargue en Dynamic la foto de los 8 colaboradores que no tienen (el combo «Responsable» es donde más se nota).
+- [ ] Con la web publicada: abrir «Mi perfil», cambiar la foto y comprobar que el lateral la cambia sin recargar (la subida real no se pudo probar en local: Docker caído).
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.
 
 ## 🧹 Se retiró el botón "+ Nuevo" global (2026-09-25, ADR-0204) — construido, probado y verificado en navegador
 A pedido de Felipe (pasó una captura del botón del lateral de escritorio: "no tiene mucha funcionalidad"). No era un
