@@ -267,6 +267,12 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
     expect(riel.map((f) => f.etiqueta)).toEqual(["Ventas", "Inventario"]);
   });
 
+  it("una caja que también ve Catálogo e Inventario los tiene DEBAJO de Ventas, en ese orden (Felipe, 2026-09-25)", () => {
+    const caja = [...MODULOS_DE_HOY.ventas, ...(["productos", "existencias"] as const).map((clave) => ({ clave, completo: true }))];
+    const riel = menuPara(ahora({ nombre: "caja", rol: "integrante" }, "tienda", caja, true)).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Ventas", "Catálogo", "Inventario"]);
+  });
+
   it("sin módulos, una persona solo tiene Inicio", () => {
     const riel = menuPara(ahora({ nombre: "nadie", rol: "integrante" }, "tienda", [])).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Inicio"]);

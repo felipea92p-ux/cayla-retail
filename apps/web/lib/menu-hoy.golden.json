@@ -1,5 +1,5 @@
 {
-  "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe.",
+  "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe. 2026-09-25 (Felipe): «Ventas» sube a segundo, justo debajo de Inicio, en los seis perfiles; solo se movió esa fila.",
   "capturadoDe": { "archivo": "apps/web/components/AppShell.tsx", "commit": "e14ef82c", "metodo": "El AppShell real se renderizó a HTML con react-dom/server (perfil × traslados por atender × ruta); de ese HTML se leyeron las filas del <nav> de escritorio, las 5 columnas de la barra del celular y las acciones del panel «+ Nuevo». Los íconos se guardan como la clave del mapa IC del original. `grupoActivoPorRuta` es el estado interno `grupoActivo` del propio original (el grupo que se abre al aterrizar en esa ruta)." },
   "perfiles": {
     "colaborador-tienda": {
@@ -8,16 +8,6 @@
       "conTraslados3": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -36,6 +26,16 @@
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
                 ]
               }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
           {
@@ -64,16 +64,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -91,6 +81,16 @@
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
                 ]
               }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
           {
@@ -130,6 +130,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -149,27 +170,6 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
               { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
-          {
-            "grupo": "venta",
-            "etiqueta": "Ventas",
-            "icono": "venta",
-            "hijos": [
-              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
-              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
-              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              {
-                "grupo": "venta.posventa",
-                "etiqueta": "Posventa",
-                "icono": "cambios",
-                "hijos": [
-                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
-                ]
-              },
-              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -211,6 +211,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -230,27 +251,6 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
               { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
-          {
-            "grupo": "venta",
-            "etiqueta": "Ventas",
-            "icono": "venta",
-            "hijos": [
-              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
-              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
-              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              {
-                "grupo": "venta.posventa",
-                "etiqueta": "Posventa",
-                "icono": "cambios",
-                "hijos": [
-                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
-                ]
-              },
-              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -304,26 +304,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -341,6 +321,26 @@
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
                 ]
               }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
             ]
           },
           {
@@ -369,26 +369,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -406,6 +386,26 @@
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
                 ]
               }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
             ]
           },
           {
@@ -445,6 +445,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -473,27 +494,6 @@
                   { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
                 ]
               }
-            ]
-          },
-          {
-            "grupo": "venta",
-            "etiqueta": "Ventas",
-            "icono": "venta",
-            "hijos": [
-              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
-              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
-              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              {
-                "grupo": "venta.posventa",
-                "etiqueta": "Posventa",
-                "icono": "cambios",
-                "hijos": [
-                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
-                ]
-              },
-              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -535,6 +535,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -563,27 +584,6 @@
                   { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
                 ]
               }
-            ]
-          },
-          {
-            "grupo": "venta",
-            "etiqueta": "Ventas",
-            "icono": "venta",
-            "hijos": [
-              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
-              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
-              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              {
-                "grupo": "venta.posventa",
-                "etiqueta": "Posventa",
-                "icono": "cambios",
-                "hijos": [
-                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
-                ]
-              },
-              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -637,16 +637,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -664,6 +654,16 @@
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
                 ]
               }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
           {
@@ -692,16 +692,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -719,6 +709,16 @@
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
                 ]
               }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
           {
@@ -758,6 +758,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -777,27 +798,6 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
               { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
-          {
-            "grupo": "venta",
-            "etiqueta": "Ventas",
-            "icono": "venta",
-            "hijos": [
-              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
-              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
-              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              {
-                "grupo": "venta.posventa",
-                "etiqueta": "Posventa",
-                "icono": "cambios",
-                "hijos": [
-                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
-                ]
-              },
-              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {
@@ -839,6 +839,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -858,27 +879,6 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
               { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
               { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
-          {
-            "grupo": "venta",
-            "etiqueta": "Ventas",
-            "icono": "venta",
-            "hijos": [
-              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
-              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
-              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
-              {
-                "grupo": "venta.posventa",
-                "etiqueta": "Posventa",
-                "icono": "cambios",
-                "hijos": [
-                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
-                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
-                ]
-              },
-              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
             ]
           },
           {

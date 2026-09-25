@@ -90,8 +90,9 @@ describe("«Así queda su menú»", () => {
   it("Integrante: el menú de hoy de un integrante en una tienda", () => {
     expect(etiquetasDelMenu(menuDelRol(INTEGRANTE))).toEqual([
       { etiqueta: "Inicio", hijas: [] },
-      { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
+      // Ventas va primero después de Inicio (Felipe, 2026-09-25): lo que más se abre en una tienda.
       { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Posventa"] }, // Apartados: módulo propio sin rol (ADR-0196)
+      { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
     ]);
   });

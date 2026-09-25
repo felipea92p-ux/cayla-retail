@@ -175,7 +175,10 @@ export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
 
 /* ------------------------------------------------------------------
    El árbol de HOY (más lo que viene)
-   El orden es el del menú: Inicio, Catálogo, Producción, Compras, Ventas, Inventario (Felipe, 2026-09-16).
+   El orden es el del menú: Inicio, Ventas, Catálogo, Producción, Compras, Inventario, Finanzas.
+   Ventas subió de quinto a segundo (Felipe, 2026-09-25): es lo que más se abre en una tienda, y una caja (terminal que
+   vende, sin Inicio) lo ve primero, con Catálogo e Inventario debajo. Es UN orden para todos, no uno por perfil: el líder
+   también ve Ventas arriba. Antes (2026-09-16): Inicio, Catálogo, Producción, Compras, Ventas, Inventario.
    ------------------------------------------------------------------ */
 
 export const ARBOL: readonly Nodo[] = [
@@ -186,6 +189,34 @@ export const ARBOL: readonly Nodo[] = [
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
   // menú el 2026-09-22; Felipe pidió ese mismo día dejarlo en el perfil (se corrige en main después). La ruta
   // `/colaboradores` sigue exigiendo el permiso en la página y en la RPC.
+
+  // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
+  // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
+  // Va justo debajo de Inicio (2026-09-25, ver el orden arriba). `grupoDe` recorre los grupos en este orden, pero ninguna
+  // ruta de Ventas cuelga de la de otro grupo, así que subirlo no cambia qué grupo se abre al aterrizar.
+  {
+    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí",
+    hijos: [
+      { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
+      // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
+      // menú, pero con módulo propio desde el ADR-0196: el líder decide aparte quién vende y quién maneja apartados.
+      { id: "venta.apartados", modulo: "apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
+      { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
+      // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
+      { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
+      // Posventa (D-84, ADR-0166): al entrar Apartados, Ventas pasaba el tope de 6 hijas. Cambios y Devoluciones son lo que pasa
+      // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
+      // `raiz` reutiliza la de su primera hija, como Abastecimiento.
+      {
+        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "cambios", raiz: "/cambios", pajaro: "07 Colibrí",
+        hijos: [
+          { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
+          { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
+        ],
+      },
+      { id: "venta.facturacion", modulo: "facturacion", etiqueta: "Comprobantes", estado: "viva", ruta: "/vender/comprobantes", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
+    ],
+  },
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // etiquetas viven como pestañas de «Atributos».
@@ -274,32 +305,6 @@ export const ARBOL: readonly Nodo[] = [
       // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
       // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
       { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-    ],
-  },
-
-  // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
-  // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
-  {
-    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí",
-    hijos: [
-      { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
-      // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
-      // menú, pero con módulo propio desde el ADR-0196: el líder decide aparte quién vende y quién maneja apartados.
-      { id: "venta.apartados", modulo: "apartados", etiqueta: "Apartados", estado: "viva", ruta: "/vender/apartados", icono: "apartados", pajaro: "07 Colibrí" },
-      { id: "venta.caja", modulo: "caja", etiqueta: "Caja", estado: "viva", ruta: "/caja", icono: "caja", pajaro: "07 Colibrí" },
-      // Historial de ventas (ADR-0147): el libro de todas las ventas; se lee tras cobrar y cuadrar y de ahí se pasa a corregir.
-      { id: "venta.historial", modulo: "historial", etiqueta: "Historial", estado: "viva", ruta: "/vender/historial", icono: "historial", pajaro: "07 Colibrí" },
-      // Posventa (D-84, ADR-0166): al entrar Apartados, Ventas pasaba el tope de 6 hijas. Cambios y Devoluciones son lo que pasa
-      // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
-      // `raiz` reutiliza la de su primera hija, como Abastecimiento.
-      {
-        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "cambios", raiz: "/cambios", pajaro: "07 Colibrí",
-        hijos: [
-          { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
-          { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
-        ],
-      },
-      { id: "venta.facturacion", modulo: "facturacion", etiqueta: "Comprobantes", estado: "viva", ruta: "/vender/comprobantes", icono: "facturacion", pajaro: "08 Cuervo", exige: "facturar" },
     ],
   },
 
