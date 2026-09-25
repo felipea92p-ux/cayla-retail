@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { paginarSinPartirGrupos } from "./paginacion";
 import {
   calcularEstado,
+  clavePercha,
   fotoPrincipal,
   necesitaReponerPiso,
   ordenarPorModeloColorTalla,
@@ -240,5 +242,22 @@ describe("ordenarPorModeloColorTalla (la lista «Por colgar» se lee por percha)
     const filas = [p("Z", "z", "Negro", "M"), p("A", "a", "Negro", "S")];
     ordenarPorModeloColorTalla(filas);
     expect(filas.map((f) => f.referencia)).toEqual(["Z", "A"]);
+  });
+
+  it("con la paginación de la pantalla (15 por página), una percha nunca queda partida entre dos páginas", () => {
+    // 13 tallas sueltas de modelos distintos y la Casaca Ximena Negro S·M·L, que con `paginar` a secas
+    // caería en las filas 14, 15 | 16: la L en otra página.
+    const sueltas = Array.from({ length: 13 }, (_, i) => p(`Blusa ${String(i).padStart(2, "0")}`, `b${i}`, "Crudo", "M"));
+    const filas = ordenarPorModeloColorTalla([...sueltas, p("Casaca Ximena", "x", "Negro", "L"), p("Casaca Ximena", "x", "Negro", "S"), p("Casaca Ximena", "x", "Negro", "M")]);
+    const p1 = paginarSinPartirGrupos(filas, 1, 15, clavePercha);
+    expect(p1.filas.filter((f) => f.productoId === "x").map((f) => f.talla)).toEqual(["S", "M", "L"]);
+    expect(p1.totalPaginas).toBe(1);
+  });
+
+  it("clavePercha separa colores y modelos homónimos, y no confunde «sin color» con un color", () => {
+    expect(clavePercha({ productoId: "x", color: "Negro" })).toBe(clavePercha({ productoId: "x", color: "Negro" }));
+    expect(clavePercha({ productoId: "x", color: "Negro" })).not.toBe(clavePercha({ productoId: "x", color: "Camel" }));
+    expect(clavePercha({ productoId: "x", color: "Negro" })).not.toBe(clavePercha({ productoId: "y", color: "Negro" }));
+    expect(clavePercha({ productoId: "x", color: null })).not.toBe(clavePercha({ productoId: "x", color: "null" }));
   });
 });

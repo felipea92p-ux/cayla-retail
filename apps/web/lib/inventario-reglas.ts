@@ -113,6 +113,13 @@ export function ordenarPorModeloColorTalla<T extends { referencia: string; produ
   );
 }
 
+/** La percha de una talla: el modelo (por `productoId`, no por nombre) en un color. Es el grupo que
+ *  `ordenarPorModeloColorTalla` deja contiguo y que la paginación de «Por colgar» no parte entre páginas
+ *  (`paginarSinPartirGrupos`). */
+export function clavePercha(f: { productoId: string; color: string | null }): string {
+  return JSON.stringify([f.productoId, f.color]);
+}
+
 export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {
   normal: "Normal",
   reponer_piso: "Reponer piso",

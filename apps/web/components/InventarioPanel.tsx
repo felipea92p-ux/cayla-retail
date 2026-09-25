@@ -10,7 +10,7 @@ import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
-import { paginar } from "@/lib/paginacion";
+import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -26,6 +26,7 @@ import { descargarCsv } from "@/lib/exportar-csv";
 import type { Recomendacion } from "@/lib/existencias-recomendaciones";
 import {
   ACCION_ESTADO_STOCK,
+  clavePercha,
   DIAS_RITMO_RECIENTE,
   ETIQUETA_ESTADO_STOCK,
   necesitaReponerPiso,
@@ -307,7 +308,10 @@ export function InventarioPanel({
     setFirmaPrevia(firmaFiltros);
     setPagina(1);
   }
-  const paginaActual = paginar(filtradas, pagina, FILAS_POR_PAGINA);
+  // «Por colgar» va ordenada por percha: la página se estira hasta terminar la percha en curso, para que
+  // la S y la M de una casaca no queden en la página 1 y su L en la 2.
+  const paginaActual =
+    estado === POR_COLGAR ? paginarSinPartirGrupos(filtradas, pagina, FILAS_POR_PAGINA, clavePercha) : paginar(filtradas, pagina, FILAS_POR_PAGINA);
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
