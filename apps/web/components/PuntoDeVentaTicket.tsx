@@ -380,7 +380,7 @@ export function PuntoDeVentaTicket({
   return (
     // En escritorio el aside llena toda la fila del POS (la raíz fija la altura al
     // viewport): cabecera y pie quedan fijos y solo el medio scrollea.
-    <aside className="flex min-h-[45vh] flex-col bg-papel lg:min-h-0">
+    <aside className="flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
@@ -1006,7 +1006,7 @@ export function PuntoDeVentaTicket({
                           </button>
                         </div>
                       </div>
-                      <div className="mt-3 flex items-end justify-between gap-3">
+                      <div className="mt-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
                         <label className="text-[10px] text-tinta/50 uppercase">
                           Cantidad
                           <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
@@ -1116,7 +1116,7 @@ export function PuntoDeVentaTicket({
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
               se cobra, así que se decide antes de cobrar (decisión 3-A). */}
           {momentoMostrado === "armar" && (
-            <div className="mb-3 flex items-center justify-between gap-2 text-xs">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-xs">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -1160,10 +1160,14 @@ export function PuntoDeVentaTicket({
             </div>
           )}
 
-          <div className="mb-4 flex items-end justify-between">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-y-1">
             {/* Subtotal e IGV en la columna que ya existía, en el mismo tamaño de letra: el
                 bloque pasa de 2 a 3 líneas (~48 px) y sigue más bajo que el Total (~64 px),
-                así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total. */}
+                así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total.
+                `flex-wrap` + `ml-auto` en el Total (abajo): en el ancho normal se ve igual que
+                antes (el margen automático llega al mismo lugar que dejaba `justify-between`);
+                solo en un aside muy angosto el Total —que no puede encogerse, es un número sin
+                espacios— baja a su propia línea en vez de recortarse contra el borde derecho. */}
             <div className="text-xs text-tinta/60">
               <p>{etiquetaPrendas}</p>
               {/* La nota de venta no desglosa IGV (ADR-0164): el pie muestra solo el total. */}
@@ -1176,7 +1180,7 @@ export function PuntoDeVentaTicket({
                 </dl>
               )}
             </div>
-            <div className="text-right">
+            <div className="ml-auto text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>
               {/* `key={total}`: al cambiar el monto el número se vuelve a montar y se
                   asienta (responde a la prenda que entró, no se anima solo). */}
