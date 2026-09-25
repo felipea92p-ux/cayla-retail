@@ -109,6 +109,27 @@ export function explicarMeta(p: ParametrosCaja, dia: string, soles: (n: number) 
   return p.campanas.length > 1 ? `${base} Rigen ${p.campanas.length} campañas: se usa la que más sube.` : base;
 }
 
+/** «21:00», «9:30» → minutos desde la medianoche; null si no es una hora válida. */
+export function minutosDeHora(hora: string | null | undefined): number | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(hora ?? "");
+  if (!m) return null;
+  const h = Number(m[1]), min = Number(m[2]);
+  return h > 23 || min > 59 ? null : h * 60 + min;
+}
+
+/**
+ * «Al ritmo de hoy cierras en…» (tarjeta Meta de hoy de Caja, spike de Finanzas): lo vendido desde que abrió la caja,
+ * repartido por hora, por las horas que faltan hasta la hora de cierre de la tienda. `null` cuando no se puede decir con
+ * honestidad: sin hora de cierre, con la tienda ya cerrada, o con menos de una hora abierta (al abrir, una sola venta
+ * proyectaría una cifra absurda). Minutos en hora de Lima.
+ */
+export function proyeccionAlCierre(p: { vendido: number; abrioMin: number; ahoraMin: number; cierreMin: number | null }): number | null {
+  if (p.cierreMin === null) return null;
+  const abierta = p.ahoraMin - p.abrioMin, faltan = p.cierreMin - p.ahoraMin;
+  if (abierta < 60 || faltan <= 0) return null;
+  return Math.round(p.vendido + (p.vendido / abierta) * faltan);
+}
+
 /** Cierre: cuánto trasladar para dejar justo el fondo (nunca negativo). */
 export function trasladoParaDejarFondo(contado: number, fondo: number | null): number {
   if (fondo === null) return 0;
@@ -132,6 +153,8 @@ export type TiendaConfig = {
   metaRespaldo: number | null;
   /** Suma de las metas de cada día del mes, con las campañas. */
   metaMes: number | null;
+  /** A qué hora cierra («21:00»); null = no se proyecta la venta del día en Caja. */
+  horaCierre: string | null;
 };
 
 export type EfectoCampana = { meta_pct: number; fondo: number | null };
@@ -163,6 +186,7 @@ export function leerConfiguracion(data: unknown): ConfiguracionTiendas {
       fondo: num(t.fondo),
       metaRespaldo: num(t.meta_respaldo),
       metaMes: num(t.meta_mes),
+      horaCierre: typeof t.hora_cierre === "string" && t.hora_cierre ? t.hora_cierre : null,
     })),
     campanas: (d.campanas ?? []).map((c) => ({
       id: String(c.id),
@@ -177,3 +201,37 @@ export function leerConfiguracion(data: unknown): ConfiguracionTiendas {
     })),
   };
 }
+
+// ---- Configuración ▸ Caja y avisos (20260925103000) ----------------------------------------------------------------
+
+export type ParametrosFinanzas = { minimoCaja: number; avisoGastoPct: number; avisoVenceDias: number };
+
+export function leerParametrosFinanzas(data: unknown): ParametrosFinanzas | null {
+  const d = data as Record<string, unknown> | null;
+  if (!d) return null;
+  return { minimoCaja: Number(d.minimo_caja ?? 0), avisoGastoPct: Number(d.aviso_gasto_pct ?? 25), avisoVenceDias: Number(d.aviso_vence_dias ?? 7) };
+}
+
+/** Los tres números con los mismos límites que `guardar_parametros_finanzas`, dichos antes de ir a la base. */
+export function validarParametrosFinanzas(b: { minimoCaja: string; avisoGastoPct: string; avisoVenceDias: string }): Resultado<ParametrosFinanzas> {
+  const minimo = parsearMonto(b.minimoCaja);
+  if (!minimo.ok) return { ok: false, error: `Mínimo de caja: ${minimo.error}` };
+  const pct = Number(b.avisoGastoPct.replace(/%|\s/g, "").replace(",", "."));
+  if (!Number.isFinite(pct) || pct <= 0 || pct > 500) return { ok: false, error: "El aviso de gasto va de 1 % a 500 %." };
+  const dias = Number(b.avisoVenceDias.trim());
+  if (!Number.isInteger(dias) || dias < 1 || dias > 60) return { ok: false, error: "Los días de aviso van de 1 a 60." };
+  return { ok: true, valor: { minimoCaja: minimo.valor ?? 0, avisoGastoPct: pct, avisoVenceDias: dias } };
+}
+
+// ---- Configuración ▸ Empresa (de solo lectura) -----------------------------------------------------------------------
+
+export type DatosEmpresa = {
+  ruc: string | null;
+  razonSocial: string | null;
+  nombreComercial: string | null;
+  email: string | null;
+  telefono: string | null;
+  web: string | null;
+  tiendas: { id: string; nombre: string; direccion: string | null; distrito: string | null; series: { tipo: string; serie: string }[] }[];
+};
+

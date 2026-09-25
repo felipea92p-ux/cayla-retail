@@ -168,6 +168,10 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cuentas-dinero
 
+      - name: pruebas:por-pagar-consolidado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-consolidado
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio

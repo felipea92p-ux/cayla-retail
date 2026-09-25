@@ -105,6 +105,7 @@ async function CajaConDatos({
       }));
 
   const metaVentaDiaria = parametros ? parametros.meta : (ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null);
+  const horaCierre = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
 
   return (
     <CajaAbiertaPanel
@@ -120,6 +121,7 @@ async function CajaConDatos({
       metaVentaDiaria={metaVentaDiaria}
       parametros={parametros}
       esperadoCajon={esperadoCajon}
+      horaCierre={horaCierre}
       cierresRecientes={historial}
     />
   );
