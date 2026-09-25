@@ -1,5 +1,15 @@
 [
  {
+  "conname": "activos_fijos_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "activos_fijos"
+ },
+ {
+  "conname": "activos_fijos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "activos_fijos"
+ },
+ {
   "conname": "apartados_cerrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "apartados"
@@ -115,6 +125,11 @@
   "src_table": "compradores_de_tienda"
  },
  {
+  "conname": "compras_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "compras"
+ },
+ {
   "conname": "compras_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "compras"
@@ -133,6 +148,11 @@
   "conname": "comprobantes_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "comprobantes"
+ },
+ {
+  "conname": "comprobantes_produccion_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "comprobantes_produccion"
  },
  {
   "conname": "comprobantes_produccion_usuario_id_fkey",
@@ -155,6 +175,16 @@
   "src_table": "comprobantes_produccion_recepciones"
  },
  {
+  "conname": "conciliaciones_anulada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "conciliaciones"
+ },
+ {
+  "conname": "conciliaciones_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "conciliaciones"
+ },
+ {
   "conname": "conteos_abierto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "conteos"
@@ -175,6 +205,21 @@
   "src_table": "cotizaciones_maquila"
  },
  {
+  "conname": "cuentas_asignadas_asignado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_asignadas"
+ },
+ {
+  "conname": "cuentas_dinero_archivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_dinero"
+ },
+ {
+  "conname": "cuentas_dinero_creada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "cuentas_dinero"
+ },
+ {
   "conname": "devoluciones_aprobado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "devoluciones"
@@ -183,6 +228,26 @@
   "conname": "devoluciones_solicitado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "devoluciones"
+ },
+ {
+  "conname": "dinero_revisados_desmarcado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "dinero_revisados"
+ },
+ {
+  "conname": "dinero_revisados_revisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "dinero_revisados"
+ },
+ {
+  "conname": "egresos_no_gasto_revertido_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "egresos_no_gasto"
+ },
+ {
+  "conname": "egresos_no_gasto_revisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "egresos_no_gasto"
  },
  {
   "conname": "envios_recibido_por_fkey",
@@ -200,9 +265,29 @@
   "src_table": "etiquetas"
  },
  {
-  "conname": "gastos_usuario_id_fkey",
+  "conname": "gastos_anulado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "gastos"
+ },
+ {
+  "conname": "gastos_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos"
+ },
+ {
+  "conname": "gastos_fijos_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos_fijos"
+ },
+ {
+  "conname": "gastos_fijos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos_fijos"
+ },
+ {
+  "conname": "gastos_usuario_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "gastos_legado_2026_09"
  },
  {
   "conname": "historial_producto_cambios_usuario_id_fkey",
@@ -210,9 +295,19 @@
   "src_table": "historial_producto_cambios"
  },
  {
+  "conname": "insumos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "insumos"
+ },
+ {
   "conname": "lotes_recibido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "lotes"
+ },
+ {
+  "conname": "medios_de_cobro_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "medios_de_cobro"
  },
  {
   "conname": "movimientos_usuario_id_fkey",
@@ -220,9 +315,24 @@
   "src_table": "movimientos"
  },
  {
+  "conname": "movimientos_dinero_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "movimientos_dinero"
+ },
+ {
+  "conname": "movimientos_dinero_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "movimientos_dinero"
+ },
+ {
   "conname": "movimientos_insumo_usuario_id_fkey",
   "ref_table": "public.personas",
   "src_table": "movimientos_insumo"
+ },
+ {
+  "conname": "parametros_tributarios_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "parametros_tributarios"
  },
  {
   "conname": "patrones_aprobado_por_fkey",
@@ -240,6 +350,16 @@
   "src_table": "pedidos_no_atendidos"
  },
  {
+  "conname": "periodo_cierres_cerrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "periodo_cierres"
+ },
+ {
+  "conname": "periodo_cierres_reabierto_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "periodo_cierres"
+ },
+ {
   "conname": "prendas_danadas_resuelto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_danadas"
@@ -253,6 +373,11 @@
   "conname": "prendas_por_regularizar_vendido_por_fkey",
   "ref_table": "public.personas",
   "src_table": "prendas_por_regularizar"
+ },
+ {
+  "conname": "produccion_etapas_historial_hecho_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "produccion_etapas_historial"
  },
  {
   "conname": "producciones_creado_por_fkey",
@@ -280,6 +405,16 @@
   "src_table": "proveedor_creditos"
  },
  {
+  "conname": "proveedores_produccion_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedores_produccion"
+ },
+ {
+  "conname": "proveedores_produccion_modificado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "proveedores_produccion"
+ },
+ {
   "conname": "roles_archivado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "roles"
@@ -293,6 +428,11 @@
   "conname": "roles_historial_hecho_por_fkey",
   "ref_table": "public.personas",
   "src_table": "roles_historial"
+ },
+ {
+  "conname": "saldos_iniciales_registrado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "saldos_iniciales"
  },
  {
   "conname": "separaciones_asesora_id_fkey",
@@ -350,12 +490,22 @@
   "src_table": "terminales"
  },
  {
+  "conname": "terminales_clave_cambiada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "terminales"
+ },
+ {
   "conname": "terminales_creada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "terminales"
  },
  {
   "conname": "terminales_desactivada_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "terminales"
+ },
+ {
+  "conname": "terminales_reactivada_por_fkey",
   "ref_table": "public.personas",
   "src_table": "terminales"
  },
