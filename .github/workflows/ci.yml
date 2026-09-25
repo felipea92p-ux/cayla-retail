@@ -162,6 +162,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:activos-y-fijos
 
+      # Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
+      # se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
+      - name: pruebas:impuestos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:impuestos
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
