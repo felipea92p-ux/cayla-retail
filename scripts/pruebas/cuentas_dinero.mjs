@@ -159,7 +159,7 @@ select retail.registrar_gasto(:'tru', 'transporte', 'Mototaxi', retail.fn_hoy_li
 select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''deposito'', 40, %L, %L, null, null, 0, null, %L)', :'cajon_tru', :'bcp', :'e2'));
 select retail.registrar_movimiento_caja(:'caja', 'egreso', 120, 'Depósito bancario', 'op 9', false, null::uuid) as e3 \\gset
 select retail.marcar_egreso_no_gasto(:'e3', 'deposito') as marca \\gset
-select retail.registrar_movimiento_dinero('deposito', 120, :'cajon_tru', :'ibk', null, null, 0, null, :'e3') as m3 \\gset
+select retail.registrar_movimiento_dinero('deposito', 120, null, :'ibk', null, null, 0, null, :'e3') as m3 \\gset
 select revertido_en is not null from retail.egresos_no_gasto where id = :'marca';
 select pg_temp.saldo(:'ibk');
 select retail.registrar_movimiento_caja(:'caja', 'egreso', 60, 'Otro', 'ajuste', false, null::uuid) as e4 \\gset
@@ -171,7 +171,7 @@ select pg_temp.intento(format('select retail.registrar_movimiento_dinero(''depos
   esperar("ni marcarse «no es gasto»", r.ok && marca.includes("depósito o un retiro"), r);
   esperar("ni un activo", r.ok && activo.includes("depósito o un retiro"), r);
   esperar("un egreso que ya es gasto no se deposita", r.ok && depGasto.includes("es un gasto"), r);
-  esperar("el egreso marcado «no es gasto: depósito» se toma y la marca se revierte en la misma operación", r.ok && revertida === "t", r);
+  esperar("el egreso marcado «no es gasto: depósito» se toma (con el egreso basta: el origen es su cajón) y la marca se revierte", r.ok && revertida === "t", r);
   esperar("y el banco elegido sube", r.ok && ibk === "120.00", r);
   esperar("marcado como otra cosa (ajuste), no se toma", r.ok && otraMarca.includes("como otra cosa"), r);
   esperar("el monto tiene que ser el del egreso", r.ok && (otroMonto.includes("no coincide") || otroMonto.includes("como otra cosa")), r);

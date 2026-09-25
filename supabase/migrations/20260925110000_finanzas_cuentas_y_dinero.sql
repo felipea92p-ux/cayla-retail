@@ -954,6 +954,17 @@ begin
   if p_tipo is null or p_tipo not in ('aporte', 'prestamo', 'retiro', 'devolucion_prestamo', 'deposito', 'abono_tarjeta', 'pago_tarjeta', 'entre_cuentas') then
     raise exception 'Di qué pasó con la plata.' using errcode = 'P0001';
   end if;
+  -- Con la caja o el egreso basta: el origen es el cajón de esa sede (así clasifica un egreso la pantalla de Gastos, que
+  -- no conoce las cuentas).
+  if p_cuenta_origen_id is null and p_tipo in ('deposito', 'retiro', 'devolucion_prestamo')
+     and (p_caja_id is not null or p_caja_movimiento_id is not null) then
+    select c.id into p_cuenta_origen_id
+      from retail.cuentas_dinero c
+     where c.tipo = 'cajon'
+       and c.ubicacion_id = coalesce((select k.ubicacion_id from retail.cajas k where k.id = p_caja_id),
+                                     (select k.ubicacion_id from retail.caja_movimientos m join retail.cajas k on k.id = m.caja_id
+                                       where m.id = p_caja_movimiento_id));
+  end if;
   if p_cuenta_origen_id is not null then
     select * into v_o from retail.cuentas_dinero where id = p_cuenta_origen_id;
     if not found then raise exception 'La cuenta de origen no existe.' using errcode = 'P0001'; end if;
