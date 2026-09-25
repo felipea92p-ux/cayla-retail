@@ -547,7 +547,7 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
-- [x] **«Más» + avatar + lupa: construido (ADR-0196, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
+- [x] **«Más» + avatar + lupa: construido (ADR-0205, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
       (spike aprobado por Felipe, con dos correcciones en vivo) → `AppShell.tsx` + `components/MasMovil.tsx`
       (nuevo). La barra queda en 5 columnas parejas — Inicio/Punto de Venta/Inventario/Caja + **Más** al final,
       sin «＋» en ningún lado — y la cabecera suma lupa (`/buscar`) y avatar (reutiliza `setPerfilAbierto`, cero
@@ -555,8 +555,8 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
       paralelo que desincronizarse. `typecheck`/`lint`/`build`/suite completa (126 archivos, 21 290 pruebas) en
       verde. **Sin clics reales todavía** — pendiente Felipe, logueado, en 375px (ver «Cómo verificar» del ADR).
       Abierto en el ADR: si las 6 acciones de «＋Nuevo» (abajo) entran a «Más» como grupo, y el hueco de
-      «Recibir mercadería» en el Taller que ya dejaba ADR-0195 (sigue sin tapar).
-- [x] **«＋Nuevo» se retira entero — ADR-0195, aceptado y construido (2026-09-25, otra sesión sobre este repo)**
+      «Recibir mercadería» en el Taller que ya dejaba ADR-0204 (sigue sin tapar).
+- [x] **«＋Nuevo» se retira entero — ADR-0204, aceptado y construido (2026-09-25, otra sesión sobre este repo, PR #401)**
       — `AppShell.tsx` (v3.7) y `lib/menu.ts` (`COLUMNAS_MOVIL` a 4, sin el hueco del «＋»; `ACCIONES_NUEVO` y
       `MenuNuevo` fuera). Trade-off aceptado por Felipe (documentado en el ADR): se pierde el atajo de un clic a
       Nueva venta/Registrar factura de proveedor/Recibir mercadería/Mover mercadería/Registrar cambio/Registrar
