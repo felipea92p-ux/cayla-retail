@@ -647,6 +647,34 @@ body {
     flex: none;
     margin: 0 -2mm -2mm 0;
   }
+  /* La térmica de 300 ppp no tiene grises: un trazo fino (peso 300–400 a 1,5–2 mm) cae entre dos puntos y sale
+     desvaído (foto de la tienda, 2026-09-25). Grosor mínimo 500–600 y la letra más chica sube a 1,8 mm. */
+  .etiqueta-precio {
+    font-weight: 500;
+  }
+  .etq-rot,
+  .etq-prenda,
+  .etq-tallas span,
+  .etq-datos small,
+  .etq-motivo span,
+  .etq-antes {
+    font-weight: 600;
+  }
+  .etq-rot {
+    font-size: 1.8mm;
+  }
+  .etq-datos small {
+    font-size: 1.65mm;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .etq-precio,
+  .etq-cab b {
+    font-weight: 600;
+  }
+  .etq-cod {
+    font-weight: 700;
+  }
 }
 
 /* En pantalla la hoja no se ve (la vista previa dibuja una por prenda, derecha). Al imprimir desaparece TODO lo demás
