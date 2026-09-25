@@ -116,13 +116,17 @@ export function ReponerPisoModal({
             <span className="font-mono text-xs text-tinta/65">{fila.sku}</span>
           </p>
 
+          {/* Las dos cifras llegan NETAS de lo apartado para clientas (Existencias pasa `pisoDisponible` y
+              `almacenDisponible`): por eso dicen «Disponible», la misma palabra que usa la tabla para lo que
+              se puede vender o mover. Rotularlas «actual» hacía creer que el sistema perdió prendas cuando la
+              tabla (que muestra lo físico en «Piso · Almacén») decía otra cifra. */}
           <div className="card-cayla grid grid-cols-2 divide-x divide-tinta/10 text-center">
             <div className="p-3">
-              <p className="label-cayla text-[10px] text-tinta/55">{regla.etiquetaPiso}</p>
+              <p className="label-cayla text-[10px] text-tinta/55">Disponible en piso</p>
               <p className="font-display text-xl text-tinta">{fila.piso ?? 0}</p>
             </div>
             <div className="p-3">
-              <p className="label-cayla text-[10px] text-tinta/55">{regla.etiquetaAlmacen}</p>
+              <p className="label-cayla text-[10px] text-tinta/55">Disponible en almacén</p>
               <p className="font-display text-xl text-tinta">{fila.almacen ?? 0}</p>
             </div>
           </div>

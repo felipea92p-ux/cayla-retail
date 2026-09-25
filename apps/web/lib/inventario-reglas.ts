@@ -134,10 +134,10 @@ export type LugarTienda = "piso" | "almacen";
 export type ReglaSentidoPiso = {
   origen: LugarTienda;
   destino: LugarTienda;
+  /** El título del modal. Bajar desde la fila se sigue llamando «Reponer piso», como su botón «Reponer»:
+   *  «Bajar al piso» es el botón de la pantalla de escaneo de ADR-0208 (/inventario/bajar), y dos cosas
+   *  distintas con el mismo nombre confunden. En Movimientos las dos quedan como «Bajada al piso». */
   titulo: string;
-  /** Rótulos de las dos cifras del modal (siempre en el orden piso · almacén). */
-  etiquetaPiso: string;
-  etiquetaAlmacen: string;
   etiquetaCantidad: string;
   /** El recorrido, en palabras de tienda, bajo el campo de cantidad. */
   recorrido: string;
@@ -153,8 +153,6 @@ export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
     origen: "almacen",
     destino: "piso",
     titulo: "Reponer piso",
-    etiquetaPiso: "Piso actual",
-    etiquetaAlmacen: "Disponible en almacén",
     etiquetaCantidad: "Cantidad a reponer",
     recorrido: "Almacén de tienda → Piso de venta",
     noAlcanza: (pedido, hay) => `No hay ${pedido} unidades en el almacén — hay ${hay}.`,
@@ -165,8 +163,6 @@ export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
     origen: "piso",
     destino: "almacen",
     titulo: "Retirar del piso",
-    etiquetaPiso: "Disponible en piso",
-    etiquetaAlmacen: "Almacén actual",
     etiquetaCantidad: "Cantidad a retirar",
     recorrido: "Piso de venta → Almacén de tienda",
     // Lo apartado para una clienta sigue colgado pero no se retira: la cifra ya viene neta.

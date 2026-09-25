@@ -57,6 +57,11 @@ describe("SENTIDO_PISO / topeMovimientoPiso", () => {
     expect(SENTIDO_PISO.bajar.exito(1)).toBe("1 unidad repuesta al piso");
     expect(SENTIDO_PISO.retirar.exito(2)).toBe("2 unidades retiradas del piso");
   });
+
+  it("bajar desde la fila se sigue llamando «Reponer piso»: «Bajar al piso» es la pantalla de escaneo (ADR-0208)", () => {
+    expect(SENTIDO_PISO.bajar.titulo).toBe("Reponer piso");
+    expect(SENTIDO_PISO.retirar.titulo).toBe("Retirar del piso");
+  });
 });
 
 // La miniatura de una prenda: Existencias y Conteo tienen que elegir LA MISMA foto
