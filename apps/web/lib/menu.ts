@@ -1,8 +1,8 @@
 // El menú de CAYLA como DATOS: un solo árbol, una sola función pura que dice qué ve cada perfil.
 //
 // PROMETE: dado un perfil (qué permisos tiene y en qué tipo de ubicación está parado) `menuPara` devuelve las filas del
-// lateral de escritorio, las 5 columnas de la barra del celular, las acciones del «+ Nuevo» y el módulo que se abre al
-// aterrizar en una ruta. Sin React, sin Supabase, sin efectos: se prueba con `menu.test.ts` sin abrir un navegador.
+// lateral de escritorio, las 4 columnas de la barra del celular y el módulo que se abre al aterrizar en una ruta. Sin
+// React, sin Supabase, sin efectos: se prueba con `menu.test.ts` sin abrir un navegador.
 //
 // ASUME: (1) que esto es solo VISIBILIDAD — el candado real vive en la base (RLS, `fn_puede_*`, cada RPC); un nodo que no
 // se pinta no protege nada. (2) Que las rutas que declara existen (lo comprueba la prueba contra `app/`). (3) Que un
@@ -169,9 +169,6 @@ export type Nodo = Hoja | Grupo | Futura;
 export function esGrupo(n: Nodo): n is Grupo {
   return n.estado === "viva" && "hijos" in n;
 }
-
-/** Una acción del panel «+ Nuevo»: registrar algo, no ir a una pantalla. */
-export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
 
 /* ------------------------------------------------------------------
    El árbol de HOY (más lo que viene)
@@ -356,25 +353,11 @@ export const ARBOL: readonly Nodo[] = [
 ];
 
 /**
- * El panel «+ Nuevo»: registrar algo, no ir a una pantalla. Fase UI 1 (2026-09-11) lo recortó a las escrituras que V2 ya
- * tiene resueltas de punta a punta; ofrecer otra antes sería un enlace que compila y revienta. ADR-0111: UNA sola puerta
- * para recibir. ADR-0113: la misma para todos. «Registrar factura de proveedor» es de quien ve el dinero de Compras.
+ * Las 4 columnas fijas de la barra del celular, por id de nodo. Punto de Venta y Caja son de uso diario en el mostrador; lo
+ * demás queda a un toque del lateral. Un grupo en una columna lleva a su `raiz` y muestra la suma de los números de sus hijas
+ * (igual que su cabecera cerrada en el lateral).
  */
-export const ACCIONES_NUEVO: readonly Accion[] = [
-  { id: "nuevo.venta", modulo: "vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí" },
-  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar factura de proveedor", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus facturas de proveedor", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón" },
-  { id: "nuevo.mover", modulo: "traslados", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón" },
-  { id: "nuevo.cambio", modulo: "cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí" },
-  { id: "nuevo.devolucion", modulo: "devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí" },
-];
-
-/**
- * Las 5 columnas fijas de la barra del celular, por id de nodo; `null` es el hueco del «+». Punto de Venta y Caja son de uso
- * diario en el mostrador; lo demás queda a un toque del lateral. Un grupo en una columna lleva a su `raiz` y muestra la suma de
- * los números de sus hijas (igual que su cabecera cerrada en el lateral).
- */
-export const COLUMNAS_MOVIL: readonly (string | null)[] = ["inicio", "venta.puntoDeVenta", null, "inventario", "venta.caja"];
+export const COLUMNAS_MOVIL: readonly string[] = ["inicio", "venta.puntoDeVenta", "inventario", "venta.caja"];
 
 /* ------------------------------------------------------------------
    Lo que sale de `menuPara`
@@ -384,7 +367,6 @@ export type ItemMenu = { id: string; etiqueta: string; href: string; icono: Clav
 /** Una hija puede volver a ser un `GrupoMenu` (subgrupo, D-84): el tipo es recursivo porque el árbol lo es. */
 export type GrupoMenu = { id: string; etiqueta: string; icono: ClaveIcono; hijos: FilaMenu[] };
 export type FilaMenu = ItemMenu | GrupoMenu;
-export type AccionNuevo = { id: string; etiqueta: string; detalle: string; href: string };
 
 export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
@@ -414,10 +396,8 @@ export type PerfilDelMenu = {
 export type Menu = {
   /** Las filas del lateral de escritorio, en orden. */
   riel: FilaMenu[];
-  /** Las 5 columnas de la barra del celular; `null` es el hueco del «+». */
-  movil: (ItemMenu | null)[];
-  /** Las acciones del panel «+ Nuevo». */
-  nuevo: AccionNuevo[];
+  /** Las 4 columnas de la barra del celular. */
+  movil: ItemMenu[];
   /**
    * El grupo que se abre al aterrizar en `pathname` (`null` si no es de ninguno). Mira TODO el árbol vivo, no solo lo que
    * este perfil ve: pararse en `/produccion/ordenes` es estar en Producción aunque a esta persona no se le pinte la fila,
@@ -474,10 +454,10 @@ export function puedeVerProduccion(perfil: { ubicacionTipo: TipoUbicacion }): bo
 }
 
 /** De dónde sale el menú. Es el de hoy salvo en las pruebas, que le pasan árboles a propósito para probar las reglas sueltas. */
-export type FuenteMenu = { arbol: readonly Nodo[]; acciones: readonly Accion[]; columnas: readonly (string | null)[] };
-export const MENU_DE_HOY: FuenteMenu = { arbol: ARBOL, acciones: ACCIONES_NUEVO, columnas: COLUMNAS_MOVIL };
+export type FuenteMenu = { arbol: readonly Nodo[]; columnas: readonly string[] };
+export const MENU_DE_HOY: FuenteMenu = { arbol: ARBOL, columnas: COLUMNAS_MOVIL };
 
-export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: FuenteMenu = MENU_DE_HOY): Menu {
+export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu = MENU_DE_HOY): Menu {
   // Sin número (0, null, ausente) no hay insignia.
   const contadorDe = (clave?: ClaveContador): number | undefined => {
     const n = clave ? perfil.contadores?.[clave] : undefined;
@@ -517,12 +497,8 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
   }
 
   // ---- barra del celular ----
-  const movil: (ItemMenu | null)[] = [];
+  const movil: ItemMenu[] = [];
   for (const id of columnas) {
-    if (id === null) {
-      movil.push(null);
-      continue;
-    }
     const fila = emitidos.get(id) ?? riel.flatMap(hojasDe).find((h) => h.id === id);
     if (!fila) continue;
     if (!esGrupoMenu(fila)) {
@@ -536,9 +512,6 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
     const suma = hojasDe(fila).reduce((acc, h) => acc + (h.contador ?? 0), 0);
     movil.push({ id, etiqueta: fila.etiqueta, href: nodo.raiz, icono: fila.icono, ...(suma > 0 ? { contador: suma } : {}) });
   }
-
-  // ---- «+ Nuevo» ----
-  const nuevo = acciones.filter((a) => esVisible(a, perfil)).map((a) => ({ id: a.id, etiqueta: a.etiqueta, detalle: a.detalle, href: a.ruta }));
 
   // ---- qué grupo contiene cada ruta ----
   // La puerta del módulo (`raiz`) cubre todo lo que cuelga de ella; las hijas aportan lo que vive fuera de ese prefijo
@@ -554,5 +527,5 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
   }
   const grupoDe = (pathname: string): string | null => rutasPorGrupo.find(([, rutas]) => rutas.some((r) => rutaActiva(pathname, r)))?.[0] ?? null;
 
-  return { riel, movil, nuevo, grupoDe };
+  return { riel, movil, grupoDe };
 }
