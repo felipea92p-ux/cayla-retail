@@ -28,9 +28,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925120000` POR PEGAR en producción; web en rama `claude/descuentos-validacion-seleccion-19588a`
+## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` POR PEGAR en producción; web en rama `claude/descuentos-validacion-seleccion-19588a`
 - [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
-- [ ] **Pegar en producción `20260925120000_argumento_descuento_desde_15.sql`** (con OK de Felipe; ya lleva `retail.`; parcha solo el escalonado de `registrar_venta` y aborta si no calza). Publicar la web primero. Hasta entonces la base sigue pidiendo argumento solo a un Líder pasado el 20 % (la pantalla ya lo pide antes). Después: `pnpm datos:generar:produccion`.
+- [ ] **Pegar en producción `20260925230000_argumento_descuento_desde_15.sql`** (con OK de Felipe; ya lleva `retail.`; parcha solo el escalonado de `registrar_venta` y aborta si no calza). Publicar la web primero. Hasta entonces la base sigue pidiendo argumento solo a un Líder pasado el 20 % (la pantalla ya lo pide antes). Después: `pnpm datos:generar:produccion`.
 - [ ] Idea descartada por ahora (Felipe 2026-09-25): exigir código solo para el % «Otro».
 
 ## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base)

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260925120000_argumento_descuento_desde_15.sql — CAYLA V2 (Felipe 2026-09-25)
+-- 20260925230000_argumento_descuento_desde_15.sql — CAYLA V2 (Felipe 2026-09-25)
 --
 -- EL CAMBIO. Todo descuento MANUAL de venta que pase el 15 % del precio pide un argumento
 -- escrito, lo aplique quien lo aplique. Antes (R-45, 20260915140000) lo pedía solo a un Líder y
