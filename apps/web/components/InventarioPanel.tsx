@@ -29,6 +29,9 @@ import {
   DIAS_RITMO_RECIENTE,
   ETIQUETA_ESTADO_STOCK,
   necesitaReponerPiso,
+  ordenarPorModeloColorTalla,
+  porColgar,
+  resumirPorColgar,
   UMBRAL_REPOSICION_PISO,
   type EstadoStock,
 } from "@/lib/inventario-reglas";
@@ -73,6 +76,12 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
  *  una, en el propio filtro de Estado y en la leyenda de abajo — no se
  *  perdió nada, solo dejó de tener un atajo agregado propio. */
 const DANADO = "__danado__";
+/** Filtro «Por colgar» (Frescura del piso, 2026-09-25): otro eje aparte del semáforo, como «Dañado» —
+ *  una talla por colgar puede tener chip «Reponer piso» o «Stock bajo» según cuánto quede atrás. Vive
+ *  en el mismo estado del filtro de Estado (y en su lista) para que la píldora, el select y la tarjeta
+ *  «Reponer a piso hoy» sean tres entradas a UN solo filtro y nunca se contradigan. La regla es
+ *  `porColgar` (`lib/inventario-reglas.ts`). */
+const POR_COLGAR = "__por_colgar__";
 const ESTADOS: EstadoStock[] = ["normal", "reponer_piso", "stock_bajo", "sin_stock"];
 
 function fechaHora(iso: string) {
@@ -267,20 +276,26 @@ export function InventarioPanel({
     () => crearIndiceBusquedaEspecial(stock, (f) => ({ nombre: f.referencia, sku: f.sku, codigosBarras: f.codigosBarras, color: f.color, talla: f.talla })),
     [stock]
   );
-  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(
-    () =>
-      filtrarConBusquedaEspecial(indiceBusqueda, busqueda, {
-        talla: talla === TODAS ? null : talla,
-        color: color === TODAS ? null : color,
-        otros: (f) => {
-          if (categoria !== TODAS && f.categoria !== categoria) return false;
-          if (estado === DANADO) return (f.danado ?? 0) > 0;
-          if (estado !== TODAS && f.estado !== estado) return false;
-          return true;
-        },
-      }),
-    [indiceBusqueda, busqueda, talla, color, categoria, estado]
-  );
+  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
+    const resultado = filtrarConBusquedaEspecial(indiceBusqueda, busqueda, {
+      talla: talla === TODAS ? null : talla,
+      color: color === TODAS ? null : color,
+      otros: (f) => {
+        if (categoria !== TODAS && f.categoria !== categoria) return false;
+        if (estado === DANADO) return (f.danado ?? 0) > 0;
+        if (estado === POR_COLGAR) return porColgar(f);
+        if (estado !== TODAS && f.estado !== estado) return false;
+        return true;
+      },
+    });
+    // «Por colgar» se trabaja por percha (un modelo en un color), no por SKU: sus tallas salen juntas y
+    // en su curva, para que la encargada baje la M y la L de la misma casaca en un solo viaje.
+    return estado === POR_COLGAR ? { ...resultado, filas: ordenarPorModeloColorTalla(resultado.filas) } : resultado;
+  }, [indiceBusqueda, busqueda, talla, color, categoria, estado]);
+
+  // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
+  // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
+  const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
 
   // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
@@ -528,26 +543,63 @@ export function InventarioPanel({
               opciones={[
                 { valor: TODAS, texto: "Estado: todos" },
                 { valor: DANADO, texto: "Dañado" },
+                { valor: POR_COLGAR, texto: "Por colgar" },
                 ...ESTADOS.map((e) => ({ valor: e, texto: ETIQUETA_ESTADO_STOCK[e] })),
               ]}
             />
           )}
-          {hayFiltrosActivos && (
-            <div className="flex items-center gap-1.5 pt-1 sm:col-span-full sm:justify-end sm:pt-0">
-              <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
-              <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
-                Limpiar filtros
-              </button>
+          {/* Una sola fila para la píldora «Por colgar» y «Limpiar filtros»: en una tienda la fila ya está,
+              así que activar un filtro no empuja la tabla hacia abajo (ADR-0185). */}
+          {(separa || hayFiltrosActivos) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-3 pt-1 sm:col-span-full">
+              {separa && (
+                <button
+                  type="button"
+                  aria-pressed={estado === POR_COLGAR}
+                  onClick={() => setEstado((e) => (e === POR_COLGAR ? TODAS : POR_COLGAR))}
+                  // Con el filtro puesto sigue clicable aunque llegue a 0 (tras reponer la última): es como se quita.
+                  disabled={cuentaPorColgar.tallas === 0 && estado !== POR_COLGAR}
+                  title="Tallas con unidades en el almacén y ninguna colgada en el piso: la clienta no las ve"
+                  className="pildora-cayla disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Por colgar
+                  <span className="font-normal tabular-nums">
+                    · {cuentaPorColgar.tallas} {cuentaPorColgar.tallas === 1 ? "talla" : "tallas"} · {cuentaPorColgar.unidades.toLocaleString("es-PE")}{" "}
+                    {cuentaPorColgar.unidades === 1 ? "ud" : "uds"}
+                  </span>
+                </button>
+              )}
+              {hayFiltrosActivos && (
+                <span className="ml-auto flex items-center gap-1.5">
+                  <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
+                  <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
+                    Limpiar filtros
+                  </button>
+                </span>
+              )}
             </div>
           )}
         </div>
+      )}
+
+      {/* Que no se lea como una orden de bajar todo (riesgo que nombró el plan): hay tallas que se guardan
+          a propósito. La lista es para decidir, no una tarea que vaciar. */}
+      {separa && estado === POR_COLGAR && stock.length > 0 && (
+        <p className="nota-cayla mx-4 mb-4 sm:mx-5">
+          <b>Tallas que la clienta no ve:</b> hay en el almacén y en el piso no queda ninguna para vender. Algunas se guardan a
+          propósito (fin de temporada), así que no es una orden de bajar todo: elige las que van al piso y usa «Reponer».
+        </p>
       )}
 
       {separa && coberturaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{coberturaFallo}</p>}
       {stock.length === 0 ? (
         <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
-        <p className="border-t border-sand p-5 text-sm text-taupe">Ningún producto coincide con la búsqueda.</p>
+        <p className="border-t border-sand p-5 text-sm text-taupe">
+          {estado === POR_COLGAR && cuentaPorColgar.tallas === 0
+            ? "Nada por colgar: toda talla que está en el almacén tiene al menos una colgada en el piso."
+            : "Ningún producto coincide con la búsqueda."}
+        </p>
       ) : (
         <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que
