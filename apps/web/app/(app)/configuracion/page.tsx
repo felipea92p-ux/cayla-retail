@@ -9,16 +9,19 @@ import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
 import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
+import { getParametrosTributarios } from "@/lib/impuestos";
+import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 
 // Configuración (ADR-0195, módulo «configuracion», solo líder): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae las que ya existen —Empresa (solo lectura), Tiendas y caja (F1), Caja y avisos y Gastos fijos (F2b)—; las siguientes
-// fases de Finanzas suman las suyas (Cuentas y cobros, Presupuesto, Impuestos) aquí mismo, sin pestañas vacías.
+// trae las que ya existen —Empresa (solo lectura), Tiendas y caja (F1), Caja y avisos, Gastos fijos (F2b) e Impuestos (F8)—;
+// las siguientes fases suman las suyas (Cuentas y cobros, Presupuesto) aquí mismo, sin pestañas vacías.
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
   { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
+  { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos" },
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -34,15 +37,11 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo. Solo el líder entra aquí."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
-      {pestana === "empresa" ? (
-        <ConfiguracionEmpresa datos={await getDatosEmpresa()} />
-      ) : pestana === "caja" ? (
-        <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />
-      ) : pestana === "fijos" ? (
-        <SeccionFijos />
-      ) : (
-        <SeccionTiendas />
-      )}
+      {pestana === "empresa" && <ConfiguracionEmpresa datos={await getDatosEmpresa()} />}
+      {pestana === "tiendas" && <SeccionTiendas />}
+      {pestana === "caja" && <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />}
+      {pestana === "fijos" && <SeccionFijos />}
+      {pestana === "impuestos" && <SeccionImpuestos />}
     </div>
   );
 }
@@ -66,6 +65,17 @@ async function SeccionFijos() {
       <p className="nota-cayla">
         Un fijo es un recordatorio: cada mes aparece en <b>Finanzas ▸ Gastos ▸ Fijos del mes</b> para registrarlo con lo que llegó de verdad. Si uno deja de pagarse, se archiva: sus gastos ya registrados se quedan.
       </p>
+    </>
+  );
+}
+
+// Impuestos (ADR-0195 F8): tasa de IGV, UIT y régimen de cada año, con vigencia. Solo se agregan filas.
+async function SeccionImpuestos() {
+  const parametros = await getParametrosTributarios();
+  return (
+    <>
+      {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
+      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={Number(hoyLima().slice(0, 4))} />
     </>
   );
 }

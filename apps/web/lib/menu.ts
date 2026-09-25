@@ -333,7 +333,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "finanzas.gastos", modulo: "gastos", etiqueta: "Gastos", estado: "viva", ruta: "/finanzas/gastos", icono: "gastos", pajaro: "11 Garza", exige: "registrarGastos" },
       { id: "finanzas.dinero", modulo: "cuentas_dinero", etiqueta: "Cuentas y dinero", estado: "futura", pajaro: "12 Urraca", nota: "F3/F4: cuentas, efectivo por tienda, por pagar, conciliación." },
       { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Reportes", estado: "futura", pajaro: "12 Urraca", nota: "F5–F7: resultados, flujo, balance, campañas." },
-      { id: "finanzas.impuestos", modulo: "impuestos", etiqueta: "Impuestos", estado: "futura", pajaro: "12 Urraca", nota: "F8: IGV, 300 UIT, reporte para el contador." },
+      { id: "finanzas.impuestos", modulo: "impuestos", etiqueta: "Impuestos", estado: "viva", ruta: "/finanzas/impuestos", icono: "impuestos", pajaro: "12 Urraca", exige: "verImpuestos" },
       { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "futura", pajaro: "12 Urraca", nota: "F9: cierra el período por unidad y consolidado." },
     ],
   },
