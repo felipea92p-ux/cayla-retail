@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
+Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
+Felipe se lleva:
+1. **«Cargar lo que ya hay» y «recibir lo que llega» son dos hechos distintos.** Si se registran por la misma puerta, el número de «compras sin comprobante» para el contador se llena con la migración entera. Por eso la carga inicial tiene su propio motivo y no pasa por Compras.
+2. **Una función nueva que LLAMA a las de siempre, en vez de copiarlas, hereda sus candados y sus parches futuros.** Copiar el cuerpo de una función viva ya rompió Análisis en producción el 25-sep.
+3. **El doble clic tenía un caso que solo se ve con dos sesiones de verdad.** Dos llegadas simultáneas del mismo intento: la segunda mostraba un error aunque el producto sí se había guardado. Lo cerró el candado por token (ADR-0190), probado con COMMIT real.
+
 ## 2026-09-25 (Frescura: termómetro del ERP, la caja dice «en el almacén» y «Por colgar» — tareas 1, 2 y 4 del plan del termómetro)
 Felipe aprobó las tareas 1-4 del plan de 12 (sesión del termómetro). Salen tres PR separados:
 - **Termómetro:** 12 consultas de solo lectura en `docs/datos/consultas/frescura-termometro.sql`, verificadas contra producción y con la rutina de los lunes contra Alegra.
