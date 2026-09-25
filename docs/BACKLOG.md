@@ -145,6 +145,148 @@ las dos superficies a la vez, se confirmó el alcance con Felipe antes de borrar
 - Cómo verificas: cualquier pantalla en escritorio — no hay botón "+ Nuevo" en el lateral. En celular (375 px), la
   barra de abajo tiene 4 columnas parejas (Inicio, Punto de Venta, Inventario, Caja) y ningún hueco al centro.
 
+## 📐 Frescura del piso (2026-09-24, ADR-0208): diseño aprobado; se construye por bloques — bloque 1 construido y probado en local (2026-09-25), 5 migraciones `20260926000000`–`0400` POR PEGAR (la `0400` después de la web); módulo por encender
+Es el antes llamado «mapa de calor»: mide cuánto lleva cada modelo+color en el piso frente a su categoría en la sede, y
+propone qué hacer antes de rebajar. El documento para el equipo, con datos simulados, está en
+`docs/maquetas/frescura-del-piso-2026-09/` (artifact privado: Felipe tiene que compartirlo).
+**Por bloques (Felipe, 2026-09-25):** uno a la vez, cada uno verificable y pegado antes del siguiente. 1 · bajada al
+piso, «Reposición» cerrada en el piso y marca tardía → 2 · «Retirar del piso» → 3 · pantalla de Frescura (relojes,
+percentiles, tramos) → 4 · clásicos y tallas clave → 5 · traslado por novedad y alerta al Taller → 6 · capacidad por
+temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle en ADR-0208, «Orden de construcción».
+- [x] Diseño, investigación verificada y documento (2026-09-24). Las 12 decisiones están en el ADR-0208.
+- [x] Hallazgos del benchmark cerrados:
+  - Dos motores de «ventas por día»: se quedan separados a propósito, documentado.
+  - «El traslado ignora el almacén del destino»: era V1, ya está cerrado en V2. `13-inteligencia-y-reportes.md` quedó
+    corregido con un aviso.
+- [x] **Bloque 1 · Bajada al piso por escaneo — CONSTRUIDO Y PROBADO EN LOCAL (2026-09-25), NO está en producción.**
+  Detalle, decisiones y contrato: ADR-0208, «Construcción — bloque 1».
+  - Botón «Bajar al piso» en la cabecera de Existencias → `/inventario/bajar`. Aparece si el rol ve «Bajada al piso»,
+    en la sede activa y si esa sede separa piso y almacén. «+ Nuevo» ya no existe (ADR-0204) y el lateral no cambia. Se
+    escanea con la pistola cada prenda que se cuelga y se confirma una vez.
+  - `bajar_al_piso`: todo o nada, token obligatorio, encima de `mover_interno` (la misma fila que «Reponer»). Tablas
+    `bajadas_piso` y `bajada_piso_items`, que no se editan, no se borran ni se vacían.
+  - Si la red se corta, la lista se congela y solo ofrece «Confirmar de nuevo» (al recargar, «Comprobar»). Si la base ya
+    había guardado parte, la pantalla deja solo lo que faltaba. Lo que la pistola lee mientras se guarda no se pierde.
+  - Módulo «Bajada al piso» (Inventario, delegable, interruptor propio): **nace solo para el líder.** Ver Existencias no
+    lo da.
+  - «Reposición» cerrada en el piso (migración `0400`, decisión de Felipe): Ajustar stock ya no la ofrece en Piso y la
+    base la rechaza.
+  - `fn_bajadas_del_piso`: qué bajadas fueron tardías, calculado al leer encima de `fn_ledger_puntos` (ADR-0202). Solo
+    líder, sin pantalla.
+  - El indicador de «confianza del registro» por sede pasó al bloque 3 (contrato escrito en el ADR, punto (d)).
+  - Un reenvío solo sale de la duda si la base miró la marca: `bajar_al_piso` busca la marca ANTES de pedir responsable
+    («ya estaba registrada» aunque la responsable marcó su salida), y con módulo apagado o sesión vencida la lista sigue
+    congelada.
+  - Pruebas en local: `pruebas:bajada-al-piso` 51/51; concurrencia 5/5 en dos corridas; `pruebas:frescura-bajadas`
+    64/64; `pruebas:reposicion-piso-cerrada` 10/10 (6/10 en una base sin la `0400`); vitest completo de `apps/web`,
+    145 archivos y 77.097 pruebas. Comandos y mutaciones en el ADR, «Verificación en local». `pruebas:roles` 67/70 y
+    `pruebas:actor-firma` 28/30 en el Postgres desechable, con y sin el bloque (en el CI de main, verdes): lo decide el
+    CI del PR, que ya es obligatorio.
+  - Probado en el navegador (sin base, respuestas simuladas; escritorio y 375 px): botón en Existencias (se le dio
+    fondo sobre la foto), escaneo y sus cuatro avisos, corte de red, «Comprobar» tras recargar, marca reusada con lo
+    guardado, prendas que no alcanzan. Detalle en el ADR. Falta la llamada real a través de Supabase.
+- [ ] **Felipe: pegar las 5 migraciones en el SQL Editor de cayla-dynamic**, una por ejecución y en este orden:
+  `20260926000000_bajada_piso_modulo` → `…0100_bajada_piso_tablas` → `…0200_bajada_piso_funciones` →
+  `…0300_frescura_lectura_bajadas` → **publicar la web** → `…0400_reposicion_no_toca_el_piso`. Ya traen `retail.` y se
+  pueden repegar. La `0100`, fuera de hora pico: si no consigue el candado en 3 s, falla sin daño y se repega. La `0300`
+  necesita `20260924030000` (`fn_ledger_puntos`, en producción desde el 2026-09-25): confirmarlo antes en el SQL Editor
+  con `select to_regprocedure('retail.fn_ledger_puntos(uuid, timestamptz, uuid[])') is not null;` (debe dar `true`;
+  `pnpm datos:generar:produccion` no pregunta a producción, lee el volcado guardado).
+- [ ] **Publicar la web DESPUÉS de la `0300` y ANTES de la `0400`.** Si sale antes de la `0000`, Roles y accesos pinta un
+  módulo que la base no conoce; si la `0400` va antes que la web, su mensaje manda a un botón que todavía no está.
+- [ ] **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos** en los roles de quien cuelga prendas
+  (recomendado: Terminal Almacén y quien cuelga; la Terminal de ventas se decide aparte, ver D-40). Nunca desde el
+  código (ADR-0161). Hasta entonces solo lo ve el líder. **Ojo:** quien reciba «Bajada al piso» sin Existencias no ve el
+  botón y solo llega escribiendo `/inventario/bajar`; Felipe aceptó esa consecuencia el 2026-09-25.
+- [ ] **Felipe verifica con la pistola real** (receta completa en el ADR, «Verificación en local»): 5 prendas DISTINTAS
+  (otra talla u otro color) → 5 filas «Reposición interna» con la misma hora en Movimientos; que no se repite: red en
+  «Sin conexión» justo después de pulsar «Confirmar», reconectar y «Confirmar de nuevo» (dice «ya estaba registrada»
+  o guarda normal, y Movimientos la muestra una sola vez); Ajustar stock en Piso ya no ofrece «Reposición»; y la
+  consulta de `fn_bajadas_del_piso` (ADR-0208, punto (e)).
+- [ ] Después de pegar: `select to_regprocedure('retail.bajar_al_piso(uuid, jsonb, uuid)') is not null;` en el SQL
+  Editor, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y recién ahí `pnpm datos:generar:produccion`
+  (nunca `pnpm datos:generar` a secas). `datos:comparar` NO ve esta llamada (la pantalla usa la constante `RPC_BAJADA`).
+- [x] ~~OK de Felipe al cambio del menú~~: ya no hace falta. El lateral no cambia (`menu.ts` y `menu-hoy.golden.json`
+  quedan idénticos a main).
+- [x] ~~Decidir si se cierra la puerta de Ajustar stock ▸ Piso ▸ «Reposición»~~: Felipe decidió cerrarla (2026-09-25,
+  migración `0400`). 92 de las 146 unidades del piso de producción habían entrado por ahí el 2026-09-24.
+- [ ] **«Reposición» en el ALMACÉN sigue abierta** (Felipe, 2026-09-25: «dejarla abierta por ahora»). Crea prendas en el
+  almacén sin recepción; decidir más adelante si se cierra.
+- [ ] **Felipe: ¿«Reponer» en toda fila con almacén?** Hoy solo aparece con 7 o menos en el piso. Quien tiene
+  Existencias sin «Bajada al piso» no tiene camino con rastro para subir una prenda con 8 o más en el piso (la nota de
+  Ajustar stock le dice que pida el módulo al líder).
+- [ ] **Decidir la D-40 antes del bloque 3.** La caja con piso 0 dice «está agotada» aunque haya en el almacén
+  (`PuntoDeVenta.tsx:561-563`), y la D-40 dice que la caja nunca se frena. O manda V2 (la caja dice «hay N en el
+  almacén: tráela al piso» y la D-40 se retira por escrito) o manda la D-40 (la caja baja sola y toda bajada nace
+  tardía). Sin decidirlo, el indicador mide el diseño de la caja y no a las colaboradoras.
+- [ ] Mensaje de la caja «tráela al piso» y releer el stock antes de decir «agotada». Toca Vender: PL-105, 375 px, PR
+  aparte. Depende de la D-40.
+- [ ] **1b:** guía de solo lectura por recepción (llegaron / ya bajadas / faltan) y «Bajadas de hoy».
+- [ ] Antes del bloque 3: comparar en producción, prenda por prenda, el stock con el libro (SELECT de solo lectura).
+  Si no cuadran, las bajadas salen «dudosas» y el indicador no tiene con qué medir.
+- [ ] **`fn_ledger_puntos` más rápido** (lo midió el bloque 1): cambiar `variante_id = any(p_variante_ids)` por un
+  semi-join (`in (select unnest(…))`) en sus tres lugares baja `fn_bajadas_del_piso` de unos 560 a unos 330 ms a 120
+  días, con las mismas filas. Va en una migración nueva (la `20260924030000` ya está en producción), con la regla de
+  ADR-0195 y una nota en ADR-0202. Hoy igual queda bajo 1 s por tienda.
+- [ ] Preguntas abiertas del bloque 1 (ADR-0208, punto (g)): ¿La exclusión de `prendas_por_regularizar` debe valer
+  también en Análisis (`fn_es_venta_de_stock`)? ¿20 bajadas cerradas y 10 minutos para el indicador? ¿Hay pistola en
+  el almacén donde se abre el fardo y etiqueta legible en cada prenda? ¿Se corrigen `CONTRIBUTING.md` §1 y ADR-0010,
+  que dicen que las migraciones van sin `retail.`? (`CLAUDE.md` ya lo corrigió main.)
+- [ ] **Pre-bloqueo en tres funciones** (ADR-0208, «Límite de la escritura»): `confirmar_traslado`,
+  `cerrar_traslado_con_diferencia` y `anular_venta` escriben el stock sin `fn_bloquear_en_orden`; con una bajada (o una
+  venta) en orden cruzado dan 40P01. Nada queda a medias, pero hay que reintentar. Migración con `create or replace
+  function` + caso C6 de concurrencia.
+- [ ] Enseñarle a `scripts/datos/comparar.mjs` a resolver las constantes `RPC_*` (hoy no ve `bajar_al_piso`).
+- [ ] Deuda que dejó a la vista el bloque 1:
+  - Extraer un hook de escaneo compartido: Vender, Recibir y Bajar tienen copia del mismo efecto (refactor aparte).
+  - Una entrada para quien tenga «Bajada al piso» sin Existencias (el Inicio de las terminales filtrado por módulo
+    —hoy `accesosInicio` no se filtra— o una hoja propia regrupando Inventario): solo si Felipe da el módulo así.
+  - `mover_interno` («Reponer») sigue sin token: un doble clic duplica (D-26).
+  - Borrar o conectar `apps/web/lib/resumen-acciones.ts`: su vía `'bajar_al_piso'` no tiene consumidor y ahora se llama
+    igual que la función nueva.
+  - `ReponerPisoModal.tsx:25` cita `20260914210000_inventario_piso_almacen.sql`, que no existe (es `20260914230000`).
+  - `scripts/migraciones/verificar.mjs` marca la `0400` con «falta: función insertar_antes». Es un falso positivo (un
+    ayudante `pg_temp` que no persiste), el mismo de `20260922200000` y `20260925230000`.
+- [ ] **Bloque 2 · «Retirar del piso»:** no hace falta una función nueva, falta la pantalla: es `mover_interno` con
+  origen (piso) y destino (almacén) invertidos. (`bajar_a_piso` y `devolver_a_almacen` eran de V1 y no existen.) Al
+  hacerlo, distinguir en Movimientos la bajada del retiro por el tipo de sububicación, no por el motivo.
+- [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
+  registro» por sede:
+  - Reloj de novedad por modelo+color.
+  - Reloj de piso por unidad (FIFO).
+  - Kaplan-Meier con P50, P75 y P90 por categoría y sede.
+  - Tramos e índice de rapidez.
+  - Atributos y marcas en la lectura. Marcas de evidencia: sin datos, señal, firme.
+  - **Regla (ADR-0208, (d)):** se construye encima del dominio de Inventario de main, no al lado. Los puntos salen de
+    `fn_ledger_puntos`, la venta de `fn_es_venta_de_stock` y las cohortes FIFO de `lib/inventario-exposicion.ts`
+    (ADR-0199 de main, 0200 y 0202). Nada de una reconstrucción propia del libro ni de un segundo FIFO.
+- [ ] **Bloque 4 · Clásicos y tallas clave:** `productos.linea` («moda» o «clásico») y tallas clave por categoría.
+  Cada una con su migración y su ADR.
+- [ ] **Bloque 5 · Traslado por novedad y alerta de poca novedad** hacia Producción y Compras.
+- [ ] **Bloque 6 · Capacidad por categoría, sede y temporada**, en ganchos y frentes. Cambio de esquema.
+- [ ] **Bloque 7 · Rebaja por sede, en tramos de precio.** Toca la caja: va al final, con migración y ensayo antes de
+  producción.
+- [ ] Antes de lanzar: medir la **línea base del % de venta a precio completo** de los últimos 6 meses por sede.
+- [ ] Decisiones abiertas:
+  - Tallas clave y clásicos (las decide el líder).
+  - Mínimo de datos por categoría.
+  - Ventana de la curva.
+  - Metas de % de piso Nueva y de novedades por semana.
+  - Costo de un traslado.
+  - Identificar a la clienta en caja.
+  - Si la alerta al Taller solo avisa o abre una orden.
+- [ ] Pendiente menor: borrar `UMBRAL_ESTANCADO_DIAS` (`packages/shared/src/enums.ts:41`), que es código muerto, o
+  dárselo a Frescura del piso.
+- Cómo verificas hoy: abre `docs/maquetas/frescura-del-piso-2026-09/frescura-del-piso.html`. Cambia de sede en el
+  perchero y en el tablero, mueve la barra de días en «La carrera» y toca los puntos de la matriz de Trujillo.
+- Cómo verificas el bloque 1, ya pegado: como líder, en Existencias de una tienda que separa piso y almacén, pulsa
+  «Bajar al piso». Escanea 5 prendas DISTINTAS (cada una de otra talla o de otro color) y confirma. En Movimientos
+  salen 5 filas «Reposición interna» con la misma hora; en Existencias, el piso subió y el almacén bajó lo mismo (5
+  unidades de la misma talla y color darían UNA fila). Para ver que no se repite: arma otra bajada, pon la red en «Sin
+  conexión» justo después de pulsar «Confirmar», reconecta y pulsa «Confirmar de nuevo»: dice «ya estaba registrada» o
+  guarda normal, y en Movimientos aparece una sola vez. Pulsar dos veces rápido no lo prueba: el segundo clic no llega
+  a la base.
+
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
