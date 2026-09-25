@@ -1,9 +1,10 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { METODOS_PAGO, type MetodoPago } from "@/lib/comprobantes-produccion-reglas";
+import { METODOS_PAGO } from "@/lib/comprobantes-produccion-reglas";
 import { medioNuevo, montoSugerido, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
 import { soles } from "@/lib/compras-reglas";
+import { Desplegable } from "@/components/ui/campos";
 import { OpcionesCuenta } from "@/components/finanzas/CampoCuenta";
 import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 
@@ -36,18 +37,13 @@ export function MediosDePago({
       <ul className="space-y-2">
         {medios.map((m, i) => (
           <li key={i} className="grid grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 max-sm:grid-cols-[6.5rem_minmax(0,1fr)_auto]">
-            <select
-              aria-label={`Medio ${i + 1}`}
-              value={m.metodo}
-              onChange={(e) => cambiar(i, { metodo: e.target.value as MetodoPago })}
-              className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
-            >
-              {METODOS_PAGO.map((x) => (
-                <option key={x.valor} value={x.valor}>
-                  {x.etiqueta}
-                </option>
-              ))}
-            </select>
+            <Desplegable
+              valor={m.metodo}
+              onValor={(v) => cambiar(i, { metodo: v })}
+              opciones={METODOS_PAGO.map((x) => ({ valor: x.valor, texto: x.etiqueta }))}
+              forma="pastilla"
+              etiquetaAccesible={`Medio ${i + 1}`}
+            />
             <input
               aria-label={`Monto del medio ${i + 1}`}
               inputMode="decimal"

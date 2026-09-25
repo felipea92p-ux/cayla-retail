@@ -14,7 +14,11 @@ export const MQ_TELEFONO = "(pointer: coarse) and (max-width: 639.98px), (pointe
  *  una segunda unidad de la misma prenda basta con sacarla del cuadro y volver a mostrarla. */
 export const PAUSA_MISMO_CODIGO_MS = 2000;
 
-export type EstadoEscaneo = "agregada" | "agotada" | "apartada" | "tope" | "no-encontrada";
+/** `en_almacen`: el piso está en 0 pero hay en el almacén de esta tienda (D-40) — no entra al ticket hasta que la bajen,
+ *  y no es lo mismo que `agotada`. `apartada`: lo único que queda en el piso es de una clienta que lo apartó (no hay
+ *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
+ *  (`lib/vender-stock-local.ts`). */
+export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "no-encontrada";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -22,6 +26,9 @@ export type ResultadoEscaneo = {
   nombre?: string;
   /** Lo que muestra la tarjeta que vuela al ticket (ausente si el código no es de ninguna prenda). */
   prenda?: { referencia: string; detalle: string; precio: number; fotoUrl: string | null };
+  /** Cuántas hay en el almacén de esta tienda (sin lo apartado); null/ausente sin almacén. La cámara no muestra el
+   *  aviso de arriba (le taparía la ✕), así que su tarjeta tiene que decir por sí sola dónde está la prenda. */
+  almacen?: number | null;
 };
 
 /** Cuánto dura el vuelo de la tarjeta al ticket, de que aparece a que entra en la bolsa. Son tres tramos, cada uno dentro
@@ -73,11 +80,38 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
       return { tono: "verde", texto: `${r.nombre ?? r.codigo} · al ticket` };
     case "agotada":
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está agotada aquí` };
+    case "en_almacen":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está en el almacén` };
     case "apartada":
-      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está apartada para una clienta` };
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está apartada para una clienta` };
     case "tope":
-      return { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} en el ticket` };
+      return (r.almacen ?? 0) > 0
+        ? { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: las del piso ya están en el ticket y las demás en el almacén` }
+        : { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} en el ticket` };
     case "no-encontrada":
       return { tono: "ambar", texto: `No encontramos «${r.codigo}» en esta tienda` };
+  }
+}
+
+/** Por qué una lectura NO entró, en dos o tres palabras: la etiqueta ámbar de la fila de la bandeja y de la tarjeta.
+ *  Corta a propósito (la fila tiene ~120 px a 375 px de ancho). La cámara no pinta el aviso largo, así que la etiqueta
+ *  tiene que leerse como un NO: «2 en el almacén» sonaba a buena noticia y la colaboradora no veía que la prenda no
+ *  entró al ticket. Por eso lo del almacén (piso en 0, o todas las del piso ya en el ticket) empieza por «No entró»; qué
+ *  hacer lo dice un solo aviso al cerrar la cámara (`avisoQuedaronEnAlmacen`). */
+export function estadoCorto(r: ResultadoEscaneo): string | null {
+  const enAlmacen = (r.almacen ?? 0) > 0;
+  switch (r.estado) {
+    case "agregada":
+      return null;
+    case "agotada":
+      return "Agotada aquí";
+    case "en_almacen":
+      return "No entró · en almacén";
+    case "apartada":
+      return "No entró · apartada";
+    case "tope":
+      return enAlmacen ? "No entró · en almacén" : "Sin más stock";
+    case "no-encontrada":
+      return "No es de esta tienda";
   }
 }

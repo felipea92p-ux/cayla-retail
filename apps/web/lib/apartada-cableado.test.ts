@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 // están probadas (`vender-reglas.test.ts`, `vender-stock-local.test.ts`, `cambio-reemplazo-reglas.test.ts`), pero lo
 // que las conecta a las pantallas vive en componentes y páginas que ninguna prueba renderiza: borrar una línea de ahí
 // deja `tsc` y toda la suite en verde y la pantalla vuelve a decir «agotada» sin ningún error (la revisión lo hizo con
-// cada uno de estos cables). Lo que el tipado sí cubre no está aquí: `VarianteVenta.apartadoAqui`,
-// `VarianteCatalogo.apartadoAqui` y `validarCambio(...).nueva.apartadoAqui` son obligatorios, así que olvidarlos no compila.
+// cada uno de estos cables). Lo que el tipado sí cubre no está aquí: `VarianteCatalogo.apartadoAqui` y
+// `validarCambio(...).nueva.apartadoAqui` son obligatorios, así que olvidarlos no compila. En Vender `apartadoAqui` es
+// opcional (como `almacenAqui`, D-40: quien arma variantes sin ese dato se comporta como antes), y por eso el cable de
+// `vender/page.tsx` sí necesita esta prueba: borrar esa línea compila y la pantalla volvería a decir «agotada».
 // Mismo espíritu que `globals-capas.test.ts`: leer los fuentes y fallar si dejan de cumplirse.
 
 const APP = join(__dirname, "..");
@@ -23,68 +25,58 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   // ---- Vender ----
   {
     archivo: "app/(app)/vender/page.tsx",
-    cable: "el mapa de lo apartado en el piso sale de `apartadoEnPiso`, sobre el mismo stock del que sale `stockAqui`",
-    patron: /apartadoPorVariante\s*=\s*new Map\(\[\.\.\.stockAqui\]\.map\(\(\[id, c\]\) => \[id, apartadoEnPiso\(c\)\]\)\)/,
-  },
-  {
-    archivo: "app/(app)/vender/page.tsx",
-    cable: "cada variante lleva su `apartadoAqui` (no un 0 fijo)",
-    patron: /apartadoAqui:\s*apartadoPorVariante\.get\(v\.varianteId\)\s*\?\?\s*0/,
+    cable: "cada variante lleva su `apartadoAqui`, del mismo mapa de stock que `stockAqui` y `almacenAqui` (no un 0 fijo)",
+    patron: /apartadoAqui:\s*apartadoEnPiso\(stockAqui\.get\(v\.varianteId\)\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
-    cable: "las variantes de la caja pasan por `conApartadoAjustado` sobre el stock ya ajustado",
-    patron: /conApartadoAjustado\(\s*conStockAjustado\(\s*variantes\s*,\s*ajustesStock\s*\)\s*,\s*ajustesApartado\s*\)/,
+    cable: "las variantes de la caja pasan por `conApartadoAjustado` (con el almacén y el stock ya ajustados)",
+    patron: /conStockAjustado\(\s*conApartadoAjustado\(\s*conAlmacenAjustado\(\s*variantes\s*,\s*ajustesAlmacen\s*\)\s*,\s*ajustesApartado\s*\)\s*,\s*ajustesStock\s*\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
-    cable: "`releerStock` guarda también lo apartado que trajo la base (`leido.apartado`)",
-    patron: /setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.leido\.apartado\]\)\)/,
+    cable: "`releerStock` guarda también lo apartado que trajo la base (`releido.apartado`)",
+    patron: /setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.releido\.apartado\]\)\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
     cable: "el sondeo de stock en vivo también guarda lo apartado (si no, tras cada sondeo la palabra vuelve a ser «agotada»)",
-    patron: /\(releido,\s*apartado\)\s*=>\s*\{[^}]*setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.apartado\]\)\)/,
-  },
-  {
-    archivo: "lib/useStockEnVivo.ts",
-    cable: "el sondeo le pasa a la pantalla el stock Y lo apartado de la misma lectura",
-    patron: /alLeerRef\.current\(\s*leido\.stock,\s*leido\.apartado\s*\)/,
+    patron: /\(releido,\s*almacen,\s*apartado\)\s*=>\s*\{[^}]*setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.apartado\]\)\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
     cable: "un catálogo nuevo del servidor borra lo apartado releído (manda el servidor)",
-    patron: /setAjustesStock\(new Map\(\)\);\s*setAjustesApartado\(new Map\(\)\)/,
+    patron: /setAjustesAlmacen\(new Map\(\)\);\s*setAjustesApartado\(new Map\(\)\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
-    cable: "el aviso al agregar sale de `avisoSinStockAqui`",
-    patron: /avisoSinStockAqui\(\s*nombreVariante\s*,\s*v\s*,\s*ubicacionEtiqueta\s*\)/,
+    cable: "el aviso al agregar recibe el `apartadoAqui` de la prenda (`avisoSinPiso` decide «apartada» o «agotada»)",
+    patron: /almacenAqui:\s*v\.almacenAqui,\s*apartadoAqui:\s*v\.apartadoAqui/,
   },
   {
-    archivo: "components/PuntoDeVenta.tsx",
-    cable: "la cámara (`alEscanear`) dice «apartada» y no «agotada» si lo que falta en el piso es de una clienta",
-    patron: /resultado === "agotada" && sinStockPorApartado\(v\) \? "apartada" : resultado/,
+    archivo: "lib/useStockEnVivo.ts",
+    cable: "la lectura trae lo apartado de las MISMAS filas (`apartadoReleido`)",
+    patron: /apartado:\s*apartadoReleido\(pedidas,\s*cantidades\)/,
   },
   {
-    archivo: "components/PuntoDeVentaCatalogo.tsx",
-    cable: "la fila del buscador dice `textoSinStock(v, …)`",
-    patron: /v\.stockAqui <= 0 \? textoSinStock\(v,\s*"sin stock aquí"\)/,
-  },
-  {
-    archivo: "components/PuntoDeVentaCatalogo.tsx",
-    cable: "la talla del catálogo dice `textoSinStock(t.variante, …)` y su tooltip sale de `tooltipSinStock`",
-    patron: /textoSinStock\(t\.variante,\s*"sin stock aquí"\)[\s\S]*tooltipSinStock\(t\.variante\)/,
+    archivo: "lib/useStockEnVivo.ts",
+    cable: "el sondeo le pasa a la pantalla el stock, el almacén Y lo apartado de la misma lectura",
+    patron: /alLeerRef\.current\(\s*releido\.cobrable,\s*releido\.almacen,\s*releido\.apartado\s*\)/,
   },
   {
     archivo: "components/PuntoDeVentaCatalogo.tsx",
-    cable: "`tooltipSinStock` explica el motivo con `textoSinStock`",
-    patron: /const motivo = textoSinStock\(v,\s*"Sin stock aquí"\)/,
+    cable: "la fila del buscador dice «apartada para una clienta» cuando el motivo es `apartada`",
+    patron: /motivo === "apartada"\s*\?\s*"apartada para una clienta"/,
+  },
+  {
+    archivo: "components/PuntoDeVentaCatalogo.tsx",
+    cable: "la talla sin piso dice su motivo en el aria-label y en el tooltip (`tooltipTallaSinPiso`)",
+    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para una clienta"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
   },
   {
     archivo: "components/ElegirTallaModal.tsx",
-    cable: "la casilla de talla usa `textoSinStock`",
-    patron: /textoSinStock\(t\.variante,\s*"Sin stock aquí"\)/,
+    cable: "la casilla de talla dice «Apartada para una clienta» cuando el motivo es `apartada`",
+    patron: /apartada\s*\?\s*"Apartada para una clienta"/,
   },
   // ---- Cambios ----
   {
@@ -95,7 +87,7 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   {
     archivo: "components/CambiosFlujo.tsx",
     cable: "el sondeo de Cambios guarda también lo apartado",
-    patron: /\(releido,\s*apartado\)\s*=>\s*\{[^}]*setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.apartado\]\)\)/,
+    patron: /\(releido,\s*_almacen,\s*apartado\)\s*=>\s*\{[^}]*setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.apartado\]\)\)/,
   },
   {
     archivo: "components/CambiosFlujo.tsx",

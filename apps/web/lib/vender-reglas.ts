@@ -5,6 +5,7 @@
 
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { nombresCortos } from "./nombre-integrante";
+import { motivoNoCobrable } from "./vender-stock-local";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -403,42 +404,34 @@ export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null
 
 // ---- «Agotada» o «apartada para una clienta» ------------------------------------------------------------------------
 // Una prenda con todo el piso apartado NO está agotada: sigue ahí, en el piso, y es de una clienta. Decirle «agotada» a
-// la colaboradora que mira la bodega del piso es decirle que no ve lo que ve. Vender y Cambios comparten esta frase
-// (cada pantalla la sigue escribiendo a su manera: «sin stock aquí», «no queda aquí»…).
+// la colaboradora que mira la bodega del piso es decirle que no ve lo que ve. La regla vive en UN solo lugar,
+// `motivoNoCobrable` (`lib/vender-stock-local.ts`, D-40): cobrable > «está en el almacén» > «apartada» > «agotada». Vender
+// la usa entera (con el almacén); Cambios, que no ofrece lo del almacén, le pasa solo el piso y lo apartado y le basta
+// esta frase (cada pantalla la sigue escribiendo a su manera: «sin stock aquí», «no queda aquí»…).
 
 /** Lo que la caja sabe de una prenda en ESTA sede. `stockAqui` es lo cobrable (piso disponible; en Taller, el total
- *  disponible) y `apartadoAqui` lo apartado en ese mismo lugar (`apartadoEnPiso`, `lib/vender-stock-local.ts`).
- *  Opcional: quien no lo trae dice «agotada» como siempre. */
-export type SinStockAqui = { stockAqui: number; apartadoAqui?: number };
+ *  disponible), `apartadoAqui` lo apartado en ese mismo lugar (`apartadoEnPiso`) y `almacenAqui` lo libre en el almacén
+ *  (solo Vender lo trae). Opcionales: quien no los trae dice «agotada» como siempre. */
+export type SinStockAqui = { stockAqui: number; apartadoAqui?: number | null; almacenAqui?: number | null };
 
-/** ¿Lo que impide vender la prenda aquí es que lo que queda en el PISO está apartado para una clienta? Solo cuenta lo
- *  apartado en el piso, que es de donde vende la caja (una venta nunca descuenta el almacén en silencio): una prenda
- *  con el piso en 0 y stock —apartado o no— en el almacén sigue siendo «agotada aquí». Y si además hay piso libre
- *  (`stockAqui > 0`) no hay nada que explicar. */
+/** ¿Lo que impide vender la prenda aquí es que lo que queda en el PISO está apartado para una clienta? Es
+ *  `motivoNoCobrable(...) === "apartada"`: solo cuenta lo apartado en el piso, que es de donde vende la caja (una venta
+ *  nunca descuenta el almacén en silencio), y si hay piso libre no hay nada que explicar. Con stock libre en el almacén
+ *  gana «está en el almacén» —ahí HAY un camino de venta— y esto da `false`. */
 export function sinStockPorApartado(p: SinStockAqui): boolean {
-  return p.stockAqui <= 0 && (p.apartadoAqui ?? 0) > 0;
+  return motivoNoCobrable(p) === "apartada";
 }
 
-/** La frase de una prenda que no se puede vender aquí: «apartada para una clienta» si el piso está apartado, y si no,
- *  `agotada` (el texto de siempre de cada pantalla). Se llama cuando `stockAqui <= 0`. La frase abre en mayúscula
- *  solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para una clienta»), para que la pantalla no tenga
- *  que cuidar el caso.
+/** La frase de una prenda que no se puede vender aquí: «apartada para una clienta» si lo único que queda en el piso es
+ *  de otra clienta, y si no, `agotada` (el texto de siempre de cada pantalla). Se llama cuando `stockAqui <= 0`. La
+ *  frase abre en mayúscula solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para una clienta»), para
+ *  que la pantalla no tenga que cuidar el caso.
  *
- *  Piso apartado con stock libre en el almacén: dice «apartada». La palabra describe el piso —lo que la caja puede
- *  cobrar—, igual que «agotada» lo describe cuando el piso está en 0; lo que hay en el almacén no entra en esta cuenta
- *  (para venderlo hay que subirlo al piso primero) y decir «agotada» sería falso: la unidad está ahí, es de otra. */
+ *  La palabra describe el piso —lo que la caja puede cobrar—, igual que «agotada» lo describe cuando el piso está en 0;
+ *  decir «agotada» sería falso: la unidad está ahí, es de otra. En Vender, si además hay stock libre en el almacén, esta
+ *  frase ni se llega a usar: `motivoNoCobrable` dice «en_almacen». */
 export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
   if (!sinStockPorApartado(p)) return agotada;
   const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
   return empiezaEnMayuscula ? "Apartada para una clienta" : "apartada para una clienta";
-}
-
-/** El aviso que sale al querer agregar al ticket una prenda sin nada libre en el piso (`PuntoDeVenta.agregar`). El
- *  título dice qué le pasa a la prenda; el detalle, qué hacer con ella. Una apartada NO está bloqueada del todo —la clienta
- *  que la apartó sí se la lleva—, solo no se vende desde la caja: por eso no dice «no se puede vender» a secas. */
-export function avisoSinStockAqui(nombre: string, p: SinStockAqui, sede: string): { titulo: string; detalle: string } {
-  return {
-    titulo: `${nombre} está ${textoSinStock(p)}`,
-    detalle: sinStockPorApartado(p) ? "No se vende desde aquí: es de la clienta que la apartó." : `No hay stock en ${sede}.`,
-  };
 }

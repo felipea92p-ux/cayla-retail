@@ -5,7 +5,7 @@ import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "r
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { Boton, Campo, CampoTexto, Interruptor, SelectNativo } from "@/components/ui/campos";
+import { Boton, Campo, CampoTexto, Desplegable, Interruptor } from "@/components/ui/campos";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
@@ -681,14 +681,16 @@ export function CompraFormV2({
                     marcador="Busca la prenda…"
                     autoFocus={i > 0 && i === lineas.length - 1}
                   />
-                  <SelectNativo aria-label="Talla y color" value={l.varianteId} onChange={(e) => elegirVariante(i, e.target.value)} disabled={!l.productoId}>
-                    <option value="">Sin desglose (se reparte al recibir)</option>
-                    {producto?.variantes.map((v) => (
-                      <option key={v.varianteId} value={v.varianteId}>
-                        {[v.talla, v.color].filter(Boolean).join(" / ") || v.sku}
-                      </option>
-                    ))}
-                  </SelectNativo>
+                  <Desplegable
+                    valor={l.varianteId}
+                    onValor={(id) => elegirVariante(i, id)}
+                    opciones={[
+                      { valor: "", texto: "Sin desglose (se reparte al recibir)" },
+                      ...(producto?.variantes.map((v) => ({ valor: v.varianteId, texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku })) ?? []),
+                    ]}
+                    etiquetaAccesible="Talla y color"
+                    deshabilitado={!l.productoId}
+                  />
                   <input
                     type="number"
                     min={1}

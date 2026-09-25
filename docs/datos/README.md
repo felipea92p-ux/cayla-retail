@@ -92,6 +92,7 @@ diagrama, sus tablas campo por campo y sus huecos conocidos.
 | **[`11-KPIS.md`](11-KPIS.md)** | Cada número del negocio y de qué columna depende |
 | **[`13-PROMESAS-INCUMPLIDAS.md`](13-PROMESAS-INCUMPLIDAS.md)** | Las 20 cosas que la documentación de CAYLA promete y la base no cumple |
 | **[`14-DYNAMIC.md`](14-DYNAMIC.md)** | El otro sistema, y exactamente dónde está la frontera entre los dos |
+| **[`consultas/`](consultas/)** | Consultas de solo lectura para pegar en el SQL Editor de producción y medir la tienda real; hoy, el termómetro semanal de Frescura ([`frescura-termometro.sql`](consultas/frescura-termometro.sql)) con su rutina de los lunes |
 
 ### El acta
 

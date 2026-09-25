@@ -17,7 +17,7 @@ import { Ayuda } from "@/components/Ayuda";
 import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
-import { DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CircleCheck, FileText, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
@@ -297,32 +297,29 @@ export function ComprobantesPanel({
           {comprobantes.length > 0 && (
             <div className="mt-3 flex">
               <PanelPildoras>
-                <DesplegablePildora icono={FileText} etiqueta="Tipo" valor={filtroTipo} onValor={setFiltroTipo}>
-                  <ItemDesplegable value={TODOS}>Todos los tipos</ItemDesplegable>
-                  {tiposDelMes.map((t) => (
-                    <ItemDesplegable key={t} value={t}>
-                      {ETIQUETA_TIPO[t]}
-                    </ItemDesplegable>
-                  ))}
-                </DesplegablePildora>
+                <DesplegablePildora
+                  icono={FileText}
+                  etiqueta="Tipo"
+                  valor={filtroTipo}
+                  onValor={setFiltroTipo}
+                  opciones={[{ valor: TODOS, texto: "Todos los tipos" }, ...tiposDelMes.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] }))]}
+                />
                 {tiendasDelMes.length > 1 && (
-                  <DesplegablePildora icono={Store} etiqueta="Tienda" valor={filtroTienda} onValor={setFiltroTienda}>
-                    <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
-                    {tiendasDelMes.map((t) => (
-                      <ItemDesplegable key={t.id} value={t.id}>
-                        {t.nombre}
-                      </ItemDesplegable>
-                    ))}
-                  </DesplegablePildora>
+                  <DesplegablePildora
+                    icono={Store}
+                    etiqueta="Tienda"
+                    valor={filtroTienda}
+                    onValor={setFiltroTienda}
+                    opciones={[{ valor: TODOS, texto: "Todas las tiendas" }, ...tiendasDelMes.map((t) => ({ valor: t.id, texto: t.nombre }))]}
+                  />
                 )}
-                <DesplegablePildora icono={CircleCheck} etiqueta="Estado" valor={filtroEstado} onValor={setFiltroEstado}>
-                  <ItemDesplegable value={TODOS}>Todos los estados</ItemDesplegable>
-                  {estadosDelMes.map((e) => (
-                    <ItemDesplegable key={e} value={e}>
-                      {e}
-                    </ItemDesplegable>
-                  ))}
-                </DesplegablePildora>
+                <DesplegablePildora
+                  icono={CircleCheck}
+                  etiqueta="Estado"
+                  valor={filtroEstado}
+                  onValor={setFiltroEstado}
+                  opciones={[{ valor: TODOS, texto: "Todos los estados" }, ...estadosDelMes.map((e) => ({ valor: e, texto: e }))]}
+                />
               </PanelPildoras>
             </div>
           )}

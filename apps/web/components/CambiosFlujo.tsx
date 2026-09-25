@@ -129,7 +129,8 @@ export function CambiosFlujo({
     ubicacionId,
     useMemo(() => catalogoProp.map((v) => v.varianteId), [catalogoProp]),
     cajaAbierta,
-    (releido, apartado) => {
+    // El almacén (2.º argumento) es de Vender: Cambios no ofrece lo del almacén, solo necesita lo apartado (3.º).
+    (releido, _almacen, apartado) => {
       setAjustesStock((prev) => new Map([...prev, ...releido]));
       setAjustesApartado((prev) => new Map([...prev, ...apartado]));
     },

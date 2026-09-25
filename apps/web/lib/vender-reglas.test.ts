@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
   atendioCorto,
-  avisoSinStockAqui,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoDeCampana,
@@ -746,24 +745,5 @@ describe("textoSinStock — «agotada» o «apartada para una clienta»", () => 
   it("con piso libre no hay nada que explicar, aunque otra unidad esté apartada", () => {
     expect(sinStockPorApartado({ stockAqui: 2, apartadoAqui: 1 })).toBe(false);
     expect(textoSinStock({ stockAqui: 2, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
-  });
-});
-
-describe("avisoSinStockAqui — el aviso al agregar una prenda que no se puede vender", () => {
-  it("agotada: dice que no hay stock en la sede, como siempre", () => {
-    expect(avisoSinStockAqui("Polera Sofía · M", { stockAqui: 0, apartadoAqui: 0 }, "Tienda Lima")).toEqual({
-      titulo: "Polera Sofía · M está agotada",
-      detalle: "No hay stock en Tienda Lima.",
-    });
-    // Quien no trae `apartadoAqui` (una pantalla sin esa lectura) dice lo mismo.
-    expect(avisoSinStockAqui("Polera Sofía · M", { stockAqui: 0 }, "Tienda Lima").titulo).toBe("Polera Sofía · M está agotada");
-  });
-
-  it("apartada: es de una clienta, no está bloqueada del todo — dice desde dónde no se vende, no que no se pueda", () => {
-    const aviso = avisoSinStockAqui("Polera Sofía · M", { stockAqui: 0, apartadoAqui: 1 }, "Tienda Lima");
-    expect(aviso.titulo).toBe("Polera Sofía · M está apartada para una clienta");
-    expect(aviso.detalle).toBe("No se vende desde aquí: es de la clienta que la apartó.");
-    // «Sigue en Tienda Lima, pero no se puede vender» sonaba a prenda bloqueada para todos, incluida la clienta dueña.
-    expect(aviso.detalle).not.toContain("no se puede vender");
   });
 });
