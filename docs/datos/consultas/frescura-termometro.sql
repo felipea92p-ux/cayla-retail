@@ -16,6 +16,8 @@
 --     de Supabase (execute_sql).
 --   · Ninguna escribe: las 12 empiezan por SELECT o WITH. Si alguna vez una empieza por otra
 --     cosa, alguien la cambió: no la corras.
+--   · La 01 y la 02 miran UNA semana de lunes a domingo, que se elige en su primera línea
+--     (`semanas_atras`): 1 = la semana pasada (la de la rutina), 0 = la semana en curso.
 --   · Todo día y todo mes se calcula en HORA DE LIMA (`AT TIME ZONE 'America/Lima'`). Las horas
 --     sueltas (primer evento, llegadas, `foto`) el SQL Editor las muestra en UTC: réstales 5 horas.
 --   · Cada resultado es una FOTO del momento en que la corres: se cuenta contra now() y la base
@@ -30,7 +32,8 @@
 -- RUTINA DE LOS LUNES (Felipe, ~10 minutos).
 --   1. En Alegra, anota el NÚMERO de comprobantes de venta (boletas, y facturas si hubo; sin las
 --      anuladas) por sede y por día de la semana anterior, lunes a domingo.
---   2. Corre la consulta 01 y pon al lado, por sede y día, su columna `ventas_en_erp`.
+--   2. Corre la consulta 01 (con semanas_atras = 1) y pon al lado, por sede y día, su columna
+--      `ventas_en_erp`. Cada tienda sale con sus 7 días; un día sin ventas en el ERP sale con 0.
 --   3. Alegra menos `ventas_en_erp` = la parte de la tienda que el ERP no ve. Se comparan CONTEOS,
 --      no montos: una boleta es una venta en los dos sistemas, y la pregunta es cuántas ventas se
 --      le escapan al ERP, no cuánta plata. Es una sola cifra por sede y día a propósito: si la
@@ -69,23 +72,47 @@
 --   (variante centinela 22222222-…, la misma de apps/web/lib/cargo-especial.ts:16; ADR-0179);
 -- - los soles.
 -- Se compara con el número de comprobantes de Alegra de ese día (ver RUTINA DE LOS LUNES).
+-- Cada tienda activa sale con TODOS los días de la semana, también los que el ERP no vio ninguna
+-- venta: ese 0 es justo lo que la rutina busca («Alegra 12, ERP 0»). Si faltara la fila, no se
+-- sabría si el ERP no vio nada o si la consulta falló.
 -- Origen: NUEVA, no está en fase 1. Se armó con las columnas que fase 1 leyó (precio-completo #0 y #18).
--- Cuándo: Cada lunes, por los 7 días anteriores. También antes de marcar el arranque de cada sede (tarea 8).
--- Hoy: 25-09, 21:51 UTC, solo Tienda TRU:
--- Hoy: - 24-09: 1 venta, emitida por retail, 1 u., S/ 39,90;
--- Hoy: - 25-09: 6 ventas, las 6 emitidas por retail (0 por Alegra, 0 con número de boleta Alegra), 33 u., S/ 2 270,60.
--- Hoy: 0 prendas sin registrar. AQP y LIM no tienen filas.
+-- Revisión del 25-09: antes partía de las ventas, así que un día sin ventas en el ERP no salía con 0,
+-- simplemente no salía; y no tenía semana, así que con los meses devolvía todo el historial. Ahora
+-- arma el calendario de la semana (`semanas_atras`) por tienda y cuelga de él las ventas.
+-- Cuándo: Cada lunes, con semanas_atras = 1. También antes de marcar el arranque de cada sede (tarea 8).
+-- Hoy: 25-09 (viernes), 22:16 UTC, con semanas_atras = 0 (del lunes 21-09 a hoy): 15 filas, 3 tiendas × 5 días.
+-- Hoy: - Tienda TRU, 24-09: 1 venta, emitida por retail, 1 u., S/ 39,90;
+-- Hoy: - Tienda TRU, 25-09: 6 ventas, las 6 emitidas por retail (0 por Alegra, 0 con número de boleta Alegra), 33 u., S/ 2 270,60;
+-- Hoy: - TRU del 21 al 23-09, y los 5 días de AQP y de LIM: 0 ventas en el ERP.
+-- Hoy: 0 prendas sin registrar. Con semanas_atras = 1 (14 a 20-09) salen 21 filas (3 tiendas × 7 días), todas en 0.
 -- Hoy: Por qué 0 por Alegra aunque D-56 ponga «La emite Alegra» por defecto: la pantalla no manda
 -- Hoy: `p_emisor` y la base usa su default 'retail' (ver RUTINA DE LOS LUNES). De esas 7 ventas, 2 tienen
 -- Hoy: boleta aceptada en el entorno sandbox (no es SUNAT real) y 5 una nota de venta interna.
 -- ======================================================================
-WITH v AS (
-  SELECT v.id, u.nombre AS sede, (v.created_at AT TIME ZONE 'America/Lima')::date AS dia_lima, v.emisor, v.boleta_alegra_numero
+WITH params AS (
+  -- 1 = la semana pasada, de lunes a domingo (la de la rutina). 0 = la semana en curso, hasta hoy.
+  SELECT 1 AS semanas_atras
+), semana AS (
+  SELECT (date_trunc('week', now() AT TIME ZONE 'America/Lima') - make_interval(weeks => p.semanas_atras))::date AS lunes,
+         (now() AT TIME ZONE 'America/Lima')::date AS hoy
+  FROM params p
+), dias AS (
+  SELECT d::date AS dia_lima
+  FROM semana s,
+       generate_series(s.lunes::timestamp, least(s.lunes + 6, s.hoy)::timestamp, interval '1 day') AS d
+), v AS (
+  SELECT v.id, v.ubicacion_id, (v.created_at AT TIME ZONE 'America/Lima')::date AS dia_lima, v.emisor, v.boleta_alegra_numero
   FROM retail.ventas v
-  JOIN retail.ubicaciones u ON u.id = v.ubicacion_id
   WHERE v.es_prueba = false AND v.estado = 'completada'
+    AND (v.created_at AT TIME ZONE 'America/Lima')::date IN (SELECT dia_lima FROM dias)
+), sedes AS (
+  -- Toda tienda activa, haya vendido o no. Y cualquier otra ubicación que sí haya vendido esa semana
+  -- (el taller, por ejemplo), para que ninguna venta se quede fuera de la cuenta.
+  SELECT u.id, u.nombre
+  FROM retail.ubicaciones u
+  WHERE (u.tipo = 'tienda' AND u.activo) OR u.id IN (SELECT ubicacion_id FROM v)
 )
-SELECT v.sede, v.dia_lima,
+SELECT s.nombre AS sede, d.dia_lima,
        count(DISTINCT v.id) AS ventas_en_erp,
        count(DISTINCT v.id) FILTER (WHERE v.emisor = 'alegra') AS ventas_emite_alegra,
        count(DISTINCT v.id) FILTER (WHERE v.boleta_alegra_numero IS NOT NULL) AS con_numero_boleta_alegra,
@@ -93,41 +120,115 @@ SELECT v.sede, v.dia_lima,
        coalesce(sum(vi.cantidad) FILTER (WHERE vi.variante_id <> '22222222-2222-4222-8222-222222222222'), 0) AS unidades_de_catalogo,
        coalesce(sum(vi.cantidad) FILTER (WHERE vi.variante_id = '22222222-2222-4222-8222-222222222222'), 0) AS unidades_prenda_sin_registrar,
        round(100.0 * coalesce(sum(vi.cantidad) FILTER (WHERE vi.variante_id = '22222222-2222-4222-8222-222222222222'), 0) / nullif(sum(vi.cantidad), 0), 1) AS pct_prenda_sin_registrar,
-       round(sum((vi.precio_unitario - vi.descuento_unitario) * vi.cantidad), 2) AS soles_cobrados,
+       coalesce(round(sum((vi.precio_unitario - vi.descuento_unitario) * vi.cantidad), 2), 0) AS soles_cobrados,
        now() AS foto
-FROM v
-JOIN retail.venta_items vi ON vi.venta_id = v.id
-GROUP BY v.sede, v.dia_lima
-ORDER BY v.sede, v.dia_lima;
+FROM sedes s
+CROSS JOIN dias d
+LEFT JOIN v ON v.ubicacion_id = s.id AND v.dia_lima = d.dia_lima
+LEFT JOIN retail.venta_items vi ON vi.venta_id = v.id
+GROUP BY s.nombre, d.dia_lima
+ORDER BY s.nombre, d.dia_lima;
 
 -- ======================================================================
 -- 02.
--- ¿El piso se llena por bajada o por ajuste directo? Da el % de unidades que entraron al piso sin pasar por una bajada. Mide la tarea 3.
--- Origen: VERBATIM de fase 1 (registro-y-relojes #17). Reconoce la bajada por el motivo 'movimiento_interno'; el motor usa fn_es_traslado_interno, y hoy dan lo mismo (ver SOBRE LA BAJADA).
--- Cuándo: Cada lunes, y antes y después de fusionar la tarea 3.
--- Hoy: 25-09, 21:52 UTC, TRU:
--- Hoy: - 22 variantes solo por bajada (100 u.);
--- Hoy: - 14 variantes solo por ajuste directo (92 u.);
--- Hoy: - 0 mixtas.
--- Hoy: El 47,9 % del piso entró sin bajada. A las 15:16 UTC era 62,2 %: bajó porque el 25-09 se registraron
--- Hoy: 14 bajadas más, no porque se corrigieran los 14 ajustes (siguen siendo los de la terminal «Almacén
--- Hoy: Trujillo» del 24-09, entre las 16:23 y las 16:29 UTC).
+-- ¿El piso se llena por bajada o por ajuste directo? Por tienda y por semana, da el % de unidades que entraron al piso sin pasar por una bajada. Mide la tarea 3.
+-- Tres vías de entrada al piso, y solo dos cuentan en el porcentaje:
+-- - bajada: traslado almacén → piso;
+-- - sin bajada: ajustes positivos y entradas directas al piso. `uds_sin_bajada_por_motivo` las abre por
+--   tipo:motivo, así que la carga «Ya estaba colgada» de la tarea 3 sale con su propio nombre, separada
+--   de «encontré de más» ('reposicion'), sin que esta consulta tenga que adivinar cómo se llamará;
+-- - reingreso de una venta: la prenda vuelve al piso porque la clienta la devolvió o la cambió, o porque
+--   se anuló la venta. Es un flujo correcto, no ropa colgada sin registrar: aprobar_devolucion y
+--   registrar_cambio la graban como 'entrada' en el piso de venta
+--   (supabase/migrations/20260922235000_candado_dinero_caja_cambios_devoluciones.sql:323-334 y
+--   20260923110500_cambios_sin_candado_de_lider.sql:122,143-145) y anular_venta la devuelve a la
+--   sububicación de donde salió (20260922151500_comprobantes_cola_de_reintento.sql:304-306). Por eso sale
+--   en su propia columna y NO entra al porcentaje: si entrara, cada devolución subiría la cifra sola.
+-- `pct_sin_bajada_desde_el_inicio` es la misma cuenta sobre toda la historia de la tienda: queda solo
+-- como referencia, porque arrastra para siempre los ajustes viejos y no deja ver el cambio de una semana.
+-- Diferencia con la 07: esa cuenta solo los ajustes al piso; esta suma también las entradas directas
+-- (una recepción que llegara al piso). Hoy son lo mismo: ninguna entrada llega directo al piso.
+-- Origen: AJUSTADA de fase 1 (registro-y-relojes #17), con tres cambios: 1) sale por tienda; 2) mira una
+-- semana (`semanas_atras`) y deja la cifra acumulada como columna aparte; 3) separa el reingreso de una
+-- venta y abre lo que entró sin bajada por motivo. Reconoce la bajada por el motivo
+-- 'movimiento_interno'; el motor usa fn_es_traslado_interno, y hoy dan lo mismo (ver SOBRE LA BAJADA).
+-- Cuándo: Cada lunes (semanas_atras = 1), y antes y después de fusionar la tarea 3.
+-- Hoy: 25-09, 22:17 UTC, con semanas_atras = 0 (semana del 21-09):
+-- Hoy: - TRU: 22 variantes solo por bajada (100 u.), 14 solo sin bajada (92 u., las 92 «ajuste:reposicion»),
+-- Hoy:   0 mixtas y 0 u. de reingreso. El 47,9 % del piso entró sin bajada, igual que desde el inicio, porque
+-- Hoy:   toda la historia de piso de TRU cae en esta semana;
+-- Hoy: - AQP y LIM: todo en 0 y el porcentaje vacío (no hubo nada que dividir).
+-- Hoy: A las 15:16 UTC del 25-09 era 62,2 %: bajó porque ese día se registraron 14 bajadas más, no porque
+-- Hoy: se corrigieran los 14 ajustes (siguen siendo los de la terminal «Almacén Trujillo» del 24-09, entre
+-- Hoy: las 16:23 y las 16:29 UTC).
 -- ======================================================================
-with piso as (select id from retail.sububicaciones where tipo = 'piso_venta'),
-entradas_piso as (
-  select m.variante_id,
-         sum(m.cantidad) filter (where m.tipo = 'traslado' and m.motivo = 'movimiento_interno' and m.sububicacion_destino_id in (select id from piso)) as por_bajada,
-         sum(m.cantidad) filter (where m.tipo in ('ajuste','entrada') and m.cantidad > 0 and m.sububicacion_id in (select id from piso)) as por_ajuste_o_entrada_directa
-  from retail.movimientos m group by 1
+with params as (
+  -- 1 = la semana pasada, de lunes a domingo (la de la rutina). 0 = la semana en curso, hasta ahora.
+  select 1 as semanas_atras
+), semana as (
+  -- Lunes 00:00 y el lunes siguiente 00:00, en hora de Lima.
+  select (date_trunc('week', now() at time zone 'America/Lima') - make_interval(weeks => p.semanas_atras)) at time zone 'America/Lima' as desde,
+         (date_trunc('week', now() at time zone 'America/Lima') - make_interval(weeks => p.semanas_atras - 1)) at time zone 'America/Lima' as hasta
+  from params p
+), entradas_piso as (
+  -- Todo lo que sumó unidades al piso de venta, con la vía por la que llegó (ver arriba).
+  select m.ubicacion_id, m.variante_id, m.tipo, m.motivo, m.cantidad, m.created_at,
+         case when m.tipo = 'traslado' then 'bajada'
+              when m.tipo = 'entrada' and m.motivo in ('devolucion', 'cambio', 'anulacion_venta') then 'reingreso'
+              else 'sin_bajada' end as via
+  from retail.movimientos m
+  join retail.sububicaciones s
+    on s.tipo = 'piso_venta'
+   and s.id = case when m.tipo = 'traslado' then m.sububicacion_destino_id else m.sububicacion_id end
+  where (m.tipo = 'traslado' and m.motivo = 'movimiento_interno')
+     or (m.tipo in ('ajuste', 'entrada') and m.cantidad > 0)
+), de_la_semana as (
+  select e.* from entradas_piso e, semana w
+  where e.created_at >= w.desde and e.created_at < w.hasta
+), por_variante as (
+  select ubicacion_id, variante_id,
+         coalesce(sum(cantidad) filter (where via = 'bajada'), 0) as bajada,
+         coalesce(sum(cantidad) filter (where via = 'sin_bajada'), 0) as sin_bajada
+  from de_la_semana group by 1, 2
+), por_sede as (
+  select ubicacion_id,
+         count(*) filter (where bajada > 0 and sin_bajada = 0) as variantes_solo_por_bajada,
+         count(*) filter (where bajada = 0 and sin_bajada > 0) as variantes_solo_sin_bajada,
+         count(*) filter (where bajada > 0 and sin_bajada > 0) as variantes_mixtas,
+         sum(bajada) as uds_por_bajada,
+         sum(sin_bajada) as uds_sin_bajada
+  from por_variante group by 1
+), por_motivo as (
+  select ubicacion_id, string_agg(tipo || ':' || coalesce(motivo, '-') || ' = ' || uds, ', ' order by uds desc, tipo, motivo) as detalle
+  from (select ubicacion_id, tipo, motivo, sum(cantidad) as uds from de_la_semana where via = 'sin_bajada' group by 1, 2, 3) x
+  group by 1
+), reingreso as (
+  select ubicacion_id, sum(cantidad) as uds from de_la_semana where via = 'reingreso' group by 1
+), acumulado as (
+  select ubicacion_id,
+         round(100.0 * coalesce(sum(cantidad) filter (where via = 'sin_bajada'), 0)
+               / nullif(sum(cantidad) filter (where via in ('bajada', 'sin_bajada')), 0), 1) as pct
+  from entradas_piso group by 1
 )
-select count(*) filter (where coalesce(por_bajada,0) > 0 and coalesce(por_ajuste_o_entrada_directa,0) = 0) as variantes_solo_por_bajada,
-       count(*) filter (where coalesce(por_bajada,0) = 0 and coalesce(por_ajuste_o_entrada_directa,0) > 0) as variantes_solo_por_ajuste_directo,
-       count(*) filter (where coalesce(por_bajada,0) > 0 and coalesce(por_ajuste_o_entrada_directa,0) > 0) as variantes_mixtas,
-       sum(coalesce(por_bajada,0)) as uds_llegadas_por_bajada,
-       sum(coalesce(por_ajuste_o_entrada_directa,0)) as uds_llegadas_por_ajuste_directo,
-       round(100.0 * sum(coalesce(por_ajuste_o_entrada_directa,0)) / nullif(sum(coalesce(por_bajada,0)) + sum(coalesce(por_ajuste_o_entrada_directa,0)),0), 1) as pct_piso_sin_bajada
-from entradas_piso
-where coalesce(por_bajada,0) + coalesce(por_ajuste_o_entrada_directa,0) > 0;
+select u.nombre as sede,
+       (select (desde at time zone 'America/Lima')::date from semana) as semana_del_lunes,
+       coalesce(ps.variantes_solo_por_bajada, 0) as variantes_solo_por_bajada,
+       coalesce(ps.variantes_solo_sin_bajada, 0) as variantes_solo_sin_bajada,
+       coalesce(ps.variantes_mixtas, 0) as variantes_mixtas,
+       coalesce(ps.uds_por_bajada, 0) as uds_por_bajada,
+       coalesce(ps.uds_sin_bajada, 0) as uds_sin_bajada,
+       pm.detalle as uds_sin_bajada_por_motivo,
+       coalesce(r.uds, 0) as uds_reingreso_de_venta,
+       round(100.0 * ps.uds_sin_bajada / nullif(ps.uds_por_bajada + ps.uds_sin_bajada, 0), 1) as pct_piso_sin_bajada,
+       ac.pct as pct_sin_bajada_desde_el_inicio,
+       now() as foto
+from retail.ubicaciones u
+left join por_sede ps on ps.ubicacion_id = u.id
+left join por_motivo pm on pm.ubicacion_id = u.id
+left join reingreso r on r.ubicacion_id = u.id
+left join acumulado ac on ac.ubicacion_id = u.id
+where u.tipo = 'tienda' and u.activo
+order by u.nombre;
 
 -- ======================================================================
 -- 03.
