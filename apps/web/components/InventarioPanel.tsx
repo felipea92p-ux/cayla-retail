@@ -33,8 +33,10 @@ import {
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
+  puedeRetirarPiso,
   UMBRAL_REPOSICION_PISO,
   type EstadoStock,
+  type SentidoPiso,
 } from "@/lib/inventario-reglas";
 import { textoCobertura } from "@/lib/resumen-formato";
 import { bandaDeCobertura, calcularVelocidad, type Cobertura } from "@/lib/resumen-reglas";
@@ -249,7 +251,8 @@ export function InventarioPanel({
   const [talla, setTalla] = useState(TODAS);
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
-  const [reponiendo, setReponiendo] = useState<FilaExistencias | null>(null);
+  // Bajar al piso y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
+  const [moviendo, setMoviendo] = useState<{ fila: FilaExistencias; sentido: SentidoPiso } | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(false);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
@@ -731,10 +734,23 @@ export function InventarioPanel({
                           type="button"
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
-                          onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
+                          onClick={() => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "bajar" })}
                           className="btn-cayla btn-primario px-2 py-0.5 text-xs"
                         >
                           Reponer
+                        </button>
+                      )}
+                      {/* D-41 (2026-09-25): el camino de vuelta, del piso al almacén. Mismo permiso y mismo
+                          modal que «Reponer», pero SIN umbral (`puedeRetirarPiso`): basta que quede algo libre
+                          colgado. Va como enlace discreto, no como botón lleno: esta columna es el semáforo y el
+                          único botón lleno tiene que seguir siendo la acción que la tienda debe hacer hoy. */}
+                      {puedeReponer && puedeRetirarPiso(f.pisoDisponible) && (
+                        <button
+                          type="button"
+                          onClick={() => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "retirar" })}
+                          className="btn-enlace text-xs"
+                        >
+                          Retirar del piso
                         </button>
                       )}
                       {/* Independiente del chip de estado: una prenda puede estar
@@ -836,14 +852,14 @@ export function InventarioPanel({
       )}
       </div>
 
-      {reponiendo && sububicacionPiso && sububicacionAlmacen && (
+      {moviendo && sububicacionPiso && sububicacionAlmacen && (
         <ReponerPisoModal
-          sentido="bajar"
-          fila={reponiendo}
+          sentido={moviendo.sentido}
+          fila={moviendo.fila}
           ubicacionId={ubicacionId}
           sububicacionPisoId={sububicacionPiso.id}
           sububicacionAlmacenId={sububicacionAlmacen.id}
-          onClose={() => setReponiendo(null)}
+          onClose={() => setMoviendo(null)}
         />
       )}
 

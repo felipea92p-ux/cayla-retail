@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -59,11 +59,18 @@ export function ReponerPisoModal({
   const [cantidad, setCantidad] = useState(cantidadInicial && cantidadInicial > 0 ? String(Math.min(cantidadInicial, disponible)) : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Candado contra el doble clic, del lado de la pantalla. `mover_interno` NO tiene token de
+  // idempotencia: dos envíos seguidos mueven dos veces (2 clics sobre «Retirar 3» = 6 al almacén).
+  // `cargando` apaga el botón, pero recién en el render siguiente; esta referencia cierra el hueco
+  // en el mismo instante del clic. El candado de verdad, en la base, llega cuando Reponer y
+  // Retirar pasen a una función con token (tarea 5 de «Frescura del piso»): hasta entonces, esto.
+  const enVuelo = useRef(false);
   // Mover entre piso y almacén mueve stock: pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (enVuelo.current) return;
     if (!responsable.listo) return;
     const n = Number(cantidad);
     if (!Number.isInteger(n) || n <= 0) {
@@ -74,6 +81,7 @@ export function ReponerPisoModal({
       setError(regla.noAlcanza(n, disponible));
       return;
     }
+    enVuelo.current = true;
     setLoading(true);
     setError(null);
     const supabase = createClient();
@@ -87,6 +95,8 @@ export function ReponerPisoModal({
     setLoading(false);
     responsable.despues(errorRpc);
     if (errorRpc) {
+      // Solo se vuelve a abrir si falló: si guardó, el modal se cierra y no debe aceptar otro envío.
+      enVuelo.current = false;
       setError(traducirError(errorRpc, regla.accion));
       return;
     }

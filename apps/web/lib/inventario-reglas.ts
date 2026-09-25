@@ -176,6 +176,16 @@ export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
   },
 };
 
+/** Si una talla ofrece «Retirar del piso»: basta con que quede algo LIBRE colgado (neto de lo
+ *  apartado para clientas). Sin umbral a propósito — «Reponer» avisa desde
+ *  `UMBRAL_REPOSICION_PISO` porque es una alarma (la clienta se va sin su talla); retirar no es
+ *  alarma sino una decisión de la tienda (guardar lo de otra temporada, una talla que sobra en
+ *  la percha) y tiene sentido con 1 unidad o con 30. `null` = la sede no separa piso y almacén
+ *  (Taller): no hay piso del que retirar. */
+export function puedeRetirarPiso(pisoDisponible: number | null): boolean {
+  return pisoDisponible !== null && pisoDisponible > 0;
+}
+
 /** Cuántas unidades se pueden mover en ese sentido: lo DISPONIBLE del origen (neto de lo
  *  apartado — la base igual rechaza mover una prenda apartada, ADR-0141). Nunca negativo. */
 export function topeMovimientoPiso(sentido: SentidoPiso, disponible: { piso: number | null; almacen: number | null }): number {
