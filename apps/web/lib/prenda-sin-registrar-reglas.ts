@@ -12,12 +12,17 @@ export type DatosPrendaSinRegistrar = {
   precio: number;
 };
 
-/** El primer dato que falta, dicho a la colaboradora; `null` si ya se puede agregar al ticket. */
-export function faltaEnPrendaSinRegistrar(d: Partial<DatosPrendaSinRegistrar>): string | null {
-  if (!d.descripcion?.trim()) return "Escribe una descripción corta";
+export const FALTA_DESCRIPCION = "Escribe una descripción corta";
+
+/**
+ * El primer dato que falta, en el orden del formulario, dicho a la colaboradora; `null` si ya se puede agregar al
+ * ticket. `sinDescripcion`: el modal ya dice lo de la descripción bajo su propio campo, y al pie solo pregunta el resto.
+ */
+export function faltaEnPrendaSinRegistrar(d: Partial<DatosPrendaSinRegistrar>, { sinDescripcion = false } = {}): string | null {
   if (!d.categoriaId) return "Elige la categoría";
   if (!d.tallaId) return "Elige la talla";
   if (!d.colorCodigo) return "Elige el color";
+  if (!sinDescripcion && !d.descripcion?.trim()) return FALTA_DESCRIPCION;
   if (!d.precio || !(d.precio > 0)) return "Escribe el precio que cobraste";
   return null;
 }

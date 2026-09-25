@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Vender: «Prenda sin registrar», la descripción se pide bajo su campo)
+«Escribe una descripción corta» salía al pie del modal, lejos del campo. Ahora sale bajo la descripción junto con la sugerencia y su «Usar». Los dos se van apenas se escribe y vuelven si el campo queda vacío. Se quitó «Descartar»: escribir ya descarta. El pie pregunta solo por lo demás, en el orden del formulario (categoría → talla → color → precio). Sin migración. Probado en local a 375 px y en escritorio.
+Felipe se lleva: (1) **un aviso va donde está el problema**: si dice «descripción», va bajo la descripción; (2) **un botón que hace lo mismo que un gesto natural sobra**: escribir ya es descartar; (3) **el orden de los avisos sigue el orden de la pantalla**, para no pedir abajo algo que está arriba.
+
 ## 2026-09-25 (Finanzas F3–F10 en paralelo — ADR-0195, PR #396)
 Con F2 en producción, Felipe pidió implementar todo lo que faltaba, en paralelo si hacía falta. Se armó una base común (los 4 módulos, el menú, las cabeceras compartidas) y 10 agentes construyeron en sus copias Cuentas y dinero, la cuenta sellada, Por pagar, el diario y los resultados, el flujo, el balance, los impuestos, el cierre, el presupuesto y el resumen; el orquestador integró cada una, revisó sus capturas contra el spike y corrió todo junto (89 mil pruebas web y 12 suites de la base). Al integrar se midió que `drop trigger` bloquea `auth` y `storage` igual que `drop policy`: F3 lo usaba seis veces y se corrigió antes de pegar.
 El CI (base limpia) encontró dos cosas que la base local compartida escondía: F3b llamaba a la función de caja con motivos que producción rechaza («Pago a proveedor», «Reembolso de proveedor»: ahora pasan solo cuando los pide el sistema) y una prueba de F5 suponía una prenda sin historia de costo. El ADR del diario derivado, que en el PR #170 era 0109, pasó a ser 0198 (el 0109 ya era «Crear producto»).

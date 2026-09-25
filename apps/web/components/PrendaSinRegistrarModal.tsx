@@ -5,6 +5,7 @@ import { Modal, botonPrimario } from "@/components/ui/Modal";
 import { Campo, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import {
+  FALTA_DESCRIPCION,
   faltaEnPrendaSinRegistrar,
   opcionesDeColor,
   sugerirDescripcion,
@@ -17,7 +18,8 @@ import {
  * «Prenda sin registrar» (ADR-0179): lo que caja anota de una prenda que llegó a piso sin pasar por almacén.
  * Primero categoría → talla (solo las de esa categoría, `categoria_tallas`) → color (los usados en esa categoría
  * arriba, como en «Nuevo producto»); con los tres, se propone la descripción («Pantalones · Negro · Talla 28») y la
- * colaboradora la usa (y le agrega lo que quiera), o la descarta y escribe la suya (Felipe, 2026-09-23).
+ * colaboradora la usa (y le agrega lo que quiera), o simplemente escribe la suya: la sugerencia vive bajo el campo
+ * solo mientras está vacío (Felipe, 2026-09-23; sin «Descartar» desde 2026-09-25).
  */
 export function PrendaSinRegistrarModal({
   listas,
@@ -34,8 +36,6 @@ export function PrendaSinRegistrarModal({
   const [tallaId, setTallaId] = useState("");
   const [colorCodigo, setColorCodigo] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  // La última sugerencia ya atendida (usada o descartada): no vuelve a ofrecerse; una nueva (otra talla/color) sí.
-  const [atendida, setAtendida] = useState<string | null>(null);
   const [precio, setPrecio] = useState("");
   const idTalla = useId();
   const idCategoria = useId();
@@ -55,10 +55,13 @@ export function PrendaSinRegistrarModal({
   const color = colores.find((c) => c.valor === colorCodigo) ?? null;
 
   const sugerencia = sugerirDescripcion(categoria?.nombre ?? null, color?.texto ?? null, talla?.valor ?? null);
-  const mostrarSugerencia = sugerencia !== null && sugerencia !== atendida && descripcion.trim() !== sugerencia;
+  // Lo de la descripción se dice bajo su campo y solo mientras está vacío: al empezar a escribir se van aviso y
+  // sugerencia, y si lo vacían vuelven (Felipe, 2026-09-25). El pie del modal pregunta solo por el resto.
+  const descripcionVacia = descripcion.trim() === "";
 
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
+  const faltaAlPie = faltaEnPrendaSinRegistrar(datos, { sinDescripcion: true });
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
@@ -70,7 +73,6 @@ export function PrendaSinRegistrarModal({
   function usarSugerencia() {
     if (!sugerencia) return;
     setDescripcion(sugerencia);
-    setAtendida(sugerencia);
     // El foco al final del texto: para seguir escribiendo («… con botones dorados»).
     requestAnimationFrame(() => {
       const el = document.getElementById(idDescripcion) as HTMLInputElement | null;
@@ -135,19 +137,19 @@ export function PrendaSinRegistrarModal({
           placeholder={sugerencia ?? "Blusa lino beige"}
           maxLength={80}
           pie={
-            mostrarSugerencia ? (
+            descripcionVacia ? (
               <span className="block">
-                <span className="block text-tinta/75">
-                  Sugerencia: <span className="text-tinta">«{sugerencia}»</span>
-                </span>
-                <span className="mt-1 flex gap-4">
-                  <button type="button" onClick={usarSugerencia} className="btn-cayla btn-enlace">
-                    Usar
-                  </button>
-                  <button type="button" onClick={() => setAtendida(sugerencia)} className="btn-cayla btn-enlace">
-                    Descartar
-                  </button>
-                </span>
+                <span className="block">{FALTA_DESCRIPCION}</span>
+                {sugerencia ? (
+                  <span className="mt-0.5 flex items-baseline gap-3">
+                    <span className="text-tinta/75">
+                      Sugerencia: <span className="text-tinta">«{sugerencia}»</span>
+                    </span>
+                    <button type="button" onClick={usarSugerencia} className="btn-cayla btn-enlace">
+                      Usar
+                    </button>
+                  </span>
+                ) : null}
               </span>
             ) : null
           }
@@ -169,7 +171,7 @@ export function PrendaSinRegistrarModal({
             </button>
           ))}
         </div>
-        <p className="min-h-5 pt-2 text-xs text-tinta/60">{falta}</p>
+        <p className="min-h-5 pt-2 text-xs text-tinta/60">{faltaAlPie}</p>
         <button type="button" onClick={() => onAgregar({ ...datos, descripcion: descripcion.trim() })} disabled={falta !== null} className={`${botonPrimario} w-full`}>
           Agregar al ticket
         </button>
