@@ -1149,3 +1149,250 @@
     }
   }
 }
+
+/* ---- F6 · Flujo de caja y Escenarios (ADR-0195; spike `vista-reportes.js`, `vistaFlujo` y `vistaEscenarios`) ---- */
+@layer components {
+  /* El mes o las semanas se eligen EN el sobretítulo, sin caja: se lee igual que el spike y sigue siendo un selector. */
+  .fin-etq-select {
+    appearance: none;
+    margin: 0;
+    padding: 0 14px 0 0;
+    border: 0;
+    border-bottom: 1px dotted color-mix(in oklab, var(--color-taupe) 70%, transparent);
+    border-radius: 0;
+    background-color: transparent;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-taupe) 50%), linear-gradient(135deg, var(--color-taupe) 50%, transparent 50%);
+    background-position: calc(100% - 5px) 55%, calc(100% - 1px) 55%;
+    background-size: 4px 4px;
+    background-repeat: no-repeat;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .fin-etq-select:hover {
+    color: var(--color-tinta);
+  }
+  .fin-etq-select:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
+  .fin-h-flujo {
+    margin: 14px 0 4px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--color-tinta);
+  }
+  .fin-h-flujo-chica {
+    font-size: 16px;
+  }
+  .fin-flujo-lista {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .fin-flujo-lista li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-flujo-lista li b {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .fin-flujo-lista li.fin-flujo-vacia {
+    color: var(--color-taupe);
+  }
+  /* «Hoy tienes S/ 60,410» y los días de caja. */
+  .fin-hoy {
+    margin: 4px 0 2px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--color-tinta);
+  }
+  .fin-dias {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    margin: 0 0 6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  /* Las tablas del flujo viven en una columna: menos ancho mínimo que la tabla de una pantalla entera. */
+  .fin-tabla.fin-tabla-flujo {
+    min-width: 0;
+  }
+  .fin-tabla.fin-tabla-flujo th,
+  .fin-tabla.fin-tabla-flujo td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .fin-tabla.fin-tabla-flujo th:first-child,
+  .fin-tabla.fin-tabla-flujo td:first-child {
+    padding-left: 14px;
+  }
+  .fin-tabla.fin-tabla-flujo td.fin-que-vence {
+    min-width: 150px;
+  }
+  .fin-tabla.fin-tabla-utilidad {
+    min-width: 420px;
+  }
+  .fin-tabla td.fin-que-vence {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-chip-campana {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--color-ambar-profundo);
+  }
+  .fin-queda-malo {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-tabla tr.fin-total-t td {
+    border-top: 2px solid var(--color-tinta);
+    font-weight: 600;
+  }
+  .fin-tabla td.fin-dif-baja {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-tabla td.fin-dif-sube {
+    color: var(--color-verde);
+  }
+  /* El recuadro del gráfico (al pasar el mouse o con Tab): papel, borde sand, sin sombra. */
+  .fin-grafico-lienzo {
+    position: relative;
+  }
+  .fin-grafico-tip {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-papel);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-tinta);
+    pointer-events: none;
+  }
+  .fin-grafico-tip b {
+    font-weight: 600;
+  }
+  .fin-grafico-tip span {
+    color: var(--color-taupe);
+  }
+  .fin-grafico-barra:focus-visible path {
+    stroke: var(--color-rojo);
+    stroke-width: 2;
+  }
+
+  /* Escenarios: las palancas a la izquierda (un poco más anchas), lo que pasaría a la derecha. */
+  .fin-dos-col.fin-esc {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+  .fin-campo-esc {
+    margin-bottom: 18px;
+  }
+  .fin-campo-esc > label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-campo-esc > label b {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .fin-campo-esc input[type="range"] {
+    width: 100%;
+    accent-color: var(--color-tinta);
+  }
+  .fin-campo-esc[data-apagado] {
+    opacity: 0.45;
+  }
+  .fin-opcion-esc {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-hueso);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-tinta);
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .fin-opcion-esc:has(> .fin-opcion-esc-fila input:checked) {
+    border-color: var(--color-tinta);
+    background: var(--color-papel);
+  }
+  .fin-opcion-esc-fila {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0;
+    cursor: pointer;
+  }
+  .fin-opcion-esc-fila input {
+    margin-top: 3px;
+    accent-color: var(--color-tinta);
+    flex: none;
+  }
+  .fin-opcion-esc-fila b {
+    display: block;
+    font-weight: 600;
+  }
+  .fin-opcion-esc-fila small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-opcion-esc-campos {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0 26px;
+  }
+  .fin-conclusiones {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+  }
+  .fin-conclusiones b {
+    font-weight: 600;
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-esc {
+      grid-template-columns: 1fr;
+    }
+    .fin-tabla.fin-tabla-utilidad {
+      min-width: 0;
+    }
+    .fin-opcion-esc-campos {
+      margin-left: 0;
+    }
+  }
+}

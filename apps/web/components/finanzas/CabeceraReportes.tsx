@@ -12,8 +12,8 @@ const PESTANAS: { clave: PestanaReportes; etiqueta: string; href: string; lista:
   { clave: "resultados", etiqueta: "Estado de resultados", href: "/finanzas/reportes", lista: true },
   { clave: "presupuesto", etiqueta: "Presupuesto", href: "/finanzas/reportes/presupuesto", lista: true },
   { clave: "campanas", etiqueta: "Campañas", href: "/finanzas/reportes/campanas", lista: true },
-  { clave: "escenarios", etiqueta: "Escenarios", href: "/finanzas/reportes/escenarios", lista: false },
-  { clave: "flujo", etiqueta: "Flujo de caja", href: "/finanzas/reportes/flujo", lista: false },
+  { clave: "escenarios", etiqueta: "Escenarios", href: "/finanzas/reportes/escenarios", lista: true },
+  { clave: "flujo", etiqueta: "Flujo de caja", href: "/finanzas/reportes/flujo", lista: true },
   { clave: "balance", etiqueta: "Balance", href: "/finanzas/reportes/balance", lista: false },
 ];
 
