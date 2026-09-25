@@ -7,6 +7,8 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
+import { getParametrosTributarios } from "@/lib/impuestos";
+import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 
 // Configuración (ADR-0195, módulo «configuracion», solo líder): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
@@ -15,6 +17,7 @@ import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
 const PESTANAS = [
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
+  { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos" },
 ] as const;
 
 export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
@@ -30,7 +33,9 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
         bajada="Lo que se ajusta una vez y todas las pantallas leen. Cada cambio queda en la historia con quién lo hizo. Solo el líder entra aquí."
       />
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
-      {pestana === "tiendas" ? <SeccionTiendas /> : <SeccionFijos />}
+      {pestana === "tiendas" && <SeccionTiendas />}
+      {pestana === "fijos" && <SeccionFijos />}
+      {pestana === "impuestos" && <SeccionImpuestos />}
     </div>
   );
 }
@@ -54,6 +59,17 @@ async function SeccionFijos() {
       <p className="nota-cayla">
         Un fijo es un recordatorio: cada mes aparece en <b>Finanzas ▸ Gastos ▸ Fijos del mes</b> para registrarlo con lo que llegó de verdad. Si uno deja de pagarse, se archiva: sus gastos ya registrados se quedan.
       </p>
+    </>
+  );
+}
+
+// Impuestos (ADR-0195 F8): tasa de IGV, UIT y régimen de cada año, con vigencia. Solo se agregan filas.
+async function SeccionImpuestos() {
+  const parametros = await getParametrosTributarios();
+  return (
+    <>
+      {parametros.falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{parametros.falla}</p>}
+      <ConfiguracionImpuestos parametros={parametros.datos} anioActual={Number(hoyLima().slice(0, 4))} />
     </>
   );
 }

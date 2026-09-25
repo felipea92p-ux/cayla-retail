@@ -577,3 +577,157 @@
     }
   }
 }
+
+/* ---- F8 · Impuestos (ADR-0195; spike `vista-impuestos.js` y `cfgImpuestos`) ---- */
+@layer components {
+  /* Dos columnas con la de la izquierda apenas más ancha (el límite y «Para revisar»). */
+  .fin-dos-col.fin-dos-col-izq {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+
+  /* Barra de avance hacia el límite del régimen: lo vendido en tinta y, detrás, lo proyectado a rayas. */
+  .fin-umbral-barra {
+    position: relative;
+    height: 12px;
+    margin: 12px 0 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-hueso);
+  }
+  .fin-umbral-barra i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: var(--color-tinta);
+  }
+  .fin-umbral-barra i.fin-proy {
+    background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-taupe) 55%, transparent) 0 4px, transparent 4px 8px);
+  }
+  .fin-umbral-barra[data-tono="rojo"] i:not(.fin-proy) {
+    background: var(--color-rojo);
+  }
+  .fin-marcas {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-marcas b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-nota-bloque {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+  .fin-nota-bloque b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+
+  /* «Para revisar antes de declarar»: punto de color, lo que pasa y, a la derecha, adónde ir. */
+  .fin-decidir {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-decidir li {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-decidir li:first-child {
+    border-top: 0;
+    padding-top: 4px;
+  }
+  .fin-decidir b {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-decidir p {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  .fin-punto {
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 50%;
+    background: var(--color-taupe);
+  }
+  .fin-punto[data-tono="rojo"] {
+    background: var(--color-rojo);
+  }
+  .fin-punto[data-tono="ambar"] {
+    background: var(--color-ambar);
+  }
+  .fin-punto[data-tono="pizarra"] {
+    background: var(--color-pizarra);
+  }
+  .fin-punto[data-tono="verde"] {
+    background: var(--color-verde);
+  }
+
+  /* El mes que se mira, marcado en el historial. */
+  .fin-tabla tbody tr.fin-fila-activa {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+  }
+  .fin-tabla tbody tr.fin-fila-activa td:first-child {
+    box-shadow: inset 2px 0 0 var(--color-tinta);
+  }
+
+  /* Configuración ▸ Impuestos: una vigencia por fila, con su casilla a la derecha. */
+  .fin-vigencias {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-vigencias li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-vigencias small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-vigencias input.fin-control {
+    min-height: 32px;
+    padding: 5px 9px;
+  }
+  .fin-con-unidad {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-dos-col-izq {
+      grid-template-columns: 1fr;
+    }
+    .fin-decidir li {
+      grid-template-columns: 10px 1fr;
+    }
+    .fin-decidir li > .btn-cayla {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+}
