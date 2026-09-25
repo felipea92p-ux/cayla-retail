@@ -5,6 +5,7 @@ import { CloudOff } from "lucide-react";
 import { borrar, guardar, leer } from "@/lib/almacen-local";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { esCopiaGuardada } from "@/lib/sin-conexion-reglas";
+import { usePendientesSinSubir } from "@/lib/usePendientesSinSubir";
 
 const CLAVE_PERSONA = "cayla:sw:persona";
 /** En desarrollo el SW no se registra (serviría JavaScript viejo tras cada cambio); para probarlo: esta llave en "1". */
@@ -72,8 +73,10 @@ export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn
     });
   }, [cuenta]);
 
-  // Volvió la red mientras se veía una copia: la copia deja de importar en cuanto se navega o se recarga.
-  if (enLinea && !copiaDe) return null;
+  // Lo que espera subir, en cualquier pantalla (ADR-0207, «huecos»): el aviso de cada cola solo se ve en la suya.
+  const { pendientes, rechazadas } = usePendientesSinSubir();
+
+  if (enLinea && !copiaDe && pendientes === 0 && rechazadas === 0) return null;
 
   return (
     <div role="status" className="mb-4 flex items-start gap-2 rounded-lg border border-ambar/35 bg-ambar/[0.08] px-3 py-2 text-[13px] text-ambar-profundo">
@@ -82,8 +85,22 @@ export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn
         {!enLinea ? <b className="font-semibold">Sin conexión. </b> : null}
         {copiaDe
           ? `Estás viendo la copia guardada en este equipo (${diaYHoraLima(copiaDe).dia} · ${diaYHoraLima(copiaDe).hora}). Lo que guardes sube solo al volver el internet.`
-          : "Lo que guardes en Vender, Recibir o Nuevo producto queda en este equipo y sube solo al volver el internet."}
+          : !enLinea
+            ? "Lo que guardes en Vender, Recibir o Nuevo producto queda en este equipo y sube solo al volver el internet."
+            : null}
         {enLinea && copiaDe ? " Ya hay internet: recarga la pantalla para ver lo de ahora." : null}
+        {pendientes > 0 ? (
+          <b className="font-semibold">
+            {" "}
+            {pendientes === 1 ? "1 operación espera subir" : `${pendientes} operaciones esperan subir`} desde este equipo.
+          </b>
+        ) : null}
+        {rechazadas > 0 ? (
+          <span className="text-rojo-profundo">
+            {" "}
+            {rechazadas === 1 ? "1 no pudo subir" : `${rechazadas} no pudieron subir`}: revísalas en Vender, Recibir o Nuevo producto.
+          </span>
+        ) : null}
       </span>
     </div>
   );

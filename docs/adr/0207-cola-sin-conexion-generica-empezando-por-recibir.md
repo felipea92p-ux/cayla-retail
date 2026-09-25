@@ -116,3 +116,31 @@ Felipe: «sigamos, lo de abrir otra pantalla sin red y todo lo que falte».
 - El alta al vuelo del conteo NO entra: el conteo guarda escaneo por escaneo (`conteo_contar`). Hacer offline solo el
   alta al vuelo no sirve si el conteo entero no funciona sin red. Es un módulo propio y está en el BACKLOG.
 - Abrir y cerrar caja sin red (PL-40) tampoco: es de Caja, no de agregar productos.
+
+## Actualización 2026-09-25 (c) — huecos cerrados
+
+Felipe: «arreglemos los huecos».
+
+- **D16 — Error pasajero ≠ rechazo.** Un 5xx, 429 o 408, o un SQLSTATE de choque, bloqueo o tiempo agotado (`40001`,
+  `40P01`, `55P03`, `57014`, `PGRST000-003`…), se reintenta (`esErrorPasajero`, `lib/error-escritura.ts`). Tope:
+  **10 intentos** (`MAX_INTENTOS_SERVIDOR`, ~5 min de latidos). Al llegar al tope pasa a rechazada y lo dice
+  (`trasFallo`). Los cortes de red no cuentan intentos. Las pantallas también ENCOLAN ante un error pasajero
+  (`debeEncolarse`), no solo sin red. Cierra el hueco que ADR-0063 dejaba anotado para la venta, pero solo en la cola
+  nueva: la de Vender sigue con su regla.
+- **D17 — Contador global.** `usePendientesSinSubir` suma TODAS las colas del navegador, incluida la de Vender
+  (`contarPendientes`). El aviso de la cabecera (`SinConexion`) dice «N operaciones esperan subir desde este equipo» y
+  «M no pudieron subir» en cualquier pantalla.
+- **D18 — Salir con algo pendiente pregunta** (`LogoutButton`, `<Modal>`): «Quedarme» es el primario. «Salir igual» no
+  pierde nada: sube la próxima vez que alguien entre en ese equipo, con su sesión.
+- **D19 — El alta avisa ANTES qué necesita internet** (`useEnLinea`): crear marca, proveedor, talla, tejido o patrón,
+  y comprobar el nombre. No se encolan: el producto necesitaría el id de lo recién creado y serían dos operaciones
+  encadenadas.
+- **D20 — El lector QR se baja con red** (`precargarLectorQR`, en Vender, solo en teléfono sin `BarcodeDetector`). Era
+  lo único de esas 4 pantallas que se cargaba recién al usarse; así queda en la copia del service worker.
+
+Probado en local:
+- Un 503 simulado encoló el lote y sumó intentos; al décimo quedó rechazado con el motivo.
+- El aviso global salió en Inventario.
+- «Salir» mostró la pregunta.
+- El alta sin red mostró qué necesita internet.
+- Vender a 375 px bajó `jsQR` sin abrir la cámara.

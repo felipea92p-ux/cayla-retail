@@ -35,7 +35,52 @@ export type OperacionEncolada<P = Record<string, unknown>> = {
   resumen: string;
   /** `null` mientras sigue sin subir por falta de red. Con motivo: la base la rechazó; ya no se reintenta sola. */
   rechazo: string | null;
+  /** Veces que el SERVIDOR respondió con un error pasajero (5xx, bloqueo…). Los cortes de red no cuentan. */
+  intentos?: number;
 };
+
+/** Tope de reintentos por error pasajero del servidor: a 30 s por latido, ~5 min. Un «pasajero» que no se arregla
+ *  en ese rato probablemente no lo es (un 500 por un error de programación), y reintentarlo para siempre lo esconde. */
+export const MAX_INTENTOS_SERVIDOR = 10;
+
+/**
+ * Qué pasa con una operación cuya subida falló. `null` = no se toca (sin red: vuelve a intentarse, sin contar).
+ * Pasajero: suma un intento, y al llegar al tope pasa a rechazada con un motivo que lo dice. Definitivo: rechazada.
+ */
+export function trasFallo<P>(op: OperacionEncolada<P>, tipo: "red" | "pasajero" | "definitivo", mensaje: string): OperacionEncolada<P> | null {
+  if (tipo === "red") return null;
+  if (tipo === "definitivo") return { ...op, rechazo: mensaje };
+  const intentos = (op.intentos ?? 0) + 1;
+  if (intentos < MAX_INTENTOS_SERVIDOR) return { ...op, intentos };
+  return { ...op, intentos, rechazo: `El sistema siguió fallando después de ${intentos} intentos. ${mensaje}` };
+}
+
+/**
+ * Cuánto espera subir en ESTE navegador, sumando todas las colas: las de este módulo (`cayla:<modulo>:cola`) y las
+ * de Vender (`cayla:vender:<sede>:cola`, ADR-0063). Para el contador de la cabecera y el aviso al cerrar sesión.
+ * Recibe los pares llave → texto crudo de `localStorage`; lo que no es una cola o no se puede leer, no cuenta.
+ */
+export function contarPendientes(entradas: [string, string | null][]): { pendientes: number; rechazadas: number } {
+  let pendientes = 0;
+  let rechazadas = 0;
+  for (const [clave, crudo] of entradas) {
+    if (!/^cayla:.+:cola$/.test(clave) || !crudo) continue;
+    let lista: unknown;
+    try {
+      lista = JSON.parse(crudo);
+    } catch {
+      continue;
+    }
+    if (!Array.isArray(lista)) continue;
+    for (const x of lista) {
+      if (!x || typeof x !== "object") continue;
+      const rechazo = (x as { rechazo?: unknown }).rechazo;
+      if (rechazo === null || rechazo === undefined) pendientes++;
+      else rechazadas++;
+    }
+  }
+  return { pendientes, rechazadas };
+}
 
 /** `cayla:<modulo>:cola` — una llave por MÓDULO, no por sede: cada operación lleva su sede en la firma, y una
  *  recepción hecha para otra ubicación (el selector de `/recibir`) tiene que seguir subiendo aunque la pantalla

@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { guardar, leer } from "@/lib/almacen-local";
-import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { esErrorPasajero, esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { firmar } from "@/lib/responsable-reglas";
-import { claveCola, colaValida, conOperacion, porSubir, reconciliar, sinOperacion, type OperacionEncolada } from "@/lib/cola-offline";
+import { claveCola, colaValida, conOperacion, porSubir, reconciliar, sinOperacion, trasFallo, type OperacionEncolada } from "@/lib/cola-offline";
 
 /**
  * El trío de sincronización de la cola sin conexión (ADR-0207), el mismo de la venta (ADR-0063) pero reutilizable:
@@ -22,7 +22,7 @@ const pasadasEnCurso = new Map<string, Promise<void>>();
 
 /** Aviso dentro de la MISMA pestaña de que la cola cambió (el evento `storage` solo llega a las otras pestañas): el
  *  sincronizador global del layout sube, y el aviso de la pantalla abierta se entera sin esperar el latido. */
-const EVENTO_COLA = "cayla:cola-cambio";
+export const EVENTO_COLA = "cayla:cola-cambio";
 
 function guardarYAvisar(clave: string, cola: OperacionEncolada[]): boolean {
   const ok = guardar(clave, cola);
@@ -103,14 +103,17 @@ export function useColaOffline(
       const subidas: { op: OperacionEncolada; data: unknown }[] = [];
       for (const op of aSubir) {
         // `x-espera: no` (ADR-0149): subir en segundo plano no tapa la pantalla con el loader mientras alguien trabaja.
-        const { data, error } = await firmar(supabase.rpc(op.rpc as never, op.params as never), op.firma).setHeader("x-espera", "no");
+        const { data, error, status } = await firmar(supabase.rpc(op.rpc as never, op.params as never), op.firma).setHeader("x-espera", "no");
         if (!error) {
           resueltos.set(op.token, null);
           subidas.push({ op, data });
-        } else if (!esFalloDeRed(error)) {
-          resueltos.set(op.token, { ...op, rechazo: traducirError(error, "subir lo guardado sin conexión") });
+          continue;
         }
-        // sigue sin red: no se toca, vuelve a intentarse en el próximo latido
+        // Sin red: no se toca ni se cuenta. Servidor momentáneamente mal (5xx, bloqueo…): suma un intento, hasta el tope.
+        // Rechazo de verdad: queda esperando «Descartar».
+        const tipo = esFalloDeRed(error) ? "red" : esErrorPasajero(error, status) ? "pasajero" : "definitivo";
+        const siguiente = trasFallo(op, tipo, traducirError(error, "subir lo guardado sin conexión"));
+        if (siguiente) resueltos.set(op.token, siguiente);
       }
       if (resueltos.size === 0) return;
       // Aunque la pantalla se haya desmontado, lo resuelto se escribe igual: la base ya lo registró.

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
@@ -93,12 +93,12 @@ export function RecepcionFormV2({
       p_token: token.current,
     };
     const firma = responsable.firma();
-    const { data: loteId, error } = await firmar(supabase.rpc("recibir_lote", params), firma);
+    const { data: loteId, error, status } = await firmar(supabase.rpc("recibir_lote", params), firma);
 
     setLoading(false);
     const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
     // Sin red (ADR-0207): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
-    if (error && esFalloDeRed(error)) {
+    if (error && debeEncolarse(error, status)) {
       const proveedor = proveedores.find((p) => p.id === proveedorId)?.nombre ?? "proveedor";
       const op = nuevaOperacion({
         token: token.current,

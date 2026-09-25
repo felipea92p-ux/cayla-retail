@@ -35,7 +35,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] **Paso 3 — Abrir pantallas sin red** (service worker `public/sw.js`): Vender (solo copia de hoy, Felipe «Copia de hoy»), Recibir, Ingreso sin comprobante y Nuevo producto; el resto muestra «Sin conexión». Aviso de copia con su hora; copias borradas al salir o al cambiar de cuenta (las colas no). Probado con el servidor apagado.
 - [ ] **Probar en producción** tras publicar: abrir las 4 pantallas con red y luego sin wifi, en un equipo real de tienda (el SW solo se registra en producción).
 - [ ] **Conteo sin conexión** (módulo propio, sin decidir): guarda escaneo por escaneo (`conteo_contar`); el alta al vuelo (`censo_crear_variante`, sin `p_token`) solo tiene sentido si el conteo entero funciona sin red. Preguntar a Felipe si vale la pena.
-- [ ] Una pieza que se carga recién al usarla (un modal que nunca se abrió con red) puede faltar en la copia. Si aparece en tienda: precargar esos trozos.
+- [x] **Huecos cerrados (ADR-0207 «(c)»):** error pasajero del servidor se reintenta (tope 10), contador global de pendientes, pregunta al salir con algo pendiente, el alta avisa qué necesita internet, lector QR precargado (era lo único que se cargaba al usarse).
 - [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
 
 ## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412

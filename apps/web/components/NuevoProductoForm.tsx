@@ -25,9 +25,10 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { subirFotoProducto } from "@/lib/producto-fotos";
-import { esFalloDeRed } from "@/lib/error-escritura";
+import { debeEncolarse } from "@/lib/error-escritura";
 import { nombreEnCola, nuevaOperacion } from "@/lib/cola-offline";
 import { useColaProductos } from "@/lib/useColaProductos";
+import { useEnLinea } from "@/lib/useEnLinea";
 import { guardarFotos } from "@/lib/fotos-pendientes";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import {
@@ -122,6 +123,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
   const responsable = useResponsable();
   const colaOffline = useColaProductos();
+  const enLinea = useEnLinea();
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
   /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
   const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
@@ -330,11 +332,11 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       p_proveedor_id: proveedorId,
     };
     const firma = responsable.firma();
-    const { data: productoId, error } = await firmar(supabase.rpc("crear_producto_con_variantes", params), firma);
+    const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_variantes", params), firma);
 
     // Sin red (ADR-0207, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
     // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
-    if (error && esFalloDeRed(error)) {
+    if (error && debeEncolarse(error, status)) {
       const op = nuevaOperacion({
         token: token.current,
         rpc: "crear_producto_con_variantes",
@@ -827,6 +829,14 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <div className="min-w-0 space-y-2.5">
           <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
+          {/* Sin red se puede crear el producto (sube solo), pero no lo que se crea A MITAD del alta: cada uno es su propia
+              operación y el producto necesitaría su id. Decirlo antes evita llenar un paso para chocar al final. */}
+          {!enLinea && (
+            <AvisoInline tono="ambar">
+              <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
+              marca, un proveedor, una talla, un tejido o un patrón nuevos, y comprobar si el nombre ya existe (la base lo vuelve a revisar al subir).
+            </AvisoInline>
+          )}
           {copiadoDe && (
             <AvisoInline tono="neutro">
               Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el

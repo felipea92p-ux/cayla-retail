@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveCola, colaValida, conOperacion, esOperacionEncolada, nombreEnCola, nuevaOperacion, porSubir, reconciliar, sinOperacion, subidasEntre, type OperacionEncolada } from "./cola-offline";
+import { claveCola, colaValida, conOperacion, contarPendientes, esOperacionEncolada, MAX_INTENTOS_SERVIDOR, nombreEnCola, nuevaOperacion, porSubir, reconciliar, sinOperacion, subidasEntre, trasFallo, type OperacionEncolada } from "./cola-offline";
 
 // La cola sin conexión genérica (ADR-0207): que un reintento del mismo guardado sea UNA fila, que la firma quede con
 // la hora en que se hizo, que lo encolado a mitad de una subida sobreviva, y que lo leído del navegador no ejecute
@@ -67,6 +67,43 @@ describe("reconciliar", () => {
 
   it("lo que sigue sin red (no resuelto) queda igual", () => {
     expect(reconciliar([op("a")], new Map())).toEqual([op("a")]);
+  });
+});
+
+describe("trasFallo — qué pasa cuando una subida falla", () => {
+  it("sin red no se toca ni se cuenta", () => {
+    expect(trasFallo(op("a"), "red", "x")).toBeNull();
+  });
+
+  it("un rechazo definitivo la deja esperando «Descartar»", () => {
+    expect(trasFallo(op("a"), "definitivo", "No hay caja")?.rechazo).toBe("No hay caja");
+  });
+
+  it("un error pasajero suma un intento y sigue en la cola", () => {
+    const r = trasFallo(op("a", { intentos: 3 }), "pasajero", "Servidor ocupado");
+    expect(r).toMatchObject({ intentos: 4, rechazo: null });
+  });
+
+  it("al llegar al tope, el pasajero se vuelve rechazo y lo dice", () => {
+    const r = trasFallo(op("a", { intentos: MAX_INTENTOS_SERVIDOR - 1 }), "pasajero", "Servidor ocupado");
+    expect(r?.intentos).toBe(MAX_INTENTOS_SERVIDOR);
+    expect(r?.rechazo).toContain(`${MAX_INTENTOS_SERVIDOR} intentos`);
+  });
+});
+
+describe("contarPendientes — todas las colas de este navegador", () => {
+  it("suma las colas de módulos y las de Vender, separando rechazadas", () => {
+    const r = contarPendientes([
+      ["cayla:recibir:cola", JSON.stringify([op("a"), op("b", { rechazo: "x" })])],
+      ["cayla:vender:sede-1:cola", JSON.stringify([{ token: "v", rechazo: null }])],
+      ["cayla:vender:sede-1:en-espera", JSON.stringify([{ token: "no cuenta" }])],
+      ["cayla:turno:sede-1", JSON.stringify({ filas: [] })],
+    ]);
+    expect(r).toEqual({ pendientes: 2, rechazadas: 1 });
+  });
+
+  it("lo roto no cuenta ni revienta", () => {
+    expect(contarPendientes([["cayla:recibir:cola", "{no es json"], ["cayla:productos:cola", "42"], ["cayla:x:cola", null]])).toEqual({ pendientes: 0, rechazadas: 0 });
   });
 });
 

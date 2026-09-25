@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
+import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { nuevaOperacion, porSubir, subidasEntre, type OperacionEncolada } from "@/lib/cola-offline";
 import { useColaRecibir } from "@/lib/useColaRecibir";
 import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
@@ -672,12 +672,12 @@ export function RecepcionEnvio({
     // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede y los
     // cierres se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
     const firma = responsable.firma();
-    const { data, error } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
+    const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
     cerrarProceso();
     setLoading(false);
     // Sin red (ADR-0207): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
     // navegador y sube solo; mientras tanto sus comprobantes y traslados salen de «pendientes».
-    if (error && esFalloDeRed(error)) {
+    if (error && debeEncolarse(error, status)) {
       const documentos = bloques.map((b) => b.compra.documento).join(", ");
       const que = unidadesRecibiendo > 0 ? `${unidadesRecibiendo} ${unidadesRecibiendo === 1 ? "unidad" : "unidades"}` : `${cierres.length} ${cierres.length === 1 ? "faltante cerrado" : "faltantes cerrados"}`;
       const op = nuevaOperacion({
