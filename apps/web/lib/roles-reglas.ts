@@ -204,9 +204,10 @@ export function cuentasDelRol(cuentas: readonly CuentaConRol[], rolId: string): 
   return cuentas.filter((c) => c.rolId === rolId);
 }
 
-/** Las cuentas a las que se les puede dar este rol: todas menos uno mismo (nadie se cambia su propio rol: así nunca se
- *  queda la tienda sin líder), las que ya lo tienen y, si es el Líder o incluye Colaboradores o Roles y accesos (P6), las
- *  terminales. Misma regla que `asignar_rol` y el disparador de `retail.terminales`. */
+/** Las cuentas a las que se les puede dar este rol: todas menos uno mismo (nadie se cambia su propio rol sin ser Admin:
+ *  así nunca se queda la tienda sin líder — un Admin sí, 20260925210000: ya puede tocar a cualquier líder, incluido él
+ *  mismo), las que ya lo tienen y, si es el Líder o incluye Colaboradores o Roles y accesos (P6), las terminales. Misma
+ *  regla que `asignar_rol` y el disparador de `retail.terminales`. */
 export function cuentasAsignables(
   cuentas: readonly CuentaConRol[],
   rol: Pick<RolVista, "id" | "fijo" | "modulos">,
@@ -222,7 +223,7 @@ export function cuentasAsignables(
   // «Solo alcanzas a quien está por debajo de ti» (20260923174500): a esas personas no se les cambia el rol.
   return cuentas.filter(
     (c) =>
-      c.id !== yoId &&
+      (c.id !== yoId || soyAdmin) &&
       c.rolId !== rol.id &&
       !(sinTerminales && c.tipo === "terminal") &&
       (soyAdmin || !c.esLider) &&
