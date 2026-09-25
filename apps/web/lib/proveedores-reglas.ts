@@ -4,8 +4,9 @@
 import { soles } from "./compras-reglas";
 
 // ---------------------------------------------------------------------------
-// Rubro: texto libre a propósito (ADR-0094) — sin vocabulario cerrado. Para que «Tela», «tela » y
-// «Telas» no se partan en tres filtros se agrupa por una clave normalizada; se muestra la
+// Rubros: texto libre a propósito (ADR-0094) — sin vocabulario cerrado —, varios por proveedor desde
+// ADR-0211 (el que vende polos y casacas aparece al filtrar por cualquiera de los dos). Para que «Tela»,
+// «tela » y «Telas» no se partan en tres filtros se agrupa por una clave normalizada; se muestra la
 // escritura más común de cada grupo.
 // ---------------------------------------------------------------------------
 
@@ -18,19 +19,66 @@ export function claveRubro(rubro: string | null | undefined): string {
     .toLowerCase();
 }
 
+const escrituraRubro = (rubro: string) => rubro.trim().replace(/\s+/g, " ");
+
+/**
+ * La misma regla que `retail.fn_rubros_limpios` (y que el CHECK de la tabla): sin vacíos, sin espacios sobrantes y
+ * uno solo por clave, conservando el primero en el orden en que se eligieron. Se aplica antes de mandar la lista:
+ * la base lo haría igual, pero así lo que se ve en pantalla es exactamente lo que queda guardado.
+ */
+export function limpiarRubros(rubros: readonly string[]): string[] {
+  const vistos = new Set<string>();
+  const limpios: string[] = [];
+  for (const r of rubros) {
+    const k = claveRubro(r);
+    if (!k || vistos.has(k)) continue;
+    vistos.add(k);
+    limpios.push(escrituraRubro(r));
+  }
+  return limpios;
+}
+
+/** Tocar un rubro: si ya estaba (con cualquier escritura) se quita; si no, se suma al final. */
+export function alternarRubro(elegidos: readonly string[], rubro: string): string[] {
+  const k = claveRubro(rubro);
+  if (!k) return [...elegidos];
+  return elegidos.some((r) => claveRubro(r) === k) ? elegidos.filter((r) => claveRubro(r) !== k) : limpiarRubros([...elegidos, rubro]);
+}
+
+/**
+ * Un rubro escrito a mano («Otro rubro»): queda elegido. Si ya existe con otra escritura («polos» y en la lista está
+ * «Polos») se usa la de la lista, para no abrir un filtro nuevo por una mayúscula. Vacío o ya elegido: no cambia nada.
+ */
+export function agregarRubro(elegidos: readonly string[], escrito: string, sugeridos: readonly string[]): string[] {
+  const k = claveRubro(escrito);
+  if (!k) return [...elegidos];
+  return limpiarRubros([...elegidos, sugeridos.find((s) => claveRubro(s) === k) ?? escrito]);
+}
+
+/** Los botones del formulario: los rubros ya usados en el directorio y, al final, los elegidos que todavía nadie usa. */
+export function opcionesDeRubro(sugeridos: readonly string[], elegidos: readonly string[]): string[] {
+  return limpiarRubros([...sugeridos, ...elegidos]);
+}
+
+export function tieneRubro(p: { rubros: readonly string[] }, clave: string): boolean {
+  return p.rubros.some((r) => claveRubro(r) === clave);
+}
+
 export type RubroConConteo = { clave: string; etiqueta: string; conteo: number };
 
-/** Rubros distintos con su conteo, del más numeroso al menos; los proveedores sin rubro no cuentan. */
-export function rubrosConConteo(proveedores: { rubro: string | null }[]): RubroConConteo[] {
+/** Rubros distintos con cuántos proveedores venden cada uno, del más numeroso al menos. Un proveedor cuenta en cada uno de sus rubros. */
+export function rubrosConConteo(proveedores: { rubros: readonly string[] }[]): RubroConConteo[] {
   const grupos = new Map<string, { escrituras: Map<string, number>; conteo: number }>();
   for (const p of proveedores) {
-    const k = claveRubro(p.rubro);
-    if (!k) continue;
-    const g = grupos.get(k) ?? { escrituras: new Map(), conteo: 0 };
-    const escrita = (p.rubro ?? "").trim().replace(/\s+/g, " ");
-    g.escrituras.set(escrita, (g.escrituras.get(escrita) ?? 0) + 1);
-    g.conteo += 1;
-    grupos.set(k, g);
+    for (const rubro of p.rubros) {
+      const k = claveRubro(rubro);
+      if (!k) continue;
+      const g = grupos.get(k) ?? { escrituras: new Map(), conteo: 0 };
+      const escrita = escrituraRubro(rubro);
+      g.escrituras.set(escrita, (g.escrituras.get(escrita) ?? 0) + 1);
+      g.conteo += 1;
+      grupos.set(k, g);
+    }
   }
   return [...grupos.entries()]
     .map(([clave, g]) => ({ clave, etiqueta: [...g.escrituras.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0], conteo: g.conteo }))

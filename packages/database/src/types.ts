@@ -3248,7 +3248,7 @@ export type Database = {
           id: string
           nombre: string
           plazo_credito_dias: number | null
-          rubro: string | null
+          rubros: string[]
           ruc: string | null
           telefono: string | null
           titular_cuenta: string | null
@@ -3266,7 +3266,7 @@ export type Database = {
           id?: string
           nombre: string
           plazo_credito_dias?: number | null
-          rubro?: string | null
+          rubros?: string[]
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -3284,7 +3284,7 @@ export type Database = {
           id?: string
           nombre?: string
           plazo_credito_dias?: number | null
-          rubro?: string | null
+          rubros?: string[]
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -4721,7 +4721,7 @@ export type Database = {
           p_nombre: string
           p_plazo_credito_dias?: number
           p_proveedor_id: string
-          p_rubro?: string
+          p_rubros?: string[]
           p_ruc?: string
           p_telefono?: string
         }
@@ -5896,7 +5896,7 @@ export type Database = {
           id: string
           nombre: string
           plazo_credito_dias: number
-          rubro: string
+          rubros: string[]
           ruc: string
           saldo: number
           saldo_favor: number
@@ -6083,6 +6083,7 @@ export type Database = {
         Returns: Json
       }
       fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
+      fn_rubros_limpios: { Args: { p_rubros: string[] }; Returns: string[] }
       fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }
       fn_totales_historial_ventas: {
         Args: {
@@ -6891,7 +6892,7 @@ export type Database = {
           p_forma_pago_preferida?: string
           p_nombre: string
           p_plazo_credito_dias?: number
-          p_rubro?: string
+          p_rubros?: string[]
           p_ruc?: string
           p_telefono?: string
         }

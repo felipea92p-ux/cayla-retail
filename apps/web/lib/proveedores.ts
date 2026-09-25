@@ -34,7 +34,7 @@ export type Proveedor = {
    * llega `null` si quien pregunta no es líder — corrección de D-27, 2026-09-17
    * (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). No es
    * "todavía no se cargó": es que a esta persona no le corresponde verlo. El
-   * directorio (nombre/ruc/contacto/telefono/banco/cuenta/rubro/plazo/forma
+   * directorio (nombre/ruc/contacto/telefono/banco/cuenta/rubros/plazo/forma
    * de pago) sí es para cualquiera con cuenta.
    */
   facturas: number | null;
@@ -45,8 +45,8 @@ export type Proveedor = {
   facturas_recibidas_completas: number | null;
   facturas_con_recepcion_pendiente: number | null;
   facturas_atrasadas: number | null;
-  /** Rubro (tela, avíos, prenda terminada, servicios...), texto libre. */
-  rubro: string | null;
+  /** Todo lo que vende (Polos, Casacas…), texto libre; `[]` = sin rubro, nunca null (ADR-0211). */
+  rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
   /** Facturado en los últimos 12 meses (la lista dejó de mostrar «desde siempre»). */
@@ -188,7 +188,7 @@ export type ProveedorFicha = {
   billeteras: string[] | null;
   titular_cuenta: string | null;
   activo: boolean;
-  rubro: string | null;
+  rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
 };
@@ -198,7 +198,7 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   return exigirOpcional(
     await supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubro, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubros, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
     "la ficha del proveedor"

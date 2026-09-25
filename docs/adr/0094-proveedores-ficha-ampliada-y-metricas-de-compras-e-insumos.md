@@ -1,6 +1,7 @@
 # ADR-0094 — Proveedores: ficha ampliada, métricas de compras/insumos, y devolver_proveedor deja de desaparecer
 
 **Fecha:** 2026-09-17
+**Actualización 2026-09-25:** el rubro deja de ser uno solo — `rubros text[]`, varios por proveedor, sigue en texto libre (ADR-0211).
 **Estado:** Construido y verificado en local, esta vez incluido el navegador real (no solo
 `psql`) — ver "Cómo se verificó", sección "Segunda vuelta", para el bug real que esa prueba
 encontró y que `psql` con parámetros nombrados no detectaba. Pendiente: pegar en producción.
