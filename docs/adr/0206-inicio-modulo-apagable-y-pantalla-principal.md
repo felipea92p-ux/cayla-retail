@@ -1,4 +1,4 @@
-# ADR-0199 — Inicio se vuelve un módulo apagable, y cada rol elige su pantalla principal
+# ADR-0206 — Inicio se vuelve un módulo apagable, y cada rol elige su pantalla principal
 
 **Fecha:** 2026-09-25 · **Estado:** decidido por Felipe; construido en la rama `claude/self-role-assignment-fee72b`;
 migración `20260925220000_inicio_modulo_y_pantalla_principal.sql` **verificada con ensayo `begin…rollback` contra
