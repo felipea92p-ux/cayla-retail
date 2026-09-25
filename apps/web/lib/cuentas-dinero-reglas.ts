@@ -377,6 +377,7 @@ export const TEXTO_SIN_CUENTA: Record<string, string> = {
   gasto: "gastos de la empresa o de una tienda sin banco",
   activo: "activos pagados sin cajón",
   traslado: "cierres que mandaron al banco sin decir cuál",
+  reembolso: "reembolsos de proveedores sin decir a qué cuenta entraron",
 };
 
 // ---- La plata del dueño ---------------------------------------------------------------------------------------------

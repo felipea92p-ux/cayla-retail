@@ -12,6 +12,8 @@ import { CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 import {
   DESTINOS_TRASLADO,
   cuadra,
@@ -57,9 +59,12 @@ export function CerrarCajaModalV2({
   cajaId,
   cola,
   fondo: fondoPedido = null,
+  ubicacionId = null,
   onClose,
 }: {
   cajaId: string;
+  /** La sede de la caja (ADR-0195 F3b): el depósito en el banco propone el banco de las transferencias de esa tienda. */
+  ubicacionId?: string | null;
   cola: VentaEncolada[];
   /** Lo que debe quedar en el cajón hoy y por qué (ADR-0195 F1: lo normal de la tienda o la campaña que lo sube). Si queda
    *  menos, se pide confirmar pero NO se bloquea; la base anota el fondo que regía (`cajas.fondo_requerido`). */
@@ -75,6 +80,11 @@ export function CerrarCajaModalV2({
   const [trasladoTexto, setTrasladoTexto] = useState("");
   const [destino, setDestino] = useState<DestinoTraslado>("caja_fuerte");
   const [referencia, setReferencia] = useState("");
+  // «¿A qué banco?» (ADR-0195 F3b, situación 19): antes solo decía «banco». Se propone el de las transferencias de la tienda.
+  const bancos = useCuentasParaElegir("pago", ubicacionId);
+  const [bancoElegido, setBancoElegido] = useState<string | null>(null);
+  const bancoId = cuentaEfectiva(bancos.cuentas, "pago", "transferencia", bancoElegido);
+  const bancoNombre = bancos.cuentas.find((c) => c.id === bancoId)?.nombre ?? null;
   const [loading, setLoading] = useState(false);
   // «Vas a dejar menos del fondo»: la confirmación que no bloquea (ADR-0195 L).
   const [pideConfirmar, setPideConfirmar] = useState(false);
@@ -89,6 +99,7 @@ export function CerrarCajaModalV2({
     fondoPedido: number | null;
     destino: DestinoTraslado;
     referencia: string;
+    banco: string | null;
     efectivoEncoladoAlCerrar: number;
     quienCerro: string | null;
   } | null>(null);
@@ -170,7 +181,9 @@ export function CerrarCajaModalV2({
           // uno por uno para que `pnpm datos:comparar` pueda cotejarlos con producción.
           p_traslado_destino: trasladado > 0 ? destino : undefined,
           p_traslado_referencia: trasladado > 0 ? referencia.trim() : undefined,
-        })
+          // F3b: a qué banco fue el depósito. Sin bancos cargados no viaja y la base propone el de la tienda.
+          p_traslado_cuenta_id: trasladado > 0 && destino === "banco" && bancoId ? bancoId : undefined,
+        } as never)
         .single(),
       responsable.firma(),
     );
@@ -195,6 +208,7 @@ export function CerrarCajaModalV2({
       fondoPedido: fondoPedido?.monto ?? null,
       destino,
       referencia: referencia.trim(),
+      banco: destino === "banco" ? bancoNombre : null,
       efectivoEncoladoAlCerrar: efectivoEncolado,
       quienCerro,
     });
@@ -264,6 +278,7 @@ export function CerrarCajaModalV2({
                 <div className="flex justify-between gap-3">
                   <dt className="text-tinta/60">
                     → {etiquetaDestino(resultado.destino)}
+                    {resultado.banco && ` · ${resultado.banco}`}
                     {resultado.referencia && <span className="block text-xs text-tinta/50">{resultado.referencia}</span>}
                   </dt>
                   <dd className="whitespace-nowrap tabular-nums">− {money(resultado.trasladado)}</dd>
@@ -486,6 +501,15 @@ export function CerrarCajaModalV2({
                 }}
                 opciones={DESTINOS_TRASLADO.map((d) => ({ valor: d.valor, texto: d.etiqueta }))}
               />
+              {destino === "banco" && bancos.cuentas.some((c) => c.tipo === "banco") && (
+                <CampoSelect
+                  etiqueta="¿A qué banco?"
+                  valor={bancoId ?? ""}
+                  onValor={(v) => setBancoElegido(v)}
+                  opciones={bancos.cuentas.filter((c) => c.tipo === "banco").map((c) => ({ valor: c.id, texto: c.nombre }))}
+                  ayuda="Queda a qué cuenta llegó: la conciliación lo encuentra solo."
+                />
+              )}
               {destinoElegido.referencia && (
                 <CampoTexto
                   etiqueta={

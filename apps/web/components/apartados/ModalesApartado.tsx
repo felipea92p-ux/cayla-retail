@@ -15,6 +15,8 @@ import { ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { OpcionesCuenta, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { ayudaCuenta, cuentaEfectiva, hayCuentasPara } from "@/lib/cuenta-sellada-reglas";
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -248,6 +250,12 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
   const sinCaja = medio === "efectivo" && !cajaAbierta;
   // Registrar la devolución mueve dinero de la tienda: pide Responsable (ADR-0161), vacío al abrir.
   const responsable = useResponsable(ubicacion, { modo: "atencion" }); // módulo Punto de venta: «¿Quién está atendiendo?», vacío al abrir
+  // «Sale de» (ADR-0195 F3b, situación 10): con Yape, Plin, transferencia o tarjeta se propone la cuenta de esta tienda para
+  // ese medio; en efectivo sale del cajón, como siempre.
+  const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId);
+  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
+  const hayCuentas = medio !== "efectivo" && cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", medio);
+  const cuentaSale = hayCuentas ? cuentaEfectiva(cuentas.cuentas, "cobro", medio, cuentaElegida) : null;
 
   async function devolver(cerrar: () => void) {
     setIntento(true);
@@ -259,7 +267,8 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
         p_medio: medio,
         p_operacion: operacion.trim() || undefined,
         p_cci: cci ? soloDigitos(cci) : undefined,
-      }),
+        p_cuenta_id: cuentaSale ?? undefined,
+      } as never),
       responsable.firma(),
     );
     setEnviando(false);
@@ -313,6 +322,15 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 <span className={campoEtiqueta}>N.º de operación</span>
                 <input value={operacion} onChange={(e) => setOperacion(e.target.value)} placeholder="Obligatorio" className={`${campoTexto} font-mono`} />
                 {intento && faltaOperacion && <span className="text-xs text-rojo-profundo">Anótalo: es la prueba de que se devolvió.</span>}
+              </label>
+              <label className="block sm:col-span-2">
+                <span className={campoEtiqueta}>Sale de</span>
+                <select value={cuentaSale ?? ""} disabled={!hayCuentas} onChange={(e) => setCuentaElegida(e.target.value)} className={campoTexto}>
+                  {hayCuentas ? <OpcionesCuenta cuentas={cuentas.cuentas} clase="cobro" medio={medio} /> : <option value="">{cuentas.listo ? "Sin cuenta configurada para este medio" : "…"}</option>}
+                </select>
+                <span className="mt-1 block text-xs text-tinta/60">
+                  {hayCuentas ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale") : "Queda «sin cuenta» hasta que el líder la configure; se registra igual."}
+                </span>
               </label>
             </div>
           )}

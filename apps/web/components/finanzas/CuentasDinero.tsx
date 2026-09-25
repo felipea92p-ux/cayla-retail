@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { CabeceraDinero, type PestanaDinero } from "@/components/finanzas/CabeceraDinero";
+import { PagosSinCuentaModal } from "@/components/finanzas/PagosSinCuenta";
 import { CabeceraBloque, CampoFin, GuiaVacia, Herramientas, InputFin, ListaDatos, OpcionesFin, PieTabla, RadiosFin, SelectFin, Superficie } from "@/components/finanzas/kit";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -190,6 +191,8 @@ export function CuentasPanel({
 }) {
   const abrir = useContext(ContextoMovimiento);
   const [detalle, setDetalle] = useState<MovimientoDinero | null>(null);
+  // F3b: lo pasado que no dice su cuenta se completa una vez, desde el aviso.
+  const [decirCuenta, setDecirCuenta] = useState(false);
   const verTodas = !ver.ubicacionId;
   const visibles = cuentasVisibles(cuentas, ver.ubicacionId);
   const grupos = agruparCuentas(visibles);
@@ -339,8 +342,17 @@ export function CuentasPanel({
         <p className="nota-cayla anim-sube">
           Este mes, <b>{soles(Math.abs(totalSinCuenta))}</b> movieron plata sin decir de qué cuenta:{" "}
           {sinCuenta.map((s) => `${s.n} ${TEXTO_SIN_CUENTA[s.origen] ?? s.origen} (${soles(Math.abs(s.monto))})`).join(", ")}. No suman en ningún saldo hasta que digan su cuenta.
+          {sinCuenta.some((s) => s.origen !== "cobros") && (
+            <>
+              {" "}
+              <button type="button" className="btn-enlace" onClick={() => setDecirCuenta(true)}>
+                Decir de qué cuenta fue →
+              </button>
+            </>
+          )}
         </p>
       )}
+      {decirCuenta && <PagosSinCuentaModal onClose={() => setDecirCuenta(false)} />}
 
       <Superficie className="anim-sube">
         <Herramientas>
