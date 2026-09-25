@@ -283,6 +283,29 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:apartar-stock
 
+      # Bajada al piso (ADR-0208, paso 1): bajar_al_piso es todo o nada, pide el módulo «Bajada al piso» (Existencias no lo
+      # da), firma el responsable, un reintento con la misma marca no baja dos veces y con otra lista no repite nada, y sus
+      # filas del libro son las mismas que las de «Reponer». Cada caso termina en ROLLBACK (la de concurrencia commitea y
+      # no corre aquí: solo contra un Postgres desechable).
+      - name: pruebas:bajada-al-piso
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:bajada-al-piso
+
+      # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
+      # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
+      # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
+      - name: pruebas:frescura-bajadas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-bajadas
+
+      # «Reposición» no toca el piso (ADR-0208, paso 1): un ajuste «Reposición» en el piso se rechaza, suba o baje, con
+      # cualquier escritura del motivo; el almacén, «Conteo físico», el Taller y «Reponer» siguen igual; quien no puede
+      # ajustar sigue viendo el mensaje de permiso; y la migración se pega dos veces sin borrar los parches en vivo de
+      # registrar_movimiento. Cada caso termina en ROLLBACK.
+      - name: pruebas:reposicion-piso-cerrada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:reposicion-piso-cerrada
+
       # Separaciones (ADR-0166): separar con adelanto en custodia, entregar cobrando el saldo con el precio
       # congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
       - name: pruebas:separaciones

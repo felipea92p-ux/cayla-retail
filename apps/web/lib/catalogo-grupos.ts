@@ -13,6 +13,8 @@ export type VarianteAgrupable = {
   talla: string | null;
   precio: number;
   stockAqui: number;
+  /** Lo del almacén de esta sede (D-40): no se cobra, pero una talla con el piso en 0 y almacén no está «agotada». */
+  almacenAqui?: number | null;
   categoria: string | null;
   fotoUrl: string | null;
 };
@@ -23,6 +25,8 @@ export type TallaDelGrupo<T> = {
   /** Etiqueta que se lee en el chip («M», «32», «Única»). */
   talla: string;
   stockAqui: number;
+  /** Lo del almacén de esta sede; 0 sin almacén o sin dato. */
+  almacenAqui: number;
 };
 
 export type GrupoCatalogo<T> = {
@@ -39,6 +43,12 @@ export type GrupoCatalogo<T> = {
   /** Ordenadas como se leen en tienda (ver `ordenTalla`). */
   tallas: TallaDelGrupo<T>[];
   stockTotal: number;
+  /** Lo que hay en el almacén de esta sede, sumando las tallas: con `stockTotal` en 0 y esto > 0, la tarjeta no está
+   *  agotada — está en el almacén (D-40). */
+  almacenTotal: number;
+  /** La sede separa piso y almacén (una tienda): `stockTotal` es solo el PISO y la tarjeta lo dice así. En el Taller
+   *  (sin almacén, `almacenAqui` null) `stockTotal` es todo lo que hay en la sede. */
+  separaPiso: boolean;
   precioMin: number;
   precioMax: number;
 };
@@ -61,13 +71,18 @@ export function agruparCatalogo<T extends VarianteAgrupable>(variantes: T[]): Gr
         fotoUrl: v.fotoUrl,
         tallas: [],
         stockTotal: 0,
+        almacenTotal: 0,
+        separaPiso: false,
         precioMin: v.precio,
         precioMax: v.precio,
       };
       grupos.set(clave, grupo);
     }
-    grupo.tallas.push({ variante: v, talla: v.talla?.trim() || SIN_TALLA, stockAqui: v.stockAqui });
+    const almacenAqui = Math.max(0, v.almacenAqui ?? 0);
+    grupo.tallas.push({ variante: v, talla: v.talla?.trim() || SIN_TALLA, stockAqui: v.stockAqui, almacenAqui });
     grupo.stockTotal += v.stockAqui;
+    grupo.almacenTotal += almacenAqui;
+    grupo.separaPiso ||= v.almacenAqui != null;
     grupo.precioMin = Math.min(grupo.precioMin, v.precio);
     grupo.precioMax = Math.max(grupo.precioMax, v.precio);
   }
