@@ -98,9 +98,18 @@ export function terminalVeInicio(modulos: readonly ClaveModulo[]): boolean {
   return !modulos.includes("vender");
 }
 
-/** A dónde va una cuenta al abrir `/`: una terminal que ve el Punto de venta, a `/vender`; cualquier otra, a su Inicio. */
+/**
+ * ¿Esta cuenta es una CAJA del mostrador? Una terminal que ve el Punto de venta. Es UNA sola definición para las dos cosas
+ * que la tratan distinto: a dónde aterriza (`aterrizajeDe`) y qué grupos ve sueltos (`sueltoEnMostrador`). Una persona
+ * nunca es mostrador, aunque venda: el mostrador es el aparato, no quien lo usa.
+ */
+export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): boolean {
+  return !!perfil.terminal && !terminalVeInicio(perfil.modulos ?? []);
+}
+
+/** A dónde va una cuenta al abrir `/`: la caja del mostrador, a `/vender`; cualquier otra, a su Inicio. */
 export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): string {
-  return perfil.terminal && !terminalVeInicio(perfil.modulos ?? []) ? "/vender" : "/";
+  return esMostrador(perfil) ? "/vender" : "/";
 }
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
