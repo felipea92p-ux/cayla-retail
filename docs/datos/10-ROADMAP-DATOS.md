@@ -805,10 +805,18 @@ vender, ajustar stock y cerrar caja, y cada cosa que haga queda firmada con el
 
 ## La pantalla de devolver al almacén · D-41 · DECIDIDA
 
-`devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` **ya existe en
+> **(V1; hoy: 2026-09-25)** `devolver_a_almacen` y `bajar_a_piso` ya no existen. Retirar
+> del piso es `mover_interno` con origen piso y destino almacén, y sigue sin pantalla: es el
+> bloque 2 de ADR-0208, «Retirar del piso». La ida es «Reponer» de Existencias
+> (`mover_interno`) y, desde el 2026-09-25 (sin pegar en producción), la pantalla «Bajar
+> prendas al piso» (`bajar_al_piso`), a la que se entra por el botón «Bajar al piso» de
+> Existencias.
+> El párrafo que sigue es el de V1.
+
+`devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` (V1) **ya existe en
 producción** y está en la lista de funciones que nadie llama
 (`generado/DRIFT.md`). El camino de ida tiene pantalla —`BajarATiendaModal.tsx` llama
-a `bajar_a_piso`— y el de vuelta no.
+a `bajar_a_piso` (V1)— y el de vuelta no.
 
 **Qué se rompe sin ella.** Fin de temporada: la ropa que sale de vitrina y vuelve a
 cajas se registra como ajuste negativo en piso, o no se registra. En el primer caso

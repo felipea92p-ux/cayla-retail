@@ -15,7 +15,7 @@ export * from "@/lib/inventario-reglas";
 // LEE. Desde 20260914210000_inventario_piso_almacen.sql, `stock` tiene una
 // fila por (variante, sububicación) cuando la ubicación separa piso de
 // venta y almacén de tienda (las 2 tiendas) — Taller sigue con una sola
-// fila por variante (`sububicacion_id` null), y `piso`/`almacen`/`estado`
+// fila por variante (`sububicacion_id` null), y `piso`/`almacen`/`danado`
 // quedan en `null` para esa ubicación: "no aplica" nunca se disfraza de 0.
 export type FilaStock = {
   varianteId: string;

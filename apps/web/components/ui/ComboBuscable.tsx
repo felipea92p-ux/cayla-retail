@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 
 /* ====================================================================
@@ -22,12 +23,16 @@ import { clave } from "@/lib/buscar-prenda-v2";
    Teclado completo (flechas, Enter, Escape, Tab), roles ARIA del patrón
    combobox. Al perder el foco sin elegir, vuelve a mostrar la opción
    elegida — nunca queda un texto que no corresponde a nada.
+
+   Paginado (2026-09-25, ADR-0209): sin `limite`, el techo lo pone la regla
+   global de combos — revela `TAMANO_PAGINA_COMBO` (50) y suma 50 más solos
+   al llegar el scroll al fondo (`useComboLista`, compartido con
+   `Desplegable`). Antes cortaba siempre en 40 con "sigue tipeando para
+   acortar" — el mismo parche que `Desplegable` no tenía.
    ==================================================================== */
 
 /** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
 export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode };
-
-const MAX_VISIBLES = 40;
 
 export function ComboBuscable<T extends string>({
   valor,
@@ -38,7 +43,7 @@ export function ComboBuscable<T extends string>({
   autoFocus = false,
   className = "",
   id: idPropio,
-  limite = MAX_VISIBLES,
+  limite,
   crear,
   caja = false,
 }: {
@@ -51,7 +56,10 @@ export function ComboBuscable<T extends string>({
   className?: string;
   /** Id del input, para enfocarlo desde un aviso. */
   id?: string;
-  /** Cuántas opciones se ven a la vez. Con 60 proveedores, 6 alcanzan: lo demás se encuentra tipeando (spike Nuevo producto, 2026-09-24). */
+  /** Techo FIJO de opciones visibles, sin paginar (spike Nuevo producto, 2026-09-24: con 60 proveedores, 6
+   *  alcanzan y el resto se encuentra tipeando). Sin esto, el techo lo pone la regla global de combos
+   *  (ADR-0209): revela de a `TAMANO_PAGINA_COMBO` y el scroll pide más — pasar `limite` apaga esa paginación
+   *  a propósito, para cuando "sigue tipeando" es el comportamiento que se quiere forzar. */
   limite?: number;
   /** Última opción de la lista para crear lo que no está («+ Registrar «Tex» como proveedor nuevo»). Recibe lo tipeado. */
   crear?: { etiqueta: (texto: string) => string; onCrear: (texto: string) => void };
@@ -84,17 +92,14 @@ export function ComboBuscable<T extends string>({
     const k = clave(texto);
     // Con el texto de la opción elegida sin tocar, se muestra todo: el
     // usuario abrió para cambiar, no para buscar lo que ya tiene.
-    const lista = !k || (elegida && k === clave(elegida.texto)) ? opciones : opciones.filter((o) => clave(`${o.texto} ${o.detalle ?? ""}`).includes(k));
-    return lista.slice(0, limite);
-  }, [texto, opciones, elegida, limite]);
-  // Cuántas coinciden en total (para decir «+12 más: sigue escribiendo» cuando el límite las corta).
-  const totalCoinciden = useMemo(() => {
-    const k = clave(texto);
-    return !k || (elegida && k === clave(elegida.texto)) ? opciones.length : opciones.filter((o) => clave(`${o.texto} ${o.detalle ?? ""}`).includes(k)).length;
+    return !k || (elegida && k === clave(elegida.texto)) ? opciones : opciones.filter((o) => clave(`${o.texto} ${o.detalle ?? ""}`).includes(k));
   }, [texto, opciones, elegida]);
-  // La opción «crear» va al final y se alcanza con las flechas como cualquier otra (índice = filtradas.length).
+  const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
+  // `limite` explícito manda y NO pagina (spike Nuevo producto): es un techo fijo, no el de la regla global.
+  const mostradas = filtradas.slice(0, limite ?? visibles);
+  // La opción «crear» va al final y se alcanza con las flechas como cualquier otra (índice = mostradas.length).
   const hayCrear = Boolean(crear) && !opciones.some((o) => clave(o.texto) === clave(texto) && clave(texto) !== "");
-  const ultimo = filtradas.length - 1 + (hayCrear ? 1 : 0);
+  const ultimo = mostradas.length - 1 + (hayCrear ? 1 : 0);
 
   useEffect(() => {
     if (!abierto) return;
@@ -102,7 +107,9 @@ export function ComboBuscable<T extends string>({
   }, [activo, abierto]);
 
   function abrir() {
-    setActivo(Math.max(0, filtradas.findIndex((o) => o.valor === valor)));
+    const i = Math.max(0, filtradas.findIndex((o) => o.valor === valor));
+    setActivo(i);
+    mostrarDesde(i);
     setAbierto(true);
   }
 
@@ -137,8 +144,8 @@ export function ComboBuscable<T extends string>({
       setActivo((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (filtradas[activo]) elegir(filtradas[activo]);
-      else if (hayCrear && activo === filtradas.length) crearDesdeTexto();
+      if (mostradas[activo]) elegir(mostradas[activo]);
+      else if (hayCrear && activo === mostradas.length) crearDesdeTexto();
     } else if (e.key === "Escape") {
       e.preventDefault();
       cerrarSinElegir();
@@ -159,7 +166,7 @@ export function ComboBuscable<T extends string>({
         aria-label={etiquetaAccesible}
         aria-expanded={abierto}
         aria-controls={`${id}-lista`}
-        aria-activedescendant={abierto && filtradas[activo] ? `${id}-op-${activo}` : undefined}
+        aria-activedescendant={abierto && mostradas[activo] ? `${id}-op-${activo}` : undefined}
         aria-autocomplete="list"
         autoComplete="off"
         autoFocus={autoFocus}
@@ -174,6 +181,7 @@ export function ComboBuscable<T extends string>({
         onChange={(e) => {
           setTexto(e.target.value);
           setActivo(0);
+          reiniciar();
           if (!abierto) setAbierto(true);
         }}
         onKeyDown={alTeclado}
@@ -191,12 +199,13 @@ export function ComboBuscable<T extends string>({
           id={`${id}-lista`}
           role="listbox"
           aria-label={etiquetaAccesible}
+          onScroll={limite == null ? alHacerScroll : undefined}
           className="card-cayla z-50 overflow-y-auto shadow-lg"
         >
-          {filtradas.length === 0 && hayCrear && texto.trim() === "" ? null : filtradas.length === 0 ? (
+          {mostradas.length === 0 && hayCrear && texto.trim() === "" ? null : mostradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
           ) : (
-            filtradas.map((o, i) => (
+            mostradas.map((o, i) => (
               <li
                 key={o.valor}
                 id={`${id}-op-${i}`}
@@ -218,23 +227,21 @@ export function ComboBuscable<T extends string>({
               </li>
             ))
           )}
-          {totalCoinciden > filtradas.length && (
-            <li className="px-3 py-2 text-xs text-tinta/55">
-              {limite < MAX_VISIBLES ? `+${totalCoinciden - filtradas.length} más: sigue escribiendo` : `Se muestran ${limite}. Sigue tipeando para acortar.`}
-            </li>
+          {limite != null && filtradas.length > mostradas.length && (
+            <li className="px-3 py-2 text-xs text-tinta/55">+{filtradas.length - mostradas.length} más: sigue escribiendo</li>
           )}
           {hayCrear && crear && (
             <li
-              id={`${id}-op-${filtradas.length}`}
-              data-i={filtradas.length}
+              id={`${id}-op-${mostradas.length}`}
+              data-i={mostradas.length}
               role="option"
               aria-selected={false}
-              onMouseEnter={() => setActivo(filtradas.length)}
+              onMouseEnter={() => setActivo(mostradas.length)}
               onMouseDown={(e) => {
                 e.preventDefault();
                 crearDesdeTexto();
               }}
-              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === filtradas.length ? "bg-sand/60 text-tinta" : "text-tinta/85"}`}
+              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === mostradas.length ? "bg-sand/60 text-tinta" : "text-tinta/85"}`}
             >
               {crear.etiqueta(texto.trim())}
             </li>

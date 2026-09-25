@@ -9,7 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
-import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
 import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
@@ -429,13 +429,12 @@ export function RegistrarPagoModal({
             {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
                 la base exige que esa tienda tenga parte en ESTA factura y valida que no supere su saldo. */}
             {misTiendas && misTiendas.length > 1 && (
-              <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>
-                {misTiendas.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </CampoSelectNativo>
+              <CampoSelect
+                etiqueta="Pagas desde"
+                valor={ubicacionPago}
+                onValor={(v) => setUbicacionPago(v)}
+                opciones={misTiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
+              />
             )}
 
             <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />

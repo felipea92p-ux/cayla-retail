@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { exigirModulo, puede } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
 import { getSububicaciones, encontrarPorTipo } from "@/lib/sububicaciones";
@@ -98,6 +98,12 @@ export default async function InventarioPage({
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
 
+  // «Bajar al piso» (ADR-0208): la única entrada a /inventario/bajar (Felipe, 2026-09-25; el lateral no cambia). Solo si
+  // su rol ve «Bajada al piso» y si lo que se mira es SU sede activa y separa piso y almacén: esa pantalla baja siempre en
+  // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
+  const puedeBajarAlPiso =
+    veModulo(persona, "bajada_piso") && ubicacionActivaId === persona.ubicacionId && sububicacionPiso !== null && sububicacionAlmacen !== null;
+
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
   const haciaAca = traslados.filter((t) => t.ubicacionDestinoId === ubicacionActivaId);
@@ -131,13 +137,25 @@ export default async function InventarioPage({
         foto={fotoHeroPorPantalla("existencias")}
         variante="integrado"
         accion={
-          <Link href="/inventario/mover" className="btn-cayla btn-primario">
-            + Nuevo traslado
-          </Link>
+          <>
+            {/* Sobre la foto de la cabecera, el secundario transparente no se lee: lleva fondo de papel. */}
+            {puedeBajarAlPiso && (
+              <Link href="/inventario/bajar" className="btn-cayla btn-secundario bg-papel">
+                Bajar al piso
+              </Link>
+            )}
+            <Link href="/inventario/mover" className="btn-cayla btn-primario">
+              + Nuevo traslado
+            </Link>
+          </>
         }
       />
 
+      {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
+          pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
+          «Dañado», una talla) aplicado al Taller dejaba la tabla vacía, sin control visible que lo explicara. */}
       <InventarioPanel
+        key={ubicacionActivaId}
         ubicacionId={ubicacionActivaId}
         stock={stock}
         resumen={resumen}

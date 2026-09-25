@@ -6,7 +6,7 @@ CAYLA es retail + manufactura textil peruana (tiendas TRU/AQP/LIM + Taller en Li
 **Nota de arquitectura (decidida con Felipe, 2026-07-16):** el rol de arquitecto que
 sigue fue escrito pensando en NestJS + Prisma + tablas en inglés + `tenant_id`
 explícito. Lo que existe HOY en este repo es **Next.js + Supabase (Postgres + Row
-Level Security)**, con tablas en español (`sedes`, `personas`, `productos`,
+Level Security)**, con tablas en español (`ubicaciones`, `colaboradores`, `productos`,
 `variantes`, `stock`, `movimientos`) y **sin `tenant_id`** — CAYLA es el único tenant,
 y la seguridad la resuelve RLS directamente, no una capa de API separada. Se decidió
 **no migrar** el núcleo ya construido y verificado para calzar con NestJS/Prisma/inglés/
@@ -46,8 +46,13 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 8. **Cada decisión estructural se documenta y se justifica** — nunca vive solo en una
    conversación de chat. Este archivo, y `supabase/migrations/*.sql` con comentarios,
    son el lugar.
-9. **Todo puede fallar** — diseña asumiendo que una API externa (SUNAT, Culqi,
-   Shopify, Nubefact) se cae; el sistema se degrada con gracia, nunca pierde datos.
+9. **Todo puede fallar** — diseña asumiendo que una dependencia externa no responde ahora
+   mismo: hoy la integración real es SUNAT, vía el PSE Lucode para transmitir comprobantes
+   (ADR-0005, ADR-0009), la consulta de padrón DNI/RUC a apis.net.pe (ADR-0008) y la
+   fila de `public.personas` que trae Dynamic
+   (`retail.fn_es_admin()` devuelve `false` sin error si falta); el sistema se degrada con
+   gracia, nunca pierde datos. Culqi y Shopify se investigaron pero no se integraron
+   (docs/investigacion/2026-09-23-tarjeta-pos-y-canal-online.md).
 10. **Ergonomía = potencia** — un colaborador de sede sin formación técnica debe
     operar el sistema sin fricción.
 11. **Velocidad con convención** — usa patrones ya probados del propio repo (Next.js
@@ -62,8 +67,9 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 - Ejecuta directo, sin pedir permiso: código, migraciones en desarrollo, componentes,
   refactors dentro de un módulo ya definido.
 - Detente y confirma primero ante: cambios de esquema en producción, integraciones que
-  muevan dinero real (Nubefact/SUNAT, pagos), cualquier borrado de datos, decisiones
-  que afecten más de un módulo a la vez (como la de arquitectura de arriba).
+  muevan dinero real o den validez legal a un comprobante (SUNAT vía Lucode — ADR-0005
+  — y cualquier pasarela de pago futura, hoy sin integrar), cualquier borrado de datos,
+  decisiones que afecten más de un módulo a la vez (como la de arquitectura de arriba).
 - Nunca borres datos — mueve a estado/columna de archivo, nunca `DELETE` en
   `movimientos` ni en catálogos con historial.
 - Tono al frenar una decisión riesgosa: firme pero calmado — explica el porqué y el
@@ -74,10 +80,13 @@ CAYLA sea el único tenant y el esquema no lo modele explícitamente con `tenant
 **Producción de retail NO vive en su propio proyecto Supabase — vive DENTRO del
 proyecto de cayla-dynamic, en un schema llamado `retail`.** Verificado 2026-09-03:
 `select schema_name from information_schema.schemata where schema_name = 'retail'`
-devuelve la fila. **Verificado el 2026-09-12 preguntándole a la base: 45 tablas y 2
-vistas** — no 28, no 36, no 44; esos números circulaban en tres documentos distintos y
-ninguno era el bueno. El conteo al día vive en `docs/datos/generado/DICCIONARIO-RETAIL.md`
-y se regenera con `pnpm datos:generar:produccion`. (Históricamente eran ~22 según la
+devuelve la fila. **Esa cifra envejece rápido — no la repitas de memoria.** El
+2026-09-12 eran 45 tablas y 2 vistas; el 2026-09-25, preguntándole a la base en vivo,
+ya eran 117 tablas y 6 vistas (`docs/datos/generado/` seguía en 99 porque es del
+09-23: hasta el volcado se atrasa). Si necesitas la cifra, pregúntale a la base con un
+`select` de solo lectura; `docs/datos/generado/DICCIONARIO-RETAIL.md` es tan fresco como
+su último volcado (`pnpm datos:generar:produccion` lo reescribe desde el volcado
+guardado, no desde la base: ver `docs/datos/generado/COMO-REFRESCAR.md`). (Históricamente eran ~22 según la
 unificación original — las migraciones de producción `0024`-`0029`, posteriores,
 sumaron tablas propias). `NEXT_PUBLIC_SUPABASE_URL` de producción apunta al
 proyecto de Dynamic, no al proyecto original de retail.
@@ -90,12 +99,19 @@ proyecto Dynamic, `public` es el schema de Dynamic, no el de retail. El síntoma
 en realidad solo se está mirando el cajón equivocado.
 
 Le pasó a la primera migración pegada en producción después de la unificación
-(`0030`, 2026-09-03) — costó un round-trip de error antes de corregirlo. Las
-migraciones en `supabase/migrations/*.sql` se escriben SIN el prefijo (así corren
-limpias contra el Postgres local, que sí usa `public` sin problema porque cada
-proyecto local es su propio Postgres aislado, ajeno a la unificación). El prefijo
-`retail.` se agrega SOLO al pegar en el SQL Editor de producción — nunca en el
-archivo del repo, para no romper `npx supabase db reset` local.
+(`0030`, 2026-09-03) — costó un round-trip de error antes de corregirlo. Esa
+convención de escribir las migraciones sin prefijo **ya no aplica**: desde el corte
+V1→V2 (2026-09-12, `0af2f1b`) las migraciones crean todo directamente en el schema
+`retail`, igual que producción (antes, el local migraba en `public` y `seed.sql`
+renombraba el schema después: ADR-0010). Por eso todas las migraciones del repo
+(salvo las de extensiones y permisos, que no nombran tablas) llevan el prefijo
+`retail.` — o un `set search_path = retail, public, extensions;` al inicio — escrito
+directamente en el archivo, y se pegan en producción sin tocarlas (respetando la
+regla de partes de «Políticas y deadlocks», más abajo). Confiar en «se escriben sin
+prefijo» ya rompió una migración real: sin él, el piloto «Pruebas de RPC contra
+Postgres» la rechazó con `relation "variantes" does not exist` (PR #345 → #346,
+2026-09-23). Escribe el prefijo `retail.` en cada tabla y función, o el `set
+search_path` al inicio: es lo que corre igual en local, en CI y en producción.
 
 **Políticas y deadlocks (aprendido 2026-09-24, ADR-0195):** el SQL Editor corre todo lo pegado en UNA transacción, y en
 Supabase cada `create policy` —y hasta un `drop policy if exists` vacío— toma en exclusiva las 21 tablas de `auth` y
@@ -110,12 +126,16 @@ solo se lee por funciones `security definer`, deja RLS encendido sin políticas.
 
 ## Convenciones de código (adaptadas a este repo)
 
-- Base de datos: tablas en `snake_case`, español, plural donde aplica (`sedes`,
-  `personas`, `productos`, `variantes`, `movimientos`); ya existen y no se renombran.
-  FKs explícitas (`variante_id`, `sede_id`, `sede_destino_id`), nunca abreviadas.
-  Sin `tenant_id` por ahora (ver nota de arquitectura arriba).
+- Base de datos: tablas en `snake_case`, español, plural donde aplica (`ubicaciones`,
+  `colaboradores`, `productos`, `variantes`, `movimientos`); ya existen y no se
+  renombran. `personas` ya no es tabla de `retail` — vive en Dynamic
+  (`public.personas`) y `colaboradores.persona_id` la referencia. FKs explícitas
+  (`variante_id`, `ubicacion_id`, `ubicacion_destino_id`), nunca abreviadas. Sin
+  `tenant_id` por ahora (ver nota de arquitectura arriba).
 - Estructura por dominio dentro de `apps/web`: `lib/` (server-side data + reglas de
-  negocio: `catalogo.ts`, `inteligencia.ts`), `components/` (UI), `app/(app)/` (rutas).
+  negocio: `catalogo-v2.ts` y decenas de `*-reglas.ts` — casi todos con su prueba
+  `.test.ts` junto al lado; `catalogo.ts`/`inteligencia.ts` no existen desde el
+  reemplazo V1→V2 del 2026-09-12), `components/` (UI), `app/(app)/` (rutas).
   `packages/shared` para enums/Zod compartidos; `packages/database` para tipos
   generados de Supabase.
 - Commits (Conventional Commits, scope = dominio real del repo):
@@ -225,11 +245,36 @@ siquiera aparezca aire; no abras listas **dentro** del contenido (usa `usePosici
 lleva la vista al inicio de la tabla (las navegaciones por URL no las cubre la regla global). Detalle:
 `docs/adr/0185-la-pagina-no-se-encoge-bajo-el-mouse.md`.
 
+## Buscador y paginado de combos (regla — ADR-0209)
+
+**Todo combo hereda la misma regla sin que la pantalla haga nada:** con más de 8 opciones aparece un campo
+para buscar (escribiendo, sin tildes ni mayúsculas); con más de 50 ya filtradas, la lista se completa sola al
+bajar el scroll en vez de cortar de golpe. La regla vive en `apps/web/lib/combo-reglas.ts` (pura, con
+pruebas) y el estado que la usa en `apps/web/components/ui/useCombo.ts`; la aplican `Desplegable`/
+`CampoSelect`, `ComboBuscable`, `ComboResponsable` y `DesplegablePildora` (píldoras de filtro) — con 8
+opciones o menos ninguno cambia de comportamiento. **No reimplementes un corte a mano ("se muestran N, sigue
+tipeando") ni un buscador propio**: un combo nuevo se alimenta con `opciones`/`valor`/`onValor` vía
+`CampoSelect` (formulario), `Desplegable` (sin caja de `Campo` alrededor, ej. cabecera o píldora) o
+`ComboBuscable` (catálogo, tipeo inmediato) y la regla llega sola. Todo el `<select>` nativo y `SelectNativo`/
+`CampoSelectNativo` legacy del repo ya se migró (2026-09-25) — si ves uno, es nuevo, no lo copies. Dos casos
+quedaron fuera a propósito, pendientes de decisión con Felipe (detalle en
+`docs/adr/0209-buscador-y-paginado-regla-global-de-combos.md`): `DecisionFaltanteFila.tsx` (un `<optgroup>`
+real que `Opcion<T>` no representa) y `CambioReemplazo.tsx` (su `<select>` reenvía un `ref` que
+`CambiosFlujo.tsx` usa para foco-en-error; `Desplegable` no reenvía ref).
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/
-encargado de sede", "sede/tienda/boutique", "clienta" (compradora final). El código ya
-sigue esto (`personas.rol` = `lider`/`integrante`, tabla `sedes`).
+encargado de sede", "sede/tienda/boutique", "clienta" (compradora final). **En pantalla
+y en negocio manda "sede"; en la base la tabla es `ubicaciones`** (no `sedes`, que no
+existe). La columna de rol es `colaboradores.rol` (no `personas.rol`: `personas` es de
+Dynamic, no de retail). **En producción solo acepta `lider` y `colaborador`**
+(consultado en vivo el 2026-09-25): el cambio a `integrante` está en tres pasos y el
+paso 1 (`supabase/migrations/20260924000000_colaborador_a_integrante_paso1_codigo.sql`)
+está en el repo pero no en producción. En código nuevo, compara contra `rol <> 'lider'`
+en vez de contra `'colaborador'` o `'integrante'`: funciona antes y después del cambio.
+El modelo de roles en sí no son estos dos valores fijos: ver «Módulos y roles» arriba
+(ADR-0161/ADR-0178).
 
 ## Idioma
 
@@ -254,15 +299,24 @@ archivo:línea para volver a verlo. Desarrollo completo a pedido: `/explica <tem
 
 ## Ritual de sesión y estado vivo (específico de este repo)
 
-Al abrir sesión: audito el repo + leo `/docs/BACKLOG.md` y `/docs/BITACORA.md`
-completos antes de proponer nada. Trabajo en pasos verificables (principio 7), cada
+Al abrir sesión: miro `git status --short`, los archivos tocados en las últimas horas y
+`docs/SESIONES-ACTIVAS.md`, para no duplicar lo que otra sesión ya está haciendo. Luego
+leo **el camino mínimo**: este archivo, `docs/datos/15-COMO-OPERA-CAYLA.md`,
+`docs/datos/00-MAPA.md`, `docs/datos/generado/AVIARIO.md` y, si existe,
+`docs/pantallas/<pantalla>.md`. `/docs/BACKLOG.md` y `/docs/BITACORA.md` **se buscan, no
+se leen enteros** (por módulo, término o entrada reciente): juntos pasan de 15,000 líneas
+(2026-09) y no caben en una lectura; solo los leo completos en una auditoría o
+planificación global. Trabajo en pasos verificables (principio 7), cada
 uno con "cómo verificas tú que funciona" explícito. Al cerrar un paso o la sesión:
 actualizo `/docs/BACKLOG.md`, agrego 3 líneas a `/docs/BITACORA.md`, ADR en
 `/docs/adr/` el mismo día si hubo decisión estructural (principio 8), commit con
-Conventional Commits. `/docs/ARQUITECTURA.md` es la foto de la arquitectura completa
-(rutas↔lib↔RPC/tablas, modelo de datos, RLS) — actualizarla cuando cambie el modelo
-de datos, una ruta nueva, o un RPC nuevo/renombrado; no es estado vivo día a día
-(eso es BACKLOG/BITACORA), es el mapa para orientarse rápido.
+Conventional Commits. `/docs/ARQUITECTURA.md` es el mapa de rutas↔lib↔RPC/componentes
+del front — actualizarla cuando cambie una ruta, un RPC nuevo/renombrado, o esa relación.
+El modelo de datos **ya no vive aquí**: desde el 2026-09-12 vive en `/docs/datos/` (el
+propio `ARQUITECTURA.md` lo dice en su encabezado). No es estado vivo día a día (eso es
+BACKLOG/BITACORA), es el mapa para orientarse rápido — y su foto del esquema es del
+2026-09-04, más vieja que `docs/datos/`; las afirmaciones que el SQL no respalda están
+listadas con archivo y línea en `docs/datos/13-PROMESAS-INCUMPLIDAS.md`.
 
 **Celular obligatorio (PL-105, Felipe 2026-09-23):** todo PR que toque Vender (`/vender`, `/vender/apartados`),
 Cambios (`/cambios`) o Devoluciones (`/devoluciones`) se prueba a **375 px de ancho** (`resize_window` preset `mobile`)
@@ -311,10 +365,21 @@ resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, n
 
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+Este repo tiene un grafo de conocimiento generado en `graphify-out/` (nodos centrales,
+estructura de comunidades, relaciones entre archivos). **El binario `graphify` no está
+instalado en todas las máquinas del equipo**: antes de usarlo, corre `which graphify`. Si
+no está, busca con grep y lee los archivos directamente; no lo instales por tu cuenta ni
+adivines su salida. (El hook de `.claude/settings.json` que lo llama apunta a una ruta de
+Windows de una sola máquina; en las demás esa ruta no existe.)
 
-Rules:
-- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
-- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
-- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+Si está instalado, reglas:
+- Para preguntas de código, primero `graphify query "<pregunta>"` cuando exista
+  `graphify-out/graph.json`. Usa `graphify path "<A>" "<B>"` para relaciones y
+  `graphify explain "<concepto>"` para un concepto puntual. Devuelven un subgrafo
+  acotado, normalmente mucho más chico que `GRAPH_REPORT.md` o un grep crudo.
+- Si existe `graphify-out/wiki/index.md`, úsalo para navegación amplia en vez de
+  recorrer el código fuente a mano (al 2026-09-25 no existe).
+- Lee `graphify-out/GRAPH_REPORT.md` solo para una revisión de arquitectura amplia o
+  cuando query/path/explain no alcancen.
+- Después de modificar código, `graphify update .` mantiene el grafo al día (solo AST,
+  sin costo de API).

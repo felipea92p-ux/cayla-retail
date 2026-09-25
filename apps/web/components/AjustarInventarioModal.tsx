@@ -7,7 +7,15 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
-import { armarVariantesAjuste, type VarianteAjuste } from "@/lib/ajuste-reglas";
+import {
+  MOTIVOS_AJUSTE,
+  NOTA_REPOSICION_CERRADA,
+  armarVariantesAjuste,
+  motivosAjusteDisponibles,
+  reposicionCerrada,
+  type MotivoAjuste,
+  type VarianteAjuste,
+} from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -21,15 +29,6 @@ import { firmar } from "@/lib/responsable-reglas";
 // Este modal valida en pantalla con el stock ya cargado para dar feedback instantáneo
 // (principio 10) — la RPC queda como red real si el stock cambió mientras el modal
 // estaba abierto.
-
-const MOTIVOS_AJUSTE = [
-  { valor: "reposicion", texto: "Reposición" },
-  { valor: "merma", texto: "Merma" },
-  { valor: "conteo_fisico", texto: "Conteo físico" },
-  { valor: "otro", texto: "Otro" },
-] as const;
-
-type MotivoAjuste = (typeof MOTIVOS_AJUSTE)[number]["valor"];
 
 export function AjustarInventarioModal({
   productoId,
@@ -116,6 +115,16 @@ export function AjustarInventarioModal({
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
   const negativas = lineas.filter((l) => l.resultado < 0);
+
+  // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
+  const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
+  const cerrada = reposicionCerrada(ubicado, separaPisoAlmacen);
+
+  function cambiarUbicado(siguiente: "piso" | "almacen") {
+    setUbicado(siguiente);
+    // Si «Reposición» estaba elegida y ya no se ofrece, no se queda escondida en el formulario.
+    if (reposicionCerrada(siguiente, separaPisoAlmacen) && motivo === "reposicion") setMotivo("");
+  }
 
   // Reporte de lo tipeado en el formulario, no de lo ya confirmado — sirve tanto
   // de respaldo antes de enviar como para revisar después de un envío exitoso
@@ -217,7 +226,7 @@ export function AjustarInventarioModal({
                 <Segmentado
                   etiqueta="Dónde se ajusta"
                   valor={ubicado}
-                  onValor={setUbicado}
+                  onValor={cambiarUbicado}
                   opciones={[
                     { valor: "piso", texto: "Piso de venta" },
                     { valor: "almacen", texto: "Almacén de tienda" },
@@ -260,9 +269,17 @@ export function AjustarInventarioModal({
                 etiqueta="Motivo"
                 valor={motivo}
                 onValor={setMotivo}
-                opciones={MOTIVOS_AJUSTE}
+                opciones={motivos}
                 marcador="Elegir motivo"
               />
+
+              {/* Bajo el motivo, y SIEMPRE ocupando su lugar en una tienda que separa piso y almacén: invisible en Almacén,
+                  a la vista en Piso. Así cambiar Piso/Almacén no mueve el botón que está bajo el mouse (ADR-0185). */}
+              {separaPisoAlmacen && (
+                <p className={`nota-cayla ${cerrada ? "" : "invisible"}`} role="status" aria-hidden={!cerrada || undefined}>
+                  {NOTA_REPOSICION_CERRADA}
+                </p>
+              )}
 
               <CampoTexto
                 etiqueta="Observación (opcional)"

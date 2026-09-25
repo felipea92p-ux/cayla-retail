@@ -12,13 +12,14 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
-  "existencias", "conteos", "traslados", "movimientos",
+  "existencias", "bajada_piso", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
   "analisis", "colaboradores", "roles",
   "configuracion",
   "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
+  "actividad",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
@@ -48,7 +49,10 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir y exportar" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
-  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, ajustar stock, apartar prendas" },
+  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer el piso, ajustar stock, apartar prendas" },
+  // Bajada al piso (ADR-0208, 20260926000000): bajar lo del almacén sin darle a nadie todo Existencias. Nace sin rol: solo
+  // lo ve el líder. Delegable: `bajar_al_piso` pregunta por este módulo, no por el líder.
+  { clave: "bajada_piso", grupo: "Inventario", nombre: "Bajada al piso", incluye: "Bajar al piso las prendas del almacén de su tienda, escaneándolas y confirmando de una vez" },
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
@@ -75,6 +79,10 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Reportes financieros", incluye: "Ver el resumen, el estado de resultados, el flujo de caja y el balance de su tienda; cómo rindieron las campañas" },
   { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador", noDelegable: true },
   { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo", noDelegable: true },
+  // ADR-0207 (20260926090000): el historial de cada módulo. No es una pantalla del lateral: se abre desde la cabecera
+  // (botón «Actividad»). Nace sin rol; con el módulo, una cuenta ve la actividad de SU tienda; el líder, la de todas.
+  // Solo para personas (`MODULOS_SOLO_PERSONAS`): una terminal compartida no revisa lo que hacen las demás.
+  { clave: "actividad", grupo: "Gestión", nombre: "Actividad", incluye: "Ver quién hizo qué en cada módulo de su tienda: ventas, anulaciones, caja y cambios, con fecha, hora y persona" },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -98,8 +106,9 @@ export const SIEMPRE_SOLO_LIDER: readonly { que: string; origen: string }[] = [
 ];
 
 /** Los módulos que solo se dan a PERSONAS, nunca a una terminal (ADR-0161 P6, Felipe 2026-09-22; en la base,
- *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos. */
-export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles"];
+ *  `fn_exigir_rol_de_terminal`, migración 20260923140000): un aparato compartido de mostrador no da ni quita accesos.
+ *  «Actividad» se sumó con el ADR-0207 (20260926090000): tampoco revisa lo que hacen las demás. */
+export const MODULOS_SOLO_PERSONAS: readonly ClaveModulo[] = ["colaboradores", "roles", "actividad"];
 
 export function esClaveModulo(x: string): x is ClaveModulo {
   return (CLAVES_MODULO as readonly string[]).includes(x);

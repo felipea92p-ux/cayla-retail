@@ -12,14 +12,36 @@ export type DatosPrendaSinRegistrar = {
   precio: number;
 };
 
-/** El primer dato que falta, dicho a la colaboradora; `null` si ya se puede agregar al ticket. */
-export function faltaEnPrendaSinRegistrar(d: Partial<DatosPrendaSinRegistrar>): string | null {
-  if (!d.descripcion?.trim()) return "Escribe una descripción corta";
-  if (!d.categoriaId) return "Elige la categoría";
-  if (!d.tallaId) return "Elige la talla";
-  if (!d.colorCodigo) return "Elige el color";
-  if (!d.precio || !(d.precio > 0)) return "Escribe el precio que cobraste";
+export const FALTA_DESCRIPCION = "Escribe una descripción corta";
+
+/** Los pasos del modal, en el orden en que se ven en pantalla. */
+export type PasoPrenda = "categoria" | "talla" | "color" | "descripcion" | "precio";
+
+const FALTA: Record<PasoPrenda, string> = {
+  categoria: "Elige la categoría",
+  talla: "Elige la talla",
+  color: "Elige el color",
+  descripcion: FALTA_DESCRIPCION,
+  precio: "Escribe el precio que cobraste",
+};
+
+/**
+ * El primer paso sin llenar, en el orden del formulario; `null` si ya se puede agregar al ticket. Es la ruta que el
+ * modal le marca a la colaboradora (Felipe, 2026-09-25). `sinDescripcion`: saltarla (el modal la pide bajo su campo).
+ */
+export function pasoSiguiente(d: Partial<DatosPrendaSinRegistrar>, { sinDescripcion = false } = {}): PasoPrenda | null {
+  if (!d.categoriaId) return "categoria";
+  if (!d.tallaId) return "talla";
+  if (!d.colorCodigo) return "color";
+  if (!sinDescripcion && !d.descripcion?.trim()) return "descripcion";
+  if (!d.precio || !(d.precio > 0)) return "precio";
   return null;
+}
+
+/** El primer dato que falta, dicho a la colaboradora; `null` si ya se puede agregar al ticket. */
+export function faltaEnPrendaSinRegistrar(d: Partial<DatosPrendaSinRegistrar>, opciones: { sinDescripcion?: boolean } = {}): string | null {
+  const paso = pasoSiguiente(d, opciones);
+  return paso ? FALTA[paso] : null;
 }
 
 type Talla = { id: string; valor: string };

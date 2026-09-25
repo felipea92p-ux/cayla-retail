@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { CampoSelect, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -233,22 +234,16 @@ export function MoverMercaderiaFormV2({
           <span className={campoEtiqueta}>Desde</span>
           <p className="w-full border-b border-tinta/10 px-1 py-2 text-sm text-tinta/75">{origenEtiqueta}</p>
         </div>
-        <div className="space-y-1.5">
-          <label className={campoEtiqueta} htmlFor="mover-destino">
-            Hacia
-          </label>
-          <select
-            id="mover-destino"
-            value={destinoId}
-            onChange={(e) => setDestinoId(e.target.value)}
-            className={campoSelect}
-          >
-            {destinos.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombre}
-              </option>
-            ))}
-          </select>
+        {/* El id vive en este contenedor, no en CampoSelect (que no expone uno propio): `avisar.error(...,
+            { enfocar: "mover-destino" })` de abajo hace document.getElementById + querySelector("button, ...")
+            y encuentra el <button> disparador de Desplegable adentro. */}
+        <div id="mover-destino">
+          <CampoSelect
+            etiqueta="Hacia"
+            valor={destinoId}
+            onValor={(v) => setDestinoId(v)}
+            opciones={destinos.map((d) => ({ valor: d.id, texto: d.nombre }))}
+          />
         </div>
       </div>
 
@@ -279,18 +274,17 @@ export function MoverMercaderiaFormV2({
           const tope = stockDe(l.varianteId);
           return (
             <div key={i} id={`mover-linea-${i}`} className="flex flex-wrap items-end gap-2">
-              <select
-                aria-label="Prenda"
-                value={l.varianteId}
-                onChange={(e) => actualizarLinea(i, { varianteId: e.target.value })}
-                className={`${campoSelect} min-w-[14rem] flex-1`}
-              >
-                {variantes.map((v) => (
-                  <option key={v.varianteId} value={v.varianteId}>
-                    {v.referencia} · {v.sku} {[v.talla, v.color].filter(Boolean).join("/")} — stock {v.cantidad}
-                  </option>
-                ))}
-              </select>
+              <div className="min-w-[14rem] flex-1">
+                <Desplegable
+                  valor={l.varianteId}
+                  onValor={(v) => actualizarLinea(i, { varianteId: v })}
+                  opciones={variantes.map((v) => ({
+                    valor: v.varianteId,
+                    texto: `${v.referencia} · ${v.sku} ${[v.talla, v.color].filter(Boolean).join("/")} — stock ${v.cantidad}`,
+                  }))}
+                  etiquetaAccesible="Prenda"
+                />
+              </div>
               <input
                 type="number"
                 min={1}

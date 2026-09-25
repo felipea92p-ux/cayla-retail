@@ -10,7 +10,7 @@ import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
-import { paginar } from "@/lib/paginacion";
+import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
@@ -27,6 +27,7 @@ import { descargarCsv } from "@/lib/exportar-csv";
 import { TEXTO_ACCION_HOY, type Recomendacion, type TipoAccionHoy } from "@/lib/existencias-recomendaciones";
 import { coincideConFiltroAccion, coincideConFiltroDanado, OPCIONES_FILTRO_ACCION } from "@/lib/existencias-filtros";
 import { textoCoberturaPiso, textoRitmoReciente } from "@/lib/resumen-formato";
+import { clavePercha, ordenarPorModeloColorTalla, porColgar, resumirPorColgar } from "@/lib/inventario-reglas";
 import type { FilaSemana } from "@/lib/existencias-categorias";
 import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 import type { FilaExistencias, ResumenExistencias, PrendaDanada } from "@/lib/inventario-v2";
@@ -67,6 +68,18 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
  *  confundía «qué hacer hoy» con «en qué condición está el inventario» (dos preguntas
  *  distintas, decisión de Felipe). */
 const DANADO = "__danado__";
+/** Filtro «Por colgar» (Frescura del piso, ADR-0208; reexpresado sobre el dominio nuevo el 2026-09-25):
+ *  eje de Estado, igual que «Dañado» — no es una Acción hoy, es una condición del inventario. La regla
+ *  sigue siendo `porColgar` (`lib/inventario-reglas.ts`: piso disponible en 0 y algo disponible en
+ *  almacén), que es SIEMPRE un subconjunto de la regla canónica de Acción hoy (piso <= umbral → Reponer
+ *  a piso): toda fila «Por colgar» ya sale como «Reponer a piso» por la vía única, sin motor propio ni
+ *  segunda regla de reposición — este filtro solo aísla, dentro de las que hay que reponer, las que hoy
+ *  no tienen NADA colgado para la clienta.
+ *
+ *  La fila siempre muestra el chip «Por colgar» junto a su Acción hoy (son dos hechos ciertos a la vez:
+ *  hoy se cuelga lo que hay atrás, y la Acción hoy sigue siendo reponer); el filtro de Estado y la
+ *  píldora solo controlan qué se ve en la tabla. */
+const POR_COLGAR = "__por_colgar__";
 
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
@@ -270,20 +283,26 @@ export function InventarioPanel({
     () => crearIndiceBusquedaEspecial(stock, (f) => ({ nombre: f.referencia, sku: f.sku, codigosBarras: f.codigosBarras, color: f.color, talla: f.talla })),
     [stock]
   );
-  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(
-    () =>
-      filtrarConBusquedaEspecial(indiceBusqueda, busqueda, {
-        talla: talla === TODAS ? null : talla,
-        color: color === TODAS ? null : color,
-        otros: (f) => {
-          if (categoria !== TODAS && f.categoria !== categoria) return false;
-          if (!coincideConFiltroDanado(f.danado, condicion === DANADO)) return false;
-          if (!coincideConFiltroAccion(f.accionHoy?.tipo, accion === TODAS ? null : (accion as TipoAccionHoy))) return false;
-          return true;
-        },
-      }),
-    [indiceBusqueda, busqueda, talla, color, categoria, accion, condicion]
-  );
+  const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
+    const resultado = filtrarConBusquedaEspecial(indiceBusqueda, busqueda, {
+      talla: talla === TODAS ? null : talla,
+      color: color === TODAS ? null : color,
+      otros: (f) => {
+        if (categoria !== TODAS && f.categoria !== categoria) return false;
+        if (!coincideConFiltroDanado(f.danado, condicion === DANADO)) return false;
+        if (condicion === POR_COLGAR && !porColgar(f)) return false;
+        if (!coincideConFiltroAccion(f.accionHoy?.tipo, accion === TODAS ? null : (accion as TipoAccionHoy))) return false;
+        return true;
+      },
+    });
+    // «Por colgar» se trabaja por percha (un modelo en un color), no por SKU: sus tallas salen juntas y
+    // en su curva, para que la encargada baje la M y la L de la misma casaca en un solo viaje.
+    return condicion === POR_COLGAR ? { ...resultado, filas: ordenarPorModeloColorTalla(resultado.filas) } : resultado;
+  }, [indiceBusqueda, busqueda, talla, color, categoria, accion, condicion]);
+
+  // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
+  // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
+  const cuentaPorColgar = useMemo(() => resumirPorColgar(stock), [stock]);
 
   // La tabla pinta UNA página de `filtradas`; las tarjetas, los filtros y el CSV siguen viendo todas.
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
@@ -295,7 +314,10 @@ export function InventarioPanel({
     setFirmaPrevia(firmaFiltros);
     setPagina(1);
   }
-  const paginaActual = paginar(filtradas, pagina, FILAS_POR_PAGINA);
+  // «Por colgar» va ordenada por percha: la página se estira hasta terminar la percha en curso, para que
+  // la S y la M de una casaca no queden en la página 1 y su L en la 2.
+  const paginaActual =
+    condicion === POR_COLGAR ? paginarSinPartirGrupos(filtradas, pagina, FILAS_POR_PAGINA, clavePercha) : paginar(filtradas, pagina, FILAS_POR_PAGINA);
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
     setPagina(n);
@@ -305,11 +327,16 @@ export function InventarioPanel({
   }
 
   const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || talla !== TODAS || color !== TODAS || accion !== TODAS || condicion !== TODAS;
-  function limpiarFiltros() {
+  /** Quita búsqueda, categoría, talla y color, pero deja Acción y Estado puestos. Es el «Ver todas» de
+   *  «Por colgar»: que la lista vuelva a ser lo que cuenta la píldora. */
+  function quitarFiltrosMenosEstado() {
     setBusqueda("");
     setCategoria(TODAS);
     setTalla(TODAS);
     setColor(TODAS);
+  }
+  function limpiarFiltros() {
+    quitarFiltrosMenosEstado();
     setAccion(TODAS);
     setCondicion(TODAS);
   }
@@ -428,6 +455,9 @@ export function InventarioPanel({
               activa={accion === "reponer_a_piso"}
               onClick={() => setAccion((a) => (a === "reponer_a_piso" ? TODAS : "reponer_a_piso"))}
             >
+              {/* `porColgar` exige piso<=0, que siempre cae dentro de la regla de Acción hoy (piso<=umbral
+                  → reponer_a_piso): si hay algo «Por colgar», el contador de esta tarjeta ya no es 0, así
+                  que no hace falta una tercera rama para avisarlo por separado. */}
               {resumen.requierenReposicion === 0 ? "Nada pendiente de bajar al piso" : `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén`}
             </TarjetaPrioridad>
           )}
@@ -519,15 +549,60 @@ export function InventarioPanel({
               opciones={[
                 { valor: TODAS, texto: "Estado: todos" },
                 { valor: DANADO, texto: "Dañado / cuarentena" },
+                { valor: POR_COLGAR, texto: "Por colgar" },
               ]}
             />
           )}
-          {hayFiltrosActivos && (
-            <div className="flex items-center gap-1.5 pt-1 sm:col-span-full sm:justify-end sm:pt-0">
-              <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
-              <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
-                Limpiar filtros
-              </button>
+          {/* Una sola fila para la píldora «Por colgar», su aclaración y «Limpiar filtros»: en una tienda la
+              fila existe antes de filtrar, así que en escritorio activar «Por colgar» no empuja la tabla (la
+              aclaración entra al lado de la píldora). En celular la aclaración baja a su propia línea. */}
+          {(separa || hayFiltrosActivos) && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-3 pt-1 sm:col-span-full">
+              {separa && (
+                <button
+                  type="button"
+                  aria-pressed={condicion === POR_COLGAR}
+                  onClick={() => setCondicion((e) => (e === POR_COLGAR ? TODAS : POR_COLGAR))}
+                  // Con el filtro puesto sigue clicable aunque llegue a 0 (tras reponer la última): es como se quita.
+                  disabled={cuentaPorColgar.tallas === 0 && condicion !== POR_COLGAR}
+                  title="Tallas con unidades para bajar del almacén y ninguna para vender en el piso: la clienta no las ve"
+                  className="pildora-cayla disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Por colgar
+                  <span className="font-normal tabular-nums">
+                    · {cuentaPorColgar.tallas} {cuentaPorColgar.tallas === 1 ? "talla" : "tallas"} · {cuentaPorColgar.unidades.toLocaleString("es-PE")}{" "}
+                    {cuentaPorColgar.unidades === 1 ? "ud" : "uds"}
+                  </span>
+                </button>
+              )}
+              {/* La aclaración de «Por colgar», solo si hay algo por colgar (sobre una lista vacía, «elige
+                  cuáles» contradice al «Nada por colgar» de abajo). Dice una de dos cosas:
+                  · si otro filtro esconde tallas, cuántas se ven de las que cuenta la píldora — la píldora
+                    mira toda la sede, y ver 3 filas bajo «22 tallas» sin saber por qué es un callejón;
+                  · si se ven todas, que no es una orden de bajar todo (riesgo que nombró el plan): hay
+                    tallas que se guardan a propósito, la lista es para decidir. */}
+              {separa && condicion === POR_COLGAR && cuentaPorColgar.tallas > 0 && (
+                <p className="min-w-[16rem] flex-1 text-xs leading-snug text-taupe">
+                  {filtradas.length < cuentaPorColgar.tallas ? (
+                    <>
+                      Ves {filtradas.length} de {cuentaPorColgar.tallas}: la búsqueda u otro filtro esconde el resto.{" "}
+                      <button type="button" onClick={quitarFiltrosMenosEstado} className="btn-enlace text-xs">
+                        Ver todas
+                      </button>
+                    </>
+                  ) : (
+                    "Algunas se guardan a propósito (fin de temporada): no es una orden de bajar todo, elige cuáles van al piso."
+                  )}
+                </p>
+              )}
+              {hayFiltrosActivos && (
+                <span className="ml-auto flex items-center gap-1.5">
+                  <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
+                  <button type="button" onClick={limpiarFiltros} className="label-cayla text-[11px] text-taupe underline-offset-2 hover:text-rojo hover:underline">
+                    Limpiar filtros
+                  </button>
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -537,7 +612,12 @@ export function InventarioPanel({
       {stock.length === 0 ? (
         <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
-        <p className="border-t border-sand p-5 text-sm text-taupe">Ningún producto coincide con la búsqueda.</p>
+        // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta.
+        <p className="border-t border-sand p-5 text-sm text-taupe">
+          {condicion === POR_COLGAR && cuentaPorColgar.tallas === 0
+            ? "Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso."
+            : "Ningún producto coincide con la búsqueda."}
+        </p>
       ) : (
         <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que
@@ -615,6 +695,18 @@ export function InventarioPanel({
                   <span className={celda("centro", "overflow-visible")}>
                     <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Acción hoy</span>
                     <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                      {/* «Por colgar» va primero y en todas las vistas (es un eje, como «Dañado»): sin él, una
+                          talla sin nada colgado mostraba solo su Acción hoy, y la encargada no sabía que,
+                          además, hoy se cuelga la primera pieza. Las dos son ciertas a la vez: hoy se cuelga lo
+                          que hay atrás, y la Acción hoy sigue siendo reponer. La cifra es lo que se puede bajar
+                          (disponible, neto de apartados): la suma de estos chips es la de la píldora. */}
+                      {porColgar(f) && (
+                        <Chip tono="ambar">
+                          <span title={`En el piso no queda ninguna para vender; en el almacén hay ${f.almacenDisponible} que se ${f.almacenDisponible === 1 ? "puede" : "pueden"} colgar`}>
+                            Por colgar · {f.almacenDisponible} {f.almacenDisponible === 1 ? "ud" : "uds"}
+                          </span>
+                        </Chip>
+                      )}
                       {!f.accionHoy ? (
                         <span className="text-xs text-tinta/40">N/D</span>
                       ) : f.accionHoy.tipo === "sin_accion" ? (

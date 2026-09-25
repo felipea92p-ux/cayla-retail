@@ -6208,6 +6208,8 @@ export type Database = {
       fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
       // 20260923174500: «solo alcanzas a quien está por debajo de ti».
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
+      // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
+      fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string; p_version_esperada?: number }
         Returns: number

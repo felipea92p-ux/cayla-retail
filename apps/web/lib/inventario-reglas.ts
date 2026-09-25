@@ -2,6 +2,8 @@
 // cliente y las pruebas. Las lecturas contra Postgres viven en
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
+import { compararTallas } from "./tallas";
+
 /** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
  *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
  *  reserva, no el piso. Bajó de 20 a 10 el 2026-09-17, probando la
@@ -29,8 +31,67 @@ export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 export const UMBRAL_REPOSICION_PISO = 7;
 
 // `EstadoStock`/`calcularEstado`/`necesitaReponerPiso` (semáforo de Existencias, piso ≤ 7) se
-// retiraron el 2026-09-25: auditados como consumidos SOLO por Existencias (`inventario-v2.ts`,
-// `InventarioPanel.tsx`, este archivo y su test — nunca por Análisis/Producción).
+// retiraron el 2026-09-25 y NO se restauran al integrar main (decisión explícita de Felipe, cuarta
+// ronda del cierre): eran consumidos SOLO por Existencias — auditado de nuevo tras encontrar que
+// `porColgar`/su test suite (abajo, mergeados desde main, ADR-0208) también los mencionaban. Esa
+// mención era ilustrativa (contrastar «Por colgar» con la vieja «Reponer»), no una dependencia
+// funcional real: `porColgar` nunca llamó a `necesitaReponerPiso`. El test que sí la invocaba
+// («toda talla por colgar conserva su botón Reponer») se reescribió contra `calcularAccionHoy`
+// (`existencias-recomendaciones.test.ts`) — misma garantía, fuente canónica nueva.
+
+/** «Por colgar» (Frescura del piso, 2026-09-25): la talla tiene unidades DISPONIBLES en el almacén de
+ *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
+ *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
+ *
+ *  No usa `UMBRAL_REPOSICION_PISO` a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
+ *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
+ *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
+ *
+ *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que el semáforo y el modal de
+ *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
+ *  y la talla está por colgar; si lo del almacén está todo apartado, no hay nada que bajar y no lo está.
+ *  Donde la sede no separa piso de almacén (Taller: `null`) la pregunta no existe → nunca. */
+export function porColgar(c: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">): boolean {
+  if (c.pisoDisponible === null || c.almacenDisponible === null) return false;
+  return c.pisoDisponible <= 0 && c.almacenDisponible > 0;
+}
+
+/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo
+ *  disponible en el almacén de esas tallas — lo mismo que el modal de Reponer deja bajar). */
+export function resumirPorColgar(filas: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">[]): { tallas: number; unidades: number } {
+  let tallas = 0;
+  let unidades = 0;
+  for (const f of filas) {
+    if (!porColgar(f)) continue;
+    tallas += 1;
+    unidades += f.almacenDisponible ?? 0;
+  }
+  return { tallas, unidades };
+}
+
+/** Orden de la lista «Por colgar»: modelo, color y talla en su curva (S · M · L, 36 · 38). La encargada
+ *  cuelga por percha —un modelo en un color—, no talla por talla: si la M y la L de la misma casaca
+ *  negra salen separadas por otras prendas, baja una y se olvida de la otra. El `productoId` desempata
+ *  dos modelos con el mismo nombre para que sus tallas no se intercalen. Lo que no tiene color o talla
+ *  va al final de su grupo, no se pierde. Devuelve un arreglo nuevo: no reordena el que recibe. */
+export function ordenarPorModeloColorTalla<T extends { referencia: string; productoId: string; color: string | null; talla: string | null }>(filas: T[]): T[] {
+  const alFinal = (a: string | null, b: string | null, comparar: (x: string, y: string) => number) =>
+    a === b ? 0 : a === null ? 1 : b === null ? -1 : comparar(a, b);
+  return [...filas].sort(
+    (a, b) =>
+      a.referencia.localeCompare(b.referencia, "es") ||
+      a.productoId.localeCompare(b.productoId) ||
+      alFinal(a.color, b.color, (x, y) => x.localeCompare(y, "es")) ||
+      alFinal(a.talla, b.talla, compararTallas)
+  );
+}
+
+/** La percha de una talla: el modelo (por `productoId`, no por nombre) en un color. Es el grupo que
+ *  `ordenarPorModeloColorTalla` deja contiguo y que la paginación de «Por colgar» no parte entre páginas
+ *  (`paginarSinPartirGrupos`). */
+export function clavePercha(f: { productoId: string; color: string | null }): string {
+  return JSON.stringify([f.productoId, f.color]);
+}
 
 // ============================================================================
 // Umbrales del Resumen (ADR-0101; rehechos en ADR-0121) — los usa
