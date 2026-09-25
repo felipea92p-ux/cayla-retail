@@ -8,11 +8,17 @@ import {
   FALTA_DESCRIPCION,
   faltaEnPrendaSinRegistrar,
   opcionesDeColor,
+  pasoSiguiente,
   sugerirDescripcion,
   tallasDeCategoria,
   type DatosPrendaSinRegistrar,
   type ListasPrendaLibre,
 } from "@/lib/prenda-sin-registrar-reglas";
+
+/** La etiqueta del paso que toca se enciende en rojo: es la ruta que el modal le marca a la colaboradora. */
+function Etiqueta({ texto, toca }: { texto: string; toca: boolean }) {
+  return <span className={`transition-colors duration-300 ease-cayla ${toca ? "text-rojo" : ""}`}>{texto}</span>;
+}
 
 /**
  * «Prenda sin registrar» (ADR-0179): lo que caja anota de una prenda que llegó a piso sin pasar por almacén.
@@ -40,6 +46,7 @@ export function PrendaSinRegistrarModal({
   const idTalla = useId();
   const idCategoria = useId();
   const idColor = useId();
+  const idColorCampo = useId();
   const idDescripcion = useId();
 
   const categoria = listas.categorias.find((c) => c.id === categoriaId) ?? null;
@@ -62,12 +69,43 @@ export function PrendaSinRegistrarModal({
   const datos: DatosPrendaSinRegistrar = { descripcion, categoriaId, tallaId, colorCodigo, precio: Number(precio) };
   const falta = faltaEnPrendaSinRegistrar(datos);
   const faltaAlPie = faltaEnPrendaSinRegistrar(datos, { sinDescripcion: true });
+  // El paso que toca: su etiqueta se enciende, y al cerrar el anterior el cursor salta a él (Felipe, 2026-09-25).
+  const paso = pasoSiguiente(datos);
+
+  /** Tras elegir algo, lleva el cursor al paso que sigue. El precio no: se marca con el teclado de abajo. */
+  function avanzar(cambio: Partial<DatosPrendaSinRegistrar>) {
+    const siguiente = pasoSiguiente({ ...datos, ...cambio });
+    // Después del render (la talla recién se habilita) y de que el selector devuelva el foco a su propio botón.
+    requestAnimationFrame(() => {
+      const destino =
+        siguiente === "talla"
+          ? document.querySelector<HTMLElement>(`button[aria-labelledby="${idTalla}"]`)
+          : siguiente === "color"
+            ? document.getElementById(idColorCampo)
+            : siguiente === "descripcion"
+              ? document.getElementById(idDescripcion)
+              : null;
+      destino?.focus();
+    });
+  }
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
     // La talla elegida solo sobrevive si la nueva categoría también la ofrece.
     const nuevas = tallasDeCategoria(listas.tallasPorCategoria[id], listas.tallas);
-    if (!nuevas.some((t) => t.id === tallaId)) setTallaId("");
+    const tallaSigue = nuevas.some((t) => t.id === tallaId);
+    if (!tallaSigue) setTallaId("");
+    avanzar({ categoriaId: id, tallaId: tallaSigue ? tallaId : "" });
+  }
+
+  function elegirTalla(id: string) {
+    setTallaId(id);
+    avanzar({ tallaId: id });
+  }
+
+  function elegirColor(codigo: string) {
+    setColorCodigo(codigo);
+    avanzar({ colorCodigo: codigo });
   }
 
   function usarSugerencia() {
@@ -90,7 +128,7 @@ export function PrendaSinRegistrarModal({
       alCerrarEnfocar={alCerrarEnfocar}
     >
       <div className="space-y-1">
-        <Campo etiqueta="Categoría" idEtiqueta={idCategoria}>
+        <Campo etiqueta={<Etiqueta texto="Categoría" toca={paso === "categoria"} />} idEtiqueta={idCategoria}>
           <ComboBuscable
             valor={categoriaId}
             onValor={elegirCategoria}
@@ -102,20 +140,21 @@ export function PrendaSinRegistrarModal({
         </Campo>
 
         <div className="grid grid-cols-[7rem_1fr] gap-3">
-          <Campo etiqueta="Talla" idEtiqueta={idTalla}>
+          <Campo etiqueta={<Etiqueta texto="Talla" toca={paso === "talla"} />} idEtiqueta={idTalla}>
             <Desplegable
               valor={tallaId}
-              onValor={setTallaId}
+              onValor={elegirTalla}
               opciones={tallas.map((t) => ({ valor: t.id, texto: t.valor }))}
               marcador={categoriaId ? "Elegir" : "Primero la categoría"}
               deshabilitado={!categoriaId}
               idEtiqueta={idTalla}
             />
           </Campo>
-          <Campo etiqueta="Color" idEtiqueta={idColor}>
+          <Campo etiqueta={<Etiqueta texto="Color" toca={paso === "color"} />} idEtiqueta={idColor}>
             <ComboBuscable
+              id={idColorCampo}
               valor={colorCodigo}
-              onValor={setColorCodigo}
+              onValor={elegirColor}
               opciones={colores.map((c) => ({
                 valor: c.valor,
                 texto: c.texto,
@@ -131,7 +170,7 @@ export function PrendaSinRegistrarModal({
 
         <CampoTexto
           id={idDescripcion}
-          etiqueta="Descripción corta"
+          etiqueta={<Etiqueta texto="Descripción corta" toca={paso === "descripcion"} />}
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
           placeholder={sugerencia ?? "Blusa lino beige"}
@@ -139,7 +178,9 @@ export function PrendaSinRegistrarModal({
           pie={
             descripcionVacia ? (
               <span className="block">
-                <span className="block">{FALTA_DESCRIPCION}</span>
+                <span className="block">
+                  <Etiqueta texto={FALTA_DESCRIPCION} toca={paso === "descripcion"} />
+                </span>
                 {sugerencia ? (
                   <span className="mt-0.5 flex items-baseline gap-3">
                     <span className="text-tinta/75">
@@ -155,8 +196,12 @@ export function PrendaSinRegistrarModal({
           }
         />
 
-        <div className="card-cayla flex items-baseline justify-between px-4 py-2">
-          <span className="label-cayla text-[11px] text-tinta/65">Precio cobrado</span>
+        <div
+          className={`card-cayla flex items-baseline justify-between px-4 py-2 transition-colors duration-300 ease-cayla ${paso === "precio" ? "border-rojo/60" : ""}`}
+        >
+          <span className="label-cayla text-[11px] text-tinta/65">
+            <Etiqueta texto="Precio cobrado" toca={paso === "precio"} />
+          </span>
           <span className="font-display text-3xl text-tinta">S/{precio || "0.00"}</span>
         </div>
         <div className="grid grid-cols-3 gap-2 pt-2">
