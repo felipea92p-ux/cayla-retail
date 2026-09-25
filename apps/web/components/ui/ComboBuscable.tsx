@@ -38,6 +38,9 @@ export function ComboBuscable<T extends string>({
   autoFocus = false,
   className = "",
   id: idPropio,
+  limite = MAX_VISIBLES,
+  crear,
+  caja = false,
 }: {
   valor: T | "";
   onValor: (v: T) => void;
@@ -48,6 +51,12 @@ export function ComboBuscable<T extends string>({
   className?: string;
   /** Id del input, para enfocarlo desde un aviso. */
   id?: string;
+  /** Cuántas opciones se ven a la vez. Con 60 proveedores, 6 alcanzan: lo demás se encuentra tipeando (spike Nuevo producto, 2026-09-24). */
+  limite?: number;
+  /** Última opción de la lista para crear lo que no está («+ Registrar «Tex» como proveedor nuevo»). Recibe lo tipeado. */
+  crear?: { etiqueta: (texto: string) => string; onCrear: (texto: string) => void };
+  /** Campo en caja hundida (`caja-cayla`) en vez de línea: el de los formularios con caja. */
+  caja?: boolean;
 }) {
   const idGenerado = useId();
   const id = idPropio ?? idGenerado;
@@ -76,8 +85,16 @@ export function ComboBuscable<T extends string>({
     // Con el texto de la opción elegida sin tocar, se muestra todo: el
     // usuario abrió para cambiar, no para buscar lo que ya tiene.
     const lista = !k || (elegida && k === clave(elegida.texto)) ? opciones : opciones.filter((o) => clave(`${o.texto} ${o.detalle ?? ""}`).includes(k));
-    return lista.slice(0, MAX_VISIBLES);
+    return lista.slice(0, limite);
+  }, [texto, opciones, elegida, limite]);
+  // Cuántas coinciden en total (para decir «+12 más: sigue escribiendo» cuando el límite las corta).
+  const totalCoinciden = useMemo(() => {
+    const k = clave(texto);
+    return !k || (elegida && k === clave(elegida.texto)) ? opciones.length : opciones.filter((o) => clave(`${o.texto} ${o.detalle ?? ""}`).includes(k)).length;
   }, [texto, opciones, elegida]);
+  // La opción «crear» va al final y se alcanza con las flechas como cualquier otra (índice = filtradas.length).
+  const hayCrear = Boolean(crear) && !opciones.some((o) => clave(o.texto) === clave(texto) && clave(texto) !== "");
+  const ultimo = filtradas.length - 1 + (hayCrear ? 1 : 0);
 
   useEffect(() => {
     if (!abierto) return;
@@ -95,6 +112,11 @@ export function ComboBuscable<T extends string>({
     setAbierto(false);
   }
 
+  function crearDesdeTexto() {
+    setAbierto(false);
+    crear?.onCrear(texto.trim());
+  }
+
   function cerrarSinElegir() {
     setAbierto(false);
     setTexto(elegida?.texto ?? "");
@@ -109,13 +131,14 @@ export function ComboBuscable<T extends string>({
     if (!abierto) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActivo((a) => Math.min(filtradas.length - 1, a + 1));
+      setActivo((a) => Math.min(ultimo, a + 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActivo((a) => Math.max(0, a - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       if (filtradas[activo]) elegir(filtradas[activo]);
+      else if (hayCrear && activo === filtradas.length) crearDesdeTexto();
     } else if (e.key === "Escape") {
       e.preventDefault();
       cerrarSinElegir();
@@ -155,7 +178,11 @@ export function ComboBuscable<T extends string>({
         }}
         onKeyDown={alTeclado}
         onBlur={() => cerrarSinElegir()}
-        className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
+        className={
+          caja
+            ? "caja-cayla h-10 w-full min-w-0 px-3 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            : "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
+        }
       />
       {abierto && posLista && (
         <ul
@@ -166,7 +193,7 @@ export function ComboBuscable<T extends string>({
           aria-label={etiquetaAccesible}
           className="card-cayla z-50 overflow-y-auto shadow-lg"
         >
-          {filtradas.length === 0 ? (
+          {filtradas.length === 0 && hayCrear && texto.trim() === "" ? null : filtradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
           ) : (
             filtradas.map((o, i) => (
@@ -191,8 +218,26 @@ export function ComboBuscable<T extends string>({
               </li>
             ))
           )}
-          {opciones.length > MAX_VISIBLES && filtradas.length === MAX_VISIBLES && (
-            <li className="px-3 py-2 text-xs text-tinta/55">Se muestran {MAX_VISIBLES}. Sigue tipeando para acortar.</li>
+          {totalCoinciden > filtradas.length && (
+            <li className="px-3 py-2 text-xs text-tinta/55">
+              {limite < MAX_VISIBLES ? `+${totalCoinciden - filtradas.length} más: sigue escribiendo` : `Se muestran ${limite}. Sigue tipeando para acortar.`}
+            </li>
+          )}
+          {hayCrear && crear && (
+            <li
+              id={`${id}-op-${filtradas.length}`}
+              data-i={filtradas.length}
+              role="option"
+              aria-selected={false}
+              onMouseEnter={() => setActivo(filtradas.length)}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                crearDesdeTexto();
+              }}
+              className={`cursor-pointer border-t border-sand px-3 py-2.5 text-sm font-semibold ${activo === filtradas.length ? "bg-sand/60 text-tinta" : "text-tinta/85"}`}
+            >
+              {crear.etiqueta(texto.trim())}
+            </li>
           )}
         </ul>
       )}

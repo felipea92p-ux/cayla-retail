@@ -148,7 +148,8 @@ button{background:none;border:0;cursor:pointer}
 .elegido-prov{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:8px;padding:9px 12px;font-size:14px}
 .elegido-prov button{margin-left:auto}
 /* paleta compacta: un renglón por familia, círculos de 26 px; el nombre sale al pasar el mouse y en «Elegidos» */
-.paleta{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:6px 12px;background:var(--crema)}
+.paleta{margin-top:10px;border:1px solid var(--sand);border-radius:12px;padding:6px 12px;background:var(--crema);display:grid;column-gap:24px}
+@container (min-width:900px){.paleta{grid-template-columns:1fr 1fr}.paleta .fam-c{border-top:0}}
 .paleta .fam-c{display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px;align-items:center;padding:6px 0;border-top:1px solid var(--sand)}
 .paleta .fam-c:first-child{border-top:0}
 .paleta .fam-c p{font-size:11.5px;color:var(--taupe)}
@@ -158,6 +159,19 @@ button{background:none;border:0;cursor:pointer}
 .muestra[aria-pressed=true]{box-shadow:0 0 0 2px var(--papel),0 0 0 3.5px var(--tinta)}
 .muestra[aria-pressed=true]::after{content:"✓"}
 .muestra.claro{color:var(--tinta)}.muestra.oscuro{color:#fff}
+.fotos-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.foto-c{border:1px solid var(--sand);border-radius:12px;padding:8px;background:var(--crema)}
+.foto-c p{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;margin-bottom:6px}
+.foto-c p b{margin-left:auto;color:var(--taupe);font-weight:500}
+.foto-c .fila-f{display:flex;flex-wrap:wrap;gap:6px}
+.miniatura{width:52px;height:64px;border-radius:6px;border:1px solid var(--sand);position:relative;display:grid;place-items:center}
+.miniatura i{width:22px;height:30px;border-radius:3px;background:rgba(251,248,242,.85)}
+.miniatura button{position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(251,248,242,.92);font-size:12px}
+.mas-foto{width:52px;height:64px;border-radius:6px;border:1px dashed var(--t25);color:var(--taupe);font-size:18px}
+.mas-foto:hover{border-color:var(--t45);color:var(--tinta)}
+.ficha .foto .grande{position:absolute;inset:0;display:grid;place-items:center}
+.ficha .foto .grande i{width:70px;height:92px;border-radius:6px;background:rgba(251,248,242,.85)}
+.ficha .foto .cuenta{position:absolute;right:10px;top:10px;background:rgba(251,248,242,.92);border-radius:999px;padding:1px 8px;font-size:11px;color:var(--tinta)}
 .elegidos{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
 .quitable{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--tinta);background:var(--t07);border-radius:999px;padding:3px 6px 3px 9px;font-size:12.5px}
 .quitable button{width:18px;height:18px;border-radius:50%;font-size:12px;line-height:1;color:var(--t60)}
@@ -289,7 +303,8 @@ table.matriz{border-collapse:collapse;width:100%;font-size:13px}
       <li><b>El resumen pasa a ser la prenda misma</b>: código, nombre, colores y precio como se van a ver. En vez de la lista «Falta» completa, una sola frase: el siguiente paso.</li>
       <li><b>Nunca una lista entera de botones.</b> Proveedores (~60) y marcas se eligen con un buscador cuya lista flota sobre la pantalla y muestra 6–7 resultados; «+ Registrar como nuevo» es la última opción de esa lista, no un modo aparte.</li>
       <li><b>Colores:</b> a la vista, los 5 más usados de la categoría y un buscador. «Ver los 40 colores» abre una paleta de círculos, un renglón por familia (ocupa lo que hoy ocupan dos familias). Lo que elijas fuera de los frecuentes queda en «También elegiste», con ×.</li>
-      <li><b>Celular:</b> la ficha baja a una barra fija con el botón Crear y el siguiente paso.</li>
+      <li><b>Fotos al crear:</b> en «Cómo se hace» hay una casilla por color (y una general). Las fotos quedan en el navegador y se suben recién cuando la base ya creó el producto: cancelar no deja archivos sueltos y, si una no sube, la pantalla de éxito dice cuál. Antes el alta no dejaba subir fotos por eso mismo.</li>
+      <li><b>Celular:</b> la ficha baja a una barra fija, encima de la navegación de abajo, con el botón Crear y el siguiente paso.</li>
     </ul>
   </div>
 </div></div>
@@ -347,12 +362,12 @@ const EXISTENTES = [["Blusa Aurora","BL-0098"],["Blusa Aurora Manga Larga","BL-0
 /* ---------------- estado ---------------- */
 let s;
 function vacio(){ return {abierto:1, familia:null, cat:null, busca:"", nombre:"", desc:"", pareja:null, tallas:[], tejido:null, patron:null,
-  colores:[], paleta:false, nuevaMarca:false, nm:"", prov:null, provNuevo:false, provTexto:"", ruc:"", lista:null, q:{mp:"",prov:"",color:""}, precio:"", costo:"", fuera:[], distinto:false, precios:{}, verEtiquetas:false, etiquetas:[], barra:false}; }
+  colores:[], fotos:[], paleta:false, nuevaMarca:false, nm:"", prov:null, provNuevo:false, provTexto:"", ruc:"", lista:null, q:{mp:"",prov:"",color:""}, precio:"", costo:"", fuera:[], distinto:false, precios:{}, verEtiquetas:false, etiquetas:[], barra:false}; }
 const PRESETS = {
   vacio: () => vacio(),
   medio: () => ({...vacio(), abierto:3, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", pareja:0, tallas:[...HABITUALES]}),
   listo: () => ({...vacio(), abierto:4, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", desc:"Manga globo, botones forrados", pareja:0,
-    tallas:[...HABITUALES,"XL"], tejido:"Lino", patron:"Liso", colores:["Blanco hueso","Terracota","Azul marino"].map(codColor), precio:"89.90", costo:"38.50", fuera:[codColor("Azul marino")+"|XL"], precios:{[codColor("Blanco hueso")+"|XL"]:"94.90"}}),
+    tallas:[...HABITUALES,"XL"], tejido:"Lino", patron:"Liso", colores:["Blanco hueso","Terracota","Azul marino"].map(codColor), fotos:[codColor("Blanco hueso"), codColor("Blanco hueso"), codColor("Terracota")], precio:"89.90", costo:"38.50", fuera:[codColor("Azul marino")+"|XL"], precios:{[codColor("Blanco hueso")+"|XL"]:"94.90"}}),
   repetido: () => ({...vacio(), abierto:2, familia:"indumentaria", cat:"blusas", nombre:"blusa  aurora", pareja:0}),
   marca: () => ({...vacio(), abierto:2, familia:"indumentaria", cat:"blusas", nombre:"blusa lirio", nuevaMarca:true, nm:"Kantu", lista:"prov", q:{mp:"",prov:"tex",color:""}}),
   colores: () => ({...PRESETS.medio(), tejido:"Lino", patron:"Liso", colores:[codColor("Blanco hueso"), codColor("Petróleo"), codColor("Coral")], paleta:true}),
@@ -403,7 +418,7 @@ const CORTOS = {1:"Qué es",2:"Nombre y marca",3:"Cómo se hace",4:"Precio"};
 function resumenPaso(n){
   if (n===1) return `${fam().nombre} › ${cat()[1]}`;
   if (n===2) return `${titulo(s.nombre)} · ${PAREJAS[s.pareja][0]} (${PAREJAS[s.pareja][1]})`;
-  if (n===3) return [tallasOrden().join(" "), s.tejido, s.patron, s.colores.length ? s.colores.length+" colores" : "sin color"].filter(Boolean).join(" · ");
+  if (n===3) return [tallasOrden().join(" "), s.tejido, s.patron, s.colores.length ? s.colores.length+" colores" : "sin color", s.fotos.length ? s.fotos.length+" fotos" : null].filter(Boolean).join(" · ");
   if (n===4) return `${soles(s.precio)} · ${celdasDentro().length} variantes`;
 }
 function puedeAbrir(n){ for (let i=1;i<n;i++) if(!listo[i]()) return false; return true; }
@@ -482,6 +497,11 @@ function cuerpo(n){
           ${s.paleta ? `<div class="paleta revela">${FAM_COLOR.map(([f]) => `<div class="fam-c"><p>${f}</p><div class="muestras">${Object.keys(COLORES).filter(c => COLORES[c][2]===f).map(c => `<button class="muestra ${claroColor(COLORES[c][1])?"claro":"oscuro"}" data-color="${c}" aria-pressed="${s.colores.includes(c)}" title="${COLORES[c][0]}" aria-label="${COLORES[c][0]}" style="background:${COLORES[c][1]}"></button>`).join("")}</div></div>`).join("")}</div>` : ""}
           ${s.colores.some(c => !FRECUENTES.includes(c)) ? `<div class="elegidos"><span class="ayuda" style="margin:0">También elegiste:</span>${s.colores.filter(c => !FRECUENTES.includes(c)).map(c => `<span class="quitable"><span class="punto" style="background:${COLORES[c][1]}"></span>${COLORES[c][0]}<button data-color="${c}" aria-label="Quitar ${COLORES[c][0]}">×</button></span>`).join("")}</div>` : ""}
         </div></div>
+      <div class="fila"><div class="et">Fotos<small>Opcional · una o más por color</small></div>
+        <div><div class="fotos-g">${[...s.colores, null].map(c => { const suyas = s.fotos.map((f,i)=>[f,i]).filter(([f]) => f === c); const hex = c ? COLORES[c][1] : "#d8cfbf";
+          return `<div class="foto-c"><p>${c ? `<span class="punto" style="background:${hex}"></span>${COLORES[c][0]}` : (s.colores.length ? "General" : "Fotos")}${suyas.length ? `<b>${suyas.length}</b>` : ""}</p>
+            <div class="fila-f">${suyas.map(([f,i]) => `<div class="miniatura" style="background:${hex}"><i></i><button data-quitar-foto="${i}" aria-label="Quitar foto">×</button></div>`).join("")}<button class="mas-foto" data-foto="${c ?? ""}" aria-label="Agregar foto">+</button></div></div>`; }).join("")}</div>
+        <p class="ayuda">JPG, PNG o WebP, hasta 5 MB. <b>Se suben al crear el producto</b>; si cancelas, no se guarda nada. La primera del primer color queda de principal.</p></div></div>
       ${pie(3,"Seguir al precio")}`;
   }
   if (n===4){
@@ -572,13 +592,15 @@ function pintaMatriz(){
   return `<table class="matriz">${cab}<tbody>${filas}</tbody></table>`;
 }
 
+/* La principal: la primera foto del primer color elegido; si no hay de colores, la primera general. */
+function fotoPrincipal(){ for (const c of s.colores) if (s.fotos.includes(c)) return c; return s.fotos.includes(null) ? "general" : null; }
 function pintarFicha(){
   const sig = siguiente(), c = cat(), base = codigoBase(), dentro = celdasDentro();
   const codVar = base ? dentro.slice(0,3).map(x => [base, x.c, x.t==="Única" ? null : x.t].filter(Boolean).join("-")) : [];
   const puntos = s.colores.map(c => `<i style="background:${COLORES[c][1]}"></i>`).join("");
   const html = `
     <div class="tarjeta">
-      <div class="foto">Las fotos se agregan por color al terminar<div class="puntos">${puntos}</div></div>
+      <div class="foto">${fotoPrincipal() ? `<div class="grande" style="background:${COLORES[fotoPrincipal()]?.[1] ?? "#d8cfbf"}"><i></i></div><span class="cuenta">${s.fotos.length} foto${s.fotos.length===1?"":"s"}</span>` : "Agrega fotos por color en «Cómo se hace»"}<div class="puntos">${puntos}</div></div>
       <div class="cuerpo">
         <p class="cod mono tab">${base ?? '<span class="vacio">— código —</span>'}</p>
         <h2 class="disp">${s.nombre.trim() ? esc(titulo(s.nombre)) : '<span class="vacio">Sin nombre</span>'}</h2>
@@ -633,7 +655,9 @@ document.addEventListener("click", e => {
   if (t.id==="curva"){ s.tallas=[...HABITUALES]; pintar(); return; }
   if (d.tejido){ s.tejido = s.tejido===d.tejido ? null : d.tejido; pintar(); return; }
   if (d.patron){ s.patron = s.patron===d.patron ? null : d.patron; pintar(); return; }
-  if (d.color){ s.colores = s.colores.includes(d.color) ? s.colores.filter(x=>x!==d.color) : [...s.colores,d.color]; pintar(); return; }
+  if (d.color){ if (s.colores.includes(d.color)){ s.colores = s.colores.filter(x=>x!==d.color); s.fotos = s.fotos.filter(f=>f!==d.color); } else s.colores = [...s.colores,d.color]; pintar(); return; }
+  if (d.foto!==undefined){ s.fotos = [...s.fotos, d.foto || null]; pintar(); return; }
+  if (d.quitarFoto!==undefined){ s.fotos = s.fotos.filter((_,i)=>i!==Number(d.quitarFoto)); pintar(); return; }
   if (t.id==="ver-paleta"){ s.paleta = !s.paleta; pintar(); return; }
   if (t.id==="nueva-marca"){ s.nuevaMarca = true; s.nm = titulo(s.q.mp); s.lista = null; pintar(); $("in-nm")?.focus(); return; }
   if (t.id==="cancelar-marca"){ s.nuevaMarca = false; s.nm=""; s.prov=null; s.provNuevo=false; s.provTexto=""; s.ruc=""; pintar(); return; }
