@@ -469,10 +469,10 @@ body {
     align-items: center;
     gap: 1.3mm;
   }
-  .etq-cab img {
+  .etq-cab svg {
+    flex: none;
     width: 6.2mm;
     height: auto;
-    filter: brightness(0); /* el isotipo es rojo; la térmica lo necesita negro */
   }
   .etq-cab b {
     font-size: 3mm;

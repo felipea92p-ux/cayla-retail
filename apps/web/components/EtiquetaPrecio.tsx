@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { CodigoQR } from "@/components/CodigoQR";
 import { esTallaUnica, fechaVigencia, precioEtiqueta, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
@@ -26,9 +25,14 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
   return (
     <article className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
       <header className="etq-cab">
-        {/* `unoptimized` + `eager`: el PNG original (la térmica no gana nada con WebP) y cargado aunque la hoja de
-            impresión esté oculta — una imagen perezosa dentro de un `display:none` puede no llegar al papel. */}
-        <Image src="/cayla-isotipo.png" alt="" width={223} height={150} unoptimized loading="eager" />
+        {/* El colibrí en vector (calcado de /cayla-isotipo.png, 223 × 150): el PNG de 223 px, ennegrecido con filtro,
+            salía serruchado en la Brother (Felipe, 2026-09-25). En vector la térmica lo dibuja nítido a su resolución. */}
+        <svg viewBox="0 0 223 150" aria-hidden fill="none" stroke="#000" strokeWidth={7} strokeLinejoin="round">
+          <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102" />
+          <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87" />
+          <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" />
+          <path d="M172,16 C156,22 144,38 134,62" />
+        </svg>
         <b>CAYLA</b>
       </header>
 
