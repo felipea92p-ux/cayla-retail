@@ -53,7 +53,7 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
-import { EscanerCamara } from "@/components/EscanerCamara";
+import { EscanerCamara, precargarLectorQR } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
@@ -321,6 +321,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Teléfono (2026-09-25): no hay lector, así que el campo de escaneo se vuelve un botón que abre la cámara
   // (`EscanerCamara`). La lupa de al lado cambia a buscar por nombre, y la cámara vuelve a estar a un toque.
   const esTelefono = useConsultaMedia(MQ_TELEFONO);
+  // En el teléfono, el lector QR se baja ya (con red) para que Vender abierta sin internet también pueda escanear (ADR-0210).
+  useEffect(() => {
+    if (esTelefono) precargarLectorQR();
+  }, [esTelefono]);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   const [buscarPorTexto, setBuscarPorTexto] = useState(false);
   const [mostrarVentasHoy, setMostrarVentasHoy] = useState(false);

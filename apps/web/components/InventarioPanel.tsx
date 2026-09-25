@@ -33,8 +33,10 @@ import {
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
+  puedeRetirarPiso,
   UMBRAL_REPOSICION_PISO,
   type EstadoStock,
+  type SentidoPiso,
 } from "@/lib/inventario-reglas";
 import { textoCobertura } from "@/lib/resumen-formato";
 import { bandaDeCobertura, calcularVelocidad, type Cobertura } from "@/lib/resumen-reglas";
@@ -249,7 +251,8 @@ export function InventarioPanel({
   const [talla, setTalla] = useState(TODAS);
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
-  const [reponiendo, setReponiendo] = useState<FilaExistencias | null>(null);
+  // Reponer y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
+  const [moviendo, setMoviendo] = useState<{ fila: FilaExistencias; sentido: SentidoPiso } | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(false);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
@@ -670,36 +673,49 @@ export function InventarioPanel({
               <div key={f.varianteId} className={fila(plantilla)}>
                 {/* La misma celda que dibuja Conteo (`ui/PrendaCelda.tsx`). */}
                 <ProductoVarianteCelda referencia={f.referencia} sku={f.sku} talla={f.talla} color={f.color} colorHex={f.colorHex} fotoUrl={f.fotoUrl} />
-                {separa && (
-                  <span className={celda("centro", "text-sm tabular-nums")}>
-                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Piso · Almacén</span>
-                    <span className={(f.pisoDisponible ?? f.piso) !== null && (f.pisoDisponible ?? f.piso)! <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
-                    <span className="text-tinta/45"> · </span>
-                    <span className="text-tinta">{f.almacen}</span>
-                  </span>
-                )}
-                <span className={celda("centro", "text-sm font-semibold tabular-nums text-tinta")}>
-                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Disponible</span>
-                  {f.disponible}
-                  {f.apartado > 0 && (
-                    <span className="block text-[10px] font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientas: no se pueden vender">
-                      {f.apartado} {f.apartado === 1 ? "apartada" : "apartadas"}
+                {/* Las 4 cifras (Piso·Almacén, Disponible, Cobertura, Ritmo) amontonadas y pegadas a la
+                    izquierda era ilegible en celular (Felipe, 2026-09-25): acá se agrupan en una grilla de
+                    2×2 con cada una en su propia tarjetita, para que se lean como datos separados, no como
+                    una sola oración. `sm:contents` disuelve este envoltorio desde escritorio: ahí cada cifra
+                    vuelve a ser su propia columna de la tabla, en el mismo orden — la plantilla `sm:grid-cols`
+                    de arriba no cambia. */}
+                <div className="col-span-full grid grid-cols-2 gap-2 border-t border-sand/70 pt-3 sm:contents sm:border-0 sm:pt-0">
+                  {separa && (
+                    <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 text-sm tabular-nums sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
+                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Piso · Almacén</span>
+                      <span className={(f.pisoDisponible ?? f.piso) !== null && (f.pisoDisponible ?? f.piso)! <= UMBRAL_REPOSICION_PISO ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
+                      <span className="text-tinta/45"> · </span>
+                      <span className="text-tinta">{f.almacen}</span>
                     </span>
                   )}
-                </span>
-                {separa && (
-                  <span className={celda("centro")}>
-                    <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Cobertura</span>
-                    <CeldaCobertura c={f.cobertura} />
+                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 text-sm font-semibold tabular-nums text-tinta sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
+                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Disponible</span>
+                    {f.disponible}
+                    {f.apartado > 0 && (
+                      <span className="block text-[10px] font-normal leading-3 text-ambar-profundo" title="Siguen en la tienda, pero apartadas para clientas: no se pueden vender">
+                        {f.apartado} {f.apartado === 1 ? "apartada" : "apartadas"}
+                      </span>
+                    )}
                   </span>
-                )}
-                <span className={celda("centro", "text-sm tabular-nums text-tinta/80")}>
-                  <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">Ritmo (7D)</span>
-                  {ritmo === null ? <span className="text-tinta/40">N/D</span> : `${ritmo.toFixed(1)} uds/día`}
-                </span>
+                  {separa && (
+                    <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
+                      <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Cobertura</span>
+                      <CeldaCobertura c={f.cobertura} />
+                    </span>
+                  )}
+                  <span className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 text-sm tabular-nums text-tinta/80 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0")}>
+                    <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Ritmo (7D)</span>
+                    {ritmo === null ? <span className="text-tinta/40">N/D</span> : `${ritmo.toFixed(1)} uds/día`}
+                  </span>
+                </div>
+                {/* En celular el estado (chip + «Reponer», uno encima del otro) va a la derecha de «En camino» y
+                    «En la red», en el hueco que dejaban vacío, en vez de ocupar un renglón propio (Felipe,
+                    2026-09-25). `sm:contents` + `sm:[grid-area:auto]` devuelven cada celda a su columna de
+                    escritorio en el orden de siempre. */}
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 border-t border-sand/70 pt-3 sm:contents">
                 {separa && (
-                  <span className={celda("centro", "overflow-visible")}>
-                    <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                  <span className={celda("centro", "col-start-2 row-span-2 row-start-1 overflow-visible sm:[grid-area:auto]")}>
+                    <span className="flex flex-col items-end gap-1.5 sm:inline-flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-center sm:gap-x-2 sm:gap-y-1">
                       {/* «Por colgar» va primero y en todas las vistas (es un eje, como «Dañado»): sin él, una
                           talla sin nada colgado y con poca reserva mostraba solo «Stock bajo · Pedir traslado»
                           junto a «Reponer», y la encargada no sabía si colgar o pedir. Las dos son ciertas: hoy
@@ -731,7 +747,7 @@ export function InventarioPanel({
                           type="button"
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
-                          onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
+                          onClick={() => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "bajar" })}
                           className="btn-cayla btn-primario px-2 py-0.5 text-xs"
                         >
                           Reponer
@@ -755,15 +771,20 @@ export function InventarioPanel({
                     </span>
                   </span>
                 )}
-                <span className={celda("centro", `text-sm tabular-nums ${f.enTransito > 0 ? "text-verde-profundo" : "text-tinta/35"}`)}>
+                <span
+                  className={celda(
+                    "centro",
+                    `col-start-1 text-sm tabular-nums sm:[grid-area:auto] ${f.enTransito > 0 ? "text-verde-profundo" : "text-tinta/35"}`,
+                  )}
+                >
                   <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En camino</span>
                   {f.enTransito > 0 ? `+${f.enTransito}` : "—"}
                 </span>
-                <span className={celda("centro", "text-xs")} title={red?.detalle}>
+                <span className={celda("centro", "col-start-1 text-xs sm:[grid-area:auto]")} title={red?.detalle}>
                   <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">En la red</span>
                   {red ? (
                     <>
-                      <span className="block text-tinta">
+                      <span className="block whitespace-normal text-tinta sm:whitespace-nowrap">
                         Disponible en {red.sedes} {red.sedes === 1 ? "sede" : "sedes"}: {red.total} {red.total === 1 ? "ud" : "uds"}
                       </span>
                       <span className="block truncate text-taupe">{red.detalle}</span>
@@ -772,9 +793,14 @@ export function InventarioPanel({
                     <span className="text-tinta/35">—</span>
                   )}
                 </span>
-                <span className={celda("centro", "overflow-visible")}>
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="flex flex-col items-center gap-1">
+                </div>
+                <span className={celda("centro", "overflow-visible border-t border-sand/70 pt-3 sm:border-0 sm:pt-0")}>
+                  {/* En celular Apartar/Ajustar iban uno encima del otro, amontonados (Felipe, 2026-09-25):
+                      ahora comparten la línea, Apartar pegado a la izquierda y Ajustar pegado a la derecha
+                      (junto al «···»). Desde `sm` el grupo Apartar/Ajustar vuelve a apilarse, centrado, con el
+                      menú al lado — la misma columna de escritorio de siempre. */}
+                  <span className="flex w-full items-center gap-2 sm:w-auto sm:justify-center">
+                    <span className="flex min-w-0 flex-1 items-center justify-between gap-2 sm:flex-none sm:flex-col sm:items-center sm:gap-1">
                       {puedeApartar && f.disponible > 0 && (
                         <button
                           type="button"
@@ -795,13 +821,31 @@ export function InventarioPanel({
                         </button>
                       )}
                     </span>
-                    {/* «···»: un solo destino real — el historial del producto (verificado que existe como
-                        página propia; `/productos/[id]` a secas SOLO existe como modal interceptado desde
-                        DENTRO de /productos, no como destino navegable — de ahí llegando, un `router.push`
-                        directo daba 404). No se inventan acciones que no llevan a ningún lado. */}
+                    {/* «···»: las acciones de la fila que no son urgentes. No se inventan acciones que no llevan
+                        a ningún lado.
+                        - «Retirar del piso» (D-41, 2026-09-25): el camino de vuelta, del piso al almacén. Mismo
+                          permiso y mismo modal que «Reponer», pero SIN umbral (`puedeRetirarPiso`): basta que quede
+                          algo libre colgado. Vive aquí y NO en «Prioridad / Estado» a propósito: esa celda es el
+                          semáforo y lo que hay en ella se lee como orden del sistema. Con «Reponer» al lado (piso 3,
+                          almacén 12) la misma celda decía «súbela» y «bájala» a la vez.
+                        - El historial del producto (verificado que existe como página propia; `/productos/[id]` a
+                          secas SOLO existe como modal interceptado desde DENTRO de /productos, no como destino
+                          navegable — de ahí llegando, un `router.push` directo daba 404). */}
                     <MenuAcciones
                       etiqueta={`Más acciones: ${f.referencia}`}
-                      items={[{ clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) }]}
+                      items={[
+                        ...(puedeReponer && puedeRetirarPiso(f.pisoDisponible)
+                          ? [
+                              {
+                                clave: "retirar",
+                                etiqueta: "Retirar del piso",
+                                // Como «Reponer»: el modal ofrece y valida contra lo DISPONIBLE (lo apartado no se mueve, ADR-0141).
+                                onSelect: () => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "retirar" }),
+                              },
+                            ]
+                          : []),
+                        { clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) },
+                      ]}
                     />
                   </span>
                 </span>
@@ -836,13 +880,14 @@ export function InventarioPanel({
       )}
       </div>
 
-      {reponiendo && sububicacionPiso && sububicacionAlmacen && (
+      {moviendo && sububicacionPiso && sububicacionAlmacen && (
         <ReponerPisoModal
-          fila={reponiendo}
+          sentido={moviendo.sentido}
+          fila={moviendo.fila}
           ubicacionId={ubicacionId}
           sububicacionPisoId={sububicacionPiso.id}
           sububicacionAlmacenId={sububicacionAlmacen.id}
-          onClose={() => setReponiendo(null)}
+          onClose={() => setMoviendo(null)}
         />
       )}
 

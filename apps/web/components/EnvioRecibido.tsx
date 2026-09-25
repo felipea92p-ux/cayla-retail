@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CloudOff } from "lucide-react";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
@@ -28,6 +29,9 @@ export type ResultadoEnvio = {
    *  recibió no es líder: el reclamo es dinero y vive en `/compras/notas-credito`). */
   porReclamar: number;
   yaRegistrado: boolean;
+  /** Se cortó el internet al confirmar: el envío quedó en la cola de este navegador y sube solo (ADR-0210). Todavía
+   *  no hay lotes (sin etiquetas de precio) ni resultado de traslados: eso lo decide la base al subir. */
+  sinConexion?: boolean;
   /** Lo que quedó escrito en el stock, prenda por prenda. */
   movimientos: MovimientoDelEnvio[];
 };
@@ -41,22 +45,34 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
   const porEtiquetar = ok.unidades - ok.deOtraSede;
   return (
     <div className="card-cayla anim-entra flex flex-col items-center gap-2 px-6 pb-8 pt-10 text-center">
-      <span aria-hidden className="relative mb-2 block h-[76px] w-[76px]">
-        <span className="anim-onda absolute inset-[6px] rounded-full border-2 border-verde" />
-        <span className="anim-onda anim-onda-2 absolute inset-[6px] rounded-full border-2 border-verde" />
-        <svg viewBox="0 0 76 76" className="anim-sello relative h-[76px] w-[76px] fill-none stroke-verde-profundo" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle pathLength="1" cx="38" cy="38" r="33" />
-          <path pathLength="1" d="M24 39l10 10 19-21" />
-        </svg>
-      </span>
-      <p className="label-cayla text-[11px] text-tinta/65">{ok.yaRegistrado ? "Envío ya registrado" : "Envío recibido"}</p>
+      {ok.sinConexion ? (
+        // Sin conexión no hay «visto» verde: todavía no se registró nada. Nube tachada en ámbar, quieta.
+        <span aria-hidden className="mb-2 grid h-[76px] w-[76px] place-items-center rounded-full border-2 border-ambar text-ambar-profundo">
+          <CloudOff className="h-8 w-8" strokeWidth={1.6} />
+        </span>
+      ) : (
+        <span aria-hidden className="relative mb-2 block h-[76px] w-[76px]">
+          <span className="anim-onda absolute inset-[6px] rounded-full border-2 border-verde" />
+          <span className="anim-onda anim-onda-2 absolute inset-[6px] rounded-full border-2 border-verde" />
+          <svg viewBox="0 0 76 76" className="anim-sello relative h-[76px] w-[76px] fill-none stroke-verde-profundo" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle pathLength="1" cx="38" cy="38" r="33" />
+            <path pathLength="1" d="M24 39l10 10 19-21" />
+          </svg>
+        </span>
+      )}
+      <p className="label-cayla text-[11px] text-tinta/65">{ok.sinConexion ? "Envío guardado sin conexión" : ok.yaRegistrado ? "Envío ya registrado" : "Envío recibido"}</p>
+      {ok.sinConexion && (
+        <p className="max-w-lg text-sm text-ambar-profundo">
+          Quedó guardado en este equipo y sube solo cuando vuelva el internet. No cierres esta pestaña. Las etiquetas de precio se imprimen cuando suba.
+        </p>
+      )}
       {ok.unidades > 0 ? (
         <>
           <p className="font-display text-[44px] leading-[1.1] tabular-nums text-tinta">
             <CifraQueCuenta valor={ok.unidades} alMontar /> {ok.unidades === 1 ? "unidad" : "unidades"}
           </p>
           <p className="max-w-lg text-sm text-tinta/70">
-            Ya suman al stock de {ubicacionNombre}
+            {ok.sinConexion ? "Sumarán" : "Ya suman"} al stock de {ubicacionNombre}
             {ok.proveedores > 0 && `, de ${ok.proveedores === 1 ? "un proveedor" : `${ok.proveedores} proveedores`}`}
             {ok.extras > 0 && ` (${ok.extras} ${ok.extras === 1 ? "prenda" : "prendas"} fuera de comprobante)`}
             {ok.deOtraSede > 0 && ` y ${ok.deOtraSede} de otra sede`}.
@@ -119,9 +135,12 @@ export function EnvioRecibido({ resultado: ok, ubicacionNombre, onOtroEnvio }: {
         <Boton peso="discreto" onClick={onOtroEnvio}>
           Recibir otro envío
         </Boton>
-        <Link href="/recibir?vista=recibidas&nueva=1" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema hover:bg-rojo">
-          Ver recibidas
-        </Link>
+        {/* Sin red, navegar deja la pestaña en una página que no carga (y la cola solo sube desde Recibir). */}
+        {!ok.sinConexion && (
+          <Link href="/recibir?vista=recibidas&nueva=1" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema hover:bg-rojo">
+            Ver recibidas
+          </Link>
+        )}
       </div>
     </div>
   );

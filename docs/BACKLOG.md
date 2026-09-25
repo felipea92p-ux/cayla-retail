@@ -37,14 +37,24 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 
 ---
 
+## 🎯 Modo sin conexión para agregar productos (2026-09-25, ADR-0210) — solo web, sin migración
+- [x] **Paso 1 — Recibir mercadería.** Cola genérica (`lib/cola-offline.ts` + `useColaOffline`), sincronizador único en el layout (`ColasSinConexion`), `/recibir` (`recibir_envio`) y `/inventario/recibir` (`recibir_lote`). Lo contado sale de «pendientes» mientras espera. Probado en local cortando la red: encola, sube al volver, no duplica con el mismo token, un rechazo queda con «Descartar», una RPC fuera de la lista blanca no corre.
+- [x] **Paso 2 — Alta de producto** sin red: «pendiente de código» hasta subir (Felipe 2A), fotos en IndexedDB que suben después del producto, freno a dos altas con el mismo nombre en la cola. Probado: `CIN-0001` con sus 3 variantes al volver la red.
+- [x] **Combo «Responsable» sin red:** recuerda la última lista de turno por sede (máx. 12 h) y lo dice.
+- [x] **Paso 3 — Abrir pantallas sin red** (service worker `public/sw.js`): Vender (solo copia de hoy, Felipe «Copia de hoy»), Recibir, Ingreso sin comprobante y Nuevo producto; el resto muestra «Sin conexión». Aviso de copia con su hora; copias borradas al salir o al cambiar de cuenta (las colas no). Probado con el servidor apagado.
+- [ ] **Probar en producción** tras publicar: abrir las 4 pantallas con red y luego sin wifi, en un equipo real de tienda (el SW solo se registra en producción).
+- [~] **Conteo sin conexión — EN PAUSA (Felipe, 2026-09-25: «por ahora no»).** No se construye. Si se retoma: guarda escaneo por escaneo (`conteo_contar`) y el alta al vuelo (`censo_crear_variante`) necesita `p_token` (migración).
+- [x] **Huecos cerrados (ADR-0210 «(c)»):** error pasajero del servidor se reintenta (tope 10), contador global de pendientes, pregunta al salir con algo pendiente, el alta avisa qué necesita internet, lector QR precargado (era lo único que se cargaba al usarse).
+- [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
+
+---
+
 ## 🌡️ Frescura del piso — plan del termómetro, tareas 1-4 (2026-09-25)
 El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cuatro tareas vienen de otro plan de la misma fecha y se reconciliaron con él antes de abrir los PR.
 - [x] **Termómetro semanal** (tarea 1): `docs/datos/consultas/frescura-termometro.sql` — 12 consultas SELECT con su rutina de los lunes. PR de docs.
 - [x] **La caja dice «está en el almacén»** (tarea 2): #437. Fusionar fuera de la hora punta de TRU; trae además un arreglo de precio de proforma (revisar con ese foco).
 - [x] **«Por colgar» en Existencias** (tarea 4): #438. Choca con #434 solo en `inventario/page.tsx` (una línea cada uno).
-- [ ] **Tarea 3 (Retirar del piso + motivos del ajuste): decisión de Felipe.** Rama `claude/frescura-t3-retiro-y-ajuste`, sin PR. Tiene dos partes:
-  - **Retirar del piso:** coincide con el bloque 2 del ADR-0208 (`mover_interno` invertido) y podría salir sobre #434.
-  - **Motivos nuevos** (`carga_existente` y el valor propio de «Encontré de más»): se descartan, porque cargan al piso sin pasar por el candado de «Reposición» (`20260926000400`).
+- [x] **Tarea 3 (Retirar del piso + motivos del ajuste): Felipe eligió la opción A (2026-09-25).** Solo el retiro salió, como bloque 2 del ADR-0208 (#440). Los motivos nuevos (`carga_existente` y el valor propio de «Encontré de más») se descartaron: cargaban al piso sin pasar por el candado de «Reposición» (`20260926000400`). La rama `claude/frescura-t3-retiro-y-ajuste` queda obsoleta.
 - [ ] **La caja no manda `p_emisor`** (`PuntoDeVenta.tsx:926-958`). Toda venta queda como «emite retail», contra D-56 («La emite Alegra» por defecto). Tarea aparte.
 - [ ] **Felipe:** cada lunes, boletas de Alegra por sede y día contra la consulta 01. Esta semana, pedir a Alegra el export de una semana (¿trae precio de lista y descuento por línea?) para la línea base de «% a precio completo».
 
@@ -303,9 +313,14 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   - `ReponerPisoModal.tsx:25` cita `20260914210000_inventario_piso_almacen.sql`, que no existe (es `20260914230000`).
   - `scripts/migraciones/verificar.mjs` marca la `0400` con «falta: función insertar_antes». Es un falso positivo (un
     ayudante `pg_temp` que no persiste), el mismo de `20260922200000` y `20260925230000`.
-- [ ] **Bloque 2 · «Retirar del piso»:** no hace falta una función nueva, falta la pantalla: es `mover_interno` con
-  origen (piso) y destino (almacén) invertidos. (`bajar_a_piso` y `devolver_a_almacen` eran de V1 y no existen.) Al
-  hacerlo, distinguir en Movimientos la bajada del retiro por el tipo de sububicación, no por el motivo.
+- [x] **Bloque 2 · «Retirar del piso»:** construido el 2026-09-25 (#440, por fusionar). Menú «⋯» de cada talla en
+  Existencias, `mover_interno` con origen piso y destino almacén, aviso si la fila va a volver a pedir «Reponer» y nota
+  opcional del motivo. Movimientos distingue la bajada del retiro por el tipo de sububicación de destino.
+  - [ ] **Decisión de Felipe (bloque 3):** una marca de «retirada de la venta» por talla y sede que apague «Reponer» y
+    «Por colgar» después de un retiro a propósito, con un motivo cerrado del retiro. Hasta entonces el semáforo le pide
+    al turno siguiente volver a bajar lo que se guardó.
+  - [ ] Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
+    minutos sale «tardía» (límite anotado en ADR-0208).
 - [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
   - Reloj de novedad por modelo+color.
@@ -566,7 +581,7 @@ Del plano maestro (lista «Tus pendientes, en orden», `D:\Cayla Data\dany-venta
 - Preguntas para Felipe: ¿de dónde nace un saldo (devolución sin reembolso, diferencia a favor en un cambio, vale vendido o regalado)? ¿vence? ¿exige clienta identificada con DNI? ¿quién lo crea (cualquiera o solo el líder)? ¿se usa en cualquier sede? ¿qué comprobante sale al canjearlo (la venta se emite completa y el saldo es un medio de pago, o se trata como anticipo ante SUNAT; consultar con el contador)? ¿cómo entra en el arqueo de caja (no es efectivo)?
 - Trampas: `registrar_venta` y `anular_venta` se parchan EN VIVO en producción (cambiarlas con anclas sobre la definición viva, nunca copiando el archivo: ver `20260923235300_anular_venta_mismo_dia.sql`). Si tiene pantalla propia es un módulo nuevo (ADR-0161: migración en `retail.modulos`, solo líder al nacer, `exigirModulo`). Las funciones que guardan firman con `retail.fn_actor_persona_id(true)` y la pantalla lleva `ComboResponsable`.
 
-**#6 · PL-40 — Abrir y cerrar caja sin internet**, extendiendo el mecanismo que ya protege la venta. OJO: el plano dice «ADR-0036», pero ese es de Compras; el de la venta sin conexión es el **ADR-0063** (cola offline) y el **ADR-0092** (cerrar caja avisa si hay ventas sin subir).
+**#6 · PL-40 — Abrir y cerrar caja sin internet — EN PAUSA (Felipe, 2026-09-25: «por ahora no»; no se construye hasta que lo pida)**, extendiendo el mecanismo que ya protege la venta. OJO: el plano dice «ADR-0036», pero ese es de Compras; el de la venta sin conexión es el **ADR-0063** (cola offline) y el **ADR-0092** (cerrar caja avisa si hay ventas sin subir).
 - Qué hay: `lib/ventas-offline.ts`, `lib/almacen-local.ts` (IndexedDB), `components/PuntoDeVentaColaOffline.tsx`; aviso al cerrar en `CerrarCajaModalV2.tsx` / `caja-panel-reglas.ts`; RPC `abrir_caja` y `cerrar_caja` (el cierre con traslado y apertura verificada es de ADR-0186, 2026-09-23). Límites actuales de la cola (medidos por el carril C, 2026-09-23): solo actúa ante un corte de red, no emite comprobante en el momento, no vende la última prenda del piso, y la página NO se puede abrir ni recargar sin internet (no hay service worker). Plan B en papel: `docs/manual/plan-b-venta-sin-sistema.md`.
 - Preguntas para Felipe: ¿abrir sin internet con el monto contado y reconciliar al volver? ¿cerrar sin internet cuando el «esperado» lo calcula la base (ventas, pagos, movimientos de caja)? ¿qué pasa si otro equipo abre la misma caja mientras tanto? ¿se acepta instalar la app como PWA (service worker) para que cargue sin red? Es la pieza más grande de todo esto.
 - Trampas: hay sesiones rediseñando Caja (ver `SESIONES-ACTIVAS.md`); coordinar antes de tocar `CajaAbiertaPanel.tsx` y `CerrarCajaModalV2.tsx`.
