@@ -48,7 +48,7 @@ type DetectorNativo = { detect: (fuente: HTMLVideoElement) => Promise<{ rawValue
 type ClaseDetector = { new (opciones: { formats: string[] }): DetectorNativo; getSupportedFormats: () => Promise<string[]> };
 
 /**
- * Baja jsQR por adelantado, mientras hay red (ADR-0209, «huecos»). Es lo único de Vender que se carga recién al usarlo:
+ * Baja jsQR por adelantado, mientras hay red (ADR-0210, «huecos»). Es lo único de Vender que se carga recién al usarlo:
  * sin esto, un iPhone que abre Vender sin internet (copia del service worker) tendría la cámara pero no el lector.
  * Bajarlo una vez con red lo deja en la copia (`/_next/static`, primero-la-copia). Donde el teléfono trae su propio
  * lector (`BarcodeDetector`, Android) no hace falta.

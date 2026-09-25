@@ -5,7 +5,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { useColaOffline } from "@/lib/useColaOffline";
 import { borrarFotos, marcarCreado, subirFotosListas } from "@/lib/fotos-pendientes";
 
-/** La única RPC que la cola de Productos puede ejecutar (ADR-0209, paso 2). Idempotente por `productos.token_cliente`:
+/** La única RPC que la cola de Productos puede ejecutar (ADR-0210, paso 2). Idempotente por `productos.token_cliente`:
  *  reintentar devuelve el mismo producto. */
 export const RPCS_PRODUCTOS = ["crear_producto_con_variantes"] as const;
 

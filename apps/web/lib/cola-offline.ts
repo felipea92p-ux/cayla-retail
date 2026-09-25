@@ -1,5 +1,5 @@
 /**
- * Cola sin conexión GENÉRICA (ADR-0209) — el mecanismo de la venta sin red (ADR-0063, `lib/ventas-offline.ts`)
+ * Cola sin conexión GENÉRICA (ADR-0210) — el mecanismo de la venta sin red (ADR-0063, `lib/ventas-offline.ts`)
  * sacado de Vender para que lo use cualquier módulo que guarda con UNA llamada idempotente. Primer cliente:
  * Recibir mercadería (`recibir_envio` en `/recibir`, `recibir_lote` en `/inventario/recibir`).
  *

@@ -13,7 +13,7 @@ import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
-import { Boton, CampoSelectNativo, CampoTexto, SelectNativo } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -175,7 +175,7 @@ export function RecepcionEnvio({
   const panel = useRef<HTMLDivElement>(null);
   const escaneoRef = useRef<HTMLInputElement>(null);
   const ahora = useMemo(() => new Date(), []);
-  // Envíos guardados sin conexión que todavía no suben (ADR-0209): lo que ya contaron sale de «pendientes» mientras
+  // Envíos guardados sin conexión que todavía no suben (ADR-0210): lo que ya contaron sale de «pendientes» mientras
   // espera, para que nadie vuelva a contar el mismo comprobante o traslado y al volver la red suban dos recepciones.
   const colaOffline = useColaRecibir();
   // Lo que ya subió sigue oculto hasta que llega la lista nueva del servidor (`router.refresh`): en ese rato la lista
@@ -675,7 +675,7 @@ export function RecepcionEnvio({
     const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
     cerrarProceso();
     setLoading(false);
-    // Sin red (ADR-0209): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
+    // Sin red (ADR-0210): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
     // navegador y sube solo; mientras tanto sus comprobantes y traslados salen de «pendientes».
     if (error && debeEncolarse(error, status)) {
       const documentos = bloques.map((b) => b.compra.documento).join(", ");
@@ -1088,13 +1088,12 @@ export function RecepcionEnvio({
                     pie={numeroGuia.trim() && !guiaConFormato(numeroGuia) ? "Formato de guía: T001-000123" : guiaConFormato(numeroGuia) ? "Guía con formato válido." : "Una sola guía por envío. Puedes anotarla después."}
                   />
                   {ubicaciones.length > 1 ? (
-                    <CampoSelectNativo etiqueta="Entra al almacén de" id="recibir-ubicacion" value={ubicacionId} onChange={(e) => cambiarUbicacion(e.target.value)}>
-                      {ubicaciones.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nombre}
-                        </option>
-                      ))}
-                    </CampoSelectNativo>
+                    <CampoSelect
+                      etiqueta="Entra al almacén de"
+                      valor={ubicacionId}
+                      onValor={(v) => cambiarUbicacion(v)}
+                      opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+                    />
                   ) : (
                     <CampoTexto etiqueta="Entra al almacén de" value={ubicacionNombre} readOnly />
                   )}
@@ -1410,14 +1409,19 @@ export function RecepcionEnvio({
                               marcador="Busca la prenda…"
                               className="min-w-[12rem] flex-1"
                             />
-                            <SelectNativo aria-label="Talla y color" value={ex.varianteId} onChange={(e) => actualizarExtra(i, { varianteId: e.target.value })} disabled={!ex.productoId} className="w-32 shrink-0">
-                              <option value="">{ex.productoId ? "Elige…" : "—"}</option>
-                              {variantesDelProducto.map((v) => (
-                                <option key={v.varianteId} value={v.varianteId}>
-                                  {[v.talla, v.color].filter(Boolean).join(" / ") || v.sku}
-                                </option>
-                              ))}
-                            </SelectNativo>
+                            <div className="w-32 shrink-0">
+                              <Desplegable
+                                etiquetaAccesible="Talla y color"
+                                valor={ex.varianteId}
+                                onValor={(v) => actualizarExtra(i, { varianteId: v })}
+                                opciones={variantesDelProducto.map((v) => ({
+                                  valor: v.varianteId,
+                                  texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku,
+                                }))}
+                                marcador={ex.productoId ? "Elige…" : "—"}
+                                deshabilitado={!ex.productoId}
+                              />
+                            </div>
                             <input
                               type="number"
                               min={1}
@@ -1427,14 +1431,15 @@ export function RecepcionEnvio({
                               onFocus={(e) => e.target.select()}
                               className="w-16 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
                             />
-                            <SelectNativo aria-label="Proveedor que la mandó" value={ex.proveedorId} onChange={(e) => actualizarExtra(i, { proveedorId: e.target.value })} className="w-48 shrink-0">
-                              <option value="">Proveedor…</option>
-                              {proveedores.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.nombre}
-                                </option>
-                              ))}
-                            </SelectNativo>
+                            <div className="w-48 shrink-0">
+                              <Desplegable
+                                etiquetaAccesible="Proveedor que la mandó"
+                                valor={ex.proveedorId}
+                                onValor={(v) => actualizarExtra(i, { proveedorId: v })}
+                                opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                                marcador="Proveedor…"
+                              />
+                            </div>
                             <label className="flex shrink-0 cursor-pointer items-center gap-2 pb-2 text-sm text-tinta/75">
                               <input type="checkbox" checked={ex.esRegalo} onChange={(e) => actualizarExtra(i, { esRegalo: e.target.checked, costoUnitario: e.target.checked ? "" : ex.costoUnitario })} className="peer sr-only" />
                               <span aria-hidden className="relative h-[18px] w-8 rounded-full bg-tinta/25 transition-colors duration-200 after:absolute after:left-0.5 after:top-0.5 after:h-3.5 after:w-3.5 after:rounded-full after:bg-papel after:transition-transform after:duration-[260ms] after:ease-cayla peer-checked:bg-tinta peer-checked:after:translate-x-3.5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo" />

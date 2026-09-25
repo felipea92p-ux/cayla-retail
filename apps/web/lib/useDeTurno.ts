@@ -12,7 +12,7 @@ export type DeTurno = {
   cargo: boolean;
   /** La última lectura falló (se conserva la lista anterior, si la había). */
   fallo: boolean;
-  /** La lista viene de la memoria de este navegador (pantalla abierta sin red, ADR-0209): la hora de esa lectura. */
+  /** La lista viene de la memoria de este navegador (pantalla abierta sin red, ADR-0210): la hora de esa lectura. */
   deMemoria: string | null;
   /** Relee ahora (botón «Actualizar lista», o tras un rechazo de la base). */
   recargar: () => Promise<void>;
@@ -30,7 +30,7 @@ export type DeTurno = {
  * elegir a quien estaba presente. `fn_` está en la lista de lectura de `espera-reglas.ts`, así que el sondeo no
  * enciende el loader general.
  *
- * Memoria (ADR-0209): cada lectura buena se guarda en este navegador, por sede. Una pantalla que se ABRE sin red
+ * Memoria (ADR-0210): cada lectura buena se guarda en este navegador, por sede. Una pantalla que se ABRE sin red
  * (servida por el service worker) arranca con esa lista si tiene menos de 12 h (`turnoGuardadoVigente`), y el combo
  * lo dice. No es un permiso nuevo: al subir, la base vuelve a validar que esa persona estaba de turno a esa hora.
  */

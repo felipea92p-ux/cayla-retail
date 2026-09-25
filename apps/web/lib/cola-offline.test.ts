@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { claveCola, colaValida, conOperacion, contarPendientes, esOperacionEncolada, MAX_INTENTOS_SERVIDOR, nombreEnCola, nuevaOperacion, porSubir, reconciliar, sinOperacion, subidasEntre, trasFallo, type OperacionEncolada } from "./cola-offline";
 
-// La cola sin conexión genérica (ADR-0209): que un reintento del mismo guardado sea UNA fila, que la firma quede con
+// La cola sin conexión genérica (ADR-0210): que un reintento del mismo guardado sea UNA fila, que la firma quede con
 // la hora en que se hizo, que lo encolado a mitad de una subida sobreviva, y que lo leído del navegador no ejecute
 // una RPC fuera de la lista blanca.
 

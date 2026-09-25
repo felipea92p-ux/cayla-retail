@@ -433,7 +433,7 @@ export function armarPedidoEnvio(p: {
 }
 
 /**
- * Lo que ya está contado en envíos guardados SIN CONEXIÓN que todavía no subieron (ADR-0209): las líneas de
+ * Lo que ya está contado en envíos guardados SIN CONEXIÓN que todavía no subieron (ADR-0210): las líneas de
  * comprobante (recibidas o cerradas) y los traslados. La pantalla los saca de «pendientes» mientras esperan, igual
  * que Vender descuenta del stock lo vendido sin red — si no, alguien volvería a contar el mismo comprobante y, al
  * volver el internet, subirían dos recepciones de la misma mercadería. Un envío RECHAZADO no entra: la base no lo

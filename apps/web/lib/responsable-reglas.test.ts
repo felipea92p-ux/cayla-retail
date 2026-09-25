@@ -97,7 +97,7 @@ describe("estadoCombo y su motivo", () => {
   });
 });
 
-describe("turnoGuardadoVigente — la lista de turno que recuerda el navegador (ADR-0209)", () => {
+describe("turnoGuardadoVigente — la lista de turno que recuerda el navegador (ADR-0210)", () => {
   const ahora = new Date("2026-09-25T20:00:00.000Z");
   const fila: FilaDeTurno = { persona_id: "p1", nombre_corto: "Ana", estado_ahora: "presente", es_de_esta_sede: true };
 

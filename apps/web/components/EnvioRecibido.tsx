@@ -29,7 +29,7 @@ export type ResultadoEnvio = {
    *  recibió no es líder: el reclamo es dinero y vive en `/compras/notas-credito`). */
   porReclamar: number;
   yaRegistrado: boolean;
-  /** Se cortó el internet al confirmar: el envío quedó en la cola de este navegador y sube solo (ADR-0209). Todavía
+  /** Se cortó el internet al confirmar: el envío quedó en la cola de este navegador y sube solo (ADR-0210). Todavía
    *  no hay lotes (sin etiquetas de precio) ni resultado de traslados: eso lo decide la base al subir. */
   sinConexion?: boolean;
   /** Lo que quedó escrito en el stock, prenda por prenda. */

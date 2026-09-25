@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { CampoSelect, Desplegable } from "@/components/ui/campos";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -41,7 +42,7 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
-  // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0209).
+  // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0210).
   const [ok, setOk] = useState<{ unidades: number; loteId: string | null; sinConexion?: boolean } | null>(null);
   const colaOffline = useColaRecibir();
   // Quién recibe (ADR-0161/0162): `recibir_lote` firma con esa persona, en la tienda que recibe.
@@ -97,7 +98,7 @@ export function RecepcionFormV2({
 
     setLoading(false);
     const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
-    // Sin red (ADR-0209): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
+    // Sin red (ADR-0210): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
     if (error && debeEncolarse(error, status)) {
       const proveedor = proveedores.find((p) => p.id === proveedorId)?.nombre ?? "proveedor";
       const op = nuevaOperacion({
@@ -161,23 +162,12 @@ export function RecepcionFormV2({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className={campoEtiqueta} htmlFor="recepcion-proveedor">
-            Proveedor
-          </label>
-          <select
-            id="recepcion-proveedor"
-            value={proveedorId}
-            onChange={(e) => setProveedorId(e.target.value)}
-            className={campoSelect}
-          >
-            {proveedores.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CampoSelect
+          etiqueta="Proveedor"
+          valor={proveedorId}
+          onValor={(v) => setProveedorId(v)}
+          opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+        />
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="recepcion-guia">
             Número de guía (opcional)
@@ -195,18 +185,17 @@ export function RecepcionFormV2({
         <p className={campoEtiqueta}>Prendas recibidas</p>
         {lineas.map((l, i) => (
           <div key={i} id={`recepcion-linea-${i}`} className="flex flex-wrap items-end gap-2">
-            <select
-              aria-label="Prenda"
-              value={l.varianteId}
-              onChange={(e) => actualizarLinea(i, { varianteId: e.target.value })}
-              className={`${campoSelect} min-w-[14rem] flex-1`}
-            >
-              {variantes.map((v) => (
-                <option key={v.varianteId} value={v.varianteId}>
-                  {v.referencia} · {v.sku} {[v.talla, v.color].filter(Boolean).join("/")}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-[14rem] flex-1">
+              <Desplegable
+                etiquetaAccesible="Prenda"
+                valor={l.varianteId}
+                onValor={(v) => actualizarLinea(i, { varianteId: v })}
+                opciones={variantes.map((v) => ({
+                  valor: v.varianteId,
+                  texto: `${v.referencia} · ${v.sku} ${[v.talla, v.color].filter(Boolean).join("/")}`,
+                }))}
+              />
+            </div>
             <input
               type="number"
               min={1}

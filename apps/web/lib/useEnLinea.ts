@@ -12,7 +12,7 @@ function suscribir(avisar: () => void) {
 }
 
 /**
- * ¿El navegador cree que hay red? Solo para AVISAR antes (ADR-0209, «huecos»): `navigator.onLine` dice «sin red»
+ * ¿El navegador cree que hay red? Solo para AVISAR antes (ADR-0210, «huecos»): `navigator.onLine` dice «sin red»
  * con certeza, pero «con red» puede mentir (wifi sin internet). Por eso guardar nunca depende de esto — se intenta y,
  * si falla, se encola. En el servidor se asume que sí (no hay a quién avisar).
  */

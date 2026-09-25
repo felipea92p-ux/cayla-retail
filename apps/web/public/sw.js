@@ -1,5 +1,5 @@
 /*
- * Service worker de CAYLA Retail (ADR-0209, paso 3): abrir SIN INTERNET las pantallas que tienen cola sin conexión.
+ * Service worker de CAYLA Retail (ADR-0210, paso 3): abrir SIN INTERNET las pantallas que tienen cola sin conexión.
  *
  * Qué hace, y nada más:
  *   · `/_next/static/*`, `/_next/image` y las imágenes propias: primero la copia (llevan hash en el nombre: una versión nueva es otro

@@ -5,7 +5,7 @@ import { CloudOff, TriangleAlert } from "lucide-react";
 import type { OperacionEncolada } from "@/lib/cola-offline";
 
 /**
- * El aviso de la cola sin conexión de un módulo (ADR-0209) — el de Vender (`PuntoDeVentaColaOffline`) hecho
+ * El aviso de la cola sin conexión de un módulo (ADR-0210) — el de Vender (`PuntoDeVentaColaOffline`) hecho
  * genérico: separa lo que sigue esperando la red (sube solo, nada que hacer) de lo que la base rechazó (no se
  * reintenta solo y espera un «Descartar» en dos pasos: un solo clic nunca borra un trabajo ya hecho).
  */

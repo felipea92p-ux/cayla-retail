@@ -245,6 +245,23 @@ siquiera aparezca aire; no abras listas **dentro** del contenido (usa `usePosici
 lleva la vista al inicio de la tabla (las navegaciones por URL no las cubre la regla global). Detalle:
 `docs/adr/0185-la-pagina-no-se-encoge-bajo-el-mouse.md`.
 
+## Buscador y paginado de combos (regla — ADR-0209)
+
+**Todo combo hereda la misma regla sin que la pantalla haga nada:** con más de 8 opciones aparece un campo
+para buscar (escribiendo, sin tildes ni mayúsculas); con más de 50 ya filtradas, la lista se completa sola al
+bajar el scroll en vez de cortar de golpe. La regla vive en `apps/web/lib/combo-reglas.ts` (pura, con
+pruebas) y el estado que la usa en `apps/web/components/ui/useCombo.ts`; la aplican `Desplegable`/
+`CampoSelect`, `ComboBuscable`, `ComboResponsable` y `DesplegablePildora` (píldoras de filtro) — con 8
+opciones o menos ninguno cambia de comportamiento. **No reimplementes un corte a mano ("se muestran N, sigue
+tipeando") ni un buscador propio**: un combo nuevo se alimenta con `opciones`/`valor`/`onValor` vía
+`CampoSelect` (formulario), `Desplegable` (sin caja de `Campo` alrededor, ej. cabecera o píldora) o
+`ComboBuscable` (catálogo, tipeo inmediato) y la regla llega sola. Todo el `<select>` nativo y `SelectNativo`/
+`CampoSelectNativo` legacy del repo ya se migró (2026-09-25) — si ves uno, es nuevo, no lo copies. Dos casos
+quedaron fuera a propósito, pendientes de decisión con Felipe (detalle en
+`docs/adr/0209-buscador-y-paginado-regla-global-de-combos.md`): `DecisionFaltanteFila.tsx` (un `<optgroup>`
+real que `Opcion<T>` no representa) y `CambioReemplazo.tsx` (su `<select>` reenvía un `ref` que
+`CambiosFlujo.tsx` usa para foco-en-error; `Desplegable` no reenvía ref).
+
 ## Vocabulario obligatorio
 
 Nunca "empleado/jefe/sucursal". Usa: "colaborador/integrante", "líder de equipo/

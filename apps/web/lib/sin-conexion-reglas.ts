@@ -1,5 +1,5 @@
 /**
- * Qué pantallas se pueden ABRIR sin internet y cómo se sabe que lo que se ve es una copia (ADR-0209, paso 3).
+ * Qué pantallas se pueden ABRIR sin internet y cómo se sabe que lo que se ve es una copia (ADR-0210, paso 3).
  *
  * El service worker (`public/sw.js`) guarda la última copia de estas pantallas cada vez que se abren con red, y la
  * sirve cuando no hay red. Solo estas: son las que tienen cola sin conexión (vender, recibir, dar de alta). Guardar
