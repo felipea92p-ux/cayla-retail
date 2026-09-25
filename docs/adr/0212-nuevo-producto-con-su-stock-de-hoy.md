@@ -72,6 +72,20 @@ variante, no crea nada (hint `carga_sin_variante`). La carga en sí vive en `fn_
 (`revoke` a `public`, `anon` y `authenticated`), para poder reutilizarla el día que se quiera cargar stock inicial a un
 producto ya creado sin tocar esta lógica.
 
+### Sin conexión (ADR-0210)
+
+El alta ya se podía guardar sin red (cola en el navegador, PR #436, fusionado el mismo día). Con esta decisión:
+
+- La cola encola `crear_producto_con_stock_inicial`. La lista blanca `RPCS_PRODUCTOS` (`lib/useColaProductos.ts`)
+  conserva `crear_producto_con_variantes`, para que un alta guardada sin red ANTES de publicar esta versión no se descarte
+  como inválida al volver la conexión.
+- Con stock, la operación encolada firma con la hora del alta (`x-momento`, el mismo mecanismo que la venta sin conexión,
+  acotado a 7 días). La carga firma con el responsable (`fn_actor_persona_id`) y, sin esa hora, un alta hecha a las 7 p. m.
+  que sube al día siguiente se rechazaría porque la persona ya marcó su salida. `crear_producto_con_variantes` no pedía
+  responsable; por eso antes no hacía falta.
+- Las unidades se cargan al subir, con la fecha de subida (`movimientos.created_at`), no la del alta. Para una carga
+  inicial la diferencia es de horas y no cambia ninguna decisión.
+
 ## Estados que dejan de ser posibles
 
 | Estado imposible | Qué lo impide |

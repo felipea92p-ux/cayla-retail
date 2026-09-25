@@ -14,6 +14,7 @@ import {
   proponeSesion,
   responsableInicial,
   responsableVigente,
+  turnoGuardadoVigente,
   type FilaDeTurno,
 } from "./responsable-reglas";
 import { traducirError } from "./error-escritura";
@@ -93,6 +94,26 @@ describe("estadoCombo y su motivo", () => {
     expect(motivoSinResponsable("nadie", "Tienda TRU")).toMatch(/Nadie de turno en Tienda TRU/);
     expect(motivoSinResponsable("sin_lectura", "Tienda TRU")).toMatch(/Actualizar lista/);
     expect(motivoSinResponsable("cargando", "Tienda TRU")).not.toBeNull();
+  });
+});
+
+describe("turnoGuardadoVigente — la lista de turno que recuerda el navegador (ADR-0210)", () => {
+  const ahora = new Date("2026-09-25T20:00:00.000Z");
+  const fila: FilaDeTurno = { persona_id: "p1", nombre_corto: "Ana", estado_ahora: "presente", es_de_esta_sede: true };
+
+  it("sirve si tiene menos de 12 horas", () => {
+    expect(turnoGuardadoVigente({ filas: [fila], leidoEn: "2026-09-25T09:00:00.000Z" }, ahora)).toBe(true);
+  });
+
+  it("de hace más de 12 horas ya no dice quién está hoy", () => {
+    expect(turnoGuardadoVigente({ filas: [fila], leidoEn: "2026-09-25T07:59:00.000Z" }, ahora)).toBe(false);
+  });
+
+  it("una hora del futuro (reloj movido) o algo roto no sirve", () => {
+    expect(turnoGuardadoVigente({ filas: [fila], leidoEn: "2026-09-25T21:00:00.000Z" }, ahora)).toBe(false);
+    expect(turnoGuardadoVigente({ filas: [fila], leidoEn: "no es fecha" }, ahora)).toBe(false);
+    expect(turnoGuardadoVigente(null, ahora)).toBe(false);
+    expect(turnoGuardadoVigente({ filas: "x" } as never, ahora)).toBe(false);
   });
 });
 
