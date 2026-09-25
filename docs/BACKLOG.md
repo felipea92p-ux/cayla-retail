@@ -28,6 +28,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Actividad de cada módulo: quién hizo qué, desde la cabecera (2026-09-25, ADR-0207) — migración `20260926090000` POR PEGAR en producción; web en PR
+- [x] Tabla `retail.actividad` (solo agregar), disparadores de Punto de venta, Historial de ventas (anulaciones), Caja y Cambios, carga de lo pasado, `fn_actividad` / `fn_actividad_personas` con el alcance por sede. `pnpm pruebas:actividad` 15/15 en el local.
+- [x] Botón «Actividad» en la cabecera (panel del módulo actual) y `/actividad` (todo, con filtros). Verificado en el navegador como líder, en escritorio y a 375 px.
+- [ ] **Pegar `20260926090000_actividad_por_modulo.sql` en producción** (una parte, ya con `retail.`; fuera del horario de tienda: toma candados breves de ventas y cajas). **Antes de publicar la web**: sin ella el botón abre un panel que dice «No se pudo leer la actividad».
+- [ ] Después de pegar: refrescar el volcado y correr `pnpm datos:generar:produccion` (tabla nueva) y `pnpm datos:comparar`.
+- [ ] Felipe: encender «Actividad» en el rol de la líder de tienda (Roles y accesos) y entrar con esa cuenta para ver que solo sale su sede (probado en la base; falta el clic con una sesión que no sea líder).
+- [ ] Sumar los demás módulos, uno por migración (receta en el ADR-0207): Devoluciones, Apartados, Traslados, Existencias (ajustes), Productos (precio con antes/después), Colaboradores y Roles.
+- [ ] Idea: enlazar cada línea a su registro (la venta en el Historial, la caja en su cierre).
+
 ## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — rama `claude/optimize-cayla-retail-team-03c071`, en PR
 - [ ] **Fusionar el PR.** La corrección anterior (2026-09-23, commits `248f6de3` y `2d0ba71d`) se perdió porque quedó en ramas sin PR.
 - [ ] **Construir lo que Felipe decidió el 2026-09-25:** (1) R-38 — dentro de 15 días la devolución la aplica cualquiera en caja, sin líder; afloja el candado de ADR-0177 (quien registra no aprueba), así que lleva ADR y migración propios; (2) antes de cerrar caja, la pantalla de Caja resalta los descuentos de más de 15%; (3) R-20 — revisar el umbral por categoría cuando haya 8 semanas de ventas reales (hoy 14 días para todas).
