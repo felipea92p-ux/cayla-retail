@@ -1,0 +1,1550 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Frescura del piso</title>
+<meta name="description" content="Propuesta de CAYLA: medir, sede por sede, qué tan nuevo se ve el piso de venta, qué se está quedando y qué hacer antes de rebajar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap">
+<style>
+/* Paleta oficial «CAYLA Dynamic» (apps/web/app/globals.css, ADR-0169). El ERP no tiene modo oscuro
+   a propósito: este documento se queda en el mismo mundo claro y pinta todo explícitamente. */
+:root {
+  color-scheme: light;
+  --crema: #f5f0e8;
+  --papel: #fbf8f2;
+  --hueso: #eae1d2;
+  --sand: #e8e0d0;
+  --linea: #ddd2bf;
+  --tinta: #1a1a18;
+  --tinta-2: #4f4841;
+  --tinta-3: #6b6257;
+  --taupe: #805c4c;
+  --rojo: #b8412d;
+  --rojo-p: #8b2a1f;
+  --pizarra: #4c5d6e;
+  --verde-t: #3e5a36;
+  --ambar-t: #6f4c16;
+  /* Semáforo de frescura: validado (CVD y visión normal, pares vecinos) contra #fbf8f2 */
+  --nueva: #3f8a4f;
+  --vigente: #d8a440;
+  --envejecida: #c9603f;
+  --critica: #8a2a1c;
+  --sindatos: #b3a894;
+  --clasico: #4c5d6e;
+  /* Sedes: validado en todos los pares */
+  --tru: #2a78d6;
+  --aqp: #1baf7a;
+  --lim: #4a3aa7;
+  --perchas: #4a3aa7;
+  --venta: #2a78d6;
+  --agota: #2a78d6;
+  --queda: #eb6834;
+  --grid: #e7dfcf;
+  --eje: #c7bba6;
+  --serif: "EB Garamond", ui-serif, Georgia, "Times New Roman", serif;
+  --sans: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(0.32, 0.72, 0.24, 1);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; animation: none !important; } }
+body { background: var(--crema); color: var(--tinta); font-family: var(--sans); font-size: 16px; line-height: 1.62; -webkit-font-smoothing: antialiased; }
+.page { max-width: 1120px; margin: 0 auto; padding-inline: clamp(16px, 4vw, 44px); padding-block: 36px 96px; }
+a { color: var(--rojo-p); text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; border-radius: 4px; }
+p { margin: 0; }
+.prosa { max-width: 68ch; display: grid; gap: 14px; }
+.prosa p, .prosa li { color: var(--tinta-2); }
+.prosa strong { color: var(--tinta); font-weight: 600; }
+ul, ol { margin: 0; padding-left: 1.2em; }
+li + li { margin-top: 6px; }
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+.sobre { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rojo); }
+h1 { font-family: var(--serif); font-weight: 500; font-size: clamp(48px, 8vw, 92px); line-height: 0.98; letter-spacing: -0.015em; }
+h2 { font-family: var(--serif); font-weight: 500; font-size: clamp(30px, 4.2vw, 44px); line-height: 1.08; letter-spacing: -0.01em; }
+h3 { font-size: 18px; font-weight: 600; line-height: 1.3; }
+h4 { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tinta-3); }
+.bajada { font-family: var(--serif); font-size: clamp(20px, 2.4vw, 26px); line-height: 1.35; color: var(--tinta-2); max-width: 38ch; }
+.muted { color: var(--tinta-3); }
+.small { font-size: 14px; }
+.tiny { font-size: 12.5px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Portada */
+.portada { display: grid; gap: 22px; padding-bottom: 28px; }
+.portada .meta { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--tinta-3); }
+.portada .meta span { display: inline-flex; align-items: center; gap: 6px; }
+.sim { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--pizarra); background: #e3e6e9; border-radius: 999px; padding: 3px 10px; }
+.sim::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--pizarra); }
+
+.percha-fig { background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: clamp(16px, 2.6vw, 28px); display: grid; gap: 14px; }
+.percha-top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
+.percha-top .titulo { font-family: var(--serif); font-size: clamp(22px, 2.6vw, 28px); line-height: 1.15; }
+.percha-top .titulo b { font-weight: 600; }
+.percha-svg { width: 100%; height: auto; display: block; }
+.percha-svg .prenda { transition: fill 420ms var(--ease); }
+.leyenda { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; color: var(--tinta-2); }
+.leyenda span { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 11px; height: 11px; border-radius: 3px; flex: none; }
+.sw.ring { background: transparent !important; border: 2px solid var(--sindatos); border-radius: 50%; }
+
+/* Controles segmentados */
+.seg { display: inline-flex; background: var(--hueso); border-radius: 999px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.seg button { font: inherit; font-size: 14px; font-weight: 500; border: 0; background: transparent; color: var(--tinta-2); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--papel); color: var(--tinta); box-shadow: 0 1px 2px rgb(26 26 24 / 0.08); font-weight: 600; }
+.seg button:hover { color: var(--tinta); }
+
+/* Resumen en 30 segundos */
+.treinta { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.treinta article { padding: 18px 18px 20px; border-top: 2px solid var(--tinta); display: grid; gap: 8px; align-content: start; }
+.treinta article .k { font-family: var(--serif); font-size: 22px; line-height: 1.2; }
+.treinta article p { color: var(--tinta-2); font-size: 15px; }
+
+/* Índice pegajoso */
+.indice { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: rgb(245 240 232 / 0.94); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border-bottom: 1px solid var(--sand); margin-inline: calc(-1 * clamp(16px, 4vw, 44px)); padding-inline: clamp(16px, 4vw, 44px); }
+.indice ol { list-style: none; margin: 0; padding: 10px 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+.indice ol::-webkit-scrollbar { display: none; }
+.indice li { margin: 0; flex: none; }
+.indice a { display: inline-block; text-decoration: none; color: var(--tinta-2); font-size: 13.5px; padding: 5px 11px; border-radius: 999px; white-space: nowrap; }
+.indice a:hover { background: var(--hueso); color: var(--tinta); }
+.indice a.activo { background: var(--tinta); color: var(--papel); }
+
+/* Secciones */
+section { padding-top: 72px; scroll-margin-top: 56px; display: grid; gap: 22px; }
+.cap { display: grid; gap: 10px; }
+.cap .n { font-family: var(--serif); font-style: italic; font-size: 20px; color: var(--taupe); }
+.dos { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; align-items: start; }
+.tres { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+.panel { background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; padding: clamp(16px, 2.4vw, 26px); display: grid; gap: 14px; min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.panel-head h3 { max-width: 44ch; }
+.fig-nota { font-size: 13.5px; color: var(--tinta-3); max-width: 70ch; }
+
+/* Metáfora y notas */
+.metafora { background: var(--hueso); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; max-width: 76ch; }
+.metafora .et { font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--taupe); }
+.metafora p { font-family: var(--serif); font-size: 20px; line-height: 1.4; color: var(--tinta); }
+.metafora p + p { font-family: var(--sans); font-size: 15px; line-height: 1.6; color: var(--tinta-2); }
+.nota { background: var(--hueso); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--tinta-2); max-width: 76ch; }
+.nota b { color: var(--tinta); }
+.regla-de-oro { border: 1.5px solid var(--tinta); border-radius: 14px; padding: 18px 20px; display: grid; gap: 6px; max-width: 76ch; background: var(--papel); }
+.regla-de-oro .et { font-size: 11.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rojo); }
+.regla-de-oro p { font-family: var(--serif); font-size: clamp(21px, 2.4vw, 26px); line-height: 1.3; }
+
+/* Datos grandes de la industria */
+.datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.dato { padding: 16px 0 0; border-top: 1px solid var(--linea); display: grid; gap: 6px; align-content: start; }
+.dato .v { font-size: 38px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; }
+.dato .v small { font-size: 18px; font-weight: 500; color: var(--tinta-3); }
+.dato p { font-size: 14.5px; color: var(--tinta-2); }
+.dato .f { font-size: 12.5px; color: var(--tinta-3); }
+
+/* Relojes */
+.relojes { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+.reloj { background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; padding: 18px; display: grid; gap: 10px; align-content: start; }
+.reloj .cab { display: flex; align-items: center; gap: 12px; }
+.reloj svg { flex: none; }
+.reloj h3 { font-family: var(--serif); font-weight: 500; font-size: 24px; }
+.reloj dl { margin: 0; display: grid; gap: 8px; font-size: 14.5px; }
+.reloj dt { font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--tinta-3); }
+.reloj dd { margin: 0; color: var(--tinta-2); }
+.scroll-x { overflow-x: auto; }
+.scroll-x > svg { min-width: 600px; }
+
+/* Chips */
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 3px 10px 3px 8px; border-radius: 999px; background: var(--hueso); color: var(--tinta); white-space: nowrap; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--c, var(--pizarra)); }
+.chip.hueco::before { background: transparent; border: 2px solid var(--sindatos); width: 6px; height: 6px; }
+
+/* Controles */
+.controles { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+.rango { display: grid; gap: 6px; flex: 1 1 260px; }
+.rango label { font-size: 14px; color: var(--tinta-2); }
+.rango input[type="range"] { width: 100%; accent-color: var(--tinta); }
+.lectura { font-family: var(--serif); font-size: 21px; line-height: 1.4; max-width: 60ch; }
+.lectura b { font-weight: 600; }
+
+/* Tarjetas del tablero */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 14px 14px 12px; display: grid; gap: 4px; align-content: start; }
+.tile .l { font-size: 13px; color: var(--tinta-3); line-height: 1.3; }
+.tile .v { font-size: 32px; font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; }
+.tile .v small { font-size: 15px; font-weight: 500; color: var(--tinta-3); letter-spacing: 0; }
+.tile .c { font-size: 12.5px; color: var(--tinta-3); line-height: 1.35; }
+.tile .estado { font-size: 12.5px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+.tile .estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.ok { color: var(--verde-t); }
+.alerta { color: var(--ambar-t); }
+.mal { color: var(--rojo-p); }
+
+/* Barras apiladas */
+.apiladas { display: grid; gap: 12px; }
+.fila-ap { display: grid; grid-template-columns: 84px 1fr; gap: 12px; align-items: center; }
+.fila-ap .nom { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 7px; }
+.fila-ap .nom i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.barra { display: flex; gap: 2px; height: 30px; }
+.barra .seg-b { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 600; color: #fff; min-width: 0; overflow: visible; }
+.barra .seg-b:first-child { border-radius: 4px 0 0 4px; }
+.barra .seg-b:last-child { border-radius: 0 4px 4px 0; }
+.barra .seg-b.claro { color: var(--tinta); }
+.fila-ap.sel .nom { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.extra { font-size: 12.5px; color: var(--tinta-3); grid-column: 2; margin-top: -6px; }
+
+/* Cuadrícula */
+.tabla-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--sand); vertical-align: top; }
+th { font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); }
+td.r, th.r { text-align: right; }
+.cuad td { text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; border: 2px solid var(--papel); border-radius: 6px; }
+.cuad td:first-child { text-align: left; font-weight: 500; background: transparent; }
+.cuad th { text-align: center; }
+.cuad th:first-child { text-align: left; }
+.cuad td span { display: block; font-size: 11.5px; font-weight: 500; opacity: 0.85; }
+
+/* Foto y película */
+.fp { display: grid; gap: 14px; }
+.fp-sede { display: grid; grid-template-columns: 84px 1fr; gap: 6px 12px; align-items: center; }
+.fp-sede .nom { font-size: 14px; font-weight: 600; grid-row: span 2; }
+.fp-row { display: grid; grid-template-columns: 76px 1fr 64px; gap: 8px; align-items: center; font-size: 13px; color: var(--tinta-3); }
+.fp-row .b { height: 14px; border-radius: 0 4px 4px 0; }
+.fp-row .val { font-weight: 600; color: var(--tinta); font-variant-numeric: tabular-nums; }
+
+/* Matriz */
+.matriz-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 860px) { .matriz-grid { grid-template-columns: 1fr; } }
+.detalle { display: grid; gap: 10px; align-content: start; }
+.detalle h3 { font-family: var(--serif); font-weight: 500; font-size: 24px; line-height: 1.15; }
+.detalle dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.detalle dt { color: var(--tinta-3); }
+.detalle dd { margin: 0; font-weight: 500; }
+.accion { background: var(--hueso); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; }
+.accion .et { font-size: 11.5px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rojo); }
+.accion p { font-size: 15px; }
+.punto { cursor: pointer; }
+.punto:focus { outline: none; }
+.punto:focus-visible circle, .punto:focus-visible path { stroke: var(--tinta); stroke-width: 3; }
+.previos { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.previo { border: 1px solid var(--linea); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; font-size: 14px; color: var(--tinta-2); }
+.previo b { color: var(--tinta); font-size: 15px; }
+
+/* Escalera */
+.escalera { list-style: none; padding: 0; margin: 0; display: grid; gap: 0; counter-reset: paso -1; }
+.escalera li { margin: 0; display: grid; grid-template-columns: 48px 1fr auto; gap: 14px; align-items: start; padding: 16px 0; border-top: 1px solid var(--linea); counter-increment: paso; }
+.escalera li::before { content: counter(paso, decimal); font-family: var(--serif); font-size: 32px; line-height: 1; color: var(--taupe); }
+.escalera h3 { font-size: 17px; }
+.escalera p { color: var(--tinta-2); font-size: 15px; margin-top: 4px; }
+.costo { font-size: 12.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: var(--hueso); white-space: nowrap; }
+@media (max-width: 560px) { .escalera li { grid-template-columns: 34px 1fr; } .escalera .costo { grid-column: 2; justify-self: start; } }
+
+/* Espacio */
+.esp { display: grid; gap: 10px; }
+.esp-row { display: grid; grid-template-columns: minmax(96px, 150px) 1fr 108px; gap: 12px; align-items: center; }
+.esp-row .cat { font-size: 14px; font-weight: 600; display: grid; gap: 1px; }
+.esp-row .cat span { font-size: 12px; font-weight: 500; color: var(--tinta-3); }
+.esp-bars { display: grid; gap: 3px; }
+.esp-bars div { height: 11px; border-radius: 0 4px 4px 0; }
+.esp-row .idx { text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+.esp-row .idx b { font-size: 16px; display: block; }
+@media (max-width: 520px) { .esp-row { grid-template-columns: 1fr 84px; } .esp-row .esp-bars { grid-column: 1 / -1; grid-row: 2; } }
+.calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; }
+.calc label { display: grid; gap: 4px; font-size: 13.5px; color: var(--tinta-2); }
+.calc input { font: inherit; font-size: 16px; padding: 8px 10px; border: 1px solid var(--linea); border-radius: 8px; background: var(--hueso); color: var(--tinta); width: 100%; }
+.calc .res { font-family: var(--serif); font-size: 21px; line-height: 1.35; grid-column: 1 / -1; }
+
+/* Tallas y tarjeta */
+.mini { display: inline-block; height: 8px; border-radius: 0 3px 3px 0; vertical-align: middle; margin-right: 6px; }
+.dvg { display: grid; grid-template-columns: 1fr 1fr; width: 110px; height: 12px; vertical-align: middle; }
+.dvg span { height: 100%; }
+
+/* Da en el clavo */
+.clavo-veredicto { background: var(--tinta); color: var(--papel); border-radius: 16px; padding: clamp(20px, 3vw, 34px); display: grid; gap: 12px; }
+.clavo-veredicto .et { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #e9a58f; }
+.clavo-veredicto p.g { font-family: var(--serif); font-size: clamp(24px, 3vw, 34px); line-height: 1.22; max-width: 34ch; }
+.clavo-veredicto p.s { color: #d9d2c6; max-width: 70ch; }
+.lista-clave { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.lista-clave li { margin: 0; display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 15px; color: var(--tinta-2); }
+.lista-clave li b { color: var(--tinta); }
+.lista-clave .ic { font-weight: 700; line-height: 1.5; }
+
+/* Quién */
+.quien { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+.quien article { background: var(--papel); border: 1px solid var(--sand); border-radius: 14px; padding: 16px 18px; display: grid; gap: 8px; align-content: start; }
+.quien .cuando { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rojo); }
+.quien h3 { font-family: var(--serif); font-weight: 500; font-size: 22px; }
+.quien ul { font-size: 14.5px; color: var(--tinta-2); }
+
+/* Lectura por audiencia */
+.aud { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.aud a { display: grid; gap: 4px; text-decoration: none; color: var(--tinta); background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 14px 16px; }
+.aud a:hover { border-color: var(--tinta-3); }
+.aud b { font-size: 15.5px; }
+.aud span { font-size: 13.5px; color: var(--tinta-3); }
+
+/* Anexo técnico */
+.anexo { background: #20201d; color: #e9e4da; border-radius: 16px; padding: clamp(18px, 3vw, 32px); display: grid; gap: 18px; }
+.anexo h2 { color: #fbf8f2; }
+.anexo h3 { color: #fbf8f2; }
+.anexo p, .anexo li { color: #cfc8bb; font-size: 15px; }
+.anexo .sobre { color: #e9a58f; }
+.anexo code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; background: #34332f; color: #f4efe6; padding: 1px 5px; border-radius: 4px; }
+.anexo pre { margin: 0; background: #151513; border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 13px; line-height: 1.55; color: #e9e4da; }
+.anexo pre code { background: none; padding: 0; }
+.anexo table { font-size: 13.5px; }
+.anexo th { color: #b5ad9f; border-bottom-color: #3a3934; }
+.anexo td { color: #dcd5c8; border-bottom-color: #3a3934; }
+.anexo a { color: #f0b39f; }
+.anexo .dos > div { display: grid; gap: 10px; align-content: start; }
+
+/* Glosario y fuentes */
+.glosario { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 28px; }
+.glosario div { padding: 10px 0; border-top: 1px solid var(--linea); }
+.glosario dt { font-weight: 600; font-size: 15px; }
+.glosario dt span { font-weight: 400; color: var(--tinta-3); font-size: 13px; }
+.glosario dd { margin: 2px 0 0; font-size: 14px; color: var(--tinta-2); }
+.fuentes { columns: 2 320px; column-gap: 28px; font-size: 13.5px; padding-left: 1.1em; }
+.fuentes li { break-inside: avoid; color: var(--tinta-2); }
+
+details.datos-tabla { font-size: 14px; }
+details.datos-tabla summary { cursor: pointer; color: var(--tinta-3); font-size: 13.5px; }
+details.datos-tabla[open] summary { margin-bottom: 8px; }
+
+.tip { position: fixed; z-index: 50; pointer-events: none; background: var(--tinta); color: var(--papel); font-size: 13px; line-height: 1.45; padding: 8px 11px; border-radius: 8px; max-width: 270px; box-shadow: 0 8px 24px -8px rgb(26 26 24 / 0.35); }
+.tip b { color: #fff; }
+.tip .t2 { color: #d9d2c6; }
+
+svg text { font-family: var(--sans); }
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--linea); font-size: 13.5px; color: var(--tinta-3); display: grid; gap: 6px; }
+</style>
+
+<div class="page">
+
+<header class="portada" id="inicio">
+  <p class="sobre">CAYLA · Inteligencia y reportes · Propuesta para decidir</p>
+  <h1>Frescura del piso</h1>
+  <p class="bajada">Tu clienta vuelve cada semana o dos. Esta herramienta responde, sede por sede, qué va a encontrar de nuevo, qué se está quedando y qué hacer antes de rebajar.</p>
+  <div class="meta">
+    <span>Documento de trabajo · 24 de septiembre de 2026</span>
+    <span>Ideas de Felipe, ordenadas con investigación verificada</span>
+    <span class="sim">Todos los números del tablero son simulados</span>
+  </div>
+
+  <figure class="percha-fig" aria-labelledby="percha-titulo" style="margin:0">
+    <div class="percha-top">
+      <p class="titulo" id="percha-titulo">El piso de <b id="percha-sede">Trujillo</b> hoy, ordenado por edad</p>
+      <div class="seg" role="group" aria-label="Elegir sede para el perchero" id="seg-percha">
+        <button type="button" data-sede="TRU" aria-pressed="true">Trujillo</button>
+        <button type="button" data-sede="AQP" aria-pressed="false">Arequipa</button>
+        <button type="button" data-sede="LIM" aria-pressed="false">Lima</button>
+      </div>
+    </div>
+    <svg class="percha-svg" id="percha" viewBox="0 0 880 150" role="img" aria-label="Perchero con la ropa de la sede coloreada según su edad en el piso"></svg>
+    <div class="leyenda" id="percha-leyenda"></div>
+    <p class="fig-nota">Cada prenda del dibujo representa unas 10 unidades de moda colgadas. Los clásicos van aparte, porque no se miden por novedad. <span id="percha-frase"></span></p>
+  </figure>
+
+  <div class="treinta" aria-label="Resumen en 30 segundos">
+    <article>
+      <p class="k">Lo que medimos</p>
+      <p>Solo lo que la clienta puede ver y tocar: el piso. Cada modelo en cada color recibe un color de semáforo según cuánto lleva colgado comparado con lo que suele tardar su categoría en venderse en esa sede.</p>
+    </article>
+    <article>
+      <p class="k">Para qué</p>
+      <p>Para actuar a tiempo, en orden y por sede: primero cambiar de lugar, luego trasladar y recién al final rebajar. El número que prueba que funciona es cuánto se vende a precio completo.</p>
+    </article>
+    <article>
+      <p class="k">La condición</p>
+      <p>Que cada bajada del almacén al piso quede registrada en el momento. Sin ese registro, el tablero no mide la tienda: mide si se registró o no.</p>
+    </article>
+  </div>
+</header>
+
+<nav class="indice" aria-label="Capítulos">
+  <ol id="indice">
+    <li><a href="#lectura">Cómo leerlo</a></li>
+    <li><a href="#importa">1 · Por qué importa</a></li>
+    <li><a href="#relojes">2 · Tres relojes</a></li>
+    <li><a href="#carrera">3 · La carrera</a></li>
+    <li><a href="#tablero">4 · Tablero</a></li>
+    <li><a href="#matriz">5 · Qué hacer</a></li>
+    <li><a href="#escalera">6 · Antes de rebajar</a></li>
+    <li><a href="#espacio">7 · Espacio</a></li>
+    <li><a href="#taller">8 · Tallas y Taller</a></li>
+    <li><a href="#clavo">9 · ¿Da en el clavo?</a></li>
+    <li><a href="#quien">10 · Quién hace qué</a></li>
+    <li><a href="#decisiones">11 · Decisiones</a></li>
+    <li><a href="#anexo">12 · Programadores</a></li>
+    <li><a href="#glosario">Glosario y fuentes</a></li>
+  </ol>
+</nav>
+
+<section id="lectura" aria-labelledby="t-lectura">
+  <div class="cap"><h2 id="t-lectura">Cómo leer este documento, según quién eres</h2></div>
+  <div class="aud">
+    <a href="#tablero"><b>Encargada de sede</b><span>Capítulos 2, 4, 5 y 6. Qué vas a ver cada lunes y qué hacer con cada prenda. Unos 10 minutos.</span></a>
+    <a href="#importa"><b>Socios y dirección</b><span>Capítulos 1, 4, 9 y 11. Por qué importa, cómo sabremos si funciona y qué falta decidir. Unos 8 minutos.</span></a>
+    <a href="#carrera"><b>Benja y análisis</b><span>Capítulos 2, 3, 5 y 9. La lógica completa: relojes, percentiles, cuánto creerle a cada señal y dónde puede mentir.</span></a>
+    <a href="#anexo"><b>Programadores</b><span>Capítulo 12, y el 11 para las reglas ya decididas. Qué existe en el ERP, qué falta y en qué orden construir.</span></a>
+  </div>
+</section>
+
+<section id="importa" aria-labelledby="t-importa">
+  <div class="cap"><span class="n">Capítulo 1</span><h2 id="t-importa">Por qué importa: la ropa también tiene fecha de horneado</h2></div>
+  <div class="metafora">
+    <span class="et">Piénsalo así</span>
+    <p>Una panadería no vende pan: vende pan del día. Lo de la mañana se vende solo, lo de ayer necesita ayuda, y lo de la semana pasada ya no debería estar en el mostrador.</p>
+    <p>En CAYLA pasa lo mismo, con una diferencia que lo complica: la ropa no se pone dura. Nadie se da cuenta de que una blusa lleva un mes colgada, salvo la clienta que vuelve cada semana y siente que <b>«aquí no hay nada nuevo»</b>. Esa sensación no aparece en ningún reporte de ventas: la clienta simplemente deja de entrar.</p>
+  </div>
+  <div class="prosa">
+    <p>Lo que Felipe propone es convertir esa sensación en un número por sede, y ese número en decisiones: <strong>qué bajar del almacén, qué cambiar de lugar, qué trasladar, qué rebajar y qué pedirle al Taller</strong>. No es un reporte más, sino la forma de administrar la ventaja que CAYLA ya tiene: diseñar y producir en su propio taller, algo que casi ninguna tienda de su tamaño puede hacer.</p>
+    <p>La investigación muestra que el que mejor hizo esto en el mundo convirtió la novedad en su modelo de negocio:</p>
+  </div>
+  <div class="datos">
+    <div class="dato"><p class="v">17 <small>visitas al año</small></p><p>La clienta de Zara entraba unas 17 veces al año, contra 3 o 4 en tiendas de la competencia. Las más fieles sabían qué día llegaban los camiones.</p><p class="f">Caso HBS de Ghemawat y Nueno, datos de 2001-2002</p></div>
+    <div class="dato"><p class="v">¾ <small>del piso</small></p><p>Unas tres cuartas partes de lo exhibido cambiaba cada 3 o 4 semanas. Un artículo vivía de 5 a 6 semanas en tienda.</p><p class="f">Caso HBS; Caro, Gallien y otros, Interfaces 2010</p></div>
+    <div class="dato"><p class="v">15-20 % <small>con rebaja</small></p><p>Zara vendía entre 15 y 20 % con rebaja, contra 30 a 40 % de sus pares europeos. El propio caso llama a esta cifra «muy aproximada».</p><p class="f">Caso HBS</p></div>
+    <div class="dato"><p class="v">−44 % <small>de utilidad</small></p><p>En 2018, H&amp;M acumuló 3.400 millones de euros en inventario, anunció más rebajas y su utilidad del primer trimestre cayó 44 %, también por menores ventas.</p><p class="f">FashionNetwork, 2018</p></div>
+  </div>
+  <p class="nota"><b>Cómo leer estas cifras:</b> vienen de empresas gigantes y de otra época. Sirven para entender el mecanismo, no para prometer resultados. Lo que CAYLA gane con esto lo vamos a saber midiendo en nuestras tres sedes (capítulo 9).</p>
+</section>
+
+<section id="relojes" aria-labelledby="t-relojes">
+  <div class="cap"><span class="n">Capítulo 2</span><h2 id="t-relojes">Tres relojes en la pared</h2></div>
+  <div class="prosa">
+    <p>La primera idea era un solo reloj: «¿cuánto lleva esta prenda?». Al conversarlo aparecieron <strong>tres preguntas distintas</strong>, y cada una necesita su propio reloj. Si se mezclan, el tablero se equivoca justo en lo que más importa.</p>
+  </div>
+  <div class="relojes">
+    <article class="reloj">
+      <div class="cab"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="#eae1d2" stroke="#805c4c" stroke-width="2"/><path d="M22 22 L22 9 M22 22 L31 26" stroke="#1a1a18" stroke-width="2.5" stroke-linecap="round"/></svg><h3>Reloj de tienda</h3></div>
+      <dl>
+        <div><dt>Arranca cuando</dt><dd>La prenda llega a la sede, al almacén.</dd></div>
+        <div><dt>Responde</dt><dd>¿Cuánta plata tengo parada aquí, y hace cuánto?</dd></div>
+        <div><dt>Su regalo</dt><dd>La diferencia con el reloj de piso son los <b>días de espera en almacén</b>: ropa pagada que ninguna clienta puede ver.</dd></div>
+      </dl>
+    </article>
+    <article class="reloj">
+      <div class="cab"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="#eae1d2" stroke="#805c4c" stroke-width="2"/><path d="M22 22 L22 9 M22 22 L12 28" stroke="#1a1a18" stroke-width="2.5" stroke-linecap="round"/></svg><h3>Reloj de piso</h3></div>
+      <dl>
+        <div><dt>Arranca cuando</dt><dd>Cada unidad se cuelga en el piso, y se detiene cuando se vende.</dd></div>
+        <div><dt>Responde</dt><dd>¿Esta prenda se vende más rápido o más lento que las de su categoría?</dd></div>
+        <div><dt>Ojo</dt><dd>Los días en almacén y los días agotada no cuentan: en esos días nadie podía comprarla.</dd></div>
+      </dl>
+    </article>
+    <article class="reloj">
+      <div class="cab"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="19" fill="#eae1d2" stroke="#805c4c" stroke-width="2"/><path d="M22 22 L22 9 M22 22 L33 18" stroke="#1a1a18" stroke-width="2.5" stroke-linecap="round"/></svg><h3>Reloj de novedad</h3></div>
+      <dl>
+        <div><dt>Arranca cuando</dt><dd>El modelo en ese color aparece por primera vez en el piso de esa sede.</dd></div>
+        <div><dt>Responde</dt><dd>¿La clienta que vuelve ya lo vio?</dd></div>
+        <div><dt>Nunca se reinicia</dt><dd>Reponer el Jean Austria azul no lo hace nuevo: para la clienta es el mismo jean en el mismo lugar.</dd></div>
+      </dl>
+    </article>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head"><h3>La vida de la Blusa Paracas terracota en Trujillo, con sus tres relojes</h3><span class="sim">Ejemplo simulado</span></div>
+    <div class="scroll-x"><svg id="linea-vida" viewBox="0 0 760 250" role="img" aria-label="Línea de tiempo de la Blusa Paracas con los tres relojes"></svg></div>
+    <p class="fig-nota">El 12 de septiembre se repusieron 4 unidades. Las nuevas unidades empiezan su propio reloj de piso, pero el reloj de novedad sigue corriendo desde el 5: la clienta ya conoce la blusa. Hoy tiene 19 días de novedad, y pasó 3 días esperando en el almacén antes de colgarse.</p>
+  </div>
+
+  <div class="regla-de-oro">
+    <span class="et">Regla decidida</span>
+    <p>Una prenda de moda es Nueva una sola vez en cada sede.</p>
+    <p class="small" style="font-family:var(--sans); font-size:15px; color:var(--tinta-2)">Si se agota y vuelve, no es novedad. Pero si se traslada a una sede donde nunca se exhibió, <b>allá sí es Nueva</b>: esa clienta nunca la vio. Al lado siempre se muestra la <b>edad en la cadena</b>, que nunca se reinicia. Así nadie «rejuvenece» una prenda paseándola de ciudad en ciudad.</p>
+  </div>
+  <div class="dos">
+    <div class="nota"><b>Y los clásicos (por ejemplo, un polo cuello camisero atemporal):</b> quedan fuera del semáforo de novedad, porque nadie espera que cambien. Pero entran al reloj de piso con más peso, porque al reponerse siempre acumulan mucha historia. A un clásico se lo compara con <b>su propia historia</b>, y a la moda con su categoría, porque un modelo de moda vive pocas semanas. Al clásico se le pregunta además: ¿están sus tallas clave en el piso?</div>
+    <div class="nota"><b>¿Qué se pinta?</b> El modelo en un color, con todas sus tallas juntas, en cada sede. Es lo que la clienta distingue a simple vista, y lo que la industria llama «opción». Las tallas se miden aparte: sirven para ver cuándo faltan tallas clave y qué tallas producir (capítulo 8).</div>
+  </div>
+</section>
+
+<section id="carrera" aria-labelledby="t-carrera">
+  <div class="cap"><span class="n">Capítulo 3</span><h2 id="t-carrera">¿Cuándo deja de ser Nueva? La carrera de su categoría</h2></div>
+  <div class="metafora">
+    <span class="et">Piénsalo así</span>
+    <p>Todos los jeans que se colgaron en Trujillo corren la misma carrera. Venderse es cruzar la meta. Tu jean no se juzga por sí solo: se juzga por dónde va en el pelotón.</p>
+    <p><b>Nueva:</b> todavía no llegó a la meta la mitad del pelotón. <b>Vigente:</b> ya llegó la mitad, pero no 3 de cada 4. <b>Envejecida:</b> ya llegaron 3 de cada 4 y tu jean sigue corriendo. <b>Crítica:</b> ya llegaron 9 de cada 10. Los que siguen corriendo también son parte de la carrera: si solo contáramos a los que llegaron, la carrera parecería más corta de lo que es.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h3>La carrera de la categoría en Trujillo: qué parte del pelotón sigue sin venderse</h3>
+      <div class="seg" role="group" aria-label="Elegir categoría" id="seg-cat">
+        <button type="button" data-cat="jeans" aria-pressed="true">Jeans</button>
+        <button type="button" data-cat="blusas" aria-pressed="false">Blusas</button>
+        <button type="button" data-cat="vestidos" aria-pressed="false">Vestidos</button>
+      </div>
+    </div>
+    <svg id="curva" viewBox="0 0 720 320" role="img" aria-label="Curva del porcentaje de prendas de la categoría que siguen sin venderse según los días en el piso"></svg>
+    <div class="controles">
+      <div class="rango"><label for="dias">Tu prenda lleva <b id="dias-val">16</b> días colgada en el piso</label><input type="range" id="dias" min="0" max="50" value="16"></div>
+      <span class="chip" id="chip-tramo" style="--c:var(--vigente)">Vigente</span>
+    </div>
+    <p class="lectura" id="lectura-curva"></p>
+    <details class="datos-tabla"><summary>Ver los datos de la curva en tabla</summary><div class="tabla-wrap" id="tabla-curva"></div></details>
+  </div>
+  <div class="prosa">
+    <p><strong>Cuando la cuenta no alcanza, el tablero no inventa números.</strong> En blusas y vestidos, todavía no se vendieron 9 de cada 10 en el período, así que el corte de Crítica aparece como «aún sin referencia» y se muestra lo que sí se sabe: qué porcentaje se vendió a los 45 días. Es preferible un «no sabemos todavía» a una cifra falsa.</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <h3>¿Por qué no «el promedio más 30 %»? Las dos reglas, con 20 prendas colgadas hoy</h3>
+      <div class="seg" role="group" aria-label="Elegir regla" id="seg-regla">
+        <button type="button" data-regla="pct" aria-pressed="true">Percentiles de su categoría</button>
+        <button type="button" data-regla="prom" aria-pressed="false">Promedio de lo vendido × 1,3</button>
+      </div>
+    </div>
+    <div class="dos" id="reglas"></div>
+    <p class="fig-nota">En una categoría pareja (tops: casi todos se venden entre el día 4 y el 8) las dos reglas dicen lo mismo. En una dispareja (vestidos de fiesta: de 2 a 75 días) el promedio × 1,3 pinta de rojo a más de la mitad del perchero, por dos razones: el promedio deja fuera a los que siguen colgados, y un 30 % de más es mucho en tops pero casi nada en vestidos de fiesta. Los percentiles se estiran solos según cada categoría.</p>
+  </div>
+  <div class="tres">
+    <div class="previo"><b><span class="chip hueco">Sin datos</span></b>Menos de 5 ventas del modelo en la sede. Se muestra en gris y se espera.</div>
+    <div class="previo"><b><span class="chip" style="--c:var(--tinta-3)">Señal</span></b>Entre 5 y 15 ventas. Alcanza para revisar la prenda, no para decidir sobre ella.</div>
+    <div class="previo"><b><span class="chip" style="--c:var(--tinta)">Firme</span></b>Más de 15 ventas. Alcanza para decidir con tranquilidad.</div>
+  </div>
+  <p class="nota"><b>Cuánto creerle a cada color.</b> Con lotes de 8 a 12 unidades por sede, la mayoría de las prendas van a estar en «señal». El tablero es un radar que te dice dónde mirar; la decisión la toma una persona.</p>
+</section>
+
+<section id="tablero" aria-labelledby="t-tablero">
+  <div class="cap"><span class="n">Capítulo 4</span><h2 id="t-tablero">El tablero, como se vería un lunes</h2></div>
+  <div class="panel-head">
+    <p class="prosa" style="max-width:62ch"><span style="color:var(--tinta-2)">Esto es lo que la encargada y el líder abrirían cada lunes. Elige una sede y todas las cifras cambian.</span></p>
+    <div class="seg" role="group" aria-label="Elegir sede del tablero" id="seg-sede">
+      <button type="button" data-sede="TRU" aria-pressed="true">Trujillo</button>
+      <button type="button" data-sede="AQP" aria-pressed="false">Arequipa</button>
+      <button type="button" data-sede="LIM" aria-pressed="false">Lima</button>
+    </div>
+  </div>
+  <div class="tiles" id="tiles"></div>
+  <p class="tiny muted"><span class="sim">Simulado</span> Las metas son provisionales: se fijan después de medir la línea base de cada sede.</p>
+
+  <div class="dos">
+    <div class="panel">
+      <div class="panel-head"><h3>¿Qué sede está más fresca?</h3></div>
+      <div class="apiladas" id="apiladas"></div>
+      <div class="leyenda" id="leyenda-tramos"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>Porcentaje del piso que es Nueva, últimas 8 semanas</h3></div>
+      <svg id="tendencia" viewBox="0 0 640 270" role="img" aria-label="Tendencia semanal del porcentaje de piso Nueva por sede"></svg>
+      <p class="fig-nota">Cada sede se compara con su propia historia. Trujillo lleva 6 semanas bajando: esa caída dispara la alerta de poca novedad hacia el Taller (capítulo 8). La historia real del piso empieza el 14 de septiembre; estas semanas son ilustrativas.</p>
+    </div>
+  </div>
+
+  <div class="dos">
+    <div class="panel">
+      <div class="panel-head"><h3>¿Dónde está parado el piso? Porcentaje Envejecida o Crítica, por categoría</h3></div>
+      <div class="tabla-wrap"><table class="cuad" id="cuadricula"></table></div>
+      <p class="fig-nota">Más oscuro significa más ropa que se quedó. El número pequeño son las unidades colgadas. Los clásicos no aparecen porque no se miden por novedad.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>La foto y la película</h3></div>
+      <div class="fp" id="foto-pelicula"></div>
+      <div class="metafora" style="padding:14px 16px">
+        <span class="et">Piénsalo así</span>
+        <p style="font-size:18px">Si le tomas una foto al paradero a las 8 de la mañana, solo ves a los que esperan hace rato. Los que agarraron la primera combi ya no están.</p>
+        <p>Con el piso pasa igual: lo que se vende rápido desaparece y lo lento se acumula. Por eso la foto (la edad de lo que sigue colgado) siempre se ve peor que la película (cuánto tardó en venderse lo que sí se vendió). Hay que mirar las dos.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="matriz" aria-labelledby="t-matriz">
+  <div class="cap"><span class="n">Capítulo 5</span><h2 id="t-matriz">Qué hacer con cada prenda: la matriz de Trujillo</h2></div>
+  <div class="prosa">
+    <p>El semáforo dice <strong>cuánto lleva</strong> la prenda. Falta otra pregunta: <strong>¿se vende más rápido o más lento que su categoría a la misma edad?</strong> Cruzando las dos sale la acción. La línea del 100 significa «igual que su categoría»: arriba va más rápido y abajo más lento.</p>
+  </div>
+  <div class="matriz-grid">
+    <div class="panel" style="padding-bottom:12px">
+      <div class="panel-head"><h3>Cada punto es un modelo en un color · tamaño = unidades en el piso</h3><span class="sim">Simulado</span></div>
+      <svg id="matriz-svg" viewBox="0 0 760 440" role="img" aria-label="Matriz de acción: tramo de frescura contra rapidez frente a la categoría"></svg>
+      <div class="leyenda" id="leyenda-matriz"></div>
+    </div>
+    <div class="panel detalle" id="detalle" aria-live="polite"></div>
+  </div>
+  <h4>Antes de leer la matriz, se revisan cuatro casos aparte</h4>
+  <div class="previos">
+    <div class="previo"><b>Faltan tallas clave</b>No es que no guste: le faltan tallas. Se juntan tallas o se retira del piso. Nunca se rebaja por esto.</div>
+    <div class="previo"><b>Clásico</b>Queda fuera de la matriz de novedad. Se mide por disponibilidad y contra su propia historia.</div>
+    <div class="previo"><b>Pocos datos</b>Menos de 6 unidades exhibidas o menos de 5 ventas. Se muestra en gris y se espera.</div>
+    <div class="previo"><b>En rebaja</b>Su rapidez viene de la rebaja, así que se mide aparte y no se compara con su categoría.</div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h3>El reporte del lunes de Trujillo, lo que sale de la matriz</h3></div>
+    <div class="tabla-wrap"><table id="reporte"></table></div>
+  </div>
+</section>
+
+<section id="escalera" aria-labelledby="t-escalera">
+  <div class="cap"><span class="n">Capítulo 6</span><h2 id="t-escalera">Antes de rebajar, una escalera</h2></div>
+  <div class="metafora">
+    <span class="et">Piénsalo así</span>
+    <p>Un buen médico no empieza operando. Primero revisa, luego receta lo más barato y solo al final interviene.</p>
+    <p>Rebajar le cuesta margen a CAYLA y además le enseña a la clienta frecuente a esperar la rebaja. Por eso es el tercer escalón, no el primero. Y la investigación agrega algo clave: <b>el momento de actuar es cuando la prenda está Vigente</b>, no cuando ya está Envejecida, porque trasladar solo funciona mientras a la prenda todavía le quedan semanas de venta.</p>
+  </div>
+  <ol class="escalera">
+    <li><div><h3>Diagnosticar</h3><p>¿Le faltan tallas clave? ¿Es un clásico? ¿Hay pocos datos? ¿Está escondida, en el fondo o doblada debajo de otra?</p></div><span class="costo">Gratis</span></li>
+    <li><div><h3>Cambiar de lugar por 7 días</h3><p>A la entrada, a un maniquí o a una mesa. Cuesta casi nada y se puede deshacer. El resultado se mide: ventas de los 7 días anteriores contra los 7 siguientes.</p></div><span class="costo">Casi gratis</span></li>
+    <li><div><h3>Trasladar a una sede donde nunca estuvo</h3><p>Solo si allá su categoría se vende entre 1,5 y 3 veces más rápido, si le quedan 2 o 3 semanas de venta útil y si lo que se salva supera el costo del envío. Tiene que poder explicarse en una frase.</p></div><span class="costo">Envío</span></li>
+    <li><div><h3>Rebaja chica, solo en esa sede</h3><p>La herramienta la propone y el líder la aprueba; nunca es automática. Se aplica en pocos tramos de precio (por ejemplo, «blusas de S/ 119-139 pasan a S/ 99»), no prenda por prenda, para evitar errores al reetiquetar.</p></div><span class="costo">Margen</span></li>
+    <li><div><h3>Liquidar aparte</h3><p>Al pasar a Crítica: un perchero de oportunidades, lejos de la entrada, donde la clienta frecuente no confunda liquidación con novedad.</p></div><span class="costo">Mucho margen</span></li>
+  </ol>
+</section>
+
+<section id="espacio" aria-labelledby="t-espacio">
+  <div class="cap"><span class="n">Capítulo 7</span><h2 id="t-espacio">¿Cada categoría tiene el piso que se gana?</h2></div>
+  <div class="prosa">
+    <p>Hoy se baja del almacén lo que aparece primero. La propuesta es otra: comparar <strong>qué parte de las perchas ocupa cada categoría</strong> con <strong>qué parte de la venta trae</strong>. Si los jeans ocupan el 14 % de las perchas y traen el 18 % de la venta, les falta piso. Y como dijo Felipe, el reparto cambia con la temporada: en verano las faldas ganan perchas y en invierno las chompas, así que es un <strong>plan de espacio por temporada</strong> que se configura.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-head">
+      <h3>Arequipa: perchas frente a venta, por categoría</h3>
+      <div class="seg" role="group" aria-label="Elegir temporada" id="seg-temp">
+        <button type="button" data-temp="verano" aria-pressed="true">Verano</button>
+        <button type="button" data-temp="invierno" aria-pressed="false">Invierno</button>
+      </div>
+    </div>
+    <div class="leyenda"><span><i class="sw" style="background:var(--perchas)"></i>% de las perchas</span><span><i class="sw" style="background:var(--venta)"></i>% de la venta</span><span class="muted">Índice: 100 = justo · más de 100 = le sobra piso · menos de 100 = le falta</span></div>
+    <div class="esp" id="espacio-barras"></div>
+    <p class="fig-nota">Una categoría «destino» (la que hace venir a la clienta) puede quedarse por encima de 100 a propósito. Más espacio vende más, pero poco: en promedio, 10 % más de espacio suma cerca de 1,7 % de venta (meta-análisis de Eisend, 2014, sobre todo en supermercados). La ganancia grande es otra: <b>liberar percha para lo nuevo</b>.</p>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h3>¿Cuántos modelos caben? La capacidad de cada pared</h3></div>
+    <div class="calc">
+      <label for="c-ganchos">Ganchos de la pared de jeans<input id="c-ganchos" type="number" min="1" max="999" value="70" inputmode="numeric"></label>
+      <label for="c-porop">Unidades por modelo+color (una por talla)<input id="c-porop" type="number" min="1" max="20" value="5" inputmode="numeric"></label>
+      <label for="c-colg">Modelos+color colgados hoy<input id="c-colg" type="number" min="0" max="999" value="17" inputmode="numeric"></label>
+      <p class="res" id="c-res"></p>
+    </div>
+  </div>
+</section>
+
+<section id="taller" aria-labelledby="t-taller">
+  <div class="cap"><span class="n">Capítulo 8</span><h2 id="t-taller">Tallas, marcas y el Taller: lo que el piso le enseña a quien produce</h2></div>
+  <div class="dos">
+    <div class="panel">
+      <div class="panel-head"><h3>Jeans: qué tallas se agotan antes y cuáles se quedan, por sede</h3></div>
+      <div class="tabla-wrap"><table id="tallas"></table></div>
+      <div class="leyenda"><span><i class="sw" style="background:var(--agota)"></i>Se agota antes (vende más de lo que llegó)</span><span><i class="sw" style="background:var(--queda)"></i>Se queda (termina como resto de talla)</span></div>
+      <p class="fig-nota">Índice = parte de la venta ÷ parte de lo recibido × 100. En Arequipa la 26 se agota antes y la 34 se queda. Esa es información para cortar la próxima tanda del Taller con otra curva de tallas para Arequipa.</p>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>La tarjeta de marcas, con el Taller medido con la misma vara</h3></div>
+      <div class="tabla-wrap"><table id="tarjeta"></table></div>
+      <p class="fig-nota">Una marca cuyo producto envejece y termina rebajado le cuesta margen a CAYLA. Con esta tarjeta se negocia un cambio o una devolución antes de rebajar. El retorno sobre el inventario (GMROI) usa el costo, así que solo lo ve quien tiene permiso de dinero.</p>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h3>La alerta de poca novedad: el piso le habla al Taller</h3><span class="chip" style="--c:var(--envejecida)">Alerta · Trujillo</span></div>
+    <div class="prosa">
+      <p><strong>Trujillo lleva dos semanas por debajo de la meta de 25 % Nueva (19 % y 17 %)</strong>, y esta semana colgó solo 5 modelos nuevos de los 10 propuestos. La alerta aparece en Producción y en Compras: <em>«Trujillo necesita novedad: 5 modelos nuevos esta semana. Candidatos: repetir en lote chico la Promesa (Top Lúcuma) y trasladar desde Lima la Blusa Colca crema, que Trujillo nunca tuvo.»</em></p>
+      <p>Hoy el Taller solo recibe una señal: repetir lo que se vende. Con esta alerta recibe la otra mitad: <strong>el piso se está poniendo viejo</strong>. La orden la decide una persona.</p>
+    </div>
+  </div>
+</section>
+
+<section id="clavo" aria-labelledby="t-clavo">
+  <div class="cap"><span class="n">Capítulo 9</span><h2 id="t-clavo">¿Da en el clavo? Una respuesta honesta</h2></div>
+  <div class="clavo-veredicto">
+    <span class="et">Veredicto</span>
+    <p class="g">Sí da en el clavo: ataca el problema correcto. Pero el martillo es el registro.</p>
+    <p class="s">La frescura es la ventaja que CAYLA puede defender, porque tiene taller propio y su clienta vuelve seguido. Esta herramienta convierte esa ventaja en una rutina que se puede medir y exigir. Pero sin el registro de cada bajada al piso, el tablero mide la disciplina de registro y no la tienda.</p>
+  </div>
+  <div class="dos">
+    <div class="panel">
+      <h3>Lo que sí resuelve</h3>
+      <ul class="lista-clave">
+        <li><span class="ic ok">✓</span><span><b>Convierte la novedad en rutina.</b> Cada sede sabe cada lunes qué parte de su piso es nueva y qué hacer con lo que no.</span></li>
+        <li><span class="ic ok">✓</span><span><b>Ataca la fuga de margen más cara:</b> rebajar tarde, hondo y en las tres sedes a la vez.</span></li>
+        <li><span class="ic ok">✓</span><span><b>Da un idioma común</b> a tres sedes: Nueva, Vigente, Envejecida y Crítica significan lo mismo en Trujillo, en Arequipa y en Lima.</span></li>
+        <li><span class="ic ok">✓</span><span><b>Conecta el piso con quien produce y compra:</b> la alerta de poca novedad, las curvas de talla por sede y la tarjeta de marcas.</span></li>
+        <li><span class="ic ok">✓</span><span><b>Destapa el almacén:</b> por primera vez se sabe cuántos días espera la ropa antes de colgarse, y cuánta nunca sale.</span></li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Lo que todavía no resuelve</h3>
+      <ul class="lista-clave">
+        <li><span class="ic alerta">!</span><span><b>No ve lo que la clienta pidió y no había.</b> Solo ve lo que se vendió. Hace falta registrar los pedidos no atendidos.</span></li>
+        <li><span class="ic alerta">!</span><span><b>No sabe en qué lugar de la tienda está la prenda.</b> «Está escondida» sigue siendo intuición hasta registrar al menos los cambios de lugar.</span></li>
+        <li><span class="ic alerta">!</span><span><b>Es un radar, no un juez.</b> Con 8 a 12 unidades por modelo y sede, casi todo será «señal» y no «firme».</span></li>
+        <li><span class="ic alerta">!</span><span><b>No sabe cada cuánto vuelve la clienta</b> mientras no se identifique en caja, con su permiso. Por eso hoy no hay tope absoluto de novedad.</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>Las cuatro condiciones para que funcione</h3>
+    <ol class="prosa" style="max-width:none; padding-left:1.3em">
+      <li><strong>Registrar la bajada al piso con un escaneo por fardo</strong>, más un botón de «Retirar del piso» (hoy no existe), y un indicador de cuánto creerle al tablero de cada sede.</li>
+      <li><strong>Rebaja por sede, aprobada por el líder</strong> y en tramos de precio. Ya está decidido; falta construirlo en la caja.</li>
+      <li><strong>Una reunión de piso de 20 minutos cada lunes</strong> por sede, con el reporte de la matriz. Sin esa reunión, el tablero es un adorno.</li>
+      <li><strong>Medir antes de lanzar:</strong> qué parte de la venta de los últimos 6 meses fue a precio completo, en cada sede. Sin línea base no podremos decir si funcionó.</li>
+    </ol>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><h3>Dónde nos podría mentir, y cómo se evita</h3></div>
+    <div class="tabla-wrap"><table>
+      <thead><tr><th>Si pasa esto…</th><th>El tablero mostraría…</th><th>Se evita con…</th></tr></thead>
+      <tbody>
+        <tr><td>La colaboradora cuelga la ropa sin registrarlo y lo registra recién al cobrar (la caja solo vende lo que figura en el piso)</td><td>Prendas que «se vendieron en 0 días»: <b>estrellas falsas</b></td><td>Registro por escaneo; toda bajada registrada 10 minutos antes de una venta queda marcada como tardía y fuera del cálculo</td></tr>
+        <tr><td>Se descuelga ropa y nadie lo registra</td><td>Prendas que envejecen sin estar a la vista: <b>rojo falso</b></td><td>Botón de «Retirar del piso»</td></tr>
+        <tr><td>Arranque: el 14 de septiembre todo el stock pasó al almacén</td><td>Las primeras semanas todo parece Nuevo</td><td>Un aviso de «período de arranque»: no se concluye nada antes de 4 a 6 semanas</td></tr>
+        <tr><td>Las ventas con rebaja entran a la carrera de la categoría</td><td>La categoría parece más rápida y todo lo que está a precio completo, más lento</td><td>Medir aparte lo que está en rebaja</td></tr>
+        <tr><td>Se traslada ropa solo para «limpiar el rojo»</td><td>Una sede en verde con stock viejo que se pasea</td><td>La edad en la cadena nunca se reinicia, y cada traslado se mide contra su costo</td></tr>
+        <tr><td>Se mira solo la foto del piso</td><td>Una tienda que parece peor de lo que está</td><td>Foto y película juntas, y cada sede comparada con su propia historia</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="panel">
+    <h3>Cómo sabremos si funcionó</h3>
+    <div class="tres">
+      <div class="previo"><b>Número principal</b>El % de la venta a precio completo sube respecto de la línea base de cada sede.</div>
+      <div class="previo"><b>Frescura</b>La edad del piso baja y el % de piso Nueva se sostiene cerca de la meta.</div>
+      <div class="previo"><b>Almacén</b>Bajan los días de espera y las unidades con más de 30 días sin colgarse.</div>
+      <div class="previo"><b>Acciones</b>Cada cambio de lugar y cada traslado muestra su efecto a 7 días, y aprendemos cuál paso de la escalera funciona en nuestras tiendas.</div>
+    </div>
+  </div>
+</section>
+
+<section id="quien" aria-labelledby="t-quien">
+  <div class="cap"><span class="n">Capítulo 10</span><h2 id="t-quien">Quién hace qué, y cada cuánto</h2></div>
+  <div class="quien">
+    <article><span class="cuando">Cada día y los lunes</span><h3>Encargada de sede</h3><ul><li>Registra cada bajada al piso con un escaneo, y cada retiro.</li><li>Los lunes, 20 minutos con el reporte: cambia de lugar, completa tallas y junta los restos de talla.</li><li>Firma cada acción con el combo «Responsable».</li></ul></article>
+    <article><span class="cuando">Cada semana</span><h3>Líder</h3><ul><li>Aprueba las rebajas por sede en tramos de precio.</li><li>Aprueba los traslados por novedad.</li><li>Marca qué productos son clásicos y cuáles son las tallas clave de cada categoría.</li></ul></article>
+    <article><span class="cuando">Cada mes</span><h3>Dirección</h3><ul><li>Plan de espacio por temporada y rol de cada categoría.</li><li>Tarjeta de marcas y del Taller.</li><li>% de venta a precio completo por sede, contra la línea base.</li></ul></article>
+    <article><span class="cuando">Cada semana</span><h3>Taller y Compras</h3><ul><li>Reciben la alerta de poca novedad por sede.</li><li>Ajustan la curva de tallas por sede.</li><li>Repiten en lote chico las Promesas.</li></ul></article>
+  </div>
+</section>
+
+<section id="decisiones" aria-labelledby="t-decisiones">
+  <div class="cap"><span class="n">Capítulo 11</span><h2 id="t-decisiones">Lo que ya decidimos y lo que falta decidir</h2></div>
+  <div class="dos">
+    <div class="panel">
+      <h3>Decidido con Felipe · 24 de septiembre de 2026</h3>
+      <ol class="prosa small" style="max-width:none; padding-left:1.3em">
+        <li>Se llama <strong>Frescura del piso</strong>. La cifra de cabecera es la <strong>edad del piso</strong>, en días. «Mapa de calor» queda libre: en retail significa el tráfico de clientas por zona.</li>
+        <li><strong>Solo cuenta el piso.</strong> El tiempo en el almacén nunca cuenta como exhibición.</li>
+        <li><strong>Tres relojes:</strong> tienda, piso y novedad.</li>
+        <li>Lo que se pinta es el <strong>modelo+color en cada sede</strong>. Las tallas son una señal aparte.</li>
+        <li>La vara es <strong>la categoría en esa sede</strong>, no el modelo. Con pocos datos se usa la de las tres sedes.</li>
+        <li><strong>Regla de percentiles:</strong> la mitad, 3 de cada 4 y 9 de cada 10, contando lo que sigue colgado y recalculada en vivo.</li>
+        <li>Los días agotada no cuentan.</li>
+        <li><strong>Sin tope absoluto de novedad</strong> hasta medir cada cuánto vuelve la clienta.</li>
+        <li><strong>Una prenda de moda es Nueva una sola vez en cada sede.</strong> La edad en la cadena nunca se reinicia.</li>
+        <li><strong>Clásicos:</strong> fuera del semáforo de novedad, dentro del reloj de piso y comparados con su propia historia.</li>
+        <li><strong>Rebaja por sede, la aprueba el líder</strong>, nunca automática y en tramos de precio.</li>
+        <li><strong>El espacio se configura por temporada.</strong></li>
+      </ol>
+    </div>
+    <div class="panel">
+      <h3>Falta decidir (con propuesta)</h3>
+      <div class="tabla-wrap"><table>
+        <thead><tr><th>Pregunta</th><th>Propuesta</th></tr></thead>
+        <tbody>
+          <tr><td>¿Cuáles son las tallas clave de cada categoría?</td><td>Las define el líder: por ejemplo 28-30-32 en jeans, S-M-L en blusas</td></tr>
+          <tr><td>¿Qué productos son clásicos?</td><td>El líder los marca en el producto</td></tr>
+          <tr><td>¿Cuántos datos mínimos necesita una categoría?</td><td>20 modelos+color o 30 unidades en 8 semanas; si no llega, se usa la de las tres sedes</td></tr>
+          <tr><td>¿Qué ventana de tiempo usa la carrera?</td><td>Los últimos 90 a 120 días, para no mezclar invierno con verano</td></tr>
+          <tr><td>¿Meta de % Nueva y de novedades por semana?</td><td>25 % y 10, ajustadas a la capacidad de cada sede después de medir</td></tr>
+          <tr><td>¿Cuánto cuesta y cuánto tarda un traslado?</td><td>Medirlo en las tres rutas: define cuándo conviene trasladar antes que rebajar</td></tr>
+          <tr><td>¿Identificamos a la clienta en caja?</td><td>Sí, solo con su permiso: es la única forma de saber cada cuánto vuelve</td></tr>
+          <tr><td>La alerta al Taller, ¿solo avisa o abre una orden?</td><td>Solo avisa; la orden la decide una persona</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+</section>
+
+<section id="anexo" aria-labelledby="t-anexo">
+  <div class="anexo">
+    <div class="cap"><span class="sobre">Capítulo 12 · Para programadores</span><h2 id="t-anexo">Cómo se construye sobre el ERP que ya existe</h2></div>
+    <p>Dueño del módulo: <b>Águila</b> (Inteligencia y reportes). Arquitectura real: Next.js + Supabase, schema <code>retail</code> en producción y RLS. Todo movimiento de stock ya se escribe en <code>movimientos</code>, que es append-only. <b>Casi todo lo que sigue es lectura:</b> funciones SQL <code>security definer</code> de solo lectura, con el mismo patrón que <code>fn_resumen_variantes</code>, y reglas puras en <code>lib/*-reglas.ts</code> con sus pruebas.</p>
+    <div class="dos">
+      <div>
+        <h3>Unidad y relojes</h3>
+        <ul>
+          <li><b>Unidad:</b> <code>(producto_id, color_codigo, ubicacion_id)</code>. La talla se suma y solo se usa para la curva rota y las curvas por sede.</li>
+          <li><b>Reloj de tienda:</b> la primera entrada o recepción de traslado en la sede, al almacén.</li>
+          <li><b>Reloj de piso por unidad:</b> se empareja cada <code>mover_interno</code> de almacén a piso con cada venta desde el piso, asumiendo que primero se vende la unidad más antigua (y la pantalla lo dice). Se excluyen las bajadas marcadas como tardías.</li>
+          <li><b>Reloj de novedad:</b> el primer instante en que el modelo+color tuvo piso &gt; 0 en la sede. En moda nunca se reinicia. <b>Edad en la cadena:</b> el primer piso &gt; 0 en cualquier sede.</li>
+          <li>Las devoluciones heredan el reloj de su modelo+color. Los ajustes de conteo nunca reinician un reloj.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>La carrera (curva de la categoría)</h3>
+        <ul>
+          <li>Se usa Kaplan-Meier por <code>categoría × sede</code> sobre las unidades, con dos datos por unidad: días en piso y si se vendió. Lo que sigue colgado entra como «al menos N días». Es un producto de fracciones y se calcula en Postgres, sin librerías.</li>
+          <li>Ventana de 90 a 120 días. Las unidades rebajadas se cuentan como sin vender hasta el día de la rebaja, y los clásicos quedan fuera.</li>
+          <li>Cortes P50, P75 y P90. Si la curva no cruza el corte, se devuelve <code>null</code> y la pantalla muestra «aún sin referencia» junto con el % vendido a N días.</li>
+          <li>Con pocos datos se sube al nivel siguiente: la categoría madre o las tres sedes.</li>
+        </ul>
+      </div>
+    </div>
+<pre><code>-- Contrato de la lectura (propuesta, nombre provisional)
+retail.fn_frescura_piso(p_ubicacion_id uuid, p_hasta date default current_date)
+  returns table (
+    producto_id uuid, color_codigo text, categoria_id uuid,
+    linea text,                 -- 'moda' | 'clasico'   (columna nueva en productos)
+    edad_novedad_dias numeric,  -- reloj de novedad en la sede
+    edad_cadena_dias  numeric,  -- nunca se reinicia
+    unidades_piso int, ventas_periodo int,
+    tramo text,                 -- 'nueva' | 'vigente' | 'envejecida' | 'critica' | null
+    indice_rapidez numeric,     -- % vendido a igual edad ÷ el de la categoría × 100
+    evidencia text,             -- 'sin_datos' | 'senal' | 'firme'
+    curva_rota boolean, en_campana boolean,
+    p50 numeric, p75 numeric, p90 numeric  -- null = aún sin referencia
+  )
+-- Promete: solo lee movimientos/stock; nunca escribe. Asume: bajadas tardías ya marcadas.</code></pre>
+    <h3>Qué existe y qué falta, en orden de construcción</h3>
+    <div class="tabla-wrap"><table>
+      <thead><tr><th>#</th><th>Pieza</th><th>Hoy</th><th>Falta</th><th>Esquema</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>Bajada al piso</td><td>Existe <code>mover_interno</code> con fecha y responsable, pero se baja una talla por vez y quien solo tiene «vender» no puede bajar</td><td>Escaneo por fardo, permiso sin darle todo el módulo Existencias, marca de bajada tardía (10 minutos antes de una venta) e indicador de confianza por sede</td><td>Menor</td></tr>
+        <tr><td>2</td><td>Retirar del piso</td><td>La función existe, pero no tiene botón</td><td>El botón en Existencias</td><td>No</td></tr>
+        <tr><td>3</td><td>Reloj de novedad</td><td><code>fn_resumen_variantes</code> ya reconstruye el piso por talla desde el ledger; <code>primer_ingreso</code> no sirve (cuenta desde el almacén y nunca se reinicia)</td><td>Agrupar por modelo+color y calcular la primera exhibición continua por sede y en la cadena</td><td>No</td></tr>
+        <tr><td>4</td><td>Reloj de piso + carrera</td><td>Existe la velocidad por días con stock en el piso (<code>calcularVelocidad</code>)</td><td>Emparejamiento FIFO, Kaplan-Meier y P50/P75/P90 por categoría y sede</td><td>No</td></tr>
+        <tr><td>5</td><td>Tramos e índice</td><td>Hay bandas de cobertura (otra pregunta) y la marca de alta demanda contra toda la sede</td><td>Tramos por percentil, índice a igual edad y las tres marcas de evidencia</td><td>No</td></tr>
+        <tr><td>6</td><td>Clásicos y tallas clave</td><td>No existen</td><td><code>productos.linea</code> ('moda' o 'clasico') y tallas clave por categoría</td><td><b>Sí</b>, con ADR</td></tr>
+        <tr><td>7</td><td>Atributos y marcas en la lectura</td><td>Color, tejido, estampado, marca y proveedor ya existen en el catálogo</td><td>Traerlos a la lectura y limpiar los productos marcados «CAYLA» por defecto</td><td>No</td></tr>
+        <tr><td>8</td><td>Traslado por novedad</td><td>Traslado en dos fases, hoy solo para reponer</td><td>Sugerirlo hacia una sede donde el modelo nunca estuvo; el reloj arranca en destino al colgarse</td><td>No</td></tr>
+        <tr><td>9</td><td>Alerta al Taller</td><td>El módulo de Producción empuja a repetir lo que se vende</td><td>La señal de poca novedad por sede, visible en Producción y en Compras</td><td>No</td></tr>
+        <tr><td>10</td><td>Rebaja por sede</td><td>La campaña rige en las 3 sedes a la vez</td><td>Campaña por sede y en tramos de precio. <b>Toca la caja y el dinero:</b> diseño aprobado por Felipe; migración y ensayo antes de producción</td><td><b>Sí</b></td></tr>
+        <tr><td>11</td><td>Espacio por temporada</td><td>No existe</td><td>Tabla de capacidad por categoría, sede y temporada, en ganchos y frentes</td><td><b>Sí</b></td></tr>
+        <tr><td>12</td><td>Zonas de exhibición</td><td>No existen</td><td>Más adelante: un registro sin mover stock (crear la zona como otra ubicación rompería la caja)</td><td>Sí</td></tr>
+      </tbody>
+    </table></div>
+    <div class="dos">
+      <div>
+        <h3>Reglas del repo que aplican</h3>
+        <ul>
+          <li><b>Módulo nuevo (ADR-0161):</b> una migración propia con <code>insert into retail.modulos</code> y sin rol asignado; agregarlo a <code>CLAVES_MODULO</code> y <code>MODULOS</code>, y ponerle un <code>layout.tsx</code> con <code>exigirModulo</code>. Nace visible solo para el líder.</li>
+          <li><b>Carga (ADR-0149):</b> las lecturas con prefijo <code>fn_</code> ya están en la lista de solo lectura de <code>espera-reglas.ts</code>.</li>
+          <li><b>Pantalla (ADR-0169):</b> <code>CabeceraPantalla</code>, luego <code>TarjetaCifra</code>, luego la tabla y al final una <code>nota-cayla</code>. Los colores del semáforo pasan a ser tokens.</li>
+          <li><b>Producción:</b> todo va con el prefijo <code>retail.</code> en el SQL Editor, y después <code>pnpm datos:generar:produccion</code> y <code>datos:comparar</code>.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Números antes que opiniones</h3>
+        <ul>
+          <li>Hoy hay cerca de 24.000 movimientos, 7.000 ventas, 1.300 variantes y 45 categorías. En 3 años, con unas 10 veces más, serían del orden de 250.000 movimientos.</li>
+          <li>La carrera de una categoría en una sede, con una ventana de 120 días, usa del orden de cientos a pocos miles de unidades. Se puede calcular al vuelo.</li>
+          <li><b>Se rompe si</b> la pantalla tarda más de 1 segundo por sede. En ese caso, una foto diaria de la lectura guardada en una tabla. No antes.</li>
+        </ul>
+        <h3>Archivos para empezar</h3>
+        <ul class="small">
+          <li><code>supabase/migrations/20260919141804_resumen_inventario_v2.sql</code></li>
+          <li><code>supabase/migrations/20260914230000_inventario_piso_almacen.sql</code></li>
+          <li><code>supabase/migrations/20260916150000_traslados_dos_fases.sql</code></li>
+          <li><code>apps/web/lib/resumen-reglas.ts</code> · <code>ReponerPisoModal.tsx</code></li>
+          <li><code>apps/web/lib/produccion-decision-reglas.ts</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="glosario" aria-labelledby="t-glosario">
+  <div class="cap"><h2 id="t-glosario">Glosario</h2></div>
+  <dl class="glosario">
+    <div><dt>Piso <span>· sales floor</span></dt><dd>Lo colgado o doblado a la vista de la clienta. Es lo único que se puede vender.</dd></div>
+    <div><dt>Almacén de la sede <span>· backroom</span></dt><dd>El stock de la tienda que la clienta no ve.</dd></div>
+    <div><dt>Modelo+color <span>· option</span></dt><dd>Un modelo en un color, con todas sus tallas. Es la unidad del semáforo.</dd></div>
+    <div><dt>Novedad <span>· newness</span></dt><dd>Lo del piso que la clienta todavía no vio en sus visitas anteriores.</dd></div>
+    <div><dt>Edad del piso</dt><dd>El promedio de días de novedad de lo que está colgado. Es la «temperatura» de la sede.</dd></div>
+    <div><dt>Percentil 50 / 75 / 90</dt><dd>El día en que ya se vendió la mitad, 3 de cada 4 o 9 de cada 10 de la categoría.</dd></div>
+    <div><dt>Dato censurado</dt><dd>Una prenda que todavía no se vende: se sabe que tardará al menos N días, pero no cuántos.</dd></div>
+    <div><dt>Índice de rapidez</dt><dd>100 = igual que su categoría a la misma edad. 200 = el doble de rápido.</dd></div>
+    <div><dt>Curva rota <span>· broken sizes</span></dt><dd>Faltan las tallas que más se venden, y la prenda vende menos aunque guste.</dd></div>
+    <div><dt>Venta a precio completo</dt><dd>La parte de lo vendido que salió sin ninguna rebaja. Es el número que prueba si esto funciona.</dd></div>
+    <div><dt>Foto y película</dt><dd>La foto es la edad de lo que sigue colgado; la película, cuánto tardó en venderse lo vendido.</dd></div>
+    <div><dt>Índice espacio-venta <span>· fair share</span></dt><dd>% de perchas ÷ % de venta × 100. Más de 100 significa que le sobra piso.</dd></div>
+    <div><dt>GMROI</dt><dd>Margen del año ÷ inventario promedio al costo: cuánto margen deja cada sol invertido en ropa.</dd></div>
+    <div><dt>Bajada tardía</dt><dd>Una bajada al piso registrada minutos antes de venderse. Delata que la prenda ya estaba colgada sin registro.</dd></div>
+  </dl>
+  <h3 style="margin-top:12px">Fuentes verificadas</h3>
+  <p class="small muted">Cada dato pasó por un verificador que intentó desmentirlo. Lo que no se pudo confirmar quedó fuera del documento.</p>
+  <ul class="fuentes">
+    <li><a href="https://didierdiaz.com/wp-content/uploads/2019/10/Zara-fast-fashion-Case-study-HVR.pdf">Ghemawat y Nueno, ZARA: Fast Fashion (caso HBS)</a></li>
+    <li><a href="http://web.mit.edu/jgallien/www/ZaraInterfaces2010.pdf">Caro, Gallien y otros, Interfaces 2010</a></li>
+    <li><a href="https://web.mit.edu/jgallien/www/InvMgtRetailNetworkCaroGallien2007.pdf">Caro y Gallien, Inventory Management of a Fast-Fashion Retail Network</a></li>
+    <li><a href="https://escholarship.org/uc/item/0fm8d8sv">Caro y Gallien, Clearance Pricing Optimization (Operations Research 2012)</a></li>
+    <li><a href="https://www.inditex.com/itxcomweb/us/en/press/frequent-questions">Inditex, preguntas frecuentes</a></li>
+    <li><a href="https://docs.oracle.com/cd/E12578_01/mdo/pdf/130/mdo-130-cg.pdf">Oracle Retail Markdown Optimization</a></li>
+    <li><a href="https://squareup.com/help/us/en/article/8265-track-aging-inventory-with-square-for-retail">Square, reporte de antigüedad del inventario</a></li>
+    <li><a href="https://www.odoo.com/documentation/17.0/es_419/applications/inventory_and_mrp/inventory/warehouses_storage/reporting/aging.html">Odoo, antigüedad del inventario</a></li>
+    <li><a href="https://analyse-it.com/learn/kaplan-meier-survival-curves">Analyse-it, Kaplan-Meier y censura</a></li>
+    <li><a href="https://www.ajol.info/index.php/orion/article/download/111549/101328">Hattingh y Uys, modelos de supervivencia en moda (2014)</a></li>
+    <li><a href="https://pubsonline.informs.org/doi/abs/10.1287/opre.44.1.87">Fisher y Raman, Accurate Response to Early Sales (1996)</a></li>
+    <li><a href="https://web2-bschool.nus.edu.sg/wp-content/uploads/media_rp/publications/6isNE1485323583.pdf">Jain, Rudi y Wang, Stock-Out Timing (2015)</a></li>
+    <li><a href="https://ideas.repec.org/a/eee/jouret/v90y2014i2p168-181.html">Eisend, elasticidad al espacio, meta-análisis (2014)</a></li>
+    <li><a href="https://www.increff.com/blog/inter-store-transfers-optimize-inventory-sales">Increff, reglas para trasladar entre tiendas</a></li>
+    <li><a href="https://umbrex.com/resources/retail-industry-playbooks/markdown-optimization-playbook/markdown-cadence-and-decision-timing/">Umbrex, cuándo decidir una rebaja</a></li>
+    <li><a href="https://www.bcg.com/publications/2020/advanced-analytics-fashion-company-markdowns">BCG, rebajas por atributo y por tienda</a></li>
+    <li><a href="https://us.fashionnetwork.com/news/H-m-faces-up-to-growing-problem-of-unsold-stock,963623.html">FashionNetwork, H&amp;M y su stock sin vender (2018)</a></li>
+    <li><a href="https://www.stylearcade.com/blog/monday-retail-trade-how-fashion-merchandisers-can-smash-reporting-to-drive-profit-growth">Style Arcade, la reunión comercial del lunes</a></li>
+    <li><a href="https://www.xovis.com/insights/detail/heat-maps-in-retail-understanding-zones-of-interest-use-case">Xovis, qué es un mapa de calor en retail</a></li>
+    <li><a href="https://www.martec-international.com/userfiles/file/improving-business-performance-using-retail-kpis-v1.pdf">Martec, KPIs de retail y stock fresco</a></li>
+  </ul>
+</section>
+
+<footer>
+  <p>Frescura del piso · propuesta de trabajo de CAYLA. Ideas de Felipe; investigación y diseño con Claude, módulo Águila (Inteligencia y reportes).</p>
+  <p>Los nombres de prendas, las marcas y todas las cifras del tablero son simulados, con fines de explicación.</p>
+</footer>
+</div>
+
+<div id="tip" class="tip" role="tooltip" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var COL = { nueva: "#3f8a4f", vigente: "#d8a440", envejecida: "#c9603f", critica: "#8a2a1c", sindatos: "#b3a894", clasico: "#4c5d6e" };
+  var TXT = { tinta: "#1a1a18", t2: "#4f4841", t3: "#6b6257", grid: "#e7dfcf", eje: "#c7bba6", papel: "#fbf8f2" };
+  var NOMBRE = { nueva: "Nueva", vigente: "Vigente", envejecida: "Envejecida", critica: "Crítica" };
+  var TRAMOS = ["nueva", "vigente", "envejecida", "critica"];
+  var TEXTO_CLARO = { vigente: true };
+
+  var SEDES = {
+    TRU: { nombre: "Trujillo", color: "#2a78d6", tramos: { nueva: 67, vigente: 149, envejecida: 131, critica: 48 }, clasicos: 25, edad: 16, pelicula: 8, novedades: 5, precio: 74, confianza: 68, espera: 4, almacen30: 60, tendencia: [28, 27, 25, 24, 22, 20, 19, 17] },
+    AQP: { nombre: "Arequipa", color: "#1baf7a", tramos: { nueva: 105, vigente: 157, envejecida: 60, critica: 18 }, clasicos: 20, edad: 11, pelicula: 7, novedades: 9, precio: 82, confianza: 85, espera: 1, almacen30: 140, tendencia: [30, 29, 31, 30, 32, 30, 31, 31] },
+    LIM: { nombre: "Lima", color: "#4a3aa7", tramos: { nueva: 115, vigente: 188, envejecida: 134, critica: 43 }, clasicos: 30, edad: 14, pelicula: 9, novedades: 7, precio: 79, confianza: 77, espera: 3, almacen30: 90, tendencia: [26, 27, 25, 26, 24, 25, 23, 24] }
+  };
+  var ORDEN_SEDES = ["TRU", "AQP", "LIM"];
+  var SEMANAS = ["3 ago", "10 ago", "17 ago", "24 ago", "31 ago", "7 set", "14 set", "21 set"];
+  var META_NUEVA = 25, META_NOV = 10, META_CONF = 90;
+
+  function svgEl(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function txt(parent, x, y, s, attrs) {
+    var a = attrs || {};
+    a.x = x; a.y = y;
+    if (!a.fill) a.fill = TXT.t3;
+    if (!a["font-size"]) a["font-size"] = 12;
+    var t = svgEl("text", a, parent);
+    t.textContent = s;
+    return t;
+  }
+  function limpiar(el) { while (el.firstChild) el.removeChild(el.firstChild); }
+  function pct(n, total) { return total ? (n / total) * 100 : 0; }
+  function fmt(n, d) { return n.toLocaleString("es-PE", { maximumFractionDigits: d === undefined ? 0 : d, minimumFractionDigits: d === undefined ? 0 : d }); }
+  function totalModa(s) { var t = 0; TRAMOS.forEach(function (k) { t += s.tramos[k]; }); return t; }
+
+  // ---------- Tooltip ----------
+  var tip = document.getElementById("tip");
+  function mostrarTip(ev, html) {
+    tip.innerHTML = html;
+    tip.hidden = false;
+    var cx = ev.clientX, cy = ev.clientY;
+    if (cx === undefined || (cx === 0 && cy === 0 && ev.target && ev.target.getBoundingClientRect)) {
+      var r = ev.target.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top;
+    }
+    var w = tip.offsetWidth, h = tip.offsetHeight;
+    var x = cx + 14, y = cy - h - 12;
+    if (x + w > window.innerWidth - 8) x = cx - w - 14;
+    if (x < 8) x = 8;
+    if (y < 8) y = cy + 16;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function ocultarTip() { tip.hidden = true; }
+  function conTip(el, htmlFn) {
+    el.addEventListener("mouseenter", function (e) { mostrarTip(e, htmlFn()); });
+    el.addEventListener("mousemove", function (e) { mostrarTip(e, htmlFn()); });
+    el.addEventListener("mouseleave", ocultarTip);
+    el.addEventListener("focus", function (e) { mostrarTip(e, htmlFn()); });
+    el.addEventListener("blur", ocultarTip);
+  }
+  window.addEventListener("scroll", ocultarTip, { passive: true });
+
+  function segmentado(id, attr, alCambiar) {
+    var grupo = document.getElementById(id);
+    grupo.addEventListener("click", function (e) {
+      var b = e.target.closest("button");
+      if (!b) return;
+      grupo.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-pressed", x === b ? "true" : "false"); });
+      alCambiar(b.getAttribute(attr));
+    });
+  }
+
+  function reparto(valores, total) {
+    var suma = valores.reduce(function (a, b) { return a + b; }, 0);
+    var exactos = valores.map(function (v) { return (v / suma) * total; });
+    var base = exactos.map(Math.floor);
+    var falta = total - base.reduce(function (a, b) { return a + b; }, 0);
+    var orden = exactos.map(function (v, i) { return [v - Math.floor(v), i]; }).sort(function (a, b) { return b[0] - a[0]; });
+    for (var i = 0; i < falta; i++) base[orden[i][1]] += 1;
+    return base;
+  }
+
+  // ---------- Perchero de la portada ----------
+  var perchaSvg = document.getElementById("percha");
+  var PRENDAS = 40;
+  function dibujarPerchero(sedeId) {
+    var s = SEDES[sedeId];
+    limpiar(perchaSvg);
+    svgEl("line", { x1: 18, y1: 16, x2: 862, y2: 16, stroke: TXT.t2, "stroke-width": 3, "stroke-linecap": "round" }, perchaSvg);
+    svgEl("line", { x1: 22, y1: 16, x2: 22, y2: 4, stroke: TXT.t2, "stroke-width": 3 }, perchaSvg);
+    svgEl("line", { x1: 858, y1: 16, x2: 858, y2: 4, stroke: TXT.t2, "stroke-width": 3 }, perchaSvg);
+    var totalM = totalModa(s);
+    var cantidades = reparto(TRAMOS.map(function (k) { return s.tramos[k]; }), PRENDAS);
+    var lista = [];
+    TRAMOS.forEach(function (k, i) { for (var j = 0; j < cantidades[i]; j++) lista.push(k); });
+    var paso = 820 / PRENDAS;
+    lista.forEach(function (k, i) {
+      var x = 34 + i * paso + paso / 2 - 4;
+      var g = svgEl("g", { tabindex: -1 }, perchaSvg);
+      svgEl("path", { d: "M" + x + " 30 L" + x + " 22 a4 4 0 1 1 4.5 -5", fill: "none", stroke: TXT.t3, "stroke-width": 1.4, "stroke-linecap": "round" }, g);
+      svgEl("path", { d: "M" + (x - 9) + " 38 L" + x + " 30 L" + (x + 9) + " 38", fill: "none", stroke: TXT.t3, "stroke-width": 1.4, "stroke-linejoin": "round" }, g);
+      var forma = i % 3, d;
+      if (forma === 0) d = "M" + (x - 8) + " 38 H" + (x + 8) + " L" + (x + 9) + " 96 H" + (x - 9) + " Z";
+      else if (forma === 1) d = "M" + (x - 6.5) + " 38 H" + (x + 6.5) + " L" + (x + 11) + " 118 H" + (x - 11) + " Z";
+      else d = "M" + (x - 8) + " 38 H" + (x + 8) + " L" + (x + 8.5) + " 124 H" + (x + 1.5) + " L" + x + " 64 L" + (x - 1.5) + " 124 H" + (x - 8.5) + " Z";
+      var p = svgEl("path", { d: d, fill: COL[k], stroke: TXT.papel, "stroke-width": 1.5, class: "prenda" }, g);
+      conTip(g, function () {
+        return "<b>" + NOMBRE[k] + "</b> en " + s.nombre + "<br><span class='t2'>" + fmt(s.tramos[k]) + " unidades · " + fmt(pct(s.tramos[k], totalM)) + " % del piso de moda</span>";
+      });
+    });
+    txt(perchaSvg, 22, 146, "Más nuevo  →", { "font-size": 12, fill: TXT.t3 });
+    txt(perchaSvg, 858, 146, "←  Más antiguo", { "font-size": 12, fill: TXT.t3, "text-anchor": "end" });
+    document.getElementById("percha-sede").textContent = s.nombre;
+    var ley = document.getElementById("percha-leyenda");
+    ley.innerHTML = TRAMOS.map(function (k) {
+      return "<span><i class='sw' style='background:" + COL[k] + "'></i>" + NOMBRE[k] + " <b class='num'>" + fmt(pct(s.tramos[k], totalM)) + " %</b></span>";
+    }).join("") + "<span><i class='sw' style='background:" + COL.clasico + "'></i>Clásicos aparte: " + s.clasicos + " unidades</span>";
+    var nueva = pct(s.tramos.nueva, totalM), viejo = pct(s.tramos.envejecida + s.tramos.critica, totalM);
+    document.getElementById("percha-frase").textContent =
+      "En " + s.nombre + ", " + fmt(nueva) + " % del piso es Nueva y " + fmt(viejo) + " % ya se quedó (Envejecida o Crítica).";
+  }
+  segmentado("seg-percha", "data-sede", dibujarPerchero);
+
+  // ---------- Línea de vida (tres relojes) ----------
+  (function lineaDeVida() {
+    var svg = document.getElementById("linea-vida");
+    var x0 = 150, x1 = 740, d0 = 2, d1 = 24;
+    function X(dia) { return x0 + ((dia - d0) / (d1 - d0)) * (x1 - x0); }
+    [2, 5, 12, 19, 24].forEach(function (d) {
+      svgEl("line", { x1: X(d), y1: 30, x2: X(d), y2: 212, stroke: TXT.grid, "stroke-width": 1 }, svg);
+      txt(svg, X(d), 232, d + " set", { "text-anchor": "middle", fill: TXT.t3 });
+    });
+    txt(svg, X(24), 22, "hoy", { "text-anchor": "middle", fill: TXT.tinta, "font-weight": 600 });
+    var filas = [
+      { y: 52, nombre: "Reloj de tienda", barras: [{ a: 2, b: 24, c: "#805c4c", t: "22 días en la sede" }] },
+      { y: 100, nombre: "Espera en almacén", barras: [{ a: 2, b: 5, c: "#b3a894", t: "3 días sin que nadie la vea" }] },
+      { y: 148, nombre: "Reloj de piso", barras: [{ a: 5, b: 24, c: COL.vigente, t: "Lote 1 · 6 unidades desde el 5" }, { a: 12, b: 24, c: COL.nueva, t: "Lote 2 · 4 unidades desde el 12" }] },
+      { y: 196, nombre: "Reloj de novedad", barras: [{ a: 5, b: 24, c: "#1a1a18", t: "19 días: la reposición no lo reinicia" }] }
+    ];
+    filas.forEach(function (f) {
+      txt(svg, 0, f.y + 4, f.nombre, { fill: TXT.tinta, "font-size": 13, "font-weight": 600 });
+      f.barras.forEach(function (b, i) {
+        var y = f.barras.length > 1 ? f.y - 11 + i * 14 : f.y - 7;
+        var h = f.barras.length > 1 ? 11 : 14;
+        var r = svgEl("rect", { x: X(b.a), y: y, width: X(b.b) - X(b.a), height: h, rx: 3, fill: b.c }, svg);
+        conTip(r, function () { return "<b>" + f.nombre + "</b><br><span class='t2'>" + b.t + "</span>"; });
+      });
+    });
+    txt(svg, X(5) + 4, 128, "se cuelga", { fill: TXT.t2, "font-size": 11.5 });
+    txt(svg, X(12) + 4, 128, "se reponen 4", { fill: TXT.t2, "font-size": 11.5 });
+    txt(svg, X(24) - 4, 178, "19 días de novedad", { fill: TXT.tinta, "font-size": 12, "text-anchor": "end", "font-weight": 600 });
+  })();
+
+  // ---------- La carrera: curva de la categoría ----------
+  var DIAS = [0, 3, 7, 10, 12, 14, 17, 21, 25, 30, 35, 40, 45];
+  var CURVAS = {
+    jeans: { nombre: "jeans", plural: "Los jeans", s: [100, 88, 70, 58, 50, 45, 34, 25, 18, 13, 10, 8, 6] },
+    blusas: { nombre: "blusas", plural: "Las blusas", s: [100, 92, 80, 68, 62, 55, 50, 40, 33, 28, 25, 23, 22] },
+    vestidos: { nombre: "vestidos", plural: "Los vestidos", s: [100, 95, 85, 77, 72, 65, 58, 50, 44, 35, 30, 27, 25] }
+  };
+  function corte(s, dias, umbral) {
+    for (var i = 0; i < s.length; i++) if (s[i] <= umbral) return dias[i];
+    return null;
+  }
+  function percentiles(c, dias) { return { p50: corte(c.s, dias, 50), p75: corte(c.s, dias, 25), p90: corte(c.s, dias, 10) }; }
+  function tramoDe(d, p) {
+    if (p.p50 === null || d <= p.p50) return "nueva";
+    if (p.p75 === null || d <= p.p75) return "vigente";
+    if (p.p90 === null || d <= p.p90) return "envejecida";
+    return "critica";
+  }
+  var catActual = "jeans";
+  var curvaSvg = document.getElementById("curva");
+  var diasInput = document.getElementById("dias");
+  function sinVenderEn(c, d) {
+    var v = c.s[0];
+    for (var i = 0; i < DIAS.length; i++) if (DIAS[i] <= d) v = c.s[i];
+    return v;
+  }
+  function dibujarCurva() {
+    var c = CURVAS[catActual], p = percentiles(c, DIAS), d = +diasInput.value;
+    limpiar(curvaSvg);
+    var L = 56, R = 700, T = 34, B = 276, maxD = 50;
+    function X(v) { return L + (v / maxD) * (R - L); }
+    function Y(v) { return B - (v / 100) * (B - T); }
+    var bordes = [0, p.p50, p.p75, p.p90, maxD];
+    var fin = [p.p50, p.p75, p.p90].map(function (v) { return v === null ? maxD : v; });
+    var zonas = [
+      { k: "nueva", a: 0, b: fin[0] },
+      { k: "vigente", a: fin[0], b: p.p50 === null ? maxD : fin[1] },
+      { k: "envejecida", a: p.p75 === null ? maxD : fin[1], b: p.p75 === null ? maxD : fin[2] },
+      { k: "critica", a: p.p90 === null ? maxD : fin[2], b: maxD }
+    ];
+    zonas.forEach(function (z) {
+      if (z.b > z.a) svgEl("rect", { x: X(z.a), y: T, width: X(z.b) - X(z.a), height: B - T, fill: COL[z.k], "fill-opacity": 0.11 }, curvaSvg);
+      if (z.b - z.a >= 5) txt(curvaSvg, (X(z.a) + X(z.b)) / 2, T - 10, NOMBRE[z.k], { "text-anchor": "middle", fill: TXT.t2, "font-size": 12, "font-weight": 600 });
+    });
+    [0, 25, 50, 75, 100].forEach(function (v) {
+      svgEl("line", { x1: L, y1: Y(v), x2: R, y2: Y(v), stroke: TXT.grid, "stroke-width": 1 }, curvaSvg);
+      txt(curvaSvg, L - 8, Y(v) + 4, v + " %", { "text-anchor": "end" });
+    });
+    [0, 10, 20, 30, 40, 50].forEach(function (v) { txt(curvaSvg, X(v), B + 18, String(v), { "text-anchor": "middle" }); });
+    txt(curvaSvg, (L + R) / 2, B + 38, "días colgada en el piso", { "text-anchor": "middle" });
+    svgEl("line", { x1: L, y1: B, x2: R, y2: B, stroke: TXT.eje, "stroke-width": 1 }, curvaSvg);
+    var dpath = "M" + X(0) + " " + Y(c.s[0]);
+    for (var i = 1; i < DIAS.length; i++) dpath += " H" + X(DIAS[i]) + " V" + Y(c.s[i]);
+    dpath += " H" + X(maxD);
+    svgEl("path", { d: dpath, fill: "none", stroke: TXT.tinta, "stroke-width": 2, "stroke-linejoin": "round" }, curvaSvg);
+    [["p50", "la mitad"], ["p75", "3 de cada 4"], ["p90", "9 de cada 10"]].forEach(function (m, idx) {
+      var v = p[m[0]];
+      if (v === null) return;
+      svgEl("line", { x1: X(v), y1: T, x2: X(v), y2: B, stroke: TXT.t2, "stroke-width": 1 }, curvaSvg);
+      var ly = Y(idx === 0 ? 50 : idx === 1 ? 25 : 10);
+      svgEl("circle", { cx: X(v), cy: ly, r: 4, fill: TXT.tinta, stroke: TXT.papel, "stroke-width": 2 }, curvaSvg);
+      var aIzq = X(v) > R - 150;
+      txt(curvaSvg, aIzq ? X(v) - 6 : X(v) + 6, ly - 8, "día " + v + ": " + m[1], { fill: TXT.tinta, "font-size": 12, "font-weight": 600, "text-anchor": aIzq ? "end" : "start" });
+    });
+    if (p.p90 === null) txt(curvaSvg, R - 4, Y(10) - 6, "9 de cada 10: aún sin referencia", { "text-anchor": "end", fill: TXT.t3, "font-size": 12 });
+    var yv = Y(sinVenderEn(c, d));
+    svgEl("line", { x1: X(d), y1: T, x2: X(d), y2: B, stroke: TXT.tinta, "stroke-width": 2 }, curvaSvg);
+    var t = tramoDe(d, p);
+    svgEl("circle", { cx: X(d), cy: yv, r: 6, fill: COL[t], stroke: TXT.papel, "stroke-width": 2 }, curvaSvg);
+    var etX = d > 38 ? X(d) - 8 : X(d) + 8;
+    txt(curvaSvg, etX, B - 10, "tu prenda · día " + d, { fill: TXT.tinta, "font-size": 12, "font-weight": 600, "text-anchor": d > 38 ? "end" : "start" });
+
+    document.getElementById("dias-val").textContent = d;
+    var chip = document.getElementById("chip-tramo");
+    chip.textContent = NOMBRE[t];
+    chip.style.setProperty("--c", COL[t]);
+    var frase;
+    var vendido = 100 - sinVenderEn(c, d);
+    if (t === "nueva") frase = "Con " + d + " días, tu prenda sigue <b>Nueva</b>: en Trujillo la mitad de " + c.nombre + " se vende al día " + p.p50 + ", y todavía no llega ahí.";
+    else if (t === "vigente") frase = "Con " + d + " días está <b>Vigente</b>: ya pasó el día " + p.p50 + ", cuando se vende la mitad, pero no el día " + p.p75 + ", cuando se venden 3 de cada 4. <b>Es el momento de actuar</b> si además se vende lento.";
+    else if (t === "envejecida") frase = "Con " + d + " días está <b>Envejecida</b>: al día " + p.p75 + " ya se habían vendido 3 de cada 4 " + c.nombre + ", y esta sigue colgada." + (p.p90 === null ? " (Crítica todavía no tiene referencia: a los 45 días se vendió " + (100 - c.s[c.s.length - 1]) + " %.)" : "");
+    else frase = "Con " + d + " días está <b>Crítica</b>: al día " + p.p90 + " ya se habían vendido 9 de cada 10 " + c.nombre + ". Toca la parte final de la escalera.";
+    document.getElementById("lectura-curva").innerHTML = frase + " <span class='muted' style='font-family:var(--sans);font-size:14px'>A esta edad ya se vendió el " + vendido + " % de la categoría.</span>";
+
+    var filas = DIAS.map(function (dd, i) { return "<tr><td class='num'>" + dd + "</td><td class='r num'>" + c.s[i] + " %</td><td class='r num'>" + (100 - c.s[i]) + " %</td></tr>"; }).join("");
+    document.getElementById("tabla-curva").innerHTML = "<table><thead><tr><th>Día</th><th class='r'>Sigue sin venderse</th><th class='r'>Ya se vendió</th></tr></thead><tbody>" + filas + "</tbody></table>";
+  }
+  diasInput.addEventListener("input", dibujarCurva);
+  segmentado("seg-cat", "data-cat", function (k) { catActual = k; dibujarCurva(); });
+
+  // ---------- Dos reglas, 20 prendas ----------
+  var REGLAS = {
+    tops: { titulo: "Tops · categoría pareja", dias: [0, 3, 4, 5, 6, 7, 8, 10], s: [100, 92, 75, 52, 30, 18, 9, 5], promedioVendido: 5.6, colgadas: [1, 2, 2, 3, 3, 4, 4, 5, 5, 5, 6, 6, 7, 7, 8, 9, 10, 11, 12, 14], max: 15 },
+    fiesta: { titulo: "Vestidos de fiesta · categoría dispareja", dias: [0, 2, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75], s: [100, 95, 85, 72, 62, 55, 50, 44, 33, 25, 18, 10], promedioVendido: 19, colgadas: [3, 6, 9, 12, 14, 18, 22, 27, 29, 31, 34, 38, 41, 44, 47, 52, 55, 63, 70, 80], max: 85 }
+  };
+  var reglaActual = "pct";
+  function tramoRegla(cat, d, regla) {
+    if (regla === "prom") {
+      var lim = cat.promedioVendido * 1.3;
+      if (d <= cat.promedioVendido) return "nueva";
+      if (d <= lim) return "vigente";
+      return "envejecida";
+    }
+    return tramoDe(d, percentiles(cat, cat.dias));
+  }
+  function dibujarReglas() {
+    var cont = document.getElementById("reglas");
+    cont.innerHTML = "";
+    ["tops", "fiesta"].forEach(function (key) {
+      var cat = REGLAS[key];
+      var p = percentiles(cat, cat.dias);
+      var box = document.createElement("div");
+      box.style.display = "grid"; box.style.gap = "8px";
+      var cuenta = { nueva: 0, vigente: 0, envejecida: 0, critica: 0 };
+      cat.colgadas.forEach(function (d) { cuenta[tramoRegla(cat, d, reglaActual)]++; });
+      var rojos = cuenta.envejecida + cuenta.critica;
+      var h = document.createElement("h4"); h.textContent = cat.titulo; box.appendChild(h);
+      var svg = svgEl("svg", { viewBox: "0 0 340 128", role: "img", "aria-label": cat.titulo + ": 20 prendas colgadas coloreadas por la regla elegida" });
+      svg.style.width = "100%"; svg.style.height = "auto";
+      var L = 14, R = 326, Yb = 88;
+      function X(v) { return L + (v / cat.max) * (R - L); }
+      svgEl("line", { x1: L, y1: Yb, x2: R, y2: Yb, stroke: TXT.eje, "stroke-width": 1 }, svg);
+      var ticks = key === "tops" ? [0, 5, 10, 15] : [0, 20, 40, 60, 80];
+      ticks.forEach(function (v) { txt(svg, X(v), Yb + 16, String(v), { "text-anchor": "middle", "font-size": 11 }); });
+      txt(svg, R, Yb + 32, "días en el piso", { "text-anchor": "end", "font-size": 11 });
+      var marcas = reglaActual === "prom"
+        ? [[cat.promedioVendido, "promedio " + fmt(cat.promedioVendido, 1)], [cat.promedioVendido * 1.3, "× 1,3 = " + fmt(cat.promedioVendido * 1.3, 1)]]
+        : [[p.p50, "la mitad · " + p.p50], [p.p75, "3 de 4 · " + p.p75], [p.p90, "9 de 10 · " + p.p90]];
+      marcas.forEach(function (m, i) {
+        if (m[0] === null) return;
+        svgEl("line", { x1: X(m[0]), y1: 8, x2: X(m[0]), y2: Yb, stroke: TXT.t3, "stroke-width": 1 }, svg);
+        var izq = X(m[0]) > R - 80;
+        txt(svg, izq ? X(m[0]) - 3 : X(m[0]) + 3, 12 + i * 12, m[1], { "font-size": 10.5, fill: TXT.t2, "text-anchor": izq ? "end" : "start" });
+      });
+      var puestos = [];
+      cat.colgadas.forEach(function (d) {
+        var px = X(d), nivel = 0;
+        while (puestos.some(function (q) { return q.n === nivel && Math.abs(q.x - px) < 11; })) nivel++;
+        puestos.push({ x: px, n: nivel });
+        var t = tramoRegla(cat, d, reglaActual);
+        var c = svgEl("circle", { cx: px, cy: Yb - 8 - nivel * 12, r: 5, fill: COL[t], stroke: TXT.papel, "stroke-width": 2 }, svg);
+        conTip(c, function () { return "<b>" + d + " días</b> en el piso<br><span class='t2'>" + NOMBRE[t] + "</span>"; });
+      });
+      box.appendChild(svg);
+      var res = document.createElement("p");
+      res.className = "small";
+      res.innerHTML = "<b class='num'>" + rojos + " de 20</b> quedan Envejecida o Crítica · " + TRAMOS.map(function (k) { return NOMBRE[k] + " " + cuenta[k]; }).join(" · ");
+      box.appendChild(res);
+      cont.appendChild(box);
+    });
+  }
+  segmentado("seg-regla", "data-regla", function (r) { reglaActual = r; dibujarReglas(); });
+
+  // ---------- Tablero ----------
+  var sedeActual = "TRU";
+  function dibujarTiles() {
+    var s = SEDES[sedeActual], tm = totalModa(s);
+    var nueva = pct(s.tramos.nueva, tm);
+    function estado(ok, alerta, textoOk, textoAl, textoMal) {
+      return ok ? "<span class='estado ok'>" + textoOk + "</span>" : alerta ? "<span class='estado alerta'>" + textoAl + "</span>" : "<span class='estado mal'>" + textoMal + "</span>";
+    }
+    var tiles = [
+      { l: "Edad del piso", v: s.edad + "<small> días</small>", c: "Promedio de novedad de lo colgado", e: estado(s.edad <= 12, s.edad <= 15, "Fresco", "Tibio", "Se está poniendo viejo") },
+      { l: "Piso que es Nueva", v: fmt(nueva) + "<small> %</small>", c: "Meta provisional: " + META_NUEVA + " %", e: estado(nueva >= META_NUEVA, nueva >= META_NUEVA - 4, "En meta", "Cerca", "Bajo la meta") },
+      { l: "Novedades esta semana", v: s.novedades + "<small> de " + META_NOV + "</small>", c: "Modelos+color colgados por primera vez", e: estado(s.novedades >= 9, s.novedades >= 7, "Buen ritmo", "Justo", "Poca novedad") },
+      { l: "Venta a precio completo", v: s.precio + "<small> %</small>", c: "Último mes · el número que prueba si funciona", e: "<span class='estado' style='color:var(--pizarra)'>Comparar con la línea base</span>" },
+      { l: "Confianza del registro", v: s.confianza + "<small> %</small>", c: "Ventas cuya bajada al piso no fue a último minuto. Meta: " + META_CONF + " %", e: estado(s.confianza >= META_CONF, s.confianza >= 80, "Creíble", "Con cuidado", "Tomar con pinzas") },
+      { l: "Espera en almacén", v: s.espera + "<small> " + (s.espera === 1 ? "día" : "días") + "</small>", c: s.almacen30 + " unidades llevan más de 30 días sin colgarse", e: estado(s.almacen30 < 50, s.almacen30 < 100, "Almacén ágil", "Revisar el almacén", "Almacén dormido") }
+    ];
+    document.getElementById("tiles").innerHTML = tiles.map(function (t) {
+      return "<div class='tile'><span class='l'>" + t.l + "</span><span class='v'>" + t.v + "</span>" + t.e + "<span class='c'>" + t.c + "</span></div>";
+    }).join("");
+  }
+  function dibujarApiladas() {
+    var cont = document.getElementById("apiladas");
+    cont.innerHTML = "";
+    ORDEN_SEDES.forEach(function (id) {
+      var s = SEDES[id], tm = totalModa(s);
+      var fila = document.createElement("div");
+      fila.className = "fila-ap" + (id === sedeActual ? " sel" : "");
+      fila.innerHTML = "<span class='nom'><i style='background:" + s.color + "'></i>" + s.nombre + "</span>";
+      var barra = document.createElement("div");
+      barra.className = "barra";
+      TRAMOS.forEach(function (k) {
+        var v = pct(s.tramos[k], tm);
+        var seg = document.createElement("div");
+        seg.className = "seg-b" + (TEXTO_CLARO[k] ? " claro" : "");
+        seg.style.width = v + "%";
+        seg.style.background = COL[k];
+        seg.tabIndex = 0;
+        seg.setAttribute("aria-label", s.nombre + ", " + NOMBRE[k] + ": " + fmt(v) + " %");
+        if (v >= 11) seg.textContent = fmt(v) + " %";
+        conTip(seg, function () { return "<b>" + s.nombre + " · " + NOMBRE[k] + "</b><br><span class='t2'>" + fmt(s.tramos[k]) + " unidades · " + fmt(v) + " %</span>"; });
+        barra.appendChild(seg);
+      });
+      fila.appendChild(barra);
+      var extra = document.createElement("span");
+      extra.className = "extra";
+      extra.textContent = fmt(tm) + " unidades de moda en el piso · " + s.clasicos + " clásicos aparte";
+      fila.appendChild(extra);
+      cont.appendChild(fila);
+    });
+    document.getElementById("leyenda-tramos").innerHTML = TRAMOS.map(function (k) { return "<span><i class='sw' style='background:" + COL[k] + "'></i>" + NOMBRE[k] + "</span>"; }).join("");
+  }
+  function dibujarTendencia() {
+    var svg = document.getElementById("tendencia");
+    limpiar(svg);
+    var L = 44, R = 536, T = 20, B = 226, yMin = 10, yMax = 35;
+    function X(i) { return L + (i / (SEMANAS.length - 1)) * (R - L); }
+    function Y(v) { return B - ((v - yMin) / (yMax - yMin)) * (B - T); }
+    [10, 15, 20, 25, 30, 35].forEach(function (v) {
+      svgEl("line", { x1: L, y1: Y(v), x2: R, y2: Y(v), stroke: TXT.grid, "stroke-width": 1 }, svg);
+      txt(svg, L - 8, Y(v) + 4, v + " %", { "text-anchor": "end", "font-size": 11.5 });
+    });
+    SEMANAS.forEach(function (s, i) { if (i % 2 === 1 || i === SEMANAS.length - 1) txt(svg, X(i), B + 18, s, { "text-anchor": "middle", "font-size": 11.5 }); });
+    svgEl("line", { x1: L, y1: Y(META_NUEVA), x2: R, y2: Y(META_NUEVA), stroke: TXT.tinta, "stroke-width": 1.2 }, svg);
+    txt(svg, L + 4, Y(META_NUEVA) - 6, "meta " + META_NUEVA + " %", { fill: TXT.tinta, "font-size": 11.5, "font-weight": 600 });
+    ORDEN_SEDES.forEach(function (id) {
+      var s = SEDES[id];
+      var d = s.tendencia.map(function (v, i) { return (i ? "L" : "M") + X(i) + " " + Y(v); }).join(" ");
+      svgEl("path", { d: d, fill: "none", stroke: s.color, "stroke-width": id === sedeActual ? 3 : 2, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-opacity": id === sedeActual ? 1 : 0.55 }, svg);
+      var last = s.tendencia[s.tendencia.length - 1];
+      svgEl("circle", { cx: X(SEMANAS.length - 1), cy: Y(last), r: 4.5, fill: s.color, stroke: TXT.papel, "stroke-width": 2 }, svg);
+      txt(svg, R + 10, Y(last) + 4, s.nombre + " " + last + " %", { fill: TXT.tinta, "font-size": 12, "font-weight": id === sedeActual ? 700 : 500 });
+    });
+    var cruz = svgEl("line", { x1: 0, y1: T, x2: 0, y2: B, stroke: TXT.t3, "stroke-width": 1, visibility: "hidden" }, svg);
+    SEMANAS.forEach(function (sem, i) {
+      var w = (R - L) / (SEMANAS.length - 1);
+      var r = svgEl("rect", { x: X(i) - w / 2, y: T, width: w, height: B - T, fill: "transparent" }, svg);
+      r.addEventListener("mouseenter", function () { cruz.setAttribute("x1", X(i)); cruz.setAttribute("x2", X(i)); cruz.setAttribute("visibility", "visible"); });
+      r.addEventListener("mouseleave", function () { cruz.setAttribute("visibility", "hidden"); });
+      conTip(r, function () {
+        return "<b>Semana del " + sem + "</b><br>" + ORDEN_SEDES.map(function (id) { return "<span class='t2'>" + SEDES[id].nombre + ": </span>" + SEDES[id].tendencia[i] + " %"; }).join("<br>");
+      });
+    });
+  }
+  var CATS = ["Jeans", "Blusas", "Vestidos", "Pantalones", "Casacas", "Faldas", "Tops", "Accesorios"];
+  var UNID = {
+    TRU: [80, 105, 65, 50, 40, 30, 15, 10],
+    AQP: [70, 60, 55, 45, 35, 35, 25, 15],
+    LIM: [95, 110, 80, 60, 50, 40, 30, 15]
+  };
+  var ENVEJ = {
+    TRU: [30, 60, 50, 40, 55, 30, 25, 50],
+    AQP: [18, 22, 30, 25, 35, 15, 12, 28],
+    LIM: [28, 45, 44, 38, 40, 25, 22, 42]
+  };
+  var RAMPA = ["#f3ddd2", "#eab9a4", "#dd9476", "#cc6f4c", "#b0502f", "#86351d"];
+  function colorRampa(v) { var i = v < 15 ? 0 : v < 25 ? 1 : v < 35 ? 2 : v < 45 ? 3 : v < 55 ? 4 : 5; return [RAMPA[i], i >= 3 ? "#fff" : TXT.tinta]; }
+  function dibujarCuadricula() {
+    var t = document.getElementById("cuadricula");
+    var html = "<thead><tr><th>Categoría</th>" + ORDEN_SEDES.map(function (id) { return "<th" + (id === sedeActual ? " style='color:var(--tinta)'" : "") + ">" + SEDES[id].nombre + "</th>"; }).join("") + "</tr></thead><tbody>";
+    CATS.forEach(function (c, i) {
+      html += "<tr><td>" + c + "</td>" + ORDEN_SEDES.map(function (id) {
+        var v = ENVEJ[id][i], cc = colorRampa(v);
+        return "<td style='background:" + cc[0] + ";color:" + cc[1] + (id === sedeActual ? ";outline:2px solid var(--tinta);outline-offset:-2px" : "") + "'>" + v + " %<span>" + UNID[id][i] + " u.</span></td>";
+      }).join("") + "</tr>";
+    });
+    t.innerHTML = html + "</tbody>";
+  }
+  function dibujarFotoPelicula() {
+    var cont = document.getElementById("foto-pelicula");
+    var max = 20;
+    cont.innerHTML = ORDEN_SEDES.map(function (id) {
+      var s = SEDES[id];
+      return "<div class='fp-sede'><span class='nom'>" + s.nombre + "</span>" +
+        "<div class='fp-row'><span>Foto</span><div class='b' style='width:" + (s.edad / max) * 100 + "%;background:" + s.color + "'></div><span class='val'>" + s.edad + " días</span></div>" +
+        "<div class='fp-row'><span>Película</span><div class='b' style='width:" + (s.pelicula / max) * 100 + "%;background:" + s.color + ";opacity:.45'></div><span class='val'>" + s.pelicula + " días</span></div></div>";
+    }).join("");
+  }
+  function dibujarTablero() { dibujarTiles(); dibujarApiladas(); dibujarTendencia(); dibujarCuadricula(); }
+  segmentado("seg-sede", "data-sede", function (id) { sedeActual = id; dibujarTablero(); });
+
+  // ---------- Matriz de Trujillo ----------
+  var CAT_TRU = {
+    Jeans: { p50: 12, p75: 21, p90: 35 }, Blusas: { p50: 17, p75: 35, p90: null }, Vestidos: { p50: 21, p75: 45, p90: null },
+    Pantalones: { p50: 15, p75: 26, p90: 40 }, Casacas: { p50: 18, p75: 30, p90: 48 }, Faldas: { p50: 11, p75: 19, p90: 30 }, Tops: { p50: 6, p75: 7, p90: 8 }
+  };
+  var PUNTOS = [
+    { n: "Jean Austria azul medio", cat: "Jeans", edad: 7, idx: 233, u: 3, v: 7, esp: "curva_rota", accion: "Reponer la talla 28 hoy (hay en almacén) y avisar al Taller para repetir en lote chico.", porque: "Vendió 7 de 10 en 7 días, más del doble que los jeans a esa edad. Le falta la 28: está perdiendo venta por falta de tallas, no por falta de interés." },
+    { n: "Top Lúcuma amarillo", cat: "Tops", edad: 5, idx: 180, u: 8, v: 9, accion: "Avisar al Taller: repetir en lote chico y cuidar la curva de tallas.", porque: "A los 5 días vendió casi el doble que los tops a esa edad." },
+    { n: "Blusa Seda marfil", cat: "Blusas", edad: 6, idx: 60, u: 9, v: 1, accion: "Revisar si está a la vista y con todas sus tallas. No tocar el precio.", porque: "Arrancó flojo, pero con 1 venta todavía no hay datos: puede ser la ubicación." },
+    { n: "Jean Mom celeste", cat: "Jeans", edad: 16, idx: 115, u: 7, v: 8, accion: "No tocar.", porque: "Ya pasó el día en que se vende la mitad de los jeans y sigue vendiéndose algo más rápido que su categoría." },
+    { n: "Vestido Huanchaco negro", cat: "Vestidos", edad: 30, idx: 55, u: 6, v: 5, accion: "Cambiarlo de lugar 7 días (maniquí de la entrada). Si sigue lento, trasladarlo a Arequipa, donde nunca estuvo y los vestidos se venden 1,8 veces más rápido.", porque: "Está Vigente y se vende a la mitad del ritmo de su categoría: es el momento de actuar, antes de que envejezca." },
+    { n: "Falda Chala plisada", cat: "Faldas", edad: 14, idx: 72, u: 5, v: 6, accion: "Cambiarla de lugar 7 días y revisar que tenga la talla S.", porque: "Vigente y algo más lenta que las faldas a la misma edad." },
+    { n: "Casaca Misti denim claro", cat: "Casacas", edad: 34, idx: 125, u: 6, v: 16, accion: "Mantener a precio completo y reponer. ¿Debería marcarse como clásico?", porque: "Lleva tiempo en el piso pero se sigue vendiendo más rápido que su categoría: es un pilar, no una prenda estancada." },
+    { n: "Blusa Paracas terracota", cat: "Blusas", edad: 40, idx: 38, u: 10, v: 6, accion: "Cambiarla de lugar 7 días. Si no mejora, proponer una rebaja solo en Trujillo, en su tramo de precio (la aprueba el líder).", porque: "Tiene todas sus tallas y aun así se vende a un tercio del ritmo de su categoría. Ya pasó el día en que se venden 3 de cada 4 blusas." },
+    { n: "Pantalón Colca negro", cat: "Pantalones", edad: 36, idx: 44, u: 2, v: 5, esp: "curva_rota", accion: "Llevarlo a la zona de últimas tallas o trasladarlo para completar la curva. No rebajar por esto.", porque: "Solo quedan la XS y la XL. No es que no guste: se quedó sin tallas." },
+    { n: "Casaca Ticlio verde oliva", cat: "Casacas", edad: 52, idx: 34, u: 8, v: 7, accion: "Liquidar en el perchero de oportunidades, lejos de la entrada.", porque: "Ya pasó el día en que se venden 9 de cada 10 casacas, y se vende a un tercio del ritmo." },
+    { n: "Falda Plisada verde", cat: "Faldas", edad: 4, idx: null, u: 3, v: 1, esp: "pocos", accion: "Esperar.", porque: "Tiene 3 unidades y 1 venta: todavía no hay con qué compararla." },
+    { n: "Vestido Floral rosa", cat: "Vestidos", edad: 25, idx: 140, u: 5, v: 7, esp: "campana", accion: "Medir aparte hasta que termine la campaña.", porque: "Está con 20 % de descuento: su rapidez viene de la rebaja." }
+  ];
+  var CLASICO = { n: "Polo cuello camisero blanco", texto: "Clásico: fuera de la matriz. Tiene sus 4 tallas clave en el piso, y se vende al 110 de su propia historia." };
+  function evidencia(v) { return v < 5 ? "Sin datos" : v <= 15 ? "Señal" : "Firme"; }
+  function cuadrante(t, idx) {
+    var rapido = idx >= 100;
+    return { nueva: rapido ? "Promesa" : "En observación", vigente: rapido ? "Sigue firme" : "Alerta temprana", envejecida: rapido ? "Pilar" : "Estancada", critica: rapido ? "Pilar (¿clásico?)" : "Liquidar" }[t];
+  }
+  function estadoEspecial(pt) {
+    return pt.esp === "curva_rota" ? "Le faltan tallas clave" : pt.esp === "pocos" ? "Pocos datos" : pt.esp === "campana" ? "En rebaja (20 %)" : null;
+  }
+  var puntoSel = 7;
+  var matrizSvg = document.getElementById("matriz-svg");
+  function fraccion(d, p, t) {
+    var r;
+    if (t === "nueva") r = d / p.p50;
+    else if (t === "vigente") r = (d - p.p50) / (p.p75 - p.p50);
+    else if (t === "envejecida") r = (d - p.p75) / (((p.p90 === null ? p.p75 * 1.6 : p.p90)) - p.p75);
+    else r = (d - p.p90) / (p.p90 * 0.6);
+    return Math.max(0.05, Math.min(0.95, r));
+  }
+  function dibujarMatriz() {
+    limpiar(matrizSvg);
+    var L = 58, R = 748, T = 44, B = 396, cw = (R - L) / 4;
+    var lmin = Math.log(25), lmax = Math.log(400);
+    function Y(v) { return T + ((lmax - Math.log(v)) / (lmax - lmin)) * (B - T); }
+    TRAMOS.forEach(function (k, i) {
+      svgEl("rect", { x: L + i * cw, y: T, width: cw, height: B - T, fill: COL[k], "fill-opacity": 0.07 }, matrizSvg);
+      svgEl("rect", { x: L + i * cw + 8, y: 14, width: 10, height: 10, rx: 2, fill: COL[k] }, matrizSvg);
+      txt(matrizSvg, L + i * cw + 24, 23, NOMBRE[k], { fill: TXT.tinta, "font-size": 13, "font-weight": 600 });
+      if (i) svgEl("line", { x1: L + i * cw, y1: T, x2: L + i * cw, y2: B, stroke: TXT.eje, "stroke-width": 1 }, matrizSvg);
+      [[true, T + 16], [false, B - 8]].forEach(function (q) {
+        txt(matrizSvg, L + i * cw + 8, q[1], cuadrante(k, q[0] ? 200 : 50).toUpperCase(), { "font-size": 10.5, fill: TXT.t3, "letter-spacing": "0.08em", "font-weight": 600 });
+      });
+    });
+    [25, 50, 100, 200, 400].forEach(function (v) {
+      svgEl("line", { x1: L, y1: Y(v), x2: R, y2: Y(v), stroke: v === 100 ? TXT.tinta : TXT.grid, "stroke-width": v === 100 ? 1.4 : 1 }, matrizSvg);
+      txt(matrizSvg, L - 8, Y(v) + 4, String(v), { "text-anchor": "end", "font-size": 11.5, fill: v === 100 ? TXT.tinta : TXT.t3, "font-weight": v === 100 ? 700 : 400 });
+    });
+    txt(matrizSvg, R - 4, Y(100) - 6, "igual que su categoría", { "text-anchor": "end", "font-size": 11.5, fill: TXT.tinta, "font-weight": 600 });
+    txt(matrizSvg, 14, (T + B) / 2, "Rapidez frente a su categoría", { "font-size": 11.5, transform: "rotate(-90 14 " + (T + B) / 2 + ")", "text-anchor": "middle" });
+    txt(matrizSvg, L, B + 24, "↑ más rápida que su categoría a la misma edad · ↓ más lenta", { "font-size": 11.5 });
+    PUNTOS.forEach(function (pt, i) {
+      var p = CAT_TRU[pt.cat], t = tramoDe(pt.edad, p);
+      var x = L + TRAMOS.indexOf(t) * cw + fraccion(pt.edad, p, t) * cw;
+      var y = Y(pt.idx === null ? 100 : pt.idx);
+      var r = 5 + Math.sqrt(pt.u) * 1.9;
+      var g = svgEl("g", { class: "punto", tabindex: 0, role: "button", "aria-label": pt.n + ": " + NOMBRE[t] + ", índice " + (pt.idx === null ? "sin datos" : pt.idx) }, matrizSvg);
+      var hueco = pt.esp === "pocos" || pt.v < 5;
+      if (pt.esp === "campana") {
+        svgEl("path", { d: "M" + x + " " + (y - r - 1) + " L" + (x + r + 1) + " " + y + " L" + x + " " + (y + r + 1) + " L" + (x - r - 1) + " " + y + " Z", fill: COL[t], stroke: TXT.papel, "stroke-width": 2 }, g);
+      } else if (hueco) {
+        svgEl("circle", { cx: x, cy: y, r: r, fill: TXT.papel, stroke: COL.sindatos, "stroke-width": 2.5 }, g);
+      } else {
+        svgEl("circle", { cx: x, cy: y, r: r, fill: COL[t], stroke: TXT.papel, "stroke-width": 2 }, g);
+        if (pt.esp === "curva_rota") svgEl("circle", { cx: x, cy: y, r: r + 4, fill: "none", stroke: TXT.tinta, "stroke-width": 1.5, "stroke-dasharray": "3 3" }, g);
+      }
+      if (i === puntoSel) svgEl("circle", { cx: x, cy: y, r: r + 7, fill: "none", stroke: TXT.tinta, "stroke-width": 2 }, g);
+      svgEl("circle", { cx: x, cy: y, r: Math.max(r + 6, 14), fill: "transparent" }, g);
+      var corto = pt.n.split(" ").slice(0, 2).join(" ");
+      var derecha = x < R - 110;
+      txt(matrizSvg, derecha ? x + r + 6 : x - r - 6, y + 4, corto, { "font-size": 11.5, fill: TXT.t2, "text-anchor": derecha ? "start" : "end" });
+      conTip(g, function () {
+        return "<b>" + pt.n + "</b><br><span class='t2'>" + pt.cat + " · " + pt.edad + " días · " + NOMBRE[t] + "<br>Índice " + (pt.idx === null ? "sin datos" : pt.idx) + " · " + pt.u + " unidades en piso</span>";
+      });
+      function elegir() { puntoSel = i; dibujarMatriz(); dibujarDetalle(); }
+      g.addEventListener("click", elegir);
+      g.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); elegir(); } });
+    });
+  }
+  function dibujarDetalle() {
+    var pt = PUNTOS[puntoSel], p = CAT_TRU[pt.cat], t = tramoDe(pt.edad, p);
+    var esp = estadoEspecial(pt);
+    var cuad = pt.esp === "curva_rota" ? (pt.idx >= 100 ? "Promesa sin tallas" : "Le faltan tallas") : pt.esp === "pocos" ? "Pocos datos" : pt.esp === "campana" ? "En rebaja" : cuadrante(t, pt.idx);
+    var cortes = "mitad día " + p.p50 + " · 3 de 4 día " + p.p75 + " · 9 de 10 " + (p.p90 === null ? "aún sin referencia" : "día " + p.p90);
+    document.getElementById("detalle").innerHTML =
+      "<span class='sobre'>" + cuad + "</span><h3>" + pt.n + "</h3>" +
+      "<div style='display:flex;gap:8px;flex-wrap:wrap'><span class='chip' style='--c:" + COL[t] + "'>" + NOMBRE[t] + " · " + pt.edad + " días</span>" +
+      "<span class='chip" + (pt.v < 5 ? " hueco" : "") + "' style='--c:" + (pt.v > 15 ? TXT.tinta : TXT.t3) + "'>Evidencia: " + evidencia(pt.v) + "</span>" +
+      (esp ? "<span class='chip' style='--c:var(--pizarra)'>" + esp + "</span>" : "") + "</div>" +
+      "<dl><dt>Categoría</dt><dd>" + pt.cat + " en Trujillo</dd><dt>Su carrera</dt><dd>" + cortes + "</dd><dt>Rapidez</dt><dd>" + (pt.idx === null ? "Sin datos todavía" : pt.idx + " (100 = igual que su categoría)") + "</dd><dt>En el piso</dt><dd>" + pt.u + " unidades · " + pt.v + " ventas</dd></dl>" +
+      "<div class='accion'><span class='et'>Acción sugerida</span><p>" + pt.accion + "</p></div>" +
+      "<p class='small muted'><b style='color:var(--tinta)'>Por qué:</b> " + pt.porque + "</p>" +
+      "<p class='tiny muted'>Toca cualquier punto de la matriz para ver su ficha. " + CLASICO.n + ": " + CLASICO.texto.replace("Clásico: ", "") + "</p>";
+  }
+  function dibujarLeyendaMatriz() {
+    document.getElementById("leyenda-matriz").innerHTML =
+      TRAMOS.map(function (k) { return "<span><i class='sw' style='background:" + COL[k] + ";border-radius:50%'></i>" + NOMBRE[k] + "</span>"; }).join("") +
+      "<span><i class='sw ring'></i>Sin datos (menos de 5 ventas)</span>" +
+      "<span><svg width='16' height='16' aria-hidden='true'><circle cx='8' cy='8' r='6' fill='none' stroke='#1a1a18' stroke-width='1.5' stroke-dasharray='3 3'/></svg>Le faltan tallas</span>" +
+      "<span><svg width='14' height='14' aria-hidden='true'><path d='M7 1 L13 7 L7 13 L1 7 Z' fill='#6b6257'/></svg>En rebaja</span>";
+  }
+  function dibujarReporte() {
+    var orden = { "Liquidar": 0, "Estancada": 1, "Alerta temprana": 2, "Le faltan tallas": 3, "Promesa sin tallas": 3, "Promesa": 4, "En observación": 5, "Pilar": 6, "Sigue firme": 7, "En rebaja": 8, "Pocos datos": 9 };
+    var filas = PUNTOS.map(function (pt) {
+      var t = tramoDe(pt.edad, CAT_TRU[pt.cat]);
+      var cuad = pt.esp === "curva_rota" ? (pt.idx >= 100 ? "Promesa sin tallas" : "Le faltan tallas") : pt.esp === "pocos" ? "Pocos datos" : pt.esp === "campana" ? "En rebaja" : cuadrante(t, pt.idx);
+      var quien = /rebaja|trasladar|liquidar/i.test(pt.accion) ? "Encargada · aprueba el líder" : /Taller/.test(pt.accion) ? "Encargada · avisa al Taller" : "Encargada de sede";
+      var revisar = cuad === "Pocos datos" || cuad === "Sigue firme" || cuad === "Pilar" || cuad === "En rebaja" ? "Próximo lunes" : /hoy/.test(pt.accion) ? "Hoy" : "En 7 días";
+      return { pt: pt, t: t, cuad: cuad, quien: quien, revisar: revisar };
+    }).sort(function (a, b) { return orden[a.cuad] - orden[b.cuad]; });
+    document.getElementById("reporte").innerHTML = "<thead><tr><th>Modelo+color</th><th>Estado</th><th>Acción</th><th>Quién</th><th>Revisar</th></tr></thead><tbody>" +
+      filas.map(function (f) {
+        return "<tr><td><b>" + f.pt.n + "</b><br><span class='tiny muted'>" + f.pt.cat + " · " + f.pt.edad + " días</span></td><td><span class='chip' style='--c:" + COL[f.t] + "'>" + f.cuad + "</span></td><td class='small'>" + f.pt.accion + "</td><td class='small'>" + f.quien + "</td><td class='small'>" + f.revisar + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+
+  // ---------- Espacio ----------
+  var ESPACIO = {
+    verano: [["Blusas", "rutina", 24, 20], ["Vestidos", "rutina", 18, 22], ["Jeans", "destino", 14, 18], ["Faldas", "estacional", 14, 16], ["Tops", "rutina", 10, 12], ["Pantalones", "rutina", 8, 7], ["Accesorios", "conveniencia", 5, 2], ["Casacas", "estacional", 4, 2], ["Chompas", "estacional", 3, 1]],
+    invierno: [["Jeans", "destino", 18, 24], ["Blusas", "rutina", 18, 14], ["Casacas", "estacional", 14, 17], ["Chompas", "estacional", 14, 16], ["Pantalones", "rutina", 12, 12], ["Vestidos", "rutina", 10, 8], ["Faldas", "estacional", 6, 4], ["Tops", "rutina", 4, 3], ["Accesorios", "conveniencia", 4, 2]]
+  };
+  function dibujarEspacio(temp) {
+    var max = 26;
+    document.getElementById("espacio-barras").innerHTML = ESPACIO[temp].map(function (r) {
+      var idx = Math.round((r[2] / r[3]) * 100);
+      var lectura = idx > 120 ? "<span class='alerta'>le sobra piso</span>" : idx < 85 ? "<span class='mal'>le falta piso</span>" : "<span class='ok'>justo</span>";
+      return "<div class='esp-row'><span class='cat'>" + r[0] + "<span>" + r[1] + "</span></span><div class='esp-bars'>" +
+        "<div style='width:" + (r[2] / max) * 100 + "%;background:var(--perchas)' title='" + r[2] + " % de las perchas'></div>" +
+        "<div style='width:" + (r[3] / max) * 100 + "%;background:var(--venta)' title='" + r[3] + " % de la venta'></div></div>" +
+        "<span class='idx'><b class='num'>" + idx + "</b>" + lectura + "</span></div>";
+    }).join("");
+  }
+  segmentado("seg-temp", "data-temp", dibujarEspacio);
+  function calcular() {
+    var g = Math.max(0, +document.getElementById("c-ganchos").value || 0);
+    var u = Math.max(1, +document.getElementById("c-porop").value || 1);
+    var c = Math.max(0, +document.getElementById("c-colg").value || 0);
+    var caben = Math.floor(g / u);
+    var dif = c - caben;
+    var res = "Caben <b>" + caben + " modelos+color</b> (" + g + " ganchos ÷ " + u + " por modelo). ";
+    res += dif > 0 ? "Hay " + c + " colgados: <b>" + dif + " de más</b>, amontonados o con tallas escondidas. Para que entre uno nuevo, primero sale uno Estancado." : dif < 0 ? "Hay " + c + " colgados: quedan <b>" + (-dif) + " espacios libres</b> para novedad." : "Hay " + c + " colgados: la pared está justa.";
+    document.getElementById("c-res").innerHTML = res;
+  }
+  ["c-ganchos", "c-porop", "c-colg"].forEach(function (id) { document.getElementById(id).addEventListener("input", calcular); });
+
+  // ---------- Tallas y tarjeta ----------
+  var TALLAS = ["26", "28", "30", "32", "34"];
+  var RECIBIDO = [10, 25, 30, 25, 10];
+  var VENDIDO = { TRU: [8, 30, 34, 22, 6], AQP: [16, 34, 28, 16, 6], LIM: [6, 22, 32, 28, 12] };
+  function dibujarTallas() {
+    var html = "<thead><tr><th>Talla</th>" + ORDEN_SEDES.map(function (id) { return "<th>" + SEDES[id].nombre + "</th>"; }).join("") + "</tr></thead><tbody>";
+    TALLAS.forEach(function (t, i) {
+      html += "<tr><td><b>" + t + "</b></td>" + ORDEN_SEDES.map(function (id) {
+        var idx = Math.round((VENDIDO[id][i] / RECIBIDO[i]) * 100);
+        var dev = Math.max(-60, Math.min(60, idx - 100));
+        var w = Math.abs(dev) / 60 * 50;
+        var bar = dev >= 0
+          ? "<span style='display:inline-flex;width:100px;height:10px;vertical-align:middle'><span style='width:50px;border-right:1px solid var(--tinta-3)'></span><span style='width:" + w + "px;background:var(--agota);border-radius:0 3px 3px 0'></span></span>"
+          : "<span style='display:inline-flex;width:100px;height:10px;vertical-align:middle;justify-content:flex-start'><span style='width:" + (50 - w) + "px'></span><span style='width:" + w + "px;background:var(--queda);border-radius:3px 0 0 3px'></span><span style='width:0;border-right:1px solid var(--tinta-3)'></span></span>";
+        return "<td class='num' style='white-space:nowrap'>" + bar + " " + idx + "</td>";
+      }).join("") + "</tr>";
+    });
+    document.getElementById("tallas").innerHTML = html + "</tbody>";
+  }
+  var MARCAS = [
+    ["Taller CAYLA", 52, 12, 11, 3.4, 18],
+    ["Marca B", 61, 8, 9, 2.8, 9],
+    ["Marca A", 38, 30, 19, 1.9, 14],
+    ["Marca C", 29, 35, 24, 1.4, 7]
+  ];
+  function dibujarTarjeta() {
+    function mini(v, max, color) { return "<span class='mini' style='width:" + (v / max) * 46 + "px;background:" + color + "'></span>"; }
+    document.getElementById("tarjeta").innerHTML = "<thead><tr><th>Marca</th><th class='r'>Vendido a 14 días</th><th class='r'>Vendido con rebaja</th><th class='r'>Edad en piso</th><th class='r'>GMROI</th></tr></thead><tbody>" +
+      MARCAS.map(function (m) {
+        return "<tr><td><b>" + m[0] + "</b><br><span class='tiny muted'>" + m[5] + " modelos+color</span></td>" +
+          "<td class='r num' style='white-space:nowrap'>" + mini(m[1], 70, "#4f4841") + m[1] + " %</td>" +
+          "<td class='r num' style='white-space:nowrap'>" + mini(m[2], 40, "#4f4841") + m[2] + " %</td>" +
+          "<td class='r num'>" + m[3] + " días</td><td class='r num'>" + fmt(m[4], 1) + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+
+  // ---------- Índice activo ----------
+  (function indiceActivo() {
+    var links = Array.prototype.slice.call(document.querySelectorAll("#indice a"));
+    var mapa = {};
+    links.forEach(function (a) { mapa[a.getAttribute("href").slice(1)] = a; });
+    if (!("IntersectionObserver" in window)) return;
+    var obs = new IntersectionObserver(function (entradas) {
+      entradas.forEach(function (e) {
+        if (e.isIntersecting && mapa[e.target.id]) {
+          links.forEach(function (a) { a.classList.remove("activo"); });
+          mapa[e.target.id].classList.add("activo");
+          var a = mapa[e.target.id];
+          var ol = a.parentNode.parentNode;
+          var izq = a.offsetLeft - ol.clientWidth / 2 + a.offsetWidth / 2;
+          ol.scrollTo({ left: Math.max(0, izq), behavior: "smooth" });
+        }
+      });
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    Object.keys(mapa).forEach(function (id) { var s = document.getElementById(id); if (s) obs.observe(s); });
+  })();
+
+  dibujarPerchero("TRU");
+  dibujarCurva();
+  dibujarReglas();
+  dibujarTablero();
+  dibujarFotoPelicula();
+  dibujarMatriz();
+  dibujarDetalle();
+  dibujarLeyendaMatriz();
+  dibujarReporte();
+  dibujarEspacio("verano");
+  calcular();
+  dibujarTallas();
+  dibujarTarjeta();
+})();
+</script>
+
+</body></html>

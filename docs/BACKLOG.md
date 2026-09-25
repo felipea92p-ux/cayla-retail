@@ -42,9 +42,7 @@ El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cu
 - [x] **Termómetro semanal** (tarea 1): `docs/datos/consultas/frescura-termometro.sql` — 12 consultas SELECT con su rutina de los lunes. PR de docs.
 - [x] **La caja dice «está en el almacén»** (tarea 2): #437. Fusionar fuera de la hora punta de TRU; trae además un arreglo de precio de proforma (revisar con ese foco).
 - [x] **«Por colgar» en Existencias** (tarea 4): #438. Choca con #434 solo en `inventario/page.tsx` (una línea cada uno).
-- [ ] **Tarea 3 (Retirar del piso + motivos del ajuste): decisión de Felipe.** Rama `claude/frescura-t3-retiro-y-ajuste`, sin PR. Tiene dos partes:
-  - **Retirar del piso:** coincide con el bloque 2 del ADR-0208 (`mover_interno` invertido) y podría salir sobre #434.
-  - **Motivos nuevos** (`carga_existente` y el valor propio de «Encontré de más»): se descartan, porque cargan al piso sin pasar por el candado de «Reposición» (`20260926000400`).
+- [x] **Tarea 3 (Retirar del piso + motivos del ajuste): Felipe eligió la opción A (2026-09-25).** Solo el retiro salió, como bloque 2 del ADR-0208 (#440). Los motivos nuevos (`carga_existente` y el valor propio de «Encontré de más») se descartaron: cargaban al piso sin pasar por el candado de «Reposición» (`20260926000400`). La rama `claude/frescura-t3-retiro-y-ajuste` queda obsoleta.
 - [ ] **La caja no manda `p_emisor`** (`PuntoDeVenta.tsx:926-958`). Toda venta queda como «emite retail», contra D-56 («La emite Alegra» por defecto). Tarea aparte.
 - [ ] **Felipe:** cada lunes, boletas de Alegra por sede y día contra la consulta 01. Esta semana, pedir a Alegra el export de una semana (¿trae precio de lista y descuento por línea?) para la línea base de «% a precio completo».
 
@@ -303,9 +301,14 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   - `ReponerPisoModal.tsx:25` cita `20260914210000_inventario_piso_almacen.sql`, que no existe (es `20260914230000`).
   - `scripts/migraciones/verificar.mjs` marca la `0400` con «falta: función insertar_antes». Es un falso positivo (un
     ayudante `pg_temp` que no persiste), el mismo de `20260922200000` y `20260925230000`.
-- [ ] **Bloque 2 · «Retirar del piso»:** no hace falta una función nueva, falta la pantalla: es `mover_interno` con
-  origen (piso) y destino (almacén) invertidos. (`bajar_a_piso` y `devolver_a_almacen` eran de V1 y no existen.) Al
-  hacerlo, distinguir en Movimientos la bajada del retiro por el tipo de sububicación, no por el motivo.
+- [x] **Bloque 2 · «Retirar del piso»:** construido el 2026-09-25 (#440, por fusionar). Menú «⋯» de cada talla en
+  Existencias, `mover_interno` con origen piso y destino almacén, aviso si la fila va a volver a pedir «Reponer» y nota
+  opcional del motivo. Movimientos distingue la bajada del retiro por el tipo de sububicación de destino.
+  - [ ] **Decisión de Felipe (bloque 3):** una marca de «retirada de la venta» por talla y sede que apague «Reponer» y
+    «Por colgar» después de un retiro a propósito, con un motivo cerrado del retiro. Hasta entonces el semáforo le pide
+    al turno siguiente volver a bajar lo que se guardó.
+  - [ ] Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
+    minutos sale «tardía» (límite anotado en ADR-0208).
 - [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
   - Reloj de novedad por modelo+color.

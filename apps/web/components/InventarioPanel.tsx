@@ -33,8 +33,10 @@ import {
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
+  puedeRetirarPiso,
   UMBRAL_REPOSICION_PISO,
   type EstadoStock,
+  type SentidoPiso,
 } from "@/lib/inventario-reglas";
 import { textoCobertura } from "@/lib/resumen-formato";
 import { bandaDeCobertura, calcularVelocidad, type Cobertura } from "@/lib/resumen-reglas";
@@ -249,7 +251,8 @@ export function InventarioPanel({
   const [talla, setTalla] = useState(TODAS);
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
-  const [reponiendo, setReponiendo] = useState<FilaExistencias | null>(null);
+  // Reponer y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
+  const [moviendo, setMoviendo] = useState<{ fila: FilaExistencias; sentido: SentidoPiso } | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(false);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
@@ -744,7 +747,7 @@ export function InventarioPanel({
                           type="button"
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
-                          onClick={() => setReponiendo({ ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible })}
+                          onClick={() => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "bajar" })}
                           className="btn-cayla btn-primario px-2 py-0.5 text-xs"
                         >
                           Reponer
@@ -818,13 +821,31 @@ export function InventarioPanel({
                         </button>
                       )}
                     </span>
-                    {/* «···»: un solo destino real — el historial del producto (verificado que existe como
-                        página propia; `/productos/[id]` a secas SOLO existe como modal interceptado desde
-                        DENTRO de /productos, no como destino navegable — de ahí llegando, un `router.push`
-                        directo daba 404). No se inventan acciones que no llevan a ningún lado. */}
+                    {/* «···»: las acciones de la fila que no son urgentes. No se inventan acciones que no llevan
+                        a ningún lado.
+                        - «Retirar del piso» (D-41, 2026-09-25): el camino de vuelta, del piso al almacén. Mismo
+                          permiso y mismo modal que «Reponer», pero SIN umbral (`puedeRetirarPiso`): basta que quede
+                          algo libre colgado. Vive aquí y NO en «Prioridad / Estado» a propósito: esa celda es el
+                          semáforo y lo que hay en ella se lee como orden del sistema. Con «Reponer» al lado (piso 3,
+                          almacén 12) la misma celda decía «súbela» y «bájala» a la vez.
+                        - El historial del producto (verificado que existe como página propia; `/productos/[id]` a
+                          secas SOLO existe como modal interceptado desde DENTRO de /productos, no como destino
+                          navegable — de ahí llegando, un `router.push` directo daba 404). */}
                     <MenuAcciones
                       etiqueta={`Más acciones: ${f.referencia}`}
-                      items={[{ clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) }]}
+                      items={[
+                        ...(puedeReponer && puedeRetirarPiso(f.pisoDisponible)
+                          ? [
+                              {
+                                clave: "retirar",
+                                etiqueta: "Retirar del piso",
+                                // Como «Reponer»: el modal ofrece y valida contra lo DISPONIBLE (lo apartado no se mueve, ADR-0141).
+                                onSelect: () => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "retirar" }),
+                              },
+                            ]
+                          : []),
+                        { clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) },
+                      ]}
                     />
                   </span>
                 </span>
@@ -859,13 +880,14 @@ export function InventarioPanel({
       )}
       </div>
 
-      {reponiendo && sububicacionPiso && sububicacionAlmacen && (
+      {moviendo && sububicacionPiso && sububicacionAlmacen && (
         <ReponerPisoModal
-          fila={reponiendo}
+          sentido={moviendo.sentido}
+          fila={moviendo.fila}
           ubicacionId={ubicacionId}
           sububicacionPisoId={sububicacionPiso.id}
           sububicacionAlmacenId={sububicacionAlmacen.id}
-          onClose={() => setReponiendo(null)}
+          onClose={() => setMoviendo(null)}
         />
       )}
 

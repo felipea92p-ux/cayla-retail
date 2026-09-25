@@ -6,6 +6,22 @@
 ## 2026-09-25 (Existencias en celular: la tarjeta de cada variante, ordenada)
 Felipe mandó capturas del celular: en Inventario ▸ Existencias cada variante era una lista de datos amontonada a la izquierda. Ahora la tarjeta va en bloques: la prenda arriba; Piso · Almacén, Disponible, Cobertura y Ritmo en una grilla de 2×2; «En camino» y «En la red» a la izquierda, con el chip de estado y «Reponer» a su derecha; y «Apartar» a la izquierda y «Ajustar» con «···» a la derecha, en la misma línea. Todo es solo de celular: `sm:contents` y `sm:[grid-area:auto]` devuelven cada celda a su columna, y en escritorio la tabla queda igual (medido a 1400 px: cada celda bajo su título). Probado a 375 px en local.
 Felipe se lleva: (1) **una tabla apilada no es una tarjeta**: poner cada columna en un renglón propio cabe en el celular, pero no ordena nada; (2) **el hueco vacío a la derecha es espacio que se puede usar**: el estado subió junto a «En camino» y la tarjeta quedó más baja; (3) **el celular se arregla sin tocar el escritorio** si se reagrupa con CSS y no se cambia el orden de las celdas.
+## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
+Felipe eligió la opción A: de la tarea 3 del plan del termómetro se rescató solo el retiro, rebasado sobre `main` con el
+#434, el #437, el #438 y el #439, y se descartaron los motivos nuevos del ajuste. En Existencias, el menú «⋯» de cada
+talla con piso disponible ofrece «Retirar del piso» (`mover_interno` al revés, sin migración), con aviso y nota
+opcional. Movimientos nombra cada sentido por su destino («Bajada al piso» / «Retiro del piso»).
+Felipe se lleva:
+1. **La revisión encontró que el semáforo contradice al retiro**: solo mira cifras, así que al turno siguiente pide
+   volver a bajar lo que la encargada guardó a propósito. Hoy lo atenúan un aviso y la nota. El arreglo de fondo es
+   una marca de «retirada de la venta», y la decide él en el bloque 3.
+2. **Un nombre no se reutiliza para dos cosas**: el modal de la fila sigue siendo «Reponer piso» porque «Bajar al piso»
+   ya es la pantalla de escaneo. Lo que sí se unifica es la palabra con que la acción queda registrada.
+3. **Tres PR fusionados en la misma tarde dejaron la rama con conflictos**: rebasar antes de abrir el PR evitó
+   entregar uno que no se podía fusionar.
+
+Sin resolver: la marca de «retirada de la venta», el token contra el doble clic de `mover_interno` y la prueba del
+falso positivo de «bajada tardía».
 
 ## 2026-09-25 (Modo sin conexión: huecos cerrados — ADR-0210 «(c)»)
 Se cerraron cinco huecos. **Error pasajero:** un 503, un bloqueo o un tiempo agotado ya no quedan como rechazo esperando «Descartar»: se reintentan, hasta 10 veces, y recién ahí pasan a rechazo diciendo por qué. Las pantallas también encolan en ese caso. **Contador global:** cualquier pantalla dice cuántas operaciones esperan subir o no pudieron. **Salir** con algo pendiente pregunta primero. **El alta avisa** antes qué necesita internet (marca, proveedor o talla nuevos). **Lector QR** precargado en el teléfono, porque era lo único que faltaría en la copia de Vender. Probado en local con un 503 simulado, el aviso en Inventario, la pregunta al salir, el alta sin red y Vender a 375 px. `tsc`/`eslint`/77.043 pruebas en verde.

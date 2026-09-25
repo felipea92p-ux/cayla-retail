@@ -18,8 +18,8 @@
 >   categoría en la sede. Se construye por bloques. **Solo el bloque 1 está construido, y todavía no está en
 >   producción** (2026-09-25): registrar la bajada al piso escaneando (`bajar_al_piso`), cerrar «Reposición» en el piso
 >   y leer qué bajadas fueron tardías (`fn_bajadas_del_piso`, solo líder, sin pantalla, encima de `fn_ledger_puntos`,
->   ADR-0202). El resto, incluido «Retirar del piso» (bloque 2), no existe todavía: no hay una función de retirar
->   aparte, se hará con `mover_interno` en sentido contrario.
+>   ADR-0202). «Retirar del piso» (bloque 2) existe desde el 2026-09-25, sin función nueva: `mover_interno` en sentido
+>   contrario, desde el menú «⋯» de Existencias. Del bloque 3 en adelante no existe nada todavía.
 > - **Regla para la pantalla de Frescura (bloque 3):** se construye encima del dominio de Inventario que ya existe
 >   —el libro de `fn_ledger_puntos`, la venta de `fn_es_venta_de_stock` y las cohortes FIFO de
 >   `apps/web/lib/inventario-exposicion.ts` (ADR-0199 de main, 0200 y 0202)—, no con una reconstrucción propia del
@@ -331,7 +331,7 @@ el comparativo empieza en el mes en que arrancó el ERP y ya no hay con qué com
    repo escribe hoy son diez y algunos llevan tilde: `venta`, `merma`, `conteo`,
    `ingreso`, `ingreso de lote`, `bajada a piso`, `bajada de almacén`, `devolución a
    almacén`, `produccion`, `traslado`, `ajuste`. (V1; hoy: bajar y retirar del piso escriben
-   una sola fila `traslado` con motivo `movimiento_interno`, «Reposición interna».) Quien escriba una RPC nueva con
+   una sola fila `traslado` con motivo `movimiento_interno`: «Bajada al piso» o «Retiro del piso» en Movimientos, según a dónde llegó la prenda; el filtro que trae los dos es «Bajada o retiro del piso».) Quien escriba una RPC nueva con
    `'Venta'` o `'venta online'` no rompe nada visible: simplemente esa venta deja de
    contar para la rotación (`inteligencia.ts:77`), para el COGS
    (`finanzas-nucleo.ts:57`) y para el sello de `ultima_venta`
