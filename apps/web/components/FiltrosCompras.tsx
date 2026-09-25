@@ -6,7 +6,7 @@ import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck
 import { Popover } from "radix-ui";
 import { CampoTexto, Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import {
   destinoDesdeParam,
   ETIQUETA_ESTADO_PAGO,
@@ -246,73 +246,89 @@ export function FiltrosCompras({
       {panelAbierto && (
         <PanelPildoras>
           {ver("proveedor") && (
-            <DesplegablePildora icono={Building2} etiqueta="Proveedor" valor={prov ?? TODOS} onValor={(v) => aplicar({ prov: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              {proveedores.map((p) => (
-                <ItemDesplegable key={p.id} value={p.id}>
-                  {p.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Building2}
+              etiqueta="Proveedor"
+              valor={prov ?? TODOS}
+              onValor={(v) => aplicar({ prov: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+            />
           )}
 
           {ver("pago") && (
-            <DesplegablePildora icono={Banknote} etiqueta="Pago" valor={pago ?? TODOS} onValor={(v) => aplicar({ pago: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              {(["pendiente", "parcial", "pagada", "anulada"] as const).map((v) => (
-                <ItemDesplegable key={v} value={v}>
-                  {ETIQUETA_ESTADO_PAGO[v]}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Banknote}
+              etiqueta="Pago"
+              valor={pago ?? TODOS}
+              onValor={(v) => aplicar({ pago: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                ...(["pendiente", "parcial", "pagada", "anulada"] as const).map((v) => ({ valor: v, texto: ETIQUETA_ESTADO_PAGO[v] })),
+              ]}
+            />
           )}
 
           {ver("recepcion") && (
-            <DesplegablePildora icono={PackageCheck} etiqueta="Recepción" valor={recep ?? TODOS} onValor={(v) => aplicar({ recep: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
-              {(["sin_recibir", "parcial", "recibida"] as const).map((v) => (
-                <ItemDesplegable key={v} value={v}>
-                  {ETIQUETA_ESTADO_RECEPCION[v]}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={PackageCheck}
+              etiqueta="Recepción"
+              valor={recep ?? TODOS}
+              onValor={(v) => aplicar({ recep: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todas" },
+                ...(["sin_recibir", "parcial", "recibida"] as const).map((v) => ({ valor: v, texto: ETIQUETA_ESTADO_RECEPCION[v] })),
+              ]}
+            />
           )}
 
           {ver("condicion") && (
-            <DesplegablePildora icono={HandCoins} etiqueta="Condición" valor={cond ?? TODOS} onValor={(v) => aplicar({ cond: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
-              <ItemDesplegable value="contado">Al contado</ItemDesplegable>
-              <ItemDesplegable value="credito">Al crédito</ItemDesplegable>
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={HandCoins}
+              etiqueta="Condición"
+              valor={cond ?? TODOS}
+              onValor={(v) => aplicar({ cond: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todas" },
+                { valor: "contado", texto: "Al contado" },
+                { valor: "credito", texto: "Al crédito" },
+              ]}
+            />
           )}
 
           {ver("tipo") && (
-            <DesplegablePildora icono={Receipt} etiqueta="Tipo de documento" valor={tipo ?? TODOS} onValor={(v) => aplicar({ tipo: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              {(["factura", "boleta", "nota_venta"] as const).map((v) => (
-                <ItemDesplegable key={v} value={v}>
-                  {ETIQUETA_TIPO_DOCUMENTO[v]}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Receipt}
+              etiqueta="Tipo de documento"
+              valor={tipo ?? TODOS}
+              onValor={(v) => aplicar({ tipo: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                ...(["factura", "boleta", "nota_venta"] as const).map((v) => ({ valor: v, texto: ETIQUETA_TIPO_DOCUMENTO[v] })),
+              ]}
+            />
           )}
 
           {ver("destino") && tiendas.length > 0 && (
-            <DesplegablePildora icono={Store} etiqueta="Destino" valor={dest ?? TODOS} onValor={(v) => aplicar({ dest: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
-              {tiendas.map((u) => (
-                <ItemDesplegable key={u.id} value={u.id}>
-                  {u.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Store}
+              etiqueta="Destino"
+              valor={dest ?? TODOS}
+              onValor={(v) => aplicar({ dest: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas las tiendas" }, ...tiendas.map((u) => ({ valor: u.id, texto: u.nombre }))]}
+            />
           )}
 
           {ver("vencidas") && (
-            <DesplegablePildora icono={AlarmClock} etiqueta="Vencimiento" valor={vencidas ? "1" : TODOS} onValor={(v) => aplicar({ vencidas: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
-              <ItemDesplegable value="1">Solo vencidas</ItemDesplegable>
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={AlarmClock}
+              etiqueta="Vencimiento"
+              valor={vencidas ? "1" : TODOS}
+              onValor={(v) => aplicar({ vencidas: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todas" },
+                { valor: "1", texto: "Solo vencidas" },
+              ]}
+            />
           )}
 
           {ver("fechas") && <PildoraFechas desde={desde ?? ""} hasta={hasta ?? ""} onCambiar={(d, h) => aplicar({ desde: d, hasta: h })} />}

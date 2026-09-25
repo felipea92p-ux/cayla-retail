@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectNativo } from "@/components/ui/campos";
+import { Desplegable } from "@/components/ui/campos";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
 import { LecturaCelda } from "@/components/ResumenCifras";
@@ -16,7 +16,6 @@ import {
   type ComparacionParaPantalla,
   type FiltroCambio,
   type MetricasPeriodo,
-  type OrdenComparacion,
 } from "@/lib/resumen-comparacion";
 
 // Detalle por producto: «¿qué productos explican lo que cambió?». Una fila por variante con lo vendido
@@ -167,13 +166,12 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
         <label className="ml-auto flex items-center gap-2">
           <span className="label-cayla text-[10px] text-tinta/60">Ordenar por</span>
           <span className="w-52">
-            <SelectNativo value={orden} onChange={(e) => actualizar({ orden: e.target.value === "vendidos_b" ? null : (e.target.value as OrdenComparacion) })}>
-              {OPCIONES_ORDEN_COMPARACION.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectNativo>
+            <Desplegable
+              valor={orden}
+              onValor={(v) => actualizar({ orden: v === "vendidos_b" ? null : v })}
+              opciones={OPCIONES_ORDEN_COMPARACION}
+              etiquetaAccesible="Ordenar por"
+            />
           </span>
         </label>
       </div>

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { CampoMonto, CampoSelectNativo, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { CampoMonto, CampoSelect, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
 import { Modal, campoEtiqueta, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import type { ModeloProducible, VarianteDeModelo } from "@/lib/produccion";
@@ -177,14 +177,12 @@ export function NuevaOrdenProduccionForm({
             opciones={TIPOS}
             pie={tipo === "muestra" ? "Desarrollar el modelo: patrón y prototipo. No entra al stock." : "Fabricar el lote. Al cerrar entra al stock del Taller."}
           />
-          <CampoSelectNativo etiqueta="Modelo" value={productoId} onChange={(e) => cambiarModelo(e.target.value)}>
-            {modelos.map((m) => (
-              <option key={m.productoId} value={m.productoId}>
-                {m.referencia}
-                {m.categoria ? ` · ${m.categoria}` : ""}
-              </option>
-            ))}
-          </CampoSelectNativo>
+          <CampoSelect
+            etiqueta="Modelo"
+            valor={productoId}
+            onValor={(v) => cambiarModelo(v)}
+            opciones={modelos.map((m) => ({ valor: m.productoId, texto: `${m.referencia}${m.categoria ? ` · ${m.categoria}` : ""}` }))}
+          />
         </div>
 
         {modelo && (
@@ -275,18 +273,13 @@ export function NuevaOrdenProduccionForm({
               <div className="flex items-center gap-2">
                 <label className="flex items-center gap-1.5 text-xs text-tinta/70">
                   Cubrir
-                  <select
-                    aria-label="Días de venta a cubrir"
-                    value={diasObjetivo}
-                    onChange={(e) => setDiasObjetivo(Number(e.target.value))}
-                    className="h-8 rounded-md border border-tinta/25 bg-papel px-1.5 text-sm text-tinta outline-none focus:border-rojo"
-                  >
-                    {OPCIONES_DIAS_OBJETIVO.map((d) => (
-                      <option key={d} value={d}>
-                        {d} días
-                      </option>
-                    ))}
-                  </select>
+                  <Desplegable
+                    valor={String(diasObjetivo)}
+                    onValor={(v) => setDiasObjetivo(Number(v))}
+                    opciones={OPCIONES_DIAS_OBJETIVO.map((d) => ({ valor: String(d), texto: `${d} días` }))}
+                    etiquetaAccesible="Días de venta a cubrir"
+                    forma="pastilla"
+                  />
                 </label>
                 <button
                   type="button"

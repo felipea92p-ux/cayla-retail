@@ -26,7 +26,9 @@ import { describe, expect, it } from "vitest";
 //     firmas cuando producción tenía 544 y nada lo decía.
 
 const DIR = new URL("../../../docs/datos/generado/", import.meta.url);
-const leer = (archivo: string) => readFileSync(new URL(archivo, DIR), "utf8");
+// En una copia de Windows (core.autocrlf=true) estos archivos llegan con CRLF: sin normalizar, cada fila del
+// diccionario termina en «\r» y la comparación de glosas impresas falla solo en local (en CI, Linux, pasa).
+const leer = (archivo: string) => readFileSync(new URL(archivo, DIR), "utf8").replace(/\r\n/g, "\n");
 const json = <T>(archivo: string) => JSON.parse(leer(archivo)) as T;
 
 type Rls = Record<string, { relkind: string; rls: boolean; forzado: boolean }>;

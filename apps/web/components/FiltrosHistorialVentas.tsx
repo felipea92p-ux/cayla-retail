@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CircleCheck, FileText, Store, UserRound, Wallet } from "lucide-react";
-import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { DIAS_POR_DEFECTO, PERIODOS_RAPIDOS, type PeriodoMovimientos } from "@/lib/movimientos-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
@@ -149,47 +149,59 @@ export function FiltrosHistorialVentas({
       {panelAbierto && (
         <PanelPildoras>
           {tiendas && (
-            <DesplegablePildora icono={Store} etiqueta="Tienda" valor={sede || TODOS} onValor={(v) => aplicar({ sede: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
-              {tiendas.map((t) => (
-                <ItemDesplegable key={t.id} value={t.id}>
-                  {t.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Store}
+              etiqueta="Tienda"
+              valor={sede || TODOS}
+              onValor={(v) => aplicar({ sede: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas las tiendas" }, ...tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))]}
+            />
           )}
 
           {vendedores && vendedores.length > 0 && (
-            <DesplegablePildora icono={UserRound} etiqueta="Vendedor" valor={vendedor || TODOS} onValor={(v) => aplicar({ vendedor: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos los vendedores</ItemDesplegable>
-              {vendedores.map((v) => (
-                <ItemDesplegable key={v.id} value={v.id}>
-                  {v.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={UserRound}
+              etiqueta="Vendedor"
+              valor={vendedor || TODOS}
+              onValor={(v) => aplicar({ vendedor: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todos los vendedores" }, ...vendedores.map((v) => ({ valor: v.id, texto: v.nombre }))]}
+            />
           )}
 
-          <DesplegablePildora icono={Wallet} etiqueta="Pago" valor={pago || TODOS} onValor={(v) => aplicar({ pago: v === TODOS ? "" : v })}>
-            <ItemDesplegable value={TODOS}>Todos los pagos</ItemDesplegable>
-            {Object.entries(NOMBRE_METODO).map(([valor, etiqueta]) => (
-              <ItemDesplegable key={valor} value={valor}>
-                {etiqueta}
-              </ItemDesplegable>
-            ))}
-          </DesplegablePildora>
+          <DesplegablePildora
+            icono={Wallet}
+            etiqueta="Pago"
+            valor={pago || TODOS}
+            onValor={(v) => aplicar({ pago: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Todos los pagos" },
+              ...Object.entries(NOMBRE_METODO).map(([valor, etiqueta]) => ({ valor, texto: etiqueta })),
+            ]}
+          />
 
-          <DesplegablePildora icono={CircleCheck} etiqueta="Estado" valor={estado === "todas" ? TODOS : estado} onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}>
-            <ItemDesplegable value={TODOS}>Todas las ventas</ItemDesplegable>
-            <ItemDesplegable value="completada">Completadas</ItemDesplegable>
-            <ItemDesplegable value="anulada">Anuladas</ItemDesplegable>
-          </DesplegablePildora>
+          <DesplegablePildora
+            icono={CircleCheck}
+            etiqueta="Estado"
+            valor={estado === "todas" ? TODOS : estado}
+            onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Todas las ventas" },
+              { valor: "completada", texto: "Completadas" },
+              { valor: "anulada", texto: "Anuladas" },
+            ]}
+          />
 
-          <DesplegablePildora icono={FileText} etiqueta="Comprobante" valor={comprobante === "todos" ? TODOS : comprobante} onValor={(v) => aplicar({ comp: v === TODOS ? "" : v })}>
-            <ItemDesplegable value={TODOS}>Con o sin comprobante</ItemDesplegable>
-            <ItemDesplegable value="con">Con boleta o factura</ItemDesplegable>
-            <ItemDesplegable value="sin">Sin comprobante</ItemDesplegable>
-          </DesplegablePildora>
+          <DesplegablePildora
+            icono={FileText}
+            etiqueta="Comprobante"
+            valor={comprobante === "todos" ? TODOS : comprobante}
+            onValor={(v) => aplicar({ comp: v === TODOS ? "" : v })}
+            opciones={[
+              { valor: TODOS, texto: "Con o sin comprobante" },
+              { valor: "con", texto: "Con boleta o factura" },
+              { valor: "sin", texto: "Sin comprobante" },
+            ]}
+          />
         </PanelPildoras>
       )}
 
