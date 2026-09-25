@@ -3,6 +3,9 @@
 > **Estado:** PLAN, sin código ni migraciones. Aprobado por Felipe en lo conceptual (decisiones A y B, 2026-09-24).
 > **F0 hecha (2026-09-24):** spike visual completo en `docs/maquetas/finanzas-2026-09/` (README con el guion de prueba).
 > **v2 del spike (mismo día):** filtro «Ver», capa para decidir, plata del dueño y módulo Configuración (ADR-0195, actualización b).
+> **F3–F10 construidas (2026-09-25, PR #396):** detalle por fase en `docs/finanzas/fases/`, resumen en ADR-0195
+> «Construcción — F3 a F10». Presupuesto (capa para decidir) también. Todo por pegar en producción, en 36 ejecuciones.
+>
 > **Construcción (2026-09-24):** Felipe aprobó el paquete (c) y el Balance «lo que es de la tienda». **F1 construida**: Configuración (en el perfil del líder) con meta por día, fondo de caja y efecto de cada campaña; Caja e Inicio ya los usan. Ver ADR-0195 «Construcción — F1».
 > Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
 > ADR asociado: `docs/adr/0195-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
@@ -313,15 +316,15 @@ fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a
 |---|---|---|
 | **F0 · Spike visual** ✅ 2026-09-24 | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
 | **F1 · Cimientos** ✅ *Configuración + meta y fondo de caja en producción (2026-09-24, #390); el plan de cuentas, IGV y categorías de gasto entraron con F2a* | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día, fondo de caja y efecto de cada campaña; aviso al cerrar; Reportes ▸ Campañas** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
-| **F2 · Gastos y activos** 🟡 *F2a en producción (2026-09-24, #393); F2b (activos fijos con depreciación, gastos fijos del mes y sugeridos) construida, migración 20260925000000 por pegar* | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
-| **F3 · Cuentas y dinero** | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
-| **F4 · Por pagar consolidado** | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |
-| **F5 · Diario y resultados** | `fn_asientos` (ADR-0120) + reglas nuevas + Estado de resultados por unidad y consolidado con planilla | El resultado de TRU de agosto cuadra con tus números |
-| **F6 · Flujo de caja** | Real y proyectado a 4–8 semanas | Ves si alcanza para los pagos del mes |
-| **F7 · Balance** | Saldos iniciales, depreciación, conciliación contable; el Balance no se dibuja si no cuadra | Activo = Pasivo + Patrimonio con capital como entrada |
-| **F8 · Impuestos** | IGV neto, alerta 300 UIT, registro de ventas/compras para el contador | El contador acepta el archivo |
-| **F9 · Cierre de mes** | `periodos`, cierre por unidad y consolidado, bloqueo por fecha, reapertura con motivo | Cierras agosto de TRU y no puedes registrar un gasto con fecha de agosto |
-| **F10 · Resumen** | El tablero con todo lo anterior | Lo abres el lunes y te dice qué decidir |
+| **F2 · Gastos y activos** ✅ *F2a y F2b en producción (2026-09-24, #393 y #394)* | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
+| **F3 · Cuentas y dinero** 🟡 *construida con F3b (la cuenta sellada), PR #396, por pegar* | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
+| **F4 · Por pagar consolidado** 🟡 *construida, PR #396, por pegar* | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |
+| **F5 · Diario y resultados** 🟡 *construida (con Reportes ▸ Campañas), PR #396, por pegar* | `fn_asientos` (ADR-0120) + reglas nuevas + Estado de resultados por unidad y consolidado con planilla | El resultado de TRU de agosto cuadra con tus números |
+| **F6 · Flujo de caja** 🟡 *construida (con Escenarios), PR #396, por pegar* | Real y proyectado a 4–8 semanas | Ves si alcanza para los pagos del mes |
+| **F7 · Balance** 🟡 *construida, PR #396, por pegar* | Saldos iniciales, depreciación, conciliación contable; el Balance no se dibuja si no cuadra | Activo = Pasivo + Patrimonio con capital como entrada |
+| **F8 · Impuestos** 🟡 *construida, PR #396, por pegar* | IGV neto, alerta 300 UIT, registro de ventas/compras para el contador | El contador acepta el archivo |
+| **F9 · Cierre de mes** 🟡 *construida, PR #396, por pegar* | `periodos`, cierre por unidad y consolidado, bloqueo por fecha, reapertura con motivo | Cierras agosto de TRU y no puedes registrar un gasto con fecha de agosto |
+| **F10 · Resumen** 🟡 *en construcción en el PR #396* | El tablero con todo lo anterior | Lo abres el lunes y te dice qué decidir |
 
 **El PR #170 no se descarta:** en F1/F2/F5 se rebasa sobre `main` y se reusa (tablas, pruebas, pantalla de egresos,
 `fn_asientos`, `fn_estado_resultados`), adaptado a las decisiones A y B, a los roles (ADR-0161) y al menú de datos (ADR-0144).
