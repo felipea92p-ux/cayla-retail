@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Catálogo ▸ Marcas entra al menú)
+Felipe vio en Proveedores la marca «Cayla 2» colgada de Jacard Peru SAC y no encontró por dónde editarla: la pantalla `/productos/marcas` existía desde el ADR-0109 (`cc36213d`) pero nunca entró al menú, y solo se llegaba por un enlace dentro de Nuevo producto. Se suma «Marcas» a Catálogo (módulo `atributos`, que en Roles y accesos ya se llama «Categorías, marcas y atributos»), con ícono propio, y se actualiza la foto del lateral (`menu-hoy.golden.json`). Sin migración.
+En producción (solo lectura): «Cayla 2» se creó el 24-sep al dar de alta **Top Aurora (TOP-0011)**, 8 variantes, 65 prendas en stock y 15 movimientos; no vino de la carga de proveedores. Pendiente de Felipe decidir de qué marca es Top Aurora; el arreglo es por pantalla (editar el producto y luego desactivar «Cayla 2»), no por SQL.
+Felipe se lleva: una pantalla que no está en el menú no existe para quien opera — funcionaba, tenía pruebas y un ADR, y aun así nadie la podía encontrar cuando la necesitó. Y la base no deja **fusionar** dos marcas ni **quitarle** una marca a un proveedor: «Renombrar Cayla 2 a CAYLA» choca con el índice de nombre único.
+
 ## 2026-09-25 (Frescura: termómetro del ERP, la caja dice «en el almacén» y «Por colgar» — tareas 1, 2 y 4 del plan del termómetro)
 Felipe aprobó las tareas 1-4 del plan de 12 (sesión del termómetro). Salen tres PR separados:
 - **Termómetro:** 12 consultas de solo lectura en `docs/datos/consultas/frescura-termometro.sql`, verificadas contra producción y con la rutina de los lunes contra Alegra.

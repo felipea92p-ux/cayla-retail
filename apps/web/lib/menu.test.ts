@@ -590,7 +590,7 @@ describe("el menú de una terminal con el rol «Terminal administrativa»", () =
   it("ve Inicio, Inventario, Catálogo y Compras (solo Proveedores, P3); en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
     expect(etiquetasDe(riel)).toEqual(["Inicio", "Inventario", "Catálogo", "Compras"]);
     expect(hijasDe(riel, "Inventario")).toEqual(["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"]);
-    expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Atributos"]);
+    expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Marcas", "Atributos"]);
   });
 
   // ADR-0161 P3 (20260923140000): Proveedores se abre con su módulo, sin los montos. Lo demás de Compras sigue pidiendo

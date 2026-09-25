@@ -48,6 +48,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
@@ -101,6 +102,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
@@ -161,6 +163,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
@@ -240,6 +243,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
@@ -334,6 +338,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
@@ -397,6 +402,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
@@ -478,6 +484,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
@@ -566,6 +573,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
@@ -638,6 +646,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
@@ -691,6 +700,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
@@ -751,6 +761,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
@@ -830,6 +841,7 @@
             "hijos": [
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Marcas", "href": "/productos/marcas", "icono": "marcas" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           },
