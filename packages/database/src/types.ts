@@ -5102,6 +5102,24 @@ export type Database = {
         Args: { p_nombre: string; p_proveedor_id: string }
         Returns: string
       }
+      crear_producto_con_stock_inicial: {
+        Args: {
+          p_al_piso?: boolean
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_tejido_id?: string
+          p_token?: string
+          p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       crear_producto_con_variantes: {
         Args: {
           p_categoria_id: string

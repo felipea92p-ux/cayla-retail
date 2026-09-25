@@ -291,6 +291,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajada-al-piso
 
+      # Nuevo producto con su stock de hoy (ADR-0212): el producto y la carga inicial son todo o nada (sin tienda, otra tienda,
+      # un Taller «al piso» o un rol sin «Bajada al piso» no dejan ni el producto), las cantidades entran como «carga_inicial»
+      # al almacén (o al piso con UNA bajada), firma el responsable, el mismo token no carga dos veces, la carga es solo para
+      # prendas sin movimientos en esa tienda, y la firma de la RPC sigue a la de crear_producto_con_variantes. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:alta-con-stock-inicial
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:alta-con-stock-inicial
+
       # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
       # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
       # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
