@@ -47,6 +47,9 @@ export type CompraResumen = {
   cerradoCantidad: number;
   nota: string | null;
   creadoEn: string;
+  /** Qué detalla el comprobante (ADR-0195 F2): una factura de gasto (la luz) no trae prendas; su `nota` dice qué fue.
+   *  Sin el dato (base vieja o lectura operativa), es mercadería. */
+  naturaleza?: "mercaderia" | "gasto" | "activo";
   /** Solo se llena en `getCompra` (detalle); la vista no lo expone. */
   motivoAnulacion?: string | null;
   /**

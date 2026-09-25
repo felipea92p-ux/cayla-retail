@@ -1,12 +1,13 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { BUCKET_FOTOS_PERFIL } from "@/lib/foto-perfil";
+import { recordarFotoPersona } from "@/lib/useFotoPersona";
 import { avisar } from "@/components/ui/Avisos";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 
 // "Mi perfil" (0014_perfil.sql, 2026-09-14): casi todo acá es de solo lectura
@@ -22,6 +23,7 @@ type MiPerfil = {
   apellidos: string;
   correo: string;
   celular: string | null;
+  /** La RUTA en el bucket `fotos-perfil` de Dynamic (`perfil/<persona>/<archivo>.jpg`), no una URL (lib/foto-perfil.ts). */
   foto_url: string | null;
   rol: "lider" | "integrante";
   estado: string;
@@ -30,18 +32,6 @@ type MiPerfil = {
 };
 
 const LIMITE_BYTES = 3 * 1024 * 1024; // el límite real del bucket fotos-perfil de Dynamic, no uno inventado acá
-
-function iniciales(nombreCompleto: string) {
-  return (
-    nombreCompleto
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p.charAt(0))
-      .join("")
-      .toUpperCase() || "·"
-  );
-}
 
 function formatoFecha(iso: string) {
   return new Intl.DateTimeFormat("es-PE", {
@@ -68,7 +58,6 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
   /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
   veAdministracion?: boolean;
 }) {
-  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -83,7 +72,12 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) avisar.error(traducirError(errCarga, "cargar tu perfil"));
-        else setPerfil(data as MiPerfil);
+        else if (data) {
+          const miPerfil = data as MiPerfil;
+          setPerfil(miPerfil);
+          // Ya vino la foto: el avatar de acá y el del lateral no tienen que volver a preguntarla.
+          recordarFotoPersona(miPerfil.persona_id, miPerfil.foto_url);
+        }
         setCargando(false);
       });
     return () => {
@@ -125,7 +119,7 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
     // componente, aunque esté en un manejador de evento, no en el render.
     const ruta = `perfil/${perfil.persona_id}/${crypto.randomUUID()}.jpg`;
 
-    const { error: errSubida } = await supabase.storage.from("fotos-perfil").upload(ruta, archivo, {
+    const { error: errSubida } = await supabase.storage.from(BUCKET_FOTOS_PERFIL).upload(ruta, archivo, {
       cacheControl: "31536000",
       contentType: "image/jpeg",
     });
@@ -135,8 +129,9 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
       return;
     }
 
-    const { data: publica } = supabase.storage.from("fotos-perfil").getPublicUrl(ruta);
-    await guardarFoto(publica.publicUrl);
+    // Se guarda la RUTA, como la guarda Dynamic: su función rechaza lo que no empiece por `perfil/`, así que mandarle
+    // la URL pública (como se hacía hasta el 2026-09-25) subía el archivo y después fallaba al guardarlo.
+    await guardarFoto(ruta);
   }
 
   async function onEliminarFoto() {
@@ -144,20 +139,20 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
     await guardarFoto(null);
   }
 
-  async function guardarFoto(url: string | null) {
+  async function guardarFoto(ruta: string | null) {
     const supabase = createClient();
     // gen-types no modela que un parámetro `text` sin default acepte NULL en
     // tiempo de ejecución (sí lo acepta) — el cast es solo para el tipo, el
-    // valor real que viaja es `url` tal cual, null incluido.
-    const { error: errGuardar } = await supabase.rpc("actualizar_mi_foto_perfil", { p_foto_url: url as string });
+    // valor real que viaja es `ruta` tal cual, null incluido.
+    const { error: errGuardar } = await supabase.rpc("actualizar_mi_foto_perfil", { p_foto_url: ruta as string });
     setSubiendo(false);
     if (errGuardar) {
       avisar.error(traducirError(errGuardar, "guardar la foto en tu perfil"));
       return;
     }
-    avisar.exito(url ? "Foto de perfil actualizada" : "Foto de perfil quitada");
-    setPerfil((p) => (p ? { ...p, foto_url: url } : p));
-    router.refresh(); // así el avatar del sidebar recoge la foto nueva sin recargar la página
+    avisar.exito(ruta ? "Foto de perfil actualizada" : "Foto de perfil quitada");
+    setPerfil((p) => (p ? { ...p, foto_url: ruta } : p));
+    if (perfil) recordarFotoPersona(perfil.persona_id, ruta); // el lateral la cambia en el acto, sin recargar
   }
 
   return (
@@ -173,15 +168,7 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
           <div className="mt-5 space-y-6">
             {/* ---------- avatar ---------- */}
             <div className="flex items-center gap-4">
-              <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full bg-sand">
-                {perfil.foto_url ? (
-                  <Image src={perfil.foto_url} alt={nombreCompleto} fill unoptimized className="object-cover" />
-                ) : (
-                  <span className="font-display flex h-full w-full items-center justify-center text-2xl text-tinta">
-                    {iniciales(nombreCompleto)}
-                  </span>
-                )}
-              </div>
+              <AvatarPersona personaId={perfil.persona_id} nombre={nombreCompleto} className="h-20 w-20 text-2xl" />
               <div className="space-y-2">
                 <input ref={inputRef} type="file" accept="image/jpeg" onChange={onArchivo} className="hidden" />
                 <div className="flex gap-2">
@@ -245,6 +232,20 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
                   </span>
                   <span aria-hidden className="text-tinta/45">→</span>
                 </Link>
+                {/* Configuración (ADR-0195 F1): «solo líder por ahora», así que solo se ofrece al líder. */}
+                {perfil.rol === "lider" && (
+                  <Link
+                    href="/configuracion"
+                    onClick={onClose}
+                    className="card-cayla mt-2 flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/40"
+                  >
+                    <span>
+                      <span className="block text-sm text-tinta">Configuración</span>
+                      <span className="mt-0.5 block text-xs text-tinta/55">Meta de cada día, fondo de caja y lo que cambia cada campaña.</span>
+                    </span>
+                    <span aria-hidden className="text-tinta/45">→</span>
+                  </Link>
+                )}
               </div>
             )}
 

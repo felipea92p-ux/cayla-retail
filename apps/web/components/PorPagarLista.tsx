@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip } from "@/components/ui/Chip";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -649,6 +650,13 @@ function FilaPorPagar({
             <Resaltar texto={c.documento} q={busqueda} />
           </Link>
         </span>
+        {/* ADR-0195 F2: una factura de GASTO (la luz) o de ACTIVO (un mueble) se paga aquí igual que la de mercadería; se dice qué fue. */}
+        {(c.naturaleza === "gasto" || c.naturaleza === "activo") && (
+          <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-tinta/65">
+            <Chip tono="pizarra">{c.naturaleza === "gasto" ? "Gasto" : "Activo fijo"}</Chip>
+            <span className="truncate">{c.nota}</span>
+          </span>
+        )}
         <span className="block text-xs text-tinta/55">Emitida {diaMes(c.fechaEmision)}</span>
         {/* ADR-0187: el comprobante es de varias tiendas y los montos de la fila son los de la mía. */}
         {c.totalComprobante !== undefined && <span className="block text-xs tabular-nums text-tinta/55">Tu parte · total <span className="whitespace-nowrap">{soles(c.totalComprobante)}</span></span>}

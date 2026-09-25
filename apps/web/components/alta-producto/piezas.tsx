@@ -113,3 +113,104 @@ export function AvisoInline({ tono, children, alerta = false }: { tono: TonoAvis
     </div>
   );
 }
+
+/**
+ * Un paso del alta en acordeón (spike 2026-09-24): reemplaza a `Bloque` en Nuevo producto. Solo uno está abierto; el
+ * hecho se pliega en UNA línea con su resumen y «Cambiar»; el que viene es una línea punteada, sin texto que leer.
+ * El paso abierto lleva abajo qué le falta y el botón «Seguir» (el último no: ahí manda «Crear producto»).
+ */
+export function PasoAlta({
+  numero,
+  titulo,
+  estado,
+  resumen,
+  onAbrir,
+  falta,
+  onSeguir,
+  textoSeguir = "Seguir",
+  children,
+}: {
+  numero: number;
+  titulo: string;
+  estado: "abierto" | "hecho" | "pendiente";
+  /** La línea del paso plegado («Blusa Lirio · CAYLA (Taller Lima)»). */
+  resumen?: ReactNode;
+  onAbrir: () => void;
+  /** Lo primero que le falta; null = el paso está completo. */
+  falta?: string | null;
+  /** Sin esto, el paso no lleva pie (el paso 1 avanza solo al elegir la categoría). */
+  onSeguir?: () => void;
+  textoSeguir?: string;
+  children: ReactNode;
+}) {
+  const id = `paso-${numero}`;
+  if (estado === "hecho") {
+    return (
+      <section aria-labelledby={id} className="rounded-xl border border-sand bg-papel">
+        <button type="button" onClick={onAbrir} className="flex w-full flex-wrap items-center gap-x-3 gap-y-0.5 px-4 py-3.5 text-left sm:flex-nowrap sm:px-5">
+          <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-verde text-[11px] text-crema">
+            ✓
+          </span>
+          <h2 id={id} className="flex-1 text-[14.5px] font-semibold text-tinta sm:flex-none">
+            {titulo}
+          </h2>
+          <span className="order-3 w-full min-w-0 truncate pl-9 text-[13px] text-taupe sm:order-none sm:w-auto sm:flex-1 sm:pl-0 sm:text-[13.5px]">{resumen}</span>
+          <span className="btn-cayla btn-enlace shrink-0 text-[12.5px]">Cambiar</span>
+        </button>
+      </section>
+    );
+  }
+  if (estado === "pendiente") {
+    return (
+      <section aria-labelledby={id} className="rounded-xl border border-dashed border-sand">
+        <div className="flex items-center gap-3 px-4 py-3.5 sm:px-5">
+          <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-tinta/25 text-[11px] tabular-nums text-tinta/60">
+            {numero}
+          </span>
+          <h2 id={id} className="text-[14.5px] font-medium text-tinta/45">
+            {titulo}
+          </h2>
+        </div>
+      </section>
+    );
+  }
+  return (
+    <section aria-labelledby={id} className="rounded-xl border border-sand bg-papel">
+      <div className="flex items-center gap-3 px-4 pt-4 sm:px-5">
+        <span aria-hidden className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-tinta text-[11px] tabular-nums text-crema">
+          {numero}
+        </span>
+        <h2 id={id} className="text-[14.5px] font-semibold text-tinta">
+          {titulo}
+        </h2>
+      </div>
+      {/* La entrada SIN `fill-mode: both` (a diferencia de `anim-revelar`): terminada, no le deja un `transform` puesto al
+          contenedor. Si se lo dejara, las listas en `position: fixed` de adentro (ComboBuscable, el combo Responsable) se
+          medirían contra este cuadro y no contra la ventana, y abrirían corridas lejos de su campo. */}
+      <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:pl-14 sm:pr-5">
+        {children}
+        {onSeguir && (
+          <div className="mt-5 flex items-center justify-end gap-3 border-t border-sand pt-4">
+            <p className="mr-auto text-[12.5px] text-taupe">{falta}</p>
+            <button type="button" onClick={onSeguir} disabled={Boolean(falta)} className="btn-cayla btn-primario">
+              {textoSeguir} →
+            </button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+/** Una fila de campo dentro de un paso: etiqueta y ayuda a la izquierda, controles a la derecha (apilados en celular). */
+export function FilaAlta({ etiqueta, ayuda, children }: { etiqueta: string; ayuda?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="grid gap-x-4 gap-y-2 border-t border-sand py-3.5 first:border-t-0 first:pt-1 md:grid-cols-[8rem_minmax(0,1fr)]">
+      <div className="md:pt-2">
+        <p className="text-[12.5px] font-semibold text-tinta">{etiqueta}</p>
+        {ayuda && <p className="text-[11.5px] leading-snug text-taupe">{ayuda}</p>}
+      </div>
+      <div className="min-w-0">{children}</div>
+    </div>
+  );
+}

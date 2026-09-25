@@ -45,6 +45,7 @@ type FilaResumen = {
   condicion: string | null;
   fecha_vencimiento: string | null;
   ubicaciones_destino?: string[] | null;
+  naturaleza?: string | null;
   subtotal: number | null;
   igv: number | null;
   total: number | null;
@@ -98,6 +99,7 @@ function aResumen(f: FilaResumen): CompraResumen {
     cerradoCantidad: Number(f.cerrado_cantidad ?? 0),
     nota: f.nota,
     creadoEn: f.created_at ?? "",
+    naturaleza: f.naturaleza === "gasto" || f.naturaleza === "activo" ? f.naturaleza : "mercaderia",
   };
 }
 
@@ -125,6 +127,9 @@ export type FiltrosCompras = {
   hasta?: string;
   /** Solo los comprobantes que traen mercadería para esta tienda (ADR-0139, «Destino»). No parte la deuda: el saldo sigue entero. */
   destinoId?: string;
+  /** También los comprobantes de GASTO (ADR-0195 F2). Sin esto, la lista es solo de mercadería (la de Facturas de
+   *  proveedor); Por pagar lo pide porque lo que se debe incluye la luz a crédito. */
+  todasLasNaturalezas?: boolean;
 };
 
 export type Cursor = { fecha: string; creadoEn: string; id: string };
@@ -229,6 +234,7 @@ export async function listarCompras(
       ...(filtros.desde ? { p_desde: filtros.desde } : {}),
       ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
       ...(filtros.destinoId ? { p_ubicacion_id: filtros.destinoId } : {}),
+      ...(filtros.todasLasNaturalezas ? { p_naturaleza: "todas" } : {}),
     });
     // «Destino» (ADR-0139) necesita la migración que le agrega `p_ubicacion_id` a `listar_compras`. Sin ella la base no conoce el
     // parámetro: se dice CLARO en vez de listar todo bajo un filtro que no filtró. Sin ese filtro la lista no depende de la migración.
@@ -249,7 +255,7 @@ export async function listarCompras(
 
 /** Facturas vigentes con saldo — "Por pagar". Ordenadas por vencimiento (vencidas primero, naturalmente). */
 export function listarPorPagar(filtros: FiltrosCompras = {}, cursor: Cursor | null = null): Promise<PaginaCompras> {
-  return listarCompras({ ...filtros, conSaldo: true }, { orden: "vencimiento", cursor });
+  return listarCompras({ ...filtros, conSaldo: true, todasLasNaturalezas: true }, { orden: "vencimiento", cursor });
 }
 
 /**

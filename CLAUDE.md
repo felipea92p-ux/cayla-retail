@@ -97,6 +97,17 @@ proyecto local es su propio Postgres aislado, ajeno a la unificación). El prefi
 `retail.` se agrega SOLO al pegar en el SQL Editor de producción — nunca en el
 archivo del repo, para no romper `npx supabase db reset` local.
 
+**Políticas y deadlocks (aprendido 2026-09-24, ADR-0195):** el SQL Editor corre todo lo pegado en UNA transacción, y en
+Supabase cada `create policy` —y hasta un `drop policy if exists` vacío— toma en exclusiva las 21 tablas de `auth` y
+`storage` hasta el final. **Lo mismo hace `drop trigger` (aunque el disparador no exista; medido el 2026-09-24):**
+usa `create or replace trigger`, nunca `drop trigger` + `create trigger`. `drop function`, `drop index`, `drop view`,
+`create trigger` y `alter` NO los toman. Si la misma transacción ya tiene en exclusiva una tabla que la tienda usa (un
+`alter table ubicaciones`), choca con el Asesor de seguridad del panel: `40P01 deadlock detected`, y no se aplica nada. Regla: una
+migración de producción **no mezcla** `alter` de tablas en uso con políticas. Pártela en PARTES que se pegan por
+separado (cada una con `set lock_timeout = '3s'`, idempotente), con las políticas solas y al final. Si la tabla nueva
+solo se lee por funciones `security definer`, deja RLS encendido sin políticas. Ejemplo:
+`supabase/migrations/20260924210000_configuracion_meta_y_fondo_por_campana.sql`.
+
 ## Convenciones de código (adaptadas a este repo)
 
 - Base de datos: tablas en `snake_case`, español, plural donde aplica (`sedes`,
@@ -137,6 +148,15 @@ acción principal a la derecha) → cifras (`TarjetaCifra`) → filtros y tabla 
 `pildora-cayla`) → nota en hueso (`nota-cayla`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
+
+## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
+
+**Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
+dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
+(pestañas, tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta) y `app/estilos/finanzas.css`
+(clases `fin-*`), los modales con `<Modal variante="hoja">`. No se reinventa una tabla ni un campo con medidas sueltas.
+**Antes de dar una pantalla por terminada, se captura al mismo ancho que el spike y se comparan las dos imágenes**: si no
+se parecen, no está terminada. Lo que se aparta del spike a propósito queda escrito en el ADR.
 
 ## Carga y espera (regla — ADR-0149)
 

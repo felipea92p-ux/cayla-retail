@@ -81,7 +81,8 @@ describe("controles del editor", () => {
   });
 
   it("los módulos se agrupan como en el spike", () => {
-    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión"]);
+    // Finanzas nació el 2026-09-24 con Gastos (ADR-0195 F2): va al final, por su `orden` (250).
+    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
   });
 });
 
@@ -89,9 +90,9 @@ describe("«Así queda su menú»", () => {
   it("Integrante: el menú de hoy de un integrante en una tienda", () => {
     expect(etiquetasDelMenu(menuDelRol(INTEGRANTE))).toEqual([
       { etiqueta: "Inicio", hijas: [] },
-      { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
-      { etiqueta: "Ventas", hijas: ["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa"] },
+      { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Posventa"] }, // Apartados: módulo propio sin rol (ADR-0196)
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
+      { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
     ]);
   });
 

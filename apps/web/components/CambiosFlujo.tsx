@@ -33,6 +33,8 @@ import {
   type VarianteCatalogo,
 } from "@/components/CambioReemplazo";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
+import { conStockAjustado } from "@/lib/vender-stock-local";
+import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import {
   estadoPrendaVendida,
   etiquetaDia,
@@ -86,7 +88,7 @@ export function CambiosFlujo({
   ubicacionId,
   sede,
   cajaAbierta,
-  catalogo,
+  catalogo: catalogoProp,
   ahora,
   onCerrar,
   onNuevo,
@@ -106,6 +108,22 @@ export function CambiosFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `catalogoProp` es
+  // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
+  // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
+  const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  const [catalogoPropPrevio, setCatalogoPropPrevio] = useState(catalogoProp);
+  if (catalogoProp !== catalogoPropPrevio) {
+    setCatalogoPropPrevio(catalogoProp);
+    setAjustesStock(new Map());
+  }
+  const catalogo = useMemo(() => conStockAjustado(catalogoProp, ajustesStock), [catalogoProp, ajustesStock]);
+  useStockEnVivo(
+    ubicacionId,
+    useMemo(() => catalogoProp.map((v) => v.varianteId), [catalogoProp]),
+    cajaAbierta,
+    (releido) => setAjustesStock((prev) => new Map([...prev, ...releido])),
+  );
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;

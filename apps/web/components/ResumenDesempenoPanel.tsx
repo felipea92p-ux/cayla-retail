@@ -10,7 +10,7 @@ import { useResumenUrl } from "@/components/useResumenUrl";
 import { TENDENCIA_MIN_UNIDADES, TENDENCIA_UMBRAL_PCT } from "@/lib/inventario-reglas";
 import { pluralizar } from "@/lib/resumen-formato";
 import { etiquetaRango } from "@/lib/resumen-periodo";
-import { AYUDA_ROTACION, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
+import { AYUDA_ROTACION, ETIQUETA_ROTACION_VALORIZADA, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
 import type { DesempenoParaPantalla } from "@/lib/resumen-desempeno";
 
 // Análisis de inventario › Desempeño (ADR-0138): «¿cómo se comportó mi inventario durante el período
@@ -34,8 +34,8 @@ export function ResumenDesempenoPanel({ datos, otrasTiendas }: { datos: Desempen
         </ItemAyuda>
         <ItemAyuda titulo="Ritmo de venta">Unidades netas vendidas ÷ días con stock en el período (los días agotado no castigan el ritmo).</ItemAyuda>
         <ItemAyuda titulo="Sell-through">Ventas netas ÷ (stock al inicio del período + entradas): qué parte de lo disponible se vendió.</ItemAyuda>
-        <ItemAyuda titulo="Rotación">
-          {AYUDA_ROTACION} {TEXTO_VALORACION_ROTACION} Es la misma de Comparar períodos; una variante a la que le falta el costo de lo vendido o del stock queda en N/D y va al final al ordenar por rotación.
+        <ItemAyuda titulo={ETIQUETA_ROTACION_VALORIZADA}>
+          {AYUDA_ROTACION} {TEXTO_VALORACION_ROTACION} Es la misma de Comparar períodos; una variante a la que le falta el costo de lo vendido o del stock queda en N/D y va al final al ordenar por rotación. Distinta de «Rotación piso»/«Rotación total» de la tabla de abajo: esas son en unidades, sin costo de por medio.
         </ItemAyuda>
         <ItemAyuda titulo="Tendencia">
           El ritmo de la segunda mitad del período contra el de la primera: si cambia {TENDENCIA_UMBRAL_PCT}% o más es Aceleró o Desaceleró; si no, Estable. Con menos de {TENDENCIA_MIN_UNIDADES} unidades vendidas en el período no se afirma nada (N/D).

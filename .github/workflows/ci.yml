@@ -148,6 +148,85 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm caja:verificar
 
+      # Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
+      # meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
+      - name: pruebas:configuracion-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:configuracion-caja
+
+      - name: pruebas:gastos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:gastos
+
+      - name: pruebas:activos-y-fijos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:activos-y-fijos
+
+      # Cuentas y dinero (ADR-0195 F3): cada movimiento, que se anula y no se borra, los saldos sumados, un egreso respalda
+      # una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
+      - name: pruebas:cuentas-dinero
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuentas-dinero
+
+      # Editar y eliminar cuentas (ADR-0195 F3, 2026-09-25): sin uso se corrige todo y se borra de verdad; usada, el tipo
+      # queda y se archiva; el saldo inicial no se toca conciliado ni con su mes cerrado; solo el líder. ROLLBACK.
+      - name: pruebas:editar-cuentas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:editar-cuentas
+
+      # La cuenta sellada (ADR-0195 F3b): cada cobro y pago guarda de qué cuenta salió o a cuál entró; del cajón, con su
+      # salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
+      - name: pruebas:cuenta-sellada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuenta-sellada
+
+      - name: pruebas:por-pagar-consolidado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-consolidado
+
+      # Flujo de caja (ADR-0195 F6): saldo inicial + entró − salió ± ajustes = saldo final, cada cosa en su categoría, lo
+      # «sin cuenta» aparte; la proyección con metas y campañas, vencimientos, fijos y planilla, el mínimo de caja, los días
+      # de caja; solo el líder y nada se guarda. ROLLBACK.
+      - name: pruebas:flujo-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:flujo-caja
+
+      # Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
+      # se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
+      - name: pruebas:impuestos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:impuestos
+
+      # Estado de resultados (ADR-0195 F5): el diario cuadra, cada regla de posteo, unidades y consolidado, planilla de
+      # Dynamic, permisos, campañas y un año de volumen. ROLLBACK.
+      - name: pruebas:estado-resultados
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:estado-resultados
+
+      # Presupuesto (ADR-0195, capa para decidir): guardar y leer con historial, una sola meta (la de las metas del día),
+      # contra lo real del Estado de resultados, la proyección al cierre, proponer sin guardar y permisos. ROLLBACK.
+      - name: pruebas:presupuesto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:presupuesto
+
+      # Cierre de mes (ADR-0195 F9): el diario congelado con su huella, el candado por fecha en cada tabla (registrar,
+      # cambiar y anular), hoy libre, consolidado, reabrir con motivo, chequeos y solo el líder. ROLLBACK.
+      - name: pruebas:cierre-mes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cierre-mes
+
+      # Balance (ADR-0195 F7): saldos de arranque que se corrigen y no se editan, el Balance cuadra con operaciones de cada
+      # tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
+      - name: pruebas:balance
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:balance
+
+      # Resumen de Finanzas (ADR-0195 F10): cada número es el de su fase (F2–F9 y Presupuesto) mirando CAYLA entera, una
+      # tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
+      - name: pruebas:resumen-finanzas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:resumen-finanzas
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio

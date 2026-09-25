@@ -19,7 +19,14 @@ const columnas = (cantidad: string): Columna[] => [
 ];
 
 const sinSuscripcion = () => () => {};
-const plural = (n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
+const modoGuardado = (): "girada" | "derecha" => {
+  try {
+    return localStorage.getItem("cayla.etiquetas.modo") === "derecha" ? "derecha" : "girada";
+  } catch {
+    return "girada";
+  }
+};
+const plural =(n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno : varios}`;
 
 /**
  * Etiquetas de precio (ADR-0180): una fila por prenda con la cantidad editable, la vista previa y el botón que las
@@ -42,6 +49,16 @@ export function ImprimirEtiquetasPrecio({
   // El portal necesita `document`: en el servidor (y al hidratar) no hay hoja; en el navegador, sí. Queda montada siempre,
   // así Ctrl+P también imprime las etiquetas y no la pantalla.
   const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
+  // Cómo se manda la hoja al driver (ver `globals.css`, #etiquetas-precio-print). Se recuerda por computadora: cada una
+  // tiene su driver y gira distinto.
+  const [elegido, setElegido] = useState<"girada" | "derecha" | null>(null);
+  const modo = elegido ?? (montado ? modoGuardado() : "girada");
+  const elegirModo = (m: "girada" | "derecha") => {
+    setElegido(m);
+    try {
+      localStorage.setItem("cayla.etiquetas.modo", m);
+    } catch {}
+  };
 
   const numeros = useMemo(() => Object.fromEntries(Object.entries(cantidades).map(([id, t]) => [id, cantidadDeTexto(t)])), [cantidades]);
   const hoja = useMemo(() => expandir(etiquetas, numeros), [etiquetas, numeros]);
@@ -108,7 +125,7 @@ export function ImprimirEtiquetasPrecio({
           </div>
         ))}
         <p className={TABLA.pie}>
-          Se {total === 1 ? "imprime" : "imprimen"} <b className="font-semibold text-tinta">{plural(total, "etiqueta", "etiquetas")}</b> de 44 × 62 mm, para el cartón de 5 × 8 cm.
+          Se {total === 1 ? "imprime" : "imprimen"} <b className="font-semibold text-tinta">{plural(total, "etiqueta", "etiquetas")}</b> de 40,1 × 62 mm, como la plantilla de la P-touch.
         </p>
       </Tabla>
 
@@ -128,19 +145,28 @@ export function ImprimirEtiquetasPrecio({
         </section>
       )}
 
+      <div className="flex flex-wrap items-center gap-2 text-sm text-taupe">
+        <span>Cómo la manda a la Brother:</span>
+        {(["girada", "derecha"] as const).map((m) => (
+          <button key={m} type="button" className={`pildora-cayla ${modo === m ? "text-tinta font-semibold" : ""}`} aria-pressed={modo === m} onClick={() => elegirModo(m)}>
+            {m === "girada" ? "A · Hoja 62 × 40,1 (girada)" : "B · Hoja 40,1 × 62 (derecha)"}
+          </button>
+        ))}
+      </div>
+
       <p className="nota-cayla">
-        <b>La primera vez en esta computadora:</b> en la ventana de impresión elige la <b>Brother QL-1110NWB</b>, papel <b>62 × 62 mm</b> (si no
-        está, créalo una vez como tamaño personalizado, con márgenes en 0), márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página.
-        Cada etiqueta sale <b>derecha</b> en su propio corte del rollo, con un borde blanco a cada lado: se recorta ese borde y se pega en el
-        cartón, debajo del agujero. La etiqueta dice lo que la caja cobra hoy: con una campaña vigente sale el
+        <b>La primera vez en esta computadora:</b> en la ventana de impresión elige la <b>Brother QL-1110NWB</b>, papel <b>62 mm</b> (el mismo
+        que usa la P-touch: rollo de 62 mm, largo 40,1 mm), márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página. Cada etiqueta
+        sale a lo ancho del rollo, en un corte de 40,1 mm, como la plantilla de la P-touch. Si sale a lo largo, prueba la otra forma (A o B)
+        de arriba. La etiqueta dice lo que la caja cobra hoy: con una campaña vigente sale el
         precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la campaña con «Volver al precio normal».
       </p>
 
       {montado &&
         createPortal(
-          <div id="etiquetas-precio-print" aria-hidden>
+          <div id="etiquetas-precio-print" data-modo={modo} aria-hidden>
             {hoja.map((e, i) => (
-              // Cada etiqueta en su hoja cuadrada del ancho del rollo: `globals.css` (.etq-hoja) la centra, derecha.
+              // Cada etiqueta en su hoja del tamaño del corte: `globals.css` (.etq-hoja) la gira o la deja derecha según el modo.
               <div key={i} className="etq-hoja">
                 <EtiquetaPrecio etiqueta={e} impreso={impreso} />
               </div>
