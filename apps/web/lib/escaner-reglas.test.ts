@@ -28,15 +28,16 @@ describe("escaner-reglas", () => {
     expect(mensajeEscaneo({ estado: "no-encontrada", codigo: "XYZ" }).texto).toBe("No encontramos «XYZ» en esta tienda");
     expect(mensajeEscaneo({ estado: "en_almacen", codigo: "C1", nombre: "Blusa Emma · M", almacen: 2 })).toEqual({
       tono: "ambar",
-      texto: "Blusa Emma · M está en el almacén: pide que la bajen al piso",
+      texto: "Blusa Emma · M no entró: está en el almacén",
     });
   });
 
-  it("la etiqueta corta dice si está en el almacén (con cuántas), en vez de «agotada» o «sin más stock» (D-40)", () => {
+  it("la etiqueta corta de lo que está en el almacén empieza por el NO: no entró al ticket (D-40)", () => {
     expect(estadoCorto({ estado: "agregada", codigo: "C1" })).toBeNull();
     expect(estadoCorto({ estado: "agotada", codigo: "C1" })).toBe("Agotada aquí");
-    expect(estadoCorto({ estado: "en_almacen", codigo: "C1", almacen: 2 })).toBe("2 en el almacén");
-    expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: 3 })).toBe("3 más en el almacén");
+    expect(estadoCorto({ estado: "en_almacen", codigo: "C1", almacen: 2 })).toBe("No entró · en almacén");
+    // Todas las del piso ya están en el ticket y hay más en el almacén: la que se escaneó, para el sistema, está ahí.
+    expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: 3 })).toBe("No entró · en almacén");
     expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: null })).toBe("Sin más stock");
     expect(estadoCorto({ estado: "no-encontrada", codigo: "XYZ" })).toBe("No es de esta tienda");
   });

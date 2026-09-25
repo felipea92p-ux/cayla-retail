@@ -57,7 +57,16 @@ import { EscanerCamara } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
-import { avisoSinPiso, avisoTope, conAlmacenAjustado, conStockAjustado, descontarVendido, motivoNoCobrable } from "@/lib/vender-stock-local";
+import {
+  avisoCortas,
+  avisoQuedaronEnAlmacen,
+  avisoSinPiso,
+  avisoTope,
+  conAlmacenAjustado,
+  conStockAjustado,
+  descontarVendido,
+  motivoNoCobrable,
+} from "@/lib/vender-stock-local";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 
 /**
@@ -670,6 +679,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     return tope ? "tope" : "agregada";
   }
 
+  /** Lo que la cámara no pudo meter al ticket porque, según el sistema, está en el almacén (por prenda, sin repetir).
+   *  La cámara no pinta el aviso largo —le taparía la ✕—: al cerrarla sale UNO solo con qué quedó fuera y qué hacer
+   *  (`cerrarCamara`). Una lectura posterior de la misma prenda que sí entra (la bajaron mientras tanto) la saca. */
+  const quedaronEnAlmacen = useRef<Map<string, string>>(new Map());
+
   /** Una lectura de la cámara: el mismo camino que el Enter del lector (`alTeclado`), sin la lista de resultados —
    *  un QR es un código exacto o no es nada. */
   function alEscanear(codigo: string): ResultadoEscaneo {
@@ -677,7 +691,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!v) return { estado: "no-encontrada", codigo };
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
-    return { estado: agregar(v, { silencioso: true }) ?? "agotada", codigo, nombre, prenda, almacen: v.almacenAqui };
+    const estado = agregar(v, { silencioso: true }) ?? "agotada";
+    if (estado === "en_almacen" || (estado === "tope" && (v.almacenAqui ?? 0) > 0)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
+    else if (estado === "agregada") quedaronEnAlmacen.current.delete(v.varianteId);
+    return { estado, codigo, nombre, prenda, almacen: v.almacenAqui };
+  }
+
+  /** Cierra la cámara y, si algo quedó fuera por estar en el almacén, lo dice una sola vez (ya sin la hoja encima). */
+  function cerrarCamara() {
+    setCamaraAbierta(false);
+    const aviso = avisoQuedaronEnAlmacen([...quedaronEnAlmacen.current.values()], ubicacionEtiqueta);
+    quedaronEnAlmacen.current.clear();
+    if (aviso) avisar.aviso(aviso.titulo, { detalle: aviso.detalle });
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -811,13 +836,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setPagos([]);
     setMomento("armar");
     // Lo que la pantalla sabe del stock (refrescado tras cada venta): si algo ya no alcanza,
-    // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar.
-    const cortas = lineas.filter((it) => {
+    // se avisa por nombre y se deja seguir — la base tiene la última palabra al cobrar. Si lo que
+    // falta está en el almacén de esta sede, el aviso lo dice en vez de «ya no hay» (D-40).
+    const cortas = lineas.flatMap((it) => {
       const v = variantesConOverlay.find((x) => x.varianteId === it.varianteId);
-      return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui;
+      return it.varianteId !== ID_CARGO_ESPECIAL && v !== undefined && it.cantidad > v.stockAqui
+        ? [{ nombre: `${it.referencia} (${codigoPrenda(it)})`, piso: v.stockAqui, almacen: v.almacenAqui }]
+        : [];
     });
     if (cortas.length > 0) {
-      avisar.aviso(`${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)})`).join(", ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}.`);
+      const { titulo, detalle } = avisoCortas(cortas, ubicacionEtiqueta);
+      avisar.aviso(titulo, { detalle });
     }
   }
 
@@ -1053,17 +1082,24 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         // Lo releído viene de la base, sin la cola sin conexión: se le descuenta igual que el overlay.
         return releido?.cobrable.has(id) ? Math.max(0, base - (stockComprometido(cola).get(id) ?? 0)) : base;
       };
+      // Con el almacén RELEÍDO (el estado todavía no se pinta en este mismo instante): si otra caja vendió lo del piso
+      // y en el almacén hay, el aviso lo dice en vez de «ya no tiene stock» — la clienta ya está pagando (D-40).
+      const almacenDe = (id: string) =>
+        releido?.almacen.has(id) ? releido.almacen.get(id) : variantesConOverlay.find((x) => x.varianteId === id)?.almacenAqui;
       const cortas = porStock
-        ? carrito.filter((it) => {
+        ? carrito.flatMap((it) => {
             const q = quedan(it.varianteId);
-            return it.varianteId !== ID_CARGO_ESPECIAL && q !== undefined && it.cantidad > q;
+            return it.varianteId !== ID_CARGO_ESPECIAL && q !== undefined && it.cantidad > q
+              ? [{ nombre: `${it.referencia} (${codigoPrenda(it)})`, piso: q, almacen: almacenDe(it.varianteId) }]
+              : [];
           })
         : [];
-      avisar.error(
-        cortas.length > 0
-          ? `${cortas.map((it) => `${it.referencia} (${codigoPrenda(it)}) — quedan ${quedan(it.varianteId) ?? 0}`).join("; ")} ya no tiene stock suficiente en ${ubicacionEtiqueta}. Ajusta la cantidad o quita la prenda.`
-          : traducirError(error, "registrar la venta")
-      );
+      if (cortas.length > 0) {
+        const { titulo, detalle } = avisoCortas(cortas, ubicacionEtiqueta);
+        avisar.error(titulo, { detalle });
+      } else {
+        avisar.error(traducirError(error, "registrar la venta"));
+      }
       // Si la base rechazó por el responsable (marcó salida entre que se eligió y se cobró), vacía y relee.
       responsable.despues(error);
       return;
@@ -1371,10 +1407,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onCodigo={alEscanear}
           ticket={{ prendas, total }}
           onBuscarPorNombre={() => {
-            setCamaraAbierta(false);
+            cerrarCamara();
             setBuscarPorTexto(true);
           }}
-          onClose={() => setCamaraAbierta(false)}
+          onClose={cerrarCamara}
         />
       )}
 

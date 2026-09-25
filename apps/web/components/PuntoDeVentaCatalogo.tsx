@@ -6,7 +6,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { motivoNoCobrable } from "@/lib/vender-stock-local";
+import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -482,7 +482,7 @@ export function PuntoDeVentaCatalogo({
                               {t.talla}
                             </button>
                           </TooltipTrigger>
-                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · pide que la bajen al piso`}</TooltipContent>
+                          <TooltipContent sideOffset={4}>{`${t.almacenAqui} en el almacén · que la bajen en ${DONDE_SE_BAJA}`}</TooltipContent>
                         </Tooltip>
                       ) : t.stockAqui > 0 ? (
                         <Tooltip key={t.variante.varianteId}>

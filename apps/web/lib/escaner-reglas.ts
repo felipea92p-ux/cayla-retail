@@ -79,10 +79,10 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
     case "agotada":
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está agotada aquí` };
     case "en_almacen":
-      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está en el almacén: pide que la bajen al piso` };
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está en el almacén` };
     case "tope":
       return (r.almacen ?? 0) > 0
-        ? { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} del piso en el ticket; hay ${r.almacen} más en el almacén` }
+        ? { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: las del piso ya están en el ticket y las demás en el almacén` }
         : { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} en el ticket` };
     case "no-encontrada":
       return { tono: "ambar", texto: `No encontramos «${r.codigo}» en esta tienda` };
@@ -90,19 +90,21 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
 }
 
 /** Por qué una lectura NO entró, en dos o tres palabras: la etiqueta ámbar de la fila de la bandeja y de la tarjeta.
- *  Corta a propósito (la fila tiene ~120 px a 375 px de ancho). Cuando hay en el almacén lo dice con el número: la
- *  colaboradora que escanea con el teléfono no ve el aviso largo, y «agotada» o «sin más stock» serían falsos. */
+ *  Corta a propósito (la fila tiene ~120 px a 375 px de ancho). La cámara no pinta el aviso largo, así que la etiqueta
+ *  tiene que leerse como un NO: «2 en el almacén» sonaba a buena noticia y la colaboradora no veía que la prenda no
+ *  entró al ticket. Por eso lo del almacén (piso en 0, o todas las del piso ya en el ticket) empieza por «No entró»; qué
+ *  hacer lo dice un solo aviso al cerrar la cámara (`avisoQuedaronEnAlmacen`). */
 export function estadoCorto(r: ResultadoEscaneo): string | null {
-  const enAlmacen = r.almacen ?? 0;
+  const enAlmacen = (r.almacen ?? 0) > 0;
   switch (r.estado) {
     case "agregada":
       return null;
     case "agotada":
       return "Agotada aquí";
     case "en_almacen":
-      return enAlmacen > 0 ? `${enAlmacen} en el almacén` : "En el almacén";
+      return "No entró · en almacén";
     case "tope":
-      return enAlmacen > 0 ? `${enAlmacen} más en el almacén` : "Sin más stock";
+      return enAlmacen ? "No entró · en almacén" : "Sin más stock";
     case "no-encontrada":
       return "No es de esta tienda";
   }

@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   almacenDeLaSede,
   almacenReleido,
+  avisoCortas,
+  avisoQuedaronEnAlmacen,
   avisoSinPiso,
   avisoTope,
   cantidadCobrable,
@@ -96,10 +98,11 @@ describe("¿agotada o en el almacén? (motivoNoCobrable)", () => {
 describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () => {
   const base = { nombre: "Blusa Paracas · M", sede: "Tienda TRU" };
 
-  it("en el almacén: cuántas hay y que la bajen", () => {
+  it("en el almacén: cuántas hay y DÓNDE se registra la bajada, también si ya la tiene en la mano", () => {
     expect(avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2 })).toEqual({
       titulo: "Blusa Paracas · M está en el almacén",
-      detalle: "En el piso no hay, pero hay 2 en el almacén de Tienda TRU. Pide que la bajen al piso para cobrarla.",
+      detalle:
+        "En el sistema hay 0 en el piso y 2 en el almacén de Tienda TRU. Para cobrarla, que la bajen en Inventario ▸ Existencias ▸ Reponer (aunque ya la tengas en la mano, hay que registrarlo).",
     });
   });
 
@@ -125,13 +128,42 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
   it("tope con más en el almacén: lo dice, con singular y plural", () => {
     expect(avisoTope({ ...base, stockAqui: 1, almacenAqui: 1 })).toEqual({
       titulo: "No hay más de Blusa Paracas · M en el piso",
-      detalle: "La del piso ya está en el ticket. Hay 1 más en el almacén de Tienda TRU: pide que la bajen.",
+      detalle: "La del piso ya está en el ticket. Hay 1 más en el almacén de Tienda TRU: que la bajen en Inventario ▸ Existencias ▸ Reponer.",
     });
     expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 3 }).detalle).toBe(
-      "Las 2 del piso ya están en el ticket. Hay 3 más en el almacén de Tienda TRU: pide que bajen las que necesites.",
+      "Las 2 del piso ya están en el ticket. Hay 3 más en el almacén de Tienda TRU: que bajen las que necesites en Inventario ▸ Existencias ▸ Reponer.",
     );
     expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 3, quedoEn: true }).detalle).toBe(
-      "En el piso quedan 2; la cantidad quedó en 2. Hay 3 más en el almacén de Tienda TRU: pide que bajen las que necesites.",
+      "En el piso quedan 2; la cantidad quedó en 2. Hay 3 más en el almacén de Tienda TRU: que bajen las que necesites en Inventario ▸ Existencias ▸ Reponer.",
     );
+  });
+
+  it("ticket que ya no alcanza: sin almacén, el aviso de siempre con cuántas quedan", () => {
+    expect(avisoCortas([{ nombre: "Blusa Paracas (BLU-M)", piso: 0, almacen: 0 }, { nombre: "Casaca Ximena (CAS-M)", piso: 1, almacen: null }], "Tienda TRU")).toEqual({
+      titulo: "Ya no hay stock suficiente en Tienda TRU",
+      detalle: "Blusa Paracas (BLU-M): quedan 0; Casaca Ximena (CAS-M): quedan 1. Ajusta la cantidad o quita la prenda.",
+    });
+  });
+
+  it("ticket que ya no alcanza con prendas en el almacén: no dice «no hay», dice cuántas y dónde se bajan (D-40)", () => {
+    expect(avisoCortas([{ nombre: "Blusa Paracas (BLU-M)", piso: 0, almacen: 2 }, { nombre: "Casaca Ximena (CAS-M)", piso: 1, almacen: 0 }], "Tienda TRU")).toEqual({
+      titulo: "No alcanza lo del piso de Tienda TRU",
+      detalle:
+        "Blusa Paracas (BLU-M): en el piso quedan 0 y en el almacén hay 2; Casaca Ximena (CAS-M): quedan 1. Lo del almacén se cobra cuando lo bajen en Inventario ▸ Existencias ▸ Reponer; si no, ajusta la cantidad o quita la prenda.",
+    });
+  });
+
+  it("al cerrar la cámara: un solo aviso con lo que quedó fuera por estar en el almacén; sin nada, ninguno", () => {
+    expect(avisoQuedaronEnAlmacen([], "Tienda TRU")).toBeNull();
+    expect(avisoQuedaronEnAlmacen(["Blusa Paracas · M"], "Tienda TRU")).toEqual({
+      titulo: "Blusa Paracas · M no entró al ticket",
+      detalle:
+        "Según el sistema está en el almacén de Tienda TRU. Para cobrarla, que la bajen en Inventario ▸ Existencias ▸ Reponer (aunque ya la tengas en la mano, hay que registrarlo).",
+    });
+    expect(avisoQuedaronEnAlmacen(["Blusa Paracas · M", "Casaca Ximena · S"], "Tienda TRU")).toEqual({
+      titulo: "2 prendas no entraron al ticket",
+      detalle:
+        "Blusa Paracas · M, Casaca Ximena · S. Según el sistema están en el almacén de Tienda TRU. Para cobrarlas, que las bajen en Inventario ▸ Existencias ▸ Reponer (aunque ya las tengas en la mano, hay que registrarlo).",
+    });
   });
 });

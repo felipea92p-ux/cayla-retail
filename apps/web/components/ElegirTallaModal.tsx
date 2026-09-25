@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
-import { motivoNoCobrable } from "@/lib/vender-stock-local";
+import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
 
 type Props = {
   grupo: GrupoCatalogo<VarianteBusqueda>;
@@ -87,12 +87,16 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                         ? `${t.almacenAqui} en el almacén`
                         : tope
                           ? t.almacenAqui > 0
-                            ? "Ya tienes las del piso"
+                            ? t.stockAqui === 1
+                              ? "Ya tienes la del piso"
+                              : "Ya tienes las del piso"
                             : "Ya tienes todas"
                           : `${t.stockAqui} aquí`}
                   </span>
                   {agotada && otras && <span className="mt-0.5 block text-[11px]">{otras}</span>}
-                  {enAlmacen && <span className="mt-0.5 block text-[11px]">Pide que la bajen al piso</span>}
+                  {/* Dónde se REGISTRA el paso al piso: «que la bajen» a secas se leía como traerla, y con la prenda ya
+                      en la mano no alcanza (`DONDE_SE_BAJA`). */}
+                  {enAlmacen && <span className="mt-0.5 block text-[11px]">Que la bajen en {DONDE_SE_BAJA}</span>}
                   {tope && t.almacenAqui > 0 && <span className="mt-0.5 block text-[11px]">{t.almacenAqui} más en el almacén</span>}
                   {t.variante.precio !== grupo.precioMin && <span className="mt-0.5 block text-xs font-semibold">{money(t.variante.precio)}</span>}
                 </button>

@@ -49,13 +49,21 @@ export function motivoNoCobrable({ stockAqui, almacenAqui }: { stockAqui: number
 export type DatosAvisoStock = { nombre: string; sede: string; stockAqui: number; almacenAqui?: number | null };
 export type AvisoStock = { titulo: string; detalle: string };
 
+/** Dónde se REGISTRA que una prenda pasó del almacén al piso: el botón «Reponer» de su fila en Existencias
+ *  (`InventarioPanel`). Los avisos lo nombran porque «que la bajen» a secas se lee como un paso físico: con la prenda
+ *  ya en la mano (la colgaron sin registrar, D-42), la colaboradora iba a traer otra y volvía al mismo aviso. Lo que
+ *  falta es el registro, no la prenda. Mismo sentido que el error de stock de `error-escritura.ts`. */
+export const DONDE_SE_BAJA = "Inventario ▸ Existencias ▸ Reponer";
+
 /** El aviso cuando una prenda no entra al ticket porque en el piso no hay: dice DÓNDE está y QUÉ hacer, en palabras
- *  de una colaboradora que no conoce el sistema. En el Taller (sin almacén) se queda como siempre. */
+ *  de una colaboradora que no conoce el sistema. Sirve igual si la buscó por nombre (la prenda está atrás) o si la
+ *  escaneó (la tiene en la mano): en los dos casos falta registrar el paso al piso. En el Taller (sin almacén) se
+ *  queda como siempre. */
 export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui }: DatosAvisoStock): AvisoStock {
   if (motivoNoCobrable({ stockAqui, almacenAqui }) === "en_almacen") {
     return {
       titulo: `${nombre} está en el almacén`,
-      detalle: `En el piso no hay, pero hay ${almacenAqui} en el almacén de ${sede}. Pide que la bajen al piso para cobrarla.`,
+      detalle: `En el sistema hay 0 en el piso y ${almacenAqui} en el almacén de ${sede}. Para cobrarla, que la bajen en ${DONDE_SE_BAJA} (aunque ya la tengas en la mano, hay que registrarlo).`,
     };
   }
   return {
@@ -75,12 +83,50 @@ export function avisoTope({ nombre, sede, stockAqui, almacenAqui, quedoEn = fals
       : stockAqui === 1
         ? "La del piso ya está en el ticket."
         : `Las ${stockAqui} del piso ya están en el ticket.`;
-    const pedir = enAlmacen === 1 ? "pide que la bajen" : "pide que bajen las que necesites";
-    return { titulo: `No hay más de ${nombre} en el piso`, detalle: `${delPiso} Hay ${enAlmacen} más en el almacén de ${sede}: ${pedir}.` };
+    const pedir = enAlmacen === 1 ? "que la bajen" : "que bajen las que necesites";
+    return {
+      titulo: `No hay más de ${nombre} en el piso`,
+      detalle: `${delPiso} Hay ${enAlmacen} más en el almacén de ${sede}: ${pedir} en ${DONDE_SE_BAJA}.`,
+    };
   }
   return {
     titulo: `No hay más de ${nombre}`,
     detalle: quedoEn ? `En ${sede} quedan ${stockAqui}; la cantidad quedó en ${stockAqui}.` : `En ${sede} quedan ${stockAqui} y ya están todas en el ticket.`,
+  };
+}
+
+/** Una línea del ticket que ya no alcanza: su nombre («Blusa Paracas (BLU-0001-BEI-M)»), lo que queda en el piso y lo
+ *  que hay en el almacén de esta sede. */
+export type LineaCorta = { nombre: string; piso: number; almacen?: number | null };
+
+/** El aviso cuando el ticket pide más de lo que queda en el piso: al retomar un ticket en espera, o cuando la base
+ *  rechaza el cobro porque otra caja vendió lo mismo. Si alguna de esas prendas está en el almacén de esta sede, lo
+ *  dice con el número y qué hacer, en vez de «ya no tiene stock» (D-40): la colaboradora quitaba la prenda y le
+ *  decía «no hay» a la clienta que ya estaba pagando. */
+export function avisoCortas(cortas: LineaCorta[], sede: string): AvisoStock {
+  const hayEnAlmacen = cortas.some((c) => (c.almacen ?? 0) > 0);
+  const lista = cortas
+    .map((c) => ((c.almacen ?? 0) > 0 ? `${c.nombre}: en el piso quedan ${c.piso} y en el almacén hay ${c.almacen}` : `${c.nombre}: quedan ${c.piso}`))
+    .join("; ");
+  return hayEnAlmacen
+    ? { titulo: `No alcanza lo del piso de ${sede}`, detalle: `${lista}. Lo del almacén se cobra cuando lo bajen en ${DONDE_SE_BAJA}; si no, ajusta la cantidad o quita la prenda.` }
+    : { titulo: `Ya no hay stock suficiente en ${sede}`, detalle: `${lista}. Ajusta la cantidad o quita la prenda.` };
+}
+
+/** Lo que la cámara no pudo meter al ticket porque, según el sistema, está en el almacén (piso en 0, o todas las del
+ *  piso ya en el ticket). La cámara no pinta el aviso largo —le taparía la ✕—, así que al cerrarla sale UNO solo con lo
+ *  que quedó fuera y qué hacer. Sin nada, `null`: no se avisa nada. */
+export function avisoQuedaronEnAlmacen(nombres: string[], sede: string): AvisoStock | null {
+  if (nombres.length === 0) return null;
+  if (nombres.length === 1) {
+    return {
+      titulo: `${nombres[0]} no entró al ticket`,
+      detalle: `Según el sistema está en el almacén de ${sede}. Para cobrarla, que la bajen en ${DONDE_SE_BAJA} (aunque ya la tengas en la mano, hay que registrarlo).`,
+    };
+  }
+  return {
+    titulo: `${nombres.length} prendas no entraron al ticket`,
+    detalle: `${nombres.join(", ")}. Según el sistema están en el almacén de ${sede}. Para cobrarlas, que las bajen en ${DONDE_SE_BAJA} (aunque ya las tengas en la mano, hay que registrarlo).`,
   };
 }
 
