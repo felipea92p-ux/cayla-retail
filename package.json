@@ -62,6 +62,8 @@
     "pruebas:dinero-compras": "node scripts/pruebas/dinero_compras_solo_lider.mjs",
     "pruebas:proveedores-cuentas": "node scripts/pruebas/proveedores_cuentas_pago.mjs",
     "pruebas:compras-indicadores": "node scripts/pruebas/compras_indicadores.mjs",
+    "pruebas:compras-faltantes": "node scripts/pruebas/compras_faltantes_y_pago_por_lote.mjs",
+    "pruebas:una-sola-firma": "node scripts/pruebas/una_sola_firma.mjs",
     "pruebas:compras-reparto": "node scripts/pruebas/compras_reparto.mjs",
     "pruebas:compras-por-tienda": "node scripts/pruebas/compras_por_tienda.mjs",
     "pruebas:compras-parte-por-tienda": "node scripts/pruebas/compras_parte_por_tienda.mjs",
