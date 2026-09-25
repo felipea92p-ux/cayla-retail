@@ -43,7 +43,9 @@
 --   PARTE 8  `compra_pagos`, sola
 --   PARTE 9  gastos, activos, reembolsos de proveedores y pagos de Producción (tablas que la tienda no usa en el día)
 --   PARTE 10 las funciones: firmas nuevas (con la vieja quitada), parches por ancla y el libro de saldos
---   Cada una con `lock_timeout = 3s`: si dice «lock timeout», se repite ESA parte. Todas son idempotentes. Sin políticas.
+--   Cada una con `lock_timeout = 3s`: si dice «lock timeout», se repite ESA parte. Todas son idempotentes. Sin políticas
+--   y sin `drop trigger` (los dos toman en exclusiva `auth` y `storage`); ninguna parte las toca (medido en local). Las
+--   columnas con FK toman además, un instante, `cuentas_dinero` y (partes 8 y 9) `caja_movimientos`.
 --   Antes deben estar F2 (20260924235000, 20260924235100, 20260925000000) y F3 (20260925110000, sus tres partes).
 --   En local y en el CI corre entero.
 -- SE ROMPE SI: la web nueva se publica antes (manda `p_cuenta_id` y parámetros que no existirían). La web de hoy NO se

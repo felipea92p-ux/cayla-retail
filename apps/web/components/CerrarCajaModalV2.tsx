@@ -181,8 +181,7 @@ export function CerrarCajaModalV2({
           // uno por uno para que `pnpm datos:comparar` pueda cotejarlos con producción.
           p_traslado_destino: trasladado > 0 ? destino : undefined,
           p_traslado_referencia: trasladado > 0 ? referencia.trim() : undefined,
-          // F3b: a qué banco fue el depósito. Sin bancos cargados no viaja y la base propone el de la tienda.
-          p_traslado_cuenta_id: trasladado > 0 && destino === "banco" && bancoId ? bancoId : undefined,
+          p_traslado_cuenta_id: trasladado > 0 && destino === "banco" && bancoId ? bancoId : undefined, // F3b: a qué banco (sin bancos, la base propone)
         } as never)
         .single(),
       responsable.firma(),
