@@ -47,8 +47,10 @@ facturación) funciona igual que en producción.
 
 ## 2. GitHub — rama por tarea, nunca directo a `main`
 
-Hoy `main` no tiene ninguna protección — cualquiera de las 5 personas puede pushear sin
-que pase ningún check. Los choques que ya pasaron (migraciones `0054` duplicadas,
+`main` tiene un ruleset (`main-protegida`) que impide borrarla y reescribir su historia,
+pero todavía no exige ningún check para fusionar (eso lo activa el punto 4): un PR en rojo
+se fusiona igual. Pasó el 2026-09-25 con el #397 (el detalle está en
+`.github/workflows/ci.yml`). Los choques que ya pasaron (migraciones `0054` duplicadas,
 19-sep; renumeración `0057`→`0059`, 12-sep) tienen la misma causa: nadie vio el trabajo
 del otro antes de que aterrizara en `main`.
 
@@ -64,21 +66,37 @@ del otro antes de que aterrizara en `main`.
    no al final del proyecto, al final de cada paso chico. Esto es lo que reemplaza
    "juntar todo al final": integración seguida, con historial visible, no un merge
    gigante y sorpresivo.
-4. **`main` debería exigir el check `Tipos, lint y pruebas`** (`.github/workflows/ci.yml`)
-   antes de mergear, sin push directo salvo para el admin del repo. Pendiente de que
-   quien tenga permiso admin en GitHub lo active:
+4. **`main` debe exigir los dos checks del CI antes de fusionar:** `Tipos, lint y pruebas`
+   y `Pruebas de RPC contra Postgres` (`.github/workflows/ci.yml`). Lo activa quien tenga
+   permiso de administrador en GitHub, agregándolos al ruleset `main-protegida`
+   (Settings ▸ Rules), o con:
    ```bash
-   gh api -X PUT repos/felipea92p-ux/cayla-retail/branches/main/protection --input - <<'EOF'
+   gh api -X PUT repos/felipea92p-ux/cayla-retail/rulesets/23629061 --input - <<'EOF'
    {
-     "required_status_checks": {"strict": true, "contexts": ["Tipos, lint y pruebas"]},
-     "enforce_admins": false,
-     "required_pull_request_reviews": {"required_approving_review_count": 0, "dismiss_stale_reviews": false, "require_code_owner_reviews": false},
-     "restrictions": null,
-     "allow_force_pushes": false,
-     "allow_deletions": false
+     "name": "main-protegida",
+     "target": "branch",
+     "enforcement": "active",
+     "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+     "rules": [
+       {"type": "deletion"},
+       {"type": "non_fast_forward"},
+       {"type": "required_status_checks", "parameters": {
+         "strict_required_status_checks_policy": false,
+         "do_not_enforce_on_create": false,
+         "required_status_checks": [
+           {"context": "Tipos, lint y pruebas"},
+           {"context": "Pruebas de RPC contra Postgres"}
+         ]
+       }}
+     ]
    }
    EOF
    ```
+   Se activa **después** de fusionar el PR que le quitó al check de Postgres el «(piloto, no
+   bloquea)» del nombre: un PR abierto antes lo sigue reportando con el nombre viejo y queda
+   trabado hasta que trae `main`. `strict` va en `false` a propósito: con `main` moviéndose
+   varias veces por hora, exigir la rama al día obligaría a correr el CI otra vez en cada
+   fusión. Si aparecen choques entre dos PR que pasan cada uno por su lado, se sube a `true`.
 
 ## 3. Migraciones nuevas — con timestamp, no con el próximo número a ojo
 
