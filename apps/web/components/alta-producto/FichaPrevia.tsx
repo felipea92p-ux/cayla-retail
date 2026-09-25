@@ -124,9 +124,9 @@ export function FichaPrevia({
       </aside>
 
       {/* Celular y tablet: barra pegada abajo */}
-      {/* En celular va ENCIMA de la barra de navegación de abajo (4.25 rem, la misma cuenta que `BarraFija`); desde `sm`
-          esa barra no existe y esta baja al fondo. */}
-      <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 border-t border-sand bg-papel px-4 pb-3 pt-2.5 sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:hidden">
+      {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
+          El aire inferior respeta la zona segura del teléfono. */}
+      <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
         {verMovil && (
           <div className="mb-3 max-h-[60vh] space-y-3 overflow-y-auto [animation:cayla-revelar_240ms_var(--ease-cayla)]">
             <Tarjeta d={datos} />

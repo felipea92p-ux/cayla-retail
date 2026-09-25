@@ -1251,13 +1251,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           catálogo real (300-900 SKUs) son muchas pantallas de scroll antes de ver el
           total o llegar a «Cobrar». En escritorio no hace falta: el ticket ya está
           siempre a la vista en su columna fija. Mismo offset que la barra de
-          "Recibir mercadería" (`RecepcionCompraFormV2.tsx`) para despejar la barra de
-          pestañas del celular; en tablet (`sm:`) el lateral reemplaza esa barra. */}
+          "Recibir mercadería" (`BarraFija`): pegado al fondo — desde 2026-09-25 el celular
+          no tiene barra de pestañas abajo (el menú es un cajón lateral). */}
       {!bloqueado && carrito.length > 0 && (
         <button
           type="button"
           onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="anim-revelar fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 py-3 text-crema shadow-lg sm:bottom-0 sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+          className="anim-revelar fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-crema shadow-lg sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
         >
           <span className="label-cayla text-[11px]">
             {prendas} {prendas === 1 ? "prenda" : "prendas"} · {money(total)}
