@@ -50,7 +50,8 @@
 --   `ventas_emite_alegra`.
 --
 -- SOBRE LA BAJADA (almacén → piso). Las consultas 02, 04, 05 y 07 reconocen una bajada por
---   motivo = 'movimiento_interno' y así quedan, tal como corrieron en producción. El motor de
+--   motivo = 'movimiento_interno' con DESTINO el piso de venta (el «Retirar del piso» de la tarea 3
+--   va al revés y no es bajada), tal como corrieron en producción. El motor de
 --   Frescura (retail.fn_ledger_puntos) usa otra condición, estructural: retail.fn_es_traslado_interno,
 --   un traslado cuyo origen y destino son la misma sede
 --   (supabase/migrations/20260924030000_ledger_fuente_unica.sql:78-84). Hoy dan lo mismo: los 23
@@ -297,18 +298,32 @@ group by 1,2;
 
 -- ======================================================================
 -- 05.
--- La ropa que está en el almacén y nunca bajó al piso, y cuántos días lleva esperando. Es la base de «Por colgar» (tarea 4).
--- Origen: VERBATIM de fase 1 (registro-y-relojes #16). Reconoce la bajada por el motivo 'movimiento_interno' (ver SOBRE LA BAJADA).
--- Cuándo: Cada lunes, y para verificar la tarea 4.
--- Hoy: 25-09, 21:53 UTC, TRU, 45 u. en el almacén:
--- Hoy: - nunca bajó: 3 variantes y 8 u. del conteo del 22-09 (3,0 días esperando), más 6 variantes y 12 u. del ajuste de reposición del 25-09 (0,3 días);
--- Hoy: - ya bajó alguna vez: 3 variantes y 13 u. (conteo), 1 variante y 2 u. (ajuste del 25-09) y 2 variantes y 10 u. (recepción del 23-09).
--- Hoy: En total, 20 u. de 9 variantes nunca pisaron el piso (a media tarde eran 66 u. de 22: las 14 bajadas del 25-09 se llevaron el resto).
+-- La ropa guardada en el almacén, por tienda, según lo que HOY hay colgado de esa talla, y cuántos días lleva esperando. Es la base de «Por colgar» (tarea 4).
+-- «Por colgar» es la misma pregunta que la pantalla de la tarea 4: almacén disponible > 0 y piso disponible = 0
+-- en la sede (disponible = cantidad − apartada, la cuenta de sumarCantidades, apps/web/lib/inventario-reglas.ts:262-309).
+-- Se mira el stock de hoy y no la historia: una talla que bajó el martes, se vendió entera y tiene 3 en el almacén
+-- está por colgar aunque «ya bajó alguna vez»; y una que llegó al piso por ajuste directo ya está colgada aunque
+-- «nunca bajó». `de_esas_ya_bajaron_alguna_vez` queda solo como dato.
+-- Origen: AJUSTADA de fase 1 (registro-y-relojes #16), con tres cambios: 1) clasifica por el piso disponible de hoy,
+-- no por si alguna vez hubo bajada; 2) una bajada es un traslado con DESTINO el piso (así, el «Retirar del piso» de
+-- la tarea 3, que va del piso al almacén, no cuenta como bajada); 3) sale por tienda. Reconoce la bajada por el
+-- motivo 'movimiento_interno' (ver SOBRE LA BAJADA).
+-- Cuándo: Cada lunes, y para verificar la tarea 4 (sus conteos tienen que cuadrar con «por colgar: nada colgado»).
+-- Hoy: 25-09, 22:18 UTC, TRU, 45 u. en el almacén, ninguna apartada:
+-- Hoy: - por colgar: 3 variantes y 8 u. del conteo del 22-09 (3,0 días esperando), más 6 variantes y 12 u. del ajuste de reposición del 25-09 (0,3 días);
+-- Hoy: - ya hay colgado: 3 variantes y 13 u. (conteo), 1 variante y 2 u. (ajuste del 25-09) y 2 variantes y 10 u. (recepción del 23-09).
+-- Hoy: En total, 20 u. de 9 variantes por colgar. Hoy coincide con la versión anterior («nunca bajó»): las 9 nunca
+-- Hoy: bajaron y las 6 con algo colgado sí bajaron alguna vez. Dejará de coincidir en cuanto una talla se venda entera en el piso.
 -- ======================================================================
-with alm as (
-  select st.variante_id, st.ubicacion_id, st.cantidad
-  from retail.stock st join retail.sububicaciones s on s.id = st.sububicacion_id and s.tipo = 'almacen_tienda'
-  where st.cantidad > 0
+with stock_sede as (
+  -- Lo que hay HOY por talla y tienda, piso y almacén juntos en una fila.
+  select st.variante_id, st.ubicacion_id,
+         coalesce(sum(st.cantidad) filter (where s.tipo = 'almacen_tienda'), 0) as almacen,
+         coalesce(sum(st.cantidad - st.cantidad_apartada) filter (where s.tipo = 'almacen_tienda'), 0) as almacen_disponible,
+         coalesce(sum(st.cantidad - st.cantidad_apartada) filter (where s.tipo = 'piso_venta'), 0) as piso_disponible
+  from retail.stock st join retail.sububicaciones s on s.id = st.sububicacion_id
+  where s.tipo in ('almacen_tienda', 'piso_venta')
+  group by 1, 2
 ), llegada as (
   select m.variante_id, m.ubicacion_id, min(m.created_at) as llego,
          string_agg(distinct m.tipo || ':' || coalesce(m.motivo,'-'), ', ') as como_llego
@@ -317,17 +332,27 @@ with alm as (
   group by 1,2
 ), bajo as (
   select distinct m.variante_id, m.ubicacion_id
-  from retail.movimientos m where m.tipo = 'traslado' and m.motivo = 'movimiento_interno'
+  from retail.movimientos m
+  join retail.sububicaciones sd on sd.id = m.sububicacion_destino_id and sd.tipo = 'piso_venta'
+  where m.tipo = 'traslado' and m.motivo = 'movimiento_interno'
 )
-select case when b.variante_id is null then 'nunca bajó' else 'ya bajó alguna vez' end as estado,
+select u.nombre as sede,
+       case when a.almacen_disponible > 0 and a.piso_disponible <= 0 then 'por colgar: nada colgado'
+            when a.piso_disponible > 0 then 'ya hay colgado'
+            else 'lo del almacén está apartado' end as estado,
        l.como_llego,
-       count(*) as variantes, sum(a.cantidad) as unidades_en_almacen,
+       count(*) as variantes,
+       sum(a.almacen) as unidades_en_almacen,
+       sum(a.almacen_disponible) as disponibles_en_almacen,
+       count(b.variante_id) as de_esas_ya_bajaron_alguna_vez,
        min(l.llego) as llegada_mas_antigua, max(l.llego) as llegada_mas_reciente,
        round(max(extract(epoch from now() - l.llego)/86400)::numeric, 1) as dias_max_esperando
-from alm a
+from stock_sede a
+join retail.ubicaciones u on u.id = a.ubicacion_id
 left join llegada l using (variante_id, ubicacion_id)
 left join bajo b using (variante_id, ubicacion_id)
-group by 1,2 order by 1,2;
+where a.almacen > 0
+group by 1, 2, 3 order by 1, 2, 3;
 
 -- ======================================================================
 -- 06.
