@@ -36,7 +36,14 @@ import {
 // Costo unitario de las variantes de prueba. `periodo()` deriva el costo de lo vendido y de lo devuelto de él
 // (lo que haría `registrar_venta`), salvo que el caso lo fije a mano para que el costo de ese día ≠ el de hoy.
 const COSTO = 40;
-const periodo = (o: Partial<DatosPeriodo> = {}): DatosPeriodo => ({ ventas: 0, devoluciones: 0, importe: 0, costoVentas: COSTO * (o.ventas ?? 0), costoDevoluciones: COSTO * (o.devoluciones ?? 0), unidadesSinCosto: 0, entradas: 0, stockInicio: 0, stockCierre: 0, diasConStock: 30, ...o });
+// pisoPromedio/totalPromedio por defecto = el promedio de dos puntos de este `o` (no un 0 plano): así el
+// camino nuevo (temporal) da el mismo número que el viejo (extremos) en los tests que no lo pisan a propósito.
+const periodo = (o: Partial<DatosPeriodo> = {}): DatosPeriodo => {
+  const stockInicio = o.stockInicio ?? 0;
+  const stockCierre = o.stockCierre ?? 0;
+  const promedioExtremos = (stockInicio + stockCierre) / 2;
+  return { ventas: 0, devoluciones: 0, importe: 0, costoVentas: COSTO * (o.ventas ?? 0), costoDevoluciones: COSTO * (o.devoluciones ?? 0), unidadesSinCosto: 0, entradas: 0, stockInicio, stockCierre, diasConStock: 30, pisoPromedio: promedioExtremos, totalPromedio: promedioExtremos, ...o };
+};
 /** Lo que de la fila necesita `metricasDePeriodo`: historial fiable y un costo verificable. */
 const F = { ledgerConsistente: true, costo: COSTO, estadoCosto: "oficial" as const };
 
@@ -61,6 +68,10 @@ function fila(o: { id?: string; referencia?: string; categoriaId?: string; costo
     ledgerConsistente: o.ledger ?? true,
     a: periodo(o.a),
     b: periodo(o.b),
+    ultimaVentaEn: null,
+    pisoExpuestoDesdeUltimaVentaDias: null,
+    pisoEventos: [],
+    stockActualPisoAlmacen: null,
   };
 }
 
@@ -149,6 +160,41 @@ describe("metricasDePeriodo", () => {
         if (v !== null) expect(Number.isFinite(v)).toBe(true);
       }
     }
+  });
+});
+
+// Rotación EN UNIDADES (sección 14 del pedido de Felipe, 2026-09-24): `rotacionPisoUnidades`/
+// `rotacionTotalUnidades` son una métrica DISTINTA de `rotacion` (arriba, contable, en soles) — deben
+// convivir sin mezclarse. Casos M, N, O del pedido.
+describe("metricasDePeriodo — rotación EN UNIDADES (casos M, N, O)", () => {
+  it("caso M — dimensionalmente pura: nunca mezcla moneda con unidades, ni siquiera cuando el costo diverge del histórico de la venta", () => {
+    // costoVentas (histórico, en la venta) es 100/unidad; costo VIGENTE de la variante es 40. Si
+    // `rotacionPisoUnidades` estuviera calculando en soles por accidente, este costo distinto lo delataría.
+    const m = metricasDePeriodo(periodo({ ventas: 10, costoVentas: 10 * 100, pisoPromedio: 5, totalPromedio: 25 }), 30, { ledgerConsistente: true, costo: 40, estadoCosto: "oficial" });
+    expect(m.rotacionPisoUnidades).toEqual({ calculable: true, veces: 2, motivo: null, unidadesVendidas: 10, unidadesPromedio: 5 }); // 10 ÷ 5, nunca soles
+    expect(m.rotacionTotalUnidades).toEqual({ calculable: true, veces: 0.4, motivo: null, unidadesVendidas: 10, unidadesPromedio: 25 }); // 10 ÷ 25
+  });
+
+  it("caso N — la rotación CONTABLE (soles) sigue viva y separada: no se destruye ni se mezcla con la nueva", () => {
+    // Costo histórico de la venta (100/u) distinto del costo VIGENTE (40/u): si las dos rotaciones fueran
+    // en realidad la misma fórmula, este desfase las haría coincidir por casualidad — con costo constante
+    // (como en la mayoría de los demás tests) no se nota la diferencia, por eso acá se fuerza a propósito.
+    const m = metricasDePeriodo(periodo({ ventas: 18, costoVentas: 18 * 100, stockInicio: 14, stockCierre: 9, pisoPromedio: 5, totalPromedio: 11.5 }), 30, F);
+    expect(m.rotacion).toBeCloseTo(1800 / 460, 5); // COGS histórico (1800) ÷ inventario a costo VIGENTE (460)
+    expect(m.rotacionTotalUnidades.calculable && m.rotacionTotalUnidades.veces).toBeCloseTo(18 / 11.5, 5); // unidades ÷ unidades, ningún costo de por medio
+    expect(m.rotacion).not.toBeCloseTo(m.rotacionTotalUnidades.calculable ? m.rotacionTotalUnidades.veces : -1, 1); // son métricas distintas, no coinciden
+  });
+
+  it("caso O — sin promedio de piso (nunca tuvo piso), Rotación TOTAL sigue siendo calculable: el N/D de piso no se propaga", () => {
+    const m = metricasDePeriodo(periodo({ ventas: 6, pisoPromedio: 0, totalPromedio: 12 }), 30, F);
+    expect(m.rotacionPisoUnidades).toMatchObject({ calculable: false, motivo: "sin_inventario" });
+    expect(m.rotacionTotalUnidades).toMatchObject({ calculable: true, veces: 0.5 });
+  });
+
+  it("sin ledger consistente, las dos rotaciones en unidades son N/D (mismo criterio que la contable)", () => {
+    const m = metricasDePeriodo(periodo({ ventas: 6, pisoPromedio: 3, totalPromedio: 12 }), 30, { ...F, ledgerConsistente: false });
+    expect(m.rotacionPisoUnidades).toMatchObject({ calculable: false, motivo: "sin_inventario" });
+    expect(m.rotacionTotalUnidades).toMatchObject({ calculable: false, motivo: "sin_inventario" });
   });
 });
 
@@ -461,5 +507,27 @@ describe("armarComparacion", () => {
     expect(f.b.diasConStock).toBe(14.509);
     expect(f.estadoCosto).toBeNull();
     expect(f.ledgerConsistente).toBe(true);
+    // Sin stock_piso_hoy/stock_almacen_hoy en la fila (un fn_resumen_comparacion viejo, sin estas
+    // columnas): el par entero es null — nunca inventa un split que la fila no trajo.
+    expect(f.stockActualPisoAlmacen).toBeNull();
+  });
+
+  describe("stock actual P/A (2026-09-24) — piso y almacén viajan juntos, nunca uno sin el otro", () => {
+    it("A: piso 5, almacén 60", () => {
+      expect(mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", stock_piso_hoy: 5, stock_almacen_hoy: 60 }).stockActualPisoAlmacen).toEqual({ piso: 5, almacen: 60 });
+    });
+    it("B: piso 0 (un cero real, no ausencia de dato), almacén 35", () => {
+      expect(mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", stock_piso_hoy: 0, stock_almacen_hoy: 35 }).stockActualPisoAlmacen).toEqual({ piso: 0, almacen: 35 });
+    });
+    it("C: 0/0 — se sabe con certeza que no hay stock en ninguna parte", () => {
+      expect(mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", stock_piso_hoy: 0, stock_almacen_hoy: 0 }).stockActualPisoAlmacen).toEqual({ piso: 0, almacen: 0 });
+    });
+    it("D: la sede no separa piso/almacén (las dos columnas vienen null desde la RPC) → el par entero es null, nunca se inventa", () => {
+      expect(mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", stock_piso_hoy: null, stock_almacen_hoy: null }).stockActualPisoAlmacen).toBeNull();
+    });
+    it("defensivo: si solo UNA de las dos llegara (no debería pasar, la RPC las da juntas), el par entero es null — nunca 'el piso sí, el almacén no'", () => {
+      expect(mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", stock_piso_hoy: 5, stock_almacen_hoy: null }).stockActualPisoAlmacen).toBeNull();
+      expect(mapearFilaComparacion({ variante_id: "v", producto_id: "p", referencia: "X", stock_piso_hoy: null, stock_almacen_hoy: 60 }).stockActualPisoAlmacen).toBeNull();
+    });
   });
 });
