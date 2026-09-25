@@ -1,5 +1,5 @@
-import { fechaCorta, parsearMonto, type Resultado } from "@/lib/gastos-reglas";
-import { diaYHoraLima, diasEntreFechas } from "@/lib/fechas-lima";
+import { fechaCorta, parsearMonto, type Resultado } from "./gastos-reglas";
+import { diaYHoraLima, diasEntreFechas } from "./fechas-lima";
 
 // Finanzas ▸ Cuentas y dinero (ADR-0195 F3, 20260925110000): lógica pura, sin servidor ni navegador. La leen las páginas
 // (servidor) y los paneles (cliente). Los saldos NO se calculan aquí: los suma la base (`fn_cuentas_dinero_saldos`); aquí
@@ -293,6 +293,11 @@ export function leerConciliacion(data: unknown): Conciliacion | null {
 
 const corto = (nombre: string) => nombre.replace(/^Tienda\s+/i, "");
 
+/** «BCP · Cta. corriente» → «BCP» en las tablas angostas (como el spike): el tipo de cuenta ya lo dice la columna. */
+export function nombreCorto(nombre: string): string {
+  return nombre.replace(/\s+·\s+(cta\.?|cuenta)\s.*$/i, "");
+}
+
 /** Qué cuentas se dibujan como tarjeta. Las de CAYLA entera (bancos, POS, tarjeta, lo que tiene el líder) se ven igual en
  *  cualquier «Ver»; el cajón y la caja fuerte, solo los de la sede que se mira. Las archivadas y las «solo destino» no. */
 export function cuentasVisibles(cuentas: readonly CuentaDinero[], ubicacionId: string | null): CuentaDinero[] {
@@ -307,17 +312,20 @@ export function agruparCuentas(cuentas: readonly CuentaDinero[]) {
 /** «Yape de TRU y AQP · transferencias»: qué cobros entran hoy a una cuenta, dicho en palabras (sale de `medios_de_cobro`). */
 export function textoRecibe(cuenta: Pick<CuentaDinero, "id">, medios: readonly FilaMedio[]): string | null {
   const tiendas = [...new Set(medios.map((m) => m.ubicacionId))];
-  const partes: string[] = [];
+  // Como en el spike: lo que llega de todas las tiendas va primero («Plin de las 3 tiendas · Yape de LIM») y las
+  // transferencias al final («Yape de TRU y AQP · transferencias»).
+  const partes: { texto: string; orden: number }[] = [];
   for (const medio of MEDIOS_COBRO) {
     const aqui = medios.filter((m) => m.medio === medio && m.cuentaId === cuenta.id);
     if (!aqui.length) continue;
-    const todas = aqui.length === tiendas.length;
-    if (medio === "transferencia") partes.push(todas ? "transferencias" : `transferencias de ${listaY(aqui.map((m) => corto(m.ubicacionNombre)))}`);
-    else if (medio === "tarjeta") partes.push(todas && tiendas.length > 1 ? `tarjeta de las ${tiendas.length} tiendas` : `tarjeta de ${listaY(aqui.map((m) => corto(m.ubicacionNombre)))}`);
-    else partes.push(todas && tiendas.length > 1 ? `${TEXTO_MEDIO_COBRO[medio]} de las ${tiendas.length} tiendas` : `${TEXTO_MEDIO_COBRO[medio]} de ${listaY(aqui.map((m) => corto(m.ubicacionNombre)))}`);
+    const todas = aqui.length === tiendas.length && tiendas.length > 1;
+    const de = listaY(aqui.map((m) => corto(m.ubicacionNombre)));
+    const nombre = medio === "tarjeta" ? "tarjeta" : TEXTO_MEDIO_COBRO[medio];
+    if (medio === "transferencia") partes.push({ texto: todas || tiendas.length === 1 ? "transferencias" : `transferencias de ${de}`, orden: 2 });
+    else partes.push({ texto: todas ? `${nombre} de las ${tiendas.length} tiendas` : `${nombre} de ${de}`, orden: todas ? 0 : 1 });
   }
   if (!partes.length) return null;
-  const t = partes.join(" · ");
+  const t = [...partes].sort((a, b) => a.orden - b.orden).map((p) => p.texto).join(" · ");
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 

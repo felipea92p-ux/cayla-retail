@@ -32,6 +32,7 @@ import {
   horaLima,
   insigniaCuenta,
   leerEgresoParaMovimiento,
+  nombreCorto,
   opcionQuePaso,
   otrosDelCajon,
   resumenConciliacion,
@@ -115,7 +116,9 @@ export function PantallaDinero({
           acciones={
             <>
               {deCaylaEntera ? (
-                <Chip tono="neutro">CAYLA entera</Chip>
+                <Chip tono="neutro" versalitas={false}>
+                  CAYLA entera
+                </Chip>
               ) : esLider ? (
                 <label className="fin-ver">
                   <span className="label-cayla text-[11px] text-taupe">Ver</span>
@@ -249,7 +252,7 @@ export function CuentasPanel({
               </>
             }
           >
-            <div className="flex flex-wrap gap-2">
+            <div className="flex shrink-0 gap-2">
               <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => abrir("dueno_pone")}>
                 Poner plata
               </button>
@@ -263,7 +266,7 @@ export function CuentasPanel({
               <span className="fin-etq block">CAYLA te debe</span>
               <div className="fin-cuenta-saldo">{solesRedondo(dueno.deuda)}</div>
             </div>
-            <ul className="fin-lista-mov min-w-0 flex-1">
+            <ul className="fin-lista-mov min-w-0 flex-1 border-t border-sand">
               {dueno.prestamos.length === 0 ? (
                 <li>
                   <span className="text-taupe">Sin préstamos del dueño.</span>
@@ -314,10 +317,14 @@ export function CuentasPanel({
                     <td data-l="Tienda">
                       <b>{f.ubicacionNombre}</b>
                     </td>
-                    <td data-l="Efectivo">{cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón"}</td>
+                    <td data-l="Efectivo">
+                      <span className="fin-metodo" data-m="efectivo" />
+                      {(cuentas.find((c) => c.tipo === "cajon" && c.ubicacionId === f.ubicacionId)?.nombre ?? "Su cajón").replace("Cajón · ", "Cajón ")}
+                    </td>
                     {MEDIOS_COBRO.map((m) => (
                       <td key={m} data-l={TEXTO_MEDIO_COBRO[m]} className={f.porMedio[m] ? undefined : "fin-tenue"}>
-                        {f.porMedio[m] ?? "Sin cuenta"}
+                        <span className="fin-metodo" data-m={m} />
+                        {f.porMedio[m] ? nombreCorto(f.porMedio[m]) : "Sin cuenta"}
                       </td>
                     ))}
                   </tr>
@@ -370,19 +377,23 @@ export function CuentasPanel({
                       }
                     }}
                   >
-                    <td data-l="Fecha">{fechaCorta(m.fecha)}</td>
+                    <td data-l="Fecha" className="whitespace-nowrap">
+                      {fechaCorta(m.fecha)}
+                    </td>
                     <td className="fin-ancha" data-l="Qué">
                       <b>{TEXTO_MOVIMIENTO[m.tipo]}</b>
                       <span className="fin-sub">
                         {[m.referencia, m.comision > 0 ? `comisión ${soles(m.comision)} → gasto 639` : null, m.estado === "anulado" ? `anulado: ${m.motivoAnulacion}` : null].filter(Boolean).join(" · ") || " "}
                       </span>
                     </td>
-                    <td data-l="De">{m.origenNombre ?? <span className="fin-tenue">El dueño</span>}</td>
-                    <td data-l="A">{m.destinoNombre ?? <span className="fin-tenue">Sale del negocio</span>}</td>
+                    <td data-l="De">{m.origenNombre ? nombreCorto(m.origenNombre) : <span className="fin-tenue">El dueño</span>}</td>
+                    <td data-l="A">{m.destinoNombre ? nombreCorto(m.destinoNombre) : <span className="fin-tenue">Sale del negocio</span>}</td>
                     <td className="fin-num" data-l="Monto">
                       {soles(m.monto)}
                     </td>
-                    <td data-l="Responsable">{m.registradoPor ?? "—"}</td>
+                    <td data-l="Responsable" className="whitespace-nowrap">
+                      {m.registradoPor ?? "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -617,7 +628,7 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
               </Chip>
               {r.porRevisar.length > 0 && (
                 <button type="button" className="btn-cayla btn-primario btn-chico" disabled={guardando} onClick={() => marcar(r.porRevisar.map((l) => ({ clave: l.clave, monto: l.monto })), true)}>
-                  Marcar las {r.porRevisar.length} como revisadas
+                  {r.porRevisar.length === 1 ? "Marcar la que falta como revisada" : `Marcar las ${r.porRevisar.length} como revisadas`}
                 </button>
               )}
             </div>
@@ -639,7 +650,9 @@ export function ConciliacionPanel({ cuentas, actual, hoy }: { cuentas: Conciliac
               <tbody>
                 {actual.lineas.map((l) => (
                   <tr key={l.clave} className={l.revisado ? "fin-hecha" : undefined}>
-                    <td data-l="Fecha">{fechaCorta(l.fecha)}</td>
+                    <td data-l="Fecha" className="whitespace-nowrap">
+                      {fechaCorta(l.fecha)}
+                    </td>
                     <td className="fin-ancha" data-l="Movimiento">
                       <b>{l.detalle}</b>
                       {l.montoRevisado !== null && <span className="fin-sub fin-cambio">Cambió desde que se revisó (era {soles(l.montoRevisado)}): revísala otra vez.</span>}

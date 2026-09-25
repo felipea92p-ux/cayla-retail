@@ -9,14 +9,17 @@ import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
 import { ConfiguracionEmpresa } from "@/components/ConfiguracionEmpresa";
 import { ConfiguracionCajaAvisos } from "@/components/ConfiguracionCajaAvisos";
 import { TablaGastosFijos } from "@/components/GastosFijosYActivos";
+import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas";
+import { getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
 
 // Configuración (ADR-0195, módulo «configuracion», solo líder): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae las que ya existen —Empresa (solo lectura), Tiendas y caja (F1), Caja y avisos y Gastos fijos (F2b)—; las siguientes
-// fases de Finanzas suman las suyas (Cuentas y cobros, Presupuesto, Impuestos) aquí mismo, sin pestañas vacías.
+// trae las que ya existen —Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos y Gastos fijos
+// (F2b)—; las siguientes fases de Finanzas suman las suyas (Presupuesto, Impuestos) aquí mismo, sin pestañas vacías.
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
+  { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas" },
   { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
 ] as const;
@@ -36,6 +39,8 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       <PestanasFin etiqueta="Secciones de Configuración" valor={pestana} items={[...PESTANAS]} />
       {pestana === "empresa" ? (
         <ConfiguracionEmpresa datos={await getDatosEmpresa()} />
+      ) : pestana === "cuentas" ? (
+        <SeccionCuentas />
       ) : pestana === "caja" ? (
         <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />
       ) : pestana === "fijos" ? (
@@ -49,6 +54,23 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
 
 async function SeccionTiendas() {
   return <ConfiguracionTiendas datos={await getConfiguracionTiendas()} />;
+}
+
+// Cuentas y cobros (ADR-0195 F3): las cuentas con su saldo de hoy (sumado por la base) y a qué cuenta entra cada cobro.
+async function SeccionCuentas() {
+  const [cuentas, medios] = await Promise.all([getSaldos(null), getMediosDeCobro()]);
+  return (
+    <>
+      {[cuentas.falla, medios.falla]
+        .filter((f): f is string => !!f)
+        .map((f) => (
+          <p key={f} className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">
+            {f}
+          </p>
+        ))}
+      <ConfiguracionCuentas cuentas={cuentas.datos} medios={medios.datos} hoy={hoyLima()} />
+    </>
+  );
 }
 
 async function SeccionFijos() {

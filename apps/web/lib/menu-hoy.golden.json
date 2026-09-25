@@ -185,7 +185,15 @@
             ],
             "insignia": 3
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -253,7 +261,15 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -485,7 +501,15 @@
             ],
             "insignia": 3
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -562,7 +586,15 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -765,7 +797,15 @@
             ],
             "insignia": 3
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -833,7 +873,15 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },

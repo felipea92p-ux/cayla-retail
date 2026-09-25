@@ -701,9 +701,32 @@
   .fin-cambio {
     color: var(--color-ambar-profundo);
   }
-  /* «A qué cuenta entra cada cobro»: una casilla por medio. */
+  /* «A qué cuenta entra cada cobro»: una casilla por medio, con el punto del color de cada medio (tokens de Caja). */
   .fin-tabla-medios {
     min-width: 720px;
+  }
+  .fin-metodo {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: 1px;
+  }
+  .fin-metodo[data-m="efectivo"] {
+    background: var(--color-metodo-efectivo);
+  }
+  .fin-metodo[data-m="yape"] {
+    background: var(--color-metodo-yape);
+  }
+  .fin-metodo[data-m="plin"] {
+    background: var(--color-metodo-plin);
+  }
+  .fin-metodo[data-m="tarjeta"] {
+    background: var(--color-metodo-tarjeta);
+  }
+  .fin-metodo[data-m="transferencia"] {
+    background: var(--color-metodo-transferencia);
   }
   .fin-tabla-medios select.fin-control {
     min-width: 150px;
