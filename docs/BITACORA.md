@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (El menú lateral, «mostrador primero»)
+Felipe veía el lateral (Inicio, Catálogo, Compras, Ventas, Inventario, Finanzas) como si estuviera en orden alfabético. No lo estaba: salía en el orden que se fijó el 16-sep. Eligió «mostrador primero»: Inicio, Ventas, Inventario, Catálogo, Compras/Producción, Finanzas. Solo se reordenó el árbol de `lib/menu.ts`; la foto `menu-hoy.golden.json` y dos pruebas cambiaron a propósito y con su aprobación. Se verificó con el AppShell real pintado en el navegador.
+El orden nuevo es el mismo que ya usaban los grupos de Roles y accesos (`MODULOS` en `modulos.ts`). Así el líder encuentra cada módulo en el mismo puesto en las dos pantallas. En el Taller, Producción ocupa el puesto de Compras, porque nunca salen juntas.
+Felipe se lleva: (1) **el orden de un menú es una decisión, no un accidente**: vive escrito en un solo lugar (`ARBOL`) con su porqué; (2) **dos pantallas que listan lo mismo lo listan igual**, o el líder tiene que aprender dos mapas; (3) **la foto del menú existe para que un cambio de orden no pase sin que nadie lo decida**.
+
 ## 2026-09-25 (Finanzas F3–F10 en paralelo — ADR-0195, PR #396)
 Con F2 en producción, Felipe pidió implementar todo lo que faltaba, en paralelo si hacía falta. Se armó una base común (los 4 módulos, el menú, las cabeceras compartidas) y 10 agentes construyeron en sus copias Cuentas y dinero, la cuenta sellada, Por pagar, el diario y los resultados, el flujo, el balance, los impuestos, el cierre, el presupuesto y el resumen; el orquestador integró cada una, revisó sus capturas contra el spike y corrió todo junto (89 mil pruebas web y 12 suites de la base). Al integrar se midió que `drop trigger` bloquea `auth` y `storage` igual que `drop policy`: F3 lo usaba seis veces y se corrigió antes de pegar.
 El CI (base limpia) encontró dos cosas que la base local compartida escondía: F3b llamaba a la función de caja con motivos que producción rechaza («Pago a proveedor», «Reembolso de proveedor»: ahora pasan solo cuando los pide el sistema) y una prueba de F5 suponía una prenda sin historia de costo. El ADR del diario derivado, que en el PR #170 era 0109, pasó a ser 0198 (el 0109 ya era «Crear producto»).

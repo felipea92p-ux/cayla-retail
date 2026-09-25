@@ -9,16 +9,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -50,6 +40,16 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
             ],
             "insignia": 3
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
           }
         ],
         "movil": [
@@ -63,16 +63,6 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -103,6 +93,16 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
         ],
@@ -130,28 +130,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "compras",
-            "etiqueta": "Compras",
-            "icono": "compras",
-            "hijos": [
-              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
-              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
-              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -186,6 +164,28 @@
             "insignia": 3
           },
           {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
+            ]
+          },
+          {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
             "icono": "gastos",
@@ -210,28 +210,6 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "compras",
-            "etiqueta": "Compras",
-            "icono": "compras",
-            "hijos": [
-              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
-              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
-              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -263,6 +241,28 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
             ]
           },
           {
@@ -304,26 +304,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -355,19 +335,7 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
             ],
             "insignia": 3
-          }
-        ],
-        "movil": [
-          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-          { "hueco": "nuevo" },
-          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
-          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
-        ]
-      },
-      "sinTraslados": {
-        "escritorio": [
-          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          },
           {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
@@ -387,7 +355,19 @@
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
               { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
             ]
-          },
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -418,6 +398,26 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
             ]
           }
         ],
@@ -445,37 +445,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              {
-                "grupo": "produccion.abastecimiento",
-                "etiqueta": "Abastecimiento",
-                "icono": "compras",
-                "hijos": [
-                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
-                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
-                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
-                ]
-              }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -510,31 +479,6 @@
             "insignia": 3
           },
           {
-            "grupo": "finanzas",
-            "etiqueta": "Finanzas",
-            "icono": "gastos",
-            "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
-              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
-              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
-              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
-              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
-            ]
-          }
-        ],
-        "movil": [
-          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
-          { "hueco": "nuevo" },
-          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
-          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
-        ]
-      },
-      "sinTraslados": {
-        "escritorio": [
-          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          {
             "grupo": "catalogo",
             "etiqueta": "Catálogo",
             "icono": "catalogo",
@@ -566,6 +510,31 @@
             ]
           },
           {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -596,6 +565,37 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
             ]
           },
           {
@@ -637,16 +637,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -678,6 +668,16 @@
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
             ],
             "insignia": 3
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
           }
         ],
         "movil": [
@@ -691,16 +691,6 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -731,6 +721,16 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
           }
         ],
@@ -758,28 +758,6 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "compras",
-            "etiqueta": "Compras",
-            "icono": "compras",
-            "hijos": [
-              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
-              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
-              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
-          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -814,6 +792,28 @@
             "insignia": 3
           },
           {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
+            ]
+          },
+          {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
             "icono": "gastos",
@@ -838,28 +838,6 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
-          {
-            "grupo": "catalogo",
-            "etiqueta": "Catálogo",
-            "icono": "catalogo",
-            "hijos": [
-              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
-              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
-              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "compras",
-            "etiqueta": "Compras",
-            "icono": "compras",
-            "hijos": [
-              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
-              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
-              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
-              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
-              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
-            ]
-          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -891,6 +869,28 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
             ]
           },
           {

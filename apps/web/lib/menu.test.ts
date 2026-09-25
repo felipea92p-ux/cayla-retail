@@ -610,8 +610,8 @@ describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
 describe("el menú de una terminal con el rol «Terminal administrativa»", () => {
   const { riel, nuevo } = menuPara(perfilTerminal("administrativa"));
 
-  it("ve Inicio, Catálogo, Compras (solo Proveedores, P3) e Inventario; en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
-    expect(etiquetasDe(riel)).toEqual(["Inicio", "Catálogo", "Compras", "Inventario"]);
+  it("ve Inicio, Inventario, Catálogo y Compras (solo Proveedores, P3); en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
+    expect(etiquetasDe(riel)).toEqual(["Inicio", "Inventario", "Catálogo", "Compras"]);
     expect(hijasDe(riel, "Inventario")).toEqual(["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"]);
     expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Atributos"]);
   });
