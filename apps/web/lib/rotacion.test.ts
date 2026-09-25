@@ -327,7 +327,15 @@ describe("comparar A vs B: universo común", () => {
 
 describe("una sola fórmula: el helper y sus consumidores dicen lo mismo", () => {
   const COSTO = 40;
-  const datos = (o: Partial<DatosPeriodo>): DatosPeriodo => ({ ventas: 0, devoluciones: 0, importe: 0, costoVentas: 0, costoDevoluciones: 0, unidadesSinCosto: 0, entradas: 0, stockInicio: 0, stockCierre: 0, diasConStock: 15, ...o });
+  // pisoPromedio/totalPromedio por defecto = el promedio de dos puntos de ESTE `o`: así el camino nuevo
+  // (temporal) da el mismo número que el viejo (extremos) salvo que un caso lo pise a propósito — este
+  // describe prueba que hay UNA fórmula, no que el promedio sea siempre el de dos puntos.
+  const datos = (o: Partial<DatosPeriodo>): DatosPeriodo => {
+    const stockInicio = o.stockInicio ?? 0;
+    const stockCierre = o.stockCierre ?? 0;
+    const promedioExtremos = (stockInicio + stockCierre) / 2;
+    return { ventas: 0, devoluciones: 0, importe: 0, costoVentas: 0, costoDevoluciones: 0, unidadesSinCosto: 0, entradas: 0, stockInicio, stockCierre, diasConStock: 15, pisoPromedio: promedioExtremos, totalPromedio: promedioExtremos, ...o };
+  };
   const fila = (id: string, a: Partial<DatosPeriodo>, b: Partial<DatosPeriodo>, extra: Partial<FilaComparacion> = {}): FilaComparacion => ({
     varianteId: id,
     productoId: "p1",
@@ -348,13 +356,21 @@ describe("una sola fórmula: el helper y sus consumidores dicen lo mismo", () =>
     ledgerConsistente: true,
     a: datos(a),
     b: datos(b),
+    ultimaVentaEn: null,
+    pisoExpuestoDesdeUltimaVentaDias: null,
+    pisoEventos: [],
+    stockActualPisoAlmacen: null,
     ...extra,
   });
   const f1 = fila("v1", { ventas: 6, costoVentas: 6 * 30, stockInicio: 10, stockCierre: 12 }, { ventas: 9, costoVentas: 9 * 30, stockInicio: 12, stockCierre: 8 });
   const f2 = fila("v2", { ventas: 2, costoVentas: 2 * 30, stockInicio: 30, stockCierre: 30 }, { ventas: 1, costoVentas: 1 * 30, stockInicio: 30, stockCierre: 29 });
   const comparar = (filas: FilaComparacion[]) => filas.map((f) => analizarVarianteComparacion(f, 30, 30));
 
-  const helper = (d: DatosPeriodo, f: FilaComparacion) => calcularRotacion(baseRotacionDeVariante({ ...d, costo: f.costo, estadoCosto: f.estadoCosto, ledgerConsistente: f.ledgerConsistente })).veces;
+  const helper = (d: DatosPeriodo, f: FilaComparacion) => {
+    const base = baseRotacionDeVariante({ ...d, costo: f.costo, estadoCosto: f.estadoCosto, ledgerConsistente: f.ledgerConsistente });
+    base.inventarioPromedioTemporal = f.ledgerConsistente ? valorInventario(d.totalPromedio, f.costo, f.estadoCosto) : undefined;
+    return calcularRotacion(base).veces;
+  };
 
   it("Comparar períodos: la rotación de A y de B de cada fila es la del helper", () => {
     const x = analizarVarianteComparacion(f1, 30, 30);
@@ -364,8 +380,11 @@ describe("una sola fórmula: el helper y sus consumidores dicen lo mismo", () =>
   });
 
   it("Desempeño: la rotación del período entero es la del helper sobre las dos mitades juntas", () => {
-    const m = dividirPeriodo({ desde: "2026-09-01", hasta: "2026-09-30" });
-    const entero: DatosPeriodo = datos({ ventas: 15, costoVentas: 15 * 30, stockInicio: 10, stockCierre: 8, diasConStock: 30 });
+    const m = dividirPeriodo({ desde: "2026-09-01", hasta: "2026-09-30" }); // 15 + 15 días
+    // totalPromedio del período entero (2026-09-24) NO es el de dos puntos de stockInicio/stockCierre:
+    // es el promedio ponderado de las dos mitades — f1.a promedia 11 (10+12÷2), f1.b promedia 10 (12+8÷2),
+    // recombinadas por sus 15+15 días: (11×15 + 10×15) ÷ 30 = 10.5.
+    const entero: DatosPeriodo = datos({ ventas: 15, costoVentas: 15 * 30, stockInicio: 10, stockCierre: 8, diasConStock: 30, totalPromedio: 10.5 });
     expect(analizarDesempeno(f1, m).periodo.rotacion).toBe(helper(entero, f1));
   });
 
@@ -501,7 +520,9 @@ describe("punto de sustitución: promedio temporal (diario)", () => {
   });
 
   it("el texto de ayuda del método vive en `rotacion.ts` (la fórmula y cómo se estima el promedio)", () => {
-    expect(AYUDA_ROTACION).toBe("COGS del período ÷ inventario promedio a costo. El inventario promedio se estima con los valores de inicio y cierre del período.");
+    // Texto exacto pedido por Felipe (2026-09-24, sección 3): "Costo de ventas ÷ inventario promedio
+    // valorizado a costo" — para que "Rotación valorizada" no se confunda con "COGS", su nombre técnico.
+    expect(AYUDA_ROTACION).toBe("Costo de ventas ÷ inventario promedio valorizado a costo. El inventario promedio se estima con los valores de inicio y cierre del período.");
   });
 });
 

@@ -7,7 +7,7 @@ import { BarrasHorizontalesComparadas, ColumnasComparadas, DonaDistribucion, typ
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import { ayudaRotacionComparada, formatoRotacion, formatoSellThrough, formatoSolesCompacto, pluralizar, textoUniversoRotacion, textoUniversoSellThrough } from "@/lib/resumen-formato";
 import type { ComparacionParaPantalla, DireccionRitmo } from "@/lib/resumen-comparacion";
-import { TEXTO_FORMULA_ROTACION } from "@/lib/rotacion";
+import { ETIQUETA_ROTACION_VALORIZADA, TEXTO_FORMULA_ROTACION } from "@/lib/rotacion";
 
 // La parte de arriba de la comparación: primero A → B (en `ResumenControles`, arriba), después qué cambió
 // globalmente (las cuatro cifras) y después cómo se distribuyó ese cambio (evolución del ritmo, top rotación y
@@ -40,7 +40,7 @@ export function ResumenComparacionGeneral({ datos, actualizar }: { datos: Compar
     return capital.verificado ? `${flechaCapital} ${formatoSolesCompacto(Math.abs(deltaCapital))}` : `${flechaCapital} ${pluralizar(Math.abs(deltaCapital), "unidad", "unidades")}`;
   })();
 
-  const segmentos: SegmentoDistribucion[] = DIRECCIONES.map((x) => ({ clave: x.d, valor: evolucion[x.d], color: x.color }));
+  const segmentos: SegmentoDistribucion[] = DIRECCIONES.map((x) => ({ clave: x.d, valor: evolucion[x.d], color: x.color, etiqueta: x.texto }));
   const hayDistribucionSellThrough = distribucion.rangos.some((r) => r.a + r.b > 0);
   const sinDatoSellThrough = distribucion.sinDato.a + distribucion.sinDato.b;
 
@@ -58,7 +58,7 @@ export function ResumenComparacionGeneral({ datos, actualizar }: { datos: Compar
         />
         <TarjetaCifraAnalisis
           i={1}
-          titulo="Rotación"
+          titulo={ETIQUETA_ROTACION_VALORIZADA}
           antes={kpis.rotacion.a === null ? "N/D" : formatoRotacion(kpis.rotacion.a)}
           cifra={kpis.rotacion.b === null ? "N/D" : formatoRotacion(kpis.rotacion.b)}
           delta={flechaPct(kpis.rotacion.deltaPct)}

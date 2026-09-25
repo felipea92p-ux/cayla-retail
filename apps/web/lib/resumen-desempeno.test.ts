@@ -25,7 +25,14 @@ import { calcularVelocidad } from "./resumen-reglas";
 // medir salga null («N/D»), nunca NaN/Infinity ni un número inventado.
 
 const COSTO = 40;
-const periodo = (o: Partial<DatosPeriodo> = {}): DatosPeriodo => ({ ventas: 0, devoluciones: 0, importe: 0, costoVentas: COSTO * (o.ventas ?? 0), costoDevoluciones: COSTO * (o.devoluciones ?? 0), unidadesSinCosto: 0, entradas: 0, stockInicio: 0, stockCierre: 0, diasConStock: 15, ...o });
+// pisoPromedio/totalPromedio por defecto = el promedio de dos puntos de este `o` (no un 0 plano): así el
+// camino nuevo (temporal) da el mismo número que el viejo (extremos) en los tests que no lo pisan a propósito.
+const periodo = (o: Partial<DatosPeriodo> = {}): DatosPeriodo => {
+  const stockInicio = o.stockInicio ?? 0;
+  const stockCierre = o.stockCierre ?? 0;
+  const promedioExtremos = (stockInicio + stockCierre) / 2;
+  return { ventas: 0, devoluciones: 0, importe: 0, costoVentas: COSTO * (o.ventas ?? 0), costoDevoluciones: COSTO * (o.devoluciones ?? 0), unidadesSinCosto: 0, entradas: 0, stockInicio, stockCierre, diasConStock: 15, pisoPromedio: promedioExtremos, totalPromedio: promedioExtremos, ...o };
+};
 
 function fila(o: { id?: string; referencia?: string; categoriaId?: string; ledger?: boolean; a?: Partial<DatosPeriodo>; b?: Partial<DatosPeriodo> } = {}): FilaComparacion {
   return {
@@ -48,6 +55,10 @@ function fila(o: { id?: string; referencia?: string; categoriaId?: string; ledge
     ledgerConsistente: o.ledger ?? true,
     a: periodo(o.a),
     b: periodo(o.b),
+    ultimaVentaEn: null,
+    pisoExpuestoDesdeUltimaVentaDias: null,
+    pisoEventos: [],
+    stockActualPisoAlmacen: null,
   };
 }
 
@@ -97,7 +108,7 @@ describe("periodoCompleto", () => {
       a: { ventas: 5, devoluciones: 1, entradas: 10, stockInicio: 8, stockCierre: 12, diasConStock: 14.5 },
       b: { ventas: 7, devoluciones: 2, entradas: 4, stockInicio: 12, stockCierre: 3, diasConStock: 10 },
     });
-    expect(periodoCompleto(f, true)).toMatchObject({ ventas: 12, devoluciones: 3, entradas: 14, stockInicio: 8, stockCierre: 3, diasConStock: 24.5 });
+    expect(periodoCompleto(f, { dividido: true, diasPrimera: 15, diasSegunda: 15 })).toMatchObject({ ventas: 12, devoluciones: 3, entradas: 14, stockInicio: 8, stockCierre: 3, diasConStock: 24.5 });
   });
 
   it("las devoluciones se restan sobre el TOTAL del período, no mitad por mitad", () => {
@@ -125,11 +136,11 @@ describe("periodoCompleto", () => {
 
   it("sin poder partir el período se usa uno solo (contar los dos duplicaría todo)", () => {
     const f = fila({ a: { ventas: 4 }, b: { ventas: 4 } });
-    expect(periodoCompleto(f, false).ventas).toBe(4);
+    expect(periodoCompleto(f, { dividido: false, diasPrimera: 0, diasSegunda: 0 }).ventas).toBe(4);
   });
 
   it("si a una mitad le falta el dato de días con stock, el total tampoco lo inventa", () => {
-    expect(periodoCompleto(fila({ a: { diasConStock: null }, b: { diasConStock: 10 } }), true).diasConStock).toBeNull();
+    expect(periodoCompleto(fila({ a: { diasConStock: null }, b: { diasConStock: 10 } }), { dividido: true, diasPrimera: 15, diasSegunda: 15 }).diasConStock).toBeNull();
   });
 });
 
@@ -154,10 +165,13 @@ describe("analizarDesempeno: las fórmulas son las canónicas", () => {
 
   it("rotación = la MISMA de Comparar períodos (`metricasDePeriodo`) sobre el período entero", () => {
     const a = analizarDesempeno(f, M30);
-    const directa = metricasDePeriodo(periodoCompleto(f, true), 30, f);
+    const directa = metricasDePeriodo(periodoCompleto(f, { dividido: true, diasPrimera: 15, diasSegunda: 15 }), 30, f);
     expect(a.periodo.rotacion).toBe(directa.rotacion);
-    // (stock al inicio + al cierre) ÷ 2 = (20 + 15) ÷ 2 = 17.5 → 15 ÷ 17.5
-    expect(a.periodo.rotacion).toBeCloseTo(15 / 17.5, 5);
+    // Promedio ponderado por tiempo (2026-09-24), no el de dos puntos: `periodo()` deriva pisoPromedio/
+    // totalPromedio de cada mitad como (inicio+cierre)÷2 — 22 en A, 19.5 en B — y `periodoCompleto` las
+    // recombina por sus 15+15 días: (22×15 + 19.5×15) ÷ 30 = 20.75 → 15 ÷ 20.75 (el costo se cancela: COGS
+    // e inventario son ambos ×40).
+    expect(a.periodo.rotacion).toBeCloseTo(15 / 20.75, 5);
   });
 
   it("ritmo = 0 cuando hay evidencia de que no se vendió; null cuando no hay base para decirlo", () => {
@@ -332,6 +346,89 @@ describe("armarDesempeno", () => {
     };
     revisar(armar());
     revisar(armar({}, [fila({ id: "vacia" }), fila({ id: "solo-ventas", a: { ventas: 3 } })]));
+  });
+});
+
+describe("comportamiento comercial: piso vs. almacén (2026-09-24)", () => {
+  it("muestraLimitada: exposición en piso corta frente al período (< la mitad, RITMO_MUESTRA_LIMITADA_FRACCION)", () => {
+    const corta = analizar({ a: { diasConStock: 2, stockInicio: 5, stockCierre: 5 }, b: { diasConStock: 2, stockInicio: 5, stockCierre: 5 } }); // 4 de 30 días
+    expect(corta.diasConStockPiso).toBe(4);
+    expect(corta.muestraLimitada).toBe(true);
+    const larga = analizar({ a: { diasConStock: 15, stockInicio: 5, stockCierre: 5 }, b: { diasConStock: 15, stockInicio: 5, stockCierre: 5 } });
+    expect(larga.muestraLimitada).toBe(false);
+  });
+
+  it("sobrestockTotal: responde bien en el piso pero la rotación total cae muy por debajo (duerme en almacén)", () => {
+    const a = analizar({
+      a: { ventas: 10, pisoPromedio: 2, totalPromedio: 20, stockInicio: 5, stockCierre: 5 },
+      b: { ventas: 10, pisoPromedio: 2, totalPromedio: 20, stockInicio: 5, stockCierre: 5 },
+    });
+    expect(a.periodo.rotacionPisoUnidades).toEqual({ calculable: true, veces: 10, motivo: null, unidadesVendidas: 20, unidadesPromedio: 2 });
+    expect(a.periodo.rotacionTotalUnidades).toEqual({ calculable: true, veces: 1, motivo: null, unidadesVendidas: 20, unidadesPromedio: 20 });
+    expect(a.sobrestockTotal).toBe(true); // 1 << 10 × 0.5
+  });
+
+  it("sellThroughExposicion sale de fila.pisoEventos (cohortes FIFO), no de stockInicio/entradas crudos", () => {
+    const f = fila({ a: { stockInicio: 5, stockCierre: 5 }, b: { stockInicio: 5, stockCierre: 5 } });
+    f.pisoEventos = [
+      { ts: "2026-08-01T00:00:00Z", delta: 10, esVenta: false, esMovimientoInterno: false },
+      { ts: "2026-08-02T00:00:00Z", delta: -6, esVenta: true, esMovimientoInterno: false },
+    ];
+    expect(analizarDesempeno(f, M30).sellThroughExposicion).toEqual({ pct: 60, vendidoMaduro: 6, disponibleMaduro: 10, pendienteMadurez: 0, estimado: false });
+  });
+
+  it("Caso H — sin exposición en piso en una mitad, la tendencia es N/D: cero ventas por exposición cero nunca se lee como «Aceleró»", () => {
+    // La 1.ª mitad no tuvo NADA de piso (diasConStock: 0): no es que vendiera poco, es que no tuvo oportunidad
+    // de vender — muy distinto de «vendió cero con exposición completa» (ese caso ya lo cubre el describe de
+    // arriba, con diasConStock por defecto). Ambos deben dar N/D, nunca una tendencia.
+    const t = analizar({ a: { ventas: 0, diasConStock: 0, stockInicio: 5, stockCierre: 5 }, b: { ventas: 8, diasConStock: 15, stockInicio: 5, stockCierre: 5 } }).tendencia;
+    expect(t).toBeNull();
+  });
+});
+
+describe("calidad: el contrato uniforme de las 7 métricas se resuelve en el dominio (sección 2, 2026-09-24)", () => {
+  it("todo exacto: cada métrica con base suficiente reporta 'exacto', calculado UNA vez por analizarDesempeno", () => {
+    const f = fila({
+      a: { ventas: 10, entradas: 0, stockInicio: 20, stockCierre: 15, pisoPromedio: 10, totalPromedio: 15, diasConStock: 15 },
+      b: { ventas: 12, entradas: 0, stockInicio: 15, stockCierre: 8, pisoPromedio: 10, totalPromedio: 15, diasConStock: 15 },
+    });
+    f.pisoExpuestoDesdeUltimaVentaDias = 0; // vendió hoy: un cero real, no falta de dato
+    f.pisoEventos = [
+      { ts: "2026-08-01T00:00:00Z", delta: 20, esVenta: false, esMovimientoInterno: false },
+      { ts: "2026-08-02T00:00:00Z", delta: -10, esVenta: true, esMovimientoInterno: false },
+    ]; // cohorte de 20, maduró hace tiempo, vendió 10: sell-through de exposición real
+    const a = analizarDesempeno(f, M30);
+    expect(a.calidad).toEqual({
+      exposicion: { estado: "exacto" },
+      ritmo: { estado: "exacto" },
+      sellThrough: { estado: "exacto" },
+      rotacionPiso: { estado: "exacto" },
+      rotacionTotal: { estado: "exacto" },
+      sinVenta: { estado: "exacto" },
+      tendencia: { estado: "exacto" },
+    });
+  });
+
+  it("mezcla real: cada métrica declara SU PROPIO estado — no una calidad global inventada para toda la fila", () => {
+    // Misma fila que «muestraLimitada» de arriba (4 de 30 días con stock, cero ventas). La exposición
+    // en sí SIGUE siendo exacta (2026-09-24, sección 6: "muestra limitada" es una advertencia aparte,
+    // no una técnica distinta de cálculo — nunca 'estimado' solo por completar la taxonomía); ritmo,
+    // sell-through, sin-venta y tendencia sí caen en N/D, cada uno por SU PROPIO motivo — tres motivos
+    // distintos en la misma fila.
+    const f = fila({ a: { ventas: 0, diasConStock: 2, stockInicio: 5, stockCierre: 5 }, b: { ventas: 0, diasConStock: 2, stockInicio: 5, stockCierre: 5 } });
+    const a = analizarDesempeno(f, M30);
+    expect(a.calidad.exposicion).toEqual({ estado: "exacto" });
+    expect(a.calidad.ritmo).toEqual({ estado: "no_disponible", motivo: "EXPOSICION_INSUFICIENTE" });
+    expect(a.calidad.sellThrough).toEqual({ estado: "no_disponible", motivo: "EXPOSICION_INSUFICIENTE" });
+    expect(a.calidad.sinVenta).toEqual({ estado: "no_disponible", motivo: "HISTORIAL_INCOMPLETO" });
+    expect(a.calidad.tendencia).toEqual({ estado: "no_disponible", motivo: "SIN_BASE_COMPARABLE" });
+  });
+
+  it("historial que no cuadra: rotación piso/total declara HISTORIAL_INCOMPLETO — nunca SIN_INVENTARIO (la causa real es otra)", () => {
+    const f = fila({ ledger: false, a: { ventas: 5, stockInicio: 10, stockCierre: 5 }, b: { ventas: 3, stockInicio: 5, stockCierre: 2 } });
+    const a = analizarDesempeno(f, M30);
+    expect(a.calidad.rotacionPiso).toEqual({ estado: "no_disponible", motivo: "HISTORIAL_INCOMPLETO" });
+    expect(a.calidad.rotacionTotal).toEqual({ estado: "no_disponible", motivo: "HISTORIAL_INCOMPLETO" });
   });
 });
 

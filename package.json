@@ -36,6 +36,7 @@
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",
     "pruebas:fn-resumen-comparacion": "node scripts/pruebas/fn_resumen_comparacion.mjs",
+    "pruebas:fn-ledger-fuente-unica": "node scripts/pruebas/fn_ledger_fuente_unica.mjs",
     "pruebas:productos-alertas-de-stock": "node scripts/pruebas/productos_alertas_de_stock.mjs",
     "pruebas:fn-resumen-variantes": "node scripts/pruebas/fn_resumen_variantes.mjs",
     "pruebas:deriva-produccion": "node scripts/pruebas/deriva_produccion.mjs",
