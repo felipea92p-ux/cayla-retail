@@ -1,5 +1,6 @@
 -- ============================================================================
--- 20260925210000_admin_se_reasigna_su_propio_rol.sql — CAYLA V2 · ADR-0178, actualización (Felipe, 2026-09-25)
+-- 20260925211500_admin_se_reasigna_su_propio_rol.sql — CAYLA V2 · ADR-0178, actualización (Felipe, 2026-09-25)
+-- (Renumerada de 20260925210000: chocaba con 20260925210000_fotos_de_perfil_desde_dynamic, otra sesión, mismo timestamp.)
 --
 -- EL PROBLEMA PRIMERO. `asignar_rol` bloquea a CUALQUIERA que intente cambiarse su propio rol, sin excepción — ni
 -- siquiera un Admin puede reasignarse a sí mismo desde «Roles y accesos»; el mensaje dice «pídeselo a otro líder». Es

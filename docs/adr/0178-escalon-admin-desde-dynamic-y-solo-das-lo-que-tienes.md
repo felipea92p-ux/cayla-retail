@@ -96,7 +96,8 @@ sí mismo. Se consideraron y descartaron: quitar el candado para todos (reabre e
 líder cualquiera bajándose o subiéndose sin testigo) y dejarlo como estaba (el flujo «pídeselo a otro Admin» ya
 funcionaba, pero es la misma fricción sin beneficio que motivó pedir el cambio).
 
-- **Base** (`20260925210000_admin_se_reasigna_su_propio_rol.sql`): en `asignar_rol`, el candado pasa de
+- **Base** (`20260925211500_admin_se_reasigna_su_propio_rol.sql` — renumerada: `20260925210000` chocaba con
+  `fotos_de_perfil_desde_dynamic`, otra sesión con el mismo timestamp): en `asignar_rol`, el candado pasa de
   `if p_persona_id = v_yo then` a `if p_persona_id = v_yo and not fn_es_admin() then`. Nada más cambia: si el Admin se
   autodegrada de Líder, el resto de la función sigue exigiendo que quede otro líder activo y otro admin activo.
   Verificado contra la definición viva de producción (mismo patrón de `20260923174500`); pegada en producción el
