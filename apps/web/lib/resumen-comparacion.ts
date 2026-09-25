@@ -3,7 +3,8 @@ import { calcularSellThrough, calcularTendencia, calcularVelocidad, listarCatego
 import type { CamposBusqueda } from "./resumen-busqueda";
 import { aplicarAlcance, FILAS_POR_PAGINA, leerFiltros, paginar, type AlcanceResumen } from "./resumen-filtros";
 import { formatoRotacion, formatoSellThrough, formatoVariacion, formatoVelocidad, pluralizar } from "./resumen-formato";
-import { baseRotacionDeVariante, calcularRotacion, costoEsVerificable, rotacionComparada, variacionRotacionPct, type BaseRotacion, type MotivoSinRotacion, type RotacionComparada } from "./rotacion";
+import { baseRotacionDeVariante, calcularRotacion, costoEsVerificable, rotacionComparada, valorInventario, variacionRotacionPct, type BaseRotacion, type MotivoSinRotacion, type RotacionComparada } from "./rotacion";
+import { leerEventosPiso, rotacionUnidades, type EventoPiso, type RotacionUnidades } from "./inventario-exposicion";
 import { diasDelRango, etiquetaRango, resolverComparacion, type ModoComparacion, type PeriodoResuelto, type Rango } from "./resumen-periodo";
 import { rangosDelResumen, type ParametrosResumen } from "./resumen-armado";
 
@@ -42,7 +43,18 @@ export type DatosPeriodo = {
   stockInicio: number;
   stockCierre: number;
   diasConStock: number | null;
+  /** Comportamiento comercial vs. gestión de inventario (2026-09-24): promedio ponderado por TIEMPO
+   *  (no dos puntos) de las unidades en piso, y de piso + almacén. En UNIDADES, dos usos distintos y
+   *  deliberadamente separados: `metricasDePeriodo` las pasa DIRECTO a `rotacionUnidades` (piso/total, la
+   *  tabla de comportamiento — nunca en soles, sección 14 del pedido), y SOLO `totalPromedio` también se
+   *  valora al costo de la variante para `BaseRotacion.inventarioPromedioTemporal` (la rotación CONTABLE
+   *  de siempre, KPI/ranking — `rotacion.ts`, sin tocar). `pisoPromedio` ya no se valora a costo para nada:
+   *  la vieja «Rotación piso» en soles se retiró (`inventario-exposicion.ts`, `rotacionUnidades`). */
+  pisoPromedio: number;
+  totalPromedio: number;
 };
+
+export type { EventoPiso } from "./inventario-exposicion";
 
 export type FilaComparacion = CamposBusqueda & {
   varianteId: string;
@@ -58,7 +70,24 @@ export type FilaComparacion = CamposBusqueda & {
   ledgerConsistente: boolean;
   a: DatosPeriodo;
   b: DatosPeriodo;
+  /** Última venta detectada en la ventana reconstruida por el RPC (no acotada a A o B); null = ninguna
+   *  en el historial disponible. Con `pisoExpuestoDesdeUltimaVentaDias`, la base de «Sin venta». */
+  ultimaVentaEn: string | null;
+  /** Días (con decimales) con stock en PISO desde `ultimaVentaEn` (o desde el inicio del historial
+   *  disponible, si nunca vendió ahí) hasta ahora. NO son días de calendario. */
+  pisoExpuestoDesdeUltimaVentaDias: number | null;
+  /** Los eventos de piso de toda la ventana reconstruida (no por A/B): la cohorte más vieja es el saldo
+   *  con que arrancó la ventana. Para el sell-through de exposición (`resumen-exposicion.ts`). */
+  pisoEventos: EventoPiso[];
+  /** Stock actual (HOY), piso/almacén — contexto para leer Rotación piso/total y sobrestock, NUNCA un
+   *  reemplazo de Existencias (2026-09-24). `null` cuando la sede no separa piso/almacén: no hay un
+   *  split real que reportar, nunca se disfraza de 0. Piso y almacén viajan juntos a propósito (nunca
+   *  uno presente y el otro no): son la misma pregunta, "¿conocemos el split hoy?". */
+  stockActualPisoAlmacen: StockActualPisoAlmacen;
 };
+
+/** `null` = la sede no separa piso/almacén: no se conoce el split con rigor, no se inventa un 0. */
+export type StockActualPisoAlmacen = { piso: number; almacen: number } | null;
 
 type Num = number | string | null | undefined;
 
@@ -100,6 +129,15 @@ export type FilaCrudaComparacion = {
   b_stock_inicio?: Num;
   b_stock_cierre?: Num;
   b_dias_con_stock?: Num;
+  a_piso_promedio?: Num;
+  b_piso_promedio?: Num;
+  a_total_promedio?: Num;
+  b_total_promedio?: Num;
+  ultima_venta_en?: string | null;
+  piso_expuesto_desde_ultima_venta_dias?: Num;
+  piso_eventos?: unknown;
+  stock_piso_hoy?: Num;
+  stock_almacen_hoy?: Num;
 };
 
 /** Lo que faltó es 0 (no hay unidades); PostgREST devuelve numeric como número o texto. */
@@ -139,6 +177,8 @@ export function mapearFilaComparacion(f: FilaCrudaComparacion): FilaComparacion 
       stockInicio: n(f.a_stock_inicio),
       stockCierre: n(f.a_stock_cierre),
       diasConStock: nn(f.a_dias_con_stock),
+      pisoPromedio: n(f.a_piso_promedio),
+      totalPromedio: n(f.a_total_promedio),
     },
     b: {
       ventas: n(f.b_ventas),
@@ -151,8 +191,22 @@ export function mapearFilaComparacion(f: FilaCrudaComparacion): FilaComparacion 
       stockInicio: n(f.b_stock_inicio),
       stockCierre: n(f.b_stock_cierre),
       diasConStock: nn(f.b_dias_con_stock),
+      pisoPromedio: n(f.b_piso_promedio),
+      totalPromedio: n(f.b_total_promedio),
     },
+    ultimaVentaEn: f.ultima_venta_en ?? null,
+    pisoExpuestoDesdeUltimaVentaDias: nn(f.piso_expuesto_desde_ultima_venta_dias),
+    pisoEventos: leerEventosPiso(f.piso_eventos),
+    stockActualPisoAlmacen: stockActualPisoAlmacen(f.stock_piso_hoy, f.stock_almacen_hoy),
   };
+}
+
+/** Piso y almacén viajan juntos: si cualquiera de los dos no vino (sede sin separación, o un `fn_resumen_comparacion`
+ *  todavía sin estas columnas), el par entero es `null` — nunca "el piso sí, el almacén no". */
+function stockActualPisoAlmacen(piso: Num, almacen: Num): StockActualPisoAlmacen {
+  const p = nn(piso);
+  const a = nn(almacen);
+  return p === null || a === null ? null : { piso: p, almacen: a };
 }
 
 // ---------------------------------------------------------------------------
@@ -180,12 +234,25 @@ export type MetricasPeriodo = {
   entradas: number;
   /** % (0–100) de lo disponible que se vendió; null si no hay base o el historial no cuadra. */
   sellThrough: number | null;
-  /** Rotación de inventario (COGS ÷ inventario promedio a costo), en veces; null = N/D. */
+  /** Rotación TOTAL (piso + almacén): COGS ÷ inventario promedio a costo, en veces; null = N/D. Desde
+   *  2026-09-24 el promedio es ponderado por TIEMPO cuando el ledger cuadra (antes, dos puntos) — misma
+   *  fórmula de siempre, mejor promedio: ver `rotacion.ts`, `BaseRotacion.inventarioPromedioTemporal`. */
   rotacion: number | null;
   /** Por qué la rotación es N/D (null si se calculó). */
   motivoSinRotacion: MotivoSinRotacion | null;
   /** Los insumos de esa rotación (COGS e inventario a costo), para sumarlos sobre un mismo universo. */
   baseRotacion: BaseRotacion;
+  /** Rotación en PISO, EN UNIDADES (sección 14/15 del pedido, 2026-09-24): «¿cuánto movimiento generan las
+   *  unidades que normalmente mantengo expuestas?» — unidades vendidas ÷ unidades promedio de piso, NUNCA
+   *  moneda/unidades (deliberadamente otra métrica que `rotacion`/`baseRotacion`, de arriba: esa sigue en
+   *  soles para el KPI/ranking, sin tocar — ver `inventario-exposicion.ts`). `calculable: false` con
+   *  `motivo: "sin_inventario"` es la lectura correcta de una variante que nunca tuvo piso: no es un
+   *  error, es que no tiene ESE inventario. */
+  rotacionPisoUnidades: RotacionUnidades;
+  /** Rotación TOTAL, EN UNIDADES (sección 16): la misma columna que `rotacion` pero sin costo — unidades
+   *  vendidas ÷ unidades promedio de piso+almacén. Es la que muestra la tabla de comportamiento; `rotacion`
+   *  (soles) sigue siendo la del KPI/ranking. */
+  rotacionTotalUnidades: RotacionUnidades;
 };
 
 /** Lo que de la fila hace falta para valorar a costo y saber si el historial es fiable. */
@@ -207,7 +274,20 @@ export function metricasDePeriodo(d: DatosPeriodo, diasCalendario: number, f: Co
     estadoCosto: f.estadoCosto,
     ledgerConsistente: f.ledgerConsistente,
   });
+  // Promedio ponderado por tiempo (2026-09-24): el punto de sustitución que ya preveía `rotacion.ts`, para
+  // la rotación CONTABLE (soles, KPI/ranking) — sin tocar. Sin ledger consistente no hay base honesta
+  // (mismo criterio que `baseRotacionDeVariante` de arriba, que por eso deja inventarioInicio/Cierre en
+  // null): no se pasa nada y cae al de dos puntos.
+  baseRotacion.inventarioPromedioTemporal = f.ledgerConsistente ? valorInventario(d.totalPromedio, f.costo, f.estadoCosto) : undefined;
   const rotacion = calcularRotacion(baseRotacion);
+
+  // Rotación EN UNIDADES (sección 14, 2026-09-24) — la de la tabla de comportamiento: unidades vendidas ÷
+  // unidades promedio, directo, sin pasar por costo. `d.pisoPromedio`/`d.totalPromedio` ya vienen en
+  // unidades desde el RPC; sin ledger consistente no hay promedio honesto (mismo criterio que arriba).
+  const promedio = (unidadesPromedio: number) => (f.ledgerConsistente ? unidadesPromedio : null);
+  const rotacionPisoUnidades = rotacionUnidades(velocidad.ventasNetas, promedio(d.pisoPromedio));
+  const rotacionTotalUnidades = rotacionUnidades(velocidad.ventasNetas, promedio(d.totalPromedio));
+
   return {
     ventasNetas: velocidad.ventasNetas,
     importe: d.importe,
@@ -220,6 +300,8 @@ export function metricasDePeriodo(d: DatosPeriodo, diasCalendario: number, f: Co
     rotacion: rotacion.veces,
     motivoSinRotacion: rotacion.motivo,
     baseRotacion,
+    rotacionPisoUnidades,
+    rotacionTotalUnidades,
   };
 }
 

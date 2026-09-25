@@ -1,7 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  ACCIONES_NUEVO,
   ARBOL,
   PERMISOS,
   TIPOS_UBICACION,
@@ -112,9 +111,6 @@ describe("cada pantalla y cada acción del menú pertenece a un módulo", () => 
     }
   });
 
-  it("toda acción de «+ Nuevo» declara su módulo", () => {
-    for (const a of ACCIONES_NUEVO) expect(CLAVES_MODULO, a.id).toContain(a.modulo);
-  });
 });
 
 /* ---------- 2. El menú no cambia ---------- */
@@ -145,7 +141,7 @@ function ahora(c: Cuenta, ubicacionTipo: TipoUbicacion, modulos = modulosDeHoy(c
 }
 const foto = (p: PerfilDelMenu) => {
   const m = menuPara(p);
-  return { riel: m.riel, movil: m.movil, nuevo: m.nuevo, grupos: RUTAS.map((r) => m.grupoDe(r)) };
+  return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
 // ÚNICA diferencia buscada con el menú de antes (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su
@@ -258,7 +254,6 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
   it("«Almacén» ve Inicio e Inventario (sin Análisis), y nada de Ventas ni Catálogo", () => {
     const riel = menuPara(perfil).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Inicio", "Inventario"]);
-    expect(menuPara(perfil).nuevo.map((a) => a.etiqueta)).toEqual(["Recibir mercadería", "Mover mercadería"]);
   });
 
   it("una terminal de ventas a la que se le enciende Existencias ve Inventario (la terminal es una cuenta más con su rol)", () => {

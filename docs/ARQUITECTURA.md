@@ -162,6 +162,13 @@ flowchart TB
   (`pendiente_aprobacion`/`activo`) gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
   `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen
   `colaboradores`, no solo las tres obvias. `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
+  **Fotos de perfil (20260925210000): son de Dynamic y retail no las copia.** `public.personas.foto_url` guarda la RUTA en
+  el bucket público `fotos-perfil` (`perfil/<persona>/<archivo>.jpg`), nunca una URL; `lib/foto-perfil.ts` (`urlFotoPerfil`,
+  pura) arma la URL. `retail.fn_fotos_personas(uuid[])` devuelve la ruta de cada colaborador pedido (solo colaboradores de
+  retail; sin foto = sin fila) y `lib/useFotoPersona.ts` la pide por lotes y la recuerda por sesión. Toda cara de persona se
+  pinta con `components/ui/AvatarPersona.tsx` (foto o iniciales, nunca imagen rota): pie del lateral, «Mi perfil», combo
+  «Responsable» y las tablas de Colaboradores. «Mi perfil» sube la foto a `fotos-perfil` y guarda la RUTA con
+  `actualizar_mi_foto_perfil` → `public.fn_actualizar_foto_perfil` (rechaza lo que no empiece por `perfil/`).
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa
@@ -706,6 +713,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
     `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
     `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
     devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
+    migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
+    foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
+    nada apunta) y `archivar_cuenta_dinero`. Solo el líder.
   - `/finanzas/reportes` (Estado de resultados; `presupuesto`, `campanas`, `escenarios`, `flujo`, `balance`; cabecera
     `CabeceraReportes`) → `lib/resultados.ts`, `lib/presupuesto.ts`, `lib/flujo-caja.ts`, `lib/balance.ts` →
     `fn_asientos` (diario derivado, ADR-0198/0120), `fn_estado_resultados`, `fn_campanas_reporte`, `fn_presupuesto_vs_real`,

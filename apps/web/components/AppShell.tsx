@@ -5,14 +5,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
-import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
-import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type AccionNuevo, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
+import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 
@@ -59,12 +59,20 @@ import { useConsultaMedia } from "@/lib/useConsultaMedia";
 // en vez de montarse con `anim-revelar`. El ancho lo comparten aside, cabecera, <main> y las
 // barras fijas por UN token: plegar solo cambia `--spacing-lateral` en `[data-lateral]`.
 //
+// v3.7 (2026-09-25, pedido de Felipe): se retira el "+ Nuevo" global —el botón del lateral de
+// escritorio y el "+" central del celular— entero: el menú (`MenuNuevo`), el botón y las 6 acciones
+// que ofrecía (venta, factura de proveedor, recibir, mover, cambio, devolución). Esas pantallas se
+// siguen alcanzando por el lateral o el árbol de rutas; lo que se pierde es el atajo de un clic desde
+// cualquier pantalla. La barra del celular pasa de 5 columnas a 4 (`COLUMNAS_MOVIL`, lib/menu.ts).
+// Detalle y trade-off: ADR-0204.
+//
 // v4 (2026-09-25, pedido de Felipe — «el menú inferior ni siquiera deja ver todos los módulos»): en celular se retira la
-// barra de 5 pestañas (Inicio, Punto de Venta, +, Inventario, Caja): de 15+ módulos mostraba 4 y el resto no tenía
-// entrada. Ahora el celular usa EL MISMO lateral, como cajón que entra desde la izquierda con el botón ☰ junto al logo
+// barra de pestañas y su hoja «Más» (ADR-0205): mostraba 4 módulos y el resto quedaba a dos toques, en otra
+// forma de menú que la del escritorio. Ahora el celular usa EL MISMO lateral, como cajón que entra desde la izquierda con el botón ☰ junto al logo
 // de la cabecera. Una sola navegación para los dos tamaños: un módulo nuevo en `lib/menu.ts` aparece en ambos sin tocar
 // nada más. En el cajón el lateral va siempre expandido (la preferencia «plegado» es solo de escritorio), se cierra al
 // tocar un destino, el velo, la ✕ o Escape, y bloquea el scroll de la página mientras está abierto.
+// De ADR-0205 queda la lupa de la cabecera (atajo a /buscar); el avatar sale, porque el perfil vive al pie del cajón.
 //
 // V2 (Fase UI 1, 2026-09-11): `ubicaciones.nombre` ya es legible por sí solo
 // ("Tienda Lima") — a diferencia de V1, donde el código dejó de servir tras
@@ -73,6 +81,8 @@ import { useConsultaMedia } from "@/lib/useConsultaMedia";
 // falta traducir nada.
 type Persona = {
   nombre: string;
+  /** `public.personas.id`, para su foto de Dynamic en el pie del lateral. `null` en una terminal o sin dato: iniciales. */
+  personaId?: string | null;
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -117,7 +127,8 @@ function Icono({ d, className }: { d: string; className?: string }) {
   );
 }
 // Tipado contra `ClaveIcono` (lib/menu.ts): un nodo del árbol que nombre un ícono sin trazo acá no compila.
-const IC: Record<ClaveIcono | "nuevo" | "chevron" | "menu" | "cerrar", string> = {
+// "menu", "cerrar" y "buscar" no son de `ClaveIcono` (no son nodos del árbol) — igual que "chevron".
+const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> = {
   inicio: "M3 11l9-8 9 8M5 9.5V21h5v-6h4v6h5V9.5",
   vender: "M6 6h15l-1.5 9h-12L6 6zm0 0L5 3H2m7 18a1 1 0 100-2 1 1 0 000 2zm9 0a1 1 0 100-2 1 1 0 000 2z",
   apartados: "M6 3h12v18l-6-4-6 4V3zm3.5 6.5L11 11l3.5-3.5",
@@ -144,7 +155,6 @@ const IC: Record<ClaveIcono | "nuevo" | "chevron" | "menu" | "cerrar", string> =
   cambios: "M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
   // Flecha en U: la prenda vuelve.
   devoluciones: "M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
-  nuevo: "M12 5v14m-7-7h14",
   // Bolsa, no carrito: el carrito ya es de "Punto de Venta" (IC.vender) — la
   // cabecera "Venta" necesita un trazo propio para no verse igual a su hija.
   venta: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
@@ -178,6 +188,8 @@ const IC: Record<ClaveIcono | "nuevo" | "chevron" | "menu" | "cerrar", string> =
   chevron: "M9 6l6 6-6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   cerrar: "M6 6l12 12M18 6L6 18",
+  // Lupa: atajo de cabecera a /buscar (celular).
+  buscar: "M10.5 18a7.5 7.5 0 100-15 7.5 7.5 0 000 15zM21 21l-4.8-4.8",
 };
 
 /* ------------------------------------------------------------------
@@ -516,159 +528,13 @@ function InsigniaFila({ n, compacto }: { n: number; compacto: boolean }) {
 }
 
 /* ------------------------------------------------------------------
-   MenuNuevo — el panel del botón "+ Nuevo".
-
-   NO es un `Modal` de Radix a propósito, y no por ahorrar: atrapar el
-   foco es el patrón de un DIÁLOGO. Un menú hace lo contrario — el
-   tabulador lo CIERRA y sigue de largo. Migrarlo a `Modal` le pondría
-   el comportamiento de otra cosa.
-
-   Lo que sí seguía faltando (BACKLOG desde ADR-0003) era el teclado del
-   patrón menu button: flechas entre opciones, Inicio/Fin, Espacio para
-   activar, tipeo para saltar, y sobre todo que Tab no recorriera el
-   panel para terminar dentro de la app que está detrás del velo —
-   visualmente bloqueada, pero perfectamente tabulable.
-
-   El teclado es el mismo de `CampoSelect` (campos.tsx), lo que también
-   quiere decir que se comporta igual: se levantó de ahí, no se inventó.
-   Una diferencia con el patrón de la W3C, asumida: ahí Tab cierra y
-   mueve al SIGUIENTE elemento de la página; acá cierra y devuelve el
-   foco al botón que abrió. Cuesta un Tab más y evita tener que
-   arrastrar un buscador de "próximo elemento tabulable" para un menú
-   de cinco opciones. Nunca deja el foco flotando, que era el problema.
-   ------------------------------------------------------------------ */
-// Qué acciones ofrece y a quién (Fase UI 1, ADR-0111, ADR-0113) lo decide `ACCIONES_NUEVO` en `lib/menu.ts`;
-// acá llegan ya filtradas para quien mira (`menu.nuevo`).
-function MenuNuevo({ onClose, acciones }: { onClose: () => void; acciones: AccionNuevo[] }) {
-  const [activo, setActivo] = useState(0);
-  const filas = useRef<(HTMLAnchorElement | null)[]>([]);
-  const tipeo = useRef({ texto: "", reloj: 0 });
-
-  // El foco entra al panel al abrirse: se monta al final del árbol, así que
-  // sin esto el tabulador recorría toda la app antes de llegar a las opciones.
-  useEffect(() => {
-    filas.current[0]?.focus();
-  }, []);
-
-  // Escape queda en `document` y no en el panel: si alguien hizo clic en el
-  // velo, el foco puede haber salido de las filas, y Escape tiene que cerrar
-  // igual. Es la única tecla que no depende de dónde esté parado el foco.
-  useEffect(() => {
-    const alTeclado = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.stopPropagation();
-        onClose();
-      }
-    };
-    document.addEventListener("keydown", alTeclado);
-    return () => document.removeEventListener("keydown", alTeclado);
-  }, [onClose]);
-
-  function irA(i: number) {
-    const n = (i + acciones.length) % acciones.length;
-    setActivo(n);
-    filas.current[n]?.focus();
-  }
-
-  function alTeclado(e: React.KeyboardEvent) {
-    switch (e.key) {
-      case "Tab":
-        // Cierra en vez de dejar pasar: sin esto el tabulador sale del panel
-        // y sigue por la app de atrás, que está tapada por el velo pero
-        // entera tabulable.
-        e.preventDefault();
-        onClose();
-        break;
-      case "ArrowDown":
-        e.preventDefault();
-        irA(activo + 1);
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        irA(activo - 1);
-        break;
-      case "Home":
-        e.preventDefault();
-        irA(0);
-        break;
-      case "End":
-        e.preventDefault();
-        irA(acciones.length - 1);
-        break;
-      case " ":
-        // Enter ya navega solo (es un <a>); Espacio no activa un enlace.
-        e.preventDefault();
-        filas.current[activo]?.click();
-        break;
-      default: {
-        if (e.key.length !== 1) return;
-        if (Date.now() - tipeo.current.reloj > 500) tipeo.current.texto = "";
-        tipeo.current.reloj = Date.now();
-        tipeo.current.texto += e.key.toLowerCase();
-        const i = acciones.findIndex((a) => a.etiqueta.toLowerCase().startsWith(tipeo.current.texto));
-        if (i >= 0) irA(i);
-      }
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50" onClick={onClose}>
-      <div className="anim-velo absolute inset-0 bg-tinta/25 backdrop-blur-[2px]" />
-      <div
-        role="menu"
-        aria-label="Nuevo"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={alTeclado}
-        className="anim-entrada card-cayla absolute inset-x-4 top-20 p-2 shadow-lg sm:inset-x-auto sm:left-lateral sm:top-24 sm:ml-4 sm:w-[21rem]"
-      >
-        {/* `role="menu"` solo admite hijos de menú, así que el encabezado sale
-            del árbol de accesibilidad: el nombre del panel ya lo da aria-label. */}
-        <p aria-hidden className="label-cayla px-3.5 pb-1.5 pt-2.5 text-[11px] text-tinta/65">Nuevo</p>
-        {acciones.map((a, i) => (
-          <Link
-            key={a.href}
-            href={a.href}
-            role="menuitem"
-            // Un menú es UNA parada de tabulador, no una por opción — y acá
-            // además Tab lo cierra, así que ninguna fila entra en la secuencia.
-            tabIndex={-1}
-            ref={(el) => {
-              filas.current[i] = el;
-            }}
-            onClick={onClose}
-            // El mouse manda sobre el mismo índice que las flechas, igual que en
-            // el desplegable de campos.tsx: así nunca hay dos filas encendidas.
-            onMouseEnter={() => setActivo(i)}
-            // Escalonado de 30ms por fila, el mismo del desplegable de campos.tsx:
-            // la lista se lee como que se despliega, no como que aparece entera.
-            style={{ animationDelay: `${i * 30}ms` }}
-            className={`anim-revelar relative block rounded-lg px-3.5 py-3 outline-none transition-colors ${
-              i === activo ? "bg-sand/60" : ""
-            }`}
-          >
-            <span
-              aria-hidden
-              className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
-                i === activo ? "scale-y-100" : "scale-y-0"
-              }`}
-            />
-            <p className="text-sm font-medium text-tinta">{a.etiqueta}</p>
-            <p className="mt-0.5 text-xs text-tinta/65">{a.detalle}</p>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------
    CajonGrupo — las hijas de un grupo cuando el lateral está plegado.
 
    Con el lateral en 4.75rem no hay dónde desplegar «Inventario» en
-   línea, así que la cabecera abre este cajón a su derecha. Mismo
-   criterio que `MenuNuevo`: es un MENÚ, no un diálogo — no atrapa el
-   foco; Tab y Escape lo cierran y devuelven el foco a la cabecera que
-   lo abrió. Teclado calcado de ahí: flechas, Inicio/Fin, Espacio.
+   línea, así que la cabecera abre este cajón a su derecha. Es un MENÚ,
+   no un diálogo — no atrapa el foco; Tab y Escape lo cierran y
+   devuelven el foco a la cabecera que lo abrió. Teclado tipo menu
+   button: flechas, Inicio/Fin, Espacio.
 
    Se abre de dos maneras: clic/Enter (el foco entra a la primera hija)
    o pasando el mouse 120 ms (el foco NO se mueve: es mirar, no elegir).
@@ -798,7 +664,7 @@ function FilaCajon({ h, i, esActivo, onCerrar, refFila }: { h: Item; i: number; 
       aria-current={esActivo ? "page" : undefined}
       ref={refFila}
       onClick={() => onCerrar(false)}
-      // Escalonado de 30 ms por fila, el mismo de `MenuNuevo` y del desplegable de campos.tsx.
+      // Escalonado de 30 ms por fila, el mismo del desplegable de campos.tsx.
       style={{ animationDelay: `${i * 30}ms` }}
       className={`anim-revelar group relative flex h-11 items-center gap-3 rounded-lg px-3 text-sm outline-none transition-colors focus-visible:bg-sand/60 focus-visible:text-rojo ${
         esActivo ? "bg-sand/70 font-medium text-tinta" : "text-tinta/80 hover:bg-sand/40 hover:text-rojo"
@@ -832,9 +698,8 @@ const SIN_TOPE_DE_ANCHO = ["/vender", "/compras", "/productos", "/inventario", "
 
 export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPlegado = false, children }: Props) {
   const pathname = usePathname();
-  const [nuevoAbierto, setNuevoAbierto] = useState(false);
   const [perfilAbierto, setPerfilAbierto] = useState(false);
-  const disparadorNuevo = useRef<HTMLButtonElement | null>(null);
+  // "Más" (celular, ADR-0205): la misma hoja para cualquier perfil, sin estado propio más allá de abierto/cerrado.
   const esLider = persona.rol === "lider";
   const esAparato = !!persona.terminal;
 
@@ -887,12 +752,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   };
 
   // Atajo `[`: como en tantas apps con lateral. No se dispara escribiendo en un campo, con un
-  // modificador, ni con un diálogo o el menú «Nuevo» abiertos.
+  // modificador, ni con un diálogo abierto.
   useEffect(() => {
     const alTeclado = (e: KeyboardEvent) => {
       if (e.key !== "[" || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.target instanceof Element && e.target.closest("input, textarea, select, [contenteditable=''], [contenteditable='true'], [role='dialog']")) return;
-      if (nuevoAbierto || perfilAbierto) return;
+      if (perfilAbierto) return;
       e.preventDefault();
       alternarLateral();
     };
@@ -947,22 +812,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     setCajon({ grupoId, top: Math.max(64, Math.min(r.top - 8, window.innerHeight - alto - 12)), left: borde(), enfocar });
   };
 
-  const abrirNuevo = (e: React.MouseEvent<HTMLButtonElement>) => {
-    // Desde el cajón del celular el foco vuelve al ☰ al cerrar «Nuevo»: el botón del cajón ya no estará a la vista.
-    disparadorNuevo.current = movilAbierto ? botonMenuMovil.current : e.currentTarget;
-    setMovilAbierto(false);
-    setNuevoAbierto(true);
-  };
-  // Al cerrar, el foco vuelve al botón que abrió: si se quedara en el panel
-  // que se acaba de desmontar, el teclado quedaría flotando en el body.
-  const cerrarNuevo = useCallback(() => {
-    setNuevoAbierto(false);
-    disparadorNuevo.current?.focus();
-  }, []);
-
   const activo = (href: string) => rutaActiva(pathname, href);
 
-  // El menú de esta persona: filas, barra del celular, «+ Nuevo» y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
+  // El menú de esta persona: filas del lateral (y del cajón del celular) y qué grupo contiene cada ruta. Todo sale de `lib/menu.ts`.
   const menu = menuPara({
     permisos: persona.permisos ?? permisosDe(persona.rol),
     ubicacionTipo: persona.ubicacionTipo,
@@ -991,11 +843,9 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
 
   const [gruposAbiertos, setGruposAbiertos] = useState<Record<string, boolean>>(() => Object.fromEntries(gruposAAbrir.map((id) => [id, true])));
 
-  // Cambiar de sección DESPUÉS de montado (un link de "+ Nuevo", un
-  // favorito, sin recargar la página) tampoco debe dejar la ruta nueva
-  // escondida — y de paso cierra el grupo anterior (reemplaza el mapa
-  // entero, no lo combina): moverse de "Venta" a "Catálogo" no debe dejar
-  // los dos abiertos, o se vuelve a la queja original de "todo expandido".
+  // Cambiar de sección DESPUÉS de montado (un favorito, sin recargar la página) tampoco debe dejar la ruta nueva
+  // escondida — y de paso cierra el grupo anterior (reemplaza el mapa entero, no lo combina): moverse de "Venta" a
+  // "Catálogo" no debe dejar los dos abiertos, o se vuelve a la queja original de "todo expandido".
   // Ajuste de estado durante el render, no en un efecto (mismo patrón que ya
   // exige el linter del repo — BITÁCORA 2026-09-14, búfer de animación del
   // ticket): comparar contra el valor del render anterior evita re-disparar
@@ -1016,14 +866,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     ? (grupos.flatMap((x) => x.items).find((f): f is ItemGrupo => esGrupo(f) && f.id === cajon.grupoId) ?? null)
     : null;
 
-  const iniciales =
-    persona.nombre
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p.charAt(0))
-      .join("")
-      .toUpperCase() || "·";
 
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
@@ -1056,7 +898,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
       >
         {/* Plegado el isotipo queda centrado en la columna (76 px): el padding se anima con el ancho. */}
         {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
-            al abrir el cajón (globals.css) — logo, Nuevo, cada fila del menú, la firma y la persona. */}
+            al abrir el cajón (globals.css) — logo, cada fila del menú, la firma y la persona. */}
         <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
           <Image
@@ -1084,28 +926,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </button>
         </div>
 
-        <div className="px-3 pb-7" data-pieza-cajon style={{ "--k": 1 } as React.CSSProperties}>
-          {/* Plegado queda un cuadrado con el «+» (del mismo alto que una fila de 48 px, 52 de ancho:
-              columna de 76 − 12 de aire a cada lado). El botón ya anima `all`, así que el ancho viaja solo. */}
-          <Boton
-            peso="primario"
-            onClick={abrirNuevo}
-            onMouseEnter={(e) => entrarFila(e.currentTarget, "Nuevo")}
-            onMouseLeave={salirFila}
-            onFocus={(e) => entrarFila(e.currentTarget, "Nuevo")}
-            onBlur={salirFila}
-            className={compacto ? "w-[52px]" : "w-full"}
-            aria-label="Nuevo"
-            aria-haspopup="menu"
-            aria-expanded={nuevoAbierto}
-          >
-            <span className={`flex items-center justify-center ${compacto ? "gap-0" : "gap-2"} transition-[gap] duration-300 ease-cayla`}>
-              <Icono d={IC.nuevo} className="h-3.5 w-3.5 shrink-0" />
-              <span className={`inline-block overflow-hidden whitespace-nowrap transition-[max-width,opacity] duration-300 ease-cayla ${compacto ? "max-w-0 opacity-0" : "max-w-20"}`}>Nuevo</span>
-            </span>
-          </Boton>
-        </div>
-
         <nav className="scroll-cayla flex-1 space-y-7 overflow-y-auto px-3">
           {grupos.map((g) => (
             <GrupoLateral
@@ -1121,7 +941,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
               onAbrirCajon={abrirCajon}
               onEntrarFila={entrarFila}
               onSalirFila={salirFila}
-              kInicial={2}
+              kInicial={1}
             />
           ))}
         </nav>
@@ -1129,12 +949,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         {/* El lateral terminaba en un vacío de media pantalla. La firma de la
             marca le da un piso al bloque de abajo, en vez de dejar el aire
             colgando entre el último ítem y la persona. */}
-        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
+        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 1 + menu.riel.length } as React.CSSProperties} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
           Donde el estilo transforma.
         </p>
 
         {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
-        <div data-pieza-cajon style={{ "--k": 3 + menu.riel.length } as React.CSSProperties} className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
+        <div data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
           <div className="flex items-center gap-3">
             {esAparato ? (
               // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir
@@ -1166,12 +986,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
                 aria-label={compacto ? "Mi perfil" : undefined}
                 className="group flex min-w-0 flex-1 items-center gap-3 text-left"
               >
-                <span
-                  aria-hidden
-                  className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
-                >
-                  {iniciales}
-                </span>
+                <AvatarPersona
+                  personaId={persona.personaId}
+                  nombre={persona.nombre}
+                  className="h-9 w-9 text-sm transition-colors group-hover:bg-rojo/15"
+                />
                 <div className={`min-w-0 flex-1 transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
                   <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
                   <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
@@ -1261,13 +1080,22 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
           {/* Selector de ubicación del líder (Fase 2, ya no pendiente):
               cambia toda la app de perspectiva, no solo Inventario/Recepción
               (que ya tenían el suyo propio, local a esa pantalla). Un
-              integrante sigue viendo solo la etiqueta, sin poder tocarla. */}
-          <div className="ml-auto shrink-0">
+              integrante sigue viendo solo la etiqueta, sin poder tocarla.
+              En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
+              que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             {persona.puedeCambiarUbicacion ? (
               <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
             ) : (
               <span className="label-cayla text-[11px] text-tinta/65">{persona.ubicacionEtiqueta}</span>
             )}
+            <Link
+              href="/buscar"
+              aria-label="Buscar"
+              className="grid h-9 w-9 place-items-center rounded-lg text-tinta/65 transition-colors hover:bg-sand/60 hover:text-rojo sm:hidden"
+            >
+              <Icono d={IC.buscar} className="h-[18px] w-[18px]" />
+            </Link>
           </div>
         </div>
       </header>
@@ -1282,8 +1110,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
       <main className="ease-cayla px-4 pb-10 pt-20 sm:ml-lateral sm:px-10 sm:pb-12 sm:pt-24 sm:transition-[margin-left] sm:duration-300">
         <div className={SIN_TOPE_DE_ANCHO.some((r) => pathname === r || pathname.startsWith(`${r}/`)) ? "" : "mx-auto max-w-5xl"}>{children}</div>
       </main>
-
-      {nuevoAbierto && <MenuNuevo onClose={cerrarNuevo} acciones={menu.nuevo} />}
     </div>
   );
 }
