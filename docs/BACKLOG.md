@@ -540,6 +540,21 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
+- [x] **«Más» + avatar + lupa: construido (ADR-0205, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
+      (spike aprobado por Felipe, con dos correcciones en vivo) → `AppShell.tsx` + `components/MasMovil.tsx`
+      (nuevo). La barra queda en 5 columnas parejas — Inicio/Punto de Venta/Inventario/Caja + **Más** al final,
+      sin «＋» en ningún lado — y la cabecera suma lupa (`/buscar`) y avatar (reutiliza `setPerfilAbierto`, cero
+      componente nuevo). «Más» pinta `menu.riel` tal cual, sin recortar: mismo dato que el lateral, sin árbol
+      paralelo que desincronizarse. `typecheck`/`lint`/`build`/suite completa (126 archivos, 21 290 pruebas) en
+      verde. **Sin clics reales todavía** — pendiente Felipe, logueado, en 375px (ver «Cómo verificar» del ADR).
+      Abierto en el ADR: si las 6 acciones de «＋Nuevo» (abajo) entran a «Más» como grupo, y el hueco de
+      «Recibir mercadería» en el Taller que ya dejaba ADR-0204 (sigue sin tapar).
+- [x] **«＋Nuevo» se retira entero — ADR-0204, aceptado y construido (2026-09-25, otra sesión sobre este repo, PR #401)**
+      — `AppShell.tsx` (v3.7) y `lib/menu.ts` (`COLUMNAS_MOVIL` a 4, sin el hueco del «＋»; `ACCIONES_NUEVO` y
+      `MenuNuevo` fuera). Trade-off aceptado por Felipe (documentado en el ADR): se pierde el atajo de un clic a
+      Nueva venta/Registrar factura de proveedor/Recibir mercadería/Mover mercadería/Registrar cambio/Registrar
+      devolución — quedan solo por su ruta directa. Deja un hueco real: el líder parado en el Taller pierde su
+      único link a `/recibir` (ver arriba). Verificado por esa sesión: suite completa y `tsc` en verde.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
 ## 🎯 Colaboradores en dos secciones + editor de roles rediseñado (2026-09-22, ADR-0172) — hecho, sin migraciones
