@@ -172,6 +172,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:por-pagar-consolidado
 
+      # Flujo de caja (ADR-0195 F6): saldo inicial + entró − salió ± ajustes = saldo final, cada cosa en su categoría, lo
+      # «sin cuenta» aparte; la proyección con metas y campañas, vencimientos, fijos y planilla, el mínimo de caja, los días
+      # de caja; solo el líder y nada se guarda. ROLLBACK.
+      - name: pruebas:flujo-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:flujo-caja
+
       # Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
       # se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
       - name: pruebas:impuestos
