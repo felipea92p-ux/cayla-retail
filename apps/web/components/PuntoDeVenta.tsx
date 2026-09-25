@@ -54,6 +54,9 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { EscanerCamara } from "@/components/EscanerCamara";
+import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
 import { sumarCantidades } from "@/lib/inventario-reglas";
 import { conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
@@ -286,6 +289,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
+  // Teléfono (2026-09-25): no hay lector, así que el campo de escaneo se vuelve un botón que abre la cámara
+  // (`EscanerCamara`). La lupa de al lado cambia a buscar por nombre, y la cámara vuelve a estar a un toque.
+  const esTelefono = useConsultaMedia(MQ_TELEFONO);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
+  const [buscarPorTexto, setBuscarPorTexto] = useState(false);
   const [mostrarVentasHoy, setMostrarVentasHoy] = useState(false);
   const [modalCaja, setModalCaja] = useState<"abrir" | "cerrar" | null>(null);
 
@@ -350,7 +358,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
   // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
-  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null;
+  const hayModal = manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -553,8 +561,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
 
-  function agregar(v: VarianteBusqueda) {
-    if (bloqueado) return;
+  /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
+  function agregar(v: VarianteBusqueda): "agregada" | "agotada" | "tope" | null {
+    if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
@@ -564,7 +573,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       setQ("");
       setActivo(0);
       buscador.current?.focus();
-      return;
+      return "agotada";
     }
     const existente = carrito.find((it) => it.claveLinea === v.varianteId);
     const tope = existente !== undefined && existente.cantidad >= v.stockAqui;
@@ -609,6 +618,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setQ("");
     setActivo(0);
     buscador.current?.focus();
+    return tope ? "tope" : "agregada";
+  }
+
+  /** Una lectura de la cámara: el mismo camino que el Enter del lector (`alTeclado`), sin la lista de resultados —
+   *  un QR es un código exacto o no es nada. */
+  function alEscanear(codigo: string): ResultadoEscaneo {
+    const v = resolverCodigoV2(codigo, variantesVisibles);
+    if (!v) return { estado: "no-encontrada", codigo };
+    const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
+    return { estado: agregar(v) ?? "agotada", codigo, nombre };
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1170,6 +1189,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onActivo={setActivo}
           onAgregar={agregar}
           onPrendaSinRegistrar={() => setManualAbierto(true)}
+          conCamara={esTelefono}
+          modoCamara={esTelefono && !buscarPorTexto}
+          onAbrirCamara={() => {
+            setBuscarPorTexto(false);
+            setCamaraAbierta(true);
+          }}
+          onBuscarPorTexto={() => setBuscarPorTexto(true)}
           categorias={categorias}
           categoria={categoria}
           // Un chip es un desvío de un toque: elegida la categoría, el foco vuelve al escáner.
@@ -1279,6 +1305,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onAgregar={agregar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
+        />
+      )}
+
+      {camaraAbierta && (
+        <EscanerCamara
+          onCodigo={alEscanear}
+          onBuscarPorNombre={() => {
+            setCamaraAbierta(false);
+            setBuscarPorTexto(true);
+          }}
+          onClose={() => setCamaraAbierta(false)}
         />
       )}
 

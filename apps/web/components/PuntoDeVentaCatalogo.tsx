@@ -32,6 +32,14 @@ type Props = {
   onAgregar: (v: VarianteBusqueda) => void;
   /** Abre el modal de «Prenda sin registrar» (ADR-0179), que vive en el padre. */
   onPrendaSinRegistrar: () => void;
+  // Cámara (teléfono, 2026-09-25)
+  /** Es un teléfono: hay cámara en vez de lector, y la lupa/cámara de al lado alterna entre las dos vías. */
+  conCamara: boolean;
+  /** En lugar del campo, el botón grande que abre la cámara (teléfono y sin haber pedido buscar por nombre). */
+  modoCamara: boolean;
+  onAbrirCamara: () => void;
+  /** La lupa: cambia el botón de cámara por el campo de búsqueda. */
+  onBuscarPorTexto: () => void;
   // Chips y grilla
   categorias: string[];
   categoria: string;
@@ -68,6 +76,18 @@ const chip = (prendido: boolean) =>
     prendido ? "border-tinta bg-tinta text-crema" : "border-sand bg-papel text-tinta/65 hover:bg-sand/40"
   }`;
 
+/** Un código QR de línea (brandbook: íconos solo de trazo): tres marcas de esquina y el punteado del centro. */
+function IconoQr({ className }: { className?: string }) {
+  return (
+    <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <rect x="3.5" y="3.5" width="6" height="6" rx="1" />
+      <rect x="14.5" y="3.5" width="6" height="6" rx="1" />
+      <rect x="3.5" y="14.5" width="6" height="6" rx="1" />
+      <path d="M14.5 14.5h2.5v2.5M20.5 14.5v.01M14.5 20.5h.01M17.5 20.5h3v-3" />
+    </svg>
+  );
+}
+
 /** «Blusa Emma» → «BE»: lo que ocupa el hueco de la foto mientras el catálogo no tenga fotos. */
 const iniciales = (referencia: string) =>
   referencia
@@ -102,6 +122,10 @@ export function PuntoDeVentaCatalogo({
   onActivo,
   onAgregar,
   onPrendaSinRegistrar,
+  conCamara,
+  modoCamara,
+  onAbrirCamara,
+  onBuscarPorTexto,
   categorias,
   categoria,
   onCategoria,
@@ -129,6 +153,19 @@ export function PuntoDeVentaCatalogo({
             tercera vía de captura (la prenda aún no está en el sistema), por eso vive al lado
             del campo y no entre los chips, donde le robaba ancho a las categorías. */}
         <div className="flex items-stretch gap-2">
+          {modoCamara ? (
+            // Teléfono: no hay lector que «escriba» el código, así que el lugar del campo lo toma la cámara. Mismo alto
+            // (h-14) y mismo lugar: la encargada busca «escanear» donde siempre estuvo.
+            <button
+              type="button"
+              onClick={onAbrirCamara}
+              disabled={bloqueado}
+              className="label-cayla flex h-14 min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-tinta px-3 text-[11px] text-crema transition-[background-color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-tinta/90 active:translate-y-px"
+            >
+              <IconoQr className="h-5 w-5 shrink-0" />
+              Escanear QR
+            </button>
+          ) : (
           <div className="relative z-20 min-w-0 flex-1">
             <label className="group flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
               {/* Código de barras: dice "acá se escanea" sin una palabra más. */}
@@ -146,6 +183,7 @@ export function PuntoDeVentaCatalogo({
               <input
                 id="venta-buscar"
                 ref={buscadorRef}
+                // En el teléfono el campo aparece porque se tocó la lupa: ahí sí se quiere el teclado. Con lector, siempre.
                 autoFocus
                 disabled={bloqueado}
                 value={q}
@@ -218,11 +256,32 @@ export function PuntoDeVentaCatalogo({
               </ul>
             )}
           </div>
+          )}
+          {conCamara && (
+            // La otra vía, a un toque: con la cámara a la vista, la lupa (buscar por nombre); con el campo, la cámara.
+            <button
+              type="button"
+              onClick={modoCamara ? onBuscarPorTexto : onAbrirCamara}
+              disabled={bloqueado}
+              aria-label={modoCamara ? "Buscar la prenda por nombre" : "Escanear QR con la cámara"}
+              className="grid w-14 shrink-0 place-items-center rounded-xl border border-sand bg-papel text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
+            >
+              {modoCamara ? (
+                <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" className="h-5 w-5">
+                  <circle cx="11" cy="11" r="6.5" />
+                  <path d="M16 16l4.5 4.5" />
+                </svg>
+              ) : (
+                <IconoQr className="h-5 w-5" />
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onPrendaSinRegistrar()}
             disabled={bloqueado}
-            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
+            // En el teléfono son tres botones en la fila: el texto se parte en dos líneas en vez de robarle ancho a la cámara.
+            className="label-cayla shrink-0 rounded-xl border border-sand bg-papel px-3 text-[11px] text-tinta/75 max-sm:w-[6.75rem] max-sm:leading-snug transition-[background-color,color,transform] duration-200 ease-[var(--ease-cayla)] hover:bg-sand/40 hover:text-tinta active:translate-y-px"
           >
             Prenda sin registrar
           </button>

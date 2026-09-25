@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Boton } from "@/components/ui/campos";
@@ -14,6 +14,7 @@ import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
+import { useConsultaMedia } from "@/lib/useConsultaMedia";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
 // escritorio = lateral con "+ Nuevo" global; celular = 4 pestañas + botón + central.
@@ -106,14 +107,6 @@ type Props = {
 // El mismo corte de Tailwind (`sm` = 640 px): por debajo, el lateral es un cajón. En el servidor cuenta como escritorio
 // (el cajón arranca cerrado y fuera de pantalla igual, así que no hay parpadeo; solo `inert` llega recién al hidratar).
 const MQ_CELULAR = "(max-width: 639.98px)";
-function suscribirCelular(avisar: () => void) {
-  const mq = window.matchMedia(MQ_CELULAR);
-  mq.addEventListener("change", avisar);
-  return () => mq.removeEventListener("change", avisar);
-}
-function useEsCelular() {
-  return useSyncExternalStore(suscribirCelular, () => window.matchMedia(MQ_CELULAR).matches, () => false);
-}
 
 // Íconos de línea (brandbook: "íconos rellenos ×, solo línea") — trazo 1.5
 function Icono({ d, className }: { d: string; className?: string }) {
@@ -848,7 +841,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   // ---- Lateral plegado (v3.6) ----
   const [plegado, setPlegado] = useState(lateralPlegado);
   // ---- Cajón del celular (v4) ----
-  const esCelular = useEsCelular();
+  const esCelular = useConsultaMedia(MQ_CELULAR);
   const [movilAbierto, setMovilAbierto] = useState(false);
   const botonMenuMovil = useRef<HTMLButtonElement | null>(null);
   // Pasar a escritorio con el cajón abierto (girar una tablet) lo cierra: ahí el lateral ya está siempre a la vista.
