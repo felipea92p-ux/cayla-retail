@@ -747,12 +747,18 @@ body {
     display: block;
     width: 72mm;
     box-sizing: border-box;
-    padding: 4mm 4mm 10mm; /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel */
+    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba y abajo lo
+       justo (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. */
+    padding: 2mm 4mm 6mm;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-    font-size: 9.5pt;
-    line-height: 1.3;
+    /* Compactado el 2026-09-25 (salía demasiado largo, aun con una sola prenda): cuerpo 9,5 → 8 pt
+       y todos los aires a la mitad, SIN cambiar la jerarquía — el TOTAL sigue siendo lo más grande,
+       luego la marca y el número del comprobante; las reglas dobles, punteadas y gruesas se quedan.
+       8 pt es el piso: más chico, la térmica de 203 dpi empieza a empastar la Arial. */
+    font-size: 8pt;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
   }
   #comprobante-print p,
@@ -773,20 +779,20 @@ body {
   /* Cabecera: logo en negro (el PNG es terracota; una térmica solo tiene un tono). */
   #comprobante-print .rt-logo {
     display: block;
-    width: 21mm;
+    width: 13mm;
     height: auto;
-    margin: 0 auto 1.5mm;
+    margin: 0 auto 1mm;
     filter: brightness(0);
   }
   #comprobante-print .rt-marca {
-    font-size: 17pt;
+    font-size: 13pt;
     font-weight: 700;
     letter-spacing: 0.32em;
     margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
-    margin-bottom: 1mm;
+    margin-bottom: 0.5mm;
   }
   #comprobante-print .rt-tienda {
-    margin-top: 1.5mm;
+    margin-top: 1mm;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -794,36 +800,36 @@ body {
   /* Documento: dos reglas dobles enmarcan «BOLETA … B001-000002». */
   #comprobante-print .rt-doble {
     border-top: 3px double #000;
-    margin: 2.5mm 0;
+    margin: 1.5mm 0;
   }
   #comprobante-print .rt-titulo {
-    font-size: 9pt;
+    font-size: 7.5pt;
     font-weight: 700;
     letter-spacing: 0.1em;
   }
   #comprobante-print .rt-numero {
-    font-size: 16pt;
+    font-size: 12pt;
     font-weight: 700;
     letter-spacing: 0.04em;
-    line-height: 1.2;
+    line-height: 1.15;
   }
   #comprobante-print .rt-linea {
     border-top: 1px dashed #000;
-    margin: 2.5mm 0;
+    margin: 1.5mm 0;
   }
   /* Fecha / cliente: etiqueta chica a la izquierda, dato a la derecha. */
   #comprobante-print .rt-datos {
     display: grid;
     grid-template-columns: 14mm 1fr;
-    gap: 0.6mm 2mm;
-    margin-bottom: 2.5mm;
+    gap: 0.2mm 2mm;
+    margin-bottom: 1.5mm;
   }
   #comprobante-print .rt-datos dt {
-    font-size: 8pt;
+    font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding-top: 0.4mm;
+    padding-top: 0.3mm;
   }
   #comprobante-print .rt-datos dd {
     overflow-wrap: anywhere;
@@ -832,24 +838,24 @@ body {
   #comprobante-print .rt-tabla-cab,
   #comprobante-print .rt-item {
     display: grid;
-    grid-template-columns: 9mm 1fr auto;
+    grid-template-columns: 7mm 1fr auto;
     column-gap: 2mm;
   }
   #comprobante-print .rt-tabla-cab {
-    font-size: 8pt;
+    font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     border-top: 1.5px solid #000;
     border-bottom: 1px solid #000;
-    padding: 0.8mm 0;
+    padding: 0.5mm 0;
   }
   #comprobante-print .rt-tabla-cab span:last-child,
   #comprobante-print .rt-imp {
     text-align: right;
   }
   #comprobante-print .rt-item {
-    padding: 1.4mm 0;
+    padding: 0.7mm 0;
     border-bottom: 1px dotted #000;
     break-inside: avoid;
   }
@@ -866,7 +872,7 @@ body {
   }
   #comprobante-print .rt-detalle {
     display: block;
-    font-size: 8pt;
+    font-size: 7pt;
     font-weight: 400;
   }
   div.rt-fila.rt-detalle {
@@ -882,41 +888,41 @@ body {
     white-space: nowrap;
   }
   #comprobante-print .rt-total {
-    margin-top: 2mm;
-    padding: 1.6mm 0;
+    margin-top: 1.2mm;
+    padding: 1mm 0;
     border-top: 2px solid #000;
     border-bottom: 2px solid #000;
-    font-size: 15pt;
+    font-size: 13pt;
     font-weight: 700;
     line-height: 1.1;
   }
   #comprobante-print .rt-son {
-    margin-top: 1.5mm;
-    font-size: 8pt;
+    margin-top: 0.8mm;
+    font-size: 6.5pt;
     font-weight: 700;
   }
   #comprobante-print .rt-subtitulo {
-    font-size: 8pt;
+    font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    margin-bottom: 0.8mm;
+    margin-bottom: 0.4mm;
   }
   #comprobante-print .rt-qr {
-    margin-top: 3.5mm;
+    margin-top: 2mm;
   }
   #comprobante-print .rt-pie {
-    font-size: 8pt;
-    line-height: 1.35;
+    font-size: 6.5pt;
+    line-height: 1.25;
   }
   #comprobante-print .rt-pie p + p {
-    margin-top: 1mm;
+    margin-top: 0.5mm;
   }
   #comprobante-print .rt-lema {
-    font-size: 9.5pt;
+    font-size: 8pt;
     font-style: italic;
     letter-spacing: 0.04em;
-    margin-top: 2mm;
+    margin-top: 1mm;
   }
 }
 

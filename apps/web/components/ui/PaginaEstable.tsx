@@ -2,25 +2,48 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
-import { VENTANA_TRAS_CLIC_MS, puedeSoltar, reservaNecesaria, type Medida } from "@/lib/pagina-estable-reglas";
+import {
+  VENTANA_TRAS_CLIC_MS,
+  esChangeInmediatoAlClic,
+  esContinuacionDeTecleo,
+  puedeSoltar,
+  reservaNecesaria,
+  type Medida,
+} from "@/lib/pagina-estable-reglas";
 
 /* ====================================================================
    PaginaEstable · la página no se encoge bajo el mouse (ADR-0185)
 
    Montado UNA vez en `app/layout.tsx`, como el loader general. Ninguna pantalla tiene que hacer nada: después de
-   cada clic (o `change` de un select/casilla) vigila el contenedor que se desplaza —la página o la ventana
-   (`<Modal>`) donde ocurrió— y, si el navegador tuvo que recortar el scroll porque el contenido se acortó, reserva
-   ese alto como aire al fondo y devuelve la vista adonde estaba. Todo ocurre en el `ResizeObserver`, que corre
-   después del cálculo del diseño y ANTES de pintar: la persona no llega a ver el salto.
+   cada clic, `change` (un select, una casilla) o tecla escrita en un buscador, vigila el contenedor que se
+   desplaza —la página o la ventana (`<Modal>`) donde ocurrió— y, si el navegador tuvo que recortar el scroll
+   porque el contenido se acortó, reserva ese alto como aire al fondo y devuelve la vista adonde estaba.
 
-   La reserva se suelta sola apenas queda fuera de la vista. La regla (qué es un recorte y qué es un scroll que
-   pidió el código) vive en `lib/pagina-estable-reglas.ts`, pura y probada.
+   Dos redes, no una (2026-09-25). La primera revisión ocurre en un `queueMicrotask` disparado en el mismo tick
+   del evento: cubre el caso más común —React ya repintó de forma síncrona (cerrar un panel, quitar una fila)— y
+   se adelanta al `ResizeObserver`, que entrega sus avisos alineados a un cuadro de render y, medido, puede tardar
+   varios cuadros más de lo que su nombre promete. El `ResizeObserver` sigue de guardia como red de seguridad para
+   lo que tarda más que un tick (una animación de salida, un `fetch`, el filtrado con demora de un buscador).
+
+   La reserva se suelta sola apenas queda fuera de la vista. La regla (qué es un recorte, qué es un scroll que
+   pidió el código, y cuándo un evento continúa una vigilancia en vez de abrir otra) vive en
+   `lib/pagina-estable-reglas.ts`, pura y probada.
 
    Lo que esto no reemplaza: un bloque que cambia de alto con cada opción (los datos de cada medio de pago) sigue
    reservando su propio lugar (`LineasPago`, `PagoPiezas`), para que ni siquiera aparezca aire.
    ==================================================================== */
 
 type Reserva = { contenedor: Element; destino: HTMLElement; px: number; paddingInline: string };
+
+const EVENTO_SOLTAR = "pagina-estable:soltar";
+
+/** Para un clic que cambia de VISTA sin cambiar de URL (el ticket de Vender pasa a «Cobro» en el celular): la
+ *  pantalla nueva es otra cosa, no un bloque que se acortó, igual que un enlace. Suelta la reserva y deja de
+ *  vigilar, para que quien la llama lleve la vista adonde corresponde. Llamarla antes de pintar
+ *  (`useLayoutEffect`), o el aire alcanza a verse un cuadro. */
+export function soltarPaginaEstable() {
+  window.dispatchEvent(new Event(EVENTO_SOLTAR));
+}
 
 function esPagina(el: Element) {
   return el === document.scrollingElement || el === document.documentElement || el === document.body;
@@ -102,8 +125,16 @@ export function PaginaEstable() {
     function alInteractuar(e: Event) {
       // Un clic en una casilla dispara después su `change`, cuando React ya repintó: medir ahí tomaría la foto de
       // DESPUÉS del recorte. El `change` solo abre vigilancia propia si no viene pegado a un clic (un select con teclado).
-      if (e.type === "change" && vigilancia && performance.now() - vigilancia.inicio < 300) return;
+      if (esChangeInmediatoAlClic(e.type, vigilancia ? performance.now() - vigilancia.inicio : null)) return;
       const contenedor = contenedorDe(e.target instanceof Element ? e.target : null);
+      // Ráfaga de tecleo (buscador con filtrado en vivo): no reabrir vigilancia con cada letra —se perdería la
+      // foto de «antes de escribir»— solo estirar el plazo. La vigilancia ya abierta (por la primera letra) sigue
+      // corriendo su propio ResizeObserver y su propio microtask ya disparado; no hace falta otro por tecla.
+      if (vigilancia && esContinuacionDeTecleo(e.type, true, vigilancia.contenedor === contenedor)) {
+        window.clearTimeout(vigilancia.fin);
+        vigilancia.fin = window.setTimeout(terminarVigilancia, VENTANA_TRAS_CLIC_MS);
+        return;
+      }
       terminarVigilancia();
       const ro = new ResizeObserver(revisar);
       // La página: el `body` cambia de alto con todo lo que hay dentro. Una ventana: ella y sus hijos directos
@@ -111,6 +142,12 @@ export function PaginaEstable() {
       if (esPagina(contenedor)) ro.observe(document.body);
       else [contenedor, ...Array.from(contenedor.children)].forEach((n) => ro.observe(n));
       vigilancia = { contenedor, alClic: medir(contenedor), url: location.href, ro, fin: window.setTimeout(terminarVigilancia, VENTANA_TRAS_CLIC_MS), inicio: performance.now() };
+      // Primera red (ver comentario de arriba del archivo): si React ya repintó de forma síncrona en este mismo
+      // tick, este microtask lo detecta y corrige ANTES de que el navegador llegue a pintar la posición recortada
+      // — medido: el ResizeObserver por sí solo puede tardar varios cuadros más. `revisar` no hace nada si
+      // `reservaNecesaria` da 0 (nada se acortó todavía, o no hacía falta reservar), así que no cuesta de más
+      // cuando la interacción no toca el alto de nada — el caso de casi todos los clics del sistema.
+      queueMicrotask(revisar);
     }
 
     // Una navegación empieza arriba y sin reserva.
@@ -122,11 +159,15 @@ export function PaginaEstable() {
 
     document.addEventListener("click", alInteractuar, true);
     document.addEventListener("change", alInteractuar, true);
+    document.addEventListener("input", alInteractuar, true);
     window.addEventListener("popstate", alVolver);
+    window.addEventListener(EVENTO_SOLTAR, alVolver);
     return () => {
       document.removeEventListener("click", alInteractuar, true);
       document.removeEventListener("change", alInteractuar, true);
+      document.removeEventListener("input", alInteractuar, true);
       window.removeEventListener("popstate", alVolver);
+      window.removeEventListener(EVENTO_SOLTAR, alVolver);
       terminarVigilancia();
       soltar();
     };
