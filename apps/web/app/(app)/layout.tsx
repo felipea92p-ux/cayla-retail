@@ -28,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <AppShell
       persona={{
         nombre: persona.nombre,
+        personaId: persona.personaId,
         rol: persona.rol,
         ubicacionId: persona.ubicacionId,
         ubicacionEtiqueta: persona.ubicacionEtiqueta,
