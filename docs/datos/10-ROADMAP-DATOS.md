@@ -806,8 +806,8 @@ vender, ajustar stock y cerrar caja, y cada cosa que haga queda firmada con el
 ## La pantalla de devolver al almacén · D-41 · DECIDIDA
 
 > **(V1; hoy: 2026-09-25)** `devolver_a_almacen` y `bajar_a_piso` ya no existen. Retirar
-> del piso es `mover_interno` con origen piso y destino almacén, y sigue sin pantalla: es el
-> bloque 2 de ADR-0208, «Retirar del piso». La ida es «Reponer» de Existencias
+> del piso es `mover_interno` con origen piso y destino almacén, y desde el 2026-09-25 tiene
+> pantalla: «Retirar del piso», en el menú «⋯» de cada talla en Existencias (bloque 2 de ADR-0208). La ida es «Reponer» de Existencias
 > (`mover_interno`) y, desde el 2026-09-25 (sin pegar en producción), la pantalla «Bajar
 > prendas al piso» (`bajar_al_piso`), a la que se entra por el botón «Bajar al piso» de
 > Existencias.

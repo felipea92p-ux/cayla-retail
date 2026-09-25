@@ -8,10 +8,62 @@ import {
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
+  puedeRetirarPiso,
+  SENTIDO_PISO,
   sumarCantidades,
+  topeMovimientoPiso,
+  avisoTrasRetiro,
   UMBRAL_REPOSICION_PISO,
   UMBRAL_STOCK_BAJO_ALMACEN,
 } from "./inventario-reglas";
+
+// Bajar al piso y retirar del piso son la misma operación (`mover_interno`) con origen y destino
+// invertidos: si el sentido se confunde, la prenda viaja al revés y el total no avisa nada (no cambia).
+describe("SENTIDO_PISO / topeMovimientoPiso", () => {
+  it("bajar sale del almacén y va al piso; retirar hace exactamente lo contrario", () => {
+    expect([SENTIDO_PISO.bajar.origen, SENTIDO_PISO.bajar.destino]).toEqual(["almacen", "piso"]);
+    expect([SENTIDO_PISO.retirar.origen, SENTIDO_PISO.retirar.destino]).toEqual(["piso", "almacen"]);
+  });
+
+  it("el tope es lo disponible del ORIGEN: al bajar, el almacén; al retirar, el piso", () => {
+    const fila = { piso: 3, almacen: 8 };
+    expect(topeMovimientoPiso("bajar", fila)).toBe(8);
+    expect(topeMovimientoPiso("retirar", fila)).toBe(3);
+  });
+
+  it("sin dato (sede que no separa piso y almacén) o con nada, el tope es 0: el modal no deja confirmar", () => {
+    expect(topeMovimientoPiso("retirar", { piso: null, almacen: null })).toBe(0);
+    expect(topeMovimientoPiso("bajar", { piso: 5, almacen: 0 })).toBe(0);
+  });
+
+  it("nunca negativo, aunque llegue un disponible negativo por un dato raro", () => {
+    expect(topeMovimientoPiso("retirar", { piso: -2, almacen: 4 })).toBe(0);
+  });
+
+  it("retirar se ofrece con cualquier cantidad libre en el piso — sin el umbral de «Reponer»", () => {
+    expect(puedeRetirarPiso(1)).toBe(true);
+    // Muy por encima del umbral de reponer: retirar sigue teniendo sentido (guardar otra temporada).
+    expect(puedeRetirarPiso(UMBRAL_REPOSICION_PISO + 20)).toBe(true);
+  });
+
+  it("no se ofrece si no queda nada libre colgado (todo vendido o todo apartado) ni en una sede sin piso", () => {
+    expect(puedeRetirarPiso(0)).toBe(false);
+    expect(puedeRetirarPiso(-1)).toBe(false);
+    expect(puedeRetirarPiso(null)).toBe(false);
+  });
+
+  it("los textos de cada sentido nombran su propio recorrido (no se copian del otro)", () => {
+    expect(SENTIDO_PISO.bajar.recorrido).toBe("Almacén de tienda → Piso de venta");
+    expect(SENTIDO_PISO.retirar.recorrido).toBe("Piso de venta → Almacén de tienda");
+    expect(SENTIDO_PISO.bajar.exito(1)).toBe("1 unidad bajada al piso");
+    expect(SENTIDO_PISO.retirar.exito(2)).toBe("2 unidades retiradas del piso");
+  });
+
+  it("bajar desde la fila se sigue llamando «Reponer piso»: «Bajar al piso» es la pantalla de escaneo (ADR-0208)", () => {
+    expect(SENTIDO_PISO.bajar.titulo).toBe("Reponer piso");
+    expect(SENTIDO_PISO.retirar.titulo).toBe("Retirar del piso");
+  });
+});
 
 // La miniatura de una prenda: Existencias y Conteo tienen que elegir LA MISMA foto
 // para la misma prenda, así que la regla vive en un solo lugar y se prueba acá.
@@ -259,5 +311,27 @@ describe("ordenarPorModeloColorTalla (la lista «Por colgar» se lee por percha)
     expect(clavePercha({ productoId: "x", color: "Negro" })).not.toBe(clavePercha({ productoId: "x", color: "Camel" }));
     expect(clavePercha({ productoId: "x", color: "Negro" })).not.toBe(clavePercha({ productoId: "y", color: "Negro" }));
     expect(clavePercha({ productoId: "x", color: null })).not.toBe(clavePercha({ productoId: "x", color: "null" }));
+  });
+});
+
+// El semáforo no sabe que una talla se guardó a propósito: después de un retiro vuelve a pedir bajarla.
+// El modal lo avisa antes de confirmar (revisión del bloque 2 de ADR-0208, 2026-09-25).
+describe("avisoTrasRetiro", () => {
+  it("retirar todo lo colgado con reserva en el almacén: la talla saldrá «Por colgar»", () => {
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 3)).toMatch(/Quedará 0 en el piso.*Por colgar/);
+  });
+  it("dejar poco colgado: Existencias sugerirá «Reponer»", () => {
+    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)).toBe("Quedarán 6 en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.");
+  });
+  it("si después del retiro la fila no pide nada, no hay aviso", () => {
+    expect(avisoTrasRetiro({ piso: 30, almacen: 0 }, 2)).toBeNull();
+  });
+  it("cantidad vacía, cero, no entera o mayor que el piso: no avisa (eso lo dicen los otros mensajes)", () => {
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 0)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 1.5)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 4)).toBeNull();
+  });
+  it("una sede que no separa piso y almacén (Taller): nunca", () => {
+    expect(avisoTrasRetiro({ piso: null, almacen: null }, 1)).toBeNull();
   });
 });

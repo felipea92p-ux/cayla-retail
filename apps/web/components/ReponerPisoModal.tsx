@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
@@ -10,6 +10,7 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { avisoTrasRetiro, SENTIDO_PISO, topeMovimientoPiso, type SentidoPiso } from "@/lib/inventario-reglas";
 /** Lo que el modal necesita de una prenda: sirve tanto a la fila de Existencias
  *  como a la de Resumen, que no comparten el resto de sus campos. */
 export type FilaParaReponer = {
@@ -22,13 +23,17 @@ export type FilaParaReponer = {
   almacen: number | null;
 };
 
-// Llama a `retail.mover_interno` (20260914210000_inventario_piso_almacen.sql):
+// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql):
 // mismo motor que un traslado entre sedes, pero dentro de la misma
 // ubicación — el total de la tienda no cambia, solo dónde vive físicamente
 // la prenda. Los UUID de piso/almacén ya vienen resueltos desde el server
 // component (InventarioPage → getSububicaciones): este modal nunca los
 // adivina ni los busca por nombre.
+//
+// Sirve a los dos sentidos (`SENTIDO_PISO` en `lib/inventario-reglas.ts`): bajar
+// al piso y retirar del piso son la misma llamada con origen y destino invertidos.
 export function ReponerPisoModal({
+  sentido,
   fila,
   ubicacionId,
   sububicacionPisoId,
@@ -36,6 +41,8 @@ export function ReponerPisoModal({
   cantidadInicial,
   onClose,
 }: {
+  /** «bajar» = del almacén al piso; «retirar» = del piso al almacén. */
+  sentido: SentidoPiso;
   fila: FilaParaReponer;
   ubicacionId: string;
   sububicacionPisoId: string;
@@ -46,15 +53,31 @@ export function ReponerPisoModal({
   onClose: () => void;
 }) {
   const router = useRouter();
-  const disponible = fila.almacen ?? 0;
-  const [cantidad, setCantidad] = useState(cantidadInicial && cantidadInicial > 0 ? String(Math.min(cantidadInicial, fila.almacen ?? cantidadInicial)) : "");
+  const regla = SENTIDO_PISO[sentido];
+  const disponible = topeMovimientoPiso(sentido, fila);
+  const sububicacion = { piso: sububicacionPisoId, almacen: sububicacionAlmacenId };
+  const [cantidad, setCantidad] = useState(cantidadInicial && cantidadInicial > 0 ? String(Math.min(cantidadInicial, disponible)) : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Reponer mueve stock (almacén → piso): pide Responsable como toda acción que guarda en la tienda (ADR-0161).
+  // Por qué se retira (fin de temporada, cambio de exhibición…): el único rastro del motivo. `mover_interno`
+  // lo guarda en `movimientos.nota` y el detalle de Movimientos ya lo muestra. Solo al retirar: al bajar, el
+  // modal queda igual que siempre.
+  const [nota, setNota] = useState("");
+  // Candado contra el doble clic, del lado de la pantalla. `mover_interno` NO tiene token de
+  // idempotencia: dos envíos seguidos mueven dos veces (2 clics sobre «Retirar 3» = 6 al almacén).
+  // `cargando` apaga el botón, pero recién en el render siguiente; esta referencia cierra el hueco
+  // en el mismo instante del clic. El candado de verdad, en la base, llega cuando Reponer y
+  // Retirar pasen a una función con token (pendiente en ADR-0208): hasta entonces, esto.
+  const enVuelo = useRef(false);
+  // Mover entre piso y almacén mueve stock: pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
+
+  // Solo al retirar: si con esta cantidad la fila va a volver a pedir «Reponer», se dice antes de confirmar.
+  const avisoRetiro = sentido === "retirar" ? avisoTrasRetiro(fila, Number(cantidad)) : null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (enVuelo.current) return;
     if (!responsable.listo) return;
     const n = Number(cantidad);
     if (!Number.isInteger(n) || n <= 0) {
@@ -62,9 +85,10 @@ export function ReponerPisoModal({
       return;
     }
     if (n > disponible) {
-      setError(`No hay ${n} unidades en el almacén — hay ${disponible}.`);
+      setError(regla.noAlcanza(n, disponible));
       return;
     }
+    enVuelo.current = true;
     setLoading(true);
     setError(null);
     const supabase = createClient();
@@ -72,16 +96,19 @@ export function ReponerPisoModal({
       p_ubicacion_id: ubicacionId,
       p_variante_id: fila.varianteId,
       p_cantidad: n,
-      p_sububicacion_origen_id: sububicacionAlmacenId,
-      p_sububicacion_destino_id: sububicacionPisoId,
+      p_sububicacion_origen_id: sububicacion[regla.origen],
+      p_sububicacion_destino_id: sububicacion[regla.destino],
+      ...(sentido === "retirar" && nota.trim() ? { p_nota: nota.trim() } : {}),
     }), responsable.firma());
     setLoading(false);
     responsable.despues(errorRpc);
     if (errorRpc) {
-      setError(traducirError(errorRpc, "reponer el piso"));
+      // Solo se vuelve a abrir si falló: si guardó, el modal se cierra y no debe aceptar otro envío.
+      enVuelo.current = false;
+      setError(traducirError(errorRpc, regla.accion));
       return;
     }
-    avisar.exito(`${n} ${n === 1 ? "unidad repuesta" : "unidades repuestas"} al piso`, {
+    avisar.exito(regla.exito(n), {
       detalle: `${fila.referencia} · ${[fila.talla, fila.color].filter(Boolean).join("/")}`,
     });
     router.refresh();
@@ -89,7 +116,7 @@ export function ReponerPisoModal({
   }
 
   return (
-    <Modal titulo="Reponer piso" onClose={onClose}>
+    <Modal titulo={regla.titulo} onClose={onClose}>
       {(cerrar) => (
         <form onSubmit={onSubmit} className="mt-5 space-y-4">
           <p className="text-sm text-tinta">
@@ -97,29 +124,44 @@ export function ReponerPisoModal({
             <span className="font-mono text-xs text-tinta/65">{fila.sku}</span>
           </p>
 
+          {/* Las dos cifras llegan NETAS de lo apartado para clientas (Existencias pasa `pisoDisponible` y
+              `almacenDisponible`): por eso dicen «Disponible», la misma palabra que usa la tabla para lo que
+              se puede vender o mover. Rotularlas «actual» hacía creer que el sistema perdió prendas cuando la
+              tabla (que muestra lo físico en «Piso · Almacén») decía otra cifra. */}
           <div className="card-cayla grid grid-cols-2 divide-x divide-tinta/10 text-center">
             <div className="p-3">
-              <p className="label-cayla text-[10px] text-tinta/55">Piso actual</p>
+              <p className="label-cayla text-[10px] text-tinta/55">Disponible en piso</p>
               <p className="font-display text-xl text-tinta">{fila.piso ?? 0}</p>
             </div>
             <div className="p-3">
               <p className="label-cayla text-[10px] text-tinta/55">Disponible en almacén</p>
-              <p className="font-display text-xl text-tinta">{disponible}</p>
+              <p className="font-display text-xl text-tinta">{fila.almacen ?? 0}</p>
             </div>
           </div>
 
           <CampoTexto
-            etiqueta="Cantidad a reponer"
+            etiqueta={regla.etiquetaCantidad}
             type="number"
             min={1}
             max={disponible}
             inputMode="numeric"
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
-            pie={error ?? "Almacén de tienda → Piso de venta"}
-            tono={error ? "error" : "neutro"}
+            pie={error ?? avisoRetiro ?? regla.recorrido}
+            tono={error ? "error" : avisoRetiro ? "aviso" : "neutro"}
             autoFocus
           />
+
+          {sentido === "retirar" && (
+            <CampoTexto
+              etiqueta="Nota (opcional)"
+              placeholder="Por qué se guarda: fin de temporada, cambio de exhibición…"
+              maxLength={200}
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              disabled={loading}
+            />
+          )}
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 

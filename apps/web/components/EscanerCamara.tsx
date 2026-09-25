@@ -50,6 +50,20 @@ type Lector = (video: HTMLVideoElement, lienzo: HTMLCanvasElement) => Promise<st
 type DetectorNativo = { detect: (fuente: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type ClaseDetector = { new (opciones: { formats: string[] }): DetectorNativo; getSupportedFormats: () => Promise<string[]> };
 
+/**
+ * Baja jsQR por adelantado, mientras hay red (ADR-0210, «huecos»). Es lo único de Vender que se carga recién al usarlo:
+ * sin esto, un iPhone que abre Vender sin internet (copia del service worker) tendría la cámara pero no el lector.
+ * Bajarlo una vez con red lo deja en la copia (`/_next/static`, primero-la-copia). Donde el teléfono trae su propio
+ * lector (`BarcodeDetector`, Android) no hace falta.
+ */
+export function precargarLectorQR(): void {
+  if (typeof window === "undefined" || !navigator.onLine) return;
+  if ((window as unknown as { BarcodeDetector?: unknown }).BarcodeDetector) return;
+  void import("jsqr").catch(() => {
+    // Sin red a mitad: se intentará la próxima vez que se abra Vender.
+  });
+}
+
 async function crearLector(): Promise<Lector> {
   const Nativo = (window as unknown as { BarcodeDetector?: ClaseDetector }).BarcodeDetector;
   if (Nativo) {
