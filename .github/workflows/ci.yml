@@ -168,6 +168,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cuentas-dinero
 
+      # La cuenta sellada (ADR-0195 F3b): cada cobro y pago guarda de qué cuenta salió o a cuál entró; del cajón, con su
+      # salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
+      - name: pruebas:cuenta-sellada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuenta-sellada
+
       - name: pruebas:por-pagar-consolidado
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:por-pagar-consolidado
