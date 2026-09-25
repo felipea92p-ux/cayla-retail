@@ -31,8 +31,8 @@
 --     está viva (el 25-09 pasó de 2 a 7 ventas mientras se medía). Al guardar un resultado,
 --     anota la fecha y la hora; la 01 la trae en su columna `foto`.
 --
--- PROHIBIDO usarlo como LÍNEA BASE antes de 6 semanas desde el arranque de cada sede (la fecha de
---   arranque la fija la tarea 8; mientras no exista, nada de esto es línea base). Las cifras
+-- PROHIBIDO usarlo como LÍNEA BASE antes de 6 semanas desde el arranque de cada sede (esa fecha
+--   todavía no existe en el ERP; mientras no exista, nada de esto es línea base). Las cifras
 --   «Hoy:» de abajo son una foto del 25-09-2026 con 7 ventas, todas de TRU y en su 2.º día: sirven
 --   para reconocer la forma del resultado, no para compararse contra ellas.
 --
@@ -58,8 +58,8 @@
 --   `ventas_emite_alegra`.
 --
 -- SOBRE LA BAJADA (almacén → piso). Las consultas 02, 04, 05 y 07 reconocen una bajada por
---   motivo = 'movimiento_interno' con DESTINO el piso de venta (el «Retirar del piso» de la tarea 3
---   va al revés y no es bajada), tal como corrieron en producción. El motor de
+--   motivo = 'movimiento_interno' con DESTINO el piso de venta (un retiro del piso va al revés y no
+--   es bajada), tal como corrieron en producción. El motor de
 --   Frescura (retail.fn_ledger_puntos) usa otra condición, estructural: retail.fn_es_traslado_interno,
 --   un traslado cuyo origen y destino son la misma sede
 --   (supabase/migrations/20260924030000_ledger_fuente_unica.sql:78-84). Hoy dan lo mismo: los 23
@@ -94,7 +94,7 @@
 -- Revisión del 25-09: antes partía de las ventas, así que un día sin ventas en el ERP no salía con 0,
 -- simplemente no salía; y no tenía semana, así que con los meses devolvía todo el historial. Ahora
 -- arma el calendario de la semana (`semanas_atras`) por tienda y cuelga de él las ventas.
--- Cuándo: Cada lunes, con semanas_atras = 1. También antes de marcar el arranque de cada sede (tarea 8).
+-- Cuándo: Cada lunes, con semanas_atras = 1. También antes de marcar el arranque de cada sede.
 -- Hoy: 25-09 (viernes), 22:16 UTC, con semanas_atras = 0 (del lunes 21-09 a hoy): 15 filas, 3 tiendas × 5 días.
 -- Hoy: - Tienda TRU, 24-09: 1 venta, emitida por retail, 1 u., S/ 39,90;
 -- Hoy: - Tienda TRU, 25-09: 6 ventas, las 6 emitidas por retail (0 por Alegra, 0 con número de boleta Alegra), 33 u., S/ 2 270,60;
@@ -146,12 +146,12 @@ ORDER BY s.nombre, d.dia_lima;
 
 -- ======================================================================
 -- 02.
--- ¿El piso se llena por bajada o por ajuste directo? Por tienda y por semana, da el % de unidades que entraron al piso sin pasar por una bajada. Mide la tarea 3.
+-- ¿El piso se llena por bajada o por ajuste directo? Por tienda y por semana, da el % de unidades que entraron al piso sin pasar por una bajada. Mide cuánto del piso se sigue cargando por ajuste en vez de por bajada.
 -- Tres vías de entrada al piso, y solo dos cuentan en el porcentaje:
 -- - bajada: traslado almacén → piso;
 -- - sin bajada: ajustes positivos y entradas directas al piso. `uds_sin_bajada_por_motivo` las abre por
---   tipo:motivo, así que la carga «Ya estaba colgada» de la tarea 3 sale con su propio nombre, separada
---   de «encontré de más» ('reposicion'), sin que esta consulta tenga que adivinar cómo se llamará;
+--   tipo:motivo, así que cada motivo sale con su propio nombre (p.ej. 'conteo_fisico' separado de
+--   'reposicion'), sin que esta consulta tenga que adivinar los que se agreguen después;
 -- - reingreso de una venta: la prenda vuelve al piso porque la clienta la devolvió o la cambió, o porque
 --   se anuló la venta. Es un flujo correcto, no ropa colgada sin registrar: aprobar_devolucion y
 --   registrar_cambio la graban como 'entrada' en el piso de venta
@@ -167,7 +167,7 @@ ORDER BY s.nombre, d.dia_lima;
 -- semana (`semanas_atras`) y deja la cifra acumulada como columna aparte; 3) separa el reingreso de una
 -- venta y abre lo que entró sin bajada por motivo. Reconoce la bajada por el motivo
 -- 'movimiento_interno'; el motor usa fn_es_traslado_interno, y hoy dan lo mismo (ver SOBRE LA BAJADA).
--- Cuándo: Cada lunes (semanas_atras = 1), y antes y después de fusionar la tarea 3.
+-- Cuándo: Cada lunes (semanas_atras = 1), y antes y después de cualquier cambio al ajuste o a la bajada al piso.
 -- Hoy: 25-09, 22:17 UTC, con semanas_atras = 0 (semana del 21-09):
 -- Hoy: - TRU: 22 variantes solo por bajada (100 u.), 14 solo sin bajada (92 u., las 92 «ajuste:reposicion»),
 -- Hoy:   0 mixtas y 0 u. de reingreso. El 47,9 % del piso entró sin bajada, igual que desde el inicio, porque
@@ -273,7 +273,7 @@ order by 1,2,3,4;
 
 -- ======================================================================
 -- 04.
--- Casos sospechosos de ropa colgada sin registrar: ventas desde el piso con una bajada de la misma talla 10, 30 o 60 minutos antes. Sirve para mirar casos, nunca como indicador de disciplina, porque castigaría a quien trae una talla para una clienta. Desde la tarea 7 se cruza con bajadas_piso.contexto = 'caja'.
+-- Casos sospechosos de ropa colgada sin registrar: ventas desde el piso con una bajada de la misma talla 10, 30 o 60 minutos antes. Sirve para mirar casos, nunca como indicador de disciplina, porque castigaría a quien trae una talla para una clienta.
 -- Ojo al leerla: `ventas_desde_piso` cuenta SALIDAS del libro (una por línea de venta), no ventas.
 -- Origen: VERBATIM de fase 1 (registro-y-relojes #12). Reconoce la bajada por el motivo 'movimiento_interno' (ver SOBRE LA BAJADA).
 -- Cuándo: Cada lunes: se miran los casos, no el porcentaje.
@@ -312,17 +312,17 @@ group by 1,2;
 
 -- ======================================================================
 -- 05.
--- La ropa guardada en el almacén, por tienda, según lo que HOY hay colgado de esa talla, y cuántos días lleva esperando. Es la base de «Por colgar» (tarea 4).
--- «Por colgar» es la misma pregunta que la pantalla de la tarea 4: almacén disponible > 0 y piso disponible = 0
+-- La ropa guardada en el almacén, por tienda, según lo que HOY hay colgado de esa talla, y cuántos días lleva esperando. Es la base de «Por colgar» (Existencias).
+-- «Por colgar» es la misma pregunta que el filtro «Por colgar» de Existencias: almacén disponible > 0 y piso disponible = 0
 -- en la sede (disponible = cantidad − apartada, la cuenta de sumarCantidades, apps/web/lib/inventario-reglas.ts:262-309).
 -- Se mira el stock de hoy y no la historia: una talla que bajó el martes, se vendió entera y tiene 3 en el almacén
 -- está por colgar aunque «ya bajó alguna vez»; y una que llegó al piso por ajuste directo ya está colgada aunque
 -- «nunca bajó». `de_esas_ya_bajaron_alguna_vez` queda solo como dato.
 -- Origen: AJUSTADA de fase 1 (registro-y-relojes #16), con tres cambios: 1) clasifica por el piso disponible de hoy,
--- no por si alguna vez hubo bajada; 2) una bajada es un traslado con DESTINO el piso (así, el «Retirar del piso» de
--- la tarea 3, que va del piso al almacén, no cuenta como bajada); 3) sale por tienda. Reconoce la bajada por el
+-- no por si alguna vez hubo bajada; 2) una bajada es un traslado con DESTINO el piso (así, un retiro del piso, que va
+-- del piso al almacén, no cuenta como bajada); 3) sale por tienda. Reconoce la bajada por el
 -- motivo 'movimiento_interno' (ver SOBRE LA BAJADA).
--- Cuándo: Cada lunes, y para verificar la tarea 4 (sus conteos tienen que cuadrar con «por colgar: nada colgado»).
+-- Cuándo: Cada lunes, y para verificar el filtro «Por colgar» de Existencias (sus conteos tienen que cuadrar con «por colgar: nada colgado»).
 -- Hoy: 25-09, 22:18 UTC, TRU, 45 u. en el almacén, ninguna apartada:
 -- Hoy: - por colgar: 3 variantes y 8 u. del conteo del 22-09 (3,0 días esperando), más 6 variantes y 12 u. del ajuste de reposición del 25-09 (0,3 días);
 -- Hoy: - ya hay colgado: 3 variantes y 13 u. (conteo), 1 variante y 2 u. (ajuste del 25-09) y 2 variantes y 10 u. (recepción del 23-09).
@@ -401,7 +401,7 @@ group by 1,2 order by 1,2;
 -- 07.
 -- Desde cuándo tiene historia de piso cada sede, y cuánto entró por bajada y cuánto por ajuste. Dice cuánto falta para las 8 semanas de la carrera; una vez que exista la fecha de arranque, se cuenta desde ella.
 -- Origen: VERBATIM de fase 1 (volumen-y-evidencia #20). Reconoce la bajada por el motivo 'movimiento_interno' (ver SOBRE LA BAJADA).
--- Cuándo: Cada lunes, y antes de encender la carrera (tarea 12).
+-- Cuándo: Cada lunes, y antes de encender la carrera de cada categoría (el semáforo de Frescura).
 -- Hoy: 25-09, 21:54 UTC. TRU: primer evento de piso el 24-09 a las 14:39 UTC (1,3 días de historia),
 -- Hoy: 23 bajadas (100 u.) y 92 u. al piso por ajuste. AQP y LIM: sin eventos de piso.
 -- ======================================================================
@@ -426,7 +426,7 @@ group by u.nombre order by u.nombre;
 -- cobra sumaría a una fila de categoría vacía que parece tener muestra cuando lo que falta es catálogo;
 -- 2) sin `limit 50`: con 13 categorías vendidas en las 3 tiendas el resultado pasa de 50 filas, y el corte
 -- se comía sin aviso las de Tienda TRU, que van al final. El resultado ya está acotado por categorías × sedes.
--- Cuándo: Una vez al mes, y antes de la tarea 12.
+-- Cuándo: Una vez al mes, y antes de encender el semáforo de Frescura.
 -- Hoy: 25-09, 21:54 UTC, con 7 ventas (34 u.), todas de TRU, así que «por sede» y «3 sedes» dan lo mismo:
 -- Hoy: - Tops: 2 modelo+color y 15 u.; Camisas y Blusas: 2 y 10 u.; Polos: 2 y 5 u.;
 -- Hoy: - Jeans: 1 y 3 u.; Blazers: 1 y 1 u.
