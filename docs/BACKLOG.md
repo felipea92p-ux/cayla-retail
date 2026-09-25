@@ -28,6 +28,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Actividad de cada módulo: quién hizo qué, desde la cabecera (2026-09-25, ADR-0207) — migración `20260926090000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #424
+- [x] Tabla `retail.actividad` (solo agregar), disparadores de Punto de venta, Historial de ventas (anulaciones), Caja y Cambios, carga de lo pasado, `fn_actividad` / `fn_actividad_personas` con el alcance por sede. `pnpm pruebas:actividad` 15/15 en el local.
+- [x] Botón «Actividad» en la cabecera (panel del módulo actual) y `/actividad` (todo, con filtros). Verificado en el navegador como líder, en escritorio y a 375 px.
+- [x] **Pegada en producción** (2026-09-25, pedido de Felipe, por el MCP): ensayo completo abortado a propósito (41 líneas: 7 ventas, 16 aperturas, 13 cierres, 4 movimientos de cajón, 1 traslado; producción intacta después), luego aplicada. Verificado: 41 líneas, todas con persona; 7 disparadores (el de venta diferido); RLS sin políticas; `authenticated` no lee la tabla ni anota, sí llama `fn_actividad`; `anon` nada; módulo sin rol; terminal bloqueada; editar una línea se rechaza. Como líder, `fn_actividad` devuelve las 41 de 3 sedes con nombre.
+- [ ] Después de pegar: refrescar el volcado y correr `pnpm datos:generar:produccion` (tabla nueva) y `pnpm datos:comparar`.
+- [ ] Felipe: encender «Actividad» en el rol de la líder de tienda (Roles y accesos) y entrar con esa cuenta para ver que solo sale su sede (probado en la base; falta el clic con una sesión que no sea líder).
+- [ ] Sumar los demás módulos, uno por migración (receta en el ADR-0207): Devoluciones, Apartados, Traslados, Existencias (ajustes), Productos (precio con antes/después), Colaboradores y Roles.
+- [ ] Idea: enlazar cada línea a su registro (la venta en el Historial, la caja en su cierre).
+
 ## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — FUSIONADO (#422 y #423); `main` exige los dos checks del CI
 - [x] **`main` exige los dos checks del CI para fusionar (2026-09-25):** `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` en el ruleset `main-protegida`, aplicado con OK de Felipe tras fusionar #422 y #423. Los PR abiertos antes de ese momento reportan el check con el nombre viejo y quedan trabados hasta traer `main`.
 - [ ] **Construir lo que Felipe decidió el 2026-09-25:** (1) R-38 — dentro de 15 días la devolución la aplica cualquiera en caja, sin líder; afloja el candado de ADR-0177 (quien registra no aprueba), así que lleva ADR y migración propios; (2) antes de cerrar caja, la pantalla de Caja resalta los descuentos de más de 15%; (3) R-20 — revisar el umbral por categoría cuando haya 8 semanas de ventas reales (hoy 14 días para todas).

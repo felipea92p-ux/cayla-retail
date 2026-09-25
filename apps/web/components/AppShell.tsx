@@ -7,6 +7,8 @@ import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
+import { BotonActividad } from "@/components/actividad/BotonActividad";
+import { veActividad } from "@/lib/actividad-reglas";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
 import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type ClaveIcono, type FilaMenu, type GrupoMenu as ItemGrupo, type ItemMenu as Item, type Permiso } from "@/lib/menu";
 import type { ClaveModulo } from "@/lib/modulos";
@@ -1084,6 +1086,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
               En celular (ADR-0205) se agrupa con Buscar, pegadas al borde como una sola unidad. El avatar
               que ADR-0205 puso acá salió con el cajón (v4): «Mi perfil» vive al pie del cajón. */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            {/* Actividad (ADR-0207): el historial del módulo donde uno está, pegado a la sede que mira. No es fila del
+                lateral: no es una pantalla más. Solo para el líder y quien tenga el módulo; nunca en una terminal. */}
+            {veActividad({ rol: persona.rol, terminal: esAparato, modulos: persona.modulos ?? null }) ? (
+              <BotonActividad ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} esLider={esLider} />
+            ) : null}
             {persona.puedeCambiarUbicacion ? (
               <UbicacionSwitcher ubicaciones={ubicaciones} ubicacionActualId={persona.ubicacionId} />
             ) : (

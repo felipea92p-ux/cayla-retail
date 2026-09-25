@@ -232,6 +232,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
 
+      # Actividad de cada módulo (ADR-0207): cada venta, anulación, caja y cambio deja su línea; la tabla es de solo
+      # agregar; si anotar falla la venta se guarda igual; el alcance por sede (líder, líder de tienda, terminal). ROLLBACK.
+      - name: pruebas:actividad
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad
+
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:aprobar-devolucion-caja
