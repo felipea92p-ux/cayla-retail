@@ -1,14 +1,14 @@
-# ADR-0181 — Seis decisiones de negocio sobre el dominio de Inventario (Felipe, 2026-09-24)
+# ADR-0201 — Seis decisiones de negocio sobre el dominio de Inventario (Felipe, 2026-09-24)
 
 **Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
-**Amplía:** [ADR-0180](0180-dominio-inventario-comportamiento-comercial.md) — responde las 4 preguntas de negocio que
+**Amplía:** [ADR-0200](0200-dominio-inventario-comportamiento-comercial.md) — responde las 4 preguntas de negocio que
 ese ADR dejó explícitamente abiertas, más dos piezas de fundación que Felipe pidió completar ahora (contrato de
 calidad, primitiva de timeline).
 
 ## Contexto
 
-Tras el informe de verificación de ADR-0180 (fórmulas ejecutadas contra el código real, no solo referencias),
-Felipe respondió con 6 decisiones canónicas. Ninguna se asumió — todas estaban en el ADR-0180 como preguntas
+Tras el informe de verificación de ADR-0200 (fórmulas ejecutadas contra el código real, no solo referencias),
+Felipe respondió con 6 decisiones canónicas. Ninguna se asumió — todas estaban en el ADR-0200 como preguntas
 explícitas o como huecos declarados ("D. Falta realmente por implementar").
 
 ## Decisiones y qué cambió
@@ -65,22 +65,22 @@ otra pantalla, queda preparada para que Existencias/Movimientos/Traslados la con
   contrato de calidad es una capa aparte, no un reemplazo.
 - Las etiquetas "Mejoró rotación"/"Rotó más" (Comparar períodos, `resumen-comparacion.ts`/`resumen-lectura.ts`):
   no se renombraron a "valorizada" — Comparar no tiene columnas de piso/total todavía, así que no hay ambigüedad
-  adyacente hoy. Si se extiende Comparar (pendiente de ADR-0180), vale la pena revisarlas en ese momento.
+  adyacente hoy. Si se extiende Comparar (pendiente de ADR-0200), vale la pena revisarlas en ese momento.
 
 ## Cómo se verificó
 
-- **24,280 pruebas en verde** (119 archivos, +19 desde ADR-0180), typecheck y lint limpios.
+- **24,280 pruebas en verde** (119 archivos, +19 desde ADR-0200), typecheck y lint limpios.
 - SQL: la clasificación `liquidacion_danada` se probó de forma aislada (datos sintéticos, sin tocar tablas
   reales) — confirma que queda separada de `'venta'`.
 - `fn_ledger_timeline` se verificó a MANO contra movimientos reales de una variante en Tienda TRU (2 ajustes de
   +4 a almacén, luego un traslado interno de 3 a piso): el resultado reconstruido coincide exactamente con la
   secuencia real — piso en 0 hasta el traslado, luego 3; total en 0→4→8, sin que el traslado interno mueva el
-  total (confirma que el fix del bucket total de ADR-0180 también vive correctamente en esta función nueva).
+  total (confirma que el fix del bucket total de ADR-0200 también vive correctamente en esta función nueva).
   No se pudo cruzar contra `fn_resumen_comparacion` con la misma identidad simulada por un tema de permisos de
   sede (Tienda TRU, no la sede base de la identidad usada) — la verificación quedó por trazado manual contra
   datos reales, no por comparación entre las dos funciones.
 - La sesión local del navegador se cerró durante esta ronda (el dataset local cambió sustancialmente respecto a
-  la verificación de ADR-0180 — parece haber habido un reseteo de la base local en algún punto de la sesión).
+  la verificación de ADR-0200 — parece haber habido un reseteo de la base local en algún punto de la sesión).
   No se re-verificó visualmente el renombre "Rotación valorizada" en el navegador — es un cambio de texto de
   bajo riesgo, cubierto por tests, pero queda pendiente verlo en vivo cuando Felipe vuelva a iniciar sesión.
 

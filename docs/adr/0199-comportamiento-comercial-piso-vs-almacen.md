@@ -1,4 +1,4 @@
-# ADR-0179 — Comportamiento comercial de variantes: piso vs. almacén en Análisis de inventario
+# ADR-0199 — Comportamiento comercial de variantes: piso vs. almacén en Análisis de inventario
 
 **Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto/GitHub) ·
 **Amplía:** ADR-0138 (Análisis de inventario), ADR-0171 (lectura por reglas) · **Migración:** local únicamente,

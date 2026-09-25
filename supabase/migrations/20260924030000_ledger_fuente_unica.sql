@@ -1,5 +1,5 @@
 -- ============================================================================
--- Única fuente de verdad para el ledger de piso/almacén/total (Felipe, 2026-09-24 — ADR-0182)
+-- Única fuente de verdad para el ledger de piso/almacén/total (Felipe, 2026-09-24 — ADR-0202)
 --
 -- CONSOLIDACIÓN DE RELEASE (mismo día): esta migración reemplaza también a
 -- `20260924020000_ledger_timeline_variante.sql`, que creaba una primera versión autocontenida de
@@ -11,9 +11,9 @@
 -- Hasta esta migración existían DOS reconstrucciones independientes del mismo ledger (saldo
 -- inicial → clasificación por bucket → nivel acumulado): una dentro de `fn_resumen_comparacion`
 -- (todas las variantes de una sede, dos ventanas A/B a la vez) y otra en `fn_ledger_timeline`
--- (una variante, una ventana). Las dos coincidían HOY (verificado a mano, ADR-0181), pero eran
+-- (una variante, una ventana). Las dos coincidían HOY (verificado a mano, ADR-0201), pero eran
 -- dos copias del mismo algoritmo: cualquier corrección futura (como la del bucket total,
--- ADR-0180) exigía aplicarse dos veces sin garantía de que las dos copias siguieran de acuerdo.
+-- ADR-0200) exigía aplicarse dos veces sin garantía de que las dos copias siguieran de acuerdo.
 -- Felipe pidió una sola fuente de verdad conceptual, SIN volver esto N+1: una llamada por
 -- variante sobre `fn_ledger_timeline` habría cambiado el recorrido de TODA la sede en un solo
 -- paso — lo que ya hacía `fn_resumen_comparacion` — por N recorridos, uno por variante.
@@ -169,7 +169,7 @@ efectos_clase as (
          then case when ef.sub_tipo = 'piso_venta' then ef.delta else 0 end
          else case when ef.sub_tipo is distinct from 'cuarentena' then ef.delta else 0 end end as d_piso,
     -- Nunca condicionado a que la sede separe piso/almacén ni a que `sub_tipo` resuelva a un tipo
-    -- conocido (fix del bucket total, ADR-0180): un movimiento sin sububicacion_id no debe inflar
+    -- conocido (fix del bucket total, ADR-0200): un movimiento sin sububicacion_id no debe inflar
     -- ni vaciar el total en silencio.
     case when ef.sub_tipo is distinct from 'cuarentena' then ef.delta else 0 end as d_total
   from efectos ef
@@ -247,7 +247,7 @@ select * from puntos_total;
 $$;
 
 comment on function retail.fn_ledger_puntos(uuid, timestamptz, uuid[]) is
-  'Única fuente de verdad de la reconstrucción del ledger (2026-09-24, ADR-0182): el nivel de PISO y de TOTAL (piso+almacén, nunca cuarentena) en cada punto (saldo inicial + cada movimiento neto), para una sede desde un punto de partida, opcionalmente acotado a un arreglo de variantes. No calcula intervalos ni eventos: fn_resumen_comparacion y fn_ledger_timeline arman lo que necesitan a partir de estos mismos puntos. Función interna (no otorgada a authenticated): la autorización vive en cada función que la llama.';
+  'Única fuente de verdad de la reconstrucción del ledger (2026-09-24, ADR-0202): el nivel de PISO y de TOTAL (piso+almacén, nunca cuarentena) en cada punto (saldo inicial + cada movimiento neto), para una sede desde un punto de partida, opcionalmente acotado a un arreglo de variantes. No calcula intervalos ni eventos: fn_resumen_comparacion y fn_ledger_timeline arman lo que necesitan a partir de estos mismos puntos. Función interna (no otorgada a authenticated): la autorización vive en cada función que la llama.';
 
 revoke all on function retail.fn_ledger_puntos(uuid, timestamptz, uuid[]) from public, anon, authenticated;
 
@@ -290,7 +290,7 @@ order by pt.bucket, pt.ts;
 $$;
 
 comment on function retail.fn_ledger_timeline(uuid, uuid, timestamptz, timestamptz) is
-  'Primitiva de dominio (2026-09-24; desde ADR-0182 delegada en retail.fn_ledger_puntos, la única fuente de verdad del ledger): reconstruye los intervalos de nivel de PISO y de TOTAL (piso+almacén, nunca cuarentena) de una variante en una sede, para cualquier ventana de tiempo. No calcula nada por sí sola (ni días con stock, ni promedios, ni exposición) — expone la serie cruda para que quien la consuma calcule lo que necesite. Solo líderes que puedan analizar esa sede.';
+  'Primitiva de dominio (2026-09-24; desde ADR-0202 delegada en retail.fn_ledger_puntos, la única fuente de verdad del ledger): reconstruye los intervalos de nivel de PISO y de TOTAL (piso+almacén, nunca cuarentena) de una variante en una sede, para cualquier ventana de tiempo. No calcula nada por sí sola (ni días con stock, ni promedios, ni exposición) — expone la serie cruda para que quien la consuma calcule lo que necesite. Solo líderes que puedan analizar esa sede.';
 
 revoke all on function retail.fn_ledger_timeline(uuid, uuid, timestamptz, timestamptz) from public, anon;
 grant execute on function retail.fn_ledger_timeline(uuid, uuid, timestamptz, timestamptz) to authenticated;
@@ -463,8 +463,8 @@ actual as (
   group by s.variante_id, ub.separa
 ),
 -- ---------------------------------------------------------------------------
--- Reconstrucción del ledger (ADR-0113, ADR-0138, ADR-0180): DELEGADA en `fn_ledger_puntos`
--- (ADR-0182) — una sola llamada, todas las variantes de la sede, la ventana combinada t0→ahora.
+-- Reconstrucción del ledger (ADR-0113, ADR-0138, ADR-0200): DELEGADA en `fn_ledger_puntos`
+-- (ADR-0202) — una sola llamada, todas las variantes de la sede, la ventana combinada t0→ahora.
 -- ---------------------------------------------------------------------------
 puntos_todas as (
   select * from retail.fn_ledger_puntos(p_ubicacion_id, (select t0 from ventana))
@@ -693,7 +693,7 @@ order by b.referencia, b.color_nombre, b.talla, b.variante_id;
 $$;
 
 comment on function retail.fn_resumen_comparacion(uuid, date, date, date, date) is
-  'Comparación de dos períodos (A y B) para una sede: por variante, unidades vendidas y devueltas, importe, costo de lo vendido y de lo devuelto (COGS en componentes), unidades sin costo, entradas, stock utilizable al inicio y al cierre reconstruido del ledger, días con stock, promedio ponderado por tiempo (piso y total, para rotación), última venta y exposición en piso desde entonces, los eventos de piso para el sell-through de cohortes en TypeScript, y el stock actual de piso/almacén (NULL cuando la sede no separa). La reconstrucción del ledger (desde ADR-0182) delega en retail.fn_ledger_puntos, la misma fuente que usa fn_ledger_timeline. Solo líderes. No decide nada: las reglas viven en apps/web/lib/resumen-comparacion.ts y apps/web/lib/inventario-exposicion.ts. Ver ADR-0138, ADR-0113, ADR-0180 y ADR-0182.';
+  'Comparación de dos períodos (A y B) para una sede: por variante, unidades vendidas y devueltas, importe, costo de lo vendido y de lo devuelto (COGS en componentes), unidades sin costo, entradas, stock utilizable al inicio y al cierre reconstruido del ledger, días con stock, promedio ponderado por tiempo (piso y total, para rotación), última venta y exposición en piso desde entonces, los eventos de piso para el sell-through de cohortes en TypeScript, y el stock actual de piso/almacén (NULL cuando la sede no separa). La reconstrucción del ledger (desde ADR-0202) delega en retail.fn_ledger_puntos, la misma fuente que usa fn_ledger_timeline. Solo líderes. No decide nada: las reglas viven en apps/web/lib/resumen-comparacion.ts y apps/web/lib/inventario-exposicion.ts. Ver ADR-0138, ADR-0113, ADR-0200 y ADR-0202.';
 
 revoke all on function retail.fn_resumen_comparacion(uuid, date, date, date, date) from public, anon;
 grant execute on function retail.fn_resumen_comparacion(uuid, date, date, date, date) to authenticated;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Prueba de integración: `retail.fn_ledger_puntos` es la ÚNICA fuente de verdad del ledger de
- * piso/almacén/total (ADR-0182, 2026-09-24) — que `fn_resumen_comparacion` y `fn_ledger_timeline`
+ * piso/almacén/total (ADR-0202, 2026-09-24) — que `fn_resumen_comparacion` y `fn_ledger_timeline`
  * REALMENTE la usan (no que "dan el mismo número por coincidencia"), y que unificarlas no cambió
  * ningún resultado de `fn_resumen_comparacion` (mismos casos que `fn_resumen_comparacion.mjs`,
  * antes de esta migración, adaptados a la sede real del seed actual — ver la nota al final).

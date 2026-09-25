@@ -1,7 +1,7 @@
-# ADR-0180 — Dominio de Inventario: comportamiento comercial reconstruido sobre la definición canónica de Felipe
+# ADR-0200 — Dominio de Inventario: comportamiento comercial reconstruido sobre la definición canónica de Felipe
 
 **Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
-**Sucede a:** [ADR-0179](0179-comportamiento-comercial-piso-vs-almacen.md) — no lo reemplaza en la bitácora, lo **corrige**:
+**Sucede a:** [ADR-0199](0199-comportamiento-comercial-piso-vs-almacen.md) — no lo reemplaza en la bitácora, lo **corrige**:
 0179 fue la primera versión, escrita ANTES de recibir la definición canónica de Felipe. Una auditoría de 8 hallazgos
 independientes (2026-09-24, self-encargada) encontró que esa primera versión contradecía el modelo en sus dos puntos
 más importantes — el reloj de exposición se reiniciaba en vez de pausar/reanudar, y la rotación estaba en soles en
@@ -29,7 +29,7 @@ Comparar períodos en producción, hoy, muestra un stock total inflado para AQP/
 fecha. **Corregido en la lógica local** (no en los datos — el fix no necesita backfill, corrige la reconstrucción,
 no lo insertado). **Aplicar esta corrección a producción es una decisión de Felipe, no tomada aquí.**
 
-También se corrigió una afirmación falsa del propio ADR-0179: atribuía los N/D de Tienda Lima al 55% de movimientos
+También se corrigió una afirmación falsa del propio ADR-0199: atribuía los N/D de Tienda Lima al 55% de movimientos
 sin `sububicacion_id` — verificado empíricamente contra la base local, esos movimientos son 100% del Taller (que no
 separa piso/almacén) y 0% de Lima/Trujillo. La causa real es exposición insuficiente (muestra limitada), no datos
 faltantes.
@@ -61,7 +61,7 @@ faltantes.
 | Qué | Antes (0179) | Ahora | Por qué |
 |---|---|---|---|
 | Reloj de exposición | `armarCohortes` abría una cohorte NUEVA (reloj en 0) cada vez que una cantidad volvía al piso | El reloj se PAUSA al salir a almacén y CONTINÚA al volver — nunca se reinicia | Contradecía la sección 5 del pedido textualmente; confirmado con los 3 tests numéricos (casos J, K) que antes daban el número equivocado |
-| Rotación piso/total | `calcularRotacion` de `rotacion.ts`: COGS (soles) ÷ inventario a costo | `rotacionUnidades`: unidades vendidas ÷ unidades promedio — nunca costo | Sección 14: *"Nunca: moneda / unidades"*. El propio ADR-0179 admitía la fórmula contable en su texto |
+| Rotación piso/total | `calcularRotacion` de `rotacion.ts`: COGS (soles) ÷ inventario a costo | `rotacionUnidades`: unidades vendidas ÷ unidades promedio — nunca costo | Sección 14: *"Nunca: moneda / unidades"*. El propio ADR-0199 admitía la fórmula contable en su texto |
 | Promedio de piso | Área ÷ TODOS los días del período (diluido) | Área ÷ SOLO los días con stock en piso | Sección 15: diluir con días sin piso castiga dos veces la poca exposición (ya lo dice «muestra limitada») |
 | Bucket «total» ante sub_tipo NULL | Contaba 0 (mismo defecto que «piso») | Cuenta el movimiento igual (nunca depende de resolver piso/almacén) | Sección 17: el total debe poder reconstruirse aunque la separación puntual no se sepa — y es el bug de producción de la sección 1 |
 | «Es venta» | Definida dos veces, con criterios levemente distintos, en la misma función SQL | Una función `retail.fn_es_venta_de_stock`, reutilizada en los dos lugares | Sección 24 / integridad conceptual: dos definiciones de la misma regla de negocio pueden desalinearse sin que ningún test lo note |

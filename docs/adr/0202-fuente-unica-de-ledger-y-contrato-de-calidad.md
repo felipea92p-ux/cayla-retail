@@ -1,12 +1,12 @@
-# ADR-0182 — Fuente única del ledger de piso/almacén/total y contrato de calidad en el dominio (Felipe, 2026-09-24)
+# ADR-0202 — Fuente única del ledger de piso/almacén/total y contrato de calidad en el dominio (Felipe, 2026-09-24)
 
 **Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
-**Amplía:** [ADR-0181](0181-seis-decisiones-dominio-inventario.md) — cierra los dos puntos arquitectónicos que Felipe
+**Amplía:** [ADR-0201](0201-seis-decisiones-dominio-inventario.md) — cierra los dos puntos arquitectónicos que Felipe
 dejó explícitamente pendientes tras aprobar conceptualmente las seis decisiones de negocio de ese ADR.
 
 ## Contexto
 
-Felipe aprobó la lógica de negocio de ADR-0181 sin cambios, pero señaló dos huecos arquitectónicos antes de dar
+Felipe aprobó la lógica de negocio de ADR-0201 sin cambios, pero señaló dos huecos arquitectónicos antes de dar
 por cerrado el dominio: (1) `fn_ledger_puntos`... digo, `fn_ledger_timeline` y `fn_resumen_comparacion` seguían
 siendo DOS reconstrucciones independientes del mismo ledger, aunque dieran el mismo número; (2) el contrato de
 calidad (exacto/estimado/no_disponible) existía como módulo pero solo se llamaba desde 2 de las 7 celdas de la
@@ -77,7 +77,7 @@ producción (ADR-0113/ADR-0138) sin necesidad real.
 ## 2. Contrato de calidad, completado en el DOMINIO
 
 **DECIDÍ:** agregar `calidadDeExposicion` (el séptimo adaptador que faltaba, mismo patrón que los 6 de
-ADR-0181) a `inventario-calidad.ts`, y calcular las 7 en UN solo lugar: `analizarDesempeno()`
+ADR-0201) a `inventario-calidad.ts`, y calcular las 7 en UN solo lugar: `analizarDesempeno()`
 (`resumen-desempeno.ts`), que ahora devuelve `AnalisisDesempeno.calidad: CalidadDesempeno` — un registro con las 7
 claves (`exposicion`, `ritmo`, `sellThrough`, `rotacionPiso`, `rotacionTotal`, `sinVenta`, `tendencia`), cada una
 un `Calidad` del contrato ya existente. `ResumenComportamiento.tsx` deja de llamar a los adaptadores dentro del
@@ -92,7 +92,7 @@ métrica debe poder declarar calidad") lo satisface igual de bien una proyecció
 que un campo nativo en cada tipo, con muchísimo menos riesgo de romper un consumidor que hoy no espera ese campo.
 
 **DESCARTÉ** también extender esto a `lecturaComparacion`/`ResumenComparacionDetalle.tsx` (Comparar períodos):
-Felipe ya había dejado esa extensión fuera de alcance en ADR-0180/0181 ("se dejó a propósito en el set de reglas
+Felipe ya había dejado esa extensión fuera de alcance en ADR-0200/0181 ("se dejó a propósito en el set de reglas
 anterior"), y nada en este pedido la reabre explícitamente.
 
 **DESCARTÉ** cambiar el tooltip de las celdas «Sin venta» y «Tendencia» para que lean `textoCalidad(x.calidad.
@@ -113,12 +113,12 @@ adaptador en vez de leer `AnalisisDesempeno.calidad` — vuelve a dispersar la l
   fila), un caso "mezcla real" (exposición corta, ritmo/sell-through/sin-venta/tendencia cada uno N/D por SU
   PROPIO motivo, no uno inventado para toda la fila) y un caso de historial inconsistente (rotación piso/total
   declara `HISTORIAL_INCOMPLETO`, nunca `SIN_INVENTARIO` — la causa raíz es otra).
-- 24,286 pruebas en verde (+6 desde ADR-0181), typecheck y lint limpios.
+- 24,286 pruebas en verde (+6 desde ADR-0201), typecheck y lint limpios.
 
 ## Verificación visual — bloqueada, no omitida
 
 La sesión local del navegador (puerto 3020) sigue cerrada desde el reinicio de la base local documentado en
-ADR-0181 — confirmado de nuevo hoy (`/login?error=sin_persona`). Por protocolo de este repo, la sesión local la
+ADR-0201 — confirmado de nuevo hoy (`/login?error=sin_persona`). Por protocolo de este repo, la sesión local la
 inicia Felipe una vez, al principio; no se intentó ningún rodeo. Los cambios de este ADR no se verificaron en
 vivo en el navegador — quedan cubiertos por las pruebas automatizadas de arriba, pendientes de una verificación
 visual cuando Felipe vuelva a iniciar sesión.

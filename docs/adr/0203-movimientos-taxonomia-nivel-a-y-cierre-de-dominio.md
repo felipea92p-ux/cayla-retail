@@ -1,7 +1,7 @@
-# ADR-0183 — Movimientos auditado, taxonomía Nivel A/B, y cierre del dominio de Inventario (Felipe, 2026-09-24)
+# ADR-0203 — Movimientos auditado, taxonomía Nivel A/B, y cierre del dominio de Inventario (Felipe, 2026-09-24)
 
 **Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
-**Amplía:** [ADR-0182](0182-fuente-unica-de-ledger-y-contrato-de-calidad.md) — antes de dar el dominio por cerrado,
+**Amplía:** [ADR-0202](0202-fuente-unica-de-ledger-y-contrato-de-calidad.md) — antes de dar el dominio por cerrado,
 Felipe pidió auditar la pantalla Movimientos (que YA existe y consume la misma tabla) y corregir dos puntos que
 esa auditoría encontró.
 
