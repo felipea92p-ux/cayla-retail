@@ -38,7 +38,9 @@ export function CabeceraPantalla({
 }) {
   return (
     <header className={`anim-sube flex flex-wrap justify-between gap-x-8 gap-y-4 ${accionesAbajo ? "items-end" : "items-start"}`}>
-      <div className={`min-w-0 ${accionesAbajo ? "max-w-[36rem]" : "max-w-2xl"}`}>
+      {/* Con `accionesAbajo`, el texto cede ancho (base 22rem, hasta 36rem) antes de mandar las acciones a otra línea: así
+          «Ver» y un botón largo («+ Registrar movimiento», Finanzas F3) quedan a la derecha, como en el spike. */}
+      <div className={`min-w-0 ${accionesAbajo ? "max-w-[36rem] grow basis-[22rem]" : "max-w-2xl"}`}>
         <p className="eyebrow-cayla">{sobretitulo}</p>
         <h1 className="font-display mt-1.5 text-[30px] leading-tight text-tinta">{titulo}</h1>
         {bajada && <p className="mt-1.5 text-[15px] leading-relaxed text-taupe">{bajada}</p>}

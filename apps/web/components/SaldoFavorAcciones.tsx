@@ -14,10 +14,12 @@ import { parseMonto } from "@/lib/por-pagar-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 
 // Reembolso de un proveedor (ADR-0111, corrección 2026-09-18): en vez de dejar el saldo a favor para descontarlo
-// de un próximo pago, el proveedor devuelve el dinero. Es un REGISTRO —baja el saldo a favor—, no mueve caja: sin
-// él, un saldo a favor solo podría gastarse comprando. Solo líder; la base lo vuelve a exigir.
+// de un próximo pago, el proveedor devuelve el dinero. Baja el saldo a favor y, desde ADR-0195 F3b, dice a qué cuenta
+// entró («Entra a»): si es un cajón, la base registra su ingreso de caja. Solo líder; la base lo vuelve a exigir.
 
 export function BotonReembolso({ proveedorId, proveedorNombre, saldoFavor }: { proveedorId: string; proveedorNombre: string; saldoFavor: number }) {
   const [abierto, setAbierto] = useState(false);
@@ -42,6 +44,10 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
   const [loading, setLoading] = useState(false);
   // Quién registra el reembolso (ADR-0161/0162): `registrar_reembolso_proveedor` firma con esa persona.
   const responsable = useResponsable();
+  // «Entra a» (ADR-0195 F3b, situación 6): el banco o la caja donde entró la plata. Al cajón, con su ingreso de caja.
+  const cuentas = useCuentasParaElegir("reembolso", null);
+  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
+  const cuentaEntra = cuentaEfectiva(cuentas.cuentas, "reembolso", metodo, cuentaElegida);
   const monto = parseMonto(montoTxt);
   const montoOk = !Number.isNaN(monto) && monto > 0 && monto <= saldoFavor + 0.005;
 
@@ -59,7 +65,8 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
       p_fecha: fecha,
       ...(referencia.trim() ? { p_referencia: referencia.trim() } : {}),
       ...(nota.trim() ? { p_nota: nota.trim() } : {}),
-    }), responsable.firma());
+      ...(cuentaEntra ? { p_cuenta_id: cuentaEntra } : {}),
+    } as never), responsable.firma());
     setLoading(false);
     responsable.despues(error);
     if (error) {
@@ -99,6 +106,16 @@ function ReembolsoModal({ proveedorId, proveedorNombre, saldoFavor, onClose }: {
               ))}
             </div>
           </div>
+          <CampoSaleDe
+            etiqueta="Entra a"
+            sentido="entra"
+            cuentas={cuentas.cuentas}
+            listo={cuentas.listo}
+            clase="reembolso"
+            medio={metodo}
+            valor={cuentaEntra}
+            onValor={setCuentaElegida}
+          />
           <div className="grid gap-4 sm:grid-cols-2">
             <CampoTexto etiqueta="Referencia" mono value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="N° operación" autoComplete="off" />
             <CampoTexto etiqueta="Nota (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Devolvió la diferencia…" />

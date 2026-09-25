@@ -114,6 +114,18 @@ describe("el formulario", () => {
     expect(r.ok && r.valor.p_ubicacion_id).toBe(null);
     expect(validarGasto({ ...base, fecha: "2026-09-25" }, HOY).ok).toBe(false);
   });
+  it("F3b · «Salió de»: en efectivo de la caja fuerte basta la cuenta (sin caja); la cuenta viaja a la base", () => {
+    const r = validarGasto({ ...base, medio: "efectivo", cuentaId: "fuerte" }, HOY);
+    expect(r.ok && [r.valor.p_caja_id, r.valor.p_cuenta_id]).toEqual([null, "fuerte"]);
+    const banco = validarGasto({ ...base, medio: "transferencia", cuentaId: "bcp" }, HOY);
+    expect(banco.ok && banco.valor.p_cuenta_id).toBe("bcp");
+  });
+  it("F3b · a crédito o clasificando un egreso, no viaja ninguna cuenta (la dice el pago o el egreso)", () => {
+    const credito = validarGasto({ ...base, comprobante: "factura", proveedorId: "p1", serie: "F1", numero: "1", condicion: "credito", vence: "2026-10-12", medio: "", cuentaId: "bcp" }, HOY);
+    expect(credito.ok && "p_cuenta_id" in credito.valor).toBe(false);
+    const egreso = validarGasto({ ...base, medio: "", egresoId: "eg1", cuentaId: "bcp" }, HOY);
+    expect(egreso.ok && "p_cuenta_id" in egreso.valor).toBe(false);
+  });
   it("clasificar un egreso: efectivo, sin caja nueva, con el egreso", () => {
     const r = validarGasto({ ...base, medio: "", egresoId: "eg1" }, HOY);
     expect(r.ok && [r.valor.p_medio_pago, r.valor.p_caja_id, r.valor.p_caja_movimiento_id]).toEqual(["efectivo", null, "eg1"]);

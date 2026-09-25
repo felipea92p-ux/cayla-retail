@@ -76,25 +76,6 @@ export default async function EditarProductoPage({ params }: { params: Promise<{
         marcas={marcas}
         producto={producto}
       />
-
-      {/* TODO(Sesión A2): acá va "Ajustar inventario" — modal standalone que
-          recibe productoId (y, para preseleccionar la fila, varianteId) y
-          escribe en `stock`/`movimientos`. Este form NO toca esas tablas
-          (principio 6: separa lo esencial de lo incidental — "qué existe"
-          vive acá, "cuánto hay" es Inventario). */}
-      {/* TODO(Sesión A3): acá va "Ver historial del producto" — panel
-          standalone de solo lectura sobre `movimientos` filtrado por las
-          variantes de este producto. */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="card-cayla space-y-1 border-dashed p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario</p>
-          <p className="text-sm text-tinta/55">TODO(Sesión A2): acá va &quot;Ajustar inventario&quot;.</p>
-        </div>
-        <div className="card-cayla space-y-1 border-dashed p-5">
-          <p className="label-cayla text-[11px] text-tinta/65">Historial</p>
-          <p className="text-sm text-tinta/55">TODO(Sesión A3): acá va &quot;Ver historial&quot;.</p>
-        </div>
-      </div>
     </div>
   );
 }

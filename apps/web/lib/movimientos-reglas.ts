@@ -57,7 +57,8 @@ export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip
  *  operación los escriben las RPC; los de «sistema» son cargas hechas por
  *  script, sin persona (`usuario_id` null): existen en producción y se
  *  muestran con nombre propio, no se inventan. `reposicion`/`merma`/
- *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` — un ajuste
+ *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` (la lista vive en
+ *  `ajuste-reglas.ts`) — un ajuste
  *  suelto vía `registrar_movimiento`, tipo='ajuste' — y se distinguen a
  *  propósito de `conteo` (ADR-0023): ese lo escribe SOLO `cerrar_conteo`, con
  *  `conteo_item_id` enlazado al conteo formal; `conteo_fisico` es el mismo
@@ -77,7 +78,9 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   transferencia: "Transferencia",
   traslado_salida: "Transferencia · salida",
   traslado_entrada: "Transferencia · llegada",
-  movimiento_interno: "Reposición interna",
+  // Un solo motivo para los dos sentidos (bajar y retirar van por `mover_interno`). Este nombre es el del
+  // FILTRO, que trae los dos; cada fila se nombra por su destino en `etiquetaMovimiento`.
+  movimiento_interno: "Bajada o retiro del piso",
   devolucion: "Devolución",
   cambio: "Cambio",
   anulacion_venta: "Anulación de venta",
@@ -86,7 +89,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
-  // «Reposición interna» (bajar del almacén al piso), que es otra cosa.
+  // la bajada del almacén al piso, que es otra cosa.
   reposicion: "Ajuste · reposición",
   merma: "Ajuste · merma",
   conteo_fisico: "Ajuste · conteo físico",
@@ -151,12 +154,25 @@ export function etiquetaProceso(motivo: string | null): string {
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
 }
 
+/** `movimiento_interno` cubre los dos sentidos entre piso y almacén (los dos van por `mover_interno`,
+ *  con el mismo motivo): lo que distingue una bajada de un retiro es a dónde llegó la prenda. */
+const INTERNO_POR_DESTINO: Record<string, string> = {
+  piso_venta: "Bajada al piso",
+  almacen_tienda: "Retiro del piso",
+};
+
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
  *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
  *  MIRA («llegada» si suma, «salida» si resta): lo dice el signo, no el motivo — así
- *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas. */
-export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
+ *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas.
+ *  Un movimiento entre piso y almacén se nombra por su destino («Bajada al piso» /
+ *  «Retiro del piso»); con un destino que no sea ninguno de los dos, el nombre del filtro. */
+export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+  if (m.motivo === "movimiento_interno") {
+    const porDestino = m.sububicacionDestino?.tipo ? INTERNO_POR_DESTINO[m.sububicacionDestino.tipo] : undefined;
+    if (porDestino) return porDestino;
+  }
   return etiquetaProceso(m.motivo);
 }
 
@@ -402,17 +418,6 @@ export function etiquetaDia(fecha: string, hoyLima: string): string {
 /** El día de hoy en Lima como `aaaa-mm-dd`, venga de donde venga el servidor. */
 export function hoyEnLima(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
-}
-
-/** El rótulo de una fila en «Actividad reciente» de Inicio. `categoria` dice solo el tipo
- *  contable («Salida»), y una venta, un cambio y una merma son todas «salida»: quien mira
- *  Inicio necesita distinguirlas. Cambio y devolución van primero porque también pueden
- *  colgar de una venta. Lo demás cae a la categoría de siempre. */
-export function etiquetaActividad(m: Pick<Movimiento, "categoria" | "delta" | "venta" | "cambio" | "devolucion">): string {
-  if (m.cambio) return "Cambio";
-  if (m.devolucion) return "Devolución";
-  if (m.venta && m.delta < 0) return "Venta";
-  return ETIQUETA_CATEGORIA[m.categoria];
 }
 
 export function fechaCorta(iso: string): string {

@@ -136,7 +136,7 @@ export function nombreOcupado(activas: readonly { ubicacion_id: string; nombre: 
 /** Los módulos que solo se dan a PERSONAS (ADR-0161 P6, 20260923140000): un aparato compartido no da ni quita accesos. La
  *  misma lista vive en `lib/modulos.ts` (MODULOS_SOLO_PERSONAS) y en la base (`fn_exigir_rol_de_terminal`); aquí se repite
  *  porque este archivo no importa nada (lo carga Node tal cual). `terminales-reglas.test.ts` vigila que digan lo mismo. */
-export const MODULOS_SOLO_PERSONAS_TERMINAL: readonly string[] = ["colaboradores", "roles"];
+export const MODULOS_SOLO_PERSONAS_TERMINAL: readonly string[] = ["colaboradores", "roles", "actividad"];
 
 /** Un rol que se le puede dar a una terminal: vigente, que no sea Líder (los permisos son de la cuenta, y una cuenta
  *  compartida no puede ser líder) y sin Colaboradores ni Roles y accesos (P6). */

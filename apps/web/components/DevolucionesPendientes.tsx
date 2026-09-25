@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { CampoSelect } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatearHora } from "@/components/ComprasAgrupadas";
 import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
@@ -18,6 +19,8 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { OpcionesCuenta, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { ayudaCuenta, cuentaEfectiva, hayCuentasPara } from "@/lib/cuenta-sellada-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -194,8 +197,16 @@ function PanelResolver({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const responsable = useResponsable(ubicacion);
+  // «Sale de» (ADR-0195 F3b, situación 9): en efectivo sale del cajón, como siempre; con otro medio, se propone la cuenta
+  // de esa tienda para ese medio (la del Yape, la de las transferencias, el POS).
+  const cuentas = useCuentasParaElegir("cobro", ubicacion.ubicacionId, modo === "aprobar");
+  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
 
   const montoNumero = monto.trim() === "" ? null : Number(monto);
+  const hayReembolso = montoNumero !== null && montoNumero > 0;
+  const conCuenta = hayReembolso && metodo !== "efectivo";
+  const hayCuentas = cuentas.listo && hayCuentasPara(cuentas.cuentas, "cobro", metodo);
+  const cuentaSale = conCuenta && hayCuentas ? cuentaEfectiva(cuentas.cuentas, "cobro", metodo, cuentaElegida) : null;
   const revision = revisarAprobacion({ monto: montoNumero, metodo, cajaAbierta, valorPagado: d.valorPagado });
 
   async function aprobar() {
@@ -211,7 +222,8 @@ function PanelResolver({
         p_devolucion_id: d.id,
         p_reembolso_monto: montoNumero && montoNumero > 0 ? montoNumero : undefined,
         p_reembolso_metodo: montoNumero && montoNumero > 0 ? metodo : undefined,
-      }),
+        p_reembolso_cuenta_id: cuentaSale ?? undefined,
+      } as never),
       responsable.firma(),
     );
     setCargando(false);
@@ -302,24 +314,46 @@ function PanelResolver({
             </div>
             {montoNumero !== null && montoNumero > 0 && (
               <div className="anim-revelar">
-                <label htmlFor={`metodo-${d.id}`} className="text-xs font-semibold text-tinta/70">
-                  ¿Cómo se le devuelve?
+                <CampoSelect
+                  etiqueta="¿Cómo se le devuelve?"
+                  valor={metodo}
+                  onValor={setMetodo}
+                  opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                />
+              </div>
+            )}
+            {hayReembolso && (
+              <div className="anim-revelar min-w-0 max-w-full flex-1 basis-[14rem]">
+                <label htmlFor={`cuenta-${d.id}`} className="text-xs font-semibold text-tinta/70">
+                  Sale de
                 </label>
                 <select
-                  id={`metodo-${d.id}`}
-                  value={metodo}
-                  onChange={(e) => setMetodo(e.target.value as typeof metodo)}
-                  className="mt-1 h-10 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
+                  id={`cuenta-${d.id}`}
+                  value={cuentaSale ?? ""}
+                  disabled={!conCuenta || !hayCuentas}
+                  onChange={(e) => setCuentaElegida(e.target.value)}
+                  className="mt-1 h-10 w-full rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta disabled:text-tinta/55"
                 >
-                  {METODOS_DIFERENCIA.map((m) => (
-                    <option key={m.valor} value={m.valor}>
-                      {m.etiqueta}
-                    </option>
-                  ))}
+                  {!conCuenta ? (
+                    <option value="">El cajón de la tienda</option>
+                  ) : hayCuentas ? (
+                    <OpcionesCuenta cuentas={cuentas.cuentas} clase="cobro" medio={metodo} />
+                  ) : (
+                    <option value="">{cuentas.listo ? "Sin cuenta configurada para este medio" : "…"}</option>
+                  )}
                 </select>
               </div>
             )}
           </div>
+          {hayReembolso && (
+            <p className="-mt-2 text-xs text-tinta/70">
+              {!conCuenta
+                ? "En efectivo sale del cajón y resta del cierre, como siempre."
+                : hayCuentas
+                ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale", "cobro")
+                : "Queda «sin cuenta» hasta que el líder la configure; el reembolso se registra igual."}
+            </p>
+          )}
 
           {revision.bloqueo && (
             <p className="flex items-start gap-1.5 text-sm text-ambar-profundo" role="alert">

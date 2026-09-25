@@ -9,6 +9,8 @@ import { CampoFecha } from "@/components/ui/CampoFecha";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } from "@/lib/compras-reglas";
 import { sumaLineasPago, type LineaPago } from "@/components/LineasPago";
+import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
+import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 
 // Piezas que comparten los dos modales de pago de Por pagar (spike 2026-09-19, ADR-0131): «Pagar juntos»
 // (`PagoJuntosModal`, varios comprobantes de un proveedor) y el pago de UN comprobante (`RegistrarPagoModal`, el botón
@@ -341,6 +343,7 @@ export function MediosDePago({
   datos,
   id = "pago",
   exacto = false,
+  cuentas,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -359,6 +362,8 @@ export function MediosDePago({
    * como medio —ese es un interruptor aparte— y, con dos medios, cambiar uno ajusta el otro para que sigan sumando.
    */
   exacto?: boolean;
+  /** ADR-0195 F3b: con las cuentas, cada medio pregunta «Sale de» (propuesta según el medio y la tienda). */
+  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
 }) {
   const suma = sumaLineasPago(lineas);
   const falta = Math.round((objetivo - suma) * 100) / 100;
@@ -396,6 +401,23 @@ export function MediosDePago({
     onLineas([{ monto: usar.toFixed(2), metodo: METODO_SALDO_A_FAVOR, referencia: "" }, ...(resto > 0 ? [{ monto: resto.toFixed(2), metodo: lineas[0]?.metodo === METODO_SALDO_A_FAVOR ? "transferencia" : (lineas[0]?.metodo ?? "transferencia"), referencia: "" }] : [])]);
   };
   const fechaCampo = <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={onFecha} required />;
+  // «Sale de» (F3b). Con saldo a favor no sale de ninguna cuenta: el campo queda invisible y conserva su alto (ADR-0185).
+  const saleDe = (l: LineaPago, i: number) =>
+    cuentas ? (
+      <div className={l.metodo === METODO_SALDO_A_FAVOR ? "invisible" : undefined} aria-hidden={l.metodo === METODO_SALDO_A_FAVOR || undefined}>
+        <CampoSaleDe
+          id={`${id}-cuenta-${i}`}
+          etiqueta={varios ? `Sale de (${i + 1})` : "Sale de"}
+          cuentas={cuentas.lista}
+          listo={cuentas.listo}
+          clase="pago"
+          medio={l.metodo}
+          valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
+          onValor={(v) => cambiar(i, { cuentaId: v })}
+          deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+        />
+      </div>
+    ) : null;
 
   return (
     <div className="space-y-3" id={id}>
@@ -409,6 +431,7 @@ export function MediosDePago({
           </div>
           <CampoTexto etiqueta="Referencia" value={lineas[0].referencia} onChange={(e) => cambiar(0, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
           {fechaCampo}
+          {cuentas && <div className="sm:col-span-3">{saleDe(lineas[0], 0)}</div>}
           <div className="sm:col-span-3">
             <DatosDelMedioEstable medio={lineas[0].metodo} conFavor={!exacto && saldoFavor > 0} datos={datos} saldoFavor={saldoFavor} />
           </div>
@@ -439,7 +462,8 @@ export function MediosDePago({
                   <PastillasMedio valor={l.metodo} onValor={(m) => cambiar(i, { metodo: m })} conFavor={!exacto && saldoFavor > 0} etiqueta={`Medio de pago ${i + 1}`} />
                 </div>
                 <CampoTexto etiqueta="Referencia" value={l.referencia} onChange={(e) => cambiar(i, { referencia: e.target.value })} placeholder="Op. 00871234" autoComplete="off" />
-                <div className="sm:col-span-4 sm:row-start-2">
+                {cuentas && <div className="sm:col-span-3 sm:row-start-2">{saleDe(l, i)}</div>}
+                <div className={`sm:col-span-4 ${cuentas ? "sm:row-start-3" : "sm:row-start-2"}`}>
                   <DatosDelMedioEstable medio={l.metodo} conFavor={!exacto && saldoFavor > 0} datos={datos} saldoFavor={saldoFavor} />
                 </div>
                 <button

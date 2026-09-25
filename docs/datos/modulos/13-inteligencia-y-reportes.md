@@ -1,5 +1,29 @@
 # 13 · Inteligencia y reportes
-> **Pájaro:** ÁGUILA · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** ÁGUILA · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-25 (aviso de abajo); el cuerpo sigue siendo el del 2026-09-12
+
+> **⚠️ Actualización 2026-09-24: el cuerpo de este documento describe V1.** `lib/inteligencia.ts` ya no existe: V2 lo
+> borró el 2026-09-12. Se puede ver en el tag `pre-v2-cutover`. Donde vive hoy cada cálculo:
+> - **Velocidad de venta, plan de reposición y sugerencia de traslado** están en `apps/web/lib/resumen-reglas.ts`
+>   (`calcularVelocidad`, `planDeReposicion`, `cedibleDe`). La velocidad divide por los días con stock en el piso, por
+>   sede.
+> - **La sugerencia de traslado ya suma piso más almacén del destino** (`calcularUtilizable`) y del origen cede solo
+>   desde su almacén. El hueco 6 y el incumplimiento de D-39 eran de V1 y **están cerrados**.
+> - **Demanda diaria y punto de reorden** están en SQL, en `fn_productos` y `fn_productos_resumen`
+>   (`20260916100000_punto_reorden.sql`). Es global por producto, con 30 días calendario, y la usa Compras. Convive a
+>   propósito con la velocidad por sede del Resumen, porque responden preguntas distintas. Detalle en ADR-0208.
+> - **Rotación de inventario** (COGS ÷ inventario promedio a costo) está en `apps/web/lib/rotacion.ts` (ADR-0138).
+> - **«Estancada» (45 días) no existe en V2.** `UMBRAL_ESTANCADO_DIAS` (`packages/shared/src/enums.ts:41`) no la importa
+>   nadie. La señal viva de «esto se quedó» es `posible_sobrestock`, en `resumen-reglas.ts:842-850`.
+> - **«Frescura del piso»** (ADR-0208): diseño aprobado. Mide cuánto lleva cada modelo+color en el piso frente a su
+>   categoría en la sede. Se construye por bloques. **Solo el bloque 1 está construido, y todavía no está en
+>   producción** (2026-09-25): registrar la bajada al piso escaneando (`bajar_al_piso`), cerrar «Reposición» en el piso
+>   y leer qué bajadas fueron tardías (`fn_bajadas_del_piso`, solo líder, sin pantalla, encima de `fn_ledger_puntos`,
+>   ADR-0202). «Retirar del piso» (bloque 2) existe desde el 2026-09-25, sin función nueva: `mover_interno` en sentido
+>   contrario, desde el menú «⋯» de Existencias. Del bloque 3 en adelante no existe nada todavía.
+> - **Regla para la pantalla de Frescura (bloque 3):** se construye encima del dominio de Inventario que ya existe
+>   —el libro de `fn_ledger_puntos`, la venta de `fn_es_venta_de_stock` y las cohortes FIFO de
+>   `apps/web/lib/inventario-exposicion.ts` (ADR-0199 de main, 0200 y 0202)—, no con una reconstrucción propia del
+>   libro ni con un segundo FIFO (ADR-0208, (d)).
 
 ## Para qué existe
 
@@ -154,7 +178,7 @@ es de este módulo es **la dependencia**, y por eso va escrita acá.
 | **Velocidad diaria / días de inventario** | `inteligencia.ts:112-113` | `movimientos.cantidad` filtrado por `tipo='salida'` **y** `motivo = 'venta'` exacto (`inteligencia.ts:77`) | Un `motivo` escrito distinto ('Venta', 'venta online'). `movimientos.motivo` **no tiene check** en ninguna de las dos bases (verificado en `generado/retail_constraints.json`). Ver hueco 3. |
 | **Reponer ya / punto de reorden** | `inteligencia.ts:119-125` | velocidad × `LEAD_TIME_DIAS = 14` + `variantes.stock_minimo`, más `stock.stock_minimo` por sede | Si la velocidad está subvaluada, el punto de reorden baja y la prenda que más vuela deja de aparecer en "qué reponer". |
 | **Clase ABC** | `inteligencia.ts:88-104` | `movimientos.monto` (el total de la línea que **tecleó quien cobró**) | Ordena por ingreso, no por margen. Una prenda vendida con descuento grande puede ser clase A y estar perdiendo plata. Ver hueco 5. |
-| **Sugerencia de traslado** | `inteligencia.ts:133-167` | `stock.cantidad` por sede + `stock.stock_minimo` por sede (o `variantes.stock_minimo` como general) | Solo mira el **piso**, nunca `stock_almacen`. Sugiere traer una prenda de AQP cuando TRU tiene 20 guardadas en su propio almacén. Ver hueco 6. |
+| **Sugerencia de traslado** | `inteligencia.ts:133-167` | `stock.cantidad` por sede + `stock.stock_minimo` por sede (o `variantes.stock_minimo` como general) | Solo mira el **piso**, nunca `stock_almacen`. Sugiere traer una prenda de AQP cuando TRU tiene 20 guardadas en su propio almacén. Ver hueco 6. **(V1; cerrado en V2: `resumen-reglas.ts` suma piso+almacén.)** |
 | **Vendido hoy por sede** (D-52 ①) | `panel.ts:75-85` | `ventas.monto_total` + `ventas.created_at`, por `ventas.sede_id` | Una venta atrapada en la cola offline (`lib/ventas-offline.ts`) no existe todavía: el número de hoy sale corto y se corrige solo cuando sube. |
 | **Vendido en el mes por sede** (D-52 ①) | `finanzas-nucleo.ts:85` | lo mismo, acotado por `mesLimaUTC(anio, mes)` (`finanzas-nucleo.ts:14`) | El mes es **calendario de Lima (UTC−5)**, no "últimos 30 días". Eso está bien hecho acá y mal hecho en `lib/finanzas.ts:145`, que sigue siendo rodante. |
 | **Qué se está quedando** (D-52 ②) | `inteligencia.ts:117` + `app/(app)/page.tsx:38` | `stock.ultima_venta` | Es el más frágil de los tres números de D-52: hoy cuelga entero de una columna que producción empezó a escribir recién el 2026-09-09. |
@@ -306,7 +330,8 @@ el comparativo empieza en el mes en que arrancó el ERP y ya no hay con qué com
    `0001_init.sql:85` lo declara `motivo text` a secas). Los valores que el SQL del
    repo escribe hoy son diez y algunos llevan tilde: `venta`, `merma`, `conteo`,
    `ingreso`, `ingreso de lote`, `bajada a piso`, `bajada de almacén`, `devolución a
-   almacén`, `produccion`, `traslado`, `ajuste`. Quien escriba una RPC nueva con
+   almacén`, `produccion`, `traslado`, `ajuste`. (V1; hoy: bajar y retirar del piso escriben
+   una sola fila `traslado` con motivo `movimiento_interno`: «Bajada al piso» o «Retiro del piso» en Movimientos, según a dónde llegó la prenda; el filtro que trae los dos es «Bajada o retiro del piso».) Quien escriba una RPC nueva con
    `'Venta'` o `'venta online'` no rompe nada visible: simplemente esa venta deja de
    contar para la rotación (`inteligencia.ts:77`), para el COGS
    (`finanzas-nucleo.ts:57`) y para el sello de `ultima_venta`
@@ -459,7 +484,7 @@ el comparativo empieza en el mes en que arrancó el ERP y ya no hay con qué com
 - **D-32** — los gastos que no son de ninguna sede van a `CCO`. El EERR mensual los
   muestra como una fila más; el Balance no los separa.
 - **D-39** — las alertas de stock cuentan piso y almacén. La sugerencia de traslado no
-  lo hace (hueco 6).
+  lo hace (hueco 6). *(Era V1. En V2 `planDeReposicion` ya lo cumple: ver el aviso del 2026-09-24 al inicio.)*
 - **D-20** — la sede corporativa se llama `CCO`. Local todavía la llama `CORP`
   (`0020_contabilidad_cimientos.sql:23-26`): cualquier reporte que agrupe por código de
   sede no cuadra entre los dos entornos.

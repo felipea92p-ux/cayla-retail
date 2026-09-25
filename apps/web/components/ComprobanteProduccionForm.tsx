@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { MediosDePago } from "@/components/MediosDePago";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -25,6 +25,7 @@ import {
 } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO } from "@/lib/insumos-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 
@@ -72,6 +73,8 @@ export function ComprobanteProduccionForm({
   const [lineas, setLineas] = useState<LineaForm[]>([{ ...LINEA_VACIA }]);
   const [totalPapel, setTotalPapel] = useState("");
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo()]);
+  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado (el Taller no cobra: se propone la primera cuenta que sirve).
+  const cuentas = useCuentasParaElegir("pago", null);
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el comprobante firma con quien se elige en el combo (lista de la sede activa).
@@ -129,7 +132,7 @@ export function ComprobanteProduccionForm({
         costo_unitario: Number(l.costo.replace(",", ".")),
       })),
       p_total: totalPapel.trim() !== "" ? Number(totalPapel.replace(",", ".")) : undefined,
-      p_pago: condicion === "contado" ? mediosParaRpc(mediosEfectivos, hoy) : undefined,
+      p_pago: condicion === "contado" ? mediosParaRpc(mediosEfectivos, hoy, cuentas.cuentas) : undefined,
       p_nota: nota.trim() || undefined,
       p_token: token,
     }), responsable.firma());
@@ -149,14 +152,13 @@ export function ComprobanteProduccionForm({
   return (
     <Modal titulo="Nueva factura de insumos" subtitulo="La factura de quien le vende al Taller" onClose={onClose} ancho="max-w-2xl">
       <form onSubmit={guardar} className="space-y-5">
-        <CampoSelectNativo etiqueta="Proveedor" value={proveedorId} onChange={(e) => elegirProveedor(e.target.value)}>
-          <option value="">Elige un proveedor…</option>
-          {proveedores.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </CampoSelectNativo>
+        <CampoSelect
+          etiqueta="Proveedor"
+          valor={proveedorId}
+          onValor={(v) => elegirProveedor(v)}
+          opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+          marcador="Elige un proveedor…"
+        />
         {proveedores.length === 0 && <p className="-mt-3 text-xs text-tinta/65">Todavía no hay proveedores de Producción. Agrégalos en Proveedores.</p>}
 
         <div>
@@ -223,19 +225,16 @@ export function ComprobanteProduccionForm({
               return (
                 <li key={i} className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_auto] items-start gap-2 max-sm:grid-cols-[minmax(0,1fr)_5rem_5rem_auto]">
                   <div className="space-y-1.5">
-                    <select
-                      aria-label={`Línea ${i + 1}: insumo`}
-                      value={l.insumoId ?? (l.descripcion || l.insumoId === null ? CONCEPTO_LIBRE : "")}
-                      onChange={(e) => cambiarLinea(i, e.target.value === CONCEPTO_LIBRE ? { insumoId: null } : { insumoId: e.target.value, descripcion: "" })}
-                      className="h-9 w-full rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
-                    >
-                      <option value={CONCEPTO_LIBRE}>Otro concepto (flete, maquila…)</option>
-                      {insumos.map((x) => (
-                        <option key={x.id} value={x.id}>
-                          {x.nombre} · {UNIDADES_INSUMO[x.unidad].corta}
-                        </option>
-                      ))}
-                    </select>
+                    <Desplegable
+                      valor={l.insumoId ?? (l.descripcion || l.insumoId === null ? CONCEPTO_LIBRE : "")}
+                      onValor={(v) => cambiarLinea(i, v === CONCEPTO_LIBRE ? { insumoId: null } : { insumoId: v, descripcion: "" })}
+                      opciones={[
+                        { valor: CONCEPTO_LIBRE, texto: "Otro concepto (flete, maquila…)" },
+                        ...insumos.map((x) => ({ valor: x.id, texto: `${x.nombre} · ${UNIDADES_INSUMO[x.unidad].corta}` })),
+                      ]}
+                      etiquetaAccesible={`Línea ${i + 1}: insumo`}
+                      forma="caja"
+                    />
                     {!l.insumoId && (
                       <input
                         aria-label={`Línea ${i + 1}: concepto`}
@@ -300,7 +299,7 @@ export function ComprobanteProduccionForm({
           </div>
         </dl>
 
-        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" />}
+        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <CampoTexto

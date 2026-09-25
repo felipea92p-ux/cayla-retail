@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Truck } from "lucide-react";
-import { DesplegablePildora, ItemDesplegable, TODOS } from "@/components/ui/FiltrosPildora";
+import { DesplegablePildora, TODOS } from "@/components/ui/FiltrosPildora";
 import type { ReposicionProveedor } from "@/lib/marcas";
 
 /** «A quién pedirle» (ADR-0109) como desplegable (2026-09-23): con 26 proveedores, los botones sueltos
@@ -20,16 +20,14 @@ export function AQuienPedirle({ reposicion, proveedorId }: { reposicion: Reposic
           etiqueta="A quién pedirle"
           valor={valor}
           onValor={(v) => router.push(v === TODOS ? "/productos?stock=reponer" : `/productos?stock=reponer&proveedor=${v}`)}
-        >
-          <ItemDesplegable value={TODOS}>
-            Todos · {reposicion.length} proveedores
-          </ItemDesplegable>
-          {reposicion.map((r) => (
-            <ItemDesplegable key={r.proveedorId} value={r.proveedorId}>
-              {r.proveedor} · {r.productos} {r.productos === 1 ? "producto" : "productos"}
-            </ItemDesplegable>
-          ))}
-        </DesplegablePildora>
+          opciones={[
+            { valor: TODOS, texto: `Todos · ${reposicion.length} proveedores` },
+            ...reposicion.map((r) => ({
+              valor: r.proveedorId,
+              texto: `${r.proveedor} · ${r.productos} ${r.productos === 1 ? "producto" : "productos"}`,
+            })),
+          ]}
+        />
       </div>
       <p className="text-xs text-tinta/55">
         {total} {total === 1 ? "producto" : "productos"} para pedir

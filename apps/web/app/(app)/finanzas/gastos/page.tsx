@@ -14,6 +14,7 @@ import {
   getProveedoresParaGasto,
   getTiposActivo,
 } from "@/lib/gastos";
+import { getDestinosDeposito } from "@/lib/cuentas-dinero";
 import { GastosPanel, type PestanaGastos } from "@/components/GastosPanel";
 
 const PESTANAS: PestanaGastos[] = ["gastos", "fijos", "activos", "egresos"];
@@ -29,7 +30,14 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
   const { desde, hasta } = rangoMes(mes);
   const esLider = persona.rol === "lider";
 
-  const [contexto, categorias, proveedores, tiposActivo] = await Promise.all([getContextoGastos(), getCategoriasGasto(), getProveedoresParaGasto(), getTiposActivo()]);
+  // Los bancos para «¿A qué cuenta llegó?» al clasificar un depósito (vacío sin Cuentas y dinero, ADR-0195 F3).
+  const [contexto, categorias, proveedores, tiposActivo, destinosDeposito] = await Promise.all([
+    getContextoGastos(),
+    getCategoriasGasto(),
+    getProveedoresParaGasto(),
+    getTiposActivo(),
+    getDestinosDeposito(),
+  ]);
   const ver = leerVer(sp.ver, contexto.ubicaciones, esLider, persona.ubicacionId);
   const [panel, gastos, egresos, marcas, activos, fijos, sugeridos] = await Promise.all([
     getPanelGastos(desde, hasta, ver),
@@ -60,6 +68,7 @@ export default async function GastosPage({ searchParams }: { searchParams: Promi
       mes={mes}
       hoy={hoy}
       pestanaInicial={PESTANAS.find((p) => p === sp.tab) ?? "gastos"}
+      destinosDeposito={destinosDeposito}
       fallas={[panel.falla, gastos.falla, egresos.falla, activos.falla, fijos.falla].filter((f): f is string => !!f)}
     />
   );

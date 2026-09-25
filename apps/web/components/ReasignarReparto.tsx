@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { CampoSelect, CampoTexto } from "@/components/ui/campos";
 import type { CompraResumen } from "@/lib/compras-reglas";
 import {
   errorDeReasignacion,
@@ -192,13 +192,12 @@ function ReasignarRepartoModal({
             </p>
 
             {reasignables.length > 1 ? (
-              <CampoSelectNativo etiqueta="¿De qué línea?" value={lineaId} onChange={(e) => elegirLinea(e.target.value)}>
-                {reasignables.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.producto}
-                  </option>
-                ))}
-              </CampoSelectNativo>
+              <CampoSelect
+                etiqueta="¿De qué línea?"
+                valor={lineaId}
+                onValor={(v) => elegirLinea(v)}
+                opciones={reasignables.map((l) => ({ valor: l.id, texto: l.producto }))}
+              />
             ) : (
               <p className="text-sm text-tinta">
                 <span className="label-cayla mr-2 text-[11px] text-tinta/65">Línea</span>
@@ -207,27 +206,24 @@ function ReasignarRepartoModal({
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <CampoSelectNativo etiqueta="Sale de" value={desdeId} onChange={(e) => elegirOrigen(e.target.value)}>
-                {origenes.map((f) => (
-                  <option key={f.ubicacionId} value={f.ubicacionId}>
-                    {nombreDe(f.ubicacionId)} · le faltan {f.pendiente}
-                  </option>
-                ))}
-              </CampoSelectNativo>
-              <CampoSelectNativo etiqueta="Va a" value={haciaId} onChange={(e) => setHaciaId(e.target.value)}>
-                <option value="">Elige la tienda…</option>
-                {ubicaciones
+              <CampoSelect
+                etiqueta="Sale de"
+                valor={desdeId}
+                onValor={(v) => elegirOrigen(v)}
+                opciones={origenes.map((f) => ({ valor: f.ubicacionId, texto: `${nombreDe(f.ubicacionId)} · le faltan ${f.pendiente}` }))}
+              />
+              <CampoSelect
+                etiqueta="Va a"
+                valor={haciaId}
+                onValor={(v) => setHaciaId(v)}
+                marcador="Elige la tienda…"
+                opciones={ubicaciones
                   .filter((u) => u.id !== desdeId)
                   .map((u) => {
                     const f = propias.find((x) => x.ubicacionId === u.id);
-                    return (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}
-                        {f ? ` · ya le tocan ${f.asignado}` : ""}
-                      </option>
-                    );
+                    return { valor: u.id, texto: `${u.nombre}${f ? ` · ya le tocan ${f.asignado}` : ""}` };
                   })}
-              </CampoSelectNativo>
+              />
             </div>
 
             <div>

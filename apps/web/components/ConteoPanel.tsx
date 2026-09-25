@@ -2,7 +2,7 @@
 
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, ScanBarcode } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -26,7 +26,7 @@ import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Campo, CampoMonto, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -1244,6 +1244,10 @@ function AltaAlVuelo({
   const [precio, setPrecio] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
+  // Talla no tiene <label> propio con htmlFor (Desplegable no es un <select> nativo): se compone
+  // Campo + Desplegable a mano en vez de CampoSelect porque este último no expone `deshabilitado`
+  // (mismo patrón que PrendaSinRegistrarModal.tsx y MovimientoCajaModal.tsx).
+  const idEtiquetaTalla = useId();
 
   const tallas = tallasPorCategoria[categoriaId] ?? [];
 
@@ -1307,29 +1311,25 @@ function AltaAlVuelo({
       </p>
       <CampoTexto etiqueta="Referencia (nombre de la prenda)" value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus />
       <div className="grid grid-cols-2 gap-3">
-        <CampoSelectNativo
+        <CampoSelect
           etiqueta="Categoría"
-          value={categoriaId}
-          onChange={(e) => {
-            setCategoriaId(e.target.value);
+          valor={categoriaId}
+          onValor={(v) => {
+            setCategoriaId(v);
             setTallaId("");
           }}
-        >
-          <option value="">Elige…</option>
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </CampoSelectNativo>
-        <CampoSelectNativo etiqueta="Talla (si aplica)" value={tallaId} onChange={(e) => setTallaId(e.target.value)} disabled={!categoriaId}>
-          <option value="">Sin talla</option>
-          {tallas.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.texto}
-            </option>
-          ))}
-        </CampoSelectNativo>
+          opciones={categorias.map((c) => ({ valor: c.id, texto: c.nombre }))}
+          marcador="Elige…"
+        />
+        <Campo etiqueta="Talla (si aplica)" idEtiqueta={idEtiquetaTalla}>
+          <Desplegable
+            valor={tallaId}
+            onValor={setTallaId}
+            opciones={[{ valor: "", texto: "Sin talla" }, ...tallas.map((t) => ({ valor: t.id, texto: t.texto }))]}
+            idEtiqueta={idEtiquetaTalla}
+            deshabilitado={!categoriaId}
+          />
+        </Campo>
       </div>
       {categoriaId && (
         <div className="space-y-1.5">
@@ -1355,14 +1355,12 @@ function AltaAlVuelo({
           />
         </div>
       )}
-      <CampoSelectNativo etiqueta="Color (si aplica)" value={colorCodigo} onChange={(e) => setColorCodigo(e.target.value)}>
-        <option value="">Sin color</option>
-        {colores.map((c) => (
-          <option key={c.codigo} value={c.codigo}>
-            {c.nombre}
-          </option>
-        ))}
-      </CampoSelectNativo>
+      <CampoSelect
+        etiqueta="Color (si aplica)"
+        valor={colorCodigo}
+        onValor={setColorCodigo}
+        opciones={[{ valor: "", texto: "Sin color" }, ...colores.map((c) => ({ valor: c.codigo, texto: c.nombre }))]}
+      />
       <div className="grid grid-cols-2 gap-3">
         <CampoMonto etiqueta="Costo (si lo sabes)" value={costo} onChange={(e) => setCosto(e.target.value)} />
         <CampoMonto etiqueta="Precio de venta (si lo sabes)" value={precio} onChange={(e) => setPrecio(e.target.value)} />

@@ -263,7 +263,8 @@ ${FILA("ZZ-CMP-E")}
 select 'N|' || count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_resumen_comparacion';
 select 'X|' || has_function_privilege('anon', p.oid, 'EXECUTE') from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_resumen_comparacion';
 select 'L|' || count(*) from ${LLAMADA};
--- Un colaborador (fijo a otra sede, sin ser líder) no recibe ninguna fila: costo e importe son de líder.
+-- Un colaborador fijo a otra sede, sin ser líder y sin el módulo Análisis, no recibe ninguna fila. Con Análisis sí
+-- vería SU sede con costo (ADR-0161 P5): eso lo cubre «Análisis: el rol analiza SU sede…» en roles_por_modulo.mjs.
 set local request.jwt.claim.sub = '${MICAELA}';
 select 'C|' || count(*) from ${LLAMADA};
 rollback;`,

@@ -2,6 +2,8 @@
 // cliente y las pruebas. Las lecturas contra Postgres viven en
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
+import { compararTallas } from "./tallas";
+
 export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock";
 
 /** Con cuántas unidades en el piso de venta la tienda ya tiene que reponer.
@@ -62,6 +64,129 @@ export function calcularEstado(piso: number, almacen: number): EstadoStock {
  *  queda, no una cosa en vez de la otra. */
 export function necesitaReponerPiso(piso: number, almacen: number): boolean {
   return piso <= UMBRAL_REPOSICION_PISO && almacen > 0;
+}
+
+/** «Por colgar» (Frescura del piso, 2026-09-25): la talla tiene unidades DISPONIBLES en el almacén de
+ *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
+ *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
+ *
+ *  No usa `UMBRAL_REPOSICION_PISO` a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
+ *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
+ *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
+ *
+ *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que el semáforo y el modal de
+ *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
+ *  y la talla está por colgar; si lo del almacén está todo apartado, no hay nada que bajar y no lo está.
+ *  Donde la sede no separa piso de almacén (Taller: `null`) la pregunta no existe → nunca. */
+export function porColgar(c: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">): boolean {
+  if (c.pisoDisponible === null || c.almacenDisponible === null) return false;
+  return c.pisoDisponible <= 0 && c.almacenDisponible > 0;
+}
+
+/** El contador del filtro «Por colgar»: cuántas tallas y cuántas unidades se podrían colgar hoy (lo
+ *  disponible en el almacén de esas tallas — lo mismo que el modal de Reponer deja bajar). */
+export function resumirPorColgar(filas: Pick<Cantidades, "pisoDisponible" | "almacenDisponible">[]): { tallas: number; unidades: number } {
+  let tallas = 0;
+  let unidades = 0;
+  for (const f of filas) {
+    if (!porColgar(f)) continue;
+    tallas += 1;
+    unidades += f.almacenDisponible ?? 0;
+  }
+  return { tallas, unidades };
+}
+
+/** Orden de la lista «Por colgar»: modelo, color y talla en su curva (S · M · L, 36 · 38). La encargada
+ *  cuelga por percha —un modelo en un color—, no talla por talla: si la M y la L de la misma casaca
+ *  negra salen separadas por otras prendas, baja una y se olvida de la otra. El `productoId` desempata
+ *  dos modelos con el mismo nombre para que sus tallas no se intercalen. Lo que no tiene color o talla
+ *  va al final de su grupo, no se pierde. Devuelve un arreglo nuevo: no reordena el que recibe. */
+export function ordenarPorModeloColorTalla<T extends { referencia: string; productoId: string; color: string | null; talla: string | null }>(filas: T[]): T[] {
+  const alFinal = (a: string | null, b: string | null, comparar: (x: string, y: string) => number) =>
+    a === b ? 0 : a === null ? 1 : b === null ? -1 : comparar(a, b);
+  return [...filas].sort(
+    (a, b) =>
+      a.referencia.localeCompare(b.referencia, "es") ||
+      a.productoId.localeCompare(b.productoId) ||
+      alFinal(a.color, b.color, (x, y) => x.localeCompare(y, "es")) ||
+      alFinal(a.talla, b.talla, compararTallas)
+  );
+}
+
+/** La percha de una talla: el modelo (por `productoId`, no por nombre) en un color. Es el grupo que
+ *  `ordenarPorModeloColorTalla` deja contiguo y que la paginación de «Por colgar» no parte entre páginas
+ *  (`paginarSinPartirGrupos`). */
+export function clavePercha(f: { productoId: string; color: string | null }): string {
+  return JSON.stringify([f.productoId, f.color]);
+}
+
+// --- Mover entre piso y almacén, en los dos sentidos -------------------------
+// Bajar al piso (reponer) y retirar del piso (D-41: «pasa de verdad, falta la
+// pantalla») son LA MISMA operación con origen y destino invertidos: las dos van
+// por `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql), que
+// acepta cualquier par de sububicaciones de la misma sede y no cambia el total
+// de la tienda. Por eso el sentido es un dato, no un segundo modal: de él salen
+// de dónde sale la prenda, a dónde va, cuánto se puede mover y cómo se dice.
+
+export type SentidoPiso = "bajar" | "retirar";
+export type LugarTienda = "piso" | "almacen";
+
+export type ReglaSentidoPiso = {
+  origen: LugarTienda;
+  destino: LugarTienda;
+  /** El título del modal. Bajar desde la fila se sigue llamando «Reponer piso», como su botón «Reponer»:
+   *  «Bajar al piso» es el botón de la pantalla de escaneo de ADR-0208 (/inventario/bajar), y dos cosas
+   *  distintas con el mismo nombre confunden. En Movimientos las dos quedan como «Bajada al piso». */
+  titulo: string;
+  etiquetaCantidad: string;
+  /** El recorrido, en palabras de tienda, bajo el campo de cantidad. */
+  recorrido: string;
+  /** Lo que se le dice a la persona cuando pide más de lo que hay en el origen. */
+  noAlcanza: (pedido: number, hay: number) => string;
+  exito: (n: number) => string;
+  /** Qué se estaba intentando, para `traducirError` («No se pudo …»). */
+  accion: string;
+};
+
+export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
+  bajar: {
+    origen: "almacen",
+    destino: "piso",
+    titulo: "Reponer piso",
+    etiquetaCantidad: "Cantidad a reponer",
+    recorrido: "Almacén de tienda → Piso de venta",
+    noAlcanza: (pedido, hay) => `No hay ${pedido} unidades en el almacén — hay ${hay}.`,
+    // «bajada», no «repuesta»: es la palabra con la que la fila queda en Movimientos («Bajada al piso»).
+    exito: (n) => `${n} ${n === 1 ? "unidad bajada" : "unidades bajadas"} al piso`,
+    accion: "reponer el piso",
+  },
+  retirar: {
+    origen: "piso",
+    destino: "almacen",
+    titulo: "Retirar del piso",
+    etiquetaCantidad: "Cantidad a retirar",
+    recorrido: "Piso de venta → Almacén de tienda",
+    // Lo apartado para una clienta sigue colgado pero no se retira: la cifra ya viene neta.
+    noAlcanza: (pedido, hay) => `No hay ${pedido} unidades libres en el piso — hay ${hay} (lo apartado para clientas no se retira).`,
+    exito: (n) => `${n} ${n === 1 ? "unidad retirada" : "unidades retiradas"} del piso`,
+    accion: "retirar del piso",
+  },
+};
+
+/** Si una talla ofrece «Retirar del piso»: basta con que quede algo LIBRE colgado (neto de lo
+ *  apartado para clientas). Sin umbral a propósito — «Reponer» avisa desde
+ *  `UMBRAL_REPOSICION_PISO` porque es una alarma (la clienta se va sin su talla); retirar no es
+ *  alarma sino una decisión de la tienda (guardar lo de otra temporada, una talla que sobra en
+ *  la percha) y tiene sentido con 1 unidad o con 30. `null` = la sede no separa piso y almacén
+ *  (Taller): no hay piso del que retirar. */
+export function puedeRetirarPiso(pisoDisponible: number | null): boolean {
+  return pisoDisponible !== null && pisoDisponible > 0;
+}
+
+/** Cuántas unidades se pueden mover en ese sentido: lo DISPONIBLE del origen (neto de lo
+ *  apartado — la base igual rechaza mover una prenda apartada, ADR-0141). Nunca negativo. */
+export function topeMovimientoPiso(sentido: SentidoPiso, disponible: { piso: number | null; almacen: number | null }): number {
+  return Math.max(0, disponible[SENTIDO_PISO[sentido].origen] ?? 0);
 }
 
 export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {
@@ -188,6 +313,31 @@ export const TENDENCIA_MIN_UNIDADES = 4;
  *  stock de hoy (cobertura). Mismo período que el Resumen usa por defecto. */
 export const DIAS_RITMO_RECIENTE = 30;
 
+// --- Comportamiento comercial: piso vs. almacén (Análisis, 2026-09-24) -------
+// Por confirmar por Felipe: son el primer número razonable para separar "cómo
+// responde la variante en piso" de "cuánto inventario total se mantiene", no
+// meses de venta real como las de arriba. Una sola casa para los tres, para no
+// repartir el mismo criterio entre la tabla, el tooltip y la lectura.
+
+/** Una cohorte de unidades que llegó al piso madura (se puede juzgar su sell-through) a partir de
+ *  este número de días desde que llegó, o antes si se vendió entera primero. Con menos, penalizaría
+ *  a una reposición reciente que todavía no tuvo tiempo de venderse — ver sección 8 del pedido de
+ *  Felipe (sell-through de exposición, cohortes FIFO en `resumen-exposicion.ts`). */
+export const SELL_THROUGH_EXPOSURE_WINDOW_DAYS = 7;
+
+/** Ritmo observado con «muestra limitada»: cuando la exposición en piso fue menos de esta fracción
+ *  del período completo. El número de ritmo es igual de correcto matemáticamente, pero la UI lo
+ *  marca para que no se lea como "vende esto todos los días" cuando apenas tuvo unas horas de
+ *  evidencia (ej. 1 de 7 días). Fracción, no días fijos, porque "poco" es relativo al período elegido
+ *  (7, 30 o 90 días). */
+export const RITMO_MUESTRA_LIMITADA_FRACCION = 0.5;
+
+/** Rotación total por debajo de esta fracción de la rotación en piso = «responde bien en piso, pero
+ *  mantiene mucho inventario total» (sección 15, caso "buen producto + sobrestock"). 0.5 = la mitad
+ *  del inventario invertido gira a la mitad de velocidad que lo expuesto — línea razonable para
+ *  separar "algo más de colchón en almacén" de "casi todo el inventario duerme atrás". */
+export const SOBRESTOCK_ROTACION_TOTAL_VS_PISO = 0.5;
+
 // --- Exactitud del inventario -------------------------------------------------
 
 /** Un conteo cerrado más antiguo que esto ya no valida el inventario de hoy. */
@@ -283,4 +433,24 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
     });
   }
   return cantidades;
+}
+
+/** Qué va a decir Existencias de la talla DESPUÉS de retirar `n` del piso, si eso contradice el retiro.
+ *  El semáforo solo mira cifras (`necesitaReponerPiso`, `porColgar`): no sabe que la encargada guardó la
+ *  talla a propósito (fin de temporada), así que al turno siguiente le pide bajarla de nuevo. Hasta que
+ *  exista una marca de «retirada de la venta» (decisión de Felipe, bloque 3 de ADR-0208), el modal lo avisa
+ *  ANTES de confirmar y pide dejarlo en la nota. `null`: la fila no va a pedir nada, o la cantidad no vale
+ *  (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como el modal y el semáforo. */
+export function avisoTrasRetiro(disponible: { piso: number | null; almacen: number | null }, n: number): string | null {
+  if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return null;
+  const piso = disponible.piso - n;
+  const almacen = disponible.almacen + n;
+  if (piso < 0) return null;
+  if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) {
+    return "Quedará 0 en el piso: Existencias la mostrará «Por colgar» y sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.";
+  }
+  if (necesitaReponerPiso(piso, almacen)) {
+    return `Quedarán ${piso} en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.`;
+  }
+  return null;
 }

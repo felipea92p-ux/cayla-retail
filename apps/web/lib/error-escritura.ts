@@ -181,9 +181,9 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `Ese descuento en ${prenda} deja el precio por debajo de lo que cuesta. Bájalo un poco.`,
   },
   {
-    // Misma migración — banda 20-35 % de un Líder (R-45): pide un argumento escrito.
+    // Pasado el 15 % (Felipe, 2026-09-25; antes 20-35 % de un Líder, R-45): pide un argumento escrito.
     marca: "venta_descuento_requiere_argumento",
-    frase: (prenda) => `El descuento en ${prenda} pasa el 20 %: escribe el argumento antes de cobrar.`,
+    frase: (prenda) => `El descuento en ${prenda} pasa el 15 %: escribe el argumento antes de cobrar.`,
   },
   {
     // Misma migración — más de 35 % nadie, ni un Líder (decisión de Felipe, 2026-09-15):
@@ -395,6 +395,30 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
   if (!error) return false;
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ").toLowerCase();
   return SIN_RED.some((t) => crudo.includes(t));
+}
+
+/**
+ * SQLSTATE que dicen «ahora no, intenta de nuevo» y no «esto está mal»: choque de transacciones, bloqueo que no se
+ * soltó a tiempo (`lock_timeout`), consulta cortada por tiempo, base reiniciando o sin conexiones libres. Y los de
+ * PostgREST cuando no alcanza a la base (PGRST000–003).
+ */
+const CODIGOS_PASAJEROS = ["40001", "40P01", "55P03", "57014", "53300", "57P01", "57P03", "08000", "08003", "08006", "PGRST000", "PGRST001", "PGRST002", "PGRST003"];
+
+/**
+ * ¿El servidor SÍ respondió, pero con un error que se arregla solo al reintentar? (ADR-0210, «huecos»). Un 5xx, un
+ * 429 (demasiadas peticiones), un 408, o uno de los SQLSTATE de arriba. Hasta hoy la cola trataba todo lo que no era
+ * corte de red como rechazo definitivo y lo dejaba esperando un «Descartar» que no hacía falta (hueco anotado en
+ * ADR-0063). Como las operaciones encoladas son idempotentes por token, reintentarlas no duplica nada.
+ */
+export function esErrorPasajero(error: ErrorEscritura, status?: number | null): boolean {
+  if (!error) return false;
+  if (error.code && CODIGOS_PASAJEROS.includes(error.code)) return true;
+  return typeof status === "number" && (status >= 500 || status === 429 || status === 408);
+}
+
+/** ¿Guardar esto en la cola en vez de mostrar el error? Sin red, o con el servidor momentáneamente mal. */
+export function debeEncolarse(error: ErrorEscritura, status?: number | null): boolean {
+  return esFalloDeRed(error) || esErrorPasajero(error, status);
 }
 
 /** SQLSTATE propio de «otra persona cambió esto mientras lo editabas» (ADR-0193). PostgREST lo devuelve como 409. */

@@ -6,11 +6,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { debeEncolarse, traducirError } from "@/lib/error-escritura";
+import { nuevaOperacion, porSubir, subidasEntre, type OperacionEncolada } from "@/lib/cola-offline";
+import { useColaRecibir } from "@/lib/useColaRecibir";
+import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
-import { Boton, CampoSelectNativo, CampoTexto, SelectNativo } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { BarraFija } from "@/components/ui/BarraFija";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
@@ -52,6 +55,7 @@ import {
   inicialesProveedor,
   llegoLinea,
   movimientosDelEnvio,
+  pendienteEnCola,
   proveedoresDelEnvio,
   resolverEscaneo,
   restarUnidad,
@@ -171,7 +175,34 @@ export function RecepcionEnvio({
   const panel = useRef<HTMLDivElement>(null);
   const escaneoRef = useRef<HTMLInputElement>(null);
   const ahora = useMemo(() => new Date(), []);
-  const comprasOrdenadas = useMemo(() => ordenarPorUrgencia(compras, ahora), [compras, ahora]);
+  // Envíos guardados sin conexión que todavía no suben (ADR-0210): lo que ya contaron sale de «pendientes» mientras
+  // espera, para que nadie vuelva a contar el mismo comprobante o traslado y al volver la red suban dos recepciones.
+  const colaOffline = useColaRecibir();
+  // Lo que ya subió sigue oculto hasta que llega la lista nueva del servidor (`router.refresh`): en ese rato la lista
+  // vieja lo mostraría otra vez como pendiente. Estado ajustado en el render (patrón «previo + comparación» de React).
+  const [colaPrevia, setColaPrevia] = useState(colaOffline.cola);
+  const [subidasSinReleer, setSubidasSinReleer] = useState<OperacionEncolada[]>([]);
+  if (colaOffline.cola !== colaPrevia) {
+    setColaPrevia(colaOffline.cola);
+    const subidas = subidasEntre(colaPrevia, colaOffline.cola);
+    if (subidas.length > 0) setSubidasSinReleer((s) => [...s, ...subidas]);
+  }
+  const [lineasPrevias, setLineasPrevias] = useState(lineas);
+  if (lineas !== lineasPrevias) {
+    setLineasPrevias(lineas);
+    setSubidasSinReleer([]);
+  }
+  const enCola = useMemo(
+    () =>
+      pendienteEnCola(
+        [...porSubir(colaOffline.cola), ...subidasSinReleer].filter((op) => op.rpc === "recibir_envio").map((op) => op.params as PedidoEnvio),
+      ),
+    [colaOffline.cola, subidasSinReleer],
+  );
+  const comprasOrdenadas = useMemo(
+    () => ordenarPorUrgencia(compras.filter((c) => !lineas.some((l) => l.compraId === c.id && enCola.lineas.has(l.id))), ahora),
+    [compras, lineas, enCola, ahora],
+  );
 
   const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
   const [seleccionadas, setSeleccionadas] = useState<string[]>(inicial);
@@ -245,7 +276,7 @@ export function RecepcionEnvio({
   const proveedoresEnvio = useMemo(() => proveedoresDelEnvio(bloques), [bloques]);
   const hayEnvio = seleccionadas.length > 0;
 
-  const trasladosDeAca = trasladosPorUbicacion[ubicacionId] ?? [];
+  const trasladosDeAca = (trasladosPorUbicacion[ubicacionId] ?? []).filter((t) => !enCola.traslados.has(t.id));
   const trasladosMarcados = trasladosDeAca.filter((t) => trasladosElegidos.includes(t.id));
   const totales = totalesEnvio(
     bloques,
@@ -352,7 +383,8 @@ export function RecepcionEnvio({
 
   // Los indicadores (`KpisRecibir`) viven en el servidor y no conocen este estado: «La más atrasada» les avisa por evento.
   const alAvisarMarcar = useEffectEvent((id: string) => {
-    const c = compras.find((x) => x.id === id);
+    // De `comprasOrdenadas`, no de `compras`: un comprobante que espera en la cola sin conexión no se vuelve a marcar.
+    const c = comprasOrdenadas.find((x) => x.id === id);
     if (c && !seleccionadas.includes(c.id)) alternar(c);
   });
   useEffect(() => {
@@ -639,9 +671,43 @@ export function RecepcionEnvio({
     const supabase = createClient();
     // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede y los
     // cierres se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
-    const { data, error } = await firmar(supabase.rpc("recibir_envio", pedido), responsable.firma());
+    const firma = responsable.firma();
+    const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
     cerrarProceso();
     setLoading(false);
+    // Sin red (ADR-0210): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
+    // navegador y sube solo; mientras tanto sus comprobantes y traslados salen de «pendientes».
+    if (error && debeEncolarse(error, status)) {
+      const documentos = bloques.map((b) => b.compra.documento).join(", ");
+      const que = unidadesRecibiendo > 0 ? `${unidadesRecibiendo} ${unidadesRecibiendo === 1 ? "unidad" : "unidades"}` : `${cierres.length} ${cierres.length === 1 ? "faltante cerrado" : "faltantes cerrados"}`;
+      const op = nuevaOperacion({
+        token,
+        rpc: "recibir_envio",
+        params: pedido,
+        firma,
+        resumen: [`Envío de ${que}`, documentos, ubicacionNombre].filter(Boolean).join(" · "),
+      });
+      setPedidoListo(null);
+      if (!colaOffline.encolar(op)) {
+        avisar.error("Se cortó el internet y este navegador no pudo guardar el envío.", { detalle: "Tu conteo sigue aquí: vuelve a confirmar cuando regrese la conexión." });
+        return;
+      }
+      avisar.aviso("Envío guardado sin conexión", { detalle: "Sube solo cuando vuelva el internet." });
+      setOk({
+        unidades: unidadesRecibiendo,
+        proveedores: proveedoresEnvio.length,
+        lotes: [],
+        extras: pedido.p_extras.length,
+        deOtraSede: totales.deOtraSede,
+        traslados: [],
+        cierres: cierres.length,
+        porReclamar: 0,
+        yaRegistrado: false,
+        sinConexion: true,
+        movimientos,
+      });
+      return;
+    }
     responsable.despues(error);
     if (error) {
       setPedidoListo(null);
@@ -848,6 +914,7 @@ export function RecepcionEnvio({
 
   return (
     <>
+      <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="recepción" varias="recepciones" className="mb-6" />
       <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
         {/* ================= izquierda: lo que falta llegar ================= */}
         <aside className="card-cayla anim-entra overflow-hidden lg:sticky lg:top-24" style={{ "--i": 3 } as CSSProperties}>
@@ -1021,13 +1088,12 @@ export function RecepcionEnvio({
                     pie={numeroGuia.trim() && !guiaConFormato(numeroGuia) ? "Formato de guía: T001-000123" : guiaConFormato(numeroGuia) ? "Guía con formato válido." : "Una sola guía por envío. Puedes anotarla después."}
                   />
                   {ubicaciones.length > 1 ? (
-                    <CampoSelectNativo etiqueta="Entra al almacén de" id="recibir-ubicacion" value={ubicacionId} onChange={(e) => cambiarUbicacion(e.target.value)}>
-                      {ubicaciones.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.nombre}
-                        </option>
-                      ))}
-                    </CampoSelectNativo>
+                    <CampoSelect
+                      etiqueta="Entra al almacén de"
+                      valor={ubicacionId}
+                      onValor={(v) => cambiarUbicacion(v)}
+                      opciones={ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))}
+                    />
                   ) : (
                     <CampoTexto etiqueta="Entra al almacén de" value={ubicacionNombre} readOnly />
                   )}
@@ -1343,14 +1409,19 @@ export function RecepcionEnvio({
                               marcador="Busca la prenda…"
                               className="min-w-[12rem] flex-1"
                             />
-                            <SelectNativo aria-label="Talla y color" value={ex.varianteId} onChange={(e) => actualizarExtra(i, { varianteId: e.target.value })} disabled={!ex.productoId} className="w-32 shrink-0">
-                              <option value="">{ex.productoId ? "Elige…" : "—"}</option>
-                              {variantesDelProducto.map((v) => (
-                                <option key={v.varianteId} value={v.varianteId}>
-                                  {[v.talla, v.color].filter(Boolean).join(" / ") || v.sku}
-                                </option>
-                              ))}
-                            </SelectNativo>
+                            <div className="w-32 shrink-0">
+                              <Desplegable
+                                etiquetaAccesible="Talla y color"
+                                valor={ex.varianteId}
+                                onValor={(v) => actualizarExtra(i, { varianteId: v })}
+                                opciones={variantesDelProducto.map((v) => ({
+                                  valor: v.varianteId,
+                                  texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku,
+                                }))}
+                                marcador={ex.productoId ? "Elige…" : "—"}
+                                deshabilitado={!ex.productoId}
+                              />
+                            </div>
                             <input
                               type="number"
                               min={1}
@@ -1360,14 +1431,15 @@ export function RecepcionEnvio({
                               onFocus={(e) => e.target.select()}
                               className="w-16 shrink-0 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm tabular-nums text-tinta outline-none focus:border-b-2 focus:border-rojo"
                             />
-                            <SelectNativo aria-label="Proveedor que la mandó" value={ex.proveedorId} onChange={(e) => actualizarExtra(i, { proveedorId: e.target.value })} className="w-48 shrink-0">
-                              <option value="">Proveedor…</option>
-                              {proveedores.map((p) => (
-                                <option key={p.id} value={p.id}>
-                                  {p.nombre}
-                                </option>
-                              ))}
-                            </SelectNativo>
+                            <div className="w-48 shrink-0">
+                              <Desplegable
+                                etiquetaAccesible="Proveedor que la mandó"
+                                valor={ex.proveedorId}
+                                onValor={(v) => actualizarExtra(i, { proveedorId: v })}
+                                opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+                                marcador="Proveedor…"
+                              />
+                            </div>
                             <label className="flex shrink-0 cursor-pointer items-center gap-2 pb-2 text-sm text-tinta/75">
                               <input type="checkbox" checked={ex.esRegalo} onChange={(e) => actualizarExtra(i, { esRegalo: e.target.checked, costoUnitario: e.target.checked ? "" : ex.costoUnitario })} className="peer sr-only" />
                               <span aria-hidden className="relative h-[18px] w-8 rounded-full bg-tinta/25 transition-colors duration-200 after:absolute after:left-0.5 after:top-0.5 after:h-3.5 after:w-3.5 after:rounded-full after:bg-papel after:transition-transform after:duration-[260ms] after:ease-cayla peer-checked:bg-tinta peer-checked:after:translate-x-3.5 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-rojo" />

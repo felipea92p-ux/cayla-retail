@@ -31,7 +31,7 @@ import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { duracionAbierta, escalaTurno, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { DIAS_SEMANA, explicarMeta, type ParametrosCaja } from "@/lib/configuracion-reglas";
+import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 
 function money(n: number) {
@@ -83,6 +83,7 @@ export function CajaAbiertaPanel({
   metaVentaDiaria,
   parametros = null,
   esperadoCajon = null,
+  horaCierre = null,
   cierresRecientes,
 }: {
   ubicacionNombre: string;
@@ -100,6 +101,8 @@ export function CajaAbiertaPanel({
   parametros?: ParametrosCaja | null;
   /** Cuánto debería haber en el cajón (`fn_esperado_caja`); `null` si quien mira no puede cerrar. */
   esperadoCajon?: number | null;
+  /** A qué hora cierra la tienda («21:00»): con ella, «al ritmo de hoy cierras en…». Null = se muestra el avance en %. */
+  horaCierre?: string | null;
   cierresRecientes: CierreCaja[];
 }) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | null>(null);
@@ -137,6 +140,19 @@ export function CajaAbiertaPanel({
   // 0 = lunes, igual que la base (isodow − 1).
   const diaHoy = DIAS_SEMANA[(new Date(`${hoyLima()}T12:00:00`).getDay() + 6) % 7]!;
   const explicacionMeta = parametros ? explicarMeta(parametros, diaHoy, soles0, ubicacionNombre) : "";
+  // «Al ritmo de hoy»: la hora de ahora se lee DESPUÉS de montar (en el servidor sería otra y React avisaría de la
+  // diferencia) y se renueva cada minuto. Todo en hora de Lima.
+  const [ahora, setAhora] = useState<string | null>(null);
+  useEffect(() => {
+    const leer = () => setAhora(diaYHoraLima(new Date().toISOString()).hora);
+    leer();
+    const id = window.setInterval(leer, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const alCierre =
+    ahora && metaVentaDiaria !== null
+      ? proyeccionAlCierre({ vendido: totalVentas, abrioMin: minutosLima(diaYHoraLima(caja.abiertaEn).hora) ?? 0, ahoraMin: minutosLima(ahora) ?? 0, cierreMin: minutosLima(horaCierre) })
+      : null;
   // El fondo que pide el cierre y por qué: la campaña que lo sube, o lo normal de la tienda.
   const fondoCierre =
     parametros && parametros.fondo !== null
@@ -261,7 +277,19 @@ export function CajaAbiertaPanel({
               <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
                 <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
                 <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
-                <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
+                {alCierre !== null ? (
+                  <DatoMeta
+                    etiqueta="Al ritmo de hoy cierras en"
+                    valor={soles0(alCierre)}
+                    detalle={
+                      alCierre >= metaVentaDiaria
+                        ? "Llegas a la meta."
+                        : `Te quedarían ${soles0(metaVentaDiaria - alCierre)} por vender. Son las ${ahora}; cierras a las ${horaCierre}.`
+                    }
+                  />
+                ) : (
+                  <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
+                )}
               </dl>
             </div>
             {puedeCerrar && fondoCierre && (
@@ -387,7 +415,7 @@ export function CajaAbiertaPanel({
       </div>
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
-      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} onClose={() => setModal(null)} />}
+      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={todosLosEventos}

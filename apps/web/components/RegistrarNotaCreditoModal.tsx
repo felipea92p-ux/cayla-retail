@@ -29,6 +29,8 @@ import {
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { CampoSaleDe, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { cuentaEfectiva } from "@/lib/cuenta-sellada-reglas";
 
 /* ====================================================================
    Registrar una nota de crédito de compra (2026-09-19)
@@ -102,6 +104,10 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
   const [enviando, setEnviando] = useState(false);
   // Quién registra la nota (ADR-0161/0162): `registrar_nota_credito_compra` firma con esa persona.
   const responsable = useResponsable();
+  // «Entra a» (ADR-0195 F3b, situación 6): con reembolso, a qué cuenta entró la plata. Al cajón, con su ingreso de caja.
+  const cuentasReembolso = useCuentasParaElegir("reembolso", null);
+  const [cuentaElegida, setCuentaElegida] = useState<string | null>(null);
+  const cuentaEntra = cuentaEfectiva(cuentasReembolso.cuentas, "reembolso", borrador.reembolsoMetodo, cuentaElegida);
   const [exito, setExito] = useState<{ serie: string; lineas: [string, string][]; titulo: string; frase: string } | null>(null);
 
   const refBuscador = useRef<HTMLInputElement>(null);
@@ -210,6 +216,7 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
             p_reembolso_metodo: borrador.reembolsoMetodo,
             p_reembolso_fecha: borrador.reembolsoFecha,
             ...(borrador.reembolsoReferencia.trim() ? { p_reembolso_referencia: borrador.reembolsoReferencia.trim() } : {}),
+            ...(cuentaEntra ? { p_reembolso_cuenta_id: cuentaEntra } : {}),
           }
         : {}),
     } as never), responsable.firma());
@@ -495,6 +502,18 @@ export function RegistrarNotaCreditoModal({ facturas, fallaFacturas, filas, comp
                           {ETIQUETA_METODO[m] ?? m}
                         </button>
                       ))}
+                    </div>
+                    <div className="mt-3.5">
+                      <CampoSaleDe
+                        etiqueta="Entra a"
+                        sentido="entra"
+                        cuentas={cuentasReembolso.cuentas}
+                        listo={cuentasReembolso.listo}
+                        clase="reembolso"
+                        medio={borrador.reembolsoMetodo}
+                        valor={cuentaEntra}
+                        onValor={setCuentaElegida}
+                      />
                     </div>
                     <div className="mt-3.5 grid gap-4 sm:grid-cols-[1fr_1.4fr]">
                       <CampoFecha etiqueta="Fecha en que lo devuelve" valor={borrador.reembolsoFecha} onValor={(iso) => setBorrador((b) => ({ ...b, reembolsoFecha: iso }))} tono={v.errores.reembolsoFecha ? "error" : undefined} pie={v.errores.reembolsoFecha} required />

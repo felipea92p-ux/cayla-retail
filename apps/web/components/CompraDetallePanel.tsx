@@ -9,8 +9,9 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
-import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
@@ -227,6 +228,8 @@ export function RegistrarPagoModal({
   const [lineas, setLineas] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(compra.saldo.toFixed(2)), metodo: datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia" }]);
   const [fecha, setFecha] = useState(hoyLima());
   const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
+  // ADR-0195 F3b: «Sale de». La propuesta sale de la tienda con que se paga; el líder, de la primera tienda del comprobante.
+  const cuentas = useCuentasParaElegir("pago", ubicacionPago || compra.ubicacionesDestino[0] || null);
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
   const responsable = useResponsable();
@@ -261,7 +264,7 @@ export function RegistrarPagoModal({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const pagos = lineasPagoParaRpc(lineas);
+    const pagos = lineasPagoParaRpc(lineas, cuentas.cuentas);
     const sinMonto = Math.max(0, lineas.findIndex((l) => !(Number(l.monto) > 0)));
     if (!pagos) return void avisar.error("Cada medio de pago necesita su monto.", { enfocar: `pago-monto-${sinMonto}` });
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
@@ -426,16 +429,15 @@ export function RegistrarPagoModal({
             {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
                 la base exige que esa tienda tenga parte en ESTA factura y valida que no supere su saldo. */}
             {misTiendas && misTiendas.length > 1 && (
-              <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>
-                {misTiendas.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.nombre}
-                  </option>
-                ))}
-              </CampoSelectNativo>
+              <CampoSelect
+                etiqueta="Pagas desde"
+                valor={ubicacionPago}
+                onValor={(v) => setUbicacionPago(v)}
+                opciones={misTiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
+              />
             )}
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">

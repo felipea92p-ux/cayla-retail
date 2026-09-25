@@ -1,11 +1,16 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown, Clock, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useComboLista } from "@/components/ui/useCombo";
+import { clave } from "@/lib/buscar-prenda-v2";
+import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 
 type Props = {
   control: ControlResponsable;
@@ -13,11 +18,6 @@ type Props = {
   deshabilitado?: boolean;
   className?: string;
 };
-
-function iniciales(nombre: string): string {
-  const partes = nombre.replace(/\./g, "").trim().split(/\s+/);
-  return ((partes[0]?.[0] ?? "") + (partes[1]?.[0] ?? "")).toUpperCase();
-}
 
 /**
  * El combo «Responsable» (ADR-0161; diseño aprobado en `docs/maquetas/responsable-y-roles-spike-2026-09/`, pantallas
@@ -35,8 +35,10 @@ function iniciales(nombre: string): string {
  */
 export function ComboResponsable({ control, deshabilitado = false, className = "" }: Props) {
   const [abierto, setAbierto] = useState(false);
+  const [busqueda, setBusqueda] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
+  const buscador = useRef<HTMLInputElement>(null);
   // La lista FLOTA (`fixed`, medida contra el botón; abre hacia abajo o, si no cabe, hacia arriba), igual que
   // ComboBuscable. Antes se abría dentro del contenido y empujaba todo 150–250 px; al elegir se cerraba de golpe y,
   // como el combo suele ser lo penúltimo de un formulario o de una ventana, la vista saltaba (2026-09-23, ADR-0185).
@@ -54,6 +56,28 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
     document.addEventListener("pointerdown", fuera);
     return () => document.removeEventListener("pointerdown", fuera);
   }, [abierto]);
+
+  // Regla global de combos (ADR-0209): con más de 8 personas de turno a la vez, un buscador; si no, exactamente
+  // el control de siempre. El paginado casi nunca se activa acá (una tienda no tiene 50 personas en un turno),
+  // pero se cablea igual — es la misma regla en todo el sistema, no una excepción para este combo. Antes de los
+  // `return` de abajo (admin/nadie/sin_lectura) porque son Hooks: tienen que llamarse en el mismo orden siempre,
+  // aunque `lista` no importe en esos estados (`LISTA_VACIA`/la del Admin ya traen `elegibles`/`enPausa`).
+  const opciones: PersonaDeTurno[] = useMemo(() => [...lista.elegibles, ...lista.enPausa], [lista.elegibles, lista.enPausa]);
+  const mostrarBuscador = comboNecesitaBuscador(opciones.length);
+  const filtradas = useMemo(() => {
+    if (!mostrarBuscador || !busqueda) return opciones;
+    const k = clave(busqueda);
+    return opciones.filter((p) => clave(p.nombre).includes(k));
+  }, [opciones, busqueda, mostrarBuscador]);
+  const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
+  const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
+
+  // `posLista` (no solo `abierto`) en las dependencias: el panel recién se monta un render después de
+  // abrir (usePosicionLista mide el botón antes de poder posicionarlo) — enfocar solo con `abierto` intentaba
+  // enfocar un <input> que todavía no existía en el DOM, y se perdía el foco para siempre en esa apertura.
+  useEffect(() => {
+    if (abierto && posLista && mostrarBuscador) buscador.current?.focus();
+  }, [abierto, posLista, mostrarBuscador]);
 
   if (estado === "admin") {
     return (
@@ -103,8 +127,17 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   const cargando = estado === "cargando";
   const elegido = lista.elegibles.find((p) => p.personaId === elegidoId) ?? null;
-  const opciones: PersonaDeTurno[] = [...lista.elegibles, ...lista.enPausa];
   const cortos = nombresCortos(opciones.map((p) => p.nombre));
+
+  function abrirOCerrar() {
+    if (abierto) {
+      setAbierto(false);
+      return;
+    }
+    setBusqueda("");
+    mostrarDesde(Math.max(0, opciones.findIndex((p) => p.personaId === elegidoId)));
+    setAbierto(true);
+  }
 
   function elegir(p: PersonaDeTurno) {
     control.elegir(p.personaId);
@@ -143,13 +176,13 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         aria-controls={abierto ? idLista : undefined}
         aria-label={elegido ? `Responsable: ${elegido.nombre.replace(/\.$/, "")}. Cambiar` : "Elegir responsable"}
         disabled={deshabilitado || cargando}
-        onClick={() => setAbierto((a) => !a)}
+        onClick={abrirOCerrar}
         className={`flex h-12 w-full items-center gap-2.5 rounded-lg border bg-crema px-3.5 text-left transition-[border-color,box-shadow] duration-200 disabled:cursor-default disabled:opacity-60 ${
           elegido ? "border-tinta" : "border-dashed border-rojo/55 text-rojo-profundo hover:border-rojo"
         }`}
       >
         {elegido ? (
-          <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-sand font-display text-sm text-tinta">{iniciales(elegido.nombre)}</span>
+          <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} className="h-7 w-7 text-sm" />
         ) : (
           <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
         )}
@@ -158,41 +191,65 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         </span>
         <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
       </button>
+      {/* Pantalla abierta sin red (ADR-0210): la lista es la última que se leyó aquí. La base confirma al subir. */}
+      {control.deMemoria && (
+        <p className="mt-1.5 text-xs text-ambar-profundo">
+          Sin conexión: lista de turno de las {diaYHoraLima(control.deMemoria).hora}. Al subir, el sistema confirma que esa persona estaba de turno.
+        </p>
+      )}
 
       {abierto && posLista && (
         <div
-          id={idLista}
-          role="listbox"
-          aria-label={`De turno ahora en ${sede}`}
           style={{ position: "fixed", ...posLista }}
-          className="anim-revelar z-50 overflow-y-auto rounded-xl border border-sand bg-papel p-2 shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
+          className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
         >
-          <p className="label-cayla px-2 pb-2 pt-1.5 text-[11px] text-tinta/60">De turno ahora · {sede}</p>
-          {opciones.map((p) => (
-            <button
-              key={p.personaId}
-              type="button"
-              role="option"
-              aria-selected={p.personaId === elegidoId}
-              disabled={p.enPausa}
-              onClick={() => elegir(p)}
-              className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-sand/55 disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-sand font-display text-sm">{iniciales(p.nombre)}</span>
-              <span className="min-w-0 flex-1">
-                {cortos.get(p.nombre) ?? p.nombre}
-                <small className="block text-[11.5px] text-tinta/60">
-                  {p.enPausa ? "En pausa · no puede firmar" : p.deOtraSede ? "De turno · de otra sede" : "De turno"}
-                </small>
-              </span>
-              <span className={`h-2 w-2 flex-none rounded-full ${p.enPausa ? "bg-ambar" : "bg-verde"}`} aria-hidden />
-            </button>
-          ))}
-          {lista.salieron > 0 && (
-            <p className="mt-1.5 border-t border-sand px-2 pb-0.5 pt-2 text-xs text-tinta/60">
-              {lista.salieron === 1 ? "1 persona ya marcó su salida y no aparece." : `${lista.salieron} personas ya marcaron su salida y no aparecen.`}
-            </p>
+          {mostrarBuscador && (
+            <input
+              ref={buscador}
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                reiniciar();
+              }}
+              placeholder="Buscar…"
+              aria-label={`Buscar en de turno ahora · ${sede}`}
+              aria-controls={idLista}
+              autoComplete="off"
+              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2.5 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            />
           )}
+          <div id={idLista} role="listbox" aria-label={`De turno ahora en ${sede}`} onScroll={alHacerScroll} className="min-h-0 flex-1 overflow-y-auto p-2">
+            <p className="label-cayla px-2 pb-2 pt-1.5 text-[11px] text-tinta/60">De turno ahora · {sede}</p>
+            {mostrarBuscador && mostradas.length === 0 ? (
+              <p className="px-2 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</p>
+            ) : (
+              mostradas.map((p) => (
+                <button
+                  key={p.personaId}
+                  type="button"
+                  role="option"
+                  aria-selected={p.personaId === elegidoId}
+                  disabled={p.enPausa}
+                  onClick={() => elegir(p)}
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-sand/55 disabled:cursor-not-allowed disabled:opacity-45"
+                >
+                  <AvatarPersona personaId={p.personaId} nombre={p.nombre} className="h-7 w-7 text-sm" />
+                  <span className="min-w-0 flex-1">
+                    {cortos.get(p.nombre) ?? p.nombre}
+                    <small className="block text-[11.5px] text-tinta/60">
+                      {p.enPausa ? "En pausa · no puede firmar" : p.deOtraSede ? "De turno · de otra sede" : "De turno"}
+                    </small>
+                  </span>
+                  <span className={`h-2 w-2 flex-none rounded-full ${p.enPausa ? "bg-ambar" : "bg-verde"}`} aria-hidden />
+                </button>
+              ))
+            )}
+            {lista.salieron > 0 && (
+              <p className="mt-1.5 border-t border-sand px-2 pb-0.5 pt-2 text-xs text-tinta/60">
+                {lista.salieron === 1 ? "1 persona ya marcó su salida y no aparece." : `${lista.salieron} personas ya marcaron su salida y no aparecen.`}
+              </p>
+            )}
+          </div>
         </div>
       )}
 

@@ -1,5 +1,9 @@
 # Spike visual · Nuevo producto (2026-09-24)
 
+> **Estado (2026-09-24): aprobado e IMPLEMENTADO en el PR #395, ver `docs/adr/0197-nuevo-producto-en-cuatro-pasos-y-fotos-al-crear.md`.**
+> Decisiones: nombre y marca en el mismo paso; «Seguir →» en los pasos 2 y 3; en celular la celda muestra solo ✓. Se sumaron
+> las fotos por color en «Cómo se hace», que se suben al crear.
+
 `index.html`: un solo archivo, ábrelo en el navegador. Los datos son inventados. **No es la implementación.**
 Sirve para decidir cómo se reparte la pantalla `/productos/nuevo` (`components/NuevoProductoForm.tsx`, ADR-0109).
 La barra punteada de arriba cambia de estado (Vacío, A medio llenar, Listo para crear, Nombre repetido) y

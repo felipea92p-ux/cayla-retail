@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
+import { MOTIVOS_AJUSTE } from "./ajuste-reglas";
 import {
   CATEGORIAS,
+  ETIQUETA_PROCESO,
   FILTROS_SUBUBICACION,
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
@@ -8,7 +10,6 @@ import {
   PROCESOS_POR_CATEGORIA,
   categoriaDeProceso,
   desdeDeUltimosDias,
-  etiquetaActividad,
   etiquetaConDireccion,
   etiquetaDia,
   etiquetaMovimiento,
@@ -142,12 +143,26 @@ describe("etiquetaMovimiento", () => {
   it("el resto usa el nombre del proceso", () => {
     expect(etiquetaMovimiento(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBe("Venta");
     expect(etiquetaMovimiento(movimiento({ motivo: "recepcion" }))).toBe("Recepción");
-    expect(etiquetaMovimiento(movimiento({ motivo: "movimiento_interno", categoria: "interno", tipo: "traslado", delta: 0 }))).toBe("Reposición interna");
     expect(etiquetaMovimiento(movimiento({ motivo: "devolucion" }))).toBe("Devolución");
     expect(etiquetaMovimiento(movimiento({ motivo: "conteo", categoria: "ajuste", tipo: "ajuste" }))).toBe("Conteo");
   });
 
-  it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la reposición interna", () => {
+  // Bajar y retirar comparten motivo (`movimiento_interno`): lo que los distingue es a dónde llegó la prenda.
+  it("un movimiento entre piso y almacén se nombra por su destino: bajada al piso o retiro del piso", () => {
+    const interno = { motivo: "movimiento_interno", categoria: "interno" as const, tipo: "traslado" as const, delta: 0 };
+    const piso = { id: "s1", nombre: "Piso de venta", tipo: "piso_venta" };
+    const almacen = { id: "s2", nombre: "Almacén de tienda", tipo: "almacen_tienda" };
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacion: almacen, sububicacionDestino: piso }))).toBe("Bajada al piso");
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Retiro del piso");
+  });
+
+  it("sin destino reconocible, el movimiento interno usa el nombre del filtro (nunca rompe)", () => {
+    const interno = { motivo: "movimiento_interno", categoria: "interno" as const, tipo: "traslado" as const, delta: 0 };
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacionDestino: null }))).toBe("Bajada o retiro del piso");
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacionDestino: { id: "r1", nombre: "Rack A", tipo: null } }))).toBe("Bajada o retiro del piso");
+  });
+
+  it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
     expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste · reposición");
     expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
   });
@@ -263,7 +278,7 @@ describe("referenciaMovimiento", () => {
 
 describe("etiquetaProceso", () => {
   it("conoce los procesos de operación y los de sistema", () => {
-    expect(etiquetaProceso("movimiento_interno")).toBe("Reposición interna");
+    expect(etiquetaProceso("movimiento_interno")).toBe("Bajada o retiro del piso");
     expect(etiquetaProceso("carga_inicial")).toBe("Carga inicial");
     expect(etiquetaProceso("activacion_piso_almacen")).toBe("Activación piso/almacén");
     expect(etiquetaProceso("traslado_salida")).toBe("Transferencia · salida");
@@ -281,7 +296,7 @@ describe("etiquetaProceso", () => {
     expect(porValor.traslado_entrada).toBe("Transferencia · llegada");
     expect(porValor.recepcion).toBe("Recepción");
     expect(porValor.venta).toBe("Venta");
-    expect(porValor.movimiento_interno).toBe("Reposición interna");
+    expect(porValor.movimiento_interno).toBe("Bajada o retiro del piso");
     expect(PROCESOS_FILTRO.every((p) => p.etiqueta && !p.etiqueta.includes("_"))).toBe(true);
   });
 });
@@ -292,6 +307,15 @@ describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
     const enTipos = new Set(CATEGORIAS.flatMap((c) => PROCESOS_POR_CATEGORIA[c]));
     expect([...filtro].filter((p) => !enTipos.has(p))).toEqual([]);
     expect([...enTipos].filter((p) => !filtro.has(p))).toEqual([]);
+  });
+
+  it("todo motivo que el modal de ajuste puede guardar tiene nombre propio y botón bajo «Ajustes»", () => {
+    // Si mañana se suma un motivo al modal y no aquí, Movimientos lo mostraría como texto crudo
+    // y no habría cómo filtrarlo sin escribir la URL a mano.
+    for (const { valor } of MOTIVOS_AJUSTE) {
+      expect(ETIQUETA_PROCESO[valor], valor).toMatch(/^Ajuste · /);
+      expect(PROCESOS_POR_CATEGORIA.ajuste, valor).toContain(valor);
+    }
   });
 
   it("«Cambio» vive en Entradas y en Salidas (la prenda devuelta entra, la nueva sale)", () => {
@@ -490,21 +514,5 @@ describe("textoPeriodo", () => {
     expect(textoPeriodo("personalizado", "2026-09-01")).toBe("Desde 01/09/2026");
     expect(textoPeriodo("personalizado", undefined, "2026-09-10")).toBe("Hasta 10/09/2026");
     expect(textoPeriodo("personalizado")).toBe("Todo el historial");
-  });
-});
-
-describe("etiquetaActividad", () => {
-  const base = { categoria: "salida" as const, delta: -1, venta: null, cambio: null, devolucion: null };
-  it("distingue una venta de un retiro, aunque las dos sean «salida»", () => {
-    expect(etiquetaActividad({ ...base, venta: { id: "v", nota: null, comprobante: null } })).toBe("Venta");
-    expect(etiquetaActividad(base)).toBe("Salida");
-  });
-  it("un cambio o una devolución mandan sobre la venta de la que cuelgan", () => {
-    const venta = { id: "v", nota: null, comprobante: null };
-    expect(etiquetaActividad({ ...base, venta, cambio: { id: "c", diferencia: 0 } })).toBe("Cambio");
-    expect(etiquetaActividad({ ...base, venta, devolucion: { id: "d", motivo: null, estado: "aprobada" } })).toBe("Devolución");
-  });
-  it("una fila que suma unidades y cuelga de una venta no se rotula «Venta»", () => {
-    expect(etiquetaActividad({ ...base, categoria: "entrada", delta: 1, venta: { id: "v", nota: null, comprobante: null } })).toBe("Entrada");
   });
 });

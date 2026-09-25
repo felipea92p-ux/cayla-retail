@@ -7,7 +7,7 @@ import { BarrasHorizontales, Columnas, DonaDistribucion, type SegmentoDistribuci
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import { formatoRotacion, formatoSellThrough, formatoSolesCompacto, pluralizar, textoUniversoRotacion } from "@/lib/resumen-formato";
 import type { DesempenoParaPantalla, DireccionTendencia } from "@/lib/resumen-desempeno";
-import { AYUDA_ROTACION, TEXTO_FORMULA_ROTACION } from "@/lib/rotacion";
+import { AYUDA_ROTACION, ETIQUETA_ROTACION_VALORIZADA, TEXTO_FORMULA_ROTACION } from "@/lib/rotacion";
 
 // Desempeño › cifras y gráficos (rediseño 2026-09-22, opción A de Felipe: «misma anatomía que Comparar»). Arriba
 // cuatro cifras del período; debajo, cómo se repartió: la tendencia dentro del período, quién más rotó y cómo se
@@ -29,7 +29,7 @@ export function ResumenDesempenoGeneral({ datos, actualizar }: { datos: Desempen
 
   const cambioVentas = flechaPct(ventas.cambioMitadPct);
   const cantidad = { alza: tendencias.alza, estable: tendencias.estable, baja: tendencias.baja };
-  const segmentos: SegmentoDistribucion[] = DIRECCIONES.map((x) => ({ clave: x.d, valor: cantidad[x.d], color: x.color }));
+  const segmentos: SegmentoDistribucion[] = DIRECCIONES.map((x) => ({ clave: x.d, valor: cantidad[x.d], color: x.color, etiqueta: x.texto }));
   const hayDistribucion = distribucion.rangos.some((r) => r.n > 0);
 
   return (
@@ -45,7 +45,7 @@ export function ResumenDesempenoGeneral({ datos, actualizar }: { datos: Desempen
         />
         <TarjetaCifraAnalisis
           i={1}
-          titulo="Rotación"
+          titulo={ETIQUETA_ROTACION_VALORIZADA}
           cifra={rotacion.veces === null ? "N/D" : formatoRotacion(rotacion.veces)}
           pie={textoUniversoRotacion(rotacion) ?? TEXTO_FORMULA_ROTACION}
           ayuda={`Veces que rotó el inventario en el período. ${AYUDA_ROTACION}`}

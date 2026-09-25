@@ -5,7 +5,7 @@
 `docs/PLAN-FINANZAS.md`, que se construye por fases después del spike visual.
 **Afecta (cuando se construya):** `compras` (columna `naturaleza`, tipo `recibo_por_honorarios`), `gastos` (ADR-0117,
 gana `compra_id`), `activos_fijos` (gana `compra_id`), `modulos` (5 filas nuevas), `lib/modulos.ts`, `lib/menu.ts`.
-**Relacionado:** ADR-0109, ADR-0117 y ADR-0120 (PR #170, aprobados, sin fusionar), ADR-0133 (Producción con sus propios
+**Relacionado:** ADR-0198, ADR-0117 y ADR-0120 (PR #170, aprobados, sin fusionar), ADR-0133 (Producción con sus propios
 comprobantes), ADR-0161 (roles «ve / no ve»), ADR-0184 y ADR-0187 (Compras por tienda).
 
 ## El problema
@@ -344,3 +344,85 @@ contra captura y al mismo ancho, y se rehicieron:
 - «No es fijo» en los sugeridos no tiene dónde guardarse todavía.
 - El modal de cierre de caja es el de ADR-0186 (aprobado el 2026-09-23). Solo se tocó su renglón del fondo, que ya decía
   «Deja S/ … para el próximo turno».
+
+## Construcción — F3 a F10 (2026-09-24/25): el resto del plan, en paralelo
+
+Felipe pidió implementar todo lo que faltaba, en paralelo si hacía falta. Se armó una **base común**:
+- los 4 módulos que faltaban (`20260925100000`), dados de alta juntos para que las fases no se pisaran el `orden`;
+- las 6 entradas del menú de Finanzas del spike, con sus permisos e íconos;
+- las cabeceras compartidas de Cuentas y dinero y de Reportes, con una ruta por pestaña.
+
+Sobre esa base, un agente por fase construyó en su copia del repo y un orquestador integró, revisó las capturas contra el spike y corrió todas las pruebas juntas. El detalle, las reglas contables y las decisiones de cada fase están en **`docs/finanzas/fases/<fase>.md`**.
+
+| Fase | Qué quedó | Migración (partes) |
+|---|---|---|
+| Base | Módulos Cuentas y dinero y Reportes financieros (delegables), Impuestos y Cierre de mes (del líder). | `100000` (1) |
+| Pendientes del spike | Hora de cierre por tienda y «al ritmo de hoy cierras en…» en Caja; «No es fijo»; Configuración ▸ Empresa (solo lectura) y ▸ Caja y avisos. | `101000` (2), `102000` (1), `103000` (1) |
+| F3 · Cuentas y dinero | Cuentas de CAYLA, medios de cobro con vigencia, movimientos entre cuentas y plata del dueño (append-only), conciliación. Los saldos se suman, nunca se guardan. | `110000` (3) |
+| F3b · La cuenta sellada | Cada cobro guarda su cuenta solo (Vender no cambia) y cada pago la elige con la cuenta propuesta. El pago en efectivo del cajón resta del cierre. Lo viejo se completa desde «Decir de qué cuenta fue». | `150000` (10) |
+| F4 · Por pagar consolidado | Mercadería, gastos, activos e insumos del Taller por vencimiento; «Pagar» abre el pago que ya existe. | `120000` (1) |
+| F5 · Diario y resultados | `fn_asientos` (16 reglas, cuadrado), Estado de resultados por unidad y consolidado, Reportes ▸ Campañas. | `130000` (1) |
+| F6 · Flujo de caja | Flujo real, proyección a 4–8 semanas, días de caja, mínimo de caja y Escenarios. | `160000` (1) |
+| F7 · Balance | Saldos de arranque (se corrigen con fila nueva), Balance a una fecha que no se dibuja si no cuadra, «lo que es de la tienda». | `170000` (2) |
+| F8 · Impuestos | IGV del mes con saldo a favor, límite de 300 UIT, registros para el contador, Configuración ▸ Impuestos. | `140000` (2) |
+| F9 · Cierre de mes | Por unidad y consolidado, chequeos, diario congelado con hash, bloqueo por fecha en la base, reabrir con motivo. | `180000` (10) |
+| Presupuesto | Topes por unidad y categoría; la meta de ventas es la suma de las metas diarias; presupuesto contra real y proyección. | `190000` (1) |
+| F10 · Resumen | El tablero para decidir. | `200000` |
+
+**Aprendido al integrar (regla nueva en CLAUDE.md):** en Supabase, `drop trigger` toma en exclusiva las 21 tablas de `auth` y `storage` igual que `drop policy`, aunque el disparador no exista. Se midió el 2026-09-24. F3 tenía 6 y se cambiaron por `create or replace trigger`. `drop function`, `drop index`, `drop view`, `create trigger` y `alter` no las toman.
+
+**Pendiente de Felipe (datos):**
+- los bancos, el POS, la Visa y a qué cuenta entra cada medio en cada tienda (sin eso los cobros quedan «sin cuenta»);
+- los saldos de arranque;
+- las metas diarias de cada tienda (sin ellas, el flujo proyecta con el promedio de 8 semanas);
+- las horas de cierre.
+
+**Decisiones abiertas de Felipe:**
+- la tela del Taller en Por pagar;
+- el flujo y los saldos solo del líder;
+- la planilla visible solo a quien la ve en Dynamic;
+- los umbrales del presupuesto;
+- qué chequeos bloquean el cierre;
+- el presupuesto de un mes cerrado;
+- «Empresa» editable.
+
+**Pendiente del contador:**
+- las cuentas nuevas: 122, 451, 47, 52, 655 y 6599;
+- las 16 reglas del diario;
+- régimen, UIT y pago a cuenta;
+- el formato de los registros;
+- la retención de honorarios.
+
+**Sin construir:** las situaciones 15 (pago de planilla), 16 (pago a SUNAT) y 22 (efectivo entre tiendas); la subida del extracto del banco; pagar varias facturas de varios proveedores en un solo pago.
+
+## Actualización 2026-09-25 — editar y eliminar las cuentas de CAYLA
+
+**Contexto.** Con F3 en producción, Felipe cargó su primera cuenta (BCP) y pidió poder editar y eliminar cuentas: hasta hoy solo se
+agregaban y se archivaban, y un error de tipeo en el nombre, el tipo o el saldo inicial obligaba a archivar y crear otra.
+
+**Decisión** (migración `20260925210100`, UNA ejecución, solo funciones):
+- **Editar** (`editar_cuenta_dinero`). Estas reglas las exige la base; la ventana solo las refleja:
+  - el nombre y el número cambian siempre;
+  - el cajón, la caja fuerte y el efectivo por rendir solo cambian de nombre;
+  - el **tipo** cambia solo mientras nadie la usó: cada cobro o pago sellado (F3b) se validó contra el tipo de su cuenta;
+  - el **saldo inicial** y su fecha cambian mientras no haya una conciliación vigente (el banco certificó un saldo que sale de ese punto de partida) y mientras los meses que toca estén abiertos (ADR-0198). Una conciliación se anula con motivo y luego se corrige.
+- **Eliminar = borrar de verdad**, pero solo una cuenta que **nada apunta** (`eliminar_cuenta_dinero`):
+  - Qué la apunta se lee de las llaves foráneas que llegan a `cuentas_dinero` (`fn_usos_cuenta_dinero`), no de una lista escrita a mano. Así, una tabla nueva también cuenta.
+  - El `delete` lo vuelve a garantizar la base.
+  - La fila completa queda en `configuracion_historial`.
+  - Esto no contradice «nunca se borra historia»: la cuenta no tiene historia, y borrarla deshace un error de tipeo.
+  - Una cuenta usada se **archiva**, como hasta hoy. También cuenta como usada la que alguna vez recibió un medio de cobro.
+- **La puerta.** El candado de la tabla (`fn_cuentas_dinero_inmutable`) sigue cerrando el tipo, el saldo y el borrado para todos. Solo estas dos funciones lo abren (`retail.editando_cuenta`, local a la transacción), y lo hacen después de validar. Es el mismo patrón que `retail.movimiento_de_sistema`.
+- **La ventana.** El vínculo «Editar» reemplaza a «Archivar» en la tabla de Configuración ▸ Cuentas y cobros y sirve para todas las cuentas. La ventana:
+  - pide el detalle a la base (`fn_cuenta_dinero_detalle`);
+  - dice en palabras quién usa la cuenta («214 cobros de ventas, 9 movimientos…»);
+  - ofrece **Eliminar** (con confirmación dentro de la misma hoja), **Archivar** o **Reactivar** según el caso;
+  - desactiva «Archivar» mientras la cuenta recibe cobros hoy, y dice cuáles.
+
+  Se aparta del spike, que no dibujaba acciones por cuenta: la tabla ya tenía el vínculo «Archivar» y ahora dice «Editar».
+
+**Ganas:** corregir sin crear cuentas duplicadas; quitar lo creado por error sin dejar basura; reglas que no dependen de acordarse.
+**Pagas:** una cuenta usada con el tipo equivocado sigue sin corregirse: se archiva y se crea otra. Pasa a propósito: cambiarle el
+tipo reescribiría el sentido de cada cobro que ya se selló contra ella.
+**SE ROMPE SI:** la web nueva se publica antes que la migración, porque llamaría a funciones que no existen. Pruebas: `pnpm pruebas:editar-cuentas`
+(39 casos en la base) y `lib/cuenta-editar-reglas.test.ts`.

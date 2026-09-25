@@ -7,7 +7,7 @@ import { ResumenComparacionGeneral } from "@/components/ResumenComparacionGenera
 import { ResumenControles } from "@/components/ResumenControles";
 import { ResumenVacio, type SedeParaVer } from "@/components/ResumenVacio";
 import { useResumenUrl } from "@/components/useResumenUrl";
-import { AYUDA_ROTACION, TEXTO_LIMITACION_PROMEDIO, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
+import { AYUDA_ROTACION, ETIQUETA_ROTACION_VALORIZADA, TEXTO_LIMITACION_PROMEDIO, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
 import { pluralizar } from "@/lib/resumen-formato";
 import { textoInstanteLima } from "@/lib/resumen-periodo";
 import type { ComparacionParaPantalla } from "@/lib/resumen-comparacion";
@@ -39,7 +39,7 @@ export function ResumenComparacionPanel({ datos, otrasTiendas }: { datos: Compar
           Compara el ritmo de B contra el de A: {"±"}25% es Aceleró o Desaceleró, si no, Estable. Con muy pocas unidades vendidas en los dos períodos no se afirma nada.
         </ItemAyuda>
         <ItemAyuda titulo="Sell-through">Ventas netas ÷ (stock al inicio del período + entradas): qué parte de lo disponible se vendió.</ItemAyuda>
-        <ItemAyuda titulo="Rotación">
+        <ItemAyuda titulo={ETIQUETA_ROTACION_VALORIZADA}>
           {AYUDA_ROTACION} {TEXTO_VALORACION_ROTACION} En la cifra total solo cuentan las variantes con datos válidos en A y en B, las mismas en los dos períodos: las que quedan fuera se cuentan bajo la cifra. {TEXTO_LIMITACION_PROMEDIO}
         </ItemAyuda>
         <ItemAyuda titulo="Stock al cierre">
