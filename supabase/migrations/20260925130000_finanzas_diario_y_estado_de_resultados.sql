@@ -17,8 +17,8 @@
 --      el Estado de resultados lo avisa en rojo. Un número falso es peor que ninguno.
 --   3. El lado de caja o banco sale de UNA sola función (`fn_asiento_cuenta_de_medio`): efectivo → 101; Yape, Plin,
 --      transferencia y depósito → 104 (llegan al banco al instante, ADR-0109); tarjeta de la clienta → 105 hasta el
---      abono; tarjeta de crédito de CAYLA (pagos) → 455. F3 sellará la cuenta exacta de cada movimiento; ese día se
---      cambia ESTA función y nada más.
+--      abono; tarjeta de crédito de CAYLA (pagos) → 451 (la de F3). F3b sellará la cuenta exacta de cada movimiento; ese
+--      día se cambia ESTA función y nada más.
 --   4. `fn_estado_resultados(desde, hasta, ubicación)` lee SOLO del diario: una fila por tienda, el Taller y «de la
 --      empresa» (lo que no es de ninguna tienda, D-32), y el consolidado, que es su suma exacta.
 --   5. La planilla se LEE de Dynamic (D-33, vista `planilla_por_sede`) y entra solo si quien mira puede verla allá
@@ -55,7 +55,8 @@
 --   No toca ninguna tabla que use la tienda: tres filas nuevas en `cuentas` (plan de cuentas, solo lo leen funciones) y
 --   funciones nuevas. Sin `alter table`, sin índices, sin políticas: no toma en exclusiva nada que la tienda use ni
 --   `auth`/`storage`. Idempotente (`on conflict do nothing`, `create or replace`). Antes: 20260924235000,
---   20260924235100 y 20260925000000 (F2a y F2b), y la vista `planilla_por_sede` (20260921160000).
+--   20260924235100 y 20260925000000 (F2a y F2b), 20260925110000 (F3: la regla del gasto mira `movimientos_dinero` para
+--   la comisión del POS) y la vista `planilla_por_sede` (20260921160000).
 -- SE ROMPE SI
 --   · Se agrega una operación de dinero nueva sin su regla aquí: ese dinero no aparece en ningún estado y nada falla.
 --     Por eso cada regla nueva lleva su caso en `scripts/pruebas/estado_resultados.mjs`.
@@ -68,17 +69,19 @@ set search_path = retail, public, extensions;
 set lock_timeout = '3s';
 
 -- ---------- 1. Cuentas que el diario necesita y el plan todavía no tenía (provisionales hasta el contador) ----------
+-- La 451 (tarjeta de crédito de CAYLA) es la misma que crea F3 (20260925110000), con el mismo texto: se repite aquí para
+-- que esta migración no dependa del orden en que se peguen.
 insert into retail.cuentas (codigo, nombre, tipo, seccion_resultados, orden) values
-  ('122', 'Anticipos de clientes (adelantos de separaciones)', 'pasivo', null,               40),
-  ('455', 'Tarjeta de crédito de CAYLA (por pagar)',            'pasivo', null,               41),
-  ('655', 'Bajas de activos fijos (lo que faltaba depreciar)',  'gasto',  'gastos_operacion', 42)
+  ('451', 'Préstamos de instituciones financieras (tarjeta de crédito)', 'pasivo', null,         40),
+  ('122', 'Anticipos de clientes (adelantos de separaciones)', 'pasivo', null,               43),
+  ('655', 'Bajas de activos fijos (lo que faltaba depreciar)',  'gasto',  'gastos_operacion', 44)
 on conflict (codigo) do nothing;
 
 -- ---------- 2. Ayudantes: una sola definición de cada cosa ----------
 
 -- El lado de caja o banco de un asiento. `p_sentido`: 'entra' (cobros, reembolsos que recibe CAYLA) o 'sale' (pagos,
 -- reembolsos a la clienta). Regla de ADR-0109: Yape, Plin y transferencia llegan al banco al instante; solo la tarjeta de
--- la clienta espera en 105 hasta que el banco la abona. La tarjeta de crédito de CAYLA es deuda (455).
+-- la clienta espera en 105 hasta que el banco la abona. La tarjeta de crédito de CAYLA es deuda (451, la de F3).
 -- F3 sella la cuenta exacta en cada movimiento: ese día esta función lee la cuenta sellada y el resto no cambia.
 create or replace function retail.fn_asiento_cuenta_de_medio(p_medio text, p_sentido text default 'entra')
 returns text language sql immutable as $$
@@ -86,13 +89,13 @@ returns text language sql immutable as $$
     when p_medio is null or p_medio = 'efectivo' then '101'
     when p_medio = 'anticipo' then '122'
     when p_medio = 'saldo_a_favor' then '421'
-    when p_medio = 'tarjeta' and p_sentido = 'sale' then '455'
+    when p_medio = 'tarjeta' and p_sentido = 'sale' then '451'
     when p_medio = 'tarjeta' then '105'
     else '104'   -- yape, plin, transferencia, depósito, otro
   end;
 $$;
 comment on function retail.fn_asiento_cuenta_de_medio(text, text) is
-  'Regla de ADR-0109, en un solo lugar: efectivo 101; Yape, Plin, transferencia y depósito 104; tarjeta de la clienta 105 (hasta el abono); tarjeta de crédito de CAYLA 455; adelanto de separación 122. F3 la reemplaza por la cuenta sellada.';
+  'Regla de ADR-0109, en un solo lugar: efectivo 101; Yape, Plin, transferencia y depósito 104; tarjeta de la clienta 105 (hasta el abono); tarjeta de crédito de CAYLA 451; adelanto de separación 122. F3b la reemplaza por la cuenta sellada.';
 
 -- Qué movimiento de inventario es una MERMA. La misma definición que el resumen de inventario (ajuste negativo por
 -- merma; salida de cuarentena botada o donada) MÁS los faltantes de conteo (formal o desde el modal de ajuste). No es
@@ -436,8 +439,12 @@ begin
 
   -- ===== Gastos vigentes del rango (un gasto anulado se registró por error: nunca existió). La cuenta sale de su
   -- categoría. Con comprobante, la deuda con el proveedor (421) y el pago aparte; sin él, el medio con que se pagó.
+  -- La comisión del POS (F3) es un gasto que ya descontó el abono de tarjeta: sale de la cuenta por abonar (105), no del
+  -- medio con que se anotó.
   gg as (
-    select g.id, g.ubicacion_id, g.fecha as f, g.monto_total, g.igv, g.compra_id, g.medio_pago, g.descripcion, k.cuenta_pcge
+    select g.id, g.ubicacion_id, g.fecha as f, g.monto_total, g.igv, g.compra_id, g.medio_pago, g.descripcion, k.cuenta_pcge,
+           (select cd.cuenta_contable from retail.movimientos_dinero md join retail.cuentas_dinero cd on cd.id = md.cuenta_origen_id
+             where md.gasto_comision_id = g.id limit 1) as cta_comision
       from retail.gastos g join retail.categorias_gasto k on k.codigo = g.categoria
      where g.estado = 'vigente' and g.fecha between p_desde and p_hasta and (v_todo or g.ubicacion_id = any (v_ubics))
   ),
@@ -450,9 +457,13 @@ begin
       from gg where gg.igv > 0
     union all
     select gg.f, gg.ubicacion_id, 'gasto:' || gg.id, 'gasto',
-           case when gg.compra_id is not null then '421' else retail.fn_asiento_cuenta_de_medio(gg.medio_pago, 'sale') end,
+           case when gg.compra_id is not null then '421'
+                when gg.cta_comision is not null then gg.cta_comision
+                else retail.fn_asiento_cuenta_de_medio(gg.medio_pago, 'sale') end,
            0, gg.monto_total, 'gastos', gg.id,
-           case when gg.compra_id is not null then 'Se le debe al proveedor' else 'Pagado (' || gg.medio_pago || ')' end
+           case when gg.compra_id is not null then 'Se le debe al proveedor'
+                when gg.cta_comision is not null then 'Lo descontó el abono de tarjeta'
+                else 'Pagado (' || gg.medio_pago || ')' end
       from gg
   ),
 

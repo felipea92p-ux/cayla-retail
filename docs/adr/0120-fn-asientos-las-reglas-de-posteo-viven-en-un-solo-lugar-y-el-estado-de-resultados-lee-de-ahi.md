@@ -172,6 +172,6 @@ construyen **adaptados a lo que hoy existe en producción**. Lo de arriba queda 
 - **Permisos:** ya no es «solo líder». El líder ve todo y el consolidado; con el módulo «Reportes financieros», su tienda
   (`fn_diario_ubicaciones`). La planilla entra solo si quien mira puede verla en Dynamic (`public.fn_es_admin_o_lider()`).
 - **Firma:** `fn_estado_resultados(desde, hasta, ubicación)` en lugar de `(mes)`.
-- **Pruebas:** `scripts/pruebas/estado_resultados.mjs` (71 verificaciones en la base local, con ROLLBACK). Porta las del PR
+- **Pruebas:** `scripts/pruebas/estado_resultados.mjs` (73 verificaciones en la base local, con ROLLBACK). Porta las del PR
   #170 y mide el volumen con un año de datos.
 - Detalle, las reglas de posteo una por una para el contador y lo que queda pendiente: `docs/finanzas/fases/F5.md`.

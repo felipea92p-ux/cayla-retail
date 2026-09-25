@@ -355,6 +355,19 @@ select 'R2 pedir el diario de otra tienda también', (select pg_temp.intento(for
 select 'R3 un rango al revés se rechaza', (select pg_temp.intento($$select * from retail.fn_asientos('2030-09-30', '2030-09-01')$$) like '%rango%');
 `;
 
+// La comisión del POS (F3): un gasto «de la empresa» que ya descontó el abono de tarjeta. Sale de la 105, no del banco.
+const CASOS_COMISION = `
+insert into retail.cuentas_dinero (id, nombre, tipo, cuenta_contable) values
+  (pg_temp.k('POS'), 'POS de prueba F5', 'por_abonar', '105'), (pg_temp.k('BCO'), 'Banco de prueba F5', 'banco', '104');
+insert into retail.gastos (id, ubicacion_id, categoria, descripcion, fecha, monto_total, igv, medio_pago)
+values (pg_temp.k('GC'), null, 'gastos_bancarios', 'Comisión del POS', '2030-09-20', 12.50, 0, 'transferencia');
+insert into retail.movimientos_dinero (tipo, fecha, cuenta_origen_id, cuenta_destino_id, monto, comision, gasto_comision_id)
+values ('abono_tarjeta', '2030-09-20', pg_temp.k('POS'), pg_temp.k('BCO'), 487.50, 12.50, pg_temp.k('GC'));
+create temp table dia as select * from retail.fn_asientos('2030-09-01', '2030-09-30');
+select 'M1 la comisión del POS es gasto 639 y sale de la 105 (por abonar), no del banco', (select sum(debe) filter (where cuenta = '639') = 12.50 and sum(haber) filter (where cuenta = '105') = 12.50 and count(*) filter (where cuenta = '104') = 0 from dia where origen_id = pg_temp.k('GC'));
+select 'M1 la tarjeta de crédito de CAYLA es la 451 (la de F3)', (select retail.fn_asiento_cuenta_de_medio('tarjeta', 'sale') = '451' and retail.fn_asiento_cuenta_de_medio('tarjeta', 'entra') = '105');
+`;
+
 const CASOS_TASA = `
 select set_config('prueba.planilla', 'si', true);
 insert into retail.parametros_tributarios (nombre, vigente_desde, valor, nota) values ('igv', '2030-10-01', 0.20, 'prueba F5');
@@ -498,6 +511,7 @@ verificar("Descuadre", correr(`${ESCENA}${CASOS_DESCUADRE}`), casosDe(CASOS_DESC
 verificar("Sin planilla", correr(`${ESCENA}${CASOS_SIN_PLANILLA}`), casosDe(CASOS_SIN_PLANILLA));
 verificar("Permisos", correr(`${ESCENA}${CASOS_PERMISOS}`), casosDe(CASOS_PERMISOS));
 verificar("Tasa", correr(`${ESCENA}${CASOS_TASA}`), casosDe(CASOS_TASA));
+verificar("Comisión del POS", correr(`${ESCENA}${CASOS_COMISION}`), casosDe(CASOS_COMISION));
 verificar("Campañas", correr(CAMPANAS), casosDe(CAMPANAS));
 
 {
