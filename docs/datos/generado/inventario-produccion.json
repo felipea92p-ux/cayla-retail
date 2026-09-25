@@ -1488,7 +1488,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -1593,7 +1593,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 1,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -2013,7 +2013,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 10,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -3623,7 +3623,7 @@
     {
       "esquema": "retail",
       "tabla": "compra_item_reparto_resumen",
-      "tipo": "tabla",
+      "tipo": "vista",
       "comentario": null,
       "filas_estimadas": 0,
       "rls_activo": false,
@@ -3836,7 +3836,7 @@
     {
       "esquema": "retail",
       "tabla": "compra_items_resumen",
-      "tipo": "tabla",
+      "tipo": "vista",
       "comentario": null,
       "filas_estimadas": 0,
       "rls_activo": false,
@@ -4357,7 +4357,7 @@
     {
       "esquema": "retail",
       "tabla": "compra_parte_por_tienda",
-      "tipo": "tabla",
+      "tipo": "vista",
       "comentario": null,
       "filas_estimadas": 0,
       "rls_activo": false,
@@ -5109,7 +5109,7 @@
     {
       "esquema": "retail",
       "tabla": "compras_resumen",
-      "tipo": "tabla",
+      "tipo": "vista",
       "comentario": null,
       "filas_estimadas": 0,
       "rls_activo": false,
@@ -6788,7 +6788,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -7075,7 +7075,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 19,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -7808,7 +7808,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 41,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -7913,7 +7913,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -8017,7 +8017,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 10,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -8592,7 +8592,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -8746,7 +8746,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -8868,7 +8868,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -9652,7 +9652,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -9955,7 +9955,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -10152,7 +10152,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -10496,7 +10496,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 9,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -11325,7 +11325,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 12,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -11872,7 +11872,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -12344,7 +12344,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 1,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -12444,7 +12444,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 9,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -12878,7 +12878,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -13111,7 +13111,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -13236,7 +13236,7 @@
     {
       "esquema": "retail",
       "tabla": "planilla_por_sede",
-      "tipo": "tabla",
+      "tipo": "vista",
       "comentario": null,
       "filas_estimadas": 0,
       "rls_activo": false,
@@ -13837,7 +13837,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -16155,7 +16155,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -16334,7 +16334,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 1,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -18136,7 +18136,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 6,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -18854,7 +18854,7 @@
       "tipo": "tabla",
       "comentario": null,
       "filas_estimadas": 0,
-      "rls_activo": false,
+      "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
         {
@@ -19086,7 +19086,7 @@
     {
       "esquema": "retail",
       "tabla": "v_insumo_saldos",
-      "tipo": "tabla",
+      "tipo": "vista",
       "comentario": null,
       "filas_estimadas": 0,
       "rls_activo": false,

@@ -20,10 +20,10 @@ lo lee desde ahí:
 pnpm datos:generar:produccion
 ```
 
-Eso no se conecta a nada: arma el diccionario desde los seis archivos
+Eso no se conecta a nada: arma el diccionario desde los siete archivos
 `retail_*.json` de esta carpeta.
 
-## Cómo se refrescan esos seis archivos
+## Cómo se refrescan esos archivos
 
 Cuando el esquema de producción cambie, hay que volver a pedirle la foto. Pega cada
 consulta en el **SQL Editor de producción** (el proyecto de Dynamic, donde vive el
@@ -131,6 +131,24 @@ select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'retail' and p.prokind = 'f'
 order by 1;
+```
+
+### 8 · `retail_rls.json` — un objeto `{relación: {relkind, rls, forzado}}`
+
+Es lo que dice, tabla por tabla, si los permisos por fila (RLS) están encendidos, y qué
+relación es vista (`relkind` v/m) y cuál tabla (`r`/`p`). **No se puede deducir de las
+políticas**: por diseño (ADR-0195) las tablas de plata quedan con RLS encendido y SIN
+políticas —cerradas para los clientes, abiertas solo por funciones `security definer`—, y
+una foto que las deduzca de las políticas las pinta «sin permisos por fila» cuando están
+cerradas con llave. Se pide **junto** con las otras: el generador se detiene si una
+relación está en `retail_columnas.json` y no aquí.
+
+```sql
+select jsonb_object_agg(c.relname, jsonb_build_object(
+  'relkind', c.relkind::text, 'rls', c.relrowsecurity, 'forzado', c.relforcerowsecurity
+) order by c.relname)
+from pg_class c join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'retail' and c.relkind in ('r','p','v','m','f');
 ```
 
 ## Después de refrescar
