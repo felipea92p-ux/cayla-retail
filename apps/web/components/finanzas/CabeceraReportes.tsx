@@ -14,7 +14,7 @@ const PESTANAS: { clave: PestanaReportes; etiqueta: string; href: string; lista:
   { clave: "campanas", etiqueta: "Campañas", href: "/finanzas/reportes/campanas", lista: true },
   { clave: "escenarios", etiqueta: "Escenarios", href: "/finanzas/reportes/escenarios", lista: true },
   { clave: "flujo", etiqueta: "Flujo de caja", href: "/finanzas/reportes/flujo", lista: true },
-  { clave: "balance", etiqueta: "Balance", href: "/finanzas/reportes/balance", lista: false },
+  { clave: "balance", etiqueta: "Balance", href: "/finanzas/reportes/balance", lista: true },
 ];
 
 export function CabeceraReportes({

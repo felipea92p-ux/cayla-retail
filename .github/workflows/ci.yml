@@ -209,6 +209,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cierre-mes
 
+      # Balance (ADR-0195 F7): saldos de arranque que se corrigen y no se editan, el Balance cuadra con operaciones de cada
+      # tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
+      - name: pruebas:balance
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:balance
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio

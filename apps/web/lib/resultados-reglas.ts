@@ -139,6 +139,8 @@ const NOMBRE_GASTO: Record<string, string> = {
   "651": "Seguros",
   "681": "Depreciación",
   "655": "Bajas de activos fijos",
+  // F7: lo que sobra o falta al cerrar o abrir una caja (un sobrante resta).
+  "6599": "Faltantes y sobrantes de caja",
 };
 /** Siempre se muestran (aunque estén en cero, con «—»): lo que un mes normal tiene. Las demás, solo si hay algo. */
 const GASTOS_SIEMPRE = ["62", "635", "636", "632", "637", "631", "656", "634"];
@@ -356,6 +358,17 @@ export const TEXTO_REGLA: Record<string, string> = {
   nota_credito_prov: "Notas de crédito de proveedores",
   pago_proveedor: "Pagos a proveedores",
   reembolso_prov: "Reembolsos de proveedores",
+  // F7: la plata que cambia de lugar o entra y sale del dueño, y las diferencias de caja.
+  diferencia_caja: "Diferencias al cerrar o abrir la caja",
+  traslado_banco: "Cierres de caja depositados al banco",
+  aporte: "Aportes del dueño",
+  prestamo: "Préstamos del dueño",
+  retiro: "Retiros de utilidades",
+  devolucion_prestamo: "Devoluciones de préstamo al dueño",
+  deposito: "Depósitos al banco",
+  abono_tarjeta: "Abonos del POS",
+  pago_tarjeta: "Pagos de la tarjeta de crédito",
+  entre_cuentas: "Pasos entre cuentas",
 };
 
 /** Las tablas de las que sale cada concepto (lo que el spike llama «De dónde sale»). */
@@ -369,6 +382,7 @@ export function fuentesDe(clave: string): string[] {
   if (clave === "g62") return ["planilla_por_sede (Dynamic)", "lo pagado + las provisiones de la sede, del período que termina en el mes"];
   if (clave === "g681") return ["activos_fijos", "costo ÷ vida útil, mes a mes, desde el mes siguiente a la compra"];
   if (clave === "g655") return ["activos_fijos dados de baja", "lo que faltaba depreciar el día de la baja"];
+  if (clave === "g6599") return ["cajas: lo contado − lo que decía el sistema al cerrar, y lo contado al abrir − el fondo que quedó", "un sobrante resta"];
   return ["gastos vigentes con fecha del mes, sin el IGV de su factura", "menos las notas de crédito de su proveedor"];
 }
 
