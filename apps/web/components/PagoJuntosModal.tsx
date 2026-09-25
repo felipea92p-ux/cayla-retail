@@ -17,6 +17,7 @@ import { etiquetaVence, parseMonto, repartirPago, tramoDe } from "@/lib/por-paga
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 
 // Pago juntos (D3, ADR-0111): UNA transferencia que se aplica a varios comprobantes DEL MISMO
 // proveedor. En Gamarra se le paga al proveedor «lo que se le debe», no factura por factura;
@@ -90,6 +91,9 @@ export function PagoJuntosModal({
   const [lineas, setLineas] = useState<LineaPago[]>([{ monto: "", metodo: formaInicial, referencia: "" }]);
   const [fecha, setFecha] = useState(hoyLima());
   const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
+  // ADR-0195 F3b: «Sale de». La propuesta de cada medio sale de la tienda con que se paga; el líder, de la tienda del
+  // comprobante más vencido.
+  const cuentas = useCuentasParaElegir("pago", ubicacionPago || ordenados[0]?.ubicacionesDestino[0] || null);
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): las dos funciones de pago firman con esa persona.
   const responsable = useResponsable();
@@ -168,7 +172,7 @@ export function PagoJuntosModal({
     const lote = aplicaciones.filter((a) => a.monto > 0).map((a) => ({ compra_id: a.c.id, monto: a.monto }));
     if (lote.length === 0) return void avisar.error("El pago necesita al menos un comprobante con monto.");
     if (!mediosSuman) return void avisar.error(`Los medios de pago tienen que sumar ${soles(aTransferir)}: ajusta los montos.`);
-    const mediosRpc = todoConFavor ? [] : lineasPagoParaRpc(medios);
+    const mediosRpc = todoConFavor ? [] : lineasPagoParaRpc(medios, cuentas.cuentas);
     if (!mediosRpc) return void avisar.error("Cada medio de pago necesita un monto mayor a cero.");
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
     if (aplicaciones.some((a) => a.monto > 0 && a.c.fechaEmision && fecha < a.c.fechaEmision)) return void avisar.error("La fecha del pago no puede ser anterior a la emisión de alguno de los comprobantes.");
@@ -178,9 +182,10 @@ export function PagoJuntosModal({
     setLoading(true);
     const cerrarProceso = avisar.proceso("Registrando el pago…");
     const supabase = createClient();
-    // Un medio (o todo con saldo a favor): la función de siempre. Dos o más: la que reparte por medio.
+    // Todo con saldo a favor: la función de siempre. Con uno o más medios: la que reparte por medio, que es la que lleva la
+    // cuenta de cada uno («Sale de», ADR-0195 F3b; con un solo medio hace lo mismo que la de siempre).
     const { error } =
-      mediosRpc.length > 1
+      mediosRpc.length > 0
         ? await firmar(supabase.rpc("registrar_pago_compras_medios", {
             p_proveedor_id: proveedorId,
             p_aplicaciones: lote,
@@ -401,7 +406,7 @@ export function PagoJuntosModal({
               <CampoFecha etiqueta="Fecha del pago" valor={fecha} onValor={setFecha} required />
             </div>
           ) : (
-            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} />
+            <MediosDePago id="pago-juntos" lineas={lineas} onLineas={setLineas} objetivo={aTransferir} exacto fecha={fecha} onFecha={setFecha} datos={datos} saldoFavor={saldoFavor} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
           )}
 
           <div className="border-t border-tinta/10 pt-4">

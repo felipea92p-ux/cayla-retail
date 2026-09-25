@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { AVIARIO } from "../../../scripts/datos/aviario.mjs";
 import {
-  ACCIONES_NUEVO,
   ARBOL,
   COLUMNAS_MOVIL,
   PAJAROS,
@@ -12,13 +11,13 @@ import {
   aterrizajeDe,
   esGrupo,
   esGrupoMenu,
+  esMostrador,
   hojasDe,
   menuPara,
   permisosDe,
   puedeVerProduccion,
   rutaActiva,
   terminalVeInicio,
-  type Accion,
   type FilaMenu,
   type FuenteMenu,
   type GrupoMenu,
@@ -43,14 +42,13 @@ import { MODULOS_DE_HOY, permisosDeModulos, type ClaveModulo } from "./modulos";
 
 // Recursivo (D-84): una hija de un grupo dorado puede ser, a su vez, otro grupo dorado (un subgrupo).
 type FilaDorada = { etiqueta: string; href: string; icono: string; insignia?: number } | { grupo: string; etiqueta: string; icono: string; insignia?: number; hijos: FilaDorada[] };
-type ColumnaDorada = { etiqueta: string; href: string; icono: string; insignia?: number } | { hueco: string };
+type ColumnaDorada = { etiqueta: string; href: string; icono: string; insignia?: number };
 type Vista = { escritorio: FilaDorada[]; movil: ColumnaDorada[] };
 type PerfilDorado = {
   rol: "lider" | "integrante";
   ubicacionTipo: TipoUbicacion;
   conTraslados3: Vista;
   sinTraslados: Vista;
-  nuevo: { href: string; etiqueta: string; detalle: string }[];
   grupoActivoPorRuta: Record<string, string | null>;
 };
 const golden = JSON.parse(readFileSync(new URL("./menu-hoy.golden.json", import.meta.url), "utf8")) as { perfiles: Record<string, PerfilDorado> };
@@ -72,7 +70,7 @@ function comoEscritorio(riel: FilaMenu[]): FilaDorada[] {
   );
 }
 const comoMovil = (movil: ReturnType<typeof menuPara>["movil"]): ColumnaDorada[] =>
-  movil.map((c) => (c === null ? { hueco: "nuevo" } : { etiqueta: c.etiqueta, href: c.href, icono: c.icono, ...conInsignia(c.contador) }));
+  movil.map((c) => ({ etiqueta: c.etiqueta, href: c.href, icono: c.icono, ...conInsignia(c.contador) }));
 
 const perfilDe = (p: PerfilDorado, trasladosPorAtender?: number | null): PerfilDelMenu => ({
   permisos: permisosDe(p.rol),
@@ -103,13 +101,9 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
       }
     });
 
-    it("las 5 columnas de la barra del celular y el hueco del «+» son los de hoy, con y sin insignia", () => {
+    it("las 4 columnas de la barra del celular son las de hoy, con y sin insignia", () => {
       expect(comoMovil(menuPara(perfilDe(p, 3)).movil)).toEqual(p.conTraslados3.movil);
       expect(comoMovil(menuPara(perfilDe(p, null)).movil)).toEqual(p.sinTraslados.movil);
-    });
-
-    it("las acciones del «+ Nuevo» son las de hoy, con su explicación y en su orden", () => {
-      expect(menuPara(perfilDe(p)).nuevo.map(({ href, etiqueta, detalle }) => ({ href, etiqueta, detalle }))).toEqual(p.nuevo);
     });
 
     it("al aterrizar en cada ruta se abre el mismo grupo que abría antes (incluidos los que este perfil no ve)", () => {
@@ -128,9 +122,13 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
 function subconjuntos(permisos: readonly Permiso[]): Permiso[][] {
   return permisos.reduce<Permiso[][]>((acc, p) => [...acc, ...acc.map((s) => [...s, p])], [[]]);
 }
-const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS).flatMap((permisos) =>
-  TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })),
-);
+// Los cuatro permisos de Finanzas F3–F10 (ADR-0195) abren cada uno UNA hija del mismo grupo y no se cruzan con ningún otro:
+// se prueban juntos (ninguno o los cuatro) y no en sus 16 combinaciones, que multiplicaban por 16 los perfiles (688 mil
+// pruebas: el proceso de la prueba se caía). Gastos sigue variando solo, como los demás.
+const FINANZAS_JUNTOS: readonly Permiso[] = ["verCuentasDinero", "verReportesFinancieros", "verImpuestos", "cerrarMes"];
+const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS.filter((p) => !FINANZAS_JUNTOS.includes(p)))
+  .flatMap((base) => [base, [...base, ...FINANZAS_JUNTOS]])
+  .flatMap((permisos) => TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })));
 const nombreDe = (p: PerfilDelMenu) => `[${p.permisos.join(", ") || "sin permisos"}] en ${p.ubicacionTipo}`;
 
 function recorrer(nodos: readonly Nodo[]): Nodo[] {
@@ -150,7 +148,7 @@ describe("permisos", () => {
   });
 
   it("ningún nodo exige un permiso que no existe", () => {
-    for (const n of [...TODOS, ...ACCIONES_NUEVO]) {
+    for (const n of TODOS) {
       for (const p of [n.exige, n.soloSinPermiso]) if (p) expect(PERMISOS, n.id).toContain(p);
     }
   });
@@ -168,12 +166,12 @@ describe("el aviario: cada nodo cita al pájaro dueño de su dato", () => {
     expect([...PAJAROS]).toEqual(AVIARIO.map((p: { n: string; pajaro: string }) => `${p.n} ${p.pajaro}`));
   });
 
-  it("todo nodo y toda acción de «+ Nuevo» cita uno de los 14", () => {
-    for (const n of [...TODOS, ...ACCIONES_NUEVO]) expect(PAJAROS, `${n.id} cita «${n.pajaro}»`).toContain(n.pajaro);
+  it("todo nodo cita uno de los 14", () => {
+    for (const n of TODOS) expect(PAJAROS, `${n.id} cita «${n.pajaro}»`).toContain(n.pajaro);
   });
 
   it("los ids no se repiten", () => {
-    const ids = [...TODOS, ...ACCIONES_NUEVO].map((n) => n.id);
+    const ids = TODOS.map((n) => n.id);
     expect(ids.filter((id, i) => ids.indexOf(id) !== i)).toEqual([]);
   });
 });
@@ -184,12 +182,7 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   it("existen los que el rediseño ya nombró, cada uno con su pájaro", () => {
     expect(Object.fromEntries(futuros)).toEqual({
       "produccion.eficiencia": "10 Gallito",
-      finanzas: "11 Garza",
-      "finanzas.gastos": "11 Garza",
-      "finanzas.resultados": "12 Urraca",
-      "finanzas.balance": "12 Urraca",
-      "finanzas.cierreDeMes": "12 Urraca",
-      "finanzas.activos": "12 Urraca",
+      // Finanzas nació el 2026-09-24 con Gastos (ADR-0195 F2); con el Resumen (F10) ya no le queda ninguna hija futura.
       clientas: "07 Colibrí",
       configuracion: "01 Ganso",
       "configuracion.accesos": "01 Ganso",
@@ -202,10 +195,10 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   // Recorre TODA la profundidad (un subgrupo puede tener, a su vez, hijos) — no solo la primera fila y sus hijas.
   const idsDe = (f: FilaMenu): string[] => [f.id, ...(esGrupoMenu(f) ? f.hijos.flatMap(idsDe) : [])];
 
-  it("ningún perfil los ve: ni en el lateral, ni en el celular, ni en «+ Nuevo»", () => {
+  it("ningún perfil los ve: ni en el lateral, ni en el celular", () => {
     for (const perfil of PERFILES) {
       const menu = menuPara(perfil);
-      const emitidos = [...menu.riel.flatMap(idsDe), ...menu.movil.flatMap((c) => (c ? [c.id] : []))];
+      const emitidos = [...menu.riel.flatMap(idsDe), ...menu.movil.map((c) => c.id)];
       expect(emitidos.filter((id) => futuros.has(id)), nombreDe(perfil)).toEqual([]);
     }
   });
@@ -216,10 +209,6 @@ describe("las rutas del menú existen", () => {
     const rutas = VIVOS.flatMap((n) => (n.estado === "viva" && "ruta" in n ? [n.ruta] : n.estado === "viva" && esGrupo(n) ? [n.raiz] : []));
     expect(rutas.length).toBeGreaterThan(15);
     expect(rutas.filter((r) => !hayPagina(r))).toEqual([]);
-  });
-
-  it("toda acción de «+ Nuevo» apunta a una ruta viva", () => {
-    expect(ACCIONES_NUEVO.filter((a) => !hayPagina(a.ruta)).map((a) => a.ruta)).toEqual([]);
   });
 });
 
@@ -254,9 +243,8 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
     for (const g of gruposDe(menu.riel)) expect(g.hijos.length, g.id).toBeLessThanOrEqual(topeDeHijas(g.id));
   });
 
-  it("la barra del celular tiene 5 columnas: cuatro pantallas y el hueco del «+» al centro", () => {
-    expect(menu.movil).toHaveLength(5);
-    expect(menu.movil.map((c) => c === null)).toEqual([false, false, true, false, false]);
+  it("la barra del celular tiene 4 columnas fijas", () => {
+    expect(menu.movil).toHaveLength(4);
   });
 
   it("la ruta de cada fila (a cualquier profundidad) abre el grupo de PRIMER NIVEL que la contiene, y ningún otro se la queda", () => {
@@ -278,10 +266,6 @@ describe.each(PERFILES.map((p) => [nombreDe(p), p] as const))("forma del menú d
     expect(menu.grupoDe("/recibir")).toBe(veDinero ? "compras" : "inventario");
   });
 
-  it("«+ Nuevo» no repite destinos", () => {
-    const destinos = menu.nuevo.map((a) => a.href);
-    expect(destinos.filter((d, i) => destinos.indexOf(d) !== i)).toEqual([]);
-  });
 });
 
 /* ====================================================================
@@ -390,16 +374,17 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
     expect(menuPara({ permisos: LIDER, ubicacionTipo: "taller" }).riel.some((f) => f.id === "compras")).toBe(false);
   });
 
-  it("HECHO DE PRODUCTO: el líder parado en el Taller no tiene «Recibir mercadería» (Compras e Inventario, /recibir) en el lateral; le queda solo en «+ Nuevo»", () => {
+  it("HECHO DE PRODUCTO: el líder parado en el Taller no tiene «Recibir mercadería» (Compras e Inventario, /recibir) en ningún menú — la ruta sigue viva, solo sin un link desde ahí", () => {
     // Es consecuencia de dos reglas que se cruzan: «Recibir mercadería» vive en Compras para quien ve el dinero, y Compras no se
-    // muestra en el Taller. Quien no ve el dinero lo tiene en Inventario, así que no le pasa. Si Felipe decide que el líder en el
-    // Taller sí debe verlo en el lateral, se revierte a propósito (p. ej. quitando `soloSinPermiso` de `inventario.recibir`) y
-    // esta prueba cambia con esa decisión; no debe ponerse en verde por accidente.
+    // muestra en el Taller. Quien no ve el dinero lo tiene en Inventario, así que no le pasa. Hasta que se quitó «+ Nuevo» (todas
+    // partes, pedido de Felipe) este perfil llegaba igual por ahí; sin ese atajo, /recibir queda sin ningún link para él. Si Felipe
+    // decide que el líder en el Taller sí debe verlo en el lateral, se revierte a propósito (p. ej. quitando `soloSinPermiso` de
+    // `inventario.recibir`) y esta prueba cambia con esa decisión; no debe ponerse en verde por accidente.
     const menu = menuPara({ permisos: LIDER, ubicacionTipo: "taller" });
     const filas = menu.riel.flatMap(hojasDe);
     expect(filas.map((f) => f.href)).not.toContain("/recibir");
     expect(filas.map((f) => f.etiqueta)).not.toContain("Recibir mercadería");
-    expect(menu.nuevo.map((a) => a.href)).toContain("/recibir");
+    expect(menu.movil.map((c) => c.href)).not.toContain("/recibir");
     // Desde una tienda o un almacén sí lo tiene, dentro de Compras.
     for (const ubicacionTipo of ["tienda", "almacen"] as const) {
       expect(hijosDeGrupo({ permisos: LIDER, ubicacionTipo }, "compras")).toContain("compras.recibir");
@@ -458,7 +443,7 @@ describe("Compras es de las tiendas: parado en el Taller no se muestra, ni al l�
    ==================================================================== */
 
 const hoja = (id: string, extra: Partial<Hoja> = {}): Hoja => ({ id, etiqueta: id, estado: "viva", ruta: `/${id}`, icono: "inicio", pajaro: "14 Gorrión", ...extra });
-const fuente = (arbol: Nodo[], columnas: (string | null)[] = [], acciones: Accion[] = []): FuenteMenu => ({ arbol, columnas, acciones });
+const fuente = (arbol: Nodo[], columnas: string[] = []): FuenteMenu => ({ arbol, columnas });
 const PERFIL_BASE: PerfilDelMenu = { permisos: [], ubicacionTipo: "tienda" };
 
 describe("reglas de menuPara", () => {
@@ -490,21 +475,20 @@ describe("reglas de menuPara", () => {
     expect([contador(4), contador(0), contador(-1), contador(null), contador(undefined)]).toEqual([4, undefined, undefined, undefined, undefined]);
   });
 
-  it("una columna del celular que apunta a un grupo lleva a su puerta y suma los números de sus hijas; un hueco es null", () => {
+  it("una columna del celular que apunta a un grupo lleva a su puerta y suma los números de sus hijas", () => {
     const arbol: Nodo[] = [
       { id: "g", etiqueta: "Grupo", estado: "viva", icono: "inventario", raiz: "/g", pajaro: "14 Gorrión", hijos: [hoja("a", { contador: "trasladosPorAtender" }), hoja("b")] },
     ];
-    const { movil } = menuPara({ ...PERFIL_BASE, contadores: { trasladosPorAtender: 3 } }, fuente(arbol, ["g", null, "a"]));
+    const { movil } = menuPara({ ...PERFIL_BASE, contadores: { trasladosPorAtender: 3 } }, fuente(arbol, ["g", "a"]));
     expect(movil).toEqual([
       { id: "g", etiqueta: "Grupo", href: "/g", icono: "inventario", contador: 3 },
-      null,
       { id: "a", etiqueta: "a", href: "/a", icono: "inicio", contador: 3 },
     ]);
   });
 
   it("una columna que apunta a algo que este perfil no ve se omite en vez de romper la pantalla", () => {
     const arbol: Nodo[] = [hoja("visible"), hoja("oculta", { exige: "administrar" })];
-    expect(menuPara(PERFIL_BASE, fuente(arbol, ["visible", "oculta"])).movil.map((c) => c?.id)).toEqual(["visible"]);
+    expect(menuPara(PERFIL_BASE, fuente(arbol, ["visible", "oculta"])).movil.map((c) => c.id)).toEqual(["visible"]);
   });
 
   it("un módulo se abre por su puerta aunque a este perfil no se le pinte (aterrizar ahí cierra los otros grupos)", () => {
@@ -514,15 +498,6 @@ describe("reglas de menuPara", () => {
     expect(menu.grupoDe("/g/loquesea")).toBe("g");
   });
 
-  it("«+ Nuevo» respeta el permiso que exige cada acción", () => {
-    const acciones: Accion[] = [
-      { id: "a", etiqueta: "A", detalle: "d", estado: "viva", ruta: "/a", pajaro: "14 Gorrión" },
-      { id: "b", etiqueta: "B", detalle: "d", estado: "viva", ruta: "/b", pajaro: "14 Gorrión", exige: "verDinero" },
-    ];
-    expect(menuPara(PERFIL_BASE, fuente([], [], acciones)).nuevo.map((a) => a.id)).toEqual(["a"]);
-    expect(menuPara({ ...PERFIL_BASE, permisos: ["verDinero"] }, fuente([], [], acciones)).nuevo.map((a) => a.id)).toEqual(["a", "b"]);
-  });
-
   it("rutaActiva: `/` solo coincide consigo misma y un prefijo corta en el límite de un segmento", () => {
     expect(rutaActiva("/", "/")).toBe(true);
     expect(rutaActiva("/vender", "/")).toBe(false);
@@ -530,9 +505,8 @@ describe("reglas de menuPara", () => {
     expect(rutaActiva("/venderx", "/vender")).toBe(false);
   });
 
-  it("el menú de hoy declara 5 columnas móviles con el hueco del «+» en el centro", () => {
-    expect(COLUMNAS_MOVIL).toHaveLength(5);
-    expect(COLUMNAS_MOVIL[2]).toBeNull();
+  it("el menú de hoy declara 4 columnas móviles", () => {
+    expect(COLUMNAS_MOVIL).toHaveLength(4);
   });
 });
 
@@ -587,31 +561,34 @@ describe("permisos de una terminal: salen de su rol", () => {
 });
 
 describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
-  const { riel, movil, nuevo } = menuPara(perfilTerminal("ventas"));
+  const { riel, movil } = menuPara(perfilTerminal("ventas"));
 
-  it("ve solo Ventas: Punto de Venta, Apartados, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
-    expect(etiquetasDe(riel)).toEqual(["Ventas"]);
-    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa", "Comprobantes"]);
+  // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
+  // Es la caja del mostrador: Ventas le sale SUELTO (Felipe, 2026-09-25), sin la cabecera «Ventas» ni la de «Posventa».
+  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones y Comprobantes, en ese orden y sin grupos que abrir", () => {
+    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
+    expect(riel.some(esGrupoMenu)).toBe(false);
+  });
+
+  it("al pararse en una pantalla de Ventas sigue estando en Ventas (moverse ahí cierra el grupo que estuviera abierto)", () => {
+    const { grupoDe } = menuPara(perfilTerminal("ventas"));
+    expect(["/vender", "/caja", "/cambios", "/vender/comprobantes"].map(grupoDe)).toEqual(["venta", "venta", "venta", "venta"]);
   });
 
   it("no tiene Inicio (ve el Punto de venta: su casa es el mostrador), ni Inventario, Catálogo, Compras ni Producción", () => {
     for (const no of ["Inicio", "Inventario", "Catálogo", "Compras", "Producción"]) expect(etiquetasDe(riel)).not.toContain(no);
   });
 
-  it("la barra del celular queda con lo que tiene: Punto de Venta, el «+» y Caja", () => {
-    expect(movil.map((c) => (c === null ? "+" : c.etiqueta))).toEqual(["Punto de Venta", "+", "Caja"]);
-  });
-
-  it("«+ Nuevo» ofrece vender, cambiar y devolver; nada de inventario ni de compras", () => {
-    expect(nuevo.map((a) => a.etiqueta)).toEqual(["Nueva venta", "Registrar cambio", "Registrar devolución"]);
+  it("la barra del celular queda con lo que tiene: Punto de Venta y Caja", () => {
+    expect(movil.map((c) => c.etiqueta)).toEqual(["Punto de Venta", "Caja"]);
   });
 });
 
 describe("el menú de una terminal con el rol «Terminal administrativa»", () => {
-  const { riel, nuevo } = menuPara(perfilTerminal("administrativa"));
+  const { riel } = menuPara(perfilTerminal("administrativa"));
 
-  it("ve Inicio, Catálogo, Compras (solo Proveedores, P3) e Inventario; en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
-    expect(etiquetasDe(riel)).toEqual(["Inicio", "Catálogo", "Compras", "Inventario"]);
+  it("ve Inicio, Inventario, Catálogo y Compras (solo Proveedores, P3); en Inventario, sin Análisis (es de decisión, del líder) y con Recibir mercadería", () => {
+    expect(etiquetasDe(riel)).toEqual(["Inicio", "Inventario", "Catálogo", "Compras"]);
     expect(hijasDe(riel, "Inventario")).toEqual(["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"]);
     expect(hijasDe(riel, "Catálogo")).toEqual(["Productos", "Categorías", "Atributos"]);
   });
@@ -633,10 +610,6 @@ describe("el menú de una terminal con el rol «Terminal administrativa»", () =
   it("no ve Ventas ni Producción", () => {
     for (const no of ["Ventas", "Producción"]) expect(etiquetasDe(riel)).not.toContain(no);
   });
-
-  it("«+ Nuevo» ofrece recibir y mover mercadería; no vender", () => {
-    expect(nuevo.map((a) => a.etiqueta)).toEqual(["Recibir mercadería", "Mover mercadería"]);
-  });
 });
 
 describe("terminales sin tipo: el rol manda", () => {
@@ -645,7 +618,21 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(etiquetasDe(caja)).toEqual(["Inicio", "Ventas", "Inventario"]);
     // Un grupo con una sola pantalla visible conserva el nombre del módulo (regla de siempre de `menuPara`).
     expect(caja.map((f) => ("href" in f ? f.href : null))).toEqual(["/", "/caja", "/inventario"]);
-    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual(["Ventas"]);
+    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
+  });
+
+  it("es caja del mostrador (Ventas suelto) solo la TERMINAL que ve el Punto de venta; una persona que vende lo sigue viendo agrupado", () => {
+    expect(esMostrador({ terminal: true, modulos: ["vender", "caja"] })).toBe(true);
+    expect(esMostrador({ terminal: true, modulos: ["caja", "existencias"] })).toBe(false);
+    expect(esMostrador({ terminal: false, modulos: ["vender", "caja"] })).toBe(false);
+    const persona = menuPara({ permisos: [], ubicacionTipo: "tienda", modulos: ["vender", "caja"] }).riel;
+    expect(etiquetasDe(persona)).toEqual(["Inicio", "Ventas"]);
+    expect(hijasDe(persona, "Ventas")).toEqual(["Punto de Venta", "Caja"]);
+  });
+
+  it("una caja con UNA sola pantalla de Ventas la ve con su propio nombre («Punto de Venta»), no con el del grupo", () => {
+    const soloVender = menuPara(perfilTerminal(["vender"])).riel;
+    expect(soloVender.map((f) => ("href" in f ? [f.etiqueta, f.href] : f.etiqueta))).toEqual([["Punto de Venta", "/vender"]]);
   });
 
   it("una terminal ve Inicio solo si NO ve el Punto de venta", () => {
@@ -678,28 +665,22 @@ describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
     (rol) => {
       const modulos = MODULOS_DE_HOY[rol].map((m) => m.clave);
       for (const ubicacionTipo of TIPOS_UBICACION) {
-        const { riel, nuevo } = menuPara({ permisos: PERMISOS, ubicacionTipo, terminal: true, modulos });
+        const { riel } = menuPara({ permisos: PERMISOS, ubicacionTipo, terminal: true, modulos });
         for (const hoja of riel.flatMap(hojasDe)) {
           if (hoja.href === "/") continue; // Inicio: no es de ningún módulo (ver `terminalVeInicio`)
           const claves = modulosDeRuta(hoja.href);
           expect(claves.some((c) => c && modulos.includes(c)), `${rol} en ${ubicacionTipo} ve «${hoja.id}» (${hoja.href}) sin tener su módulo`).toBe(true);
-        }
-        for (const a of nuevo) {
-          const accion = ACCIONES_NUEVO.find((x) => x.id === a.id);
-          expect(accion?.modulo && modulos.includes(accion.modulo), a.href).toBe(true);
         }
       }
     },
   );
 
   it("una terminal sin módulos (su rol vacío, o la base no respondió) solo ve Inicio: nunca más de lo que tiene", () => {
-    const { riel, nuevo } = menuPara({ permisos: PERMISOS, ubicacionTipo: "tienda", terminal: true });
+    const { riel } = menuPara({ permisos: PERMISOS, ubicacionTipo: "tienda", terminal: true });
     expect(etiquetasDe(riel)).toEqual(["Inicio"]);
-    expect(nuevo).toEqual([]);
   });
 
-  it("toda pantalla viva salvo Inicio, y toda acción de «+ Nuevo», declara su módulo (sin eso una terminal no podría verla)", () => {
+  it("toda pantalla viva salvo Inicio declara su módulo (sin eso una terminal no podría verla)", () => {
     expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual(["inicio"]);
-    expect(ACCIONES_NUEVO.filter((a) => !a.modulo)).toEqual([]);
   });
 });

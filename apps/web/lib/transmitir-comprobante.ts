@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { emitirDocumentoLucode, entornoLucode, type DatosComprobante, type TipoDocumentoLucode } from "@/lib/lucode";
 import { itemsParaLucode, motivoParaNoTransmitir, vaALaColaDeReintento, variantesPorNombrar } from "@/lib/transmision-reglas";
+import { capturarError } from "@/lib/errores";
 
 // Transmitir UN comprobante a SUNAT por Lucode: la pieza que comparten `/api/lucode/emitir` (el envío
 // al cobrar y «Reintentar ahora») y `/api/lucode/reintentar` (el barrido de la cola, D-60). Solo
@@ -127,6 +128,7 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
     // Distinguir el fallo de lectura del "no es boleta ni factura": lo primero se reintenta,
     // lo segundo es un dato mal formado que nunca se va a arreglar solo.
     if (errOriginal) {
+      capturarError("lucode/emitir: no se pudo leer el original de la nota", errOriginal, { comprobante_id: fila.id });
       return { status: 503, body: { error: "No se pudo leer el comprobante original de la nota. Reintenta." } };
     }
     if (!original || (original.tipo !== "boleta" && original.tipo !== "factura")) {
@@ -186,6 +188,12 @@ export async function transmitirComprobante(supabase: Cliente, destino: Destino)
     // pantalla: el correlativo ya se usó ante SUNAT aunque la base no se
     // haya enterado todavía. Se avisa con el detalle exacto para reintentar
     // solo el guardado, no la transmisión (que reenviaría el mismo documento).
+    capturarError("lucode/emitir: transmitido pero sin guardar", errActualizar, {
+      comprobante_id: fila.id,
+      comprobante: `${fila.serie}-${fila.numero}`,
+      estado_sunat: resultado.estado,
+      entorno: resultado.entorno,
+    });
     return { status: 500, body: { error: `Lucode transmitió (${resultado.estado}) pero no se pudo guardar el resultado: ${errActualizar.message}`, resultado } };
   }
 

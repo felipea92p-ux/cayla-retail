@@ -2,25 +2,44 @@ import { RANGOS_SELL_THROUGH_PCT, TENDENCIA_MIN_UNIDADES } from "./inventario-re
 import { calcularSellThrough, calcularTendencia, evaluarExactitud, listarCategorias, type EstadoExactitud, type Ubicacion, type Velocidad } from "./resumen-reglas";
 import { aplicarAlcance, bandaSellThrough, FILAS_POR_PAGINA, leerFiltros, paginar, type AlcanceResumen, type FiltroSellThrough } from "./resumen-filtros";
 import { conNullAlFinal, metricasDePeriodo, rangoDeSellThrough, textoRangoSellThrough, variacionPct, type DatosPeriodo, type FilaComparacion, type MetricasPeriodo } from "./resumen-comparacion";
+import { esSobrestockTotal, ritmoMuestraLimitada, sellThroughExposicion, tuvoQuiebreEnPiso, type SellThroughExposicion } from "./inventario-exposicion";
 import { costoEsVerificable, rotacionAgregada, type RotacionAgregada } from "./rotacion";
 import { diasDelRango, sumarDias, type PeriodoResuelto, type Rango } from "./resumen-periodo";
 import { rangosDelResumen, type ParametrosResumen } from "./resumen-armado";
+import {
+  calidadDeExposicion,
+  calidadDeRotacionUnidades,
+  calidadDeSellThroughExposicion,
+  calidadDeSinVenta,
+  calidadDeTendencia,
+  calidadDeVelocidad,
+  type Calidad,
+} from "./inventario-calidad";
 
 // Desempeño del inventario (2026-09-19, ADR-0138): «¿cómo se comportó mi inventario durante el
 // período seleccionado?». Es la pantalla HISTÓRICA: nada de acá mira el stock de hoy (eso es
 // Existencias) ni compara dos períodos (eso es Comparar períodos). Por producto y variante:
 //
-//   vendido       unidades netas del período (ventas − devoluciones)
-//   ritmo         unidades por día, sobre los días CON stock (la definición canónica de `calcularVelocidad`)
-//   sell-through  % de lo disponible que se vendió: ventas netas ÷ (stock al inicio + entradas)
-//   rotación      COGS del período ÷ inventario promedio a costo (`rotacion.ts`, la única definición)
-//   tendencia     el ritmo de la 2.ª mitad del período contra el de la 1.ª
+//   vendido                   unidades netas del período (ventas − devoluciones), SIN ajuste por exposición
+//   ritmo observado           unidades por día, sobre los días CON STOCK EN PISO (`calcularVelocidad`);
+//                             `muestraLimitada` avisa cuando esos días son pocos frente al período
+//   sell-through de exposición  cohortes FIFO sobre `pisoEventos` (`resumen-exposicion.ts`): solo cuenta
+//                             una reposición una vez madura (`SELL_THROUGH_EXPOSURE_WINDOW_DAYS`), nunca
+//                             la mezcla con la de arriba (`sellThrough`, ventas ÷ todo el inventario —
+//                             sigue viva SOLO para el filtro/KPI/dona existentes, ver nota en el informe)
+//   rotación piso / total     COGS ÷ inventario promedio ponderado por TIEMPO, de piso o de piso+almacén
+//                             (`rotacion.ts`, `BaseRotacion.inventarioPromedioTemporal`); un traslado interno
+//                             piso↔almacén no mueve la TOTAL por sí solo
+//   sin venta                 tiempo de EXPOSICIÓN en piso sin vender (no calendario): lo trae ya reconstruido
+//                             `fn_resumen_comparacion` (`ultimaVentaEn`/`pisoExpuestoDesdeUltimaVentaDias`)
+//   tendencia                 el RITMO OBSERVADO (no las ventas crudas) de la 2.ª mitad contra la 1.ª
 //
-// NINGUNA fórmula es nueva: se arma con `metricasDePeriodo` (la de Comparar períodos: velocidad,
-// rotación), `calcularSellThrough` y `calcularTendencia` (las del Resumen de siempre). Lo único
-// nuevo es partir el período en dos mitades para llamar a `fn_resumen_comparacion` con A = 1.ª
-// mitad y B = 2.ª: así el mismo origen de datos da el período entero (sumando las dos), el stock
-// al inicio (el de A) y al cierre (el de B), y la tendencia (B contra A).
+// NINGUNA fórmula del período entero es nueva: se arma con `metricasDePeriodo` (la de Comparar períodos:
+// velocidad, rotación) y `calcularTendencia` (la del Resumen de siempre) — partiendo el período en dos
+// mitades para llamar a `fn_resumen_comparacion` con A = 1.ª mitad y B = 2.ª, así el mismo origen de datos
+// da el período entero (sumando las dos), el stock al inicio (el de A) y al cierre (el de B), y la
+// tendencia (B contra A). Lo único genuinamente nuevo (2026-09-24) es `resumen-exposicion.ts`: el sell-through
+// de exposición es un problema de SECUENCIA (cohortes), no de agregación, y por eso vive aparte.
 
 // ---------------------------------------------------------------------------
 // Partir el período en dos mitades
@@ -56,12 +75,27 @@ export function dividirPeriodo(periodo: Rango): Mitades {
   };
 }
 
+/** Promedio ponderado por tiempo de dos mitades contiguas: no se suman (no son acumulables como las
+ *  ventas), se combinan por su propio peso en días — el promedio del período entero, no el promedio de
+ *  los dos promedios. Con una mitad de 0 días (no debería pasar: `dividirPeriodo` nunca da 0) el otro
+ *  promedio gana entero en vez de partir por cero. */
+function promedioPonderado(promedioA: number, diasA: number, promedioB: number, diasB: number): number {
+  const dias = diasA + diasB;
+  if (dias <= 0) return 0;
+  return (promedioA * diasA + promedioB * diasB) / dias;
+}
+
 /** El período entero a partir de sus dos mitades: se suma lo que se acumula (ventas, devoluciones, COGS en
  *  sus componentes, días con stock, entradas) y se toma el stock al inicio de la 1.ª y al cierre de la 2.ª.
  *  El COGS se junta en componentes para restar las devoluciones sobre el TOTAL: una devolución de la 2.ª mitad
- *  de algo vendido en la 1.ª no se pierde. */
-export function periodoCompleto(f: FilaComparacion, dividido: boolean): DatosPeriodo {
-  if (!dividido) return f.b; // las dos mitades son el mismo rango: contar las dos duplicaría todo
+ *  de algo vendido en la 1.ª no se pierde. Los promedios ponderados por tiempo (piso y total, 2026-09-24) NO
+ *  se suman: se recombinan por los días CALENDARIO de cada mitad (`promedioPonderado`) — el mismo denominador
+ *  con que el RPC ya dividió cada promedio (`diasPrimera`/`diasSegunda`, no `diasConStock`: el promedio de
+ *  piso también corre sobre el calendario de la mitad, no solo sobre sus días con stock). */
+export function periodoCompleto(f: FilaComparacion, m: Pick<Mitades, "dividido" | "diasPrimera" | "diasSegunda">): DatosPeriodo {
+  if (!m.dividido) return f.b; // las dos mitades son el mismo rango: contar las dos duplicaría todo
+  const diasA = m.diasPrimera;
+  const diasB = m.diasSegunda;
   return {
     ventas: f.a.ventas + f.b.ventas,
     devoluciones: f.a.devoluciones + f.b.devoluciones,
@@ -73,6 +107,8 @@ export function periodoCompleto(f: FilaComparacion, dividido: boolean): DatosPer
     stockInicio: f.a.stockInicio,
     stockCierre: f.b.stockCierre,
     diasConStock: f.a.diasConStock !== null && f.b.diasConStock !== null ? f.a.diasConStock + f.b.diasConStock : null,
+    pisoPromedio: promedioPonderado(f.a.pisoPromedio, diasA, f.b.pisoPromedio, diasB),
+    totalPromedio: promedioPonderado(f.a.totalPromedio, diasA, f.b.totalPromedio, diasB),
   };
 }
 
@@ -83,16 +119,49 @@ export function periodoCompleto(f: FilaComparacion, dividido: boolean): DatosPer
 export type DireccionTendencia = "alza" | "estable" | "baja";
 export const ETIQUETA_TENDENCIA: Record<DireccionTendencia, string> = { alza: "Aceleró", estable: "Estable", baja: "Desaceleró" };
 
+/**
+ * El contrato de calidad (`inventario-calidad.ts`) de cada una de las 7 métricas de la fila —UNA vez
+ * por variante, en el dominio (`analizarDesempeno`), no recalculado ad-hoc por cada celda que lo
+ * necesite (decisión de Felipe, 2026-09-24, sección 2: "completar su integración en el DOMINIO, no
+ * solamente en algunas celdas visuales"). La presentación decide cuándo mostrarlo (`textoCalidad`) —
+ * esto solo garantiza que la respuesta a "¿qué tan confiable es este número, y por qué" es la MISMA
+ * sin importar qué celda pregunte, ni si pregunta hoy o el día que otra pantalla lo necesite.
+ */
+export type CalidadDesempeno = {
+  exposicion: Calidad;
+  ritmo: Calidad;
+  sellThrough: Calidad;
+  rotacionPiso: Calidad;
+  rotacionTotal: Calidad;
+  sinVenta: Calidad;
+  tendencia: Calidad;
+};
+
 export type AnalisisDesempeno = {
   fila: FilaComparacion;
-  /** El período entero: vendido, velocidad, rotación. */
+  /** El período entero: vendido, velocidad, rotación (total Y piso). */
   periodo: MetricasPeriodo;
   /** Unidades por día: 0 si hay evidencia de que no se vendió, null si no hay base honesta. */
   ritmo: number | null;
-  /** % (0–100); null si no hay base (nada disponible al inicio ni entradas) o el historial no cuadra. */
+  /** Días con stock en PISO del período entero (el numerador de `textoExposicionDias`); null = sin base. */
+  diasConStockPiso: number | null;
+  /** true = la exposición en piso fue corta frente al período: `ritmo` sigue siendo correcto, la evidencia es poca. */
+  muestraLimitada: boolean;
+  /** % (0–100); null si no hay base (nada disponible al inicio ni entradas) o el historial no cuadra. SIGUE
+   *  siendo ventas ÷ todo el inventario — alimenta el KPI/dona/filtro/orden existentes de la pantalla, no la
+   *  tabla (ver `sellThroughExposicion`, y la nota del informe final sobre las dos definiciones convivientes). */
   sellThrough: number | null;
+  /** Sell-through DE EXPOSICIÓN (2026-09-24): cohortes FIFO sobre `fila.pisoEventos` — la columna de la tabla. */
+  sellThroughExposicion: SellThroughExposicion;
   /** 2.ª mitad contra 1.ª; null (= N/D) si el período no se puede partir, vendió muy poco o no hay ritmo medible. */
   tendencia: { direccion: DireccionTendencia; variacionPct: number } | null;
+  /** «Responde bien en piso, pero mantiene mucho stock total»: rotación total muy por debajo de la de piso. */
+  sobrestockTotal: boolean;
+  /** «Problema de reposición»: el piso llegó a 0 en algún punto de la ventana reconstruida y luego repuso —
+   *  un quiebre intermedio, distinto del cierre agotado de hoy (eso ya es `agotada`, en `resumen-lectura.ts`). */
+  tuvoQuiebre: boolean;
+  /** El contrato de calidad de las 7 métricas de esta fila, ya resuelto (ver `CalidadDesempeno`). */
+  calidad: CalidadDesempeno;
 };
 
 /** Unidades por día para mostrar: «no se vendió» con evidencia es 0, no «sin dato». */
@@ -111,15 +180,42 @@ function tendenciaDe(f: FilaComparacion, m: Mitades, ventasNetasPeriodo: number)
   return { direccion: t.direccion, variacionPct: t.variacionPct };
 }
 
+/** El sell-through de exposición se evalúa «a la fecha de cierre del período», no a hoy: el período es
+ *  historia (mismo criterio que el resto de la pantalla — «el stock aquí es el de CIERRE», nunca el de
+ *  hoy), así que si una reposición del último día ya maduró depende de CUÁNDO terminó el período elegido,
+ *  no de cuándo se abre el reporte. */
+function comoDeCierre(m: Mitades): Date {
+  return new Date(`${sumarDias(m.segunda.hasta, 1)}T00:00:00Z`);
+}
+
 export function analizarDesempeno(f: FilaComparacion, m: Mitades): AnalisisDesempeno {
-  const completo = periodoCompleto(f, m.dividido);
+  const completo = periodoCompleto(f, m);
   const periodo = metricasDePeriodo(completo, m.dias, f);
+  const vecesPiso = periodo.rotacionPisoUnidades.calculable ? periodo.rotacionPisoUnidades.veces : null;
+  const vecesTotal = periodo.rotacionTotalUnidades.calculable ? periodo.rotacionTotalUnidades.veces : null;
+  const muestraLimitada = ritmoMuestraLimitada(completo.diasConStock, m.dias);
+  const sellThroughExp = sellThroughExposicion(f.pisoEventos, comoDeCierre(m));
+  const tendencia = tendenciaDe(f, m, periodo.ventasNetas);
   return {
     fila: f,
     periodo,
     ritmo: ritmoDe(periodo.velocidad),
+    diasConStockPiso: completo.diasConStock,
+    muestraLimitada,
     sellThrough: calcularSellThrough({ ventasNetas: periodo.ventasNetas, stockInicial: completo.stockInicio, entradas: completo.entradas, ledgerConsistente: f.ledgerConsistente }),
-    tendencia: tendenciaDe(f, m, periodo.ventasNetas),
+    sellThroughExposicion: sellThroughExp,
+    tendencia,
+    sobrestockTotal: esSobrestockTotal(vecesPiso, vecesTotal),
+    tuvoQuiebre: tuvoQuiebreEnPiso(f.pisoEventos),
+    calidad: {
+      exposicion: calidadDeExposicion(completo.diasConStock),
+      ritmo: calidadDeVelocidad(periodo.velocidad),
+      sellThrough: calidadDeSellThroughExposicion(sellThroughExp),
+      rotacionPiso: calidadDeRotacionUnidades(periodo.rotacionPisoUnidades, f.ledgerConsistente),
+      rotacionTotal: calidadDeRotacionUnidades(periodo.rotacionTotalUnidades, f.ledgerConsistente),
+      sinVenta: calidadDeSinVenta(f.pisoExpuestoDesdeUltimaVentaDias),
+      tendencia: calidadDeTendencia(tendencia),
+    },
   };
 }
 

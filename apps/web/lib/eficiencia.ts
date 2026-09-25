@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { fechaLimaDe, type GastoTaller, type PlanillaPeriodo } from "@/lib/eficiencia-reglas";
+import { type GastoTaller, type PlanillaPeriodo } from "@/lib/eficiencia-reglas";
+import { getGastosDeUbicacion } from "@/lib/gastos";
+import { hoyLima, sumarDias } from "@/lib/fechas-lima";
 
 // Eficiencia del Taller (ADR-0133, F7): las dos lecturas que vienen de FUERA de Producción. Las dos son de solo lectura y toleran fallar: la pantalla mide la
 // producción igual y dice qué le falta.
@@ -31,26 +33,13 @@ export async function getPlanillaDelTaller(): Promise<{ periodos: PlanillaPeriod
 }
 
 /**
- * Los gastos generales del Taller (alquiler, servicios…), de `gastos` con la ubicación del Taller: el modelo de gastos de Finanzas (ADR-0117) es la única
- * fuente; Producción no lleva una tabla aparte. La fecha es la del registro (hora de Lima). Falla en silencio: sin gastos, la conversión usa solo la planilla.
+ * Los gastos generales del Taller (alquiler, servicios…), de Finanzas ▸ Gastos con la ubicación del Taller: el modelo de
+ * gastos (ADR-0117, ADR-0195 F2) es la única fuente; Producción no lleva una tabla aparte. Se leen por `fn_gastos_lista`
+ * (la tabla no se lee directo), del último año, solo los vigentes; la fecha es la del gasto. Falla en silencio: sin
+ * gastos, la conversión usa solo la planilla.
  */
-// `gastos` existe en producción pero todavía no está en los tipos generados (los trae el PR del modelo de gastos, ADR-0117): se tipa acá lo mínimo que se lee,
-// sin tocar `packages/database`, para no chocar con ese PR. Cuando lleguen los tipos, este cast sobra.
-type ConsultaGastos = {
-  from(tabla: "gastos"): {
-    select(columnas: string): {
-      eq(columna: string, valor: string): {
-        order(columna: string, opciones: { ascending: boolean }): {
-          limit(n: number): PromiseLike<{ data: { categoria: string; total: number | string; created_at: string }[] | null; error: unknown }>;
-        };
-      };
-    };
-  };
-};
-
 export async function getGastosDelTaller(tallerId: string): Promise<GastoTaller[]> {
-  const supabase = (await createClient()) as unknown as ConsultaGastos;
-  const { data, error } = await supabase.from("gastos").select("categoria, total, created_at").eq("ubicacion_id", tallerId).order("created_at", { ascending: false }).limit(500);
-  if (error) return [];
-  return (data ?? []).map((g) => ({ categoria: g.categoria, total: Number(g.total), fecha: fechaLimaDe(g.created_at) ?? "" })).filter((g) => g.fecha !== "");
+  const hoy = hoyLima();
+  const gastos = await getGastosDeUbicacion(tallerId, sumarDias(hoy, -366), hoy);
+  return gastos.map((g) => ({ categoria: g.categoria, total: g.montoTotal, fecha: g.fecha }));
 }

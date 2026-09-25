@@ -1,93 +1,67 @@
 import { describe, expect, it } from "vitest";
-import { ayudaRotacionComparada, formatoDeltaDias, formatoDeltaPp, formatoRotacion, formatoSellThrough, formatoSolesCompacto, textoCobertura, textoUniversoRotacion, textoUniversoSellThrough } from "./resumen-formato";
-import { rotacionComparada, type BaseRotacion } from "./rotacion";
+import { formatoSellThroughExposicion, textoExposicionDias, textoPendienteMadurez, textoSinVenta, textoStockPisoAlmacen, tooltipStockPisoAlmacen } from "./resumen-formato";
 
-describe("formatoSolesCompacto", () => {
-  it("bajo mil va entero; en miles con un decimal; en millones con dos", () => {
-    expect(formatoSolesCompacto(0)).toBe("S/ 0");
-    expect(formatoSolesCompacto(950.4)).toBe("S/ 950");
-    expect(formatoSolesCompacto(18_412)).toBe("S/ 18.4k");
-    expect(formatoSolesCompacto(21_700)).toBe("S/ 21.7k");
-    expect(formatoSolesCompacto(20_000)).toBe("S/ 20k");
-    expect(formatoSolesCompacto(125_000)).toBe("S/ 125k");
-    expect(formatoSolesCompacto(1_250_000)).toBe("S/ 1.25M");
+// Formatos de comportamiento comercial (piso vs. almacén, 2026-09-24): lo que se prueba es que la UI nunca
+// muestre una fracción física que no existe — la aproximación decimal de `armarCohortes`
+// (`inventario-exposicion.ts`) es válida para el cálculo interno, nunca para lo que lee una persona.
+
+describe("textoPendienteMadurez", () => {
+  it("redondea SIEMPRE antes de mostrar: una cohorte dividida proporcionalmente puede dar 4.2857 (sección 7 del pedido)", () => {
+    expect(textoPendienteMadurez(4.2857142857142856)).toBe("4 nuevas pendientes");
+    expect(textoPendienteMadurez(0.6)).toBe("1 nueva pendiente");
+    expect(textoPendienteMadurez(1)).toBe("1 nueva pendiente");
+    expect(textoPendienteMadurez(3)).toBe("3 nuevas pendientes");
   });
 
-  it("un negativo lleva el signo delante", () => {
-    expect(formatoSolesCompacto(-1_500)).toBe("−S/ 1.5k");
-  });
-});
-
-describe("formatoRotacion y formatoDeltaDias", () => {
-  it("rotación con dos decimales y una «x»", () => {
-    expect(formatoRotacion(0.7391)).toBe("0.74x");
-    expect(formatoRotacion(0)).toBe("0.00x");
-  });
-
-  it("diferencia de días con signo, en singular cuando toca", () => {
-    expect(formatoDeltaDias(-4)).toBe("−4 días");
-    expect(formatoDeltaDias(1)).toBe("+1 día");
-    expect(formatoDeltaDias(0.2)).toBe("sin cambio");
-    expect(formatoDeltaDias(-3.6)).toBe("−4 días");
-  });
-
-  it("sell-through: porcentaje entero; diferencia en puntos porcentuales con signo", () => {
-    expect(formatoSellThrough(61.4)).toBe("61%");
-    expect(formatoSellThrough(0)).toBe("0%");
-    expect(formatoDeltaPp(19.4)).toBe("+19 pp");
-    expect(formatoDeltaPp(-4)).toBe("−4 pp");
-    expect(formatoDeltaPp(0.2)).toBe("0 pp");
+  it("sin nada pendiente, no hay nota que mostrar", () => {
+    expect(textoPendienteMadurez(0)).toBeNull();
+    expect(textoPendienteMadurez(0.4)).toBeNull(); // redondea a 0
   });
 });
 
-describe("textoCobertura", () => {
-  it("escribe cada tipo sin NaN ni undefined", () => {
-    expect(textoCobertura({ tipo: "agotado", dias: 0 })).toBe("0 d");
-    expect(textoCobertura({ tipo: "medida", dias: 3.3 })).toBe("3.3 d");
-    expect(textoCobertura({ tipo: "medida", dias: 90 })).toBe("> 60 d");
-    expect(textoCobertura({ tipo: "sin_ventas", dias: null })).toBe("Sin ventas");
-    expect(textoCobertura({ tipo: "sin_historial", dias: null })).toBe("N/D");
+describe("formatoSellThroughExposicion", () => {
+  it("entero, nunca decimales sueltos; N/D cuando no hay base", () => {
+    expect(formatoSellThroughExposicion(60)).toBe("60%");
+    expect(formatoSellThroughExposicion(59.6)).toBe("60%");
+    expect(formatoSellThroughExposicion(null)).toBe("N/D");
   });
 });
 
-describe("universo de la rotación: cómo se dice con qué variantes se calculó", () => {
-  const ok = (cogs: number, inventario: number): BaseRotacion => ({ cogs, inventarioInicio: inventario, inventarioCierre: inventario });
-  const sinCosto: BaseRotacion = { cogs: null, inventarioInicio: 400, inventarioCierre: 400 };
-  const sinInventario: BaseRotacion = { cogs: 100, inventarioInicio: 0, inventarioCierre: 0 };
+describe("textoExposicionDias", () => {
+  it("«N de M días en piso», redondeado", () => {
+    expect(textoExposicionDias(6, 7)).toBe("6 de 7 días en piso");
+    expect(textoExposicionDias(1, 30)).toBe("1 de 30 días en piso");
+  });
+});
 
-  it("si entraron todas no hay nada que avisar; si no, «N de M variantes comparables» (sin alarma)", () => {
-    expect(textoUniversoRotacion(rotacionComparada([{ a: ok(100, 400), b: ok(200, 400) }]))).toBeNull();
-    expect(textoUniversoRotacion(rotacionComparada([]))).toBeNull();
-    const parcial = rotacionComparada([{ a: ok(100, 400), b: ok(200, 400) }, { a: sinCosto, b: ok(200, 400) }, { a: ok(100, 400), b: ok(200, 400) }]);
-    expect(textoUniversoRotacion(parcial)).toBe("2 de 3 variantes comparables");
-    expect(textoUniversoRotacion(rotacionComparada([{ a: sinCosto, b: sinCosto }]))).toBe("0 de 1 variante comparable");
+describe("textoSinVenta", () => {
+  it("Vendió hoy / 1 día / N días expuesto / Nunca vendió, nunca días de calendario", () => {
+    expect(textoSinVenta({ ultimaVentaEn: "2026-09-24T00:00:00Z", pisoExpuestoDesdeUltimaVentaDias: 0.4 })).toBe("Vendió hoy");
+    expect(textoSinVenta({ ultimaVentaEn: "2026-09-01T00:00:00Z", pisoExpuestoDesdeUltimaVentaDias: 1 })).toBe("1 día");
+    expect(textoSinVenta({ ultimaVentaEn: "2026-09-01T00:00:00Z", pisoExpuestoDesdeUltimaVentaDias: 9 })).toBe("9 días expuesto");
+    expect(textoSinVenta({ ultimaVentaEn: null, pisoExpuestoDesdeUltimaVentaDias: 0 })).toBe("Nunca vendió");
+    expect(textoSinVenta({ ultimaVentaEn: null, pisoExpuestoDesdeUltimaVentaDias: 12 })).toBe("Nunca vendió (12 días expuesto)");
+    expect(textoSinVenta({ ultimaVentaEn: null, pisoExpuestoDesdeUltimaVentaDias: null })).toBe("N/D");
+  });
+});
+
+describe("textoStockPisoAlmacen / tooltipStockPisoAlmacen (2026-09-24 — Stock actual P/A)", () => {
+  it("A: piso 5, almacén 60 → «5 / 60», tooltip con el desglose y el total", () => {
+    expect(textoStockPisoAlmacen({ piso: 5, almacen: 60 })).toBe("5 / 60");
+    expect(tooltipStockPisoAlmacen({ piso: 5, almacen: 60 })).toBe("Piso: 5\nAlmacén: 60\nTotal: 65");
   });
 
-  it("«textoUniversoSellThrough» dice lo mismo con el vocabulario del KPI de sell-through", () => {
-    expect(textoUniversoSellThrough({ totalVariantes: 3, variantesComparables: 2, variantesExcluidas: 1 })).toBe("2 de 3 variantes comparables");
-    expect(textoUniversoSellThrough({ totalVariantes: 3, variantesComparables: 3, variantesExcluidas: 0 })).toBeNull();
-    expect(textoUniversoSellThrough({ totalVariantes: 0, variantesComparables: 0, variantesExcluidas: 0 })).toBeNull();
+  it("B: piso 0, almacén 35 → «0 / 35» (un cero real, no N/D)", () => {
+    expect(textoStockPisoAlmacen({ piso: 0, almacen: 35 })).toBe("0 / 35");
   });
 
-  it("el tooltip es solo la fórmula cuando todo entró; con exclusiones agrega el cruce A/B y los motivos", () => {
-    const todo = rotacionComparada([{ a: ok(100, 400), b: ok(200, 400) }]);
-    expect(ayudaRotacionComparada(todo)).toBe("Veces que rotó el inventario en el período. COGS del período ÷ inventario promedio a costo. El inventario promedio se estima con los valores de inicio y cierre del período.");
-
-    const parcial = rotacionComparada([
-      { a: ok(100, 400), b: ok(200, 400) },
-      { a: sinCosto, b: ok(200, 400) },
-      { a: ok(100, 400), b: sinInventario },
-    ]);
-    const ayuda = ayudaRotacionComparada(parcial);
-    expect(ayuda).toContain("Se calcula solo con las 1 variantes con datos válidos en A y en B a la vez (2 en A, 2 en B)");
-    expect(ayuda).toContain("Fuera del cálculo: Hay ventas sin costo registrado (1) · No hubo inventario promedio en el período (1).");
+  it("C: piso 0, almacén 0 → «0 / 0» (se sabe con certeza que no hay stock, no es lo mismo que 'no lo sabemos')", () => {
+    expect(textoStockPisoAlmacen({ piso: 0, almacen: 0 })).toBe("0 / 0");
+    expect(tooltipStockPisoAlmacen({ piso: 0, almacen: 0 })).toBe("Piso: 0\nAlmacén: 0\nTotal: 0");
   });
 
-  it("sin ninguna variante en común lo dice: no hay cifra, y por qué", () => {
-    const ninguna = rotacionComparada([{ a: sinCosto, b: ok(200, 400) }, { a: ok(100, 400), b: sinInventario }]);
-    const ayuda = ayudaRotacionComparada(ninguna);
-    expect(ayuda).toContain("Ninguna variante tiene datos válidos en A y en B a la vez (1 en A, 1 en B), así que no hay cifra.");
-    expect(ayuda).not.toContain("NaN");
-    expect(ayuda).not.toContain("undefined");
+  it("D: sede sin separación piso/almacén → N/D, NUNCA se inventa un 0 para el que falta", () => {
+    expect(textoStockPisoAlmacen(null)).toBe("N/D");
+    expect(tooltipStockPisoAlmacen(null)).toBe("Esta sede no separa piso de almacén: no se puede saber el split con rigor");
   });
 });

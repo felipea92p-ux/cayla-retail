@@ -1,0 +1,617 @@
+{
+ "activos_fijos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "apartados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "caja_movimientos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "caja_traslados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cajas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cambios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "campana_efecto_caja": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "catalogo_version": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "categoria_patrones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "categoria_tallas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "categoria_tejidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "categorias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "categorias_gasto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "clientas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "codigos_barras": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "codigos_correlativos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "codigos_descuento": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "colaboradores": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "colaboradores_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "colaboradores_suspendidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "colores": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_adjuntos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_item_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_item_destinos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_item_reparto_resumen": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
+ "compra_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_items_resumen": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
+ "compra_notas_credito": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compra_parte_por_tienda": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
+ "compra_reasignaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compradores_de_tienda": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compras": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "compras_resumen": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
+ "comprobantes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "comprobantes_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "comprobantes_produccion_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "comprobantes_produccion_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "comprobantes_produccion_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "comprobantes_produccion_recepciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "conciliaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "configuracion_empresa": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "configuracion_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "conteo_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "conteos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "costo_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cotizaciones_maquila": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cuentas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cuentas_asignadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "cuentas_dinero": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "devolucion_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "devoluciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "diario_cerrado": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "dinero_revisados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "egresos_no_gasto": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "envio_extras": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "envio_traslados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "envios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "etiqueta_categorias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "etiquetas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "familias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_fijos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_fijos_descartados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "gastos_legado_2026_09": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "historial_producto_cambios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "insumo_lotes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "insumos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "lotes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "marca_proveedores": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "marcas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "medios_de_cobro": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "modulos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "movimientos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "movimientos_dinero": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "movimientos_insumo": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "parametros_finanzas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "parametros_tributarios": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "patrones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "pedidos_no_atendidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "periodo_cierres": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "periodos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "planilla_por_sede": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
+ "prendas_danadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "prendas_por_regularizar": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "presupuestos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_etapas_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "produccion_lineas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "producto_fotos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "productos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "proformas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "proveedor_creditos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "proveedores": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "proveedores_produccion": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "rol_modulos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "roles": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "roles_historial": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "saldos_iniciales": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_correlativos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "series_comprobantes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "stock": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "sububicaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "tallas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "tejidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "terminales": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "tipos_activo": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "transferencia_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "transferencia_recepciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "transferencias": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicacion_datos_fiscales": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicacion_metas_dia": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ubicaciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "v_insumo_saldos": {
+  "forzado": false,
+  "relkind": "v",
+  "rls": false
+ },
+ "variante_etiquetas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "variantes": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "venta_anulacion_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "venta_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "venta_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "ventas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ }
+}

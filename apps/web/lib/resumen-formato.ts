@@ -1,5 +1,7 @@
 import type { Cobertura } from "./resumen-reglas";
 import { AYUDA_ROTACION, MOTIVOS_SIN_ROTACION, TEXTO_MOTIVO_ROTACION, type RotacionComparada, type UniversoRotacion } from "./rotacion";
+import type { Calidad, MotivoCalidad } from "./inventario-calidad";
+import type { StockActualPisoAlmacen } from "./resumen-comparacion";
 
 // Cómo se escriben los números del Resumen (2026-09-19, ADR-0121). Puro. Una
 // sola casa para que la tabla, las tarjetas, los gráficos y el detalle digan
@@ -132,6 +134,76 @@ function detalleExcluidas(u: UniversoRotacion): string {
   return MOTIVOS_SIN_ROTACION.filter((m) => u.excluidasPorMotivo[m] > 0)
     .map((m) => `${TEXTO_MOTIVO_ROTACION[m]} (${u.excluidasPorMotivo[m]})`)
     .join(" · ");
+}
+
+// ---------------------------------------------------------------------------
+// Comportamiento comercial: piso vs. almacén (Análisis, 2026-09-24)
+// ---------------------------------------------------------------------------
+
+/** «6 de 7 días en piso»: la exposición real detrás de un ritmo observado — para no leer un ritmo alto de
+ *  un producto casi sin exponer como si fuera representativo de todo el período. */
+export function textoExposicionDias(diasConStock: number, diasPeriodo: number): string {
+  return `${Math.round(diasConStock)} de ${pluralizar(Math.round(diasPeriodo), "día", "días")} en piso`;
+}
+
+/** El % de sell-through DE EXPOSICIÓN, o «N/D» cuando ninguna cohorte maduró todavía (nunca se aproxima con 0%). */
+export function formatoSellThroughExposicion(pct: number | null): string {
+  return pct === null ? "N/D" : `${Math.round(pct)}%`;
+}
+
+/** «3 nuevas pendientes»: la nota secundaria bajo el % cuando hay cohortes sin madurar; null si no hay
+ *  ninguna. Redondeada SIEMPRE: la aproximación por cantidad de `armarCohortes` (`inventario-exposicion.ts`)
+ *  puede dividir una cohorte en fracciones («4.2857 prendas») cuando reparte proporcionalmente entre una
+ *  porción que sigue en piso y otra que pausa — es una cifra interna válida para el cálculo, nunca algo que
+ *  se le muestre a una persona (decisión de Felipe, 2026-09-24, sección 7: "no fingir precisión física"). */
+export function textoPendienteMadurez(unidades: number): string | null {
+  const n = Math.round(unidades);
+  return n > 0 ? `${n} ${n === 1 ? "nueva pendiente" : "nuevas pendientes"}` : null;
+}
+
+/** «Vendió hoy» / «1 día» / «N días expuesto» / «Nunca vendió»: tiempo de EXPOSICIÓN en piso sin vender —
+ *  nunca días de calendario (confundirlos es exactamente el error que este texto evita: una variante puede
+ *  llevar 30 días de calendario sin venta pero solo 2 expuesta en piso, con el resto en almacén). Sin
+ *  exposición reconstruible, «N/D»: nunca se inventa una antigüedad. */
+export function textoSinVenta(e: { ultimaVentaEn: string | null; pisoExpuestoDesdeUltimaVentaDias: number | null }): string {
+  if (e.pisoExpuestoDesdeUltimaVentaDias === null) return "N/D";
+  const dias = Math.round(e.pisoExpuestoDesdeUltimaVentaDias);
+  if (e.ultimaVentaEn === null) return dias <= 0 ? "Nunca vendió" : `Nunca vendió (${pluralizar(dias, "día", "días")} expuesto)`;
+  if (dias < 1) return "Vendió hoy";
+  if (dias === 1) return "1 día";
+  return `${dias} días expuesto`;
+}
+
+/** «5 / 60»: el stock de HOY, piso/almacén (2026-09-24) — contexto para leer Rotación piso/total y
+ *  sobrestock, nunca un reemplazo de Existencias. «N/D» cuando la sede no separa piso/almacén: no se
+ *  conoce el split con rigor y nunca se disfraza de «0 / total» ni de «total / 0». */
+export function textoStockPisoAlmacen(v: StockActualPisoAlmacen): string {
+  return v === null ? "N/D" : `${v.piso} / ${v.almacen}`;
+}
+
+/** El tooltip de la celda: el desglose con el total, o por qué es N/D. */
+export function tooltipStockPisoAlmacen(v: StockActualPisoAlmacen): string {
+  if (v === null) return "Esta sede no separa piso de almacén: no se puede saber el split con rigor";
+  return `Piso: ${v.piso}\nAlmacén: ${v.almacen}\nTotal: ${v.piso + v.almacen}`;
+}
+
+/** El texto de CADA motivo del contrato de calidad (`inventario-calidad.ts`) — UNA sola casa, para que
+ *  ningún componente invente su propia redacción de "por qué es N/D" (sección 5 del pedido: "no quiero
+ *  lógica de calidad dispersa entre componentes"). */
+export const TEXTO_MOTIVO_CALIDAD: Record<MotivoCalidad, string> = {
+  TRAZABILIDAD_INSUFICIENTE: "aproximación por cantidad, no por unidad física: los traslados internos piso↔almacén no llevan lote",
+  EXPOSICION_INSUFICIENTE: "la exposición en piso es corta frente al período, o la cohorte todavía no maduró",
+  SIN_INVENTARIO: "no hubo inventario promedio en el período",
+  HISTORIAL_INCOMPLETO: "el historial de movimientos no explica el stock de hoy",
+  SIN_BASE_COMPARABLE: "falta una de las dos mitades para comparar",
+  SIN_COSTO_VERIFICABLE: "hay ventas o stock sin costo verificable",
+};
+
+/** El tooltip de cualquier celda que declare su calidad: «Estimado: …» o «N/D: …», o nada si es exacta —
+ *  una celda exacta no necesita explicarse. */
+export function textoCalidad(c: Calidad): string | undefined {
+  if (c.estado === "exacto") return undefined;
+  return `${c.estado === "estimado" ? "Estimado" : "N/D"}: ${TEXTO_MOTIVO_CALIDAD[c.motivo]}`;
 }
 
 /** El tooltip de la tarjeta de Rotación de Comparar: la fórmula y, si hay variantes fuera, con qué universo se calculó. */

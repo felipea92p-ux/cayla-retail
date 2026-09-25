@@ -22,7 +22,7 @@ const CATEGORIAS = [
 ];
 const cat = c => CATEGORIAS.find(x=>x.c===c);
 
-// Cuentas y dinero (§7 del plan). Yape y Plin NO son cuentas: son canales que caen en una cuenta de banco (ADR-0109).
+// Cuentas y dinero (§7 del plan). Yape y Plin NO son cuentas: son canales que caen en una cuenta de banco (ADR-0198).
 const CUENTAS = [
   {id:'bcp',  n:'BCP · Cta. corriente',        tipo:'banco',   cta:'104', saldo:38420, conciliado:'2026-09-19', banco:38420,
    recibe:'Yape de TRU y AQP · transferencias'},
@@ -145,7 +145,7 @@ const FLUJO_SEMANAS = [
   {s:'2 – 8 nov',      entra:22000, sale:14600, que:'Proveedores de temporada'},
 ];
 
-// Balance al 31-ago (cerrado). Capital es una ENTRADA, nunca el residual (ADR-0109).
+// Balance al 31-ago (cerrado). Capital es una ENTRADA, nunca el residual (ADR-0198).
 const BALANCE = {
   activo: [['101','Caja (cajones y fondo fijo)',5420],['104','Bancos',47900],['105','Tarjeta por abonar',2310],
            ['201','Mercaderías',186400],['211','Productos terminados del Taller',12600],['24','Insumos del Taller (tela, avíos)',8900],

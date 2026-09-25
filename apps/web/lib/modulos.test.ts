@@ -1,10 +1,10 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
-  ACCIONES_NUEVO,
   ARBOL,
   PERMISOS,
   TIPOS_UBICACION,
+  esGrupoMenu,
   menuPara,
   permisosDe,
   type Nodo,
@@ -68,8 +68,11 @@ describe("el catálogo de la web es el de la base", () => {
     }
   });
 
-  it("hoy ningún módulo es «siempre solo del líder» ni «solo líder por ahora» (Felipe, 2026-09-22: 20260923130000 y 20260923131000)", () => {
-    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual([]);
+  it("«solo líder por ahora»: Configuración, Impuestos y Cierre de mes (ADR-0195); ninguno es «siempre solo del líder»", () => {
+    // 20260923130000 y 20260923131000 abrieron todos los de antes (Felipe, 2026-09-22). Configuración nace así porque sus
+    // funciones exigen fn_es_lider() (20260924210000); Impuestos y Cierre de mes son de CAYLA entera (20260925100000).
+    // Cuando se abran, salen de aquí.
+    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual(["configuracion", "impuestos", "cierre_mes"]);
   });
 
   const sembrados = (clave: string) => {
@@ -109,9 +112,6 @@ describe("cada pantalla y cada acción del menú pertenece a un módulo", () => 
     }
   });
 
-  it("toda acción de «+ Nuevo» declara su módulo", () => {
-    for (const a of ACCIONES_NUEVO) expect(CLAVES_MODULO, a.id).toContain(a.modulo);
-  });
 });
 
 /* ---------- 2. El menú no cambia ---------- */
@@ -142,16 +142,34 @@ function ahora(c: Cuenta, ubicacionTipo: TipoUbicacion, modulos = modulosDeHoy(c
 }
 const foto = (p: PerfilDelMenu) => {
   const m = menuPara(p);
-  return { riel: m.riel, movil: m.movil, nuevo: m.nuevo, grupos: RUTAS.map((r) => m.grupoDe(r)) };
+  return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
+
+// ÚNICA diferencia buscada con el menú de antes (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su
+// propio módulo y nació sin rol, así que el integrante sembrado ya no lo ve hasta que el líder se lo encienda. Con
+// «apartados» sumado, su menú vuelve a ser idéntico al de antes; sin él, lo único que falta es esa pantalla.
+const CON_APARTADOS = (c: Cuenta) =>
+  c.rol === "lider" ? modulosDeHoy(c.rol) : [...modulosDeHoy(c.rol), { clave: "apartados" as const, completo: false }];
+const hrefs = (p: PerfilDelMenu) =>
+  JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
 
 describe("con los módulos de hoy, el menú de las personas es idéntico al de antes (líder e integrante, en cada ubicación)", () => {
   for (const c of CUENTAS_DE_HOY) {
     for (const u of TIPOS_UBICACION) {
       it(`${c.nombre} en ${u}`, () => {
-        expect(foto(ahora(c, u))).toEqual(foto(antes(c, u)));
+        expect(foto(ahora(c, u, CON_APARTADOS(c)))).toEqual(foto(antes(c, u)));
       });
     }
+  }
+
+  for (const u of TIPOS_UBICACION) {
+    it(`integrante en ${u}: sin el módulo «apartados» (ADR-0196) solo le falta Apartados`, () => {
+      const c = CUENTAS_DE_HOY[1]!;
+      const deAntes = hrefs(antes(c, u));
+      const deAhora = hrefs(ahora(c, u));
+      expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(deAntes.includes("/vender/apartados") ? ["/vender/apartados"] : []);
+      expect(deAhora.filter((h) => !deAntes.includes(h))).toEqual([]);
+    });
   }
 });
 
@@ -237,13 +255,23 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
   it("«Almacén» ve Inicio e Inventario (sin Análisis), y nada de Ventas ni Catálogo", () => {
     const riel = menuPara(perfil).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Inicio", "Inventario"]);
-    expect(menuPara(perfil).nuevo.map((a) => a.etiqueta)).toEqual(["Recibir mercadería", "Mover mercadería"]);
   });
 
   it("una terminal de ventas a la que se le enciende Existencias ve Inventario (la terminal es una cuenta más con su rol)", () => {
     const tv = [...MODULOS_DE_HOY.ventas, { clave: "existencias" as const, completo: true }];
     const riel = menuPara(ahora({ nombre: "tv", rol: "integrante" }, "tienda", tv, true)).riel;
-    expect(riel.map((f) => f.etiqueta)).toEqual(["Ventas", "Inventario"]);
+    // Es la caja del mostrador: lo de Ventas sale suelto (2026-09-25); Inventario sigue siendo un grupo.
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario"]);
+  });
+
+  // La caja de TRU tal como la mostró Felipe (2026-09-25): ventas + catálogo + inventario. Lo de Ventas va primero y
+  // SUELTO; debajo, Inventario y Catálogo como grupos, en el orden de #402. Ocho filas: entra entera en el lateral de una laptop.
+  it("una caja que también ve Inventario y Catálogo: lo de Ventas suelto arriba, y debajo Inventario y Catálogo como grupos (Felipe, 2026-09-25)", () => {
+    const extra = ["productos", "atributos", "existencias", "movimientos", "traslados", "conteos", "recibir"] as const;
+    const caja = [...MODULOS_DE_HOY.ventas, ...extra.map((clave) => ({ clave, completo: true }))];
+    const riel = menuPara(ahora({ nombre: "caja", rol: "integrante" }, "tienda", caja, true)).riel;
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Inventario", "Catálogo"]);
+    expect(riel.filter(esGrupoMenu).map((f) => f.etiqueta)).toEqual(["Inventario", "Catálogo"]);
   });
 
   it("sin módulos, una persona solo tiene Inicio", () => {

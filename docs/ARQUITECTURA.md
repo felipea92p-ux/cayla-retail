@@ -162,6 +162,13 @@ flowchart TB
   (`pendiente_aprobacion`/`activo`) gatea `fn_es_lider`, `fn_ubicacion_actual_persona`, `fn_tiene_acceso_retail`, `fn_mi_perfil`,
   `fn_persona_actual_resumen` (el gate de login) y `fn_stock_por_sede` — las seis funciones que leen
   `colaboradores`, no solo las tres obvias. `fn_aprobar_alta_colaborador` (solo líder) es el segundo paso.
+  **Fotos de perfil (20260925210000): son de Dynamic y retail no las copia.** `public.personas.foto_url` guarda la RUTA en
+  el bucket público `fotos-perfil` (`perfil/<persona>/<archivo>.jpg`), nunca una URL; `lib/foto-perfil.ts` (`urlFotoPerfil`,
+  pura) arma la URL. `retail.fn_fotos_personas(uuid[])` devuelve la ruta de cada colaborador pedido (solo colaboradores de
+  retail; sin foto = sin fila) y `lib/useFotoPersona.ts` la pide por lotes y la recuerda por sesión. Toda cara de persona se
+  pinta con `components/ui/AvatarPersona.tsx` (foto o iniciales, nunca imagen rota): pie del lateral, «Mi perfil», combo
+  «Responsable» y las tablas de Colaboradores. «Mi perfil» sube la foto a `fotos-perfil` y guarda la RUTA con
+  `actualizar_mi_foto_perfil` → `public.fn_actualizar_foto_perfil` (rechaza lo que no empiece por `perfil/`).
 
 **Catálogo / inventario**
 - `/inventario` → `lib/inteligencia.ts` (`getCatalogoInteligente`, reusa
@@ -680,11 +687,49 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `DetalleVentaModal` (`leerVentaDetalle`, en el navegador). No usa `fn_ventas_del_dia`
   (fija a hoy y sin `ventas.estado`). ADR-0147.
 
-- **Apartados** (2026-09-23, ADR-0166): `/vender/apartados` → `lib/separaciones.ts` (`fn_vencer_separaciones`, `buscar_separaciones`,
+- **Apartados** (2026-09-23, ADR-0166; módulo propio `apartados` desde ADR-0196): `/vender/apartados` → `lib/separaciones.ts` (`fn_vencer_separaciones`, `buscar_separaciones`,
   `resumen_separaciones`) + `lib/separaciones-reglas.ts` → `components/apartados/*` (Apartar/Entregar/Todos) → RPC `separar_prendas`,
   `entregar_separacion`, `extender_separacion`, `liberar_separacion`, `registrar_devolucion_separacion`.
   Buscador de Apartar (ADR-0168): `resultadosDelBuscador` + `fn_stock_por_sede` (dónde más hay, secundario); `FotoPrenda`
   sale optimizada solo si `fotoOptimizable` (`lib/foto-prenda-reglas.ts`) y `next.config.ts` → `images.remotePatterns` lo permiten.
+
+- **Configuración** (2026-09-24, ADR-0195 F1; módulo `configuracion`, solo líder por ahora; se entra desde el perfil, como
+  Colaboradores): `/configuracion` → `lib/configuracion.ts` (`fn_configuracion_tiendas`) + `lib/configuracion-reglas.ts` (lógica
+  pura) → `ConfiguracionTiendas.tsx` → RPC `guardar_metas_tienda`, `guardar_efecto_campana` (firmadas con el responsable).
+  La meta del día y el fondo de caja los decide `fn_parametros_caja` (lo normal de la tienda + las campañas de estilo
+  «campaña»; si se cruzan, gana la mayor) y los leen Caja (`CajaAbiertaPanel`, `CerrarCajaModalV2`: «Deja S/ X», confirmación
+  que no bloquea) e Inicio (`lib/inicio.ts`). El cierre anota `cajas.fondo_requerido` con un disparador, sin tocar `cerrar_caja`.
+  Desde el ajuste al spike (2026-09-24) es UNA pantalla con pestañas por URL (`?tab=tiendas|fijos`): «Tiendas y caja» guarda
+  cada casilla al salir de ella, y «Gastos fijos» (`TablaGastosFijos` en `GastosFijosYActivos.tsx`, `fn_gastos_fijos_mes` +
+  `guardar_gasto_fijo` / `archivar_gasto_fijo`) es donde se editan los fijos. Caja suma «Al cerrar» con `getEsperadoCaja`
+  (`lib/caja.ts` → `fn_esperado_caja`, solo a quien puede cerrar). Las pantallas de Finanzas se arman con
+  `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`.
+
+- **Finanzas F3–F10** (2026-09-25, ADR-0195, PR #396; detalle por fase en `docs/finanzas/fases/`). Todas las pantallas se
+  arman con `components/finanzas/kit.tsx` + `app/estilos/finanzas.css`; permisos en la base con `fn_es_lider()` o
+  `fn_capacidad_por_modulos(array['<clave>'])` y la tienda de la cuenta.
+  - `/finanzas/dinero` (Cuentas, `efectivo`, `por-pagar`, `conciliacion`; cabecera `CabeceraDinero`) → `lib/cuentas-dinero.ts`,
+    `lib/por-pagar-consolidado.ts` → `fn_cuentas_dinero_saldos`, `registrar_movimiento_dinero`, `anular_movimiento_dinero`,
+    `fn_por_pagar_consolidado`. Tablas `cuentas_dinero`, `medios_de_cobro`, `movimientos_dinero`, `conciliaciones`,
+    `dinero_revisados`. La cuenta sellada (F3b): `cuenta_dinero_id` en los pagos de venta, separación, cambio,
+    devolución, traslado de caja y compra, llenada por disparador (cobros) o elegida con la cuenta propuesta (pagos).
+  - Configuración ▸ Cuentas y cobros ▸ «Editar» (`components/finanzas/EditarCuentaModal.tsx`, `lib/cuenta-editar-reglas.ts`;
+    migración `20260925210100`) → `fn_cuenta_dinero_detalle` (qué se puede cambiar y quién la usa, leído de las llaves
+    foráneas con `fn_usos_cuenta_dinero`), `editar_cuenta_dinero`, `eliminar_cuenta_dinero` (borra solo una cuenta que
+    nada apunta) y `archivar_cuenta_dinero`. Solo el líder.
+  - `/finanzas/reportes` (Estado de resultados; `presupuesto`, `campanas`, `escenarios`, `flujo`, `balance`; cabecera
+    `CabeceraReportes`) → `lib/resultados.ts`, `lib/presupuesto.ts`, `lib/flujo-caja.ts`, `lib/balance.ts` →
+    `fn_asientos` (diario derivado, ADR-0198/0120), `fn_estado_resultados`, `fn_campanas_reporte`, `fn_presupuesto_vs_real`,
+    `fn_flujo_caja_real`, `fn_flujo_caja_proyeccion`, `fn_balance_general`, `fn_conciliacion_contable`. Tablas
+    `presupuestos`, `saldos_iniciales`.
+  - `/finanzas/impuestos` → `lib/impuestos.ts` → lecturas de IGV y registros (`parametros_tributarios` con vigencia y
+    correcciones; se lee con `fn_tasa_igv`/`fn_parametro_tributario`, nunca directo).
+  - `/finanzas/cierre` → `lib/cierre.ts` → cerrar/reabrir período, `fn_diario` (lo congelado si el mes está cerrado).
+    Tablas `periodos`, `periodo_cierres`, `diario_cerrado` (con hash); disparadores de bloqueo por fecha en gastos, compras
+    y sus pagos y notas, reembolsos, activos, movimientos de dinero, ventas de prueba y costo de lo vendido.
+  - `/finanzas/resumen` → el tablero que junta lo anterior (F10).
+  - `/configuracion` gana Empresa (solo lectura), Cuentas y cobros, Caja y avisos (`parametros_finanzas`), Presupuesto e
+    Impuestos; Tiendas y caja suma la hora de cierre (`ubicaciones.hora_cierre`), que Caja usa para «al ritmo de hoy».
 
 ### 3.x Rutas de API (`app/api/**/route.ts`)
 
@@ -786,6 +831,10 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `abrir_caja` / `cerrar_caja` | Apertura comparada con el fondo del último cierre (motivo si no coincide) / cierre con un traslado opcional a `caja_traslados` y `cajas.monto_fondo` (ADR-0186) |
 | `fn_esperado_caja` / `revisar_apertura_caja` | Esperado del cuadre, mismo cálculo que `cerrar_caja` (`fn_calcular_esperado_caja`) / el líder da por revisada una apertura con diferencia (ADR-0186) |
 | `fn_resumen_caja` / `fn_sello_caja` | Tablero de Caja en una fila (montos de `fn_calcular_esperado_caja` + reparto por método y serie por hora de Lima; esperado solo con `fn_puede_gestionar_caja`) / sello «ventas:anuladas:movimientos:devoluciones:cambios» que sondea la Caja en vivo (ADR-0191) |
+| `registrar_activo` / `anular_activo` / `dar_de_baja_activo` / `fn_activos_lista` / `fn_depreciacion_mes` / `fn_tipos_activo` / `guardar_gasto_fijo` / `archivar_gasto_fijo` / `fn_gastos_fijos_mes` / `fn_gastos_fijos_sugeridos` (2026-09-24, ADR-0195 F2b; **sin pegar en producción**) | Finanzas ▸ Gastos, pestañas Activos fijos y Fijos del mes. `activos_fijos` (costo sin IGV, línea recta desde el mes siguiente, baja o anulación; con comprobante, `compras.naturaleza = 'activo'`) y `gastos_fijos` (día y monto de siempre; `gastos.gasto_fijo_id`, uno por mes). Gasto y activo pagan por `fn_comprobante_y_pago`; un egreso de caja respalda una sola cosa (`fn_egreso_ya_usado`). `registrar_gasto` gana `p_gasto_fijo_id` |
+| `registrar_gasto` / `anular_gasto` / `marcar_egreso_no_gasto` / `revertir_egreso_no_gasto` / `registrar_proveedor_de_gasto` + lecturas `fn_gastos_panel` / `fn_gastos_lista` / `fn_egresos_sin_clasificar` / `fn_egresos_no_gasto_lista` / `fn_categorias_gasto` / `fn_gastos_ubicaciones` (2026-09-24, ADR-0195 F2a; **sin pegar en producción**) | Finanzas ▸ Gastos (`/finanzas/gastos`). `gastos` es la única fuente de los gastos: sin comprobante dice cómo se pagó (efectivo ⇔ su egreso de caja); con comprobante cuelga de `compras` (`naturaleza = 'gasto'`, misma cabecera que la mercadería: un solo IGV, un solo candado contra la factura doble, y la deuda en Por pagar). `egresos_no_gasto` marca depósitos, retiros y ajustes. Líder: todas y «la empresa»; con el módulo `gastos`: su tienda. `compra_parte_por_tienda` trata la factura de un gasto como entera de su tienda; `listar_compras(p_naturaleza)` separa la lista de mercadería de Por pagar |
+| `fn_parametros_caja(sede, fecha)` / `fn_meta_mes(sede, mes)` / `fn_configuracion_tiendas()` / `guardar_metas_tienda` / `guardar_efecto_campana` (2026-09-24, ADR-0195 F1; **sin pegar en producción**) | La meta del día (con IGV) y el fondo de caja que rigen: meta del día de la semana (`ubicacion_metas_dia`, respaldo `ubicaciones.meta_venta_diaria`) y `ubicaciones.fondo_caja`, más las campañas (`campana_efecto_caja`); si dos campañas rigen el mismo día gana la mayor. La meta del mes es la suma de las del día. Las dos de guardar son solo del líder, firman con el responsable y dejan el antes/después en `configuracion_historial`. Un disparador en `cajas` anota `fondo_requerido` al cerrar |
+| `fn_actividad` / `fn_actividad_personas` (2026-09-25, ADR-0207; **en producción desde el 2026-09-25**) | El historial de cada módulo: lee `retail.actividad` (solo agregar, la llenan disparadores en `ventas`, `cajas`, `caja_movimientos`, `caja_traslados` y `cambios`; cada evento lo arma una `fn_actividad_<evento>`). Líder: todas las sedes o la pedida; con el módulo `actividad`: solo su sede (también un traslado que llega a ella); terminal: nunca. Cursor por (`ocurrio_at`, `id`). La leen el botón «Actividad» de la cabecera y `/actividad` |
 | `fn_totales_historial_ventas` | Totales del Historial de ventas con los filtros de la pantalla, sin tope de 1.000 filas (ADR-0191) |
 | `registrar_gasto`, `registrar_deposito`, `fijar_stock_minimo`, `recalcular_stock` | Operación de caja y stock; `recalcular_stock` reconstruye `stock` completo desde `movimientos` como red de seguridad |
 | `registrar_asiento` | Único camino de escritura al libro diario; valida cuadre antes de insertar |

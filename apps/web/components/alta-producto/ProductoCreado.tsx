@@ -12,10 +12,9 @@ import { createClient } from "@/lib/supabase/client";
 // Tres salidas, y solo una es la principal (fotos): sin foto, la grilla de
 // Productos muestra apenas el tono del color.
 //
-// LAS FOTOS NO SE SUBEN AQUÍ a propósito: el archivo va al almacén apenas se
-// elige y, si se cerrara la pantalla sin guardar, quedaría huérfano. La
-// galería de la edición ya asigna cada foto a su color; esta pantalla solo
-// lleva ahí (`/productos/{id}/editar#fotos`) y recuerda qué colores faltan.
+// Las fotos elegidas en el alta ya se subieron al llegar aquí (NuevoProductoForm, después de crear el producto). Esta
+// pantalla dice cuántas quedaron, cuál no subió y qué colores siguen sin foto; para agregar o cambiar, lleva a la
+// galería de la edición (`/productos/{id}/editar#fotos`), que ya asigna cada foto a su color.
 
 export type ResumenCreado = {
   id: string;
@@ -23,10 +22,14 @@ export type ResumenCreado = {
   categoria: string;
   variantes: number;
   colores: { codigo: string; nombre: string; hex: string | null }[];
+  /** Resultado de subir las fotos elegidas en el alta. */
+  fotos: { subidas: number; fallidas: string[]; coloresConFoto: string[] };
 };
 
 export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCreado; onOtroParecido: () => void }) {
   const titulo = useRef<HTMLHeadingElement>(null);
+  const faltanColores = creado.colores.filter((c) => !creado.fotos.coloresConFoto.includes(c.codigo));
+  const completas = creado.fotos.fallidas.length === 0 && creado.fotos.subidas > 0 && faltanColores.length === 0;
   const [codigo, setCodigo] = useState<string | null>(null);
 
   // Lleva el foco al mensaje: quien usa lector de pantalla o teclado se entera de que se guardó.
@@ -74,19 +77,28 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {/* La salida principal: las fotos */}
+        {/* La salida principal: las fotos (lo que falte de ellas) */}
         <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">
           <div className="space-y-2">
-            <p className="label-cayla text-[11px] text-tinta/70">Falta</p>
-            <h3 className="text-base font-medium text-tinta">Las fotos</h3>
+            <p className="label-cayla text-[11px] text-tinta/70">{completas ? "Listo" : "Falta"}</p>
+            <h3 className="text-base font-medium text-tinta">
+              {creado.fotos.subidas > 0 ? `${creado.fotos.subidas} foto${creado.fotos.subidas === 1 ? "" : "s"} guardada${creado.fotos.subidas === 1 ? "" : "s"}` : "Las fotos"}
+            </h3>
+            {creado.fotos.fallidas.length > 0 && (
+              <p role="alert" className="text-sm text-rojo-profundo">
+                {creado.fotos.fallidas.length === 1 ? "Una foto no se guardó" : `${creado.fotos.fallidas.length} fotos no se guardaron`}: {creado.fotos.fallidas.join(" · ")}. El producto sí se creó; agrégala desde el producto.
+              </p>
+            )}
             <p className="text-sm text-tinta/70">
-              {creado.colores.length > 0
-                ? "Sube una por color y asígnala a su color. Mientras no haya foto, la grilla de Productos muestra solo el tono."
-                : "Sube las fotos del producto. Mientras no haya, la grilla de Productos muestra solo un recuadro."}
+              {completas
+                ? "Cada color tiene su foto. Puedes cambiarlas o agregar más desde el producto."
+                : faltanColores.length > 0
+                  ? "Estos colores todavía no tienen foto. Mientras no haya, la grilla de Productos muestra solo el tono."
+                  : "Sube las fotos del producto. Mientras no haya, la grilla de Productos muestra solo un recuadro."}
             </p>
-            {creado.colores.length > 0 && (
+            {faltanColores.length > 0 && (
               <ul className="flex flex-wrap gap-1.5 pt-1">
-                {creado.colores.map((c) => (
+                {faltanColores.map((c) => (
                   <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
                     {c.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/20" style={{ background: c.hex }} />}
                     {c.nombre}
@@ -95,11 +107,8 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
               </ul>
             )}
           </div>
-          <Link
-            href={`/productos/${creado.id}/editar#fotos`}
-            className="label-cayla rounded-md bg-tinta px-3 py-2.5 text-center text-[11px] text-crema transition-colors hover:bg-rojo"
-          >
-            Agregar fotos
+          <Link href={`/productos/${creado.id}/editar#fotos`} className={`btn-cayla ${completas ? "btn-secundario" : "btn-primario"}`}>
+            {completas ? "Ver las fotos" : "Agregar fotos"}
           </Link>
         </div>
 

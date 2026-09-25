@@ -66,3 +66,17 @@ Si responde `is not unique`, esa llamada está rota hoy.
 **La regla que sale de esto:** toda migración que le agregue un argumento a una función
 existente lleva su `drop function` de la firma vieja, con los tipos explícitos. Ver
 ADR-0026.
+
+**El candado en CI (2026-09-25): `pnpm pruebas:una-sola-firma`**, paso del job
+`pruebas-postgres`. Le pregunta a la base real —`pg_proc`, esquema `retail`, con todas las
+migraciones y el seed aplicados— y falla nombrando cada función con más de una firma, con
+sus firmas a la vista (`scripts/pruebas/una_sola_firma.mjs`). Es contra el motor y no contra
+el texto de las migraciones a propósito: una migración que reescribe una función con
+`DO` + `EXECUTE` (pasó cinco veces en cinco días) es invisible para un análisis de texto, que
+obligaba a mantener a mano una lista de excepciones y daba rojos falsos. Solo mira `retail`:
+`public` es de Dynamic y sus sobrecargas no las causa este repo. Lleva un caso de control que
+crea una sobrecarga a propósito (con `ROLLBACK`) para que nadie afloje la consulta sin que se
+note. Dos avisos: ese job es piloto (`continue-on-error`), así que hoy avisa pero no bloquea
+el merge; y el informe `! sobrecargas vivas` de `pnpm migraciones:verificar` es solo eso, un
+informe (mezcla `retail`, `public` y `storage` y no hace fallar nada). Para correrlo en tu
+máquina: `npx supabase start` y `pnpm pruebas:una-sola-firma`.

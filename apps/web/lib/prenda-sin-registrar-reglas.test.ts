@@ -1,11 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { faltaEnPrendaSinRegistrar, opcionesDeColor, sugerirDescripcion, tallasDeCategoria, usoDeColores } from "./prenda-sin-registrar-reglas";
+import { faltaEnPrendaSinRegistrar, opcionesDeColor, pasoSiguiente, sugerirDescripcion, tallasDeCategoria, usoDeColores } from "./prenda-sin-registrar-reglas";
 
 const completa = { descripcion: "Blusa lino beige", categoriaId: "c", tallaId: "t", colorCodigo: "BEI", precio: 50 };
 
 describe("faltaEnPrendaSinRegistrar", () => {
   it("completa → nada falta", () => expect(faltaEnPrendaSinRegistrar(completa)).toBeNull());
   it("descripción en blanco", () => expect(faltaEnPrendaSinRegistrar({ ...completa, descripcion: "  " })).toBe("Escribe una descripción corta"));
+  it("sinDescripcion salta la descripción y dice lo siguiente", () =>
+    expect(faltaEnPrendaSinRegistrar({ ...completa, descripcion: "", precio: 0 }, { sinDescripcion: true })).toBe("Escribe el precio que cobraste"));
+  it("sigue el orden del formulario", () => expect(faltaEnPrendaSinRegistrar({ descripcion: "" })).toBe("Elige la categoría"));
+  it("pasoSiguiente: con categoría, talla y color, sigue la descripción", () =>
+    expect(pasoSiguiente({ ...completa, descripcion: " ", precio: 0 })).toBe("descripcion"));
+  it("pasoSiguiente: completa → null", () => expect(pasoSiguiente(completa)).toBeNull());
   it("sin categoría", () => expect(faltaEnPrendaSinRegistrar({ ...completa, categoriaId: "" })).toBe("Elige la categoría"));
   it("sin talla", () => expect(faltaEnPrendaSinRegistrar({ ...completa, tallaId: "" })).toBe("Elige la talla"));
   it("sin color", () => expect(faltaEnPrendaSinRegistrar({ ...completa, colorCodigo: "" })).toBe("Elige el color"));
