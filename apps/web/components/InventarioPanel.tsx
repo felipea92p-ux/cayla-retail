@@ -326,11 +326,16 @@ export function InventarioPanel({
   }
 
   const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
-  function limpiarFiltros() {
+  /** Quita búsqueda, categoría, talla y color, pero deja el Estado puesto. Es el «Ver todas» de «Por colgar»:
+   *  que la lista vuelva a ser lo que cuenta la píldora. */
+  function quitarFiltrosMenosEstado() {
     setBusqueda("");
     setCategoria(TODAS);
     setTalla(TODAS);
     setColor(TODAS);
+  }
+  function limpiarFiltros() {
+    quitarFiltrosMenosEstado();
     setEstado(TODAS);
   }
 
@@ -563,8 +568,9 @@ export function InventarioPanel({
               ]}
             />
           )}
-          {/* Una sola fila para la píldora «Por colgar» y «Limpiar filtros»: en una tienda la fila ya está,
-              así que activar un filtro no empuja la tabla hacia abajo (ADR-0185). */}
+          {/* Una sola fila para la píldora «Por colgar», su aclaración y «Limpiar filtros»: en una tienda la
+              fila existe antes de filtrar, así que en escritorio activar «Por colgar» no empuja la tabla (la
+              aclaración entra al lado de la píldora). En celular la aclaración baja a su propia línea. */}
           {(separa || hayFiltrosActivos) && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-3 pt-1 sm:col-span-full">
               {separa && (
@@ -584,6 +590,26 @@ export function InventarioPanel({
                   </span>
                 </button>
               )}
+              {/* La aclaración de «Por colgar», solo si hay algo por colgar (sobre una lista vacía, «elige
+                  cuáles» contradice al «Nada por colgar» de abajo). Dice una de dos cosas:
+                  · si otro filtro esconde tallas, cuántas se ven de las que cuenta la píldora — la píldora
+                    mira toda la sede, y ver 3 filas bajo «22 tallas» sin saber por qué es un callejón;
+                  · si se ven todas, que no es una orden de bajar todo (riesgo que nombró el plan): hay
+                    tallas que se guardan a propósito, la lista es para decidir. */}
+              {separa && estado === POR_COLGAR && cuentaPorColgar.tallas > 0 && (
+                <p className="min-w-[16rem] flex-1 text-xs leading-snug text-taupe">
+                  {filtradas.length < cuentaPorColgar.tallas ? (
+                    <>
+                      Ves {filtradas.length} de {cuentaPorColgar.tallas}: la búsqueda u otro filtro esconde el resto.{" "}
+                      <button type="button" onClick={quitarFiltrosMenosEstado} className="btn-enlace text-xs">
+                        Ver todas
+                      </button>
+                    </>
+                  ) : (
+                    "Algunas se guardan a propósito (fin de temporada): no es una orden de bajar todo, elige cuáles van al piso."
+                  )}
+                </p>
+              )}
               {hayFiltrosActivos && (
                 <span className="ml-auto flex items-center gap-1.5">
                   <SlidersHorizontal aria-hidden className="h-3.5 w-3.5 text-tinta/40" />
@@ -595,15 +621,6 @@ export function InventarioPanel({
             </div>
           )}
         </div>
-      )}
-
-      {/* Que no se lea como una orden de bajar todo (riesgo que nombró el plan): hay tallas que se guardan
-          a propósito. La lista es para decidir, no una tarea que vaciar. */}
-      {separa && estado === POR_COLGAR && stock.length > 0 && (
-        <p className="nota-cayla mx-4 mb-4 sm:mx-5">
-          <b>Tallas que la clienta no ve:</b> hay en el almacén y en el piso no queda ninguna para vender. Algunas se guardan a
-          propósito (fin de temporada), así que no es una orden de bajar todo: elige las que van al piso y usa «Reponer».
-        </p>
       )}
 
       {separa && coberturaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{coberturaFallo}</p>}
