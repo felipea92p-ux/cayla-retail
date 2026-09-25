@@ -2,7 +2,7 @@ import { exigirModulo } from "@/lib/persona-actual";
 import { getConfiguracionTiendas, getDatosEmpresa, getParametrosFinanzas } from "@/lib/configuracion";
 import { getCategoriasGasto, getContextoGastos, getFijosMes, getProveedoresParaGasto } from "@/lib/gastos";
 import { hoyLima } from "@/lib/fechas-lima";
-import { mesDe, rangoMes } from "@/lib/gastos-reglas";
+import { esMes, mesDe, rangoMes } from "@/lib/gastos-reglas";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { PestanasFin } from "@/components/finanzas/kit";
 import { ConfiguracionTiendas } from "@/components/ConfiguracionTiendas";
@@ -13,23 +13,26 @@ import { getParametrosTributarios } from "@/lib/impuestos";
 import { ConfiguracionImpuestos } from "@/components/ConfiguracionImpuestos";
 import { ConfiguracionCuentas } from "@/components/finanzas/ConfiguracionCuentas";
 import { getMediosDeCobro, getSaldos } from "@/lib/cuentas-dinero";
+import { getPresupuestoConfig } from "@/lib/presupuesto";
+import { ConfiguracionPresupuesto } from "@/components/finanzas/ConfiguracionPresupuesto";
 
 // Configuración (ADR-0195, módulo «configuracion», solo líder): lo que se ajusta una vez y todas las pantallas leen. Como
 // en el spike (docs/maquetas/finanzas-2026-09/, `VISTAS.config`), una sola pantalla con pestañas por URL (`?tab=`). Hoy
-// trae las que ya existen —Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos
-// (F2b) e Impuestos (F8)—; Presupuesto se suma con su fase, aquí mismo, sin pestañas vacías mientras tanto.
+// trae Empresa (solo lectura), Tiendas y caja (F1), Cuentas y cobros (F3), Caja y avisos, Gastos fijos (F2b), Presupuesto
+// (capa «para decidir», `?mes=` elige el mes) e Impuestos (F8), sin pestañas vacías.
 const PESTANAS = [
   { clave: "empresa", etiqueta: "Empresa", href: "/configuracion?tab=empresa" },
   { clave: "tiendas", etiqueta: "Tiendas y caja", href: "/configuracion?tab=tiendas" },
   { clave: "cuentas", etiqueta: "Cuentas y cobros", href: "/configuracion?tab=cuentas" },
   { clave: "caja", etiqueta: "Caja y avisos", href: "/configuracion?tab=caja" },
   { clave: "fijos", etiqueta: "Gastos fijos", href: "/configuracion?tab=fijos" },
+  { clave: "presupuesto", etiqueta: "Presupuesto", href: "/configuracion?tab=presupuesto" },
   { clave: "impuestos", etiqueta: "Impuestos", href: "/configuracion?tab=impuestos" },
 ] as const;
 
-export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+export default async function ConfiguracionPage({ searchParams }: { searchParams: Promise<{ tab?: string; mes?: string }> }) {
   await exigirModulo("configuracion");
-  const { tab } = await searchParams;
+  const { tab, mes } = await searchParams;
   const pestana = PESTANAS.find((p) => p.clave === tab)?.clave ?? "tiendas";
 
   return (
@@ -45,6 +48,7 @@ export default async function ConfiguracionPage({ searchParams }: { searchParams
       {pestana === "cuentas" && <SeccionCuentas />}
       {pestana === "caja" && <ConfiguracionCajaAvisos parametros={await getParametrosFinanzas()} />}
       {pestana === "fijos" && <SeccionFijos />}
+      {pestana === "presupuesto" && <SeccionPresupuesto mes={mes} />}
       {pestana === "impuestos" && <SeccionImpuestos />}
     </div>
   );
@@ -86,6 +90,19 @@ async function SeccionFijos() {
       <p className="nota-cayla">
         Un fijo es un recordatorio: cada mes aparece en <b>Finanzas ▸ Gastos ▸ Fijos del mes</b> para registrarlo con lo que llegó de verdad. Si uno deja de pagarse, se archiva: sus gastos ya registrados se quedan.
       </p>
+    </>
+  );
+}
+
+// Presupuesto (ADR-0195, capa «para decidir»): los topes de gasto de cada unidad y rubro para el mes elegido. La meta de
+// ventas no se escribe aquí: es la suma de las metas del día (Tiendas y caja).
+async function SeccionPresupuesto({ mes }: { mes: string | undefined }) {
+  const hoy = hoyLima();
+  const { datos, falla } = await getPresupuestoConfig(esMes(mes) ? mes : mesDe(hoy));
+  return (
+    <>
+      {falla && <p className="card-cayla border-dashed px-5 py-4 text-sm text-tinta/75">{falla}</p>}
+      {datos && <ConfiguracionPresupuesto datos={datos} hoy={hoy} />}
     </>
   );
 }

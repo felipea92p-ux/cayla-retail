@@ -1069,3 +1069,83 @@
     }
   }
 }
+
+/* ---- Presupuesto ---- Reportes ▸ Presupuesto (spike `table.ppto`) y Configuración ▸ Presupuesto (`table.ppto-edit`). */
+@layer components {
+  .fin-tabla.fin-ppto,
+  .fin-tabla.fin-ppto-edit {
+    min-width: 760px;
+  }
+  .fin-tabla th.fin-ppto-avance {
+    width: 160px;
+  }
+  /* La franja de cada unidad (y la meta de ventas en Configuración): versalitas en taupe sobre arena. */
+  .fin-tabla tr.fin-grupo td {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-tabla tr.fin-grupo .fin-grupo-nota {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .fin-tabla tr.fin-grupo .fin-meta-enlace {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-tinta);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  /* La barra de avance de una fila: fina, en tinta; en rojo solo lo que se pasa (lleva además su chip). */
+  .fin-umbral-barra.fin-fina {
+    height: 8px;
+    margin: 0;
+  }
+  /* Una casilla de monto dentro de la tabla: a la derecha, del ancho de un tope. */
+  .fin-tabla input.fin-num-input {
+    display: block;
+    max-width: 110px;
+    margin-left: auto;
+    text-align: right;
+  }
+  /* El mes junto a los botones chicos de la franja: de su misma altura. */
+  .fin-herramientas select.fin-control.fin-mes-chico {
+    min-height: 32px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 13px;
+  }
+  /* Una tabla dentro de una hoja (lo propuesto): sin el ancho mínimo de las pantallas. */
+  .fin-tabla.fin-tabla-hoja {
+    min-width: 0;
+  }
+
+  @media (max-width: 860px) {
+    .fin-tabla.fin-ppto,
+    .fin-tabla.fin-ppto-edit {
+      min-width: 0;
+    }
+    .fin-tabla tbody tr.fin-grupo {
+      background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    }
+    .fin-tabla tr.fin-grupo td {
+      background: none;
+    }
+    .fin-tabla input.fin-num-input {
+      margin-left: 0;
+      max-width: none;
+    }
+    /* En fichas, las casillas no llevan el aire lateral de la tabla apretada. */
+    .fin-tabla.fin-ppto-edit td:first-child,
+    .fin-tabla.fin-ppto-edit td:last-child {
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
+}
