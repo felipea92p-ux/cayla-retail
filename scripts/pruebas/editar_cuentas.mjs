@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Prueba de «Editar y eliminar cuentas» (ADR-0195 F3, actualización 2026-09-25;
- * `20260925210000_finanzas_editar_y_eliminar_cuentas.sql`).
+ * `20260925210100_finanzas_editar_y_eliminar_cuentas.sql`).
  *
  * QUÉ CUBRE
  *   · una cuenta por la que nunca pasó nada: cambia nombre, número, tipo (con su cuenta contable) y saldo inicial, y se

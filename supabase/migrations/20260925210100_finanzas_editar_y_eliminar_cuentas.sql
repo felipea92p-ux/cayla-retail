@@ -1,4 +1,4 @@
--- 20260925210000 — Editar y eliminar las cuentas de CAYLA (ADR-0195 F3, «Actualización 2026-09-25»; Felipe 2026-09-25)
+-- 20260925210100 — Editar y eliminar las cuentas de CAYLA (ADR-0195 F3, «Actualización 2026-09-25»; Felipe 2026-09-25)
 --
 -- EL PROBLEMA PRIMERO
 --   En Configuración ▸ Cuentas y cobros una cuenta se agrega y se archiva, pero no se corrige: si el líder escribió mal

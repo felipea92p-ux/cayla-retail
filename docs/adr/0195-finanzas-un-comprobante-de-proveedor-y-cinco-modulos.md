@@ -400,7 +400,7 @@ Sobre esa base, un agente por fase construyó en su copia del repo y un orquesta
 **Contexto.** Con F3 en producción, Felipe cargó su primera cuenta (BCP) y pidió poder editar y eliminar cuentas: hasta hoy solo se
 agregaban y se archivaban, y un error de tipeo en el nombre, el tipo o el saldo inicial obligaba a archivar y crear otra.
 
-**Decisión** (migración `20260925210000`, UNA ejecución, solo funciones):
+**Decisión** (migración `20260925210100`, UNA ejecución, solo funciones):
 - **Editar** (`editar_cuenta_dinero`). Estas reglas las exige la base; la ventana solo las refleja:
   - el nombre y el número cambian siempre;
   - el cajón, la caja fuerte y el efectivo por rendir solo cambian de nombre;

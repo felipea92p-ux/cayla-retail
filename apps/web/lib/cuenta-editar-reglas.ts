@@ -2,7 +2,7 @@ import { parsearMonto, type Resultado } from "./gastos-reglas";
 import { TEXTO_MEDIO_COBRO, TIPOS_AUTOMATICOS, type MedioCobro, type TipoCuenta } from "./cuentas-dinero-reglas";
 
 // Configuración ▸ Cuentas y cobros ▸ «Editar cuenta» (ADR-0195 F3, actualización 2026-09-25;
-// 20260925210000_finanzas_editar_y_eliminar_cuentas.sql). Lógica pura: lee lo que dice la base de una cuenta
+// 20260925210100_finanzas_editar_y_eliminar_cuentas.sql). Lógica pura: lee lo que dice la base de una cuenta
 // (`fn_cuenta_dinero_detalle`), cuenta en palabras quién la usa y arma lo que se manda a `editar_cuenta_dinero`. QUÉ se
 // puede cambiar lo decide la base (y lo vuelve a exigir al guardar); aquí solo se refleja.
 
