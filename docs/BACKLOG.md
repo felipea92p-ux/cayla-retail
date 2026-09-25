@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Buscador y paginado: la regla global de combos (2026-09-25, ADR-0194) — F1 y F2 construidos y verificados en navegador
+Pedido de Felipe: todo combo con más de 8 opciones debe poder buscarse escribiendo, y con más de 50 (ya filtradas) paginar solo al bajar el scroll — y estandarizar los combos (había 4 maneras distintas de resolver "elegir uno de varios": `<select>` nativo a mano, `SelectNativo`, `Desplegable` y `ComboBuscable`, más `DesplegablePildora`/`ComboResponsable` aparte). Tras ver F1 funcionando, Felipe pidió migrar TODO de una.
+- [x] **F1 — núcleo:** `lib/combo-reglas.ts` (puro, con 9 pruebas) + `components/ui/useCombo.ts` (estado compartido); `Desplegable`/`CampoSelect` y `ComboBuscable` lo aplican. Con 8 opciones o menos, cero cambio de comportamiento.
+- [x] **F2 — el resto, en 5 lotes en paralelo:** `ComboResponsable` (69 usos — un bug real de foco encontrado y corregido al verificar: el efecto de autofoco dependía de `abierto` en vez de `posLista`, y el `<input>` todavía no existía en el DOM en ese momento) y `DesplegablePildora` (píldoras de filtro, reescrita a mano — Radix `Select` no aloja bien un buscador propio; `ItemDesplegable` retirado, 6 consumidores migrados a `opciones`) suman la regla. ~25 pantallas de `SelectNativo`/`CampoSelectNativo`/`<select>` nativo (Compras, Producción, Catálogo, Caja) migradas a `CampoSelect`/`Desplegable`. Reconciliado con dos features que llegaron en paralelo a `main` sobre los mismos archivos: `limite`/`crear`/`caja` de `ComboBuscable.tsx` (spike Nuevo producto) y «Sale de»/`cuentas` (ADR-0195, Finanzas) — ninguno de los dos se pisó.
+- [x] Verificado en navegador (páginas temporales en `app/auth/`, borradas): `FiltrosProductos.tsx` con 120 proveedores de prueba, `FiltrosCompras.tsx` con 60 y `ComboResponsable` con 12 personas — buscador, filtro sin tildes, paginado al scrollear, auto-scroll a la opción elegida al reabrir, y selección, todo funcionando. En producción real (75 proveedores, 79 marcas) ya se nota hoy sin datos de prueba. Suite completa, typecheck y lint en verde en los ~39 archivos tocados.
+- [ ] **Decisión de Felipe, no bloqueante:** dos archivos quedaron sin migrar — `DecisionFaltanteFila.tsx` (un `<optgroup>` real que `Opcion<T>` no representa) y `CambioReemplazo.tsx` (su `<select>` reenvía un `ref` que `CambiosFlujo.tsx` usa para foco-en-error; tocarlo bien requiere tocar ese archivo también). Detalle: ADR-0194.
+- Cómo verificas: en producción HOY (`retail.proveedores`/`marcas` activos: 75/79 — pasan el umbral de 50; `categorias`/`colores`: 45/35 — pasan el de 8), entra a `/productos?vista=tabla` y abre "Proveedor" o "Marca": ya se ve el campo para buscar, y al bajar el scroll de la lista se revela más. "Categoría"/"Color" muestran el buscador pero no pagina (menos de 50). "Estado"/"Stock" (2-4 opciones) siguen exactamente iguales que antes. En cualquier pantalla con el combo Responsable y 9+ personas de turno a la vez, también aparece el buscador.
+
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
@@ -66,6 +74,7 @@ Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, A
 - [ ] Datos de Felipe: cuentas bancarias y billeteras de CAYLA y a cuál entra cada medio por tienda; saldos de arranque.
 - [ ] Contador: confirmar las ~26 cuentas y la de cada categoría, régimen/UIT/umbral, formato de registros, retención de honorarios.
 - [ ] PR #170: rebasar sobre `main` en F1/F2/F5 y adaptarlo (roles ADR-0161, menú ADR-0144, decisión A); no descartarlo.
+
 ## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — base EN PRODUCCIÓN (pegada y verificada 2026-09-24); web en PR
 Pedido de Dany: las cuentas de caja y almacén de cada tienda siguen pidiendo a alguien de turno; el Admin (ADR-0178) no, solo ve «Eres admin: no necesitas autorización».
 - [x] Migración `20260924171300_admin_firma_sin_asistencia.sql`: `fn_actor_persona_id` deja firmar al Admin a su nombre sin asistencia (sin responsable o eligiéndose a sí mismo). Definición de producción comparada antes (md5 `cad473a6…`, igual a `20260923010000`).
@@ -493,6 +502,21 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
+- [x] **«Más» + avatar + lupa: construido (ADR-0196, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
+      (spike aprobado por Felipe, con dos correcciones en vivo) → `AppShell.tsx` + `components/MasMovil.tsx`
+      (nuevo). La barra queda en 5 columnas parejas — Inicio/Punto de Venta/Inventario/Caja + **Más** al final,
+      sin «＋» en ningún lado — y la cabecera suma lupa (`/buscar`) y avatar (reutiliza `setPerfilAbierto`, cero
+      componente nuevo). «Más» pinta `menu.riel` tal cual, sin recortar: mismo dato que el lateral, sin árbol
+      paralelo que desincronizarse. `typecheck`/`lint`/`build`/suite completa (126 archivos, 21 290 pruebas) en
+      verde. **Sin clics reales todavía** — pendiente Felipe, logueado, en 375px (ver «Cómo verificar» del ADR).
+      Abierto en el ADR: si las 6 acciones de «＋Nuevo» (abajo) entran a «Más» como grupo, y el hueco de
+      «Recibir mercadería» en el Taller que ya dejaba ADR-0195 (sigue sin tapar).
+- [x] **«＋Nuevo» se retira entero — ADR-0195, aceptado y construido (2026-09-25, otra sesión sobre este repo)**
+      — `AppShell.tsx` (v3.7) y `lib/menu.ts` (`COLUMNAS_MOVIL` a 4, sin el hueco del «＋»; `ACCIONES_NUEVO` y
+      `MenuNuevo` fuera). Trade-off aceptado por Felipe (documentado en el ADR): se pierde el atajo de un clic a
+      Nueva venta/Registrar factura de proveedor/Recibir mercadería/Mover mercadería/Registrar cambio/Registrar
+      devolución — quedan solo por su ruta directa. Deja un hueco real: el líder parado en el Taller pierde su
+      único link a `/recibir` (ver arriba). Verificado por esa sesión: suite completa y `tsc` en verde.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
 ## 🎯 Colaboradores en dos secciones + editor de roles rediseñado (2026-09-22, ADR-0172) — hecho, sin migraciones

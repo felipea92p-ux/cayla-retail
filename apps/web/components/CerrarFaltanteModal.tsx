@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { CampoSelectNativo } from "@/components/ui/campos";
+import { CampoSelect } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type CompraResumen, type LineaCompra, type MotivoCierre } from "@/lib/compras-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -106,21 +106,16 @@ export function CerrarFaltanteModal({
           className="space-y-5"
         >
           {tiendas.length > 1 && (
-            <CampoSelectNativo
+            <CampoSelect
               etiqueta="¿En qué tienda faltó?"
-              value={tiendaId}
-              onChange={(e) => {
-                const t = tiendas.find((x) => x.ubicacionId === e.target.value);
-                setTiendaId(e.target.value);
+              valor={tiendaId}
+              onValor={(v) => {
+                const t = tiendas.find((x) => x.ubicacionId === v);
+                setTiendaId(v);
                 setCantidad(String(t?.pendiente ?? linea.pendiente));
               }}
-            >
-              {tiendas.map((t) => (
-                <option key={t.ubicacionId} value={t.ubicacionId}>
-                  {t.nombre} · le faltan {t.pendiente}
-                </option>
-              ))}
-            </CampoSelectNativo>
+              opciones={tiendas.map((t) => ({ valor: t.ubicacionId, texto: `${t.nombre} · le faltan ${t.pendiente}` }))}
+            />
           )}
 
           <div>

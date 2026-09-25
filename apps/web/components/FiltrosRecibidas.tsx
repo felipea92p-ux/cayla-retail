@@ -1,13 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Calendar, ChevronDown, Search } from "lucide-react";
-import { Popover, Select } from "radix-ui";
+import { Popover } from "radix-ui";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
-import { ItemDesplegable, TODOS } from "@/components/ui/FiltrosPildora";
+import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useComboLista } from "@/components/ui/useCombo";
+import { TODOS } from "@/components/ui/FiltrosPildora";
+import { clave } from "@/lib/buscar-prenda-v2";
+import { comboNecesitaBuscador } from "@/lib/combo-reglas";
 import {
   PERIODOS_RECIBIDAS,
   ajustarRango,
@@ -159,7 +163,9 @@ export function FiltrosRecibidas({
   );
 }
 
-/** «Proveedor: Todos ⌄» — una lista para elegir uno (Radix Select: teclado, y tipear salta al nombre). */
+/** «Proveedor: Todos ⌄» — hand-rolled (2026-09-25, ADR-0194) y no Radix Select: con más de 8 proveedores
+ *  suma un buscador, igual que `DesplegablePildora` — no se usa ese componente tal cual porque esta pastilla
+ *  necesita su PROPIA forma (`claseDeLaPastilla`, con borde) para verse igual que su vecina «Fechas». */
 function PastillaProveedor({
   proveedores,
   proveedorId,
@@ -170,33 +176,174 @@ function PastillaProveedor({
   onElegir: (id: string) => void;
 }) {
   const [abierta, setAbierta] = useState(false);
+  const [activo, setActivo] = useState(0);
+  const [busqueda, setBusqueda] = useState("");
+  const contenedor = useRef<HTMLDivElement>(null);
+  const disparador = useRef<HTMLButtonElement>(null);
+  const buscador = useRef<HTMLInputElement>(null);
+  const lista = useRef<HTMLUListElement>(null);
+
+  const opciones = useMemo(() => [{ id: TODOS, nombre: "Todos" }, ...proveedores], [proveedores]);
+  const mostrarBuscador = comboNecesitaBuscador(opciones.length);
+  const filtradas = useMemo(() => {
+    if (!mostrarBuscador || !busqueda) return opciones;
+    const k = clave(busqueda);
+    return opciones.filter((o) => clave(o.nombre).includes(k));
+  }, [opciones, busqueda, mostrarBuscador]);
+  const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
+  const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
+
+  const posLista = usePosicionLista(contenedor, abierta, 288);
+  const listaVisible = abierta && !!posLista;
+  const valor = proveedorId ?? TODOS;
+
+  // El foco vuelve al disparador cuando la lista se cierra — en un efecto, no en el momento del clic o la
+  // tecla que la cierra (Escape, elegir una opción): así ningún manejador dentro de un `.map()` necesita
+  // tocar el ref del botón directamente.
+  const abiertaAntes = useRef(false);
+  useEffect(() => {
+    if (abiertaAntes.current && !abierta) disparador.current?.focus();
+    abiertaAntes.current = abierta;
+  }, [abierta]);
+
+  function abrir() {
+    setBusqueda("");
+    const i = Math.max(0, opciones.findIndex((o) => o.id === valor));
+    setActivo(i);
+    mostrarDesde(i);
+    setAbierta(true);
+  }
+
+  function elegir(o: { id: string; nombre: string }) {
+    onElegir(o.id === TODOS ? "" : o.id);
+    setAbierta(false);
+  }
+
+  useEffect(() => {
+    if (!listaVisible) return;
+    if (mostrarBuscador) buscador.current?.focus();
+    else lista.current?.focus();
+    const afuera = (e: MouseEvent) => {
+      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierta(false);
+    };
+    document.addEventListener("mousedown", afuera);
+    return () => document.removeEventListener("mousedown", afuera);
+  }, [listaVisible, mostrarBuscador]);
+
+  useEffect(() => {
+    if (!listaVisible) return;
+    lista.current?.querySelector<HTMLElement>(`[data-i="${activo}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [activo, listaVisible]);
+
+  function alTeclado(e: React.KeyboardEvent) {
+    if (!abierta) {
+      if (["Enter", " ", "ArrowDown", "ArrowUp"].includes(e.key)) {
+        e.preventDefault();
+        abrir();
+      }
+      return;
+    }
+    switch (e.key) {
+      case "Escape":
+        e.preventDefault();
+        e.stopPropagation();
+        setAbierta(false);
+        break;
+      case "Tab":
+        setAbierta(false);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        setActivo((i) => Math.min(mostradas.length - 1, i + 1));
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setActivo((i) => Math.max(0, i - 1));
+        break;
+      case " ":
+        if (mostrarBuscador) break;
+        e.preventDefault();
+        if (mostradas[activo]) elegir(mostradas[activo]);
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (mostradas[activo]) elegir(mostradas[activo]);
+        break;
+    }
+  }
+
   return (
-    <Select.Root value={proveedorId ?? TODOS} onValueChange={(v) => onElegir(v === TODOS ? "" : v)} onOpenChange={setAbierta}>
-      <Select.Trigger className={claseDeLaPastilla(abierta || Boolean(proveedorId))}>
-        <span className="min-w-0 truncate">
-          <Select.Value>{textoProveedor(proveedorId, proveedores)}</Select.Value>
-        </span>
+    <div className="relative" ref={contenedor}>
+      <button
+        ref={disparador}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={abierta}
+        aria-label="Proveedor"
+        aria-controls="pastilla-proveedor-lista"
+        onClick={() => (abierta ? setAbierta(false) : abrir())}
+        onKeyDown={alTeclado}
+        className={claseDeLaPastilla(abierta || Boolean(proveedorId))}
+      >
+        <span className="min-w-0 truncate">{textoProveedor(proveedorId, proveedores)}</span>
         <ChevronDown aria-hidden strokeWidth={1.6} className="h-[13px] w-[13px] shrink-0" />
-      </Select.Trigger>
-      <Select.Portal>
-        <Select.Content
-          position="popper"
-          sideOffset={6}
-          align="start"
-          collisionPadding={16}
-          className="anim-revelar z-50 max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
+      </button>
+
+      {listaVisible && (
+        <div
+          style={{ position: "fixed", ...posLista }}
+          className="anim-revelar z-50 flex max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
         >
-          <Select.Viewport className="scroll-cayla max-h-72 overflow-y-auto p-1">
-            <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-            {proveedores.map((p) => (
-              <ItemDesplegable key={p.id} value={p.id}>
-                {p.nombre}
-              </ItemDesplegable>
-            ))}
-          </Select.Viewport>
-        </Select.Content>
-      </Select.Portal>
-    </Select.Root>
+          {mostrarBuscador && (
+            <input
+              ref={buscador}
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                setActivo(0);
+                reiniciar();
+              }}
+              onKeyDown={alTeclado}
+              placeholder="Buscar…"
+              aria-label="Buscar proveedor"
+              aria-controls="pastilla-proveedor-lista"
+              autoComplete="off"
+              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            />
+          )}
+          <ul
+            id="pastilla-proveedor-lista"
+            ref={lista}
+            role="listbox"
+            aria-label="Proveedor"
+            tabIndex={mostrarBuscador ? undefined : -1}
+            onKeyDown={mostrarBuscador ? undefined : alTeclado}
+            onScroll={alHacerScroll}
+            className="scroll-cayla min-h-0 flex-1 overflow-y-auto p-1"
+          >
+            {mostradas.length === 0 ? (
+              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+            ) : (
+              mostradas.map((o, i) => (
+                <li
+                  key={o.id}
+                  data-i={i}
+                  role="option"
+                  aria-selected={o.id === valor}
+                  onMouseEnter={() => setActivo(i)}
+                  onClick={() => elegir(o)}
+                  className={`relative flex cursor-pointer select-none items-center rounded-md px-3 py-2 text-sm outline-none transition-colors ${
+                    i === activo ? "bg-rojo/8 text-tinta" : "text-tinta"
+                  } ${o.id === valor ? "font-semibold" : ""}`}
+                >
+                  {o.nombre}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 

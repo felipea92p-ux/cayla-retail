@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useComboLista } from "@/components/ui/useCombo";
+import { clave } from "@/lib/buscar-prenda-v2";
+import { comboNecesitaBuscador } from "@/lib/combo-reglas";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
@@ -453,6 +456,14 @@ export function Segmentado<T extends string>({
      Desplegable  = el control
      CampoSelect  = Campo + Desplegable
    Ningún consumidor de `CampoSelect` cambió: su API es idéntica.
+
+   Regla global de combos (2026-09-25, ADR-0194): con más de
+   `UMBRAL_BUSCAR_COMBO` (8) opciones aparece un campo para buscar (mismo
+   filtro sin tildes/mayúsculas que `ComboBuscable`); si lo filtrado pasa
+   de `TAMANO_PAGINA_COMBO` (50), la lista se completa sola al bajar el
+   scroll. Con 8 opciones o menos no cambia nada: `mostradas` es
+   literalmente `opciones`, el mismo control de siempre. La regla vive en
+   lib/combo-reglas.ts (puro, con pruebas); acá solo se usa.
    ------------------------------------------------------------------ */
 
 // Dos formas, no dos modos: es dónde vive el control, no cómo se porta.
@@ -499,10 +510,23 @@ export function Desplegable<T extends string>({
   const id = useId();
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
+  const [busqueda, setBusqueda] = useState("");
   const contenedor = useRef<HTMLDivElement>(null);
   const disparador = useRef<HTMLButtonElement>(null);
+  const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
   const tipeo = useRef({ texto: "", reloj: 0 });
+
+  // Regla global de combos (ADR-0194): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
+  // cambio para los cientos de Desplegable de 2 a 6 opciones que ya funcionaban.
+  const mostrarBuscador = comboNecesitaBuscador(opciones.length);
+  const filtradas = useMemo(() => {
+    if (!mostrarBuscador || !busqueda) return opciones;
+    const k = clave(busqueda);
+    return opciones.filter((o) => clave(o.texto).includes(k));
+  }, [opciones, busqueda, mostrarBuscador]);
+  const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
+  const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
 
   // En `campo` la lista va en `fixed` (usePosicionLista): dentro de un <Modal> una lista `absolute` queda recortada por
   // el scroll de la hoja. `derecha` (cabecera) sigue en `absolute`: allí nada la recorta y crece con su contenido.
@@ -515,7 +539,10 @@ export function Desplegable<T extends string>({
   const elegida = indiceActual >= 0 ? opciones[indiceActual] : null;
 
   function abrir() {
-    setActivo(indiceActual >= 0 ? indiceActual : 0);
+    setBusqueda("");
+    const i = Math.max(0, indiceActual);
+    setActivo(i);
+    mostrarDesde(i);
     setAbierto(true);
   }
 
@@ -526,20 +553,30 @@ export function Desplegable<T extends string>({
     if (devolverFoco) disparador.current?.focus();
   }
 
-  function elegir(i: number) {
-    onValor(opciones[i].valor);
+  function elegir(o: Opcion<T>) {
+    onValor(o.valor);
     cerrar();
   }
 
   useEffect(() => {
     if (!listaVisible) return;
-    lista.current?.focus();
+    // Con buscador, el foco va al campo de texto (para que tipear filtre ya mismo); sin buscador, a la lista
+    // (patrón de siempre: las flechas mueven `activo` con la lista enfocada).
+    if (mostrarBuscador) buscador.current?.focus();
+    else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
       if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
-  }, [listaVisible]);
+  }, [listaVisible, mostrarBuscador]);
+
+  // Al reabrir con una opción elegida más abajo (`mostrarDesde` ya la incluyó en `mostradas`), la lista arranca
+  // scrolleada arriba del todo: sin esto quedaba resaltada pero fuera de la vista.
+  useEffect(() => {
+    if (!listaVisible) return;
+    lista.current?.querySelector<HTMLElement>(`[data-i="${activo}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [activo, listaVisible]);
 
   function alTeclado(e: React.KeyboardEvent) {
     if (!abierto) {
@@ -563,11 +600,11 @@ export function Desplegable<T extends string>({
         break;
       case "ArrowDown":
         e.preventDefault();
-        setActivo((i) => (i + 1) % opciones.length);
+        setActivo((i) => Math.min(mostradas.length - 1, i + 1));
         break;
       case "ArrowUp":
         e.preventDefault();
-        setActivo((i) => (i - 1 + opciones.length) % opciones.length);
+        setActivo((i) => Math.max(0, i - 1));
         break;
       case "Home":
         e.preventDefault();
@@ -575,16 +612,22 @@ export function Desplegable<T extends string>({
         break;
       case "End":
         e.preventDefault();
-        setActivo(opciones.length - 1);
+        setActivo(mostradas.length - 1);
+        break;
+      case " ":
+        // Con buscador, el espacio es texto de búsqueda ("San Isidro"), no una elección.
+        if (mostrarBuscador) break;
+        e.preventDefault();
+        if (mostradas[activo]) elegir(mostradas[activo]);
         break;
       case "Enter":
-      case " ":
         e.preventDefault();
-        elegir(activo);
+        if (mostradas[activo]) elegir(mostradas[activo]);
         break;
       default:
-        // Tipear salta a la opción que empieza así (medio segundo de memoria).
-        if (e.key.length !== 1) return;
+        // Tipear salta a la opción que empieza así (medio segundo de memoria). Con buscador propio, tipear ya
+        // filtra por su cuenta — este atajo es solo para el desplegable corto, sin buscador.
+        if (mostrarBuscador || e.key.length !== 1) return;
         if (Date.now() - tipeo.current.reloj > 500) tipeo.current.texto = "";
         tipeo.current.reloj = Date.now();
         tipeo.current.texto += e.key.toLowerCase();
@@ -635,46 +678,75 @@ export function Desplegable<T extends string>({
       {!esPastilla && !esCaja && <Hilo activo={abierto} trabajando={trabajando} />}
 
       {listaVisible && (
-        <ul
-          id={`${id}-lista`}
-          ref={lista}
+        <div
           style={flotante ? { position: "fixed", ...posLista } : undefined}
-          role="listbox"
-          aria-labelledby={idEtiqueta}
-          aria-label={idEtiqueta ? undefined : etiquetaAccesible}
-          tabIndex={-1}
-          aria-activedescendant={`${id}-op-${activo}`}
-          onKeyDown={alTeclado}
-          className={`anim-revelar scroll-cayla z-50 overflow-y-auto rounded-lg border border-sand bg-papel py-1.5 shadow-md outline-none ${
+          className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
             flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
           }`}
         >
-          {opciones.map((o, i) => (
-            <li
-              key={o.valor}
-              id={`${id}-op-${i}`}
-              role="option"
-              aria-selected={o.valor === valor}
-              onMouseEnter={() => setActivo(i)}
-              onClick={() => elegir(i)}
-              // El escalonado corto (30ms por fila) hace que la lista se lea
-              // como que se despliega, no como que aparece entera de golpe.
-              style={{ animationDelay: `${i * 30}ms` }}
-              className={`anim-revelar relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm transition-colors ${
-                i === activo ? "bg-rojo/10 text-tinta" : "text-tinta/80"
-              }`}
-            >
-              {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
-              <span
-                aria-hidden
-                className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
-                  o.valor === valor ? "scale-y-100" : "scale-y-0"
-                }`}
-              />
-              {o.texto}
-            </li>
-          ))}
-        </ul>
+          {mostrarBuscador && (
+            <input
+              ref={buscador}
+              value={busqueda}
+              onChange={(e) => {
+                setBusqueda(e.target.value);
+                setActivo(0);
+                reiniciar();
+              }}
+              onKeyDown={alTeclado}
+              placeholder="Buscar…"
+              aria-label={etiquetaAccesible ?? "Buscar"}
+              aria-controls={`${id}-lista`}
+              aria-activedescendant={mostradas[activo] ? `${id}-op-${activo}` : undefined}
+              autoComplete="off"
+              className="w-full shrink-0 border-b border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45"
+            />
+          )}
+          <ul
+            id={`${id}-lista`}
+            ref={lista}
+            role="listbox"
+            aria-labelledby={idEtiqueta}
+            aria-label={idEtiqueta ? undefined : etiquetaAccesible}
+            tabIndex={mostrarBuscador ? undefined : -1}
+            aria-activedescendant={mostrarBuscador ? undefined : `${id}-op-${activo}`}
+            onKeyDown={mostrarBuscador ? undefined : alTeclado}
+            onScroll={alHacerScroll}
+            className="scroll-cayla min-h-0 flex-1 overflow-y-auto py-1.5 outline-none"
+          >
+            {mostradas.length === 0 ? (
+              <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
+            ) : (
+              mostradas.map((o, i) => (
+                <li
+                  key={o.valor}
+                  id={`${id}-op-${i}`}
+                  data-i={i}
+                  role="option"
+                  aria-selected={o.valor === valor}
+                  onMouseEnter={() => setActivo(i)}
+                  onClick={() => elegir(o)}
+                  // El escalonado corto (30ms por fila) hace que la lista se lea como que se despliega, no
+                  // como que aparece entera de golpe — pero con buscador la lista puede tener decenas de filas,
+                  // y esperar 30ms×i dejaría la fila 96 invisible casi 3 segundos: ahí no hay escalonado.
+                  style={mostrarBuscador ? undefined : { animationDelay: `${i * 30}ms` }}
+                  className={`relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm transition-colors ${
+                    mostrarBuscador ? "" : "anim-revelar"
+                  } ${i === activo ? "bg-rojo/10 text-tinta" : "text-tinta/80"}`}
+                >
+                  {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
+                  <span
+                    aria-hidden
+                    className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
+                      o.valor === valor ? "scale-y-100" : "scale-y-0"
+                    }`}
+                  />
+                  {o.texto}
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
       )}
     </div>
   );
