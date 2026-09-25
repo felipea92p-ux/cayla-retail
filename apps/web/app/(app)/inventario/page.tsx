@@ -105,7 +105,11 @@ export default async function InventarioPage({
         }
       />
 
+      {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
+          pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
+          «Dañado», una talla) aplicado al Taller dejaba la tabla vacía, sin control visible que lo explicara. */}
       <InventarioPanel
+        key={ubicacionActivaId}
         ubicacionId={ubicacionActivaId}
         stock={stock}
         resumen={resumen}
