@@ -1069,3 +1069,156 @@
     }
   }
 }
+
+/* ---- F9 · Cierre de mes (ADR-0195; spike `vista-cierre.js`: `.matriz`, `.unidad-c`, `.chequeos`, `.pasos-cierre`) ---- */
+@layer components {
+  /* La matriz: una tarjeta por unidad y, al final, CAYLA entera. `--n` = cuántas tarjetas (hasta 6 en una fila). */
+  .fin-matriz {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
+    gap: 10px;
+  }
+  .fin-unidad {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px;
+    text-align: left;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    background: var(--color-papel);
+    color: var(--color-tinta);
+  }
+  button.fin-unidad {
+    transition: border-color 150ms;
+  }
+  button.fin-unidad:hover {
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+  button.fin-unidad[aria-pressed="true"] {
+    border-color: var(--color-tinta);
+  }
+  .fin-unidad-n {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .fin-unidad-sub {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-taupe);
+  }
+  .fin-unidad-h {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-unidad-cons {
+    background: color-mix(in oklab, var(--color-hueso) 45%, var(--color-papel));
+  }
+
+  /* Chequeos: ✓ en verde, «!» en rojo si bloquea el cierre y en ámbar si solo avisa; a la derecha, «Resolver». */
+  .fin-chequeos {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-chequeos li {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-papel);
+  }
+  .fin-chequeos b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-chequeos p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  .fin-ok-ic {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    background: color-mix(in oklab, var(--color-verde) 16%, transparent);
+    color: var(--color-verde);
+  }
+  .fin-ok-ic[data-tono="rojo"] {
+    background: color-mix(in oklab, var(--color-rojo) 12%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  .fin-ok-ic[data-tono="ambar"] {
+    background: color-mix(in oklab, var(--color-ambar) 16%, transparent);
+    color: var(--color-ambar);
+  }
+
+  /* La historia de la unidad en el mes: quién cerró y quién reabrió, con su motivo. */
+  .fin-historia {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+  .fin-historia li + li {
+    margin-top: 2px;
+  }
+
+  /* La rutina de fin de mes, en una columna. */
+  .fin-pasos-cierre {
+    display: grid;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .fin-pasos-cierre h3 {
+    margin: 0 0 2px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 19px;
+    color: var(--color-tinta);
+  }
+  .fin-pasos-cierre p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+
+  /* Las dos columnas del spike (`.dos-col.izq`): los chequeos, un poco más anchos que la rutina. */
+  .fin-dos-col.fin-cierre-cols {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  @media (max-width: 1180px) {
+    .fin-matriz {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 860px) {
+    .fin-matriz {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .fin-dos-col.fin-cierre-cols {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-matriz {
+      grid-template-columns: 1fr;
+    }
+  }
+}
