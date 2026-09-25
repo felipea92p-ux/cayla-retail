@@ -2,8 +2,9 @@
 
 **Fecha:** 2026-09-23 · **Estado:** los 3 pasos **publicados**: Felipe fusionó el PR #351 el 2026-09-23 a las 12:16 (Lima)
 y Vercel los desplegó; la migración del paso 3 (ADR-0182) se había pegado antes ese mismo día. Los pasos 1 y 2 **no tienen
-migraciones**. Lo publicado imprime la etiqueta de 62 × 92 mm; **el formato del cartón (44 × 62 mm, sección «El cartón de
-5 × 8 cm») va en el PR siguiente.** · **Falta:** fusionar ese PR y que Felipe imprima una hoja en la Brother real y la escanee.
+migraciones**. La medida cambió después: 44 × 62 mm (el cartón), 62 × 62 derecha (2026-09-24) y **40,1 × 62 a lo ancho del
+rollo** (2026-09-25, publicada). La legibilidad en la térmica va en el PR del 2026-09-25 (sección «Legibilidad en la
+térmica»). · **Falta:** crear el papel de 62 × 40,1 mm en la Mac de la tienda, imprimir una etiqueta y escanearla.
 **Número:** 0180 porque el 0179 lo tomó en paralelo «Prendas sin registrar» (rama `untagged-products-pos`).
 
 ## El problema
@@ -21,7 +22,7 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 | # | Decisión | Por qué |
 |---|---|---|
 | 1 | **Sale al ingresar mercadería** (Recibir, Ingreso sin comprobante, cierre de una producción del Taller), **una por prenda física**. No al crear el producto. | Recién al ingresar se sabe cuántas prendas hay. Al crear el modelo no existe ninguna todavía. |
-| 2 | **Rollo DK-22205 (62 mm continuo, adhesivo) pegado sobre un cartón de 5 × 8 cm con agujero.** | Es lo que se usa hoy (foto del 2026-09-23). El cartón manda la medida: la etiqueta es de **44 × 62 mm** (sección «El cartón de 5 × 8 cm»). |
+| 2 | **Rollo DK-22205 (62 mm continuo, adhesivo) pegado sobre un cartón de 5 × 8 cm con agujero.** | Es lo que se usa hoy (foto del 2026-09-23). El cartón manda la medida: la etiqueta fue de **44 × 62 mm** (sección «El cartón de 5 × 8 cm») y hoy es de **40,1 × 62 mm** («Actualización 2026-09-25»). |
 | 3 | **Se imprime directo desde el ERP** (Chrome + driver Brother). Adiós P-touch Editor. | Nadie vuelve a copiar un precio a mano. |
 | 4 | **Diseño «D · Editorial, corregida»**, elegido entre 3 rondas de maquetas (`docs/maquetas/etiqueta-precio-2026-09/`). En la ronda 4 (el cartón) eligió el arreglo **«QR abajo»** y pidió **el QR lo más grande que entre**: 22 mm, 20 con campaña. | Inspirado en Zara/H&M. La crítica separó lo que sirve a la clienta de lo que sirve a la colaboradora (ver abajo). |
 | 5 | **La etiqueta muestra todas las tallas del modelo, con la de la prenda marcada.** | La clienta sabe hasta qué talla hay sin preguntar. |
@@ -61,9 +62,9 @@ pistola Zebra el 2026-09-10, ADR-0025), pero **se perdió en el reemplazo V1→V
 - Una tabla que registre cada etiqueta impresa: nadie la pidió (YAGNI). La fecha de impresión va en el papel.
 
 **SE ROMPE SI:**
-1. El driver no tiene un papel de 62 × 44 mm: Chrome escala o parte la etiqueta. Hay que crearlo una vez por computadora (abajo).
-   Si al imprimir sale corrida o achicada, revisar que el driver no agregue márgenes al corte (el diseño ya deja 3,5 mm a
-   cada lado del corte y 3 mm en los bordes del rollo, por fuera de lo que la Brother no alcanza).
+1. La computadora no tiene un papel de 62 × 40,1 mm (antes 62 × 44): la etiqueta sale en un corte más largo, chica o a lo
+   largo. Hay que crearlo una vez por computadora (abajo, «Configurar la Brother»). Si con ese papel sale corrida o
+   achicada, revisar que el driver no agregue márgenes al corte (el diseño ya deja 3 mm de acolchado en todo el borde).
 2. La web (pasos 2 y 3) se publica sin pegar la migración del paso 3, o al revés: la etiqueta y la caja dirían un precio
    que la base rechaza. Salen juntas (ADR-0182).
 3. Se confunde «etiqueta» (campaña) con «etiqueta de precio» en el código.
@@ -177,18 +178,89 @@ y la etiqueta de 44 × 62 va centrada en el ancho, con 9 mm blancos a cada lado.
 **Dónde está:** `globals.css` (`@page etiqueta-precio` y `.etq-hoja`). Se verificó con el PDF de Chrome: 2 páginas de
 62,1 × 62,1 mm, con la etiqueta centrada. Todavía no se probó en la impresora. Los pasos de abajo ya dicen **62 × 62 mm**.
 
+## Actualización 2026-09-25: a lo ancho del rollo, en cortes de 40,1 mm
+
+**Qué pasó:** con la hoja de 62 × 62 la etiqueta salía «a lo largo» y el corte era más largo de lo necesario (Felipe).
+
+**Decisión (Felipe):** la medida de la plantilla P-touch de la tienda, **40,1 × 62 mm**, a lo ancho del rollo: sus 62 mm de
+alto cruzan el rollo y la Brother corta cada 40,1 mm. Dos formas de mandarla, elegibles en pantalla y recordadas por
+computadora: **A** (por defecto), hoja de 62 × 40,1 con la etiqueta girada −90°; **B**, hoja de 40,1 × 62 con la etiqueta
+derecha. `contain: size layout paint` evita que Chrome parta la girada entre páginas, y el colibrí pasó a vector para salir
+nítido (`514de694`, `fa22c1e3`, `363904d8`).
+
+## Legibilidad en la térmica y el papel de la Mac (2026-09-25)
+
+**Qué mostró la foto de la tienda.** Felipe mandó una etiqueta impresa con dos quejas: no ocupa todo el papel, y las letras
+finas salen débiles. Medida corrigiendo la perspectiva de la foto (el QR tiene que quedar cuadrado):
+- **El papel era de 62 × ~100 mm.** La etiqueta salió derecha, a lo largo del rollo, arriba de un corte de 100 mm: el largo
+  del papel «62 mm» del driver en la Mac.
+- **Lo impreso era la versión del 23-sep (62 × 92 mm), no la de hoy.** El QR ocupa 0,29 del ancho de la etiqueta (la de
+  62 × 92 da 0,29 y la de hoy 0,40), el nombre cabe en una línea y la fecha dice «23.09.26». Era una etiqueta de ese día o
+  una pestaña abierta desde entonces. Para eso sirve la fecha impresa: si no es la de hoy, la página está vieja.
+- **Pero su problema de letras sigue en el diseño de hoy.** La Mac la achicó a ~0,78 y sus letras quedaron del tamaño de las
+  actuales (1,5–2,2 mm), en peso 400. Se cortaron los trazos de ~1,7 puntos de la Brother («CUELLO» se leía «CUFLLO»,
+  «TALLAS DEL MODELO» casi no se ve) y salieron nítidos los de ~2,5 («NARANJA», el código).
+
+**Por qué la Mac corta 100 mm aunque la hoja mida 40,1.** Chrome en la Mac no elige el papel ni escala: dibuja cada página al
+100 % sobre el papel del diálogo y solo la gira si no calza (`PdfMetafileCg::RenderPage` con `autorotate` y sin ajuste, en el
+código de Chromium). Su diálogo lista solo los papeles del driver, y el «62 mm» del rollo continuo mide 100 mm de largo. Los
+tamaños propios de la Mac («Gestionar tamaños personalizados…») aparecen solo en el diálogo del sistema (⌥⌘P). Con un papel
+de 62 × 40,1, las dos formas (A y B) calzan exactas.
+
+**La regla de legibilidad (Claude): trazo mínimo 0,2 mm, unos 2,4 puntos a 300 dpi.** En DM Sans, lo más fino son las barras
+de la E: 0,07 em en peso 400, 0,09 en 600 y 0,105 en 700 (medido en su tamaño óptico de letra chica). De ahí:
+
+| Texto | Antes (mm / peso) | Ahora |
+|---|---|---|
+| «Tallas del modelo» | 1,55 / 400 | 1,9 / 700 |
+| Tallas | 2,2 / 400 | 2,3 / 600 (la marcada, 700) |
+| Nombre de la prenda | 2,1 / 400 | 2,2 / 600 |
+| Color | 2,1 / 700 | 2,2 / 800: sigue siendo la línea firme |
+| Precio tachado (campaña) | 2,4 / 400 | 2,4 / 600 |
+| «Precio válido hasta…» | 1,75 / 400 | 1,9 / 700 |
+| Código | 1,8 / 500, se cortaba | 1,7 / 700, entero |
+| «Impreso…» y «cayla.pe» | 1,5 / 400 | 1,9 / 700 (la fecha baja a su propia línea) |
+| Colibrí y reglas | 0,19 y 0,22 mm | 0,25 mm |
+
+El precio (6,2 / 500), «CAYLA» (3 / 500) y el «−20 %» no cambian: ya superaban el mínimo.
+
+**El QR baja a 19 mm, con o sin campaña.** Desde que la etiqueta mide 40,1 mm de ancho, el código de al lado del QR de
+22 mm se cortaba: «CMS-0011-NAR…». El más largo de producción mide 16 caracteres (consulta de solo lectura, 2026-09-25) y en
+la Mac cada carácter de la monoespaciada ocupa 0,6 em: con 19 mm entran sus 15,8 mm en una caja de 16,6. Sigue arriba de los
+18 mm verificados con la pistola Zebra: 7,7 puntos por módulo, cuando el mínimo práctico es 4. La etiqueta de campaña gana
+aire: 1,1 mm entre el motivo y el QR, antes 0,29.
+
+**De paso:** en esta pantalla, la forma elegida («A · Hoja…») se veía negra y sin texto: un `text-tinta` tapaba la letra
+crema de `.pildora-cayla[aria-pressed]`.
+
+**Verificado:**
+- **Banco de pruebas, 6 variantes:** sin campaña, con campaña, talla única, 8 tallas, precio de 4 cifras con campaña y nombre
+  largo. Usa el marcado de `EtiquetaPrecio` y el CSS real, a 300 dpi. Nada se sale y el código entra entero. Grosor medido
+  línea por línea: los textos finos pasan de 2 puntos (el 10 % más fino, 1) a 3–4.
+- **Ancho de la Mac, emulado** con una monoespaciada de 0,6 em: «CMS-0011-NAR-XXL» mide 15,8 mm en su caja de 16,6. Un código
+  de 17 caracteres (hoy no existe ninguno) mediría 16,75 y saldría con «…»: si aparece, se baja el QR a 18,5 mm.
+- **En la app local** (DM Sans de `next/font`, `globals.css`): vista previa de 40,1 × 62 con las fuentes y el QR de la tabla.
+  La hoja de impresión, con `@media print` emulado, sale en 3 páginas de 62 × 40,1 (A) y de 40,1 × 62 (B), cada etiqueta
+  completa. El PDF de Chrome: 3 páginas de 62,1 × 40,2 mm.
+- `tsc`, `eslint` y 77.000 pruebas en verde.
+- **Falta (Felipe):** crear el papel en la Mac, imprimir una etiqueta y escanear el QR de 19 mm con la pistola.
+
 ## Configurar la Brother (una vez por computadora que imprima)
 
 > Estos pasos no se probaron contra la impresora real: los nombres exactos del driver pueden variar según la versión.
 
-1. Instalar el **driver completo** de la QL-1110NWB desde la página de soporte de Brother (no el genérico de Windows).
-2. En el driver, crear un papel **62 × 62 mm** para el rollo continuo de 62 mm (en Mac: diálogo del sistema → Tamaño del papel
-   → «Gestionar tamaños personalizados…», con márgenes en 0). Brother lo ofrece en la configuración de
-   tamaño de papel (en inglés, «Paper Size Setup»). Activar **corte automático cada 1 etiqueta**.
-3. En Chrome, la primera vez: Destino **Brother QL-1110NWB** → Más ajustes → Tamaño del papel **62 × 62 mm** → Márgenes
-   **Ninguno** → Escala **Predeterminada (100 %)** → **sin** «Encabezados y pies de página». Chrome recuerda la elección.
-4. Primera prueba: imprimir 1 etiqueta, escanearla con la pistola en Vender y confirmar que aparece la prenda correcta. Mirar
-   también que salga completa y a tamaño real (44 × 62 mm, derecha y centrada en un corte de 62 mm): si sale achicada o corrida, es el paso 2.
+1. Instalar el **driver completo** de la QL-1110NWB desde la página de soporte de Brother, no el genérico de Windows ni el
+   AirPrint de la Mac: es el que ofrece cortar cada etiqueta.
+2. Crear un papel **62 × 40,1 mm** para el rollo continuo de 62 mm, con márgenes en 0:
+   - **Mac:** en Chrome, **⌥⌘P** abre el diálogo del sistema. Tamaño del papel → «Gestionar tamaños personalizados…» → «+» →
+     62 × 40,1 mm, área no imprimible definida por el usuario, en 0. Guardar los ajustes como preajuste («Etiquetas CAYLA»).
+     El diálogo propio de Chrome no muestra estos tamaños: en la Mac, las etiquetas se imprimen siempre con ⌥⌘P.
+   - **Windows:** en las Preferencias de impresión de la Brother, la configuración de tamaño de papel («Paper Size Setup»).
+   - Activar **corte automático cada 1 etiqueta**.
+3. Al imprimir: papel **62 × 40,1 mm**, márgenes **Ninguno**, escala **100 %** y **sin** encabezados ni pies de página.
+4. Primera prueba: imprimir 1 etiqueta y escanearla con la pistola en Vender. Debe salir completa, a tamaño real y a lo ancho
+   del rollo, en un corte de 40,1 mm; si sale a lo largo, probar la otra forma (A o B) en la pantalla. Debe decir «Impreso»
+   con la fecha de hoy: si dice otra, la página está vieja y hay que recargarla.
 
 ## Lo que sigue
 
