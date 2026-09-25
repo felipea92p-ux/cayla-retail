@@ -28,6 +28,33 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧹 Se retiró el botón "+ Nuevo" global (2026-09-25, ADR-0195) — construido, probado y verificado en navegador
+A pedido de Felipe (pasó una captura del botón del lateral de escritorio: "no tiene mucha funcionalidad"). No era un
+botón suelto: era el disparador de un menú accesible completo (`MenuNuevo`, teclado tipo *menu button*) compartido
+con el "+" central de la barra del celular, con 6 atajos reales (`ACCIONES_NUEVO`): Nueva venta, Registrar factura
+de proveedor, Recibir mercadería, Mover mercadería, Registrar cambio, Registrar devolución. Por tocar 6 módulos y
+las dos superficies a la vez, se confirmó el alcance con Felipe antes de borrar: **se retira TODO, sin reemplazo**
+(no solo escritorio, no achicado a un ícono).
+- [x] `AppShell.tsx`: el botón del lateral, `MenuNuevo` entero, el "+" central del celular, y el estado/handlers
+      que los movían (`nuevoAbierto`, `abrirNuevo`, `cerrarNuevo`, `disparadorNuevo`).
+- [x] `lib/menu.ts`: `ACCIONES_NUEVO`, los tipos `Accion`/`AccionNuevo`, el campo `nuevo` de `Menu`; `COLUMNAS_MOVIL`
+      de 5 columnas (con el hueco `null` del "+") a 4 (`Menu.movil` deja de admitir `null`).
+- [x] `lib/menu-hoy.golden.json`, `menu.test.ts`, `modulos.test.ts` puestos al día. Suite completa de `apps/web`
+      (126 archivos, 21.290 pruebas) y `tsc --noEmit` en verde.
+- [x] Verificado en el navegador (página temporal en `app/auth/`, borrada al terminar): el lateral ya no muestra el
+      botón, la barra del celular queda en 4 columnas parejas sin hueco al centro, y el atajo `[` sigue funcionando.
+- [ ] **Decisión de Felipe, no bloqueante:** el líder parado en el Taller se quedó sin NINGÚN link a "Recibir
+      mercadería" (antes le quedaba solo en "+ Nuevo"; la ruta `/recibir` sigue viva, solo sin link desde ahí — ver
+      `menu.test.ts`). Ruta más simple si se quiere cerrar: quitar el `soloSinPermiso` de `inventario.recibir`.
+      Detalle en ADR-0195.
+- [ ] Hay un spike de navegación de celular en paralelo (`docs/maquetas/menu-movil-spike-2026-09/`, otra sesión, en
+      revisión con Felipe, sin aplicar) que asumía que `MenuNuevo` seguía vivo, reubicado a un ícono en la cabecera
+      del celular junto a una lupa y un avatar. Felipe, consultado, confirmó seguir con la eliminación completa de
+      todas formas — si ese spike avanza, el panel "+ Nuevo" se reconstruye desde cero (ya lo trataba como pieza
+      nueva junto con la hoja "Más").
+- Cómo verificas: cualquier pantalla en escritorio — no hay botón "+ Nuevo" en el lateral. En celular (375 px), la
+  barra de abajo tiene 4 columnas parejas (Inicio, Punto de Venta, Inventario, Caja) y ningún hueco al centro.
+
 ## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — base EN PRODUCCIÓN (pegada y verificada 2026-09-24); web en PR
 Pedido de Dany: las cuentas de caja y almacén de cada tienda siguen pidiendo a alguien de turno; el Admin (ADR-0178) no, solo ve «Eres admin: no necesitas autorización».
 - [x] Migración `20260924171300_admin_firma_sin_asistencia.sql`: `fn_actor_persona_id` deja firmar al Admin a su nombre sin asistencia (sin responsable o eligiéndose a sí mismo). Definición de producción comparada antes (md5 `cad473a6…`, igual a `20260923010000`).
