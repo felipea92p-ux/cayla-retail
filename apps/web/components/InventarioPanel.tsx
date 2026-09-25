@@ -838,6 +838,7 @@ export function InventarioPanel({
 
       {reponiendo && sububicacionPiso && sububicacionAlmacen && (
         <ReponerPisoModal
+          sentido="bajar"
           fila={reponiendo}
           ubicacionId={ubicacionId}
           sububicacionPisoId={sububicacionPiso.id}

@@ -120,6 +120,68 @@ export function clavePercha(f: { productoId: string; color: string | null }): st
   return JSON.stringify([f.productoId, f.color]);
 }
 
+// --- Mover entre piso y almacén, en los dos sentidos -------------------------
+// Bajar al piso (reponer) y retirar del piso (D-41: «pasa de verdad, falta la
+// pantalla») son LA MISMA operación con origen y destino invertidos: las dos van
+// por `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql), que
+// acepta cualquier par de sububicaciones de la misma sede y no cambia el total
+// de la tienda. Por eso el sentido es un dato, no un segundo modal: de él salen
+// de dónde sale la prenda, a dónde va, cuánto se puede mover y cómo se dice.
+
+export type SentidoPiso = "bajar" | "retirar";
+export type LugarTienda = "piso" | "almacen";
+
+export type ReglaSentidoPiso = {
+  origen: LugarTienda;
+  destino: LugarTienda;
+  titulo: string;
+  /** Rótulos de las dos cifras del modal (siempre en el orden piso · almacén). */
+  etiquetaPiso: string;
+  etiquetaAlmacen: string;
+  etiquetaCantidad: string;
+  /** El recorrido, en palabras de tienda, bajo el campo de cantidad. */
+  recorrido: string;
+  /** Lo que se le dice a la persona cuando pide más de lo que hay en el origen. */
+  noAlcanza: (pedido: number, hay: number) => string;
+  exito: (n: number) => string;
+  /** Qué se estaba intentando, para `traducirError` («No se pudo …»). */
+  accion: string;
+};
+
+export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
+  bajar: {
+    origen: "almacen",
+    destino: "piso",
+    titulo: "Reponer piso",
+    etiquetaPiso: "Piso actual",
+    etiquetaAlmacen: "Disponible en almacén",
+    etiquetaCantidad: "Cantidad a reponer",
+    recorrido: "Almacén de tienda → Piso de venta",
+    noAlcanza: (pedido, hay) => `No hay ${pedido} unidades en el almacén — hay ${hay}.`,
+    exito: (n) => `${n} ${n === 1 ? "unidad repuesta" : "unidades repuestas"} al piso`,
+    accion: "reponer el piso",
+  },
+  retirar: {
+    origen: "piso",
+    destino: "almacen",
+    titulo: "Retirar del piso",
+    etiquetaPiso: "Disponible en piso",
+    etiquetaAlmacen: "Almacén actual",
+    etiquetaCantidad: "Cantidad a retirar",
+    recorrido: "Piso de venta → Almacén de tienda",
+    // Lo apartado para una clienta sigue colgado pero no se retira: la cifra ya viene neta.
+    noAlcanza: (pedido, hay) => `No hay ${pedido} unidades libres en el piso — hay ${hay} (lo apartado para clientas no se retira).`,
+    exito: (n) => `${n} ${n === 1 ? "unidad retirada" : "unidades retiradas"} del piso`,
+    accion: "retirar del piso",
+  },
+};
+
+/** Cuántas unidades se pueden mover en ese sentido: lo DISPONIBLE del origen (neto de lo
+ *  apartado — la base igual rechaza mover una prenda apartada, ADR-0141). Nunca negativo. */
+export function topeMovimientoPiso(sentido: SentidoPiso, disponible: { piso: number | null; almacen: number | null }): number {
+  return Math.max(0, disponible[SENTIDO_PISO[sentido].origen] ?? 0);
+}
+
 export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {
   normal: "Normal",
   reponer_piso: "Reponer piso",

@@ -8,10 +8,43 @@ import {
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
+  SENTIDO_PISO,
   sumarCantidades,
+  topeMovimientoPiso,
   UMBRAL_REPOSICION_PISO,
   UMBRAL_STOCK_BAJO_ALMACEN,
 } from "./inventario-reglas";
+
+// Bajar al piso y retirar del piso son la misma operación (`mover_interno`) con origen y destino
+// invertidos: si el sentido se confunde, la prenda viaja al revés y el total no avisa nada (no cambia).
+describe("SENTIDO_PISO / topeMovimientoPiso", () => {
+  it("bajar sale del almacén y va al piso; retirar hace exactamente lo contrario", () => {
+    expect([SENTIDO_PISO.bajar.origen, SENTIDO_PISO.bajar.destino]).toEqual(["almacen", "piso"]);
+    expect([SENTIDO_PISO.retirar.origen, SENTIDO_PISO.retirar.destino]).toEqual(["piso", "almacen"]);
+  });
+
+  it("el tope es lo disponible del ORIGEN: al bajar, el almacén; al retirar, el piso", () => {
+    const fila = { piso: 3, almacen: 8 };
+    expect(topeMovimientoPiso("bajar", fila)).toBe(8);
+    expect(topeMovimientoPiso("retirar", fila)).toBe(3);
+  });
+
+  it("sin dato (sede que no separa piso y almacén) o con nada, el tope es 0: el modal no deja confirmar", () => {
+    expect(topeMovimientoPiso("retirar", { piso: null, almacen: null })).toBe(0);
+    expect(topeMovimientoPiso("bajar", { piso: 5, almacen: 0 })).toBe(0);
+  });
+
+  it("nunca negativo, aunque llegue un disponible negativo por un dato raro", () => {
+    expect(topeMovimientoPiso("retirar", { piso: -2, almacen: 4 })).toBe(0);
+  });
+
+  it("los textos de cada sentido nombran su propio recorrido (no se copian del otro)", () => {
+    expect(SENTIDO_PISO.bajar.recorrido).toBe("Almacén de tienda → Piso de venta");
+    expect(SENTIDO_PISO.retirar.recorrido).toBe("Piso de venta → Almacén de tienda");
+    expect(SENTIDO_PISO.bajar.exito(1)).toBe("1 unidad repuesta al piso");
+    expect(SENTIDO_PISO.retirar.exito(2)).toBe("2 unidades retiradas del piso");
+  });
+});
 
 // La miniatura de una prenda: Existencias y Conteo tienen que elegir LA MISMA foto
 // para la misma prenda, así que la regla vive en un solo lugar y se prueba acá.
