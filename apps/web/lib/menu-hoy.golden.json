@@ -190,6 +190,7 @@
             "etiqueta": "Finanzas",
             "icono": "gastos",
             "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -269,6 +270,7 @@
             "etiqueta": "Finanzas",
             "icono": "gastos",
             "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -512,6 +514,7 @@
             "etiqueta": "Finanzas",
             "icono": "gastos",
             "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -600,6 +603,7 @@
             "etiqueta": "Finanzas",
             "icono": "gastos",
             "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -814,6 +818,7 @@
             "etiqueta": "Finanzas",
             "icono": "gastos",
             "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -893,6 +898,7 @@
             "etiqueta": "Finanzas",
             "icono": "gastos",
             "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
