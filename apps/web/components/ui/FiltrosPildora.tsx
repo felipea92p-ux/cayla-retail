@@ -206,7 +206,7 @@ export function DesplegablePildora({
         <Hilo activo={abierto} reposo={false} />
       </button>
 
-      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0210): esta lista va en `fixed`
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
       {listaVisible &&

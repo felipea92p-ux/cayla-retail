@@ -193,7 +193,7 @@ export function ComboBuscable<T extends string>({
             : "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
         }
       />
-      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0210): esta lista va en `fixed`
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
       {abierto &&

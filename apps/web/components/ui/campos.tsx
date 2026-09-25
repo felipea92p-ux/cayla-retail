@@ -32,7 +32,7 @@ import { comboNecesitaBuscador } from "@/lib/combo-reglas";
     Exportado el 2026-09-09: el buscador global del AppShell usa el mismo
     dispositivo, y tenerlo definido dos veces era garantía de que un día
     se movieran por separado.
-    `reposo` (2026-09-25, ADR-0210): la línea gris de "acá hay un campo" tiene sentido en un campo suelto
+    `reposo` (2026-09-25, ADR-0211): la línea gris de "acá hay un campo" tiene sentido en un campo suelto
     sobre el fondo de la página — dentro del panel de píldoras (`divide-x`, fondo propio) varias píldoras
     seguidas la pintaban borde a borde y se leía como una sola barra negra de punta a punta del panel, no
     como el borde de cada una. `reposo={false}` la apaga y deja solo el trazo rojo/verde de la interacción. */
@@ -700,7 +700,7 @@ export function Desplegable<T extends string>({
         // `MenuAcciones` y `ResumenControles`, en un portal a `document.body`: sin portal, cualquier ancestro con
         // stacking context propio (una tarjeta `@container`, un modal, un futuro `transform`) atrapa el `fixed` y
         // lo pinta DEBAJO de contenido posterior en el DOM aunque su `z-50` diga lo contrario — el bug de
-        // «el desplegable se esconde detrás de la fila de abajo» (ADR-0210). `derecha` (cabecera) sigue `absolute`
+        // «el desplegable se esconde detrás de la fila de abajo» (ADR-0211). `derecha` (cabecera) sigue `absolute`
         // e inline: crece con su contenido y nada lo recorta ahí.
         maybePortal(
           flotante,

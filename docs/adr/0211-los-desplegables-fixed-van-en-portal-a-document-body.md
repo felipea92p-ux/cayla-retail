@@ -1,4 +1,4 @@
-# ADR-0210 — Todo desplegable `position: fixed` va en portal a `document.body`
+# ADR-0211 — Todo desplegable `position: fixed` va en portal a `document.body`
 
 **Fecha:** 2026-09-25
 **Estado:** Aceptado

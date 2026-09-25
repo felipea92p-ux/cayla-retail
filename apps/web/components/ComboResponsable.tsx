@@ -192,7 +192,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
       </button>
 
-      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0210): esta lista va en `fixed`
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
       {abierto &&
