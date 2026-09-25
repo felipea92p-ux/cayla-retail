@@ -334,7 +334,7 @@ export const ARBOL: readonly Nodo[] = [
       { id: "finanzas.dinero", modulo: "cuentas_dinero", etiqueta: "Cuentas y dinero", estado: "viva", ruta: "/finanzas/dinero", icono: "dinero", pajaro: "12 Urraca", exige: "verCuentasDinero" },
       { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Reportes", estado: "viva", ruta: "/finanzas/reportes", icono: "reportes", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
       { id: "finanzas.impuestos", modulo: "impuestos", etiqueta: "Impuestos", estado: "viva", ruta: "/finanzas/impuestos", icono: "impuestos", pajaro: "12 Urraca", exige: "verImpuestos" },
-      { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "futura", pajaro: "12 Urraca", nota: "F9: cierra el período por unidad y consolidado." },
+      { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "viva", ruta: "/finanzas/cierre", icono: "cierre", pajaro: "12 Urraca", exige: "cerrarMes" },
     ],
   },
   { id: "clientas", etiqueta: "Clientas", estado: "futura", pajaro: "07 Colibrí", nota: "`clientes`: la libreta de clientas." },

@@ -193,7 +193,8 @@
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -271,7 +272,8 @@
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -513,7 +515,8 @@
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -600,7 +603,8 @@
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -813,7 +817,8 @@
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -891,7 +896,8 @@
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
-              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" }
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],

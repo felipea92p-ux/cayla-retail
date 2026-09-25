@@ -132,8 +132,7 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists cuentas_dinero_inmutable on retail.cuentas_dinero;
-create trigger cuentas_dinero_inmutable before update or delete on retail.cuentas_dinero
+create or replace trigger cuentas_dinero_inmutable before update or delete on retail.cuentas_dinero
   for each row execute function retail.fn_cuentas_dinero_inmutable();
 
 -- ---------- 2. A qué cuenta entra cada cobro (con vigencia) ----------
@@ -172,8 +171,7 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists medios_de_cobro_validar on retail.medios_de_cobro;
-create trigger medios_de_cobro_validar before insert or update or delete on retail.medios_de_cobro
+create or replace trigger medios_de_cobro_validar before insert or update or delete on retail.medios_de_cobro
   for each row execute function retail.fn_medios_de_cobro_validar();
 
 -- La cuenta a la que entraba un medio en una tienda un día dado. Uso interno (la leen las sumas de saldos).
@@ -328,8 +326,7 @@ begin
   new.ubicacion_id := coalesce(v_o.ubicacion_id, v_d.ubicacion_id);
   return new;
 end $$;
-drop trigger if exists movimientos_dinero_validar on retail.movimientos_dinero;
-create trigger movimientos_dinero_validar before insert or update or delete on retail.movimientos_dinero
+create or replace trigger movimientos_dinero_validar before insert or update or delete on retail.movimientos_dinero
   for each row execute function retail.fn_movimientos_dinero_validar();
 
 -- ---------- 4. Conciliación ----------
@@ -382,8 +379,7 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists conciliaciones_solo_anular on retail.conciliaciones;
-create trigger conciliaciones_solo_anular before update or delete on retail.conciliaciones
+create or replace trigger conciliaciones_solo_anular before update or delete on retail.conciliaciones
   for each row execute function retail.fn_conciliaciones_solo_anular();
 
 create or replace function retail.fn_dinero_revisados_solo_desmarcar() returns trigger
@@ -399,8 +395,7 @@ begin
   end if;
   return new;
 end $$;
-drop trigger if exists dinero_revisados_solo_desmarcar on retail.dinero_revisados;
-create trigger dinero_revisados_solo_desmarcar before update or delete on retail.dinero_revisados
+create or replace trigger dinero_revisados_solo_desmarcar before update or delete on retail.dinero_revisados
   for each row execute function retail.fn_dinero_revisados_solo_desmarcar();
 
 -- ---------- 5. Quién ve qué ----------
@@ -1355,8 +1350,7 @@ begin
 end $$;
 revoke all on function retail.fn_cuentas_de_sede_nueva() from public, anon, authenticated;
 
-drop trigger if exists ubicaciones_cuentas_de_dinero on retail.ubicaciones;
-create trigger ubicaciones_cuentas_de_dinero after insert or update of tipo, activo on retail.ubicaciones
+create or replace trigger ubicaciones_cuentas_de_dinero after insert or update of tipo, activo on retail.ubicaciones
   for each row execute function retail.fn_cuentas_de_sede_nueva();
 
 reset lock_timeout;
