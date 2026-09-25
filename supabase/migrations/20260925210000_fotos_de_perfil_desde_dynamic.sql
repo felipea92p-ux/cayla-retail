@@ -2,8 +2,8 @@
 -- 20260925210000 — Las fotos de perfil salen de Dynamic (Felipe, 2026-09-25: «jala todas las fotos del dynamic»)
 --
 -- EL PROBLEMA PRIMERO
---   Dynamic ya tiene la foto de cada integrante (`public.personas.foto_url`, bucket público `fotos-perfil`, 18 de 25
---   colaboradores de retail con foto al 2026-09-25). Retail solo la leía en «Mi perfil», y mal: Dynamic guarda la RUTA
+--   Dynamic ya tiene la foto de cada integrante (`public.personas.foto_url`, bucket público `fotos-perfil`: 18 personas
+--   con foto al 2026-09-25, 17 de ellas entre los 25 colaboradores de retail). Retail solo la leía en «Mi perfil», y mal: Dynamic guarda la RUTA
 --   dentro del bucket (`perfil/<persona>/<hora>.jpg`), no una URL, y la pantalla la ponía tal cual en la imagen — el
 --   navegador la buscaba en el dominio de retail y mostraba el ícono de imagen rota. En el lateral, el combo
 --   «Responsable» y Colaboradores ni siquiera se pedía: solo iniciales.

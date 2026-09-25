@@ -29,9 +29,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 ---
 
 
-## 🎯 Fotos de perfil desde Dynamic (2026-09-25) — migración `20260925210000` POR PEGAR en producción; web en PR
+## 🎯 Fotos de perfil desde Dynamic (2026-09-25) — migración `20260925210000` EN PRODUCCIÓN (verificada en la base); web en PR
 Retail muestra la foto que cada persona tiene en Dynamic (lateral, «Mi perfil», combo «Responsable», Colaboradores). Antes salía una imagen rota en «Mi perfil» y cambiar la foto desde retail fallaba al guardar.
-- [ ] Pegar `supabase/migrations/20260925210000_fotos_de_perfil_desde_dynamic.sql` en el SQL Editor de producción (ya trae `retail.`; sin políticas ni candados de `auth`/`storage`). El orden con la web no importa: sin la función se ven las iniciales, como hoy.
+- [x] Migración `20260925210000` aplicada en producción (2026-09-25, por el conector, con OK de Felipe) y verificada preguntándole a la base: `security definer`, `authenticated` sí / `anon` no, devuelve las 17 fotos de colaboradores y deja fuera a la persona de Dynamic que no es de retail.
+- [ ] Pedir a DO que cargue en Dynamic la foto de los 8 colaboradores que no tienen (el combo «Responsable» es donde más se nota).
 - [ ] Con la web publicada: abrir «Mi perfil», cambiar la foto y comprobar que el lateral la cambia sin recargar (la subida real no se pudo probar en local: Docker caído).
 - [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.
 
