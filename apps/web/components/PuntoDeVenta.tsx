@@ -57,8 +57,8 @@ import { EscanerCamara } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
-import { sumarCantidades } from "@/lib/inventario-reglas";
-import { conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
+import { conStockAjustado, descontarVendido } from "@/lib/vender-stock-local";
+import { leerStockDeSede, useStockEnVivo } from "@/lib/useStockEnVivo";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -495,20 +495,28 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   /** Relee de la base lo cobrable AQUÍ de unas prendas (lectura directa de `stock`, la misma de
    *  `getDisponibleEnSede` pero solo de esas filas; un GET no enciende el loader) y lo deja en pantalla.
-   *  Devuelve lo releído, o null si no se pudo: la pantalla se queda con lo que ya mostraba. */
-  async function releerStock(ids: string[]): Promise<Map<string, number> | null> {
-    const pedidas = [...new Set(ids)].filter((id) => id !== ID_CARGO_ESPECIAL && variantes.some((v) => v.varianteId === id));
-    if (pedidas.length === 0) return new Map();
-    const { data, error } = await createClient()
-      .from("stock")
-      .select("variante_id, cantidad, cantidad_apartada, sububicacion:sububicaciones ( tipo )")
-      .eq("ubicacion_id", ubicacionId)
-      .in("variante_id", pedidas);
-    if (error || !data) return null;
-    const releido = conStockReleido(new Map(), pedidas, sumarCantidades(data));
-    setAjustesStock((prev) => new Map([...prev, ...releido]));
+   *  Sin `ids`, relee TODA la sede — la usa el sondeo de stock en vivo, de abajo. Devuelve lo releído, o null
+   *  si no se pudo: la pantalla se queda con lo que ya mostraba. */
+  async function releerStock(ids?: string[]): Promise<Map<string, number> | null> {
+    const conocidos = variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId);
+    const releido = await leerStockDeSede(ubicacionId, conocidos, ids);
+    if (releido) setAjustesStock((prev) => new Map([...prev, ...releido]));
     return releido;
   }
+
+  /**
+   * Stock en vivo (2026-09-25, reporte de Felipe): escaneando con la cámara del teléfono leyó una prenda
+   * «agotada»; la repusieron en otra máquina con la cámara todavía abierta y no se sumó hasta reiniciar el
+   * navegador — nada releía `stock` mientras la pantalla seguía montada. Afecta igual al lector físico: no es
+   * un problema de la cámara, es que esta pantalla nunca se actualizaba sola. Mismo hook que Apartados y
+   * Cambios (`lib/useStockEnVivo.ts`) — no sondea con la caja cerrada (bloqueado: no hay nada que cobrar igual).
+   */
+  useStockEnVivo(
+    ubicacionId,
+    useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
+    !bloqueado,
+    (releido) => setAjustesStock((prev) => new Map([...prev, ...releido])),
+  );
 
   /** Tras una venta que la base aceptó (en línea o al subir la cola): descuenta lo vendido al instante, relee esas
    *  prendas y la lista de ventas de hoy. Reemplaza al `router.refresh()` de antes (ADR-0192). */

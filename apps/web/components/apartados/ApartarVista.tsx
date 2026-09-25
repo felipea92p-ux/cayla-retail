@@ -17,6 +17,8 @@ import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
+import { conStockAjustado } from "@/lib/vender-stock-local";
+import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -76,7 +78,7 @@ export function ApartarVista({
   ubicacionEtiqueta,
   hoy,
   cajaAbierta,
-  prendas,
+  prendas: prendasProp,
   irAEntregar,
 }: {
   ubicacionId: string;
@@ -87,6 +89,23 @@ export function ApartarVista({
   irAEntregar: () => void;
 }) {
   const router = useRouter();
+  // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
+  // foto del servidor al entrar o tras un `router.refresh()`; `ajustesStock` la corrige con lo que releyó el
+  // sondeo mientras la pantalla sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la
+  // verdad y no hay que pisarla con una corrección vieja.
+  const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  const [prendasPropPrevia, setPrendasPropPrevia] = useState(prendasProp);
+  if (prendasProp !== prendasPropPrevia) {
+    setPrendasPropPrevia(prendasProp);
+    setAjustesStock(new Map());
+  }
+  const prendas = useMemo(() => conStockAjustado(prendasProp, ajustesStock), [prendasProp, ajustesStock]);
+  useStockEnVivo(
+    ubicacionId,
+    useMemo(() => prendasProp.map((p) => p.varianteId), [prendasProp]),
+    cajaAbierta,
+    (releido) => setAjustesStock((prev) => new Map([...prev, ...releido])),
+  );
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(null);
