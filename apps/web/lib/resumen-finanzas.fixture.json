@@ -1,0 +1,2774 @@
+{
+ "_nota": "Fixture de lib/resumen-finanzas-reglas.test.ts. «todas», «tru», «taller» y «empresa» tienen la FORMA de fn_resumen_finanzas (20260925200000) con los números del spike (docs/maquetas/finanzas-2026-09/src/datos.js); «colaboradora» es la salida real de la base local para una cuenta con solo «Reportes financieros» en Tienda Trujillo.",
+ "todas": {
+  "hoy": "2026-09-24",
+  "mes": "2026-09-01",
+  "mes_anterior": "2026-08-01",
+  "lider": true,
+  "ver": {
+   "ubicacion_id": null,
+   "solo_empresa": false,
+   "todas": true,
+   "tipo": "todas",
+   "nombre": "CAYLA"
+  },
+  "parametros": {
+   "minimo_caja": 15000,
+   "aviso_gasto_pct": 25,
+   "aviso_vence_dias": 7
+  },
+  "unidades": [
+   {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "nombre": "Tienda TRU",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "nombre": "Tienda AQP",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "nombre": "Tienda LIM",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "nombre": "Taller",
+    "tipo": "taller"
+   }
+  ],
+  "resultados_mes": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "ventas_netas": 35280,
+     "costo_ventas": 15880,
+     "fletes": 336,
+     "mermas": 128,
+     "margen_bruto": 18936,
+     "planilla": 7800,
+     "depreciacion": 87,
+     "gastos_operacion": 13283,
+     "resultado": 5653,
+     "igv_ventas": 6350,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 7800
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 496
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 96
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 304
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 87
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "unidad": "tienda",
+     "nombre": "Tienda AQP",
+     "orden": 1,
+     "ventas_netas": 26880,
+     "costo_ventas": 12360,
+     "fletes": 488,
+     "mermas": 72,
+     "margen_bruto": 13960,
+     "planilla": 6400,
+     "depreciacion": 19,
+     "gastos_operacion": 11043,
+     "resultado": 2917,
+     "igv_ventas": 4838,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 6400
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 3800
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 384
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 72
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 248
+      },
+      {
+       "cuenta": "634",
+       "nombre": "Mantenimiento",
+       "monto": 120
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 19
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "unidad": "tienda",
+     "nombre": "Tienda LIM",
+     "orden": 1,
+     "ventas_netas": 18691,
+     "costo_ventas": 7440,
+     "fletes": 304,
+     "mermas": 168,
+     "margen_bruto": 10779,
+     "planilla": 5200,
+     "depreciacion": 154,
+     "gastos_operacion": 12226,
+     "resultado": -1447,
+     "igv_ventas": 3364,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 5200
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 6200
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 432
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 48
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 192
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 154
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": 80,
+     "depreciacion": 40,
+     "gastos_operacion": 3224,
+     "resultado": -3224,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 80
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 1800
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 568
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 112
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 416
+      },
+      {
+       "cuenta": "634",
+       "nombre": "Mantenimiento",
+       "monto": 208
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 40
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": 4500,
+     "depreciacion": 0,
+     "gastos_operacion": 8860,
+     "resultado": -8860,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 528
+      },
+      {
+       "cuenta": "632",
+       "nombre": "Honorarios",
+       "monto": 1200
+      },
+      {
+       "cuenta": "637",
+       "nombre": "Publicidad",
+       "monto": 2560
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 72
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "consolidado",
+     "nombre": "CAYLA",
+     "orden": 4,
+     "ventas_netas": 80851,
+     "costo_ventas": 35680,
+     "fletes": 1128,
+     "mermas": 368,
+     "margen_bruto": 43675,
+     "planilla": 23980,
+     "depreciacion": 300,
+     "gastos_operacion": 48636,
+     "resultado": -4961,
+     "igv_ventas": 14552,
+     "detalle_gastos": [],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "resultados_anterior": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "ventas_netas": 44100,
+     "costo_ventas": 19850,
+     "fletes": 420,
+     "mermas": 160,
+     "margen_bruto": 23670,
+     "planilla": 7800,
+     "depreciacion": 87,
+     "gastos_operacion": 13507,
+     "resultado": 10163,
+     "igv_ventas": 7938,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 7800
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 620
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 120
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 380
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 87
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "unidad": "tienda",
+     "nombre": "Tienda AQP",
+     "orden": 1,
+     "ventas_netas": 33600,
+     "costo_ventas": 15450,
+     "fletes": 610,
+     "mermas": 90,
+     "margen_bruto": 17450,
+     "planilla": 6400,
+     "depreciacion": 19,
+     "gastos_operacion": 11249,
+     "resultado": 6201,
+     "igv_ventas": 6048,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 6400
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 3800
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 480
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 90
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 310
+      },
+      {
+       "cuenta": "634",
+       "nombre": "Mantenimiento",
+       "monto": 150
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 19
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "unidad": "tienda",
+     "nombre": "Tienda LIM",
+     "orden": 1,
+     "ventas_netas": 19800,
+     "costo_ventas": 9300,
+     "fletes": 380,
+     "mermas": 210,
+     "margen_bruto": 9910,
+     "planilla": 5200,
+     "depreciacion": 154,
+     "gastos_operacion": 12394,
+     "resultado": -2484,
+     "igv_ventas": 3564,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 5200
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 6200
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 540
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 60
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 240
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 154
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": -2300,
+     "depreciacion": 40,
+     "gastos_operacion": 1170,
+     "resultado": -1170,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": -2300
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 1800
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 710
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 140
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 520
+      },
+      {
+       "cuenta": "634",
+       "nombre": "Mantenimiento",
+       "monto": 260
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 40
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": 4500,
+     "depreciacion": 0,
+     "gastos_operacion": 9650,
+     "resultado": -9650,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 660
+      },
+      {
+       "cuenta": "632",
+       "nombre": "Honorarios",
+       "monto": 1200
+      },
+      {
+       "cuenta": "637",
+       "nombre": "Publicidad",
+       "monto": 3200
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 90
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "consolidado",
+     "nombre": "CAYLA",
+     "orden": 4,
+     "ventas_netas": 97500,
+     "costo_ventas": 44600,
+     "fletes": 1410,
+     "mermas": 460,
+     "margen_bruto": 51030,
+     "planilla": 21600,
+     "depreciacion": 300,
+     "gastos_operacion": 47970,
+     "resultado": 3060,
+     "igv_ventas": 17550,
+     "detalle_gastos": [],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "presupuesto": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "656",
+     "linea_nombre": "Suministros y útiles",
+     "tipo": "tope",
+     "orden_linea": 3,
+     "presupuesto": 320,
+     "a_la_fecha": 304,
+     "proyeccion": 380,
+     "fijo": null,
+     "avance": 1.1875,
+     "se_pasa": true,
+     "estado": "se_pasa"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "unidad": "tienda",
+     "nombre": "Tienda LIM",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "636",
+     "linea_nombre": "Servicios básicos",
+     "tipo": "tope",
+     "orden_linea": 2,
+     "presupuesto": 480,
+     "a_la_fecha": 432,
+     "proyeccion": 540,
+     "fijo": null,
+     "avance": 1.125,
+     "se_pasa": true,
+     "estado": "se_pasa"
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "637",
+     "linea_nombre": "Publicidad y marketing",
+     "tipo": "tope",
+     "orden_linea": 2,
+     "presupuesto": 2500,
+     "a_la_fecha": 2560,
+     "proyeccion": 3200,
+     "fijo": null,
+     "avance": 1.28,
+     "se_pasa": true,
+     "estado": "se_pasa"
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "consolidado",
+     "nombre": "CAYLA",
+     "orden": 4,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "ventas",
+     "linea_nombre": "Ventas",
+     "tipo": "meta",
+     "orden_linea": 0,
+     "presupuesto": 103958,
+     "a_la_fecha": 80851,
+     "proyeccion": 101064,
+     "fijo": null,
+     "avance": 0.9721618345870447,
+     "se_pasa": false,
+     "estado": "en_camino"
+    }
+   ]
+  },
+  "cuentas": {
+   "filas": [
+    {
+     "id": "00000000-0000-4000-9000-000000000000",
+     "nombre": "BCP · Cta. corriente",
+     "tipo": "banco",
+     "cuenta_contable": "104",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 38420,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 0
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000001",
+     "nombre": "Interbank · Cta. corriente",
+     "tipo": "banco",
+     "cuenta_contable": "104",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 12880,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 1
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000002",
+     "nombre": "Niubiz · tarjeta por abonar",
+     "tipo": "por_abonar",
+     "cuenta_contable": "105",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 2310,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 2
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000003",
+     "nombre": "Cajón · Tienda TRU",
+     "tipo": "cajon",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "ubicacion_nombre": "Tienda TRU",
+     "numero": null,
+     "saldo": 1030,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 3
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000004",
+     "nombre": "Cajón · Tienda AQP",
+     "tipo": "cajon",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "ubicacion_nombre": "Tienda AQP",
+     "numero": null,
+     "saldo": 745,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 4
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000005",
+     "nombre": "Cajón · Tienda LIM",
+     "tipo": "cajon",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "ubicacion_nombre": "Tienda LIM",
+     "numero": null,
+     "saldo": 495,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 5
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000006",
+     "nombre": "Fondo fijo · Taller",
+     "tipo": "cajon",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "ubicacion_nombre": "Taller",
+     "numero": null,
+     "saldo": 630,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 6
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000007",
+     "nombre": "Caja fuerte · Tienda TRU",
+     "tipo": "caja_fuerte",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "ubicacion_nombre": "Tienda TRU",
+     "numero": null,
+     "saldo": 1800,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 7
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000008",
+     "nombre": "Caja fuerte · Tienda AQP",
+     "tipo": "caja_fuerte",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "ubicacion_nombre": "Tienda AQP",
+     "numero": null,
+     "saldo": 1200,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 8
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000009",
+     "nombre": "Caja fuerte · Tienda LIM",
+     "tipo": "caja_fuerte",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "ubicacion_nombre": "Tienda LIM",
+     "numero": null,
+     "saldo": 900,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 9
+    },
+    {
+     "id": "00000000-0000-4000-9000-0000000000010",
+     "nombre": "Efectivo entregado al líder",
+     "tipo": "por_rendir",
+     "cuenta_contable": "101",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 0,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 10
+    },
+    {
+     "id": "00000000-0000-4000-9000-0000000000011",
+     "nombre": "Visa BCP empresa",
+     "tipo": "tarjeta_credito",
+     "cuenta_contable": "451",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": -1850,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 11
+    }
+   ]
+  },
+  "por_pagar": {
+   "dias": 7,
+   "total": 62542,
+   "n": 8,
+   "filas": [
+    {
+     "origen": "compras",
+     "id": "00000000-0000-4000-a000-000000000000",
+     "naturaleza": "mercaderia",
+     "proveedor_id": "x",
+     "proveedor": "Confecciones Andina SAC",
+     "documento": "F001-00812",
+     "tipo": "factura",
+     "concepto": null,
+     "fecha_emision": "2026-09-01",
+     "condicion": "credito",
+     "fecha_vencimiento": "2026-09-22",
+     "vence": "2026-09-22",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidades": "Tienda TRU",
+     "parte": false,
+     "total": 12400,
+     "pagado": 6000,
+     "saldo": 6400
+    },
+    {
+     "origen": "compras",
+     "id": "00000000-0000-4000-a000-000000000001",
+     "naturaleza": "gasto",
+     "proveedor_id": "x",
+     "proveedor": "Hidrandina",
+     "documento": "S120-554120",
+     "tipo": "factura",
+     "concepto": null,
+     "fecha_emision": "2026-09-01",
+     "condicion": "credito",
+     "fecha_vencimiento": "2026-09-28",
+     "vence": "2026-09-28",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidades": "Tienda TRU",
+     "parte": false,
+     "total": 612,
+     "pagado": 0,
+     "saldo": 612
+    },
+    {
+     "origen": "compras",
+     "id": "00000000-0000-4000-a000-000000000002",
+     "naturaleza": "gasto",
+     "proveedor_id": "x",
+     "proveedor": "Inmobiliaria San Isidro",
+     "documento": "F003-01877",
+     "tipo": "factura",
+     "concepto": null,
+     "fecha_emision": "2026-09-01",
+     "condicion": "credito",
+     "fecha_vencimiento": "2026-09-30",
+     "vence": "2026-09-30",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "unidades": "Tienda LIM",
+     "parte": false,
+     "total": 6200,
+     "pagado": 0,
+     "saldo": 6200
+    }
+   ]
+  },
+  "flujo": {
+   "hoy": "2026-09-24",
+   "desde": "2026-09-25",
+   "hasta": "2026-11-08",
+   "saldo_hoy": 60410,
+   "minimo_caja": 15000,
+   "salidas_diarias": 4091.67,
+   "dias_de_caja": 14,
+   "planilla_visible": true,
+   "salidas_30": {
+    "con_cuenta": 68400,
+    "sin_cuenta": 0,
+    "planilla": 29800
+   },
+   "semanas_pedidas": 6,
+   "semanas": [
+    {
+     "desde": "2026-09-28",
+     "hasta": "2026-10-04",
+     "entra": 24500,
+     "sale": 58500,
+     "saldo": 26410,
+     "bajo_minimo": false
+    },
+    {
+     "desde": "2026-10-05",
+     "hasta": "2026-10-11",
+     "entra": 26000,
+     "sale": 18900,
+     "saldo": 33510,
+     "bajo_minimo": false
+    },
+    {
+     "desde": "2026-10-12",
+     "hasta": "2026-10-18",
+     "entra": 23000,
+     "sale": 42000,
+     "saldo": 14510,
+     "bajo_minimo": true
+    },
+    {
+     "desde": "2026-10-19",
+     "hasta": "2026-10-25",
+     "entra": 22000,
+     "sale": 9800,
+     "saldo": 26710,
+     "bajo_minimo": false
+    },
+    {
+     "desde": "2026-10-26",
+     "hasta": "2026-11-01",
+     "entra": 22000,
+     "sale": 31200,
+     "saldo": 17510,
+     "bajo_minimo": false
+    },
+    {
+     "desde": "2026-11-02",
+     "hasta": "2026-11-08",
+     "entra": 22000,
+     "sale": 14600,
+     "saldo": 24910,
+     "bajo_minimo": false
+    }
+   ],
+   "salidas": [
+    {
+     "tipo": "planilla",
+     "id": "s0",
+     "fecha": "2026-09-30",
+     "vence": "2026-09-30",
+     "titulo": "Planilla",
+     "detalle": "",
+     "clase": "planilla",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 29800,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s1",
+     "fecha": "2026-09-30",
+     "vence": "2026-09-30",
+     "titulo": "Inmobiliaria San Isidro",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 6200,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s2",
+     "fecha": "2026-09-28",
+     "vence": "2026-09-28",
+     "titulo": "Confecciones Andina SAC",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 6400,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s3",
+     "fecha": "2026-09-28",
+     "vence": "2026-09-28",
+     "titulo": "Hidrandina",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 612,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s4",
+     "fecha": "2026-10-06",
+     "vence": "2026-10-06",
+     "titulo": "Moda Lima EIRL",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 8950,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s5",
+     "fecha": "2026-10-06",
+     "vence": "2026-10-06",
+     "titulo": "Tejidos del Sur",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 3380,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s6",
+     "fecha": "2026-10-13",
+     "vence": "2026-10-13",
+     "titulo": "Distribuidora Norte",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 15300,
+     "atrasada": false
+    },
+    {
+     "tipo": "fijo",
+     "id": "s7",
+     "fecha": "2026-10-14",
+     "vence": "2026-10-14",
+     "titulo": "Reposición para el Aniversario",
+     "detalle": "",
+     "clase": "fijo",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 6300,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s8",
+     "fecha": "2026-10-15",
+     "vence": "2026-10-15",
+     "titulo": "Muebles Roble",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 1300,
+     "atrasada": false
+    },
+    {
+     "tipo": "vencimiento",
+     "id": "s9",
+     "fecha": "2026-10-20",
+     "vence": "2026-10-20",
+     "titulo": "Confecciones Andina SAC",
+     "detalle": "",
+     "clase": "vencimiento",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 9800,
+     "atrasada": false
+    },
+    {
+     "tipo": "planilla",
+     "id": "s10",
+     "fecha": "2026-10-28",
+     "vence": "2026-10-28",
+     "titulo": "Planilla",
+     "detalle": "",
+     "clase": "planilla",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 29800,
+     "atrasada": false
+    },
+    {
+     "tipo": "fijo",
+     "id": "s11",
+     "fecha": "2026-11-04",
+     "vence": "2026-11-04",
+     "titulo": "Proveedores de temporada",
+     "detalle": "",
+     "clase": "fijo",
+     "ubicacion_id": null,
+     "unidad": null,
+     "monto": 14600,
+     "atrasada": false
+    }
+   ]
+  },
+  "igv": {
+   "hoy": "2026-09-24",
+   "mes": "2026-09-01",
+   "mes_actual": "2026-09-01",
+   "foco": {
+    "mes": "2026-09-01",
+    "debito": 15200,
+    "credito": 9800,
+    "a_pagar": 5400,
+    "saldo_a_favor": 0
+   },
+   "historial": [
+    {
+     "mes": "2026-08-01",
+     "debito": 17550,
+     "credito": 10710,
+     "a_pagar": 6840,
+     "saldo_a_favor": 0
+    },
+    {
+     "mes": "2026-09-01",
+     "debito": 15200,
+     "credito": 9800,
+     "a_pagar": 5400,
+     "saldo_a_favor": 0
+    }
+   ],
+   "parametros": {
+    "umbral_uit": {
+     "valor": 300,
+     "provisional": true
+    },
+    "uit": {
+     "valor": 5500,
+     "anio": 2026,
+     "provisional": true
+    }
+   },
+   "umbral": {
+    "ventas_12m": 1214000,
+    "umbral_soles": 1650000,
+    "avance": 0.7358,
+    "cruzado": false,
+    "primer_mes": "2025-09-01",
+    "ventas_meses": [
+     {
+      "mes": "2024-10-01",
+      "base": 0
+     },
+     {
+      "mes": "2024-11-01",
+      "base": 0
+     },
+     {
+      "mes": "2024-12-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-01-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-02-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-03-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-04-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-05-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-06-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-07-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-08-01",
+      "base": 0
+     },
+     {
+      "mes": "2025-09-01",
+      "base": 101000
+     },
+     {
+      "mes": "2025-10-01",
+      "base": 101000
+     },
+     {
+      "mes": "2025-11-01",
+      "base": 101000
+     },
+     {
+      "mes": "2025-12-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-01-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-02-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-03-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-04-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-05-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-06-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-07-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-08-01",
+      "base": 101000
+     },
+     {
+      "mes": "2026-09-01",
+      "base": 101000
+     }
+    ]
+   },
+   "renta": {
+    "base": 0,
+    "tasa": 0.01,
+    "monto": 0
+   },
+   "revisar": {}
+  },
+  "campanas": {
+   "filas": [
+    {
+     "etiqueta_id": "c08",
+     "nombre": "Aniversario CAYLA",
+     "desde": "2026-10-01",
+     "hasta": "2026-10-14",
+     "descuento_pct": 15,
+     "momento": "viene",
+     "dias": 14,
+     "tiendas": 3,
+     "ventas": null,
+     "normal": null,
+     "descuento": 0,
+     "prendas": null,
+     "margen_pct": null,
+     "margen_normal_pct": 0.52,
+     "margen_extra": null,
+     "meta_pct": 30,
+     "meta_campana": null,
+     "meta_normal": null,
+     "con_efecto": true
+    }
+   ]
+  },
+  "egresos": {
+   "n": 4,
+   "monto": 2472,
+   "desde": "2026-08-31",
+   "por_ubicacion": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "nombre": "Tienda LIM",
+     "n": 1,
+     "monto": 2300
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "nombre": "Tienda TRU",
+     "n": 2,
+     "monto": 160
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "nombre": "Tienda AQP",
+     "n": 1,
+     "monto": 12
+    }
+   ]
+  },
+  "fijos": {
+   "filas": [
+    {
+     "id": "f10",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "ubicacion_nombre": "Tienda LIM",
+     "categoria": "servicios_basicos",
+     "categoria_nombre": "Servicios básicos",
+     "descripcion": "Luz",
+     "proveedor_nombre": "Luz del Sur",
+     "monto": 540,
+     "dia_del_mes": 19,
+     "fecha_esperada": "2026-09-19",
+     "estado": "falta"
+    }
+   ]
+  },
+  "raros": {
+   "pct": 25,
+   "filas": [
+    {
+     "llave": "p:seal",
+     "proveedor": "SEAL",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "ubicacion_nombre": "Tienda AQP",
+     "categoria_nombre": "Servicios básicos",
+     "mes": "2026-09-01",
+     "monto": 662,
+     "gastos": 1,
+     "promedio": 480,
+     "meses_base": 6,
+     "exceso_pct": 37.9,
+     "ultima_fecha": "2026-09-19"
+    }
+   ]
+  },
+  "cierre": {
+   "mes": "2026-08-01",
+   "consolidado": false,
+   "unidades": [
+    {
+     "alcance": "ubicacion",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "nombre": "Tienda TRU",
+     "cerrada": true
+    },
+    {
+     "alcance": "ubicacion",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000002",
+     "nombre": "Tienda AQP",
+     "cerrada": true
+    },
+    {
+     "alcance": "ubicacion",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000003",
+     "nombre": "Tienda LIM",
+     "cerrada": false
+    },
+    {
+     "alcance": "ubicacion",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "nombre": "Taller",
+     "cerrada": false
+    },
+    {
+     "alcance": "empresa",
+     "ubicacion_id": null,
+     "nombre": "De la empresa",
+     "cerrada": false
+    }
+   ]
+  },
+  "sin_cuenta": {
+   "filas": []
+  },
+  "ms": {}
+ },
+ "tru": {
+  "hoy": "2026-09-24",
+  "mes": "2026-09-01",
+  "mes_anterior": "2026-08-01",
+  "lider": true,
+  "ver": {
+   "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+   "solo_empresa": false,
+   "todas": false,
+   "tipo": "tienda",
+   "nombre": "Tienda TRU"
+  },
+  "parametros": {
+   "minimo_caja": 15000,
+   "aviso_gasto_pct": 25,
+   "aviso_vence_dias": 7
+  },
+  "unidades": [
+   {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "nombre": "Tienda TRU",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "nombre": "Tienda AQP",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "nombre": "Tienda LIM",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "nombre": "Taller",
+    "tipo": "taller"
+   }
+  ],
+  "resultados_mes": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "ventas_netas": 35280,
+     "costo_ventas": 15880,
+     "fletes": 336,
+     "mermas": 128,
+     "margen_bruto": 18936,
+     "planilla": 7800,
+     "depreciacion": 87,
+     "gastos_operacion": 13283,
+     "resultado": 5653,
+     "igv_ventas": 6350,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 7800
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 496
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 96
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 304
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 87
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "resultados_anterior": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "ventas_netas": 44100,
+     "costo_ventas": 19850,
+     "fletes": 420,
+     "mermas": 160,
+     "margen_bruto": 23670,
+     "planilla": 7800,
+     "depreciacion": 87,
+     "gastos_operacion": 13507,
+     "resultado": 10163,
+     "igv_ventas": 7938,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 7800
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 620
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 120
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 380
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 87
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "presupuesto": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "ventas",
+     "linea_nombre": "Ventas",
+     "tipo": "meta",
+     "orden_linea": 0,
+     "presupuesto": 46017,
+     "a_la_fecha": 35280,
+     "proyeccion": 44100,
+     "fijo": null,
+     "avance": 0.9583414824955995,
+     "se_pasa": false,
+     "estado": "en_camino"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "635",
+     "linea_nombre": "Alquileres",
+     "tipo": "tope",
+     "orden_linea": 1,
+     "presupuesto": 4500,
+     "a_la_fecha": 4500,
+     "proyeccion": 4500,
+     "fijo": null,
+     "avance": 1,
+     "se_pasa": false,
+     "estado": "al_filo"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "636",
+     "linea_nombre": "Servicios básicos",
+     "tipo": "tope",
+     "orden_linea": 2,
+     "presupuesto": 650,
+     "a_la_fecha": 496,
+     "proyeccion": 620,
+     "fijo": null,
+     "avance": 0.9538461538461539,
+     "se_pasa": false,
+     "estado": "dentro"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "656",
+     "linea_nombre": "Suministros y útiles",
+     "tipo": "tope",
+     "orden_linea": 3,
+     "presupuesto": 320,
+     "a_la_fecha": 304,
+     "proyeccion": 380,
+     "fijo": null,
+     "avance": 1.1875,
+     "se_pasa": true,
+     "estado": "se_pasa"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidad": "tienda",
+     "nombre": "Tienda TRU",
+     "orden": 1,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "631",
+     "linea_nombre": "Transporte y movilidad",
+     "tipo": "tope",
+     "orden_linea": 4,
+     "presupuesto": 150,
+     "a_la_fecha": 96,
+     "proyeccion": 120,
+     "fijo": null,
+     "avance": 0.8,
+     "se_pasa": false,
+     "estado": "dentro"
+    }
+   ]
+  },
+  "cuentas": {
+   "filas": [
+    {
+     "id": "00000000-0000-4000-9000-000000000003",
+     "nombre": "Cajón · Tienda TRU",
+     "tipo": "cajon",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "ubicacion_nombre": "Tienda TRU",
+     "numero": null,
+     "saldo": 1030,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 3
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000007",
+     "nombre": "Caja fuerte · Tienda TRU",
+     "tipo": "caja_fuerte",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "ubicacion_nombre": "Tienda TRU",
+     "numero": null,
+     "saldo": 1800,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 7
+    }
+   ]
+  },
+  "por_pagar": {
+   "dias": 7,
+   "total": 22312,
+   "n": 3,
+   "filas": [
+    {
+     "origen": "compras",
+     "id": "00000000-0000-4000-a000-000000000000",
+     "naturaleza": "mercaderia",
+     "proveedor_id": "x",
+     "proveedor": "Confecciones Andina SAC",
+     "documento": "F001-00812",
+     "tipo": "factura",
+     "concepto": null,
+     "fecha_emision": "2026-09-01",
+     "condicion": "credito",
+     "fecha_vencimiento": "2026-09-22",
+     "vence": "2026-09-22",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidades": "Tienda TRU",
+     "parte": false,
+     "total": 12400,
+     "pagado": 6000,
+     "saldo": 6400
+    },
+    {
+     "origen": "compras",
+     "id": "00000000-0000-4000-a000-000000000001",
+     "naturaleza": "gasto",
+     "proveedor_id": "x",
+     "proveedor": "Hidrandina",
+     "documento": "S120-554120",
+     "tipo": "factura",
+     "concepto": null,
+     "fecha_emision": "2026-09-01",
+     "condicion": "credito",
+     "fecha_vencimiento": "2026-09-28",
+     "vence": "2026-09-28",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "unidades": "Tienda TRU",
+     "parte": false,
+     "total": 612,
+     "pagado": 0,
+     "saldo": 612
+    }
+   ]
+  },
+  "flujo": {
+   "no_aplica": true
+  },
+  "igv": {
+   "no_aplica": true
+  },
+  "campanas": {
+   "filas": [
+    {
+     "etiqueta_id": "c08",
+     "nombre": "Aniversario CAYLA",
+     "desde": "2026-10-01",
+     "hasta": "2026-10-14",
+     "descuento_pct": 15,
+     "momento": "viene",
+     "dias": 14,
+     "tiendas": 3,
+     "ventas": null,
+     "normal": null,
+     "descuento": 0,
+     "prendas": null,
+     "margen_pct": null,
+     "margen_normal_pct": 0.52,
+     "margen_extra": null,
+     "meta_pct": 30,
+     "meta_campana": null,
+     "meta_normal": null,
+     "con_efecto": true
+    }
+   ]
+  },
+  "egresos": {
+   "n": 2,
+   "monto": 160,
+   "desde": "2026-08-31",
+   "por_ubicacion": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "nombre": "Tienda TRU",
+     "n": 2,
+     "monto": 160
+    }
+   ]
+  },
+  "fijos": {
+   "filas": []
+  },
+  "raros": {
+   "pct": 25,
+   "filas": []
+  },
+  "cierre": {
+   "mes": "2026-08-01",
+   "consolidado": false,
+   "unidades": [
+    {
+     "alcance": "ubicacion",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000001",
+     "nombre": "Tienda TRU",
+     "cerrada": true
+    }
+   ]
+  },
+  "sin_cuenta": {
+   "no_aplica": true
+  },
+  "ms": {}
+ },
+ "taller": {
+  "hoy": "2026-09-24",
+  "mes": "2026-09-01",
+  "mes_anterior": "2026-08-01",
+  "lider": true,
+  "ver": {
+   "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+   "solo_empresa": false,
+   "todas": false,
+   "tipo": "taller",
+   "nombre": "Taller"
+  },
+  "parametros": {
+   "minimo_caja": 15000,
+   "aviso_gasto_pct": 25,
+   "aviso_vence_dias": 7
+  },
+  "unidades": [
+   {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "nombre": "Tienda TRU",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "nombre": "Tienda AQP",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "nombre": "Tienda LIM",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "nombre": "Taller",
+    "tipo": "taller"
+   }
+  ],
+  "resultados_mes": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": 80,
+     "depreciacion": 40,
+     "gastos_operacion": 3224,
+     "resultado": -3224,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 80
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 1800
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 568
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 112
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 416
+      },
+      {
+       "cuenta": "634",
+       "nombre": "Mantenimiento",
+       "monto": 208
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 40
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "resultados_anterior": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": -2300,
+     "depreciacion": 40,
+     "gastos_operacion": 1170,
+     "resultado": -1170,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": -2300
+      },
+      {
+       "cuenta": "635",
+       "nombre": "Alquileres",
+       "monto": 1800
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 710
+      },
+      {
+       "cuenta": "631",
+       "nombre": "Transporte",
+       "monto": 140
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 520
+      },
+      {
+       "cuenta": "634",
+       "nombre": "Mantenimiento",
+       "monto": 260
+      },
+      {
+       "cuenta": "681",
+       "nombre": "Depreciación",
+       "monto": 40
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "presupuesto": {
+   "filas": [
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "635",
+     "linea_nombre": "Alquileres",
+     "tipo": "tope",
+     "orden_linea": 1,
+     "presupuesto": 1800,
+     "a_la_fecha": 1800,
+     "proyeccion": 1800,
+     "fijo": null,
+     "avance": 1,
+     "se_pasa": false,
+     "estado": "al_filo"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "636",
+     "linea_nombre": "Servicios básicos",
+     "tipo": "tope",
+     "orden_linea": 2,
+     "presupuesto": 720,
+     "a_la_fecha": 568,
+     "proyeccion": 710,
+     "fijo": null,
+     "avance": 0.9861111111111112,
+     "se_pasa": false,
+     "estado": "dentro"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "656",
+     "linea_nombre": "Suministros y útiles",
+     "tipo": "tope",
+     "orden_linea": 3,
+     "presupuesto": 540,
+     "a_la_fecha": 416,
+     "proyeccion": 520,
+     "fijo": null,
+     "avance": 0.9629629629629629,
+     "se_pasa": false,
+     "estado": "dentro"
+    },
+    {
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "unidad": "taller",
+     "nombre": "Taller",
+     "orden": 2,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "631",
+     "linea_nombre": "Transporte y movilidad",
+     "tipo": "tope",
+     "orden_linea": 4,
+     "presupuesto": 150,
+     "a_la_fecha": 112,
+     "proyeccion": 140,
+     "fijo": null,
+     "avance": 0.9333333333333333,
+     "se_pasa": false,
+     "estado": "dentro"
+    }
+   ]
+  },
+  "cuentas": {
+   "filas": [
+    {
+     "id": "00000000-0000-4000-9000-000000000006",
+     "nombre": "Fondo fijo · Taller",
+     "tipo": "cajon",
+     "cuenta_contable": "101",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "ubicacion_nombre": "Taller",
+     "numero": null,
+     "saldo": 630,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 6
+    }
+   ]
+  },
+  "por_pagar": {
+   "dias": 7,
+   "total": 3380,
+   "n": 1,
+   "filas": []
+  },
+  "flujo": {
+   "no_aplica": true
+  },
+  "igv": {
+   "no_aplica": true
+  },
+  "campanas": {
+   "no_aplica": true
+  },
+  "egresos": {
+   "n": 0,
+   "monto": 0,
+   "desde": "2026-08-31",
+   "por_ubicacion": []
+  },
+  "fijos": {
+   "filas": []
+  },
+  "raros": {
+   "pct": 25,
+   "filas": []
+  },
+  "cierre": {
+   "mes": "2026-08-01",
+   "consolidado": false,
+   "unidades": [
+    {
+     "alcance": "ubicacion",
+     "ubicacion_id": "00000000-0000-4000-8000-000000000004",
+     "nombre": "Taller",
+     "cerrada": false
+    }
+   ]
+  },
+  "sin_cuenta": {
+   "no_aplica": true
+  },
+  "ms": {}
+ },
+ "empresa": {
+  "hoy": "2026-09-24",
+  "mes": "2026-09-01",
+  "mes_anterior": "2026-08-01",
+  "lider": true,
+  "ver": {
+   "ubicacion_id": null,
+   "solo_empresa": true,
+   "todas": false,
+   "tipo": "empresa",
+   "nombre": "De la empresa"
+  },
+  "parametros": {
+   "minimo_caja": 15000,
+   "aviso_gasto_pct": 25,
+   "aviso_vence_dias": 7
+  },
+  "unidades": [
+   {
+    "id": "00000000-0000-4000-8000-000000000001",
+    "nombre": "Tienda TRU",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000002",
+    "nombre": "Tienda AQP",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000003",
+    "nombre": "Tienda LIM",
+    "tipo": "tienda"
+   },
+   {
+    "id": "00000000-0000-4000-8000-000000000004",
+    "nombre": "Taller",
+    "tipo": "taller"
+   }
+  ],
+  "resultados_mes": {
+   "filas": [
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": 4500,
+     "depreciacion": 0,
+     "gastos_operacion": 8860,
+     "resultado": -8860,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 528
+      },
+      {
+       "cuenta": "632",
+       "nombre": "Honorarios",
+       "monto": 1200
+      },
+      {
+       "cuenta": "637",
+       "nombre": "Publicidad",
+       "monto": 2560
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 72
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "resultados_anterior": {
+   "filas": [
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "ventas_netas": 0,
+     "costo_ventas": 0,
+     "fletes": 0,
+     "mermas": 0,
+     "margen_bruto": 0,
+     "planilla": 4500,
+     "depreciacion": 0,
+     "gastos_operacion": 9650,
+     "resultado": -9650,
+     "igv_ventas": 0,
+     "detalle_gastos": [
+      {
+       "cuenta": "62",
+       "nombre": "Planilla",
+       "monto": 4500
+      },
+      {
+       "cuenta": "636",
+       "nombre": "Servicios básicos",
+       "monto": 660
+      },
+      {
+       "cuenta": "632",
+       "nombre": "Honorarios",
+       "monto": 1200
+      },
+      {
+       "cuenta": "637",
+       "nombre": "Publicidad",
+       "monto": 3200
+      },
+      {
+       "cuenta": "656",
+       "nombre": "Suministros",
+       "monto": 90
+      }
+     ],
+     "detalle_mermas": [],
+     "unidades_sin_costo": 0,
+     "mermas_sin_costo": 0,
+     "asientos_descuadrados": 0,
+     "planilla_visible": true,
+     "planilla_nota": null
+    }
+   ]
+  },
+  "presupuesto": {
+   "filas": [
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "636",
+     "linea_nombre": "Servicios básicos",
+     "tipo": "tope",
+     "orden_linea": 1,
+     "presupuesto": 700,
+     "a_la_fecha": 528,
+     "proyeccion": 660,
+     "fijo": null,
+     "avance": 0.9428571428571428,
+     "se_pasa": false,
+     "estado": "dentro"
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "637",
+     "linea_nombre": "Publicidad y marketing",
+     "tipo": "tope",
+     "orden_linea": 2,
+     "presupuesto": 2500,
+     "a_la_fecha": 2560,
+     "proyeccion": 3200,
+     "fijo": null,
+     "avance": 1.28,
+     "se_pasa": true,
+     "estado": "se_pasa"
+    },
+    {
+     "ubicacion_id": null,
+     "unidad": "empresa",
+     "nombre": "De la empresa",
+     "orden": 3,
+     "momento": "en_curso",
+     "dia": 24,
+     "dias": 30,
+     "linea": "656",
+     "linea_nombre": "Suministros y útiles",
+     "tipo": "tope",
+     "orden_linea": 3,
+     "presupuesto": 100,
+     "a_la_fecha": 72,
+     "proyeccion": 90,
+     "fijo": null,
+     "avance": 0.9,
+     "se_pasa": false,
+     "estado": "dentro"
+    }
+   ]
+  },
+  "cuentas": {
+   "filas": [
+    {
+     "id": "00000000-0000-4000-9000-000000000000",
+     "nombre": "BCP · Cta. corriente",
+     "tipo": "banco",
+     "cuenta_contable": "104",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 38420,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 0
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000001",
+     "nombre": "Interbank · Cta. corriente",
+     "tipo": "banco",
+     "cuenta_contable": "104",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 12880,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 1
+    },
+    {
+     "id": "00000000-0000-4000-9000-000000000002",
+     "nombre": "Niubiz · tarjeta por abonar",
+     "tipo": "por_abonar",
+     "cuenta_contable": "105",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 2310,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 2
+    },
+    {
+     "id": "00000000-0000-4000-9000-0000000000010",
+     "nombre": "Efectivo entregado al líder",
+     "tipo": "por_rendir",
+     "cuenta_contable": "101",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": 0,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 10
+    },
+    {
+     "id": "00000000-0000-4000-9000-0000000000011",
+     "nombre": "Visa BCP empresa",
+     "tipo": "tarjeta_credito",
+     "cuenta_contable": "451",
+     "ubicacion_id": null,
+     "ubicacion_nombre": null,
+     "numero": null,
+     "saldo": -1850,
+     "archivada": false,
+     "solo_destino": false,
+     "caja_id": null,
+     "caja_abierta": false,
+     "saldo_desde": null,
+     "ultima_conciliacion": null,
+     "ultimo_abono": null,
+     "orden": 11
+    }
+   ]
+  },
+  "por_pagar": {
+   "dias": 7,
+   "total": 0,
+   "n": 0,
+   "filas": []
+  },
+  "flujo": {
+   "no_aplica": true
+  },
+  "igv": {
+   "no_aplica": true
+  },
+  "campanas": {
+   "no_aplica": true
+  },
+  "egresos": {
+   "no_aplica": true
+  },
+  "fijos": {
+   "filas": []
+  },
+  "raros": {
+   "pct": 25,
+   "filas": []
+  },
+  "cierre": {
+   "mes": "2026-08-01",
+   "consolidado": false,
+   "unidades": [
+    {
+     "alcance": "empresa",
+     "ubicacion_id": null,
+     "nombre": "De la empresa",
+     "cerrada": false
+    }
+   ]
+  },
+  "sin_cuenta": {
+   "filas": []
+  },
+  "ms": {}
+ },
+ "colaboradora": {
+  "ms": {
+   "igv": 0,
+   "fijos": 1,
+   "flujo": 0,
+   "raros": 4,
+   "cierre": 0,
+   "cuentas": 2,
+   "egresos": 1,
+   "campanas": 8,
+   "por_pagar": 1,
+   "sin_cuenta": 0,
+   "presupuesto": 38,
+   "resultados_mes": 31,
+   "resultados_anterior": 15
+  },
+  "hoy": "2026-09-24",
+  "igv": {
+   "no_aplica": true
+  },
+  "mes": "2026-09-01",
+  "ver": {
+   "tipo": "tienda",
+   "todas": false,
+   "nombre": "Tienda Trujillo",
+   "solo_empresa": false,
+   "ubicacion_id": "f775651f-62c8-4ff4-a414-b5614026d0cd"
+  },
+  "fijos": {
+   "sin_permiso": "Ver los gastos fijos necesita el módulo Gastos en tu rol."
+  },
+  "flujo": {
+   "no_aplica": true
+  },
+  "lider": false,
+  "raros": {
+   "pct": 25.0,
+   "filas": []
+  },
+  "cierre": {
+   "no_aplica": true
+  },
+  "cuentas": {
+   "sin_permiso": "Ver las cuentas necesita el módulo Cuentas y dinero en tu rol."
+  },
+  "egresos": {
+   "sin_permiso": "Ver los egresos de caja necesita el módulo Gastos en tu rol."
+  },
+  "campanas": {
+   "filas": [
+    {
+     "dias": 14,
+     "desde": "2026-10-01",
+     "hasta": "2026-10-14",
+     "nombre": "Aniversario CAYLA",
+     "normal": null,
+     "ventas": null,
+     "momento": "viene",
+     "prendas": null,
+     "tiendas": 1,
+     "meta_pct": null,
+     "descuento": 0.0,
+     "con_efecto": false,
+     "margen_pct": null,
+     "etiqueta_id": "36d04845-bc6a-4211-851b-9d36eeaa586a",
+     "meta_normal": null,
+     "margen_extra": null,
+     "meta_campana": null,
+     "descuento_pct": null,
+     "margen_normal_pct": 0.5125
+    }
+   ]
+  },
+  "unidades": [],
+  "por_pagar": {
+   "sin_permiso": "Ver lo que se debe necesita el módulo Cuentas y dinero en tu rol."
+  },
+  "parametros": {
+   "minimo_caja": 15000.0,
+   "actualizado_en": "2026-09-24T23:39:23.79038+00:00",
+   "aviso_gasto_pct": 25.0,
+   "aviso_vence_dias": 7
+  },
+  "sin_cuenta": {
+   "no_aplica": true
+  },
+  "presupuesto": {
+   "filas": [
+    {
+     "dia": 24,
+     "dias": 30,
+     "fijo": null,
+     "tipo": "meta",
+     "linea": "ventas",
+     "orden": 1,
+     "avance": null,
+     "estado": "sin_meta",
+     "nombre": "Tienda Trujillo",
+     "unidad": "tienda",
+     "momento": "en_curso",
+     "se_pasa": false,
+     "a_la_fecha": 262.54,
+     "proyeccion": 328.18,
+     "orden_linea": 0,
+     "presupuesto": null,
+     "linea_nombre": "Ventas",
+     "ubicacion_id": "f775651f-62c8-4ff4-a414-b5614026d0cd"
+    }
+   ]
+  },
+  "mes_anterior": "2026-08-01",
+  "resultados_mes": {
+   "desde": "2026-09-01",
+   "filas": [
+    {
+     "orden": 1,
+     "fletes": 0,
+     "mermas": 28.0,
+     "nombre": "Tienda Trujillo",
+     "unidad": "tienda",
+     "planilla": 0,
+     "resultado": 246.44,
+     "igv_ventas": 47.26,
+     "costo_ventas": 128.0,
+     "depreciacion": 0,
+     "margen_bruto": 106.54,
+     "ubicacion_id": "f775651f-62c8-4ff4-a414-b5614026d0cd",
+     "ventas_netas": 262.54,
+     "planilla_nota": null,
+     "detalle_gastos": [
+      {
+       "monto": -139.9,
+       "cuenta": "6599",
+       "nombre": "Diferencias de caja (faltantes y sobrantes)"
+      }
+     ],
+     "detalle_mermas": [
+      {
+       "monto": 28.0,
+       "regla": "merma_conteo"
+      }
+     ],
+     "gastos_operacion": -139.9,
+     "mermas_sin_costo": 0,
+     "planilla_visible": false,
+     "unidades_sin_costo": 0,
+     "asientos_descuadrados": 0
+    }
+   ],
+   "hasta": "2026-09-24"
+  },
+  "resultados_anterior": {
+   "desde": "2026-08-01",
+   "filas": [
+    {
+     "orden": 1,
+     "fletes": 0,
+     "mermas": 0,
+     "nombre": "Tienda Trujillo",
+     "unidad": "tienda",
+     "planilla": 0,
+     "resultado": 0,
+     "igv_ventas": 0,
+     "costo_ventas": 0,
+     "depreciacion": 0,
+     "margen_bruto": 0,
+     "ubicacion_id": "f775651f-62c8-4ff4-a414-b5614026d0cd",
+     "ventas_netas": 0,
+     "planilla_nota": null,
+     "detalle_gastos": [],
+     "detalle_mermas": [],
+     "gastos_operacion": 0,
+     "mermas_sin_costo": 0,
+     "planilla_visible": false,
+     "unidades_sin_costo": 0,
+     "asientos_descuadrados": 0
+    }
+   ],
+   "hasta": "2026-08-31"
+  }
+ }
+}

@@ -198,3 +198,86 @@ export function GuiaVacia({ sobre, titulo, children }: { sobre: string; titulo: 
     </div>
   );
 }
+
+// ---- F5 · Gráfico de barras de una sola serie (Reportes ▸ Campañas; lo puede usar el Flujo) -------------------------------
+
+export type BarraFin = { nombre: string; valor: number; mala?: boolean; malaTexto?: string; detalle?: string };
+
+/**
+ * El gráfico del spike (`barras()` de marco.js): una serie en tinta; el rojo marca SOLO una pérdida o algo bajo el umbral y
+ * siempre lleva su etiqueta (nunca el color solo). Etiquetas directas sobre cada barra; el detalle, al pasar el mouse
+ * (`<title>`, sin estado: se dibuja desde el servidor). `umbral` dibuja una línea punteada con su leyenda.
+ */
+export function BarrasFin({
+  barras,
+  alto = 190,
+  ancho = 640,
+  umbral,
+  umbralTexto,
+  etiquetaValor,
+  etiqueta,
+}: {
+  barras: BarraFin[];
+  alto?: number;
+  /** El ancho del lienzo: en una columna angosta, menos ancho = letras más grandes (el SVG se escala al contenedor). */
+  ancho?: number;
+  umbral?: number;
+  umbralTexto?: string;
+  etiquetaValor: (v: number) => string;
+  etiqueta: string;
+}) {
+  const W = ancho;
+  const pad = { t: 34, r: 12, b: 46, l: 12 };
+  const max = Math.max(0, ...barras.map((b) => b.valor), umbral ?? 0);
+  const min = Math.min(0, ...barras.map((b) => b.valor));
+  const y = (v: number) => pad.t + ((max - v) / (max - min || 1)) * (alto - pad.t - pad.b);
+  const bw = barras.length ? (W - pad.l - pad.r) / barras.length : 0;
+  return (
+    <div className="fin-grafico">
+      <svg viewBox={`0 0 ${W} ${alto}`} role="img" aria-label={`${etiqueta}: ${barras.map((b) => `${b.nombre} ${etiquetaValor(b.valor)}`).join("; ")}`}>
+        <line x1={pad.l} x2={W - pad.r} y1={y(0)} y2={y(0)} className="fin-grafico-base" />
+        {umbral != null && <line x1={pad.l} x2={W - pad.r} y1={y(umbral)} y2={y(umbral)} className="fin-grafico-umbral" />}
+        {barras.map((b, i) => {
+          const x = pad.l + i * bw + bw * 0.2;
+          const w = bw * 0.6;
+          const y0 = y(0);
+          const y1 = y(b.valor);
+          const arriba = Math.min(y0, y1);
+          const h = Math.max(2, Math.abs(y1 - y0));
+          const rr = Math.min(4, w / 2, h);
+          // Extremo del dato redondeado, anclado a la línea base.
+          const d =
+            b.valor >= 0
+              ? `M${x},${y0} V${arriba + rr} q0,-${rr} ${rr},-${rr} h${w - 2 * rr} q${rr},0 ${rr},${rr} V${y0} Z`
+              : `M${x},${y0} V${arriba + h - rr} q0,${rr} ${rr},${rr} h${w - 2 * rr} q${rr},0 ${rr},-${rr} V${y0} Z`;
+          const ly = b.valor >= 0 ? arriba - 7 : arriba + h + 14;
+          const ly2 = b.valor >= 0 ? ly - 14 : ly + 13;
+          return (
+            <g key={`${b.nombre}-${i}`} className={`fin-grafico-barra ${b.mala ? "fin-grafico-mala" : ""}`} tabIndex={0}>
+              <title>{b.detalle ?? `${b.nombre}: ${etiquetaValor(b.valor)}`}</title>
+              <rect x={pad.l + i * bw} y={pad.t - 10} width={bw} height={alto - pad.t - pad.b + 20} fill="transparent" />
+              <path d={d} />
+              <text x={x + w / 2} y={ly} textAnchor="middle" className="fin-grafico-valor">
+                {etiquetaValor(b.valor)}
+              </text>
+              {b.mala && b.malaTexto && (
+                <text x={x + w / 2} y={ly2} textAnchor="middle" className="fin-grafico-valor">
+                  {b.malaTexto}
+                </text>
+              )}
+              <text x={x + w / 2} y={alto - 6} textAnchor="middle" className="fin-grafico-eje">
+                {b.nombre}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {umbral != null && umbralTexto && (
+        <p className="fin-grafico-leyenda">
+          <i />
+          {umbralTexto}
+        </p>
+      )}
+    </div>
+  );
+}

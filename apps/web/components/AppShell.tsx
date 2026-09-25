@@ -159,6 +159,10 @@ const IC: Record<ClaveIcono | "nuevo" | "chevron", string> = {
   notasCredito: "M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
   // Billetera: la plata que sale para que el negocio funcione (Finanzas ▸ Gastos, ADR-0195 F2).
   gastos: "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z",
+  dinero: "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z",
+  reportes: "M4 20V10 M10 20V4 M16 20v-7 M3 20h18",
+  impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
+  cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
   chevron: "M9 6l6 6-6 6",
 };
 

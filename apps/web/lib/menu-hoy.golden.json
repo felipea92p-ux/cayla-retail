@@ -185,7 +185,19 @@
             ],
             "insignia": 3
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -253,7 +265,19 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -485,7 +509,19 @@
             ],
             "insignia": 3
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -562,7 +598,19 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -765,7 +813,19 @@
             ],
             "insignia": 3
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
@@ -833,7 +893,19 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ]
           },
-          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
+          }
         ],
         "movil": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },

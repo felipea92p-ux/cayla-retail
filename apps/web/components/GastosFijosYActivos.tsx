@@ -58,6 +58,7 @@ export function FijosDelMes({
   esLider,
   onRegistrar,
   onMarcarFijo,
+  onNoEsFijo,
 }: {
   fijos: GastoFijoMes[];
   sugeridos: FijoSugerido[];
@@ -65,6 +66,7 @@ export function FijosDelMes({
   esLider: boolean;
   onRegistrar: (f: GastoFijoMes) => void;
   onMarcarFijo: (s: FijoSugerido) => void;
+  onNoEsFijo: (s: FijoSugerido) => void;
 }) {
   const vienen = fijos.filter((f) => f.estado === "por_llegar");
   const faltan = fijos.filter((f) => f.estado === "falta");
@@ -145,9 +147,14 @@ export function FijosDelMes({
                     detalle={`${s.categoriaNombre} · ${s.meses} de 3 meses, cerca del día ${s.diaDelMes}`}
                     monto={solesRedondo(s.monto)}
                   >
-                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onMarcarFijo(s)}>
-                      Marcar fijo
-                    </button>
+                    <span className="flex items-center gap-2.5">
+                      <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={() => onMarcarFijo(s)}>
+                        Marcar fijo
+                      </button>
+                      <button type="button" className="btn-enlace text-[12.5px]" onClick={() => onNoEsFijo(s)}>
+                        No es fijo
+                      </button>
+                    </span>
                   </FilaFijo>
                 ))}
               </ul>
@@ -181,6 +188,51 @@ function NotaFijos() {
     <p className="nota-cayla">
       Un gasto fijo es un recordatorio, no un gasto: <b>solo cuenta cuando se registra</b> con lo que llegó de verdad. Si su día pasó y no hay gasto, sale en «Faltan».
     </p>
+  );
+}
+
+/** «No es fijo»: la sugerencia deja de aparecer (se recuerda por tienda, categoría y proveedor; se puede revertir). */
+export function NoEsFijoModal({ sugerido: s, onCerrar }: { sugerido: FijoSugerido; onCerrar: () => void }) {
+  const router = useRouter();
+  const responsable = useResponsable();
+  const [guardando, setGuardando] = useState(false);
+
+  async function confirmar() {
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
+    setGuardando(true);
+    const { error } = await firmar(
+      createClient().rpc("descartar_fijo_sugerido" as never, { p_ubicacion_id: s.ubicacionId, p_categoria: s.categoria, p_proveedor_id: s.proveedorId } as never),
+      responsable.firma(),
+    );
+    setGuardando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "descartar la sugerencia"));
+    avisar.exito("Listo: no se volverá a proponer", { detalle: `${s.proveedorNombre ?? s.descripcion} · ${s.ubicacionNombre}` });
+    onCerrar();
+    router.refresh();
+  }
+
+  return (
+    <Modal
+      variante="hoja"
+      titulo="¿No es un gasto fijo?"
+      subtitulo={`${s.proveedorNombre ?? s.descripcion} · ${s.ubicacionNombre} · ${s.categoriaNombre}. Se repitió ${s.meses} de los últimos 3 meses, pero si no se paga todos los meses, deja de proponerse. Sus gastos ya registrados no cambian.`}
+      onClose={onCerrar}
+      ancho="max-w-[520px]"
+    >
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
+      <div className="fin-botones mt-4">
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </button>
+        <button type="button" className="btn-cayla btn-primario" onClick={confirmar} disabled={guardando || !responsable.listo}>
+          {guardando ? "Guardando…" : "No es fijo"}
+        </button>
+      </div>
+    </Modal>
   );
 }
 

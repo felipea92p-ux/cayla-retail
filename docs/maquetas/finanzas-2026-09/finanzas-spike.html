@@ -571,7 +571,7 @@ const CATEGORIAS = [
 ];
 const cat = c => CATEGORIAS.find(x=>x.c===c);
 
-// Cuentas y dinero (§7 del plan). Yape y Plin NO son cuentas: son canales que caen en una cuenta de banco (ADR-0109).
+// Cuentas y dinero (§7 del plan). Yape y Plin NO son cuentas: son canales que caen en una cuenta de banco (ADR-0198).
 const CUENTAS = [
   {id:'bcp',  n:'BCP · Cta. corriente',        tipo:'banco',   cta:'104', saldo:38420, conciliado:'2026-09-19', banco:38420,
    recibe:'Yape de TRU y AQP · transferencias'},
@@ -694,7 +694,7 @@ const FLUJO_SEMANAS = [
   {s:'2 – 8 nov',      entra:22000, sale:14600, que:'Proveedores de temporada'},
 ];
 
-// Balance al 31-ago (cerrado). Capital es una ENTRADA, nunca el residual (ADR-0109).
+// Balance al 31-ago (cerrado). Capital es una ENTRADA, nunca el residual (ADR-0198).
 const BALANCE = {
   activo: [['101','Caja (cajones y fondo fijo)',5420],['104','Bancos',47900],['105','Tarjeta por abonar',2310],
            ['201','Mercaderías',186400],['211','Productos terminados del Taller',12600],['24','Insumos del Taller (tela, avíos)',8900],
@@ -1616,7 +1616,7 @@ VISTAS.reportes = () => {
   const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, campanas:vistaCampanas, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
   const alcance = ['resultados','presupuesto'].includes(tab) ? filtroVer() : filtroVer('empresa');
   return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', campanas:'¿Valen la pena las campañas?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
-    bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
+    bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento.',
       presupuesto:'Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo.',
       campanas:'Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen.',
       escenarios:'Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir.',
@@ -1733,7 +1733,7 @@ function vistaBalance(){
     <div class="prioridades-cab"><div><h2>Antes de dibujarlo, el sistema lo comprueba</h2><p>Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra: un número falso es peor que ninguno.</p></div>
       <label class="btn btn-sutil btn-sm" style="gap:8px"><input type="checkbox" data-cambia="descuadre" ${E.descuadre?'checked':''}> Demo: simular un descuadre</label></div>
     <ul class="chequeos">${chequeos.map(c=>`<li><span class="ok-ic ${c.a===c.b?'':'no-ic'}">${c.a===c.b?'✓':'!'}</span><div><b>${c.cta}</b><p>contra ${c.contra}</p></div><span>${c.a===c.b?S(c.a):`${S(c.a)} ≠ ${S(c.b)}`}</span></li>`).join('')}</ul>
-    ${F('nuevo','fn_conciliacion_contable (ADR-0109)')}
+    ${F('nuevo','fn_conciliacion_contable (ADR-0198)')}
   </div>
   ${cuadra ? `
   <div class="superficie pad anim-sube">
@@ -1928,7 +1928,7 @@ VISTAS.cierre = () => {
   const consolidado = est.CONS;
   const u = E.unidadCierre, ch = chequeosDe(u), listo = ch.every(c=>c.ok), cerrada = est[u]?.c;
   return `
-  ${cabecera({sobre:'Finanzas · Cierre de mes', titulo:'Cerrar ' + mesLargo(mes), bajada:'Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda y el Taller; CAYLA entera, cuando cerraron todas (ADR-0109).',
+  ${cabecera({sobre:'Finanzas · Cierre de mes', titulo:'Cerrar ' + mesLargo(mes), bajada:'Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda y el Taller; CAYLA entera, cuando cerraron todas (ADR-0198).',
     acciones:`${filtroVer('empresa')}<select class="control" data-cambia="mesCierre"><option value="2026-07"${mes==='2026-07'?' selected':''}>Julio 2026</option><option value="2026-08"${mes==='2026-08'?' selected':''}>Agosto 2026</option></select>`})}
   <div class="matriz anim-sube">
     ${UNIDADES.map(x=>{ const s = est[x.k]||{}; return `<button class="unidad-c" data-accion="unidad-cierre" data-id="${x.k}" aria-pressed="${x.k===u}">

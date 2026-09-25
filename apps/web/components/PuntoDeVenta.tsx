@@ -1297,7 +1297,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         </Modal>
       )}
       {modalCerrarVisible && cajaId && (
-        <CerrarCajaModalV2 cajaId={cajaId} cola={cola} onClose={() => setModalCaja(null)} />
+        <CerrarCajaModalV2 cajaId={cajaId} cola={cola} ubicacionId={ubicacionId} onClose={() => setModalCaja(null)} />
       )}
 
       {ok && <VentaRegistradaModal ok={ok} ubicacionEtiqueta={ubicacionEtiqueta} onClose={cerrarVentaRegistrada} alCerrarEnfocar={buscador} />}
