@@ -285,6 +285,16 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
+            ]
+          },
+          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -326,16 +336,6 @@
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
-            ]
           }
         ],
         "movil": [
@@ -348,6 +348,16 @@
       "sinTraslados": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
+            ]
+          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -389,16 +399,6 @@
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
             ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
-            ]
           }
         ],
         "movil": [
@@ -416,6 +416,27 @@
       "conTraslados3": {
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
+            ]
+          },
           {
             "grupo": "venta",
             "etiqueta": "Ventas",
@@ -458,27 +479,6 @@
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              {
-                "grupo": "produccion.abastecimiento",
-                "etiqueta": "Abastecimiento",
-                "icono": "compras",
-                "hijos": [
-                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
-                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
-                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
-                ]
-              }
             ]
           },
           {
@@ -506,6 +506,27 @@
         "escritorio": [
           { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
           {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
+            ]
+          },
+          {
             "grupo": "venta",
             "etiqueta": "Ventas",
             "icono": "venta",
@@ -546,27 +567,6 @@
               { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
               { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
               { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
-            ]
-          },
-          {
-            "grupo": "produccion",
-            "etiqueta": "Producción",
-            "icono": "produccion",
-            "hijos": [
-              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
-              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
-              {
-                "grupo": "produccion.abastecimiento",
-                "etiqueta": "Abastecimiento",
-                "icono": "compras",
-                "hijos": [
-                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
-                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
-                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
-                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
-                ]
-              }
             ]
           },
           {

@@ -172,10 +172,13 @@ export function esGrupo(n: Nodo): n is Grupo {
 
 /* ------------------------------------------------------------------
    El árbol de HOY (más lo que viene)
-   El orden es el del menú, «mostrador primero» (Felipe, 2026-09-25): Inicio, Ventas, Inventario, Catálogo, Compras,
-   Producción, Finanzas. Lo que se usa cada hora en tienda va arriba; lo que usa sobre todo el líder, abajo. Es el mismo
-   orden de grupos de Roles y accesos (`MODULOS` en `modulos.ts`), para que el líder encuentre cada módulo en el mismo
-   lugar en las dos pantallas. Compras y Producción nunca salen juntas (una por tipo de ubicación): ocupan el mismo puesto.
+   El orden es el del menú, «lo de todos los días primero» (Felipe, 2026-09-25): Inicio, Producción, Ventas, Inventario,
+   Catálogo, Compras, Finanzas. En una tienda se ve Inicio, Ventas, Inventario, Catálogo, Compras, Finanzas: el mostrador
+   arriba, lo que usa sobre todo el líder abajo, igual que los grupos de Roles y accesos (`MODULOS` en `modulos.ts`), para
+   que el líder encuentre cada módulo en el mismo lugar en las dos pantallas. En el Taller el trabajo diario es fabricar,
+   así que Producción va primera, pegada a Inicio. No hace falta ninguna regla por ubicación: Producción solo sale en el
+   Taller (`ubicaciones: ["taller"]`), así que en una tienda su puesto simplemente no existe. Único desvío de Roles y
+   accesos, a propósito: allí Producción va después de Compras.
    Antes (2026-09-16) era Inicio, Catálogo, Producción, Compras, Ventas, Inventario.
    ------------------------------------------------------------------ */
 
@@ -187,6 +190,57 @@ export const ARBOL: readonly Nodo[] = [
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
   // menú el 2026-09-22; Felipe pidió ese mismo día dejarlo en el perfil (se corrige en main después). La ruta
   // `/colaboradores` sigue exigiendo el permiso en la página y en la RPC.
+
+  // Producción (ADR-0133): el módulo de fabricar. Solo se ve PARADO EN UN TALLER, líder incluido (Felipe, 2026-09-20):
+  // se decide por el TIPO de la ubicación activa, no por su nombre — un segundo Taller entraría solo. Es visibilidad; la
+  // base sigue dejando al líder operar el Taller desde cualquier sede (`fn_puede_operar_ubicacion`).
+  //
+  // REGRUPADO (D-84, ADR-0155, 2026-09-21): quien ve el dinero y analiza (el líder) llegó a contar 7 hijas acá (Resumen,
+  // Órdenes, Insumos, Proveedores, Comprobantes, Recibir, Por pagar) — por encima del tope de 6 por grupo, deuda declarada
+  // desde que «Resumen» entró (F6, #231). Las cuatro de dinero/abastecimiento bajan un nivel, a `produccion.abastecimiento`
+  // (mismo patrón que ya usa «Compras»: una cabecera que agrupa, no una pantalla propia). Producción vuelve a 4 hijas de
+  // primer nivel, con sitio de sobra para cuando `produccion.eficiencia` (F7) esté lista.
+  {
+    id: "produccion", etiqueta: "Producción", estado: "viva", icono: "produccion", raiz: "/produccion", pajaro: "10 Gallito", ubicaciones: ["taller"],
+    hijos: [
+      // Resumen (F6, #231): «¿qué necesita mi decisión hoy?». Es la página raíz del módulo (`/produccion`), una lectura de
+      // decisión que mezcla ventas de la red y dinero: solo el líder (`verDinero`; hasta el 2026-09-22 era `analizar`, que
+      // desde entonces sale del módulo Análisis y no abre nada del Taller); quien trabaja en el Taller va directo a Órdenes.
+      // Va PRIMERA. Su ruta es la `raiz` del grupo: el riel resuelve la fila activa por coincidencia exacta y luego por el
+      // prefijo más largo, así que en `/produccion/ordenes` sigue marcando Órdenes y no Resumen.
+      { id: "produccion.resumenProduccion", modulo: "produccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "verDinero" },
+      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
+      { id: "produccion.insumos", modulo: "produccion", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
+      // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
+      // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
+      // que «Compras» agrupa a las suyas — el mismo trazo (`icono: "compras"`) a propósito, es el mismo concepto (abastecerse
+      // de un proveedor) aplicado al Taller en vez de a la tienda. `raiz` reutiliza la ruta de su primera hija (Proveedores):
+      // el subgrupo no tiene pantalla propia, así como la `raiz` de Producción reutiliza la de Resumen y la de Catálogo la de
+      // Productos. Proveedores, Comprobantes y Por pagar solo para quien ve el dinero (D-G): llevan datos bancarios de terceros
+      // y montos comprados. Recibir NO exige dinero: lo usa también quien trabaja en el Taller — por eso, para quien no ve el
+      // dinero, `menuPara` deshace el subgrupo solo (le queda una única hija visible, «Recibir») y sube esa hija con SU propio
+      // nombre, no con «Abastecimiento»: el subgrupo es una etiqueta de organización para quien ve varias pantallas, no una que
+      // valga la pena imponerle a quien solo necesita recibir tela. El id de cada hija termina en «Produccion» a propósito: es
+      // la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras. El pájaro es
+      // Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y Recibir escribe `insumo_lotes`,
+      // también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
+      {
+        id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
+        hijos: [
+          { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
+          { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Facturas de insumos", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
+          // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
+          // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
+          { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
+          { id: "produccion.porPagarProduccion", modulo: "produccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
+        ],
+      },
+      // F7 (2026-09-22) ya existe: `/produccion/eficiencia`. NO es una fila del lateral a propósito: vive como PESTAÑA del
+      // Resumen («Hoy | Eficiencia»), que es su puerta. Con el regrupo de arriba, sumarla como quinta hija cuando nazca
+      // sigue dejando a Producción dentro del tope de 6 (D-84 lo dejó con sitio de sobra a propósito).
+      { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Existe como pestaña del Resumen: /produccion/eficiencia (F7). No es fila del lateral." },
+    ],
+  },
 
   // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
   // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
@@ -266,57 +320,6 @@ export const ARBOL: readonly Nodo[] = [
       // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
       // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
       { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-    ],
-  },
-
-  // Producción (ADR-0133): el módulo de fabricar. Solo se ve PARADO EN UN TALLER, líder incluido (Felipe, 2026-09-20):
-  // se decide por el TIPO de la ubicación activa, no por su nombre — un segundo Taller entraría solo. Es visibilidad; la
-  // base sigue dejando al líder operar el Taller desde cualquier sede (`fn_puede_operar_ubicacion`).
-  //
-  // REGRUPADO (D-84, ADR-0155, 2026-09-21): quien ve el dinero y analiza (el líder) llegó a contar 7 hijas acá (Resumen,
-  // Órdenes, Insumos, Proveedores, Comprobantes, Recibir, Por pagar) — por encima del tope de 6 por grupo, deuda declarada
-  // desde que «Resumen» entró (F6, #231). Las cuatro de dinero/abastecimiento bajan un nivel, a `produccion.abastecimiento`
-  // (mismo patrón que ya usa «Compras»: una cabecera que agrupa, no una pantalla propia). Producción vuelve a 4 hijas de
-  // primer nivel, con sitio de sobra para cuando `produccion.eficiencia` (F7) esté lista.
-  {
-    id: "produccion", etiqueta: "Producción", estado: "viva", icono: "produccion", raiz: "/produccion", pajaro: "10 Gallito", ubicaciones: ["taller"],
-    hijos: [
-      // Resumen (F6, #231): «¿qué necesita mi decisión hoy?». Es la página raíz del módulo (`/produccion`), una lectura de
-      // decisión que mezcla ventas de la red y dinero: solo el líder (`verDinero`; hasta el 2026-09-22 era `analizar`, que
-      // desde entonces sale del módulo Análisis y no abre nada del Taller); quien trabaja en el Taller va directo a Órdenes.
-      // Va PRIMERA. Su ruta es la `raiz` del grupo: el riel resuelve la fila activa por coincidencia exacta y luego por el
-      // prefijo más largo, así que en `/produccion/ordenes` sigue marcando Órdenes y no Resumen.
-      { id: "produccion.resumenProduccion", modulo: "produccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "verDinero" },
-      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
-      { id: "produccion.insumos", modulo: "produccion", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
-      // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
-      // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
-      // que «Compras» agrupa a las suyas — el mismo trazo (`icono: "compras"`) a propósito, es el mismo concepto (abastecerse
-      // de un proveedor) aplicado al Taller en vez de a la tienda. `raiz` reutiliza la ruta de su primera hija (Proveedores):
-      // el subgrupo no tiene pantalla propia, así como la `raiz` de Producción reutiliza la de Resumen y la de Catálogo la de
-      // Productos. Proveedores, Comprobantes y Por pagar solo para quien ve el dinero (D-G): llevan datos bancarios de terceros
-      // y montos comprados. Recibir NO exige dinero: lo usa también quien trabaja en el Taller — por eso, para quien no ve el
-      // dinero, `menuPara` deshace el subgrupo solo (le queda una única hija visible, «Recibir») y sube esa hija con SU propio
-      // nombre, no con «Abastecimiento»: el subgrupo es una etiqueta de organización para quien ve varias pantallas, no una que
-      // valga la pena imponerle a quien solo necesita recibir tela. El id de cada hija termina en «Produccion» a propósito: es
-      // la clave que `produccion-menu.ts` ya expone (`ClaveMenuProduccion`) y no debe chocar con las de Compras. El pájaro es
-      // Gallito: `aviario.mjs` le da `proveedores_produccion` y `comprobantes_produccion` (y Recibir escribe `insumo_lotes`,
-      // también suyo). Orden como en Compras: proveedor → comprobante → recibir → pago.
-      {
-        id: "produccion.abastecimiento", etiqueta: "Abastecimiento", estado: "viva", icono: "compras", raiz: "/produccion/proveedores", pajaro: "10 Gallito",
-        hijos: [
-          { id: "produccion.proveedoresProduccion", modulo: "produccion", etiqueta: "Proveedores", estado: "viva", ruta: "/produccion/proveedores", icono: "proveedores", pajaro: "10 Gallito", exige: "verDinero" },
-          { id: "produccion.comprobantesProduccion", modulo: "produccion", etiqueta: "Facturas de insumos", estado: "viva", ruta: "/produccion/comprobantes", icono: "facturas", pajaro: "10 Gallito", exige: "verDinero" },
-          // OJO, no es «Recibir mercadería»: aquel (`/recibir`, de Compras e Inventario) recibe prendas contra un envío; este
-          // recibe tela y avíos contra un comprobante de Producción. Dos pantallas de dos módulos, una etiqueta parecida.
-          { id: "produccion.recibirProduccion", modulo: "produccion", etiqueta: "Recibir", estado: "viva", ruta: "/produccion/recibir", icono: "recibir", pajaro: "10 Gallito" },
-          { id: "produccion.porPagarProduccion", modulo: "produccion", etiqueta: "Por pagar", estado: "viva", ruta: "/produccion/por-pagar", icono: "porPagar", pajaro: "10 Gallito", exige: "verDinero" },
-        ],
-      },
-      // F7 (2026-09-22) ya existe: `/produccion/eficiencia`. NO es una fila del lateral a propósito: vive como PESTAÑA del
-      // Resumen («Hoy | Eficiencia»), que es su puerta. Con el regrupo de arriba, sumarla como quinta hija cuando nazca
-      // sigue dejando a Producción dentro del tope de 6 (D-84 lo dejó con sitio de sobra a propósito).
-      { id: "produccion.eficiencia", etiqueta: "Eficiencia", estado: "futura", pajaro: "10 Gallito", nota: "Existe como pestaña del Resumen: /produccion/eficiencia (F7). No es fila del lateral." },
     ],
   },
 
