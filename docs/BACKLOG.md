@@ -29,6 +29,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 ---
 
 
+## 🎯 Fotos de perfil desde Dynamic (2026-09-25) — migración `20260925210000` POR PEGAR en producción; web en PR
+Retail muestra la foto que cada persona tiene en Dynamic (lateral, «Mi perfil», combo «Responsable», Colaboradores). Antes salía una imagen rota en «Mi perfil» y cambiar la foto desde retail fallaba al guardar.
+- [ ] Pegar `supabase/migrations/20260925210000_fotos_de_perfil_desde_dynamic.sql` en el SQL Editor de producción (ya trae `retail.`; sin políticas ni candados de `auth`/`storage`). El orden con la web no importa: sin la función se ven las iniciales, como hoy.
+- [ ] Con la web publicada: abrir «Mi perfil», cambiar la foto y comprobar que el lateral la cambia sin recargar (la subida real no se pudo probar en local: Docker caído).
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.
+
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.

@@ -13,6 +13,7 @@ import { esGrupoMenu as esGrupo, hojasDe, menuPara, permisosDe, rutaActiva, type
 import type { ClaveModulo } from "@/lib/modulos";
 import { PerfilModal } from "@/components/PerfilModal";
 import { IconoAparato } from "@/components/ui/IconoAparato";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 
 // Navegación v3 (aprobada 2026-07-18, investigada de QuickBooks + POS retail):
@@ -65,6 +66,8 @@ import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 // falta traducir nada.
 type Persona = {
   nombre: string;
+  /** `public.personas.id`, para su foto de Dynamic en el pie del lateral. `null` en una terminal o sin dato: iniciales. */
+  personaId?: string | null;
   rol: "lider" | "integrante";
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -973,15 +976,6 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
   const columnas = menu.movil;
   const indiceMovil = columnas.findIndex((c) => c !== null && activo(c.href));
 
-  const iniciales =
-    persona.nombre
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((p) => p.charAt(0))
-      .join("")
-      .toUpperCase() || "·";
-
   return (
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
@@ -1093,12 +1087,11 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
                 aria-label={plegado ? "Mi perfil" : undefined}
                 className="group flex min-w-0 flex-1 items-center gap-3 text-left"
               >
-                <span
-                  aria-hidden
-                  className="font-display flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-sand text-sm text-tinta transition-colors group-hover:bg-rojo/15"
-                >
-                  {iniciales}
-                </span>
+                <AvatarPersona
+                  personaId={persona.personaId}
+                  nombre={persona.nombre}
+                  className="h-9 w-9 text-sm transition-colors group-hover:bg-rojo/15"
+                />
                 <div className={`min-w-0 flex-1 transition-opacity duration-200 ${plegado ? "opacity-0" : ""}`}>
                   <p className="truncate text-sm text-tinta transition-colors group-hover:text-rojo">{persona.nombre}</p>
                   <p className="label-cayla mt-0.5 truncate text-[11px] text-tinta/65">
