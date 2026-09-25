@@ -27,6 +27,7 @@
     "pruebas:presupuesto": "node scripts/pruebas/presupuesto.mjs",
     "pruebas:cierre-mes": "node scripts/pruebas/cierre_mes.mjs",
     "pruebas:balance": "node scripts/pruebas/balance.mjs",
+    "pruebas:resumen-finanzas": "node scripts/pruebas/resumen_finanzas.mjs",
     "pruebas:totales-caja-historial": "node scripts/pruebas/totales_caja_e_historial.mjs",
     "pruebas:fn-aplicar-movimiento": "node scripts/pruebas/fn_aplicar_movimiento.mjs",
     "pruebas:apartar-stock": "node scripts/pruebas/apartar_stock.mjs",
