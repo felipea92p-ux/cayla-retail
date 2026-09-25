@@ -6,8 +6,8 @@
 --   verde militar no hay dónde registrarla: el propio buscador de Nuevo
 --   producto sugiere «petróleo, coral…» y ninguno de los dos existía. La
 --   persona elige el más parecido (el stock queda bajo un color que no es)
---   o propone uno nuevo con el nombre que se le ocurre (así nació
---   «Marrón chocolate», MAC, al lado de «Chocolate»).
+--   o propone uno nuevo con el nombre que se le ocurre (en producción ya
+--   convivían «Marrón chocolate», MAC, y «Chocolate»).
 --
 -- EL MÉTODO
 --   Felipe pidió (2026-09-25) completar las gamas esenciales de la moda,
@@ -30,8 +30,9 @@
 --   · Cereza — ΔE 7,2 con Vino: no hay lugar entre Rojo y Vino.
 --   · Durazno — casi idéntico a Salmón; en Perú se dice «salmón».
 --   · Menta — casi idéntico a Verde agua.
---   · Coñac — es el tono que ya tiene «Marrón chocolate» (MAC, #7B3F00,
---     solo en producción). Sumarlo repetiría ese color.
+--   · Coñac como fila nueva — es el tono que ya tenía «Marrón chocolate»
+--     (MAC, #7B3F00, solo en producción). En vez de sumarlo, MAC se
+--     renombra (abajo).
 --   · Guinda, Plomo, Café — son la forma peruana de decir Vino, Gris y
 --     Marrón: filas nuevas partirían el stock en dos. Son sinónimos, no
 --     colores; se resuelven en el buscador, no en esta tabla.
@@ -55,6 +56,14 @@
 --   solo decide en qué lugar se muestra: no cambia ningún código ni SKU.
 --   «Los más usados» sigue saliendo primero en Nuevo producto (por uso,
 --   no por `orden`).
+--
+-- «MARRÓN CHOCOLATE» (MAC) PASA A LLAMARSE «COÑAC» (Felipe, 2026-09-25)
+--   Lo creó alguien en producción, sin migración, al lado de «Chocolate»:
+--   dos nombres que se confunden para dos tonos distintos (#7B3F00 es
+--   coñac, rojizo; Chocolate es #4A2F22). Tenía 0 variantes. Se cambia
+--   solo el NOMBRE: el código MAC sigue, porque la clave primaria no se
+--   renombra (ver `color-codigo.ts`). En local la fila no existe y el
+--   update no toca nada.
 --
 -- NACEN 'aprobado', IGUAL QUE LOS 4 DE 20260918154730
 --   Sin sesión, `fn_colores_estado_trigger` los deja 'pendiente'; es
@@ -133,3 +142,7 @@ from (values
   ('PLA', 80), ('DOR', 83)
 ) as v(codigo, orden)
 where c.codigo = v.codigo and c.orden is distinct from v.orden;
+
+-- MAC: «Marrón chocolate» → «Coñac» (solo el nombre; el código no cambia).
+update retail.colores set nombre = 'Coñac'
+  where codigo = 'MAC' and nombre = 'Marrón chocolate';

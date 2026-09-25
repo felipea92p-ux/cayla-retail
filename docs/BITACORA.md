@@ -4,7 +4,7 @@
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
 ## 2026-09-25 (Paleta esencial de moda: 63 colores de claro a oscuro)
-Felipe pidió completar las gamas esenciales de la moda, unas 9 por familia. Entraron 32 colores (de 32 a 63; 64 en producción con MAC), y la paleta de Nuevo producto pasó a ser una carta de 9 columnas alineadas, de claro a oscuro. La migración `20260926100000` está por pegar.
+Felipe pidió completar las gamas esenciales de la moda, unas 9 por familia. Entraron 32 colores (de 32 a 63; 64 en producción con MAC), y la paleta de Nuevo producto pasó a ser una carta de 9 columnas alineadas, de claro a oscuro. Con el ok de Felipe, la migración `20260926100000` quedó aplicada en producción (primero se ensayó y se revirtió; luego se aplicó y se verificó: 64 activas). «Marrón chocolate» (MAC) pasó a llamarse «Coñac».
 Felipe se lleva: (1) **9 por familia es un tope, no una cuota.** Medidos con ΔE2000, Índigo, Cereza, Durazno y Menta se confundían con un color que ya existía. Sumarlos habría partido el stock de una misma prenda en dos filas; por eso son 63 y no 72. (2) No existe una lista oficial de Adobe: la lista sale del nombre que usa el retail de moda en Perú. (3) **Un duplicado ya se coló:** «Marrón chocolate» vive al lado de «Chocolate». El candado de nombre no lo frena porque los nombres son distintos. Lo que sí puede frenarlo es un buscador que conozca los sinónimos.
 
 ## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
