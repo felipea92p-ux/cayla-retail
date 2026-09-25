@@ -1,4 +1,4 @@
-# ADR-0207 · Cola sin conexión genérica, empezando por Recibir mercadería
+# ADR-0209 · Cola sin conexión genérica, empezando por Recibir mercadería
 
 - **Fecha:** 2026-09-25 · **Estado:** Aceptado y construido (paso 1: Recibir · paso 2: alta de producto · paso 3: abrir
   pantallas sin red con un service worker; ver «Actualización 2026-09-25 (b)» al final). **Producción:** ninguna migración ni RPC

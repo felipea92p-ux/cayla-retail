@@ -18,7 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 // galería de la edición (`/productos/{id}/editar#fotos`), que ya asigna cada foto a su color.
 
 export type ResumenCreado = {
-  /** `null` = guardado SIN CONEXIÓN (ADR-0207): todavía no existe en la base, así que no hay código ni ficha. */
+  /** `null` = guardado SIN CONEXIÓN (ADR-0209): todavía no existe en la base, así que no hay código ni ficha. */
   id: string | null;
   nombre: string;
   categoria: string;

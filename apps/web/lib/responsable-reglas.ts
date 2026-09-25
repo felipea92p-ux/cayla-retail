@@ -36,7 +36,7 @@ export type FilaDeTurno = {
   es_de_esta_sede: boolean;
 };
 
-/** La última lista de turno que este navegador leyó de una sede (ADR-0207): para abrir una pantalla sin red. */
+/** La última lista de turno que este navegador leyó de una sede (ADR-0209): para abrir una pantalla sin red. */
 export type TurnoGuardado = { filas: FilaDeTurno[]; leidoEn: string };
 
 /** Máximo que vale una lista de turno guardada: un turno largo de tienda. Más vieja, ya no dice quién está hoy. */

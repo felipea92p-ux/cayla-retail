@@ -82,7 +82,7 @@ export function RecibirLotePanel({
         )}
       </div>
 
-      {/* Lo que se recibió sin red y espera subir (ADR-0207): a la vista aunque el formulario esté cerrado. */}
+      {/* Lo que se recibió sin red y espera subir (ADR-0209): a la vista aunque el formulario esté cerrado. */}
       <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="recepción" varias="recepciones" />
 
       {aviso ? (

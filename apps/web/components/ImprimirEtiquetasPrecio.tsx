@@ -31,8 +31,8 @@ const plural =(n: number, uno: string, varios: string) => `${n} ${n === 1 ? uno 
 /**
  * Etiquetas de precio (ADR-0180): una fila por prenda con la cantidad editable, la vista previa y el botón que las
  * manda a la Brother. Los textos (de dónde vienen, qué decir si no hay nada) llegan del servidor (`encabezadoDeEtiquetas`). La hoja de impresión (`#etiquetas-precio-print`) va pegada a <body> con un
- * portal —como la boleta A4—: al imprimir, `globals.css` oculta todo lo demás y cada etiqueta (44 × 62 mm) va derecha y
- * centrada en su propia página de 62 × 62 mm: el ancho del rollo por el largo de cada corte.
+ * portal —como la boleta A4—: al imprimir, `globals.css` oculta todo lo demás y cada etiqueta (40,1 × 62 mm) va en su
+ * propia página de 62 × 40,1 mm —el ancho del rollo por el largo de cada corte—, girada o derecha según la forma A o B.
  */
 export function ImprimirEtiquetasPrecio({
   encabezado,
@@ -148,18 +148,22 @@ export function ImprimirEtiquetasPrecio({
       <div className="flex flex-wrap items-center gap-2 text-sm text-taupe">
         <span>Cómo la manda a la Brother:</span>
         {(["girada", "derecha"] as const).map((m) => (
-          <button key={m} type="button" className={`pildora-cayla ${modo === m ? "text-tinta font-semibold" : ""}`} aria-pressed={modo === m} onClick={() => elegirModo(m)}>
+          // La elegida la pinta `.pildora-cayla[aria-pressed]` (tinta con letra crema): un `text-tinta` encima la dejaba negra sobre negra.
+          <button key={m} type="button" className="pildora-cayla" aria-pressed={modo === m} onClick={() => elegirModo(m)}>
             {m === "girada" ? "A · Hoja 62 × 40,1 (girada)" : "B · Hoja 40,1 × 62 (derecha)"}
           </button>
         ))}
       </div>
 
       <p className="nota-cayla">
-        <b>La primera vez en esta computadora:</b> en la ventana de impresión elige la <b>Brother QL-1110NWB</b>, papel <b>62 mm</b> (el mismo
-        que usa la P-touch: rollo de 62 mm, largo 40,1 mm), márgenes «Ninguno», escala 100 % y sin encabezados ni pies de página. Cada etiqueta
-        sale a lo ancho del rollo, en un corte de 40,1 mm, como la plantilla de la P-touch. Si sale a lo largo, prueba la otra forma (A o B)
-        de arriba. La etiqueta dice lo que la caja cobra hoy: con una campaña vigente sale el
-        precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la campaña con «Volver al precio normal».
+        <b>La primera vez en esta computadora:</b> en la <b>Brother QL-1110NWB</b> el papel tiene que medir <b>62 × 40,1 mm</b>, como la
+        plantilla de la P-touch. En la Mac, el «62 mm» de la lista corta cada 100 mm: sobra papel y la etiqueta sale a lo largo. Imprime con{" "}
+        <b>⌥⌘P</b> (el diálogo del sistema; el de Chrome no muestra tamaños propios): la primera vez, en Tamaño del papel elige «Gestionar
+        tamaños personalizados…», crea 62 × 40,1 mm con márgenes en 0 y guárdalo como preajuste. En Windows, créalo en las Preferencias de
+        impresión de la Brother. Márgenes «Ninguno», escala 100 % y sin encabezados. Si sale a lo largo, prueba la otra forma (A o B) de
+        arriba. La vista previa dice «Impreso» con la fecha de hoy; si dice otra, recarga la página antes de imprimir. La etiqueta dice lo
+        que la caja cobra hoy: con una campaña vigente sale el precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la
+        campaña con «Volver al precio normal».
       </p>
 
       {montado &&

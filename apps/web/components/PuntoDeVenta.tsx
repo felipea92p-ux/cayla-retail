@@ -301,7 +301,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Teléfono (2026-09-25): no hay lector, así que el campo de escaneo se vuelve un botón que abre la cámara
   // (`EscanerCamara`). La lupa de al lado cambia a buscar por nombre, y la cámara vuelve a estar a un toque.
   const esTelefono = useConsultaMedia(MQ_TELEFONO);
-  // En el teléfono, el lector QR se baja ya (con red) para que Vender abierta sin internet también pueda escanear (ADR-0207).
+  // En el teléfono, el lector QR se baja ya (con red) para que Vender abierta sin internet también pueda escanear (ADR-0209).
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
   }, [esTelefono]);

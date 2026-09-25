@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { diaLima, esCopiaGuardada, PANTALLAS_SIN_CONEXION, pantallaSinConexion } from "./sin-conexion-reglas";
 
-// Qué pantallas abren sin internet (ADR-0207, paso 3) y cómo se reconoce una copia guardada.
+// Qué pantallas abren sin internet (ADR-0209, paso 3) y cómo se reconoce una copia guardada.
 
 describe("pantallaSinConexion", () => {
   it("reconoce las cuatro pantallas con cola, con o sin barra final", () => {

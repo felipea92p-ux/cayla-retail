@@ -431,16 +431,19 @@ body {
 
 /* ==================================================================
    Etiqueta de precio (ADR-0180): se pega en el cartón de 5 × 8 cm que cuelga de la prenda.
-   Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo). El rollo mide 62 mm y el
-   cartón 50 mm de ancho, así que los 62 mm van a lo largo: la etiqueta es de 44 × 62 mm, con
-   3 mm de aire a cada lado del cartón y el agujero libre arriba. Sale del rollo DERECHA (Felipe,
-   2026-09-24): cada corte mide 62 mm, la etiqueta va centrada en el ancho del rollo con 9 mm
-   blancos a cada lado, que se recortan al pegarla en el cartón.
+   Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo). Mide 40,1 × 62 mm, como la
+   plantilla P-touch de la tienda: sale A LO ANCHO del rollo (sus 62 mm de alto lo cruzan) y la
+   Brother corta cada 40,1 mm (Felipe, 2026-09-25). Cómo viaja a la impresora: #etiquetas-precio-print.
    TODO en milímetros: es una medida física, no una pantalla. Y solo negro sobre blanco —
    la térmica no imprime otro color—, por eso aquí sí va #000/#fff literal y no los tokens
    de la guía (misma excepción que el comprobante de 80 mm). Diseño aprobado por Felipe el
-   2026-09-23: «D · Editorial» en el arreglo «QR abajo», con el QR lo más grande que entra
+   2026-09-23: «D · Editorial» en el arreglo «QR abajo»
    (docs/maquetas/etiqueta-precio-2026-09/etiquetas-carton.html).
+   TRAZO MÍNIMO 0,2 mm, unos 2,4 puntos de la Brother (imprime a 300 dpi): más fino, sale cortado
+   o gris. En la foto de la tienda (2026-09-25) se cortaron los trazos de 1,7 puntos —«CUELLO» se
+   leía «CUFLLO»— y salieron nítidos los de 2,5 («NARANJA»). Lo más fino de DM Sans son las barras
+   de la E: 0,07 em en peso 400, 0,09 en 600 y 0,105 en 700 (medido). Por eso un texto chico va en
+   700 desde 1,9 mm o en 600 desde 2,2 mm; el 400 solo sirve desde 3 mm y aquí no se usa.
    ================================================================== */
 @layer components {
   .etiqueta-precio {
@@ -480,27 +483,30 @@ body {
     letter-spacing: 0.42em;
   }
   .etq-rot {
-    margin: 1.8mm 0 0.5mm;
-    font-size: 1.55mm;
-    letter-spacing: 0.14em;
+    margin: 1.5mm 0 0.5mm;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
   .etq-tallas {
     display: flex;
-    border-top: 0.22mm solid #000;
-    border-bottom: 0.22mm solid #000;
+    border-top: 0.25mm solid #000;
+    border-bottom: 0.25mm solid #000;
   }
   /* Cada talla ocupa lo que mide su texto más un respiro, y el sobrante se reparte. */
   .etq-tallas span {
     flex: 1 0 auto;
-    padding: 0.9mm 0.5mm;
+    padding: 0.8mm 0.5mm;
     text-align: center;
-    font-size: 2.2mm;
+    font-size: 2.3mm;
+    font-weight: 600;
     letter-spacing: 0.04em;
   }
   .etq-tallas.etq-muchas span {
     padding-inline: 0.3mm;
-    font-size: 1.8mm;
+    font-size: 1.9mm;
+    font-weight: 700;
     letter-spacing: 0;
   }
   .etq-tallas .etq-si {
@@ -518,12 +524,13 @@ body {
   }
   .etq-prenda,
   .etq-color {
-    font-size: 2.1mm;
-    letter-spacing: 0.1em;
+    font-size: 2.2mm;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .etq-prenda {
-    margin-top: 1.8mm;
+    margin-top: 1.5mm;
+    font-weight: 600;
     line-height: 1.3;
     /* Un nombre largo no empuja el QR fuera de la etiqueta: dos líneas y corta (una, con campaña). */
     display: -webkit-box;
@@ -534,10 +541,11 @@ body {
   .etq-con-campana .etq-prenda {
     -webkit-line-clamp: 1;
   }
+  /* El nombre ya va en 600: el color sube a 800 para seguir siendo la línea firme. */
   .etq-color {
     margin-top: 0.3mm;
     overflow: hidden;
-    font-weight: 700;
+    font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -559,6 +567,7 @@ body {
   .etq-antes {
     margin-top: 1mm;
     font-size: 2.4mm;
+    font-weight: 600;
     letter-spacing: 0.05em;
   }
   .etq-antes s {
@@ -591,7 +600,7 @@ body {
   .etq-motivo {
     margin-top: 0.9mm;
     padding-top: 0.8mm;
-    border-top: 0.22mm solid #000;
+    border-top: 0.25mm solid #000;
   }
   .etq-motivo b {
     display: block;
@@ -606,15 +615,16 @@ body {
   .etq-motivo span {
     display: block;
     margin-top: 0.4mm;
-    font-size: 1.75mm;
-    letter-spacing: 0.03em;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
   .etq-pie {
     margin-top: auto;
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 0.8mm;
+    gap: 0.5mm; /* la zona muda del QR ya separa: el código necesita cada décima */
   }
   .etq-datos {
     display: flex;
@@ -624,25 +634,30 @@ body {
     overflow: hidden; /* un código raro y largo se corta aquí; nunca se mete en el margen blanco del QR */
   }
   /* Monoespaciada del sistema (Consolas en Windows, SF Mono/Menlo en Mac): su 0 lleva barra y no se confunde
-     con la O cuando la pistola falla y el código se teclea. */
+     con la O cuando la pistola falla y el código se teclea. Tiene que entrar ENTERO: el más largo de producción
+     mide 16 caracteres (2026-09-25) y en la Mac cada uno ocupa 0,6 em, así que 16 × 0,58 × 1,7 = 15,8 mm caben en
+     los 16,6 que deja el QR de 19 mm. La elipsis es solo red para un código fuera de norma. */
   .etq-cod {
     overflow: hidden;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    font-size: 1.8mm;
-    font-weight: 500;
+    font-size: 1.7mm;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     font-feature-settings: "zero";
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* «Impreso dd.mm.aa» no cabe en una línea al lado del QR y baja la fecha a la siguiente: así se diseñó. */
   .etq-datos small {
-    font-size: 1.5mm;
-    letter-spacing: 0.1em;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  /* El QR, lo más grande que entra (Felipe, 2026-09-23): 22 mm sin campaña y 20 mm con campaña (el lado lo pone
-     `EtiquetaPrecio.tsx`; incluye la zona muda, lib/qr.ts). El margen negativo mete SOLO esa zona blanca en el acolchado:
-     abajo está el corte y a la derecha el aire hasta el borde del rollo. Las zonas negras quedan a ~4 mm de los dos
-     bordes de la etiqueta. */
+  /* El QR: 19 mm con su zona muda (el lado lo pone `EtiquetaPrecio.tsx`; lib/qr.ts), por encima de los 18 mm
+     verificados con la pistola Zebra. Con 22 mm el código de al lado se cortaba («CMS-0011-NAR…») desde que la
+     etiqueta pasó a 40,1 mm de ancho. El margen negativo mete SOLO esa zona blanca en el acolchado: abajo está el
+     corte y a la derecha el borde. Las zonas negras quedan a ~3,6 mm de los dos bordes de la etiqueta. */
   .etq-qr {
     flex: none;
     margin: 0 -2mm -2mm 0;
@@ -657,7 +672,9 @@ body {
    distinto una página apaisada):
    - `girada` (por defecto): hoja 62 × 40,1 —el rollo tal cual— con la etiqueta rotada 90° adentro.
    - `derecha`: hoja 40,1 × 62 con la etiqueta derecha; el driver la gira al calzarla en el rollo.
-   En el diálogo: márgenes «Ninguno» y escala 100 %. */
+   En el diálogo: márgenes «Ninguno» y escala 100 %. El LARGO DEL CORTE no lo decide esta hoja sino el papel elegido en
+   el diálogo: Chrome solo gira la hoja para calzarla en ese papel. Con el «62 mm» de la Brother la Mac corta 100 mm
+   (medido en la foto de la tienda, 2026-09-25), así que hace falta un papel propio de 62 × 40,1 (ADR-0180). */
 #etiquetas-precio-print {
   display: none;
 }

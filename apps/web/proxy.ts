@@ -93,7 +93,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // `sw.js` y `sin-conexion.html` (ADR-0207) tampoco pasan por la sesión: el navegador pide el service worker sin
+  // `sw.js` y `sin-conexion.html` (ADR-0209) tampoco pasan por la sesión: el navegador pide el service worker sin
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
   matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

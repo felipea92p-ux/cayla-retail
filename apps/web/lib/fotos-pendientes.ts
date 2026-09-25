@@ -5,7 +5,7 @@ import { esFalloDeRed, traducirError } from "@/lib/error-escritura";
 import { subirFotoProducto } from "@/lib/producto-fotos";
 
 /**
- * Las fotos de un producto dado de alta SIN CONEXIÓN (ADR-0207, paso 2). La operación del alta viaja en la cola de
+ * Las fotos de un producto dado de alta SIN CONEXIÓN (ADR-0209, paso 2). La operación del alta viaja en la cola de
  * `localStorage`, pero las fotos son archivos: no caben ahí. Se guardan en IndexedDB (el navegador guarda un `File` tal
  * cual) bajo el MISMO token de la operación, y el sincronizador las sube recién cuando la base creó el producto —
  * igual que el alta en línea, que sube las fotos después de crear (`NuevoProductoForm`).

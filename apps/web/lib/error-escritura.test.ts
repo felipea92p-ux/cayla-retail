@@ -334,7 +334,7 @@ describe("otra persona cambió la ficha mientras se editaba (ADR-0193)", () => {
   });
 });
 
-describe("esErrorPasajero / debeEncolarse — qué se reintenta solo (ADR-0207)", () => {
+describe("esErrorPasajero / debeEncolarse — qué se reintenta solo (ADR-0209)", () => {
   it("un 5xx, un 429 o un 408 se reintentan", () => {
     expect(esErrorPasajero({ message: "Internal Server Error" }, 500)).toBe(true);
     expect(esErrorPasajero({ message: "Service Unavailable" }, 503)).toBe(true);

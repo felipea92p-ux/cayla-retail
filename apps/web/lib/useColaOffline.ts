@@ -8,7 +8,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { claveCola, colaValida, conOperacion, porSubir, reconciliar, sinOperacion, trasFallo, type OperacionEncolada } from "@/lib/cola-offline";
 
 /**
- * El trío de sincronización de la cola sin conexión (ADR-0207), el mismo de la venta (ADR-0063) pero reutilizable:
+ * El trío de sincronización de la cola sin conexión (ADR-0209), el mismo de la venta (ADR-0063) pero reutilizable:
  * sube al montar, al volver la red (evento `online`), apenas se encola algo, y con un latido de 30 s por si el
  * navegador nunca avisa. Lee y escribe `localStorage` directo en cada pasada y reconcilia contra una lectura fresca
  * al final (`reconciliar`), así lo que se encola a mitad de una subida no se pierde.
@@ -46,7 +46,7 @@ export function useColaOffline(
     /** Tras cada operación que la base aceptó al subir (para releer la pantalla y avisar). Se espera antes de
      *  `trasPasada`: el alta de producto anota ahí el id que dio la base, y la pasada de fotos lo necesita. */
     alSubir?: (op: OperacionEncolada, data: unknown) => void | Promise<void>;
-    /** Al final de cada pasada, haya o no cola: trabajo que cuelga de lo ya subido (las fotos de un alta, ADR-0207). */
+    /** Al final de cada pasada, haya o no cola: trabajo que cuelga de lo ya subido (las fotos de un alta, ADR-0209). */
     trasPasada?: (supabase: ReturnType<typeof createClient>) => Promise<void>;
     /** Al descartar a mano una operación rechazada: soltar lo que tenía guardado aparte (sus fotos). */
     alDescartar?: (token: string) => void;

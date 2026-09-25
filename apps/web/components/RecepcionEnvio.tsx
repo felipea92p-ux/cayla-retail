@@ -175,7 +175,7 @@ export function RecepcionEnvio({
   const panel = useRef<HTMLDivElement>(null);
   const escaneoRef = useRef<HTMLInputElement>(null);
   const ahora = useMemo(() => new Date(), []);
-  // Envíos guardados sin conexión que todavía no suben (ADR-0207): lo que ya contaron sale de «pendientes» mientras
+  // Envíos guardados sin conexión que todavía no suben (ADR-0209): lo que ya contaron sale de «pendientes» mientras
   // espera, para que nadie vuelva a contar el mismo comprobante o traslado y al volver la red suban dos recepciones.
   const colaOffline = useColaRecibir();
   // Lo que ya subió sigue oculto hasta que llega la lista nueva del servidor (`router.refresh`): en ese rato la lista
@@ -675,7 +675,7 @@ export function RecepcionEnvio({
     const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
     cerrarProceso();
     setLoading(false);
-    // Sin red (ADR-0207): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
+    // Sin red (ADR-0209): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
     // navegador y sube solo; mientras tanto sus comprobantes y traslados salen de «pendientes».
     if (error && debeEncolarse(error, status)) {
       const documentos = bloques.map((b) => b.compra.documento).join(", ");

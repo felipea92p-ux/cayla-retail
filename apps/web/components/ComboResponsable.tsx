@@ -155,7 +155,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         </span>
         <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
       </button>
-      {/* Pantalla abierta sin red (ADR-0207): la lista es la última que se leyó aquí. La base confirma al subir. */}
+      {/* Pantalla abierta sin red (ADR-0209): la lista es la última que se leyó aquí. La base confirma al subir. */}
       {control.deMemoria && (
         <p className="mt-1.5 text-xs text-ambar-profundo">
           Sin conexión: lista de turno de las {diaYHoraLima(control.deMemoria).hora}. Al subir, el sistema confirma que esa persona estaba de turno.

@@ -455,7 +455,7 @@ describe("movimientosDelEnvio: lo que queda escrito en el stock", () => {
   });
 });
 
-describe("pendienteEnCola (ADR-0207)", () => {
+describe("pendienteEnCola (ADR-0209)", () => {
   it("junta las líneas recibidas y cerradas, y los traslados, de los envíos que esperan en la cola", () => {
     const r = pendienteEnCola([
       { p_items: [{ compra_item_id: "l1", variante_id: "v1", cantidad: 2 }], p_cierres: [{ compra_item_id: "l2", cantidad: 1, motivo: "no_llego" }], p_traslados: [] },

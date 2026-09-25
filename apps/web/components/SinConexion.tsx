@@ -12,7 +12,7 @@ const CLAVE_PERSONA = "cayla:sw:persona";
 const CLAVE_SW_DEV = "cayla:sw-dev";
 
 /**
- * Borra las copias de pantallas que guardó el service worker y las listas de turno recordadas (ADR-0207). Se llama
+ * Borra las copias de pantallas que guardó el service worker y las listas de turno recordadas (ADR-0209). Se llama
  * al cerrar sesión y cuando entra otra persona en el mismo navegador: esas copias tienen datos de la cuenta anterior.
  * Las COLAS no se tocan: son trabajo ya hecho en la tienda que todavía no subió, y perderlo es peor (principio 9).
  */
@@ -73,7 +73,7 @@ export function SinConexion({ cuenta, generadoEn }: { cuenta: string; generadoEn
     });
   }, [cuenta]);
 
-  // Lo que espera subir, en cualquier pantalla (ADR-0207, «huecos»): el aviso de cada cola solo se ve en la suya.
+  // Lo que espera subir, en cualquier pantalla (ADR-0209, «huecos»): el aviso de cada cola solo se ve en la suya.
   const { pendientes, rechazadas } = usePendientesSinSubir();
 
   if (enLinea && !copiaDe && pendientes === 0 && rechazadas === 0) return null;

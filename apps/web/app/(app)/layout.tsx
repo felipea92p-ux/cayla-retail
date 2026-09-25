@@ -52,11 +52,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         esAdmin={persona.esAdmin}
         nombreSesion={persona.nombre}
       >
-        {/* Service worker, copias por persona y aviso «sin conexión / copia guardada» (ADR-0207). `generadoEn` sella
+        {/* Service worker, copias por persona y aviso «sin conexión / copia guardada» (ADR-0209). `generadoEn` sella
             esta carga: en una copia servida sin red, es la hora de la copia. */}
         <SinConexion cuenta={persona.personaId ?? `terminal:${persona.nombre}`} generadoEn={new Date().toISOString()} />
         {children}
-        {/* Sube lo guardado sin conexión (ADR-0207) desde cualquier pantalla. */}
+        {/* Sube lo guardado sin conexión (ADR-0209) desde cualquier pantalla. */}
         <ColasSinConexion />
       </SedeActivaProveedor>
     </AppShell>

@@ -19,7 +19,7 @@ export function leerPendientesSinSubir(): { pendientes: number; rechazadas: numb
 }
 
 /**
- * Cuánto espera subir en este equipo, en TODAS las colas (Recibir, Productos y Vender) — ADR-0207, «huecos». Se relee
+ * Cuánto espera subir en este equipo, en TODAS las colas (Recibir, Productos y Vender) — ADR-0209, «huecos». Se relee
  * cuando una cola avisa que cambió, cuando otra pestaña la toca, y cada 15 s (la cola de Vender, ADR-0063, escribe sin
  * avisar). Alimenta el aviso de la cabecera (`SinConexion`) y la pregunta al cerrar sesión (`LogoutButton`).
  */

@@ -334,7 +334,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     const firma = responsable.firma();
     const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_variantes", params), firma);
 
-    // Sin red (ADR-0207, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
+    // Sin red (ADR-0209, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
     // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
     if (error && debeEncolarse(error, status)) {
       const op = nuevaOperacion({

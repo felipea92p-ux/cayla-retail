@@ -405,7 +405,7 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
 const CODIGOS_PASAJEROS = ["40001", "40P01", "55P03", "57014", "53300", "57P01", "57P03", "08000", "08003", "08006", "PGRST000", "PGRST001", "PGRST002", "PGRST003"];
 
 /**
- * ¿El servidor SÍ respondió, pero con un error que se arregla solo al reintentar? (ADR-0207, «huecos»). Un 5xx, un
+ * ¿El servidor SÍ respondió, pero con un error que se arregla solo al reintentar? (ADR-0209, «huecos»). Un 5xx, un
  * 429 (demasiadas peticiones), un 408, o uno de los SQLSTATE de arriba. Hasta hoy la cola trataba todo lo que no era
  * corte de red como rechazo definitivo y lo dejaba esperando un «Descartar» que no hacía falta (hueco anotado en
  * ADR-0063). Como las operaciones encoladas son idempotentes por token, reintentarlas no duplica nada.

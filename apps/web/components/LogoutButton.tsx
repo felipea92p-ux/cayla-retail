@@ -12,7 +12,7 @@ export function LogoutButton() {
   const [preguntando, setPreguntando] = useState<{ pendientes: number; rechazadas: number } | null>(null);
 
   async function salir() {
-    // Las copias de pantallas para usar sin internet (ADR-0207) tienen datos de esta cuenta: se van con ella. Lo que
+    // Las copias de pantallas para usar sin internet (ADR-0209) tienen datos de esta cuenta: se van con ella. Lo que
     // espera en las colas sin conexión NO se borra: es trabajo de la tienda que todavía no subió.
     await borrarCopiasSinConexion();
     // «local»: cierra solo este equipo. El valor por defecto («global») revoca la sesión de la cuenta en TODOS
@@ -26,7 +26,7 @@ export function LogoutButton() {
     <>
       <button
         onClick={() => {
-          // Con algo guardado sin conexión todavía en este equipo, se pregunta antes (ADR-0207, «huecos»): al salir no se
+          // Con algo guardado sin conexión todavía en este equipo, se pregunta antes (ADR-0209, «huecos»): al salir no se
           // pierde, pero subirá recién cuando alguien vuelva a entrar AQUÍ, con su propia sesión.
           const cuenta = leerPendientesSinSubir();
           if (cuenta.pendientes + cuenta.rechazadas > 0) setPreguntando(cuenta);

@@ -29,8 +29,8 @@
  * EL MODO `--volcado` EXISTE POR UNA RAZÓN CONCRETA. A producción no se llega con
  * `docker exec`: vive en Supabase, detrás de internet. Pero sí se le puede pedir el
  * inventario desde el editor SQL (o desde el MCP) y guardar la respuesta en disco.
- * Con eso, el diccionario describe LAS 45 TABLAS REALES y no las 28 de una copia local
- * que va por detrás. Cómo refrescar esos volcados: docs/datos/generado/COMO-REFRESCAR.md
+ * Con eso, el diccionario describe LAS TABLAS REALES (cuántas son lo dice su cabecera) y no
+ * las de una copia local que va por detrás. Cómo refrescar esos volcados: docs/datos/generado/COMO-REFRESCAR.md
  *
  * QUÉ PUEDE AFIRMAR Y QUÉ NO. Describe EXACTAMENTE la base a la que se conectó, y lo
  * dice en la cabecera de cada archivo con fecha y origen. No sabe nada de la base a la
@@ -191,10 +191,17 @@ select jsonb_pretty(jsonb_build_object(
 
 
 // ── Modo volcado: producción, sin conectarse ───────────────────────────────
-// Traduce los cinco JSON que devuelve el editor SQL de producción a la MISMA forma
+// Traduce los ocho JSON (`retail_*.json`) que devuelve el editor SQL de producción a la MISMA forma
 // que produce la consulta de arriba, para que el resto del script no sepa de dónde
 // vino el dato. Lo que el volcado no trae —comentarios de columna, disparadores— se
 // deja vacío en vez de inventarse.
+//
+// PERMISOS POR FILA (RLS): se LEEN de `retail_rls.json` (`pg_class.relrowsecurity`), nunca
+// se deducen de las políticas. Deducir «tiene alguna política ⇒ RLS activo» pintaba «sin
+// permisos por fila» en las 26 tablas de plata cuyo diseño (ADR-0195) es justo el contrario:
+// RLS encendido y SIN políticas, cerradas para los clientes y abiertas solo por funciones
+// `security definer`. La alarma decía «abierta» donde la tabla estaba cerrada. Esa misma
+// foto dice qué es vista (`relkind` v/m), que no tiene RLS propio ni filas que contar.
 
 function desdeVolcado() {
   const leer = (n) => JSON.parse(readFileSync(join(SALIDA, n), "utf8"));
@@ -203,6 +210,9 @@ function desdeVolcado() {
   const indices = leer("retail_indices_unicos.json");
   const politicas = leer("retail_policies.json");
   const filas = leer("retail_filas.json");
+  const rls = leer("retail_rls.json");
+  const foto = leer("retail_foto.json");
+  const firmas = readFileSync(join(SALIDA, "funciones-produccion.txt"), "utf8").split("\n").filter(Boolean);
 
   const sinEsquema = (s) => String(s).replace(/^retail\./, "");
   const clase = (def) =>
@@ -211,14 +221,32 @@ function desdeVolcado() {
     /^UNIQUE/i.test(def) ? "único" :
     /^CHECK/i.test(def) ? "regla" : "otro";
 
+  // Las fotos se piden juntas (COMO-REFRESCAR.md): si una relación está en las columnas y no
+  // en la foto de RLS, una de las dos quedó vieja y el diccionario mentiría en silencio.
+  for (const tabla of Object.keys(columnas)) {
+    if (!rls[tabla]) throw new Error(`retail_rls.json no trae «${tabla}»: vuelve a pedir las fotos juntas (COMO-REFRESCAR.md).`);
+  }
+
+  // LA FECHA DE LA FOTO (`retail_foto.json`, la novena consulta de COMO-REFRESCAR.md). La escribe la propia base
+  // (`now()`) en el mismo momento en que se piden las demás, con cuántas relaciones y cuántas funciones había. El
+  // generador la imprime en la cabecera y NO la acepta si se contradice con lo que la acompaña: una fecha pegada sobre
+  // una foto de funciones vieja diría «al día de hoy» de algo que no lo está — justo lo que esta fecha existe para evitar.
+  if (!Number.isFinite(Date.parse(foto.leido_en))) throw new Error(`retail_foto.json: «leido_en» no es una fecha (${foto.leido_en}).`);
+  if (foto.relaciones !== Object.keys(columnas).length) {
+    throw new Error(`retail_foto.json dice ${foto.relaciones} relaciones y retail_columnas.json trae ${Object.keys(columnas).length}: la foto quedó vieja, vuelve a pedirlas juntas (COMO-REFRESCAR.md).`);
+  }
+  if (foto.funciones !== firmas.length) {
+    throw new Error(`retail_foto.json dice ${foto.funciones} funciones y funciones-produccion.txt trae ${firmas.length}: la foto de funciones quedó vieja, vuelve a pedirla (COMO-REFRESCAR.md).`);
+  }
+
   const tablas = Object.entries(columnas).map(([tabla, cols]) => ({
     esquema: "retail",
     tabla,
-    tipo: (tabla === "personas" || tabla === "sedes") ? "vista" : "tabla",
+    tipo: ["v", "m"].includes(rls[tabla].relkind) ? "vista" : "tabla",
     comentario: null,
     filas_estimadas: filas[tabla] ?? 0,
-    rls_activo: politicas.some(p => p.tablename === tabla),
-    rls_forzado: false,
+    rls_activo: rls[tabla].rls,
+    rls_forzado: rls[tabla].forzado,
     columnas: cols.map((c, i) => ({
       nombre: c.column_name,
       orden: c.ordinal_position ?? i + 1,
@@ -237,7 +265,7 @@ function desdeVolcado() {
     definicion_vista: null,
   }));
 
-  return { leido_en: "volcado de producción — ver COMO-REFRESCAR.md", tablas, funciones: [], disparadores: [] };
+  return { leido_en: foto.leido_en, funciones_en_produccion: foto.funciones, tablas, funciones: [], disparadores: [] };
 }
 
 // ── Escritura ───────────────────────────────────────────────────────────────
@@ -278,7 +306,8 @@ function fichaTabla(t, glosas) {
   L.push(`*${meta.join(" · ")}*`, "");
 
   if (t.tipo === "vista") {
-    L.push("<details><summary>Cómo se construye esta vista</summary>", "", "```sql", t.definicion_vista?.trim() ?? "", "```", "", "</details>", "");
+    if (t.definicion_vista) L.push("<details><summary>Cómo se construye esta vista</summary>", "", "```sql", t.definicion_vista.trim(), "```", "", "</details>", "");
+    else L.push("*El volcado de producción no trae la definición de esta vista.*", "");
   }
 
   L.push("| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |");
@@ -319,6 +348,17 @@ function fichaTabla(t, glosas) {
   return L.join("\n");
 }
 
+// Tanto una lectura viva como la foto de producción (`retail_foto.json`) traen la hora ISO de la base
+// («2026-09-25T15:57:21.909417+00:00» → «2026-09-25 15:57:21 UTC»). La base la escribe en UTC; se dice para que nadie la
+// lea como hora de Lima. Cualquier otra cosa se imprime tal cual, sin cortarla (antes cortaba 19 letras y dejaba
+// «volcado de producci» en la cabecera).
+function leidoEl(leido) {
+  const t = String(leido);
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(t)) return t;
+  const enUtc = /(Z|[+-]00(:?00)?)$/.test(t);
+  return `${t.slice(0, 19).replace("T", " ")}${enUtc ? " UTC" : ""}`;
+}
+
 function cabecera(titulo, inv, fuente, extra = "") {
   return `# ${titulo}
 
@@ -327,7 +367,7 @@ function cabecera(titulo, inv, fuente, extra = "") {
 > «Para qué sirve», que vive en \`glosario.json\` y este generador respeta.
 >
 > **Origen:** \`${fuente}\`
-> **Leído el:** ${String(inv.leido_en).slice(0, 19).replace("T", " ")}
+> **Leído el:** ${leidoEl(inv.leido_en)}
 ${extra}
 ---
 `;
@@ -354,7 +394,8 @@ const dynamic = tablas.filter(t => t.esquema === "public");
   const L = [];
   const vistas = new Set();
   L.push(cabecera("Diccionario — CAYLA Retail (schema `retail`)", inv, fuente,
-`> **Tablas y vistas encontradas:** ${retail.length}
+`> **Tablas y vistas encontradas:** ${retail.length}${inv.funciones_en_produccion != null ? `
+> **Funciones en \`retail\`:** ${inv.funciones_en_produccion} (las firmas, en \`funciones-produccion.txt\`)` : ""}
 >
 > El orden sigue los 14 pájaros de \`scripts/datos/aviario.mjs\`, la única lista de qué
 > pájaro es cada tabla (el índice está en \`AVIARIO.md\`). Para entender **por qué**
@@ -456,8 +497,12 @@ console.log(`  ✓ ${nombreCrudo} — el crudo, para comparar`);
     console.log(`  ✓ glosario.json — plantilla con ${Object.keys(plantilla).length} columnas por explicar`);
   } else {
     const total = retail.reduce((n, t) => n + (t.columnas?.length ?? 0), 0);
-    const escritas = Object.entries(glosas).filter(([k, v]) => k.startsWith("retail.") && v).length;
-    console.log(`  · glosario.json — ${escritas}/${total} columnas de retail explicadas a mano`);
+    // Cuenta solo las glosas que caen en una columna que EXISTE: contar claves inflaba la cifra con glosas de tablas
+    // y columnas que ya no existen (huérfanas), que el diccionario nunca imprime.
+    const reales = new Set(retail.flatMap((t) => (t.columnas ?? []).map((c) => `retail.${t.tabla}.${c.nombre}`)));
+    const conGlosa = Object.entries(glosas).filter(([k, v]) => k.startsWith("retail.") && v);
+    const escritas = conGlosa.filter(([k]) => reales.has(k)).length;
+    console.log(`  · glosario.json — ${escritas}/${total} columnas de retail explicadas a mano (${conGlosa.length - escritas} glosas huérfanas, sin columna)`);
   }
 }
 

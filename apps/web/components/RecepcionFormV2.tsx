@@ -41,7 +41,7 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
-  // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0207).
+  // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0209).
   const [ok, setOk] = useState<{ unidades: number; loteId: string | null; sinConexion?: boolean } | null>(null);
   const colaOffline = useColaRecibir();
   // Quién recibe (ADR-0161/0162): `recibir_lote` firma con esa persona, en la tienda que recibe.
@@ -97,7 +97,7 @@ export function RecepcionFormV2({
 
     setLoading(false);
     const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
-    // Sin red (ADR-0207): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
+    // Sin red (ADR-0209): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
     if (error && debeEncolarse(error, status)) {
       const proveedor = proveedores.find((p) => p.id === proveedorId)?.nombre ?? "proveedor";
       const op = nuevaOperacion({

@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { avisar } from "@/components/ui/Avisos";
 import { useColaOffline } from "@/lib/useColaOffline";
 
-/** Las únicas RPC que la cola de Recibir puede ejecutar al subir (ADR-0207). Las dos llevan `p_token`: reintentar
+/** Las únicas RPC que la cola de Recibir puede ejecutar al subir (ADR-0209). Las dos llevan `p_token`: reintentar
  *  no duplica el stock (`envios.token_cliente`, `lotes.token_cliente`, ADR-0190). */
 export const RPCS_RECIBIR = ["recibir_envio", "recibir_lote"] as const;
 
