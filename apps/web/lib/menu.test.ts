@@ -121,9 +121,13 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
 function subconjuntos(permisos: readonly Permiso[]): Permiso[][] {
   return permisos.reduce<Permiso[][]>((acc, p) => [...acc, ...acc.map((s) => [...s, p])], [[]]);
 }
-const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS).flatMap((permisos) =>
-  TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })),
-);
+// Los cuatro permisos de Finanzas F3–F10 (ADR-0195) abren cada uno UNA hija del mismo grupo y no se cruzan con ningún otro:
+// se prueban juntos (ninguno o los cuatro) y no en sus 16 combinaciones, que multiplicaban por 16 los perfiles (688 mil
+// pruebas: el proceso de la prueba se caía). Gastos sigue variando solo, como los demás.
+const FINANZAS_JUNTOS: readonly Permiso[] = ["verCuentasDinero", "verReportesFinancieros", "verImpuestos", "cerrarMes"];
+const PERFILES: PerfilDelMenu[] = subconjuntos(PERMISOS.filter((p) => !FINANZAS_JUNTOS.includes(p)))
+  .flatMap((base) => [base, [...base, ...FINANZAS_JUNTOS]])
+  .flatMap((permisos) => TIPOS_UBICACION.map((ubicacionTipo) => ({ permisos, ubicacionTipo, contadores: { trasladosPorAtender: 2 } })));
 const nombreDe = (p: PerfilDelMenu) => `[${p.permisos.join(", ") || "sin permisos"}] en ${p.ubicacionTipo}`;
 
 function recorrer(nodos: readonly Nodo[]): Nodo[] {
@@ -177,12 +181,7 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
   it("existen los que el rediseño ya nombró, cada uno con su pájaro", () => {
     expect(Object.fromEntries(futuros)).toEqual({
       "produccion.eficiencia": "10 Gallito",
-      finanzas: "11 Garza",
-      "finanzas.gastos": "11 Garza",
-      "finanzas.resultados": "12 Urraca",
-      "finanzas.balance": "12 Urraca",
-      "finanzas.cierreDeMes": "12 Urraca",
-      "finanzas.activos": "12 Urraca",
+      // Finanzas nació el 2026-09-24 con Gastos (ADR-0195 F2); con el Resumen (F10) ya no le queda ninguna hija futura.
       clientas: "07 Colibrí",
       configuracion: "01 Ganso",
       "configuracion.accesos": "01 Ganso",
@@ -563,9 +562,10 @@ describe("permisos de una terminal: salen de su rol", () => {
 describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
   const { riel, movil } = menuPara(perfilTerminal("ventas"));
 
-  it("ve solo Ventas: Punto de Venta, Apartados, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
+  // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
+  it("ve solo Ventas: Punto de Venta, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
     expect(etiquetasDe(riel)).toEqual(["Ventas"]);
-    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Apartados", "Caja", "Historial", "Posventa", "Comprobantes"]);
+    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Caja", "Historial", "Posventa", "Comprobantes"]);
   });
 
   it("no tiene Inicio (ve el Punto de venta: su casa es el mostrador), ni Inventario, Catálogo, Compras ni Producción", () => {

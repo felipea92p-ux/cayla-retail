@@ -438,7 +438,9 @@ exito(
     // ADR-0186 (20260923200000) cambió la firma de `cerrar_caja` (suma el traslado). Esta migración es anterior y
     // recrea la de dos parámetros: pegada sobre la base de hoy dejaría DOS firmas. Lo que se prueba aquí es que ELLA
     // sola se puede pegar dos veces, así que primero se vuelve a la base que ella conocía (todo dentro del ROLLBACK).
+    // ADR-0195 F3b (20260925150000) le sumó «¿A qué banco?» (`p_traslado_cuenta_id`): esa firma tampoco la conocía.
     `${INTENTO}drop function if exists retail.cerrar_caja(uuid, numeric, numeric, text, text);
+drop function if exists retail.cerrar_caja(uuid, numeric, numeric, text, text, uuid);
 ${SQL_MIGRACION}
 ${SQL_MIGRACION}
 ${cambiaA(MICAELA)}select pg_temp.intento(format('select * from retail.cerrar_caja(%L, 0)', gen_random_uuid())) as rm \\gset

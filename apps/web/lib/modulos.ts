@@ -1,6 +1,6 @@
 // Los módulos que un ROL puede ver (ADR-0150 retomado por el ADR-0161 B; migración 20260923030000_roles_por_modulo.sql).
 //
-// PROMETE: el catálogo de los 23 módulos (el mismo de `retail.modulos`, en el mismo orden), la lista fija de lo que es
+// PROMETE: el catálogo de los módulos (el mismo de `retail.modulos`, en el mismo orden), la lista fija de lo que es
 // «siempre solo del líder», lo que cada cuenta ve HOY sin haber leído la base, y la traducción de «qué módulos ve esta
 // cuenta» a los permisos semánticos que ya preguntan las pantallas (`permisosDeModulos`). Lógica pura: se importa desde el
 // servidor y desde el cliente, y se prueba con `modulos.test.ts`.
@@ -11,18 +11,20 @@
 import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
-  "vender", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
+  "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
   "existencias", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
   "analisis", "colaboradores", "roles",
+  "configuracion",
+  "gastos", "cuentas_dinero", "reportes_financieros", "impuestos", "cierre_mes",
 ] as const;
 export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
 export type Modulo = {
   clave: ClaveModulo;
-  grupo: "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión";
+  grupo: "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
   nombre: string;
   /** Lo que se da al encenderlo: quien ve el módulo hace todo esto. */
   incluye: string;
@@ -38,6 +40,8 @@ export type Modulo = {
 /** Espejo de `retail.modulos`. `modulos.test.ts` compara esta lista con la siembra de la migración. */
 export const MODULOS: readonly Modulo[] = [
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
+  // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
+  { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },
   { clave: "caja", grupo: "Ventas", nombre: "Caja", incluye: "Abrir y cerrar caja, ingresos y egresos, ajustes de caja" },
   { clave: "cambios", grupo: "Ventas", nombre: "Cambios", incluye: "Registrar cambios de prenda" },
   { clave: "devoluciones", grupo: "Ventas", nombre: "Devoluciones", incluye: "Solicitar devoluciones" },
@@ -60,6 +64,17 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "analisis", grupo: "Gestión", nombre: "Análisis", incluye: "Reportes de ventas e inventario" },
   { clave: "colaboradores", grupo: "Gestión", nombre: "Colaboradores", incluye: "Dar y quitar accesos, suspender, cambiar ubicación" },
   { clave: "roles", grupo: "Gestión", nombre: "Roles y accesos", incluye: "Crear roles y asignarlos" },
+  // ADR-0195 F1 (20260924210000): nace sin rol y «solo líder por ahora»: sus funciones exigen fn_es_lider().
+  { clave: "configuracion", grupo: "Gestión", nombre: "Configuración", incluye: "Metas de venta y fondo de caja de cada tienda, y lo que cambia cada campaña en la caja", noDelegable: true },
+  // ADR-0195 F2 (20260924235100): nace sin rol; delegable (sus funciones preguntan por el módulo, no por el líder).
+  // Con el módulo, una cuenta ve y registra los gastos de SU tienda; el líder, los de todas y los «de la empresa».
+  { clave: "gastos", grupo: "Finanzas", nombre: "Gastos", incluye: "Registrar y anular los gastos de su tienda (luz, alquiler, movilidad) con o sin factura, sus gastos fijos del mes y sus activos fijos, y decir qué fue cada salida de plata del cajón" },
+  // ADR-0195 (20260925100000): los que faltan de Finanzas, dados de alta juntos antes de construir F3–F10. Nacen sin rol.
+  // Cuentas y dinero y Reportes son delegables (con el módulo, su tienda); Impuestos y Cierre de mes, del líder.
+  { clave: "cuentas_dinero", grupo: "Finanzas", nombre: "Cuentas y dinero", incluye: "Ver las cuentas y el efectivo de su tienda; registrar depósitos del cajón al banco, abonos de tarjeta y movimientos entre cuentas; ver lo que se debe y cuándo vence" },
+  { clave: "reportes_financieros", grupo: "Finanzas", nombre: "Reportes financieros", incluye: "Ver el resumen, el estado de resultados, el flujo de caja y el balance de su tienda; cómo rindieron las campañas" },
+  { clave: "impuestos", grupo: "Finanzas", nombre: "Impuestos", incluye: "Ver el IGV del mes (ventas contra compras), la alerta del límite de ventas del régimen y bajar el reporte para el contador", noDelegable: true },
+  { clave: "cierre_mes", grupo: "Finanzas", nombre: "Cierre de mes", incluye: "Cerrar el mes de cada tienda y de la empresa, y reabrirlo con motivo", noDelegable: true },
 ];
 
 /** Lo que sigue siendo del líder aunque el rol vea el módulo: decisiones ya tomadas (ADR-0161 B2b), no nuevas.
@@ -145,6 +160,10 @@ export function modulosDeHoy(
  *                             `accionesDeCompra` (P1, 20260923140000)
  *  - editarEtiquetas        ← ve Etiquetas, completo (`fn_puede_editar_etiquetas`; las etiquetas CON descuento no)
  *  - analizar               ← ve Análisis, completo (`fn_puede_analizar`)
+ *  - registrarGastos        ← ve Gastos, completo (`fn_gastos_ubicaciones`, ADR-0195 F2): los de SU tienda
+ *  - verCuentasDinero       ← ve Cuentas y dinero, completo (ADR-0195 F3): las cuentas y el efectivo de SU tienda
+ *  - verReportesFinancieros ← ve Reportes financieros, completo (ADR-0195 F5): los reportes de SU tienda
+ *  - verImpuestos / cerrarMes: del líder (módulos no delegables)
  * `administrar` y `verDinero` (el dinero del Taller y el Resumen de Producción) siguen siendo del líder: no salen de
  * ningún módulo delegable.
  */
@@ -161,6 +180,9 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (completo("proveedores")) permisos.push("editarCuentasProveedor");
   if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");
   if (completo("etiquetas")) permisos.push("editarEtiquetas");
+  if (completo("gastos")) permisos.push("registrarGastos");
+  if (completo("cuentas_dinero")) permisos.push("verCuentasDinero");
+  if (completo("reportes_financieros")) permisos.push("verReportesFinancieros");
   return permisos;
 }
 

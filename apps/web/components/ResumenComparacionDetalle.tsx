@@ -1,6 +1,5 @@
 "use client";
 
-import { BuscadorDebounced } from "@/components/ui/BuscadorDebounced";
 import { SelectNativo } from "@/components/ui/campos";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
@@ -8,7 +7,7 @@ import { LecturaCelda } from "@/components/ResumenCifras";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import { lecturaComparacion } from "@/lib/resumen-lectura";
 import { FILAS_POR_PAGINA } from "@/lib/resumen-filtros";
-import { AYUDA_ROTACION, TEXTO_MOTIVO_ROTACION } from "@/lib/rotacion";
+import { AYUDA_ROTACION, ETIQUETA_ROTACION_VALORIZADA, TEXTO_MOTIVO_ROTACION } from "@/lib/rotacion";
 import { formatoDeltaPp, formatoRotacion, formatoSellThrough, formatoVariacion, formatoVelocidad } from "@/lib/resumen-formato";
 import {
   FILTROS_CAMBIO,
@@ -26,6 +25,11 @@ import {
 // sin ventas con stock, aceleró… —, no una lista de banderas. Vive debajo de las cifras y los gráficos (ya
 // no es una vista aparte) y la dona de arriba la filtra. La tabla es ancha a propósito: se desplaza dentro de su tarjeta y nunca
 // ensancha la página.
+//
+// La búsqueda (`alcance.q`) subió a la franja de controles compartida (`ResumenControles.tsx`, 2026-09-23):
+// ya no tiene su propio campo acá. Sigue siendo la misma pieza de `alcance` — arriba filtra también cifras
+// y gráficos de la Vista general, no solo esta tabla — y «Limpiar filtros» abajo la sigue limpiando junto
+// con categoría y cambio.
 
 // Mínimo ≈ 58 rem (la prenda con el mismo piso que en Existencias, 13.5rem): cabe en una ventana de
 // 1440 px sin desplazar la tabla; más angosto, se desplaza dentro de su tarjeta (nunca la página entera).
@@ -147,9 +151,9 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
         </p>
       </div>
 
-      {/* Búsqueda, filtro por cambio y orden: una sola zona funcional (se envuelve en celular). */}
+      {/* Filtro por cambio y orden: una sola zona funcional (se envuelve en celular). La búsqueda vive
+          arriba, en la franja de controles compartida. */}
       <div className="flex flex-wrap items-center gap-3 px-5 pb-4 pt-1">
-        <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null })} className="w-full sm:w-60 sm:flex-none" />
         <div role="group" aria-label="Filtrar por cambio" className="flex flex-wrap gap-2">
           <FiltroChip activo={cambio === "todos"} n={tabla.totalAlcance} onClick={() => actualizar({ cambio: null })}>
             Todos
@@ -193,7 +197,7 @@ export function ResumenComparacionDetalle({ datos, actualizar }: { datos: Compar
               { titulo: "Ventas A → B", subtitulo: "uds · uds/día", alinear: "centro", ayuda: "Unidades netas vendidas y, debajo, el ritmo (unidades por día con stock) de A a B" },
               { titulo: "Stock A → B", subtitulo: "al cierre", alinear: "centro", ayuda: "Unidades utilizables al cierre de cada período. NO son las ventas: también pueden llegar recepciones, devoluciones, traslados o ajustes." },
               { titulo: "Sell-through", subtitulo: "A → B", alinear: "centro", ayuda: "Ventas netas ÷ (stock al inicio del período + entradas), en A y en B" },
-              { titulo: "Rotación", subtitulo: "A → B", alinear: "centro", ayuda: `Veces que rotó el inventario. ${AYUDA_ROTACION}` },
+              { titulo: ETIQUETA_ROTACION_VALORIZADA, subtitulo: "A → B", alinear: "centro", ayuda: `Veces que rotó el inventario. ${AYUDA_ROTACION}` },
               { titulo: "Cambio relevante", ayuda: "Qué hacer con estas cifras: una frase por reglas fijas, en orden (estimadas, agotada en B, sin ventas, el cambio más importante de A a B, vendió casi todo)" },
             ]}
           />

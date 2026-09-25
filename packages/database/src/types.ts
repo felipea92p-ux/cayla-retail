@@ -4090,6 +4090,7 @@ export type Database = {
         Row: {
           activo: boolean
           created_at: string
+          hora_cierre: string | null
           id: string
           meta_venta_diaria: number | null
           nombre: string
@@ -4099,6 +4100,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           created_at?: string
+          hora_cierre?: string | null
           id?: string
           meta_venta_diaria?: number | null
           nombre: string
@@ -4108,6 +4110,7 @@ export type Database = {
         Update: {
           activo?: boolean
           created_at?: string
+          hora_cierre?: string | null
           id?: string
           meta_venta_diaria?: number | null
           nombre?: string
@@ -4606,6 +4609,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
+          naturaleza: string | null
           ubicaciones_destino: string[] | null
           vencida: boolean | null
         }
@@ -6385,6 +6389,7 @@ export type Database = {
           p_estado_recepcion?: string
           p_hasta?: string
           p_limite?: number
+          p_naturaleza?: string
           p_orden?: string
           p_por_recibir?: boolean
           p_proveedor_id?: string
@@ -6424,6 +6429,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
+          naturaleza: string | null
           ubicaciones_destino: string[] | null
           vencida: boolean | null
         }[]

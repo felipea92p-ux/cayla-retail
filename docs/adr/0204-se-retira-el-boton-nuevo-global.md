@@ -1,4 +1,9 @@
-# ADR-0195 · Se retira el botón "+ Nuevo" global
+# ADR-0204 · Se retira el botón "+ Nuevo" global
+
+> Numerado 0195 al escribirse (2026-09-25): era el siguiente libre en `main` a esa fecha. Renumerado a 0204 al
+> fusionar con `main`: en el camino se integró la mega-rama de Inventario/Finanzas/Apartados/Nuevo producto, que ya
+> había tomado 0194–0203 (0195 es, ahí, "Finanzas: un comprobante de proveedor y cinco módulos" — sin relación con
+> este cambio, coincidencia de numeración nada más).
 
 **Fecha:** 2026-09-25 · **Estado:** aceptado y construido · **Alcance:** `AppShell.tsx` (escritorio y celular), `lib/menu.ts`
 

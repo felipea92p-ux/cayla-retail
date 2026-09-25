@@ -175,6 +175,19 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ],
             "insignia": 3
+          },
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
           }
         ],
         "movil": [
@@ -240,6 +253,19 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -454,6 +480,19 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ],
             "insignia": 3
+          },
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
           }
         ],
         "movil": [
@@ -528,6 +567,19 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],
@@ -713,6 +765,19 @@
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
             ],
             "insignia": 3
+          },
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
+            ]
           }
         ],
         "movil": [
@@ -778,6 +843,19 @@
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
               { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          {
+            "grupo": "finanzas",
+            "etiqueta": "Finanzas",
+            "icono": "gastos",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
+              { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
+              { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
+              { "etiqueta": "Impuestos", "href": "/finanzas/impuestos", "icono": "impuestos" },
+              { "etiqueta": "Cierre de mes", "href": "/finanzas/cierre", "icono": "cierre" }
             ]
           }
         ],

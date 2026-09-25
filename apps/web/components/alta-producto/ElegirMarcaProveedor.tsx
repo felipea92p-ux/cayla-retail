@@ -4,8 +4,8 @@ import { useMemo, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
+import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import {
-  buscarMarcaProveedor,
   marcaAutomatica,
   marcasDeProveedor,
   proveedorAutomatico,
@@ -28,6 +28,8 @@ import {
 //   2. una sola caja busca marcas y proveedores a la vez (sin tildes);
 //   3. si la marca la trae UN solo proveedor, se elige sola (y a la inversa);
 //   4. si falta algo, "+ Nueva marca" / "+ Nuevo proveedor" sin salir.
+// La búsqueda es un ComboBuscable: los resultados flotan sobre el formulario (7 a la vista) en vez de abrir una
+// lista que empujaba todo hacia abajo, y «+ Nueva marca «…»» es la última opción (spike Nuevo producto, 2026-09-24).
 //
 // Las listas viven acá (copia local) para que lo recién creado aparezca sin
 // recargar, y se le AVISAN al padre (`onListas`): el padre puede desmontar este
@@ -72,7 +74,6 @@ export function ElegirMarcaProveedor({
   const [marcas, setMarcas] = useState(marcasIni);
   const [proveedores, setProveedores] = useState(proveedoresIni);
   const [vinculos, setVinculos] = useState(vinculosIni);
-  const [consulta, setConsulta] = useState("");
   const [marcaTentativa, setMarcaTentativa] = useState<string | null>(null);
   const [provTentativo, setProvTentativo] = useState<string | null>(null);
   // null = no se está creando nada; si no, con qué se abre el formulario (marca nueva, solo otro proveedor para una marca, o la primera marca de un proveedor que no trae ninguna).
@@ -81,7 +82,22 @@ export function ElegirMarcaProveedor({
   const marcaPor = (id: string) => marcas.find((m) => m.id === id);
   const provPor = (id: string) => proveedores.find((p) => p.id === id);
   const sugeridas = useMemo(() => sugerenciasDeCategoria(usosCategoria, marcas, proveedores), [usosCategoria, marcas, proveedores]);
-  const resultados = useMemo(() => buscarMarcaProveedor(consulta, marcas, proveedores, vinculos), [consulta, marcas, proveedores, vinculos]);
+  // Marcas y proveedores en UNA lista para el buscador; el detalle dice qué es cada uno y con quién va.
+  const opcionesBusqueda = useMemo(
+    () =>
+      [
+        ...marcas.map((m) => ({
+          valor: `m:${m.id}`,
+          texto: m.nombre,
+          detalle: `Marca · ${proveedoresDeMarca(vinculos, m.id).map((id) => proveedores.find((p) => p.id === id)?.nombre).filter(Boolean).join(", ") || "sin proveedor"}`,
+        })),
+        ...proveedores.map((p) => {
+          const n = marcasDeProveedor(vinculos, p.id).length;
+          return { valor: `p:${p.id}`, texto: p.nombre, detalle: `Proveedor · ${n} marca${n === 1 ? "" : "s"}` };
+        }),
+      ],
+    [marcas, proveedores, vinculos]
+  );
   function onElegir(m: string, p: string, nombres?: { marca: string; proveedor: string }) {
     onElegirProp(m, p, nombres ?? { marca: marcaPor(m)?.nombre ?? "", proveedor: provPor(p)?.nombre ?? "" });
   }
@@ -90,7 +106,6 @@ export function ElegirMarcaProveedor({
   function limpiarTentativas() {
     setMarcaTentativa(null);
     setProvTentativo(null);
-    setConsulta("");
   }
 
   function elegirMarca(id: string) {
@@ -101,8 +116,7 @@ export function ElegirMarcaProveedor({
     } else {
       setProvTentativo(null);
       setMarcaTentativa(id);
-      setConsulta("");
-    }
+      }
   }
 
   function elegirProveedor(id: string) {
@@ -113,8 +127,7 @@ export function ElegirMarcaProveedor({
     } else {
       setMarcaTentativa(null);
       setProvTentativo(id);
-      setConsulta("");
-    }
+      }
   }
 
   function alGuardarNueva(r: MarcaGuardada) {
@@ -272,51 +285,30 @@ export function ElegirMarcaProveedor({
         </div>
       )}
 
-      <div>
-        <label htmlFor="buscar-marca" className="sr-only">
-          Buscar una marca o un proveedor
-        </label>
-        <input
+      <div className="flex flex-wrap items-center gap-2">
+        <ComboBuscable
           id="buscar-marca"
-          type="search"
-          value={consulta}
-          onChange={(e) => setConsulta(e.target.value)}
-          placeholder="Busca una marca o un proveedor…"
-          autoComplete="off"
-          className="w-full rounded-md border border-tinta/15 bg-transparent px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/50 focus:border-tinta/50"
+          caja
+          className="min-w-[14rem] flex-1"
+          etiquetaAccesible="Buscar una marca o un proveedor"
+          marcador={sugeridas.length > 0 ? "Busca otra marca o proveedor…" : "Busca una marca o un proveedor…"}
+          valor=""
+          onValor={(v) => (v.startsWith("m:") ? elegirMarca(v.slice(2)) : elegirProveedor(v.slice(2)))}
+          opciones={opcionesBusqueda}
+          limite={7}
+          crear={puedeCrear ? { etiqueta: (q) => (q ? `+ Nueva marca «${q}»` : "+ Nueva marca"), onCrear: (q) => setCreando({ nombre: q, marcaFija: false }) } : undefined}
         />
-        {sinTildes(consulta) && (
-          <ul className="mt-2 divide-y divide-tinta/10 rounded-md border border-tinta/15">
-            {resultados.length === 0 && <li className="px-3 py-2 text-sm text-tinta/60">Nada se llama así todavía.</li>}
-            {resultados.map((r) => (
-              <li key={r.tipo === "marca" ? `m-${r.marca.id}` : `p-${r.proveedor.id}`}>
-                <button
-                  type="button"
-                  onClick={() => (r.tipo === "marca" ? elegirMarca(r.marca.id) : elegirProveedor(r.proveedor.id))}
-                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-tinta hover:bg-tinta/[0.04]"
-                >
-                  <span>{r.tipo === "marca" ? r.marca.nombre : r.proveedor.nombre}</span>
-                  <span className="text-xs text-tinta/55">
-                    {r.tipo === "marca"
-                      ? `Marca · ${r.proveedores.map((p) => p.nombre).join(", ") || "sin proveedor"}`
-                      : `Proveedor · ${r.marcas.length} marca${r.marcas.length === 1 ? "" : "s"}`}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+        {puedeCrear && (
+          <button type="button" onClick={() => setCreando({ nombre: "", marcaFija: false })} className="btn-cayla btn-secundario">
+            + Nueva marca
+          </button>
         )}
       </div>
 
       {puedeCrear ? (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-          <button type="button" onClick={() => setCreando({ nombre: consulta.trim(), marcaFija: false })} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-            + Nueva marca{consulta.trim() ? ` «${consulta.trim()}»` : ""}
-          </button>
-          <a href="/productos/marcas" target="_blank" rel="noreferrer" className="label-cayla text-[11px] text-tinta/50 underline underline-offset-4 hover:text-rojo">
-            Administrar marcas
-          </a>
-        </div>
+        <a href="/productos/marcas" target="_blank" rel="noreferrer" className="label-cayla inline-block text-[11px] text-tinta/50 underline underline-offset-4 hover:text-rojo">
+          Administrar marcas
+        </a>
       ) : (
         <p className="text-xs text-tinta/55">¿Falta una marca? Pídele a un Líder que la agregue.</p>
       )}

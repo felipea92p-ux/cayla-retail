@@ -16,6 +16,8 @@ export type Ubicacion = {
   activo: boolean;
   /** Meta de venta del día, en soles. Null = sin meta configurada (20260918080000). */
   metaVentaDiaria: number | null;
+  /** A qué hora cierra («21:00», hora de Lima). Null = no se proyecta la venta del día (20260925101000). */
+  horaCierre: string | null;
 };
 
 /** Todas las ubicaciones activas, una vez por request (mismo patrón que getSedes()). */
@@ -24,7 +26,7 @@ export const getUbicaciones = cache(async (): Promise<Ubicacion[]> => {
   const datos = exigir(
     await supabase
       .from("ubicaciones")
-      .select("id, nombre, tipo, activo, meta_venta_diaria")
+      .select("id, nombre, tipo, activo, meta_venta_diaria, hora_cierre")
       .eq("activo", true)
       .order("nombre"),
     "las ubicaciones"
@@ -35,5 +37,6 @@ export const getUbicaciones = cache(async (): Promise<Ubicacion[]> => {
     tipo: u.tipo as Ubicacion["tipo"],
     activo: u.activo,
     metaVentaDiaria: u.meta_venta_diaria === null ? null : Number(u.meta_venta_diaria),
+    horaCierre: u.hora_cierre ? String(u.hora_cierre).slice(0, 5) : null,
   }));
 });

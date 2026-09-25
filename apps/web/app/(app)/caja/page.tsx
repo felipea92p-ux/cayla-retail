@@ -1,8 +1,10 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
+import { getCajaAbierta, getEsperadoCaja, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getParametrosCaja } from "@/lib/configuracion";
+import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { createClient } from "@/lib/supabase/server";
 import { tolerar } from "@/lib/resultado";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
@@ -78,12 +80,17 @@ async function CajaConDatos({
   puedeCerrar: boolean;
 }) {
   const supabase = await createClient();
-  const [{ resumen, series }, movimientos, ubicaciones, historial, resVentasHoy] = await Promise.all([
+  const [{ resumen, series }, movimientos, ubicaciones, historial, resVentasHoy, parametros, esperadoCajon] = await Promise.all([
     getTableroCaja(caja.id),
     getMovimientosCaja(caja.id),
     getUbicaciones(),
     getHistorialCierres(),
     supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: caja.ubicacionId }),
+    // La meta de hoy y el fondo que rigen (ADR-0195 F1): lo normal de la tienda + las campañas. `null` si la base
+    // todavía no tiene fn_parametros_caja: se usa la meta de antes y el cierre no pide fondo.
+    getParametrosCaja(caja.ubicacionId, hoyLima()),
+    // «Al cerrar»: cuánto debería haber en el cajón. Solo a quien puede cerrar (fn_esperado_caja lo exige).
+    puedeCerrar ? getEsperadoCaja(caja.id) : Promise.resolve(null),
   ]);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
@@ -97,7 +104,8 @@ async function CajaConDatos({
         total: Number(v.total),
       }));
 
-  const metaVentaDiaria = ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null;
+  const metaVentaDiaria = parametros ? parametros.meta : (ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null);
+  const horaCierre = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
 
   return (
     <CajaAbiertaPanel
@@ -111,6 +119,9 @@ async function CajaConDatos({
       series={series}
       ventasHoy={ventasHoy}
       metaVentaDiaria={metaVentaDiaria}
+      parametros={parametros}
+      esperadoCajon={esperadoCajon}
+      horaCierre={horaCierre}
       cierresRecientes={historial}
     />
   );

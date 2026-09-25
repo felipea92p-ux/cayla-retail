@@ -7,7 +7,6 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
-import { botonCancelar } from "@/components/ui/Modal";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
@@ -15,54 +14,71 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
 import { ProponerValor } from "@/components/alta-producto/ProponerValor";
-import { AvisoInline, Bloque, ChipOpcion } from "@/components/alta-producto/piezas";
+import { AvisoInline, ChipOpcion, FilaAlta, PasoAlta } from "@/components/alta-producto/piezas";
+import { ElegirColores } from "@/components/alta-producto/ElegirColores";
+import { FotosAlta, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
+import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
+import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
-import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
+import { subirFotoProducto } from "@/lib/producto-fotos";
 import {
+  PASOS_ALTA,
   codigoBasePrevisto,
   codigoVariantePrevisto,
   construirCeldas,
-  desbloqueos,
+  faltaDelPaso,
   leerErrorAlta,
   margenPorcentaje,
   nivelMargen,
   ordenarColores,
+  ordenarFotosAlta,
+  pasoHecho,
   problemasAlta,
   tituloReferencia,
   type EstadoAlta,
+  type PasoAlta as NumeroPaso,
 } from "@/lib/alta-producto";
 import type { ContextoAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
-// "Nuevo producto" como ÁRBOL DE DECISIÓN (ADR-0109): una sola página donde
-// cada bloque se abre al resolver el anterior — 1 Qué es (familia → categoría)
-// · 2 Marca y proveedor · 3 Nombre · 4 Talla, tejido y patrón · 5 Colores ·
-// 6 Precio y variantes · 7 Etiquetas — y un resumen fijo que dice, en frases, qué falta para guardar.
+// "Nuevo producto" en 4 PASOS (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; antes 7 bloques, ADR-0109):
+//   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas,
+//   tejido, patrón, colores, fotos) · 4 Precio y variantes (precio, costo, tabla talla × color, etiquetas).
+// Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
+// punteada. A la derecha, la prenda tal como va a quedar y UNA frase: el siguiente paso (no la lista entera de lo
+// que falta). En celular esa ficha baja a una barra pegada abajo con «Crear».
 //
 // Diseñado para que equivocarse sea difícil, no para avisar después:
-//   * la categoría se elige con tarjetas (arrastra prefijo, tallas, tejidos);
+//   * la categoría se elige con tarjetas (arrastra prefijo, tallas, tejidos) y al elegirla se pasa sola al paso 2;
 //   * el nombre se comprueba contra el catálogo MIENTRAS se escribe;
 //   * lo que la familia exige (Indumentaria: tejido y patrón) no se puede saltar;
 //   * lo que viene marcado de antemano es la curva habitual de la categoría;
-//   * el botón de guardar no se apaga en silencio: el resumen dice qué falta.
+//   * «Seguir» no se apaga en silencio: al lado dice qué falta.
 //
-// El alta es UNA transacción (`crear_producto_con_variantes`): producto,
-// variantes y etiquetas entran juntos o no entra nada. Las fotos quedan
-// fuera a propósito — el archivo se sube al elegirlo y, si se cancela el
-// formulario, quedaría huérfano; se agregan por color desde el producto.
+// El alta es UNA transacción (`crear_producto_con_variantes`): producto, variantes y etiquetas entran juntos o no
+// entra nada. Las FOTOS se eligen en el paso 3 pero se guardan en el navegador y se suben DESPUÉS de que la base creó
+// el producto (ver `FotosAlta`): cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y
+// la pantalla de éxito dice cuál falta. Las filas de `producto_fotos` se escriben directo: su política
+// `producto_fotos_write_lider` (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
 //
-// Al guardar NO se vuelve a la lista: aparece una pantalla de éxito (paso 4) con
-// tres salidas — agregar fotos, crear otro parecido, ir a productos. «Otro
-// parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y
-// etiquetas y limpia nombre, descripción y colores: una colección son 10
-// prendas casi iguales y empezar de cero cada vez era el trabajo que sobraba.
+// Al guardar NO se vuelve a la lista: aparece una pantalla de éxito con tres salidas — fotos, crear otro parecido,
+// ir a productos. «Otro parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y
+// etiquetas y limpia nombre, descripción, colores y fotos: una colección son 10 prendas casi iguales.
 //
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
+
+const TITULOS: Record<NumeroPaso, string> = {
+  1: "Qué producto es",
+  2: "Quién es y cómo se llama",
+  3: "Cómo se hace",
+  4: "Precio y variantes",
+};
+const CORTOS: Record<NumeroPaso, string> = { 1: "Qué es", 2: "Nombre y marca", 3: "Cómo se hace", 4: "Precio" };
 
 export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const router = useRouter();
@@ -71,26 +87,31 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   // Copias locales: configurar una categoría o proponer un valor las modifica sin recargar la página.
   const [ejes, setEjes] = useState<EjesPorCategoria>(contexto.ejes);
   const [universo, setUniverso] = useState(contexto.universo);
-  // Marcas, proveedores y vínculos: el selector se desmonta al ver la pantalla de éxito y vuelve con «crear otro parecido»;
+  // Marcas, proveedores y vínculos: el selector se desmonta al plegar el paso 2 (y al ver la pantalla de éxito);
   // lo creado aquí adentro (una marca nueva, un proveedor nuevo) tiene que sobrevivir a eso.
   const [listasMarca, setListasMarca] = useState({ marcas: contexto.marcas, proveedores: contexto.proveedores, vinculos: contexto.vinculos });
 
+  const [paso, setPaso] = useState<NumeroPaso>(1);
   const [categoriaId, setCategoriaId] = useState("");
   const [marcaId, setMarcaId] = useState("");
   const [proveedorId, setProveedorId] = useState("");
   const [marcaNombre, setMarcaNombre] = useState("");
+  const [proveedorNombre, setProveedorNombre] = useState("");
   const [referencia, setReferencia] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
   const [patronId, setPatronId] = useState("");
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
+  const [fotos, setFotos] = useState<FotoPendiente[]>([]);
   const [precioBase, setPrecioBase] = useState("");
   const [costoBase, setCostoBase] = useState("");
   const [costoTocado, setCostoTocado] = useState(false);
   const [excluidas, setExcluidas] = useState<Set<string>>(new Set());
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
+  const [editandoPrecios, setEditandoPrecios] = useState(false);
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
+  const [verEtiquetas, setVerEtiquetas] = useState(false);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
@@ -111,15 +132,21 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const patronesCategoria = ejes.patrones[categoriaId] ?? [];
   const habituales = ejes.habituales[categoriaId] ?? [];
   const tallaTexto = (id: string) => tallasCategoria.find((t) => t.id === id)?.texto ?? "";
+  // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
+  const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
   const nombreFinal = tituloReferencia(referencia);
 
   // ---------- ¿ya existe algo así? (aviso en vivo, con espera de 350 ms al tipear) ----------
   const parecidos = useParecidos({ nombre: nombreFinal, activo: Boolean(categoriaId) });
   const comprobandoNombre = Boolean(categoriaId) && parecidos.comprobando;
-  const hayIdentico = parecidos.hayIdentico;
-  const hayUnaLetra = parecidos.hayUnaLetra;
   const confirmo = parecidos.confirmo;
+
+  function irAPaso(n: NumeroPaso) {
+    setPaso(n);
+    // El paso que se abre queda a la vista: el anterior se acaba de plegar y la página se acortó.
+    requestAnimationFrame(() => document.getElementById(`paso-${n}`)?.closest("section")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
+  }
 
   // ---------- elegir / cambiar categoría ----------
   function elegirCategoria(id: string) {
@@ -135,6 +162,8 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       const sugerido = contexto.costoSugerido[id];
       setCostoBase(sugerido ? sugerido.costo.toFixed(2) : "");
     }
+    // Elegir la categoría es UNA decisión: se pasa solo al paso 2 (los demás pasos tienen su «Seguir»).
+    irAPaso(2);
   }
 
   function cambiarCategoria() {
@@ -156,7 +185,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     (tallasElegidas.length !== habituales.length || tallasElegidas.some((t) => !habituales.includes(t)));
 
   function alternarColor(codigo: string) {
-    setColoresElegidos((prev) => (prev.includes(codigo) ? prev.filter((x) => x !== codigo) : [...prev, codigo]));
+    if (coloresElegidos.includes(codigo)) {
+      // Quitar un color se lleva sus fotos: una foto de un color que el producto no tiene no se ve en ninguna parte.
+      const suyas = fotos.filter((f) => f.colorCodigo === codigo);
+      suyas.forEach((f) => URL.revokeObjectURL(f.vista));
+      if (suyas.length) setFotos((prev) => prev.filter((f) => f.colorCodigo !== codigo));
+      setColoresElegidos((prev) => prev.filter((x) => x !== codigo));
+    } else {
+      setColoresElegidos((prev) => [...prev, codigo]);
+    }
   }
 
   // ---------- al configurar una categoría o proponer un valor sin salir del alta ----------
@@ -177,28 +214,22 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     if (tipo === "tallas") setTallasElegidas(elegidos.map((v) => v.id));
   }
 
-  // ---------- matriz ----------
-  const celdas = useMemo(() => construirCeldas(tallasElegidas, coloresElegidos), [tallasElegidas, coloresElegidos]);
+  // ---------- tabla de variantes (barato de calcular: a lo sumo ~20 celdas) ----------
+  const celdas = construirCeldas(
+    tallasOrdenadas.map((t) => t.id),
+    coloresElegidos
+  );
   const celdasIncluidas = celdas.filter((c) => !excluidas.has(c.clave));
 
-  function alternarCelda(clave: string) {
-    setExcluidas((prev) => {
-      const copia = new Set(prev);
-      if (copia.has(clave)) copia.delete(clave);
-      else copia.add(clave);
-      return copia;
-    });
-  }
-
-  // ---------- qué falta / qué está abierto ----------
+  // ---------- qué falta ----------
   const estado: EstadoAlta = {
     categoriaId,
     marcaId,
     proveedorId,
     referencia,
     comprobandoNombre,
-    nombreBloqueado: hayIdentico,
-    nombreSinConfirmar: hayUnaLetra && !confirmo,
+    nombreBloqueado: parecidos.hayIdentico,
+    nombreSinConfirmar: parecidos.hayUnaLetra && !confirmo,
     categoriaSinTallas: Boolean(categoriaId) && tallasCategoria.length === 0,
     tallasElegidas: tallasElegidas.length,
     exigeTejidoPatron: exige,
@@ -210,9 +241,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     precioBase,
     costoBase,
   };
-  const abierto = desbloqueos(estado);
   const problemas = problemasAlta(estado);
   const puedeGuardar = problemas.length === 0 && !cargando;
+
+  function estadoPaso(n: NumeroPaso): "abierto" | "hecho" | "pendiente" {
+    if (n === paso) return "abierto";
+    // Hecho = él y los anteriores sin nada pendiente. Un paso anterior al abierto con lo suyo resuelto también se ve
+    // hecho aunque falte algo más atrás (se volvió a abrir un paso previo con «Cambiar»).
+    return pasoHecho(problemas, n) || (n < paso && !faltaDelPaso(problemas, n)) ? "hecho" : "pendiente";
+  }
 
   const precioNum = Number(precioBase);
   const costoNum = Number(costoBase);
@@ -221,16 +258,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const sugerido = categoriaId ? contexto.costoSugerido[categoriaId] : undefined;
 
   const { frecuentes, grupos } = useMemo(
-    () => ordenarColores(contexto.colores, contexto.usoColores[categoriaId] ?? {}, FAMILIAS_COLOR),
+    () => ordenarColores(contexto.colores, contexto.usoColores[categoriaId] ?? {}, FAMILIAS_COLOR, 6),
     [contexto.colores, contexto.usoColores, categoriaId]
   );
   const colorPorCodigo = (cod: string) => contexto.colores.find((c) => c.codigo === cod);
+  const coloresDatos = coloresElegidos.map((cod) => colorPorCodigo(cod)).filter((c): c is NonNullable<typeof c> => Boolean(c));
 
   // ---------- código previsto ----------
   const base = codigoBasePrevisto(categoria?.prefijo ?? null, categoria?.prefijo ? (contexto.correlativos[categoria.prefijo] ?? 0) : null);
-  const codigosVariantes = celdasIncluidas.map((c) =>
-    codigoVariantePrevisto(base, c.color, c.tallaId ? tallaTexto(c.tallaId) : null)
-  );
+  const codigosVariantes = celdasIncluidas.map((c) => codigoVariantePrevisto(base, c.color, c.tallaId ? tallaTexto(c.tallaId) : null));
 
   // Las etiquetas de campaña que ya rigen sobre esta categoría se aplican solas: elegirlas a mano sería redundante y las
   // dejaría duplicadas en cada variante. Si la persona eligió una y DESPUÉS cambió a una categoría que la cubre, no se manda.
@@ -239,6 +275,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     const et = contexto.etiquetas.find((x) => x.id === id);
     return et ? !cubiertaPorCampana(et) : false;
   });
+  const campanasQueAplican = contexto.etiquetas.filter(cubiertaPorCampana);
+
+  const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
 
   // ---------- guardar ----------
   async function onSubmit(e: React.FormEvent) {
@@ -264,27 +303,32 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     }
 
     setCargando(true);
-    const { data: productoId, error } = await firmar(createClient().rpc("crear_producto_con_variantes", {
-      p_referencia: nombreFinal,
-      p_categoria_id: categoriaId,
-      p_variantes: variantes,
-      p_descripcion: descripcion.trim() || undefined,
-      p_token: token.current,
-      p_tejido_id: tejidoId || undefined,
-      p_patron_id: patronId || undefined,
-      p_confirmo_distinto: confirmo,
-      p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
-      p_marca_id: marcaId,
-      p_proveedor_id: proveedorId,
-    }), responsable.firma());
-    setCargando(false);
+    const supabase = createClient();
+    const { data: productoId, error } = await firmar(
+      supabase.rpc("crear_producto_con_variantes", {
+        p_referencia: nombreFinal,
+        p_categoria_id: categoriaId,
+        p_variantes: variantes,
+        p_descripcion: descripcion.trim() || undefined,
+        p_token: token.current,
+        p_tejido_id: tejidoId || undefined,
+        p_patron_id: patronId || undefined,
+        p_confirmo_distinto: confirmo,
+        p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
+        p_marca_id: marcaId,
+        p_proveedor_id: proveedorId,
+      }),
+      responsable.firma()
+    );
     responsable.despues(error);
 
     if (error || !productoId) {
+      setCargando(false);
       const lectura = leerErrorAlta(error);
       if (lectura.tipo !== "otro") {
-        // Otra persona creó el mismo nombre mientras esta llenaba el formulario: se muestra en el bloque 2, no solo en un aviso.
+        // Otra persona creó el mismo nombre mientras esta llenaba el formulario: se muestra en el paso 2, no solo en un aviso.
         parecidos.reintentar();
+        irAPaso(2);
         avisar.error(lectura.mensaje, { enfocar: "nombre-producto" });
         return;
       }
@@ -292,17 +336,43 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       return;
     }
 
+    // El producto YA existe. Recién ahora suben las fotos: una que falle no deshace nada, se dice en la pantalla de éxito.
+    const fallidas: string[] = [];
+    const conFoto = new Set<string>();
+    let subidas = 0;
+    if (fotosOrdenadas.length > 0) {
+      const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
+      for (const f of fotosOrdenadas) {
+        const r = await subirFotoProducto(supabase, f.archivo);
+        if ("error" in r) {
+          fallidas.push(`${f.archivo.name}: ${r.error}`);
+          continue;
+        }
+        // La principal es la primera que SÍ subió (si la del primer color falló, la toma la siguiente).
+        filas.push({ producto_id: productoId, url: r.url, orden: filas.length, es_principal: filas.length === 0, color_codigo: f.colorCodigo });
+      }
+      if (filas.length > 0) {
+        const { error: errFotos } = await supabase.from("producto_fotos").insert(filas);
+        if (errFotos) fallidas.push(traducirError(errFotos, "guardar las fotos"));
+        else {
+          subidas = filas.length;
+          filas.forEach((f) => f.color_codigo && conFoto.add(f.color_codigo));
+        }
+      }
+      fotos.forEach((f) => URL.revokeObjectURL(f.vista));
+      setFotos([]);
+    }
+    setCargando(false);
+
     setCopiadoDe(null);
     setCreado({
       id: productoId,
       nombre: nombreFinal,
       categoria: `${familia?.nombre ?? ""} › ${categoria?.nombre ?? ""}`,
       variantes: variantes.length,
-      // Solo los colores que quedaron en alguna variante: uno desmarcado en la matriz no necesita foto.
-      colores: coloresElegidos
-        .filter((cod) => celdasIncluidas.some((c) => c.color === cod))
-        .map((cod) => colorPorCodigo(cod))
-        .filter((c): c is NonNullable<typeof c> => Boolean(c)),
+      // Solo los colores que quedaron en alguna variante: uno desmarcado en la tabla no necesita foto.
+      colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
+      fotos: { subidas, fallidas, coloresConFoto: [...conFoto] },
     });
   }
 
@@ -320,12 +390,345 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     setCostoTocado(true); // el costo ya es el de la prenda anterior: no volver a sugerir encima
     token.current = crypto.randomUUID(); // un producto nuevo es una operación nueva, no un reintento
     router.refresh(); // el correlativo del código previsto y los colores «más usados» ya cambiaron
+    setPaso(2);
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
-  const etiquetaNivel = { negativo: "con este precio pierdes dinero", bajo: "es poco: un descuento se lo come", normal: "" } as const;
+  const etiquetaNivel = { negativo: "Con este precio pierdes dinero", bajo: "Poco: un descuento se lo come", normal: "Sin descontar IGV" } as const;
 
   if (creado) return <ProductoCreado creado={creado} onOtroParecido={otroParecido} />;
+
+  // ---------- la línea de cada paso plegado ----------
+  const resumen: Record<NumeroPaso, string> = {
+    1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
+    2: [nombreFinal, marcaNombre && `${marcaNombre}${proveedorNombre ? ` (${proveedorNombre})` : ""}`].filter(Boolean).join(" · "),
+    3: [
+      tallasOrdenadas.map((t) => t.texto).join(" "),
+      tejidosCategoria.find((t) => t.id === tejidoId)?.texto,
+      patronesCategoria.find((t) => t.id === patronId)?.texto,
+      coloresElegidos.length ? `${coloresElegidos.length} color${coloresElegidos.length === 1 ? "" : "es"}` : "sin color",
+      fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    4: [precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null, `${celdasIncluidas.length} variante${celdasIncluidas.length === 1 ? "" : "s"}`].filter(Boolean).join(" · "),
+  };
+
+  const ejesActuales = (sin?: "tallas" | "tejidos" | "patrones") => ({
+    tallaIds: sin === "tallas" ? [] : tallasCategoria.map((t) => t.id),
+    tejidoIds: sin === "tejidos" ? [] : tejidosCategoria.map((t) => t.id),
+    patronIds: sin === "patrones" ? [] : patronesCategoria.map((t) => t.id),
+  });
+
+  function cuerpo(n: NumeroPaso) {
+    if (n === 1) {
+      return (
+        <div className="space-y-2">
+          <ArbolCategoria familias={contexto.familias} categorias={contexto.categorias} categoriaId={categoriaId} onElegir={elegirCategoria} onCambiar={cambiarCategoria} />
+          <p className="text-xs text-taupe">La categoría decide el código, las tallas y los tejidos. Al elegirla pasas solo al siguiente paso.</p>
+        </div>
+      );
+    }
+    if (n === 2) {
+      return (
+        <div>
+          <FilaAlta etiqueta="Nombre" ayuda="Como lo dirías en tienda">
+            <div className="space-y-2">
+              <CampoTexto
+                id="nombre-producto"
+                etiqueta="Referencia"
+                caja
+                placeholder="Blusa Aurora"
+                value={referencia}
+                onChange={(e) => setReferencia(e.target.value)}
+                autoComplete="off"
+                pie={
+                  nombreFinal && nombreFinal !== referencia.trim() ? (
+                    <span>
+                      Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
+                    </span>
+                  ) : undefined
+                }
+              />
+              <AvisoParecidos parecidos={parecidos.items} confirmo={confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
+            </div>
+          </FilaAlta>
+          <FilaAlta etiqueta="Descripción" ayuda="Opcional">
+            <CampoTexto etiqueta="Descripción" caja placeholder="Tela, corte, detalle…" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} />
+          </FilaAlta>
+          <FilaAlta etiqueta="Marca y proveedor" ayuda="Quién la hace y quién la trae">
+            <ElegirMarcaProveedor
+              marcas={listasMarca.marcas}
+              proveedores={listasMarca.proveedores}
+              vinculos={listasMarca.vinculos}
+              onListas={setListasMarca}
+              usosCategoria={contexto.parejasPorCategoria[categoriaId] ?? []}
+              categoriaNombre={categoria?.nombre}
+              nombresIniciales={marcaId ? { marca: marcaNombre, proveedor: proveedorNombre } : undefined}
+              marcaId={marcaId}
+              proveedorId={proveedorId}
+              onElegir={(m, p, nombres) => {
+                setMarcaId(m);
+                setProveedorId(p);
+                setMarcaNombre(nombres.marca);
+                setProveedorNombre(nombres.proveedor);
+              }}
+              onLimpiar={() => {
+                setMarcaId("");
+                setProveedorId("");
+                setMarcaNombre("");
+                setProveedorNombre("");
+              }}
+              puedeCrear
+            />
+          </FilaAlta>
+        </div>
+      );
+    }
+    if (n === 3) {
+      return (
+        <div>
+          <FilaAlta etiqueta="Tallas" ayuda={habituales.length > 0 ? "Vienen las habituales" : undefined}>
+            {tallasCategoria.length === 0 && categoria ? (
+              <ConfigurarCategoria
+                tipo="tallas"
+                categoriaId={categoriaId}
+                categoriaNombre={categoria.nombre}
+                universo={universo.tallas}
+                ejesActuales={ejesActuales("tallas")}
+                onGuardado={(el) => categoriaConfigurada("tallas", el)}
+              />
+            ) : (
+              <div className="space-y-2">
+                <div className="flex flex-wrap gap-1.5">
+                  {tallasCategoria.map((t) => (
+                    <ChipOpcion key={t.id} elegido={tallasElegidas.includes(t.id)} onClick={() => alternarTalla(t.id)} className="tabular-nums">
+                      {t.texto}
+                    </ChipOpcion>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  {curvaCambiada && (
+                    <button type="button" onClick={() => setTallasElegidas(habituales)} className="btn-cayla btn-enlace text-xs">
+                      Volver a la curva habitual
+                    </button>
+                  )}
+                  <ProponerValor tipo="tallas" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tallas} onCreado={(v) => agregarValor("tallas", v)} />
+                </div>
+              </div>
+            )}
+          </FilaAlta>
+
+          {(exige || tejidosCategoria.length > 0) && (
+            <FilaAlta etiqueta="Tejido" ayuda={exige ? `${familia?.nombre} lo pide` : "Opcional"}>
+              {tejidosCategoria.length === 0 && categoria ? (
+                <ConfigurarCategoria
+                  tipo="tejidos"
+                  categoriaId={categoriaId}
+                  categoriaNombre={categoria.nombre}
+                  universo={universo.tejidos}
+                  ejesActuales={ejesActuales("tejidos")}
+                  motivoExtra={`${familia?.nombre} exige tejido.`}
+                  onGuardado={(el) => categoriaConfigurada("tejidos", el)}
+                />
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {tejidosCategoria.map((t) => (
+                      <ChipOpcion key={t.id} elegido={tejidoId === t.id} onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}>
+                        {t.texto}
+                      </ChipOpcion>
+                    ))}
+                  </div>
+                  <ProponerValor tipo="tejidos" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tejidos} onCreado={(v) => agregarValor("tejidos", v)} />
+                </div>
+              )}
+            </FilaAlta>
+          )}
+
+          {(exige || patronesCategoria.length > 0) && (
+            <FilaAlta etiqueta="Patrón" ayuda={exige ? "Sin diseño = Liso" : "Opcional"}>
+              {patronesCategoria.length === 0 && categoria ? (
+                <ConfigurarCategoria
+                  tipo="patrones"
+                  categoriaId={categoriaId}
+                  categoriaNombre={categoria.nombre}
+                  universo={universo.patrones}
+                  ejesActuales={ejesActuales("patrones")}
+                  motivoExtra={`${familia?.nombre} exige patrón.`}
+                  onGuardado={(el) => categoriaConfigurada("patrones", el)}
+                />
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1.5">
+                    {patronesCategoria.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setPatronId((prev) => (prev === t.id ? "" : t.id))}
+                        aria-pressed={patronId === t.id}
+                        className={`flex w-[96px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-[12.5px] transition-colors ${
+                          patronId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
+                        }`}
+                      >
+                        <MuestraPatron nombre={t.texto} />
+                        <span className="px-0.5">
+                          {patronId === t.id && <span aria-hidden>✓ </span>}
+                          {t.texto}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <ProponerValor tipo="patrones" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.patrones} onCreado={(v) => agregarValor("patrones", v)} />
+                </div>
+              )}
+            </FilaAlta>
+          )}
+
+          <FilaAlta
+            etiqueta="Colores"
+            ayuda={coloresElegidos.length ? `${coloresElegidos.length} elegido${coloresElegidos.length === 1 ? "" : "s"}` : "Sin colores = una variante sin color"}
+          >
+            <div className="space-y-2">
+              <ElegirColores
+                colores={contexto.colores}
+                frecuentes={frecuentes}
+                grupos={grupos}
+                elegidos={coloresElegidos}
+                onAlternar={alternarColor}
+                categoriaNombre={categoria?.nombre}
+              />
+              <p className="text-xs text-taupe">
+                ¿Falta un color?{" "}
+                <Link href="/productos/atributos?tipo=colores" target="_blank" className="underline underline-offset-2 hover:text-tinta">
+                  Créalo en Catálogo → Atributos
+                </Link>{" "}
+                (otra pestaña) y luego{" "}
+                <button type="button" onClick={() => router.refresh()} className="underline underline-offset-2 hover:text-tinta">
+                  actualiza los colores
+                </button>
+                .
+              </p>
+            </div>
+          </FilaAlta>
+
+          <FilaAlta etiqueta="Fotos" ayuda="Opcional · una o más por color">
+            <FotosAlta colores={coloresDatos} fotos={fotos} onFotos={setFotos} disabled={cargando} />
+          </FilaAlta>
+        </div>
+      );
+    }
+    return (
+      <div className="space-y-5">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CampoMonto etiqueta="Precio de venta" pie="Para todas las variantes" inputMode="decimal" placeholder="0.00" value={precioBase} onChange={(e) => setPrecioBase(e.target.value)} />
+          <CampoMonto
+            etiqueta="Costo"
+            pie={sugerido && !costoTocado ? `Sugerido: el último en ${categoria?.nombre} (${sugerido.referencia})` : "Opcional"}
+            inputMode="decimal"
+            placeholder="0.00"
+            value={costoBase}
+            onChange={(e) => {
+              setCostoTocado(true);
+              setCostoBase(e.target.value);
+            }}
+          />
+          <div>
+            <p className="label-cayla text-[11px] text-tinta/65">Margen</p>
+            <p
+              className={`font-display mt-1.5 pb-1 text-[1.75rem] leading-none tabular-nums ${
+                margen === null ? "text-tinta/25" : nivel === "negativo" ? "text-rojo-profundo" : nivel === "bajo" ? "text-ambar" : "text-verde"
+              }`}
+            >
+              {margen === null ? "—" : `${margen.toFixed(0)} %`}
+            </p>
+            <p className="mt-1 text-xs text-taupe">{margen === null ? "Con el costo, se calcula" : nivel ? etiquetaNivel[nivel] : ""}</p>
+          </div>
+        </div>
+
+        {nivel === "negativo" && (
+          <AvisoInline tono="rojo" alerta>
+            Con este precio pierdes dinero en cada venta.
+          </AvisoInline>
+        )}
+
+        <div>
+          <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="text-sm">
+              <b className="tabular-nums">{celdasIncluidas.length}</b>{" "}
+              <span className="text-taupe">variante{celdasIncluidas.length === 1 ? "" : "s"} · toca una celda para quitarla</span>
+            </p>
+            {celdasIncluidas.length > 0 && (
+              <button type="button" onClick={() => setEditandoPrecios((v) => !v)} className="btn-cayla btn-enlace text-[12.5px]">
+                {editandoPrecios ? "Listo, volver" : "Poner un precio distinto a alguna"}
+              </button>
+            )}
+          </div>
+          <MatrizVariantes
+            celdas={celdas}
+            tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
+            colores={coloresDatos}
+            excluidas={excluidas}
+            onExcluidas={setExcluidas}
+            precioBase={precioBase}
+            precios={overridePrecio}
+            onPrecio={(clave, valor) => setOverridePrecio((prev) => ({ ...prev, [clave]: valor }))}
+            editandoPrecios={editandoPrecios}
+          />
+        </div>
+
+        <div className="border-t border-sand pt-4">
+          {verEtiquetas || etiquetasElegidas.length > 0 ? (
+            <div className="space-y-2">
+              <p className="text-[12.5px] font-semibold text-tinta">
+                Etiquetas <span className="font-normal text-taupe">· opcional, para todas las variantes</span>
+              </p>
+              {contexto.etiquetas.length === 0 ? (
+                <p className="text-sm text-taupe">Todavía no hay etiquetas aprobadas.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {contexto.etiquetas.map((et) =>
+                    cubiertaPorCampana(et) ? (
+                      <span
+                        key={et.id}
+                        title="Esta campaña ya rige sobre todas las prendas de esta categoría: se aplica sola, no hace falta elegirla."
+                        className="flex min-h-9 items-center gap-1.5 rounded-md border border-dashed border-tinta/30 bg-tinta/[0.03] px-2.5 py-1.5 text-sm text-tinta/70"
+                      >
+                        <span aria-hidden className="text-[11px]">
+                          ✓
+                        </span>
+                        {et.nombre}
+                        {et.descuentoPct !== null && <span className="tabular-nums">· {et.descuentoPct.toFixed(0)} % dto</span>}
+                        <span className="text-[11px] text-tinta/50">· ya aplica por campaña</span>
+                      </span>
+                    ) : (
+                      <ChipOpcion
+                        key={et.id}
+                        elegido={etiquetasElegidas.includes(et.id)}
+                        onClick={() => setEtiquetasElegidas((prev) => (prev.includes(et.id) ? prev.filter((x) => x !== et.id) : [...prev, et.id]))}
+                      >
+                        {et.nombre}
+                      </ChipOpcion>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-taupe">
+              <button type="button" onClick={() => setVerEtiquetas(true)} className="btn-cayla btn-enlace text-[12.5px]">
+                + Etiquetas (opcional)
+              </button>
+              {campanasQueAplican.length > 0 &&
+                ` · ${campanasQueAplican.map((c) => `«${c.nombre}»`).join(", ")} ya se aplica${campanasQueAplican.length === 1 ? "" : "n"} sola${campanasQueAplican.length === 1 ? "" : "s"} a ${categoria?.nombre}`}
+            </p>
+          )}
+        </div>
+
+        {faltaDelPaso(problemas, 4) && <p className="text-[12.5px] text-taupe">{faltaDelPaso(problemas, 4)}</p>}
+      </div>
+    );
+  }
 
   return (
     <form
@@ -335,485 +738,78 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       onKeyDown={(e) => {
         if (e.key === "Enter" && e.target instanceof HTMLInputElement) e.preventDefault();
       }}
-      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start"
+      className="space-y-4"
     >
-      <div className="space-y-4">
-        {copiadoDe && (
-          <AvisoInline tono="neutro">
-            Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el
-            costo y las etiquetas. Cambia lo que sea distinto.
-          </AvisoInline>
-        )}
+      {/* Los 4 pasos de un vistazo: el hecho en verde, el abierto en tinta. Se puede volver a uno hecho. */}
+      <nav aria-label="Pasos" className="grid grid-cols-4 gap-1.5">
+        {PASOS_ALTA.map((n) => {
+          const e = estadoPaso(n);
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={e === "pendiente"}
+              onClick={() => irAPaso(n)}
+              aria-current={e === "abierto" ? "step" : undefined}
+              aria-label={TITULOS[n]}
+              className={`flex items-baseline gap-2 border-t-2 pt-2 text-left text-[12.5px] transition-colors disabled:cursor-default ${
+                e === "abierto" ? "border-tinta text-tinta" : e === "hecho" ? "border-verde text-tinta" : "border-sand text-tinta/55"
+              }`}
+            >
+              <span className="text-[11px] font-bold tabular-nums">{e === "hecho" ? "✓" : n}</span>
+              <span className="hidden font-semibold sm:inline">{CORTOS[n]}</span>
+            </button>
+          );
+        })}
+      </nav>
 
-        {/* 1 · QUÉ ES */}
-        <Bloque numero={1} titulo="Qué producto es" listo={Boolean(categoria)} ayuda="Elige la familia y la categoría, o búscala por nombre.">
-          <ArbolCategoria
-            familias={contexto.familias}
-            categorias={contexto.categorias}
-            categoriaId={categoriaId}
-            onElegir={elegirCategoria}
-            onCambiar={cambiarCategoria}
-          />
-        </Bloque>
-
-        {/* 2 · DE QUIÉN ES */}
-        <Bloque
-          numero={2}
-          titulo="Marca y proveedor"
-          bloqueado={!abierto.marca}
-          bloqueadoTexto="Elige primero qué producto es."
-          listo={Boolean(marcaId && proveedorId)}
-          ayuda="De quién es la prenda y quién la trae. Una marca puede llegar por más de un proveedor."
-        >
-          <ElegirMarcaProveedor
-            marcas={listasMarca.marcas}
-            proveedores={listasMarca.proveedores}
-            vinculos={listasMarca.vinculos}
-            onListas={setListasMarca}
-            usosCategoria={contexto.parejasPorCategoria[categoriaId] ?? []}
-            categoriaNombre={categoria?.nombre}
-            marcaId={marcaId}
-            proveedorId={proveedorId}
-            onElegir={(m, p, nombres) => {
-              setMarcaId(m);
-              setProveedorId(p);
-              setMarcaNombre(nombres.marca);
-            }}
-            onLimpiar={() => {
-              setMarcaId("");
-              setProveedorId("");
-              setMarcaNombre("");
-            }}
-            puedeCrear
-          />
-        </Bloque>
-
-        {/* 3 · NOMBRE */}
-        <Bloque
-          numero={3}
-          titulo="Nombre"
-          bloqueado={!abierto.nombre}
-          bloqueadoTexto={abierto.marca ? "Elige primero la marca y el proveedor." : "Elige primero qué producto es."}
-          listo={abierto.atributos}
-          ayuda="Escríbelo como quieras: se guarda siempre con el mismo formato."
-        >
-          <div className="space-y-3">
-            <CampoTexto
-              id="nombre-producto"
-              etiqueta="Referencia"
-              placeholder="Blusa Aurora"
-              value={referencia}
-              onChange={(e) => setReferencia(e.target.value)}
-              autoComplete="off"
-              pie={
-                nombreFinal && nombreFinal !== referencia.trim() ? (
-                  <span>
-                    Se guardará como <strong className="text-tinta">{nombreFinal}</strong>
-                  </span>
-                ) : undefined
-              }
-            />
-            <AvisoParecidos parecidos={parecidos.items} confirmo={confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
-            <CampoTexto
-              etiqueta="Descripción"
-              pie="Opcional"
-              placeholder="Tela, corte, detalle…"
-              value={descripcion}
-              onChange={(e) => setDescripcion(e.target.value)}
-            />
-          </div>
-        </Bloque>
-
-        {/* 4 · TALLA, TEJIDO, PATRÓN */}
-        <Bloque
-          numero={4}
-          titulo="Talla, tejido y patrón"
-          bloqueado={!abierto.atributos}
-          bloqueadoTexto={!abierto.marca ? "Elige primero qué producto es." : !abierto.nombre ? "Elige primero la marca y el proveedor." : "Escribe un nombre que no exista todavía."}
-          listo={abierto.colores}
-          ayuda={exige ? `${familia?.nombre} exige tejido y patrón.` : undefined}
-        >
-          <div className="space-y-6">
-            {/* tallas */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3">
-                <p className="label-cayla text-[11px] text-tinta/70">Tallas</p>
-                {curvaCambiada && (
-                  <button
-                    type="button"
-                    onClick={() => setTallasElegidas(habituales)}
-                    className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo"
-                  >
-                    Volver a la curva habitual
-                  </button>
-                )}
-              </div>
-              {tallasCategoria.length === 0 && categoria ? (
-                <ConfigurarCategoria
-                  tipo="tallas"
-                  categoriaId={categoriaId}
-                  categoriaNombre={categoria.nombre}
-                  universo={universo.tallas}
-                  ejesActuales={{ tallaIds: [], tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
-                  onGuardado={(el) => categoriaConfigurada("tallas", el)}
-                />
-              ) : (
-                <>
-                  <div className="flex flex-wrap gap-1.5">
-                    {tallasCategoria.map((t) => (
-                      <ChipOpcion key={t.id} elegido={tallasElegidas.includes(t.id)} onClick={() => alternarTalla(t.id)}>
-                        {t.texto}
-                      </ChipOpcion>
-                    ))}
-                  </div>
-                  {habituales.length > 0 && !curvaCambiada && <p className="text-xs text-tinta/55">Vienen marcadas las tallas habituales de {categoria?.nombre}.</p>}
-                  <ProponerValor
-                    tipo="tallas"
-                    categoriaId={categoriaId}
-                    ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
-                    universo={universo.tallas}
-                    onCreado={(v) => agregarValor("tallas", v)}
-                  />
-                </>
-              )}
-            </div>
-
-            {/* tejido */}
-            {(exige || tejidosCategoria.length > 0) && (
-              <div className="space-y-2">
-                <p className="label-cayla text-[11px] text-tinta/70">Tejido {exige ? "" : "(opcional)"}</p>
-                {tejidosCategoria.length === 0 && categoria ? (
-                  <ConfigurarCategoria
-                    tipo="tejidos"
-                    categoriaId={categoriaId}
-                    categoriaNombre={categoria.nombre}
-                    universo={universo.tejidos}
-                    ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: [], patronIds: patronesCategoria.map((t) => t.id) }}
-                    motivoExtra={`${familia?.nombre} exige tejido.`}
-                    onGuardado={(el) => categoriaConfigurada("tejidos", el)}
-                  />
-                ) : (
-                  <>
-                    <div className="flex flex-wrap gap-1.5">
-                      {tejidosCategoria.map((t) => (
-                        <ChipOpcion key={t.id} elegido={tejidoId === t.id} onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}>
-                          {t.texto}
-                        </ChipOpcion>
-                      ))}
-                    </div>
-                    <ProponerValor
-                      tipo="tejidos"
-                      categoriaId={categoriaId}
-                      ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
-                      universo={universo.tejidos}
-                      onCreado={(v) => agregarValor("tejidos", v)}
-                    />
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* patrón */}
-            {(exige || patronesCategoria.length > 0) && (
-              <div className="space-y-2">
-                <p className="label-cayla text-[11px] text-tinta/70">Patrón {exige ? "" : "(opcional)"}</p>
-                {patronesCategoria.length === 0 && categoria ? (
-                  <ConfigurarCategoria
-                    tipo="patrones"
-                    categoriaId={categoriaId}
-                    categoriaNombre={categoria.nombre}
-                    universo={universo.patrones}
-                    ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: [] }}
-                    motivoExtra={`${familia?.nombre} exige patrón.`}
-                    onGuardado={(el) => categoriaConfigurada("patrones", el)}
-                  />
-                ) : (
-                  <>
-                    <div className="flex flex-wrap gap-1.5">
-                      {patronesCategoria.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => setPatronId((prev) => (prev === t.id ? "" : t.id))}
-                          aria-pressed={patronId === t.id}
-                          className={`flex w-[112px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-sm transition-colors ${
-                            patronId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
-                          }`}
-                        >
-                          <MuestraPatron nombre={t.texto} />
-                          <span className="px-0.5">
-                            {patronId === t.id && <span aria-hidden>✓ </span>}
-                            {t.texto}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                    <ProponerValor
-                      tipo="patrones"
-                      categoriaId={categoriaId}
-                      ejesActuales={{ tallaIds: tallasCategoria.map((t) => t.id), tejidoIds: tejidosCategoria.map((t) => t.id), patronIds: patronesCategoria.map((t) => t.id) }}
-                      universo={universo.patrones}
-                      onCreado={(v) => agregarValor("patrones", v)}
-                    />
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </Bloque>
-
-        {/* 5 · COLORES */}
-        <Bloque
-          numero={5}
-          titulo="Colores"
-          bloqueado={!abierto.colores}
-          bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
-          listo={abierto.colores && coloresElegidos.length > 0}
-          ayuda="Elige los colores en que se hace. Sin colores, se crea una sola variante sin color."
-          derecha={
-            <span className="text-xs text-tinta/60">
-              {coloresElegidos.length} elegido{coloresElegidos.length === 1 ? "" : "s"}
-            </span>
-          }
-        >
-          <div className="space-y-4">
-            {frecuentes.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="label-cayla text-[11px] text-tinta/60">Los más usados en {categoria?.nombre}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {frecuentes.map((c) => (
-                    <ColorChip key={c.codigo} nombre={c.nombre} hex={c.hex} elegido={coloresElegidos.includes(c.codigo)} onClick={() => alternarColor(c.codigo)} />
-                  ))}
-                </div>
-              </div>
-            )}
-            {grupos.map((g) => (
-              <div key={g.familia} className="space-y-1.5">
-                <p className="label-cayla text-[11px] text-tinta/60">{g.texto}</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {g.colores.map((c) => (
-                    <ColorChip key={c.codigo} nombre={c.nombre} hex={c.hex} elegido={coloresElegidos.includes(c.codigo)} onClick={() => alternarColor(c.codigo)} />
-                  ))}
-                </div>
-              </div>
-            ))}
-            <p className="text-xs text-tinta/55">
-              ¿Falta un color?{" "}
-              <Link href="/productos/atributos?tipo=colores" target="_blank" className="underline underline-offset-4 hover:text-rojo">
-                Créalo en Catálogo → Atributos
-              </Link>{" "}
-              (se abre en otra pestaña, no pierdes lo que llenaste) y luego{" "}
-              <button type="button" onClick={() => router.refresh()} className="underline underline-offset-4 hover:text-rojo">
-                actualiza los colores
-              </button>
-              .
-            </p>
-          </div>
-        </Bloque>
-
-        {/* 6 · PRECIO Y VARIANTES */}
-        <Bloque
-          numero={6}
-          titulo="Precio y variantes"
-          bloqueado={!abierto.precio}
-          bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
-          listo={abierto.precio && Number(precioBase) > 0}
-        >
-          <div className="space-y-5">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <CampoMonto
-                etiqueta="Precio de venta"
-                pie="Se aplica a todas las variantes"
-                inputMode="decimal"
-                placeholder="0.00"
-                value={precioBase}
-                onChange={(e) => setPrecioBase(e.target.value)}
-              />
-              <CampoMonto
-                etiqueta="Costo"
-                pie={
-                  sugerido && !costoTocado ? (
-                    <span>
-                      Sugerido: el último costo en {categoria?.nombre} ({sugerido.referencia})
-                    </span>
-                  ) : (
-                    "Opcional"
-                  )
-                }
-                inputMode="decimal"
-                placeholder="0.00"
-                value={costoBase}
-                onChange={(e) => {
-                  setCostoTocado(true);
-                  setCostoBase(e.target.value);
-                }}
-              />
-            </div>
-
-            {margen !== null && nivel && (
-              <AvisoInline tono={nivel === "negativo" ? "rojo" : nivel === "bajo" ? "ambar" : "neutro"} alerta={nivel === "negativo"}>
-                Margen {margen.toFixed(0)} % sobre el precio de venta{etiquetaNivel[nivel] && ` — ${etiquetaNivel[nivel]}`}.
-                <span className="block text-xs opacity-80">Sin descontar IGV: es una alerta, no el cálculo contable.</span>
-              </AvisoInline>
-            )}
-
-            <div>
-              <p className="label-cayla text-[11px] text-tinta/70">
-                Variantes · {celdasIncluidas.length}
-              </p>
-              <p className="mt-1 text-xs text-tinta/55">
-                Todas incluidas: desmarca las que este modelo no trae. Puedes cambiar el precio de una sin tocar las demás.
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {celdas.map((c) => {
-                  const incluida = !excluidas.has(c.clave);
-                  const etiqueta =
-                    [c.tallaId ? tallaTexto(c.tallaId) : null, c.color ? colorPorCodigo(c.color)?.nombre : null].filter(Boolean).join(" · ") || "Única";
-                  return (
-                    <div
-                      key={c.clave}
-                      className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 ${incluida ? "border-tinta/25" : "border-tinta/10 opacity-45"}`}
-                    >
-                      <label className="flex items-center gap-2">
-                        <input type="checkbox" checked={incluida} onChange={() => alternarCelda(c.clave)} className="accent-tinta" />
-                        <span className="text-sm text-tinta/80">{etiqueta}</span>
-                      </label>
-                      {incluida && (
-                        <input
-                          type="number"
-                          min={0}
-                          step="any"
-                          inputMode="decimal"
-                          aria-label={`Precio de ${etiqueta}`}
-                          placeholder={precioBase || "0.00"}
-                          value={overridePrecio[c.clave] ?? ""}
-                          onChange={(e) => setOverridePrecio((prev) => ({ ...prev, [c.clave]: e.target.value }))}
-                          className="w-20 border-b border-tinta/20 bg-transparent px-1 py-0.5 text-right text-sm tabular-nums outline-none focus:border-tinta"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </Bloque>
-
-        {/* 7 · ETIQUETAS */}
-        <Bloque
-          numero={7}
-          titulo="Etiquetas (opcional)"
-          bloqueado={!abierto.precio}
-          bloqueadoTexto="Resuelve primero la talla, el tejido y el patrón."
-          ayuda="Se aplican a todas las variantes. Las campañas que ya rigen sobre esta categoría se aplican solas; las terminadas no aparecen."
-        >
-          {contexto.etiquetas.length === 0 ? (
-            <p className="text-sm text-tinta/60">Todavía no hay etiquetas aprobadas.</p>
-          ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {contexto.etiquetas.map((et) =>
-                cubiertaPorCampana(et) ? (
-                  <span
-                    key={et.id}
-                    title="Esta campaña ya rige sobre todas las prendas de esta categoría: se aplica sola, no hace falta elegirla."
-                    className="flex min-h-9 items-center gap-1.5 rounded-md border border-dashed border-tinta/30 bg-tinta/[0.03] px-2.5 py-1.5 text-sm text-tinta/70"
-                  >
-                    <span aria-hidden className="text-[11px]">
-                      ✓
-                    </span>
-                    {et.nombre}
-                    {et.descuentoPct !== null && <span className="tabular-nums">· {et.descuentoPct.toFixed(0)} % dto</span>}
-                    <span className="text-[11px] text-tinta/50">· ya aplica por campaña</span>
-                  </span>
-                ) : (
-                  <ChipOpcion
-                    key={et.id}
-                    elegido={etiquetasElegidas.includes(et.id)}
-                    onClick={() => setEtiquetasElegidas((prev) => (prev.includes(et.id) ? prev.filter((x) => x !== et.id) : [...prev, et.id]))}
-                  >
-                    {et.nombre}
-                  </ChipOpcion>
-                )
-              )}
-            </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+        <div className="min-w-0 space-y-2.5">
+          {copiadoDe && (
+            <AvisoInline tono="neutro">
+              Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el
+              costo y las etiquetas. Cambia lo que sea distinto.
+            </AvisoInline>
           )}
-        </Bloque>
-      </div>
-
-      {/* RESUMEN: qué se va a crear, qué falta, y el botón que no se apaga en silencio */}
-      <aside aria-label="Resumen" className="card-cayla space-y-4 p-5 lg:sticky lg:top-6">
-        <p className="label-cayla text-[11px] text-tinta/70">Resumen</p>
-        <dl className="space-y-2 text-sm">
-          <Fila etiqueta="Producto" valor={nombreFinal || "—"} />
-          <Fila etiqueta="Marca" valor={marcaId ? marcaNombre || "—" : "—"} />
-          <Fila etiqueta="Categoría" valor={categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "—"} />
-          <Fila etiqueta="Variantes" valor={categoria ? String(celdasIncluidas.length) : "—"} />
-          <Fila etiqueta="Precio" valor={Number(precioBase) > 0 ? `S/ ${Number(precioBase).toFixed(2)}` : "—"} />
-        </dl>
-
-        {categoria && (
-          <div className="border-t border-tinta/10 pt-3">
-            <p className="label-cayla text-[11px] text-tinta/60">Código previsto</p>
-            <p className="mt-1 font-mono text-sm tabular-nums text-tinta">{base}</p>
-            {codigosVariantes.length > 0 && (
-              <p className="mt-1 break-words font-mono text-xs tabular-nums text-tinta/60">
-                {codigosVariantes.slice(0, 3).join(" · ")}
-                {codigosVariantes.length > 3 && ` · +${codigosVariantes.length - 3} más`}
-              </p>
-            )}
-            <p className="mt-1 text-[11px] text-tinta/50">Se asigna al guardar; puede cambiar si otra persona crea uno a la vez.</p>
-          </div>
-        )}
-
-        {problemas.length > 0 && (
-          <div className="border-t border-tinta/10 pt-3">
-            <p className="label-cayla text-[11px] text-tinta/60">Falta</p>
-            <ul className="mt-1.5 space-y-1 text-sm text-tinta/80">
-              {problemas.map((p) => (
-                <li key={p.texto} className="flex gap-2">
-                  <span aria-hidden className="text-tinta/40">
-                    ·
-                  </span>
-                  {p.texto}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <ComboResponsable control={responsable} deshabilitado={cargando} />
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={() => router.push("/productos")} className={botonCancelar}>
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={!puedeGuardar || !responsable.listo}
-            title={responsable.motivo ?? undefined}
-            className="label-cayla rounded-md flex-1 bg-tinta px-3 py-2.5 text-[11px] text-crema transition-colors hover:bg-rojo disabled:opacity-40"
-          >
-            {cargando ? "Creando…" : "Crear producto"}
-          </button>
+          {PASOS_ALTA.map((n) => (
+            <PasoAlta
+              key={n}
+              numero={n}
+              titulo={TITULOS[n]}
+              estado={estadoPaso(n)}
+              resumen={resumen[n]}
+              onAbrir={() => irAPaso(n)}
+              falta={faltaDelPaso(problemas, n)}
+              onSeguir={n === 2 || n === 3 ? () => irAPaso((n + 1) as NumeroPaso) : undefined}
+              textoSeguir={n === 3 ? "Seguir al precio" : "Seguir"}
+            >
+              {cuerpo(n)}
+            </PasoAlta>
+          ))}
         </div>
-      </aside>
+
+        <FichaPrevia
+          datos={{
+            nombre: nombreFinal,
+            codigo: categoria ? base : null,
+            codigosVariantes: categoria && tallasElegidas.length ? codigosVariantes : [],
+            categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
+            marca: marcaId ? marcaNombre || null : null,
+            tallas: tallasOrdenadas.map((t) => t.texto).join(" · "),
+            tejidoPatron: [tejidosCategoria.find((t) => t.id === tejidoId)?.texto, patronesCategoria.find((t) => t.id === patronId)?.texto].filter(Boolean).join(" · "),
+            variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
+            precio: precioNum > 0 ? precioNum : null,
+            colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
+            foto: fotosOrdenadas[0]?.vista ?? null,
+            fotos: fotos.length,
+            siguiente: problemas[0]?.texto ?? null,
+          }}
+          responsable={responsable}
+          cargando={cargando}
+          puedeGuardar={puedeGuardar}
+          onCancelar={() => router.push("/productos")}
+        />
+      </div>
     </form>
-  );
-}
-
-function Fila({ etiqueta, valor }: { etiqueta: string; valor: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <dt className="text-tinta/60">{etiqueta}</dt>
-      <dd className="text-right font-medium text-tinta">{valor}</dd>
-    </div>
-  );
-}
-
-function ColorChip({ nombre, hex, elegido, onClick }: { nombre: string; hex: string | null; elegido: boolean; onClick: () => void }) {
-  return (
-    <ChipOpcion elegido={elegido} onClick={onClick}>
-      {hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/20" style={{ background: hex }} />}
-      {nombre}
-    </ChipOpcion>
   );
 }

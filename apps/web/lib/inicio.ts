@@ -1,10 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCajaAbierta, getVentasMismaHoraSemanaAnterior } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
+import { getParametrosCaja } from "@/lib/configuracion";
+import { hoyLima } from "@/lib/etiqueta-vigencia";
 import { nombreDiaLima } from "@/lib/inicio-reglas";
 
 // Lecturas del bloque «Hoy» del Inicio. Reutiliza las MISMAS fuentes que Caja (`fn_ventas_del_dia`,
-// `getVentasMismaHoraSemanaAnterior`, `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
+// `getVentasMismaHoraSemanaAnterior`, `fn_parametros_caja` — antes `ubicaciones.meta_venta_diaria`) para que las dos pantallas nunca
 // discrepen en qué es «hoy» (docs/datos/11-KPIS.md, «Qué lo rompe» a: dos fuentes que nada obliga a cuadrar).
 //
 // Cada pieza falla POR SEPARADO y devuelve null: «Hoy» es un dato secundario del que nadie decide plata
@@ -35,7 +37,7 @@ async function tolerarLectura<T>(que: string, leer: () => Promise<T>): Promise<T
 
 export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Promise<HoyDeLaSede> {
   const supabase = await createClient();
-  const [caja, totales, semanaAnterior, ubicaciones] = await Promise.all([
+  const [caja, totales, semanaAnterior, ubicaciones, parametros] = await Promise.all([
     // `getCajaAbierta` devuelve null cuando NO hay caja abierta: no es un fallo. Un fallo real (lanza) se vuelve null
     // acá, y por eso se separan: abierta = true, cerrada = false, no se pudo leer = null.
     getCajaAbierta(ubicacionId).then(
@@ -52,13 +54,15 @@ export async function getHoyDeLaSede(ubicacionId: string, esLider: boolean): Pro
     }),
     esLider ? tolerarLectura("las ventas de la semana pasada", () => getVentasMismaHoraSemanaAnterior(ubicacionId)) : Promise.resolve(null),
     esLider ? tolerarLectura("la meta de la sede", () => getUbicaciones()) : Promise.resolve(null),
+    // La meta de hoy con las campañas (ADR-0195 F1): la misma regla que Caja. `null` = base sin fn_parametros_caja.
+    esLider ? getParametrosCaja(ubicacionId, hoyLima()) : Promise.resolve(null),
   ]);
 
   return {
     cajaAbierta: caja,
     totales,
     semanaAnterior,
-    metaVentaDiaria: ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null,
+    metaVentaDiaria: parametros ? parametros.meta : (ubicaciones?.find((u) => u.id === ubicacionId)?.metaVentaDiaria ?? null),
     nombreDia: nombreDiaLima(Date.now()),
   };
 }

@@ -245,6 +245,20 @@ export function PerfilModal({ onClose, veAdministracion = false }: {
                   </span>
                   <span aria-hidden className="text-tinta/45">→</span>
                 </Link>
+                {/* Configuración (ADR-0195 F1): «solo líder por ahora», así que solo se ofrece al líder. */}
+                {perfil.rol === "lider" && (
+                  <Link
+                    href="/configuracion"
+                    onClick={onClose}
+                    className="card-cayla mt-2 flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/40"
+                  >
+                    <span>
+                      <span className="block text-sm text-tinta">Configuración</span>
+                      <span className="mt-0.5 block text-xs text-tinta/55">Meta de cada día, fondo de caja y lo que cambia cada campaña.</span>
+                    </span>
+                    <span aria-hidden className="text-tinta/45">→</span>
+                  </Link>
+                )}
               </div>
             )}
 

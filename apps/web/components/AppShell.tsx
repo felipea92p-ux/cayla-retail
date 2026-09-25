@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { LogoutButton } from "@/components/LogoutButton";
-import { Boton } from "@/components/ui/campos";
 import { Insignia } from "@/components/ui/Insignia";
 import { UbicacionSwitcher } from "@/components/UbicacionSwitcher";
 // El árbol del menú —qué fila ve cada perfil, en qué orden, con qué ícono— vive en `lib/menu.ts` como datos. Acá solo se pinta.
@@ -63,7 +62,7 @@ import { guardarLateralPlegado } from "@/lib/lateral-cookie";
 // que ofrecía (venta, factura de proveedor, recibir, mover, cambio, devolución). Esas pantallas se
 // siguen alcanzando por el lateral o el árbol de rutas; lo que se pierde es el atajo de un clic desde
 // cualquier pantalla. La barra del celular pasa de 5 columnas a 4 (`COLUMNAS_MOVIL`, lib/menu.ts).
-// Detalle y trade-off: ADR-0195.
+// Detalle y trade-off: ADR-0204.
 //
 // V2 (Fase UI 1, 2026-09-11): `ubicaciones.nombre` ya es legible por sí solo
 // ("Tienda Lima") — a diferencia de V1, donde el código dejó de servir tras
@@ -163,6 +162,12 @@ const IC: Record<ClaveIcono | "chevron", string> = {
   porPagar: "M12 22a10 10 0 100-20 10 10 0 000 20z M12 6v6l4 2",
   // Recibo con una flecha que vuelve: el documento por el que el proveedor devuelve dinero.
   notasCredito: "M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
+  // Billetera: la plata que sale para que el negocio funcione (Finanzas ▸ Gastos, ADR-0195 F2).
+  gastos: "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z",
+  dinero: "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z",
+  reportes: "M4 20V10 M10 20V4 M16 20v-7 M3 20h18",
+  impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
+  cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
   chevron: "M9 6l6 6-6 6",
 };
 
