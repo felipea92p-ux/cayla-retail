@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { CampoSelect } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatearHora } from "@/components/ComprasAgrupadas";
 import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
@@ -313,21 +314,12 @@ function PanelResolver({
             </div>
             {montoNumero !== null && montoNumero > 0 && (
               <div className="anim-revelar">
-                <label htmlFor={`metodo-${d.id}`} className="text-xs font-semibold text-tinta/70">
-                  ¿Cómo se le devuelve?
-                </label>
-                <select
-                  id={`metodo-${d.id}`}
-                  value={metodo}
-                  onChange={(e) => setMetodo(e.target.value as typeof metodo)}
-                  className="mt-1 h-10 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
-                >
-                  {METODOS_DIFERENCIA.map((m) => (
-                    <option key={m.valor} value={m.valor}>
-                      {m.etiqueta}
-                    </option>
-                  ))}
-                </select>
+                <CampoSelect
+                  etiqueta="¿Cómo se le devuelve?"
+                  valor={metodo}
+                  onValor={setMetodo}
+                  opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                />
               </div>
             )}
             {hayReembolso && (

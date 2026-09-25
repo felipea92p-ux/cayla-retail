@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -175,14 +175,12 @@ export function ProveedorProduccionModal({ proveedor, onClose }: { proveedor: Pr
             tono={errorPlazo ? "error" : "neutro"}
             pie={errorPlazo ?? "Vacío = paga al contado"}
           />
-          <CampoSelectNativo etiqueta="Forma de pago" value={forma} onChange={(e) => setForma(e.target.value)}>
-            <option value="">Sin preferencia</option>
-            {Object.entries(ETIQUETA_FORMA_PAGO).map(([k, v]) => (
-              <option key={k} value={k}>
-                {v}
-              </option>
-            ))}
-          </CampoSelectNativo>
+          <CampoSelect
+            etiqueta="Forma de pago"
+            valor={forma}
+            onValor={(v) => setForma(v)}
+            opciones={[{ valor: "", texto: "Sin preferencia" }, ...Object.entries(ETIQUETA_FORMA_PAGO).map(([k, v]) => ({ valor: k, texto: v }))]}
+          />
         </div>
 
         <div className="space-y-3 rounded-2xl border border-sand bg-crema p-3.5">

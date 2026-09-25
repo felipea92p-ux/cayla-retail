@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectNativo } from "@/components/ui/campos";
+import { Desplegable } from "@/components/ui/campos";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
 import type { CambiosUrl } from "@/components/useResumenUrl";
@@ -8,7 +8,7 @@ import { LecturaCelda } from "@/components/ResumenCifras";
 import { FILAS_POR_PAGINA, OPCIONES_SELL_THROUGH } from "@/lib/resumen-filtros";
 import { lecturaDesempeno } from "@/lib/resumen-lectura";
 import { formatoRotacion, formatoSellThroughExposicion, formatoVariacion, formatoVelocidad, textoCalidad, textoExposicionDias, textoPendienteMadurez, textoSinVenta, textoStockPisoAlmacen, tooltipStockPisoAlmacen } from "@/lib/resumen-formato";
-import { ETIQUETA_TENDENCIA, OPCIONES_ORDEN_DESEMPENO, ORDEN_INICIAL_DESEMPENO, type AnalisisDesempeno, type DesempenoParaPantalla, type DireccionTendencia, type OrdenDesempeno } from "@/lib/resumen-desempeno";
+import { ETIQUETA_TENDENCIA, OPCIONES_ORDEN_DESEMPENO, ORDEN_INICIAL_DESEMPENO, type AnalisisDesempeno, type DesempenoParaPantalla, type DireccionTendencia } from "@/lib/resumen-desempeno";
 
 // «Comportamiento del inventario» (rediseño 2026-09-24, comportamiento comercial piso/almacén): cómo se
 // comportó cada producto y variante DURANTE el período elegido — separando A) comportamiento COMERCIAL
@@ -178,25 +178,23 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
             Sell-through (total)
           </span>
           <span className="w-44">
-            <SelectNativo value={sellThrough} onChange={(e) => actualizar({ st: e.target.value === "todos" ? null : e.target.value })}>
-              {OPCIONES_SELL_THROUGH.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectNativo>
+            <Desplegable
+              valor={sellThrough}
+              onValor={(v) => actualizar({ st: v === "todos" ? null : v })}
+              opciones={OPCIONES_SELL_THROUGH}
+              etiquetaAccesible="Sell-through"
+            />
           </span>
         </label>
         <label className="flex items-center gap-2">
           <span className="label-cayla text-[10px] text-tinta/60">Ordenar por</span>
           <span className="w-52">
-            <SelectNativo value={orden} onChange={(e) => actualizar({ orden: e.target.value === ORDEN_INICIAL_DESEMPENO ? null : (e.target.value as OrdenDesempeno) })}>
-              {OPCIONES_ORDEN_DESEMPENO.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectNativo>
+            <Desplegable
+              valor={orden}
+              onValor={(v) => actualizar({ orden: v === ORDEN_INICIAL_DESEMPENO ? null : v })}
+              opciones={OPCIONES_ORDEN_DESEMPENO}
+              etiquetaAccesible="Ordenar por"
+            />
           </span>
         </label>
         </div>
