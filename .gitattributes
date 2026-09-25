@@ -1,0 +1,13 @@
+# Saltos de línea fijos en LF para lo que se EJECUTA, aunque la copia sea de Windows (core.autocrlf=true).
+#
+# Por qué (2026-09-25): con CRLF en la copia de trabajo pasaban dos cosas que en Linux/CI no pasan:
+#   · un .mjs con `#!/usr/bin/env node\r` rompía el parser de Vitest (menu.test.ts importa scripts/datos/aviario.mjs);
+#   · las migraciones aplicadas desde Windows dejaban `\r\n` dentro del cuerpo de las funciones de Postgres, y las
+#     migraciones que parchean una función buscando su texto exacto (`...\n`) fallaban en local — 308 funciones
+#     quedaron así en el Postgres local hasta que se normalizaron.
+# El repositorio ya guardaba todo en LF; esto solo fija cómo se escribe en disco.
+*.sql  text eol=lf
+*.mjs  text eol=lf
+*.js   text eol=lf
+*.cjs  text eol=lf
+*.sh   text eol=lf
