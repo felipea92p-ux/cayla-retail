@@ -500,8 +500,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   async function releerStock(ids?: string[]): Promise<Map<string, number> | null> {
     const conocidos = variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId);
     const releido = await leerStockDeSede(ubicacionId, conocidos, ids);
-    if (releido) setAjustesStock((prev) => new Map([...prev, ...releido]));
-    return releido;
+    if (!releido) return null;
+    setAjustesStock((prev) => new Map([...prev, ...releido.cobrable]));
+    return releido.cobrable;
   }
 
   /**

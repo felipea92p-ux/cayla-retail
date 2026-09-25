@@ -22,6 +22,13 @@ export function cantidadCobrable(c: Cantidades | undefined): number {
   return c.pisoDisponible ?? c.disponible;
 }
 
+/** Lo que hay en el ALMACÉN de esta sede y se podría ofrecer (lo apartado no cuenta, ADR-0141). No se cobra desde la
+ *  caja —una venta descuenta el piso—, pero dice «está en el almacén» en vez de «agotada» (D-40). `null` donde no hay
+ *  almacén que ofrecer: una ubicación sin piso/almacén (Taller) o una prenda sin fila de stock en esta sede. */
+export function almacenDeLaSede(c: Cantidades | undefined): number | null {
+  return c?.almacenDisponible ?? null;
+}
+
 /** Stock de la caja corregido: `ajustes` pisa `stockAqui` de las prendas que se vendieron o releyeron en esta
  *  pantalla. Devuelve el MISMO arreglo si no hay nada que corregir (los `useMemo` de abajo no se recalculan). */
 export function conStockAjustado<V extends { varianteId: string; stockAqui: number }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {
@@ -51,4 +58,10 @@ export function conStockReleido(ajustes: ReadonlyMap<string, number>, pedidas: s
   const nuevos = new Map(ajustes);
   for (const id of pedidas) nuevos.set(id, cantidadCobrable(releido.get(id)));
   return nuevos;
+}
+
+/** El almacén de las prendas releídas, de las MISMAS filas que `conStockReleido` (sin otra consulta). Una prenda pedida
+ *  que no volvió no tiene fila en esta sede: queda en `null` («no hay almacén que ofrecer»), igual que al cargar. */
+export function almacenReleido(pedidas: string[], releido: ReadonlyMap<string, Cantidades>): Map<string, number | null> {
+  return new Map(pedidas.map((id) => [id, almacenDeLaSede(releido.get(id))]));
 }

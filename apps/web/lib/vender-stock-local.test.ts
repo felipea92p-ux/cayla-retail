@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cantidadCobrable, conStockAjustado, conStockReleido, descontarVendido } from "./vender-stock-local";
+import { almacenDeLaSede, almacenReleido, cantidadCobrable, conStockAjustado, conStockReleido, descontarVendido } from "./vender-stock-local";
 import { sumarCantidades } from "./inventario-reglas";
 
 const piso = (variante_id: string, cantidad: number, cantidad_apartada = 0) => ({ variante_id, cantidad, cantidad_apartada, sububicacion: { tipo: "piso_venta" } });
@@ -30,6 +30,19 @@ describe("stock de la caja tras vender", () => {
     const releido = sumarCantidades([piso("a", 4)]);
     const r = conStockReleido(new Map([["a", 1], ["c", 9]]), ["a", "b"], releido);
     expect([...r]).toEqual([["a", 4], ["c", 9], ["b", 0]]);
+  });
+
+  it("el almacén de la sede: lo disponible (sin lo apartado); null en el Taller o sin fila", () => {
+    const tienda = sumarCantidades([piso("a", 0), almacen("a", 3), { variante_id: "a", cantidad: 2, cantidad_apartada: 1, sububicacion: { tipo: "almacen_tienda" } }]);
+    expect(almacenDeLaSede(tienda.get("a"))).toBe(4);
+    const taller = sumarCantidades([{ variante_id: "b", cantidad: 7, cantidad_apartada: 0, sububicacion: null }]);
+    expect(almacenDeLaSede(taller.get("b"))).toBeNull();
+    expect(almacenDeLaSede(undefined)).toBeNull();
+  });
+
+  it("el almacén releído sale de las mismas filas; una prenda que no volvió queda en null", () => {
+    const releido = sumarCantidades([piso("a", 1), almacen("a", 5)]);
+    expect([...almacenReleido(["a", "b"], releido)]).toEqual([["a", 5], ["b", null]]);
   });
 
   it("aplica los ajustes y devuelve el mismo arreglo si no hay ninguno", () => {
