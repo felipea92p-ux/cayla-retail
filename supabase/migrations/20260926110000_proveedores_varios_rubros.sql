@@ -84,7 +84,7 @@ comment on column retail.proveedores.rubros is
 
 -- ---------- 3. las funciones, parchadas sobre su definición viva ----------
 -- Un texto literal como patrón: escapa lo especial y acepta cualquier espacio o salto de línea donde hay espacios.
-create or replace function pg_temp.lit_rubros_100000(p text) returns text language sql immutable as $f$
+create or replace function pg_temp.lit_rubros_110000(p text) returns text language sql immutable as $f$
   select regexp_replace(regexp_replace(p, '([.^$*+?(){}|\[\]\\])', '\\\1', 'g'), '\s+', '\\s+', 'g');
 $f$;
 
@@ -92,7 +92,7 @@ $f$;
 -- de veces, la función cambió en la base y la migración se detiene sin tocar nada. La vieja se quita ANTES de crear
 -- la nueva: fn_proveedores() cambia lo que devuelve (`create or replace` no lo permite) y las otras dos cambian el
 -- tipo de un parámetro (sin quitarla quedarían dos firmas vivas, el bug de ADR-0009). Se copian sus permisos.
-create or replace function pg_temp.reescribir_rubros_100000(p_firma text, p_firma_nueva text, p_marca text, p_cambios text[])
+create or replace function pg_temp.reescribir_rubros_110000(p_firma text, p_firma_nueva text, p_marca text, p_cambios text[])
 returns void language plpgsql as $f$
 declare
   v_vieja regprocedure := to_regprocedure(p_firma);
@@ -139,48 +139,48 @@ end $f$;
 do $do$
 begin
   -- La lista de Proveedores (y la vista rápida): todos los rubros de cada uno.
-  perform pg_temp.reescribir_rubros_100000('retail.fn_proveedores()', 'retail.fn_proveedores()',
+  perform pg_temp.reescribir_rubros_110000('retail.fn_proveedores()', 'retail.fn_proveedores()',
     'rubros text[]', array[
-      pg_temp.lit_rubros_100000($q$facturas_atrasadas bigint, rubro text,$q$),
+      pg_temp.lit_rubros_110000($q$facturas_atrasadas bigint, rubro text,$q$),
       $q$facturas_atrasadas bigint, rubros text[],$q$, '1',
       -- en el select y en el group by
-      pg_temp.lit_rubros_100000($q$p.rubro,$q$), $q$p.rubros,$q$, '2'
+      pg_temp.lit_rubros_110000($q$p.rubro,$q$), $q$p.rubros,$q$, '2'
     ]);
 
   -- Alta desde Compras ▸ Proveedores.
-  perform pg_temp.reescribir_rubros_100000(
+  perform pg_temp.reescribir_rubros_110000(
     'retail.registrar_proveedor(text,text,text,text,integer,text,text,text,text)',
     'retail.registrar_proveedor(text,text,text,text[],integer,text,text,text,text)',
     'retail.fn_rubros_limpios(p_rubros)', array[
-      pg_temp.lit_rubros_100000($q$p_rubro text DEFAULT NULL::text$q$), $q$p_rubros text[] DEFAULT NULL::text[]$q$, '1',
-      pg_temp.lit_rubros_100000($q$v_rubro text := retail.fn_texto_o_null(p_rubro);$q$),
+      pg_temp.lit_rubros_110000($q$p_rubro text DEFAULT NULL::text$q$), $q$p_rubros text[] DEFAULT NULL::text[]$q$, '1',
+      pg_temp.lit_rubros_110000($q$v_rubro text := retail.fn_texto_o_null(p_rubro);$q$),
       $q$v_rubros text[] := retail.fn_rubros_limpios(p_rubros);$q$, '1',
-      pg_temp.lit_rubros_100000($q$(nombre, ruc, contacto, rubro,$q$), $q$(nombre, ruc, contacto, rubros,$q$, '1',
-      pg_temp.lit_rubros_100000($q$(v_nombre, v_ruc, v_contacto, v_rubro,$q$), $q$(v_nombre, v_ruc, v_contacto, v_rubros,$q$, '1'
+      pg_temp.lit_rubros_110000($q$(nombre, ruc, contacto, rubro,$q$), $q$(nombre, ruc, contacto, rubros,$q$, '1',
+      pg_temp.lit_rubros_110000($q$(v_nombre, v_ruc, v_contacto, v_rubro,$q$), $q$(v_nombre, v_ruc, v_contacto, v_rubros,$q$, '1'
     ]);
 
   -- Editar desde la lista o la ficha. Mandar la lista vacía (o nada) deja al proveedor sin rubro, como antes.
-  perform pg_temp.reescribir_rubros_100000(
+  perform pg_temp.reescribir_rubros_110000(
     'retail.actualizar_proveedor(uuid,text,text,text,text,integer,text,text,text,text)',
     'retail.actualizar_proveedor(uuid,text,text,text,text[],integer,text,text,text,text)',
     'retail.fn_rubros_limpios(p_rubros)', array[
-      pg_temp.lit_rubros_100000($q$p_rubro text DEFAULT NULL::text$q$), $q$p_rubros text[] DEFAULT NULL::text[]$q$, '1',
-      pg_temp.lit_rubros_100000($q$v_rubro text := retail.fn_texto_o_null(p_rubro);$q$),
+      pg_temp.lit_rubros_110000($q$p_rubro text DEFAULT NULL::text$q$), $q$p_rubros text[] DEFAULT NULL::text[]$q$, '1',
+      pg_temp.lit_rubros_110000($q$v_rubro text := retail.fn_texto_o_null(p_rubro);$q$),
       $q$v_rubros text[] := retail.fn_rubros_limpios(p_rubros);$q$, '1',
-      pg_temp.lit_rubros_100000($q$rubro = v_rubro,$q$), $q$rubros = v_rubros,$q$, '1'
+      pg_temp.lit_rubros_110000($q$rubro = v_rubro,$q$), $q$rubros = v_rubros,$q$, '1'
     ]);
 
   -- El proveedor que se suma al registrar un gasto (Finanzas ▸ Gastos) nace con el rubro «Gastos», como antes.
-  perform pg_temp.reescribir_rubros_100000(
+  perform pg_temp.reescribir_rubros_110000(
     'retail.registrar_proveedor_de_gasto(text,text)', 'retail.registrar_proveedor_de_gasto(text,text)',
     $q$array['Gastos']$q$, array[
-      pg_temp.lit_rubros_100000($q$(nombre, ruc, rubro) values (v_nombre, v_ruc, 'Gastos')$q$),
+      pg_temp.lit_rubros_110000($q$(nombre, ruc, rubro) values (v_nombre, v_ruc, 'Gastos')$q$),
       $q$(nombre, ruc, rubros) values (v_nombre, v_ruc, array['Gastos'])$q$, '1'
     ]);
 end $do$;
 
-drop function pg_temp.reescribir_rubros_100000(text, text, text, text[]);
-drop function pg_temp.lit_rubros_100000(text);
+drop function pg_temp.reescribir_rubros_110000(text, text, text, text[]);
+drop function pg_temp.lit_rubros_110000(text);
 
 -- ---------- 4. la columna vieja se va, solo si nada se perdió al copiar ----------
 do $$

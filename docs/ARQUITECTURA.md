@@ -554,7 +554,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `rubros text[] not null default '{}'` con el CHECK `proveedores_rubros_limpios` (= `fn_rubros_limpios(rubros)`: sin vacíos,
   recortado, uno por `fn_clave_texto`). `registrar_proveedor`/`actualizar_proveedor` cambian `p_rubro text` por
   `p_rubros text[]` (mismo lugar, una sola firma) y `fn_proveedores()` devuelve `rubros text[]`; `registrar_proveedor_de_gasto`
-  escribe `{Gastos}`. Migración `20260926100000_proveedores_varios_rubros.sql` (parche sobre la definición viva). Reglas puras
+  escribe `{Gastos}`. Migración `20260926110000_proveedores_varios_rubros.sql` (parche sobre la definición viva). Reglas puras
   en `lib/proveedores-reglas.ts` (`limpiarRubros`, `alternarRubro`, `agregarRubro`, `opcionesDeRubro`, `tieneRubro`,
   `rubrosConConteo`); pruebas SQL en `scripts/pruebas/proveedores_rubros.mjs`.
   **Marcas del proveedor (ADR-0142):** `lib/proveedores.ts:getMarcasPorProveedor` lee las tablas `marcas` y `marca_proveedores`

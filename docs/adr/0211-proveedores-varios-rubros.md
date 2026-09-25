@@ -30,7 +30,9 @@ catálogo.
 
 ## Cómo se aplicó
 
-`supabase/migrations/20260926100000_proveedores_varios_rubros.sql`, una sola transacción:
+`supabase/migrations/20260926110000_proveedores_varios_rubros.sql`, una sola transacción:
+(Nació como `20260926100000`; se renombró porque `main` ya tenía esa hora con la paleta de colores, aplicada en
+producción. Supabase identifica cada migración por su hora: dos iguales rompen `supabase start`.)
 
 1. `fn_rubros_limpios(text[])` (IMMUTABLE, la regla), la columna nueva, la copia y el CHECK.
 2. Las 4 funciones que tocan el rubro, **parchadas sobre su definición viva** (patrón de

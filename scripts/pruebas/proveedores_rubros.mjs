@@ -15,7 +15,7 @@
  * ROLLBACK, nunca se commitea nada; simula a Felipe (líder) con `set local request.jwt.claim.sub`.
  *
  * USO
- *   pnpm pruebas:proveedores-rubros   → con la migración 20260926100000 ya aplicada en el local
+ *   pnpm pruebas:proveedores-rubros   → con la migración 20260926110000 ya aplicada en el local
  */
 
 import { execFileSync } from "node:child_process";
@@ -28,7 +28,7 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder
 
-const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260926100000_proveedores_varios_rubros.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260926110000_proveedores_varios_rubros.sql"), "utf8");
 
 function psql(sql) {
   return execFileSync(
