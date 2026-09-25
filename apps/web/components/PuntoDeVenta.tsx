@@ -53,6 +53,9 @@ import { VentaRegistradaModal } from "@/components/VentaRegistradaModal";
 import { useResponsable } from "@/lib/useResponsable";
 import type { DatosPrendaSinRegistrar, ListasPrendaLibre } from "@/lib/prenda-sin-registrar-reglas";
 import { PrendaSinRegistrarModal } from "@/components/PrendaSinRegistrarModal";
+import { EscanerCamara } from "@/components/EscanerCamara";
+import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
 import { sumarCantidades } from "@/lib/inventario-reglas";
 import { conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
@@ -251,13 +254,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [momento, setMomento] = useState<MomentoTicket>("armar");
   // Apilado (celular/tablet), la barra «Ver ticket» solo sirve mientras el ticket NO está a
   // la vista (Felipe, 2026-09-25): encima del ticket tapaba su pie y repetía el total que
-  // ya se lee ahí. Se mide con un IntersectionObserver; se ignoran los 140 px de abajo, que
-  // son la barra de pestañas y la propia barra — asomar ahí no es «estar viendo el ticket».
+  // ya se lee ahí. Se mide con un IntersectionObserver; se ignoran los 80 px de abajo, que
+  // tapa la propia barra — asomar ahí no es «estar viendo el ticket».
   const [ticketALaVista, setTicketALaVista] = useState(false);
   useEffect(() => {
     const ticket = document.getElementById("ticket-pos");
     if (!ticket || typeof IntersectionObserver === "undefined") return;
-    const observador = new IntersectionObserver(([e]) => setTicketALaVista(e.isIntersecting), { rootMargin: "0px 0px -140px 0px" });
+    const observador = new IntersectionObserver(([e]) => setTicketALaVista(e.isIntersecting), { rootMargin: "0px 0px -80px 0px" });
     observador.observe(ticket);
     return () => observador.disconnect();
   }, []);
@@ -295,6 +298,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<VentaOk | null>(null);
   const [manualAbierto, setManualAbierto] = useState(false);
+  // Teléfono (2026-09-25): no hay lector, así que el campo de escaneo se vuelve un botón que abre la cámara
+  // (`EscanerCamara`). La lupa de al lado cambia a buscar por nombre, y la cámara vuelve a estar a un toque.
+  const esTelefono = useConsultaMedia(MQ_TELEFONO);
+  const [camaraAbierta, setCamaraAbierta] = useState(false);
+  const [buscarPorTexto, setBuscarPorTexto] = useState(false);
   const [mostrarVentasHoy, setMostrarVentasHoy] = useState(false);
   const [modalCaja, setModalCaja] = useState<"abrir" | "cerrar" | null>(null);
 
@@ -359,7 +367,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
   // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
-  const hayModal = manualAbierto || modalAbrirVisible || modalCerrarVisible || ok !== null;
+  const hayModal = manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -562,18 +570,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const clienteTipoDoc = tipoDocumentoDeCliente(tipoComprobante, clienteNumDoc);
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
 
-  function agregar(v: VarianteBusqueda) {
-    if (bloqueado) return;
+  /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
+  /** `silencioso`: la cámara (`EscanerCamara`) ya dice qué pasó en su tarjeta y su bandeja; el aviso de arriba a la derecha
+   *  repetiría lo mismo tapándole la ✕. */
+  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "tope" | null {
+    if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     if (v.stockAqui <= 0) {
-      avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
+      if (!silencioso) avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
       setAviso(null);
       setQ("");
       setActivo(0);
       buscador.current?.focus();
-      return;
+      return "agotada";
     }
     const existente = carrito.find((it) => it.claveLinea === v.varianteId);
     const tope = existente !== undefined && existente.cantidad >= v.stockAqui;
@@ -610,7 +621,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     }
     if (tope) {
       resaltarTope(v.varianteId);
-      avisar.aviso(`No hay más de ${nombreVariante}`, {
+      if (!silencioso) avisar.aviso(`No hay más de ${nombreVariante}`, {
         detalle: `En ${ubicacionEtiqueta} quedan ${v.stockAqui} y ya están todas en el ticket.`,
       });
     }
@@ -618,6 +629,17 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setQ("");
     setActivo(0);
     buscador.current?.focus();
+    return tope ? "tope" : "agregada";
+  }
+
+  /** Una lectura de la cámara: el mismo camino que el Enter del lector (`alTeclado`), sin la lista de resultados —
+   *  un QR es un código exacto o no es nada. */
+  function alEscanear(codigo: string): ResultadoEscaneo {
+    const v = resolverCodigoV2(codigo, variantesVisibles);
+    if (!v) return { estado: "no-encontrada", codigo };
+    const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
+    const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
+    return { estado: agregar(v, { silencioso: true }) ?? "agotada", codigo, nombre, prenda };
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1174,6 +1196,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onActivo={setActivo}
           onAgregar={agregar}
           onPrendaSinRegistrar={() => setManualAbierto(true)}
+          conCamara={esTelefono}
+          modoCamara={esTelefono && !buscarPorTexto}
+          onAbrirCamara={() => {
+            setBuscarPorTexto(false);
+            setCamaraAbierta(true);
+          }}
+          onBuscarPorTexto={() => setBuscarPorTexto(true)}
           categorias={categorias}
           categoria={categoria}
           // Un chip es un desvío de un toque: elegida la categoría, el foco vuelve al escáner.
@@ -1255,13 +1284,14 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           catálogo real (300-900 SKUs) son muchas pantallas de scroll antes de ver el
           total o llegar a «Cobrar». En escritorio no hace falta: el ticket ya está
           siempre a la vista en su columna fija. Mismo offset que la barra de
-          "Recibir mercadería" (`RecepcionCompraFormV2.tsx`) para despejar la barra de
-          pestañas del celular; en tablet (`sm:`) el lateral reemplaza esa barra. */}
+          "Recibir mercadería" (`BarraFija`): pegado al fondo — desde 2026-09-25 el celular
+          no tiene barra de pestañas abajo (el menú es un cajón lateral). Se esconde mientras
+          el ticket está a la vista (`ticketALaVista`). */}
       {!bloqueado && carrito.length > 0 && !ticketALaVista && (
         <button
           type="button"
           onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-          className="anim-revelar fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 py-3 text-crema shadow-lg sm:bottom-0 sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+          className="anim-revelar fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-sand bg-tinta px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] text-crema shadow-lg sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
         >
           <span className="label-cayla text-[11px]">
             {prendas} {prendas === 1 ? "prenda" : "prendas"} · {money(total)}
@@ -1283,6 +1313,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           onAgregar={agregar}
           onClose={() => setTarjetaElegida(null)}
           alCerrarEnfocar={buscador}
+        />
+      )}
+
+      {camaraAbierta && (
+        <EscanerCamara
+          onCodigo={alEscanear}
+          ticket={{ prendas, total }}
+          onBuscarPorNombre={() => {
+            setCamaraAbierta(false);
+            setBuscarPorTexto(true);
+          }}
+          onClose={() => setCamaraAbierta(false)}
         />
       )}
 

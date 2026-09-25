@@ -33,6 +33,51 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **Pegar en producción `20260925120000_argumento_descuento_desde_15.sql`** (con OK de Felipe; ya lleva `retail.`; parcha solo el escalonado de `registrar_venta` y aborta si no calza). Publicar la web primero. Hasta entonces la base sigue pidiendo argumento solo a un Líder pasado el 20 % (la pantalla ya lo pide antes). Después: `pnpm datos:generar:produccion`.
 - [ ] Idea descartada por ahora (Felipe 2026-09-25): exigir código solo para el % «Otro».
 
+## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base)
+El PR #397 recreó `fn_resumen_comparacion` copiando el cuerpo de un archivo viejo (`20260919220000`), y con él volvió
+`… and fn_es_lider()`: desde entonces un rol con Análisis que no es líder ve su pantalla vacía (0 filas). Deshacía
+ADR-0161 P5, que se había aplicado en vivo (`20260923130000`) y por eso no estaba en ningún archivo copiable. Lo marcó
+`pnpm pruebas:roles` (69/70) en el job piloto, que no bloquea. La migración cambia solo el filtro, sobre la definición
+viva (cuerpo verificado idéntico al de producción, md5 `f5f8029b…`), y corrige el comentario de la función.
+- [x] Local: reproducido (70/70 → 69/70 al aplicar `010700`+`030000`) y arreglado (70/70); `fn-resumen-comparacion` 25/25, `fn-ledger-fuente-unica` 48/48, `fn-resumen-variantes` 38/38. Idempotente (pegada dos veces).
+- [x] **En producción** (verificado con `pg_get_functiondef` el 2026-09-25 16:07 UTC): el filtro dice `and retail.fn_puede_analizar() as ok`, ya no exige líder, y el comentario es el nuevo (solo lo escribe esta migración).
+- [x] En paralelo, el PR #404 (`b633868c`) corrigió el filtro en los archivos de #397 (`010700`, `030000`), para que una base limpia no vuelva a cerrar Análisis. Es compatible: ahí esta migración encuentra el filtro ya puesto y no hace nada.
+- [ ] **Decidir (causa raíz):** sacar `continue-on-error` al menos del paso `pruebas:roles` en `.github/workflows/ci.yml`. El job piloto lo vio, pero no frenó el merge; el propio `ci.yml` dice que se saca «cuando haya 2-3 corridas verdes reales».
+
+## 🎯 Fotos de perfil desde Dynamic (2026-09-25) — migración `20260925210000` EN PRODUCCIÓN (verificada en la base); web en PR
+Retail muestra la foto que cada persona tiene en Dynamic (lateral, «Mi perfil», combo «Responsable», Colaboradores). Antes salía una imagen rota en «Mi perfil» y cambiar la foto desde retail fallaba al guardar.
+- [x] Migración `20260925210000` aplicada en producción (2026-09-25, por el conector, con OK de Felipe) y verificada preguntándole a la base: `security definer`, `authenticated` sí / `anon` no, devuelve las 17 fotos de colaboradores y deja fuera a la persona de Dynamic que no es de retail.
+- [ ] Pedir a DO que cargue en Dynamic la foto de los 8 colaboradores que no tienen (el combo «Responsable» es donde más se nota).
+- [ ] Con la web publicada: abrir «Mi perfil», cambiar la foto y comprobar que el lateral la cambia sin recargar (la subida real no se pudo probar en local: Docker caído).
+- [ ] Refrescar el diccionario (`pnpm datos:generar:produccion`) cuando esté en producción.
+
+## 🧹 Se retiró el botón "+ Nuevo" global (2026-09-25, ADR-0204) — construido, probado y verificado en navegador
+A pedido de Felipe (pasó una captura del botón del lateral de escritorio: "no tiene mucha funcionalidad"). No era un
+botón suelto: era el disparador de un menú accesible completo (`MenuNuevo`, teclado tipo *menu button*) compartido
+con el "+" central de la barra del celular, con 6 atajos reales (`ACCIONES_NUEVO`): Nueva venta, Registrar factura
+de proveedor, Recibir mercadería, Mover mercadería, Registrar cambio, Registrar devolución. Por tocar 6 módulos y
+las dos superficies a la vez, se confirmó el alcance con Felipe antes de borrar: **se retira TODO, sin reemplazo**
+(no solo escritorio, no achicado a un ícono).
+- [x] `AppShell.tsx`: el botón del lateral, `MenuNuevo` entero, el "+" central del celular, y el estado/handlers
+      que los movían (`nuevoAbierto`, `abrirNuevo`, `cerrarNuevo`, `disparadorNuevo`).
+- [x] `lib/menu.ts`: `ACCIONES_NUEVO`, los tipos `Accion`/`AccionNuevo`, el campo `nuevo` de `Menu`; `COLUMNAS_MOVIL`
+      de 5 columnas (con el hueco `null` del "+") a 4 (`Menu.movil` deja de admitir `null`).
+- [x] `lib/menu-hoy.golden.json`, `menu.test.ts`, `modulos.test.ts` puestos al día. Suite completa de `apps/web`
+      (126 archivos, 21.290 pruebas) y `tsc --noEmit` en verde.
+- [x] Verificado en el navegador (página temporal en `app/auth/`, borrada al terminar): el lateral ya no muestra el
+      botón, la barra del celular queda en 4 columnas parejas sin hueco al centro, y el atajo `[` sigue funcionando.
+- [ ] **Decisión de Felipe, no bloqueante:** el líder parado en el Taller se quedó sin NINGÚN link a "Recibir
+      mercadería" (antes le quedaba solo en "+ Nuevo"; la ruta `/recibir` sigue viva, solo sin link desde ahí — ver
+      `menu.test.ts`). Ruta más simple si se quiere cerrar: quitar el `soloSinPermiso` de `inventario.recibir`.
+      Detalle en ADR-0204.
+- [ ] Hay un spike de navegación de celular en paralelo (`docs/maquetas/menu-movil-spike-2026-09/`, otra sesión, en
+      revisión con Felipe, sin aplicar) que asumía que `MenuNuevo` seguía vivo, reubicado a un ícono en la cabecera
+      del celular junto a una lupa y un avatar. Felipe, consultado, confirmó seguir con la eliminación completa de
+      todas formas — si ese spike avanza, el panel "+ Nuevo" se reconstruye desde cero (ya lo trataba como pieza
+      nueva junto con la hoja "Más").
+- Cómo verificas: cualquier pantalla en escritorio — no hay botón "+ Nuevo" en el lateral. En celular (375 px), la
+  barra de abajo tiene 4 columnas parejas (Inicio, Punto de Venta, Inventario, Caja) y ningún hueco al centro.
+
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
@@ -59,7 +104,8 @@ Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, A
 - [x] **F2a EN PRODUCCIÓN (verificada en la base, 2026-09-24):** las 7 ejecuciones aplicadas (30 cuentas, 10 categorías, `compras.naturaleza` con sus candados, vistas, `gastos` legado renombrado, 12 funciones, `listar_compras` con una sola firma, 5 parches, candado de dinero intacto, sin políticas nuevas) y la web #393 desplegada. Falta: refrescar el diccionario y verlo con clics como tienda con el módulo Gastos.
 - [ ] **F2a, decisiones abiertas:** el contador confirma las 30 cuentas y las 10 categorías. ¿Hace falta **anular un pago**? Hoy nadie puede: un gasto al contado mal registrado solo se corrige con nota de crédito.
 - [x] **F2b EN PRODUCCIÓN (verificada en la base, 2026-09-24; #394 fusionado):** activos fijos, gastos fijos del mes y la lista de gastos con el medio de pago.
-- [ ] **F3–F10 CONSTRUIDAS, PR #396 (2026-09-25), POR PEGAR:** Cuentas y dinero (+ la cuenta sellada, F3b), Por pagar consolidado, Diario y Estado de resultados (+ Campañas), Flujo (+ Escenarios), Balance, Impuestos, Cierre de mes, Presupuesto y Resumen; además hora de cierre por tienda, «No es fijo», Configuración ▸ Empresa (solo lectura) y ▸ Caja y avisos. **36 ejecuciones en orden**, sin políticas ni `drop trigger`. Informes por fase en `docs/finanzas/fases/`. Después de pegar: refrescar el diccionario y correr `pnpm datos:comparar`.
+- [x] **F3–F10 EN PRODUCCIÓN (verificada en la base, 2026-09-25; PR #396 fusionado):** las 37 ejecuciones aplicadas (la 20 se repitió: había quedado sin aplicar por un «lock timeout»). Verificado: 13 tablas, 19 columnas, 147 funciones, 34 disparadores, 18 índices y 8 restricciones presentes; 163 de 170 funciones idénticas al repo (las otras 7, explicadas); RLS sin políticas en las 14 tablas; 42 lecturas corridas como líder sobre los datos reales sin error; los 4 módulos sin rol. **Falta:** refrescar el diccionario (`generado/COMO-REFRESCAR.md`, `pnpm datos:generar:produccion`) y `pnpm datos:comparar`.
+- [x] **Editar y eliminar cuentas (2026-09-25, pedido de Felipe; ADR-0195 «Actualización 2026-09-25»), EN PRODUCCIÓN (verificada en la base, 2026-09-25):** migración `20260925210100` (nació `20260925210000` y se renumeró al chocar con la de fotos de perfil; en producción ya estaba aplicada) (UNA ejecución, solo funciones; las 5 funciones con la misma huella que el repo y sus permisos; la ventana lee bien la BCP real: usada, no se elimina, saldo corregible). Nombre y número siempre; tipo mientras nadie la usó; saldo inicial sin conciliación vigente y con su mes abierto; una cuenta sin uso se elimina de verdad, una usada se archiva. Suite `pnpm pruebas:editar-cuentas` (39 casos).
 - [ ] **Datos que faltan (Felipe) para que los números sean reales:** bancos, POS, Visa y a qué cuenta entra cada medio en cada tienda (Configuración ▸ Cuentas y cobros); saldos de arranque (Reportes ▸ Balance); metas diarias y hora de cierre de cada tienda (Configuración ▸ Tiendas y caja).
 - [ ] **Decisiones abiertas F3–F10 (Felipe):** tela del Taller en Por pagar; flujo y saldos solo del líder o también con el módulo; planilla solo a quien la ve en Dynamic; umbrales del presupuesto (105 %/95 %); qué chequeos bloquean el cierre; congelar el presupuesto de un mes cerrado; «Empresa» editable o no.
 - [ ] **Contador:** cuentas nuevas 122, 451, 47, 52, 655, 6599; las 16 reglas del diario (`docs/finanzas/fases/F5.md`); régimen, UIT 2026 y pago a cuenta; formato de los registros; retención de honorarios.
@@ -71,6 +117,7 @@ Plan completo en `docs/PLAN-FINANZAS.md`: 11 piezas (Gastos, Cuentas y dinero, A
 - [ ] Datos de Felipe: cuentas bancarias y billeteras de CAYLA y a cuál entra cada medio por tienda; saldos de arranque.
 - [ ] Contador: confirmar las ~26 cuentas y la de cada categoría, régimen/UIT/umbral, formato de registros, retención de honorarios.
 - [ ] PR #170: rebasar sobre `main` en F1/F2/F5 y adaptarlo (roles ADR-0161, menú ADR-0144, decisión A); no descartarlo.
+
 ## 🎯 El Admin firma sin marcar asistencia (2026-09-24, ADR-0161 act. 2026-09-24) — base EN PRODUCCIÓN (pegada y verificada 2026-09-24); web en PR
 Pedido de Dany: las cuentas de caja y almacén de cada tienda siguen pidiendo a alguien de turno; el Admin (ADR-0178) no, solo ve «Eres admin: no necesitas autorización».
 - [x] Migración `20260924171300_admin_firma_sin_asistencia.sql`: `fn_actor_persona_id` deja firmar al Admin a su nombre sin asistencia (sin responsable o eligiéndose a sí mismo). Definición de producción comparada antes (md5 `cad473a6…`, igual a `20260923010000`).
@@ -184,7 +231,7 @@ Decisión de Felipe (2026-09-23): con un módulo de Compras se ve y se paga **so
 - [ ] F6 notas de crédito por tienda; F7 resultado por tienda; pantalla para sumar tiendas extra (hoy `agregar_comprador_de_tienda` por RPC).
 - [ ] Postgres local compartido: el 2026-09-23 se deshicieron allí los F0–F4 viejos y se aplicaron las de main hasta `20260923163000` más estas 5 (10 funciones que una migración vieja regresionó se restauraron desde producción, verificadas por huella md5). **Quedan sin aplicar en local** `20260922235000` y `20260923110500` (candado de caja/cambios): son anteriores a otras ya aplicadas y pueden regresionar funciones si se aplican a ciegas.
 
-## 🎯 Dominio de Inventario — comportamiento comercial reconstruido sobre modelo canónico (2026-09-24, ADR-0200, sucede a ADR-0199) — LOCAL, NADA en producción
+## 🎯 Dominio de Inventario — comportamiento comercial reconstruido sobre modelo canónico (2026-09-24, ADR-0200, sucede a ADR-0199) — fusionado (PR #397); sus 2 migraciones EN PRODUCCIÓN (verificado 2026-09-25)
 Felipe envió la definición canónica completa del dominio y pidió auditar lo construido hoy en ADR-0199 contra ella
 sin darle prioridad por existir. Una auditoría de 8 hallazgos independientes encontró que la primera versión
 contradecía el modelo en sus dos puntos centrales — el reloj de exposición se reiniciaba en vez de pausar/reanudar
@@ -201,15 +248,15 @@ diluido, «es venta» unificada e incluye liquidación de dañados). Detalle com
 - [x] **Fuente única del ledger + contrato de calidad completado en el dominio (2026-09-24, [ADR-0202](adr/0202-fuente-unica-de-ledger-y-contrato-de-calidad.md)):** `retail.fn_ledger_puntos` (migración `20260924030000`) es ahora la ÚNICA reconstrucción del ledger — `fn_resumen_comparacion` y `fn_ledger_timeline` la llaman, sin N+1 (una llamada por invocación, verificado con `explain analyze`: 10 ms, un solo Function Scan). `CalidadDesempeno` (7 claves) se calcula una vez en `analizarDesempeno()`; la tabla ya lee de ahí en vez de recalcular por celda.
 - [x] **Movimientos auditado, taxonomía Nivel A/B y cierre del dominio (2026-09-24, [ADR-0203](adr/0203-movimientos-taxonomia-nivel-a-y-cierre-de-dominio.md)):** encontrado y corregido un bug latente real (`esMovimientoInterno` comparaba el string `motivo`, no la condición estructural que ya usaba Movimientos — ya había divergido una vez en producción, `activacion_piso_almacen`); nueva `retail.fn_es_traslado_interno` como fuente única Nivel A; `calidadDeExposicion` corregida (ya no inventa `estimado`, solo exacto/no_disponible); cruce numérico Ledger↔Movimientos verificado (14=14, sin movimientos ignorados ni inexplicables); `actual` demostrado con números que NO es una segunda reconstrucción. `scripts/pruebas/fn_ledger_fuente_unica.mjs`: **44/44 verificaciones en verde**, 24.286 pruebas de TypeScript en verde, typecheck y lint limpios.
 - [x] **Release consolidado + Stock actual P/A (2026-09-24):** `20260924020000` absorbida por completo en `20260924030000` y eliminada del set (nunca se aplicó a producción; ver el encabezado de la migración) — el release queda en 2 migraciones (`010700`, `030000`). Columna nueva «Stock actual P/A» en Comportamiento del inventario: reutiliza `actual.en_venta`/`actual.utilizable`, ya calculados por `fn_resumen_comparacion` (ninguna fuente de stock nueva); `N/D` cuando la sede no separa piso/almacén, nunca un 0 inventado — verificado con los 4 casos exactos de Felipe (5/60, 0/35, 0/0, N/D). Rama sincronizada con `origin/main` (fast-forward `c1d59ce8`→`8a13b2e6`, 210 commits) — 2 conflictos de merge, ambos en BACKLOG/BITÁCORA (documentos que se acumulan), resueltos manteniendo ambos lados; el resto de archivos (incluidos los 5 señalados con riesgo de conflicto) fusionó solo. `scripts/pruebas/fn_ledger_fuente_unica.mjs`: **48/48** en verde, 24.292 pruebas de TypeScript en verde, typecheck y lint limpios.
-- [ ] **Decidir:** ¿corregir el bucket-total en producción (+711 unidades fantasma en AQP/TRU desde 2026-09-14)? El fix es de lógica, no de datos — no necesita backfill, solo aplicar la función corregida.
-- [ ] **Decidir:** ¿aplicar las dos migraciones del release (`20260924010700`, `20260924030000`) a producción?
+- [x] ~~**Decidir:** ¿corregir el bucket-total en producción?~~ Ya está: verificado en producción el 2026-09-25, `fn_ledger_puntos` lleva el fix del bucket total.
+- [x] ~~**Decidir:** ¿aplicar las dos migraciones del release a producción?~~ Ya están aplicadas (verificado 2026-09-25: `fn_ledger_puntos` existe y `fn_resumen_comparacion` tiene la misma huella que el repo). Trajeron una regresión de permisos: ver «Análisis vuelve a abrirse al rol», arriba.
 - [ ] **Decidir:** ¿unificar el KPI/dona/filtro «Sell-through» de la cabecera (sigue con la fórmula clásica, a propósito — Felipe pidió no unificar automáticamente) con el de exposición que ya usa la tabla?
 - [ ] Extender simétricamente `lecturaComparacion`/`ResumenComparacionDetalle.tsx` (Comparar períodos) con las mismas 7 categorías de calidad/lectura — se dejó a propósito fuera de alcance, otra vez, en esta ronda.
 - [ ] `fn_ledger_puntos`/`fn_ledger_timeline` están listas pero sin consumidor fuera de Análisis: Existencias/Movimientos/Traslados siguen con su propia reconstrucción — adoptarla es un paso aparte, a propósito no hecho hoy.
 - [ ] Drill-down conceptual de Análisis → Movimientos (ADR-0203, sección 6): los datos ya son compatibles (`variante_id`+sede+fechas), pero `fn_movimientos` no acepta `p_variante_id` (solo producto completo o texto libre) — falta agregar el parámetro y el enlace en la UI. Explícitamente NO construido hoy, a pedido de Felipe.
 - [x] **`etiquetaActividad` eliminada (2026-09-24):** grep exhaustivo (apps/, packages/, scripts/, supabase/, e2e/snapshots/fixtures, imports dinámicos/wildcard/barrel) confirmó cero consumidores reales — solo su propia definición y su propio test. Eliminada la función (`movimientos-reglas.ts`) y su `describe` (`movimientos-reglas.test.ts`); no quedó ninguna tercera clasificación alternativa.
 - [ ] Verificar en vivo en el navegador el renombre «Rotación valorizada», la unificación del ledger y la columna «Stock actual P/A» — la sesión local sigue cerrada (`/login?error=sin_persona`, confirmado de nuevo hoy); pendiente que Felipe vuelva a iniciar sesión.
-- [ ] **Seed local desalineado** (hallazgo de hoy, chip de sesión enviado): nombres de sede, UUIDs de personas y estado de sedes cambiaron respecto a lo que `scripts/pruebas/*.mjs` espera — rompe silenciosamente docenas de esos scripts (confirmado en `fn_resumen_comparacion.mjs` y `roles_por_modulo.mjs`) sin que sea una regresión real. Decidir: reparar el seed o los scripts.
+- [ ] **Seed local desalineado** (hallazgo de hoy, chip de sesión enviado): nombres de sede, UUIDs de personas y estado de sedes cambiaron respecto a lo que `scripts/pruebas/*.mjs` espera — rompe silenciosamente docenas de esos scripts (confirmado en `fn_resumen_comparacion.mjs` y `roles_por_modulo.mjs`) sin que sea una regresión real. Decidir: reparar el seed o los scripts. **Corrección 2026-09-25:** en `roles_por_modulo.mjs` el rojo SÍ era una regresión real: el candado de Análisis que deshizo este mismo release (ver «Análisis vuelve a abrirse al rol», arriba). Con el Postgres local de hoy la prueba da 70/70 una vez arreglado.
 
 ## 🎯 Escalón Admin leído de Dynamic + «solo das lo que tienes» (2026-09-23, ADR-0178) — EN PRODUCCIÓN (Felipe la pegó el 2026-09-23; verificado objeto por objeto: `fn_es_admin`, los 4 candados inyectados, «Administrador» archivado, los 5 admins); web fusionada en main (PR #333)
 - La migración se escribió como `20260923160000` y se **renumeró a `20260923163000`** al fusionar (chocaba con `20260923160000_responsable_obligatorio`); contenido idéntico al pegado. Falta refrescar el volcado y `pnpm datos:generar:produccion`.
@@ -498,6 +545,21 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
 - [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
+- [x] **«Más» + avatar + lupa: construido (ADR-0205, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
+      (spike aprobado por Felipe, con dos correcciones en vivo) → `AppShell.tsx` + `components/MasMovil.tsx`
+      (nuevo). La barra queda en 5 columnas parejas — Inicio/Punto de Venta/Inventario/Caja + **Más** al final,
+      sin «＋» en ningún lado — y la cabecera suma lupa (`/buscar`) y avatar (reutiliza `setPerfilAbierto`, cero
+      componente nuevo). «Más» pinta `menu.riel` tal cual, sin recortar: mismo dato que el lateral, sin árbol
+      paralelo que desincronizarse. `typecheck`/`lint`/`build`/suite completa (126 archivos, 21 290 pruebas) en
+      verde. **Sin clics reales todavía** — pendiente Felipe, logueado, en 375px (ver «Cómo verificar» del ADR).
+      Abierto en el ADR: si las 6 acciones de «＋Nuevo» (abajo) entran a «Más» como grupo, y el hueco de
+      «Recibir mercadería» en el Taller que ya dejaba ADR-0204 (sigue sin tapar).
+- [x] **«＋Nuevo» se retira entero — ADR-0204, aceptado y construido (2026-09-25, otra sesión sobre este repo, PR #401)**
+      — `AppShell.tsx` (v3.7) y `lib/menu.ts` (`COLUMNAS_MOVIL` a 4, sin el hueco del «＋»; `ACCIONES_NUEVO` y
+      `MenuNuevo` fuera). Trade-off aceptado por Felipe (documentado en el ADR): se pierde el atajo de un clic a
+      Nueva venta/Registrar factura de proveedor/Recibir mercadería/Mover mercadería/Registrar cambio/Registrar
+      devolución — quedan solo por su ruta directa. Deja un hueco real: el líder parado en el Taller pierde su
+      único link a `/recibir` (ver arriba). Verificado por esa sesión: suite completa y `tsc` en verde.
 - [ ] **Producción SUPERA el tope de 6: 7 hijas** (líder parado en el Taller) desde que #231 (Resumen, F6) entró sin regrupar; queda como deuda explícita con una prueba «DEUDA…» que la vigila. F7 Eficiencia obligará a regrupar (candidato: `produccion.abastecimiento`). **Quien agregue una fila al menú edita `lib/menu.ts`, no `AppShell.tsx`** (cómo, en el ADR-0144).
 
 ## 🎯 Colaboradores en dos secciones + editor de roles rediseñado (2026-09-22, ADR-0172) — hecho, sin migraciones
