@@ -688,6 +688,9 @@ body {
     width: 62mm;
     height: 40.1mm;
     overflow: hidden;
+    /* Sin esto Chrome parte la etiqueta girada entre páginas (su caja sin girar mide 62 de alto y no cabe en 40,1):
+       en la vista previa la primera salía sin QR ni código, o corrida. Medido con PDF de Chrome, 2026-09-25. */
+    contain: size layout paint;
     page: etiqueta-precio;
     break-after: page;
   }
@@ -697,10 +700,10 @@ body {
   /* Girada −90° desde su esquina superior izquierda y bajada 40,1 mm: ocupa justo los 62 × 40,1 de la hoja. */
   #etiquetas-precio-print .etq-hoja .etiqueta-precio {
     position: absolute;
-    top: 40.1mm;
+    top: 0;
     left: 0;
     transform-origin: 0 0;
-    transform: rotate(-90deg);
+    transform: translateY(40.1mm) rotate(-90deg);
   }
   #etiquetas-precio-print[data-modo="derecha"] .etq-hoja {
     width: 40.1mm;
