@@ -445,9 +445,9 @@ body {
 @layer components {
   .etiqueta-precio {
     box-sizing: border-box;
-    width: 44mm;
+    width: 40.1mm; /* el largo de corte de la plantilla P-touch de la tienda (rollo 62 mm × 40,1 mm) */
     height: 62mm;
-    padding: 3mm 3.5mm;
+    padding: 3mm;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -650,17 +650,23 @@ body {
 }
 
 /* En pantalla la hoja no se ve (la vista previa dibuja una por prenda, derecha). Al imprimir desaparece TODO lo demás
-   con `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco— y cada
-   etiqueta va en su propia página NOMBRADA de 62 × 62 mm: el ancho del rollo por el largo de cada corte. La etiqueta
-   (44 × 62) va DERECHA y centrada en el ancho: se lee tal como sale del rollo (Felipe, 2026-09-24).
-   Por qué ya no va girada en una hoja de 62 × 44: una página más ancha que alta hace que Chrome la mande «horizontal»,
-   y la Mac (y el driver) la vuelven a girar para calzarla en el rollo; la etiqueta salía derecha pero achicada y
-   corrida a un lado (foto de la tienda, 2026-09-24). La hoja cuadrada no tiene orientación que adivinar. */
+   con `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco—.
+   Medidas de la plantilla P-touch de la tienda: rollo de 62 mm, largo de corte 40,1 mm (Felipe, 2026-09-25: con la
+   hoja de 62 × 62 salía «a lo largo» y más larga de lo necesario). Cada etiqueta va en su propia página NOMBRADA.
+   Dos formas de mandarla, elegibles en pantalla mientras se prueba cuál respeta el driver (Windows y Mac giran
+   distinto una página apaisada):
+   - `girada` (por defecto): hoja 62 × 40,1 —el rollo tal cual— con la etiqueta rotada 90° adentro.
+   - `derecha`: hoja 40,1 × 62 con la etiqueta derecha; el driver la gira al calzarla en el rollo.
+   En el diálogo: márgenes «Ninguno» y escala 100 %. */
 #etiquetas-precio-print {
   display: none;
 }
 @page etiqueta-precio {
-  size: 62mm 62mm;
+  size: 62mm 40.1mm;
+  margin: 0;
+}
+@page etiqueta-precio-derecha {
+  size: 40.1mm 62mm;
   margin: 0;
 }
 @media print {
@@ -680,17 +686,33 @@ body {
   #etiquetas-precio-print .etq-hoja {
     position: relative;
     width: 62mm;
-    height: 62mm;
+    height: 40.1mm;
     overflow: hidden;
+    /* Sin esto Chrome parte la etiqueta girada entre páginas (su caja sin girar mide 62 de alto y no cabe en 40,1):
+       en la vista previa la primera salía sin QR ni código, o corrida. Medido con PDF de Chrome, 2026-09-25. */
+    contain: size layout paint;
     page: etiqueta-precio;
     break-after: page;
   }
   #etiquetas-precio-print .etq-hoja:last-child {
     break-after: auto;
   }
-  /* Centrada en el ancho del rollo: (62 − 44) / 2 = 9 mm a cada lado. */
+  /* Girada −90° desde su esquina superior izquierda y bajada 40,1 mm: ocupa justo los 62 × 40,1 de la hoja. */
   #etiquetas-precio-print .etq-hoja .etiqueta-precio {
-    margin: 0 auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    transform: translateY(40.1mm) rotate(-90deg);
+  }
+  #etiquetas-precio-print[data-modo="derecha"] .etq-hoja {
+    width: 40.1mm;
+    height: 62mm;
+    page: etiqueta-precio-derecha;
+  }
+  #etiquetas-precio-print[data-modo="derecha"] .etq-hoja .etiqueta-precio {
+    top: 0;
+    transform: none;
   }
 }
 

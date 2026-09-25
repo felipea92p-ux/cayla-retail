@@ -14,7 +14,6 @@ import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
-  aplicarDescuentoMonto,
   atendioCorto,
   conCampanas,
   conCodigoDelCatalogo,
@@ -122,14 +121,12 @@ export type ItemCarrito = {
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
 };
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
- *  por unidad), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null`
- *  es todo el ticket; `[]` es que todavía no eligió ninguna), el motivo (R-45) y el
- *  argumento que la banda 20-35 % de un Líder exige. */
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
+ *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
+ *  `[]` es que todavía no eligió ninguna), el motivo (R-45) y el argumento que pide todo
+ *  descuento pasado el 15 %. */
 export type DescuentoForm = {
-  modo: "porcentaje" | "monto";
   pct: string;
-  monto: string;
   elegidas: string[] | null;
   razon: string;
   razonOtro: string;
@@ -173,7 +170,7 @@ const MAX_RESULTADOS = 6;
 
 /** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
  *  que `abrirDescuento` traiga unas), sin motivo. */
-const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
+const DESCUENTO_VACIO: DescuentoForm = { pct: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 /** Atajos de la cabecera a lo que la caja necesita a un toque y vive en otra pantalla. */
 const ATAJOS = [
@@ -255,6 +252,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
   // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
   const [momento, setMomento] = useState<MomentoTicket>("armar");
+  // Apilado (celular/tablet), la barra «Ver ticket» solo sirve mientras el ticket NO está a
+  // la vista (Felipe, 2026-09-25): encima del ticket tapaba su pie y repetía el total que
+  // ya se lee ahí. Se mide con un IntersectionObserver; se ignoran los 80 px de abajo, que
+  // tapa la propia barra — asomar ahí no es «estar viendo el ticket».
+  const [ticketALaVista, setTicketALaVista] = useState(false);
+  useEffect(() => {
+    const ticket = document.getElementById("ticket-pos");
+    if (!ticket || typeof IntersectionObserver === "undefined") return;
+    const observador = new IntersectionObserver(([e]) => setTicketALaVista(e.isIntersecting), { rootMargin: "0px 0px -80px 0px" });
+    observador.observe(ticket);
+    return () => observador.disconnect();
+  }, []);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
@@ -691,7 +700,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   }
 
   // Apartado «Descuento» (decidido con Felipe el 2026-09-14): un solo formulario con dos
-  // entradas — la fila sobre el total (todo el ticket) y el % o el S/ de cada línea. Se
+  // entradas — la fila sobre el total (todo el ticket) y el % de cada línea. Se
   // aplica como `descuentoUnitario` por línea, que es lo que `venta_items` guarda, junto
   // con el motivo (R-45, 2026-09-15) — `registrar_venta` exige los dos juntos.
   function abrirDescuento(claves: string[] | null) {
@@ -704,10 +713,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // Un solo descuento por prenda, el mayor: si en alguna línea la campaña da igual o
     // más que lo pedido, se queda la campaña — y se dice, para que no parezca que el
     // descuento «no entró».
-    const pedido = descuento.modo === "monto" ? Number(descuento.monto) : null;
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = pedido ?? descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      const monto = descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -715,11 +723,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    setCarrito((actual) =>
-      descuento.modo === "monto"
-        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
-        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
-    );
+    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle));
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
@@ -1289,8 +1293,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           total o llegar a «Cobrar». En escritorio no hace falta: el ticket ya está
           siempre a la vista en su columna fija. Mismo offset que la barra de
           "Recibir mercadería" (`BarraFija`): pegado al fondo — desde 2026-09-25 el celular
-          no tiene barra de pestañas abajo (el menú es un cajón lateral). */}
-      {!bloqueado && carrito.length > 0 && (
+          no tiene barra de pestañas abajo (el menú es un cajón lateral). Se esconde mientras
+          el ticket está a la vista (`ticketALaVista`). */}
+      {!bloqueado && carrito.length > 0 && !ticketALaVista && (
         <button
           type="button"
           onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}

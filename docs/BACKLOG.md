@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412
+- [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
+- [x] **Pegada en producción** `20260925230000_argumento_descuento_desde_15.sql` (2026-09-25, a pedido de Felipe). Verificado en solo lectura: una sola `registrar_venta`, umbral 0.15 sin rastro del 0.20, tope del 35 % solo para Líder, código de la Colaboradora intacto, `security definer` y permisos iguales (authenticated sí, anon no). Huella md5 395ad922… → 7b574282…
+- [ ] Mientras #412 no se publique, la caja vieja no muestra el argumento entre 15 y 20 %: esa venta se rechaza al cobrar con el aviso «pasa el 15 %». Se cierra al fusionar.
+- [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` (no hay tablas nuevas; solo cambia el cuerpo de la función).
+- [ ] Idea descartada por ahora (Felipe 2026-09-25): exigir código solo para el % «Otro».
+
 ## 🎯 Stock en vivo en Vender, Apartados y Cambios (2026-09-25, ADR-0018) — solo web, sin migración
 Felipe reportó: escaneando con la cámara del teléfono leyó una prenda «agotada»; la repuso en otra máquina con la
 cámara todavía abierta, y no se sumó al ticket hasta reiniciar el navegador — y pidió auditar TODA la producción
