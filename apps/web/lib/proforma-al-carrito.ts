@@ -1,5 +1,5 @@
 import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
-import { lineasDeLaProforma, numeroDeProforma, precioAlCobrarDeLaProforma, type Proforma } from "./proformas-reglas";
+import { lineasDeLaProforma, numeroDeProforma, precioAlCobrarDeLaProforma, type LineaProforma, type Proforma } from "./proformas-reglas";
 import { conDescuentoDeCampana } from "./vender-reglas";
 
 /**
@@ -37,25 +37,31 @@ export function lineasDelCarritoDesdeProforma(
       faltanEnAlmacen ||= enAlmacen > 0;
     }
 
-    const cobro = precioAlCobrarDeLaProforma(l, v.precio, numero);
-    const base: ItemCarrito = {
-      claveLinea: v.varianteId,
-      varianteId: v.varianteId,
-      referencia: v.referencia,
-      sku: v.sku,
-      codigo: v.codigo,
-      cantidad,
-      precioUnitario: cobro.precioUnitario,
-      descuentoUnitario: 0,
-      stockAqui: v.stockAqui,
-      razonDescuento: "",
-      razonDescuentoOtro: "",
-      argumentoDescuento: "",
-      campana: v.campana ?? null,
-    };
-    const deCampana = conDescuentoDeCampana(base);
-    const deProforma: ItemCarrito = { ...base, descuentoUnitario: cobro.descuentoUnitario, razonDescuento: cobro.motivo, razonDescuentoOtro: cobro.motivoDetalle };
-    lineas.push(deCampana.descuentoUnitario > deProforma.descuentoUnitario ? deCampana : deProforma);
+    lineas.push(lineaAlPrecioDeLaProforma(l, v, numero, cantidad));
   }
   return { lineas, faltan, faltanEnAlmacen };
+}
+
+/** Una línea de la proforma como fila del ticket: la etiqueta de HOY con lo prometido como descuento; si la campaña del
+ *  día deja la prenda más barata, gana la campaña (un solo descuento, el mayor). */
+function lineaAlPrecioDeLaProforma(l: LineaProforma, v: VarianteBusqueda, numero: string, cantidad: number): ItemCarrito {
+  const cobro = precioAlCobrarDeLaProforma(l, v.precio, numero);
+  const base: ItemCarrito = {
+    claveLinea: v.varianteId,
+    varianteId: v.varianteId,
+    referencia: v.referencia,
+    sku: v.sku,
+    codigo: v.codigo,
+    cantidad,
+    precioUnitario: cobro.precioUnitario,
+    descuentoUnitario: 0,
+    stockAqui: v.stockAqui,
+    razonDescuento: "",
+    razonDescuentoOtro: "",
+    argumentoDescuento: "",
+    campana: v.campana ?? null,
+  };
+  const deCampana = conDescuentoDeCampana(base);
+  const deProforma: ItemCarrito = { ...base, descuentoUnitario: cobro.descuentoUnitario, razonDescuento: cobro.motivo, razonDescuentoOtro: cobro.motivoDetalle };
+  return deCampana.descuentoUnitario > deProforma.descuentoUnitario ? deCampana : deProforma;
 }
