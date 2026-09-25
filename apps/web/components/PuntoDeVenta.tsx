@@ -14,7 +14,6 @@ import { agruparCatalogo } from "@/lib/catalogo-grupos";
 import { ETIQUETA_TIPO, tipoDocumentoDeCliente, type EstadoComprobante, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   aplicarDescuento,
-  aplicarDescuentoMonto,
   atendioCorto,
   conCampanas,
   conCodigoDelCatalogo,
@@ -60,8 +59,8 @@ import { EscanerCamara } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
-import { sumarCantidades } from "@/lib/inventario-reglas";
-import { conApartadoAjustado, conApartadoReleido, conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
+import { conApartadoAjustado, conStockAjustado, descontarVendido } from "@/lib/vender-stock-local";
+import { leerStockYApartadoDeSede, useStockEnVivo } from "@/lib/useStockEnVivo";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -133,14 +132,12 @@ export type ItemCarrito = {
   prendaLibre?: Omit<DatosPrendaSinRegistrar, "precio">;
 };
 
-/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el modo (% o S/
- *  por unidad), el valor tal cual lo escribe en cada uno, a qué líneas alcanza (`null`
- *  es todo el ticket; `[]` es que todavía no eligió ninguna), el motivo (R-45) y el
- *  argumento que la banda 20-35 % de un Líder exige. */
+/** Lo que la colaboradora está decidiendo en el apartado «Descuento»: el % tal cual lo
+ *  escribe (solo %, Felipe 2026-09-25), a qué líneas alcanza (`null` es todo el ticket;
+ *  `[]` es que todavía no eligió ninguna), el motivo (R-45) y el argumento que pide todo
+ *  descuento pasado el 15 %. */
 export type DescuentoForm = {
-  modo: "porcentaje" | "monto";
   pct: string;
-  monto: string;
   elegidas: string[] | null;
   razon: string;
   razonOtro: string;
@@ -184,7 +181,7 @@ const MAX_RESULTADOS = 6;
 
 /** El apartado «Descuento» arranca así siempre: sin valor, sin líneas elegidas (salvo
  *  que `abrirDescuento` traiga unas), sin motivo. */
-const DESCUENTO_VACIO: DescuentoForm = { modo: "porcentaje", pct: "", monto: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
+const DESCUENTO_VACIO: DescuentoForm = { pct: "", elegidas: null, razon: "", razonOtro: "", argumento: "" };
 
 /** Atajos de la cabecera a lo que la caja necesita a un toque y vive en otra pantalla. */
 const ATAJOS = [
@@ -266,6 +263,18 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // El ticket tiene dos momentos: «armar» (solo líneas y total) y «cobrar» (pago y
   // comprobante). Vive acá y no en el ticket porque `cobrar()` lo devuelve a «armar».
   const [momento, setMomento] = useState<MomentoTicket>("armar");
+  // Apilado (celular/tablet), la barra «Ver ticket» solo sirve mientras el ticket NO está a
+  // la vista (Felipe, 2026-09-25): encima del ticket tapaba su pie y repetía el total que
+  // ya se lee ahí. Se mide con un IntersectionObserver; se ignoran los 80 px de abajo, que
+  // tapa la propia barra — asomar ahí no es «estar viendo el ticket».
+  const [ticketALaVista, setTicketALaVista] = useState(false);
+  useEffect(() => {
+    const ticket = document.getElementById("ticket-pos");
+    if (!ticket || typeof IntersectionObserver === "undefined") return;
+    const observador = new IntersectionObserver(([e]) => setTicketALaVista(e.isIntersecting), { rootMargin: "0px 0px -80px 0px" });
+    observador.observe(ticket);
+    return () => observador.disconnect();
+  }, []);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
@@ -504,22 +513,36 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   /** Relee de la base lo cobrable AQUÍ de unas prendas (lectura directa de `stock`, la misma de
    *  `getDisponibleEnSede` pero solo de esas filas; un GET no enciende el loader) y lo deja en pantalla.
-   *  Devuelve lo releído, o null si no se pudo: la pantalla se queda con lo que ya mostraba. */
-  async function releerStock(ids: string[]): Promise<Map<string, number> | null> {
-    const pedidas = [...new Set(ids)].filter((id) => id !== ID_CARGO_ESPECIAL && variantes.some((v) => v.varianteId === id));
-    if (pedidas.length === 0) return new Map();
-    const { data, error } = await createClient()
-      .from("stock")
-      .select("variante_id, cantidad, cantidad_apartada, sububicacion:sububicaciones ( tipo )")
-      .eq("ubicacion_id", ubicacionId)
-      .in("variante_id", pedidas);
-    if (error || !data) return null;
-    const cantidades = sumarCantidades(data);
-    const releido = conStockReleido(new Map(), pedidas, cantidades);
-    setAjustesStock((prev) => new Map([...prev, ...releido]));
-    setAjustesApartado((prev) => new Map([...prev, ...conApartadoReleido(new Map(), pedidas, cantidades)]));
-    return releido;
+   *  Sin `ids`, relee TODA la sede — la usa el sondeo de stock en vivo, de abajo. También relee lo APARTADO en el piso
+   *  (sale de las mismas filas): sin eso, tras vender o sondear, una prenda apartada por otra caja diría «agotada».
+   *  Devuelve lo cobrable releído, o null si no se pudo: la pantalla se queda con lo que ya mostraba. */
+  async function releerStock(ids?: string[]): Promise<Map<string, number> | null> {
+    const conocidos = variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId);
+    const leido = await leerStockYApartadoDeSede(ubicacionId, conocidos, ids);
+    if (!leido) return null;
+    setAjustesStock((prev) => new Map([...prev, ...leido.stock]));
+    setAjustesApartado((prev) => new Map([...prev, ...leido.apartado]));
+    return leido.stock;
   }
+
+  /**
+   * Stock en vivo (2026-09-25, reporte de Felipe): escaneando con la cámara del teléfono leyó una prenda
+   * «agotada»; la repusieron en otra máquina con la cámara todavía abierta y no se sumó hasta reiniciar el
+   * navegador — nada releía `stock` mientras la pantalla seguía montada. Afecta igual al lector físico: no es
+   * un problema de la cámara, es que esta pantalla nunca se actualizaba sola. Mismo hook que Apartados y
+   * Cambios (`lib/useStockEnVivo.ts`) — no sondea con la caja cerrada (bloqueado: no hay nada que cobrar igual).
+   */
+  useStockEnVivo(
+    ubicacionId,
+    useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
+    !bloqueado,
+    (releido, apartado) => {
+      setAjustesStock((prev) => new Map([...prev, ...releido]));
+      // Lo apartado se relee con el mismo sondeo: si otra caja aparta la última unidad después de cargar esta pantalla,
+      // la prenda pasa a decir «apartada para una clienta» y no «agotada».
+      setAjustesApartado((prev) => new Map([...prev, ...apartado]));
+    },
+  );
 
   /** Tras una venta que la base aceptó (en línea o al subir la cola): descuenta lo vendido al instante, relee esas
    *  prendas y la lista de ventas de hoy. Reemplaza al `router.refresh()` de antes (ADR-0192). */
@@ -711,7 +734,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   }
 
   // Apartado «Descuento» (decidido con Felipe el 2026-09-14): un solo formulario con dos
-  // entradas — la fila sobre el total (todo el ticket) y el % o el S/ de cada línea. Se
+  // entradas — la fila sobre el total (todo el ticket) y el % de cada línea. Se
   // aplica como `descuentoUnitario` por línea, que es lo que `venta_items` guarda, junto
   // con el motivo (R-45, 2026-09-15) — `registrar_venta` exige los dos juntos.
   function abrirDescuento(claves: string[] | null) {
@@ -724,10 +747,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // Un solo descuento por prenda, el mayor: si en alguna línea la campaña da igual o
     // más que lo pedido, se queda la campaña — y se dice, para que no parezca que el
     // descuento «no entró».
-    const pedido = descuento.modo === "monto" ? Number(descuento.monto) : null;
     const cedieron = carrito.filter((it) => {
       if (!it.campana || (claves.length > 0 && !claves.includes(it.claveLinea))) return false;
-      const monto = pedido ?? descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
+      const monto = descuentoUnitarioPorPorcentaje(it.precioUnitario, Number(descuento.pct));
       return Number(monto) > 0 && descuentoResultante(it, monto).prevaleceCampana;
     });
     if (cedieron.length > 0) {
@@ -735,11 +757,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         `${cedieron.map((it) => `${it.referencia} (${it.campana?.nombre})`).join(", ")} ya tiene${cedieron.length > 1 ? "n" : ""} una campaña con igual o más descuento: se mantiene la campaña.`,
       );
     }
-    setCarrito((actual) =>
-      descuento.modo === "monto"
-        ? aplicarDescuentoMonto(actual, Number(descuento.monto), claves, detalle)
-        : aplicarDescuento(actual, Number(descuento.pct), claves, detalle),
-    );
+    setCarrito((actual) => aplicarDescuento(actual, Number(descuento.pct), claves, detalle));
     setMomento("armar");
   }
   function quitarDescuentoDelTicket() {
@@ -1309,8 +1327,9 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           total o llegar a «Cobrar». En escritorio no hace falta: el ticket ya está
           siempre a la vista en su columna fija. Mismo offset que la barra de
           "Recibir mercadería" (`BarraFija`): pegado al fondo — desde 2026-09-25 el celular
-          no tiene barra de pestañas abajo (el menú es un cajón lateral). */}
-      {!bloqueado && carrito.length > 0 && (
+          no tiene barra de pestañas abajo (el menú es un cajón lateral). Se esconde mientras
+          el ticket está a la vista (`ticketALaVista`). */}
+      {!bloqueado && carrito.length > 0 && !ticketALaVista && (
         <button
           type="button"
           onClick={() => document.getElementById("ticket-pos")?.scrollIntoView({ behavior: "smooth", block: "start" })}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apartadoEnPiso, cantidadCobrable, conApartadoAjustado, conApartadoReleido, conStockAjustado, conStockReleido, descontarVendido } from "./vender-stock-local";
+import { apartadoEnPiso, cantidadCobrable, conApartadoAjustado, conApartadoReleido, conStockAjustado, conStockReleido, descontarVendido, stockYApartadoReleidos } from "./vender-stock-local";
 import { sumarCantidades } from "./inventario-reglas";
 import { textoSinStock } from "./vender-reglas";
 
@@ -95,6 +95,15 @@ describe("lo apartado releído", () => {
     expect([cantidadCobrable(c), c?.apartado, apartadoEnPiso(c)]).toEqual([4, 3, 1]);
     const r = conApartadoReleido(new Map([["a", 0], ["c", 9]]), ["a", "b"], releido);
     expect([...r]).toEqual([["a", 1], ["c", 9], ["b", 0]]);
+  });
+
+  it("stock y apartado salen juntos de las mismas filas, cada uno con lo suyo", () => {
+    // La misma prenda con los tres números distintos (cobrable 4, apartado total 3, apartado en el piso 1): si `stock` y
+    // `apartado` se cruzaran o usaran el total, esta prueba lo ve. Una prenda pedida sin fila queda en 0 en las dos.
+    const releido = sumarCantidades([piso("a", 5, 1), almacen("a", 3, 2)]);
+    const r = stockYApartadoReleidos(["a", "b"], releido);
+    expect([...r.stock]).toEqual([["a", 4], ["b", 0]]);
+    expect([...r.apartado]).toEqual([["a", 1], ["b", 0]]);
   });
 
   it("se aplica a las variantes y devuelve el mismo arreglo si no hay ajustes", () => {

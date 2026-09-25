@@ -73,3 +73,10 @@ export function conApartadoReleido(ajustes: ReadonlyMap<string, number>, pedidas
   for (const id of pedidas) nuevos.set(id, apartadoEnPiso(releido.get(id)));
   return nuevos;
 }
+
+/** Lo cobrable y lo apartado en el piso de las prendas releídas, de las MISMAS filas de stock. Van juntos a propósito:
+ *  para decir «apartada para una clienta» y no «agotada» la pantalla necesita las dos cifras al día; releer solo la
+ *  primera dejaba la palabra vieja tras cada sondeo. */
+export function stockYApartadoReleidos(pedidas: string[], releido: ReadonlyMap<string, Cantidades>): { stock: Map<string, number>; apartado: Map<string, number> } {
+  return { stock: conStockReleido(new Map(), pedidas, releido), apartado: conApartadoReleido(new Map(), pedidas, releido) };
+}

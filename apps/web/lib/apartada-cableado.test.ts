@@ -38,8 +38,18 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
-    cable: "`releerStock` guarda también lo apartado que trajo la base",
-    patron: /setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.conApartadoReleido\(/,
+    cable: "`releerStock` guarda también lo apartado que trajo la base (`leido.apartado`)",
+    patron: /setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.leido\.apartado\]\)\)/,
+  },
+  {
+    archivo: "components/PuntoDeVenta.tsx",
+    cable: "el sondeo de stock en vivo también guarda lo apartado (si no, tras cada sondeo la palabra vuelve a ser «agotada»)",
+    patron: /\(releido,\s*apartado\)\s*=>\s*\{[^}]*setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.apartado\]\)\)/,
+  },
+  {
+    archivo: "lib/useStockEnVivo.ts",
+    cable: "el sondeo le pasa a la pantalla el stock Y lo apartado de la misma lectura",
+    patron: /alLeerRef\.current\(\s*leido\.stock,\s*leido\.apartado\s*\)/,
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
@@ -77,6 +87,21 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
     patron: /textoSinStock\(t\.variante,\s*"Sin stock aquí"\)/,
   },
   // ---- Cambios ----
+  {
+    archivo: "components/CambiosFlujo.tsx",
+    cable: "el catálogo de Cambios se ajusta con el stock Y lo apartado releídos",
+    patron: /conApartadoAjustado\(\s*conStockAjustado\(\s*catalogoProp\s*,\s*ajustesStock\s*\)\s*,\s*ajustesApartado\s*\)/,
+  },
+  {
+    archivo: "components/CambiosFlujo.tsx",
+    cable: "el sondeo de Cambios guarda también lo apartado",
+    patron: /\(releido,\s*apartado\)\s*=>\s*\{[^}]*setAjustesApartado\(\s*\(prev\)\s*=>\s*new Map\(\[\.\.\.prev,\s*\.\.\.apartado\]\)\)/,
+  },
+  {
+    archivo: "components/CambiosFlujo.tsx",
+    cable: "un catálogo nuevo del servidor borra lo apartado releído (manda el servidor)",
+    patron: /setAjustesStock\(new Map\(\)\);\s*setAjustesApartado\(new Map\(\)\)/,
+  },
   {
     archivo: "app/(app)/cambios/page.tsx",
     cable: "el mapa de lo apartado en el piso sale de `apartadoEnPiso`",

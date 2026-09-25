@@ -33,6 +33,8 @@ import {
   type VarianteCatalogo,
 } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
+import { conApartadoAjustado, conStockAjustado } from "@/lib/vender-stock-local";
+import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import {
   estadoPrendaVendida,
   etiquetaDia,
@@ -86,7 +88,7 @@ export function CambiosFlujo({
   ubicacionId,
   sede,
   cajaAbierta,
-  catalogo,
+  catalogo: catalogoProp,
   ahora,
   onCerrar,
   onNuevo,
@@ -106,6 +108,32 @@ export function CambiosFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `catalogoProp` es
+  // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
+  // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
+  // Lo apartado en el piso se corrige igual (`ajustesApartado`): con el stock al día pero lo apartado de la carga, una
+  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para una clienta».
+  const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
+  const [catalogoPropPrevio, setCatalogoPropPrevio] = useState(catalogoProp);
+  if (catalogoProp !== catalogoPropPrevio) {
+    setCatalogoPropPrevio(catalogoProp);
+    setAjustesStock(new Map());
+    setAjustesApartado(new Map());
+  }
+  const catalogo = useMemo(
+    () => conApartadoAjustado(conStockAjustado(catalogoProp, ajustesStock), ajustesApartado),
+    [catalogoProp, ajustesStock, ajustesApartado],
+  );
+  useStockEnVivo(
+    ubicacionId,
+    useMemo(() => catalogoProp.map((v) => v.varianteId), [catalogoProp]),
+    cajaAbierta,
+    (releido, apartado) => {
+      setAjustesStock((prev) => new Map([...prev, ...releido]));
+      setAjustesApartado((prev) => new Map([...prev, ...apartado]));
+    },
+  );
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
