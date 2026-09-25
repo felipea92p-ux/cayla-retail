@@ -4,7 +4,7 @@ VISTAS.reportes = () => {
   const cuerpo = {resultados:vistaResultados, presupuesto:vistaPresupuesto, campanas:vistaCampanas, escenarios:vistaEscenarios, flujo:vistaFlujo, balance:vistaBalance}[tab]();
   const alcance = ['resultados','presupuesto'].includes(tab) ? filtroVer() : filtroVer('empresa');
   return `${cabecera({sobre:'Finanzas · Reportes', titulo:{resultados:'¿Ganamos?', presupuesto:'¿Vamos según lo planeado?', campanas:'¿Valen la pena las campañas?', escenarios:'¿Qué pasa si…?', flujo:'¿Por qué vendí bien y no hay plata?', balance:'¿Cuánto vale CAYLA?'}[tab],
-    bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento.',
+    bajada:{resultados:'Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento.',
       presupuesto:'Lo que pusiste como meta y como tope en Configuración, contra lo que va pasando. La proyección supone que el resto del mes sigue al mismo ritmo.',
       campanas:'Cada campaña contra lo que la tienda vende en días normales: cuánto más vendió, cuánto se descontó y si al final dejó más o menos margen.',
       escenarios:'Mueve los valores y mira qué pasa con la utilidad de cada tienda y con tu caja. No se guarda nada: es para pensar antes de decidir.',
@@ -121,7 +121,7 @@ function vistaBalance(){
     <div class="prioridades-cab"><div><h2>Antes de dibujarlo, el sistema lo comprueba</h2><p>Cada cuenta se calcula por dos caminos distintos. Si no coinciden, el Balance no se muestra: un número falso es peor que ninguno.</p></div>
       <label class="btn btn-sutil btn-sm" style="gap:8px"><input type="checkbox" data-cambia="descuadre" ${E.descuadre?'checked':''}> Demo: simular un descuadre</label></div>
     <ul class="chequeos">${chequeos.map(c=>`<li><span class="ok-ic ${c.a===c.b?'':'no-ic'}">${c.a===c.b?'✓':'!'}</span><div><b>${c.cta}</b><p>contra ${c.contra}</p></div><span>${c.a===c.b?S(c.a):`${S(c.a)} ≠ ${S(c.b)}`}</span></li>`).join('')}</ul>
-    ${F('nuevo','fn_conciliacion_contable (ADR-0109)')}
+    ${F('nuevo','fn_conciliacion_contable (ADR-0198)')}
   </div>
   ${cuadra ? `
   <div class="superficie pad anim-sube">

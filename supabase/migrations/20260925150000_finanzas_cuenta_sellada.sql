@@ -148,7 +148,7 @@ comment on function retail.fn_cuenta_sellada(text, text, uuid, date, uuid) is
 create or replace function retail.fn_movimiento_de_cajon(p_cuenta_id uuid, p_tipo text, p_monto numeric, p_fecha date, p_motivo text, p_nota text)
 returns uuid
 language plpgsql security definer set search_path = retail, public, extensions as $$
-declare v_ubic uuid; v_nombre text; v_caja uuid;
+declare v_ubic uuid; v_nombre text; v_caja uuid; v_id uuid;
 begin
   select c.ubicacion_id, u.nombre into v_ubic, v_nombre
     from retail.cuentas_dinero c join retail.ubicaciones u on u.id = c.ubicacion_id
@@ -165,7 +165,12 @@ begin
     raise exception 'La caja de % no está abierta: ábrela para que la plata % del cajón. Si fue de otro lado, elige de dónde.',
       v_nombre, case p_tipo when 'ingreso' then 'entre' else 'salga' end using errcode = 'P0001';
   end if;
-  return retail.registrar_movimiento_caja(v_caja, p_tipo, p_monto, p_motivo, left(p_nota, 200), false, null::uuid);
+  -- «Pago a proveedor» y «Reembolso de proveedor» no son motivos del modal de Caja: la función de caja los acepta solo
+  -- mientras dura esta llamada (marca de transacción `retail.movimiento_de_sistema`, ver el parche en la PARTE 10).
+  perform set_config('retail.movimiento_de_sistema', 'si', true);
+  v_id := retail.registrar_movimiento_caja(v_caja, p_tipo, p_monto, p_motivo, left(p_nota, 200), false, null::uuid);
+  perform set_config('retail.movimiento_de_sistema', '', true);
+  return v_id;
 end $$;
 
 -- Un pago que ya trae su egreso (el gasto o activo con factura pagado del cajón): que sea un egreso de ESE cajón, del
@@ -1229,5 +1234,32 @@ $$;
 comment on function retail.fn_dinero_libro(date) is
   'USO INTERNO. Cada entrada y salida de plata hasta una fecha, con la cuenta que tocó: la sellada (F3b), si no la asignada después, y si no la deducida de su medio y tienda (lo viejo). Nula = sin cuenta. El cajón no está: lo dice la caja.';
 revoke all on function retail.fn_dinero_libro(date) from public, anon, authenticated;
+
+-- La salida o entrada del cajón que arma el sistema al pagar a un proveedor o recibir su reembolso usa un motivo propio
+-- («Pago a proveedor», «Reembolso de proveedor») que el modal de Caja no ofrece. `registrar_movimiento_caja` tiene el
+-- vocabulario cerrado del modal (20260922235000): se le suma cada uno SOLO cuando lo pide `fn_movimiento_de_cajon`, con la
+-- marca `retail.movimiento_de_sistema` que dura esa llamada. Nadie los puede tipear a mano. Parche por ancla sobre la
+-- definición VIVA de producción (ADR-0190 le sumó el token por parche; no hay archivo con la función entera).
+do $$
+declare v_def text; v_hay integer;
+  v_ancla_e constant text := $a$  if p_tipo = 'egreso' and p_motivo not in
+      ('Retiro de efectivo', 'Depósito bancario', 'Ajuste de caja (faltante)', 'Compra de insumos', 'Otro') then$a$;
+  v_ancla_i constant text := $a$  if p_tipo = 'ingreso' and p_motivo not in ('Ajuste de caja (sobrante)', 'Otro') then$a$;
+begin
+  v_def := pg_get_functiondef('retail.registrar_movimiento_caja(uuid, text, numeric, text, text, boolean, uuid)'::regprocedure);
+  if position('retail.movimiento_de_sistema' in v_def) > 0 then
+    return;
+  end if;
+  v_hay := (length(v_def) - length(replace(v_def, v_ancla_e, ''))) / length(v_ancla_e)
+         + (length(v_def) - length(replace(v_def, v_ancla_i, ''))) / length(v_ancla_i);
+  if v_hay <> 2 then
+    raise exception 'registrar_movimiento_caja cambió en la base: revisar antes de pegar (anclas: % de 2).', v_hay;
+  end if;
+  v_def := replace(v_def, v_ancla_e, replace(v_ancla_e, 'Otro'') then', 'Otro'')
+     and not (p_motivo = ''Pago a proveedor'' and current_setting(''retail.movimiento_de_sistema'', true) = ''si'') then'));
+  v_def := replace(v_def, v_ancla_i, replace(v_ancla_i, 'Otro'') then', 'Otro'')
+     and not (p_motivo = ''Reembolso de proveedor'' and current_setting(''retail.movimiento_de_sistema'', true) = ''si'') then'));
+  execute v_def;
+end $$;
 
 reset lock_timeout;

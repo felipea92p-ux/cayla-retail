@@ -100,7 +100,7 @@ describe("lo que llega de la base", () => {
   });
 });
 
-describe("¿se dibuja? (ADR-0109: un número falso es peor que ninguno)", () => {
+describe("¿se dibuja? (ADR-0198: un número falso es peor que ninguno)", () => {
   it("sin saldos de arranque no hay Balance", () => {
     expect(situacion([ch({ clave: "arranque", estado: "falta", diario: null, otro: null })]).tipo).toBe("sin_arranque");
     expect(situacion([]).tipo).toBe("sin_arranque");

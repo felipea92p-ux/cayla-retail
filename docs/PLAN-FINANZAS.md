@@ -10,7 +10,7 @@
 > Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
 > ADR asociado: `docs/adr/0195-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 > Se apoya en tres ADR que Felipe ya aprobó y que viven en el PR #170 (sin fusionar, sin pegar en producción):
-> **ADR-0109** (los estados salen de un diario derivado que se congela al cerrar el mes), **ADR-0117** (gastos) y
+> **ADR-0198** (los estados salen de un diario derivado que se congela al cerrar el mes), **ADR-0117** (gastos) y
 > **ADR-0120** (las reglas de posteo en `fn_asientos`). Este plan **no los reemplaza**: los retoma y dice qué cambia.
 
 ---
@@ -68,16 +68,16 @@ Hoy **nadie ve** los gastos, el banco, la utilidad por tienda ni el IGV neto. Es
 6. **Por pagar** — todo lo que CAYLA debe (mercadería, insumos, gastos, activos), en un calendario de vencimientos.
 7. **Estado de resultados** — por tienda, Taller y consolidado (D-30), con planilla (D-33).
 8. **Flujo de caja** — lo que pasó (cobros − pagos) y lo que viene (vencimientos + gastos fijos).
-9. **Balance** — lo que CAYLA tiene menos lo que debe; solo se dibuja si cuadra (ADR-0109, conciliación).
+9. **Balance** — lo que CAYLA tiene menos lo que debe; solo se dibuja si cuadra (ADR-0198, conciliación).
 10. **Impuestos** — IGV de ventas contra IGV descontable, alerta del umbral de 300 UIT, reporte para el contador.
-11. **Cierre de mes** — la rutina de 3 días y el congelado del mes, por unidad y consolidado (ADR-0109).
+11. **Cierre de mes** — la rutina de 3 días y el congelado del mes, por unidad y consolidado (ADR-0198).
 
 ## 4. Decisiones que gobiernan el plan
 
 ### Ya aprobadas antes (se mantienen)
-- **ADR-0109 — opción C:** los estados salen de un diario que `fn_asientos` **genera** leyendo las operaciones; al cerrar
+- **ADR-0198 — opción C:** los estados salen de un diario que `fn_asientos` **genera** leyendo las operaciones; al cerrar
   el mes se materializa inmutable con un hash. Ninguna operación de dinero (venta, compra, caja) cambia su transacción.
-- **ADR-0109 — Felipe:** Yape, Plin y transferencia llegan **al banco al instante** (cuenta 104); solo la tarjeta espera
+- **ADR-0198 — Felipe:** Yape, Plin y transferencia llegan **al banco al instante** (cuenta 104); solo la tarjeta espera
   en 105 hasta el abono. El cierre es **por unidad** (cada tienda y el Taller) **y consolidado**; el consolidado exige
   todas las unidades cerradas.
 - **ADR-0117:** un egreso de caja es un **medio de pago**, no un gasto; solo es gasto si un gasto lo señala (imposible
@@ -177,7 +177,7 @@ Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del
   Finanzas deduce a qué cuenta llegó. Lo mismo al pagar a un proveedor (se propone la cuenta, se puede cambiar).
 - **`movimientos_dinero`** (solo agrega filas, se anula con motivo): depósito del cajón al banco, abono de tarjeta
   (105 → 104, con la comisión del POS como gasto), transferencia entre cuentas, aporte y retiro del dueño.
-- **Saldo de una cuenta = se suma, nunca se guarda** (ADR-0109: guardar un saldo haría que las tiendas se bloqueen entre sí).
+- **Saldo de una cuenta = se suma, nunca se guarda** (ADR-0198: guardar un saldo haría que las tiendas se bloqueen entre sí).
 - **Conciliación semanal:** se anota el saldo que dice el banco; el sistema muestra la diferencia y los movimientos sin
   pareja. Importar el extracto (CSV) queda para después.
 
@@ -332,7 +332,7 @@ fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a
 ## 10. Lo que queda abierto
 
 **Decisiones de Felipe (negocio):**
-1. **Balance por tienda** (ADR-0109, sin confirmar). Dos opciones:
+1. **Balance por tienda** (ADR-0198, sin confirmar). Dos opciones:
    - **«Lo que es de la tienda»:** su cajón y caja fuerte, su mercadería, sus muebles y **sus facturas por pagar** (el
      reparto por tienda de Compras, ADR-0139, ya sabe a qué tienda va cada factura: no se inventa). Dice cuánta plata
      tiene invertida cada tienda y cuánto rinde. No es un Balance completo: el banco y el capital son de CAYLA.

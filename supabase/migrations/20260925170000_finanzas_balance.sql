@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20260925170000 — El Balance: saldos de arranque, la comprobación antes de dibujarlo y lo que es de cada tienda
--- (ADR-0195 F7; retoma ADR-0109: el capital es una ENTRADA y el Balance no se dibuja si no cuadra; PLAN-FINANZAS §8
+-- (ADR-0195 F7; retoma ADR-0198: el capital es una ENTRADA y el Balance no se dibuja si no cuadra; PLAN-FINANZAS §8
 -- pieza 9 y §10 punto 1: Balance por tienda = «lo que es de la tienda», decidido por Felipe el 2026-09-24)
 --
 -- EL PROBLEMA PRIMERO
@@ -24,7 +24,7 @@
 --   2. EL BALANCE A UNA FECHA (`fn_balance_general(corte, null)`, solo el líder) = saldos de arranque + el diario
 --      `fn_asientos` desde el arranque hasta el corte. Lo de resultados (ventas, costos, gastos) se cierra en «lo tuyo»:
 --      utilidades acumuladas y la utilidad del mes del corte. Un saldo nunca se guarda: se suma.
---   3. LA COMPROBACIÓN (`fn_conciliacion_contable(corte)`, ADR-0109): el Balance se dibuja solo si
+--   3. LA COMPROBACIÓN (`fn_conciliacion_contable(corte)`, ADR-0198): el Balance se dibuja solo si
 --        · hay saldos de arranque y cuadran; el diario cuadra (ningún asiento con debe ≠ haber); lo que tiene = lo que
 --          debe + lo tuyo;
 --        · CADA cuenta importante da lo mismo por dos caminos: el diario contra su registro propio —
@@ -205,7 +205,7 @@ begin
 end $parche$;
 
 comment on function retail.fn_asientos(date, date, uuid) is
-  'Diario derivado (ADR-0109 C, ADR-0120, ADR-0195 F5 y F7): genera las líneas debe/haber desde las operaciones (ventas, anulaciones, devoluciones, cambios, mermas, separaciones, gastos, facturas, activos, planilla, notas de crédito, pagos a proveedores y, desde F7, movimientos de dinero, traslados del cierre al banco y diferencias de caja). Única casa de las reglas de posteo. No guarda nada.';
+  'Diario derivado (ADR-0198 C, ADR-0120, ADR-0195 F5 y F7): genera las líneas debe/haber desde las operaciones (ventas, anulaciones, devoluciones, cambios, mermas, separaciones, gastos, facturas, activos, planilla, notas de crédito, pagos a proveedores y, desde F7, movimientos de dinero, traslados del cierre al banco y diferencias de caja). Única casa de las reglas de posteo. No guarda nada.';
 
 reset lock_timeout;
 
@@ -234,7 +234,7 @@ create table if not exists retail.saldos_iniciales (
   constraint saldos_iniciales_correccion_con_motivo check (reemplaza_id is null or char_length(trim(coalesce(motivo, ''))) >= 5)
 );
 comment on table retail.saldos_iniciales is
-  'Lo que CAYLA tenía al empezar el día de arranque, cuenta por cuenta (ADR-0195 F7, ADR-0109): el punto de partida del Balance. Solo se agregan filas; una corrección reemplaza a otra con motivo. Lo registra el líder.';
+  'Lo que CAYLA tenía al empezar el día de arranque, cuenta por cuenta (ADR-0195 F7, ADR-0198): el punto de partida del Balance. Solo se agregan filas; una corrección reemplaza a otra con motivo. Lo registra el líder.';
 create unique index if not exists saldos_iniciales_reemplaza_uq on retail.saldos_iniciales (reemplaza_id) where reemplaza_id is not null;
 create index if not exists saldos_iniciales_cuenta_idx on retail.saldos_iniciales (cuenta);
 alter table retail.saldos_iniciales enable row level security;
@@ -958,7 +958,7 @@ begin
    order by case b.tipo when 'tienda' then 1 else 2 end, b.nombre;
 end $$;
 
--- La comprobación antes de dibujar el Balance (ADR-0109). Una fila por cosa que se comprueba, en el orden en que se
+-- La comprobación antes de dibujar el Balance (ADR-0198). Una fila por cosa que se comprueba, en el orden en que se
 -- muestra. `diario` y `otro` con el signo natural de la cuenta; `diferencia` = diario − otro. `estado`: ok · nota (cuadra
 -- con una aclaración) · no_cuadra · revisar (se muestra sin bloquear) · falta. El Balance se dibuja si ninguna fila con
 -- `bloquea` está en no_cuadra ni falta. Solo el líder (es de CAYLA entera). F9 (cierre del mes) la puede llamar.

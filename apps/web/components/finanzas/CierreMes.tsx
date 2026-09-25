@@ -39,7 +39,7 @@ import {
   type Unidad,
 } from "@/lib/cierre-reglas";
 
-// Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0109), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
+// Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198), dibujada como el spike aprobado (docs/maquetas/finanzas-2026-09/,
 // `vista-cierre.js`): cabecera con «CAYLA entera» y el mes → la matriz de unidades con su estado y su huella → los chequeos
 // de la unidad elegida con «Cerrar {mes} de {unidad}» o «Reabrir…» | la rutina de fin de mes. Solo el líder llega aquí
 // (`exigirModulo("cierre_mes")`, no delegable). Todo lo decide la base: qué está cerrado, qué chequeos aplican y si pasan;
@@ -77,7 +77,7 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
         sobretitulo="Finanzas · Cierre de mes"
         titulo={tituloPantalla(mes)}
         accionesAbajo
-        bajada="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas (ADR-0109)."
+        bajada="Cerrar un mes lo congela: nadie puede registrar ni cambiar nada con fecha de ese mes, y el diario queda guardado con su huella. Se cierra cada tienda, el Taller y lo de la empresa; CAYLA entera, cuando cerraron todas (ADR-0198)."
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>

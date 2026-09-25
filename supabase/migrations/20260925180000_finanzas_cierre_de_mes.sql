@@ -1,6 +1,6 @@
 -- ============================================================================
 -- 20260925180000 — Cierre de mes: por unidad y consolidado, el diario congelado con su huella y el candado por fecha
--- (ADR-0195 F9; retoma ADR-0109 «los estados salen de un diario derivado y se congelan al cerrar el mes»)
+-- (ADR-0195 F9; retoma ADR-0198 «los estados salen de un diario derivado y se congelan al cerrar el mes»)
 --
 -- EL PROBLEMA PRIMERO
 --   El diario de F5 (`fn_asientos`) se CALCULA cada vez que se mira. Es lo correcto mientras el mes está vivo, pero un
@@ -9,7 +9,7 @@
 --   fecha de julio, el Estado de resultados de agosto cambia solo, sin que nadie lo note. Un estado que cambia después
 --   de enviarlo no es un estado: es una opinión.
 --
--- LAS REGLAS (ADR-0109; Felipe confirmó las dos suposiciones el 2026-09-18)
+-- LAS REGLAS (ADR-0198; Felipe confirmó las dos suposiciones el 2026-09-18)
 --   1. UNIDADES. Un mes se cierra por UNIDAD: cada tienda, el Taller y «de la empresa» (lo que no es de ninguna tienda:
 --      los bancos, los gastos sin tienda; en el diario es la ubicación nula, la misma columna «De la empresa» de F5). Y
 --      además el CONSOLIDADO («CAYLA entera»), que solo se cierra cuando TODAS las unidades del mes están cerradas.
@@ -94,8 +94,8 @@ create table if not exists retail.periodos (
   constraint periodos_cerrado_con_cierre check ((estado = 'cerrado') = (cierre_id is not null))
 );
 comment on table retail.periodos is
-  'Cierre de mes (ADR-0109, ADR-0195 F9): una fila por unidad (tienda, Taller, «de la empresa») y mes, y el consolidado. Sin fila = abierto. Se escribe solo con cerrar_periodo y reabrir_periodo.';
--- Dos cierres de la misma unidad en el mismo mes son imposibles (ADR-0109, «estados imposibles»).
+  'Cierre de mes (ADR-0198, ADR-0195 F9): una fila por unidad (tienda, Taller, «de la empresa») y mes, y el consolidado. Sin fila = abierto. Se escribe solo con cerrar_periodo y reabrir_periodo.';
+-- Dos cierres de la misma unidad en el mismo mes son imposibles (ADR-0198, «estados imposibles»).
 create unique index if not exists periodos_unidad_mes_uq
   on retail.periodos (mes, alcance, coalesce(ubicacion_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
@@ -147,11 +147,11 @@ create table if not exists retail.diario_cerrado (
   origen_id uuid,
   glosa text,
   primary key (cierre_id, n),
-  -- Una línea es debe O haber, nunca negativa (ADR-0109, «estados imposibles»).
+  -- Una línea es debe O haber, nunca negativa (ADR-0198, «estados imposibles»).
   constraint diario_cerrado_linea check (debe >= 0 and haber >= 0 and not (debe > 0 and haber > 0))
 );
 comment on table retail.diario_cerrado is
-  'El diario de un mes cerrado (ADR-0109): las líneas de fn_asientos al cerrar. Inmutable: para corregirlo se reabre el mes y se vuelve a cerrar (versión nueva).';
+  'El diario de un mes cerrado (ADR-0198): las líneas de fn_asientos al cerrar. Inmutable: para corregirlo se reabre el mes y se vuelve a cerrar (versión nueva).';
 
 -- Llaves que se cumplen al terminar la transacción: el cierre escribe primero sus líneas y su período, y después la fila
 -- del cierre con la huella de esas líneas.
@@ -704,7 +704,7 @@ begin
 
     select count(*), coalesce(sum(d.debe), 0), coalesce(sum(d.haber), 0) into v_lineas, v_debe, v_haber
       from retail.diario_cerrado d where d.cierre_id = v_cierre;
-    -- El candado de ADR-0109: cada asiento congelado cuadra.
+    -- El candado de ADR-0198: cada asiento congelado cuadra.
     if exists (select 1 from retail.diario_cerrado d where d.cierre_id = v_cierre
                 group by d.asiento having round(sum(d.debe), 2) <> round(sum(d.haber), 2)) then
       raise exception 'El diario de % no cuadra: no se congela.', v_nombre using errcode = 'P0001';
@@ -730,7 +730,7 @@ begin
   return jsonb_build_object('cierre_id', v_cierre, 'huella', v_huella, 'lineas', v_lineas, 'version', v_version);
 end $$;
 comment on function retail.cerrar_periodo(date, text, uuid) is
-  'Cierra el mes de una unidad (ubicacion | empresa) o el consolidado (ADR-0109, ADR-0195 F9): congela el diario con su huella y bloquea las fechas de ese mes. Solo el líder; firma con el responsable.';
+  'Cierra el mes de una unidad (ubicacion | empresa) o el consolidado (ADR-0198, ADR-0195 F9): congela el diario con su huella y bloquea las fechas de ese mes. Solo el líder; firma con el responsable.';
 
 -- ---------- 8. Reabrir ----------
 create or replace function retail.reabrir_periodo(p_mes date, p_alcance text, p_ubicacion_id uuid, p_motivo text)
@@ -769,7 +769,7 @@ begin
    where id = v_per.cierre_id;
   update retail.periodos set estado = 'reabierto', cierre_id = null, actualizado_en = now() where id = v_per.id;
 
-  -- Reabrir una unidad reabre CAYLA entera de ese mes (ADR-0109): su huella incluía la de esta unidad.
+  -- Reabrir una unidad reabre CAYLA entera de ese mes (ADR-0198): su huella incluía la de esta unidad.
   select * into v_cons from retail.periodos p where p.mes = v_mes and p.alcance = 'consolidado' for update;
   if found and v_cons.estado = 'cerrado' then
     update retail.periodo_cierres
@@ -780,7 +780,7 @@ begin
   end if;
 end $$;
 comment on function retail.reabrir_periodo(date, text, uuid, text) is
-  'Reabre el mes de una unidad con motivo (ADR-0109): queda en la historia quién, cuándo y por qué; reabre también CAYLA entera de ese mes. Solo el líder.';
+  'Reabre el mes de una unidad con motivo (ADR-0198): queda en la historia quién, cuándo y por qué; reabre también CAYLA entera de ese mes. Solo el líder.';
 
 -- ---------- 9. El diario OFICIAL: lo congelado de los meses cerrados y lo vivo del resto ----------
 -- Mismas columnas que `fn_asientos` más `congelado`. Para cada unidad y mes cerrados trae las líneas de `diario_cerrado`;
@@ -836,7 +836,7 @@ begin
    order by 1, 3, 6 desc, 5;
 end $$;
 comment on function retail.fn_diario(date, date, uuid) is
-  'El diario oficial (ADR-0109): las líneas congeladas de cada unidad y mes cerrados, y las de fn_asientos para lo abierto. Mismas columnas que fn_asientos más «congelado».';
+  'El diario oficial (ADR-0198): las líneas congeladas de cada unidad y mes cerrados, y las de fn_asientos para lo abierto. Mismas columnas que fn_asientos más «congelado».';
 
 -- ---------- 10. Permisos ----------
 do $$

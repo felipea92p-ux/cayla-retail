@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0195 F9 — Cierre de mes (`20260925180000_finanzas_cierre_de_mes.sql`; ADR-0109).
+ * Prueba de ADR-0195 F9 — Cierre de mes (`20260925180000_finanzas_cierre_de_mes.sql`; ADR-0198).
  *
  * QUÉ CUBRE
  *   · cerrar una unidad congela su diario (las líneas de `fn_asientos`) con una huella SHA-256 que se puede recalcular;

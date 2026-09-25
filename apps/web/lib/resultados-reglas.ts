@@ -1,4 +1,4 @@
-// Reglas de Finanzas ▸ Reportes: Estado de resultados y Campañas (ADR-0195 F5; retoma ADR-0109/0120 del PR #170).
+// Reglas de Finanzas ▸ Reportes: Estado de resultados y Campañas (ADR-0195 F5; retoma ADR-0198/0120 del PR #170).
 // Lógica pura: la usan las pantallas y sus pruebas. Qué NO hace este archivo: calcular plata. Toda cifra viene de la base
 // (`fn_estado_resultados` sobre el diario `fn_asientos`, y `fn_campanas_reporte`); aquí solo se decide qué columnas y filas
 // se muestran, cómo se escriben, qué avisos se levantan y de dónde sale cada número. Si un número está mal, se corrige en

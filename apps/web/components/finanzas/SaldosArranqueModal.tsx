@@ -26,7 +26,7 @@ import {
   type SaldoInicial,
 } from "@/lib/balance-reglas";
 
-// Los saldos de arranque (ADR-0195 F7, ADR-0109): lo que CAYLA tenía al empezar el día de arranque. El spike no dice dónde
+// Los saldos de arranque (ADR-0195 F7, ADR-0198): lo que CAYLA tenía al empezar el día de arranque. El spike no dice dónde
 // se cargan; viven aquí, en el propio Balance, en un modal hoja. La primera vez: lo que el sistema ya sabe viene calculado
 // (y no se toca) y el líder escribe lo que solo él sabe (del contador y del banco). Solo se registra si cuadra: el capital
 // se escribe, nunca se calcula. Después, cada cambio es una CORRECCIÓN: una fila nueva con motivo (nada se edita ni se

@@ -1,4 +1,4 @@
-// Reglas de Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; retoma ADR-0109). Lógica pura: la usan la pantalla, el modal de
+// Reglas de Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; retoma ADR-0198). Lógica pura: la usan la pantalla, el modal de
 // los saldos de arranque y sus pruebas. Qué NO hace este archivo: calcular plata. El Balance, la comprobación y lo que es de
 // cada tienda vienen de la base (`fn_balance_general`, `fn_conciliacion_contable`, `fn_balance_por_tienda`, migración
 // 20260925170000); aquí solo se decide si se dibuja, cómo se escribe cada cifra, qué fechas se ofrecen y cómo se arma lo
@@ -174,7 +174,7 @@ export type Situacion =
   | { tipo: "no_cuadra"; bloqueos: Chequeo[] }
   | { tipo: "cuadra"; notas: Chequeo[] };
 
-/** Regla de ADR-0109: el Balance se dibuja solo si ningún chequeo que bloquea está «no cuadra» o «falta». */
+/** Regla de ADR-0198: el Balance se dibuja solo si ningún chequeo que bloquea está «no cuadra» o «falta». */
 export function situacion(chequeos: readonly Chequeo[]): Situacion {
   if (chequeos.some((c) => c.clave === "arranque" && c.estado === "falta")) return { tipo: "sin_arranque" };
   const corte = chequeos.find((c) => c.clave === "corte" && c.estado === "falta");

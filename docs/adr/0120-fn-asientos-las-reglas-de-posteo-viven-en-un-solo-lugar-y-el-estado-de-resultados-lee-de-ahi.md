@@ -1,20 +1,20 @@
 # ADR-0120 — `fn_asientos`: las reglas de posteo viven en un solo lugar y el Estado de Resultados lee de ahí
 
 **Fecha:** 2026-09-19
-**Estado:** **CONSTRUIDO** (tarea 4 del plan de finanzas), sobre el modelo que Felipe aprobó en el ADR-0109. Las migraciones
+**Estado:** **CONSTRUIDO** (tarea 4 del plan de finanzas), sobre el modelo que Felipe aprobó en el ADR-0198. Las migraciones
 existen en el repo y **aún NO están aplicadas en producción**. Las decisiones de detalle de abajo las tomé yo por defecto
-al construir (el ADR-0109 fijó el modelo, no cada regla): están marcadas y Felipe puede objetarlas.
+al construir (el ADR-0198 fijó el modelo, no cada regla): están marcadas y Felipe puede objetarlas.
 **Afecta:** tablas nuevas `cuentas` y `parametros_tributarios`; funciones `fn_tasa_igv`, `fn_asientos`,
 `fn_asientos_descuadrados`, `fn_estado_resultados` (más tres ayudantes internos); pantalla `/finanzas/resultados`; una
 llave foránea nueva de `categorias_gasto.cuenta_pcge` hacia `cuentas`. **No toca** ninguna operación de dinero
 (`registrar_venta`, `anular_venta`, `aprobar_devolucion`, `registrar_cambio`, caja).
 **Migraciones:** `20260918195000_cuentas_y_parametros_tributarios.sql`, `20260918196000_fn_asientos.sql`,
 `20260918197000_fn_estado_resultados.sql`. **Dependen de** `20260918193000_gastos.sql` (ADR-0117): hay que aplicarlas después.
-**Relacionado:** ADR-0109 (el modelo), ADR-0117 (gastos), ADR-0119 (permisos por defecto: revoke explícito).
+**Relacionado:** ADR-0198 (el modelo), ADR-0117 (gastos), ADR-0119 (permisos por defecto: revoke explícito).
 
 ## El problema
 
-Felipe quiere ver «¿ganamos este mes?» por sede. El ADR-0109 decidió que los estados salen de un **diario derivado**
+Felipe quiere ver «¿ganamos este mes?» por sede. El ADR-0198 decidió que los estados salen de un **diario derivado**
 (`fn_asientos`) y no de un libro escrito por cada operación. Lo que faltaba era escribir ese diario: qué regla de posteo
 tiene cada cosa que pasa en CAYLA, y probar que los números salen bien.
 
@@ -33,7 +33,7 @@ tiene cada cosa que pasa en CAYLA, y probar que los números salen bien.
    La tasa tiene vigencia y solo se agregan filas: un mes pasado no cambia cuando cambia la tasa.
 
 **DESCARTÉ:**
-- **Calcular el Estado de Resultados directo sobre `ventas`/`gastos` sin diario** (opción B del ADR-0109): repite la regla de
+- **Calcular el Estado de Resultados directo sobre `ventas`/`gastos` sin diario** (opción B del ADR-0198): repite la regla de
   cada cifra en cada pantalla, y el Balance y el Flujo de efectivo terminarían con su propia versión de «venta neta».
 - **Reglas en TypeScript**: dos implementaciones de una misma regla (pantalla y base) es como nacen números distintos.
 - **Valorizar la devolución por `reembolso_monto`**: es un campo libre y puede ser NULL; el ingreso que se revierte es el
@@ -90,7 +90,7 @@ tiene cada cosa que pasa en CAYLA, y probar que los números salen bien.
 5. **El plan de cuentas tiene 26**, no 25: el manual dice «25» y enumera 26; sembré las 26.
 6. **Fletes (609) y depreciación:** no hay fuente. La pantalla muestra «sin registrar», no un cero.
 
-## Números medidos (`scripts/pruebas/estado_resultados_volumen.mjs`, datos simulados con las proporciones del ADR-0109)
+## Números medidos (`scripts/pruebas/estado_resultados_volumen.mjs`, datos simulados con las proporciones del ADR-0198)
 
 Con **51 mil tickets, 85 mil líneas, 100 mil movimientos y 5,4 mil gastos** (tres años):
 
@@ -98,7 +98,7 @@ Con **51 mil tickets, 85 mil líneas, 100 mil movimientos y 5,4 mil gastos** (tr
 |---|---|---|
 | Estado de Resultados de un mes | **168 ms** | 97 ms |
 | Diario de un mes (7.224 líneas) | 63 ms | 41 ms |
-| Diario de **tres años** (272 mil líneas; el ADR-0109 estimó 300-350 mil) | **1,0 s** | — |
+| Diario de **tres años** (272 mil líneas; el ADR-0198 estimó 300-350 mil) | **1,0 s** | — |
 
 Conclusión: **no se agregan índices**. Umbral para revisarlo: si el Estado de Resultados de un mes pasa de ~1 s con datos
 reales. Es una simulación con las proporciones del ADR, **no producción**: `VERIFICAR-VOLUMEN-2026-09-18.sql` da los números reales.
@@ -158,7 +158,7 @@ dinero: el diario no guarda nada y ninguna operación de dinero se tocó.
 
 ## Actualización 2026-09-25 — construido en ADR-0195 F5 (traído del PR #170 a `main`)
 
-Este ADR y el ADR-0109 vivían solo en el PR #170, sin fusionar. En la fase F5 de Finanzas (ADR-0195) se traen tal cual y se
+Este ADR y el ADR-0198 vivían solo en el PR #170, sin fusionar. En la fase F5 de Finanzas (ADR-0195) se traen tal cual y se
 construyen **adaptados a lo que hoy existe en producción**. Lo de arriba queda como historia; manda esto:
 
 - **Migraciones:** las tres del PR #170 (`20260918195000/196000/197000`) **no se usan**. El plan de cuentas y la tasa de IGV

@@ -5,6 +5,7 @@
 
 ## 2026-09-25 (Finanzas F3–F10 en paralelo — ADR-0195, PR #396)
 Con F2 en producción, Felipe pidió implementar todo lo que faltaba, en paralelo si hacía falta. Se armó una base común (los 4 módulos, el menú, las cabeceras compartidas) y 10 agentes construyeron en sus copias Cuentas y dinero, la cuenta sellada, Por pagar, el diario y los resultados, el flujo, el balance, los impuestos, el cierre, el presupuesto y el resumen; el orquestador integró cada una, revisó sus capturas contra el spike y corrió todo junto (89 mil pruebas web y 12 suites de la base). Al integrar se midió que `drop trigger` bloquea `auth` y `storage` igual que `drop policy`: F3 lo usaba seis veces y se corrigió antes de pegar.
+El CI (base limpia) encontró dos cosas que la base local compartida escondía: F3b llamaba a la función de caja con motivos que producción rechaza («Pago a proveedor», «Reembolso de proveedor»: ahora pasan solo cuando los pide el sistema) y una prueba de F5 suponía una prenda sin historia de costo. El ADR del diario derivado, que en el PR #170 era 0109, pasó a ser 0198 (el 0109 ya era «Crear producto»).
 Felipe se lleva: (1) **en paralelo sí, pero con una base común primero**: módulos, menú y cabeceras dados de alta una vez evitan que diez fases se pisen; (2) **el saldo nunca se escribe**: se suma de lo que pasó, y cada cobro guarda de qué cuenta fue; (3) **un Balance que no cuadra no se dibuja**: dice qué cuenta falla y por cuánto.
 
 ## 2026-09-24 (Finanzas: las pantallas se ajustan al spike — ADR-0195)

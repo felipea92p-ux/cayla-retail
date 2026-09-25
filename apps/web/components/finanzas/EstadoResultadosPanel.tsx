@@ -106,7 +106,7 @@ export function EstadoResultadosPanel({
       <CabeceraReportes
         pestana="resultados"
         titulo="¿Ganamos?"
-        bajada="Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0109). Nadie escribe un asiento."
+        bajada="Salen solos del diario que arma el sistema con cada venta, compra, gasto y movimiento de caja (ADR-0198). Nadie escribe un asiento."
         acciones={
           <>
             {esLider ? (

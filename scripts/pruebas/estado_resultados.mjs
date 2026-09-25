@@ -158,8 +158,11 @@ select p.id as felipe from public.personas p where p.auth_user_id = '${FELIPE}' 
 select (select id from retail.cajas order by abierta_en desc nulls last limit 1) as caja \\gset
 -- vA no puede tener historia de costo previa (se prueba «el costo que regía antes del primer cambio»); vB y vN, cualquiera:
 -- su cambio de 2030 es el último antes de cada hecho.
-select v.id as va from retail.variantes v where v.id <> '22222222-2222-4222-8222-222222222222'
-   and not exists (select 1 from retail.costo_historial h where h.variante_id = v.id) order by v.id limit 1 \\gset
+-- En una base recién sembrada (el CI) todas las prendas ya tienen historia de costo: se crea una propia, sin talla ni
+-- color (no choca con la llave producto·talla·color) y sin historia. Queda dentro de la transacción de la escena.
+insert into retail.variantes (producto_id, sku, precio, costo)
+select v.producto_id, 'PRUEBA-F5-VA', 100, 0 from retail.variantes v where v.id <> '22222222-2222-4222-8222-222222222222' order by v.id limit 1
+returning id as va \\gset
 select (array_agg(x.id order by x.id))[1] as vb, (array_agg(x.id order by x.id))[2] as vn
   from (select v.id from retail.variantes v where v.id not in ('22222222-2222-4222-8222-222222222222', :'va') order by v.id limit 2) x \\gset
 insert into retail.proveedores (nombre, activo) values ('Proveedor de prueba F5', true) returning id as prov \\gset

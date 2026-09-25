@@ -1,4 +1,6 @@
-# ADR-0109 — Los estados financieros salen de un diario derivado, y se congelan al cerrar el mes
+# ADR-0198 — Los estados financieros salen de un diario derivado, y se congelan al cerrar el mes
+
+> **Renumerado el 2026-09-25:** nació como ADR-0109 en el PR #170, que nunca se fusionó. Ese número ya lo tenía «Crear producto es un árbol de decisión» en `main`. Las referencias de Finanzas dicen ahora ADR-0198.
 
 **Fecha:** 2026-09-18
 **Estado:** **APROBADO por Felipe el 2026-09-18** (opción C), con tres decisiones de negocio

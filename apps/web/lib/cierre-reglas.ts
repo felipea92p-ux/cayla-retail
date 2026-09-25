@@ -1,7 +1,7 @@
 import { fechaCorta, textoMes } from "./gastos-reglas";
 import { hoyLima } from "./fechas-lima";
 
-// Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0109): lógica PURA de la pantalla. La base decide qué está cerrado, qué
+// Finanzas ▸ Cierre de mes (ADR-0195 F9, ADR-0198): lógica PURA de la pantalla. La base decide qué está cerrado, qué
 // chequeos aplican a cada unidad y si pasan (`fn_cierre_panel`, 20260925180000); aquí solo se leen y se ponen en palabras,
 // y se arma el enlace a donde se arregla cada cosa. Sin React ni Supabase: se prueba en cierre-reglas.test.ts.
 

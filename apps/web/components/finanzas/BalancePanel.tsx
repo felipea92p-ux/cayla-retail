@@ -33,7 +33,7 @@ import {
   type UnidadBalance,
 } from "@/lib/balance-reglas";
 
-// Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0109), dibujado como el spike aprobado (`vista-reportes.js` →
+// Finanzas ▸ Reportes ▸ Balance (ADR-0195 F7; ADR-0198), dibujado como el spike aprobado (`vista-reportes.js` →
 // `vistaBalance`): cabecera «¿Cuánto vale CAYLA?» → la tarjeta «Antes de dibujarlo, el sistema lo comprueba» con cada
 // cuenta por dos caminos → el Balance (lo que tiene | lo que debe + lo que es tuyo) SOLO si todo cuadra; si no, la guía
 // que dice qué no cuadra, por cuánto y dónde se arregla → lo que es de cada tienda → la nota. Con una tienda (la

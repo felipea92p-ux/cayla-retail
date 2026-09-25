@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260925130000 — El diario derivado, el Estado de resultados y el reporte de campañas (ADR-0195 F5; retoma ADR-0109 y
+-- 20260925130000 — El diario derivado, el Estado de resultados y el reporte de campañas (ADR-0195 F5; retoma ADR-0198 y
 -- ADR-0120 del PR #170, adaptados a lo que hoy existe en producción)
 --
 -- EL PROBLEMA PRIMERO
@@ -8,7 +8,7 @@
 --   mercadería, notas de crédito, pagos a proveedores, activos fijos y la planilla de Dynamic. Si cada pantalla sumara
 --   por su cuenta, el Estado de resultados, el Flujo y el Balance darían tres «ventas del mes» distintas.
 --
--- LAS REGLAS (ADR-0109 opción C, ADR-0120)
+-- LAS REGLAS (ADR-0198 opción C, ADR-0120)
 --   1. NADIE ESCRIBE ASIENTOS. `fn_asientos(desde, hasta)` LEE las operaciones y GENERA las líneas debe/haber, cada una
 --      con la fila de la que salió (`origen_tabla`, `origen_id`). No guarda nada ni toca ninguna operación de dinero.
 --      Es la ÚNICA casa de las reglas de posteo: el contador corrige una regla aquí y todas las pantallas cambian juntas.
@@ -16,7 +16,7 @@
 --      cuadran (un cobro que no suma lo vendido), el asiento queda descuadrado A LA VISTA (`fn_asientos_descuadrados`) y
 --      el Estado de resultados lo avisa en rojo. Un número falso es peor que ninguno.
 --   3. El lado de caja o banco sale de UNA sola función (`fn_asiento_cuenta_de_medio`): efectivo → 101; Yape, Plin,
---      transferencia y depósito → 104 (llegan al banco al instante, ADR-0109); tarjeta de la clienta → 105 hasta el
+--      transferencia y depósito → 104 (llegan al banco al instante, ADR-0198); tarjeta de la clienta → 105 hasta el
 --      abono; tarjeta de crédito de CAYLA (pagos) → 451 (la de F3). F3b sellará la cuenta exacta de cada movimiento; ese
 --      día se cambia ESTA función y nada más.
 --   4. `fn_estado_resultados(desde, hasta, ubicación)` lee SOLO del diario: una fila por tienda, el Taller y «de la
@@ -80,7 +80,7 @@ on conflict (codigo) do nothing;
 -- ---------- 2. Ayudantes: una sola definición de cada cosa ----------
 
 -- El lado de caja o banco de un asiento. `p_sentido`: 'entra' (cobros, reembolsos que recibe CAYLA) o 'sale' (pagos,
--- reembolsos a la clienta). Regla de ADR-0109: Yape, Plin y transferencia llegan al banco al instante; solo la tarjeta de
+-- reembolsos a la clienta). Regla de ADR-0198: Yape, Plin y transferencia llegan al banco al instante; solo la tarjeta de
 -- la clienta espera en 105 hasta que el banco la abona. La tarjeta de crédito de CAYLA es deuda (451, la de F3).
 -- F3 sella la cuenta exacta en cada movimiento: ese día esta función lee la cuenta sellada y el resto no cambia.
 create or replace function retail.fn_asiento_cuenta_de_medio(p_medio text, p_sentido text default 'entra')
@@ -95,7 +95,7 @@ returns text language sql immutable as $$
   end;
 $$;
 comment on function retail.fn_asiento_cuenta_de_medio(text, text) is
-  'Regla de ADR-0109, en un solo lugar: efectivo 101; Yape, Plin, transferencia y depósito 104; tarjeta de la clienta 105 (hasta el abono); tarjeta de crédito de CAYLA 451; adelanto de separación 122. F3b la reemplaza por la cuenta sellada.';
+  'Regla de ADR-0198, en un solo lugar: efectivo 101; Yape, Plin, transferencia y depósito 104; tarjeta de la clienta 105 (hasta el abono); tarjeta de crédito de CAYLA 451; adelanto de separación 122. F3b la reemplaza por la cuenta sellada.';
 
 -- Qué movimiento de inventario es una MERMA. La misma definición que el resumen de inventario (ajuste negativo por
 -- merma; salida de cuarentena botada o donada) MÁS los faltantes de conteo (formal o desde el modal de ajuste). No es
@@ -640,7 +640,7 @@ begin
    order by t.f, t.asiento, t.debe desc, t.cuenta;
 end $$;
 comment on function retail.fn_asientos(date, date, uuid) is
-  'Diario derivado (ADR-0109 C, ADR-0120, ADR-0195 F5): genera las líneas debe/haber desde las operaciones (ventas, anulaciones, devoluciones, cambios, mermas, separaciones, gastos, facturas, activos, planilla, notas de crédito y pagos a proveedores). Única casa de las reglas de posteo. No guarda nada.';
+  'Diario derivado (ADR-0198 C, ADR-0120, ADR-0195 F5): genera las líneas debe/haber desde las operaciones (ventas, anulaciones, devoluciones, cambios, mermas, separaciones, gastos, facturas, activos, planilla, notas de crédito y pagos a proveedores). Única casa de las reglas de posteo. No guarda nada.';
 
 -- Los asientos cuyo debe no es igual al haber. Debe estar SIEMPRE vacío; si no, una fuente tiene datos que no cuadran y
 -- lo que se calcule encima miente. El Estado de resultados lo avisa en rojo.
