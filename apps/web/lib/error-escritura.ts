@@ -181,9 +181,9 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `Ese descuento en ${prenda} deja el precio por debajo de lo que cuesta. Bájalo un poco.`,
   },
   {
-    // Misma migración — banda 20-35 % de un Líder (R-45): pide un argumento escrito.
+    // Pasado el 15 % (Felipe, 2026-09-25; antes 20-35 % de un Líder, R-45): pide un argumento escrito.
     marca: "venta_descuento_requiere_argumento",
-    frase: (prenda) => `El descuento en ${prenda} pasa el 20 %: escribe el argumento antes de cobrar.`,
+    frase: (prenda) => `El descuento en ${prenda} pasa el 15 %: escribe el argumento antes de cobrar.`,
   },
   {
     // Misma migración — más de 35 % nadie, ni un Líder (decisión de Felipe, 2026-09-15):

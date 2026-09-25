@@ -270,7 +270,7 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).not.toMatch(/\d/);
   });
 
-  it("descuento entre 20 % y 35 % sin argumento: pide escribirlo", () => {
+  it("descuento pasado el 15 % sin argumento: pide escribirlo", () => {
     const salida = traducirError(
       { message: "venta_descuento_requiere_argumento", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
       "registrar la venta"

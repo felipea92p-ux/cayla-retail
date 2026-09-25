@@ -431,23 +431,26 @@ body {
 
 /* ==================================================================
    Etiqueta de precio (ADR-0180): se pega en el cartón de 5 × 8 cm que cuelga de la prenda.
-   Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo). El rollo mide 62 mm y el
-   cartón 50 mm de ancho, así que los 62 mm van a lo largo: la etiqueta es de 44 × 62 mm, con
-   3 mm de aire a cada lado del cartón y el agujero libre arriba. Sale del rollo DERECHA (Felipe,
-   2026-09-24): cada corte mide 62 mm, la etiqueta va centrada en el ancho del rollo con 9 mm
-   blancos a cada lado, que se recortan al pegarla en el cartón.
+   Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo). Mide 40,1 × 62 mm, como la
+   plantilla P-touch de la tienda: sale A LO ANCHO del rollo (sus 62 mm de alto lo cruzan) y la
+   Brother corta cada 40,1 mm (Felipe, 2026-09-25). Cómo viaja a la impresora: #etiquetas-precio-print.
    TODO en milímetros: es una medida física, no una pantalla. Y solo negro sobre blanco —
    la térmica no imprime otro color—, por eso aquí sí va #000/#fff literal y no los tokens
    de la guía (misma excepción que el comprobante de 80 mm). Diseño aprobado por Felipe el
-   2026-09-23: «D · Editorial» en el arreglo «QR abajo», con el QR lo más grande que entra
+   2026-09-23: «D · Editorial» en el arreglo «QR abajo»
    (docs/maquetas/etiqueta-precio-2026-09/etiquetas-carton.html).
+   TRAZO MÍNIMO 0,2 mm, unos 2,4 puntos de la Brother (imprime a 300 dpi): más fino, sale cortado
+   o gris. En la foto de la tienda (2026-09-25) se cortaron los trazos de 1,7 puntos —«CUELLO» se
+   leía «CUFLLO»— y salieron nítidos los de 2,5 («NARANJA»). Lo más fino de DM Sans son las barras
+   de la E: 0,07 em en peso 400, 0,09 en 600 y 0,105 en 700 (medido). Por eso un texto chico va en
+   700 desde 1,9 mm o en 600 desde 2,2 mm; el 400 solo sirve desde 3 mm y aquí no se usa.
    ================================================================== */
 @layer components {
   .etiqueta-precio {
     box-sizing: border-box;
-    width: 44mm;
+    width: 40.1mm; /* el largo de corte de la plantilla P-touch de la tienda (rollo 62 mm × 40,1 mm) */
     height: 62mm;
-    padding: 3mm 3.5mm;
+    padding: 3mm;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -469,10 +472,10 @@ body {
     align-items: center;
     gap: 1.3mm;
   }
-  .etq-cab img {
+  .etq-cab svg {
+    flex: none;
     width: 6.2mm;
     height: auto;
-    filter: brightness(0); /* el isotipo es rojo; la térmica lo necesita negro */
   }
   .etq-cab b {
     font-size: 3mm;
@@ -480,27 +483,30 @@ body {
     letter-spacing: 0.42em;
   }
   .etq-rot {
-    margin: 1.8mm 0 0.5mm;
-    font-size: 1.55mm;
-    letter-spacing: 0.14em;
+    margin: 1.5mm 0 0.5mm;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
   }
   .etq-tallas {
     display: flex;
-    border-top: 0.22mm solid #000;
-    border-bottom: 0.22mm solid #000;
+    border-top: 0.25mm solid #000;
+    border-bottom: 0.25mm solid #000;
   }
   /* Cada talla ocupa lo que mide su texto más un respiro, y el sobrante se reparte. */
   .etq-tallas span {
     flex: 1 0 auto;
-    padding: 0.9mm 0.5mm;
+    padding: 0.8mm 0.5mm;
     text-align: center;
-    font-size: 2.2mm;
+    font-size: 2.3mm;
+    font-weight: 600;
     letter-spacing: 0.04em;
   }
   .etq-tallas.etq-muchas span {
     padding-inline: 0.3mm;
-    font-size: 1.8mm;
+    font-size: 1.9mm;
+    font-weight: 700;
     letter-spacing: 0;
   }
   .etq-tallas .etq-si {
@@ -518,12 +524,13 @@ body {
   }
   .etq-prenda,
   .etq-color {
-    font-size: 2.1mm;
-    letter-spacing: 0.1em;
+    font-size: 2.2mm;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .etq-prenda {
-    margin-top: 1.8mm;
+    margin-top: 1.5mm;
+    font-weight: 600;
     line-height: 1.3;
     /* Un nombre largo no empuja el QR fuera de la etiqueta: dos líneas y corta (una, con campaña). */
     display: -webkit-box;
@@ -534,10 +541,11 @@ body {
   .etq-con-campana .etq-prenda {
     -webkit-line-clamp: 1;
   }
+  /* El nombre ya va en 600: el color sube a 800 para seguir siendo la línea firme. */
   .etq-color {
     margin-top: 0.3mm;
     overflow: hidden;
-    font-weight: 700;
+    font-weight: 800;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -559,6 +567,7 @@ body {
   .etq-antes {
     margin-top: 1mm;
     font-size: 2.4mm;
+    font-weight: 600;
     letter-spacing: 0.05em;
   }
   .etq-antes s {
@@ -591,7 +600,7 @@ body {
   .etq-motivo {
     margin-top: 0.9mm;
     padding-top: 0.8mm;
-    border-top: 0.22mm solid #000;
+    border-top: 0.25mm solid #000;
   }
   .etq-motivo b {
     display: block;
@@ -606,15 +615,16 @@ body {
   .etq-motivo span {
     display: block;
     margin-top: 0.4mm;
-    font-size: 1.75mm;
-    letter-spacing: 0.03em;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.02em;
   }
   .etq-pie {
     margin-top: auto;
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: 0.8mm;
+    gap: 0.5mm; /* la zona muda del QR ya separa: el código necesita cada décima */
   }
   .etq-datos {
     display: flex;
@@ -624,25 +634,30 @@ body {
     overflow: hidden; /* un código raro y largo se corta aquí; nunca se mete en el margen blanco del QR */
   }
   /* Monoespaciada del sistema (Consolas en Windows, SF Mono/Menlo en Mac): su 0 lleva barra y no se confunde
-     con la O cuando la pistola falla y el código se teclea. */
+     con la O cuando la pistola falla y el código se teclea. Tiene que entrar ENTERO: el más largo de producción
+     mide 16 caracteres (2026-09-25) y en la Mac cada uno ocupa 0,6 em, así que 16 × 0,58 × 1,7 = 15,8 mm caben en
+     los 16,6 que deja el QR de 19 mm. La elipsis es solo red para un código fuera de norma. */
   .etq-cod {
     overflow: hidden;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-    font-size: 1.8mm;
-    font-weight: 500;
+    font-size: 1.7mm;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     font-feature-settings: "zero";
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* «Impreso dd.mm.aa» no cabe en una línea al lado del QR y baja la fecha a la siguiente: así se diseñó. */
   .etq-datos small {
-    font-size: 1.5mm;
-    letter-spacing: 0.1em;
+    font-size: 1.9mm;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
   }
-  /* El QR, lo más grande que entra (Felipe, 2026-09-23): 22 mm sin campaña y 20 mm con campaña (el lado lo pone
-     `EtiquetaPrecio.tsx`; incluye la zona muda, lib/qr.ts). El margen negativo mete SOLO esa zona blanca en el acolchado:
-     abajo está el corte y a la derecha el aire hasta el borde del rollo. Las zonas negras quedan a ~4 mm de los dos
-     bordes de la etiqueta. */
+  /* El QR: 19 mm con su zona muda (el lado lo pone `EtiquetaPrecio.tsx`; lib/qr.ts), por encima de los 18 mm
+     verificados con la pistola Zebra. Con 22 mm el código de al lado se cortaba («CMS-0011-NAR…») desde que la
+     etiqueta pasó a 40,1 mm de ancho. El margen negativo mete SOLO esa zona blanca en el acolchado: abajo está el
+     corte y a la derecha el borde. Las zonas negras quedan a ~3,6 mm de los dos bordes de la etiqueta. */
   .etq-qr {
     flex: none;
     margin: 0 -2mm -2mm 0;
@@ -650,17 +665,25 @@ body {
 }
 
 /* En pantalla la hoja no se ve (la vista previa dibuja una por prenda, derecha). Al imprimir desaparece TODO lo demás
-   con `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco— y cada
-   etiqueta va en su propia página NOMBRADA de 62 × 62 mm: el ancho del rollo por el largo de cada corte. La etiqueta
-   (44 × 62) va DERECHA y centrada en el ancho: se lee tal como sale del rollo (Felipe, 2026-09-24).
-   Por qué ya no va girada en una hoja de 62 × 44: una página más ancha que alta hace que Chrome la mande «horizontal»,
-   y la Mac (y el driver) la vuelven a girar para calzarla en el rollo; la etiqueta salía derecha pero achicada y
-   corrida a un lado (foto de la tienda, 2026-09-24). La hoja cuadrada no tiene orientación que adivinar. */
+   con `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco—.
+   Medidas de la plantilla P-touch de la tienda: rollo de 62 mm, largo de corte 40,1 mm (Felipe, 2026-09-25: con la
+   hoja de 62 × 62 salía «a lo largo» y más larga de lo necesario). Cada etiqueta va en su propia página NOMBRADA.
+   Dos formas de mandarla, elegibles en pantalla mientras se prueba cuál respeta el driver (Windows y Mac giran
+   distinto una página apaisada):
+   - `girada` (por defecto): hoja 62 × 40,1 —el rollo tal cual— con la etiqueta rotada 90° adentro.
+   - `derecha`: hoja 40,1 × 62 con la etiqueta derecha; el driver la gira al calzarla en el rollo.
+   En el diálogo: márgenes «Ninguno» y escala 100 %. El LARGO DEL CORTE no lo decide esta hoja sino el papel elegido en
+   el diálogo: Chrome solo gira la hoja para calzarla en ese papel. Con el «62 mm» de la Brother la Mac corta 100 mm
+   (medido en la foto de la tienda, 2026-09-25), así que hace falta un papel propio de 62 × 40,1 (ADR-0180). */
 #etiquetas-precio-print {
   display: none;
 }
 @page etiqueta-precio {
-  size: 62mm 62mm;
+  size: 62mm 40.1mm;
+  margin: 0;
+}
+@page etiqueta-precio-derecha {
+  size: 40.1mm 62mm;
   margin: 0;
 }
 @media print {
@@ -680,17 +703,33 @@ body {
   #etiquetas-precio-print .etq-hoja {
     position: relative;
     width: 62mm;
-    height: 62mm;
+    height: 40.1mm;
     overflow: hidden;
+    /* Sin esto Chrome parte la etiqueta girada entre páginas (su caja sin girar mide 62 de alto y no cabe en 40,1):
+       en la vista previa la primera salía sin QR ni código, o corrida. Medido con PDF de Chrome, 2026-09-25. */
+    contain: size layout paint;
     page: etiqueta-precio;
     break-after: page;
   }
   #etiquetas-precio-print .etq-hoja:last-child {
     break-after: auto;
   }
-  /* Centrada en el ancho del rollo: (62 − 44) / 2 = 9 mm a cada lado. */
+  /* Girada −90° desde su esquina superior izquierda y bajada 40,1 mm: ocupa justo los 62 × 40,1 de la hoja. */
   #etiquetas-precio-print .etq-hoja .etiqueta-precio {
-    margin: 0 auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+    transform: translateY(40.1mm) rotate(-90deg);
+  }
+  #etiquetas-precio-print[data-modo="derecha"] .etq-hoja {
+    width: 40.1mm;
+    height: 62mm;
+    page: etiqueta-precio-derecha;
+  }
+  #etiquetas-precio-print[data-modo="derecha"] .etq-hoja .etiqueta-precio {
+    top: 0;
+    transform: none;
   }
 }
 
@@ -725,12 +764,18 @@ body {
     display: block;
     width: 72mm;
     box-sizing: border-box;
-    padding: 4mm 4mm 10mm; /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel */
+    /* 4 mm por lado: el cabezal de varias térmicas no llega al filo del papel. Arriba y abajo lo
+       justo (2026-09-25): cada mm aquí es papel que sale en blanco en CADA venta. */
+    padding: 2mm 4mm 6mm;
     color: #000;
     background: #fff;
     font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-    font-size: 9.5pt;
-    line-height: 1.3;
+    /* Compactado el 2026-09-25 (salía demasiado largo, aun con una sola prenda): cuerpo 9,5 → 8 pt
+       y todos los aires a la mitad, SIN cambiar la jerarquía — el TOTAL sigue siendo lo más grande,
+       luego la marca y el número del comprobante; las reglas dobles, punteadas y gruesas se quedan.
+       8 pt es el piso: más chico, la térmica de 203 dpi empieza a empastar la Arial. */
+    font-size: 8pt;
+    line-height: 1.2;
     font-variant-numeric: tabular-nums;
   }
   #comprobante-print p,
@@ -751,20 +796,20 @@ body {
   /* Cabecera: logo en negro (el PNG es terracota; una térmica solo tiene un tono). */
   #comprobante-print .rt-logo {
     display: block;
-    width: 21mm;
+    width: 13mm;
     height: auto;
-    margin: 0 auto 1.5mm;
+    margin: 0 auto 1mm;
     filter: brightness(0);
   }
   #comprobante-print .rt-marca {
-    font-size: 17pt;
+    font-size: 13pt;
     font-weight: 700;
     letter-spacing: 0.32em;
     margin-right: -0.32em; /* el último espacio de letra descentraba la marca */
-    margin-bottom: 1mm;
+    margin-bottom: 0.5mm;
   }
   #comprobante-print .rt-tienda {
-    margin-top: 1.5mm;
+    margin-top: 1mm;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -772,36 +817,36 @@ body {
   /* Documento: dos reglas dobles enmarcan «BOLETA … B001-000002». */
   #comprobante-print .rt-doble {
     border-top: 3px double #000;
-    margin: 2.5mm 0;
+    margin: 1.5mm 0;
   }
   #comprobante-print .rt-titulo {
-    font-size: 9pt;
+    font-size: 7.5pt;
     font-weight: 700;
     letter-spacing: 0.1em;
   }
   #comprobante-print .rt-numero {
-    font-size: 16pt;
+    font-size: 12pt;
     font-weight: 700;
     letter-spacing: 0.04em;
-    line-height: 1.2;
+    line-height: 1.15;
   }
   #comprobante-print .rt-linea {
     border-top: 1px dashed #000;
-    margin: 2.5mm 0;
+    margin: 1.5mm 0;
   }
   /* Fecha / cliente: etiqueta chica a la izquierda, dato a la derecha. */
   #comprobante-print .rt-datos {
     display: grid;
     grid-template-columns: 14mm 1fr;
-    gap: 0.6mm 2mm;
-    margin-bottom: 2.5mm;
+    gap: 0.2mm 2mm;
+    margin-bottom: 1.5mm;
   }
   #comprobante-print .rt-datos dt {
-    font-size: 8pt;
+    font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    padding-top: 0.4mm;
+    padding-top: 0.3mm;
   }
   #comprobante-print .rt-datos dd {
     overflow-wrap: anywhere;
@@ -810,24 +855,24 @@ body {
   #comprobante-print .rt-tabla-cab,
   #comprobante-print .rt-item {
     display: grid;
-    grid-template-columns: 9mm 1fr auto;
+    grid-template-columns: 7mm 1fr auto;
     column-gap: 2mm;
   }
   #comprobante-print .rt-tabla-cab {
-    font-size: 8pt;
+    font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     border-top: 1.5px solid #000;
     border-bottom: 1px solid #000;
-    padding: 0.8mm 0;
+    padding: 0.5mm 0;
   }
   #comprobante-print .rt-tabla-cab span:last-child,
   #comprobante-print .rt-imp {
     text-align: right;
   }
   #comprobante-print .rt-item {
-    padding: 1.4mm 0;
+    padding: 0.7mm 0;
     border-bottom: 1px dotted #000;
     break-inside: avoid;
   }
@@ -844,7 +889,7 @@ body {
   }
   #comprobante-print .rt-detalle {
     display: block;
-    font-size: 8pt;
+    font-size: 7pt;
     font-weight: 400;
   }
   div.rt-fila.rt-detalle {
@@ -860,41 +905,41 @@ body {
     white-space: nowrap;
   }
   #comprobante-print .rt-total {
-    margin-top: 2mm;
-    padding: 1.6mm 0;
+    margin-top: 1.2mm;
+    padding: 1mm 0;
     border-top: 2px solid #000;
     border-bottom: 2px solid #000;
-    font-size: 15pt;
+    font-size: 13pt;
     font-weight: 700;
     line-height: 1.1;
   }
   #comprobante-print .rt-son {
-    margin-top: 1.5mm;
-    font-size: 8pt;
+    margin-top: 0.8mm;
+    font-size: 6.5pt;
     font-weight: 700;
   }
   #comprobante-print .rt-subtitulo {
-    font-size: 8pt;
+    font-size: 6.5pt;
     font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    margin-bottom: 0.8mm;
+    margin-bottom: 0.4mm;
   }
   #comprobante-print .rt-qr {
-    margin-top: 3.5mm;
+    margin-top: 2mm;
   }
   #comprobante-print .rt-pie {
-    font-size: 8pt;
-    line-height: 1.35;
+    font-size: 6.5pt;
+    line-height: 1.25;
   }
   #comprobante-print .rt-pie p + p {
-    margin-top: 1mm;
+    margin-top: 0.5mm;
   }
   #comprobante-print .rt-lema {
-    font-size: 9.5pt;
+    font-size: 8pt;
     font-style: italic;
     letter-spacing: 0.04em;
-    margin-top: 2mm;
+    margin-top: 1mm;
   }
 }
 
@@ -1138,6 +1183,57 @@ body {
   }
   @media (prefers-reduced-motion: reduce) {
     .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition-delay: 0ms; }
+  }
+
+  /* Cajón del lateral en celular (2026-09-25, AppShell v4). La misma gramática de ADR-0136, puesta de
+     costado porque el cajón entra desde el borde izquierdo y no desde abajo:
+       1. el velo se enciende con desenfoque (`.velo-cajon`, 280 ms);
+       2. el cajón se desliza desde −100 % (420 ms, --ease-cayla) y, al cerrar, se va más corto
+          (260 ms, --ease-salida): es un panel que se va, no uno que llega;
+       3. su CONTENIDO entra en cascada: cada pieza (`data-pieza-cajon`, con su `--k`) viene 14 px desde la
+          izquierda y aparece, 45 ms de desfase, empezando 90 ms después del cajón. El desfase es más corto que
+          el de un modal (55) porque son más piezas: con 55 la última fila llegaba tarde.
+     Solo bajo 640 px: en escritorio el lateral no se desliza ni entra en cascada, está siempre ahí.
+     Sin rebote, sin bucle; con movimiento reducido, todo aparece de una. */
+  @keyframes cayla-pieza-cajon {
+    from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+  }
+  @media (max-width: 639.98px) {
+    /* El desplazamiento vive AQUÍ con `transform` y no en utilidades `translate-x-*`: Tailwind v4 las pinta con la
+       propiedad `translate`, y Lightning CSS reescribe `transition: translate` como `transition: transform` al compilar
+       — la transición no calzaba con la propiedad que cambiaba y el cajón saltaba en vez de deslizarse. */
+    .cajon-lateral { transform: translate3d(-100%, 0, 0); transition: transform 260ms var(--ease-salida); }
+    .cajon-lateral[data-cajon="abierto"] { transform: none; transition: transform 420ms var(--ease-cayla); }
+    .cajon-lateral[data-cajon="abierto"] [data-pieza-cajon] {
+      animation: cayla-pieza-cajon 460ms var(--ease-cayla) backwards;
+      animation-delay: calc(var(--k, 0) * 45ms + 90ms);
+    }
+    .velo-cajon { opacity: 0; transition: opacity 260ms var(--ease-salida); }
+    .velo-cajon[data-abierto="true"] { opacity: 1; transition: opacity 280ms var(--ease-cayla); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cajon-lateral[data-cajon="abierto"] [data-pieza-cajon] { animation: none; }
+  }
+
+  /* Escanear con la cámara (Vender en el teléfono, 2026-09-25, EscanerCamara). Tres respuestas a UNA lectura, ninguna
+     en bucle ni con rebote (ADR-0136):
+       · el visor se contrae un instante y vuelve (`.anim-captura`, 360 ms): «lo tengo»;
+       · un destello verde o ámbar dentro del visor se apaga (`.anim-destello`, 420 ms);
+       · la tarjeta de la prenda vuela al ticket — esa vive en el componente (Web Animations), porque el destino se mide
+         en pantalla.
+     Con movimiento reducido no se mueve nada: la bandeja igual dice qué entró. */
+  @keyframes cayla-captura {
+    35% { transform: scale(0.94); }
+  }
+  @keyframes cayla-destello {
+    from { opacity: 0.6; }
+    to { opacity: 0; }
+  }
+  .anim-captura { animation: cayla-captura 360ms var(--ease-cayla); }
+  .anim-destello { animation: cayla-destello 420ms var(--ease-salida) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim-captura, .anim-destello { animation: none; opacity: 0; }
+    .anim-captura { opacity: 1; }
   }
 
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
