@@ -28,6 +28,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📐 Ayuda guiada por módulo: «¿Qué quieres hacer?» + círculo paso a paso (2026-09-25) — SPIKE visual, sin código del ERP
+Botón «? Ayuda» en cada módulo → lista de tareas → guía que oscurece todo menos un círculo sobre lo que hay que presionar, se puede terminar antes y retomar. Spike y propuesta: `docs/maquetas/ayuda-guiada-spike-2026-09/`.
+- [ ] Felipe revisa el spike y decide las 3 preguntas del README (¿se ofrece sola la primera vez?, ¿el líder ve quién hizo cada guía?, ¿por qué módulos empezar?).
+- [ ] Si se aprueba: ADR, `components/ayuda/` + `lib/guias.ts` (motor puro, con pruebas), objetivos con `data-guia`, y el módulo en Roles y accesos si llega a tener pantalla propia.
+
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
