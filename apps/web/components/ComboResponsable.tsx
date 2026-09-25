@@ -56,7 +56,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
     return () => document.removeEventListener("pointerdown", fuera);
   }, [abierto]);
 
-  // Regla global de combos (ADR-0194): con más de 8 personas de turno a la vez, un buscador; si no, exactamente
+  // Regla global de combos (ADR-0209): con más de 8 personas de turno a la vez, un buscador; si no, exactamente
   // el control de siempre. El paginado casi nunca se activa acá (una tienda no tiene 50 personas en un turno),
   // pero se cablea igual — es la misma regla en todo el sistema, no una excepción para este combo. Antes de los
   // `return` de abajo (admin/nadie/sin_lectura) porque son Hooks: tienen que llamarse en el mismo orden siempre,

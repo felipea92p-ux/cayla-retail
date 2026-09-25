@@ -1,9 +1,7 @@
-# ADR-0194 · Buscador y paginado: la regla global de todo combo
+# ADR-0209 · Buscador y paginado: la regla global de todo combo
 
-> Numerado 0194 al escribirse (2026-09-25): es el siguiente libre en `main` a esa fecha — no hay
-> `docs/adr/0194-*.md` en el árbol. Colisión conocida: memoria de otra sesión registra "prueba de carga" como
-> ADR-0194 (PR #387, migración `20260924180000`), pero ese PR no está fusionado a `main` todavía. Si se
-> fusiona primero, renumerar ESTE archivo al subirlo — no el de prueba de carga.
+> Nació como ADR-0194 (2026-09-25). Renumerado a 0209 al subir: `main` ya tenía el 0194 de la prueba de carga
+> (PR #387) y el 0208 estaba tomado en otra rama.
 
 **Fecha:** 2026-09-25 · **Estado:** F1 y F2 construidos y verificados en navegador · **Alcance:** todo el ERP
 

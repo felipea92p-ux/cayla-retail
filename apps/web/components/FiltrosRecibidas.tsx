@@ -163,7 +163,7 @@ export function FiltrosRecibidas({
   );
 }
 
-/** «Proveedor: Todos ⌄» — hand-rolled (2026-09-25, ADR-0194) y no Radix Select: con más de 8 proveedores
+/** «Proveedor: Todos ⌄» — hand-rolled (2026-09-25, ADR-0209) y no Radix Select: con más de 8 proveedores
  *  suma un buscador, igual que `DesplegablePildora` — no se usa ese componente tal cual porque esta pastilla
  *  necesita su PROPIA forma (`claseDeLaPastilla`, con borde) para verse igual que su vecina «Fechas». */
 function PastillaProveedor({

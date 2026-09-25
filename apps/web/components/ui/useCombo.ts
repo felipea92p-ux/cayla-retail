@@ -5,7 +5,7 @@ import { comboLlegoAlFinal, TAMANO_PAGINA_COMBO } from "@/lib/combo-reglas";
 
 /* ====================================================================
    useComboLista · el estado de "buscar + paginar" que comparten
-   `Desplegable`, `ComboBuscable` y `ComboResponsable` (ADR-0194). La regla en sí (los números 8 y 50) vive en
+   `Desplegable`, `ComboBuscable` y `ComboResponsable` (ADR-0209). La regla en sí (los números 8 y 50) vive en
    lib/combo-reglas.ts, puro y testeado; acá solo el estado de React que la usa: cuántas filas se muestran, y
    cuándo el scroll pide revelar 50 más.
    ==================================================================== */

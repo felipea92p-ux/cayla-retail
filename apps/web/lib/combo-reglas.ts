@@ -1,5 +1,5 @@
 /* ====================================================================
-   combo-reglas · la regla global de todo combo del sistema (ADR-0194)
+   combo-reglas · la regla global de todo combo del sistema (ADR-0209)
 
    Por qué existe: cada combo decidía por su cuenta cuánto mostrar —
    `ComboBuscable` cortaba en 40 y pedía "sigue tipeando para acortar";

@@ -65,7 +65,7 @@ export function PanelPildoras({ children }: { children: ReactNode }) {
  *  y SIEMPRE hay una elegida — lo que importa es si es distinta de "Todos"). El panel que los agrupa
  *  (`divide-x`) es la única superficie; cada campo adentro es texto, no una caja más.
  *
- *  Hand-rolled (2026-09-25, ADR-0194) y no Radix `Select`: la regla global de combos (buscador con más de 8
+ *  Hand-rolled (2026-09-25, ADR-0209) y no Radix `Select`: la regla global de combos (buscador con más de 8
  *  opciones) necesita un `<input>` de texto dentro de la lista desplegada, y el `Select` de Radix está pensado
  *  para navegar opciones, no para alojar un campo de texto propio adentro — mismo mecanismo que ya usa
  *  `Desplegable` (`campos.tsx`), con este vestido de píldora en vez de campo de formulario. */
@@ -92,7 +92,7 @@ export function DesplegablePildora({
   const lista = useRef<HTMLUListElement>(null);
   const activa = valor !== TODOS;
 
-  // Regla global de combos (ADR-0194): con más de 8 opciones, un buscador; si no, la lista de siempre.
+  // Regla global de combos (ADR-0209): con más de 8 opciones, un buscador; si no, la lista de siempre.
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;

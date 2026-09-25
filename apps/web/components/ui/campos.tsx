@@ -457,7 +457,7 @@ export function Segmentado<T extends string>({
      CampoSelect  = Campo + Desplegable
    Ningún consumidor de `CampoSelect` cambió: su API es idéntica.
 
-   Regla global de combos (2026-09-25, ADR-0194): con más de
+   Regla global de combos (2026-09-25, ADR-0209): con más de
    `UMBRAL_BUSCAR_COMBO` (8) opciones aparece un campo para buscar (mismo
    filtro sin tildes/mayúsculas que `ComboBuscable`); si lo filtrado pasa
    de `TAMANO_PAGINA_COMBO` (50), la lista se completa sola al bajar el
@@ -517,7 +517,7 @@ export function Desplegable<T extends string>({
   const lista = useRef<HTMLUListElement>(null);
   const tipeo = useRef({ texto: "", reloj: 0 });
 
-  // Regla global de combos (ADR-0194): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
+  // Regla global de combos (ADR-0209): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
   // cambio para los cientos de Desplegable de 2 a 6 opciones que ya funcionaban.
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {

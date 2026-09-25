@@ -28,13 +28,83 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Buscador y paginado: la regla global de combos (2026-09-25, ADR-0194) — F1 y F2 construidos y verificados en navegador
+## 🎯 Buscador y paginado: la regla global de combos (2026-09-25, ADR-0209) — F1 y F2 construidos y verificados en navegador
 Pedido de Felipe: todo combo con más de 8 opciones debe poder buscarse escribiendo, y con más de 50 (ya filtradas) paginar solo al bajar el scroll — y estandarizar los combos (había 4 maneras distintas de resolver "elegir uno de varios": `<select>` nativo a mano, `SelectNativo`, `Desplegable` y `ComboBuscable`, más `DesplegablePildora`/`ComboResponsable` aparte). Tras ver F1 funcionando, Felipe pidió migrar TODO de una.
 - [x] **F1 — núcleo:** `lib/combo-reglas.ts` (puro, con 9 pruebas) + `components/ui/useCombo.ts` (estado compartido); `Desplegable`/`CampoSelect` y `ComboBuscable` lo aplican. Con 8 opciones o menos, cero cambio de comportamiento.
 - [x] **F2 — el resto, en 5 lotes en paralelo:** `ComboResponsable` (69 usos — un bug real de foco encontrado y corregido al verificar: el efecto de autofoco dependía de `abierto` en vez de `posLista`, y el `<input>` todavía no existía en el DOM en ese momento) y `DesplegablePildora` (píldoras de filtro, reescrita a mano — Radix `Select` no aloja bien un buscador propio; `ItemDesplegable` retirado, 6 consumidores migrados a `opciones`) suman la regla. ~25 pantallas de `SelectNativo`/`CampoSelectNativo`/`<select>` nativo (Compras, Producción, Catálogo, Caja) migradas a `CampoSelect`/`Desplegable`. Reconciliado con dos features que llegaron en paralelo a `main` sobre los mismos archivos: `limite`/`crear`/`caja` de `ComboBuscable.tsx` (spike Nuevo producto) y «Sale de»/`cuentas` (ADR-0195, Finanzas) — ninguno de los dos se pisó.
 - [x] Verificado en navegador (páginas temporales en `app/auth/`, borradas): `FiltrosProductos.tsx` con 120 proveedores de prueba, `FiltrosCompras.tsx` con 60 y `ComboResponsable` con 12 personas — buscador, filtro sin tildes, paginado al scrollear, auto-scroll a la opción elegida al reabrir, y selección, todo funcionando. En producción real (75 proveedores, 79 marcas) ya se nota hoy sin datos de prueba. Suite completa, typecheck y lint en verde en los ~39 archivos tocados.
-- [ ] **Decisión de Felipe, no bloqueante:** dos archivos quedaron sin migrar — `DecisionFaltanteFila.tsx` (un `<optgroup>` real que `Opcion<T>` no representa) y `CambioReemplazo.tsx` (su `<select>` reenvía un `ref` que `CambiosFlujo.tsx` usa para foco-en-error; tocarlo bien requiere tocar ese archivo también). Detalle: ADR-0194.
+- [ ] **Decisión de Felipe, no bloqueante:** dos archivos quedaron sin migrar — `DecisionFaltanteFila.tsx` (un `<optgroup>` real que `Opcion<T>` no representa) y `CambioReemplazo.tsx` (su `<select>` reenvía un `ref` que `CambiosFlujo.tsx` usa para foco-en-error; tocarlo bien requiere tocar ese archivo también). Detalle: ADR-0209.
 - Cómo verificas: en producción HOY (`retail.proveedores`/`marcas` activos: 75/79 — pasan el umbral de 50; `categorias`/`colores`: 45/35 — pasan el de 8), entra a `/productos?vista=tabla` y abre "Proveedor" o "Marca": ya se ve el campo para buscar, y al bajar el scroll de la lista se revela más. "Categoría"/"Color" muestran el buscador pero no pagina (menos de 50). "Estado"/"Stock" (2-4 opciones) siguen exactamente iguales que antes. En cualquier pantalla con el combo Responsable y 9+ personas de turno a la vez, también aparece el buscador.
+## 🎯 Actividad de cada módulo: quién hizo qué, desde la cabecera (2026-09-25, ADR-0207) — migración `20260926090000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #424
+- [x] Tabla `retail.actividad` (solo agregar), disparadores de Punto de venta, Historial de ventas (anulaciones), Caja y Cambios, carga de lo pasado, `fn_actividad` / `fn_actividad_personas` con el alcance por sede. `pnpm pruebas:actividad` 15/15 en el local.
+- [x] Botón «Actividad» en la cabecera (panel del módulo actual) y `/actividad` (todo, con filtros). Verificado en el navegador como líder, en escritorio y a 375 px.
+- [x] **Pegada en producción** (2026-09-25, pedido de Felipe, por el MCP): ensayo completo abortado a propósito (41 líneas: 7 ventas, 16 aperturas, 13 cierres, 4 movimientos de cajón, 1 traslado; producción intacta después), luego aplicada. Verificado: 41 líneas, todas con persona; 7 disparadores (el de venta diferido); RLS sin políticas; `authenticated` no lee la tabla ni anota, sí llama `fn_actividad`; `anon` nada; módulo sin rol; terminal bloqueada; editar una línea se rechaza. Como líder, `fn_actividad` devuelve las 41 de 3 sedes con nombre.
+- [ ] Después de pegar: refrescar el volcado y correr `pnpm datos:generar:produccion` (tabla nueva) y `pnpm datos:comparar`.
+- [ ] Felipe: encender «Actividad» en el rol de la líder de tienda (Roles y accesos) y entrar con esa cuenta para ver que solo sale su sede (probado en la base; falta el clic con una sesión que no sea líder).
+- [ ] Sumar los demás módulos, uno por migración (receta en el ADR-0207): Devoluciones, Apartados, Traslados, Existencias (ajustes), Productos (precio con antes/después), Colaboradores y Roles.
+- [ ] Idea: enlazar cada línea a su registro (la venta en el Historial, la caja en su cierre).
+
+## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — FUSIONADO (#422 y #423); `main` exige los dos checks del CI
+- [x] **`main` exige los dos checks del CI para fusionar (2026-09-25):** `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` en el ruleset `main-protegida`, aplicado con OK de Felipe tras fusionar #422 y #423. Los PR abiertos antes de ese momento reportan el check con el nombre viejo y quedan trabados hasta traer `main`.
+- [ ] **Construir lo que Felipe decidió el 2026-09-25:** (1) R-38 — dentro de 15 días la devolución la aplica cualquiera en caja, sin líder; afloja el candado de ADR-0177 (quien registra no aprueba), así que lleva ADR y migración propios; (2) antes de cerrar caja, la pantalla de Caja resalta los descuentos de más de 15%; (3) R-20 — revisar el umbral por categoría cuando haya 8 semanas de ventas reales (hoy 14 días para todas).
+- [ ] **Sin decidir o fuera de este cambio:** si importar el consumo de Audaces se descartó o solo no se hizo (Felipe); el protocolo de pregunta y docencia depende de `~/.claude/CLAUDE.md`, que no está en el repo; `.claude/settings.json` llama a graphify con una ruta de Windows de una sola máquina; `supabase/config.toml:13-15` todavía dice que `seed.sql` renombra el schema.
+
+## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412
+- [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
+- [x] **Pegada en producción** `20260925230000_argumento_descuento_desde_15.sql` (2026-09-25, a pedido de Felipe). Verificado en solo lectura: una sola `registrar_venta`, umbral 0.15 sin rastro del 0.20, tope del 35 % solo para Líder, código de la Colaboradora intacto, `security definer` y permisos iguales (authenticated sí, anon no). Huella md5 395ad922… → 7b574282…
+- [ ] Mientras #412 no se publique, la caja vieja no muestra el argumento entre 15 y 20 %: esa venta se rechaza al cobrar con el aviso «pasa el 15 %». Se cierra al fusionar.
+- [ ] Refrescar el volcado y correr `pnpm datos:generar:produccion` (no hay tablas nuevas; solo cambia el cuerpo de la función).
+- [ ] Idea descartada por ahora (Felipe 2026-09-25): exigir código solo para el % «Otro».
+
+## 🎯 Stock en vivo en Vender, Apartados y Cambios (2026-09-25, ADR-0018) — solo web, sin migración
+Felipe reportó: escaneando con la cámara del teléfono leyó una prenda «agotada»; la repuso en otra máquina con la
+cámara todavía abierta, y no se sumó al ticket hasta reiniciar el navegador — y pidió auditar TODA la producción
+para lo mismo. Causa en Vender: `PuntoDeVenta` solo corregía `stockAqui` tras una venta de ESTA misma caja
+(`releerStock`, ADR-0192) — nada releía la base mientras la pantalla seguía montada. El propio ADR-0192 lo dejaba
+anotado como hueco conocido: *"Otra caja vende la misma prenda: esta pantalla no se entera hasta la próxima
+carga."* Afecta igual al lector físico del mostrador — no es un problema de la cámara.
+**Auditoría de los ~30 módulos** (3 agentes en paralelo, ver detalle en el mensaje al usuario de esta sesión): casi
+toda escritura sobre una fila compartida YA pasa por un candado de servidor (`for update`/`pg_advisory_xact_lock`)
+que corta limpio si dos personas chocan — nunca un estado imposible, como mucho un mensaje de error (gran parte de
+Inventario lo blindó el propio Felipe el 2026-09-24, ADR-0188/0189/0190). El único patrón real y repetido de
+"pantalla vieja" —mismo bug que Vender, sin protección alguna, porque simplemente nadie releía— estaba en
+**Apartados** (`/vender/apartados`) y **Cambios** (`/cambios`); el resto (Devoluciones, Inventario, Compras,
+Producción, Finanzas, Colaboradores) ya tiene el candado y agregar sondeo ahí sería solo tráfico de fondo sin
+ganancia real — se dejó sin tocar a propósito. Detalle y motivo de sondeo-no-Realtime: «Actualización 2026-09-25»
+en `docs/adr/0018-local-first-sin-motor-de-sincronizacion.md`.
+- [x] `lib/useStockEnVivo.ts` (nuevo): `leerStockDeSede` (la consulta a `stock`, con `ids` opcional — sin él, TODA
+      la sede, sin `.in`, para no armar una URL con cientos de ids de golpe) + `useStockEnVivo` (el sondeo: cada
+      10 s, + al volver a la pestaña o a la red, nunca con la pestaña oculta/sin conexión/con `activo` en falso).
+      Mismo patrón que `useCajaEnVivo`/`useDeTurno`.
+- [x] `PuntoDeVenta.tsx`: refactor para usar el hook compartido en vez del efecto ad-hoc de ayer (mismo
+      comportamiento, menos código propio).
+- [x] `components/apartados/ApartarVista.tsx` y `components/CambiosFlujo.tsx`: mismo hook, sobre `prendas`/
+      `catalogo` (renombrados a `...Prop`, con un `ajustesStock` local que se reinicia si el servidor manda una
+      foto nueva — mismo patrón que `ajustesStock` de Vender).
+- [x] `tsc`/`eslint`/suite completa de `apps/web` (144 archivos, 76.992 pruebas) en verde.
+- [x] Verificado contra el Postgres local por PostgREST (mismo límite que ADR-0192: sesión sin usuario en el
+      worktree, no se escriben contraseñas): una prenda en 0, repuesta por una conexión aparte simulando otra
+      máquina, y la misma consulta sin ids la vio en el instante — sin recargar nada. Estado del Postgres
+      compartido restaurado al terminar. La verificación de Apartados/Cambios quedó a nivel de tipos/lint/tests
+      (mismo camino de datos que Vender, ya probado), no se repitió la prueba de Postgres para cada uno.
+- [ ] Ver con clics reales (sesión con usuario) en las tres pantallas — quedó verificado por PostgREST y por
+      tipos, no con la UI.
+- Cómo verificas: en `/vender`, `/vender/apartados` o `/cambios`, busca una prenda sin stock; repón su stock
+  desde otra sesión/pestaña sin tocar esta pantalla; en ≤10 s (o al volver a la pestaña) ya se puede agregar.
+
+## 🩹 Ficha de clienta: no hay candado que agregar todavía — la edición ni existe (2026-09-25)
+Al revisar el pedido de Felipe de blindar la ficha de clienta contra dos ediciones a la vez (hallazgo de la
+auditoría de arriba): hoy `clientas` solo tiene `registrar_clienta` (alta) y `buscar_clienta` (búsqueda) en
+`lib/clientas-acciones.ts` — **no existe ninguna función para EDITAR una clienta ya creada**. El propio
+`app/(app)/clientas/page.tsx` lo dice: es solo para probar `buscar_clienta`/`registrar_clienta` a mano; "la
+captura real en el mostrador... la construye otra tanda de agentes después". La política RLS `clientas_update`
+de la migración `20260922140000` está provisionada pero nada la usa hoy, y la tabla tampoco tiene `updated_at`
+(verificado contra el Postgres local, `\d retail.clientas`). **No se tocó código: no hay nada que candar.**
+- [ ] Cuando se construya esa pantalla: un `for update` NO es la herramienta correcta acá (ese patrón sirve para
+      un read-modify-write numérico, como stock; el riesgo real es que dos personas editen la MISMA ficha con
+      formularios distintos y la segunda pise en silencio los campos que puso la primera). Necesita concurrencia
+      optimista: columna `updated_at` + trigger, y que la función de editar reciba el `updated_at` que el
+      formulario leyó y rechace si ya cambió ("alguien más editó esta ficha, vuelve a cargarla").
 
 ## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base)
 El PR #397 recreó `fn_resumen_comparacion` copiando el cuerpo de un archivo viejo (`20260919220000`), y con él volvió
@@ -45,6 +115,7 @@ viva (cuerpo verificado idéntico al de producción, md5 `f5f8029b…`), y corri
 - [x] Local: reproducido (70/70 → 69/70 al aplicar `010700`+`030000`) y arreglado (70/70); `fn-resumen-comparacion` 25/25, `fn-ledger-fuente-unica` 48/48, `fn-resumen-variantes` 38/38. Idempotente (pegada dos veces).
 - [x] **En producción** (verificado con `pg_get_functiondef` el 2026-09-25 16:07 UTC): el filtro dice `and retail.fn_puede_analizar() as ok`, ya no exige líder, y el comentario es el nuevo (solo lo escribe esta migración).
 - [x] En paralelo, el PR #404 (`b633868c`) corrigió el filtro en los archivos de #397 (`010700`, `030000`), para que una base limpia no vuelva a cerrar Análisis. Es compatible: ahí esta migración encuentra el filtro ya puesto y no hace nada.
+- [x] **CI de `main` en verde y repo = producción (2026-09-25):** corrida 36159225085 (`54ad1422`): piloto `success`, `pruebas:roles` 70/70, ningún caso en rojo. Reproducido con bases limpias: `0bec5912` da el mismo 69/70 que el CI (`t,t,f,t,f,t`); `main` da 70/70 tanto con un archivo por conexión como con todo en una sola sesión, igual que `supabase start` (sin choques de `pg_temp`). El cuerpo de `fn_resumen_comparacion` es idéntico en una base limpia y en producción (md5 sin comentarios `c2c0990c…`, mismo comentario). Las ADR 0199–0203 decían «nada aplicado a producción» y se corrigieron. ADR-0199 avisa ahora que pegar `010700` sola rompe Análisis, y ADR-0202 corrige su «hallazgo aparte» (no era el seed). Historial del piloto en `main`: las 16 corridas completas anteriores a #397 (hasta el 24-sep 00:19) en verde, ninguna roja, lo que ayuda a decidir el punto siguiente.
 - [ ] **Decidir (causa raíz):** sacar `continue-on-error` al menos del paso `pruebas:roles` en `.github/workflows/ci.yml`. El job piloto lo vio, pero no frenó el merge; el propio `ci.yml` dice que se saca «cuando haya 2-3 corridas verdes reales».
 
 ## 🎯 Fotos de perfil desde Dynamic (2026-09-25) — migración `20260925210000` EN PRODUCCIÓN (verificada en la base); web en PR
@@ -187,15 +258,16 @@ Barrido de todo el ERP: ventanas ancladas arriba, lista del Responsable flotando
 - [ ] Revisar en celular que una ventana corta con la lista del Responsable abierta no quede tapando el botón de guardar.
 - [x] `components/NotaCreditoCierre.tsx` era código muerto (nadie lo importaba desde ADR-0142): **borrado el 2026-09-23** con OK de Felipe, junto con 5 funciones y 2 tipos huérfanos de `lib/recepciones-reglas.ts`.
 
-## 🎯 Etiqueta de precio que sale sola al ingresar mercadería (2026-09-23, ADR-0180 y ADR-0182) — los 3 pasos EN PRODUCCIÓN (PR #351, fusionado por Felipe el 2026-09-23); el formato del cartón (44 × 62 mm) en el PR siguiente, sin fusionar
+## 🎯 Etiqueta de precio que sale sola al ingresar mercadería (2026-09-23, ADR-0180 y ADR-0182) — los 3 pasos EN PRODUCCIÓN (PR #351, fusionado por Felipe el 2026-09-23); el formato del cartón también (hoy 40,1 × 62 mm); falta la prueba en la Brother real
 Felipe pidió dejar P-touch Editor: la etiqueta sale del ERP al ingresar mercadería, y con campaña se reimprime con el precio rebajado y el porqué. Diseño elegido en 3 rondas de maquetas: «D · Editorial, corregida» (`docs/maquetas/etiqueta-precio-2026-09/`).
 - [x] **Paso 1:** `/etiquetas-de-precio`, una etiqueta por prenda que entró (Recibir, Ingreso sin comprobante, orden del Taller cerrada). Lee `movimientos` por lote o producción, no hay RPC nuevo. PDF real revisado y los 6 QR decodificados a 300 dpi. Producción verificada en solo lectura: las columnas y funciones que usa existen, y las 1.295 variantes activas tienen código.
 - [x] **Medida del cartón (Felipe, 2026-09-23): 5 × 8 cm** → la etiqueta pasa a **44 × 62 mm**, impresa de lado (papel del driver: 62 × 44 mm). Arreglo «QR abajo» con el QR lo más grande que entra: 22 mm (20 con campaña). Verificado en PDF real y con los QR decodificados (ADR-0180, «El cartón de 5 × 8 cm»).
-- [ ] **Felipe:** imprimir 1 etiqueta en la QL-1110NWB real y escanearla en Vender (pasos en ADR-0180 «Configurar la Brother»; papel del driver **62 × 62 mm** desde el 2026-09-24, cuando pasó a salir derecha). Mirar que salga completa, a tamaño real y centrada.
+- [ ] **Felipe:** en la Mac de la tienda, crear el papel **62 × 40,1 mm** con ⌥⌘P → Tamaño del papel → «Gestionar tamaños personalizados…» (márgenes 0) y guardarlo como preajuste; el «62 mm» del diálogo de Chrome corta 100 mm. Recargar la pantalla (que «Impreso» diga la fecha de hoy), imprimir 1 etiqueta y escanear su QR de 19 mm en Vender (ADR-0180 «Configurar la Brother»). Mirar que salga completa, a lo ancho del rollo y en un corte de 40,1 mm.
+- [x] **Legibilidad en la térmica (2026-09-25, ADR-0180):** trazo mínimo 0,2 mm (textos chicos en 600–700), QR de 19 mm con el código de 16 caracteres entero (con 22 mm salía «CMS-0011-NAR…») y la píldora de la forma A/B otra vez legible. Verificado en banco de 6 variantes a 300 dpi y en la app local con `@media print` emulado.
 - [x] **Paso 3 (ADR-0182):** el precio de campaña baja al .90. Una sola regla: `retail.fn_descuento_campana` en la base y `descuentoDeCampana` en la caja, iguales al céntimo en 29.187 combinaciones. Parchea `registrar_venta` y `separar_prendas` (las únicas que calculan campaña en producción). `pnpm pruebas:campana-redondeo` 7/7 y 24.265 pruebas web en verde.
 - [x] **`20260923174100_campana_redondea_a_90.sql` pegada en producción el 2026-09-23** (OK de Felipe). Ensayo con rollback verificado, huellas antes/después iguales a las locales, permisos intactos, ejemplos 18.00 / 24.90 / 24.00 / 20.10 (ADR-0182, «Pegada en producción»).
 - [x] **Web publicada** el 2026-09-23 a las 12:16: Felipe fusionó el PR #351. **Antes de activar la primera campaña, recargar Vender (F5) en cada caja**: una pestaña abierta desde antes sigue con el cálculo viejo y esa venta se rechaza (`venta_campana_omitida`).
-- [ ] **Fusionar el PR del formato del cartón** (44 × 62 mm, QR de 22/20 mm): lo publicado todavía imprime 62 × 92, que no entra en el cartón de 5 × 8 cm.
+- [x] **Formato del cartón publicado:** 44 × 62 (2026-09-23), 62 × 62 derecha (2026-09-24) y hoy **40,1 × 62 a lo ancho del rollo** (2026-09-25, PR #414, #416 y #419).
 - [x] El volcado de producción ya trae `fn_descuento_campana` (refrescado por otra sesión, `50b944cd`, 2026-09-23).
 - [x] **Paso 2:** la etiqueta dice lo que la caja cobra hoy (con campaña: tachado, precio .90, «−20 %», motivo, «válido hasta»). Se imprime desde la campaña («Volver al precio normal» cuando termina) y desde un producto, con una etiqueta por unidad en stock de la tienda. Probado con la base local, con SQL en transacciones revertidas (alcance y seguridad) y con PDF real + QR.
 - [ ] Preguntar a Felipe **en qué sede está la impresora**: si no está en el Taller, lo producido se etiqueta al llegar a la tienda, y eso es parte del paso 2.
@@ -546,7 +618,7 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
-- [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
+- [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano (la CAJA ya lo tiene desde el 2026-09-25: Ventas suelto, Inventario y Catálogo agrupados; falta decidir si una PERSONA integrante de tienda también); «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [x] **«Más» + avatar + lupa: construido (ADR-0205, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
       (spike aprobado por Felipe, con dos correcciones en vivo) → `AppShell.tsx` + `components/MasMovil.tsx`
       (nuevo). La barra queda en 5 columnas parejas — Inicio/Punto de Venta/Inventario/Caja + **Más** al final,

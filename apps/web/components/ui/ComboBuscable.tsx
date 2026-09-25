@@ -24,7 +24,7 @@ import { clave } from "@/lib/buscar-prenda-v2";
    combobox. Al perder el foco sin elegir, vuelve a mostrar la opción
    elegida — nunca queda un texto que no corresponde a nada.
 
-   Paginado (2026-09-25, ADR-0194): sin `limite`, el techo lo pone la regla
+   Paginado (2026-09-25, ADR-0209): sin `limite`, el techo lo pone la regla
    global de combos — revela `TAMANO_PAGINA_COMBO` (50) y suma 50 más solos
    al llegar el scroll al fondo (`useComboLista`, compartido con
    `Desplegable`). Antes cortaba siempre en 40 con "sigue tipeando para
@@ -58,7 +58,7 @@ export function ComboBuscable<T extends string>({
   id?: string;
   /** Techo FIJO de opciones visibles, sin paginar (spike Nuevo producto, 2026-09-24: con 60 proveedores, 6
    *  alcanzan y el resto se encuentra tipeando). Sin esto, el techo lo pone la regla global de combos
-   *  (ADR-0194): revela de a `TAMANO_PAGINA_COMBO` y el scroll pide más — pasar `limite` apaga esa paginación
+   *  (ADR-0209): revela de a `TAMANO_PAGINA_COMBO` y el scroll pide más — pasar `limite` apaga esa paginación
    *  a propósito, para cuando "sigue tipeando" es el comportamiento que se quiere forzar. */
   limite?: number;
   /** Última opción de la lista para crear lo que no está («+ Registrar «Tex» como proveedor nuevo»). Recibe lo tipeado. */

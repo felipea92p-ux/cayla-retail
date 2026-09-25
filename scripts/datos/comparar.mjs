@@ -159,7 +159,9 @@ function llamadas() {
     const texto = readFileSync(ruta, "utf8");
     const lineas = texto.split("\n");
 
-    const re = /\.rpc\(\s*["'`]([a-z0-9_]+)["'`]\s*(,|\))/gi;
+    // `.rpc("nombre" as never, …)` es la forma en que las pantallas de Finanzas esquivan los tipos generados que aún no
+    // conocen la función: sin el `as never` opcional, esas 71 llamadas eran invisibles y sus funciones salían como «nadie las llama».
+    const re = /\.rpc\(\s*["'`]([a-z0-9_]+)["'`](?:\s+as\s+never)?\s*(,|\))/gi;
     let m;
     while ((m = re.exec(texto)) !== null) {
       const nombre = m[1];
@@ -216,7 +218,9 @@ for (const ll of encontradas) {
   }
 }
 
-const llamadasUnicas = new Set(encontradas.map(l => l.nombre));
+// Una llamada que no se pudo leer entera («...», parámetros armados fuera) sigue siendo una llamada: la función tiene
+// pantalla. Sin esto, `registrar_venta` salía como «nadie la llama» estando en el punto de venta.
+const llamadasUnicas = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
 const sinUsar = [...produccion.keys()].filter(n => !llamadasUnicas.has(n) && !n.startsWith("fn_") && !["set_updated_at"].includes(n));
 
 console.log(`\n  Comparando ${encontradas.length} llamadas de apps/web contra ${produccion.size} funciones de producción\n`);

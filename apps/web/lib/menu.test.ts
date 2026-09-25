@@ -11,6 +11,7 @@ import {
   aterrizajeDe,
   esGrupo,
   esGrupoMenu,
+  esMostrador,
   hojasDe,
   menuPara,
   permisosDe,
@@ -563,9 +564,15 @@ describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
   const { riel, movil } = menuPara(perfilTerminal("ventas"));
 
   // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
-  it("ve solo Ventas: Punto de Venta, Caja, Historial, Posventa (Cambios y Devoluciones) y Comprobantes, en ese orden", () => {
-    expect(etiquetasDe(riel)).toEqual(["Ventas"]);
-    expect(hijasDe(riel, "Ventas")).toEqual(["Punto de Venta", "Caja", "Historial", "Posventa", "Comprobantes"]);
+  // Es la caja del mostrador: Ventas le sale SUELTO (Felipe, 2026-09-25), sin la cabecera «Ventas» ni la de «Posventa».
+  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones y Comprobantes, en ese orden y sin grupos que abrir", () => {
+    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
+    expect(riel.some(esGrupoMenu)).toBe(false);
+  });
+
+  it("al pararse en una pantalla de Ventas sigue estando en Ventas (moverse ahí cierra el grupo que estuviera abierto)", () => {
+    const { grupoDe } = menuPara(perfilTerminal("ventas"));
+    expect(["/vender", "/caja", "/cambios", "/vender/comprobantes"].map(grupoDe)).toEqual(["venta", "venta", "venta", "venta"]);
   });
 
   it("no tiene Inicio (ve el Punto de venta: su casa es el mostrador), ni Inventario, Catálogo, Compras ni Producción", () => {
@@ -611,7 +618,21 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(etiquetasDe(caja)).toEqual(["Inicio", "Ventas", "Inventario"]);
     // Un grupo con una sola pantalla visible conserva el nombre del módulo (regla de siempre de `menuPara`).
     expect(caja.map((f) => ("href" in f ? f.href : null))).toEqual(["/", "/caja", "/inventario"]);
-    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual(["Ventas"]);
+    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
+  });
+
+  it("es caja del mostrador (Ventas suelto) solo la TERMINAL que ve el Punto de venta; una persona que vende lo sigue viendo agrupado", () => {
+    expect(esMostrador({ terminal: true, modulos: ["vender", "caja"] })).toBe(true);
+    expect(esMostrador({ terminal: true, modulos: ["caja", "existencias"] })).toBe(false);
+    expect(esMostrador({ terminal: false, modulos: ["vender", "caja"] })).toBe(false);
+    const persona = menuPara({ permisos: [], ubicacionTipo: "tienda", modulos: ["vender", "caja"] }).riel;
+    expect(etiquetasDe(persona)).toEqual(["Inicio", "Ventas"]);
+    expect(hijasDe(persona, "Ventas")).toEqual(["Punto de Venta", "Caja"]);
+  });
+
+  it("una caja con UNA sola pantalla de Ventas la ve con su propio nombre («Punto de Venta»), no con el del grupo", () => {
+    const soloVender = menuPara(perfilTerminal(["vender"])).riel;
+    expect(soloVender.map((f) => ("href" in f ? [f.etiqueta, f.href] : f.etiqueta))).toEqual([["Punto de Venta", "/vender"]]);
   });
 
   it("una terminal ve Inicio solo si NO ve el Punto de venta", () => {
