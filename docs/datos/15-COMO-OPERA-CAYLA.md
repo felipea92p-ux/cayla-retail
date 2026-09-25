@@ -282,6 +282,11 @@ atemporal. *Criterio de Felipe.*
 > no una constante en el código. Se fija una vez por categoría y se puede corregir sin
 > tocar nada más.
 
+> **Actualización (2026-09-25, Felipe):** por ahora se usa un umbral único de 14 días para todas las categorías
+> (`LECTURA_SIN_VENTAS_DIAS_MIN`, `apps/web/lib/resumen-lectura.ts:40`). El umbral por categoría se fija cuando haya
+> 8 semanas de ventas reales: al 2026-09-25 hay 4, y un umbral sin historial sería una suposición. La consecuencia de
+> diseño de arriba sigue siendo el destino. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-21 · Lo que no rota se le busca salida.** Se baja de precio, se manda a otra sede, o
 se remata. **Solo se guarda si es básico y atemporal.** *Dato duro.*
 
@@ -332,7 +337,7 @@ abierta.**
 | # | Qué falta | Quién lo responde |
 |---|---|---|
 | A-01 | ~~El tope de descuento de una líder de equipo (R-23)~~ — cerrado el 2026-09-12 por R-45 y construido en `registrar_venta` (ADR-0054, 2026-09-15; en producción desde el mismo día) | *(resuelto, ver nota en R-23)* |
-| A-02 | El umbral de «estancado» por cada categoría (R-20) | Felipe con las líderes |
+| A-02 | El umbral de «estancado» por cada categoría (R-20) — por ahora 14 días para todas; se fija por categoría con 8 semanas de ventas reales (Felipe, 2026-09-25) | Felipe con las líderes |
 | A-03 | ~~Si Compras puede crear proveedores además de pagarles (R-10)~~ — cerrado el 2026-09-12 por R-44: sí puede, con registro de quién y cuándo lo creó. **Ese registro todavía no existe**: `proveedores` no guarda quién lo creó (consultado en vivo el 2026-09-25) | *(decidido; falta el registro)* |
 | A-04 | De dónde sale el saldo a favor de IGV (R-13) | el contador |
 | A-05 | ~~El método de costeo del inventario (D-45)~~ — cerrada el 2026-09-16 por Felipe: promedio ponderado, igual para compras que para cierres de producción del Taller (ADR-0067), en producción desde entonces | *(resuelto, ver ADR-0067)* |
@@ -492,6 +497,13 @@ plata es la última opción**. La prenda debe estar en buen estado. *Dato duro.*
 **R-38 · El plazo es de 15 días y lo aplica cualquiera en caja.** *Dato duro.* No hace
 falta autorización de la líder.
 
+> **Actualización (2026-09-25, Felipe, al revisar esta regla contra el código):** **manda R-38**: dentro de los 15
+> días, la devolución la aplica cualquiera en caja, sin aprobación de la líder. **Todavía no está construido:** hoy
+> `aprobar_devolucion` exige líder (desde `0003_funciones.sql`) y el ADR-0177 le sumó que quien registra una
+> devolución no puede aprobarla. Cambiarlo afloja un candado de dinero, así que va con su propio ADR y migración.
+> Fuera de los 15 días no está decidido quién la aplica; hoy la aprueba un líder. *El texto de arriba se conserva
+> como quedó el 2026-09-12.*
+
 **R-39 · A qué stock vuelve la prenda depende del estado en que vuelva.** *Dato duro.*
 
 > **Consecuencia de diseño:** la devolución necesita un campo de estado de la prenda, y
@@ -649,7 +661,9 @@ Y dos reglas que van encima del porcentaje:
 > desde el 2026-09-22 (D-67) existe un segundo candado, a nivel de VENTA y no de línea: `colaboradores.tope_descuento_pct`
 > (10% por defecto para cada colaboradora, sin tope para el líder), que exige autorización de un líder activo para
 > superarse. **Los dos mecanismos conviven hoy sin validarse entre sí y el mostrador todavía no manda ese segundo
-> parámetro** — sigue siendo una decisión de negocio pendiente. *El texto de arriba se conserva como quedó el
+> parámetro** — sigue siendo una decisión de negocio pendiente. Felipe sumó el 2026-09-25 un control más: **antes de
+> cerrar caja, la pantalla de Caja resalta los descuentos de más de 15%** (todavía no construido). El tope de 35% no
+> se cambió. *El texto de arriba se conserva como quedó el
 > 2026-09-12.*
 
 **R-46 · Anular una venta o un comprobante: la líder de equipo, el mismo día.**
