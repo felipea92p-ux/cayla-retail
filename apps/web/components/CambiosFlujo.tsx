@@ -23,15 +23,15 @@ import {
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
 } from "@/components/FlujoGuiado";
+import { CambioReemplazo } from "@/components/CambioReemplazo";
 import {
-  CambioReemplazo,
   agruparCatalogo,
   derivarReemplazo,
   opcionesDePrenda,
   seleccionInicial,
   type Seleccion,
   type VarianteCatalogo,
-} from "@/components/CambioReemplazo";
+} from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import {
   estadoPrendaVendida,
