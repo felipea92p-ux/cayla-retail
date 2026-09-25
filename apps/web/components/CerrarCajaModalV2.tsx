@@ -507,7 +507,7 @@ export function CerrarCajaModalV2({
                   valor={bancoId ?? ""}
                   onValor={(v) => setBancoElegido(v)}
                   opciones={bancos.cuentas.filter((c) => c.tipo === "banco").map((c) => ({ valor: c.id, texto: c.nombre }))}
-                  ayuda="Queda a qué cuenta llegó: la conciliación lo encuentra solo."
+                  pie="Queda a qué cuenta llegó: la conciliación lo encuentra solo."
                 />
               )}
               {destinoElegido.referencia && (

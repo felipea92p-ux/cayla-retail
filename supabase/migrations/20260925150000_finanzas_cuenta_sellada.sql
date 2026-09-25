@@ -551,8 +551,8 @@ language plpgsql set search_path = retail, public, extensions as $$
 begin
   raise exception 'Lo que se dijo de un pago pasado no se edita ni se borra.' using errcode = 'P0001';
 end $$;
-drop trigger if exists cuentas_asignadas_inmutable on retail.cuentas_asignadas;
-create trigger cuentas_asignadas_inmutable before update or delete on retail.cuentas_asignadas
+-- Sin `drop trigger`: aunque el disparador no exista, toma en exclusiva `auth` y `storage` (medido 2026-09-25).
+create or replace trigger cuentas_asignadas_inmutable before update or delete on retail.cuentas_asignadas
   for each row execute function retail.fn_cuentas_asignadas_inmutable();
 
 alter table retail.cuentas_asignadas enable row level security;

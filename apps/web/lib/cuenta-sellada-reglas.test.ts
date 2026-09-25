@@ -149,6 +149,8 @@ describe("cómo se dibuja", () => {
     expect(ayudaCuenta(c("x", "cajon"), "entra")).toContain("suma al cierre");
     expect(ayudaCuenta(c("x", "caja_fuerte"), "sale")).toContain("no toca el cierre");
     expect(ayudaCuenta(null, "sale")).toContain("sellada");
+    expect(ayudaCuenta(c("x", "banco"), "sale")).toContain("Si sale de un cajón");
+    expect(ayudaCuenta(c("x", "banco"), "sale", "cobro")).toContain("Sale de esa cuenta");
   });
   it("lee la fila de la base", () => {
     expect(

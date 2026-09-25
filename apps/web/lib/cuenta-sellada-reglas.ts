@@ -133,7 +133,7 @@ export function etiquetaCuenta(c: CuentaElegible): string {
 }
 
 /** La frase bajo el combo: qué pasa con la plata según la cuenta elegida. */
-export function ayudaCuenta(c: CuentaElegible | null, sentido: "sale" | "entra"): string {
+export function ayudaCuenta(c: CuentaElegible | null, sentido: "sale" | "entra", clase: ClaseMovimiento = "pago"): string {
   if (!c) return sentido === "sale" ? "Di de qué cuenta sale: queda sellada en el pago." : "Di a qué cuenta entra: queda sellada.";
   if (c.tipo === "cajon") {
     return sentido === "sale"
@@ -143,7 +143,10 @@ export function ayudaCuenta(c: CuentaElegible | null, sentido: "sale" | "entra")
   if (c.tipo === "caja_fuerte") return sentido === "sale" ? "Sale de la caja fuerte: no toca el cierre del cajón." : "Entra a la caja fuerte: no toca el cierre del cajón.";
   if (c.tipo === "por_rendir") return sentido === "sale" ? "Sale del efectivo que tiene el líder." : "Queda en el efectivo que tiene el líder.";
   if (c.tipo === "tarjeta_credito") return "Con la tarjeta de crédito de CAYLA: sube lo que se le debe.";
-  return sentido === "sale" ? "Queda sellada: la conciliación lo encuentra solo." : "Queda sellada: la conciliación lo encuentra sola.";
+  // Lo que se le devuelve a una clienta por Yape, transferencia o tarjeta nunca sale del cajón: sale de esa cuenta.
+  if (clase === "cobro") return "Sale de esa cuenta: queda sellada y la conciliación lo encuentra.";
+  // Con un banco, la frase del spike: recuerda qué pasa si se elige un cajón.
+  return sentido === "sale" ? "Si sale de un cajón, se registra también la salida de esa caja." : "Si entra a un cajón, se registra también el ingreso de esa caja.";
 }
 
 // ---- Lo pasado: lo que movió plata sin decir su cuenta (fn_pagos_sin_cuenta) -------------------------------------------

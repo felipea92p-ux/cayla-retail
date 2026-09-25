@@ -358,7 +358,7 @@ function PanelResolver({
               {!conCuenta
                 ? "En efectivo sale del cajón y resta del cierre, como siempre."
                 : hayCuentas
-                ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale")
+                ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale", "cobro")
                 : "Queda «sin cuenta» hasta que el líder la configure; el reembolso se registra igual."}
             </p>
           )}

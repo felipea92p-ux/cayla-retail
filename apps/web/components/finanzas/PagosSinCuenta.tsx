@@ -26,16 +26,17 @@ import {
 // proveedores, sobre todo— se completa UNA vez, a mano, desde aquí. No crea salidas de caja ni toca cierres ya hechos: si
 // salió de un cajón ya cerrado, ese cierre ya lo absorbió. Solo el líder (la base lo exige).
 
-export function PagosSinCuentaModal({ onClose }: { onClose: () => void }) {
+export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () => void; /** Solo para dibujarlo sin sesión (prueba visual). */ filasIniciales?: PagoSinCuenta[] }) {
   const router = useRouter();
   const responsable = useResponsable();
   const cuentas = useCuentasParaElegir("pago", null);
-  const [filas, setFilas] = useState<PagoSinCuenta[] | null>(null);
+  const [filas, setFilas] = useState<PagoSinCuenta[] | null>(filasIniciales ?? null);
   const [elegidas, setElegidas] = useState<Record<string, string>>({});
   const [guardando, setGuardando] = useState<string | null>(null);
   const [hechas, setHechas] = useState<string[]>([]);
 
   useEffect(() => {
+    if (filasIniciales) return;
     let vivo = true;
     void createClient()
       .rpc("fn_pagos_sin_cuenta" as never)
@@ -47,7 +48,7 @@ export function PagosSinCuentaModal({ onClose }: { onClose: () => void }) {
     return () => {
       vivo = false;
     };
-  }, []);
+  }, [filasIniciales]);
 
   async function guardar(p: PagoSinCuenta) {
     const cuenta = elegidas[p.clave];

@@ -329,7 +329,7 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                   {hayCuentas ? <OpcionesCuenta cuentas={cuentas.cuentas} clase="cobro" medio={medio} /> : <option value="">{cuentas.listo ? "Sin cuenta configurada para este medio" : "…"}</option>}
                 </select>
                 <span className="mt-1 block text-xs text-tinta/60">
-                  {hayCuentas ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale") : "Queda «sin cuenta» hasta que el líder la configure; se registra igual."}
+                  {hayCuentas ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale", "cobro") : "Queda «sin cuenta» hasta que el líder la configure; se registra igual."}
                 </span>
               </label>
             </div>

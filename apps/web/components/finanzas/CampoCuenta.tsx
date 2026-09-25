@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { CampoSelectNativo } from "@/components/ui/campos";
 import { CampoFin, SelectFin } from "@/components/finanzas/kit";
@@ -22,13 +22,17 @@ import {
 // Cada pantalla pone su propio `<select>` (el de Finanzas o el del resto del ERP) y adentro estas opciones: así el combo
 // se ve como el resto de su pantalla. Qué cuenta va lo decide `cuentaEfectiva` (lib/cuenta-sellada-reglas.ts), sin efectos.
 
+/** Cuentas fijas en lugar de pedirlas a la base: solo para dibujar los combos sin sesión (rutas de prueba visual). */
+export const CuentasDePrueba = createContext<Partial<Record<ClaseMovimiento, CuentaElegible[]>> | null>(null);
+
 /** Las cuentas que esta cuenta puede elegir, con la propuesta de cada medio para esa tienda. La lectura es `fn_`: el
  *  loader general no bloquea la pantalla mientras llega. Sin permiso o sin cuentas, lista vacía (el combo lo dice). */
 export function useCuentasParaElegir(clase: ClaseMovimiento, ubicacionId: string | null | undefined, activo = true) {
   const clave = `${clase}|${ubicacionId ?? ""}`;
+  const fijas = useContext(CuentasDePrueba)?.[clase] ?? null;
   const [estado, setEstado] = useState<{ clave: string; cuentas: CuentaElegible[] }>({ clave: "", cuentas: [] });
   useEffect(() => {
-    if (!activo) return;
+    if (!activo || fijas) return;
     let vivo = true;
     void createClient()
       .rpc("fn_cuentas_para_elegir" as never, { p_clase: clase, p_ubicacion_id: ubicacionId || null } as never)
@@ -39,7 +43,8 @@ export function useCuentasParaElegir(clase: ClaseMovimiento, ubicacionId: string
     return () => {
       vivo = false;
     };
-  }, [clase, ubicacionId, activo, clave]);
+  }, [clase, ubicacionId, activo, clave, fijas]);
+  if (fijas) return { cuentas: fijas, listo: true };
   return { cuentas: estado.cuentas, listo: estado.clave === clave };
 }
 
@@ -108,7 +113,7 @@ export function CampoSaleDe(props: PropsCampo) {
       value={hay ? (valor ?? "") : ""}
       onChange={(e) => onValor(e.target.value)}
       disabled={deshabilitado || !hay}
-      ayuda={ayudaDe(props, hay)}
+      pie={ayudaDe(props, hay)}
     >
       {!hay ? <option value="">{listo ? SIN_CUENTAS : "…"}</option> : <OpcionesCuenta cuentas={cuentas} clase={clase} medio={medio} />}
     </CampoSelectNativo>
