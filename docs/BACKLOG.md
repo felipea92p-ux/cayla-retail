@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Modo sin conexión para agregar productos (2026-09-25, ADR-0207) — solo web, sin migración
+- [x] **Paso 1 — Recibir mercadería.** Cola genérica (`lib/cola-offline.ts` + `useColaOffline`), sincronizador único en el layout (`ColasSinConexion`), `/recibir` (`recibir_envio`) y `/inventario/recibir` (`recibir_lote`). Lo contado sale de «pendientes» mientras espera. Probado en local cortando la red: encola, sube al volver, no duplica con el mismo token, un rechazo queda con «Descartar», una RPC fuera de la lista blanca no corre.
+- [ ] **Paso 2 — Alta de producto** (`/productos/nuevo`, `crear_producto_con_variantes`, ya tiene `p_token`). Decidido (Felipe 2A): el código y el de barras se asignan al subir; mientras tanto, «pendiente de código». Fotos después de sincronizar.
+- [ ] **Paso 3 — Alta al vuelo del conteo** (`censo_crear_variante`): antes necesita `p_token` (migración a producción, confirmar con Felipe).
+- [ ] Límite heredado de Vender: la pestaña tiene que haberse abierto con internet. Abrir sin red = service worker (paso propio, sin agendar).
+- [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
+
 ## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412
 - [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
 - [x] **Pegada en producción** `20260925230000_argumento_descuento_desde_15.sql` (2026-09-25, a pedido de Felipe). Verificado en solo lectura: una sola `registrar_venta`, umbral 0.15 sin rastro del 0.20, tope del 35 % solo para Líder, código de la Colaboradora intacto, `security definer` y permisos iguales (authenticated sí, anon no). Huella md5 395ad922… → 7b574282…

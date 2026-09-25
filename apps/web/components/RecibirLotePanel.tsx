@@ -7,6 +7,8 @@ import { Modal } from "@/components/ui/Modal";
 import { RecepcionFormV2 } from "@/components/RecepcionFormV2";
 import { RecepcionesRecientes, type CostoRecepcion } from "@/components/RecepcionesRecientes";
 import type { RecepcionReciente } from "@/lib/compras-reglas";
+import { useColaRecibir } from "@/lib/useColaRecibir";
+import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 type Proveedor = { id: string; nombre: string };
@@ -49,6 +51,7 @@ export function RecibirLotePanel({
   aviso?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const colaOffline = useColaRecibir();
 
   return (
     <div className="space-y-6">
@@ -78,6 +81,9 @@ export function RecibirLotePanel({
           </button>
         )}
       </div>
+
+      {/* Lo que se recibió sin red y espera subir (ADR-0207): a la vista aunque el formulario esté cerrado. */}
+      <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="recepción" varias="recepciones" />
 
       {aviso ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">{aviso}</p>

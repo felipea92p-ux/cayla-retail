@@ -5,6 +5,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
+import { ColasSinConexion } from "@/components/ColasSinConexion";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -51,6 +52,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         nombreSesion={persona.nombre}
       >
         {children}
+        {/* Sube lo guardado sin conexión (ADR-0207) desde cualquier pantalla. */}
+        <ColasSinConexion />
       </SedeActivaProveedor>
     </AppShell>
   );
