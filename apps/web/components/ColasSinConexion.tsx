@@ -1,5 +1,6 @@
 "use client";
 
+import { useColaProductos } from "@/lib/useColaProductos";
 import { useColaRecibir } from "@/lib/useColaRecibir";
 
 /**
@@ -10,5 +11,6 @@ import { useColaRecibir } from "@/lib/useColaRecibir";
  */
 export function ColasSinConexion() {
   useColaRecibir({ subir: true });
+  useColaProductos({ subir: true });
   return null;
 }

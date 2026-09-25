@@ -36,6 +36,23 @@ export type FilaDeTurno = {
   es_de_esta_sede: boolean;
 };
 
+/** La última lista de turno que este navegador leyó de una sede (ADR-0207): para abrir una pantalla sin red. */
+export type TurnoGuardado = { filas: FilaDeTurno[]; leidoEn: string };
+
+/** Máximo que vale una lista de turno guardada: un turno largo de tienda. Más vieja, ya no dice quién está hoy. */
+export const MS_TURNO_GUARDADO = 12 * 60 * 60 * 1000;
+
+export function claveTurnoGuardado(ubicacionId: string): string {
+  return `cayla:turno:${ubicacionId}`;
+}
+
+/** ¿Sirve todavía esta lista guardada? Menos de 12 h y bien formada. Una hora «del futuro» (reloj movido) no sirve. */
+export function turnoGuardadoVigente(t: TurnoGuardado | null | undefined, ahora: Date): boolean {
+  if (!t || !Array.isArray(t.filas) || typeof t.leidoEn !== "string") return false;
+  const edad = ahora.getTime() - new Date(t.leidoEn).getTime();
+  return Number.isFinite(edad) && edad >= 0 && edad < MS_TURNO_GUARDADO;
+}
+
 /** Alguien que se muestra en el combo. `personaId` y `nombre` calzan con `Vendedora` (el papel del ticket). */
 export type PersonaDeTurno = { personaId: string; nombre: string; enPausa: boolean; deOtraSede: boolean };
 

@@ -25,6 +25,11 @@ import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { subirFotoProducto } from "@/lib/producto-fotos";
+import { esFalloDeRed } from "@/lib/error-escritura";
+import { nombreEnCola, nuevaOperacion } from "@/lib/cola-offline";
+import { useColaProductos } from "@/lib/useColaProductos";
+import { guardarFotos } from "@/lib/fotos-pendientes";
+import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import {
   PASOS_ALTA,
   codigoBasePrevisto,
@@ -116,6 +121,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
   const responsable = useResponsable();
+  const colaOffline = useColaProductos();
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
   /** Nombre del producto del que se copió al elegir «crear otro parecido»: se muestra hasta el próximo guardado. */
   const [copiadoDe, setCopiadoDe] = useState<string | null>(null);
@@ -302,24 +308,67 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       return;
     }
 
+    // Dos altas sin red con el mismo nombre: la segunda la rechazaría la base al subir. Mejor decirlo ahora.
+    if (nombreEnCola(colaOffline.cola, nombreFinal)) {
+      avisar.error(`«${nombreFinal}» ya está guardado sin conexión en este equipo, esperando subir.`, { enfocar: "nombre-producto" });
+      return;
+    }
+
     setCargando(true);
     const supabase = createClient();
-    const { data: productoId, error } = await firmar(
-      supabase.rpc("crear_producto_con_variantes", {
-        p_referencia: nombreFinal,
-        p_categoria_id: categoriaId,
-        p_variantes: variantes,
-        p_descripcion: descripcion.trim() || undefined,
-        p_token: token.current,
-        p_tejido_id: tejidoId || undefined,
-        p_patron_id: patronId || undefined,
-        p_confirmo_distinto: confirmo,
-        p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
-        p_marca_id: marcaId,
-        p_proveedor_id: proveedorId,
-      }),
-      responsable.firma()
-    );
+    const params = {
+      p_referencia: nombreFinal,
+      p_categoria_id: categoriaId,
+      p_variantes: variantes,
+      p_descripcion: descripcion.trim() || undefined,
+      p_token: token.current,
+      p_tejido_id: tejidoId || undefined,
+      p_patron_id: patronId || undefined,
+      p_confirmo_distinto: confirmo,
+      p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
+      p_marca_id: marcaId,
+      p_proveedor_id: proveedorId,
+    };
+    const firma = responsable.firma();
+    const { data: productoId, error } = await firmar(supabase.rpc("crear_producto_con_variantes", params), firma);
+
+    // Sin red (ADR-0207, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
+    // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
+    if (error && esFalloDeRed(error)) {
+      const op = nuevaOperacion({
+        token: token.current,
+        rpc: "crear_producto_con_variantes",
+        params,
+        firma,
+        resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"} · ${categoria?.nombre ?? ""}`,
+      });
+      if (!colaOffline.encolar(op)) {
+        setCargando(false);
+        avisar.error("Se cortó el internet y este navegador no pudo guardar el producto.", { detalle: "El formulario sigue lleno: vuelve a crear cuando regrese la conexión." });
+        return;
+      }
+      const fotosGuardadas = await guardarFotos(
+        token.current,
+        nombreFinal,
+        fotosOrdenadas.map((f) => ({ archivo: f.archivo, colorCodigo: f.colorCodigo })),
+      );
+      fotos.forEach((f) => URL.revokeObjectURL(f.vista));
+      setFotos([]);
+      setCargando(false);
+      setCopiadoDe(null);
+      avisar.aviso("Producto guardado sin conexión", { detalle: "Recibe su código cuando vuelva el internet." });
+      setCreado({
+        id: null,
+        nombre: nombreFinal,
+        categoria: `${familia?.nombre ?? ""} › ${categoria?.nombre ?? ""}`,
+        variantes: variantes.length,
+        colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
+        fotos: { subidas: 0, fallidas: fotosGuardadas ? [] : fotosOrdenadas.map((f) => `${f.archivo.name}: este navegador no pudo guardarla`), coloresConFoto: [] },
+        fotosEnEspera: fotosGuardadas ? fotosOrdenadas.length : 0,
+        token: op.token,
+      });
+      return;
+    }
     responsable.despues(error);
 
     if (error || !productoId) {
@@ -389,14 +438,26 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     setOverridePrecio({});
     setCostoTocado(true); // el costo ya es el de la prenda anterior: no volver a sugerir encima
     token.current = crypto.randomUUID(); // un producto nuevo es una operación nueva, no un reintento
-    router.refresh(); // el correlativo del código previsto y los colores «más usados» ya cambiaron
+    // El correlativo del código previsto y los colores «más usados» ya cambiaron. Sin red NO se relee: la relectura
+    // fallaría y Next caería a una navegación completa, que sin internet deja la pestaña en blanco.
+    if (creado.id) router.refresh();
     setPaso(2);
     setTimeout(() => document.getElementById("nombre-producto")?.focus(), 50);
   }
 
   const etiquetaNivel = { negativo: "Con este precio pierdes dinero", bajo: "Poco: un descuento se lo come", normal: "Sin descontar IGV" } as const;
 
-  if (creado) return <ProductoCreado creado={creado} onOtroParecido={otroParecido} />;
+  if (creado) {
+    // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
+    const enCola = creado.token ? colaOffline.cola.find((o) => o.token === creado.token) : undefined;
+    const subida = !creado.token ? undefined : !enCola ? "subio" : enCola.rechazo ? "rechazada" : "esperando";
+    return (
+      <div className="space-y-4">
+        {subida === "rechazada" && <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />}
+        <ProductoCreado creado={creado} onOtroParecido={otroParecido} subida={subida} />
+      </div>
+    );
+  }
 
   // ---------- la línea de cada paso plegado ----------
   const resumen: Record<NumeroPaso, string> = {
@@ -765,6 +826,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
         <div className="min-w-0 space-y-2.5">
+          <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />
           {copiadoDe && (
             <AvisoInline tono="neutro">
               Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el

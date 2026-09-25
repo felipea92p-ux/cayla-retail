@@ -41,6 +41,8 @@ export type ControlResponsable = {
   limpiar: () => void;
   recargar: () => Promise<void>;
   recargando: boolean;
+  /** La lista es la que este navegador recordaba (pantalla abierta sin red, ADR-0207): la hora de esa lectura. */
+  deMemoria: string | null;
   /** Hay un responsable vigente: se puede guardar. */
   listo: boolean;
   /** Por qué no se puede guardar todavía (`null` si `listo`). */
@@ -123,6 +125,7 @@ export function useResponsable(
     limpiar,
     recargar,
     recargando: deTurno.recargando,
+    deMemoria: deTurno.deMemoria,
     listo,
     motivo: listo ? null : motivoSinResponsable(estado, sede, modo),
     firma,

@@ -6,6 +6,7 @@ import { getTrasladosPorAtender } from "@/lib/traslados";
 import { AppShell } from "@/components/AppShell";
 import { SedeActivaProveedor } from "@/components/SedeActiva";
 import { ColasSinConexion } from "@/components/ColasSinConexion";
+import { SinConexion } from "@/components/SinConexion";
 
 // Fase UI 1 (2026-09-11): usa la persona V2 (`ubicacion_id`), no la V1
 // (`sede_id`). Fase 2 (2026-09-13): el selector de ubicación del líder ya
@@ -51,6 +52,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         esAdmin={persona.esAdmin}
         nombreSesion={persona.nombre}
       >
+        {/* Service worker, copias por persona y aviso «sin conexión / copia guardada» (ADR-0207). `generadoEn` sella
+            esta carga: en una copia servida sin red, es la hora de la copia. */}
+        <SinConexion cuenta={persona.personaId ?? `terminal:${persona.nombre}`} generadoEn={new Date().toISOString()} />
         {children}
         {/* Sube lo guardado sin conexión (ADR-0207) desde cualquier pantalla. */}
         <ColasSinConexion />

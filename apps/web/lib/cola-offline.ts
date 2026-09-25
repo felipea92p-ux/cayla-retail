@@ -100,6 +100,18 @@ export function subidasEntre<P>(previa: OperacionEncolada<P>[], actual: Operacio
 }
 
 /**
+ * ¿Ya hay un alta de producto esperando en la cola con este nombre? Sin red no se puede preguntar a la base si el
+ * nombre existe; al menos no se encolan dos iguales (la segunda la rechazaría `crear_producto_con_variantes` al subir).
+ * Compara sin mayúsculas ni tildes, como el aviso de parecidos.
+ */
+export function nombreEnCola(cola: OperacionEncolada[], nombre: string): boolean {
+  const clave = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toLowerCase();
+  const buscado = clave(nombre);
+  if (!buscado) return false;
+  return porSubir(cola).some((op) => typeof op.params.p_referencia === "string" && clave(op.params.p_referencia) === buscado);
+}
+
+/**
  * ¿Esto que se leyó de `localStorage` es una operación que se puede subir? Lo guardado en el navegador es dato,
  * no instrucción: una fila con una RPC fuera de la lista blanca del módulo (o sin token, o rota) no se ejecuta
  * nunca — se descarta al leer.

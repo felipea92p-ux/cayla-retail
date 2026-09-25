@@ -43,8 +43,13 @@ export function useColaOffline(
   opciones: {
     /** Solo el sincronizador del layout: corre el trío de subida. Una pantalla solo pinta y encola. */
     subir?: boolean;
-    /** Tras cada operación que la base aceptó al subir (para releer la pantalla y avisar). */
-    alSubir?: (op: OperacionEncolada, data: unknown) => void;
+    /** Tras cada operación que la base aceptó al subir (para releer la pantalla y avisar). Se espera antes de
+     *  `trasPasada`: el alta de producto anota ahí el id que dio la base, y la pasada de fotos lo necesita. */
+    alSubir?: (op: OperacionEncolada, data: unknown) => void | Promise<void>;
+    /** Al final de cada pasada, haya o no cola: trabajo que cuelga de lo ya subido (las fotos de un alta, ADR-0207). */
+    trasPasada?: (supabase: ReturnType<typeof createClient>) => Promise<void>;
+    /** Al descartar a mano una operación rechazada: soltar lo que tenía guardado aparte (sus fotos). */
+    alDescartar?: (token: string) => void;
   } = {},
 ): ControlColaOffline {
   const clave = claveCola(modulo);
@@ -52,9 +57,13 @@ export function useColaOffline(
   // Las dos dependencias que cambian de identidad en cada render se leen por ref: el efecto de subida no se rearma.
   const permitidasRef = useRef(rpcsPermitidas);
   const alSubirRef = useRef(opciones.alSubir);
+  const trasPasadaRef = useRef(opciones.trasPasada);
+  const alDescartarRef = useRef(opciones.alDescartar);
   useEffect(() => {
     permitidasRef.current = rpcsPermitidas;
     alSubirRef.current = opciones.alSubir;
+    trasPasadaRef.current = opciones.trasPasada;
+    alDescartarRef.current = opciones.alDescartar;
   });
 
   const leerCola = useCallback(() => colaValida(leer<unknown>(clave, []), permitidasRef.current), [clave]);
@@ -80,10 +89,14 @@ export function useColaOffline(
   // lo guardado sube aunque la persona ya esté en otra pantalla.
   useEffect(() => {
     if (!opciones.subir) return;
-    let cancelado = false;
     const supabase = createClient();
 
     async function pasada() {
+      await subirCola();
+      await trasPasadaRef.current?.(supabase);
+    }
+
+    async function subirCola() {
       const aSubir = porSubir(leerCola());
       if (aSubir.length === 0) return;
       const resueltos = new Map<string, OperacionEncolada | null>();
@@ -102,8 +115,7 @@ export function useColaOffline(
       if (resueltos.size === 0) return;
       // Aunque la pantalla se haya desmontado, lo resuelto se escribe igual: la base ya lo registró.
       guardarYAvisar(clave, reconciliar(leerCola(), resueltos));
-      if (cancelado) return;
-      for (const s of subidas) alSubirRef.current?.(s.op, s.data);
+      for (const s of subidas) await alSubirRef.current?.(s.op, s.data);
     }
 
     function intentarSubir(): Promise<void> {
@@ -123,7 +135,6 @@ export function useColaOffline(
     window.addEventListener(EVENTO_COLA, alEncolar);
     const latido = setInterval(intentarSubir, 30_000);
     return () => {
-      cancelado = true;
       window.removeEventListener("online", intentarSubir);
       window.removeEventListener(EVENTO_COLA, alEncolar);
       clearInterval(latido);
@@ -145,6 +156,7 @@ export function useColaOffline(
       const restante = sinOperacion(leerCola(), token);
       guardarYAvisar(clave, restante);
       setCola(restante);
+      alDescartarRef.current?.(token);
     },
     [clave, leerCola],
   );

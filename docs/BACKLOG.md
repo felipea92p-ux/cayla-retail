@@ -30,9 +30,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ## 🎯 Modo sin conexión para agregar productos (2026-09-25, ADR-0207) — solo web, sin migración
 - [x] **Paso 1 — Recibir mercadería.** Cola genérica (`lib/cola-offline.ts` + `useColaOffline`), sincronizador único en el layout (`ColasSinConexion`), `/recibir` (`recibir_envio`) y `/inventario/recibir` (`recibir_lote`). Lo contado sale de «pendientes» mientras espera. Probado en local cortando la red: encola, sube al volver, no duplica con el mismo token, un rechazo queda con «Descartar», una RPC fuera de la lista blanca no corre.
-- [ ] **Paso 2 — Alta de producto** (`/productos/nuevo`, `crear_producto_con_variantes`, ya tiene `p_token`). Decidido (Felipe 2A): el código y el de barras se asignan al subir; mientras tanto, «pendiente de código». Fotos después de sincronizar.
-- [ ] **Paso 3 — Alta al vuelo del conteo** (`censo_crear_variante`): antes necesita `p_token` (migración a producción, confirmar con Felipe).
-- [ ] Límite heredado de Vender: la pestaña tiene que haberse abierto con internet. Abrir sin red = service worker (paso propio, sin agendar).
+- [x] **Paso 2 — Alta de producto** sin red: «pendiente de código» hasta subir (Felipe 2A), fotos en IndexedDB que suben después del producto, freno a dos altas con el mismo nombre en la cola. Probado: `CIN-0001` con sus 3 variantes al volver la red.
+- [x] **Combo «Responsable» sin red:** recuerda la última lista de turno por sede (máx. 12 h) y lo dice.
+- [x] **Paso 3 — Abrir pantallas sin red** (service worker `public/sw.js`): Vender (solo copia de hoy, Felipe «Copia de hoy»), Recibir, Ingreso sin comprobante y Nuevo producto; el resto muestra «Sin conexión». Aviso de copia con su hora; copias borradas al salir o al cambiar de cuenta (las colas no). Probado con el servidor apagado.
+- [ ] **Probar en producción** tras publicar: abrir las 4 pantallas con red y luego sin wifi, en un equipo real de tienda (el SW solo se registra en producción).
+- [ ] **Conteo sin conexión** (módulo propio, sin decidir): guarda escaneo por escaneo (`conteo_contar`); el alta al vuelo (`censo_crear_variante`, sin `p_token`) solo tiene sentido si el conteo entero funciona sin red. Preguntar a Felipe si vale la pena.
+- [ ] Una pieza que se carga recién al usarla (un modal que nunca se abrió con red) puede faltar en la copia. Si aparece en tienda: precargar esos trozos.
 - [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
 
 ## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412

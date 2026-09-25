@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { claveCola, colaValida, conOperacion, esOperacionEncolada, nuevaOperacion, porSubir, reconciliar, sinOperacion, subidasEntre, type OperacionEncolada } from "./cola-offline";
+import { claveCola, colaValida, conOperacion, esOperacionEncolada, nombreEnCola, nuevaOperacion, porSubir, reconciliar, sinOperacion, subidasEntre, type OperacionEncolada } from "./cola-offline";
 
 // La cola sin conexión genérica (ADR-0207): que un reintento del mismo guardado sea UNA fila, que la firma quede con
 // la hora en que se hizo, que lo encolado a mitad de una subida sobreviva, y que lo leído del navegador no ejecute
@@ -67,6 +67,25 @@ describe("reconciliar", () => {
 
   it("lo que sigue sin red (no resuelto) queda igual", () => {
     expect(reconciliar([op("a")], new Map())).toEqual([op("a")]);
+  });
+});
+
+describe("nombreEnCola", () => {
+  const alta = (token: string, nombre: string, extra: Partial<OperacionEncolada> = {}) =>
+    op(token, { rpc: "crear_producto_con_variantes", params: { p_referencia: nombre, p_token: token }, ...extra });
+
+  it("encuentra el mismo nombre sin importar mayúsculas ni tildes", () => {
+    expect(nombreEnCola([alta("a", "Blusa Aurora")], "blusa aurora")).toBe(true);
+    expect(nombreEnCola([alta("a", "Pantalón Mía")], "Pantalon Mia")).toBe(true);
+  });
+
+  it("otro nombre, o uno ya rechazado, no cuenta", () => {
+    expect(nombreEnCola([alta("a", "Blusa Aurora")], "Blusa Sofía")).toBe(false);
+    expect(nombreEnCola([alta("a", "Blusa Aurora", { rechazo: "Ya existe" })], "Blusa Aurora")).toBe(false);
+  });
+
+  it("un nombre vacío nunca choca", () => {
+    expect(nombreEnCola([alta("a", "")], "")).toBe(false);
   });
 });
 
