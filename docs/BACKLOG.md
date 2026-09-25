@@ -28,6 +28,56 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Stock en vivo en Vender, Apartados y Cambios (2026-09-25, ADR-0018) — solo web, sin migración
+Felipe reportó: escaneando con la cámara del teléfono leyó una prenda «agotada»; la repuso en otra máquina con la
+cámara todavía abierta, y no se sumó al ticket hasta reiniciar el navegador — y pidió auditar TODA la producción
+para lo mismo. Causa en Vender: `PuntoDeVenta` solo corregía `stockAqui` tras una venta de ESTA misma caja
+(`releerStock`, ADR-0192) — nada releía la base mientras la pantalla seguía montada. El propio ADR-0192 lo dejaba
+anotado como hueco conocido: *"Otra caja vende la misma prenda: esta pantalla no se entera hasta la próxima
+carga."* Afecta igual al lector físico del mostrador — no es un problema de la cámara.
+**Auditoría de los ~30 módulos** (3 agentes en paralelo, ver detalle en el mensaje al usuario de esta sesión): casi
+toda escritura sobre una fila compartida YA pasa por un candado de servidor (`for update`/`pg_advisory_xact_lock`)
+que corta limpio si dos personas chocan — nunca un estado imposible, como mucho un mensaje de error (gran parte de
+Inventario lo blindó el propio Felipe el 2026-09-24, ADR-0188/0189/0190). El único patrón real y repetido de
+"pantalla vieja" —mismo bug que Vender, sin protección alguna, porque simplemente nadie releía— estaba en
+**Apartados** (`/vender/apartados`) y **Cambios** (`/cambios`); el resto (Devoluciones, Inventario, Compras,
+Producción, Finanzas, Colaboradores) ya tiene el candado y agregar sondeo ahí sería solo tráfico de fondo sin
+ganancia real — se dejó sin tocar a propósito. Detalle y motivo de sondeo-no-Realtime: «Actualización 2026-09-25»
+en `docs/adr/0018-local-first-sin-motor-de-sincronizacion.md`.
+- [x] `lib/useStockEnVivo.ts` (nuevo): `leerStockDeSede` (la consulta a `stock`, con `ids` opcional — sin él, TODA
+      la sede, sin `.in`, para no armar una URL con cientos de ids de golpe) + `useStockEnVivo` (el sondeo: cada
+      10 s, + al volver a la pestaña o a la red, nunca con la pestaña oculta/sin conexión/con `activo` en falso).
+      Mismo patrón que `useCajaEnVivo`/`useDeTurno`.
+- [x] `PuntoDeVenta.tsx`: refactor para usar el hook compartido en vez del efecto ad-hoc de ayer (mismo
+      comportamiento, menos código propio).
+- [x] `components/apartados/ApartarVista.tsx` y `components/CambiosFlujo.tsx`: mismo hook, sobre `prendas`/
+      `catalogo` (renombrados a `...Prop`, con un `ajustesStock` local que se reinicia si el servidor manda una
+      foto nueva — mismo patrón que `ajustesStock` de Vender).
+- [x] `tsc`/`eslint`/suite completa de `apps/web` (144 archivos, 76.992 pruebas) en verde.
+- [x] Verificado contra el Postgres local por PostgREST (mismo límite que ADR-0192: sesión sin usuario en el
+      worktree, no se escriben contraseñas): una prenda en 0, repuesta por una conexión aparte simulando otra
+      máquina, y la misma consulta sin ids la vio en el instante — sin recargar nada. Estado del Postgres
+      compartido restaurado al terminar. La verificación de Apartados/Cambios quedó a nivel de tipos/lint/tests
+      (mismo camino de datos que Vender, ya probado), no se repitió la prueba de Postgres para cada uno.
+- [ ] Ver con clics reales (sesión con usuario) en las tres pantallas — quedó verificado por PostgREST y por
+      tipos, no con la UI.
+- Cómo verificas: en `/vender`, `/vender/apartados` o `/cambios`, busca una prenda sin stock; repón su stock
+  desde otra sesión/pestaña sin tocar esta pantalla; en ≤10 s (o al volver a la pestaña) ya se puede agregar.
+
+## 🩹 Ficha de clienta: no hay candado que agregar todavía — la edición ni existe (2026-09-25)
+Al revisar el pedido de Felipe de blindar la ficha de clienta contra dos ediciones a la vez (hallazgo de la
+auditoría de arriba): hoy `clientas` solo tiene `registrar_clienta` (alta) y `buscar_clienta` (búsqueda) en
+`lib/clientas-acciones.ts` — **no existe ninguna función para EDITAR una clienta ya creada**. El propio
+`app/(app)/clientas/page.tsx` lo dice: es solo para probar `buscar_clienta`/`registrar_clienta` a mano; "la
+captura real en el mostrador... la construye otra tanda de agentes después". La política RLS `clientas_update`
+de la migración `20260922140000` está provisionada pero nada la usa hoy, y la tabla tampoco tiene `updated_at`
+(verificado contra el Postgres local, `\d retail.clientas`). **No se tocó código: no hay nada que candar.**
+- [ ] Cuando se construya esa pantalla: un `for update` NO es la herramienta correcta acá (ese patrón sirve para
+      un read-modify-write numérico, como stock; el riesgo real es que dos personas editen la MISMA ficha con
+      formularios distintos y la segunda pise en silencio los campos que puso la primera). Necesita concurrencia
+      optimista: columna `updated_at` + trigger, y que la función de editar reciba el `updated_at` que el
+      formulario leyó y rechace si ya cambió ("alguien más editó esta ficha, vuelve a cargarla").
+
 ## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base)
 El PR #397 recreó `fn_resumen_comparacion` copiando el cuerpo de un archivo viejo (`20260919220000`), y con él volvió
 `… and fn_es_lider()`: desde entonces un rol con Análisis que no es líder ve su pantalla vacía (0 filas). Deshacía
