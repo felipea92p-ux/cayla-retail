@@ -242,6 +242,7 @@ function GrupoLateral({
   onAbrirCajon,
   onEntrarFila,
   onSalirFila,
+  kInicial = 0,
 }: {
   titulo: string | null;
   items: FilaMenu[];
@@ -257,6 +258,8 @@ function GrupoLateral({
   /** Mouse/foco sobre una fila: el AppShell decide si muestra la etiqueta o abre el cajón. */
   onEntrarFila: (el: HTMLElement, texto: string, grupoId?: string) => void;
   onSalirFila: () => void;
+  /** Lugar de la primera fila en la cascada del cajón del celular (las de arriba son el logo y «Nuevo»). */
+  kInicial?: number;
 }) {
   // Un grupo cuenta como abierto solo si el lateral está expandido Y su estado dice abierto.
   const estaAbierto = (id: string) => !compacto && (gruposAbiertos[id] ?? false);
@@ -417,12 +420,13 @@ function GrupoLateral({
           }}
         />
         {items.map((it, n) => {
-          const margen = n > 0 ? { marginTop: AIRE_FILA } : undefined;
+          // Cada fila de primer nivel es una pieza de la cascada del cajón (celular); las hijas de un grupo ya tienen la suya.
+          const margen = { ...(n > 0 ? { marginTop: AIRE_FILA } : {}), "--k": kInicial + n } as React.CSSProperties;
 
           if (!esGrupo(it)) {
             const esActivo = claveActiva === `i:${it.href}`;
             return (
-              <div key={it.href} style={margen}>
+              <div key={it.href} data-pieza-cajon style={margen}>
                 <Link
                   href={it.href}
                   aria-current={esActivo ? "page" : undefined}
@@ -454,7 +458,7 @@ function GrupoLateral({
           const contieneActivo = hojasDe(it).some((h) => activo(h.href));
           const suma = hojasDe(it).reduce((acc, h) => acc + (h.contador ?? 0), 0);
           return (
-            <div key={it.id} style={margen}>
+            <div key={it.id} data-pieza-cajon style={margen}>
               <button
                 type="button"
                 data-grupo-id={it.id}
@@ -1032,8 +1036,14 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
     // `data-lateral` cambia UN token (`--spacing-lateral`, globals.css): el aside, la cabecera, el <main> y las
     // barras fijas de abajo lo leen, así que plegar no obliga a tocar ninguno de los cuatro.
     <div className="min-h-screen bg-crema" data-lateral={plegado ? "plegado" : undefined}>
-      {/* Velo del cajón (celular): tocarlo cierra. */}
-      {movilAbierto && <div aria-hidden onClick={() => cerrarMovil()} className="anim-velo fixed inset-0 z-40 bg-tinta/25 backdrop-blur-[2px] sm:hidden" />}
+      {/* Velo del cajón (celular): tocarlo cierra. Siempre montado para que también se APAGUE al cerrar (`.velo-cajon`,
+          globals.css); cerrado no recibe toques. */}
+      <div
+        aria-hidden
+        data-abierto={movilAbierto}
+        onClick={() => cerrarMovil()}
+        className={`velo-cajon fixed inset-0 z-40 bg-tinta/25 backdrop-blur-[2px] sm:hidden ${movilAbierto ? "" : "pointer-events-none"}`}
+      />
 
       {/* ==================== Lateral (escritorio) / cajón (celular) ==================== */}
       <aside
@@ -1048,13 +1058,13 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         aria-label="Menú principal"
         // Cerrado en celular queda fuera de pantalla y fuera del tabulador.
         inert={esCelular && !movilAbierto}
-        className={`ease-cayla fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] transition-[transform,width] duration-300 sm:z-40 sm:w-lateral sm:max-w-none sm:translate-x-0 sm:pb-0 ${
-          movilAbierto ? "translate-x-0 shadow-xl" : "-translate-x-full"
-        }`}
+        data-cajon={movilAbierto ? "abierto" : undefined}
+        className={`cajon-lateral fixed inset-y-0 left-0 z-50 flex w-[18rem] max-w-[85vw] flex-col overflow-hidden border-r border-tinta/10 bg-crema pb-[env(safe-area-inset-bottom)] sm:z-40 sm:transition-[width] sm:duration-300 sm:ease-cayla sm:w-lateral sm:max-w-none sm:pb-0 ${movilAbierto ? "max-sm:shadow-xl" : ""}`}
       >
         {/* Plegado el isotipo queda centrado en la columna (76 px): el padding se anima con el ancho. */}
-        {/* En el cajón del celular la ✕ comparte fila con el logo. */}
-        <div className="flex items-start">
+        {/* En el cajón del celular la ✕ comparte fila con el logo. `data-pieza-cajon` + `--k`: el orden de la cascada
+            al abrir el cajón (globals.css) — logo, Nuevo, cada fila del menú, la firma y la persona. */}
+        <div className="flex items-start" data-pieza-cajon style={{ "--k": 0 } as React.CSSProperties}>
         <Link href="/" className={`group flex min-w-0 flex-1 items-center gap-3 overflow-hidden whitespace-nowrap pb-6 pt-7 transition-[padding] duration-300 ease-cayla ${compacto ? "pl-3.5" : "pl-7"}`}>
           <Image
             src="/cayla-isotipo.png"
@@ -1081,7 +1091,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         </button>
         </div>
 
-        <div className="px-3 pb-7">
+        <div className="px-3 pb-7" data-pieza-cajon style={{ "--k": 1 } as React.CSSProperties}>
           {/* Plegado queda un cuadrado con el «+» (del mismo alto que una fila de 48 px, 52 de ancho:
               columna de 76 − 12 de aire a cada lado). El botón ya anima `all`, así que el ancho viaja solo. */}
           <Boton
@@ -1118,6 +1128,7 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
               onAbrirCajon={abrirCajon}
               onEntrarFila={entrarFila}
               onSalirFila={salirFila}
+              kInicial={2}
             />
           ))}
         </nav>
@@ -1125,12 +1136,12 @@ export function AppShell({ persona, ubicaciones, trasladosPorAtender, lateralPle
         {/* El lateral terminaba en un vacío de media pantalla. La firma de la
             marca le da un piso al bloque de abajo, en vez de dejar el aire
             colgando entre el último ítem y la persona. */}
-        <p aria-hidden={compacto} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
+        <p aria-hidden={compacto} data-pieza-cajon style={{ "--k": 2 + menu.riel.length } as React.CSSProperties} className={`font-display overflow-hidden whitespace-nowrap px-7 pb-5 pt-6 text-xs italic text-taupe-profundo transition-opacity duration-200 ${compacto ? "opacity-0" : ""}`}>
           Donde el estilo transforma.
         </p>
 
         {/* Plegado el avatar queda centrado en la columna (px-5 + 36 de avatar = centro en 38 px). */}
-        <div className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
+        <div data-pieza-cajon style={{ "--k": 3 + menu.riel.length } as React.CSSProperties} className={`overflow-hidden border-t border-tinta/10 py-5 transition-[padding] duration-300 ease-cayla ${compacto ? "px-5" : "px-7"}`}>
           <div className="flex items-center gap-3">
             {esAparato ? (
               // Una terminal (ADR-0162) no es una persona: donde iría el avatar va el APARATO, y no hay «Mi perfil» que abrir

@@ -1140,6 +1140,36 @@ body {
     .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition-delay: 0ms; }
   }
 
+  /* Cajón del lateral en celular (2026-09-25, AppShell v4). La misma gramática de ADR-0136, puesta de
+     costado porque el cajón entra desde el borde izquierdo y no desde abajo:
+       1. el velo se enciende con desenfoque (`.velo-cajon`, 280 ms);
+       2. el cajón se desliza desde −100 % (420 ms, --ease-cayla) y, al cerrar, se va más corto
+          (260 ms, --ease-salida): es un panel que se va, no uno que llega;
+       3. su CONTENIDO entra en cascada: cada pieza (`data-pieza-cajon`, con su `--k`) viene 14 px desde la
+          izquierda y aparece, 45 ms de desfase, empezando 90 ms después del cajón. El desfase es más corto que
+          el de un modal (55) porque son más piezas: con 55 la última fila llegaba tarde.
+     Solo bajo 640 px: en escritorio el lateral no se desliza ni entra en cascada, está siempre ahí.
+     Sin rebote, sin bucle; con movimiento reducido, todo aparece de una. */
+  @keyframes cayla-pieza-cajon {
+    from { opacity: 0; transform: translate3d(-14px, 0, 0); }
+  }
+  @media (max-width: 639.98px) {
+    /* El desplazamiento vive AQUÍ con `transform` y no en utilidades `translate-x-*`: Tailwind v4 las pinta con la
+       propiedad `translate`, y Lightning CSS reescribe `transition: translate` como `transition: transform` al compilar
+       — la transición no calzaba con la propiedad que cambiaba y el cajón saltaba en vez de deslizarse. */
+    .cajon-lateral { transform: translate3d(-100%, 0, 0); transition: transform 260ms var(--ease-salida); }
+    .cajon-lateral[data-cajon="abierto"] { transform: none; transition: transform 420ms var(--ease-cayla); }
+    .cajon-lateral[data-cajon="abierto"] [data-pieza-cajon] {
+      animation: cayla-pieza-cajon 460ms var(--ease-cayla) backwards;
+      animation-delay: calc(var(--k, 0) * 45ms + 90ms);
+    }
+    .velo-cajon { opacity: 0; transition: opacity 260ms var(--ease-salida); }
+    .velo-cajon[data-abierto="true"] { opacity: 1; transition: opacity 280ms var(--ease-cayla); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cajon-lateral[data-cajon="abierto"] [data-pieza-cajon] { animation: none; }
+  }
+
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
   .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
