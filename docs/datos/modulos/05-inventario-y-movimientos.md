@@ -8,7 +8,8 @@
 >   `cuarentena`), y `stock` es una fila por variante, ubicación y sububicación.
 > - Bajar y retirar del piso es la misma función: `retail.mover_interno(p_ubicacion_id, p_variante_id, p_cantidad,
 >   p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota)`, una prenda por llamada. Escribe UNA fila `traslado`
->   con motivo `movimiento_interno` («Reposición interna» en Movimientos). La usa el botón «Reponer» de Existencias.
+>   con motivo `movimiento_interno` («Bajada al piso» o «Retiro del piso» en Movimientos, según a dónde llegó la prenda; el filtro que trae los dos es «Bajada o retiro del piso»). La usan «Reponer» y, desde el 2026-09-25, «Retirar del piso»
+>   (menú «⋯» de cada talla), los dos en Existencias.
 > - Desde el 2026-09-25 (sin pegar en producción) hay además `retail.bajar_al_piso`: varias prendas, todo o nada, con
 >   token, que llama a `mover_interno` por prenda y guarda el documento en `bajadas_piso` / `bajada_piso_items`
 >   (ADR-0208, «Construcción — bloque 1»). Se llega por el botón «Bajar al piso» de Existencias.
@@ -364,8 +365,9 @@ tiene un contenedor `almacen`". **Idempotente:** no.
 **Pantalla:** `components/BajarATiendaModal.tsx:39`, desde `/inventario/almacen`.
 
 ### `devolver_a_almacen(p_sede_id uuid, p_variante_id uuid, p_cantidad integer, p_nota text default null) → uuid` (V1; hoy: no existe)
-> Hoy retirar del piso es `mover_interno` con origen piso y destino almacén, y sigue sin pantalla: es el bloque 2 de
-> ADR-0208 («Retirar del piso»). Lo que sigue describe V1.
+> Hoy retirar del piso es `mover_interno` con origen piso y destino almacén. Desde el 2026-09-25 tiene pantalla:
+> «Retirar del piso», en el menú «⋯» de cada talla en Existencias (`ReponerPisoModal` con `sentido: 'retirar'`,
+> bloque 2 de ADR-0208), con nota opcional del motivo. Lo que sigue describe V1.
 
 El espejo exacto: `salida` sin contenedor (resta del piso) + `entrada` con el contenedor de
 almacén (suma al almacén), las dos con `motivo='devolución a almacén'`.
@@ -513,8 +515,8 @@ sin historia se puede creer o no creer, pero no se puede auditar.
    usa en ningún cálculo de alerta. **Consecuencia:** el sistema manda comprar mercadería
    que ya está en el cuarto de atrás. Plata gastada dos veces por la misma prenda.
 
-7. **`devolver_a_almacen` no tiene pantalla (D-41).** (V1; hoy: retirar es `mover_interno` al revés y sigue sin
-   pantalla, bloque 2 de ADR-0208.) La RPC funciona y es atómica
+7. **`devolver_a_almacen` no tiene pantalla (D-41).** (V1. **Resuelto el 2026-09-25:** retirar es `mover_interno` al
+   revés y tiene pantalla, «Retirar del piso» en el menú «⋯» de Existencias; bloque 2 de ADR-0208.) La RPC funciona y es atómica
    (`0044:262-296`), pero `InventarioAgrupado.tsx:88` fuerza `esAlmacen: false` en todas las
    sedes y la línea 256 pasa `contenedoresAlmacen={[]}`, así que la rama de devolución de
    `MovimientoModal.tsx:76` es inalcanzable. **Consecuencia:** lo que baja al piso ya no
@@ -625,7 +627,7 @@ sin historia se puede creer o no creer, pero no se puede auditar.
   Hoy no se cumple: hueco 6.
 - **D-40** — Vender desde el almacén se puede y el sistema registra solo el paso por el piso.
   Hoy no existe: hueco 5.
-- **D-41** — Devolver del piso al almacén ya pasa en la base; falta la pantalla. Hueco 7.
+- **D-41** — Devolver del piso al almacén ya pasa en la base; **la pantalla existe desde el 2026-09-25** («Retirar del piso», bloque 2 de ADR-0208). Hueco 7, resuelto.
 - **D-42** — La mercadería nueva entra al almacén y de ahí se baja al piso. Lo cumple
   `recibir_lote` con el contenedor `ALMACEN`.
 - **D-45 (abierta)** — Método de costeo del inventario. No se toca el núcleo hoy. Hueco 15.

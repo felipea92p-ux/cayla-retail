@@ -3,6 +3,23 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
+Felipe eligió la opción A: de la tarea 3 del plan del termómetro se rescató solo el retiro, rebasado sobre `main` con el
+#434, el #437, el #438 y el #439, y se descartaron los motivos nuevos del ajuste. En Existencias, el menú «⋯» de cada
+talla con piso disponible ofrece «Retirar del piso» (`mover_interno` al revés, sin migración), con aviso y nota
+opcional. Movimientos nombra cada sentido por su destino («Bajada al piso» / «Retiro del piso»).
+Felipe se lleva:
+1. **La revisión encontró que el semáforo contradice al retiro**: solo mira cifras, así que al turno siguiente pide
+   volver a bajar lo que la encargada guardó a propósito. Hoy lo atenúan un aviso y la nota. El arreglo de fondo es
+   una marca de «retirada de la venta», y la decide él en el bloque 3.
+2. **Un nombre no se reutiliza para dos cosas**: el modal de la fila sigue siendo «Reponer piso» porque «Bajar al piso»
+   ya es la pantalla de escaneo. Lo que sí se unifica es la palabra con que la acción queda registrada.
+3. **Tres PR fusionados en la misma tarde dejaron la rama con conflictos**: rebasar antes de abrir el PR evitó
+   entregar uno que no se podía fusionar.
+
+Sin resolver: la marca de «retirada de la venta», el token contra el doble clic de `mover_interno` y la prueba del
+falso positivo de «bajada tardía».
+
 ## 2026-09-25 (Modo sin conexión: huecos cerrados — ADR-0210 «(c)»)
 Se cerraron cinco huecos. **Error pasajero:** un 503, un bloqueo o un tiempo agotado ya no quedan como rechazo esperando «Descartar»: se reintentan, hasta 10 veces, y recién ahí pasan a rechazo diciendo por qué. Las pantallas también encolan en ese caso. **Contador global:** cualquier pantalla dice cuántas operaciones esperan subir o no pudieron. **Salir** con algo pendiente pregunta primero. **El alta avisa** antes qué necesita internet (marca, proveedor o talla nuevos). **Lector QR** precargado en el teléfono, porque era lo único que faltaría en la copia de Vender. Probado en local con un 503 simulado, el aviso en Inventario, la pregunta al salir, el alta sin red y Vender a 375 px. `tsc`/`eslint`/77.043 pruebas en verde.
 Felipe se lleva: (1) **no todo error es un «no»**: un 503 dice «ahora no», y reintentarlo es seguro porque el token no deja duplicar; (2) **un reintento necesita tope**: un «pasajero» que dura 5 minutos probablemente es un error de programación, y reintentarlo para siempre lo esconde; (3) **lo que no se puede encolar, se avisa antes**: crear una marca sin red no se guarda, y decirlo al entrar evita llenar un paso para chocar al final.
