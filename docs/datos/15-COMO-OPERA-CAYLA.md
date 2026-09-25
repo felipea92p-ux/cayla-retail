@@ -12,7 +12,12 @@
 >
 > **Cómo se mantiene.** Cuando una de estas reglas cambie —y van a cambiar, porque el
 > negocio se mueve— se corrige acá primero. Si una decisión de esquema se apoyó en una
-> de estas frases, la frase lleva su marca `R-nn` para poder rastrearla.
+> de estas frases, la frase lleva su marca `R-nn` para poder rastrearla. Desde el
+> 2026-09-25, lo que cambió después va en una nota **«Actualización (fecha, fuente)»**
+> debajo de la regla, y el texto original se conserva: así se ve qué dijo Felipe y qué
+> se decidió después. Solo un nombre técnico equivocado (una tabla, un ADR, un estado) se
+> corrige en su lugar. Si el código contradice una regla y no hay decisión escrita, no se
+> corrige la regla: se le pregunta a Felipe.
 
 ---
 
@@ -28,6 +33,13 @@ proveedor**, no CAYLA — así que si algún día se modela, el plazo es un dato
 > 97% al contado casi no hay deuda que envejecer. Se construye el registro de la
 > factura y del pago; el reporte de antigüedad se deja para cuando exista el área
 > comercial que Felipe menciona.
+
+> **Actualización (2026-09-25, ADR-0111 y `supabase/migrations/20260918211000_compras_deuda_tramos_y_salidas_de_caja.sql`):**
+> no se construyó la antigüedad por tramos de este bloque, sino la **deuda por vencimiento** (ADR-0111, 2026-09-18,
+> sección «Lectura»): `deuda_por_vencimiento()` (vencida / vence en 0-7 / 8-30 / más de 30 días), `salidas_caja_30d()`
+> y `por_pagar_tramos()`, que alimentan la pantalla Por pagar (`apps/web/lib/compras-indicadores.ts`). Todo lo vencido
+> cae en un solo tramo: la antigüedad de lo vencido sigue sin construirse, como pedía este bloque. *El texto de
+> arriba se conserva como quedó el 2026-09-12.*
 
 **R-02 · Más del 75% de los pagos son por transferencia bancaria.** El resto se
 reparte entre efectivo y billeteras móviles (Yape / Plin). *Estimación.*
@@ -49,7 +61,7 @@ mezclar finanzas personales con las del negocio.
 > simplifica el módulo entero.
 
 **R-05 · Pagos parciales: prácticamente no existen.** 99% se paga completo.
-*Estimación.* El estado `pagado_parcial` se construye porque es gratis, pero ninguna
+*Estimación.* El estado `parcial` se construye porque es gratis, pero ninguna
 pantalla debe optimizarse para ese caso.
 
 **R-06 · Todo se registra en soles.** La importación es menos del 3% y, cuando es en
@@ -79,9 +91,27 @@ el taller que le vende no factura, él queda sin sustento aunque quiera tenerlo.
 > registrar**. Lo obligatorio tiene que ser `proveedor_id`; la factura va **nullable** y
 > se le pega después si llega.
 
+> **Actualización (2026-09-25, ADR-0111 y `supabase/migrations/20260912231956_compras_desde_factura.sql`):** el
+> `compras` real, creado el mismo 2026-09-12 por esa migración, no siguió esta receta: `compras.serie` y
+> `compras.numero` son `not null` (líneas 127-128, sin cambio hasta hoy), o sea que la puerta «Recibir mercadería»
+> (con comprobante) exige factura/boleta/nota de venta. Felipe decidió (ADR-0111, 2026-09-18) que la compra sin
+> factura entra por un camino aparte — «Ingreso sin comprobante», en Inventario (vía `retail.recibir_lote`) — que no
+> pasa por `compras` ni por «Por pagar». Y los nombres de tabla que este párrafo y `10-ROADMAP-DATOS.md` proponían
+> tampoco se construyeron: ni `pagos_proveedor` ni `compras_comprobantes` existen en el esquema real. Lo que hay es
+> `retail.compras` — con `proveedor_id` **NOT NULL**, tal como pedía este párrafo, porque la factura entró como parte
+> de la misma cabecera (`tipo` en `factura`/`boleta`/`nota_venta`, y desde el 2026-09-24 también
+> `recibo_por_honorarios`) — y `retail.compra_pagos` (`compra_id` **NOT NULL**, referencia a `compras`). *El texto de
+> arriba (R-07 y este párrafo) se conserva tal como quedó escrito el 2026-09-12, como registro de la sesión con
+> Felipe; ya no describe el esquema construido.*
+
 **R-08 · Lo primero que el módulo tiene que responder no es «cuánto debo», es «cuánto
 compré sin respaldo este mes».** Hoy nadie tiene ese número. Sin él, la conversación con
 el contador es una opinión.
+
+> **Actualización (2026-09-25, ADR-0111 y `supabase/migrations/20260918213000_compras_sin_comprobante_indicadores.sql`):**
+> ya existe un indicador — `resumen_sin_comprobante()` responde unidades y recepciones sin comprobante del mes
+> (ADR-0111, 2026-09-18) —, pero cuenta unidades, no soles: la pregunta «cuánto compré sin respaldo» todavía no tiene
+> un monto en soles que responderle al contador. *El texto de arriba se conserva como quedó el 2026-09-12.*
 
 **R-09 · La ley 28194 estaba fuera del radar.** Un pago **en efectivo de S/2,000 o más**
 hace perder el crédito fiscal y la deducción del gasto. Felipe confirma que **sí ocurre**
@@ -108,6 +138,20 @@ Felipe y una persona de confianza; **rara vez** las líderes de equipo. *Dato du
 > pagarle puede inventarse uno. Ese par de permisos juntos merecen una decisión
 > explícita, no un descuido.
 
+> **Actualización (2026-09-25, ADR-0184 «Compras: cada tienda compra, ve y paga lo suyo», en producción desde
+> 2026-09-23; y ADR-0161 «Roles por módulo» + ADR-0178 «Escalón Admin», en producción desde 2026-09-22/23):** las dos
+> partes de este bloque quedaron atrás. Compras ya no depende de una sola persona: quien no es líder y tiene un
+> módulo de Compras ve y paga **solo lo de su tienda** (`fn_compras_ubicaciones()`), y el líder, todo;
+> `compradores_de_tienda` sirve para sumarle tiendas extra a quien compra para varias (hoy tiene 0 filas). El único
+> rol fuera del líder con Facturas de compra, Por pagar, Notas de crédito y Proveedores es la **Terminal Almacén**
+> (consultado en vivo el 2026-09-25). Y el hueco que este párrafo señalaba (los cuatro niveles de D-12 no contemplan
+> este rol) ya no aplica
+> al modelo actual: los cuatro niveles fijos de D-12 fueron reemplazados por roles armados módulo por módulo
+> (ADR-0161, 2026-09-22) más un escalón Admin leído de Dynamic (ADR-0178, 2026-09-23) — hoy un rol se arma encendiendo
+> en Colaboradores ▸ Roles y accesos los módulos que necesita. El riesgo de fondo que este párrafo señalaba sigue
+> igual: quien crea un proveedor y además le paga puede inventarse uno (ver R-44). *El texto de arriba se conserva
+> como quedó el 2026-09-12.*
+
 **R-11 · Lo que Compras pide, textual:** *«mandar una alerta que necesita liquidez»* y
 *«ver su cuadre de lo que tiene en su control: presupuesto de compras vs lo pagado, para
 evitar errores de haber pagado de más o de deber a alguien»*.
@@ -131,7 +175,19 @@ evitar errores de haber pagado de más o de deber a alguien»*.
 > proveedores sirven a las tres tiendas a la vez, así que habría que inventar reglas de
 > reparto; y cada cuenta suma comisiones y una conciliación mensual más. **Separar por
 > cuentas sirve para proteger plata de ser gastada, no para atribuirla** — atribuir ya
-> lo resuelve `depositos_bancarios.sede_id`.
+> lo resuelve `retail.caja_movimientos` (vía `caja_id → cajas.ubicacion_id`), no una
+> columna `sede_id` que no existe en ningún lado de `retail` (0 columnas `sede_id` en
+> todo el schema; verificado contra producción el 2026-09-25) ni la tabla
+> `depositos_bancarios` de V1, borrada en el corte a V2 (2026-09-12, commit `0af2f1b`).
+
+> **Actualización (2026-09-25, `supabase/migrations/20260925110000_finanzas_cuentas_y_dinero.sql` / ADR-0195, en
+> producción; y ADR-0184, en producción desde 2026-09-23):** las reglas de reparto que este párrafo daba por costosas
+> de inventar ya existen — no para las cuentas bancarias (siguen siendo dos, compartidas), sino para la deuda de una
+> factura de proveedor repartida entre tiendas (ADR-0184: la vista `compra_parte_por_tienda`, la columna
+> `compras.ubicacion_gestion_id`, la función `fn_mi_parte_de_compra`); el propio ADR-0184 declara que cambia la
+> lectura de esta regla. Y para un movimiento de dinero suelto (no de caja diaria), lo que hoy lo ata a una tienda es
+> `retail.movimientos_dinero.ubicacion_id` (nula = de CAYLA entera; ADR-0195 F3). *La regla se conserva como quedó
+> el 2026-09-12; en su consecuencia de diseño solo se corrigió el nombre de la tabla.*
 
 **R-13 · Qué reservar, y no es el IGV.** CAYLA viene teniendo **saldo a favor de IGV**,
 así que apartar plata para una deuda que no existe inmoviliza capital sin razón.
@@ -166,6 +222,13 @@ que pasa y lo que debería pasar.*
 > mintió. Separar la venta del comprobante no es una comodidad: es lo que mantiene
 > honesto el stock.
 
+> **Actualización (2026-09-25, ADR-0164 «Nota de venta», Felipe 2026-09-22, ya vivo en producción para el 2026-09-23
+> según BITÁCORA de esa fecha):** cuando la clienta no quiere comprobante, el Punto de venta ya no deja la venta sin
+> registrar. Ofrece «Nota de venta» junto a Boleta y Factura: un documento interno (`comprobantes.tipo = 'nota_venta'`),
+> con IGV 0, que nunca se transmite a SUNAT pero que `registrar_venta` reserva igual que cualquier otra venta,
+> moviendo el stock. La brecha que esta regla declaraba está cerrada: la venta y el movimiento de stock se registran
+> siempre, con o sin comprobante tributario. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-16 · Cuando SUNAT se cae, se vende igual y se emite después.** A veces se anotan los
 datos de la clienta y se le envía el comprobante luego; **a veces la clienta se va y
 queda sin emisión**. *Dato duro.*
@@ -182,6 +245,12 @@ permite de forma dinámica registrar mis asesores de atención al cliente»*.
 > `movimientos.usuario_id` guarda quién registró el movimiento, que **no es lo mismo**
 > que quién atendió a la clienta. Es una columna nueva en `ventas`, y conecta con el
 > sistema de personal.
+
+> **Actualización (2026-09-25, D-62 en `docs/datos/DECISIONES-2026-09-21-menu-comercial.md`, ADR-0153 y
+> `supabase/migrations/20260922150000_venta_asesora_emisor_descuento_lider.sql`):** esto ya se construyó.
+> `ventas.asesora_id` existe desde el 2026-09-22 y `PuntoDeVenta.tsx` ya lo manda como `p_asesora_id` en cada venta.
+> Sigue faltando lo que se arma encima de ese dato — comisiones, ranking por asesora —, no la captura misma. *El
+> texto de arriba se conserva como quedó el 2026-09-12.*
 
 ---
 
@@ -239,6 +308,15 @@ abierta.**
 > margen se erosiona sin que nadie lo vea. El descuento necesita precio de lista, precio
 > cobrado, motivo, y quién lo autorizó.
 
+> **Actualización (2026-09-25, R-45 de este archivo + ADR-0054 + D-67/ADR-0153):** el tope ya está decidido, no queda
+> abierto. R-45 (más abajo, *Decidido, afinado sobre la propuesta de Felipe*) fija el escalonado, que Felipe
+> ajustó el 2026-09-25: todo descuento manual que pase el 15% pide un argumento escrito, lo aplique quien lo aplique
+> (`20260925230000_argumento_descuento_desde_15.sql`, en producción), y por encima de 35% la base no lo autoriza
+> para nadie (ver la nota de R-45). Construido
+> en `registrar_venta` desde el 2026-09-15 (ADR-0054). El 2026-09-22 se agregó un tope propio por colaborador
+> (`colaboradores.tope_descuento_pct`, D-67/ADR-0153), pero hoy no actúa: el mostrador no manda ese parámetro (ver la
+> nota de R-45). *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-24 · El traslado entre tiendas lo paga la tienda que recibe.** *Dato duro.*
 
 > **Consecuencia de diseño:** hay un riesgo que conviene mirar — la tienda chica (Lima,
@@ -253,11 +331,11 @@ abierta.**
 
 | # | Qué falta | Quién lo responde |
 |---|---|---|
-| A-01 | El tope de descuento de una líder de equipo (R-23) | Felipe |
+| A-01 | ~~El tope de descuento de una líder de equipo (R-23)~~ — cerrado el 2026-09-12 por R-45 y construido en `registrar_venta` (ADR-0054, 2026-09-15; en producción desde el mismo día) | *(resuelto, ver nota en R-23)* |
 | A-02 | El umbral de «estancado» por cada categoría (R-20) | Felipe con las líderes |
-| A-03 | Si Compras puede crear proveedores además de pagarles (R-10) | Felipe |
+| A-03 | ~~Si Compras puede crear proveedores además de pagarles (R-10)~~ — cerrado el 2026-09-12 por R-44: sí puede, con registro de quién y cuándo lo creó. **Ese registro todavía no existe**: `proveedores` no guarda quién lo creó (consultado en vivo el 2026-09-25) | *(decidido; falta el registro)* |
 | A-04 | De dónde sale el saldo a favor de IGV (R-13) | el contador |
-| A-05 | El método de costeo del inventario (D-45) | el contador |
+| A-05 | ~~El método de costeo del inventario (D-45)~~ — cerrada el 2026-09-16 por Felipe: promedio ponderado, igual para compras que para cierres de producción del Taller (ADR-0067), en producción desde entonces | *(resuelto, ver ADR-0067)* |
 | A-06 | Cuánto se compró sin factura el último mes (R-08) | nadie lo tiene — lo da el sistema |
 | A-07 | Si el costo del flete frena los traslados a Lima (R-24) | Felipe con las líderes |
 | A-08 | Si las herramientas del taller se tratan como gasto o como activo (R-51) | el contador |
@@ -292,6 +370,14 @@ devuelve el consumo con precisión. *Dato duro, y cambia el módulo entero.*
 > catálogo que ya está construido y probado (ADR-0073), no hay que inventar un camino
 > nuevo.
 
+> **Actualización (2026-09-25, ADR-0133 decisión 5 y `docs/PLAN-PRODUCCION.md` D-D, implementado entre el
+> 2026-09-19 y el 2026-09-22):** el sistema no importa el archivo de Audaces: el Taller **mide** el rendimiento real
+> (consumo real ÷ prendas buenas de las órdenes cerradas del modelo). Lo que esas decisiones descartan por escrito es
+> la receta manual y `bom_items`, no Audaces: **si importar Audaces se descartó o solo no se hizo, no está escrito**, y
+> es pregunta para Felipe. Además, el importador de catálogo que este párrafo daba por construido (ADR-0073) se borró
+> en el corte V1→V2 (2026-09-12): no hay `lib/importacion/`, `api/importacion/*` ni `/inventario/importar`
+> (verificado el 2026-09-25). *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-27 · El consumo puede venir por talla o como promedio del modelo**, según el caso.
 *Dato duro.*
 
@@ -299,6 +385,14 @@ devuelve el consumo con precisión. *Dato duro, y cambia el módulo entero.*
 > y cae al **producto** cuando solo hay promedio. Las dos cosas a la vez, con el sistema
 > sabiendo cuál está usando. Importa para el margen: si una XL lleva más tela que una XS
 > y se cobran igual, la XL deja menos — y hoy eso es invisible.
+
+> **Actualización (2026-09-25, decisión D-D en `docs/PLAN-PRODUCCION.md` —ADR asociado:
+> `docs/adr/0133-produccion-modulo-propio-conectado-con-compras.md`— y
+> `apps/web/lib/produccion-decision-reglas.ts:146-155`):** el rendimiento medido que se construyó es por **modelo**
+> (`productoId`), no por variante ni talla — `rendimientoMedido()` agrupa por `productoId` y su tipo
+> `OrdenParaRendimiento` no tiene `varianteId`. La diferencia de consumo entre una XL y una XS del mismo modelo sigue
+> sin poder verse por separado; fue una simplificación decidida, no un olvido. *El texto de arriba se conserva como
+> quedó el 2026-09-12.*
 
 **R-28 · El retazo se bota; rara vez se rescata** para moños o detalles chicos.
 *Dato duro.*
@@ -338,6 +432,11 @@ y Arequipa. *Corrección de Felipe.* Queda escrita para que nadie la vuelva a pr
 | **Primer acceso y cambio extendido** | Nada: se pueden empezar mañana sin construir |
 | **Beneficio de cumpleaños** | Fecha de nacimiento → **dato personal, entra en la Ley 29733** |
 
+> **Actualización 2026-09-25 (ADR-0141, `docs/adr/0141-apartar-stock-reserva-fisica.md`, y ADR-0196,
+> `docs/adr/0196-apartados-modulo-propio.md`):** el estado ya existe — `stock.cantidad_apartada` + tabla `apartados`
+> (ADR-0141, aplicada en producción el 2026-09-22 con ok de Felipe) y módulo propio «Apartados» en el menú (ADR-0196,
+> aprobado por Felipe el 2026-09-24). La fila de arriba se conserva tal como quedó el 2026-09-12.
+
 > El apartado es el más valioso y el que más trabajo cuesta: en Perú, donde la quincena y
 > el fin de mes mandan, convierte un «vuelvo el viernes» en una venta cerrada. Pero exige
 > un estado de stock que hoy no existe — ni vendido ni disponible — y eso toca el núcleo.
@@ -346,6 +445,12 @@ y Arequipa. *Corrección de Felipe.* Queda escrita para que nadie la vuelva a pr
 pendiente de confirmar: que **venza por inactividad y no por calendario** — si compra
 cada tres meses nunca pierde nada; si desaparece un año, se apaga.
 
+> **Actualización (2026-09-25, D-77 en `docs/datos/DECISIONES-2026-09-21-menu-comercial.md`, decidido por Felipe el
+> 2026-09-21):** la versión 1 de fidelización (construida, ADR-0154) **no acumula puntos ni saldo** — es ficha viva
+> (talla, cumpleaños, aviso de talla, cambio sin fricción). El vencimiento a 12 meses de este renglón solo aplicará
+> si se construye la versión 2 (niveles por gasto y saldo), todavía sin fecha ni diseño. *El texto de arriba se
+> conserva como quedó el 2026-09-12.*
+
 **R-35 · El saldo es de la clienta, no de la sede.** Lo que gana en Trujillo lo usa en
 Arequipa. *Decidido.*
 
@@ -353,12 +458,28 @@ Arequipa. *Decidido.*
 > canjea en una tienda distinta de donde se ganó. Si lo carga la que canjea, esa tienda
 > muestra un costo que no generó, y su estado de resultados (D-30) miente.
 
+> **Actualización (2026-09-25, D-77 en `docs/datos/DECISIONES-2026-09-21-menu-comercial.md:178-184`):** hoy **no
+> existe saldo que repartir entre sedes** — `retail.clientas` tiene 10 columnas (`id`, `dni`, `nombre`,
+> `telefono_whatsapp`, `whatsapp_consentimiento_en`, `cumple_dia`, `cumple_mes`, `tallas`, `created_at`,
+> `created_por`) y ninguna de saldo ni de puntos. Felipe decidió una versión 1 sin puntos (ficha viva: talla,
+> cumpleaños, aviso de talla, ajuste de taller, cambio sin fricción); niveles por gasto y saldo/referidas quedan
+> pospuestos a una versión 2, sin fecha fijada. Esta regla queda como principio para cuando esa versión 2 se
+> construya — hoy no hay nada que repartir entre Trujillo y Arequipa. *El texto de arriba se conserva tal como
+> quedó el 2026-09-12.*
+
 **R-36 · El mecanismo exacto (puntos, sellos o niveles) se define con marketing.** Han
 existido sellos por compra y descuento directo a la recompra. **ABIERTA.**
 
 > Criterio de Felipe, textual: *«cualquiera da un descuento y eso cuesta plata»*. Es el
 > criterio correcto — el descuento es el único beneficio que cualquier competidor copia
 > mañana y sale directo del margen.
+
+> **Actualización (2026-09-25 — D-77, `docs/datos/DECISIONES-2026-09-21-menu-comercial.md:178-182`; construida según
+> ADR-0154 y el módulo «clientas» activo en producción):** para la versión 1 ya no está abierta — Felipe decidió
+> (2026-09-21), tras investigar ese mismo día, **sin puntos**: los puntos ajenos devuelven 0,5–3% y su efecto en la
+> recompra es débil. La versión 1 construida es ficha viva (talla, cumpleaños, aviso «llegó tu talla», ajuste de
+> taller, cambio sin fricción); niveles por gasto con acceso (no descuento permanente) y saldo/referidas quedan para
+> una versión 2, todavía sin mecanismo definido. *El texto de arriba se conserva como quedó el 2026-09-12.*
 
 ---
 
@@ -376,12 +497,28 @@ falta autorización de la líder.
 > **Consecuencia de diseño:** la devolución necesita un campo de estado de la prenda, y
 > ese estado decide el destino: piso si vuelve impecable, almacén o revisión si tiene uso.
 
+> **Actualización (2026-09-25, `supabase/migrations/20260917095000_cuarentena_prendas_danadas.sql`,
+> `20260917195508_liquidar_prenda_danada_como_venta.sql` y `20260918070000_devolver_proveedor_entra_a_cuarentena.sql`):**
+> el destino real no es el almacén de reposición: es una tercera sububicación con nombre propio, **cuarentena** (junto
+> a `piso_venta`/`almacen_tienda`). La prenda dañada entra a `prendas_danadas` en estado `en_cuarentena` hasta que un
+> líder la resuelve como **se botó**, **donada** o **devuelta al proveedor** (`resolver_prenda_danada`), o la
+> **liquida** como una venta real, con precio y forma de pago (`liquidar_prenda_danada`). Aplicado en producción
+> desde 2026-09-18. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 ---
 
 ## 10 · Cierre, reportes y canales
 
 **R-40 · El mes lo cierra Felipe**, idealmente con el visto bueno del contador, y si no,
 a los pocos días del mes siguiente sin esperarlo. *Decidido.*
+
+> **Actualización (2026-09-25, ADR-0198 y `supabase/migrations/20260925180000_finanzas_cierre_de_mes.sql`):** el
+> cierre ya no es un acto único de Felipe sobre todo el mes: Felipe decidió (2026-09-18, confirmado) que el cierre es
+> **por unidad de negocio** —cada tienda y el Taller cierran el suyo— más un **cierre consolidado** de toda CAYLA que
+> exige que todas las unidades ya estén cerradas. En la base, `cerrar_periodo` y `reabrir_periodo` exigen solo
+> `fn_es_lider()` (el módulo `cierre_mes` no es delegable, ADR-0195 B): cualquier líder activo puede cerrar cualquier
+> unidad y el consolidado, no solo Felipe; no hay límite por tienda. *El texto de
+> arriba se conserva como quedó el 2026-09-12.*
 
 **R-41 · Lo que Felipe necesita ver y hoy no puede:**
 
@@ -395,6 +532,16 @@ a los pocos días del mes siguiente sin esperarlo. *Decidido.*
 5. **Inteligencia comercial para decidir compras y producción** — lo que más pesa, y lo
    que más depende de tener catálogo e historial cargados.
 
+> **Actualización (2026-09-25, ver fuentes):** dos de estos cinco puntos ya se resolvieron y uno va a medias. (1) Los descuentos SÍ se
+> registran desde el 2026-09-15 (`motivo_descuento` en `venta_items`, de una lista cerrada, cierra D-44) y el costo
+> YA promedia en vez de pisarse desde el 2026-09-16 (ADR-0067, cierra D-45). (2) Los sueldos por sede YA se leen de
+> Dynamic (`retail.planilla_por_sede`, D-33) y los gastos sin sede YA se marcan «de la empresa» (D-32); con eso,
+> Finanzas F5 — Diario y resultados (en producción, `supabase/migrations/20260925130000_finanzas_diario_y_estado_de_resultados.sql`)
+> entrega el Estado de Resultados por unidad. (4) A medias: el sistema ya registra quién atendió
+> (`ventas.asesora_id`, ADR-0163), pero todavía no muestra quién vende más ni qué vende cada una (ver R-17).
+> Sigue sin resolver: (3) un número único de «plata dormida en stock» y (5) inteligencia comercial de compras/
+> producción — ninguna decisión escrita los cierra todavía. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-42 · Ya se vende por redes y WhatsApp**, aunque no haya tienda online. *Dato duro.*
 
 > **Consecuencia de diseño, y es un problema de dato hoy:** esa venta a distancia
@@ -402,6 +549,16 @@ a los pocos días del mes siguiente sin esperarlo. *Decidido.*
 > Eso ensucia los dos números: la tienda parece vender más de lo que vende en mostrador, y
 > el canal online parece no existir. `movimientos.canal` ya acepta `tienda` y `online` y
 > **hoy siempre escribe `tienda`** — arreglarlo es barato y mejora el dato de inmediato.
+
+> **Actualización (2026-09-25, consulta en vivo y `supabase/unificacion/`):** la columna `canal` que describe este
+> párrafo **existió**: la creó la unificación con Dynamic (`supabase/unificacion/05_operacion.sql:209`, julio 2026) y
+> `registrar_venta` la llenaba siempre con `'tienda'` (`supabase/unificacion/34_idempotencia_registrar_venta.sql:175-176`,
+> aplicado en producción el 2026-09-10). El corte V1→V2 (`0af2f1b`, 2026-09-12) rehízo `movimientos` sin ella: hoy
+> `retail.movimientos` tiene 22 columnas y ninguna `canal` (consulta en vivo, 2026-09-25). Queda como código muerto en
+> `packages/shared/src/enums.ts` (`CANALES_VENTA`) y en `schemas.ts` (`movimientoInputSchema.canal`). El problema de
+> fondo sigue intacto —no hay forma de distinguir una venta de redes o WhatsApp de una de mostrador— y resolverlo
+> significa volver a agregar la columna a la tabla V2 y decidir quién la escribe. *El texto de arriba se conserva
+> como quedó el 2026-09-12.*
 
 **R-43 · La tienda online va dentro del próximo año**, pero después de que la física
 funcione impecable. *Decidido.*
@@ -416,6 +573,23 @@ funcione impecable. *Decidido.*
 | **Las 6 de solo texto** | Corregidas el 2026-09-12 |
 | **P-18 · Depreciación** | **Construirla.** Hay 39 activos cargados y el resultado por sede está inflado sin ella |
 | **P-19 · `producto_atributos`** | **Se queda, pero nadie la escribe a mano**: los atributos los propone el importador y la persona confirma (patrón de ADR-0073). Empezar con 2-3 atributos que muevan decisiones, no con 8 |
+
+> **Actualización (2026-09-25, `supabase/migrations/20260925000000_finanzas_activos_fijos_y_gastos_fijos.sql`, en
+> producción):** la fila «P-18 · Depreciación» de arriba ya está construida, no solo decidida. `fn_meses_depreciados`
+> calcula la depreciación en línea recta desde el mes siguiente a la compra, y se suma como gasto de la cuenta 681
+> dentro del Estado de Resultados por sede (ADR-0195 F5). La pantalla ya existe (`apps/web/app/(app)/finanzas/gastos/page.tsx`,
+> pestaña de activos). *La fila de la tabla se conserva tal como quedó el 2026-09-12.*
+
+> **Actualización (2026-09-25, consulta en vivo a producción y `docs/BACKLOG.md`):** sobre la fila «Orden de
+> arreglo»: los miles de ventas que llegó a tener producción eran una demo de 90 días, retirada el 2026-09-24
+> (`scripts/demo/deshacer-90-dias.sql`). La operación real recién empieza (4 ventas y 79 movimientos al 2026-09-25),
+> así que la ventana barata sigue abierta, pero se cierra con cada día de tienda en vivo. *La fila se conserva tal
+> como quedó el 2026-09-12.*
+
+> **Actualización (2026-09-25, verificado en el repo y en producción):** sobre la fila «P-19»: hoy no existe ni el
+> importador (ADR-0073 da el diseño; el código se borró en el corte a V2 del 2026-09-12) ni la tabla
+> `producto_atributos` en producción. La decisión sigue en pie, pero no tiene hoy dónde aplicarse. *La fila se
+> conserva tal como quedó el 2026-09-12.*
 
 ---
 
@@ -432,6 +606,17 @@ funcione impecable. *Decidido.*
 > razonable con un equipo de seis donde todos se conocen. **El control es posterior:**
 > queda anotado quién creó cada proveedor y cuándo, y eso solo sirve si alguien mira ese
 > registro de vez en cuando. Conviene revisarlo el día que el equipo crezca.
+
+> **Actualización (2026-09-25, ADR-0161 «Roles por módulo», sección P3 — migración
+> `20260923140000_modulos_seis_decisiones.sql`, pegada en producción el 2026-09-23):** el texto de arriba queda
+> desactualizado, pero **no en el sentido de que ahora sea «solo del líder»**. Dar de alta, editar y archivar un
+> proveedor dejó de exigir `fn_es_lider()` y pasó a exigir `fn_puede_gestionar_proveedores()`: **líder, o cualquier
+> rol al que el líder le encienda el módulo «Proveedores»** (grupo Compras) en Colaboradores ▸ Roles y accesos —
+> permiso hoy **independiente** de si ese rol también puede pagar. Por decisión de Felipe, la **Terminal Almacén**
+> —que no es líder— ya tiene el módulo Proveedores y por tanto da de alta, edita y archiva proveedores. El riesgo que
+> esta regla dejaba «escrito, no resuelto» sigue abierto y ahora es más amplio: ya no depende de un único rol fijo,
+> sino de a quién el líder le prenda el módulo Proveedores. *El texto de arriba se conserva como quedó el
+> 2026-09-12.*
 
 **R-45 · El descuento va escalonado, con tres candados.** *Decidido, afinado sobre la
 propuesta de Felipe.*
@@ -453,6 +638,20 @@ Y dos reglas que van encima del porcentaje:
    margen se fue por cada motivo**. Eso convierte el descuento de una fuga invisible en
    una decisión que se mide.
 
+> **Actualización (2026-09-25, `supabase/migrations/20260915140000_descuento_motivo_y_escalonado.sql:27` y D-67 en
+> `DECISIONES-2026-09-21-menu-comercial.md`; y `20260925230000_argumento_descuento_desde_15.sql`):** la tabla de
+> arriba ya no es la regla vigente. **Desde el 2026-09-25, por decisión de Felipe, todo descuento manual que pase el
+> 15% pide un argumento escrito, lo aplique quien lo aplique** (antes: solo a un líder y pasado el 20%); las líneas
+> de campaña no lo piden. Y la fila «Más de 35% → lo autoriza Felipe» tampoco es así. Desde el
+> 2026-09-15, por decisión explícita de Felipe, **la base no autoriza un descuento mayor a 35% para nadie, ni
+> siquiera para Felipe** (la razón de entonces: la base solo distinguía líder de colaborador; desde el 2026-09-23
+> sí distingue al Admin con `fn_es_admin()`, ADR-0178, pero la regla de más de 35% no se volvió a revisar); superarlo de verdad se resuelve fuera del sistema, en Studio, igual que los códigos de descuento. Además,
+> desde el 2026-09-22 (D-67) existe un segundo candado, a nivel de VENTA y no de línea: `colaboradores.tope_descuento_pct`
+> (10% por defecto para cada colaboradora, sin tope para el líder), que exige autorización de un líder activo para
+> superarse. **Los dos mecanismos conviven hoy sin validarse entre sí y el mostrador todavía no manda ese segundo
+> parámetro** — sigue siendo una decisión de negocio pendiente. *El texto de arriba se conserva como quedó el
+> 2026-09-12.*
+
 **R-46 · Anular una venta o un comprobante: la líder de equipo, el mismo día.**
 *Decidido.* Después ya no.
 
@@ -469,6 +668,13 @@ Y dos reglas que van encima del porcentaje:
 > hoy es **texto libre sin lista cerrada** (ver `01-INVARIANTES.md`): para que esto sirva
 > de verdad, el motivo de un ajuste debería salir de una lista, igual que R-45.
 
+> **Actualización (2026-09-25, `apps/web/components/AjustarInventarioModal.tsx:25-30`, desde 2026-09-15):** la
+> pantalla de ajuste ya no ofrece texto libre para el motivo: el desplegable «Elegir motivo» limita a una lista
+> cerrada (`reposicion`, `merma`, `conteo_fisico`, `otro`), tal como pedía esta regla. Lo que sigue pendiente es la
+> otra mitad: `movimientos.motivo` en la base sigue sin un `check` y `registrar_movimiento` acepta cualquier texto en
+> `p_motivo` — el candado real está solo en la pantalla, no en la base. *El texto de arriba se conserva como quedó
+> el 2026-09-12.*
+
 **R-48 · Cada líder ve solo su sede.** *Decidido.* Ni las ventas ni los números de las
 otras tiendas.
 
@@ -483,6 +689,12 @@ otras tiendas.
 > Pero si alguna vez se decide que pueda consultar el stock de las otras, que sea una
 > decisión y no un efecto secundario de construir los traslados.
 
+> **Actualización (2026-09-25, D-69 en `DECISIONES-2026-09-21-menu-comercial.md`):** el alcance del líder ya no es
+> «solo su sede» a secas. Felipe decidió (2026-09-21) que sea **su sede, más las que él le asigne** (resuelve
+> R-48/D-14, pendiente desde ADR-0143), a aplicarse después de la salida en TRU. **A la fecha de esta nota sigue sin
+> construirse:** hoy los 8 líderes (verificado el 2026-09-25) tienen alcance global y ninguno está asignado a una tienda (ADR-0143), y
+> `docs/BACKLOG.md` registra a D-69 como pendiente. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-49 · Una persona cesada deja de entrar, sola.** *Decidido.* Si en el sistema de
 personal figura cesada, no entra a retail.
 
@@ -492,6 +704,15 @@ personal figura cesada, no entra a retail.
 > de baja en RR.HH. **sigue pudiendo vender y cerrar caja** mientras exista su cuenta.
 > El arreglo son unas tres líneas: leer `estado` y negar el acceso si no es `activo`.
 > No hace falta construir nada nuevo ni amarrar los sistemas: ya están amarrados.
+
+> **Actualización (2026-09-25, `supabase/migrations/0009_integracion_dynamic.sql` y
+> `supabase/migrations/20260923120100_ubicacion_de_lideres.sql`):** el arreglo de tres líneas que pedía esta nota ya
+> se hizo, y por otro camino. `retail.personas` se borró sin reemplazo el 2026-09-12; hoy la identidad vive en
+> `public.personas` (Dynamic) y `apps/web/lib/persona.ts` fue reemplazado por `apps/web/lib/persona-actual.ts`. Su
+> función `fn_persona_actual_resumen()` (última versión: `20260923120100_ubicacion_de_lideres.sql`) ya exige
+> `p.estado = 'activo'` sobre `public.personas` **y** `c.estado = 'activo'` sobre `retail.colaboradores`: una
+> colaboradora cesada en RR.HH. no obtiene fila y `requirePersonaActualV2()` la manda a `/login`. *El texto de
+> arriba se conserva como quedó el 2026-09-12.*
 
 ---
 
@@ -525,6 +746,16 @@ excelente idea.*
 > (ADR-0010), así que esta pantalla no se va a poder probar entera en local. Conviene
 > saberlo antes de empezarla y no descubrirlo a mitad.
 
+> **Actualización (2026-09-25):** la tabla `depositos_bancarios` no existe — era de V1, borrada el 2026-09-12
+> (ADR-0056). Hoy un depósito bancario se registra por tres caminos vivos, y ninguno cierra el hueco de arriba del
+> todo: (a) **con la caja abierta**, «Depósito bancario» como egreso en `retail.caja_movimientos` (ADR-0056), donde la
+> pantalla sí exige el N.º de operación (`apps/web/lib/caja-panel-reglas.ts`, `referenciaObligatoria`); (b) **al
+> cerrar caja** (`cerrar_caja`, traslado con destino `'banco'`), una fila en `retail.caja_traslados` (ADR-0186), con
+> la referencia opcional desde el 2026-09-23 (`20260923233000_caja_deposito_sin_numero_de_operacion.sql`); y (c)
+> **desde Cuentas y dinero**, una fila en `retail.movimientos_dinero` con `tipo = 'deposito'` (ADR-0195 F3). En los
+> tres el número vive en un texto libre (`referencia`), sin columna propia, y **en ninguno se puede subir la foto del
+> voucher**. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 **R-51 · Lo que CAYLA compra no son tres rubros, son cinco.** *Dato duro.* Además de
 mercadería para vender, insumos del taller y servicios de terceros:
 
@@ -550,6 +781,13 @@ sin rodeos. Sus quejas, textuales, son requisitos en negativo:
 | **Los reportes no sirven o no se entienden** | Sabe facturar y no dice cómo va el negocio. Es lo que ataca R-41 |
 | **Tiene varios bugs** | Pendiente: Felipe pidió mirar foros y comentarios reales de usuarios para sacar la lista concreta. **No se ha hecho** |
 
+> **Actualización (2026-09-25, D-62 en `docs/datos/DECISIONES-2026-09-21-menu-comercial.md` + ADR-0153 + ADR-0163):**
+> desde el 2026-09-22 `retail.ventas.asesora_id` guarda quién atendió la venta, y `fn_asesoras_de_turno` arma la
+> lista desde la asistencia real de Dynamic. La fila de arriba («no deja registrar los asesores... hoy no se sabe
+> quién vendió qué») ya no es cierta en el sentido estricto: el dato de quién atendió existe y se captura en cada
+> venta. Lo que sigue sin construirse es lo que se arma encima de ese dato — comisiones, ranking por asesora —, no
+> la captura misma. *El texto de arriba se conserva como quedó el 2026-09-12.*
+
 > **Por qué esto vale como documento:** un sistema que la gente esquiva no falla por
 > falta de funciones, falla por fricción. Esta tabla es la lista de fricciones que ya
 > sabemos que existen — y que ya le costaron a CAYLA ventas sin facturar en hora punta
@@ -563,6 +801,14 @@ sugiera **por campañas**, y usando **la demanda y la velocidad de rotación**.
 > talla y color, y producción tiene 28 movimientos y 2 ventas. **No se construye antes
 > del censo; se construye después.** Ponerlo antes daría sugerencias inventadas, que es
 > peor que no dar ninguna.
+
+> **Actualización (2026-09-25, consulta en vivo a producción y `docs/BACKLOG.md`, demo de 90 días):** la
+> precondición **todavía no se cumple**. El volcado del 2026-09-23 (`docs/datos/generado/retail_filas.json`) mostraba
+> miles de ventas y movimientos, pero eran una **demo sembrada de 90 días**, que se retiró el 2026-09-24 con
+> `scripts/demo/deshacer-90-dias.sql`. Al 2026-09-25 producción tiene 4 ventas, 79 movimientos y 9 productos
+> reales: no hay todavía historial de ventas por talla y color que sostenga una sugerencia. Tampoco existe la
+> función: no hay RPC, tabla ni pantalla de «presupuesto abierto de compra» en el repo. *El texto de arriba se
+> conserva como quedó el 2026-09-12.*
 
 ---
 
