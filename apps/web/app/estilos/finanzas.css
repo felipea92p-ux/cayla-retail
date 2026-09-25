@@ -886,3 +886,186 @@
     min-width: 150px;
   }
 }
+
+/* ---- F5 ---- Reportes: Estado de resultados (tabla `eerr` del spike) y Campañas (gráfico de barras, dos columnas). */
+@layer components {
+  /* El cuadro del estado de resultados: conceptos en filas, unidades en columnas, CAYLA sombreado al final. */
+  .fin-eerr {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-eerr th {
+    padding: 10px 14px;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--color-taupe);
+    text-align: right;
+    white-space: nowrap;
+    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+    vertical-align: bottom;
+  }
+  .fin-eerr th:first-child,
+  .fin-eerr td:first-child {
+    text-align: left;
+  }
+  .fin-eerr td {
+    padding: 8px 14px;
+    text-align: right;
+    border-top: 1px solid var(--color-sand);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-eerr td.fin-eerr-cta {
+    width: 44px;
+    text-align: left;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-eerr td.fin-eerr-vacia {
+    color: var(--color-taupe);
+  }
+  .fin-eerr td.fin-eerr-neg {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-eerr button.fin-eerr-celda {
+    all: unset;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .fin-eerr td:has(> button.fin-eerr-celda):hover {
+    background: var(--color-hueso);
+  }
+  .fin-eerr button.fin-eerr-celda:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  .fin-eerr tr.fin-eerr-sub td {
+    font-weight: 600;
+    color: var(--color-taupe);
+    background: color-mix(in oklab, var(--color-hueso) 55%, transparent);
+  }
+  .fin-eerr tr.fin-eerr-total td {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    border-top: 2px solid var(--color-tinta);
+  }
+  .fin-eerr tr.fin-eerr-pct td {
+    padding-top: 0;
+    border-top: 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-eerr .fin-eerr-cons {
+    background: color-mix(in oklab, var(--color-sand) 35%, transparent);
+  }
+  .fin-eerr tr.fin-eerr-sub td.fin-eerr-cons {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+  }
+  /* La línea chica bajo una cifra o un encabezado («+S/ 1,200 vs ago.», «a la fecha»). */
+  .fin-delta {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+
+  /* Dos columnas del spike: `par` iguales; `der` la derecha más ancha. */
+  .fin-dos-col.fin-der {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  }
+
+  /* La columna del nombre de una tabla ancha (la campaña): no se parte en tres líneas. */
+  .fin-tabla th.fin-col-nombre {
+    min-width: 180px;
+  }
+  /* Una tabla con encabezados largos («Para ganar lo mismo, vender»): el encabezado se parte en dos líneas y la tabla
+     entra entera en la tarjeta, con el veredicto a la vista. */
+  .fin-tabla-envuelve th {
+    white-space: normal;
+    vertical-align: bottom;
+  }
+
+  /* Avisos del reporte: una línea por aviso, con su chip. */
+  .fin-avisos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-avisos li {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  /* Gráfico de barras de una serie (spike `barras()`): tinta; el rojo solo marca una pérdida, con su etiqueta. */
+  .fin-grafico {
+    position: relative;
+  }
+  .fin-grafico svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .fin-grafico-barra path {
+    fill: var(--color-tinta);
+    transition: opacity 150ms;
+  }
+  .fin-grafico-barra.fin-grafico-mala path {
+    fill: var(--color-rojo);
+  }
+  .fin-grafico-barra:hover path,
+  .fin-grafico-barra:focus path {
+    opacity: 0.8;
+  }
+  .fin-grafico-barra:focus {
+    outline: none;
+  }
+  .fin-grafico text {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    fill: var(--color-tinta);
+  }
+  .fin-grafico text.fin-grafico-eje {
+    font-size: 11px;
+    fill: var(--color-taupe);
+  }
+  .fin-grafico-mala text.fin-grafico-valor {
+    fill: var(--color-rojo-profundo);
+  }
+  .fin-grafico-base {
+    stroke: var(--color-sand);
+    stroke-width: 1;
+  }
+  .fin-grafico-umbral {
+    stroke: var(--color-taupe);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .fin-grafico-leyenda {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-grafico-leyenda i {
+    width: 22px;
+    border-top: 1px dashed var(--color-taupe);
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-der {
+      grid-template-columns: 1fr;
+    }
+  }
+}
