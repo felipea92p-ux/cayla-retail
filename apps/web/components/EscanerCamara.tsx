@@ -101,7 +101,7 @@ function Miniatura({ prenda, lado }: { prenda: ResultadoEscaneo["prenda"]; lado:
 type Lectura = ResultadoEscaneo & { id: number };
 
 /** El estado de una lectura que no entró, en dos o tres palabras (la etiqueta ámbar de la fila y de la tarjeta). */
-const ESTADO_CORTO = { agotada: "Agotada aquí", tope: "Sin más stock", "no-encontrada": "No es de esta tienda" } as const;
+const ESTADO_CORTO = { agotada: "Agotada aquí", apartada: "Apartada aquí", tope: "Sin más stock", "no-encontrada": "No es de esta tienda" } as const;
 /** La segunda línea de una prenda leída: color · talla, o el código si no es de ninguna prenda. */
 const detalleDe = (l: ResultadoEscaneo) => l.prenda?.detalle || `Código ${l.codigo}`;
 

@@ -14,7 +14,7 @@ export const MQ_TELEFONO = "(pointer: coarse) and (max-width: 639.98px), (pointe
  *  una segunda unidad de la misma prenda basta con sacarla del cuadro y volver a mostrarla. */
 export const PAUSA_MISMO_CODIGO_MS = 2000;
 
-export type EstadoEscaneo = "agregada" | "agotada" | "tope" | "no-encontrada";
+export type EstadoEscaneo = "agregada" | "agotada" | "apartada" | "tope" | "no-encontrada";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -73,6 +73,8 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
       return { tono: "verde", texto: `${r.nombre ?? r.codigo} · al ticket` };
     case "agotada":
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está agotada aquí` };
+    case "apartada":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está apartada para una clienta` };
     case "tope":
       return { tono: "ambar", texto: `Ya están todas las ${r.nombre ?? r.codigo} en el ticket` };
     case "no-encontrada":

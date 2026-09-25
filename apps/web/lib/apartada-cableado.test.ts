@@ -52,6 +52,11 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
     patron: /avisoSinStockAqui\(\s*nombreVariante\s*,\s*v\s*,\s*ubicacionEtiqueta\s*\)/,
   },
   {
+    archivo: "components/PuntoDeVenta.tsx",
+    cable: "la cámara (`alEscanear`) dice «apartada» y no «agotada» si lo que falta en el piso es de una clienta",
+    patron: /resultado === "agotada" && sinStockPorApartado\(v\) \? "apartada" : resultado/,
+  },
+  {
     archivo: "components/PuntoDeVentaCatalogo.tsx",
     cable: "la fila del buscador dice `textoSinStock(v, …)`",
     patron: /v\.stockAqui <= 0 \? textoSinStock\(v,\s*"sin stock aquí"\)/,

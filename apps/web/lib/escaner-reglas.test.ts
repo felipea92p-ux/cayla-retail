@@ -24,6 +24,8 @@ describe("escaner-reglas", () => {
   it("dice qué pasó con cada lectura", () => {
     expect(mensajeEscaneo({ estado: "agregada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "verde", texto: "Blusa Emma · M · al ticket" });
     expect(mensajeEscaneo({ estado: "agotada", codigo: "C1", nombre: "Blusa Emma · M" }).tono).toBe("ambar");
+    // Apartada para una clienta no es agotada: la que escanea no debe creer que no hay ninguna.
+    expect(mensajeEscaneo({ estado: "apartada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "ambar", texto: "Blusa Emma · M está apartada para una clienta" });
     expect(mensajeEscaneo({ estado: "tope", codigo: "C1", nombre: "Blusa Emma · M" }).texto).toContain("Ya están todas");
     expect(mensajeEscaneo({ estado: "no-encontrada", codigo: "XYZ" }).texto).toBe("No encontramos «XYZ» en esta tienda");
   });

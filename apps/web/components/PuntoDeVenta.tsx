@@ -30,6 +30,7 @@ import {
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
   avisoSinStockAqui,
+  sinStockPorApartado,
   vueltoDe,
   conDescuentoDeCampana,
   type CampanaLinea,
@@ -653,7 +654,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!v) return { estado: "no-encontrada", codigo };
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
-    return { estado: agregar(v, { silencioso: true }) ?? "agotada", codigo, nombre, prenda };
+    const resultado = agregar(v, { silencioso: true }) ?? "agotada";
+    // Mismo criterio que el aviso del ticket (`avisoSinStockAqui`): si lo que falta en el piso es de una clienta, la cámara
+    // dice «apartada», no «agotada» (una colaboradora que escanea no debe creer que no hay ninguna).
+    const estado = resultado === "agotada" && sinStockPorApartado(v) ? "apartada" : resultado;
+    return { estado, codigo, nombre, prenda };
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
