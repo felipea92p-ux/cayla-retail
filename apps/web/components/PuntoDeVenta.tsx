@@ -58,7 +58,7 @@ import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
 import { avisoSinPiso, avisoTope, conAlmacenAjustado, conStockAjustado, descontarVendido, motivoNoCobrable } from "@/lib/vender-stock-local";
-import { leerStockDeSede, useStockEnVivo } from "@/lib/useStockEnVivo";
+import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -511,15 +511,16 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
 
   /** Relee de la base lo cobrable AQUÍ de unas prendas (lectura directa de `stock`, la misma de
    *  `getDisponibleEnSede` pero solo de esas filas; un GET no enciende el loader) y lo deja en pantalla.
-   *  Sin `ids`, relee TODA la sede — la usa el sondeo de stock en vivo, de abajo. Devuelve lo releído, o null
-   *  si no se pudo: la pantalla se queda con lo que ya mostraba. */
-  async function releerStock(ids?: string[]): Promise<Map<string, number> | null> {
+   *  Sin `ids`, relee TODA la sede — la usa el sondeo de stock en vivo, de abajo. Devuelve lo releído (piso Y
+   *  almacén: quien arma un aviso en el mismo instante no puede esperar a que el estado se pinte), o null si no se
+   *  pudo: la pantalla se queda con lo que ya mostraba. */
+  async function releerStock(ids?: string[]): Promise<StockReleido | null> {
     const conocidos = variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId);
     const releido = await leerStockDeSede(ubicacionId, conocidos, ids);
     if (!releido) return null;
     setAjustesStock((prev) => new Map([...prev, ...releido.cobrable]));
     setAjustesAlmacen((prev) => new Map([...prev, ...releido.almacen]));
-    return releido.cobrable;
+    return releido;
   }
 
   /**
@@ -1047,10 +1048,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       // falla, se usa lo que la pantalla ya sabía.
       const releido = porStock ? await releerStock(carrito.map((it) => it.varianteId)) : null;
       const quedan = (id: string) => {
-        const base = releido?.get(id) ?? variantesConOverlay.find((x) => x.varianteId === id)?.stockAqui;
+        const base = releido?.cobrable.get(id) ?? variantesConOverlay.find((x) => x.varianteId === id)?.stockAqui;
         if (base === undefined) return undefined;
         // Lo releído viene de la base, sin la cola sin conexión: se le descuenta igual que el overlay.
-        return releido?.has(id) ? Math.max(0, base - (stockComprometido(cola).get(id) ?? 0)) : base;
+        return releido?.cobrable.has(id) ? Math.max(0, base - (stockComprometido(cola).get(id) ?? 0)) : base;
       };
       const cortas = porStock
         ? carrito.filter((it) => {
