@@ -114,7 +114,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     else if (p.estado !== "vigente") avisoProforma = `${numeroDeProforma(p.numero)} ya no está vigente (está ${p.estado}).`;
     else if (p.ubicacion_id !== persona.ubicacionId) avisoProforma = `${numeroDeProforma(p.numero)} es de otra tienda: cóbrala desde esa sede.`;
     else {
-      const { lineas, faltan, faltanEnAlmacen } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
+      const { lineas, faltan, faltanEnAlmacen, prometidas } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
       proformaEnCobro = {
         id: p.id,
         numero: numeroDeProforma(p.numero),
@@ -123,6 +123,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
         lineas,
         faltan,
         faltanEnAlmacen,
+        prometidas,
         confirmacion: confirmacionDeConversion(p, ahora),
       };
     }

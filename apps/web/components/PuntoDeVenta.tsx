@@ -69,6 +69,7 @@ import {
   motivoNoCobrable,
 } from "@/lib/vender-stock-local";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
+import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -231,6 +232,9 @@ export type ProformaEnCobro = {
   faltan: string[];
   /** Algo de lo que falta está en el almacén de esta tienda: el aviso dice que lo bajen (D-40). */
   faltanEnAlmacen?: boolean;
+  /** Cada prenda de la proforma con el cobro prometido, haya entrado o no (`lineasDelCarritoDesdeProforma`): la que se
+   *  suma después —la bajaron del almacén, o se quitó y se volvió a escanear— entra a ese precio, no al de etiqueta. */
+  prometidas?: ItemCarrito[];
   /** Si venció: el texto de la confirmación consciente (`confirmacionDeConversion`); null si sigue valiendo. */
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
@@ -645,6 +649,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       if (!existente) capturarFlip();
       setCarrito((actual) => {
         const ya = actual.find((it) => it.claveLinea === v.varianteId);
+        // Una prenda de la proforma en cobro entra al precio prometido aunque no haya entrado al cargarla (estaba en el
+        // almacén y la bajaron): a precio de etiqueta, la venta cobraba de más lo cotizado.
+        const prometida = ya ? undefined : proformaActiva?.prometidas?.find((p) => p.varianteId === v.varianteId);
+        if (prometida) return [...actual, { ...prometida, cantidad: 1, stockAqui: v.stockAqui }];
         if (!ya) {
           // Una prenda con campaña vigente entra con su descuento ya aplicado.
           return [
@@ -910,17 +918,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (avisadoProforma.current) return;
     avisadoProforma.current = true;
     if (avisoProforma) avisar.aviso(avisoProforma);
-    if (proforma && proforma.faltan.length > 0) {
-      // Al ticket entra solo lo del piso (la venta descuenta el piso). Si algo de lo que falta está en el almacén de esta
-      // tienda, se dice qué hacer en vez de dejarlo como «no hay» (D-40).
-      avisar.aviso(`No todo lo de ${proforma.numero} entró al ticket`, {
-        detalle: `${proforma.faltan.join("; ")}. ${
-          proforma.faltanEnAlmacen
-            ? "Al ticket entra solo lo del piso: pide que bajen lo del almacén y agrégalo."
-            : "En el piso de esta tienda no hay (o no alcanza)."
-        }`,
-      });
-    }
+    // Al ticket entra solo lo del piso (la venta descuenta el piso). Cada prenda que falta lleva su razón, y lo del
+    // almacén dice qué hacer y que entra al precio de la proforma (D-40, `avisoFaltanDeProforma`).
+    const faltantes = proforma ? avisoFaltanDeProforma(proforma) : null;
+    if (faltantes) avisar.aviso(faltantes.titulo, { detalle: faltantes.detalle });
   }, [avisoProforma, proforma]);
 
   function soltarProforma() {
