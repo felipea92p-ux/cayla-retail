@@ -29,11 +29,74 @@ export function almacenDeLaSede(c: Cantidades | undefined): number | null {
   return c?.almacenDisponible ?? null;
 }
 
+// --- «Agotada» o «está en el almacén» (D-40) ---------------------------------------------------------------------
+// La caja solo cobra del PISO, pero con el piso en 0 y la prenda guardada en el almacén de la MISMA tienda, decir
+// «agotada» hacía que la colaboradora le dijera «no hay» a una clienta con la prenda a unos metros. D-40: lo del
+// almacén se puede vender y la caja no se frena por un trámite. Mientras bajar al piso siga siendo un paso aparte, la
+// caja no cobra del almacén (registrar_venta descuenta el piso): lo dice, y dice qué hacer.
+
+/** Qué puede hacer la caja con una prenda AHORA: cobrarla (hay en el piso), pedir que la bajen (el piso está en 0 y
+ *  hay en el almacén de esta sede) o nada (no hay ni en el piso ni en el almacén). Sin `almacenAqui` (Taller, o quien
+ *  arme variantes sin ese dato) se comporta como antes: con el piso en 0, agotada. */
+export type MotivoCaja = "cobrable" | "en_almacen" | "agotada";
+
+export function motivoNoCobrable({ stockAqui, almacenAqui }: { stockAqui: number; almacenAqui?: number | null }): MotivoCaja {
+  if (stockAqui > 0) return "cobrable";
+  return (almacenAqui ?? 0) > 0 ? "en_almacen" : "agotada";
+}
+
+/** Lo que el aviso necesita saber: el nombre que se lee («Blusa Paracas · M»), la sede y lo que hay en cada lado. */
+export type DatosAvisoStock = { nombre: string; sede: string; stockAqui: number; almacenAqui?: number | null };
+export type AvisoStock = { titulo: string; detalle: string };
+
+/** El aviso cuando una prenda no entra al ticket porque en el piso no hay: dice DÓNDE está y QUÉ hacer, en palabras
+ *  de una colaboradora que no conoce el sistema. En el Taller (sin almacén) se queda como siempre. */
+export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui }: DatosAvisoStock): AvisoStock {
+  if (motivoNoCobrable({ stockAqui, almacenAqui }) === "en_almacen") {
+    return {
+      titulo: `${nombre} está en el almacén`,
+      detalle: `En el piso no hay, pero hay ${almacenAqui} en el almacén de ${sede}. Pide que la bajen al piso para cobrarla.`,
+    };
+  }
+  return {
+    titulo: `${nombre} está agotada`,
+    // Con almacén en 0 se dice que tampoco hay ahí: así nadie va a buscarla en vano.
+    detalle: almacenAqui == null ? `No hay stock en ${sede}.` : `No hay en el piso ni en el almacén de ${sede}.`,
+  };
+}
+
+/** El aviso cuando ya están en el ticket todas las del piso («tope»). `quedoEn`: la cantidad se escribió a mano en el
+ *  ticket y se recortó a lo que hay. Si en el almacén hay más, lo dice: la clienta que quiere dos no se va con una. */
+export function avisoTope({ nombre, sede, stockAqui, almacenAqui, quedoEn = false }: DatosAvisoStock & { quedoEn?: boolean }): AvisoStock {
+  const enAlmacen = almacenAqui ?? 0;
+  if (enAlmacen > 0) {
+    const delPiso = quedoEn
+      ? `En el piso quedan ${stockAqui}; la cantidad quedó en ${stockAqui}.`
+      : stockAqui === 1
+        ? "La del piso ya está en el ticket."
+        : `Las ${stockAqui} del piso ya están en el ticket.`;
+    const pedir = enAlmacen === 1 ? "pide que la bajen" : "pide que bajen las que necesites";
+    return { titulo: `No hay más de ${nombre} en el piso`, detalle: `${delPiso} Hay ${enAlmacen} más en el almacén de ${sede}: ${pedir}.` };
+  }
+  return {
+    titulo: `No hay más de ${nombre}`,
+    detalle: quedoEn ? `En ${sede} quedan ${stockAqui}; la cantidad quedó en ${stockAqui}.` : `En ${sede} quedan ${stockAqui} y ya están todas en el ticket.`,
+  };
+}
+
 /** Stock de la caja corregido: `ajustes` pisa `stockAqui` de las prendas que se vendieron o releyeron en esta
  *  pantalla. Devuelve el MISMO arreglo si no hay nada que corregir (los `useMemo` de abajo no se recalculan). */
 export function conStockAjustado<V extends { varianteId: string; stockAqui: number }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {
   if (ajustes.size === 0) return variantes;
   return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, stockAqui: ajustes.get(v.varianteId)! } : v));
+}
+
+/** El almacén de la caja corregido con lo que se RELEYÓ de la base (el sondeo en vivo o la relectura tras vender).
+ *  Separado de `conStockAjustado` a propósito: una venta descuenta el piso y nunca toca el almacén, así que aquí no
+ *  entra nada de `descontarVendido`. Mismo contrato: sin ajustes, el MISMO arreglo. */
+export function conAlmacenAjustado<V extends { varianteId: string; almacenAqui?: number | null }>(variantes: V[], ajustes: ReadonlyMap<string, number | null>): V[] {
+  if (ajustes.size === 0) return variantes;
+  return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, almacenAqui: ajustes.get(v.varianteId) ?? null } : v));
 }
 
 /** Descuenta lo vendido del stock que la pantalla muestra, sin bajar de 0. Parte de `stockActual` (lo que se ve

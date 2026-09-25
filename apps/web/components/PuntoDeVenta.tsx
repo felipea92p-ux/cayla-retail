@@ -57,7 +57,7 @@ import { EscanerCamara } from "@/components/EscanerCamara";
 import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
-import { conStockAjustado, descontarVendido } from "@/lib/vender-stock-local";
+import { avisoSinPiso, avisoTope, conAlmacenAjustado, conStockAjustado, descontarVendido, motivoNoCobrable } from "@/lib/vender-stock-local";
 import { leerStockDeSede, useStockEnVivo } from "@/lib/useStockEnVivo";
 
 /**
@@ -84,6 +84,10 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  tiene foto todavía; la tarjeta cae a las iniciales de la prenda. */
   fotoUrl: string | null;
   stockAqui: number;
+  /** Lo que hay en el ALMACÉN de esta misma sede, sin lo apartado (`almacenDeLaSede`). No se cobra desde la caja
+   *  —la venta descuenta el piso—, pero con el piso en 0 la caja dice «está en el almacén» en vez de «agotada» (D-40).
+   *  `null` sin almacén (Taller); ausente para quien arme variantes sin este dato: se comporta como antes. */
+  almacenAqui?: number | null;
   /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
    *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
    *  ver otras sedes. Opcional para no romper a quien arme variantes sin esta consulta. */
@@ -215,6 +219,8 @@ export type ProformaEnCobro = {
   lineas: ItemCarrito[];
   /** Lo que no entró al carrito (no hay en esta tienda o no alcanza), con nombre. */
   faltan: string[];
+  /** Algo de lo que falta está en el almacén de esta tienda: el aviso dice que lo bajen (D-40). */
+  faltanEnAlmacen?: boolean;
   /** Si venció: el texto de la confirmación consciente (`confirmacionDeConversion`); null si sigue valiendo. */
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
@@ -315,14 +321,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // pantalla entera (`router.refresh()`, ~10 lecturas y ~1 MB); ahora se descuenta lo vendido y se releen SOLO esas
   // prendas (`trasVender`). Si el servidor manda un catálogo nuevo (abrir/cerrar caja, cambiar de sede), manda él.
   const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  // El almacén de esta sede, releído de la base con las MISMAS lecturas (sondeo y relectura tras vender). Aparte de
+  // `ajustesStock` a propósito: una venta descuenta el piso y nunca el almacén, así que `descontarVendido` no lo toca.
+  // Sin releerlo, la caja diría «está en el almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar.
+  const [ajustesAlmacen, setAjustesAlmacen] = useState<Map<string, number | null>>(() => new Map());
   const [variantesPrevias, setVariantesPrevias] = useState(variantes);
   if (variantes !== variantesPrevias) {
     setVariantesPrevias(variantes);
     setAjustesStock(new Map());
+    setAjustesAlmacen(new Map());
   }
   // Sube tras cada venta: «Ventas de hoy» se relee sola (`VentasDeHoyLista`).
   const [versionVentas, setVersionVentas] = useState(0);
-  const variantesAjustadas = useMemo(() => conStockAjustado(variantes, ajustesStock), [variantes, ajustesStock]);
+  const variantesAjustadas = useMemo(
+    () => conStockAjustado(conAlmacenAjustado(variantes, ajustesAlmacen), ajustesStock),
+    [variantes, ajustesAlmacen, ajustesStock],
+  );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
 
@@ -342,10 +356,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     () => (categoria === "Todo" ? variantesVisibles : variantesVisibles.filter((v) => v.categoria === categoria)),
     [variantesVisibles, categoria]
   );
-  const { grupos, ocultasSinStock } = useMemo(() => {
+  const { grupos, ocultasSinStock, ocultasEnAlmacen } = useMemo(() => {
     const todos = agruparCatalogo(catalogo);
     const visibles = soloConStock ? todos.filter((g) => g.stockTotal > 0) : todos;
-    return { grupos: visibles, ocultasSinStock: todos.length - visibles.length };
+    // De las escondidas, las que tienen prendas en el almacén de esta sede no están agotadas (D-40): el contador lo dice.
+    const enAlmacen = soloConStock ? todos.filter((g) => g.stockTotal <= 0 && g.almacenTotal > 0).length : 0;
+    return { grupos: visibles, ocultasSinStock: todos.length - visibles.length, ocultasEnAlmacen: enAlmacen };
   }, [catalogo, soloConStock]);
   const grupoElegido = tarjetaElegida ? grupos.find((g) => g.clave === tarjetaElegida) : undefined;
   // Tarjeta que se tiñe de rojo un momento cuando se pide más de lo que hay. `pulso` sube en
@@ -502,6 +518,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     const releido = await leerStockDeSede(ubicacionId, conocidos, ids);
     if (!releido) return null;
     setAjustesStock((prev) => new Map([...prev, ...releido.cobrable]));
+    setAjustesAlmacen((prev) => new Map([...prev, ...releido.almacen]));
     return releido.cobrable;
   }
 
@@ -516,7 +533,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     ubicacionId,
     useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
     !bloqueado,
-    (releido) => setAjustesStock((prev) => new Map([...prev, ...releido])),
+    (releido, almacen) => {
+      setAjustesStock((prev) => new Map([...prev, ...releido]));
+      setAjustesAlmacen((prev) => new Map([...prev, ...almacen]));
+    },
   );
 
   /** Tras una venta que la base aceptó (en línea o al subir la cola): descuenta lo vendido al instante, relee esas
@@ -582,18 +602,25 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
   /** `silencioso`: la cámara (`EscanerCamara`) ya dice qué pasó en su tarjeta y su bandeja; el aviso de arriba a la derecha
    *  repetiría lo mismo tapándole la ✕. */
-  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "tope" | null {
+  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "tope" | null {
     if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
-    if (v.stockAqui <= 0) {
-      if (!silencioso) avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
+    const datosAviso = { nombre: nombreVariante, sede: ubicacionEtiqueta, stockAqui: v.stockAqui, almacenAqui: v.almacenAqui };
+    // Con el piso en 0 no entra al ticket (la venta descuenta el piso), pero no es lo mismo «agotada» que «está en el
+    // almacén de esta tienda»: el aviso dice cuál y qué hacer (D-40, `lib/vender-stock-local.ts`).
+    const motivo = motivoNoCobrable(v);
+    if (motivo !== "cobrable") {
+      if (!silencioso) {
+        const { titulo, detalle } = avisoSinPiso(datosAviso);
+        avisar.aviso(titulo, { detalle });
+      }
       setAviso(null);
       setQ("");
       setActivo(0);
       buscador.current?.focus();
-      return "agotada";
+      return motivo;
     }
     const existente = carrito.find((it) => it.claveLinea === v.varianteId);
     const tope = existente !== undefined && existente.cantidad >= v.stockAqui;
@@ -630,9 +657,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     }
     if (tope) {
       resaltarTope(v.varianteId);
-      if (!silencioso) avisar.aviso(`No hay más de ${nombreVariante}`, {
-        detalle: `En ${ubicacionEtiqueta} quedan ${v.stockAqui} y ya están todas en el ticket.`,
-      });
+      if (!silencioso) {
+        const { titulo, detalle } = avisoTope(datosAviso);
+        avisar.aviso(titulo, { detalle });
+      }
     }
     setAviso(null);
     setQ("");
@@ -648,7 +676,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!v) return { estado: "no-encontrada", codigo };
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
-    return { estado: agregar(v, { silencioso: true }) ?? "agotada", codigo, nombre, prenda };
+    return { estado: agregar(v, { silencioso: true }) ?? "agotada", codigo, nombre, prenda, almacen: v.almacenAqui };
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -692,9 +720,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     const cantidad = Math.max(1, Math.min(valor || 1, item.stockAqui));
     if (valor > item.stockAqui) {
       resaltarTope(item.varianteId);
-      avisar.aviso(`No hay más de ${item.referencia}`, {
-        detalle: `En ${ubicacionEtiqueta} quedan ${item.stockAqui}; la cantidad quedó en ${item.stockAqui}.`,
-      });
+      // El tope es el piso; si en el almacén hay más, el aviso lo dice (la línea del ticket no guarda el almacén: se
+      // mira en el catálogo de la caja, que está al día).
+      const almacenAqui = variantesConOverlay.find((x) => x.varianteId === item.varianteId)?.almacenAqui;
+      const { titulo, detalle } = avisoTope({ nombre: item.referencia, sede: ubicacionEtiqueta, stockAqui: item.stockAqui, almacenAqui, quedoEn: true });
+      avisar.aviso(titulo, { detalle });
     }
     setAviso(null);
     setCarrito((actual) => actual.map((it) => (it.claveLinea === claveLinea ? { ...it, cantidad } : it)));
@@ -846,7 +876,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     avisadoProforma.current = true;
     if (avisoProforma) avisar.aviso(avisoProforma);
     if (proforma && proforma.faltan.length > 0) {
-      avisar.aviso(`No todo lo de ${proforma.numero} entró al ticket`, { detalle: `${proforma.faltan.join("; ")}. En el piso de esta tienda no hay (o no alcanza); lo del almacén se repone antes de vender.` });
+      // Al ticket entra solo lo del piso (la venta descuenta el piso). Si algo de lo que falta está en el almacén de esta
+      // tienda, se dice qué hacer en vez de dejarlo como «no hay» (D-40).
+      avisar.aviso(`No todo lo de ${proforma.numero} entró al ticket`, {
+        detalle: `${proforma.faltan.join("; ")}. ${
+          proforma.faltanEnAlmacen
+            ? "Al ticket entra solo lo del piso: pide que bajen lo del almacén y agrégalo."
+            : "En el piso de esta tienda no hay (o no alcanza)."
+        }`,
+      });
     }
   }, [avisoProforma, proforma]);
 
@@ -1225,11 +1263,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             buscador.current?.focus();
           }}
           ocultasSinStock={ocultasSinStock}
+          ocultasEnAlmacen={ocultasEnAlmacen}
           topeTarjeta={topeTarjeta}
           onElegirTalla={(clave) => {
             // Con una sola talla vendible no hay nada que elegir: se agrega directo (Felipe,
             // 2026-09-18). El modal es para elegir, y solo se abre con 2+ tallas con stock —
-            // o con ninguna, donde sirve para decir dónde sí hay. Si esa única talla ya está
+            // o con ninguna, donde sirve para decir dónde sí hay (el almacén de esta sede u
+            // otra sede). Si esa única talla ya está
             // al tope en el ticket, `agregar()` avisa cuántas quedan.
             const vendibles = grupos.find((g) => g.clave === clave)?.tallas.filter((t) => t.stockAqui > 0) ?? [];
             if (vendibles.length === 1) agregar(vendibles[0].variante);

@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { almacenDeLaSede, almacenReleido, cantidadCobrable, conStockAjustado, conStockReleido, descontarVendido } from "./vender-stock-local";
+import {
+  almacenDeLaSede,
+  almacenReleido,
+  avisoSinPiso,
+  avisoTope,
+  cantidadCobrable,
+  conAlmacenAjustado,
+  conStockAjustado,
+  conStockReleido,
+  descontarVendido,
+  motivoNoCobrable,
+} from "./vender-stock-local";
 import { sumarCantidades } from "./inventario-reglas";
 
 const piso = (variante_id: string, cantidad: number, cantidad_apartada = 0) => ({ variante_id, cantidad, cantidad_apartada, sububicacion: { tipo: "piso_venta" } });
@@ -49,5 +60,78 @@ describe("stock de la caja tras vender", () => {
     const variantes = [{ varianteId: "a", stockAqui: 3 }, { varianteId: "b", stockAqui: 2 }];
     expect(conStockAjustado(variantes, new Map())).toBe(variantes);
     expect(conStockAjustado(variantes, new Map([["b", 0]]))).toEqual([{ varianteId: "a", stockAqui: 3 }, { varianteId: "b", stockAqui: 0 }]);
+  });
+
+  it("el almacén se corrige solo con lo releído, aparte del piso; sin ajustes, el mismo arreglo", () => {
+    const variantes = [{ varianteId: "a", stockAqui: 0, almacenAqui: 2 }, { varianteId: "b", stockAqui: 1, almacenAqui: null }];
+    expect(conAlmacenAjustado(variantes, new Map())).toBe(variantes);
+    // Se trasladó lo del almacén de «a»: queda en 0, y el piso no se toca.
+    expect(conAlmacenAjustado(variantes, new Map([["a", 0]]))).toEqual([{ varianteId: "a", stockAqui: 0, almacenAqui: 0 }, variantes[1]]);
+  });
+});
+
+// D-40: lo del almacén se puede vender y la caja no se frena por un trámite. Con el piso en 0 y la prenda en el almacén
+// de la MISMA tienda, la caja no dice «agotada»: dice dónde está y qué hacer.
+describe("¿agotada o en el almacén? (motivoNoCobrable)", () => {
+  it("hay en el piso: se cobra, haya o no en el almacén", () => {
+    expect(motivoNoCobrable({ stockAqui: 2, almacenAqui: 5 })).toBe("cobrable");
+    expect(motivoNoCobrable({ stockAqui: 1, almacenAqui: 0 })).toBe("cobrable");
+  });
+
+  it("solo en el almacén de esta sede: no entra al ticket, pero no está agotada", () => {
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: 2 })).toBe("en_almacen");
+  });
+
+  it("ni en el piso ni en el almacén: agotada", () => {
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: 0 })).toBe("agotada");
+  });
+
+  it("Taller (sin almacén) o sin el dato: como antes, con el piso en 0 está agotada", () => {
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: null })).toBe("agotada");
+    expect(motivoNoCobrable({ stockAqui: 0 })).toBe("agotada");
+    expect(motivoNoCobrable({ stockAqui: 3, almacenAqui: null })).toBe("cobrable");
+  });
+});
+
+describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () => {
+  const base = { nombre: "Blusa Paracas · M", sede: "Tienda TRU" };
+
+  it("en el almacén: cuántas hay y que la bajen", () => {
+    expect(avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2 })).toEqual({
+      titulo: "Blusa Paracas · M está en el almacén",
+      detalle: "En el piso no hay, pero hay 2 en el almacén de Tienda TRU. Pide que la bajen al piso para cobrarla.",
+    });
+  });
+
+  it("agotada: con almacén en 0 dice que tampoco hay ahí; en el Taller, como siempre", () => {
+    expect(avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 0 })).toEqual({
+      titulo: "Blusa Paracas · M está agotada",
+      detalle: "No hay en el piso ni en el almacén de Tienda TRU.",
+    });
+    expect(avisoSinPiso({ ...base, sede: "Taller", stockAqui: 0, almacenAqui: null })).toEqual({
+      titulo: "Blusa Paracas · M está agotada",
+      detalle: "No hay stock en Taller.",
+    });
+  });
+
+  it("tope sin almacén: el aviso de siempre", () => {
+    expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 0 })).toEqual({
+      titulo: "No hay más de Blusa Paracas · M",
+      detalle: "En Tienda TRU quedan 2 y ya están todas en el ticket.",
+    });
+    expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: null, quedoEn: true }).detalle).toBe("En Tienda TRU quedan 2; la cantidad quedó en 2.");
+  });
+
+  it("tope con más en el almacén: lo dice, con singular y plural", () => {
+    expect(avisoTope({ ...base, stockAqui: 1, almacenAqui: 1 })).toEqual({
+      titulo: "No hay más de Blusa Paracas · M en el piso",
+      detalle: "La del piso ya está en el ticket. Hay 1 más en el almacén de Tienda TRU: pide que la bajen.",
+    });
+    expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 3 }).detalle).toBe(
+      "Las 2 del piso ya están en el ticket. Hay 3 más en el almacén de Tienda TRU: pide que bajen las que necesites.",
+    );
+    expect(avisoTope({ ...base, stockAqui: 2, almacenAqui: 3, quedoEn: true }).detalle).toBe(
+      "En el piso quedan 2; la cantidad quedó en 2. Hay 3 más en el almacén de Tienda TRU: pide que bajen las que necesites.",
+    );
   });
 });

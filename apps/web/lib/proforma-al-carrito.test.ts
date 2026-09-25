@@ -78,6 +78,23 @@ describe("lineasDelCarritoDesdeProforma", () => {
 
   it("una proforma de formato anterior no carga nada", () => {
     const vieja = { id: "p", numero: 1, items: [{ descripcion: "Venta", cantidad: 1, precio_unitario: 7000 }] } as unknown as Proforma;
-    expect(lineasDelCarritoDesdeProforma(vieja, [variante()])).toEqual({ lineas: [], faltan: [] });
+    expect(lineasDelCarritoDesdeProforma(vieja, [variante()])).toEqual({ lineas: [], faltan: [], faltanEnAlmacen: false });
+  });
+
+  it("lo que está en el almacén de esta tienda no entra al ticket, pero se dice cuántas hay ahí (D-40)", () => {
+    const soloAlmacen = lineasDelCarritoDesdeProforma(proforma([linea()]), [variante({ stockAqui: 0, almacenAqui: 2 })]);
+    expect(soloAlmacen.lineas).toEqual([]);
+    expect(soloAlmacen.faltan).toEqual(["Casaca Ximena · M · Negro (2 en el almacén)"]);
+    expect(soloAlmacen.faltanEnAlmacen).toBe(true);
+
+    const noAlcanza = lineasDelCarritoDesdeProforma(proforma([linea({ cantidad: 3, precio_unitario: 199.9 })]), [variante({ stockAqui: 1, almacenAqui: 4 })]);
+    expect(noAlcanza.lineas[0].cantidad).toBe(1);
+    expect(noAlcanza.faltan).toEqual(["Casaca Ximena · M · Negro (en el piso hay 1 de 3; 4 más en el almacén)"]);
+    expect(noAlcanza.faltanEnAlmacen).toBe(true);
+  });
+
+  it("sin nada en el almacén, el aviso no manda a buscar ahí", () => {
+    const { faltanEnAlmacen } = lineasDelCarritoDesdeProforma(proforma([linea()]), [variante({ stockAqui: 0, almacenAqui: 0 })]);
+    expect(faltanEnAlmacen).toBe(false);
   });
 });

@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { VentasDeHoyLista } from "@/components/VentasDeHoy";
-import { cantidadCobrable } from "@/lib/vender-stock-local";
+import { almacenDeLaSede, cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
@@ -98,6 +98,9 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
+      // Del MISMO mapa, sin otra lectura: lo guardado en el almacén de esta sede. No se cobra (la venta descuenta el
+      // piso), pero con el piso en 0 la caja dice «está en el almacén» en vez de «agotada» (D-40).
+      almacenAqui: almacenDeLaSede(stockAqui.get(v.varianteId)),
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 
@@ -111,7 +114,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     else if (p.estado !== "vigente") avisoProforma = `${numeroDeProforma(p.numero)} ya no está vigente (está ${p.estado}).`;
     else if (p.ubicacion_id !== persona.ubicacionId) avisoProforma = `${numeroDeProforma(p.numero)} es de otra tienda: cóbrala desde esa sede.`;
     else {
-      const { lineas, faltan } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
+      const { lineas, faltan, faltanEnAlmacen } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
       proformaEnCobro = {
         id: p.id,
         numero: numeroDeProforma(p.numero),
@@ -119,6 +122,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
         clienteDoc: p.cliente_num_doc,
         lineas,
         faltan,
+        faltanEnAlmacen,
         confirmacion: confirmacionDeConversion(p, ahora),
       };
     }
