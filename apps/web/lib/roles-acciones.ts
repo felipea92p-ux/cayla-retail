@@ -12,8 +12,15 @@ export type ResultadoRol = { error: ErrorEscritura; id?: string; version?: numbe
 
 export type AccionesRoles = {
   crear: (nombre: string, copiarDe: string | undefined, firma: Firma | null) => Promise<ResultadoRol>;
-  /** `version`: la del rol cuando la pantalla lo leyó (ADR-0193). Si otra persona lo cambió, la base rechaza con PT409. */
-  guardarModulos: (rolId: string, modulos: readonly ClaveModulo[], version: number, firma: Firma | null) => Promise<ResultadoRol>;
+  /** `version`: la del rol cuando la pantalla lo leyó (ADR-0193). Si otra persona lo cambió, la base rechaza con PT409.
+   *  `pantallaPrincipal` (20260925220000): uno de `modulos`, o `null` sin preferencia. */
+  guardarModulos: (
+    rolId: string,
+    modulos: readonly ClaveModulo[],
+    version: number,
+    pantallaPrincipal: ClaveModulo | null,
+    firma: Firma | null,
+  ) => Promise<ResultadoRol>;
   renombrar: (rolId: string, nombre: string, descripcion: string, firma: Firma | null) => Promise<ResultadoRol>;
   archivar: (rolId: string, firma: Firma | null) => Promise<ResultadoRol>;
   restaurar: (rolId: string, firma: Firma | null) => Promise<ResultadoRol>;
@@ -26,9 +33,14 @@ export const accionesRolesSupabase: AccionesRoles = {
     const { data, error } = await firmar(createClient().rpc("crear_rol", { p_nombre: nombre, p_copiar_de: copiarDe }), firma);
     return { error, id: data ?? undefined };
   },
-  guardarModulos: async (rolId, modulos, version, firma) => {
+  guardarModulos: async (rolId, modulos, version, pantallaPrincipal, firma) => {
     const { data, error } = await firmar(
-      createClient().rpc("guardar_modulos_rol", { p_rol_id: rolId, p_modulos: [...modulos], p_version_esperada: version }),
+      createClient().rpc("guardar_modulos_rol", {
+        p_rol_id: rolId,
+        p_modulos: [...modulos],
+        p_version_esperada: version,
+        p_pantalla_principal: pantallaPrincipal,
+      }),
       firma,
     );
     return { error, version: typeof data === "number" ? data : undefined };

@@ -80,3 +80,34 @@ módulos no se la alcanza, y entre pares decide un líder.
 - **Web:** las filas de quien no alcanzas no ofrecen acciones; entre los suspendidos dice «Lo gestiona un líder». Al asignar
   un rol, esas personas no aparecen en la lista.
 - **Pruebas:** `pruebas:roles` suma 2 casos: por debajo sí; par y superior no; cambiar el rol; y la lista para la pantalla.
+
+## Actualización 2026-09-25 — un Admin sí se reasigna su propio rol
+
+**El problema:** `asignar_rol` bloqueaba a CUALQUIERA que intentara cambiarse su propio rol, sin excepción — el candado
+de `20260923110000` (previo a este ADR, pensado para que ningún líder se suba o baje solo sin testigo). Felipe lo probó
+como Admin, en «Roles y accesos», y no pudo — el mensaje decía «pídeselo a otro líder». Correcto para un líder
+cualquiera; para un Admin, que ya puede tocar el rol de CUALQUIER líder (incluido él mismo, desde otra sesión o
+pidiéndoselo a otro Admin), es fricción sin beneficio real de seguridad.
+
+**Decisión (Felipe, 2026-09-25):** excepción solo para Admin — reutiliza los candados que ya existen en vez de abrir uno
+nuevo. `fn_exigir_otro_admin` y el candado de «no bajar al último líder activo» ya son genéricos respecto de quién
+actúa (miran «¿queda alguien más?», no «¿soy yo?»), así que protegen igual de bien el caso en que el Admin se apunta a
+sí mismo. Se consideraron y descartaron: quitar el candado para todos (reabre el problema original de este ADR — un
+líder cualquiera bajándose o subiéndose sin testigo) y dejarlo como estaba (el flujo «pídeselo a otro Admin» ya
+funcionaba, pero es la misma fricción sin beneficio que motivó pedir el cambio).
+
+- **Base** (`20260925210000_admin_se_reasigna_su_propio_rol.sql`): en `asignar_rol`, el candado pasa de
+  `if p_persona_id = v_yo then` a `if p_persona_id = v_yo and not fn_es_admin() then`. Nada más cambia: si el Admin se
+  autodegrada de Líder, el resto de la función sigue exigiendo que quede otro líder activo y otro admin activo.
+  Verificado contra la definición viva de producción (mismo patrón de `20260923174500`); pegada en producción el
+  2026-09-25.
+- **Web:** `cuentasAsignables` (`lib/roles-reglas.ts`) deja de excluir a `yoId` cuando `soyAdmin` es verdadero — la
+  sesión se ve a sí misma en la lista de «Asignar» de un rol.
+- **Pruebas:** `roles-reglas.test.ts` (el caso «entre líderes…» ahora espera verse a sí mismo en la lista cuando
+  `soyAdmin`); `scripts/pruebas/roles_por_modulo.mjs` (dos casos actualizados: ya no es «tu propio rol» lo que frena a
+  Felipe, es «último líder activo», porque en ese seed Felipe es el único líder).
+
+## Lo que se rompería sin la actualización de 2026-09-25
+
+Un Admin seguiría sin poder darse a sí mismo un rol distinto desde su propia sesión — tendría que coordinar con otro
+Admin cada vez, para una acción que su nivel de acceso ya le permite hacer sobre cualquier otro líder.

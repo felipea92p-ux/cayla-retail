@@ -11,6 +11,7 @@
 import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
+  "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
   "existencias", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
@@ -24,7 +25,7 @@ export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
 export type Modulo = {
   clave: ClaveModulo;
-  grupo: "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
+  grupo: "General" | "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
   nombre: string;
   /** Lo que se da al encenderlo: quien ve el módulo hace todo esto. */
   incluye: string;
@@ -39,6 +40,11 @@ export type Modulo = {
 
 /** Espejo de `retail.modulos`. `modulos.test.ts` compara esta lista con la siembra de la migración. */
 export const MODULOS: readonly Modulo[] = [
+  // Inicio (20260925220000, Felipe 2026-09-25): antes no era de ningún módulo (lo veía toda persona, sin excepción).
+  // Excepción a «un módulo nuevo nace solo del líder» (CLAUDE.md): nace ENCENDIDO en los roles que ya existen, o cada
+  // cuenta se quedaba sin dónde aterrizar el mismo día. Una terminal de ventas no participa: su casa sigue siendo el
+  // mostrador (regla propia de `aterrizajeDe`, `lib/menu.ts`), tenga o no este módulo.
+  { clave: "inicio", grupo: "General", nombre: "Inicio", incluye: "Ver el tablero de inicio: lo del día, lo por atender y accesos rápidos a su tienda" },
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
   // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
   { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },

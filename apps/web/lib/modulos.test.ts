@@ -29,8 +29,14 @@ const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20260923030
 const DIR_MIGRACIONES = new URL("../../../supabase/migrations/", import.meta.url);
 const ARCHIVOS_MIGRACION = readdirSync(DIR_MIGRACIONES).filter((f) => /^\d{14}_.+\.sql$/.test(f)).sort();
 const TODAS = ARCHIVOS_MIGRACION.map((f) => ({ archivo: f, sql: readFileSync(new URL(f, DIR_MIGRACIONES), "utf8") }));
-/** Las migraciones que sí pueden sembrar roles: la que creó los roles y la de la decisión B2d. */
-const SIEMBRA_DE_ROLES = new Set(["20260923030000_roles_por_modulo.sql", "20260923031000_integrante_hace_lo_que_ve.sql"]);
+/** Las migraciones que sí pueden sembrar roles: la que creó los roles, la de la decisión B2d, y la excepción
+ *  documentada de Inicio (20260925220000: nace ENCENDIDO en los roles que ya existen, o se quedan sin dónde
+ *  aterrizar el mismo día — ver el comentario «LA EXCEPCIÓN A LA REGLA DE SIEMPRE» en esa migración). */
+const SIEMBRA_DE_ROLES = new Set([
+  "20260923030000_roles_por_modulo.sql",
+  "20260923031000_integrante_hace_lo_que_ve.sql",
+  "20260925220000_inicio_modulo_y_pantalla_principal.sql",
+]);
 
 describe("el catálogo de la web es el de la base", () => {
   // Las altas (`insert into retail.modulos`) y, en el orden de las migraciones, los cambios posteriores de «solo del líder»
@@ -100,12 +106,8 @@ describe("el catálogo de la web es el de la base", () => {
 describe("cada pantalla y cada acción del menú pertenece a un módulo", () => {
   const hojas = (nodos: readonly Nodo[]): Nodo[] => nodos.flatMap((n) => ("hijos" in n && n.hijos ? hojas(n.hijos) : [n]));
 
-  it("toda hoja viva salvo Inicio declara su módulo, y existe", () => {
+  it("toda hoja viva declara su módulo, y existe (Inicio también, desde 20260925220000)", () => {
     for (const h of hojas(ARBOL).filter((n) => n.estado === "viva")) {
-      if (h.id === "inicio") {
-        expect(h.modulo).toBeUndefined();
-        continue;
-      }
       expect(h.modulo, h.id).toBeDefined();
       expect(CLAVES_MODULO, h.id).toContain(h.modulo);
     }
@@ -144,11 +146,15 @@ const foto = (p: PerfilDelMenu) => {
   return { riel: m.riel, movil: m.movil, grupos: RUTAS.map((r) => m.grupoDe(r)) };
 };
 
-// ÚNICA diferencia buscada con el menú de antes (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su
-// propio módulo y nació sin rol, así que el integrante sembrado ya no lo ve hasta que el líder se lo encienda. Con
-// «apartados» sumado, su menú vuelve a ser idéntico al de antes; sin él, lo único que falta es esa pantalla.
-const CON_APARTADOS = (c: Cuenta) =>
-  c.rol === "lider" ? modulosDeHoy(c.rol) : [...modulosDeHoy(c.rol), { clave: "apartados" as const, completo: false }];
+// ÚNICAS diferencias buscadas con el menú de antes: dos módulos que nacieron DESPUÉS de que `MODULOS_DE_HOY` se
+// congelara a propósito (es la foto de lo que YA HABÍA cuando se escribió, no se actualiza con cada módulo nuevo).
+// (ADR-0196, 2026-09-24): Apartados se separó del Punto de venta en su propio módulo y nació sin rol. (20260925220000,
+// 2026-09-25): Inicio se volvió un módulo más y tampoco es de la siembra de integrante. Con los dos sumados, el menú
+// vuelve a ser idéntico al de antes; sin ellos, lo único que falta son esas dos pantallas.
+const CON_MODULOS_NUEVOS = (c: Cuenta) =>
+  c.rol === "lider"
+    ? modulosDeHoy(c.rol)
+    : [...modulosDeHoy(c.rol), { clave: "apartados" as const, completo: false }, { clave: "inicio" as const, completo: false }];
 const hrefs = (p: PerfilDelMenu) =>
   JSON.stringify(menuPara(p).riel).match(/"href":"[^"]+"/g)?.map((h) => h.slice(8, -1)).sort() ?? [];
 
@@ -156,17 +162,18 @@ describe("con los módulos de hoy, el menú de las personas es idéntico al de a
   for (const c of CUENTAS_DE_HOY) {
     for (const u of TIPOS_UBICACION) {
       it(`${c.nombre} en ${u}`, () => {
-        expect(foto(ahora(c, u, CON_APARTADOS(c)))).toEqual(foto(antes(c, u)));
+        expect(foto(ahora(c, u, CON_MODULOS_NUEVOS(c)))).toEqual(foto(antes(c, u)));
       });
     }
   }
 
   for (const u of TIPOS_UBICACION) {
-    it(`integrante en ${u}: sin el módulo «apartados» (ADR-0196) solo le falta Apartados`, () => {
+    it(`integrante en ${u}: sin «apartados» (ADR-0196) ni «inicio» (20260925220000) le faltan exactamente esas dos`, () => {
       const c = CUENTAS_DE_HOY[1]!;
       const deAntes = hrefs(antes(c, u));
       const deAhora = hrefs(ahora(c, u));
-      expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(deAntes.includes("/vender/apartados") ? ["/vender/apartados"] : []);
+      const esperado = ["/", "/vender/apartados"].filter((h) => deAntes.includes(h)).sort();
+      expect(deAntes.filter((h) => !deAhora.includes(h))).toEqual(esperado);
       expect(deAhora.filter((h) => !deAntes.includes(h))).toEqual([]);
     });
   }
@@ -217,7 +224,7 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
   it("«Por pagar» solo: Compras sale con una sola pantalla, Por pagar; Etiquetas solo: entra por la fila «Atributos»", () => {
     const soloPagos = ahora({ nombre: "pagos", rol: "integrante" }, "tienda", [{ clave: "por_pagar", completo: true }]);
     const riel = menuPara(soloPagos).riel;
-    expect(riel.map((f) => f.etiqueta)).toEqual(["Inicio", "Compras"]);
+    expect(riel.map((f) => f.etiqueta)).toEqual(["Compras"]);
     expect(riel.find((f) => f.etiqueta === "Compras")).toMatchObject({ href: "/compras/por-pagar" });
     const soloEtiquetas = ahora({ nombre: "etiquetas", rol: "integrante" }, "tienda", [{ clave: "etiquetas", completo: true }]);
     expect(menuPara(soloEtiquetas).riel.find((f) => f.etiqueta === "Catálogo")).toMatchObject({ href: "/productos/atributos" });
@@ -248,7 +255,7 @@ describe("los permisos que salen de los módulos son los fijos de antes", () => 
 });
 
 describe("un rol a medida cambia el menú sin tocar el árbol", () => {
-  const almacen = (["existencias", "conteos", "traslados", "movimientos", "recibir"] as const).map((clave) => ({ clave, completo: true }));
+  const almacen = (["inicio", "existencias", "conteos", "traslados", "movimientos", "recibir"] as const).map((clave) => ({ clave, completo: true }));
   const perfil = ahora({ nombre: "almacén", rol: "integrante" }, "tienda", almacen);
 
   it("«Almacén» ve Inicio e Inventario (sin Análisis), y nada de Ventas ni Catálogo", () => {
@@ -262,8 +269,13 @@ describe("un rol a medida cambia el menú sin tocar el árbol", () => {
     expect(riel.map((f) => f.etiqueta)).toEqual(["Ventas", "Inventario"]);
   });
 
-  it("sin módulos, una persona solo tiene Inicio", () => {
+  it("sin módulos (Inicio incluido), una persona no ve nada — 20260925220000: Inicio ya no es incondicional", () => {
     const riel = menuPara(ahora({ nombre: "nadie", rol: "integrante" }, "tienda", [])).riel;
+    expect(riel).toEqual([]);
+  });
+
+  it("con solo el módulo Inicio, una persona ve solo Inicio", () => {
+    const riel = menuPara(ahora({ nombre: "nadie", rol: "integrante" }, "tienda", [{ clave: "inicio", completo: true }])).riel;
     expect(riel.map((f) => f.etiqueta)).toEqual(["Inicio"]);
   });
 });
