@@ -302,8 +302,14 @@ export function rotacionComparada(pares: readonly { a: BaseRotacion; b: BaseRota
 // Textos de ayuda del método (junto al fallback: si el método cambia, cambian aquí y en ningún otro lado)
 // ---------------------------------------------------------------------------
 
+/** Nombre visible de ESTA rotación (decisión de Felipe, 2026-09-24, sección 3): nunca «Rotación» a secas —
+ *  conviven con «Rotación piso»/«Rotación total» (en unidades, `inventario-exposicion.ts`) en la misma
+ *  pantalla, y son preguntas distintas. Una sola fuente para el nombre, para que no se desalinee entre
+ *  el KPI de arriba, su panel de ayuda y la columna de Comparar-Detalle. */
+export const ETIQUETA_ROTACION_VALORIZADA = "Rotación valorizada";
+
 /** La fórmula en una línea (sin punto final: sirve de pie de tarjeta). */
-export const TEXTO_FORMULA_ROTACION = "COGS del período ÷ inventario promedio a costo";
+export const TEXTO_FORMULA_ROTACION = "Costo de ventas ÷ inventario promedio valorizado a costo";
 
 /** Cómo se estima HOY el inventario promedio (el fallback de dos puntos). */
 export const TEXTO_PROMEDIO_ROTACION = "El inventario promedio se estima con los valores de inicio y cierre del período";
