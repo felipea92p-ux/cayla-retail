@@ -887,6 +887,669 @@
   }
 }
 
+/* ---- F5 ---- Reportes: Estado de resultados (tabla `eerr` del spike) y Campañas (gráfico de barras, dos columnas). */
+@layer components {
+  /* El cuadro del estado de resultados: conceptos en filas, unidades en columnas, CAYLA sombreado al final. */
+  .fin-eerr {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-eerr th {
+    padding: 10px 14px;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--color-taupe);
+    text-align: right;
+    white-space: nowrap;
+    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+    vertical-align: bottom;
+  }
+  .fin-eerr th:first-child,
+  .fin-eerr td:first-child {
+    text-align: left;
+  }
+  .fin-eerr td {
+    padding: 8px 14px;
+    text-align: right;
+    border-top: 1px solid var(--color-sand);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-eerr td.fin-eerr-cta {
+    width: 44px;
+    text-align: left;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-eerr td.fin-eerr-vacia {
+    color: var(--color-taupe);
+  }
+  .fin-eerr td.fin-eerr-neg {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-eerr button.fin-eerr-celda {
+    all: unset;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .fin-eerr td:has(> button.fin-eerr-celda):hover {
+    background: var(--color-hueso);
+  }
+  .fin-eerr button.fin-eerr-celda:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  .fin-eerr tr.fin-eerr-sub td {
+    font-weight: 600;
+    color: var(--color-taupe);
+    background: color-mix(in oklab, var(--color-hueso) 55%, transparent);
+  }
+  .fin-eerr tr.fin-eerr-total td {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    border-top: 2px solid var(--color-tinta);
+  }
+  .fin-eerr tr.fin-eerr-pct td {
+    padding-top: 0;
+    border-top: 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-eerr .fin-eerr-cons {
+    background: color-mix(in oklab, var(--color-sand) 35%, transparent);
+  }
+  .fin-eerr tr.fin-eerr-sub td.fin-eerr-cons {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+  }
+  /* La línea chica bajo una cifra o un encabezado («+S/ 1,200 vs ago.», «a la fecha»). */
+  .fin-delta {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+
+  /* Dos columnas del spike: `par` iguales; `der` la derecha más ancha. */
+  .fin-dos-col.fin-der {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  }
+
+  /* La columna del nombre de una tabla ancha (la campaña): no se parte en tres líneas. */
+  .fin-tabla th.fin-col-nombre {
+    min-width: 180px;
+  }
+  /* Una tabla con encabezados largos («Para ganar lo mismo, vender»): el encabezado se parte en dos líneas y la tabla
+     entra entera en la tarjeta, con el veredicto a la vista. */
+  .fin-tabla-envuelve th {
+    white-space: normal;
+    vertical-align: bottom;
+  }
+
+  /* Avisos del reporte: una línea por aviso, con su chip. */
+  .fin-avisos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-avisos li {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  /* Gráfico de barras de una serie (spike `barras()`): tinta; el rojo solo marca una pérdida, con su etiqueta. */
+  .fin-grafico {
+    position: relative;
+  }
+  .fin-grafico svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .fin-grafico-barra path {
+    fill: var(--color-tinta);
+    transition: opacity 150ms;
+  }
+  .fin-grafico-barra.fin-grafico-mala path {
+    fill: var(--color-rojo);
+  }
+  .fin-grafico-barra:hover path,
+  .fin-grafico-barra:focus path {
+    opacity: 0.8;
+  }
+  .fin-grafico-barra:focus {
+    outline: none;
+  }
+  .fin-grafico text {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    fill: var(--color-tinta);
+  }
+  .fin-grafico text.fin-grafico-eje {
+    font-size: 11px;
+    fill: var(--color-taupe);
+  }
+  .fin-grafico-mala text.fin-grafico-valor {
+    fill: var(--color-rojo-profundo);
+  }
+  .fin-grafico-base {
+    stroke: var(--color-sand);
+    stroke-width: 1;
+  }
+  .fin-grafico-umbral {
+    stroke: var(--color-taupe);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .fin-grafico-leyenda {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-grafico-leyenda i {
+    width: 22px;
+    border-top: 1px dashed var(--color-taupe);
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-der {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* ---- Presupuesto ---- Reportes ▸ Presupuesto (spike `table.ppto`) y Configuración ▸ Presupuesto (`table.ppto-edit`). */
+@layer components {
+  .fin-tabla.fin-ppto,
+  .fin-tabla.fin-ppto-edit {
+    min-width: 760px;
+  }
+  .fin-tabla th.fin-ppto-avance {
+    width: 160px;
+  }
+  /* La franja de cada unidad (y la meta de ventas en Configuración): versalitas en taupe sobre arena. */
+  .fin-tabla tr.fin-grupo td {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-tabla tr.fin-grupo .fin-grupo-nota {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .fin-tabla tr.fin-grupo .fin-meta-enlace {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-tinta);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  /* La barra de avance de una fila: fina, en tinta; en rojo solo lo que se pasa (lleva además su chip). */
+  .fin-umbral-barra.fin-fina {
+    height: 8px;
+    margin: 0;
+  }
+  /* Una casilla de monto dentro de la tabla: a la derecha, del ancho de un tope. */
+  .fin-tabla input.fin-num-input {
+    display: block;
+    max-width: 110px;
+    margin-left: auto;
+    text-align: right;
+  }
+  /* El mes junto a los botones chicos de la franja: de su misma altura. */
+  .fin-herramientas select.fin-control.fin-mes-chico {
+    min-height: 32px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 13px;
+  }
+  /* Una tabla dentro de una hoja (lo propuesto): sin el ancho mínimo de las pantallas. */
+  .fin-tabla.fin-tabla-hoja {
+    min-width: 0;
+  }
+
+  @media (max-width: 860px) {
+    .fin-tabla.fin-ppto,
+    .fin-tabla.fin-ppto-edit {
+      min-width: 0;
+    }
+    .fin-tabla tbody tr.fin-grupo {
+      background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    }
+    .fin-tabla tr.fin-grupo td {
+      background: none;
+    }
+    .fin-tabla input.fin-num-input {
+      margin-left: 0;
+      max-width: none;
+    }
+    /* En fichas, las casillas no llevan el aire lateral de la tabla apretada. */
+    .fin-tabla.fin-ppto-edit td:first-child,
+    .fin-tabla.fin-ppto-edit td:last-child {
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
+}
+
+/* ---- F6 · Flujo de caja y Escenarios (ADR-0195; spike `vista-reportes.js`, `vistaFlujo` y `vistaEscenarios`) ---- */
+@layer components {
+  /* El mes o las semanas se eligen EN el sobretítulo, sin caja: se lee igual que el spike y sigue siendo un selector. */
+  .fin-etq-select {
+    appearance: none;
+    margin: 0;
+    padding: 0 14px 0 0;
+    border: 0;
+    border-bottom: 1px dotted color-mix(in oklab, var(--color-taupe) 70%, transparent);
+    border-radius: 0;
+    background-color: transparent;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-taupe) 50%), linear-gradient(135deg, var(--color-taupe) 50%, transparent 50%);
+    background-position: calc(100% - 5px) 55%, calc(100% - 1px) 55%;
+    background-size: 4px 4px;
+    background-repeat: no-repeat;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .fin-etq-select:hover {
+    color: var(--color-tinta);
+  }
+  .fin-etq-select:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
+  .fin-h-flujo {
+    margin: 14px 0 4px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--color-tinta);
+  }
+  .fin-h-flujo-chica {
+    font-size: 16px;
+  }
+  .fin-flujo-lista {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .fin-flujo-lista li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-flujo-lista li b {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .fin-flujo-lista li.fin-flujo-vacia {
+    color: var(--color-taupe);
+  }
+  /* «Hoy tienes S/ 60,410» y los días de caja. */
+  .fin-hoy {
+    margin: 4px 0 2px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--color-tinta);
+  }
+  .fin-dias {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    margin: 0 0 6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  /* Las tablas del flujo viven en una columna: menos ancho mínimo que la tabla de una pantalla entera. */
+  .fin-tabla.fin-tabla-flujo {
+    min-width: 0;
+  }
+  .fin-tabla.fin-tabla-flujo th,
+  .fin-tabla.fin-tabla-flujo td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .fin-tabla.fin-tabla-flujo th:first-child,
+  .fin-tabla.fin-tabla-flujo td:first-child {
+    padding-left: 14px;
+  }
+  .fin-tabla.fin-tabla-flujo td.fin-que-vence {
+    min-width: 150px;
+  }
+  .fin-tabla.fin-tabla-utilidad {
+    min-width: 420px;
+  }
+  .fin-tabla td.fin-que-vence {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-chip-campana {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--color-ambar-profundo);
+  }
+  .fin-queda-malo {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-tabla tr.fin-total-t td {
+    border-top: 2px solid var(--color-tinta);
+    font-weight: 600;
+  }
+  .fin-tabla td.fin-dif-baja {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-tabla td.fin-dif-sube {
+    color: var(--color-verde);
+  }
+  /* El recuadro del gráfico (al pasar el mouse o con Tab): papel, borde sand, sin sombra. */
+  .fin-grafico-lienzo {
+    position: relative;
+  }
+  .fin-grafico-tip {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-papel);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-tinta);
+    pointer-events: none;
+  }
+  .fin-grafico-tip b {
+    font-weight: 600;
+  }
+  .fin-grafico-tip span {
+    color: var(--color-taupe);
+  }
+  .fin-grafico-barra:focus-visible path {
+    stroke: var(--color-rojo);
+    stroke-width: 2;
+  }
+
+  /* Escenarios: las palancas a la izquierda (un poco más anchas), lo que pasaría a la derecha. */
+  .fin-dos-col.fin-esc {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+  .fin-campo-esc {
+    margin-bottom: 18px;
+  }
+  .fin-campo-esc > label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-campo-esc > label b {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .fin-campo-esc input[type="range"] {
+    width: 100%;
+    accent-color: var(--color-tinta);
+  }
+  .fin-campo-esc[data-apagado] {
+    opacity: 0.45;
+  }
+  .fin-opcion-esc {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-hueso);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-tinta);
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .fin-opcion-esc:has(> .fin-opcion-esc-fila input:checked) {
+    border-color: var(--color-tinta);
+    background: var(--color-papel);
+  }
+  .fin-opcion-esc-fila {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0;
+    cursor: pointer;
+  }
+  .fin-opcion-esc-fila input {
+    margin-top: 3px;
+    accent-color: var(--color-tinta);
+    flex: none;
+  }
+  .fin-opcion-esc-fila b {
+    display: block;
+    font-weight: 600;
+  }
+  .fin-opcion-esc-fila small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-opcion-esc-campos {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0 26px;
+  }
+  .fin-conclusiones {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+  }
+  .fin-conclusiones b {
+    font-weight: 600;
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-esc {
+      grid-template-columns: 1fr;
+    }
+    .fin-tabla.fin-tabla-utilidad {
+      min-width: 0;
+    }
+    .fin-opcion-esc-campos {
+      margin-left: 0;
+    }
+  }
+}
+
+/* ---- F9 · Cierre de mes (ADR-0195; spike `vista-cierre.js`: `.matriz`, `.unidad-c`, `.chequeos`, `.pasos-cierre`) ---- */
+@layer components {
+  /* La matriz: una tarjeta por unidad y, al final, CAYLA entera. `--n` = cuántas tarjetas (hasta 6 en una fila). */
+  .fin-matriz {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
+    gap: 10px;
+  }
+  .fin-unidad {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px;
+    text-align: left;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    background: var(--color-papel);
+    color: var(--color-tinta);
+  }
+  button.fin-unidad {
+    transition: border-color 150ms;
+  }
+  button.fin-unidad:hover {
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+  button.fin-unidad[aria-pressed="true"] {
+    border-color: var(--color-tinta);
+  }
+  .fin-unidad-n {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .fin-unidad-sub {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-taupe);
+  }
+  .fin-unidad-h {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-unidad-cons {
+    background: color-mix(in oklab, var(--color-hueso) 45%, var(--color-papel));
+  }
+
+  /* Chequeos: ✓ en verde, «!» en rojo si bloquea el cierre y en ámbar si solo avisa; a la derecha, «Resolver». */
+  .fin-chequeos {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-chequeos li {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-papel);
+  }
+  .fin-chequeos b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-chequeos p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  .fin-ok-ic {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    background: color-mix(in oklab, var(--color-verde) 16%, transparent);
+    color: var(--color-verde);
+  }
+  .fin-ok-ic[data-tono="rojo"] {
+    background: color-mix(in oklab, var(--color-rojo) 12%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  .fin-ok-ic[data-tono="ambar"] {
+    background: color-mix(in oklab, var(--color-ambar) 16%, transparent);
+    color: var(--color-ambar);
+  }
+
+  /* La historia de la unidad en el mes: quién cerró y quién reabrió, con su motivo. */
+  .fin-historia {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+  .fin-historia li + li {
+    margin-top: 2px;
+  }
+
+  /* La rutina de fin de mes, en una columna. */
+  .fin-pasos-cierre {
+    display: grid;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .fin-pasos-cierre h3 {
+    margin: 0 0 2px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 19px;
+    color: var(--color-tinta);
+  }
+  .fin-pasos-cierre p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+
+  /* Las dos columnas del spike (`.dos-col.izq`): los chequeos, un poco más anchos que la rutina. */
+  .fin-dos-col.fin-cierre-cols {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  @media (max-width: 1180px) {
+    .fin-matriz {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 860px) {
+    .fin-matriz {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .fin-dos-col.fin-cierre-cols {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-matriz {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
 /* ---- F3b ---- La cuenta sellada: «Decir de qué cuenta fue» (lo pasado, una fila por pago; ADR-0195). */
 @layer components {
   .fin-sin-cuenta {
