@@ -5,7 +5,7 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import type { ColorAlta } from "@/lib/alta-producto";
 
-// Elegir los colores de un producto sin ver los ~40 colores de golpe (spike Nuevo producto, 2026-09-24).
+// Elegir los colores de un producto sin ver los ~65 colores de golpe (spike Nuevo producto, 2026-09-24).
 //
 // Antes cada familia de colores salía como una fila de chips con nombre: con el catálogo real eran media pantalla
 // (captura de Felipe). Ahora, en orden de lo que más se usa:
@@ -78,14 +78,16 @@ export function ElegirColores({
       </div>
 
       {paleta && (
-        // Dos columnas de familias cuando el BLOQUE es ancho (`@container`, no la ventana: con el menú lateral abierto y la
-        // ficha a la derecha, a este bloque le quedan ~450 px y dos columnas partían cada familia en renglones de 2).
+        // Una carta de color: cada familia es un renglón de 9 columnas FIJAS, de claro a oscuro (`colores.orden`, una
+        // decena por familia: 20260926100000). Con las columnas alineadas el tono se lee también de arriba abajo, y una
+        // familia con menos de 9 deja su hueco al final en vez de correr los círculos. Ya no se parte en dos columnas de
+        // familias: cada renglón mide ~370 px y dos no entran en este bloque. Si el BLOQUE es angosto (`@container`, no
+        // la ventana), el nombre de la familia va arriba de sus círculos.
         <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-2">
-          <div className="grid gap-x-6 @xl:grid-cols-2">
           {grupos.map((g) => (
-            <div key={g.familia} className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-2.5 py-1">
+            <div key={g.familia} className="grid gap-1 py-1 @md:grid-cols-[5rem_auto] @md:items-center @md:gap-2.5">
               <p className="text-[11.5px] text-taupe">{g.texto}</p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-[repeat(9,26px)] gap-1.5">
                 {g.colores.map((c) => {
                   const elegido = elegidos.includes(c.codigo);
                   return (
@@ -109,7 +111,6 @@ export function ElegirColores({
               </div>
             </div>
           ))}
-          </div>
         </div>
       )}
 
