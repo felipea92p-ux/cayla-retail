@@ -146,11 +146,9 @@ export function CambioReemplazo({
           </fieldset>
         )}
 
-        {r.sinStockAqui && (
+        {r.avisoSinStock && (
           <p className="anim-revelar mt-4 rounded-lg border border-dashed border-tinta/30 px-4 py-3 text-sm text-tinta/80" role="status">
-            {r.textoApartada
-              ? `${r.descripcionNueva || linea.referencia} está ${r.textoApartada}, no se puede entregar${r.otrasSedes ? ` — hay ${r.otrasSedes}.` : "."}`
-              : `No queda ${r.descripcionNueva || linea.referencia} aquí${r.otrasSedes ? ` — hay ${r.otrasSedes}.` : ", ni en otra sede."}`}
+            {r.avisoSinStock}
           </p>
         )}
       </div>

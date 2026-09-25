@@ -87,9 +87,14 @@ describe("«apartada» o «agotada» según dónde está lo apartado", () => {
 
 describe("lo apartado releído", () => {
   it("lo releído manda; una prenda sin fila queda en 0", () => {
-    const releido = sumarCantidades([piso("a", 4, 2)]);
+    // Piso 5 con 1 apartada (cobrable 4) y almacén 3 con 2 apartadas: lo apartado EN EL PISO es 1 — ni el cobrable (4)
+    // ni el apartado total (3, con el almacén). Con un fixture donde los tres números coinciden la prueba no distingue
+    // «lo apartado en el piso» de «lo cobrable» ni del total (mutaciones M10 y M11 de la revisión).
+    const releido = sumarCantidades([piso("a", 5, 1), almacen("a", 3, 2)]);
+    const c = releido.get("a");
+    expect([cantidadCobrable(c), c?.apartado, apartadoEnPiso(c)]).toEqual([4, 3, 1]);
     const r = conApartadoReleido(new Map([["a", 0], ["c", 9]]), ["a", "b"], releido);
-    expect([...r]).toEqual([["a", 2], ["c", 9], ["b", 0]]);
+    expect([...r]).toEqual([["a", 1], ["c", 9], ["b", 0]]);
   });
 
   it("se aplica a las variantes y devuelve el mismo arreglo si no hay ajustes", () => {

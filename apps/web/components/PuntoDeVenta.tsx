@@ -29,8 +29,7 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
-  sinStockPorApartado,
-  textoSinStock,
+  avisoSinStockAqui,
   vueltoDe,
   conDescuentoDeCampana,
   type CampanaLinea,
@@ -95,6 +94,12 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  ver otras sedes. Opcional para no romper a quien arme variantes sin esta consulta. */
   stockOtrasSedes?: { sede: string; cantidad: number }[];
 };
+
+/** Lo que la caja recibe de `vender/page.tsx`: una `VarianteBusqueda` con `apartadoAqui` OBLIGATORIO. En
+ *  `VarianteBusqueda` es opcional (Apartados y otras pantallas arman variantes sin esa lectura); si la página de
+ *  Vender lo olvidara, compilaría y la caja volvería a decir «agotada» a una prenda apartada, en silencio. Aquí el
+ *  compilador lo exige. */
+export type VarianteVenta = VarianteBusqueda & { apartadoAqui: number };
 
 export type ItemCarrito = {
   /** Identifica la FILA del carrito. Igual al varianteId salvo para una «Prenda sin
@@ -202,7 +207,7 @@ type Props = {
   fondoUltimoCierre?: number | null;
   /** Incluye la variante centinela de la «Prenda sin registrar», que este componente filtra
    *  antes de mostrar nada. */
-  variantes: VarianteBusqueda[];
+  variantes: VarianteVenta[];
   listasPrendaLibre: ListasPrendaLibre;
   /** Las campañas de hoy no se pudieron leer: se vende igual, pero una prenda en campaña
    *  se rechazaría al cobrar — hay que avisarlo antes, no descubrirlo con la clienta. */
@@ -584,11 +589,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     if (v.stockAqui <= 0) {
-      // «Apartada para una clienta» si lo que queda en el piso es de otra: no es lo mismo que «agotada» (`textoSinStock`).
+      // «Apartada para una clienta» si lo que queda en el piso es de otra: no es lo mismo que «agotada» (`avisoSinStockAqui`).
       if (!silencioso) {
-        avisar.aviso(`${nombreVariante} está ${textoSinStock(v)}`, {
-          detalle: sinStockPorApartado(v) ? `Sigue en ${ubicacionEtiqueta}, pero no se puede vender.` : `No hay stock en ${ubicacionEtiqueta}.`,
-        });
+        const { titulo, detalle } = avisoSinStockAqui(nombreVariante, v, ubicacionEtiqueta);
+        avisar.aviso(titulo, { detalle });
       }
       setAviso(null);
       setQ("");

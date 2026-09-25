@@ -414,3 +414,13 @@ export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
   const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
   return empiezaEnMayuscula ? "Apartada para una clienta" : "apartada para una clienta";
 }
+
+/** El aviso que sale al querer agregar al ticket una prenda sin nada libre en el piso (`PuntoDeVenta.agregar`). El
+ *  título dice qué le pasa a la prenda; el detalle, qué hacer con ella. Una apartada NO está bloqueada del todo —la clienta
+ *  que la apartó sí se la lleva—, solo no se vende desde la caja: por eso no dice «no se puede vender» a secas. */
+export function avisoSinStockAqui(nombre: string, p: SinStockAqui, sede: string): { titulo: string; detalle: string } {
+  return {
+    titulo: `${nombre} está ${textoSinStock(p)}`,
+    detalle: sinStockPorApartado(p) ? "No se vende desde aquí: es de la clienta que la apartó." : `No hay stock en ${sede}.`,
+  };
+}

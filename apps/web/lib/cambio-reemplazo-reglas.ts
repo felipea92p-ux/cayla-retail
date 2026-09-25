@@ -89,6 +89,13 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     ? (variantes.find((v) => (tallas.length === 0 || v.talla === tallaEfectiva) && (colores.length === 0 || v.color === colorEfectivo)) ?? null)
     : null;
   const condicionFija = condicionForzada(s.motivo);
+  // Cómo se nombra lo que se lleva en los avisos y en la validación: «Negro · Talla L». Una prenda sin talla ni color
+  // (un accesorio) se nombra por su referencia — sin ese respaldo el aviso quedaba « está apartada…», sin sujeto. Es la
+  // del producto ELEGIDO (`variantes`, todas comparten referencia), no la de la línea: puede haber elegido otra prenda.
+  const descripcionNueva = varianteLegible({ talla: tallaEfectiva, color: colorEfectivo }) || (variantes[0]?.referencia ?? linea.referencia);
+  const otrasSedes = varianteNueva ? textoOtrasSedes(varianteNueva.stockOtrasSedes) : null;
+  // «apartada para una clienta» si la prenda elegida no se entrega porque lo que queda en el piso es de otra; si no, null.
+  const textoApartada = varianteNueva !== null && sinStockPorApartado(varianteNueva) ? textoSinStock(varianteNueva) : null;
   return {
     esLaMisma: s.productoId === linea.productoId,
     tallas,
@@ -100,8 +107,9 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     /** Cuántas hay en el piso de esta sede de esa talla y color (para decirlo bajo cada talla). */
     stockAqui: (t: string | null, c: string | null) =>
       variantes.filter((v) => (t === null || v.talla === t) && (c === null || v.color === c)).reduce((suma, v) => suma + Math.max(0, v.stockAqui), 0),
-    /** Lo que se dice de una talla y color sin nada libre en el piso: «apartada para una clienta» si lo que queda está
-     *  apartado, y si no, «no queda aquí». Con talla o color sin fijar suma todas las que cubre. */
+    /** Lo que se dice de una talla y color sin nada libre en el piso (se llama cuando `hayAqui` es falso):
+     *  «apartada para una clienta» si lo que queda está apartado, y si no, «no queda aquí». Con talla o color sin fijar
+     *  suma lo apartado de todas las que cubre. */
     sinStockTexto: (t: string | null, c: string | null) =>
       textoSinStock(
         {
@@ -115,10 +123,16 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     eligioTodo,
     varianteNueva,
     sinStockAqui: varianteNueva !== null && varianteNueva.stockAqui <= 0,
-    /** «apartada para una clienta» si la prenda elegida no se entrega porque lo que queda en el piso es de otra; si no, null. */
-    textoApartada: varianteNueva !== null && sinStockPorApartado(varianteNueva) ? textoSinStock(varianteNueva) : null,
-    descripcionNueva: varianteLegible({ talla: tallaEfectiva, color: colorEfectivo }),
-    otrasSedes: varianteNueva ? textoOtrasSedes(varianteNueva.stockOtrasSedes) : null,
+    descripcionNueva,
+    otrasSedes,
+    /** El aviso bajo la elección cuando la prenda elegida no se puede entregar aquí, o null si sí. Apartada y agotada
+     *  cierran igual: dónde más hay, o que no hay en otra sede (lo mismo que dice `validarCambio`). */
+    avisoSinStock:
+      varianteNueva === null || varianteNueva.stockAqui > 0
+        ? null
+        : textoApartada
+          ? `${descripcionNueva} está ${textoApartada}: no se entrega desde aquí. ${otrasSedes ? `Hay ${otrasSedes}.` : "No hay en otra sede."}`
+          : `No queda ${descripcionNueva} aquí${otrasSedes ? ` — hay ${otrasSedes}.` : ", ni en otra sede."}`,
     // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira).
     diferencia: varianteNueva ? (varianteNueva.precio - linea.precioUnitario) * s.cantidad : 0,
     condicionFija,

@@ -240,8 +240,9 @@ export function validarCambio(e: {
   motivo: MotivoCambio | null;
   /** Talla y color ya elegidos (los que la prenda tenga). */
   eligioPrenda: boolean;
-  /** `apartadoAqui`: lo apartado en ese piso — con `stockAqui` en 0 separa «apartada para una clienta» de «no queda». */
-  nueva: { descripcion: string; stockAqui: number; apartadoAqui?: number; otrasSedes: string | null } | null;
+  /** `apartadoAqui`: lo apartado en ese piso — con `stockAqui` en 0 separa «apartada para una clienta» de «no queda».
+   *  Obligatorio a propósito: opcional, quien armara `nueva` sin él compilaría y el aviso volvería a decir «no queda». */
+  nueva: { descripcion: string; stockAqui: number; apartadoAqui: number; otrasSedes: string | null } | null;
   sede: string;
   diferencia: number;
   metodo: MetodoDiferencia;
