@@ -1,8 +1,8 @@
 // El menú de CAYLA como DATOS: un solo árbol, una sola función pura que dice qué ve cada perfil.
 //
 // PROMETE: dado un perfil (qué permisos tiene y en qué tipo de ubicación está parado) `menuPara` devuelve las filas del
-// lateral de escritorio, las 5 columnas de la barra del celular, las acciones del «+ Nuevo» y el módulo que se abre al
-// aterrizar en una ruta. Sin React, sin Supabase, sin efectos: se prueba con `menu.test.ts` sin abrir un navegador.
+// lateral de escritorio, las 4 columnas de la barra del celular y el módulo que se abre al aterrizar en una ruta. Sin
+// React, sin Supabase, sin efectos: se prueba con `menu.test.ts` sin abrir un navegador.
 //
 // ASUME: (1) que esto es solo VISIBILIDAD — el candado real vive en la base (RLS, `fn_puede_*`, cada RPC); un nodo que no
 // se pinta no protege nada. (2) Que las rutas que declara existen (lo comprueba la prueba contra `app/`). (3) Que un
@@ -170,12 +170,16 @@ export function esGrupo(n: Nodo): n is Grupo {
   return n.estado === "viva" && "hijos" in n;
 }
 
-/** Una acción del panel «+ Nuevo»: registrar algo, no ir a una pantalla. */
-export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
-
 /* ------------------------------------------------------------------
    El árbol de HOY (más lo que viene)
-   El orden es el del menú: Inicio, Catálogo, Producción, Compras, Ventas, Inventario (Felipe, 2026-09-16).
+   El orden es el del menú, «lo de todos los días primero» (Felipe, 2026-09-25): Inicio, Producción, Ventas, Inventario,
+   Catálogo, Compras, Finanzas. En una tienda se ve Inicio, Ventas, Inventario, Catálogo, Compras, Finanzas: el mostrador
+   arriba, lo que usa sobre todo el líder abajo, igual que los grupos de Roles y accesos (`MODULOS` en `modulos.ts`), para
+   que el líder encuentre cada módulo en el mismo lugar en las dos pantallas. En el Taller el trabajo diario es fabricar,
+   así que Producción va primera, pegada a Inicio. No hace falta ninguna regla por ubicación: Producción solo sale en el
+   Taller (`ubicaciones: ["taller"]`), así que en una tienda su puesto simplemente no existe. Único desvío de Roles y
+   accesos, a propósito: allí Producción va después de Compras.
+   Antes (2026-09-16) era Inicio, Catálogo, Producción, Compras, Ventas, Inventario.
    ------------------------------------------------------------------ */
 
 export const ARBOL: readonly Nodo[] = [
@@ -186,17 +190,6 @@ export const ARBOL: readonly Nodo[] = [
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
   // menú el 2026-09-22; Felipe pidió ese mismo día dejarlo en el perfil (se corrige en main después). La ruta
   // `/colaboradores` sigue exigiendo el permiso en la página y en la RPC.
-
-  // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
-  // etiquetas viven como pestañas de «Atributos».
-  {
-    id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro",
-    hijos: [
-      { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
-      { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
-      { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
-    ],
-  },
 
   // Producción (ADR-0133): el módulo de fabricar. Solo se ve PARADO EN UN TALLER, líder incluido (Felipe, 2026-09-20):
   // se decide por el TIPO de la ubicación activa, no por su nombre — un segundo Taller entraría solo. Es visibilidad; la
@@ -249,34 +242,6 @@ export const ARBOL: readonly Nodo[] = [
     ],
   },
 
-  // Compras (ADR-0126): dinero de proveedores. Cada puerta exige `verDineroCompras` (quien ve Facturas de compra, Por pagar
-  // o Notas de crédito, 20260923130000) Y su propio módulo; el grupo sale solo cuando no queda ninguna.
-  // Proveedores es la excepción (ADR-0161 P3, 20260923140000): exige su módulo (`editarCuentasProveedor`), no el dinero —
-  // quien lo tiene sin los montos ve el directorio y la ficha sin cifras.
-  // Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21), del mismo
-  // modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de los dos. Solo visibilidad: las
-  // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia
-  // conocida: «Recibir mercadería» vivía acá para el líder, así que parado en el Taller solo le queda en «+ Nuevo».
-  // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
-  // PL-50 (Felipe, 2026-09-23): «Comprobantes» y «Notas de crédito» son palabras SOLO de Ventas (lo que CAYLA le emite a la
-  // clienta ante SUNAT). Acá se dice «Facturas de proveedor» y «Notas de crédito de proveedor»; en el Taller, «Facturas de
-  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales.
-  {
-    id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
-    hijos: [
-      { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
-      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-      // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
-      { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDineroCompras" },
-      { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-      // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
-      // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
-      // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
-      // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
-      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-    ],
-  },
-
   // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
   // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
   {
@@ -319,6 +284,45 @@ export const ARBOL: readonly Nodo[] = [
     ],
   },
 
+  // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
+  // etiquetas viven como pestañas de «Atributos».
+  {
+    id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro",
+    hijos: [
+      { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
+      { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
+      { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
+    ],
+  },
+
+  // Compras (ADR-0126): dinero de proveedores. Cada puerta exige `verDineroCompras` (quien ve Facturas de compra, Por pagar
+  // o Notas de crédito, 20260923130000) Y su propio módulo; el grupo sale solo cuando no queda ninguna.
+  // Proveedores es la excepción (ADR-0161 P3, 20260923140000): exige su módulo (`editarCuentasProveedor`), no el dinero —
+  // quien lo tiene sin los montos ve el directorio y la ficha sin cifras.
+  // Es el módulo de comprar para las TIENDAS: parado en el Taller no se muestra, ni al líder (Felipe, 2026-09-21), del mismo
+  // modo que Producción no se muestra en una tienda: en cada ubicación el líder ve UNO de los dos. Solo visibilidad: las
+  // URLs de Compras siguen abriendo (otras pantallas enlazan a ellas) y el candado real es el de cada RPC. Consecuencia
+  // conocida: «Recibir mercadería» vivía acá para el líder, así que parado en el Taller solo le queda en «+ Nuevo».
+  // Mismo orden que ya tenía: proveedor → factura → recepción → pago → notas de crédito.
+  // PL-50 (Felipe, 2026-09-23): «Comprobantes» y «Notas de crédito» son palabras SOLO de Ventas (lo que CAYLA le emite a la
+  // clienta ante SUNAT). Acá se dice «Facturas de proveedor» y «Notas de crédito de proveedor»; en el Taller, «Facturas de
+  // insumos». Solo cambió el texto visible: ids, rutas y claves de módulo siguen iguales.
+  {
+    id: "compras", etiqueta: "Compras", estado: "viva", icono: "compras", raiz: "/compras", pajaro: "09 Pelícano", ubicaciones: ["tienda", "almacen"],
+    hijos: [
+      { id: "compras.proveedores", modulo: "proveedores", etiqueta: "Proveedores", estado: "viva", ruta: "/compras/proveedores", icono: "proveedores", pajaro: "09 Pelícano", exige: "editarCuentasProveedor" },
+      { id: "compras.comprobantes", modulo: "facturas_compra", etiqueta: "Facturas de proveedor", estado: "viva", ruta: "/compras", icono: "facturas", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      // ADR-0111/0113: recibir es una sola puerta (`/recibir`). El dato es del Halcón (envíos y lotes), no del Pelícano.
+      { id: "compras.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", exige: "verDineroCompras" },
+      { id: "compras.porPagar", modulo: "por_pagar", etiqueta: "Por pagar", estado: "viva", ruta: "/compras/por-pagar", icono: "porPagar", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+      // Notas de crédito (2026-09-19): lo que el proveedor le acredita a CAYLA. Va pegada a «Por pagar» y al final: las dos
+      // responden a la misma pregunta —cuánto dinero hay entre CAYLA y ese proveedor—, una de cada lado. Sin insignia a
+      // propósito: el contador de «por reclamar» saldría de `notas_credito_tablero()`, y pagarlo en CADA pantalla de la app
+      // por un número que ya se ve como primera cifra del módulo no vale la pena (principio 5).
+      { id: "compras.notasCredito", modulo: "notas_credito", etiqueta: "Notas de crédito de proveedor", estado: "viva", ruta: "/compras/notas-credito", icono: "notasCredito", pajaro: "09 Pelícano", exige: "verDineroCompras" },
+    ],
+  },
+
   /* ---- Lo que viene: existe en el árbol, `menuPara` no lo emite. Sin ruta ni ícono hasta que nazca. ---- */
 
   // Finanzas (ADR-0195, plan en docs/PLAN-FINANZAS.md): nace con Gastos (F2). Sin `exige` en el grupo: cada hija pide lo
@@ -351,25 +355,11 @@ export const ARBOL: readonly Nodo[] = [
 ];
 
 /**
- * El panel «+ Nuevo»: registrar algo, no ir a una pantalla. Fase UI 1 (2026-09-11) lo recortó a las escrituras que V2 ya
- * tiene resueltas de punta a punta; ofrecer otra antes sería un enlace que compila y revienta. ADR-0111: UNA sola puerta
- * para recibir. ADR-0113: la misma para todos. «Registrar factura de proveedor» es de quien ve el dinero de Compras.
+ * Las 4 columnas fijas de la barra del celular, por id de nodo. Punto de Venta y Caja son de uso diario en el mostrador; lo
+ * demás queda a un toque del lateral. Un grupo en una columna lleva a su `raiz` y muestra la suma de los números de sus hijas
+ * (igual que su cabecera cerrada en el lateral).
  */
-export const ACCIONES_NUEVO: readonly Accion[] = [
-  { id: "nuevo.venta", modulo: "vender", etiqueta: "Nueva venta", detalle: "Registrar la compra de una clienta", estado: "viva", ruta: "/vender", pajaro: "07 Colibrí" },
-  { id: "nuevo.comprobante", modulo: "facturas_compra", etiqueta: "Registrar factura de proveedor", detalle: "Una compra a proveedor, con su pago si es al contado", estado: "viva", ruta: "/compras/nueva", pajaro: "09 Pelícano", exige: "verDineroCompras" },
-  { id: "nuevo.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", detalle: "Lo que llegó, contra sus facturas de proveedor", estado: "viva", ruta: "/recibir", pajaro: "05 Halcón" },
-  { id: "nuevo.mover", modulo: "traslados", etiqueta: "Mover mercadería", detalle: "Trasladar stock entre ubicaciones", estado: "viva", ruta: "/inventario/mover", pajaro: "05 Halcón" },
-  { id: "nuevo.cambio", modulo: "cambios", etiqueta: "Registrar cambio", detalle: "La clienta cambia una prenda por otra talla o color", estado: "viva", ruta: "/cambios", pajaro: "07 Colibrí" },
-  { id: "nuevo.devolucion", modulo: "devoluciones", etiqueta: "Registrar devolución", detalle: "Una clienta devuelve algo que compró", estado: "viva", ruta: "/devoluciones", pajaro: "07 Colibrí" },
-];
-
-/**
- * Las 5 columnas fijas de la barra del celular, por id de nodo; `null` es el hueco del «+». Punto de Venta y Caja son de uso
- * diario en el mostrador; lo demás queda a un toque del lateral. Un grupo en una columna lleva a su `raiz` y muestra la suma de
- * los números de sus hijas (igual que su cabecera cerrada en el lateral).
- */
-export const COLUMNAS_MOVIL: readonly (string | null)[] = ["inicio", "venta.puntoDeVenta", null, "inventario", "venta.caja"];
+export const COLUMNAS_MOVIL: readonly string[] = ["inicio", "venta.puntoDeVenta", "inventario", "venta.caja"];
 
 /* ------------------------------------------------------------------
    Lo que sale de `menuPara`
@@ -379,7 +369,6 @@ export type ItemMenu = { id: string; etiqueta: string; href: string; icono: Clav
 /** Una hija puede volver a ser un `GrupoMenu` (subgrupo, D-84): el tipo es recursivo porque el árbol lo es. */
 export type GrupoMenu = { id: string; etiqueta: string; icono: ClaveIcono; hijos: FilaMenu[] };
 export type FilaMenu = ItemMenu | GrupoMenu;
-export type AccionNuevo = { id: string; etiqueta: string; detalle: string; href: string };
 
 export function esGrupoMenu(f: FilaMenu): f is GrupoMenu {
   return "hijos" in f;
@@ -409,10 +398,8 @@ export type PerfilDelMenu = {
 export type Menu = {
   /** Las filas del lateral de escritorio, en orden. */
   riel: FilaMenu[];
-  /** Las 5 columnas de la barra del celular; `null` es el hueco del «+». */
-  movil: (ItemMenu | null)[];
-  /** Las acciones del panel «+ Nuevo». */
-  nuevo: AccionNuevo[];
+  /** Las 4 columnas de la barra del celular. */
+  movil: ItemMenu[];
   /**
    * El grupo que se abre al aterrizar en `pathname` (`null` si no es de ninguno). Mira TODO el árbol vivo, no solo lo que
    * este perfil ve: pararse en `/produccion/ordenes` es estar en Producción aunque a esta persona no se le pinte la fila,
@@ -469,10 +456,10 @@ export function puedeVerProduccion(perfil: { ubicacionTipo: TipoUbicacion }): bo
 }
 
 /** De dónde sale el menú. Es el de hoy salvo en las pruebas, que le pasan árboles a propósito para probar las reglas sueltas. */
-export type FuenteMenu = { arbol: readonly Nodo[]; acciones: readonly Accion[]; columnas: readonly (string | null)[] };
-export const MENU_DE_HOY: FuenteMenu = { arbol: ARBOL, acciones: ACCIONES_NUEVO, columnas: COLUMNAS_MOVIL };
+export type FuenteMenu = { arbol: readonly Nodo[]; columnas: readonly string[] };
+export const MENU_DE_HOY: FuenteMenu = { arbol: ARBOL, columnas: COLUMNAS_MOVIL };
 
-export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: FuenteMenu = MENU_DE_HOY): Menu {
+export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu = MENU_DE_HOY): Menu {
   // Sin número (0, null, ausente) no hay insignia.
   const contadorDe = (clave?: ClaveContador): number | undefined => {
     const n = clave ? perfil.contadores?.[clave] : undefined;
@@ -512,12 +499,8 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
   }
 
   // ---- barra del celular ----
-  const movil: (ItemMenu | null)[] = [];
+  const movil: ItemMenu[] = [];
   for (const id of columnas) {
-    if (id === null) {
-      movil.push(null);
-      continue;
-    }
     const fila = emitidos.get(id) ?? riel.flatMap(hojasDe).find((h) => h.id === id);
     if (!fila) continue;
     if (!esGrupoMenu(fila)) {
@@ -531,9 +514,6 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
     const suma = hojasDe(fila).reduce((acc, h) => acc + (h.contador ?? 0), 0);
     movil.push({ id, etiqueta: fila.etiqueta, href: nodo.raiz, icono: fila.icono, ...(suma > 0 ? { contador: suma } : {}) });
   }
-
-  // ---- «+ Nuevo» ----
-  const nuevo = acciones.filter((a) => esVisible(a, perfil)).map((a) => ({ id: a.id, etiqueta: a.etiqueta, detalle: a.detalle, href: a.ruta }));
 
   // ---- qué grupo contiene cada ruta ----
   // La puerta del módulo (`raiz`) cubre todo lo que cuelga de ella; las hijas aportan lo que vive fuera de ese prefijo
@@ -549,5 +529,5 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, acciones, columnas }: F
   }
   const grupoDe = (pathname: string): string | null => rutasPorGrupo.find(([, rutas]) => rutas.some((r) => rutaActiva(pathname, r)))?.[0] ?? null;
 
-  return { riel, movil, nuevo, grupoDe };
+  return { riel, movil, grupoDe };
 }

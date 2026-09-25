@@ -9,6 +9,7 @@ import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 
 type Props = {
   control: ControlResponsable;
@@ -16,11 +17,6 @@ type Props = {
   deshabilitado?: boolean;
   className?: string;
 };
-
-function iniciales(nombre: string): string {
-  const partes = nombre.replace(/\./g, "").trim().split(/\s+/);
-  return ((partes[0]?.[0] ?? "") + (partes[1]?.[0] ?? "")).toUpperCase();
-}
 
 /**
  * El combo «Responsable» (ADR-0161; diseño aprobado en `docs/maquetas/responsable-y-roles-spike-2026-09/`, pantallas
@@ -185,7 +181,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         }`}
       >
         {elegido ? (
-          <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-sand font-display text-sm text-tinta">{iniciales(elegido.nombre)}</span>
+          <AvatarPersona personaId={elegido.personaId} nombre={elegido.nombre} className="h-7 w-7 text-sm" />
         ) : (
           <UserRound className="h-[18px] w-[18px] flex-none" aria-hidden />
         )}
@@ -230,7 +226,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
                   onClick={() => elegir(p)}
                   className="flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors enabled:hover:bg-sand/55 disabled:cursor-not-allowed disabled:opacity-45"
                 >
-                  <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-sand font-display text-sm">{iniciales(p.nombre)}</span>
+                  <AvatarPersona personaId={p.personaId} nombre={p.nombre} className="h-7 w-7 text-sm" />
                   <span className="min-w-0 flex-1">
                     {cortos.get(p.nombre) ?? p.nombre}
                     <small className="block text-[11.5px] text-tinta/60">
