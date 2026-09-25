@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { armarRecibo, fechaHoraLima, montoEnLetras, textoNumeroRecibo, textoQrSunat } from "./recibo-reglas";
+import { armarRecibo, desglosaIgv, fechaHoraLima, montoEnLetras, textoNumeroRecibo, textoQrSunat, TITULO_DOCUMENTO } from "./recibo-reglas";
 
 // El comprobante impreso es lo que la clienta se lleva y lo que SUNAT puede cotejar: si un
 // número acá se descuadra por un centavo, el papel y la base dicen cosas distintas.
@@ -106,5 +106,67 @@ describe("montoEnLetras — «SON: …»", () => {
 
   it("redondea el flotante a centavos, no lo arrastra (0.1 + 0.2)", () => {
     expect(montoEnLetras(0.1 + 0.2)).toBe("CERO CON 30/100 SOLES");
+  });
+});
+
+describe("armarRecibo — detalle opcional por línea (talla · color)", () => {
+  const base = {
+    comprobante,
+    sede: "Tienda Lima",
+    cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null },
+    pagos: [{ metodo: "efectivo" as const, monto: 50 }],
+    tasaIgv: 0.18,
+  };
+
+  it("lo lleva a la línea cuando viene", () => {
+    const r = armarRecibo({ ...base, lineas: [{ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario: 50, descuentoUnitario: 0, detalle: "M · Negro" }] });
+    expect(r.lineas[0]?.detalle).toBe("M · Negro");
+  });
+
+  it("no agrega la clave cuando no viene (el ticket y sus pruebas no cambian)", () => {
+    const r = armarRecibo({ ...base, lineas: [{ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario: 50, descuentoUnitario: 0 }] });
+    expect(r.lineas[0]).not.toHaveProperty("detalle");
+  });
+});
+
+describe("armarRecibo — quién atendió", () => {
+  const entrada = {
+    comprobante: { tipo: "boleta" as const, serie: "B001", numero: 2, created_at: "2026-09-19T17:05:00Z" },
+    sede: "Tienda Trujillo",
+    cliente: { tipoDoc: "sin_documento" as const, numDoc: null, nombre: null },
+    lineas: [{ cantidad: 1, referencia: "Polo Zoe", codigo: "POL-1", precioUnitario: 50, descuentoUnitario: 0 }],
+    pagos: [{ metodo: "efectivo" as const, monto: 50 }],
+    tasaIgv: 0.18,
+  };
+
+  it("lleva el nombre corto de quien atendió, para el papel", () => {
+    expect(armarRecibo({ ...entrada, atendio: "María" }).atendio).toBe("María");
+  });
+
+  it("sin dato queda en null: no se inventa a nadie", () => {
+    expect(armarRecibo(entrada).atendio).toBeNull();
+  });
+});
+
+describe("armarRecibo — nota de venta (ADR-0164)", () => {
+  const nv = armarRecibo({
+    comprobante: { tipo: "nota_venta", serie: "NV01", numero: 1, created_at: "2026-09-22T19:32:00Z" },
+    sede: "Tienda TRU",
+    cliente: { tipoDoc: "sin_documento", numDoc: null, nombre: null },
+    lineas: [{ cantidad: 1, referencia: "Blusa Emma", codigo: "CMS-1", precioUnitario: 79.9, descuentoUnitario: 0 }],
+    pagos: [{ metodo: "efectivo", monto: 79.9 }],
+    tasaIgv: 0.18,
+  });
+
+  it("la clienta paga lo mismo que con boleta; el papel no separa el IGV", () => {
+    expect(nv.total).toBe(79.9);
+    expect(nv.igv).toBe(0);
+    expect(nv.subtotal).toBe(79.9);
+  });
+
+  it("no es un comprobante de pago: título propio y sin lo que pide SUNAT", () => {
+    expect(TITULO_DOCUMENTO.nota_venta).toBe("NOTA DE VENTA");
+    expect(desglosaIgv("nota_venta")).toBe(false);
+    expect(desglosaIgv("boleta")).toBe(true);
   });
 });

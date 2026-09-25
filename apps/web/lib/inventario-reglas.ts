@@ -135,6 +135,14 @@ export const MIN_UNIDADES_SOBRESTOCK = 3;
 export const SELL_THROUGH_BAJO_PCT = 20;
 export const SELL_THROUGH_ALTO_PCT = 60;
 
+/** Distribución de sell-through de «Comparar períodos» (2026-09-19): límite SUPERIOR de cada rango, en %, sobre el
+ *  porcentaje redondeado al entero → 0–25 · 26–50 · 51–75 · 76–100. El gráfico y sus etiquetas salen de acá. */
+export const RANGOS_SELL_THROUGH_PCT = [25, 50, 75, 100] as const;
+
+/** Desde cuántos puntos porcentuales de diferencia de sell-through entre A y B se destaca como «cambio
+ *  relevante» de una variante (subió o bajó al menos esto). */
+export const SELL_THROUGH_CAMBIO_RELEVANTE_PP = 10;
+
 // --- Motor de reposición (por confirmar por Felipe) --------------------------
 
 /** Cuántos días de venta se busca cubrir al reponer. Era 14 en el ADR-0101. */
@@ -171,6 +179,15 @@ export const ALTA_DEMANDA_MIN_UDS_DIA = 0.5;
  *  tendencia (en % — por debajo es «estable»). */
 export const TENDENCIA_UMBRAL_PCT = 25;
 
+/** Tendencia de un período (Desempeño, 2026-09-19): 2.ª mitad contra 1.ª. Con menos unidades netas
+ *  que esto en TODO el período no se afirma «aceleró»/«desaceleró»: 1 venta contra 2 es un +100% que
+ *  no dice nada. Es evidencia, no umbral de cambio (ese es `TENDENCIA_UMBRAL_PCT`). */
+export const TENDENCIA_MIN_UNIDADES = 4;
+
+/** «Ritmo reciente» de Existencias: los últimos N días de venta con que se mide cuánto dura el
+ *  stock de hoy (cobertura). Mismo período que el Resumen usa por defecto. */
+export const DIAS_RITMO_RECIENTE = 30;
+
 // --- Exactitud del inventario -------------------------------------------------
 
 /** Un conteo cerrado más antiguo que esto ya no valida el inventario de hoy. */
@@ -179,3 +196,91 @@ export const DIAS_CONTEO_VIGENTE = 30;
 /** Por debajo de este % de líneas correctas el conteo no da confianza aunque
  *  sea reciente (misma escala de colores que `tonoExactitud`: < 95 = a mejorar). */
 export const EXACTITUD_ACEPTABLE_PCT = 95;
+
+// --- La miniatura de una prenda ------------------------------------------------
+// Vivía en `inventario-v2.ts` (solo servidor). Se mudó acá, sin cambiar su lógica,
+// cuando Conteo empezó a dibujar la prenda igual que Existencias: la regla de
+// cuál foto es LA foto de un producto tiene que ser una sola, y `inventario-v2`
+// no se puede importar desde un componente cliente.
+
+export type FotoCruda = { url: string; orden: number; es_principal: boolean };
+
+/** De las fotos de un producto (0 a N, en cualquier orden de llegada), la
+ *  que se muestra como miniatura: la marcada `es_principal`, o si ninguna
+ *  lo está, la de menor `orden` — mismo criterio que ya usan
+ *  `catalogo_crear_producto`/`catalogo_actualizar_producto` en SQL al
+ *  elegir cuál queda de `es_principal` por defecto. */
+export function fotoPrincipal(fotos: FotoCruda[] | null | undefined): string | null {
+  if (!fotos || fotos.length === 0) return null;
+  return (fotos.find((f) => f.es_principal) ?? [...fotos].sort((a, b) => a.orden - b.orden)[0]).url;
+}
+
+/** Las cantidades de una prenda en una sede. */
+export type Cantidades = {
+  total: number;
+  piso: number | null;
+  almacen: number | null;
+  estado: EstadoStock | null;
+  danado: number | null;
+  apartado: number;
+  disponible: number;
+  pisoDisponible: number | null;
+  almacenDisponible: number | null;
+};
+export type FilaCantidadCruda = { variante_id: string; cantidad: number; cantidad_apartada: number; sububicacion: { tipo: string | null } | null };
+
+/**
+ * Las reglas de cantidades en UN solo lugar (cuarentena no suma, lo apartado no se vende, piso vs. almacén): las
+ * usan Existencias (`getStockPorUbicacion`, con el detalle de cada prenda) y la caja (`getDisponibleEnSede`, solo
+ * números). Por variante; las filas de piso y almacén de una misma prenda se suman.
+ */
+export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantidades> {
+  // Una sola ubicación es piso/almacén o no lo es — nunca "depende de la
+  // variante". Se decide una vez sobre todas las filas, no por fila: una
+  // prenda que todavía no tiene stock en ningún lado de la tienda igual
+  // cuenta como "separa" (para mostrar SIN STOCK, no para desaparecer).
+  const separaPisoAlmacen = filas.some((f) => f.sububicacion?.tipo === "piso_venta" || f.sububicacion?.tipo === "almacen_tienda");
+
+  const acumulado = new Map<string, { total: number; piso: number; almacen: number; danado: number; apartado: number; apartadoPiso: number; apartadoAlmacen: number }>();
+  for (const f of filas) {
+    let a = acumulado.get(f.variante_id);
+    if (!a) {
+      a = { total: 0, piso: 0, almacen: 0, danado: 0, apartado: 0, apartadoPiso: 0, apartadoAlmacen: 0 };
+      acumulado.set(f.variante_id, a);
+    }
+    // Cuarentena (20260917100000) NUNCA suma a `total`: es stock dañado,
+    // no vendible — mezclarlo con piso/almacén inflaría "Prendas
+    // disponibles" con algo que, de hecho, no se puede vender.
+    if (f.sububicacion?.tipo === "cuarentena") {
+      a.danado += f.cantidad;
+      continue;
+    }
+    a.total += f.cantidad;
+    a.apartado += f.cantidad_apartada;
+    if (f.sububicacion?.tipo === "piso_venta") {
+      a.piso += f.cantidad;
+      a.apartadoPiso += f.cantidad_apartada;
+    } else if (f.sububicacion?.tipo === "almacen_tienda") {
+      a.almacen += f.cantidad;
+      a.apartadoAlmacen += f.cantidad_apartada;
+    }
+  }
+
+  const cantidades = new Map<string, Cantidades>();
+  for (const [varianteId, a] of acumulado) {
+    cantidades.set(varianteId, {
+      total: a.total,
+      danado: separaPisoAlmacen ? a.danado : null,
+      piso: separaPisoAlmacen ? a.piso : null,
+      almacen: separaPisoAlmacen ? a.almacen : null,
+      apartado: a.apartado,
+      disponible: a.total - a.apartado,
+      pisoDisponible: separaPisoAlmacen ? a.piso - a.apartadoPiso : null,
+      almacenDisponible: separaPisoAlmacen ? a.almacen - a.apartadoAlmacen : null,
+      // El semáforo mira lo que se puede VENDER: una prenda con todo el piso apartado no tiene piso
+      // que ofrecer aunque físicamente esté ahí (el chip «Apartado» de la fila lo explica).
+      estado: separaPisoAlmacen ? calcularEstado(a.piso - a.apartadoPiso, a.almacen - a.apartadoAlmacen) : null,
+    });
+  }
+  return cantidades;
+}

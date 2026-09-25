@@ -5,9 +5,19 @@
   "tablename": "activos_fijos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX apartados_pkey ON retail.apartados USING btree (id)",
+  "indexname": "apartados_pkey",
+  "tablename": "apartados"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX caja_movimientos_pkey ON retail.caja_movimientos USING btree (id)",
   "indexname": "caja_movimientos_pkey",
   "tablename": "caja_movimientos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX caja_traslados_pkey ON retail.caja_traslados USING btree (id)",
+  "indexname": "caja_traslados_pkey",
+  "tablename": "caja_traslados"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX cajas_pkey ON retail.cajas USING btree (id)",
@@ -28,6 +38,11 @@
   "indexdef": "CREATE UNIQUE INDEX cambios_token_cliente_key ON retail.cambios USING btree (token_cliente) WHERE (token_cliente IS NOT NULL)",
   "indexname": "cambios_token_cliente_key",
   "tablename": "cambios"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX catalogo_version_pkey ON retail.catalogo_version USING btree (id)",
+  "indexname": "catalogo_version_pkey",
+  "tablename": "catalogo_version"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX categoria_patrones_pkey ON retail.categoria_patrones USING btree (categoria_id, patron_id)",
@@ -60,14 +75,14 @@
   "tablename": "categorias"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX clientes_doc_unico ON retail.clientes USING btree (tipo_doc, num_doc) WHERE (num_doc IS NOT NULL)",
-  "indexname": "clientes_doc_unico",
-  "tablename": "clientes"
+  "indexdef": "CREATE UNIQUE INDEX clientas_dni_unico ON retail.clientas USING btree (dni) WHERE (dni IS NOT NULL)",
+  "indexname": "clientas_dni_unico",
+  "tablename": "clientas"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX clientes_pkey ON retail.clientes USING btree (id)",
-  "indexname": "clientes_pkey",
-  "tablename": "clientes"
+  "indexdef": "CREATE UNIQUE INDEX clientas_pkey ON retail.clientas USING btree (id)",
+  "indexname": "clientas_pkey",
+  "tablename": "clientas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX codigos_barras_codigo_key ON retail.codigos_barras USING btree (codigo)",
@@ -95,6 +110,21 @@
   "tablename": "colaboradores"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX colaboradores_una_terminal_por_tipo_y_tienda ON retail.colaboradores USING btree (ubicacion_asignada_id, terminal) WHERE (terminal IS NOT NULL)",
+  "indexname": "colaboradores_una_terminal_por_tipo_y_tienda",
+  "tablename": "colaboradores"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX colaboradores_historial_pkey ON retail.colaboradores_historial USING btree (id)",
+  "indexname": "colaboradores_historial_pkey",
+  "tablename": "colaboradores_historial"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX colaboradores_suspendidos_pkey ON retail.colaboradores_suspendidos USING btree (persona_id)",
+  "indexname": "colaboradores_suspendidos_pkey",
+  "tablename": "colaboradores_suspendidos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX colores_clave_unica ON retail.colores USING btree (retail.fn_clave_texto(nombre))",
   "indexname": "colores_clave_unica",
   "tablename": "colores"
@@ -120,6 +150,11 @@
   "tablename": "compra_item_cierres"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX compra_item_destinos_pkey ON retail.compra_item_destinos USING btree (compra_item_id, ubicacion_id)",
+  "indexname": "compra_item_destinos_pkey",
+  "tablename": "compra_item_destinos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX compra_items_pkey ON retail.compra_items USING btree (id)",
   "indexname": "compra_items_pkey",
   "tablename": "compra_items"
@@ -135,6 +170,11 @@
   "tablename": "compra_notas_credito"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX compra_notas_credito_id_compra_key ON retail.compra_notas_credito USING btree (id, compra_id)",
+  "indexname": "compra_notas_credito_id_compra_key",
+  "tablename": "compra_notas_credito"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX compra_notas_credito_pkey ON retail.compra_notas_credito USING btree (id)",
   "indexname": "compra_notas_credito_pkey",
   "tablename": "compra_notas_credito"
@@ -143,6 +183,16 @@
   "indexdef": "CREATE UNIQUE INDEX compra_pagos_pkey ON retail.compra_pagos USING btree (id)",
   "indexname": "compra_pagos_pkey",
   "tablename": "compra_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compra_reasignaciones_pkey ON retail.compra_reasignaciones USING btree (id)",
+  "indexname": "compra_reasignaciones_pkey",
+  "tablename": "compra_reasignaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX compradores_de_tienda_pkey ON retail.compradores_de_tienda USING btree (persona_id, ubicacion_id)",
+  "indexname": "compradores_de_tienda_pkey",
+  "tablename": "compradores_de_tienda"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX compras_pkey ON retail.compras USING btree (id)",
@@ -173,6 +223,46 @@
   "indexdef": "CREATE UNIQUE INDEX comprobantes_token_cliente_key ON retail.comprobantes USING btree (token_cliente)",
   "indexname": "comprobantes_token_cliente_key",
   "tablename": "comprobantes"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_pkey ON retail.comprobantes_produccion USING btree (id)",
+  "indexname": "comprobantes_produccion_pkey",
+  "tablename": "comprobantes_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_serie_numero_unico ON retail.comprobantes_produccion USING btree (proveedor_id, serie, numero)",
+  "indexname": "comprobantes_produccion_serie_numero_unico",
+  "tablename": "comprobantes_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_token_cliente_key ON retail.comprobantes_produccion USING btree (token_cliente)",
+  "indexname": "comprobantes_produccion_token_cliente_key",
+  "tablename": "comprobantes_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_cierres_pkey ON retail.comprobantes_produccion_cierres USING btree (id)",
+  "indexname": "comprobantes_produccion_cierres_pkey",
+  "tablename": "comprobantes_produccion_cierres"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_items_pkey ON retail.comprobantes_produccion_items USING btree (id)",
+  "indexname": "comprobantes_produccion_items_pkey",
+  "tablename": "comprobantes_produccion_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_pagos_pkey ON retail.comprobantes_produccion_pagos USING btree (id)",
+  "indexname": "comprobantes_produccion_pagos_pkey",
+  "tablename": "comprobantes_produccion_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_recepciones_pkey ON retail.comprobantes_produccion_recepciones USING btree (id)",
+  "indexname": "comprobantes_produccion_recepciones_pkey",
+  "tablename": "comprobantes_produccion_recepciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobantes_produccion_recepciones_token_cliente_key ON retail.comprobantes_produccion_recepciones USING btree (token_cliente)",
+  "indexname": "comprobantes_produccion_recepciones_token_cliente_key",
+  "tablename": "comprobantes_produccion_recepciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX configuracion_empresa_pkey ON retail.configuracion_empresa USING btree (id)",
@@ -213,6 +303,11 @@
   "indexdef": "CREATE UNIQUE INDEX costo_historial_pkey ON retail.costo_historial USING btree (id)",
   "indexname": "costo_historial_pkey",
   "tablename": "costo_historial"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX cotizaciones_maquila_pkey ON retail.cotizaciones_maquila USING btree (id)",
+  "indexname": "cotizaciones_maquila_pkey",
+  "tablename": "cotizaciones_maquila"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX devolucion_items_devolucion_id_venta_item_id_key ON retail.devolucion_items USING btree (devolucion_id, venta_item_id)",
@@ -330,6 +425,11 @@
   "tablename": "marcas"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX modulos_pkey ON retail.modulos USING btree (clave)",
+  "indexname": "modulos_pkey",
+  "tablename": "modulos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX movimientos_pkey ON retail.movimientos USING btree (id)",
   "indexname": "movimientos_pkey",
   "tablename": "movimientos"
@@ -350,6 +450,16 @@
   "tablename": "patrones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX pedidos_no_atendidos_pkey ON retail.pedidos_no_atendidos USING btree (id)",
+  "indexname": "pedidos_no_atendidos_pkey",
+  "tablename": "pedidos_no_atendidos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_danadas_cambio_id_key ON retail.prendas_danadas USING btree (cambio_id)",
+  "indexname": "prendas_danadas_cambio_id_key",
+  "tablename": "prendas_danadas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_devolucion_item_id_key ON retail.prendas_danadas USING btree (devolucion_item_id)",
   "indexname": "prendas_danadas_devolucion_item_id_key",
   "tablename": "prendas_danadas"
@@ -358,6 +468,16 @@
   "indexdef": "CREATE UNIQUE INDEX prendas_danadas_pkey ON retail.prendas_danadas USING btree (id)",
   "indexname": "prendas_danadas_pkey",
   "tablename": "prendas_danadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_pkey ON retail.prendas_por_regularizar USING btree (id)",
+  "indexname": "prendas_por_regularizar_pkey",
+  "tablename": "prendas_por_regularizar"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX prendas_por_regularizar_venta_item_id_key ON retail.prendas_por_regularizar USING btree (venta_item_id)",
+  "indexname": "prendas_por_regularizar_venta_item_id_key",
+  "tablename": "prendas_por_regularizar"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX produccion_lineas_pkey ON retail.produccion_lineas USING btree (id)",
@@ -410,6 +530,11 @@
   "tablename": "productos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX proformas_numero_unico ON retail.proformas USING btree (numero)",
+  "indexname": "proformas_numero_unico",
+  "tablename": "proformas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX proformas_pkey ON retail.proformas USING btree (id)",
   "indexname": "proformas_pkey",
   "tablename": "proformas"
@@ -435,13 +560,88 @@
   "tablename": "proveedores"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_pkey ON retail.series_comprobantes USING btree (id)",
-  "indexname": "series_comprobantes_pkey",
+  "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_nombre_clave_unica ON retail.proveedores_produccion USING btree (retail.fn_clave_texto(nombre))",
+  "indexname": "proveedores_produccion_nombre_clave_unica",
+  "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_pkey ON retail.proveedores_produccion USING btree (id)",
+  "indexname": "proveedores_produccion_pkey",
+  "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX proveedores_produccion_ruc_unico ON retail.proveedores_produccion USING btree (ruc) WHERE (ruc IS NOT NULL)",
+  "indexname": "proveedores_produccion_ruc_unico",
+  "tablename": "proveedores_produccion"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX rol_modulos_pkey ON retail.rol_modulos USING btree (rol_id, modulo)",
+  "indexname": "rol_modulos_pkey",
+  "tablename": "rol_modulos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX roles_clave_key ON retail.roles USING btree (clave)",
+  "indexname": "roles_clave_key",
+  "tablename": "roles"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX roles_nombre_unico_vigente ON retail.roles USING btree (lower(btrim(nombre))) WHERE (archivado_at IS NULL)",
+  "indexname": "roles_nombre_unico_vigente",
+  "tablename": "roles"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX roles_pkey ON retail.roles USING btree (id)",
+  "indexname": "roles_pkey",
+  "tablename": "roles"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX roles_historial_pkey ON retail.roles_historial USING btree (id)",
+  "indexname": "roles_historial_pkey",
+  "tablename": "roles_historial"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_correlativos_pkey ON retail.separacion_correlativos USING btree (ubicacion_id)",
+  "indexname": "separacion_correlativos_pkey",
+  "tablename": "separacion_correlativos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_items_apartado_id_key ON retail.separacion_items USING btree (apartado_id)",
+  "indexname": "separacion_items_apartado_id_key",
+  "tablename": "separacion_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_items_pkey ON retail.separacion_items USING btree (id)",
+  "indexname": "separacion_items_pkey",
+  "tablename": "separacion_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_pagos_pkey ON retail.separacion_pagos USING btree (id)",
+  "indexname": "separacion_pagos_pkey",
+  "tablename": "separacion_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separaciones_codigo_key ON retail.separaciones USING btree (codigo)",
+  "indexname": "separaciones_codigo_key",
+  "tablename": "separaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separaciones_pkey ON retail.separaciones USING btree (id)",
+  "indexname": "separaciones_pkey",
+  "tablename": "separaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separaciones_token_cliente_key ON retail.separaciones USING btree (token_cliente)",
+  "indexname": "separaciones_token_cliente_key",
+  "tablename": "separaciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_activa_por_tienda_y_tipo ON retail.series_comprobantes USING btree (ubicacion_id, tipo) WHERE (archivada_at IS NULL)",
+  "indexname": "series_comprobantes_activa_por_tienda_y_tipo",
   "tablename": "series_comprobantes"
  },
  {
-  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_ubicacion_id_tipo_key ON retail.series_comprobantes USING btree (ubicacion_id, tipo)",
-  "indexname": "series_comprobantes_ubicacion_id_tipo_key",
+  "indexdef": "CREATE UNIQUE INDEX series_comprobantes_pkey ON retail.series_comprobantes USING btree (id)",
+  "indexname": "series_comprobantes_pkey",
   "tablename": "series_comprobantes"
  },
  {
@@ -488,6 +688,21 @@
   "indexdef": "CREATE UNIQUE INDEX tejidos_pkey ON retail.tejidos USING btree (id)",
   "indexname": "tejidos_pkey",
   "tablename": "tejidos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX terminales_auth_user_id_key ON retail.terminales USING btree (auth_user_id)",
+  "indexname": "terminales_auth_user_id_key",
+  "tablename": "terminales"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX terminales_nombre_unico_activa ON retail.terminales USING btree (ubicacion_id, lower(btrim(nombre))) WHERE activo",
+  "indexname": "terminales_nombre_unico_activa",
+  "tablename": "terminales"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX terminales_pkey ON retail.terminales USING btree (id)",
+  "indexname": "terminales_pkey",
+  "tablename": "terminales"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX transferencia_items_pkey ON retail.transferencia_items USING btree (id)",

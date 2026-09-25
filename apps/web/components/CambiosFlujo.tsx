@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
 import { ImpactoVista, ComparacionPrendas, type PrendaFicha } from "@/components/CambioResumen";
@@ -82,7 +85,6 @@ export function CambiosFlujo({
   lineaInicialId,
   ubicacionId,
   sede,
-  colaboradora,
   cajaAbierta,
   catalogo,
   ahora,
@@ -94,6 +96,7 @@ export function CambiosFlujo({
   lineaInicialId: string | null;
   ubicacionId: string;
   sede: string;
+  /** Nombre de la sesión. Ya no se muestra: «Lo registra» es el responsable elegido (ADR-0161). */
   colaboradora: string;
   cajaAbierta: boolean;
   catalogo: VarianteCatalogo[];
@@ -103,6 +106,9 @@ export function CambiosFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
+  const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
+  const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const [lineaId, setLineaId] = useState<string | null>(lineaInicialId);
   const [paso, setPaso] = useState<Paso>(lineaInicialId ? 3 : 2);
   const linea = venta.find((l) => l.ventaItemId === lineaId) ?? null;
@@ -212,19 +218,27 @@ export function CambiosFlujo({
       setPaso(3);
       return;
     }
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
     setEnviando(true);
     setError(null);
-    const { data, error: fallo } = await createClient().rpc("registrar_cambio", {
-      p_venta_item_id: linea.ventaItemId,
-      p_ubicacion_id: ubicacionId,
-      p_variante_nueva_id: r.varianteNueva.varianteId,
-      p_cantidad: seleccion.cantidad,
-      p_metodo_pago_diferencia: r.diferencia !== 0 ? seleccion.metodo : undefined,
-      p_token: token.current,
-      p_motivo: seleccion.motivo,
-      p_condicion: r.condicion,
-    });
+    const { data, error: fallo } = await firmar(
+      createClient().rpc("registrar_cambio", {
+        p_venta_item_id: linea.ventaItemId,
+        p_ubicacion_id: ubicacionId,
+        p_variante_nueva_id: r.varianteNueva.varianteId,
+        p_cantidad: seleccion.cantidad,
+        p_metodo_pago_diferencia: r.diferencia !== 0 ? seleccion.metodo : undefined,
+        p_token: token.current,
+        p_motivo: seleccion.motivo,
+        p_condicion: r.condicion,
+      }),
+      responsable.firma(),
+    );
     setEnviando(false);
+    responsable.despues(fallo);
     if (fallo) {
       setError(traducirError(fallo, "registrar el cambio"));
       return;
@@ -356,7 +370,8 @@ export function CambiosFlujo({
                 </Dato>
                 <Dato titulo="Clienta">{compra.clienta ?? "No quedó registrada en la venta"}</Dato>
                 <Dato titulo="Se registra en">{sede}</Dato>
-                <Dato titulo="Lo registra">{colaboradora || "—"}</Dato>
+                {/* Con el combo (ADR-0161) lo registra el responsable elegido, no la cuenta de la sesión. */}
+                <Dato titulo="Lo registra">{nombreResponsable ?? "Elige abajo en «Responsable»"}</Dato>
                 <Dato titulo="Motivo">{seleccion.motivo ? etiquetaMotivo(seleccion.motivo) : "—"}</Dato>
                 <Dato titulo="La prenda que trae">{r.condicion === "vendible" ? "Impecable: vuelve al piso" : "Con defecto o uso: va a cuarentena"}</Dato>
               </dl>
@@ -373,6 +388,8 @@ export function CambiosFlujo({
             <PanelValidaciones validaciones={validaciones} />
           </div>
 
+          <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+
           {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró el cambio." />}
 
           <PieDelPaso aviso={null}>
@@ -386,7 +403,7 @@ export function CambiosFlujo({
               </BotonSecundario>
               {/* Como «Cobrar» en Vender: qué se hace a la izquierda; cuánto, a la derecha. Solo si
                   hay diferencia que mover: sin ella, el botón no promete plata. */}
-              <BotonRojo onClick={confirmar} disabled={enviando} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
+              <BotonRojo onClick={confirmar} disabled={enviando || !responsable.listo} monto={r.diferencia !== 0 ? soles(Math.abs(r.diferencia)) : undefined}>
                 {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                 {enviando ? "Registrando…" : "Confirmar cambio"}
               </BotonRojo>

@@ -6,6 +6,15 @@
 - **Cierra** el hallazgo H4 de las pruebas SQL de Compras (PR #165) y el hueco que ADR-0113 (D5) solo *evitaba*.
 - **Migraciones:** `20260919160000_dinero_de_compras_lectura_operativa.sql` (A) y
   `20260919161000_dinero_de_compras_tablas_solo_lider.sql` (B).
+- **⚠️ La regla «solo el líder» CAMBIÓ el 2026-09-22 (Felipe, ADR-0161 B6).** Con los roles por módulo, los montos de
+  Compras los ve el líder **o un rol que tenga Facturas de compra, Por pagar o Notas de crédito**; quien no tiene ninguno
+  de esos tres módulos sigue sin ver un monto, exactamente como describe este ADR. El mecanismo de aquí NO cambia —y fue lo
+  que permitió cambiar la regla tocando una sola función, como preveía D1—: `fn_puede_ver_dinero_de_compras()` pasa a
+  «líder o `fn_capacidad_por_modulos(['facturas_compra','por_pagar','notas_credito'])`», las 5 tablas, el bucket y las 5
+  funciones la siguen usando, y el mensaje de `fn_exige_dinero_de_compras` dice ahora «Solo un líder o un rol con Facturas
+  de compra, Por pagar o Notas de crédito puede ver …». También `fn_puede_ver_compra` (todas las sedes para quien ve el
+  dinero) y los montos por proveedor (`fn_proveedores` y afines). Migración `20260923130000_abrir_modulos_a_los_roles.sql`
+  (sin pegar en producción al escribir esto). El título de este ADR describe la regla de 2026-09-19.
 
 ## Contexto — el problema
 
@@ -123,3 +132,12 @@ Solo lectura, contra la base real, la misma tarde en que Felipe pegó las dos mi
   `compra_adjuntos` ni `compra_notas_credito`, así que el cierre de las TABLAS no se pudo ver «vaciando» filas reales: se
   verificó por la política (arriba) y con datos en `pnpm pruebas:dinero-compras` (32 casos, también en el piloto de CI).
   El cierre quedó puesto antes de la primera factura real.
+
+## Actualización 2026-09-22 — ADR-0161 P1 y P2 (migración `20260923140000_modulos_seis_decisiones.sql`, sin pegar)
+
+La regla del dinero (D1) sigue en UNA función y no cambia: `fn_puede_ver_dinero_de_compras()` = líder o un rol con Facturas
+de compra, Por pagar o Notas de crédito (desde `20260923130000`). Lo que cambia es ESCRIBIR: `fn_puede_registrar_compras()`
+ya no protege ninguna escritura; cada una pregunta la capacidad de su módulo (`fn_puede_registrar_facturas_compra`,
+`fn_puede_pagar_compras`, `fn_puede_registrar_notas_credito`). Ver los montos y mover el dinero son dos llaves distintas.
+Recibir mercadería muestra los montos a quien ve el dinero de Compras (P2): la base ya los entregaba así; lo que miraba
+«¿es líder?» era la pantalla. Detalle en el ADR-0161, «P1–P6 construidas».

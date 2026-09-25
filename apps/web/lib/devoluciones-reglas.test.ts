@@ -3,6 +3,7 @@ import { primerBloqueo } from "./cambios-reglas";
 import {
   condicionDeItem,
   esDevolucionTotal,
+  estadoPlazoDevolucion,
   estadoPrendaDevolucion,
   etiquetaCondicion,
   impactoDevolucion,
@@ -20,7 +21,7 @@ function lima(anio: number, mes: number, dia: number, hora = 12): Date {
 describe("textoMotivo", () => {
   it("compone la etiqueta con el detalle; sin motivo elegido no hay texto", () => {
     expect(textoMotivo("defecto", "costura abierta")).toBe("Tiene un defecto — costura abierta");
-    expect(textoMotivo("no_le_queda", "  ")).toBe("No le queda bien");
+    expect(textoMotivo("talla", "  ")).toBe("No era su talla");
     expect(textoMotivo(null, "lo que sea")).toBe("");
   });
 });
@@ -88,6 +89,16 @@ describe("estadoPrendaDevolucion", () => {
   });
 });
 
+describe("estadoPlazoDevolucion (el chip de plazo de la VENTA, sin mirar cada línea)", () => {
+  const ahora = lima(2026, 9, 18);
+
+  it("mismo resultado que el tramo de plazo de estadoPrendaDevolucion — es la misma cuenta, extraída", () => {
+    expect(estadoPlazoDevolucion(lima(2026, 9, 18).toISOString(), ahora)).toMatchObject({ clave: "dentro_del_plazo", tono: "verde" });
+    expect(estadoPlazoDevolucion(lima(2026, 8, 1).toISOString(), ahora)).toMatchObject({ clave: "fuera_de_plazo", tono: "rojo", icono: "alerta" });
+    expect(estadoPlazoDevolucion(lima(2026, 9, 3).toISOString(), ahora).texto).toBe("Último día del plazo");
+  });
+});
+
 describe("valorPagado / esDevolucionTotal", () => {
   it("descuenta lo que se le rebajó a la clienta y redondea a centavos", () => {
     expect(valorPagado({ precioUnitario: 79.9, descuentoUnitario: 7.99 }, 2)).toBe(143.82);
@@ -117,7 +128,7 @@ describe("validarDevolucion / primerBloqueo", () => {
     venta: { comprobante: "Boleta B001-000010", creadoEn: lima(2026, 9, 18, 11).toISOString(), anulada: false },
     ahora,
     elegidas: [prenda()],
-    motivo: "no_le_queda" as const,
+    motivo: "talla" as const,
     detalle: "",
   };
 

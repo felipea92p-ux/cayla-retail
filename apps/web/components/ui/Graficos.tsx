@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 /* ====================================================================
    Gráficos del tablero de Caja (2026-09-18) — SVG puro, sin librería.
 
@@ -172,5 +174,160 @@ export function DonaDistribucion({
         {centro.etiqueta}
       </text>
     </svg>
+  );
+}
+
+export type BarraHComparada = { clave: string; etiqueta: string; detalle?: string | null; a: number | null; b: number; textoA: string; textoB: string };
+
+/**
+ * Como `BarrasHorizontales`, pero con DOS barras por fila (A encima, apagada; B debajo, sólida) en la
+ * MISMA escala que `BarrasHorizontales` — el máximo de TODOS los valores de A y de B, nunca por fila:
+ * dos productos solo se comparan entre sí si comparten regla. Mismos colores que `ColumnasComparadas`
+ * (A = taupe, B = tinta), para que la convención A/B se lea igual en toda la pantalla. `a: null` (sin
+ * rotación calculable en A) no dibuja esa barra en vez de dibujar un cero engañoso.
+ */
+export function BarrasHorizontalesComparadas({ barras, etiquetaA, etiquetaB }: { barras: BarraHComparada[]; etiquetaA: string; etiquetaB: string }) {
+  const max = Math.max(...barras.flatMap((b) => [b.a ?? 0, b.b]), 0);
+  const anchoPct = (v: number) => (max > 0 && v > 0 ? Math.max((v / max) * 100, 3) : 0);
+  return (
+    <div>
+      <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
+        <li className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-taupe/55" />A · {etiquetaA}
+        </li>
+        <li className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-tinta/80" />B · {etiquetaB}
+        </li>
+      </ul>
+      <ul className="space-y-3.5">
+        {barras.map((b, i) => (
+          <li key={b.clave}>
+            <span className="block truncate text-sm text-tinta" title={b.detalle ? `${b.etiqueta} · ${b.detalle}` : b.etiqueta}>
+              {b.etiqueta}
+              {b.detalle && <span className="text-tinta/60"> · {b.detalle}</span>}
+            </span>
+            <span aria-hidden className="mt-1.5 flex flex-col gap-1">
+              <span className="flex items-center gap-2">
+                <span className="h-[7px] min-w-0 flex-1 overflow-hidden rounded-full bg-sand/70">
+                  {b.a !== null && (
+                    <span
+                      className="anim-crece-x block h-full origin-left rounded-full bg-taupe/55"
+                      style={{ width: `${anchoPct(b.a)}%`, "--i": i } as CSSProperties}
+                    />
+                  )}
+                </span>
+                <span className="w-11 shrink-0 text-right text-[11px] tabular-nums text-tinta/55">{b.a === null ? "N/D" : b.textoA}</span>
+              </span>
+              <span className="flex items-center gap-2">
+                <span className="h-[7px] min-w-0 flex-1 overflow-hidden rounded-full bg-sand/70">
+                  <span className="anim-crece-x block h-full origin-left rounded-full bg-tinta/80" style={{ width: `${anchoPct(b.b)}%`, "--i": i } as CSSProperties} />
+                </span>
+                <span className="w-11 shrink-0 text-right text-xs font-medium tabular-nums text-tinta">{b.textoB}</span>
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {/* Misma información para un lector de pantalla, sin depender del color ni de la longitud de la barra. */}
+      <ul className="sr-only">
+        {barras.map((b) => (
+          <li key={b.clave}>
+            {b.etiqueta}: A {b.a === null ? "sin dato" : b.textoA}, B {b.textoB}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export type GrupoColumnas = { clave: string; etiqueta: string; a: number; b: number };
+
+const ALTO_COLUMNAS = 128; // px de la columna más alta; el resto, proporcional
+
+/** Columnas agrupadas, una pareja A/B por grupo, con la MISMA escala para todas (el máximo de
+ *  todos los valores): dos columnas solo se pueden comparar si comparten eje. Decorativo
+ *  (`aria-hidden`): el número va escrito sobre cada columna y la leyenda dice qué es A y qué es B. */
+export function ColumnasComparadas({ grupos, etiquetaA, etiquetaB }: { grupos: GrupoColumnas[]; etiquetaA: string; etiquetaB: string }) {
+  const max = Math.max(...grupos.flatMap((g) => [g.a, g.b]), 0);
+  const alto = (v: number) => (max > 0 && v > 0 ? Math.max(Math.round((v / max) * ALTO_COLUMNAS), 3) : 0);
+  return (
+    <div>
+      <ul className="mb-3 flex flex-wrap gap-x-5 gap-y-1 text-xs text-tinta/70">
+        <li className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-taupe/55" />A · {etiquetaA}
+        </li>
+        <li className="inline-flex items-center gap-1.5">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-sm bg-tinta/80" />B · {etiquetaB}
+        </li>
+      </ul>
+      <div aria-hidden className="flex items-end gap-2 border-b border-tinta/15 sm:gap-4">
+        {grupos.map((g, i) => (
+          <div key={g.clave} className="flex min-w-0 flex-1 items-end justify-center gap-1.5">
+            {(
+              [
+                ["a", g.a, "bg-taupe/55"],
+                ["b", g.b, "bg-tinta/80"],
+              ] as const
+            ).map(([k, v, color]) => (
+              <div key={k} className="flex w-full max-w-[2.75rem] flex-col items-center justify-end">
+                <span className="mb-1 text-xs tabular-nums text-tinta">{v}</span>
+                <span className={`anim-crece-y block w-full origin-bottom rounded-t-sm ${color}`} style={{ height: alto(v), "--i": i } as CSSProperties} />
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div aria-hidden className="mt-2 flex gap-2 sm:gap-4">
+        {grupos.map((g) => (
+          <span key={g.clave} className="min-w-0 flex-1 text-center text-xs leading-4 text-tinta/75">
+            {g.etiqueta}
+          </span>
+        ))}
+      </div>
+      {/* La misma información para un lector de pantalla, sin depender de la forma ni del color. */}
+      <ul className="sr-only">
+        {grupos.map((g) => (
+          <li key={g.clave}>
+            {g.etiqueta}: A {g.a}, B {g.b}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export type Columna = { clave: string; etiqueta: string; valor: number };
+
+/** Columnas de UNA serie (Desempeño, 2026-09-22): la hermana de `ColumnasComparadas` para un solo período, con
+ *  la misma escala, el mismo alto y el mismo color que la B de allá (lo analizado). El número va escrito sobre
+ *  cada columna: el gráfico se lee sin depender de la altura. */
+export function Columnas({ columnas }: { columnas: Columna[] }) {
+  const max = Math.max(...columnas.map((c) => c.valor), 0);
+  const alto = (v: number) => (max > 0 && v > 0 ? Math.max(Math.round((v / max) * ALTO_COLUMNAS), 3) : 0);
+  return (
+    <div>
+      <div aria-hidden className="flex items-end gap-2 border-b border-tinta/15 sm:gap-4">
+        {columnas.map((c, i) => (
+          <div key={c.clave} className="flex min-w-0 flex-1 flex-col items-center justify-end">
+            <span className="mb-1 text-xs tabular-nums text-tinta">{c.valor}</span>
+            <span className="anim-crece-y block w-full max-w-[3.25rem] origin-bottom rounded-t-sm bg-tinta/80" style={{ height: alto(c.valor), "--i": i } as CSSProperties} />
+          </div>
+        ))}
+      </div>
+      <div aria-hidden className="mt-2 flex gap-2 sm:gap-4">
+        {columnas.map((c) => (
+          <span key={c.clave} className="min-w-0 flex-1 text-center text-xs leading-4 text-tinta/75">
+            {c.etiqueta}
+          </span>
+        ))}
+      </div>
+      <ul className="sr-only">
+        {columnas.map((c) => (
+          <li key={c.clave}>
+            {c.etiqueta}: {c.valor}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

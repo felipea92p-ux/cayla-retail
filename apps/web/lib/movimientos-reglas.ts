@@ -6,24 +6,31 @@ import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante, type TipoCompro
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
 // viven en `movimientos-v2.ts` (mismo reparto que compras-reglas / compras).
 //
-// La idea central (ADR-0050): `retail.movimientos` tiene 4 `tipo`
-// (entrada/salida/ajuste/traslado) y eso NO cambia. La pantalla muestra 5
-// CATEGORÍAS porque «reposición interna» y «transferencia entre sedes» son las
-// dos cosas que una encargada de sede distingue de un vistazo — y las dos son
-// `traslado` en la base. `fn_movimientos` calcula la categoría una vez, en SQL;
-// acá solo se etiqueta y se colorea.
+// La idea central (ADR-0050): los 4 `tipo` que CAMBIAN el stock (entrada/salida/
+// ajuste/traslado) se muestran como 5 CATEGORÍAS, porque «reposición interna» y
+// «transferencia entre sedes» son las dos cosas que una encargada de sede
+// distingue de un vistazo — y las dos son `traslado` en la base. `fn_movimientos`
+// calcula la categoría una vez, en SQL; acá solo se etiqueta y se colorea.
+//
+// ADR-0141 sumó dos `tipo` que NO tocan `stock.cantidad` — `apartado` y
+// `liberacion_apartado`: aparecen como filas (quién apartó qué y cuándo), pero no
+// entran a los filtros ni al resumen, que cuentan lo que se movió.
 
-export type TipoMovimiento = "entrada" | "salida" | "ajuste" | "traslado";
+export type TipoMovimiento = "entrada" | "salida" | "ajuste" | "traslado" | "apartado" | "liberacion_apartado";
 export type CategoriaMovimiento = "entrada" | "salida" | "interno" | "ajuste" | "transferencia";
+/** La categoría de una FILA: las 5 de arriba, más los dos movimientos de apartar. */
+export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apartado";
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
-export const ETIQUETA_CATEGORIA: Record<CategoriaMovimiento, string> = {
+export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
   entrada: "Entrada",
   salida: "Salida",
   interno: "Interno",
   ajuste: "Ajuste",
   transferencia: "Transferencia",
+  apartado: "Apartado",
+  liberacion_apartado: "Apartado liberado",
 };
 
 /** Los filtros rápidos por tipo, en el orden en que se leen en la pantalla
@@ -39,9 +46,9 @@ export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = 
 // Sobrio a propósito: verde = llegó mercadería, ámbar = se movió dentro de la
 // tienda (piso ↔ almacén), rojo = un ajuste que RESTA (hay que mirarlo), el
 // resto neutro. Un ajuste que suma no es alarma.
-export function tonoCategoria(categoria: CategoriaMovimiento, delta: number): TonoChip {
+export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip {
   if (categoria === "entrada") return "verde";
-  if (categoria === "interno") return "ambar";
+  if (categoria === "interno" || categoria === "apartado" || categoria === "liberacion_apartado") return "ambar";
   if (categoria === "ajuste" && delta < 0) return "rojo";
   return "neutro";
 }
@@ -76,6 +83,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   anulacion_venta: "Anulación de venta",
   produccion: "Producción",
   conteo: "Conteo",
+  apartado: "Apartado",
+  liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
   // «Reposición interna» (bajar del almacén al piso), que es otra cosa.
   reposicion: "Ajuste · reposición",
@@ -85,6 +94,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   carga_inicial: "Carga inicial",
   activacion_piso_almacen: "Activación piso/almacén",
   siembra_cargo_especial: "Cargo especial",
+  // ADR-0179: prenda vendida antes de registrarse que llegó en un lote contado sin ella.
+  ingreso_regularizado: "Prenda sin registrar · ingreso",
   cuarentena_liquidada: "Dañado · liquidada",
   cuarentena_se_boto: "Dañado · se botó",
   cuarentena_donada: "Dañado · donada",
@@ -113,6 +124,28 @@ export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
   "cuarentena_donada",
 ].map((valor) => ({ valor, etiqueta: ETIQUETA_PROCESO[valor] }));
 
+/** Qué procesos caben en cada tipo, para el filtro en dos pasos de Movimientos (2026-09-22,
+ *  demo de rediseño): se elige el tipo y DEBAJO aparecen solo sus procesos, en vez de una lista
+ *  de 19. Sale de con qué `tipo` escribe cada RPC cada motivo: «Cambio» vive en dos (la prenda
+ *  devuelta entra, la nueva sale) y por eso está en Entradas y en Salidas. Un proceso que no esté
+ *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
+export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
+  entrada: ["recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial"],
+  salida: ["venta", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
+  interno: ["movimiento_interno", "activacion_piso_almacen"],
+  transferencia: ["traslado_salida", "traslado_entrada"],
+  ajuste: ["conteo", "reposicion", "merma", "conteo_fisico", "otro"],
+};
+
+/** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
+ *  `?proc=conteo` (el de Conteo) muestre apretado «Ajustes» y, debajo, «Conteo». Null si el
+ *  proceso vive en dos tipos (cambio) o no está en la tabla. */
+export function categoriaDeProceso(motivo: string | null | undefined): CategoriaMovimiento | null {
+  if (!motivo) return null;
+  const tipos = CATEGORIAS.filter((c) => PROCESOS_POR_CATEGORIA[c].includes(motivo));
+  return tipos.length === 1 ? tipos[0] : null;
+}
+
 export function etiquetaProceso(motivo: string | null): string {
   if (!motivo) return "Sin proceso";
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
@@ -125,6 +158,21 @@ export function etiquetaProceso(motivo: string | null): string {
 export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
   if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
   return etiquetaProceso(m.motivo);
+}
+
+/** Rediseño de Movimientos (2026-09-22): el mismo texto de `etiquetaMovimiento`, con el prefijo
+ *  Entrada/Salida/Interno/Ajuste delante — para que se entienda de inmediato sin interpretar el
+ *  proceso. No es una categoría nueva: es `ETIQUETA_CATEGORIA[categoria]` (ADR-0050, sin tocar), con
+ *  un caso especial para «transferencia» — que a nivel de categoría sigue siendo transferencia, pero
+ *  la pierna que llega a esta sede se LEE como entrada y la que sale, como salida (mismo criterio de
+ *  signo que ya usa `etiquetaMovimiento`). Si el texto del proceso ya empieza con esa palabra (los
+ *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
+export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
+  if (m.categoria === "transferencia") return m.delta > 0 ? "Entrada · Traslado recibido" : "Salida · Traslado enviado";
+  if (m.categoria === "interno") return `Interno · a ${nombreCortoSububicacion(m.sububicacionDestino).toLowerCase()}`;
+  const detalle = etiquetaMovimiento(m);
+  const direccion = ETIQUETA_CATEGORIA[m.categoria];
+  return detalle.startsWith(direccion) ? detalle : `${direccion} · ${detalle}`;
 }
 
 export const ETIQUETA_ESTADO_DEVOLUCION: Record<string, string> = {
@@ -163,7 +211,7 @@ export type Movimiento = {
   fecha: string;
   hora: string;
   tipo: TipoMovimiento;
-  categoria: CategoriaMovimiento;
+  categoria: CategoriaFila;
   motivo: string | null;
   cantidad: number;
   /** Efecto sobre la ubicación que se está mirando: + entra, − sale, 0 interno. */
@@ -219,7 +267,8 @@ export function leerCursorMovimientos(texto: string | undefined): CursorMovimien
 
 /** «+3», «−1», o «3» cuando es interno (no cambia el total de la tienda). */
 export function textoDelta(m: Pick<Movimiento, "categoria" | "cantidad" | "delta">): string {
-  if (m.categoria === "interno") return String(Math.abs(m.cantidad));
+  // Apartar no cambia el stock (`delta` llega null de la base): se muestra cuántas prendas fueron.
+  if (m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado") return String(Math.abs(m.cantidad));
   if (m.delta > 0) return `+${m.delta}`;
   if (m.delta < 0) return `−${Math.abs(m.delta)}`;
   return "0";
@@ -353,6 +402,17 @@ export function etiquetaDia(fecha: string, hoyLima: string): string {
 /** El día de hoy en Lima como `aaaa-mm-dd`, venga de donde venga el servidor. */
 export function hoyEnLima(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+}
+
+/** El rótulo de una fila en «Actividad reciente» de Inicio. `categoria` dice solo el tipo
+ *  contable («Salida»), y una venta, un cambio y una merma son todas «salida»: quien mira
+ *  Inicio necesita distinguirlas. Cambio y devolución van primero porque también pueden
+ *  colgar de una venta. Lo demás cae a la categoría de siempre. */
+export function etiquetaActividad(m: Pick<Movimiento, "categoria" | "delta" | "venta" | "cambio" | "devolucion">): string {
+  if (m.cambio) return "Cambio";
+  if (m.devolucion) return "Devolución";
+  if (m.venta && m.delta < 0) return "Venta";
+  return ETIQUETA_CATEGORIA[m.categoria];
 }
 
 export function fechaCorta(iso: string): string {

@@ -31,7 +31,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 // obvios». Acá solo queda la lista.
 export const AVIARIO = [
   { n: "01", pajaro: "Ganso", modulo: "Identidad y acceso",
-    tablas: ["colaboradores", "ubicaciones"] },
+    tablas: ["colaboradores", "ubicaciones",
+      // Altas, suspensiones y su historia (ADR-0157, D-70).
+      "colaboradores_historial", "colaboradores_suspendidos",
+      // ADR-0161/0162: roles «ve / no ve» por módulo y terminales sin persona. Qué ve cada cuenta es identidad y acceso,
+      // no el módulo que se abre. Asignadas en el refresco del volcado del 2026-09-23.
+      "roles", "modulos", "rol_modulos", "roles_historial", "terminales"] },
   { n: "02", pajaro: "Loro", modulo: "Catálogo y vocabulario",
     tablas: [
       "productos", "variantes", "categorias", "familias", "producto_fotos", "historial_producto_cambios",
@@ -41,6 +46,8 @@ export const AVIARIO = [
       // El vocabulario cerrado: los cinco usan el mismo proponer/aprobar/rechazar (ADR-0070, ADR-0095).
       "colores", "tallas", "categoria_tallas", "tejidos", "categoria_tejidos",
       "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
+      // ADR-0181: la versión del catálogo que suben los disparadores de las tablas de arriba. Refresco del 2026-09-23.
+      "catalogo_version",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -58,18 +65,41 @@ export const AVIARIO = [
   { n: "07", pajaro: "Colibrí", modulo: "Ventas y caja",
     tablas: [
       "ventas", "venta_items", "venta_pagos", "venta_anulacion_items", "cajas", "caja_movimientos",
-      "clientes", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // `clientes` pasó a llamarse `clientas` (D-48, vocabulario obligatorio); el refresco del 2026-09-23 lo confirmó.
+      "clientas", "codigos_descuento", "cambios", "devoluciones", "devolucion_items",
+      // Separaciones (apartar prendas con adelanto) y lo que la clienta pidió y no había: nacen en el mostrador.
+      "apartados", "separaciones", "separacion_items", "separacion_pagos", "separacion_correlativos",
+      "pedidos_no_atendidos",
+      // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
+      // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
+      "caja_traslados", "prendas_por_regularizar",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
+      // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
+      // Asignadas en el refresco del volcado del 2026-09-23.
+      "compra_parte_por_tienda", "compradores_de_tienda",
       // ADR-0111 (Compras): cierres de línea por faltante, notas de crédito del proveedor y su saldo a favor.
-      // Nacen con dueño: aún no están en producción (sin pegar), por eso el aviario avisa que no las ve en el volcado.
-      "compra_item_cierres", "compra_notas_credito", "proveedor_creditos"] },
+      // Ya están en producción (ADR-0111, comprobado en el refresco completo del volcado del 2026-09-21).
+      "compra_item_cierres", "compra_notas_credito", "proveedor_creditos",
+      // ADR-0139 (Compras): el reparto de un comprobante entre tiendas (`compra_item_destinos`: línea × tienda × cantidad),
+      // su bitácora de reasignaciones y la vista que cruza el plan con lo recibido y cerrado por tienda. Ya están en
+      // producción (172000/173000 pegadas el 2026-09-20).
+      "compra_item_destinos", "compra_reasignaciones", "compra_item_reparto_resumen"] },
   { n: "10", pajaro: "Gallito", modulo: "Producción del Taller",
-    tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos"] },
-  { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos"] },
+    tablas: ["producciones", "produccion_lineas", "insumos", "insumo_lotes", "movimientos_insumo", "v_insumo_saldos",
+      // ADR-0133 (Producción, D-H): su propio directorio de proveedores y sus comprobantes de tela/avíos/maquila, aparte de los de
+      // Compras. Ya están en producción (F4a/F4b); las asignó a Gallito el refresco completo del volcado del 2026-09-21 porque
+      // sin pájaro el CI cae en rojo. La sesión de Producción confirma la asignación en el PR de ese refresco.
+      "proveedores_produccion", "comprobantes_produccion", "comprobantes_produccion_items", "comprobantes_produccion_pagos",
+      // ADR-0133 (F5–F6): recepción y cierre de esos comprobantes, y la cotización de maquila por categoría. Asignadas en el
+      // refresco del volcado del 2026-09-23.
+      "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila"] },
+  // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
+  // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
+  { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos", "planilla_por_sede"] },
   { n: "12", pajaro: "Urraca", modulo: "Contabilidad", tablas: ["activos_fijos"] },
   // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá.
   { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: [] },

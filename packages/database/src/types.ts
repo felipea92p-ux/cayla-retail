@@ -74,6 +74,128 @@ export type Database = {
           },
         ]
       }
+      apartados: {
+        Row: {
+          adelanto_caja_movimiento_id: string | null
+          adelanto_medio: string | null
+          adelanto_monto: number | null
+          cantidad: number
+          cerrado_en: string | null
+          cerrado_por: string | null
+          cierre_motivo: string | null
+          clienta_contacto: string
+          clienta_nombre: string
+          creado_por: string | null
+          created_at: string
+          estado: string
+          id: string
+          movimiento_cierre_id: string | null
+          movimiento_id: string
+          nota: string | null
+          sububicacion_id: string | null
+          ubicacion_id: string
+          variante_id: string
+          vence_el: string
+          venta_id: string | null
+        }
+        Insert: {
+          adelanto_caja_movimiento_id?: string | null
+          adelanto_medio?: string | null
+          adelanto_monto?: number | null
+          cantidad: number
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          cierre_motivo?: string | null
+          clienta_contacto: string
+          clienta_nombre: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          movimiento_cierre_id?: string | null
+          movimiento_id: string
+          nota?: string | null
+          sububicacion_id?: string | null
+          ubicacion_id: string
+          variante_id: string
+          vence_el: string
+          venta_id?: string | null
+        }
+        Update: {
+          adelanto_caja_movimiento_id?: string | null
+          adelanto_medio?: string | null
+          adelanto_monto?: number | null
+          cantidad?: number
+          cerrado_en?: string | null
+          cerrado_por?: string | null
+          cierre_motivo?: string | null
+          clienta_contacto?: string
+          clienta_nombre?: string
+          creado_por?: string | null
+          created_at?: string
+          estado?: string
+          id?: string
+          movimiento_cierre_id?: string | null
+          movimiento_id?: string
+          nota?: string | null
+          sububicacion_id?: string | null
+          ubicacion_id?: string
+          variante_id?: string
+          vence_el?: string
+          venta_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartados_cerrado_por_fkey"
+            columns: ["cerrado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_creado_por_fkey"
+            columns: ["creado_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_movimiento_cierre_id_fkey"
+            columns: ["movimiento_cierre_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: false
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_sububicacion_pertenece_fk"
+            columns: ["sububicacion_id", "ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "sububicaciones"
+            referencedColumns: ["id", "ubicacion_id"]
+          },
+          {
+            foreignKeyName: "apartados_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartados_variante_id_fkey"
+            columns: ["variante_id"]
+            isOneToOne: false
+            referencedRelation: "variantes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       caja_movimientos: {
         Row: {
           caja_id: string
@@ -118,46 +240,102 @@ export type Database = {
           },
         ]
       }
+      caja_traslados: {
+        Row: {
+          caja_id: string
+          creado_en: string
+          destino: string
+          id: string
+          monto: number
+          referencia: string | null
+          registrado_por: string | null
+        }
+        Insert: {
+          caja_id: string
+          creado_en?: string
+          destino: string
+          id?: string
+          monto: number
+          referencia?: string | null
+          registrado_por?: string | null
+        }
+        Update: {
+          caja_id?: string
+          creado_en?: string
+          destino?: string
+          id?: string
+          monto?: number
+          referencia?: string | null
+          registrado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "caja_traslados_caja_id_fkey"
+            columns: ["caja_id"]
+            isOneToOne: false
+            referencedRelation: "cajas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cajas: {
         Row: {
           abierta_en: string
+          apertura_revisada_en: string | null
+          apertura_revisada_por: string | null
           abierta_por: string | null
           cerrada_en: string | null
           cerrada_por: string | null
           diferencia: number | null
+          es_prueba: boolean
           estado: string
           id: string
           monto_apertura: number
+          monto_apertura_esperado: number | null
           monto_cierre_real: number | null
           monto_cierre_sistema: number | null
+          monto_fondo: number | null
+          motivo_diferencia_apertura: string | null
           nota: string | null
           ubicacion_id: string
         }
         Insert: {
           abierta_en?: string
+          apertura_revisada_en?: string | null
+          apertura_revisada_por?: string | null
           abierta_por?: string | null
           cerrada_en?: string | null
           cerrada_por?: string | null
           diferencia?: number | null
+          es_prueba?: boolean
           estado?: string
           id?: string
           monto_apertura: number
+          monto_apertura_esperado?: number | null
           monto_cierre_real?: number | null
           monto_cierre_sistema?: number | null
+          monto_fondo?: number | null
+          motivo_diferencia_apertura?: string | null
           nota?: string | null
           ubicacion_id: string
         }
         Update: {
           abierta_en?: string
+          apertura_revisada_en?: string | null
+          apertura_revisada_por?: string | null
           abierta_por?: string | null
           cerrada_en?: string | null
           cerrada_por?: string | null
           diferencia?: number | null
+          es_prueba?: boolean
           estado?: string
           id?: string
           monto_apertura?: number
+          monto_apertura_esperado?: number | null
           monto_cierre_real?: number | null
           monto_cierre_sistema?: number | null
+          monto_fondo?: number | null
+          motivo_diferencia_apertura?: string | null
           nota?: string | null
           ubicacion_id?: string
         }
@@ -395,33 +573,42 @@ export type Database = {
           },
         ]
       }
-      clientes: {
+      clientas: {
         Row: {
           created_at: string
-          email: string | null
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
           id: string
-          nombre: string
-          num_doc: string | null
-          telefono: string | null
-          tipo_doc: string | null
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          whatsapp_consentimiento_en: string | null
         }
         Insert: {
           created_at?: string
-          email?: string | null
+          created_por?: string | null
+          cumple_dia?: number | null
+          cumple_mes?: number | null
+          dni?: string | null
           id?: string
-          nombre: string
-          num_doc?: string | null
-          telefono?: string | null
-          tipo_doc?: string | null
+          nombre?: string | null
+          tallas?: Json | null
+          telefono_whatsapp?: string | null
+          whatsapp_consentimiento_en?: string | null
         }
         Update: {
           created_at?: string
-          email?: string | null
+          created_por?: string | null
+          cumple_dia?: number | null
+          cumple_mes?: number | null
+          dni?: string | null
           id?: string
-          nombre?: string
-          num_doc?: string | null
-          telefono?: string | null
-          tipo_doc?: string | null
+          nombre?: string | null
+          tallas?: Json | null
+          telefono_whatsapp?: string | null
+          whatsapp_consentimiento_en?: string | null
         }
         Relationships: []
       }
@@ -522,6 +709,7 @@ export type Database = {
           created_at: string
           persona_id: string
           rol: string
+          terminal: string | null
           ubicacion_asignada_id: string | null
         }
         Insert: {
@@ -529,6 +717,7 @@ export type Database = {
           created_at?: string
           persona_id: string
           rol?: string
+          terminal?: string | null
           ubicacion_asignada_id?: string | null
         }
         Update: {
@@ -536,6 +725,7 @@ export type Database = {
           created_at?: string
           persona_id?: string
           rol?: string
+          terminal?: string | null
           ubicacion_asignada_id?: string | null
         }
         Relationships: [
@@ -658,6 +848,7 @@ export type Database = {
           id: string
           motivo: string
           nota: string | null
+          ubicacion_id: string
           usuario_id: string | null
         }
         Insert: {
@@ -667,6 +858,7 @@ export type Database = {
           id?: string
           motivo: string
           nota?: string | null
+          ubicacion_id: string
           usuario_id?: string | null
         }
         Update: {
@@ -676,6 +868,7 @@ export type Database = {
           id?: string
           motivo?: string
           nota?: string | null
+          ubicacion_id?: string
           usuario_id?: string | null
         }
         Relationships: [
@@ -691,6 +884,56 @@ export type Database = {
             columns: ["compra_item_id"]
             isOneToOne: false
             referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_cierres_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_item_destinos: {
+        Row: {
+          cantidad: number
+          compra_item_id: string
+          created_at: string
+          ubicacion_id: string
+        }
+        Insert: {
+          cantidad: number
+          compra_item_id: string
+          created_at?: string
+          ubicacion_id: string
+        }
+        Update: {
+          cantidad?: number
+          compra_item_id?: string
+          created_at?: string
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -838,6 +1081,7 @@ export type Database = {
           pago_grupo_id: string | null
           referencia: string | null
           usuario_id: string | null
+          ubicacion_id: string | null
         }
         Insert: {
           compra_id: string
@@ -849,6 +1093,7 @@ export type Database = {
           pago_grupo_id?: string | null
           referencia?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Update: {
           compra_id?: string
@@ -860,6 +1105,7 @@ export type Database = {
           pago_grupo_id?: string | null
           referencia?: string | null
           usuario_id?: string | null
+          ubicacion_id?: string | null
         }
         Relationships: [
           {
@@ -874,6 +1120,71 @@ export type Database = {
             columns: ["compra_id"]
             isOneToOne: false
             referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compra_reasignaciones: {
+        Row: {
+          cantidad: number
+          compra_item_id: string
+          created_at: string
+          desde_ubicacion_id: string
+          hacia_ubicacion_id: string
+          id: string
+          motivo: string
+          nota: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          compra_item_id: string
+          created_at?: string
+          desde_ubicacion_id: string
+          hacia_ubicacion_id: string
+          id?: string
+          motivo: string
+          nota?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          compra_item_id?: string
+          created_at?: string
+          desde_ubicacion_id?: string
+          hacia_ubicacion_id?: string
+          id?: string
+          motivo?: string
+          nota?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_reasignaciones_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_reasignaciones_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_reasignaciones_desde_ubicacion_id_fkey"
+            columns: ["desde_ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_reasignaciones_hacia_ubicacion_id_fkey"
+            columns: ["hacia_ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -905,8 +1216,8 @@ export type Database = {
           subtotal: number
           tipo: string
           token_cliente: string | null
+          ubicacion_gestion_id: string | null
           total: number
-          ubicacion_destino_id: string
           usuario_id: string | null
         }
         Insert: {
@@ -935,8 +1246,8 @@ export type Database = {
           subtotal: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total: number
-          ubicacion_destino_id: string
           usuario_id?: string | null
         }
         Update: {
@@ -965,8 +1276,8 @@ export type Database = {
           subtotal?: number
           tipo?: string
           token_cliente?: string | null
+          ubicacion_gestion_id?: string | null
           total?: number
-          ubicacion_destino_id?: string
           usuario_id?: string | null
         }
         Relationships: [
@@ -975,13 +1286,6 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compras_ubicacion_destino_id_fkey"
-            columns: ["ubicacion_destino_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -1209,6 +1513,7 @@ export type Database = {
           cerrado_en: string | null
           cerrado_por: string | null
           created_at: string
+          es_prueba: boolean
           estado: string
           id: string
           numero: number
@@ -1222,6 +1527,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           numero?: number
@@ -1235,6 +1541,7 @@ export type Database = {
           cerrado_en?: string | null
           cerrado_por?: string | null
           created_at?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           numero?: number
@@ -1322,6 +1629,47 @@ export type Database = {
           },
         ]
       }
+      cotizaciones_maquila: {
+        Row: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
+        Insert: {
+          categoria_id: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion: string
+          id?: string
+          precio_maquila: number
+          proveedor_referencia?: string | null
+          vigente_hasta: string
+        }
+        Update: {
+          categoria_id?: string
+          creado_por?: string | null
+          created_at?: string
+          fecha_cotizacion?: string
+          id?: string
+          precio_maquila?: number
+          proveedor_referencia?: string | null
+          vigente_hasta?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cotizaciones_maquila_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       devolucion_items: {
         Row: {
           cantidad: number
@@ -1380,6 +1728,7 @@ export type Database = {
           estado: string
           id: string
           motivo: string
+          motivo_codigo: string | null
           nota_credito_id: string | null
           reembolso_metodo: string | null
           reembolso_monto: number | null
@@ -1395,6 +1744,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -1410,6 +1760,7 @@ export type Database = {
           estado?: string
           id?: string
           motivo?: string
+          motivo_codigo?: string | null
           nota_credito_id?: string | null
           reembolso_metodo?: string | null
           reembolso_monto?: number | null
@@ -1444,6 +1795,82 @@ export type Database = {
             columns: ["venta_id"]
             isOneToOne: false
             referencedRelation: "ventas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      envio_extras: {
+        Row: {
+          envio_id: string
+          es_regalo: boolean
+          movimiento_id: string
+          nota: string | null
+          proveedor_id: string
+        }
+        Insert: {
+          envio_id: string
+          es_regalo?: boolean
+          movimiento_id: string
+          nota?: string | null
+          proveedor_id: string
+        }
+        Update: {
+          envio_id?: string
+          es_regalo?: boolean
+          movimiento_id?: string
+          nota?: string | null
+          proveedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_extras_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_extras_movimiento_id_fkey"
+            columns: ["movimiento_id"]
+            isOneToOne: true
+            referencedRelation: "movimientos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_extras_proveedor_id_fkey"
+            columns: ["proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      envio_traslados: {
+        Row: {
+          envio_id: string
+          transferencia_id: string
+        }
+        Insert: {
+          envio_id: string
+          transferencia_id: string
+        }
+        Update: {
+          envio_id?: string
+          transferencia_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "envio_traslados_envio_id_fkey"
+            columns: ["envio_id"]
+            isOneToOne: false
+            referencedRelation: "envios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "envio_traslados_transferencia_id_fkey"
+            columns: ["transferencia_id"]
+            isOneToOne: false
+            referencedRelation: "transferencias"
             referencedColumns: ["id"]
           },
         ]
@@ -1633,6 +2060,7 @@ export type Database = {
       insumo_lotes: {
         Row: {
           cantidad_ingresada: number
+          comprobante_item_id: string | null
           codigo_lote: string | null
           costo_unitario: number
           created_at: string
@@ -1643,10 +2071,12 @@ export type Database = {
           nota: string | null
           origen: string
           proveedor_id: string | null
+          recepcion_id: string | null
           ubicacion_id: string
         }
         Insert: {
           cantidad_ingresada: number
+          comprobante_item_id?: string | null
           codigo_lote?: string | null
           costo_unitario: number
           created_at?: string
@@ -1657,10 +2087,12 @@ export type Database = {
           nota?: string | null
           origen?: string
           proveedor_id?: string | null
+          recepcion_id?: string | null
           ubicacion_id: string
         }
         Update: {
           cantidad_ingresada?: number
+          comprobante_item_id?: string | null
           codigo_lote?: string | null
           costo_unitario?: number
           created_at?: string
@@ -1671,6 +2103,7 @@ export type Database = {
           nota?: string | null
           origen?: string
           proveedor_id?: string | null
+          recepcion_id?: string | null
           ubicacion_id?: string
         }
         Relationships: [
@@ -2133,6 +2566,7 @@ export type Database = {
           created_at: string
           estado: string
           id: string
+          imagen_muestra_url: string | null
           nombre: string
           notas: string | null
           propuesto_por: string | null
@@ -2144,6 +2578,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre: string
           notas?: string | null
           propuesto_por?: string | null
@@ -2155,11 +2590,73 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
         }
         Relationships: []
+      }
+      pedidos_no_atendidos: {
+        Row: {
+          atendido_por: string | null
+          clienta_id: string | null
+          created_at: string
+          descripcion_libre: string | null
+          id: string
+          producto_id: string | null
+          resuelto: boolean
+          resuelto_en: string | null
+          talla: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          atendido_por?: string | null
+          clienta_id?: string | null
+          created_at?: string
+          descripcion_libre?: string | null
+          id?: string
+          producto_id?: string | null
+          resuelto?: boolean
+          resuelto_en?: string | null
+          talla?: string | null
+          ubicacion_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_no_atendidos_atendido_por_fkey"
+            columns: ["atendido_por"]
+            isOneToOne: false
+            referencedRelation: "personas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_producto_id_fkey"
+            columns: ["producto_id"]
+            isOneToOne: false
+            referencedRelation: "productos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_no_atendidos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prendas_danadas: {
         Row: {
@@ -2427,6 +2924,38 @@ export type Database = {
           },
         ]
       }
+      // 20260923161700 (ADR-0179): prendas vendidas en caja antes de estar en el sistema.
+      prendas_por_regularizar: {
+        Row: {
+          categoria_id: string
+          color_codigo: string
+          descripcion: string
+          diferencia: number | null
+          estado: string
+          forma: string | null
+          id: string
+          precio_cobrado: number
+          precio_oficial: number | null
+          regularizado_en: string | null
+          regularizado_por: string | null
+          talla_id: string
+          ubicacion_id: string
+          variante_id: string | null
+          vendido_en: string
+          vendido_por: string | null
+          venta_item_id: string
+        }
+        Insert: never
+        Update: never
+        Relationships: [
+          { foreignKeyName: "prendas_por_regularizar_categoria_id_fkey"; columns: ["categoria_id"]; isOneToOne: false; referencedRelation: "categorias"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_color_codigo_fkey"; columns: ["color_codigo"]; isOneToOne: false; referencedRelation: "colores"; referencedColumns: ["codigo"] },
+          { foreignKeyName: "prendas_por_regularizar_talla_id_fkey"; columns: ["talla_id"]; isOneToOne: false; referencedRelation: "tallas"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_ubicacion_id_fkey"; columns: ["ubicacion_id"]; isOneToOne: false; referencedRelation: "ubicaciones"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_variante_id_fkey"; columns: ["variante_id"]; isOneToOne: false; referencedRelation: "variantes"; referencedColumns: ["id"] },
+          { foreignKeyName: "prendas_por_regularizar_venta_item_id_fkey"; columns: ["venta_item_id"]; isOneToOne: true; referencedRelation: "venta_items"; referencedColumns: ["id"] },
+        ]
+      }
       productos: {
         Row: {
           aprobado_en: string | null
@@ -2435,6 +2964,7 @@ export type Database = {
           codigo: string | null
           created_at: string
           descripcion: string | null
+          es_prueba: boolean
           estado: string
           estado_alta: string
           id: string
@@ -2448,6 +2978,7 @@ export type Database = {
           tejido_id: string | null
           temporada: string | null
           token_cliente: string | null
+          version: number
         }
         Insert: {
           aprobado_en?: string | null
@@ -2456,6 +2987,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          es_prueba?: boolean
           estado?: string
           estado_alta?: string
           id?: string
@@ -2469,6 +3001,7 @@ export type Database = {
           tejido_id?: string | null
           temporada?: string | null
           token_cliente?: string | null
+          version?: number
         }
         Update: {
           aprobado_en?: string | null
@@ -2477,6 +3010,7 @@ export type Database = {
           codigo?: string | null
           created_at?: string
           descripcion?: string | null
+          es_prueba?: boolean
           estado?: string
           estado_alta?: string
           id?: string
@@ -2490,6 +3024,7 @@ export type Database = {
           tejido_id?: string | null
           temporada?: string | null
           token_cliente?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -2500,20 +3035,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "productos_patron_id_fkey"
-            columns: ["patron_id"]
-            isOneToOne: false
-            referencedRelation: "patrones"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "productos_tejido_id_fkey"
-            columns: ["tejido_id"]
-            isOneToOne: false
-            referencedRelation: "tejidos"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "productos_marca_fk"
             columns: ["marca_id"]
             isOneToOne: false
@@ -2521,10 +3042,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "productos_marca_proveedor_fk"
+            columns: ["marca_id", "proveedor_id"]
+            isOneToOne: false
+            referencedRelation: "marca_proveedores"
+            referencedColumns: ["marca_id", "proveedor_id"]
+          },
+          {
+            foreignKeyName: "productos_patron_id_fkey"
+            columns: ["patron_id"]
+            isOneToOne: false
+            referencedRelation: "patrones"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "productos_proveedor_fk"
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "productos_tejido_id_fkey"
+            columns: ["tejido_id"]
+            isOneToOne: false
+            referencedRelation: "tejidos"
             referencedColumns: ["id"]
           },
         ]
@@ -2539,11 +3081,14 @@ export type Database = {
           id: string
           igv: number
           items: Json
+          nota: string | null
+          numero: number
           subtotal: number
           total: number
           ubicacion_id: string
           usuario_id: string | null
           vence_at: string | null
+          venta_id: string | null
         }
         Insert: {
           cliente_nombre?: string | null
@@ -2554,11 +3099,14 @@ export type Database = {
           id?: string
           igv?: number
           items: Json
+          nota?: string | null
+          numero?: number
           subtotal?: number
           total: number
           ubicacion_id: string
           usuario_id?: string | null
           vence_at?: string | null
+          venta_id?: string | null
         }
         Update: {
           cliente_nombre?: string | null
@@ -2569,11 +3117,14 @@ export type Database = {
           id?: string
           igv?: number
           items?: Json
+          nota?: string | null
+          numero?: number
           subtotal?: number
           total?: number
           ubicacion_id?: string
           usuario_id?: string | null
           vence_at?: string | null
+          venta_id?: string | null
         }
         Relationships: [
           {
@@ -2588,6 +3139,13 @@ export type Database = {
             columns: ["ubicacion_id"]
             isOneToOne: false
             referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proformas_venta_id_fkey"
+            columns: ["venta_id"]
+            isOneToOne: false
+            referencedRelation: "ventas"
             referencedColumns: ["id"]
           },
         ]
@@ -2680,6 +3238,9 @@ export type Database = {
         Row: {
           activo: boolean
           banco: string | null
+          billeteras: string[] | null
+          cci: string | null
+          celular_billetera: string | null
           contacto: string | null
           created_at: string
           cuenta_bancaria: string | null
@@ -2690,10 +3251,14 @@ export type Database = {
           rubro: string | null
           ruc: string | null
           telefono: string | null
+          titular_cuenta: string | null
         }
         Insert: {
           activo?: boolean
           banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
           contacto?: string | null
           created_at?: string
           cuenta_bancaria?: string | null
@@ -2704,10 +3269,14 @@ export type Database = {
           rubro?: string | null
           ruc?: string | null
           telefono?: string | null
+          titular_cuenta?: string | null
         }
         Update: {
           activo?: boolean
           banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
           contacto?: string | null
           created_at?: string
           cuenta_bancaria?: string | null
@@ -2718,19 +3287,272 @@ export type Database = {
           rubro?: string | null
           ruc?: string | null
           telefono?: string | null
+          titular_cuenta?: string | null
+        }
+        Relationships: []
+      }
+      comprobantes_produccion: {
+        Row: {
+          condicion: string
+          created_at: string
+          estado: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          id: string
+          igv: number
+          motivo_anulacion: string | null
+          nota: string | null
+          numero: string
+          proveedor_id: string
+          serie: string
+          subtotal: number
+          tipo: string
+          token_cliente: string | null
+          total: number
+          usuario_id: string | null
+        }
+        Insert: {
+          condicion: string
+          created_at?: string
+          estado?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          igv: number
+          motivo_anulacion?: string | null
+          nota?: string | null
+          numero: string
+          proveedor_id: string
+          serie: string
+          subtotal: number
+          tipo?: string
+          token_cliente?: string | null
+          total: number
+          usuario_id?: string | null
+        }
+        Update: {
+          condicion?: string
+          created_at?: string
+          estado?: string
+          fecha_emision?: string
+          fecha_vencimiento?: string | null
+          id?: string
+          igv?: number
+          motivo_anulacion?: string | null
+          nota?: string | null
+          numero?: string
+          proveedor_id?: string
+          serie?: string
+          subtotal?: number
+          tipo?: string
+          token_cliente?: string | null
+          total?: number
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_items: {
+        Row: {
+          cantidad: number
+          comprobante_id: string
+          costo_unitario: number
+          descripcion: string | null
+          id: string
+          insumo_id: string | null
+          subtotal: number | null
+        }
+        Insert: {
+          cantidad: number
+          comprobante_id: string
+          costo_unitario: number
+          descripcion?: string | null
+          id?: string
+          insumo_id?: string | null
+          subtotal?: never
+        }
+        Update: {
+          cantidad?: number
+          comprobante_id?: string
+          costo_unitario?: number
+          descripcion?: string | null
+          id?: string
+          insumo_id?: string | null
+          subtotal?: never
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_recepciones: {
+        Row: {
+          comprobante_id: string
+          created_at: string
+          id: string
+          nota: string | null
+          token_cliente: string | null
+          ubicacion_id: string
+          usuario_id: string | null
+        }
+        Insert: {
+          comprobante_id: string
+          created_at?: string
+          id?: string
+          nota?: string | null
+          token_cliente?: string | null
+          ubicacion_id: string
+          usuario_id?: string | null
+        }
+        Update: {
+          comprobante_id?: string
+          created_at?: string
+          id?: string
+          nota?: string | null
+          token_cliente?: string | null
+          ubicacion_id?: string
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_cierres: {
+        Row: {
+          cantidad: number
+          created_at: string
+          id: string
+          item_id: string
+          motivo: string
+          nota: string | null
+          recepcion_id: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          id?: string
+          item_id: string
+          motivo: string
+          nota?: string | null
+          recepcion_id?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          id?: string
+          item_id?: string
+          motivo?: string
+          nota?: string | null
+          recepcion_id?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      comprobantes_produccion_pagos: {
+        Row: {
+          comprobante_id: string
+          created_at: string
+          fecha: string
+          grupo_id: string | null
+          id: string
+          metodo: string
+          monto: number
+          referencia: string | null
+          usuario_id: string | null
+        }
+        Insert: {
+          comprobante_id: string
+          created_at?: string
+          fecha?: string
+          grupo_id?: string | null
+          id?: string
+          metodo: string
+          monto: number
+          referencia?: string | null
+          usuario_id?: string | null
+        }
+        Update: {
+          comprobante_id?: string
+          created_at?: string
+          fecha?: string
+          grupo_id?: string | null
+          id?: string
+          metodo?: string
+          monto?: number
+          referencia?: string | null
+          usuario_id?: string | null
+        }
+        Relationships: []
+      }
+      proveedores_produccion: {
+        Row: {
+          activo: boolean
+          banco: string | null
+          billeteras: string[] | null
+          cci: string | null
+          celular_billetera: string | null
+          contacto: string | null
+          created_at: string
+          cuenta_bancaria: string | null
+          forma_pago_preferida: string | null
+          id: string
+          nombre: string
+          plazo_credito_dias: number | null
+          rubro: string
+          ruc: string | null
+          telefono: string | null
+          titular_cuenta: string | null
+        }
+        Insert: {
+          activo?: boolean
+          banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          forma_pago_preferida?: string | null
+          id?: string
+          nombre: string
+          plazo_credito_dias?: number | null
+          rubro: string
+          ruc?: string | null
+          telefono?: string | null
+          titular_cuenta?: string | null
+        }
+        Update: {
+          activo?: boolean
+          banco?: string | null
+          billeteras?: string[] | null
+          cci?: string | null
+          celular_billetera?: string | null
+          contacto?: string | null
+          created_at?: string
+          cuenta_bancaria?: string | null
+          forma_pago_preferida?: string | null
+          id?: string
+          nombre?: string
+          plazo_credito_dias?: number | null
+          rubro?: string
+          ruc?: string | null
+          telefono?: string | null
+          titular_cuenta?: string | null
         }
         Relationships: []
       }
       series_comprobantes: {
         Row: {
+          archivada_at: string | null
+          archivada_por: string | null
           id: string
+          motivo_archivo: string | null
           serie: string
           siguiente_numero: number
           tipo: string
           ubicacion_id: string
         }
         Insert: {
+          archivada_at?: string | null
+          archivada_por?: string | null
           id?: string
+          motivo_archivo?: string | null
           serie: string
           siguiente_numero?: number
           tipo: string
@@ -2756,6 +3578,7 @@ export type Database = {
       stock: {
         Row: {
           cantidad: number
+          cantidad_apartada: number
           sububicacion_id: string | null
           ubicacion_id: string
           updated_at: string
@@ -2763,6 +3586,7 @@ export type Database = {
         }
         Insert: {
           cantidad?: number
+          cantidad_apartada?: number
           sububicacion_id?: string | null
           ubicacion_id: string
           updated_at?: string
@@ -2770,6 +3594,7 @@ export type Database = {
         }
         Update: {
           cantidad?: number
+          cantidad_apartada?: number
           sububicacion_id?: string | null
           ubicacion_id?: string
           updated_at?: string
@@ -2875,6 +3700,7 @@ export type Database = {
           created_at: string
           estado: string
           id: string
+          imagen_muestra_url: string | null
           nombre: string
           notas: string | null
           propuesto_por: string | null
@@ -2886,6 +3712,7 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre: string
           notas?: string | null
           propuesto_por?: string | null
@@ -2897,9 +3724,160 @@ export type Database = {
           created_at?: string
           estado?: string
           id?: string
+          imagen_muestra_url?: string | null
           nombre?: string
           notas?: string | null
           propuesto_por?: string | null
+        }
+        Relationships: []
+      }
+      modulos: {
+        Row: {
+          clave: string
+          delegable: boolean
+          grupo: string
+          incluye: string
+          nombre: string
+          orden: number
+          solo_lider: boolean
+        }
+        Insert: {
+          clave: string
+          delegable?: boolean
+          grupo: string
+          incluye: string
+          nombre: string
+          orden: number
+          solo_lider?: boolean
+        }
+        Update: {
+          clave?: string
+          delegable?: boolean
+          grupo?: string
+          incluye?: string
+          nombre?: string
+          orden?: number
+          solo_lider?: boolean
+        }
+        Relationships: []
+      }
+      rol_modulos: {
+        Row: { modulo: string; rol_id: string }
+        Insert: { modulo: string; rol_id: string }
+        Update: { modulo?: string; rol_id?: string }
+        Relationships: []
+      }
+      roles: {
+        Row: {
+          archivado_at: string | null
+          archivado_por: string | null
+          clave: string | null
+          creado_at: string
+          creado_por: string | null
+          descripcion: string | null
+          es_sistema: boolean
+          fijo: boolean
+          id: string
+          limitado_como_hoy: boolean
+          nombre: string
+          version: number
+        }
+        Insert: {
+          archivado_at?: string | null
+          archivado_por?: string | null
+          clave?: string | null
+          creado_at?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          es_sistema?: boolean
+          fijo?: boolean
+          id?: string
+          limitado_como_hoy?: boolean
+          nombre: string
+          version?: number
+        }
+        Update: {
+          archivado_at?: string | null
+          archivado_por?: string | null
+          clave?: string | null
+          creado_at?: string
+          creado_por?: string | null
+          descripcion?: string | null
+          es_sistema?: boolean
+          fijo?: boolean
+          id?: string
+          limitado_como_hoy?: boolean
+          nombre?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      roles_historial: {
+        Row: {
+          accion: string
+          detalle: Json
+          hecho_at: string
+          hecho_por: string | null
+          id: number
+          rol_id: string
+        }
+        Insert: {
+          accion: string
+          detalle?: Json
+          hecho_at?: string
+          hecho_por?: string | null
+          id?: never
+          rol_id: string
+        }
+        Update: {
+          accion?: string
+          detalle?: Json
+          hecho_at?: string
+          hecho_por?: string | null
+          id?: never
+          rol_id?: string
+        }
+        Relationships: []
+      }
+      terminales: {
+        Row: {
+          activo: boolean
+          auth_user_id: string | null
+          creada_at: string
+          creada_por: string | null
+          desactivada_at: string | null
+          desactivada_por: string | null
+          id: string
+          nombre: string
+          rol_id: string
+          tipo: string | null
+          ubicacion_id: string
+        }
+        Insert: {
+          activo?: boolean
+          auth_user_id?: string | null
+          creada_at?: string
+          creada_por?: string | null
+          desactivada_at?: string | null
+          desactivada_por?: string | null
+          id?: string
+          nombre: string
+          rol_id?: string
+          tipo?: string | null
+          ubicacion_id: string
+        }
+        Update: {
+          activo?: boolean
+          auth_user_id?: string | null
+          creada_at?: string
+          creada_por?: string | null
+          desactivada_at?: string | null
+          desactivada_por?: string | null
+          id?: string
+          nombre?: string
+          rol_id?: string
+          tipo?: string | null
+          ubicacion_id?: string
         }
         Relationships: []
       }
@@ -3268,7 +4246,7 @@ export type Database = {
           {
             foreignKeyName: "venta_anulacion_items_venta_item_id_fkey"
             columns: ["venta_item_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "venta_items"
             referencedColumns: ["id"]
           },
@@ -3346,18 +4324,21 @@ export type Database = {
           id: string
           metodo: string
           monto: number
+          recibido: number | null
           venta_id: string
         }
         Insert: {
           id?: string
           metodo: string
           monto: number
+          recibido?: number | null
           venta_id: string
         }
         Update: {
           id?: string
           metodo?: string
           monto?: number
+          recibido?: number | null
           venta_id?: string
         }
         Relationships: [
@@ -3374,9 +4355,16 @@ export type Database = {
         Row: {
           anulado_en: string | null
           anulado_por: string | null
+          asesora_id: string | null
+          boleta_alegra_numero: string | null
           caja_id: string | null
           cliente_id: string | null
           created_at: string
+          descuento_autorizado_por: string | null
+          descuento_motivo: string | null
+          descuento_pct: number
+          emisor: string
+          es_prueba: boolean
           estado: string
           id: string
           motivo_anulacion: string | null
@@ -3388,9 +4376,16 @@ export type Database = {
         Insert: {
           anulado_en?: string | null
           anulado_por?: string | null
+          asesora_id?: string | null
+          boleta_alegra_numero?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          descuento_autorizado_por?: string | null
+          descuento_motivo?: string | null
+          descuento_pct?: number
+          emisor?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           motivo_anulacion?: string | null
@@ -3402,9 +4397,16 @@ export type Database = {
         Update: {
           anulado_en?: string | null
           anulado_por?: string | null
+          asesora_id?: string | null
+          boleta_alegra_numero?: string | null
           caja_id?: string | null
           cliente_id?: string | null
           created_at?: string
+          descuento_autorizado_por?: string | null
+          descuento_motivo?: string | null
+          descuento_pct?: number
+          emisor?: string
+          es_prueba?: boolean
           estado?: string
           id?: string
           motivo_anulacion?: string | null
@@ -3422,10 +4424,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "ventas_cliente_id_fkey"
+            foreignKeyName: "ventas_clienta_fk"
             columns: ["cliente_id"]
             isOneToOne: false
-            referencedRelation: "clientes"
+            referencedRelation: "clientas"
             referencedColumns: ["id"]
           },
           {
@@ -3439,6 +4441,68 @@ export type Database = {
       }
     }
     Views: {
+      planilla_por_sede: {
+        Row: {
+          costo_total: number | null
+          fecha_fin: string | null
+          fecha_ini: string | null
+          pagado: number | null
+          periodo_id: string | null
+          personas: number | null
+          provisiones: number | null
+          sede_codigo: string | null
+          sede_tipo: string | null
+        }
+        Relationships: []
+      }
+      compra_item_reparto_resumen: {
+        Row: {
+          asignado: number | null
+          cerrado: number | null
+          compra_id: string | null
+          compra_item_id: string | null
+          pendiente: number | null
+          recibido: number | null
+          ubicacion_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_compra_item_id_fkey"
+            columns: ["compra_item_id"]
+            isOneToOne: false
+            referencedRelation: "compra_items_resumen"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_item_destinos_ubicacion_id_fkey"
+            columns: ["ubicacion_id"]
+            isOneToOne: false
+            referencedRelation: "ubicaciones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compra_items_compra_id_fkey"
+            columns: ["compra_id"]
+            isOneToOne: false
+            referencedRelation: "compras_resumen"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compra_items_resumen: {
         Row: {
           cantidad: number | null
@@ -3542,7 +4606,8 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
-          ubicacion_destino_id: string | null
+          naturaleza: string | null
+          ubicaciones_destino: string[] | null
           vencida: boolean | null
         }
         Relationships: [
@@ -3551,13 +4616,6 @@ export type Database = {
             columns: ["proveedor_id"]
             isOneToOne: false
             referencedRelation: "proveedores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "compras_ubicacion_destino_id_fkey"
-            columns: ["ubicacion_destino_id"]
-            isOneToOne: false
-            referencedRelation: "ubicaciones"
             referencedColumns: ["id"]
           },
         ]
@@ -3586,7 +4644,11 @@ export type Database = {
     }
     Functions: {
       abrir_caja: {
-        Args: { p_monto_apertura: number; p_ubicacion_id: string }
+        Args: {
+          p_monto_apertura: number
+          p_motivo_diferencia?: string
+          p_ubicacion_id: string
+        }
         Returns: string
       }
       abrir_conteo: {
@@ -3680,6 +4742,14 @@ export type Database = {
         Args: { p_persona_id: string; p_ubicacion_id: string }
         Returns: undefined
       }
+      agregar_colaboradores: {
+        Args: { p_personas: string[]; p_ubicacion_id: string }
+        Returns: number
+      }
+      agregar_terminal: {
+        Args: { p_persona_id: string; p_terminal: string; p_ubicacion_id: string }
+        Returns: undefined
+      }
       ajustar_insumo_por_conteo: {
         Args: {
           p_cantidad_contada: number
@@ -3711,6 +4781,109 @@ export type Database = {
         Args: { p_items: Json; p_motivo: string; p_venta_id: string }
         Returns: undefined
       }
+      apartar_stock: {
+        Args: {
+          p_cantidad: number
+          p_clienta_contacto: string
+          p_clienta_nombre: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+          p_vence_el: string
+        }
+        Returns: string
+      }
+      // Apartados con adelanto (ADR-0166, 20260923090000_separaciones.sql). Escritos a mano con la forma que da
+      // `supabase gen types` (esta sesión no pudo levantar el stack): regenerar al pegar la migración en producción.
+      buscar_separaciones: {
+        Args: { p_estados?: string[]; p_texto?: string; p_ubicacion_id: string }
+        Returns: {
+          adelanto: number
+          asesora: string | null
+          clienta_apellidos: string
+          clienta_celular: string
+          clienta_dni: string | null
+          clienta_nombres: string
+          codigo: string
+          comprobante_anticipo: string | null
+          comprobante_final: string | null
+          creada_en: string
+          devolucion_cci_final: string | null
+          devolucion_medio: string
+          devolucion_numero: string | null
+          estado: string
+          extensiones: number
+          id: string
+          items: Json
+          liberada_sola: boolean
+          nota_credito: string | null
+          pagos: Json
+          saldo: number
+          total: number
+          vence_el: string
+        }[]
+      }
+      entregar_separacion: {
+        Args: { p_pagos?: Json; p_separacion_id: string; p_token?: string }
+        Returns: string
+      }
+      extender_separacion: {
+        Args: { p_separacion_id: string }
+        Returns: string
+      }
+
+      fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
+      fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
+      fn_catalogo_version: { Args: never; Returns: number }
+      fn_vencer_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: number
+      }
+      liberar_separacion: {
+        Args: { p_motivo: string; p_separacion_id: string }
+        Returns: undefined
+      }
+      registrar_devolucion_separacion: {
+        Args: { p_cci?: string; p_medio: string; p_operacion?: string; p_separacion_id: string }
+        Returns: Json
+      }
+      resumen_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          en_custodia: number
+          en_custodia_efectivo: number
+          monto_por_devolver: number
+          por_devolver: number
+          por_recoger: number
+          prendas_guardadas: number
+          vencen_pronto: number
+          vencidas: number
+        }[]
+      }
+      separar_prendas: {
+        Args: {
+          p_asesora_id?: string
+          p_cliente_razon_social?: string
+          p_cliente_ruc?: string
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_dni?: string
+          p_clienta_id?: string
+          p_clienta_nombres: string
+          p_comprobante_tipo?: string
+          p_devolucion_cci?: string
+          p_devolucion_medio: string
+          p_devolucion_numero?: string
+          p_items: Json
+          p_nota?: string
+          p_pagos: Json
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
+      }
       aprobar_devolucion: {
         Args: {
           p_devolucion_id: string
@@ -3726,6 +4899,25 @@ export type Database = {
       archivar_adjunto_compra: {
         Args: { p_adjunto_id: string }
         Returns: undefined
+      }
+      anular_comprobante_produccion: {
+        Args: { p_comprobante_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      buscar_clienta: {
+        Args: { p_termino: string }
+        Returns: {
+          created_at: string
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
+          id: string
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          whatsapp_consentimiento_en: string | null
+        }[]
       }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }
@@ -3764,8 +4956,9 @@ export type Database = {
           p_tejido_id?: string
           p_temporada?: string
           p_variantes: Json
+          p_version_esperada?: number
         }
-        Returns: undefined
+        Returns: number
       }
       catalogo_crear_producto: {
         Args: {
@@ -3806,11 +4999,19 @@ export type Database = {
         }[]
       }
       cerrar_caja: {
-        Args: { p_caja_id: string; p_monto_real: number }
+        Args: {
+          p_caja_id: string
+          p_monto_real: number
+          p_traslado_destino?: string
+          p_traslado_monto?: number
+          p_traslado_referencia?: string
+        }
         Returns: {
           diferencia: number
+          monto_fondo: number
           monto_real: number
           monto_sistema: number
+          monto_trasladado: number
         }[]
       }
       cerrar_conteo: {
@@ -3827,6 +5028,7 @@ export type Database = {
           p_compra_item_id: string
           p_motivo: string
           p_nota?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
@@ -3887,6 +5089,7 @@ export type Database = {
         Args: {
           p_items: Json
           p_motivo: string
+          p_motivo_codigo: string
           p_ubicacion_id: string
           p_venta_id: string
         }
@@ -3916,14 +5119,20 @@ export type Database = {
         Args: {
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
-          p_igv: number
           p_items: Json
-          p_subtotal: number
-          p_total: number
+          p_nota?: string
           p_ubicacion_id: string
           p_vence_at?: string
         }
         Returns: string
+      }
+      cambiar_estado_proveedor_produccion: {
+        Args: { p_activo: boolean; p_proveedor_id: string }
+        Returns: undefined
+      }
+      cambiar_ubicacion_colaborador: {
+        Args: { p_persona_id: string; p_ubicacion_id: string }
+        Returns: undefined
       }
       desactivar_categoria: {
         Args: { p_categoria_id: string }
@@ -3932,6 +5141,16 @@ export type Database = {
       desactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
+      }
+      desactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
+      devolver_insumo_de_produccion: {
+        Args: {
+          p_cantidad: number
+          p_insumo_id: string
+          p_nota?: string
+          p_produccion_id: string
+        }
+        Returns: string
       }
       deuda_por_vencimiento: {
         Args: never
@@ -3969,13 +5188,24 @@ export type Database = {
         }
         Returns: string
       }
-      etiquetar_variantes: {
-        Args: { p_cambios: Json }
-        Returns: Json
-      }
+      etiquetar_variantes: { Args: { p_cambios: Json }; Returns: Json }
+      fn_aplicar_candado_de_dinero: { Args: never; Returns: string[] }
       fn_aplicar_movimiento: {
         Args: { p_movimiento_id: string }
         Returns: undefined
+      }
+      fn_aprobar_alta_colaborador: {
+        Args: { p_persona_id: string }
+        Returns: undefined
+      }
+      fn_asesoras_de_turno: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          es_de_esta_sede: boolean
+          estado_ahora: string
+          nombre_corto: string
+          persona_id: string
+        }[]
       }
       fn_asignar_codigo_producto: {
         Args: { p_producto_id: string }
@@ -3998,16 +5228,73 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_clave_referencia: { Args: { p: string }; Returns: string }
       fn_clave_texto: { Args: { p: string }; Returns: string }
       fn_colaboradores: {
         Args: never
         Returns: {
           agregado_en: string
           correo: string
+          es_yo: boolean
           nombre: string
           persona_id: string
           rol: string
           sede: string
+          ubicacion_asignada: string
+          ubicacion_id: string
+          ultimo_acceso: string
+        }[]
+      }
+      fn_colaboradores_actividad: {
+        Args: { p_limite?: number }
+        Returns: {
+          accion: string
+          created_at: string
+          id: number
+          motivo: string
+          persona_nombre: string
+          por_nombre: string
+          rol: string
+          total: number
+          ubicacion_anterior: string
+          ubicacion_nueva: string
+        }[]
+      }
+      fn_colaboradores_inactivos: {
+        Args: never
+        Returns: {
+          correo: string
+          estado_dynamic: string
+          nombre: string
+          persona_id: string
+          rol: string
+          sede: string
+          suspendida: boolean
+        }[]
+      }
+      fn_colaboradores_pendientes: {
+        Args: never
+        Returns: {
+          correo: string
+          nombre: string
+          persona_id: string
+          propuesto_en: string
+          propuesto_por: string
+          sede: string
+          ubicacion_asignada: string
+        }[]
+      }
+      fn_colaboradores_suspendidos: {
+        Args: never
+        Returns: {
+          correo: string
+          motivo: string
+          nombre: string
+          persona_id: string
+          rol: string
+          sede: string
+          suspendido_en: string
+          suspendido_por_nombre: string
           ubicacion_asignada: string
         }[]
       }
@@ -4106,6 +5393,23 @@ export type Database = {
           usuario_nombre: string
         }[]
       }
+      fn_cotizacion_maquila_vigente: {
+        Args: { p_categoria_id: string }
+        Returns: {
+          categoria_id: string
+          creado_por: string | null
+          created_at: string
+          fecha_cotizacion: string
+          id: string
+          precio_maquila: number
+          proveedor_referencia: string | null
+          vigente_hasta: string
+        }
+      }
+      fn_dentro_de_una_edicion: {
+        Args: { a: string; b: string }
+        Returns: boolean
+      }
       fn_dynamic_disponibles: {
         Args: never
         Returns: {
@@ -4116,6 +5420,23 @@ export type Database = {
         }[]
       }
       fn_es_lider: { Args: never; Returns: boolean }
+      fn_esperado_caja: {
+        Args: { p_caja_id: string }
+        Returns: {
+          apertura: number
+          cambios_efectivo: number
+          egresos: number
+          esperado: number
+          ingresos: number
+          reembolsos_efectivo: number
+          ventas_efectivo: number
+        }[]
+      }
+      fn_actor_persona_id: { Args: { p_de_tienda?: boolean }; Returns: string }
+      fn_exige_dinero_de_compras: {
+        Args: { p_que?: string }
+        Returns: undefined
+      }
       fn_historial_producto_cambios: {
         Args: { p_producto_id: string }
         Returns: {
@@ -4135,6 +5456,28 @@ export type Database = {
           variante_talla: string
         }[]
       }
+      fn_facturas_para_nota_credito: {
+        Args: {
+          p_filtro?: string
+          p_limite?: number
+          p_proveedor_id?: string
+          p_texto?: string
+        }
+        Returns: {
+          documento: string
+          estado: string
+          fecha_emision: string
+          fecha_vencimiento: string
+          id: string
+          notas_monto: number
+          pagado: number
+          proveedor_id: string
+          proveedor_nombre: string
+          saldo: number
+          tiene_nota: boolean
+          total: number
+        }[]
+      }
       fn_hoy_lima: { Args: never; Returns: string }
       fn_insertar_nota_credito_compra: {
         Args: {
@@ -4148,6 +5491,33 @@ export type Database = {
           p_serie_numero: string
         }
         Returns: string
+      }
+      archivar_serie_comprobante: {
+        Args: { p_motivo: string; p_serie_id: string }
+        Returns: undefined
+      }
+      fn_comprobantes_cola_reintento: {
+        Args: { p_ubicacion_id?: string }
+        Returns: {
+          comprobante_id: string
+          horas_esperando: number
+          intentos_transmision: number
+          numero: number
+          serie: string
+          tipo: string
+          ubicacion_id: string
+          ultimo_error_transmision: string
+          ultimo_intento_transmision_at: string
+          venta_id: string
+        }[]
+      }
+      fn_marcar_reintento_transmision: {
+        Args: { p_comprobante_id: string; p_error: string }
+        Returns: undefined
+      }
+      fn_tomar_comprobantes_para_reintento: {
+        Args: { p_limite?: number; p_ubicacion_id?: string }
+        Returns: string[]
       }
       fn_mi_perfil: {
         Args: never
@@ -4234,6 +5604,17 @@ export type Database = {
           venta_nota: string
         }[]
       }
+      fn_movimientos_busqueda: {
+        Args: { p_busqueda: string }
+        Returns: {
+          movimiento_ids: string[]
+          variante_ids: string[]
+        }[]
+      }
+      fn_movimientos_de_comprobante: {
+        Args: { p_numero: number; p_serie: string; p_tipos: string[] }
+        Returns: string[]
+      }
       fn_movimientos_resumen: {
         Args: {
           p_busqueda?: string
@@ -4261,6 +5642,10 @@ export type Database = {
           id: string
           nombre: string
         }[]
+      }
+      fn_mi_terminal: {
+        Args: never
+        Returns: string
       }
       fn_persona_actual_resumen: {
         Args: never
@@ -4414,11 +5799,129 @@ export type Database = {
           ultima_entrega: string
         }[]
       }
+      fn_comprobantes_produccion: {
+        Args: { p_limite?: number }
+        Returns: {
+          condicion: string
+          created_at: string
+          estado: string
+          estado_pago: string
+          fecha_emision: string
+          fecha_vencimiento: string
+          id: string
+          igv: number
+          lineas: number
+          motivo_anulacion: string
+          nota: string
+          numero: string
+          pagado: number
+          proveedor: string
+          proveedor_id: string
+          saldo: number
+          serie: string
+          subtotal: number
+          tipo: string
+          total: number
+          vencido: boolean
+        }[]
+      }
+      fn_costos_insumos_taller: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_unitario: number
+          lote_id: string
+        }[]
+      }
+      fn_costos_producciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          costo_avios: number
+          costo_maquila: number
+          costo_tela: number
+          costo_unitario: number
+          produccion_id: string
+        }[]
+      }
+      fn_deuda_consolidada: {
+        Args: never
+        Returns: {
+          comprobantes: number
+          origen: string
+          proveedor: string
+          proveedor_id: string
+          proximo_vencimiento: string
+          saldo: number
+          vencido: number
+        }[]
+      }
+      fn_igv_credito_fiscal: {
+        Args: { p_mes?: string }
+        Returns: {
+          igv_compras: number
+          igv_neto: number
+          igv_notas_credito: number
+          igv_produccion: number
+          mes: string
+        }[]
+      }
+      fn_lineas_comprobantes_produccion: {
+        Args: { p_comprobante_id?: string; p_ubicacion_id: string }
+        Returns: {
+          cerrado: number
+          comprobante_id: string
+          facturado: number
+          fecha_emision: string
+          insumo: string
+          insumo_id: string
+          item_id: string
+          numero: string
+          pendiente: number
+          proveedor: string
+          recibido: number
+          serie: string
+          tipo: string
+          unidad: string
+        }[]
+      }
+      fn_proveedor_produccion_metricas: {
+        Args: { p_proveedor_id: string }
+        Returns: {
+          lotes: number
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
+      fn_proveedores_produccion: {
+        Args: never
+        Returns: {
+          activo: boolean
+          banco: string
+          billeteras: string[]
+          cci: string
+          celular_billetera: string
+          contacto: string
+          cuenta_bancaria: string
+          forma_pago_preferida: string
+          id: string
+          lotes: number
+          nombre: string
+          plazo_credito_dias: number
+          rubro: string
+          ruc: string
+          telefono: string
+          titular_cuenta: string
+          total_comprado: number
+          ultima_entrega: string
+        }[]
+      }
       fn_proveedores: {
         Args: never
         Returns: {
           activo: boolean
           banco: string
+          billeteras: string[]
+          cci: string
+          celular_billetera: string
           contacto: string
           cuenta_bancaria: string
           dias_desde_ultima_compra: number
@@ -4439,6 +5942,7 @@ export type Database = {
           saldo_favor: number
           saldo_vencido: number
           telefono: string
+          titular_cuenta: string
           total_facturado: number
           ultima_compra: string
         }[]
@@ -4473,6 +5977,8 @@ export type Database = {
         Returns: boolean
       }
       fn_puede_registrar_compras: { Args: never; Returns: boolean }
+      fn_puede_ver_compra: { Args: { p_compra_id: string }; Returns: boolean }
+      fn_puede_ver_dinero_de_compras: { Args: never; Returns: boolean }
       fn_recalcular_costo_variante: {
         Args: {
           p_cantidad_nueva: number
@@ -4489,6 +5995,64 @@ export type Database = {
           numero: number
           serie: string
         }[]
+      }
+      fn_resumen_comparacion: {
+        Args: {
+          p_a_desde: string
+          p_a_hasta: string
+          p_b_desde: string
+          p_b_hasta: string
+          p_ubicacion_id: string
+        }
+        Returns: {
+          a_costo_devoluciones: number
+          a_costo_ventas: number
+          a_devoluciones: number
+          a_dias_con_stock: number
+          a_entradas: number
+          a_importe: number
+          a_stock_cierre: number
+          a_stock_inicio: number
+          a_uds_sin_costo: number
+          a_ventas: number
+          b_costo_devoluciones: number
+          b_costo_ventas: number
+          b_devoluciones: number
+          b_dias_con_stock: number
+          b_entradas: number
+          b_importe: number
+          b_stock_cierre: number
+          b_stock_inicio: number
+          b_uds_sin_costo: number
+          b_ventas: number
+          categoria_id: string
+          categoria_nombre: string
+          codigo: string
+          codigos_barras: string[]
+          color_codigo: string
+          color_hex: string
+          color_nombre: string
+          costo: number
+          estado_costo: string
+          ledger_consistente: boolean
+          producto_codigo: string
+          producto_estado: string
+          producto_id: string
+          referencia: string
+          sku: string
+          talla: string
+          variante_id: string
+        }[]
+      }
+      fn_resumen_comparacion_json: {
+        Args: {
+          p_a_desde: string
+          p_a_hasta: string
+          p_b_desde: string
+          p_b_hasta: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
       }
       fn_resumen_variantes: {
         Args: {
@@ -4548,6 +6112,32 @@ export type Database = {
           ventas_ventana: number
         }[]
       }
+      fn_resumen_variantes_json: {
+        Args: {
+          p_cmp_desde?: string
+          p_cmp_hasta?: string
+          p_desde?: string
+          p_hasta?: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
+      fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }
+      fn_totales_historial_ventas: {
+        Args: {
+          p_comprobante?: string
+          p_desde?: string
+          p_estado?: string
+          p_hasta?: string
+          p_ids?: string[]
+          p_incluir_prueba?: boolean
+          p_pago?: string
+          p_sede_id?: string
+          p_vendedor_id?: string
+        }
+        Returns: Json
+      }
       fn_saldo_favor_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: number
@@ -4561,12 +6151,123 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_stock_por_sede_json: { Args: never; Returns: Json }
       fn_sububicacion_por_defecto: {
         Args: { p_ubicacion_id: string; p_uso: string }
         Returns: string
       }
+      archivar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      asignar_rol: {
+        Args: {
+          p_persona_id?: string
+          p_rol_id: string
+          p_terminal_id?: string
+          p_ubicacion_id?: string
+        }
+        Returns: undefined
+      }
+      crear_rol: {
+        Args: { p_copiar_de?: string; p_descripcion?: string; p_nombre: string }
+        Returns: string
+      }
+      fn_cuentas_con_rol: {
+        Args: never
+        Returns: {
+          es_lider: boolean
+          estado: string
+          id: string
+          nombre: string
+          rol_id: string
+          tipo: string
+          ubicacion_nombre: string | null
+        }[]
+      }
+      fn_mis_modulos: {
+        Args: never
+        Returns: {
+          clave: string
+          completo: boolean
+        }[]
+      }
+      fn_ve_modulo: { Args: { p_clave: string }; Returns: boolean }
+      // 20260923110000 / 20260923111000: capacidades de los módulos abiertos a los roles.
+      fn_puede_editar_etiquetas: { Args: never; Returns: boolean }
+      fn_puede_tocar_etiqueta: { Args: { p_etiqueta_id: string; p_descuento_nuevo?: number }; Returns: boolean }
+      fn_puede_analizar: { Args: never; Returns: boolean }
+      fn_puede_gestionar_colaboradores: { Args: never; Returns: boolean }
+      fn_puede_administrar_roles: { Args: never; Returns: boolean }
+      // ADR-0184 (Compras por tienda)
+      fn_compras_ubicaciones: { Args: never; Returns: string[] }
+      fn_puede_comprar_en: { Args: { p_ubicacion_id: string }; Returns: boolean }
+      fn_saldo_de_tienda: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: number }
+      agregar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      quitar_comprador_de_tienda: { Args: { p_persona_id: string; p_ubicacion_id: string }; Returns: undefined }
+      cambiar_tienda_gestora_compra: { Args: { p_compra_id: string; p_ubicacion_id: string }; Returns: undefined }
+      fn_compras_visibles: { Args: never; Returns: string[] }
+      fn_compra_es_de_mis_tiendas: { Args: { p_compra_id: string }; Returns: boolean }
+      fn_mi_parte_de_compra: { Args: { p_compra_id: string }; Returns: Json }
+      // 20260924100000 (ADR-0187): lo que debe quien consulta en cada comprobante (líder: el total; tienda: su parte).
+      fn_deuda_visible: {
+        Args: { p_ids?: string[] }
+        Returns: { compra_id: string; total: number; pagado: number; saldo: number; gestionada: boolean }[]
+      }
+      fn_mis_partes_de_compras: {
+        Args: never
+        Returns: {
+          compra_id: string
+          documento: string | null
+          tipo: string
+          proveedor_id: string
+          proveedor_nombre: string
+          fecha_emision: string
+          fecha_vencimiento: string | null
+          estado: string
+          gestora_id: string | null
+          gestora_nombre: string | null
+          ubicacion_id: string
+          ubicacion_nombre: string
+          unidades: number
+          total: number
+          pagado: number
+          saldo: number
+          registrada_en: string
+          parte_nueva: boolean
+        }[]
+      }
+      // 20260923163000 (ADR-0178): el escalón Admin, leído de Dynamic, y «solo das lo que tienes».
+      fn_es_admin: { Args: never; Returns: boolean }
+      fn_admins: { Args: never; Returns: { persona_id: string }[] }
+      fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
+      // 20260923174500: «solo alcanzas a quien está por debajo de ti».
+      fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
+      guardar_modulos_rol: {
+        Args: { p_modulos: string[]; p_rol_id: string; p_version_esperada?: number }
+        Returns: number
+      }
+      renombrar_rol: {
+        Args: { p_descripcion?: string; p_nombre: string; p_rol_id: string }
+        Returns: undefined
+      }
+      restaurar_rol: { Args: { p_rol_id: string }; Returns: undefined }
+      fn_terminales: {
+        Args: never
+        Returns: {
+          activo: boolean
+          correo: string | null
+          creada_at: string
+          desactivada_at: string | null
+          id: string
+          nombre: string
+          rol_id: string
+          rol_nombre: string
+          ubicacion_id: string
+          ubicacion_nombre: string
+          ultimo_acceso: string | null
+        }[]
+      }
       fn_texto_o_null: { Args: { p: string }; Returns: string }
       fn_tiene_acceso_retail: { Args: never; Returns: boolean }
+      fn_titulo_referencia: { Args: { p: string }; Returns: string }
       fn_token_talla: { Args: { p_talla: string }; Returns: string }
       fn_traslado_lineas: {
         Args: { p_transferencia_id: string }
@@ -4582,6 +6283,14 @@ export type Database = {
         }[]
       }
       fn_ubicacion_actual_persona: { Args: never; Returns: string }
+      fn_validar_fecha_pago_compra: {
+        Args: { p_documento: string; p_fecha: string; p_fecha_emision: string }
+        Returns: undefined
+      }
+      fn_validar_marca_proveedor: {
+        Args: { p_marca_id: string; p_proveedor_id: string }
+        Returns: undefined
+      }
       fn_variante_permitida_en_sede: {
         Args: { p_ubicacion_id: string; p_variante_id: string }
         Returns: boolean
@@ -4603,15 +6312,79 @@ export type Database = {
           venta_id: string
         }[]
       }
+      fn_verificar_apartados: {
+        Args: never
+        Returns: {
+          en_apartados: number
+          en_stock: number
+          sububicacion_id: string
+          ubicacion_id: string
+          variante_id: string
+        }[]
+      }
+      guardar_cuentas_proveedor: {
+        Args: {
+          p_billeteras?: string[]
+          p_cci?: string
+          p_celular_billetera?: string
+          p_proveedor_id: string
+          p_titular_cuenta?: string
+        }
+        Returns: undefined
+      }
+      guardar_proveedor_produccion: {
+        Args: {
+          p_banco?: string
+          p_billeteras?: string[]
+          p_cci?: string
+          p_celular_billetera?: string
+          p_contacto?: string
+          p_cuenta_bancaria?: string
+          p_forma_pago_preferida?: string
+          p_nombre: string
+          p_plazo_credito_dias?: number
+          p_proveedor_id: string
+          p_rubro: string
+          p_ruc?: string
+          p_telefono?: string
+          p_titular_cuenta?: string
+        }
+        Returns: string
+      }
       iniciar_traslado: {
         Args: {
           p_fecha_estimada_llegada: string
           p_items: Json
           p_nota?: string
+          p_token?: string
           p_ubicacion_destino_id: string
           p_ubicacion_origen_id: string
         }
         Returns: string
+      }
+      liberar_apartado: {
+        Args: { p_apartado_id: string; p_motivo: string }
+        Returns: undefined
+      }
+      lineas_compra_operativo: {
+        Args: { p_compra_ids: string[]; p_ubicacion_id?: string }
+        Returns: {
+          asignado_aqui: number
+          cantidad: number
+          cantidad_facturada: number
+          cerrado: number
+          cerrado_aqui: number
+          compra_id: string
+          descripcion: string
+          id: string
+          otras_tiendas: Json
+          pendiente: number
+          pendiente_aqui: number
+          producto_id: string
+          recibido: number
+          recibido_aqui: number
+          variante_id: string
+        }[]
       }
       liquidar_prenda_danada: {
         Args: {
@@ -4622,20 +6395,25 @@ export type Database = {
         }
         Returns: string
       }
-      lineas_compra_operativo: {
-        Args: {
-          p_compra_ids: string[]
-        }
+      listar_apartados: {
+        Args: { p_ubicacion_id: string }
         Returns: {
           cantidad: number
-          cerrado: number
-          compra_id: string
-          descripcion: string | null
+          clienta_contacto: string
+          clienta_nombre: string
+          color: string
+          creado_por: string
+          creado_por_nombre: string
+          created_at: string
           id: string
-          pendiente: number
-          producto_id: string | null
-          recibido: number
-          variante_id: string | null
+          nota: string
+          puede_liberar: boolean
+          referencia: string
+          sku: string
+          sububicacion_id: string
+          talla: string
+          variante_id: string
+          vence_el: string
         }[]
       }
       listar_compras: {
@@ -4651,12 +6429,14 @@ export type Database = {
           p_estado_recepcion?: string
           p_hasta?: string
           p_limite?: number
+          p_naturaleza?: string
           p_orden?: string
           p_por_recibir?: boolean
           p_proveedor_id?: string
           p_solo_vencidas?: boolean
           p_solo_vigentes?: boolean
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
           cerrado_cantidad: number | null
@@ -4689,7 +6469,8 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
-          ubicacion_destino_id: string | null
+          naturaleza: string | null
+          ubicaciones_destino: string[] | null
           vencida: boolean | null
         }[]
         SetofOptions: {
@@ -4712,8 +6493,11 @@ export type Database = {
           p_por_recibir?: boolean
           p_proveedor_id?: string
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
+          asignado_aqui: number
+          cerrado_aqui: number
           cerrado_cantidad: number
           created_at: string
           documento: string
@@ -4721,16 +6505,18 @@ export type Database = {
           estado_recepcion: string
           facturado_cantidad: number
           fecha_emision: string
-          fecha_estimada_llegada: string | null
+          fecha_estimada_llegada: string
           id: string
-          nota: string | null
+          nota: string
+          pendiente_aqui: number
           proveedor_id: string
           proveedor_nombre: string
-          proveedor_ruc: string | null
+          proveedor_ruc: string
           recepcion_atrasada: boolean
+          recibido_aqui: number
           recibido_cantidad: number
           tipo: string
-          ubicacion_destino_id: string
+          ubicaciones_destino: string[]
         }[]
       }
       listar_recepciones_compras: {
@@ -4761,6 +6547,14 @@ export type Database = {
         Args: { p_comprobante_id: string; p_motivo: string }
         Returns: undefined
       }
+      marcar_proforma_cobrada: {
+        Args: { p_proforma_id: string; p_venta_id: string }
+        Returns: undefined
+      }
+      marcar_pedido_no_atendido_resuelto: {
+        Args: { p_pedido_id: string }
+        Returns: undefined
+      }
       mover_interno: {
         Args: {
           p_cantidad: number
@@ -4781,6 +6575,7 @@ export type Database = {
           p_proveedor_id?: string
           p_solo_vencidas?: boolean
           p_tipo?: string
+          p_ubicacion_id?: string
         }
         Returns: {
           comprobantes: number
@@ -4803,6 +6598,10 @@ export type Database = {
         }[]
       }
       quitar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_colaborador: { Args: { p_persona_id: string }; Returns: undefined }
+      reactivar_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
+      registrar_cambio_clave_terminal: { Args: { p_terminal_id: string }; Returns: undefined }
+      suspender_colaborador: { Args: { p_motivo?: string; p_persona_id: string }; Returns: undefined }
       reactivar_categoria: {
         Args: { p_categoria_id: string }
         Returns: undefined
@@ -4810,6 +6609,17 @@ export type Database = {
       reactivar_proveedor: {
         Args: { p_proveedor_id: string }
         Returns: undefined
+      }
+      reasignar_reparto_compra: {
+        Args: {
+          p_cantidad: number
+          p_compra_item_id: string
+          p_desde: string
+          p_hacia: string
+          p_motivo: string
+          p_nota?: string
+        }
+        Returns: string
       }
       recalcular_compras: { Args: never; Returns: undefined }
       recalcular_stock: { Args: never; Returns: undefined }
@@ -4855,6 +6665,10 @@ export type Database = {
         }
         Returns: Json
       }
+      recibir_comprobante_produccion: {
+        Args: { p_cierres?: Json; p_comprobante_id: string; p_lineas?: Json; p_nota?: string; p_token?: string; p_ubicacion_id: string }
+        Returns: string
+      }
       recibir_insumo: {
         Args: {
           p_cantidad: number
@@ -4865,6 +6679,7 @@ export type Database = {
           p_nota?: string
           p_origen?: string
           p_proveedor_id?: string
+          p_token?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -4875,6 +6690,7 @@ export type Database = {
           p_nota?: string
           p_numero_guia?: string
           p_proveedor_id: string
+          p_token?: string
           p_ubicacion_id: string
         }
         Returns: string
@@ -4890,11 +6706,46 @@ export type Database = {
         }
         Returns: Json
       }
+      notas_credito_tablero: {
+        Args: never
+        Returns: {
+          a_favor: number
+          aplicado: number
+          cerrado_en: string
+          cierre_id: string
+          clase: string
+          compra_estado: string
+          compra_fecha_emision: string
+          compra_id: string
+          compra_saldo: number
+          compra_total: number
+          created_at: string
+          documento: string
+          fecha: string
+          id: string
+          igv: number
+          monto: number
+          monto_esperado: number
+          motivo: string
+          nota: string
+          proveedor_id: string
+          proveedor_nombre: string
+          resuelto: boolean
+          serie_numero: string
+          unidades_cerradas: number
+        }[]
+      }
+      // 20260923162300 (ADR-0179): almacén une la prenda sin registrar con su variante real.
+      regularizar_prenda: {
+        Args: { p_forma: string; p_id: string; p_variante_id: string }
+        Returns: number
+      }
       registrar_adjunto_compra: {
         Args: {
           p_bytes: number
           p_compra_id: string
           p_nombre: string
+          p_nota_credito_id?: string
           p_ruta: string
           p_tipo: string
         }
@@ -4910,6 +6761,17 @@ export type Database = {
           p_ubicacion_id: string
           p_variante_nueva_id: string
           p_venta_item_id: string
+        }
+        Returns: string
+      }
+      registrar_clienta: {
+        Args: {
+          p_acepta_whatsapp?: boolean
+          p_cumple_dia?: number
+          p_cumple_mes?: number
+          p_dni?: string
+          p_nombre?: string
+          p_telefono_whatsapp?: string
         }
         Returns: string
       }
@@ -4933,6 +6795,28 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_comprobante_produccion: {
+        Args: {
+          p_condicion: string
+          p_fecha_emision?: string
+          p_fecha_vencimiento?: string
+          p_igv_porcentaje?: number
+          p_items: Json
+          p_nota?: string
+          p_numero: string
+          p_pago?: Json
+          p_proveedor_id: string
+          p_serie: string
+          p_tipo?: string
+          p_token?: string
+          p_total?: number
+        }
+        Returns: string
+      }
+      registrar_pago_comprobante_produccion: {
+        Args: { p_comprobante_id: string; p_fecha?: string; p_pagos: Json; p_token?: string }
+        Returns: string
+      }
       registrar_consumo_insumo: {
         Args: {
           p_cantidad: number
@@ -4942,30 +6826,18 @@ export type Database = {
         }
         Returns: string
       }
-      registrar_movimiento:
-        | {
-            Args: {
-              p_cantidad: number
-              p_motivo?: string
-              p_nota?: string
-              p_tipo: string
-              p_ubicacion_id: string
-              p_variante_id: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              p_cantidad: number
-              p_motivo?: string
-              p_nota?: string
-              p_sububicacion_id?: string
-              p_tipo: string
-              p_ubicacion_id: string
-              p_variante_id: string
-            }
-            Returns: string
-          }
+      registrar_movimiento: {
+        Args: {
+          p_cantidad: number
+          p_motivo?: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_tipo: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
       registrar_movimiento_caja: {
         Args: {
           p_caja_id: string
@@ -4974,6 +6846,7 @@ export type Database = {
           p_motivo: string
           p_nota?: string
           p_tipo: string
+          p_token?: string
         }
         Returns: string
       }
@@ -4981,10 +6854,14 @@ export type Database = {
         Args: {
           p_cierre_id?: string
           p_compra_id: string
+          p_destino?: string
           p_fecha: string
           p_monto: number
           p_motivo: string
           p_nota?: string
+          p_reembolso_fecha?: string
+          p_reembolso_metodo?: string
+          p_reembolso_referencia?: string
           p_serie_numero: string
         }
         Returns: string
@@ -5008,12 +6885,41 @@ export type Database = {
           p_proveedor_id: string
           p_referencia?: string
           p_token?: string
+          p_ubicacion_id?: string
+        }
+        Returns: string
+      }
+      registrar_pago_compras_medios: {
+        Args: {
+          p_aplicaciones: Json
+          p_credito?: number
+          p_fecha?: string
+          p_medios?: Json
+          p_proveedor_id: string
+          p_token?: string
+          p_ubicacion_id?: string
         }
         Returns: string
       }
       registrar_pagos_compra: {
-        Args: { p_compra_id: string; p_fecha?: string; p_pagos: Json }
+        Args: {
+          p_compra_id: string
+          p_fecha?: string
+          p_pagos: Json
+          p_token?: string
+          p_ubicacion_id?: string
+        }
         Returns: string[]
+      }
+      registrar_pedido_no_atendido: {
+        Args: {
+          p_clienta_id?: string
+          p_descripcion_libre?: string
+          p_producto_id?: string
+          p_talla?: string
+          p_ubicacion_id: string
+        }
+        Returns: string
       }
       registrar_proveedor: {
         Args: {
@@ -5059,12 +6965,17 @@ export type Database = {
       }
       registrar_venta: {
         Args: {
+          p_asesora_id?: string
+          p_autorizado_por?: string
           p_cliente_id?: string
           p_cliente_nombre?: string
           p_cliente_num_doc?: string
           p_cliente_tipo_doc?: string
           p_codigo_descuento?: string
+          p_descuento_pct?: number
+          p_emisor?: string
           p_items: Json
+          p_motivo_descuento?: string
           p_nota?: string
           p_pagos: Json
           p_tipo_comprobante?: string
@@ -5139,6 +7050,7 @@ export type Database = {
         Args: { p_produccion_id: string }
         Returns: undefined
       }
+      revisar_apertura_caja: { Args: { p_caja_id: string }; Returns: undefined }
       revisar_producto_censo: {
         Args: { p_aprobar: boolean; p_producto_id: string }
         Returns: undefined

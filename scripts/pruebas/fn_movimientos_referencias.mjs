@@ -145,7 +145,8 @@ select pg_temp.mov(:'vd', 'salida', 1, :'ubic', :'sp', 'cambio', camb => :'ca') 
 
 -- Recepción: guía T987-0034 y factura de compra F987-000210.
 insert into retail.lotes (ubicacion_id, proveedor_id, numero_guia) values (:'ubic', :'prov', 'T987-0034') returning id as lo \\gset
-insert into retail.compras (proveedor_id, tipo, serie, numero, condicion, ubicacion_destino_id, subtotal, igv, total) values (:'prov', 'factura', 'F987', '000210', 'contado', :'ubic', 100, 18, 118) returning id as cp \\gset
+-- ubicacion_gestion_id: ADR-0184 la exige en toda factura vigente.
+insert into retail.compras (proveedor_id, tipo, serie, numero, condicion, subtotal, igv, total, ubicacion_gestion_id) values (:'prov', 'factura', 'F987', '000210', 'contado', 100, 18, 118, :'ubic') returning id as cp \\gset
 insert into retail.compra_items (compra_id, producto_id, cantidad, costo_unitario) values (:'cp', :'pe', 5, 20) returning id as ci \\gset
 select pg_temp.mov(:'ve', 'entrada', 5, :'ubic', :'sa', 'recepcion', lo => :'lo', ci => :'ci') as m_rec \\gset
 `;

@@ -97,6 +97,15 @@ proyecto local es su propio Postgres aislado, ajeno a la unificación). El prefi
 `retail.` se agrega SOLO al pegar en el SQL Editor de producción — nunca en el
 archivo del repo, para no romper `npx supabase db reset` local.
 
+**Políticas y deadlocks (aprendido 2026-09-24, ADR-0195):** el SQL Editor corre todo lo pegado en UNA transacción, y en
+Supabase cada `create policy` —y hasta un `drop policy if exists` vacío— toma en exclusiva las 21 tablas de `auth` y
+`storage` hasta el final. Si la misma transacción ya tiene en exclusiva una tabla que la tienda usa (un `alter table
+ubicaciones`), choca con el Asesor de seguridad del panel: `40P01 deadlock detected`, y no se aplica nada. Regla: una
+migración de producción **no mezcla** `alter` de tablas en uso con políticas. Pártela en PARTES que se pegan por
+separado (cada una con `set lock_timeout = '3s'`, idempotente), con las políticas solas y al final. Si la tabla nueva
+solo se lee por funciones `security definer`, deja RLS encendido sin políticas. Ejemplo:
+`supabase/migrations/20260924210000_configuracion_meta_y_fondo_por_campana.sql`.
+
 ## Convenciones de código (adaptadas a este repo)
 
 - Base de datos: tablas en `snake_case`, español, plural donde aplica (`sedes`,
@@ -111,6 +120,108 @@ archivo del repo, para no romper `npx supabase db reset` local.
   `feat(inventario): agrega alertas de rotación y reorder point`
   `fix(movimientos): corrige motivo estructurado en traslados`
   `refactor(catalogo): separa cálculo de stock del de inteligencia`
+
+## Movimiento y modales (regla — ADR-0136)
+
+**Todo modal nuevo se hace con `<Modal>` (`apps/web/components/ui/Modal.tsx`; por URL, `<ModalRuta>`) y hereda solo el
+efecto del sistema: velo con desenfoque → hoja que sube 18 px y crece → contenido en cascada (título, bajada y campos,
+55 ms de desfase) → salida corta.** No definas otra animación de entrada de modal ni reimplementes el overlay
+(`fixed inset-0`): si una pieza no debe entrar en cascada, `data-sin-cascada`. Lo único que un modal agrega por su cuenta
+son respuestas a una acción dentro del contenido (barra que se llena, cifra que cuenta, «visto» que se dibuja) con
+`--ease-cayla`, 200–500 ms, **sin rebote, nunca decorativo, nunca en bucle** (únicas excepciones, ambas señales y no adorno: el punto que late en el chip «Vencida» y el giro del botón mientras la base responde), y todo se apaga con
+`prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
+«REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
+
+**Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles
+props serializables; NUNCA llames desde el servidor a una función exportada por un archivo `"use client"` (Next lanza
+«Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se
+importa desde ambos lados.
+
+## Paleta y orden de pantalla (regla — ADR-0169)
+
+**El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
+(crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
+o rediseñada: `<CabeceraPantalla>` (`components/ui/CabeceraPantalla.tsx`: sobretítulo rojo → título serif → bajada taupe,
+acción principal a la derecha) → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
+`pildora-cayla`) → nota en hueso (`nota-cayla`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
+estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
+contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
+
+## Pantallas de Finanzas (regla — ADR-0195, «Ajuste de diseño al spike», Felipe 2026-09-24)
+
+**Toda pantalla de Finanzas (Gastos, Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se
+dibuja como el spike aprobado (`docs/maquetas/finanzas-2026-09/`) y se arma con sus piezas**: `components/finanzas/kit.tsx`
+(pestañas, tarjeta con herramientas + tabla + pie, campos en caja, opciones en tarjeta) y `app/estilos/finanzas.css`
+(clases `fin-*`), los modales con `<Modal variante="hoja">`. No se reinventa una tabla ni un campo con medidas sueltas.
+**Antes de dar una pantalla por terminada, se captura al mismo ancho que el spike y se comparan las dos imágenes**: si no
+se parecen, no está terminada. Lo que se aparta del spike a propósito queda escrito en el ADR.
+
+## Carga y espera (regla — ADR-0149)
+
+**El ERP tiene UN solo loader a pantalla completa (`apps/web/components/ui/Espera.tsx`, `<EsperaGlobal />` montado una vez en
+`app/layout.tsx`): cubre incluso el lateral y la cabecera, hereda el movimiento de modales y dura solo lo que tarda la
+respuesta.** Se usa SIEMPRE al cargar una pantalla, al presionar un botón que guarda y al cambiar de sede — y se activa solo:
+parchea `window.fetch` y `lib/espera-reglas.ts` (`clasificarPeticion`, lógica pura y testeada) decide qué es `'carga'` o
+`'guardado'`. **No construyas otro overlay de carga a pantalla completa ni dejes un «Cargando…» suelto**; un botón o una
+pantalla nueva no tiene que hacer nada para tenerlo. Los botones conservan su giro «Guardando…» (el loader se suma), y un
+`Suspense` de una sección dentro de una pantalla sigue siendo esqueleto parcial, no el loader global.
+**El aviso de éxito (`avisar.*`, esquina superior derecha) sale DESPUÉS del loader, nunca encima** (`lib/espera-estado.ts`): el
+loader dice «espera, se está procesando» y el aviso dice «listo, se guardó bien». Mientras haya una petición en curso o el
+loader esté a la vista, ningún aviso se pinta; al liberarse aparecen. Nadie tiene que coordinarlos: se llama
+`avisar.exito(...)` en el mismo instante en que responde la base y el aviso sale solo. Un guardado tan rápido que el loader ni
+llega a verse (< 200 ms) muestra su aviso apenas termina. Detalle en la «Actualización 2026-09-21» del ADR-0149.
+
+Para lo que no pasa por `fetch`: `useEsperando(activo, mensaje?)` (hook), `esperar(mensaje?) → fin()` (imperativo) y
+`<EsperaPantalla />` en cada `loading.tsx`. Una petición que no debe bloquear lleva el header `x-espera: no`. **Al agregar una
+RPC de solo lectura llamada desde el navegador, suma su prefijo o nombre a la lista de lectura de `espera-reglas.ts`** (hoy
+`fn_`, `previsualizar_`, `campanas_`, `resumen_`, `buscar_`, `get_`); si no, el loader bloqueará la pantalla mientras se busca
+o se escribe. Tiempos, alternativas y verificación: `docs/adr/0149-loader-general-a-pantalla-completa.md`.
+
+## Módulos y roles (regla — ADR-0161, Felipe 2026-09-22)
+
+**Lo que ve cada cuenta (persona o terminal) lo decide su ROL, módulo por módulo («ve / no ve»), en Colaboradores ▸ Roles y
+accesos.** Quien ve un módulo hace todo lo que hay en él, salvo lo «siempre solo del líder» (que vive en cada función con
+`fn_es_lider()`). Por eso **todo módulo nuevo que se desarrolle tiene que aparecer en Roles y accesos, y nace disponible SOLO
+para el líder**: el líder decide después a qué rol se lo da. Nunca se asigna un módulo a un rol desde el código.
+
+Al crear un módulo nuevo (pantalla o grupo de pantallas nuevas), en el mismo PR:
+1. **Base:** una migración propia con `insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, delegable)`
+   — `incluye` en palabras del negocio; `delegable = false` si sus funciones todavía exigen `fn_es_lider()` (sale como «Solo
+   líder por ahora»). **Sin** `insert into retail.rol_modulos`: el módulo nace sin rol.
+2. **Web:** agregarlo a `CLAVES_MODULO` y `MODULOS` en `apps/web/lib/modulos.ts` (mismo `orden` que en la base); su nodo en
+   `lib/menu.ts` declara `modulo: "<clave>"`; y su ruta tiene un `layout.tsx` con `await exigirModulo("<clave>")` (URL directa
+   sin el módulo → «Sin acceso»).
+3. **Funciones que guardan:** TODAS (no solo las de tienda: Compras, Producción, Colaboradores y Roles también, Felipe
+   2026-09-23) firman con `retail.fn_actor_persona_id(true)` (el responsable del combo, ADR-0162) —nunca con `(false)` ni con
+   `select id into … from personas where auth_user_id = auth.uid()`— y su pantalla usa el combo «Responsable»
+   (`useResponsable` + `<ComboResponsable>`), con el mismo candado de asistencia en todas partes. Los permisos se preguntan
+   a la cuenta (`fn_ve_modulo`, `fn_es_lider`), no al responsable; `fn_actor_persona_id(false)` queda SOLO para comparar con
+   la cuenta en un permiso («no te quites a ti mismo», `fn_alcanzo_a`). Detalle: ADR-0161, «Actualización 2026-09-23 (c)».
+
+**Escalón Admin y «solo das lo que tienes» (ADR-0178):** por encima de Líder está el **Admin**, que no se marca en retail: se
+lee de Dynamic (`public.personas.rol = 'admin'` y Líder activo aquí, `fn_es_admin()`). Solo un Admin sube a alguien a Líder o
+le cambia el rol, la sede o el acceso a un líder; todo lo demás del líder sigue en `fn_es_lider()`. Quien no es líder solo da
+los módulos que él mismo ve (`fn_exigir_rol_dentro_de_lo_mio`, `fn_exigir_modulos_dentro_de_lo_mio`) y no edita su propio rol.
+Una función nueva que toque a un líder llama a `fn_exigir_puede_tocar_colaborador`; una que asigne un rol, a
+`fn_exigir_rol_dentro_de_lo_mio`. El rango laboral de Dynamic (colibrí…archicaylo) **no** da accesos. Y **solo alcanzas a quien
+está por debajo de ti** (como Dynamic): quien no es líder solo suspende, reactiva, quita, mueve o cambia el rol de una persona
+cuyos módulos ve él y que tiene menos que él (`fn_exigir_alcanzo_a`; entre pares, un líder).
+
+Lo vigilan las pruebas: `lib/modulos.test.ts` (toda pantalla del menú declara un módulo que existe; el catálogo de la web es el
+de TODAS las migraciones; **ninguna migración fuera de la siembra de roles escribe en `rol_modulos`**) y
+`pnpm pruebas:roles` (un módulo recién creado solo lo ve el líder).
+
+## La página no se encoge bajo el mouse (regla — ADR-0185)
+
+**Un clic nunca debe hacer que la vista «se suba sola».** Pasa cuando algo al final de lo que se desplaza (página o
+ventana) se acorta y el navegador recorta el scroll. Ya está cubierto por piezas del sistema, y una pantalla nueva
+no tiene que hacer nada: `<PaginaEstable />` (montado una vez en `app/layout.tsx`) reserva el alto recortado tras
+cada clic; `<Modal>` va anclado arriba en escritorio; `ComboResponsable` y `ComboBuscable` abren su lista flotando.
+Lo que sí te toca: **un bloque que cambia de alto con cada opción de un mismo control** (los datos de cada medio de
+pago) reserva su propio lugar —apila las variantes invisibles en una celda de grid, como `LineasPago`— para que ni
+siquiera aparezca aire; no abras listas **dentro** del contenido (usa `usePosicionLista`), y una paginación al pie
+lleva la vista al inicio de la tabla (las navegaciones por URL no las cubre la regla global). Detalle:
+`docs/adr/0185-la-pagina-no-se-encoge-bajo-el-mouse.md`.
 
 ## Vocabulario obligatorio
 
@@ -150,6 +261,10 @@ Conventional Commits. `/docs/ARQUITECTURA.md` es la foto de la arquitectura comp
 (rutas↔lib↔RPC/tablas, modelo de datos, RLS) — actualizarla cuando cambie el modelo
 de datos, una ruta nueva, o un RPC nuevo/renombrado; no es estado vivo día a día
 (eso es BACKLOG/BITACORA), es el mapa para orientarse rápido.
+
+**Celular obligatorio (PL-105, Felipe 2026-09-23):** todo PR que toque Vender (`/vender`, `/vender/apartados`),
+Cambios (`/cambios`) o Devoluciones (`/devoluciones`) se prueba a **375 px de ancho** (`resize_window` preset `mobile`)
+y lleva captura; lo pide el casillero de `.github/pull_request_template.md`. Caja y Almacén siguen siendo de escritorio.
 
 ## La base de datos: `/docs/datos/` (desde 2026-09-12)
 

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import type { TonoChip } from "@/components/ui/Chip";
 import { MovimientoDetalle } from "@/components/MovimientoDetalle";
 import {
@@ -34,22 +33,19 @@ import {
 // modal. Si el id no está en la página cargada (otros filtros, otra página del
 // cursor), no se abre nada — nunca se inventa una consulta extra.
 //
-// Columnas (2026-09-19): Prenda · Hora y dónde · Movimiento · Origen → Destino · Cant. ·
-// Referencia. Ya no hay «Responsable»: la autoría sigue guardada y se ve en el detalle.
-// Desde xl la referencia tiene su columna; con menos ancho baja a la segunda línea de
-// «Movimiento» (una tabla de seis columnas no cabe en ~650 px y una columna que se
-// esconde sin avisar es peor que una que se apila).
+// Forma (rediseño 2026-09-22, elegida por Felipe en la demo de
+// docs/maquetas/movimientos-rediseno-2026-09/): la lista de la guía oficial, no una tabla.
+// Cada fila: punto de color · prenda (y debajo, talla · color · hora · dónde) · proceso (y
+// debajo, de dónde a dónde) · referencia · cantidad. La tabla de seis columnas no cabía en
+// ~650 px; la lista se lee de corrido en escritorio y en celular pasa a dos líneas —prenda y
+// cantidad arriba, proceso y referencia abajo— sin desplazarse de lado. Ya no hay
+// «Responsable»: la autoría sigue guardada y se ve en el detalle.
 //
 // La fila NO es un <button>: la referencia es un enlace y un enlace dentro de un botón
 // no es HTML válido. El botón que abre el detalle cubre la fila entera (`absolute
 // inset-0`) y el enlace queda encima (`relative z-10`).
-//
-// Anchos: la prenda cede espacio (su nombre y su código son lo único que aguanta un «…»); el
-// movimiento y el origen → destino lo reciben, porque «Transferencia · llegada» y «Taller →
-// Tienda Trujillo» son lo que se viene a leer. En pantallas muy angostas se parten en dos
-// líneas antes que cortarse.
-const PLANTILLA =
-  "sm:grid-cols-[minmax(5rem,0.7fr)_4rem_minmax(7rem,1.3fr)_minmax(6rem,1.15fr)_2.75rem] xl:grid-cols-[minmax(10rem,1.2fr)_5rem_minmax(9.5rem,0.9fr)_minmax(8rem,1fr)_3.5rem_minmax(7.5rem,0.9fr)]";
+const FILA =
+  "relative grid grid-cols-[0.5rem_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-1 py-3 transition-colors hover:bg-crema/60 focus-within:bg-crema/60 sm:grid-cols-[0.5rem_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)_4.5rem] sm:items-center sm:gap-x-4 sm:px-2";
 
 // El tono que antes llevaba el chip de categoría, ahora como un punto: sobrio, y no
 // obliga a que «Transferencia · llegada» quepa en un chip de versalitas.
@@ -58,6 +54,7 @@ const PUNTO: Record<TonoChip, string> = {
   ambar: "bg-ambar",
   verde: "bg-verde",
   rojo: "bg-rojo",
+  pizarra: "bg-pizarra",
   apagado: "bg-tinta/15",
 };
 
@@ -99,111 +96,80 @@ export function MovimientosLista({ movimientos, hoyLima, enlaceCompras }: { movi
           comentario de arriba); esto es solo avisar que no apareció, en vez
           de no decir nada. */}
       {abiertoId && !abierto && (
-        <div className="card-cayla mb-4 flex items-center justify-between gap-3 px-4 py-3 text-sm text-tinta/75">
+        <div className="nota-cayla mb-4 flex items-center justify-between gap-3 text-sm">
           <span>Ese movimiento no está en el rango o los filtros actuales — prueba ampliándolos.</span>
-          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-tinta/55 underline underline-offset-2 hover:text-rojo">
+          <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-taupe underline underline-offset-2 hover:text-rojo">
             Entendido
           </button>
         </div>
       )}
 
-      <Tabla>
-        <Encabezado
-          plantilla={PLANTILLA}
-          columnas={[
-            { titulo: "Prenda · variante" },
-            { titulo: "Hora · dónde", alinear: "centro" },
-            { titulo: "Movimiento", alinear: "centro" },
-            { titulo: "Origen → Destino", alinear: "centro" },
-            { titulo: "Cant.", alinear: "centro" },
-            { titulo: "Referencia", alinear: "centro", desdeXl: true },
-          ]}
-        />
+      <div className="card-cayla px-4 pb-2 sm:px-5">
         {dias.map((dia) => (
-          <div key={dia.fecha} className="divide-y divide-tinta/10">
-            <div className="flex items-baseline justify-between bg-tinta/[0.03] px-5 py-1.5">
-              <span className="label-cayla text-[11px] text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
-              <span className="text-xs text-tinta/55">
+          <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
+            <h3 className="flex items-baseline justify-between gap-3 border-b border-sand pb-2 pt-4">
+              <span className="label-cayla text-[11px] font-bold text-tinta">{etiquetaDia(dia.fecha, hoyLima)}</span>
+              <span className="label-cayla text-[10.5px] font-bold text-taupe">
                 {dia.filas.length} {dia.filas.length === 1 ? "movimiento" : "movimientos"}
               </span>
-            </div>
-            {dia.filas.map((m) => {
-              const { origen, destino } = partesOrigenDestino(m);
-              const origenDestino = destino ? `${origen} → ${destino}` : origen;
-              const etiqueta = etiquetaMovimiento(m);
-              const referencia = referenciaMovimiento(m, { enlaceCompras });
-              const detallePrenda = [m.talla, m.color].filter(Boolean).join(" · ");
-              const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
-              return (
-                <div key={m.id} className={fila(PLANTILLA, "relative w-full text-left transition-colors hover:bg-tinta/[0.03] focus-within:bg-tinta/[0.03]")}>
-                  <button
-                    type="button"
-                    onClick={() => abrir(m)}
-                    aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}, ${textoDelta(m)}`}
-                    className="absolute inset-0 focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
-                  />
+            </h3>
+            <ul className="divide-y divide-sand">
+              {dia.filas.map((m) => {
+                const { origen, destino } = partesOrigenDestino(m);
+                const etiqueta = etiquetaMovimiento(m);
+                const referencia = referenciaMovimiento(m, { enlaceCompras });
+                const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
+                const variante = [m.talla, m.color].filter(Boolean).join(" · ");
+                const interno = m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado";
+                return (
+                  <li key={m.id} className={FILA}>
+                    <button
+                      type="button"
+                      onClick={() => abrir(m)}
+                      aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}, ${textoDelta(m)}`}
+                      className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
+                    />
 
-                  <span className="min-w-0">
-                    <span className="line-clamp-2 block break-words text-sm leading-snug text-tinta" title={m.referencia}>{m.referencia}</span>
-                    <span className="block truncate text-xs text-tinta/65" title={`${m.sku}${detallePrenda ? ` · ${detallePrenda}` : ""}`}>
-                      <span className="font-mono">{m.sku}</span>
-                      {detallePrenda && ` · ${detallePrenda}`}
-                    </span>
-                  </span>
+                    <span aria-hidden className={`mt-1.5 h-[7px] w-[7px] rounded-full sm:mt-0 ${PUNTO[tonoCategoria(m.categoria, m.delta)]}`} />
 
-                  {/* `sm:text-center`, no `text-center` a secas: en celular la fila se apila
-                      y ahí sigue yendo todo a la izquierda (mismo criterio que `celda()`). */}
-                  <span className="min-w-0 sm:text-center">
-                    <span className="block text-sm tabular-nums text-tinta">{m.hora}</span>
-                    {donde && <span className="block truncate text-xs text-tinta/55">{donde}</span>}
-                  </span>
-
-                  {/* El proceso y la dirección son lo que se viene a leer: si no caben en una línea se
-                      parten en dos, no se cortan con «…» («Transferencia · lleg…» no dice si llegó o salió). */}
-                  <span className="min-w-0 sm:text-center">
-                    <span className="inline-flex max-w-full items-start gap-1.5 text-left text-sm leading-snug text-tinta" title={etiqueta}>
-                      <span aria-hidden className={`mt-[0.4rem] h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[tonoCategoria(m.categoria, m.delta)]}`} />
-                      <span className="min-w-0 break-words">{etiqueta}</span>
-                    </span>
-                    {/* Con menos de xl la referencia no tiene columna: va debajo del movimiento. */}
-                    {referencia && (
-                      <span className="mt-0.5 block xl:hidden">
-                        <Referencia r={referencia} />
+                    {/* Prenda: el nombre arriba; talla · color · hora · dónde debajo. El SKU queda en el
+                        título (y la búsqueda lo encuentra): la guía lo saca de la vista. */}
+                    <span className="min-w-0" title={m.sku}>
+                      <span className="block truncate text-[13.5px] font-semibold text-tinta">{m.referencia}</span>
+                      <span className="block truncate text-xs tabular-nums text-taupe">
+                        {[variante, m.hora, donde].filter(Boolean).join(" · ")}
                       </span>
-                    )}
-                  </span>
-
-                  <span className="min-w-0 sm:text-center">
-                    <span className="block break-words text-sm leading-snug text-tinta/75" title={origenDestino}>
-                      <span className="label-cayla mr-1 text-[10px] text-tinta/45 sm:hidden">De · a</span>
-                      {destino ? (
-                        <>
-                          {origen} <span className="text-tinta/45">→</span> {destino}
-                        </>
-                      ) : (
-                        origen
-                      )}
                     </span>
-                  </span>
 
-                  <span
-                    className={celda(
-                      "centro",
-                      `text-sm font-semibold tabular-nums ${m.delta > 0 ? "text-verde-profundo" : m.delta < 0 ? "text-tinta" : "text-tinta/65"}`
-                    )}
-                  >
-                    {textoDelta(m)}
-                  </span>
+                    {/* Proceso y referencia. En celular bajan a una segunda línea bajo la prenda
+                        (col-start-2 col-span-2); desde sm cada uno tiene su columna. */}
+                    <span className="col-span-2 col-start-2 row-start-2 flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5 sm:contents">
+                      <span className="min-w-0 sm:col-start-3 sm:row-start-1">
+                        {/* El proceso y la dirección son lo que se viene a leer: si no caben se parten, no se
+                            cortan con «…» («Transferencia · lleg…» no dice si llegó o salió). */}
+                        <span className="block break-words text-[13px] leading-snug text-tinta">{etiqueta}</span>
+                        <span className="hidden break-words text-xs leading-snug text-taupe sm:block">
+                          {destino ? `${origen} → ${destino}` : origen}
+                        </span>
+                      </span>
+                      <span className="min-w-0 sm:col-start-4 sm:row-start-1">{referencia && <Referencia r={referencia} />}</span>
+                    </span>
 
-                  {/* Siempre está la celda (vacía si no hay proceso): sin ella, desde xl las
-                      columnas de la fila no coincidirían con las del encabezado. */}
-                  <span className="hidden min-w-0 xl:block xl:text-center">{referencia && <Referencia r={referencia} />}</span>
-                </div>
-              );
-            })}
-          </div>
+                    <span
+                      className={`col-start-3 row-start-1 text-right text-[13.5px] font-bold tabular-nums sm:col-start-5 ${
+                        m.delta > 0 ? "text-verde" : interno ? "font-medium text-taupe" : "text-tinta"
+                      }`}
+                    >
+                      {interno && <span aria-hidden>⇄ </span>}
+                      {textoDelta(m)}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         ))}
-      </Tabla>
+      </div>
 
       {abierto && <MovimientoDetalle movimiento={abierto} onClose={cerrar} />}
     </>
@@ -220,17 +186,17 @@ function Referencia({ r }: { r: ReferenciaMovimiento }) {
         <Link
           href={r.href}
           title={`Abrir ${r.texto}`}
-          className="relative z-10 inline-block max-w-full truncate align-bottom text-sm text-tinta underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+          className="relative z-10 inline-block max-w-full truncate align-bottom text-[13px] text-tinta underline decoration-tinta/30 underline-offset-2 transition-colors hover:text-rojo hover:decoration-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
         >
           {r.texto}
         </Link>
       ) : (
-        <span className="block truncate text-sm text-tinta/80" title={r.texto}>
+        <span className="block truncate text-[13px] text-taupe" title={r.texto}>
           {r.texto}
         </span>
       )}
       {r.detalle && (
-        <span className="block truncate text-xs text-tinta/55" title={r.detalle}>
+        <span className="block truncate text-xs text-taupe" title={r.detalle}>
           {r.detalle}
         </span>
       )}

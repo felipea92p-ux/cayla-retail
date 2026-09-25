@@ -271,6 +271,60 @@ export function resaltarCoincidencia(texto: string, busqueda: string): TramoText
 }
 
 // ---------------------------------------------------------------------------
+// Marcas de un proveedor (ADR-0140).
+//
+// El nombre de un proveedor es su razón social («Textil Ejemplo SAC»), pero el equipo lo conoce por la marca con
+// que vende («Kero»). Las marcas viven aparte —`marca_proveedores`: un proveedor trae varias y una marca puede
+// llegar por varios— y la lista no las miraba: quien escribía la marca no encontraba nada. Estas funciones las
+// pliegan a «proveedor → sus marcas» para buscar y mostrar. Puras: sin I/O.
+// ---------------------------------------------------------------------------
+
+/** proveedorId → nombres de sus marcas. Un proveedor sin marcas no aparece. */
+export type MarcasDeProveedor = Record<string, string[]>;
+
+/**
+ * Pliega las tablas `marcas` y `marca_proveedores` a «proveedor → marcas», en orden alfabético sin tildes.
+ * Una marca desactivada no cuenta (ya no se cataloga con ella) y un vínculo a una marca que no llegó se ignora
+ * en vez de tumbar la lista.
+ */
+export function marcasPorProveedor(marcas: { id: string; nombre: string; activo: boolean }[], vinculos: { marca_id: string; proveedor_id: string }[]): MarcasDeProveedor {
+  const activas = new Map(marcas.filter((m) => m.activo).map((m) => [m.id, m.nombre]));
+  const porProveedor: MarcasDeProveedor = {};
+  for (const v of vinculos) {
+    const nombre = activas.get(v.marca_id);
+    if (nombre === undefined) continue;
+    (porProveedor[v.proveedor_id] ??= []).push(nombre);
+  }
+  for (const lista of Object.values(porProveedor)) lista.sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  return porProveedor;
+}
+
+/**
+ * Todo lo que el buscador de Proveedores mira de uno: nombre, RUC, contacto y —al FINAL— las marcas. El orden
+ * importa: la búsqueda es una subcadena contigua, y quien pega «Textil Ejemplo SAC 20111111111» desde una factura
+ * necesita que nombre y RUC sigan vecinos. Con las marcas en medio esa búsqueda, que ya funcionaba, dejaba de hallar.
+ */
+export function textoBuscableProveedor(p: { nombre: string; ruc: string | null; contacto: string | null }, marcas: readonly string[] = []): string {
+  return [p.nombre, p.ruc, p.contacto, ...marcas].filter(Boolean).join(" ");
+}
+
+/** El «detalle» de cada opción del combo de nueva compra: RUC y marcas, para encontrarlo por cualquiera de los dos. */
+export function detalleProveedorCombo(ruc: string | null, marcas: readonly string[] = []): string | undefined {
+  return [ruc, ...marcas].filter(Boolean).join(" · ") || undefined;
+}
+
+/**
+ * Las etiquetas de marca que caben en una fila. Con una búsqueda activa, las que coinciden van primero: si no,
+ * la marca que se buscó podría quedar escondida detrás de «+2» y no se vería por qué apareció esa fila.
+ */
+export function marcasParaMostrar(marcas: readonly string[], busqueda: string, max: number): { visibles: string[]; ocultas: number } {
+  const q = base(busqueda.trim());
+  const coinciden = q ? marcas.filter((m) => base(m).includes(q)) : [];
+  const orden = [...coinciden, ...marcas.filter((m) => !coinciden.includes(m))];
+  return { visibles: orden.slice(0, max), ocultas: Math.max(0, orden.length - max) };
+}
+
+// ---------------------------------------------------------------------------
 // RUC duplicado: decirlo al escribir, con el nombre de con quién choca.
 // ---------------------------------------------------------------------------
 
@@ -278,4 +332,170 @@ export function resaltarCoincidencia(texto: string, busqueda: string): TramoText
 export function proveedorConRuc<T extends { id: string; ruc: string | null }>(ruc: string, existentes: T[], idActual: string | null): T | null {
   if (!/^\d{11}$/.test(ruc)) return null;
   return existentes.find((p) => p.ruc === ruc && p.id !== idActual) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// Datos para pagar: CCI, Yape/Plin y titular (ADR-0134)
+//
+// La base guarda CCI y celular SOLO con dígitos y rechaza lo que no cumpla (candados de
+// `20260919170000_proveedores_cci_y_billetera.sql`); estas funciones son para escribirlo cómodo
+// (pegar «002-193-…» con guiones, «+51 987 654 321») y para leerlo sin equivocarse. Puras: sin I/O.
+// ---------------------------------------------------------------------------
+
+const soloDigitos = (s: string) => s.replace(/\D/g, "");
+
+/** El CCI como lo guarda la base: solo dígitos (acepta espacios, guiones y puntos al pegar). No recorta: `validarCci` avisa si sobran. */
+export function normalizarCci(s: string): string {
+  return soloDigitos(s);
+}
+
+/** El celular como lo guarda la base: 9 dígitos, sin el +51. */
+export function normalizarCelular(s: string): string {
+  const d = soloDigitos(s);
+  return d.length === 11 && d.startsWith("51") ? d.slice(2) : d;
+}
+
+/** «002-193-002145678045-58» — se puede llamar con el CCI a medio escribir. */
+export function formatoCci(s: string): string {
+  const d = soloDigitos(s).slice(0, 20);
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6, 18), d.slice(18, 20)].filter(Boolean).join("-");
+}
+
+/** «987 654 321» — se puede llamar con el celular a medio escribir. */
+export function formatoCelular(s: string): string {
+  const d = normalizarCelular(s).slice(0, 9);
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6, 9)].filter(Boolean).join(" ");
+}
+
+/** «002-193-••••••••••••-58»: para mostrar sin dejarlo a la vista; «Ver completos» lo destapa. */
+export function enmascararCci(cci: string): string {
+  const d = soloDigitos(cci);
+  return d.length === 20 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-••••••••••••-${d.slice(18)}` : "••••";
+}
+
+/** «9•• ••• 321». */
+export function enmascararCelular(cel: string): string {
+  const d = normalizarCelular(cel);
+  return d.length === 9 ? `9•• ••• ${d.slice(6)}` : "•••";
+}
+
+/** «193-•••••••-•-45»: deja los 3 primeros y los 2 últimos dígitos, con los guiones donde estaban. */
+export function enmascararCuenta(cuenta: string): string {
+  const total = soloDigitos(cuenta).length;
+  let visto = 0;
+  return cuenta.replace(/\d/g, (d) => {
+    visto++;
+    return visto <= 3 || visto > total - 2 ? d : "•";
+  });
+}
+
+/** `null` si está bien (o vacío: todo es opcional); si no, el mensaje para el campo. */
+export function validarCci(s: string): string | null {
+  const d = normalizarCci(s);
+  if (d === "" && s.trim() === "") return null;
+  if (/[^\d\s.-]/.test(s)) return "El CCI lleva solo números.";
+  return d.length === 20 ? null : `El CCI tiene 20 dígitos (llevas ${d.length}). Si solo tienes el número de cuenta, va en «Cuenta».`;
+}
+
+/** `null` si está bien (o vacío); si no, el mensaje para el campo. */
+export function validarCelular(s: string): string | null {
+  if (s.trim() === "") return null;
+  if (/[^\d\s+()-]/.test(s)) return "El celular lleva solo números.";
+  const d = normalizarCelular(s);
+  if (d.length !== 9) return `El celular tiene 9 dígitos (llevas ${d.length}).`;
+  return d.startsWith("9") ? null : "El celular tiene que empezar con 9.";
+}
+
+/** Los tres primeros dígitos del CCI son el código del banco (SBS). Solo los que CAYLA usa; el resto no se adivina. */
+export const BANCOS_POR_CODIGO_CCI: Record<string, string> = {
+  "002": "BCP",
+  "003": "Interbank",
+  "009": "Scotiabank",
+  "011": "BBVA",
+  "018": "Banco de la Nación",
+  "038": "BanBif",
+  "049": "Mibanco",
+  "055": "Pichincha",
+};
+
+/** El banco que dice el CCI (por sus 3 primeros dígitos), o `null` si aún no hay 3 o el código no es uno conocido. */
+export function bancoDeCci(cci: string): string | null {
+  return BANCOS_POR_CODIGO_CCI[soloDigitos(cci).slice(0, 3)] ?? null;
+}
+
+/** «Yape», «Plin» o «Yape / Plin»; `null` si no hay billetera. */
+export function billeterasTexto(b: string[] | null | undefined): string | null {
+  const v = (b ?? []).filter((x) => x === "yape" || x === "plin").sort();
+  if (v.length === 0) return null;
+  return v.map((x) => (x === "yape" ? "Yape" : "Plin")).join(" / ");
+}
+
+/** Todo lo que hace falta para pagarle a un proveedor, ya con los nombres que usan los modales de pago. */
+export type DatosPagoProveedor = {
+  /** Para llevar a su ficha cuando falta un dato de pago. */
+  proveedorId: string;
+  banco: string | null;
+  /** Número de cuenta del banco (texto libre). */
+  cuentaBancaria: string | null;
+  /** 20 dígitos, solo números. */
+  cci: string | null;
+  /** 9 dígitos, sin +51. El destino de Yape/Plin. */
+  celularBilletera: string | null;
+  billeteras: string[] | null;
+  titular: string | null;
+  /** El WhatsApp del contacto. NO es el destino del Yape (desde ADR-0134). */
+  telefono: string | null;
+  plazoCreditoDias: number | null;
+  formaPagoPreferida: string | null;
+  /** Lo que el proveedor le debe a CAYLA (saldo a favor), disponible para descontar de este pago. */
+  saldoFavor?: number;
+};
+
+type FilaProveedorPago = {
+  id: string;
+  banco: string | null;
+  cuenta_bancaria: string | null;
+  cci: string | null;
+  celular_billetera: string | null;
+  billeteras: string[] | null;
+  titular_cuenta: string | null;
+  telefono: string | null;
+  plazo_credito_dias: number | null;
+  forma_pago_preferida: string | null;
+};
+
+export function datosPagoDe(p: FilaProveedorPago, saldoFavor?: number): DatosPagoProveedor {
+  return {
+    proveedorId: p.id,
+    banco: p.banco,
+    cuentaBancaria: p.cuenta_bancaria,
+    cci: p.cci,
+    celularBilletera: p.celular_billetera,
+    billeteras: p.billeteras,
+    titular: p.titular_cuenta,
+    telefono: p.telefono,
+    plazoCreditoDias: p.plazo_credito_dias,
+    formaPagoPreferida: p.forma_pago_preferida,
+    ...(saldoFavor != null ? { saldoFavor } : {}),
+  };
+}
+
+/**
+ * ¿A este proveedor todavía no se le puede pagar por transferencia ni Yape/Plin? Sin cuenta, sin CCI y
+ * sin celular de billetera. Un proveedor cuyo medio preferido es EFECTIVO no cuenta como «sin datos»:
+ * no le falta nada, no los necesita (decisión de Felipe, 2026-09-19).
+ */
+export function sinDatosDePago(p: { forma_pago_preferida: string | null; cuenta_bancaria: string | null; cci: string | null; celular_billetera: string | null }): boolean {
+  if (p.forma_pago_preferida === "efectivo") return false;
+  return !p.cuenta_bancaria?.trim() && !p.cci && !p.celular_billetera;
+}
+
+/**
+ * El backfill de ADR-0134 copia a `cci` una cuenta de 20 dígitos y deja la original: acá se evita mostrar
+ * el mismo número dos veces. `null` si no hay cuenta, o si es exactamente el CCI.
+ */
+export function cuentaLocalVisible(cuenta: string | null, cci: string | null): string | null {
+  const c = cuenta?.trim();
+  if (!c) return null;
+  return cci && soloDigitos(c) === cci ? null : c;
 }

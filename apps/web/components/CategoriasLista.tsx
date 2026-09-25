@@ -3,6 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
@@ -104,6 +108,11 @@ export function CategoriasLista({
 }) {
   const etiquetaFamilia = (codigo: Familia) => familias.find((f) => f.codigo === codigo)?.nombre ?? codigo;
   const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [categorias, setCategorias] = useState(categoriasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -164,7 +173,7 @@ export function CategoriasLista({
     try {
       const res = await fetch("/api/productos/categorias", {
         method: editando ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({
           id: borrador.id ?? undefined,
           nombre: borrador.nombre,
@@ -204,12 +213,14 @@ export function CategoriasLista({
       if (editando) {
         const resEjes = await fetch("/api/productos/categorias/ejes", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
           body: JSON.stringify({ categoriaId: guardada.id, ...ejesDraft }),
         });
         if (!resEjes.ok) {
           const datosEjes = await resEjes.json().catch(() => null);
           avisar.error(datosEjes?.error ?? "La categoría se guardó, pero no se pudieron guardar las tallas/tejidos/patrones. Reintenta editándola de nuevo.");
+          // La categoría sí quedó guardada (y el modal se cierra): reintentar es otra operación, con combo vacío.
+          responsable.despues(null);
           abrirBorrador(null);
           return;
         }
@@ -221,6 +232,8 @@ export function CategoriasLista({
           patrones: { ...actual.patrones, [guardada.id]: universo.patrones.filter((v) => ejesDraft.patronIds.includes(v.id)) },
         }));
       }
+
+      responsable.despues(null);
 
       avisar.exito(editando ? `Categoría ${guardada.nombre} actualizada` : `Categoría ${guardada.nombre} agregada`);
       abrirBorrador(null);
@@ -237,7 +250,7 @@ export function CategoriasLista({
     try {
       const res = await fetch("/api/productos/categorias", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({
           nombre: subDraft.nombre,
           familia: padre.familia,
@@ -260,6 +273,7 @@ export function CategoriasLista({
         notas: null,
       };
       setCategorias((actual) => [...actual, nueva]);
+      responsable.despues(null);
       avisar.exito(`Subcategoría ${nueva.nombre} agregada`);
       setSubDraft({ nombre: "", prefijo: "" });
     } catch {
@@ -274,7 +288,7 @@ export function CategoriasLista({
     try {
       const res = await fetch("/api/productos/categorias", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: c.id, activo: !c.activo }),
       });
       const datos = await res.json();
@@ -283,6 +297,7 @@ export function CategoriasLista({
         return;
       }
       setCategorias((actual) => actual.map((x) => (x.id === c.id ? { ...x, activo: !c.activo } : x)));
+      responsable.despues(null);
       avisar.exito(c.activo ? `${c.nombre} desactivada` : `${c.nombre} reactivada`, {
         detalle: c.activo ? "Deja de aparecer al crear productos; el historial se conserva." : "Vuelve a estar disponible para productos nuevos.",
       });
@@ -299,7 +314,8 @@ export function CategoriasLista({
   return (
     <div className="space-y-3">
       {puedeEditar && (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <span />
           <button
             type="button"
             onClick={() => abrirBorrador(borradorVacio(familias))}
@@ -497,7 +513,8 @@ export function CategoriasLista({
                   <Boton
                     peso="fantasma"
                     cargando={subGuardando}
-                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !borrador.id}
+                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !borrador.id || !responsable.listo}
+                    title={responsable.motivo ?? undefined}
                     onClick={() => guardarSubcategoria({ id: borrador.id!, familia: borrador.familia })}
                   >
                     + Agregar
@@ -579,6 +596,7 @@ export function CategoriasLista({
             </div>
           )}
 
+          <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
           <div className="mt-5 flex items-center justify-between gap-2">
             {editando ? (
               <button
@@ -587,8 +605,9 @@ export function CategoriasLista({
                   const c = categorias.find((x) => x.id === borrador.id);
                   if (c) cambiarEstado(c);
                 }}
-                disabled={cambiandoId === borrador.id}
-                className="text-xs text-rojo hover:underline"
+                disabled={cambiandoId === borrador.id || !responsable.listo}
+                title={responsable.motivo ?? undefined}
+                className="text-xs text-rojo hover:underline disabled:opacity-50 disabled:no-underline"
               >
                 {cambiandoId === borrador.id ? "Desactivando…" : "Desactivar categoría"}
               </button>
@@ -599,7 +618,7 @@ export function CategoriasLista({
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3}>
+              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !responsable.listo} title={responsable.motivo ?? undefined}>
                 {editando ? "Guardar cambios" : "Guardar categoría"}
               </Boton>
             </div>
@@ -625,7 +644,7 @@ export function CategoriasLista({
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoId === c.id}
-                    onClick={() => cambiarEstado(c)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => cambiarEstado(c)))}
                   >
                     Reactivar
                   </Boton>
@@ -635,6 +654,8 @@ export function CategoriasLista({
           </div>
         </section>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
@@ -667,7 +688,7 @@ function TarjetaCategoria({
       </div>
       <div>
         <p className="font-display text-[15px] leading-tight text-tinta">{c.nombre}</p>
-        <p className="label-cayla mt-1 text-[9px] text-tinta/50">
+        <p className="label-cayla mt-1 text-[11px] text-tinta/65">
           {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
           {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
         </p>

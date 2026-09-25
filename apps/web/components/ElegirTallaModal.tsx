@@ -63,10 +63,10 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                     cerrar();
                   }}
                   aria-label={`Agregar ${nombre} talla ${t.talla}`}
-                  className={`rounded-xl border p-3 text-left transition-colors ${
+                  className={`rounded-xl border p-3 text-left transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] ${
                     agotada || tope
                       ? "cursor-not-allowed border-dashed border-sand bg-crema text-tinta/45"
-                      : "border-sand bg-papel text-tinta hover:border-tinta/50 hover:bg-sand/40"
+                      : "border-sand bg-papel text-tinta hover:border-tinta/50 hover:bg-sand/40 active:translate-y-px"
                   }`}
                 >
                   <span className="flex items-baseline justify-between gap-2">

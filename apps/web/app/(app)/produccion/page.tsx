@@ -1,48 +1,72 @@
 import { redirect } from "next/navigation";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puedeVerProduccion } from "@/lib/produccion-menu";
+import { ProduccionSoloEnTaller } from "@/components/ProduccionSoloEnTaller";
 import { getTaller, getOrdenesProduccion, getModelosProducibles } from "@/lib/produccion";
-import { OrdenesProduccionV2 } from "@/components/OrdenesProduccionV2";
+import { getInsumosDelTaller } from "@/lib/insumos";
+import { getLineasPorRecibir } from "@/lib/recibir-produccion";
+import { getComprobantesProduccion } from "@/lib/comprobantes-produccion";
+import { getDecisionProduccion } from "@/lib/decision-produccion";
+import { hoyLima } from "@/lib/fechas-lima";
+import { cifrasResumen, decisionesDeProduccion, demandaDeInsumos, filasDeTela, filasPorModelo, type InsumoParaDecidir, type OrdenParaDecidir } from "@/lib/produccion-decisiones";
+import { ResumenProduccionPanel } from "@/components/ResumenProduccionPanel";
 
-// Producción del Taller (restaurada 2026-09-15 sobre V2). Una sola forma de
-// producir: la orden. Se abre con costo estimado y cantidades por talla-color,
-// avanza por etapas y al cerrar confirma cuántas salieron buenas y el costo
-// real, que entra al stock del Taller (`cerrar_produccion` → `movimientos`).
-// Ver supabase/migrations/20260915130000_produccion_del_taller.sql.
-//
-// Se entra solo parado EN el Taller (revertido 2026-09-17, pedido de
-// Felipe): la excepción de líder-desde-cualquier-ubicación duraba dos días
-// y dejaba entrar por URL directa aunque el AppShell ya no mostrara el
-// link — dos partes del sistema decidiendo lo mismo de dos formas. La base
-// lo vuelve a comprobar en cada RPC (fn_puede_operar_ubicacion) de todos modos.
+// `/produccion` es el módulo padre (ADR-0133) y, desde F6, su Resumen: «¿qué necesita mi decisión hoy?». Solo líder (ventas de la red y dinero) y, como el resto
+// de Producción, solo parado en el Taller. Quien trabaja en el Taller va directo a Órdenes. El enlace `/produccion` que ya usa el Resumen de Inventario
+// (`lib/resumen-acciones.ts`) sigue resolviendo. Todo se calcula acá, en el servidor, con reglas puras (`lib/produccion-decisiones.ts`).
 export default async function ProduccionPage() {
   const persona = await requirePersonaActualV2();
-  if (persona.ubicacionTipo !== "taller") redirect("/");
+  if (!puedeVerProduccion(persona)) {
+    if (!persona.puedeCambiarUbicacion) redirect("/");
+    return <ProduccionSoloEnTaller ubicacionActual={persona.ubicacionEtiqueta} />;
+  }
+  if (persona.rol !== "lider") redirect("/produccion/ordenes");
 
   const taller = await getTaller();
-  if (!taller) {
-    return (
-      <div className="space-y-6">
-        <h1 className="font-display text-2xl text-tinta">Producción</h1>
-        <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay una ubicación de tipo Taller activa. Producción necesita una para saber dónde entra el stock.
-        </p>
-      </div>
-    );
+  if (!taller) redirect("/produccion/ordenes");
+
+  const hoy = hoyLima();
+  const [ordenes, modelos, datosInsumos, lineas, comprobantes] = await Promise.all([
+    getOrdenesProduccion(taller.id, { conCostos: true }),
+    getModelosProducibles(),
+    getInsumosDelTaller(taller.id, { conCostos: true, hoy }),
+    getLineasPorRecibir(taller.id),
+    getComprobantesProduccion(),
+  ]);
+  const decision = await getDecisionProduccion({ modelos, ordenes, insumos: datosInsumos.insumos, consumosPorOrden: datosInsumos.consumosPorOrden, lineasPorRecibir: lineas });
+
+  const ordenesParaDecidir: (OrdenParaDecidir & { costoTela: number; costoAvios: number })[] = ordenes.map((o) => ({
+    id: o.id,
+    referencia: o.referencia,
+    productoId: o.productoId,
+    estado: o.estado,
+    esMuestra: o.esMuestra,
+    fechaEntrega: o.fechaEntrega,
+    cantidadPlan: o.cantidadPlan,
+    etapas: o.etapas,
+    costoTela: o.costoTela,
+    costoAvios: o.costoAvios,
+  }));
+  const insumos: InsumoParaDecidir[] = datosInsumos.insumos.map((i) => ({ id: i.id, nombre: i.nombre, unidad: i.unidad, tipo: i.tipo, saldo: i.saldo, minimo: i.minimo, tono: i.estado.tono }));
+  const llegadas = lineas.filter((l) => l.pendiente > 0).map((l) => ({ insumoId: l.insumoId, documento: `${l.serie}-${l.numero}`, proveedor: l.proveedor, pendiente: l.pendiente }));
+  const consumoNeto: Record<string, Record<string, number>> = {};
+  for (const [ordenId, cs] of Object.entries(datosInsumos.consumosPorOrden)) {
+    for (const c of cs) (consumoNeto[ordenId] ??= {})[c.insumoId] = (consumoNeto[ordenId][c.insumoId] ?? 0) + c.cantidad;
   }
 
-  const [ordenes, modelos] = await Promise.all([getOrdenesProduccion(taller.id), getModelosProducibles()]);
+  const datos = decision.datos;
+  const demandaInsumos = demandaDeInsumos(ordenesParaDecidir, datos?.rendimientoPorModelo ?? {}, consumoNeto);
+  const filasModelo = datos
+    ? filasPorModelo(datos.demanda, modelos.map((m) => ({ productoId: m.productoId, referencia: m.referencia, variantesIds: m.variantes.map((v) => v.varianteId) })), datos.enProduccion)
+    : [];
+
+  const decisiones = decisionesDeProduccion({ hoy, ordenes: ordenesParaDecidir, insumos, llegadas, demanda: demandaInsumos, comprobantes, modelos: filasModelo });
+  const cifras = cifrasResumen({ hoy, ordenes: ordenesParaDecidir, insumos, capitalInsumos: datosInsumos.capital, comprobantes });
+  const telas = filasDeTela(insumos, demandaInsumos, llegadas);
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">{taller.nombre}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Órdenes de producción</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Abre una orden, márcala avanzar por etapas y ciérrala al inventario cuando esté lista.
-        </p>
-      </div>
-
-      <OrdenesProduccionV2 tallerId={taller.id} ordenes={ordenes} modelos={modelos} />
+      <ResumenProduccionPanel decisiones={decisiones} cifras={cifras} modelos={filasModelo} telas={telas} falloRed={decision.fallo} />
     </div>
   );
 }

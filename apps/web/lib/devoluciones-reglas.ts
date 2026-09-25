@@ -13,17 +13,23 @@ import { DIAS_PLAZO_CAMBIO, estadoPlazoCambio, fechaLimiteCambio, unidadesDispon
 import { soles } from "./compras-reglas";
 
 // ============================================================================
-// Motivo. `crear_devolucion(p_motivo text)` lo guarda como texto libre: no hay columna
-// estructurada (para no chocar con la migración de la otra sesión sobre esa función; queda
-// en BACKLOG). Una lista cerrada que compone el texto ya da "6 de 8 devoluciones fueron
-// por defecto" con un `group by`, que el texto libre nunca dio (R-45: una lista se suma).
+// Motivo (D-79, ADR-0158, 2026-09-22). `crear_devolucion` ahora recibe DOS motivos: el
+// código cerrado (`p_motivo_codigo`, con `check` en la base — el mismo valor de esta lista,
+// sin traducir) y el texto libre de siempre (`p_motivo`, compuesto acá con `textoMotivo`
+// para lo que la clienta cuente de más). El código es lo que hace group-by-able «6 de 8
+// devoluciones fueron por defecto» sin que un detalle distinto rompa el agrupamiento —
+// R-45: una lista se suma, un texto libre no. MISMO vocabulario que D-79 le pidió a Cambios
+// (`cambios.motivo`, 20260919000100) iba a usar, pero esa migración es dos días anterior y
+// ya está en producción con su propio vocabulario (talla_chica/talla_grande/otro_color): no
+// se tocó — ver la cabecera de 20260922180000_devoluciones_motivo_estructurado.sql.
 // ============================================================================
 
 export const MOTIVOS_DEVOLUCION = [
-  { valor: "no_le_queda", etiqueta: "No le queda bien" },
-  { valor: "no_esperaba", etiqueta: "No es lo que esperaba" },
+  { valor: "talla", etiqueta: "No era su talla" },
+  { valor: "calce", etiqueta: "No le calzó bien" },
   { valor: "defecto", etiqueta: "Tiene un defecto" },
-  { valor: "cambio_de_opinion", etiqueta: "Cambió de opinión" },
+  { valor: "no_le_gusto", etiqueta: "No le gustó" },
+  { valor: "regalo", etiqueta: "Era un regalo" },
   { valor: "otro", etiqueta: "Otro motivo" },
 ] as const;
 
@@ -92,6 +98,22 @@ export function condicionDeItem(item: ItemElegido): CondicionDevolucion | null {
 
 export type EstadoPrendaDevolucion = EstadoVisual & { devolvible: boolean };
 
+/** El chip de plazo puro — solo mira cuánto pasó desde la venta, nada de si la prenda ya
+ *  se cambió o devolvió. `estadoPrendaDevolucion` lo usa para UNA línea; el resumen por
+ *  venta de "Actividad reciente" lo usa una sola vez por tarjeta: el plazo es de la
+ *  boleta, no de la línea (`docs/pantallas/devoluciones.md` tarea #8). */
+export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisual {
+  const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
+  // Igual que en Cambios: verde dentro del plazo (también los últimos días), rojo al vencer.
+  // Rojo aquí NO bloquea: solo dice que un líder tiene que decidir.
+  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
+  if (estado === "por_vencer") {
+    const texto = diasRestantes === 0 ? "Último día del plazo" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
+    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj" };
+  }
+  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj" };
+}
+
 export function estadoPrendaDevolucion(
   linea: {
     cantidad: number;
@@ -113,15 +135,7 @@ export function estadoPrendaDevolucion(
       ? { clave: "devuelta", texto: "Ya devuelta", tono: "verde", icono: "check", devolvible: false }
       : { clave: "cambiada", texto: "Ya cambiada", tono: "neutro", icono: "check", devolvible: false };
   }
-  const { estado, diasRestantes } = estadoPlazoCambio(linea.creadoEn, ahora);
-  // Igual que en Cambios: verde dentro del plazo (también los últimos días), rojo al vencer.
-  // Rojo aquí NO bloquea (`devolvible` sigue en true): solo dice que un líder tiene que decidir.
-  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta", devolvible: true };
-  if (estado === "por_vencer") {
-    const texto = diasRestantes === 0 ? "Último día del plazo" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj", devolvible: true };
-  }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj", devolvible: true };
+  return { ...estadoPlazoDevolucion(linea.creadoEn, ahora), devolvible: true };
 }
 
 /** Lo que la clienta pagó de verdad por `cantidad` unidades: precio menos el descuento que

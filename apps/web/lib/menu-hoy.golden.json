@@ -1,0 +1,857 @@
+{
+  "_": "Línea base del menú de HOY (paso 1, «menú a datos»): lo que ve cada perfil en el menú de main ANTES de sacarlo a datos (incluye Compras con Notas de crédito, Producción con Resumen, Proveedores, Comprobantes, Recibir y Por pagar, y Compras oculto parado en el Taller). Se CAPTURÓ del AppShell.tsx real, no se escribió a mano. Se cambia a propósito, paso a paso, con la aprobación de Felipe.",
+  "capturadoDe": { "archivo": "apps/web/components/AppShell.tsx", "commit": "e14ef82c", "metodo": "El AppShell real se renderizó a HTML con react-dom/server (perfil × traslados por atender × ruta); de ese HTML se leyeron las filas del <nav> de escritorio, las 5 columnas de la barra del celular y las acciones del panel «+ Nuevo». Los íconos se guardan como la clave del mapa IC del original. `grupoActivoPorRuta` es el estado interno `grupoActivo` del propio original (el grupo que se abre al aterrizar en esa ruta)." },
+  "perfiles": {
+    "colaborador-tienda": {
+      "rol": "integrante",
+      "ubicacionTipo": "tienda",
+      "conTraslados3": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ],
+            "insignia": 3
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ]
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario" },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "nuevo": [
+        { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
+        { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
+        { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
+        { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
+      ],
+      "grupoActivoPorRuta": { "/": null, "/vender": "venta", "/vender/facturacion": "venta", "/vender/descuentos": "venta", "/caja": "venta", "/caja/historial": "venta", "/cambios": "venta", "/devoluciones": "venta", "/productos": "catalogo", "/productos/categorias": "catalogo", "/productos/atributos": "catalogo", "/productos/marcas": "catalogo", "/productos/nuevo": "catalogo", "/productos/familias": "catalogo", "/productos/abc-123": "catalogo", "/produccion": "produccion", "/produccion/ordenes": "produccion", "/produccion/insumos": "produccion", "/produccion/proveedores": "produccion", "/produccion/comprobantes": "produccion", "/produccion/recibir": "produccion", "/produccion/por-pagar": "produccion", "/produccion/resumen": "produccion", "/produccion/ordenes/abc": "produccion", "/produccion/proveedores/x": "produccion", "/produccion/nueva": "produccion", "/compras": "compras", "/compras/proveedores": "compras", "/compras/por-pagar": "compras", "/compras/notas-credito": "compras", "/compras/nueva": "compras", "/compras/factura/123": "compras", "/compras/exportar": "compras", "/recibir": "inventario", "/inventario": "inventario", "/inventario/movimientos": "inventario", "/inventario/traslados": "inventario", "/inventario/traslados/abc": "inventario", "/inventario/conteo": "inventario", "/inventario/resumen": "inventario", "/inventario/mover": "inventario", "/inventario/recibir": "inventario", "/colaboradores": null, "/movimientos": null, "/buscar": null, "/perfil": null, "/vendedor": null, "/productosx": null }
+    },
+    "lider-tienda": {
+      "rol": "lider",
+      "ubicacionTipo": "tienda",
+      "conTraslados3": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ],
+            "insignia": 3
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario" },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "nuevo": [
+        { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
+        { "href": "/compras/nueva", "etiqueta": "Registrar factura de proveedor", "detalle": "Una compra a proveedor, con su pago si es al contado" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
+        { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
+        { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
+        { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
+      ],
+      "grupoActivoPorRuta": { "/": null, "/vender": "venta", "/vender/facturacion": "venta", "/vender/descuentos": "venta", "/caja": "venta", "/caja/historial": "venta", "/cambios": "venta", "/devoluciones": "venta", "/productos": "catalogo", "/productos/categorias": "catalogo", "/productos/atributos": "catalogo", "/productos/marcas": "catalogo", "/productos/nuevo": "catalogo", "/productos/familias": "catalogo", "/productos/abc-123": "catalogo", "/produccion": "produccion", "/produccion/ordenes": "produccion", "/produccion/insumos": "produccion", "/produccion/proveedores": "produccion", "/produccion/comprobantes": "produccion", "/produccion/recibir": "produccion", "/produccion/por-pagar": "produccion", "/produccion/resumen": "produccion", "/produccion/ordenes/abc": "produccion", "/produccion/proveedores/x": "produccion", "/produccion/nueva": "produccion", "/compras": "compras", "/compras/proveedores": "compras", "/compras/por-pagar": "compras", "/compras/notas-credito": "compras", "/compras/nueva": "compras", "/compras/factura/123": "compras", "/compras/exportar": "compras", "/recibir": "compras", "/inventario": "inventario", "/inventario/movimientos": "inventario", "/inventario/traslados": "inventario", "/inventario/traslados/abc": "inventario", "/inventario/conteo": "inventario", "/inventario/resumen": "inventario", "/inventario/mover": "inventario", "/inventario/recibir": "inventario", "/colaboradores": null, "/movimientos": null, "/buscar": null, "/perfil": null, "/vendedor": null, "/productosx": null }
+    },
+    "colaborador-taller": {
+      "rol": "integrante",
+      "ubicacionTipo": "taller",
+      "conTraslados3": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ],
+            "insignia": 3
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ]
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario" },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "nuevo": [
+        { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
+        { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
+        { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
+        { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
+      ],
+      "grupoActivoPorRuta": { "/": null, "/vender": "venta", "/vender/facturacion": "venta", "/vender/descuentos": "venta", "/caja": "venta", "/caja/historial": "venta", "/cambios": "venta", "/devoluciones": "venta", "/productos": "catalogo", "/productos/categorias": "catalogo", "/productos/atributos": "catalogo", "/productos/marcas": "catalogo", "/productos/nuevo": "catalogo", "/productos/familias": "catalogo", "/productos/abc-123": "catalogo", "/produccion": "produccion", "/produccion/ordenes": "produccion", "/produccion/insumos": "produccion", "/produccion/proveedores": "produccion", "/produccion/comprobantes": "produccion", "/produccion/recibir": "produccion", "/produccion/por-pagar": "produccion", "/produccion/resumen": "produccion", "/produccion/ordenes/abc": "produccion", "/produccion/proveedores/x": "produccion", "/produccion/nueva": "produccion", "/compras": "compras", "/compras/proveedores": "compras", "/compras/por-pagar": "compras", "/compras/notas-credito": "compras", "/compras/nueva": "compras", "/compras/factura/123": "compras", "/compras/exportar": "compras", "/recibir": "inventario", "/inventario": "inventario", "/inventario/movimientos": "inventario", "/inventario/traslados": "inventario", "/inventario/traslados/abc": "inventario", "/inventario/conteo": "inventario", "/inventario/resumen": "inventario", "/inventario/mover": "inventario", "/inventario/recibir": "inventario", "/colaboradores": null, "/movimientos": null, "/buscar": null, "/perfil": null, "/vendedor": null, "/productosx": null }
+    },
+    "lider-taller": {
+      "rol": "lider",
+      "ubicacionTipo": "taller",
+      "conTraslados3": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ],
+            "insignia": 3
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "produccion",
+            "etiqueta": "Producción",
+            "icono": "produccion",
+            "hijos": [
+              { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
+              {
+                "grupo": "produccion.abastecimiento",
+                "etiqueta": "Abastecimiento",
+                "icono": "compras",
+                "hijos": [
+                  { "etiqueta": "Proveedores", "href": "/produccion/proveedores", "icono": "proveedores" },
+                  { "etiqueta": "Facturas de insumos", "href": "/produccion/comprobantes", "icono": "facturas" },
+                  { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" },
+                  { "etiqueta": "Por pagar", "href": "/produccion/por-pagar", "icono": "porPagar" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario" },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "nuevo": [
+        { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
+        { "href": "/compras/nueva", "etiqueta": "Registrar factura de proveedor", "detalle": "Una compra a proveedor, con su pago si es al contado" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
+        { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
+        { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
+        { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
+      ],
+      "grupoActivoPorRuta": { "/": null, "/vender": "venta", "/vender/facturacion": "venta", "/vender/descuentos": "venta", "/caja": "venta", "/caja/historial": "venta", "/cambios": "venta", "/devoluciones": "venta", "/productos": "catalogo", "/productos/categorias": "catalogo", "/productos/atributos": "catalogo", "/productos/marcas": "catalogo", "/productos/nuevo": "catalogo", "/productos/familias": "catalogo", "/productos/abc-123": "catalogo", "/produccion": "produccion", "/produccion/ordenes": "produccion", "/produccion/insumos": "produccion", "/produccion/proveedores": "produccion", "/produccion/comprobantes": "produccion", "/produccion/recibir": "produccion", "/produccion/por-pagar": "produccion", "/produccion/resumen": "produccion", "/produccion/ordenes/abc": "produccion", "/produccion/proveedores/x": "produccion", "/produccion/nueva": "produccion", "/compras": "compras", "/compras/proveedores": "compras", "/compras/por-pagar": "compras", "/compras/notas-credito": "compras", "/compras/nueva": "compras", "/compras/factura/123": "compras", "/compras/exportar": "compras", "/recibir": "compras", "/inventario": "inventario", "/inventario/movimientos": "inventario", "/inventario/traslados": "inventario", "/inventario/traslados/abc": "inventario", "/inventario/conteo": "inventario", "/inventario/resumen": "inventario", "/inventario/mover": "inventario", "/inventario/recibir": "inventario", "/colaboradores": null, "/movimientos": null, "/buscar": null, "/perfil": null, "/vendedor": null, "/productosx": null }
+    },
+    "colaborador-almacen": {
+      "rol": "integrante",
+      "ubicacionTipo": "almacen",
+      "conTraslados3": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ],
+            "insignia": 3
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" }
+            ]
+          }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario" },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "nuevo": [
+        { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
+        { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
+        { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
+        { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
+      ],
+      "grupoActivoPorRuta": { "/": null, "/vender": "venta", "/vender/facturacion": "venta", "/vender/descuentos": "venta", "/caja": "venta", "/caja/historial": "venta", "/cambios": "venta", "/devoluciones": "venta", "/productos": "catalogo", "/productos/categorias": "catalogo", "/productos/atributos": "catalogo", "/productos/marcas": "catalogo", "/productos/nuevo": "catalogo", "/productos/familias": "catalogo", "/productos/abc-123": "catalogo", "/produccion": "produccion", "/produccion/ordenes": "produccion", "/produccion/insumos": "produccion", "/produccion/proveedores": "produccion", "/produccion/comprobantes": "produccion", "/produccion/recibir": "produccion", "/produccion/por-pagar": "produccion", "/produccion/resumen": "produccion", "/produccion/ordenes/abc": "produccion", "/produccion/proveedores/x": "produccion", "/produccion/nueva": "produccion", "/compras": "compras", "/compras/proveedores": "compras", "/compras/por-pagar": "compras", "/compras/notas-credito": "compras", "/compras/nueva": "compras", "/compras/factura/123": "compras", "/compras/exportar": "compras", "/recibir": "inventario", "/inventario": "inventario", "/inventario/movimientos": "inventario", "/inventario/traslados": "inventario", "/inventario/traslados/abc": "inventario", "/inventario/conteo": "inventario", "/inventario/resumen": "inventario", "/inventario/mover": "inventario", "/inventario/recibir": "inventario", "/colaboradores": null, "/movimientos": null, "/buscar": null, "/perfil": null, "/vendedor": null, "/productosx": null }
+    },
+    "lider-almacen": {
+      "rol": "lider",
+      "ubicacionTipo": "almacen",
+      "conTraslados3": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ],
+            "insignia": 3
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario", "insignia": 3 },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "sinTraslados": {
+        "escritorio": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          {
+            "grupo": "catalogo",
+            "etiqueta": "Catálogo",
+            "icono": "catalogo",
+            "hijos": [
+              { "etiqueta": "Productos", "href": "/productos", "icono": "productos" },
+              { "etiqueta": "Categorías", "href": "/productos/categorias", "icono": "categorias" },
+              { "etiqueta": "Atributos", "href": "/productos/atributos", "icono": "atributos" }
+            ]
+          },
+          {
+            "grupo": "compras",
+            "etiqueta": "Compras",
+            "icono": "compras",
+            "hijos": [
+              { "etiqueta": "Proveedores", "href": "/compras/proveedores", "icono": "proveedores" },
+              { "etiqueta": "Facturas de proveedor", "href": "/compras", "icono": "facturas" },
+              { "etiqueta": "Recibir mercadería", "href": "/recibir", "icono": "recibir" },
+              { "etiqueta": "Por pagar", "href": "/compras/por-pagar", "icono": "porPagar" },
+              { "etiqueta": "Notas de crédito de proveedor", "href": "/compras/notas-credito", "icono": "notasCredito" }
+            ]
+          },
+          {
+            "grupo": "venta",
+            "etiqueta": "Ventas",
+            "icono": "venta",
+            "hijos": [
+              { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+              { "etiqueta": "Apartados", "href": "/vender/apartados", "icono": "apartados" },
+              { "etiqueta": "Caja", "href": "/caja", "icono": "caja" },
+              { "etiqueta": "Historial", "href": "/vender/historial", "icono": "historial" },
+              {
+                "grupo": "venta.posventa",
+                "etiqueta": "Posventa",
+                "icono": "cambios",
+                "hijos": [
+                  { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
+                  { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
+                ]
+              },
+              { "etiqueta": "Comprobantes", "href": "/vender/comprobantes", "icono": "facturacion" }
+            ]
+          },
+          {
+            "grupo": "inventario",
+            "etiqueta": "Inventario",
+            "icono": "inventario",
+            "hijos": [
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
+              { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
+              { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+            ]
+          },
+          { "etiqueta": "Finanzas", "href": "/finanzas/gastos", "icono": "gastos" }
+        ],
+        "movil": [
+          { "etiqueta": "Inicio", "href": "/", "icono": "inicio" },
+          { "etiqueta": "Punto de Venta", "href": "/vender", "icono": "vender" },
+          { "hueco": "nuevo" },
+          { "etiqueta": "Inventario", "href": "/inventario", "icono": "inventario" },
+          { "etiqueta": "Caja", "href": "/caja", "icono": "caja" }
+        ]
+      },
+      "nuevo": [
+        { "href": "/vender", "etiqueta": "Nueva venta", "detalle": "Registrar la compra de una clienta" },
+        { "href": "/compras/nueva", "etiqueta": "Registrar factura de proveedor", "detalle": "Una compra a proveedor, con su pago si es al contado" },
+        { "href": "/recibir", "etiqueta": "Recibir mercadería", "detalle": "Lo que llegó, contra sus facturas de proveedor" },
+        { "href": "/inventario/mover", "etiqueta": "Mover mercadería", "detalle": "Trasladar stock entre ubicaciones" },
+        { "href": "/cambios", "etiqueta": "Registrar cambio", "detalle": "La clienta cambia una prenda por otra talla o color" },
+        { "href": "/devoluciones", "etiqueta": "Registrar devolución", "detalle": "Una clienta devuelve algo que compró" }
+      ],
+      "grupoActivoPorRuta": { "/": null, "/vender": "venta", "/vender/facturacion": "venta", "/vender/descuentos": "venta", "/caja": "venta", "/caja/historial": "venta", "/cambios": "venta", "/devoluciones": "venta", "/productos": "catalogo", "/productos/categorias": "catalogo", "/productos/atributos": "catalogo", "/productos/marcas": "catalogo", "/productos/nuevo": "catalogo", "/productos/familias": "catalogo", "/productos/abc-123": "catalogo", "/produccion": "produccion", "/produccion/ordenes": "produccion", "/produccion/insumos": "produccion", "/produccion/proveedores": "produccion", "/produccion/comprobantes": "produccion", "/produccion/recibir": "produccion", "/produccion/por-pagar": "produccion", "/produccion/resumen": "produccion", "/produccion/ordenes/abc": "produccion", "/produccion/proveedores/x": "produccion", "/produccion/nueva": "produccion", "/compras": "compras", "/compras/proveedores": "compras", "/compras/por-pagar": "compras", "/compras/notas-credito": "compras", "/compras/nueva": "compras", "/compras/factura/123": "compras", "/compras/exportar": "compras", "/recibir": "compras", "/inventario": "inventario", "/inventario/movimientos": "inventario", "/inventario/traslados": "inventario", "/inventario/traslados/abc": "inventario", "/inventario/conteo": "inventario", "/inventario/resumen": "inventario", "/inventario/mover": "inventario", "/inventario/recibir": "inventario", "/colaboradores": null, "/movimientos": null, "/buscar": null, "/perfil": null, "/vendedor": null, "/productosx": null }
+    }
+  }
+}

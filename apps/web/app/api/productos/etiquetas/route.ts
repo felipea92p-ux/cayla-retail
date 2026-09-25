@@ -1,5 +1,8 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
+// ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
+// viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
+import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 import { objecionVigencia, parsearDescuento, parsearFecha } from "@/lib/etiqueta-campana";
 
@@ -17,7 +20,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la etiqueta." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { data, error } = await supabase.from("etiquetas").insert({ nombre }).select("id, nombre, activo, notas, estado").single();
 
   if (error) {
@@ -28,10 +31,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  // 20260923130000: el líder o un rol con el módulo Etiquetas (`editarEtiquetas`). Lo que lleva descuento sigue siendo del
+  // líder: se dice aquí con palabras y la base lo vuelve a exigir (política `etiquetas_update`, `fn_puede_tocar_etiqueta`).
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
-    return Response.json({ error: "Solo un Líder puede editar el vocabulario de etiquetas." }, { status: 403 });
+  if (!puede(persona, "editarEtiquetas")) {
+    return Response.json({ error: "Editar etiquetas necesita el módulo Etiquetas en tu rol." }, { status: 403 });
   }
+  const esLider = persona.rol === "lider";
 
   const cuerpo = await request.json().catch(() => null);
   const id = typeof cuerpo?.id === "string" ? cuerpo.id : "";
@@ -48,6 +54,9 @@ export async function PATCH(request: Request) {
     const c = (cuerpoObj.campana ?? {}) as Record<string, unknown>;
     const descuento = parsearDescuento(c.descuentoPct === null || c.descuentoPct === undefined ? "" : String(c.descuentoPct));
     if (!descuento.ok) return Response.json({ error: descuento.error }, { status: 400 });
+    if (!esLider && descuento.valor !== null) {
+      return Response.json({ error: "Poner un descuento en una etiqueta es solo de un líder. Deja el descuento vacío." }, { status: 403 });
+    }
     const desde = parsearFecha(typeof c.vigenteDesde === "string" ? c.vigenteDesde : "");
     if (!desde.ok) return Response.json({ error: desde.error }, { status: 400 });
     const hasta = parsearFecha(typeof c.vigenteHasta === "string" ? c.vigenteHasta : "");
@@ -59,7 +68,7 @@ export async function PATCH(request: Request) {
       return Response.json({ error: "Las categorías elegidas no son válidas." }, { status: 400 });
     }
 
-    const supabase = await createClient();
+    const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
     const { error } = await supabase.rpc("actualizar_campana_etiqueta", {
       p_etiqueta_id: id,
       p_descuento_pct: descuento.valor as number,
@@ -92,7 +101,7 @@ export async function PATCH(request: Request) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
     const activo = cuerpoObj.activo === true;

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { esFuncionAusente, MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE } from "./compras-reglas";
 import type { NotaPendiente } from "./nota-pendiente-reglas";
 
 // Indicadores de Compras para decidir (ADR-0111). Solo LEE. Cada función es una llamada
@@ -103,21 +104,22 @@ export type TotalesTramosPorPagar = Record<ClaveTramoPorPagar, TotalTramoPorPaga
  * filtro llega a la lista y no acá, los subtotales dejan de cuadrar con las filas (H3, ADR-0111).
  */
 export async function getPorPagarTramos(
-  filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string; tipo?: string; desde?: string; hasta?: string } = {}
+  filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string; tipo?: string; desde?: string; hasta?: string; destinoId?: string } = {}
 ): Promise<TotalesTramosPorPagar> {
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase.rpc("por_pagar_tramos", {
-      ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-      ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
-      ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
-      ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
-      ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
-      ...(filtros.desde ? { p_desde: filtros.desde } : {}),
-      ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
-    }),
-    "los totales por tramo de la deuda"
-  );
+  const res = await supabase.rpc("por_pagar_tramos", {
+    ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
+    ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
+    ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
+    ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+    ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+    ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+    ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
+    ...(filtros.destinoId ? { p_ubicacion_id: filtros.destinoId } : {}),
+  });
+  // Misma regla que la lista (`listarCompras`): sin la migración de «Destino» la base no conoce `p_ubicacion_id`.
+  if (filtros.destinoId && esFuncionAusente(res.error)) throw new Error(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE);
+  const filas = exigir(res, "los totales por tramo de la deuda");
   const vacio = (): TotalTramoPorPagar => ({ comprobantes: 0, saldo: 0 });
   const totales: TotalesTramosPorPagar = { vencidas: vacio(), semana: vacio(), despues: vacio() };
   for (const f of filas) {

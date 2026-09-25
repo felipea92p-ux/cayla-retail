@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos } from "@/lib/proveedores";
+import { notFound, redirect } from "next/navigation";
+import { accionesDeCompraDe, puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { getProveedor, getProveedores, getProveedorCostoEvolucion, getProveedorDevoluciones, getProveedorMetricasCompras, getProveedorMetricasInsumos, getMarcasPorProveedor } from "@/lib/proveedores";
 import { listarCompras, ETIQUETA_METODO, fechaCorta, soles } from "@/lib/compras";
 import { celdaPago, celdaRecepcion } from "@/lib/comprobantes-lista-reglas";
 import { ChevronRight } from "lucide-react";
@@ -15,52 +15,66 @@ import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { PistaPlazo } from "@/components/ui/PistaPlazo";
 import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
+import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
 // aunque compartan la misma ficha (20260917230000_proveedor_metricas_compras_e_insumos.sql).
 //
-// Toda esta pantalla es solo de líder: `app/(app)/compras/layout.tsx` (2026-09-16) redirige a "/" a
-// cualquier colaborador para las pantallas de Compras, ésta incluida; no hace falta (ni conviene)
-// repetir ese chequeo acá. Lo que sí protege la base: `fn_proveedor_metricas_compras` y las demás
-// funciones de esta ficha rechazan a quien no sea líder DENTRO de la base, así que aunque alguien las
-// llame directo por API sigue sin poder ver el dato.
+// Quién la ve (ADR-0161 P3, abajo): quien tiene el módulo Proveedores. Cada parte con dinero pide su propia llave, y la
+// base vuelve a exigirla: `fn_proveedor_metricas_compras`, `fn_proveedor_costo_evolucion` y `fn_proveedor_creditos` rechazan
+// a quien no ve el dinero de Compras, y `fn_proveedor_metricas_insumos` a quien no es líder, aunque se las llame directo.
 //
 // Los indicadores son honestos con pocos datos: «11 días» de una sola entrega no es una tendencia, así
 // que cada promedio dice en cuántos comprobantes se basa, y el plazo de pago real espera a tener al
 // menos dos comprobantes pagados por completo en lugar de mostrar un número engañoso.
+//
+// ADR-0161 P3 (20260923140000, Felipe): la ficha se abre a quien tiene el módulo Proveedores (`editarCuentasProveedor` =
+// `fn_puede_gestionar_proveedores`): datos, marcas, cuentas, devoluciones y editar/desactivar. Lo demás se pinta por partes,
+// cada una con su llave: los MONTOS de Compras (métricas, saldo a favor, costo, últimos comprobantes) con `verDineroCompras`;
+// los INSUMOS del Taller, solo el líder (es dinero de Producción). Quien no tiene la llave ni siquiera los pide a la base.
 export default async function ProveedorPage({ params }: { params: Promise<{ id: string }> }) {
-  await requirePersonaActualV2();
+  const persona = await requirePersonaActualV2();
+  if (!puede(persona, "editarCuentasProveedor")) redirect("/compras/proveedores");
+  const esLider = persona.rol === "lider";
+  const verMontos = puede(persona, "verDineroCompras");
   const { id } = await params;
+  const siDinero = <T,>(leer: () => Promise<T>): Promise<T | null> => (verMontos ? leer() : Promise.resolve(null));
 
-  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos] = await Promise.all([
+  const [proveedor, m, insumos, costo, devoluciones, ultimos, directorio, creditos, marcasMapa] = await Promise.all([
     getProveedor(id),
-    getProveedorMetricasCompras(id),
-    getProveedorMetricasInsumos(id),
-    getProveedorCostoEvolucion(id),
+    siDinero(() => getProveedorMetricasCompras(id)),
+    esLider ? getProveedorMetricasInsumos(id) : Promise.resolve(null),
+    siDinero(() => getProveedorCostoEvolucion(id)),
     getProveedorDevoluciones(id),
-    listarCompras({ proveedorId: id }, { limite: 3 }),
+    siDinero(() => listarCompras({ proveedorId: id }, { limite: 3 })),
     getProveedores(),
-    getCreditosProveedor(id),
+    siDinero(() => getCreditosProveedor(id)),
+    getMarcasPorProveedor(), // ADR-0140: opcional; si falla llega `null` y la ficha se pinta sin marcas
   ]);
   if (!proveedor) notFound();
+  const marcas = marcasMapa?.[id] ?? [];
 
   const ahora = new Date();
   const plural = (n: number, s: string, p: string) => `${n.toLocaleString("es-PE")} ${n === 1 ? s : p}`;
   const pactado = proveedor.plazo_credito_dias;
-  const conCompras = m.facturas_vigentes > 0;
-  const pagoDemoraMas = m.dias_pago_real_promedio != null && pactado != null && m.dias_pago_real_promedio > pactado;
-  // «¿Y ahora qué?»: la sugerencia más urgente, la misma que dice la vista rápida de la lista (ADR-0128).
-  const paso = siguientePaso({
-    activo: proveedor.activo,
-    conCompras,
-    montoVencido: m.monto_vencido,
-    facturasVencidas: m.facturas_vencidas,
-    facturasAtrasadas: m.facturas_atrasadas,
-    saldoFavor: creditos.saldo,
-    diasSinComprar: m.ultima_compra ? diasEntreFechas(m.ultima_compra, hoyLima()) : null,
-  });
+  const conCompras = !!m && m.facturas_vigentes > 0;
+  const pagoDemoraMas = !!m && m.dias_pago_real_promedio != null && pactado != null && m.dias_pago_real_promedio > pactado;
+  // «¿Y ahora qué?»: la sugerencia más urgente, la misma que dice la vista rápida de la lista (ADR-0128). Mira deuda y
+  // saldo a favor: sin los montos no hay sugerencia que dar.
+  const paso =
+    m && creditos
+      ? siguientePaso({
+          activo: proveedor.activo,
+          conCompras,
+          montoVencido: m.monto_vencido,
+          facturasVencidas: m.facturas_vencidas,
+          facturasAtrasadas: m.facturas_atrasadas,
+          saldoFavor: creditos.saldo,
+          diasSinComprar: m.ultima_compra ? diasEntreFechas(m.ultima_compra, hoyLima()) : null,
+        })
+      : null;
 
   return (
     <div className="space-y-6">
@@ -81,15 +95,17 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               {!proveedor.activo && <> · Desactivado</>}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
+              {marcas.map((marca) => (
+                <Chip key={marca} versalitas={false}>
+                  {marca}
+                </Chip>
+              ))}
               {pactado != null && <Chip>Crédito a {pactado} días</Chip>}
               {proveedor.forma_pago_preferida && <Chip>Paga por {(ETIQUETA_METODO[proveedor.forma_pago_preferida] ?? proveedor.forma_pago_preferida).toLowerCase()}</Chip>}
-              {(proveedor.banco || proveedor.cuenta_bancaria) && (
-                <Chip>
-                  {proveedor.banco ?? "Banco sin definir"}
-                  {proveedor.cuenta_bancaria ? ` · CCI ${proveedor.cuenta_bancaria}` : ""}
-                </Chip>
-              )}
-              {proveedor.telefono && <Chip>{proveedor.telefono}</Chip>}
+              {/* Cuenta, CCI y Yape/Plin ya no van en chips: están en «Datos para pagar», enmascarados y con «Copiar». Antes
+                  un texto libre rotulado «CCI» (era la cuenta) y el WhatsApp pasaba por Yape (ADR-0134). */}
+              {proveedor.banco && <Chip>{proveedor.banco}</Chip>}
+              {proveedor.telefono && <Chip>WhatsApp {proveedor.telefono}</Chip>}
             </div>
             </div>
           </div>
@@ -97,8 +113,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      <PasoSugerido paso={paso} proveedorId={id} indice={1} />
+      {paso && <PasoSugerido paso={paso} proveedorId={id} indice={1} />}
 
+      <ProveedorCuentasFicha proveedor={proveedor} rubros={rubrosConConteo(directorio.filter((p) => p.activo)).map((r) => r.etiqueta)} />
+
+      {m && (
       <section className="space-y-3">
         <h2 className="label-cayla text-[11px] text-tinta/65">Prendas terminadas · últimos 12 meses</h2>
         {!conCompras ? (
@@ -162,10 +181,11 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
           </div>
         )}
       </section>
+      )}
 
-      <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} />
+      {m && creditos && <SaldoFavorProveedor proveedorId={id} proveedorNombre={proveedor.nombre} saldo={creditos.saldo} movimientos={creditos.movimientos} tieneDeuda={m.saldo > 0} puedeReembolsar={accionesDeCompraDe(persona).pagar} />}
 
-      {conCompras && (
+      {conCompras && ultimos && (
         <div className="grid gap-3 lg:grid-cols-2">
           <ProveedorCostoEvolucion evolucion={costo} />
           <div className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: 12 }}>
@@ -210,6 +230,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
               : `Devueltas desde cuarentena${devoluciones.ultima ? ` · la última el ${fechaCorta(devoluciones.ultima)}` : ""}.`}
           </p>
         </div>
+        {insumos && (
         <div style={{ ["--i" as string]: 14 }} className={`anim-entra card-cayla p-5 ${insumos.lotes === 0 ? "border-dashed bg-transparent" : ""}`}>
           <p className="label-cayla text-[11px] text-tinta/65">Insumos del Taller</p>
           {insumos.lotes === 0 ? (
@@ -226,6 +247,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             </>
           )}
         </div>
+        )}
       </div>
     </div>
   );

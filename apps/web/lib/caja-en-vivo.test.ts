@@ -1,16 +1,17 @@
 import { describe, it, expect } from "vitest";
-import { firmaDeConteos, hayNovedad, nuevosPorId } from "./caja-en-vivo";
+import { selloDeCaja, hayNovedad, nuevosPorId } from "./caja-en-vivo";
 
-describe("firmaDeConteos", () => {
-  it("junta ventas y movimientos en una huella", () => {
-    expect(firmaDeConteos({ count: 3, error: null }, { count: 1, error: null })).toBe("3:1");
-    expect(firmaDeConteos({ count: 0, error: null }, { count: 0, error: null })).toBe("0:0"); // caja recién abierta: 0 es un dato
+describe("selloDeCaja", () => {
+  it("el sello de la base es la huella", () => {
+    expect(selloDeCaja({ data: "3:0:1:0:0", error: null })).toBe("3:0:1:0:0");
+    expect(selloDeCaja({ data: "0:0:0:0:0", error: null })).toBe("0:0:0:0:0"); // caja recién abierta: 0 es un dato
   });
 
-  it("si cualquiera de las dos consultas falla, no hay huella (no se decide nada)", () => {
-    expect(firmaDeConteos({ count: null, error: new Error("red") }, { count: 1, error: null })).toBeNull();
-    expect(firmaDeConteos({ count: 3, error: null }, { count: null, error: { message: "RLS" } })).toBeNull();
-    expect(firmaDeConteos({ count: null, error: null }, { count: 1, error: null })).toBeNull(); // sin conteo tampoco
+  it("si la consulta falla o no trae texto, no hay huella (no se decide nada)", () => {
+    expect(selloDeCaja({ data: null, error: new Error("red") })).toBeNull();
+    expect(selloDeCaja({ data: "3:0:1:0:0", error: { message: "42501" } })).toBeNull();
+    expect(selloDeCaja({ data: null, error: null })).toBeNull();
+    expect(selloDeCaja({ data: "", error: null })).toBeNull();
   });
 });
 
@@ -23,6 +24,7 @@ describe("hayNovedad", () => {
     expect(hayNovedad("3:1", "3:1")).toBe(false);
     expect(hayNovedad("3:1", "4:1")).toBe(true); // entró una venta
     expect(hayNovedad("3:1", "3:2")).toBe(true); // entró un ingreso o egreso
+    expect(hayNovedad("3:0:1:0:0", "3:1:1:0:0")).toBe(true); // se anuló una venta: mismas filas, otro sello
   });
 
   it("una medición fallida nunca cuenta como novedad ni borra la línea base", () => {

@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Producción · módulo padre · spike visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/*CSS*/
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-in" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+  <symbol id="i-out" viewBox="0 0 24 24"><path d="M12 20V9M7 13l5-5 5 5M5 4h14"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M4 5h2l2 10h9l2-7H7M10 19.5h.01M17 19.5h.01"/></symbol>
+  <symbol id="i-prod" viewBox="0 0 24 24"><path d="M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></symbol>
+</svg>
+<div class="hilo" id="hilo"></div>
+<aside class="lat" id="lat"></aside>
+<div class="main">
+  <div class="spike"><div>
+    <span class="lbl">Spike · datos de ejemplo, nada se guarda</span>
+    <span class="sep"></span><span class="lbl">Ver como</span>
+    <button data-rol="lider" aria-pressed="true" type="button">Líder</button><button data-rol="colab" aria-pressed="false" type="button">Colaborador del Taller</button>
+    <span class="sep"></span>
+    <button id="btnFuentes" aria-pressed="false" type="button">Mostrar de dónde sale cada dato</button>
+    <button id="btnMov" aria-pressed="false" type="button">Reducir movimiento</button>
+    <button id="btnReset" type="button">Reiniciar demo</button>
+  </div></div>
+  <main class="cont" id="vista"></main>
+</div>
+<div class="veil" id="veil"></div>
+<aside class="drw" id="drw" role="dialog" aria-modal="true" aria-labelledby="drwT"></aside>
+<div class="avisos" id="avisos" role="status" aria-live="polite"></div>
+<script>
+/*JS*/
+</script>
+</body>
+</html>

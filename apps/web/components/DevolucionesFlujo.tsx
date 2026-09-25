@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ChipEstado, MetaCompra, formatearHora } from "@/components/ComprasAgrupadas";
@@ -84,7 +87,6 @@ export function DevolucionesFlujo({
   lineaInicialId,
   ubicacionId,
   sede,
-  colaboradora,
   esLider,
   ahora,
   onCerrar,
@@ -96,6 +98,7 @@ export function DevolucionesFlujo({
   lineaInicialId: string | null;
   ubicacionId: string;
   sede: string;
+  /** Nombre de la sesión. Ya no se muestra: «Lo registra» es el responsable elegido (ADR-0161). */
   colaboradora: string;
   esLider: boolean;
   ahora: Date;
@@ -105,6 +108,9 @@ export function DevolucionesFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // Quién solicita la devolución (ADR-0161). Aprobarla sigue siendo solo del líder (ADR-0160), con su propia sesión.
+  const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
+  const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
   const [paso, setPaso] = useState<Paso>(2);
   const [elegidas, setElegidas] = useState<Record<string, ItemElegido>>(() => (lineaInicialId ? { [lineaInicialId]: itemInicial() } : {}));
   const [motivo, setMotivo] = useState<MotivoDevolucion | null>(null);
@@ -210,6 +216,10 @@ export function DevolucionesFlujo({
       setPaso(3);
       return;
     }
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
     const items = lineasElegidas.map((l) => ({
       venta_item_id: l.ventaItemId,
       cantidad: elegidas[l.ventaItemId]!.cantidad,
@@ -218,14 +228,21 @@ export function DevolucionesFlujo({
     enviandoAhora.current = true;
     setEnviando(true);
     setError(null);
-    const { data, error: fallo } = await createClient().rpc("crear_devolucion", {
-      p_venta_id: compra.ventaId,
-      p_ubicacion_id: ubicacionId,
-      p_items: items,
-      p_motivo: textoMotivo(motivo, detalle),
-    });
+    const { data, error: fallo } = await firmar(
+      createClient().rpc("crear_devolucion", {
+        p_venta_id: compra.ventaId,
+        p_ubicacion_id: ubicacionId,
+        p_items: items,
+        p_motivo: textoMotivo(motivo, detalle),
+        // D-79: el código cerrado va aparte del texto libre de arriba — ver
+        // devoluciones-reglas.ts. `bloqueo || !motivo` ya frenó más arriba si faltara.
+        p_motivo_codigo: motivo,
+      }),
+      responsable.firma(),
+    );
     enviandoAhora.current = false;
     setEnviando(false);
+    responsable.despues(fallo);
     if (fallo) {
       setError(traducirError(fallo, "registrar la devolución"));
       return;
@@ -423,7 +440,8 @@ export function DevolucionesFlujo({
                 </Dato>
                 <Dato titulo="Clienta">{compra.clienta ?? "No quedó registrada en la venta"}</Dato>
                 <Dato titulo="Se registra en">{sede}</Dato>
-                <Dato titulo="Lo registra">{colaboradora || "—"}</Dato>
+                {/* Con el combo (ADR-0161) la registra el responsable elegido, no la cuenta de la sesión. */}
+                <Dato titulo="Lo registra">{nombreResponsable ?? "Elige abajo en «Responsable»"}</Dato>
                 <Dato titulo="Motivo">{textoMotivo(motivo, detalle) || "—"}</Dato>
                 <Dato titulo="Lo que pagó por esto">{soles(valorTotal)}</Dato>
               </dl>
@@ -466,6 +484,8 @@ export function DevolucionesFlujo({
             Al registrarla queda <span className="font-semibold text-tinta">pendiente de aprobación</span>: un líder la revisa y recién ahí se mueve el stock.
           </p>
 
+          <ComboResponsable control={responsable} deshabilitado={enviando} className="max-w-sm" />
+
           {error && <AvisoDeError error={error} refAviso={errorRef} queNoSeHizo="No se registró la devolución." />}
 
           <PieDelPaso aviso={null}>
@@ -477,7 +497,7 @@ export function DevolucionesFlujo({
               <BotonSecundario onClick={onCerrar} disabled={enviando}>
                 Cancelar
               </BotonSecundario>
-              <BotonRojo onClick={registrar} disabled={enviando} monto={soles(valorTotal)}>
+              <BotonRojo onClick={registrar} disabled={enviando || !responsable.listo} monto={soles(valorTotal)}>
                 {enviando ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : <Check className="h-4 w-4" aria-hidden />}
                 {enviando ? "Registrando…" : "Registrar devolución"}
               </BotonRojo>

@@ -1,0 +1,731 @@
+<title>Movimientos CAYLA · demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* Tokens: guía de estilo oficial «CAYLA Dynamic» (Sala de Diseño, 2026-09-22). Nada se inventa aquí. */
+:root{
+  --crema:#f5f0e8; --papel:#fbf8f2; --tinta:#1a1a18; --rojo:#b8412d; --rojo-profundo:#8b2a1f;
+  --sand:#e8e0d0; --taupe:#805c4c; --verde:#48603f; --ambar:#74501a; --hueso:#eae1d2; --pizarra:#4c5d6e;
+  --lateral:#1a1a18; --lateral-txt:#f5f0e8;
+  --r-control:8px; --r-superficie:16px; --r-flotante:20px; --r-pildora:999px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --serif:"EB Garamond", ui-serif, Georgia, serif;
+  --sans:"DM Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+    --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+    --lateral:#120f0c; --lateral-txt:#ede7db;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --crema:#1c1a16; --papel:#26221d; --tinta:#ede7db; --rojo:#d4634a; --rojo-profundo:#e8836b;
+  --sand:#332e27; --taupe:#ab9080; --verde:#8fae80; --ambar:#c99a4a; --hueso:#15110d; --pizarra:#9db0c2;
+  --lateral:#120f0c; --lateral-txt:#ede7db;
+}
+*{box-sizing:border-box}
+body{background:var(--crema); color:var(--tinta); font-family:var(--sans); font-size:14px; margin:0; padding-inline:16px; padding-block:20px 48px; font-variant-numeric:tabular-nums; transition:background-color .25s var(--ease), color .25s var(--ease)}
+button{font-family:inherit; color:inherit}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--rojo); outline-offset:2px}
+.wrap{max-width:1320px; margin:0 auto; display:flex; flex-direction:column; gap:20px}
+.eyebrow{font-size:11px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--taupe); margin:0}
+
+/* ============ Mesa de decisión (fuera de la maqueta) ============ */
+.mesa{border:1px solid var(--sand); border-radius:var(--r-flotante); background:var(--papel); padding:20px 22px; display:flex; flex-direction:column; gap:16px}
+.mesa-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
+.mesa h1{font-family:var(--serif); font-weight:600; font-size:28px; margin:4px 0 4px; text-wrap:balance}
+.mesa .bajada{color:var(--taupe); margin:0; max-width:68ch; line-height:1.55}
+.mesa .decidido{display:inline-flex; gap:8px; align-items:center; margin-top:10px; font-size:12.5px; color:var(--verde)}
+.mesa .decidido::before{content:""; width:6px; height:6px; border-radius:50%; background:currentColor}
+.utiles{display:flex; gap:8px; flex-wrap:wrap}
+.decisiones{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px}
+.decision{border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px; display:flex; flex-direction:column; gap:10px; background:var(--crema)}
+.decision h2{font-size:12px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; margin:0; color:var(--tinta)}
+.seg{display:flex; flex-wrap:wrap; gap:4px; background:var(--hueso); border-radius:var(--r-control); padding:3px}
+.seg button{flex:1 1 auto; border:0; background:transparent; border-radius:6px; padding:7px 10px; font-size:12.5px; font-weight:500; cursor:pointer; color:var(--taupe); transition:background-color .15s, color .15s; white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); box-shadow:inset 0 0 0 1px var(--sand)}
+.seg button .rec{color:var(--rojo); margin-left:4px}
+.nota{font-size:12.5px; line-height:1.55; color:var(--taupe); margin:0}
+.nota b{color:var(--tinta); font-weight:600}
+.btn{border-radius:var(--r-control); font-size:13px; font-weight:500; padding:8px 14px; cursor:pointer; border:1px solid var(--sand); background:transparent; transition:background-color .15s, border-color .15s, color .15s}
+.btn:hover{background:color-mix(in oklab, var(--sand) 50%, transparent)}
+.btn-primario{background:var(--tinta); color:var(--crema); border-color:var(--tinta)}
+.btn-primario:hover{background:var(--rojo-profundo); border-color:var(--rojo-profundo)}
+
+/* ============ La maqueta del ERP ============ */
+.escenario{display:flex; justify-content:center}
+.app{container:app / inline-size; width:100%; border:1px solid var(--sand); border-radius:22px; overflow:hidden; background:var(--papel); display:grid; grid-template-columns:232px minmax(0,1fr); min-height:760px; transition:max-width .32s var(--ease)}
+.escenario.celular .app{max-width:392px; grid-template-columns:minmax(0,1fr)}
+.escenario.celular .lateral{display:none}
+.lateral{background:var(--lateral); color:var(--lateral-txt); padding:22px 16px 18px; display:flex; flex-direction:column; gap:18px}
+.marca{display:flex; align-items:center; gap:10px; font-family:var(--serif); font-size:20px; font-weight:600; letter-spacing:.14em; padding:0 6px}
+.marca svg{color:var(--rojo)}
+.nuevo{border-radius:var(--r-control); background:var(--lateral-txt); color:var(--lateral); border:0; padding:10px; font-size:12px; font-weight:700; letter-spacing:.12em}
+.nav{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px; font-size:13.5px}
+.nav li{padding:7px 10px; border-radius:var(--r-control); color:color-mix(in oklab, var(--lateral-txt) 72%, transparent)}
+.nav li.grupo{color:var(--lateral-txt); font-weight:600; margin-top:4px}
+.nav li.hijo{padding-left:24px; font-size:13px}
+.nav li.activo{background:color-mix(in oklab, var(--lateral-txt) 12%, transparent); color:var(--lateral-txt); font-weight:600}
+.lateral .pie{margin-top:auto; border-top:1px solid color-mix(in oklab, var(--lateral-txt) 16%, transparent); padding-top:14px; font-size:12px}
+.lateral .lema{font-family:var(--serif); font-style:italic; opacity:.7; margin:0 0 12px}
+.persona{display:flex; gap:10px; align-items:center}
+.avatar{width:30px; height:30px; border-radius:50%; background:var(--rojo); color:#fbf8f2; display:grid; place-items:center; font-size:11px; font-weight:700}
+.persona small{display:block; opacity:.65; letter-spacing:.08em; font-size:10px; text-transform:uppercase}
+
+.principal{display:flex; flex-direction:column; min-width:0; background:var(--crema)}
+.cabecera{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:12px 24px; border-bottom:1px solid var(--sand); background:var(--papel)}
+.cabecera .migas{font-size:12px; color:var(--taupe)}
+.sede-sel{position:relative}
+.sede-sel select{appearance:none; border:1px solid var(--sand); background:var(--papel); color:var(--tinta); border-radius:var(--r-control); padding:8px 32px 8px 12px; font:600 11.5px/1 var(--sans); letter-spacing:.12em; text-transform:uppercase; cursor:pointer}
+.sede-sel::after{content:""; position:absolute; right:12px; top:50%; width:6px; height:6px; border-right:1.5px solid var(--taupe); border-bottom:1.5px solid var(--taupe); transform:translateY(-70%) rotate(45deg); pointer-events:none}
+.contenido{padding:24px; display:flex; flex-direction:column; gap:18px}
+.titulo .eyebrow{color:var(--rojo)}
+.titulo h2{font-family:var(--serif); font-weight:600; font-size:30px; margin:6px 0 4px}
+.titulo p{margin:0; color:var(--taupe); max-width:62ch; line-height:1.5}
+
+/* Indicadores */
+.kpis{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px}
+.kpi{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:16px 18px; display:flex; flex-direction:column; gap:4px}
+.kpi .eyebrow{color:var(--tinta); font-size:10.5px}
+.kpi .valor{font-family:var(--serif); font-size:30px; font-weight:600; line-height:1.1}
+.kpi .valor small{font-family:var(--sans); font-size:13px; font-weight:400; color:var(--taupe); margin-left:4px}
+.kpi .valor.pos{color:var(--verde)}
+.kpi .valor.nulo{color:var(--taupe)}
+.kpi p{margin:0; font-size:12px; color:var(--taupe); line-height:1.45}
+
+/* Filtros */
+.filtros{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:14px; display:flex; flex-direction:column; gap:12px}
+.fila{display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px}
+.busca{position:relative; flex:1 1 260px; min-width:0}
+.busca svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--taupe); pointer-events:none}
+.busca input{width:100%; height:38px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--hueso); color:var(--tinta); padding:0 34px 0 34px; font:400 13.5px var(--sans)}
+.busca input::placeholder{color:var(--taupe)}
+.busca input:focus{outline:none; border-color:var(--taupe)}
+.busca .limpiar{position:absolute; right:6px; top:50%; transform:translateY(-50%); border:0; background:transparent; width:26px; height:26px; border-radius:6px; cursor:pointer; color:var(--taupe)}
+.mas{height:38px; display:inline-flex; align-items:center; gap:7px; border-radius:var(--r-control); border:1px solid var(--sand); background:transparent; padding:0 13px; font-size:13px; font-weight:500; cursor:pointer; color:var(--tinta)}
+.mas[aria-expanded="true"]{background:var(--hueso)}
+.mas .cont{background:var(--rojo); color:var(--crema); border-radius:999px; font-size:10.5px; padding:1px 7px; font-weight:700}
+.grupo{display:flex; flex-wrap:wrap; align-items:center; gap:6px}
+.grupo-et{font-size:10.5px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); margin-right:2px}
+.pill{border-radius:var(--r-pildora); border:1px solid var(--sand); background:transparent; padding:6px 13px; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--tinta); display:inline-flex; align-items:center; gap:6px; transition:background-color .15s, border-color .15s, color .15s}
+.pill:hover{border-color:color-mix(in oklab, var(--taupe) 45%, transparent)}
+.pill[aria-pressed="true"]{background:var(--tinta); color:var(--crema); border-color:var(--tinta)}
+.pill .n{font-weight:500; font-size:11px; color:var(--taupe)}
+.pill[aria-pressed="true"] .n{color:color-mix(in oklab, var(--crema) 70%, transparent)}
+.pill:disabled{opacity:.5; cursor:default}
+.pill.sutil{padding:4px 11px; font-size:12px; font-weight:500}
+.pill.sutil[aria-pressed="true"]{background:var(--hueso); color:var(--tinta); border-color:var(--taupe)}
+.pill.sutil[aria-pressed="true"] .n{color:var(--taupe)}
+.segmini{display:inline-flex; background:var(--hueso); border-radius:var(--r-control); padding:3px; gap:2px}
+.segmini button{border:0; background:transparent; border-radius:6px; padding:5px 10px; font-size:12px; font-weight:500; cursor:pointer; color:var(--taupe)}
+.segmini button[aria-pressed="true"]{background:var(--papel); color:var(--tinta); box-shadow:inset 0 0 0 1px var(--sand)}
+.empuja{margin-left:auto}
+.drill{border-left:2px solid var(--sand); margin-left:6px; padding:2px 0 2px 12px; animation:entra .32s var(--ease) both}
+.panel{background:var(--hueso); border-radius:12px; padding:14px; animation:entra .32s var(--ease) both}
+.panel-grid{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:14px}
+.panel-col h3{margin:0 0 8px; font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe)}
+.panel-col .grupo{flex-direction:column; align-items:stretch}
+.panel-col .pill{justify-content:space-between; text-align:left; border-radius:var(--r-control)}
+.fechas{display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end; background:var(--hueso); border-radius:12px; padding:12px 14px; animation:entra .32s var(--ease) both}
+.fechas label{display:flex; flex-direction:column; gap:4px; font-size:11px; color:var(--taupe); font-weight:600; letter-spacing:.06em; text-transform:uppercase}
+.fechas input{height:34px; border-radius:var(--r-control); border:1px solid var(--sand); background:var(--papel); color:var(--tinta); padding:0 10px; font:400 13px var(--sans)}
+.enlace{border:0; background:none; padding:0; font-size:12.5px; color:var(--tinta); text-decoration:underline; text-underline-offset:2px; text-decoration-color:color-mix(in oklab, var(--tinta) 30%, transparent); cursor:pointer}
+.enlace:hover{color:var(--rojo)}
+.activos{font-size:12px; color:var(--taupe); display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+@keyframes entra{from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none}}
+
+/* Lista A — la de la guía, con hora */
+.libro{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:6px 18px 10px}
+.dia{padding-top:12px}
+.dia-et{display:flex; justify-content:space-between; gap:10px; font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); padding:6px 0 8px; border-bottom:1px solid var(--sand)}
+.dia-et b{color:var(--tinta); font-weight:700}
+.mov{position:relative; display:grid; grid-template-columns:12px minmax(0,1.5fr) minmax(0,1fr) minmax(0,1.1fr) 64px; gap:12px; align-items:center; padding:10px 6px; border-bottom:1px solid var(--sand); cursor:pointer; transition:background-color .15s}
+.mov:last-child{border-bottom:0}
+.mov:hover{background:color-mix(in oklab, var(--hueso) 60%, transparent)}
+.mov .abrir{position:absolute; inset:0; border:0; background:transparent; cursor:pointer; border-radius:6px}
+.punto{width:7px; height:7px; border-radius:50%; background:var(--taupe)}
+.punto.verde{background:var(--verde)} .punto.ambar{background:var(--ambar)} .punto.rojo{background:var(--rojo)}
+.prenda b{font-weight:600; font-size:13.5px}
+.prenda span, .sub2{display:block; font-size:12px; color:var(--taupe); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.proceso{font-size:13px; color:var(--tinta)}
+.ref{position:relative; z-index:1; min-width:0}
+.ref a{font-size:13px; text-decoration:underline; text-underline-offset:2px; text-decoration-color:color-mix(in oklab, var(--tinta) 30%, transparent); transition:color .15s}
+.ref a:hover{color:var(--rojo); text-decoration-color:var(--rojo)}
+.ref .sin{font-size:13px; color:var(--taupe)}
+.delta{text-align:right; font-weight:700; font-size:13.5px}
+.delta.pos{color:var(--verde)} .delta.cero{color:var(--taupe); font-weight:500}
+.delta small{display:block; font-weight:400; font-size:11px; color:var(--taupe)}
+
+@container app (max-width: 760px){
+  .contenido{padding:16px}
+  .cabecera{padding:10px 16px}
+  .cabecera .migas{display:none}
+  .titulo h2{font-size:25px}
+  .kpis{grid-template-columns:1fr 1fr; gap:8px}
+  .kpis .kpi:first-child{grid-column:1 / -1}
+  .grupo.desliza{flex-wrap:nowrap; overflow-x:auto; padding-bottom:2px; scrollbar-width:none; max-width:100%}
+  .grupo.desliza .pill{flex:none}
+  .kpi{padding:12px 14px}
+  .kpi .valor{font-size:24px}
+  .mov{grid-template-columns:10px minmax(0,1fr) auto; grid-template-areas:"p pr d" "p pc pc"; row-gap:3px; padding:11px 2px}
+  .mov .punto{grid-area:p; align-self:start; margin-top:6px}
+  .mov .prenda{grid-area:pr}
+  .mov .delta{grid-area:d; align-self:start}
+  .mov .proc-ref{grid-area:pc; display:flex; flex-wrap:wrap; gap:2px 10px; font-size:12px}
+  .mov .proc-ref .proceso, .mov .proc-ref .ref a, .mov .proc-ref .ref .sin{font-size:12.5px}
+  .libro{padding:4px 12px 8px}
+  .panel-grid{grid-template-columns:1fr 1fr}
+  .empuja{margin-left:0}
+}
+.proc-ref{display:contents}
+
+/* Lista B — tabla de 6 columnas */
+.tabla-caja{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); overflow-x:auto}
+table.tabla{width:100%; min-width:880px; border-collapse:collapse; font-size:13px}
+.tabla thead th{background:color-mix(in oklab, var(--sand) 70%, transparent); text-align:left; font-weight:500; font-size:12px; color:var(--taupe); padding:9px 14px; white-space:nowrap}
+.tabla th.c, .tabla td.c{text-align:center}
+.tabla td{padding:9px 14px; border-top:1px solid var(--sand); vertical-align:top}
+.tabla tr.fila-dia td{background:var(--hueso); font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--taupe); padding:7px 14px}
+.tabla tbody tr.m{cursor:pointer; transition:background-color .15s}
+.tabla tbody tr.m:nth-child(even){background:color-mix(in oklab, var(--hueso) 50%, transparent)}
+.tabla tbody tr.m:hover{background:color-mix(in oklab, var(--hueso) 90%, transparent)}
+.tabla .sku{display:block; font-size:11.5px; color:var(--taupe); margin-top:2px}
+.tabla .mv{display:inline-flex; gap:7px; align-items:center}
+
+/* Vacío */
+.vacio{background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-superficie); padding:34px 22px; display:flex; flex-direction:column; align-items:center; text-align:center; gap:10px}
+.vacio h3{font-family:var(--serif); font-weight:600; font-size:22px; margin:0}
+.vacio p{margin:0; color:var(--taupe); max-width:52ch; line-height:1.55}
+.vacio .acciones{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin-top:6px}
+
+.mas-filas{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; font-size:12.5px; color:var(--taupe)}
+.transparente{background:var(--hueso); border-radius:var(--r-superficie); padding:14px 18px; font-size:12.5px; line-height:1.6; color:var(--taupe); margin:0}
+.transparente b{color:var(--tinta)}
+
+/* Modal — ADR-0136: velo con desenfoque → hoja que sube 18 px y crece → cascada de 55 ms → salida corta */
+.velo{position:fixed; inset:0; z-index:50; background:color-mix(in oklab, #1a1a18 45%, transparent); backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; padding:16px; animation:velo .2s var(--ease) both}
+.velo[hidden]{display:none}
+.velo.saliendo{animation:velo-sale .16s ease-in both}
+.hoja{width:min(520px,100%); max-height:calc(100% - 32px); overflow:auto; background:var(--papel); border:1px solid var(--sand); border-radius:var(--r-flotante); padding:22px 24px; animation:hoja .32s var(--ease) both}
+.velo.saliendo .hoja{animation:hoja-sale .16s ease-in both}
+.hoja [data-c]{animation:entra .32s var(--ease) both}
+@keyframes velo{from{opacity:0} to{opacity:1}}
+@keyframes velo-sale{to{opacity:0}}
+@keyframes hoja{from{opacity:0; transform:translateY(18px) scale(.965)} to{opacity:1; transform:none}}
+@keyframes hoja-sale{to{opacity:0; transform:translateY(8px) scale(.985)}}
+.hoja-top{display:flex; justify-content:space-between; gap:12px; align-items:flex-start}
+.hoja h3{font-family:var(--serif); font-weight:600; font-size:24px; margin:6px 0 2px}
+.hoja .var{color:var(--taupe); margin:0}
+.cerrar{border:1px solid var(--sand); background:transparent; width:32px; height:32px; border-radius:var(--r-control); cursor:pointer; color:var(--taupe); flex:none}
+.efecto{display:flex; align-items:baseline; gap:10px; margin:18px 0 14px; padding:14px 16px; background:var(--hueso); border-radius:12px}
+.efecto .num{font-family:var(--serif); font-size:34px; font-weight:600; line-height:1}
+.efecto .num.pos{color:var(--verde)}
+.efecto span{color:var(--taupe); font-size:13px}
+dl.datos{display:grid; grid-template-columns:max-content minmax(0,1fr); gap:9px 18px; margin:0; font-size:13px}
+dl.datos dt{color:var(--taupe)}
+dl.datos dd{margin:0}
+.hoja .pie-hoja{margin-top:18px; padding-top:14px; border-top:1px solid var(--sand); display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap}
+.hoja .pie-hoja p{margin:0; font-size:12px; color:var(--taupe); max-width:34ch; line-height:1.5}
+
+@media (max-width: 860px){ .decisiones{grid-template-columns:1fr} }
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{animation:none !important; transition:none !important}
+}
+</style>
+
+<div class="wrap">
+  <section class="mesa" aria-labelledby="mesa-titulo">
+    <div class="mesa-head">
+      <div>
+        <p class="eyebrow">Inventario · Movimientos · demo de rediseño · 2026-09-22</p>
+        <h1 id="mesa-titulo">Tres decisiones abiertas, probadas en la pantalla real</h1>
+        <p class="bajada">Cambia cada interruptor y la maqueta de abajo se rearma al instante con datos de ejemplo. La opción marcada con <span style="color:var(--rojo)">●</span> es la que recomiendo; debajo de cada una: qué ganas y qué pagas.</p>
+        <span class="decidido">Ya decidido: un solo selector de sede, el de la cabecera. El del título se va.</span>
+      </div>
+      <div class="utiles">
+        <div class="seg" role="group" aria-label="Ancho de la maqueta" id="seg-vista">
+          <button type="button" data-v="escritorio" aria-pressed="true">Escritorio</button>
+          <button type="button" data-v="celular" aria-pressed="false">Celular</button>
+        </div>
+        <button type="button" class="btn" id="btn-tema">Ver en oscuro</button>
+        <button type="button" class="btn" id="btn-vacio">Probar estado vacío</button>
+      </div>
+    </div>
+    <div class="decisiones">
+      <div class="decision">
+        <h2>1 · Filtro por proceso</h2>
+        <div class="seg" role="group" aria-label="Filtro por proceso" id="seg-proc">
+          <button type="button" data-v="A" aria-pressed="true">Drill-down por tipo<span class="rec">●</span></button>
+          <button type="button" data-v="B" aria-pressed="false">Panel agrupado</button>
+        </div>
+        <p class="nota" id="nota-proc"></p>
+      </div>
+      <div class="decision">
+        <h2>2 · Orden de los filtros</h2>
+        <div class="seg" role="group" aria-label="Orden de los filtros" id="seg-filtros">
+          <button type="button" data-v="1" aria-pressed="true">Como la guía<span class="rec">●</span></button>
+          <button type="button" data-v="2" aria-pressed="false">Sububic. a Más filtros</button>
+          <button type="button" data-v="3" aria-pressed="false">Tres filas</button>
+        </div>
+        <p class="nota" id="nota-filtros"></p>
+      </div>
+      <div class="decision">
+        <h2>3 · Forma de la lista</h2>
+        <div class="seg" role="group" aria-label="Forma de la lista" id="seg-lista">
+          <button type="button" data-v="A" aria-pressed="true">Lista de la guía + hora<span class="rec">●</span></button>
+          <button type="button" data-v="B" aria-pressed="false">Tabla de 6 columnas</button>
+        </div>
+        <p class="nota" id="nota-lista"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="escenario" id="escenario">
+    <div class="app">
+      <aside class="lateral" aria-label="Menú del ERP (maqueta)">
+        <div class="marca">
+          <svg width="26" height="22" viewBox="0 0 26 22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4c5 0 9 3 11 8 2-6 6-10 11-11-3 4-4 8-4 12-2 4-6 7-9 7 1-2 1-4 0-6-3-1-6-4-9-10z"/></svg>
+          CAYLA
+        </div>
+        <button type="button" class="nuevo" tabindex="-1">+ NUEVO</button>
+        <ul class="nav">
+          <li>Inicio</li><li>Catálogo</li><li>Compras</li><li>Ventas</li>
+          <li class="grupo">Inventario</li>
+          <li class="hijo">Existencias</li>
+          <li class="hijo activo">Movimientos</li>
+          <li class="hijo">Traslados</li>
+          <li class="hijo">Conteo</li>
+          <li class="hijo">Análisis</li>
+        </ul>
+        <div class="pie">
+          <p class="lema">Donde el estilo transforma.</p>
+          <div class="persona"><span class="avatar">FA</span><span>Felipe Alvarez<small id="rol-sede">Líder · Tienda TRU</small></span></div>
+        </div>
+      </aside>
+      <main class="principal">
+        <div class="cabecera">
+          <span class="migas">Inventario / Movimientos</span>
+          <label class="sede-sel"><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">Sede</span>
+            <select id="sel-sede">
+              <option value="TRU">Tienda TRU</option>
+              <option value="AQP">Tienda AQP</option>
+              <option value="LIM">Tienda LIM</option>
+              <option value="TALLER">Taller LIM</option>
+            </select>
+          </label>
+        </div>
+        <div class="contenido">
+          <header class="titulo">
+            <p class="eyebrow">Inventario · Movimientos</p>
+            <h2 id="titulo-sede">Tienda TRU</h2>
+            <p>Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca.</p>
+          </header>
+          <div class="kpis" id="kpis"></div>
+          <section class="filtros" id="filtros" aria-label="Filtros">
+            <div class="fila" id="fila1">
+              <div class="busca">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+                <input id="q" type="text" autocomplete="off" placeholder="Prenda, código, barras o referencia…" aria-label="Buscar por prenda, código o referencia (por ejemplo Traslado 24)">
+                <button type="button" class="limpiar" id="q-limpiar" aria-label="Limpiar búsqueda" hidden>✕</button>
+              </div>
+              <span id="fila1-resto" style="display:contents"></span>
+            </div>
+            <div id="filtros-resto" style="display:flex; flex-direction:column; gap:12px"></div>
+          </section>
+          <div id="resultado"></div>
+          <p class="transparente"><b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.</p>
+        </div>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="velo" id="velo" hidden role="dialog" aria-modal="true" aria-labelledby="hoja-titulo">
+  <div class="hoja" id="hoja"></div>
+</div>
+
+<script>
+(function(){
+"use strict";
+// ---------- Datos de ejemplo (deterministas) ----------
+const HOY = new Date(2026, 8, 22);
+const MESES = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","setiembre","octubre","noviembre","diciembre"];
+const SEDES = {TRU:{nombre:"Tienda TRU", ciudad:"Trujillo"}, AQP:{nombre:"Tienda AQP", ciudad:"Arequipa"}, LIM:{nombre:"Tienda LIM", ciudad:"Lima"}, TALLER:{nombre:"Taller LIM", ciudad:"Taller"}};
+const TIENEN_SUB = {TRU:true, AQP:true, LIM:true, TALLER:false};
+const ETQ = {recepcion:"Recepción", venta:"Venta", traslado_salida:"Transferencia · salida", traslado_entrada:"Transferencia · llegada", movimiento_interno:"Reposición interna", devolucion:"Devolución", cambio:"Cambio", anulacion_venta:"Anulación de venta", produccion:"Producción", conteo:"Conteo", reposicion:"Ajuste · reposición", merma:"Ajuste · merma", conteo_fisico:"Ajuste · conteo físico", otro:"Ajuste · otro", carga_inicial:"Carga inicial", activacion_piso_almacen:"Activación piso/almacén", cuarentena_liquidada:"Dañado · liquidada", cuarentena_se_boto:"Dañado · se botó", cuarentena_donada:"Dañado · donada"};
+const TIPOS = [["entrada","Entradas"],["salida","Salidas"],["interno","Internos"],["transferencia","Transferencias"],["ajuste","Ajustes"]];
+// Qué procesos caben en cada tipo. «Cambio» vive en dos: la prenda devuelta entra, la nueva sale.
+const PROCESOS = {
+  entrada:["recepcion","devolucion","cambio","anulacion_venta","produccion","carga_inicial"],
+  salida:["venta","cambio","cuarentena_liquidada","cuarentena_se_boto","cuarentena_donada"],
+  interno:["movimiento_interno","activacion_piso_almacen"],
+  transferencia:["traslado_salida","traslado_entrada"],
+  ajuste:["conteo","reposicion","merma","conteo_fisico","otro"]
+};
+const SUBS = [["piso","Piso"],["almacen","Almacén"],["cuarentena","Cuarentena"]];
+const PRENDAS = [["Blusa Emma","BLU-EMM",["Negro","Marfil"]],["Casaca Emilia","CAS-EMI",["Beige","Camel"]],["Vestido Solsticio","VES-SOL",["Terracota","Negro"]],["Kimono Wayra","KIM-WAY",["Estampado"]],["Pantalón Culotte","PAN-CUL",["Arena","Negro"]],["Top Killa","TOP-KIL",["Rojo","Crudo"]],["Falda Qori","FAL-QOR",["Mostaza"]],["Chaleco Ande","CHA-AND",["Gris perla"]],["Polo Inti","POL-INT",["Blanco","Negro"]]];
+const TALLAS = ["S","M","L","XL"];
+const PROVEEDORES = ["Textiles Andinos","Hilandería Misti","Confecciones Rímac"];
+const PERSONAS = ["Rosa Mendoza","Lucía Paredes","Diego Torres","Felipe Alvarez"];
+
+let semilla = 7;
+const azar = () => (semilla = (semilla * 16807) % 2147483647) / 2147483647;
+const uno = (arr) => arr[Math.floor(azar() * arr.length)];
+const entre = (a, b) => a + Math.floor(azar() * (b - a + 1));
+function pesado(tabla){ const t = tabla.reduce((s, x) => s + x[1], 0); let r = azar() * t; for (const [v, p] of tabla){ if ((r -= p) < 0) return v; } return tabla[0][0]; }
+
+const PESOS_TIENDA = [["venta",34],["recepcion",7],["traslado_salida",5],["traslado_entrada",6],["movimiento_interno",11],["devolucion",4],["cambio",5],["anulacion_venta",1],["conteo",3],["merma",2],["reposicion",1],["conteo_fisico",1],["otro",1],["activacion_piso_almacen",1],["cuarentena_liquidada",1],["cuarentena_se_boto",1],["cuarentena_donada",1]];
+const PESOS_TALLER = [["produccion",10],["traslado_salida",8],["conteo",2],["merma",1]];
+
+const contadores = {boleta:131, factura:2210, traslado:18, devolucion:26, cambio:9, conteo:10, danado:4, op:14, ajuste:40};
+function generar(sede){
+  const lista = [];
+  const esTaller = sede === "TALLER";
+  const total = esTaller ? 34 : 150;
+  const ciudad = SEDES[sede].ciudad;
+  const otras = Object.keys(SEDES).filter((s) => s !== sede).map((s) => SEDES[s].ciudad);
+  for (let i = 0; i < total; i++){
+    // Más densidad en los días recientes; el Taller no se movió en los últimos 30 días (para ver el vacío).
+    const dia = esTaller ? entre(34, 88) : Math.floor(Math.pow(azar(), 1.5) * 95);
+    const proc = pesado(esTaller ? PESOS_TALLER : PESOS_TIENDA);
+    const [prenda, cod, colores] = uno(PRENDAS);
+    const talla = uno(TALLAS), color = uno(colores);
+    const m = {id: sede + "-" + i, dia, hora: String(entre(9, 20)).padStart(2, "0") + ":" + String(entre(0, 59)).padStart(2, "0"), proc, prenda, talla, color, sku: `${cod}-${color.slice(0,3).toUpperCase()}-${talla}`, usuario: uno(PERSONAS), nota: null};
+    const otra = uno(otras);
+    switch (proc){
+      case "venta": m.delta = -(azar() < .85 ? 1 : 2); m.sub = "piso"; m.od = ["Piso", "Clienta"]; m.ref = {t: `Boleta B001-000${++contadores.boleta}`, link: true}; break;
+      case "recepcion": { const p = uno(PROVEEDORES); m.delta = entre(6, 24); m.sub = "almacen"; m.od = [p, "Almacén"]; m.ref = {t: `Factura F002-00${++contadores.factura}`, d: p, link: true}; break; }
+      case "traslado_salida": m.delta = -entre(3, 12); m.sub = "almacen"; m.od = [ciudad, otra]; m.ref = {t: `Traslado ${++contadores.traslado}`, d: dia < 3 ? "En camino" : "Recibido", link: true}; break;
+      case "traslado_entrada": m.delta = entre(3, 12); m.sub = "almacen"; m.od = [otra, ciudad]; m.ref = {t: `Traslado ${++contadores.traslado}`, d: "Recibido", link: true}; break;
+      case "movimiento_interno": { const n = entre(2, 8); m.delta = 0; m.mov = n; m.sub = "almacen"; m.od = azar() < .8 ? ["Almacén", "Piso"] : ["Piso", "Almacén"]; m.ref = {t: "Sin documento", d: "Hecho en tienda"}; break; }
+      case "activacion_piso_almacen": m.delta = 0; m.mov = entre(10, 30); m.sub = "almacen"; m.od = ["Almacén", "Piso"]; m.ref = {t: "Sin documento", d: "Activación"}; break;
+      case "devolucion": { const danada = azar() < .3; m.delta = 1; m.sub = danada ? "cuarentena" : "piso"; m.od = ["Clienta", danada ? "Cuarentena" : "Piso"]; m.ref = {t: `Devolución ${++contadores.devolucion}`, d: `Boleta B001-000${entre(90, 130)}`, link: true}; if (danada) m.nota = "Costura abierta en el hombro"; break; }
+      case "cambio": { const entra = azar() < .5; m.delta = entra ? 1 : -1; m.sub = "piso"; m.od = entra ? ["Clienta", "Piso"] : ["Piso", "Clienta"]; m.ref = {t: `Cambio ${++contadores.cambio}`, d: entra ? "Prenda devuelta" : "Prenda entregada", link: true}; break; }
+      case "anulacion_venta": m.delta = 1; m.sub = "piso"; m.od = ["Clienta", "Piso"]; m.ref = {t: `Boleta B001-000${entre(100, 130)}`, d: "Anulada", link: true}; break;
+      case "produccion": m.delta = entre(8, 30); m.sub = null; m.od = ["Mesa de corte", "Almacén del Taller"]; m.ref = {t: `Orden OP-${++contadores.op}`, link: true}; break;
+      case "conteo": m.delta = uno([-2, -1, 1, 2, -1]); m.sub = uno(["piso", "almacen"]); m.od = [m.sub === "piso" ? "Piso" : "Almacén"]; m.ref = {t: `Conteo ${++contadores.conteo}`, d: "Cerrado", link: true}; break;
+      case "merma": m.delta = -entre(1, 2); m.sub = uno(["piso", "almacen"]); m.od = [m.sub === "piso" ? "Piso" : "Almacén"]; m.ref = {t: `Ajuste ${++contadores.ajuste}`}; m.nota = uno(["Mancha que no sale", "Robo detectado al cierre", "Etiqueta perdida, no se identifica"]); break;
+      case "reposicion": m.delta = 1; m.sub = "almacen"; m.od = ["Almacén"]; m.ref = {t: `Ajuste ${++contadores.ajuste}`}; m.nota = "Apareció en caja de temporada anterior"; break;
+      case "conteo_fisico": m.delta = uno([-1, 1]); m.sub = "piso"; m.od = ["Piso"]; m.ref = {t: `Ajuste ${++contadores.ajuste}`}; m.nota = "Conteo rápido de percha"; break;
+      case "otro": m.delta = -1; m.sub = "piso"; m.od = ["Piso"]; m.ref = {t: `Ajuste ${++contadores.ajuste}`}; m.nota = "Prenda para sesión de fotos"; break;
+      default: m.delta = -1; m.sub = "cuarentena"; m.od = ["Cuarentena", proc === "cuarentena_liquidada" ? "Liquidación" : proc === "cuarentena_donada" ? "Donación" : "Descarte"]; m.ref = {t: `Dañado ${++contadores.danado}`, link: true};
+    }
+    if (!TIENEN_SUB[sede]) m.sub = null;
+    m.tipo = tipoDe(m);
+    lista.push(m);
+  }
+  lista.sort((a, b) => a.dia - b.dia || b.hora.localeCompare(a.hora));
+  return lista;
+}
+function tipoDe(m){
+  for (const [t] of TIPOS){ if (t === "entrada" && m.delta > 0 && PROCESOS.entrada.includes(m.proc)) return t; if (t === "salida" && m.delta < 0 && PROCESOS.salida.includes(m.proc)) return t; }
+  if (PROCESOS.interno.includes(m.proc)) return "interno";
+  if (PROCESOS.transferencia.includes(m.proc)) return "transferencia";
+  return "ajuste";
+}
+const DATOS = {}; for (const s of Object.keys(SEDES)) DATOS[s] = generar(s);
+
+// ---------- Estado ----------
+const S = {sede: "TRU", q: "", tipo: null, proc: null, sub: null, periodo: 30, desde: "", hasta: "", fechasAbiertas: false, mas: false, modoProc: "A", modoFiltros: "1", modoLista: "A", limite: 30};
+
+// ---------- Utilidades ----------
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n = (v) => v.toLocaleString("es-PE");
+const fechaDe = (dia) => { const d = new Date(HOY); d.setDate(d.getDate() - dia); return d; };
+const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const diaDeIso = (s) => { const [y, mo, d] = s.split("-").map(Number); return Math.round((HOY - new Date(y, mo - 1, d)) / 864e5); };
+function etiquetaDia(dia){ const d = fechaDe(dia); const f = `${d.getDate()} de ${MESES[d.getMonth()]}`; return dia === 0 ? `Hoy · ${f}` : dia === 1 ? `Ayer · ${f}` : `${["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"][d.getDay()]} · ${f}`; }
+const etiquetaSub = (s) => s === "piso" ? "Piso" : s === "almacen" ? "Almacén" : s === "cuarentena" ? "Cuarentena" : null;
+const tono = (m) => m.tipo === "entrada" ? "verde" : m.tipo === "interno" ? "ambar" : (m.tipo === "ajuste" && m.delta < 0) ? "rojo" : "";
+const textoDelta = (m) => m.delta > 0 ? `+${m.delta}` : m.delta < 0 ? `−${Math.abs(m.delta)}` : "0";
+const odTexto = (m) => m.od.length > 1 ? `${m.od[0]} → ${m.od[1]}` : m.od[0];
+function textoPeriodo(){ if (S.periodo === "todo") return "todo el historial"; if (S.periodo === "rango") return "rango elegido"; return `últimos ${S.periodo} días`; }
+
+function enPeriodo(m, periodo = S.periodo){
+  if (periodo === "todo") return true;
+  if (periodo === "rango"){ const a = S.desde ? diaDeIso(S.desde) : 9999, b = S.hasta ? diaDeIso(S.hasta) : 0; return m.dia <= a && m.dia >= b; }
+  return m.dia < periodo;
+}
+function coincide(m){
+  if (!S.q) return true;
+  const q = S.q.toLowerCase();
+  return [m.prenda, m.sku, m.color, m.talla, m.ref.t, m.ref.d || "", ETQ[m.proc]].some((x) => x.toLowerCase().includes(q));
+}
+const base = (periodo) => DATOS[S.sede].filter((m) => enPeriodo(m, periodo) && (!S.sub || m.sub === S.sub) && coincide(m));
+const final = (lista) => lista.filter((m) => (!S.tipo || m.tipo === S.tipo) && (!S.proc || m.proc === S.proc));
+const hayFiltros = () => !!(S.q || S.tipo || S.proc || S.sub || S.periodo !== 30);
+
+// ---------- Notas de la mesa ----------
+const NOTAS = {
+  proc: {A: "<b>Ganas:</b> nunca ves más de 6 procesos a la vez, y el proceso se elige justo debajo del tipo al que pertenece. <b>Pagas:</b> para llegar a «Merma» hay dos toques (Ajustes → Merma).",
+         B: "<b>Ganas:</b> los 19 procesos a la vista de una vez, ordenados en 5 columnas por tipo. <b>Pagas:</b> un panel más que abrir y cerrar, y ocupa alto de pantalla en celular."},
+  filtros: {"1": "<b>Ganas:</b> dos filas en vez de tres; el período queda junto a la búsqueda, como en la guía. <b>Pagas:</b> piso / almacén / cuarentena se vuelve un control chico a la derecha.",
+            "2": "<b>Ganas:</b> la pantalla más limpia de las tres. <b>Pagas:</b> la sububicación queda a un toque más y se olvida que está puesta (solo la avisa el contador de «Más filtros»).",
+            "3": "<b>Ganas:</b> nada cambia de lugar para el equipo. <b>Pagas:</b> tres grupos de chips que en una laptop de 1366 px se parten en dos líneas."},
+  lista: {A: "<b>Ganas:</b> se lee de corrido y en celular no se desplaza de lado; la hora y el «de dónde a dónde» siguen en la segunda línea. <b>Pagas:</b> no se compara columna contra columna.",
+          B: "<b>Ganas:</b> en escritorio se comparan columnas (todas las horas, todas las cantidades). <b>Pagas:</b> en celular se desplaza de lado y seis columnas compiten por la vista."}
+};
+
+// ---------- Pintado ----------
+function pill(texto, activa, accion, extra = "", cuenta = null, deshab = false){
+  return `<button type="button" class="pill ${extra}" aria-pressed="${activa}" data-a="${esc(accion)}"${deshab ? " disabled" : ""}>${esc(texto)}${cuenta !== null ? `<span class="n">${n(cuenta)}</span>` : ""}</button>`;
+}
+function pintarKpis(lista){
+  const e = lista.filter((m) => m.tipo === "entrada"), s = lista.filter((m) => m.tipo === "salida");
+  const cuenta = (t) => lista.filter((m) => m.tipo === t).length;
+  const partes = [["entrada","entrada","entradas"],["salida","salida","salidas"],["transferencia","traslado","traslados"],["ajuste","ajuste","ajustes"],["interno","interno","internos"]]
+    .map(([t, a, b]) => { const c = cuenta(t); return c ? `${n(c)} ${c === 1 ? a : b}` : null; }).filter(Boolean);
+  const ue = e.reduce((x, m) => x + m.delta, 0), us = s.reduce((x, m) => x - m.delta, 0);
+  $("kpis").innerHTML = `
+    <div class="kpi"><p class="eyebrow">Movimientos · ${esc(textoPeriodo())}</p><div class="valor${lista.length ? "" : " nulo"}">${n(lista.length)}<small>${lista.length === 1 ? "registro" : "registros"}</small></div><p>${lista.length ? partes.join(" · ") : "Sin movimientos en el período"}</p></div>
+    <div class="kpi"><p class="eyebrow">Entradas</p><div class="valor ${e.length ? "pos" : "nulo"}">${e.length ? "+" + n(ue) : "0"}<small>unidades</small></div><p>${e.length ? `${n(e.length)} movimientos · recepciones, devoluciones, producción` : "Nada entró en el período"}</p></div>
+    <div class="kpi"><p class="eyebrow">Salidas</p><div class="valor${s.length ? "" : " nulo"}">${s.length ? "−" + n(us) : "0"}<small>unidades</small></div><p>${s.length ? `${n(s.length)} movimientos · ventas, cambios, dañados` : "Nada salió en el período"}</p></div>`;
+}
+
+function pintarFiltros(b){
+  const conSub = TIENEN_SUB[S.sede];
+  const cuentaTipo = (t) => b.filter((m) => m.tipo === t).length;
+  const periodos = () => `<div class="grupo desliza" role="group" aria-label="Período">${S.modoFiltros === "3" ? '<span class="grupo-et">Período</span>' : ""}${[7, 30, 90].map((d) => pill(`${d} días`, S.periodo === d && !S.fechasAbiertas, "periodo:" + d)).join("")}${pill("Personalizado", S.periodo === "rango" || S.periodo === "todo" || S.fechasAbiertas, "fechas")}</div>`;
+  const tipos = () => `<div class="grupo desliza" role="group" aria-label="Tipo">${S.modoFiltros === "3" ? '<span class="grupo-et">Tipo</span>' : ""}${pill("Todos", !S.tipo, "tipo:", "", b.length)}${TIPOS.map(([t, e]) => pill(e, S.tipo === t, "tipo:" + t, "", cuentaTipo(t))).join("")}</div>`;
+  const subsPills = () => `<div class="grupo" role="group" aria-label="Sububicación"><span class="grupo-et">Sububicación</span>${pill("Todas", !S.sub, "sub:")}${SUBS.map(([v, e]) => pill(e, S.sub === v, "sub:" + v)).join("")}</div>`;
+  const subsSeg = () => `<div class="segmini" role="group" aria-label="Sububicación"><button type="button" aria-pressed="${!S.sub}" data-a="sub:">Todo</button>${SUBS.map(([v, e]) => `<button type="button" aria-pressed="${S.sub === v}" data-a="sub:${v}">${e}</button>`).join("")}</div>`;
+
+  // Qué vive dentro de «Más filtros» según la combinación elegida.
+  const masTieneProc = S.modoProc === "B";
+  const masTieneSub = S.modoFiltros === "2" && conSub;
+  const hayMas = masTieneProc || masTieneSub;
+  const activosMas = (masTieneProc && S.proc ? 1 : 0) + (masTieneSub && S.sub ? 1 : 0);
+  const botonMas = hayMas ? `<button type="button" class="mas" aria-expanded="${S.mas}" data-a="mas"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Más filtros${activosMas ? `<span class="cont">${activosMas}</span>` : ""}</button>` : "";
+
+  // Fila 1
+  $("fila1-resto").innerHTML = botonMas + (S.modoFiltros === "3" ? "" : periodos());
+
+  // Resto
+  let h = "";
+  if (S.modoFiltros === "1") h += `<div class="fila">${tipos()}${conSub ? `<span class="empuja"></span>${subsSeg()}` : ""}</div>`;
+  if (S.modoFiltros === "2") h += `<div class="fila">${tipos()}</div>`;
+  if (S.modoFiltros === "3") h += `<div class="fila" style="gap:10px 22px">${tipos()}${conSub ? subsPills() : ""}${periodos()}</div>`;
+
+  if (S.modoProc === "A"){
+    if (S.tipo){
+      const base_t = b.filter((m) => m.tipo === S.tipo);
+      h += `<div class="drill grupo" role="group" aria-label="Proceso dentro de ${esc(S.tipo)}"><span class="grupo-et">Proceso</span>${pill("Todos", !S.proc, "proc:", "sutil", base_t.length)}${PROCESOS[S.tipo].map((p) => { const c = base_t.filter((m) => m.proc === p).length; return pill(ETQ[p], S.proc === p, "proc:" + p, "sutil", c, c === 0 && S.proc !== p); }).join("")}</div>`;
+    } else if (S.modoFiltros !== "3") {
+      h += `<p class="nota" style="margin:-4px 0 0">Elige un tipo para ver sus procesos (por ejemplo Ajustes → Merma).</p>`;
+    }
+  }
+
+  if (S.fechasAbiertas || S.periodo === "rango" || S.periodo === "todo"){
+    const desde = S.periodo === "rango" ? S.desde : (typeof S.periodo === "number" ? iso(fechaDe(S.periodo - 1)) : "");
+    const hasta = S.periodo === "rango" ? S.hasta : (typeof S.periodo === "number" ? iso(HOY) : "");
+    h += `<div class="fechas"><label for="f-desde">Desde<input type="date" id="f-desde" value="${desde}" max="${iso(HOY)}"></label><label for="f-hasta">Hasta<input type="date" id="f-hasta" value="${hasta}" max="${iso(HOY)}"></label><button type="button" class="enlace" data-a="todo" style="padding-bottom:8px">${S.periodo === "todo" ? "<b>Todo el historial</b>" : "Todo el historial"}</button></div>`;
+  }
+
+  if (hayMas && S.mas){
+    h += `<div class="panel" id="panel-mas">`;
+    if (masTieneSub) h += `<div class="grupo" role="group" aria-label="Sububicación" style="margin-bottom:${masTieneProc ? 14 : 0}px"><span class="grupo-et">Sububicación</span>${pill("Todas", !S.sub, "sub:")}${SUBS.map(([v, e]) => pill(e, S.sub === v, "sub:" + v)).join("")}</div>`;
+    if (masTieneProc){
+      h += `<div class="panel-grid">${TIPOS.map(([t, e]) => `<div class="panel-col"><h3>${e}</h3><div class="grupo">${PROCESOS[t].map((p) => { const c = b.filter((m) => m.proc === p && m.tipo === t).length; return pill(ETQ[p], S.proc === p && S.tipo === t, `procB:${t}:${p}`, "sutil", c, c === 0 && S.proc !== p); }).join("")}</div></div>`).join("")}</div>`;
+      if (S.proc) h += `<div style="margin-top:12px"><button type="button" class="enlace" data-a="proc:">Quitar el filtro de proceso</button></div>`;
+    }
+    h += `</div>`;
+  }
+
+  if (hayFiltros()){
+    const partes = [];
+    if (S.q) partes.push(`«${esc(S.q)}»`);
+    if (S.tipo) partes.push(TIPOS.find((t) => t[0] === S.tipo)[1]);
+    if (S.proc) partes.push(ETQ[S.proc]);
+    if (S.sub) partes.push(etiquetaSub(S.sub));
+    if (S.periodo !== 30) partes.push(textoPeriodo());
+    h += `<div class="activos"><span>Filtrando: ${partes.join(" · ")}</span><button type="button" class="enlace" data-a="limpiar">Limpiar filtros</button></div>`;
+  }
+  $("filtros-resto").innerHTML = h;
+  const fd = $("f-desde"), fh = $("f-hasta");
+  if (fd) fd.onchange = () => { S.periodo = "rango"; S.desde = fd.value; S.hasta = S.hasta || fh.value; S.fechasAbiertas = true; S.limite = 30; pintar(); };
+  if (fh) fh.onchange = () => { S.periodo = "rango"; S.hasta = fh.value; S.desde = S.desde || fd.value; S.fechasAbiertas = true; S.limite = 30; pintar(); };
+}
+
+function porDias(lista){ const dias = []; for (const m of lista){ const u = dias[dias.length - 1]; if (u && u.dia === m.dia) u.filas.push(m); else dias.push({dia: m.dia, filas: [m]}); } return dias; }
+function refHtml(m){
+  const r = m.ref;
+  const t = r.link ? `<a href="#" data-ref="${esc(r.t)}" title="Abrir ${esc(r.t)}">${esc(r.t)}</a>` : `<span class="sin">${esc(r.t)}</span>`;
+  return t;
+}
+function deltaHtml(m){
+  const c = m.delta > 0 ? "pos" : m.delta === 0 ? "cero" : "";
+  return `<span class="delta ${c}">${m.delta === 0 ? "⇄ " + m.mov : textoDelta(m)}${m.delta === 0 ? "<small>u. movidas</small>" : ""}</span>`;
+}
+function pintarListaA(lista){
+  return `<div class="libro">${porDias(lista).map((d) => `<div class="dia"><div class="dia-et"><b>${esc(etiquetaDia(d.dia))}</b><span>${d.filas.length} ${d.filas.length === 1 ? "movimiento" : "movimientos"}</span></div>${d.filas.map((m) => `
+    <div class="mov" data-id="${m.id}">
+      <button type="button" class="abrir" data-abrir="${m.id}" aria-label="Ver el detalle: ${esc(ETQ[m.proc])}, ${esc(m.prenda)}, ${textoDelta(m)}"></button>
+      <span class="punto ${tono(m)}" aria-hidden="true"></span>
+      <span class="prenda"><b>${esc(m.prenda)}</b> <span>${esc(m.color)} · ${m.talla} · ${m.hora}${m.sub ? " · " + etiquetaSub(m.sub) : ""}</span></span>
+      <span class="proc-ref"><span class="proceso">${esc(ETQ[m.proc])}<span class="sub2">${esc(odTexto(m))}</span></span><span class="ref">${refHtml(m)}${m.ref.d ? `<span class="sub2">${esc(m.ref.d)}</span>` : ""}</span></span>
+      ${deltaHtml(m)}
+    </div>`).join("")}</div>`).join("")}</div>`;
+}
+function pintarListaB(lista){
+  return `<div class="tabla-caja"><table class="tabla"><thead><tr><th>Producto / variante</th><th class="c">Hora · dónde</th><th>Movimiento</th><th>Origen → Destino</th><th class="c">Cant.</th><th>Referencia</th></tr></thead><tbody>${porDias(lista).map((d) => `<tr class="fila-dia"><td colspan="6">${esc(etiquetaDia(d.dia))} · ${d.filas.length} ${d.filas.length === 1 ? "movimiento" : "movimientos"}</td></tr>${d.filas.map((m) => `
+    <tr class="m" data-abrir="${m.id}" tabindex="0">
+      <td><b style="font-weight:600">${esc(m.prenda)}</b> <span style="color:var(--taupe)">· ${esc(m.color)} · ${m.talla}</span><span class="sku">${m.sku}</span></td>
+      <td class="c">${m.hora}<span class="sku">${m.sub ? etiquetaSub(m.sub) : "—"}</span></td>
+      <td><span class="mv"><span class="punto ${tono(m)}" aria-hidden="true"></span>${esc(ETQ[m.proc])}</span></td>
+      <td style="color:var(--taupe)">${esc(odTexto(m))}</td>
+      <td class="c">${deltaHtml(m)}</td>
+      <td><span class="ref">${refHtml(m)}${m.ref.d ? `<span class="sku">${esc(m.ref.d)}</span>` : ""}</span></td>
+    </tr>`).join("")}`).join("")}</tbody></table></div>`;
+}
+function pintarVacio(){
+  // El vacío dice POR QUÉ está vacío y ofrece el siguiente paso con la cifra real.
+  const amplio = DATOS[S.sede].filter((m) => (!S.sub || m.sub === S.sub) && coincide(m) && (!S.tipo || m.tipo === S.tipo) && (!S.proc || m.proc === S.proc));
+  const en90 = amplio.filter((m) => m.dia < 90).length;
+  const nombre = SEDES[S.sede].nombre;
+  if (DATOS[S.sede].length === 0) return `<div class="vacio"><h3>Todavía no hay movimientos en ${esc(nombre)}</h3><p>El primero aparecerá con la primera recepción, venta o traslado.</p></div>`;
+  let titulo, texto, acciones = "";
+  if (typeof S.periodo === "number" && S.periodo < 90 && en90 > 0){
+    titulo = `Nada en los ${textoPeriodo()}`;
+    texto = `${nombre} no registró movimientos${hayFiltros() && (S.q || S.tipo || S.proc || S.sub) ? " con estos filtros" : ""} en ese período. En los últimos 90 días hay <b>${n(en90)}</b>.`;
+    acciones = `<button type="button" class="btn btn-primario" data-a="periodo:90">Ver los últimos 90 días</button>`;
+  } else {
+    titulo = "Ningún movimiento coincide";
+    texto = `No hay movimientos de ${esc(nombre)} con esos filtros${amplio.length ? `; sin límite de fechas hay <b>${n(amplio.length)}</b>` : ""}.`;
+    if (amplio.length) acciones = `<button type="button" class="btn btn-primario" data-a="todo">Ver todo el historial</button>`;
+  }
+  if (hayFiltros() && (S.q || S.tipo || S.proc || S.sub)) acciones += `<button type="button" class="btn" data-a="limpiar">Limpiar filtros</button>`;
+  return `<div class="vacio"><h3>${titulo}</h3><p>${texto}</p><div class="acciones">${acciones}</div></div>`;
+}
+
+let ultima = [];
+function pintar(){
+  const b = base(S.periodo);
+  const lista = final(b);
+  ultima = lista;
+  $("titulo-sede").textContent = SEDES[S.sede].nombre;
+  $("rol-sede").textContent = "Líder · " + SEDES[S.sede].nombre;
+  pintarKpis(b);
+  pintarFiltros(b);
+  let h;
+  if (!lista.length) h = pintarVacio();
+  else {
+    const vista = lista.slice(0, S.limite);
+    h = S.modoLista === "A" ? pintarListaA(vista) : pintarListaB(vista);
+    h += `<div class="mas-filas" style="margin-top:12px"><span>Mostrando ${n(vista.length)} de ${n(lista.length)} movimientos</span>${vista.length < lista.length ? `<button type="button" class="btn" data-a="masfilas">Cargar 30 más</button>` : ""}</div>`;
+  }
+  $("resultado").innerHTML = h;
+  $("nota-proc").innerHTML = NOTAS.proc[S.modoProc];
+  $("nota-filtros").innerHTML = NOTAS.filtros[S.modoFiltros];
+  $("nota-lista").innerHTML = NOTAS.lista[S.modoLista];
+}
+
+// ---------- Acciones ----------
+function accion(a){
+  const [k, v, w] = a.split(":");
+  S.limite = 30;
+  if (k === "tipo"){ S.tipo = v || null; S.proc = null; }
+  else if (k === "proc"){ S.proc = v || null; }
+  else if (k === "procB"){ if (S.proc === w && S.tipo === v){ S.proc = null; S.tipo = null; } else { S.tipo = v; S.proc = w; } }
+  else if (k === "sub"){ S.sub = v || null; }
+  else if (k === "periodo"){ S.periodo = Number(v); S.fechasAbiertas = false; S.desde = S.hasta = ""; }
+  else if (k === "fechas"){ S.fechasAbiertas = true; }
+  else if (k === "todo"){ S.periodo = "todo"; S.fechasAbiertas = true; S.desde = S.hasta = ""; }
+  else if (k === "mas"){ S.mas = !S.mas; }
+  else if (k === "masfilas"){ S.limite = 1e6; }
+  else if (k === "limpiar"){ S.q = ""; $("q").value = ""; $("q-limpiar").hidden = true; S.tipo = S.proc = S.sub = null; S.periodo = 30; S.fechasAbiertas = false; S.desde = S.hasta = ""; }
+  pintar();
+}
+document.addEventListener("click", (e) => {
+  const ref = e.target.closest("[data-ref]");
+  if (ref){ e.preventDefault(); aviso(`En el ERP esto abre «${ref.dataset.ref}» en su propia pantalla.`); return; }
+  const a = e.target.closest("[data-a]");
+  if (a && !a.disabled){ accion(a.dataset.a); return; }
+  const ab = e.target.closest("[data-abrir]");
+  if (ab){ abrir(ab.dataset.abrir); }
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target.matches("tr[data-abrir]")) abrir(e.target.dataset.abrir);
+  if (e.key === "Escape" && !$("velo").hidden) cerrar();
+});
+
+let espera;
+$("q").addEventListener("input", (e) => {
+  $("q-limpiar").hidden = !e.target.value;
+  clearTimeout(espera);
+  espera = setTimeout(() => { S.q = e.target.value.trim(); S.limite = 30; pintar(); }, 250);
+});
+$("q-limpiar").addEventListener("click", () => { $("q").value = ""; $("q-limpiar").hidden = true; S.q = ""; pintar(); $("q").focus(); });
+$("sel-sede").addEventListener("change", (e) => { S.sede = e.target.value; if (!TIENEN_SUB[S.sede]) S.sub = null; S.limite = 30; pintar(); });
+
+function segmento(id, clave, extra){
+  $(id).addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-v]"); if (!b) return;
+    $(id).querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+    S[clave] = b.dataset.v; if (extra) extra(b.dataset.v); pintar();
+  });
+}
+segmento("seg-proc", "modoProc", (v) => { if (v === "B") S.mas = true; });
+segmento("seg-filtros", "modoFiltros", (v) => { if (v === "2") S.mas = true; });
+segmento("seg-lista", "modoLista");
+$("seg-vista").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-v]"); if (!b) return;
+  $("seg-vista").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  $("escenario").classList.toggle("celular", b.dataset.v === "celular");
+});
+function temaActual(){ const t = document.documentElement.dataset.theme; if (t) return t; return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }
+function rotularTema(){ $("btn-tema").textContent = temaActual() === "dark" ? "Ver en claro" : "Ver en oscuro"; }
+$("btn-tema").addEventListener("click", () => { document.documentElement.dataset.theme = temaActual() === "dark" ? "light" : "dark"; rotularTema(); });
+rotularTema();
+$("btn-vacio").addEventListener("click", () => { $("sel-sede").value = "TALLER"; S.sede = "TALLER"; S.sub = null; S.tipo = S.proc = null; S.periodo = 30; S.fechasAbiertas = false; S.q = ""; $("q").value = ""; pintar(); $("resultado").scrollIntoView({behavior: "smooth", block: "center"}); });
+
+// ---------- Aviso (esquina superior derecha, como avisar.*) ----------
+let avisoT;
+function aviso(txt){
+  let el = $("aviso");
+  if (!el){ el = document.createElement("div"); el.id = "aviso"; el.setAttribute("role", "status"); el.style.cssText = "position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:16px;z-index:60;background:var(--tinta);color:var(--crema);border-radius:12px;padding:10px 14px;font-size:13px;max-width:320px;animation:entra .32s var(--ease) both"; document.body.appendChild(el); }
+  el.textContent = txt; el.hidden = false; clearTimeout(avisoT); avisoT = setTimeout(() => { el.hidden = true; }, 2600);
+}
+
+// ---------- Detalle (Modal ADR-0136) ----------
+let devolverFoco = null;
+function abrir(id){
+  const m = DATOS[S.sede].find((x) => x.id === id); if (!m) return;
+  devolverFoco = document.activeElement;
+  const d = fechaDe(m.dia);
+  const bloques = [
+    `<div class="hoja-top" data-c><div><p class="eyebrow">${esc(ETQ[m.proc])}</p><h3 id="hoja-titulo">${esc(m.prenda)}</h3><p class="var">${esc(m.color)} · Talla ${m.talla} · <span style="font-family:ui-monospace,monospace;font-size:12px">${m.sku}</span></p></div><button type="button" class="cerrar" id="btn-cerrar" aria-label="Cerrar">✕</button></div>`,
+    `<div class="efecto" data-c><span class="num ${m.delta > 0 ? "pos" : ""}">${m.delta === 0 ? "⇄ " + m.mov : textoDelta(m)}</span><span>${m.delta === 0 ? `unidades movidas dentro de ${esc(SEDES[S.sede].nombre)} — el total de la sede no cambia` : `unidades ${m.delta > 0 ? "entraron a" : "salieron de"} ${esc(SEDES[S.sede].nombre)}`}</span></div>`,
+    `<dl class="datos" data-c>
+      <dt>Cuándo</dt><dd>${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}, ${m.hora}</dd>
+      <dt>De dónde a dónde</dt><dd>${esc(odTexto(m))}</dd>
+      ${m.sub ? `<dt>Sububicación</dt><dd>${etiquetaSub(m.sub)}</dd>` : ""}
+      <dt>Documento</dt><dd>${m.ref.link ? `<a href="#" data-ref="${esc(m.ref.t)}" class="enlace" style="font-size:13px">${esc(m.ref.t)}</a>` : esc(m.ref.t)}${m.ref.d ? ` <span style="color:var(--taupe)">· ${esc(m.ref.d)}</span>` : ""}</dd>
+      <dt>Registró</dt><dd>${esc(m.usuario)}</dd>
+      ${m.nota ? `<dt>Nota</dt><dd>${esc(m.nota)}</dd>` : ""}
+    </dl>`,
+    `<div class="pie-hoja" data-c><p>No se edita ni se borra. Si algo está mal, se corrige con otro movimiento (un conteo o un ajuste) y los dos quedan.</p><button type="button" class="btn btn-primario" id="btn-ok">Listo</button></div>`
+  ];
+  $("hoja").innerHTML = bloques.join("");
+  $("hoja").querySelectorAll("[data-c]").forEach((el, i) => { el.style.animationDelay = (90 + i * 55) + "ms"; });
+  const v = $("velo"); v.classList.remove("saliendo"); v.hidden = false;
+  $("btn-cerrar").onclick = cerrar; $("btn-ok").onclick = cerrar;
+  $("btn-cerrar").focus();
+}
+function cerrar(){
+  const v = $("velo");
+  const reducido = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducido){ v.hidden = true; devolverFoco?.focus?.(); return; }
+  v.classList.add("saliendo");
+  setTimeout(() => { v.hidden = true; v.classList.remove("saliendo"); devolverFoco?.focus?.(); }, 160);
+}
+$("velo").addEventListener("click", (e) => { if (e.target === $("velo")) cerrar(); });
+
+pintar();
+})();
+</script>

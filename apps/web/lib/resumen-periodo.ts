@@ -10,7 +10,7 @@
 // use no puede mezclarlas, porque el stock no recibe ningún período.
 
 export type PresetPeriodo = "7d" | "30d" | "90d" | "mes" | "personalizado";
-export type ModoComparacion = "anterior" | "anio" | "ninguna";
+export type ModoComparacion = "anterior" | "anio" | "personalizado" | "ninguna";
 
 export const PRESETS_PERIODO: readonly { valor: PresetPeriodo; texto: string }[] = [
   { valor: "7d", texto: "7 días" },
@@ -23,6 +23,7 @@ export const PRESETS_PERIODO: readonly { valor: PresetPeriodo; texto: string }[]
 export const MODOS_COMPARACION: readonly { valor: ModoComparacion; texto: string }[] = [
   { valor: "anterior", texto: "Período anterior" },
   { valor: "anio", texto: "Mismo período del año anterior" },
+  { valor: "personalizado", texto: "Otro período…" },
   { valor: "ninguna", texto: "Sin comparación" },
 ];
 
@@ -134,6 +135,27 @@ export function etiquetaRango({ desde, hasta }: Rango, conAnio = false): string 
   return `${textoDia(a, false)} – ${textoDia(b, conAnio)}`;
 }
 
+/** La versión hablada de `etiquetaRango`, para donde hay sitio de sobra: «desde 24 jul. hasta 22 ago.»,
+ *  «el 18 sep.» (un solo día). No abrevia el mes compartido («desde 1 sep. hasta 15 sep.», no «1–15 sep.»):
+ *  leída en voz alta suena a dos fechas, no a una resta. Si el rango cruza de año, ambas fechas llevan año. */
+export function etiquetaRangoLarga({ desde, hasta }: Rango, conAnio = false): string {
+  const a = parseIso(desde);
+  const b = parseIso(hasta);
+  if (!a || !b) return "";
+  if (aMs(a) === aMs(b)) return `el ${textoDia(a, conAnio)}`;
+  const conAnios = conAnio || a.a !== b.a;
+  return `desde ${textoDia(a, conAnios)} hasta ${textoDia(b, conAnios)}`;
+}
+
+/** El texto de la píldora de un período en «Comparar períodos»: «Período B: desde 23 ago. hasta 21 sep.».
+ *  Cada letra recibe SU rango — el diseño de Figma (2026-09-21) tenía escrito el rango de A en las dos
+ *  píldoras, y con dos períodos distintos eso miente: los gráficos de abajo dicen otra cosa. Sin rango
+ *  (A sin definir) no se inventa una fecha: «Período A: —». */
+export function textoPildoraPeriodo(letra: "A" | "B", rango: Rango | null, conAnio = false): string {
+  const cuerpo = rango ? etiquetaRangoLarga(rango, conAnio) : "";
+  return `Período ${letra}: ${cuerpo || "—"}`;
+}
+
 // ---------------------------------------------------------------------------
 // Resolver el período elegido
 // ---------------------------------------------------------------------------
@@ -215,20 +237,49 @@ export function resolverPeriodo(
  * El rango contra el que se compara, o null si no se compara.
  *  - anterior: los mismos días corridos justo antes (30 días vs los 30 previos).
  *  - anio: las mismas fechas del año anterior.
+ *  - personalizado: el rango que eligió la persona (`personalizado`); si falta o no
+ *    es válido cae en «anterior» — quien llama debe mirar `modoEfectivo` si le importa.
  * Nunca hay solapamiento con el período actual en «anterior».
  */
-export function resolverComparacion(periodo: Rango, modo: ModoComparacion): Rango | null {
+export function resolverComparacion(periodo: Rango, modo: ModoComparacion, personalizado: Rango | null = null): Rango | null {
   if (modo === "ninguna") return null;
   if (modo === "anio") return { desde: mismoDiaAnioAnterior(periodo.desde), hasta: mismoDiaAnioAnterior(periodo.hasta) };
+  if (modo === "personalizado" && personalizado) return personalizado;
   const dias = diasDelRango(periodo);
   const hasta = sumarDias(periodo.desde, -1);
   return { desde: sumarDias(hasta, -(dias - 1)), hasta };
+}
+
+/**
+ * El rango que la persona escribió a mano para comparar («Otro período…»), o null si
+ * no sirve: falta una fecha, no existe, empieza en el futuro. Fechas al revés se
+ * ordenan; lo que pase de hoy se recorta (no hay ventas de días que aún no pasaron)
+ * y un rango más largo que `MAX_DIAS_PERIODO` se acorta hacia atrás desde su fin.
+ */
+export function resolverRangoPersonalizado(desde: string | null | undefined, hasta: string | null | undefined, hoy: string): Rango | null {
+  const a = parseIso(desde);
+  const b = parseIso(hasta);
+  if (!a || !b) return null;
+  let ini = aIso(a);
+  let fin = aIso(b);
+  if (ini > fin) [ini, fin] = [fin, ini];
+  if (ini > hoy) return null;
+  if (fin > hoy) fin = hoy;
+  if (diasDelRango({ desde: ini, hasta: fin }) > MAX_DIAS_PERIODO) ini = sumarDias(fin, -(MAX_DIAS_PERIODO - 1));
+  return { desde: ini, hasta: fin };
 }
 
 /** «Demanda analizada: últimos 30 días» / «Demanda analizada: 1–15 sep.». */
 export function textoDemandaAnalizada(periodo: PeriodoResuelto): string {
   const base = periodo.etiqueta.startsWith("Últimos") ? periodo.etiqueta.toLowerCase() : periodo.etiqueta.replace(/^Este mes/, "este mes");
   return `Demanda analizada: ${base}`;
+}
+
+/** «10:21» en hora de Lima — la marca discreta de «Actualizado 10:21». */
+export function horaLima(ahora: Date): string {
+  const partes = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(ahora);
+  const get = (t: string) => partes.find((p) => p.type === t)?.value ?? "";
+  return `${get("hour")}:${get("minute")}`;
 }
 
 /** «18 sep. 2026, 18:24» en hora de Lima — la marca de «stock actual al…». */

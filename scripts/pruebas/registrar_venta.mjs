@@ -107,7 +107,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-select retail.abrir_caja(:'ubic', 100.00) as caja_id \\gset
+select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gset
 
 select id as v1, precio as v1_precio, costo as v1_costo from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
@@ -149,6 +149,57 @@ rollback;
 `
   ),
   ([deltaStock, items, sedeCorrecta]) => Number(deltaStock) === -2 && Number(items) === 1 && sedeCorrecta === "t"
+);
+
+// ---------------------------------------------------------------------------
+// 1b: el efectivo recibido (`venta_pagos.recibido`, 20260919210000) — para reimprimir el vuelto
+// ---------------------------------------------------------------------------
+
+exito(
+  "el efectivo entregado se guarda en venta_pagos.recibido (el vuelto sale de recibido − monto)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric + 20)),
+  null, gen_random_uuid()) as venta_id \\gset
+select recibido = (:'v1_precio')::numeric + 20 from retail.venta_pagos where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([guardado]) => guardado === "t"
+);
+
+exito(
+  "un medio que no es efectivo no guarda recibido, aunque el navegador lo mande",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric + 20)),
+  null, gen_random_uuid()) as venta_id \\gset
+select recibido is null from retail.venta_pagos where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([esNulo]) => esNulo === "t"
+);
+
+error(
+  "un efectivo recibido menor que lo que cubre se rechaza (candado venta_pagos_recibido_coherente)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric - 1)),
+  null, gen_random_uuid());
+rollback;
+`
+  ),
+  "venta_pagos_recibido_coherente"
 );
 
 // ---------------------------------------------------------------------------

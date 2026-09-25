@@ -81,20 +81,25 @@ export function MetaCompra({ compra, dia, derecha }: { compra: LineaVentaRecient
   );
 }
 
-/** Las compras agrupadas por día y, dentro de cada día, por compra. `renderFila` pinta
- *  cada prenda (con `FilaPrendaVenta`); `accionCompra` pone algo a la derecha del
- *  encabezado de una compra. */
+/** Una compra ya agrupada: todas las líneas de una misma venta. */
+export type CompraAgrupada = { ventaId: string; lineas: LineaVentaReciente[] };
+
+/** Las compras agrupadas por día y, dentro de cada día, por compra. `accionCompra` pone
+ *  algo a la derecha del encabezado de una compra (ej. "Anular venta"). El cuerpo de cada
+ *  tarjeta es UNO de dos modos, nunca los dos: `renderFila` pinta cada prenda por su
+ *  cuenta (Cambios, y la búsqueda de Devoluciones); `renderCompra` pinta un resumen único
+ *  de toda la venta (Actividad reciente de Devoluciones, 2026-09-22 — una tarjeta por
+ *  venta, no una fila por prenda). */
 export function ComprasAgrupadas({
   lineas,
   ahora,
-  renderFila,
   accionCompra,
+  ...modo
 }: {
   lineas: LineaVentaReciente[];
   ahora: Date;
-  renderFila: (linea: LineaVentaReciente) => ReactNode;
   accionCompra?: (compra: LineaVentaReciente) => ReactNode;
-}) {
+} & ({ renderFila: (linea: LineaVentaReciente) => ReactNode; renderCompra?: undefined } | { renderCompra: (compra: CompraAgrupada) => ReactNode; renderFila?: undefined })) {
   return (
     // El hilo (Atelier, 2026-09-19): una línea taupe que baja por la izquierda y se dibuja al
     // entrar; cada día es un nudo sobre ella y sus compras cuelgan a la derecha.
@@ -123,7 +128,11 @@ export function ComprasAgrupadas({
                   <header className="px-6 pb-1 pt-4">
                     <MetaCompra compra={compra.lineas[0]!} derecha={accionCompra?.(compra.lineas[0]!)} />
                   </header>
-                  <ul className="px-1.5 pb-2">{compra.lineas.map((l) => renderFila(l))}</ul>
+                  {modo.renderCompra ? (
+                    <div className="px-6 pb-5 pt-2">{modo.renderCompra(compra)}</div>
+                  ) : (
+                    <ul className="px-1.5 pb-2">{compra.lineas.map((l) => modo.renderFila(l))}</ul>
+                  )}
                 </article>
               ))}
             </div>

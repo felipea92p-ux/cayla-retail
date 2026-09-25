@@ -2,6 +2,8 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
+import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -14,10 +16,14 @@ import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 // desde la suya. Todo lo que no calce (destino inexistente, variante sin
 // stock movible en el origen) se ignora en silencio y el formulario arranca
 // como siempre.
+//
+// Prellenado desde Producción (2026-09-22, ADR-0133 F8): `?origen=<Taller>&lineas=<variante>:<cantidad>,…` — «Siguiente paso: llevarlas a las tiendas» de una orden
+// cerrada. Varias líneas en vez de una; mismas reglas (solo se respeta lo que tiene stock movible en el origen, cada cantidad se topa al stock, y el destino
+// lo elige quien traslada). `variante`/`cantidad` (una sola línea) siguen funcionando como antes.
 export default async function MoverMercaderiaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ origen?: string; destino?: string; variante?: string; cantidad?: string }>;
+  searchParams: Promise<{ origen?: string; destino?: string; variante?: string; cantidad?: string; lineas?: string }>;
 }) {
   const [persona, params, ubicaciones] = await Promise.all([requirePersonaActualV2(), searchParams, getUbicaciones()]);
 
@@ -34,7 +40,8 @@ export default async function MoverMercaderiaPage({
   // 20260914210000_inventario_piso_almacen.sql. El tope que ve el
   // formulario tiene que ser ese mismo número, o dejaría pasar cantidades
   // que el RPC va a rechazar. En una ubicación sin piso/almacén (Taller,
-  // `f.almacen === null`), el tope sigue siendo el total, como siempre.
+  // `f.almacen === null`), el tope sigue siendo el total, como siempre. En ambos casos solo cuenta
+  // lo DISPONIBLE: lo apartado para una clienta tampoco se puede mover (ADR-0141).
   const variantesMovibles = stockOrigen
     .map((f) => ({
       varianteId: f.varianteId,
@@ -42,7 +49,7 @@ export default async function MoverMercaderiaPage({
       referencia: f.referencia,
       talla: f.talla,
       color: f.color,
-      cantidad: f.almacen ?? f.total,
+      cantidad: f.almacenDisponible ?? f.disponible,
     }))
     .filter((v) => v.cantidad > 0);
 
@@ -57,16 +64,21 @@ export default async function MoverMercaderiaPage({
     prellenar && params.variante && variantesMovibles.some((v) => v.varianteId === params.variante)
       ? { varianteId: params.variante, cantidad: Number.isInteger(cantidadPedida) && cantidadPedida > 0 ? cantidadPedida : 1 }
       : undefined;
+  const lineasIniciales = prellenar
+    ? parsearLineasPrellenadas(params.lineas)
+        .filter((l) => variantesMovibles.some((v) => v.varianteId === l.varianteId))
+        .map((l) => ({ varianteId: l.varianteId, cantidad: Math.min(l.cantidad, variantesMovibles.find((v) => v.varianteId === l.varianteId)?.cantidad ?? l.cantidad) }))
+    : [];
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Inventario · {origen.nombre}</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Mover mercadería</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Cada traslado queda registrado como movimiento — no se edita el stock a mano.
-        </p>
-      </div>
+      <InventarioHero
+        eyebrow={`Inventario · ${origen.nombre}`}
+        titulo="Mover mercadería"
+        descripcion="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
+        foto={fotoHeroPorPantalla("mover")}
+        variante="integrado"
+      />
 
       {destinos.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
@@ -80,6 +92,7 @@ export default async function MoverMercaderiaPage({
           variantes={variantesMovibles}
           destinoInicialId={destinoInicialId}
           lineaInicial={lineaInicial}
+          lineasIniciales={lineasIniciales}
         />
       )}
     </div>

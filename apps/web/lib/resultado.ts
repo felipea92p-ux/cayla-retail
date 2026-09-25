@@ -65,6 +65,52 @@ export function exigirOpcional<T>(resultado: ResultadoConsulta<T>, que: string):
   return resultado.data;
 }
 
+/** El `max_rows` de PostgREST en producción (y en `supabase/config.toml`). */
+export const FILAS_POR_PAGINA = 1000;
+// ponytail: tanda fija de 3 (= 3.000 filas en una vuelta); si una lectura pasa de ~10.000 filas, pedir el total
+// con `count` y lanzar exactamente las páginas que faltan.
+const PAGINAS_EN_PARALELO = 3;
+
+/**
+ * Lee TODAS las filas de una consulta que puede pasar de `FILAS_POR_PAGINA`.
+ *
+ * EL PROBLEMA QUE RESUELVE. PostgREST corta cualquier respuesta en 1.000 filas SIN error. Medido
+ * el 2026-09-23 en producción: el catálogo tiene 1.295 variantes y la caja recibía 1.000 — la
+ * «Chompa Cuello Redondo Lana» roja M, con 2 unidades en TRU, salía «No encontramos» al buscarla.
+ * Cuáles faltaban era al azar (se ordenaba por `sku`, vacío en casi todas).
+ *
+ * `pagina(desde, hasta)` arma la consulta con `.range(desde, hasta)` y un orden ÚNICO y estable
+ * (sin él, dos páginas pueden repetir o saltarse filas). Devuelve la misma forma que supabase-js,
+ * así el que llama sigue eligiendo `exigir()` o `tolerar()`. Una página con error corta la lectura:
+ * media lista nunca se entrega como lista entera.
+ *
+ * Las páginas se piden de a `PAGINAS_EN_PARALELO` a la vez: en serie, el stock de la red (2.927 filas)
+ * tardaba 1,3 s; en paralelo, lo de una sola consulta. Las páginas que vienen vacías cuestan poco.
+ */
+export async function leerTodas<T, E extends { message: string }>(
+  pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null; error: E | null }>,
+  /** `enParalelo: 1` para una RPC que casi siempre cabe en una página (ADR-0192): cada página RECALCULA la función
+   *  entera, así que pedir 3 a la vez triplica el costo en la base para traer lo mismo. En serie, la 2.ª página solo se
+   *  pide si la 1.ª vino llena: mismo costo que hoy, y correcta el día que pase de 1.000. */
+  opciones: { enParalelo?: number } = {},
+): Promise<{ data: T[] | null; error: E | null }> {
+  const enParalelo = Math.max(1, opciones.enParalelo ?? PAGINAS_EN_PARALELO);
+  const filas: T[] = [];
+  for (let tanda = 0; ; tanda += enParalelo) {
+    const respuestas = await Promise.all(
+      Array.from({ length: enParalelo }, (_, i) => {
+        const desde = (tanda + i) * FILAS_POR_PAGINA;
+        return pagina(desde, desde + FILAS_POR_PAGINA - 1);
+      }),
+    );
+    for (const res of respuestas) {
+      if (res.error || !res.data) return { data: null, error: res.error };
+      filas.push(...res.data);
+      if (res.data.length < FILAS_POR_PAGINA) return { data: filas, error: null };
+    }
+  }
+}
+
 /** Lo que `tolerar()` entrega: los datos si llegaron, y el aviso para pintar si no. */
 export type Tolerado<T> = { datos: T | null; fallo: string | null };
 
@@ -78,4 +124,21 @@ export function tolerar<T>(resultado: ResultadoConsulta<T>, que: string): Tolera
     return { datos: null, fallo: `No se pudo cargar ${que}. Lo demás de esta pantalla sí está al día.` };
   }
   return { datos: resultado.data, fallo: null };
+}
+
+/**
+ * Una lectura secundaria que puede LANZAR, no solo devolver `error`: `createClient()` fuera de un
+ * request, un fallo de red que supabase-js no envuelve, un resumidor que revienta. `tolerar()` solo
+ * ve el `error` de la consulta; esto atrapa lo demás. Si la lectura lanza, devuelve `null` y deja la
+ * causa real en el log — la pantalla sigue con lo que sí cargó y quien lee el dato dice «no se pudo
+ * leer» en vez de inventar una cifra. Para lo que no puede tumbar la vista: el marco de una pantalla
+ * (`layout.tsx` de Facturación) y las tarjetas que no son plata.
+ */
+export async function opcional<T>(lectura: Promise<T>, que: string): Promise<T | null> {
+  try {
+    return await lectura;
+  } catch (error) {
+    console.error(`No se pudo leer ${que}:`, error);
+    return null;
+  }
 }

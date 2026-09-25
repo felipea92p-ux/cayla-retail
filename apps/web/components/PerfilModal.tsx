@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -62,7 +63,11 @@ function Campo({ etiqueta, valor }: { etiqueta: string; valor: string }) {
   );
 }
 
-export function PerfilModal({ onClose }: { onClose: () => void }) {
+export function PerfilModal({ onClose, veAdministracion = false }: {
+  onClose: () => void;
+  /** ¿Su rol ve Colaboradores o Roles y accesos? (20260923131000: ya no son solo del líder). El líder, siempre. */
+  veAdministracion?: boolean;
+}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [perfil, setPerfil] = useState<MiPerfil | null>(null);
@@ -223,6 +228,39 @@ export function PerfilModal({ onClose }: { onClose: () => void }) {
                 <Campo etiqueta="Último acceso" valor={perfil.ultimo_acceso ? formatoFecha(perfil.ultimo_acceso) : "Sin registrar"} />
               </div>
             </div>
+
+            {/* Quién puede entrar a retail: el líder, o quien ve Colaboradores o Roles y accesos. La pantalla y cada RPC lo
+                vuelven a exigir; esto solo decide si se ofrece la puerta. */}
+            {(perfil.rol === "lider" || veAdministracion) && (
+              <div>
+                <p className="label-cayla mb-3 text-[11px] text-tinta/65">Administración</p>
+                <Link
+                  href="/colaboradores"
+                  onClick={onClose}
+                  className="card-cayla flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/40"
+                >
+                  <span>
+                    <span className="block text-sm text-tinta">Colaboradores</span>
+                    <span className="mt-0.5 block text-xs text-tinta/55">A quién de Dynamic se le abre la puerta de retail.</span>
+                  </span>
+                  <span aria-hidden className="text-tinta/45">→</span>
+                </Link>
+                {/* Configuración (ADR-0195 F1): «solo líder por ahora», así que solo se ofrece al líder. */}
+                {perfil.rol === "lider" && (
+                  <Link
+                    href="/configuracion"
+                    onClick={onClose}
+                    className="card-cayla mt-2 flex items-center justify-between gap-3 p-4 transition-colors hover:bg-sand/40"
+                  >
+                    <span>
+                      <span className="block text-sm text-tinta">Configuración</span>
+                      <span className="mt-0.5 block text-xs text-tinta/55">Meta de cada día, fondo de caja y lo que cambia cada campaña.</span>
+                    </span>
+                    <span aria-hidden className="text-tinta/45">→</span>
+                  </Link>
+                )}
+              </div>
+            )}
 
             {claveAbierta ? (
               <CambiarClave onListo={() => setClaveAbierta(false)} />

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { traducirError } from "./error-escritura";
+import { esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -8,6 +8,12 @@ import { traducirError } from "./error-escritura";
 // importante— lo que deja pasar tal cual.
 
 describe("traduce lo que escribe Postgres por su cuenta", () => {
+  it("una RPC rechazada por falta de sesión pide volver a entrar, no cita a Postgres", () => {
+    const salida = traducirError({ message: "permission denied for function registrar_venta", code: "42501" }, "registrar la venta", { confirmarAntesDeRepetir: true });
+    expect(salida).not.toContain("permission denied");
+    expect(salida).toContain("vuelve a entrar");
+  });
+
   it("renombrar una marca a un nombre existente se explica, no cita el índice", () => {
     const salida = traducirError({ message: 'duplicate key value violates unique constraint "marcas_nombre_unico"', code: "23505" }, "renombrar la marca");
     expect(salida).not.toContain("marcas_nombre_unico");
@@ -111,6 +117,39 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     );
     expect(salida).toBe("Esta ubicación ya tiene una caja abierta. Ciérrala antes de abrir otra.");
   });
+
+  it("una colaboradora cargando una cotización de maquila recibe el mensaje de líder, no el genérico de ubicación", () => {
+    const salida = traducirError(
+      { message: 'new row violates row-level security policy for table "cotizaciones_maquila"', code: "42501" },
+      "cargar la cotización"
+    );
+    expect(salida).toBe("Solo un líder de equipo puede cargar o corregir una cotización de maquila.");
+    expect(salida).not.toContain("ubicación");
+  });
+
+  it("una cotización de maquila con vigencia al revés dice qué revisar, no cita el constraint", () => {
+    const salida = traducirError(
+      {
+        message: 'new row for relation "cotizaciones_maquila" violates check constraint "cotizaciones_maquila_vigencia_coherente"',
+        code: "23514",
+      },
+      "cargar la cotización"
+    );
+    expect(salida).not.toContain("constraint");
+    expect(salida).toContain("no puede terminar antes");
+  });
+
+  it("un precio de maquila negativo se explica, no se cita la restricción", () => {
+    const salida = traducirError(
+      {
+        message: 'new row for relation "cotizaciones_maquila" violates check constraint "cotizaciones_maquila_precio_maquila_check"',
+        code: "23514",
+      },
+      "cargar la cotización"
+    );
+    expect(salida).not.toContain("constraint");
+    expect(salida).toContain("no puede ser negativo");
+  });
 });
 
 describe("no re-traduce lo que las RPC ya dicen bien", () => {
@@ -129,6 +168,13 @@ describe("los bordes de red y el fallback", () => {
   it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
     const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
     expect(salida).toContain("No se guardó nada");
+  });
+
+  it("con dinero de por medio no afirma que no se guardó: pide revisar antes de repetir", () => {
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar el pago", { confirmarAntesDeRepetir: true });
+    expect(salida).not.toContain("No se guardó nada");
+    expect(salida).toContain("no podemos confirmar");
+    expect(salida).toContain("registrar el pago");
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
@@ -266,5 +312,24 @@ describe("la nota del ticket", () => {
     );
     expect(salida).not.toContain("ventas_nota_corta");
     expect(salida).toContain("200");
+  });
+});
+
+describe("otra persona cambió la ficha mientras se editaba (ADR-0193)", () => {
+  const conflicto = {
+    code: "PT409",
+    message: "Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios.",
+    details: null,
+    hint: "version_cambiada",
+  };
+
+  it("se reconoce por el código PT409 y pasa el mensaje de la base tal cual", () => {
+    expect(esVersionCambiada(conflicto)).toBe(true);
+    expect(traducirError(conflicto, "guardar el producto")).toBe(conflicto.message);
+  });
+
+  it("un P0001 cualquiera no es un conflicto de versión", () => {
+    expect(esVersionCambiada({ code: "P0001", message: "Falta la referencia del producto." })).toBe(false);
+    expect(esVersionCambiada(null)).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
@@ -35,13 +35,22 @@ export default async function CategoriasPage() {
     // Solo para el conteo de la tarjeta ("N productos") y el candado visual
     // de qué categoría se puede desactivar sin fricción — el candado real
     // sigue viviendo en `retail.desactivar_categoria`, esto es de lectura.
-    supabase.from("productos").select("categoria_id, estado"),
+    // Conteo hecho por la base (`fn_productos_por_categoria`): traer todas las filas para contarlas se
+    // truncaba en silencio pasado el tope de Supabase. Si la función aún no está en producción, cae al
+    // conteo anterior en vez de romper la pantalla.
+    // Cast: los tipos generados aún no conocen la función (se regeneran al aplicarla en producción).
+    (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { categoria_id: string; n: number }[] | null; error: unknown }>)("fn_productos_por_categoria"),
   ]);
   const filas = exigir(res, "las categorías del catálogo");
   const familias = exigir(resFamilias, "las familias del catálogo");
   const productosPorCategoria: Record<string, number> = {};
-  for (const p of exigir(resProductos, "los productos del catálogo")) {
-    if (p.categoria_id && p.estado === "activo") productosPorCategoria[p.categoria_id] = (productosPorCategoria[p.categoria_id] ?? 0) + 1;
+  if (!resProductos.error) {
+    for (const f of resProductos.data ?? []) productosPorCategoria[f.categoria_id] = Number(f.n);
+  } else {
+    const respaldo = exigir(await supabase.from("productos").select("categoria_id, estado"), "los productos del catálogo");
+    for (const p of respaldo) {
+      if (p.categoria_id && p.estado === "activo") productosPorCategoria[p.categoria_id] = (productosPorCategoria[p.categoria_id] ?? 0) + 1;
+    }
   }
   // El universo completo de valores aprobados, para ofrecer en el selector
   // de "qué tallas/tejidos/patrones ofrece esta categoría" — distinto de
@@ -76,6 +85,14 @@ export default async function CategoriasPage() {
     notas: c.notas,
   }));
 
+  // Cabecera: mismas reglas que las secciones. Una subcategoría cuenta como tal solo si su padre está activo
+  // (si no, la lista la muestra como categoría raíz — `esRaizVisible` en CategoriasLista).
+  const activas = categorias.filter((c) => c.activo);
+  const idsActivas = new Set(activas.map((c) => c.id));
+  const totalCategorias = activas.length;
+  const totalSubcategorias = activas.filter((c) => c.categoriaPadreId && idsActivas.has(c.categoriaPadreId)).length;
+  const totalProductos = Object.values(productosPorCategoria).reduce((a, b) => a + b, 0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -95,14 +112,15 @@ export default async function CategoriasPage() {
           </Ayuda>
         </h1>
         <p className="mt-1 text-xs text-tinta/55">
-          {categorias.filter((c) => c.activo).length.toLocaleString("es-PE")} categorías activas ·{" "}
-          {Object.values(productosPorCategoria).reduce((a, b) => a + b, 0).toLocaleString("es-PE")} productos clasificados
+          {totalCategorias.toLocaleString("es-PE")} {totalCategorias === 1 ? "categoría activa" : "categorías activas"}
+          {totalSubcategorias > 0 && ` (${totalSubcategorias.toLocaleString("es-PE")} ${totalSubcategorias === 1 ? "subcategoría" : "subcategorías"})`} ·{" "}
+          {totalProductos.toLocaleString("es-PE")} {totalProductos === 1 ? "producto activo clasificado" : "productos activos clasificados"}
         </p>
       </div>
 
       <CategoriasLista
         categoriasIniciales={categorias}
-        puedeEditar={persona.rol === "lider"}
+        puedeEditar={puede(persona, "editarCatalogo")}
         familias={familias}
         universo={universo}
         ejesPorCategoria={ejesPorCategoria}

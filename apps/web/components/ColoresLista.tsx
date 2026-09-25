@@ -3,6 +3,10 @@
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
@@ -141,6 +145,11 @@ function SelectorColor({ hex, onHex }: { hex: string | null; onHex: (hex: string
 }
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [colores, setColores] = useState(() => ordenar(coloresIniciales));
   const [agregando, setAgregando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -185,7 +194,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas }),
       });
       const datos = await res.json();
@@ -208,6 +217,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           },
         ])
       );
+      responsable.despues(null);
       avisar.exito(
         datos.color.estado === "pendiente" ? `${datos.color.nombre} agregado — ya lo puedes usar` : `Color ${datos.color.nombre} agregado`,
         datos.color.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
@@ -228,7 +238,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: c.codigo, estado: "aprobado" }),
       });
       const datos = await res.json();
@@ -237,6 +247,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         return;
       }
       setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, estado: "aprobado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${c.nombre} aprobado`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -256,7 +267,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify(c.estado === "rechazado" ? { codigo: c.codigo, estado: "aprobado" } : { codigo: c.codigo, activo: true }),
       });
       const datos = await res.json();
@@ -265,6 +276,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         return;
       }
       setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: true, estado: "aprobado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${c.nombre} reactivado`, { detalle: "Vuelve a aparecer al elegir color en una prenda." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -281,7 +293,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: c.codigo, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -292,6 +304,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       setColores((actual) =>
         ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: false, estado: "rechazado" as const } : x)))
       );
+      responsable.despues(null);
       avisar.exito(`${c.nombre} rechazado`, { detalle: "Cae a Desactivados. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -304,7 +317,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <span />
         <button
           type="button"
           onClick={abrir}
@@ -339,7 +353,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         peso="primario"
                         className="flex-1 px-2.5 py-1.5 text-[11px]"
                         cargando={aprobandoCodigo === c.codigo}
-                        onClick={() => aprobar(c)}
+                        onClick={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
                       >
                         Aprobar
                       </Boton>
@@ -408,6 +422,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
               </div>
               <SelectorColor hex={hex} onHex={setHex} />
 
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2 pt-3">
                 <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
@@ -418,7 +433,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
                 >
                   Guardar color
                 </Boton>
@@ -450,7 +466,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     peso="discreto"
                     className="px-2.5 py-1.5 text-[11px]"
                     cargando={cambiandoCodigo === c.codigo}
-                    onClick={() => reactivar(c)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => reactivar(c)))}
                   >
                     {cambiandoCodigo === c.codigo ? "…" : "Reactivar"}
                   </Boton>
@@ -466,6 +482,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={rechazandoCodigo === rechazandoColor.codigo} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
                   Cancelar
@@ -474,6 +491,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoCodigo === rechazandoColor.codigo}
+                  disabled={!responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoColor)}
                 >
                   Confirmar rechazo
@@ -487,6 +506,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       {editando && (
         <ColorEditarModal
           color={editando}
+          responsable={responsable}
           onClose={() => setEditando(null)}
           onGuardado={(actualizado) => {
             setColores((actual) => ordenar(actual.map((x) => (x.codigo === actualizado.codigo ? actualizado : x))));
@@ -498,6 +518,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           }}
         />
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
@@ -512,11 +534,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 // ---------------------------------------------------------------------------
 function ColorEditarModal({
   color,
+  responsable,
   onClose,
   onGuardado,
   onDesactivado,
 }: {
   color: Color;
+  /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
+  responsable: ControlResponsable;
   onClose: () => void;
   onGuardado: (actualizado: Color) => void;
   onDesactivado: (codigo: string) => void;
@@ -549,7 +574,7 @@ function ColorEditarModal({
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas }),
       });
       const datos = await res.json();
@@ -557,6 +582,7 @@ function ColorEditarModal({
         avisar.error(datos.error ?? "No se pudo guardar el color.");
         return;
       }
+      responsable.despues(null);
       avisar.exito(`${datos.color.nombre} actualizado`);
       onGuardado({
         codigo: datos.color.codigo,
@@ -581,7 +607,7 @@ function ColorEditarModal({
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: color.codigo, activo: false }),
       });
       const datos = await res.json();
@@ -589,6 +615,7 @@ function ColorEditarModal({
         avisar.error(datos.error ?? "No se pudo desactivar el color.");
         return;
       }
+      responsable.despues(null);
       avisar.exito(`${color.nombre} desactivado`, {
         detalle: "Deja de aparecer al elegir color en una prenda nueva; el historial se conserva.",
       });
@@ -643,6 +670,7 @@ function ColorEditarModal({
             <p className="mt-1 text-xs text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
 
+          <ComboResponsable control={responsable} deshabilitado={ocupado} />
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
               Cancelar
@@ -653,7 +681,8 @@ function ColorEditarModal({
               className="flex-1"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || ocupado}
+              disabled={!nombre.trim() || !ordenValido || ocupado || !responsable.listo}
+              title={responsable.motivo ?? undefined}
             >
               Guardar
             </Boton>
@@ -664,7 +693,8 @@ function ColorEditarModal({
             <button
               type="button"
               onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
-              disabled={ocupado}
+              disabled={ocupado || !responsable.listo}
+              title={responsable.motivo ?? undefined}
               className={confirmandoDesactivar ? "font-medium text-rojo underline" : "text-rojo hover:underline"}
             >
               {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}

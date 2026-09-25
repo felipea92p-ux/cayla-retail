@@ -15,10 +15,11 @@ describe("chipNotaPendiente", () => {
     expect(chipNotaPendiente({ ...resuelta, montoEsperado: 1416 }, 1416).texto).toBe("Esperando nota S/ 1,416.00");
   });
 
-  it("resuelto: avisa que ya puede registrarse, en el aviso corto y en la pista", () => {
+  // Desde 2026-09-19 la frase dice DÓNDE se registra: hay una sola puerta, el módulo de Notas de crédito.
+  it("resuelto: avisa que ya puede registrarse y en qué pantalla, en el aviso corto y en la pista", () => {
     const c = chipNotaPendiente(resuelta, 1416);
-    expect(c.ayuda).toBe("Ya puedes registrarla");
-    expect(c.pista).toContain("ya puedes registrarla");
+    expect(c.ayuda).toBe("Regístrala en Notas de crédito");
+    expect(c.pista).toContain("ya puedes registrarla en Notas de crédito");
   });
 
   it("no resuelto: sin aviso corto, y la pista explica que se espera al 100 %", () => {

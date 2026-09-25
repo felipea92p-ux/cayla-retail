@@ -289,7 +289,7 @@ error(
 ${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("c1_item", 4))});
 `
   ),
-  "Ese comprobante está destinado a otra sede"
+  "no tiene mercadería asignada a esta sede"
 );
 
 // ===========================================================================
@@ -320,7 +320,7 @@ ${cambiaA(MICAELA)}select retail.recibir_envio(:'trujillo', ${LISTA(ITEM("c1_ite
   p_notas_credito => ${LISTA(`jsonb_build_object('compra_id', :'c1', 'serie_numero', 'FC01-93', 'fecha', retail.fn_hoy_lima(), 'monto', 236.00)`)});
 `
   ),
-  "No tienes permiso para registrar notas de crédito de proveedores"
+  "Registrar notas de crédito de proveedores necesita el módulo Notas de crédito" // ADR-0161 P1 (20260923140000)
 );
 
 exito(
@@ -472,7 +472,7 @@ error(
   "un traslado que no viene hacia esta ubicación se rechaza",
   comoPersona(
     FELIPE,
-    `${BASE}${TRASLADO_EN_CAMINO(5)}select retail.recibir_envio(:'taller', ${LISTA(ITEM("cb_item", 1))},
+    `${BASE}${TRASLADO_EN_CAMINO(5)}${compra("cx", { prov: "prov1", lineas: [10], destino: "taller" })}select retail.recibir_envio(:'taller', ${LISTA(ITEM("cx_item", 1))},
   p_traslados => ${LISTA(`jsonb_build_object('transferencia_id', :'tr', 'lineas', ${LISTA(`jsonb_build_object('variante_id', :'var', 'cantidad', 5)`)})`)});
 `
   ),
@@ -521,7 +521,7 @@ error(
 error(
   "no se recibe más de lo facturado (el tope de recibir_compras sigue mandando)",
   comoPersona(FELIPE, `${BASE}${compra("c1")}select retail.recibir_envio(:'taller', ${LISTA(ITEM("c1_item", 25))});\n`),
-  "la línea tiene 24 facturados"
+  "le tocan 24"
 );
 
 // ===========================================================================

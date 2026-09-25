@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getEjesPorCategoria, type EjesPorCategoria, type ValorVocabulario } from "@/lib/catalogo-v2";
+import { getCostosVariantes, getEjesPorCategoria, type EjesPorCategoria, type ValorVocabulario } from "@/lib/catalogo-v2";
 import { hoyLima, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
@@ -59,7 +59,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("orden"),
       supabase
         .from("variantes")
-        .select("color_codigo, costo, created_at, producto:productos!inner ( categoria_id, referencia )")
+        .select("id, color_codigo, created_at, producto:productos!inner ( categoria_id, referencia )")
         .order("created_at", { ascending: false })
         .limit(VENTANA_VARIANTES),
       supabase.from("codigos_correlativos").select("prefijo, ultimo"),
@@ -81,16 +81,20 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
 
   const usoColores: ContextoAlta["usoColores"] = {};
   const costoSugerido: ContextoAlta["costoSugerido"] = {};
+  const variantesRecientes = exigir(resVariantes, "las variantes recientes");
+  // El costo, por la puerta que revisa el permiso (20260923193700): quien no ve el dinero no recibe costo sugerido.
+  const costos = await getCostosVariantes(variantesRecientes.map((v) => v.id));
   // Vienen del más nuevo al más viejo: la primera variante con costo de cada categoría es la última que se cargó.
-  for (const v of exigir(resVariantes, "las variantes recientes")) {
+  for (const v of variantesRecientes) {
     const categoriaId = v.producto?.categoria_id;
     if (!categoriaId) continue;
     if (v.color_codigo) {
       const porColor = (usoColores[categoriaId] ??= {});
       porColor[v.color_codigo] = (porColor[v.color_codigo] ?? 0) + 1;
     }
-    if (v.costo > 0 && !costoSugerido[categoriaId]) {
-      costoSugerido[categoriaId] = { costo: Number(v.costo), referencia: v.producto?.referencia ?? "" };
+    const costo = costos?.get(v.id) ?? 0;
+    if (costo > 0 && !costoSugerido[categoriaId]) {
+      costoSugerido[categoriaId] = { costo, referencia: v.producto?.referencia ?? "" };
     }
   }
 

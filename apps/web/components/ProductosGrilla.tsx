@@ -8,6 +8,8 @@ import { Chip } from "@/components/ui/Chip";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
+import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
 /**
  * Catálogo en grilla (ADR-0077) — alternativa visual a `ProductosAgrupados`,
@@ -135,21 +137,23 @@ export function ProductosGrilla({
   productos,
   ubicacionId,
   sububicaciones,
-  esLider,
+  puedeAjustar,
+  mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeAjustar: boolean;
+  mensajeVacio?: string;
 }) {
   if (productos.length === 0) {
-    return <p className="card-cayla p-5 text-sm text-tinta/75">Ningún producto calza con esos filtros.</p>;
+    return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
 
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} esLider={esLider} />
+        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} />
       ))}
     </div>
   );
@@ -159,11 +163,12 @@ function TarjetaProducto({
   producto,
   ubicacionId,
   sububicaciones,
+  puedeAjustar,
 }: {
   producto: ProductoListado;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
-  esLider: boolean;
+  puedeAjustar: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
   const [colorFijo, setColorFijo] = useState<string | null>(null);
@@ -175,16 +180,18 @@ function TarjetaProducto({
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
   const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
 
-  const sinStock = producto.stockTotal === 0;
-  const stockBajo = !sinStock && producto.stockMinimo != null && producto.stockTotal < producto.stockMinimo;
-  const tonoStock = sinStock ? "text-rojo" : stockBajo ? "text-ambar" : "text-tinta/75";
+  // Una prenda descontinuada no dispara alertas y se ve como tal; «Sin stock» no es rojo (lib/productos-stock.ts).
+  // /70 y no /55: el número de una descontinuada con stock (una liquidación) es justo el que más hay que poder leer.
+  const descontinuado = producto.estado !== "activo";
+  const alerta = alertaDeStock(producto);
+  const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
 
   return (
     <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
       <button
         type="button"
         onClick={() => setVistaRapida(true)}
-        aria-label={`Vista rápida de ${producto.referencia}`}
+        aria-label={`Vista rápida de ${producto.referencia}${descontinuado ? " (descontinuado)" : ""}`}
         className="relative aspect-[4/5] w-full text-left outline-none transition-colors duration-300 focus-visible:ring-2 focus-visible:ring-rojo/40 focus-visible:ring-inset"
         style={activo?.fotoUrl ? undefined : { background: tinte }}
       >
@@ -200,6 +207,15 @@ function TarjetaProducto({
             </span>
           </>
         )}
+        {descontinuado && (
+          // Abajo a la izquierda: arriba a la derecha ya vive «Muestra — color» y en una tarjeta angosta chocarían.
+          // Con fondo propio: sobre una foto oscura, un chip transparente no se lee.
+          <span className="absolute bottom-2.5 left-2.5 rounded-full bg-papel/90">
+            <Chip tono="apagado" tachado={false}>
+              Descontinuado
+            </Chip>
+          </span>
+        )}
       </button>
 
       <div className="flex flex-1 flex-col gap-2.5 px-4 py-4">
@@ -214,9 +230,22 @@ function TarjetaProducto({
           </p>
         </div>
         <div className="h-px bg-sand" />
-        <div className="flex items-baseline justify-between">
+        {/* «Stock total N» es más largo que el «Stock N» de antes: en la grilla de 2 columnas de un teléfono no cabe junto al precio y baja a la línea siguiente. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1.5">
           <span className="text-[15px] font-semibold tabular-nums text-tinta">{rangoPrecio(producto.variantes)}</span>
-          <span className={`text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>Stock {producto.stockTotal}</span>
+          <span title={EXPLICACION_STOCK_TOTAL} className={`ml-auto whitespace-nowrap text-[12.5px] font-semibold tabular-nums ${tonoStock}`}>
+            {alerta === "sin_stock" ? (
+              <Chip tono="neutro" versalitas={false}>
+                Sin stock
+              </Chip>
+            ) : alerta === "bajo" ? (
+              <Chip tono="ambar" versalitas={false}>
+                Stock bajo: {producto.stockTotal}
+              </Chip>
+            ) : (
+              textoDeStock(producto.stockTotal)
+            )}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} />
@@ -230,6 +259,7 @@ function TarjetaProducto({
           colores={colores}
           colorInicial={nombreActivo}
           onClose={() => setVistaRapida(false)}
+          puedeAjustar={puedeAjustar}
           onAjustarInventario={() => {
             setVistaRapida(false);
             setAjustando(true);
@@ -254,12 +284,14 @@ function VistaRapidaModal({
   colorInicial,
   onClose,
   onAjustarInventario,
+  puedeAjustar,
 }: {
   producto: ProductoListado;
   colores: ColorDisponible[];
   colorInicial: string | null;
   onClose: () => void;
   onAjustarInventario: () => void;
+  puedeAjustar: boolean;
 }) {
   const [colorFijo, setColorFijo] = useState<string | null>(colorInicial);
   const [colorHover, setColorHover] = useState<string | null>(null);
@@ -286,7 +318,7 @@ function VistaRapidaModal({
             <SwatchesColor colores={colores} activo={nombreActivo} onHover={setColorHover} onFijar={setColorFijo} tamano="h-5 w-5" />
             <span className="text-xs text-tinta/60">{activo?.nombre ?? ""}</span>
           </div>
-          <Chip tono={producto.estado === "activo" ? "verde" : "apagado"} className="mt-3">
+          <Chip tono={producto.estado === "activo" ? "verde" : "apagado"} tachado={false} className="mt-3">
             {producto.estado === "activo" ? "Activo" : "Descontinuado"}
           </Chip>
         </div>
@@ -319,9 +351,15 @@ function VistaRapidaModal({
             <Link href={`/productos/${producto.productoId}/editar`} className={`${botonCancelar} text-center`}>
               Editar
             </Link>
-            <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
-              Ajustar inventario
-            </button>
+            <Link href={urlEtiquetasDePrecio({ producto: producto.productoId })} className={`${botonCancelar} text-center`}>
+              Etiquetas
+            </Link>
+            {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`). */}
+            {puedeAjustar && (
+              <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
+                Ajustar inventario
+              </button>
+            )}
           </div>
         </div>
       </div>

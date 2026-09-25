@@ -5,7 +5,11 @@ import {
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
   PROCESOS_FILTRO,
+  PROCESOS_POR_CATEGORIA,
+  categoriaDeProceso,
   desdeDeUltimosDias,
+  etiquetaActividad,
+  etiquetaConDireccion,
   etiquetaDia,
   etiquetaMovimiento,
   etiquetaProceso,
@@ -149,6 +153,38 @@ describe("etiquetaMovimiento", () => {
   });
 });
 
+describe("etiquetaConDireccion", () => {
+  // Rediseño de Movimientos (2026-09-22): que se entienda entrada/salida/interno/ajuste sin
+  // interpretar el proceso, sin duplicar la palabra cuando el proceso ya la trae.
+  it("una transferencia se lee como entrada o salida según el signo, no «transferencia»", () => {
+    expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_entrada", delta: 3 }))).toBe("Entrada · Traslado recibido");
+    expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Salida · Traslado enviado");
+  });
+
+  it("un interno dice a qué sububicación entró", () => {
+    const m = movimiento({
+      categoria: "interno",
+      motivo: "movimiento_interno",
+      delta: 0,
+      sububicacionDestino: { id: "s2", nombre: "Piso de venta", tipo: "piso_venta" },
+    });
+    expect(etiquetaConDireccion(m)).toBe("Interno · a piso");
+  });
+
+  it("entrada y salida llevan su propio prefijo delante del proceso", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "recepcion", categoria: "entrada" }))).toBe("Entrada · Recepción");
+    expect(etiquetaConDireccion(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBe("Salida · Venta");
+  });
+
+  it("un ajuste que ya trae «Ajuste ·» en su nombre no lo duplica", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  });
+
+  it("un conteo formal (sin «Ajuste ·» de por sí) lo recibe del prefijo", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "conteo", categoria: "ajuste" }))).toBe("Ajuste · Conteo");
+  });
+});
+
 describe("referenciaMovimiento", () => {
   // La columna «Referencia»: solo lo que la base ya guarda. Traslados y conteos tienen número
   // corrido; una venta se identifica por su comprobante. No existe «Venta 184»: esa tabla no
@@ -247,6 +283,29 @@ describe("etiquetaProceso", () => {
     expect(porValor.venta).toBe("Venta");
     expect(porValor.movimiento_interno).toBe("Reposición interna");
     expect(PROCESOS_FILTRO.every((p) => p.etiqueta && !p.etiqueta.includes("_"))).toBe(true);
+  });
+});
+
+describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
+  it("todo proceso del filtro tiene al menos un tipo, y todo proceso de un tipo existe en el filtro", () => {
+    const filtro = new Set(PROCESOS_FILTRO.map((p) => p.valor));
+    const enTipos = new Set(CATEGORIAS.flatMap((c) => PROCESOS_POR_CATEGORIA[c]));
+    expect([...filtro].filter((p) => !enTipos.has(p))).toEqual([]);
+    expect([...enTipos].filter((p) => !filtro.has(p))).toEqual([]);
+  });
+
+  it("«Cambio» vive en Entradas y en Salidas (la prenda devuelta entra, la nueva sale)", () => {
+    expect(PROCESOS_POR_CATEGORIA.entrada).toContain("cambio");
+    expect(PROCESOS_POR_CATEGORIA.salida).toContain("cambio");
+  });
+
+  it("un enlace con solo ?proc= deduce su tipo si es uno solo", () => {
+    expect(categoriaDeProceso("conteo")).toBe("ajuste");
+    expect(categoriaDeProceso("venta")).toBe("salida");
+    expect(categoriaDeProceso("traslado_entrada")).toBe("transferencia");
+    expect(categoriaDeProceso("cambio")).toBeNull();
+    expect(categoriaDeProceso("inventado")).toBeNull();
+    expect(categoriaDeProceso(null)).toBeNull();
   });
 });
 
@@ -431,5 +490,21 @@ describe("textoPeriodo", () => {
     expect(textoPeriodo("personalizado", "2026-09-01")).toBe("Desde 01/09/2026");
     expect(textoPeriodo("personalizado", undefined, "2026-09-10")).toBe("Hasta 10/09/2026");
     expect(textoPeriodo("personalizado")).toBe("Todo el historial");
+  });
+});
+
+describe("etiquetaActividad", () => {
+  const base = { categoria: "salida" as const, delta: -1, venta: null, cambio: null, devolucion: null };
+  it("distingue una venta de un retiro, aunque las dos sean «salida»", () => {
+    expect(etiquetaActividad({ ...base, venta: { id: "v", nota: null, comprobante: null } })).toBe("Venta");
+    expect(etiquetaActividad(base)).toBe("Salida");
+  });
+  it("un cambio o una devolución mandan sobre la venta de la que cuelgan", () => {
+    const venta = { id: "v", nota: null, comprobante: null };
+    expect(etiquetaActividad({ ...base, venta, cambio: { id: "c", diferencia: 0 } })).toBe("Cambio");
+    expect(etiquetaActividad({ ...base, venta, devolucion: { id: "d", motivo: null, estado: "aprobada" } })).toBe("Devolución");
+  });
+  it("una fila que suma unidades y cuelga de una venta no se rotula «Venta»", () => {
+    expect(etiquetaActividad({ ...base, categoria: "entrada", delta: 1, venta: { id: "v", nota: null, comprobante: null } })).toBe("Entrada");
   });
 });

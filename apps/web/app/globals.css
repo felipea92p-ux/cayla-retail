@@ -1,6 +1,12 @@
 @import "tailwindcss";
 /* Entradas/salidas propias de los componentes shadcn/ui (ADR-0045, adenda). */
 @import "tw-animate-css";
+@import "./estilos/comprobantes-lista.css";
+@import "./estilos/comprobantes-detalle.css";
+@import "./estilos/comprobantes-registro.css";
+@import "./estilos/notas-credito.css";
+@import "./estilos/avisos.css";
+@import "./estilos/finanzas.css";
 
 /* ==================================================================
    Sistema de identidad CAYLA · v3.0
@@ -16,18 +22,34 @@
   /* Paleta secundaria — solo jerarquía interna, jamás decoración */
   --color-rojo-profundo: #8b2a1f;
   --color-sand: #e8e0d0;        /* Bordes y recuadros neutrales (la "línea" del sistema) */
-  --color-taupe: #a47865;
-  --color-papel: #fbf6ec;       /* Blanco cálido para tarjetas sobre crema. 2026-09-18: el #fbf8f2 anterior
-                                   se leía como blanco puro (Felipe); este sube el amarillo, sigue más claro
-                                   que el crema — el contraste de texto medido en ADR-0012 no baja. */
+  /* 2026-09-22 — PALETA OFICIAL «CAYLA Dynamic» (ADR-0169, decisión de Felipe): taupe, papel, verde y
+     ámbar toman el valor de la guía de estilo oficial, la misma que usa CAYLA Dynamic. Los cuatro ya
+     existían; lo que cambia es el tono, así que ninguna pantalla se toca para heredarlo. */
+  --color-taupe: #805c4c;       /* Texto secundario y borde de control interactivo. Antes #a47865, que
+                                   reprobaba AA como texto (3.39:1): el oficial es el que ya era
+                                   `taupe-profundo`, así que ahora taupe sirve para las dos cosas. */
+  --color-papel: #fbf8f2;       /* Superficie elevada — tarjetas, tablas, modales — sin sombra. El 2026-09-18
+                                   se había subido a #fbf6ec porque este «se leía como blanco puro»; el
+                                   2026-09-22 Felipe eligió la paleta oficial completa, este incluido. */
+  --color-hueso: #eae1d2;       /* Superficie HUNDIDA: inputs en caja y la zebra de las tablas. */
+  --color-pizarra: #4c5d6e;     /* Estado informativo — programado, en revisión, en camino. No es semáforo. */
   --color-tinta-60: #5b544c;    /* Texto secundario cálido */
 
   /* Semánticos (semáforo): separados del acento, jamás decoración */
   /* Oscurecidos el 2026-09-08: el ámbar daba 3.07:1 sobre crema y el verde
      4.21:1 — los dos reprobaban AA (mínimo 4.5). Ahora dan 4.72 y 4.99. Mismo
      lugar en el semáforo, solo con cuerpo suficiente para leerse. */
-  --color-verde: #556e49;       /* Va bien / hecho — 4.99:1 sobre crema */
-  --color-ambar: #8c631f;       /* Al filo / en proceso — 4.72:1 sobre crema */
+  --color-verde: #48603f;       /* Va bien / hecho — oficial 2026-09-22 (antes #556e49, 4.99:1); más oscuro, sube el contraste */
+  --color-ambar: #74501a;       /* Al filo / en proceso — oficial 2026-09-22 (antes #8c631f, 4.72:1); más oscuro, sube el contraste */
+
+  /* Marcas de GRÁFICO con polaridad (Análisis de inventario, 2026-09-22): aceleró · estable · desaceleró.
+     Son relleno, no texto. El verde y el ámbar oficiales se confunden como relleno vecino (ΔE 7.9, 4.5
+     con deuteranopía) y el taupe también se confundía con el ámbar: con el validador de paletas, este
+     trío pasa en todos los pares (ΔE ≥ 17 normal, ≥ 11 con daltonismo). El neutro es el punto medio de
+     una escala divergente: claro a propósito, y siempre va con etiqueta y número al lado. */
+  --color-grafico-alza: #48603f;
+  --color-grafico-neutro: #d3c8b4;
+  --color-grafico-baja: #a8741f;
 
   /* Versiones profundas, SOLO para texto sobre su propio tinte (los chips de
      estado). Un chip pinta el fondo con el mismo color al 10%, y eso le come
@@ -55,18 +77,22 @@
      color de DATO, para que un mismo método se lea con el mismo color en la dona
      de Caja y en el selector de Vender. Elegidos para no pisar ningún tono ya
      usado (rojo/rojo-profundo = marca y "negativo"; verde/ámbar = semáforo de
-     estado) y medidos igual que el resto: los cinco pasan AA (≥4.5:1) como texto
-     plano sobre crema/papel Y sobre su propio fondo de "elegido" (16 % del color
-     sobre papel, el chip del selector de Vender) — el peor es plin, 4.76:1.
-     2026-09-18 (Felipe): cada método con su color — efectivo cobrizo, tarjeta
-     plomo, yape morado, plin verde, transferencia hazel (avellana). Antes eran
-     tres (efectivo azul, tarjeta ámbar, yape/plin verde compartido). La dona de
-     Caja agrupa "Yape / Plin" en un solo segmento y usa el token de yape. */
-  --color-metodo-efectivo: #8f4a1e;
+     estado) y medidos igual que el resto: tarjeta, yape, plin y transferencia pasan
+     AA (≥4.5:1) como texto plano sobre crema/papel Y sobre su propio fondo de
+     "elegido" — el peor es plin, 4.76:1.
+     2026-09-18 (Felipe): cada método con su color — tarjeta plomo, yape morado,
+     plin verde. La dona de Caja agrupa "Yape / Plin" en un solo segmento y usa el
+     token de yape.
+     2026-09-19 (Felipe): efectivo pasa a DORADO y transferencia a AZUL (el pardo
+     de transferencia se confundía con el dorado). El dorado es de RELLENO y borde
+     (selector, dona, KPI): como texto sobre crema no llega a AA, así que el texto
+     y el ícono sobre él usan `--color-metodo-efectivo-tinta`. */
+  --color-metodo-efectivo: #d19a12;
+  --color-metodo-efectivo-tinta: #6b4a00;
   --color-metodo-tarjeta: #525a64;
   --color-metodo-yape: #6d3fa3;
   --color-metodo-plin: #1c6b56;
-  --color-metodo-transferencia: #6b5a1a;
+  --color-metodo-transferencia: #2f6aa3;
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
@@ -92,7 +118,7 @@
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
-  --radius-2xl: 22px;
+  --radius-2xl: 20px;           /* «flotante» de la guía oficial (2026-09-22): modal, drawer, buscador. Antes 22. */
 
   /* Ancho del lateral — UNA sola fuente de verdad. El <aside>, la cabecera
      fija y el <main> leen el mismo token (`w-lateral`, `left-lateral`,
@@ -123,6 +149,15 @@
   --shadow-md: 0 8px 24px -8px rgb(26 26 24 / 0.11);
   --shadow-lg: 0 18px 44px -14px rgb(26 26 24 / 0.16);
   --shadow-xl: 0 30px 64px -22px rgb(26 26 24 / 0.20);
+}
+
+/* Lateral plegado (2026-09-19). UNA sola fuente de verdad, la misma de `--spacing-lateral`: el
+   <aside>, la cabecera, el <main> y las barras fijas (`BarraFija`, el pie del Punto de Venta) leen
+   ese token, así que plegar el menú es redefinirlo aquí y ninguno se entera. 4.75rem = 76 px =
+   12 (aire) + 16 (relleno de fila) + 20 (ícono) + 16 + 12: el ícono queda EXACTO donde estaba, solo
+   se apagan las etiquetas. `AppShell` pone `data-lateral="plegado"` en su contenedor. */
+[data-lateral="plegado"] {
+  --spacing-lateral: 4.75rem;
 }
 
 /* ==================================================================
@@ -225,7 +260,9 @@ body {
   /* Título/cifra en serif — "el alma del sistema" */
   .font-display {
     font-family: var(--font-serif);
-    font-weight: 400;
+    /* 600 desde la paleta oficial (2026-09-22): los títulos, un monto, un nombre. En 400 la Garamond
+       se veía frágil al lado del DM Sans de 600 de las etiquetas. */
+    font-weight: 600;
     letter-spacing: -0.005em;
   }
 
@@ -239,31 +276,421 @@ body {
     letter-spacing: 0.13em;
     font-weight: 600;
   }
+
+  /* ---------------- Guía oficial «CAYLA Dynamic» (2026-09-22, ADR-0169) ----------------
+     Las piezas que la guía nombra y que antes cada pantalla escribía a mano con utilidades
+     sueltas. Nada de sombras ni gradientes: la línea fina de sand es el único adorno. */
+
+  /* El sobretítulo de una pantalla («INVENTARIO · EXISTENCIAS»): en rojo, el único rojo de la
+     cabecera. Cuenta dentro del máximo de 2 rojos por pantalla. */
+  .eyebrow-cayla {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-rojo);
+  }
+
+  /* Botón — cinco variantes, todas con el radio de control (8 px). El primario es el único
+     relleno; su hover pasa a rojo profundo, nunca al rojo de marca. */
+  .btn-cayla {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.25;
+    white-space: nowrap;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+  .btn-cayla:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .btn-chico {
+    padding: 0.3125rem 0.75rem;
+    font-size: 12.5px;
+  }
+  .btn-primario {
+    background: var(--color-tinta);
+    color: var(--color-crema);
+  }
+  .btn-primario:hover:not(:disabled) {
+    background: var(--color-rojo-profundo);
+  }
+  .btn-secundario {
+    background: transparent;
+    color: var(--color-tinta);
+    border-color: var(--color-sand);
+  }
+  .btn-secundario:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--color-taupe) 40%, transparent);
+    background: color-mix(in oklab, var(--color-sand) 50%, transparent);
+  }
+  .btn-peligro {
+    background: transparent;
+    color: var(--color-rojo);
+    border-color: color-mix(in oklab, var(--color-rojo) 30%, transparent);
+  }
+  .btn-peligro:hover:not(:disabled) {
+    background: color-mix(in oklab, var(--color-rojo) 10%, transparent);
+  }
+  .btn-sutil {
+    background: transparent;
+    color: var(--color-taupe);
+    border-color: var(--color-sand);
+  }
+  .btn-sutil:hover:not(:disabled) {
+    color: var(--color-tinta);
+    background: color-mix(in oklab, var(--color-sand) 30%, transparent);
+  }
+  .btn-enlace {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--color-tinta);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .btn-enlace:hover:not(:disabled) {
+    color: var(--color-taupe);
+  }
+
+  /* Píldora de filtro (Todos · Entradas · Salidas…): la activa se rellena de tinta. */
+  .pildora-cayla {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-sand);
+    padding: 0.3125rem 0.875rem;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-taupe);
+    white-space: nowrap;
+    transition: background-color 150ms, border-color 150ms, color 150ms;
+  }
+  .pildora-cayla:hover {
+    color: var(--color-tinta);
+    background: color-mix(in oklab, var(--color-sand) 40%, transparent);
+  }
+  .pildora-cayla[aria-pressed="true"],
+  .pildora-cayla[aria-current="page"],
+  .pildora-cayla[data-activa="true"] {
+    background: var(--color-tinta);
+    border-color: var(--color-tinta);
+    color: var(--color-crema);
+  }
+
+  /* Caja de control hundida (input, select, buscador): hueso, borde sand, radio de control. */
+  .caja-cayla {
+    background: var(--color-hueso);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    transition: border-color 150ms;
+  }
+  .caja-cayla:focus-within {
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+
+  /* La nota al pie de una pantalla («Registro transparente: …»): explica una regla del negocio,
+     no un error. Superficie hundida, sin borde. */
+  .nota-cayla {
+    background: color-mix(in oklab, var(--color-hueso) 85%, transparent);
+    border-radius: var(--radius-xl);
+    padding: 0.875rem 1.125rem;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--color-taupe);
+  }
+  .nota-cayla b,
+  .nota-cayla strong {
+    color: var(--color-tinta);
+    font-weight: 600;
+  }
+
+  /* Tabla oficial: la cabecera en sand y la zebra en hueso. La zebra cuenta SOLO las filas de datos
+     (`:nth-child(… of .fila-cayla)`): el encabezado y el pie no desplazan el rayado. */
+  .encabezado-tabla-cayla {
+    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+  }
+  .fila-cayla {
+    transition: background-color 150ms;
+  }
+  .fila-cayla:nth-child(even of .fila-cayla) {
+    background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
+  }
+  .fila-cayla:hover {
+    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  }
 }
 
 /* ==================================================================
-   Impresión de etiquetas de código de barras (Brother QL-1110NWB,
-   rollo 62mm). Al imprimir, solo existen las etiquetas: el resto de
-   la app desaparece y cada etiqueta es una página de 62×29mm.
+   Etiqueta de precio (ADR-0180): se pega en el cartón de 5 × 8 cm que cuelga de la prenda.
+   Brother QL-1110NWB, rollo DK-22205 (62 mm continuo, adhesivo). El rollo mide 62 mm y el
+   cartón 50 mm de ancho, así que los 62 mm van a lo largo: la etiqueta es de 44 × 62 mm, con
+   3 mm de aire a cada lado del cartón y el agujero libre arriba. Sale del rollo DERECHA (Felipe,
+   2026-09-24): cada corte mide 62 mm, la etiqueta va centrada en el ancho del rollo con 9 mm
+   blancos a cada lado, que se recortan al pegarla en el cartón.
+   TODO en milímetros: es una medida física, no una pantalla. Y solo negro sobre blanco —
+   la térmica no imprime otro color—, por eso aquí sí va #000/#fff literal y no los tokens
+   de la guía (misma excepción que el comprobante de 80 mm). Diseño aprobado por Felipe el
+   2026-09-23: «D · Editorial» en el arreglo «QR abajo», con el QR lo más grande que entra
+   (docs/maquetas/etiqueta-precio-2026-09/etiquetas-carton.html).
    ================================================================== */
-@media print {
-  body.imprimiendo-etiquetas * {
-    visibility: hidden;
-  }
-  body.imprimiendo-etiquetas #etiquetas-print,
-  body.imprimiendo-etiquetas #etiquetas-print * {
-    visibility: visible;
-  }
-  body.imprimiendo-etiquetas #etiquetas-print {
-    position: absolute;
-    left: 0;
-    top: 0;
-  }
-  body.imprimiendo-etiquetas .etiqueta-impresa {
-    width: 62mm;
-    height: 29mm;
-    page-break-after: always;
+@layer components {
+  .etiqueta-precio {
+    box-sizing: border-box;
+    width: 44mm;
+    height: 62mm;
+    padding: 3mm 3.5mm;
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
+    background: #fff;
+    color: #000;
+    font-family: var(--font-sans);
+    line-height: 1.2;
+    /* Sin esto Chrome no imprime fondos: la talla invertida saldría blanca sobre blanco. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Ningún bloque se aplasta para «entrar»: una columna flexible de alto fijo encoge en silencio los bloques con
+     overflow:hidden (el nombre de la prenda) y cortaría texto sin que se note. Si algo no cabe, que se vea. */
+  .etiqueta-precio > * {
+    flex-shrink: 0;
+  }
+  .etq-cab {
+    display: flex;
+    align-items: center;
+    gap: 1.3mm;
+  }
+  .etq-cab img {
+    width: 6.2mm;
+    height: auto;
+    filter: brightness(0); /* el isotipo es rojo; la térmica lo necesita negro */
+  }
+  .etq-cab b {
+    font-size: 3mm;
+    font-weight: 500;
+    letter-spacing: 0.42em;
+  }
+  .etq-rot {
+    margin: 1.8mm 0 0.5mm;
+    font-size: 1.55mm;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .etq-tallas {
+    display: flex;
+    border-top: 0.22mm solid #000;
+    border-bottom: 0.22mm solid #000;
+  }
+  /* Cada talla ocupa lo que mide su texto más un respiro, y el sobrante se reparte. */
+  .etq-tallas span {
+    flex: 1 0 auto;
+    padding: 0.9mm 0.5mm;
+    text-align: center;
+    font-size: 2.2mm;
+    letter-spacing: 0.04em;
+  }
+  .etq-tallas.etq-muchas span {
+    padding-inline: 0.3mm;
+    font-size: 1.8mm;
+    letter-spacing: 0;
+  }
+  .etq-tallas .etq-si {
+    background: #000;
+    color: #fff;
+    font-weight: 700;
+  }
+  .etq-tallas.etq-unica {
+    border: 0;
+  }
+  .etq-tallas.etq-unica span {
+    flex: none;
+    padding: 0.8mm 2mm;
+    text-transform: uppercase;
+  }
+  .etq-prenda,
+  .etq-color {
+    font-size: 2.1mm;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .etq-prenda {
+    margin-top: 1.8mm;
+    line-height: 1.3;
+    /* Un nombre largo no empuja el QR fuera de la etiqueta: dos líneas y corta (una, con campaña). */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .etq-con-campana .etq-prenda {
+    -webkit-line-clamp: 1;
+  }
+  .etq-color {
+    margin-top: 0.3mm;
+    overflow: hidden;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .etq-precio {
+    margin-top: 1.8mm;
+    font-size: 6.2mm;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .etq-precio small {
+    margin-right: 0.6mm;
+    font-size: 3mm;
+  }
+  .etq-precio.etq-precio-largo {
+    font-size: 5.2mm;
+  }
+  /* Con campaña (paso 2): antes tachado → ahora en negrita con su «−20 %» en bloque negro → el porqué. */
+  .etq-antes {
+    margin-top: 1mm;
+    font-size: 2.4mm;
+    letter-spacing: 0.05em;
+  }
+  .etq-antes s {
+    text-decoration-thickness: 0.25mm;
+  }
+  .etq-ahora {
+    margin-top: 0.4mm;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.2mm;
+  }
+  .etq-ahora .etq-precio {
+    margin-top: 0;
+    font-size: 5.6mm;
+    font-weight: 700;
+  }
+  .etq-ahora .etq-precio.etq-precio-largo {
+    font-size: 4.8mm;
+  }
+  .etq-pct {
+    padding: 0.7mm 1.5mm;
+    background: #000;
+    color: #fff;
+    font-size: 3.6mm;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .etq-motivo {
+    margin-top: 0.9mm;
+    padding-top: 0.8mm;
+    border-top: 0.22mm solid #000;
+  }
+  .etq-motivo b {
+    display: block;
+    overflow: hidden;
+    font-size: 2.3mm;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .etq-motivo span {
+    display: block;
+    margin-top: 0.4mm;
+    font-size: 1.75mm;
+    letter-spacing: 0.03em;
+  }
+  .etq-pie {
+    margin-top: auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.8mm;
+  }
+  .etq-datos {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4mm;
+    min-width: 0;
+    overflow: hidden; /* un código raro y largo se corta aquí; nunca se mete en el margen blanco del QR */
+  }
+  /* Monoespaciada del sistema (Consolas en Windows, SF Mono/Menlo en Mac): su 0 lleva barra y no se confunde
+     con la O cuando la pistola falla y el código se teclea. */
+  .etq-cod {
+    overflow: hidden;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 1.8mm;
+    font-weight: 500;
+    font-feature-settings: "zero";
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .etq-datos small {
+    font-size: 1.5mm;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  /* El QR, lo más grande que entra (Felipe, 2026-09-23): 22 mm sin campaña y 20 mm con campaña (el lado lo pone
+     `EtiquetaPrecio.tsx`; incluye la zona muda, lib/qr.ts). El margen negativo mete SOLO esa zona blanca en el acolchado:
+     abajo está el corte y a la derecha el aire hasta el borde del rollo. Las zonas negras quedan a ~4 mm de los dos
+     bordes de la etiqueta. */
+  .etq-qr {
+    flex: none;
+    margin: 0 -2mm -2mm 0;
+  }
+}
+
+/* En pantalla la hoja no se ve (la vista previa dibuja una por prenda, derecha). Al imprimir desaparece TODO lo demás
+   con `display:none` —no `visibility`: lo oculto seguiría ocupando alto y la Brother sacaría etiquetas en blanco— y cada
+   etiqueta va en su propia página NOMBRADA de 62 × 62 mm: el ancho del rollo por el largo de cada corte. La etiqueta
+   (44 × 62) va DERECHA y centrada en el ancho: se lee tal como sale del rollo (Felipe, 2026-09-24).
+   Por qué ya no va girada en una hoja de 62 × 44: una página más ancha que alta hace que Chrome la mande «horizontal»,
+   y la Mac (y el driver) la vuelven a girar para calzarla en el rollo; la etiqueta salía derecha pero achicada y
+   corrida a un lado (foto de la tienda, 2026-09-24). La hoja cuadrada no tiene orientación que adivinar. */
+#etiquetas-precio-print {
+  display: none;
+}
+@page etiqueta-precio {
+  size: 62mm 62mm;
+  margin: 0;
+}
+@media print {
+  body:has(#etiquetas-precio-print) > *:not(#etiquetas-precio-print) {
+    display: none !important;
+  }
+  html:has(#etiquetas-precio-print),
+  body:has(#etiquetas-precio-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #etiquetas-precio-print {
+    display: block;
+  }
+  #etiquetas-precio-print .etq-hoja {
+    position: relative;
+    width: 62mm;
+    height: 62mm;
+    overflow: hidden;
+    page: etiqueta-precio;
+    break-after: page;
+  }
+  #etiquetas-precio-print .etq-hoja:last-child {
+    break-after: auto;
+  }
+  /* Centrada en el ancho del rollo: (62 − 44) / 2 = 9 mm a cada lado. */
+  #etiquetas-precio-print .etq-hoja .etiqueta-precio {
+    margin: 0 auto;
   }
 }
 
@@ -515,6 +942,12 @@ body {
   to { opacity: 1; transform: none; }
 }
 
+/* Cajón de un grupo del lateral plegado (2026-09-19): sale desde el lateral, no desde arriba. */
+@keyframes cayla-flota {
+  from { opacity: 0; transform: translate3d(-6px, 0, 0) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
 @keyframes cayla-revelar {
   from { opacity: 0; transform: translate3d(0, -3px, 0); }
   to { opacity: 1; transform: none; }
@@ -684,9 +1117,33 @@ body {
 }
 
 @layer components {
+  /* Hijas de un grupo del lateral: se despliegan por `grid-template-rows: 0fr → 1fr` (sin medir
+     alturas — una medición tardía es un salto) y cada fila aparece con 30 ms de escalón, el mismo
+     de `MenuNuevo` y del desplegable de campos.tsx. Cerradas siguen montadas, con alto 0 y `inert`. */
+  .lateral-hijos {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 300ms var(--ease-cayla);
+  }
+  .lateral-hijos[data-abierto="true"] { grid-template-rows: 1fr; }
+  .lateral-hijos > div { min-height: 0; overflow: hidden; }
+  .lateral-hijo { opacity: 0; transition: opacity 200ms var(--ease-cayla); }
+  /* `> div >`, no un descendiente cualquiera (D-84): un subgrupo (Abastecimiento) mete OTRO `.lateral-hijos` dentro
+     de una `.lateral-hijo` — sin acotar el selector a SU hija directa, abrir Producción encendía de una la opacidad
+     de las pantallas de Abastecimiento aunque el subgrupo siguiera cerrado (sin cascada propia al abrirlo después,
+     porque ya estaban en opacity:1 desde antes). Acotado así, cada `.lateral-hijos` gobierna solo a SUS hijas. */
+  .lateral-hijos[data-abierto="true"] > div > .lateral-hijo {
+    opacity: 1;
+    transition-delay: calc(var(--i, 0) * 30ms + 60ms);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lateral-hijos[data-abierto="true"] > div > .lateral-hijo { transition-delay: 0ms; }
+  }
+
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
   .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }
+  .anim-flota { animation: cayla-flota 220ms var(--ease-cayla) both; }
   .anim-revelar-salida { animation: cayla-revelar-salida 160ms var(--ease-salida) both; }
   .anim-asentar { animation: cayla-asentar 320ms var(--ease-cayla) both; }
 
@@ -697,6 +1154,66 @@ body {
   @media (min-width: 640px) {
     .anim-entrada { animation-name: cayla-entrada; }
   }
+}
+
+/* ---- REGLA DE MODALES (ADR-0136) ------------------------------------------------------------
+   Todo modal del retail se dibuja con `<Modal>` (components/ui/Modal.tsx) y hereda ESTE movimiento
+   sin hacer nada; un modal nuevo NO define su propia animación. El efecto, en orden:
+     1. el velo aparece con desenfoque leve (`anim-velo`, 220 ms);
+     2. la hoja sube 18 px y crece de .965 a 1 (`anim-modal-entra`, 420 ms, --ease-cayla); en móvil es
+        una hoja que sube desde el borde (sin escala: escalarla se ve mal);
+     3. su CONTENIDO entra en cascada (`cascada-modal`): cada pieza sube 10 px y aparece, 55 ms de desfase
+        entre una y otra, empezando 120 ms después de la hoja. Cuenta como pieza el título, la bajada y los
+        hijos directos del modal; si el modal es un único <form>, cuentan los hijos del form.
+     4. al cerrar la hoja se va en 220 ms hacia abajo y el velo se apaga (`anim-modal-sale`).
+   Lo que un modal SÍ puede agregar por su cuenta (y nada más): una barra que se llena, una cifra que cuenta,
+   el «visto» que se dibuja al confirmar — respuestas a una acción, no adorno. Nunca en bucle, sin rebote.
+   `data-sin-cascada` en una pieza la saca de la cascada (p. ej. una lista larga que ya se anima sola).
+   Con movimiento reducido todo colapsa a un instante. Prototipo de referencia:
+   docs/maquetas/comprobantes-animaciones-2026-09/comprobantes-vivo.html (`.velo`, `.modal`, `.st`). ---- */
+@keyframes cayla-modal-entra {
+  from { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.965); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes cayla-modal-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.98); }
+}
+@keyframes cayla-cascada {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+}
+@layer components {
+  /* Móvil: la hoja sube desde el borde (misma que siempre). Escritorio: sube 18 px y crece. */
+  /* `backwards` y no `both` (2026-09-22): terminada la entrada la hoja vuelve a su estilo natural, que es el mismo
+     cuadro final. Con `both` la animación seguía «sosteniendo» el transform y Chrome trataba la hoja como contenedor
+     de todo `position: fixed` de adentro: la lista de un desplegable (usePosicionLista) quedaba otra vez recortada. */
+  .anim-modal-entra { animation: cayla-hoja 380ms var(--ease-cayla) backwards; }
+  .anim-modal-sale { animation: cayla-hoja-salida 220ms var(--ease-salida) both; }
+  @media (min-width: 640px) {
+    .anim-modal-entra { animation-name: cayla-modal-entra; animation-duration: 420ms; }
+    .anim-modal-sale { animation-name: cayla-modal-sale; }
+  }
+
+  /* La cascada del contenido. `backwards`, no `both`: terminada, la pieza vuelve a su estilo normal y su
+     hover/transición puede mover su `transform`. Un <form> hijo directo NO se anima entero (sus hijos sí):
+     animar el form y sus piezas a la vez multiplica la opacidad y se ve sucio. */
+  .cascada-modal > :not(form):not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--k, 0) * 55ms + 120ms);
+  }
+  /* Las piezas de un <form> empiezan después del título y la bajada (2 pasos más). */
+  .cascada-modal > form > :not([data-sin-cascada]) {
+    animation: cayla-cascada 500ms var(--ease-cayla) backwards;
+    animation-delay: calc((var(--k, 0) + 2) * 55ms + 120ms);
+  }
+  .cascada-modal > :nth-child(1), .cascada-modal > form > :nth-child(1) { --k: 0; }
+  .cascada-modal > :nth-child(2), .cascada-modal > form > :nth-child(2) { --k: 1; }
+  .cascada-modal > :nth-child(3), .cascada-modal > form > :nth-child(3) { --k: 2; }
+  .cascada-modal > :nth-child(4), .cascada-modal > form > :nth-child(4) { --k: 3; }
+  .cascada-modal > :nth-child(5), .cascada-modal > form > :nth-child(5) { --k: 4; }
+  .cascada-modal > :nth-child(6), .cascada-modal > form > :nth-child(6) { --k: 5; }
+  .cascada-modal > :nth-child(7), .cascada-modal > form > :nth-child(7) { --k: 6; }
+  .cascada-modal > :nth-child(n + 8), .cascada-modal > form > :nth-child(n + 8) { --k: 7; }
 }
 
 /* ---- Dona de métodos de pago (2026-09-18, segunda tanda) ----
@@ -732,12 +1249,11 @@ body {
 
 /* ---- Encabezado de Caja: reloj del turno y estado de sincronización (2026-09-18, 3ª
         tanda) — ver CajaAbiertaPanel.tsx. Lo que se mueve aquí es hora real, no adorno:
-        el dígito rueda cuando cambia, la aguja da la vuelta cada 60 s y las ondas de
+        el dígito rueda cuando cambia y las ondas de
         "sincronizado" respiran. `caja-ping` parte de `opacity: 0` (base) para que sin
         animación —movimiento reducido— la onda no quede como un disco sólido detrás del
         ícono. ---- */
 @keyframes caja-rueda { from { opacity: 0; transform: translateY(0.35em); } }
-@keyframes caja-aguja { to { transform: rotate(360deg); } }
 @keyframes caja-ping {
   0% { transform: scale(0.9); opacity: 0.45; }
   70%, 100% { transform: scale(2.4); opacity: 0; }
@@ -746,7 +1262,6 @@ body {
 
 @layer components {
   .anim-rueda { animation: caja-rueda 320ms var(--ease-cayla) both; }
-  .anim-caja-aguja { transform-origin: 10px 10px; animation: caja-aguja 60s linear infinite; }
   .anim-caja-ping { opacity: 0; animation: caja-ping 2.8s var(--ease-cayla) infinite; }
   .anim-caja-check path { stroke-dasharray: 14; animation: caja-trazo 520ms var(--ease-cayla) 120ms backwards; }
 }
@@ -783,6 +1298,453 @@ body {
   .anim-vivo-delta { animation: vivo-delta 2800ms var(--ease-cayla) both; }
   .anim-vivo-onda { animation: vivo-onda 1500ms var(--ease-cayla) 2 both; }
   .anim-vivo-fila { animation: vivo-destello 3400ms var(--ease-cayla) both; }
+}
+
+/* ==================================================================
+   La «isla» de vidrio de Facturación (ADR-0124).
+
+   Vidrio = superficie translúcida con desenfoque. No agrega ningún color: solo blanco
+   translúcido y tinta sobre el crema de siempre. Vive bajo `.tema-vidrio` (la raíz del
+   layout de /vender/facturacion) y NO en `:root`: llevarlo a otras pantallas sería mover
+   variables del sistema, y esa es otra decisión.
+
+   Rendimiento: el desenfoque cuesta en las tablets de las tiendas. Se limita a las
+   tarjetas de arriba (R2), al contenedor de pestañas y a los botones «vidrio». Si se
+   nota, se baja `--vidrio-blur` acá (`.tema-vidrio`, para tarjetas y botones); el contenedor
+   de pestañas fija el suyo (22 px, en `.pestanas-vidrio`) y se baja allá.
+
+   Movimiento: la transición de la píldora es de `transform`/`width`, y la regla global de
+   movimiento reducido (`transition-duration: 1ms !important`, al final del archivo) ya la
+   apaga sola.
+   ================================================================== */
+@layer components {
+  .tema-vidrio {
+    --vidrio-blur: 18px;
+  }
+
+  .vidrio-cayla {
+    background: rgb(255 255 255 / var(--vidrio-alfa, 0.58));
+    border: 1px solid rgb(26 26 24 / var(--vidrio-borde, 0.12));
+    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px));
+    backdrop-filter: blur(var(--vidrio-blur, 18px));
+  }
+
+  /* Pestañas: un contenedor de vidrio con una píldora negra que se desliza bajo la
+     etiqueta activa. La píldora la coloca `FacturacionPestanas` midiendo el DOM y
+     escribiendo `--pildora-x` y `--pildora-w` sobre este mismo elemento (sin estado de
+     React, como `Ayuda.tsx`: el primer cuadro ya sale bien puesto). */
+  .pestanas-vidrio {
+    --vidrio-alfa: 0.45;
+    --vidrio-borde: 0.09;
+    --vidrio-blur: 22px;
+    position: relative;
+    display: inline-flex;
+    max-width: 100%;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 14px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  /* Con pantalla ancha las cuatro pestañas caben siempre: sin recorte, la sombra de la
+     píldora (que se derrama bajo el contenedor, como en la maqueta aprobada) y el anillo de
+     foco de las pestañas de los extremos se ven completos. El umbral es de 1024 px y no de
+     celular a tablet: desde 640 px el menú lateral (17rem) y el margen de la página se comen
+     352 px, y a 768 el contenedor mide ~400 px para unas pestañas que suman ~545 (con
+     `visible` la última se saldría del vidrio y de la pantalla). Por debajo de 1024 px sigue
+     desplazándose en horizontal, y ahí sí recorta la sombra (el mal menor). */
+  @media (min-width: 64rem) {
+    .pestanas-vidrio {
+      overflow: visible;
+    }
+  }
+
+  .pestanas-vidrio__pildora {
+    position: absolute;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    width: var(--pildora-w, 0px);
+    transform: translateX(var(--pildora-x, 0px));
+    border-radius: 10px;
+    background: var(--color-tinta);
+    box-shadow: 0 8px 18px -10px rgb(26 26 24 / 0.75);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Hasta que la píldora está medida (el primer cuadro, antes de hidratar), la pestaña
+     activa se pinta a sí misma: así nunca hay un cuadro con la etiqueta en crema sobre
+     el vidrio, ilegible. */
+  .pestanas-vidrio:not([data-medido]) [aria-current="page"] {
+    background: var(--color-tinta);
+  }
+
+  .pestanas-vidrio[data-medido] .pestanas-vidrio__pildora {
+    opacity: 1;
+  }
+
+  /* La transición se habilita recién después de la primera pintura: la píldora nace en su
+     lugar y solo se desliza cuando cambia la pestaña. */
+  .pestanas-vidrio[data-listo] .pestanas-vidrio__pildora {
+    transition:
+      transform 450ms var(--ease-cayla),
+      width 450ms var(--ease-cayla);
+  }
+}
+
+/* ------------------------------------------------------------------
+   Tarjetas de indicador de la isla (R2, ADR-0124): borde izquierdo de 3 px en el color del
+   estado, un tinte que se difumina hacia la derecha («Sutil») y una luz que sigue al cursor
+   (`TarjetaKpiVidrio` escribe `--mx`/`--my`). Valores de la maqueta v8 aprobada por Felipe.
+
+   `@property --kc` va fuera de capa (no es una regla de clase) para que el color de la tarjeta se
+   DESLICE cuando cambia el estado (ámbar → verde al quedar sin pendientes). Sin soporte cambia de
+   golpe y no se rompe nada. Sin sombra en reposo (ADR-0012); al pasar el mouse sube 2 px y toma
+   `--shadow-md`.
+   ------------------------------------------------------------------ */
+@property --kc {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #a47865;
+}
+
+@keyframes kpi-trazo {
+  from { stroke-dashoffset: 1; }
+}
+@keyframes kpi-crece {
+  from { transform: scaleY(0); }
+}
+@keyframes kpi-llena {
+  from { width: 0; }
+}
+
+@layer components {
+  .kpi-vidrio-envoltura {
+    position: relative;
+    transition:
+      --kc 800ms var(--ease-cayla),
+      transform 260ms var(--ease-cayla);
+  }
+  .kpi-vidrio-envoltura[data-tono="verde"] { --kc: var(--color-verde); }
+  .kpi-vidrio-envoltura[data-tono="ambar"] { --kc: var(--color-ambar); }
+  .kpi-vidrio-envoltura[data-tono="rojo"] { --kc: var(--color-rojo); }
+  .kpi-vidrio-envoltura[data-tono="taupe"] { --kc: var(--color-taupe); }
+
+  .kpi-vidrio {
+    position: relative;
+    /* Las cajas de una fila miden lo mismo: la envoltura es la que se estira en el grid. */
+    height: 100%;
+    overflow: hidden;
+    padding: 18px 18px 16px;
+    border-radius: 16px;
+    border: 1px solid var(--color-sand);
+    border-left: 3px solid var(--kc);
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.72), rgb(251 248 242 / 0.42));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95);
+    -webkit-backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
+    backdrop-filter: blur(var(--vidrio-blur, 18px)) saturate(1.2);
+    transition: box-shadow 260ms var(--ease-cayla);
+  }
+  /* El tinte: el color del estado al 14 % que se difumina hacia la derecha hasta el 62 %. */
+  .kpi-vidrio::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--kc) 14%, transparent) 0%, transparent 62%);
+  }
+  /* La luz especular: un resplandor blanco que sigue al cursor y solo aparece al pasar el mouse. */
+  .kpi-vidrio::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 350ms;
+    background: radial-gradient(240px 170px at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.85), transparent 68%);
+  }
+  /* El contenido por encima del tinte y de la luz. Sin `z-index` la luz (`::after`, la última en el
+     árbol) se pintaba ENCIMA del texto y lo lavaba justo cuando el cursor pasaba por la tarjeta. */
+  .kpi-vidrio > * {
+    position: relative;
+    z-index: 1;
+  }
+  .kpi-vidrio__icono {
+    display: inline-flex;
+    color: var(--kc);
+  }
+
+  @media (hover: hover) {
+    .kpi-vidrio-envoltura:hover {
+      transform: translateY(-2px);
+    }
+    .kpi-vidrio-envoltura:hover .kpi-vidrio {
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), var(--shadow-md);
+    }
+    .kpi-vidrio:hover::after {
+      opacity: 1;
+    }
+  }
+
+  /* Visualizaciones (todas `aria-hidden`: el dato ya está dicho con palabras en la tarjeta). */
+  .kpi-viz {
+    position: relative;
+    height: 36px;
+    margin-top: 10px;
+  }
+  .kpi-spark {
+    display: block;
+    width: 100%;
+    height: 36px;
+    overflow: visible;
+  }
+  .kpi-spark path {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .kpi-spark__antes {
+    stroke: rgb(26 26 24 / 0.35);
+    stroke-width: 1.3;
+    stroke-dasharray: 0.03 0.05;
+  }
+  .kpi-spark__hoy {
+    stroke: rgb(26 26 24 / 0.85);
+    stroke-width: 1.8;
+    stroke-dasharray: 1;
+    stroke-dashoffset: 0;
+  }
+  .kpi-spark__fin {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 0.85);
+  }
+  .kpi-eje::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 12px;
+    height: 1px;
+    background: rgb(26 26 24 / 0.55);
+    opacity: 0.5;
+  }
+  .kpi-eje i {
+    position: absolute;
+    bottom: 8px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 2px rgb(255 255 255 / 0.85);
+  }
+  .kpi-eje em {
+    position: absolute;
+    bottom: -2px;
+    font: 500 11px/1 var(--font-sans);
+    font-style: normal;
+    color: rgb(26 26 24 / 0.55);
+  }
+  .kpi-progreso {
+    height: 6px;
+    margin-top: 14px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: rgb(26 26 24 / 0.1);
+  }
+  .kpi-progreso b {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-verde);
+    transition: width 700ms var(--ease-cayla);
+  }
+  .kpi-progreso__texto {
+    margin-top: 6px;
+    font-size: 13px;
+    color: rgb(26 26 24 / 0.65);
+  }
+  .kpi-barras {
+    display: flex;
+    align-items: flex-end;
+    /* En porcentaje: con 16 barras y un hueco fijo de 7 px, en una tarjeta angosta cada barra quedaba en una raya. */
+    gap: 3%;
+  }
+  .kpi-barras i {
+    flex: 1;
+    background: rgb(26 26 24 / 0.78);
+    border-radius: 3px 3px 0 0;
+    transform-origin: bottom;
+  }
+  .kpi-barras u {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed rgb(26 26 24 / 0.55);
+    text-decoration: none;
+  }
+
+  /* El primer pintado: el trazo se dibuja, la barra se llena y las barras del ticket crecen
+     (menos de 1 s; excepción aprobada a «nada se anima solo al entrar», ADR-0011). Con
+     movimiento reducido ni siquiera existen: se ve el resultado, no el viaje. */
+  @media (prefers-reduced-motion: no-preference) {
+    .kpi-spark__hoy {
+      animation: kpi-trazo 800ms var(--ease-cayla) 200ms backwards;
+    }
+    .kpi-progreso b {
+      animation: kpi-llena 600ms var(--ease-cayla) 200ms backwards;
+    }
+    .kpi-barras i {
+      animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------
+   El hilo del comprobante (R2, ADR-0124): cuatro nodos —venta, número, SUNAT, aceptado— y tres
+   tramos, en verde cuando está hecho, ámbar cuando falta o se espera, rojo si SUNAT rechazó, y
+   punteado en tinta —nunca verde— si SUNAT no lo vio (pruebas). Valores de la maqueta v8. Cuando
+   un comprobante cambia de estado, los mismos nodos cambian de clase y estas transiciones
+   animan el paso: el relleno, el tilde que se traza y el tramo que avanza.
+   ------------------------------------------------------------------ */
+@keyframes hilo-ping {
+  0% { transform: scale(0.9); opacity: 0.45; }
+  70%, 100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes hilo-barrido {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(190%); }
+}
+
+@layer components {
+  .hilo-comprobante {
+    display: inline-flex;
+    align-items: center;
+    height: 16px;
+  }
+  .hilo-n {
+    position: relative;
+    display: block;
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid rgb(26 26 24 / 0.24);
+    background: transparent;
+    transition:
+      background-color 450ms var(--ease-cayla),
+      border-color 450ms var(--ease-cayla);
+  }
+  .hilo-n--on {
+    background: var(--color-verde);
+    border-color: var(--color-verde);
+  }
+  .hilo-n--next {
+    border-color: var(--color-ambar);
+    border-style: dashed;
+  }
+  .hilo-n--wait {
+    background: var(--color-ambar);
+    border-color: var(--color-ambar);
+  }
+  /* El anillo que late: SUNAT recibió el comprobante y todavía no contesta. */
+  .hilo-n--wait::after {
+    content: "";
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 50%;
+    border: 1.5px solid var(--color-ambar);
+    animation: hilo-ping 1.8s var(--ease-cayla) infinite;
+  }
+  .hilo-n--bad {
+    background: var(--color-rojo);
+    border-color: var(--color-rojo);
+  }
+  /* Aceptado en el entorno de pruebas: SUNAT no lo vio. Punteado y sin relleno, jamás verde. */
+  .hilo-n--prueba {
+    border-color: rgb(26 26 24 / 0.4);
+    border-style: dashed;
+  }
+  .hilo-n--apagado {
+    border-color: rgb(26 26 24 / 0.25);
+  }
+  .hilo-n svg {
+    position: absolute;
+    inset: 1px;
+    width: calc(100% - 2px);
+    height: calc(100% - 2px);
+    fill: none;
+    stroke: #fff;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* Los dos trazos existen siempre (con `pathLength=1`): el estado prende uno por clase y se dibuja. */
+  .hilo-n path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    transition: stroke-dashoffset 500ms var(--ease-cayla) 180ms;
+  }
+  .hilo-n--on .hilo-ck,
+  .hilo-n--bad .hilo-xx {
+    stroke-dashoffset: 0;
+  }
+  .hilo-l {
+    position: relative;
+    display: block;
+    width: 26px;
+    height: 2px;
+    flex: none;
+    overflow: hidden;
+    border-radius: 2px;
+    background: rgb(26 26 24 / 0.24);
+  }
+  .hilo-l::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: var(--color-verde);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 600ms var(--ease-cayla);
+  }
+  .hilo-l--on::after {
+    transform: scaleX(1);
+  }
+  .hilo-l--prueba {
+    background: rgb(26 26 24 / 0.4);
+  }
+  .hilo-l--apagado {
+    background: rgb(26 26 24 / 0.15);
+  }
+  /* Mientras se transmite: un destello ámbar recorre el tramo hacia SUNAT. */
+  .hilo-l--trabaja::after {
+    width: 55%;
+    transform: none;
+    background: linear-gradient(90deg, transparent, var(--color-ambar), transparent);
+    animation: hilo-barrido 900ms linear infinite;
+  }
+
+  /* Con movimiento reducido las animaciones que nunca terminan se apagan (el anillo y el destello). */
+  @media (prefers-reduced-motion: reduce) {
+    .hilo-n--wait::after {
+      display: none;
+    }
+    .hilo-l--trabaja::after {
+      animation: none;
+    }
+  }
 }
 
 /* ---- Proveedores (2026-09-19, ADR-0128): la entrada escalonada y los gestos que responden ----
@@ -854,6 +1816,93 @@ body {
   }
 }
 
+/* ---- Por pagar (2026-09-19, spike `docs/maquetas/por-pagar-spike-2026-09/`, mismo modelo que Proveedores) ----
+        · destello-ok: la fila que acaba de RECIBIR un pago parcial se enciende en verde (la de Proveedores es
+          roja: aquella marca «lo que acabas de crear»; ésta, «plata que salió»). 2.4 s y se apaga sola;
+          `backwards` para no retener un `background` que taparía el hover.
+        · tilde: el check de una casilla se DIBUJA (`pathLength="1"` en el SVG). Más corto que `anim-trazo`
+          (320 ms, sin desfase): responde a un clic, no acompaña una llegada.
+        · pagada: la fila que se acaba de pagar por completo muestra su sello unos instantes antes de plegarse
+          (el pliegue en sí es JS: `PorPagarLista`, Web Animations sobre la altura).
+        Sin rebote, sin color nuevo. ---- */
+@keyframes cayla-destello-ok {
+  from { background-color: color-mix(in srgb, var(--color-verde) 20%, transparent); }
+  to { background-color: transparent; }
+}
+@layer components {
+  .anim-destello-ok { animation: cayla-destello-ok 2400ms var(--ease-cayla) backwards; }
+  .anim-tilde { animation: cayla-trazo-entra 320ms var(--ease-cayla) backwards; }
+}
+
+/* ---- Recibir mercadería (2026-09-19, spike de Recibir): lo que responde al contar ----
+        · lectura: cuando la pistola lee una etiqueta la fila se tiñe de verde suave y se apaga sola (1.5 s).
+          Es el mismo gesto que `anim-destello-fila`, en verde porque es una CONFIRMACIÓN («entró»), no un
+          aviso («esto acaba de pasar»). `backwards`: al terminar no retiene el fondo.
+        · camino: el estado vacío de «¿Qué llegó?» — un camión va y viene sobre un camino punteado que corre.
+          Es adorno, no información: con movimiento reducido se detiene del todo.
+        · sello / onda / hilo-libro: el «Envío recibido». El check se traza, dos ondas salen del sello y los
+          movimientos que quedaron escritos cuelgan de un hilo que crece hacia abajo (el hilo del Atelier). ---- */
+@keyframes cayla-destello-lectura {
+  from { background-color: color-mix(in srgb, var(--color-verde) 20%, transparent); }
+  to { background-color: transparent; }
+}
+@keyframes cayla-camino {
+  to { background-position: -24px 0; }
+}
+@keyframes cayla-camion {
+  /* va a la derecha, da la vuelta (scaleX -1) y regresa mirando a la izquierda: nunca va de reversa */
+  0%, 4% { transform: translate3d(-90px, 0, 0) scaleX(1); }
+  46%, 50% { transform: translate3d(90px, 0, 0) scaleX(1); }
+  50.01%, 54% { transform: translate3d(90px, 0, 0) scaleX(-1); }
+  96%, 100% { transform: translate3d(-90px, 0, 0) scaleX(-1); }
+}
+@keyframes cayla-sale {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translate3d(0, 4px, 0) scale(0.97); }
+}
+@keyframes cayla-barra {
+  from { transform: translate3d(0, 110%, 0); }
+  to { transform: none; }
+}
+@keyframes cayla-cinta {
+  from { transform: translate3d(-100%, 0, 0); opacity: 1; }
+  to { transform: translate3d(400%, 0, 0); opacity: 0; }
+}
+@keyframes cayla-onda {
+  0% { transform: scale(0.6); opacity: 0.55; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes cayla-pulso {
+  0% { transform: scale(1); opacity: 0.5; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@layer components {
+  /* punto «vivo»: late suave junto a lo que pide atención (Atrasadas). Adorno: se detiene con movimiento reducido. */
+  .punto-vivo { position: relative; }
+  .punto-vivo::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: inherit; animation: cayla-pulso 2.2s var(--ease-cayla) infinite; }
+  /* la barra fija de totales sube desde el borde al aparecer el envío (420 ms) */
+  /* lo que se quita (un chip, una fila) se va en 200 ms antes de desmontarse; con movimiento reducido, al instante */
+  .anim-sale { animation: cayla-sale 200ms var(--ease-salida) both; }
+  .anim-barra { animation: cayla-barra 420ms var(--ease-cayla) backwards; }
+  .anim-cinta { animation: cayla-cinta 620ms var(--ease-cayla) both; }
+  .anim-destello-lectura { animation: cayla-destello-lectura 1500ms var(--ease-cayla) backwards; }
+  .recibir-camino {
+    /* rayas de un SVG, no un gradiente: el único gradiente del sistema es el barrido del botón */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='2'%3E%3Crect width='12' height='2' fill='%231a1a18' fill-opacity='.25'/%3E%3C/svg%3E");
+    background-size: 24px 2px;
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    animation: cayla-camino 1.4s linear infinite;
+  }
+  .recibir-camion { animation: cayla-camion 10s ease-in-out infinite; }
+  .anim-sello path { stroke-dasharray: 1; animation: cayla-trazo-entra 700ms var(--ease-cayla) backwards; }
+  .anim-sello path:last-child { animation-duration: 460ms; animation-delay: 560ms; }
+  .anim-onda { opacity: 0; animation: cayla-onda 1400ms var(--ease-cayla) 700ms backwards; }
+  .anim-onda-2 { animation-delay: 1000ms; }
+  .recibir-hilo { transform-origin: top; animation: cayla-crece-y 900ms var(--ease-cayla) 500ms backwards; }
+  .anim-movimiento { animation: cayla-entrada 320ms var(--ease-cayla) backwards; animation-delay: calc(700ms + var(--i, 0) * 70ms); }
+}
+
 /* Accesibilidad: quien pidió menos movimiento ve el resultado, no el viaje.
    No se elimina la animación (eso rompería `both` y dejaría estados a medias),
    se colapsa a un instante. */
@@ -861,7 +1910,10 @@ body {
   @media (prefers-reduced-motion: reduce) {
     .anim-velo,
     .anim-entrada,
+    .anim-modal-entra,
+    .anim-modal-sale,
     .anim-revelar,
+    .anim-flota,
     .anim-revelar-salida,
     .anim-asentar,
     .anim-globo,
@@ -885,7 +1937,15 @@ body {
     .anim-crece-x,
     .anim-crece-y,
     .group:hover .trazo-al-pasar,
-    .anim-vivo-fila {
+    .anim-vivo-fila,
+    .anim-destello-lectura,
+    .anim-cinta,
+    .anim-barra,
+    .anim-sale,
+    .anim-sello path,
+    .anim-onda,
+    .recibir-hilo,
+    .anim-movimiento {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
@@ -895,7 +1955,6 @@ body {
       animation-duration: 1ms;
       animation-delay: 0ms;
     }
-    .anim-caja-aguja,
     .anim-caja-ping { animation: none; }
     .alza-cayla:hover { transform: none; }
     .hilo-trabajando::after { animation: none; }
@@ -905,7 +1964,10 @@ body {
        detiene del todo; el resto se acorta a un instante. */
     .hilo-corre,
     .gira-lento,
-    .aguja-hilo { animation: none; }
+    .aguja-hilo,
+    .recibir-camino,
+    .recibir-camion,
+    .punto-vivo::after { animation: none; }
     .anim-sube,
     .hilo-dibuja,
     .hilo-vertical,
@@ -918,11 +1980,132 @@ body {
     .boton-brillo:hover:not(:disabled)::after { animation: none; }
   }
 }
+/* ==================================================================
+   Cobro guiado (2026-09-19, Felipe): qué toca ahora, y una luz que enseña dónde tocar.
+   La fila de medios es UNA franja: por debajo corre un degradado con el color de cada medio
+   en su lugar (efectivo, tarjeta, yape, plin, transferencia) y por encima una ventana suave de
+   luz (`mask`) que se desliza de izquierda a derecha y vuelve. La luz nunca se apaga ni tiene
+   bordes: lo único que cambia es su color, según el medio que va cruzando. `--pos` (0..4) es
+   dónde está la luz; el resto sale de ese solo número.
+   ================================================================== */
+@property --pos {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0;
+}
+@layer components {
+  /* Los tres colores de cada medio: fuerte (borde/halo), suave (fondo) y tinta (texto). */
+  .metodo-efectivo { --c: var(--color-metodo-efectivo); --cd: var(--color-metodo-efectivo-tinta); }
+  .metodo-tarjeta { --c: var(--color-metodo-tarjeta); --cd: var(--color-metodo-tarjeta); }
+  .metodo-yape { --c: var(--color-metodo-yape); --cd: var(--color-metodo-yape); }
+  .metodo-plin { --c: var(--color-metodo-plin); --cd: var(--color-metodo-plin); }
+  .metodo-transferencia { --c: var(--color-metodo-transferencia); --cd: var(--color-metodo-transferencia); }
+  [class*="metodo-"] { --ct: color-mix(in srgb, var(--c) 22%, var(--color-papel)); }
+
+  /* La luz: 4.6 s. Se queda en efectivo ~1.2 s, se desliza hasta transferencia (~1.6 s) y vuelve
+     igual de suave. Solo mientras no haya ningún medio elegido; se congela con el cursor encima. */
+  .ola-activa {
+    position: relative;
+    /* Dónde está la luz, en % del ancho: los cinco medios son cinco columnas iguales (centros en
+       10, 30, 50, 70 y 90 %). */
+    --x: calc(10% + var(--pos) * 20%);
+    animation: ola-pos 4.6s infinite;
+  }
+  .ola-activa:hover { animation-play-state: paused; }
+  .ola-activa::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    /* El color de cada medio en su columna; `oklab` evita que el paso de un color a otro se ensucie. */
+    background: linear-gradient(
+      in oklab 90deg,
+      color-mix(in srgb, var(--color-metodo-efectivo) 34%, var(--color-papel)) 10%,
+      color-mix(in srgb, var(--color-metodo-tarjeta) 28%, var(--color-papel)) 30%,
+      color-mix(in srgb, var(--color-metodo-yape) 28%, var(--color-papel)) 50%,
+      color-mix(in srgb, var(--color-metodo-plin) 28%, var(--color-papel)) 70%,
+      color-mix(in srgb, var(--color-metodo-transferencia) 28%, var(--color-papel)) 90%
+    );
+    /* La ventana de luz: opaca en el centro y desvanecida a los lados (un medio de ancho y medio). */
+    -webkit-mask-image: linear-gradient(90deg, transparent calc(var(--x) - 26%), #000 var(--x), transparent calc(var(--x) + 26%));
+    mask-image: linear-gradient(90deg, transparent calc(var(--x) - 26%), #000 var(--x), transparent calc(var(--x) + 26%));
+  }
+  /* «Confirmar cobro» cuando ya se puede: un respiro suave, en tinta. */
+  .cobrar-listo { animation: cobrar-listo 1.8s ease-in-out infinite; }
+
+  /* Movimiento reducido: sin luz ni respiro (adorno que se repite, no información). Va DENTRO de
+     la capa (ADR-0105) y DESPUÉS de las reglas de arriba. `--pos` lejos de la fila deja la luz
+     fuera, apagada. */
+  @media (prefers-reduced-motion: reduce) {
+    .ola-activa {
+      animation: none;
+      --pos: 20;
+    }
+    .cobrar-listo {
+      animation: none;
+    }
+  }
+}
+@keyframes ola-pos {
+  0%, 26% { --pos: 0; animation-timing-function: ease-in-out; }
+  60%, 64% { --pos: 4; animation-timing-function: ease-in-out; }
+  100% { --pos: 0; }
+}
+@keyframes cobrar-listo {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--color-tinta) 16%, transparent); }
+}
+
 /* Fuera de capa a propósito: el `!important` de movimiento reducido tiene que ganarle
    a toda utilidad (`duration-*`, `transition-*`), y esta regla no es una clase de
    componente sino una preferencia de la persona. */
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     transition-duration: 1ms !important;
+  }
+}
+
+/* ==================================================================
+   Boleta / factura A4. `#boleta-a4-print` lo monta el detalle de venta pegado a <body>
+   y en pantalla no se ve. Al imprimir desaparece TODO lo demás (`display:none`, no
+   `visibility`: lo oculto seguiría ocupando alto y sacaría hojas en blanco). Es una
+   raíz aparte de `#comprobante-print` (la térmica): nunca están montadas a la vez.
+   `@page a4` es una página NOMBRADA: el A4 lleva su tamaño y sus márgenes sin pisar la
+   regla de la térmica (`@page { margin: 0 }`).
+   ================================================================== */
+#boleta-a4-print {
+  display: none;
+}
+@page a4 {
+  size: A4;
+  margin: 12mm;
+}
+@media print {
+  body:has(#boleta-a4-print) > *:not(#boleta-a4-print) {
+    display: none !important;
+  }
+  html:has(#boleta-a4-print),
+  body:has(#boleta-a4-print) {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    margin: 0 !important;
+  }
+  #boleta-a4-print {
+    display: block;
+    page: a4;
+    color: #000;
+    background: #fff;
+  }
+}
+
+/* La cascada de contenido de los modales (ADR-0136): sin movimiento, las piezas ya están donde van.
+   Dentro de `@layer components` (ADR-0105): una regla de clase sin capa le gana a toda utilidad de Tailwind. */
+@layer components {
+  @media (prefers-reduced-motion: reduce) {
+    .cascada-modal > :not(form):not([data-sin-cascada]),
+    .cascada-modal > form > :not([data-sin-cascada]) { animation: none; }
   }
 }

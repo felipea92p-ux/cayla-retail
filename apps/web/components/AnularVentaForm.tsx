@@ -7,6 +7,9 @@ import { traducirError } from "@/lib/error-escritura";
 import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -46,6 +49,8 @@ export function AnularVentaForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
+  // Quién anula (ADR-0161): la base firma la anulación con el responsable del combo, no con la cuenta.
+  const responsable = useResponsable();
 
   useEffect(() => {
     let cancelado = false;
@@ -87,15 +92,23 @@ export function AnularVentaForm({
       return;
     }
     if (!items) return;
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("anular_venta", {
-      p_venta_id: linea.ventaId,
-      p_motivo: motivo.trim(),
-      p_items: items.map((i) => ({ venta_item_id: i.ventaItemId, condicion: condiciones[i.ventaItemId] })),
-    });
+    const { error } = await firmar(
+      supabase.rpc("anular_venta", {
+        p_venta_id: linea.ventaId,
+        p_motivo: motivo.trim(),
+        p_items: items.map((i) => ({ venta_item_id: i.ventaItemId, condicion: condiciones[i.ventaItemId] })),
+      }),
+      responsable.firma(),
+    );
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "anular la venta"));
       return;
@@ -174,11 +187,12 @@ export function AnularVentaForm({
 
           {error && <p className="text-sm text-rojo">{error}</p>}
 
+          <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={cerrar} className={botonCancelar}>
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !items} className={botonPrimario}>
+            <button type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
               {loading ? "Anulando…" : "Anular venta"}
             </button>
           </div>

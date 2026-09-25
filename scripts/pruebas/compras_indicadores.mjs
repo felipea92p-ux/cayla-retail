@@ -85,6 +85,13 @@ set local request.jwt.claim.sub = '${authUserId}';
 ${sql}
 `;
 const cambiaA = (authUserId) => `set local request.jwt.claim.sub = '${authUserId}';\n`;
+// ADR-0161 P3 (20260923140000): la ficha de un proveedor se abre a quien ve el módulo Proveedores. La base local es
+// compartida y su rol Integrante puede tenerlo encendido: dentro de la transacción se le apaga para probar el «sin módulo».
+const SIN_PROVEEDORES = `do $$ begin
+  if to_regclass('retail.rol_modulos') is not null then
+    delete from retail.rol_modulos where modulo = 'proveedores' and rol_id = (select id from retail.roles where clave = 'integrante');
+  end if;
+end $$;\n`;
 
 /** Proveedores, ubicaciones, la variante y un segundo producto del seed. */
 const BASE = `
@@ -723,8 +730,9 @@ exito(
   comoPersona(
     FELIPE,
     `${BASE}${FOTO_DEUDA}${FOTO_SALIDAS}${fotoPP("b_pp")}${FOTO_RC}
-insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, ubicacion_destino_id, subtotal, igv, total)
-  values (:'prov1', 'factura', 'TST', 'CI' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), retail.fn_hoy_lima(), 'contado', null, :'taller', 100.00, 18.00, 118.00);
+-- ubicacion_gestion_id: ADR-0184 (F3, migración 20260923180200) la exige en toda factura vigente.
+insert into retail.compras (proveedor_id, tipo, serie, numero, fecha_emision, condicion, fecha_vencimiento, subtotal, igv, total, ubicacion_gestion_id)
+  values (:'prov1', 'factura', 'TST', 'CI' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 10), retail.fn_hoy_lima(), 'contado', null, 100.00, 18.00, 118.00, :'taller');
 select
   (select d.comprobantes - b.comprobantes from retail.deuda_por_vencimiento() d join b_dv b using (tramo) where tramo = '0_7'),
   (select (d.monto - b.monto)::numeric(12,2) from retail.deuda_por_vencimiento() d join b_dv b using (tramo) where tramo = '0_7'),
@@ -1016,7 +1024,7 @@ exito(
   "por_pagar_tramos acepta el tipo de documento y el rango de emisión igual que listar_compras, y quedó UNA sola firma (sin sobrecarga)",
   comoPersona(
     FELIPE,
-    `${BASE}select pg_get_function_arguments('retail.por_pagar_tramos(uuid, text, boolean, text, text, date, date)'::regprocedure) ilike '%p_tipo%',
+    `${BASE}select (select pg_get_function_arguments(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'por_pagar_tramos') ilike '%p_tipo%',  -- por nombre, no por firma: la tienda de destino (ADR-0139, 20260921130000) le sumó un parámetro
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'por_pagar_tramos');
 rollback;
 `
@@ -1636,7 +1644,7 @@ exito(
     `${BASE}${nuevoProv("pa", { nombre: "ZZ Prueba A" })}${nuevoProv("pb", { nombre: "ZZ Prueba B", activo: false })}${nuevoProv("pc", { nombre: "ZZ Prueba C" })}
 select bool_and(not (coalesce(l.activo_ant, true) = false and l.activo)) and bool_and(l.activo_ant is distinct from l.activo or l.nombre_ant is null or l.nombre >= l.nombre_ant)
 from (select f.activo, f.nombre, lag(f.activo) over (order by f.ord) as activo_ant, lag(f.nombre) over (order by f.ord) as nombre_ant
-  from retail.fn_proveedores() with ordinality as f(id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, facturas, total_facturado, saldo, ultima_compra, facturas_vencidas, facturas_recibidas_completas, facturas_con_recepcion_pendiente, facturas_atrasadas, rubro, plazo_credito_dias, forma_pago_preferida, facturado_12m, saldo_vencido, dias_desde_ultima_compra, entregas_por_recibir, saldo_favor, ord)) l;
+  from retail.fn_proveedores() with ordinality as f(id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, facturas, total_facturado, saldo, ultima_compra, facturas_vencidas, facturas_recibidas_completas, facturas_con_recepcion_pendiente, facturas_atrasadas, rubro, plazo_credito_dias, forma_pago_preferida, facturado_12m, saldo_vencido, dias_desde_ultima_compra, entregas_por_recibir, saldo_favor, cci, celular_billetera, billeteras, titular_cuenta, ord)) l;
 rollback;
 `
   ),
@@ -1897,19 +1905,19 @@ rollback;
 error(
   "permisos: la ficha de un proveedor (métricas de compras) es solo de líder — Micaela recibe un error, no cifras",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_metricas_compras(:'prov1');`),
-  "Solo un líder puede ver las métricas de un proveedor."
+  "Los montos de compras de un proveedor necesitan Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
 );
 
 error(
   "permisos: la evolución del costo de un proveedor es solo de líder",
   comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_costo_evolucion(:'prov1');`),
-  "Solo un líder puede ver la evolución del costo de un proveedor."
+  "La evolución del costo de un proveedor necesita Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
 );
 
 error(
-  "permisos: las devoluciones a un proveedor son solo de líder",
-  comoPersona(FELIPE, `${BASE}${cambiaA(MICAELA)}select * from retail.fn_proveedor_devoluciones(:'prov1');`),
-  "Solo un líder puede ver las devoluciones a un proveedor."
+  "permisos: sin el módulo Proveedores, las devoluciones a un proveedor no se ven (P3, 20260923140000: con el módulo, sí)",
+  comoPersona(FELIPE, `${BASE}${SIN_PROVEEDORES}${cambiaA(MICAELA)}select * from retail.fn_proveedor_devoluciones(:'prov1');`),
+  "Ver las devoluciones a un proveedor necesita el módulo Proveedores" // ADR-0161 P3 (20260923140000)
 );
 
 exito(
@@ -2000,7 +2008,7 @@ rollback;
 error(
   "sin sesión: la ficha de un proveedor (métricas) tampoco se entrega — «solo un líder»",
   comoPersona(FELIPE, `${BASE}set local request.jwt.claim.sub = '';\nselect * from retail.fn_proveedor_metricas_compras(:'prov1');`),
-  "Solo un líder puede ver las métricas de un proveedor."
+  "Los montos de compras de un proveedor necesitan Facturas de compra, Por pagar o Notas de crédito" // ADR-0161 P3 (20260923140000)
 );
 
 // ===========================================================================

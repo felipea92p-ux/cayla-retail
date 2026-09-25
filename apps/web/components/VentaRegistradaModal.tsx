@@ -102,7 +102,8 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                   </span>
                   <span className="text-[11px] text-tinta/60">{ok.estado ? ESTADO_ETIQUETA[ok.estado] : "Emitida"}</span>
                 </div>
-                <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/70">
+                {/* La nota de venta no desglosa IGV (ADR-0164). */}
+                {r.tipo !== "nota_venta" && <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs text-tinta/70">
                   <p className="flex justify-between tabular-nums">
                     <span>Subtotal</span>
                     <span>{money(r.subtotal)}</span>
@@ -111,7 +112,7 @@ export function VentaRegistradaModal({ ok, ubicacionEtiqueta, onClose, alCerrarE
                     <span>IGV (18%)</span>
                     <span>{money(r.igv)}</span>
                   </p>
-                </div>
+                </div>}
                 <div className="space-y-0.5 border-t border-sand pt-2.5 text-xs">
                   {r.pagos.map((p) => (
                     <p key={p.metodo} className="flex justify-between tabular-nums text-tinta/80">

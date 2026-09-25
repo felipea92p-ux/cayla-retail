@@ -4,6 +4,8 @@
 // `actualizar_campana_etiqueta`); esto solo las dice con una frase clara ANTES
 // de ir a la base, y sirve igual en el navegador y en la API.
 
+import { descuentoDeCampana } from "./vender-reglas";
+
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
 /**
@@ -45,11 +47,10 @@ export function objecionVigencia(desde: string | null, hasta: string | null): st
 
 export type PrendaConCosto = { id: string; categoriaId: string | null; precio: number; costo: number; nombre: string };
 
-const redondear2 = (n: number) => Math.round(n * 100) / 100;
-
 /** Las prendas del alcance de una campaña que quedarían con precio menor que su costo.
  *  El alcance es el que aplica la base: las etiquetadas a mano MÁS todas las de las
- *  categorías elegidas. El monto se redondea a centavos igual que `registrar_venta`. */
+ *  categorías elegidas. El precio es el que de verdad se cobra: bajado al .90 con la misma
+ *  regla que la caja y `registrar_venta` (`descuentoDeCampana`, ADR-0182). */
 export function prendasBajoCosto(
   pct: number | null,
   prendas: readonly PrendaConCosto[],
@@ -59,6 +60,6 @@ export function prendasBajoCosto(
   if (pct === null || pct <= 0) return [];
   return prendas.filter((p) => {
     const alcanzada = varianteIdsManuales.has(p.id) || (p.categoriaId !== null && categoriaIds.has(p.categoriaId));
-    return alcanzada && p.precio - redondear2((p.precio * pct) / 100) < p.costo;
+    return alcanzada && p.precio - descuentoDeCampana(p.precio, pct) < p.costo;
   });
 }

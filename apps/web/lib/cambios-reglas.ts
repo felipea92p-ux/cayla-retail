@@ -105,15 +105,36 @@ export type EstadoPrenda = EstadoVisual & { cambiable: boolean };
 
 /** Cuántas unidades de una línea vendida todavía se pueden cambiar o devolver: lo
  *  comprado menos lo ya cambiado y lo ya devuelto (pendiente o aprobado). Cambios y
- *  Devoluciones se descuentan entre sí a propósito: la base solo cruza cada una contra
- *  sí misma, y una prenda cambiada que luego se devuelve —o al revés— vuelve al stock
- *  dos veces (BACKLOG, ADR-0122). */
+ *  Devoluciones se descuentan entre sí a propósito: una prenda cambiada que luego se
+ *  devuelve —o al revés— volvería al stock dos veces (ADR-0122). Es espejo de la regla
+ *  de la base, `fn_exigir_linea_venta_disponible` (ADR-0189), que es la que manda. */
 export function unidadesDisponibles(l: { cantidad: number; yaCambiado: number; yaDevuelto: number }): number {
   return Math.max(0, l.cantidad - l.yaCambiado - l.yaDevuelto);
 }
 
+/** El chip de plazo puro de una VENTA — solo mira cuánto pasó desde que se vendió, nada
+ *  de si la prenda ya se cambió o devolvió. `estadoPrendaVendida` lo usa para UNA línea
+ *  (y en Cambios, fuera de plazo SÍ bloquea, a diferencia de Devoluciones —R-38 es
+ *  distinto en cada uno, por eso el texto también difiere: "para cambiar" vs "del
+ *  plazo"); el resumen por venta de "Actividad reciente" lo usa una sola vez por
+ *  tarjeta. El plazo es de la boleta, no de la línea (mismo criterio que Devoluciones,
+ *  `docs/pantallas/devoluciones.md` tarea #8). */
+export function estadoPlazoVenta(creadoEn: string, ahora: Date): EstadoVisual {
+  // El plazo se lee de un vistazo por su color (2026-09-18, pedido de Felipe): VERDE mientras
+  // está dentro —también los últimos días, que se dicen en el texto— y ROJO cuando venció.
+  const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
+  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
+  if (estado === "por_vencer") {
+    const texto = diasRestantes === 0 ? "Último día para cambiar" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
+    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj" };
+  }
+  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj" };
+}
+
 /** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice
- *  eso (más útil que "fuera de plazo"); después, el plazo. */
+ *  eso (más útil que "fuera de plazo"); después, el plazo — y ahí sí, a diferencia de
+ *  Devoluciones, fuera de plazo bloquea: Cambios no tiene aprobación de un líder que
+ *  decida después. */
 export function estadoPrendaVendida(
   linea: { cantidad: number; yaCambiado: number; yaDevuelto: number; anulada: boolean; creadoEn: string },
   ahora: Date
@@ -124,15 +145,62 @@ export function estadoPrendaVendida(
       ? { clave: "devuelta", texto: "Devolución registrada", tono: "neutro", icono: "check", cambiable: false }
       : { clave: "completado", texto: "Cambio completado", tono: "verde", icono: "check", cambiable: false };
   }
-  // El plazo se lee de un vistazo por su color (2026-09-18, pedido de Felipe): VERDE mientras
-  // está dentro —también los últimos días, que se dicen en el texto— y ROJO cuando venció.
-  const { estado, diasRestantes } = estadoPlazoCambio(linea.creadoEn, ahora);
-  if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta", cambiable: false };
-  if (estado === "por_vencer") {
-    const texto = diasRestantes === 0 ? "Último día para cambiar" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj", cambiable: true };
+  const plazo = estadoPlazoVenta(linea.creadoEn, ahora);
+  return { ...plazo, cambiable: plazo.clave !== "fuera_de_plazo" };
+}
+
+// ============================================================================
+// Resumen de una venta completa para "Actividad reciente" (2026-09-22, compartido entre
+// Cambios y Devoluciones — `docs/pantallas/devoluciones.md` tarea #8): una tarjeta por
+// venta, no una fila por prenda. El detalle por prenda sigue viviendo en el paso
+// "Prenda(s)" de cada flujo — acá solo lo que responde "¿qué venta reviso?".
+// ============================================================================
+
+/** Cuántas prendas en total y cuánto pagó la clienta por toda la venta — lo que la
+ *  tarjeta resume en vez de repetir precio por precio. Misma cuenta que `valorPagado`
+ *  de Devoluciones (precio menos el descuento, por unidad), inlineada acá para no hacer
+ *  depender este archivo compartido de `devoluciones-reglas.ts`. */
+export function totalesVenta(lineas: readonly { cantidad: number; precioUnitario: number; descuentoUnitario: number }[]): {
+  prendas: number;
+  importe: number;
+} {
+  return lineas.reduce(
+    (acc, l) => ({
+      prendas: acc.prendas + l.cantidad,
+      importe: Math.round((acc.importe + (l.precioUnitario - l.descuentoUnitario) * l.cantidad) * 100) / 100,
+    }),
+    { prendas: 0, importe: 0 }
+  );
+}
+
+/** Si esta venta ya tuvo un cambio o una devolución, dicho una sola vez para toda la
+ *  tarjeta (hoy vive repetido debajo de cada prenda, vía `devolucionesHechas`/
+ *  `cambiosHechos`). Una devolución pendiente manda: todavía no se sabe si se aprueba, y
+ *  eso es lo más urgente de saber de un vistazo — importa tanto en Cambios como en
+ *  Devoluciones, porque las dos se descuentan entre sí (`unidadesDisponibles`). `null` =
+ *  sin ninguna actividad, la venta ordinaria (nada que decir). */
+export function actividadPreviaVenta(
+  lineas: readonly { devolucionesHechas: readonly { cantidad: number; estado: "pendiente" | "aprobada" }[]; cambiosHechos: readonly { cantidad: number }[] }[]
+): EstadoVisual | null {
+  let pendientes = 0;
+  let devueltas = 0;
+  let cambiadas = 0;
+  for (const l of lineas) {
+    for (const d of l.devolucionesHechas) {
+      if (d.estado === "pendiente") pendientes += d.cantidad;
+      else devueltas += d.cantidad;
+    }
+    for (const c of l.cambiosHechos) cambiadas += c.cantidad;
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj", cambiable: true };
+  if (pendientes === 0 && devueltas === 0 && cambiadas === 0) return null;
+  if (pendientes > 0) {
+    return { clave: "con_pendiente", texto: pendientes === 1 ? "1 devolución pendiente" : `${pendientes} devoluciones pendientes`, tono: "ambar", icono: "reloj" };
+  }
+  const partes = [
+    cambiadas > 0 && (cambiadas === 1 ? "1 cambiada" : `${cambiadas} cambiadas`),
+    devueltas > 0 && (devueltas === 1 ? "1 devuelta" : `${devueltas} devueltas`),
+  ].filter((p): p is string => !!p);
+  return { clave: "con_actividad_previa", texto: partes.join(" · "), tono: "neutro", icono: "check" };
 }
 
 // ============================================================================

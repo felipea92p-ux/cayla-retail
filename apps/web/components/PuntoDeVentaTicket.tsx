@@ -30,12 +30,17 @@ import {
   esDescuentoDeCampana,
   hayDescuentoManual,
   necesitaArgumentoEscrito,
+  pasoDelCobro,
   porcentajeDeLinea,
   RAZONES_DESCUENTO,
   type MomentoTicket,
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
+import { CampoMonto } from "@/components/ui/CampoMonto";
+import { BilleteRapido } from "@/components/BilleteRapido";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
@@ -112,7 +117,7 @@ function IconoPlin({ className }: { className?: string }) {
   );
 }
 
-const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
+export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   efectivo: <Banknote className={ICONO} aria-hidden />,
   tarjeta: <CreditCard className={ICONO} aria-hidden />,
   yape: <IconoYape className={ICONO} />,
@@ -120,17 +125,19 @@ const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   transferencia: <Landmark className={ICONO} aria-hidden />,
 };
 
-/** Un color por método, los mismos tokens que usa la dona de "Métodos de pago" de Caja
- *  (`globals.css`) — para que una colaboradora reconozca el mismo método con el mismo
- *  color en las dos pantallas. Decidido con Felipe el 2026-09-18: efectivo cobrizo,
- *  tarjeta plomo, yape morado, plin verde, transferencia hazel. */
-const COLOR_METODO: Record<MetodoPago, string> = {
-  efectivo: "var(--color-metodo-efectivo)",
-  tarjeta: "var(--color-metodo-tarjeta)",
-  yape: "var(--color-metodo-yape)",
-  plin: "var(--color-metodo-plin)",
-  transferencia: "var(--color-metodo-transferencia)",
-};
+// Los colores de cada método viven en `globals.css` (`.metodo-efectivo`, …): los mismos tokens
+// que usa la dona de «Métodos de pago» de Caja, para que un método se reconozca con el mismo color
+// en las dos pantallas. Lo que se pinta con ellos usa `--c` (relleno/borde), `--ct` (fondo suave) y
+// `--cd` (texto legible: el dorado de efectivo no llega a AA como texto y usa una tinta oscura).
+
+/** La etiquetita dorada que dice «este es el paso que toca» (o «Opcional»). */
+function PastillaPaso({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-rojo/10 px-2 py-px text-[10px] font-medium text-rojo-profundo">
+      {children}
+    </span>
+  );
+}
 
 /** Marca de «elegida» en la lista del apartado de descuento. */
 function IconoCheck() {
@@ -178,6 +185,8 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
+  /** El combo «Responsable» (ADR-0161), justo encima de Cobrar. Su estado vive en el padre (`useResponsable`). */
+  responsable: ControlResponsable;
   // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
   pagos: PagoAplicado[];
   restante: number;
@@ -188,8 +197,8 @@ type Props = {
   /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
   onRecibido: (monto: number | null) => void;
   // Comprobante + documento de la clienta
-  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;
-  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura">) => void;
+  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
+  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
   clienteNumDoc: string;
   onClienteNumDoc: (v: string) => void;
   clienteNombre: string;
@@ -243,6 +252,7 @@ export function PuntoDeVentaTicket({
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
+  responsable,
   pagos,
   restante,
   vuelto,
@@ -298,6 +308,9 @@ export function PuntoDeVentaTicket({
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const desglose = desgloseIgv(total, TASA_IGV);
   const apagado = bloqueado || motivoBloqueo !== null;
+  // El paso que la pantalla resalta (solo guía) y si «Confirmar cobro» ya se puede: se enciende.
+  const paso = pasoDelCobro(pagos, total);
+  const listoParaConfirmar = cobrando && paso === "comprobante" && !apagado;
 
   // Qué falta del pago, para el (!) de la leyenda: nada elegido, no cubre, o se pasa.
   const faltaPago = !cobrando
@@ -744,9 +757,12 @@ export function PuntoDeVentaTicket({
                     )}
                     <Wallet className={ICONO_CHICO} aria-hidden />
                     Cómo pagó la clienta
+                    {paso === "medio" && <PastillaPaso>Siguiente paso</PastillaPaso>}
                   </span>
                 </legend>
-                <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
+                {/* Mientras no haya ningún medio la luz recorre los cinco (`ola-activa`, en globals.css):
+                    enseña dónde tocar. En cuanto se elige uno se detiene. */}
+                <div className={`grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1 ${pagos.length === 0 ? "ola-activa" : ""}`}>
                   {METODOS_PAGO.map((m, iAtajo) => {
                     // Interruptor: tocar uno elegido lo quita (su monto pasa al siguiente,
                     // `quitarPagoTraspasando`). Antes quedaba deshabilitado y tocarlo de nuevo
@@ -762,9 +778,9 @@ export function PuntoDeVentaTicket({
                         aria-pressed={puesto}
                         title={puesto ? `Quitar ${m} (F${iAtajo + 1})` : `${m} (F${iAtajo + 1})`}
                         aria-keyshortcuts={`F${iAtajo + 1}`}
-                        style={puesto ? { backgroundColor: `color-mix(in srgb, ${COLOR_METODO[m]} 16%, var(--color-papel))`, color: COLOR_METODO[m] } : undefined}
-                        className={`${OPCION} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                          puesto ? "shadow-sm" : OPCION_INACTIVA
+                        style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
+                        className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
+                          puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA
                         }`}
                       >
                         {/* La tecla del atajo, chiquita en la esquina: enseña F1–F5 sin ocupar sitio. */}
@@ -787,20 +803,16 @@ export function PuntoDeVentaTicket({
                       // ni hay forma de mutarlo) — animar la fila cubre el bloque entero.
                       <div key={p.metodo} className="anim-revelar space-y-2 px-3 py-2.5">
                         <div className="flex items-center gap-2">
-                          <span style={{ color: COLOR_METODO[p.metodo] }}>{ICONO_METODO[p.metodo]}</span>
+                          <span className={`metodo-${p.metodo}`} style={{ color: "var(--cd)" }}>{ICONO_METODO[p.metodo]}</span>
                           <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
                           <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
                             <span className="text-xs text-tinta/60">S/</span>
-                            <input
+                            <CampoMonto
                               aria-label={`Monto en ${p.metodo}`}
-                              type="number"
-                              inputMode="decimal"
-                              min={0}
-                              step="0.01"
-                              value={p.monto}
-                              onChange={(e) => onMontoPago(i, Number(e.target.value))}
+                              valor={p.monto}
+                              onCambio={(monto) => onMontoPago(i, monto)}
                               disabled={bloqueado}
-                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
                             />
                           </label>
                           <button
@@ -820,9 +832,12 @@ export function PuntoDeVentaTicket({
                         {p.metodo === "efectivo" && (
                           <div className="space-y-2 rounded-md bg-sand/40 p-2">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] text-tinta/50">Recibido</span>
+                              <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
+                                Recibido
+                                {paso === "recibido" && <PastillaPaso>Siguiente paso</PastillaPaso>}
+                              </span>
                               <span className="flex items-center gap-1">
-                                <label className="flex h-8 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                                <label className={`flex h-8 items-center gap-1 rounded-md border bg-papel px-2 transition-colors focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${paso === "recibido" ? "border-rojo/70" : "border-sand"}`}>
                                   <span className="text-xs text-tinta/60">S/</span>
                                   <input
                                     aria-label="Efectivo recibido"
@@ -850,27 +865,19 @@ export function PuntoDeVentaTicket({
                                 )}
                               </span>
                             </div>
-                            <div className="grid grid-cols-6 gap-1">
+                            <div className="grid grid-cols-5 gap-1.5">
                               {BILLETES.map((b) => (
-                                <button
-                                  key={b}
-                                  type="button"
-                                  onClick={() => onRecibido((p.recibido ?? 0) + b)}
-                                  disabled={bloqueado}
-                                  className="h-8 rounded-md border border-sand bg-papel text-xs font-semibold text-tinta transition-colors hover:bg-sand/40"
-                                >
-                                  +{b}
-                                </button>
+                                <BilleteRapido key={b} valor={b} onSumar={() => onRecibido((p.recibido ?? 0) + b)} disabled={bloqueado} />
                               ))}
-                              <button
-                                type="button"
-                                onClick={() => onRecibido(p.monto)}
-                                disabled={bloqueado}
-                                className="label-cayla h-8 rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
-                              >
-                                Exacto
-                              </button>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => onRecibido(p.monto)}
+                              disabled={bloqueado}
+                              className="label-cayla h-8 w-full rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
+                            >
+                              Exacto
+                            </button>
                             {vuelto > 0 && (
                               <p key={vuelto} className="anim-asentar flex items-baseline justify-between pt-1">
                                 <span className="label-cayla text-[11px] text-tinta/60">Vuelto</span>
@@ -899,7 +906,9 @@ export function PuntoDeVentaTicket({
 
               {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
                   solo tienen sentido para la boleta o la factura que se va a emitir. */}
-              <div className="border-t border-sand pt-4">
+              {/* Al tocar este paso solo se tiñen de terracota las líneas de los campos de texto
+                  (DNI y nombre): `--hilo` es la variable que lee el hilo de cada campo (`Hilo`). */}
+              <div className={`border-t border-sand pt-4 ${paso === "comprobante" ? "[--hilo:color-mix(in_srgb,var(--color-rojo)_65%,transparent)]" : ""}`}>
                 <fieldset className="space-y-2">
                   <legend className="text-[11px] text-tinta/50">
                     <span className="flex items-center gap-1">
@@ -911,10 +920,11 @@ export function PuntoDeVentaTicket({
                       )}
                       <Receipt className={ICONO_CHICO} aria-hidden />
                       Comprobante
+                      {paso === "comprobante" && <PastillaPaso>Opcional</PastillaPaso>}
                     </span>
                   </legend>
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
-                    {(["boleta", "factura"] as const).map((t) => (
+                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-sand/50 p-1">
+                    {(["boleta", "factura", "nota_venta"] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -925,7 +935,7 @@ export function PuntoDeVentaTicket({
                           tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA
                         }`}
                       >
-                        {t === "boleta" ? <Receipt className={ICONO_CHICO} aria-hidden /> : <FileText className={ICONO_CHICO} aria-hidden />}
+                        {t === "factura" ? <FileText className={ICONO_CHICO} aria-hidden /> : <Receipt className={ICONO_CHICO} aria-hidden />}
                         {ETIQUETA_TIPO[t]}
                       </button>
                     ))}
@@ -940,11 +950,14 @@ export function PuntoDeVentaTicket({
                       onNombre={onClienteNombre}
                     />
                   </fieldset>
+                  {tipoComprobante === "nota_venta" && (
+                    <p className="text-[11px] text-tinta/60">Documento interno de la tienda: no se envía a SUNAT y no desglosa IGV.</p>
+                  )}
                 </fieldset>
               </div>
             </div>
           ) : !carrito.length ? (
-            <div className="flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
+            <div className="anim-sube flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
               <p className="font-medium text-tinta">El ticket está vacío</p>
               <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
             </div>
@@ -955,7 +968,9 @@ export function PuntoDeVentaTicket({
                   líneas tienen que seguir siendo sus hijas directas. */}
               <div ref={listaRef} className="divide-y divide-sand">
                 {carrito.map((it) => {
-                  const pctLinea = porcentajeDeLinea(it);
+                  // Con campaña se muestra SU % (ADR-0182): el precio baja al .90, así que la cuenta monto ÷ precio se corre
+                  // (24.90 de 95.80 es 26 % y la campaña es de 25 %).
+                  const pctLinea = esDescuentoDeCampana(it) && it.campana ? it.campana.pct : porcentajeDeLinea(it);
                   const precioNeto = it.precioUnitario - it.descuentoUnitario;
                   return (
                     <article key={it.claveLinea} className="px-5 py-4">
@@ -1051,7 +1066,7 @@ export function PuntoDeVentaTicket({
                         </div>
                       </div>
                       <p className="mt-2 text-[11px] text-tinta/50">
-                        {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
+                        {it.varianteId === ID_CARGO_ESPECIAL ? "Prenda sin registrar: almacén la regulariza después." : `Máximo disponible en sede: ${it.stockAqui}`}
                       </p>
                     </article>
                   );
@@ -1151,12 +1166,15 @@ export function PuntoDeVentaTicket({
                 así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total. */}
             <div className="text-xs text-tinta/60">
               <p>{etiquetaPrendas}</p>
-              <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
-                <dt>Subtotal</dt>
-                <dd className="text-right">{money(desglose.subtotal)}</dd>
-                <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
-                <dd className="text-right">{money(desglose.igv)}</dd>
-              </dl>
+              {/* La nota de venta no desglosa IGV (ADR-0164): el pie muestra solo el total. */}
+              {tipoComprobante !== "nota_venta" && (
+                <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
+                  <dt>Subtotal</dt>
+                  <dd className="text-right">{money(desglose.subtotal)}</dd>
+                  <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
+                  <dd className="text-right">{money(desglose.igv)}</dd>
+                </dl>
+              )}
             </div>
             <div className="text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>
@@ -1168,6 +1186,13 @@ export function PuntoDeVentaTicket({
             </div>
           </div>
 
+
+          {/* El combo «Responsable» (ADR-0161; spike, pantalla 2): justo encima de Cobrar, vacío en cada venta. Al armar
+              y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
+              envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
+          {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
+            <ComboResponsable control={responsable} deshabilitado={loading} className="mb-3" />
+          )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.
               Truco de `grid-template-rows` (0fr↔1fr): el párrafo queda siempre montado y
@@ -1216,7 +1241,7 @@ export function PuntoDeVentaTicket({
               type="submit"
               disabled={apagado || loading}
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
-              className={BOTON_PRINCIPAL}
+              className={`${BOTON_PRINCIPAL} ${listoParaConfirmar ? "cobrar-listo" : ""}`}
             >
               <span className="label-cayla flex items-center gap-2 text-[11px]">
                 <Check className={ICONO} aria-hidden />
