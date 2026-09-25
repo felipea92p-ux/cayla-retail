@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
+import { createPortal } from "react-dom";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -30,13 +31,30 @@ import { comboNecesitaBuscador } from "@/lib/combo-reglas";
 /** El hilo vivo. Se dibuja desde el centro cuando el campo está activo.
     Exportado el 2026-09-09: el buscador global del AppShell usa el mismo
     dispositivo, y tenerlo definido dos veces era garantía de que un día
-    se movieran por separado. */
-export function Hilo({ activo, trabajando = false, valido = false }: { activo: boolean; trabajando?: boolean; /** El dato ya está bien: el hilo se queda en verde (ProveedorModal, 2026-09-19). */ valido?: boolean }) {
+    se movieran por separado.
+    `reposo` (2026-09-25, ADR-0210): la línea gris de "acá hay un campo" tiene sentido en un campo suelto
+    sobre el fondo de la página — dentro del panel de píldoras (`divide-x`, fondo propio) varias píldoras
+    seguidas la pintaban borde a borde y se leía como una sola barra negra de punta a punta del panel, no
+    como el borde de cada una. `reposo={false}` la apaga y deja solo el trazo rojo/verde de la interacción. */
+export function Hilo({
+  activo,
+  trabajando = false,
+  valido = false,
+  reposo = true,
+}: {
+  activo: boolean;
+  trabajando?: boolean;
+  /** El dato ya está bien: el hilo se queda en verde (ProveedorModal, 2026-09-19). */
+  valido?: boolean;
+  reposo?: boolean;
+}) {
   return (
     <>
       {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
           el paso del comprobante); sin definirla es el mismo gris de siempre. */}
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+      {reposo && (
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+      )}
       <span
         aria-hidden
         className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-center rounded-full bg-rojo transition-transform duration-300 ease-cayla ${
@@ -678,12 +696,20 @@ export function Desplegable<T extends string>({
       {!esPastilla && !esCaja && <Hilo activo={abierto} trabajando={trabajando} />}
 
       {listaVisible && (
-        <div
-          style={flotante ? { position: "fixed", ...posLista } : undefined}
-          className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
-            flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
-          }`}
-        >
+        // `flotante` va en `fixed` medido contra el control (`usePosicionLista`) — y por eso, igual que
+        // `MenuAcciones` y `ResumenControles`, en un portal a `document.body`: sin portal, cualquier ancestro con
+        // stacking context propio (una tarjeta `@container`, un modal, un futuro `transform`) atrapa el `fixed` y
+        // lo pinta DEBAJO de contenido posterior en el DOM aunque su `z-50` diga lo contrario — el bug de
+        // «el desplegable se esconde detrás de la fila de abajo» (ADR-0210). `derecha` (cabecera) sigue `absolute`
+        // e inline: crece con su contenido y nada lo recorta ahí.
+        maybePortal(
+          flotante,
+          <div
+            style={flotante ? { position: "fixed", ...posLista } : undefined}
+            className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
+              flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
+            }`}
+          >
           {mostrarBuscador && (
             <input
               ref={buscador}
@@ -746,10 +772,17 @@ export function Desplegable<T extends string>({
               ))
             )}
           </ul>
-        </div>
+          </div>
+        )
       )}
     </div>
   );
+}
+
+/** `fijo`: portal a `document.body` (para `position: fixed` medido contra un control, ver comentario de uso arriba).
+ *  `false`: el nodo se queda donde está en el árbol (para `position: absolute`, que sí debe crecer con su padre). */
+function maybePortal(fijo: boolean, nodo: ReactNode) {
+  return fijo ? createPortal(nodo, document.body) : nodo;
 }
 
 /* ------------------------------------------------------------------

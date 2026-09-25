@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
@@ -192,16 +193,21 @@ export function ComboBuscable<T extends string>({
             : "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-b-2 focus:border-rojo"
         }
       />
-      {abierto && posLista && (
-        <ul
-          ref={lista}
-          style={{ position: "fixed", ...posLista }}
-          id={`${id}-lista`}
-          role="listbox"
-          aria-label={etiquetaAccesible}
-          onScroll={limite == null ? alHacerScroll : undefined}
-          className="card-cayla z-50 overflow-y-auto shadow-lg"
-        >
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0210): esta lista va en `fixed`
+          medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
+          `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
+      {abierto &&
+        posLista &&
+        createPortal(
+          <ul
+            ref={lista}
+            style={{ position: "fixed", ...posLista }}
+            id={`${id}-lista`}
+            role="listbox"
+            aria-label={etiquetaAccesible}
+            onScroll={limite == null ? alHacerScroll : undefined}
+            className="card-cayla z-50 overflow-y-auto shadow-lg"
+          >
           {mostradas.length === 0 && hayCrear && texto.trim() === "" ? null : mostradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
           ) : (
@@ -246,8 +252,9 @@ export function ComboBuscable<T extends string>({
               {crear.etiqueta(texto.trim())}
             </li>
           )}
-        </ul>
-      )}
+        </ul>,
+          document.body
+        )}
     </div>
   );
 }

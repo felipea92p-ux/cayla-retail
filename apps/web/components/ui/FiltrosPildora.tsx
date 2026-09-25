@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
@@ -46,10 +47,17 @@ export function BotonFiltros({ abierto, activos, onClick }: { abierto: boolean; 
 }
 
 /** El panel que agrupa las píldoras — una sola superficie (`divide-x` entre
- *  cada una), no una caja por campo. */
+ *  cada una), no una caja por campo. Angosto (celular), las píldoras NO se apilan una arriba de otra
+ *  (`flex-wrap` con 4-5 píldoras de texto largo — «Todos los vendedores» — partía el panel en varias
+ *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
+ *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
+ *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
 export function PanelPildoras({ children }: { children: ReactNode }) {
   return (
-    <div id="filtros-panel" className="anim-revelar flex flex-wrap items-center divide-x divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+    <div
+      id="filtros-panel"
+      className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
+    >
       {children}
     </div>
   );
@@ -188,21 +196,25 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-[11px] outline-none transition-colors ${
+        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
           activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
         }`}
       >
         <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
         <span>{elegida?.texto ?? etiqueta}</span>
         <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />
-        <Hilo activo={abierto} />
+        <Hilo activo={abierto} reposo={false} />
       </button>
 
-      {listaVisible && (
-        <div
-          style={{ position: "fixed", ...posLista }}
-          className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
-        >
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0210): esta lista va en `fixed`
+          medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
+          `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
+      {listaVisible &&
+        createPortal(
+          <div
+            style={{ position: "fixed", ...posLista }}
+            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
+          >
           {mostrarBuscador && (
             <input
               ref={buscador}
@@ -251,8 +263,9 @@ export function DesplegablePildora({
               ))
             )}
           </ul>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
     </div>
   );
 }
