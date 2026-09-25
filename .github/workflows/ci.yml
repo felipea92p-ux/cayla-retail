@@ -460,17 +460,11 @@ jobs:
       # abajo). Este bloque va en el MEDIO del job, junto a los de Compras, a propósito: cada fase de Finanzas anexa su paso al
       # FINAL, y un bloque nuevo también al final chocaría con ellas en cada merge.
       #
-      # QUÉ SIGUE FUERA, y por qué (cablear una prueba roja enseña a ignorar el rojo: el día que el job se ponga rojo por una
-      # de estas, nadie sabrá si es un bug nuevo o el de siempre). Cada una entra el día que se arregle. Medido el 2026-09-25
-      # contra una base con todas las migraciones y el seed:
-      #   · archivar-datos-prueba            — no pasa (1/16 en verde).
-      #   · caja-cierre-traslado             — quedó vieja tras 20260923233000 (depósito sin número de operación): 4 casos fallan.
-      #   · colaboradores-endurecimiento     — nunca pudo pasar: 6 casos fallan.
-      #   · cotizaciones-maquila             — no pasa (10/11 en verde).
-      #   · fn-movimientos-busqueda-especial — no pasa (134/146 verificaciones).
-      #   · lecturas-rapidas-y-cambio        — no PUEDE correr acá: necesita la base `cayla_carga` (volumen + asistencia; la arma
-      #                                        `pnpm carga:preparar`), que este job no crea.
-      # Todo otro `pnpm pruebas:*` de package.json corre en este job. Uno nuevo que no esté acá NI en esta lista es un olvido.
+      # QUÉ SIGUE FUERA, y por qué: las pruebas que hoy están rojas (o que necesitan una base que este job no crea) no se
+      # cablean —cablear una roja enseña a ignorar el rojo: el día que el job se ponga rojo por una de estas, nadie sabrá si es
+      # un bug nuevo o el de siempre—. La lista, con el motivo de cada una, vive en `apps/web/lib/ci-paridad.test.ts`
+      # (EXCLUIDAS), que corre en el job `verificar` y falla si un `pnpm pruebas:*` de package.json no corre acá NI está en esa
+      # lista, o si un paso de este archivo llama a un nombre que package.json no declara. Cada una entra el día que se arregle.
 
       # Compras — faltantes con nota de crédito y pago por lote (ADR-0111): «estas N no van a llegar» con o sin nota, el pago de
       # varios comprobantes de un proveedor es todo o nada e idempotente por token, la nota suelta baja el saldo exactamente su
@@ -575,6 +569,14 @@ jobs:
       - name: pruebas:prendas-por-regularizar
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:prendas-por-regularizar
+
+      # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
+      # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
+      # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un
+      # caso de control que crea una sobrecarga a propósito (ROLLBACK) para probar que la consulta muerde.
+      - name: pruebas:una-sola-firma
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:una-sola-firma
 
       # Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta (D-13, decidido el 2026-09-21): que el
       # candado esté en la base y no solo en el menú — una colaboradora no cierra ni la caja de su propia tienda ni
