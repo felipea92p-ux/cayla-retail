@@ -10,7 +10,7 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { SENTIDO_PISO, topeMovimientoPiso, type SentidoPiso } from "@/lib/inventario-reglas";
+import { avisoTrasRetiro, SENTIDO_PISO, topeMovimientoPiso, type SentidoPiso } from "@/lib/inventario-reglas";
 /** Lo que el modal necesita de una prenda: sirve tanto a la fila de Existencias
  *  como a la de Resumen, que no comparten el resto de sus campos. */
 export type FilaParaReponer = {
@@ -59,14 +59,21 @@ export function ReponerPisoModal({
   const [cantidad, setCantidad] = useState(cantidadInicial && cantidadInicial > 0 ? String(Math.min(cantidadInicial, disponible)) : "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Por qué se retira (fin de temporada, cambio de exhibición…): el único rastro del motivo. `mover_interno`
+  // lo guarda en `movimientos.nota` y el detalle de Movimientos ya lo muestra. Solo al retirar: al bajar, el
+  // modal queda igual que siempre.
+  const [nota, setNota] = useState("");
   // Candado contra el doble clic, del lado de la pantalla. `mover_interno` NO tiene token de
   // idempotencia: dos envíos seguidos mueven dos veces (2 clics sobre «Retirar 3» = 6 al almacén).
   // `cargando` apaga el botón, pero recién en el render siguiente; esta referencia cierra el hueco
   // en el mismo instante del clic. El candado de verdad, en la base, llega cuando Reponer y
-  // Retirar pasen a una función con token (tarea 5 de «Frescura del piso»): hasta entonces, esto.
+  // Retirar pasen a una función con token (pendiente en ADR-0208): hasta entonces, esto.
   const enVuelo = useRef(false);
   // Mover entre piso y almacén mueve stock: pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
+
+  // Solo al retirar: si con esta cantidad la fila va a volver a pedir «Reponer», se dice antes de confirmar.
+  const avisoRetiro = sentido === "retirar" ? avisoTrasRetiro(fila, Number(cantidad)) : null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,6 +98,7 @@ export function ReponerPisoModal({
       p_cantidad: n,
       p_sububicacion_origen_id: sububicacion[regla.origen],
       p_sububicacion_destino_id: sububicacion[regla.destino],
+      ...(sentido === "retirar" && nota.trim() ? { p_nota: nota.trim() } : {}),
     }), responsable.firma());
     setLoading(false);
     responsable.despues(errorRpc);
@@ -139,10 +147,21 @@ export function ReponerPisoModal({
             inputMode="numeric"
             value={cantidad}
             onChange={(e) => setCantidad(e.target.value)}
-            pie={error ?? regla.recorrido}
-            tono={error ? "error" : "neutro"}
+            pie={error ?? avisoRetiro ?? regla.recorrido}
+            tono={error ? "error" : avisoRetiro ? "aviso" : "neutro"}
             autoFocus
           />
+
+          {sentido === "retirar" && (
+            <CampoTexto
+              etiqueta="Nota (opcional)"
+              placeholder="Por qué se guarda: fin de temporada, cambio de exhibición…"
+              maxLength={200}
+              value={nota}
+              onChange={(e) => setNota(e.target.value)}
+              disabled={loading}
+            />
+          )}
 
           <ComboResponsable control={responsable} deshabilitado={loading} />
 

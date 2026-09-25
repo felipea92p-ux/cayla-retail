@@ -12,6 +12,7 @@ import {
   SENTIDO_PISO,
   sumarCantidades,
   topeMovimientoPiso,
+  avisoTrasRetiro,
   UMBRAL_REPOSICION_PISO,
   UMBRAL_STOCK_BAJO_ALMACEN,
 } from "./inventario-reglas";
@@ -54,7 +55,7 @@ describe("SENTIDO_PISO / topeMovimientoPiso", () => {
   it("los textos de cada sentido nombran su propio recorrido (no se copian del otro)", () => {
     expect(SENTIDO_PISO.bajar.recorrido).toBe("Almacén de tienda → Piso de venta");
     expect(SENTIDO_PISO.retirar.recorrido).toBe("Piso de venta → Almacén de tienda");
-    expect(SENTIDO_PISO.bajar.exito(1)).toBe("1 unidad repuesta al piso");
+    expect(SENTIDO_PISO.bajar.exito(1)).toBe("1 unidad bajada al piso");
     expect(SENTIDO_PISO.retirar.exito(2)).toBe("2 unidades retiradas del piso");
   });
 
@@ -310,5 +311,27 @@ describe("ordenarPorModeloColorTalla (la lista «Por colgar» se lee por percha)
     expect(clavePercha({ productoId: "x", color: "Negro" })).not.toBe(clavePercha({ productoId: "x", color: "Camel" }));
     expect(clavePercha({ productoId: "x", color: "Negro" })).not.toBe(clavePercha({ productoId: "y", color: "Negro" }));
     expect(clavePercha({ productoId: "x", color: null })).not.toBe(clavePercha({ productoId: "x", color: "null" }));
+  });
+});
+
+// El semáforo no sabe que una talla se guardó a propósito: después de un retiro vuelve a pedir bajarla.
+// El modal lo avisa antes de confirmar (revisión del bloque 2 de ADR-0208, 2026-09-25).
+describe("avisoTrasRetiro", () => {
+  it("retirar todo lo colgado con reserva en el almacén: la talla saldrá «Por colgar»", () => {
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 3)).toMatch(/Quedará 0 en el piso.*Por colgar/);
+  });
+  it("dejar poco colgado: Existencias sugerirá «Reponer»", () => {
+    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)).toBe("Quedarán 6 en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.");
+  });
+  it("si después del retiro la fila no pide nada, no hay aviso", () => {
+    expect(avisoTrasRetiro({ piso: 30, almacen: 0 }, 2)).toBeNull();
+  });
+  it("cantidad vacía, cero, no entera o mayor que el piso: no avisa (eso lo dicen los otros mensajes)", () => {
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 0)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 1.5)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 4)).toBeNull();
+  });
+  it("una sede que no separa piso y almacén (Taller): nunca", () => {
+    expect(avisoTrasRetiro({ piso: null, almacen: null }, 1)).toBeNull();
   });
 });

@@ -156,7 +156,8 @@ export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
     etiquetaCantidad: "Cantidad a reponer",
     recorrido: "Almacén de tienda → Piso de venta",
     noAlcanza: (pedido, hay) => `No hay ${pedido} unidades en el almacén — hay ${hay}.`,
-    exito: (n) => `${n} ${n === 1 ? "unidad repuesta" : "unidades repuestas"} al piso`,
+    // «bajada», no «repuesta»: es la palabra con la que la fila queda en Movimientos («Bajada al piso»).
+    exito: (n) => `${n} ${n === 1 ? "unidad bajada" : "unidades bajadas"} al piso`,
     accion: "reponer el piso",
   },
   retirar: {
@@ -432,4 +433,24 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
     });
   }
   return cantidades;
+}
+
+/** Qué va a decir Existencias de la talla DESPUÉS de retirar `n` del piso, si eso contradice el retiro.
+ *  El semáforo solo mira cifras (`necesitaReponerPiso`, `porColgar`): no sabe que la encargada guardó la
+ *  talla a propósito (fin de temporada), así que al turno siguiente le pide bajarla de nuevo. Hasta que
+ *  exista una marca de «retirada de la venta» (decisión de Felipe, bloque 3 de ADR-0208), el modal lo avisa
+ *  ANTES de confirmar y pide dejarlo en la nota. `null`: la fila no va a pedir nada, o la cantidad no vale
+ *  (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como el modal y el semáforo. */
+export function avisoTrasRetiro(disponible: { piso: number | null; almacen: number | null }, n: number): string | null {
+  if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return null;
+  const piso = disponible.piso - n;
+  const almacen = disponible.almacen + n;
+  if (piso < 0) return null;
+  if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) {
+    return "Quedará 0 en el piso: Existencias la mostrará «Por colgar» y sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.";
+  }
+  if (necesitaReponerPiso(piso, almacen)) {
+    return `Quedarán ${piso} en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.`;
+  }
+  return null;
 }
