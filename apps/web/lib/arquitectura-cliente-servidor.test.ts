@@ -342,12 +342,43 @@ describe("Arquitectura — el servidor no llama funciones de archivos «use clie
     expect(raices.filter((r) => /(^|\/)page\.tsx$/.test(r)).length).toBeGreaterThanOrEqual(50);
     expect(raices.filter((r) => /(^|\/)layout\.tsx$/.test(r)).length).toBeGreaterThanOrEqual(10);
     expect(raices.filter((r) => /(^|\/)route\.ts$/.test(r)).length).toBeGreaterThanOrEqual(5);
+    // Convenciones menos frecuentes: si alguien las saca de ENTRADA_DE_APP, sus archivos dejan de ser
+    // raíz y el candado los ignora sin avisar. Hoy hay 21 `loading.tsx` y 2 `default.tsx` (rutas
+    // paralelas); los pisos van holgados a propósito: borrar o fusionar unos pocos no debe ponerlos en rojo.
+    expect(raices.filter((r) => /(^|\/)loading\.tsx$/.test(r)).length).toBeGreaterThanOrEqual(10);
+    expect(raices.filter((r) => /(^|\/)default\.tsx$/.test(r)).length).toBeGreaterThanOrEqual(1);
     // Chequeo de cordura del recorrido, no un conteo de acciones: con >= 1 basta para notar que el
     // escaneo de "use server" se rompió. Hoy hay 3, pero borrar o fusionar una acción legítima no
     // debe poner esto en rojo.
     expect(accionesDeServidor.length).toBeGreaterThanOrEqual(1);
+    // Y que esas acciones de verdad ENTREN al recorrido: una acción que nadie importa desde una
+    // página (p. ej. `app/actions/caja.ts`, que solo llaman componentes cliente) solo se revisa si es
+    // raíz por sí misma. Sin esto, sacar las acciones de `raicesDelRepo` deja el candado en verde
+    // aunque una acción llame a un hook cliente.
+    expect(accionesDeServidor.filter((a) => !real.servidor.has(a))).toEqual([]);
     // `proxy.ts` es entrada del servidor aunque no viva en `app/` (si algún día se renombra, se ajusta aquí).
     if (existsSync(join(WEB, PROXY))) expect(raices).toContain(PROXY);
+  });
+
+  it("ENTRADA_DE_APP reconoce cada nombre de convención de Next que corre en el servidor (y solo ésos)", () => {
+    // Por NOMBRE, no por lo que hoy exista en `app/`: template, not-found y los archivos de metadatos
+    // no tienen ningún archivo real todavía, y quitar cualquiera del regex no pondría nada en rojo
+    // hasta el día en que alguien cree uno y quede sin candado.
+    const convenciones = [
+      "page", "layout", "loading", "template", "route", "not-found", "default",
+      "sitemap", "robots", "manifest", "opengraph-image", "twitter-image", "icon", "apple-icon",
+    ];
+    for (const nombre of convenciones) {
+      for (const ext of ["ts", "tsx"]) {
+        expect(ENTRADA_DE_APP.test(`app/${nombre}.${ext}`), `app/${nombre}.${ext} en la raíz de app`).toBe(true);
+        expect(ENTRADA_DE_APP.test(`app/(app)/compras/[id]/${nombre}.${ext}`), `${nombre}.${ext} anidado`).toBe(true);
+      }
+    }
+    // Lo que NO es entrada: Next EXIGE "use client" en error/global-error, y un archivo que solo
+    // termina parecido a una convención (`mi-page.tsx`) es un módulo cualquiera.
+    for (const ruta of ["app/error.tsx", "app/global-error.tsx", "app/(app)/mi-page.tsx", "app/(app)/pagina.tsx", "app/(app)/page.css"]) {
+      expect(ENTRADA_DE_APP.test(ruta), ruta).toBe(false);
+    }
   });
 
   it("el recorrido llega lejos en el servidor y topa con muchos archivos cliente", () => {
