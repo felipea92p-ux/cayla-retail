@@ -168,9 +168,15 @@ export type EstadoAlta = {
   celdasIncluidas: number;
   precioBase: string;
   costoBase: string;
+  /** Paso 5 (ADR-0212): unidades escritas en «Cuántas tienes hoy», en las celdas que siguen en la tabla. */
+  stockTotal: number;
+  /** Celdas con algo que no es un entero de 0 a 9999 (la pantalla no deja escribirlo; la regla no se fía). */
+  stockInvalidas: number;
+  /** La persona marcó «Todavía no tengo unidades»: el producto se crea sin stock, a sabiendas. */
+  sinStock: boolean;
 };
 
-export type Problema = { bloque: "categoria" | "marca" | "nombre" | "atributos" | "variantes" | "precio"; texto: string };
+export type Problema = { bloque: "categoria" | "marca" | "nombre" | "atributos" | "variantes" | "precio" | "stock"; texto: string };
 
 export function problemasAlta(e: EstadoAlta): Problema[] {
   const p: Problema[] = [];
@@ -195,7 +201,57 @@ export function problemasAlta(e: EstadoAlta): Problema[] {
   if (e.precioBase.trim() === "" || !Number.isFinite(precio) || precio <= 0) p.push({ bloque: "precio", texto: "Pon el precio de venta." });
   const costo = Number(e.costoBase);
   if (e.costoBase.trim() !== "" && (!Number.isFinite(costo) || costo < 0)) p.push({ bloque: "precio", texto: "El costo no puede ser negativo." });
+  // Decidir el stock es obligatorio, no llenarlo: «ninguna» es una respuesta válida, pero tiene que darse. Sin esto, un
+  // producto creado con prisa quedaba en 0 y su stock se metía después como «Reposición», sin rastro de que era la carga.
+  if (e.stockInvalidas > 0) p.push({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
+  else if (e.stockTotal === 0 && !e.sinStock) p.push({ bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." });
   return p;
+}
+
+// ---------------------------------------------------------------------------
+// Paso 5 — cuántas hay hoy (la carga inicial, ADR-0212).
+// ---------------------------------------------------------------------------
+
+/** Lo escrito en una celda de «Cuántas tienes hoy»: vacío = 0; solo enteros de 0 a 9999. null = no es una cantidad. Espejo de la
+ *  validación de `crear_producto_con_stock_inicial` (la base es la que manda). */
+export function leerCantidad(texto: string): number | null {
+  const t = texto.trim();
+  if (t === "") return 0;
+  if (!/^\d{1,4}$/.test(t)) return null;
+  return Number(t);
+}
+
+/** Lo que admite una celda mientras se tipea: solo dígitos, hasta 4. Así una cantidad imposible ni se puede escribir. */
+export function limpiarCantidad(texto: string): string {
+  return texto.replace(/\D/g, "").slice(0, 4);
+}
+
+export type StockAlta = { total: number; invalidas: number; celdasConStock: number };
+
+/** Suma lo escrito SOLO en las celdas que siguen en la tabla: una celda quitada no se crea, así que su número no se carga. */
+export function resumenStock(cantidades: Readonly<Record<string, string>>, clavesIncluidas: readonly string[]): StockAlta {
+  let total = 0;
+  let invalidas = 0;
+  let celdasConStock = 0;
+  for (const clave of clavesIncluidas) {
+    const n = leerCantidad(cantidades[clave] ?? "");
+    if (n === null) invalidas++;
+    else if (n > 0) {
+      total += n;
+      celdasConStock++;
+    }
+  }
+  return { total, invalidas, celdasConStock };
+}
+
+/** A dónde entra el stock de hoy: la tienda donde está parada la persona (la de la cabecera), si separa piso y almacén, y si
+ *  su cuenta puede dejarlas en el piso (la base las baja con `bajar_al_piso`, que pide el módulo «Bajada al piso»). */
+export type DestinoStock = { ubicacionId: string; etiqueta: string; separaPiso: boolean; puedeBajar: boolean };
+
+/** Dónde queda el stock de la carga inicial, dicho como lo diría la persona. */
+export function textoDestinoStock(etiquetaSede: string, alPiso: boolean, separaPiso: boolean): string {
+  if (!separaPiso) return etiquetaSede;
+  return `${alPiso ? "piso de venta" : "almacén"} de ${etiquetaSede}`;
 }
 
 export type Desbloqueos = { marca: boolean; nombre: boolean; atributos: boolean; colores: boolean; precio: boolean };
@@ -216,21 +272,26 @@ export function desbloqueos(e: EstadoAlta): Desbloqueos {
 }
 
 // ---------------------------------------------------------------------------
-// Los 4 pasos del alta (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09).
+// Los 5 pasos del alta (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; el 5 desde ADR-0212).
 // ---------------------------------------------------------------------------
 //
-// Los 7 bloques de antes se agrupan en 4 pasos. Solo uno está abierto a la vez, y el terminado se pliega en una línea:
+// Los 7 bloques de antes se agrupan en pasos. Solo uno está abierto a la vez, y el terminado se pliega en una línea:
 //   1 Qué es · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas, tejido, patrón,
-//   colores, fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color, etiquetas).
+//   colores, fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color, etiquetas) · 5 Cuántas tienes hoy
+//   (la carga inicial: lo que ya está en tienda, ADR-0212).
 // Cada problema de `problemasAlta` cae en un paso, así el paso dice qué le falta sin repetir las reglas.
+//
+// El 5 va aparte del 4 a propósito: el 4 dice qué ES el producto (catálogo) y el 5 cuánto HAY (inventario). En la misma
+// tabla, «toca una celda para quitarla» y «escribe cuántas hay» pelearían por el mismo toque.
 
-export type PasoAlta = 1 | 2 | 3 | 4;
-export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4];
+export type PasoAlta = 1 | 2 | 3 | 4 | 5;
+export const PASOS_ALTA: readonly PasoAlta[] = [1, 2, 3, 4, 5];
 
 export function pasoDeProblema(p: Problema): PasoAlta {
   if (p.bloque === "categoria") return 1;
   if (p.bloque === "marca" || p.bloque === "nombre") return 2;
   if (p.bloque === "atributos") return 3;
+  if (p.bloque === "stock") return 5;
   return 4;
 }
 
@@ -247,7 +308,7 @@ export function pasoHecho(problemas: Problema[], paso: PasoAlta): boolean {
 /** El paso más lejano al que se puede entrar: el primero que todavía tiene algo pendiente. */
 export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
   const primero = problemas[0];
-  return primero ? pasoDeProblema(primero) : 4;
+  return primero ? pasoDeProblema(primero) : 5;
 }
 
 // ---------------------------------------------------------------------------

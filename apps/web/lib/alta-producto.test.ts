@@ -7,7 +7,12 @@ import {
   construirCeldas,
   desbloqueos,
   faltaDelPaso,
+  leerCantidad,
+  limpiarCantidad,
   ordenarFotosAlta,
+  PASOS_ALTA,
+  resumenStock,
+  textoDestinoStock,
   pasoAlcanzable,
   pasoDeProblema,
   pasoHecho,
@@ -41,6 +46,9 @@ const base: EstadoAlta = {
   celdasIncluidas: 3,
   precioBase: "89.90",
   costoBase: "32",
+  stockTotal: 6,
+  stockInvalidas: 0,
+  sinStock: false,
 };
 
 describe("tituloReferencia — espejo del trigger de la base", () => {
@@ -185,6 +193,50 @@ describe("problemasAlta — qué falta, en frases de la persona", () => {
     expect(problemasAlta({ ...base, costoBase: "" })).toEqual([]);
     expect(problemasAlta({ ...base, costoBase: "-1" })[0].texto).toMatch(/costo/);
   });
+  it("el stock hay que decidirlo: sin unidades y sin marcar «todavía no tengo», no se crea", () => {
+    expect(problemasAlta({ ...base, stockTotal: 0 })).toEqual([
+      { bloque: "stock", texto: "Escribe cuántas tienes hoy, o marca que todavía no tienes." },
+    ]);
+    expect(problemasAlta({ ...base, stockTotal: 0, sinStock: true })).toEqual([]);
+    // Con unidades escritas, la marca «todavía no» no importa: manda lo escrito.
+    expect(problemasAlta({ ...base, stockTotal: 4, sinStock: true })).toEqual([]);
+  });
+  it("una celda mal escrita frena aunque haya otras bien", () => {
+    expect(problemasAlta({ ...base, stockInvalidas: 1 })[0]).toEqual({ bloque: "stock", texto: "Las cantidades son números enteros, de 0 a 9999." });
+    expect(problemasAlta({ ...base, stockInvalidas: 1, sinStock: true })).toHaveLength(1);
+  });
+});
+
+describe("paso 5 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
+  it("leerCantidad: vacío es 0; enteros de 0 a 9999; lo demás no es una cantidad (espejo de la RPC)", () => {
+    expect(leerCantidad("")).toBe(0);
+    expect(leerCantidad("  ")).toBe(0);
+    expect(leerCantidad("0")).toBe(0);
+    expect(leerCantidad("7")).toBe(7);
+    expect(leerCantidad(" 12 ")).toBe(12);
+    expect(leerCantidad("9999")).toBe(9999);
+    for (const malo of ["10000", "2.5", "-1", "dos", "1e3", "3,0"]) expect(leerCantidad(malo)).toBeNull();
+  });
+  it("limpiarCantidad: al tipear solo quedan dígitos, hasta 4 (una cantidad imposible ni se escribe)", () => {
+    expect(limpiarCantidad("12")).toBe("12");
+    expect(limpiarCantidad("-3")).toBe("3");
+    expect(limpiarCantidad("2.5")).toBe("25");
+    expect(limpiarCantidad("abc")).toBe("");
+    expect(limpiarCantidad("123456")).toBe("1234");
+  });
+  it("resumenStock suma solo las celdas que siguen en la tabla", () => {
+    const cantidades = { a: "3", b: "", c: "2", quitada: "50" };
+    expect(resumenStock(cantidades, ["a", "b", "c"])).toEqual({ total: 5, invalidas: 0, celdasConStock: 2 });
+    expect(resumenStock(cantidades, ["a", "b", "c", "quitada"]).total).toBe(55);
+    expect(resumenStock({}, ["a", "b"])).toEqual({ total: 0, invalidas: 0, celdasConStock: 0 });
+    expect(resumenStock({ a: "x", b: "4" }, ["a", "b"])).toEqual({ total: 4, invalidas: 1, celdasConStock: 1 });
+  });
+  it("textoDestinoStock dice dónde quedan, como lo diría la persona", () => {
+    expect(textoDestinoStock("Tienda TRU", true, true)).toBe("piso de venta de Tienda TRU");
+    expect(textoDestinoStock("Tienda TRU", false, true)).toBe("almacén de Tienda TRU");
+    expect(textoDestinoStock("Taller", false, false)).toBe("Taller");
+    expect(textoDestinoStock("Taller", true, false)).toBe("Taller");
+  });
 });
 
 describe("desbloqueos — cada bloque se abre al resolver el anterior", () => {
@@ -277,10 +329,18 @@ describe("repartirFamilias — qué familias se ven de entrada y cuáles van tra
 });
 
 describe("pasos del alta — cada problema cae en su paso", () => {
-  it("con todo resuelto, los 4 pasos están hechos y se llega al 4", () => {
+  it("con todo resuelto, los 5 pasos están hechos y se llega al 5", () => {
     const p = problemasAlta(base);
-    expect([1, 2, 3, 4].map((n) => pasoHecho(p, n as 1 | 2 | 3 | 4))).toEqual([true, true, true, true]);
-    expect(pasoAlcanzable(p)).toBe(4);
+    expect(PASOS_ALTA).toEqual([1, 2, 3, 4, 5]);
+    expect(PASOS_ALTA.map((n) => pasoHecho(p, n))).toEqual([true, true, true, true, true]);
+    expect(pasoAlcanzable(p)).toBe(5);
+  });
+  it("lo del stock cae en el paso 5, y con el 4 completo se entra al 5", () => {
+    const p = problemasAlta({ ...base, stockTotal: 0 });
+    expect(p.map(pasoDeProblema)).toEqual([5]);
+    expect(pasoHecho(p, 4)).toBe(true);
+    expect(pasoHecho(p, 5)).toBe(false);
+    expect(pasoAlcanzable(p)).toBe(5);
   });
   it("sin categoría todo está pendiente y solo se entra al paso 1", () => {
     const p = problemasAlta({ ...base, categoriaId: "" });

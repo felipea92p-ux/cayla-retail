@@ -24,6 +24,8 @@ export type ResumenCreado = {
   colores: { codigo: string; nombre: string; hex: string | null }[];
   /** Resultado de subir las fotos elegidas en el alta. */
   fotos: { subidas: number; fallidas: string[]; coloresConFoto: string[] };
+  /** La carga inicial que entró con el producto (ADR-0212), o null si se creó sin stock. */
+  stock: { unidades: number; donde: string } | null;
 };
 
 export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCreado; onOtroParecido: () => void }) {
@@ -71,6 +73,18 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
                 {" · "}
                 <span className="font-mono tabular-nums">{codigo}</span>
               </>
+            )}
+          </p>
+          <p className="mt-1 text-sm text-tinta/70">
+            {creado.stock ? (
+              <>
+                <strong className="tabular-nums text-tinta">
+                  {creado.stock.unidades} unidad{creado.stock.unidades === 1 ? "" : "es"}
+                </strong>{" "}
+                cargada{creado.stock.unidades === 1 ? "" : "s"} al inventario ({creado.stock.donde}): ya aparecen en Existencias.
+              </>
+            ) : (
+              "Sin stock todavía: cuando llegue, regístralo al recibirlo."
             )}
           </p>
         </div>
