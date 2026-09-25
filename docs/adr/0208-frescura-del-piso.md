@@ -516,6 +516,13 @@ null, p_minutos integer default 10)`**
   vuelve en un cambio) puede marcar tardía una bajada correcta: la fórmula mira el piso de antes, no lo que llegó
   después (la prueba T18 fija ese comportamiento). Cambiar la fórmula es decisión del contrato del bloque 3.
 - Una transferencia que llega de otra tienda directo al piso sí entra al cálculo, porque la cuenta el libro (T19).
+- **Desde el bloque 2:** un retiro equivocado que se corrige volviendo a bajar la prenda deja una bajada con el piso de
+  antes ya rebajado por el retiro. Si hay una venta en la ventana de 10 minutos, se le atribuye como tardía (a quien
+  hizo la re-bajada), y la re-bajada infla Σ `cantidad` (el denominador del indicador de confianza del bloque 3).
+  Ejemplo: piso 2; 10:00 se retiran 2 por error; 10:01 se corrigen con «Reponer» 2; 10:05 se vende 1 → `tardia`.
+  Pendiente: una prueba en `scripts/pruebas/frescura_bajadas.mjs` que fije el caso, y en el contrato del bloque 3
+  descontar de la bajada los retiros de la misma prenda en [t − ventana, t] (o tomar como piso de antes el nivel más
+  alto de esa ventana).
 
 **Límite de la escritura: el orden de candados no es global todavía.** `bajar_al_piso` toma el stock en orden de prenda
 (`fn_bloquear_en_orden`, ADR-0190), como ventas, `iniciar_traslado`, recepciones y `cerrar_conteo`. Pero
@@ -795,8 +802,16 @@ Felipe eligió rescatar solo el retiro del plan paralelo «del termómetro» (ta
   almacén; el mismo modal que «Reponer» (`ReponerPisoModal`, ahora con `sentido: 'bajar' | 'retirar'`). Sin migración.
 - **Lo apartado no se retira:** el tope es el piso disponible y la base lo impide igual.
 - **Nombres:** el modal de la fila sigue llamándose «Reponer piso» (como su botón «Reponer»); «Bajar al piso» es el
-  botón de la pantalla de escaneo de este ADR. En Movimientos, las dos acciones quedan como «Bajada al piso».
+  botón de la pantalla de escaneo de este ADR. En Movimientos, las dos acciones quedan como «Bajada al piso», y el
+  aviso de éxito de «Reponer» dice «unidades bajadas al piso» para que la palabra lleve a su fila.
+- **El semáforo contradice al retiro (hallado en la revisión, decisión de Felipe en el bloque 3):** «Reponer»
+  (`necesitaReponerPiso`) y «Por colgar» (`porColgar`) solo miran cifras. Después de retirar, la talla vuelve a pedir
+  que la bajen, y el turno siguiente deshace la decisión de la encargada. Mientras no exista una marca de «retirada
+  de la venta» por talla y sede que apague esa alarma, el modal avisa ANTES de confirmar (`avisoTrasRetiro`) y
+  ofrece una **nota opcional** del motivo, que viaja como `p_nota` a `mover_interno` y se lee en el detalle de
+  Movimientos. Esa marca, junto con un motivo cerrado del retiro (fin de temporada, cambio de exhibición…), es lo que
+  Frescura necesita para distinguir un retiro que pausa el reloj de uno que saca la prenda de la venta.
 - **Riesgo que sigue abierto:** `mover_interno` no tiene token (ver (g)): un doble clic en «Retirar» retira dos veces.
   El botón se desactiva mientras guarda; el candado en la base es trabajo pendiente, igual que para «Reponer».
-- **Motivo del retiro** (fin de temporada, cambio de exhibición…): no se pide todavía; basta la nota libre. Si Frescura
-  necesita distinguir un retiro que pausa el reloj de uno que saca la prenda de la venta, se agrega en el bloque 3.
+- **Límite nuevo de la marca de tardías:** retiro equivocado → re-bajada → venta en la ventana (ver «Límites conocidos
+  de la marca»).
