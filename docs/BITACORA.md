@@ -3,6 +3,9 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Existencias en celular: la tarjeta de cada variante, ordenada)
+Felipe mandó capturas del celular: en Inventario ▸ Existencias cada variante era una lista de datos amontonada a la izquierda. Ahora la tarjeta va en bloques: la prenda arriba; Piso · Almacén, Disponible, Cobertura y Ritmo en una grilla de 2×2; «En camino» y «En la red» a la izquierda, con el chip de estado y «Reponer» a su derecha; y «Apartar» a la izquierda y «Ajustar» con «···» a la derecha, en la misma línea. Todo es solo de celular: `sm:contents` y `sm:[grid-area:auto]` devuelven cada celda a su columna, y en escritorio la tabla queda igual (medido a 1400 px: cada celda bajo su título). Probado a 375 px en local.
+Felipe se lleva: (1) **una tabla apilada no es una tarjeta**: poner cada columna en un renglón propio cabe en el celular, pero no ordena nada; (2) **el hueco vacío a la derecha es espacio que se puede usar**: el estado subió junto a «En camino» y la tarjeta quedó más baja; (3) **el celular se arregla sin tocar el escritorio** si se reagrupa con CSS y no se cambia el orden de las celdas.
 ## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
 Felipe eligió la opción A: de la tarea 3 del plan del termómetro se rescató solo el retiro, rebasado sobre `main` con el
 #434, el #437, el #438 y el #439, y se descartaron los motivos nuevos del ajuste. En Existencias, el menú «⋯» de cada
@@ -31,6 +34,7 @@ Felipe se lleva: (1) **un service worker solo guarda pantallas, nunca responde p
 ## 2026-09-25 (Recibir mercadería sin conexión — paso 1 del modo sin conexión para agregar productos, ADR-0210)
 La cola de la venta sin red (ADR-0063) se sacó de Vender como pieza genérica: `lib/cola-offline.ts` (pura, con pruebas) y `useColaOffline`, con un único sincronizador en el layout (`ColasSinConexion`) que sube desde cualquier pantalla. `/recibir` y `/inventario/recibir` la usan: si al confirmar se cae la red, el envío o el lote se guardan en el navegador con su token y la hora de ese momento, y suben solos. Lo contado sale de «pendientes» mientras espera, y también en el rato hasta que llega la lista nueva, para que nadie cuente dos veces el mismo comprobante. Probado en local cortando la red: encola, sube al volver sin recargar, un segundo envío con el mismo token no duplicó el stock (346 → 347), un rechazo de la base queda en rojo con «Descartar», y una RPC fuera de la lista blanca metida a mano en el navegador no se ejecutó. `tsc`/`eslint`/77.019 pruebas en verde.
 Felipe se lleva: (1) **la base ya sabía no duplicar; faltaba quién reintente**: el `p_token` hace seguro el reintento, y la cola es solo la memoria del navegador que lo hace; (2) **ocultar lo ya contado es el «stock comprometido» de Recibir**: sin eso, dos personas cuentan el mismo comprobante y al volver la red suben dos recepciones; (3) **lo que numera la base se queda en la base**: el alta de producto (paso 2) guardará sin código y lo recibirá al subir, porque dos sedes sin red no pueden repartirse los correlativos.
+
 ## 2026-09-25 (Frescura: termómetro del ERP, la caja dice «en el almacén» y «Por colgar» — tareas 1, 2 y 4 del plan del termómetro)
 Felipe aprobó las tareas 1-4 del plan de 12 (sesión del termómetro). Salen tres PR separados:
 - **Termómetro:** 12 consultas de solo lectura en `docs/datos/consultas/frescura-termometro.sql`, verificadas contra producción y con la rutina de los lunes contra Alegra.
