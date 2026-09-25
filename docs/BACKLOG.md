@@ -189,13 +189,17 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   `20260926000000_bajada_piso_modulo` → `…0100_bajada_piso_tablas` → `…0200_bajada_piso_funciones` →
   `…0300_frescura_lectura_bajadas` → **publicar la web** → `…0400_reposicion_no_toca_el_piso`. Ya traen `retail.` y se
   pueden repegar. La `0100`, fuera de hora pico: si no consigue el candado en 3 s, falla sin daño y se repega. La `0300`
-  necesita `20260924030000` (`fn_ledger_puntos`, en producción desde el 2026-09-25): confirmarlo antes en el SQL Editor
-  con `select to_regprocedure('retail.fn_ledger_puntos(uuid, timestamptz, uuid[])') is not null;` (debe dar `true`;
-  `pnpm datos:generar:produccion` no pregunta a producción, lee el volcado guardado).
+  necesita `20260924030000` (`fn_ledger_puntos`). **Verificado en producción el 2026-09-25 (consulta de solo lectura de
+  Felipe):** existen `fn_ledger_puntos`, `fn_es_traslado_interno`, `fn_es_venta_de_stock`, `fn_historial_sin_truncate`,
+  `fn_bloquear_en_orden` (4 parámetros), `fn_ids_de_items`, `fn_ve_modulo`, `fn_actor_persona_id` y `mover_interno`:
+  no hay que pegar nada de main antes.
 - [ ] **Publicar la web DESPUÉS de la `0300` y ANTES de la `0400`.** Si sale antes de la `0000`, Roles y accesos pinta un
   módulo que la base no conoce; si la `0400` va antes que la web, su mensaje manda a un botón que todavía no está.
-- [ ] **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos** en los roles de quien cuelga prendas
-  (recomendado: Terminal Almacén y quien cuelga; la Terminal de ventas se decide aparte, ver D-40). Nunca desde el
+- [ ] **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos.** Lo que hay en producción (consulta del
+  2026-09-25): «Integrante» (17 personas) solo ve Productos y Vender, SIN Existencias, así que con cuenta propia no llega
+  al botón; las 3 «Terminal Almacén» y las 3 «Terminal de ventas» sí ven Existencias; los 8 líderes lo ven todo.
+  **Recomendado: encenderlo solo en «Terminal Almacén»** (la colaboradora baja desde la terminal eligiéndose como
+  Responsable). La Terminal de ventas, no hasta decidir la D-40: facilita justo la bajada al cobrar. Nunca desde el
   código (ADR-0161). Hasta entonces solo lo ve el líder. **Ojo:** quien reciba «Bajada al piso» sin Existencias no ve el
   botón y solo llega escribiendo `/inventario/bajar`; Felipe aceptó esa consecuencia el 2026-09-25.
 - [ ] **Felipe verifica con la pistola real** (receta completa en el ADR, «Verificación en local»): 5 prendas DISTINTAS
@@ -210,8 +214,11 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   quedan idénticos a main).
 - [x] ~~Decidir si se cierra la puerta de Ajustar stock ▸ Piso ▸ «Reposición»~~: Felipe decidió cerrarla (2026-09-25,
   migración `0400`). 92 de las 146 unidades del piso de producción habían entrado por ahí el 2026-09-24.
-- [ ] **«Reposición» en el ALMACÉN sigue abierta** (Felipe, 2026-09-25: «dejarla abierta por ahora»). Crea prendas en el
-  almacén sin recepción; decidir más adelante si se cierra.
+- [ ] **«Reposición» en el ALMACÉN sigue abierta** (Felipe, 2026-09-25: «dejarla abierta por ahora») **y se está usando:**
+  el 2026-09-25, 20 ajustes y 60 unidades en el almacén, por 1 persona (el 24-sep fueron 92 unidades en el piso, puerta
+  ya cerrada por la `0400`). Crea prendas en el almacén sin recepción ni proveedor: si es la carga inicial, conviene
+  hacerla por Recibir mercadería para que tengan fecha de llegada (el «reloj de tienda» de Frescura). Decidir si se
+  cierra.
 - [ ] **Felipe: ¿«Reponer» en toda fila con almacén?** Hoy solo aparece con 7 o menos en el piso. Quien tiene
   Existencias sin «Bajada al piso» no tiene camino con rastro para subir una prenda con 8 o más en el piso (la nota de
   Ajustar stock le dice que pida el módulo al líder).

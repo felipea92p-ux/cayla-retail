@@ -625,8 +625,10 @@ repiten este mismo orden.
    ejemplo, si `mover_interno` no firma con el responsable: «pega antes 20260923100000»); luego `fn_prenda_corta`,
    `bajar_al_piso` y `fn_verificar_bajadas`. Solo crea funciones: no toma candados de tablas.
 4. `20260926000300_frescura_lectura_bajadas.sql`: `fn_bajadas_del_piso`. Necesita `20260924030000_ledger_fuente_unica`
-   (ADR-0202), que según el BACKLOG está en producción desde el 2026-09-25; si faltara, se detiene antes de crear nada.
-   Para confirmarlo antes, en el SQL Editor de producción (solo lectura): `select to_regprocedure('retail.fn_ledger_puntos(uuid,
+   (ADR-0202); si faltara, se detiene antes de crear nada. **Verificado el 2026-09-25** con una consulta de solo lectura
+   de Felipe: todas las dependencias de las cinco partes existen en producción (`fn_ledger_puntos`,
+   `fn_es_traslado_interno`, `fn_es_venta_de_stock`, `fn_historial_sin_truncate`, `fn_bloquear_en_orden` con 4
+   parámetros, `fn_ids_de_items`, `fn_ve_modulo`, `fn_actor_persona_id`, `mover_interno`). Para volver a confirmarlo, en el SQL Editor de producción (solo lectura): `select to_regprocedure('retail.fn_ledger_puntos(uuid,
    timestamptz, uuid[])') is not null, to_regprocedure('retail.fn_es_traslado_interno(text, uuid, uuid)') is not null;`
    (dos `true`). `pnpm datos:generar:produccion` no sirve para esto: arma el diccionario desde el volcado guardado, no
    pregunta a producción. Va aparte porque el bloque 3 le cambiará las entrañas sin tocar el camino que
@@ -643,7 +645,10 @@ repiten este mismo orden.
    los parámetros los cruza `bajada-reglas.test.ts` contra la migración (no contra producción).
 
 El día 1 el módulo solo lo ve el líder. **Felipe decide en qué roles encender «Bajada al piso»** (Colaboradores ▸
-Roles y accesos), en los de quien cuelga prendas; nunca desde el código (ADR-0161). Hasta entonces las bajadas siguen
+Roles y accesos), en los de quien cuelga prendas; nunca desde el código (ADR-0161). En producción (2026-09-25) el rol
+«Integrante» (17 personas) no ve Existencias, así que no llega al botón; las 3 «Terminal Almacén» y las 3 «Terminal de
+ventas» sí. Lo recomendado es encenderlo en «Terminal Almacén» (se baja desde la terminal, eligiendo la Responsable) y
+no en la de ventas hasta decidir la D-40. Hasta entonces las bajadas siguen
 entrando por «Reponer» y, con la `0400` pegada, ya no por el ajuste en el piso. Quien reciba «Bajada al piso» sin
 Existencias no verá el botón (ver (b), «Entrada»).
 
@@ -757,7 +762,8 @@ guiones se corren con `PATH=<pg>/bin:$PATH CAYLA_PGDATABASE=<base> LC_ALL=en_US.
   - «Reponer» solo aparece en las filas con 7 o menos en el piso (`UMBRAL_REPOSICION_PISO`). Quien tiene Existencias sin
     «Bajada al piso» no tiene camino con rastro para subir una prenda que ya tiene 8 o más en el piso: ¿«Reponer» se
     ofrece en toda fila con almacén disponible, o basta con encender «Bajada al piso»?
-  - «Reposición» en el ALMACÉN queda abierta por ahora (Felipe, 2026-09-25): decidir más adelante si se cierra.
+  - «Reposición» en el ALMACÉN queda abierta por ahora (Felipe, 2026-09-25): decidir más adelante si se cierra. Se usa:
+    el 2026-09-25 se cargaron así 60 unidades en el almacén (20 ajustes, 1 persona), sin recepción ni fecha de llegada.
   - ¿La exclusión de `prendas_por_regularizar` debe valer también en Análisis (`fn_es_venta_de_stock`)? Hoy Análisis
     cuenta como venta la salida de `regularizar_prenda`, a la hora de la regularización; Frescura la excluye.
   - ¿20 bajadas cerradas y 10 minutos para el indicador? ¿Solo líder y por sede, o también por persona?
