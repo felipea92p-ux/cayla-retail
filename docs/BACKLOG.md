@@ -28,6 +28,11 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — commit en la rama `claude/optimize-cayla-retail-team-03c071`, falta el PR
+- [ ] **Abrir el PR y fusionarlo.** La corrección anterior (2026-09-23, commits `248f6de3` y `2d0ba71d`) se perdió porque quedó en ramas sin PR.
+- [ ] **Decisiones de Felipe** (el código contradice la regla y no hay decisión escrita): R-38 (la devolución la aplica «cualquiera en caja», pero `aprobar_devolucion` exige líder desde `0003_funciones.sql`); R-20 (umbral de «estancado» por categoría, pero el código usa la constante `LECTURA_SIN_VENTAS_DIAS_MIN = 14` en `apps/web/lib/resumen-lectura.ts:40`); descuentos de más de 35% (la razón del 2026-09-15 ya no vale desde `fn_es_admin()`); si importar el consumo de Audaces se descartó o solo no se hizo.
+- [ ] **Instrucciones que todavía contradicen a CLAUDE.md:** `AGENTS.md:91` mantiene «migraciones SIN prefijo» y `sedes`/`personas`; el protocolo de pregunta y docencia depende de `~/.claude/CLAUDE.md`, que no está en el repo; `.claude/settings.json` llama a graphify con una ruta de Windows de una sola máquina; `supabase/config.toml:13-15` todavía dice que `seed.sql` renombra el schema.
+
 ## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412
 - [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
 - [x] **Pegada en producción** `20260925230000_argumento_descuento_desde_15.sql` (2026-09-25, a pedido de Felipe). Verificado en solo lectura: una sola `registrar_venta`, umbral 0.15 sin rastro del 0.20, tope del 35 % solo para Líder, código de la Colaboradora intacto, `security definer` y permisos iguales (authenticated sí, anon no). Huella md5 395ad922… → 7b574282…
