@@ -603,7 +603,7 @@ Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió l
 
 ## 🎯 Menú a datos: `lib/menu.ts` (2026-09-21, ADR-0144) — paso 1, sin cambio visible
 - [x] Árbol de datos + `menuPara` (permisos semánticos, no `esLider`) + fotografía del menú de hoy (`menu-hoy.golden.json`, capturada del `AppShell.tsx` real de `main`) + pruebas (equivalencia en 6 perfiles, invariantes, topes 8/6, rutas vivas existen). `AppShell.tsx` pierde las constantes de filas y `produccion-menu.ts` pasa a ser vista fina. `tsc`, `eslint` y 2023 pruebas en verde; 1176 renders del original y del nuevo, 0 diferencias.
-- [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano; «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
+- [ ] Pasos siguientes (cambian la fotografía a propósito, cada uno con el OK de Felipe): «Más» + avatar «Yo» + lupa en celular; colaborador plano (la CAJA ya lo tiene desde el 2026-09-25: Ventas suelto, Inventario y Catálogo agrupados; falta decidir si una PERSONA integrante de tienda también); «+ Nuevo» agrupado e Inicio por perfil; nombres («… del Taller», elegido por Felipe); rebasar los PRs abiertos sobre el árbol.
 - [x] **«Más» + avatar + lupa: construido (ADR-0205, 2026-09-25)** — `docs/maquetas/menu-movil-spike-2026-09/`
       (spike aprobado por Felipe, con dos correcciones en vivo) → `AppShell.tsx` + `components/MasMovil.tsx`
       (nuevo). La barra queda en 5 columnas parejas — Inicio/Punto de Venta/Inventario/Caja + **Más** al final,

@@ -168,6 +168,13 @@ export type Grupo = Comun & {
   /** La puerta del módulo: todo lo que cuelga de esta ruta es de este grupo (decide qué grupo se abre al aterrizar). */
   raiz: string;
   hijos: readonly (Hoja | Grupo | Futura)[];
+  /**
+   * En la caja del mostrador (`esMostrador`) este grupo no se pinta como cabecera: sus pantallas salen sueltas, cada una
+   * con su nombre y también las de sus subgrupos, en el lugar donde iba el grupo. Existe por Ventas (Felipe, 2026-09-25):
+   * la caja vive en el Punto de venta y la Caja, y abrir un grupo para llegar a ellas era un clic de más cada vez. Los
+   * demás grupos siguen agrupados para que el menú de la caja no pase de unas 8 filas.
+   */
+  sueltoEnMostrador?: true;
 };
 
 /** Algo que todavía no existe: vive en el árbol para que el aviario quede a la vista, y `menuPara` NO lo emite. */
@@ -253,8 +260,10 @@ export const ARBOL: readonly Nodo[] = [
 
   // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
   // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
+  // En la caja del mostrador sale SUELTO (Felipe, 2026-09-25): Punto de Venta, Caja, Historial, Cambios, Devoluciones…
+  // directo en el lateral, sin la cabecera «Ventas» ni la de «Posventa».
   {
-    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí",
+    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí", sueltoEnMostrador: true,
     hijos: [
       { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
       // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
@@ -498,12 +507,19 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu 
   };
 
   // ---- riel de escritorio ----
+  // Un grupo `sueltoEnMostrador`, en la caja, se arma como si fuera un SUBGRUPO (`esRaiz = false`): con una sola hija
+  // visible, esa hija sube con su propio nombre («Punto de Venta», no «Ventas»). Y en vez de su cabecera van sus hojas,
+  // las de sus subgrupos incluidas (`hojasDe`). Es la misma regla de disolver un grupo que ya existía, aplicada al primer
+  // nivel. `grupoDe` no cambia: pararse en `/caja` sigue siendo estar en Ventas, y moverse ahí cierra el grupo que
+  // estuviera abierto (Inventario), igual que para cualquier otra cuenta.
+  const mostrador = esMostrador(perfil);
   const riel: FilaMenu[] = [];
   const emitidos = new Map<string, FilaMenu>();
   for (const n of arbol) {
-    const fila = construirFila(n, true);
+    const suelto = mostrador && esGrupo(n) && !!n.sueltoEnMostrador;
+    const fila = construirFila(n, !suelto);
     if (!fila) continue;
-    riel.push(fila);
+    riel.push(...(suelto ? hojasDe(fila) : [fila]));
     emitidos.set(n.id, fila);
   }
 
