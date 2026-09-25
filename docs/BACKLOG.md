@@ -28,10 +28,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Actividad de cada módulo: quién hizo qué, desde la cabecera (2026-09-25, ADR-0207) — migración `20260926090000` POR PEGAR en producción; web en PR
+## 🎯 Actividad de cada módulo: quién hizo qué, desde la cabecera (2026-09-25, ADR-0207) — migración `20260926090000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #424
 - [x] Tabla `retail.actividad` (solo agregar), disparadores de Punto de venta, Historial de ventas (anulaciones), Caja y Cambios, carga de lo pasado, `fn_actividad` / `fn_actividad_personas` con el alcance por sede. `pnpm pruebas:actividad` 15/15 en el local.
 - [x] Botón «Actividad» en la cabecera (panel del módulo actual) y `/actividad` (todo, con filtros). Verificado en el navegador como líder, en escritorio y a 375 px.
-- [ ] **Pegar `20260926090000_actividad_por_modulo.sql` en producción** (una parte, ya con `retail.`; fuera del horario de tienda: toma candados breves de ventas y cajas). **Antes de publicar la web**: sin ella el botón abre un panel que dice «No se pudo leer la actividad».
+- [x] **Pegada en producción** (2026-09-25, pedido de Felipe, por el MCP): ensayo completo abortado a propósito (41 líneas: 7 ventas, 16 aperturas, 13 cierres, 4 movimientos de cajón, 1 traslado; producción intacta después), luego aplicada. Verificado: 41 líneas, todas con persona; 7 disparadores (el de venta diferido); RLS sin políticas; `authenticated` no lee la tabla ni anota, sí llama `fn_actividad`; `anon` nada; módulo sin rol; terminal bloqueada; editar una línea se rechaza. Como líder, `fn_actividad` devuelve las 41 de 3 sedes con nombre.
 - [ ] Después de pegar: refrescar el volcado y correr `pnpm datos:generar:produccion` (tabla nueva) y `pnpm datos:comparar`.
 - [ ] Felipe: encender «Actividad» en el rol de la líder de tienda (Roles y accesos) y entrar con esa cuenta para ver que solo sale su sede (probado en la base; falta el clic con una sesión que no sea líder).
 - [ ] Sumar los demás módulos, uno por migración (receta en el ADR-0207): Devoluciones, Apartados, Traslados, Existencias (ajustes), Productos (precio con antes/después), Colaboradores y Roles.

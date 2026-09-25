@@ -1,8 +1,8 @@
 # ADR-0207 · La actividad de cada módulo: quién hizo qué, desde la cabecera
 
 - **Fecha:** 2026-09-25 · **Estado:** Aceptado y construido (primer paso: Punto de venta, Historial de ventas, Caja y
-  Cambios). **Producción:** migración `20260926090000_actividad_por_modulo.sql` **POR PEGAR** (una sola parte, sin
-  políticas).
+  Cambios). **Producción:** migración `20260926090000_actividad_por_modulo.sql` **aplicada y verificada el 2026-09-25**
+  (ensayo abortado primero; 41 líneas cargadas).
 - **Alcance:** `supabase/migrations/20260926090000_actividad_por_modulo.sql`, `scripts/pruebas/actividad.mjs`,
   `apps/web/lib/actividad-reglas.ts`, `apps/web/components/actividad/*`, `apps/web/app/(app)/actividad/*`,
   `apps/web/components/AppShell.tsx` (el botón), `lib/modulos.ts` y `lib/terminales-reglas.ts` (el módulo nuevo).
