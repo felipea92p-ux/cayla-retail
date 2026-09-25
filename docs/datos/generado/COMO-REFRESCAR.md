@@ -20,8 +20,9 @@ lo lee desde ahí:
 pnpm datos:generar:produccion
 ```
 
-Eso no se conecta a nada: arma el diccionario desde los siete archivos
-`retail_*.json` de esta carpeta.
+Eso no se conecta a nada: arma el diccionario desde los ocho archivos
+`retail_*.json` de esta carpeta (más `funciones-produccion.txt`, que solo lee `datos:comparar`).
+La cabecera del diccionario dice **de cuándo es la foto** (`retail_foto.json`, la consulta 9).
 
 ## Cómo se refrescan esos archivos
 
@@ -151,6 +152,24 @@ from pg_class c join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'retail' and c.relkind in ('r','p','v','m','f');
 ```
 
+### 9 · `retail_foto.json` — la fecha de la foto, con lo que había ese día
+
+Se pide **la última**, con las otras a la vez: `now()` lo escribe la propia base, y esa es la fecha que el
+diccionario imprime en «Leído el». Trae además cuántas relaciones y cuántas funciones vio. El generador **se
+detiene** si `relaciones` no coincide con `retail_columnas.json` o `funciones` con las líneas de
+`funciones-produccion.txt`: una fecha pegada sobre una foto de funciones vieja diría «al día» de algo que no lo está
+(le pasó a este archivo: producción llevaba 544 funciones y la foto, 535).
+
+```sql
+select jsonb_build_object(
+  'leido_en', now(),
+  'relaciones', (select count(*) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                 where n.nspname = 'retail' and c.relkind in ('r','p','v','m','f')),
+  'funciones',  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'retail' and p.prokind = 'f')
+);
+```
+
 ## Después de refrescar
 
 ```bash
@@ -158,6 +177,11 @@ pnpm datos:generar:produccion   # reescribe el diccionario
 pnpm datos:comparar             # avisa si alguna pantalla quedó rota, o si una función quedó con dos firmas
 pnpm datos:aviario              # falla si una tabla de producción quedó sin pájaro
 ```
+
+Después corre `pnpm --filter web test diccionario-datos`: revisa que la foto sea coherente y que ninguna glosa
+de `glosario.json` contradiga lo que acabas de traer (un valor entre comillas que el candado ya no admite, una
+columna que ya no existe, o un «nadie la lee» / «hoy» que un cambio de código deja falso). Las glosas dicen **para
+qué sirve** la columna, no quién la usa hoy: eso envejece en semanas y se contradice en silencio.
 
 Y mira el diff antes de commitear: si aparecen tablas o columnas que nadie recuerda
 haber creado, alguien pegó SQL en producción sin anotarlo — que es exactamente lo que

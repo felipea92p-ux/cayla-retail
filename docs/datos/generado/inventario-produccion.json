@@ -1,5 +1,6 @@
 {
-  "leido_en": "volcado de producción — ver COMO-REFRESCAR.md",
+  "leido_en": "2026-09-25T16:09:32.608839+00:00",
+  "funciones_en_produccion": 544,
   "tablas": [
     {
       "esquema": "retail",

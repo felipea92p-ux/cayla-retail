@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 257 llamadas de `apps/web` contra 535 funciones del schema `retail` en producción.
+> Comparadas 257 llamadas de `apps/web` contra 544 funciones del schema `retail` en producción.
 
 ---
 
@@ -91,7 +91,7 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `asignar_rol` · `apps/web/lib/roles-acciones.ts:50` — el objeto se arma con «...», no se puede leer entero
 - `abrir_caja` · `apps/web/lib/useResponsable.ts:26` — el objeto se arma con «...», no se puede leer entero
 
-## Funciones que nadie llama — 28
+## Funciones que nadie llama — 30
 
 Existen en producción y ninguna pantalla las usa. Cada una es una de dos cosas:
 una pantalla que falta construir, o una función que sobra y habría que retirar.
@@ -110,6 +110,8 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `convertir_proforma_a_comprobante`
 - `desactivar_categoria`
 - `desactivar_proveedor`
+- `editar_cuenta_dinero`
+- `eliminar_cuenta_dinero`
 - `emitir_comprobante`
 - `emitir_nota`
 - `quitar_comprador_de_tienda`

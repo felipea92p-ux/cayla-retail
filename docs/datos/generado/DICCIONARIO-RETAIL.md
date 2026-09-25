@@ -5,8 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** volcado de producción — ver COMO-REFRESCAR.md
+> **Leído el:** 2026-09-25 16:09:32 UTC
 > **Tablas y vistas encontradas:** 123
+> **Funciones en `retail`:** 544 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -301,16 +302,16 @@
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | el modelo en sí: de aquí cuelgan sus variantes, su foto y su receta de costo |
-| `categoria_id` | uuid | sí | — | en qué categoría del catálogo entra el modelo; vacío = se ve "sin categoría" |
+| `id` | uuid | **no** | `gen_random_uuid()` | el modelo en sí: de aquí cuelgan sus variantes (talla y color) |
+| `categoria_id` | uuid | sí | — | en qué categoría del catálogo entra el modelo; puede quedar vacío |
 | `referencia` | text | **no** | — | cómo se llama la prenda para la gente: "Blusa Aurora" |
-| `descripcion` | text | sí | — | texto largo del modelo que escribe la importación; ninguna pantalla lo muestra todavía |
-| `estado` | text | **no** | `'activo'::text` | activa, descontinuada o agotada; descontinuada desaparece del catálogo sin borrarse, borrar no existe |
+| `descripcion` | text | sí | — | texto largo del modelo |
+| `estado` | text | **no** | `'activo'::text` | si el modelo sigue en el catálogo: 'activo' o 'descontinuado'; descontinuar no borra nada |
 | `created_at` | timestamp with time zone | **no** | `now()` | cuándo se dio de alta el modelo en el catálogo |
-| `codigo` | text | sí | — | el nombre corto del modelo (BLU-0042): se acuña una vez, y nada en la base impide cambiarlo |
+| `codigo` | text | sí | — | el nombre corto del modelo (BLU-0042); no se repite |
 | `token_cliente` | uuid | sí | — | — |
 | `stock_minimo` | integer | sí | — | — |
-| `temporada` | text | sí | — | de qué temporada es ("Verano 26"), texto libre; ninguna pantalla lo lee |
+| `temporada` | text | sí | — | de qué temporada es («Verano 26»), texto libre |
 | `permitir_venta_sin_stock` | boolean | **no** | `false` | — |
 | `tejido_id` | uuid | sí | — | — |
 | `patron_id` | uuid | sí | — | — |
@@ -349,13 +350,13 @@
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | la prenda concreta que se vende, se mueve y se cuenta: talla y color de un modelo |
-| `producto_id` | uuid | **no** | — | de qué modelo es esta talla y color; si el modelo se fuera, se van sus variantes |
+| `producto_id` | uuid | **no** | — | de qué modelo es esta talla y color |
 | `color_codigo` | text | sí | — | — |
 | `sku` | text | sí | — | identificador viejo y único: es lo que codifican las etiquetas impresas antes del 2026-09-09 |
-| `precio` | numeric | **no** | — | precio de lista con el que la tienda vende; la base no se lo esconde a nadie con sesión |
-| `costo` | numeric | **no** | `0` | lo que costó la prenda: uno solo por variante, el nuevo pisa al viejo y cambia márgenes pasados |
+| `precio` | numeric | **no** | — | precio de lista con el que la tienda vende; lo puede leer cualquier cuenta con sesión |
+| `costo` | numeric | **no** | `0` | lo que costó la prenda, en soles; no puede ser negativo |
 | `activo` | boolean | **no** | `true` | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo nació la prenda; hace de "días sin venta" cuando nunca se vendió |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo nació la prenda |
 | `codigo` | text | sí | — | el nombre corto que se imprime en la etiqueta y se dicta por teléfono (BLU-0042-AZM-M) |
 | `talla_id` | uuid | sí | — | — |
 
@@ -383,10 +384,10 @@
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | la categoría del catálogo a la que apuntan los productos |
-| `nombre` | text | **no** | — | cómo se llama la categoría ("Blusas"): es lo que se elige en el desplegable |
+| `nombre` | text | **no** | — | cómo se llama la categoría («Blusas»); no puede haber dos con el mismo nombre |
 | `activo` | boolean | **no** | `true` | — |
-| `familia` | text | sí | — | el gran rubro: indumentaria, calzado, accesorios, bisuteria, belleza o papeleria — una séptima exige migración |
-| `prefijo` | text | sí | — | las tres letras con las que empieza el código de la prenda (BLU); obligatorio y único |
+| `familia` | text | sí | — | el gran rubro de la categoría (indumentaria, calzado, accesorios…); los rubros válidos son las filas de la tabla familias |
+| `prefijo` | text | sí | — | las tres letras mayúsculas con las que empieza el código de la prenda (BLU); no se repite entre categorías |
 | `categoria_padre_id` | uuid | sí | — | — |
 | `notas` | text | sí | — | — |
 
@@ -527,10 +528,10 @@
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | la fila del código registrado; nadie la referencia, lo que se busca es el código |
-| `variante_id` | uuid | **no** | — | a qué prenda concreta (talla y color) lleva ese escaneo; si se borra la prenda, el código también |
+| `id` | uuid | **no** | `gen_random_uuid()` | la fila del código registrado |
+| `variante_id` | uuid | **no** | — | a qué prenda concreta (talla y color) lleva ese escaneo |
 | `codigo` | text | **no** | — | lo que sale de la pistola: el corto CAYLA, el sku viejo o el EAN de fábrica |
-| `origen` | text | **no** | `'propio'::text` | de dónde salió el código: 'cayla', 'proveedor' u 'otro', el check no admite nada más |
+| `origen` | text | **no** | `'propio'::text` | de dónde salió el código: 'propio' o 'fabrica'; el check no admite otro |
 | `created_at` | timestamp with time zone | **no** | `now()` | desde cuándo esa prenda quedó escaneable con ese código |
 
 **Candados** — lo que esta tabla hace imposible:
@@ -555,7 +556,7 @@
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `prefijo` | text | **no** | — | las tres letras de la categoría (BLU, JEA, GEN): un contador por familia de prenda |
-| `ultimo` | integer | **no** | `0` | el último número entregado — BLU-0042 significa que acá dice 42; nunca deja huecos ni retrocede |
+| `ultimo` | integer | **no** | `0` | el último número entregado — BLU-0042 significa que acá dice 42; no puede ser negativo |
 | `updated_at` | timestamp with time zone | **no** | `now()` | cuándo se acuñó el último código de ese prefijo |
 
 **Candados** — lo que esta tabla hace imposible:
@@ -577,10 +578,10 @@
 |---|---|---|---|---|
 | `codigo` | text | **no** | — | las tres letras del color (AZM): es el segmento de color del código de la prenda |
 | `nombre` | text | **no** | — | cómo se dice el color ("Azul marino"); la base rechaza otra escritura del mismo nombre |
-| `hex` | text | sí | — | el chip de color que se ve en pantalla; para Estampado, Multicolor y Animal print queda vacío |
-| `activo` | boolean | **no** | `true` | si el color todavía aparece en el selector; un color no se borra, se apaga |
+| `hex` | text | sí | — | el chip de color que se ve en pantalla, en formato #RRGGBB; puede quedar vacío |
+| `activo` | boolean | **no** | `true` | si el color está disponible para elegir; un color no se borra, se apaga |
 | `familia_color` | text | sí | — | en qué grupo entra: neutro, azul, rojo, amarillo, verde, morado, tierra, metalico o estampado |
-| `orden` | integer | **no** | `100` | en qué posición sale en el selector; los 30 de CAYLA van del 10 al 92, los importados en 200 |
+| `orden` | integer | **no** | `100` | en qué posición sale el color en el selector; el menor va primero |
 | `tipo` | text | **no** | `'solido'::text` | — |
 | `imagen_muestra_url` | text | sí | — | — |
 | `notas` | text | sí | — | — |
@@ -874,23 +875,23 @@
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | el hecho concreto de inventario; lo cita conteo_lineas.movimiento_id para justificar cada ajuste del censo |
+| `id` | uuid | **no** | `gen_random_uuid()` | el hecho concreto de inventario: una prenda que entra, sale, se ajusta, se traslada o se aparta |
 | `variante_id` | uuid | **no** | — | la prenda exacta, talla y color, que se movió |
 | `ubicacion_id` | uuid | **no** | — | — |
 | `ubicacion_destino_id` | uuid | sí | — | — |
 | `sububicacion_id` | uuid | sí | — | — |
 | `sububicacion_destino_id` | uuid | sí | — | — |
-| `tipo` | text | **no** | — | entrada, salida, ajuste o traslado — nada más; define el signo y a qué bolsa se aplica |
+| `tipo` | text | **no** | — | qué clase de hecho es: entrada, salida, ajuste, traslado, apartado o liberacion_apartado; define el signo y a qué bolsa se aplica |
 | `cantidad` | integer | **no** | — | cuántas unidades; siempre positiva salvo en 'ajuste', el único tipo que admite negativo |
-| `motivo` | text | sí | — | por qué se movió: venta, merma, conteo, bajada a piso — texto libre, y solo el exacto 'venta' sella stock.ultima_venta |
+| `motivo` | text | sí | — | por qué se movió: venta, merma, conteo, bajada a piso — texto libre |
 | `venta_item_id` | uuid | sí | — | — |
-| `lote_id` | uuid | sí | — | de qué fardo recibido vino la prenda; solo lo llena recibir_lote |
+| `lote_id` | uuid | sí | — | de qué fardo recibido vino la prenda |
 | `devolucion_item_id` | uuid | sí | — | — |
 | `conteo_item_id` | uuid | sí | — | — |
 | `transferencia_item_id` | uuid | sí | — | — |
-| `usuario_id` | uuid | sí | — | qué integrante lo registró; la RPC lo resuelve de la sesión, pero un insert directo puede falsearlo |
-| `nota` | text | sí | — | lo que escribió quien registró: 'vino roto', 'Conteo censo AQP' — texto libre para auditar después |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo pasó el hecho; es el orden del libro y la fecha que se copia a stock.ultima_* |
+| `usuario_id` | uuid | sí | — | qué integrante lo registró |
+| `nota` | text | sí | — | lo que escribió quien registró: «vino roto», «Conteo censo AQP» — texto libre para auditar después |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo pasó el hecho; es el orden del libro de movimientos |
 | `cambio_id` | uuid | sí | — | — |
 | `compra_item_id` | uuid | sí | — | — |
 | `produccion_id` | uuid | sí | — | — |
@@ -921,7 +922,7 @@
 |---|---|---|---|---|
 | `variante_id` | uuid | **no** | — | qué prenda cuenta esta fila, parte de la llave junto con la sede |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `cantidad` | integer | **no** | `0` | lo que se puede vender ahora mismo en esa sede; la base nunca la deja negativa |
+| `cantidad` | integer | **no** | `0` | las unidades físicas de la prenda en esa ubicación, incluidas las que están apartadas para una clienta (cantidad_apartada); nunca negativa |
 | `updated_at` | timestamp with time zone | **no** | `now()` | cuándo se tocó la fila por última vez, sea por movimiento o por recálculo |
 | `sububicacion_id` | uuid | sí | — | — |
 | `cantidad_apartada` | integer | **no** | `0` | — |
@@ -950,11 +951,11 @@
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | la recepción completa: el fardo descargado de una vez, al que apuntan sus movimientos de entrada |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `proveedor_id` | uuid | **no** | — | el proveedor del directorio que trajo el fardo: existe y hoy nadie la llena |
+| `proveedor_id` | uuid | **no** | — | el proveedor del directorio que trajo el fardo; obligatorio |
 | `numero_guia` | text | sí | — | la guía de remisión del transportista, para cruzar el fardo contra el papel que llegó |
-| `fecha_recepcion` | timestamp with time zone | **no** | `now()` | qué día llegó la mercadería; recibir_lote nunca la manda, así que siempre queda el día del registro |
-| `recibido_por` | uuid | sí | — | qué integrante recibió y registró el fardo; queda vacío si esa cuenta no tiene ficha en personas |
-| `nota` | text | sí | — | observaciones de la descarga: 'faltaron 2 blusas', 'caja mojada' — texto libre que nadie procesa |
+| `fecha_recepcion` | timestamp with time zone | **no** | `now()` | qué día llegó la mercadería; si no se indica, queda el momento del registro |
+| `recibido_por` | uuid | sí | — | qué integrante recibió y registró el fardo |
+| `nota` | text | sí | — | observaciones de la descarga, en texto libre: «faltaron 2 blusas», «caja mojada» |
 | `envio_id` | uuid | sí | — | — |
 | `token_cliente` | uuid | sí | — | — |
 
@@ -1257,8 +1258,8 @@
 | `cerrado_por` | uuid | sí | — | quién firmó el cierre o quién anuló: la misma columna guarda las dos firmas |
 | `created_at` | timestamp with time zone | **no** | `now()` | — |
 | `cerrado_en` | timestamp with time zone | sí | — | cuándo se firmó el cierre o se anuló; vacío mientras el conteo sigue abierto |
-| `alcance` | text | **no** | `'todo'::text` | qué universo declara cubrir: 'todo', 'familia', 'categoria' o 'contenedor' — descriptivo, nunca impide contar algo de fuera |
-| `alcance_categoria_id` | uuid | sí | — | la categoría declarada cuando el alcance es 'categoria'; existe y hoy nadie la llena |
+| `alcance` | text | **no** | `'todo'::text` | qué universo declara cubrir: 'todo' o 'categoria' |
+| `alcance_categoria_id` | uuid | sí | — | la categoría declarada cuando el alcance es 'categoria'; vacía cuando es 'todo' |
 | `numero` | integer | **no** | `nextval('retail.conteos_numero_seq'::regclass)` | — |
 | `es_prueba` | boolean | **no** | `false` | — |
 | `terminal_id` | uuid | sí | — | — |
@@ -1318,14 +1319,14 @@
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | El cobro completo a una clienta, no la prenda; cada movimiento de salida lo guarda en venta_id |
+| `id` | uuid | **no** | `gen_random_uuid()` | El cobro completo a una clienta, no la prenda; sus prendas se enlazan por venta_items.venta_id |
 | `ubicacion_id` | uuid | **no** | — | — |
 | `cliente_id` | uuid | sí | — | — |
-| `usuario_id` | uuid | sí | — | Qué colaborador cobró; lo resuelve la RPC desde la sesión, no viaja desde el navegador |
+| `usuario_id` | uuid | sí | — | Qué colaborador cobró |
 | `token_cliente` | uuid | sí | — | El identificador que el navegador genera por carrito para que reintentar no cobre dos veces; vacío es válido |
-| `created_at` | timestamp with time zone | **no** | `now()` | Cuándo se cobró; sobre esta columna se arma 'Ventas de hoy' y toda la serie del panel |
+| `created_at` | timestamp with time zone | **no** | `now()` | Cuándo se cobró |
 | `caja_id` | uuid | sí | — | A qué turno de caja pertenece el cobro; por acá el cierre suma solo lo suyo |
-| `nota` | text | sí | — | Texto libre del mostrador sobre el cobro; existe y hoy ninguna pantalla la llena |
+| `nota` | text | sí | — | Texto libre del mostrador sobre el cobro; hasta 200 caracteres |
 | `estado` | text | **no** | `'completada'::text` | — |
 | `motivo_anulacion` | text | sí | — | — |
 | `anulado_por` | uuid | sí | — | — |
@@ -1466,9 +1467,9 @@
 | `id` | uuid | **no** | `gen_random_uuid()` | El turno de caja de una sede: cada venta apunta acá para que el cierre sume solo lo suyo |
 | `ubicacion_id` | uuid | **no** | — | — |
 | `estado` | text | **no** | `'abierta'::text` | 'abierta' o 'cerrada', nada más; un índice parcial impide dos cajas abiertas en la misma sede |
-| `monto_apertura` | numeric | **no** | — | Con cuánto efectivo arrancó el cajón, declarado a mano; la base acepta hasta un monto negativo |
+| `monto_apertura` | numeric | **no** | — | Con cuánto efectivo arrancó el cajón, declarado al abrir; no puede ser negativo |
 | `abierta_por` | uuid | sí | — | Qué colaborador abrió el turno; puede venir vacío y no es necesariamente quien cierra |
-| `abierta_en` | timestamp with time zone | **no** | `now()` | Cuándo se abrió el cajón; con esto la bandeja avisa de cajas de días anteriores sin cerrar |
+| `abierta_en` | timestamp with time zone | **no** | `now()` | Cuándo se abrió el cajón |
 | `monto_cierre_sistema` | numeric | sí | — | — |
 | `monto_cierre_real` | numeric | sí | — | — |
 | `diferencia` | numeric | sí | — | Contado menos esperado: positivo sobra, negativo falta, y es el número por el que se pregunta al día siguiente |
@@ -2091,33 +2092,33 @@
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | el documento legal concreto —boleta, factura o nota— que se emitió y quedó ante SUNAT |
-| `venta_id` | uuid | sí | — | qué venta documenta; existe y hoy siempre viene vacío, la boleta y la venta siguen sueltas |
+| `venta_id` | uuid | sí | — | qué venta documenta |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `tipo` | text | **no** | — | boleta, factura, nota_credito o nota_debito — los cuatro documentos legales, ninguno más |
+| `tipo` | text | **no** | — | qué documento es: boleta, factura, nota_credito, nota_debito o nota_venta; el check no admite otro |
 | `serie` | text | **no** | — | el prefijo impreso (B004, F001) copiado al emitir; si la sede cambia de serie, los viejos no se reescriben |
 | `numero` | integer | **no** | — | el correlativo que se llevó esta emisión; irreversible ante SUNAT y único junto con tipo y serie |
 | `cliente_tipo_doc` | text | **no** | `'sin_documento'::text` | dni, ruc o sin_documento; en boleta sin documento se transmite el DNI comodín 99999999 |
 | `cliente_num_doc` | text | sí | — | el DNI o RUC de la clienta; si el documento es factura, la base lo exige sí o sí |
 | `cliente_nombre` | text | sí | — | a nombre de quién sale el documento; si va vacío, Lucode recibe CLIENTE VARIOS |
-| `moneda` | text | **no** | `'PEN'::text` | en qué moneda se cobró; sin candado, acepta cualquier texto aunque el conector solo entiende PEN y USD |
-| `subtotal` | numeric | **no** | `0` | el valor de venta sin IGV; nadie valida que cuadre contra igv y total |
-| `igv` | numeric | **no** | `0` | el IGV del documento; hoy lo despeja el navegador con 18% escrito a mano, la base no lo verifica |
+| `moneda` | text | **no** | `'PEN'::text` | en qué moneda se cobró; por defecto PEN |
+| `subtotal` | numeric | **no** | `0` | el valor de venta sin IGV |
+| `igv` | numeric | **no** | `0` | el IGV del documento |
 | `total` | numeric | **no** | — | lo que paga la clienta con IGV incluido; la base exige que sea mayor que cero |
-| `estado` | text | **no** | `'pendiente'::text` | pendiente, enviado, aceptado, rechazado o anulado — dónde va el documento en su camino a SUNAT |
-| `motivo_rechazo` | text | sí | — | con qué texto SUNAT o Lucode lo rechazó; solo se llena cuando el estado pasa a rechazado |
+| `estado` | text | **no** | `'pendiente'::text` | dónde va el documento en su camino a SUNAT: pendiente, enviado, aceptado, rechazado, anulado, no_emitido, pendiente_reintento o interna |
+| `motivo_rechazo` | text | sí | — | con qué texto SUNAT o Lucode lo rechazó |
 | `respuesta_sunat` | jsonb | sí | — | la respuesta cruda de Lucode —CDR, XML, PDF, hash—, la prueba de lo que realmente pasó |
-| `usuario_id` | uuid | sí | — | qué colaborador lo emitió; queda vacío si quien llamó no tiene ficha en personas |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se reservó el correlativo; es la fecha por la que la pantalla filtra el mes |
-| `enviado_at` | timestamp with time zone | sí | — | cuándo se intentó transmitir por primera vez; un reintento no pisa esa fecha original |
+| `usuario_id` | uuid | sí | — | qué colaborador lo emitió |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se reservó el correlativo |
+| `enviado_at` | timestamp with time zone | sí | — | cuándo se intentó transmitir por primera vez; los reintentos quedan en ultimo_intento_transmision_at |
 | `comprobante_original_id` | uuid | sí | — | solo notas: qué comprobante aceptado corrige esta nota de crédito o débito |
-| `motivo` | text | sí | — | solo notas: declarado texto libre, pero se transmite a SUNAT como código del catálogo 09/10 |
-| `items` | jsonb | sí | — | el desglose de líneas que Lucode exige; sin él la RPC arma un ítem genérico 'Venta de mercadería' |
+| `motivo` | text | sí | — | solo notas: por qué se emite la nota de crédito o débito; es obligatorio en ellas |
+| `items` | jsonb | sí | — | el desglose de líneas del documento |
 | `entorno_transmision` | text | sí | — | sandbox o produccion: impide confundir un aceptado de prueba con uno real ante SUNAT |
 | `motivo_anulacion` | text | sí | — | por qué se dio de baja el documento; sin esto no puede quedar anulado |
-| `anulacion_solicitada_at` | timestamp with time zone | sí | — | cuándo se pidió la baja; lleno y todavía aceptado significa anulación en trámite |
+| `anulacion_solicitada_at` | timestamp with time zone | sí | — | cuándo se pidió la baja |
 | `anulado_at` | timestamp with time zone | sí | — | cuándo SUNAT confirmó la baja, no cuándo se pidió |
 | `respuesta_anulacion` | jsonb | sí | — | la respuesta cruda del proveedor a la baja, la prueba de que SUNAT la procesó |
-| `anulado_por` | uuid | sí | — | qué líder de equipo pidió la baja; anular es el único paso que exige ser líder |
+| `anulado_por` | uuid | sí | — | qué persona pidió la baja |
 | `motivo_no_emitido` | text | sí | — | — |
 | `marcado_no_emitido_por` | uuid | sí | — | — |
 | `marcado_no_emitido_at` | timestamp with time zone | sí | — | — |
@@ -2167,9 +2168,9 @@
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | el contador vivo de una sede para un tipo de documento |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `tipo` | text | **no** | — | boleta, factura, nota_credito o nota_debito — cada tipo lleva su propio contador |
-| `serie` | text | **no** | — | el prefijo que define CAYLA, no SUNAT (B004, F001); se guarda siempre en mayúsculas |
-| `siguiente_numero` | integer | **no** | `1` | el correlativo que se entregará en la próxima emisión; puede saltar adelante, nunca retroceder |
+| `tipo` | text | **no** | — | boleta, factura, nota_credito, nota_debito o nota_venta — cada tipo lleva su propio contador |
+| `serie` | text | **no** | — | el prefijo que define CAYLA, no SUNAT (B004, F001) |
+| `siguiente_numero` | integer | **no** | `1` | el correlativo que se entregará en la próxima emisión; siempre mayor que cero |
 | `archivada_at` | timestamp with time zone | sí | — | — |
 | `archivada_por` | uuid | sí | — | — |
 | `motivo_archivo` | text | sí | — | — |
@@ -2198,17 +2199,17 @@
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | La cotización entregada a la clienta, que no es comprobante de pago ante SUNAT |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `cliente_nombre` | text | sí | — | A quién se le cotizó; es lo único de la clienta que la pantalla manda al crear |
-| `cliente_num_doc` | text | sí | — | El DNI o RUC de la clienta; la pantalla no lo manda al cotizar, se pide recién al convertir |
-| `items` | jsonb | **no** | — | Lo cotizado en JSON sin forma fija; hoy es un ítem 'Venta' con el total, que nunca viaja al comprobante |
-| `subtotal` | numeric | **no** | `0` | El valor cotizado sin IGV; lo calcula el navegador dividiendo el total, no la base |
-| `igv` | numeric | **no** | `0` | El IGV de la cotización, calculado en el navegador igual que en el comprobante |
+| `cliente_nombre` | text | sí | — | A quién se le cotizó |
+| `cliente_num_doc` | text | sí | — | El DNI o RUC de la clienta |
+| `items` | jsonb | **no** | — | Lo cotizado, en JSON |
+| `subtotal` | numeric | **no** | `0` | El valor cotizado sin IGV |
+| `igv` | numeric | **no** | `0` | El IGV de la cotización |
 | `total` | numeric | **no** | — | Lo cotizado con IGV incluido; el check exige mayor a cero, no se cotiza S/0 |
-| `estado` | text | **no** | `'vigente'::text` | 'vigente', 'convertida', 'vencida' o 'anulada'; los dos últimos no los escribe nadie todavía |
-| `comprobante_id` | uuid | sí | — | Qué boleta o factura nació de esta cotización; solo lo anota la conversión, nunca se llena a mano |
+| `estado` | text | **no** | `'vigente'::text` | 'vigente', 'convertida', 'vencida' o 'anulada' |
+| `comprobante_id` | uuid | sí | — | Qué boleta o factura nació de esta cotización, cuando se convirtió |
 | `usuario_id` | uuid | sí | — | Qué colaborador armó la cotización en el mostrador |
 | `created_at` | timestamp with time zone | **no** | `now()` | Cuándo se le dio ese precio a la clienta; ordena la lista de cotizaciones |
-| `vence_at` | timestamp with time zone | sí | — | Hasta cuándo vale el precio cotizado; la base no lo hace cumplir y una vencida se convierte igual |
+| `vence_at` | timestamp with time zone | sí | — | Hasta cuándo vale el precio cotizado |
 | `numero` | bigint | **no** | — | — |
 | `nota` | text | sí | — | — |
 | `venta_id` | uuid | sí | — | — |
@@ -2236,13 +2237,13 @@
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | boolean | **no** | `true` | candado de fila única: siempre true, porque la empresa que emite es una sola |
-| `ruc` | text | **no** | — | el RUC con el que CAYLA emite ante SUNAT; se cargó a mano y ningún código lo lee |
+| `ruc` | text | **no** | — | el RUC con el que CAYLA emite ante SUNAT |
 | `razon_social` | text | **no** | — | el nombre legal de CAYLA que debería encabezar cada comprobante emitido |
 | `nombre_comercial` | text | sí | — | la marca con la que la clienta conoce a CAYLA, distinta del nombre legal |
-| `email` | text | sí | — | correo de la empresa para enviarle el comprobante a la clienta; hoy nadie lo usa |
-| `web` | text | sí | — | la página de CAYLA que iría en el pie del comprobante; existe y ninguna pantalla la muestra |
-| `telefono` | text | sí | — | el teléfono de la empresa para el comprobante; guardado aquí pero sin consumidor |
-| `resolucion_autorizacion` | text | sí | — | la resolución de SUNAT que autoriza a CAYLA a emitir electrónicamente; se guarda y no se imprime |
+| `email` | text | sí | — | correo de la empresa para enviarle el comprobante a la clienta |
+| `web` | text | sí | — | la página de CAYLA que iría en el pie del comprobante |
+| `telefono` | text | sí | — | el teléfono de la empresa para el comprobante |
+| `resolucion_autorizacion` | text | sí | — | la resolución de SUNAT que autoriza a CAYLA a emitir electrónicamente |
 | `updated_at` | timestamp with time zone | **no** | `now()` | cuándo se tocaron por última vez los datos de la empresa emisora |
 | `exige_responsable` | boolean | **no** | `false` | — |
 
@@ -2290,11 +2291,11 @@
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | el proveedor como ficha única para las tres tiendas; lo citan órdenes, lotes y productos |
-| `nombre` | text | **no** | — | con qué nombre se le conoce en la tienda; en producción nada impide dos fichas iguales |
-| `ruc` | text | sí | — | su RUC para el comprobante de compra; se escribe a mano y nadie lo valida contra SUNAT |
+| `id` | uuid | **no** | `gen_random_uuid()` | el proveedor como ficha única para las tres tiendas; lo citan compras, lotes y productos |
+| `nombre` | text | **no** | — | con qué nombre se le conoce en la tienda; no puede haber dos fichas con el mismo nombre |
+| `ruc` | text | sí | — | su RUC de 11 dígitos, para el comprobante de compra; no se repite entre proveedores |
 | `contacto` | text | sí | — | el nombre de la persona con quien se habla para pactar el fardo |
-| `activo` | boolean | **no** | `true` | si le seguimos comprando; desactivar archiva la ficha y nunca borra la fila |
+| `activo` | boolean | **no** | `true` | si le seguimos comprando; desactivar archiva la ficha, no la borra |
 | `created_at` | timestamp with time zone | **no** | `now()` | cuándo entró al directorio único que reemplazó los tres Excel desincronizados de las tiendas |
 | `rubro` | text | sí | — | — |
 | `plazo_credito_dias` | integer | sí | — | — |
@@ -2785,24 +2786,24 @@
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
-| `id` | uuid | **no** | `gen_random_uuid()` | la corrida concreta del Taller; su prefijo de 8 caracteres queda escrito en el movimiento de stock |
+| `id` | uuid | **no** | `gen_random_uuid()` | la corrida concreta del Taller; los movimientos de stock que genera la apuntan con produccion_id |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `producto_id` | uuid | **no** | — | qué modelo se fabricó; acepta vacío por herencia, pero en la práctica todo RPC lo llena |
-| `estado` | text | **no** | `'en_proceso'::text` | en_proceso o terminado, nada más; el default dice terminado pero la RPC siempre inserta en_proceso |
-| `es_muestra` | boolean | **no** | `false` | si es desarrollo del modelo y no producción vendible; una muestra nunca entra al inventario |
-| `etapas` | jsonb | **no** | `'{}'::jsonb` | tablero de avance: cada etapa en pendiente, hecho o tercerizado; producción acepta seis etapas, local solo tres |
-| `costo_tela` | numeric | **no** | `0` | soles de tela de toda la corrida, no por prenda; lo teclea una persona sin nada que lo contraste |
+| `producto_id` | uuid | **no** | — | qué modelo se fabricó; obligatorio |
+| `estado` | text | **no** | `'en_proceso'::text` | en qué punto va la corrida: 'en_proceso', 'terminada' o 'anulada'; nace en_proceso |
+| `es_muestra` | boolean | **no** | `false` | si es desarrollo del modelo y no producción vendible |
+| `etapas` | jsonb | **no** | `'{}'::jsonb` | tablero de avance de la corrida, etapa por etapa |
+| `costo_tela` | numeric | **no** | `0` | soles de tela de toda la corrida, no por prenda; no puede ser negativo |
 | `costo_avios` | numeric | **no** | `0` | botones, cierres, etiquetas e hilo de toda la corrida: el resto del material directo |
 | `costo_maquila` | numeric | **no** | `0` | lo que se mandó afuera en esa corrida (planchado, corte tercerizado), nunca una cotización de comparación |
 | `cantidad_plan` | integer | **no** | — | — |
 | `cantidad_buenas` | integer | sí | — | — |
 | `costo_unitario` | numeric | sí | — | costo por prenda, columna calculada: no se escribe a mano y cerrar con menos buenas lo sube solo |
-| `fecha_entrega` | date | sí | — | para cuándo se comprometió la corrida; alimenta la alarma de orden pasada de fecha |
-| `nota` | text | sí | — | observación libre de la corrida; existe y la pantalla del Taller siempre la manda vacía |
-| `inventariado_at` | timestamp with time zone | sí | — | cuándo entraron las prendas al stock; vacío es todavía no, y es el candado contra el doble conteo |
+| `fecha_entrega` | date | sí | — | para cuándo se comprometió la corrida |
+| `nota` | text | sí | — | observación libre de la corrida |
+| `inventariado_at` | timestamp with time zone | sí | — | cuándo entraron las prendas al stock; vacío quiere decir que no han entrado, y solo se llena en una corrida terminada |
 | `token_cliente` | uuid | sí | — | — |
 | `creado_por` | uuid | sí | — | qué integrante del Taller abrió la corrida |
-| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se abrió la corrida; es el orden del tablero del Taller |
+| `created_at` | timestamp with time zone | **no** | `now()` | cuándo se abrió la corrida |
 
 **Candados** — lo que esta tabla hace imposible:
 
@@ -2831,7 +2832,7 @@
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | la línea de desglose de una corrida: una talla-color con su cantidad |
-| `produccion_id` | uuid | **no** | — | de qué corrida del Taller viene; borrar la corrida se lleva sus líneas en cascada |
+| `produccion_id` | uuid | **no** | — | de qué corrida del Taller viene |
 | `variante_id` | uuid | **no** | — | qué prenda exacta, talla y color, recibe la entrada de stock al cerrar la corrida |
 | `cantidad_plan` | integer | **no** | — | — |
 | `cantidad_buenas` | integer | sí | — | — |
@@ -3718,18 +3719,18 @@
 |---|---|---|---|---|
 | `id` | uuid | **no** | `gen_random_uuid()` | el bien concreto: esa máquina, ese mostrador, ese equipo de cómputo |
 | `ubicacion_id` | uuid | **no** | — | — |
-| `nombre` | text | **no** | — | cómo se le dice al bien en la boutique o el taller: 'Remalladora Siruba' |
+| `nombre` | text | **no** | — | cómo se le dice al bien en la boutique o el taller: «Remalladora Siruba» |
 | `serie` | text | sí | — | número de serie del fabricante; sin él un robo no se le prueba al seguro |
-| `descripcion` | text | sí | — | detalle libre del bien; se puede llenar pero hoy ninguna pantalla lo muestra |
-| `cuenta_codigo` | text | sí | — | a qué cuenta del plan va: 333 maquinaria, 336 cómputo, 335 muebles; hoy apunta a cuentas que no existen |
+| `descripcion` | text | sí | — | detalle libre del bien |
+| `cuenta_codigo` | text | sí | — | código de la cuenta del plan contable donde se lleva el bien: 333 maquinaria, 335 muebles, 336 equipos diversos |
 | `costo` | numeric | **no** | — | lo que costó el bien el día que se compró, en soles |
-| `valor_residual` | numeric | **no** | `0` | lo que valdría al terminar su vida útil, 10% máquinas y muebles, 5% cómputo; nadie lo lee |
-| `vida_util_meses` | integer | **no** | — | cuántos meses dura el bien: 120 máquinas y muebles, 48 cómputo; ningún cálculo lo usa |
-| `tasa_anual` | numeric | **no** | — | tasa SUNAT de depreciación anual, 0.1000 es 10%; existe y hoy nadie la lee |
-| `fecha_adquisicion` | date | **no** | — | desde cuándo se deprecia el bien; sale como 'Desde' en la pantalla de Activos |
-| `depreciacion_apertura` | numeric | **no** | `0` | desgaste ya acumulado al cargar la ficha; número congelado a mano que no crece nunca |
+| `valor_residual` | numeric | **no** | `0` | lo que valdría al terminar su vida útil: el costo menos este valor es lo que se reparte como depreciación, y tiene que ser menor que el costo |
+| `vida_util_meses` | integer | **no** | — | cuántos meses dura el bien: en ese plazo se reparte su depreciación; entre 1 y 600 |
+| `tasa_anual` | numeric | **no** | — | tasa SUNAT de depreciación anual, 0.1000 es 10% |
+| `fecha_adquisicion` | date | **no** | — | desde cuándo se deprecia el bien |
+| `depreciacion_apertura` | numeric | **no** | `0` | desgaste que el bien ya traía acumulado cuando se cargó al sistema: el punto de partida de su depreciación |
 | `estado` | text | **no** | `'activo'::text` | — |
-| `nota` | text | sí | — | comentario libre sobre el bien; ninguna pantalla lo muestra todavía |
+| `nota` | text | sí | — | comentario libre sobre el bien |
 | `created_at` | timestamp with time zone | **no** | `now()` | cuándo entró la ficha al sistema, no cuándo se compró el bien |
 | `updated_at` | timestamp with time zone | **no** | `now()` | cuándo se editó la ficha por última vez; lo pisa solo el trigger |
 | `tipo` | text | sí | — | — |

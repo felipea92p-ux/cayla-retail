@@ -191,7 +191,7 @@ select jsonb_pretty(jsonb_build_object(
 
 
 // ── Modo volcado: producción, sin conectarse ───────────────────────────────
-// Traduce los seis JSON que devuelve el editor SQL de producción a la MISMA forma
+// Traduce los ocho JSON (`retail_*.json`) que devuelve el editor SQL de producción a la MISMA forma
 // que produce la consulta de arriba, para que el resto del script no sepa de dónde
 // vino el dato. Lo que el volcado no trae —comentarios de columna, disparadores— se
 // deja vacío en vez de inventarse.
@@ -211,6 +211,8 @@ function desdeVolcado() {
   const politicas = leer("retail_policies.json");
   const filas = leer("retail_filas.json");
   const rls = leer("retail_rls.json");
+  const foto = leer("retail_foto.json");
+  const firmas = readFileSync(join(SALIDA, "funciones-produccion.txt"), "utf8").split("\n").filter(Boolean);
 
   const sinEsquema = (s) => String(s).replace(/^retail\./, "");
   const clase = (def) =>
@@ -223,6 +225,18 @@ function desdeVolcado() {
   // en la foto de RLS, una de las dos quedó vieja y el diccionario mentiría en silencio.
   for (const tabla of Object.keys(columnas)) {
     if (!rls[tabla]) throw new Error(`retail_rls.json no trae «${tabla}»: vuelve a pedir las fotos juntas (COMO-REFRESCAR.md).`);
+  }
+
+  // LA FECHA DE LA FOTO (`retail_foto.json`, la novena consulta de COMO-REFRESCAR.md). La escribe la propia base
+  // (`now()`) en el mismo momento en que se piden las demás, con cuántas relaciones y cuántas funciones había. El
+  // generador la imprime en la cabecera y NO la acepta si se contradice con lo que la acompaña: una fecha pegada sobre
+  // una foto de funciones vieja diría «al día de hoy» de algo que no lo está — justo lo que esta fecha existe para evitar.
+  if (!Number.isFinite(Date.parse(foto.leido_en))) throw new Error(`retail_foto.json: «leido_en» no es una fecha (${foto.leido_en}).`);
+  if (foto.relaciones !== Object.keys(columnas).length) {
+    throw new Error(`retail_foto.json dice ${foto.relaciones} relaciones y retail_columnas.json trae ${Object.keys(columnas).length}: la foto quedó vieja, vuelve a pedirlas juntas (COMO-REFRESCAR.md).`);
+  }
+  if (foto.funciones !== firmas.length) {
+    throw new Error(`retail_foto.json dice ${foto.funciones} funciones y funciones-produccion.txt trae ${firmas.length}: la foto de funciones quedó vieja, vuelve a pedirla (COMO-REFRESCAR.md).`);
   }
 
   const tablas = Object.entries(columnas).map(([tabla, cols]) => ({
@@ -251,7 +265,7 @@ function desdeVolcado() {
     definicion_vista: null,
   }));
 
-  return { leido_en: "volcado de producción — ver COMO-REFRESCAR.md", tablas, funciones: [], disparadores: [] };
+  return { leido_en: foto.leido_en, funciones_en_produccion: foto.funciones, tablas, funciones: [], disparadores: [] };
 }
 
 // ── Escritura ───────────────────────────────────────────────────────────────
@@ -334,11 +348,15 @@ function fichaTabla(t, glosas) {
   return L.join("\n");
 }
 
-// Una lectura viva trae la hora ISO («2026-09-25T10:00:00.000Z» → «2026-09-25 10:00:00»). El volcado de
-// producción NO trae hora —son JSON pegados a mano—, y cortarle 19 letras dejaba «volcado de producci» en la cabecera.
+// Tanto una lectura viva como la foto de producción (`retail_foto.json`) traen la hora ISO de la base
+// («2026-09-25T15:57:21.909417+00:00» → «2026-09-25 15:57:21 UTC»). La base la escribe en UTC; se dice para que nadie la
+// lea como hora de Lima. Cualquier otra cosa se imprime tal cual, sin cortarla (antes cortaba 19 letras y dejaba
+// «volcado de producci» en la cabecera).
 function leidoEl(leido) {
   const t = String(leido);
-  return /^\d{4}-\d{2}-\d{2}T/.test(t) ? t.slice(0, 19).replace("T", " ") : t;
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(t)) return t;
+  const enUtc = /(Z|[+-]00(:?00)?)$/.test(t);
+  return `${t.slice(0, 19).replace("T", " ")}${enUtc ? " UTC" : ""}`;
 }
 
 function cabecera(titulo, inv, fuente, extra = "") {
@@ -376,7 +394,8 @@ const dynamic = tablas.filter(t => t.esquema === "public");
   const L = [];
   const vistas = new Set();
   L.push(cabecera("Diccionario — CAYLA Retail (schema `retail`)", inv, fuente,
-`> **Tablas y vistas encontradas:** ${retail.length}
+`> **Tablas y vistas encontradas:** ${retail.length}${inv.funciones_en_produccion != null ? `
+> **Funciones en \`retail\`:** ${inv.funciones_en_produccion} (las firmas, en \`funciones-produccion.txt\`)` : ""}
 >
 > El orden sigue los 14 pájaros de \`scripts/datos/aviario.mjs\`, la única lista de qué
 > pájaro es cada tabla (el índice está en \`AVIARIO.md\`). Para entender **por qué**
