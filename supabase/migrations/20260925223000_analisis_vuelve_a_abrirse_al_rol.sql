@@ -36,7 +36,10 @@
 
 set lock_timeout = '3s';
 
-create or replace function pg_temp.reemplazar_vivo(p_firma text, p_viejo text, p_nuevo text, p_veces integer)
+-- Nombre propio, no `reemplazar_vivo`: `supabase start` corre todas las migraciones en UNA conexión, y la de
+-- 20260923130000 sigue viva ahí con 5 parámetros (el último con valor por defecto). Con el mismo nombre, esta llamada
+-- de 4 argumentos es ambigua (42725, «is not unique»): pasó en el CI del PR #405. Se borra al final.
+create or replace function pg_temp.reemplazar_filtro_223000(p_firma text, p_viejo text, p_nuevo text, p_veces integer)
 returns void
 language plpgsql
 as $f$
@@ -64,7 +67,7 @@ $f$;
 -- `create or replace` conserva el oid: los permisos (grant a authenticated) y el comentario siguen donde estaban.
 do $$
 begin
-  perform pg_temp.reemplazar_vivo('retail.fn_resumen_comparacion(uuid, date, date, date, date)',
+  perform pg_temp.reemplazar_filtro_223000('retail.fn_resumen_comparacion(uuid, date, date, date, date)',
     'fn_puede_operar_ubicacion(p_ubicacion_id) and fn_es_lider() as ok',
     'fn_puede_operar_ubicacion(p_ubicacion_id) and retail.fn_puede_analizar() as ok',
     1);
@@ -112,3 +115,5 @@ begin
     raise exception 'fn_resumen_comparacion cambió de permisos: authenticated ejecuta, anon no';
   end if;
 end $$;
+
+drop function pg_temp.reemplazar_filtro_223000(text, text, text, integer);
