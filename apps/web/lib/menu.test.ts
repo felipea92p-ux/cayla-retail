@@ -653,11 +653,22 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(terminalVeInicio(["vender", "caja"])).toBe(false);
   });
 
-  it("aterriza en /vender si ve el Punto de venta; si no, en su Inicio. Una persona, siempre en Inicio", () => {
+  it("una terminal aterriza en /vender si ve el Punto de venta; si no, en su Inicio — regla propia, no participa de «pantalla principal»", () => {
     expect(aterrizajeDe({ terminal: true, modulos: ["vender", "caja"] })).toBe("/vender");
     expect(aterrizajeDe({ terminal: true, modulos: ["existencias"] })).toBe("/");
-    expect(aterrizajeDe({ terminal: false, modulos: ["vender"] })).toBe("/");
     expect(aterrizajeDe({ terminal: true, modulos: null })).toBe("/");
+  });
+
+  it("una persona aterriza en Inicio si lo tiene; si no, en la primera pantalla que ve, en el orden del menú (20260925220000)", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "vender"] })).toBe("/");
+    expect(aterrizajeDe({ modulos: ["vender"] })).toBe("/vender");
+    expect(aterrizajeDe({ modulos: ["vender", "productos"] })).toBe("/productos"); // Catálogo va antes que Ventas en el árbol
+    expect(aterrizajeDe({ modulos: [] })).toBe("/sin-acceso");
+  });
+
+  it("la pantalla principal elegida manda si el rol todavía la ve; si no (se apagó ese módulo), cae a la primera que ve", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" })).toBe("/caja");
+    expect(aterrizajeDe({ modulos: ["inicio", "vender"], pantallaPrincipal: "caja" })).toBe("/"); // ya no tiene «caja»: vuelve al default
   });
 });
 
@@ -698,8 +709,8 @@ describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
     expect(nuevo).toEqual([]);
   });
 
-  it("toda pantalla viva salvo Inicio, y toda acción de «+ Nuevo», declara su módulo (sin eso una terminal no podría verla)", () => {
-    expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual(["inicio"]);
+  it("toda pantalla viva, y toda acción de «+ Nuevo», declara su módulo (sin eso una terminal no podría verla; Inicio también desde 20260925220000)", () => {
+    expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual([]);
     expect(ACCIONES_NUEVO.filter((a) => !a.modulo)).toEqual([]);
   });
 });

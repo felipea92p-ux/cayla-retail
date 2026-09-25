@@ -98,11 +98,6 @@ export function terminalVeInicio(modulos: readonly ClaveModulo[]): boolean {
   return !modulos.includes("vender");
 }
 
-/** A dónde va una cuenta al abrir `/`: una terminal que ve el Punto de venta, a `/vender`; cualquier otra, a su Inicio. */
-export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): string {
-  return perfil.terminal && !terminalVeInicio(perfil.modulos ?? []) ? "/vender" : "/";
-}
-
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
@@ -180,7 +175,11 @@ export type Accion = Comun & { estado: "viva"; ruta: string; detalle: string };
 
 export const ARBOL: readonly Nodo[] = [
   // Inicio y Análisis no son dueños de tablas: leen lo de otros. Águila es «Inteligencia y reportes» (lee lo de los demás).
-  { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
+  // `modulo: "inicio"` (20260925220000, Felipe 2026-09-25): antes era la única hoja SIN módulo (la veía toda persona,
+  // sin excepción); `modulos.test.ts` lo comprobaba a propósito. Ahora un rol lo puede apagar, como cualquier otro.
+  // Una TERMINAL sigue su regla propia (`terminalVeInicio`, más abajo en `esVisible`): vende → su casa es el
+  // mostrador, nunca Inicio, tenga o no este módulo en su rol.
+  { id: "inicio", modulo: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
 
   // «Colaboradores» (a quién de Dynamic le doy entrada a retail) NO va en el menú lateral: se entra desde el perfil del
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
@@ -350,6 +349,36 @@ export const ARBOL: readonly Nodo[] = [
   { id: "comercial", etiqueta: "Comercial", estado: "futura", pajaro: "13 Águila", nota: "Inteligencia comercial: lee lo de los demás." },
 ];
 
+/** Todas las hojas VIVAS de `ARBOL`, en su orden (el orden del menú), sin filtrar por perfil: la usa `aterrizajeDe`
+ *  para encontrar «la primera pantalla que ve» sin repetir el árbol. Una `Futura` no cuenta: no existe todavía. */
+function hojasDelArbol(nodos: readonly Nodo[]): Hoja[] {
+  return nodos.flatMap((n) => (n.estado !== "viva" ? [] : esGrupo(n) ? hojasDelArbol(n.hijos) : [n]));
+}
+const HOJAS_DEL_ARBOL = hojasDelArbol(ARBOL);
+
+/** La ruta del módulo elegido si el rol todavía lo ve; si no (o no eligió), la primera ruta de `HOJAS_DEL_ARBOL` que
+ *  el rol ve, en el orden del menú; `null` si no le queda ninguna. */
+function primeraRutaDe(modulos: readonly ClaveModulo[], preferido?: string | null): string | null {
+  if (preferido && modulos.includes(preferido as ClaveModulo)) {
+    const elegida = HOJAS_DEL_ARBOL.find((h) => h.modulo === preferido);
+    if (elegida) return elegida.ruta;
+  }
+  return HOJAS_DEL_ARBOL.find((h) => h.modulo && modulos.includes(h.modulo))?.ruta ?? null;
+}
+
+/**
+ * A dónde ATERRIZA una cuenta al abrir `/` (20260925220000, Felipe 2026-09-25). Una TERMINAL manda aparte y siempre:
+ * si ve el Punto de venta, su casa es el mostrador (Felipe, 2026-09-21); si no, Inicio — no participa de «pantalla
+ * principal» ni de que Inicio se apague. Una PERSONA: la pantalla principal de su rol si todavía la ve; si no (o su
+ * rol nunca eligió una), la primera pantalla que ve, en el orden del menú (Inicio sale primero si la tiene, como
+ * antes); si no le queda NINGUNA (ni Inicio ni ningún otro módulo), «Sin acceso» — nunca queda sin saber a dónde ir.
+ */
+export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null; pantallaPrincipal?: string | null }): string {
+  const modulos = perfil.modulos ?? [];
+  if (perfil.terminal) return terminalVeInicio(modulos) ? "/" : "/vender";
+  return primeraRutaDe(modulos, perfil.pantallaPrincipal) ?? "/sin-acceso";
+}
+
 /**
  * El panel «+ Nuevo»: registrar algo, no ir a una pantalla. Fase UI 1 (2026-09-11) lo recortó a las escrituras que V2 ya
  * tiene resueltas de punta a punta; ofrecer otra antes sería un enlace que compila y revienta. ADR-0111: UNA sola puerta
@@ -440,16 +469,15 @@ function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolea
   // Una terminal se mira SIEMPRE por sus módulos (sin ellos, ninguno: falla cerrado). Una persona, solo si los trae.
   const modulos = perfil.terminal ? (perfil.modulos ?? []) : perfil.modulos;
   if (modulos) {
+    // La regla del mostrador manda sobre el módulo para una TERMINAL (Felipe, 2026-09-21): vende → su casa es el
+    // mostrador, nunca Inicio, tenga o no el módulo en su rol. Independiente de «Inicio apagable» (20260925220000):
+    // una terminal no participa de ese candado.
+    if (n.id === "inicio" && perfil.terminal) return terminalVeInicio(modulos);
     // Por rol (ADR-0161): la hoja sale si la cuenta ve su módulo; un grupo, si le queda alguna hija (lo resuelve
-    // `construirFila`). Una hoja sin módulo (Inicio): las personas siempre, las terminales según `terminalVeInicio`.
+    // `construirFila`).
     if (n.modulo) return modulos.includes(n.modulo) || (!!n.moduloAlterno && modulos.includes(n.moduloAlterno));
-    if (esHojaOAccion(n) && perfil.terminal) return terminalVeInicio(modulos);
   }
   return true;
-}
-
-function esHojaOAccion(n: object): boolean {
-  return !("hijos" in n);
 }
 
 /** Todas las rutas que cuelgan de `n` para este perfil: la propia si es una hoja, o `raiz` + las de sus hijos (recursivo:

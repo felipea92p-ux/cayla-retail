@@ -27,9 +27,10 @@ import { contarComprobantesAtascados } from "@/lib/comprobantes";
 export default async function InicioPage() {
   const persona = await requirePersonaActualV2();
   // Una terminal cuyo ROL ve el Punto de Venta aterriza ahí (pedido de Felipe, 2026-09-21; sin tipo desde 2026-09-22): su
-  // menú no tiene «Inicio», su casa es el mostrador. Es un aterrizaje, no un candado. La regla vive en `aterrizajeDe`.
+  // menú no tiene «Inicio», su casa es el mostrador. Una persona aterriza en la pantalla principal de su rol, o en la
+  // primera que ve (20260925220000). Es un aterrizaje, no un candado. La regla vive en `aterrizajeDe`.
   const modulos = persona.modulos.map((m) => m.clave);
-  const destino = aterrizajeDe({ terminal: persona.terminal, modulos });
+  const destino = aterrizajeDe({ terminal: persona.terminal, modulos, pantallaPrincipal: persona.pantallaPrincipal });
   if (destino !== "/") redirect(destino);
   const esLider = persona.rol === "lider";
   const perfil = { rol: persona.rol, ubicacionTipo: persona.ubicacionTipo, terminal: persona.terminal, modulos };

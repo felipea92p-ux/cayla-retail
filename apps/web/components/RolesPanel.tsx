@@ -38,6 +38,8 @@ import {
   motivoParaNoArchivar,
   motivoParaNoGuardar,
   nombreDeCopia,
+  pantallaPrincipalValida,
+  pantallasElegibles,
   rolesAsignables,
   veModulo,
   type CuentaConRol,
@@ -71,7 +73,7 @@ const iniciales = (n: string) =>
     .slice(0, 2)
     .toUpperCase();
 
-function sinBorrador(b: Record<string, ClaveModulo[]>, id: string): Record<string, ClaveModulo[]> {
+function sinBorrador<T>(b: Record<string, T>, id: string): Record<string, T> {
   const copia = { ...b };
   delete copia[id];
   return copia;
@@ -135,6 +137,7 @@ export function RolesPanel({
   );
   const rol = roles.find((r) => r.id === elegidoId) ?? vigentes[0];
   const [borradores, setBorradores] = useState<Record<string, ClaveModulo[]>>({});
+  const [pantallaPrincipalBorradores, setPantallaPrincipalBorradores] = useState<Record<string, ClaveModulo | null>>({});
   const [modal, setModal] = useState<Modal | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [verArchivados, setVerArchivados] = useState(false);
@@ -145,9 +148,16 @@ export function RolesPanel({
   const [matrizOcupada, setMatrizOcupada] = useState<string | null>(null);
 
   const borrador = rol ? (borradores[rol.id] ?? rol.modulos) : [];
-  const conCambios = !!rol && hayCambios(rol.modulos, borrador);
+  // Se autocorrige contra el borrador de módulos: si se apaga el módulo elegido, vuelve solo a «sin preferencia»
+  // (misma regla que la base). Por eso no hace falta un efecto que lo reajuste al tocar el interruptor.
+  const pantallaPrincipalBorrador = pantallaPrincipalValida(
+    rol ? (pantallaPrincipalBorradores[rol.id] ?? rol.pantallaPrincipal) : null,
+    borrador,
+  );
+  const cambioPantallaPrincipal = !!rol && pantallaPrincipalBorrador !== rol.pantallaPrincipal;
+  const conCambios = !!rol && (hayCambios(rol.modulos, borrador) || cambioPantallaPrincipal);
   const cambios = rol ? cambiosDelBorrador(rol.modulos, borrador) : { suma: [], quita: [] };
-  const nCambios = cambios.suma.length + cambios.quita.length;
+  const nCambios = cambios.suma.length + cambios.quita.length + (cambioPantallaPrincipal ? 1 : 0);
   const menu = rol ? menuConCambios(rol, borrador, ubicacionPrevia) : [];
   const cuentasDe = (id: string) => (cuentas ? cuentasDelRol(cuentas, id) : []);
   const quien: QuienEdita = { misModulos, miRolId: cuentas?.find((c) => c.tipo === "persona" && c.id === yoId)?.rolId ?? null };
@@ -177,11 +187,16 @@ export function RolesPanel({
   async function guardar() {
     if (!rol || !conCambios) return;
     setGuardando(true);
-    const r = await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(rol.id, borrador, rol.version, f), `«${rol.nombre}» quedó guardado`);
+    const r = await ejecutar(
+      "guardar los módulos del rol",
+      (f) => acciones.guardarModulos(rol.id, borrador, rol.version, pantallaPrincipalBorrador, f),
+      `«${rol.nombre}» quedó guardado`,
+    );
     setGuardando(false);
     if (r) {
-      recordarGuardado(rol.id, r.version, borrador);
+      recordarGuardado(rol.id, r.version, borrador, pantallaPrincipalBorrador);
       setBorradores((b) => sinBorrador(b, rol.id));
+      setPantallaPrincipalBorradores((b) => sinBorrador(b, rol.id));
     }
   }
 
@@ -203,15 +218,22 @@ export function RolesPanel({
       return;
     }
     const encendido = nuevos.includes(m.clave);
-    const hecho = await ejecutar("guardar los módulos del rol", (f) => acciones.guardarModulos(r.id, nuevos, r.version, f), `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`);
-    if (hecho) recordarGuardado(r.id, hecho.version, nuevos);
+    // Si se apaga justo el módulo elegido como pantalla principal, vuelve a «sin preferencia» — nunca se manda una
+    // elección que ya no es válida.
+    const pantallaPrincipal = pantallaPrincipalValida(r.pantallaPrincipal, nuevos);
+    const hecho = await ejecutar(
+      "guardar los módulos del rol",
+      (f) => acciones.guardarModulos(r.id, nuevos, r.version, pantallaPrincipal, f),
+      `${r.nombre}: ${m.nombre} ${encendido ? "encendido" : "apagado"}`,
+    );
+    if (hecho) recordarGuardado(r.id, hecho.version, nuevos, pantallaPrincipal);
     setMatrizOcupada(null);
   }
 
-  function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[]) {
+  function recordarGuardado(rolId: string, version: number | undefined, modulos: ClaveModulo[], pantallaPrincipal: ClaveModulo | null) {
     // Sin versión (base sin ADR-0193) no hay nada que recordar: manda lo que traiga el servidor.
     if (version === undefined) return;
-    setGuardados((g) => ({ ...g, [rolId]: { version, modulos } }));
+    setGuardados((g) => ({ ...g, [rolId]: { version, modulos, pantallaPrincipal } }));
   }
 
   function elegir(id: string) {
@@ -409,9 +431,9 @@ export function RolesPanel({
           {editable && borrador.length === 0 && cuentasDelElegido.length > 0 && (
             <p className="mx-5 mt-4 rounded-lg bg-ambar/10 px-3.5 py-2.5 text-[13px] text-ambar-profundo">
               <strong className="font-semibold">
-                {cuentasDelElegido.length === 1 ? "1 cuenta solo ve Inicio." : `${cuentasDelElegido.length} cuentas solo ven Inicio.`}
+                {cuentasDelElegido.length === 1 ? "1 cuenta no ve ningún módulo." : `${cuentasDelElegido.length} cuentas no ven ningún módulo.`}
               </strong>{" "}
-              Enciende los módulos que necesitan, o asígnales otro rol.
+              Enciende los módulos que necesitan (Inicio incluido), o asígnales otro rol.
             </p>
           )}
           {rol.limitadoComoHoy && (
@@ -422,6 +444,30 @@ export function RolesPanel({
           )}
           {!rol.fijo && !rol.archivado && motivoArchivo && !rol.esSistema && (
             <p className="mx-5 mt-3 text-xs text-tinta/60">Para archivarlo: {motivoArchivo.charAt(0).toLowerCase() + motivoArchivo.slice(1)}</p>
+          )}
+
+          {editable && (
+            <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
+              <label htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
+                Pantalla principal
+              </label>
+              <select
+                id={`pantalla-principal-${rol.id}`}
+                value={pantallaPrincipalBorrador ?? ""}
+                onChange={(e) =>
+                  setPantallaPrincipalBorradores((b) => ({ ...b, [rol.id]: e.target.value ? (e.target.value as ClaveModulo) : null }))
+                }
+                className="h-9 min-w-[180px] rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
+              >
+                <option value="">Automática (la primera que vea)</option>
+                {pantallasElegibles(borrador).map((m) => (
+                  <option key={m.clave} value={m.clave}>
+                    {m.nombre}
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-tinta/60">a dónde aterriza esta cuenta al iniciar sesión</span>
+            </div>
           )}
 
           <div className="flex flex-wrap items-center gap-3 px-5 pb-2 pt-4">
@@ -683,9 +729,9 @@ function FilaRol({ rol, elegido, cuentas, sinGuardar, onElegir }: { rol: RolVist
         </span>
         {rol.fijo ? (
           <Lock aria-label="No se edita" className="h-3.5 w-3.5 shrink-0 text-tinta/50" />
-        ) : aviso === "solo_inicio" ? (
-          <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo" title="Sus cuentas solo ven Inicio">
-            Solo Inicio
+        ) : aviso === "sin_modulos" ? (
+          <span className="shrink-0 rounded-full bg-ambar/15 px-2 py-px text-[10.5px] font-semibold text-ambar-profundo" title="Sus cuentas no ven ningún módulo">
+            Sin módulos
           </span>
         ) : aviso === "sin_uso" ? (
           <span className="shrink-0 rounded-full bg-tinta/[0.06] px-2 py-px text-[10.5px] font-semibold text-tinta/60">Sin uso</span>
