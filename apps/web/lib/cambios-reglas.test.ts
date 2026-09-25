@@ -299,6 +299,19 @@ describe("validarCambio / primerBloqueo", () => {
     expect(primerBloqueo(validarCambio(sinStock))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Hay 2 en Trujillo." });
   });
 
+  it("lo que queda en el piso es de otra clienta: dice «apartada», no «no queda»", () => {
+    const apartada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: "2 en Trujillo" } };
+    expect(primerBloqueo(validarCambio(apartada))).toMatchObject({
+      clave: "stock",
+      estado: "alerta",
+      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      detalle: "Hay 2 en Trujillo.",
+    });
+    // Sin nada apartado sigue diciendo lo de siempre.
+    const agotada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: null } };
+    expect(primerBloqueo(validarCambio(agotada))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Tampoco hay en otra sede." });
+  });
+
   it("diferencia en efectivo con la caja cerrada frena (registrar_cambio la rechazaría)", () => {
     const conDiferencia = { ...listo, diferencia: 40 };
     expect(primerBloqueo(validarCambio(conDiferencia))).toMatchObject({ clave: "caja", estado: "alerta" });

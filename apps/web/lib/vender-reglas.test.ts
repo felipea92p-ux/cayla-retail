@@ -23,6 +23,8 @@ import {
   quitarPagoTraspasando,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinStockPorApartado,
+  textoSinStock,
   vueltoDe,
   type CampanaLinea,
   type DetalleDescuento,
@@ -707,5 +709,33 @@ describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
   it("con responsable elegido (o sin la regla) no bloquea", () => {
     expect(motivoBloqueoCobro({ ...listo, motivoResponsable: null })).toBeNull();
     expect(motivoBloqueoCobro(listo)).toBeNull();
+  });
+});
+
+describe("textoSinStock — «agotada» o «apartada para una clienta»", () => {
+  it("sin nada apartado, agotada es agotada", () => {
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 0 })).toBe("agotada");
+    // Quien no trae `apartadoAqui` (una pantalla sin esta lectura) dice lo de siempre.
+    expect(textoSinStock({ stockAqui: 0 })).toBe("agotada");
+    expect(sinStockPorApartado({ stockAqui: 0 })).toBe(false);
+  });
+
+  it("piso en 0 con 1 apartada para una clienta: no está agotada, está apartada", () => {
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+    expect(sinStockPorApartado({ stockAqui: 0, apartadoAqui: 1 })).toBe(true);
+    // Varias apartadas dicen lo mismo: la frase habla de la prenda, no de cuántas.
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 3 })).toBe("apartada para una clienta");
+  });
+
+  it("cada pantalla conserva su texto de siempre para agotada, y la frase abre igual que él", () => {
+    expect(textoSinStock({ stockAqui: 0 }, "sin stock aquí")).toBe("sin stock aquí");
+    expect(textoSinStock({ stockAqui: 0 }, "Sin stock aquí")).toBe("Sin stock aquí");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "sin stock aquí")).toBe("apartada para una clienta");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para una clienta");
+  });
+
+  it("con piso libre no hay nada que explicar, aunque otra unidad esté apartada", () => {
+    expect(sinStockPorApartado({ stockAqui: 2, apartadoAqui: 1 })).toBe(false);
+    expect(textoSinStock({ stockAqui: 2, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
   });
 });

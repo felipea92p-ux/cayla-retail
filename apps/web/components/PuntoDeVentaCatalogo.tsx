@@ -6,6 +6,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { sinStockPorApartado, textoSinStock } from "@/lib/vender-reglas";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -96,6 +97,15 @@ const iniciales = (referencia: string) =>
     .slice(0, 2)
     .map((p) => p[0].toUpperCase())
     .join("");
+
+/** Lo que dice el tooltip de una talla que no se puede vender aquí: por qué no (agotada o apartada) y, si hay, dónde más. */
+function tooltipSinStock(v: VarianteBusqueda): string {
+  const motivo = textoSinStock(v, "Sin stock aquí");
+  const otras = textoOtrasSedes(v.stockOtrasSedes ?? []);
+  if (otras) return `${motivo} · ${otras}`;
+  // Apartada no es «sin stock en ninguna sede»: la unidad sigue en el piso, es de una clienta.
+  return sinStockPorApartado(v) ? motivo : "Sin stock en ninguna sede";
+}
 
 /**
  * Panel izquierdo de Vender. La encargada de sede tiene lector: su ruta real es
@@ -238,7 +248,7 @@ export function PuntoDeVentaCatalogo({
                         <span className="shrink-0 text-right">
                           <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
                           <span className={`block text-xs ${v.stockAqui <= 0 ? "text-rojo-profundo" : "text-tinta/60"}`}>
-                            {v.stockAqui <= 0 ? `sin stock aquí` : `${v.stockAqui} aquí`}
+                            {v.stockAqui <= 0 ? textoSinStock(v, "sin stock aquí") : `${v.stockAqui} aquí`}
                           </span>
                           {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                           {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
@@ -437,16 +447,14 @@ export function PuntoDeVentaCatalogo({
                           <TooltipTrigger asChild>
                             <span
                               tabIndex={0}
-                              aria-label={`Talla ${t.talla} sin stock aquí`}
+                              aria-label={`Talla ${t.talla} ${textoSinStock(t.variante, "sin stock aquí")}`}
                               className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through outline-none focus-visible:border-rojo/60"
                             >
                               {t.talla}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent sideOffset={4}>
-                            {textoOtrasSedes(t.variante.stockOtrasSedes ?? [])
-                              ? `Sin stock aquí · ${textoOtrasSedes(t.variante.stockOtrasSedes ?? [])}`
-                              : "Sin stock en ninguna sede"}
+                            {tooltipSinStock(t.variante)}
                           </TooltipContent>
                         </Tooltip>
                       )

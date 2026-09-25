@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
+import { textoSinStock } from "@/lib/vender-reglas";
 
 type Props = {
   grupo: GrupoCatalogo<VarianteBusqueda>;
@@ -74,7 +75,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                     {enTicket > 0 && <span className="text-[11px] font-semibold text-rojo">{enTicket} en el ticket</span>}
                   </span>
                   <span className="mt-0.5 block text-xs">
-                    {agotada ? "Sin stock aquí" : tope ? "Ya tienes todas" : `${t.stockAqui} aquí`}
+                    {agotada ? textoSinStock(t.variante, "Sin stock aquí") : tope ? "Ya tienes todas" : `${t.stockAqui} aquí`}
                   </span>
                   {agotada && otras &&<span className="mt-0.5 block text-[11px]">{otras}</span>}
                   {t.variante.precio !== grupo.precioMin && <span className="mt-0.5 block text-xs font-semibold">{money(t.variante.precio)}</span>}

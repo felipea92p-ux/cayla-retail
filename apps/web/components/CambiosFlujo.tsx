@@ -141,7 +141,9 @@ export function CambiosFlujo({
           disponible: unidadesDisponibles(linea),
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
-          nueva: r.varianteNueva ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, otrasSedes: r.otrasSedes } : null,
+          nueva: r.varianteNueva
+            ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, apartadoAqui: r.varianteNueva.apartadoAqui, otrasSedes: r.otrasSedes }
+            : null,
           sede,
           diferencia: r.diferencia,
           metodo: seleccion.metodo,

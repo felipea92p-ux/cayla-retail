@@ -22,11 +22,25 @@ export function cantidadCobrable(c: Cantidades | undefined): number {
   return c.pisoDisponible ?? c.disponible;
 }
 
+/** Lo APARTADO para clientas en el mismo lugar de donde cobra la caja: el piso (o, sin piso/almacén, el total). Es la
+ *  otra mitad de `cantidadCobrable`: cobrable + apartado = lo que hay físicamente ahí. Lo apartado que está en el
+ *  almacén NO cuenta: no explica por qué el piso no tiene nada que vender (`sinStockPorApartado`). */
+export function apartadoEnPiso(c: Cantidades | undefined): number {
+  if (!c) return 0;
+  return c.piso !== null && c.pisoDisponible !== null ? c.piso - c.pisoDisponible : c.apartado;
+}
+
 /** Stock de la caja corregido: `ajustes` pisa `stockAqui` de las prendas que se vendieron o releyeron en esta
  *  pantalla. Devuelve el MISMO arreglo si no hay nada que corregir (los `useMemo` de abajo no se recalculan). */
 export function conStockAjustado<V extends { varianteId: string; stockAqui: number }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {
   if (ajustes.size === 0) return variantes;
   return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, stockAqui: ajustes.get(v.varianteId)! } : v));
+}
+
+/** Lo mismo para lo apartado: `ajustes` pisa `apartadoAqui` de las prendas que la pantalla releyó de la base. */
+export function conApartadoAjustado<V extends { varianteId: string; apartadoAqui?: number }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {
+  if (ajustes.size === 0) return variantes;
+  return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, apartadoAqui: ajustes.get(v.varianteId)! } : v));
 }
 
 /** Descuenta lo vendido del stock que la pantalla muestra, sin bajar de 0. Parte de `stockActual` (lo que se ve
@@ -50,5 +64,12 @@ export function descontarVendido(
 export function conStockReleido(ajustes: ReadonlyMap<string, number>, pedidas: string[], releido: ReadonlyMap<string, Cantidades>): Map<string, number> {
   const nuevos = new Map(ajustes);
   for (const id of pedidas) nuevos.set(id, cantidadCobrable(releido.get(id)));
+  return nuevos;
+}
+
+/** Lo apartado de las prendas releídas, como `conStockReleido` con el stock: sin fila en esta sede, 0. */
+export function conApartadoReleido(ajustes: ReadonlyMap<string, number>, pedidas: string[], releido: ReadonlyMap<string, Cantidades>): Map<string, number> {
+  const nuevos = new Map(ajustes);
+  for (const id of pedidas) nuevos.set(id, apartadoEnPiso(releido.get(id)));
   return nuevos;
 }

@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { VentasDeHoyLista } from "@/components/VentasDeHoy";
-import { cantidadCobrable } from "@/lib/vender-stock-local";
+import { apartadoEnPiso, cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
@@ -81,6 +81,9 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   // Lo APARTADO para una clienta sigue en el piso pero no se puede cobrar: el tope es lo DISPONIBLE
   // (ADR-0141). La base lo rechazaría igual (`fn_aplicar_movimiento`); esto evita ofrecerlo.
   const pisoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, cantidadCobrable(c)]));
+  // Y lo apartado en ese mismo piso: es lo que deja decir «apartada para una clienta» y no «agotada» cuando el piso
+  // no tiene nada libre (`textoSinStock`). Lo apartado en el almacén no cuenta.
+  const apartadoPorVariante = new Map([...stockAqui].map(([id, c]) => [id, apartadoEnPiso(c)]));
 
   const variantesParaVenta = variantes
     .filter((v) => v.activo)
@@ -98,6 +101,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
+      apartadoAqui: apartadoPorVariante.get(v.varianteId) ?? 0,
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 

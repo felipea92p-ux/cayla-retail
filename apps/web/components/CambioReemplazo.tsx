@@ -18,6 +18,7 @@ import {
 } from "@/lib/cambios-reglas";
 import { compararTallas } from "@/lib/tallas";
 import { textoOtrasSedes, type SedeConStock } from "@/lib/stock-por-sede";
+import { sinStockPorApartado, textoSinStock } from "@/lib/vender-reglas";
 
 export type VarianteCatalogo = {
   varianteId: string;
@@ -32,6 +33,8 @@ export type VarianteCatalogo = {
   precio: number;
   /** Piso de ESTA sede: lo único que `registrar_cambio` deja entregar. */
   stockAqui: number;
+  /** Lo apartado para clientas en ese mismo piso: con `stockAqui` en 0, es «apartada para una clienta» y no «no queda». */
+  apartadoAqui: number;
   /** Dónde más hay — «no queda L aquí, pero hay 2 en Trujillo». */
   stockOtrasSedes: SedeConStock[];
 };
@@ -107,9 +110,23 @@ export function derivarReemplazo(linea: LineaVentaReciente, porProducto: Map<str
     /** Cuántas hay en el piso de esta sede de esa talla y color (para decirlo bajo cada talla). */
     stockAqui: (t: string | null, c: string | null) =>
       variantes.filter((v) => (t === null || v.talla === t) && (c === null || v.color === c)).reduce((suma, v) => suma + Math.max(0, v.stockAqui), 0),
+    /** Lo que se dice de una talla y color sin nada libre en el piso: «apartada para una clienta» si lo que queda está
+     *  apartado, y si no, «no queda aquí». Con talla o color sin fijar suma todas las que cubre. */
+    sinStockTexto: (t: string | null, c: string | null) =>
+      textoSinStock(
+        {
+          stockAqui: 0,
+          apartadoAqui: variantes
+            .filter((v) => (t === null || v.talla === t) && (c === null || v.color === c))
+            .reduce((suma, v) => suma + Math.max(0, v.apartadoAqui), 0),
+        },
+        "no queda aquí",
+      ),
     eligioTodo,
     varianteNueva,
     sinStockAqui: varianteNueva !== null && varianteNueva.stockAqui <= 0,
+    /** «apartada para una clienta» si la prenda elegida no se entrega porque lo que queda en el piso es de otra; si no, null. */
+    textoApartada: varianteNueva !== null && sinStockPorApartado(varianteNueva) ? textoSinStock(varianteNueva) : null,
     descripcionNueva: varianteLegible({ talla: tallaEfectiva, color: colorEfectivo }),
     otrasSedes: varianteNueva ? textoOtrasSedes(varianteNueva.stockOtrasSedes) : null,
     // Sin prenda nueva elegida no hay diferencia que cobrar (y la caja no se mira).
@@ -209,13 +226,13 @@ export function CambioReemplazo({
             <div className="mt-2 flex flex-wrap gap-2">
               {r.tallas.map((t) => {
                 const hay = r.hayAqui(t, r.colorEfectivo);
-                const subtitulo = r.esLaMisma && t === linea.talla ? "compró esta" : hay ? `${r.stockAqui(t, r.colorEfectivo)} en piso` : "no queda aquí";
+                const subtitulo = r.esLaMisma && t === linea.talla ? "compró esta" : hay ? `${r.stockAqui(t, r.colorEfectivo)} en piso` : r.sinStockTexto(t, r.colorEfectivo);
                 return (
                   <button
                     key={t}
                     type="button"
                     aria-pressed={t === r.tallaEfectiva}
-                    aria-label={hay ? `Talla ${t}, ${subtitulo}` : `Talla ${t}, no queda aquí`}
+                    aria-label={hay ? `Talla ${t}, ${subtitulo}` : `Talla ${t}, ${r.sinStockTexto(t, r.colorEfectivo)}`}
                     className={`min-w-16 ${t === r.tallaEfectiva ? OPCION_ACTIVA : hay ? OPCION_INACTIVA : OPCION_SIN_STOCK}`}
                     onClick={() => onCambio({ talla: t })}
                   >
@@ -237,12 +254,13 @@ export function CambioReemplazo({
               {r.colores.map(([nombre, hex]) => {
                 const hay = r.hayAqui(r.tallaEfectiva, nombre);
                 const elegido = nombre === r.colorEfectivo;
+                const sinStock = r.sinStockTexto(r.tallaEfectiva, nombre);
                 return (
                   <button
                     key={nombre}
                     type="button"
-                    title={hay ? nombre : `${nombre} · no queda aquí`}
-                    aria-label={hay ? `Color ${nombre}` : `Color ${nombre}, no queda aquí`}
+                    title={hay ? nombre : `${nombre} · ${sinStock}`}
+                    aria-label={hay ? `Color ${nombre}` : `Color ${nombre}, ${sinStock}`}
                     aria-pressed={elegido}
                     onClick={() => onCambio({ color: nombre })}
                     className={`h-10 w-10 rounded-full border-2 transition-[box-shadow,transform] duration-300 ${
@@ -259,7 +277,9 @@ export function CambioReemplazo({
 
         {r.sinStockAqui && (
           <p className="anim-revelar mt-4 rounded-lg border border-dashed border-tinta/30 px-4 py-3 text-sm text-tinta/80" role="status">
-            No queda {r.descripcionNueva || linea.referencia} aquí{r.otrasSedes ? ` — hay ${r.otrasSedes}.` : ", ni en otra sede."}
+            {r.textoApartada
+              ? `${r.descripcionNueva || linea.referencia} está ${r.textoApartada}, no se puede entregar${r.otrasSedes ? ` — hay ${r.otrasSedes}.` : "."}`
+              : `No queda ${r.descripcionNueva || linea.referencia} aquí${r.otrasSedes ? ` — hay ${r.otrasSedes}.` : ", ni en otra sede."}`}
           </p>
         )}
       </div>

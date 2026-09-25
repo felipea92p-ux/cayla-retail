@@ -29,6 +29,8 @@ import {
   RAZON_CAMPANA,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinStockPorApartado,
+  textoSinStock,
   vueltoDe,
   conDescuentoDeCampana,
   type CampanaLinea,
@@ -59,7 +61,7 @@ import { MQ_TELEFONO, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { VersionVentasDeHoy } from "@/components/VentasDeHoy";
 import { sumarCantidades } from "@/lib/inventario-reglas";
-import { conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
+import { conApartadoAjustado, conApartadoReleido, conStockAjustado, conStockReleido, descontarVendido } from "@/lib/vender-stock-local";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -85,6 +87,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  tiene foto todavía; la tarjeta cae a las iniciales de la prenda. */
   fotoUrl: string | null;
   stockAqui: number;
+  /** Lo apartado para clientas en ese mismo piso (`apartadoEnPiso`). Con `stockAqui` en 0 es lo que separa «apartada
+   *  para una clienta» de «agotada» (`textoSinStock`). Opcional: sin él, se dice «agotada» como siempre. */
+  apartadoAqui?: number;
   /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
    *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
    *  ver otras sedes. Opcional para no romper a quien arme variantes sin esta consulta. */
@@ -306,14 +311,21 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // pantalla entera (`router.refresh()`, ~10 lecturas y ~1 MB); ahora se descuenta lo vendido y se releen SOLO esas
   // prendas (`trasVender`). Si el servidor manda un catálogo nuevo (abrir/cerrar caja, cambiar de sede), manda él.
   const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  // Lo apartado que la misma relectura trajo (`releerStock`): decide si una prenda que ya no se puede vender dice
+  // «agotada» o «apartada para una clienta». Va aparte para no mezclar dos cifras en un mismo mapa.
+  const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [variantesPrevias, setVariantesPrevias] = useState(variantes);
   if (variantes !== variantesPrevias) {
     setVariantesPrevias(variantes);
     setAjustesStock(new Map());
+    setAjustesApartado(new Map());
   }
   // Sube tras cada venta: «Ventas de hoy» se relee sola (`VentasDeHoyLista`).
   const [versionVentas, setVersionVentas] = useState(0);
-  const variantesAjustadas = useMemo(() => conStockAjustado(variantes, ajustesStock), [variantes, ajustesStock]);
+  const variantesAjustadas = useMemo(
+    () => conApartadoAjustado(conStockAjustado(variantes, ajustesStock), ajustesApartado),
+    [variantes, ajustesStock, ajustesApartado],
+  );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
 
@@ -496,8 +508,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       .eq("ubicacion_id", ubicacionId)
       .in("variante_id", pedidas);
     if (error || !data) return null;
-    const releido = conStockReleido(new Map(), pedidas, sumarCantidades(data));
+    const cantidades = sumarCantidades(data);
+    const releido = conStockReleido(new Map(), pedidas, cantidades);
     setAjustesStock((prev) => new Map([...prev, ...releido]));
+    setAjustesApartado((prev) => new Map([...prev, ...conApartadoReleido(new Map(), pedidas, cantidades)]));
     return releido;
   }
 
@@ -570,7 +584,12 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     if (v.stockAqui <= 0) {
-      if (!silencioso) avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
+      // «Apartada para una clienta» si lo que queda en el piso es de otra: no es lo mismo que «agotada» (`textoSinStock`).
+      if (!silencioso) {
+        avisar.aviso(`${nombreVariante} está ${textoSinStock(v)}`, {
+          detalle: sinStockPorApartado(v) ? `Sigue en ${ubicacionEtiqueta}, pero no se puede vender.` : `No hay stock en ${ubicacionEtiqueta}.`,
+        });
+      }
       setAviso(null);
       setQ("");
       setActivo(0);
