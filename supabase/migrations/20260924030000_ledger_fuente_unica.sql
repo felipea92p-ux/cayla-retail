@@ -392,7 +392,7 @@ ventana as (
 ),
 permiso as (
   -- Quien tiene el módulo Análisis, no solo el líder (20260923130000, ADR-0161). Recrear esta función con
-  -- `fn_es_lider()` le quitaba la pantalla a esos roles sin ningún error; producción siempre tuvo esta línea.
+  -- `fn_es_lider()` le quitaba la pantalla a esos roles sin ningún error: pasó en producción al pegar este archivo, y lo arregló 20260925223000.
   select fn_puede_operar_ubicacion(p_ubicacion_id) and retail.fn_puede_analizar() as ok
 ),
 ub as (

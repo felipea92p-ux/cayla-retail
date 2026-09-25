@@ -168,6 +168,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:cuentas-dinero
 
+      # Editar y eliminar cuentas (ADR-0195 F3, 2026-09-25): sin uso se corrige todo y se borra de verdad; usada, el tipo
+      # queda y se archiva; el saldo inicial no se toca conciliado ni con su mes cerrado; solo el líder. ROLLBACK.
+      - name: pruebas:editar-cuentas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:editar-cuentas
+
       # La cuenta sellada (ADR-0195 F3b): cada cobro y pago guarda de qué cuenta salió o a cuál entró; del cajón, con su
       # salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
       - name: pruebas:cuenta-sellada
