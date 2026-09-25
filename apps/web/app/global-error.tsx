@@ -10,8 +10,14 @@
 // no `reset`: `reset` a secas solo vuelve a pintar con la respuesta que ya llegó —y esa trae el mismo
 // error—, así que el botón parecería no hacer nada aunque el corte ya haya pasado. `unstable_retry` =
 // `router.refresh()` + `reset()` dentro de una transición: vuelve a pedir los datos, y Next ya lo
-// entrega hecho (aquí no se arma con `useRouter`, que además no es el contrato de esta barrera).
-// Es API inestable: `errores-reintentar.test.ts` falla si una versión nueva de Next la quita.
+// entrega hecho.
+//
+// Por qué no el patrón de `(app)/error.tsx` (`useRouter` + `startTransition`): SÍ funcionaría aquí —en la
+// 16.2.10 Next monta esta barrera dentro del contexto del router, así que `useRouter()` responde— y es lo que
+// hacen las barreras de la app. Se prefiere `unstable_retry` porque es el camino documentado para esta
+// pantalla, la que casi nadie ve ni prueba a mano, y deja que Next mantenga el reintento en vez de copiarlo
+// aquí. El precio es que es API inestable: `errores-reintentar.test.ts` falla si una versión nueva de Next
+// la quita, y entonces la salida es el patrón de `(app)/error.tsx` (o una recarga completa).
 export default function ErrorGlobal({
   error,
   unstable_retry,
