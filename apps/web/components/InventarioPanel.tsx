@@ -77,11 +77,16 @@ function textoMostrando(p: { desde: number; hasta: number; totalPaginas: number 
  *  una, en el propio filtro de Estado y en la leyenda de abajo — no se
  *  perdió nada, solo dejó de tener un atajo agregado propio. */
 const DANADO = "__danado__";
-/** Filtro «Por colgar» (Frescura del piso, 2026-09-25): otro eje aparte del semáforo, como «Dañado» —
- *  una talla por colgar puede tener chip «Reponer piso» o «Stock bajo» según cuánto quede atrás. Vive
- *  en el mismo estado del filtro de Estado (y en su lista) para que la píldora, el select y la tarjeta
- *  «Reponer a piso hoy» sean tres entradas a UN solo filtro y nunca se contradigan. La regla es
- *  `porColgar` (`lib/inventario-reglas.ts`). */
+/** Filtro «Por colgar» (Frescura del piso, 2026-09-25): otro eje aparte del semáforo, como «Dañado». La
+ *  regla es `porColgar` (`lib/inventario-reglas.ts`). Vive en el mismo estado que el filtro de Estado (y en
+ *  su lista), así la píldora, el select y la tarjeta «Reponer a piso hoy» se EXCLUYEN: activar uno apaga
+ *  el otro, nunca se apilan dos filtros que se vacían entre sí.
+ *
+ *  Lo que NO comparten es la cuenta: la tarjeta cuenta solo el estado «Reponer piso» (reserva sana atrás,
+ *  decisión de Felipe), y una talla por colgar con 10 o menos en el almacén lleva chip «Stock bajo» (pedir
+ *  traslado). Las dos lecturas son ciertas a la vez, así que la pantalla no las esconde: la fila lleva su
+ *  chip «Por colgar» ANTES del semáforo (la acción de hoy: colgarla) y, si la tarjeta da 0 mientras hay
+ *  tallas por colgar, su texto remite a esta lista en vez de decir «nada pendiente». */
 const POR_COLGAR = "__por_colgar__";
 const ESTADOS: EstadoStock[] = ["normal", "reponer_piso", "stock_bajo", "sin_stock"];
 
@@ -418,7 +423,13 @@ export function InventarioPanel({
               activa={estado === "reponer_piso"}
               onClick={() => setEstado((e) => (e === "reponer_piso" ? TODAS : "reponer_piso"))}
             >
-              {resumen.requierenReposicion === 0 ? "Nada pendiente de bajar al piso" : `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén — con demanda`}
+              {/* La cifra es solo «Reponer piso» (decisión de Felipe, no se toca). Pero si da 0 y hay tallas sin
+                  nada colgado, «nada pendiente de bajar» sería falso: remite a la lista que sí las tiene. */}
+              {resumen.requierenReposicion > 0
+                ? `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén — con demanda`
+                : cuentaPorColgar.tallas > 0
+                  ? `Revisa «Por colgar» en la tabla: ${cuentaPorColgar.tallas} ${cuentaPorColgar.tallas === 1 ? "talla" : "tallas"} que la clienta no ve`
+                  : "Nada pendiente de bajar al piso"}
             </TarjetaPrioridad>
           )}
           <TarjetaPrioridad
@@ -563,7 +574,7 @@ export function InventarioPanel({
                   onClick={() => setEstado((e) => (e === POR_COLGAR ? TODAS : POR_COLGAR))}
                   // Con el filtro puesto sigue clicable aunque llegue a 0 (tras reponer la última): es como se quita.
                   disabled={cuentaPorColgar.tallas === 0 && estado !== POR_COLGAR}
-                  title="Tallas con unidades en el almacén y ninguna colgada en el piso: la clienta no las ve"
+                  title="Tallas con unidades para bajar del almacén y ninguna para vender en el piso: la clienta no las ve"
                   className="pildora-cayla disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Por colgar
@@ -599,9 +610,10 @@ export function InventarioPanel({
       {stock.length === 0 ? (
         <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
+        // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta.
         <p className="border-t border-sand p-5 text-sm text-taupe">
           {estado === POR_COLGAR && cuentaPorColgar.tallas === 0
-            ? "Nada por colgar: toda talla que está en el almacén tiene al menos una colgada en el piso."
+            ? "Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso."
             : "Ningún producto coincide con la búsqueda."}
         </p>
       ) : (
@@ -671,6 +683,18 @@ export function InventarioPanel({
                 {separa && (
                   <span className={celda("centro", "overflow-visible")}>
                     <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
+                      {/* «Por colgar» va primero y en todas las vistas (es un eje, como «Dañado»): sin él, una
+                          talla sin nada colgado y con poca reserva mostraba solo «Stock bajo · Pedir traslado»
+                          junto a «Reponer», y la encargada no sabía si colgar o pedir. Las dos son ciertas: hoy
+                          se cuelga lo que hay atrás, y el traslado repone la reserva. La cifra es lo que se puede
+                          bajar (disponible, neto de apartados): la suma de estos chips es la de la píldora. */}
+                      {porColgar(f) && (
+                        <Chip tono="ambar">
+                          <span title={`En el piso no queda ninguna para vender; en el almacén hay ${f.almacenDisponible} que se ${f.almacenDisponible === 1 ? "puede" : "pueden"} colgar`}>
+                            Por colgar · {f.almacenDisponible} {f.almacenDisponible === 1 ? "ud" : "uds"}
+                          </span>
+                        </Chip>
+                      )}
                       {f.estado === "normal" || f.estado === null ? (
                         <span className="text-[13px] text-taupe" title={ACCION_ESTADO_STOCK.normal}>
                           Normal
