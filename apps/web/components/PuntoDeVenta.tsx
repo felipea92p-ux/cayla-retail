@@ -716,8 +716,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
+    // Solo queda «en el almacén» lo que en ESTA lectura sigue estando ahí. Cualquier otro resultado (entró, o ahora está
+    // apartada o agotada) la saca: si no, al cerrar la cámara diría «está en el almacén, que la bajen» de una prenda que
+    // ya no está en el almacén (la apartó otra caja entre dos lecturas).
     if (estado === "en_almacen" || (estado === "tope" && (v.almacenAqui ?? 0) > 0)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
-    else if (estado === "agregada") quedaronEnAlmacen.current.delete(v.varianteId);
+    else quedaronEnAlmacen.current.delete(v.varianteId);
     return { estado, codigo, nombre, prenda, almacen: v.almacenAqui };
   }
 

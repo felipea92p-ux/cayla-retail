@@ -64,6 +64,21 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
     patron: /alLeerRef\.current\(\s*releido\.cobrable,\s*releido\.almacen,\s*releido\.apartado\s*\)/,
   },
   {
+    archivo: "components/PuntoDeVenta.tsx",
+    cable: "`agregar()` devuelve el `motivo` tal cual cuando no se cobra (así «apartada» llega a la cámara y no se reescribe a «agotada»)",
+    patron: /if \(motivo !== "cobrable"\) \{[\s\S]*?return motivo;\s*\}/,
+  },
+  {
+    archivo: "components/PuntoDeVenta.tsx",
+    cable: "la cámara (`alEscanear`) reenvía el estado que devuelve `agregar()` sin remapearlo",
+    patron: /const estado = agregar\(v,\s*\{\s*silencioso:\s*true\s*\}\)\s*\?\?\s*"agotada";[\s\S]*?return \{ estado, codigo, nombre, prenda/,
+  },
+  {
+    archivo: "components/PuntoDeVenta.tsx",
+    cable: "la cámara solo deja «en el almacén» lo que en esta lectura sigue estando ahí (cualquier otro resultado lo saca)",
+    patron: /\)\s*quedaronEnAlmacen\.current\.set\(v\.varianteId,\s*nombre\);\s*else quedaronEnAlmacen\.current\.delete\(v\.varianteId\);/,
+  },
+  {
     archivo: "components/PuntoDeVentaCatalogo.tsx",
     cable: "la fila del buscador dice «apartada para una clienta» cuando el motivo es `apartada`",
     patron: /motivo === "apartada"\s*\?\s*"apartada para una clienta"/,
@@ -72,6 +87,11 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
     archivo: "components/PuntoDeVentaCatalogo.tsx",
     cable: "la talla sin piso dice su motivo en el aria-label y en el tooltip (`tooltipTallaSinPiso`)",
     patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "apartada para una clienta"[\s\S]*tooltipTallaSinPiso\(\s*t\.variante\s*,/,
+  },
+  {
+    archivo: "components/ElegirTallaModal.tsx",
+    cable: "la casilla de talla sabe cuándo es «apartada» (`motivo === \"apartada\"`, no un `false` fijo)",
+    patron: /const apartada = motivo === "apartada"/,
   },
   {
     archivo: "components/ElegirTallaModal.tsx",
