@@ -178,6 +178,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:impuestos
 
+      # Estado de resultados (ADR-0195 F5): el diario cuadra, cada regla de posteo, unidades y consolidado, planilla de
+      # Dynamic, permisos, campañas y un año de volumen. ROLLBACK.
+      - name: pruebas:estado-resultados
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:estado-resultados
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
