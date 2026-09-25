@@ -73,6 +73,12 @@ export const AVIARIO = [
       // Refresco del volcado del 2026-09-23: a dónde fue el efectivo al cerrar (ADR-0186) y las prendas vendidas sin
       // registrar (ADR-0179) — las dos nacen en la caja; almacén regulariza las segundas, pero el hecho es la venta.
       "caja_traslados", "prendas_por_regularizar",
+      // Configuración de la caja (ADR-0195 F1): la meta de venta de cada día por tienda, lo que cada campaña cambia en la caja
+      // (meta y fondo) y la bitácora de esos cambios. Los lee `fn_parametros_caja` —lo que ve el mostrador—, por eso son de
+      // Colibrí. La bitácora la escriben también las pantallas de Finanzas (parámetros, cuentas, presupuesto, impuestos):
+      // escribir en ella no la hace de Garza, igual que escribir en `movimientos` no hace a nadie dueño de Halcón.
+      // Asignadas en el refresco del volcado del 2026-09-25.
+      "ubicacion_metas_dia", "campana_efecto_caja", "configuracion_historial",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
     tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
@@ -96,11 +102,39 @@ export const AVIARIO = [
       "proveedores_produccion", "comprobantes_produccion", "comprobantes_produccion_items", "comprobantes_produccion_pagos",
       // ADR-0133 (F5–F6): recepción y cierre de esos comprobantes, y la cotización de maquila por categoría. Asignadas en el
       // refresco del volcado del 2026-09-23.
-      "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila"] },
+      "comprobantes_produccion_recepciones", "comprobantes_produccion_cierres", "cotizaciones_maquila",
+      // ADR-0161 (act. d): quién movió cada orden de etapa; solo la escribe `set_etapa_produccion`. Asignada en el refresco
+      // del volcado del 2026-09-25.
+      "produccion_etapas_historial"] },
   // `planilla_por_sede` (vista, ADR-0133 F7 / D-33): la planilla YA PAGADA por sede y período, leída de Dynamic. Es costo
   // operativo de la sede —Producción la usa para costear la mano de obra, pero no es suya—, por eso va con los gastos.
-  { n: "11", pajaro: "Garza", modulo: "Finanzas operativas", tablas: ["gastos", "planilla_por_sede"] },
-  { n: "12", pajaro: "Urraca", modulo: "Contabilidad", tablas: ["activos_fijos"] },
+  // Finanzas F1–F10 (ADR-0195, ADR-0198), repartidas con el criterio de GOBIERNO §1 «Repartos que no son obvios»: Garza es la
+  // plata del día —qué se gastó, dónde está la plata, si cuadra con el banco—; Urraca es el libro —plan de cuentas, tributos,
+  // balance y el cierre del mes—. Asignadas en el refresco del volcado del 2026-09-25; Finanzas (Felipe) las confirma en el
+  // PR de ese refresco, porque ningún ADR de Finanzas nombra pájaro.
+  { n: "11", pajaro: "Garza", modulo: "Finanzas operativas",
+    tablas: ["gastos", "planilla_por_sede",
+      // Gastos (F2): la lista cerrada de lo que se registra como gasto, los que se repiten cada mes (y las sugerencias que
+      // alguien dijo que no lo son), los egresos de caja que NO son gasto, y `gastos_legado_2026_09` —la `gastos` de antes de
+      // la unificación, renombrada, con 0 filas—, que sigue siendo de quien responde por `gastos` hasta que se decida quitarla.
+      "categorias_gasto", "gastos_fijos", "gastos_fijos_descartados", "egresos_no_gasto", "gastos_legado_2026_09",
+      // Cuentas y dinero (F3/F3b): dónde tiene plata CAYLA, a qué cuenta entra cada medio de cobro, cómo se mueve la plata
+      // entre cuentas (depósitos, abonos de tarjeta), lo que dijo el banco, lo ya revisado y de qué cuenta fue un pago que
+      // se guardó sin decirlo. Es el cuadre de efectivo de GOBIERNO §1, ahora con banco.
+      "cuentas_dinero", "medios_de_cobro", "movimientos_dinero", "conciliaciones", "dinero_revisados", "cuentas_asignadas",
+      // Caja y avisos: el mínimo de caja que vigilan el Flujo y el Resumen. Y el presupuesto: el tope de gasto de cada mes,
+      // que se compara contra `gastos` —el mismo dueño que lo gastado responde por lo que se pensaba gastar—.
+      "parametros_finanzas", "presupuestos"] },
+  { n: "12", pajaro: "Urraca", modulo: "Contabilidad",
+    tablas: ["activos_fijos",
+      // El plan de cuentas (PCGE, F2a) y la lista cerrada de tipos de activo, que trae su cuenta y su vida útil (F2b).
+      "cuentas", "tipos_activo",
+      // Tasa de IGV (F2a) y, desde Impuestos (F8), UIT y régimen con vigencia. Solo las leen las pantallas y funciones de
+      // Finanzas —ni comprobantes ni facturación—, por eso no son de Cuervo.
+      "parametros_tributarios",
+      // Balance y cierre de mes (F7/F9, ADR-0198): el punto de partida del Balance, el estado de cada mes, su historia de
+      // cierres y el diario congelado al cerrar.
+      "saldos_iniciales", "periodos", "periodo_cierres", "diario_cerrado"] },
   // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá.
   { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: [] },
   { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: [] },
