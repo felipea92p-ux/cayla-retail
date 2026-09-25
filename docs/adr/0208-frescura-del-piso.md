@@ -6,7 +6,7 @@
 escaneando, «Reposición» cerrada en el piso y la lectura de qué bajadas fueron tardías; ver «Construcción — bloque 1»).
 **No está en producción:** faltan pegar cinco migraciones, con la web publicada entre la cuarta y la quinta, y encender
 el módulo en los roles. **Probada en el navegador** sin base de datos (respuestas de la base simuladas; escritorio y
-375 px): ver «Verificación en local». Del bloque 2 en adelante no hay nada construido.
+375 px): ver «Verificación en local». El bloque 2 («Retirar del piso») está construido en la rama `claude/frescura-retirar-del-piso`, por fusionar (ver «Actualización 2026-09-25 — bloque 2»). Del bloque 3 en adelante no hay nada construido.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -151,6 +151,7 @@ conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1,
 2. **Bloque 2 — «Retirar del piso»** (paso 2): no hace falta una función nueva, falta la pantalla. Es `mover_interno`
    con origen (piso) y destino (almacén) invertidos. *Corregido el 2026-09-25: este punto decía «la función existe»
    pensando en `devolver_a_almacen`, que era del modelo V1 y ya no existe; `bajar_a_piso` tampoco.*
+   **Construido el 2026-09-25, por fusionar** (rama `claude/frescura-retirar-del-piso`; ver «Actualización 2026-09-25 — bloque 2»).
 3. **Bloque 3 — La pantalla de Frescura** (pasos 3, 4, 5 y 7): reloj de novedad por modelo+color, reloj de piso por
    unidad con emparejamiento FIFO, curva de Kaplan-Meier con P50, P75 y P90 por categoría y sede, tramos e índice de
    rapidez, el indicador de «confianza del registro» por sede (contrato en (d)) y atributos y marcas en la lectura. Se
@@ -405,6 +406,11 @@ En esta entrega esos documentos quedaron con notas «(V1; hoy: …)».
   en sentido contrario y quedaría rotulado como bajada.
 - **SE ROMPE SI:** alguien usa `mover_interno` para retirar antes del bloque 2: se distingue por el tipo de la
   sububicación de origen y de destino, no por el motivo.
+- **Actualización 2026-09-25 (bloque 2):** con el retiro ya existe el caso que motivó esta decisión, y se resolvió como
+  decía el «se rompe si»: Movimientos nombra cada `movimiento_interno` por el tipo de la sububicación de DESTINO
+  («Bajada al piso» si llegó a `piso_venta`, «Retiro del piso» si llegó a `almacen_tienda`), y el filtro, que trae los
+  dos, se llama «Bajada o retiro del piso» (`apps/web/lib/movimientos-reglas.ts`, `etiquetaMovimiento`). El detalle
+  dice «unidades movidas», no «repuestas». El motivo no cambia: sigue siendo `movimiento_interno`.
 
 **«Reposición» cerrada en el piso**
 - **DECIDÍ (Felipe, 2026-09-25):** un ajuste con motivo «Reposición» sobre el piso de una tienda se rechaza en la base,
@@ -777,3 +783,20 @@ agrega solo al pegar en producción (`CLAUDE.md` decía lo mismo hasta que main 
 hay al 2026-09-25, contando las cinco de este bloque (`ls supabase/migrations | grep -E '^[0-9]{14}_.*\.sql$' | wc -l`),
 contienen `retail.`, y `apps/web/lib/modulos.test.ts` exige `insert into retail.modulos`. Las cinco migraciones nuevas
 siguen la realidad. `CONTRIBUTING.md` y ADR-0010 **no se editan** sin la decisión de Felipe.
+
+## Actualización 2026-09-25 — bloque 2: «Retirar del piso»
+
+Felipe eligió rescatar solo el retiro del plan paralelo «del termómetro» (tarea 3), sin sus motivos nuevos de ajuste
+(`carga_existente` y un valor propio para «Encontré de más»): cargaban prendas al piso sin pasar por el candado de
+«Reposición» de este ADR (`20260926000400`), así que se descartaron.
+
+- **Qué hace:** en Existencias, cada talla con piso DISPONIBLE mayor que 0 (en una tienda que separa piso y almacén)
+  tiene «Retirar del piso» en el menú «⋯» de su fila, con Responsable. Es `retail.mover_interno` con origen piso y destino
+  almacén; el mismo modal que «Reponer» (`ReponerPisoModal`, ahora con `sentido: 'bajar' | 'retirar'`). Sin migración.
+- **Lo apartado no se retira:** el tope es el piso disponible y la base lo impide igual.
+- **Nombres:** el modal de la fila sigue llamándose «Reponer piso» (como su botón «Reponer»); «Bajar al piso» es el
+  botón de la pantalla de escaneo de este ADR. En Movimientos, las dos acciones quedan como «Bajada al piso».
+- **Riesgo que sigue abierto:** `mover_interno` no tiene token (ver (g)): un doble clic en «Retirar» retira dos veces.
+  El botón se desactiva mientras guarda; el candado en la base es trabajo pendiente, igual que para «Reponer».
+- **Motivo del retiro** (fin de temporada, cambio de exhibición…): no se pide todavía; basta la nota libre. Si Frescura
+  necesita distinguir un retiro que pausa el reloj de uno que saca la prenda de la venta, se agrega en el bloque 3.

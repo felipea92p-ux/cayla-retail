@@ -251,7 +251,7 @@ export function InventarioPanel({
   const [talla, setTalla] = useState(TODAS);
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
-  // Bajar al piso y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
+  // Reponer y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
   const [moviendo, setMoviendo] = useState<{ fila: FilaExistencias; sentido: SentidoPiso } | null>(null);
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(false);
