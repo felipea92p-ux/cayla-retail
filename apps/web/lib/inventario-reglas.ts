@@ -188,6 +188,31 @@ export const TENDENCIA_MIN_UNIDADES = 4;
  *  stock de hoy (cobertura). Mismo período que el Resumen usa por defecto. */
 export const DIAS_RITMO_RECIENTE = 30;
 
+// --- Comportamiento comercial: piso vs. almacén (Análisis, 2026-09-24) -------
+// Por confirmar por Felipe: son el primer número razonable para separar "cómo
+// responde la variante en piso" de "cuánto inventario total se mantiene", no
+// meses de venta real como las de arriba. Una sola casa para los tres, para no
+// repartir el mismo criterio entre la tabla, el tooltip y la lectura.
+
+/** Una cohorte de unidades que llegó al piso madura (se puede juzgar su sell-through) a partir de
+ *  este número de días desde que llegó, o antes si se vendió entera primero. Con menos, penalizaría
+ *  a una reposición reciente que todavía no tuvo tiempo de venderse — ver sección 8 del pedido de
+ *  Felipe (sell-through de exposición, cohortes FIFO en `resumen-exposicion.ts`). */
+export const SELL_THROUGH_EXPOSURE_WINDOW_DAYS = 7;
+
+/** Ritmo observado con «muestra limitada»: cuando la exposición en piso fue menos de esta fracción
+ *  del período completo. El número de ritmo es igual de correcto matemáticamente, pero la UI lo
+ *  marca para que no se lea como "vende esto todos los días" cuando apenas tuvo unas horas de
+ *  evidencia (ej. 1 de 7 días). Fracción, no días fijos, porque "poco" es relativo al período elegido
+ *  (7, 30 o 90 días). */
+export const RITMO_MUESTRA_LIMITADA_FRACCION = 0.5;
+
+/** Rotación total por debajo de esta fracción de la rotación en piso = «responde bien en piso, pero
+ *  mantiene mucho inventario total» (sección 15, caso "buen producto + sobrestock"). 0.5 = la mitad
+ *  del inventario invertido gira a la mitad de velocidad que lo expuesto — línea razonable para
+ *  separar "algo más de colchón en almacén" de "casi todo el inventario duerme atrás". */
+export const SOBRESTOCK_ROTACION_TOTAL_VS_PISO = 0.5;
+
 // --- Exactitud del inventario -------------------------------------------------
 
 /** Un conteo cerrado más antiguo que esto ya no valida el inventario de hoy. */

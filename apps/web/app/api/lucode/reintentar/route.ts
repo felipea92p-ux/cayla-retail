@@ -3,6 +3,7 @@ import { crearClienteAdmin } from "@/lib/supabase-admin";
 import { entornoLucode } from "@/lib/lucode";
 import { transmitirComprobante, type Cliente } from "@/lib/transmitir-comprobante";
 import { cronNoTransmite } from "@/lib/transmision-reglas";
+import { capturarError } from "@/lib/errores";
 
 // Cada comprobante puede tardar hasta 15 s en Lucode (timeout de `lib/lucode.ts`).
 export const maxDuration = 60;
@@ -63,6 +64,8 @@ export async function GET(request: Request) {
   try {
     supabase = crearClienteAdmin();
   } catch (e) {
+    // La respuesta la recibe el cron de Vercel y nadie la lee: sin el log, la cola se queda quieta sin aviso.
+    capturarError("lucode/reintentar (cron): sin llave de servicio", e);
     return Response.json({ error: (e as Error).message }, { status: 500 });
   }
   const r = await barrer(supabase, null);

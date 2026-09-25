@@ -12,6 +12,7 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { SelectorAdjuntos } from "@/components/AdjuntosCompra";
 import { DestinoDeLaMercaderia, RepartoDeLinea } from "@/components/RepartoEnRegistro";
 import { LineasPago, lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { subirAdjuntosCompra } from "@/lib/adjuntos-compra";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -254,6 +255,8 @@ export function CompraFormV2({
   // La tienda gestora que se manda a la RPC (ADR-0184, F3: `p_ubicacion_destino_id` es la gestora desde esta ADR;
   // `tiendaGestora`, con sus pruebas, en `lib/reparto-reglas.ts`).
   const gestora = tiendaGestora(repartir, tiendasReparto, ubicacionId, misTiendas?.map((u) => u.id));
+  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado; la propuesta sale de la tienda gestora.
+  const cuentas = useCuentasParaElegir("pago", gestora || null);
   const documentoNormalizado = `${serie.trim().toUpperCase()}-${numero.trim()}`;
   const documentoRepetido = existentes[`${proveedorId}|${documentoNormalizado}`] === true;
   // Al contado con un solo medio, el monto ES el total: acompaña a las líneas
@@ -345,7 +348,7 @@ export function CompraFormV2({
     // seguridad (Enter, un envío forzado): la base vuelve a exigir todo en `registrar_compra`.
     const pendiente = requisitos.find((r) => !r.ok);
     if (pendiente) return void (pendiente.error && avisar.error(pendiente.error.mensaje, { enfocar: pendiente.error.enfocar }));
-    const pagosRpc = hayPago ? lineasPagoParaRpc(pagos) : null;
+    const pagosRpc = hayPago ? lineasPagoParaRpc(pagos, cuentas.cuentas) : null;
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
@@ -777,6 +780,7 @@ export function CompraFormV2({
                 saldoFavor={proveedor?.saldoFavor ?? 0}
                 datosProveedor={proveedor?.datosPago}
                 enlaceFicha={proveedor ? `/compras/proveedores/${proveedor.id}` : undefined}
+                cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }}
               />
             </div>
           ) : (

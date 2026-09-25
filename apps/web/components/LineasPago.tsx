@@ -8,6 +8,8 @@ import { ETIQUETA_METODO, ETIQUETA_METODO_PAGO, METODO_SALDO_A_FAVOR, soles } fr
 import { destinoDelMedio } from "@/lib/destino-de-pago";
 import { DestinoDelMedio } from "@/components/DestinoDelMedio";
 import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
+import { cuentaEfectiva, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { CampoSaleDe } from "@/components/finanzas/CampoCuenta";
 
 /* ====================================================================
    LineasPago · un pago repartido en varios medios (2026-09-14)
@@ -40,7 +42,8 @@ import type { DatosPagoProveedor } from "@/lib/proveedores-reglas";
    viven en `app/estilos/comprobantes-detalle.css`; con movimiento reducido todo ocurre de una vez.
    ==================================================================== */
 
-export type LineaPago = { monto: string; metodo: string; referencia: string };
+/** `cuentaId` (ADR-0195 F3b): la cuenta que la persona eligió en «Sale de». Vacía = la propuesta (`cuentaEfectiva`). */
+export type LineaPago = { monto: string; metodo: string; referencia: string; cuentaId?: string };
 
 const METODOS = Object.keys(ETIQUETA_METODO);
 
@@ -52,10 +55,17 @@ export function sumaLineasPago(lineas: readonly LineaPago[]): number {
   return Math.round(lineas.reduce((acc, l) => acc + (Number(l.monto) || 0), 0) * 100) / 100;
 }
 
-/** Las líneas listas para la RPC. `null` si alguna no tiene monto válido. */
-export function lineasPagoParaRpc(lineas: readonly LineaPago[]): { monto: number; metodo: string; referencia?: string }[] | null {
+/** Las líneas listas para la RPC. `null` si alguna no tiene monto válido. Con `cuentas` (F3b), cada línea lleva la
+ *  cuenta de la que sale (`cuenta_id`): la elegida o la propuesta; la base la valida y, si es un cajón, crea su egreso. */
+export function lineasPagoParaRpc(
+  lineas: readonly LineaPago[],
+  cuentas?: readonly CuentaElegible[],
+): { monto: number; metodo: string; referencia?: string; cuenta_id?: string }[] | null {
   if (lineas.some((l) => !(Number(l.monto) > 0))) return null;
-  return lineas.map((l) => ({ monto: Number(l.monto), metodo: l.metodo, ...(l.referencia.trim() ? { referencia: l.referencia.trim() } : {}) }));
+  return lineas.map((l) => {
+    const cuenta = cuentas && l.metodo !== METODO_SALDO_A_FAVOR ? cuentaEfectiva(cuentas, "pago", l.metodo, l.cuentaId) : null;
+    return { monto: Number(l.monto), metodo: l.metodo, ...(l.referencia.trim() ? { referencia: l.referencia.trim() } : {}), ...(cuenta ? { cuenta_id: cuenta } : {}) };
+  });
 }
 
 const MS_COLAPSO = 240;
@@ -75,6 +85,7 @@ export function LineasPago({
   saldoFavor = 0,
   datosProveedor = null,
   enlaceFicha,
+  cuentas,
 }: {
   lineas: LineaPago[];
   onLineas: (l: LineaPago[]) => void;
@@ -89,6 +100,8 @@ export function LineasPago({
   datosProveedor?: DatosPagoProveedor | null;
   /** Ruta de la ficha del proveedor: si falta el dato del medio elegido, ofrece «Agregar en su ficha». */
   enlaceFicha?: string;
+  /** ADR-0195 F3b: con las cuentas, cada línea pregunta «Sale de» (propuesta según el medio). Sin ellas, como siempre. */
+  cuentas?: { lista: readonly CuentaElegible[]; listo: boolean };
 }) {
   const metodos = saldoFavor > 0 ? [...METODOS, METODO_SALDO_A_FAVOR] : METODOS;
   const conFavor = lineas.some((l) => l.metodo === METODO_SALDO_A_FAVOR);
@@ -231,6 +244,23 @@ export function LineasPago({
                     </div>
                   )}
                 </div>
+                {/* «Sale de» (F3b): siempre ocupa su lugar, también con saldo a favor (invisible), para que la ventana no
+                    cambie de alto al elegir otra ficha (ADR-0185). */}
+                {cuentas && (
+                  <div className={l.metodo === METODO_SALDO_A_FAVOR ? "invisible" : undefined} aria-hidden={l.metodo === METODO_SALDO_A_FAVOR || undefined}>
+                    <CampoSaleDe
+                      id={`${id}-cuenta-${i}`}
+                      etiqueta={lineas.length > 1 ? `Sale de (${i + 1})` : "Sale de"}
+                      cuentas={cuentas.lista}
+                      listo={cuentas.listo}
+                      clase="pago"
+                      medio={l.metodo}
+                      valor={cuentaEfectiva(cuentas.lista, "pago", l.metodo, l.cuentaId)}
+                      onValor={(v) => actualizar(i, { cuentaId: v })}
+                      deshabilitado={l.metodo === METODO_SALDO_A_FAVOR}
+                    />
+                  </div>
+                )}
                 {/* A dónde va la plata con este medio, o qué le falta al proveedor. Solo aviso: nunca bloquea el pago.
                     Cada medio dibuja algo distinto —la cajita del banco, un aviso o nada—; si el alto cambiara con la
                     ficha, la página se acortaría bajo el mouse y, abajo del todo (en Registrar comprobante el pago es

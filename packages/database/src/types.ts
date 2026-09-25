@@ -4090,6 +4090,7 @@ export type Database = {
         Row: {
           activo: boolean
           created_at: string
+          hora_cierre: string | null
           id: string
           meta_venta_diaria: number | null
           nombre: string
@@ -4099,6 +4100,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           created_at?: string
+          hora_cierre?: string | null
           id?: string
           meta_venta_diaria?: number | null
           nombre: string
@@ -4108,6 +4110,7 @@ export type Database = {
         Update: {
           activo?: boolean
           created_at?: string
+          hora_cierre?: string | null
           id?: string
           meta_venta_diaria?: number | null
           nombre?: string
@@ -4606,6 +4609,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
+          naturaleza: string | null
           ubicaciones_destino: string[] | null
           vencida: boolean | null
         }
@@ -6196,6 +6200,8 @@ export type Database = {
       fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
       // 20260923174500: «solo alcanzas a quien está por debajo de ti».
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
+      // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
+      fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {
         Args: { p_modulos: string[]; p_rol_id: string; p_version_esperada?: number }
         Returns: number
@@ -6385,6 +6391,7 @@ export type Database = {
           p_estado_recepcion?: string
           p_hasta?: string
           p_limite?: number
+          p_naturaleza?: string
           p_orden?: string
           p_por_recibir?: boolean
           p_proveedor_id?: string
@@ -6424,6 +6431,7 @@ export type Database = {
           subtotal: number | null
           tipo: string | null
           total: number | null
+          naturaleza: string | null
           ubicaciones_destino: string[] | null
           vencida: boolean | null
         }[]

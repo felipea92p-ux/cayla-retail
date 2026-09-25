@@ -35,6 +35,16 @@ import {
 
 type Reserva = { contenedor: Element; destino: HTMLElement; px: number; paddingInline: string };
 
+const EVENTO_SOLTAR = "pagina-estable:soltar";
+
+/** Para un clic que cambia de VISTA sin cambiar de URL (el ticket de Vender pasa a «Cobro» en el celular): la
+ *  pantalla nueva es otra cosa, no un bloque que se acortó, igual que un enlace. Suelta la reserva y deja de
+ *  vigilar, para que quien la llama lleve la vista adonde corresponde. Llamarla antes de pintar
+ *  (`useLayoutEffect`), o el aire alcanza a verse un cuadro. */
+export function soltarPaginaEstable() {
+  window.dispatchEvent(new Event(EVENTO_SOLTAR));
+}
+
 function esPagina(el: Element) {
   return el === document.scrollingElement || el === document.documentElement || el === document.body;
 }
@@ -151,11 +161,13 @@ export function PaginaEstable() {
     document.addEventListener("change", alInteractuar, true);
     document.addEventListener("input", alInteractuar, true);
     window.addEventListener("popstate", alVolver);
+    window.addEventListener(EVENTO_SOLTAR, alVolver);
     return () => {
       document.removeEventListener("click", alInteractuar, true);
       document.removeEventListener("change", alInteractuar, true);
       document.removeEventListener("input", alInteractuar, true);
       window.removeEventListener("popstate", alVolver);
+      window.removeEventListener(EVENTO_SOLTAR, alVolver);
       terminarVigilancia();
       soltar();
     };
