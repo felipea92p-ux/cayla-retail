@@ -184,6 +184,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:estado-resultados
 
+      # Cierre de mes (ADR-0195 F9): el diario congelado con su huella, el candado por fecha en cada tabla (registrar,
+      # cambiar y anular), hoy libre, consolidado, reabrir con motivo, chequeos y solo el líder. ROLLBACK.
+      - name: pruebas:cierre-mes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cierre-mes
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
