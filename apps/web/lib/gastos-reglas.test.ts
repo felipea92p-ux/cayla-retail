@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  borradorDesdeFijo,
   estadoGasto,
   igvDeFactura,
   leerPanel,
@@ -9,10 +10,18 @@ import {
   parsearMonto,
   partirSerieNumero,
   puedeAnular,
+  puedeAnularActivo,
   rangoMes,
+  resumenFijos,
   sugerenciaParaEgreso,
   textoMes,
   textoPago,
+  solesRedondo,
+  fechaCorta,
+  textoVidaUtil,
+  totalesActivos,
+  validarActivo,
+  validarFijo,
   validarGasto,
   type BorradorGasto,
 } from "./gastos-reglas";
@@ -105,6 +114,18 @@ describe("el formulario", () => {
     expect(r.ok && r.valor.p_ubicacion_id).toBe(null);
     expect(validarGasto({ ...base, fecha: "2026-09-25" }, HOY).ok).toBe(false);
   });
+  it("F3b · «Salió de»: en efectivo de la caja fuerte basta la cuenta (sin caja); la cuenta viaja a la base", () => {
+    const r = validarGasto({ ...base, medio: "efectivo", cuentaId: "fuerte" }, HOY);
+    expect(r.ok && [r.valor.p_caja_id, r.valor.p_cuenta_id]).toEqual([null, "fuerte"]);
+    const banco = validarGasto({ ...base, medio: "transferencia", cuentaId: "bcp" }, HOY);
+    expect(banco.ok && banco.valor.p_cuenta_id).toBe("bcp");
+  });
+  it("F3b · a crédito o clasificando un egreso, no viaja ninguna cuenta (la dice el pago o el egreso)", () => {
+    const credito = validarGasto({ ...base, comprobante: "factura", proveedorId: "p1", serie: "F1", numero: "1", condicion: "credito", vence: "2026-10-12", medio: "", cuentaId: "bcp" }, HOY);
+    expect(credito.ok && "p_cuenta_id" in credito.valor).toBe(false);
+    const egreso = validarGasto({ ...base, medio: "", egresoId: "eg1", cuentaId: "bcp" }, HOY);
+    expect(egreso.ok && "p_cuenta_id" in egreso.valor).toBe(false);
+  });
   it("clasificar un egreso: efectivo, sin caja nueva, con el egreso", () => {
     const r = validarGasto({ ...base, medio: "", egresoId: "eg1" }, HOY);
     expect(r.ok && [r.valor.p_medio_pago, r.valor.p_caja_id, r.valor.p_caja_movimiento_id]).toEqual(["efectivo", null, "eg1"]);
@@ -137,9 +158,16 @@ describe("estado, anular y cómo se pagó", () => {
   });
   it("cómo se pagó, en una línea", () => {
     const f = (iso: string) => iso.slice(5);
-    expect(textoPago({ medioPago: null, cajaMovimientoId: null, compraId: "c", condicion: "credito", fechaVencimiento: "2026-10-12", tienePagos: false }, f)).toBe("A crédito · vence 10-12");
-    expect(textoPago({ medioPago: "efectivo", cajaMovimientoId: "m", compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false }, f)).toBe("Efectivo del cajón");
-    expect(textoPago({ medioPago: "yape", cajaMovimientoId: null, compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false }, f)).toBe("Yape");
+    expect(textoPago({ medioPago: null, cajaMovimientoId: null, compraId: "c", condicion: "credito", fechaVencimiento: "2026-10-12", tienePagos: false, saldo: 100, estado: "vigente", ubicacionNombre: "Tienda TRU" }, f)).toBe("vence 10-12");
+    expect(textoPago({ medioPago: "transferencia", cajaMovimientoId: null, compraId: "c", condicion: "credito", fechaVencimiento: "2026-10-12", tienePagos: true, saldo: 0, estado: "vigente", ubicacionNombre: "Tienda TRU" }, f)).toBe("Transferencia");
+    expect(textoPago({ medioPago: "efectivo", cajaMovimientoId: "m", compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false, saldo: null, estado: "vigente", ubicacionNombre: "Tienda TRU" }, f)).toBe("Cajón · Tienda TRU");
+    expect(textoPago({ medioPago: "yape", cajaMovimientoId: null, compraId: null, condicion: null, fechaVencimiento: null, tienePagos: false, saldo: null, estado: "vigente", ubicacionNombre: null }, f)).toBe("Yape");
+  });
+
+  it("formatos del spike: cifras redondas y «23 sep»", () => {
+    expect(solesRedondo(5472.4)).toBe("S/ 5,472");
+    expect(fechaCorta("2026-09-03")).toBe("3 sep");
+    expect(fechaCorta("2026-09-23", true)).toBe("23 sep 2026");
   });
   it("lo que se propone al clasificar un egreso, según el motivo de la tienda", () => {
     expect(sugerenciaParaEgreso("Depósito bancario")).toBe("deposito");
@@ -154,5 +182,65 @@ describe("estado, anular y cómo se pagó", () => {
     expect(p.porPagar).toBe(48);
     expect(p.porCategoria[0]!.monto).toBe(150);
     expect(p.porUbicacion[0]!.ubicacionId).toBe(null);
+  });
+});
+
+describe("F2b: activos fijos", () => {
+  const activo = { ...base, tipo: "muebles", nombre: " Estante en L ", serie: "", vidaUtilMeses: "120", ubicacion: "tru" };
+  it("arma lo que pide registrar_activo: el mismo pago que un gasto, más qué es y su vida útil", () => {
+    const r = validarActivo(activo, HOY);
+    expect(r.ok && r.valor).toMatchObject({ p_ubicacion_id: "tru", p_tipo: "muebles", p_nombre: "Estante en L", p_serie: null, p_vida_util_meses: 120, p_medio_pago: "yape", p_monto_total: 648 });
+    expect(r.ok && "p_categoria" in r.valor).toBe(false);
+  });
+  it("un activo siempre está en una ubicación, no llega con recibo por honorarios y vive de 1 a 50 años", () => {
+    expect(validarActivo({ ...activo, ubicacion: "empresa" }, HOY).ok).toBe(false);
+    expect(validarActivo({ ...activo, comprobante: "recibo_por_honorarios" }, HOY).ok).toBe(false);
+    expect(validarActivo({ ...activo, vidaUtilMeses: "6" }, HOY).ok).toBe(false);
+    expect(validarActivo({ ...activo, vidaUtilMeses: "601" }, HOY).ok).toBe(false);
+  });
+  it("vida útil en palabras", () => {
+    expect(textoVidaUtil(120)).toBe("10 años");
+    expect(textoVidaUtil(12)).toBe("1 año");
+    expect(textoVidaUtil(18)).toBe("1 año y 6 meses");
+  });
+  it("los totales cuentan solo lo que está en uso, y lo que ya acabó su vida no suma al mes", () => {
+    const a = { estado: "activo", costo: 2000, depreciacionAcumulada: 50, valorHoy: 1950, depreciacionMensual: 16.67, mesesDepreciados: 3, vidaUtilMeses: 120 };
+    const acabado = { ...a, costo: 1200, depreciacionAcumulada: 1200, valorHoy: 0, depreciacionMensual: 100, mesesDepreciados: 12, vidaUtilMeses: 12 };
+    const baja = { ...a, estado: "baja" };
+    expect(totalesActivos([a, acabado, baja] as never)).toEqual({ costo: 3200, depreciado: 1250, valorHoy: 1950, alMes: 16.67, enUso: 2 });
+  });
+  it("con la factura pagada no se anula: se da de baja", () => {
+    expect(puedeAnularActivo({ estado: "activo", compraId: "c", tienePagos: true })).toBe(false);
+    expect(puedeAnularActivo({ estado: "activo", compraId: "c", tienePagos: false })).toBe(true);
+    expect(puedeAnularActivo({ estado: "baja", compraId: null, tienePagos: false })).toBe(false);
+  });
+});
+
+describe("F2b: gastos fijos", () => {
+  const fijo = {
+    id: "f1", ubicacionId: "tru", ubicacionNombre: "Tienda Trujillo", categoria: "servicios_basicos", categoriaNombre: "Servicios básicos",
+    descripcion: "Luz", proveedorId: "p1", proveedorNombre: "Hidrandina", comprobanteTipo: "boleta" as const, monto: 180, montoVariable: true,
+    diaDelMes: 10, fechaEsperada: "2026-09-10", estado: "falta" as const, gastoId: null, gastoMonto: null,
+  };
+  it("un gasto que nace de un fijo trae su tienda, categoría, proveedor y comprobante; si el monto varía, no lo inventa", () => {
+    expect(borradorDesdeFijo(fijo, HOY)).toEqual({ gastoFijoId: "f1", ubicacion: "tru", categoria: "servicios_basicos", descripcion: "Luz", comprobante: "boleta", proveedorId: "p1", monto: "", fecha: "2026-09-10" });
+    expect(borradorDesdeFijo({ ...fijo, montoVariable: false, fechaEsperada: "2026-09-28" }, HOY)).toMatchObject({ monto: "180", fecha: HOY });
+  });
+  it("el gasto que nace de un fijo manda su fijo a la base", () => {
+    const r = validarGasto({ ...base, gastoFijoId: "f1" }, HOY);
+    expect(r.ok && r.valor.p_gasto_fijo_id).toBe("f1");
+    expect(validarGasto(base, HOY).ok && "p_gasto_fijo_id" in (validarGasto(base, HOY) as { valor: object }).valor).toBe(false);
+  });
+  it("el resumen del mes: cuántos faltan, cuántos vienen y cuánto queda por registrar", () => {
+    const vienen = { ...fijo, id: "f2", estado: "por_llegar" as const, monto: 2500 };
+    const listo = { ...fijo, id: "f3", estado: "registrado" as const };
+    expect(resumenFijos([fijo, vienen, listo])).toEqual({ faltan: 1, vienen: 1, registrados: 1, montoPendiente: 2680 });
+  });
+  it("el día va del 1 al 28 y el monto es obligatorio", () => {
+    const b = { ubicacion: "tru", categoria: "alquileres", descripcion: "Alquiler", proveedorId: "", comprobante: "factura" as const, monto: "2500", variable: false, dia: "1" };
+    expect(validarFijo(b).ok && validarFijo(b)).toMatchObject({ valor: { p_ubicacion_id: "tru", p_proveedor_id: null, p_dia_del_mes: 1, p_monto: 2500 } });
+    expect(validarFijo({ ...b, dia: "31" }).ok).toBe(false);
+    expect(validarFijo({ ...b, monto: "" }).ok).toBe(false);
+    expect(validarFijo({ ...b, ubicacion: "empresa" }).ok && validarFijo({ ...b, ubicacion: "empresa" })).toMatchObject({ valor: { p_ubicacion_id: null } });
   });
 });

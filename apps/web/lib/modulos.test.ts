@@ -68,10 +68,11 @@ describe("el catálogo de la web es el de la base", () => {
     }
   });
 
-  it("hoy el único módulo «solo líder por ahora» es Configuración (ADR-0195 F1); ninguno es «siempre solo del líder»", () => {
+  it("«solo líder por ahora»: Configuración, Impuestos y Cierre de mes (ADR-0195); ninguno es «siempre solo del líder»", () => {
     // 20260923130000 y 20260923131000 abrieron todos los de antes (Felipe, 2026-09-22). Configuración nace así porque sus
-    // funciones exigen fn_es_lider() (20260924210000); cuando se abran, sale de aquí.
-    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual(["configuracion"]);
+    // funciones exigen fn_es_lider() (20260924210000); Impuestos y Cierre de mes son de CAYLA entera (20260925100000).
+    // Cuando se abran, salen de aquí.
+    expect(MODULOS.filter((m) => m.soloLider || m.noDelegable).map((m) => m.clave)).toEqual(["configuracion", "impuestos", "cierre_mes"]);
   });
 
   const sembrados = (clave: string) => {

@@ -128,11 +128,20 @@ end;
 $viejo$;
 `;
 
-const FIRMA_NOTA = "'retail.registrar_nota_credito_compra(uuid,text,date,numeric,text,text,uuid,text,text,date,text)'::regprocedure";
+// ADR-0195 F3b (20260925150000): la nota y el reembolso suman «Entra a» (un parámetro opcional al final, la firma vieja
+// se quitó). La migración de este módulo, anterior, crea las firmas de entonces (`FIRMA_NOTA_ORIGINAL`).
+const FIRMA_NOTA = "'retail.registrar_nota_credito_compra(uuid,text,date,numeric,text,text,uuid,text,text,date,text,uuid)'::regprocedure";
+const FIRMA_NOTA_ORIGINAL = "'retail.registrar_nota_credito_compra(uuid,text,date,numeric,text,text,uuid,text,text,date,text)'::regprocedure";
 const FIRMA_TABLERO = "'retail.notas_credito_tablero()'::regprocedure";
 const FIRMA_FACTURAS = "'retail.fn_facturas_para_nota_credito(text,uuid,text,integer)'::regprocedure";
 const FIRMA_ADJUNTO = "'retail.registrar_adjunto_compra(uuid,text,text,text,integer,uuid)'::regprocedure";
-const FIRMA_REEMBOLSO = "'retail.registrar_reembolso_proveedor(uuid,numeric,text,text,date,text)'::regprocedure";
+const FIRMA_REEMBOLSO = "'retail.registrar_reembolso_proveedor(uuid,numeric,text,text,date,text,uuid)'::regprocedure";
+const FIRMA_INSERTAR_REEMBOLSO = "'retail.fn_insertar_reembolso_proveedor(uuid,numeric,text,text,date,text,uuid,uuid,uuid)'::regprocedure";
+// Para volver a pegar la migración del módulo sobre la base que ella conocía (todo dentro del ROLLBACK), como hace
+// `candado_lider_caja_y_ajuste.mjs` con `cerrar_caja` desde ADR-0186.
+const SIN_FIRMAS_F3B = `drop function if exists retail.registrar_nota_credito_compra(uuid,text,date,numeric,text,text,uuid,text,text,date,text,uuid);
+drop function if exists retail.registrar_reembolso_proveedor(uuid,numeric,text,text,date,text,uuid);
+drop function if exists retail.fn_insertar_reembolso_proveedor(uuid,numeric,text,text,date,text,uuid,uuid,uuid);`;
 
 const CASOS = [];
 const exito = (nombre, sql, esperado) => CASOS.push({ nombre, tipo: "exito", sql, esperado });
@@ -302,8 +311,8 @@ exito(
      has_function_privilege('anon', ${FIRMA_NOTA}, 'execute'),
      has_function_privilege('anon', ${FIRMA_ADJUNTO}, 'execute'),
      has_function_privilege('anon', ${FIRMA_REEMBOLSO}, 'execute'),
-     has_function_privilege('anon', 'retail.fn_insertar_reembolso_proveedor(uuid,numeric,text,text,date,text,uuid,uuid)'::regprocedure, 'execute'),
-     has_function_privilege('authenticated', 'retail.fn_insertar_reembolso_proveedor(uuid,numeric,text,text,date,text,uuid,uuid)'::regprocedure, 'execute');`,
+     has_function_privilege('anon', ${FIRMA_INSERTAR_REEMBOLSO}, 'execute'),
+     has_function_privilege('authenticated', ${FIRMA_INSERTAR_REEMBOLSO}, 'execute');`,
   ["f", "f", "f", "f", "f", "f", "f"]
 );
 
@@ -722,12 +731,13 @@ exito(
 exito(
   "migración · pegarla dos veces deja exactamente lo mismo (mismos md5, una sola firma, un solo índice)",
   `begin;
+${SIN_FIRMAS_F3B}
 ${MIGRACION}
-select md5(pg_get_functiondef(${FIRMA_NOTA})) as m1 \\gset
+select md5(pg_get_functiondef(${FIRMA_NOTA_ORIGINAL})) as m1 \\gset
 select md5(pg_get_functiondef(${FIRMA_TABLERO})) as t1 \\gset
 select md5(pg_get_functiondef(${FIRMA_FACTURAS})) as f1 \\gset
 ${MIGRACION}
-select :'m1' = md5(pg_get_functiondef(${FIRMA_NOTA})),
+select :'m1' = md5(pg_get_functiondef(${FIRMA_NOTA_ORIGINAL})),
   :'t1' = md5(pg_get_functiondef(${FIRMA_TABLERO})),
   :'f1' = md5(pg_get_functiondef(${FIRMA_FACTURAS})),
   (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('registrar_nota_credito_compra', 'notas_credito_tablero', 'fn_facturas_para_nota_credito', 'registrar_adjunto_compra', 'fn_insertar_reembolso_proveedor')),

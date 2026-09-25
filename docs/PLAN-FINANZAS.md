@@ -3,11 +3,14 @@
 > **Estado:** PLAN, sin código ni migraciones. Aprobado por Felipe en lo conceptual (decisiones A y B, 2026-09-24).
 > **F0 hecha (2026-09-24):** spike visual completo en `docs/maquetas/finanzas-2026-09/` (README con el guion de prueba).
 > **v2 del spike (mismo día):** filtro «Ver», capa para decidir, plata del dueño y módulo Configuración (ADR-0195, actualización b).
+> **F3–F10 construidas (2026-09-25, PR #396):** detalle por fase en `docs/finanzas/fases/`, resumen en ADR-0195
+> «Construcción — F3 a F10». Presupuesto (capa para decidir) también. Todo por pegar en producción, en 36 ejecuciones.
+>
 > **Construcción (2026-09-24):** Felipe aprobó el paquete (c) y el Balance «lo que es de la tienda». **F1 construida**: Configuración (en el perfil del líder) con meta por día, fondo de caja y efecto de cada campaña; Caja e Inicio ya los usan. Ver ADR-0195 «Construcción — F1».
 > Siguiente paso: que Felipe lo recorra y apruebe las pantallas antes de construir F1.
 > ADR asociado: `docs/adr/0195-finanzas-un-comprobante-de-proveedor-y-cinco-modulos.md`.
 > Se apoya en tres ADR que Felipe ya aprobó y que viven en el PR #170 (sin fusionar, sin pegar en producción):
-> **ADR-0109** (los estados salen de un diario derivado que se congela al cerrar el mes), **ADR-0117** (gastos) y
+> **ADR-0198** (los estados salen de un diario derivado que se congela al cerrar el mes), **ADR-0117** (gastos) y
 > **ADR-0120** (las reglas de posteo en `fn_asientos`). Este plan **no los reemplaza**: los retoma y dice qué cambia.
 
 ---
@@ -65,16 +68,16 @@ Hoy **nadie ve** los gastos, el banco, la utilidad por tienda ni el IGV neto. Es
 6. **Por pagar** — todo lo que CAYLA debe (mercadería, insumos, gastos, activos), en un calendario de vencimientos.
 7. **Estado de resultados** — por tienda, Taller y consolidado (D-30), con planilla (D-33).
 8. **Flujo de caja** — lo que pasó (cobros − pagos) y lo que viene (vencimientos + gastos fijos).
-9. **Balance** — lo que CAYLA tiene menos lo que debe; solo se dibuja si cuadra (ADR-0109, conciliación).
+9. **Balance** — lo que CAYLA tiene menos lo que debe; solo se dibuja si cuadra (ADR-0198, conciliación).
 10. **Impuestos** — IGV de ventas contra IGV descontable, alerta del umbral de 300 UIT, reporte para el contador.
-11. **Cierre de mes** — la rutina de 3 días y el congelado del mes, por unidad y consolidado (ADR-0109).
+11. **Cierre de mes** — la rutina de 3 días y el congelado del mes, por unidad y consolidado (ADR-0198).
 
 ## 4. Decisiones que gobiernan el plan
 
 ### Ya aprobadas antes (se mantienen)
-- **ADR-0109 — opción C:** los estados salen de un diario que `fn_asientos` **genera** leyendo las operaciones; al cerrar
+- **ADR-0198 — opción C:** los estados salen de un diario que `fn_asientos` **genera** leyendo las operaciones; al cerrar
   el mes se materializa inmutable con un hash. Ninguna operación de dinero (venta, compra, caja) cambia su transacción.
-- **ADR-0109 — Felipe:** Yape, Plin y transferencia llegan **al banco al instante** (cuenta 104); solo la tarjeta espera
+- **ADR-0198 — Felipe:** Yape, Plin y transferencia llegan **al banco al instante** (cuenta 104); solo la tarjeta espera
   en 105 hasta el abono. El cierre es **por unidad** (cada tienda y el Taller) **y consolidado**; el consolidado exige
   todas las unidades cerradas.
 - **ADR-0117:** un egreso de caja es un **medio de pago**, no un gasto; solo es gasto si un gasto lo señala (imposible
@@ -174,7 +177,7 @@ Cierre de mes. Las 11 piezas son pestañas dentro de esas 6 entradas (ajuste del
   Finanzas deduce a qué cuenta llegó. Lo mismo al pagar a un proveedor (se propone la cuenta, se puede cambiar).
 - **`movimientos_dinero`** (solo agrega filas, se anula con motivo): depósito del cajón al banco, abono de tarjeta
   (105 → 104, con la comisión del POS como gasto), transferencia entre cuentas, aporte y retiro del dueño.
-- **Saldo de una cuenta = se suma, nunca se guarda** (ADR-0109: guardar un saldo haría que las tiendas se bloqueen entre sí).
+- **Saldo de una cuenta = se suma, nunca se guarda** (ADR-0198: guardar un saldo haría que las tiendas se bloqueen entre sí).
 - **Conciliación semanal:** se anota el saldo que dice el banco; el sistema muestra la diferencia y los movimientos sin
   pareja. Importar el extracto (CSV) queda para después.
 
@@ -313,15 +316,15 @@ fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a
 |---|---|---|
 | **F0 · Spike visual** ✅ 2026-09-24 | Las 11 piezas en HTML navegable con la paleta oficial y datos de muestra; `docs/maquetas/finanzas-2026-09/` | Abres el spike y recorres cada pantalla |
 | **F1 · Cimientos** ✅ *Configuración + meta y fondo de caja en producción (2026-09-24, #390); el plan de cuentas, IGV y categorías de gasto entraron con F2a* | Rescatar del PR #170 `cuentas`, `parametros_tributarios`, `categorias_gasto`; los 5 módulos + Configuración; grupo «Finanzas» en el menú; **Tiendas y caja: meta por día, fondo de caja y efecto de cada campaña; aviso al cerrar; Reportes ▸ Campañas** (§7 ter) | Roles y accesos muestra los 5 módulos «solo líder» |
-| **F2 · Gastos y activos** 🟡 *F2a (gastos, plan de cuentas, categorías, `compras.naturaleza`) construida el 2026-09-24, migraciones 20260924235000/235100 por pegar; F2b (activos fijos y gastos fijos) sigue* | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
-| **F3 · Cuentas y dinero** | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
-| **F4 · Por pagar consolidado** | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |
-| **F5 · Diario y resultados** | `fn_asientos` (ADR-0120) + reglas nuevas + Estado de resultados por unidad y consolidado con planilla | El resultado de TRU de agosto cuadra con tus números |
-| **F6 · Flujo de caja** | Real y proyectado a 4–8 semanas | Ves si alcanza para los pagos del mes |
-| **F7 · Balance** | Saldos iniciales, depreciación, conciliación contable; el Balance no se dibuja si no cuadra | Activo = Pasivo + Patrimonio con capital como entrada |
-| **F8 · Impuestos** | IGV neto, alerta 300 UIT, registro de ventas/compras para el contador | El contador acepta el archivo |
-| **F9 · Cierre de mes** | `periodos`, cierre por unidad y consolidado, bloqueo por fecha, reapertura con motivo | Cierras agosto de TRU y no puedes registrar un gasto con fecha de agosto |
-| **F10 · Resumen** | El tablero con todo lo anterior | Lo abres el lunes y te dice qué decidir |
+| **F2 · Gastos y activos** ✅ *F2a y F2b en producción (2026-09-24, #393 y #394)* | ADR-0117 adaptado + `naturaleza` en `compras` + recibo por honorarios + alta de activo | Registras la luz a crédito y aparece en Por pagar; un mototaxi del cajón |
+| **F3 · Cuentas y dinero** 🟡 *construida con F3b (la cuenta sellada), PR #396, por pegar* | `cuentas_dinero` (con caja fuerte, por rendir y tarjeta de crédito), `medios_de_cobro`, `movimientos_dinero`, conciliación; **la cuenta sellada en las 22 situaciones** (§7 bis), una sola lista de medios, y el pago en efectivo a proveedores resta del cierre | Depósito de TRU baja el cajón y sube el BCP; el saldo coincide con el banco |
+| **F4 · Por pagar consolidado** 🟡 *construida, PR #396, por pegar* | Una vista con mercadería, gastos, activos e insumos; calendario | Ves lo que debe CAYLA esta semana, sumado |
+| **F5 · Diario y resultados** 🟡 *construida (con Reportes ▸ Campañas), PR #396, por pegar* | `fn_asientos` (ADR-0120) + reglas nuevas + Estado de resultados por unidad y consolidado con planilla | El resultado de TRU de agosto cuadra con tus números |
+| **F6 · Flujo de caja** 🟡 *construida (con Escenarios), PR #396, por pegar* | Real y proyectado a 4–8 semanas | Ves si alcanza para los pagos del mes |
+| **F7 · Balance** 🟡 *construida, PR #396, por pegar* | Saldos iniciales, depreciación, conciliación contable; el Balance no se dibuja si no cuadra | Activo = Pasivo + Patrimonio con capital como entrada |
+| **F8 · Impuestos** 🟡 *construida, PR #396, por pegar* | IGV neto, alerta 300 UIT, registro de ventas/compras para el contador | El contador acepta el archivo |
+| **F9 · Cierre de mes** 🟡 *construida, PR #396, por pegar* | `periodos`, cierre por unidad y consolidado, bloqueo por fecha, reapertura con motivo | Cierras agosto de TRU y no puedes registrar un gasto con fecha de agosto |
+| **F10 · Resumen** 🟡 *en construcción en el PR #396* | El tablero con todo lo anterior | Lo abres el lunes y te dice qué decidir |
 
 **El PR #170 no se descarta:** en F1/F2/F5 se rebasa sobre `main` y se reusa (tablas, pruebas, pantalla de egresos,
 `fn_asientos`, `fn_estado_resultados`), adaptado a las decisiones A y B, a los roles (ADR-0161) y al menú de datos (ADR-0144).
@@ -329,7 +332,7 @@ fondo). Si va a quedar menos, sale una **confirmación que no bloquea**: «Vas a
 ## 10. Lo que queda abierto
 
 **Decisiones de Felipe (negocio):**
-1. **Balance por tienda** (ADR-0109, sin confirmar). Dos opciones:
+1. **Balance por tienda** (ADR-0198, sin confirmar). Dos opciones:
    - **«Lo que es de la tienda»:** su cajón y caja fuerte, su mercadería, sus muebles y **sus facturas por pagar** (el
      reparto por tienda de Compras, ADR-0139, ya sabe a qué tienda va cada factura: no se inventa). Dice cuánta plata
      tiene invertida cada tienda y cuánto rinde. No es un Balance completo: el banco y el capital son de CAYLA.

@@ -25,6 +25,7 @@ import {
 } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO } from "@/lib/insumos-reglas";
 import { medioNuevo, mediosParaRpc, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import type { InsumoParaComprobante } from "@/lib/comprobantes-produccion";
 import type { ProveedorProduccion } from "@/lib/proveedores-produccion-reglas";
 
@@ -72,6 +73,8 @@ export function ComprobanteProduccionForm({
   const [lineas, setLineas] = useState<LineaForm[]>([{ ...LINEA_VACIA }]);
   const [totalPapel, setTotalPapel] = useState("");
   const [medios, setMedios] = useState<MedioForm[]>([medioNuevo()]);
+  // ADR-0195 F3b: «Sale de» en cada medio del pago al contado (el Taller no cobra: se propone la primera cuenta que sirve).
+  const cuentas = useCuentasParaElegir("pago", null);
   const [nota, setNota] = useState("");
   const [cargando, setCargando] = useState(false);
   // Responsable (ADR-0161/0162): el comprobante firma con quien se elige en el combo (lista de la sede activa).
@@ -129,7 +132,7 @@ export function ComprobanteProduccionForm({
         costo_unitario: Number(l.costo.replace(",", ".")),
       })),
       p_total: totalPapel.trim() !== "" ? Number(totalPapel.replace(",", ".")) : undefined,
-      p_pago: condicion === "contado" ? mediosParaRpc(mediosEfectivos, hoy) : undefined,
+      p_pago: condicion === "contado" ? mediosParaRpc(mediosEfectivos, hoy, cuentas.cuentas) : undefined,
       p_nota: nota.trim() || undefined,
       p_token: token,
     }), responsable.firma());
@@ -300,7 +303,7 @@ export function ComprobanteProduccionForm({
           </div>
         </dl>
 
-        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" />}
+        {condicion === "contado" && <MediosDePago medios={medios} onCambio={setMedios} esperado={totalFinal} exacto etiquetaEsperado="Total a pagar" cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />}
 
         <div className="grid gap-3 sm:grid-cols-2">
           <CampoTexto

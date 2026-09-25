@@ -650,10 +650,10 @@ function FilaPorPagar({
             <Resaltar texto={c.documento} q={busqueda} />
           </Link>
         </span>
-        {/* ADR-0195 F2: una factura de GASTO (la luz, el contador) se paga aquí igual que la de mercadería; se dice qué fue. */}
-        {c.naturaleza === "gasto" && (
+        {/* ADR-0195 F2: una factura de GASTO (la luz) o de ACTIVO (un mueble) se paga aquí igual que la de mercadería; se dice qué fue. */}
+        {(c.naturaleza === "gasto" || c.naturaleza === "activo") && (
           <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-tinta/65">
-            <Chip tono="pizarra">Gasto</Chip>
+            <Chip tono="pizarra">{c.naturaleza === "gasto" ? "Gasto" : "Activo fijo"}</Chip>
             <span className="truncate">{c.nota}</span>
           </span>
         )}

@@ -198,7 +198,9 @@ export function CompraDetalle({
   });
   const complementoSaldo = complementoDeSaldo({ condicion: compra.condicion, fechaVencimiento: compra.fechaVencimiento, vencida: compra.vencida, hoy });
   const unidadesCerradas = compra.cerradoCantidad;
-  const esGasto = compra.naturaleza === "gasto";
+  // ADR-0195 F2: la factura de un gasto (la luz) o de un activo (un mueble) no trae mercadería: nada que recibir.
+  const esGasto = compra.naturaleza === "gasto" || compra.naturaleza === "activo";
+  const queEs = compra.naturaleza === "activo" ? "activo fijo" : "gasto";
 
   return (
     <>
@@ -211,7 +213,7 @@ export function CompraDetalle({
         {/* ADR-0195 F2: la factura de un GASTO (la luz, el contador) no trae mercadería: no hay nada que recibir. */}
         {esGasto && (
           <p className="nota-cayla text-[13px]">
-            Comprobante de <b>gasto</b>{compra.nota ? `: ${compra.nota}` : ""}. No trae mercadería. Su categoría y su tienda viven en{" "}
+            Comprobante de <b>{queEs}</b>{compra.nota ? `: ${compra.nota}` : ""}. No trae mercadería. Lo que detalla vive en{" "}
             <a href="/finanzas/gastos" className="underline underline-offset-2 hover:text-rojo">Finanzas ▸ Gastos</a>, y se anula desde ahí.
           </p>
         )}

@@ -11,6 +11,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { Boton, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
 import { lineaPagoVacia, lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { ETIQUETA_METODO, METODO_SALDO_A_FAVOR, soles, type CompraResumen } from "@/lib/compras-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { etiquetaVence, tramoDe } from "@/lib/por-pagar-reglas";
@@ -57,8 +58,8 @@ export function CompraAcciones({
   const vigente = compra.estado === "vigente";
   const puedeRecibir = vigente && compra.estadoRecepcion !== "recibida";
   const puedePagar = vigente && compra.saldo > 0 && permite.pagar;
-  // ADR-0195 F2: la factura de un gasto se anula desde Finanzas ▸ Gastos (con su gasto); la base tampoco la deja sola.
-  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && compra.naturaleza !== "gasto";
+  // ADR-0195 F2: la factura de un gasto o de un activo se anula desde Finanzas ▸ Gastos (con lo que detalla); la base tampoco la deja sola.
+  const puedeAnular = vigente && compra.pagado === 0 && !tieneRecepciones && permite.facturas && (compra.naturaleza ?? "mercaderia") === "mercaderia";
 
   // Un comprobante anulado ya no tiene acciones. El modal de pago se sigue dibujando aunque el pago recién saldó el
   // comprobante: si no, el refresco lo desmontaría en plena confirmación y se cortaría su animación de cierre.
@@ -227,6 +228,8 @@ export function RegistrarPagoModal({
   const [lineas, setLineas] = useState<LineaPago[]>(() => [{ ...lineaPagoVacia(compra.saldo.toFixed(2)), metodo: datos?.formaPagoPreferida && datos.formaPagoPreferida in ETIQUETA_METODO ? datos.formaPagoPreferida : "transferencia" }]);
   const [fecha, setFecha] = useState(hoyLima());
   const [ubicacionPago, setUbicacionPago] = useState(misTiendas?.[0]?.id ?? "");
+  // ADR-0195 F3b: «Sale de». La propuesta sale de la tienda con que se paga; el líder, de la primera tienda del comprobante.
+  const cuentas = useCuentasParaElegir("pago", ubicacionPago || compra.ubicacionesDestino[0] || null);
   const [loading, setLoading] = useState(false);
   // Quién registra el pago (ADR-0161/0162): `registrar_pagos_compra` firma con esa persona.
   const responsable = useResponsable();
@@ -261,7 +264,7 @@ export function RegistrarPagoModal({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     e.stopPropagation();
-    const pagos = lineasPagoParaRpc(lineas);
+    const pagos = lineasPagoParaRpc(lineas, cuentas.cuentas);
     const sinMonto = Math.max(0, lineas.findIndex((l) => !(Number(l.monto) > 0)));
     if (!pagos) return void avisar.error("Cada medio de pago necesita su monto.", { enfocar: `pago-monto-${sinMonto}` });
     if (fecha > hoyLima()) return void avisar.error("La fecha del pago no puede ser futura: es cuándo se pagó, no cuándo se pagará.");
@@ -435,7 +438,7 @@ export function RegistrarPagoModal({
               </CampoSelectNativo>
             )}
 
-            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} />
+            <MediosDePago lineas={lineas} onLineas={setLineas} objetivo={compra.saldo} saldoFavor={saldoFavor} fecha={fecha} onFecha={setFecha} datos={datos} cuentas={{ lista: cuentas.cuentas, listo: cuentas.listo }} />
 
             <div className="border-t border-tinta/10 pt-4">
               <p className="text-sm text-tinta">

@@ -31,8 +31,7 @@ import { claveLocal, leer } from "@/lib/almacen-local";
 import type { VentaEncolada } from "@/lib/ventas-offline";
 import { duracionAbierta, escalaTurno, formatoDuracion, metodosDe, minutosDeHora, ritmoDelDia, turnoLargo, type MetodoRitmo } from "@/lib/caja-panel-reglas";
 import { diaYHoraLima } from "@/lib/fechas-lima";
-import { Chip } from "@/components/ui/Chip";
-import { DIAS_SEMANA, explicarMeta, type ParametrosCaja } from "@/lib/configuracion-reglas";
+import { DIAS_SEMANA, explicarMeta, minutosDeHora as minutosLima, proyeccionAlCierre, type ParametrosCaja } from "@/lib/configuracion-reglas";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
 
 function money(n: number) {
@@ -83,6 +82,8 @@ export function CajaAbiertaPanel({
   ventasHoy,
   metaVentaDiaria,
   parametros = null,
+  esperadoCajon = null,
+  horaCierre = null,
   cierresRecientes,
 }: {
   ubicacionNombre: string;
@@ -98,6 +99,10 @@ export function CajaAbiertaPanel({
   metaVentaDiaria: number | null;
   /** Lo que rige hoy (ADR-0195 F1): meta con campañas y fondo de caja. `null` = base sin fn_parametros_caja. */
   parametros?: ParametrosCaja | null;
+  /** Cuánto debería haber en el cajón (`fn_esperado_caja`); `null` si quien mira no puede cerrar. */
+  esperadoCajon?: number | null;
+  /** A qué hora cierra la tienda («21:00»): con ella, «al ritmo de hoy cierras en…». Null = se muestra el avance en %. */
+  horaCierre?: string | null;
   cierresRecientes: CierreCaja[];
 }) {
   const [modal, setModal] = useState<"movimiento" | "cerrar" | "todos" | null>(null);
@@ -134,7 +139,20 @@ export function CajaAbiertaPanel({
   const faltaMeta = metaVentaDiaria ? Math.max(0, metaVentaDiaria - totalVentas) : 0;
   // 0 = lunes, igual que la base (isodow − 1).
   const diaHoy = DIAS_SEMANA[(new Date(`${hoyLima()}T12:00:00`).getDay() + 6) % 7]!;
-  const explicacionMeta = parametros ? explicarMeta(parametros, diaHoy, (n) => money(n).replace(".00", "")) : "";
+  const explicacionMeta = parametros ? explicarMeta(parametros, diaHoy, soles0, ubicacionNombre) : "";
+  // «Al ritmo de hoy»: la hora de ahora se lee DESPUÉS de montar (en el servidor sería otra y React avisaría de la
+  // diferencia) y se renueva cada minuto. Todo en hora de Lima.
+  const [ahora, setAhora] = useState<string | null>(null);
+  useEffect(() => {
+    const leer = () => setAhora(diaYHoraLima(new Date().toISOString()).hora);
+    leer();
+    const id = window.setInterval(leer, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const alCierre =
+    ahora && metaVentaDiaria !== null
+      ? proyeccionAlCierre({ vendido: totalVentas, abrioMin: minutosLima(diaYHoraLima(caja.abiertaEn).hora) ?? 0, ahoraMin: minutosLima(ahora) ?? 0, cierreMin: minutosLima(horaCierre) })
+      : null;
   // El fondo que pide el cierre y por qué: la campaña que lo sube, o lo normal de la tienda.
   const fondoCierre =
     parametros && parametros.fondo !== null
@@ -245,40 +263,58 @@ export function CajaAbiertaPanel({
         {/* ---------- Turno largo: una caja que pasó la noche sin cerrarse (auditoría de /caja, #3) ---------- */}
         <AvisoTurnoLargo abiertaEn={caja.abiertaEn} esLider={personaRol === "lider"} />
 
-        {/* ---------- Meta del día (solo si la ubicación tiene una configurada) ---------- */}
+        {/* ---------- Meta de hoy y lo que pedirá el cierre (ADR-0195 F1; spike docs/maquetas/finanzas-2026-09/, vista Caja) ----------
+            Solo si la ubicación tiene meta. La barra va en tinta (el rojo de la pantalla no se gasta en un avance). «Al cerrar»
+            lo ve quien puede cerrar: el esperado del cajón es de quien cierra, como `fn_esperado_caja`. */}
         {metaVentaDiaria !== null && metaPct !== null && (
-          <div className="card-cayla anim-sube p-5" style={{ "--i": 2 } as CSSProperties}>
-            <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-1.5">
-              <span className="label-cayla text-[11px] text-tinta/55">Meta del día</span>
-              <span className="text-sm font-semibold text-tinta">
-                {money(totalVentas)} <span className="font-normal text-tinta/50">de {money(metaVentaDiaria)}</span>
-              </span>
+          <div className={`grid gap-3 ${puedeCerrar && fondoCierre ? "@[900px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]" : ""}`}>
+            <div className="card-cayla anim-sube flex flex-col p-5" style={{ "--i": 2 } as CSSProperties}>
+              <h2 className="font-display text-[22px] leading-tight text-tinta">Meta de hoy · {soles0(metaVentaDiaria)}</h2>
+              <p className="mt-1 text-[13px] text-taupe">{explicacionMeta}</p>
+              <div className="mb-1 mt-4 h-3 overflow-hidden rounded-full bg-sand">
+                <div className="h-full rounded-full bg-tinta transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]" style={{ width: `${metaPct}%` }} />
+              </div>
+              <dl className="mt-auto grid grid-cols-3 gap-4 pt-4">
+                <DatoMeta etiqueta="Llevas" valor={soles0(totalVentas)} />
+                <DatoMeta etiqueta="Te faltan" valor={faltaMeta > 0 ? soles0(faltaMeta) : "—"} detalle={faltaMeta > 0 ? undefined : <b className="font-semibold text-verde-profundo">Meta cumplida.</b>} />
+                {alCierre !== null ? (
+                  <DatoMeta
+                    etiqueta="Al ritmo de hoy cierras en"
+                    valor={soles0(alCierre)}
+                    detalle={
+                      alCierre >= metaVentaDiaria
+                        ? "Llegas a la meta."
+                        : `Te quedarían ${soles0(metaVentaDiaria - alCierre)} por vender. Son las ${ahora}; cierras a las ${horaCierre}.`
+                    }
+                  />
+                ) : (
+                  <DatoMeta etiqueta="Avance" valor={`${metaPct} %`} detalle="de la meta de hoy" />
+                )}
+              </dl>
             </div>
-            {parametros && parametros.campanas.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-1.5">
-                {parametros.campanas.map((c) => (
-                  <Chip key={c.id} tono="ambar">{c.nombre}</Chip>
-                ))}
+            {puedeCerrar && fondoCierre && (
+              <div className="card-cayla anim-sube p-5" style={{ "--i": 3 } as CSSProperties}>
+                <h2 className="font-display text-[22px] leading-tight text-tinta">Al cerrar</h2>
+                <p className="mt-1 text-[13px] text-taupe">Lo que el cierre te va a pedir.</p>
+                <dl className="mt-3 text-[13px] text-tinta">
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Debería haber en el cajón</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums">{esperadoCajon === null ? "—" : soles0(esperadoCajon)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Deja para el próximo turno</dt>
+                    <dd className="whitespace-nowrap font-semibold tabular-nums">{soles0(fondoCierre.monto)}</dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-3 border-t border-sand py-2.5">
+                    <dt>Lo demás se traslada</dt>
+                    <dd className="text-right text-[12px] text-taupe">a la caja fuerte, al banco o al líder</dd>
+                  </div>
+                </dl>
+                <p className="mt-1 text-[12.5px] text-taupe">
+                  {fondoCierre.motivo}. El fondo normal lo pone el líder en Configuración ▸ Tiendas y caja; cada campaña puede subirlo.
+                </p>
               </div>
             )}
-            <div className="h-2.5 overflow-hidden rounded-full bg-sand">
-              <div
-                className="h-full rounded-full bg-rojo transition-[width] duration-1000 [transition-timing-function:var(--ease-cayla)]"
-                style={{ width: `${metaPct}%` }}
-              />
-            </div>
-            <p className="mt-2 text-[13px] text-taupe">
-              {faltaMeta > 0 ? (
-                <>
-                  Te faltan <b className="font-semibold text-tinta">{money(faltaMeta)}</b> para la meta.{" "}
-                </>
-              ) : (
-                <>
-                  <b className="font-semibold text-verde-profundo">Meta cumplida.</b>{" "}
-                </>
-              )}
-              {explicacionMeta}
-            </p>
           </div>
         )}
 
@@ -379,7 +415,7 @@ export function CajaAbiertaPanel({
       </div>
 
       {modal === "movimiento" && <MovimientoCajaModal cajaId={caja.id} esLider={personaRol === "lider"} onClose={() => setModal(null)} />}
-      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} onClose={() => setModal(null)} />}
+      {modal === "cerrar" && <CerrarCajaModalV2 cajaId={caja.id} cola={cola} fondo={fondoCierre} ubicacionId={caja.ubicacionId} onClose={() => setModal(null)} />}
       {modal === "todos" && (
         <MovimientosCajaModal
           eventos={todosLosEventos}
@@ -761,6 +797,21 @@ function TablaOGrafico({ segmentos, total }: { segmentos: SegmentoDona[]; total:
           </tbody>
         </table>
       )}
+    </div>
+  );
+}
+
+/** «S/ 1,700»: las cifras de la tarjeta de meta van redondas (spike de Finanzas). */
+function soles0(n: number): string {
+  return `S/ ${Math.round(n).toLocaleString("es-PE")}`;
+}
+
+function DatoMeta({ etiqueta, valor, detalle }: { etiqueta: string; valor: string; detalle?: ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="label-cayla text-[11px] text-taupe">{etiqueta}</dt>
+      <dd className="font-display mt-1 text-[26px] leading-none tabular-nums text-tinta">{valor}</dd>
+      {detalle && <dd className="mt-1.5 text-[12px] text-taupe">{detalle}</dd>}
     </div>
   );
 }

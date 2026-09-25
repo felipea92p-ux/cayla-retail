@@ -6,8 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Campo, CampoTexto, SelectNativo, Segmentado } from "@/components/ui/campos";
+import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -16,23 +18,30 @@ import {
   TEXTO_COMPROBANTE,
   TEXTO_MEDIO,
   TIPOS_COMPROBANTE,
+  borradorDesdeFijo,
   igvDeFactura,
   mediosPara,
   parsearMonto,
   partirSerieNumero,
+  textoVidaUtil,
+  validarActivo,
   validarGasto,
   type BorradorGasto,
   type CategoriaGasto,
   type EgresoPorClasificar,
+  type GastoFijoMes,
+  type TipoActivo,
   type TipoComprobante,
   type UbicacionGastos,
 } from "@/lib/gastos-reglas";
 
-// Registrar un gasto (ADR-0195 F2). Una sola ventana para los tres casos de la vida real:
+// Registrar un gasto o un activo fijo (ADR-0195 F2). Una sola ventana para los casos de la vida real:
 //  · sin comprobante (mototaxi, bolsas): cómo se pagó; si fue efectivo, sale del cajón abierto de esa tienda;
 //  · con factura, boleta o recibo por honorarios: el proveedor, la serie y el número; al contado o a crédito (Por pagar);
 //  · clasificar un egreso que la tienda ya registró en Caja: el monto y la tienda vienen fijos.
-// La pantalla solo arma y explica; la base vuelve a validar todo (`registrar_gasto`).
+//  · F2b: un gasto que nace de un gasto fijo (viene lleno), o un ACTIVO (un mueble, una laptop): el mismo comprobante y
+//    pago, pero dice qué tipo de activo es y su vida útil, y la base lo deprecia.
+// La pantalla solo arma y explica; la base vuelve a validar todo (`registrar_gasto`, `registrar_activo`).
 
 export type ProveedorGasto = { id: string; nombre: string; ruc: string | null };
 
@@ -44,6 +53,9 @@ export function RegistrarGastoModal({
   esLider,
   ubicacionInicial,
   egreso,
+  fijo,
+  clase = "gasto",
+  tiposActivo = [],
   hoy,
   onCerrar,
 }: {
@@ -53,8 +65,13 @@ export function RegistrarGastoModal({
   cajasAbiertas: { id: string; ubicacionId: string }[];
   esLider: boolean;
   ubicacionInicial: string;
-  /** Si viene, se está clasificando este egreso de caja como gasto. */
+  /** Si viene, se está clasificando este egreso de caja como gasto (o como activo). */
   egreso?: EgresoPorClasificar;
+  /** F2b: el gasto fijo del que nace este gasto (viene lleno con lo de siempre). */
+  fijo?: GastoFijoMes;
+  /** F2b: «activo» registra un activo fijo en vez de un gasto. */
+  clase?: "gasto" | "activo";
+  tiposActivo?: TipoActivo[];
   hoy: string;
   onCerrar: () => void;
 }) {
@@ -65,13 +82,17 @@ export function RegistrarGastoModal({
   const [nuevoProveedor, setNuevoProveedor] = useState<{ nombre: string; ruc: string } | null>(null);
   const [token] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
+  const esActivo = clase === "activo";
+  // Vida útil = la del tipo de bien (spike: un solo campo «10 años · muebles»); el contador confirma la de cada tipo.
+  const [activo, setActivo] = useState({ tipo: "" });
   const [b, setB] = useState<BorradorGasto>(() => ({
-    ubicacion: egreso?.ubicacionId ?? ubicacionInicial,
+    ubicacion: egreso?.ubicacionId ?? (esActivo && ubicacionInicial === "empresa" ? (ubicaciones[0]?.id ?? "") : ubicacionInicial),
     categoria: "",
     descripcion: egreso?.nota ?? "",
     fecha: egreso ? hoyLima(new Date(egreso.creadoEn)) : hoy,
     monto: egreso ? String(egreso.monto) : "",
-    comprobante: "sin_comprobante",
+    // Lo más común (la luz, el alquiler, el contador) llega con factura; lo que sale del cajón, casi nunca.
+    comprobante: egreso ? "sin_comprobante" : "factura",
     proveedorId: "",
     serie: "",
     numero: "",
@@ -81,6 +102,7 @@ export function RegistrarGastoModal({
     cajaId: "",
     egresoId: egreso?.id ?? "",
     referencia: "",
+    ...(fijo ? borradorDesdeFijo(fijo, hoy) : {}),
   }));
   const poner = <K extends keyof BorradorGasto>(k: K, v: BorradorGasto[K]) => setB((x) => ({ ...x, [k]: v }));
 
@@ -90,10 +112,31 @@ export function RegistrarGastoModal({
   const monto = parsearMonto(b.monto);
   const igv = b.comprobante === "factura" && monto.ok ? igvDeFactura(monto.valor) : 0;
   const categoria = categorias.find((c) => c.codigo === b.categoria) ?? null;
+  const tipoActivo = tiposActivo.find((t) => t.codigo === activo.tipo) ?? null;
   const opcionesUbicacion = useMemo(
-    () => [...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })), ...(esLider ? [{ valor: "empresa", texto: "De la empresa (no es de una tienda)" }] : [])],
-    [ubicaciones, esLider],
+    () => [...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })), ...(esLider && !esActivo ? [{ valor: "empresa", texto: "De la empresa (no es de una tienda)" }] : [])],
+    [ubicaciones, esLider, esActivo],
   );
+  const comprobantes = esActivo ? TIPOS_COMPROBANTE.filter((t) => t !== "recibo_por_honorarios") : TIPOS_COMPROBANTE;
+
+  // «Salió de» (ADR-0195 F3b, como el spike): se elige la CUENTA —el cajón, la caja fuerte, lo que tiene el líder, un banco o
+  // la tarjeta de crédito— y el medio sale de ella; con un banco se dice cómo (transferencia, Yape, Plin). Del cajón, la base
+  // crea su egreso en la misma operación. Sin cuentas (la base no respondió), queda el combo de medios de antes.
+  const ubicacionCuentas = b.ubicacion && b.ubicacion !== "empresa" ? b.ubicacion : null;
+  const cuentasPago = useCuentasParaElegir("pago", ubicacionCuentas, !egreso);
+  // Un gasto de una tienda solo sale del cajón de ESA tienda (la base lo exige); los «de la empresa», de cualquiera.
+  const cuentasGasto = useMemo(
+    () => cuentasPago.cuentas.filter((c) => c.tipo !== "cajon" || b.ubicacion === "empresa" || c.ubicacionId === b.ubicacion),
+    [cuentasPago.cuentas, b.ubicacion],
+  );
+  const conCuentas = cuentasPago.listo && cuentasGasto.length > 0;
+  const [medioBanco, setMedioBanco] = useState<"transferencia" | "yape" | "plin" | "deposito">(() =>
+    b.medio === "yape" || b.medio === "plin" || b.medio === "deposito" ? b.medio : "transferencia",
+  );
+  const cuentaSalida = cuentaDeSalida(cuentasGasto, "pago", b.cuentaId, b.medio || undefined);
+  const salida = cuentasGasto.find((c) => c.id === cuentaSalida) ?? null;
+  const bancoConMedio = salida?.tipo === "banco" ? (mediosDeBanco(conComprobante).includes(medioBanco) ? medioBanco : "transferencia") : null;
+  const medioSalida = salida ? (medioDeCuenta(salida.tipo) ?? bancoConMedio ?? "transferencia") : "";
 
   function elegirComprobante(t: TipoComprobante) {
     setB((x) => {
@@ -114,172 +157,294 @@ export function RegistrarGastoModal({
   }
 
   async function guardar() {
-    const v = validarGasto({ ...b, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" }, hoy);
+    const conCaja = conCuentas && !egreso && !aCredito
+      ? {
+          ...b,
+          medio: medioSalida as BorradorGasto["medio"],
+          cuentaId: cuentaSalida ?? undefined,
+          // Del cajón: su caja abierta (si no está en la lista, la base la busca por la cuenta).
+          cajaId: salida?.tipo === "cajon" ? (cajasAbiertas.find((c) => c.ubicacionId === salida.ubicacionId)?.id ?? "") : "",
+        }
+      : { ...b, cuentaId: undefined, cajaId: b.medio === "efectivo" && !b.egresoId ? (cajaDeLaTienda?.id ?? "") : "" };
+    const v = esActivo ? validarActivo({ ...conCaja, tipo: activo.tipo, nombre: b.descripcion, serie: "", vidaUtilMeses: String(tipoActivo?.vidaUtilMeses ?? "") }, hoy) : validarGasto(conCaja, hoy);
     if (!v.ok) return avisar.error(v.error);
     if (!responsable.listo) {
       if (responsable.motivo) avisar.error(responsable.motivo);
       return;
     }
     setGuardando(true);
-    const { error } = await firmar(createClient().rpc("registrar_gasto" as never, { ...v.valor, p_token: token } as never), responsable.firma());
+    const { error } = await firmar(createClient().rpc((esActivo ? "registrar_activo" : "registrar_gasto") as never, { ...v.valor, p_token: token } as never), responsable.firma());
     setGuardando(false);
     responsable.despues(error);
-    if (error) return avisar.error(traducirError(error, "registrar el gasto"));
-    avisar.exito(egreso ? "Egreso clasificado como gasto" : "Gasto registrado", {
-      detalle: aCredito ? `Quedó en Por pagar hasta el ${b.vence.split("-").reverse().join("/")}.` : b.medio === "efectivo" && !egreso ? "Salió del cajón: la caja ya lo descuenta." : undefined,
+    if (error) return avisar.error(traducirError(error, esActivo ? "registrar el activo" : "registrar el gasto"));
+    const que = esActivo ? "Activo" : "Gasto";
+    avisar.exito(egreso ? `Egreso clasificado como ${que.toLowerCase()}` : `${que} registrado`, {
+      detalle: aCredito
+        ? `Quedó en Por pagar hasta el ${b.vence.split("-").reverse().join("/")}.`
+        : !egreso && (conCuentas ? salida?.tipo === "cajon" : b.medio === "efectivo")
+          ? "Salió del cajón: la caja ya lo descuenta."
+          : !egreso && conCuentas && salida
+            ? `Salió de ${salida.nombre}.`
+          : esActivo
+            ? "Se deprecia desde el próximo mes."
+            : undefined,
     });
     onCerrar();
     router.refresh();
   }
 
-  return (
-    <Modal
-      titulo={egreso ? "Es un gasto" : "Registrar gasto"}
-      subtitulo={
-        egreso
-          ? `${egreso.ubicacionNombre} · ${soles(egreso.monto)} · «${egreso.motivo}${egreso.nota ? ` — ${egreso.nota}` : ""}»`
-          : "Lo que se paga para que el negocio funcione. La mercadería va por Compras y la planilla viene de Dynamic."
-      }
-      onClose={onCerrar}
-      ancho="max-w-2xl"
-    >
-      <div className="space-y-4">
-        <Segmentado
-          etiqueta="¿Tiene comprobante de un proveedor?"
-          valor={b.comprobante}
-          onValor={elegirComprobante}
-          opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))}
-        />
+  const titulo = egreso ? (esActivo ? "Es un activo fijo" : "Es un gasto") : esActivo ? "Registrar activo fijo" : fijo ? `Registrar ${fijo.descripcion.toLowerCase()}` : "Registrar gasto";
+  const bajada = egreso
+    ? `${egreso.ubicacionNombre} · ${soles(egreso.monto)} que salieron del cajón · «${egreso.motivo}${egreso.nota ? ` — ${egreso.nota}` : ""}»`
+    : esActivo
+      ? "Algo que sirve varios años: muebles, equipos, remodelación, máquinas del Taller."
+      : fijo
+        ? `Gasto fijo de ${fijo.ubicacionNombre}: llega cerca del día ${fijo.diaDelMes}${fijo.montoVariable ? ". Escribe el monto del recibo." : "."}`
+        : "Lo que se paga para que el negocio funcione. La planilla no va aquí: viene de Dynamic.";
+
+  const bloqueComprobante = (
+    <>
+        <CampoFin etiqueta="¿Tiene comprobante de un proveedor?">
+          <RadiosFin nombre="gasto-comprobante" etiqueta="Comprobante" valor={b.comprobante} onValor={elegirComprobante} opciones={comprobantes.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))} />
+        </CampoFin>
 
         {conComprobante && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo etiqueta="Proveedor" htmlFor="gasto-proveedor" pie={nuevoProveedor ? undefined : <button type="button" className="btn-cayla btn-enlace" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>¿No está? Súmalo</button>}>
-              <SelectNativo id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
-                <option value="">Elige…</option>
-                {proveedores.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nombre}
-                    {p.ruc ? ` · ${p.ruc}` : ""}
-                  </option>
-                ))}
-              </SelectNativo>
-            </Campo>
-            <CampoTexto
-              etiqueta="Serie y número"
-              placeholder="F001-00140"
-              value={documento}
-              tono={documento && !b.numero ? "aviso" : undefined}
-              pie={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}
-              onChange={(e) => {
-                const texto = e.target.value.toUpperCase();
-                setDocumento(texto);
-                const partes = partirSerieNumero(texto);
-                setB((x) => ({ ...x, serie: partes.serie, numero: partes.numero }));
-              }}
-            />
+          <div data-sin-cascada>
+            <div className="fin-dos-campos">
+              <CampoFin
+                etiqueta="Proveedor"
+                htmlFor="gasto-proveedor"
+                ayuda={
+                  nuevoProveedor ? undefined : (
+                    <button type="button" className="btn-enlace text-[11.5px]" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>
+                      ¿No está? Súmalo
+                    </button>
+                  )
+                }
+              >
+                <SelectFin id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
+                  <option value="">Elige…</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                      {p.ruc ? ` · ${p.ruc}` : ""}
+                    </option>
+                  ))}
+                </SelectFin>
+              </CampoFin>
+              <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
+                <InputFin
+                  id="gasto-documento"
+                  placeholder="F001-00140"
+                  value={documento}
+                  onChange={(e) => {
+                    const texto = e.target.value.toUpperCase();
+                    setDocumento(texto);
+                    const partes = partirSerieNumero(texto);
+                    setB((x) => ({ ...x, serie: partes.serie, numero: partes.numero }));
+                  }}
+                />
+              </CampoFin>
+            </div>
             {nuevoProveedor && (
-              <div className="nota-cayla sm:col-span-2" data-sin-cascada>
-                <div className="grid gap-3 sm:grid-cols-[1fr_12rem_auto] sm:items-end">
-                  <CampoTexto etiqueta="Nombre del proveedor" value={nuevoProveedor.nombre} onChange={(e) => setNuevoProveedor((n) => n && { ...n, nombre: e.target.value })} placeholder="Hidrandina" />
-                  <CampoTexto etiqueta="RUC (opcional)" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
-                  <div className="flex gap-2">
-                    <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>Sumar</button>
-                    <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>Cancelar</button>
-                  </div>
+              <div className="nota-cayla mb-4">
+                <div className="grid gap-3 sm:grid-cols-[1fr_11rem]">
+                  <CampoFin etiqueta="Nombre del proveedor" htmlFor="nuevo-prov-nombre" className="!mb-0">
+                    <InputFin id="nuevo-prov-nombre" value={nuevoProveedor.nombre} onChange={(e) => setNuevoProveedor((n) => n && { ...n, nombre: e.target.value })} placeholder="Hidrandina" />
+                  </CampoFin>
+                  <CampoFin etiqueta="RUC (opcional)" htmlFor="nuevo-prov-ruc" className="!mb-0">
+                    <InputFin id="nuevo-prov-ruc" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
+                  </CampoFin>
                 </div>
-                <p className="mt-2 text-[12.5px]">Queda en el directorio de proveedores; sus cuentas se completan luego en Compras ▸ Proveedores.</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
+                    Sumar proveedor
+                  </button>
+                  <button type="button" className="btn-cayla btn-sutil btn-chico" onClick={() => setNuevoProveedor(null)}>
+                    Cancelar
+                  </button>
+                  <span className="text-[12px]">Queda en el directorio; sus cuentas se completan en Compras ▸ Proveedores.</span>
+                </div>
               </div>
             )}
           </div>
         )}
+    </>
+  );
 
-        <CampoTexto etiqueta="Qué se pagó" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
+  return (
+    <Modal variante="hoja" titulo={titulo} subtitulo={bajada} onClose={onCerrar} ancho="max-w-[620px]">
+      {/* Orden del spike: un gasto empieza por su comprobante; un activo, por qué es, dónde está y cuánto dura. */}
+      {!esActivo && bloqueComprobante}
+      <div className="grid gap-x-3 sm:grid-cols-[1fr_10.5rem]">
+        {esActivo ? (
+          <CampoFin etiqueta="Qué es" htmlFor="gasto-descripcion">
+            <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Estante de exhibición en L" />
+          </CampoFin>
+        ) : (
+          <CampoFin etiqueta="Qué se pagó" htmlFor="gasto-descripcion">
+            <InputFin id="gasto-descripcion" value={b.descripcion} onChange={(e) => poner("descripcion", e.target.value)} placeholder="Luz de septiembre" />
+          </CampoFin>
+        )}
+        <CampoFin etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} htmlFor="gasto-fecha">
+          <InputFin id="gasto-fecha" type="date" max={hoy} value={b.fecha} onChange={(e) => poner("fecha", e.target.value)} />
+        </CampoFin>
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Campo etiqueta="Categoría" htmlFor="gasto-categoria" pie={categoria ? `Va a la cuenta ${categoria.cuenta} ${categoria.cuentaNombre}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
-            <SelectNativo id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
+      {esActivo ? (
+        <div className="fin-dos-campos">
+          <CampoFin etiqueta="Dónde está" htmlFor="gasto-ubicacion">
+            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
+              {opcionesUbicacion.map((o) => (
+                <option key={o.valor} value={o.valor}>
+                  {o.texto}
+                </option>
+              ))}
+            </SelectFin>
+          </CampoFin>
+          <CampoFin
+            etiqueta="Vida útil"
+            htmlFor="activo-tipo"
+            ayuda={
+              tipoActivo
+                ? `Cuenta ${tipoActivo.cuenta}.${monto.ok ? ` Se deprecia ${soles((monto.valor - igv) / Math.max(1, tipoActivo.vidaUtilMeses))} al mes desde el próximo mes${igv ? ", sobre el costo sin IGV" : ""}.` : ""}`
+                : "La sugiere el tipo de bien; el contador la confirma."
+            }
+          >
+            <SelectFin id="activo-tipo" value={activo.tipo} onChange={(e) => setActivo({ tipo: e.target.value })}>
+              <option value="">Elige qué tipo de bien es…</option>
+              {tiposActivo.map((t) => (
+                <option key={t.codigo} value={t.codigo}>
+                  {textoVidaUtil(t.vidaUtilMeses)} · {t.nombre.toLowerCase()}
+                </option>
+              ))}
+            </SelectFin>
+          </CampoFin>
+        </div>
+      ) : (
+        <div className="fin-dos-campos">
+          <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
+            <SelectFin id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
               <option value="">Elige…</option>
               {categorias.map((c) => (
                 <option key={c.codigo} value={c.codigo}>
                   {c.nombre} — {c.ejemplos}
                 </option>
               ))}
-            </SelectNativo>
-          </Campo>
-          <Campo etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
-            <SelectNativo id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
+            </SelectFin>
+          </CampoFin>
+          <CampoFin etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
+            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
               {opcionesUbicacion.map((o) => (
                 <option key={o.valor} value={o.valor}>
                   {o.texto}
                 </option>
               ))}
-            </SelectNativo>
-          </Campo>
+            </SelectFin>
+          </CampoFin>
         </div>
+      )}
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <CampoTexto etiqueta={conComprobante ? "Fecha del comprobante" : "Fecha"} type="date" max={hoy} value={b.fecha} onChange={(e) => poner("fecha", e.target.value)} />
-          <CampoTexto etiqueta="Total pagado (con IGV)" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
-          <Campo etiqueta="IGV">
-            <p className="flex h-9 items-center text-sm tabular-nums text-tinta">{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</p>
-            <p className="text-[12px] text-taupe">{b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}</p>
-          </Campo>
-        </div>
+      {esActivo && bloqueComprobante}
 
-        {conComprobante && !egreso && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Segmentado
-              etiqueta="¿Cómo se paga?"
-              valor={b.condicion}
-              onValor={(v) => poner("condicion", v)}
-              opciones={[
-                { valor: "contado", texto: "Ya se pagó" },
-                { valor: "credito", texto: "A crédito" },
-              ]}
+      <div className="fin-dos-campos">
+        <CampoFin etiqueta={esActivo ? "Costo (con IGV)" : "Total pagado (con IGV)"} htmlFor="gasto-monto" ayuda={egreso ? "Es lo que salió del cajón: no se cambia." : undefined}>
+          <InputFin id="gasto-monto" inputMode="decimal" value={b.monto} readOnly={!!egreso} onChange={(e) => poner("monto", e.target.value)} placeholder="0.00" />
+        </CampoFin>
+        <CampoFin etiqueta="IGV" ayuda={b.comprobante === "factura" ? "Descontable: sale del total (18 %)." : "Solo la factura da IGV descontable."}>
+          <SalidaFin>{b.comprobante === "factura" ? soles(igv) : "S/ 0.00"}</SalidaFin>
+        </CampoFin>
+      </div>
+
+      {!egreso && (
+        <CampoFin etiqueta="¿Cómo se paga?">
+          <RadiosFin
+            nombre="gasto-condicion"
+            etiqueta="Condición de pago"
+            valor={aCredito ? "credito" : "contado"}
+            onValor={(v) => poner("condicion", v)}
+            opciones={[
+              { valor: "contado", texto: "Ya se pagó" },
+              { valor: "credito", texto: "A crédito", deshabilitada: !conComprobante },
+            ]}
+          />
+        </CampoFin>
+      )}
+
+      {!egreso && (
+        <div className="fin-dos-campos" data-sin-cascada>
+          {aCredito ? (
+            <CampoFin etiqueta="Vence" htmlFor="gasto-vence" ayuda="Queda en Compras ▸ Por pagar hasta ese día.">
+              <InputFin id="gasto-vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />
+            </CampoFin>
+          ) : conCuentas ? (
+            <CampoCuentaFin
+              id="gasto-cuenta"
+              etiqueta="Salió de"
+              cuentas={cuentasGasto}
+              listo={cuentasPago.listo}
+              clase="pago"
+              medio={medioSalida || "transferencia"}
+              sinMedio
+              valor={cuentaSalida}
+              onValor={(v) => poner("cuentaId", v)}
             />
-            {aCredito && <CampoTexto etiqueta="Vence" type="date" min={b.fecha} value={b.vence} onChange={(e) => poner("vence", e.target.value)} />}
-          </div>
-        )}
-
-        {!aCredito && !egreso && (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo
-              etiqueta="Cómo se pagó"
+          ) : (
+            <CampoFin
+              etiqueta="Salió de"
               htmlFor="gasto-medio"
-              tono={b.medio === "efectivo" && !cajaDeLaTienda ? "aviso" : "neutro"}
-              pie={
+              tono={b.medio === "efectivo" && !cajaDeLaTienda ? "aviso" : undefined}
+              ayuda={
                 b.medio === "efectivo"
                   ? cajaDeLaTienda
                     ? "Sale del cajón abierto de esa tienda: se crea su egreso de caja en la misma operación."
                     : "La caja de esa tienda no está abierta. Si ya salió del cajón, regístralo en Caja y clasifícalo aquí."
-                  : undefined
+                  : "Si sale de un cajón, se crea su egreso de caja en la misma operación."
               }
             >
-              <SelectNativo id="gasto-medio" value={b.medio} onChange={(e) => poner("medio", e.target.value as BorradorGasto["medio"])}>
+              <SelectFin id="gasto-medio" value={b.medio} onChange={(e) => poner("medio", e.target.value as BorradorGasto["medio"])}>
                 <option value="">Elige…</option>
                 {mediosPara(b.comprobante).map((m) => (
                   <option key={m} value={m}>
                     {m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m]}
                   </option>
                 ))}
-              </SelectNativo>
-            </Campo>
-            {b.medio && b.medio !== "efectivo" && (
-              <CampoTexto etiqueta="N.° de operación (opcional)" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
-            )}
-          </div>
-        )}
-
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-
-        <div className="flex flex-wrap justify-end gap-2 pt-1">
-          <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
-            Cancelar
-          </button>
-          <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
-            {guardando ? "Guardando…" : egreso ? "Guardar como gasto" : "Registrar gasto"}
-          </button>
+              </SelectFin>
+            </CampoFin>
+          )}
+          {!aCredito && conCuentas && bancoConMedio && (
+            <CampoFin etiqueta="Cómo" htmlFor="gasto-medio-banco" ayuda="Del banco, por qué camino salió.">
+              <SelectFin id="gasto-medio-banco" value={bancoConMedio} onChange={(e) => setMedioBanco(e.target.value as typeof medioBanco)}>
+                {mediosDeBanco(conComprobante).map((m) => (
+                  <option key={m} value={m}>
+                    {TEXTO_MEDIO[m]}
+                  </option>
+                ))}
+              </SelectFin>
+            </CampoFin>
+          )}
+          {!aCredito && (conCuentas ? !bancoConMedio && medioSalida && medioSalida !== "efectivo" : b.medio && b.medio !== "efectivo") && (
+            <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
+              <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+            </CampoFin>
+          )}
         </div>
+      )}
+      {!egreso && !aCredito && conCuentas && bancoConMedio && (
+        <CampoFin etiqueta="N.° de operación (opcional)" htmlFor="gasto-referencia">
+          <InputFin id="gasto-referencia" value={b.referencia} onChange={(e) => poner("referencia", e.target.value)} />
+        </CampoFin>
+      )}
+
+      <ComboResponsable control={responsable} deshabilitado={guardando} />
+
+      <div className="fin-botones mt-4">
+        <button type="button" className="btn-cayla btn-secundario" onClick={onCerrar} disabled={guardando}>
+          Cancelar
+        </button>
+        <button type="button" className="btn-cayla btn-primario" onClick={guardar} disabled={guardando || !responsable.listo}>
+          {guardando ? "Guardando…" : egreso ? (esActivo ? "Guardar como activo" : "Guardar como gasto") : esActivo ? "Registrar activo" : "Registrar gasto"}
+        </button>
       </div>
     </Modal>
   );

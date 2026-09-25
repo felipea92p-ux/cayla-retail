@@ -1,0 +1,1938 @@
+/* ---- Finanzas (ADR-0195) ----
+   Las piezas del spike aprobado (docs/maquetas/finanzas-2026-09/, `src/base.css` y `src/finanzas.css`) llevadas a los
+   tokens del ERP. Felipe, 2026-09-24: «los diseños no se parecen a los propuestos». Las pantallas de Finanzas (Gastos,
+   Configuración, y las que vienen: Cuentas y dinero, Reportes, Impuestos, Cierre) se arman con ESTAS clases, no con
+   medidas sueltas: la tabla es una <table> que envuelve (no trunca), los campos van en caja hundida y las opciones son
+   tarjetas. Colores: solo tokens (ADR-0169). Las piezas vivas (componentes) están en components/finanzas/kit.tsx.
+   ---- */
+@layer components {
+  /* Cifras de cabecera: cuatro tarjetas del mismo alto. */
+  .fin-cifras {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+  }
+  @media (max-width: 1080px) {
+    .fin-cifras {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-cifras {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Pestañas de una pantalla: subrayado en tinta (el rojo de la cabecera no se gasta aquí) y el conteo en una píldora. */
+  .fin-pestanas {
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--color-sand);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fin-pestana {
+    background: none;
+    border: 0;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    padding: 10px 14px;
+    font-size: 13.5px;
+    color: var(--color-taupe);
+    white-space: nowrap;
+    transition: color 150ms, border-color 150ms;
+  }
+  .fin-pestana:hover {
+    color: var(--color-tinta);
+  }
+  .fin-pestana[aria-selected="true"],
+  .fin-pestana[aria-current="page"] {
+    color: var(--color-tinta);
+    border-bottom-color: var(--color-tinta);
+    font-weight: 500;
+  }
+  .fin-cuenta-tab {
+    display: inline-grid;
+    place-items: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    margin-left: 6px;
+    border-radius: 999px;
+    background: var(--color-sand);
+    font-size: 11.5px;
+    color: var(--color-tinta);
+  }
+
+  /* Superficie: tarjeta que agrupa herramientas + tabla + pie. */
+  .fin-superficie {
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+  }
+  .fin-pad {
+    padding: 18px 20px;
+  }
+  .fin-herramientas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px;
+    align-items: center;
+    border-bottom: 1px solid var(--color-sand);
+  }
+  .fin-pie {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-top: 1px solid var(--color-sand);
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  /* Cabecera de un bloque dentro de una superficie: título serif + bajada, y a la derecha su acción. */
+  .fin-bloque-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .fin-bloque-cab h2 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 22px;
+    line-height: 1.2;
+    margin: 0;
+    color: var(--color-tinta);
+  }
+  .fin-bloque-cab p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--color-taupe);
+  }
+  /* Cabecera de la franja de herramientas cuando lleva título en vez de filtros (Configuración). */
+  .fin-herramientas-titulo b {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-herramientas-titulo p {
+    margin: 2px 0 0;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+
+  /* Controles en caja hundida. */
+  .fin-control {
+    display: block;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-sand);
+    background: var(--color-hueso);
+    font-size: 13.5px;
+    color: var(--color-tinta);
+    transition: border-color 150ms;
+  }
+  .fin-control:focus {
+    outline: none;
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+  .fin-control:disabled,
+  .fin-control[readonly] {
+    color: color-mix(in oklab, var(--color-tinta) 70%, transparent);
+  }
+  .fin-control::placeholder {
+    color: color-mix(in oklab, var(--color-taupe) 80%, transparent);
+  }
+  select.fin-control {
+    appearance: none;
+    padding-right: 30px;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-taupe) 50%), linear-gradient(135deg, var(--color-taupe) 50%, transparent 50%);
+    background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%;
+    background-size: 5px 5px;
+    background-repeat: no-repeat;
+  }
+  .fin-herramientas select.fin-control {
+    width: auto;
+    flex: 0 1 184px;
+  }
+  .fin-buscar {
+    position: relative;
+    flex: 1 1 240px;
+  }
+  .fin-buscar svg {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 15px;
+    height: 15px;
+    stroke: var(--color-taupe);
+    fill: none;
+    stroke-width: 1.6;
+    pointer-events: none;
+  }
+  .fin-buscar .fin-control {
+    padding-left: 34px;
+  }
+  .fin-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Campo: etiqueta chica en taupe (sin versalitas), control y una ayuda debajo. */
+  .fin-campo {
+    margin-bottom: 16px;
+    min-width: 0;
+  }
+  .fin-campo > label,
+  .fin-campo > .fin-etiqueta {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-ayuda {
+    display: block;
+    margin-top: 5px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: var(--color-taupe);
+  }
+  .fin-ayuda[data-tono="aviso"] {
+    color: var(--color-ambar-profundo);
+  }
+  .fin-dos-campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .fin-dos-campos > .fin-campo {
+    margin-bottom: 16px;
+  }
+
+  /* Opciones en tarjeta: radios de una línea (`fin-radios`) y con explicación (`fin-opciones`). */
+  .fin-radios {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .fin-radios label {
+    flex: 1 1 120px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-hueso);
+    font-size: 13px;
+    line-height: 1.3;
+    color: var(--color-tinta);
+    cursor: pointer;
+    transition: border-color 150ms, background-color 150ms, opacity 150ms;
+  }
+  .fin-radios label:has(input:checked) {
+    border-color: var(--color-tinta);
+    background: var(--color-papel);
+  }
+  .fin-radios label:has(input:disabled) {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .fin-radios input,
+  .fin-opciones input {
+    accent-color: var(--color-tinta);
+    flex: none;
+  }
+  .fin-opciones {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .fin-opciones label {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 2px 10px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-hueso);
+    color: var(--color-tinta);
+    cursor: pointer;
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .fin-opciones label:has(input:checked) {
+    border-color: var(--color-tinta);
+    background: var(--color-papel);
+  }
+  .fin-opciones input {
+    grid-row: span 2;
+    margin-top: 3px;
+  }
+  .fin-opciones b {
+    font-weight: 600;
+    font-size: 13.5px;
+  }
+  .fin-opciones span {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+
+  /* Botonera al pie de una hoja. */
+  .fin-botones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 6px;
+  }
+
+  /* Lista de pares «dato · valor» (detalle de un gasto o de un activo). */
+  .fin-lista {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .fin-lista li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-lista li > span:first-child {
+    color: var(--color-taupe);
+  }
+  .fin-lista li b {
+    white-space: nowrap;
+    font-weight: 600;
+    text-align: right;
+  }
+  .fin-lista li small {
+    color: var(--color-taupe);
+    font-size: 12px;
+    text-align: right;
+  }
+
+  /* Tabla: una <table> de verdad. Envuelve el texto (no lo corta) y se desplaza dentro de su tarjeta si no cabe. */
+  .fin-tabla-wrap {
+    overflow-x: auto;
+  }
+  .fin-tabla {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-tabla thead {
+    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+  }
+  .fin-tabla th {
+    padding: 9px 14px;
+    text-align: left;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--color-taupe);
+    white-space: nowrap;
+  }
+  .fin-tabla td {
+    padding: 11px 14px;
+    border-top: 1px solid var(--color-sand);
+    vertical-align: middle;
+  }
+  .fin-tabla th.fin-num,
+  .fin-tabla td.fin-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .fin-tabla td b {
+    font-weight: 600;
+  }
+  .fin-tabla .fin-sub {
+    display: block;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-tabla .fin-tenue {
+    color: var(--color-taupe);
+  }
+  .fin-tabla tbody tr {
+    transition: background-color 150ms;
+  }
+  .fin-tabla tbody tr:nth-child(even) {
+    background: color-mix(in oklab, var(--color-hueso) 50%, transparent);
+  }
+  .fin-tabla tbody tr:hover {
+    background: color-mix(in oklab, var(--color-crema) 60%, transparent);
+  }
+  .fin-tabla tbody tr[data-clic] {
+    cursor: pointer;
+  }
+  .fin-tabla tbody tr[data-clic]:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: -2px;
+  }
+  .fin-tabla tr.fin-anulada td {
+    color: var(--color-taupe);
+  }
+  .fin-tabla tr.fin-anulada b {
+    text-decoration: line-through;
+    font-weight: 500;
+  }
+  .fin-tabla tr.fin-suave td {
+    opacity: 0.6;
+  }
+  .fin-tabla input.fin-control {
+    min-height: 32px;
+    padding: 5px 9px;
+  }
+  /* Tabla de casillas (Configuración): menos aire a los lados para que entren siete días y el fondo. */
+  .fin-tabla-apretada th,
+  .fin-tabla-apretada td {
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+  .fin-tabla-apretada th:first-child,
+  .fin-tabla-apretada td:first-child {
+    padding-left: 14px;
+  }
+  .fin-tabla-apretada th:last-child,
+  .fin-tabla-apretada td:last-child {
+    padding-right: 14px;
+  }
+
+  /* Barra fina de «lo que queda» (valor de un activo). */
+  .fin-barra {
+    display: block;
+    width: 90px;
+    height: 6px;
+    margin: 4px 0 0 auto;
+    border-radius: 999px;
+    overflow: hidden;
+    background: var(--color-hueso);
+  }
+  .fin-barra i {
+    display: block;
+    height: 100%;
+    background: var(--color-tinta);
+  }
+
+  /* Dos columnas (Fijos del mes) y una columna de bloques apilados. */
+  .fin-dos-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+  .fin-columna {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+
+  /* Lista de fijos: nombre y detalle, monto en serif y su botón. */
+  .fin-fijos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-fijo {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-fijos .fin-fijo:first-child {
+    border-top: 0;
+  }
+  .fin-fijo b {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-fijo .fin-sub {
+    display: block;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-fijo .fin-monto {
+    font-family: var(--font-serif);
+    font-size: 19px;
+    white-space: nowrap;
+    color: var(--color-tinta);
+  }
+
+  /* Estado vacío de una pestaña. */
+  .fin-guia {
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    padding: 28px;
+  }
+  .fin-guia h2 {
+    margin: 6px 0;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 26px;
+    color: var(--color-tinta);
+  }
+  .fin-guia p {
+    margin: 0;
+    max-width: 62ch;
+    line-height: 1.55;
+    color: var(--color-taupe);
+  }
+
+  /* Par de entradas en una celda (Configuración: «% · fondo»). */
+  .fin-par-inp {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Un campo con su unidad al lado («S/ [15000]», «[25] %»). */
+  .fin-con-unidad {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fin-con-unidad .fin-control {
+    max-width: 160px;
+  }
+  .fin-con-unidad span {
+    font-size: 13px;
+    color: var(--color-taupe);
+  }
+
+  /* «Ver» junto a la acción principal de la cabecera. */
+  .fin-ver {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .fin-ver select.fin-control {
+    width: auto;
+    min-width: 170px;
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col,
+    .fin-dos-campos {
+      grid-template-columns: 1fr;
+    }
+    .fin-herramientas select.fin-control {
+      flex: 1 1 130px;
+    }
+    .fin-ver select.fin-control {
+      min-width: 0;
+    }
+    /* La tabla se vuelve fichas: la encargada la usa de pie, con el celular. */
+    .fin-tabla {
+      min-width: 0;
+    }
+    .fin-tabla thead {
+      display: none;
+    }
+    .fin-tabla,
+    .fin-tabla tbody,
+    .fin-tabla tr,
+    .fin-tabla td {
+      display: block;
+      width: 100%;
+    }
+    .fin-tabla tbody tr {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 14px;
+      padding: 12px 14px;
+      border-top: 1px solid var(--color-sand);
+    }
+    .fin-tabla tbody tr:first-child {
+      border-top: 0;
+    }
+    .fin-tabla td {
+      border: 0;
+      padding: 0;
+    }
+    .fin-tabla td[data-l]::before {
+      content: attr(data-l);
+      display: block;
+      margin-bottom: 3px;
+      font-size: 10.5px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--color-taupe);
+    }
+    .fin-tabla td.fin-ancha {
+      grid-column: 1 / -1;
+    }
+    .fin-tabla td.fin-num {
+      text-align: left;
+    }
+    .fin-barra {
+      margin-left: 0;
+    }
+  }
+}
+
+/* ---- F8 · Impuestos (ADR-0195; spike `vista-impuestos.js` y `cfgImpuestos`) ---- */
+@layer components {
+  /* Dos columnas con la de la izquierda apenas más ancha (el límite y «Para revisar»). */
+  .fin-dos-col.fin-dos-col-izq {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  }
+
+  /* Barra de avance hacia el límite del régimen: lo vendido en tinta y, detrás, lo proyectado a rayas. */
+  .fin-umbral-barra {
+    position: relative;
+    height: 12px;
+    margin: 12px 0 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--color-hueso);
+  }
+  .fin-umbral-barra i {
+    position: absolute;
+    inset: 0 auto 0 0;
+    border-radius: 999px;
+    background: var(--color-tinta);
+  }
+  .fin-umbral-barra i.fin-proy {
+    background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-taupe) 55%, transparent) 0 4px, transparent 4px 8px);
+  }
+  .fin-umbral-barra[data-tono="rojo"] i:not(.fin-proy) {
+    background: var(--color-rojo);
+  }
+  .fin-marcas {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-marcas b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-nota-bloque {
+    margin: 12px 0 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+  .fin-nota-bloque b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+
+  /* «Para revisar antes de declarar»: punto de color, lo que pasa y, a la derecha, adónde ir. */
+  .fin-decidir {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-decidir li {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    gap: 12px;
+    align-items: start;
+    padding: 12px 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-decidir li:first-child {
+    border-top: 0;
+    padding-top: 4px;
+  }
+  .fin-decidir b {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-decidir p {
+    margin: 3px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  .fin-punto {
+    width: 8px;
+    height: 8px;
+    margin-top: 6px;
+    border-radius: 50%;
+    background: var(--color-taupe);
+  }
+  .fin-punto[data-tono="rojo"] {
+    background: var(--color-rojo);
+  }
+  .fin-punto[data-tono="ambar"] {
+    background: var(--color-ambar);
+  }
+  .fin-punto[data-tono="pizarra"] {
+    background: var(--color-pizarra);
+  }
+  .fin-punto[data-tono="verde"] {
+    background: var(--color-verde);
+  }
+
+  /* El mes que se mira, marcado en el historial. */
+  .fin-tabla tbody tr.fin-fila-activa {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+  }
+  .fin-tabla tbody tr.fin-fila-activa td:first-child {
+    box-shadow: inset 2px 0 0 var(--color-tinta);
+  }
+
+  /* Configuración ▸ Impuestos: una vigencia por fila, con su casilla a la derecha. */
+  .fin-vigencias {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-vigencias li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-vigencias small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-vigencias input.fin-control {
+    min-height: 32px;
+    padding: 5px 9px;
+  }
+  .fin-con-unidad {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-dos-col-izq {
+      grid-template-columns: 1fr;
+    }
+    .fin-decidir li {
+      grid-template-columns: 10px 1fr;
+    }
+    .fin-decidir li > .btn-cayla {
+      grid-column: 2;
+      justify-self: start;
+    }
+  }
+}
+
+/* ---- F3 · Cuentas y dinero (ADR-0195; spike `vista-dinero.js` y `vista-config.js` «Cuentas y cobros») ---- */
+@layer components {
+  /* Sobretítulo de un grupo de cuentas («BANCOS · CUENTA 104»). */
+  .fin-etq {
+    margin: 4px 0 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  /* Las cuentas en tarjetas: nombre e insignia arriba, el saldo en serif, y de dónde le llega la plata. */
+  .fin-cuentas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+  .fin-cuenta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 16px 18px;
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+  }
+  .fin-cuenta-cab {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .fin-cuenta-cab b {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-cuenta-saldo {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1.05;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-tinta);
+  }
+  .fin-cuenta-saldo[data-debe] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-cuenta-saldo[data-oculto] {
+    font-family: inherit;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-taupe);
+  }
+  .fin-cuenta p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+
+  /* Plata del dueño: la deuda de CAYLA en serif y la lista de préstamos al lado. */
+  .fin-dueno-cifras {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    align-items: flex-start;
+  }
+  .fin-dueno-cifras .fin-cuenta-saldo {
+    font-size: 32px;
+    line-height: 1.1;
+  }
+
+  /* Renglones «qué · detalle» (cierres con diferencia, préstamos del dueño): el detalle en taupe a la derecha. */
+  .fin-lista-mov {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-lista-mov li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-lista-mov li:first-child {
+    border-top: 0;
+  }
+  .fin-lista-mov li > span:last-child {
+    font-size: 12px;
+    text-align: right;
+    color: var(--color-taupe);
+  }
+
+  /* Conciliación: la línea ya revisada se atenúa; lo que sale, en rojo profundo. */
+  .fin-tabla tr.fin-hecha td {
+    opacity: 0.62;
+  }
+  .fin-tabla td.fin-sale {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-cambio {
+    color: var(--color-ambar-profundo);
+  }
+  /* «A qué cuenta entra cada cobro»: una casilla por medio, con el punto del color de cada medio (tokens de Caja). */
+  .fin-tabla-medios {
+    min-width: 720px;
+  }
+  .fin-metodo {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    vertical-align: 1px;
+  }
+  .fin-metodo[data-m="efectivo"] {
+    background: var(--color-metodo-efectivo);
+  }
+  .fin-metodo[data-m="yape"] {
+    background: var(--color-metodo-yape);
+  }
+  .fin-metodo[data-m="plin"] {
+    background: var(--color-metodo-plin);
+  }
+  .fin-metodo[data-m="tarjeta"] {
+    background: var(--color-metodo-tarjeta);
+  }
+  .fin-metodo[data-m="transferencia"] {
+    background: var(--color-metodo-transferencia);
+  }
+  .fin-tabla-medios select.fin-control {
+    min-width: 150px;
+  }
+}
+
+/* ---- F5 ---- Reportes: Estado de resultados (tabla `eerr` del spike) y Campañas (gráfico de barras, dos columnas). */
+@layer components {
+  /* El cuadro del estado de resultados: conceptos en filas, unidades en columnas, CAYLA sombreado al final. */
+  .fin-eerr {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-eerr th {
+    padding: 10px 14px;
+    font-weight: 400;
+    font-size: 12px;
+    color: var(--color-taupe);
+    text-align: right;
+    white-space: nowrap;
+    background: color-mix(in oklab, var(--color-sand) 70%, transparent);
+    vertical-align: bottom;
+  }
+  .fin-eerr th:first-child,
+  .fin-eerr td:first-child {
+    text-align: left;
+  }
+  .fin-eerr td {
+    padding: 8px 14px;
+    text-align: right;
+    border-top: 1px solid var(--color-sand);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-eerr td.fin-eerr-cta {
+    width: 44px;
+    text-align: left;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-eerr td.fin-eerr-vacia {
+    color: var(--color-taupe);
+  }
+  .fin-eerr td.fin-eerr-neg {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-eerr button.fin-eerr-celda {
+    all: unset;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  .fin-eerr td:has(> button.fin-eerr-celda):hover {
+    background: var(--color-hueso);
+  }
+  .fin-eerr button.fin-eerr-celda:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  .fin-eerr tr.fin-eerr-sub td {
+    font-weight: 600;
+    color: var(--color-taupe);
+    background: color-mix(in oklab, var(--color-hueso) 55%, transparent);
+  }
+  .fin-eerr tr.fin-eerr-total td {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    border-top: 2px solid var(--color-tinta);
+  }
+  .fin-eerr tr.fin-eerr-pct td {
+    padding-top: 0;
+    border-top: 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-eerr .fin-eerr-cons {
+    background: color-mix(in oklab, var(--color-sand) 35%, transparent);
+  }
+  .fin-eerr tr.fin-eerr-sub td.fin-eerr-cons {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+  }
+  /* La línea chica bajo una cifra o un encabezado («+S/ 1,200 vs ago.», «a la fecha»). */
+  .fin-delta {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+
+  /* Dos columnas del spike: `par` iguales; `der` la derecha más ancha. */
+  .fin-dos-col.fin-der {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+  }
+
+  /* La columna del nombre de una tabla ancha (la campaña): no se parte en tres líneas. */
+  .fin-tabla th.fin-col-nombre {
+    min-width: 180px;
+  }
+  /* Una tabla con encabezados largos («Para ganar lo mismo, vender»): el encabezado se parte en dos líneas y la tabla
+     entra entera en la tarjeta, con el veredicto a la vista. */
+  .fin-tabla-envuelve th {
+    white-space: normal;
+    vertical-align: bottom;
+  }
+
+  /* Avisos del reporte: una línea por aviso, con su chip. */
+  .fin-avisos {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-avisos li {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+  }
+
+  /* Gráfico de barras de una serie (spike `barras()`): tinta; el rojo solo marca una pérdida, con su etiqueta. */
+  .fin-grafico {
+    position: relative;
+  }
+  .fin-grafico svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    overflow: visible;
+  }
+  .fin-grafico-barra path {
+    fill: var(--color-tinta);
+    transition: opacity 150ms;
+  }
+  .fin-grafico-barra.fin-grafico-mala path {
+    fill: var(--color-rojo);
+  }
+  .fin-grafico-barra:hover path,
+  .fin-grafico-barra:focus path {
+    opacity: 0.8;
+  }
+  .fin-grafico-barra:focus {
+    outline: none;
+  }
+  .fin-grafico text {
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    fill: var(--color-tinta);
+  }
+  .fin-grafico text.fin-grafico-eje {
+    font-size: 11px;
+    fill: var(--color-taupe);
+  }
+  .fin-grafico-mala text.fin-grafico-valor {
+    fill: var(--color-rojo-profundo);
+  }
+  .fin-grafico-base {
+    stroke: var(--color-sand);
+    stroke-width: 1;
+  }
+  .fin-grafico-umbral {
+    stroke: var(--color-taupe);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .fin-grafico-leyenda {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-grafico-leyenda i {
+    width: 22px;
+    border-top: 1px dashed var(--color-taupe);
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-der {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* ---- Presupuesto ---- Reportes ▸ Presupuesto (spike `table.ppto`) y Configuración ▸ Presupuesto (`table.ppto-edit`). */
+@layer components {
+  .fin-tabla.fin-ppto,
+  .fin-tabla.fin-ppto-edit {
+    min-width: 760px;
+  }
+  .fin-tabla th.fin-ppto-avance {
+    width: 160px;
+  }
+  /* La franja de cada unidad (y la meta de ventas en Configuración): versalitas en taupe sobre arena. */
+  .fin-tabla tr.fin-grupo td {
+    background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-taupe);
+  }
+  .fin-tabla tr.fin-grupo .fin-grupo-nota {
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .fin-tabla tr.fin-grupo .fin-meta-enlace {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-tinta);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  /* La barra de avance de una fila: fina, en tinta; en rojo solo lo que se pasa (lleva además su chip). */
+  .fin-umbral-barra.fin-fina {
+    height: 8px;
+    margin: 0;
+  }
+  /* Una casilla de monto dentro de la tabla: a la derecha, del ancho de un tope. */
+  .fin-tabla input.fin-num-input {
+    display: block;
+    max-width: 110px;
+    margin-left: auto;
+    text-align: right;
+  }
+  /* El mes junto a los botones chicos de la franja: de su misma altura. */
+  .fin-herramientas select.fin-control.fin-mes-chico {
+    min-height: 32px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    font-size: 13px;
+  }
+  /* Una tabla dentro de una hoja (lo propuesto): sin el ancho mínimo de las pantallas. */
+  .fin-tabla.fin-tabla-hoja {
+    min-width: 0;
+  }
+
+  @media (max-width: 860px) {
+    .fin-tabla.fin-ppto,
+    .fin-tabla.fin-ppto-edit {
+      min-width: 0;
+    }
+    .fin-tabla tbody tr.fin-grupo {
+      background: color-mix(in oklab, var(--color-sand) 45%, transparent);
+    }
+    .fin-tabla tr.fin-grupo td {
+      background: none;
+    }
+    .fin-tabla input.fin-num-input {
+      margin-left: 0;
+      max-width: none;
+    }
+    /* En fichas, las casillas no llevan el aire lateral de la tabla apretada. */
+    .fin-tabla.fin-ppto-edit td:first-child,
+    .fin-tabla.fin-ppto-edit td:last-child {
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
+}
+
+/* ---- F6 · Flujo de caja y Escenarios (ADR-0195; spike `vista-reportes.js`, `vistaFlujo` y `vistaEscenarios`) ---- */
+@layer components {
+  /* El mes o las semanas se eligen EN el sobretítulo, sin caja: se lee igual que el spike y sigue siendo un selector. */
+  .fin-etq-select {
+    appearance: none;
+    margin: 0;
+    padding: 0 14px 0 0;
+    border: 0;
+    border-bottom: 1px dotted color-mix(in oklab, var(--color-taupe) 70%, transparent);
+    border-radius: 0;
+    background-color: transparent;
+    background-image: linear-gradient(45deg, transparent 50%, var(--color-taupe) 50%), linear-gradient(135deg, var(--color-taupe) 50%, transparent 50%);
+    background-position: calc(100% - 5px) 55%, calc(100% - 1px) 55%;
+    background-size: 4px 4px;
+    background-repeat: no-repeat;
+    font: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .fin-etq-select:hover {
+    color: var(--color-tinta);
+  }
+  .fin-etq-select:focus-visible {
+    outline: 2px solid var(--color-rojo);
+    outline-offset: 2px;
+  }
+  /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
+  .fin-h-flujo {
+    margin: 14px 0 4px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--color-tinta);
+  }
+  .fin-h-flujo-chica {
+    font-size: 16px;
+  }
+  .fin-flujo-lista {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+  }
+  .fin-flujo-lista li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-flujo-lista li b {
+    white-space: nowrap;
+    font-weight: 600;
+  }
+  .fin-flujo-lista li.fin-flujo-vacia {
+    color: var(--color-taupe);
+  }
+  /* «Hoy tienes S/ 60,410» y los días de caja. */
+  .fin-hoy {
+    margin: 4px 0 2px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--color-tinta);
+  }
+  .fin-dias {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 10px;
+    margin: 0 0 6px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  /* Las tablas del flujo viven en una columna: menos ancho mínimo que la tabla de una pantalla entera. */
+  .fin-tabla.fin-tabla-flujo {
+    min-width: 0;
+  }
+  .fin-tabla.fin-tabla-flujo th,
+  .fin-tabla.fin-tabla-flujo td {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  .fin-tabla.fin-tabla-flujo th:first-child,
+  .fin-tabla.fin-tabla-flujo td:first-child {
+    padding-left: 14px;
+  }
+  .fin-tabla.fin-tabla-flujo td.fin-que-vence {
+    min-width: 150px;
+  }
+  .fin-tabla.fin-tabla-utilidad {
+    min-width: 420px;
+  }
+  .fin-tabla td.fin-que-vence {
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-chip-campana {
+    display: block;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--color-ambar-profundo);
+  }
+  .fin-queda-malo {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-tabla tr.fin-total-t td {
+    border-top: 2px solid var(--color-tinta);
+    font-weight: 600;
+  }
+  .fin-tabla td.fin-dif-baja {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-tabla td.fin-dif-sube {
+    color: var(--color-verde);
+  }
+  /* El recuadro del gráfico (al pasar el mouse o con Tab): papel, borde sand, sin sombra. */
+  .fin-grafico-lienzo {
+    position: relative;
+  }
+  .fin-grafico-tip {
+    position: absolute;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-papel);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-tinta);
+    pointer-events: none;
+  }
+  .fin-grafico-tip b {
+    font-weight: 600;
+  }
+  .fin-grafico-tip span {
+    color: var(--color-taupe);
+  }
+  .fin-grafico-barra:focus-visible path {
+    stroke: var(--color-rojo);
+    stroke-width: 2;
+  }
+
+  /* Escenarios: las palancas a la izquierda (un poco más anchas), lo que pasaría a la derecha. */
+  .fin-dos-col.fin-esc {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+  .fin-campo-esc {
+    margin-bottom: 18px;
+  }
+  .fin-campo-esc > label {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-campo-esc > label b {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .fin-campo-esc input[type="range"] {
+    width: 100%;
+    accent-color: var(--color-tinta);
+  }
+  .fin-campo-esc[data-apagado] {
+    opacity: 0.45;
+  }
+  .fin-opcion-esc {
+    margin-top: 10px;
+    padding: 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-hueso);
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--color-tinta);
+    transition: border-color 150ms, background-color 150ms;
+  }
+  .fin-opcion-esc:has(> .fin-opcion-esc-fila input:checked) {
+    border-color: var(--color-tinta);
+    background: var(--color-papel);
+  }
+  .fin-opcion-esc-fila {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin: 0;
+    cursor: pointer;
+  }
+  .fin-opcion-esc-fila input {
+    margin-top: 3px;
+    accent-color: var(--color-tinta);
+    flex: none;
+  }
+  .fin-opcion-esc-fila b {
+    display: block;
+    font-weight: 600;
+  }
+  .fin-opcion-esc-fila small {
+    display: block;
+    font-size: 12.5px;
+    color: var(--color-taupe);
+  }
+  .fin-opcion-esc-campos {
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0 26px;
+  }
+  .fin-conclusiones {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+    padding-left: 18px;
+    list-style: disc;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+  }
+  .fin-conclusiones b {
+    font-weight: 600;
+  }
+
+  @media (max-width: 860px) {
+    .fin-dos-col.fin-esc {
+      grid-template-columns: 1fr;
+    }
+    .fin-tabla.fin-tabla-utilidad {
+      min-width: 0;
+    }
+    .fin-opcion-esc-campos {
+      margin-left: 0;
+    }
+  }
+}
+
+/* ---- F9 · Cierre de mes (ADR-0195; spike `vista-cierre.js`: `.matriz`, `.unidad-c`, `.chequeos`, `.pasos-cierre`) ---- */
+@layer components {
+  /* La matriz: una tarjeta por unidad y, al final, CAYLA entera. `--n` = cuántas tarjetas (hasta 6 en una fila). */
+  .fin-matriz {
+    display: grid;
+    grid-template-columns: repeat(var(--n, 6), minmax(0, 1fr));
+    gap: 10px;
+  }
+  .fin-unidad {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 14px;
+    text-align: left;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-xl);
+    background: var(--color-papel);
+    color: var(--color-tinta);
+  }
+  button.fin-unidad {
+    transition: border-color 150ms;
+  }
+  button.fin-unidad:hover {
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+  button.fin-unidad[aria-pressed="true"] {
+    border-color: var(--color-tinta);
+  }
+  .fin-unidad-n {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+  .fin-unidad-sub {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--color-taupe);
+  }
+  .fin-unidad-h {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-unidad-cons {
+    background: color-mix(in oklab, var(--color-hueso) 45%, var(--color-papel));
+  }
+
+  /* Chequeos: ✓ en verde, «!» en rojo si bloquea el cierre y en ámbar si solo avisa; a la derecha, «Resolver». */
+  .fin-chequeos {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .fin-chequeos li {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    font-size: 13px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-md);
+    background: var(--color-papel);
+  }
+  .fin-chequeos b {
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-chequeos p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+  .fin-ok-ic {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 12px;
+    background: color-mix(in oklab, var(--color-verde) 16%, transparent);
+    color: var(--color-verde);
+  }
+  .fin-ok-ic[data-tono="rojo"] {
+    background: color-mix(in oklab, var(--color-rojo) 12%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  .fin-ok-ic[data-tono="ambar"] {
+    background: color-mix(in oklab, var(--color-ambar) 16%, transparent);
+    color: var(--color-ambar);
+  }
+
+  /* La historia de la unidad en el mes: quién cerró y quién reabrió, con su motivo. */
+  .fin-historia {
+    margin: 14px 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+  .fin-historia li + li {
+    margin-top: 2px;
+  }
+
+  /* La rutina de fin de mes, en una columna. */
+  .fin-pasos-cierre {
+    display: grid;
+    gap: 14px;
+    margin-top: 8px;
+  }
+  .fin-pasos-cierre h3 {
+    margin: 0 0 2px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 19px;
+    color: var(--color-tinta);
+  }
+  .fin-pasos-cierre p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+
+  /* Las dos columnas del spike (`.dos-col.izq`): los chequeos, un poco más anchos que la rutina. */
+  .fin-dos-col.fin-cierre-cols {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  @media (max-width: 1180px) {
+    .fin-matriz {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 860px) {
+    .fin-matriz {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .fin-dos-col.fin-cierre-cols {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-matriz {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* ---- F3b ---- La cuenta sellada: «Decir de qué cuenta fue» (lo pasado, una fila por pago; ADR-0195). */
+@layer components {
+  .fin-sin-cuenta {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+    border-top: 1px solid var(--color-sand);
+  }
+  .fin-sin-cuenta li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px 12px;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--color-sand);
+  }
+  .fin-sin-cuenta-que {
+    min-width: 0;
+  }
+  .fin-sin-cuenta-que b {
+    display: block;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--color-tinta);
+  }
+  .fin-sin-cuenta-que span {
+    display: block;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-sin-cuenta-monto {
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+    color: var(--color-tinta);
+    text-align: right;
+  }
+  @media (min-width: 640px) {
+    .fin-sin-cuenta li {
+      grid-template-columns: minmax(0, 1fr) 6.5rem minmax(11rem, 14rem) auto;
+    }
+  }
+}
+
+/* ---- F7 · Balance (spike `vista-reportes.js` → `vistaBalance`: `.chequeos`, `.balance`, `.guia` + `.aviso-franja`) ---- */
+@layer components {
+  /* La comprobación antes de dibujar: una tarjeta por cuenta, con su ícono, contra qué se compara y la cifra. */
+  .fin-chequeos {
+    display: grid;
+    gap: 8px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-chequeos > li {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: start;
+    padding: 10px 12px;
+    border: 1px solid var(--color-sand);
+    border-radius: var(--radius-lg);
+    background: var(--color-papel);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-chequeos > li > div > b {
+    font-weight: 600;
+  }
+  .fin-chequeos > li > div > p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-chequeos > li > span:last-child {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .fin-chequeos > li[data-estado="no_cuadra"] > span:last-child,
+  .fin-chequeos > li[data-estado="falta"] > span:last-child {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-ok-ic {
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 1;
+    background: color-mix(in oklab, var(--color-verde) 16%, transparent);
+    color: var(--color-verde);
+  }
+  .fin-ok-ic[data-tono="ambar"] {
+    background: color-mix(in oklab, var(--color-ambar) 16%, transparent);
+    color: var(--color-ambar);
+  }
+  .fin-ok-ic[data-tono="rojo"] {
+    background: color-mix(in oklab, var(--color-rojo) 14%, transparent);
+    color: var(--color-rojo-profundo);
+  }
+  /* Por qué no cuadra (o la aclaración): una línea por causa, con su monto. */
+  .fin-causas {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 8px 0 0;
+    border-top: 1px dashed var(--color-sand);
+    display: grid;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-taupe);
+  }
+  .fin-causas li {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .fin-causas li b {
+    font-weight: 500;
+    color: var(--color-tinta);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* El Balance: lo que tiene | lo que debe + lo que es tuyo. */
+  .fin-balance {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .fin-balance h3 {
+    margin: 0 0 8px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--color-tinta);
+  }
+  .fin-balance ul + h3 {
+    margin-top: 18px;
+  }
+  .fin-balance ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .fin-balance li {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) auto;
+    gap: 8px;
+    padding: 8px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-balance li > span:first-child {
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-balance li > span:last-child {
+    text-align: right;
+    white-space: nowrap;
+  }
+  .fin-balance li small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-balance li.fin-balance-tot {
+    font-family: var(--font-serif);
+    font-size: 18px;
+    border-top: 2px solid var(--color-tinta);
+  }
+
+  /* La franja de «Causa probable» dentro de la guía que dice que no cuadra. */
+  .fin-franja {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    align-items: baseline;
+    margin-top: 18px;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--color-ambar) 10%, transparent);
+    border: 1px solid color-mix(in oklab, var(--color-ambar) 28%, transparent);
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--color-tinta);
+  }
+  .fin-franja b {
+    color: var(--color-ambar);
+  }
+
+  /* Los saldos de arranque (modal): tres grupos de líneas y el cuadre al pie. */
+  .fin-arranque-grupo + .fin-arranque-grupo {
+    margin-top: 16px;
+  }
+  .fin-arranque-grupo h4 {
+    margin: 0 0 6px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--color-tinta);
+  }
+  .fin-arranque-linea {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 150px;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 0;
+    border-top: 1px solid var(--color-sand);
+    font-size: 13px;
+    color: var(--color-tinta);
+  }
+  .fin-arranque-linea > span:first-child {
+    font-size: 11.5px;
+    color: var(--color-taupe);
+  }
+  .fin-arranque-linea small {
+    display: block;
+    font-size: 11.5px;
+    color: var(--color-taupe);
+    line-height: 1.4;
+  }
+  .fin-arranque-linea small[data-tono="aviso"] {
+    color: var(--color-ambar);
+  }
+  .fin-arranque-linea output,
+  .fin-arranque-linea input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-arranque-cuadre {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-lg);
+    background: var(--color-hueso);
+    font-size: 13px;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 860px) {
+    .fin-balance {
+      grid-template-columns: 1fr;
+    }
+    /* En angosto, la fecha del Balance baja bajo el título en vez de apretarlo. */
+    .fin-balance-tarjeta .fin-bloque-cab {
+      flex-wrap: wrap;
+      align-items: flex-start;
+    }
+    .fin-arranque-linea {
+      grid-template-columns: 34px minmax(0, 1fr) 120px;
+    }
+  }
+}
+
+/* ---- F10 · Resumen (ADR-0195; spike `vista-resumen.js`: `.salud`, `.frase`, `.cifras.cinco`, `.decidir`, `.impacto`) ---- */
+@layer components {
+  /* La salud en frases: el número grande en serif y, al lado, qué quiere decir. El filete de color dice si va bien. */
+  .fin-salud {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .fin-frase {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 18px 20px;
+    border-radius: var(--radius-xl);
+    background: var(--color-papel);
+    border: 1px solid var(--color-sand);
+    border-left: 4px solid var(--color-taupe);
+  }
+  .fin-frase[data-tono="verde"] {
+    border-left-color: var(--color-verde);
+  }
+  .fin-frase[data-tono="ambar"] {
+    border-left-color: var(--color-ambar);
+  }
+  .fin-frase[data-tono="rojo"] {
+    border-left-color: var(--color-rojo);
+  }
+  .fin-frase[data-tono="pizarra"] {
+    border-left-color: var(--color-pizarra);
+  }
+  .fin-frase > b {
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 30px;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+  }
+  .fin-frase-t {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--color-tinta);
+  }
+  .fin-frase-d {
+    margin: 4px 0 0;
+    font-size: 12.5px;
+    line-height: 1.45;
+    color: var(--color-taupe);
+  }
+
+  /* Cinco cifras en una fila (el spike: `.cifras.cinco`). */
+  .fin-cifras.fin-cinco {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  /* «Para decidir hoy»: lo que está en juego, en tinta, y de qué pantalla sale, en taupe. */
+  .fin-decidir .fin-impacto {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-tinta);
+  }
+  .fin-decidir .fin-aviso {
+    font-size: 13.5px;
+    line-height: 1.35;
+  }
+  .fin-decidir .fin-origen {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--color-taupe);
+  }
+  .fin-decidir .fin-raro {
+    margin-left: 6px;
+    vertical-align: 1px;
+  }
+  .fin-no-revisado {
+    margin: 12px 0 0;
+    padding: 10px 0 0;
+    border-top: 1px solid var(--color-sand);
+    list-style: none;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-taupe);
+  }
+
+  /* «Camino al punto de equilibrio»: la barra de avance, un poco más alta que la del límite de Impuestos. */
+  .fin-umbral-barra.fin-alto {
+    height: 16px;
+  }
+  .fin-pct {
+    font-weight: 600;
+  }
+  .fin-pct[data-tono="rojo"] {
+    color: var(--color-rojo-profundo);
+  }
+  .fin-pct[data-tono="ambar"] {
+    color: var(--color-ambar-profundo);
+  }
+  .fin-pct[data-tono="verde"] {
+    color: var(--color-verde);
+  }
+
+  @media (max-width: 1180px) {
+    .fin-cifras.fin-cinco {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 860px) {
+    .fin-cifras.fin-cinco {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .fin-frase > b {
+      font-size: 24px;
+    }
+  }
+  @media (max-width: 480px) {
+    .fin-cifras.fin-cinco {
+      grid-template-columns: 1fr;
+    }
+  }
+}

@@ -3,6 +3,10 @@ import {
   dejaMenosDelFondo,
   estadoCampana,
   explicarMeta,
+  leerParametrosFinanzas,
+  validarParametrosFinanzas,
+  minutosDeHora,
+  proyeccionAlCierre,
   leerParametrosCaja,
   ordenarCampanas,
   parsearMonto,
@@ -80,6 +84,9 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
       "Lo normal de un lunes es S/ 1,500; por Fiestas Patrias sube 25 %. Rigen 2 campañas: se usa la que más sube.",
     );
     expect(explicarMeta({ ...leerParametrosCaja(fila)!, campanas: [], metaPct: 0, meta: 1500 }, "Jueves", soles)).toBe("Lo normal de un jueves.");
+    expect(explicarMeta({ ...leerParametrosCaja(fila)!, campanas: [], metaPct: 0, meta: 1500 }, "Jueves", soles, "Tienda TRU")).toBe(
+      "Lo normal de un jueves en Tienda TRU. Hoy no rige ninguna campaña.",
+    );
   });
   it("traslado propuesto = contado − fondo, nunca negativo; sin fondo, nada", () => {
     expect(trasladoParaDejarFondo(1030, 300)).toBe(730);
@@ -90,5 +97,24 @@ describe("caja: meta de hoy y fondo al cerrar", () => {
     expect(dejaMenosDelFondo(250, 300)).toBe(true);
     expect(dejaMenosDelFondo(300, 300)).toBe(false);
     expect(dejaMenosDelFondo(10, null)).toBe(false);
+  });
+  it("al ritmo de hoy: lo vendido por hora, por las horas que faltan hasta el cierre", () => {
+    // Abrió 9:00, son las 17:40 (8 h 40 min), vendió S/ 1,120 y cierra a las 21:00 (faltan 3 h 20 min).
+    expect(proyeccionAlCierre({ vendido: 1120, abrioMin: 540, ahoraMin: 1060, cierreMin: 1260 })).toBe(1551);
+    expect(proyeccionAlCierre({ vendido: 1120, abrioMin: 540, ahoraMin: 1060, cierreMin: null })).toBeNull();
+    expect(proyeccionAlCierre({ vendido: 80, abrioMin: 540, ahoraMin: 570, cierreMin: 1260 })).toBeNull(); // media hora abierta
+    expect(proyeccionAlCierre({ vendido: 1500, abrioMin: 540, ahoraMin: 1270, cierreMin: 1260 })).toBeNull(); // ya cerró
+    expect(minutosDeHora("21:00")).toBe(1260);
+    expect(minutosDeHora("9:30")).toBe(570);
+    expect(minutosDeHora("25:00")).toBeNull();
+    expect(minutosDeHora(null)).toBeNull();
+  });
+  it("Caja y avisos: los mismos límites que la base", () => {
+    expect(validarParametrosFinanzas({ minimoCaja: "15,000", avisoGastoPct: "25", avisoVenceDias: "7" })).toEqual({ ok: true, valor: { minimoCaja: 15000, avisoGastoPct: 25, avisoVenceDias: 7 } });
+    expect(validarParametrosFinanzas({ minimoCaja: "-5", avisoGastoPct: "25", avisoVenceDias: "7" }).ok).toBe(false);
+    expect(validarParametrosFinanzas({ minimoCaja: "0", avisoGastoPct: "0", avisoVenceDias: "7" }).ok).toBe(false);
+    expect(validarParametrosFinanzas({ minimoCaja: "0", avisoGastoPct: "25", avisoVenceDias: "61" }).ok).toBe(false);
+    expect(validarParametrosFinanzas({ minimoCaja: "", avisoGastoPct: "25 %", avisoVenceDias: "3" })).toEqual({ ok: true, valor: { minimoCaja: 0, avisoGastoPct: 25, avisoVenceDias: 3 } });
+    expect(leerParametrosFinanzas({ minimo_caja: "15000.00", aviso_gasto_pct: "25.00", aviso_vence_dias: 7 })).toEqual({ minimoCaja: 15000, avisoGastoPct: 25, avisoVenceDias: 7 });
   });
 });
