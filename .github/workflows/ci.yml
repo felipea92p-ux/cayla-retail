@@ -184,6 +184,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:estado-resultados
 
+      # Presupuesto (ADR-0195, capa para decidir): guardar y leer con historial, una sola meta (la de las metas del día),
+      # contra lo real del Estado de resultados, la proyección al cierre, proponer sin guardar y permisos. ROLLBACK.
+      - name: pruebas:presupuesto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:presupuesto
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
