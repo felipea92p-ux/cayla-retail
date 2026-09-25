@@ -15,7 +15,46 @@ export const MQ_TELEFONO = "(pointer: coarse) and (max-width: 639.98px), (pointe
 export const PAUSA_MISMO_CODIGO_MS = 2000;
 
 export type EstadoEscaneo = "agregada" | "agotada" | "tope" | "no-encontrada";
-export type ResultadoEscaneo = { estado: EstadoEscaneo; codigo: string; nombre?: string };
+export type ResultadoEscaneo = {
+  estado: EstadoEscaneo;
+  codigo: string;
+  /** «Blusa Emma · M»: lo que se lee en el aviso. */
+  nombre?: string;
+  /** Lo que muestra la tarjeta que vuela al ticket (ausente si el código no es de ninguna prenda). */
+  prenda?: { referencia: string; detalle: string; precio: number; fotoUrl: string | null };
+};
+
+/** Cuánto dura el vuelo de la tarjeta al ticket, de que aparece a que entra en la bolsa. Son tres tramos, cada uno dentro
+ *  del rango de ADR-0136: aparece (≈200 ms), se deja leer (≈240 ms) y viaja (≈460 ms). */
+export const MS_VUELO = 900;
+/** Una lectura que NO entra al ticket: la tarjeta aparece, se deja leer y se desvanece donde está. */
+export const MS_AVISO = 1100;
+
+/**
+ * El camino de la tarjeta desde el visor hasta la bolsa del ticket (`dx`, `dy`: cuánto hay que moverla), en keyframes de
+ * Web Animations. Aparece creciendo un poco, se queda quieta para que se lea, y viaja en ARCO (primero sube apenas y se va
+ * hacia el costado, después cae a la bolsa) encogiéndose: así se lee «entró ahí», no «se fue». Sin rebote: la escala
+ * nunca pasa de 1.
+ */
+export function keyframesVuelo(dx: number, dy: number): Keyframe[] {
+  return [
+    { offset: 0, transform: "translate3d(0, 10px, 0) scale(0.86)", opacity: 0 },
+    { offset: 0.22, transform: "translate3d(0, 0, 0) scale(1)", opacity: 1 },
+    { offset: 0.49, transform: "translate3d(0, 0, 0) scale(1)", opacity: 1 },
+    { offset: 0.72, transform: `translate3d(${dx * 0.42}px, ${dy * 0.3 - 18}px, 0) scale(0.62)`, opacity: 1 },
+    { offset: 1, transform: `translate3d(${dx}px, ${dy}px, 0) scale(0.14)`, opacity: 0.25 },
+  ];
+}
+
+/** Una lectura que no entra: aparece, se deja leer y sube apagándose en su lugar. */
+export function keyframesAviso(): Keyframe[] {
+  return [
+    { offset: 0, transform: "translate3d(0, 10px, 0) scale(0.92)", opacity: 0 },
+    { offset: 0.2, transform: "translate3d(0, 0, 0) scale(1)", opacity: 1 },
+    { offset: 0.75, transform: "translate3d(0, 0, 0) scale(1)", opacity: 1 },
+    { offset: 1, transform: "translate3d(0, -14px, 0) scale(0.98)", opacity: 0 },
+  ];
+}
 
 /** El texto del QR tal cual lo usaría el lector: sin espacios ni saltos alrededor. */
 export function normalizarLectura(crudo: string): string {

@@ -1170,6 +1170,27 @@ body {
     .cajon-lateral[data-cajon="abierto"] [data-pieza-cajon] { animation: none; }
   }
 
+  /* Escanear con la cámara (Vender en el teléfono, 2026-09-25, EscanerCamara). Tres respuestas a UNA lectura, ninguna
+     en bucle ni con rebote (ADR-0136):
+       · el visor se contrae un instante y vuelve (`.anim-captura`, 360 ms): «lo tengo»;
+       · un destello verde o ámbar dentro del visor se apaga (`.anim-destello`, 420 ms);
+       · la tarjeta de la prenda vuela al ticket — esa vive en el componente (Web Animations), porque el destino se mide
+         en pantalla.
+     Con movimiento reducido no se mueve nada: la bandeja igual dice qué entró. */
+  @keyframes cayla-captura {
+    35% { transform: scale(0.94); }
+  }
+  @keyframes cayla-destello {
+    from { opacity: 0.6; }
+    to { opacity: 0; }
+  }
+  .anim-captura { animation: cayla-captura 360ms var(--ease-cayla); }
+  .anim-destello { animation: cayla-destello 420ms var(--ease-salida) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim-captura, .anim-destello { animation: none; opacity: 0; }
+    .anim-captura { opacity: 1; }
+  }
+
   .anim-velo { animation: cayla-velo 220ms var(--ease-cayla) both; }
   .anim-entrada { animation: cayla-hoja 380ms var(--ease-cayla) both; }
   .anim-revelar { animation: cayla-revelar 240ms var(--ease-cayla) both; }

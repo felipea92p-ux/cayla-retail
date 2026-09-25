@@ -562,13 +562,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const facturaSinRuc = tipoComprobante === "factura" && !clienteNumDoc;
 
   /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
-  function agregar(v: VarianteBusqueda): "agregada" | "agotada" | "tope" | null {
+  /** `silencioso`: la cámara (`EscanerCamara`) ya dice qué pasó en su tarjeta y su bandeja; el aviso de arriba a la derecha
+   *  repetiría lo mismo tapándole la ✕. */
+  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "tope" | null {
     if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
     if (v.stockAqui <= 0) {
-      avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
+      if (!silencioso) avisar.aviso(`${nombreVariante} está agotada`, { detalle: `No hay stock en ${ubicacionEtiqueta}.` });
       setAviso(null);
       setQ("");
       setActivo(0);
@@ -610,7 +612,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     }
     if (tope) {
       resaltarTope(v.varianteId);
-      avisar.aviso(`No hay más de ${nombreVariante}`, {
+      if (!silencioso) avisar.aviso(`No hay más de ${nombreVariante}`, {
         detalle: `En ${ubicacionEtiqueta} quedan ${v.stockAqui} y ya están todas en el ticket.`,
       });
     }
@@ -627,7 +629,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     const v = resolverCodigoV2(codigo, variantesVisibles);
     if (!v) return { estado: "no-encontrada", codigo };
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
-    return { estado: agregar(v) ?? "agotada", codigo, nombre };
+    const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
+    return { estado: agregar(v, { silencioso: true }) ?? "agotada", codigo, nombre, prenda };
   }
 
   function agregarPrendaSinRegistrar(d: DatosPrendaSinRegistrar) {
@@ -1311,6 +1314,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
       {camaraAbierta && (
         <EscanerCamara
           onCodigo={alEscanear}
+          ticket={{ prendas, total }}
           onBuscarPorNombre={() => {
             setCamaraAbierta(false);
             setBuscarPorTexto(true);
