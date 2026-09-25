@@ -130,6 +130,22 @@ export function avisoQuedaronEnAlmacen(nombres: string[], sede: string): AvisoSt
   };
 }
 
+/** El ticket con el piso AL DÍA. Cada línea guarda el piso que había al agregarla (`stockAqui`) y el ticket topa con
+ *  ese número (el +, el máximo, el recorte al escribir la cantidad): si después bajaban más del almacén, el ticket
+ *  seguía topado al piso viejo y pedía bajar lo que ya se había bajado, hasta volver a escanear. Una línea cuya prenda
+ *  no está en `variantes` (una prenda sin registrar) se queda como está. Sin cambios, el MISMO arreglo. */
+export function conPisoAlDia<L extends { varianteId: string; stockAqui: number }>(lineas: L[], variantes: { varianteId: string; stockAqui: number }[]): L[] {
+  const piso = new Map(variantes.map((v) => [v.varianteId, v.stockAqui]));
+  let cambio = false;
+  const nuevas = lineas.map((l) => {
+    const actual = piso.get(l.varianteId);
+    if (actual === undefined || actual === l.stockAqui) return l;
+    cambio = true;
+    return { ...l, stockAqui: actual };
+  });
+  return cambio ? nuevas : lineas;
+}
+
 /** Stock de la caja corregido: `ajustes` pisa `stockAqui` de las prendas que se vendieron o releyeron en esta
  *  pantalla. Devuelve el MISMO arreglo si no hay nada que corregir (los `useMemo` de abajo no se recalculan). */
 export function conStockAjustado<V extends { varianteId: string; stockAqui: number }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {

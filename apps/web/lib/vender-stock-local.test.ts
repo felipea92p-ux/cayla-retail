@@ -8,6 +8,7 @@ import {
   avisoTope,
   cantidadCobrable,
   conAlmacenAjustado,
+  conPisoAlDia,
   conStockAjustado,
   conStockReleido,
   descontarVendido,
@@ -56,6 +57,16 @@ describe("stock de la caja tras vender", () => {
   it("el almacén releído sale de las mismas filas; una prenda que no volvió queda en null", () => {
     const releido = sumarCantidades([piso("a", 1), almacen("a", 5)]);
     expect([...almacenReleido(["a", "b"], releido)]).toEqual([["a", 5], ["b", null]]);
+  });
+
+  it("el ticket topa con el piso de AHORA, no con el que había al agregar la prenda; la prenda sin registrar no cambia", () => {
+    const lineas = [
+      { claveLinea: "a", varianteId: "a", stockAqui: 1, cantidad: 1 },
+      { claveLinea: "manual-1", varianteId: "cargo", stockAqui: 1, cantidad: 1 },
+    ];
+    // Bajaron 2 del almacén: el piso de «a» pasó de 1 a 3.
+    expect(conPisoAlDia(lineas, [{ varianteId: "a", stockAqui: 3 }])).toEqual([{ ...lineas[0], stockAqui: 3 }, lineas[1]]);
+    expect(conPisoAlDia(lineas, [{ varianteId: "a", stockAqui: 1 }])).toBe(lineas);
   });
 
   it("aplica los ajustes y devuelve el mismo arreglo si no hay ninguno", () => {

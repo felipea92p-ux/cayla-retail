@@ -63,6 +63,7 @@ import {
   avisoSinPiso,
   avisoTope,
   conAlmacenAjustado,
+  conPisoAlDia,
   conStockAjustado,
   descontarVendido,
   motivoNoCobrable,
@@ -348,6 +349,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
+  // El ticket topa con el piso de AHORA (`conPisoAlDia`): cada línea guarda el piso de cuando se agregó, y sin esto
+  // seguía topada ahí aunque ya hubieran bajado más del almacén — el + apagado y el aviso pidiendo bajar lo que ya se
+  // bajó. Lo usan el ticket (el +, el máximo) y `cambiarCantidad`; el mismo piso con el que `agregar()` decide el tope.
+  const carritoConPiso = useMemo(() => conPisoAlDia(carrito, variantesVisibles), [carrito, variantesVisibles]);
 
   const categorias = useMemo(() => {
     const vistas = new Set<string>();
@@ -741,13 +746,13 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // El precio lo fija el catálogo: en la caja solo se decide la cantidad (y aparte, un
   // descuento). El «Monto manual» sigue trayendo su propio precio al crear la línea.
   function cambiarCantidad(claveLinea: string, valor: number) {
-    const item = carrito.find((it) => it.claveLinea === claveLinea);
+    const item = carritoConPiso.find((it) => it.claveLinea === claveLinea);
     if (!item) return;
     const cantidad = Math.max(1, Math.min(valor || 1, item.stockAqui));
     if (valor > item.stockAqui) {
       resaltarTope(item.varianteId);
-      // El tope es el piso; si en el almacén hay más, el aviso lo dice (la línea del ticket no guarda el almacén: se
-      // mira en el catálogo de la caja, que está al día).
+      // El tope es el piso de ahora (`carritoConPiso`); si en el almacén hay más, el aviso lo dice (la línea del ticket
+      // no guarda el almacén: se mira en el catálogo de la caja, que está al día).
       const almacenAqui = variantesConOverlay.find((x) => x.varianteId === item.varianteId)?.almacenAqui;
       const { titulo, detalle } = avisoTope({ nombre: item.referencia, sede: ubicacionEtiqueta, stockAqui: item.stockAqui, almacenAqui, quedoEn: true });
       avisar.aviso(titulo, { detalle });
@@ -1322,7 +1327,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
         <PuntoDeVentaTicket
           id="ticket-pos"
           bloqueado={bloqueado}
-          carrito={carrito}
+          carrito={carritoConPiso}
           listaRef={listaTicket}
           onQuitar={quitar}
           onCantidad={cambiarCantidad}
