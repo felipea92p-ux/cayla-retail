@@ -1,24 +1,29 @@
-// Pruebas de la lectura de código de `comparar.mjs`. Sin dependencias: `node --test scripts/datos/comparar-lectura.test.mjs`.
+// Pruebas de la lectura de código de `comparar.mjs`. Sin más dependencia que `typescript` (ya está en la raíz):
+// `node --test scripts/datos/comparar-lectura.test.mjs`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { createRequire } from "node:module";
-import { dirname, join, relative } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { fechaDeLaFoto, nombresEntreComillas, sinComentarios } from "./comparar-lectura.mjs";
+import { esDePrueba, fechaDeLaFoto, nombresEntreComillas, sinComentarios } from "./comparar-lectura.mjs";
 
-const CONOCIDAS = new Set(["desactivar_proveedor", "reactivar_proveedor", "cerrar_periodo", "registrar_activo", "agregar_colaborador", "registrar_venta"]);
+const CONOCIDAS = new Set(["desactivar_proveedor", "reactivar_proveedor", "cerrar_periodo", "registrar_activo", "agregar_colaborador", "registrar_venta", "fn_balance_general"]);
 const nombres = (texto) => nombresEntreComillas(texto, CONOCIDAS).map((x) => x.nombre);
 
 // ---- sinComentarios ------------------------------------------------------------------------------------------------
 
 test("los comentarios de línea y de bloque quedan en blanco, sin mover ninguna posición ni línea", () => {
-  const texto = 'a(1); // uno\n/* dos\n   tres */ b(2);\n';
+  const texto = "a(1); // uno\n/* dos\n   tres */ b(2);\n";
   const limpio = sinComentarios(texto);
   assert.equal(limpio.length, texto.length);
   assert.equal(limpio.split("\n").length, texto.split("\n").length);
   assert.ok(!limpio.includes("uno") && !limpio.includes("dos") && !limpio.includes("tres"));
   assert.ok(limpio.includes("a(1);") && limpio.includes("b(2);"));
+});
+
+test("un comentario JSDoc (`/** … */`) también se quita", () => {
+  const limpio = sinComentarios('/**\n * Ejemplo: `supabase.rpc("abrir_caja", {...})`\n */\nexport const x = 1;\n');
+  assert.ok(!limpio.includes("abrir_caja") && limpio.includes("export const x = 1;"));
 });
 
 test("una «//» dentro de un texto entre comillas NO es un comentario (una URL no se come lo que sigue)", () => {
@@ -27,17 +32,55 @@ test("una «//» dentro de un texto entre comillas NO es un comentario (una URL 
   assert.ok(!limpio.includes("sí es comentario"));
 });
 
-test("un apóstrofo suelto en un texto de pantalla no se «traga» lo que sigue en las demás líneas", () => {
-  // Las comillas simples no cruzan un salto de línea: el daño se acota a esa línea.
-  const limpio = sinComentarios("<p>d'Artagnan</p>\nrpc('cerrar_periodo'); // comentario\n");
-  assert.ok(limpio.includes("rpc('cerrar_periodo');"));
-  assert.ok(!limpio.includes("comentario"));
-});
-
 test("una plantilla puede cruzar líneas y sus «//» tampoco son comentarios", () => {
   const limpio = sinComentarios("const t = `linea 1 // no\nlinea 2`; // sí\n");
   assert.ok(limpio.includes("linea 1 // no") && limpio.includes("linea 2"));
   assert.ok(!limpio.includes("sí"));
+});
+
+// Los casos que ROMPÍAN la primera versión (un recorrido a mano): salen de código real de apps/web.
+
+test("una expresión regular con «//» (foto-perfil.ts) NO abre un comentario: lo de después en la línea se conserva", () => {
+  const limpio = sinComentarios('const re = /^https?:\\/\\//i; rpc("cerrar_periodo"); // nota\n');
+  assert.ok(limpio.includes('rpc("cerrar_periodo")'), "el `rpc` de la misma línea se perdió");
+  assert.ok(!limpio.includes("nota"));
+});
+
+test("el idioma CSV (`/[;\"\\n]/` + plantilla) no desincroniza: un comentario de varias líneas después SÍ se quita", () => {
+  const texto = [
+    "export function celda(s) {",
+    '  return /[;"\\n]/.test(s) ? `"${s.replace(/"/g, \'""\')}"` : s;',
+    "}",
+    "",
+    "// Sale de `fn_balance_general` (esto es un comentario, no una llamada).",
+    "export const otra = 1;",
+    "",
+  ].join("\n");
+  const limpio = sinComentarios(texto);
+  assert.ok(!limpio.includes("fn_balance_general"), "el comentario de después del idioma CSV quedó sin quitar");
+  assert.ok(limpio.includes("export const otra = 1;"));
+});
+
+test("una «/*» dentro de una expresión regular no abre un comentario de bloque que se trague el resto del archivo", () => {
+  const limpio = sinComentarios('const r = /\\/*x/; rpc("cerrar_periodo");\nconst z = 2; // fin\n');
+  assert.ok(limpio.includes('rpc("cerrar_periodo")') && limpio.includes("const z = 2;"));
+});
+
+test("el texto de un JSX no es un comentario, aunque empiece con «//»", () => {
+  const limpio = sinComentarios("export const A = () => <p>// esto se ve en pantalla</p>;\n", "A.tsx");
+  assert.ok(limpio.includes("// esto se ve en pantalla"));
+});
+
+test("ni «/* … */» en el texto de un JSX es un comentario", () => {
+  const limpio = sinComentarios("export const A = () => <p>/* se ve en pantalla */</p>; // sí es comentario\n", "A.tsx");
+  assert.ok(limpio.includes("/* se ve en pantalla */"));
+  assert.ok(!limpio.includes("sí es comentario"));
+});
+
+test("un apóstrofo suelto en el texto de un JSX no se «traga» los comentarios ni el código que sigue", () => {
+  const limpio = sinComentarios("export const A = () => <p>d'Artagnan</p>; // c\nconst x = rpc('cerrar_periodo'); // d\n", "A.tsx");
+  assert.ok(limpio.includes("rpc('cerrar_periodo')"));
+  assert.ok(!limpio.includes("// c") && !limpio.includes("// d"));
 });
 
 // ---- nombresEntreComillas ------------------------------------------------------------------------------------------
@@ -53,7 +96,7 @@ test("un ayudante que recibe el nombre (Cierre de mes): cuenta, con comillas sim
   assert.deepEqual(nombres("llamar(`cerrar_periodo`, {})"), ["cerrar_periodo"]);
 });
 
-test("lo escrito en un comentario NO cuenta, ni con acentos graves (10 de las 29 de la lista solo aparecían en comentarios)", () => {
+test("lo escrito en un comentario NO cuenta, ni con acentos graves (7 de las 29 de la lista solo aparecían en comentarios)", () => {
   assert.deepEqual(nombres("// `agregar_colaborador` ya lo valida antes"), []);
   assert.deepEqual(nombres('/* "registrar_activo" */'), []);
   assert.deepEqual(nombres("/**\n * La base revalida (`registrar_activo`).\n */\nconst x = 1;"), []);
@@ -84,8 +127,33 @@ test("la línea es la del original aunque haya comentarios de bloque antes", () 
   assert.deepEqual(nombresEntreComillas(texto, CONOCIDAS), [{ nombre: "cerrar_periodo", linea: 4 }]);
 });
 
-test("una URL con «//» antes del nombre en la misma línea no lo esconde", () => {
-  assert.deepEqual(nombres('const u = "https://x.pe"; rpc("cerrar_periodo");'), ["cerrar_periodo"]);
+// Los casos donde la primera versión veía lo que no era (falsos positivos) — también de código real.
+
+test("un nombre entre comillas dentro del TEXTO de un JSX no es un texto del código", () => {
+  assert.deepEqual(nombresEntreComillas('export const A = () => <p>"cerrar_periodo"</p>;', CONOCIDAS, "A.tsx"), []);
+});
+
+test("un nombre dentro de una plantilla con más texto (`select 'x'`) no es el nombre solo", () => {
+  assert.deepEqual(nombres("const q = sql`select 'cerrar_periodo'`;"), []);
+});
+
+test("un comentario dentro de un `${ }` no cuenta, y el nombre real sí", () => {
+  assert.deepEqual(nombres('const t = `a ${ /* "cerrar_periodo" */ x }`;'), []);
+  assert.deepEqual(nombres("const t = `a ${ f('cerrar_periodo') }`;"), ["cerrar_periodo"]);
+});
+
+test("el atributo de texto de un JSX sí es un texto del código", () => {
+  assert.deepEqual(nombresEntreComillas('export const A = () => <X fn="cerrar_periodo" />;', CONOCIDAS, "A.tsx"), [{ nombre: "cerrar_periodo", linea: 1 }]);
+});
+
+// ---- esDePrueba ----------------------------------------------------------------------------------------------------
+
+test("las pruebas no son pantallas, con cualquiera de las tres extensiones", () => {
+  assert.equal(esDePrueba("apps/web/lib/x.test.ts"), true);
+  assert.equal(esDePrueba("apps/web/components/X.test.tsx"), true);
+  assert.equal(esDePrueba("apps/web/lib/x.test.mts"), true);
+  assert.equal(esDePrueba("apps/web/lib/x.ts"), false);
+  assert.equal(esDePrueba("apps/web/lib/contest.tsx"), false);
 });
 
 // ---- fechaDeLaFoto -------------------------------------------------------------------------------------------------
@@ -103,59 +171,29 @@ test("sin fecha o con una fecha que no se entiende, null (el informe dice «sin 
   assert.equal(fechaDeLaFoto(""), null);
 });
 
-// ---- El oráculo: el parser de TypeScript -----------------------------------------------------------------------------
+// ---- Con el código real ---------------------------------------------------------------------------------------------
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-let ts = null;
-try {
-  ts = createRequire(join(RAIZ, "package.json"))("typescript");
-} catch {
-  // Sin node_modules (el paso de CI corre aunque falle la instalación): el oráculo se omite, las demás pruebas no.
-}
-
 function archivosDeWeb(dir, acc = []) {
   for (const e of readdirSync(dir)) {
     if (e === "node_modules" || e === ".next" || e.startsWith(".")) continue;
     const r = join(dir, e);
     if (statSync(r).isDirectory()) archivosDeWeb(r, acc);
-    else if (/\.(ts|tsx|mts)$/.test(e) && !/\.test\./.test(e)) acc.push(r);
+    else if (/\.(ts|tsx|mts)$/.test(e)) acc.push(r);
   }
   return acc;
 }
 
-// Las pruebas de arriba son casos que se me ocurrieron a mí. Esta compara el escáner contra quien sí sabe qué es un
-// comentario y qué es un texto en TypeScript —su parser— en CADA archivo real de `apps/web`. Si el repo cambia y aparece
-// un caso que el escáner lee mal (un literal de expresión regular con una comilla, por ejemplo), falla aquí y dice cuál,
-// en vez de dejar que `DRIFT.md` diga «sobra» de una función en uso, o «se usa» de una que solo está en un comentario.
-test("el escáner coincide con el parser de TypeScript en todos los archivos de apps/web", { skip: ts ? false : "typescript no está instalado" }, () => {
-  const conocidas = new Set(
-    readFileSync(join(RAIZ, "docs", "datos", "generado", "funciones-produccion.txt"), "utf8")
-      .split("\n")
-      .map((l) => (l.match(/^([a-z0-9_]+)\(/i) || [])[1])
-      .filter(Boolean),
-  );
-  assert.ok(conocidas.size > 100, "la foto de funciones de producción no se pudo leer");
-
-  const porParser = (ruta, texto) => {
-    const sf = ts.createSourceFile(ruta, texto, ts.ScriptTarget.Latest, true, ruta.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
-    const vistos = new Set();
-    const visita = (n) => {
-      if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && conocidas.has(n.text)) vistos.add(n.text);
-      ts.forEachChild(n, visita);
-    };
-    visita(sf);
-    return vistos;
-  };
-
+// Lo que el resto del script da por hecho: que las posiciones no se muevan (el número de línea de cada llamada se saca
+// del texto original) y que leer cualquier archivo real no falle. Recorre TODOS los de apps/web.
+test("en cada archivo real de apps/web, quitar comentarios conserva la longitud y las líneas", () => {
   const archivos = archivosDeWeb(join(RAIZ, "apps", "web"));
   assert.ok(archivos.length > 100, "no se encontraron los archivos de apps/web");
-  const diferencias = [];
+  const mal = [];
   for (const ruta of archivos) {
     const texto = readFileSync(ruta, "utf8");
-    const mio = new Set(nombresEntreComillas(texto, conocidas).map((x) => x.nombre));
-    const parser = porParser(ruta, texto);
-    for (const n of mio) if (!parser.has(n)) diferencias.push(`«${n}» en ${relative(RAIZ, ruta)}: el escáner lo ve entre comillas y el parser NO (¿un comentario o un texto suelto? taparía una función que sobra)`);
-    for (const n of parser) if (!mio.has(n)) diferencias.push(`«${n}» en ${relative(RAIZ, ruta)}: el parser lo ve y el escáner NO (dejaría una función en uso como «sin llamada»)`);
+    const limpio = sinComentarios(texto, ruta);
+    if (limpio.length !== texto.length || limpio.split("\n").length !== texto.split("\n").length) mal.push(ruta.replace(RAIZ + "/", ""));
   }
-  assert.deepEqual(diferencias, [], `El escáner de comparar-lectura.mjs discrepa del parser de TypeScript:\n  ${diferencias.slice(0, 10).join("\n  ")}`);
+  assert.deepEqual(mal, [], `Estos archivos cambian de largo o de líneas al quitar los comentarios:\n  ${mal.slice(0, 10).join("\n  ")}`);
 });

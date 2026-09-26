@@ -9,93 +9,82 @@
  *
  * LA REGLA. Un nombre de función de producción que aparece ENTRE COMILLAS en código de una pantalla (no en un
  * comentario ni en una prueba) cuenta como usado: no se puede leer qué parámetros manda, pero la pantalla lo nombra.
- * Por eso hay que ignorar los comentarios: un comentario que cita `agregar_colaborador` entre acentos graves NO usa la
- * función, y contarlo taparía a una función que de verdad sobra.
+ * Por eso hay que ignorar los comentarios: uno que cita `agregar_colaborador` entre acentos graves NO usa la función,
+ * y contarlo taparía a una función que de verdad sobra.
  *
- * LÍMITES (conocidos, a propósito): no entiende literales de expresión regular (`/["']/`); si uno trae una comilla,
- * el daño se acota a esa línea (las comillas simples y dobles no cruzan saltos de línea). Y una plantilla con `${…}`
- * se lee como un solo texto: un nombre escrito DENTRO de la expresión no se ve.
+ * POR QUÉ CON EL PARSER DE TYPESCRIPT Y NO A MANO. La primera versión leía el texto con un recorrido propio y se
+ * equivocaba en código real: un literal de expresión regular con `//` (`/^https?:\/\//i`) lo tomaba por un comentario, y
+ * el idioma CSV `/[;"\n]/.test(s) ? `"…"` : s` desincronizaba el estado de las plantillas y dejaba comentarios sin
+ * quitar varias líneas después. Distinguir un comentario de una expresión regular, de un texto o de una plantilla
+ * es justo el trabajo del parser, y ya está en el repo (dependencia de la raíz): aquí no se reescribe.
  */
+import { createRequire } from "node:module";
+
+let ts;
+try {
+  ts = createRequire(import.meta.url)("typescript");
+} catch {
+  throw new Error("comparar-lectura.mjs necesita `typescript` (dependencia de la raíz del repo): corre `pnpm install`.");
+}
+
+/** Las pruebas no son pantallas: ni sus llamadas ni sus menciones cuentan como «la pantalla usa la función». */
+export function esDePrueba(ruta) {
+  return /\.test\.(ts|tsx|mts)$/.test(ruta);
+}
+
+function parsear(texto, ruta) {
+  const tipo = ruta.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  return ts.createSourceFile(ruta, texto, ts.ScriptTarget.Latest, true, tipo);
+}
+
+const esDeJSDoc = (n) => n.kind >= ts.SyntaxKind.FirstJSDocNode && n.kind <= ts.SyntaxKind.LastJSDocNode;
 
 /**
- * El texto con los comentarios reemplazados por espacios. Conserva la longitud y los saltos de línea, así una
- * posición en el resultado es la misma posición en el original (los números de línea no se mueven).
- * Una `//` dentro de un texto entre comillas (`"https://…"`) no es un comentario.
+ * El texto con los comentarios reemplazados por espacios. Conserva la longitud y los saltos de línea, así una posición
+ * en el resultado es la misma posición en el original (los números de línea no se mueven).
+ *
+ * Cómo: lo que hay entre el final de un token y el principio del siguiente es SOLO espacio y comentarios (el parser lo
+ * llama «trivia»). Se recorren todos los tokens y en cada trivia se borra lo que no sea espacio. Un `//` dentro de un
+ * texto, de una plantilla o de una expresión regular no es trivia de nadie, así que no se toca.
  */
-export function sinComentarios(texto) {
-  let salida = "";
-  let i = 0;
-  const n = texto.length;
-  const blanco = (s) => s.replace(/[^\n]/g, " ");
-
-  while (i < n) {
-    const c = texto[i];
-    const d = texto[i + 1];
-
-    if (c === "/" && d === "/") {
-      let j = i;
-      while (j < n && texto[j] !== "\n") j++;
-      salida += blanco(texto.slice(i, j));
-      i = j;
-      continue;
+export function sinComentarios(texto, ruta = "archivo.tsx") {
+  const sf = parsear(texto, ruta);
+  const salida = texto.split("");
+  const blanquear = (desde, hasta) => {
+    for (let i = desde; i < hasta; i++) if (!/\s/.test(salida[i])) salida[i] = " ";
+  };
+  const visita = (nodo) => {
+    if (esDeJSDoc(nodo)) return; // su texto es un comentario: lo borra la trivia del token que le sigue
+    const hijos = nodo.getChildren(sf);
+    if (hijos.length === 0) {
+      // (Para el texto de un JSX —`<p>// no es un comentario</p>`— `getStart` ya no salta lo que parece un comentario.)
+      blanquear(nodo.pos, nodo.getStart(sf));
+      return;
     }
-    if (c === "/" && d === "*") {
-      const fin = texto.indexOf("*/", i + 2);
-      const j = fin === -1 ? n : fin + 2;
-      salida += blanco(texto.slice(i, j));
-      i = j;
-      continue;
-    }
-    if (c === '"' || c === "'") {
-      // Comillas simples y dobles: terminan en la misma comilla o en el salto de línea (nunca cruzan una línea; así un
-      // apóstrofo suelto en un texto de pantalla no se «traga» lo que sigue).
-      let j = i + 1;
-      while (j < n && texto[j] !== c && texto[j] !== "\n") {
-        if (texto[j] === "\\") j++;
-        j++;
-      }
-      const fin = j < n && texto[j] === c ? j + 1 : j;
-      salida += texto.slice(i, fin);
-      i = fin;
-      continue;
-    }
-    if (c === "`") {
-      // Plantilla: puede cruzar líneas y termina en el acento grave sin escapar.
-      let j = i + 1;
-      while (j < n && texto[j] !== "`") {
-        if (texto[j] === "\\") j++;
-        j++;
-      }
-      const fin = j < n ? j + 1 : n;
-      salida += texto.slice(i, fin);
-      i = fin;
-      continue;
-    }
-    salida += c;
-    i++;
-  }
-  return salida;
+    for (const h of hijos) visita(h);
+  };
+  visita(sf);
+  return salida.join("");
 }
 
 /**
- * Los nombres de `conocidos` (un `Set` de nombres de función de producción) que aparecen entre comillas en el código
- * de `texto` —no en comentarios—, con la línea de su PRIMERA aparición. `[{ nombre, linea }]`, en orden de aparición.
- *
- * «Entre comillas» es el nombre completo y solo el nombre: `"registrar_activo"`, `'registrar_activo'` o
- * `` `registrar_activo` ``. `"registrar_activo_x"` o `"la función registrar_activo"` no cuentan.
+ * Los nombres de `conocidos` (un `Set` de nombres de función de producción) que aparecen como un TEXTO entre comillas en
+ * el código de `texto` (`"x"`, `'x'` o `` `x` `` sin partes), con la línea de su PRIMERA aparición: `[{ nombre, linea }]`,
+ * en orden de aparición. Un comentario, el texto de un JSX o el pedazo de una plantilla con más cosas NO cuentan; y
+ * «el nombre completo y solo el nombre»: `"registrar_activo_x"` o `"la función registrar_activo"` tampoco.
  */
-export function nombresEntreComillas(texto, conocidos) {
-  const limpio = sinComentarios(texto);
+export function nombresEntreComillas(texto, conocidos, ruta = "archivo.tsx") {
+  const sf = parsear(texto, ruta);
   const vistos = new Set();
   const encontrados = [];
-  const re = /(["'`])([a-z][a-z0-9_]*)\1/g;
-  let m;
-  while ((m = re.exec(limpio)) !== null) {
-    const nombre = m[2];
-    if (!conocidos.has(nombre) || vistos.has(nombre)) continue;
-    vistos.add(nombre);
-    encontrados.push({ nombre, linea: limpio.slice(0, m.index).split("\n").length });
-  }
+  const visita = (nodo) => {
+    if (ts.isStringLiteralLike(nodo) && conocidos.has(nodo.text) && !vistos.has(nodo.text)) {
+      vistos.add(nodo.text);
+      encontrados.push({ nombre: nodo.text, linea: sf.getLineAndCharacterOfPosition(nodo.getStart(sf)).line + 1 });
+    }
+    ts.forEachChild(nodo, visita);
+  };
+  visita(sf);
   return encontrados;
 }
 

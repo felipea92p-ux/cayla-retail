@@ -8,82 +8,87 @@
 
 ---
 
-## Roto en producción — 8
+## Llamadas sin respaldo en la foto de producción — 8
 
-### `editar_marca` — no existe
+Cada entrada es una llamada que **la foto no respalda**: la función no aparece, o la app manda un parámetro que la foto no
+tiene. **No es lo mismo que «pantalla rota»**: una función creada o cambiada después de la foto sale aquí aunque en
+producción ya esté bien. Confirmarlo antes de actuar:
+
+```sql
+select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname = '<nombre>';
+```
+
+Si la foto está vieja, refrescarla (`docs/datos/generado/COMO-REFRESCAR.md`). Si la entrada dice «Definida en», esa migración
+la crea: o es posterior a la foto, o todavía no se ha pegado en producción.
+
+### `editar_marca` — no está en la foto
 
 **Dónde:** `apps/web/components/EditarMarcaModal.tsx:84`
-**Qué pasa:** la función `editar_marca` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `editar_marca` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260926150000_editar_marca.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_actividad` — no existe
+### `fn_actividad` — no está en la foto
 
 **Dónde:** `apps/web/components/actividad/ListaActividad.tsx:43`
-**Qué pasa:** la función `fn_actividad` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_actividad` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260926090000_actividad_por_modulo.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_actividad_personas` — no existe
+### `fn_actividad_personas` — no está en la foto
 
 **Dónde:** `apps/web/components/actividad/PantallaActividad.tsx:37`
-**Qué pasa:** la función `fn_actividad_personas` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_actividad_personas` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260926090000_actividad_por_modulo.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_calidad` — no existe
+### `fn_calidad` — no está en la foto
 
 **Dónde:** `apps/web/lib/calidad.ts:56`
-**Qué pasa:** la función `fn_calidad` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_calidad` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260918192000_panel_calidad.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_calidad_danadas` — no existe
+### `fn_calidad_danadas` — no está en la foto
 
 **Dónde:** `apps/web/lib/calidad.ts:57`
-**Qué pasa:** la función `fn_calidad_danadas` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_calidad_danadas` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260918192000_panel_calidad.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_comercial_sedes` — no existe
+### `fn_comercial_sedes` — no está en la foto
 
 **Dónde:** `apps/web/lib/comercial.ts:62`
-**Qué pasa:** la función `fn_comercial_sedes` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_comercial_sedes` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260918191000_panel_comercial.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_comercial_horas` — no existe
+### `fn_comercial_horas` — no está en la foto
 
 **Dónde:** `apps/web/lib/comercial.ts:63`
-**Qué pasa:** la función `fn_comercial_horas` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_comercial_horas` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260918191000_panel_comercial.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
-### `fn_comercial_colaboradoras` — no existe
+### `fn_comercial_colaboradoras` — no está en la foto
 
 **Dónde:** `apps/web/lib/comercial.ts:64`
-**Qué pasa:** la función `fn_comercial_colaboradoras` no existe en producción
-**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
-**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+**Qué pasa:** la función `fn_comercial_colaboradoras` no está en la foto de producción (2026-09-25 16:09 UTC)
+**Definida en:** `supabase/migrations/20260918191000_panel_comercial.sql` (posterior a la foto, o sin pegar aún en producción)
+**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.
 
 ## Sobrecargas — 0
 
 Ninguna. Cada función tiene una sola firma en producción.
-## Avisos — 32
 
-- `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:88` — no manda `p_motivo` (normal si tienen valor por defecto)
-- `actualizar_categoria_ejes` · `apps/web/app/api/productos/categorias/ejes/route.ts:26` — no manda `p_talla_habitual_ids` (normal si tienen valor por defecto)
-- `abrir_caja` · `apps/web/components/AbrirCajaFormV2.tsx:53` — no manda `p_motivo_diferencia` (normal si tienen valor por defecto)
-- `cerrar_caja` · `apps/web/components/CerrarCajaModalV2.tsx:176` — no manda `p_traslado_destino` (normal si tienen valor por defecto)
+## Avisos — 24
+
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
-- `crear_devolucion` · `apps/web/components/DevolucionesFlujo.tsx:232` — no manda `p_motivo_codigo` (normal si tienen valor por defecto)
 - `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:602` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
 - `recibir_insumo` · `apps/web/components/InsumoModales.tsx:151` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_consumo_insumo` · `apps/web/components/OrdenInsumos.tsx:124` — no manda `p_nota` (normal si tienen valor por defecto)
 - `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:154` — no manda `p_nota` (normal si tienen valor por defecto)
-- `guardar_proveedor_produccion` · `apps/web/components/ProveedorProduccionModal.tsx:85` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:67` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
-- `registrar_serie_comprobante` · `apps/web/components/SeriesPanel.tsx:92` — no manda `p_siguiente_numero` (normal si tienen valor por defecto)
 - `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:161` — no manda `p_contacto`, `p_rubro`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
 - `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:251` — no manda `p_clienta_id` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:280` — no manda `p_estados` (normal si tienen valor por defecto)
@@ -101,14 +106,14 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `fn_campanas_reporte` · `apps/web/lib/resultados.ts:27` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `crear_rol` · `apps/web/lib/roles-acciones.ts:26` — no manda `p_descripcion` (normal si tienen valor por defecto)
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:37` — no manda `p_texto`, `p_estados` (normal si tienen valor por defecto)
-- `actualizar_transmision_comprobante` · `apps/web/lib/transmitir-comprobante.ts:170` — no manda `p_entorno`, `p_motivo_rechazo` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:166` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 50
+## No analizadas — 49
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un
 `.rpc("…")` directo (un ternario, un ayudante), así que no se pueden revisar leyendo el texto.
-**No están aprobadas: están sin revisar.**
+**No están aprobadas: están sin revisar.** Y una llamada indirecta a una función que NO existe en producción no se ve aquí:
+solo se buscan los nombres que la foto conoce.
 
 - `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:179` — el objeto se arma con «...», no se puede leer entero
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:65` — el objeto se arma con «...», no se puede leer entero
@@ -150,7 +155,6 @@ Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla n
 - `fn_movimientos_resumen` · `apps/web/lib/movimientos-v2.ts:227` — los parámetros no van escritos ahí mismo
 - `fn_facturas_para_nota_credito` · `apps/web/lib/notas-credito.ts:148` — el objeto se arma con «...», no se puede leer entero
 - `asignar_rol` · `apps/web/lib/roles-acciones.ts:50` — el objeto se arma con «...», no se puede leer entero
-- `abrir_caja` · `apps/web/lib/useResponsable.ts:26` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos_por_categoria` · `apps/web/app/(app)/productos/categorias/page.tsx:42` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
 - `reactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
 - `desactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
@@ -163,16 +167,23 @@ Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla n
 
 ## Funciones sin llamada detectada desde `apps/web` — 21
 
-Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")`
-directo ni de otra forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito).
-**Esto NO prueba que sobren.** Cada una puede ser:
+Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
+forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
+una puede ser:
 
-- una función que **llama otra función o un disparador** de la base (aquí no se leen los cuerpos SQL);
-- una que llama **un script o Dynamic**, no una pantalla;
+- una función **a la que llama otra función o un disparador** de la base (aquí no se leen los cuerpos SQL);
+- una que **usa un script o Dynamic** desde fuera, no una pantalla;
+- una **herramienta de mantenimiento que se corre a mano** desde el SQL Editor (p. ej. `recalcular_stock`, `archivar_*_prueba`);
+- una función **retirada o de legado** que sigue en la base;
 - una **pantalla que falta construir**;
 - o una función que de verdad **sobra**.
 
-Antes de retirar una, buscar quién la usa (`git grep`, los cuerpos de las demás funciones y los disparadores).
+Antes de retirar una, buscar quién la usa (`git grep` y, en producción, los cuerpos de las demás funciones y los disparadores):
+
+```sql
+select p.proname from pg_proc p
+ where p.pronamespace = 'retail'::regnamespace and p.proname <> '<nombre>' and p.prosrc ~ ('\m' || '<nombre>' || '\M');
+```
 
 - `agregar_colaborador`
 - `agregar_comprador_de_tienda`
