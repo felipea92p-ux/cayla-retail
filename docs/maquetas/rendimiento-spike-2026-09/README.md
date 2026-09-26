@@ -3,23 +3,23 @@
 `rendimiento-spike.html` es autocontenido: el logo va dentro del archivo. Ábrelo en el navegador.
 **Datos inventados**: ningún nombre ni cifra es real. **No es una implementación**: no toca la web ni la base. Las
 decisiones que dibuja están en el acta [`DECISIONES-2026-09-26-rendimiento.md`](../../datos/DECISIONES-2026-09-26-rendimiento.md)
-(D-92 a D-108) y el diseño técnico en [ADR-0219](../../adr/0219-rendimiento-ventas-de-cada-persona.md).
+(D-112 a D-128) y el diseño técnico en [ADR-0219](../../adr/0219-rendimiento-ventas-de-cada-persona.md).
 
 ## Qué muestra
 
 | Bloque | Qué responde | Decisión |
 |---|---|---|
-| Menú lateral | «Rendimiento» es la última entrada, después de Finanzas | D-108 |
-| Cabecera (`CabeceraPantalla`) | ¿qué mes y qué tienda estoy viendo? Hay píldoras de mes y, solo para el Admin, de tienda | D-93, D-95 |
-| Cifras (`TarjetaCifra`) | ¿cómo va la tienda contra su meta del mes? ¿cuántas vendieron y cuántas tienen «muestra chica»? | D-105, D-95 |
-| Dos rankings lado a lado | «Vende más por hora» (soles por hora trabajada) y «Cierra más ventas» (número de ventas). Muestran el número de ventas y las insignias «Encargada», «Muestra chica» y «Sin horas» | D-101, D-96, D-95 |
-| «Todas», para el Admin | Un bloque por tienda, cada uno con su meta y sus dos rankings; nunca un ranking mezclado | D-104 |
-| Tabla «Todas las cifras» | Todas las cifras, con cuadre de caja y bajada al piso. Se ordena por cualquiera, desde «Ordenar por» o tocando el título de la columna. Cada tienda tiene su fila de total | D-101, D-102 |
-| Ficha de una persona | Comparada con su tienda (6 cifras), su evolución en 6 meses, qué vende (categorías y prendas) y sus ventas una por una | D-103 |
-| «Corregir quién atendió» | Modal con el movimiento de `<Modal>` (ADR-0136): a quién pasa la venta, el motivo de una lista y el responsable que firma. Después sale el aviso de éxito | D-97 |
-| El candado propuesto | La encargada no puede darse una venta (su nombre aparece deshabilitado) ni corregir una venta suya (aparece una ventana que explica por qué). **Es propuesta y espera el ok de Felipe** | D-97, objeción del ADR-0219 |
+| Menú lateral | «Rendimiento» es la última entrada, después de Finanzas | D-128 |
+| Cabecera (`CabeceraPantalla`) | ¿qué mes y qué tienda estoy viendo? Hay píldoras de mes y, solo para el Admin, de tienda | D-113, D-115 |
+| Cifras (`TarjetaCifra`) | ¿cómo va la tienda contra su meta del mes? ¿cuántas vendieron y cuántas tienen «muestra chica»? | D-125, D-115 |
+| Dos rankings lado a lado | «Vende más por hora» (soles por hora trabajada) y «Cierra más ventas» (número de ventas). Muestran el número de ventas y las insignias «Encargada», «Muestra chica» y «Sin horas» | D-121, D-116, D-115 |
+| «Todas», para el Admin | Un bloque por tienda, cada uno con su meta y sus dos rankings; nunca un ranking mezclado | D-124 |
+| Tabla «Todas las cifras» | Todas las cifras, con cuadre de caja y bajada al piso. Se ordena por cualquiera, desde «Ordenar por» o tocando el título de la columna. Cada tienda tiene su fila de total | D-121, D-122 |
+| Ficha de una persona | Comparada con su tienda (6 cifras), su evolución en 6 meses, qué vende (categorías y prendas) y sus ventas una por una | D-123 |
+| «Corregir quién atendió» | Modal con el movimiento de `<Modal>` (ADR-0136): a quién pasa la venta, el motivo de una lista y el responsable que firma. Después sale el aviso de éxito | D-117 |
+| El candado propuesto | La encargada no puede darse una venta (su nombre aparece deshabilitado) ni corregir una venta suya (aparece una ventana que explica por qué). **Es propuesta y espera el ok de Felipe** | D-117, objeción del ADR-0219 |
 | Agosto | Vacío honesto: el ERP guarda quién atendió desde el 22-sep; los meses anteriores no se inventan | — |
-| Sin acceso | La colaboradora no ve la entrada (y por URL cae en «Sin acceso»); el Líder que no es Admin y no tiene tienda tampoco | D-93 |
+| Sin acceso | La colaboradora no ve la entrada (y por URL cae en «Sin acceso»); el Líder que no es Admin y no tiene tienda tampoco | D-113 |
 
 ## Cómo probarlo
 
@@ -49,7 +49,7 @@ decisiones que dibuja están en el acta [`DECISIONES-2026-09-26-rendimiento.md`]
 
 ## Abierto antes de construir
 
-- **El candado de D-97** (objeción del ADR-0219): Felipe decide. El spike lo muestra encendido.
+- **El candado de D-117** (objeción del ADR-0219): Felipe decide. El spike lo muestra encendido.
 - **Tienda de la pantalla y sede de la cabecera.** Para el Admin, el spike abre en «Todas» e ignora la sede elegida
   arriba. ¿Así, o abre en la sede de la cabecera?
 - **Ficha: «Ver las N en Historial».** Hoy el filtro por vendedora del Historial es solo para líderes: o se abre a la

@@ -2,14 +2,19 @@
 
 **Quién decide:** Felipe, en 5 bloques de 4 preguntas (`AskUserQuestion`, la opción recomendada primero), durante la
 sesión de la rama `claude/performance-module-ranking-2c657d`. Antes de responder, Felipe lo habló con **el gerente**.
-Continúa la numeración de [`DECISIONES-2026-09-21-menu-comercial.md`](DECISIONES-2026-09-21-menu-comercial.md), que
-llega hasta D-91. **Este acta manda sobre aquel en lo que cambia** (D-64, D-66, D-68): allí quedó una nota fechada
-debajo de cada uno, sin borrar el texto original.
+Continúa la numeración después de la ronda de Clientas del mismo día
+([`DECISIONES-2026-09-26-clientas.md`](DECISIONES-2026-09-26-clientas.md), D-92 a D-111), que a su vez sigue a
+[`DECISIONES-2026-09-21-menu-comercial.md`](DECISIONES-2026-09-21-menu-comercial.md) (hasta D-91). **Este acta manda sobre la del
+21-sep en lo que cambia** (D-64, D-66, D-68): allí quedó una nota fechada debajo de cada una, sin borrar el texto original.
+
+**Números corridos el mismo día.** Estas decisiones se escribieron primero como D-92 a D-108. Antes de publicar este
+acta, `main` ya había recibido el acta de Clientas con D-92 a D-111: dos sesiones paralelas numeraron a la vez. Se
+corrieron a **D-112 a D-128**. El commit `868cf35d` de la rama todavía muestra la numeración vieja.
 
 **El pedido, en palabras de Felipe:** un módulo de desempeño, al final del menú lateral, para ver quién vende más, «como
 una especie de ranking de rendimiento», con otros parámetros además de la venta. El Admin ve a todo el mundo y filtra por
 sede o por parámetro; la encargada ve solo su tienda; la colaboradora ve cómo va ella. **La tercera parte cambió durante
-la ronda:** ver D-93.
+la ronda:** ver D-113.
 
 **Dónde sigue:** el diseño técnico está en [ADR-0219](../adr/0219-rendimiento-ventas-de-cada-persona.md) y la
 referencia visual en [`docs/maquetas/rendimiento-spike-2026-09/`](../maquetas/rendimiento-spike-2026-09/). Nada está
@@ -68,11 +73,11 @@ meses. Se le dijo a Felipe y se volvió a preguntar en la 5, con el dato correct
 
 ## Decisiones
 
-**D-92 · Para qué sirve** → **reconocer y acompañar. Sin dinero, y no está en planes** (confirma D-65). Las cifras sirven
+**D-112 · Para qué sirve** → **reconocer y acompañar. Sin dinero, y no está en planes** (confirma D-65). Las cifras sirven
 para felicitar a quien va arriba y para detectar qué le falta a cada persona: pocas prendas por venta, mucho descuento o
 poca venta por hora. No sirven para pagar. *(Preguntas 1 y 2.)*
 
-**D-93 · Quién ve el módulo** → **por ahora, las colaboradoras no lo ven**, ni siquiera sus propias cifras. Felipe,
+**D-113 · Quién ve el módulo** → **por ahora, las colaboradoras no lo ven**, ni siquiera sus propias cifras. Felipe,
 después de hablar con el gerente: «esto generaría más caos actualmente». Lo ven dos niveles:
 - **Los 5 Admin ven todas las tiendas.** Los 3 Líderes que no son Admin no tienen tienda asignada, así que no ven la
   entrada del menú.
@@ -81,57 +86,57 @@ después de hablar con el gerente: «esto generaría más caos actualmente». Lo
 Una terminal compartida nunca lo ve. **Cambia D-68 y deja en pausa el top 3 visible entre compañeras de D-66.**
 *(Preguntas 3 y 7.)*
 
-**D-94 · Quién es la encargada** → quien tiene un **rol de Roles y accesos con el módulo encendido**. Ve la tienda a la
+**D-114 · Quién es la encargada** → quien tiene un **rol de Roles y accesos con el módulo encendido**. Ve la tienda a la
 que está asignada (`ubicacion_asignada_id`). No se lee el `supervisor_sede` de Dynamic: el acceso lo decide el líder en
 retail, como en todo módulo (ADR-0161). Y no se construye D-69 para esto. *(Pregunta 6.)*
 
-**D-95 · Período** → **mes calendario, con la muestra a la vista.** Cada persona lleva al lado su número de ventas y la
+**D-115 · Período** → **mes calendario, con la muestra a la vista.** Cada persona lleva al lado su número de ventas y la
 marca «muestra chica» cuando tiene menos de 40, que es el umbral de D-66. La ventana de 3 meses de D-66 no se usa.
 *(Preguntas 4 y 5.)*
 
-**D-96 · La encargada en el ranking** → **entra si vende**, marcada como encargada. Si no vende, no aparece.
+**D-116 · La encargada en el ranking** → **entra si vende**, marcada como encargada. Si no vende, no aparece.
 *(Pregunta 8.)*
 
-**D-97 · Corregir quién atendió** → **la encargada lo corrige, con motivo.** Queda registrado quién lo cambió, cuándo y
+**D-117 · Corregir quién atendió** → **la encargada lo corrige, con motivo.** Queda registrado quién lo cambió, cuándo y
 por qué, y el dato original no se borra. D-65 ya pedía guardar las reasignaciones. **Pendiente de Felipe** (objeción del
 ADR-0219): la encargada no puede darse una venta ni quitarse una suya; esas las corrige el Admin, igual que en
 devoluciones, donde quien la registra no la aprueba (ADR-0177). Si Felipe no responde, se construye con ese candado.
 *(Pregunta 9.)*
 
-**D-98 · Apartados** → la venta es **de quien lo apartó**, que es como ya funciona `entregar_separacion`.
+**D-118 · Apartados** → la venta es **de quien lo apartó**, que es como ya funciona `entregar_separacion`.
 *(Pregunta 10.)*
 
-**D-99 · Venta atendida entre dos** → **se la lleva una sola**, la que la cerró. No se agrega un paso al cobro en hora
+**D-119 · Venta atendida entre dos** → **se la lleva una sola**, la que la cerró. No se agrega un paso al cobro en hora
 punta (R-14). *(Pregunta 11.)*
 
-**D-100 · WhatsApp y redes** → **cuentan igual, para quien atendió el chat.** Si una sola persona atiende todos los
+**D-120 · WhatsApp y redes** → **cuentan igual, para quien atendió el chat.** Si una sola persona atiende todos los
 chats, su cifra destaca y la encargada debe saber por qué. Separar el canal (R-42) queda fuera. *(Pregunta 12.)*
 
-**D-101 · Cómo se ordena** → **dos rankings lado a lado**: «Vende más por hora» (soles por hora trabajada, con las horas
+**D-121 · Cómo se ordena** → **dos rankings lado a lado**: «Vende más por hora» (soles por hora trabajada, con las horas
 de la asistencia de Dynamic) y «Cierra más ventas» (número de ventas). Así se reconoce a quien vende grande y a quien
 atiende a muchas clientas, más de una categoría como pedía D-66. La tabla de abajo tiene todas las cifras y se ordena
 por cualquiera: es el «filtrar por campo de desempeño» del pedido. *(Pregunta 13.)*
 
-**D-102 · Además de la venta** → **cuadre de caja al cerrar** (faltantes y sobrantes de las cajas que cerró) y **bajada al
+**D-122 · Además de la venta** → **cuadre de caja al cerrar** (faltantes y sobrantes de las cajas que cerró) y **bajada al
 piso a tiempo** (unidades que bajó y cuántas tarde). Asistencia, puntualidad y apartados concretados quedaron fuera.
 *(Pregunta 14.)*
 
-**D-103 · Ficha de cada persona** → qué categorías y prendas vende, su evolución mes a mes, sus ventas una por una (con
+**D-123 · Ficha de cada persona** → qué categorías y prendas vende, su evolución mes a mes, sus ventas una por una (con
 «Corregir quién atendió») y cada cifra comparada con la de su tienda. *(Pregunta 15.)*
 
-**D-104 · Todas las tiendas** → **agrupado por tienda**, nunca un ranking mezclado: TRU vende unas 2,5 veces lo que AQP
+**D-124 · Todas las tiendas** → **agrupado por tienda**, nunca un ranking mezclado: TRU vende unas 2,5 veces lo que AQP
 por el tráfico de la tienda, no por el equipo. *(Pregunta 16.)*
 
-**D-105 · Metas por persona** → **todavía no** (D-64 sigue sin construir). El módulo muestra el avance de la tienda
+**D-125 · Metas por persona** → **todavía no** (D-64 sigue sin construir). El módulo muestra el avance de la tienda
 contra su meta del mes y cuánto aportó cada persona. *(Pregunta 17.)*
 
-**D-106 · Dynamic** → **ninguna relación por ahora** con el «rendimiento del mes» (`rendimiento_mensual`) ni con los
+**D-126 · Dynamic** → **ninguna relación por ahora** con el «rendimiento del mes» (`rendimiento_mensual`) ni con los
 objetivos del mes. Retail muestra lo que se mide en la tienda; DO evalúa en Dynamic. Por eso Rendimiento nunca resume a
 una persona en una sola nota: así no hay dos notas distintas para la misma persona. *(Pregunta 18.)*
 
-**D-107 · Taller** → **no por ahora**: no se registra quién corta o cose cada prenda. *(Pregunta 19.)*
+**D-127 · Taller** → **no por ahora**: no se registra quién corta o cose cada prenda. *(Pregunta 19.)*
 
-**D-108 · Nombre y lugar** → **«Rendimiento»**, última entrada del menú lateral (después de Finanzas). En Roles y accesos
+**D-128 · Nombre y lugar** → **«Rendimiento»**, última entrada del menú lateral (después de Finanzas). En Roles y accesos
 va en el grupo Gestión. Clave del módulo: `rendimiento`. *(Pregunta 20 y el pedido.)*
 
 ---
@@ -151,7 +156,7 @@ va en el grupo Gestión. Clave del módulo: `rendimiento`. *(Pregunta 20 y el pe
 
 | Qué | Quién |
 |---|---|
-| El ok al diseño técnico del ADR-0219 y a la objeción de D-97 | Felipe |
+| El ok al diseño técnico del ADR-0219 y a la objeción de D-117 | Felipe |
 | Filtro de tienda de la pantalla y sede de la cabecera: para el Admin, ¿la pantalla abre en «Todas» o en la sede elegida arriba? El spike abre en «Todas» | Felipe, al ver el spike |
 | Inicio le muestra a cada colaboradora «Tus ventas» con el total de toda su tienda: `fn_ventas_del_dia` filtra por tienda, no por persona (verificado en producción). Hay una tarea aparte para corregirlo | Felipe decide qué debe mostrar |
 | Tienda Lima no tiene personal ni asistencia cargados en Dynamic (D-62). Sin eso no hay soles por hora ni quién atendió | DO |

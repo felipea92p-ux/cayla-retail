@@ -34,7 +34,7 @@ Pedido de Felipe: un módulo al final del menú para ver quién vende más, con 
 no, por ahora, a pedido del gerente. Período: mes calendario con la muestra a la vista. Dos rankings: soles por hora trabajada
 y número de ventas. La encargada corrige quién atendió una venta, con motivo. Cambia D-64, D-66 y D-68 (con nota en DECISIONES).
 - [x] Acta de la ronda: [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](datos/DECISIONES-2026-09-26-rendimiento.md)
-  (D-92 a D-108). Spike visual: [`docs/maquetas/rendimiento-spike-2026-09/`](maquetas/rendimiento-spike-2026-09/)
+  (D-112 a D-128). Spike visual: [`docs/maquetas/rendimiento-spike-2026-09/`](maquetas/rendimiento-spike-2026-09/)
   (5 cuentas en «Ver como», rankings, tabla, ficha, corrección, 375 px). Verificado en el navegador, sin errores en consola.
 - [ ] **Espera el ok de Felipe** al diseño técnico del ADR-0219 y a la objeción: la encargada no se da ventas a sí misma ni
   se quita las suyas; esas las corrige el Admin. Sin respuesta, se construye con ese candado.

@@ -377,7 +377,7 @@ const BASE=[
   {id:"af",t:"aqp",n:"Ana Lucía Flores",ini:"AF",v:12,s:1560,h:48,pr:18,pl:18,ds:0,caja:[0,0,0],baj:[10,0],desde:4},
   {id:"gs",t:"lim",n:"Gabriela Soto",ini:"GS",v:18,s:2340,h:null,pr:26,pl:24,ds:40,caja:[7,0,0],baj:[0,0]},
 ];
-const MUESTRA_MIN=40; // D-66 / D-95
+const MUESTRA_MIN=40; // D-66 / D-115
 const met=p=>({...p,tk:p.s/p.v,upt:p.pr/p.v,pleno:p.pl/p.pr,desc:p.ds/(p.s+p.ds),sph:p.h?p.s/p.h:null,vpj:p.h?p.v/(p.h/8):null,chica:p.v<MUESTRA_MIN});
 const PERSONAS=BASE.map(met);
 const sum=(xs,f)=>xs.reduce((a,x)=>a+f(x),0);
@@ -425,7 +425,7 @@ function ventasPersona(p){
   return out;
 }
 
-/* ---------------------------------------------------------------- cuentas (D-93, D-94) */
+/* ---------------------------------------------------------------- cuentas (D-113, D-114) */
 const GRUPOS={venta:["Ventas","venta"],inventario:["Inventario","inventario"],catalogo:["Catálogo","catalogo"],compras:["Compras","compras"],finanzas:["Finanzas","gastos"]};
 const PERFILES=[
   {id:"admin",nombre:"Felipe Alvarez",ini:"FA",rol:"Admin",ub:"Central",tiendas:["tru","aqp","lim"],admin:true,grupos:["venta","inventario","catalogo","compras","finanzas"],ve:true},
@@ -541,7 +541,7 @@ function vistaLista(){
     <ul><li><b>Muestra chica:</b> con menos de ${MUESTRA_MIN} ventas en el mes, el puesto depende mucho de la suerte. Sirve para conversar con ella, no para sacar conclusiones.</li>
     <li><b>Horas:</b> salen de las marcas de asistencia en Dynamic. Sin marcas no hay soles por hora; el ranking de ventas sigue funcionando.</li>
     <li><b>Devoluciones y cambios</b> no restan ni ordenan a nadie (D-78, D-79). <b>Apartados:</b> cuentan para quien apartó.</li>
-    <li><b>Quién ve esto:</b> las encargadas (solo su tienda) y el Admin. Las colaboradoras no, por ahora (D-93).</li></ul></div>`;
+    <li><b>Quién ve esto:</b> las encargadas (solo su tienda) y el Admin. Las colaboradoras no, por ahora (D-113).</li></ul></div>`;
   return cab+cifras+bloques+tabla(tids)+nota;
 }
 
@@ -620,10 +620,10 @@ function vistaFicha(){
 
 function vistaSinAcceso(){
   const pf=perfil();
-  if(pf.id==="int")return`<div class="anotacion"><b>Spike · así lo ve una colaboradora.</b> «Rendimiento» no está en su menú: por ahora las colaboradoras no ven el módulo (D-93). Si entra por la dirección directa, cae en «Sin acceso», como con cualquier módulo que su rol no ve.</div>
+  if(pf.id==="int")return`<div class="anotacion"><b>Spike · así lo ve una colaboradora.</b> «Rendimiento» no está en su menú: por ahora las colaboradoras no ven el módulo (D-113). Si entra por la dirección directa, cae en «Sin acceso», como con cualquier módulo que su rol no ve.</div>
     <div class="sinacceso"><div class="card entra"><p class="lbl">Sin acceso</p><h1 class="display">Tu rol no ve «Rendimiento»</h1>
       <p>Lo que ve cada cuenta lo decide su rol. Si necesitas entrar aquí, pídele a un líder de equipo que lo active en Colaboradores, en la pestaña Roles y accesos.</p><span class="btn-volver">Volver al inicio</span></div></div>`;
-  return`<div class="anotacion"><b>Spike · un Líder que no es Admin.</b> Hoy hay 3 (Oficina TRU). Su rol ve todos los módulos, pero Rendimiento muestra las tiendas que la cuenta tiene a cargo: el Admin las ve todas, la encargada la suya y este Líder ninguna, porque no tiene tienda asignada (D-93). Por eso la entrada no sale en su menú; si entra por la dirección directa, ve esto:</div>
+  return`<div class="anotacion"><b>Spike · un Líder que no es Admin.</b> Hoy hay 3 (Oficina TRU). Su rol ve todos los módulos, pero Rendimiento muestra las tiendas que la cuenta tiene a cargo: el Admin las ve todas, la encargada la suya y este Líder ninguna, porque no tiene tienda asignada (D-113). Por eso la entrada no sale en su menú; si entra por la dirección directa, ve esto:</div>
     <div class="sinacceso"><div class="card entra"><p class="lbl">Rendimiento</p><h1 class="display">Tu cuenta no tiene una tienda a cargo</h1>
       <p>Rendimiento muestra las ventas de cada persona de la tienda que tienes a cargo. El de todas las tiendas lo ve el Admin. Si deberías ver una, pide que te asignen tu tienda en Colaboradores.</p><span class="btn-volver">Volver al inicio</span></div></div>`;
 }

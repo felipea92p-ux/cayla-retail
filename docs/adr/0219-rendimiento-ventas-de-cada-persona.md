@@ -8,7 +8,7 @@ el gerente). El diseño técnico de abajo espera su aprobación. **Nada construi
 `fn_rendimiento_equipo`, `fn_rendimiento_persona`, tabla `venta_reasignaciones` y función `reasignar_asesora`),
 `apps/web/lib/modulos.ts`, `apps/web/lib/menu.ts`, `apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento-reglas.ts`
 (con su prueba). No toca `movimientos` ni `stock`.
-**Acta de la ronda:** [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](../datos/DECISIONES-2026-09-26-rendimiento.md) (D-92 a D-108,
+**Acta de la ronda:** [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](../datos/DECISIONES-2026-09-26-rendimiento.md) (D-112 a D-128,
 con las opciones que se ofrecieron y los datos consultados). **Referencia visual:**
 [`docs/maquetas/rendimiento-spike-2026-09/`](../maquetas/rendimiento-spike-2026-09/).
 **Relacionado:** D-62 a D-79 (`docs/datos/DECISIONES-2026-09-21-menu-comercial.md`), R-17 y R-41
@@ -35,7 +35,7 @@ sigue sin construirse.
 
 ## Las 20 respuestas de Felipe (2026-09-26)
 
-Resumen. El registro completo —pregunta, opciones ofrecidas, recomendación y respuesta— es el acta (D-92 a D-108).
+Resumen. El registro completo —pregunta, opciones ofrecidas, recomendación y respuesta— es el acta (D-112 a D-128).
 
 | # | Pregunta | Respuesta |
 |---|---|---|
