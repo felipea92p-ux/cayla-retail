@@ -144,3 +144,55 @@ export function contarProductosPorProveedor(filas: FilaReposicion[]): Reposicion
   }
   return [...porProveedor.values()].sort((a, b) => b.productos - a.productos || a.proveedor.localeCompare(b.proveedor, "es"));
 }
+
+// ---------- Catálogo ▸ Marcas: buscar y editar ----------
+
+/** Lo mínimo que la búsqueda de Catálogo ▸ Marcas necesita de cada fila. */
+type FilaBuscable = { nombre: string; proveedores: { nombre: string }[] };
+
+/** Busca por el nombre de la marca O de quien la trae, sin tildes ni mayúsculas: «¿qué marcas me trae Saavedra?» también se
+ *  contesta aquí. Sin texto, todas. */
+export function filtrarMarcas<T extends FilaBuscable>(filas: T[], consulta: string): T[] {
+  const q = sinTildes(consulta);
+  if (!q) return filas;
+  return filas.filter((f) => sinTildes(f.nombre).includes(q) || f.proveedores.some((p) => sinTildes(p.nombre).includes(q)));
+}
+
+/** Un proveedor que la marca ya tiene. `productosTotal` cuenta TODOS sus productos (también descontinuados): la llave de
+ *  `productos` los sigue citando, así que mientras haya uno la pareja no se puede quitar. */
+export type ParejaDeMarca = { id: string; nombre: string; productosTotal: number };
+
+/** Lo que la ventana «Editar marca» va a guardar. Se manda como sumar/quitar, no como la lista final: si otra persona sumó
+ *  un proveedor mientras tanto, este guardado no se lo borra (`editar_marca`, 20260926150000). */
+export type BorradorMarca = {
+  nombre: string;
+  /** Proveedores que la marca ya tenía y se quitan. */
+  quitar: string[];
+  /** Proveedores de la lista que se suman. */
+  sumar: string[];
+  /** Proveedores que todavía no existen: se registran en el mismo guardado. */
+  nuevos: { nombre: string; ruc: string }[];
+};
+
+export function sePuedeQuitar(p: ParejaDeMarca): boolean {
+  return p.productosTotal === 0;
+}
+
+/** Qué impide guardar el borrador, en palabras de la pantalla; null = se puede. Espeja a `editar_marca` para avisar antes
+ *  de ir a la base, pero la que manda es la base. */
+export function problemaEdicionMarca(actuales: ParejaDeMarca[], b: BorradorMarca): string | null {
+  if (!b.nombre.trim()) return "Escribe el nombre de la marca.";
+  const enUso = actuales.find((p) => b.quitar.includes(p.id) && !sePuedeQuitar(p));
+  if (enUso) return `«${enUso.nombre}» tiene productos: cámbiales el proveedor en Productos antes de quitarlo.`;
+  const quedan = actuales.filter((p) => !b.quitar.includes(p.id)).length + b.sumar.length + b.nuevos.length;
+  if (quedan === 0) return "La marca necesita al menos un proveedor. Si ya nadie la trae, desactívala.";
+  if (b.nuevos.some((n) => !n.nombre.trim())) return "Escribe el nombre del proveedor nuevo.";
+  const rucMalo = b.nuevos.find((n) => n.ruc.trim() !== "" && !/^\d{11}$/.test(n.ruc.trim()));
+  if (rucMalo) return `El RUC de «${rucMalo.nombre}» tiene que ser de 11 dígitos. Si no lo sabes, déjalo en blanco.`;
+  return null;
+}
+
+/** ¿Hay algo que guardar? Sin cambios, «Guardar» solo cierra: no se le pide a nadie que firme algo que no pasó. */
+export function borradorCambia(nombreActual: string, b: BorradorMarca): boolean {
+  return b.nombre.trim().replace(/\s+/g, " ") !== nombreActual || b.quitar.length > 0 || b.sumar.length > 0 || b.nuevos.length > 0;
+}

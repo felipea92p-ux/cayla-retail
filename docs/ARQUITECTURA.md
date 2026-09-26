@@ -381,6 +381,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
+- `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
+  `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
+  `MarcasLista.tsx` (buscador por marca o proveedor, `lib/marcas.ts:filtrarMarcas`) + `EditarMarcaModal.tsx`
+  (RPC `editar_marca`, `20260926150000`: nombre + sumar/quitar proveedores + registrar uno nuevo, todo o nada;
+  reglas puras `problemaEdicionMarca`/`borradorCambia`). Crear: `NuevaMarcaForm` → `crear_marca`. Desactivar: UPDATE
+  directo a `marcas` (policy + trigger `fn_marcas_desactivar_candado`).
 
 **Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
 - Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4
