@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { coincidenciaCombo } from "@/lib/combo-reglas";
@@ -81,6 +81,7 @@ export function ComboBuscable<T extends string>({
   // La lista va en `fixed`, medida contra el input: dentro de un <Modal> o de una tabla con scroll, una lista
   // `absolute` queda recortada por esa caja (ver `usePosicionLista`).
   const posLista = usePosicionLista(input, abierto, 256, 4);
+  const destino = useDestinoFlotante(input, abierto);
 
   // Si el valor cambia desde afuera (se limpió la línea, se cargó otra),
   // el texto acompaña. Se ajusta durante el render —el patrón de React para
@@ -203,6 +204,7 @@ export function ComboBuscable<T extends string>({
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
       {abierto &&
         posLista &&
+        destino &&
         createPortal(
           <ul
             ref={lista}
@@ -259,7 +261,7 @@ export function ComboBuscable<T extends string>({
             </li>
           )}
         </ul>,
-          document.body
+          destino
         )}
     </div>
   );

@@ -6,7 +6,7 @@ import { ChevronDown, Clock, RefreshCw, ShieldCheck, UserRound } from "lucide-re
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { comboNecesitaBuscador } from "@/lib/combo-reglas";
@@ -40,11 +40,14 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
+  // La caja flotante entera (buscador + opciones): vive en un portal, fuera de `raiz`.
+  const capa = useRef<HTMLDivElement>(null);
   // La lista FLOTA (`fixed`, medida contra el botón; abre hacia abajo o, si no cabe, hacia arriba), igual que
   // ComboBuscable. Antes se abría dentro del contenido y empujaba todo 150–250 px; al elegir se cerraba de golpe y,
   // como el combo suele ser lo penúltimo de un formulario o de una ventana, la vista saltaba (2026-09-23, ADR-0185).
   // `fixed` tampoco queda recortada por el scroll propio de un `<Modal>`, que era la razón de abrirla en línea.
   const posLista = usePosicionLista(boton, abierto, 320);
+  const destino = useDestinoFlotante(boton, abierto);
   const idLista = useId();
   const { estado, lista, sede, elegidoId } = control;
 
@@ -52,7 +55,12 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   useEffect(() => {
     if (!abierto) return;
     const fuera = (e: PointerEvent) => {
-      if (raiz.current && !raiz.current.contains(e.target as Node)) setAbierto(false);
+      // La lista cuelga de un portal (ADR-0211), FUERA de `raiz` en el DOM: el «¿tocó afuera?» tiene que
+      // mirar las dos cajas. Mirando solo `raiz`, tocar una opción contaba como «afuera», la lista se cerraba
+      // en el mousedown y el click de la opción ya no llegaba: no se podía elegir con mouse ni con el dedo.
+      const t = e.target as Node;
+      if (raiz.current?.contains(t) || capa.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("pointerdown", fuera);
     return () => document.removeEventListener("pointerdown", fuera);
@@ -152,7 +160,8 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
       return;
     }
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const botones = Array.from(raiz.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
+    // Las opciones viven en el portal (`capa`), no dentro de `raiz`: buscándolas en `raiz`, las flechas no encontraban ninguna.
+    const botones = Array.from(capa.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
     if (botones.length === 0) return;
     e.preventDefault();
     if (!abierto) {
@@ -204,8 +213,10 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
       {abierto &&
         posLista &&
+        destino &&
         createPortal(
           <div
+            ref={capa}
             style={{ position: "fixed", ...posLista }}
             className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
           >
@@ -257,7 +268,7 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
             )}
           </div>
         </div>,
-          document.body
+          destino
         )}
 
       {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}

@@ -84,6 +84,38 @@ export function usePosicionAnclada(control: RefObject<HTMLElement | null>, abier
    empuja el campo. Cuesta un `getBoundingClientRect` por cuadro, solo con
    la lista a la vista, y el estado cambia solo si la posición cambió.
    ==================================================================== */
+/* ====================================================================
+   useDestinoFlotante · DÓNDE se cuelga una lista flotante (2026-09-26)
+
+   ADR-0211 manda las listas `fixed` a un portal para que ningún ancestro con
+   `@container` o `transform` las atrape. Fuera de un modal, el portal va a
+   `document.body`. DENTRO de un <Modal>, va a la propia hoja (el
+   `[role="dialog"]` de Radix): lo que queda fuera de la hoja, Radix lo deja
+   sin clics (`pointer-events: none` en body), le quita el foco (FocusScope se
+   lo devuelve a la hoja) y lo esconde a los lectores de pantalla. Colgada en
+   body, la lista de un combo dentro de un modal se VEÍA pero no se podía
+   elegir: el clic caía en el formulario de atrás y lo tecleado en su buscador
+   iba a otro campo — en «Familia» de Nuevo color y, peor, en el combo
+   «Responsable» con que se firma casi todo guardado (ADR-0161).
+
+   La hoja en reposo no crea containing block para `fixed` (sin transform ni
+   containment), así que la posición medida por `usePosicionLista` sigue
+   valiendo contra la ventana. Solo durante su animación de entrada lleva
+   transform, y eso ya lo cubre la medición cuadro a cuadro de arriba: es
+   como vivían estas listas dentro del modal antes del #442.
+   ==================================================================== */
+export function useDestinoFlotante(control: RefObject<HTMLElement | null>, abierto: boolean): HTMLElement | null {
+  const [destino, setDestino] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (!abierto || !control.current) return;
+    const hoja = control.current.closest<HTMLElement>('[role="dialog"]');
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- si el control quedó dentro de una hoja de Radix solo se sabe leyendo el DOM ya montado (el modal es un portal); en `useLayoutEffect` la lista sale en su lugar en el mismo cuadro
+    setDestino(hoja ?? document.body);
+  }, [abierto, control]);
+  // Se conserva al cerrar: la lista puede estar animando su salida, y el control no cambia de lugar.
+  return destino;
+}
+
 export type PosicionLista = { left: number; width: number; maxHeight: number } & ({ top: number } | { bottom: number });
 
 export function usePosicionLista(control: RefObject<HTMLElement | null>, abierto: boolean, alto: number, separacion = 6): PosicionLista | null {
