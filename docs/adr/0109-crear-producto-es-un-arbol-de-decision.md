@@ -428,3 +428,31 @@ ya existían (mismos `hint`, `tejido_obligatorio` / `patron_obligatorio`); `Prod
 desechable, con **control negativo**: contra la versión anterior de la función la prueba de «cambiar el precio sin tejido»
 falla con «En Indumentaria el tejido es obligatorio».
 
+
+## Actualización 2026-09-25 — «¿no será una marca que ya existe?»
+
+El 24-sep se creó la marca «Cayla 2» (con Jacard Peru SAC) para dar de alta **Top Aurora** (TOP-0011, 65 prendas en
+stock): CAYLA ya existía, pero traída solo por CAYLA SAC. Consultado en producción (solo lectura). Dos huecos del
+selector, no un error de quien lo usó:
+
+1. **La pareja elegida sola no tenía salida.** Con un solo proveedor, la marca se elige sola con él (paso 3), y ese estado
+   solo ofrecía «Cambiar», que vuelve a lo mismo. «+ Otro proveedor para X» existía solo cuando la marca ya tenía dos.
+   Ahora la pareja elegida ofrece «+ Otro proveedor para {marca}» y «+ Otra marca de {proveedor}».
+2. **El formulario de nueva marca callaba.** Ahora, mientras se escribe, dice si el nombre es IGUAL a una marca (no se crea
+   otra: `crear_marca` le suma el proveedor) y pregunta si se PARECE (`marcasParecidas` en `lib/marcas.ts`). Guardar sin
+   responder no guarda.
+
+```
+DECIDÍ: preguntar en el formulario, sin bloquear: «Sí, es CAYLA» pone el nombre real; «No, es otra marca» deja seguir.
+  Parecida = misma raíz salvo números o signos («Cayla 2»), 1 letra de diferencia desde 5 letras o 2 desde 8
+  («Kristell»), o un nombre que cabe entero en otro, palabra por palabra («Divas» en «Divas Now»).
+DESCARTÉ: (a) un candado en la base (índice por raíz sin números): «La Femme» y «La Femme 21» pueden ser dos marcas de
+  verdad, y la base no puede preguntar; (b) avisar solo con el nombre igual: es justo el caso que ya funcionaba y no
+  habría atrapado «Cayla 2».
+SE ROMPE SI: alguien crea la marca por otro camino que no pase por `NuevaMarcaForm` (SQL directo, una carga masiva
+  como la del ADR-0140): la pregunta vive en la pantalla. Medida contra las 80 marcas de producción, entre ellas solo
+  dispara CAYLA ~ Cayla 2 y Divas ~ Divas Now.
+```
+
+Lo que sigue sin resolver: la base no sabe **fusionar** dos marcas ni **quitarle** una marca a un proveedor. «Cayla 2» se
+arregla a mano (editar Top Aurora a CAYLA · Jacard y desactivar «Cayla 2»); la unión Cayla 2 ↔ Jacard queda guardada.
