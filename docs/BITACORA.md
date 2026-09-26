@@ -20,6 +20,7 @@ Felipe se lleva:
 3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
 
 Más tarde el mismo día: Felipe pegó `20260926200000` → `20260926200100` en producción (una sola firma de `mover_interno`, terminada en `p_token uuid`) y recién después fusionó la web (#458). El orden «SQL antes que la web» se cumplió.
+Y con eso Frescura quedó completa en producción: una consulta por efectos (una fila por migración, probada antes en local en verde y en rojo) mostró que la `0000` y la `0300`, que estaban «sin confirmar» desde el 25-sep, sí estaban; faltaba solo la `20260926170000`, que Felipe pegó. «Bajada al piso» está encendido en Integrante; las terminales del almacén no lo tienen.
 
 ## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
 Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.

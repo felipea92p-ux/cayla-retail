@@ -286,7 +286,7 @@ las dos superficies a la vez, se confirmó el alcance con Felipe antes de borrar
 - Cómo verificas: cualquier pantalla en escritorio — no hay botón "+ Nuevo" en el lateral. En celular (375 px), la
   barra de abajo tiene 4 columnas parejas (Inicio, Punto de Venta, Inventario, Caja) y ningún hueco al centro.
 
-## 📐 Frescura del piso (2026-09-24, ADR-0208): bloques 1 y 2 fusionados (#434, #440) y su web publicada; en producción `0200` y `0400` pegadas, `0000` y `0300` SIN CONFIRMAR; `20260926170000` POR PEGAR (después de la `0000`); módulo por encender
+## 📐 Frescura del piso (2026-09-24, ADR-0208): bloques 1 y 2 fusionados (#434, #440) y su web publicada; TODO en producción (verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`); «Bajada al piso» encendido en el rol Integrante, no en las terminales
 Es el antes llamado «mapa de calor»: mide cuánto lleva cada modelo+color en el piso frente a su categoría en la sede, y
 propone qué hacer antes de rebajar. El documento para el equipo, con datos simulados, está en
 `docs/maquetas/frescura-del-piso-2026-09/` (artifact privado: Felipe tiene que compartirlo). Es la única copia: la
@@ -332,7 +332,8 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - Probado en el navegador (sin base, respuestas simuladas; escritorio y 375 px): botón en Existencias (se le dio
     fondo sobre la foto), escaneo y sus cuatro avisos, corte de red, «Comprobar» tras recargar, marca reusada con lo
     guardado, prendas que no alcanzan. Detalle en el ADR. Falta la llamada real a través de Supabase.
-- [ ] **Felipe: confirmar (o pegar) la `0000` y la `0300` CUANTO ANTES**, en el SQL Editor de cayla-dynamic. Estado
+- [x] **Confirmadas en producción el 2026-09-26 la `0000` y la `0300`** (y la `0100`), por efectos. Lo que decía antes:
+  **Felipe: confirmar (o pegar) la `0000` y la `0300` CUANTO ANTES**, en el SQL Editor de cayla-dynamic. Estado
   que dijo Felipe el 2026-09-25: `0200` y `0400` pegadas (`fn_verificar_bajadas()` = 0 filas); `0000` y `0300` sin
   confirmar; la `0100` no se confirmó aparte, pero sus dos tablas existen si esa función respondió. Comprobar con
   solo lectura: `select count(*) from retail.modulos where clave = 'bajada_piso';` (1) y
@@ -345,13 +346,18 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 - [x] ~~Publicar la web DESPUÉS de la `0300` y ANTES de la `0400`~~: la web de los bloques 1 y 2 ya salió con la fusión
   del #434 y del #440 (Vercel publica cada push a `main`), antes de confirmar la `0000`. Por eso conviene confirmar o
   pegar la `0000` y la `0300` cuanto antes: la web ya ofrece el botón y el módulo.
-- [ ] **Felipe: pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` DESPUÉS de la `0000`** (revisión del
+- [x] **Pegada por Felipe el 2026-09-26** (después de la `0000`, como tocaba) y verificada: el texto de Existencias en la
+  base ya es el nuevo. Lo que decía antes: **Felipe: pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` DESPUÉS de la `0000`** (revisión del
   bloque 2). Un solo `update` del texto de Existencias, sin políticas ni `alter`; se puede repegar. Si la `0000` se pega
-  o se repega después, hay que repegar esta: el upsert de la `0000` repone el texto viejo. **No está en producción:**
-  entra al diccionario recién cuando se pegue (refresco del volcado y `pnpm datos:generar:produccion`). Comprobar:
+  o se repega después, hay que repegar esta: el upsert de la `0000` repone el texto viejo. Entra al diccionario con el
+  próximo refresco del volcado (`pnpm datos:generar:produccion`). Comprobar:
   `select incluye from retail.modulos where clave = 'existencias';` → «Consultar stock, reponer y retirar del piso,
   ajustar stock, apartar prendas».
-- [ ] **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos.** Lo que hay en producción (consulta del
+- [x] **«Bajada al piso» encendido por Felipe en el rol «Integrante»** (visto en producción el 2026-09-26). Hoy Integrante
+  ve Productos, Vender, Existencias y Bajada al piso, así que cada integrante llega al botón desde su cuenta. Las 3
+  «Terminal Almacén» ven Existencias y Productos, NO «Bajada al piso»: desde la computadora del almacén no se puede
+  bajar escaneando. Si la pistola va en esa terminal, falta marcarlo en su rol (decisión de Felipe, sin SQL).
+  Lo que decía antes: **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos.** Lo que hay en producción (consulta del
   2026-09-25): «Integrante» (17 personas) solo ve Productos y Vender, SIN Existencias, así que con cuenta propia no llega
   al botón; las 3 «Terminal Almacén» y las 3 «Terminal de ventas» sí ven Existencias; los 8 líderes lo ven todo.
   **Recomendado: encenderlo solo en «Terminal Almacén»** (la colaboradora baja desde la terminal eligiéndose como
@@ -363,8 +369,8 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   «Sin conexión» justo después de pulsar «Confirmar», reconectar y «Confirmar de nuevo» (dice «ya estaba registrada»
   o guarda normal, y Movimientos la muestra una sola vez); Ajustar stock en Piso ya no ofrece «Reposición»; y la
   consulta de `fn_bajadas_del_piso` (ADR-0208, punto (e)).
-- [ ] Después de pegar: `select to_regprocedure('retail.bajar_al_piso(uuid, jsonb, uuid)') is not null;` en el SQL
-  Editor, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y recién ahí `pnpm datos:generar:produccion`
+- [ ] ~~Después de pegar: `select to_regprocedure('retail.bajar_al_piso(uuid, jsonb, uuid)') is not null;` en el SQL
+  Editor~~ (hecho el 2026-09-26). Falta: refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y recién ahí `pnpm datos:generar:produccion`
   (nunca `pnpm datos:generar` a secas). `datos:comparar` NO ve esta llamada (la pantalla usa la constante `RPC_BAJADA`).
 - [x] ~~OK de Felipe al cambio del menú~~: ya no hace falta. El lateral no cambia (`menu.ts` y `menu-hoy.golden.json`
   quedan idénticos a main).
