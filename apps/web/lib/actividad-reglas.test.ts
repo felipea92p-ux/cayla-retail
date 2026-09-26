@@ -7,6 +7,8 @@ import {
   etiquetaDelDia,
   inicioDelDiaLima,
   moduloDeRuta,
+  opcionesDeModulo,
+  opcionesDePersona,
   pieDeFila,
   veActividad,
   type FilaActividad,
@@ -77,6 +79,31 @@ describe("los módulos que ya anotan su actividad", () => {
       expect(CLAVES_MODULO).toContain(m);
       expect(MIGRACION, m).toContain(`'${m}', '`);
     }
+  });
+});
+
+describe("los combos: lo elegido siempre está en la lista", () => {
+  it("«Módulo»: todos primero, luego los que anotan", () => {
+    expect(opcionesDeModulo(null).map((o) => o.valor)).toEqual(["", ...MODULOS_CON_ACTIVIDAD]);
+    expect(opcionesDeModulo(null)[0].texto).toBe("Todos los módulos");
+    expect(opcionesDeModulo("caja")).toEqual(opcionesDeModulo(null));
+  });
+
+  it("«Módulo»: parado en uno que todavía no anota, también está (si no, el combo diría «Elegir»)", () => {
+    const opciones = opcionesDeModulo("existencias");
+    expect(opciones.map((o) => o.valor)).toEqual(["", ...MODULOS_CON_ACTIVIDAD, "existencias"]);
+    expect(opciones.at(-1)?.texto).toBe("Existencias");
+  });
+
+  it("«Persona»: la elegida sigue aunque ya no tenga actividad en lo que se mira, y no se repite", () => {
+    const rosa = { persona_id: "r", nombre: "Rosa Mendoza" };
+    const ana = { persona_id: "a", nombre: "Ana Díaz" };
+    expect(opcionesDePersona([rosa], null)).toEqual([
+      { valor: "", texto: "Todas las personas" },
+      { valor: "r", texto: "Rosa Mendoza" },
+    ]);
+    expect(opcionesDePersona([rosa, ana], ana).map((o) => o.valor)).toEqual(["", "r", "a"]);
+    expect(opcionesDePersona([rosa], ana).map((o) => o.valor)).toEqual(["", "r", "a"]);
   });
 });
 

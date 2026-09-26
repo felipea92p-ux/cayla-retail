@@ -400,44 +400,40 @@ export function GastoFijoModal({
       </CampoFin>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Categoría" htmlFor="fijo-categoria" ayuda={cat ? `Va a la cuenta ${cat.cuenta}.` : undefined}>
-          <SelectFin id="fijo-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
-            <option value="">Elige…</option>
-            {categorias.map((c) => (
-              <option key={c.codigo} value={c.codigo}>
-                {c.nombre}
-              </option>
-            ))}
-          </SelectFin>
+          <SelectFin
+            id="fijo-categoria"
+            valor={b.categoria}
+            onValor={(v) => poner("categoria", v)}
+            marcador="Elige…"
+            opciones={categorias.map((c) => ({ valor: c.codigo, texto: c.nombre }))}
+          />
         </CampoFin>
         <CampoFin etiqueta="A quién se le carga" htmlFor="fijo-ubicacion">
-          <SelectFin id="fijo-ubicacion" value={b.ubicacion} disabled={opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-            {opcionesUbicacion.map((o) => (
-              <option key={o.valor} value={o.valor}>
-                {o.texto}
-              </option>
-            ))}
-          </SelectFin>
+          <SelectFin
+            id="fijo-ubicacion"
+            valor={b.ubicacion}
+            deshabilitado={opcionesUbicacion.length < 2}
+            onValor={(v) => poner("ubicacion", v)}
+            opciones={opcionesUbicacion}
+          />
         </CampoFin>
       </div>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Proveedor" htmlFor="fijo-proveedor">
-          <SelectFin id="fijo-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
-            <option value="">Sin proveedor</option>
-            {proveedores.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </SelectFin>
+          <SelectFin
+            id="fijo-proveedor"
+            valor={b.proveedorId}
+            onValor={(v) => poner("proveedorId", v)}
+            opciones={[{ valor: "", texto: "Sin proveedor" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+          />
         </CampoFin>
         <CampoFin etiqueta="Llega con" htmlFor="fijo-comprobante">
-          <SelectFin id="fijo-comprobante" value={b.comprobante} onChange={(e) => poner("comprobante", e.target.value as BorradorFijo["comprobante"])}>
-            {TIPOS_COMPROBANTE.map((t) => (
-              <option key={t} value={t}>
-                {TEXTO_COMPROBANTE[t]}
-              </option>
-            ))}
-          </SelectFin>
+          <SelectFin<BorradorFijo["comprobante"]>
+            id="fijo-comprobante"
+            valor={b.comprobante}
+            onValor={(v) => poner("comprobante", v)}
+            opciones={TIPOS_COMPROBANTE.map((t) => ({ valor: t, texto: TEXTO_COMPROBANTE[t] }))}
+          />
         </CampoFin>
       </div>
       <div className="fin-dos-campos">

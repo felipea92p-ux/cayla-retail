@@ -102,9 +102,8 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
 
       {detalle?.automatica ? (
         <CampoFin etiqueta="Tipo" ayuda="Nace con su sede: solo cambia el nombre.">
-          <SelectFin value={detalle.tipo} disabled aria-label="Tipo">
-            <option value={detalle.tipo}>{TEXTO_TIPO_CUENTA[detalle.tipo]}</option>
-          </SelectFin>
+          {/* Bloqueado a propósito: se ve que es un tipo, pero una cuenta automática no lo cambia. */}
+          <SelectFin etiqueta="Tipo" deshabilitado valor={detalle.tipo} onValor={() => {}} opciones={[{ valor: detalle.tipo, texto: TEXTO_TIPO_CUENTA[detalle.tipo] }]} />
         </CampoFin>
       ) : (
         <>
@@ -114,13 +113,13 @@ export function EditarCuentaModal({ cuenta, hoy, onCerrar }: { cuenta: CuentaDin
               htmlFor="ed-cta-tipo"
               ayuda={detalle && !detalle.puedeCambiarTipo ? "Ya se usó: su tipo queda." : undefined}
             >
-              <SelectFin id="ed-cta-tipo" value={form.tipo} disabled={bloqueado || !detalle?.puedeCambiarTipo} onChange={(e) => poner({ tipo: e.target.value as TipoCuenta })}>
-                {TIPOS_QUE_SE_AGREGAN.map((t) => (
-                  <option key={t.tipo} value={t.tipo}>
-                    {t.texto}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin<TipoCuenta>
+                id="ed-cta-tipo"
+                valor={form.tipo}
+                deshabilitado={bloqueado || !detalle?.puedeCambiarTipo}
+                onValor={(tipo) => poner({ tipo })}
+                opciones={TIPOS_QUE_SE_AGREGAN.map((t) => ({ valor: t.tipo, texto: t.texto }))}
+              />
             </CampoFin>
             <CampoFin etiqueta="Número (opcional)" htmlFor="ed-cta-numero">
               <InputFin id="ed-cta-numero" value={form.numero} disabled={bloqueado} onChange={(e) => poner({ numero: e.target.value })} placeholder="•••• 1942" />
