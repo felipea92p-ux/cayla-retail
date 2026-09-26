@@ -73,7 +73,7 @@ migración define la función: se pegó en producción después de la foto, o to
 
 ### `fn_actividad_personas` — no está en la foto
 
-- **Dónde:** `apps/web/components/actividad/PantallaActividad.tsx:37`
+- **Dónde:** `apps/web/components/actividad/PantallaActividad.tsx:44`
 - **Qué pasa:** la función `fn_actividad_personas` no está en la foto de producción (2026-09-25 16:09 UTC)
 - **Migración que la crea:** `supabase/migrations/20260926090000_actividad_por_modulo.sql` (se pegó después de la foto, o todavía no)
 - **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
@@ -127,7 +127,7 @@ Ninguna. Cada función tiene una sola firma en producción.
 ## Avisos — 24
 
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
-- `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:602` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
+- `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:595` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
 - `recibir_insumo` · `apps/web/components/InsumoModales.tsx:151` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_consumo_insumo` · `apps/web/components/OrdenInsumos.tsx:124` — no manda `p_nota` (normal si tienen valor por defecto)
 - `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:154` — no manda `p_nota` (normal si tienen valor por defecto)
@@ -172,7 +172,7 @@ foto ni ninguna migración del repo conocen.
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:278` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:365` — el objeto se arma con «...», no se puede leer entero
 - `guardar_gasto_fijo` · `apps/web/components/GastosFijosYActivos.tsx:382` — el objeto se arma con «...», no se puede leer entero
-- `registrar_gasto` · `apps/web/components/GastosPanel.tsx:599` — el objeto se arma con «...», no se puede leer entero
+- `registrar_gasto` · `apps/web/components/GastosPanel.tsx:592` — el objeto se arma con «...», no se puede leer entero
 - `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:69` — los parámetros no van escritos ahí mismo
 - `fn_impuestos_registro_compras` · `apps/web/components/ImpuestosPanel.tsx:71` — los parámetros no van escritos ahí mismo
 - `crear_producto_con_stock_inicial` · `apps/web/components/NuevoProductoForm.tsx:366` — los parámetros no van escritos ahí mismo
@@ -194,7 +194,7 @@ foto ni ninguna migración del repo conocen.
 - `registrar_nota_credito_compra` · `apps/web/components/RegistrarNotaCreditoModal.tsx:204` — el objeto se arma con «...», no se puede leer entero
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:61` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/finanzas/CierreMes.tsx:253` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
-- `registrar_movimiento_dinero` · `apps/web/components/finanzas/CuentasDinero.tsx:859` — el objeto se arma con «...», no se puede leer entero
+- `registrar_movimiento_dinero` · `apps/web/components/finanzas/CuentasDinero.tsx:857` — el objeto se arma con «...», no se puede leer entero
 - `editar_cuenta_dinero` · `apps/web/components/finanzas/EditarCuentaModal.tsx:90` — los parámetros no van escritos ahí mismo
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:283` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:363` — el objeto se arma con «...», no se puede leer entero
