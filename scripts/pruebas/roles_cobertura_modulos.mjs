@@ -136,9 +136,6 @@ const SOLO_PANTALLA = {
   vender:
     "registrar_venta y emitir_comprobante solo comprueban que la cuenta opere esa sede (fn_puede_operar_ubicacion); fn_es_lider() " +
     "solo decide el tope de descuento. El módulo lo nombra únicamente fn_es_terminal, que lo usa para clasificar un aparato.",
-  apartados:
-    "separar_prendas, apartar_stock y entregar_separacion solo miran la sede. Extender, liberar y devolver el adelanto de un " +
-    "apartado piden el módulo Caja (fn_puede_gestionar_caja), no Apartados.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   devoluciones: "crear_devolucion solo mira la sede; devoluciones_select y devoluciones_write son «líder o su sede».",
   historial:

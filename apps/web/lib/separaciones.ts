@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { apartadoDeFila, TOPE_SEPARACIONES, type Apartado } from "@/lib/separaciones-reglas";
+import { apartadoDeFila, TOPE_SEPARACIONES, type Apartado, type AvisoApartado } from "@/lib/separaciones-reglas";
 
 // «Apartados» de una tienda (ADR-0166; en la base, `separaciones`). Solo lectura, salvo el vencimiento:
 // antes de leer se llama `fn_vencer_separaciones`, que libera lo vencido hace más de 2 días (D3). Así el
@@ -24,7 +24,7 @@ const RESUMEN_VACIO: ResumenApartados = {
 export type ApartadosDeTienda =
   /** La migración todavía no está en esta base (PGRST202): la pantalla lo dice, no se cae. */
   | { instalado: false }
-  | { instalado: true; apartados: Apartado[]; resumen: ResumenApartados; liberadosAhora: number; hayMas: boolean };
+  | { instalado: true; apartados: Apartado[]; resumen: ResumenApartados; liberadosAhora: number; hayMas: boolean; avisos: Record<string, AvisoApartado> };
 
 export async function getApartadosDeTienda(ubicacionId: string): Promise<ApartadosDeTienda> {
   const supabase = await createClient();
@@ -33,9 +33,12 @@ export async function getApartadosDeTienda(ubicacionId: string): Promise<Apartad
   // Si el vencimiento falla por otra razón no se tumba la pantalla: se lee igual y lo vencido espera al próximo intento.
   const liberadosAhora = vencer.error ? 0 : Number(vencer.data ?? 0);
 
-  const [lista, resumen] = await Promise.all([
+  const [lista, resumen, avisos] = await Promise.all([
     supabase.rpc("buscar_separaciones", { p_ubicacion_id: ubicacionId }),
     supabase.rpc("resumen_separaciones", { p_ubicacion_id: ubicacionId }),
+    // Recordar en lote (20260926233000). Es secundario: sin la migración (PGRST202) o si falla, la pantalla sigue igual
+    // y la cola cuenta a todas como «por avisar» — nunca esconde a alguien que falta avisar.
+    supabase.rpc("fn_avisos_separaciones", { p_ubicacion_id: ubicacionId }),
   ]);
   const filas = exigir(lista, "los apartados");
   const r = exigir(resumen, "el resumen de apartados")[0];
@@ -44,6 +47,9 @@ export async function getApartadosDeTienda(ubicacionId: string): Promise<Apartad
     instalado: true,
     liberadosAhora,
     hayMas: filas.length >= TOPE_SEPARACIONES,
+    avisos: Object.fromEntries(
+      (avisos.error ? [] : (avisos.data ?? [])).map((a) => [a.separacion_id, { avisos: Number(a.avisos), ultimoEn: a.ultimo_aviso_en, ultimoPor: a.ultimo_por }]),
+    ),
     apartados: filas.map((f) => apartadoDeFila(f as unknown as Record<string, unknown>)),
     resumen: r
       ? {

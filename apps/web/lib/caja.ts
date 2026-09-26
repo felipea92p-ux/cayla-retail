@@ -69,16 +69,6 @@ export type SeriesVentasCaja = {
   porHora: PuntoHora[];
 };
 
-/** Cuánto debería haber en el cajón ahora (tarjeta «Al cerrar», ADR-0195 F1). Lo dice la base —`fn_esperado_caja`, el
- *  mismo cálculo que `cerrar_caja`, un solo dueño (ADR-0186)— y solo a quien puede cerrar esa caja; `null` si no. */
-export async function getEsperadoCaja(cajaId: string): Promise<number | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fn_esperado_caja", { p_caja_id: cajaId });
-  if (error) return null;
-  const fila = (Array.isArray(data) ? data[0] : data) as { esperado?: number | string | null } | undefined;
-  return fila?.esperado === null || fila?.esperado === undefined ? null : Number(fila.esperado);
-}
-
 export async function getCajaAbierta(ubicacionId: string): Promise<CajaAbierta | null> {
   const supabase = await createClient();
   const res = await supabase
@@ -131,7 +121,7 @@ type ResumenCajaDeLaBase = {
  * eran dos funciones que traían todas las ventas y sus pagos (`.in("venta_id", [...])` con cada id en la URL) y
  * rehacían las cuentas en JS.
  */
-export async function getTableroCaja(cajaId: string): Promise<{ resumen: ResumenCaja; series: SeriesVentasCaja }> {
+export async function getTableroCaja(cajaId: string): Promise<{ resumen: ResumenCaja; series: SeriesVentasCaja; esperado: number | null }> {
   const supabase = await createClient();
   const t = exigir(await supabase.rpc("fn_resumen_caja", { p_caja_id: cajaId }), "el resumen de esta caja") as unknown as ResumenCajaDeLaBase;
   const porMetodo: Partial<Record<string, number>> = Object.fromEntries(Object.entries(t.por_metodo).map(([m, monto]) => [m, Number(monto)]));
@@ -149,6 +139,9 @@ export async function getTableroCaja(cajaId: string): Promise<{ resumen: Resumen
       porMetodo,
       porHora: t.por_hora.map((p) => ({ hora: p.hora, efectivo: Number(p.efectivo), otros: Number(p.otros) })),
     },
+    // «Efectivo en el cajón ahora»: el mismo número que `fn_esperado_caja` y `cerrar_caja` (un solo dueño, ADR-0186).
+    // La base lo manda solo a quien puede gestionar la caja (`fn_puede_gestionar_caja`); a los demás, `null`.
+    esperado: t.esperado === null || t.esperado === undefined ? null : Number(t.esperado),
   };
 }
 

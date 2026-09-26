@@ -113,3 +113,47 @@ el spike) porque así se trabaja con SUNAT: el número trae el nombre.
   bajo 1024 px. Están en la vista rápida y en la ficha.
 - Falta pegar `20260919150000` en producción (ver BACKLOG). Hasta entonces la lista se ve igual, sin
   mini-tendencias ni barras mensuales.
+
+## Actualización 2026-09-26 — ↑ ↓ del cajón: solo las teclas que nacen en el cajón
+
+**El problema.** D1 dijo que ↑ ↓ pasan de un registro al siguiente sin cerrar el cajón, y las cuatro vistas rápidas
+(Proveedores, Recibidas, Notas de crédito y Por pagar) lo cumplían escuchando las flechas en todo su
+`Dialog.Content`. En Por pagar, «Pagar» abre «Registrar pago»: un `<Modal>` que en la página vive en otro portal
+pero que en el árbol de React está DENTRO del cajón, y React hace subir los eventos de un portal por sus ancestros
+de React. Un ↓ en el monto, en una ficha de medio de pago o en un combo del pago llegaba al cajón, que pasaba al
+comprobante siguiente: el contenido del cajón se vuelve a montar (`key={c.id}`), el pago se desmontaba con lo
+escrito y el cajón quedaba en la factura de OTRO proveedor, con su botón «Pagar» listo. Reproducido el 2026-09-26
+en la pantalla real: con «100» escrito para Textiles Andina, ↓ dejó el cajón en Confecciones del Sur.
+
+**La decisión.** `lib/vista-rapida-reglas.ts` (`pasoConFlecha`, pura y con pruebas) decide si la tecla es del cajón,
+y `components/ui/useFlechasDelCajon.ts`, el gemelo de `useEscapeLibre`, la traduce desde el evento en el `onKeyDown`
+de cada cajón. El cajón se queda con la flecha solo si (a) nació dentro de su propio DOM
+(`e.currentTarget.contains(e.target)`; lo que sube desde un modal tiene su destino en otro portal), (b) ningún
+control la usó antes (`e.defaultPrevented`: combos, fecha, fichas de `LineasPago`, que ya llaman a
+`preventDefault`), (c) no viene de un campo (`input`, `textarea`, `select`, `contenteditable`), donde mueve el
+cursor o cambia el valor, y (d) va sin Ctrl, ⌘ ni Alt. La regla (a) es la que arregla Por pagar: las fichas de
+medio de pago no usan flechas, así que ni (b) ni (c) habrían detenido su ↓. `lib/vista-rapida-reglas.test.ts`
+hace fallar el CI si una hoja con `<Dialog.Content` vuelve a leer `"ArrowDown"`/`"ArrowUp"` a mano.
+
+**Lo mismo con los clics (misma fecha).** La fila de Por pagar abre la vista rápida con un clic y contiene su propio
+«Pagar», cuyo modal también es su descendiente en React: tocar el velo para cancelar el pago, o un texto del pago,
+abría además la vista rápida de esa fila (reproducido en escritorio). El `onClick` de la fila ahora ignora el clic
+cuyo destino no está en su DOM, con la misma condición (a). Las demás listas con vista rápida abren sus modales a
+nivel de pantalla, no dentro de la fila, y no tienen el problema.
+
+**Descartado.** (1) Sacar el modal de pago del árbol del cajón (que la lista lo abra): arreglaba solo Por pagar, y el
+próximo modal que se abra desde un cajón traería el bug de vuelta. (2) Cortar la propagación de las flechas en
+`<Modal>`: toca todos los modales del ERP para arreglar un cajón, deja pasar las demás teclas y los clics, y
+cortarla en el `document` le quita a `window` la señal de la que depende `useEscapeLibre`.
+
+**Se rompe si** un control dentro de un cajón usa una flecha sin llamar a `preventDefault` (el cajón pasaría de
+registro a la vez), o si un modal se monta con `container` DENTRO del DOM del cajón (entonces su tecla sí «nace» en
+el cajón). Hoy no hay ninguno de los dos.
+
+**Cómo se verifica.** Por pagar, con sesión: abrir la vista rápida de un comprobante con saldo → «Pagar» → escribir
+un monto → ↓ en el monto, en una ficha de medio de pago, en la fecha (abre el calendario) y en «Sale de» (abre la
+lista): el cajón sigue en el mismo comprobante y el pago abierto con lo escrito. Cerrado el pago, con el foco en el
+cajón, ↑ ↓ siguen pasando de comprobante. Desde el «Pagar» de una fila, tocar el velo o un texto del pago no abre la
+vista rápida de esa fila. Verificado el 2026-09-26 en escritorio y a 375 px, además de Proveedores y Recibidas (Notas
+de crédito no tenía notas en la base local), y en un banco temporal con un campo, un área de texto y un combo DENTRO
+del cajón.
