@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { exigirPermiso } from "@/lib/persona-actual";
 import { getCompra } from "@/lib/compras";
@@ -8,6 +7,7 @@ import { ETIQUETA_METODO, ETIQUETA_TIPO_DOCUMENTO, fechaCorta, soles } from "@/l
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Chip } from "@/components/ui/Chip";
 import { BotonPagar } from "@/components/CompraDetallePanel";
+import { Volver } from "@/components/ui/Volver";
 
 // ADR-0184 (F3-b): el detalle de la parte de MI tienda en un comprobante que gestiona OTRA tienda. Muestra la cabecera sin los
 // montos del comprobante entero, lo que le toca a mi tienda (subtotal, IGV, total, pagado, saldo), mis líneas con mis unidades
@@ -28,22 +28,20 @@ export default async function MiParteDeCompraPage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Compras · Tu parte"
-        titulo={`${ETIQUETA_TIPO_DOCUMENTO[compra.tipo]} ${compra.documento}`}
-        bajada={`${compra.proveedorNombre} · lo gestiona ${compra.gestoraNombre}, que tiene el papel. Aquí ves y pagas solo lo que le toca a tu tienda.`}
-        acciones={
-          <Link href="/compras/por-pagar" className="btn-cayla btn-secundario">
-            Volver a Por pagar
-          </Link>
-        }
-      >
-        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-taupe">
-          Emitido {fechaCorta(compra.fechaEmision)}
-          {compra.fechaVencimiento ? ` · vence ${fechaCorta(compra.fechaVencimiento)}` : ""}
-          {!compra.vigente && <Chip tono="apagado">Anulado</Chip>}
-        </p>
-      </CabeceraPantalla>
+      <div>
+        <Volver href="/compras/por-pagar" a="Por pagar" className="mb-4" />
+        <CabeceraPantalla
+          sobretitulo="Compras · Tu parte"
+          titulo={`${ETIQUETA_TIPO_DOCUMENTO[compra.tipo]} ${compra.documento}`}
+          bajada={`${compra.proveedorNombre} · lo gestiona ${compra.gestoraNombre}, que tiene el papel. Aquí ves y pagas solo lo que le toca a tu tienda.`}
+        >
+          <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-taupe">
+            Emitido {fechaCorta(compra.fechaEmision)}
+            {compra.fechaVencimiento ? ` · vence ${fechaCorta(compra.fechaVencimiento)}` : ""}
+            {!compra.vigente && <Chip tono="apagado">Anulado</Chip>}
+          </p>
+        </CabeceraPantalla>
+      </div>
 
       {partes.map((p, i) => (
         <section key={p.ubicacionId} className="card-cayla p-5">
