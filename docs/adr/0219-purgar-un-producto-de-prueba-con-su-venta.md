@@ -5,7 +5,7 @@
 **Decide:** Felipe, 2026-09-26: «quiero eliminarlo por completo» (Top Aurora, `TOP-0011`) y confirmó que la venta `NV01-000007` «toda fue de prueba».
 **Afecta:** `scripts/purga/purgar-producto-de-prueba.sql`, `scripts/purga/restaurar-purga.sql`, `scripts/pruebas/purgar_producto_de_prueba.mjs`
 (sumada al CI), y un esquema nuevo `respaldo_purgas` (una tabla, creada por el propio script). **No toca ninguna función, tabla ni política de `retail`,
-ni la web.** Convive con el botón «Eliminar producto» que construye la sesión `admin-delete-products` (solo para productos SIN historia): son casos distintos.
+ni la web.** Convive con el botón «Eliminar producto» de [ADR-0218](0218-eliminar-un-producto-solo-si-nunca-se-movio.md) (PR #469, ya en `main`), que solo borra productos SIN historia: son casos distintos, y este es el que sirve cuando SÍ la hay.
 
 ## Contexto
 
