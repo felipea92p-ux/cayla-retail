@@ -89,7 +89,7 @@ devoluciones/cambios sobre lo vendido, % de ventas a precio pleno.
 **D-64 · Bonificación** → **retail calcula el número, Dynamic lo paga.** **Metas:
 mensual por tienda, el líder la reparte.**
 
-> **Actualización (2026-09-26, Felipe; ADR-0219):** la meta por persona **todavía no** se construye. El módulo
+> **Actualización (2026-09-26, Felipe; D-105 en `DECISIONES-2026-09-26-rendimiento.md`, ADR-0219):** la meta por persona **todavía no** se construye. El módulo
 > Rendimiento muestra el avance de la tienda contra su meta del mes y cuánto aportó cada persona. El reparto se retoma el
 > día que la colaboradora pueda ver sus cifras. *El texto de arriba se conserva como quedó el 2026-09-21.*
 
@@ -113,7 +113,7 @@ nuevas identificadas y clientas que vuelven (recompra). Un ranking simple del me
 premia el azar con 30–80 ventas por persona al mes. El líder ve el global de su sede
 con la muestra (n) al lado; el top 3 es lo único visible entre compañeras.
 
-> **Actualización (2026-09-26, Felipe; ADR-0219):** el período es el **mes calendario**. Para que ese mes no premie el azar,
+> **Actualización (2026-09-26, Felipe; D-95 y D-101 en `DECISIONES-2026-09-26-rendimiento.md`, ADR-0219):** el período es el **mes calendario**. Para que ese mes no premie el azar,
 > cada persona lleva el número de ventas al lado y la marca «muestra chica» con menos de 40 ventas, el umbral de esta
 > decisión. Hay **dos rankings**: soles por hora trabajada y número de ventas. **El top 3 visible entre compañeras queda en
 > pausa**, porque por ahora las colaboradoras no ven el módulo (ver D-68). Clientas nuevas y recompra no se pueden medir
@@ -127,7 +127,8 @@ Felipe en el momento de construir.
 **D-68 · Quién ve las métricas de quién** → cada colaboradora ve las suyas; el líder,
 las de su sede; Felipe, todas. Nunca entre compañeras salvo el top 3 (D-66).
 
-> **Actualización (2026-09-26, Felipe tras hablarlo con el gerente; ADR-0219):** **por ahora las colaboradoras no ven el
+> **Actualización (2026-09-26, Felipe tras hablarlo con el gerente; D-93 y D-94 en `DECISIONES-2026-09-26-rendimiento.md`,
+> ADR-0219):** **por ahora las colaboradoras no ven el
 > módulo**, ni siquiera sus propias cifras: «esto generaría más caos actualmente». Lo ven dos niveles:
 > - **Los 5 Admin ven todas las tiendas.** Los Líderes que no son Admin no las ven.
 > - **La encargada ve solo su tienda.** Es encargada quien tiene un rol de Roles y accesos con el módulo encendido.

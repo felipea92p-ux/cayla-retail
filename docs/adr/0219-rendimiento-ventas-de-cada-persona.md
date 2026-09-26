@@ -8,6 +8,9 @@ el gerente). El diseño técnico de abajo espera su aprobación. **Nada construi
 `fn_rendimiento_equipo`, `fn_rendimiento_persona`, tabla `venta_reasignaciones` y función `reasignar_asesora`),
 `apps/web/lib/modulos.ts`, `apps/web/lib/menu.ts`, `apps/web/app/(app)/rendimiento/`, `apps/web/lib/rendimiento-reglas.ts`
 (con su prueba). No toca `movimientos` ni `stock`.
+**Acta de la ronda:** [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](../datos/DECISIONES-2026-09-26-rendimiento.md) (D-92 a D-108,
+con las opciones que se ofrecieron y los datos consultados). **Referencia visual:**
+[`docs/maquetas/rendimiento-spike-2026-09/`](../maquetas/rendimiento-spike-2026-09/).
 **Relacionado:** D-62 a D-79 (`docs/datos/DECISIONES-2026-09-21-menu-comercial.md`), R-17 y R-41
 (`docs/datos/15-COMO-OPERA-CAYLA.md`), ADR-0153 y ADR-0163 (quién atendió cada venta), ADR-0161 y ADR-0178 (roles por
 módulo, escalón Admin), ADR-0207 (Actividad: el mismo alcance por tienda), ADR-0214 (una cifra con poca muestra no es una
@@ -31,6 +34,8 @@ El sistema tampoco tiene «encargada de tienda». Las 7 personas que Dynamic mar
 sigue sin construirse.
 
 ## Las 20 respuestas de Felipe (2026-09-26)
+
+Resumen. El registro completo —pregunta, opciones ofrecidas, recomendación y respuesta— es el acta (D-92 a D-108).
 
 | # | Pregunta | Respuesta |
 |---|---|---|
