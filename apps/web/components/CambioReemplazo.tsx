@@ -3,6 +3,7 @@
 import type { ReactNode, RefObject } from "react";
 import Link from "next/link";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
+import { Desplegable } from "@/components/ui/campos";
 import { ComparacionPrendas } from "@/components/CambioResumen";
 import { OPCION, OPCION_ACTIVA, OPCION_INACTIVA } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
@@ -154,7 +155,7 @@ export function CambioReemplazo({
   /** Los tres ref, para llevar el foco al campo que falta cuando se aprieta "Continuar". */
   refMotivo: RefObject<HTMLFieldSetElement | null>;
   refPrenda: RefObject<HTMLDivElement | null>;
-  refMetodo: RefObject<HTMLSelectElement | null>;
+  refMetodo: RefObject<HTMLButtonElement | null>;
   onCambio: (cambio: Partial<Seleccion>) => void;
 }) {
   const disponible = unidadesDisponibles(linea);
@@ -336,19 +337,16 @@ export function CambioReemplazo({
             <label htmlFor={`${idBase}-metodo`} className="text-sm text-tinta/75">
               {r.diferencia > 0 ? "¿Cómo paga la diferencia?" : "¿Cómo se le devuelve?"}
             </label>
-            <select
+            {/* El combo del sistema en caja (ADR-0209); `ref` es su botón, al que Cambios lleva el foco si falta la caja. */}
+            <Desplegable
               ref={refMetodo}
               id={`${idBase}-metodo`}
-              value={s.metodo}
-              onChange={(e) => onCambio({ metodo: e.target.value as MetodoDiferencia })}
-              className="h-10 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
-            >
-              {METODOS_DIFERENCIA.map((m) => (
-                <option key={m.valor} value={m.valor}>
-                  {m.etiqueta}
-                </option>
-              ))}
-            </select>
+              forma="caja"
+              className="w-56 max-w-full"
+              valor={s.metodo}
+              onValor={(metodo) => onCambio({ metodo })}
+              opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+            />
           </div>
         )}
       </div>

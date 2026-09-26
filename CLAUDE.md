@@ -258,12 +258,14 @@ pruebas) y el estado que la usa en `apps/web/components/ui/useCombo.ts`; la apli
 opciones o menos ninguno cambia de comportamiento. **No reimplementes un corte a mano ("se muestran N, sigue
 tipeando") ni un buscador propio**: un combo nuevo se alimenta con `opciones`/`valor`/`onValor` vía
 `CampoSelect` (formulario), `Desplegable` (sin caja de `Campo` alrededor, ej. cabecera o píldora) o
-`ComboBuscable` (catálogo, tipeo inmediato) y la regla llega sola. Todo el `<select>` nativo y `SelectNativo`/
-`CampoSelectNativo` legacy del repo ya se migró (2026-09-25) — si ves uno, es nuevo, no lo copies. Dos casos
-quedaron fuera a propósito, pendientes de decisión con Felipe (detalle en
-`docs/adr/0209-buscador-y-paginado-regla-global-de-combos.md`): `DecisionFaltanteFila.tsx` (un `<optgroup>`
-real que `Opcion<T>` no representa) y `CambioReemplazo.tsx` (su `<select>` reenvía un `ref` que
-`CambiosFlujo.tsx` usa para foco-en-error; `Desplegable` no reenvía ref).
+`ComboBuscable` (catálogo, tipeo inmediato) y la regla llega sola. **Desde el 2026-09-26 no hay ni un `<select>`
+del navegador en la web, Finanzas incluida, y `apps/web/lib/sin-select-nativo.test.ts` hace fallar el CI si
+aparece uno** (`SelectNativo`/`CampoSelectNativo` ya no existen). Lo que antes empujaba al nativo tiene su
+equivalente: `<optgroup>` → `Opcion.grupo`; `<option disabled>` → `Opcion.deshabilitada` (se ve, no se elige);
+un «Elige…» que solo bloquea guardar → `marcador`, no una opción; foco-en-error → las props `id` (y `ref`, en
+`Desplegable`). En Finanzas el combo es `SelectFin` (kit): el mismo `Desplegable` con la caja del spike
+(`forma="fin"`); `className` lo ubica en la fila (`w-fit`, `fin-mes-chico`, `fin-compacto`), no lo pinta. La
+forma `caja` es hueso, igual que `CampoTexto caja`. Detalle: ADR-0209, actualizaciones del 2026-09-26.
 
 ## Vocabulario obligatorio
 

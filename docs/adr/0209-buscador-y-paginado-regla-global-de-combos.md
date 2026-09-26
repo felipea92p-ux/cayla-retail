@@ -94,3 +94,64 @@ Verificación final de F1+F2: typecheck y `eslint` limpios en los ~39 archivos t
 (21 290 pruebas — la cifra bajó desde los 24 373 de F1 porque otra sesión, en paralelo en el mismo checkout,
 edita `lib/menu.ts`/`modulos.test.ts` para un feature de menú móvil no relacionado; nada de eso es de esta
 migración).
+
+## Actualización 2026-09-26 — lo que la migración no alcanzó
+
+**Actividad (ADR-0207), construida el mismo 2026-09-25 en otra rama, nació con `SelectNativo`**: en el panel de la
+cabecera se veía el hilo del campo dibujado DENTRO de la caja, otra flecha y la lista del sistema operativo. Sus cuatro
+combos pasan a `Desplegable forma="caja"`. Lo que eso destapó vale para cualquier combo: `Desplegable` muestra el
+marcador («Elegir») si su valor no está entre las opciones, así que **lo elegido tiene que estar siempre en la lista**
+(`opcionesDeModulo` y `opcionesDePersona` en `lib/actividad-reglas.ts`); el `<select>` nativo, en el mismo caso,
+mostraba la primera opción («Todas las personas») mientras filtraba por otra.
+
+Quedan `<select>` nativos que nacieron del 18 al 24 de setiembre y la migración no tocó: `DevolucionesPendientes.tsx`,
+`MediosDePago.tsx`, `apartados/ModalesApartado.tsx` y `finanzas/CampoCuenta.tsx` (además de las dos excepciones de
+arriba y de `SelectFin`, el control propio de Finanzas, ADR-0195). No hay prueba que vigile la regla; hasta que la haya,
+cada pantalla nueva puede volver a traer uno.
+
+## Actualización 2026-09-26 (b) — cero excepciones, Finanzas incluida, y la prueba que lo vigila
+
+Pedido de Felipe: «cambiemos esos select de otros módulos y creemos esa prueba para que avise cuando salga uno nuevo, y
+que se aplique ese diseño por defecto». Con Finanzas dentro (lo eligió él: su spike, ADR-0195, dibuja 24 `<select>`).
+
+**Primero se hizo fácil el cambio.** Lo que dejaba afuera a los últimos nativos eran tres cosas que `Desplegable` no
+sabía, y las aprendió (reglas puras en `lib/combo-reglas.ts`, con pruebas):
+
+- **Grupos** (`Opcion.grupo`, el `<optgroup>`): las seguidas del mismo grupo van bajo su título, en un `role="group"`.
+  Las flechas y el «activo» siguen contando la lista plana (`tramosPorGrupo`). El buscador también mira el grupo.
+- **Opciones que se ven y no se eligen** (`Opcion.deshabilitada`, el `<option disabled>`): un cajón con la caja cerrada.
+  Ni el clic ni Enter la eligen; las flechas, Inicio y Fin la saltan (`siguienteElegible`, `primeraElegible`).
+- **`id` y `ref`**: el `id` va al disparador (un `<label htmlFor>`, `avisar.error({ enfocar })`); el `ref` (prop común en
+  React 19) entrega el disparador — lo que Cambios enfoca cuando falta la caja.
+
+Y dos formas para Finanzas: `fin` (la caja `fin-control` del spike: su flecha, su relleno) y `finEnLinea` (el combo dentro
+de un sobretítulo). Las dos son **«como nativas»**: todas las opciones invisibles apiladas en la misma celda le dan al
+control el ancho de la más larga, como hace el navegador, y su lista puede ser más ancha que el control.
+
+**Después, el cambio.** Devoluciones pendientes, Medios de pago, Apartados, los combos de cuentas (`opcionesDeCuenta` en
+`lib/cuenta-sellada-reglas.ts` reemplaza a `OpcionesCuenta`, que dibujaba `<option>` sueltos), «Decidir todas» de Recibir
+(`DecisionFaltanteFila.tsx`) y el medio de la diferencia de Cambios (`CambioReemplazo.tsx`): las dos excepciones de
+arriba ya no lo son. En Finanzas, `SelectFin` pasó a ser un `Desplegable` (44 combos en 18 archivos) y Flujo de caja usa
+`SelectEnLineaFin`. Se borraron `SelectNativo`, `CampoSelectNativo` y el `campoSelect` de `Modal.tsx`.
+
+**Medido, no a ojo.** Un banco temporal con las piezas en sus contextos reales (barra de herramientas, «Ver:», mes chico,
+campo, tabla, sobretítulo), comparado número contra número con la línea base tomada antes del cambio, a 1280 y a 375 px:
+alto, relleno, letra, colores, borde, esquinas, flecha y posición iguales; anchos con diferencias de menos de medio
+píxel. Las formas `campo` y `pastilla`, idénticas.
+
+**Un cambio visible, a propósito:** la forma `caja` salía transparente —un `bg-transparent` común a todas las formas le
+ganaba a `.caja-cayla`— y ahora es hueso, como dice la guía (ADR-0169) y como `CampoTexto caja`. En Existencias el
+buscador era hueso y los combos de al lado no.
+
+- DECIDÍ: enseñarle a `Desplegable` grupos, opciones bloqueadas, `id`/`ref` y las formas de Finanzas, y migrar todo.
+  DESCARTÉ: dejar los casos raros como excepciones escritas en la prueba, porque cada excepción es el precedente de la
+  siguiente, y el combo «de mentira» (una opción vacía que dice «Sin cuentas») seguía mintiendo en el nativo.
+  SE ROMPE SI: un combo necesita algo que tampoco sabe `Desplegable` (varias opciones a la vez, grupos anidados); ahí
+  se le enseña a él o se usa otra pieza del sistema (`SelectorMultiple`), nunca el nativo.
+- DECIDÍ: la prueba lee el árbol del código con TypeScript (`lib/sin-select-nativo.test.ts`), como la de arquitectura.
+  DESCARTÉ: buscar el texto «<select» (salta con un comentario que lo nombre, y el repo tiene varios) y una regla de
+  ESLint (sería un segundo mecanismo para lo mismo, y su excepción se esconde en un comentario dentro del archivo).
+  SE ROMPE SI: alguien arma un `createElement("select")` o trae un `<select>` desde una librería; hoy no hay ninguno.
+
+Queda sin resolver (no es de esta regla, lo destapó): Escape con la lista de un combo abierta cierra el modal entero en
+todo el ERP (ver BACKLOG, 2026-09-26).
