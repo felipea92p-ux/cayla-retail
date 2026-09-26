@@ -40,7 +40,7 @@ export default async function TrasladosPage() {
         sede={persona.ubicacionEtiqueta}
         titulo="Traslados"
         subtitulo="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
-        pie={
+        acciones={
           <Link href="/inventario/mover" className="btn-cayla btn-primario">
             + Nuevo traslado
           </Link>

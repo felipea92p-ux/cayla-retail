@@ -147,7 +147,10 @@ export default async function InventarioPage({
         // cargó, y un reloj vivo encima haría creer que está al minuto.
         sinHora
         detalle={`vista de las ${horaCarga}`}
-        pie={
+        // A la derecha, donde la cabecera tenía espacio libre (Felipe, 2026-09-26): la fila de botones bajo la frase le
+        // sumaba 54 px de alto (medido a 1440) a una pantalla que se abre para mirar la tabla. «+ Nuevo traslado» va al
+        // final y queda en el borde aunque «Bajar al piso» no se muestre.
+        acciones={
           <>
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
