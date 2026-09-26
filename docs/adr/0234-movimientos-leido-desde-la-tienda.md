@@ -144,6 +144,8 @@ de «Hoy en la sede».
   nunca uno «a mitad de camino» que no existió para nadie.
 - **Todo puede fallar:** sin la función (web publicada antes que la migración) o si no responde, la lista sigue igual y
   sin el saldo.
+- **Exportar a Excel** trae la columna «Quedan en la sede», junto a «Efecto en la sede», de la misma función (una llamada
+  por página de 200); si la base no responde, la columna va vacía —nunca un 0 que parezca dato—.
 
 Verificación: `pnpm pruebas:movimientos-saldo` (11 en ROLLBACK: la historia 5 → bajada 5 → venta 4 → conteo a la vez 5 →
 cuarentena 4; el último saldo es el stock de hoy; otra sede no vuelve; sin sesión 42501; `anon` no ejecuta). En local,

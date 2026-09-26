@@ -824,6 +824,9 @@ export const ENCABEZADOS_CSV_MOVIMIENTOS = [
   "Color",
   "Unidades",
   "Efecto en la sede",
+  // Cuántas quedaron en la sede al terminar ese movimiento (ADR-0234, saldo): lo mismo que dice la pantalla («quedan 4»).
+  // Vacía si la base no lo pudo decir.
+  "Quedan en la sede",
   "De dónde",
   "A dónde",
   "Zona",
@@ -839,8 +842,9 @@ function sinFormula(texto: string): string {
   return /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
 }
 
-/** Una fila del archivo. «Efecto en la sede»: +5 entró, −1 salió, 0 se movió entre piso y almacén. */
-export function filaCsvMovimiento(m: Movimiento): (string | number)[] {
+/** Una fila del archivo. «Efecto en la sede»: +5 entró, −1 salió, 0 se movió entre piso y almacén. `quedan`: el saldo
+ *  de `fn_movimientos_saldos` para ese movimiento; sin él, la celda va vacía (nunca un 0 que parezca dato). */
+export function filaCsvMovimiento(m: Movimiento, quedan: number | null = null): (string | number)[] {
   const { origen, destino } = partesOrigenDestino(m);
   const efecto = m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado" ? 0 : m.delta;
   const texto = (v: string | null | undefined) => sinFormula(v ?? "");
@@ -854,6 +858,7 @@ export function filaCsvMovimiento(m: Movimiento): (string | number)[] {
     texto(m.color),
     Math.abs(m.cantidad),
     efecto,
+    quedan ?? "",
     texto(origen),
     texto(destino),
     m.sububicacion ? texto(nombreCortoSububicacion(m.sububicacion)) : "",
