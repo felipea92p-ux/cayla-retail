@@ -224,15 +224,16 @@ export function CajaAbiertaPanel({
         {/* ---------- Encabezado ---------- */}
         {/* La misma cabecera de Cambios y Devoluciones (`EncabezadoPagina`, Atelier): dónde y cuándo arriba con el
             hilo, el título grande, y a la derecha la pieza viva de la pantalla — aquí el reloj del turno. Las acciones
-            (ingreso/egreso y cerrar) van bajo la frase; el estado de la cola offline, sobre el reloj. La hora corre en el reloj, así
-            que la línea de arriba dice solo el día. Sin avatar: las iniciales no aportaban nada. */}
+            (ingreso/egreso y cerrar) bajan solas bajo la frase porque la derecha es del reloj; el estado de la cola offline,
+            sobre el reloj. La hora corre en el reloj, así que la línea de arriba dice solo el día. Sin avatar: las
+            iniciales no aportaban nada. */}
         <div className="pb-3">
           <EncabezadoPagina
             sede={ubicacionNombre}
             titulo="Caja"
             subtitulo={`Turno de ${personaNombre} · ${personaRol === "lider" ? "Líder de equipo" : "Integrante"}`}
             sinHora
-            pie={
+            acciones={
               <>
                 <Boton peso="discreto" onClick={() => setModal("movimiento")}>
                   Registrar movimiento
