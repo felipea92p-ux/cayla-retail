@@ -28,6 +28,43 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web + migración de lectura `20260927153000` **SIN APLICAR en producción**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+
+- [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
+      «Entradas»/«Salidas» traen también el traslado que llegó/salió; las píldoras cuentan operaciones.
+- [x] Una fila por operación que se despliega (D2); la página no corta una operación; foto de cada prenda.
+- [x] Vocabulario de tienda, buscador que entiende «venta»/«traslado», detalle con verbo, stock de hoy, «Ver la venta» y
+      «Copiar enlace»; «← Movimientos» desde Traslado y Conteo; Actividad abre con todos los módulos en Movimientos.
+- [x] Exportar a Excel por ruta (`/inventario/movimientos/exportar`), igual que Historial (D3).
+- [x] Candado de CI `lib/reglas-sin-uso.test.ts` («probado = en pantalla»).
+- [ ] **Aplicar `20260927153000` en producción** (OK de Felipe; una sola parte, sin políticas) y refrescar
+      `docs/datos/generado/` después. Hasta entonces `pnpm datos:comparar` marcará `fn_movimientos_resumen_procesos`.
+- [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
+- [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
+      Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o
+      borrarla; la lista solo puede achicarse.
+- [ ] Aparte (tarea propuesta en la sesión): el primer clic tras renovarse la sesión puede mandar a `/login` con «tu
+      cuenta no puede entrar»; `lib/persona-actual.ts:109` convierte cualquier error en «sin acceso».
+
+## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **SIN APLICAR en producción**; mismo [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+
+- [x] `cargar_stock_inicial` (prendas que ya existen, en una tienda donde no tienen historia) y candado
+      `ajuste_sin_historia` en `registrar_movimiento`; Ajustar stock guarda las prendas nuevas en la tienda como stock
+      inicial. Prueba `pnpm pruebas:ajuste-no-es-primera-carga` (20). El candado va después de saber quién firma (el CI
+      lo pidió: `terminales` y `candado-lider` fallaban con la primera versión; sus casos de ajuste ahora le dan historia
+      a la prenda).
+- [ ] **Orden en producción:** `20260927153100` → publicar la web → `20260927153200` (con OK de Felipe).
+- [ ] Decidir si un conteo formal (`cerrar_conteo`) también debe escribir como «carga_inicial» la primera cantidad de una
+      prenda que la tienda nunca tuvo (hoy queda como «Ajuste · Conteo»).
+- [ ] Cerrar la carga inicial cuando termine el paso de las tiendas al sistema (heredado de ADR-0212).
+
+## 🔍 Traslados: recorrido de usabilidad como persona sin contexto (2026-09-26) — solo análisis, sin cambios de código; `docs/pantallas/traslados.md`; rama `claude/traslados-usability-review-9b0615`
+- [x] Recorrido en local con clics reales (líder; Trujillo envía, Lima recibe): enviar, contar con un faltante, cerrar con diferencia e intentar vender lo recibido. 17 hallazgos con archivo:línea en `docs/pantallas/traslados.md`.
+- [ ] Arreglables sin decisión de negocio: «por recibir» que no dependa de la hora estimada y botón «Recibir» en la fila (§2); conteo que sobreviva a una recarga (§4); formulario sin destino ni prendas elegidas de antemano (§6); buscador por palabras (§7); escáner que busque por nombre y muestre el código de etiqueta (§12); la lista dice «Cerrado con diferencia» (§15).
+- [ ] Decisiones de Felipe (`docs/pantallas/traslados.md` §6): todo-o-nada al recibir, conteo a ciegas o «Coincide», piso o almacén al recibir en tienda, quién anula un envío y hasta cuándo.
+- [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
+- [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
+
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 
 - [x] Tarjeta compacta con «Devolver», «Cambiar» (→ Cambios) y «Ver venta»; chip «Quedan N días» (ámbar los últimos 3).
@@ -710,12 +747,23 @@ Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apart
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
 - [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
 
+## 🎯 Apartados v2, pasos 2 a 5 (2026-09-26, ADR-0236) — 4 migraciones EN PRODUCCIÓN (2026-09-26, versiones `20260926194…`, verificadas); web en PR #495
+Abonos, estante, editar, actividad, opciones por tienda, clienta por DNI y «Qué ver». Orden de pegado: `20260927100000` → `110000` → `120000` → `130000` (cada una en una parte, sin políticas, idempotentes).
+- [x] Migraciones + `pnpm pruebas:separaciones` 71/71 en el Postgres local; web con tipos, lint y pruebas en verde; vista a 1440 y 375 px con datos de prueba.
+- [x] **Pegadas en producción** el 2026-09-26 con el OK de Felipe (por el MCP, en orden; antes se verificó que `entregar_separacion`, `registrar_devolucion_separacion` y `buscar_separaciones` seguían idénticas a las leídas): 5 tablas con RLS y 0 políticas, 5 funciones solo para `authenticated`, 7 disparadores, APT-TRU-0005 con estante A-01, `fn_verificar_separaciones` 0 problemas; lectura como líder (en transacción revertida) trae estante, id de prenda y fecha de pago.
+- [ ] Refrescar el diccionario tras pegarlas; probar con clics reales en TRU: abonar (con y sin espera), editar la talla, ver el estante, la Actividad y las Opciones.
+- [x] **Apartar de otra sede (ADR-0233)** — «pedir traslado y apartar al llegar»: migración `20260927140000` **EN PRODUCCIÓN** (2026-09-26, versión `20260926200612`, verificada: RLS sin políticas, disparador puesto, 5 funciones solo para `authenticated`, los 4 traslados existentes intactos); `pruebas:separaciones` 77/77. En el mismo PR #495.
+- [x] Un producto con un pedido a otra sede ya tiene historia: `fn_producto_se_puede_eliminar` suma el renglón 16 (migración `20260927150000`, **en producción** 2026-09-26, verificada: 16 productos evaluados, 6 eliminables como antes); `separacion_items_retirados` la cuenta su apartado. Lo pedía `pruebas:eliminar-producto`.
+- [ ] Pedidos entre tiendas: la tienda que envía necesita el módulo Apartados para ver «Enviar» en su «Todos» (o Traslados, que la base también acepta, pero sin pantalla propia todavía).
+- [x] **Editar a un total menor que lo pagado — decidido por Felipe (2026-09-26): no se permite** (como ya hace `editar_separacion`).
+- [ ] Hueco previo (no de este cambio): en el Postgres local de esta máquina hay dos `registrar_movimiento_caja` (sobrecarga de otra sesión) y `pruebas:actividad`/`pruebas:actor-firma` fallan por ambigüedad; el CI arma la base desde cero.
+
 ## 🎯 Apartados: recordar en lote (2026-09-26, ADR-0227) — migración `20260926233000` EN PRODUCCIÓN (aplicada 2026-09-26 como `20260926174611`, verificada por efectos); web en PR #490
 Paso 1 de las funciones del spike Apartados v2 (orden acordado con Felipe: recordar en lote → abonos → estante real → actividad, editar y otra sede → «Opciones» y «Qué ver»).
 - [x] Tabla `separacion_avisos` (append-only), `registrar_aviso_separacion` y `fn_avisos_separaciones`; `pnpm pruebas:separaciones` 53/53 en el Postgres local.
 - [x] Web: aviso «N clientas por avisar hoy» en Todos, `RecordarModal` (lote o una sola clienta), mensaje de vencido con la fecha de gracia; reglas puras con prueba.
 - [x] **Pegada en producción** el 2026-09-26 con el OK de Felipe (por el MCP): tabla con RLS y 0 políticas, `authenticated` sin acceso directo, las dos funciones con `execute` solo para `authenticated`, 0 avisos, separaciones intactas (1).
-- [ ] **Paso 2 · Abonos** (decisiones de Felipe, 2026-09-26): sin monto mínimo; el PRIMER abono corre la fecha y, como opción al registrarlo, se le puede esperar 2 días más, o 3 si el abono es la mitad o más de lo que le faltaba. Cada abono = boleta de anticipo.
+- [x] **Paso 2 · Abonos**: hecho en ADR-0236 (reglas corregidas: el plazo NO cambia solo; «esperarla» da 2 días, o 3 si abona la mitad o más de lo que faltaba).
 - [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) y verlo con clics reales en TRU.
 
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
@@ -1036,7 +1084,7 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 ## 🎯 Traslados: rediseño de lista y detalle, conteo por borradores y vacíos ocultos (2026-09-22, ADR-0173) — construido y verificado con datos de muestra; SIN migración
 - [x] Demo aprobada por Felipe (`docs/maquetas/traslados-rediseno-2026-09/`). En producción, los 4 traslados tienen 0 líneas y 0 movimientos (quedaron de la limpieza de datos): se **ocultan** en la lista, en las lecturas de `lib/traslados.ts` y en el contador del menú. No se borran.
 - [x] Lista: estados «Por confirmar / Por revisar / En camino / Completado», los colores de lo que va cuando no hay fotos, «Salió» con hora, píldoras en lugar del `<select>` nativo y el aviso de vacíos para el líder. Detalle: recorrido en 4 pasos (quién envió, quién contó, quién cerró), 3 cifras, conteo con −/+/«Coincide» guardado al confirmar, un solo campo para escanear, `<Modal>` para confirmar, nota obligatoria al cerrar con diferencia y tarjetas en celular. Cierra el pendiente «Traslados › detalle sigue con la celda de texto».
-- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió.
+- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió. **Avance 2026-09-26:** hecho en local como líder (Traslado 3, Trujillo → Lima: modal, registro y cierre con diferencia); falta con integrante o terminal. Lo que se encontró: `docs/pantallas/traslados.md`.
 - [ ] Endurecer en la base la nota de cierre: hoy solo la pantalla la exige; `cerrar_traslado_con_diferencia` acepta `p_nota` vacía.
 - [x] (ADR-0175) Las tarjetas son el filtro (los chips repetidos pasan a Abiertos · Cerrados · Todos), dirección Entran/Salen a la vista y tabla en dos acomodos (6 columnas desde 1280 px, tarjeta debajo). Capturas a 1280/1440/390 px con el `TrasladosPanel` real y datos de muestra. Falta verlo con clics reales.
 - [ ] Decidir qué hacer con las 4 cabeceras vacías de producción (Traslados 1 al 4): siguen en la base; el 4 está «en tránsito».
