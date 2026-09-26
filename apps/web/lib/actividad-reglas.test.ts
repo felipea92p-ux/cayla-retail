@@ -15,7 +15,13 @@ import {
 } from "./actividad-reglas";
 import { CLAVES_MODULO, MODULOS_SOLO_PERSONAS } from "./modulos";
 
-const MIGRACION = readFileSync(new URL("../../../supabase/migrations/20260926090000_actividad_por_modulo.sql", import.meta.url), "utf8");
+// La receta del ADR-0207 y los módulos que se suman después con su propia migración (Apartados: 20260927120000).
+const MIGRACION = [
+  "20260926090000_actividad_por_modulo.sql",
+  "20260927120000_apartados_actividad_y_editar.sql",
+]
+  .map((f) => readFileSync(new URL(`../../../supabase/migrations/${f}`, import.meta.url), "utf8"))
+  .join("\n");
 
 // 25 de setiembre, 10:00 en Lima = 15:00 UTC.
 const AHORA = new Date("2026-09-25T15:00:00Z");

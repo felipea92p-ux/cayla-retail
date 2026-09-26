@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Receipt, Search, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Pencil, Receipt, Search, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -12,10 +12,11 @@ import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { cobroDelSaldo, coincide, diasEntre, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
 import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { ApartadoEntregadoModal } from "@/components/apartados/ModalesApartado";
+import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
+import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -44,21 +45,30 @@ export function EntregarVista({
   prendas,
   elegido,
   onElegir,
+  apagadas = [],
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   hoy: string;
   cajaAbierta: boolean;
   apartados: Apartado[];
-  prendas: VarianteBusqueda[];
+  prendas: PrendaApartable[];
   elegido: string | null;
   onElegir: (id: string | null) => void;
+  /** Lo que la tienda apagó en «Opciones» (paso 5). */
+  apagadas?: string[];
 }) {
   const router = useRouter();
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const [abonar, setAbonar] = useState(false);
+  const [editar, setEditar] = useState(false);
+  const conAbonos = encendida(apagadas, "abonos");
+  const conEditar = encendida(apagadas, "editar");
+  const conEstante = encendida(apagadas, "estante");
+  const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
   const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number } | null>(null);
   const token = useRef<string>(crypto.randomUUID());
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
@@ -151,6 +161,9 @@ export function EntregarVista({
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
                 <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo} · {a.comprobanteAnticipo}</p>
+                {conEstante && a.estante && (
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
+                )}
                 <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
                   Otra clienta
                 </button>
@@ -169,9 +182,19 @@ export function EntregarVista({
                 </li>
               ))}
             </ul>
+            {conEditar && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setEditar(true)} className="label-cayla inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand px-3 text-[10.5px] hover:border-taupe">
+                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
+                </button>
+                <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
+              </div>
+            )}
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-[12.5px] text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-              Antes de entregar: la prenda está en «Apartados» con la etiqueta {a.codigo} y el DNI o la boleta de la clienta coinciden.
+              <span>
+                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta de la clienta coinciden.
+              </span>
             </p>
           </article>
         ) : (
@@ -227,7 +250,10 @@ export function EntregarVista({
                 <div className="space-y-1.5 rounded-xl border border-sand bg-crema p-4 text-[12.5px] text-tinta/75 tabular-nums">
                   <p className="flex justify-between"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
                   {a.pagos.map((p, i) => (
-                    <p key={i} className="flex justify-between"><span>Adelantó con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(a.creadaEn)}</span><span>−{money(p.monto)}</span></p>
+                    <p key={i} className="flex justify-between">
+                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(p.fecha ?? a.creadaEn)}</span>
+                      <span>−{money(p.monto)}</span>
+                    </p>
                   ))}
                   <p className="flex justify-between border-t border-sand pt-2 text-sm text-tinta"><span>Falta pagar</span><b>{money(saldo)}</b></p>
                 </div>
@@ -290,9 +316,24 @@ export function EntregarVista({
                     <span className="font-display text-2xl tabular-nums">{money(cobro.vuelto)}</span>
                   </div>
                 )}
+                {conAbonos && saldo > 0 && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold">¿Viene solo a abonar?</p>
+                      <p className="text-xs text-tinta/60">Paga una parte; la prenda se queda guardada.</p>
+                    </div>
+                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-tinta/25 px-3 text-[10.5px] hover:border-rojo hover:text-rojo disabled:opacity-40">
+                      <Wallet className="h-3.5 w-3.5" aria-hidden /> Abonar
+                    </button>
+                  </div>
+                )}
                 <p className="flex items-start gap-1.5 text-xs text-tinta/60">
                   <Receipt className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {saldo > 0 ? `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.` : "Pagó todo al apartar: se entrega sin cobrar nada más."} No se piden datos otra vez.
+                  {saldo > 0
+                    ? a.pagos.some((p) => p.abono)
+                      ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
+                      : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
+                    : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
                 </p>
               </div>
             </div>
@@ -335,6 +376,9 @@ export function EntregarVista({
           onClick={entregar}
         />
       )}
+
+      {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
+      {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
     </div>

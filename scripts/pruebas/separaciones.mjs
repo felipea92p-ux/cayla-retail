@@ -436,6 +436,192 @@ set local role authenticated;
 select count(*) from retail.separacion_avisos;`, "permission denied");
 
 // ---------------------------------------------------------------------------
+// Abonos (20260927100000): un pago más del mismo apartado, con su anticipo
+// ---------------------------------------------------------------------------
+const abonar = (monto, { metodo = "yape", esperar = false, token = null, como = "ab" } = {}) =>
+  `select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', '${metodo}', 'monto', ${monto})), ${esperar}${token ? `, '${token}'` : ""}) as ${como} \\gset\n`;
+exito("abono: sube lo pagado, deja el plazo igual, sale su boleta de anticipo y el invariante cuadra",
+  `${preparar(FELIPE)}${separar()}${abonar(10)}
+select s.adelanto, s.vence_el = retail.fn_hoy_lima() + 7,
+       (select count(*) from retail.separacion_pagos where separacion_id = s.id and abono_id is not null),
+       (select c.es_anticipo || ':' || c.total from retail.comprobantes c where c.id = (:'ab'::jsonb ->> 'comprobante_id')::uuid),
+       (select count(*) from retail.comprobantes where separacion_id = s.id and es_anticipo),
+       (select count(*) from retail.fn_verificar_separaciones())
+  from retail.separaciones s where s.id = :'sep';`,
+  (x) => x === "60.00|t|1|true:10.00|2|0");
+exito("abono en efectivo: entra al cajón como ingreso del apartado",
+  `${preparar(FELIPE)}${separar()}${abonar(15, { metodo: "efectivo" })}
+select count(*), sum(monto) from retail.caja_movimientos where separacion_id = :'sep' and tipo = 'ingreso';`,
+  (x) => x === "2|65.00");
+error("abono: no puede pasar lo que falta pagar",
+  `${preparar(FELIPE)}${separar()}
+select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric)));`,
+  "pasa lo que falta pagar");
+exito("abono con espera: 2 días si es menos de la mitad de lo que faltaba, 3 si es la mitad o más",
+  `${preparar(FELIPE)}${separar()}${abonar(1, { esperar: true, como: "a1" })}
+select (:'a1'::jsonb ->> 'dias_espera') as d1, (select vence_el - retail.fn_hoy_lima() from retail.separaciones where id = :'sep') as v1 \\gset
+select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', round((:'precio'::numeric - 51) / 2, 2) + 0.01)), true) as a2 \\gset
+select :'d1', :'v1', (:'a2'::jsonb ->> 'dias_espera'), (select vence_el - retail.fn_hoy_lima() from retail.separaciones where id = :'sep');`,
+  (x) => x === "2|9|3|12");
+exito("abono: el mismo token dos veces abona una sola vez",
+  `${preparar(FELIPE)}${separar()}${abonar(5, { token: "55555555-5555-4555-8555-000000000001", como: "x1" })}${abonar(5, { token: "55555555-5555-4555-8555-000000000001", como: "x2" })}
+select (select count(*) from retail.separacion_abonos where separacion_id = :'sep'), (select adelanto from retail.separaciones where id = :'sep');`,
+  (x) => x === "1|55.00");
+error("abono: sin el módulo Apartados en su rol, no se registra",
+  `${preparar(FELIPE)}${separar()}
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.abonar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', 5)));`, "no tiene el módulo Apartados");
+exito("entregar tras un abono: cobra solo lo que falta y la boleta final lista LOS DOS anticipos",
+  `${preparar(FELIPE)}${separar()}${abonar(10)}
+select retail.entregar_separacion(:'sep', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 60))) as venta \\gset
+select (select c.anticipo_deducido from retail.comprobantes c where c.venta_id = :'venta'),
+       (select count(*) || ':' || sum(ca.monto) from retail.comprobante_anticipos ca join retail.comprobantes c on c.id = ca.comprobante_id where c.venta_id = :'venta'),
+       (select sum(monto) = :'precio'::numeric from retail.venta_pagos where venta_id = :'venta'),
+       (select count(*) from retail.fn_verificar_separaciones());`,
+  (x) => x === "60.00|2:60.00|t|0");
+exito("devolver tras un abono: devuelve todo lo pagado e intenta una nota de crédito por cada anticipo",
+  `${preparar(FELIPE)}${separar()}${abonar(10)}
+select retail.liberar_separacion(:'sep', 'vencio') as _l \\gset
+select retail.registrar_devolucion_separacion(:'sep', 'yape', 'OP-1') as r \\gset
+select s.estado, s.adelanto,
+       (select count(*) from regexp_matches(coalesce(:'r'::jsonb ->> 'aviso', ''), 'queda pendiente', 'g'))
+         + (select count(*) from retail.comprobantes where separacion_id = s.id and tipo = 'nota_credito')
+  from retail.separaciones s where s.id = :'sep';`,
+  (x) => x === "devuelta|60.00|2");
+
+// ---------------------------------------------------------------------------
+// Estante (20260927110000): un lugar por apartado abierto, el más bajo libre
+// ---------------------------------------------------------------------------
+exito("estante: dos apartados abiertos, dos lugares distintos; al entregar uno, su lugar lo toma el siguiente",
+  `${preparar(FELIPE)}${separar({ como: "s1" })}${separar({ como: "s2" })}
+select estante as e1 from retail.separaciones where id = :'s1' \\gset
+select estante as e2 from retail.separaciones where id = :'s2' \\gset
+select retail.entregar_separacion(:'s1', jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', :'precio'::numeric - 50))) as _v \\gset
+${separar({ como: "s3" })}
+select :'e1' ~ '^A-[0-9]{2}$', :'e1' <> :'e2', (select estante from retail.separaciones where id = :'s3') = :'e1',
+       (select estante from retail.buscar_separaciones(:'ubic', :'s2'::text)) = :'e2';`,
+  (x) => x === "t|t|t|t");
+
+// ---------------------------------------------------------------------------
+// Editar (20260927120000): quitar y sumar en una sola transacción
+// ---------------------------------------------------------------------------
+exito("editar: sumar una prenda aparta otra unidad, sube el total y el invariante cuadra",
+  `${preparar(FELIPE)}${separar()}
+select retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)}) as ed \\gset
+select s.total = :'precio'::numeric * 2, (select count(*) from retail.separacion_items where separacion_id = s.id),
+       (select cantidad_apartada = :apart0 + 2 from retail.stock where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'piso'),
+       (select count(*) from retail.separacion_ediciones where separacion_id = s.id),
+       (select count(*) from retail.fn_verificar_separaciones()), (select count(*) from retail.fn_verificar_apartados())
+  from retail.separaciones s where s.id = :'sep';`,
+  (x) => x === "t|2|t|1|0|0");
+exito("editar: quitar una prenda la devuelve a la tienda y su fila queda archivada, no borrada",
+  `${preparar(FELIPE)}${separar()}
+select retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)}) as _e1 \\gset
+select id as quitar from retail.separacion_items where separacion_id = :'sep' order by id limit 1 \\gset
+select retail.editar_separacion(:'sep', array[:'quitar'::uuid], '[]'::jsonb) as _e2 \\gset
+select (select count(*) from retail.separacion_items where separacion_id = :'sep'),
+       (select count(*) from retail.separacion_items_retirados where id = :'quitar'),
+       (select cantidad_apartada = :apart0 + 1 from retail.stock where variante_id = :'v' and ubicacion_id = :'ubic' and sububicacion_id = :'piso'),
+       (select total = :'precio'::numeric from retail.separaciones where id = :'sep'),
+       (select count(*) from retail.fn_verificar_separaciones());`,
+  (x) => x === "1|1|t|t|0");
+error("editar: no se deja un apartado sin prendas",
+  `${preparar(FELIPE)}${separar()}
+select id as quitar from retail.separacion_items where separacion_id = :'sep' \\gset
+select retail.editar_separacion(:'sep', array[:'quitar'::uuid], '[]'::jsonb);`, "se queda sin prendas");
+error("editar: el precio lo manda el catálogo, no la pantalla",
+  `${preparar(FELIPE)}${separar()}
+select retail.editar_separacion(:'sep', '{}'::uuid[], jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 1, 'precio_unitario', 1)));`,
+  "venta_precio_cambiado");
+
+// ---------------------------------------------------------------------------
+// Actividad (20260927120000): lo que pasó en Apartados, en el diario de siempre
+// ---------------------------------------------------------------------------
+exito("actividad: apartar, abonar, avisar y editar dejan su línea en el módulo Apartados",
+  `${preparar(FELIPE)}${separar()}${abonar(5)}
+select retail.registrar_aviso_separacion(:'sep') as _av \\gset
+select retail.editar_separacion(:'sep', '{}'::uuid[], ${items(1)}) as _ed \\gset
+set constraints all immediate;
+select string_agg(accion, ',' order by accion) from retail.actividad
+ where modulo = 'apartados' and (registro_id like :'sep' || '%' or detalle ->> 'codigo' = (select codigo from retail.separaciones where id = :'sep'));`,
+  (x) => x === "abono_registrado,apartado_editado,apartado_registrado,aviso_whatsapp");
+exito("actividad: liberar deja «liberó» con quién lo hizo",
+  `${preparar(FELIPE)}${separar()}
+select retail.liberar_separacion(:'sep', 'clienta_desistio') as _l \\gset
+select accion || ':' || (persona_id is not null) from retail.actividad where modulo = 'apartados' and registro_id = :'sep' || ':apartado_liberado';`,
+  (x) => x === "apartado_liberado:true");
+
+// ---------------------------------------------------------------------------
+// Opciones (20260927130000): cada tienda apaga lo que no usa; de fábrica, todo encendido
+// ---------------------------------------------------------------------------
+exito("opciones: sin guardar, nada está apagado (Completo); el líder apaga abonos y queda guardado",
+  `${preparar(FELIPE)}
+delete from retail.apartados_opciones where ubicacion_id = :'ubic';
+select array_length(retail.fn_opciones_apartados(:'ubic'), 1) is null as vacio \\gset
+select retail.guardar_opciones_apartados(:'ubic', array['abonos', 'abonos']) as _g \\gset
+select :'vacio', retail.fn_opciones_apartados(:'ubic')::text;`,
+  (x) => x === "t|{abonos}");
+error("opciones: solo el líder las cambia",
+  `${preparar()}
+select retail.guardar_opciones_apartados(:'ubic', array['abonos']);`, "Solo el líder");
+error("opciones: una función que no existe no se guarda",
+  `${preparar(FELIPE)}
+select retail.guardar_opciones_apartados(:'ubic', array['vuela']);`, "violates check constraint");
+
+// ---------------------------------------------------------------------------
+// Apartar de otra sede (20260927140000): pedir, enviar, llegar guardada, apartar con adelanto
+// ---------------------------------------------------------------------------
+// Lima tiene la prenda en su almacén; la clienta está en Trujillo. Todo como Felipe (líder: opera las dos tiendas).
+const conLima = `select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'lima', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'lima' and tipo = 'almacen_tienda');
+select retail.fn_sububicacion_por_defecto(:'lima', 'traslado_salida') as alm_lima \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v', :'lima', :'alm_lima', 'entrada', 5, 'colchón de prueba Lima') returning id as ml \\gset
+select retail.fn_aplicar_movimiento(:'ml') as _al \\gset
+`;
+const pedir = (como = "ped") => `select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222', 'la quiere para el sábado') as ${como} \\gset\n`;
+const enviarYRecibir = `select retail.enviar_pedido_para_apartar(:'ped', now() + interval '1 day') as tr \\gset
+select retail.registrar_recepcion_traslado(:'tr', :'v', 1) as _rr \\gset
+select * from retail.confirmar_traslado(:'tr') \\gset
+`;
+exito("otra sede: pedir queda «pedido» y no toca el stock de la otra tienda",
+  `${preparar(FELIPE)}${conLima}${pedir()}
+select pe.estado, (select sum(cantidad_apartada) from retail.stock where variante_id = :'v' and ubicacion_id = :'lima')
+  from retail.separacion_pedidos pe where pe.id = :'ped';`,
+  (x) => x === "pedido|0");
+exito("otra sede: al cerrar el traslado, la prenda queda guardada sola para la clienta en el almacén",
+  `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
+select pe.estado, a.estado, a.clienta_nombre, a.sububicacion_id = retail.fn_sububicacion_por_defecto(:'ubic', 'traslado_entrada'),
+       (select count(*) from retail.fn_pedidos_para_apartar(:'ubic') f where f.id = :'ped' and f.direccion = 'pedi' and f.guardada_hasta is not null)
+  from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_id where pe.id = :'ped';`,
+  (x) => x === "llego|abierto|Ana Lozano|t|1");
+exito("otra sede: con el adelanto se suelta la reserva, pasa al piso y queda un apartado de verdad, todo junto",
+  `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
+select retail.separar_pedido_para_apartar(:'ped', jsonb_build_object(
+  'p_ubicacion_id', :'ubic', 'p_items', ${items(1)}, 'p_pagos', ${pagos(["yape", 30])},
+  'p_clienta_nombres', 'Ana', 'p_clienta_apellidos', 'Lozano', 'p_clienta_celular', '987111222', 'p_devolucion_medio', 'yape')) as sep2 \\gset
+select pe.estado, pe.separacion_id = :'sep2', (select estado from retail.apartados where id = pe.apartado_id),
+       (select s.estado || ':' || s.adelanto || ':' || (s.estante is not null) from retail.separaciones s where s.id = :'sep2'),
+       (select count(*) from retail.fn_verificar_separaciones()), (select count(*) from retail.fn_verificar_apartados())
+  from retail.separacion_pedidos pe where pe.id = :'ped';`,
+  (x) => x === "apartado|t|liberado|abierta:30.00:true|0|0");
+error("otra sede: no se pide lo que la otra tienda no tiene",
+  `${preparar(FELIPE)}${conLima}
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 99, 'Ana', 'Lozano', '987111222');`,
+  "ya no tiene disponible");
+exito("otra sede: cancelar lo que ya llegó suelta la reserva",
+  `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
+select retail.cancelar_pedido_para_apartar(:'ped', 'ya no la quiere') as _c \\gset
+select pe.estado, (select estado from retail.apartados where id = pe.apartado_id) from retail.separacion_pedidos pe where pe.id = :'ped';`,
+  (x) => x === "cancelado|liberado");
+error("otra sede: sin el módulo Apartados no se pide",
+  `${preparar(FELIPE)}${conLima}
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene el módulo Apartados");
+
+// ---------------------------------------------------------------------------
 let ok = 0;
 const fallos = [];
 try { execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]); } catch {

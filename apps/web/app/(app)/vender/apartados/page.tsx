@@ -4,7 +4,7 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { agruparStockPorSede } from "@/lib/stock-por-sede";
+import { agruparStockPorSede, nombreCortoSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
@@ -99,6 +99,11 @@ async function Apartados({ desdeTicket }: { desdeTicket: string | null }) {
       liberadosAhora={datos.liberadosAhora}
       hayMas={datos.hayMas}
       avisos={datos.avisos}
+      apagadas={datos.apagadas}
+      pedidos={datos.pedidos}
+      // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
+      tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
+      esLider={persona.rol === "lider"}
       lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
     />
   );
