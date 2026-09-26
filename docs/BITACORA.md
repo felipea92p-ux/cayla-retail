@@ -3,6 +3,15 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Revisión de errores en Catálogo ▸ Productos y Existencias: el código de la prenda salía vacío)
+Felipe pasó tres capturas («esto está lleno de errores»). Se verificó cada síntoma contra el código y, en solo lectura, contra producción: 128 de 130 variantes tienen `sku` NULL (ADR-0058: nació opcional), pero 129 tienen `codigo`. Existencias leía solo `sku`, por eso la celda decía «· L ·» sin nada; ahora lee el código de la etiqueta (y con él buscan, ordenan y exportan Existencias, Ajustar y la tabla de Productos). También: «1 productos» → «1 producto», y la tarjeta «Reponer a piso hoy» ya no afirma «con demanda» (la regla nunca mira ventas).
+Felipe se lleva:
+1. **Un campo que nació opcional tiene que tener un lector que lo sepa.** Ventas ya se había arreglado (`codigoPrenda`, 2026-09-16); Inventario nunca adoptó la regla, y el mismo hueco seguía en otras pantallas (lista en BACKLOG).
+2. **Una frase de la pantalla es una afirmación.** «Con demanda» decía algo que ni la regla ni la tabla (Ritmo «N/D») sabían; se quitó en vez de mantenerla por costumbre.
+3. **Para confirmar un dato no hay que adivinar en pantalla:** una consulta de solo lectura a producción separó «el dato no existe» de «la pantalla no lo lee» en un minuto.
+
+Con el «sí» de Felipe, «Producto de Prueba» quedó marcado `es_prueba` en producción: tenía 160 de las 363 unidades de TRU y falseaba «Disponible total», la barra piso/almacén y «Por colgar». Existencias de TRU pasa de 363 a 203 (158 piso · 45 almacén). Un producto de prueba sin marcar no es inocente: contamina cada cifra que suma stock.
+
 ## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)
 «Reponer» y «Retirar del piso» ya no pueden mover dos veces tras un corte de red: cada intento lleva una marca, y la base devuelve el mismo movimiento si llega repetida. `mover_interno` sigue siendo UNA función (séptimo parámetro opcional); `bajar_al_piso`, que ya tenía su marca, no cambia. Sin pegar: `20260926200000` → `20260926200100` y recién entonces la web. Probado con 12 casos SQL, dos envíos simultáneos con COMMIT y en el navegador con la red cortada.
 Felipe se lleva:
