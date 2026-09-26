@@ -212,8 +212,8 @@ export function FotosProducto({
         <BotonElegirFotos onArchivos={elegir} disabled={disabled || subiendo || porRevisar !== null} />
       </div>
       <p className="text-xs text-tinta/45">
-        JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo. La primera queda de principal si no marcas otra. Decile a cada foto qué color es — sin eso,
-        pasar el mouse por ese color en la Grilla no va a mostrar esta foto.
+        JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo. La primera queda de principal si no marcas otra. Una foto sin color se ve en
+        todos los colores que no tengan la suya; ponle color solo si es la foto de ese color.
       </p>
       {porRevisar && (
         <RevisarFotosModal

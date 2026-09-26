@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Una foto por prenda: la de «Todos los colores» se ve en cada color)
+Felipe decidió cómo se fotografía: una foto por prenda y luego se eligen los colores, sin fotografiar cada color. Hasta hoy una foto sin color no se veía en la tarjeta (`fn_productos` solo trae la del color exacto; así quedó «Blusa V» con el gancho vacío). Ahora `listarProductos` completa cada color sin foto con la General de la prenda (una consulta más, solo si falta alguna) y `getCatalogo` usa `fotoDeVariante` (color → General → nada, nunca la de otro color: la misma regla que Traslados). En el alta, la casilla sin color va primero, se llama «Todos los colores» y su foto es la principal. Sin SQL.
+Felipe se lleva: **una foto guardada no es una foto que se ve**: la de Blusa V estaba en la base, subida y registrada, y la tarjeta la ignoraba por una regla de color.
+Sin resolver: la copia del catálogo de Vender (`getCatalogo`) se refresca cada hora; una foto nueva puede tardar hasta eso en verse ahí.
+
 ## 2026-09-26 (Punto de venta: el ticket a lo alto, en la pantalla — ADR-0221 act. b)
 Felipe recargó y no veía el cambio: lo subido antes era solo el spike. Ahora está en la pantalla: sin la franja de arriba, todo en «Más» (con «Hoy» arriba y «Cerrar caja» al pie), «Apartados» a la vista llevándose el ticket, y el ticket de arriba abajo. Verificado con la sesión local: «Apartar 1» llevó una prenda real a Apartados ya cargada.
 Felipe se lleva: (1) **un spike no cambia la pantalla**: es la maqueta para decidir; el cambio real llega cuando se fusiona su implementación. (2) **Con la caja cerrada, lo que se apaga es el catálogo, no la fila de controles**: si no, «Abrir caja» quedaría inalcanzable. (3) **El servidor no sabe el ancho del teléfono**: lo que depende del tamaño se esconde también con CSS para no dar un destello al cargar.
