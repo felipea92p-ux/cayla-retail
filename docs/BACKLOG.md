@@ -39,6 +39,44 @@ sin teclado de pantalla y catálogo de hasta 5 columnas.
 - [ ] Contadores en los accesos (apartados por vencer, devoluciones por aprobar): consultas nuevas, decidir si valen.
 - [ ] «Pedir al almacén / traslado» desde la talla agotada: hoy los traslados los inicia Inventario.
 - [ ] Coordinar con el PR #433 (apartada en Vender): toca `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx` y `ElegirTallaModal.tsx`.
+## 🧭 Existencias: «Reponer a piso hoy» lleva la vista a la tabla filtrada (2026-09-26) — solo web, sin migración; rama `claude/inventory-stock-smooth-scroll-e41caf`
+- [x] Al poner el filtro desde la tarjeta, la vista baja suave hasta la tarjeta de filtros y tabla (`mostrarTablaFiltrada`, `InventarioPanel.tsx`); al quitarlo no se mueve; con `prefers-reduced-motion`, salta de una vez. La tarjeta de la tabla pasó de `scroll-mt-4` a `scroll-mt-24`: con 16 px, al paginar, 23 de los 40 px del buscador quedaban bajo la cabecera fija (61 px, medido). Verificado en un banco temporal sin sesión (borrado) a 1.280 y 375 px; falta mirarlo con sesión real en `/inventario`.
+- [ ] Con «0 variantes» la tarjeta sigue aplicando un filtro vacío (tarea #12 (c) de `docs/pantallas/inventario.md`): ahora la vista baja a ese vacío, que al menos deja a la vista la píldora «Por colgar» que el texto recomienda.
+
+## 📐 Rendimiento: las ventas de cada persona, para la encargada y el Admin (2026-09-26, ADR-0219) — PROPUESTA, nada construido; acta, ADR y spike en el PR #476 (rama `claude/performance-module-ranking-2c657d`)
+Pedido de Felipe: un módulo al final del menú para ver quién vende más, con otros parámetros además de la venta. Se decidió en
+20 preguntas (tabla completa en el ADR). Lo ven **solo las encargadas (su tienda) y los 5 Admin (todas)**; las colaboradoras
+no, por ahora, a pedido del gerente. Período: mes calendario con la muestra a la vista. Dos rankings: soles por hora trabajada
+y número de ventas. La encargada corrige quién atendió una venta, con motivo. Cambia D-64, D-66 y D-68 (con nota en DECISIONES).
+- [x] Acta de la ronda: [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](datos/DECISIONES-2026-09-26-rendimiento.md)
+  (D-112 a D-128). Spike visual: [`docs/maquetas/rendimiento-spike-2026-09/`](maquetas/rendimiento-spike-2026-09/)
+  (5 cuentas en «Ver como», rankings, tabla, ficha, corrección, 375 px). Verificado en el navegador, sin errores en consola.
+- [ ] **Espera el ok de Felipe** al diseño técnico del ADR-0219 y a la objeción: la encargada no se da ventas a sí misma ni
+  se quita las suyas; esas las corrige el Admin. Sin respuesta, se construye con ese candado.
+- [ ] Paso 1, base: módulo `rendimiento` (orden 310, sin `rol_modulos`), `fn_rendimiento_ubicaciones`,
+  `fn_rendimiento_equipo` y `fn_rendimiento_persona`, con prueba SQL de alcance.
+- [ ] Paso 2, web: catálogo, nodo después de Finanzas, `/rendimiento` con los dos rankings y la tabla, y
+  `lib/rendimiento-reglas.ts` con su prueba.
+- [ ] Paso 3: ficha de cada persona (qué vende, 6 meses, sus ventas, comparada con su tienda).
+- [ ] Paso 4: `venta_reasignaciones` + `reasignar_asesora`, con el combo Responsable.
+- [ ] Paso 5, producción: con el ok puntual de Felipe. Después, Felipe crea en Roles y accesos el rol «Encargada de
+  tienda» con el módulo.
+
+## 🎯 Un solo combo en todo el ERP: sin `<select>` del navegador y una prueba que lo vigila (2026-09-26, ADR-0209 act. b) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
+Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prueba que avise si aparece uno nuevo y que el diseño del sistema sea el de siempre. Eligió incluir Finanzas.
+- [x] `Desplegable` aprendió grupos (`Opcion.grupo`), opciones que se ven y no se eligen (`Opcion.deshabilitada`), `id`, `ref` y las formas `fin`/`finEnLinea` de Finanzas (reglas en `lib/combo-reglas.ts`, con pruebas).
+- [x] Migrados: Devoluciones pendientes, Medios de pago, Apartados, los combos de cuentas (`opcionesDeCuenta`), «Decidir todas» de Recibir, el medio de la diferencia en Cambios y los 44 combos de Finanzas (18 archivos). Borrados `SelectNativo`, `CampoSelectNativo`, `campoSelect`, `OpcionesCuenta` y `OpcionesDecision`.
+- [x] `lib/sin-select-nativo.test.ts`: falla si aparece un `<select>` (con el código de antes habría marcado los 8 lugares). Probada en rojo con un archivo temporal.
+- [x] Cambio visible a propósito: la forma `caja` pasa de transparente a hueso (la guía, ADR-0169): Existencias, Actividad, Por regularizar, Comprobantes de Producción.
+- [x] Verificado en un banco sin sesión: Finanzas cerrado mide igual que antes (1280 y 375 px); buscador, grupos, cajón cerrado bloqueado, `ref`, lista dentro de un modal. `tsc`, `eslint`, 77.631 pruebas y `next build` en verde.
+- [ ] **Con sesión (falta):** recorrer Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre contra el spike al mismo ancho (regla del ADR-0195), y `/cambios` y `/devoluciones` a 375 px con captura (PL-105).
+- Cómo verificas: en Finanzas ▸ Gastos, «+ Registrar gasto» → «Proveedor»: cerrado se ve como siempre; abierto trae buscador (escribe parte del nombre). En cualquier «Sale de» con efectivo: los cajones van bajo su título y uno con la caja cerrada se ve gris y no se puede elegir.
+
+## 🩹 El combo de Actividad no era el del sistema (2026-09-26, ADR-0209 act.) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
+- [x] Panel «Actividad» de la cabecera y `/actividad`: sus combos (Módulo; en la pantalla también Sede y Persona) eran el `<select>` del navegador dentro de una caja, con el hilo dibujado adentro, otra flecha y la lista del sistema operativo. Ahora son `Desplegable` en caja, medidos iguales al de «Quién vendió» (Por regularizar). Lo elegido siempre está en la lista (`opcionesDeModulo`, `opcionesDePersona`, 3 pruebas). Verificado con un banco de pruebas sin sesión (escritorio y 375 px); falta el clic con sesión real.
+- [ ] **Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito. Radix escucha Escape en la captura del `document`, antes que el combo: el `stopPropagation` de `Desplegable` y `ComboResponsable` llega tarde. Propuesta: `onEscapeKeyDown` en `Modal.tsx` que no cierre la hoja si dentro hay un combo desplegado.
+- [x] ~~Quedan `<select>` nativos que la migración del ADR-0209 no alcanzó~~ — migrados todos, Finanzas incluida, y vigilados por una prueba: ver «Un solo combo en todo el ERP», arriba.
+- Cómo verificas: con sesión de líder, en cualquier pantalla, «Actividad» (arriba, junto a la sede) → el combo «Módulo» se ve como los demás filtros y su lista es la del sistema (fondo papel, marca roja en la elegida). Igual en «Ver todo el historial →».
 
 ## 🔎 Existencias: buscar y filtrar por marca, y un vacío que explica (2026-09-26) — solo web, sin migración; rama `claude/existencias-busqueda-marca`
 Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtros tampoco figura marca»). Análisis `/pantalla` completo en [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple su finalidad 5/10, relevancia 7,4/10). Lo que descubrió: **«CAYLA» y «Cayla 2» son dos marcas** (80 en la tabla, 8 con productos, 5 en TRU) y los productos de marca CAYLA (41 variantes) **no tienen ni una fila de stock en TRU**, así que indexar la marca no bastaba.
@@ -46,7 +84,7 @@ Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtr
 - [x] Filtro «Marca» (con 2 o más marcas en la sede), marca en la fila (el nombre se recorta antes que la marca) y columna «Marca» en el CSV; buscador en su propia fila. `lib/existencias-catalogo.ts` lee la marca aparte y con tolerancia: si falla, aviso ámbar y el error queda en el log.
 - [x] Estado vacío que explica: qué se buscó, qué quitar (con cuántas prendas se verían), «¿quisiste decir…?», y **«En el catálogo, pero sin stock en {sede}»** (los pantalones CAYLA); el mismo aviso bajo los filtros cuando hay resultados. `lib/existencias-vacio.ts`, `components/ExistenciasVacio.tsx`.
 - [x] **Aprendido:** `variantes!inner ( count )` **falla en producción para toda cuenta** (`42501 permission denied for table variantes`): PostgREST lo traduce a un agregado de fila completa y `authenticated` no puede leer `variantes.costo` (migración 20260923193700). Lo encontró la revisión, no las pruebas. Se pide solo `variantes ( id )` con el filtro de activas y `limit 1`. La comprobación con la llave pública (anon) **no prueba nada** (una sintaxis inválida también responde 42501): se comprobó con el cliente real de supabase-js contra un PostgREST y una base desechables con la misma restricción de columnas.
-- [ ] **PR #445** («reestructura Existencias», en conflicto con `main`) reescribe las mismas líneas de `InventarioPanel.tsx`/`inventario-v2.ts`: quien lo rebase debe conservar `pasaFiltros`, `marcaEfectiva`, el bloque `sinRastroAqui` y `ExistenciasVacio`. (Tarea #2 del análisis: decidir su destino.)
+- [ ] **PR #445** («reestructura Existencias», en conflicto con `main`) reescribe las mismas líneas de `InventarioPanel.tsx`/`inventario-v2.ts`: quien lo rebase debe conservar `pasaFiltros`, `marcaEfectiva`, el bloque `sinRastroAqui` y `ExistenciasVacio`, **y** `mostrarTablaFiltrada()` en el `onClick` de «Reponer a piso hoy» (#445 cambia esa misma línea a `setAccion`) con el `scroll-mt-24` de la tarjeta de la tabla (2026-09-26). (Tarea #2 del análisis: decidir su destino.)
 - [ ] **SQL espejo:** `fn_movimientos_variantes` (Movimientos) todavía no busca por marca ni categoría: hoy «cayla» funciona en Existencias y no en Movimientos. Migración propuesta `…_movimientos_busqueda_marca_categoria.sql` + escenario en `filtro-busqueda-especial.casos.json` + `scripts/pruebas/fn_movimientos_busqueda_especial.mjs` (tarea #3 del análisis, «segundo corte»).
 - [ ] Prueba de datos real: nada del camino de datos de Existencias se prueba contra un PostgREST con el rol `authenticated`. Una prueba en `scripts/pruebas/` con `postgrest` (Homebrew) y la restricción de columnas de `variantes` habría atrapado el fallo de arriba.
 - [ ] Sin ejecutar del análisis (Felipe decide): #1 «Ajustar inventario» sin token ni transacción única, #8 el semáforo marca «Stock bajo» en 41 de 45 prendas, #9 «Disponible total» y recomendaciones no excluyen `es_prueba`, #10 candado de módulo en `mover_interno` y `apartar_stock`, #6 la estrategia alternativa (stock vs catálogo × sede).
@@ -104,6 +142,12 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
+Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
+- [ ] **Felipe:** elegir la forma de celular (recomendada: Pasos + barra fija), el preset de fábrica y responder las 5 preguntas del README (abonos extienden plazo, saldo a favor al editar, plazo del traslado).
+- [ ] **PR solo web:** arreglos 1–6 (ticket y Entregar con color · talla · código, código vacío, modal con pie fijo, DNI de 8 y celular de 9, texto de En custodia) + cámara QR (`EscanerCamara`) + forma de celular elegida. Captura a 375 px (PL-105).
+- [ ] Después, una migración por función: clienta ligada (`clienta_id`, espera el Paso 1 del club), abonos, estante real (ADR-0199), aviso en lote, actividad (ADR-0207), editar, apartar de otra sede (toca Traslados).
 
 ## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
 Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).

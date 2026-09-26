@@ -123,14 +123,12 @@ export function PantallaDinero({
               ) : esLider ? (
                 <label className="fin-ver">
                   <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                  <SelectFin value={ver.clave} onChange={(e) => irA(e.target.value)} aria-label="Qué mirar">
-                    <option value="todas">Todas las tiendas</option>
-                    {ubicaciones.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}
-                      </option>
-                    ))}
-                  </SelectFin>
+                  <SelectFin
+                    etiqueta="Qué mirar"
+                    valor={ver.clave}
+                    onValor={irA}
+                    opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))]}
+                  />
                 </label>
               ) : (
                 <Chip versalitas={false}>{nombreSede}</Chip>
@@ -872,13 +870,7 @@ function RegistrarMovimientoModal({
   return (
     <Modal variante="hoja" titulo="Registrar movimiento" subtitulo={`La plata cambia de lugar: no es venta ni gasto.${esLider ? "" : " Tu rol registra los depósitos de tu tienda al banco."}`} onClose={onCerrar} ancho="max-w-[580px]">
       <CampoFin etiqueta="Qué pasó" htmlFor="mov-que">
-        <SelectFin id="mov-que" value={b.que} onChange={(e) => elegirQue(e.target.value as QuePaso)}>
-          {opciones.map((o) => (
-            <option key={o.valor} value={o.valor}>
-              {o.texto}
-            </option>
-          ))}
-        </SelectFin>
+        <SelectFin<QuePaso> id="mov-que" valor={b.que} onValor={elegirQue} opciones={opciones} />
       </CampoFin>
 
       {b.que === "dueno_pone" && (
@@ -915,26 +907,26 @@ function RegistrarMovimientoModal({
       <div className="fin-dos-campos" data-sin-cascada>
         {op.origen && (
           <CampoFin etiqueta="De" htmlFor="mov-de" className={op.destino ? undefined : "col-span-2"}>
-            <SelectFin id="mov-de" value={b.origen} onChange={(e) => cambiar({ origen: e.target.value, egresoId: "", fuente: fuenteInicial(cuentas.find((c) => c.id === e.target.value)) })}>
-              {origenes.length === 0 && <option value="">No hay cuentas de ese tipo</option>}
-              {origenes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {conSaldo(c)}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="mov-de"
+              valor={b.origen}
+              onValor={(origen) => cambiar({ origen, egresoId: "", fuente: fuenteInicial(cuentas.find((c) => c.id === origen)) })}
+              opciones={origenes.map((c) => ({ valor: c.id, texto: conSaldo(c) }))}
+              marcador={origenes.length === 0 ? "No hay cuentas de ese tipo" : undefined}
+              deshabilitado={origenes.length === 0}
+            />
           </CampoFin>
         )}
         {op.destino && (
           <CampoFin etiqueta="A" htmlFor="mov-a" className={op.origen ? undefined : "col-span-2"}>
-            <SelectFin id="mov-a" value={b.destino} onChange={(e) => cambiar({ destino: e.target.value })}>
-              {destinos.length === 0 && <option value="">No hay cuentas de ese tipo</option>}
-              {destinos.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="mov-a"
+              valor={b.destino}
+              onValor={(destino) => cambiar({ destino })}
+              opciones={destinos.map((c) => ({ valor: c.id, texto: c.nombre }))}
+              marcador={destinos.length === 0 ? "No hay cuentas de ese tipo" : undefined}
+              deshabilitado={destinos.length === 0}
+            />
           </CampoFin>
         )}
       </div>
@@ -960,16 +952,16 @@ function RegistrarMovimientoModal({
               ayuda={egresosDelTipo.length === 0 ? "No hay salidas de este cajón en los últimos 60 días que no digan ya qué fueron." : "El monto es el de la salida."}
               tono={egresosDelTipo.length === 0 ? "aviso" : undefined}
             >
-              <SelectFin id="mov-egreso" value={b.egresoId} onChange={(e) => cambiar({ egresoId: e.target.value })}>
-                <option value="">Elige…</option>
-                {egresosDelTipo.map((e) => (
-                  <option key={e.id} value={e.id}>
-                    {fechaCorta(e.creadoEn.slice(0, 10))} · {soles(e.monto)} · {e.motivo}
-                    {e.nota ? ` — ${e.nota}` : ""}
-                    {e.marca ? " (marcado «no es gasto»)" : ""}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin
+                id="mov-egreso"
+                valor={b.egresoId}
+                onValor={(egresoId) => cambiar({ egresoId })}
+                marcador="Elige…"
+                opciones={egresosDelTipo.map((e) => ({
+                  valor: e.id,
+                  texto: `${fechaCorta(e.creadoEn.slice(0, 10))} · ${soles(e.monto)} · ${e.motivo}${e.nota ? ` — ${e.nota}` : ""}${e.marca ? " (marcado «no es gasto»)" : ""}`,
+                }))}
+              />
             </CampoFin>
           )}
         </div>
