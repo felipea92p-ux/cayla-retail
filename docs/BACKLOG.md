@@ -76,7 +76,7 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] **Falta con sesión real:** subir la foto de una prenda tomada en tienda y comparar las dos luces.
 - Cómo verificas: Productos ▸ Nuevo producto (o Editar) ▸ Fotos ▸ «+» con una foto algo oscura → en «Revisa las fotos» aparece «Luz corregida» elegida; «Luz original» muestra la de antes, más apagada, con el mismo color. «Cómo tomar una buena foto» se despliega con los consejos.
 
-## 🔗 Movimientos conectado: atajos por proceso, apartado exacto y celular (2026-09-26, ADR-0241) — solo web, sin migración; rama `claude/movimientos-screen-analysis-8d874f`, **va después del PR #512**
+## 🔗 Movimientos conectado: atajos por proceso, apartado exacto y celular (2026-09-26, ADR-0241) — solo web, sin migración; rama `claude/movimientos-screen-analysis-8d874f` (encima del #512, ya fusionado)
 
 - [x] Atajos del detalle (Cambio/Devolución, Bajar al piso/Etiqueta, Contar/Corregir, Ver en Existencias) y de la operación
       («Bajar estas N al piso», «Imprimir N etiquetas»), cada uno solo si se ve el módulo.

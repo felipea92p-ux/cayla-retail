@@ -10,7 +10,7 @@
 - **Spike:** `docs/maquetas/movimientos-conectado-2026-09/spike.html` (computadora y celular lado a lado; la barra de
   arriba alterna las cinco decisiones).
 - **Va encima del PR #512** (otra sesión, «la lista en la primera pantalla y cuántas quedan», ADR-0234 act.): Felipe
-  eligió construir sobre su rama en vez de esperar o chocar. Se fusiona **después** del #512. Lo que el #512 decidió se
+  eligió construir sobre su rama en vez de esperar o chocar. El #512 se fusionó a `main` mientras tanto (22:26). Lo que el #512 decidió se
   respeta («quedan N», filtros y lista en una tarjeta); lo que este ADR cambia de él se dice abajo.
 - **Numeración:** nació como 0240, que ya tomaba el PR #514 (Existencias).
 - **Complementa:** ADR-0234 (leído desde la tienda, operaciones), ADR-0237 (Existencias conectada: `?lineas=`,
