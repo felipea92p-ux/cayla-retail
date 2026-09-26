@@ -128,6 +128,12 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
 
+## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
+Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
+- [ ] **Felipe:** elegir la forma de celular (recomendada: Pasos + barra fija), el preset de fábrica y responder las 5 preguntas del README (abonos extienden plazo, saldo a favor al editar, plazo del traslado).
+- [ ] **PR solo web:** arreglos 1–6 (ticket y Entregar con color · talla · código, código vacío, modal con pie fijo, DNI de 8 y celular de 9, texto de En custodia) + cámara QR (`EscanerCamara`) + forma de celular elegida. Captura a 375 px (PL-105).
+- [ ] Después, una migración por función: clienta ligada (`clienta_id`, espera el Paso 1 del club), abonos, estante real (ADR-0199), aviso en lote, actividad (ADR-0207), editar, apartar de otra sede (toca Traslados).
+
 ## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
 Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
 - [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
