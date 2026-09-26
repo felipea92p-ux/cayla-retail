@@ -183,7 +183,7 @@ export function FilaOperacion({
               {productos}
             </span>
             <span className="block truncate text-xs tabular-nums text-taupe">
-              {[`${r.variantes} ${r.variantes === 1 ? "variante" : "variantes"}`, op.hora, donde].filter(Boolean).join(" · ")}
+              {[`${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}`, op.hora, donde].filter(Boolean).join(" · ")}
             </span>
           </span>
         </span>

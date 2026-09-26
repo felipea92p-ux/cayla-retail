@@ -178,7 +178,8 @@ export function FiltrosMovimientos({
   ].filter(Boolean);
 
   return (
-    <div className="card-cayla space-y-3 p-3.5 sm:p-4">
+    // Sin caja propia: vive arriba de la lista, en la misma tarjeta (la pone la página).
+    <div className="space-y-3 border-b border-sand p-3.5 sm:p-4">
       {/* Fila 1: búsqueda + período. */}
       <div className="flex flex-wrap items-center gap-2">
         {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: al desaparecer la X el
