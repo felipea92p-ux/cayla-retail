@@ -382,6 +382,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   sobre `productos`/`variantes` — ADR-0059, ampliado en
   `20260915223000_historial_producto_estado.sql` para no perder los cambios
   de `estado`).
+- Eliminar un producto (solo Admin y Líder, ADR-0218): la opción vive en la vista rápida de `ProductosGrilla.tsx` y en el menú «···»
+  de `ProductosAgrupados.tsx` (`page.tsx` la enciende con `persona.rol === "lider"`, un Admin es un Líder) y abre
+  `EliminarProductoModal.tsx`, que PRIMERO pregunta a la RPC `fn_producto_se_puede_eliminar` (`20260926220000`) y solo
+  entonces ofrece borrar (`eliminar_producto`, con el combo «Responsable»). La regla de qué es «historia» vive UNA vez, en la
+  base; `lib/eliminar-producto-reglas.ts` solo redacta los textos. Se puede si el producto nunca se movió; con historia se
+  rechaza y la salida es descontinuarlo desde Editar. La pieza «Monto manual» del POS no se elimina nunca.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
