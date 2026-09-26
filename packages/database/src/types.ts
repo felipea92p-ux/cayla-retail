@@ -5716,6 +5716,26 @@ export type Database = {
           unidades: number
         }[]
       }
+      fn_movimientos_resumen_procesos: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_hasta?: string
+          p_motivo?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_usuario_id?: string
+        }
+        Returns: {
+          entran: number
+          filas: number
+          grupo: string
+          movidas: number
+          operaciones: number
+          proceso: string
+          salen: number
+        }[]
+      }
       fn_movimientos_variantes: {
         Args: { p_busqueda: string }
         Returns: string[]

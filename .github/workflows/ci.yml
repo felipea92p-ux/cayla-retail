@@ -421,6 +421,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-movimientos-referencias
 
+      # Movimientos leído desde la tienda (ADR-0232): el traslado que llega cuenta en «Entradas» y en «Traslados», una
+      # operación es lo guardado de una sola vez sobre un mismo documento (el cambio cuenta una vez; dos ventas en una
+      # transacción son dos), los ajustes van aparte y quien no opera la sede no ve sus cifras. Cada caso en ROLLBACK.
+      - name: pruebas:movimientos-desde-la-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-desde-la-tienda
+
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes

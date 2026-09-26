@@ -46,6 +46,7 @@
     "pruebas:mover-interno-marca": "node scripts/pruebas/mover_interno_marca.mjs",
     "pruebas:separaciones": "node scripts/pruebas/separaciones.mjs",
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
+    "pruebas:movimientos-desde-la-tienda": "node scripts/pruebas/movimientos_desde_la_tienda.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",
     "pruebas:fn-resumen-comparacion": "node scripts/pruebas/fn_resumen_comparacion.mjs",
     "pruebas:fn-ledger-fuente-unica": "node scripts/pruebas/fn_ledger_fuente_unica.mjs",
