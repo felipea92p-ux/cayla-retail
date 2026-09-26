@@ -135,6 +135,12 @@ cursor o cambia el valor, y (d) va sin Ctrl, ⌘ ni Alt. La regla (a) es la que 
 medio de pago no usan flechas, así que ni (b) ni (c) habrían detenido su ↓. `lib/vista-rapida-reglas.test.ts`
 hace fallar el CI si una hoja con `<Dialog.Content` vuelve a leer `"ArrowDown"`/`"ArrowUp"` a mano.
 
+**Lo mismo con los clics (misma fecha).** La fila de Por pagar abre la vista rápida con un clic y contiene su propio
+«Pagar», cuyo modal también es su descendiente en React: tocar el velo para cancelar el pago, o un texto del pago,
+abría además la vista rápida de esa fila (reproducido en escritorio). El `onClick` de la fila ahora ignora el clic
+cuyo destino no está en su DOM, con la misma condición (a). Las demás listas con vista rápida abren sus modales a
+nivel de pantalla, no dentro de la fila, y no tienen el problema.
+
 **Descartado.** (1) Sacar el modal de pago del árbol del cajón (que la lista lo abra): arreglaba solo Por pagar, y el
 próximo modal que se abra desde un cajón traería el bug de vuelta. (2) Cortar la propagación de las flechas en
 `<Modal>`: toca todos los modales del ERP para arreglar un cajón, deja pasar las demás teclas y los clics, y
@@ -147,6 +153,7 @@ el cajón). Hoy no hay ninguno de los dos.
 **Cómo se verifica.** Por pagar, con sesión: abrir la vista rápida de un comprobante con saldo → «Pagar» → escribir
 un monto → ↓ en el monto, en una ficha de medio de pago, en la fecha (abre el calendario) y en «Sale de» (abre la
 lista): el cajón sigue en el mismo comprobante y el pago abierto con lo escrito. Cerrado el pago, con el foco en el
-cajón, ↑ ↓ siguen pasando de comprobante. Verificado el 2026-09-26 en escritorio y a 375 px, además de Proveedores y
-Recibidas (Notas de crédito no tenía notas en la base local), y en un banco temporal con un campo, un área de texto y
-un combo DENTRO del cajón.
+cajón, ↑ ↓ siguen pasando de comprobante. Desde el «Pagar» de una fila, tocar el velo o un texto del pago no abre la
+vista rápida de esa fila. Verificado el 2026-09-26 en escritorio y a 375 px, además de Proveedores y Recibidas (Notas
+de crédito no tenía notas en la base local), y en un banco temporal con un campo, un área de texto y un combo DENTRO
+del cajón.
