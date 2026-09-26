@@ -11,7 +11,8 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { normalizarCci, normalizarCelular, proveedorConRuc } from "@/lib/proveedores-reglas";
+import { normalizarCci, normalizarCelular, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import {
   argsGuardarCuentas,
   avisoCuentasNoGuardadas,
@@ -60,6 +61,14 @@ import {
 // ADR-0128: el RUC duplicado se dice AL ESCRIBIR, con el nombre del proveedor con el que choca
 // (`existentes`). El candado de verdad sigue siendo el índice único de la base; esto solo evita que el
 // error llegue recién al guardar, después de haber llenado todo el formulario.
+//
+// «¿No será un proveedor que ya tienes?» (2026-09-25): al REGISTRAR (no al editar), mientras se escribe la razón
+// social, se pregunta por los parecidos (`proveedoresParecidos`: «Jacard Perú S.A.C.» ~ «Jacard Peru SAC»; «SAC» y
+// compañía no cuentan, y dos RUC válidos distintos no se preguntan). «Sí» lleva a la ficha del que ya existe (ahí se
+// completa lo que le falte o se registra su comprobante); «No, es otro» deja seguir. Registrar sin contestar no
+// registra: la pregunta cuesta un clic, un proveedor partido en dos reparte facturas, Por pagar y notas de crédito en
+// dos fichas. Con el nombre IGUAL no hay «no»: la base no dejaría registrar otro. Si el RUC ya choca, la pregunta
+// no sale: el RUC ya contestó.
 
 // Mismo vocabulario y orden que el selector de medio de pago en LineasPago.tsx (compra_pagos.metodo):
 // un solo catálogo de formas de pago en toda la app.
@@ -133,6 +142,11 @@ export function borradorDe(p: {
   };
 }
 
+/** Lo que ayuda a reconocer a un proveedor en la pregunta: su RUC y si está desactivado (sigue ocupando su nombre). */
+function detalleParecido(p: { ruc: string | null; activo?: boolean }): string {
+  return [p.ruc ? `RUC ${p.ruc}` : "sin RUC", p.activo === false ? "desactivado" : null].filter(Boolean).join(" · ");
+}
+
 export function ProveedorModal({
   inicial,
   rubros = [],
@@ -145,7 +159,7 @@ export function ProveedorModal({
   /** Rubros ya usados, para sugerir al escribir. */
   rubros?: string[];
   /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
-  existentes?: { id: string; nombre: string; ruc: string | null }[];
+  existentes?: { id: string; nombre: string; ruc: string | null; activo?: boolean }[];
   onClose: () => void;
   /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. */
   onGuardado: (id: string | null) => void;
@@ -186,7 +200,10 @@ export function ProveedorModal({
   const editando = idActual !== null;
   const rucValido = ruc.length === 0 || validarDocumento("ruc", ruc).valido;
   const repetido = proveedorConRuc(ruc, existentes, idActual);
-  const puedeGuardar = !!nombre.trim() && rucValido && !repetido && fase === "reposo";
+  const pregunta = editando || repetido ? { igual: null, parecidos: [] } : proveedoresParecidos({ nombre, ruc }, existentes);
+  const [descartados, setDescartados] = useState<ReadonlySet<string>>(() => new Set());
+  const porResponder = pregunta.igual ? [] : pregunta.parecidos.filter((p) => !descartados.has(p.proveedor.id));
+  const puedeGuardar = !!nombre.trim() && rucValido && !repetido && !pregunta.igual && fase === "reposo";
 
   const cuentas: CuentasForm = { cci, celularBilletera: celular, billeteras, titularCuenta: titular };
   const errores = validarCuentas(cuentas);
@@ -237,6 +254,15 @@ export function ProveedorModal({
     if (!nombre.trim()) return void avisar.error("El proveedor necesita un nombre.", { enfocar: "documento-nombre" });
     if (!rucValido) return void avisar.error("El RUC tiene que ser de 11 dígitos. Si no tiene, déjalo en blanco.", { enfocar: "documento-numero" });
     if (repetido) return void avisar.error(`Ese RUC ya es de ${repetido.nombre}.`, { enfocar: "documento-numero" });
+    if (pregunta.igual) return void avisar.error(`«${pregunta.igual.nombre}» ya está registrado.`, { enfocar: "proveedor-parecido" });
+    if (porResponder.length > 0) {
+      return void avisar.error(
+        porResponder.length === 1
+          ? `Antes de registrar, dinos si «${nombre.trim()}» es el mismo proveedor que «${porResponder[0].proveedor.nombre}».`
+          : `Antes de registrar, dinos si «${nombre.trim()}» es alguno de los proveedores de la pregunta.`,
+        { enfocar: "proveedor-parecido" }
+      );
+    }
     // Las cuentas se validan ANTES del paso 1: no se guarda el proveedor para descubrir después que el CCI estaba mal.
     const problema = primerErrorCuentas(errores);
     if (problema) {
@@ -331,6 +357,29 @@ export function ProveedorModal({
                   nombre={nombre}
                   onNombre={setNombre}
                 />
+
+                {pregunta.igual && (
+                  <PreguntaParecido
+                    id="proveedor-parecido"
+                    titulo={`«${pregunta.igual.nombre}» ya está registrado`}
+                    bajada="Con el mismo nombre no se registra otro. Si le falta algo, complétalo en su ficha."
+                    opciones={[{ id: pregunta.igual.id, nombre: pregunta.igual.nombre, detalle: detalleParecido(pregunta.igual) }]}
+                    si={(o) => ({ texto: "Ver su ficha", href: `/compras/proveedores/${o.id}` })}
+                  />
+                )}
+                {porResponder.length > 0 && (
+                  <PreguntaParecido
+                    id="proveedor-parecido"
+                    titulo="¿No será un proveedor que ya tienes?"
+                    bajada="Si es el mismo, ábrelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
+                    opciones={porResponder.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: detalleParecido(proveedor) }))}
+                    si={(o) => ({ texto: "Sí, es este: ver su ficha", href: `/compras/proveedores/${o.id}` })}
+                    no={{
+                      texto: `No, «${nombre.trim()}» es otro proveedor`,
+                      onClick: () => setDescartados((prev) => new Set([...prev, ...porResponder.map((p) => p.proveedor.id)])),
+                    }}
+                  />
+                )}
 
                 <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                   <CampoTexto etiqueta="Contacto" autoComplete="off" placeholder="Con quién se coordina" value={contacto} onChange={(e) => setContacto(e.target.value)} />

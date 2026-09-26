@@ -2,6 +2,7 @@
 // Sin I/O: se prueban sin base.
 
 import { soles } from "./compras-reglas";
+import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
 
 // ---------------------------------------------------------------------------
 // Rubro: texto libre a propósito (ADR-0094) — sin vocabulario cerrado. Para que «Tela», «tela » y
@@ -332,6 +333,61 @@ export function marcasParaMostrar(marcas: readonly string[], busqueda: string, m
 export function proveedorConRuc<T extends { id: string; ruc: string | null }>(ruc: string, existentes: T[], idActual: string | null): T | null {
   if (!/^\d{11}$/.test(ruc)) return null;
   return existentes.find((p) => p.ruc === ruc && p.id !== idActual) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// «¿No será un proveedor que ya tienes?» (2026-09-25). El caso «Cayla 2» de las marcas, pero con plata: la base solo
+// frena un nombre IGUAL (`proveedores_nombre_clave_unica`, sobre `fn_clave_texto`, que no quita puntos) o un RUC
+// repetido, y el RUC es opcional. «Jacard Perú S.A.C.» o «Jacard Peru» entraban como proveedor nuevo junto a
+// «Jacard Peru SAC», y sus facturas, su Por pagar y sus notas de crédito quedaban repartidos en dos fichas.
+//
+// La regla es la de las marcas (`nombres-parecidos.ts`), con dos diferencias que salen de cómo funciona un proveedor:
+//   · la forma societaria no cuenta: «SAC», «S.A.C.», «EIRL», «SCRL»… dicen cómo está constituida la empresa, no
+//     quién es;
+//   · dos RUC válidos y distintos son dos contribuyentes distintos para SUNAT («Jacard Peru SAC» y «Jacard Peru EIRL»
+//     facturan por separado): ahí no se pregunta. Basta con que a uno le falte el RUC para que sí se pregunte.
+//
+// Medido contra los 76 proveedores de producción (2026-09-25, SELECT de solo lectura): ver `proveedores-reglas.test.ts`
+// y la BITACORA del mismo día.
+// ---------------------------------------------------------------------------
+
+// Las que se usan en Perú: S.A., S.A.A., S.A.C., S.A.C.S. (la BIC/simplificada), S.R.L., S.C.R.L. y E.I.R.L.
+const FORMAS_SOCIETARIAS = ["sa", "saa", "sac", "sacs", "srl", "scrl", "eirl"];
+
+/** Las palabras de una razón social sin la forma societaria del final: «SAC», o «S.A.C.», que llega partida en letras
+ *  sueltas (s, a, c). Solo la del final, y nunca deja el nombre vacío. */
+export function sinFormaSocietaria(palabras: readonly string[]): readonly string[] {
+  const fin = palabras.length;
+  if (fin > 1 && FORMAS_SOCIETARIAS.includes(palabras[fin - 1])) return palabras.slice(0, -1);
+  for (const forma of FORMAS_SOCIETARIAS) {
+    if (fin <= forma.length) continue;
+    const cola = palabras.slice(fin - forma.length);
+    if (cola.every((w) => w.length === 1) && cola.join("") === forma) return palabras.slice(0, fin - forma.length);
+  }
+  return palabras;
+}
+
+const esRuc = (ruc: string | null | undefined): ruc is string => !!ruc && /^\d{11}$/.test(ruc);
+
+/**
+ * Contra los proveedores que ya existen, el IGUAL (el que la base rechazaría por nombre) y hasta `max` PARECIDOS.
+ * Aviso, no candado: quien registra responde «sí, es este» o «no, es otro», y la base sigue siendo la que frena el igual.
+ */
+export function proveedoresParecidos<P extends { nombre: string; ruc?: string | null }>(
+  nuevo: { nombre: string; ruc?: string | null },
+  existentes: readonly P[],
+  max = 3
+): { igual: P | null; parecidos: { proveedor: P; por: MotivoParecido }[] } {
+  // Sin tope primero: el tope se aplica después de sacar a los que SUNAT ya distingue por RUC.
+  const { igual, parecidos } = nombresParecidos(nuevo.nombre, existentes, { max: existentes.length, quitar: sinFormaSocietaria });
+  const ruc = nuevo.ruc?.trim();
+  return {
+    igual,
+    parecidos: parecidos
+      .filter(({ item }) => !(esRuc(ruc) && esRuc(item.ruc) && item.ruc !== ruc))
+      .slice(0, max)
+      .map(({ item, por }) => ({ proveedor: item, por })),
+  };
 }
 
 // ---------------------------------------------------------------------------
