@@ -27,7 +27,7 @@ import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { DetallePrendaExistencias } from "@/components/DetallePrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -192,7 +192,8 @@ function TarjetaPrioridad({
   const clickeable = Boolean(href || onClick);
   // Guía oficial (2026-09-22, ADR-0169): papel plano con la línea de sand, sin sombra ni fondo tintado. Lo
   // urgente se dice con la CIFRA en rojo profundo y el borde un punto más cálido, no con una tarjeta rosada.
-  const clase = `card-cayla group relative block p-5 text-left transition-colors ${urgente ? "border-rojo/30" : ""} ${
+  // En el celular (tarea #6): de a dos por fila y más compacta —la cifra y su nombre—; la línea de detalle vuelve desde `sm`.
+  const clase = `card-cayla group relative block p-3.5 text-left transition-colors sm:p-5 ${urgente ? "border-rojo/30" : ""} ${
     clickeable ? "hover:bg-sand/30" : ""
   } ${activa ? "bg-sand/40" : ""}`;
   const contenido = (
@@ -205,10 +206,10 @@ function TarjetaPrioridad({
         {clickeable && <ChevronRight aria-hidden className="h-4 w-4 shrink-0 text-taupe/50 transition-transform group-hover:translate-x-0.5" />}
       </div>
       <p className="mt-2 flex items-baseline gap-2">
-        <span className={`font-display text-[28px] leading-tight tabular-nums ${urgente ? "text-rojo-profundo" : "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
+        <span className={`font-display text-[24px] leading-tight tabular-nums sm:text-[28px] ${urgente ? "text-rojo-profundo" : "text-tinta"}`}>{valor.toLocaleString("es-PE")}</span>
         <span className="text-sm text-taupe">{unidad}</span>
       </p>
-      <p className="mt-1 text-xs text-taupe">{children}</p>
+      <p className="mt-1 hidden text-xs text-taupe sm:block">{children}</p>
     </>
   );
   if (href) {
@@ -260,6 +261,7 @@ export function InventarioPanel({
   verProductos = false,
   filasSemana,
   deltaSede,
+  comparacionFallo = false,
   recomendaciones,
   politica,
   veTraslados = false,
@@ -306,6 +308,8 @@ export function InventarioPanel({
   filasSemana: FilaSemana[];
   /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
+  /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
+  comparacionFallo?: boolean;
   /** «Ver recomendaciones» (2026-09-22, motor propio desde 2026-09-25): `calcularAccionHoy` corrido
    *  por cada variante de la sede — ya ordenada por urgencia, vacía en Taller. */
   recomendaciones: Recomendacion[];
@@ -355,6 +359,9 @@ export function InventarioPanel({
   // talla» es la tabla del #445, una fila por talla con Cobertura y Ritmo. La prenda abierta se guarda por su clave, no
   // una copia: tras reponer o apartar, el `router.refresh` trae las cifras nuevas y el detalle las muestra.
   const [vista, setVista] = useState<"prenda" | "talla">("prenda");
+  // En el celular los combos de filtro viven plegados tras «Filtros» (tarea #6): seis cajas apiladas empujaban la primera
+  // prenda dos pantallas más abajo. En computadora siempre están a la vista (la bandera no se usa desde `sm`).
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
   // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
   const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string } | null>(() => {
@@ -435,7 +442,13 @@ export function InventarioPanel({
   const paginaActual =
     condicion === POR_COLGAR ? paginarSinPartirGrupos(filtradas, pagina, FILAS_POR_PAGINA, clavePercha) : paginar(filtradas, pagina, FILAS_POR_PAGINA);
   // «Por prenda» pagina PRENDAS, no tallas: 15 prendas por página, cada una con todas sus tallas (que ya no se parten).
-  const prendas = useMemo(() => agruparPorPrenda(filtradas), [filtradas]);
+  // Sin texto escrito, primero lo que falta en el piso (análisis de Existencias, tarea #5): con 33 de 33 tallas pidiendo
+  // reponer, el orden es lo único que dice por dónde empezar. Con texto, manda la relevancia de la búsqueda.
+  const sinTexto = busqueda.trim() === "";
+  const prendas = useMemo(() => {
+    const agrupadas = agruparPorPrenda(filtradas);
+    return sinTexto ? ordenarPorUrgencia(agrupadas) : agrupadas;
+  }, [filtradas, sinTexto]);
   const paginaPrendas = paginar(prendas, pagina, FILAS_POR_PAGINA);
   const tarjetaTablaRef = useRef<HTMLDivElement>(null);
   function irAPagina(n: number) {
@@ -456,6 +469,8 @@ export function InventarioPanel({
 
   const hayFiltrosActivos =
     busqueda !== "" || categoria !== TODAS || marcaEfectiva !== TODAS || talla !== TODAS || color !== TODAS || accion !== TODAS || condicion !== TODAS;
+  // Cuántos combos están puestos: lo dice el botón «Filtros» del celular, para que un filtro plegado no esconda filas en silencio.
+  const combosActivos = [categoria, marcaEfectiva, talla, color, accion, condicion].filter((v) => v !== TODAS).length;
   /** Quita todo menos el Estado (búsqueda, categoría, marca, talla, color y Acción). Es el «Ver todas» de «Por colgar»: que la
    *  lista vuelva a ser lo que cuenta la píldora. Quitar Acción nunca esconde una talla por colgar (todas piden «Reponer a
    *  piso»), y dejarla puesta podía trabar la lista: «Sin acción» + «Por colgar» no tiene ni una fila (dos filtros que se
@@ -630,7 +645,7 @@ export function InventarioPanel({
 
   return (
     // En el celular, aire al final para que el botón fijo «Escanear» no tape la última prenda.
-    <div className="space-y-6 max-sm:pb-24">
+    <div className="space-y-6 max-sm:space-y-4 max-sm:pb-24">
       {/* Prioridades de hoy (rediseño 2026-09-22): las 4 cifras que antes eran sueltas, ahora con un
           propósito de acción cada una. A es la más urgente (acento rojo); B abre el desglose por
           categoría; C y D se comportaban igual antes, solo con más presencia visual.
@@ -640,7 +655,7 @@ export function InventarioPanel({
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>
             <h2 className="font-display text-xl text-tinta">Prioridades de hoy</h2>
-            <p className="mt-0.5 text-[13px] text-taupe">Acciones sugeridas para impulsar tus ventas en tienda.</p>
+            <p className="mt-0.5 hidden text-[13px] text-taupe sm:block">Acciones sugeridas para impulsar tus ventas en tienda.</p>
           </div>
           {/* Enlaces utilitarios de la sede (2026-09-25): «Ver recomendaciones» ya existía; «Ver análisis
               de cobertura» y «Ver apartados» vivían dentro de la franja «Distribución de stock» que se
@@ -675,7 +690,7 @@ export function InventarioPanel({
             )}
           </div>
         </div>
-        <div className={`mt-3 grid gap-3 ${separa ? "sm:grid-cols-2 xl:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3"}`}>
+        <div className={`mt-3 grid grid-cols-2 gap-2.5 sm:gap-3 ${separa ? "xl:grid-cols-4" : "lg:grid-cols-3"}`}>
           {separa && (
             <TarjetaPrioridad
               icono={PackagePlus}
@@ -708,7 +723,11 @@ export function InventarioPanel({
             activa={viendoDisponible}
             onClick={() => setViendoDisponible(true)}
           >
-            {deltaSede.pct === null ? "Sin datos de hace 7 días para comparar" :`${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
+            {comparacionFallo
+              ? "No se pudo calcular la comparación ahora"
+              : deltaSede.pct === null
+                ? "Sin datos de hace 7 días para comparar"
+                : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
           </TarjetaPrioridad>
           <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
             {enCamino.traslados === 0
@@ -762,6 +781,10 @@ export function InventarioPanel({
               autoComplete="off"
             />
           </div>
+          {/* En computadora `sm:contents` deja que cada combo ocupe su celda de la grilla, como siempre; en el celular es una
+              columna que se pliega tras «Filtros» y se ve DEBAJO de la fila de la píldora (`order`): así, al abrirla, el botón
+              no se mueve bajo el dedo (ADR-0185). */}
+          <div id="existencias-combos" className={`${filtrosAbiertos ? "grid" : "hidden"} gap-y-1 max-sm:order-2 max-sm:pb-3 sm:contents`}>
           {/* La marca, junto al buscador: es lo primero que se sabe de una prenda y la forma más rápida de encontrarla. */}
           {mostrarMarca && (
             <CampoSelect
@@ -826,10 +849,24 @@ export function InventarioPanel({
               ]}
             />
           )}
+          </div>
           {/* Una sola fila para la píldora «Por colgar», su aclaración y «Limpiar filtros»: en una tienda la
               fila existe antes de filtrar, así que en escritorio activar «Por colgar» no empuja la tabla (la
               aclaración entra al lado de la píldora). En celular la aclaración baja a su propia línea. */}
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-3 pt-1 sm:col-span-full">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pb-3 pt-1 max-sm:order-1 sm:col-span-full">
+              {/* Solo en el celular: abre y cierra los combos (tarea #6), con cuántos hay puestos para que un filtro plegado no
+                  esconda filas en silencio. */}
+              <button
+                type="button"
+                aria-expanded={filtrosAbiertos}
+                aria-controls="existencias-combos"
+                onClick={() => setFiltrosAbiertos((a) => !a)}
+                className="pildora-cayla sm:hidden"
+              >
+                <SlidersHorizontal aria-hidden className="h-3.5 w-3.5" />
+                Filtros
+                {combosActivos > 0 && <span className="font-normal tabular-nums">· {combosActivos}</span>}
+              </button>
               {separa && (
                 <button
                   type="button"
@@ -1149,7 +1186,8 @@ export function InventarioPanel({
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
                           onClick={(e) => abrirMovimiento(f.varianteId, "bajar", e.currentTarget)}
-                          className="btn-cayla btn-primario px-2 py-0.5 text-xs"
+                          // Secundario, igual que en «Por prenda» (tarea #5): una fila no compite con la acción de la pantalla.
+                          className="btn-cayla btn-secundario px-2 py-0.5 text-xs"
                         >
                           Reponer
                         </button>
@@ -1337,6 +1375,7 @@ export function InventarioPanel({
           separa={separa}
           mostrarMarca={mostrarMarca}
           puedeReponer={puedeReponer}
+          enSedeActiva={enSedeActiva}
           sinModuloBajada={separaConSububicaciones && enSedeActiva && !puedeBajarAlPiso}
           puedeApartar={puedeApartar}
           puedeAjustar={puedeAjustarAqui}
@@ -1391,6 +1430,12 @@ export function InventarioPanel({
               <b className="font-semibold tabular-nums">{prendasMarcadas}</b> {prendasMarcadas === 1 ? "prenda" : "prendas"}
               <span className="text-crema/60"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
             </span>
+            {/* Más de las que caben en un enlace (tarea #7): se dice, en vez de hacer desaparecer los botones sin explicación. */}
+            {filasMarcadas.length > MAX_VARIANTES_EN_URL && (
+              <span role="status" className="order-last w-full px-3 pb-1 text-xs text-crema/80 sm:order-none sm:w-auto">
+                Marcaste {filasMarcadas.length} tallas: se llevan hasta {MAX_VARIANTES_EN_URL} de una vez. Desmarca algunas.
+              </span>
+            )}
             <span className="order-last grid w-full grid-cols-3 gap-1 sm:order-none sm:flex sm:w-auto">
               {hrefBajarMarcadas && (
                 <Link href={hrefBajarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">

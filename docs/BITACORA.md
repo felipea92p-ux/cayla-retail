@@ -3,6 +3,18 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: la letra chica cumple y las lecturas no tumban — tareas #7 y #8)
+Cinco promesas del detalle ahora se cumplen: etiquetas solo del color que se mira, «Reponer N tallas» abre una talla que se puede bajar, otra sede sin etiquetas ni historial equivocados, «Apartados» sin un número que no coincidía, y un aviso al pasar de 100 tallas. Además, la comparación de 7 días ya no tumba la pantalla, y lo que viene en camino no se corta en 1.000 filas.
+Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la cifra buena ya vive en su pantalla. El fallo de la comparación se probó forzándolo, no suponiéndolo. Qué se rompería sin esto: etiquetas de más en cada impresión, un botón que no lleva a la acción, y una tienda sin ver su stock porque falló un porcentaje.
+Felipe se lleva: **un dato secundario nunca debe poder apagar uno principal.** Si el % de la semana no responde, se dice, y el resto sigue.
+Sin resolver: hay dos «apartados» (reserva simple y separación con adelanto) y el de Existencias no aparece en Apartados.
+
+## 2026-09-26 (Existencias: lo urgente primero y el celular llega a la lista — tareas #5 y #6)
+La lista por prenda empieza por lo que la clienta no ve (tallas por colgar), y los «Reponer» de fila dejan de ser botones negros. En el celular, la primera prenda subió de ~1.900 px a 764 px: accesos en una fila, cifras de a dos, filtros plegados. En computadora no cambió nada.
+Por qué así: con todas las tallas pidiendo reponer, diez botones iguales no dicen por dónde empezar; el orden sí. En el teléfono, la pantalla gastaba dos scrolls en botones y cifras antes de mostrar una sola prenda. Qué se rompería sin esto: en hora pico, la vendedora baja dos pantallas para encontrar lo que busca, o empieza a reponer por cualquier prenda.
+Felipe se lleva: **cuando todo es urgente, nada lo es.** La jerarquía (un solo primario, un orden) es lo que convierte una lista en una decisión.
+Sin resolver: el umbral de 4 (ADR-0231); la frase de la cabecera en el celular es común a Ventas e Inventario.
+
 ## 2026-09-26 (Traslados conectado: análisis y spike visual, computadora y celular)
 Felipe pidió conectar Traslados con las pantallas nuevas y hacerla rápida en el celular. El análisis encontró que el mismo «tienes que recibir» se decía cinco veces y empujaba el primer traslado bajo el borde del teléfono, y que cuatro conexiones ya existen fuera de la pantalla (pedidos para apartar de ADR-0233, Bajar al piso y Etiquetas con lista, sugeridos de Análisis). En vez de elegir a ciegas, Felipe pidió un spike con interruptores: `docs/maquetas/traslados-conectado-2026-09/`.
 Por qué así: tres de las cuatro conexiones no piden migración, y la guía con QR es solo web. Qué se rompería sin cuidado: una guía o un WhatsApp que dijera cuántas van rompería el conteo a ciegas (D-130); por eso dicen qué buscar, no cuántas.

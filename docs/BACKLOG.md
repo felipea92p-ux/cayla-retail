@@ -28,6 +28,41 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
+Tareas #7 y #8 del análisis `/pantalla` de Existencias.
+- [x] **#7.**
+  - Etiquetas por tallas exactas (`?variantes=`).
+  - «Reponer N tallas» abre una talla que se puede bajar.
+  - Mirando otra sede, sin Etiquetas ni Historial (y lo explica).
+  - «Apartados» de la cabecera sin número engañoso.
+  - Aviso al pasar de 100 tallas marcadas.
+- [x] **#8.**
+  - La comparación de 7 días ya no tumba la pantalla («No se pudo calcular la comparación ahora»).
+  - En tránsito y dañadas se leen por páginas.
+- [ ] **Encontrado, decide Felipe:** hay dos «apartados» distintos.
+  - El «Apartar» de Existencias crea una reserva simple (tabla `apartados`, ADR-0141) que NO aparece en `/vender/apartados`: esa pantalla lista separaciones con adelanto.
+  - Una vendedora que aparta desde Existencias y después busca en Apartados no la encuentra.
+- [ ] Sin tocar: las etiquetas cuentan lo físico (`cantidad > 0`, incluye apartadas y en cuarentena, `etiquetas-precio.ts`).
+- [ ] Sin tocar, a propósito: `getTrasladosEnCurso` sin paginar. Son decenas y es archivo de Traslados, donde trabaja otra sesión.
+- Cómo verificas:
+  - Desde la Casaca Ximena azul, «Imprimir etiquetas» muestra solo las azules.
+  - Con `?ubicacion=` de otra sede, el detalle no ofrece Etiquetas ni Historial.
+  - «Apartados» arriba va sin número.
+
+## 📱 Existencias: lo urgente primero y el celular llega a la lista (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-urgencia-y-celular` (sobre la del #514)
+Tareas #5 y #6 del análisis `/pantalla` de Existencias.
+- [x] **#5.** Sin texto en el buscador, la lista por prenda sale por urgencia: por colgar, después las que piden reponer, al final el resto (`ordenarPorUrgencia`). Los «Reponer» de fila son secundarios: queda un solo botón negro en la pantalla.
+- [x] **#6.** A 375 px, la primera prenda pasó de ~1.900 px a 764 px:
+  - accesos de la cabecera en una fila que se desliza de lado;
+  - cifras de a dos por fila y compactas;
+  - filtros plegados tras «Filtros · n».
+  - La computadora no cambia.
+- [ ] Sigue abierto (decide Felipe): confirmar el umbral de «Reponer a piso» (4) en las tiendas (ADR-0231). El orden por urgencia ayuda a leerlo, pero no lo reemplaza.
+- [ ] Si se quiere la primera prenda del todo a la vista sobre el botón «Escanear», lo que queda por recortar en el celular es la frase de la cabecera y «Prioridades de hoy». Eso toca `EncabezadoPagina` (común a Ventas e Inventario), así que es decisión aparte.
+- Cómo verificas:
+  - **Computadora:** en Existencias, las primeras filas son las de «tallas por colgar», y el único botón negro es «+ Nuevo traslado».
+  - **Celular (375 px):** al entrar se ve el buscador; la primera prenda asoma bajo «Escanear prenda»; «Filtros» abre los combos debajo sin moverse.
+
 ## 🔐 Existencias: una puerta, un candado; y «Ajustar» de una vez (2026-09-26, ADR-0240) — web + 3 migraciones **sin pegar en producción**; rama `claude/existencias-candados-y-ajuste-atomico`
 Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
 - [x] **#3.** «Reponer al piso» y «Retirar del piso» piden «Bajada al piso», y «Apartar» pide «Apartados». Se cumple en la pantalla y en la base (`mover_entre_piso_y_almacen`, `apartar_prenda`). `mover_interno` y `apartar_stock` quedan internas: la parte 2 les quita el permiso de ejecución desde el navegador. Recibir traslados, separaciones y `bajar_al_piso` no pierden nada.
