@@ -1,13 +1,13 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { exigirPermiso } from "@/lib/persona-actual";
 import { CompraDetalle, DatosComprobante, TituloComprobante, cargarDetalleCompra } from "@/components/CompraDetalle";
+import { Volver } from "@/components/ui/Volver";
 
 // Página completa del detalle de una factura. Es lo que se ve al entrar por
 // enlace directo o al recargar; viniendo desde una lista de Compras, el
 // mismo detalle se abre como modal encima de la lista
 // (`../../@modal/(.)factura/[compraId]/page.tsx`). El cuerpo es el mismo componente;
-// acá solo cambia el marco: enlace «← Comprobantes» en lugar de la X y el mismo título/bajada que el modal.
+// acá solo cambia el marco: enlace «← Facturas de proveedor» (`Volver`) en lugar de la X y el mismo título/bajada que el modal.
 export default async function CompraDetallePage({
   params,
   searchParams,
@@ -28,9 +28,7 @@ export default async function CompraDetallePage({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <Link href="/compras" className="label-cayla inline-block text-[11px] text-tinta/65 transition-colors hover:text-rojo">
-        ← Comprobantes
-      </Link>
+      <Volver href="/compras" a="Facturas de proveedor" />
       <div>
         <h1 className="font-display text-tinta">
           <TituloComprobante compra={compra} />

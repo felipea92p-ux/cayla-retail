@@ -1,9 +1,10 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -76,6 +77,15 @@ export default async function MoverMercaderiaPage({
         sede={origen.nombre}
         titulo="Mover mercadería"
         subtitulo="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
+        // Mover es crear un traslado: la vuelta es a Traslados. Quien no ve ese módulo llegó desde Existencias (el enlace a
+        // un módulo que no ve lo dejaría en «Sin acceso»), igual que en Bajar al piso.
+        pie={
+          veModulo(persona, "traslados") ? (
+            <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
+          ) : (
+            veModulo(persona, "existencias") && <Volver forma="boton" href="/inventario" a="Existencias" />
+          )
+        }
       />
 
       {destinos.length === 0 ? (
