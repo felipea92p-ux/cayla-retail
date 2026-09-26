@@ -91,7 +91,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             <h1 className="font-display text-2xl text-tinta">{proveedor.nombre}</h1>
             <p className="mt-1 text-sm text-tinta/65">
               {proveedor.ruc ?? "Sin RUC"} · {proveedor.contacto ?? "Sin contacto"}
-              {proveedor.rubro && <> · {proveedor.rubro}</>}
+              {proveedor.rubros.length > 0 && <> · {proveedor.rubros.join(", ")}</>}
               {!proveedor.activo && <> · Desactivado</>}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">

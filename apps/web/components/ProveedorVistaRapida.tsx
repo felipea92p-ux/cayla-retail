@@ -83,7 +83,11 @@ export function ProveedorVistaRapida({
                   {p.ruc ?? "Sin RUC"} · {p.contacto ?? "Sin contacto"}
                 </Dialog.Description>
                 <div className="mt-2.5 flex flex-wrap gap-1.5">
-                  {p.rubro && <Chip className="normal-case tracking-normal font-medium text-xs">{p.rubro}</Chip>}
+                  {p.rubros.map((r) => (
+                    <Chip key={r} className="normal-case tracking-normal font-medium text-xs">
+                      {r}
+                    </Chip>
+                  ))}
                   {marcas.map((m) => (
                     <Chip key={m} className="normal-case tracking-normal font-medium text-xs">
                       {m}

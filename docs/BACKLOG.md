@@ -28,6 +28,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` POR PEGAR en producción, ANTES de desplegar la web
+Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
+- [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
+- [x] Web: `ProveedorModal` (botones que se prenden y apagan + «Otro rubro»), lista, filtro, vista rápida y ficha. Verificado en navegador y a 375 px.
+- [ ] **Felipe:** pegar `20260926110000_proveedores_varios_rubros.sql` en el SQL Editor y enseguida fusionar el PR. Cómo verificas: en «Editar proveedor» marca Polos y Casacas, guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion`.
+- [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
+
+---
+
 ## 🎨 Paleta esencial de moda: de 32 a 63 colores (2026-09-25) — migración `20260926100000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR
 - [x] **32 colores nuevos**, de claro a oscuro, con tope de 9 por familia: `supabase/migrations/20260926100000_colores_paleta_esencial.sql`. Cada tono se midió con ΔE2000 contra todos los demás: todo par que no es metálico queda en ≥ 8,8. Probada en un Postgres desechable, dos pasadas, idempotente.
 - [x] **Nuevo producto: la paleta es una carta de 9 columnas alineadas** (`ElegirColores.tsx`). Verificada en navegador a 800 y 375 px.
@@ -44,6 +53,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [~] **Conteo sin conexión — EN PAUSA (Felipe, 2026-09-25: «por ahora no»).** No se construye. Si se retoma: guarda escaneo por escaneo (`conteo_contar`) y el alta al vuelo (`censo_crear_variante`) necesita `p_token` (migración).
 - [x] **Huecos cerrados (ADR-0210 «(c)»):** error pasajero del servidor se reintenta (tope 10), contador global de pendientes, pregunta al salir con algo pendiente, el alta avisa qué necesita internet, lector QR precargado (era lo único que se cargaba al usarse).
 - [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
+
+---
 
 ## 🌡️ Frescura del piso — plan del termómetro, tareas 1-4 (2026-09-25)
 El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cuatro tareas vienen de otro plan de la misma fecha y se reconciliaron con él antes de abrir los PR.
