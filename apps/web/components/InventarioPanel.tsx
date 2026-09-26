@@ -250,6 +250,7 @@ export function InventarioPanel({
   sububicacionAlmacen,
   danadosPendientes,
   abrirDanados = false,
+  abrirVariante = null,
   apartados,
   esLider,
   puedeAjustar,
@@ -279,6 +280,8 @@ export function InventarioPanel({
   danadosPendientes: PrendaDanada[];
   /** Abrir la cola de dañadas al entrar (`?danados=1`, aviso de cuarentena de Devoluciones). */
   abrirDanados?: boolean;
+  /** La talla a abrir al llegar (`?variante=`, desde Movimientos: ADR-0241). */
+  abrirVariante?: string | null;
   /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
   apartados: Apartado[];
   /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
@@ -356,7 +359,12 @@ export function InventarioPanel({
   // En el celular los combos de filtro viven plegados tras «Filtros» (tarea #6): seis cajas apiladas empujaban la primera
   // prenda dos pantallas más abajo. En computadora siempre están a la vista (la bandera no se usa desde `sm`).
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
-  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string } | null>(null);
+  // `abrirVariante` (ADR-0241, «Ver en Existencias» desde Movimientos): la prenda entra abierta en esa talla. Si la talla
+  // no tiene fila en esta sede (se vendió la última, o es de otra), no se abre nada: la lista de siempre.
+  const [abierta, setAbierta] = useState<{ clave: string; varianteId?: string } | null>(() => {
+    const f = abrirVariante ? stock.find((x) => x.varianteId === abrirVariante) : null;
+    return f ? { clave: agruparPorPrenda([f])[0].clave, varianteId: f.varianteId } : null;
+  });
   // Las tallas marcadas para actuar sobre varias a la vez (la barra de abajo). Por talla y no por prenda: una prenda
   // marcada son todas sus tallas, y así el filtro «Talla» no cambia lo que se lleva.
   const [marcadas, setMarcadas] = useState<ReadonlySet<string>>(new Set());

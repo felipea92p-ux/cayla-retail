@@ -9,6 +9,12 @@ Por qué así: con todas las tallas pidiendo reponer, diez botones iguales no di
 Felipe se lleva: **cuando todo es urgente, nada lo es.** La jerarquía (un solo primario, un orden) es lo que convierte una lista en una decisión.
 Sin resolver: el umbral de 4 (ADR-0231); la frase de la cabecera en el celular es común a Ventas e Inventario.
 
+## 2026-09-26 (Movimientos conectado — ADR-0241)
+Análisis de 8 capturas → spike con TODAS las opciones → Felipe eligió las recomendadas, los cuatro atajos y el apartado exacto (tras verlo en demo). Construido encima del PR #512 (otra sesión, mismos archivos) para no chocar: atajos por proceso en el detalle y la operación, código del apartado en la fila, bajadas plegadas por día, tarjetas que filtran, celular con buscador fijo, cámara y filtros en hoja, «Hoy» por defecto en el teléfono, Conteo con `?variantes=` y Existencias con `?variante=`.
+Por qué así: cada atajo lleva a la pantalla que ya hace el trabajo (Movimientos sigue sin escribir nada), y solo si se ve el módulo. Qué se rompería sin esto: la nota del pie prometía «se corrige con otro movimiento» sin camino, y un apartado de dos prendas decía «0».
+Felipe se lleva: **antes de pedir una columna nueva, mirar si la relación ya existe al revés**: se iba a proponer `movimientos.apartado_id` (migración) y `apartados.movimiento_id` ya lo resolvía. Y **mirar el tablero antes de programar**: el #512 apareció al traer `main`; construir encima evitó un choque en 7 archivos.
+Sin resolver: verlo con una cuenta real (Apartados, Existencias, Conteo) y la cámara en un teléfono; píldora «Apartados» (migración de lectura).
+
 ## 2026-09-26 (Existencias: una puerta, un candado; y «Ajustar» de una vez — ADR-0240)
 Felipe eligió la opción A: reponer, retirar y apartar piden su módulo, en la pantalla y en la base. Las funciones de siempre quedan internas porque otras las usan por dentro: recibir un traslado aparta sola la prenda de un pedido. «Ajustar» pasa a una sola transacción con marca: un corte ya no deja la mitad guardada y el reintento no duplica.
 Por qué así: con un candado dentro de `apartar_stock` se rompía recibir traslados para quien no tiene «Apartados»; la puerta nueva deja cada candado donde corresponde. Qué se rompería sin esto: cualquiera con Existencias movía y reservaba stock que su rol no le daba, y un ajuste cortado a mitad se podía duplicar.
