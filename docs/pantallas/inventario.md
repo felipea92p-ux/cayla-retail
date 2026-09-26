@@ -236,7 +236,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** a 375 px, al entrar se ve el buscador y al menos la primera prenda sin hacer scroll.
 - **Esfuerzo / dependencias:** M · ninguna.
 
-### #7 · Corregir — La letra chica del detalle: que cada acción haga lo que dice
+### #7 · Corregir — La letra chica del detalle: que cada acción haga lo que dice — ✅ hecha (2026-09-26, ADR-0237 act.)
 - **Dónde:**
   - `existencias-prendas.ts:147-151`: «Etiquetas» manda `?producto=`, que imprime todos los colores; debe mandar las `variantes` de esta prenda.
   - `DetallePrendaExistencias.tsx:107,212,215`: Etiquetas e Historial con un líder que mira otra sede actúan sobre la sede activa. Ocultarlos fuera de la sede activa, igual que Reponer.
@@ -247,7 +247,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** desde la Casaca Ximena Azul marino, «Imprimir etiquetas» muestra solo etiquetas azul marino. Con `?ubicacion=` de otra sede, el detalle no ofrece Etiquetas ni Historial.
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #8 · Corregir — Que una lectura secundaria no tumbe la pantalla ni recorte en silencio
+### #8 · Corregir — Que una lectura secundaria no tumbe la pantalla ni recorte en silencio — ✅ hecha (2026-09-26; traslados en curso sin paginar a propósito)
 - **Dónde:** `lib/resumen-inventario.ts:44` (`exigir` → tolerante) · `lib/inventario-v2.ts:257` (`transferencia_items` sin `leerTodas`) · `traslados.ts:122` y `prendas_danadas` sin límite.
 - **Por qué en este puesto:**
   - Si falla el resumen de 7 días, la tienda se queda sin ver su stock.
@@ -315,8 +315,8 @@ Decide Felipe (tarea #9).
 - [x] `[pantalla:inventario]` #4 La bajada desde Existencias llega en 0 y se llena escaneando (ADR-0237 act.) — S–M
 - [x] `[pantalla:inventario]` #5 «Reponer» ordenado por urgencia y un solo primario (ADR-0237 act.) — S
 - [x] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla (ADR-0237 act.) — M
-- [ ] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S
-- [ ] `[pantalla:inventario]` #8 Lecturas tolerantes y sin tope silencioso — S
+- [x] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S
+- [x] `[pantalla:inventario]` #8 Lecturas tolerantes y sin tope silencioso — S
 - [ ] `[pantalla:inventario]` #9 Decidir la solicitud de traslado (sección 8) — L
 - [ ] `[pantalla:inventario]` #10 Un vocabulario («tallas») y un conteo — S
 - [ ] `[pantalla:inventario]` #11 Pruebas del panel (permisos, selección, borrador) — M
