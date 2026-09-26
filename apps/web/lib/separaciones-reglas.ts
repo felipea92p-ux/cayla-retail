@@ -169,11 +169,17 @@ export function vueltoDelAdelanto(pagos: readonly PagoAdelanto[]): number {
 }
 
 /** Por qué no se puede confirmar todavía, campo por campo. Vacío = listo. */
+/** Celular de Perú: 9 dígitos que empiezan en 9 (espacios y guiones no cuentan). Yape y Plin usan el mismo número. */
+export function esCelularPeru(texto: string): boolean {
+  return /^9\d{8}$/.test(soloDigitos(texto));
+}
+
 export function erroresDelApartado(f: FormularioApartado, total: number): Partial<Record<CampoApartado, string>> {
   const e: Partial<Record<CampoApartado, string>> = {};
   if (!f.nombres.trim()) e.nombres = "Escribe los nombres.";
   if (!f.apellidos.trim()) e.apellidos = "Escribe los apellidos.";
-  if (soloDigitos(f.celular).length !== 9) e.celular = "9 dígitos: por aquí se le avisa y se le devuelve.";
+  // Un celular peruano tiene 9 dígitos y empieza en 9: un fijo o un número a medias no recibe el aviso ni el Yape.
+  if (!esCelularPeru(f.celular)) e.celular = "9 dígitos y empieza en 9: por aquí se le avisa y se le devuelve.";
   const dni = soloDigitos(f.dni);
   if (dni && dni.length !== 8) e.dni = "El DNI tiene 8 dígitos.";
   if (!dni && f.comprobante === "boleta" && total > TOPE_BOLETA_SIN_DNI) e.dni = `Pasa de S/${TOPE_BOLETA_SIN_DNI}: la boleta lleva DNI.`;
@@ -191,7 +197,7 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
     const num = soloDigitos(f.devolucionNumero);
-    if (num && num.length !== 9) e.devolucion = "El número tiene 9 dígitos (vacío = su celular).";
+    if (num && !esCelularPeru(num)) e.devolucion = "El número tiene 9 dígitos y empieza en 9 (vacío = su celular).";
   }
   if (!f.acepta) e.acepta = "Falta que la clienta acepte las condiciones.";
   return e;

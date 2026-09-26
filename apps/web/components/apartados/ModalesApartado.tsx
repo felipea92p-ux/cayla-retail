@@ -37,9 +37,11 @@ function imprimirYSeguir(cerrar: () => void) {
   window.print();
 }
 
+/** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
+ *  debajo del borde y «Solo imprimir / Sin imprimir» se cortaban. `-bottom-6`/`-mx-6` compensan el `p-6` de `<Modal>`. */
 function Botones({ cerrar, principal }: { cerrar: () => void; principal: string }) {
   return (
-    <div className="space-y-2">
+    <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 space-y-2 border-t border-sand bg-crema px-6 pt-3 pb-6">
       <button type="button" autoFocus onClick={() => imprimirYSeguir(cerrar)} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
         <Printer className="h-4 w-4" aria-hidden />
         {principal}
