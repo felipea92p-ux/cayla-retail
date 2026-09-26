@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎨 Colores del lujo: Gris piedra, Índigo y Nude (2026-09-26, ADR-0215 act. b) — migración `20260926210000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR
+- [x] Ralph Lauren, LVMH y Hermès, investigados en vivo: CAYLA cubría 53 de 62 colores recurrentes. Entraron Gris piedra (14-0105), Índigo (19-3928) y Nude (12-0911); latte, capuchino, tabaco, crema, azul hielo, amaranto, greige y castaño son sinónimos. 71 activos.
+- [x] Orden en centenas por familia; un color creado desde Atributos entra en 2000. La paleta usa tantas columnas como quepan (alineadas), verificada en escritorio y a 375 px.
+- [ ] Caoba (18-1425 Mahogany, 5 marcas) cabe sin duplicar; Felipe decidió no sumarla por ahora.
+
+---
+
 ## 🎨 Colores: Pantone TCX, sinónimos y 4 colores nuevos (2026-09-26, ADR-0215) — migración `20260926180000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR #456
 - [x] `colores.pantone_tcx` (único, con formato) y `colores.sinonimos`. 60 colores con su TCX (los metálicos, sin código); 23 con sinónimos. Cereza, Moka, Durazno y Mora: 68 activos.
 - [x] El buscador de colores (Nuevo producto, prenda sin registrar de Vender) entiende sinónimos; Atributos ▸ Colores edita el código y los sinónimos, y avisa si el código ya lo tiene otro color.

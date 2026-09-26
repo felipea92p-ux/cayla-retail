@@ -261,7 +261,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             nombre: datos.color.nombre,
             familiaColor: datos.color.familia_color,
             hex: datos.color.hex,
-            orden: 200,
+            orden: 2000,
             activo: true,
             notas: datos.color.notas,
             estado: datos.color.estado,

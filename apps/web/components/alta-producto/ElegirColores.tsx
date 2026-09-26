@@ -83,16 +83,17 @@ export function ElegirColores({
       </div>
 
       {paleta && (
-        // Una carta de color: cada familia es un renglón de 9 columnas FIJAS, de claro a oscuro (`colores.orden`, una
-        // decena por familia: 20260926100000). Con las columnas alineadas el tono se lee también de arriba abajo, y una
-        // familia con menos de 9 deja su hueco al final en vez de correr los círculos. Ya no se parte en dos columnas de
-        // familias: cada renglón mide ~370 px y dos no entran en este bloque. Si el BLOQUE es angosto (`@container`, no
-        // la ventana), el nombre de la familia va arriba de sus círculos.
+        // Una carta de color: cada familia es un renglón, de claro a oscuro (`colores.orden`, una centena por familia:
+        // 20260926210000). Todos los renglones tienen las MISMAS columnas —tantas de 26 px como quepan en el ancho
+        // (`auto-fill`)—, así que el tono se lee también de arriba abajo, y una familia más corta deja su hueco al final
+        // en vez de correr los círculos. Con 9 fijas (hasta el 2026-09-26), Neutro con 11 colores (Gris piedra y Nude, del
+        // estudio de marcas de lujo) partía su renglón aunque sobrara ancho. Si el BLOQUE es angosto (`@container`, no la
+        // ventana), el nombre de la familia va arriba de sus círculos.
         <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-2">
           {grupos.map((g) => (
-            <div key={g.familia} className="grid gap-1 py-1 @md:grid-cols-[5rem_auto] @md:items-center @md:gap-2.5">
+            <div key={g.familia} className="grid gap-1 py-1 @md:grid-cols-[5rem_minmax(0,1fr)] @md:items-center @md:gap-2.5">
               <p className="text-[11.5px] text-taupe">{g.texto}</p>
-              <div className="grid grid-cols-[repeat(9,26px)] gap-1.5">
+              <div className="grid grid-cols-[repeat(auto-fill,26px)] gap-1.5">
                 {g.colores.map((c) => {
                   const elegido = elegidos.includes(c.codigo);
                   return (

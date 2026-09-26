@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Colores del lujo: Gris piedra, Índigo y Nude — ADR-0215 act. b)
+Se revisó la paleta contra Ralph Lauren, LVMH y Hermès: de 62 colores que usan 2 o más marcas, CAYLA cubría 53. Midiendo cada faltante contra producción, 3 de los 4 ya estaban con otro nombre (latte = Arena, tabaco = Tostado; crema, azul hielo, amaranto y greige también), y entran como sinónimos. Se sumaron los que de verdad faltaban: Gris piedra (8 marcas), Índigo (4 y Pantone) y Nude (2). Quedan 71 colores; el orden pasó a centenas y la paleta a columnas que se ajustan al ancho. La migración `20260926210000` está en producción.
+Felipe se lleva: (1) **un nombre distinto no es un color distinto**: «Latte» es nuestra Arena a ΔE 2,0. (2) **Antes de sumar un color, se mide contra lo que ya hay**: así el informe de «4 faltantes» quedó en 3 colores nuevos y 7 sinónimos. (3) **«Gris piedra» y no «Piedra»**: en tienda, «piedra» también es pedrería y lavado a la piedra.
+
 ## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)
 «Reponer» y «Retirar del piso» ya no pueden mover dos veces tras un corte de red: cada intento lleva una marca, y la base devuelve el mismo movimiento si llega repetida. `mover_interno` sigue siendo UNA función (séptimo parámetro opcional); `bajar_al_piso`, que ya tenía su marca, no cambia. Sin pegar: `20260926200000` → `20260926200100` y recién entonces la web. Probado con 12 casos SQL, dos envíos simultáneos con COMMIT y en el navegador con la red cortada.
 Felipe se lleva:
