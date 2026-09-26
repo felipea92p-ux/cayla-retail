@@ -34,6 +34,20 @@ SE ROMPE SI: alguien recrea `registrar_movimiento` desde 20260921120000 (se va e
         aparece otra puerta de ajuste que no pasa por esa función.
 ```
 
+### Dónde va el candado: primero quién, después qué
+
+```
+DECIDÍ: justo antes de escribir (`insert into movimientos`), después de los candados de permiso y de ubicación y de saber
+        quién firma (`fn_actor_persona_id`). A quien no puede ajustar le sale el mensaje de permiso; a una terminal sin
+        responsable presente, «Elige quién hace esta operación»; solo quien puede hacer la operación se entera de si la
+        prenda tiene historia en la tienda.
+DESCARTÉ: anclarlo antes de `v_sub := …`, donde lo dejó la primera versión (la misma ancla que 20260926000400): quedaba
+        antes del responsable y una terminal sin nadie elegido recibía «esta prenda no tiene historia» en vez de
+        «elige quién». Lo detectó el CI (`pruebas:terminales`, 3 casos; `pruebas:candado-lider`, 2).
+SE ROMPE SI: un parche futuro mueve `fn_actor_persona_id` debajo del `insert`, o inserta otro «qué» antes del
+        responsable. Lo vigila `pruebas:ajuste-no-es-primera-carga` (verificación de orden sobre la definición viva).
+```
+
 ### Quién puede cargar el stock inicial de una prenda que ya existe
 
 ```
@@ -62,9 +76,16 @@ SE ROMPE SI: se usa para mercadería que LLEGA de un proveedor (entraría sin co
 
 ## Verificación
 
-- `pnpm pruebas:ajuste-no-es-primera-carga` (19 verificaciones, ROLLBACK): el candado rechaza y no deja nada, el parche
-  anterior sigue puesto, la carga inicial entra como entrada firmada (al almacén o al piso con su bajada), todas o
-  ninguna, y después un ajuste de verdad pasa. Siguen en verde `bajada_al_piso` (51), `candado_lider_caja_y_ajuste` (22),
-  `reposicion_piso_cerrada` (10), `actor_firma_las_operaciones` (30) y `terminales_por_tienda`.
+- `pnpm pruebas:ajuste-no-es-primera-carga` (20 verificaciones, ROLLBACK): el candado rechaza y no deja nada, va después
+  de saber quién firma, el parche anterior sigue puesto, la carga inicial entra como entrada firmada (al almacén o al
+  piso con su bajada), todas o ninguna, y después un ajuste de verdad pasa.
+- `pruebas:terminales` (75) y `pruebas:candado-lider` (22): donde un ajuste debe pasar, o llegar hasta el «stock
+  negativo», la prueba le da antes historia a la prenda (una carga inicial en el almacén): la siembra no tiene
+  movimientos de `BLU-EMMA-NEG-M` en Trujillo. «Sin responsable» y «responsable ausente» van sin historia y prueban el
+  orden. **La primera vez pasaron en local y fallaron en CI:** la base local tenía un ajuste suelto de esa prenda en
+  Trujillo (de otra prueba a mano) que la base limpia de CI no tiene. Se volvieron a correr en local con una prenda sin
+  historia (copias temporales, como CI) y dieron 75/75 y 22/22.
+- Siguen en verde `bajada_al_piso` (51), `reposicion_piso_cerrada` (10), `actor_firma_las_operaciones` (30),
+  `alta_con_stock_inicial` (28), `terminales_sin_persona` (55) y `roles` (70).
 - `lib/ajuste-reglas.test.ts` (20). En el navegador: Existencias ▸ Ajustar «Vestido Antonella» en Lima marca S y L como
   «Nueva en esta tienda · entra como stock inicial» y deja M (que llegó por el Traslado 3) como ajuste.

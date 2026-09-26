@@ -8,16 +8,19 @@
 --
 -- QUÉ HACE. Inserta en la definición VIVA de `retail.registrar_movimiento` un candado: `p_tipo = 'ajuste'` sobre una
 -- prenda sin ningún movimiento en esa ubicación se rechaza (hint `ajuste_sin_historia`), con un mensaje que dice qué hacer.
--- Mismo método que 20260926000400 (`pg_temp.insertar_antes`, la misma línea ancla, re-pegable por su marca): la función
--- no se reescribe desde un archivo, así que ningún parche en vivo se pierde. El candado va DESPUÉS de los de permiso y
--- de ubicación (a quien no puede ajustar, el mensaje sigue siendo el de permiso).
+-- Mismo método que 20260926000400 (`pg_temp.insertar_antes`, re-pegable por su marca): la función no se reescribe desde
+-- un archivo, así que ningún parche en vivo se pierde. El candado va justo antes del `insert into movimientos`: DESPUÉS
+-- de los de permiso y de ubicación y de saber QUIÉN firma (`fn_actor_persona_id`). Primero quién, después qué: a quien
+-- no puede ajustar le sigue saliendo el mensaje de permiso, y a una terminal sin responsable presente, «Elige quién
+-- hace esta operación» (lo vigila `pnpm pruebas:terminales`). Anclado antes de `v_sub := …`, como en 20260926000400,
+-- quedaba antes del responsable y le tapaba ese mensaje.
 --
 -- ESTADO QUE DEJA DE SER POSIBLE: la primera fila de una prenda en una sede con `tipo = 'ajuste'` escrita por
 -- `registrar_movimiento`. Lo histórico no se toca (movimientos es de solo agregar). Un conteo formal (`cerrar_conteo`)
 -- sigue pudiendo corregir una prenda que el sistema tenía en 0 SIN historia: es un conteo de verdad, con número.
 --
--- ORDEN AL PEGAR: 100100 (la puerta nueva) → publicar la web (Ajustar stock ofrece «stock inicial») → ESTA. Si se pega
--- antes que la web, Ajustar stock rechaza la primera carga y todavía no ofrece la otra puerta.
+-- ORDEN AL PEGAR: 20260927153100 (la puerta nueva) → publicar la web (Ajustar stock ofrece «stock inicial») → ESTA.
+-- Si se pega antes que la web, Ajustar stock rechaza la primera carga y todavía no ofrece la otra puerta.
 --
 -- CÓMO SE PEGA: tal cual en el SQL Editor de producción (ya trae `retail.`). Solo reemplaza una función: no toma candados
 -- de tablas en uso ni lleva políticas. Se puede pegar dos veces.
@@ -51,7 +54,7 @@ $f$;
 
 select pg_temp.insertar_antes(
   'retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)',
-  'v_sub := coalesce(p_sububicacion_id,',
+  'insert into movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, usuario_id, nota)',
   $bloque$-- ADR-0235: un ajuste corrige lo que ya estaba; la primera carga de una prenda es stock inicial (ajuste_sin_historia).
   if p_tipo = 'ajuste' and not exists (
     select 1 from movimientos where variante_id = p_variante_id and ubicacion_id = p_ubicacion_id

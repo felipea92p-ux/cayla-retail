@@ -144,6 +144,24 @@ select id as sub_piso from retail.sububicaciones where ubicacion_id = :'trujillo
 select id as var from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 `;
 
+/**
+ * ADR-0235: un ajuste corrige lo que ya estaba — `registrar_movimiento` rechaza el ajuste que sería el PRIMER movimiento
+ * de la prenda en la tienda (`ajuste_sin_historia`), y la siembra no le da a esta prenda ninguno en Trujillo (sus
+ * operaciones son de Lima). El caso que espera que el ajuste PASE le da antes una historia: una carga inicial en el
+ * almacén, como la escribe `fn_cargar_stock_inicial`. Los casos «sin responsable» y «responsable ausente» van sin ella a
+ * propósito: prueban que «quién firma» se pregunta antes que «qué operación es».
+ */
+const CON_HISTORIA = `
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'trujillo', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'trujillo' and tipo = 'almacen_tienda');
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, nota)
+  select :'var', :'trujillo', id, 'entrada', 5, 'carga_inicial', 'historia previa de la prueba'
+    from retail.sububicaciones where ubicacion_id = :'trujillo' and tipo = 'almacen_tienda'
+  returning id as mov_previo \\gset
+select 1 as _aplicado from retail.fn_aplicar_movimiento(:'mov_previo') \\gset
+`;
+
 let fallos = 0;
 function verificar(nombre, res, esperado, { debeFallar = false } = {}) {
   const texto = debeFallar ? (res.ok ? `(no falló) ${res.salida}` : res.mensaje) : res.ok ? res.salida : res.mensaje;
@@ -221,7 +239,7 @@ verificar(
 
 verificar(
   "inventario: la terminal administrativa SÍ ajusta stock, firmado por Rosa y con su terminal_id",
-  correr(escena(`${BASE_INVENTARIO}${cambiaA(T_ADMIN)}select retail.registrar_movimiento(:'var', :'trujillo', 'ajuste', 1, 'prueba terminales', 'nota', :'sub_piso') as mov \\gset
+  correr(escena(`${BASE_INVENTARIO}${CON_HISTORIA}${cambiaA(T_ADMIN)}select retail.registrar_movimiento(:'var', :'trujillo', 'ajuste', 1, 'prueba terminales', 'nota', :'sub_piso') as mov \\gset
 select tipo || '|' || (usuario_id = :'rosa') || '|' || (terminal_id = :'t_admin') from retail.movimientos where id = :'mov';`)),
   /^ajuste\|true\|true$/
 );

@@ -50,7 +50,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 - [x] `cargar_stock_inicial` (prendas que ya existen, en una tienda donde no tienen historia) y candado
       `ajuste_sin_historia` en `registrar_movimiento`; Ajustar stock guarda las prendas nuevas en la tienda como stock
-      inicial. Prueba `pnpm pruebas:ajuste-no-es-primera-carga` (19).
+      inicial. Prueba `pnpm pruebas:ajuste-no-es-primera-carga` (20). El candado va después de saber quién firma (el CI
+      lo pidió: `terminales` y `candado-lider` fallaban con la primera versión; sus casos de ajuste ahora le dan historia
+      a la prenda).
 - [ ] **Orden en producción:** `20260927153100` → publicar la web → `20260927153200` (con OK de Felipe).
 - [ ] Decidir si un conteo formal (`cerrar_conteo`) también debe escribir como «carga_inicial» la primera cantidad de una
       prenda que la tienda nunca tuvo (hoy queda como «Ajuste · Conteo»).

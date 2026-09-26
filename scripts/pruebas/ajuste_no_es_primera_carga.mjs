@@ -122,7 +122,8 @@ correr(
   `${COMO_API}${K("primero", ajuste("v1", 3))}
 ${COMO_POSTGRES}${K("sin_filas", movs("v1"))}
 ${K("marca_nueva", "(length(pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure)) - length(replace(pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure), 'ajuste_sin_historia', ''))) / length('ajuste_sin_historia')")}
-${K("marca_vieja", "position('reposicion_piso_cerrada' in pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure)) > 0")}`,
+${K("marca_vieja", "position('reposicion_piso_cerrada' in pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure)) > 0")}
+${K("orden", "(select position('fn_actor_persona_id(true)' in d) < position('ajuste_sin_historia' in d) and position('ajuste_sin_historia' in d) < position('insert into movimientos' in d) from (select pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure) as d) z)")}`,
   (d) => {
     const r = j(d.primero);
     afirmar("se rechaza con el hint `ajuste_sin_historia`", r && r.ok === false && r.hint === "ajuste_sin_historia", d.primero);
@@ -130,6 +131,11 @@ ${K("marca_vieja", "position('reposicion_piso_cerrada' in pg_get_functiondef('re
     afirmar("no deja ningún movimiento", d.sin_filas === "0", `movimientos=${d.sin_filas}`);
     afirmar("el candado está UNA vez en la función (se puede volver a pegar)", d.marca_nueva === "2", `apariciones=${d.marca_nueva} (la marca va en el comentario y en el hint)`);
     afirmar("el parche anterior («Reposición» no toca el piso) sigue puesto", d.marca_vieja === "true");
+    afirmar(
+      "primero quién, después qué: el candado va después de `fn_actor_persona_id` y antes de escribir (a una terminal sin responsable le sigue saliendo «Elige quién…»)",
+      d.orden === "true",
+      `orden=${d.orden}`,
+    );
   },
 );
 
