@@ -389,7 +389,7 @@ vendiendo; lo que se pierde es la capacidad de arreglarla con confianza.
    aprueba llamadas imposibles. Es literalmente lo que pasa hoy con dos pantallas:
    `RecibirLoteForm.tsx:431` manda `p_orden_produccion_id` y `RegistrarGastoModal.tsx:57`
    manda `p_metodo_pago`, y producción no acepta ninguno de los dos
-   (`docs/datos/generado/DRIFT.md:9-25`). Recibir mercadería y registrar un gasto fallan
+   (`docs/datos/generado/DRIFT.md` del 2026-09-12, ya corregido). Recibir mercadería y registrar un gasto fallaban
    **siempre** en las tiendas, y el typecheck está en verde.
 
 9. **Cuatro migraciones locales no tienen gemelo de producción.** `0052`

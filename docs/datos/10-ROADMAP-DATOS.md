@@ -820,9 +820,9 @@ vender, ajustar stock y cerrar caja, y cada cosa que haga queda firmada con el
 > Existencias.
 > El párrafo que sigue es el de V1.
 
-`devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` (V1) **ya existe en
-producción** y está en la lista de funciones que nadie llama
-(`generado/DRIFT.md`). El camino de ida tiene pantalla —`BajarATiendaModal.tsx` llama
+`devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` (V1) **existía en
+producción** cuando se escribió esto y no tenía pantalla (consulta del 2026-09-26: ya no
+existe, por eso tampoco sale en `generado/DRIFT.md`). El camino de ida tiene pantalla —`BajarATiendaModal.tsx` llama
 a `bajar_a_piso` (V1)— y el de vuelta no.
 
 **Qué se rompe sin ella.** Fin de temporada: la ropa que sale de vitrina y vuelve a

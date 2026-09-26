@@ -64,7 +64,7 @@ Todo esto vive en [`generado/`](generado/) y **nadie lo edita a mano**.
 | **[`generado/DICCIONARIO-DYNAMIC.md`](generado/DICCIONARIO-DYNAMIC.md)** | Lo mismo para el sistema de personas |
 | **[`generado/RPCS.md`](generado/RPCS.md)** | Las funciones que escriben en la base: firma exacta, si corren como dueño, y aviso si alguna tiene dos firmas vivas |
 | **[`generado/AVIARIO.md`](generado/AVIARIO.md)** | De qué pájaro es cada tabla: tienes un nombre de tabla, quieres saber a quién preguntarle. Sale de `scripts/datos/aviario.mjs` y CI falla si una tabla de producción queda sin pájaro |
-| **[`generado/DRIFT.md`](generado/DRIFT.md)** | Qué pantallas están rotas en las tiendas ahora mismo porque llaman a una función con parámetros que allá no existen |
+| **[`generado/DRIFT.md`](generado/DRIFT.md)** | Qué llamadas de las pantallas la foto de producción no respalda (una función que allá no está, o un parámetro que no acepta) y qué funciones ninguna pantalla nombra. Es tan fresco como la foto: trae su fecha, y «sin respaldo» NO es lo mismo que «pantalla rota» |
 | **[`generado/glosario.json`](generado/glosario.json)** | **Lo único editable a mano de esta carpeta:** la explicación de cada columna. El generador la respeta |
 
 ### Los 14 módulos
@@ -126,9 +126,10 @@ detecta que algo está roto en las tiendas sin que nada falle en tu máquina:
 pnpm datos:comparar
 ```
 
-Sale con error si encuentra una pantalla rota, así que sirve como alarma automática
-(D-19). Hoy encuentra dos: registrar un gasto y recibir mercadería ligada a una
-producción.
+Sale con código 1 si encuentra una llamada que la foto de producción no respalda, así
+que sirve como alarma automática (D-19). No es lo mismo que «pantalla rota»: la foto
+puede estar vieja (el informe dice de cuándo es). Los dos casos que motivaron la
+herramienta fueron registrar un gasto y recibir mercadería ligada a una producción.
 
 **La mitad escrita a mano** se actualiza cuando cambia el *porqué*, no cuando cambia
 una columna. En la práctica: cuando se agrega un módulo, cuando se cierra un hueco

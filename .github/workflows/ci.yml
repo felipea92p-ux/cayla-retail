@@ -115,6 +115,15 @@ jobs:
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
 
+      # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
+      # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
+      # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de
+      # mes). Lee el código con el parser de TypeScript (dependencia de la raíz), así que necesita la instalación: solo
+      # corre si salió bien (no hay base de datos).
+      - name: Lectura de código de datos:comparar
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/datos/comparar-lectura.test.mjs scripts/datos/comparar.test.mjs
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres
     runs-on: ubuntu-latest
