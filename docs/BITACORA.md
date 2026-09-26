@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
+Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.
+Felipe se lleva: (1) **el Pantone que se llama igual no es el que se ve igual**: anclar por nombre creaba 4 casi-duplicados («Mandarin Orange» es nuestro Naranja), así que se ancló por lo que se ve. (2) **44 de 56 colores ya eran tonos Pantone reales**; los que no (Azul eléctrico, Violeta, Cobalto) no existían en tela. (3) **Azul noche no es un color más: es otro nombre de Azul marino**, y va como sinónimo.
+
 ## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
 Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.
 Felipe se lleva:

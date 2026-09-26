@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎨 Colores: Pantone TCX, sinónimos y 4 colores nuevos (2026-09-26, ADR-0215) — migración `20260926180000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR #456
+- [x] `colores.pantone_tcx` (único, con formato) y `colores.sinonimos`. 60 colores con su TCX (los metálicos, sin código); 23 con sinónimos. Cereza, Moka, Durazno y Mora: 68 activos.
+- [x] El buscador de colores (Nuevo producto, prenda sin registrar de Vender) entiende sinónimos; Atributos ▸ Colores edita el código y los sinónimos, y avisa si el código ya lo tiene otro color.
+- [x] Aviso de color parecido (ΔE2000), nombre al instante en la paleta y brillo en los metálicos.
+- [ ] **Fusionar #456 DESPUÉS de la migración**: ya está en producción, así que se puede fusionar.
+- [ ] Refrescar `docs/datos/generado/` con las dos columnas nuevas (`pnpm datos:generar:produccion` tras refrescar el volcado: `generado/COMO-REFRESCAR.md`).
+- [ ] Editar producto (`productos/[id]/editar`) y el filtro de color de Productos todavía no usan sinónimos: usan `Desplegable`/píldoras, no `ComboBuscable`.
+- [ ] Investigación de colores de Ralph Lauren, LVMH y Hermès: en curso; lo que falte se propone aparte.
+
+---
+
 ## 🔒 Auditoría «¿algún SQL por pegar?» y candado de movimientos (2026-09-26)
 Se revisaron por EFECTOS en producción (solo lectura, 144 consultas) las 89 migraciones de `main` posteriores a la auditoría del 22-sep y las 6 de PR abiertos. 86 aplicadas, 1 superada (#58), el resto abajo.
 - [x] **Aplicadas con el «sí» de Felipe (ensayo revertido + huella md5 idéntica al repo + humo):** `20260918191000_panel_comercial`, `20260918191500_fn_origen_producto`, `20260918192000_panel_calidad` (entraron a `main` el 25-sep con fecha vieja; `/comercial` y `/comercial/calidad` se caían) y `20260924000000_colaborador_a_integrante_paso1_codigo` (paso 1 de 3; las 25 filas intactas, colaborador=17 y lider=8; los pasos 2 y 3 siguen pendientes y van aparte).
