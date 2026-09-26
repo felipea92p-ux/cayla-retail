@@ -1,6 +1,6 @@
 "use client";
 
-import { cajaDeContenido, encuadrar, LADO_MAX_ORIGINAL, LIENZO_FOTO, MARGEN_PRENDA, recorteUtil, reducirA, soloLaPrenda, type Caja } from "@/lib/foto-encuadre";
+import { cajaDeContenido, encuadrar, fraccionDeHuecos, LADO_MAX_ORIGINAL, LIENZO_FOTO, MARGEN_PRENDA, recorteUtil, reducirA, soloLaPrenda, type Caja } from "@/lib/foto-encuadre";
 import { aplicarCurva, curvaDeLuz, enfocar, histogramaDeLuz, type CurvaDeLuz } from "@/lib/foto-luz";
 
 // Prepara una foto de prenda para el catálogo, en el NAVEGADOR (ADR-0228): el original reducido a un tamaño que se
@@ -22,6 +22,8 @@ export type FotoPreparada = {
   conLuz: { conFondo: Blob; sinFondo: Blob | null } | null;
   /** Por qué no hay versión sin fondo, dicho para la pantalla. */
   motivoSinRecorte: string | null;
+  /** Qué parte de la prenda recortada quedó agujereada (0 a 1; `fraccionDeHuecos`). `null` si no hubo recorte. */
+  huecos: number | null;
 };
 
 const CALIDAD_JPEG = 0.9;
@@ -166,7 +168,8 @@ export async function prepararFotoPrenda(archivo: Blob): Promise<FotoPreparada> 
           sinFondo: recorte ? await aBlob(sobreBlanco(lienzoCon(recorte.rgba, recorte.ancho, recorte.alto, curva), recorte.caja, MARGEN_PRENDA)) : null,
         }
       : null;
-    return { original, conFondo, sinFondo, conLuz, motivoSinRecorte };
+    const huecos = recorte ? fraccionDeHuecos(recorte.rgba, recorte.ancho, recorte.caja) : null;
+    return { original, conFondo, sinFondo, conLuz, motivoSinRecorte, huecos };
   } finally {
     bitmap.close();
   }

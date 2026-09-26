@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Fotos: el recorte agujereado ya no se sugiere — ADR-0228 act.)
+Felipe probó un jean de internet sobre fondo liso: MODNet le abrió manchones blancos en la tela y la revisión igual sugería «Sin fondo». Ahora se mide la tela agujereada (solo huecos encerrados, así el espacio entre las piernas no cuenta) y sobre 0,5 % la foto nace en «Con fondo» con aviso.
+Por qué así: el umbral se midió con seis fotos por el proceso real (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %), no se eligió a ojo. Qué se rompería sin esto: una tienda apura «Usar esta foto» y el catálogo muestra un jean con agujeros que no tiene.
+Felipe se lleva: **detectar un defecto es más barato que evitarlo**: este cambio no arregla el recorte, pero impide que un recorte malo pase sin que nadie lo mire. Evitarlo (recorte por color con fondo liso) queda para cuando haga falta.
+Sin resolver: probar con fotos reales de tienda.
+
 ## 2026-09-26 (Punto de venta: el ticket a lo alto, en la pantalla — ADR-0221 act. b)
 Felipe recargó y no veía el cambio: lo subido antes era solo el spike. Ahora está en la pantalla: sin la franja de arriba, todo en «Más» (con «Hoy» arriba y «Cerrar caja» al pie), «Apartados» a la vista llevándose el ticket, y el ticket de arriba abajo. Verificado con la sesión local: «Apartar 1» llevó una prenda real a Apartados ya cargada.
 Felipe se lleva: (1) **un spike no cambia la pantalla**: es la maqueta para decidir; el cambio real llega cuando se fusiona su implementación. (2) **Con la caja cerrada, lo que se apaga es el catálogo, no la fila de controles**: si no, «Abrir caja» quedaría inalcanzable. (3) **El servidor no sabe el ancho del teléfono**: lo que depende del tamaño se esconde también con CSS para no dar un destello al cargar.
