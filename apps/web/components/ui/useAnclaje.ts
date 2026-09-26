@@ -103,14 +103,25 @@ export function usePosicionAnclada(control: RefObject<HTMLElement | null>, abier
    valiendo contra la ventana. Solo durante su animación de entrada lleva
    transform, y eso ya lo cubre la medición cuadro a cuadro de arriba: es
    como vivían estas listas dentro del modal antes del #442.
+
+   Dentro de la hoja, en su CAPA de listas (`[data-capa-flotante]`, la monta
+   `<Modal>`), no suelta en la hoja (2026-09-26). Suelta, la lista era hija
+   directa de `.cascada-modal` y la cascada de entrada del modal la animaba
+   como a una pieza del contenido: 285 a 505 ms invisible según el lugar que
+   le tocaba entre los hijos, y 500 ms más para aparecer. Cada combo dentro
+   de un modal tardaba hasta 1 s en abrirse contra 0,33 s del de sede
+   (medido en el navegador). Un cajón que arma su propio `Dialog.Content` no
+   tiene capa ni cascada: ahí la lista sigue yendo a la hoja. Lo vigila
+   lib/combos-fuera-de-la-cascada.test.ts.
    ==================================================================== */
 export function useDestinoFlotante(control: RefObject<HTMLElement | null>, abierto: boolean): HTMLElement | null {
   const [destino, setDestino] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     if (!abierto || !control.current) return;
     const hoja = control.current.closest<HTMLElement>('[role="dialog"]');
+    const capa = hoja?.querySelector<HTMLElement>(":scope > [data-capa-flotante]");
     // eslint-disable-next-line react-hooks/set-state-in-effect -- si el control quedó dentro de una hoja de Radix solo se sabe leyendo el DOM ya montado (el modal es un portal); en `useLayoutEffect` la lista sale en su lugar en el mismo cuadro
-    setDestino(hoja ?? document.body);
+    setDestino(capa ?? hoja ?? document.body);
   }, [abierto, control]);
   // Se conserva al cerrar: la lista puede estar animando su salida, y el control no cambia de lugar.
   return destino;
