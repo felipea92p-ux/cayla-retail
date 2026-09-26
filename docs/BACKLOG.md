@@ -50,6 +50,13 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [ ] **Felipe:** mirarlo en pantalla. En «Editar proveedor» marca Polos y Casacas y guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion` con el próximo volcado.
 - [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
 
+## 🎯 «¿No será un proveedor que ya tienes?» (2026-09-25, ADR-0109 act. (b)) — solo web, sin migración; rama `claude/proveedor-parecido-aviso` (#447 ya fusionado)
+- [x] **Una sola regla:** `lib/nombres-parecidos.ts` (salió de `marcas.ts` sin cambiar nada) y `proveedoresParecidos` en `lib/proveedores-reglas.ts`: sin forma societaria (SA, SAA, SAC, SACS, SRL, SCRL, EIRL, con o sin puntos) y sin preguntar entre dos RUC válidos distintos. Medida contra los 76 proveedores de producción: 0 iguales, 1 par que pregunta.
+- [x] **La pregunta en las dos puertas** de `registrar_proveedor`: Nueva marca (`NuevaMarcaForm`) y Compras ▸ Proveedores (`ProveedorModal`, solo al registrar). Pieza compartida `components/ui/PreguntaParecido.tsx`. Verificado con andamio a 800 y 375 px.
+- [ ] **Tercera puerta sin la pregunta: el proveedor rápido de Gastos** (`RegistrarGastoModal.tsx` → `registrar_proveedor_de_gasto`). Reutiliza el igual, pero «Hidrandina S.A.A.» junto a «Hidrandina SA» pasa. No se tocó porque la sesión de Finanzas F2b trabaja ese archivo: sumarle `proveedoresParecidos` cuando cierre.
+- [ ] **Mirar a mano Moda Mia ~ Valeria Mia Peru Moda EIRL**, el único par que pregunta en producción (Moda Mia no tiene RUC). Si son el mismo, unir las fichas es a mano: la base no sabe fusionar proveedores.
+- [ ] **P-25:** corregir el comentario del índice `proveedores_nombre_clave_unica` en la próxima migración de proveedores (promete juntar «SAC» y «s.a.c.», y no lo hace).
+
 ---
 
 ## 🎨 Paleta esencial de moda: de 32 a 63 colores (2026-09-25) — migración `20260926100000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR
@@ -58,6 +65,14 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [x] **Migración aplicada en producción** con el ok de Felipe (2026-09-25). Primero se ensayó con una excepción a propósito (68 filas, 64 activas) y se confirmó que la base quedaba intacta. Se aplicó con `apply_migration`: queda en `schema_migrations` como `20260925233411 20260926100000_colores_paleta_esencial`. Verificado después: 68 filas, 64 activas, 0 activas sin aprobar.
 - [x] **«Marrón chocolate» (MAC) se llama «Coñac»** (decisión de Felipe). Cambió solo el nombre; el código sigue siendo MAC y el color va en el lugar 75 de Tierra. Queda en la misma migración. Su nota interna todavía dice «Marrón más oscuro»: quien la escribió puede corregirla en Atributos ▸ Colores.
 - [ ] **Sinónimos peruanos en el buscador de colores** (plomo → Gris, café → Marrón, guinda → Vino, jaspeado → Gris melange). Hoy quien escribe «plomo» no encuentra nada, y lo natural es proponer un color nuevo (un duplicado de Gris que el candado de nombre no frena, como pasó con MAC al lado de Chocolate). `ComboBuscable` ya busca también en `detalle`; falta decidir si los sinónimos van en una columna `colores.sinonimos` o en una lista en `lib/`.
+
+## 🎯 Catálogo ▸ Marcas: buscador y «Editar» (2026-09-25) — migración `20260926150000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base); web en PR
+- [x] **Buscador** por marca o por proveedor, sin tildes («saavedra» encuentra 3.20 Store); «N de 80» y aviso con «Quitar búsqueda» si nada coincide.
+- [x] **«Editar»** reemplaza a «Renombrar» y a «+ Otro proveedor para…»: una ventana con el nombre y quién la trae (Felipe eligió «nombre y proveedor»). Suma de la lista o registra uno nuevo; quita solo si ningún producto (activo o descontinuado) usa la pareja; una marca activa nunca queda sin proveedor. Base: `editar_marca`, todo o nada, sumar/quitar (dos ediciones a la vez no se pisan).
+- [x] Probado: `pnpm pruebas:editar-marca` 23/23 en Postgres desechable (sumada al CI), 3 mutaciones detectadas, carrera real con COMMIT 20/20; `marcas.test.ts` 29; en navegador con andamio (sin Docker) a escritorio y 375 px.
+- [x] **Pegada en producción** por Felipe (2026-09-25). Verificada por efectos: firma, `jsonb`, `security definer`, `search_path`, `authenticated` sí / `anon` no, una sola versión, y la huella md5 del cuerpo igual a la del archivo.
+- [ ] Entra al diccionario (`docs/datos/generado/`) con el próximo refresco completo de la foto: producción ya va en 126 relaciones y 572 funciones contra 123/544 de la foto actual (tablas y funciones de otras ramas), así que el refresco no es de esta rama.
+- [ ] Verificar con sesión real de Líder: renombrar una marca y cambiarle el proveedor a una de las 80 cargadas.
 
 ## 🎯 Modo sin conexión para agregar productos (2026-09-25, ADR-0210) — solo web, sin migración
 - [x] **Paso 1 — Recibir mercadería.** Cola genérica (`lib/cola-offline.ts` + `useColaOffline`), sincronizador único en el layout (`ColasSinConexion`), `/recibir` (`recibir_envio`) y `/inventario/recibir` (`recibir_lote`). Lo contado sale de «pendientes» mientras espera. Probado en local cortando la red: encola, sube al volver, no duplica con el mismo token, un rechazo queda con «Descartar», una RPC fuera de la lista blanca no corre.

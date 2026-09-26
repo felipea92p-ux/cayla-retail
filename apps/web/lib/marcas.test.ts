@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  borradorCambia,
   buscarMarcaProveedor,
-  claveMarca,
   contarParejasPorCategoria,
+  filtrarMarcas,
+  problemaEdicionMarca,
+  type BorradorMarca,
+  type ParejaDeMarca,
   contarProductosPorProveedor,
   marcaAutomatica,
   marcasParecidas,
@@ -128,6 +132,65 @@ describe("A quién pedirle: productos por reponer, por proveedor", () => {
   });
 });
 
+describe("Catálogo ▸ Marcas: buscar", () => {
+  const filas = [
+    { nombre: "Amuza", proveedores: [{ nombre: "Amuza Peru EIRL" }] },
+    { nombre: "3.20 Store", proveedores: [{ nombre: "M & J Saavedra Inversiones SAC" }] },
+    { nombre: "Ángelys", proveedores: [{ nombre: "Creaciones Angelys" }, { nombre: "Distribuidora Ámbar" }] },
+  ];
+  it("sin texto, todas", () => {
+    expect(filtrarMarcas(filas, "  ")).toHaveLength(3);
+  });
+  it("por la marca, sin tildes ni mayúsculas", () => {
+    expect(filtrarMarcas(filas, "ANGEL").map((f) => f.nombre)).toEqual(["Ángelys"]);
+  });
+  it("por quien la trae: «saavedra» encuentra 3.20 Store", () => {
+    expect(filtrarMarcas(filas, "saavedra").map((f) => f.nombre)).toEqual(["3.20 Store"]);
+  });
+  it("por cualquiera de sus proveedores, no solo el primero", () => {
+    expect(filtrarMarcas(filas, "ambar").map((f) => f.nombre)).toEqual(["Ángelys"]);
+  });
+  it("nada coincide, nada", () => {
+    expect(filtrarMarcas(filas, "zara")).toEqual([]);
+  });
+});
+
+describe("Catálogo ▸ Marcas: editar", () => {
+  const actuales: ParejaDeMarca[] = [
+    { id: "p-a", nombre: "Textiles Andina", productosTotal: 0 },
+    { id: "p-b", nombre: "Confecciones Beta", productosTotal: 3 },
+  ];
+  const b = (x: Partial<BorradorMarca>): BorradorMarca => ({ nombre: "Lirio", quitar: [], sumar: [], nuevos: [], ...x });
+
+  it("sin nombre no se guarda", () => {
+    expect(problemaEdicionMarca(actuales, b({ nombre: "   " }))).toBe("Escribe el nombre de la marca.");
+  });
+  it("un proveedor con productos no se quita, y lo nombra", () => {
+    expect(problemaEdicionMarca(actuales, b({ quitar: ["p-b"] }))).toMatch(/^«Confecciones Beta» tiene productos/);
+  });
+  it("uno sin productos sí", () => {
+    expect(problemaEdicionMarca(actuales, b({ quitar: ["p-a"] }))).toBeNull();
+  });
+  it("la marca no se queda sin proveedor, pero cambiarlo en el mismo guardado vale", () => {
+    const una: ParejaDeMarca[] = [actuales[0]];
+    expect(problemaEdicionMarca(una, b({ quitar: ["p-a"] }))).toMatch(/al menos un proveedor/);
+    expect(problemaEdicionMarca(una, b({ quitar: ["p-a"], sumar: ["p-c"] }))).toBeNull();
+    expect(problemaEdicionMarca(una, b({ quitar: ["p-a"], nuevos: [{ nombre: "Tejidos Norte", ruc: "" }] }))).toBeNull();
+  });
+  it("un proveedor nuevo necesita nombre", () => {
+    expect(problemaEdicionMarca(actuales, b({ nuevos: [{ nombre: " ", ruc: "" }] }))).toBe("Escribe el nombre del proveedor nuevo.");
+  });
+  it("el RUC de un proveedor nuevo: vacío u 11 dígitos", () => {
+    expect(problemaEdicionMarca(actuales, b({ nuevos: [{ nombre: "Tejidos Norte", ruc: "123" }] }))).toMatch(/^El RUC de «Tejidos Norte»/);
+    expect(problemaEdicionMarca(actuales, b({ nuevos: [{ nombre: "Tejidos Norte", ruc: "20123456789" }] }))).toBeNull();
+  });
+  it("sin cambios no hay nada que guardar; los espacios de más no son un cambio", () => {
+    expect(borradorCambia("Lirio Blanco", b({ nombre: " Lirio   Blanco " }))).toBe(false);
+    expect(borradorCambia("Lirio Blanco", b({ nombre: "Lirio Blanco", sumar: ["p-c"] }))).toBe(true);
+    expect(borradorCambia("Lirio Blanco", b({ nombre: "Lirio Rosa" }))).toBe(true);
+  });
+});
+
 describe("¿No será la misma marca? (el caso «Cayla 2», 2026-09-25)", () => {
   // Nombres reales de producción, para que la regla se pruebe contra lo que el censo va a encontrar.
   const existentes: MarcaOpcion[] = ["CAYLA", "Divas", "Divas Now", "Krisstell", "La Femme 21", "Maiah Moda", "Matic Moda", "Moda Mia", "Susan Moda", "Mias", "Sassari"].map(
@@ -136,7 +199,6 @@ describe("¿No será la misma marca? (el caso «Cayla 2», 2026-09-25)", () => {
   const parecidasA = (nombre: string) => marcasParecidas(nombre, existentes).parecidas.map((p) => `${p.marca.nombre}:${p.por}`);
 
   it("la clave es la de la base: mayúsculas, tildes, ñ y espacios repetidos no hacen otra marca", () => {
-    expect(claveMarca("  Cáyla   Ñusta ")).toBe("cayla nusta");
     expect(marcasParecidas("cayla", existentes).igual?.nombre).toBe("CAYLA");
     expect(marcasParecidas("Cáyla", existentes).igual?.nombre).toBe("CAYLA");
   });
