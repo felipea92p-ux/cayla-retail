@@ -9,6 +9,7 @@ import {
   filtrosDesdeParams,
   getPrendasDeMovimientos,
   getResumenTienda,
+  getSaldosDeMovimientos,
   listarMovimientos,
   periodoCorto,
   serializarCursorMovimientos,
@@ -73,7 +74,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     getResumenTienda(ubicacionActivaId, filtros),
     filtros.motivo ? getResumenTienda(ubicacionActivaId, { ...filtros, motivo: undefined }) : null,
   ]);
-  const prendas = await getPrendasDeMovimientos(ubicacionActivaId, filas);
+  // La foto y el stock de hoy de cada prenda, y cuántas quedaron después de cada movimiento: ayudas de la lista, a la vez.
+  const [prendas, saldos] = await Promise.all([getPrendasDeMovimientos(ubicacionActivaId, filas), getSaldosDeMovimientos(ubicacionActivaId, filas)]);
   const operaciones = agruparPorOperacion(filas);
 
   // Vacío con un período corto: ¿hay algo si se mira más atrás? Se pregunta una sola vez y solo
@@ -131,6 +133,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
           <MovimientosLista
             operaciones={operaciones}
             prendas={prendas}
+            saldos={saldos}
             hoyLima={hoyEnLima()}
             enlaceCompras={esLider}
             enlaceVentas={veModulo(persona, "historial")}

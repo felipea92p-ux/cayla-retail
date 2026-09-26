@@ -51,6 +51,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
 - [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
       subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
+- [x] La lista entra en la primera pantalla (Exportar a la derecha, filtros y lista en una tarjeta, ayuda en la nota) y
+      «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
+- [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
+      `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
+- [ ] **Aplicar `20260927173000` en producción** (OK de Felipe; una sola parte, solo lectura; puede ir antes o después de
+      la web: sin ella la lista sigue sin el saldo) y refrescar el volcado.
+- [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
+      que «Todos 8»): decir por qué, o separar «Traslados».
+- [ ] Exportar a Excel sin la columna «Quedan» (la pantalla ya la muestra).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
       Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o

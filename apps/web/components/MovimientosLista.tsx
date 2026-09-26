@@ -28,12 +28,15 @@ import { etiquetaDia, type Movimiento, type OperacionMovimiento, type PrendaDeMo
 export function MovimientosLista({
   operaciones,
   prendas,
+  saldos,
   hoyLima,
   enlaceCompras,
   enlaceVentas,
 }: {
   operaciones: OperacionMovimiento[];
   prendas: Record<string, PrendaDeMovimiento>;
+  /** Cuántas quedaron en la tienda después de cada movimiento, por id (ADR-0234, saldo). Null = la base no lo dijo. */
+  saldos: Record<string, number> | null;
   hoyLima: string;
   enlaceCompras: boolean;
   enlaceVentas: boolean;
@@ -76,6 +79,7 @@ export function MovimientosLista({
   const ctx: ContextoFila = {
     enlaceCompras,
     enlaceVentas,
+    saldos,
     volverA: vuelta.toString() ? `${pathname}?${vuelta.toString()}` : pathname,
     onAbrir: abrir,
     onAbrirVenta: (m) => {
@@ -136,6 +140,7 @@ export function MovimientosLista({
         <MovimientoDetalle
           movimiento={abierto}
           prenda={prendas[abierto.varianteId]}
+          quedan={saldos?.[abierto.id] ?? null}
           onVerVenta={
             enlaceVentas
               ? () => {

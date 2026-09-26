@@ -112,3 +112,41 @@ fórmula (=, +, -, @) van con apóstrofo, como en Historial; las cifras quedan c
   filas en la lista (antes 46), «venta» en el buscador → Salidas · Venta, el Traslado 3 vuelve a Movimientos con
   «Entradas», la boleta abre su venta, el archivo trae 36 filas para «Entradas», y en 375 px el primer movimiento se ve sin
   bajar.
+
+## Actualización 2026-09-26 (saldo y primera pantalla)
+
+Recorrido de la versión publicada como integrante nueva (local, Tienda Trujillo, 1366×768 y 375 px). Dos cosas:
+
+**1. La lista no entraba en la primera pantalla** (una fila visible en escritorio, ninguna en el celular). «Exportar a
+Excel» iba como `pie` de `EncabezadoPagina` (una fila entera bajo la frase) cuando la derecha de la cabecera estaba libre
+(ADR-0220: ahí van las acciones), y filtros y lista eran dos tarjetas con una línea de ayuda suelta entre las dos
+(ADR-0169 pide una sola tarjeta y la ayuda en la nota del pie). Arreglado: la primera fila sube ~125 px (dos y media
+visibles) y en 375 px la primera prenda entra sin bajar. «16 variantes» pasó a «16 prendas distintas», como Bajar al piso.
+
+**2. Cuántas quedan.** Felipe eligió (opción A de tres) mostrar, en cada prenda, lo que quedó **en la tienda** —piso +
+almacén, sin cuarentena, el «total» de Existencias— al terminar ese movimiento; en el detalle, «Después quedaron», antes
+de «Hoy en la sede».
+
+- **DECIDÍ:** una función de lectura nueva, `retail.fn_movimientos_saldos(p_ubicacion_id, p_movimiento_ids)`
+  (`20260927173000`), que lee el saldo de `fn_ledger_puntos` (bucket `total`), la fuente única del ledger (ADR-0202). La
+  web solo lo dice en palabras (`lib/movimientos-saldo.ts`).
+- **DESCARTÉ:** calcular el saldo en la web restando desde el stock de hoy (una segunda reconstrucción del ledger, justo
+  lo que ADR-0202 prohibió: Análisis y Movimientos podrían dar dos números) y agregar la columna a `fn_movimientos` (su
+  definición vive parchada en producción y cambiar su tipo de retorno la reescribe entera). También la opción B (saldo de
+  la zona de cada fila: la misma prenda daría números distintos según la fila) y la C (los dos: la fila se carga en el
+  celular).
+- **SE ROMPE SI:** `fn_ledger_puntos` cambia de firma o deja de devolver el bucket `total` (lo vigila
+  `pnpm pruebas:movimientos-saldo`, en CI), o Movimientos empieza a listar movimientos de otra sede (la función no los
+  devuelve y la fila quedaría sin saldo).
+- **Una operación, un saldo.** Lo guardado de una sola vez comparte `created_at` y, dentro de ese instante, el ledger
+  ordena por `id`, que es al azar. Cada movimiento dice lo que quedó al TERMINAR su operación: dos movimientos de la misma
+  prenda en el mismo instante (un conteo que resta en almacén y suma en piso, una carga al piso) dicen el mismo número,
+  nunca uno «a mitad de camino» que no existió para nadie.
+- **Todo puede fallar:** sin la función (web publicada antes que la migración) o si no responde, la lista sigue igual y
+  sin el saldo.
+
+Verificación: `pnpm pruebas:movimientos-saldo` (11 en ROLLBACK: la historia 5 → bajada 5 → venta 4 → conteo a la vez 5 →
+cuarentena 4; el último saldo es el stock de hoy; otra sede no vuelve; sin sesión 42501; `anon` no ejecuta). En local,
+Tienda Trujillo: las 18 prendas con movimientos cuadran su último saldo con el stock de hoy; en pantalla, «Traslado 100 ·
+−1 · quedan 4» y su anulación «+1 · quedan 5». `lib/movimientos-saldo.test.ts` (6).
+
