@@ -2,6 +2,9 @@
 // Las mismas reglas las cierra la base (`registrar_gasto`, checks y disparadores de 20260924235100); aquí se dicen con una
 // frase clara ANTES de ir a la base, y se arma lo que la RPC espera.
 
+import { claveTexto, type MotivoParecido } from "./nombres-parecidos";
+import { proveedoresParecidos } from "./proveedores-reglas";
+
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; error: string };
 
 // ---- Vocabulario ------------------------------------------------------------------------------------------------------
@@ -462,6 +465,43 @@ export function validarActivo(b: BorradorActivo, hoy: string) {
       ...(v.p_cuenta_id ? { p_cuenta_id: v.p_cuenta_id } : {}),
     },
   };
+}
+
+// ---- Sumar el proveedor de un gasto: «¿no será uno que ya tienes?» (2026-09-25, ADR-0109 act. (c)) -------------------
+//
+// «¿No está? Súmalo» llama a `registrar_proveedor_de_gasto`, que ya reutiliza el proveedor si el RUC coincide o si el
+// nombre es IGUAL (`fn_clave_texto`); pero para la base «Hidrandina S.A.A.» y «Hidrandina SA» son dos nombres distintos,
+// y el RUC es opcional: el recibo de la luz terminaba en una ficha nueva. Esta regla dice, mientras se escribe, qué va a
+// pasar al sumar:
+//   PROMETE: «es» cuando la base devolvería uno que ya está en la lista (mismo RUC primero, después mismo nombre: el orden
+//            de la RPC), así la pantalla lo elige sin crear nada; «preguntar» con los parecidos que nadie contestó todavía;
+//            «sumar» solo cuando no queda pregunta abierta.
+//   ASUME:   que `existentes` es la lista del formulario (los proveedores activos). Uno desactivado no entra en la
+//            comparación: la base igual lo reutiliza si es el mismo RUC o nombre (1 de 76 el 2026-09-25).
+//   NO HACE: no bloquea al que es otro de verdad: «No, es otro» (los `descartados`) deja seguir.
+
+export type SumarProveedorGasto<P> =
+  | { paso: "incompleto" }
+  | { paso: "es"; proveedor: P; por: "ruc" | "nombre" }
+  | { paso: "preguntar"; parecidos: { proveedor: P; por: MotivoParecido }[] }
+  | { paso: "sumar" };
+
+export function sumarProveedorDeGasto<P extends { id: string; nombre: string; ruc: string | null }>(
+  nuevo: { nombre: string; ruc: string },
+  existentes: readonly P[],
+  descartados: ReadonlySet<string>,
+  max = 3,
+): SumarProveedorGasto<P> {
+  const ruc = nuevo.ruc.trim();
+  // El RUC contesta antes que el nombre, aunque el nombre todavía no esté escrito: con él, la base ya sabe quién es.
+  const mismoRuc = /^\d{11}$/.test(ruc) ? existentes.find((p) => p.ruc === ruc) : undefined;
+  if (mismoRuc) return { paso: "es", proveedor: mismoRuc, por: "ruc" };
+  if (!claveTexto(nuevo.nombre)) return { paso: "incompleto" };
+  // Sin tope: el tope va después de sacar a los que ya contestaron «es otro», para que los siguientes también se pregunten.
+  const { igual, parecidos } = proveedoresParecidos(nuevo, existentes, existentes.length);
+  if (igual) return { paso: "es", proveedor: igual, por: "nombre" };
+  const abiertos = parecidos.filter((p) => !descartados.has(p.proveedor.id)).slice(0, max);
+  return abiertos.length > 0 ? { paso: "preguntar", parecidos: abiertos } : { paso: "sumar" };
 }
 
 // ---- F2b: el gasto fijo del que sale un gasto ------------------------------------------------------------------------
