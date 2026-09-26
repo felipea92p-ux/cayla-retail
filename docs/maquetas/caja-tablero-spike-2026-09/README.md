@@ -1,6 +1,10 @@
 # Spike visual · Caja como pantalla de trabajo (2026-09-26)
 
-> **Estado: solo diseño, sin decidir.** Nada de esto está en el ERP. Parte de `CajaAbiertaPanel.tsx` tal como está en
+> **Estado (2026-09-26): implementado — ver `docs/adr/0226-caja-pantalla-de-trabajo.md`.** Difiere del spike en dos
+> cosas: «¿Qué pasó con la plata?» no se construyó (queda en BACKLOG) y el total del cajón lo ve quien puede gestionar la
+> caja, que hoy es cualquier rol con Caja completo.
+>
+> **Estado original: solo diseño, sin decidir.** Nada de esto está en el ERP. Parte de `CajaAbiertaPanel.tsx` tal como está en
 > `origin/main` (`92912e29`). Los datos son inventados: Tienda TRU, apertura S/ 300.00, cuatro ventas.
 
 `caja-tablero-spike.html` es un solo archivo que se abre en el navegador. La barra negra de arriba cambia cada variante
