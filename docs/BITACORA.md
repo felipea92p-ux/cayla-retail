@@ -9,6 +9,9 @@ Por qué así: la clienta compra por la foto; un celeste que sale gris o más vi
 Felipe se lleva: **«mejorar» una foto tiene dos caminos: ajustar los píxeles que ya están, o redibujarla.** El primero no puede quitar una arruga; el segundo sí, pero ya no es la prenda. La mejor foto se consigue al tomarla.
 Sin resolver: probar con una foto real de tienda y sesión real.
 
+## 2026-09-26 (Punto de venta: spike «el ticket a lo alto»)
+Sobre la pantalla ya publicada (ADR-0221), Felipe pidió más aire para el ticket: sin la franja de arriba, sin «Apartar»/«Proforma» en el pie, todo en «Más» sobre el catálogo, y «Apartados» a la vista llevándose las prendas del ticket. Spike en `docs/maquetas/punto-venta-ticket-alto-2026-09/`, sin código.
+Felipe se lleva: (1) **una franja de ancho completo le quita alto a la columna que más lo necesita**: el ticket gana ~62 px, una prenda más a la vista. (2) **Un botón que se lleva el ticket vale más que dos**: «Apartados» hace de puerta y de «Apartar». (3) La tira de espera mostraba «3216 min»: se corrige a «hace 2 días».
 ## 2026-09-26 (Nuevo producto: «Seguir al precio» ya no deja la pantalla en blanco)
 Felipe y una compañera, desde dos cuentas, tocaban «Seguir al precio» y el contenido desaparecía. Reproducido en producción con sesión real y medido: el paso 3 (con tallas, colores y fotos) se pliega, la página baja de 2244 a 1294 px, y 33 ms después `PaginaEstable` (ADR-0185) agregaba 872 px de aire al fondo y devolvía la vista abajo: el paso 4 quedaba 1109 px por encima de lo visible. Arreglo: el cambio de paso suelta `PaginaEstable` antes de pintar (`soltarPaginaEstable`, como el ticket del Punto de Venta). Probado en producción soltándola en ese clic: 0 px de aire y el paso 4 a la vista.
 Felipe se lleva: **una pantalla «en blanco» no siempre es una pantalla rota**: aquí el formulario seguía entero, 1 100 px más arriba. La barra de desplazamiento pegada abajo era la pista.
