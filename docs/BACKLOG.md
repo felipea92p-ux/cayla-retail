@@ -36,6 +36,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Cuando Felipe confirme que no hace falta volver atrás: borrar a mano `respaldo_purgas.filas` (o dejarlo; es un respaldo, no historia).
 - [ ] Cerrar o contar la caja abierta de TRU **después** de la purga: su «esperado» bajó S/ 2,007.10 (la venta ya no existe).
 
+## 💵 Caja como pantalla de trabajo (2026-09-26, ADR-0226) — solo web, sin migración; rama `claude/caja-screen-analysis-improvements-1af2d2`
+Spike en `docs/maquetas/caja-tablero-spike-2026-09/`, aprobado por Felipe. Hecho y verificado en navegador (1440 px y
+375 px con datos de prueba; tipos, lint y pruebas en verde):
+- [x] «Efectivo en el cajón ahora» como cifra principal, con sus piezas (total de `fn_resumen_caja`).
+- [x] «Cobrado en el turno» sin el `anticipo`.
+- [x] Botones (Cobrar, Registrar gasto con el formulario de Finanzas, Depósito o retiro, Cambio o devolución, Apartados)
+  y píldoras «Tu caja muestra» (Pendientes, Apartados, Gastos, Cambios y devoluciones), según los módulos de la cuenta.
+- [x] «Cierres anteriores» con cuatro vistas y la predeterminada por rol; movimientos con filtro.
+- [x] Celular: barra fija como la del Inicio, sin pestañas de menú (ADR-0206).
+Pendiente:
+- [ ] **Verlo con una cuenta real en producción** (colaboradora y líder): la verificación fue con una página de prueba
+  y datos inventados, sin sesión.
+- [ ] **Decidir el «¿Qué pasó con la plata?»** del spike: convertir `MovimientoCajaModal` en depósito → Cuentas y
+  dinero / entrega al líder / sencillo. Mueve dinero entre módulos, por eso no entró aquí.
+- [ ] Umbral del ámbar del semáforo (S/ 5, `TOLERANCIA_CUADRE`): confirmar con Felipe.
+- [ ] `DonaMetodos` y `TendenciaCierres` ya no los usa Caja: revisar si alguien más los usa y archivarlos.
+
 ## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0225; fusionado en #484) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
 
 - [x] «Te toca» (9 avisos por módulo, urgente → por hacer → info, «Al día»), filtro «Ajustar» con urgentes que no se
