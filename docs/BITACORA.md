@@ -9,6 +9,11 @@ Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la
 Felipe se lleva: **un dato secundario nunca debe poder apagar uno principal.** Si el % de la semana no responde, se dice, y el resto sigue.
 Sin resolver: hay dos «apartados» (reserva simple y separación con adelanto) y el de Existencias no aparece en Apartados.
 
+## 2026-09-26 (Etiquetas de precio: Guía de impresión paso a paso — ADR-0180 act.)
+Un colaborador logró que la Brother imprima bien en Windows, pero la nota del pie de Etiquetas estaba escrita para Mac y en Windows decía lo contrario de lo que funcionó. Ahora hay un botón «Guía de impresión» (cabecera y pie): Windows y Mac por separado, un paso por pantalla, las fotos reales de la tienda con un número sobre cada clic, y un diagnóstico final por síntoma que devuelve al paso que lo arregla. La nota se partió en dos: impresora y precio/campaña.
+Por qué así: lo que traba a un equipo nuevo son tres ajustes (Longitud 40.1, Vertical, cortar cada 1) y cerrar Chrome; un párrafo no los hacía visibles. Qué se rompería sin esto: cada computadora nueva repetía la prueba y error, gastando rollo.
+Felipe se lleva: **una instrucción que nadie probó en la máquina real es una hipótesis**: la de Windows era una suposición y la de Mac lo sigue siendo hasta que alguien imprima con ella.
+
 ## 2026-09-26 (Existencias: lo urgente primero y el celular llega a la lista — tareas #5 y #6)
 La lista por prenda empieza por lo que la clienta no ve (tallas por colgar), y los «Reponer» de fila dejan de ser botones negros. En el celular, la primera prenda subió de ~1.900 px a 764 px: accesos en una fila, cifras de a dos, filtros plegados. En computadora no cambió nada.
 Por qué así: con todas las tallas pidiendo reponer, diez botones iguales no dicen por dónde empezar; el orden sí. En el teléfono, la pantalla gastaba dos scrolls en botones y cifras antes de mostrar una sola prenda. Qué se rompería sin esto: en hora pico, la vendedora baja dos pantallas para encontrar lo que busca, o empieza a reponer por cualquier prenda.
