@@ -4,15 +4,37 @@
     {
       "name": "cayla-retail-dev",
       "runtimeExecutable": "env",
-      "runtimeArgs": ["PORT=3010", "pnpm", "--filter", "web", "dev"],
+      "runtimeArgs": [
+        "PORT=3010",
+        "pnpm",
+        "--filter",
+        "web",
+        "dev"
+      ],
       "port": 3010,
       "autoPort": true
     },
     {
       "name": "cayla-retail-dev-windows",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "web", "dev", "-p", "3010"],
+      "runtimeArgs": [
+        "--filter",
+        "web",
+        "dev",
+        "-p",
+        "3010"
+      ],
       "port": 3010,
+      "autoPort": true
+    },
+    {
+      "name": "maquetas",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "python3 -m http.server ${PORT:-8791} --directory docs/maquetas"
+      ],
+      "port": 8791,
       "autoPort": true
     }
   ]
