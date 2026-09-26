@@ -161,3 +161,4 @@ va en el grupo Gestión. Clave del módulo: `rendimiento`. *(Pregunta 20 y el pe
 | Inicio le muestra a cada colaboradora «Tus ventas» con el total de toda su tienda: `fn_ventas_del_dia` filtra por tienda, no por persona (verificado en producción). Hay una tarea aparte para corregirlo | Felipe decide qué debe mostrar |
 | Tienda Lima no tiene personal ni asistencia cargados en Dynamic (D-62). Sin eso no hay soles por hora ni quién atendió | DO |
 | El día que las colaboradoras vean sus cifras: retomar D-68, el top 3 de D-66 y la meta por persona de D-64 | Felipe con el gerente |
+| «Clientas que vuelven» por persona (D-66): entra a Rendimiento cuando la venta guarde a la clienta. Depende de lo que se construya del acta de Clientas del mismo día, cuya corrección F.2 (pendiente de un «sí») deja esa categoría y saca «clientas nuevas identificadas», como ya pide D-76 | Felipe |
