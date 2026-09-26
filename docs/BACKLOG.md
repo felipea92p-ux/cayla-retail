@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0223) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
+## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0225; fusionado en #484) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
 - [x] «Te toca» (9 avisos por módulo, urgente → por hacer → info, «Al día»), filtro «Ajustar» con urgentes que no se
       ocultan, accesos del rol, «Vender» fijo en celular y «Equipo de hoy». 25 pruebas nuevas; probado en local por Felipe.
 - [ ] **Confirmar la cabecera del Inicio** (`CabeceraPantalla`): ADR-0220 la deja sin decidir fuera de Ventas, Inventario y
