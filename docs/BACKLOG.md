@@ -81,6 +81,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       `transferencias`). `datos:comparar` limpio.
 - [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
       que «Todos 8»): decir por qué, o separar «Traslados».
+- [x] Traslado N, Conteo N y Bajar al piso usan la vuelta común `Volver` (pendiente que dejó la bitácora de «Toda pantalla
+      interna tiene cómo volver»): «← Movimientos» con sus filtros si se llegó desde ahí; si no, «← Traslados», «← Conteo»
+      (el nombre del menú; antes decía «Conteos») y «← Existencias».
 - [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
