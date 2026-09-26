@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧹 Purga de Top Aurora y su venta de prueba (2026-09-26, ADR-0224) — **HECHA en producción el 2026-09-26 10:06 (Lima)**; scripts en el repo, sin web ni migración
+- [x] `scripts/purga/purgar-producto-de-prueba.sql` (parametrizado, ensayo por defecto) y `scripts/purga/restaurar-purga.sql`: deshacen por completo `TOP-0011` y la nota `NV01-000007` (S/ 2,007.10, sin SUNAT), devuelven a stock las 13 prendas de otros productos que esa venta sacó, devuelven la serie NV01 a 7, respaldan cada fila en `respaldo_purgas.filas` y demuestran antes de cerrar que el libro de movimientos cuadra con el stock en toda la base.
+- [x] Probado: `pnpm pruebas:purgar-producto` **36/36** (sumada al CI), 6 mutaciones detectadas, respaldo restaurado idéntico fila por fila. La prueba encontró que `venta_items.subtotal` es columna generada: por eso existe `restaurar-purga.sql`.
+- [x] Ensayo revertido (03:13) y **corrida real (10:06) con el «dale» de Felipe**. Verificado por consulta aparte: ventas 7 → 6, movimientos 112 → 85, stock 363 → 311, NV01 siguiente 8 → 7, libro 0 descuadres, candados en ALWAYS, respaldo de 87 filas.
+- [x] **«Cayla 2» eliminada** por Felipe desde Productos ▸ Marcas, después de la purga (botón «Eliminar», ADR-0217). Verificado en producción, solo lectura: 79 marcas / 79 vínculos, 0 vínculos huérfanos, 0 productos sin marca.
+- [ ] Cuando Felipe confirme que no hace falta volver atrás: borrar a mano `respaldo_purgas.filas` (o dejarlo; es un respaldo, no historia).
+- [ ] Cerrar o contar la caja abierta de TRU **después** de la purga: su «esperado» bajó S/ 2,007.10 (la venta ya no existe).
+
 ## 💵 Caja como pantalla de trabajo (2026-09-26, ADR-0226) — solo web, sin migración; rama `claude/caja-screen-analysis-improvements-1af2d2`
 Spike en `docs/maquetas/caja-tablero-spike-2026-09/`, aprobado por Felipe. Hecho y verificado en navegador (1440 px y
 375 px con datos de prueba; tipos, lint y pruebas en verde):
@@ -46,6 +54,7 @@ Pendiente:
 - [ ] `DonaMetodos` y `TendenciaCierres` ya no los usa Caja: revisar si alguien más los usa y archivarlos.
 
 ## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0225; fusionado en #484) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
+
 - [x] «Te toca» (9 avisos por módulo, urgente → por hacer → info, «Al día»), filtro «Ajustar» con urgentes que no se
       ocultan, accesos del rol, «Vender» fijo en celular y «Equipo de hoy». 25 pruebas nuevas; probado en local por Felipe.
 - [ ] **Confirmar la cabecera del Inicio** (`CabeceraPantalla`): ADR-0220 la deja sin decidir fuera de Ventas, Inventario y
@@ -55,6 +64,7 @@ Pendiente:
       del taller atrasadas, insumos bajo mínimo. Y las cifras «Hoy» de Almacén y Taller.
 - [ ] **Base local atrasada:** le faltan 26 migraciones del repo (solo se aplicó la de actividad, `20260926090000`).
       Sincronizarla con `migration repair` y `migration up`, nunca con `db reset`.
+
 
 ## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
 Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
@@ -111,6 +121,7 @@ Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prue
 - [x] ~~**Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito.~~ Arreglado el 2026-09-26 con `useEscapeLibre` (y no con la propuesta de mirar el combo desplegado, que trababa «Registrar nota de crédito»): ver «Escape con un combo abierto cerraba el modal entero», más abajo.
 - [x] ~~Quedan `<select>` nativos que la migración del ADR-0209 no alcanzó~~ — migrados todos, Finanzas incluida, y vigilados por una prueba: ver «Un solo combo en todo el ERP», arriba.
 - Cómo verificas: con sesión de líder, en cualquier pantalla, «Actividad» (arriba, junto a la sede) → el combo «Módulo» se ve como los demás filtros y su lista es la del sistema (fondo papel, marca roja en la elegida). Igual en «Ver todo el historial →».
+
 
 ## 🔎 Existencias: buscar y filtrar por marca, y un vacío que explica (2026-09-26) — solo web, sin migración; rama `claude/existencias-busqueda-marca`
 Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtros tampoco figura marca»). Análisis `/pantalla` completo en [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple su finalidad 5/10, relevancia 7,4/10). Lo que descubrió: **«CAYLA» y «Cayla 2» son dos marcas** (80 en la tabla, 8 con productos, 5 en TRU) y los productos de marca CAYLA (41 variantes) **no tienen ni una fila de stock en TRU**, así que indexar la marca no bastaba.
@@ -230,8 +241,8 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [x] `retail.eliminar_marca(p_marca_id)`: borra la marca y sus vínculos, todo o nada, solo si ningún producto (de cualquier estado) la tiene. Botón «Eliminar» en la tarjeta y en «Desactivadas», visible solo cuando se puede (`sePuedeEliminarMarca`).
 - [x] Probado: `pnpm pruebas:eliminar-marca` 21/21 (sumada al CI), 3 mutaciones detectadas, carrera con COMMIT en los dos órdenes, `pruebas:editar-marca` sigue 23/23.
 - [x] **Aplicada en producción** (2026-09-26, con el «dale» de Felipe): ensayo revertido en la base real y luego `apply_migration`. Verificada por efectos: `eliminar_marca(uuid) → text`, `security definer`, `search_path` fijo, `authenticated` sí / `anon` no, una sola versión, md5 del cuerpo = el del archivo (`29675633…`).
-- [x] **«Cayla 2» eliminada** (Felipe, 2026-09-26, desde la pantalla). Verificado en producción, solo lectura: 79 marcas / 79 vínculos (eran 80/80), 0 vínculos huérfanos, 0 productos sin marca. Su único producto, `TOP-0011 Top Aurora`, ya no existía: se purgó antes (ADR-0219), así que no hizo falta moverlo a Krisstell. Es la primera corrida real del botón.
-- [x] Decidido: `TOP-0011` y la nota de venta `NV01-000007` eran de prueba y se **purgaron** de producción (ADR-0219, con el «dale» de Felipe), no se archivaron.
+- [x] **«Cayla 2» eliminada** (Felipe, 2026-09-26, desde la pantalla). Verificado en producción, solo lectura: 79 marcas / 79 vínculos (eran 80/80), 0 vínculos huérfanos, 0 productos sin marca. Su único producto, `TOP-0011 Top Aurora`, ya no existía: se purgó antes (ADR-0224), así que no hizo falta moverlo a Krisstell. Es la primera corrida real del botón.
+- [x] Decidido: `TOP-0011` y la nota de venta `NV01-000007` eran de prueba y se **purgaron** de producción (ADR-0224, con el «dale» de Felipe), no se archivaron.
 - [ ] Ninguna pantalla resuelve el `marca_id` del historial de un producto a un nombre (ver ADR-0217, «Lo que no deja rastro»): si Felipe quiere ver «cambió de marca X a Y» en la ficha, es una tarea aparte.
 
 ## 🎯 Catálogo ▸ Marcas: buscador y «Editar» (2026-09-25) — migración `20260926150000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base); web en PR
