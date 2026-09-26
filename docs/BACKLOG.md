@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web + migración de lectura `20260927153000` **SIN APLICAR en producción**; rama `claude/movimientos-usability-review-e2442d`
+## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web + migración de lectura `20260927153000` **SIN APLICAR en producción**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
       «Entradas»/«Salidas» traen también el traslado que llegó/salió; las píldoras cuentan operaciones.
@@ -46,7 +46,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Aparte (tarea propuesta en la sesión): el primer clic tras renovarse la sesión puede mandar a `/login` con «tu
       cuenta no puede entrar»; `lib/persona-actual.ts:109` convierte cualquier error en «sin acceso».
 
-## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **SIN APLICAR en producción**; misma rama
+## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **SIN APLICAR en producción**; mismo [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] `cargar_stock_inicial` (prendas que ya existen, en una tienda donde no tienen historia) y candado
       `ajuste_sin_historia` en `registrar_movimiento`; Ajustar stock guarda las prendas nuevas en la tienda como stock
