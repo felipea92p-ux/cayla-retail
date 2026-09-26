@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260926150000_existencias_incluye_retirar_del_piso.sql — CAYLA V2 · ADR-0208 «Frescura del piso», revisión del bloque 2
+-- 20260926170000_existencias_incluye_retirar_del_piso.sql — CAYLA V2 · ADR-0208 «Frescura del piso», revisión del bloque 2
 --
 -- EL PROBLEMA PRIMERO. Desde el bloque 2 (#440), quien ve el módulo Existencias también saca prendas del piso al
 -- almacén («Retirar del piso», en el menú «⋯» de cada talla). Por ADR-0161 quien ve un módulo hace todo lo que hay en

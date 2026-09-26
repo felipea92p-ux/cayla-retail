@@ -258,7 +258,7 @@ las dos superficies a la vez, se confirmó el alcance con Felipe antes de borrar
 - Cómo verificas: cualquier pantalla en escritorio — no hay botón "+ Nuevo" en el lateral. En celular (375 px), la
   barra de abajo tiene 4 columnas parejas (Inicio, Punto de Venta, Inventario, Caja) y ningún hueco al centro.
 
-## 📐 Frescura del piso (2026-09-24, ADR-0208): bloques 1 y 2 fusionados (#434, #440) y su web publicada; en producción `0200` y `0400` pegadas, `0000` y `0300` SIN CONFIRMAR; `20260926150000` POR PEGAR (después de la `0000`); módulo por encender
+## 📐 Frescura del piso (2026-09-24, ADR-0208): bloques 1 y 2 fusionados (#434, #440) y su web publicada; en producción `0200` y `0400` pegadas, `0000` y `0300` SIN CONFIRMAR; `20260926170000` POR PEGAR (después de la `0000`); módulo por encender
 Es el antes llamado «mapa de calor»: mide cuánto lleva cada modelo+color en el piso frente a su categoría en la sede, y
 propone qué hacer antes de rebajar. El documento para el equipo, con datos simulados, está en
 `docs/maquetas/frescura-del-piso-2026-09/` (artifact privado: Felipe tiene que compartirlo). Es la única copia: la
@@ -317,7 +317,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 - [x] ~~Publicar la web DESPUÉS de la `0300` y ANTES de la `0400`~~: la web de los bloques 1 y 2 ya salió con la fusión
   del #434 y del #440 (Vercel publica cada push a `main`), antes de confirmar la `0000`. Por eso conviene confirmar o
   pegar la `0000` y la `0300` cuanto antes: la web ya ofrece el botón y el módulo.
-- [ ] **Felipe: pegar `20260926150000_existencias_incluye_retirar_del_piso.sql` DESPUÉS de la `0000`** (revisión del
+- [ ] **Felipe: pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` DESPUÉS de la `0000`** (revisión del
   bloque 2). Un solo `update` del texto de Existencias, sin políticas ni `alter`; se puede repegar. Si la `0000` se pega
   o se repega después, hay que repegar esta: el upsert de la `0000` repone el texto viejo. **No está en producción:**
   entra al diccionario recién cuando se pegue (refresco del volcado y `pnpm datos:generar:produccion`). Comprobar:
@@ -392,7 +392,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     cierra mientras guarda; «Reponer» y «Retirar» solo en la sede activa; el aviso dice «libre/libres» y dónde queda la
     nota; el modal no salta (bloque con alto reservado) y aclara que retirar no es dar de baja; foco de vuelta al «⋯»;
     Movimientos por par y filtro «Movimiento interno»; la nota de Ajustar stock ▸ Piso nombra «Retirar del piso»; el
-    texto de Existencias en Roles y accesos (`20260926150000`); documentos al día y borrada la copia de `docs/diseno/`.
+    texto de Existencias en Roles y accesos (`20260926170000`); documentos al día y borrada la copia de `docs/diseno/`.
     Detalle: ADR-0208, «Actualización 2026-09-25 — revisión del bloque 2».
   - [ ] **Decisión de Felipe (bloque 3):** una marca de «retirada de la venta» por talla y sede, con un motivo cerrado
     del retiro. Tiene que apagar TODO lo que lee un retiro a propósito como falta: «Reponer» y «Por colgar» en
@@ -463,7 +463,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   muestra la nota. Mirando otra sede (`?ubicacion=`), ni «Reponer» ni «Retirar del piso» aparecen. El filtro de
   Movimientos se llama «Movimiento interno». Receta completa: ADR-0208, «Actualización 2026-09-25 — revisión del
   bloque 2».
-- Cómo verificas la `20260926150000`, ya pegada: `select incluye from retail.modulos where clave = 'existencias';` dice
+- Cómo verificas la `20260926170000`, ya pegada: `select incluye from retail.modulos where clave = 'existencias';` dice
   «Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas» (Roles y accesos muestra ese texto
   desde que sale la web de la revisión, porque lo lee de `lib/modulos.ts`).
 

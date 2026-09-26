@@ -49,7 +49,7 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "historial", grupo: "Ventas", nombre: "Historial de ventas", incluye: "Consultar, reimprimir y exportar" },
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
-  // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926150000).
+  // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
   { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas" },
   // Bajada al piso (ADR-0208, 20260926000000): bajar lo del almacén sin darle a nadie todo Existencias. Nace sin rol: solo
   // lo ve el líder. Delegable: `bajar_al_piso` pregunta por este módulo, no por el líder.

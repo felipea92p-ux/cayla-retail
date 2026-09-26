@@ -9,7 +9,7 @@ bloque 2» y «Actualización 2026-09-25 — revisión del bloque 2»). **La web
 publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la `0200` y la `0400` están pegadas y
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. Falta confirmar
-(o pegar) la `0000` y la `0300` cuanto antes, pegar después la `20260926150000` de la revisión y encender el módulo en
+(o pegar) la `0000` y la `0300` cuanto antes, pegar después la `20260926170000` de la revisión y encender el módulo en
 los roles (ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
 ver «Verificación en local». Del bloque 3 en adelante no hay nada construido.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
@@ -28,7 +28,7 @@ cambian.
 **Afecta desde el bloque 2:** el menú «⋯» de cada talla en Existencias («Retirar del piso»), `ReponerPisoModal` con dos
 sentidos, y cómo Movimientos nombra un movimiento interno (la columna «Movimiento», el filtro y el detalle), que también
 se ve en Inicio y en el historial del producto. Con su revisión, además: el texto del módulo Existencias en Roles y
-accesos (`20260926150000`) y la opción `bloqueado` de `<Modal>`.
+accesos (`20260926170000`) y la opción `bloqueado` de `<Modal>`.
 
 ## El problema
 
@@ -172,7 +172,7 @@ conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1,
    con origen (piso) y destino (almacén) invertidos. *Corregido el 2026-09-25: este punto decía «la función existe»
    pensando en `devolver_a_almacen`, que era del modelo V1 y ya no existe; `bajar_a_piso` tampoco.*
    **Construido y fusionado el 2026-09-25** (#440, `60d5aa4d`; ver «Actualización 2026-09-25 — bloque 2»). Su web ya
-   está publicada; la revisión suma la migración `20260926150000`, por pegar.
+   está publicada; la revisión suma la migración `20260926170000`, por pegar.
    - **Pendiente entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
      `bajar_al_piso`). Hoy «Reponer» y «Retirar del piso» pueden mover dos veces si se reenvía el mismo pedido. Va
      ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas filas: un envío doble
@@ -693,7 +693,7 @@ separado, pero sus tablas existen si esa función respondió; `0000` y `0300` **
    timestamptz, integer)') is not null;` (`true`). La que falte se pega **cuanto antes**: mientras falte la `0000`,
    Roles y accesos muestra «Bajada al piso» y encenderlo falla, y el mensaje de la `0400` le dice a la colaboradora que
    pida al líder ese mismo módulo. Las dos se pueden repegar.
-2. Pegar `20260926150000_existencias_incluye_retirar_del_piso.sql` **después de la `0000`**: el upsert de la `0000`
+2. Pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` **después de la `0000`**: el upsert de la `0000`
    escribe el texto viejo de Existencias; si la `0000` se pega (o se repega) después, hay que repegar la `150000`.
 3. Encender «Bajada al piso» en los roles (ver abajo) y refrescar el diccionario (paso 7).
 
@@ -701,7 +701,7 @@ El orden original, que sigue valiendo como referencia de qué hace cada archivo:
 archivo, con la web publicada entre el cuarto y el quinto. Ya traen `retail.` y se pueden repegar (en local, cada uno
 se aplicó dos veces seguidas sin error). Sus cabeceras dicen «PARTE n de 5» y repiten este mismo orden.
 1. `20260926000000_bajada_piso_modulo.sql`: solo el módulo «Bajada al piso» y el texto corregido de Existencias
-   («Consultar stock, reponer el piso, ajustar stock, apartar prendas»; la `20260926150000` de la revisión del bloque 2
+   («Consultar stock, reponer el piso, ajustar stock, apartar prendas»; la `20260926170000` de la revisión del bloque 2
    lo cambia por «Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas»). **Antes de publicar
    la web:** si la web sale primero, Roles y accesos pinta un módulo que la base no conoce y encenderlo falla.
 2. `20260926000100_bajada_piso_tablas.sql`: las dos tablas y sus cuatro disparadores (no editar, no borrar, no vaciar),
@@ -732,7 +732,7 @@ se aplicó dos veces seguidas sin error). Sus cabeceras dicen «PARTE n de 5» y
    `pnpm datos:generar:produccion` (nunca `pnpm datos:generar` a secas). `datos:comparar` NO ve esta llamada: la pantalla
    la hace con la constante `RPC_BAJADA` y el comparador solo reconoce el nombre escrito entre comillas. El nombre y
    los parámetros los cruza `bajada-reglas.test.ts` contra la migración (no contra producción).
-8. *(Revisión del bloque 2)* `20260926150000_existencias_incluye_retirar_del_piso.sql`, **después de la `0000`**: un
+8. *(Revisión del bloque 2)* `20260926170000_existencias_incluye_retirar_del_piso.sql`, **después de la `0000`**: un
    solo `update` del texto `incluye` de Existencias. Sin políticas ni `alter`: no aplica el bloqueo mutuo de ADR-0195.
    Se puede repegar. Comprobar: `select incluye from retail.modulos where clave = 'existencias';` dice «Consultar
    stock, reponer y retirar del piso, ajustar stock, apartar prendas». Entra al diccionario recién cuando esté pegada
@@ -883,7 +883,7 @@ Felipe eligió rescatar solo el retiro del plan paralelo «del termómetro» (ta
 - **Qué hace:** en Existencias, cada talla con piso DISPONIBLE mayor que 0 (en una tienda que separa piso y almacén)
   tiene «Retirar del piso» en el menú «⋯» de su fila, con Responsable. Es `retail.mover_interno` con origen piso y destino
   almacén; el mismo modal que «Reponer» (`ReponerPisoModal`, ahora con `sentido: 'bajar' | 'retirar'`). El bloque 2
-  no trajo migración; su revisión sumó una chica, solo de texto (`20260926150000`).
+  no trajo migración; su revisión sumó una chica, solo de texto (`20260926170000`).
 - **Lo apartado no se retira:** el tope es el piso disponible y la base lo impide igual.
 - **Nombres:** el modal de la fila sigue llamándose «Reponer piso» (como su botón «Reponer»); «Bajar al piso» es el
   botón de la pantalla de escaneo de este ADR. En Movimientos, las dos formas de subir quedan como «Bajada al piso»
@@ -941,7 +941,7 @@ fijas antes de empezar: no se toca la base de `mover_interno` (su token va apart
 - **Ajustar stock ▸ Piso nombra «Retirar del piso»** en su nota. El mensaje de la `0400` en la base no (ver
   «`registrar_movimiento`: candado nuevo»).
 - **Roles y accesos dice qué da Existencias:** «Consultar stock, reponer y retirar del piso, ajustar stock, apartar
-  prendas». La pantalla lo lee de `lib/modulos.ts`, y la `20260926150000` deja la base con el mismo texto (ninguna
+  prendas». La pantalla lo lee de `lib/modulos.ts`, y la `20260926170000` deja la base con el mismo texto (ninguna
   prueba compara los dos: `lib/modulos.test.ts` no lee `incluye`, y `bajada_al_piso.mjs` P1 fija el de la base). Por ADR-0161, quien ve un módulo hace todo lo que hay en él, y las
   terminales de ventas ven Existencias: el líder tiene que poder leerlo.
 - **Probado en el navegador** (sin base, respuestas simuladas; escritorio y 375 px): el formulario no cambia de alto
@@ -996,7 +996,7 @@ fijas antes de empezar: no se toca la base de `mover_interno` (su token va apart
 4. Ajustar stock ▸ ubicación Piso: la nota nombra «Retirar del piso».
 5. En Colaboradores ▸ Roles y accesos, Existencias dice «Consultar stock, reponer y retirar del piso, ajustar stock,
    apartar prendas» (la pantalla lo lee de `lib/modulos.ts`). La base se comprueba
-   aparte, ya pegada la `20260926150000`: `select incluye from retail.modulos where clave = 'existencias';` da el
+   aparte, ya pegada la `20260926170000`: `select incluye from retail.modulos where clave = 'existencias';` da el
    mismo texto.
 
 **La lección.** El bloque 1 y el bloque 2 los trabajaron dos sesiones distintas el mismo día, sobre el mismo módulo y
