@@ -2,6 +2,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPedidosNoAtendidos } from "@/lib/pedidos-no-atendidos";
 import { PedidosNoAtendidosLista } from "@/components/PedidosNoAtendidosLista";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 
 // Pantalla MÍNIMA de verificación (D-79, ADR-0152) — a propósito FUERA de `lib/menu.ts`: se abre
 // solo por esta URL directa, nunca desde el lateral. Prueba que el backend
@@ -19,6 +20,8 @@ export default async function PedidosNoAtendidosPage() {
         sede={persona.ubicacionEtiqueta}
         titulo="Pedidos no atendidos"
         subtitulo="Verificación (D-79): lo que una clienta pidió y esta sede no tenía."
+        // Se llega desde el aviso de Inicio (no está en el lateral).
+        pie={<Volver forma="boton" href="/" a="Inicio" />}
       />
       <PedidosNoAtendidosLista pedidos={pedidos} />
     </div>

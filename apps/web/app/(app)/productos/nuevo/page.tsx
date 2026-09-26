@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
 import { getContextoAlta } from "@/lib/alta-producto-datos";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { Volver } from "@/components/ui/Volver";
 
 // Nuevo producto como árbol de decisión (ADR-0109): familia → categoría →
 // nombre → talla/tejido/patrón → colores → precio → etiquetas → cuántas hay
@@ -29,12 +29,7 @@ export default async function NuevoProductoPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="mb-2 text-[12.5px] text-taupe">
-          <Link href="/productos" className="underline underline-offset-2 hover:text-tinta">
-            Productos
-          </Link>{" "}
-          · Nuevo
-        </p>
+        <Volver href="/productos" a="Productos" className="mb-4" />
         <CabeceraPantalla
           sobretitulo="Catálogo · Productos"
           titulo="Nuevo producto"
