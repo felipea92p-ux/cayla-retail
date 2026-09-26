@@ -145,7 +145,7 @@ describe("la línea de debajo", () => {
   });
 });
 
-describe("desde una pantalla que solo consulta, el panel abre con todos los módulos (ADR-0232)", () => {
+describe("desde una pantalla que solo consulta, el panel abre con todos los módulos (ADR-0234)", () => {
   it("Movimientos no cambia nada: el panel no dice que «todavía no anota», muestra lo que pasó en la tienda", () => {
     expect(moduloInicialDelPanel("movimientos")).toBeNull();
   });

@@ -159,7 +159,7 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
   });
 });
 
-describe("una prenda sin historia en la tienda no se ajusta: entra como stock inicial (ADR-0233)", () => {
+describe("una prenda sin historia en la tienda no se ajusta: entra como stock inicial (ADR-0235)", () => {
   it("sin ninguna fila de stock en la sede es «sin historia»; con una fila (aunque esté en 0), no", () => {
     const filas = armarVariantesAjuste(
       [fila("1", "S", { stock: [] }), fila("2", "M", { stock: null }), fila("3", "L", { stock: [{ cantidad: 0, sububicacion_id: PISO }] })],

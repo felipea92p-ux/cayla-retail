@@ -38,7 +38,7 @@ export type VarianteAjuste = {
   /** Suma de todas las sububicaciones: es el stock que se ve en una sede que no separa piso de almacén. */
   stockSinDividir: number;
   /** Nunca tuvo un movimiento en esta sede (ni una fila de stock): su primera cantidad es stock inicial, no un ajuste
-   *  (ADR-0233; la base lo exige con `ajuste_sin_historia`). Toda fila de `stock` nace de un movimiento, así que «sin
+   *  (ADR-0235; la base lo exige con `ajuste_sin_historia`). Toda fila de `stock` nace de un movimiento, así que «sin
    *  filas de stock» es «sin historia». */
   sinHistoria: boolean;
 };
@@ -101,7 +101,7 @@ export function motivosAjusteDisponibles(
 export const NOTA_REPOSICION_CERRADA =
   "Subir al piso: «Bajar al piso» o «Reponer». Guardar en el almacén: «⋯» ▸ «Retirar del piso». Todo en Existencias (si no ves «Bajar al piso», pídele al líder ese módulo). Prendas de más al contar: «Conteo físico».";
 
-/** ADR-0233: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
+/** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
  *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad
  *  negativa no es stock inicial: el modal la frena antes (dejaría el stock en negativo). */
 export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, "sinHistoria">; delta: number }>(lineas: readonly L[]): { ajustes: L[]; cargaInicial: L[] } {

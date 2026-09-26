@@ -24,10 +24,10 @@ import {
 // compartir («mirá lo que pasó con esta blusa»), y "atrás" vuelve al filtro anterior.
 // Cambiar un filtro borra el cursor de paginado.
 //
-// Las cifras de las píldoras son OPERACIONES (lo que se guardó de una sola vez, ADR-0232): lo mismo que se ve al tocar
+// Las cifras de las píldoras son OPERACIONES (lo que se guardó de una sola vez, ADR-0234): lo mismo que se ve al tocar
 // cada una, porque la lista también agrupa por operación. Un traslado que llega cuenta en «Entradas» y en «Traslados».
 //
-// El buscador entiende el nombre de un proceso (ADR-0232): «venta», «traslado», «ajuste»… no buscan prendas —ninguna se
+// El buscador entiende el nombre de un proceso (ADR-0234): «venta», «traslado», «ajuste»… no buscan prendas —ninguna se
 // llama así—, así que se vuelven el filtro de ese tipo y el campo se vacía. «Traslado 24» sigue siendo una búsqueda.
 //
 // Orden (rediseño 2026-09-22, elegido por Felipe en la demo de

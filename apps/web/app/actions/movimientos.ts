@@ -5,7 +5,7 @@ import { getSububicaciones } from "@/lib/sububicaciones";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { filaCsvMovimiento, filtrosDesdeParams, listarMovimientos, type CursorMovimientos, type ParamsMovimientos } from "@/lib/movimientos-v2";
 
-// Exportar Movimientos a Excel (ADR-0232, decisión D3 de Felipe): el módulo promete «Consultar y exportar» en Roles y
+// Exportar Movimientos a Excel (ADR-0234, decisión D3 de Felipe): el módulo promete «Consultar y exportar» en Roles y
 // accesos. Trae TODO lo filtrado —no solo la página que se ve— de la sede de la cabecera, con los mismos filtros de la
 // URL, y devuelve las filas ya armadas; el navegador arma el CSV (`descargarCsv`, la misma pieza de Existencias).
 //

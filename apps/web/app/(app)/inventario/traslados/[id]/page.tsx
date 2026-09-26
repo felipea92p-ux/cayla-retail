@@ -11,7 +11,7 @@ import { volverAMovimientos } from "@/lib/movimientos-reglas";
 
 export default async function TrasladoDetallePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ volver?: string }> }) {
   const [{ id }, { volver }] = await Promise.all([params, searchParams]);
-  // Abierto desde Movimientos (ADR-0232): «←» vuelve a esa lista, con sus filtros, en vez de a Traslados.
+  // Abierto desde Movimientos (ADR-0234): «←» vuelve a esa lista, con sus filtros, en vez de a Traslados.
   const volverA = volverAMovimientos(volver);
   const persona = await requirePersonaActualV2();
   const [traslado, catalogo] = await Promise.all([getTrasladoDetalle(id), getCatalogo()]);

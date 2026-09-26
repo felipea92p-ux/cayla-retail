@@ -46,7 +46,7 @@ import { PaginacionCursor } from "@/components/Paginacion";
 // lleva a la pantalla que explica el proceso completo. Sin filtro ni columna de persona:
 // la autoría sigue guardada en la base y se ve en el detalle de cada movimiento.
 //
-// 2026-09-26 (ADR-0232, decisiones de Felipe D1 y D2): se lee DESDE LA TIENDA. «Entró» es todo lo que sumó stock a la
+// 2026-09-26 (ADR-0234, decisiones de Felipe D1 y D2): se lee DESDE LA TIENDA. «Entró» es todo lo que sumó stock a la
 // sede —también el traslado que llegó— y «Salió», todo lo que lo restó; las cifras cuentan OPERACIONES (lo que se guardó
 // de una sola vez), no filas, y la lista muestra cada operación como una fila que se despliega.
 export default async function MovimientosPage({ searchParams }: { searchParams: Promise<ParamsMovimientos> }) {
@@ -118,7 +118,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         />
       ) : (
         <>
-          {/* Una sola línea, sin caja: lo que se toca y adónde lleva. No promete lo que no hace (ADR-0232). */}
+          {/* Una sola línea, sin caja: lo que se toca y adónde lleva. No promete lo que no hace (ADR-0234). */}
           <p className="flex items-center gap-2 text-xs text-tinta/55">
             <Info aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5 shrink-0" />
             Toca un movimiento para ver qué prendas fueron y quién lo hizo. «Traslado N» y «Conteo N» abren su pantalla
@@ -152,7 +152,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   );
 }
 
-// Tres tarjetas leídas desde la tienda (ADR-0232; mismo lenguaje visual que «Prioridades de hoy» de Existencias):
+// Tres tarjetas leídas desde la tienda (ADR-0234; mismo lenguaje visual que «Prioridades de hoy» de Existencias):
 // lo que ENTRÓ a la sede (del proveedor, del Taller, de una devolución…), lo que SALIÓ y los ajustes. Cada una nombra la
 // sede —comparar dos tiendas sin darse cuenta es fácil si la sede solo está arriba, en chico— y el período. Siguen al
 // filtro de tipo, como a los demás: con «Traslados» elegido, «Entró» dice solo lo que llegó por traslado.

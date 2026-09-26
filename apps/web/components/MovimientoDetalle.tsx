@@ -23,7 +23,7 @@ import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
 // comprobante; una recepción, la guía y el proveedor; un conteo, sistema vs
 // contado). Solo lectura: acá no hay nada que editar ni borrar, a propósito.
 //
-// ADR-0232: dice qué hizo la persona («Vendió: …», «Recibió: …»), cuánto queda HOY de esa prenda en la sede y lleva a
+// ADR-0234: dice qué hizo la persona («Vendió: …», «Recibió: …»), cuánto queda HOY de esa prenda en la sede y lleva a
 // todo lo que le pasó (su historial). Sin el código interno del movimiento: para mostrarlo a alguien está «Copiar
 // enlace», que abre exactamente esto (lo pega por WhatsApp y listo).
 export function MovimientoDetalle({
@@ -157,7 +157,7 @@ export function MovimientoDetalle({
             {m.transferencia && (
               <>
                 {/* El proceso completo (qué prendas viajaron juntas, envío, recepción, diferencias) y su estado los cuenta
-                    Traslados, con sus palabras: acá solo el número y el camino para llegar (ADR-0232 quitó la insignia que
+                    Traslados, con sus palabras: acá solo el número y el camino para llegar (ADR-0234 quitó la insignia que
                     decía «Cerrada» donde Traslados dice «Completado»). */}
                 <Dato etiqueta="Traslado">
                   <Link

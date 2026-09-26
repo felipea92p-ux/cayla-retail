@@ -1,8 +1,8 @@
 -- ============================================================================
--- 20260927100200_ajuste_no_es_primera_carga.sql — CAYLA V2 · ADR-0233 · PARTE 2 de 2
+-- 20260927153200_ajuste_no_es_primera_carga.sql — CAYLA V2 · ADR-0235 · PARTE 2 de 2
 -- Un ajuste corrige lo que ya estaba: la base rechaza un ajuste que sería el PRIMER movimiento de una prenda en una sede.
 --
--- EL PROBLEMA PRIMERO. Ver la parte 1 (20260927100100): en TRU, 34 de 41 ajustes positivos fueron la primera carga de la
+-- EL PROBLEMA PRIMERO. Ver la parte 1 (20260927153100): en TRU, 34 de 41 ajustes positivos fueron la primera carga de la
 -- prenda. Con la puerta del ajuste abierta, una lectura de «Ajustes» nunca puede separar una corrección de una carga, y
 -- Movimientos los muestra para siempre como sobrantes. Felipe decidió el 2026-09-26 cerrarla en la base.
 --
@@ -52,7 +52,7 @@ $f$;
 select pg_temp.insertar_antes(
   'retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)',
   'v_sub := coalesce(p_sububicacion_id,',
-  $bloque$-- ADR-0233: un ajuste corrige lo que ya estaba; la primera carga de una prenda es stock inicial (ajuste_sin_historia).
+  $bloque$-- ADR-0235: un ajuste corrige lo que ya estaba; la primera carga de una prenda es stock inicial (ajuste_sin_historia).
   if p_tipo = 'ajuste' and not exists (
     select 1 from movimientos where variante_id = p_variante_id and ubicacion_id = p_ubicacion_id
   ) then

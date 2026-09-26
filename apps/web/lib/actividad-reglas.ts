@@ -17,7 +17,7 @@ export function anotaActividad(clave: ClaveModulo): boolean {
   return MODULOS_CON_ACTIVIDAD.includes(clave);
 }
 
-/** Los módulos que solo CONSULTAN (ADR-0232): no cambian nada, así que nunca tendrán actividad propia. Decir que
+/** Los módulos que solo CONSULTAN (ADR-0234): no cambian nada, así que nunca tendrán actividad propia. Decir que
  *  «Movimientos todavía no anota su actividad» encima de una lista de movimientos era una contradicción para quien no
  *  conoce el sistema. Desde ellos, el panel abre con todos los módulos: lo que pasó en la tienda. */
 export const MODULOS_SOLO_CONSULTA: readonly ClaveModulo[] = ["movimientos"];

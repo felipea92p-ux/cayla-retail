@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260927100000_movimientos_leidos_desde_la_tienda.sql — CAYLA V2 · ADR-0232 (Felipe, 2026-09-26: decisiones D1 y D2)
+-- 20260927153000_movimientos_leidos_desde_la_tienda.sql — CAYLA V2 · ADR-0234 (Felipe, 2026-09-26: decisiones D1 y D2)
 -- Movimientos cuenta lo que ENTRÓ y SALIÓ de la sede que se mira, y cuántas operaciones fueron.
 --
 -- EL PROBLEMA PRIMERO. En Tienda Trujillo llegaron 80 prendas del Taller (Traslado 2) y la tarjeta «Entradas» decía
@@ -24,7 +24,7 @@
 --    `fn_movimientos_resumen` no se toca: la web publicada la sigue usando hasta que salga la nueva; se borra en su propia
 --    migración cuando ninguna web la llame.
 --
--- QUÉ ES UNA OPERACIÓN (decidido en ADR-0232). Lo que se guardó de una sola vez sobre un mismo documento: misma hora
+-- QUÉ ES UNA OPERACIÓN (decidido en ADR-0234). Lo que se guardó de una sola vez sobre un mismo documento: misma hora
 -- exacta (`created_at`, que es `now()` = la hora de la TRANSACCIÓN), misma persona, mismo proceso y mismo documento
 -- (el traslado, la venta, el conteo, la devolución, el cambio o el lote; ninguno si el proceso no tiene). Una recepción de
 -- 16 variantes, una venta de dos prendas, una bajada al piso escaneada de una vez y un cambio (entra lo devuelto, sale lo
@@ -80,21 +80,21 @@ $f$;
 select pg_temp.reemplazar_una_vez(
   'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamp with time zone, uuid, integer, uuid)',
   $viejo$or (p_categoria = 'salida' and m.tipo = 'salida' and coalesce(m.motivo, '') <> 'traslado_salida')$viejo$,
-  $nuevo$or (p_categoria = 'salida' and ( -- ADR-0232: salidas_desde_la_tienda (también la pierna que SALE de un traslado)
+  $nuevo$or (p_categoria = 'salida' and ( -- ADR-0234: salidas_desde_la_tienda (también la pierna que SALE de un traslado)
             m.tipo = 'salida'
             or (m.tipo = 'traslado' and m.ubicacion_id <> m.ubicacion_destino_id and m.ubicacion_id = p_ubicacion_id)
           ))$nuevo$,
-  'ADR-0232: salidas_desde_la_tienda'
+  'ADR-0234: salidas_desde_la_tienda'
 );
 
 select pg_temp.reemplazar_una_vez(
   'retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamp with time zone, uuid, integer, uuid)',
   $viejo$or (p_categoria = 'entrada' and m.tipo = 'entrada' and coalesce(m.motivo, '') <> 'traslado_entrada')$viejo$,
-  $nuevo$or (p_categoria = 'entrada' and ( -- ADR-0232: entradas_desde_la_tienda (también la pierna que LLEGA de un traslado)
+  $nuevo$or (p_categoria = 'entrada' and ( -- ADR-0234: entradas_desde_la_tienda (también la pierna que LLEGA de un traslado)
             m.tipo = 'entrada'
             or (m.tipo = 'traslado' and m.ubicacion_id <> m.ubicacion_destino_id and m.ubicacion_destino_id = p_ubicacion_id)
           ))$nuevo$,
-  'ADR-0232: entradas_desde_la_tienda'
+  'ADR-0234: entradas_desde_la_tienda'
 );
 
 -- ---------- 2. El resumen por proceso: operaciones, lo que entró, lo que salió ----------
@@ -216,7 +216,7 @@ end;
 $function$;
 
 comment on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) is
-  'ADR-0232: las tarjetas y las cifras de Movimientos leídas desde la tienda. Por (grupo de la pantalla: todos, entrada, salida, transferencia, ajuste, interno; proceso): operaciones (lo guardado en una sola transacción: misma hora exacta, persona y proceso), filas, unidades que entraron a la sede, que salieron y que se movieron entre piso y almacén. Una fila cuenta en cada grupo donde la pantalla la muestra. Mismos filtros y permiso que fn_movimientos.';
+  'ADR-0234: las tarjetas y las cifras de Movimientos leídas desde la tienda. Por (grupo de la pantalla: todos, entrada, salida, transferencia, ajuste, interno; proceso): operaciones (lo guardado en una sola transacción: misma hora exacta, persona y proceso), filas, unidades que entraron a la sede, que salieron y que se movieron entre piso y almacén. Una fila cuenta en cada grupo donde la pantalla la muestra. Mismos filtros y permiso que fn_movimientos.';
 
 revoke all on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) from public, anon;
 grant execute on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) to authenticated;

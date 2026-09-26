@@ -192,7 +192,7 @@ export async function listarMovimientos(
   const filas = await pedir(opciones.cursor ?? null, limite);
   if (filas.length <= limite) return { filas, siguiente: null };
 
-  // ADR-0232: la página nunca corta una operación a la mitad. Todo lo de una operación comparte la hora exacta de su
+  // ADR-0234: la página nunca corta una operación a la mitad. Todo lo de una operación comparte la hora exacta de su
   // transacción: si la fila de más es de la misma hora que la última, se trae el resto de esa operación antes de cortar.
   // Pasa pocas veces (una recepción grande justo en el borde) y cuesta una llamada más, nunca una por fila.
   const pagina = filas.slice(0, limite);
@@ -245,10 +245,10 @@ export async function listarMovimientosProducto(
   return { filas: pagina, siguiente: hayMas && ultima ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
 }
 
-/** Las cifras de la pantalla leídas desde la tienda (ADR-0232, `fn_movimientos_resumen_procesos`): por grupo de filtro y
+/** Las cifras de la pantalla leídas desde la tienda (ADR-0234, `fn_movimientos_resumen_procesos`): por grupo de filtro y
  *  proceso, operaciones y unidades que entraron, salieron o se movieron. Mismo filtro que la lista, sin tipo ni cursor:
  *  describe el período, no la página. Null si la base todavía no tiene la función (web publicada antes que la
- *  migración 20260927100000) o no respondió: la pantalla sigue con la lista y sin las cifras (principio 9). */
+ *  migración 20260927153000) o no respondió: la pantalla sigue con la lista y sin las cifras (principio 9). */
 export async function getResumenTienda(ubicacionId: string, filtros: FiltrosMovimientos = {}): Promise<ResumenTienda | null> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("fn_movimientos_resumen_procesos", paramsRpc(ubicacionId, filtros));
@@ -261,7 +261,7 @@ export async function getResumenTienda(ubicacionId: string, filtros: FiltrosMovi
 
 const SIN_STOCK: Cantidades = { total: 0, piso: null, almacen: null, danado: null, apartado: 0, disponible: 0, pisoDisponible: null, almacenDisponible: null };
 
-/** La foto, el producto y el stock de HOY de las prendas de una página (ADR-0232). Dos lecturas chicas —una por las
+/** La foto, el producto y el stock de HOY de las prendas de una página (ADR-0234). Dos lecturas chicas —una por las
  *  variantes, otra por su stock en la sede— y las mismas reglas de Existencias (`fotoPrincipal`, `sumarCantidades`), para
  *  que una prenda diga lo mismo en las dos pantallas. Son ayuda, no la lista: si una lectura falla, falta ese dato y
  *  nada más. */

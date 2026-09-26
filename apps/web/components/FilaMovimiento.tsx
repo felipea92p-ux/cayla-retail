@@ -20,7 +20,7 @@ import {
 } from "@/lib/movimientos-reglas";
 
 // Una fila de la lista de Movimientos: una prenda, cuánto, de dónde a dónde, el proceso que lo originó y su
-// referencia. Varias filas guardadas de una sola vez son UNA operación (ADR-0232): `FilaOperacion` las muestra como una
+// referencia. Varias filas guardadas de una sola vez son UNA operación (ADR-0234): `FilaOperacion` las muestra como una
 // fila que se despliega y, adentro, cada prenda con esta misma `FilaMovimiento`.
 //
 // Forma (rediseño 2026-09-22, elegida por Felipe en la demo de

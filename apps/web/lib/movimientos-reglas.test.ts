@@ -103,7 +103,7 @@ describe("tonoCategoria", () => {
     expect(tonoCategoria("ajuste", -1)).toBe("rojo");
     expect(tonoCategoria("ajuste", 1)).toBe("neutro");
     expect(tonoCategoria("entrada", 3)).toBe("verde");
-    // Un traslado que llega es mercadería que entró a la tienda (ADR-0232): verde, como su «+80».
+    // Un traslado que llega es mercadería que entró a la tienda (ADR-0234): verde, como su «+80».
     expect(tonoCategoria("transferencia", 5)).toBe("verde");
     expect(tonoCategoria("transferencia", -5)).toBe("neutro");
     expect(tonoCategoria("interno", 0)).toBe("ambar");
@@ -527,7 +527,7 @@ describe("textoPeriodo", () => {
 });
 
 // ---------------------------------------------------------------------------
-// ADR-0232: Movimientos leído desde la tienda
+// ADR-0234: Movimientos leído desde la tienda
 // ---------------------------------------------------------------------------
 
 describe("operaciones: lo que se guardó de una sola vez", () => {

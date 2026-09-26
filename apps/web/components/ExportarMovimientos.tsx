@@ -8,7 +8,7 @@ import { esperar } from "@/components/ui/Espera";
 import { descargarCsv } from "@/lib/exportar-csv";
 import { ENCABEZADOS_CSV_MOVIMIENTOS, hoyEnLima, nombreArchivoMovimientos } from "@/lib/movimientos-reglas";
 
-// «Exportar a Excel» (ADR-0232, D3): baja TODO lo que está filtrado en pantalla —no solo la página— como un CSV, que abre
+// «Exportar a Excel» (ADR-0234, D3): baja TODO lo que está filtrado en pantalla —no solo la página— como un CSV, que abre
 // igual en Excel y en Sheets. Los filtros salen de la URL de la pantalla, así que el archivo es exactamente lo que se ve.
 export function ExportarMovimientos() {
   const [exportando, setExportando] = useState(false);

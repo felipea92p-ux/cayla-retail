@@ -24,7 +24,7 @@ export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apart
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
-// Vocabulario de tienda (ADR-0232): «Traslado» como en el menú —nunca «Transferencia», que en el Perú suena a Yape o al
+// Vocabulario de tienda (ADR-0234): «Traslado» como en el menú —nunca «Transferencia», que en el Perú suena a Yape o al
 // banco— y «Dentro de la sede» en vez de «Interno», que no dice nada a quien no conoce el sistema.
 export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
   entrada: "Entrada",
@@ -39,7 +39,7 @@ export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
 /** Los filtros rápidos por tipo, en el orden en que se leen en la pantalla
  *  («Todos» es no elegir ninguno). Plural: son grupos de movimientos.
  *
- *  Se leen DESDE LA TIENDA (ADR-0232): «Entradas» es todo lo que sumó stock a la sede —también el traslado que llegó—,
+ *  Se leen DESDE LA TIENDA (ADR-0234): «Entradas» es todo lo que sumó stock a la sede —también el traslado que llegó—,
  *  y «Salidas» todo lo que lo restó —también el que salió—; «Traslados» trae las dos piernas. Un traslado que llega está
  *  en «Entradas» y en «Traslados» a la vez: las cifras de las píldoras no suman el total, y está bien (son filtros, no
  *  cajones). El valor en la URL no cambia (`?cat=transferencia`): los enlaces ya compartidos siguen funcionando. */
@@ -121,7 +121,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
  *  devuelta entra, la nueva sale) y por eso está en Entradas y en Salidas. Un proceso que no esté
  *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
-  // Desde la tienda (ADR-0232): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
+  // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
   entrada: ["traslado_entrada", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
   salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
@@ -173,7 +173,7 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return m.delta > 0 ? "Entrada · Traslado recibido" : "Salida · Traslado enviado";
-  // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0232).
+  // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
   if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
   const direccion = ETIQUETA_CATEGORIA[m.categoria];
@@ -523,7 +523,7 @@ export function textoPeriodo(periodo: PeriodoMovimientos, desde?: string, hasta?
 }
 
 // ---------------------------------------------------------------------------
-// Operaciones (ADR-0232): lo que se guardó de una sola vez. Una recepción de 16 variantes, una venta de dos prendas o
+// Operaciones (ADR-0234): lo que se guardó de una sola vez. Una recepción de 16 variantes, una venta de dos prendas o
 // una bajada al piso escaneada de una vez son UNA operación; la lista las muestra como una fila que se despliega.
 // ---------------------------------------------------------------------------
 
@@ -625,7 +625,7 @@ export function textoCantidadOperacion(r: Pick<ResumenOperacion, "entran" | "sal
 }
 
 // ---------------------------------------------------------------------------
-// Las cifras de la pantalla (ADR-0232), de `fn_movimientos_resumen_procesos`.
+// Las cifras de la pantalla (ADR-0234), de `fn_movimientos_resumen_procesos`.
 // ---------------------------------------------------------------------------
 
 /** Un grupo por cada filtro de tipo, más «todos». Una fila cuenta en todos los grupos donde la pantalla la muestra. */
@@ -710,7 +710,7 @@ export function unidades(cifra: number): string {
 }
 
 // ---------------------------------------------------------------------------
-// El buscador entiende los nombres de los procesos (ADR-0232): quien escribe «venta» o «traslado» quiere ver ventas o
+// El buscador entiende los nombres de los procesos (ADR-0234): quien escribe «venta» o «traslado» quiere ver ventas o
 // traslados, y la búsqueda solo busca prendas y referencias («Traslado 24»). Una palabra sola (o dos, como «stock
 // inicial») que nombra un proceso se vuelve el filtro de ese tipo; con un número detrás sigue siendo una referencia.
 // ---------------------------------------------------------------------------
@@ -747,7 +747,7 @@ export function filtroDePalabra(texto: string): FiltroDePalabra | null {
 }
 
 // ---------------------------------------------------------------------------
-// Quién lo hizo, con verbo (ADR-0232): «Felipe Alvarez» solo no dice si vendió, recibió o ajustó.
+// Quién lo hizo, con verbo (ADR-0234): «Felipe Alvarez» solo no dice si vendió, recibió o ajustó.
 // ---------------------------------------------------------------------------
 
 export function verboDelResponsable(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
@@ -788,12 +788,12 @@ export function periodoCorto(periodo: PeriodoMovimientos, desde?: string, hasta?
   return desde ? `desde el ${corta(desde)}` : `hasta el ${corta(hasta!)}`;
 }
 
-/** Lo que la lista muestra de cada prenda además de su fila (ADR-0232): el producto (para ir a su historial), su foto
+/** Lo que la lista muestra de cada prenda además de su fila (ADR-0234): el producto (para ir a su historial), su foto
  *  principal y cuánto hay HOY en la sede. `stockHoy` null = no se pudo leer (la lista sigue sin él). La lee
  *  `getPrendasDeMovimientos` (servidor); el tipo vive acá para que los componentes cliente no importen el servidor. */
 export type PrendaDeMovimiento = { productoId: string; fotoUrl: string | null; stockHoy: Cantidades | null };
 
-/** A dónde vuelve «←» en un traslado o un conteo abierto desde Movimientos (ADR-0232): a la misma lista, con sus
+/** A dónde vuelve «←» en un traslado o un conteo abierto desde Movimientos (ADR-0234): a la misma lista, con sus
  *  filtros. Solo una ruta de Movimientos: cualquier otra cosa que venga en la URL se ignora (un enlace armado a mano no
  *  puede sacar a nadie de la app). */
 export function volverAMovimientos(valor: string | null | undefined): string | null {
@@ -802,7 +802,7 @@ export function volverAMovimientos(valor: string | null | undefined): string | n
 }
 
 // ---------------------------------------------------------------------------
-// Exportar a Excel (ADR-0232, decisión D3): el módulo promete «Consultar y exportar» en Roles y accesos. Un archivo CSV
+// Exportar a Excel (ADR-0234, decisión D3): el módulo promete «Consultar y exportar» en Roles y accesos. Un archivo CSV
 // (abre igual en Excel y en Sheets) con TODO lo filtrado, no solo la página: una fila por prenda, con el efecto sobre la
 // sede con signo, para que una suma en Excel dé lo que entró menos lo que salió.
 // ---------------------------------------------------------------------------

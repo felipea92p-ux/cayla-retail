@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260927100100_cargar_stock_inicial_de_prenda_existente.sql — CAYLA V2 · ADR-0233 · PARTE 1 de 2
+-- 20260927153100_cargar_stock_inicial_de_prenda_existente.sql — CAYLA V2 · ADR-0235 · PARTE 1 de 2
 -- La primera carga de una prenda que YA existe en el catálogo entra como «Stock inicial», no como ajuste.
 --
 -- EL PROBLEMA PRIMERO. En Tienda TRU, 34 de los 41 ajustes que sumaron stock en su primera semana (+107 prendas) fueron
@@ -15,7 +15,7 @@
 -- si están colgadas, su bajada al piso en la misma transacción (`bajar_al_piso`, como el alta de producto): el piso
 -- nunca «sube solo» (ADR-0208).
 --
--- QUIÉN PUEDE (decidido en ADR-0233): quien puede crear el producto (`fn_puede_editar_catalogo`, la regla de ADR-0212)
+-- QUIÉN PUEDE (decidido en ADR-0235): quien puede crear el producto (`fn_puede_editar_catalogo`, la regla de ADR-0212)
 -- O quien puede ajustar stock (`fn_puede_ajustar_inventario`, candado de ADR-0143). La parte 2 cierra el ajuste como
 -- primera carga: quien hoy cargaba así no pierde la posibilidad, cambia de puerta.
 --
@@ -68,7 +68,7 @@ end;
 $function$;
 
 comment on function retail.cargar_stock_inicial(uuid, jsonb, text, boolean, uuid) is
-  'ADR-0233: la primera carga de prendas que ya existen en el catálogo, en una tienda donde todavía no tienen ningún movimiento. Entrada con motivo carga_inicial (fn_cargar_stock_inicial, ADR-0212) y, si están colgadas, su bajada al piso. La puede quien crea productos o ajusta stock.';
+  'ADR-0235: la primera carga de prendas que ya existen en el catálogo, en una tienda donde todavía no tienen ningún movimiento. Entrada con motivo carga_inicial (fn_cargar_stock_inicial, ADR-0212) y, si están colgadas, su bajada al piso. La puede quien crea productos o ajusta stock.';
 
 revoke all on function retail.cargar_stock_inicial(uuid, jsonb, text, boolean, uuid) from public, anon;
 grant execute on function retail.cargar_stock_inicial(uuid, jsonb, text, boolean, uuid) to authenticated;

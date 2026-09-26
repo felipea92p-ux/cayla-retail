@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0233 «Un ajuste no es la primera carga» contra el Postgres LOCAL:
- * `retail.cargar_stock_inicial` (20260927100100) y el candado `ajuste_sin_historia` de `retail.registrar_movimiento`
- * (20260927100200).
+ * Prueba de ADR-0235 «Un ajuste no es la primera carga» contra el Postgres LOCAL:
+ * `retail.cargar_stock_inicial` (20260927153100) y el candado `ajuste_sin_historia` de `retail.registrar_movimiento`
+ * (20260927153200).
  *
  * QUÉ CUBRE
  *   1. El candado: un ajuste sobre una prenda SIN ningún movimiento en la tienda se rechaza (hint `ajuste_sin_historia`)

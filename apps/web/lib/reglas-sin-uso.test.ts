@@ -3,7 +3,7 @@ import { join } from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
-// Candado «probado = en pantalla» (ADR-0232). Una función de reglas (`lib/*-reglas.ts`) que solo usa su propia prueba
+// Candado «probado = en pantalla» (ADR-0234). Una función de reglas (`lib/*-reglas.ts`) que solo usa su propia prueba
 // hace que el CI diga que algo funciona cuando ninguna pantalla lo muestra.
 //
 // Por qué existe: el 2026-09-22 se sumó `etiquetaConDireccion()` («Entrada · Traslado recibido») con sus pruebas, para

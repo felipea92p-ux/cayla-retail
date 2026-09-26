@@ -7,7 +7,7 @@ import { MovimientoDetalle } from "@/components/MovimientoDetalle";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
 import { etiquetaDia, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
-// La lista del historial, agrupada por día y, dentro del día, por OPERACIÓN (ADR-0232): lo que se guardó de una sola
+// La lista del historial, agrupada por día y, dentro del día, por OPERACIÓN (ADR-0234): lo que se guardó de una sola
 // vez —un traslado de 16 variantes, una venta de dos prendas, una bajada al piso escaneada de una vez— es una fila que
 // dice qué pasó y cuánto, y que al tocarla se despliega en sus prendas. Así el día se lee como lo que pasó en la tienda
 // y un envío grande no tapa todo lo demás (antes, el Traslado 2 ocupaba 16 de 18 filas).

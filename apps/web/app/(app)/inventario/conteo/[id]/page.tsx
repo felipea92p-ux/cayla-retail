@@ -17,6 +17,6 @@ export default async function ConteoDetallePage({
   const persona = await requirePersonaActualV2();
   const conteo = await getConteoDetalle(id);
   if (!conteo) notFound();
-  // Abierto desde Movimientos (ADR-0232): «←» vuelve a esa lista, con sus filtros.
+  // Abierto desde Movimientos (ADR-0234): «←» vuelve a esa lista, con sus filtros.
   return <ConteoDetalleVista conteo={conteo} ver={ver} ubicacionEtiqueta={persona.ubicacionEtiqueta} volverA={volverAMovimientos(volver)} />;
 }

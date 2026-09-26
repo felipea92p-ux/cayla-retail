@@ -31,7 +31,7 @@ import { firmar } from "@/lib/responsable-reglas";
 // (principio 10) — la RPC queda como red real si el stock cambió mientras el modal
 // estaba abierto.
 //
-// ADR-0233: una prenda que nunca tuvo un movimiento en esta tienda no se «ajusta» —la base ya no lo deja
+// ADR-0235: una prenda que nunca tuvo un movimiento en esta tienda no se «ajusta» —la base ya no lo deja
 // (`ajuste_sin_historia`)—: su primera cantidad entra como STOCK INICIAL (`cargar_stock_inicial`, una entrada), así
 // Movimientos no la muestra para siempre como un sobrante. El modal lo hace solo al confirmar, y lo dice en la fila.
 

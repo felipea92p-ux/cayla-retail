@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de integración de Movimientos leído desde la tienda (ADR-0232, migración 20260927100000) contra el Postgres
+ * Prueba de integración de Movimientos leído desde la tienda (ADR-0234, migración 20260927153000) contra el Postgres
  * LOCAL: `retail.fn_movimientos_resumen_procesos` (nueva) y el filtro «Entradas» / «Salidas» de `retail.fn_movimientos`.
  *
  * Lo que ninguna prueba de TypeScript puede verificar:
@@ -238,8 +238,8 @@ correr(
 ${K("n_resumen", "(select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'retail' and p.proname = 'fn_movimientos_resumen_procesos')")}
 ${K("anon", "has_function_privilege('anon', 'retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure, 'EXECUTE')")}
 ${K("auth", "has_function_privilege('authenticated', 'retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid)'::regprocedure, 'EXECUTE')")}
-${K("parche_entradas", "position('ADR-0232: entradas_desde_la_tienda' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
-${K("parche_salidas", "position('ADR-0232: salidas_desde_la_tienda' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
+${K("parche_entradas", "position('ADR-0234: entradas_desde_la_tienda' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
+${K("parche_salidas", "position('ADR-0234: salidas_desde_la_tienda' in pg_get_functiondef('retail.fn_movimientos(uuid, date, date, text, text, text, uuid, uuid, timestamptz, uuid, integer, uuid)'::regprocedure)) > 0")}
 rollback;`,
   (d) => {
     igual(d, "n_resumen", 1, "hay UNA sola fn_movimientos_resumen_procesos");
