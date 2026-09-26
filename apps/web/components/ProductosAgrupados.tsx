@@ -64,6 +64,7 @@ export function ProductosAgrupados({
   sububicaciones,
   puedeEditar,
   puedeAjustar,
+  puedeBajarAlPiso,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
@@ -72,6 +73,8 @@ export function ProductosAgrupados({
   sububicaciones: Sububicacion[];
   puedeEditar: boolean;
   puedeAjustar: boolean;
+  /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
+  puedeBajarAlPiso: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
@@ -225,6 +228,7 @@ export function ProductosAgrupados({
                   ubicacionId={ubicacionId}
                   sububicaciones={sububicaciones}
                   puedeAjustar={puedeAjustar}
+                  puedeBajarAlPiso={puedeBajarAlPiso}
                   eliminable={puedeEliminar ? { referencia: p.referencia, estado: p.estado, numVariantes: p.variantes.length } : null}
                 />
               </span>
@@ -307,12 +311,14 @@ function MenuFila({
   ubicacionId,
   sububicaciones,
   puedeAjustar,
+  puedeBajarAlPiso,
   eliminable,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
+  puedeBajarAlPiso: boolean;
   /** Los datos que la ventana de «Eliminar» necesita, o `null` si quien mira no es Admin ni Líder (entonces no hay opción). */
   eliminable: { referencia: string; estado: string; numVariantes: number } | null;
 }) {
@@ -453,6 +459,7 @@ function MenuFila({
           productoId={productoId}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
+          puedeBajarAlPiso={puedeBajarAlPiso}
           onClose={() => setAjustando(false)}
         />
       )}

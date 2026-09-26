@@ -139,6 +139,7 @@ export function ProductosGrilla({
   ubicacionId,
   sububicaciones,
   puedeAjustar,
+  puedeBajarAlPiso,
   puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
@@ -146,6 +147,8 @@ export function ProductosGrilla({
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
+  /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
+  puedeBajarAlPiso: boolean;
   /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
   puedeEliminar: boolean;
   mensajeVacio?: string;
@@ -157,7 +160,7 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeEliminar={puedeEliminar} />
+        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
       ))}
     </div>
   );
@@ -168,12 +171,14 @@ function TarjetaProducto({
   ubicacionId,
   sububicaciones,
   puedeAjustar,
+  puedeBajarAlPiso,
   puedeEliminar,
 }: {
   producto: ProductoListado;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
+  puedeBajarAlPiso: boolean;
   puedeEliminar: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
@@ -283,6 +288,7 @@ function TarjetaProducto({
           productoId={producto.productoId}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
+          puedeBajarAlPiso={puedeBajarAlPiso}
           onClose={() => setAjustando(false)}
         />
       )}

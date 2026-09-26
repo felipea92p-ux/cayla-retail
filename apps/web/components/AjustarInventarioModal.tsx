@@ -11,9 +11,11 @@ import {
   MOTIVOS_AJUSTE,
   NOTA_REPOSICION_CERRADA,
   armarVariantesAjuste,
+  cargaInicialAlPiso,
   motivosAjusteDisponibles,
   repartirLineasAjuste,
   reposicionCerrada,
+  textoPrendaNueva,
   type MotivoAjuste,
   type VarianteAjuste,
 } from "@/lib/ajuste-reglas";
@@ -34,16 +36,21 @@ import { firmar } from "@/lib/responsable-reglas";
 // ADR-0235: una prenda que nunca tuvo un movimiento en esta tienda no se «ajusta» —la base ya no lo deja
 // (`ajuste_sin_historia`)—: su primera cantidad entra como STOCK INICIAL (`cargar_stock_inicial`, una entrada), así
 // Movimientos no la muestra para siempre como un sobrante. El modal lo hace solo al confirmar, y lo dice en la fila.
+// «En el piso» esa carga es además una bajada, que pide el módulo «Bajada al piso» (ADR-0212): sin él, lo nuevo entra al
+// almacén —como en «Nuevo producto»— y la fila lo avisa, en vez de fallar al confirmar.
 
 export function AjustarInventarioModal({
   productoId,
   ubicacionId,
   sububicaciones,
+  puedeBajarAlPiso,
   onClose,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
+  /** ¿El rol de la cuenta ve «Bajada al piso»? Lo decide la página, en el servidor (`veModulo`), como en Nuevo producto. */
+  puedeBajarAlPiso: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -191,7 +198,7 @@ export function AjustarInventarioModal({
           p_ubicacion_id: ubicacionId,
           p_items: cargaInicial.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta })),
           p_nota: nota.trim() || undefined,
-          p_al_piso: separaPisoAlmacen && ubicado === "piso",
+          p_al_piso: cargaInicialAlPiso(ubicado, separaPisoAlmacen, puedeBajarAlPiso),
         }),
         firma
       );
@@ -287,7 +294,7 @@ export function AjustarInventarioModal({
                           {v.sku} · stock {actual}
                           {conAjuste ? ` → ${actual + delta}` : ""}
                         </p>
-                        {v.sinHistoria && <p className="text-[11px] text-taupe">Nueva en esta tienda · entra como stock inicial</p>}
+                        {v.sinHistoria && <p className="text-[11px] text-taupe">{textoPrendaNueva(ubicado, separaPisoAlmacen, puedeBajarAlPiso)}</p>}
                       </div>
                       <input
                         type="number"
