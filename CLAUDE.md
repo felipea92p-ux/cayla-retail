@@ -369,8 +369,12 @@ Este repo tiene un grafo de conocimiento generado en `graphify-out/` (nodos cent
 estructura de comunidades, relaciones entre archivos). **El binario `graphify` no está
 instalado en todas las máquinas del equipo**: antes de usarlo, corre `which graphify`. Si
 no está, busca con grep y lee los archivos directamente; no lo instales por tu cuenta ni
-adivines su salida. (El hook de `.claude/settings.json` que lo llama apunta a una ruta de
-Windows de una sola máquina; en las demás esa ruta no existe.)
+adivines su salida. Su guardia (el hook que lo llama antes de cada búsqueda y lectura) es de
+cada máquina: si la usas, va en tu `.claude/settings.local.json`, que no se sube al repo,
+en `PreToolUse` con `graphify hook-guard search` para `Bash|Grep` y `graphify hook-guard
+read` para `Read|Glob` (o la ruta completa de tu instalación). Hasta el 2026-09-26 estaba en
+`.claude/settings.json` con la ruta de Windows de una sola máquina, y en las demás esa ruta
+no existía.
 
 Si está instalado, reglas:
 - Para preguntas de código, primero `graphify query "<pregunta>"` cuando exista
