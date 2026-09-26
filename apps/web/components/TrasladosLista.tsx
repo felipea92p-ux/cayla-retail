@@ -14,7 +14,7 @@ import type { TrasladoResumen } from "@/lib/traslados";
 // por `col-start`/`row-start`, en vez de una tabla que se corta o pide scroll:
 //  · desde 1280 px de ventana: seis columnas, como la tabla de la guía oficial (con el lateral de
 //    17 rem y el relleno quedan ~928 px; las seis piden ~920). La insignia y el botón van en minúscula
-//    («Por confirmar», «Confirmar recepción») y caben en ~9.5 rem cada uno.
+//    («Por recibir», «Recibir») y caben en ~9.5 rem cada uno.
 //  · por debajo: una tarjeta de cuatro líneas, con su botón a la mano.
 // Hasta el 2026-09-22 había un tercer acomodo de dos líneas entre 1280 y 1399 px; Felipe eligió la
 // tabla de la guía en la demo (docs/maquetas/traslados-cifras-filtros-2026-09/, ADR-0175) y se fue.
@@ -24,7 +24,8 @@ import type { TrasladoResumen } from "@/lib/traslados";
 //  · Contenido miniaturas (o los colores, sin fotos), prendas y variantes.
 //  · Llegada   fechas humanas; la frase depende de la situación real.
 //  · Estado    información: un chip suave, sin forma de botón.
-//  · Acción    un botón. El fuerte (tinta) solo si de verdad pide intervención.
+//  · Acción    un botón. El fuerte (tinta) solo si de verdad pide intervención: «Recibir» (viene hacia mi sede,
+//              llegue cuando llegue — ADR-0238) o «Revisar» (una diferencia que cierra el líder). El resto, «Ver detalle».
 // Toda la fila es clic — con un `onClick` que se aparta si el clic fue sobre un enlace/botón o si había
 // texto seleccionado — y NO con un enlace extendido (`after:absolute`): ese tapaba los `title` de las
 // notas y prendas recortadas y no dejaba seleccionar el texto de la fila. Para teclado y lectores de
@@ -59,7 +60,7 @@ const BOTON_FUERTE = `btn-cayla btn-primario btn-chico ${FOCO}`;
 // pesa en la lista es el de la acción que de verdad toca.
 const BOTON_SUAVE = `btn-cayla btn-sutil btn-chico ${FOCO}`;
 
-// Solo el que le toca a quien mira lleva fondo: coral suave si es una recepción,
+// Solo el que le toca a quien mira lleva fondo: coral suave si hay que recibirlo,
 // ámbar suave si es una diferencia que debe cerrar un líder. El resto es tranquilo.
 function fondo(s: SituacionTraslado): string {
   if (s === "requiere_recepcion") return "bg-rojo/[0.05] hover:bg-rojo/[0.08]";
@@ -175,9 +176,10 @@ export function TrasladosLista({
                       {t.ubicacionDestinoNombre}
                     </span>
                   </p>
-                  <p className="truncate text-xs text-taupe" title={t.nota ?? undefined}>
+                  {/* Un anulado dice por qué se anuló (lo que se preguntará después); el resto, la nota del envío. */}
+                  <p className="truncate text-xs text-taupe" title={(s === "anulado" ? t.motivoAnulacion : t.nota) ?? undefined}>
                     {direccion === "entrante" ? "Entra a tu sede" : "Sale de tu sede"}
-                    {t.nota ? ` · ${t.nota}` : ""}
+                    {s === "anulado" && t.motivoAnulacion ? ` · Anulado: ${t.motivoAnulacion}` : t.nota ? ` · ${t.nota}` : ""}
                   </p>
                 </div>
 
@@ -187,13 +189,28 @@ export function TrasladosLista({
                   <div className="flex min-w-0 items-center gap-2.5">
                     <TrasladoMiniaturas fotos={t.fotos} colores={t.colores} />
                     <div className="min-w-0 text-left">
-                      {/* «· N variantes» puede bajar de línea (a 1280 px la columna es angosta); nunca se encima con la de al lado. */}
+                      {/* «· N distintas» (tallas y colores) puede bajar de línea (a 1280 px la columna es angosta); nunca se
+                          encima con la de al lado. En palabras de tienda: prendas, no «u.» ni «variantes». */}
                       <p className="text-sm text-tinta">
-                        <span className="whitespace-nowrap font-medium tabular-nums">{t.unidadesEnviadas.toLocaleString("es-PE")} u.</span>
-                        {" "}
-                        <span className="whitespace-nowrap text-taupe">
-                          · {t.lineas} {t.lineas === 1 ? "variante" : "variantes"}
-                        </span>
+                        {/* D-130: quien recibe cuenta a ciegas, así que la fila no le adelanta cuántas vienen
+                            (solo cuántas prendas distintas buscar); quien envió y los cerrados sí ven el total. */}
+                        {s === "requiere_recepcion" ? (
+                          <span className="whitespace-nowrap font-medium">
+                            {t.lineas === 1 ? "1 prenda distinta" : `${t.lineas} prendas distintas`} · se cuentan al recibir
+                          </span>
+                        ) : (
+                          <span className="whitespace-nowrap font-medium tabular-nums">
+                            {t.unidadesEnviadas.toLocaleString("es-PE")} {t.unidadesEnviadas === 1 ? "prenda" : "prendas"}
+                          </span>
+                        )}
+                        {t.lineas > 1 && s !== "requiere_recepcion" && (
+                          <>
+                            {" "}
+                            <span className="whitespace-nowrap text-taupe" title="Tallas y colores distintos">
+                              · {t.lineas} distintas
+                            </span>
+                          </>
+                        )}
                       </p>
                       <p className="truncate text-xs text-taupe" title={t.referencias.join(", ")}>
                         {resumenPrendas(t.referencias)}

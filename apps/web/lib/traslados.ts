@@ -2,7 +2,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
-import { contarRequierenAccion, separarVacios } from "@/lib/traslados-reglas";
+import { conteoDelTraslado, contarRequierenAccion, separarVacios } from "@/lib/traslados-reglas";
 import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
@@ -45,6 +45,15 @@ export type TrasladoResumen = {
    *  prenda tiene foto todavía (rediseño 2026-09-22). Los colores que no son un color (Estampado,
    *  Multicolor) no traen hex y no entran. */
   colores: string[];
+  /** Cerrado, pero lo contado no coincidió con lo enviado: la lista dice «Cerrado con diferencia», no «Cerrado» en
+   *  verde (hallazgo 15). Sale de comparar `transferencia_items` con `transferencia_recepciones` en la MISMA consulta. */
+  cerradoConDiferencia: boolean;
+  /** Cuántas prendas enviadas ya tienen su conteo guardado (ADR-0238: se guarda casilla por casilla). > 0 = la
+   *  recepción empezó y ya no se puede anular. */
+  lineasContadas: number;
+  /** Solo de un anulado (ADR-0238 D-132); `null` en los demás (y en las lecturas que no traen anulados). */
+  anuladoEn: string | null;
+  motivoAnulacion: string | null;
 };
 
 export type { FotoTraslado };
@@ -52,7 +61,12 @@ export type { FotoTraslado };
 const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota,
   origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
   destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre ),
-  transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, color:colores ( hex ), producto:productos ( referencia ) ) )`;
+  transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, color:colores ( hex ), producto:productos ( referencia ) ) ),
+  transferencia_recepciones ( variante_id, cantidad_recibida )`;
+
+// Los anulados solo pueden estar entre los terminados: las columnas de anulación (ADR-0238) se piden solo ahí. Así
+// Existencias (`getTrasladosEnCurso`) no depende de ellas.
+const SELECT_TERMINADOS = `${SELECT_RESUMEN}, anulado_en, motivo_anulacion`;
 
 type FilaResumen = {
   id: string;
@@ -80,6 +94,9 @@ type FilaResumen = {
         } | null;
       }[]
     | null;
+  transferencia_recepciones: { variante_id: string; cantidad_recibida: number }[] | null;
+  anulado_en?: string | null;
+  motivo_anulacion?: string | null;
 };
 
 type Cliente = Awaited<ReturnType<typeof createClient>>;
@@ -90,6 +107,10 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
   const referencias = Array.from(new Set(items.map((i) => i.variante?.producto?.referencia).filter((r): r is string => !!r)));
   const skus = Array.from(new Set(items.map((i) => i.variante?.sku).filter((c): c is string => !!c)));
   const colores = Array.from(new Set(items.map((i) => i.variante?.color?.hex).filter((c): c is string => !!c))).slice(0, 3);
+  const conteo = conteoDelTraslado(
+    items.map((i) => ({ varianteId: i.variante_id, cantidad: i.cantidad })),
+    (f.transferencia_recepciones ?? []).map((r) => ({ varianteId: r.variante_id, cantidadRecibida: r.cantidad_recibida }))
+  );
   return {
     id: f.id,
     numero: f.numero,
@@ -117,6 +138,11 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
       fotosPorProducto
     ),
     colores,
+    // Solo un traslado CERRADO puede ser «cerrado con diferencia»: en uno abierto el conteo está a medias.
+    cerradoConDiferencia: f.estado === "cerrada" && conteo.huboDiferencia,
+    lineasContadas: conteo.contadas,
+    anuladoEn: f.anulado_en ?? null,
+    motivoAnulacion: f.motivo_anulacion ?? null,
   };
 }
 
@@ -137,9 +163,9 @@ async function filasCerradas(supabase: Cliente, ubicacionId: string, limite: num
   const filas = exigir(
     await supabase
       .from("transferencias")
-      .select(SELECT_RESUMEN)
+      .select(SELECT_TERMINADOS)
       .or(`ubicacion_origen_id.eq.${ubicacionId},ubicacion_destino_id.eq.${ubicacionId}`)
-      .in("estado", ["cerrada", "completada"])
+      .in("estado", ["cerrada", "completada", "anulada"])
       .order("created_at", { ascending: false })
       .limit(limite),
     "los traslados anteriores"
@@ -156,7 +182,7 @@ export async function getTrasladosEnCurso(ubicacionId: string): Promise<Traslado
   return separarVacios((await filasEnCurso(supabase, ubicacionId)).map((f) => aResumen(f))).conPrendas;
 }
 
-/** Los últimos traslados que YA terminaron (cerrados, o «completada» del
+/** Los últimos traslados que YA terminaron (cerrados, anulados, o «completada» del
  *  modelo atómico anterior), para el historial de la pantalla. Aparte de los
  *  en curso a propósito: los en curso se traen todos (son pocos y hay que
  *  verlos todos); el historial se acota. */
@@ -232,8 +258,9 @@ type FilaContador = {
  * dejaría sin pantalla hasta Vender y Caja por un contador. Un contador que falta es un
  * inconveniente; una app caída por un contador es un incidente.
  *
- * Solo mira lo que llega a la sede (las dos acciones que existen —confirmar una recepción, cerrar
- * una diferencia— se hacen en el destino). Una lectura liviana: sin ítems ni joins. `cache()` la
+ * Solo mira lo que llega a la sede (las dos acciones que existen —recibir, cerrar una diferencia— se hacen
+ * en el destino). Todo lo que viene en camino hacia acá cuenta, llegue cuando llegue: la hora estimada ya no
+ * decide (ADR-0238), así que el número aparece desde que el traslado sale. Una lectura liviana: sin ítems ni joins. `cache()` la
  * comparte entre los dos layouts que la piden dentro del mismo request; los argumentos son
  * primitivos justamente para que la deduplicación funcione.
  *
@@ -274,9 +301,14 @@ export type LineaTraslado = {
   referencia: string;
   talla: string | null;
   color: string | null;
+  /** El código de barras de la etiqueta (ADR-0238): lo que se escanea y se lee colgado en la prenda. `null` si no tiene. */
+  codigo: string | null;
   cantidadEnviada: number | null;
+  /** `null` = todavía nadie la contó (la casilla se ve vacía, no en 0). */
   cantidadRecibida: number | null;
   diferencia: number | null;
+  /** Esa prenda ya entró al stock (ADR-0238 D-129): no se vuelve a contar. */
+  ingresado: boolean;
   /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer): ver `ProductoVarianteCelda`. */
   colorHex: string | null | undefined;
   fotoUrl: string | null;
@@ -292,15 +324,21 @@ export type TrasladoDetalle = {
   estado: string;
   fechaEstimadaLlegada: string | null;
   creadoEn: string;
-  /** Cuándo se registró la primera línea recibida y cuándo se cerró — para decir lo mismo que la lista. */
+  /** Cuándo alguien apretó «Confirmar recepción» (desde ADR-0238, contar una casilla ya no lo marca) y cuándo se cerró. */
   confirmadoEn: string | null;
   cerradoEn: string | null;
   nota: string | null;
   notaCierre: string | null;
   creadoPorNombre: string;
-  /** Quién registró la recepción y quién cerró (con diferencia): el recorrido del detalle dice los dos. */
+  /** Quién confirmó la recepción y quién cerró (con diferencia): el recorrido del detalle dice los dos. */
   confirmadoPorNombre: string | null;
   cerradoPorNombre: string | null;
+  /** Dónde se dejó lo que llegó (piso de venta o almacén, ADR-0238 D-131); `null` antes de confirmar o en lo viejo. */
+  sububicacionDestinoId: string | null;
+  /** Solo de un traslado anulado (ADR-0238 D-132): cuándo, quién y por qué. */
+  anuladoEn: string | null;
+  anuladoPorNombre: string | null;
+  motivoAnulacion: string | null;
   lineas: LineaTraslado[];
 };
 
@@ -310,6 +348,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
     .from("transferencias")
     .select(
       `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota, nota_cierre, creado_por, confirmado_por, cerrado_por,
+       sububicacion_destino_id, anulado_en, anulado_por, motivo_anulacion,
        origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
        destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre )`
     )
@@ -318,7 +357,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   const t = exigirOpcional(res, "el traslado");
   if (!t) return null;
 
-  const ids = Array.from(new Set([t.creado_por, t.confirmado_por, t.cerrado_por].filter((x): x is string => !!x)));
+  const ids = Array.from(new Set([t.creado_por, t.confirmado_por, t.cerrado_por, t.anulado_por].filter((x): x is string => !!x)));
   const [lineasRes, nombreRes] = await Promise.all([
     supabase.rpc("fn_traslado_lineas", { p_transferencia_id: id }),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
@@ -347,15 +386,21 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
     creadoPorNombre: nombre(t.creado_por) ?? "—",
     confirmadoPorNombre: nombre(t.confirmado_por),
     cerradoPorNombre: nombre(t.cerrado_por),
+    sububicacionDestinoId: t.sububicacion_destino_id,
+    anuladoEn: t.anulado_en,
+    anuladoPorNombre: nombre(t.anulado_por),
+    motivoAnulacion: t.motivo_anulacion,
     lineas: lineas.map((l) => ({
       varianteId: l.variante_id,
       sku: l.sku,
       referencia: l.referencia,
       talla: l.talla,
       color: l.color,
+      codigo: l.codigo ?? null,
       cantidadEnviada: l.cantidad_enviada,
       cantidadRecibida: l.cantidad_recibida,
       diferencia: l.diferencia,
+      ingresado: l.ingresado === true,
       colorHex: apariencia.has(l.variante_id) ? apariencia.get(l.variante_id)!.colorHex : undefined,
       fotoUrl: apariencia.get(l.variante_id)?.fotoUrl ?? null,
     })),

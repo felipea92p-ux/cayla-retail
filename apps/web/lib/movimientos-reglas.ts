@@ -86,6 +86,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   transferencia: "Traslado",
   traslado_salida: "Traslado enviado",
   traslado_entrada: "Traslado recibido",
+  // ADR-0238 (D-132): el envío se anuló antes de que la otra sede lo contara y la prenda volvió a la sede que lo envió.
+  traslado_anulado: "Traslado anulado",
   // El filtro es por motivo y trae todo lo que escribe `mover_interno`, sea cual sea el par: no promete bajada ni retiro.
   // No es «Entre piso y almacén»: también mueve de la cuarentena o entre racks del Taller. Las bajadas y los retiros
   // tienen nombre propio por su par (`INTERNO_POR_PAR`); este es el de cualquier otro.
@@ -122,10 +124,10 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
  *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
   // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
-  entrada: ["traslado_entrada", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
+  entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
   salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
-  transferencia: ["traslado_entrada", "traslado_salida"],
+  transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
   ajuste: ["conteo", "conteo_fisico", "merma", "reposicion", "otro"],
 };
 
@@ -143,6 +145,9 @@ export function etiquetaProceso(motivo: string | null): string {
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
 }
 
+/** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0238 suma la vuelta de un envío anulado). */
+const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
+
 /** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
 const INTERNO_POR_PAR: Record<string, string> = {
   "almacen_tienda→piso_venta": "Bajada al piso",
@@ -156,7 +161,12 @@ const INTERNO_POR_PAR: Record<string, string> = {
  *  «Interno» sale de la categoría (estructura, `fn_es_traslado_interno`), nunca del motivo (ADR-0203); un par que no es
  *  bajada ni retiro conserva el nombre de su proceso («Movimiento interno», «Activación piso/almacén»). */
 export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
-  if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+  if (m.categoria === "transferencia") {
+    // Las piernas del traslado en dos fases dicen su propio nombre: el signo no distingue «recibido» de «anulado»
+    // (los dos suman). Solo la fila del modelo anterior, sin pierna, se lee por el signo.
+    if (m.motivo && PIERNAS_DE_TRASLADO.includes(m.motivo)) return ETIQUETA_PROCESO[m.motivo];
+    return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+  }
   if (m.categoria === "interno") {
     const porPar = INTERNO_POR_PAR[`${m.sububicacion?.tipo ?? ""}→${m.sububicacionDestino?.tipo ?? ""}`];
     if (porPar) return porPar;
@@ -172,7 +182,7 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  signo que ya usa `etiquetaMovimiento`). Si el texto del proceso ya empieza con esa palabra (los
  *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
-  if (m.categoria === "transferencia") return m.delta > 0 ? "Entrada · Traslado recibido" : "Salida · Traslado enviado";
+  if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} · ${etiquetaMovimiento(m)}`;
   // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
   if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
@@ -668,6 +678,7 @@ export function leerResumenTienda(
 const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
   traslado_entrada: "por traslado",
   traslado_salida: "por traslado",
+  traslado_anulado: "por traslado anulado",
   recepcion: "de proveedor",
   devolucion: "por devolución",
   cambio: "por cambio",

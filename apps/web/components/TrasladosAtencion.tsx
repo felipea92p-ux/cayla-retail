@@ -3,13 +3,14 @@ import { ArrowRight, CircleCheck } from "lucide-react";
 import type { ResumenTraslados } from "@/lib/traslados-reglas";
 
 // La franja de arriba: responde «¿tengo algo que atender ahora?». Solo se
-// pinta en coral cuando SÍ hay algo que le toca a quien mira (una recepción
-// que ya debió llegar, o una diferencia que un líder debe cerrar): un traslado
-// que viaja a tiempo no la enciende. Sin nada pendiente, en vez de una alarma
+// pinta en coral cuando SÍ hay algo que le toca a quien mira (un traslado que
+// viene hacia su sede —desde ADR-0238, llegue cuando llegue: la caja puede
+// estar en la mano antes de la hora estimada— o una diferencia que un líder
+// debe cerrar). Lo que salió de su sede no la enciende. Sin nada pendiente, en vez de una alarma
 // vacía queda una línea tranquila que responde lo mismo, pero en negativo.
 // Sin «cerrar»: una alerta sobre algo real que se puede descartar sin
 // resolverlo enseña a ignorarla — desaparece sola cuando se atiende.
-export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTraslados; masUrgente: { id: string; numero: number } | null }) {
+export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTraslados; masUrgente: { id: string; numero: number; accion: string } | null }) {
   const n = resumen.requierenAccion;
 
   if (n === 0 || !masUrgente) {
@@ -26,12 +27,15 @@ export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTra
   }
 
   const titulo = n === 1 ? "1 traslado necesita tu acción" : `${n} traslados necesitan tu acción`;
+  const uno = resumen.porRecibir === 1;
   const detalle =
     resumen.porRevisar === 0
-      ? "Confirma la recepción para que las prendas entren a tu inventario."
+      ? resumen.porRecibirAtrasados > 0
+        ? "Cuenta lo que llegó para que las prendas entren a tu inventario."
+        : `${uno ? "Viene" : "Vienen"} hacia tu sede: ${uno ? "cuéntalo" : "cuéntalos"} apenas ${uno ? "llegue" : "lleguen"} para que las prendas entren a tu inventario.`
       : resumen.porRecibir === 0
-        ? "Revisa la diferencia y ciérrala para que lo recibido entre a tu inventario."
-        : `${resumen.porRecibir} ${resumen.porRecibir === 1 ? "espera" : "esperan"} tu confirmación y ${resumen.porRevisar} ${resumen.porRevisar === 1 ? "tiene" : "tienen"} una diferencia por cerrar.`;
+        ? "Revisa la diferencia y ciérrala: lo que no coincidió entra a tu inventario recién ahí."
+        : `${resumen.porRecibir} por recibir y ${resumen.porRevisar} ${resumen.porRevisar === 1 ? "tiene" : "tienen"} una diferencia por cerrar.`;
 
   return (
     <section aria-labelledby="atencion-hoy" className="flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-rojo/30 bg-rojo/[0.07] px-5 py-4">
@@ -47,10 +51,10 @@ export function TrasladosAtencion({ resumen, masUrgente }: { resumen: ResumenTra
       </div>
       <Link
         href={`/inventario/traslados/${masUrgente.id}`}
-        aria-label={`Revisar el traslado ${masUrgente.numero}`}
+        aria-label={`${masUrgente.accion} el traslado ${masUrgente.numero}`}
         className="btn-cayla btn-primario shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
       >
-        Revisar el Traslado {masUrgente.numero}
+        {masUrgente.accion} el Traslado {masUrgente.numero}
         <ArrowRight aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
       </Link>
     </section>

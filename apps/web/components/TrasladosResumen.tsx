@@ -1,7 +1,9 @@
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import type { FiltroTraslado, ResumenTraslados } from "@/lib/traslados-reglas";
 
-// Los cuatro indicadores. Tres de ellos son ATAJOS: tocarlos filtra la lista
+// Los cuatro indicadores (desde ADR-0238: por recibir, enviados en camino, con diferencia y prendas en tránsito —
+// «Vienen en camino» se fue: todo lo que viene hacia mi sede es «por recibir», y la tarjeta quedaba siempre en 0
+// al lado de «Prendas en tránsito: 3», que se contradecían; hallazgo 17). Tres de ellos son ATAJOS: tocarlos filtra la lista
 // (y tocarlos de nuevo la devuelve a «Todos») y filtran EXACTAMENTE lo que
 // cuentan — si la tarjeta dice 1, la lista muestra 1. Con valor 0 dejan de ser
 // botones (no llevarían a nada). El cuarto —prendas en tránsito— es un total,
@@ -28,11 +30,30 @@ export function TrasladosResumen({
   const pista = (f: FiltroTraslado) =>
     atajo(f) ? <span className="mt-1 block text-[11px] text-taupe">{filtro === f ? "Filtrando · toca para quitar" : "Toca para filtrar"}</span> : null;
 
+  // «Con diferencia» cuenta pendientes y ya cerrados (si no, al cerrarse la pérdida desaparecía — hallazgo 15); la
+  // frase dice cuál es cuál, empezando por lo que pide algo.
+  const pendientesDiferencia = r.conDiferencia - r.diferenciasCerradas;
+  const fraseDiferencia =
+    r.conDiferencia === 0
+      ? "Todo lo recibido coincidió"
+      : [
+          r.porRevisar > 0
+            ? `${r.porRevisar} ${r.porRevisar === 1 ? "requiere" : "requieren"} tu revisión`
+            : pendientesDiferencia > 0
+              ? `${pendientesDiferencia} ${pendientesDiferencia === 1 ? "espera" : "esperan"} a un líder`
+              : null,
+          r.diferenciasCerradas > 0 ? `${r.diferenciasCerradas} ya ${r.diferenciasCerradas === 1 ? "cerrado" : "cerrados"}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ");
+
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
+      {/* Todo lo que viene hacia esta sede, llegue cuando llegue (ADR-0238): la hora estimada ya no esconde una caja
+          que llegó antes. Lo atrasado se dice aparte, como dato. */}
       <TarjetaCifra
         compacta
-        etiqueta="Por recibir hoy"
+        etiqueta="Por recibir"
         valor={r.porRecibir}
         unidad={r.porRecibir === 1 ? "traslado" : "traslados"}
         tono={r.porRecibir > 0 ? "text-rojo-profundo" : "text-tinta/40"}
@@ -40,23 +61,24 @@ export function TrasladosResumen({
         activa={filtro === "por_recibir"}
         onClick={atajo("por_recibir")}
       >
-        {r.porRecibir > 0 ? "Ya debieron llegar: cuéntalos" : "Nada esperando tu confirmación"}
+        {r.porRecibir === 0
+          ? "Nada viene hacia tu sede"
+          : r.porRecibirAtrasados > 0
+            ? `${r.porRecibirAtrasados} ${r.porRecibirAtrasados === 1 ? "ya debió llegar" : "ya debieron llegar"}: cuéntalos`
+            : "Cuéntalos apenas lleguen"}
         {pista("por_recibir")}
       </TarjetaCifra>
 
       <TarjetaCifra
         compacta
-        etiqueta="Vienen en camino"
-        valor={r.vienenEnCamino}
-        unidad={r.vienenEnCamino === 1 ? "traslado" : "traslados"}
-        tono={r.vienenEnCamino > 0 ? undefined : "text-tinta/40"}
+        etiqueta="Enviados en camino"
+        valor={r.salientesEnCamino}
+        unidad={r.salientesEnCamino === 1 ? "traslado" : "traslados"}
+        tono={r.salientesEnCamino > 0 ? undefined : "text-tinta/40"}
         activa={filtro === "en_camino"}
         onClick={atajo("en_camino")}
       >
-        {/* El filtro «En camino» también incluye lo que sale de esta sede: si lo hay, se dice, para que
-            la cifra de la tarjeta y la de la lista cuadren en vez de contradecirse. */}
-        En tránsito a tu sede
-        {r.salientesEnCamino > 0 && ` · ${r.salientesEnCamino} ${r.salientesEnCamino === 1 ? "sale" : "salen"} de tu sede`}
+        {r.salientesEnCamino > 0 ? "Salieron de tu sede; los recibe la otra" : "Nada enviado por recibir"}
         {pista("en_camino")}
       </TarjetaCifra>
 
@@ -65,26 +87,23 @@ export function TrasladosResumen({
         etiqueta="Con diferencia"
         valor={r.conDiferencia}
         unidad={r.conDiferencia === 1 ? "caso" : "casos"}
-        tono={r.conDiferencia > 0 ? "text-ambar-profundo" : "text-tinta/40"}
+        tono={r.porRevisar > 0 || pendientesDiferencia > 0 ? "text-ambar-profundo" : r.conDiferencia > 0 ? undefined : "text-tinta/40"}
         activa={filtro === "con_diferencia"}
         onClick={atajo("con_diferencia")}
       >
-        {r.conDiferencia === 0
-          ? "Todo coincide por ahora"
-          : r.porRevisar > 0
-            ? `${r.porRevisar} ${r.porRevisar === 1 ? "requiere" : "requieren"} tu revisión`
-            : "Esperan la revisión de un líder"}
+        {fraseDiferencia}
         {pista("con_diferencia")}
       </TarjetaCifra>
 
+      {/* Suma lo que viene y lo que va: las prendas que salieron de una sede y todavía no entran a la otra. */}
       <TarjetaCifra
         compacta
         etiqueta="Prendas en tránsito"
         valor={r.unidadesEnTransito.toLocaleString("es-PE")}
-        unidad={r.unidadesEnTransito === 1 ? "unidad" : "unidades"}
+        unidad={r.unidadesEnTransito === 1 ? "prenda" : "prendas"}
         tono={r.unidadesEnTransito > 0 ? undefined : "text-tinta/40"}
       >
-        {r.abiertos === 0 ? "Nada en tránsito" : `En ${r.abiertos} ${r.abiertos === 1 ? "traslado abierto" : "traslados abiertos"}`}
+        {r.enCamino === 0 ? "Nada en camino" : `En ${r.enCamino} ${r.enCamino === 1 ? "traslado en camino" : "traslados en camino"}`}
       </TarjetaCifra>
     </div>
   );

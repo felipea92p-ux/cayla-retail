@@ -39,7 +39,7 @@ export default async function TrasladosPage() {
       <EncabezadoPagina
         sede={persona.ubicacionEtiqueta}
         titulo="Traslados"
-        subtitulo="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
+        subtitulo="Lo que viene hacia tu sede y lo que sale de ella, hasta que la otra sede lo recibe."
         acciones={
           <Link href="/inventario/mover" className="btn-cayla btn-primario">
             + Nuevo traslado
@@ -62,15 +62,16 @@ export default async function TrasladosPage() {
         vacios={puedeAjustar ? vacios : 0}
       />
 
-      {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa: con diferencia, NADA entra al
-          stock hasta que un líder cierra el traslado (`confirmar_traslado` / `cerrar_traslado_con_diferencia`). */}
+      {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa desde ADR-0238 (D-129): al confirmar entra
+          cada prenda que coincide; solo la que no cuadra espera al líder (`confirmar_traslado` /
+          `cerrar_traslado_con_diferencia`). */}
       <aside className="nota-cayla flex items-start gap-3">
         <Info aria-hidden strokeWidth={1.5} className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
         <div>
-          <p className="font-semibold text-tinta">El stock solo ingresa a la tienda cuando confirmas la recepción.</p>
+          <p className="font-semibold text-tinta">Las prendas entran a tu tienda cuando cuentas y confirmas lo que llegó.</p>
           <p className="mt-0.5">
-            Cuenta lo que llegó: si coincide con lo enviado, entra al instante. Si no, el traslado queda «con diferencia» y nada entra al stock hasta que un líder lo
-            revise y lo cierre.
+            Lo que coincide con lo enviado entra al instante. Si una prenda no cuadra, solo esa espera a que un líder la revise y cierre el traslado; el resto ya
+            está en tu stock.
           </p>
         </div>
       </aside>

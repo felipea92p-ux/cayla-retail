@@ -7,6 +7,8 @@
 > Método: navegador del panel lateral con el criterio de Playwright (buscar por texto y rol, clics y teclado reales, comprobar en la base con `psql`). Sin verificador independiente. **No se probó con una integrante ni con una terminal** (no se puede iniciar sesión por otra persona): lo que verían se razona desde el código y va `[inferido]`.
 > Etiquetas: `[visto]` en pantalla · `[código archivo:línea]` · `[local]` consulta a la base local · `[producción]` consulta de solo lectura · `[inferido]`.
 
+> **Actualización 2026-09-26 (tarde) — ADR-0238:** resueltos §1.1–1.5, §2.6, §3.11–3.15, el «por recibir» (§1.2) y los estados de la lista; las cuatro decisiones de §6 están en el acta D-129 a D-132. Siguen abiertos §7, §8, §9, §10, §16, §17 (búsqueda por código en la lista) y §8 «dos puertas» (ver BACKLOG, sección ADR-0238). Los números de línea de este informe ya no corresponden al código.
+
 ## 0 · Veredicto
 La pantalla se ve cuidada, pero el flujo falla justo donde una persona sin contexto más ayuda necesita: **cuando llega la caja** (el sistema dice que no hay nada que hacer) y **cuando quiere vender lo que llegó** (quedó en el almacén, no en el piso). Producción tiene 4 traslados, todos vacíos, del 16 y 17-09 `[producción]`: el módulo lleva cuatro rediseños (ADR-0068, 0105, 0173, 0175) sin un solo traslado real.
 
