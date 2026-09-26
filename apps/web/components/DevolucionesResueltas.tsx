@@ -11,7 +11,7 @@ import { soles } from "@/lib/compras-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 
 /**
- * «Resueltas» (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0228): lo que ya aprobó o
+ * «Resueltas» (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0229): lo que ya aprobó o
  * rechazó un líder en los últimos 15 días. Cierra el círculo de la colaboradora que la registró —qué
  * pasó con la devolución de la clienta— y dice adónde fue cada prenda (al piso o a cuarentena), la nota
  * de crédito y el reembolso. La nota de crédito lleva a Comprobantes ▸ Emitidos solo si la cuenta ve ese

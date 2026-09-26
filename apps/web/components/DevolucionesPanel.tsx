@@ -18,7 +18,7 @@ import { estadoPrendaDevolucion } from "@/lib/devoluciones-reglas";
 
 type Filtro = "todas" | "con_devolucion" | "sin_comprobante";
 
-/** Las pestañas de la parte baja (spike 2026-09-26, ADR-0228): lo que se puede devolver, lo que espera a
+/** Las pestañas de la parte baja (spike 2026-09-26, ADR-0229): lo que se puede devolver, lo que espera a
  *  un líder y lo que ya se resolvió. */
 type Vista = "compras" | "pendientes" | "resueltas";
 
@@ -48,7 +48,7 @@ function ventasDelFiltro(lineas: LineaVentaReciente[], filtro: Filtro): Set<stri
 /**
  * Devoluciones, rehecha el 2026-09-18 con el mismo modelo que Cambios (ADR-0125):
  *   A. «Iniciar una devolución» — buscar o escanear; los resultados aparecen ahí mismo.
- *   B. Tres pestañas (2026-09-26, ADR-0228): «Compras» (los últimos 15 días, con filtros), «Por aprobar»
+ *   B. Tres pestañas (2026-09-26, ADR-0229): «Compras» (los últimos 15 días, con filtros), «Por aprobar»
  *      (lo que un líder todavía no resolvió; la cifra de la cabecera abre esta) y «Resueltas».
  *   Encima, avisos que llevan a las pantallas vecinas: cuarentena (Inventario) y caja cerrada (Caja).
  *   En el celular, «Escanear prenda» y la lupa quedan fijos abajo (acción de la pantalla, ADR-0206).
@@ -389,7 +389,7 @@ export function DevolucionesPanel({
   );
 }
 
-/** Avisos que llevan a las pantallas vecinas (spike 2026-09-26, ADR-0228). Solo salen si hay algo que
+/** Avisos que llevan a las pantallas vecinas (spike 2026-09-26, ADR-0229). Solo salen si hay algo que
  *  decir y la cuenta ve el módulo al que llevan (ADR-0161). El de caja lo ven los dos roles con su
  *  propio texto: el líder decide el reembolso al aprobar; la colaboradora es quien le avisa a la clienta
  *  antes de registrar. Pizarra y ámbar, nunca rojo: ninguno es urgente. */

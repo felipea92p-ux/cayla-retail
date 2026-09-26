@@ -1,10 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { paginarSinPartirGrupos } from "./paginacion";
 import {
-  calcularEstado,
   clavePercha,
   fotoPrincipal,
-  necesitaReponerPiso,
   ordenarPorModeloColorTalla,
   porColgar,
   resumirPorColgar,
@@ -15,10 +13,16 @@ import {
   avisoTrasRetiro,
   mensajeErrorMovimientoPiso,
   RETIRO_NO_ES_BAJA,
-  TEXTOS_BLOQUE_RETIRO,
+  textosBloqueRetiro,
   UMBRAL_REPOSICION_PISO,
   UMBRAL_STOCK_BAJO_ALMACEN,
 } from "./inventario-reglas";
+import { calcularAccionHoy } from "./existencias-recomendaciones";
+import { politicaDe, resolverPolitica } from "./politica-operativa-inventario";
+
+// Política de referencia para las pruebas cruzadas «Por colgar» ↔ «Acción hoy» de abajo — misma
+// fuente que consume la app real (`politicaDe`), nunca un literal propio.
+const POLITICA_REF = politicaDe("test");
 
 // Bajar al piso y retirar del piso son la misma operación (`mover_interno`) con origen y destino
 // invertidos: si el sentido se confunde, la prenda viaja al revés y el total no avisa nada (no cambia).
@@ -45,8 +49,8 @@ describe("SENTIDO_PISO / topeMovimientoPiso", () => {
 
   it("retirar se ofrece con cualquier cantidad libre en el piso — sin el umbral de «Reponer»", () => {
     expect(puedeRetirarPiso(1)).toBe(true);
-    // Muy por encima del umbral de reponer: retirar sigue teniendo sentido (guardar otra temporada).
-    expect(puedeRetirarPiso(UMBRAL_REPOSICION_PISO + 20)).toBe(true);
+    // Muy por encima del umbral de «Reponer a piso»: retirar sigue teniendo sentido (guardar otra temporada).
+    expect(puedeRetirarPiso(POLITICA_REF.umbralStockPisoReposicion + 20)).toBe(true);
   });
 
   it("no se ofrece si no queda nada libre colgado (todo vendido o todo apartado) ni en una sede sin piso", () => {
@@ -106,61 +110,10 @@ describe("fotoPrincipal", () => {
   });
 });
 
-// Umbrales de Felipe: «Reponer piso» con 7 o menos en el piso; «Stock bajo»
-// con 10 o menos en el ALMACÉN (no el total — mira solo la reserva). Bajó de
-// 20 a 10 el 2026-09-17, probando la pantalla: con 20, un lote chico de
-// arranque (boutique, no cadena) caía en "Stock bajo" de entrada. Los ifs de
-// `calcularEstado` siguen en orden de severidad: stock_bajo (la reserva ya
-// está baja) gana sobre reponer_piso COMO ETIQUETA — pero `necesitaReponerPiso`
-// (independiente del chip) sigue ofreciendo el botón mientras quede algo en
-// el almacén: "pide traslado" y "reponer lo que queda" no se excluyen.
-
-describe("calcularEstado", () => {
-  it("los umbrales son 7 en el piso y 10 en el almacén", () => {
-    expect(UMBRAL_REPOSICION_PISO).toBe(7);
-    expect(UMBRAL_STOCK_BAJO_ALMACEN).toBe(10);
-  });
-
-  it("piso en el umbral o por debajo, con el almacén por encima de 10: reponer", () => {
-    expect(calcularEstado(7, 11)).toBe("reponer_piso");
-    expect(calcularEstado(1, 50)).toBe("reponer_piso");
-    expect(calcularEstado(0, 100)).toBe("reponer_piso");
-  });
-
-  it("piso por encima del umbral y almacén sano: normal", () => {
-    expect(calcularEstado(8, 11)).toBe("normal");
-    expect(calcularEstado(50, 100)).toBe("normal");
-  });
-
-  it("almacén en 10 o menos: stock bajo, tenga el piso lo que tenga", () => {
-    expect(calcularEstado(50, 10)).toBe("stock_bajo"); // piso lleno, reserva al límite
-    expect(calcularEstado(3, 10)).toBe("stock_bajo");
-    expect(calcularEstado(0, 5)).toBe("stock_bajo"); // piso vacío, algo de reserva
-    expect(calcularEstado(2, 0)).toBe("stock_bajo"); // sin reserva, algo en piso
-  });
-
-  it("stock_bajo gana sobre reponer_piso cuando los dos calzarían", () => {
-    // Piso bajo (2 <= 7) Y almacén bajo (5 <= 10): la reserva manda como etiqueta.
-    expect(calcularEstado(2, 5)).toBe("stock_bajo");
-  });
-
-  it("nada en ningún lado: sin stock", () => {
-    expect(calcularEstado(0, 0)).toBe("sin_stock");
-  });
-});
-
-describe("necesitaReponerPiso", () => {
-  it("ofrece bajar del almacén aunque el chip diga stock bajo (reserva crítica pero > 0)", () => {
-    expect(necesitaReponerPiso(2, 5)).toBe(true); // estado sería stock_bajo, igual hay qué bajar
-    expect(necesitaReponerPiso(0, 1)).toBe(true);
-    expect(necesitaReponerPiso(7, 11)).toBe(true); // estado reponer_piso
-  });
-
-  it("no ofrece nada si el almacén está vacío o el piso ya está cubierto", () => {
-    expect(necesitaReponerPiso(2, 0)).toBe(false); // nada que bajar — es sin_stock si piso también es 0
-    expect(necesitaReponerPiso(8, 20)).toBe(false); // piso ya cubierto, es normal
-  });
-});
+// `EstadoStock`/`calcularEstado`/`necesitaReponerPiso` se retiraron el 2026-09-25 (ver la nota en
+// `inventario-reglas.ts`): Existencias decide todo con el motor único de «Acción hoy»
+// (`existencias-recomendaciones.test.ts`), no con un semáforo aparte. `UMBRAL_REPOSICION_PISO`
+// SIGUE existiendo — es de Análisis (`resumen-reglas.ts`), no de Existencias.
 
 describe("sumarCantidades (la regla que comparten Existencias y la caja)", () => {
   const fila = (variante_id: string, tipo: string | null, cantidad: number, cantidad_apartada = 0) => ({
@@ -170,12 +123,11 @@ describe("sumarCantidades (la regla que comparten Existencias y la caja)", () =>
   it("en una tienda suma piso y almacén, descuenta lo apartado y deja la cuarentena fuera del total", () => {
     const c = sumarCantidades([fila("v1", "piso_venta", 5, 2), fila("v1", "almacen_tienda", 10, 1), fila("v1", "cuarentena", 3)]).get("v1")!;
     expect(c).toMatchObject({ total: 15, piso: 5, almacen: 10, danado: 3, apartado: 3, disponible: 12, pisoDisponible: 3, almacenDisponible: 9 });
-    expect(c.estado).toBe(calcularEstado(3, 9));
   });
 
-  it("donde no se separa piso/almacén (Taller) piso, almacén, dañado y estado quedan null", () => {
+  it("donde no se separa piso/almacén (Taller) piso, almacén y dañado quedan null", () => {
     const c = sumarCantidades([fila("v1", null, 4, 1)]).get("v1")!;
-    expect(c).toMatchObject({ total: 4, disponible: 3, piso: null, almacen: null, danado: null, pisoDisponible: null, estado: null });
+    expect(c).toMatchObject({ total: 4, disponible: 3, piso: null, almacen: null, danado: null, pisoDisponible: null });
   });
 });
 
@@ -198,13 +150,14 @@ describe("porColgar", () => {
     expect(porColgar(cantidadesDe(fila("v1", "piso_venta", 0), fila("v1", "almacen_tienda", 0)))).toBe(false);
   });
 
-  it("con algo colgado: no, aunque sea una sola y el almacén esté lleno (eso es «Reponer», no «Por colgar»)", () => {
+  it("con algo colgado: no es «Por colgar» — aunque sea una sola y el almacén esté lleno, eso ya es «Reponer a piso» (regla física, piso ≤ 4)", () => {
     const c = cantidadesDe(fila("v1", "piso_venta", 1), fila("v1", "almacen_tienda", 20));
     expect(porColgar(c)).toBe(false);
-    expect(necesitaReponerPiso(c.pisoDisponible!, c.almacenDisponible!)).toBe(true);
+    const accion = calcularAccionHoy({ varianteId: "v1", pisoDisponible: c.pisoDisponible, almacenDisponible: c.almacenDisponible, enTransito: 0 }, POLITICA_REF);
+    expect(accion.tipo).toBe("reponer_a_piso");
   });
 
-  it("no usa el umbral de reposición: 7 colgadas no es «nada colgado»", () => {
+  it("piso > 0 nunca es «Por colgar», sea cual sea la cantidad — la pregunta es «¿hay algo?», no «¿cuánto?»", () => {
     expect(porColgar(cantidadesDe(fila("v1", "piso_venta", UMBRAL_REPOSICION_PISO), fila("v1", "almacen_tienda", 5)))).toBe(false);
   });
 
@@ -231,11 +184,12 @@ describe("porColgar", () => {
     expect(porColgar(c)).toBe(false);
   });
 
-  it("toda talla por colgar conserva su botón Reponer (la fila del filtro siempre lleva la acción)", () => {
+  it("toda talla por colgar tiene Acción hoy = «Reponer a piso» (piso 0 siempre cae bajo el umbral físico)", () => {
     for (const almacen of [1, 3, UMBRAL_STOCK_BAJO_ALMACEN, 50]) {
       const c = cantidadesDe(fila("v1", "almacen_tienda", almacen));
       expect(porColgar(c)).toBe(true);
-      expect(necesitaReponerPiso(c.pisoDisponible!, c.almacenDisponible!)).toBe(true);
+      const accion = calcularAccionHoy({ varianteId: "v1", pisoDisponible: c.pisoDisponible, almacenDisponible: c.almacenDisponible, enTransito: 0 }, POLITICA_REF);
+      expect(accion.tipo).toBe("reponer_a_piso");
     }
   });
 });
@@ -317,22 +271,28 @@ describe("ordenarPorModeloColorTalla (la lista «Por colgar» se lee por percha)
   });
 });
 
-// El semáforo no sabe que una talla se guardó a propósito: después de un retiro vuelve a pedir bajarla.
-// El modal lo avisa antes de confirmar (revisión del bloque 2 de ADR-0208, 2026-09-25).
+// «Acción hoy» no sabe que una talla se guardó a propósito: después de un retiro vuelve a pedir bajarla.
+// El modal lo avisa antes de confirmar (revisión del bloque 2 de ADR-0208, 2026-09-25). Pregunta con la MISMA
+// regla que pinta la fila (`calcularAccionHoy` y la política de la sede): el aviso no puede prometer otra cosa.
 describe("avisoTrasRetiro", () => {
+  const umbral = POLITICA_REF.umbralStockPisoReposicion;
   it("retirar todo lo colgado con reserva en el almacén: la talla saldrá «Por colgar»", () => {
-    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 3)).toMatch(/^Quedará 0 libre en el piso: .*«Por colgar»/);
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 3, POLITICA_REF)).toMatch(/^Quedará 0 libre en el piso: .*«Por colgar»/);
   });
-  it("dejar poco colgado: Existencias sugerirá «Reponer»", () => {
-    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)).toBe(
-      "Quedarán 6 libres en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento."
+  it("dejar en el piso el umbral o menos: Existencias sugerirá «Reponer»", () => {
+    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 10 - umbral, POLITICA_REF)).toBe(
+      `Quedarán ${umbral} libres en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento.`
     );
   });
+  it("dejar una más que el umbral ya no avisa: la fila no va a pedir nada (con el semáforo viejo, 7 o menos, sí avisaba)", () => {
+    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 10 - (umbral + 1), POLITICA_REF)).toBeNull();
+    expect(calcularAccionHoy({ varianteId: "v1", pisoDisponible: umbral + 1, almacenDisponible: 10 - (umbral + 1), enTransito: 0 }, POLITICA_REF).tipo).toBe("sin_accion");
+  });
   it("si queda una sola, en singular", () => {
-    expect(avisoTrasRetiro({ piso: 4, almacen: 0 }, 3)).toMatch(/^Quedará 1 libre en el piso: /);
+    expect(avisoTrasRetiro({ piso: 4, almacen: 0 }, 3, POLITICA_REF)).toMatch(/^Quedará 1 libre en el piso: /);
   });
   it("no promete que la nota proteja la talla: dice que en Existencias no se ve y pide avisar al equipo", () => {
-    for (const aviso of [avisoTrasRetiro({ piso: 3, almacen: 0 }, 3), avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)]) {
+    for (const aviso of [avisoTrasRetiro({ piso: 3, almacen: 0 }, 3, POLITICA_REF), avisoTrasRetiro({ piso: 10, almacen: 0 }, 10 - umbral, POLITICA_REF)]) {
       expect(aviso).toContain("avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento");
       expect(aviso).not.toContain("dilo en la nota");
     }
@@ -343,25 +303,28 @@ describe("avisoTrasRetiro", () => {
     const disponible = { piso: c.pisoDisponible, almacen: c.almacenDisponible };
     expect(topeMovimientoPiso("retirar", disponible)).toBe(3);
     // Retira las 3 libres: en la tabla quedan 2 colgadas (las apartadas), y el aviso no dice «0 en el piso» a secas.
-    expect(avisoTrasRetiro(disponible, 3)).toMatch(/^Quedará 0 libre en el piso: /);
+    expect(avisoTrasRetiro(disponible, 3, POLITICA_REF)).toMatch(/^Quedará 0 libre en el piso: /);
     // Retira 1: quedan 2 libres (4 colgadas en la tabla).
-    expect(avisoTrasRetiro(disponible, 1)).toMatch(/^Quedarán 2 libres en el piso: /);
+    expect(avisoTrasRetiro(disponible, 1, POLITICA_REF)).toMatch(/^Quedarán 2 libres en el piso: /);
   });
-  it("el bloque del aviso reserva el alto del texto más largo que puede salir (ADR-0185)", () => {
-    const reservado = Math.max(...TEXTOS_BLOQUE_RETIRO.map((t) => t.length));
-    let vistos = 0;
-    for (let piso = 1; piso <= UMBRAL_REPOSICION_PISO + 5; piso++) {
-      for (const almacen of [0, 3, UMBRAL_STOCK_BAJO_ALMACEN + 5]) {
-        for (let n = 1; n <= piso; n++) {
-          const aviso = avisoTrasRetiro({ piso, almacen }, n);
-          if (!aviso) continue;
-          vistos++;
-          expect(aviso.length, aviso).toBeLessThanOrEqual(reservado);
+  it("el bloque del aviso reserva el alto del texto más largo que puede salir (ADR-0185), también con un umbral de dos cifras", () => {
+    // Una sede con su propio umbral (`OVERRIDES_POR_SEDE`) de dos cifras alarga «Quedarán N libres»: la reserva lo sigue.
+    for (const politica of [POLITICA_REF, resolverPolitica({ umbralStockPisoReposicion: 12 })]) {
+      const reservado = Math.max(...textosBloqueRetiro(politica).map((t) => t.length));
+      let vistos = 0;
+      for (let piso = 1; piso <= politica.umbralStockPisoReposicion + 10; piso++) {
+        for (const almacen of [0, 3, UMBRAL_STOCK_BAJO_ALMACEN + 5]) {
+          for (let n = 1; n <= piso; n++) {
+            const aviso = avisoTrasRetiro({ piso, almacen }, n, politica);
+            if (!aviso) continue;
+            vistos++;
+            expect(aviso.length, aviso).toBeLessThanOrEqual(reservado);
+          }
         }
       }
+      expect(vistos).toBeGreaterThan(0);
+      expect(textosBloqueRetiro(politica)).toContain(RETIRO_NO_ES_BAJA);
     }
-    expect(vistos).toBeGreaterThan(0);
-    expect(TEXTOS_BLOQUE_RETIRO).toContain(RETIRO_NO_ES_BAJA);
   });
 
   it("el bloque del retiro no promete que lo del almacén se pueda vender: la caja solo cobra lo del piso", () => {
@@ -369,15 +332,15 @@ describe("avisoTrasRetiro", () => {
     expect(RETIRO_NO_ES_BAJA).toContain("la caja no las cobra hasta que vuelvan al piso");
   });
   it("si después del retiro la fila no pide nada, no hay aviso", () => {
-    expect(avisoTrasRetiro({ piso: 30, almacen: 0 }, 2)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 30, almacen: 0 }, 2, POLITICA_REF)).toBeNull();
   });
   it("cantidad vacía, cero, no entera o mayor que el piso: no avisa (eso lo dicen los otros mensajes)", () => {
-    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 0)).toBeNull();
-    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 1.5)).toBeNull();
-    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 4)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 0, POLITICA_REF)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 1.5, POLITICA_REF)).toBeNull();
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 4, POLITICA_REF)).toBeNull();
   });
   it("una sede que no separa piso y almacén (Taller): nunca", () => {
-    expect(avisoTrasRetiro({ piso: null, almacen: null }, 1)).toBeNull();
+    expect(avisoTrasRetiro({ piso: null, almacen: null }, 1, POLITICA_REF)).toBeNull();
   });
 });
 

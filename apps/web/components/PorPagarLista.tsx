@@ -612,7 +612,9 @@ function FilaPorPagar({
       role="row"
       tabIndex={sellada ? -1 : 0}
       onClick={(e) => {
-        if (sellada || (e.target as HTMLElement).closest("a,button,input,label")) return;
+        // «Registrar pago», que abre el «Pagar» de esta fila, vive en otro portal pero React hace subir sus clics hasta
+        // aquí: sin la primera condición, tocar el velo para cancelar o un texto del pago abría también la vista rápida.
+        if (!e.currentTarget.contains(e.target as Node) || sellada || (e.target as HTMLElement).closest("a,button,input,label")) return;
         onAbrir();
       }}
       onKeyDown={(e) => {

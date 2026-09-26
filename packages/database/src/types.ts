@@ -6213,6 +6213,14 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_ritmo_reciente_json: {
+        Args: {
+          p_desde: string
+          p_ubicacion_id: string
+          p_variante_ids: string[]
+        }
+        Returns: Json
+      }
       fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
       fn_rubros_limpios: { Args: { p_rubros: string[] }; Returns: string[] }
       fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }

@@ -149,7 +149,6 @@ describe("aPrendasBajables: qué prendas de la tienda puede escanear", () => {
       total: 7,
       piso: 2,
       almacen: 5,
-      estado: "normal",
       danado: 0,
       apartado: 1,
       disponible: 6,

@@ -123,7 +123,7 @@ export function DevolucionesVentas({
 /** El resumen de UNA venta para Actividad reciente: cuánto sumó, el plazo de la boleta
  *  (una sola vez, no por prenda) y si ya tuvo un cambio o una devolución.
  *
- *  Acciones (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0228): ya no un botón negro por
+ *  Acciones (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0229): ya no un botón negro por
  *  tarjeta —siete iguales no decían nada—, sino «Devolver» con borde y, al lado, «Cambiar» (R-37: el
  *  cambio primero; lleva a Cambios con la prenda elegida). «Ver venta» abre el detalle. Las dos
  *  acciones solo aparecen si queda algo por devolver: la misma regla que ya usa cada prenda
