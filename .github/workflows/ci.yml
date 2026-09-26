@@ -315,6 +315,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:reposicion-piso-cerrada
 
+      # Marca de mover_interno (ADR-0208): «Reponer» y «Retirar del piso» mandan una marca por intento; el reintento con
+      # los mismos datos devuelve el mismo movimiento sin mover nada, con otros datos se rechaza, la marca se mira antes
+      # de pedir responsable, la tabla de marcas no se edita ni se borra, la migración aborta si el cuerpo vivo cambió y
+      # bajar_al_piso (sin marca) sigue igual. Cada caso termina en ROLLBACK.
+      - name: pruebas:mover-interno-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:mover-interno-marca
+
       # Separaciones (ADR-0166): separar con adelanto en custodia, entregar cobrando el saldo con el precio
       # congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
       - name: pruebas:separaciones

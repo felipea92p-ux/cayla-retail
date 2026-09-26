@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)
+«Reponer» y «Retirar del piso» ya no pueden mover dos veces tras un corte de red: cada intento lleva una marca, y la base devuelve el mismo movimiento si llega repetida. `mover_interno` sigue siendo UNA función (séptimo parámetro opcional); `bajar_al_piso`, que ya tenía su marca, no cambia. Sin pegar: `20260926180000` → `20260926180100` y recién entonces la web. Probado con 12 casos SQL, dos envíos simultáneos con COMMIT y en el navegador con la red cortada.
+Felipe se lleva:
+1. **Tras un corte, la pantalla no sabe si se guardó; la base sí.** Por eso el reintento es una pregunta a la base con la misma marca, no un segundo movimiento. Y mientras no se sabe, la cantidad queda fija: cambiarla sería otro pedido y movería de nuevo lo que quizá ya se movió.
+2. **La marca se mira antes que el responsable.** Comprobar algo ya guardado no escribe nada: si la colaboradora marcó salida en el medio, el reintento igual responde «ya estaba».
+3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
+
 ## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
 Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
 Felipe se lleva:

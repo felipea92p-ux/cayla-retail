@@ -9,7 +9,8 @@ import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { esFalloDeRed } from "@/lib/error-escritura";
+import { esFalloDeRed, esRespuestaIncierta } from "@/lib/error-escritura";
+import { BOTON_CONFIRMAR_DE_NUEVO } from "@/lib/bajada-reglas";
 import {
   avisoTrasRetiro,
   mensajeErrorMovimientoPiso,
@@ -33,7 +34,7 @@ export type FilaParaReponer = {
   almacen: number | null;
 };
 
-// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql):
+// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql; la marca, 20260926180100):
 // mismo motor que un traslado entre sedes, pero dentro de la misma
 // ubicación — el total de la tienda no cambia, solo dónde vive físicamente
 // la prenda. Los UUID de piso/almacén ya vienen resueltos desde el server
@@ -76,13 +77,16 @@ export function ReponerPisoModal({
   // lo guarda en `movimientos.nota` y el detalle de Movimientos ya lo muestra. Solo al retirar: al bajar, el
   // modal queda igual que siempre.
   const [nota, setNota] = useState("");
-  // Candado contra el doble clic, del lado de la pantalla. `mover_interno` NO tiene token de
-  // idempotencia: dos envíos seguidos mueven dos veces (2 clics sobre «Retirar 3» = 6 al almacén).
-  // `cargando` apaga el botón, pero recién en el render siguiente; esta referencia cierra el hueco
-  // en el mismo instante del clic. Mientras guarda tampoco se puede cerrar (Cancelar apagado y
-  // `bloqueado` en el Modal): cerrar y reabrir dejaría enviar otra vez antes de saber si llegó. El
-  // candado de verdad, en la base, llega cuando Reponer y Retirar pasen a una función con token
-  // (pendiente en ADR-0208): hasta entonces, esto.
+  // La marca de este intento (ADR-0208): la base la anota junto al movimiento, y el mismo intento enviado otra vez
+  // (un reintento tras un corte) devuelve lo ya guardado sin mover de nuevo. Una por modal abierto: un éxito lo
+  // cierra, y un rechazo de la base deja la marca libre (la transacción se deshizo), así que otra cifra con la misma
+  // marca solo podría chocar tras una respuesta incierta — y ahí la cantidad y la nota quedan fijas (`congelado`).
+  const token = useRef<string>(crypto.randomUUID());
+  // Una vez que un envío quedó sin respuesta, solo se puede reenviar LO MISMO o cerrar, hasta que la base confirme:
+  // cambiar la cifra sería otro intento y movería de nuevo lo que quizá ya se movió.
+  const [congelado, setCongelado] = useState(false);
+  // Candado contra el doble clic en el mismo instante: `cargando` apaga el botón recién en el render siguiente.
+  // Mientras guarda tampoco se puede cerrar (Cancelar apagado y `bloqueado` en el Modal).
   const enVuelo = useRef(false);
   // Mover entre piso y almacén mueve stock: pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
@@ -99,7 +103,9 @@ export function ReponerPisoModal({
       setError("La cantidad debe ser un número entero mayor que cero.");
       return;
     }
-    if (n > disponible) {
+    // Reenviar lo congelado no es un movimiento nuevo sino la pregunta «¿se guardó?»: el tope de la pantalla puede ya
+    // descontar ese mismo envío, así que responde la base (con la misma marca devuelve lo guardado).
+    if (!congelado && n > disponible) {
       setError(regla.noAlcanza(n, disponible));
       return;
     }
@@ -117,7 +123,9 @@ export function ReponerPisoModal({
       p_cantidad: n,
       p_sububicacion_origen_id: sububicacion[regla.origen],
       p_sububicacion_destino_id: sububicacion[regla.destino],
-      ...(sentido === "retirar" && nota.trim() ? { p_nota: nota.trim() } : {}),
+      // Sin «...»: con el objeto escrito entero, `pnpm datos:comparar` puede avisar si producción aún no acepta `p_token`.
+      p_nota: sentido === "retirar" && nota.trim() ? nota.trim() : undefined,
+      p_token: token.current,
     }).abortSignal(control.signal), responsable.firma());
     window.clearTimeout(tope);
     setLoading(false);
@@ -125,7 +133,8 @@ export function ReponerPisoModal({
     if (errorRpc) {
       // Solo se vuelve a abrir si falló: si guardó, el modal se cierra y no debe aceptar otro envío.
       enVuelo.current = false;
-      setError(mensajeErrorMovimientoPiso(sentido, errorRpc));
+      setError(mensajeErrorMovimientoPiso(sentido, errorRpc, congelado));
+      if (esRespuestaIncierta(errorRpc)) setCongelado(true);
       // Con la red caída no se refresca: un refresh sin red se vuelve navegación completa y borra el mensaje honesto.
       // Con la base respondiendo, las cifras refrescadas muestran si llegó a guardarse antes de repetir.
       if (!esFalloDeRed(errorRpc)) router.refresh();
@@ -171,6 +180,7 @@ export function ReponerPisoModal({
             max={disponible}
             inputMode="numeric"
             value={cantidad}
+            disabled={congelado}
             // Un error viejo no se queda pegado a una cifra nueva: taparía el aviso del retiro.
             onChange={(e) => {
               setCantidad(e.target.value);
@@ -200,7 +210,7 @@ export function ReponerPisoModal({
               maxLength={200}
               value={nota}
               onChange={(e) => setNota(e.target.value)}
-              disabled={loading}
+              disabled={loading || congelado}
             />
           )}
 
@@ -214,11 +224,11 @@ export function ReponerPisoModal({
               type="submit"
               peso="primario"
               cargando={loading}
-              disabled={disponible === 0 || !responsable.listo}
+              disabled={(!congelado && disponible === 0) || !responsable.listo}
               title={responsable.motivo ?? undefined}
               className="flex-1"
             >
-              Confirmar
+              {congelado ? BOTON_CONFIRMAR_DE_NUEVO : "Confirmar"}
             </Boton>
           </div>
         </form>
