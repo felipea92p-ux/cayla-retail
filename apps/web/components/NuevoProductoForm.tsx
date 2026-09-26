@@ -18,6 +18,7 @@ import { AvisoInline, ChipOpcion, FilaAlta, PasoAlta } from "@/components/alta-p
 import { ElegirColores } from "@/components/alta-producto/ElegirColores";
 import { FotosAlta, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import { MatrizVariantes } from "@/components/alta-producto/MatrizVariantes";
+import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
@@ -36,7 +37,9 @@ import {
   codigoBasePrevisto,
   codigoVariantePrevisto,
   construirCeldas,
+  estadoSubidaSinConexion,
   faltaDelPaso,
+  leerCantidad,
   leerErrorAlta,
   margenPorcentaje,
   nivelMargen,
@@ -44,16 +47,20 @@ import {
   ordenarFotosAlta,
   pasoHecho,
   problemasAlta,
+  resumenStock,
+  textoDestinoStock,
   tituloReferencia,
+  type DestinoStock,
   type EstadoAlta,
   type PasoAlta as NumeroPaso,
 } from "@/lib/alta-producto";
 import type { ContextoAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
-// "Nuevo producto" en 4 PASOS (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; antes 7 bloques, ADR-0109):
+// "Nuevo producto" en 5 PASOS (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; antes 7 bloques, ADR-0109):
 //   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas,
-//   tejido, patrón, colores, fotos) · 4 Precio y variantes (precio, costo, tabla talla × color, etiquetas).
+//   tejido, patrón, colores, fotos) · 4 Precio y variantes (precio, costo, tabla talla × color, etiquetas) · 5 Cuántas
+//   tienes hoy (ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto).
 // Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
 // punteada. A la derecha, la prenda tal como va a quedar y UNA frase: el siguiente paso (no la lista entera de lo
 // que falta). En celular esa ficha baja a una barra pegada abajo con «Crear».
@@ -65,8 +72,8 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 //   * lo que viene marcado de antemano es la curva habitual de la categoría;
 //   * «Seguir» no se apaga en silencio: al lado dice qué falta.
 //
-// El alta es UNA transacción (`crear_producto_con_variantes`): producto, variantes y etiquetas entran juntos o no
-// entra nada. Las FOTOS se eligen en el paso 3 pero se guardan en el navegador y se suben DESPUÉS de que la base creó
+// El alta es UNA transacción (`crear_producto_con_stock_inicial`, que envuelve a `crear_producto_con_variantes`): producto,
+// variantes, etiquetas y el stock de hoy entran juntos o no entra nada. Las FOTOS se eligen en el paso 3 pero se guardan en el navegador y se suben DESPUÉS de que la base creó
 // el producto (ver `FotosAlta`): cancelar no deja archivos huérfanos, y si una foto no sube, el producto ya existe y
 // la pantalla de éxito dice cuál falta. Las filas de `producto_fotos` se escriben directo: su política
 // `producto_fotos_write_lider` (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
@@ -83,10 +90,11 @@ const TITULOS: Record<NumeroPaso, string> = {
   2: "Quién es y cómo se llama",
   3: "Cómo se hace",
   4: "Precio y variantes",
+  5: "Cuántas tienes hoy",
 };
-const CORTOS: Record<NumeroPaso, string> = { 1: "Qué es", 2: "Nombre y marca", 3: "Cómo se hace", 4: "Precio" };
+const CORTOS: Record<NumeroPaso, string> = { 1: "Qué es", 2: "Nombre y marca", 3: "Cómo se hace", 4: "Precio", 5: "Stock" };
 
-export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
+export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlta; destino: DestinoStock }) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
 
@@ -118,10 +126,18 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   const [editandoPrecios, setEditandoPrecios] = useState(false);
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
   const [verEtiquetas, setVerEtiquetas] = useState(false);
+  // Paso 5 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
+  const [cantidades, setCantidades] = useState<Record<string, string>>({});
+  const [sinStock, setSinStock] = useState(false);
+  // Colgadas en el piso o guardadas en el almacén. «Piso» solo si la tienda los separa y la cuenta puede bajar prendas
+  // (la base hace la bajada con `bajar_al_piso`, que pide el módulo «Bajada al piso»): si no, van al almacén.
+  const puedePiso = destino.separaPiso && destino.puedeBajar;
+  const [alPiso, setAlPiso] = useState(puedePiso);
   const [cargando, setCargando] = useState(false);
   // Crear una prenda es Catálogo, operación de tienda (ADR-0161): firma quien está de turno. Los guardados que se hacen
   // A MITAD del formulario (marca nueva, talla nueva, configurar la categoría) llevan su propio combo: son otra operación.
-  const responsable = useResponsable();
+  // La tienda es la misma donde entra el stock de hoy: la base exige que el responsable esté presente AHÍ.
+  const responsable = useResponsable({ ubicacionId: destino.ubicacionId, etiqueta: destino.etiqueta });
   const colaOffline = useColaProductos();
   const enLinea = useEnLinea();
   const [creado, setCreado] = useState<ResumenCreado | null>(null);
@@ -164,6 +180,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     setPatronId("");
     setExcluidas(new Set());
     setOverridePrecio({});
+    setCantidades({});
     // Mientras la persona no haya escrito un costo, el que hay es el sugerido de la categoría ANTERIOR: al cambiar, se
     // reemplaza por el de la nueva o se vacía. Dejarlo sería guardar el costo de una blusa como el de un bolso.
     if (!costoTocado) {
@@ -228,6 +245,11 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     coloresElegidos
   );
   const celdasIncluidas = celdas.filter((c) => !excluidas.has(c.clave));
+  const stock = resumenStock(
+    cantidades,
+    celdasIncluidas.map((c) => c.clave)
+  );
+  const destinoTexto = textoDestinoStock(destino.etiqueta, puedePiso && alPiso, destino.separaPiso);
 
   // ---------- qué falta ----------
   const estado: EstadoAlta = {
@@ -248,6 +270,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     celdasIncluidas: celdasIncluidas.length,
     precioBase,
     costoBase,
+    stockTotal: stock.total,
+    stockInvalidas: stock.invalidas,
+    sinStock,
   };
   const problemas = problemasAlta(estado);
   const puedeGuardar = problemas.length === 0 && !cargando;
@@ -303,12 +328,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     const variantes = celdasIncluidas.map((c) => {
       const o = overridePrecio[c.clave];
       const precio = o !== undefined && o !== "" ? Number(o) : precioNum;
-      return { talla_id: c.tallaId, color_codigo: c.color, precio, costo };
+      // Solo viaja la cantidad de la celda que tiene stock: sin la clave, la base no carga nada (y no inventa un cero).
+      const cantidad = leerCantidad(cantidades[c.clave] ?? "") ?? 0;
+      return { talla_id: c.tallaId, color_codigo: c.color, precio, costo, ...(cantidad > 0 ? { cantidad } : {}) };
     });
     if (variantes.some((v) => !Number.isFinite(v.precio) || v.precio < 0)) {
       avisar.error("Una de las celdas tiene un precio inválido.");
       return;
     }
+    const conStock = stock.total > 0;
 
     // Dos altas sin red con el mismo nombre: la segunda la rechazaría la base al subir. Mejor decirlo ahora.
     if (nombreEnCola(colaOffline.cola, nombreFinal)) {
@@ -330,19 +358,26 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
+      // Paso 5 (ADR-0212): la tienda y el destino solo viajan si hay stock que cargar.
+      p_ubicacion_id: conStock ? destino.ubicacionId : undefined,
+      p_al_piso: conStock && puedePiso && alPiso,
     };
     const firma = responsable.firma();
-    const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_variantes", params), firma);
+    const { data: productoId, error, status } = await firmar(supabase.rpc("crear_producto_con_stock_inicial", params), firma);
 
     // Sin red (ADR-0210, paso 2): el alta entra a la cola con su token y la hora de ahora. El código y el de barras los
     // pone la base al subir (nunca el navegador); las fotos esperan en IndexedDB y suben después del producto.
     if (error && debeEncolarse(error, status)) {
+      // Con stock, la carga firma con el responsable (`fn_actor_persona_id`): al subir, la base tiene que mirar si estaba de
+      // turno a la HORA DEL ALTA (`x-momento`, como la venta sin conexión), no a la hora en que volvió la red. Sin esto, un
+      // alta hecha a las 7 p. m. que sube al día siguiente se rechazaría porque la persona ya marcó su salida.
+      const firmaCola = conStock ? responsable.firma(new Date().toISOString()) : firma;
       const op = nuevaOperacion({
         token: token.current,
-        rpc: "crear_producto_con_variantes",
+        rpc: "crear_producto_con_stock_inicial",
         params,
-        firma,
-        resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"} · ${categoria?.nombre ?? ""}`,
+        firma: firmaCola,
+        resumen: `${nombreFinal} · ${variantes.length} variante${variantes.length === 1 ? "" : "s"}${conStock ? ` · ${stock.total} u.` : ""} · ${categoria?.nombre ?? ""}`,
       });
       if (!colaOffline.encolar(op)) {
         setCargando(false);
@@ -366,6 +401,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
         variantes: variantes.length,
         colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
         fotos: { subidas: 0, fallidas: fotosGuardadas ? [] : fotosOrdenadas.map((f) => `${f.archivo.name}: este navegador no pudo guardarla`), coloresConFoto: [] },
+        stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
         fotosEnEspera: fotosGuardadas ? fotosOrdenadas.length : 0,
         token: op.token,
       });
@@ -424,6 +460,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       // Solo los colores que quedaron en alguna variante: uno desmarcado en la tabla no necesita foto.
       colores: coloresDatos.filter((c) => celdasIncluidas.some((x) => x.color === c.codigo)),
       fotos: { subidas, fallidas, coloresConFoto: [...conFoto] },
+      stock: conStock ? { unidades: stock.total, donde: destinoTexto } : null,
     });
   }
 
@@ -438,6 +475,9 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
     setColoresElegidos([]);
     setExcluidas(new Set());
     setOverridePrecio({});
+    // Las cantidades son de ESA prenda: la parecida se cuenta de nuevo. Dónde están (piso o almacén) sí se conserva.
+    setCantidades({});
+    setSinStock(false);
     setCostoTocado(true); // el costo ya es el de la prenda anterior: no volver a sugerir encima
     token.current = crypto.randomUUID(); // un producto nuevo es una operación nueva, no un reintento
     // El correlativo del código previsto y los colores «más usados» ya cambiaron. Sin red NO se relee: la relectura
@@ -452,10 +492,15 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
     const enCola = creado.token ? colaOffline.cola.find((o) => o.token === creado.token) : undefined;
-    const subida = !creado.token ? undefined : !enCola ? "subio" : enCola.rechazo ? "rechazada" : "esperando";
+    const subida = estadoSubidaSinConexion({ token: creado.token, descartado: creado.descartado, enCola });
+    // Descartar también la saca de la cola: se anota aparte para que la pantalla no la lea como «subió».
+    const descartar = (tokenOp: string) => {
+      colaOffline.descartar(tokenOp);
+      if (tokenOp === creado.token) setCreado((c) => (c ? { ...c, descartado: true } : c));
+    };
     return (
       <div className="space-y-4">
-        {subida === "rechazada" && <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />}
+        {subida === "rechazada" && <ColaOfflineAviso cola={colaOffline.cola} onDescartar={descartar} uno="prenda nueva" varias="prendas nuevas" />}
         <ProductoCreado creado={creado} onOtroParecido={otroParecido} subida={subida} />
       </div>
     );
@@ -475,6 +520,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       .filter(Boolean)
       .join(" · "),
     4: [precioNum > 0 ? `S/ ${precioNum.toFixed(2)}` : null, `${celdasIncluidas.length} variante${celdasIncluidas.length === 1 ? "" : "s"}`].filter(Boolean).join(" · "),
+    5: stock.total > 0 ? `${stock.total} unidad${stock.total === 1 ? "" : "es"} · ${destinoTexto}` : sinStock ? "Sin stock todavía" : "",
   };
 
   const ejesActuales = (sin?: "tallas" | "tejidos" | "patrones") => ({
@@ -681,6 +727,57 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
         </div>
       );
     }
+    if (n === 5) {
+      return (
+        <div className="space-y-4">
+          <p className="text-sm text-tinta">
+            ¿Cuántas tienes hoy en <strong>{destino.etiqueta}</strong>?{" "}
+            <span className="text-taupe">Cuenta cada talla y color. Lo que no tengas, déjalo vacío.</span>
+          </p>
+          <MatrizCantidades
+            celdas={celdas}
+            tallas={tallasOrdenadas.map((t) => ({ id: t.id, texto: t.texto }))}
+            colores={coloresDatos}
+            excluidas={excluidas}
+            cantidades={cantidades}
+            onCantidad={(clave, valor) => {
+              setCantidades((prev) => ({ ...prev, [clave]: valor }));
+              if (valor !== "" && valor !== "0") setSinStock(false); // escribir una cantidad responde la pregunta
+            }}
+          />
+
+          {stock.total > 0 ? (
+            destino.separaPiso && (
+              <div className="space-y-2">
+                <p className="text-[12.5px] font-semibold text-tinta">¿Dónde están?</p>
+                <div className="flex flex-wrap gap-1.5">
+                  <ChipOpcion elegido={puedePiso && alPiso} onClick={() => setAlPiso(true)} disabled={!puedePiso}>
+                    Colgadas en el piso de venta
+                  </ChipOpcion>
+                  <ChipOpcion elegido={!puedePiso || !alPiso} onClick={() => setAlPiso(false)}>
+                    Guardadas en el almacén
+                  </ChipOpcion>
+                </div>
+                {!puedePiso && (
+                  <p className="text-xs text-taupe">
+                    Entran al almacén. Para colgarlas después, usa «Bajar al piso» en Existencias (tu rol necesita el módulo «Bajada al piso»).
+                  </p>
+                )}
+              </div>
+            )
+          ) : (
+            <ChipOpcion elegido={sinStock} onClick={() => setSinStock((v) => !v)}>
+              Todavía no tengo unidades de este producto
+            </ChipOpcion>
+          )}
+
+          <p className="nota-cayla text-[12.5px]">
+            Es la <strong>carga inicial</strong>: lo que ya está en la tienda entra al inventario sin comprobante ni proveedor, y queda en
+            Movimientos como «Carga inicial». La mercadería que llegue después se registra al recibirla (Compras o «Recibir sin comprobante»).
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="space-y-5">
         <div className="grid gap-4 sm:grid-cols-3">
@@ -788,7 +885,6 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
           )}
         </div>
 
-        {faltaDelPaso(problemas, 4) && <p className="text-[12.5px] text-taupe">{faltaDelPaso(problemas, 4)}</p>}
       </div>
     );
   }
@@ -804,7 +900,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
       className="space-y-4"
     >
       {/* Los 4 pasos de un vistazo: el hecho en verde, el abierto en tinta. Se puede volver a uno hecho. */}
-      <nav aria-label="Pasos" className="grid grid-cols-4 gap-1.5">
+      <nav aria-label="Pasos" className="grid grid-cols-5 gap-1.5">
         {PASOS_ALTA.map((n) => {
           const e = estadoPaso(n);
           return (
@@ -852,8 +948,8 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
               resumen={resumen[n]}
               onAbrir={() => irAPaso(n)}
               falta={faltaDelPaso(problemas, n)}
-              onSeguir={n === 2 || n === 3 ? () => irAPaso((n + 1) as NumeroPaso) : undefined}
-              textoSeguir={n === 3 ? "Seguir al precio" : "Seguir"}
+              onSeguir={n >= 2 && n <= 4 ? () => irAPaso((n + 1) as NumeroPaso) : undefined}
+              textoSeguir={n === 3 ? "Seguir al precio" : n === 4 ? "Seguir a las cantidades" : "Seguir"}
             >
               {cuerpo(n)}
             </PasoAlta>
@@ -874,6 +970,7 @@ export function NuevoProductoForm({ contexto }: { contexto: ContextoAlta }) {
             colores: coloresDatos.map((c) => ({ codigo: c.codigo, hex: c.hex })),
             foto: fotosOrdenadas[0]?.vista ?? null,
             fotos: fotos.length,
+            stock: stock.total > 0 ? `${stock.total} · ${puedePiso && alPiso ? "piso" : destino.separaPiso ? "almacén" : destino.etiqueta}` : sinStock ? "Ninguna todavía" : null,
             siguiente: problemas[0]?.texto ?? null,
           }}
           responsable={responsable}

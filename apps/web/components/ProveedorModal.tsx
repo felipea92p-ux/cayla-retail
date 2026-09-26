@@ -11,7 +11,7 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { normalizarCci, normalizarCelular, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
+import { agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import {
   argsGuardarCuentas,
@@ -43,7 +43,8 @@ import {
 //
 // El rubro sigue siendo texto libre (ADR-0094) pero sugiere los ya usados (`rubros`): así «Tela»,
 // «tela» y «Telas» no terminan siendo tres filtros distintos en la lista. ADR-0128: las sugerencias
-// ahora son botones a la vista (un toque) además de la lista desplegable del campo.
+// son botones a la vista (un toque). ADR-0213: se eligen VARIOS (tocar de nuevo quita); uno que no está en la
+// lista se escribe en «Otro rubro» y queda elegido como botón más.
 //
 // ADR-0128 (spike visual 2026-09-19): el formulario se rehízo con la carcasa y las piezas del spike — encabezado
 // con su rótulo, contador y validación del RUC («n/11», hilo verde, ✓ que se dibuja), plazo de crédito y forma de
@@ -91,7 +92,7 @@ export type Borrador = {
   telefono: string;
   banco: string;
   cuentaBancaria: string;
-  rubro: string;
+  rubros: string[];
   plazoCreditoDias: string;
   formaPagoPreferida: string;
 } & CuentasForm;
@@ -104,7 +105,7 @@ export const BORRADOR_VACIO: Borrador = {
   telefono: "",
   banco: "",
   cuentaBancaria: "",
-  rubro: "",
+  rubros: [],
   plazoCreditoDias: "",
   formaPagoPreferida: "",
   ...CUENTAS_VACIAS,
@@ -119,7 +120,7 @@ export function borradorDe(p: {
   telefono: string | null;
   banco: string | null;
   cuenta_bancaria: string | null;
-  rubro: string | null;
+  rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
   cci: string | null;
@@ -135,7 +136,7 @@ export function borradorDe(p: {
     telefono: p.telefono ?? "",
     banco: p.banco ?? "",
     cuentaBancaria: p.cuenta_bancaria ?? "",
-    rubro: p.rubro ?? "",
+    rubros: p.rubros,
     plazoCreditoDias: p.plazo_credito_dias != null ? String(p.plazo_credito_dias) : "",
     formaPagoPreferida: p.forma_pago_preferida ?? "",
     ...cuentasDeFila(p),
@@ -156,7 +157,7 @@ export function ProveedorModal({
   onDesactivar,
 }: {
   inicial: Borrador;
-  /** Rubros ya usados, para sugerir al escribir. */
+  /** Rubros ya usados en el directorio: los botones que se eligen con un toque. */
   rubros?: string[];
   /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
   existentes?: { id: string; nombre: string; ruc: string | null; activo?: boolean }[];
@@ -172,7 +173,9 @@ export function ProveedorModal({
   const [telefono, setTelefono] = useState(inicial.telefono);
   const [banco, setBanco] = useState(inicial.banco);
   const [cuentaBancaria, setCuentaBancaria] = useState(inicial.cuentaBancaria);
-  const [rubro, setRubro] = useState(inicial.rubro);
+  const [rubrosElegidos, setRubrosElegidos] = useState<string[]>(inicial.rubros);
+  // «Otro rubro» a medio escribir: si se guarda sin presionar «Agregar», igual entra (ver onSubmit).
+  const [rubroNuevo, setRubroNuevo] = useState("");
   const [plazoCreditoDias, setPlazoCreditoDias] = useState(inicial.plazoCreditoDias);
   // «Otro» es un modo, no un valor: un plazo de 20 días no está entre los botones y el campo tiene que seguir visible.
   const [plazoOtro, setPlazoOtro] = useState(inicial.plazoCreditoDias !== "" && !PLAZOS.includes(inicial.plazoCreditoDias));
@@ -226,6 +229,10 @@ export function ProveedorModal({
       setBanco(detectado);
     }
   }
+  function agregarRubroNuevo() {
+    setRubrosElegidos((v) => agregarRubro(v, rubroNuevo, rubros));
+    setRubroNuevo("");
+  }
   const alternarBilletera = (b: string) => setBilleteras((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]));
 
   // Cierre en dos tiempos, igual que `Modal`: se anima la salida y recién ahí se avisa al padre (que lo desmonta).
@@ -236,6 +243,10 @@ export function ProveedorModal({
     const t = setTimeout(() => (alCerrar.current ?? onClose)(), reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [cerrando, onClose]);
+
+  // Los botones: los rubros del directorio y, al final, los elegidos que nadie más usa (el recién escrito).
+  const opcionesRubro = opcionesDeRubro(rubros, rubrosElegidos);
+  const clavesElegidas = new Set(rubrosElegidos.map(claveRubro));
 
   const modoPlazo = plazoOtro ? "otro" : plazoCreditoDias;
   function elegirPlazo(clave: string) {
@@ -269,13 +280,17 @@ export function ProveedorModal({
       setIntento(true);
       return void avisar.error(problema.mensaje, { enfocar: { cci: "proveedor-cci", celular: "proveedor-celular", billeteras: "proveedor-billeteras", titular: "proveedor-titular" }[problema.campo] });
     }
+    // Lo escrito en «Otro rubro» sin presionar «Agregar» también se guarda: quien lo escribió quería ese rubro.
+    const rubrosAGuardar = agregarRubro(rubrosElegidos, rubroNuevo, rubros);
+    setRubrosElegidos(rubrosAGuardar);
+    setRubroNuevo("");
     setFase("guardando");
     const supabase = createClient();
     const args = {
       p_nombre: nombre.trim(),
       p_ruc: ruc || undefined,
       p_contacto: contacto.trim() || undefined,
-      p_rubro: rubro.trim() || undefined,
+      p_rubros: rubrosAGuardar,
       p_plazo_credito_dias: plazoCreditoDias ? Number(plazoCreditoDias) : undefined,
       p_forma_pago_preferida: formaPagoPreferida || undefined,
       p_telefono: telefono.trim() || undefined,
@@ -341,7 +356,7 @@ export function ProveedorModal({
                   <X aria-hidden className="h-4 w-4" />
                 </button>
               </div>
-              <Dialog.Description className="sr-only">Datos del proveedor: RUC, razón social, contacto, rubro, plazo de crédito, forma de pago y cómo pagarle.</Dialog.Description>
+              <Dialog.Description className="sr-only">Datos del proveedor: RUC, razón social, contacto, rubros, plazo de crédito, forma de pago y cómo pagarle.</Dialog.Description>
 
               <div className="scroll-cayla min-h-0 flex-1 space-y-2 overflow-y-auto px-6 pb-5 pt-2">
                 {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
@@ -386,33 +401,48 @@ export function ProveedorModal({
                   <CampoTexto etiqueta="Teléfono" type="tel" autoComplete="off" placeholder="El WhatsApp de los pedidos" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
                 </div>
 
-                <div>
-                  <CampoTexto
-                    etiqueta="Rubro"
-                    autoComplete="off"
-                    list="proveedor-rubros"
-                    placeholder="Tela, avíos, prenda terminada, servicios…"
-                    value={rubro}
-                    onChange={(e) => setRubro(e.target.value)}
-                  />
-                  <datalist id="proveedor-rubros">
-                    {rubros.map((r) => (
-                      <option key={r} value={r} />
-                    ))}
-                  </datalist>
-                  {rubros.length > 0 && (
-                    <div className="-mt-1 mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Rubros ya usados">
-                      {rubros.map((r) => {
-                        const elegido = rubro.trim().toLowerCase() === r.toLowerCase();
+                <Campo
+                  etiqueta={
+                    <>
+                      Rubros <span className="normal-case tracking-normal">(elige todos los que vende)</span>
+                    </>
+                  }
+                  idEtiqueta="etiqueta-rubros"
+                >
+                  {opcionesRubro.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-rubros">
+                      {opcionesRubro.map((r) => {
+                        const elegido = clavesElegidas.has(claveRubro(r));
                         return (
-                          <button key={r} type="button" aria-pressed={elegido} onClick={() => setRubro(r)} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
+                          // Tocar de nuevo lo quita: son casillas, no una sola opción.
+                          <button key={r} type="button" aria-pressed={elegido} onClick={() => setRubrosElegidos((v) => alternarRubro(v, r))} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
                             {r}
                           </button>
                         );
                       })}
                     </div>
                   )}
-                </div>
+                  <div className="mt-3 flex items-end gap-3">
+                    <div className="min-w-0 flex-1">
+                      <CampoTexto
+                        etiqueta="Otro rubro"
+                        autoComplete="off"
+                        placeholder="Si no está arriba, escríbelo"
+                        value={rubroNuevo}
+                        onChange={(e) => setRubroNuevo(e.target.value)}
+                        onKeyDown={(e) => {
+                          // Enter agrega el rubro; no guarda el formulario a medio llenar.
+                          if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                          e.preventDefault();
+                          agregarRubroNuevo();
+                        }}
+                      />
+                    </div>
+                    <button type="button" onClick={agregarRubroNuevo} disabled={!claveRubro(rubroNuevo)} className={`${CHIP} ${CHIP_OFF} mb-[1.35rem] shrink-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/15 disabled:hover:text-tinta/75`}>
+                      Agregar
+                    </button>
+                  </div>
+                </Campo>
 
                 <Campo etiqueta="Plazo de crédito" idEtiqueta="etiqueta-plazo">
                   <SegmentoDeslizante
