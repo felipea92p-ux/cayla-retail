@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { ChevronDown, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { comboNecesitaBuscador } from "@/lib/combo-reglas";
@@ -111,6 +111,9 @@ export function DesplegablePildora({
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
 
   const posLista = usePosicionLista(contenedor, abierto, 288);
+  const destino = useDestinoFlotante(contenedor, abierto);
+  // La caja flotante entera (buscador + lista): vive en un portal, fuera de `contenedor`.
+  const capa = useRef<HTMLDivElement>(null);
   const listaVisible = abierto && !!posLista;
   const elegida = opciones.find((o) => o.valor === valor) ?? null;
 
@@ -137,7 +140,12 @@ export function DesplegablePildora({
     if (mostrarBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
-      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
+      // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
+      // mirar las dos cajas. Mirando solo `contenedor`, tocar una opción contaba como «afuera», la lista se cerraba
+      // en el mousedown y el click de la opción ya no llegaba: no se podía elegir con mouse ni con el dedo.
+      const t = e.target as Node;
+      if (contenedor.current?.contains(t) || capa.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -210,8 +218,10 @@ export function DesplegablePildora({
           medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
           `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
       {listaVisible &&
+        destino &&
         createPortal(
           <div
+            ref={capa}
             style={{ position: "fixed", ...posLista }}
             className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
           >
@@ -264,7 +274,7 @@ export function DesplegablePildora({
             )}
           </ul>
         </div>,
-          document.body
+          destino
         )}
     </div>
   );
