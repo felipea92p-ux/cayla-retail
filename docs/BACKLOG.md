@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🕳️ Fotos: el recorte agujereado ya no se sugiere (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-control-huecos`
+- [x] `fraccionDeHuecos` mide la tela agujereada (huecos encerrados; el hueco entre las piernas no cuenta) y, sobre 0,5 %, la foto nace en «Con fondo» con aviso. Umbral medido con seis fotos (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %). 5 pruebas nuevas.
+- [x] Verificado en la ventana real: jean Levi's agujereado → «Con fondo» con aviso; camisa de estudio → «Sin fondo». `next build` compila; 77 960 pruebas en verde.
+- [ ] Pendiente, decidido para después: recorte por color cuando el fondo es liso (evitaría el agujero en vez de detectarlo).
+- Cómo verificas: sube la foto de un jean con fondo liso de internet (como la «br582443…» de Felipe) → si el recorte sale con manchones, nace en «Con fondo» y debajo dice «El recorte dejó huecos en la prenda…».
+
 ## 🧾 Comprobantes conectado: «Hoy», Opciones por boleta y pestañas abajo en celular (2026-09-26, ADR-0238) — solo web, sin migración; rama `claude/comprobantes-screen-analysis-78ca38`
 - [x] Pestañas Hoy · Series · Por enviar · Proformas (Emitidos pasa a «Este mes» de Hoy, misma ruta `/emitidos`; Series a `/series`).
 - [x] «Por enviar» lista también los `pendiente` y `rechazado` (antes decía «todo llegó» con 3 boletas sin intentar en producción).
