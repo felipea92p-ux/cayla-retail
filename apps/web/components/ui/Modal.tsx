@@ -21,6 +21,8 @@ type Props = {
       trigger del diálogo — que estos modales controlados no tienen — y el foco cae al
       `body`. Vender lo usa para que el escáner vuelva a estar listo tras cada modal. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
+  /** Escape, el velo y la ✕ no cierran mientras guarda algo sin token: cerrar y reabrir dejaría enviarlo dos veces. */
+  bloqueado?: boolean;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
   variante?: "papel" | "hoja" | "camara";
@@ -41,7 +43,7 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
@@ -63,7 +65,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
   }, [cerrando, onClose]);
 
   return (
-    <Dialog.Root open onOpenChange={(abierto) => !abierto && pedirCierre()}>
+    <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
       <Dialog.Portal>
         <Dialog.Overlay
           className={`fixed inset-0 z-50 bg-tinta/35 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`}
@@ -103,6 +105,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             <button
               type="button"
               onClick={pedirCierre}
+              disabled={bloqueado}
               aria-label="Cerrar"
               className="absolute right-4 top-4 rounded-full p-1.5 text-tinta/55 transition-colors hover:bg-tinta/[0.04] hover:text-rojo"
             >

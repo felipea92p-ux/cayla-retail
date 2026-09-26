@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -23,6 +24,7 @@ import {
   mediosPara,
   parsearMonto,
   partirSerieNumero,
+  sumarProveedorDeGasto,
   textoVidaUtil,
   validarActivo,
   validarGasto,
@@ -42,6 +44,9 @@ import {
 //  · F2b: un gasto que nace de un gasto fijo (viene lleno), o un ACTIVO (un mueble, una laptop): el mismo comprobante y
 //    pago, pero dice qué tipo de activo es y su vida útil, y la base lo deprecia.
 // La pantalla solo arma y explica; la base vuelve a validar todo (`registrar_gasto`, `registrar_activo`).
+// «¿No está? Súmalo» pregunta antes «¿no será un proveedor que ya tienes?» (`sumarProveedorDeGasto`, 2026-09-25): «Sí» lo
+// elige aquí mismo; «No, es otro» deja sumar; sumar sin contestar no suma. Si es el mismo RUC o el mismo nombre, se elige
+// el que ya está: es lo que haría la base (`registrar_proveedor_de_gasto`), dicho antes y sin viaje.
 
 export type ProveedorGasto = { id: string; nombre: string; ruc: string | null };
 
@@ -80,6 +85,8 @@ export function RegistrarGastoModal({
   const [guardando, setGuardando] = useState(false);
   const [proveedores, setProveedores] = useState(proveedoresIniciales);
   const [nuevoProveedor, setNuevoProveedor] = useState<{ nombre: string; ruc: string } | null>(null);
+  const [descartados, setDescartados] = useState<ReadonlySet<string>>(() => new Set());
+  const alSumar = nuevoProveedor ? sumarProveedorDeGasto(nuevoProveedor, proveedores, descartados) : null;
   const [token] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
   const esActivo = clase === "activo";
@@ -146,14 +153,31 @@ export function RegistrarGastoModal({
     });
   }
 
+  function elegirProveedor(id: string) {
+    poner("proveedorId", id);
+    setNuevoProveedor(null);
+  }
+
   async function sumarProveedor() {
-    if (!nuevoProveedor?.nombre.trim()) return avisar.error("Escribe el nombre del proveedor.");
+    if (!nuevoProveedor || !alSumar) return;
+    if (alSumar.paso === "es") {
+      elegirProveedor(alSumar.proveedor.id);
+      return avisar.exito(`Quedó elegido ${alSumar.proveedor.nombre}`, { detalle: "Ya estaba en el directorio: no se creó otro." });
+    }
+    if (alSumar.paso === "incompleto") return avisar.error("Escribe el nombre del proveedor.", { enfocar: "nuevo-prov-nombre" });
+    if (alSumar.paso === "preguntar") {
+      return avisar.error(
+        alSumar.parecidos.length === 1
+          ? `Antes de sumar, dinos si «${nuevoProveedor.nombre.trim()}» es el mismo proveedor que «${alSumar.parecidos[0].proveedor.nombre}».`
+          : `Antes de sumar, dinos si «${nuevoProveedor.nombre.trim()}» es alguno de los proveedores de arriba.`,
+        { enfocar: "gasto-proveedor-parecido" },
+      );
+    }
     const { data, error } = await createClient().rpc("registrar_proveedor_de_gasto" as never, { p_nombre: nuevoProveedor.nombre, p_ruc: nuevoProveedor.ruc || null } as never);
     if (error) return avisar.error(traducirError(error, "sumar el proveedor"));
     const id = String(data);
     if (!proveedores.some((p) => p.id === id)) setProveedores((ps) => [...ps, { id, nombre: nuevoProveedor.nombre.trim(), ruc: nuevoProveedor.ruc || null }].sort((x, y) => x.nombre.localeCompare(y.nombre)));
-    poner("proveedorId", id);
-    setNuevoProveedor(null);
+    elegirProveedor(id);
   }
 
   async function guardar() {
@@ -216,7 +240,14 @@ export function RegistrarGastoModal({
                 htmlFor="gasto-proveedor"
                 ayuda={
                   nuevoProveedor ? undefined : (
-                    <button type="button" className="btn-enlace text-[11.5px]" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>
+                    <button
+                      type="button"
+                      className="btn-enlace text-[11.5px]"
+                      onClick={() => {
+                        setNuevoProveedor({ nombre: "", ruc: "" });
+                        setDescartados(new Set());
+                      }}
+                    >
                       ¿No está? Súmalo
                     </button>
                   )
@@ -256,6 +287,32 @@ export function RegistrarGastoModal({
                     <InputFin id="nuevo-prov-ruc" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
                   </CampoFin>
                 </div>
+                {alSumar?.paso === "es" && (
+                  <div className="mt-3">
+                    <PreguntaParecido
+                      id="gasto-proveedor-parecido"
+                      titulo={alSumar.por === "ruc" ? `El RUC ${alSumar.proveedor.ruc} ya es de «${alSumar.proveedor.nombre}»` : `«${alSumar.proveedor.nombre}» ya está en la lista`}
+                      bajada="Es el mismo proveedor: elígelo y el gasto queda en su ficha. No se crea otro."
+                      opciones={[{ id: alSumar.proveedor.id, nombre: alSumar.proveedor.nombre, detalle: alSumar.proveedor.ruc ? `RUC ${alSumar.proveedor.ruc}` : "sin RUC" }]}
+                      si={(o) => ({ texto: `Usar ${o.nombre}`, onClick: () => elegirProveedor(o.id) })}
+                    />
+                  </div>
+                )}
+                {alSumar?.paso === "preguntar" && (
+                  <div className="mt-3">
+                    <PreguntaParecido
+                      id="gasto-proveedor-parecido"
+                      titulo="¿No será un proveedor que ya tienes?"
+                      bajada="Si es el mismo, elígelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
+                      opciones={alSumar.parecidos.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: proveedor.ruc ? `RUC ${proveedor.ruc}` : "sin RUC" }))}
+                      si={(o) => ({ texto: `Sí, es ${o.nombre}`, onClick: () => elegirProveedor(o.id) })}
+                      no={{
+                        texto: `No, «${nuevoProveedor.nombre.trim()}» es otro proveedor`,
+                        onClick: () => setDescartados((prev) => new Set([...prev, ...alSumar.parecidos.map((p) => p.proveedor.id)])),
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor

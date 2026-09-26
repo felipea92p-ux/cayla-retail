@@ -89,5 +89,6 @@ export function motivosAjusteDisponibles(
   return reposicionCerrada(ubicado, separaPisoAlmacen) ? MOTIVOS_AJUSTE.filter((m) => m.valor !== "reposicion") : MOTIVOS_AJUSTE;
 }
 
+// Nombra el retiro: sin él, quien guarda prendas del piso lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
 export const NOTA_REPOSICION_CERRADA =
-  "Para subir prendas del almacén al piso usa «Bajar al piso» o «Reponer», en Existencias: así salen del almacén. Si ninguno te aparece para esta prenda, pídele al líder que active «Bajada al piso» en tu rol. Si al contar encontraste prendas de más en el piso, elige «Conteo físico».";
+  "Subir al piso: «Bajar al piso» o «Reponer». Guardar en el almacén: «⋯» ▸ «Retirar del piso». Todo en Existencias (si no ves «Bajar al piso», pídele al líder ese módulo). Prendas de más al contar: «Conteo físico».";

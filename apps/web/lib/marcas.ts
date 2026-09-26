@@ -9,6 +9,8 @@
 //            ahorra clics y evita ofrecer lo imposible.
 //   NO HACE: no crea nada ni habla con la base.
 
+import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
+
 export type MarcaOpcion = { id: string; nombre: string };
 /** Una marca con los nombres de quienes la traen: lo que el formulario de nueva marca muestra al preguntar «¿no es esta?». */
 export type MarcaConProveedores = MarcaOpcion & { proveedores: readonly string[] };
@@ -29,7 +31,8 @@ export function sinTildes(t: string): string {
 //
 // El 24-sep alguien creó «Cayla 2» para un top que confecciona Jacard: CAYLA ya existía, pero traída por CAYLA SAC, y el
 // formulario de nueva marca no dijo nada. Desde entonces CAYLA vive partida en dos y todo lo que se filtra o agrupa por marca
-// la cuenta a medias. Estas funciones le dan al formulario con qué preguntar ANTES de crear.
+// la cuenta a medias. Esta función le da al formulario con qué preguntar ANTES de crear. La regla es la general de
+// `nombres-parecidos.ts` (la misma que usan los proveedores); en una marca todas las palabras cuentan.
 //
 // CONTRATO
 //   PROMETE: dado el nombre que se va a crear y las marcas que existen, devuelve la marca IGUAL (la que la base
@@ -40,71 +43,13 @@ export function sinTildes(t: string): string {
 //
 // Medido contra las 80 marcas de producción (2026-09-25): entre ellas solo se parecen CAYLA ~ Cayla 2 y
 // Divas ~ Divas Now. Ningún otro par dispara la pregunta, así que no molesta en el censo.
-
-/** Lo que la base compara (`retail.fn_clave_texto` sobre el nombre ya limpiado por `crear_marca`): espacios juntados,
- *  minúsculas, y sin las tildes y la ñ que la base traduce (solo esas: «ç» sigue siendo «ç», como en la base). */
-export function claveMarca(nombre: string): string {
-  const traduce: Record<string, string> = { á: "a", é: "e", í: "i", ó: "o", ú: "u", ü: "u", ñ: "n" };
-  return nombre
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase()
-    .replace(/[áéíóúüñ]/g, (c) => traduce[c]);
-}
-
-/** Por qué se parece: mismo nombre salvo números o signos («Cayla 2»), una o dos letras cambiadas («Kristell»), o el
- *  nombre entero cabe en el otro, palabra por palabra («Divas» en «Divas Now»). */
-export type MotivoParecido = "raiz" | "letras" | "contenida";
-
-const palabrasDe = (nombre: string) => claveMarca(nombre).normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter(Boolean);
-// La raíz: todo junto, sin signos y sin el número del final. «Cayla 2», «CAYLA.» y «cayla» dan «cayla».
-const raizDe = (nombre: string) => palabrasDe(nombre).join("").replace(/\d+$/, "");
-
-function distancia(a: string, b: string): number {
-  let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    const fila = [i];
-    for (let j = 1; j <= b.length; j++) fila[j] = Math.min(previa[j] + 1, fila[j - 1] + 1, previa[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-    previa = fila;
-  }
-  return previa[b.length];
-}
-
-function motivoParecido(a: string, b: string): { por: MotivoParecido; peso: number } | null {
-  const ra = raizDe(a);
-  const rb = raizDe(b);
-  if (!ra || !rb) return null;
-  if (ra === rb) return { por: "raiz", peso: 0 };
-  // Con nombres cortos una letra ya es otra marca («Kero» / «Kera»): solo se cuenta el error de tipeo desde 5 letras,
-  // y dos letras desde 8.
-  const corta = Math.min(ra.length, rb.length);
-  const d = distancia(ra, rb);
-  if ((corta >= 5 && d <= 1) || (corta >= 8 && d <= 2)) return { por: "letras", peso: d };
-  const pa = palabrasDe(a).filter((w) => !/^\d+$/.test(w));
-  const pb = palabrasDe(b).filter((w) => !/^\d+$/.test(w));
-  const [menos, mas] = pa.length <= pb.length ? [pa, pb] : [pb, pa];
-  if (menos.join("").length >= 4 && menos.every((w) => mas.includes(w))) return { por: "contenida", peso: 3 };
-  return null;
-}
-
 export function marcasParecidas<M extends MarcaOpcion>(
   nombre: string,
   marcas: readonly M[],
   max = 3
 ): { igual: M | null; parecidas: { marca: M; por: MotivoParecido }[] } {
-  const clave = claveMarca(nombre);
-  if (!clave) return { igual: null, parecidas: [] };
-  const igual = marcas.find((m) => claveMarca(m.nombre) === clave) ?? null;
-  const parecidas = marcas
-    .filter((m) => m !== igual)
-    .flatMap((m) => {
-      const r = motivoParecido(nombre, m.nombre);
-      return r ? [{ marca: m, ...r }] : [];
-    })
-    .sort((x, y) => x.peso - y.peso || x.marca.nombre.localeCompare(y.marca.nombre, "es"))
-    .slice(0, max)
-    .map(({ marca, por }) => ({ marca, por }));
-  return { igual, parecidas };
+  const { igual, parecidos } = nombresParecidos(nombre, marcas, { max });
+  return { igual, parecidas: parecidos.map(({ item, por }) => ({ marca: item, por })) };
 }
 
 export function proveedoresDeMarca(vinculos: Vinculo[], marcaId: string): string[] {
@@ -227,4 +172,56 @@ export function contarProductosPorProveedor(filas: FilaReposicion[]): Reposicion
     porProveedor.set(f.proveedor_id, actual);
   }
   return [...porProveedor.values()].sort((a, b) => b.productos - a.productos || a.proveedor.localeCompare(b.proveedor, "es"));
+}
+
+// ---------- Catálogo ▸ Marcas: buscar y editar ----------
+
+/** Lo mínimo que la búsqueda de Catálogo ▸ Marcas necesita de cada fila. */
+type FilaBuscable = { nombre: string; proveedores: { nombre: string }[] };
+
+/** Busca por el nombre de la marca O de quien la trae, sin tildes ni mayúsculas: «¿qué marcas me trae Saavedra?» también se
+ *  contesta aquí. Sin texto, todas. */
+export function filtrarMarcas<T extends FilaBuscable>(filas: T[], consulta: string): T[] {
+  const q = sinTildes(consulta);
+  if (!q) return filas;
+  return filas.filter((f) => sinTildes(f.nombre).includes(q) || f.proveedores.some((p) => sinTildes(p.nombre).includes(q)));
+}
+
+/** Un proveedor que la marca ya tiene. `productosTotal` cuenta TODOS sus productos (también descontinuados): la llave de
+ *  `productos` los sigue citando, así que mientras haya uno la pareja no se puede quitar. */
+export type ParejaDeMarca = { id: string; nombre: string; productosTotal: number };
+
+/** Lo que la ventana «Editar marca» va a guardar. Se manda como sumar/quitar, no como la lista final: si otra persona sumó
+ *  un proveedor mientras tanto, este guardado no se lo borra (`editar_marca`, 20260926150000). */
+export type BorradorMarca = {
+  nombre: string;
+  /** Proveedores que la marca ya tenía y se quitan. */
+  quitar: string[];
+  /** Proveedores de la lista que se suman. */
+  sumar: string[];
+  /** Proveedores que todavía no existen: se registran en el mismo guardado. */
+  nuevos: { nombre: string; ruc: string }[];
+};
+
+export function sePuedeQuitar(p: ParejaDeMarca): boolean {
+  return p.productosTotal === 0;
+}
+
+/** Qué impide guardar el borrador, en palabras de la pantalla; null = se puede. Espeja a `editar_marca` para avisar antes
+ *  de ir a la base, pero la que manda es la base. */
+export function problemaEdicionMarca(actuales: ParejaDeMarca[], b: BorradorMarca): string | null {
+  if (!b.nombre.trim()) return "Escribe el nombre de la marca.";
+  const enUso = actuales.find((p) => b.quitar.includes(p.id) && !sePuedeQuitar(p));
+  if (enUso) return `«${enUso.nombre}» tiene productos: cámbiales el proveedor en Productos antes de quitarlo.`;
+  const quedan = actuales.filter((p) => !b.quitar.includes(p.id)).length + b.sumar.length + b.nuevos.length;
+  if (quedan === 0) return "La marca necesita al menos un proveedor. Si ya nadie la trae, desactívala.";
+  if (b.nuevos.some((n) => !n.nombre.trim())) return "Escribe el nombre del proveedor nuevo.";
+  const rucMalo = b.nuevos.find((n) => n.ruc.trim() !== "" && !/^\d{11}$/.test(n.ruc.trim()));
+  if (rucMalo) return `El RUC de «${rucMalo.nombre}» tiene que ser de 11 dígitos. Si no lo sabes, déjalo en blanco.`;
+  return null;
+}
+
+/** ¿Hay algo que guardar? Sin cambios, «Guardar» solo cierra: no se le pide a nadie que firme algo que no pasó. */
+export function borradorCambia(nombreActual: string, b: BorradorMarca): boolean {
+  return b.nombre.trim().replace(/\s+/g, " ") !== nombreActual || b.quitar.length > 0 || b.sumar.length > 0 || b.nuevos.length > 0;
 }
