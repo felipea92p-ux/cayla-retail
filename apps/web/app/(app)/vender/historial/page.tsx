@@ -113,7 +113,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
       pendientes > 0 && `${pendientes} ${pendientes === 1 ? "comprobante espera" : "comprobantes esperan"} ir a SUNAT`,
       porEnviar.rechazados > 0 && `${porEnviar.rechazados} ${porEnviar.rechazados === 1 ? "fue rechazado" : "fueron rechazados"}`,
     ].filter(Boolean);
-    avisos.push({ tono: porEnviar.rechazados > 0 ? "rojo" : "ambar", texto: partes.join(" y "), href: "/vender/comprobantes/por-reintentar", accion: "Por reintentar" });
+    avisos.push({ tono: porEnviar.rechazados > 0 ? "rojo" : "ambar", texto: partes.join(" y "), href: "/vender/comprobantes/por-reintentar", accion: "Por enviar" });
   }
   if (apartados && (Number(apartados.vencen_pronto) > 0 || Number(apartados.vencidas) > 0)) {
     const pronto = Number(apartados.vencen_pronto);
@@ -132,7 +132,7 @@ export default async function HistorialVentasPage({ searchParams }: { searchPara
     enlaces.push({ href: veModulo(persona, "cambios") ? "/cambios" : "/devoluciones", texto: "Posventa", detalle: "Cambios y devoluciones" });
   }
   if (puedeFacturar) {
-    enlaces.push({ href: "/vender/comprobantes/emitidos", texto: "Comprobantes", detalle: porEnviar && porEnviar.porEnviar > 0 ? `${porEnviar.porEnviar} por resolver` : "Emitidos del mes" });
+    enlaces.push({ href: "/vender/comprobantes/emitidos", texto: "Comprobantes", detalle: porEnviar && porEnviar.porEnviar > 0 ? `${porEnviar.porEnviar} por resolver` : "Los del mes" });
   }
 
   // Exportar (solo el líder): los mismos filtros de la URL, en otra ruta que responde un archivo.
