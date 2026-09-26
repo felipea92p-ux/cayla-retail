@@ -4,9 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { SelectNativo } from "@/components/ui/campos";
+import { Desplegable } from "@/components/ui/campos";
 import { ListaActividad, useActividad } from "@/components/actividad/ListaActividad";
-import { MODULOS_CON_ACTIVIDAD, PERIODOS, anotaActividad, moduloDeRuta, nombreDeModulo, type Periodo } from "@/lib/actividad-reglas";
+import {
+  MODULOS_CON_ACTIVIDAD,
+  PERIODOS,
+  anotaActividad,
+  moduloDeRuta,
+  nombreDeModulo,
+  opcionesDeModulo,
+  type Periodo,
+} from "@/lib/actividad-reglas";
 import type { ClaveModulo } from "@/lib/modulos";
 
 // El botón «Actividad» de la cabecera (ADR-0207, Felipe 2026-09-25): junto a la sede, no en el lateral —no es una
@@ -79,20 +87,15 @@ function PanelActividad({
       {(cerrar) => (
         <div>
           <div className="mb-4 flex flex-wrap items-center gap-2">
-            <div className="caja-cayla w-full px-3 sm:w-56">
-              <SelectNativo
-                aria-label="Módulo"
-                value={modulo ?? ""}
-                onChange={(e) => setModulo((e.target.value || null) as ClaveModulo | null)}
-              >
-                <option value="">Todos los módulos</option>
-                {MODULOS_CON_ACTIVIDAD.map((m) => (
-                  <option key={m} value={m}>
-                    {nombreDeModulo(m)}
-                  </option>
-                ))}
-                {modulo && !anotaActividad(modulo) ? <option value={modulo}>{nombreDeModulo(modulo)}</option> : null}
-              </SelectNativo>
+            {/* El combo de las barras de filtros (caja hundida, lista propia), como los demás: no el <select> del navegador. */}
+            <div className="w-full sm:w-56">
+              <Desplegable
+                forma="caja"
+                etiquetaAccesible="Módulo"
+                valor={modulo ?? ""}
+                onValor={(v) => setModulo(v || null)}
+                opciones={opcionesDeModulo(modulo)}
+              />
             </div>
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Periodo">
               {PERIODOS.map((p) => (
