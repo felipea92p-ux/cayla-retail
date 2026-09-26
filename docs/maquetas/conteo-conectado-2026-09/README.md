@@ -1,5 +1,8 @@
 # Conteo conectado · spike (2026-09-26)
 
+> **Estado:** la parte 1 está construida (ADR-0244, sin migración). La parte 2, varias personas a la vez con tandas,
+> está decidida y sin construir. Diferencias: Felipe eligió la **opción A** (recontar opcional).
+
 `spike.html` se abre directo en el navegador (datos inventados). Muestra Conteo en computadora (1.440 px) y en celular
 (375 px) lado a lado. La barra oscura de arriba no existe en el ERP: sirve para cambiar de pantalla y de variante.
 
@@ -39,7 +42,7 @@ las capturas). Los enlaces no navegan: un aviso muestra a qué pantalla irían y
 | Prenda ya confirmada por otra | Se pregunta: «encontré más → se suman» / «la recuento → reemplaza» / «no cuenta». |
 | No encontradas al cerrar | Se deciden al revisar, una por una o todas: «no está → 0» o «dejar como está». |
 | Accesos | Aviso de pendientes (al abrir), Imprimir etiquetas (mientras se cuenta y después), pasos después de cerrar (recontar, Existencias, Movimientos) y Bajar al piso (solo después de cerrar un conteo del piso). |
-| Diferencias | **Sin decidir:** A, B o C en este spike. |
+| Diferencias | **Opción A:** «Recontar las N», opcional (Felipe, después de ver el spike). |
 
 ## Lo que decidí yo
 
