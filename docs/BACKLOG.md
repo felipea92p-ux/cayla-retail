@@ -28,11 +28,26 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` POR PEGAR en producción, ANTES de desplegar la web
+## 📦 Nuevo producto con su stock de hoy — la carga inicial (2026-09-26, ADR-0212)
+Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya está; 0 papeleo por ahora».
+- [x] **Paso 5 «Cuántas tienes hoy»** en `/productos/nuevo`: cantidades por talla × color y «¿Dónde están?» (piso o almacén), en la misma transacción que el producto (`crear_producto_con_stock_inicial`). 28 pruebas SQL + carrera real con COMMIT + navegador a 1440 y 375 px.
+- [x] **SQL en producción (2026-09-26, versión `20260926000932`):** ensayo revertido, `apply_migration`, huellas md5 idénticas a las de local y prueba de humo revertida. Antes de pegar pasó una revisión adversarial de 12 agentes: ningún hallazgo bloqueaba; se corrigió uno de pantalla (tras «Descartar» un alta sin conexión decía «ya subió»). Ver ADR-0212, «Antes de pegar».
+- [ ] **Publicar la web** (fusionar el PR) y **recargar las tablets** después: una pestaña abierta antes del despliegue puede borrar de la cola un alta con stock guardada sin conexión por otra pestaña (ADR-0212, «Límites conocidos»).
+- [ ] Refrescar `docs/datos/generado/` con el próximo volcado de producción: hasta entonces `pnpm datos:comparar` sigue marcando `crear_producto_con_stock_inicial` como «no existe en producción» (el volcado es del 09-23).
+- [ ] **Decidir cuándo se cierra la carga inicial.** Terminado el paso al sistema, la mercadería nueva entra por Compras o «Recibir sin comprobante»; esta puerta la deja entrar sin papeles. Opciones: fecha de cierre en Configuración o un módulo «Carga inicial» que el líder apaga.
+- [ ] **Productos ya creados sin stock** (antes de esto): `fn_cargar_stock_inicial` ya los acepta (solo prendas sin movimientos en esa tienda); falta la pantalla. Mientras tanto siguen por Ajustar stock.
+- [x] **Con la cola sin conexión (ADR-0210):** el alta encola `crear_producto_con_stock_inicial` (la lista blanca `RPCS_PRODUCTOS` conserva la vieja para altas ya encoladas) y, con stock, firma con la hora del alta (`x-momento`): al subir, la base revisa el turno de ese momento. Las unidades se cargan al subir, con esa fecha.
+- [ ] **Hueco previo, no de este cambio: `recibir_lote` no pide el módulo Recibir** (solo «es líder o es su tienda»). Una cuenta sin ese módulo puede subir el stock de una prenda que ya existe llamando la RPC directo, con firma pero sin ser líder (lo que ADR-0143 quiere impedir). Misma familia que «hoy solo la pantalla revisa el módulo» de Vender/Apartados: sumarle `fn_ve_modulo('recibir')` en su propia migración (revisión adversarial del 2026-09-26).
+- [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
+- [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
+- [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
 Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
 - [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
 - [x] Web: `ProveedorModal` (botones que se prenden y apagan + «Otro rubro»), lista, filtro, vista rápida y ficha. Verificado en navegador y a 375 px.
-- [ ] **Felipe:** pegar `20260926110000_proveedores_varios_rubros.sql` en el SQL Editor y enseguida fusionar el PR. Cómo verificas: en «Editar proveedor» marca Polos y Casacas, guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion`.
+- [x] **Pegada en producción el 2026-09-26** (con el «sí» de Felipe, por el conector MCP; versión `20260926003322`). El PR #444 ya estaba fusionado sin ella, así que la web de `main` pedía una columna `rubros` que no existía. Primero hubo un ensayo revertido en producción: 0 rubros perdidos, y alta, edición, gasto y lista funcionando como las llama la pantalla, con el candado rechazando repetidos. Se guardó un respaldo id→rubro. Después de aplicar: la huella `rubro` → `rubros[1]` es idéntica en los 76 proveedores (73 con rubro), queda una sola firma por función con los permisos de antes, y la lista, vista como Admin, trae los 76.
+- [ ] **Felipe:** mirarlo en pantalla. En «Editar proveedor» marca Polos y Casacas y guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion` con el próximo volcado.
 - [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
 
 ---

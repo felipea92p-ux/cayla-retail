@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
+Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
+Felipe se lleva:
+1. **«Cargar lo que ya hay» y «recibir lo que llega» son dos hechos distintos.** Si se registran por la misma puerta, el número de «compras sin comprobante» para el contador se llena con la migración entera. Por eso la carga inicial tiene su propio motivo y no pasa por Compras.
+2. **Una función nueva que LLAMA a las de siempre, en vez de copiarlas, hereda sus candados y sus parches futuros.** Copiar el cuerpo de una función viva ya rompió Análisis en producción el 25-sep.
+3. **El doble clic tenía un caso que solo se ve con dos sesiones de verdad.** Dos llegadas simultáneas del mismo intento: la segunda mostraba un error aunque el producto sí se había guardado. Lo cerró el candado por token (ADR-0190), probado con COMMIT real.
+
+Más tarde el mismo día, con el «sí» de Felipe: SQL en producción (`20260926000932`) tras una revisión adversarial de 12 agentes (ningún bloqueo; un arreglo de pantalla: «Descartar» ya no se lee como «subió») y un ensayo revertido con un Admin real. Producción quedó con los mismos conteos después de ensayo y humo.
+Y con su «dale»: la migración de rubros del #444 (ADR-0213), fusionada a `main` sin pegar, quedó en producción (`20260926003322`). Mientras tanto la web de `main` pedía una columna que no existía y dejaba caídas Proveedores, Por pagar, Registrar factura y Notas de crédito. Antes de aplicar: se revisó que ninguna otra función use la columna vieja, un ensayo revertido (0 rubros perdidos) y un respaldo. Después: huella idéntica en los 76 proveedores.
+
 ## 2026-09-25 (Marcas: «¿no será una que ya existe?» y la pareja elegida con salida — ADR-0109, actualización)
 Felipe aprobó el aviso tras ver «Cayla 2» en Proveedores. El formulario único de nueva marca (Nuevo producto, censo, editar producto, Catálogo ▸ Marcas) ahora dice si el nombre es igual a una marca (no se crea otra, se le suma el proveedor) y pregunta si se parece (`marcasParecidas`: «Cayla 2» ~ CAYLA, «Kristell» ~ Krisstell, «Divas» ~ Divas Now). Y la pareja que se elige sola ofrece «+ Otro proveedor para CAYLA» y «+ Otra marca de Jacard». Verificado en el navegador con un andamio (sin base local), también a 375 px. Sin migración.
 Felipe se lleva: el error no fue de quien creó «Cayla 2». El sistema elegía solo a CAYLA SAC y no le dejaba decir «esta vez la trae Jacard». Inventar un nombre era la única salida que tenía. Medida contra las 80 marcas reales, la pregunta solo salta en dos pares (CAYLA ~ Cayla 2, Divas ~ Divas Now): hay que mirar si Divas y Divas Now son la misma.
