@@ -5,7 +5,10 @@ import { FechaHoraLima } from "@/components/ui/FechaHoraLima";
  *  —la sede que se mira y la hora de Lima, viva—, con el hilo de CAYLA (taupe) trazándose a
  *  su lado; después el título en la serif de la casa y su frase. A la derecha, lo que
  *  acompañe (el resumen de la sede). El título es de 46 px: más presencia que el 30 de las
- *  demás pantallas, pero sin gritar sobre el menú lateral. */
+ *  demás pantallas, pero sin gritar sobre el menú lateral.
+ *
+ *  Título y frase aceptan más que texto, para los detalles (Traslado 12 con su insignia;
+ *  «Trujillo → Lima» con la flecha en taupe). */
 export function EncabezadoPagina({
   sede,
   titulo,
@@ -16,8 +19,8 @@ export function EncabezadoPagina({
   children,
 }: {
   sede: string;
-  titulo: string;
-  subtitulo: string;
+  titulo: ReactNode;
+  subtitulo: ReactNode;
   /** La línea de arriba dice solo el día: la pantalla trae su propio reloj (Caja). */
   sinHora?: boolean;
   /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */
