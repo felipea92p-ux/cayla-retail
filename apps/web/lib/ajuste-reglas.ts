@@ -14,12 +14,15 @@
 // ya no estaba y solo lo supo la base, en vivo.
 
 import { compararTallas } from "./tallas";
+import { codigoDeEtiqueta } from "./prenda-reglas";
 
 /** Lo mínimo que el modal lee de cada variante. La talla llega anidada porque la columna
  *  de texto ya no existe: hoy es `talla_id` → `tallas.valor` (select `talla:tallas ( valor )`). */
 export type FilaAjuste = {
   id: string;
   sku: string | null;
+  /** El código de la etiqueta: es el que casi todas las variantes tienen (el `sku` es NULL, ADR-0058). */
+  codigo?: string | null;
   talla: { valor: string } | null;
   color: { nombre: string | null } | null;
   stock: { cantidad: number; sububicacion_id: string | null }[] | null;
@@ -53,7 +56,7 @@ export function armarVariantesAjuste(
       const porSub = v.stock ?? [];
       return {
         varianteId: v.id,
-        sku: v.sku ?? "",
+        sku: codigoDeEtiqueta(v),
         talla: v.talla?.valor ?? null,
         color: v.color?.nombre ?? null,
         stockPiso: porSub.find((s) => s.sububicacion_id === sububicacionPisoId)?.cantidad ?? 0,

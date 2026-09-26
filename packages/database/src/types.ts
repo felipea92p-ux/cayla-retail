@@ -6631,6 +6631,7 @@ export type Database = {
           p_nota?: string
           p_sububicacion_destino_id: string
           p_sububicacion_origen_id: string
+          p_token?: string
           p_ubicacion_id: string
           p_variante_id: string
         }

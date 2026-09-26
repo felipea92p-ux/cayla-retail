@@ -41,6 +41,7 @@
     "pruebas:alta-con-stock-inicial": "node scripts/pruebas/alta_con_stock_inicial.mjs",
     "pruebas:frescura-bajadas": "node scripts/pruebas/frescura_bajadas.mjs",
     "pruebas:reposicion-piso-cerrada": "node scripts/pruebas/reposicion_piso_cerrada.mjs",
+    "pruebas:mover-interno-marca": "node scripts/pruebas/mover_interno_marca.mjs",
     "pruebas:separaciones": "node scripts/pruebas/separaciones.mjs",
     "pruebas:fn-movimientos-referencias": "node scripts/pruebas/fn_movimientos_referencias.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",

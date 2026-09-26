@@ -4,7 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
 // (transferir()) ahora tiene un tramo intermedio que alguien tiene que poder
@@ -36,13 +36,11 @@ export default async function TrasladosPage() {
 
   return (
     <div className="space-y-5">
-      <InventarioHero
-        eyebrow="Inventario · Traslados"
+      <CabeceraPantalla
+        sobretitulo="Inventario · Traslados"
         titulo="Traslados entre sedes"
-        descripcion="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
-        foto={fotoHeroPorPantalla("traslados")}
-        variante="integrado"
-        accion={
+        bajada="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
+        acciones={
           <Link href="/inventario/mover" className="btn-cayla btn-primario">
             + Nuevo traslado
           </Link>
