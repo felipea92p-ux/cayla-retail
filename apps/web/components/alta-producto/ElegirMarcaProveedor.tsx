@@ -10,8 +10,8 @@ import {
   marcasDeProveedor,
   proveedorAutomatico,
   proveedoresDeMarca,
-  sinTildes,
   sugerenciasDeCategoria,
+  type MarcaConProveedores,
   type MarcaOpcion,
   type ParejaUso,
   type ProveedorOpcion,
@@ -82,6 +82,17 @@ export function ElegirMarcaProveedor({
   const marcaPor = (id: string) => marcas.find((m) => m.id === id);
   const provPor = (id: string) => proveedores.find((p) => p.id === id);
   const sugeridas = useMemo(() => sugerenciasDeCategoria(usosCategoria, marcas, proveedores), [usosCategoria, marcas, proveedores]);
+  // Para que «+ Nueva marca» pregunte «¿no será CAYLA, que la trae CAYLA SAC?» antes de crear otra.
+  const marcasConProveedores = useMemo<MarcaConProveedores[]>(
+    () =>
+      marcas.map((m) => ({
+        ...m,
+        proveedores: proveedoresDeMarca(vinculos, m.id)
+          .map((id) => proveedores.find((p) => p.id === id)?.nombre)
+          .filter((n): n is string => Boolean(n)),
+      })),
+    [marcas, proveedores, vinculos]
+  );
   // Marcas y proveedores en UNA lista para el buscador; el detalle dice qué es cada uno y con quién va.
   const opcionesBusqueda = useMemo(
     () =>
@@ -171,7 +182,7 @@ export function ElegirMarcaProveedor({
         nombreInicial={creando.nombre}
         marcaFija={creando.marcaFija}
         proveedorFijo={creando.proveedorFijo}
-        nombreExistente={(n) => marcas.find((m) => sinTildes(m.nombre) === sinTildes(n))?.nombre}
+        marcas={marcasConProveedores}
         onGuardado={alGuardarNueva}
         onCancelar={() => setCreando(null)}
       />

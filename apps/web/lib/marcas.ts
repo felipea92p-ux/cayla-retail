@@ -10,6 +10,8 @@
 //   NO HACE: no crea nada ni habla con la base.
 
 export type MarcaOpcion = { id: string; nombre: string };
+/** Una marca con los nombres de quienes la traen: lo que el formulario de nueva marca muestra al preguntar «¿no es esta?». */
+export type MarcaConProveedores = MarcaOpcion & { proveedores: readonly string[] };
 export type ProveedorOpcion = { id: string; nombre: string };
 export type Vinculo = { marcaId: string; proveedorId: string };
 /** Cuántas veces se usó una pareja en productos recientes de una categoría. */
