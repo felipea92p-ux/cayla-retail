@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Inicio por rol en computadora y celular — ADR-0225)
+Felipe pidió que el Inicio mostrara las pantallas nuevas y funcionara bien en el celular. Antes de construir hubo investigación de 5 referentes (Shopify, Square, Toast, Dynamics 365, Zebra), un demo comparativo con dos rondas de preguntas y un spike (`docs/maquetas/inicio-movil-roles-2026-09/`). Luego se pasó al código real y Felipe lo probó en local. «Te toca» reemplaza «Por atender» con 9 avisos por módulo y un filtro «Ajustar». Accesos del rol reemplazan «Ir a», con «Vender» fijo abajo en el celular, y «Equipo de hoy» reemplaza «Actividad reciente». Sin migración.
+Felipe se lleva: (1) **lo urgente es un canal que no se apaga**: por eso el filtro deja ocultar casi todo, pero SUNAT y la caja nunca. (2) **Ninguno de los 5 referentes muestra un feed automático en el inicio**: todos lo cambian por contadores o por el equipo de turno. (3) **Un botón fijo no es una barra de menú**: «Vender» abajo convive con el cajón ☰ del ADR-0206 sin reabrirlo.
+
 ## 2026-09-26 (Punto de venta conectado: del spike a la interfaz — ADR-0221)
 Felipe aprobó el spike y pidió llevarlo al sistema. Sin migración: las cinco funciones de base que hacían falta (clienta, «no había», proforma, apartados, ventas del día) ya estaban en producción, verificado con `pg_proc` antes de escribir una línea. Apartar desde el ticket no duplica el cobro del adelanto: lleva las prendas a Apartados. La hoja del celular es una variante de `<Modal>`, no un overlay nuevo.
 Felipe se lleva: (1) **lo que ya existe en la base a veces solo falta sacarlo al mostrador**: la ficha de clienta y «no había» llevaban días sin una sola llamada. (2) **Una firma obligatoria alcanza también a lo pequeño**: «Anotar que no había» se rechazaba sin responsable; se firma con el mismo combo del ticket. (3) **La campaña no cabe en una proforma** con las reglas de hoy (tope 20 % y otros motivos): la caja lo avisa y la decisión queda para ti.
