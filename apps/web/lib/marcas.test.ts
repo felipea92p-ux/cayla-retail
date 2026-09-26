@@ -5,6 +5,8 @@ import {
   contarParejasPorCategoria,
   filtrarMarcas,
   problemaEdicionMarca,
+  sePuedeEliminarMarca,
+  textoProductosMarca,
   type BorradorMarca,
   type ParejaDeMarca,
   contarProductosPorProveedor,
@@ -188,6 +190,27 @@ describe("Catálogo ▸ Marcas: editar", () => {
     expect(borradorCambia("Lirio Blanco", b({ nombre: " Lirio   Blanco " }))).toBe(false);
     expect(borradorCambia("Lirio Blanco", b({ nombre: "Lirio Blanco", sumar: ["p-c"] }))).toBe(true);
     expect(borradorCambia("Lirio Blanco", b({ nombre: "Lirio Rosa" }))).toBe(true);
+  });
+});
+
+describe("Catálogo ▸ Marcas: eliminar (el caso «Cayla 2», 2026-09-26)", () => {
+  it("una marca sin ningún producto se puede eliminar", () => {
+    expect(sePuedeEliminarMarca([{ productosTotal: 0 }])).toBe(true);
+    expect(sePuedeEliminarMarca([{ productosTotal: 0 }, { productosTotal: 0 }])).toBe(true);
+  });
+  it("una marca sin proveedores tampoco tiene productos: se puede eliminar", () => {
+    expect(sePuedeEliminarMarca([])).toBe(true);
+  });
+  it("la tarjeta dice por qué no se puede: descontinuados también cuentan", () => {
+    expect(textoProductosMarca(4, 4)).toBe("4 productos activos");
+    expect(textoProductosMarca(1, 1)).toBe("1 producto activo");
+    expect(textoProductosMarca(0, 2)).toBe("Sin productos activos · 2 descontinuados");
+    expect(textoProductosMarca(0, 1)).toBe("Sin productos activos · 1 descontinuado");
+    expect(textoProductosMarca(0, 0)).toBe("Sin productos todavía");
+  });
+  it("con un solo producto por CUALQUIERA de sus proveedores ya no", () => {
+    expect(sePuedeEliminarMarca([{ productosTotal: 1 }])).toBe(false);
+    expect(sePuedeEliminarMarca([{ productosTotal: 0 }, { productosTotal: 2 }])).toBe(false);
   });
 });
 

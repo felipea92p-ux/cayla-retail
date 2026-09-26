@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton, Hilo } from "@/components/ui/campos";
 import { NuevaMarcaForm, type MarcaGuardada } from "@/components/alta-producto/NuevaMarcaForm";
 import { EditarMarcaModal, type MarcaEditada } from "@/components/EditarMarcaModal";
-import { filtrarMarcas, type ProveedorOpcion } from "@/lib/marcas";
+import { filtrarMarcas, sePuedeEliminarMarca, textoProductosMarca, type ProveedorOpcion } from "@/lib/marcas";
 import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
 import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
 import { useResponsable } from "@/lib/useResponsable";
@@ -26,6 +26,10 @@ import { firmar } from "@/lib/responsable-reglas";
  * puso por error, solo si ningún producto usa esa pareja. Desactivar va directo a
  * la tabla (la policy es el candado; el trigger `fn_marcas_desactivar_candado`
  * impide desactivar una marca con productos activos y su mensaje llega tal cual).
+ *
+ * «Eliminar» (Felipe, 2026-09-26: «Cayla 2» se creó por error y desactivarla no la quitaba) aparece SOLO si ningún producto
+ * —activo, descontinuado o archivado como prueba— la tiene (`sePuedeEliminarMarca`): borrarla entonces no pierde historia.
+ * Una marca con productos se sigue desactivando. Va por `eliminar_marca` (20260926200000, todo o nada), no por un DELETE.
  *
  * El buscador encuentra por marca o por proveedor, sin tildes («¿qué me trae
  * Saavedra?»): con 80 marcas en tarjetas, bajar buscando una no es opción.
@@ -128,6 +132,17 @@ export function MarcasLista({
     avisar.exito(m.activo ? `${m.nombre} desactivada` : `${m.nombre} reactivada`);
   }
 
+  async function eliminar(m: MarcaFila) {
+    if (!responsable.listo) return avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
+    setTrabajando(m.id);
+    const { error } = await firmar(createClient().rpc("eliminar_marca", { p_marca_id: m.id }), responsable.firma());
+    setTrabajando(null);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "eliminar la marca"));
+    setMarcas((prev) => prev.filter((x) => x.id !== m.id));
+    avisar.exito(`${m.nombre} eliminada`);
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
@@ -186,10 +201,10 @@ export function MarcasLista({
       <ul className="grid gap-3 md:grid-cols-2">
         {activasVisibles.map((m) => (
           <li key={m.id} className="card-cayla space-y-3 p-4">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
               <div>
                 <p className="text-base font-medium text-tinta">{m.nombre}</p>
-                <p className="text-xs text-tinta/60">{m.productos === 0 ? "Sin productos todavía" : `${m.productos} producto${m.productos === 1 ? "" : "s"} activo${m.productos === 1 ? "" : "s"}`}</p>
+                <p className="text-xs text-tinta/60">{textoProductosMarca(m.productos, m.proveedores.reduce((n, p) => n + p.productosTotal, 0))}</p>
               </div>
               {puedeEditar && (
                 <div className="flex shrink-0 gap-3">
@@ -208,6 +223,16 @@ export function MarcasLista({
                   >
                     Desactivar
                   </button>
+                  {sePuedeEliminarMarca(m.proveedores) && (
+                    <button
+                      type="button"
+                      onClick={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
+                      disabled={trabajando === m.id}
+                      className="label-cayla text-[11px] text-tinta/60 underline underline-offset-4 hover:text-rojo disabled:opacity-40"
+                    >
+                      Eliminar
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -243,6 +268,16 @@ export function MarcasLista({
                     className="label-cayla text-[10.5px] underline underline-offset-4 hover:text-rojo disabled:opacity-40"
                   >
                     Reactivar
+                  </button>
+                )}
+                {puedeEditar && sePuedeEliminarMarca(m.proveedores) && (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmando(confirmacionCatalogo("eliminar", m.nombre, () => eliminar(m)))}
+                    disabled={trabajando === m.id}
+                    className="label-cayla text-[10.5px] underline underline-offset-4 hover:text-rojo disabled:opacity-40"
+                  >
+                    Eliminar
                   </button>
                 )}
               </li>

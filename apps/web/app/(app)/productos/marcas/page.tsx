@@ -62,7 +62,9 @@ export default async function MarcasPage() {
           <Ayuda titulo="Marcas">
             De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca:
             la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un
-            proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos.
+            proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece
+            solo cuando ningún producto tiene la marca —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos
+            en Productos.
           </Ayuda>
         </h1>
       </div>
