@@ -41,7 +41,7 @@ sus 13 capturas y el código de `main` (`b6935a18`). Los once hallazgos están e
 | Buscador: vendible primero | ✓ | | |
 | Admin como chip, catálogo denso, prenda sin registrar | ✓ | | |
 | Celular A / B / C | ✓ | | |
-| Clienta en el ticket | | `buscar_clienta`, `registrar_clienta` | |
+| Clienta en el ticket | | `buscar_clienta`, `registrar_clienta` | la pregunta del club y «es para regalo» son el paso 1 del acta de clientas (`docs/datos/DECISIONES-2026-09-26-clientas.md`, D-92 a D-111) |
 | «Anotar que no había» | | `registrar_pedido_no_atendido` | |
 | Proforma desde el ticket | | proformas (ADR-0167) | |
 | Apartar con adelanto desde el ticket | | | ¿`apartar_stock`/separaciones reciben el pago? |

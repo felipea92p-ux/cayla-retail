@@ -456,8 +456,8 @@ function ticket(movil){
   const tot = TICKET.reduce((a,t)=>a+t.pf,0), sub = tot/1.18;
   const esperasTira = on('espera') ? `<div class="esperas">${ESPERAS.map(e=>`<div class="esp" title="${e.q}" onclick="S.escena='espera';pinta()">${ic('pause','xs')}<b>${e.quien}</b><span>${sol(e.m)} · ${e.t.replace('hace ','')}</span><span class="ret">Retomar</span></div>`).join('')}</div>` : '';
   const cli = !on('clienta') ? '' : S.clientaSel
-    ? `<div class="cli" onclick="S.escena='clienta';pinta()"><span class="av">MQ</span><div class="d"><b>María Fernanda Quispe</b><span>DNI 71•••482 · 5 compras · última 14 set · talla S</span></div><span class="cambiar">Cambiar</span></div>`
-    : `<div class="cli vacia" onclick="S.escena='clienta';pinta()">${ic('user','s')} Agregar clienta <span style="margin-left:auto;font-size:11.5px">DNI o nombre · opcional</span></div>`;
+    ? `<div class="cli" onclick="S.escena='clienta';pinta()"><span class="av">MQ</span><div class="d"><b>María Fernanda Quispe</b><span>Del club · 5 compras · última 14 set · suele llevar S</span></div><span class="cambiar">Cambiar</span></div>`
+    : `<div class="cli vacia" onclick="S.escena='clienta';pinta()">${ic('user','s')} Agregar clienta <span style="margin-left:auto;font-size:11.5px">DNI o celular · opcional</span></div>`;
   const items = TICKET.map(t=>`<div class="it"><div class="r1"><div><h5>${t.n}</h5><div class="sku">${t.sku}</div>${t.camp?`<div class="camp">${t.camp}</div>`:''}</div>
       <div class="acts">${t.dsc?`<span>${ic('percent','xs')} ${t.dsc}</span>`:''}<span>${ic('trash','xs')} Quitar</span></div></div>
       <div class="r2"><span class="qty">${ic('trash','xs')} 1 <span style="color:var(--t30)">+</span></span>${t.p!==t.pf?`<span class="tachado">${sol(t.p)}</span>`:''}<b>${sol(t.pf)}</b><span class="imp">${sol(t.pf)}</span></div></div>`).join('');
@@ -533,14 +533,17 @@ function escenaBuscador(){
 }
 function escenaClienta(){
   if(!on('clienta')) return `<div class="placa"><b>Hoy no existe</b>La clienta solo aparece al cobrar (DNI y nombre del comprobante). Enciende «Clienta en el ticket» en «Propuesta».</div>`;
-  return `<h3>Clienta de esta venta ${nuevo()}</h3><div class="baj">Opcional. Sus datos pasan solos al comprobante y la venta queda en su historial.</div>
-    <div class="campo foco" style="margin-top:14px">${ic('search','s')}<span>714</span><span class="ph" style="margin-left:auto;font-size:11.5px">DNI, RUC, nombre o celular</span></div>
+  // Calza con el acta de clientas del 2026-09-26 (D-92 a D-111), paso 1 «Caja»: «DNI o celular», la
+  // pregunta del club y «es para regalo». La ficha la crea el «sí» al club, no el DNI de la boleta (G.6).
+  return `<h3>Clienta de esta venta ${nuevo()}</h3><div class="baj">Opcional. Si ya es del club, la venta queda en su ficha.</div>
+    <div class="campo foco" style="margin-top:14px">${ic('search','s')}<span>987 6</span><span class="ph" style="margin-left:auto;font-size:11.5px">DNI o celular</span></div>
     <div class="lista-mini" style="margin-top:10px">
-      <div class="lm" onclick="S.clientaSel=true;S.escena='ninguna';pinta()"><span class="cli" style="all:unset"><span class="av" style="width:30px;height:30px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif">MQ</span></span><div><b style="font-weight:600">María Fernanda Quispe</b><div class="s2">DNI 71•••482 · 5 compras · compra talla S</div></div><span class="der">Elegir</span></div>
-      <div class="lm"><span style="width:30px;height:30px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif">LT</span><div><b style="font-weight:600">Lucía Torres</b><div class="s2">DNI 71•••019 · 1 compra</div></div><span class="der">Elegir</span></div>
-      <div class="lm" style="background:var(--crema)">${ic('plus','s')}<div><b style="font-weight:600">Registrar clienta nueva</b><div class="s2">Con DNI se completa el nombre solo (padrón)</div></div></div>
+      <div class="lm" onclick="S.clientaSel=true;S.escena='ninguna';pinta()"><span style="width:30px;height:30px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;flex:none">MQ</span><div><b style="font-weight:600">María Fernanda Quispe</b><div class="s2">Del club · 987 6•• 214 · 5 compras · suele llevar S</div></div><span class="der">Elegir</span></div>
+      <div class="lm" style="background:var(--crema);align-items:flex-start">${ic('plus','s')}<div style="flex:1"><b style="font-weight:600">No está: ¿quiere unirse al club?</b><div class="s2">Le llega por WhatsApp «responde SÍ». Sin ese sí no se crea ficha; el DNI igual puede ir en la boleta.</div>
+        <div style="display:flex;gap:6px;margin-top:8px"><button class="btn p">Sí, unirla</button><button class="btn s">Ahora no</button></div></div></div>
     </div>
-    <div class="nota">Con la clienta en el ticket, <b>Apartar</b> y <b>Proforma</b> ya saben a nombre de quién van, y en Cambios/Devoluciones se la encuentra por su nombre.</div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px"><input type="checkbox" style="accent-color:var(--tinta)"> Es para regalo <span style="color:var(--t65);font-size:11.5px">(no cuenta su talla en la ficha)</span></label>
+    <div class="nota">Con la clienta en el ticket, <b>Apartar</b> y <b>Proforma</b> ya saben a nombre de quién van, y el cobro trae su DNI si pide boleta con DNI.</div>
     <div style="display:flex;gap:8px;margin-top:14px"><button class="btn s" style="flex:1;height:42px" onclick="S.clientaSel=false;S.escena='ninguna';pinta()">Venta sin clienta</button></div>`;
 }
 function escenaApartar(){
@@ -724,7 +727,7 @@ function hallazgos(){
     ['Los accesos se ven poco y en el celular desaparecen','Caja · Cambios · Devoluciones son texto de 11 px y <code>hidden sm:flex</code> los esconde bajo 640 px. Faltan Apartados, Historial y Proformas.','<code>PuntoDeVenta.tsx:1203</code>','Barra de 6 accesos con contador (escritorio) y «Más» (celular), o la versión mínima legible.'],
     ['«Ventas de hoy» está al fondo del catálogo','Para saber cuánto se vendió hay que bajar hasta la última tarjeta.','<code>VentasDeHoy.tsx</code>','Píldora «Hoy · 4 ventas · S/612 · 62 % de la meta» en la cabecera, que abre un panel lateral.'],
     ['La talla agotada no lleva a ninguna parte','«Sin stock aquí» y nada más. El registro de pedidos no atendidos existe en la base (D-79) y nunca llegó al mostrador.','<code>ElegirTallaModal.tsx</code> · <code>20260922190000_pedidos_no_atendidos.sql</code>','La talla dice dónde hay; ofrece pedir al almacén, pedir traslado, apartar o anotar «no había».'],
-    ['La clienta solo aparece al cobrar','La ficha de clienta (<code>buscar_clienta</code>/<code>registrar_clienta</code>) existe, pero el ticket no la usa.','<code>20260922140000_ficha_de_clienta_v1_backend.sql</code>','Fila «Clienta» opcional arriba del ticket; pasa sola al comprobante, al apartado y a la proforma.'],
+    ['La clienta solo aparece al cobrar','La ficha de clienta (<code>buscar_clienta</code>/<code>registrar_clienta</code>) existe, pero el ticket no la usa. Es el paso 1 del acta de clientas de hoy (D-92 a D-111).','<code>20260922140000_ficha_de_clienta_v1_backend.sql</code> · <code>DECISIONES-2026-09-26-clientas.md</code>','Fila «Clienta» opcional arriba del ticket: «DNI o celular», la pregunta del club y «es para regalo»; pasa al apartado y a la proforma.'],
     ['Apartar y hacer proforma obliga a rehacer el ticket en otra pantalla','Apartados y Proformas son módulos propios (ADR-0196, ADR-0167): se busca la prenda de nuevo.','<code>/vender/apartados</code> · <code>/vender/comprobantes/proformas</code>','Botones «Apartar» y «Proforma» junto a «Dejar en espera», que usan el ticket ya armado.'],
     ['«En espera · 1» no dice de quién es','Con dos clientas en probador no se sabe cuál es cuál.','<code>PuntoDeVenta.tsx:151</code>','Tira de tickets en espera con nombre y hora; «Retomar» de un toque.'],
     ['El buscador muestra primero lo que no se puede vender','Con «c», la primera fila es un Polo sin stock.','captura 13','Tres grupos: aquí → en el almacén → sin stock (con «anotar no había»).'],
