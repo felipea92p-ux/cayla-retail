@@ -8,6 +8,10 @@ Felipe vio en Proveedores la marca «Cayla 2» colgada de Jacard Peru SAC y no e
 En producción (solo lectura): «Cayla 2» se creó el 24-sep al dar de alta **Top Aurora (TOP-0011)**, 8 variantes, 65 prendas en stock y 15 movimientos; no vino de la carga de proveedores. Pendiente de Felipe decidir de qué marca es Top Aurora; el arreglo es por pantalla (editar el producto y luego desactivar «Cayla 2»), no por SQL.
 Felipe se lleva: una pantalla que no está en el menú no existe para quien opera — funcionaba, tenía pruebas y un ADR, y aun así nadie la podía encontrar cuando la necesitó. Y la base no deja **fusionar** dos marcas ni **quitarle** una marca a un proveedor: «Renombrar Cayla 2 a CAYLA» choca con el índice de nombre único.
 
+## 2026-09-25 (Varios rubros por proveedor — ADR-0213)
+Felipe pidió elegir varias categorías por proveedor en «Editar proveedor». El rubro pasó de un texto a una lista (`rubros text[]`), con un candado en la base que impide vacíos y repetidos. La migración `20260926110000` está por pegar; la web muestra los rubros como botones que se prenden y apagan, más «Otro rubro».
+Felipe se lleva: (1) **las funciones de proveedores ya no son las de sus archivos**: tenían parches en vivo, así que la migración las cambia sobre su versión real (y se comprobó que la local es idéntica a producción); copiar el `create function` viejo habría deshecho permisos de roles. (2) **El arnés de Postgres sin Docker nacía en SQL_ASCII**: «Pólos» y «polos» no se juntaban solo en la prueba; ahora usa `-E UTF8`, como producción. (3) Las 7 pruebas SQL que fallan en `main` fallan igual sin este cambio (base gemela sin la migración).
+
 ## 2026-09-25 (Paleta esencial de moda: 63 colores de claro a oscuro)
 Felipe pidió completar las gamas esenciales de la moda, unas 9 por familia. Entraron 32 colores (de 32 a 63; 64 en producción con MAC), y la paleta de Nuevo producto pasó a ser una carta de 9 columnas alineadas, de claro a oscuro. Con el ok de Felipe, la migración `20260926100000` quedó aplicada en producción (primero se ensayó y se revirtió; luego se aplicó y se verificó: 64 activas). «Marrón chocolate» (MAC) pasó a llamarse «Coñac».
 Felipe se lleva: (1) **9 por familia es un tope, no una cuota.** Medidos con ΔE2000, Índigo, Cereza, Durazno y Menta se confundían con un color que ya existía. Sumarlos habría partido el stock de una misma prenda en dos filas; por eso son 63 y no 72. (2) No existe una lista oficial de Adobe: la lista sale del nombre que usa el retail de moda en Perú. (3) **Un duplicado ya se coló:** «Marrón chocolate» vive al lado de «Chocolate». El candado de nombre no lo frena porque los nombres son distintos. Lo que sí puede frenarlo es un buscador que conozca los sinónimos.
@@ -1039,6 +1043,22 @@ Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
+
+
+## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
+Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
+tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
+tienda. Tres funciones SQL de solo lectura hacen todas las sumas y la pantalla solo pinta, así dos pantallas no
+pueden decir cifras distintas de lo vendido. La decisión que más pesa: el semáforo compara el ritmo del mes hasta
+el CIERRE DE AYER, no lo de hoy — a las 11 am toda tienda lleva una fracción de su meta y una alerta que salta
+siempre se deja de mirar. Todo se mide en hora de Lima: una venta de las 7:30 pm es 00:30 UTC del día siguiente.
+
+Probado sin Docker (caído): un Postgres desechable con datos que cruzan medianoche, una semana que empieza en el mes
+anterior, una anulada, el Taller y una tienda inactiva — 22 verificaciones, y tres mutaciones del SQL (zona UTC,
+contar líneas como tickets, contar anuladas) hacen fallar la prueba, así que sabe detectar lo que dice detectar. No
+se probó contra el esquema real (RLS, `fn_es_lider` verdadera): hay que abrirla como líder contra el stack local. Al
+armar el panel salió a la luz que `getSeriesVentasCaja` agrupa por hora con `getHours()`, que en Vercel (UTC) daría las
+barras de Caja desplazadas cinco horas — sin verificar en producción. ADR-0110.
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
