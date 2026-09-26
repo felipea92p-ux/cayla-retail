@@ -28,6 +28,22 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📐 Rendimiento: las ventas de cada persona, para la encargada y el Admin (2026-09-26, ADR-0219) — PROPUESTA, nada construido; rama `claude/performance-module-ranking-2c657d`
+Pedido de Felipe: un módulo al final del menú para ver quién vende más, con otros parámetros además de la venta. Se decidió en
+20 preguntas (tabla completa en el ADR). Lo ven **solo las encargadas (su tienda) y los 5 Admin (todas)**; las colaboradoras
+no, por ahora, a pedido del gerente. Período: mes calendario con la muestra a la vista. Dos rankings: soles por hora trabajada
+y número de ventas. La encargada corrige quién atendió una venta, con motivo. Cambia D-64, D-66 y D-68 (con nota en DECISIONES).
+- [ ] **Espera el ok de Felipe** al diseño técnico del ADR-0219 y a la objeción: la encargada no se da ventas a sí misma ni
+  se quita las suyas; esas las corrige el Admin. Sin respuesta, se construye con ese candado.
+- [ ] Paso 1, base: módulo `rendimiento` (orden 310, sin `rol_modulos`), `fn_rendimiento_ubicaciones`,
+  `fn_rendimiento_equipo` y `fn_rendimiento_persona`, con prueba SQL de alcance.
+- [ ] Paso 2, web: catálogo, nodo después de Finanzas, `/rendimiento` con los dos rankings y la tabla, y
+  `lib/rendimiento-reglas.ts` con su prueba.
+- [ ] Paso 3: ficha de cada persona (qué vende, 6 meses, sus ventas, comparada con su tienda).
+- [ ] Paso 4: `venta_reasignaciones` + `reasignar_asesora`, con el combo Responsable.
+- [ ] Paso 5, producción: con el ok puntual de Felipe. Después, Felipe crea en Roles y accesos el rol «Encargada de
+  tienda» con el módulo.
+
 ## 🔎 Existencias: buscar y filtrar por marca, y un vacío que explica (2026-09-26) — solo web, sin migración; rama `claude/existencias-busqueda-marca`
 Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtros tampoco figura marca»). Análisis `/pantalla` completo en [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple su finalidad 5/10, relevancia 7,4/10). Lo que descubrió: **«CAYLA» y «Cayla 2» son dos marcas** (80 en la tabla, 8 con productos, 5 en TRU) y los productos de marca CAYLA (41 variantes) **no tienen ni una fila de stock en TRU**, así que indexar la marca no bastaba.
 - [x] Buscador con marca y categoría (por inicio de palabra, también tras «/» y «-», y la marca escrita sin puntos: «yjj», «cayla2»); un color escrito NO busca en la marca («dorada» ya no trae toda «Doradas Chic»); orden por relevancia solo con texto. `lib/filtro-busqueda-especial.ts` (campos opcionales: Análisis y Movimientos no cambian; 40.330 comparaciones contra el motor anterior, 0 diferencias). Prueba nueva `filtro-busqueda-especial-marca.test.ts`.

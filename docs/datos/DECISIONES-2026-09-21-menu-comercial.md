@@ -89,6 +89,10 @@ devoluciones/cambios sobre lo vendido, % de ventas a precio pleno.
 **D-64 · Bonificación** → **retail calcula el número, Dynamic lo paga.** **Metas:
 mensual por tienda, el líder la reparte.**
 
+> **Actualización (2026-09-26, Felipe; ADR-0219):** la meta por persona **todavía no** se construye. El módulo
+> Rendimiento muestra el avance de la tienda contra su meta del mes y cuánto aportó cada persona. El reparto se retoma el
+> día que la colaboradora pueda ver sus cifras. *El texto de arriba se conserva como quedó el 2026-09-21.*
+
 **D-65 · Fase de bonificación con la que se arranca** → **solo reconocimiento, sin
 dinero por ahora.** Felipe: «déjame pensar bien lo del bono para no cometer un error o
 mal acostumbrar a nuestro equipo». Investigado 2026-09-21: un bono con fórmula y
@@ -109,6 +113,12 @@ nuevas identificadas y clientas que vuelven (recompra). Un ranking simple del me
 premia el azar con 30–80 ventas por persona al mes. El líder ve el global de su sede
 con la muestra (n) al lado; el top 3 es lo único visible entre compañeras.
 
+> **Actualización (2026-09-26, Felipe; ADR-0219):** el período es el **mes calendario**. Para que ese mes no premie el azar,
+> cada persona lleva el número de ventas al lado y la marca «muestra chica» con menos de 40 ventas, el umbral de esta
+> decisión. Hay **dos rankings**: soles por hora trabajada y número de ventas. **El top 3 visible entre compañeras queda en
+> pausa**, porque por ahora las colaboradoras no ven el módulo (ver D-68). Clientas nuevas y recompra no se pueden medir
+> todavía: el Punto de venta no guarda la clienta en la venta. *El texto de arriba se conserva como quedó el 2026-09-21.*
+
 **D-67 · Descuento en caja** → **tope por rol**; más de eso lo autoriza el líder (con
 su clave o cuenta), y queda registrado quién y por qué. Es el dato que hace posible
 D-63 sin lastimar margen. Topes exactos (ej. asesora ≤10%, líder ≤20%) los fija
@@ -116,6 +126,13 @@ Felipe en el momento de construir.
 
 **D-68 · Quién ve las métricas de quién** → cada colaboradora ve las suyas; el líder,
 las de su sede; Felipe, todas. Nunca entre compañeras salvo el top 3 (D-66).
+
+> **Actualización (2026-09-26, Felipe tras hablarlo con el gerente; ADR-0219):** **por ahora las colaboradoras no ven el
+> módulo**, ni siquiera sus propias cifras: «esto generaría más caos actualmente». Lo ven dos niveles:
+> - **Los 5 Admin ven todas las tiendas.** Los Líderes que no son Admin no las ven.
+> - **La encargada ve solo su tienda.** Es encargada quien tiene un rol de Roles y accesos con el módulo encendido.
+>
+> *El texto de arriba se conserva como quedó el 2026-09-21.*
 
 **D-69 · Alcance de cada líder** → **cada líder acotado a su sede, más las que Felipe
 le asigne** (resuelve R-48/D-14, pendiente desde ADR-0143). Se aplica **después** de
