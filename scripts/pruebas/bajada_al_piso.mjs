@@ -10,14 +10,14 @@
  *      (editar/borrar y vaciar, en las dos tablas); y que ninguna de las cinco partes quite un disparador ni cree una
  *      política (CLAUDE.md, «Políticas y deadlocks»: en el SQL Editor de producción es el 40P01 de ADR-0195).
  *   P2 permisos: el líder baja en cualquier tienda; sin el módulo no; con SOLO «Bajada al piso» baja y sigue sin poder
- *      ajustar ni cerrar un conteo; con SOLO Existencias no baja por aquí pero «Reponer» (mover_interno) le sigue
- *      funcionando (no hay implicación); con solo Vender no; en otra tienda no; un rol «limitado como hoy» con el módulo sí.
+ *      ajustar ni cerrar un conteo; con SOLO Existencias no baja por aquí NI por «Reponer» (la puerta
+ *      `mover_entre_piso_y_almacen` también pide el módulo, ADR-0240: antes «Reponer» le seguía funcionando); con solo Vender no; en otra tienda no; un rol «limitado como hoy» con el módulo sí.
  *   P3 firma: terminal con el módulo y responsable presente baja y firma la responsable; sin responsable, 42501; con
  *      responsable ausente, 42501; terminal sin el módulo, no.
  *   P4 todo o nada: una lista con dos líneas imposibles no baja NINGUNA (ni la que alcanzaba), nombra las dos y trae el
  *      detalle en JSON; apartadas (singular y plural), archivada, «Prenda sin registrar», inexistente y «Y 1 prenda más» /
  *      «Y N prendas más».
- *   P5 libro: piso +n, almacén −n, total igual; filas traslado almacén→piso idénticas a las de mover_interno; ítems 1 a 1;
+ *   P5 libro: piso +n, almacén −n, total igual; filas traslado almacén→piso idénticas a las de «Reponer»; ítems 1 a 1;
  *      fn_verificar_bajadas da cero filas (y detecta un documento vacío y una línea falsa).
  *   P6 idempotencia: mismo token y misma lista (en otro orden) → misma bajada, sin mover dos veces; otra lista → aviso
  *      con la hora y las prendas ya guardadas, el DETAIL con esas líneas ([{variante_id, cantidad}] en orden de prenda)
@@ -332,11 +332,18 @@ select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`,
     json(l.at(-1)).msg.startsWith("Solo un líder puede cerrar un conteo")
 );
 caso(
-  "P2 · rol con SOLO Existencias: NO baja por bajar_al_piso, pero «Reponer» (mover_interno) le sigue funcionando",
+  // ADR-0240 (opción A de Felipe, 2026-09-26): mover piso↔almacén es de «Bajada al piso» por cualquier puerta. Antes
+  // este caso afirmaba lo contrario («Reponer» con solo Existencias le seguía funcionando).
+  "P2 · rol con SOLO Existencias: NO baja por bajar_al_piso NI por «Reponer», y mover_interno ya no se llama desde afuera",
   `${soloModulos("integrante", ["existencias"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 1]), ":'tok1'")};
+select pg_temp.intento(format('select retail.mover_entre_piso_y_almacen(%L, %L, 1, %L, %L, null)', :'tru', :'va', :'alm_t', :'piso_t'));
 select pg_temp.intento(format('select retail.mover_interno(%L, %L, 1, %L, %L, null)', :'tru', :'va', :'alm_t', :'piso_t'));
 ${COMO_POSTGRES}select ${cant("va", "piso_t")};`,
-  (l) => error(l.at(-3), "bajada_sin_modulo", MSG.sinModulo) && json(l.at(-2)).ok && l.at(-1) === "1"
+  (l) =>
+    error(l.at(-4), "bajada_sin_modulo", MSG.sinModulo) &&
+    json(l.at(-3)).hint === "bajada_sin_modulo" &&
+    json(l.at(-2)).estado === "42501" &&
+    l.at(-1) === "0"
 );
 caso(
   "P2 · rol con solo Vender → rechazado",
@@ -535,9 +542,9 @@ select concat_ws(',',
   "false,2,5,3,3,t,2,2,0"
 );
 caso(
-  "P5 · la fila que escribe la bajada es indistinguible de la de «Reponer» (mover_interno directo), salvo id y hora",
+  "P5 · la fila que escribe la bajada es indistinguible de la de «Reponer» (mover_entre_piso_y_almacen), salvo id y hora",
   `${sesion(FELIPE)}${COMO_API}select ${bajar("tru", lista(["vd", 2]), ":'tok1'")} as r \\gset
-select retail.mover_interno(:'tru', :'vd', 2, :'alm_t', :'piso_t', null) as m2 \\gset
+select retail.mover_entre_piso_y_almacen(:'tru', :'vd', 2, :'alm_t', :'piso_t', null) as m2 \\gset
 ${COMO_POSTGRES}select (select to_jsonb(m) - 'id' - 'created_at' from retail.movimientos m
           where m.id = (select i.movimiento_id from retail.bajada_piso_items i join retail.bajadas_piso b on b.id = i.bajada_id where b.token_cliente = :'tok1'))
      = (select to_jsonb(m) - 'id' - 'created_at' from retail.movimientos m where m.id = :'m2');`,
@@ -728,9 +735,9 @@ ${COMO_POSTGRES}select concat_ws(',', (:'r')::jsonb ->> 'ok', ${cant("ve", "alm_
   "true,1,3"
 );
 caso(
-  "P10 · pedir 4 (disponible + 1): la pre-validación dice «hay 3» y mover_interno directo dice «Stock insuficiente en origen: hay 3»",
+  "P10 · pedir 4 (disponible + 1): la pre-validación dice «hay 3» y «Reponer» (mover_entre_piso_y_almacen) dice «Stock insuficiente en origen: hay 3»",
   `${sesion(FELIPE)}${COMO_API}select ${bajar("tru", lista(["ve", 4]), ":'tok1'")} as r \\gset
-select pg_temp.intento(format('select retail.mover_interno(%L, %L, 4, %L, %L, null)', :'tru', :'ve', :'alm_t', :'piso_t')) as m \\gset
+select pg_temp.intento(format('select retail.mover_entre_piso_y_almacen(%L, %L, 4, %L, %L, null)', :'tru', :'ve', :'alm_t', :'piso_t')) as m \\gset
 ${COMO_POSTGRES}select concat_ws(',',
   (:'r')::jsonb ->> 'msg' = 'No se bajó nada. ' || retail.fn_prenda_corta(:'ve') || ': pides 4 y en el almacén hay 3 (1 apartada para una clienta)${MSG.otraPersona}',
   ((:'m')::jsonb ->> 'msg') like 'Stock insuficiente en origen: hay 3 y se pide trasladar 4%');`,

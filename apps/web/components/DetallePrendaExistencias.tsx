@@ -73,6 +73,7 @@ export function DetallePrendaExistencias({
   separa,
   mostrarMarca,
   puedeReponer,
+  sinModuloBajada = false,
   puedeApartar,
   puedeAjustar,
   veTraslados,
@@ -88,6 +89,8 @@ export function DetallePrendaExistencias({
   separa: boolean;
   mostrarMarca: boolean;
   puedeReponer: boolean;
+  /** En su sede, pero su rol no tiene «Bajada al piso» (ADR-0240): la talla por colgar lo explica en vez de callar. */
+  sinModuloBajada?: boolean;
   puedeApartar: boolean;
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
@@ -195,6 +198,9 @@ export function DetallePrendaExistencias({
                 </button>
               )}
             </div>
+            {sinModuloBajada && sePuedeBajar(talla) && (
+              <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>
+            )}
           </section>
         )}
 

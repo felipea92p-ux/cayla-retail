@@ -263,6 +263,7 @@ export function InventarioPanel({
   politica,
   veTraslados = false,
   puedeBajarAlPiso = false,
+  veApartados = false,
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -310,8 +311,11 @@ export function InventarioPanel({
   politica: PoliticaOperativaInventario;
   /** ¿Su rol ve Traslados? «Trasladar» (detalle y barra de varias) lleva a «Mover mercadería», que exige ese módulo. */
   veTraslados?: boolean;
-  /** ¿Puede usar «Bajar al piso» aquí (su módulo, su sede activa, y la sede separa piso y almacén)? Lo decide la página. */
+  /** ¿Puede usar «Bajar al piso» aquí (su módulo, su sede activa, y la sede separa piso y almacén)? Lo decide la página.
+   *  También habilita «Reponer al piso» y «Retirar del piso» de cada talla (ADR-0240: mover piso↔almacén es de ese módulo). */
   puedeBajarAlPiso?: boolean;
+  /** ¿Su rol ve «Apartados»? «Apartar» desde Existencias es de ese módulo (ADR-0240). */
+  veApartados?: boolean;
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -468,8 +472,10 @@ export function InventarioPanel({
   const sedeActiva = useSedeActiva();
   const enSedeActiva = sedeActiva?.ubicacionId === ubicacionId;
   // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
-  const puedeApartar = separaConSububicaciones && enSedeActiva;
-  const puedeReponer = separaConSububicaciones && enSedeActiva;
+  // ADR-0240 (opción A de Felipe): cada escritura es del módulo que la nombra, y la base pide lo mismo
+  // (`mover_entre_piso_y_almacen` → «Bajada al piso», `apartar_prenda` → «Apartados»): el botón solo aparece si va a pasar.
+  const puedeApartar = separaConSububicaciones && enSedeActiva && veApartados;
+  const puedeReponer = separaConSububicaciones && enSedeActiva && puedeBajarAlPiso;
   const puedeAjustarAqui = puedeAjustar && enSedeActiva;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
@@ -1323,6 +1329,7 @@ export function InventarioPanel({
           separa={separa}
           mostrarMarca={mostrarMarca}
           puedeReponer={puedeReponer}
+          sinModuloBajada={separaConSububicaciones && enSedeActiva && !puedeBajarAlPiso}
           puedeApartar={puedeApartar}
           puedeAjustar={puedeAjustarAqui}
           veTraslados={veTraslados && enSedeActiva}
