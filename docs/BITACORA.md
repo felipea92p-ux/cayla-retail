@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: la letra chica cumple y las lecturas no tumban — tareas #7 y #8)
+Cinco promesas del detalle ahora se cumplen: etiquetas solo del color que se mira, «Reponer N tallas» abre una talla que se puede bajar, otra sede sin etiquetas ni historial equivocados, «Apartados» sin un número que no coincidía, y un aviso al pasar de 100 tallas. Además, la comparación de 7 días ya no tumba la pantalla, y lo que viene en camino no se corta en 1.000 filas.
+Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la cifra buena ya vive en su pantalla. El fallo de la comparación se probó forzándolo, no suponiéndolo. Qué se rompería sin esto: etiquetas de más en cada impresión, un botón que no lleva a la acción, y una tienda sin ver su stock porque falló un porcentaje.
+Felipe se lleva: **un dato secundario nunca debe poder apagar uno principal.** Si el % de la semana no responde, se dice, y el resto sigue.
+Sin resolver: hay dos «apartados» (reserva simple y separación con adelanto) y el de Existencias no aparece en Apartados.
+
 ## 2026-09-26 (Etiquetas de precio: Guía de impresión paso a paso — ADR-0180 act.)
 Un colaborador logró que la Brother imprima bien en Windows, pero la nota del pie de Etiquetas estaba escrita para Mac y en Windows decía lo contrario de lo que funcionó. Ahora hay un botón «Guía de impresión» (cabecera y pie): Windows y Mac por separado, un paso por pantalla, las fotos reales de la tienda con un número sobre cada clic, y un diagnóstico final por síntoma que devuelve al paso que lo arregla. La nota se partió en dos: impresora y precio/campaña.
 Por qué así: lo que traba a un equipo nuevo son tres ajustes (Longitud 40.1, Vertical, cortar cada 1) y cerrar Chrome; un párrafo no los hacía visibles. Qué se rompería sin esto: cada computadora nueva repetía la prueba y error, gastando rollo.

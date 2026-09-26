@@ -141,3 +141,27 @@ medido con la cuenta de líder en TRU, local. Todo es solo por debajo de `sm`; l
 - Queda justo bajo el botón fijo «Escanear prenda», que tapa unos 90 px de abajo: se ve con un deslizamiento mínimo.
   Lo que sigue ocupando la primera pantalla (la frase de la cabecera, el título «Prioridades de hoy» y sus dos enlaces)
   se dejó a propósito.
+
+## Actualización 2026-09-26 (noche, 3) — la letra chica cumple, y una lectura secundaria ya no tumba la pantalla
+
+Tareas #7 y #8 del análisis `/pantalla` (`docs/pantallas/inventario.md`), ordenadas por Felipe.
+
+**#7 · Cada acción hace lo que dice.**
+- «Imprimir etiquetas» (del detalle y de la barra) va **siempre** por `?variantes=` con las tallas exactas. Antes, con
+  un solo producto iba por `?producto=`, que imprime todos sus colores (`urlEtiquetas`).
+- «Reponer N tallas» abre el detalle en una talla que **se puede bajar**, primero una por colgar (`tallaParaReponer`).
+  Antes podía abrir una talla sin nada en el almacén, donde no hay botón «Reponer».
+- Mirando otra sede (`?ubicacion=`), el detalle ya no ofrece «Imprimir etiquetas» ni «Ver historial», que trabajan
+  sobre la sede activa: dice cómo verlos.
+- El botón «Apartados» de la cabecera va **sin número**. Contaba filas de `apartados` (una por prenda) y la pantalla a
+  la que lleva lista separaciones (una por ticket). La cifra de prendas sigue dentro de Existencias («N apartadas para
+  clientas»).
+- Con más de 100 tallas marcadas, la barra **dice** que se llevan hasta 100 de una vez, en vez de esconder los botones.
+
+**#8 · Lecturas que no tumban ni recortan.**
+- La comparación de 7 días (`getFilasSemanaDeSede`) es dato secundario. Si no responde, Existencias sigue y la tarjeta
+  dice «No se pudo calcular la comparación ahora» (antes caía la pantalla entera). Probado forzando el fallo en local.
+- Lo que viene en camino (`transferencia_items`) y las prendas dañadas pendientes se leen por páginas (`leerTodas`):
+  pasado el tope de 1.000 filas de PostgREST, antes se cortaban sin aviso.
+- Los traslados en curso (`traslados.ts`) quedan sin paginar a propósito. Con 3 tiendas son decenas, y ese archivo es
+  de la pantalla Traslados, donde trabaja otra sesión.
