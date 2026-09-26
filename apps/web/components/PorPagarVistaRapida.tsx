@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowUpRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { BotonPagar } from "@/components/CompraDetallePanel";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import type { DatosPagoProveedor, ResultadoPago } from "@/components/PagoPiezas";
 import { ETIQUETA_METODO_PAGO, soles, type CompraResumen, type PagoCompra } from "@/lib/compras-reglas";
 import { diaMes, diasHastaLima, hoyLima } from "@/lib/fechas-lima";
@@ -65,6 +66,8 @@ export function PorPagarVistaRapida({
     const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [cerrando, onCerrar]);
+  // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
+  const alEscape = useEscapeLibre(pedirCierre);
 
   const tramo = tramoDe(c, ahora);
   const tonoChip: TonoChip = tramo === "vencidas" ? "rojo" : tramo === "semana" ? "ambar" : "neutro";
@@ -76,6 +79,7 @@ export function PorPagarVistaRapida({
       <Dialog.Portal>
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
+          onEscapeKeyDown={alEscape}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") { e.preventDefault(); onNavegar(1); }
             if (e.key === "ArrowUp") { e.preventDefault(); onNavegar(-1); }

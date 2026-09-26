@@ -25,6 +25,8 @@ type Props = {
   liberadosAhora: number;
   /** La lista llegó al tope de `buscar_separaciones` (200): hay apartados ya cerrados que no se muestran. */
   hayMas?: boolean;
+  /** Prendas que llegan del ticket del Punto de venta («Apartar», `lib/apartar-desde-ticket.ts`). */
+  lineasDesdeTicket?: { varianteId: string; cantidad: number }[];
 };
 
 /**
@@ -95,7 +97,7 @@ export function ApartadosPanel(props: Props) {
       )}
 
       {vista === "apartar" && (
-        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} />
+        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} lineasIniciales={props.lineasDesdeTicket} />
       )}
       {vista === "entregar" && (
         <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} />

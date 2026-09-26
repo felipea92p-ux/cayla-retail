@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
+Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
+ticket, espera con nombre, Apartar y Proforma desde el ticket, «Anotar que no había» en la talla, buscador con lo
+vendible arriba, hoja del ticket en el celular (`Modal variante="ticket"`), Admin como chip, «Prenda sin registrar»
+sin teclado de pantalla y catálogo de hasta 5 columnas.
+- [ ] Clic real con sesión y datos de producción (Felipe), a 1440 y a 375 px. Verificado solo con una página de prueba sin sesión.
+- [ ] **Decidir:** ¿la proforma acepta el descuento de campaña? Hoy `crear_proforma` no lo acepta y la caja lo avisa.
+- [ ] La pregunta del club y «es para regalo» en la fila «Clienta» (paso 1 del acta de clientas): esperan el historial de permisos (G.2).
+- [ ] Contadores en los accesos (apartados por vencer, devoluciones por aprobar): consultas nuevas, decidir si valen.
+- [ ] «Pedir al almacén / traslado» desde la talla agotada: hoy los traslados los inicia Inventario.
+- [ ] Coordinar con el PR #433 (apartada en Vender): toca `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx` y `ElegirTallaModal.tsx`.
 ## 🧭 Inventario con la cabecera de Ventas (2026-09-26, ADR-0220) — hecho, solo web, sin migración; rama `claude/inventory-module-headers-2683ef`
 Pedido de Felipe: «que el header de todos los módulos de inventario tome como referencia los de Caja, Historial, Postventa».
 - [x] Las 9 pantallas de Inventario usan `EncabezadoPagina`: sede y fecha arriba, título = palabra del menú (Existencias, Movimientos, Traslados, Conteo, Análisis), acciones bajo la frase; Existencias con «vista de las HH:MM» en vez de reloj vivo. Las cifras no se movieron. CLAUDE.md dice ahora que la cabecera es la de su módulo.
@@ -69,7 +80,7 @@ Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prue
 
 ## 🩹 El combo de Actividad no era el del sistema (2026-09-26, ADR-0209 act.) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
 - [x] Panel «Actividad» de la cabecera y `/actividad`: sus combos (Módulo; en la pantalla también Sede y Persona) eran el `<select>` del navegador dentro de una caja, con el hilo dibujado adentro, otra flecha y la lista del sistema operativo. Ahora son `Desplegable` en caja, medidos iguales al de «Quién vendió» (Por regularizar). Lo elegido siempre está en la lista (`opcionesDeModulo`, `opcionesDePersona`, 3 pruebas). Verificado con un banco de pruebas sin sesión (escritorio y 375 px); falta el clic con sesión real.
-- [ ] **Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito. Radix escucha Escape en la captura del `document`, antes que el combo: el `stopPropagation` de `Desplegable` y `ComboResponsable` llega tarde. Propuesta: `onEscapeKeyDown` en `Modal.tsx` que no cierre la hoja si dentro hay un combo desplegado.
+- [x] ~~**Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito.~~ Arreglado el 2026-09-26 con `useEscapeLibre` (y no con la propuesta de mirar el combo desplegado, que trababa «Registrar nota de crédito»): ver «Escape con un combo abierto cerraba el modal entero», más abajo.
 - [x] ~~Quedan `<select>` nativos que la migración del ADR-0209 no alcanzó~~ — migrados todos, Finanzas incluida, y vigilados por una prueba: ver «Un solo combo en todo el ERP», arriba.
 - Cómo verificas: con sesión de líder, en cualquier pantalla, «Actividad» (arriba, junto a la sede) → el combo «Módulo» se ve como los demás filtros y su lista es la del sistema (fondo papel, marca roja en la elegida). Igual en «Ver todo el historial →».
 
@@ -83,6 +94,15 @@ Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtr
 - [ ] **SQL espejo:** `fn_movimientos_variantes` (Movimientos) todavía no busca por marca ni categoría: hoy «cayla» funciona en Existencias y no en Movimientos. Migración propuesta `…_movimientos_busqueda_marca_categoria.sql` + escenario en `filtro-busqueda-especial.casos.json` + `scripts/pruebas/fn_movimientos_busqueda_especial.mjs` (tarea #3 del análisis, «segundo corte»).
 - [ ] Prueba de datos real: nada del camino de datos de Existencias se prueba contra un PostgREST con el rol `authenticated`. Una prueba en `scripts/pruebas/` con `postgrest` (Homebrew) y la restricción de columnas de `variantes` habría atrapado el fallo de arriba.
 - [ ] Sin ejecutar del análisis (Felipe decide): #1 «Ajustar inventario» sin token ni transacción única, #8 el semáforo marca «Stock bajo» en 41 de 45 prendas, #9 «Disponible total» y recomendaciones no excluyen `es_prueba`, #10 candado de módulo en `mover_interno` y `apartar_stock`, #6 la estrategia alternativa (stock vs catálogo × sede).
+
+## 🩹 Escape con un combo abierto cerraba el modal entero (2026-09-26, ADR-0136 act.) — solo web, sin migración; [PR #481](https://github.com/felipea92p-ux/cayla-retail/pull/481)
+Cierra el pendiente «Encontrado, sin arreglar» de la entrada «El combo de Actividad no era el del sistema» (#475, ya en `main`), marcado [x] al fusionar.
+- [x] Toda hoja de Radix cierra solo con un Escape que ningún control de adentro usó (`components/ui/useEscapeLibre.ts`): `<Modal>` (respeta `bloqueado`) y los seis cajones con `Dialog.Content` propio (vistas rápidas de Proveedor, Recepción, Nota de crédito y Por pagar; `OrdenPanel`, que tenía el mismo bug con su «Responsable»; `ProveedorModal`). Regla: un control que usa el Escape corta su propagación. Prueba nueva `lib/hojas-escape.test.ts` (un `Dialog.Content` sin la regla rompe el CI).
+- [x] Ajustados: `ComboBuscable`, `CampoFecha` (devuelve el foco a la fecha) y `MenuAcciones` cortan la propagación de su Escape; `ComboResponsable` devuelve el foco a su botón y cierra la lista con `Tab` desde el botón. El buscador de «Registrar nota de crédito» ya tenía su Escape escalonado (borra, cancela el cambio, recién cierra) y ahora funciona como dice su comentario.
+- [x] Verificado en el navegador: banco temporal con todos los combos (≤8 y >8 opciones, buscable, responsable con 3 y 10 personas, píldoras, fecha), acordeón, buscador escalonado, cajón propio, `bloqueado` y dos modales apilados, en escritorio y a 375 px; y en Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color» con sesión real (escritorio y 375 px). 77.623 pruebas, `tsc` y `eslint` en verde.
+- [ ] **Encontrado, sin arreglar — Por pagar:** las flechas ↑/↓ del cajón (pasar al comprobante siguiente) escuchan en todo su `Dialog.Content`, y React hace subir los eventos de un portal hasta sus ancestros: con «Registrar pago» abierto desde el cajón, **↓ en un combo del pago cambia el cajón al comprobante siguiente y el modal de pago desaparece con lo escrito** (reproducido en un banco). Igual en las otras tres vistas rápidas si algún día abren un modal. Arreglo propuesto: el `onKeyDown` del cajón ignora teclas que no nacieron en su propio DOM (`!e.currentTarget.contains(e.target as Node)`), que ya usó otro control (`e.defaultPrevented`) o que vienen de un campo editable.
+- [ ] `MenuAcciones` dentro de un modal no serviría: su menú cuelga de `document.body`, donde Radix deja sin clics y sin foco todo lo que está fuera de la hoja. Hoy ningún modal lo usa; si alguno lo necesita, que use `useDestinoFlotante` como los combos.
+- [ ] Deuda con ADR-0136: los seis cajones con `Dialog.Content` propio reimplementan velo y entrada en vez de usar `<Modal>`. Ya comparten la regla de Escape; unificar el resto es decisión aparte (cambia su aspecto).
 
 ## 🎨 Colores del lujo: Gris piedra, Índigo y Nude (2026-09-26, ADR-0215 act. b) — migración `20260926210000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR
 - [x] Ralph Lauren, LVMH y Hermès, investigados en vivo: CAYLA cubría 53 de 62 colores recurrentes. Entraron Gris piedra (14-0105), Índigo (19-3928) y Nude (12-0911); latte, capuchino, tabaco, crema, azul hielo, amaranto, greige y castaño son sinónimos. 71 activos.
@@ -596,7 +616,7 @@ Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras d
 - [ ] Probarlo con clics con una cuenta de tienda (no Admin), a 375 px.
 - [ ] Borrar el producto de prueba «Blusa Prueba Spike 3673» (`CAR-0001`) del Postgres LOCAL, si molesta.
 
-## 🎯 Apartados en el celular + arreglos (2026-09-26, ADR-0221) — solo web, sin migración; PR abierto
+## 🎯 Apartados en el celular + arreglos (2026-09-26, ADR-0223) — solo web, sin migración; PR abierto
 Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apartar en tres pasos con barra fija, cámara QR, y los arreglos de las capturas de Felipe (color · talla · código en ticket y Entregar, celular que empieza en 9, avisos al salir del campo, pie fijo en los modales, sin «Buscar apartado», texto de En custodia).
 - [x] Web + `esCelularPeru` con prueba; verificado a 375 px y en computador con una página de prueba sin base (capturas en `docs/maquetas/apartados-v2-2026-09/implementacion-375px/`).
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).

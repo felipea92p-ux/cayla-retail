@@ -1,4 +1,4 @@
-# ADR-0221 — Apartados en el celular: pasos y pestañas abajo
+# ADR-0223 — Apartados en el celular: pasos y pestañas abajo
 
 **Fecha:** 2026-09-26
 **Estado:** Aprobado por Felipe el 2026-09-26 («la forma puede ser pasos + pestañas abajo»).

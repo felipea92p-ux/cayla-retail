@@ -108,3 +108,45 @@ al diseño; se verifica comparando las dos a la misma medida.
    abajo (título, bajada, campos, botones). Al cerrarlo baja y se apaga en un instante.
 2. Activar «reducir movimiento» en el sistema: el modal aparece de una vez, sin cascada.
 3. Un modal cuyo hijo directo es un `<form>` cascadea los campos, no el form entero (sin destellos dobles).
+
+## Actualización 2026-09-26 — Escape: la hoja se cierra solo con un Escape que nadie usó
+
+**El problema.** Dentro de cualquier `<Modal>`, con la lista de un combo abierta, Escape cerraba el MODAL entero y se
+perdía lo escrito. Radix escucha Escape en la fase de **captura** del `document`
+(`@radix-ui/react-dismissable-layer` 1.1.19), que corre antes de que el evento llegue al control enfocado: el
+`stopPropagation()` con que `Desplegable`, `DesplegablePildora` y `ComboResponsable` se quedaban con su Escape llegaba
+tarde. Lo mismo le pasaba al buscador de «Registrar nota de crédito» (Escape debía borrar primero lo escrito) y a
+`OrdenPanel`, un cajón que arma su propio `Dialog.Content` y trae el combo «Responsable».
+
+**La decisión.** `components/ui/useEscapeLibre.ts`: la hoja no decide en la captura. Su `onEscapeKeyDown` le pide a Radix
+que no cierre (`preventDefault`) y marca ese Escape como pendiente; un oyente en `window` lo espera al final del
+recorrido. Si llega, nadie lo usó y la hoja se cierra; si un control lo usó y cortó su propagación, la hoja se queda y el
+Escape siguiente la cierra. Sirve `window` porque Next hidrata React sobre `document`: el `onKeyDown` de cada control
+corre allí y su `stopPropagation()` impide que el evento siga subiendo. Lo usan `<Modal>` (respetando `bloqueado`) y los
+seis cajones con `Dialog.Content` propio (las cuatro vistas rápidas, `OrdenPanel` y `ProveedorModal`).
+
+**La regla para un control nuevo** que viva en una hoja: si usa el Escape (cierra su lista, borra su búsqueda),
+`e.stopPropagation()`; si no, lo deja pasar. Se ajustaron los que lo usaban sin decirlo: `ComboBuscable`, `CampoFecha`
+(además devuelve el foco a la fecha al cerrar desde la grilla) y `MenuAcciones`. `ComboResponsable` devuelve el foco a su
+botón al cerrar con Escape y cierra la lista con `Tab` desde el botón, para que no quede abierta con el foco en otro
+campo, donde el Escape ya no le llegaría. `lib/hojas-escape.test.ts` falla si un `Dialog.Content` no pasa por
+`useEscapeLibre`.
+
+**Descartado.** (1) Revisar en la hoja si hay un disparador con `aria-expanded="true"` y `aria-haspopup` (o
+`role="combobox"`) y no cerrar: el buscador de «Registrar nota de crédito» tiene `role="combobox"` con
+`aria-expanded` = «hay resultados», y calcula sus resultados aunque su sección esté plegada. Con esa regla, Escape
+**nunca** habría cerrado ese modal mientras hubiera facturas, y su «borra primero lo escrito, después cancela el cambio
+de factura» igual se perdía con cero resultados. (2) `onKeyDownCapture` en cada combo: depende de que React haya
+registrado su oyente en el `document` antes que Radix, y obliga a repetirlo combo por combo. (3) Pasar los seis cajones
+a `<Modal>`: es la deuda real con esta regla, pero cambia su aspecto y su entrada; queda fuera de este arreglo.
+
+**Se rompe si** un control usa el Escape sin cortar su propagación (la hoja se cierra con él: el bug vuelve, solo en
+ese control), o si un contenedor dentro de una hoja corta la propagación de TODAS las teclas (Escape ya no cerraría
+esa hoja). Hoy no hay ninguno: se revisaron los siete `stopPropagation` de teclado de la web y todos son de un control
+que usa su tecla.
+
+**Cómo se verifica.** En cualquier modal con combos: escribir algo, abrir un combo, Escape → se cierra solo la lista y
+lo escrito sigue; otro Escape → se cierra el modal. Sin nada abierto, un solo Escape lo cierra. Con dos modales
+apilados, cada Escape cierra solo el de más arriba. Verificado el 2026-09-26 en un banco de pruebas temporal (todos los
+combos, un acordeón, el buscador escalonado, un cajón propio, `bloqueado` y dos modales apilados, en escritorio y a
+375 px) y en Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color» con sesión real.

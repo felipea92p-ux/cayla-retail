@@ -22,6 +22,7 @@ import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
+import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -96,12 +97,15 @@ export function ApartarVista({
   hoy,
   cajaAbierta,
   prendas: prendasProp,
+  lineasIniciales,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   hoy: string;
   cajaAbierta: boolean;
   prendas: PrendaApartable[];
+  /** Las prendas que llegan del ticket del Punto de venta («Apartar»): arrancan en la lista, topadas por lo disponible. */
+  lineasIniciales?: LineaApartar[];
 }) {
   const router = useRouter();
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
@@ -123,11 +127,29 @@ export function ApartarVista({
   );
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
-  const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(null);
+  // Desde el ticket del Punto de venta llegan ya elegidas; se topan por lo disponible AHORA en el piso y se dice qué
+  // no entró (otra caja pudo venderla entre el ticket y esta pantalla), en vez de perderla en silencio.
+  const [desdeTicket] = useState(() =>
+    lineasApartables(
+      lineasIniciales ?? [],
+      new Map(prendasProp.map((p) => [p.varianteId, { stockAqui: p.stockAqui, nombre: [p.referencia, p.color, p.talla].filter(Boolean).join(" · ") }])),
+    ),
+  );
+  const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(() =>
+    desdeTicket.noEntraron.length > 0
+      ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
+      : desdeTicket.lineas.length > 0
+        ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos de la clienta." }
+        : null,
+  );
   const [activo, setActivo] = useState(0);
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
-  const [lineas, setLineas] = useState<Linea[]>([]);
+  const [lineas, setLineas] = useState<Linea[]>(() => desdeTicket.lineas);
+  // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
+  useEffect(() => {
+    if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
+  }, [lineasIniciales, router]);
   const [nota, setNota] = useState("");
   const [paso, setPaso] = useState<Paso>("ticket");
   const [f, setF] = useState(FORMULARIO_VACIO);
