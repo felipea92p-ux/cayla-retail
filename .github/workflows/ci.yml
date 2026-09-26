@@ -725,3 +725,11 @@ jobs:
       - name: pruebas:editar-marca
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:editar-marca
+
+      # Catálogo ▸ Marcas ▸ Eliminar (20260926213000): una marca sin ningún producto se elimina con todos sus vínculos y los
+      # proveedores quedan; con productos (activos o descontinuados) se rechaza sin llevarse nada; corregida la marca del
+      # producto («Cayla 2») se elimina; la llave de `productos` frena un DELETE directo; el nombre queda libre.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:eliminar-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:eliminar-marca
