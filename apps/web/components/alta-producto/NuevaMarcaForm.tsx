@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { marcasParecidas, type MarcaConProveedores, type ProveedorOpcion } from "@/lib/marcas";
+import { proveedoresParecidos } from "@/lib/proveedores-reglas";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -39,6 +41,12 @@ import { firmar } from "@/lib/responsable-reglas";
 //   · si se PARECE a una o más (`marcasParecidas`), pregunta. «Sí, es CAYLA» cambia el nombre a la que existe;
 //     «No, es otra marca» deja seguir. Guardar sin responder no guarda: la pregunta es barata, la marca partida en
 //     dos no (cada filtro y cada reporte por marca la cuenta a medias, y la base no sabe fusionar marcas).
+//
+// «¿No será un proveedor que ya tienes?» (2026-09-25): lo mismo al registrar un proveedor nuevo desde aquí, con la regla
+// de proveedores (`proveedoresParecidos`: «SAC»/«S.A.C.»/«EIRL» no cuentan, y dos RUC válidos distintos no se
+// preguntan). Pesa más que la marca: un proveedor partido en dos reparte sus facturas y su Por pagar en dos fichas.
+// «Sí, es Jacard Peru SAC» lo elige de la lista (no se registra nada); con el nombre IGUAL no hay «no»: la base no
+// dejaría registrar otro.
 
 export type MarcaGuardada = {
   marcaId: string;
@@ -80,6 +88,8 @@ export function NuevaMarcaForm({
   const lista = creado && !proveedores.some((p) => p.id === creado.id) ? [...proveedores, creado] : proveedores;
   const [provNombre, setProvNombre] = useState("");
   const [provRuc, setProvRuc] = useState("");
+  // Los proveedores parecidos a los que ya se respondió «No, es otro proveedor».
+  const [provDescartados, setProvDescartados] = useState<ReadonlySet<string>>(() => new Set());
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const responsable = useResponsable();
@@ -88,6 +98,14 @@ export function NuevaMarcaForm({
   const { igual, parecidas } = marcaFija ? { igual: null, parecidas: [] } : marcasParecidas(nombreMarca, marcas);
   const porResponder = igual ? [] : parecidas.filter((p) => !descartadas.has(p.marca.id));
   const provElegido = proveedorFijo?.nombre ?? (modo === "nuevo" ? provNombre.trim() : lista.find((p) => p.id === proveedorId)?.nombre) ?? "";
+  // Solo se pregunta mientras se está registrando uno nuevo: elegido de la lista, ya es uno que existe.
+  const provPregunta = modo === "nuevo" && !proveedorFijo ? proveedoresParecidos({ nombre: provNombre, ruc: provRuc }, lista) : { igual: null, parecidos: [] };
+  const provPorResponder = provPregunta.igual ? [] : provPregunta.parecidos.filter((p) => !provDescartados.has(p.proveedor.id));
+  // Qué marcas trae cada proveedor, para que «¿es este?» se conteste sabiendo de quién se habla.
+  const marcasDe = (nombreProv: string) => {
+    const suyas = marcas.filter((m) => m.proveedores.includes(nombreProv)).map((m) => m.nombre);
+    return suyas.length > 0 ? `trae ${suyas.join(", ")}` : undefined;
+  };
 
   function usarExistente(nombre: string) {
     setNombreMarca(nombre);
@@ -95,6 +113,17 @@ export function NuevaMarcaForm({
   }
   function esOtraMarca() {
     setDescartadas((prev) => new Set([...prev, ...porResponder.map((p) => p.marca.id)]));
+    setError(null);
+  }
+  function usarProveedor(id: string) {
+    setModo("existente");
+    setProveedorId(id);
+    setProvNombre("");
+    setProvRuc("");
+    setError(null);
+  }
+  function esOtroProveedor() {
+    setProvDescartados((prev) => new Set([...prev, ...provPorResponder.map((p) => p.proveedor.id)]));
     setError(null);
   }
 
@@ -112,6 +141,14 @@ export function NuevaMarcaForm({
     }
     if (modo === "existente" && !proveedorId) return setError("Elige el proveedor que la trae.");
     if (modo === "nuevo" && !provNombre.trim()) return setError("Escribe el nombre del proveedor.");
+    if (modo === "nuevo" && provPregunta.igual) return setError(`«${provPregunta.igual.nombre}» ya está registrado: elígelo en vez de registrarlo otra vez.`);
+    if (modo === "nuevo" && provPorResponder.length > 0) {
+      return setError(
+        provPorResponder.length === 1
+          ? `Antes de guardar, dinos si «${provNombre.trim()}» es el mismo proveedor que «${provPorResponder[0].proveedor.nombre}».`
+          : `Antes de guardar, dinos si «${provNombre.trim()}» es alguno de los proveedores de arriba.`
+      );
+    }
 
     setGuardando(true);
     setError(null);
@@ -244,26 +281,18 @@ export function NuevaMarcaForm({
       )}
 
       {porResponder.length > 0 && (
-        <div role="status" className="anim-revelar rounded-xl border border-ambar/35 bg-ambar/[0.07] p-3.5">
-          <p className="text-sm font-semibold text-ambar-profundo">¿No será una marca que ya existe?</p>
-          <p className="mt-0.5 text-xs text-tinta/70">Si es la misma, elígela: se le suma el proveedor y la marca no queda partida en dos.</p>
-          <ul className="mt-2.5 space-y-2">
-            {porResponder.map(({ marca }) => (
-              <li key={marca.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm text-tinta">
-                  <span className="font-medium">{marca.nombre}</span>
-                  <span className="text-tinta/55"> · {marca.proveedores.length > 0 ? `la trae ${marca.proveedores.join(", ")}` : "sin proveedor"}</span>
-                </span>
-                <button type="button" onClick={() => usarExistente(marca.nombre)} disabled={guardando} className="btn-cayla btn-secundario">
-                  Sí, es {marca.nombre}
-                </button>
-              </li>
-            ))}
-          </ul>
-          <button type="button" onClick={esOtraMarca} disabled={guardando} className="btn-cayla btn-enlace mt-2.5 text-xs">
-            No, «{nombreMarca.trim()}» es otra marca
-          </button>
-        </div>
+        <PreguntaParecido
+          titulo="¿No será una marca que ya existe?"
+          bajada="Si es la misma, elígela: se le suma el proveedor y la marca no queda partida en dos."
+          opciones={porResponder.map(({ marca }) => ({
+            id: marca.id,
+            nombre: marca.nombre,
+            detalle: marca.proveedores.length > 0 ? `la trae ${marca.proveedores.join(", ")}` : "sin proveedor",
+          }))}
+          si={(o) => ({ texto: `Sí, es ${o.nombre}`, onClick: () => usarExistente(o.nombre) })}
+          no={{ texto: `No, «${nombreMarca.trim()}» es otra marca`, onClick: esOtraMarca }}
+          deshabilitado={guardando}
+        />
       )}
 
       {!proveedorFijo && modo === "nuevo" && (
@@ -297,6 +326,26 @@ export function NuevaMarcaForm({
           </div>
           <p className="text-xs text-tinta/55 sm:col-span-2">Con esto alcanza para seguir; el contacto, el banco y el plazo se completan después en Compras.</p>
         </div>
+      )}
+
+      {provPregunta.igual && (
+        <PreguntaParecido
+          titulo={`«${provPregunta.igual.nombre}» ya está registrado`}
+          bajada="Con el mismo nombre no se registra otro: elígelo y la marca se le suma."
+          opciones={[{ id: provPregunta.igual.id, nombre: provPregunta.igual.nombre, detalle: marcasDe(provPregunta.igual.nombre) }]}
+          si={(o) => ({ texto: `Usar ${o.nombre}`, onClick: () => usarProveedor(o.id) })}
+          deshabilitado={guardando}
+        />
+      )}
+      {provPorResponder.length > 0 && (
+        <PreguntaParecido
+          titulo="¿No será un proveedor que ya tienes?"
+          bajada="Si es el mismo, elígelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
+          opciones={provPorResponder.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: marcasDe(proveedor.nombre) }))}
+          si={(o) => ({ texto: `Sí, es ${o.nombre}`, onClick: () => usarProveedor(o.id) })}
+          no={{ texto: `No, «${provNombre.trim()}» es otro proveedor`, onClick: esOtroProveedor }}
+          deshabilitado={guardando}
+        />
       )}
 
       {error && (

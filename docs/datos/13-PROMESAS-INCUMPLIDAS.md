@@ -983,6 +983,36 @@ la regla que ya quedó anotada: **el número de ADR y el de migración se piden 
 
 ---
 
+### P-25 · El índice de proveedores promete juntar «SAC» y «s.a.c.», y no lo hace
+
+*(Descubierta el 2026-09-25, al construir la pregunta «¿no será un proveedor que ya tienes?».)*
+
+**Qué se promete.** El comentario del índice, **en la base**, viene de
+`supabase/migrations/20260914150000_proveedores_administrables.sql:55-56`: *"Impide que
+"Textiles Andina SAC" y "textiles andina s.a.c." convivan como dos proveedores."*
+
+**Qué pasa de verdad.** `proveedores_nombre_clave_unica` es un índice único sobre
+`retail.fn_clave_texto(nombre)`, que baja a minúsculas, quita tildes y junta espacios, pero
+**no quita puntos**. Preguntado a producción el 2026-09-25 (solo lectura):
+`fn_clave_texto('Textiles Andina SAC')` da `textiles andina sac`,
+`fn_clave_texto('textiles andina s.a.c.')` da `textiles andina s.a.c.`, y la comparación da
+`false`. Los dos conviven sin que nada avise.
+
+**Qué cuesta.** Plata repartida: un proveedor en dos fichas lleva sus facturas, su Por
+pagar y sus notas de crédito partidos, y el saldo a favor de una ficha no se ve desde la
+otra. Desde el 2026-09-25 la web pregunta antes de registrar (`proveedoresParecidos`,
+ADR-0109 act. (b)), pero esa pregunta vive en la pantalla: una carga por SQL, o una puerta
+que no la use —hoy el proveedor rápido de Gastos, `registrar_proveedor_de_gasto`—, sigue
+pasando.
+
+**Qué hacer. Base (texto).** Corregir el comentario en la próxima migración de proveedores:
+que diga que junta mayúsculas, tildes y espacios, y que «SAC» contra «S.A.C.» lo pregunta
+la pantalla. **No** se agrega un candado por nombre sin forma societaria: «Jacard Peru SAC»
+y «Jacard Peru EIRL» pueden ser dos empresas con dos RUC (ver el «DESCARTÉ» del ADR-0109,
+actualización (b)).
+
+---
+
 ## Lo que se revisó y NO se confirma
 
 Tres cosas que estaban en la lista original no sobrevivieron a mirar el SQL. Van aquí por
@@ -1051,6 +1081,7 @@ ya está bien y meter una cláusula que sobra.
 | P-22 | `CORP` en local, `CCO` en las tiendas | MEDIO | SQL + texto |
 | P-23 | Comentario viejo de `recalcular_stock()` en la base | BAJO | SQL |
 | P-24 | Dos ADR `0003` y un `0043` que no existe | BAJO | Texto |
+| P-25 | El índice de proveedores promete juntar «SAC» y «s.a.c.» (2026-09-25) | MEDIO | Texto en la base |
 
 **Trece de las veinticuatro son ALTO, y siete de esas trece son contabilidad o
 historial** — los dos lugares donde una mentira cuesta plata o cuesta pasado. Ninguna es
