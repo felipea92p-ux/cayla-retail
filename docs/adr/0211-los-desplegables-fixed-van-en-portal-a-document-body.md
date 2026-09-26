@@ -101,3 +101,37 @@ siguen con `reposo` en su valor por defecto (`true`).
 - **Quitar `@container`/`overflow-hidden` de las tarjetas que lo necesitan** (`ComprobantesPanel`, para el
   hover recortado en las esquinas redondas). Son necesarios por su propia razón (ver el comentario en cada
   archivo) y quitarlos rompería otra cosa para arreglar esta.
+
+## Actualización 2026-09-26 — dos defectos del portal, y dónde se cuelga dentro de un modal
+
+El portal a `document.body` resolvió el orden de pintado, pero rompió dos cosas que nadie probó con el mouse,
+porque las pruebas de este ADR eran de celular y de «¿se ve encima?», no de «¿se puede elegir?».
+
+**1. Tocar una opción cerraba la lista antes de elegir — en TODA pantalla.** `Desplegable` (todo `CampoSelect`),
+`DesplegablePildora` y `ComboResponsable` deciden «tocaste afuera, cierro» preguntando si el clic cayó dentro de
+su caja en el DOM (`contenedor.contains(...)` / `raiz.contains(...)`). Con la lista en un portal, sus opciones ya
+no están dentro de esa caja: el `mousedown`/`pointerdown` en una opción contaba como «afuera», la lista se
+desmontaba y el `click` de la opción (que es el que elige) ya no llegaba. Con teclado sí se podía elegir; con
+mouse o con el dedo, no. Además, en `ComboResponsable` las flechas buscaban las opciones dentro de `raiz` y no
+encontraban ninguna. `MenuAcciones` ya lo hacía bien (mira el menú Y el botón). Arreglo: cada uno guarda un ref
+a su caja flotante (`capa`) y el «afuera» mira las dos.
+
+**2. Dentro de un `<Modal>`, la lista quedaba fuera de la hoja de Radix.** Radix Dialog deja todo lo que está
+fuera de su hoja sin clics (`pointer-events: none` en `body`), le devuelve el foco a la hoja si algo de afuera
+lo toma (FocusScope) y lo esconde a los lectores de pantalla. Resultado: la lista se veía, pero el clic caía en
+el formulario de atrás, lo tecleado en su buscador iba a otro campo, y en el combo «Responsable» el toque
+contaba como «clic fuera del modal» y **cerraba el modal entero**, perdiendo lo escrito (medido en el
+navegador contra `main` el 2026-09-26). Arreglo: `useDestinoFlotante` (`useAnclaje.ts`) cuelga la lista en la
+propia hoja (`[role="dialog"]`) cuando el control está dentro de un modal, y en `document.body` en el resto.
+La hoja en reposo no crea containing block para `fixed` (sin `transform` ni containment), así que la posición
+medida por `usePosicionLista` sigue valiendo; durante su animación de entrada sí lleva `transform`, y eso ya lo
+cubre la medición cuadro a cuadro — es como vivían estas listas en los modales antes de este ADR.
+
+**Verificado en el navegador** (página de prueba con los componentes reales, sin base): `CampoSelect` y
+`DesplegablePildora` fuera de un modal, `CampoSelect` («Familia» de Nuevo color) y `ComboResponsable` dentro
+de un `<Modal>` real, con mouse, con teclado (flechas) y a 375 px con toque. Contra `main`, el mismo recorrido
+fallaba: la familia no cambiaba y el modal del responsable se cerraba.
+
+**Descartado:** dejar la lista en `body` y darle `pointer-events: auto` y un `z-index` por encima del modal.
+Arregla el clic, pero no el foco (FocusScope sigue robándoselo al buscador de la lista) ni el «clic fuera» de
+Radix, que se decide por DOM y cerraría el modal.

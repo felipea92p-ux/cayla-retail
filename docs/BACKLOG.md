@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🩹 Listas flotantes que no se podían elegir (2026-09-26, act. ADR-0211) — solo web, sin migración
+- [x] `CampoSelect`, píldoras de filtro y combo «Responsable»: el clic en una opción cerraba la lista sin elegir (desde #442). Dentro de un modal, tocar un responsable cerraba el modal. Arreglado y verificado en navegador (mouse, teclado, 375 px).
+- [ ] **Tras publicar:** en producción, abrir un modal con «Responsable» (p. ej. Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color») y elegir a alguien con el mouse; y un filtro de Ventas ▸ Historial.
+
+---
+
 ## 📦 Nuevo producto con su stock de hoy — la carga inicial (2026-09-26, ADR-0212)
 Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya está; 0 papeleo por ahora».
 - [x] **Paso 5 «Cuántas tienes hoy»** en `/productos/nuevo`: cantidades por talla × color y «¿Dónde están?» (piso o almacén), en la misma transacción que el producto (`crear_producto_con_stock_inicial`). 28 pruebas SQL + carrera real con COMMIT + navegador a 1440 y 375 px.
