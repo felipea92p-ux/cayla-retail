@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
@@ -11,12 +11,21 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
+import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
+import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
+import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
+import type { CatalogoMarcas } from "@/lib/marcas-datos";
+import { useParecidos } from "@/lib/use-parecidos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
 
    Usado solo por /productos/[id]/editar — el alta vive en
-   NuevoProductoForm.tsx, un componente propio desde que tallas/tejidos/
+   NuevoProductoForm.tsx (la rama de alta que quedaba acá era código muerto
+   y se retiró junto con `catalogo_crear_producto`, ADR-0109), un componente propio desde que tallas/tejidos/
    patrones pasaron a vocabulario cerrado (ADR-0095). Antes de esa fecha
    era un único componente para alta y edición; ese reparto es el que
    sigue explicando por qué la lógica de sugerir SKU vive acá con tanto
@@ -47,7 +56,7 @@ import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
    y se agrega una fila nueva.
    ==================================================================== */
 
-type Categoria = { id: string; nombre: string; prefijo: string | null };
+type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
 type Color = { codigo: string; nombre: string; hex: string | null };
 
 type FilaVariante = {
@@ -131,6 +140,8 @@ export function ProductoForm({
   colores,
   ejes,
   etiquetas,
+  avisoEtiquetas,
+  marcas,
   producto,
 }: {
   categorias: Categoria[];
@@ -139,6 +150,10 @@ export function ProductoForm({
   ejes: EjesPorCategoria;
   /** Vocabulario de etiquetas aprobado+activo, para aplicar a una variante. */
   etiquetas: ValorVocabulario[];
+  /** Una línea bajo el selector de etiquetas (ADR-0161 P4: a quien no es líder, que las de descuento no se le ofrecen). */
+  avisoEtiquetas?: string;
+  /** Marcas, proveedores y parejas registradas (ADR-0109). */
+  marcas: CatalogoMarcas;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
 }) {
@@ -154,6 +169,8 @@ export function ProductoForm({
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
   const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
   const [patronId, setPatronId] = useState(producto?.patronId ?? "");
+  const [marcaId, setMarcaId] = useState(producto?.marcaId ?? "");
+  const [proveedorId, setProveedorId] = useState(producto?.proveedorId ?? "");
   const [fotos, setFotos] = useState<FotoLocal[]>(
     () =>
       producto?.fotos.map((f) => ({
@@ -184,13 +201,24 @@ export function ProductoForm({
           sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
           skuManual,
           precio: String(v.precio),
-          costo: String(v.costo),
+          costo: v.costo === null ? "" : String(v.costo),
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
         };
       });
   });
   const [loading, setLoading] = useState(false);
+  // ADR-0193 (edición simultánea): la versión de la prenda cuando se abrió la ficha. Viaja en cada guardado; si otra
+  // persona guardó entre medio, la base rechaza (PT409) en vez de pisar sus precios. Tras un guardado bueno se toma la
+  // versión que devuelve la base, para que reintentar solo las etiquetas no choque consigo mismo.
+  const versionRef = useRef<number | null>(producto?.version ?? null);
+  const [versionCambiada, setVersionCambiada] = useState(false);
+  // Quien no ve el dinero recibe el costo vacío (null, 20260923193700): la ficha no muestra el campo y la base no lo toca
+  // al guardar (`catalogo_actualizar_producto`). Un producto sin variantes todavía no dice nada: se muestra el campo.
+  const veCosto = !producto || producto.variantes.length === 0 || producto.variantes.some((v) => v.costo !== null);
+  // Editar una prenda es Catálogo, operación de tienda (ADR-0161): quien está de turno firma el guardado (las dos
+  // llamadas de «Guardar cambios» van con la misma firma: son un solo gesto).
+  const responsable = useResponsable();
   // Una sola fila de etiquetas abierta a la vez — mismo criterio que el
   // resto de las pantallas de admin (una edición inline visible por vez).
   const [etiquetasAbiertoEn, setEtiquetasAbiertoEn] = useState<number | null>(null);
@@ -200,6 +228,20 @@ export function ProductoForm({
   // en cada guardado del producto (evitaría escribir sobre variantes cuyas
   // etiquetas nadie tocó, pisando su `created_at` sin motivo).
   const etiquetaIdsOriginales = useRef(new Map((producto?.variantes ?? []).map((v) => [v.id, v.etiquetaIds])));
+
+  // Renombrar: la misma comprobación que al crear, pero SOLO si el nombre cambia de verdad
+  // (otra clave): pasar de "blusa aurora" a "Blusa Aurora" no es un nombre nuevo.
+  const nombreNuevo = tituloReferencia(referencia);
+  const nombreCambio = !!producto && claveReferencia(nombreNuevo) !== claveReferencia(producto.referencia);
+  const parecidos = useParecidos({ nombre: nombreNuevo, activo: nombreCambio, excluirId: producto?.id });
+  const parejaCambio = !!producto && (marcaId !== producto.marcaId || proveedorId !== producto.proveedorId);
+  const categoriaActual = categorias.find((c) => c.id === categoriaId);
+  // Al EDITAR la regla es «no empeora» (ADR-0109, cuarta parte; Felipe, 2026-09-19): en Indumentaria un producto activo que
+  // YA tenía tejido o patrón no puede quedarse sin él; uno que nunca los tuvo se guarda igual. Hoy son 38 de los 39 activos: nacieron
+  // cuando ninguna categoría tenía tejidos habilitados, y exigirlos habría impedido hasta cambiar un precio. Nuevo producto sí los exige.
+  const familiaExigente = !!categoriaActual?.exigeTejidoPatron && estado === "activo";
+  const exigeTejido = familiaExigente && !!producto?.tejidoId;
+  const exigePatron = familiaExigente && !!producto?.patronId;
 
   const opcionesCategoria = categorias.map((c) => ({ valor: c.id, texto: c.nombre, detalle: c.prefijo ?? undefined }));
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
@@ -253,6 +295,10 @@ export function ProductoForm({
     setVariantes((a) => a.filter((_, n) => n !== i));
   }
 
+  function recargar() {
+    window.location.reload();
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!referencia.trim()) return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
@@ -264,9 +310,20 @@ export function ProductoForm({
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
+    if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
+    if (!marcaId || !proveedorId) return void avisar.error("Elige la marca y el proveedor del producto.", { enfocar: "producto-marca" });
+    if (nombreCambio && parecidos.comprobando) return void avisar.error("Espera un momento: se está comprobando que el nombre no exista todavía.", { enfocar: "producto-referencia" });
+    if (nombreCambio && parecidos.hayIdentico) return void avisar.error("Ya existe un producto con ese nombre.", { enfocar: "producto-referencia" });
+    if (nombreCambio && parecidos.hayUnaLetra && !parecidos.confirmo) {
+      return void avisar.error("Ese nombre se escribe casi igual que otro producto: confirma que es distinto, o déjalo como estaba.", { enfocar: "producto-referencia" });
+    }
+    if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
+    if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
+    const firma = responsable.firma();
+    if (!responsable.listo || !firma) return void avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
 
     setLoading(true);
-    const cerrarProceso = avisar.proceso(editando ? `Guardando ${referencia.trim()}…` : `Creando ${referencia.trim()}…`);
+    const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);
 
     const payloadVariantes = variantes.map((v) => ({
       ...(v.id ? { id: v.id } : {}),
@@ -286,40 +343,47 @@ export function ProductoForm({
     }));
 
     const supabase = createClient();
-    const { error } = editando
-      ? await supabase.rpc("catalogo_actualizar_producto", {
-          p_producto_id: producto!.id,
-          p_referencia: referencia.trim(),
-          p_estado: estado,
-          p_variantes: payloadVariantes,
-          p_permitir_venta_sin_stock: permitirVentaSinStock,
-          p_fotos: payloadFotos,
-          ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
-          ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
-          ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
-          ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
-          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
-          ...(patronId ? { p_patron_id: patronId } : {}),
-        })
-      : await supabase.rpc("catalogo_crear_producto", {
-          p_referencia: referencia.trim(),
-          p_variantes: payloadVariantes,
-          p_permitir_venta_sin_stock: permitirVentaSinStock,
-          p_fotos: payloadFotos,
-          ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
-          ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
-          ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
-          ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
-          ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
-          ...(patronId ? { p_patron_id: patronId } : {}),
-        });
+    const { data: versionNueva, error } = await firmar(supabase.rpc("catalogo_actualizar_producto", {
+      p_producto_id: producto.id,
+      p_referencia: referencia.trim(),
+      p_estado: estado,
+      p_variantes: payloadVariantes,
+      p_permitir_venta_sin_stock: permitirVentaSinStock,
+      p_fotos: payloadFotos,
+      ...(categoriaId ? { p_categoria_id: categoriaId } : {}),
+      ...(descripcion.trim() ? { p_descripcion: descripcion.trim() } : {}),
+      ...(stockMinimo.trim() !== "" ? { p_stock_minimo: Number(stockMinimo) } : {}),
+      ...(temporada.trim() ? { p_temporada: temporada.trim() } : {}),
+      ...(tejidoId ? { p_tejido_id: tejidoId } : {}),
+      ...(patronId ? { p_patron_id: patronId } : {}),
+      // Marca y proveedor solo si CAMBIARON: si no, un proveedor desactivado más tarde impediría guardar hasta un cambio de precio.
+      ...(parejaCambio ? { p_marca_id: marcaId, p_proveedor_id: proveedorId } : {}),
+      ...(parecidos.confirmo ? { p_confirmo_distinto: true } : {}),
+      ...(versionRef.current !== null ? { p_version_esperada: versionRef.current } : {}),
+    }), firma);
 
     if (error) {
       cerrarProceso();
       setLoading(false);
-      avisar.error(traducirError(error, editando ? "guardar el producto" : "crear el producto"));
+      responsable.despues(error);
+      if (esVersionCambiada(error)) {
+        // Otra persona guardó esta prenda mientras se editaba: el formulario NO se cierra (lo escrito sigue a la vista
+        // para anotarlo) y se ofrece recargar, que trae sus cambios.
+        setVersionCambiada(true);
+        avisar.error(traducirError(error, "guardar el producto"), { accion: { texto: "Recargar", onClick: recargar } });
+        return;
+      }
+      const lectura = leerErrorAlta(error);
+      if (lectura.tipo !== "otro") {
+        // Otra persona creó ese nombre mientras se editaba: se muestra en pantalla, no solo en un aviso.
+        parecidos.reintentar();
+        avisar.error(lectura.mensaje, { enfocar: "producto-referencia" });
+        return;
+      }
+      avisar.error(traducirError(error, "guardar el producto"));
       return;
     }
+    if (typeof versionNueva === "number") versionRef.current = versionNueva;
 
     // Etiquetas por variante se guardan en la MISMA acción, después del
     // guardado principal — nunca un botón aparte (ver comentario del
@@ -334,9 +398,11 @@ export function ProductoForm({
       .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
       .map((v) => ({ variante_id: v.id, etiqueta_ids: v.etiquetaIds }));
     if (editando && asignacionesEtiquetas.length > 0) {
-      const { error: errorEtiquetas } = await supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas });
+      const { error: errorEtiquetas } = await firmar(supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas }), firma);
       cerrarProceso();
       setLoading(false);
+      // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
+      responsable.despues(errorEtiquetas);
       if (errorEtiquetas) {
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
           detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
@@ -346,9 +412,10 @@ export function ProductoForm({
     } else {
       cerrarProceso();
       setLoading(false);
+      responsable.despues(null);
     }
 
-    avisar.exito(editando ? `${referencia.trim()} guardado` : `${referencia.trim()} creado`, {
+    avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
     });
     router.replace("/productos");
@@ -373,8 +440,41 @@ export function ProductoForm({
             <Campo etiqueta="Categoría">
               <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={elegirCategoria} opciones={opcionesCategoria} marcador="Busca una categoría…" />
             </Campo>
+            {nombreCambio && (
+              <div className="sm:col-span-2">
+                {nombreNuevo && nombreNuevo !== referencia.trim() && (
+                  <p className="mb-2 text-xs text-tinta/60">
+                    Se guardará como <strong className="text-tinta">{nombreNuevo}</strong>
+                  </p>
+                )}
+                <AvisoParecidos parecidos={parecidos.items} confirmo={parecidos.confirmo} onConfirmo={parecidos.confirmar} noSePudoComprobar={parecidos.fallo} />
+              </div>
+            )}
+            <div className="sm:col-span-2" id="producto-marca">
+              <Campo etiqueta="Marca y proveedor">
+                <ElegirMarcaProveedor
+                  marcas={marcas.marcas}
+                  proveedores={marcas.proveedores}
+                  vinculos={marcas.vinculos}
+                  usosCategoria={marcas.parejasPorCategoria[categoriaId] ?? []}
+                  categoriaNombre={categoriaActual?.nombre}
+                  nombresIniciales={producto ? { marca: producto.marcaNombre, proveedor: producto.proveedorNombre } : undefined}
+                  marcaId={marcaId}
+                  proveedorId={proveedorId}
+                  onElegir={(m, p) => {
+                    setMarcaId(m);
+                    setProveedorId(p);
+                  }}
+                  onLimpiar={() => {
+                    setMarcaId("");
+                    setProveedorId("");
+                  }}
+                  puedeCrear
+                />
+              </Campo>
+            </div>
             <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
-            <Campo etiqueta="Tejido (opcional)">
+            <Campo etiqueta={exigeTejido ? "Tejido" : "Tejido (opcional)"}>
               <ComboBuscable
                 etiquetaAccesible="Tejido"
                 valor={tejidoId}
@@ -382,8 +482,16 @@ export function ProductoForm({
                 opciones={opcionesTejido}
                 marcador={categoriaId ? "Sin tejido" : "Elige una categoría primero"}
               />
+              {exigeTejido && opcionesTejido.length === 0 && (
+                <p className="mt-1 text-xs text-ambar-profundo">
+                  Esta prenda ya tenía tejido y {categoriaActual?.nombre} no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
+                </p>
+              )}
+              {familiaExigente && !exigeTejido && !tejidoId && opcionesTejido.length > 0 && (
+                <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
+              )}
             </Campo>
-            <Campo etiqueta="Patrón (opcional)">
+            <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"}>
               <ComboBuscable
                 etiquetaAccesible="Patrón"
                 valor={patronId}
@@ -391,11 +499,30 @@ export function ProductoForm({
                 opciones={opcionesPatron}
                 marcador={categoriaId ? "Sin patrón" : "Elige una categoría primero"}
               />
+              {exigePatron && opcionesPatron.length === 0 && (
+                <p className="mt-1 text-xs text-ambar-profundo">
+                  Esta prenda ya tenía patrón y {categoriaActual?.nombre} no tiene ninguno habilitado: habilítalos en Catálogo → Categorías para poder guardar.
+                </p>
+              )}
+              {familiaExigente && !exigePatron && !patronId && opcionesPatron.length > 0 && (
+                <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva patrón (si no tiene diseño, elige Liso). Complétalo cuando puedas; no hace falta para guardar.</p>
+              )}
               {patronId && <MuestraPatron nombre={opcionesPatron.find((o) => o.valor === patronId)?.texto ?? ""} className="mt-2 aspect-[3/1] w-[120px]" />}
             </Campo>
-            {editando && (
-              <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
-            )}
+            {editando &&
+              (producto?.estadoAlta === "rechazado" ? (
+                // Una prenda rechazada en el censo es terminal (productos_rechazado_descontinuado_check): ofrecerle «Activo»
+                // sería un botón que la base siempre rechaza. Se dice por qué y qué hacer, en vez de dejar que falle al guardar.
+                <div className="space-y-1">
+                  <p className="label-cayla text-[11px] text-tinta/70">Estado</p>
+                  <p className="text-sm text-tinta">Descontinuado</p>
+                  <p className="text-xs text-tinta/60">
+                    Se rechazó al revisar un alta al vuelo y no se reactiva. Si fue un error, créala de nuevo con Nuevo producto.
+                  </p>
+                </div>
+              ) : (
+                <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
+              ))}
             <CampoTexto
               etiqueta="Stock mínimo (opcional)"
               id="producto-stock-minimo"
@@ -427,7 +554,8 @@ export function ProductoForm({
         </section>
 
         {/* ---------- fotos ---------- */}
-        <section className="card-cayla p-5">
+        {/* id="fotos": la pantalla de éxito de Nuevo producto (ADR-0109) enlaza acá con #fotos. */}
+        <section id="fotos" className="card-cayla scroll-mt-6 p-5">
           <FotosProducto fotos={fotos} onFotos={setFotos} colores={colores} disabled={loading} />
         </section>
 
@@ -476,18 +604,23 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { precio: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                aria-label="Costo"
-                placeholder="0.00"
-                value={v.costo}
-                onChange={(e) => actualizarFila(i, { costo: e.target.value })}
-                className={`${NUMERO} text-right`}
-              />
+              {veCosto ? (
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  aria-label="Costo"
+                  placeholder="0.00"
+                  value={v.costo}
+                  onChange={(e) => actualizarFila(i, { costo: e.target.value })}
+                  className={`${NUMERO} text-right`}
+                />
+              ) : (
+                <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
+              )}
               <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
                 {(() => {
+                  if (!veCosto) return "—";
                   const m = margenPorcentaje(v.precio, v.costo);
                   return m === null ? "—" : `${m.toFixed(0)}%`;
                 })()}
@@ -529,6 +662,7 @@ export function ProductoForm({
                       <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
                     )}
                     <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>
+                    {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
                   </div>
                 )}
               </div>
@@ -546,8 +680,20 @@ export function ProductoForm({
         <p className="text-sm text-tinta/65">
           El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar — no hace falta escribirlo.
         </p>
+        <ComboResponsable control={responsable} deshabilitado={loading} />
+        {versionCambiada && (
+          <div className="nota-cayla space-y-2" role="alert">
+            <p>
+              Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios; lo que escribiste sigue aquí hasta
+              entonces, por si quieres anotarlo.
+            </p>
+            <Boton type="button" peso="fantasma" onClick={recargar} className="w-full">
+              Recargar la prenda
+            </Boton>
+          </div>
+        )}
         <div className="flex flex-col gap-2">
-          <Boton type="submit" peso="primario" cargando={loading} className="w-full">
+          <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}
           </Boton>
           <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading} className="w-full">

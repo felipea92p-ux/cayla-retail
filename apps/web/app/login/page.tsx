@@ -8,7 +8,13 @@ import { createClient } from "@/lib/supabase/client";
 
 const MENSAJES_ERROR: Record<string, string> = {
   sin_persona:
-    "Tu cuenta existe pero todavía no está vinculada a ningún integrante. Pide a un Líder que te dé de alta en el sistema.",
+    // D-70: el mismo aviso cubre "nadie te dio de alta todavía" y "ya te dieron de alta, pero
+    // falta que un líder la apruebe" — retail no distingue los dos casos acá para no revelar
+    // el estado interno de un alta a quien todavía no puede entrar; en los dos casos el
+    // siguiente paso es el mismo: hablar con un líder.
+    "Tu cuenta existe pero todavía no puede entrar a retail. Pide a un Líder que te dé de alta o que apruebe tu acceso.",
+  // ADR-0162: la cuenta de un APARATO (terminal de tienda) que un líder desactivó en Colaboradores ▸ Terminales.
+  terminal_desactivada: "Esta terminal está desactivada. Pide a un Líder que la reactive en Colaboradores ▸ Terminales.",
 };
 
 export default function LoginPage() {

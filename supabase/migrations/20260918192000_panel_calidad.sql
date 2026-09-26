@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918192000_panel_calidad.sql — CAYLA V2 · Gestión comercial: calidad (ADR-0113)
+-- 20260918192000_panel_calidad.sql — CAYLA V2 · Gestión comercial: calidad (ADR-0214)
 --
 -- ESTADO: escrita y probada contra un Postgres desechable (scripts/pruebas/panel_calidad_aislado.sql).
 --   NO en producción — la pega Felipe en el SQL Editor. Ya va calificada con `retail.`: se pega tal cual.

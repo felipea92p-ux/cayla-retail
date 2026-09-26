@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /* ====================================================================
    TarjetaCifra · una etiqueta, un número grande, una línea de contexto
@@ -31,6 +31,10 @@ import type { ReactNode } from "react";
    - `vacia`: borde punteado y número apagado — «todavía no hay datos», con
      la razón en `children`. Un dato que aún no existe se dice, no se inventa.
 
+   `acentoTrazo` y `puntoPulsa` (2026-09-19, Por pagar): la misma tarjeta que «pide algo», pero el
+   filete rojo se DIBUJA al llegar (crece desde arriba, ya sin ocupar el borde) y el puntito emite dos
+   ondas y se queda quieto. Es la entrada de la pantalla, no un adorno: pasa una vez y no se repite.
+
    `fila` + `icono` (2026-09-18, Traslados): la misma tarjeta en una fila
    baja — ícono a la izquierda, cifra más chica, contexto en una línea y una
    flecha si se puede tocar. Para pantallas donde la fila de tarjetas es una
@@ -39,6 +43,15 @@ import type { ReactNode } from "react";
    (En Traslados esta variante se llamó `compacta`; al unir las dos ramas se
    renombró `fila`, porque `compacta` ya significaba «p-4» en las ~30
    tarjetas de Compras.)
+
+   `viva` + `reparto` (2026-09-19, ADR-0136, ambas opt-in; sin ellas la tarjeta se
+   dibuja igual que antes): `viva` hace que una tarjeta CLICABLE se levante 2 px y
+   la cruce un barrido de luz al pasar el mouse (`alza-cayla` + `cmp-viva`, ver
+   app/estilos/comprobantes-lista.css), y que una flecha marcada con `.cmp-flecha`
+   se corra 4 px. `reparto` dibuja bajo el contexto una barra fina de 4 px que
+   se llena una vez: qué parte del total es lo urgente («2 de 5 comprobantes
+   vencidos» en rojo, «3 de 7 atrasadas» en ámbar). Es un adorno de lectura:
+   el número y el texto ya dicen lo mismo, por eso va `aria-hidden`.
    ==================================================================== */
 
 type Accion = { texto: string } & ({ href: string } | { onClick: () => void });
@@ -60,16 +73,23 @@ export function TarjetaCifra({
   unidad,
   tono,
   acento = false,
+  acentoTrazo = false,
+  puntoPulsa = false,
   activa = false,
   href,
   onClick,
   accion,
   punto,
+  vivo = false,
   detalleTono,
   icono,
   compacta = false,
   fila = false,
   vacia = false,
+  viva = false,
+  reparto,
+  className = "",
+  style,
   children,
 }: {
   etiqueta: string;
@@ -79,12 +99,18 @@ export function TarjetaCifra({
   tono?: string;
   /** Borde izquierdo en rojo: la tarjeta que pide algo. */
   acento?: boolean;
+  /** Como `acento`, pero el filete se dibuja al llegar la tarjeta (crece desde arriba). Excluyente con `acento`. */
+  acentoTrazo?: boolean;
+  /** El puntito emite dos ondas al llegar la tarjeta. Solo con `punto`. */
+  puntoPulsa?: boolean;
   activa?: boolean;
   href?: string;
   onClick?: () => void;
   accion?: Accion;
   /** Puntito de color junto a la etiqueta. Sin esta prop no se dibuja. */
   punto?: PuntoCifra;
+  /** El puntito late (`punto-vivo`): lo que pide atención ahora. Solo con `punto`. */
+  vivo?: boolean;
   /** Clase de color de la línea de contexto (`text-rojo`, `text-ambar-profundo`, `text-verde-profundo`). */
   detalleTono?: string;
   /** Solo con `fila`: el ícono (ya con su disco y colores) a la izquierda. */
@@ -95,36 +121,51 @@ export function TarjetaCifra({
   fila?: boolean;
   /** Borde punteado y número apagado: «todavía no hay datos». */
   vacia?: boolean;
+  /** Tarjeta clicable que se levanta y recibe un barrido de luz al pasar el mouse. Sin `href`/`onClick` no hace nada. */
+  viva?: boolean;
+  /** Barra fina bajo el contexto: `fraccion` (0–1) es lo urgente del total; se llena una vez al aparecer. */
+  reparto?: { fraccion: number; tono: "rojo" | "ambar" };
+  /** Clases extra (típico: `anim-entra` de la entrada escalonada). */
+  className?: string;
+  style?: CSSProperties;
   children?: ReactNode;
 }) {
-  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left transition-colors ${acento ? "border-l-2 border-l-rojo" : ""} ${
+  const esViva = viva && Boolean(onClick || href);
+  // `viva` no usa `transition-colors`: como utilidad le ganaría a la transición de `.alza-cayla` y la tarjeta no se levantaría con suavidad.
+  const clase = `card-cayla block ${compacta || fila ? "p-4" : "p-5"} text-left ${esViva ? "alza-cayla cmp-viva" : "transition-colors"} ${acento ? "border-l-2 border-l-rojo" : ""} ${acentoTrazo ? "relative overflow-hidden" : ""} ${
     vacia ? "border-dashed bg-transparent" : ""
-  } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""}`;
+  } ${onClick || href ? "hover:bg-sand/30" : ""} ${activa ? "bg-sand/40" : ""} ${className}`;
 
   const contenido = fila ? (
     <span className="flex items-center gap-3">
       {icono}
       <span className="min-w-0 flex-1">
-        <span className="label-cayla block text-[11px] text-tinta/65">{etiqueta}</span>
+        <span className="label-cayla block text-[11px] font-bold text-taupe">{etiqueta}</span>
         <span className="mt-0.5 flex items-baseline gap-1.5">
           <span className={`font-display text-2xl tabular-nums ${tono ?? "text-tinta"}`}>{valor}</span>
           {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
         </span>
-        {children && <span className="mt-0.5 block text-xs text-tinta/65">{children}</span>}
+        {children && <span className="mt-0.5 block text-xs text-taupe">{children}</span>}
       </span>
       {(onClick || href) && <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/40" />}
     </span>
   ) : (
     <>
-      <p className="label-cayla flex items-center gap-[7px] text-[11px] text-tinta/65">
-        {punto && <span aria-hidden className={`h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]}`} />}
+      {acentoTrazo && <span aria-hidden className="anim-crece-y absolute bottom-3.5 left-0 top-3.5 w-0.5 origin-top rounded-sm bg-rojo" style={{ ["--i" as string]: 10 }} />}
+      <p className="label-cayla flex items-center gap-[7px] text-[11px] font-bold text-taupe">
+        {punto && (
+          <span aria-hidden className={`relative h-1.5 w-1.5 shrink-0 rounded-full ${PUNTO[punto]} ${vivo ? "punto-vivo" : ""}`}>
+            {puntoPulsa && <span className={`anim-vivo-onda pointer-events-none absolute inset-0 rounded-full ${PUNTO[punto]}`} style={{ animationDelay: "1400ms" }} />}
+          </span>
+        )}
         {etiqueta}
       </p>
       <p className="mt-1 flex items-baseline gap-2">
-        <span className={`font-display text-3xl tabular-nums ${vacia ? "text-tinta/45" : (tono ?? "text-tinta")}`}>{valor}</span>
+        <span className={`font-display text-[28px] leading-tight tabular-nums ${vacia ? "text-tinta/45" : (tono ?? "text-tinta")}`}>{valor}</span>
         {unidad && <span className="text-sm text-tinta/55">{unidad}</span>}
       </p>
-      {children && <p className={`mt-1 text-xs ${detalleTono ?? "text-tinta/65"}`}>{children}</p>}
+      {/* `div` y no `p`: el contexto puede llevar una barra dentro (Concentración de Por pagar) y un bloque no cabe en un párrafo. */}
+      {children && <div className={`mt-1 text-xs ${detalleTono ?? "text-taupe"}`}>{children}</div>}
       {accion &&
         ("href" in accion ? (
           <Link href={accion.href} className="label-cayla mt-3 inline-block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
@@ -139,22 +180,31 @@ export function TarjetaCifra({
             {accion.texto} →
           </button>
         ))}
+      {reparto && (
+        <span aria-hidden className="cmp-reparto">
+          <i className={reparto.tono === "rojo" ? "cmp-reparto-rojo" : "cmp-reparto-ambar"} style={{ "--p": Math.min(1, Math.max(0, reparto.fraccion)) } as CSSProperties} />
+        </span>
+      )}
     </>
   );
 
   if (href) {
     return (
-      <Link href={href} className={clase}>
+      <Link href={href} className={clase} style={style}>
         {contenido}
       </Link>
     );
   }
   if (onClick) {
     return (
-      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa}>
+      <button type="button" onClick={onClick} className={`${clase} w-full`} aria-pressed={activa} style={style}>
         {contenido}
       </button>
     );
   }
-  return <div className={clase}>{contenido}</div>;
+  return (
+    <div className={clase} style={style}>
+      {contenido}
+    </div>
+  );
 }

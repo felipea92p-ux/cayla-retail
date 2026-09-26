@@ -1,5 +1,5 @@
 -- ============================================================================
--- Prueba AISLADA del panel de calidad — CAYLA V2 (ADR-0113)
+-- Prueba AISLADA del panel de calidad — CAYLA V2 (ADR-0214)
 --
 -- QUÉ PRUEBA. `fn_calidad` y `fn_calidad_danadas` de `supabase/migrations/20260918192000_panel_calidad.sql`:
 --   · la COHORTE MADURA: solo ventas que ya cumplieron su plazo de cambio (una venta de hace 3 días no cuenta);

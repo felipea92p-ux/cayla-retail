@@ -33,6 +33,13 @@ type Props = {
       registra puede preferir escribir la razón social a mano (decidido con
       Felipe, 2026-09-14). */
   disparo?: "automatico" | "boton";
+  /** Muestra «n/11» junto a la etiqueta y, con el número válido, el hilo en verde y un ✓ en el pie (alta de
+      proveedor, 2026-09-19). Vender y Facturación no lo piden: su campo se ve como siempre. */
+  contador?: boolean;
+  /** Un problema del número que solo conoce quien usa el campo (típico: «ya está registrado»). Con el número
+      completo y válido, reemplaza al ✓ y al hilo verde por este mensaje en rojo, para que nunca se digan las
+      dos cosas a la vez. Solo tiene efecto junto con `contador`. */
+  problemaExterno?: React.ReactNode;
 };
 
 // El resultado guarda A QUÉ NÚMERO pertenece. Así, cambiar de boleta a factura o
@@ -57,7 +64,7 @@ const MOTIVO_LEGIBLE: Record<string, string> = {
   "El padrón no respondió a tiempo": "El padrón no respondió.",
 };
 
-export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico" }: Props) {
+export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre, onNombre, disparo = "automatico", contador = false, problemaExterno }: Props) {
   const [consulta, setConsulta] = useState<Consulta | null>(null);
   // Qué se pidió por última vez, para no repetir la misma llamada (cada una se paga).
   const ultima = useRef<string>("");
@@ -142,13 +149,27 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
   // Una sola línea de estado bajo el campo, por prioridad: nunca dos mensajes
   // peleando (si el número es inválido no se dispara consulta, así que en la
   // práctica solo uno puede estar vivo — el orden lo deja garantizado).
-  const estado: { pie: React.ReactNode; tono: "neutro" | "error" | "aviso" } =
+  const estado: { pie: React.ReactNode; tono: "neutro" | "error" | "aviso" | "ok" } =
     !vacio && !validacion.valido
       ? { pie: validacion.motivo, tono: "error" }
+      : contador && validacion.valido && problemaExterno
+        ? { pie: problemaExterno, tono: "error" }
       : actual?.fase === "cargando"
         ? { pie: `Consultando ${etiqueta.padron}…`, tono: "neutro" }
         : actual?.fase === "error"
           ? { pie: actual.mensaje, tono: "aviso" }
+          : disparo === "boton" && !actual && contador && validacion.valido
+            ? {
+                pie: (
+                  <span className="inline-flex items-center gap-1.5">
+                    <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                      <path pathLength={1} d="m5 12.5 4.5 4.5L19 7.5" className="trazo-linea anim-trazo" />
+                    </svg>
+                    RUC válido. «Buscar» trae la razón social desde {etiqueta.padron}; también puedes escribirla a mano.
+                  </span>
+                ),
+                tono: "ok",
+              }
           : disparo === "boton" && !actual
             ? { pie: `Con los ${largoDocumento(tipo)} dígitos, «Buscar» trae el nombre desde ${etiqueta.padron}. También puedes escribirlo a mano.`, tono: "neutro" }
             : { pie: null, tono: "neutro" };
@@ -157,9 +178,20 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
     <CampoTexto
       id="documento-numero"
       etiqueta={
-        <>
-          {etiqueta.campo} {!obligatorio && <span className="normal-case tracking-normal">(opcional)</span>}
-        </>
+        contador ? (
+          <>
+            {/* `float-right`: el contador queda a la derecha de la MISMA línea y el botón de ayuda, que Campo
+                pone pegado a la etiqueta, no baja a una segunda. */}
+            <span className="float-right font-medium normal-case tracking-normal tabular-nums text-tinta/45">
+              {soloDigitos(numero).length}/{largoDocumento(tipo)}
+            </span>
+            {etiqueta.campo} {!obligatorio && <span className="normal-case tracking-normal">(opcional)</span>}
+          </>
+        ) : (
+          <>
+            {etiqueta.campo} {!obligatorio && <span className="normal-case tracking-normal">(opcional)</span>}
+          </>
+        )
       }
       ayuda={
         <Ayuda titulo={`Consulta de ${tipo.toUpperCase()}`}>
@@ -171,6 +203,7 @@ export function ConsultaDocumento({ tipo, obligatorio, numero, onNumero, nombre,
       pie={estado.pie}
       tono={estado.tono}
       mono
+      valido={contador && !vacio && validacion.valido && !problemaExterno}
       trabajando={actual?.fase === "cargando"}
       required={obligatorio}
       inputMode="numeric"

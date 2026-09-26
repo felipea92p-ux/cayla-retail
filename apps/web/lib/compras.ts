@@ -1,12 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
-import { exigir, exigirOpcional } from "@/lib/resultado";
+import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
+  comprobanteDeFilaOperativa,
+  destinoDesdeParam,
+  esFuncionAusente,
+  MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE,
   type AdjuntoCompra,
   type CompraResumen,
   type Condicion,
   type EstadoPago,
   type EstadoRecepcion,
+  type FilaOperativa,
   type LineaCompra,
   type PagoCompra,
   type RecepcionCompra,
@@ -15,6 +20,7 @@ import {
   type ProveedorResumen,
   type TipoDocumentoCompra,
 } from "@/lib/compras-reglas";
+import { lineaEnMiTienda, otrasTiendasDeJson } from "@/lib/reparto-reglas";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `compras-reglas.ts`.
@@ -38,7 +44,8 @@ type FilaResumen = {
   fecha_emision: string | null;
   condicion: string | null;
   fecha_vencimiento: string | null;
-  ubicacion_destino_id: string | null;
+  ubicaciones_destino?: string[] | null;
+  naturaleza?: string | null;
   subtotal: number | null;
   igv: number | null;
   total: number | null;
@@ -74,7 +81,7 @@ function aResumen(f: FilaResumen): CompraResumen {
     fechaEmision: f.fecha_emision ?? "",
     condicion: (f.condicion as Condicion) ?? "contado",
     fechaVencimiento: f.fecha_vencimiento,
-    ubicacionDestinoId: f.ubicacion_destino_id ?? "",
+    ubicacionesDestino: f.ubicaciones_destino ?? [],
     subtotal: Number(f.subtotal ?? 0),
     igv: Number(f.igv ?? 0),
     total: Number(f.total ?? 0),
@@ -92,6 +99,7 @@ function aResumen(f: FilaResumen): CompraResumen {
     cerradoCantidad: Number(f.cerrado_cantidad ?? 0),
     nota: f.nota,
     creadoEn: f.created_at ?? "",
+    naturaleza: f.naturaleza === "gasto" || f.naturaleza === "activo" ? f.naturaleza : "mercaderia",
   };
 }
 
@@ -117,6 +125,11 @@ export type FiltrosCompras = {
   porRecibir?: boolean;
   desde?: string;
   hasta?: string;
+  /** Solo los comprobantes que traen mercadería para esta tienda (ADR-0139, «Destino»). No parte la deuda: el saldo sigue entero. */
+  destinoId?: string;
+  /** También los comprobantes de GASTO (ADR-0195 F2). Sin esto, la lista es solo de mercadería (la de Facturas de
+   *  proveedor); Por pagar lo pide porque lo que se debe incluye la luz a crédito. */
+  todasLasNaturalezas?: boolean;
 };
 
 export type Cursor = { fecha: string; creadoEn: string; id: string };
@@ -131,7 +144,7 @@ export const TAMANO_PAGINA = 50;
 
 /** Parámetros de URL de las pantallas de Compras (ver `FiltrosCompras.tsx`). */
 /** `pagar`: id de la factura cuyo modal de pago se abre al llegar a Por pagar (viene del botón "Registrar pago" del detalle). */
-export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string; saldo?: string; porrecibir?: string; orden?: string };
+export type ParamsCompras = { q?: string; prov?: string; pago?: string; recep?: string; cond?: string; tipo?: string; desde?: string; hasta?: string; vencidas?: string; cursor?: string; pagar?: string; saldo?: string; porrecibir?: string; orden?: string; dest?: string };
 
 const ESTADOS_PAGO: EstadoPago[] = ["pendiente", "parcial", "pagada", "anulada"];
 const ESTADOS_RECEPCION: EstadoRecepcion[] = ["sin_recibir", "parcial", "recibida", "anulada"];
@@ -153,18 +166,56 @@ export function filtrosDesdeParams(p: ParamsCompras): FiltrosCompras {
     porRecibir: p.porrecibir === "1" || undefined,
     desde: esFecha(p.desde) ? p.desde : undefined,
     hasta: esFecha(p.hasta) ? p.hasta : undefined,
+    destinoId: destinoDesdeParam(p.dest),
   };
 }
 
 export async function listarCompras(
   filtros: FiltrosCompras = {},
-  opciones: { orden?: OrdenCompras; cursor?: Cursor | null; limite?: number } = {}
+  opciones: { orden?: OrdenCompras; cursor?: Cursor | null; limite?: number; sinMontos?: boolean; ubicacionId?: string } = {}
 ): Promise<PaginaCompras> {
   const supabase = await createClient();
   const orden = opciones.orden ?? "emision";
   const limite = opciones.limite ?? TAMANO_PAGINA;
-  const filas = exigir(
-    await supabase.rpc("listar_compras", {
+
+  // ADR-0126: quien no es líder no lee `listar_compras` (trae montos, y las tablas de dinero quedan cerradas para
+  // él): lee `listar_compras_operativo`, que devuelve solo lo que hace falta para recibir. Solo tiene el orden por
+  // emisión y NINGÚN filtro de pago (filtrar por una columna de dinero es una forma de enterarse del dinero).
+  //
+  // ADR-0139: con una tienda de por medio (`ubicacionId`) la lista también sale de esa función: solo trae los
+  // comprobantes con reparto para ESA tienda y las cifras de ella («lo que me toca»). Un líder no pierde el dinero:
+  // los montos se le suman después, desde `compras_resumen`.
+  let operativas: FilaOperativa[] | null = null;
+  if (opciones.sinMontos || opciones.ubicacionId) {
+    const pedir = (conTienda: boolean) =>
+      supabase.rpc("listar_compras_operativo", {
+        p_limite: limite,
+        ...(conTienda && opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
+        ...(opciones.cursor
+          ? { p_cursor_fecha: opciones.cursor.fecha, p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id }
+          : {}),
+        ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+        ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
+        ...(filtros.estadoRecepcion ? { p_estado_recepcion: filtros.estadoRecepcion } : {}),
+        ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+        ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
+        ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+        ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
+      });
+    let res = await pedir(true);
+    // Base SIN el reparto todavía (el despliegue llegó antes que la migración 20260919172000): la firma de antes no tiene
+    // `p_ubicacion_id`. Se vuelve a pedir SIN la tienda —así Recibir sigue como hoy— antes de rendirse a `listar_compras`,
+    // que un colaborador no puede leer (candado de dinero, ADR-0126): sin este reintento su lista quedaría vacía.
+    if (opciones.ubicacionId && esFuncionAusente(res.error)) res = await pedir(false);
+    // Si la función todavía no existe en esa base (el despliegue llegó antes que la migración), se sigue por el
+    // camino de antes —la página ya tacha los montos— en vez de tumbar Recibir. Cualquier OTRO error sí se ve.
+    if (!esFuncionAusente(res.error)) operativas = exigir(res, "las facturas de compra");
+  }
+  let todas: CompraResumen[];
+  if (operativas) {
+    todas = operativas.map(comprobanteDeFilaOperativa);
+  } else {
+    const res = await supabase.rpc("listar_compras", {
       p_limite: limite,
       p_orden: orden,
       ...(opciones.cursor
@@ -182,12 +233,18 @@ export async function listarCompras(
       ...(filtros.porRecibir ? { p_por_recibir: true } : {}),
       ...(filtros.desde ? { p_desde: filtros.desde } : {}),
       ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
-    }),
-    "las facturas de compra"
-  );
+      ...(filtros.destinoId ? { p_ubicacion_id: filtros.destinoId } : {}),
+      ...(filtros.todasLasNaturalezas ? { p_naturaleza: "todas" } : {}),
+    });
+    // «Destino» (ADR-0139) necesita la migración que le agrega `p_ubicacion_id` a `listar_compras`. Sin ella la base no conoce el
+    // parámetro: se dice CLARO en vez de listar todo bajo un filtro que no filtró. Sin ese filtro la lista no depende de la migración.
+    if (filtros.destinoId && esFuncionAusente(res.error)) throw new Error(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE);
+    todas = exigir(res, "las facturas de compra").map(aResumen);
+  }
+  if (operativas && !opciones.sinMontos) todas = await conMontos(todas);
   // La función devuelve limite+1 filas a propósito: la de más solo dice "hay otra página".
-  const hayMas = filas.length > limite;
-  const pagina = (hayMas ? filas.slice(0, limite) : filas).map(aResumen);
+  const hayMas = todas.length > limite;
+  const pagina = hayMas ? todas.slice(0, limite) : todas;
   const ultima = pagina[pagina.length - 1];
   const siguiente =
     hayMas && ultima
@@ -198,12 +255,53 @@ export async function listarCompras(
 
 /** Facturas vigentes con saldo — "Por pagar". Ordenadas por vencimiento (vencidas primero, naturalmente). */
 export function listarPorPagar(filtros: FiltrosCompras = {}, cursor: Cursor | null = null): Promise<PaginaCompras> {
-  return listarCompras({ ...filtros, conSaldo: true }, { orden: "vencimiento", cursor });
+  return listarCompras({ ...filtros, conSaldo: true, todasLasNaturalezas: true }, { orden: "vencimiento", cursor });
 }
 
-/** Facturas vigentes con mercadería pendiente de recibir (índice parcial `compras_por_recibir_idx`). */
-export function listarPorRecibir(filtros: FiltrosCompras = {}, cursor: Cursor | null = null): Promise<PaginaCompras> {
-  return listarCompras({ ...filtros, porRecibir: true }, { cursor });
+/**
+ * Facturas vigentes con mercadería pendiente de recibir (índice parcial `compras_por_recibir_idx`). Con
+ * `ubicacionId` (ADR-0139) solo las que aún le faltan a ESA tienda, con las cifras de ella.
+ */
+export function listarPorRecibir(
+  filtros: FiltrosCompras = {},
+  cursor: Cursor | null = null,
+  opciones: { sinMontos?: boolean; ubicacionId?: string } = {}
+): Promise<PaginaCompras> {
+  return listarCompras({ ...filtros, porRecibir: true }, { cursor, sinMontos: opciones.sinMontos, ubicacionId: opciones.ubicacionId });
+}
+
+/**
+ * Un líder que mira una lista por tienda no pierde el dinero: la lista operativa no trae montos, así que se le suman
+ * los del comprobante entero (la deuda es de la empresa, no de una tienda: R-04/R-12) desde la vista de líder.
+ */
+async function conMontos(filas: CompraResumen[]): Promise<CompraResumen[]> {
+  if (filas.length === 0) return filas;
+  const supabase = await createClient();
+  const montos = exigir(
+    await supabase
+      .from("compras_resumen")
+      .select("id, condicion, fecha_vencimiento, estado_pago, vencida, subtotal, igv, total, pagado, saldo, notas_credito")
+      .in("id", filas.map((f) => f.id)),
+    "los montos de las facturas"
+  );
+  const porId = new Map(montos.map((m) => [m.id ?? "", m]));
+  return filas.map((f) => {
+    const m = porId.get(f.id);
+    if (!m) return f;
+    return {
+      ...f,
+      condicion: (m.condicion as Condicion) ?? f.condicion,
+      fechaVencimiento: m.fecha_vencimiento,
+      estadoPago: (m.estado_pago as EstadoPago) ?? f.estadoPago,
+      vencida: m.vencida ?? false,
+      subtotal: Number(m.subtotal ?? 0),
+      igv: Number(m.igv ?? 0),
+      total: Number(m.total ?? 0),
+      pagado: Number(m.pagado ?? 0),
+      saldo: Number(m.saldo ?? 0),
+      notasCredito: Number(m.notas_credito ?? 0),
+    };
+  });
 }
 
 /** Cifras de cabecera (conteos y sumas), calculadas en Postgres en una sola llamada. */
@@ -256,17 +354,66 @@ export async function getCompra(compraId: string): Promise<CompraResumen | null>
   return { ...aResumen(resumen), motivoAnulacion: exigirOpcional(base, "la factura de compra")?.motivo_anulacion ?? null };
 }
 
-/** Líneas de una o varias facturas, con lo ya recibido por línea. */
-export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[]> {
+type FilaLinea = {
+  id: string | null;
+  compra_id: string | null;
+  producto_id: string | null;
+  variante_id: string | null;
+  descripcion: string | null;
+  cantidad: number | null;
+  costo_unitario: number | null;
+  subtotal: number | null;
+  recibido: number | null;
+  cerrado: number | null;
+  pendiente: number | null;
+  // Reparto por tienda (ADR-0139): solo vienen de `lineas_compra_operativo` cuando se pide con una tienda.
+  asignado_aqui?: number | null;
+  recibido_aqui?: number | null;
+  cerrado_aqui?: number | null;
+  otras_tiendas?: unknown;
+};
+
+/**
+ * Líneas de una o varias facturas, con lo ya recibido por línea. `sinMontos` (quien no es líder, ADR-0126): las lee
+ * de `lineas_compra_operativo`, que no trae costo ni subtotal; el resto del armado es el mismo, así que en la
+ * pantalla esos dos campos quedan en 0. Si la función todavía no existe en esa base, sigue por la vista de antes.
+ *
+ * ADR-0139 — con una tienda de por medio (`ubicacionId`; un colaborador siempre mira la suya) las cifras de cada línea
+ * (`cantidad`, `recibido`, `cerrado`, `pendiente`) pasan a ser las de ESA tienda: así los topes, «Todo llegó» y los
+ * totales de la pantalla de recibir funcionan por tienda sin cambiar una línea. Un líder no pierde el costo.
+ */
+export async function getLineasCompra(compraIds: string[], opciones: { sinMontos?: boolean; ubicacionId?: string } = {}): Promise<LineaCompra[]> {
   if (compraIds.length === 0) return [];
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase
-      .from("compra_items_resumen")
-      .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
-      .in("compra_id", compraIds),
-    "las líneas de la factura"
-  );
+  let filas: FilaLinea[] | null = null;
+  if (opciones.sinMontos || opciones.ubicacionId) {
+    const pedir = (conTienda: boolean) =>
+      supabase.rpc("lineas_compra_operativo", {
+        p_compra_ids: compraIds,
+        ...(conTienda && opciones.ubicacionId ? { p_ubicacion_id: opciones.ubicacionId } : {}),
+      });
+    let res = await pedir(true);
+    // Igual que en `listarCompras`: una base sin el reparto todavía no tiene `p_ubicacion_id`; se pide la firma de antes
+    // (líneas de todo el comprobante, como hoy) antes de caer a la vista de líneas, que un colaborador no puede leer.
+    if (opciones.ubicacionId && esFuncionAusente(res.error)) res = await pedir(false);
+    if (!esFuncionAusente(res.error)) {
+      filas = exigir(res, "las líneas de la factura").map((l) => ({ ...l, costo_unitario: null, subtotal: null }));
+      // Un líder con una tienda de por medio recibe TODAS las líneas del comprobante: las que no traen nada para
+      // esa tienda no son de quien cuenta acá (se ven en el detalle del comprobante, con «Reasignar»).
+      if (opciones.ubicacionId) filas = filas.filter((l) => l.asignado_aqui == null || l.asignado_aqui > 0);
+      // Y no pierde el costo: sale de la vista de líneas.
+      if (!opciones.sinMontos) filas = await conCostos(filas, compraIds);
+    }
+  }
+  if (!filas) {
+    filas = exigir(
+      await supabase
+        .from("compra_items_resumen")
+        .select("id, compra_id, producto_id, variante_id, descripcion, cantidad, costo_unitario, subtotal, recibido, cerrado, pendiente")
+        .in("compra_id", compraIds),
+      "las líneas de la factura"
+    );
+  }
 
   // Referencia del producto y datos de la variante se resuelven aparte: la
   // vista no expone FKs a PostgREST, así que no se puede embeber.
@@ -285,7 +432,7 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
 
   return filas.map((f) => {
     const v = f.variante_id ? variantes.get(f.variante_id) : undefined;
-    return {
+    const base: LineaCompra = {
       id: f.id ?? "",
       compraId: f.compra_id ?? "",
       productoId: f.producto_id ?? "",
@@ -302,6 +449,30 @@ export async function getLineasCompra(compraIds: string[]): Promise<LineaCompra[
       cerrado: Number(f.cerrado ?? 0),
       pendiente: Number(f.pendiente ?? 0),
     };
+    // Con números de tienda (ADR-0139) las cifras de la línea pasan a ser las de ESA tienda.
+    return f.asignado_aqui == null
+      ? base
+      : lineaEnMiTienda(base, {
+          asignado: Number(f.asignado_aqui),
+          recibido: Number(f.recibido_aqui ?? 0),
+          cerrado: Number(f.cerrado_aqui ?? 0),
+          otrasTiendas: otrasTiendasDeJson(f.otras_tiendas),
+        });
+  });
+}
+
+/** El costo y el subtotal de cada línea para un líder que mira por tienda (la lista operativa no los trae). */
+async function conCostos(filas: FilaLinea[], compraIds: string[]): Promise<FilaLinea[]> {
+  if (filas.length === 0) return filas;
+  const supabase = await createClient();
+  const costos = exigir(
+    await supabase.from("compra_items_resumen").select("id, costo_unitario, subtotal").in("compra_id", compraIds),
+    "los costos de las líneas de la factura"
+  );
+  const porId = new Map(costos.map((c) => [c.id ?? "", c]));
+  return filas.map((f) => {
+    const c = porId.get(f.id ?? "");
+    return c ? { ...f, costo_unitario: c.costo_unitario, subtotal: c.subtotal } : f;
   });
 }
 
@@ -346,6 +517,30 @@ export async function getPagosCompra(compraId: string): Promise<PagoCompra[]> {
     "los pagos de la factura"
   );
   return filas.map((p) => ({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia }));
+}
+
+/**
+ * Los pagos de VARIOS comprobantes en una sola consulta (la vista rápida de Por pagar los muestra al abrir un comprobante, sin pedir uno
+ * por clic). Del más reciente al más antiguo. Si la consulta falla la lista se dibuja igual y el cajón simplemente no muestra el historial:
+ * se registra en el log del servidor en vez de tumbar la pantalla. Sin ids no pregunta nada.
+ */
+export async function getPagosDeCompras(compraIds: string[]): Promise<Record<string, PagoCompra[]>> {
+  const ids = [...new Set(compraIds)];
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("compra_pagos")
+    .select("id, compra_id, fecha, monto, metodo, referencia")
+    .in("compra_id", ids)
+    .order("fecha", { ascending: false })
+    .order("created_at", { ascending: false });
+  if (error || !data) {
+    console.error("Pagos de los comprobantes de Por pagar:", error?.message ?? "la consulta no devolvió datos");
+    return {};
+  }
+  const porCompra: Record<string, PagoCompra[]> = {};
+  for (const p of data) (porCompra[p.compra_id] ??= []).push({ id: p.id, fecha: p.fecha, monto: Number(p.monto), metodo: p.metodo, referencia: p.referencia });
+  return porCompra;
 }
 
 /** Recepciones (lotes) que ingresaron mercadería de esta factura, agrupadas por guía. */
@@ -414,12 +609,19 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
   // ya usan `caja.ts`/`conteos.ts`/`traslados.ts`/`devoluciones.ts`.
   const personaIds = [...new Set(lotes.map((l) => l.recibido_por).filter((id): id is string => !!id))];
   const [movimientosRes, nombresRes] = await Promise.all([
-    supabase
-      .from("movimientos")
-      .select(
-        "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
-      )
-      .in("lote_id", loteIds),
+    // 30 lotes de 60–100 líneas pasan las 1.000 filas y PostgREST corta sin error (el lote más viejo salía con menos
+    // unidades de las que recibió): por páginas con orden único (`leerTodas`, ADR-0192).
+    leerTodas((desde, hasta) =>
+      supabase
+        .from("movimientos")
+        .select(
+          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
+        )
+        .in("lote_id", loteIds)
+        .order("created_at")
+        .order("id")
+        .range(desde, hasta)
+    ),
     personaIds.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: personaIds }) : Promise.resolve({ data: [], error: null }),
   ]);
   const movimientos = exigir(movimientosRes, "las líneas de las recepciones recientes");

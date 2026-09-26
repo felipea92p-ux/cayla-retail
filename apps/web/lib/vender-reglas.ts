@@ -4,6 +4,7 @@
 // ningún fetcher server-only pueda arrastrar al navegador.
 
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
+import { nombresCortos } from "./nombre-integrante";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -36,9 +37,9 @@ export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: st
 }
 
 /** Un medio con el que la clienta pagó parte (o todo) del ticket. `recibido` es solo
- *  para el efectivo y solo de pantalla: lo que entregó, para calcular el vuelto. A la
- *  RPC viaja únicamente `{ metodo, monto }` — si viajara lo entregado en vez de lo que
- *  cubre, `registrar_venta` lo rechazaría por no cuadrar con los ítems. */
+ *  para el efectivo: lo que entregó, para calcular el vuelto. `monto` es lo que el medio
+ *  CUBRE (lo que suma contra los ítems); `recibido` viaja aparte (ver `pagosParaRpc`) y
+ *  nunca sustituye a `monto`, o `registrar_venta` rechazaría la venta por no cuadrar. */
 export type PagoAplicado = { metodo: MetodoPago; monto: number; recibido?: number };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -91,6 +92,47 @@ export function vueltoDe(pago: PagoAplicado): number {
   return Math.max(0, redondear2(pago.recibido - pago.monto));
 }
 
+/** Cambia el monto de un medio y, con DOS medios, el otro toma lo que falta para llegar al total:
+ *  la cajera parte el cobro (Plin 40) y el efectivo se llena solo con los 40 restantes; después
+ *  puede editar cualquiera y el otro se reajusta. Con uno o con tres o más medios solo cambia el
+ *  editado: no hay un «otro» evidente a quién repartirle. Un campo vaciado o roto cuenta como 0.
+ *  Lo escrito por encima del total deja al otro en 0 y `motivoBloqueoCobro` avisa que se pasa. */
+export function pagosTrasEditarMonto(pagos: readonly PagoAplicado[], indice: number, monto: number, total: number): PagoAplicado[] {
+  if (!pagos[indice]) return [...pagos];
+  const limpio = Math.max(0, redondear2(monto || 0));
+  const editados = pagos.map((p, i) => (i === indice ? { ...p, monto: limpio } : p));
+  if (pagos.length !== 2) return editados;
+  const otro = indice === 0 ? 1 : 0;
+  return editados.map((p, i) => (i === otro ? { ...p, monto: Math.max(0, redondear2(total - limpio)) } : p));
+}
+
+/** Los pasos del cobro que la pantalla resalta: elegir el medio, anotar cuánto entregó la clienta
+ *  (solo si hay efectivo) y, cubierto todo, el comprobante y confirmar. */
+export type PasoCobro = "medio" | "recibido" | "comprobante";
+
+/** Cuál es el siguiente paso, derivado de lo que ya está puesto: mientras los medios no cubran
+ *  el total (o se pasen) falta el medio; con efectivo cubierto falta anotar lo recibido hasta que
+ *  alcance; después toca el comprobante, que es opcional. Solo GUÍA: no bloquea nada (lo que
+ *  impide cobrar sigue siendo `motivoBloqueoCobro`). */
+export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): PasoCobro {
+  if (pagos.length === 0 || restanteDePagos(total, pagos) !== 0) return "medio";
+  const efectivo = pagos.find((p) => p.metodo === "efectivo" && p.monto > 0);
+  if (efectivo && (efectivo.recibido === undefined || efectivo.recibido < efectivo.monto)) return "recibido";
+  return "comprobante";
+}
+
+/** Los pagos como viajan a `registrar_venta`. Solo montos > 0 (`venta_pagos` lo exige). El
+ *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
+ *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
+ *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
+export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number }[] {
+  return pagos
+    .filter((p) => p.monto > 0)
+    .map(({ metodo, monto, recibido }) =>
+      metodo === "efectivo" && recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto }
+    );
+}
+
 /**
  * Por qué el botón principal del ticket está apagado — o `null` si se puede seguir.
  *
@@ -111,10 +153,17 @@ export function motivoBloqueoCobro(v: {
   total: number;
   pagos: readonly PagoAplicado[];
   facturaSinRuc: boolean;
+  /** Por qué el combo «Responsable» todavía no deja guardar (`ControlResponsable.motivo`, ADR-0161); `null`/ausente = ya
+   *  hay responsable. Se pide antes que el pago: primero quién hace la venta, después la plata. */
+  motivoResponsable?: string | null;
+  /** Se cobra una proforma VENCIDA y aún no se confirmó que va al precio de entonces (ADR-0167). Ausente = no aplica. */
+  proformaVencidaSinConfirmar?: boolean;
 }): string | null {
   if (!v.cajaAbierta) return "Abre la caja para vender.";
   if (v.prendas === 0) return "Agrega una prenda para cobrar.";
+  if (v.motivoResponsable) return v.motivoResponsable;
   if (v.momento !== "cobrar") return null;
+  if (v.proformaVencidaSinConfirmar) return "Confirma que cobras la proforma vencida al precio de entonces.";
   if (v.pagos.length === 0) return "Elige cómo pagó la clienta.";
   const restante = restanteDePagos(v.total, v.pagos);
   if (restante > 0) return `Falta cubrir S/${restante.toFixed(2)}.`;
@@ -138,14 +187,6 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
   return redondear2((precioUnitario * porcentaje) / 100);
 }
 
-/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
- *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
- *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo. */
-export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
-  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
-  return redondear2(Math.min(montoUnitario, precioUnitario));
-}
-
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
 // Un texto libre no se puede sumar; una lista sí, y a fin de mes se ve cuánto margen se
 // fue por cada motivo (R-45, punto 2). El candado de verdad vive en `registrar_venta`
@@ -163,8 +204,8 @@ export const RAZONES_DESCUENTO = [
 ] as const;
 
 /** Lo que acompaña a un descuento aplicado: el motivo (uno de `RAZONES_DESCUENTO`), el
- *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide la banda
- *  20-35% de un Líder (`necesitaArgumentoEscrito`). Viajan por línea, igual que
+ *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide todo
+ *  descuento pasado el 15 % (`necesitaArgumentoEscrito`). Viajan por línea, igual que
  *  `descuentoUnitario`: dos líneas con el mismo % pueden llevar motivos distintos si se
  *  aplicaron en dos acciones separadas del apartado. */
 export type DetalleDescuento = { razon: string; razonOtro: string; argumento: string };
@@ -181,6 +222,32 @@ export const SIN_DETALLE_DESCUENTO: DetalleDescuento = { razon: "", razonOtro: "
 
 /** El motivo con que viaja el descuento de una campaña: uno más en `venta_items`. */
 export const RAZON_CAMPANA = "campana";
+
+/**
+ * El descuento por unidad de una campaña, con el precio rebajado REDONDEADO HACIA ABAJO a .90 (Felipe, 2026-09-23,
+ * ADR-0182): S/ 89.90 con 20 % da S/ 71.92 y se cobra S/ 71.90 → descuento S/ 18.00. Si el cálculo cae en 71.85, queda
+ * 70.90: siempre el .90 más cercano por debajo, nunca por encima. Un precio rebajado de menos de S/ 0.90 no se redondea
+ * (no existe un .90 por debajo) y 100 % regala la prenda.
+ *
+ * ES LA MISMA REGLA, AL CÉNTIMO, QUE `retail.fn_descuento_campana` (20260923174100): la caja la calcula y
+ * `registrar_venta`/`separar_prendas` la verifican. Si divergen, la venta se rechaza en el mostrador. Por eso va en
+ * enteros (diezmilésimas de céntimo): con coma flotante, un 71.8999… en vez de 71.90 bajaría el precio un sol entero.
+ * Los % tienen como mucho 2 decimales (`parsearDescuento`).
+ */
+export function descuentoDeCampana(precio: number, pct: number): number {
+  if (!Number.isFinite(pct) || pct <= 0) return 0;
+  if (pct >= 100) return precio;
+  const precioC = Math.round(precio * 100);
+  // precio rebajado exacto, en diezmilésimas de céntimo: precio × (100 − pct) / 100, sin redondear. El % con 2
+  // decimales, como `round(p_pct, 2)` en la base.
+  const rebajado = precioC * (10_000 - Math.round(pct * 100));
+  const UN_CENTIMO = 10_000;
+  const finalC =
+    rebajado >= 90 * UN_CENTIMO
+      ? Math.floor((rebajado + 10 * UN_CENTIMO) / (100 * UN_CENTIMO)) * 100 - 10 // el X.90 más alto que no lo pasa
+      : Math.round(rebajado / UN_CENTIMO);
+  return (precioC - finalC) / 100;
+}
 
 /** La campaña que rige hoy para una prenda: la de mayor % (la elige la base). */
 export type CampanaLinea = { etiquetaId: string; nombre: string; pct: number };
@@ -210,7 +277,7 @@ export function conDescuentoDeCampana<L extends LineaDescontable>(l: L): L {
   if (!l.campana) return l;
   return {
     ...l,
-    descuentoUnitario: descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct),
+    descuentoUnitario: descuentoDeCampana(l.precioUnitario, l.campana.pct),
     razonDescuento: RAZON_CAMPANA,
     razonDescuentoOtro: "",
     argumentoDescuento: "",
@@ -223,7 +290,7 @@ export function conDescuentoDeCampana<L extends LineaDescontable>(l: L): L {
  *  campaña por más de un centavo. */
 export function descuentoResultante(l: LineaDescontable, montoNuevo: number): { monto: number; prevaleceCampana: boolean } {
   if (l.campana) {
-    const deCampana = descuentoUnitarioPorPorcentaje(l.precioUnitario, l.campana.pct);
+    const deCampana = descuentoDeCampana(l.precioUnitario, l.campana.pct);
     if (redondear2(montoNuevo - deCampana) <= 0.01) return { monto: deCampana, prevaleceCampana: true };
   }
   return { monto: montoNuevo, prevaleceCampana: false };
@@ -245,7 +312,7 @@ export function conCampanas<L extends LineaDescontable & { varianteId: string }>
     const manualMayor =
       l.descuentoUnitario > 0 &&
       !esDescuentoDeCampana(l) &&
-      redondear2(l.descuentoUnitario - descuentoUnitarioPorPorcentaje(l.precioUnitario, campana.pct)) > 0.01;
+      redondear2(l.descuentoUnitario - descuentoDeCampana(l.precioUnitario, campana.pct)) > 0.01;
     return manualMayor ? conCampana : conDescuentoDeCampana(conCampana);
   });
 }
@@ -273,12 +340,6 @@ export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porce
   return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
 }
 
-/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
- *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos). */
-export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
-}
-
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado
  *  (el monto es la verdad; el % es solo cómo se lo contamos a la colaboradora). */
 export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario: number }): number {
@@ -286,10 +347,56 @@ export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario
   return Math.round((l.descuentoUnitario / l.precioUnitario) * 100);
 }
 
-/** Si el apartado tiene que pedir el argumento escrito: solo a un Líder, y solo pasado el
- *  20% (R-45). El candado real vive en `registrar_venta`; esto es progresividad de la
- *  pantalla, no una segunda copia de la regla — por eso no bloquea nada por sí solo. */
-export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): boolean {
-  return esLider && porcentaje > 20;
+/** Desde qué % un descuento manual pide argumento escrito. Felipe, 2026-09-25: a cualquiera
+ *  que pase el 15 % (antes: solo a un Líder, pasado el 20 %). */
+export const UMBRAL_ARGUMENTO_PCT = 15;
+
+/** Si una línea pide el argumento escrito: su descuento por unidad pasa el 15 % del precio.
+ *  Misma cuenta que `registrar_venta` (el 15 % redondeado al céntimo, con 1 céntimo de
+ *  holgura) — así un 15 % justo que el redondeo deja en 15.003 % no lo pide en la pantalla
+ *  y sí en la base, ni al revés. El candado real vive en la base; esto decide cuándo el
+ *  apartado MUESTRA el campo. */
+export function necesitaArgumentoEscrito(precioUnitario: number, descuentoUnitario: number): boolean {
+  if (precioUnitario <= 0 || descuentoUnitario <= 0) return false;
+  return redondear2(descuentoUnitario - redondear2((precioUnitario * UMBRAL_ARGUMENTO_PCT) / 100)) > 0.01;
 }
 
+/** Los campos del apartado «Descuento», en el orden en que se llenan de arriba abajo. */
+export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "codigo" | "prendas" | "listo";
+
+/** El primer campo que falta llenar del apartado «Descuento»: la pantalla lo ilumina y, al
+ *  terminar uno, lleva el foco al siguiente. Solo GUÍA: lo que impide aplicar sigue siendo
+ *  el motivo del botón y, al cobrar, `registrar_venta`. */
+export function pasoDelDescuento(e: {
+  valorValido: boolean;
+  razon: string;
+  razonOtro: string;
+  pideArgumento: boolean;
+  argumento: string;
+  pideCodigo: boolean;
+  codigo: string;
+  prendas: number;
+}): PasoDescuento {
+  if (!e.valorValido) return "valor";
+  if (e.razon === "") return "motivo";
+  if (e.razon === "otro" && e.razonOtro.trim() === "") return "motivoOtro";
+  if (e.pideArgumento && e.argumento.trim() === "") return "argumento";
+  if (e.pideCodigo && e.codigo.trim() === "") return "codigo";
+  if (e.prendas === 0) return "prendas";
+  return "listo";
+}
+
+// ---- Quién atendió: el papel del ticket (ADR-0163 → ADR-0161) ------------------------------------------------------
+// Quién atendió ya no es una fila de chips propia: es el RESPONSABLE de la venta, elegido en el combo del ADR-0161
+// (`components/ComboResponsable.tsx`, reglas en `lib/responsable-reglas.ts`), y viaja a `registrar_venta` como
+// `p_asesora_id`. Aquí queda solo cómo se nombra en el papel.
+
+/** Una persona que se puede nombrar en el ticket (`PersonaDeTurno` calza con esta forma). */
+export type Vendedora = { personaId: string; nombre: string };
+
+/** El nombre que sale en el papel: el primer nombre, y la inicial del apellido solo si otra de la fila comparte
+ *  primer nombre (`nombresCortos`, la misma regla de «Ventas de hoy»). `null` si no hay a quién nombrar. */
+export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
+  const v = vendedoras.find((x) => x.personaId === id);
+  return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+}

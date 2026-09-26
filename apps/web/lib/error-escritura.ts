@@ -32,6 +32,8 @@
  * A DÓNDE IR EN VEZ DE.
  */
 
+import { mensajeErrorResponsable } from "./responsable-reglas";
+
 /** La forma del error de supabase-js, sin acoplarnos a su tipo. */
 export type ErrorEscritura = {
   message: string;
@@ -53,6 +55,73 @@ export type ErrorEscritura = {
 type Huella = { marca: string; frase: string | ((detalle: string) => string) };
 
 const HUELLAS: Huella[] = [
+  // Prendas sin registrar (ADR-0179): 20260923161700 y 20260923162300.
+  {
+    marca: "prenda_sin_registrar_incompleta",
+    frase: "A la prenda sin registrar le falta un dato (descripción, categoría, talla, color o precio). Quítala del ticket y vuelve a agregarla.",
+  },
+  {
+    marca: "prenda_sin_regularizar",
+    frase: "Esta prenda se vendió sin registrar y almacén todavía no la regulariza. Pide que lo hagan en Recibir ▸ Por regularizar y vuelve a intentarlo.",
+  },
+  {
+    marca: "prenda_ya_regularizada",
+    frase: "Esta prenda ya se regularizó (o su venta se anuló). Recarga la página para ver cómo quedó.",
+  },
+  {
+    marca: "prenda_sin_stock_para_descontar",
+    frase: "Esa prenda no tiene stock en esta tienda. Si llegó en un lote que se contó sin ella, elige «Llegó nueva».",
+  },
+  {
+    // Toda RPC que llama la web tiene EXECUTE para `authenticated`; si Postgres dice «permission denied for
+    // function», la petición llegó como `anon`: el navegador perdió la sesión (típico: alguien salió con la misma
+    // cuenta en otro equipo y la cerró en todos). Pasó el 2026-09-22 en el Punto de Venta. Postgres rechaza antes
+    // de ejecutar, así que no se guardó nada.
+    marca: "permission denied for function",
+    frase: "Tu sesión se cerró (quizá alguien salió con esta cuenta en otro equipo). No se guardó nada: recarga la página, vuelve a entrar e inténtalo de nuevo.",
+  },
+  {
+    // 20260922100000_colaboradores_endurecimiento.sql — un Colaborador siempre queda fijo a una ubicación.
+    // `agregar_colaborador` ya lo valida antes; esto es la red si otro camino inserta sin ubicación.
+    marca: "colaboradores_colaborador_con_ubicacion",
+    frase: "Un colaborador tiene que quedar fijo a una ubicación. Elige cuál y vuelve a intentar.",
+  },
+  {
+    // 20260918230000_producto_nombre_una_sola_forma.sql — «rechazado» es terminal. `catalogo_actualizar_producto` avisa
+    // antes con su propia frase; esto es la red si otro camino intenta reactivar una prenda rechazada.
+    marca: "productos_rechazado_descontinuado_check",
+    frase: "Esta prenda se rechazó al revisar un alta al vuelo y no se puede reactivar. Créala de nuevo con Nuevo producto.",
+  },
+  {
+    // 20260918231000_marcas_y_proveedor_en_productos.sql — dos marcas no pueden compartir nombre (ni con otra
+    // forma: «adidas» / «Adidas»). Aparece al RENOMBRAR una marca; al crear, `crear_marca` reutiliza la que ya existe.
+    marca: "marcas_nombre_unico",
+    frase: "Ya existe una marca con ese nombre (sin importar tildes o mayúsculas). Si es la misma, agrégale el proveedor en vez de crearla otra vez.",
+  },
+  {
+    // Misma migración — la llave compuesta: un producto solo puede citar una pareja marca↔proveedor registrada.
+    // Las RPC de alta y edición avisan antes con su propia frase; esto es la red si algún camino se salta el aviso.
+    marca: "productos_marca_proveedor_fk",
+    frase: "Ese proveedor no trae esa marca. Agrégalo a la marca en Catálogo → Marcas y vuelve a intentar.",
+  },
+  {
+    // 20260918230000_producto_nombre_una_sola_forma.sql — un nombre, un producto. Las RPC de alta
+    // avisan antes con su propia frase; esto es la red si alguna se salta el aviso.
+    marca: "productos_referencia_clave_unica",
+    frase: "Ya existe un producto con ese nombre (sin importar tildes, mayúsculas o puntos). Búscalo en Productos en vez de crearlo otra vez.",
+  },
+  {
+    // Índice único de variantes: una talla y un color van una sola vez por producto. En el censo
+    // aparece cuando el código de barras escaneado es nuevo pero la talla+color ya existía.
+    marca: "variantes_producto_talla_color_unico",
+    frase: "Ese producto ya tiene esa talla y ese color. Búscalo en el catálogo: el código que escaneaste puede ser un duplicado de la etiqueta.",
+  },
+  {
+    // 20260922140000_ficha_de_clienta_v1_backend.sql — un DNI, una clienta. `registrar_clienta`
+    // hace upsert por DNI (no debería chocar); esto es la red si algún camino inserta directo.
+    marca: "clientas_dni_unico",
+    frase: "Ya hay una clienta con ese DNI. Búscala arriba en vez de crearla de nuevo.",
+  },
   {
     // 20260914215059_candado_precio_venta.sql — `registrar_venta` compara cada precio con
     // `variantes.precio`: la caja ya no edita precios, y la base deja de confiar en el
@@ -112,9 +181,9 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `Ese descuento en ${prenda} deja el precio por debajo de lo que cuesta. Bájalo un poco.`,
   },
   {
-    // Misma migración — banda 20-35 % de un Líder (R-45): pide un argumento escrito.
+    // Pasado el 15 % (Felipe, 2026-09-25; antes 20-35 % de un Líder, R-45): pide un argumento escrito.
     marca: "venta_descuento_requiere_argumento",
-    frase: (prenda) => `El descuento en ${prenda} pasa el 20 %: escribe el argumento antes de cobrar.`,
+    frase: (prenda) => `El descuento en ${prenda} pasa el 15 %: escribe el argumento antes de cobrar.`,
   },
   {
     // Misma migración — más de 35 % nadie, ni un Líder (decisión de Felipe, 2026-09-15):
@@ -220,6 +289,24 @@ const HUELLAS: Huella[] = [
     frase: "Ya existe un proveedor con ese nombre (aunque esté escrito distinto). Búscalo en Compras → Proveedores.",
   },
   {
+    // 20260922160000_cotizaciones_maquila.sql — insertar/editar una cotización es solo de
+    // líder; no tiene que ver con la ubicación (por eso va ANTES del genérico de abajo, que sí
+    // habla de ubicación y sería engañoso acá).
+    marca: 'row-level security policy for table "cotizaciones_maquila"',
+    frase: "Solo un líder de equipo puede cargar o corregir una cotización de maquila.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — check (vigente_hasta >= fecha_cotizacion).
+    marca: "cotizaciones_maquila_vigencia_coherente",
+    frase: "La vigencia no puede terminar antes de la fecha de la cotización. Revisa las dos fechas.",
+  },
+  {
+    // 20260922160000_cotizaciones_maquila.sql — check (precio_maquila >= 0), sin nombre propio:
+    // Postgres la nombra <tabla>_<columna>_check.
+    marca: "cotizaciones_maquila_precio_maquila_check",
+    frase: "El precio de maquila no puede ser negativo. Corrígelo y vuelve a intentar.",
+  },
+  {
     // RLS: la política rechazó la fila. Pasa cuando se opera sobre una ubicación que no es la tuya.
     marca: "row-level security",
     frase:
@@ -311,17 +398,66 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
 }
 
 /**
+ * SQLSTATE que dicen «ahora no, intenta de nuevo» y no «esto está mal»: choque de transacciones, bloqueo que no se
+ * soltó a tiempo (`lock_timeout`), consulta cortada por tiempo, base reiniciando o sin conexiones libres. Y los de
+ * PostgREST cuando no alcanza a la base (PGRST000–003).
+ */
+const CODIGOS_PASAJEROS = ["40001", "40P01", "55P03", "57014", "53300", "57P01", "57P03", "08000", "08003", "08006", "PGRST000", "PGRST001", "PGRST002", "PGRST003"];
+
+/**
+ * ¿El servidor SÍ respondió, pero con un error que se arregla solo al reintentar? (ADR-0210, «huecos»). Un 5xx, un
+ * 429 (demasiadas peticiones), un 408, o uno de los SQLSTATE de arriba. Hasta hoy la cola trataba todo lo que no era
+ * corte de red como rechazo definitivo y lo dejaba esperando un «Descartar» que no hacía falta (hueco anotado en
+ * ADR-0063). Como las operaciones encoladas son idempotentes por token, reintentarlas no duplica nada.
+ */
+export function esErrorPasajero(error: ErrorEscritura, status?: number | null): boolean {
+  if (!error) return false;
+  if (error.code && CODIGOS_PASAJEROS.includes(error.code)) return true;
+  return typeof status === "number" && (status >= 500 || status === 429 || status === 408);
+}
+
+/** ¿Guardar esto en la cola en vez de mostrar el error? Sin red, o con el servidor momentáneamente mal. */
+export function debeEncolarse(error: ErrorEscritura, status?: number | null): boolean {
+  return esFalloDeRed(error) || esErrorPasajero(error, status);
+}
+
+/** SQLSTATE propio de «otra persona cambió esto mientras lo editabas» (ADR-0193). PostgREST lo devuelve como 409. */
+export const CODIGO_VERSION_CAMBIADA = "PT409";
+
+/**
+ * ¿La base rechazó el guardado porque otra persona cambió la ficha (producto, rol) después de que esta pantalla la
+ * leyó? (ADR-0193, control optimista de versión). La pantalla no debe cerrar el formulario: ofrece recargar.
+ */
+export function esVersionCambiada(error: ErrorEscritura): boolean {
+  return !!error && (error.code === CODIGO_VERSION_CAMBIADA || error.hint === "version_cambiada");
+}
+
+/**
  * Convierte el error de una escritura en una frase que una Encargada puede leer y usar.
  *
  * `contexto` describe la acción en el idioma del negocio ("registrar la venta", "cerrar la
  * caja"), no la RPC: termina dentro de la frase que ella lee con prisa.
+ * `confirmarAntesDeRepetir`: para escrituras de dinero, donde repetir a ciegas duplica el movimiento.
  */
-export function traducirError(error: ErrorEscritura, contexto: string): string {
+export function traducirError(error: ErrorEscritura, contexto: string, opciones: { confirmarAntesDeRepetir?: boolean } = {}): string {
   if (!error) return `No se pudo ${contexto}.`;
 
   if (esFalloDeRed(error)) {
+    // Con plata de por medio la conexión puede cortarse DESPUÉS de que la base guardó y antes de que la respuesta
+    // llegue: decir «no se guardó nada» invitaría a repetir el pago y duplicarlo. Ahí se dice la verdad: no se sabe.
+    if (opciones.confirmarAntesDeRepetir) {
+      return `Se cortó la conexión mientras se intentaba ${contexto}: no podemos confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado.`;
+    }
     return `No se pudo ${contexto}: la conexión falló antes de llegar al servidor. No se guardó nada — revisa el internet y vuelve a intentar.`;
   }
+
+  // El combo «Responsable» (ADR-0161/0162): la base rechaza con 42501 y un `hint` estable. Va antes de las huellas:
+  // su frase dice qué hacer (volver a elegir, marcar entrada) y es la misma en todas las pantallas.
+  const porResponsable = mensajeErrorResponsable(error);
+  if (porResponsable) return porResponsable;
+
+  // ADR-0193: la base ya lo dice en castellano («Otra persona cambió esta prenda… Recarga para ver sus cambios.»).
+  if (esVersionCambiada(error)) return error.message || "Otra persona cambió esto mientras lo editabas. Recarga para ver sus cambios.";
 
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ");
   const enMinusculas = crudo.toLowerCase();

@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
@@ -49,7 +49,7 @@ export default async function FamiliasPage() {
         </h1>
       </div>
 
-      <FamiliasLista familiasIniciales={familias} puedeEditar={persona.rol === "lider"} />
+      <FamiliasLista familiasIniciales={familias} puedeEditar={puede(persona, "editarCatalogo")} />
     </div>
   );
 }

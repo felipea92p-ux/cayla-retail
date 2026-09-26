@@ -14,7 +14,7 @@ import {
   type NivelCalidad,
 } from "@/lib/calidad-reglas";
 
-// Panel de calidad (ADR-0113). Dos fuentes, ninguna inventada acá:
+// Panel de calidad (ADR-0214). Dos fuentes, ninguna inventada acá:
 //   - `retail.fn_calidad`          : unidades vendidas, devueltas, dañadas y cambiadas por producto, talla, origen
 //                                    (proveedor o Taller) y categoría, sobre una cohorte de ventas que ya cumplió su plazo.
 //   - `retail.fn_calidad_danadas`  : prendas que volvieron dañadas, por tienda y por mes.

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { ChevronDown } from "lucide-react";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -9,6 +10,7 @@ import {
   listarProductos,
   getResumenProductos,
   getProductosPendientesAlta,
+  getReposicionPorProveedor,
   type ParamsProductosListado,
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
@@ -16,6 +18,9 @@ import { ProductosAgrupados } from "@/components/ProductosAgrupados";
 import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
+import { NotaStockTotal } from "@/components/NotaStockTotal";
+import { AQuienPedirle } from "@/components/AQuienPedirle";
+import { mensajeSinResultados } from "@/lib/productos-stock";
 
 // Fase UI 1 (2026-09-11): pantalla nueva, no una migración de
 // `inventario/producto` (V1) — esa ruta es un formulario de alta que depende
@@ -40,12 +45,12 @@ import { PaginacionPaginas } from "@/components/Paginacion";
 //
 // Fase 2 (2026-09-15): alta de producto con matriz talla×color, en
 // `/productos/nuevo` — RPC `crear_producto_con_variantes`, candado real de
-// Líder ahí; `persona.rol === "lider"` de acá solo decide si el botón se
+// Líder o terminal administrativa ahí (ADR-0160); `puede(persona, "editarCatalogo")` de acá solo decide si el botón se
 // MUESTRA. Editar un producto ya existente sigue en `ProductoForm`
 // (`/productos/[id]/editar`): la matriz es para crear varias variantes de
 // una sola vez, no tiene sentido para una que ya existe.
 export default async function ProductosPage({ searchParams }: { searchParams: Promise<ParamsProductosListado> }) {
-  const persona = await requirePersonaActualV2();
+  const persona = await exigirModulo("productos"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const params = await searchParams;
   const filtros = filtrosProductosDesdeParams(params);
   const pagina = paginaProductosDesdeParams(params);
@@ -63,14 +68,20 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return qs ? `/productos?${qs}` : "/productos";
   }
 
-  const [resultado, resumen, categorias, colores, sububicaciones, pendientesAlta] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("nombre"),
+    // Marcas y proveedores activos, para los filtros (ADR-0109).
+    supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
+    supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
-    persona.rol === "lider" ? getProductosPendientesAlta() : Promise.resolve([]),
+    puede(persona, "editarCatalogo") ? getProductosPendientesAlta() : Promise.resolve([]),
   ]);
+
+  // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
+  const reposicion = resumen.reponerDeProveedor > 0 ? await getReposicionPorProveedor(filtros) : [];
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
@@ -81,7 +92,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         <div>
           <p className="label-cayla text-[11px] text-tinta/65">Catálogo</p>
           <h1 className="font-display mt-1 text-2xl text-tinta">Productos</h1>
-          {vista === "grilla" && <Resumen resumen={resumen} params={params} compacto />}
+          {vista === "grilla" && (
+            <>
+              <Resumen resumen={resumen} params={params} compacto />
+              <NotaStockTotal />
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <div className="flex gap-0.5 rounded-lg bg-sand p-0.5">
@@ -104,7 +120,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               Tabla
             </Link>
           </div>
-          {persona.rol === "lider" && (
+          {puede(persona, "editarCatalogo") && (
             <Link href="/productos/nuevo" className="label-cayla rounded-md bg-tinta px-4 py-3 text-[11px] text-crema transition-colors hover:bg-rojo">
               + Nuevo producto
             </Link>
@@ -113,12 +129,16 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
       </div>
 
       {pendientesAlta.length > 0 && (
-        <div className="card-cayla space-y-2 border-l-2 border-l-rojo p-4">
-          <p className="text-sm font-semibold text-tinta">
-            {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
-            {pendientesAlta.length === 1 ? "" : "s"} de revisar
-          </p>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        // Plegado (2026-09-23): con 10 prendas la lista abierta ocupaba media pantalla; se abre al tocar.
+        <details className="group card-cayla border-l-2 border-l-rojo">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-sm font-semibold text-tinta">
+              {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
+              {pendientesAlta.length === 1 ? "" : "s"} de revisar
+            </span>
+            <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-tinta/50 transition-transform group-open:rotate-180" />
+          </summary>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-4 text-sm">
             {pendientesAlta.map((p) => (
               <li key={p.id}>
                 <Link href={`/productos/${p.id}/editar`} className="text-tinta underline underline-offset-2 hover:no-underline">
@@ -128,26 +148,42 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
               </li>
             ))}
           </ul>
-        </div>
+        </details>
       )}
 
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
-      <FiltrosProductos categorias={categoriasOpciones} colores={coloresOpciones} compacto={vista === "grilla"} />
+      {reposicion.length > 0 && (
+        <AQuienPedirle
+          reposicion={reposicion}
+          proveedorId={params.stock === "reponer" ? params.proveedor : undefined}
+        />
+      )}
+
+      <FiltrosProductos
+        categorias={categoriasOpciones}
+        colores={coloresOpciones}
+        marcas={exigir(resMarcas, "las marcas")}
+        proveedores={exigir(resProveedores, "los proveedores")}
+        compacto={vista === "grilla"}
+      />
 
       {vista === "grilla" ? (
         <ProductosGrilla
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          puedeAjustar={puede(persona, "ajustarInventario")}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
         <ProductosAgrupados
           productos={resultado.productos}
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
-          esLider={persona.rol === "lider"}
+          puedeEditar={puede(persona, "editarCatalogo")}
+          puedeAjustar={puede(persona, "ajustarInventario")}
+          mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
 
@@ -243,6 +279,7 @@ function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProduc
           </dd>
         </Link>
       </dl>
+      <NotaStockTotal />
     </div>
   );
 }

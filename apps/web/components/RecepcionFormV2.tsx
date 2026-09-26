@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { debeEncolarse, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { CampoSelect, Desplegable } from "@/components/ui/campos";
+import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
+import { nuevaOperacion } from "@/lib/cola-offline";
+import { useColaRecibir } from "@/lib/useColaRecibir";
 
 // Fase UI 1 (2026-09-11): pantalla nueva sobre la RPC `recibir_lote` de V2
 // (`supabase/migrations/0003_funciones.sql:179`). No es una adaptación de
@@ -34,12 +42,15 @@ export function RecepcionFormV2({
   const [numeroGuia, setNumeroGuia] = useState("");
   const [lineas, setLineas] = useState<Linea[]>([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
   const [loading, setLoading] = useState(false);
-  const [ok, setOk] = useState<{ unidades: number } | null>(null);
-  // Un token no aplica acá: `recibir_lote` no tiene idempotencia propia (a
-  // diferencia de `registrar_venta`) porque un lote repetido es una decisión
-  // de negocio distinta a una venta duplicada — el motivo real de reintentar
-  // es "me olvidé una línea", que se resuelve recibiendo un lote NUEVO, no
-  // reenviando el mismo.
+  // `sinConexion`: el lote quedó guardado en este navegador y sube solo al volver la red (ADR-0210).
+  const [ok, setOk] = useState<{ unidades: number; loteId: string | null; sinConexion?: boolean } | null>(null);
+  const colaOffline = useColaRecibir();
+  // Quién recibe (ADR-0161/0162): `recibir_lote` firma con esa persona, en la tienda que recibe.
+  const responsable = useResponsable({ ubicacionId, etiqueta: ubicacionEtiqueta });
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de sumar el lote dos veces. Se renueva solo al guardar bien.
+  // «Me olvidé una línea» sigue siendo un lote NUEVO: después de guardar, el token cambia.
+  const token = useRef<string>(crypto.randomUUID());
 
   function agregarLinea() {
     setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
@@ -64,10 +75,14 @@ export function RecepcionFormV2({
       avisar.error("Elige un proveedor.", { enfocar: "recepcion-proveedor" });
       return;
     }
+    if (!responsable.listo) {
+      if (responsable.motivo) avisar.error(responsable.motivo);
+      return;
+    }
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("recibir_lote", {
+    const params = {
       p_ubicacion_id: ubicacionId,
       p_proveedor_id: proveedorId,
       p_items: validas.map((l) => ({
@@ -76,25 +91,58 @@ export function RecepcionFormV2({
         ...(l.costoUnitario ? { costo_unitario: Number(l.costoUnitario) } : {}),
       })),
       p_numero_guia: numeroGuia || undefined,
-    });
+      p_token: token.current,
+    };
+    const firma = responsable.firma();
+    const { data: loteId, error, status } = await firmar(supabase.rpc("recibir_lote", params), firma);
 
     setLoading(false);
+    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
+    // Sin red (ADR-0210): el lote no se pierde. Entra a la cola con su token y la hora de ahora, y sube solo.
+    if (error && debeEncolarse(error, status)) {
+      const proveedor = proveedores.find((p) => p.id === proveedorId)?.nombre ?? "proveedor";
+      const op = nuevaOperacion({
+        token: token.current,
+        rpc: "recibir_lote",
+        params,
+        firma,
+        resumen: `Lote de ${unidades} ${unidades === 1 ? "unidad" : "unidades"} · ${proveedor} · ${ubicacionEtiqueta}`,
+      });
+      if (!colaOffline.encolar(op)) {
+        avisar.error("Se cortó el internet y este navegador no pudo guardar el lote. Anota lo recibido y regístralo cuando vuelva la conexión.");
+        return;
+      }
+      token.current = crypto.randomUUID();
+      avisar.aviso("Lote guardado sin conexión", { detalle: "Sube solo cuando vuelva el internet." });
+      setOk({ unidades, loteId: null, sinConexion: true });
+      return;
+    }
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "recibir el lote"));
       return;
     }
-    const unidades = validas.reduce((acc, l) => acc + l.cantidad, 0);
+    token.current = crypto.randomUUID();
     avisar.exito(`Lote recibido · ${unidades} ${unidades === 1 ? "unidad" : "unidades"}`, { detalle: "Ya suman al stock." });
-    setOk({ unidades });
+    setOk({ unidades, loteId: loteId ?? null });
     router.refresh();
   }
 
   if (ok) {
     return (
       <div className="space-y-3 text-center">
-        <p className="label-cayla text-[11px] text-tinta/65">Lote recibido</p>
+        <p className="label-cayla text-[11px] text-tinta/65">{ok.sinConexion ? "Lote guardado sin conexión" : "Lote recibido"}</p>
         <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
-        <p className="text-sm text-tinta/70">Ya suman al stock de {ubicacionEtiqueta}.</p>
+        <p className="text-sm text-tinta/70">
+          {ok.sinConexion
+            ? `Sumarán al stock de ${ubicacionEtiqueta} cuando vuelva el internet. Las etiquetas de precio se imprimen después, desde el lote.`
+            : `Ya suman al stock de ${ubicacionEtiqueta}.`}
+        </p>
+        {ok.loteId && (
+          <Link href={urlEtiquetasDePrecio({ lotes: [ok.loteId] })} className="btn-cayla btn-primario w-full">
+            Imprimir {ok.unidades === 1 ? "la etiqueta" : `${ok.unidades} etiquetas`} de precio
+          </Link>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -102,7 +150,8 @@ export function RecepcionFormV2({
             setLineas([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: 1, costoUnitario: "" }]);
             setNumeroGuia("");
           }}
-          className={`${botonPrimario} w-full`}
+          // Un solo primario por pantalla (ADR-0169): el siguiente paso es etiquetar; recibir otro va en secundario.
+          className={ok.loteId ? "btn-cayla btn-secundario w-full" : `${botonPrimario} w-full`}
         >
           Recibir otro lote
         </button>
@@ -113,23 +162,12 @@ export function RecepcionFormV2({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className={campoEtiqueta} htmlFor="recepcion-proveedor">
-            Proveedor
-          </label>
-          <select
-            id="recepcion-proveedor"
-            value={proveedorId}
-            onChange={(e) => setProveedorId(e.target.value)}
-            className={campoSelect}
-          >
-            {proveedores.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
+        <CampoSelect
+          etiqueta="Proveedor"
+          valor={proveedorId}
+          onValor={(v) => setProveedorId(v)}
+          opciones={proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))}
+        />
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="recepcion-guia">
             Número de guía (opcional)
@@ -147,18 +185,17 @@ export function RecepcionFormV2({
         <p className={campoEtiqueta}>Prendas recibidas</p>
         {lineas.map((l, i) => (
           <div key={i} id={`recepcion-linea-${i}`} className="flex flex-wrap items-end gap-2">
-            <select
-              aria-label="Prenda"
-              value={l.varianteId}
-              onChange={(e) => actualizarLinea(i, { varianteId: e.target.value })}
-              className={`${campoSelect} min-w-[14rem] flex-1`}
-            >
-              {variantes.map((v) => (
-                <option key={v.varianteId} value={v.varianteId}>
-                  {v.referencia} · {v.sku} {[v.talla, v.color].filter(Boolean).join("/")}
-                </option>
-              ))}
-            </select>
+            <div className="min-w-[14rem] flex-1">
+              <Desplegable
+                etiquetaAccesible="Prenda"
+                valor={l.varianteId}
+                onValor={(v) => actualizarLinea(i, { varianteId: v })}
+                opciones={variantes.map((v) => ({
+                  valor: v.varianteId,
+                  texto: `${v.referencia} · ${v.sku} ${[v.talla, v.color].filter(Boolean).join("/")}`,
+                }))}
+              />
+            </div>
             <input
               type="number"
               min={1}
@@ -196,6 +233,7 @@ export function RecepcionFormV2({
       </div>
 
 
+      <ComboResponsable control={responsable} deshabilitado={loading} />
       <button type="submit" disabled={loading} className={botonPrimario}>
         {loading ? "Registrando…" : `Recibir en ${ubicacionEtiqueta}`}
       </button>

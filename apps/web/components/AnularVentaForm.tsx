@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
-import type { LineaVentaParaDevolucion } from "@/lib/devoluciones";
+import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Desplegable } from "@/components/ui/campos";
+import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 const CONDICIONES = [
   { valor: "vendible", etiqueta: "Vendible — vuelve al stock" },
@@ -31,7 +35,14 @@ type ItemVenta = {
 // que sí es por línea. anular_venta (ADR-0065) exige la condición de cada
 // ítem de la venta, así que este formulario carga todas las líneas al abrir,
 // no solo la que se clickeó en la lista.
-export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevolucion; onClose: () => void }) {
+export function AnularVentaForm({
+  linea,
+  onClose,
+}: {
+  /** Solo se usa para identificar la venta y decir de qué prenda se clickeó. */
+  linea: Pick<LineaVentaReciente, "ventaId" | "referencia" | "codigo" | "sku">;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const [items, setItems] = useState<ItemVenta[] | null>(null);
   const [condiciones, setCondiciones] = useState<Record<string, Condicion>>({});
@@ -39,6 +50,8 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
+  // Quién anula (ADR-0161): la base firma la anulación con el responsable del combo, no con la cuenta.
+  const responsable = useResponsable();
 
   useEffect(() => {
     let cancelado = false;
@@ -80,15 +93,23 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
       return;
     }
     if (!items) return;
+    if (!responsable.listo) {
+      setError(responsable.motivo);
+      return;
+    }
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.rpc("anular_venta", {
-      p_venta_id: linea.ventaId,
-      p_motivo: motivo.trim(),
-      p_items: items.map((i) => ({ venta_item_id: i.ventaItemId, condicion: condiciones[i.ventaItemId] })),
-    });
+    const { error } = await firmar(
+      supabase.rpc("anular_venta", {
+        p_venta_id: linea.ventaId,
+        p_motivo: motivo.trim(),
+        p_items: items.map((i) => ({ venta_item_id: i.ventaItemId, condicion: condiciones[i.ventaItemId] })),
+      }),
+      responsable.firma(),
+    );
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       setError(traducirError(error, "anular la venta"));
       return;
@@ -135,17 +156,12 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
                   <p className="font-mono text-[11px] text-tinta/65">
                     {codigoPrenda(i)} × {i.cantidad}
                   </p>
-                  <select
-                    value={condiciones[i.ventaItemId] ?? "vendible"}
-                    onChange={(e) => setCondiciones((c) => ({ ...c, [i.ventaItemId]: e.target.value as Condicion }))}
-                    className={campoSelect}
-                  >
-                    {CONDICIONES.map((c) => (
-                      <option key={c.valor} value={c.valor}>
-                        {c.etiqueta}
-                      </option>
-                    ))}
-                  </select>
+                  <Desplegable
+                    valor={condiciones[i.ventaItemId] ?? "vendible"}
+                    onValor={(v) => setCondiciones((c) => ({ ...c, [i.ventaItemId]: v }))}
+                    opciones={CONDICIONES.map((c) => ({ valor: c.valor, texto: c.etiqueta }))}
+                    etiquetaAccesible={`Condición de ${i.referencia}`}
+                  />
                 </div>
               ))}
             </div>
@@ -167,11 +183,12 @@ export function AnularVentaForm({ linea, onClose }: { linea: LineaVentaParaDevol
 
           {error && <p className="text-sm text-rojo">{error}</p>}
 
+          <ComboResponsable control={responsable} deshabilitado={loading} />
           <div className="flex gap-2 pt-1">
             <button type="button" onClick={cerrar} className={botonCancelar}>
               Cancelar
             </button>
-            <button type="submit" disabled={loading || !items} className={botonPrimario}>
+            <button type="submit" disabled={loading || !items || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
               {loading ? "Anulando…" : "Anular venta"}
             </button>
           </div>

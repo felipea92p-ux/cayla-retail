@@ -4,7 +4,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getPanelCalidad } from "@/lib/calidad";
 import { PanelCalidadVista } from "@/components/PanelCalidadVista";
 
-// Calidad (ADR-0113): "¿qué talla, qué proveedor o qué producto genera devoluciones?". Subpágina del panel
+// Calidad (ADR-0214): "¿qué talla, qué proveedor o qué producto genera devoluciones?". Subpágina del panel
 // comercial, solo Líder: es la pregunta de quien decide compras y producción, no la del mostrador. El candado real
 // vive también en las funciones SQL (`fn_es_lider()`); esta redirección es la cortesía, no la seguridad.
 export default async function CalidadPage() {

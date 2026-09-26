@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { normalizarCodigo, sugerirCodigoColor } from "@/lib/color-codigo";
 import { parsearColor, rgbDeHex } from "@/lib/color-entrada";
 
 /**
@@ -35,18 +41,6 @@ type Color = {
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
 };
-
-const FAMILIAS_COLOR = [
-  { valor: "neutro", texto: "Neutro" },
-  { valor: "azul", texto: "Azul" },
-  { valor: "rojo", texto: "Rojo" },
-  { valor: "amarillo", texto: "Amarillo" },
-  { valor: "verde", texto: "Verde" },
-  { valor: "morado", texto: "Morado" },
-  { valor: "tierra", texto: "Tierra" },
-  { valor: "metalico", texto: "Metálico" },
-  { valor: "estampado", texto: "Estampado" },
-] as const;
 
 function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
@@ -88,28 +82,40 @@ function Muestra({ hex, className = "h-12 w-full" }: { hex: string | null; class
 // último lo que da una ficha de proveedor o un programa de diseño. En la base
 // solo se guarda el hex. Mientras se escribe, un texto a medias no pisa el
 // color vigente; al salir del campo, si no era válido, vuelve al último bueno.
-function SelectorColor({ hex, onHex }: { hex: string; onHex: (hex: string) => void }) {
-  const [texto, setTexto] = useState(hex);
+// La muestra es UN rectángulo relleno con el color. El <input type="color">
+// nativo va escondido detrás y se abre al tocar la muestra: pintado tal cual
+// dejaba un recuadro con otro más chico adentro, y un Crudo o un Blanco casi
+// no se distinguían del fondo crema.
+function MuestraColor({ hex, onHex, className = "" }: { hex: string | null; onHex?: (hex: string) => void; className?: string }) {
+  // Sin elegir: caja punteada, no un color de relleno. Un beige por defecto se
+  // guardaba sin que nadie lo notara (5 colores en producción llevan #c9b79c).
+  const caja = `relative block h-9 w-14 shrink-0 rounded-md shadow-inner ${
+    hex ? "border border-tinta/35" : "border border-dashed border-tinta/40"
+  } ${className}`;
+  if (!onHex) return <span className={caja} style={hex ? { backgroundColor: hex } : undefined} aria-hidden />;
+  return (
+    <label className={`${caja} cursor-pointer focus-within:ring-2 focus-within:ring-rojo/40`} style={hex ? { backgroundColor: hex } : undefined}>
+      <input type="color" aria-label="Elegir color con el selector" value={hex ?? "#c9b79c"} onChange={(e) => onHex(e.target.value)} className="sr-only" />
+    </label>
+  );
+}
+
+function SelectorColor({ hex, onHex }: { hex: string | null; onHex: (hex: string) => void }) {
+  const [texto, setTexto] = useState(hex ?? "");
   const [ultimoHex, setUltimoHex] = useState(hex);
   // El selector nativo también mueve el color: el campo de texto lo sigue.
   if (hex !== ultimoHex) {
     setUltimoHex(hex);
-    setTexto(hex);
+    setTexto(hex ?? "");
   }
   const invalido = texto.trim() !== "" && parsearColor(texto) === null;
 
   return (
     <div className="flex items-start gap-3">
-      <input
-        type="color"
-        aria-label="Elegir color con el selector"
-        value={hex}
-        onChange={(e) => onHex(e.target.value)}
-        className="mt-6 h-9 w-14 shrink-0 cursor-pointer rounded-md border border-tinta/20 bg-crema p-1"
-      />
+      <MuestraColor hex={hex} onHex={onHex} className="mt-6" />
       <div className="min-w-0 flex-1">
         <CampoTexto
-          etiqueta="Código HTML o RGB"
+          etiqueta="Color"
           mono
           value={texto}
           onChange={(e) => {
@@ -120,12 +126,14 @@ function SelectorColor({ hex, onHex }: { hex: string; onHex: (hex: string) => vo
               onHex(valido);
             }
           }}
-          onBlur={() => setTexto(hex)}
+          onBlur={() => setTexto(hex ?? "")}
           tono={invalido ? "error" : undefined}
           pie={
             invalido
               ? "No se entiende. Prueba #c9b79c o 201, 183, 156."
-              : `RGB ${rgbDeHex(hex)} — puedes pegar #c9b79c o 201, 183, 156`
+              : hex
+                ? `RGB ${rgbDeHex(hex)} · acepta #hex o R, G, B`
+                : "Toca el cuadro o escribe #hex o R, G, B"
           }
           placeholder="#c9b79c"
           autoComplete="off"
@@ -137,6 +145,11 @@ function SelectorColor({ hex, onHex }: { hex: string; onHex: (hex: string) => vo
 }
 
 export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresIniciales: Color[]; puedeEditar: boolean }) {
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [colores, setColores] = useState(() => ordenar(coloresIniciales));
   const [agregando, setAgregando] = useState(false);
   const [guardando, setGuardando] = useState(false);
@@ -151,20 +164,28 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   const [nombre, setNombre] = useState("");
   const [codigo, setCodigo] = useState("");
+  // Mientras nadie toque el código, sigue al nombre. Si la persona lo escribe,
+  // deja de pisarlo; si lo borra por completo, vuelve a seguir al nombre.
+  const [codigoTocado, setCodigoTocado] = useState(false);
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
-  const [hex, setHex] = useState("#c9b79c");
+  const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
 
   const activos = colores.filter((c) => c.activo);
   const desactivados = colores.filter((c) => !c.activo);
+  // Incluye los desactivados: el código es la clave primaria y sigue ocupado
+  // aunque el color ya no se elija (cada SKU apunta a él).
+  const codigosUsados = new Set(colores.map((c) => c.codigo));
+  const dueñoDelCodigo = codigo.length === 3 ? colores.find((c) => c.codigo === codigo) : undefined;
   const rechazandoColor = colores.find((c) => c.codigo === rechazandoAbierto) ?? null;
 
   function abrir() {
     setAgregando(true);
     setNombre("");
     setCodigo("");
+    setCodigoTocado(false);
     setFamiliaColor("neutro");
-    setHex("#c9b79c");
+    setHex(null);
     setNotas("");
   }
 
@@ -173,7 +194,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas }),
       });
       const datos = await res.json();
@@ -196,6 +217,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           },
         ])
       );
+      responsable.despues(null);
       avisar.exito(
         datos.color.estado === "pendiente" ? `${datos.color.nombre} agregado — ya lo puedes usar` : `Color ${datos.color.nombre} agregado`,
         datos.color.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder lo apruebe, pero eso no te frena." } : undefined
@@ -209,14 +231,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   }
 
   // Aprobar es de un solo clic, sin modal — el color ya está en uso desde
-  // que se propuso, esto solo lo saca de la lista de pendientes. No existe
-  // "rechazar": un color pendiente que no sirve se desactiva (abajo).
+  // que se propuso, esto solo lo saca de la lista de pendientes. Si no sirve,
+  // se rechaza (`rechazar`, abajo) — la base lo bloquea si ya hay una prenda con él.
   async function aprobar(c: Color) {
     setAprobandoCodigo(c.codigo);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: c.codigo, estado: "aprobado" }),
       });
       const datos = await res.json();
@@ -225,6 +247,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         return;
       }
       setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, estado: "aprobado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${c.nombre} aprobado`);
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -244,7 +267,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify(c.estado === "rechazado" ? { codigo: c.codigo, estado: "aprobado" } : { codigo: c.codigo, activo: true }),
       });
       const datos = await res.json();
@@ -253,6 +276,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         return;
       }
       setColores((actual) => ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: true, estado: "aprobado" as const } : x))));
+      responsable.despues(null);
       avisar.exito(`${c.nombre} reactivado`, { detalle: "Vuelve a aparecer al elegir color en una prenda." });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -269,7 +293,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: c.codigo, estado: "rechazado", ...(motivoRechazo.trim() ? { notas: motivoRechazo.trim() } : {}) }),
       });
       const datos = await res.json();
@@ -280,6 +304,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       setColores((actual) =>
         ordenar(actual.map((x) => (x.codigo === c.codigo ? { ...x, activo: false, estado: "rechazado" as const } : x)))
       );
+      responsable.despues(null);
       avisar.exito(`${c.nombre} rechazado`, { detalle: "Cae a Desactivados. Se puede reactivar después si hace falta." });
       setRechazandoAbierto(null);
       setMotivoRechazo("");
@@ -292,7 +317,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <span />
         <button
           type="button"
           onClick={abrir}
@@ -327,7 +353,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                         peso="primario"
                         className="flex-1 px-2.5 py-1.5 text-[11px]"
                         cargando={aprobandoCodigo === c.codigo}
-                        onClick={() => aprobar(c)}
+                        onClick={() => setConfirmando(confirmacionCatalogo("aprobar", c.nombre, () => aprobar(c)))}
                       >
                         Aprobar
                       </Boton>
@@ -364,21 +390,39 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
         >
           {(cerrar) => (
             <div className="mt-5 space-y-4">
-              <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-                <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Verde botella" />
-                <CampoTexto
-                  etiqueta="Código (3 letras)"
-                  mono
-                  value={codigo}
-                  maxLength={3}
-                  onChange={(e) => setCodigo(e.target.value.toUpperCase())}
-                  placeholder="VEB"
-                />
+              {/* Mismo agrupado que el modal de edición: cada campo ya reserva su línea de pie. */}
+              <div className="space-y-1">
+                <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+                  <CampoTexto
+                    etiqueta="Nombre"
+                    value={nombre}
+                    onChange={(e) => {
+                      setNombre(e.target.value);
+                      if (!codigoTocado) setCodigo(sugerirCodigoColor(e.target.value, codigosUsados));
+                    }}
+                    placeholder="Ej. Verde botella"
+                  />
+                  <CampoTexto
+                    etiqueta="Código (3 letras)"
+                    mono
+                    value={codigo}
+                    maxLength={3}
+                    onChange={(e) => {
+                      const valor = normalizarCodigo(e.target.value);
+                      setCodigo(valor);
+                      setCodigoTocado(valor !== "");
+                    }}
+                    tono={dueñoDelCodigo ? "error" : undefined}
+                    pie={dueñoDelCodigo ? `Ya lo usa «${dueñoDelCodigo.nombre}».` : codigo.length === 3 && !codigoTocado ? "Sugerido del nombre" : undefined}
+                    placeholder="VEB"
+                  />
+                </div>
+                <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+                <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
               </div>
-              <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
-              <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
               <SelectorColor hex={hex} onHex={setHex} />
 
+              <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2 pt-3">
                 <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
                   Cancelar
@@ -389,7 +433,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
                 >
                   Guardar color
                 </Boton>
@@ -421,7 +466,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     peso="discreto"
                     className="px-2.5 py-1.5 text-[11px]"
                     cargando={cambiandoCodigo === c.codigo}
-                    onClick={() => reactivar(c)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => reactivar(c)))}
                   >
                     {cambiandoCodigo === c.codigo ? "…" : "Reactivar"}
                   </Boton>
@@ -437,6 +482,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Motivo (opcional)" value={motivoRechazo} onChange={(e) => setMotivoRechazo(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={rechazandoCodigo === rechazandoColor.codigo} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={rechazandoCodigo === rechazandoColor.codigo}>
                   Cancelar
@@ -445,6 +491,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   peso="primario"
                   className="flex-1"
                   cargando={rechazandoCodigo === rechazandoColor.codigo}
+                  disabled={!responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={() => rechazar(rechazandoColor)}
                 >
                   Confirmar rechazo
@@ -458,6 +506,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       {editando && (
         <ColorEditarModal
           color={editando}
+          responsable={responsable}
           onClose={() => setEditando(null)}
           onGuardado={(actualizado) => {
             setColores((actual) => ordenar(actual.map((x) => (x.codigo === actualizado.codigo ? actualizado : x))));
@@ -469,6 +518,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           }}
         />
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
@@ -483,11 +534,14 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 // ---------------------------------------------------------------------------
 function ColorEditarModal({
   color,
+  responsable,
   onClose,
   onGuardado,
   onDesactivado,
 }: {
   color: Color;
+  /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
+  responsable: ControlResponsable;
   onClose: () => void;
   onGuardado: (actualizado: Color) => void;
   onDesactivado: (codigo: string) => void;
@@ -502,6 +556,14 @@ function ColorEditarModal({
   const [notas, setNotas] = useState(color.notas ?? "");
   const [guardando, setGuardando] = useState(false);
   const [desactivando, setDesactivando] = useState(false);
+  // Desactivar pide un segundo clic: el primero arma el botón, y si nadie
+  // confirma en 4 s vuelve a su estado normal.
+  const [confirmandoDesactivar, setConfirmandoDesactivar] = useState(false);
+  useEffect(() => {
+    if (!confirmandoDesactivar) return;
+    const t = setTimeout(() => setConfirmandoDesactivar(false), 4000);
+    return () => clearTimeout(t);
+  }, [confirmandoDesactivar]);
 
   const ordenNumero = Number(orden);
   const ordenValido = Number.isInteger(ordenNumero) && ordenNumero >= 0;
@@ -512,7 +574,7 @@ function ColorEditarModal({
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas }),
       });
       const datos = await res.json();
@@ -520,6 +582,7 @@ function ColorEditarModal({
         avisar.error(datos.error ?? "No se pudo guardar el color.");
         return;
       }
+      responsable.despues(null);
       avisar.exito(`${datos.color.nombre} actualizado`);
       onGuardado({
         codigo: datos.color.codigo,
@@ -539,11 +602,12 @@ function ColorEditarModal({
   }
 
   async function desactivar() {
+    setConfirmandoDesactivar(false);
     setDesactivando(true);
     try {
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: color.codigo, activo: false }),
       });
       const datos = await res.json();
@@ -551,6 +615,7 @@ function ColorEditarModal({
         avisar.error(datos.error ?? "No se pudo desactivar el color.");
         return;
       }
+      responsable.despues(null);
       avisar.exito(`${color.nombre} desactivado`, {
         detalle: "Deja de aparecer al elegir color en una prenda nueva; el historial se conserva.",
       });
@@ -568,41 +633,44 @@ function ColorEditarModal({
     <Modal titulo={`Editar «${color.nombre}»`} ancho="max-w-md" onClose={onClose}>
       {(cerrar) => (
         <div className="mt-5 space-y-4">
-          <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
-            <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-            <CampoTexto
-              etiqueta="Orden"
-              mono
-              inputMode="numeric"
-              value={orden}
-              onChange={(e) => setOrden(e.target.value)}
-              tono={ordenValido ? undefined : "error"}
-              pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
-            />
+          {/* Cada campo ya reserva su línea de pie; con space-y-4 encima los huecos
+              quedaban el doble de grandes que los de Notas hacia abajo. */}
+          <div className="space-y-1">
+            <div className="grid gap-4 sm:grid-cols-[2fr_1fr]">
+              <CampoTexto etiqueta="Nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+              <CampoTexto
+                etiqueta="Orden"
+                mono
+                inputMode="numeric"
+                value={orden}
+                onChange={(e) => setOrden(e.target.value)}
+                tono={ordenValido ? undefined : "error"}
+                pie={ordenValido ? undefined : "Tiene que ser un número entero de 0 para arriba."}
+              />
+            </div>
+            <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
+            <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
           </div>
-          <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
-          <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
 
           <div>
-            <p className="label-cayla text-[11px] text-tinta/65">Color</p>
             {hexAbierto ? (
-              <div className="mt-1.5">
-                <SelectorColor hex={hex} onHex={setHex} />
-              </div>
+              <SelectorColor hex={hex} onHex={setHex} />
             ) : (
-              <div className="mt-1.5 flex items-center gap-3">
-                <div className="h-9 w-14 rounded-md border border-tinta/20" style={{ backgroundColor: hex }} aria-hidden />
-                <span className="font-mono text-xs text-tinta/65">{hex}</span>
-                <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
-                  Cambiar color
-                </button>
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Color</p>
+                <div className="mt-1.5 flex items-center gap-3">
+                  <MuestraColor hex={hex} />
+                  <span className="font-mono text-xs uppercase text-tinta/65">{hex}</span>
+                  <button type="button" onClick={() => setHexAbierto(true)} className="text-xs text-rojo hover:underline">
+                    Cambiar color
+                  </button>
+                </div>
               </div>
             )}
-            <p className="mt-1 text-xs text-tinta/55">
-              Es solo el swatch de catálogo — cambia el color en todas las pantallas de inmediato, no reescribe ventas pasadas.
-            </p>
+            <p className="mt-1 text-xs text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
 
+          <ComboResponsable control={responsable} deshabilitado={ocupado} />
           <div className="flex gap-2 pt-3">
             <Boton type="button" peso="fantasma" className="flex-1" onClick={cerrar} disabled={ocupado}>
               Cancelar
@@ -613,7 +681,8 @@ function ColorEditarModal({
               className="flex-1"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || ocupado}
+              disabled={!nombre.trim() || !ordenValido || ocupado || !responsable.listo}
+              title={responsable.motivo ?? undefined}
             >
               Guardar
             </Boton>
@@ -621,8 +690,14 @@ function ColorEditarModal({
 
           <p className="border-t border-tinta/10 pt-3 text-xs text-tinta/55">
             ¿Ya no se usa este color?{" "}
-            <button type="button" onClick={desactivar} disabled={ocupado} className="text-rojo hover:underline">
-              {desactivando ? "Desactivando…" : "Desactivar color"}
+            <button
+              type="button"
+              onClick={() => (confirmandoDesactivar ? desactivar() : setConfirmandoDesactivar(true))}
+              disabled={ocupado || !responsable.listo}
+              title={responsable.motivo ?? undefined}
+              className={confirmandoDesactivar ? "font-medium text-rojo underline" : "text-rojo hover:underline"}
+            >
+              {desactivando ? "Desactivando…" : confirmandoDesactivar ? "¿Seguro? Confirmar" : "Desactivar color"}
             </button>
             . Se bloquea si todavía hay una prenda activa con este color.
           </p>

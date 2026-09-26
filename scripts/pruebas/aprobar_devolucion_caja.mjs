@@ -29,6 +29,11 @@ import { execFileSync } from "node:child_process";
 
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001";
+// Segunda líder (seed.sql), usada solo para aprobar — desde
+// 20260922235000_candado_dinero_caja_cambios_devoluciones.sql quien registra una devolución
+// ya no puede aprobarla ella misma, y este archivo prueba OTRO candado (caja/efectivo), no
+// ese: la persona que aprueba tiene que ser distinta de quien la registró.
+const SANDRA = "22222222-2222-4222-8222-000000000005";
 
 function psql(sql) {
   return execFileSync(
@@ -64,7 +69,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-select retail.abrir_caja(:'ubic', 100.00) as caja_id \\gset
+select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gset
 
 select id as v_old from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select precio as precio_viejo from retail.variantes where id = :'v_old' \\gset
@@ -84,15 +89,22 @@ select id as venta_item from retail.venta_items where venta_id = :'venta_id' and
 
 const ITEMS_DEVOLUCION = `jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'cantidad', 1, 'condicion', 'vendible'))`;
 
-/** La base + una devolución pendiente + la caja cerrada (ninguna abierta en Lima). */
+/**
+ * La base + una devolución pendiente + la caja cerrada (ninguna abierta en Lima). Termina la
+ * sesión en SANDRA (no Felipe, que la registró) — el candado de auto-aprobación de
+ * 20260922235000 no es lo que este archivo prueba, así que se lo saca del camino aquí, una
+ * sola vez, en vez de repetirlo en cada escenario.
+ */
 const FIXTURE_VENTA = `${FIXTURE_BASE}
-select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada') as devolucion_id \\gset
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada', 'otro') as devolucion_id \\gset
 
 -- cierra la caja que se abrió para poder vender: a partir de acá, NINGUNA caja
 -- está abierta en Lima — el escenario que el candado nuevo debe cubrir.
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_para_probar \\gset
+
+set local request.jwt.claim.sub = '${SANDRA}';
 `;
 
 let fallos = 0;
@@ -143,7 +155,7 @@ rollback;
 
   const crearSobreAnulada = correr(`${FIXTURE_BASE}
 ${ANULAR}
-select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada');
+select retail.crear_devolucion(:'venta_id', :'ubic', ${ITEMS_DEVOLUCION}, 'prueba automatizada', 'otro');
 `);
   esperar(
     "crear una devolución sobre una venta anulada se rechaza",

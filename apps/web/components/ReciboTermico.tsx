@@ -9,6 +9,7 @@ import {
   textoNumeroRecibo,
   textoQrSunat,
   TITULO_DOCUMENTO,
+  desglosaIgv,
   type ReciboVenta,
 } from "@/lib/recibo-reglas";
 
@@ -35,7 +36,8 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
   const { fecha, hora } = fechaHoraLima(recibo.emitidoEn);
   const cli = recibo.cliente;
   const tieneDoc = cli.tipoDoc !== "sin_documento" && !!cli.numDoc;
-  const qr = emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
+  const fiscal = desglosaIgv(recibo.tipo);
+  const qr = fiscal && emisor.ruc ? textoQrSunat(recibo, emisor.ruc) : null;
   const contacto = [emisor.telefono, emisor.email].filter(Boolean);
 
   return (
@@ -74,6 +76,12 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
             <dd>{cli.numDoc}</dd>
           </>
         )}
+        {recibo.atendio && (
+          <>
+            <dt>Atendió</dt>
+            <dd>{recibo.atendio}</dd>
+          </>
+        )}
       </dl>
 
       <div className="rt-tabla-cab">
@@ -86,9 +94,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           <span className="rt-cant">{l.cantidad}</span>
           <span className="rt-desc">
             {l.descripcion}
-            {l.codigo && <span className="rt-detalle">{l.codigo}</span>}
+            {/* Código y P.U. en UNA línea (2026-09-25): con varias prendas, la línea extra por prenda
+                era lo que más alargaba el ticket. */}
             <span className="rt-detalle">
-              P.U. {l.precioUnitario.toFixed(2)}
+              {l.codigo && `${l.codigo} · `}P.U. {l.precioUnitario.toFixed(2)}
               {l.descuentoUnitario > 0 && ` · Dscto. -${l.descuentoUnitario.toFixed(2)} c/u`}
             </span>
           </span>
@@ -97,14 +106,18 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
       ))}
 
       <div className="rt-linea" />
-      <div className="rt-fila">
-        <span>Subtotal (sin IGV)</span>
-        <span>{s(recibo.subtotal)}</span>
-      </div>
-      <div className="rt-fila">
-        <span>IGV 18%</span>
-        <span>{s(recibo.igv)}</span>
-      </div>
+      {fiscal && (
+        <>
+          <div className="rt-fila">
+            <span>Subtotal (sin IGV)</span>
+            <span>{s(recibo.subtotal)}</span>
+          </div>
+          <div className="rt-fila">
+            <span>IGV 18%</span>
+            <span>{s(recibo.igv)}</span>
+          </div>
+        </>
+      )}
       <div className="rt-fila rt-total">
         <span>TOTAL</span>
         <span>{s(recibo.total)}</span>
@@ -130,17 +143,25 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
 
       {qr && (
         <div className="rt-centro rt-qr">
-          {/* Nivel M y 32 mm: a esa medida los módulos aguantan una térmica de 203 dpi. */}
-          <QRCodeSVG value={qr} size={256} level="M" marginSize={0} style={{ width: "32mm", height: "32mm", margin: "0 auto" }} />
+          {/* Nivel M y 25 mm (antes 32, se achicó el 2026-09-25 para acortar el ticket): el texto de
+              SUNAT da un QR de ~41 módulos → ~0,6 mm por módulo, ~5 puntos de una térmica de 203 dpi;
+              los lectores del celular lo leen sin problema. No bajar de 22 mm. */}
+          <QRCodeSVG value={qr} size={256} level="M" marginSize={0} style={{ width: "25mm", height: "25mm", margin: "0 auto" }} />
         </div>
       )}
 
       <div className="rt-linea" />
       <footer className="rt-centro rt-pie">
-        <p>Representación impresa de la {recibo.tipo === "factura" ? "factura" : "boleta de venta"} electrónica.</p>
-        {emisor.resolucion && <p>Autorizado mediante resolución N° {emisor.resolucion}</p>}
+        {fiscal ? (
+          <>
+            <p>Representación impresa de la {recibo.tipo === "factura" ? "factura" : "boleta de venta"} electrónica.</p>
+            {emisor.resolucion && <p>Autorizado mediante resolución N° {emisor.resolucion}</p>}
+          </>
+        ) : (
+          <p>Documento sin valor tributario. No es un comprobante de pago.</p>
+        )}
         <p>
-          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este comprobante.
+          Cambios dentro de {DIAS_PLAZO_CAMBIO} días con este {fiscal ? "comprobante" : "documento"}.
           {emisor.web && ` Más en ${emisor.web}`}
         </p>
         <p className="rt-lema">{emisor.lema}</p>

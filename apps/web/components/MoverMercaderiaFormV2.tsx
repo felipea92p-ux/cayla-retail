@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { campoEtiqueta, campoTexto, campoSelect, botonPrimario } from "@/components/ui/Modal";
+import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
+import { CampoSelect, Desplegable } from "@/components/ui/campos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Fase UI 1.1 (2026-09-12): sobre la RPC `transferir` de V2
 // (`supabase/migrations/0003_funciones.sql:286`), pedida por Felipe tras ver
@@ -52,6 +56,7 @@ export function MoverMercaderiaFormV2({
   variantes,
   destinoInicialId,
   lineaInicial,
+  lineasIniciales,
 }: {
   origenId: string;
   origenEtiqueta: string;
@@ -63,18 +68,29 @@ export function MoverMercaderiaFormV2({
    *  decidiendo todo antes de enviar. */
   destinoInicialId?: string;
   lineaInicial?: { varianteId: string; cantidad: number };
+  /** Varias líneas prellenadas (Producción, ADR-0133 F8): la página ya descartó lo que no tiene stock movible y topó cada cantidad. Si viene con datos, manda sobre `lineaInicial`. */
+  lineasIniciales?: { varianteId: string; cantidad: number }[];
 }) {
   const router = useRouter();
   const [destinoId, setDestinoId] = useState(destinoInicialId ?? destinos[0]?.id ?? "");
   const [nota, setNota] = useState("");
   const [etaLocal, setEtaLocal] = useState("");
-  const [lineas, setLineas] = useState<Linea[]>([
+  const [lineas, setLineas] = useState<Linea[]>(
+    lineasIniciales && lineasIniciales.length > 0
+      ? lineasIniciales.map((l) => ({ varianteId: l.varianteId, cantidad: String(Math.max(1, l.cantidad)) }))
+      : [
     lineaInicial
       ? { varianteId: lineaInicial.varianteId, cantidad: String(Math.max(1, Math.min(lineaInicial.cantidad, variantes.find((v) => v.varianteId === lineaInicial.varianteId)?.cantidad ?? 1))) }
       : { varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" },
   ]);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
+  // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
+  // una red que se cae), la base devuelve lo ya guardado en vez de descontar el stock dos veces. Se renueva solo al guardar bien.
+  const token = useRef<string>(crypto.randomUUID());
+  // Enviar un traslado saca stock del origen: pide Responsable (ADR-0161). La lista es la de turno en el ORIGEN,
+  // que es donde está parada quien envía.
+  const responsable = useResponsable({ ubicacionId: origenId, etiqueta: origenEtiqueta });
 
   function stockDe(varianteId: string): number {
     return variantes.find((v) => v.varianteId === varianteId)?.cantidad ?? 0;
@@ -134,6 +150,7 @@ export function MoverMercaderiaFormV2({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) return;
     if (!destinoId) {
       avisar.error("Elige a qué ubicación se mueve la mercadería.", { enfocar: "mover-destino" });
       return;
@@ -152,19 +169,22 @@ export function MoverMercaderiaFormV2({
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.rpc("iniciar_traslado", {
+    const { error } = await firmar(supabase.rpc("iniciar_traslado", {
       p_ubicacion_origen_id: origenId,
       p_ubicacion_destino_id: destinoId,
       p_items: validas.map((l) => ({ variante_id: l.varianteId, cantidad: l.cantidadNum })),
       p_fecha_estimada_llegada: new Date(etaLocal).toISOString(),
       p_nota: nota || undefined,
-    });
+      p_token: token.current,
+    }), responsable.firma());
 
     setLoading(false);
+    responsable.despues(error);
     if (error) {
       avisar.error(traducirError(error, "iniciar el traslado"));
       return;
     }
+    token.current = crypto.randomUUID();
     const unidades = validas.reduce((acc, l) => acc + l.cantidadNum, 0);
     const destino = destinos.find((d) => d.id === destinoId)?.nombre ?? "";
     avisar.exito(`${unidades} ${unidades === 1 ? "unidad enviada" : "unidades enviadas"} a ${destino}`, {
@@ -214,22 +234,16 @@ export function MoverMercaderiaFormV2({
           <span className={campoEtiqueta}>Desde</span>
           <p className="w-full border-b border-tinta/10 px-1 py-2 text-sm text-tinta/75">{origenEtiqueta}</p>
         </div>
-        <div className="space-y-1.5">
-          <label className={campoEtiqueta} htmlFor="mover-destino">
-            Hacia
-          </label>
-          <select
-            id="mover-destino"
-            value={destinoId}
-            onChange={(e) => setDestinoId(e.target.value)}
-            className={campoSelect}
-          >
-            {destinos.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.nombre}
-              </option>
-            ))}
-          </select>
+        {/* El id vive en este contenedor, no en CampoSelect (que no expone uno propio): `avisar.error(...,
+            { enfocar: "mover-destino" })` de abajo hace document.getElementById + querySelector("button, ...")
+            y encuentra el <button> disparador de Desplegable adentro. */}
+        <div id="mover-destino">
+          <CampoSelect
+            etiqueta="Hacia"
+            valor={destinoId}
+            onValor={(v) => setDestinoId(v)}
+            opciones={destinos.map((d) => ({ valor: d.id, texto: d.nombre }))}
+          />
         </div>
       </div>
 
@@ -260,18 +274,17 @@ export function MoverMercaderiaFormV2({
           const tope = stockDe(l.varianteId);
           return (
             <div key={i} id={`mover-linea-${i}`} className="flex flex-wrap items-end gap-2">
-              <select
-                aria-label="Prenda"
-                value={l.varianteId}
-                onChange={(e) => actualizarLinea(i, { varianteId: e.target.value })}
-                className={`${campoSelect} min-w-[14rem] flex-1`}
-              >
-                {variantes.map((v) => (
-                  <option key={v.varianteId} value={v.varianteId}>
-                    {v.referencia} · {v.sku} {[v.talla, v.color].filter(Boolean).join("/")} — stock {v.cantidad}
-                  </option>
-                ))}
-              </select>
+              <div className="min-w-[14rem] flex-1">
+                <Desplegable
+                  valor={l.varianteId}
+                  onValor={(v) => actualizarLinea(i, { varianteId: v })}
+                  opciones={variantes.map((v) => ({
+                    valor: v.varianteId,
+                    texto: `${v.referencia} · ${v.sku} ${[v.talla, v.color].filter(Boolean).join("/")} — stock ${v.cantidad}`,
+                  }))}
+                  etiquetaAccesible="Prenda"
+                />
+              </div>
               <input
                 type="number"
                 min={1}
@@ -296,8 +309,8 @@ export function MoverMercaderiaFormV2({
         </button>
       </div>
 
-
-      <button type="submit" disabled={loading} className={botonPrimario}>
+      <ComboResponsable control={responsable} deshabilitado={loading} />
+      <button type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
         {loading ? "Moviendo…" : `Mover hacia ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}`}
       </button>
     </form>

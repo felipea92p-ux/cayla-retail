@@ -1,6 +1,7 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { exigir, leerTodas } from "@/lib/resultado";
+import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
 
@@ -16,7 +17,14 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const { tipo: tipoParam } = await searchParams;
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
   const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones"] as const;
-  const tipo = TIPOS.find((t) => t === tipoParam) ?? TIPOS[0];
+  // Un rol con Etiquetas y sin Categorías/atributos (20260923130000) ve SOLO la pestaña de etiquetas; uno con Categorías/
+  // atributos y sin Etiquetas, las otras cuatro. El líder, todas.
+  const veEtiquetas = veModulo(persona, "etiquetas");
+  const veAtributos = veModulo(persona, "atributos");
+  const tipos = TIPOS.filter((t) => (t === "etiquetas" ? veEtiquetas : veAtributos));
+  const tipo = tipos.find((t) => t === tipoParam) ?? tipos[0] ?? TIPOS[0];
+  const puedeEditarEtiquetas = puede(persona, "editarEtiquetas");
+  const puedeDarDescuento = persona.rol === "lider"; // fn_puede_dar_descuento_por_etiqueta: solo el líder
 
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales] = await Promise.all([
     supabase
@@ -44,11 +52,17 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     tipo === "etiquetas" ? supabase.from("familias").select("codigo, nombre") : Promise.resolve({ data: [], error: null }),
     // Costos y precios SOLO para un Líder, y solo para avisarle al configurar una campaña
     // qué prendas quedarían por debajo de su costo — el costo no viaja a otros roles.
-    tipo === "etiquetas" && persona.rol === "lider"
-      ? supabase.from("variantes").select("id, sku, precio, costo, producto:productos ( referencia, categoria_id )").eq("activo", true)
+    tipo === "etiquetas" && puedeDarDescuento
+      ? leerTodas((desde, hasta) =>
+          supabase.from("variantes").select("id, sku, precio, producto:productos ( referencia, categoria_id )").eq("activo", true).order("id").range(desde, hasta)
+        )
       : Promise.resolve({ data: [], error: null }),
-    tipo === "etiquetas" && persona.rol === "lider"
-      ? supabase.from("variante_etiquetas").select("etiqueta_id, variante_id")
+    // Cuántas prendas lleva cada etiqueta «a mano»: para quien edita etiquetas (el líder o un rol con el módulo).
+    // Las dos por páginas: más de 1.000 variantes desde sep-2026 y PostgREST corta en 1.000 (`leerTodas`).
+    tipo === "etiquetas" && puedeEditarEtiquetas
+      ? leerTodas((desde, hasta) =>
+          supabase.from("variante_etiquetas").select("etiqueta_id, variante_id").order("variante_id").order("etiqueta_id").range(desde, hasta)
+        )
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -99,11 +113,13 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     descuentoPct: e.descuento_pct,
     categoriaIds: (etiquetaCategorias.get(e.id) ?? []) as string[],
   }));
+  // El costo, por la puerta que revisa el permiso (20260923193700). El líder lo tiene siempre.
+  const costos = puedeDarDescuento ? await getCostosVariantes() : null;
   const prendasConCosto = exigir(resPrendas, "las prendas para el aviso de costo").map((v) => ({
     id: v.id,
     categoriaId: v.producto?.categoria_id ?? null,
     precio: Number(v.precio),
-    costo: Number(v.costo ?? 0),
+    costo: costos?.get(v.id) ?? 0,
     nombre: `${v.producto?.referencia ?? "Prenda"} (${v.sku})`,
   }));
   const variantesManuales: Record<string, string[]> = {};
@@ -141,7 +157,10 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         categorias={categorias}
         prendasConCosto={prendasConCosto}
         variantesManuales={variantesManuales}
-        puedeEditar={persona.rol === "lider"}
+        puedeEditar={puede(persona, "editarCatalogo")}
+        puedeEditarEtiquetas={puedeEditarEtiquetas}
+        puedeDarDescuento={puedeDarDescuento}
+        tipos={tipos}
       />
     </div>
   );

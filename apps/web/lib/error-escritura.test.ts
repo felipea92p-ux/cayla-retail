@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { traducirError } from "./error-escritura";
+import { debeEncolarse, esErrorPasajero, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -8,6 +8,55 @@ import { traducirError } from "./error-escritura";
 // importante— lo que deja pasar tal cual.
 
 describe("traduce lo que escribe Postgres por su cuenta", () => {
+  it("una RPC rechazada por falta de sesión pide volver a entrar, no cita a Postgres", () => {
+    const salida = traducirError({ message: "permission denied for function registrar_venta", code: "42501" }, "registrar la venta", { confirmarAntesDeRepetir: true });
+    expect(salida).not.toContain("permission denied");
+    expect(salida).toContain("vuelve a entrar");
+  });
+
+  it("renombrar una marca a un nombre existente se explica, no cita el índice", () => {
+    const salida = traducirError({ message: 'duplicate key value violates unique constraint "marcas_nombre_unico"', code: "23505" }, "renombrar la marca");
+    expect(salida).not.toContain("marcas_nombre_unico");
+    expect(salida).toContain("Ya existe una marca con ese nombre");
+  });
+
+  it("reactivar una prenda rechazada dice qué hacer, sin citar la restricción", () => {
+    const salida = traducirError({ message: 'new row for relation "productos" violates check constraint "productos_rechazado_descontinuado_check"', code: "23514" }, "guardar el producto");
+    expect(salida).not.toContain("productos_rechazado_descontinuado_check");
+    expect(salida).toContain("no se puede reactivar");
+    expect(salida).toContain("Nuevo producto");
+  });
+
+  it("una pareja marca-proveedor inválida dice cómo arreglarla", () => {
+    const salida = traducirError({ message: 'insert or update on table "productos" violates foreign key constraint "productos_marca_proveedor_fk"', code: "23503" }, "guardar el producto");
+    expect(salida).not.toContain("productos_marca_proveedor_fk");
+    expect(salida).toContain("no trae esa marca");
+  });
+
+  it("un nombre de producto repetido dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "productos_referencia_clave_unica"',
+        code: "23505",
+      },
+      "crear el producto"
+    );
+    expect(salida).not.toContain("productos_referencia_clave_unica");
+    expect(salida).toContain("Ya existe un producto con ese nombre");
+  });
+
+  it("una talla y color repetidos en un producto se explican, no se citan", () => {
+    const salida = traducirError(
+      {
+        message: 'duplicate key value violates unique constraint "variantes_producto_talla_color_unico"',
+        code: "23505",
+      },
+      "dar de alta esta prenda"
+    );
+    expect(salida).not.toContain("variantes_producto_talla_color_unico");
+    expect(salida).toContain("ya tiene esa talla y ese color");
+  });
+
   it("el check de stock negativo se vuelve una instrucción, no una restricción", () => {
     const salida = traducirError(
       {
@@ -68,6 +117,39 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     );
     expect(salida).toBe("Esta ubicación ya tiene una caja abierta. Ciérrala antes de abrir otra.");
   });
+
+  it("una colaboradora cargando una cotización de maquila recibe el mensaje de líder, no el genérico de ubicación", () => {
+    const salida = traducirError(
+      { message: 'new row violates row-level security policy for table "cotizaciones_maquila"', code: "42501" },
+      "cargar la cotización"
+    );
+    expect(salida).toBe("Solo un líder de equipo puede cargar o corregir una cotización de maquila.");
+    expect(salida).not.toContain("ubicación");
+  });
+
+  it("una cotización de maquila con vigencia al revés dice qué revisar, no cita el constraint", () => {
+    const salida = traducirError(
+      {
+        message: 'new row for relation "cotizaciones_maquila" violates check constraint "cotizaciones_maquila_vigencia_coherente"',
+        code: "23514",
+      },
+      "cargar la cotización"
+    );
+    expect(salida).not.toContain("constraint");
+    expect(salida).toContain("no puede terminar antes");
+  });
+
+  it("un precio de maquila negativo se explica, no se cita la restricción", () => {
+    const salida = traducirError(
+      {
+        message: 'new row for relation "cotizaciones_maquila" violates check constraint "cotizaciones_maquila_precio_maquila_check"',
+        code: "23514",
+      },
+      "cargar la cotización"
+    );
+    expect(salida).not.toContain("constraint");
+    expect(salida).toContain("no puede ser negativo");
+  });
 });
 
 describe("no re-traduce lo que las RPC ya dicen bien", () => {
@@ -86,6 +168,13 @@ describe("los bordes de red y el fallback", () => {
   it("si no se llegó al servidor, lo dice y aclara que no se guardó nada", () => {
     const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar la venta");
     expect(salida).toContain("No se guardó nada");
+  });
+
+  it("con dinero de por medio no afirma que no se guardó: pide revisar antes de repetir", () => {
+    const salida = traducirError({ message: "TypeError: Failed to fetch" }, "registrar el pago", { confirmarAntesDeRepetir: true });
+    expect(salida).not.toContain("No se guardó nada");
+    expect(salida).toContain("no podemos confirmar");
+    expect(salida).toContain("registrar el pago");
   });
 
   it("lo desconocido no se traga: cae con el texto crudo detrás de «Código:»", () => {
@@ -181,7 +270,7 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).not.toMatch(/\d/);
   });
 
-  it("descuento entre 20 % y 35 % sin argumento: pide escribirlo", () => {
+  it("descuento pasado el 15 % sin argumento: pide escribirlo", () => {
     const salida = traducirError(
       { message: "venta_descuento_requiere_argumento", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
       "registrar la venta"
@@ -223,5 +312,50 @@ describe("la nota del ticket", () => {
     );
     expect(salida).not.toContain("ventas_nota_corta");
     expect(salida).toContain("200");
+  });
+});
+
+describe("otra persona cambió la ficha mientras se editaba (ADR-0193)", () => {
+  const conflicto = {
+    code: "PT409",
+    message: "Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios.",
+    details: null,
+    hint: "version_cambiada",
+  };
+
+  it("se reconoce por el código PT409 y pasa el mensaje de la base tal cual", () => {
+    expect(esVersionCambiada(conflicto)).toBe(true);
+    expect(traducirError(conflicto, "guardar el producto")).toBe(conflicto.message);
+  });
+
+  it("un P0001 cualquiera no es un conflicto de versión", () => {
+    expect(esVersionCambiada({ code: "P0001", message: "Falta la referencia del producto." })).toBe(false);
+    expect(esVersionCambiada(null)).toBe(false);
+  });
+});
+
+describe("esErrorPasajero / debeEncolarse — qué se reintenta solo (ADR-0210)", () => {
+  it("un 5xx, un 429 o un 408 se reintentan", () => {
+    expect(esErrorPasajero({ message: "Internal Server Error" }, 500)).toBe(true);
+    expect(esErrorPasajero({ message: "Service Unavailable" }, 503)).toBe(true);
+    expect(esErrorPasajero({ message: "Too Many Requests" }, 429)).toBe(true);
+    expect(esErrorPasajero({ message: "Request Timeout" }, 408)).toBe(true);
+  });
+
+  it("un choque de transacciones, un bloqueo o un tiempo agotado de la base se reintentan", () => {
+    for (const code of ["40001", "40P01", "55P03", "57014", "PGRST002"]) expect(esErrorPasajero({ message: "x", code }, 400)).toBe(true);
+  });
+
+  it("un rechazo de negocio NO: reintentarlo repetiría el mismo rechazo", () => {
+    expect(esErrorPasajero({ message: "No hay una caja abierta", code: "P0001" }, 400)).toBe(false);
+    expect(esErrorPasajero({ message: "duplicate key", code: "23505" }, 409)).toBe(false);
+    expect(esErrorPasajero({ message: "permission denied", code: "42501" }, 403)).toBe(false);
+    expect(esErrorPasajero(null)).toBe(false);
+  });
+
+  it("se encola si no hay red o si el servidor está momentáneamente mal", () => {
+    expect(debeEncolarse({ message: "TypeError: Failed to fetch" })).toBe(true);
+    expect(debeEncolarse({ message: "Bad Gateway" }, 502)).toBe(true);
+    expect(debeEncolarse({ message: "No hay una caja abierta", code: "P0001" }, 400)).toBe(false);
   });
 });

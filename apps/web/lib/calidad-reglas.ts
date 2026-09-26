@@ -1,4 +1,4 @@
-// Reglas del panel de calidad (ADR-0113). La ÚNICA casa de "qué significan" los números que devuelven
+// Reglas del panel de calidad (ADR-0214). La ÚNICA casa de "qué significan" los números que devuelven
 // `fn_calidad` y `fn_calidad_danadas`: el SQL cuenta unidades vendidas, devueltas, dañadas y cambiadas; acá se
 // decide cuándo una tasa es una señal y cuándo es ruido. Puro TypeScript, sin base de datos: se prueba sin Docker.
 //

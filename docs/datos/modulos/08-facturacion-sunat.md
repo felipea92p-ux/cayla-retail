@@ -552,6 +552,19 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     salió de acá, no hay nada que darle de baja allá)? ¿Y debería `anular_venta`
     hacerlo automático cuando el comprobante que deja atrás está `pendiente`?
 
+    **Cerrado — los dos caminos.** El de la mano: Felipe decidió que sí, un `pendiente` se
+    suelta sin avisar a SUNAT, y el botón «Liberar sin espera»
+    (`marcar_comprobante_no_emitido`, estado `no_emitido`, ADR-0093) está en producción
+    desde 2026-09-17. El estructural, 2026-09-21: `anular_venta` (`20260921121500`, pegada
+    en producción ese día) libera en la misma transacción el comprobante `pendiente` de
+    la venta que anula (`no_emitido`, motivo «Venta anulada: …»), y `/api/lucode/emitir`
+    se niega a transmitir el de una venta anulada (`lib/transmision-reglas.ts`). Lo que
+    queda, decidido por Felipe el 2026-09-21 (opción a: dejarlo): un comprobante
+    `rechazado` de una venta anulada no se toca —ya llegó a SUNAT— y queda en «Rechazados»
+    sin salida; si aparece uno, se resuelve a mano con el contador. Y `20260921161500` (pegada
+    en producción el 2026-09-21) pone un trigger en `comprobantes` que impide crear
+    uno nuevo sobre una venta anulada, por cualquier camino.
+
 16. **El cliente de un comprobante no está ligado a la tabla `clientes` — encontrado
     2026-09-17.** `comprobantes.cliente_nombre`/`cliente_num_doc` son texto libre sin
     FK, a diferencia de `ventas.cliente_id → clientes(id)`. Consecuencia: no se puede
@@ -559,6 +572,20 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
     de comprobantes, y el mismo cliente puede quedar escrito con variaciones distintas
     en cada emisión. Menor prioridad que 14/15 — es una limitación de reporting, no un
     riesgo de datos.
+
+17. **Una sola serie de nota de crédito por tienda, y SUNAT pide dos — encontrado 2026-09-21.**
+    `series_comprobantes` tiene `unique (ubicacion_id, tipo)`: una serie de `nota_credito` por
+    tienda, y `fn_reservar_numero_serie` la usa sin mirar qué documento se corrige. SUNAT (RS
+    117-2017, Anexo N.° 3) pide que la serie de una nota de crédito tenga cuatro caracteres y
+    empiece en **F** si corrige una factura y en **B** si corrige una boleta: una tienda que emite
+    las dos no puede cumplir con una sola. Hoy no duele: en producción solo se han emitido boletas
+    (las series de factura F004 y F005 nunca se usaron) y ninguna tienda tiene serie de nota de
+    crédito todavía. **Decidido por Felipe (2026-09-21, opción A):** una serie con B por tienda
+    ahora, y la de factura cuando se emita la primera factura (eso son dos series por tienda: una
+    migración de `series_comprobantes`, `fn_reservar_numero_serie`, `emitir_nota` y «Registrar
+    serie»). Hasta entonces, una nota de crédito de una factura con serie B la rechazaría SUNAT.
+    El 2026-09-21 se probó en el sandbox una nota de crédito de boleta (`BC01-1` sobre B001-21):
+    aceptada; y el formulario «Registrar serie» valida desde entonces la letra y la longitud.
 
 ## Decisiones que lo gobiernan
 
@@ -569,7 +596,7 @@ que está decidiendo se lleva un precio escrito a mano que nadie puede rastrear.
 - **D-11** · Solo Felipe pega SQL en producción y queda anotado — aplica al arreglo de B004-000002 (hueco 13).
 - **D-12** · Cuatro niveles de permiso. **Incumplida hoy**: la base solo conoce dos (hueco 8).
 - **D-16** · Cada tabla marcada con en qué base existe. Las tres del módulo: local y producción.
-- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 4, 10, 14 y 15 (el 1 se cerró 2026-09-18, ADR-0102).
+- **D-24** · Las promesas incumplidas se documentan con cita. Aquí van los huecos 4, 10, 14 y 15 (el 1 se cerró 2026-09-18, ADR-0102; el 15, 2026-09-21, ADR-0093 y `20260921121500`).
 - **D-46** · Prioridad 1 es cuentas por pagar e IGV (CAYLA al 72% de las 300 UIT). El hueco 2 (IGV calculado en el navegador) pega directo ahí.
 - **ADR-0005** — Facturación electrónica se construye en dos partes separadas: reservar el número (nuestro) y transmitir (del PSE). Superado el 05-09: el proveedor es Lucode.
 - **ADR-0007** — Esquema legal completo: la proforma no es comprobante, la nota solo sobre un original aceptado, `nota_debito` como cuarto tipo.

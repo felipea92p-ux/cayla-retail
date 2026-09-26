@@ -1,5 +1,24 @@
 # 05 · Inventario y movimientos
-> **Pájaro:** HALCÓN · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-12
+> **Pájaro:** HALCÓN · **Lo lleva:** _(libre — apúntate en `07-GOBIERNO.md`)_ · **Última revisión:** 2026-09-25 (aviso de abajo); el cuerpo sigue siendo el del 2026-09-12
+
+> **⚠️ Actualización 2026-09-25: el cuerpo de este documento describe V1** (`bajar_a_piso`, `devolver_a_almacen`,
+> `sedes`, `contenedores`, `stock_almacen`, `stock.ultima_venta` y los motivos `bajada a piso` / `bajada de almacén` /
+> `devolución a almacén`). Nada de eso existe hoy. Cómo es en V2:
+> - Piso, almacén y cuarentena son `sububicaciones` de cada ubicación (`tipo` `piso_venta`, `almacen_tienda`,
+>   `cuarentena`), y `stock` es una fila por variante, ubicación y sububicación.
+> - Bajar y retirar del piso es la misma función: `retail.mover_interno(p_ubicacion_id, p_variante_id, p_cantidad,
+>   p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota)`, una prenda por llamada. Escribe UNA fila `traslado`
+>   con motivo `movimiento_interno` («Bajada al piso» o «Retiro del piso» en Movimientos, según a dónde llegó la prenda; el filtro que trae los dos es «Bajada o retiro del piso»). La usan «Reponer» y, desde el 2026-09-25, «Retirar del piso»
+>   (menú «⋯» de cada talla), los dos en Existencias.
+> - Desde el 2026-09-25 (sin pegar en producción) hay además `retail.bajar_al_piso`: varias prendas, todo o nada, con
+>   token, que llama a `mover_interno` por prenda y guarda el documento en `bajadas_piso` / `bajada_piso_items`
+>   (ADR-0208, «Construcción — bloque 1»). Se llega por el botón «Bajar al piso» de Existencias.
+> - También desde el 2026-09-25 (sin pegar en producción, migración `20260926000400`): un ajuste con motivo
+>   «Reposición» ya no puede subir ni bajar el piso; `registrar_movimiento` lo rechaza con el hint
+>   `reposicion_piso_cerrada`. Lo que sube del almacén se baja; lo que aparece de más al contar va por «Conteo físico».
+>   En el almacén sigue permitido.
+> - La venta sigue exigiendo la unidad en el piso: el efecto del hueco 5 sigue vigente.
+> - Las cifras vigentes de cada tabla están en `../generado/DICCIONARIO-RETAIL.md`, que escribe un script.
 
 ## Para qué existe
 
@@ -45,8 +64,8 @@ stateDiagram-v2
     [*] --> EnAlmacen : recibir_lote con contenedor 'almacen' · (entrada · motivo 'ingreso de lote')
     [*] --> EnPiso : entrada sin contenedor · (producción del taller, entrada manual, traslado recibido)
 
-    EnAlmacen --> EnPiso : bajar_a_piso · (salida 'bajada a piso' + entrada 'bajada de almacén')
-    EnPiso --> EnAlmacen : devolver_a_almacen · (salida + entrada 'devolución a almacén') — SIN PANTALLA
+    EnAlmacen --> EnPiso : bajar_a_piso (V1, hoy mover_interno o bajar_al_piso) · (salida 'bajada a piso' + entrada 'bajada de almacén')
+    EnPiso --> EnAlmacen : devolver_a_almacen (V1, hoy mover_interno al revés) · (salida + entrada 'devolución a almacén') — SIN PANTALLA
 
     EnPiso --> Vendida : registrar_venta · (salida · motivo 'venta' → sella stock.ultima_venta)
     EnPiso --> Salida : salida manual · (merma / regalo / muestra / otro)
@@ -67,8 +86,8 @@ todavía está guardado exige bajarlo primero. Ver hueco 5.
 
 ### `movimientos` — el libro de la mercadería: cada entrada, salida, ajuste y traslado, en orden
 **Existe en:** local y producción
-**Quién escribe:** `registrar_movimiento`, `registrar_venta`, `recibir_lote`, `bajar_a_piso`,
-`devolver_a_almacen`, `cerrar_conteo`, `inventariar_produccion` / `revertir_produccion_inventario`
+**Quién escribe:** `registrar_movimiento`, `registrar_venta`, `recibir_lote`, `bajar_a_piso` (V1; hoy: `mover_interno` y `bajar_al_piso`),
+`devolver_a_almacen` (V1; hoy: `mover_interno` al revés), `cerrar_conteo`, `inventariar_produccion` / `revertir_produccion_inventario`
 (0027/0028/0029). **Y también cualquier cliente autenticado por INSERT directo** — ver hueco 2.
 
 | Columna | Tipo | Vacío | Por defecto | Para qué sirve |
@@ -206,7 +225,8 @@ migración (`0044:81-84`, `unificacion/12:124-129`).
   `unificacion/12:115`.
 - `contenedores_un_almacen_por_sede` — índice único parcial `on (sede_id) where tipo='almacen'`.
   **Este es el candado que define el modelo**: una sede no puede tener dos almacenes, así
-  que `bajar_a_piso` puede resolver "el almacén de esta sede" con un `select` sin ambigüedad.
+  que `bajar_a_piso` puede resolver "el almacén de esta sede" con un `select` sin ambigüedad. (V1; hoy: el candado
+  equivalente es `sububicaciones_tipo_unico_por_ubicacion`, y `bajar_al_piso` resuelve piso y almacén por tipo.)
   Si el negocio alguna vez necesita un almacén central compartido entre AQP y TRU, este
   índice es lo primero que hay que rediseñar (`0044:8-9` lo dice explícito).
 
@@ -331,7 +351,10 @@ variante si no existían y emite una `entrada` con `motivo='ingreso de lote'`,
 **Candado de permiso:** `fn_puede_operar_sede(p_sede_id)`. **Idempotente:** no — pegar dos
 veces el mismo fardo crea dos lotes y duplica el stock.
 
-### `bajar_a_piso(p_sede_id uuid, p_variante_id uuid, p_cantidad integer, p_nota text default null) → uuid`
+### `bajar_a_piso(p_sede_id uuid, p_variante_id uuid, p_cantidad integer, p_nota text default null) → uuid` (V1; hoy: no existe)
+> Hoy se baja con `mover_interno` (una fila `traslado`, motivo `movimiento_interno`) o con `bajar_al_piso` (varias
+> prendas, todo o nada, con token; ADR-0208). Lo que sigue describe V1.
+
 Dos movimientos en la misma transacción: `salida` con `motivo='bajada a piso'` y el
 contenedor de almacén (resta de `stock_almacen`), más `entrada` con
 `motivo='bajada de almacén'` sin contenedor (suma a `stock`). Si el almacén no alcanza, la
@@ -341,7 +364,11 @@ salida revienta y **la entrada nunca corre**: o pasan las dos o no pasa ninguna.
 tiene un contenedor `almacen`". **Idempotente:** no.
 **Pantalla:** `components/BajarATiendaModal.tsx:39`, desde `/inventario/almacen`.
 
-### `devolver_a_almacen(p_sede_id uuid, p_variante_id uuid, p_cantidad integer, p_nota text default null) → uuid`
+### `devolver_a_almacen(p_sede_id uuid, p_variante_id uuid, p_cantidad integer, p_nota text default null) → uuid` (V1; hoy: no existe)
+> Hoy retirar del piso es `mover_interno` con origen piso y destino almacén. Desde el 2026-09-25 tiene pantalla:
+> «Retirar del piso», en el menú «⋯» de cada talla en Existencias (`ReponerPisoModal` con `sentido: 'retirar'`,
+> bloque 2 de ADR-0208), con nota opcional del motivo. Lo que sigue describe V1.
+
 El espejo exacto: `salida` sin contenedor (resta del piso) + `entrada` con el contenedor de
 almacén (suma al almacén), las dos con `motivo='devolución a almacén'`.
 **Candado de permiso:** idéntico al anterior. **Idempotente:** no.
@@ -449,8 +476,8 @@ sin historia se puede creer o no creer, pero no se puede auditar.
    `false or NULL or false` = **NULL**. Y el patrón que usan todas las RPC del módulo es
    `if not fn_puede_operar_sede(...) then raise` — **`not NULL` no es true, así que el
    `raise` no dispara**. Solo `registrar_venta` se arregló (`0054:115`, `is not true`);
-   `registrar_movimiento` (`0012:52`), `recibir_lote` (`0018:64`), `bajar_a_piso`
-   (`0044:229`) y `devolver_a_almacen` (`0044:269`) siguen con `if not`. El propio `0054`
+   `registrar_movimiento` (`0012:52`), `recibir_lote` (`0018:64`), `bajar_a_piso` (V1)
+   (`0044:229`) y `devolver_a_almacen` (V1) (`0044:269`) siguen con `if not`. El propio `0054`
    lo deja escrito: *"el barrido del resto queda en el BACKLOG"* (`0054_venta_idempotente.sql:67`).
    **Consecuencia:** una cuenta recién creada, sin dar de alta, puede mover inventario en
    cualquier sede.
@@ -474,7 +501,8 @@ sin historia se puede creer o no creer, pero no se puede auditar.
    trámite."* En el SQL no existe: `registrar_venta` (`0054:165`) inserta una `salida` sin
    contenedor, que va contra `stock` (piso). Si la prenda solo está en `stock_almacen`,
    `fn_aplicar_movimiento` lanza *"Stock insuficiente en sede %"* y la venta se cae. No hay
-   ninguna llamada a `bajar_a_piso` en el camino de venta (verificado: las únicas
+   ninguna llamada a `bajar_a_piso` (V1; hoy tampoco a `mover_interno`: con piso 0 la caja dice «está agotada»,
+   ADR-0208) en el camino de venta (verificado: las únicas
    referencias son `BajarATiendaModal.tsx:39`). **Consecuencia:** la clienta con la prenda
    en la mano espera a que alguien vaya a "Bajar a tienda" y vuelva. La caja se frena por
    un trámite, que es exactamente lo que D-40 prohíbe.
@@ -487,7 +515,8 @@ sin historia se puede creer o no creer, pero no se puede auditar.
    usa en ningún cálculo de alerta. **Consecuencia:** el sistema manda comprar mercadería
    que ya está en el cuarto de atrás. Plata gastada dos veces por la misma prenda.
 
-7. **`devolver_a_almacen` no tiene pantalla (D-41).** La RPC funciona y es atómica
+7. **`devolver_a_almacen` no tiene pantalla (D-41).** (V1. **Resuelto el 2026-09-25:** retirar es `mover_interno` al
+   revés y tiene pantalla, «Retirar del piso» en el menú «⋯» de Existencias; bloque 2 de ADR-0208.) La RPC funciona y es atómica
    (`0044:262-296`), pero `InventarioAgrupado.tsx:88` fuerza `esAlmacen: false` en todas las
    sedes y la línea 256 pasa `contenedoresAlmacen={[]}`, así que la rama de devolución de
    `MovimientoModal.tsx:76` es inalcanzable. **Consecuencia:** lo que baja al piso ya no
@@ -598,7 +627,7 @@ sin historia se puede creer o no creer, pero no se puede auditar.
   Hoy no se cumple: hueco 6.
 - **D-40** — Vender desde el almacén se puede y el sistema registra solo el paso por el piso.
   Hoy no existe: hueco 5.
-- **D-41** — Devolver del piso al almacén ya pasa en la base; falta la pantalla. Hueco 7.
+- **D-41** — Devolver del piso al almacén ya pasa en la base; **la pantalla existe desde el 2026-09-25** («Retirar del piso», bloque 2 de ADR-0208). Hueco 7, resuelto.
 - **D-42** — La mercadería nueva entra al almacén y de ahí se baja al piso. Lo cumple
   `recibir_lote` con el contenedor `ALMACEN`.
 - **D-45 (abierta)** — Método de costeo del inventario. No se toca el núcleo hoy. Hueco 15.

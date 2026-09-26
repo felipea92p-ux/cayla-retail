@@ -1,4 +1,4 @@
-// Esqueleto de carga de Calidad (ADR-0113). Misma receta que comercial/loading.tsx: la silueta —título, fila de
+// Esqueleto de carga de Calidad (ADR-0214). Misma receta que comercial/loading.tsx: la silueta —título, fila de
 // cuatro tarjetas y una tabla— evita el salto de "pantalla vacía → todo de golpe" mientras corren dos funciones.
 export default function LoadingCalidad() {
   return (

@@ -102,6 +102,22 @@ stateDiagram-v2
 | `created_at` | timestamptz | no | `now()` | Cuándo se dio de alta. |
 | `updated_at` | timestamptz | no | `now()` | Cuándo se tocó por última vez. Lo pone un trigger, no la pantalla. |
 
+> **Actualización 2026-09-19 (ADR-0134, `docs/adr/0134-proveedores-cci-yape-plin-y-titular.md`) — cuatro columnas nuevas,
+> aplicadas en producción como `20260919173940`** (archivo del repo: `20260919170000_proveedores_cci_y_billetera.sql`).
+> Este módulo no se reescribe aquí; solo se agrega lo de este cambio.
+>
+> | Columna | Tipo | Vacío | Para qué sirve |
+> |---|---|---|---|
+> | `cci` | text | sí | Código de Cuenta Interbancario, 20 dígitos solo números (`proveedores_cci_formato`). |
+> | `celular_billetera` | text | sí | Celular al que se yapea/plinea, 9 dígitos que empiezan con 9, sin +51 (`proveedores_celular_billetera_formato`). **No es `telefono`** (el WhatsApp). |
+> | `billeteras` | text[] | sí | Qué app tiene ese celular: `yape`, `plin` o ambas (`proveedores_billeteras_validas`). Hay celular si y solo si hay app (`proveedores_billetera_coherente`). |
+> | `titular_cuenta` | text | sí | El nombre que muestra el banco/Yape al pagar, 2–120 caracteres (`proveedores_titular_largo`); quien paga lo compara antes de confirmar. |
+>
+> `cuenta_bancaria` no cambió, pero ahora significa «cuenta local» (el interbancario vive en `cci`). Las 4 columnas se escriben
+> por la RPC `guardar_cuentas_proveedor` (solo líder, reemplazo completo) y se leen por `fn_proveedores()` (28 columnas). Se
+> leen con la misma regla que `banco` y `cuenta_bancaria` (D-27); la restricción por rol de las cinco columnas de pago queda
+> para el final del proyecto (Felipe, 2026-09-19). Sin bitácora de cambios de cuenta todavía.
+
 **Candados** (lo que la base impide que pase):
 
 - `proveedores_pkey` — PRIMARY KEY (id). En las dos bases.

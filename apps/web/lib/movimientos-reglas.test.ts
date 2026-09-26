@@ -1,15 +1,31 @@
 import { describe, it, expect } from "vitest";
+import { MOTIVOS_AJUSTE } from "./ajuste-reglas";
 import {
+  CATEGORIAS,
+  ETIQUETA_PROCESO,
+  FILTROS_SUBUBICACION,
+  FILTROS_TIPO,
+  PERIODOS_RAPIDOS,
+  PROCESOS_FILTRO,
+  PROCESOS_POR_CATEGORIA,
+  categoriaDeProceso,
+  desdeDeUltimosDias,
+  etiquetaConDireccion,
   etiquetaDia,
+  etiquetaMovimiento,
   etiquetaProceso,
+  filtrosDesdeParams,
   partesOrigenDestino,
   leerCursorMovimientos,
+  referenciaMovimiento,
+  restarDias,
   serializarCursorMovimientos,
   textoDelta,
   textoOrigenDestino,
-  textoReferencia,
+  textoPeriodo,
   tonoCategoria,
   type Movimiento,
+  type ParamsMovimientos,
 } from "./movimientos-reglas";
 
 // Lo que la pantalla de Movimientos «dice» de cada fila. El bug que motivó
@@ -110,47 +126,210 @@ describe("textoOrigenDestino", () => {
   });
 });
 
-describe("textoReferencia", () => {
-  it("venta con boleta", () => {
+describe("etiquetaMovimiento", () => {
+  // La columna «Movimiento» dice el proceso en lenguaje de tienda. En una transferencia lo que
+  // importa es hacia dónde va el stock DE LA SEDE QUE SE MIRA, y eso lo dice el signo.
+  it("una transferencia dice «llegada» si suma y «salida» si resta", () => {
+    expect(etiquetaMovimiento(movimiento({ tipo: "entrada", categoria: "transferencia", motivo: "traslado_entrada", delta: 3 }))).toBe("Transferencia · llegada");
+    expect(etiquetaMovimiento(movimiento({ tipo: "salida", categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Transferencia · salida");
+  });
+
+  it("una fila del modelo anterior (una sola pierna) también se lee según la sede que se mira", () => {
+    const vieja = { tipo: "traslado" as const, categoria: "transferencia" as const, motivo: "transferencia" };
+    expect(etiquetaMovimiento(movimiento({ ...vieja, delta: 2 }))).toBe("Transferencia · llegada");
+    expect(etiquetaMovimiento(movimiento({ ...vieja, delta: -2 }))).toBe("Transferencia · salida");
+  });
+
+  it("el resto usa el nombre del proceso", () => {
+    expect(etiquetaMovimiento(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBe("Venta");
+    expect(etiquetaMovimiento(movimiento({ motivo: "recepcion" }))).toBe("Recepción");
+    expect(etiquetaMovimiento(movimiento({ motivo: "devolucion" }))).toBe("Devolución");
+    expect(etiquetaMovimiento(movimiento({ motivo: "conteo", categoria: "ajuste", tipo: "ajuste" }))).toBe("Conteo");
+  });
+
+  // Bajar y retirar comparten motivo (`movimiento_interno`): lo que los distingue es a dónde llegó la prenda.
+  it("un movimiento entre piso y almacén se nombra por su destino: bajada al piso o retiro del piso", () => {
+    const interno = { motivo: "movimiento_interno", categoria: "interno" as const, tipo: "traslado" as const, delta: 0 };
+    const piso = { id: "s1", nombre: "Piso de venta", tipo: "piso_venta" };
+    const almacen = { id: "s2", nombre: "Almacén de tienda", tipo: "almacen_tienda" };
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacion: almacen, sububicacionDestino: piso }))).toBe("Bajada al piso");
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Retiro del piso");
+  });
+
+  it("sin destino reconocible, el movimiento interno usa el nombre del filtro (nunca rompe)", () => {
+    const interno = { motivo: "movimiento_interno", categoria: "interno" as const, tipo: "traslado" as const, delta: 0 };
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacionDestino: null }))).toBe("Bajada o retiro del piso");
+    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacionDestino: { id: "r1", nombre: "Rack A", tipo: null } }))).toBe("Bajada o retiro del piso");
+  });
+
+  it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
+    expect(etiquetaMovimiento(movimiento({ motivo: "reposicion", categoria: "ajuste", tipo: "ajuste" }))).toBe("Ajuste · reposición");
+    expect(etiquetaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  });
+});
+
+describe("etiquetaConDireccion", () => {
+  // Rediseño de Movimientos (2026-09-22): que se entienda entrada/salida/interno/ajuste sin
+  // interpretar el proceso, sin duplicar la palabra cuando el proceso ya la trae.
+  it("una transferencia se lee como entrada o salida según el signo, no «transferencia»", () => {
+    expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_entrada", delta: 3 }))).toBe("Entrada · Traslado recibido");
+    expect(etiquetaConDireccion(movimiento({ categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Salida · Traslado enviado");
+  });
+
+  it("un interno dice a qué sububicación entró", () => {
     const m = movimiento({
-      motivo: "venta",
-      venta: { id: "v1", nota: null, comprobante: { tipo: "boleta", numero: "B001-000012", estado: "aceptado" } },
+      categoria: "interno",
+      motivo: "movimiento_interno",
+      delta: 0,
+      sububicacionDestino: { id: "s2", nombre: "Piso de venta", tipo: "piso_venta" },
     });
-    expect(textoReferencia(m)).toBe("Boleta B001-000012");
+    expect(etiquetaConDireccion(m)).toBe("Interno · a piso");
   });
 
-  it("venta sin comprobante lo dice", () => {
-    expect(textoReferencia(movimiento({ motivo: "venta", venta: { id: "v1", nota: null, comprobante: null } }))).toBe("Sin comprobante");
+  it("entrada y salida llevan su propio prefijo delante del proceso", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "recepcion", categoria: "entrada" }))).toBe("Entrada · Recepción");
+    expect(etiquetaConDireccion(movimiento({ motivo: "venta", categoria: "salida", delta: -1 }))).toBe("Salida · Venta");
   });
 
-  it("recepción: guía, factura y proveedor, los que haya", () => {
+  it("un ajuste que ya trae «Ajuste ·» en su nombre no lo duplica", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "merma", categoria: "ajuste", delta: -1 }))).toBe("Ajuste · merma");
+  });
+
+  it("un conteo formal (sin «Ajuste ·» de por sí) lo recibe del prefijo", () => {
+    expect(etiquetaConDireccion(movimiento({ motivo: "conteo", categoria: "ajuste" }))).toBe("Ajuste · Conteo");
+  });
+});
+
+describe("referenciaMovimiento", () => {
+  // La columna «Referencia»: solo lo que la base ya guarda. Traslados y conteos tienen número
+  // corrido; una venta se identifica por su comprobante. No existe «Venta 184»: esa tabla no
+  // tiene número propio y la pantalla no lo inventa.
+  it("un traslado dice su número y lleva a su detalle, sea salida o llegada", () => {
+    const t = { id: "t-uuid", estado: "en_transito", nota: null, numero: 24 };
+    for (const motivo of ["traslado_salida", "traslado_entrada"]) {
+      expect(referenciaMovimiento(movimiento({ motivo, categoria: "transferencia", transferencia: t }))).toEqual({
+        texto: "Traslado 24",
+        detalle: null,
+        href: "/inventario/traslados/t-uuid",
+      });
+    }
+  });
+
+  it("un traslado del modelo anterior también (estado «completada»)", () => {
+    const t = { id: "t1", estado: "completada", nota: null, numero: 1 };
+    expect(referenciaMovimiento(movimiento({ motivo: "transferencia", categoria: "transferencia", transferencia: t }))?.texto).toBe("Traslado 1");
+  });
+
+  it("si la base todavía no devuelve el número (código antes que migración), dice «Traslado» y sigue enlazando", () => {
+    const t = { id: "t1", estado: "en_transito", nota: null, numero: null };
+    expect(referenciaMovimiento(movimiento({ motivo: "traslado_entrada", transferencia: t }))).toEqual({
+      texto: "Traslado",
+      detalle: null,
+      href: "/inventario/traslados/t1",
+    });
+  });
+
+  it("un conteo dice su número y lleva a su detalle", () => {
+    const m = movimiento({ motivo: "conteo", conteo: { id: "c-uuid", sistema: 2, contado: 1, numero: 12 } });
+    expect(referenciaMovimiento(m)).toEqual({ texto: "Conteo 12", detalle: null, href: "/inventario/conteo/c-uuid" });
+  });
+
+  it("una venta, su devolución y su cambio se identifican por el comprobante de la venta", () => {
+    const venta = { id: "v1", nota: null, comprobante: { tipo: "boleta" as const, numero: "B001-000184", estado: "aceptado" as const } };
+    for (const motivo of ["venta", "devolucion", "cambio", "anulacion_venta"]) {
+      expect(referenciaMovimiento(movimiento({ motivo, venta }))).toEqual({ texto: "Boleta B001-000184", detalle: null, href: null });
+    }
+  });
+
+  it("una venta sin comprobante lo dice; sin venta no hay referencia", () => {
+    expect(referenciaMovimiento(movimiento({ motivo: "venta", venta: { id: "v1", nota: null, comprobante: null } }))?.texto).toBe("Sin comprobante");
+    expect(referenciaMovimiento(movimiento({ motivo: "venta", venta: null }))).toBeNull();
+  });
+
+  it("una recepción se identifica por su factura (con enlace solo para quien puede ver Compras) o por su guía", () => {
     const m = movimiento({
       motivo: "recepcion",
       lote: { id: "l1", guia: "T001-000045", nota: null, proveedor: "Textiles Andina" },
       compra: { id: "c1", documento: "F001-000210" },
     });
-    expect(textoReferencia(m)).toBe("Guía T001-000045 · Factura F001-000210 · Textiles Andina");
+    expect(referenciaMovimiento(m)).toEqual({ texto: "Factura F001-000210", detalle: "Guía T001-000045 · Textiles Andina", href: null });
+    expect(referenciaMovimiento(m, { enlaceCompras: true })?.href).toBe("/compras/factura/c1");
+    // Sin factura (una recepción fuera de comprobante): la guía, y el proveedor debajo.
+    expect(referenciaMovimiento(movimiento({ motivo: "recepcion", lote: { id: "l1", guia: "T001-9", nota: null, proveedor: "Textiles Sur" } }))).toEqual({
+      texto: "Guía T001-9",
+      detalle: "Textiles Sur",
+      href: null,
+    });
+    // Sin factura ni guía: al menos, de quién vino.
+    expect(referenciaMovimiento(movimiento({ motivo: "recepcion", lote: { id: "l1", guia: null, nota: null, proveedor: "Textiles Sur" } }))).toEqual({
+      texto: "Textiles Sur",
+      detalle: null,
+      href: null,
+    });
   });
 
-  it("conteo: sistema → contado", () => {
-    expect(textoReferencia(movimiento({ motivo: "conteo", conteo: { id: "c1", sistema: 2, contado: 1 } }))).toBe("Sistema 2 → contado 1");
-  });
-
-  it("un proceso de sistema sin nota no tiene referencia", () => {
-    expect(textoReferencia(movimiento({ motivo: "carga_inicial", esSistema: true }))).toBeNull();
+  it("un proceso sin referencia deja la celda vacía: carga de sistema, ajuste suelto, producción, reposición interna", () => {
+    expect(referenciaMovimiento(movimiento({ motivo: "carga_inicial", esSistema: true }))).toBeNull();
+    expect(referenciaMovimiento(movimiento({ motivo: "merma", categoria: "ajuste", tipo: "ajuste", nota: "se rompió" }))).toBeNull();
+    expect(referenciaMovimiento(movimiento({ motivo: "produccion" }))).toBeNull();
+    expect(referenciaMovimiento(movimiento({ motivo: "movimiento_interno", categoria: "interno", tipo: "traslado" }))).toBeNull();
   });
 });
 
 describe("etiquetaProceso", () => {
   it("conoce los procesos de operación y los de sistema", () => {
-    expect(etiquetaProceso("movimiento_interno")).toBe("Reposición interna");
+    expect(etiquetaProceso("movimiento_interno")).toBe("Bajada o retiro del piso");
     expect(etiquetaProceso("carga_inicial")).toBe("Carga inicial");
     expect(etiquetaProceso("activacion_piso_almacen")).toBe("Activación piso/almacén");
+    expect(etiquetaProceso("traslado_salida")).toBe("Transferencia · salida");
+    expect(etiquetaProceso("traslado_entrada")).toBe("Transferencia · llegada");
   });
 
   it("un motivo desconocido se muestra legible, nunca rompe", () => {
     expect(etiquetaProceso("ajuste_manual_2027")).toBe("ajuste manual 2027");
     expect(etiquetaProceso(null)).toBe("Sin proceso");
+  });
+
+  it("«Más filtros → Proceso» ofrece cada proceso con el mismo nombre que la columna «Movimiento»", () => {
+    const porValor = Object.fromEntries(PROCESOS_FILTRO.map((p) => [p.valor, p.etiqueta]));
+    expect(porValor.traslado_salida).toBe("Transferencia · salida");
+    expect(porValor.traslado_entrada).toBe("Transferencia · llegada");
+    expect(porValor.recepcion).toBe("Recepción");
+    expect(porValor.venta).toBe("Venta");
+    expect(porValor.movimiento_interno).toBe("Bajada o retiro del piso");
+    expect(PROCESOS_FILTRO.every((p) => p.etiqueta && !p.etiqueta.includes("_"))).toBe(true);
+  });
+});
+
+describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
+  it("todo proceso del filtro tiene al menos un tipo, y todo proceso de un tipo existe en el filtro", () => {
+    const filtro = new Set(PROCESOS_FILTRO.map((p) => p.valor));
+    const enTipos = new Set(CATEGORIAS.flatMap((c) => PROCESOS_POR_CATEGORIA[c]));
+    expect([...filtro].filter((p) => !enTipos.has(p))).toEqual([]);
+    expect([...enTipos].filter((p) => !filtro.has(p))).toEqual([]);
+  });
+
+  it("todo motivo que el modal de ajuste puede guardar tiene nombre propio y botón bajo «Ajustes»", () => {
+    // Si mañana se suma un motivo al modal y no aquí, Movimientos lo mostraría como texto crudo
+    // y no habría cómo filtrarlo sin escribir la URL a mano.
+    for (const { valor } of MOTIVOS_AJUSTE) {
+      expect(ETIQUETA_PROCESO[valor], valor).toMatch(/^Ajuste · /);
+      expect(PROCESOS_POR_CATEGORIA.ajuste, valor).toContain(valor);
+    }
+  });
+
+  it("«Cambio» vive en Entradas y en Salidas (la prenda devuelta entra, la nueva sale)", () => {
+    expect(PROCESOS_POR_CATEGORIA.entrada).toContain("cambio");
+    expect(PROCESOS_POR_CATEGORIA.salida).toContain("cambio");
+  });
+
+  it("un enlace con solo ?proc= deduce su tipo si es uno solo", () => {
+    expect(categoriaDeProceso("conteo")).toBe("ajuste");
+    expect(categoriaDeProceso("venta")).toBe("salida");
+    expect(categoriaDeProceso("traslado_entrada")).toBe("transferencia");
+    expect(categoriaDeProceso("cambio")).toBeNull();
+    expect(categoriaDeProceso("inventado")).toBeNull();
+    expect(categoriaDeProceso(null)).toBeNull();
   });
 });
 
@@ -218,5 +397,122 @@ describe("partesOrigenDestino", () => {
 
   it("sin sububicación (Taller) el origen es la ubicación misma", () => {
     expect(partesOrigenDestino(movimiento({ motivo: "produccion", ubicacion: "Taller" }))).toEqual({ origen: "Producción", destino: "Taller" });
+  });
+});
+
+describe("filtros rápidos por tipo", () => {
+  it("hay uno por cada categoría, en el orden en que se leen en la pantalla", () => {
+    expect(FILTROS_TIPO.map((f) => f.valor)).toEqual(["entrada", "salida", "interno", "transferencia", "ajuste"]);
+    expect([...FILTROS_TIPO.map((f) => f.valor)].sort()).toEqual([...CATEGORIAS].sort());
+    expect(FILTROS_TIPO.map((f) => f.etiqueta)).toEqual(["Entradas", "Salidas", "Internos", "Transferencias", "Ajustes"]);
+  });
+});
+
+describe("restarDias / desdeDeUltimosDias", () => {
+  it("cruza fin de mes, de año y año bisiesto sin depender de la zona horaria del servidor", () => {
+    expect(restarDias("2026-03-01", 1)).toBe("2026-02-28");
+    expect(restarDias("2026-01-01", 1)).toBe("2025-12-31");
+    expect(restarDias("2028-03-01", 1)).toBe("2028-02-29");
+    expect(restarDias("2026-09-19", 0)).toBe("2026-09-19");
+  });
+
+  it("un período de N días TERMINA hoy: 7 días es hoy y los 6 anteriores (misma cuenta que el Resumen)", () => {
+    expect(desdeDeUltimosDias(1, "2026-09-19")).toBe("2026-09-19");
+    expect(desdeDeUltimosDias(7, "2026-09-19")).toBe("2026-09-13");
+    expect(desdeDeUltimosDias(30, "2026-09-19")).toBe("2026-08-21");
+    expect(desdeDeUltimosDias(90, "2026-09-19")).toBe("2026-06-22");
+  });
+});
+
+describe("filtrosDesdeParams", () => {
+  const hoy = "2026-09-19";
+  const piso = { id: "11111111-1111-4111-8111-111111111111", tipo: "piso_venta" };
+  const almacen = { id: "22222222-2222-4222-8222-222222222222", tipo: "almacen_tienda" };
+  const cuarentena = { id: "33333333-3333-4333-8333-333333333333", tipo: "cuarentena" };
+  const sububicaciones = [piso, almacen, cuarentena];
+  const resolver = (p: ParamsMovimientos, subs = sububicaciones) => filtrosDesdeParams(p, { hoy, sububicaciones: subs });
+
+  it("sin nada en la URL: los últimos 30 días, y lo dice (no es un recorte silencioso)", () => {
+    const f = resolver({});
+    expect(f.periodo).toBe("30");
+    expect(f.desde).toBe("2026-08-21");
+    expect(f.hasta).toBeUndefined();
+    expect(f.busqueda).toBeUndefined();
+    expect(f.categoria).toBeUndefined();
+    expect(f.motivo).toBeUndefined();
+    expect(f.sububicacionId).toBeUndefined();
+    expect(f.sub).toBeNull();
+  });
+
+  it("los períodos rápidos son 7, 30 y 90; cualquier otro valor cae al de 30", () => {
+    expect([...PERIODOS_RAPIDOS]).toEqual([7, 30, 90]);
+    expect(resolver({ rango: "7" })).toMatchObject({ periodo: "7", desde: "2026-09-13" });
+    expect(resolver({ rango: "90" })).toMatchObject({ periodo: "90", desde: "2026-06-22" });
+    expect(resolver({ rango: "15" })).toMatchObject({ periodo: "30", desde: "2026-08-21" });
+    expect(resolver({ rango: "basura" })).toMatchObject({ periodo: "30" });
+  });
+
+  it("«Todo el historial» no recorta por fecha", () => {
+    const f = resolver({ rango: "todo" });
+    expect(f.periodo).toBe("todo");
+    expect(f.desde).toBeUndefined();
+    expect(f.hasta).toBeUndefined();
+  });
+
+  it("las fechas de «Personalizado» mandan sobre el período rápido, y una inválida se descarta", () => {
+    expect(resolver({ desde: "2026-09-01", hasta: "2026-09-10", rango: "7" })).toMatchObject({ periodo: "personalizado", desde: "2026-09-01", hasta: "2026-09-10" });
+    expect(resolver({ hasta: "2026-09-10" })).toMatchObject({ periodo: "personalizado", desde: undefined, hasta: "2026-09-10" });
+    expect(resolver({ desde: "ayer", hasta: "2026-9-1" })).toMatchObject({ periodo: "30", desde: "2026-08-21", hasta: undefined });
+  });
+
+  it("acepta solo un tipo y un proceso válidos", () => {
+    expect(resolver({ cat: "transferencia" }).categoria).toBe("transferencia");
+    expect(resolver({ cat: "inventado" }).categoria).toBeUndefined();
+    expect(resolver({ proc: "traslado_entrada" }).motivo).toBe("traslado_entrada");
+    expect(resolver({ proc: "Venta; drop table" }).motivo).toBeUndefined();
+  });
+
+  it("la búsqueda se recorta y una vacía es «sin búsqueda»", () => {
+    expect(resolver({ q: "  Traslado 24  " }).busqueda).toBe("Traslado 24");
+    expect(resolver({ q: "   " }).busqueda).toBeUndefined();
+  });
+
+  it("la sububicación viaja por nombre corto y se resuelve a la de la sede que se mira", () => {
+    expect(FILTROS_SUBUBICACION.map((f) => f.token)).toEqual(["piso", "almacen", "cuarentena"]);
+    expect(resolver({ sub: "piso" })).toMatchObject({ sububicacionId: piso.id, sub: "piso" });
+    expect(resolver({ sub: "almacen" })).toMatchObject({ sububicacionId: almacen.id, sub: "almacen" });
+    expect(resolver({ sub: "cuarentena" })).toMatchObject({ sububicacionId: cuarentena.id, sub: "cuarentena" });
+  });
+
+  it("un enlace viejo con el uuid de la sububicación sigue funcionando y deja apretado su botón", () => {
+    expect(resolver({ sub: almacen.id })).toMatchObject({ sububicacionId: almacen.id, sub: "almacen" });
+  });
+
+  it("una sububicación que la sede no tiene (el Taller no tiene piso) se ignora, no filtra a nada", () => {
+    expect(resolver({ sub: "piso" }, [])).toMatchObject({ sububicacionId: undefined, sub: null });
+    expect(resolver({ sub: "cuarentena" }, [piso, almacen])).toMatchObject({ sububicacionId: undefined, sub: null });
+    // Un uuid que no es de esta sede tampoco: no puede filtrar por una sububicación ajena.
+    expect(resolver({ sub: "44444444-4444-4444-8444-444444444444" })).toMatchObject({ sububicacionId: undefined, sub: null });
+  });
+
+  it("un `?usuario=` de un enlace viejo se ignora: ya no se filtra por persona", () => {
+    const viejo = { q: "blusa", usuario: "6d27c17d-13b7-4c2b-84c8-a944f38431e7" };
+    const f = resolver(viejo);
+    expect(f.busqueda).toBe("blusa");
+    expect(f).not.toHaveProperty("usuarioId");
+    expect(f).not.toHaveProperty("usuario");
+  });
+});
+
+describe("textoPeriodo", () => {
+  it("los rápidos dicen «Últimos N días»; el resto, las fechas", () => {
+    expect(textoPeriodo("7")).toBe("Últimos 7 días");
+    expect(textoPeriodo("30")).toBe("Últimos 30 días");
+    expect(textoPeriodo("90")).toBe("Últimos 90 días");
+    expect(textoPeriodo("todo")).toBe("Todo el historial");
+    expect(textoPeriodo("personalizado", "2026-09-01", "2026-09-10")).toBe("01/09/2026 – 10/09/2026");
+    expect(textoPeriodo("personalizado", "2026-09-01")).toBe("Desde 01/09/2026");
+    expect(textoPeriodo("personalizado", undefined, "2026-09-10")).toBe("Hasta 10/09/2026");
+    expect(textoPeriodo("personalizado")).toBe("Todo el historial");
   });
 });

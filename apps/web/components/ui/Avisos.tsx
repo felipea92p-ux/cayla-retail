@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { Hilo } from "@/components/ui/campos";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { esperaOcupada, suscribirEspera } from "@/lib/espera-estado";
 
 /* ====================================================================
    Avisos · una sola voz, arriba a la derecha (2026-09-14)
@@ -13,21 +13,43 @@ import { Hilo } from "@/components/ui/campos";
    página).
 
    Cómo se usa, desde cualquier componente cliente:
-     avisar.exito("Factura F001-123 registrada")
+     avisar.exito("Proveedor registrado", { detalle: "Confecciones del Sur EIRL" })
      avisar.error("Elige un proveedor", { enfocar: "proveedor" })
      avisar.aviso("2 adjuntos no subieron")
      const fin = avisar.proceso("Subiendo adjuntos…"); …; fin()
+     // o, sin que el aviso parpadee, el MISMO se transforma al terminar:
+     fin.progreso(0.6, "3 de 5 archivos"); …; fin.exito("Adjuntos subidos", { detalle: "5 archivos" })
 
+   · Título = QUÉ pasó («Proveedor actualizado»); `detalle` = sobre qué
+     («Confecciones del Sur EIRL»). El nombre propio no va en el título.
    · `enfocar`: el id de un elemento (o el elemento) al que se le lleva
      el cursor. Si es un contenedor, se enfoca el primer control dentro.
      Así el aviso dice QUÉ falta y el cursor muestra DÓNDE.
-   · Todos se van solos (éxito 4 s, advertencia 6 s, error 8 s) y una
-     barra al pie, que se encoge hacia la izquierda, muestra cuánto falta.
-     Pasar el mouse por encima la pausa — así un error se puede leer con
-     calma sin que se escape. Proceso es el único sin reloj: se cierra
+   · Todos se van solos (éxito 4 s, advertencia 6 s, error 8 s) y el anillo
+     del icono, que se vacía, muestra cuánto falta. Pasar el mouse por
+     encima lo pausa — así un error se puede leer con calma sin que se
+     escape. Proceso es el único sin reloj: se cierra (o se transforma)
      cuando el código termina. El cierre lo dispara el fin de la animación
-     de la barra (`onAnimationEnd`), no un temporizador aparte: una sola
+     del anillo (`onAnimationEnd`), no un temporizador aparte: una sola
      fuente de tiempo, y la pausa vale para las dos cosas a la vez.
+   · La forma del icono (✓ · ! · ⚠) lleva el tono además del color: el
+     verde y el rojo solos no le sirven a quien no los distingue.
+   · Máximo 4 a la vez: si entra uno más se va el más viejo que no sea un
+     error ni un proceso (un error sin leer no se descarta solo).
+   · La coreografía (anillo que se dibuja, check que se traza, texto que
+     se revela) vive en app/estilos/avisos.css — ADR-0146. Prototipo:
+     docs/maquetas/avisos-spike-2026-09/avisos-spike-v2-efectos.html
+   · Esperan al loader (ADR-0149): un aviso de éxito significa «se guardó en
+     la base y no hubo ningún problema», y eso se dice DESPUÉS de la espera,
+     no encima de ella. Mientras hay una petición en curso o el loader
+     general está a la vista, ningún aviso se pinta — ni el que llega ni el
+     que ya estaba —; cuando la pantalla queda libre aparecen, con su
+     coreografía y su reloj desde cero. Así «Guardado» no se ve encima de
+     «Cargando». Quien llama no hace nada: `avisar.*` se puede invocar en el
+     instante en que responde la base, el aviso queda en la cola y sale solo.
+     Un `proceso` («Guardando…») cierra el mismo ciclo: mientras el loader
+     cubre la pantalla no se ve (el loader ya dice que se está trabajando), y
+     lo que se ve al terminar es su éxito o su error.
    · Un módulo, no un contexto: el estado vive fuera de React
      (`useSyncExternalStore`), así sobrevive a la navegación —
      registras, `router.push` al detalle, y el aviso sigue ahí. Se monta
@@ -37,9 +59,24 @@ import { Hilo } from "@/components/ui/campos";
    ==================================================================== */
 
 export type TonoAviso = "exito" | "error" | "aviso" | "proceso";
-export type Aviso = { id: number; tono: TonoAviso; texto: string; detalle?: string };
+export type AccionAviso = { texto: string; onClick: () => void };
+export type Aviso = {
+  id: number;
+  tono: TonoAviso;
+  texto: string;
+  detalle?: string;
+  accion?: AccionAviso;
+  duracion?: number;
+  /** Solo en un proceso: avance real de 0 a 1. Sin él, el anillo gira («trabajando, sin cifra»). */
+  progreso?: number;
+  /** Cuántas veces se transformó el mismo aviso (proceso → éxito). Reinicia la coreografía del contenido. */
+  version: number;
+  /** Se transformó desde un proceso que llegó al 100 %: el anillo ya está completo y no se redibuja. */
+  continua: boolean;
+};
 
 const DURACION: Record<TonoAviso, number | null> = { exito: 4000, aviso: 6000, error: 8000, proceso: null };
+const MAX_AVISOS = 4;
 
 let avisos: Aviso[] = [];
 let siguienteId = 1;
@@ -70,13 +107,55 @@ function cerrar(id: number) {
   emitir();
 }
 
-function abrir(tono: TonoAviso, texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }): number {
+type Opciones = { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso; duracion?: number };
+
+function abrir(tono: TonoAviso, texto: string, opciones?: Opciones): number {
   const id = siguienteId++;
   // El mismo texto dos veces seguidas (doble clic en "Registrar") no se apila.
-  avisos = [...avisos.filter((a) => !(a.tono === tono && a.texto === texto)), { id, tono, texto, detalle: opciones?.detalle }];
+  avisos = [
+    ...avisos.filter((a) => !(a.tono === tono && a.texto === texto)),
+    { id, tono, texto, detalle: opciones?.detalle, accion: opciones?.accion, duracion: opciones?.duracion, version: 0, continua: false },
+  ];
+  // Tope: se va el más viejo que no sea un error sin leer ni un proceso en marcha.
+  while (avisos.length > MAX_AVISOS) {
+    const descartable = avisos.find((a) => a.tono !== "error" && a.tono !== "proceso" && a.id !== id);
+    if (!descartable) break;
+    avisos = avisos.filter((a) => a.id !== descartable.id);
+  }
   emitir();
-  if (opciones?.enfocar) enfocar(opciones.enfocar);
+  if (opciones?.enfocar) pedirEnfoque(opciones.enfocar);
   return id;
+}
+
+/** El mismo aviso pasa a otro estado (típico: proceso → éxito) sin que la tarjeta se cierre y se vuelva a abrir. */
+function transformar(id: number, tono: TonoAviso, texto: string, opciones?: Opciones) {
+  const actual = avisos.find((a) => a.id === id);
+  if (!actual) {
+    // Lo cerraron a mano mientras trabajaba: el resultado igual se avisa.
+    abrir(tono, texto, opciones);
+    return;
+  }
+  avisos = avisos.map((a) =>
+    a.id === id
+      ? {
+          id,
+          tono,
+          texto,
+          detalle: opciones?.detalle,
+          accion: opciones?.accion,
+          duracion: opciones?.duracion,
+          version: a.version + 1,
+          continua: a.tono === "proceso" && (a.progreso ?? 0) >= 0.99,
+        }
+      : a,
+  );
+  emitir();
+  if (opciones?.enfocar) pedirEnfoque(opciones.enfocar);
+}
+
+function conProgreso(id: number, fraccion: number, detalle?: string) {
+  avisos = avisos.map((a) => (a.id === id && a.tono === "proceso" ? { ...a, progreso: Math.min(1, Math.max(0, fraccion)), detalle: detalle ?? a.detalle } : a));
+  emitir();
 }
 
 export type Enfocable = string | HTMLElement | null | undefined;
@@ -96,32 +175,71 @@ export function enfocar(objetivo: Enfocable) {
   });
 }
 
+// Con el loader a la vista el resto de la app está `inert`: `focus()` no hace nada. Se guarda el último
+// pedido y se cumple cuando la pantalla queda libre (lo hace `Avisos`), justo cuando el aviso aparece.
+let enfoquePendiente: Enfocable = null;
+function pedirEnfoque(objetivo: Enfocable) {
+  if (esperaOcupada()) enfoquePendiente = objetivo;
+  else enfocar(objetivo);
+}
+
+/** Lo que devuelve `avisar.proceso`: se puede llamar para cerrarlo (como siempre) o usar para transformarlo. */
+export type FinProceso = (() => void) & {
+  /** Avance real, de 0 a 1: el anillo del icono se llena. Sin llamarlo, el anillo gira. */
+  progreso: (fraccion: number, detalle?: string) => void;
+  /** El mismo aviso pasa a éxito (sin parpadeo). */
+  exito: (texto: string, opciones?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => void;
+  /** El mismo aviso pasa a error. */
+  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => void;
+};
+
 export const avisar = {
-  exito: (texto: string, opciones?: { detalle?: string }) => abrir("exito", texto, opciones),
-  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("error", texto, opciones),
+  /**
+   * `accion`: un botón dentro del aviso (típico: «Deshacer»). Al pulsarlo el aviso se cierra y corre `onClick`.
+   * `duracion`: milisegundos, para un aviso que la persona necesita más tiempo para decidir (un «Deshacer»
+   * de 4 s es una trampa; con 7 s se alcanza a leer y a decidir).
+   */
+  exito: (texto: string, opciones?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => abrir("exito", texto, opciones),
+  /** `accion` en un error: el siguiente paso cuando el error tiene uno claro (ADR-0193: «Recargar» cuando otra persona
+   *  cambió la ficha mientras se editaba). */
+  error: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => abrir("error", texto, opciones),
   aviso: (texto: string, opciones?: { detalle?: string; enfocar?: Enfocable }) => abrir("aviso", texto, opciones),
-  /** Devuelve la función que lo cierra. */
-  proceso: (texto: string) => {
-    const id = abrir("proceso", texto);
-    return () => cerrar(id);
+  /** Devuelve una función que lo cierra; además `.progreso()`, `.exito()` y `.error()` lo transforman. */
+  proceso: (texto: string, opciones?: { detalle?: string }): FinProceso => {
+    const id = abrir("proceso", texto, opciones);
+    return Object.assign(() => cerrar(id), {
+      progreso: (fraccion: number, detalle?: string) => conProgreso(id, fraccion, detalle),
+      exito: (t: string, o?: { detalle?: string; accion?: AccionAviso; duracion?: number }) => transformar(id, "exito", t, o),
+      error: (t: string, o?: { detalle?: string; enfocar?: Enfocable; accion?: AccionAviso }) => transformar(id, "error", t, o),
+    });
   },
   cerrar,
 };
 
-const ESTILO: Record<TonoAviso, { barra: string; titulo: string; tiempo: string }> = {
-  exito: { barra: "bg-verde", titulo: "text-verde-profundo", tiempo: "bg-verde/60" },
-  error: { barra: "bg-rojo", titulo: "text-rojo-profundo", tiempo: "bg-rojo/60" },
-  aviso: { barra: "bg-ambar", titulo: "text-ambar", tiempo: "bg-ambar/60" },
-  proceso: { barra: "bg-tinta/30", titulo: "text-tinta", tiempo: "" },
-};
+const SALIDA_MS = 260;
 
 export function Avisos() {
-  const lista = useSyncExternalStore(suscribir, leer, leerEnServidor);
+  const guardados = useSyncExternalStore(suscribir, leer, leerEnServidor);
+  const ocupada = useSyncExternalStore(suscribirEspera, esperaOcupada, () => false);
+  // Ocupada (una carga o un guardado en curso, o el loader aún a la vista): no se pinta ninguna tarjeta (se desmontan,
+  // no se ocultan) y los avisos siguen en el estado. Al quedar libre se montan de nuevo: la entrada y el reloj arrancan
+  // ahí, no bajo el loader. El contenedor `aria-live` sigue montado para que el lector anuncie la tarjeta al aparecer.
+  const lista = ocupada ? SIN_AVISOS : guardados;
+  useEffect(() => {
+    if (ocupada || !enfoquePendiente) return;
+    const objetivo = enfoquePendiente;
+    enfoquePendiente = null;
+    enfocar(objetivo);
+  }, [ocupada]);
+  // Con 3 o más se ofrece limpiar; un proceso en marcha no se cancela desde acá.
+  const cerrables = lista.filter((a) => a.tono !== "proceso");
   return (
     <div aria-live="polite" aria-relevant="additions" className="pointer-events-none fixed right-4 top-4 z-[100] flex w-[min(22rem,calc(100vw-2rem))] flex-col gap-2">
-      {/* El reloj de la barra vive acá, no en globals.css: es lo único que
-          este componente necesita y así no depende de ninguna otra hoja. */}
-      <style>{`@keyframes cayla-aviso-tiempo { from { width: 100%; } to { width: 0%; } }`}</style>
+      {lista.length >= 3 && (
+        <button type="button" onClick={() => cerrables.forEach((a) => cerrar(a.id))} className="aviso-cerrar-todos label-cayla text-[11px]">
+          Cerrar todos
+        </button>
+      )}
       {lista.map((a) => (
         <Tarjeta key={a.id} aviso={a} />
       ))}
@@ -129,14 +247,38 @@ export function Avisos() {
   );
 }
 
+/** Los trazos del glifo llevan pathLength="1": la misma animación dibuja cualquier forma. */
+function Glifo({ tono }: { tono: TonoAviso }) {
+  if (tono === "proceso") return null;
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" className="aviso-glifo">
+      {tono === "exito" && <path className="aviso-trazo" pathLength={1} d="M3.5 8.5l3 3 6-7" />}
+      {tono === "error" && (
+        <>
+          <path className="aviso-trazo" pathLength={1} d="M8 3.4v5.4" />
+          <circle className="aviso-punto" cx="8" cy="11.7" r="1.05" />
+        </>
+      )}
+      {tono === "aviso" && (
+        <>
+          <path className="aviso-trazo" pathLength={1} d="M8 2.6l5.8 10.2H2.2z" />
+          <path className="aviso-trazo aviso-trazo-2" pathLength={1} d="M8 6.6v2.6" />
+          <circle className="aviso-punto" cx="8" cy="11.1" r=".95" />
+        </>
+      )}
+    </svg>
+  );
+}
+
 function Tarjeta({ aviso }: { aviso: Aviso }) {
   const [saliendo, setSaliendo] = useState(false);
-  // Con el mouse encima el reloj se detiene: un error se lee con calma.
-  const [pausado, setPausado] = useState(false);
-  // Salida con animación: primero se desvanece, después se quita del estado.
+  const ref = useRef<HTMLDivElement>(null);
+  // Salida con animación: primero se desvanece y colapsa su altura, después se quita del estado.
   function quitar() {
+    if (saliendo) return;
+    ref.current?.style.setProperty("--h", `${ref.current.offsetHeight}px`);
     setSaliendo(true);
-    setTimeout(() => cerrar(aviso.id), 180);
+    setTimeout(() => cerrar(aviso.id), SALIDA_MS);
   }
   useEffect(() => {
     if (aviso.tono !== "error") return;
@@ -146,53 +288,68 @@ function Tarjeta({ aviso }: { aviso: Aviso }) {
     document.addEventListener("keydown", esc);
     return () => document.removeEventListener("keydown", esc);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aviso.id]);
+  }, [aviso.id, aviso.tono]);
 
-  const e = ESTILO[aviso.tono];
-  const ms = DURACION[aviso.tono];
+  const ms = aviso.duracion ?? DURACION[aviso.tono];
+  const estilo = { "--ms": `${ms ?? 0}ms`, ...(aviso.progreso !== undefined ? { "--p": aviso.progreso } : {}) } as React.CSSProperties;
   return (
     <div
+      ref={ref}
       role={aviso.tono === "error" ? "alert" : "status"}
-      className={`pointer-events-auto relative flex items-start gap-3 overflow-hidden rounded-lg border border-sand bg-papel py-3 pl-4 pr-3 shadow-md ${saliendo ? "anim-salida" : "anim-globo"}`}
-      style={{ animationDuration: saliendo ? "180ms" : undefined }}
-      onMouseEnter={() => setPausado(true)}
-      onMouseLeave={() => setPausado(false)}
+      data-tono={aviso.tono}
+      data-prog={aviso.progreso !== undefined ? "" : undefined}
+      data-continua={aviso.continua ? "" : undefined}
+      data-saliendo={saliendo ? "" : undefined}
+      className="aviso-tarjeta"
+      style={estilo}
     >
-      <span aria-hidden className={`absolute inset-y-0 left-0 w-[3px] ${e.barra}`} />
-      {/* El reloj: se encoge hacia la izquierda y, al llegar a cero, cierra el
-          aviso. Con el mouse encima se pausa (animation-play-state). */}
-      {ms && !saliendo && (
-        <span
-          aria-hidden
-          onAnimationEnd={quitar}
-          className={e.tiempo}
-          style={{
-            position: "absolute",
-            left: 0,
-            bottom: 0,
-            height: 3,
-            width: "100%",
-            animation: `cayla-aviso-tiempo ${ms}ms linear forwards`,
-            animationPlayState: pausado ? "paused" : "running",
-          }}
-        />
-      )}
-      <div className="min-w-0 flex-1">
-        <p className={`text-sm leading-snug ${e.titulo}`}>{aviso.texto}</p>
-        {aviso.detalle && <p className="mt-0.5 text-xs leading-snug text-tinta/65">{aviso.detalle}</p>}
-        {aviso.tono === "proceso" && (
-          <span className="relative mt-2 block h-[2px]">
-            <Hilo activo={false} trabajando />
-          </span>
+      {/* `display: contents` + key = versión: al transformarse el aviso (proceso → éxito) el contenido se
+          vuelve a montar y su coreografía arranca de nuevo, sin que la tarjeta se mueva de su lugar. */}
+      <div key={aviso.version} className="contents">
+        <span aria-hidden className="aviso-ico">
+          <svg viewBox="0 0 36 36" className="aviso-anillo">
+            <circle className="aviso-disco" cx="18" cy="18" r="16" />
+            <circle className="aviso-pista" cx="18" cy="18" r="17" />
+            <circle className="aviso-onda" cx="18" cy="18" r="17" />
+            {/* El reloj: se vacía y, al llegar a cero, cierra el aviso. Un proceso no tiene reloj:
+                el mismo círculo hace de medidor (--p) o gira. */}
+            <circle
+              className="aviso-reloj"
+              cx="18"
+              cy="18"
+              r="17"
+              onAnimationEnd={(e) => {
+                if (e.animationName === "cayla-aviso-reloj" && ms) quitar();
+              }}
+            />
+          </svg>
+          <Glifo tono={aviso.tono} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="aviso-tit">{aviso.texto}</p>
+          {aviso.detalle && <p className="aviso-det">{aviso.detalle}</p>}
+          {aviso.accion && (
+            <button
+              type="button"
+              onClick={() => {
+                const { onClick } = aviso.accion!;
+                quitar();
+                onClick();
+              }}
+              className="aviso-acc label-cayla text-[11px]"
+            >
+              {aviso.accion.texto}
+            </button>
+          )}
+        </div>
+        {aviso.tono !== "proceso" && (
+          <button type="button" onClick={quitar} aria-label="Cerrar aviso" className="aviso-x">
+            <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M4 4l8 8M12 4l-8 8" />
+            </svg>
+          </button>
         )}
       </div>
-      {aviso.tono !== "proceso" && (
-        <button type="button" onClick={quitar} aria-label="Cerrar aviso" className="-mr-1 -mt-1 rounded p-1 text-tinta/45 transition-colors hover:text-tinta">
-          <svg aria-hidden viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="M4 4l8 8M12 4l-8 8" />
-          </svg>
-        </button>
-      )}
     </div>
   );
 }

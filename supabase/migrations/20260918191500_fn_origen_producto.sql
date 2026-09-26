@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260918191500_fn_origen_producto.sql — CAYLA V2 · a quién se atribuye una prenda (ADR-0113 y ADR-0118)
+-- 20260918191500_fn_origen_producto.sql — CAYLA V2 · a quién se atribuye una prenda (ADR-0214 y ADR-0118)
 --
 -- ESTADO: escrita y probada contra un Postgres desechable (scripts/pruebas/panel_calidad_aislado.sql y
 --   panel_rentabilidad_aislado.sql). NO en producción — la pega Felipe. Ya va calificada con `retail.`. Solo LECTURA.

@@ -1,51 +1,67 @@
 import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { exigirModulo, puede } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { getResumenInventario } from "@/lib/resumen-inventario";
-import { SelectorUbicacion } from "@/components/SelectorUbicacion";
-import { ResumenInventarioPanel } from "@/components/ResumenInventarioPanel";
+import { getComparacionInventario, getDesempenoInventario } from "@/lib/resumen-inventario";
+import { pideComparacion } from "@/lib/resumen-comparacion";
+import { ResumenBanner } from "@/components/ResumenBanner";
+import { ResumenComparacionPanel } from "@/components/ResumenComparacionPanel";
+import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
+import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
 
-// Resumen de Inventario (2026-09-17, ADR-0101): la quinta pestaña. Responde
-// "¿cómo está mi inventario en conjunto, qué necesita atención hoy y qué
-// decisiones conviene tomar ahora?" para UNA sede — la seleccionada, con el
-// mismo selector y la misma regla de Existencias (un líder elige, un
-// integrante ve la suya). Solo Líder: es la pregunta de quien decide
-// reposición, liquidación y traslados, no la del piso (mismo criterio que
-// Compras). Esta página solo trae datos y elige el layout; las reglas viven
-// en `lib/resumen-reglas.ts`.
+// Análisis de inventario (ADR-0121 → ADR-0138): la capa histórica del inventario de UNA sede. Tres
+// responsabilidades, cada una en su pantalla:
+//   · Existencias           «¿qué tengo ahora y cómo está el stock?» (incluida su cobertura)
+//   · Análisis › Desempeño  «¿cómo se comportó mi inventario durante el período?»
+//   · Análisis › Comparar   «¿qué cambió entre dos períodos?» (`?modo=comparar`)
+// Esta pantalla NO mezcla el stock de hoy con métricas del período. La ruta sigue siendo
+// `/inventario/resumen` (renombrar la URL rompería enlaces y marcadores por nada). Es del módulo Análisis: hasta el
+// 2026-09-22 solo del líder; desde 20260923130000, de quien lo tenga en su rol (`fn_puede_analizar`), para SU sede —
+// quien no es líder no cambia de sede, así que analiza la suya.
+//
+// La sede es SIEMPRE la que el líder eligió en el selector global del ERP
+// (`persona.ubicacionId`): la pantalla no tiene selector propio. Uno duplicado
+// dentro del contenido dejaba dos «Trujillo» que podían decir cosas distintas.
+//
+// Todo lo demás vive en la URL — período, búsqueda, filtros, orden y página — y el servidor
+// recalcula con eso: al navegador nunca viaja más que una página de filas. Esta página solo trae
+// datos y elige el layout; las reglas viven en `lib/resumen-desempeno.ts` y `lib/resumen-comparacion.ts`.
 export default async function ResumenInventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/inventario");
+  const persona = await exigirModulo("analisis");
+  if (!puede(persona, "analizar")) redirect("/inventario"); // lo ve pero su rol está limitado: sin las lecturas del módulo
 
-  const { ubicacion: ubicacionQuery } = await searchParams;
+  const params = await searchParams;
   const ubicaciones = await getUbicaciones();
-  const ubicacionActivaId =
-    ubicacionQuery && ubicaciones.some((u) => u.id === ubicacionQuery) ? ubicacionQuery : persona.ubicacionId;
-  const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId) ?? ubicaciones[0];
+  const ubicacionActiva = ubicaciones.find((u) => u.id === persona.ubicacionId);
   if (!ubicacionActiva) redirect("/inventario");
 
-  const resumen = await getResumenInventario(ubicacionActiva);
+  // Las salidas del estado vacío (2026-09-22): las otras tiendas activas a las que el líder puede cambiarse.
+  const otrasTiendas = ubicaciones.filter((u) => u.tipo === "tienda" && u.activo && u.id !== ubicacionActiva.id).map((u) => ({ id: u.id, nombre: u.nombre }));
+
+  const { exactitud, panel } = pideComparacion(params)
+    ? await getComparacionInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenComparacionPanel datos={datos} otrasTiendas={otrasTiendas} /> }))
+    : await getDesempenoInventario(ubicacionActiva, params).then((datos) => ({ exactitud: datos.exactitud, panel: <ResumenDesempenoPanel datos={datos} otrasTiendas={otrasTiendas} /> }));
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="label-cayla text-[11px] text-tinta/65">Inventario · Resumen · {ubicacionActiva.nombre}</p>
-          <h1 className="font-display mt-1 text-2xl text-tinta">Resumen de inventario</h1>
-          <p className="mt-1 text-sm text-tinta/65">
-            El estado general del inventario, qué necesita atención hoy y qué decisiones conviene tomar ahora.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <SelectorUbicacion ubicaciones={ubicaciones} ubicacionActualId={ubicacionActiva.id} />
-        </div>
-      </div>
+    <div className="space-y-5">
+      <InventarioHero
+        eyebrow={
+          <>
+            Inventario <span aria-hidden>›</span> Análisis <span aria-hidden>›</span> <span className="text-ambar-profundo">{ubicacionActiva.nombre}</span>
+          </>
+        }
+        titulo="Análisis de inventario"
+        descripcion="Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo."
+        foto={fotoHeroPorPantalla("analisis")}
+        variante="integrado"
+      />
+      {/* El aviso de exactitud es una franja bajo el título (2026-09-22), no una tarjeta que compite con él. */}
+      <ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />
 
-      <ResumenInventarioPanel resumen={resumen} ubicacionId={ubicacionActiva.id} ubicacionBaseId={persona.ubicacionId} />
+      {panel}
     </div>
   );
 }

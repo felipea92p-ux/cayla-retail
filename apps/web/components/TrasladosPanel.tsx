@@ -35,17 +35,20 @@ const POR_PAGINA = 20;
 export function TrasladosPanel({
   traslados,
   miUbicacionId,
-  esLider,
+  puedeCerrarDiferencia,
   ahoraIso,
   horaCarga,
   cerradosAcotados,
+  vacios,
 }: {
   traslados: TrasladoResumen[];
   miUbicacionId: string;
-  esLider: boolean;
+  puedeCerrarDiferencia: boolean;
   ahoraIso: string;
   horaCarga: string;
   cerradosAcotados: boolean;
+  /** Traslados sin prendas que no se muestran (ver `separarVacios`); 0 si quien mira no necesita saberlo. */
+  vacios: number;
 }) {
   const router = useRouter();
   const [refrescando, iniciarRefresco] = useTransition();
@@ -56,7 +59,7 @@ export function TrasladosPanel({
   const [sede, setSede] = useState("");
   const [limite, setLimite] = useState(POR_PAGINA);
 
-  const ctx = useMemo<ContextoTraslados>(() => ({ miUbicacionId, esLider, ahoraIso }), [miUbicacionId, esLider, ahoraIso]);
+  const ctx = useMemo<ContextoTraslados>(() => ({ miUbicacionId, puedeCerrarDiferencia, ahoraIso }), [miUbicacionId, puedeCerrarDiferencia, ahoraIso]);
   const filas = useMemo(() => ordenarTraslados(traslados, ctx).map((t) => ({ t, s: situacionTraslado(t, ctx) })), [traslados, ctx]);
   const resumen = useMemo(() => resumirTraslados(traslados, ctx), [traslados, ctx]);
   const urgente = useMemo(() => masUrgente(traslados, ctx), [traslados, ctx]);
@@ -73,8 +76,9 @@ export function TrasladosPanel({
   // aparece, se vuelve a «Todos» en vez de dejar una lista vacía y un chip apagado.
   const filtroEfectivo: FiltroTraslado = filtro !== "todos" && resumen.porFiltro[filtro] === 0 ? "todos" : filtro;
   const sedeEfectiva = sedes.some((s) => s.id === sede) ? sede : "";
-  const masActivos = (direccion !== "todas" ? 1 : 0) + (sedeEfectiva ? 1 : 0);
-  const hayFiltros = filtroEfectivo !== "todos" || busqueda.trim() !== "" || masActivos > 0;
+  // Dirección está a la vista (ADR-0175): en «Más filtros» solo queda la otra sede.
+  const masActivos = sedeEfectiva ? 1 : 0;
+  const hayFiltros = filtroEfectivo !== "todos" || busqueda.trim() !== "" || direccion !== "todas" || masActivos > 0;
 
   const filtradas = filas.filter(
     ({ t, s }) =>
@@ -131,17 +135,19 @@ export function TrasladosPanel({
     if (primeroNuevo) setTimeout(() => document.getElementById(`traslado-${primeroNuevo}`)?.focus(), 0);
   }
   function limpiarMas() {
-    setDireccion("todas");
     setSede("");
     setLimite(POR_PAGINA);
   }
 
   if (traslados.length === 0) {
     return (
-      <div className="card-cayla space-y-3 p-6 text-sm text-tinta/75">
-        <p>Todavía no hay traslados desde ni hacia esta sede.</p>
-        <Link href="/inventario/mover" className="label-cayla inline-block text-[11px] text-rojo underline-offset-2 hover:underline">
-          Crear el primero →
+      <div className="card-cayla flex flex-col items-center gap-2 px-6 py-11 text-center">
+        <h2 className="font-display text-[22px] text-tinta">Tu sede todavía no ha enviado ni recibido traslados</h2>
+        <p className="max-w-md text-sm leading-relaxed text-taupe">
+          Cuando el Taller u otra tienda te envíe prendas, aparecerán aquí para que confirmes lo que llegó. Para mover stock, empieza con «Nuevo traslado».
+        </p>
+        <Link href="/inventario/mover" className="btn-cayla btn-secundario mt-2">
+          Crear el primer traslado
         </Link>
       </div>
     );
@@ -156,6 +162,9 @@ export function TrasladosPanel({
       </p>
       <TrasladosAtencion resumen={resumen} masUrgente={urgente ? { id: urgente.id, numero: urgente.numero } : null} />
       <TrasladosResumen resumen={resumen} filtro={filtroEfectivo} onFiltro={alFiltrar(setFiltro)} />
+      {/* Guía oficial (2026-09-22, ADR-0169): buscador, píldoras y tabla en UNA tarjeta. */}
+      <div className="card-cayla overflow-hidden">
+      <div className="p-4 sm:p-5">
       <TrasladosFiltros
         filtro={filtroEfectivo}
         onFiltro={alFiltrar(setFiltro)}
@@ -172,6 +181,9 @@ export function TrasladosPanel({
         masActivos={masActivos}
         onLimpiarMas={limpiarMas}
       />
+      </div>
+      {/* La tabla va a sangre, sin el relleno de la tarjeta: sus 6 columnas necesitan el ancho completo. */}
+      <div className="border-t border-sand">
       <TrasladosLista
         filas={visibles}
         totalFiltrados={filtradas.length}
@@ -181,12 +193,15 @@ export function TrasladosPanel({
         horaCarga={horaCarga}
         hayFiltros={hayFiltros}
         cerradosAcotados={cerradosAcotados}
+        vacios={vacios}
         onLimpiar={limpiarTodo}
         onMostrarMas={mostrarMas}
         siguientePagina={Math.min(POR_PAGINA, filtradas.length - visibles.length)}
         onRefrescar={() => iniciarRefresco(() => router.refresh())}
         refrescando={refrescando}
       />
+      </div>
+      </div>
     </div>
   );
 }

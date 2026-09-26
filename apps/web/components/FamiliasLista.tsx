@@ -2,6 +2,10 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 
@@ -39,6 +43,11 @@ export function FamiliasLista({
   familiasIniciales: Familia[];
   puedeEditar: boolean;
 }) {
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [familias, setFamilias] = useState(familiasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -54,7 +63,7 @@ export function FamiliasLista({
     try {
       const res = await fetch("/api/productos/familias", {
         method: editando ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: borrador.codigo ?? undefined, nombre: borrador.nombre }),
       });
       const datos = await res.json();
@@ -71,6 +80,7 @@ export function FamiliasLista({
       };
       setFamilias((actual) => [...actual.filter((f) => f.codigo !== guardada.codigo), guardada]);
       setBorrador(null);
+      responsable.despues(null);
       avisar.exito(editando ? "Familia editada." : "Familia agregada — ya está disponible en Categorías.");
     } finally {
       setGuardando(false);
@@ -82,7 +92,7 @@ export function FamiliasLista({
     try {
       const res = await fetch("/api/productos/familias", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ codigo: f.codigo, activo: !f.activo }),
       });
       const datos = await res.json().catch(() => null);
@@ -91,6 +101,7 @@ export function FamiliasLista({
         return;
       }
       setFamilias((actual) => actual.map((x) => (x.codigo === f.codigo ? { ...x, activo: !f.activo } : x)));
+      responsable.despues(null);
     } finally {
       setCambiandoCodigo(null);
     }
@@ -99,7 +110,8 @@ export function FamiliasLista({
   return (
     <div className="space-y-3">
       {puedeEditar && (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <span />
           <button
             type="button"
             onClick={() => setBorrador({ codigo: null, nombre: "" })}
@@ -128,7 +140,7 @@ export function FamiliasLista({
                   peso="discreto"
                   className="px-2.5 py-1.5 text-[10.5px] text-rojo/70 hover:text-rojo"
                   cargando={cambiandoCodigo === f.codigo}
-                  onClick={() => cambiarEstado(f)}
+                  onClick={() => setConfirmando(confirmacionCatalogo("desactivar", f.nombre, () => cambiarEstado(f)))}
                 >
                   Desactivar
                 </Boton>
@@ -159,6 +171,7 @@ export function FamiliasLista({
                   autoFocus
                 />
               </div>
+              <ComboResponsable control={responsable} deshabilitado={guardando} className="mt-5" />
               <div className="mt-6 flex justify-end gap-2">
                 <Boton peso="fantasma" onClick={cerrar}>
                   Cancelar
@@ -166,7 +179,8 @@ export function FamiliasLista({
                 <Boton
                   peso="primario"
                   cargando={guardando}
-                  disabled={!borrador.nombre.trim()}
+                  disabled={!borrador.nombre.trim() || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
                   onClick={async () => {
                     await guardar();
                     cerrar();
@@ -195,7 +209,7 @@ export function FamiliasLista({
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoCodigo === f.codigo}
-                    onClick={() => cambiarEstado(f)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", f.nombre, () => cambiarEstado(f)))}
                   >
                     Reactivar
                   </Boton>
@@ -205,6 +219,8 @@ export function FamiliasLista({
           </div>
         </section>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }

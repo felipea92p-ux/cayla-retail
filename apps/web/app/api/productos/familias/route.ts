@@ -1,5 +1,8 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
+// ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
+// viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
+import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST /api/productos/familias → agrega una familia nueva (Indumentaria, Calzado...).
@@ -15,7 +18,7 @@ import { traducirError } from "@/lib/error-escritura";
 //   ya lo exige, esto solo da un mensaje de error legible antes de llegar ahí.
 export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede agregar una familia." }, { status: 403 });
   }
 
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Falta el nombre de la familia." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   // `codigo: ""` es el contrato del trigger `familias_generar_codigo_biu`
   // ("vacío = derívalo del nombre"). Se manda porque el tipo generado lo pide
   // obligatorio: la columna no tiene DEFAULT y el generador de tipos no ve
@@ -47,7 +50,7 @@ export async function POST(request: Request) {
 // PUT /api/productos/familias → edita el nombre visible (el código nunca cambia).
 export async function PUT(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede editar una familia." }, { status: 403 });
   }
 
@@ -62,7 +65,7 @@ export async function PUT(request: Request) {
     return Response.json({ error: "Falta el nombre de la familia." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { data, error } = await supabase
     .from("familias")
     .update({ nombre })
@@ -84,7 +87,7 @@ export async function PUT(request: Request) {
 // error, mismo criterio que `desactivar_categoria`.
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede desactivar o reactivar una familia." }, { status: 403 });
   }
 
@@ -99,7 +102,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Falta indicar si se activa o desactiva." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { error } = await supabase.from("familias").update({ activo }).eq("codigo", codigo);
 
   if (error) {

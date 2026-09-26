@@ -1,50 +1,42 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { createClient } from "@/lib/supabase/server";
-import { exigir } from "@/lib/resultado";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { NuevoProductoForm } from "@/components/NuevoProductoForm";
-import { getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getContextoAlta } from "@/lib/alta-producto-datos";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 
-// Fase 2 (2026-09-15): alta de producto con matriz talla×color en una sola
-// transacción (`crear_producto_con_variantes`) — hasta ahora `/productos`
-// era solo lectura. Página propia, no modal: es la única forma de crear un
-// producto y la grilla puede crecer a 15-20 celdas — mismo criterio que
-// `/compras/nueva` (breadcrumb, sin la nav de pestañas). El candado real
-// (solo Líder) vive en la RPC; el redirect de acá es solo la capa de UI.
+// Nuevo producto como árbol de decisión (ADR-0109): familia → categoría →
+// nombre → talla/tejido/patrón → colores → precio → etiquetas, en una sola
+// transacción (`crear_producto_con_variantes`), en 4 pasos (spike 2026-09-24). Página propia y no modal: la
+// matriz puede crecer a 15-20 celdas — mismo criterio que `/compras/nueva`.
+// El candado real (solo Líder) vive en la RPC; el redirect de acá es solo la
+// capa de UI.
 export default async function NuevoProductoPage() {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") redirect("/productos");
+  if (!puede(persona, "editarCatalogo")) redirect("/productos");
 
-  const supabase = await createClient();
-  const [categorias, colores, ejes] = await Promise.all([
-    exigir(
-      await supabase.from("categorias").select("id, nombre").eq("activo", true).order("familia").order("nombre"),
-      "las categorías del catálogo"
-    ),
-    exigir(
-      await supabase.from("colores").select("codigo, nombre, hex").eq("activo", true).order("orden"),
-      "los colores del vocabulario"
-    ),
-    getEjesPorCategoria(),
-  ]);
+  const contexto = await getContextoAlta();
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">
-          <Link href="/productos" className="hover:text-rojo">
+        <p className="mb-2 text-[12.5px] text-taupe">
+          <Link href="/productos" className="underline underline-offset-2 hover:text-tinta">
             Productos
           </Link>{" "}
           · Nuevo
         </p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Nuevo producto</h1>
+        <CabeceraPantalla
+          sobretitulo="Catálogo · Productos"
+          titulo="Nuevo producto"
+          bajada="Cuatro pasos. Cada uno se cierra en una línea al terminarlo y a la derecha ves la prenda que se va a crear."
+        />
       </div>
 
-      {categorias.length === 0 ? (
+      {contexto.categorias.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay categorías activas en el catálogo.</p>
       ) : (
-        <NuevoProductoForm categorias={categorias} colores={colores} ejes={ejes} />
+        <NuevoProductoForm contexto={contexto} />
       )}
     </div>
   );

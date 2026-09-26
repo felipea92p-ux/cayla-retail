@@ -1,0 +1,222 @@
+/* ====================================================================
+   Notas de crédito de compra (2026-09-19)
+   Spike de referencia: docs/maquetas/notas-credito-spike-2026-09/notas-credito-vivo.html
+
+   Solo lo que el módulo necesita y NO existía: la barra de tres tramos que además filtra, la banda
+   de cada grupo, el bloque de «Qué pasa con el dinero» y las dos fichas de destino, y la sección que
+   se abre y se cierra sin medir alturas. Todo lo demás (filas, cifras que cuentan, pestañas con
+   pulgar, modales, cajón, destellos) se reutiliza de globals.css y de comprobantes-lista.css: acá no
+   se redefine ninguna entrada de modal ni ningún overlay (ADR-0136).
+
+   Movimiento: respuestas a una acción, 200–500 ms, `--ease-cayla`, sin rebote, nunca en bucle. Con
+   movimiento reducido todo queda quieto — el bloque del final, igual que en el resto del sistema.
+   ==================================================================== */
+
+@layer components {
+  /* La barra de «Por reclamar»: cada tramo de antigüedad ocupa lo que le toca y, al tocarlo, filtra la
+     lista. No es decoración: ES el dato. Crece una vez al llegar (`anim-crece-x`, ya en globals). */
+  .nc-conc {
+    display: flex;
+    gap: 3px;
+    height: 8px;
+    margin-top: 0.6875rem;
+  }
+  .nc-conc > button,
+  .nc-conc > span {
+    height: 100%;
+    min-width: 4px;
+    flex: 1 1 0;
+    border-radius: 3px;
+    transform-origin: left;
+    transition:
+      flex-grow 700ms var(--ease-cayla),
+      opacity 200ms var(--ease-cayla),
+      transform 200ms var(--ease-cayla);
+  }
+  .nc-conc > button:hover,
+  .nc-conc > button:focus-visible {
+    transform: scaleY(1.7);
+  }
+  /* Con un tramo elegido, los demás se apagan: se ve qué parte de la cifra se está mirando. */
+  .nc-conc[data-elegido] > button:not([data-on]) {
+    opacity: 0.35;
+  }
+
+  /* La banda que encabeza cada grupo de la lista (por urgencia o por proveedor). */
+  .nc-banda {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.875rem;
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+  }
+  .nc-banda-rojo { background: color-mix(in srgb, var(--color-rojo) 5%, transparent); color: var(--color-rojo); }
+  .nc-banda-ambar { background: color-mix(in srgb, var(--color-ambar) 8%, transparent); color: var(--color-ambar-profundo); }
+  .nc-banda-verde { background: color-mix(in srgb, var(--color-verde) 7%, transparent); color: var(--color-verde-profundo); }
+  .nc-banda-neutro { background: color-mix(in srgb, var(--color-tinta) 3%, transparent); color: color-mix(in srgb, var(--color-tinta) 65%, transparent); }
+
+  /* «Qué pasa con el dinero»: las tres partes SIEMPRE visibles y una barra de tres tramos que se
+     reacomoda cuando cambia el monto o el destino. La transición es de ancho, no de posición: los
+     tramos no saltan, se reparten. */
+  .nc-tres {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0 0.875rem;
+    border: 1px solid var(--color-sand);
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    background: color-mix(in srgb, var(--color-sand) 30%, transparent);
+  }
+  .nc-barra {
+    grid-column: 1 / -1;
+    display: flex;
+    height: 8px;
+    margin-top: 0.625rem;
+    overflow: hidden;
+    border-radius: 99px;
+    background: var(--color-sand);
+  }
+  .nc-barra > i {
+    display: block;
+    height: 100%;
+    transition: width 500ms var(--ease-cayla);
+  }
+
+  /* Las dos fichas de destino del dinero. Deshabilitadas cuando no sobra nada: se ven, con su porqué. */
+  .nc-opc {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    width: 100%;
+    border: 1px solid color-mix(in srgb, var(--color-tinta) 15%, transparent);
+    border-radius: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    text-align: left;
+    transition:
+      border-color 220ms var(--ease-cayla),
+      background-color 220ms var(--ease-cayla),
+      opacity 220ms var(--ease-cayla);
+  }
+  .nc-opc:hover:not([aria-disabled="true"]) { border-color: var(--color-rojo); }
+  .nc-opc[aria-checked="true"] {
+    border-color: var(--color-tinta);
+    background: color-mix(in srgb, var(--color-tinta) 3.5%, transparent);
+  }
+  .nc-opc[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; border-style: dashed; }
+  .nc-radio {
+    position: relative;
+    width: 17px;
+    height: 17px;
+    margin-top: 2px;
+    flex: none;
+    border-radius: 50%;
+    border: 1.5px solid color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    transition: border-color 220ms var(--ease-cayla);
+  }
+  .nc-radio::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: var(--color-tinta);
+    transform: scale(0);
+    transition: transform 260ms var(--ease-cayla);
+  }
+  .nc-opc[aria-checked="true"] .nc-radio { border-color: var(--color-tinta); }
+  .nc-opc[aria-checked="true"] .nc-radio::after { transform: scale(1); }
+
+  /* Una sección que se abre sin medir alturas (una medición tardía es un salto): `0fr → 1fr`. Es el
+     mismo recurso de `.lateral-hijos`; acá con la duración de una respuesta a un clic. */
+  .nc-colapsa {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 380ms var(--ease-cayla);
+  }
+  .nc-colapsa[data-abierto="true"] { grid-template-rows: 1fr; }
+  .nc-colapsa > div { min-height: 0; overflow: hidden; }
+  /* Cerrada no debe recibir foco ni lector de pantalla, pero no puede desaparecer de golpe: se apaga
+     cuando la transición termina. */
+  .nc-colapsa:not([data-abierto="true"]) {
+    visibility: hidden;
+    transition:
+      grid-template-rows 380ms var(--ease-cayla),
+      visibility 0s linear 380ms;
+  }
+
+  /* Una opción del buscador de facturas: la activa lleva el mismo filete rojo que una fila de lista. */
+  .nc-fb-op {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2px 1rem;
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    text-align: left;
+    transition: background-color 160ms var(--ease-cayla);
+  }
+  .nc-fb-op[aria-selected="true"] { background: color-mix(in srgb, var(--color-tinta) 4%, transparent); }
+  .nc-fb-op[aria-selected="true"]::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 8px;
+    width: 2px;
+    border-radius: 2px;
+    background: var(--color-rojo);
+  }
+
+  /* El formulario se atenúa mientras no haya factura elegida: se ve que existe, y que todavía no toca. */
+  .nc-tenue { opacity: 0.4; transition: opacity 300ms var(--ease-cayla); }
+
+  /* La línea de tiempo vertical del detalle. El hilo entre dos pasos hechos se DIBUJA hacia abajo. */
+  .nc-paso { position: relative; display: grid; grid-template-columns: 22px 1fr auto; gap: 0 0.75rem; padding-bottom: 1rem; }
+  .nc-paso:last-child { padding-bottom: 0; }
+  .nc-paso:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 6.4px;
+    top: 19px;
+    bottom: -3px;
+    width: 1.6px;
+    background: color-mix(in srgb, var(--color-tinta) 15%, transparent);
+  }
+  .nc-paso[data-hilo="true"]::after {
+    background: var(--color-tinta);
+    transform-origin: top;
+    animation: cayla-crece-y 520ms var(--ease-cayla) backwards;
+    animation-delay: calc(var(--i, 0) * 150ms + 300ms);
+  }
+  .nc-nodo {
+    position: relative;
+    z-index: 1;
+    width: 14px;
+    height: 14px;
+    margin-top: 3px;
+    border-radius: 50%;
+    border: 1.6px solid color-mix(in srgb, var(--color-tinta) 45%, transparent);
+    background: var(--color-papel);
+  }
+  .nc-paso[data-estado="hecho"] .nc-nodo { background: var(--color-tinta); border-color: var(--color-tinta); }
+  .nc-paso[data-estado="ahora"] .nc-nodo { border-color: var(--color-rojo); }
+}
+
+/* Movimiento reducido: mismo estado final, sin viaje. */
+@media (prefers-reduced-motion: reduce) {
+  .nc-conc > button,
+  .nc-barra > i,
+  .nc-opc,
+  .nc-radio,
+  .nc-radio::after,
+  .nc-colapsa,
+  .nc-tenue,
+  .nc-fb-op {
+    transition-duration: 1ms !important;
+  }
+  .nc-conc > span { transition-duration: 1ms !important; }
+  .nc-paso[data-hilo="true"]::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
+}

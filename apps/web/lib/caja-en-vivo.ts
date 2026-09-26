@@ -2,16 +2,16 @@
 // `caja-panel-reglas.ts`: lo que se prueba sin red ni React vive acá; el sondeo en sí
 // está en `useCajaEnVivo.ts` y la detección de lo nuevo en `useNovedades.ts`.
 
-type Conteo = { count: number | null; error: unknown };
+type RespuestaSello = { data: unknown; error: unknown };
 
 /**
- * La "huella" de la caja: cuántas ventas y cuántos movimientos tiene, como "3:1". Basta para
- * saber si entró algo nuevo sin traer ninguna fila. `null` si cualquiera de las dos consultas
- * falló: sin dato no se decide nada (una caída de red no puede pasar por una venta).
+ * La "huella" de la caja: el sello que devuelve `fn_sello_caja` (ADR-0191), como "3:0:1:0:0" (ventas, anuladas,
+ * movimientos, devoluciones y cambios de la caja). Basta para saber si entró o se anuló algo sin traer ninguna fila.
+ * `null` si la consulta falló o no trajo texto: sin dato no se decide nada (una caída de red no puede pasar por una venta).
  */
-export function firmaDeConteos(ventas: Conteo, movimientos: Conteo): string | null {
-  if (ventas.error || movimientos.error || ventas.count === null || movimientos.count === null) return null;
-  return `${ventas.count}:${movimientos.count}`;
+export function selloDeCaja(r: RespuestaSello): string | null {
+  if (r.error || typeof r.data !== "string" || r.data === "") return null;
+  return r.data;
 }
 
 /**

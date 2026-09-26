@@ -107,7 +107,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-select retail.abrir_caja(:'ubic', 100.00) as caja_id \\gset
+select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gset
 
 select id as v1, precio as v1_precio, costo as v1_costo from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select retail.fn_sububicacion_por_defecto(:'ubic', 'venta') as sub_piso \\gset
@@ -149,6 +149,57 @@ rollback;
 `
   ),
   ([deltaStock, items, sedeCorrecta]) => Number(deltaStock) === -2 && Number(items) === 1 && sedeCorrecta === "t"
+);
+
+// ---------------------------------------------------------------------------
+// 1b: el efectivo recibido (`venta_pagos.recibido`, 20260919210000) — para reimprimir el vuelto
+// ---------------------------------------------------------------------------
+
+exito(
+  "el efectivo entregado se guarda en venta_pagos.recibido (el vuelto sale de recibido − monto)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric + 20)),
+  null, gen_random_uuid()) as venta_id \\gset
+select recibido = (:'v1_precio')::numeric + 20 from retail.venta_pagos where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([guardado]) => guardado === "t"
+);
+
+exito(
+  "un medio que no es efectivo no guarda recibido, aunque el navegador lo mande",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'yape', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric + 20)),
+  null, gen_random_uuid()) as venta_id \\gset
+select recibido is null from retail.venta_pagos where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([esNulo]) => esNulo === "t"
+);
+
+error(
+  "un efectivo recibido menor que lo que cubre se rechaza (candado venta_pagos_recibido_coherente)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 0)),
+  jsonb_build_array(jsonb_build_object('metodo', 'efectivo', 'monto', (:'v1_precio')::numeric, 'recibido', (:'v1_precio')::numeric - 1)),
+  null, gen_random_uuid());
+rollback;
+`
+  ),
+  "venta_pagos_recibido_coherente"
 );
 
 // ---------------------------------------------------------------------------
@@ -309,13 +360,14 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
-// 11-16: descuentos de un Líder — el escalonado de R-45
-// (20260915140000_descuento_motivo_y_escalonado.sql — BLU-EMMA-NEG-M: precio 79.90,
-// costo 32.00, así que 20% ≈ 15.98/35% ≈ 27.97 y "bajo costo" empieza en 47.90)
+// 11-16: descuentos de un Líder — el escalonado de R-45, con el argumento desde el 15 %
+// (20260925230000_argumento_descuento_desde_15.sql, Felipe 2026-09-25 — antes 20 %).
+// BLU-EMMA-NEG-M: precio 79.90, costo 32.00, así que 15% ≈ 11.99/35% ≈ 27.97 y
+// "bajo costo" empieza en 47.90.
 // ---------------------------------------------------------------------------
 
 exito(
-  "líder: descuento chico (dentro del 20%) con motivo válido pasa",
+  "líder: descuento chico (dentro del 15%) con motivo válido pasa",
   comoPersona(
     FELIPE,
     `${fixture()}
@@ -373,7 +425,21 @@ select retail.registrar_venta(:'ubic',
 );
 
 error(
-  "líder: banda 20-35% sin argumento escrito se rechaza",
+  "líder: entre 15 y 20% sin argumento escrito se rechaza (antes pasaba)",
+  comoPersona(
+    FELIPE,
+    `${fixture()}
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 13, 'motivo_descuento', 'liquidacion_temporada')),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 13)),
+  null, gen_random_uuid());
+`
+  ),
+  "venta_descuento_requiere_argumento"
+);
+
+error(
+  "líder: pasado el 20% sin argumento escrito se rechaza",
   comoPersona(
     FELIPE,
     `${fixture()}
@@ -387,7 +453,7 @@ select retail.registrar_venta(:'ubic',
 );
 
 exito(
-  "líder: banda 20-35% con argumento escrito pasa",
+  "líder: pasado el 15% con argumento escrito pasa (hasta el 35%)",
   comoPersona(
     FELIPE,
     `${fixture()}
@@ -417,8 +483,9 @@ select retail.registrar_venta(:'ubic',
 );
 
 // ---------------------------------------------------------------------------
-// 17-20: descuentos de una Colaboradora — el tope es el código (ADR-0048), no el
-// escalonado; Micaela opera en SU sede (Trujillo), nunca en Lima (ver escenario 2)
+// 17-22: descuentos de una Colaboradora — el tope es el código (ADR-0048) y, como a
+// cualquiera, pasado el 15 % se le pide argumento; Micaela opera en SU sede (Trujillo),
+// nunca en Lima (ver escenario 2)
 // ---------------------------------------------------------------------------
 
 error(
@@ -457,14 +524,48 @@ exito(
 insert into retail.codigos_descuento (codigo, porcentaje, activo, ubicacion_id)
   values ('PRUEBAVENTA20', 20, true, :'ubic');
 select retail.registrar_venta(:'ubic',
-  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 15, 'motivo_descuento', 'liquidacion_temporada')),
-  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 15)),
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 10, 'motivo_descuento', 'liquidacion_temporada')),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 10)),
   null, gen_random_uuid(), null, 'sin_documento', null, null, 'PRUEBAVENTA20') as venta_id \\gset
 select descuento_unitario from retail.venta_items where venta_id = :'venta_id';
 rollback;
 `
   ),
-  ([descuento]) => Number(descuento) === 15
+  ([descuento]) => Number(descuento) === 10
+);
+
+error(
+  "colaboradora: pasado el 15% sin argumento se rechaza, aunque el código lo cubra",
+  comoPersona(
+    MICAELA,
+    `${fixture({ ubicacionNombre: "Tienda Trujillo" })}
+insert into retail.codigos_descuento (codigo, porcentaje, activo, ubicacion_id)
+  values ('PRUEBAVENTA20', 20, true, :'ubic');
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 15, 'motivo_descuento', 'liquidacion_temporada')),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 15)),
+  null, gen_random_uuid(), null, 'sin_documento', null, null, 'PRUEBAVENTA20');
+`
+  ),
+  "venta_descuento_requiere_argumento"
+);
+
+exito(
+  "colaboradora: pasado el 15% con argumento y dentro del código pasa",
+  comoPersona(
+    MICAELA,
+    `${fixture({ ubicacionNombre: "Tienda Trujillo" })}
+insert into retail.codigos_descuento (codigo, porcentaje, activo, ubicacion_id)
+  values ('PRUEBAVENTA20', 20, true, :'ubic');
+select retail.registrar_venta(:'ubic',
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 15, 'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'Clienta frecuente')),
+  jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 15)),
+  null, gen_random_uuid(), null, 'sin_documento', null, null, 'PRUEBAVENTA20') as venta_id \\gset
+select descuento_unitario, argumento_descuento from retail.venta_items where venta_id = :'venta_id';
+rollback;
+`
+  ),
+  ([descuento, argumento]) => Number(descuento) === 15 && argumento === "Clienta frecuente"
 );
 
 error(
@@ -475,7 +576,7 @@ error(
 insert into retail.codigos_descuento (codigo, porcentaje, activo, ubicacion_id)
   values ('PRUEBAVENTA20', 20, true, :'ubic');
 select retail.registrar_venta(:'ubic',
-  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 20, 'motivo_descuento', 'liquidacion_temporada')),
+  jsonb_build_array(jsonb_build_object('variante_id', :'v1', 'cantidad', 1, 'precio_unitario', :'v1_precio', 'descuento_unitario', 20, 'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'Con argumento, igual pasa el código')),
   jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'v1_precio')::numeric - 20)),
   null, gen_random_uuid(), null, 'sin_documento', null, null, 'PRUEBAVENTA20');
 `
