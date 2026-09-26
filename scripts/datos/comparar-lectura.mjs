@@ -30,11 +30,14 @@ try {
 
 /** Las pruebas no son pantallas: ni sus llamadas ni sus menciones cuentan como «la pantalla usa la función». */
 export function esDePrueba(ruta) {
-  return /\.test\.(ts|tsx|mts)$/.test(ruta);
+  return /\.test\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/.test(ruta);
 }
 
+/** Los archivos que se leen: TypeScript y JavaScript (un `.js` o un `.jsx` también puede llamar a `.rpc`). */
+export const EXTENSIONES_DE_CODIGO = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
+
 function parsear(texto, ruta) {
-  const tipo = ruta.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+  const tipo = /\.tsx$/.test(ruta) ? ts.ScriptKind.TSX : /\.jsx$/.test(ruta) ? ts.ScriptKind.JSX : /\.(js|mjs|cjs)$/.test(ruta) ? ts.ScriptKind.JS : ts.ScriptKind.TS;
   return ts.createSourceFile(ruta, texto, ts.ScriptTarget.Latest, true, tipo);
 }
 
@@ -44,15 +47,23 @@ function desenvolver(e) {
   return e;
 }
 
-// Todos los textos entre comillas (`"x"`, `'x'`, `` `x` `` sin partes) que hay dentro de una expresión.
-function textosDe(nodo) {
-  const textos = [];
-  const visita = (n) => {
-    if (ts.isStringLiteralLike(n)) textos.push(n.text);
-    ts.forEachChild(n, visita);
-  };
-  visita(nodo);
-  return textos;
+// Los textos que puede valer una expresión que se usa como NOMBRE de función: el texto mismo, las dos ramas de un ternario
+// (`c ? "a" : "b"`) o los lados de `||`, `??`, `&&`. Todo lo demás (una variable, `MAPA["x"]`, una plantilla con partes) no se
+// lee: `[]`. Un texto que solo es la llave de un objeto (`RPC["abrir"]`) NO cuenta como nombre.
+function nombresPosibles(e) {
+  e = desenvolver(e);
+  if (ts.isStringLiteralLike(e)) return [e.text];
+  if (ts.isConditionalExpression(e)) return [...nombresPosibles(e.whenTrue), ...nombresPosibles(e.whenFalse)];
+  if (ts.isBinaryExpression(e) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken, ts.SyntaxKind.AmpersandAmpersandToken].includes(e.operatorToken.kind)) return [...nombresPosibles(e.left), ...nombresPosibles(e.right)];
+  return [];
+}
+
+/**
+ * Cuántos errores de sintaxis vio el parser en el archivo. Con un error, el parser sigue y devuelve un árbol truncado: las
+ * llamadas que vienen después pueden no aparecer, sin que nada falle. `comparar.mjs` lo lista como «no analizado».
+ */
+export function erroresDeSintaxis(texto, ruta = "archivo.tsx") {
+  return parsear(texto, ruta).parseDiagnostics.length;
 }
 
 /**
@@ -62,10 +73,12 @@ function textosDe(nodo) {
  *
  *   · `nombre`: el nombre de la función si el primer argumento es UN texto (`"x"`, `"x" as never`), y `null` si es otra
  *     cosa (una variable, un ternario, una plantilla con partes). En ese caso `nombresEnElNombre` trae los textos que
- *     hay dentro (los dos de `cond ? "a" : "b"`); el que llama decide cuáles son funciones conocidas.
+ *     puede valer (los dos de `cond ? "a" : "b"`): son nombres de función por construcción, y `[]` si no hay ninguno
+ *     legible (una variable, `MAPA["x"]`).
  *   · `argumentos`: `"ninguno"` (`.rpc("x")`), `"objeto"` (`{ p_a: 1 }`: sus claves están en `claves`, solo las del primer
  *     nivel), `"objeto con spread"` (`{ ...resto }`), `"objeto con clave calculada"` (`{ [k]: 1 }`) o `"no es un objeto"`
- *     (una variable, un ternario…). En los tres últimos no se puede saber qué parámetros manda.
+ *     (una variable, un ternario…). En los tres últimos no se puede saber qué parámetros manda, pero las `claves`
+ *     escritas ahí mismo sí se leen (una clave que la función no acepta falla siempre, haya o no un «...»).
  *   · `linea`: la línea de `.rpc`, contada desde 1.
  */
 export function llamadasRpc(texto, ruta = "archivo.tsx") {
@@ -78,7 +91,7 @@ export function llamadasRpc(texto, ruta = "archivo.tsx") {
       const llamada = {
         linea: sf.getLineAndCharacterOfPosition(n.expression.name.getStart(sf)).line + 1,
         nombre: ts.isStringLiteralLike(nombreDelTexto) ? nombreDelTexto.text : null,
-        nombresEnElNombre: ts.isStringLiteralLike(nombreDelTexto) ? [] : textosDe(primero),
+        nombresEnElNombre: ts.isStringLiteralLike(nombreDelTexto) ? [] : nombresPosibles(primero),
         argumentos: "ninguno",
         claves: [],
       };
@@ -103,10 +116,40 @@ export function llamadasRpc(texto, ruta = "archivo.tsx") {
 }
 
 /**
- * Los nombres de `conocidos` (un `Set` de nombres de función de producción) que aparecen como un TEXTO entre comillas en
- * el código de `texto` (`"x"`, `'x'` o `` `x` `` sin partes), con la línea de su PRIMERA aparición: `[{ nombre, linea }]`,
- * en orden de aparición. Un comentario, el texto de un JSX o el pedazo de una plantilla con más cosas NO cuentan; y
- * «el nombre completo y solo el nombre»: `"registrar_activo_x"` o `"la función registrar_activo"` tampoco.
+ * Los usos de `.rpc` que NO son una llamada directa `x.rpc(…)` y por los que se puede llamar a una función sin que
+ * `llamadasRpc` lo vea: `const r = x.rpc.bind(x)`, `const { rpc } = x`, `x["rpc"](…)`, `(x.rpc as Tipo)(…)`, `const f = x.rpc`.
+ * Devuelve `[{ linea, forma }]`. NO cuenta `op.rpc === "…"` (un campo de un objeto cualquiera): solo lo que parece un alias.
+ */
+export function aliasesDeRpc(texto, ruta = "archivo.tsx") {
+  const sf = parsear(texto, ruta);
+  const usos = [];
+  const linea = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+  const visita = (n) => {
+    if (ts.isPropertyAccessExpression(n) && n.name.text === "rpc") {
+      const padre = n.parent;
+      if (ts.isCallExpression(padre) && padre.expression === n) {
+        // es la llamada directa de `llamadasRpc`
+      } else if (ts.isPropertyAccessExpression(padre) && padre.expression === n && ["bind", "call", "apply"].includes(padre.name.text)) usos.push({ linea: linea(n), forma: `.rpc.${padre.name.text}(…)` });
+      else if (ts.isVariableDeclaration(padre) && padre.initializer === n) usos.push({ linea: linea(n), forma: "se guarda en una variable" });
+      else if (ts.isBinaryExpression(padre) && padre.right === n && padre.operatorToken.kind === ts.SyntaxKind.EqualsToken) usos.push({ linea: linea(n), forma: "se guarda en una variable" });
+      else if (ts.isAsExpression(padre) || ts.isParenthesizedExpression(padre) || ts.isNonNullExpression(padre) || ts.isSatisfiesExpression(padre) || ts.isTypeAssertionExpression(padre)) {
+        let sube = padre;
+        while (sube.parent && (ts.isAsExpression(sube.parent) || ts.isParenthesizedExpression(sube.parent) || ts.isNonNullExpression(sube.parent) || ts.isSatisfiesExpression(sube.parent) || ts.isTypeAssertionExpression(sube.parent))) sube = sube.parent;
+        if (ts.isCallExpression(sube.parent) && sube.parent.expression === sube) usos.push({ linea: linea(n), forma: "se llama con un cast: `(x.rpc as …)(…)`" });
+      }
+    } else if (ts.isElementAccessExpression(n) && ts.isStringLiteralLike(n.argumentExpression) && n.argumentExpression.text === "rpc") usos.push({ linea: linea(n), forma: 'x["rpc"]' });
+    else if (ts.isBindingElement(n) && ts.isObjectBindingPattern(n.parent) && (n.propertyName ?? n.name).getText(sf) === "rpc") usos.push({ linea: linea(n), forma: "`const { rpc } = x`" });
+    ts.forEachChild(n, visita);
+  };
+  visita(sf);
+  return usos;
+}
+
+/**
+ * Los nombres de `conocidos` (un `Set` de nombres de función) que aparecen como un TEXTO entre comillas en el código de
+ * `texto` (`"x"`, `'x'` o `` `x` `` sin partes), con la línea de su PRIMERA aparición: `[{ nombre, linea }]`, en orden de
+ * aparición. Un comentario, el texto de un JSX o el pedazo de una plantilla con más cosas NO cuentan; y «el nombre completo
+ * y solo el nombre»: `"registrar_activo_x"` o `"la función registrar_activo"` tampoco.
  */
 export function nombresEntreComillas(texto, conocidos, ruta = "archivo.tsx") {
   const sf = parsear(texto, ruta);

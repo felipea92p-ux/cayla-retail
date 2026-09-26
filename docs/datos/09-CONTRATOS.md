@@ -502,8 +502,8 @@ encuentra en la caja — a menos que el código resulte ser igual al SKU.
 **Y las dos funciones que sí resuelven por código no las llama nadie.**
 `retail.conteo_contar_por_codigo` (que sí busca en `codigos_barras`:
 `supabase/unificacion/30_conteos.sql:238`) y `retail.registrar_codigo_barras` existen en
-producción y **cero pantallas las invocan** — están en la lista "funciones que nadie
-llama" de `generado/DRIFT.md`.
+producción y **cero pantallas las invocan** (consulta del 2026-09-26: ya no existen en
+producción, así que tampoco figuran en `generado/DRIFT.md`).
 
 **Qué lo arregla:** dos cosas, y ninguna toca el núcleo.
 1. Que las tres puertas rotas llamen a `fn_asignar_codigo_variante` después del insert

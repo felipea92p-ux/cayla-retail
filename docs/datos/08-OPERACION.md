@@ -528,8 +528,8 @@ dice "no se pudo guardar", **siempre, no a veces**. Dos pantallas están así:
 | `apps/web/components/RegistrarGastoModal.tsx:57` | `p_metodo_pago` | `registrar_gasto` acepta **6** parámetros allá |
 | `apps/web/components/RecibirLoteForm.tsx:431` | `p_orden_produccion_id` | `recibir_lote` acepta **7** parámetros allá |
 
-(`generado/DRIFT.md`.) Registrar un gasto y recibir mercadería ligada a una
-producción fallan en las tres tiendas y en el Taller.
+(`generado/DRIFT.md` del 2026-09-12; ya corregido: hoy el informe no las lista.) Registrar un gasto y recibir mercadería ligada a una
+producción fallaban en las tres tiendas y en el Taller.
 
 **Causa.** Dos, encadenadas. Primera: `create or replace` con un parámetro nuevo
 **no reemplaza nada** — crea una segunda función, y una llamada que solo nombra

@@ -1,50 +1,50 @@
 #!/usr/bin/env node
 /**
- * Comparador de firmas — ¿lo que la pantalla llama existe en producción?
+ * Comparador de firmas — ¿lo que la pantalla llama existe en la foto de producción?
  *
- * EL PROBLEMA QUE RESUELVE. `RegistrarGastoModal.tsx` llama a `registrar_gasto` con
- * siete parámetros. La función que vive en producción acepta seis. Registrar un gasto
- * está roto allá **ahora mismo**, y nada avisó: el código compila, los tipos pasan, el
- * lint pasa, y el error solo aparece cuando alguien intenta registrar un gasto de
- * verdad, con la clienta esperando. Ya pasó igual con `recibir_lote` y con
- * `registrar_produccion`.
+ * EL PROBLEMA QUE RESUELVE. `RegistrarGastoModal.tsx` llamó a `registrar_gasto` con siete parámetros mientras la
+ * función que vivía en producción aceptaba seis: registrar un gasto estaba roto allá, y nada avisó (el código compila,
+ * los tipos pasan, el lint pasa; el error solo aparece cuando alguien intenta registrar un gasto de verdad, con la
+ * clienta esperando). Le pasó igual a `recibir_lote` y a `registrar_produccion` (hoy ya corregidos: es historia).
  *
  * Es un hueco muy específico, y por eso hace falta una herramienta propia:
  *   · `pnpm typecheck` compara el código contra los TIPOS GENERADOS, no contra la base.
  *     Si los tipos están viejos —y lo están—, aprueba una llamada imposible.
  *   · `pnpm migraciones:verificar` compara el REPO contra la base. Es la otra mitad, y
  *     no mira lo que el front llama.
- *   · Este script cierra el triángulo: compara la PANTALLA contra la BASE REAL.
+ *   · Este script cierra el triángulo: compara la PANTALLA contra la FOTO de la base.
  *
- * QUÉ HACE. Busca cada `supabase.rpc("x", { ... })` en el código de las pantallas de `apps/web`
- * (sin comentarios ni pruebas: no son pantallas), saca los nombres de los parámetros que manda,
- * y los cruza contra la firma de esa función en la FOTO de producción.
+ * QUÉ HACE. Lee con el parser de TypeScript cada `.rpc("x", { ... })` del código de las pantallas de `apps/web`
+ * (sin comentarios ni pruebas: no son pantallas), saca los nombres de los parámetros que manda, y los cruza contra la
+ * firma de esa función en la FOTO de producción.
  *
- * TODO LO QUE DICE ES TAN FRESCO COMO LA FOTO (`retail_foto.json` dice cuándo se tomó): una función
- * creada o cambiada DESPUÉS sale como «no existe» o con parámetros de más aunque en producción ya esté
- * bien. Por eso el informe habla de llamadas «sin respaldo en la foto» y no de pantallas «rotas»
+ * TODO LO QUE DICE ES TAN FRESCO COMO LA FOTO (`retail_foto.json` dice cuándo se tomó): una función creada o
+ * cambiada DESPUÉS sale como «no está», con parámetros de más, o con un aviso de un parámetro que ya no existe, aunque en
+ * producción ya esté bien. Por eso el informe habla de llamadas «sin respaldo en la foto» y no de pantallas «rotas»
  * (decisión tomada tras una falsa alarma real: 8 «rotas» que existían en producción).
  *
  * LO QUE PUEDE AFIRMAR Y LO QUE NO:
- *   · Un parámetro que la app manda y la función NO acepta → la llamada falla SIEMPRE.
- *     Eso es una afirmación dura, y es la que importa.
- *   · Una función que la app llama y que no existe en producción → falla siempre.
+ *   · Un parámetro que la app manda y la foto NO acepta → si la foto está al día, la llamada falla SIEMPRE.
+ *     Es la afirmación dura, y es la que importa; pero depende de la foto.
+ *   · Una función que la app llama y que la foto no tiene → si la foto está al día, falla siempre.
  *   · Un parámetro que la función acepta y la app no manda → normalmente está bien
- *     (tiene valor por defecto), así que sale como aviso, no como error.
+ *     (tiene valor por defecto: la foto no trae los defaults), así que sale como aviso, no como error.
  *   · Lo que no supo leer, lo dice. Una llamada con los parámetros armados en una
  *     variable aparte no se puede analizar mirando el texto, y sale listada como
  *     "no analizada" — nunca como aprobada. Un verificador que aprueba lo que no
- *     entendió enseña a confiar en un verde que no significa nada.
- *   · Un nombre de función que la pantalla escribe entre comillas fuera de un `.rpc("…")`
- *     directo (un ternario, un ayudante) también es "no analizado": se ve que la pantalla
- *     la usa, pero no qué parámetros manda. Los comentarios NO cuentan (`comparar-lectura.mjs`).
+ *     entendió enseña a confiar en un verde que no significa nada. (Aun así, que la FUNCIÓN exista
+ *     no depende de cómo se armen sus parámetros, y eso sí se comprueba.)
+ *   · Un nombre de función que la pantalla escribe entre comillas fuera de un `.rpc("…")` directo (un ternario, un
+ *     ayudante, una constante) también es "no analizado": se ve que la pantalla la usa, pero no qué parámetros manda.
+ *     Los comentarios NO cuentan (`comparar-lectura.mjs`). Lo que NO se ve: una llamada indirecta a una función que ni la
+ *     foto ni ninguna migración del repo conocen.
  *   · «Sin llamada detectada» NO prueba que una función sobre: la puede llamar otra
  *     función, un disparador, un script o Dynamic. Nunca se retira una función por estar
  *     en esa lista sin buscar antes quién la usa.
  *
  * DE DÓNDE SACA LA VERDAD DE PRODUCCIÓN
- *   `docs/datos/generado/funciones-produccion.txt`. Para refrescarlo, corre esta
- *   consulta en el SQL Editor de producción y pega el resultado en ese archivo:
+ *   `docs/datos/generado/funciones-produccion.txt` y, para la fecha, `retail_foto.json` (los dos se refrescan JUNTOS:
+ *   `docs/datos/generado/COMO-REFRESCAR.md`). La consulta que produce el primero, en el SQL Editor de producción:
  *
  *     select p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ')'
  *            || ' -> ' || pg_get_function_result(p.oid)
@@ -53,13 +53,14 @@
  *     where n.nspname = 'retail' and p.prokind = 'f' order by 1;
  *
  * USO
- *   pnpm datos:comparar          → informe en pantalla; sale con código 1 si hay roto
- *   pnpm datos:comparar --md     → además reescribe docs/datos/generado/DRIFT.md
+ *   pnpm datos:comparar          → informe en pantalla y reescribe docs/datos/generado/DRIFT.md;
+ *                                   sale con código 1 si hay una llamada sin respaldo en la foto
+ *   node scripts/datos/comparar.mjs   → solo el informe en pantalla
  */
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { esDePrueba, fechaDeLaFoto, llamadasRpc, nombresEntreComillas } from "./comparar-lectura.mjs";
+import { aliasesDeRpc, erroresDeSintaxis, esDePrueba, EXTENSIONES_DE_CODIGO, fechaDeLaFoto, llamadasRpc, nombresEntreComillas } from "./comparar-lectura.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 // `COMPARAR_RAIZ` solo existe para la prueba de extremo a extremo (`comparar.test.mjs`), que arma un repositorio de juguete.
@@ -68,15 +69,7 @@ const GEN = join(RAIZ, "docs", "datos", "generado");
 const WEB = join(RAIZ, "apps", "web");
 const FIRMAS = join(GEN, "funciones-produccion.txt");
 const FOTO = join(GEN, "retail_foto.json");
-
-// Cuándo se tomó la foto de producción con la que se compara. Todo lo que dice este informe es tan fresco como ella.
-function fechaFoto() {
-  try {
-    return fechaDeLaFoto(JSON.parse(readFileSync(FOTO, "utf8")).leido_en);
-  } catch {
-    return null;
-  }
-}
+const MIGRACIONES = join(RAIZ, "supabase", "migrations");
 
 // ── La verdad de producción ─────────────────────────────────────────────────
 
@@ -95,9 +88,11 @@ function firmasDeProduccion() {
     process.exit(1);
   }
   const mapa = new Map();
+  let firmas = 0;
   for (const linea of readFileSync(FIRMAS, "utf8").split("\n")) {
     const m = linea.match(/^([a-z0-9_]+)\((.*?)\)\s*->/i);
     if (!m) continue;
+    firmas++;
     const [, nombre, args] = m;
     // Los parámetros vienen como "p_sede_id uuid, p_items jsonb". Nos quedamos con el
     // nombre: es lo único que el front manda, porque llama con un objeto.
@@ -113,25 +108,66 @@ function firmasDeProduccion() {
     }
     mapa.set(nombre, { parametros, definer: /\[definer\]/.test(linea), linea: linea.trim() });
   }
-  return mapa;
+  return { mapa, firmas };
+}
+
+// Cuándo se tomó la foto de producción con la que se compara. Todo lo que dice este informe es tan fresco como ella. La
+// fecha vive en `retail_foto.json` y la lista en `funciones-produccion.txt`: si se refrescó solo uno de los dos, la fecha
+// mentiría (dice «hoy» junto a una lista de ayer). `retail_foto.json` cuenta cuántas funciones vio: si no coincide con las
+// firmas del .txt, no se fía de la fecha.
+function leerFoto(firmas) {
+  let foto = null;
+  try {
+    foto = JSON.parse(readFileSync(FOTO, "utf8"));
+  } catch {
+    return { fecha: null, aviso: null };
+  }
+  const fecha = fechaDeLaFoto(foto?.leido_en);
+  if (typeof foto?.funciones === "number" && foto.funciones !== firmas) {
+    return { fecha: null, aviso: `retail_foto.json dice ${foto.funciones} funciones y funciones-produccion.txt trae ${firmas}: no se refrescaron juntos, así que la fecha no es de fiar` };
+  }
+  return { fecha, aviso: null };
+}
+
+// La migración del repo que define cada función (la última que dice `create [or replace] function`). Sirve para decir,
+// de una función que la foto no tiene, «está definida en esta migración: o es posterior a la foto, o no se ha pegado
+// en producción». No lee SQL dinámico (`execute format(…)`), así que puede no encontrarla.
+function migracionesQueDefinen() {
+  const indice = new Map();
+  const archivos = existsSync(MIGRACIONES) ? readdirSync(MIGRACIONES).filter(f => /^\d+_.*\.sql$/.test(f)).sort() : [];
+  for (const f of archivos) {
+    const sql = readFileSync(join(MIGRACIONES, f), "utf8");
+    for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:retail\.)?([a-z0-9_]+)\s*\(/gi)) indice.set(m[1].toLowerCase(), f);
+  }
+  return indice;
 }
 
 // ── Lo que las pantallas llaman ─────────────────────────────────────────────
 
+// En orden alfabético: el orden en que `readdirSync` devuelve los archivos depende del sistema (macOS lo da alfabético; Linux
+// no), y de él dependen el orden del informe y el «primera aparición» de una mención. Sin ordenar, regenerar DRIFT.md en otra
+// máquina metería un diff enorme sin que nada haya cambiado.
 function archivosDeCodigo(dir, acc = []) {
-  for (const entrada of readdirSync(dir)) {
+  for (const entrada of readdirSync(dir).sort()) {
     if (entrada === "node_modules" || entrada === ".next" || entrada.startsWith(".")) continue;
     const ruta = join(dir, entrada);
     const st = statSync(ruta);
     if (st.isDirectory()) archivosDeCodigo(ruta, acc);
-    else if (/\.(ts|tsx|mts)$/.test(entrada)) acc.push(ruta);
+    else if (EXTENSIONES_DE_CODIGO.test(entrada)) acc.push(ruta);
   }
   return acc;
 }
 
-function llamadas(conocidas) {
+/**
+ * Lo que `apps/web` llama. `universo` son los nombres que se buscan entre comillas fuera de un `.rpc("…")` directo: las
+ * funciones de la foto MÁS las que define alguna migración (una función posterior a la foto también se nombra).
+ */
+function llamadas(universo, produccion, migraciones) {
   const encontradas = [];
   const noAnalizadas = [];
+  let total = 0; // todas las llamadas `.rpc(…)`
+  let soloPorNombre = 0; // directas (nombre literal) cuyos parámetros no se pudieron leer
+  let conNombreNoLiteral = 0; // un ternario, una variable…
   // Nombres de función que la pantalla escribe entre comillas (sin contar comentarios ni pruebas): la primera aparición
   // de cada uno. Los que además tienen un `.rpc("…")` directo ya están en `encontradas`/`noAnalizadas`.
   const mencionadas = new Map();
@@ -139,22 +175,29 @@ function llamadas(conocidas) {
   for (const ruta of archivosDeCodigo(WEB)) {
     if (esDePrueba(ruta)) continue; // una prueba no es una pantalla: ni sus llamadas ni sus menciones cuentan
     const texto = readFileSync(ruta, "utf8");
-    const archivo = relative(RAIZ, ruta);
+    const archivo = relative(RAIZ, ruta).split(sep).join("/");
+
+    // Con un error de sintaxis, el parser sigue y devuelve un árbol truncado: lo que venga después puede no leerse.
+    const errores = erroresDeSintaxis(texto, ruta);
+    if (errores) noAnalizadas.push({ archivo, linea: 1, nombre: "(archivo entero)", porque: `el parser de TypeScript vio ${errores} error${errores > 1 ? "es" : ""} de sintaxis: las llamadas que vengan después pueden no haberse leído` });
 
     // Las llamadas `.rpc(…)` y sus claves las lee el parser de TypeScript (`comparar-lectura.mjs`), no una expresión
     // regular ni un contador de llaves: un comentario, un texto o una expresión regular dentro de la llamada no la
     // desordenan. `.rpc("nombre" as never, …)` es la forma en que las pantallas de Finanzas esquivan los tipos
     // generados que aún no conocen la función; el parser la ve igual que `.rpc("nombre", …)`.
     for (const ll of llamadasRpc(texto, ruta)) {
+      total++;
       const contexto = { archivo, linea: ll.linea };
 
       if (ll.nombre === null) {
-        // El nombre no es UN texto: un ternario (`cond ? "a" : "b"`), una variable, una plantilla.
-        const funciones = ll.nombresEnElNombre.filter(n => conocidas.has(n));
-        if (funciones.length) {
-          for (const nombre of funciones) noAnalizadas.push({ ...contexto, nombre, porque: "el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros" });
+        conNombreNoLiteral++;
+        // El nombre no es UN texto. Los textos que puede valer (las dos ramas de un ternario) SON nombres de función por
+        // construcción —estén o no en la foto—: cada uno cuenta como usado y, si la foto no lo tiene, sale «sin respaldo».
+        const textos = [...new Set(ll.nombresEnElNombre)];
+        if (textos.length) {
+          for (const nombre of textos) noAnalizadas.push({ ...contexto, nombre, directa: true, porque: "el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros" });
         } else {
-          noAnalizadas.push({ ...contexto, nombre: "(nombre calculado)", porque: "el nombre de la función no va escrito ahí mismo (una variable o una plantilla): no se sabe cuál llama" });
+          noAnalizadas.push({ ...contexto, nombre: "(nombre calculado)", porque: "el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama" });
         }
         continue;
       }
@@ -162,48 +205,46 @@ function llamadas(conocidas) {
       const c = { ...contexto, nombre: ll.nombre, directa: true };
       if (ll.argumentos === "ninguno") encontradas.push({ ...c, envia: [] });
       else if (ll.argumentos === "objeto") encontradas.push({ ...c, envia: ll.claves });
-      else if (ll.argumentos === "objeto con spread") noAnalizadas.push({ ...c, porque: "el objeto se arma con «...», no se puede leer entero" });
-      else if (ll.argumentos === "objeto con clave calculada") noAnalizadas.push({ ...c, porque: "el objeto tiene una clave calculada, no se puede leer entero" });
-      else noAnalizadas.push({ ...c, porque: "los parámetros no van escritos ahí mismo" });
+      else {
+        soloPorNombre++;
+        // Las claves que sí están escritas ahí mismo se guardan: una que la función no acepta falla siempre, haya o no «...».
+        const porque =
+          ll.argumentos === "objeto con spread" ? "el objeto se arma con «...», no se puede leer entero"
+          : ll.argumentos === "objeto con clave calculada" ? "el objeto tiene una clave calculada, no se puede leer entero"
+          : "los parámetros no van escritos ahí mismo";
+        noAnalizadas.push({ ...c, claves: ll.claves, porque });
+      }
     }
 
-    for (const { nombre, linea } of nombresEntreComillas(texto, conocidas, ruta)) {
+    // `.rpc` usado como valor (`.rpc.bind(x)`, `const { rpc } = x`, `x["rpc"](…)`): por ahí se llama a una función sin que la
+    // lectura de arriba lo vea. No se sabe cuál llama: sale como «no analizada».
+    for (const a of aliasesDeRpc(texto, ruta)) noAnalizadas.push({ archivo, linea: a.linea, nombre: "(alias de rpc)", porque: `\`.rpc\` se usa como valor (${a.forma}): la función que se llama por ahí no se ve` });
+
+    for (const { nombre, linea } of nombresEntreComillas(texto, universo, ruta)) {
       if (!mencionadas.has(nombre)) mencionadas.set(nombre, { archivo, linea });
     }
   }
 
-  // Lo que la pantalla nombra pero no llama con un `.rpc("…")` directo (un ayudante, una lista de nombres): la usa, pero no
-  // se pueden leer sus parámetros. Sale como «no analizada», nunca como aprobada.
+  // Lo que la pantalla nombra pero no llama con un `.rpc("…")` directo (un ayudante, una lista de nombres, una constante): la
+  // usa, pero no se pueden leer sus parámetros. Sale como «no analizada», nunca como aprobada.
   const yaVistas = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
   for (const [nombre, donde] of mencionadas) {
     if (yaVistas.has(nombre)) continue;
-    noAnalizadas.push({ ...donde, nombre, porque: 'el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante…): no se leen sus parámetros' });
+    const porque = produccion.has(nombre)
+      ? 'el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros'
+      : `el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/${migraciones.get(nombre)} (posterior a la foto, sin pegar aún en producción, o retirada después)`;
+    noAnalizadas.push({ ...donde, nombre, porque });
   }
-  return { encontradas, noAnalizadas };
+  return { encontradas, noAnalizadas, total, soloPorNombre, conNombreNoLiteral };
 }
 
 // ── El informe ──────────────────────────────────────────────────────────────
 
-const produccion = firmasDeProduccion();
-const FOTO_FECHA = fechaFoto();
-const { encontradas, noAnalizadas } = llamadas(new Set(produccion.keys()));
-
-// La migración del repo que define una función (la última que dice `create [or replace] function`). Sirve para decir,
-// de una función que la foto no tiene, «está definida en esta migración: o es posterior a la foto, o no se ha pegado
-// en producción». No lee SQL dinámico (`execute format(…)`), así que puede no encontrarla.
-const MIGRACIONES = join(RAIZ, "supabase", "migrations");
-let indiceMigraciones = null;
-function migracionQueDefine(nombre) {
-  if (!indiceMigraciones) {
-    indiceMigraciones = new Map();
-    const archivos = existsSync(MIGRACIONES) ? readdirSync(MIGRACIONES).filter(f => /^\d+_.*\.sql$/.test(f)).sort() : [];
-    for (const f of archivos) {
-      const sql = readFileSync(join(MIGRACIONES, f), "utf8");
-      for (const m of sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+(?:retail\.)?([a-z0-9_]+)\s*\(/gi)) indiceMigraciones.set(m[1].toLowerCase(), f);
-    }
-  }
-  return indiceMigraciones.get(nombre) ?? null;
-}
+const { mapa: produccion, firmas: totalFirmas } = firmasDeProduccion();
+const { fecha: FOTO_FECHA, aviso: FOTO_AVISO } = leerFoto(totalFirmas);
+const migraciones = migracionesQueDefinen();
+const migracionQueDefine = nombre => migraciones.get(nombre) ?? null;
+const { encontradas, noAnalizadas, total, soloPorNombre, conNombreNoLiteral } = llamadas(new Set([...produccion.keys(), ...migraciones.keys()]), produccion, migraciones);
 
 const rotas = [];
 const avisos = [];
@@ -223,23 +264,40 @@ for (const ll of encontradas) {
   }
 }
 
-// Una llamada directa que no se pudo leer entera (parámetros en una variable, «...») también se comprueba contra la foto:
-// que la FUNCIÓN exista no depende de cómo estén armados sus parámetros. Sin esto, una llamada a una función que la foto no
-// tiene salía solo como «no analizada» y el informe contaba de menos (`crear_producto_con_stock_inicial`, 2026-09-26).
+// Una llamada directa que no se pudo leer entera (parámetros en una variable, «...», un ternario) también se comprueba contra
+// la foto: que la FUNCIÓN exista no depende de cómo estén armados sus parámetros, y una clave escrita ahí mismo que la función
+// no acepta falla siempre aunque haya un «...». Sin esto, una llamada a una función que la foto no tiene salía solo como «no
+// analizada» y el informe contaba de menos (`crear_producto_con_stock_inicial`, `bajar_al_piso`).
 for (const n of noAnalizadas) {
-  if (n.directa && !produccion.has(n.nombre)) {
+  if (!n.directa) continue;
+  const fn = produccion.get(n.nombre);
+  if (!fn) {
     rotas.push({ ...n, envia: [], tipo: "no está en la foto", detalle: `la función \`${n.nombre}\` no está en la foto de producción (${FOTO_FECHA ?? "sin fecha"}); sus parámetros no se pudieron leer`, migracion: migracionQueDefine(n.nombre) });
+    continue;
   }
+  const sobran = (n.claves ?? []).filter(p => !fn.parametros.includes(p));
+  if (sobran.length) rotas.push({ ...n, envia: n.claves, tipo: "parámetro de más", detalle: `manda \`${sobran.join("`, `")}\` (de los que se leen: el resto del objeto no se pudo leer entero) y la foto de producción no lo acepta` });
 }
 
 // Una llamada que no se pudo leer entera («...», parámetros armados fuera) sigue siendo una llamada: la función tiene
-// pantalla. Sin esto, `registrar_venta` salía como «nadie la llama» estando en el punto de venta.
+// pantalla. Sin esto, `registrar_venta` salía como «nadie la llama» estando en el punto de venta. Las `fn_*` se dejan fuera
+// a propósito: la mayoría son disparadores, candados de dinero y ayudantes que llaman otras funciones.
 const llamadasUnicas = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
-const sinUsar = [...produccion.keys()].filter(n => !llamadasUnicas.has(n) && !n.startsWith("fn_") && !["set_updated_at"].includes(n));
+const fnTodas = [...produccion.keys()].filter(n => n.startsWith("fn_"));
+const fnSinPantalla = fnTodas.filter(n => !llamadasUnicas.has(n));
+const sinUsar = [...produccion.keys()].filter(n => !llamadasUnicas.has(n) && !n.startsWith("fn_"));
 
-console.log(`\n  Comparando ${encontradas.length} llamadas directas de apps/web contra ${produccion.size} funciones de producción`);
-console.log(`  Foto de producción: ${FOTO_FECHA ?? "SIN FECHA"}. Una función creada o cambiada DESPUÉS sale como «no está» o con`);
-console.log(`  parámetros de más aunque en producción ya esté bien: confirmar en producción antes de dar una pantalla por rota.\n`);
+// El titular dice de qué son las cifras: no todas las llamadas se pueden comparar parámetro por parámetro.
+const TITULAR = `${total} llamadas \`.rpc\` de apps/web contra ${produccion.size} funciones de producción`;
+const DESGLOSE = `${encontradas.length} con los parámetros leídos (se comparan uno por uno), ${soloPorNombre} directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), ${conNombreNoLiteral} con el nombre en un ternario o una variable`;
+
+console.log(`\n  Comparando ${TITULAR}`);
+console.log(`  (${DESGLOSE})`);
+console.log(`  Foto de producción: ${FOTO_FECHA ?? "SIN FECHA"}. Una función creada o cambiada DESPUÉS sale como «no está», con parámetros`);
+console.log(`  de más o con un aviso de un parámetro que ya no existe, aunque en producción ya esté bien: confirmar en producción`);
+console.log(`  antes de dar una pantalla por rota.`);
+if (FOTO_AVISO) console.log(`  ⚠ ${FOTO_AVISO}.`);
+console.log("");
 
 if (sobrecargas.size) {
   console.log(`  ✗ SOBRECARGAS EN PRODUCCIÓN — ${sobrecargas.size}  (la llamada por nombre queda ambigua y falla)\n`);
@@ -281,7 +339,7 @@ if (noAnalizadas.length) {
 if (sinUsar.length) {
   console.log(`  · Funciones en producción SIN llamada detectada desde apps/web — ${sinUsar.length}`);
   console.log(`    ${sinUsar.join(", ")}`);
-  console.log(`    (ninguna pantalla las nombra. NO prueba que sobren: las puede llamar otra función o un disparador, usar un script o`);
+  console.log(`    (ninguna pantalla las nombra${fnTodas.length ? `; a ${fnSinPantalla.length} de las ${fnTodas.length} \`fn_*\` tampoco, y esas NO se listan aquí` : ""}. NO prueba que sobren: las puede llamar otra función o un disparador, usar un script o`);
   console.log(`     Dynamic, o ser una herramienta de mantenimiento que se corre a mano. Antes de retirar una, buscar quién la usa;`);
   console.log(`     la consulta está en DRIFT.md)\n`);
 }
@@ -291,15 +349,18 @@ if (process.argv.includes("--md")) {
   L.push(`# Diferencias — lo que la pantalla llama vs. lo que producción acepta`);
   L.push("");
   L.push(`> ⚠️ **ARCHIVO GENERADO.** Se reescribe con \`pnpm datos:comparar --md\`.`);
-  L.push(`> Comparadas ${encontradas.length} llamadas de \`apps/web\` contra ${produccion.size} funciones del schema \`retail\` en producción.`);
+  L.push(`> Comparadas ${total} llamadas \`.rpc\` de \`apps/web\` contra ${produccion.size} funciones del schema \`retail\` en producción: ${DESGLOSE}.`);
   L.push(`> **Foto de producción: ${FOTO_FECHA ?? "sin fecha"}.** Todo lo de este archivo es tan fresco como esa foto: una función`);
-  L.push(`> creada o cambiada DESPUÉS sale como «no existe» o con parámetros de más aunque en producción ya esté bien. Antes de dar`);
-  L.push(`> una pantalla por rota, confirmarlo en producción; para refrescar la foto, \`docs/datos/generado/COMO-REFRESCAR.md\`.`);
+  L.push(`> creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en`);
+  L.push(`> producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,`);
+  L.push(`> \`docs/datos/generado/COMO-REFRESCAR.md\`.`);
+  if (FOTO_AVISO) L.push(`> ⚠ **${FOTO_AVISO}.**`);
   L.push("");
   L.push(`> **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en \`funciones-produccion.txt\`, tomada en la fecha`);
   L.push(`> de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos`);
-  L.push(`> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las \`fn_*\` (permisos y`);
-  L.push(`> ayudantes que llaman otras funciones, no las pantallas) se dejan fuera de «sin llamada» a propósito.`);
+  L.push(`> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las \`fn_*\` (${fnTodas.length} en la`);
+  L.push(`> foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a`);
+  L.push(`> propósito; ${fnTodas.length - fnSinPantalla.length} sí las nombra una pantalla y salen en las secciones de arriba, y a las otras ${fnSinPantalla.length} no las nombra ninguna pantalla y aquí no se listan.`);
   L.push("");
   L.push(`---`);
   L.push("");
@@ -332,7 +393,7 @@ if (process.argv.includes("--md")) {
       L.push(`- **La foto acepta:** \`${fn.parametros.join("`, `") || "—"}\``);
     }
     if (r.migracion) L.push(`- **Migración que la crea:** \`supabase/migrations/${r.migracion}\` (se pegó después de la foto, o todavía no)`);
-    L.push(`- **Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.`);
+    L.push(`- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.`);
     L.push("");
   }
   L.push(`## Sobrecargas — ${sobrecargas.size}`);
@@ -355,11 +416,12 @@ if (process.argv.includes("--md")) {
   L.push("");
   L.push(`## No analizadas — ${noAnalizadas.length}`);
   L.push("");
-  L.push(`Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un`);
-  L.push(`\`.rpc("…")\` directo (un ternario, un ayudante), así que no se pueden revisar leyendo el texto.`);
-  L.push(`**No están aprobadas: están sin revisar.** Ojo con lo que aquí NO se ve: una llamada indirecta (un ternario, un ayudante) a una`);
-  L.push(`función que la foto no conoce no sale, porque de un nombre calculado solo se listan los que la foto sí tiene. Las llamadas`);
-  L.push(`directas a una función ausente sí se cuentan, arriba, entre las «sin respaldo».`);
+  L.push(`Estas ${noAnalizadas.length} entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):`);
+  L.push(`arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un \`.rpc("…")\` directo (un ternario, un`);
+  L.push(`ayudante, una constante), o usan \`.rpc\` como valor (\`.bind\`, \`const { rpc } = x\`). No se pueden revisar leyendo el texto.`);
+  L.push(`**No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,`);
+  L.push(`entre las «sin respaldo» (p. ej. \`crear_producto_con_stock_inicial\`). Lo que aquí NO se ve: una llamada indirecta a una función que ni la`);
+  L.push(`foto ni ninguna migración del repo conocen.`);
   L.push("");
   for (const n of noAnalizadas) L.push(`- \`${n.nombre}\` · \`${n.archivo}:${n.linea}\` — ${n.porque}`);
   L.push("");

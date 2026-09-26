@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { esDePrueba, fechaDeLaFoto, llamadasRpc, nombresEntreComillas } from "./comparar-lectura.mjs";
+import { aliasesDeRpc, erroresDeSintaxis, esDePrueba, EXTENSIONES_DE_CODIGO, fechaDeLaFoto, llamadasRpc, nombresEntreComillas } from "./comparar-lectura.mjs";
 
 const CONOCIDAS = new Set(["desactivar_proveedor", "reactivar_proveedor", "cerrar_periodo", "registrar_activo", "agregar_colaborador", "registrar_venta", "fn_balance_general"]);
 const nombres = (texto) => nombresEntreComillas(texto, CONOCIDAS).map((x) => x.nombre);
@@ -90,6 +90,78 @@ test("la línea de la llamada es la de `.rpc`, aunque haya comentarios de bloque
   assert.equal(ll.linea, 4);
 });
 
+test("lo que envuelve a un valor no lo cambia: `(x)`, `x!`, `x satisfies T` y `<T>x` se leen como `x`", () => {
+  for (const nombre of ['("x1")', '"x1"!', '"x1" satisfies string', '<string>"x1"']) {
+    const [ll] = rpc(`supabase.rpc(${nombre}, ({ p_a: 1 }) as never)`, "lib/f.ts"); // `.ts`: en un `.tsx` el `<T>x` es JSX
+    assert.equal(ll.nombre, "x1", nombre);
+    assert.deepEqual(ll.claves, ["p_a"], nombre);
+  }
+});
+
+test("una plantilla SIN partes es un texto: `.rpc(`x`)` es la función x; con partes no", () => {
+  assert.equal(rpc("supabase.rpc(`x2`, {})")[0].nombre, "x2");
+  assert.equal(rpc("supabase.rpc(`x_${a}`, {})")[0].nombre, null);
+});
+
+test("una clave entre comillas o con número se lee: `{ \"p_a\": 1 }`", () => {
+  assert.deepEqual(rpc('supabase.rpc("f", { "p_a": 1, p_b: 2 })')[0].claves, ["p_a", "p_b"]);
+});
+
+test("las claves escritas ahí mismo se leen aunque el objeto lleve «...» (una clave que la función no acepta falla siempre)", () => {
+  const [ll] = rpc('supabase.rpc("f", { ...resto, p_a: 1 })');
+  assert.equal(ll.argumentos, "objeto con spread");
+  assert.deepEqual(ll.claves, ["p_a"]);
+});
+
+test("los textos posibles del nombre son los de un ternario o de `||` / `??`, no los de una llave (`MAPA[\"x\"]`) ni los de un argumento", () => {
+  assert.deepEqual(rpc('supabase.rpc(a || "uno", {})')[0].nombresEnElNombre, ["uno"]);
+  assert.deepEqual(rpc('supabase.rpc(a ?? "uno", {})')[0].nombresEnElNombre, ["uno"]);
+  assert.deepEqual(rpc('supabase.rpc(a ? (b ? "uno" : "dos") : "tres", {})')[0].nombresEnElNombre, ["uno", "dos", "tres"]);
+  assert.deepEqual(rpc('supabase.rpc(MAPA["abrir"], {})')[0].nombresEnElNombre, []);
+  assert.deepEqual(rpc('supabase.rpc(nombreDe("abrir"), {})')[0].nombresEnElNombre, []);
+});
+
+test("un `.js` y un `.jsx` también se leen, y el `.jsx` se lee como JSX (sin errores de sintaxis)", () => {
+  assert.deepEqual(rpc('export const f = (s) => s.rpc("x3", { p_a: 1 });', "lib/f.js").map((l) => l.nombre), ["x3"]);
+  const jsx = 'export const F = (s) => <b onClick={() => s.rpc("x4", {})} />;';
+  assert.deepEqual(rpc(jsx, "components/F.jsx").map((l) => l.nombre), ["x4"]);
+  assert.equal(erroresDeSintaxis(jsx, "components/F.jsx"), 0);
+});
+
+test("solo es una llamada de supabase el método que se llama EXACTAMENTE `rpc` (`rpcTipado`, `rpc2` no)", () => {
+  assert.deepEqual(rpc('s.rpcTipado("x5", {}); s.rpc2("x6"); s.myrpc("x7");'), []);
+});
+
+// ---- aliasesDeRpc --------------------------------------------------------------------------------------------------
+
+const alias = (texto, ruta) => aliasesDeRpc(texto, ruta).map((a) => a.forma);
+
+test("`.rpc` usado como valor se avisa: `.bind`, `const { rpc } = x`, `x[\"rpc\"]`, un cast, `const f = x.rpc`", () => {
+  assert.deepEqual(alias("const r = s.rpc.bind(s);"), [".rpc.bind(…)"]);
+  assert.deepEqual(alias("const { rpc } = s;"), ["`const { rpc } = x`"]);
+  assert.deepEqual(alias("const { rpc: llamar } = s;"), ["`const { rpc } = x`"]);
+  assert.deepEqual(alias('s["rpc"]("x")'), ['x["rpc"]']);
+  assert.deepEqual(alias('(s.rpc as unknown as (f: string) => void)("x")'), ["se llama con un cast: `(x.rpc as …)(…)`"]);
+  assert.deepEqual(alias("const f = s.rpc;"), ["se guarda en una variable"]);
+  assert.deepEqual(alias("let f; f = s.rpc;"), ["se guarda en una variable"]);
+});
+
+test("la llamada directa y un campo cualquiera llamado «rpc» NO son un alias (`op.rpc === \"x\"` es de la cola offline)", () => {
+  assert.deepEqual(alias('await s.rpc("x", {}); createClient().rpc("y");'), []);
+  assert.deepEqual(alias('ops.filter((op) => op.rpc === "recibir_envio"); const o = { rpc: "x" }; type T = S["rpc"];'), []);
+});
+
+test("la línea del alias es la de su uso", () => {
+  assert.deepEqual(aliasesDeRpc("\n\nconst r = s.rpc.bind(s);").map((a) => a.linea), [3]);
+});
+
+// ---- erroresDeSintaxis ---------------------------------------------------------------------------------------------
+
+test("un archivo con un error de sintaxis se cuenta (el parser sigue y devuelve un árbol truncado, sin lanzar)", () => {
+  assert.equal(erroresDeSintaxis("export const a = 1;\nsupabase.rpc('x', { p_a: 1 });\n"), 0);
+  assert.ok(erroresDeSintaxis("export const a = {;\nsupabase.rpc('x', { p_a: 1 });\n") > 0);
+});
+
 // ---- nombresEntreComillas ------------------------------------------------------------------------------------------
 
 test("un ternario dentro del .rpc(): las DOS funciones cuentan (era el caso de Proveedores y Categorías)", () => {
@@ -155,7 +227,9 @@ test("el atributo de texto de un JSX sí es un texto del código", () => {
 
 // ---- esDePrueba ----------------------------------------------------------------------------------------------------
 
-test("las pruebas no son pantallas, con cualquiera de las tres extensiones", () => {
+test("las pruebas no son pantallas, con cualquiera de sus extensiones", () => {
+  assert.equal(esDePrueba("apps/web/lib/x.test.js"), true);
+  assert.equal(esDePrueba("apps/web/lib/x.test.mjs"), true);
   assert.equal(esDePrueba("apps/web/lib/x.test.ts"), true);
   assert.equal(esDePrueba("apps/web/components/X.test.tsx"), true);
   assert.equal(esDePrueba("apps/web/lib/x.test.mts"), true);
@@ -186,26 +260,25 @@ function archivosDeWeb(dir, acc = []) {
     if (e === "node_modules" || e === ".next" || e.startsWith(".")) continue;
     const r = join(dir, e);
     if (statSync(r).isDirectory()) archivosDeWeb(r, acc);
-    else if (/\.(ts|tsx|mts)$/.test(e)) acc.push(r);
+    else if (EXTENSIONES_DE_CODIGO.test(e)) acc.push(r);
   }
   return acc;
 }
 
-// Que leer cualquier archivo real no falle (un error de sintaxis o una sintaxis nueva no debe tumbar el informe) y que la
-// lectura no se quede ciega: hoy hay ~300 llamadas `.rpc("…")` con nombre en apps/web.
-test("la lectura recorre TODOS los archivos de apps/web sin fallar y encuentra las llamadas de siempre", () => {
+// Que leer cualquier archivo real no falle (una sintaxis nueva no debe tumbar el informe) y que la lectura no se quede ciega.
+// OJO: esta prueba corre en el CI de TODOS los PR y lee el código de esos PR. Por eso solo exige lo grueso (que recorra y que
+// encuentre «bastantes» llamadas, hoy ~300): NO se ata a la forma de un archivo concreto ni a un número exacto, para que un
+// refactor ajeno no la ponga en rojo. Los casos finos están en las pruebas de arriba, con texto de juguete.
+test("la lectura recorre TODOS los archivos de apps/web sin fallar y no se queda ciega", () => {
   const archivos = archivosDeWeb(join(RAIZ, "apps", "web")).filter((r) => !esDePrueba(r));
   assert.ok(archivos.length > 100, "no se encontraron los archivos de apps/web");
   let conNombre = 0;
-  let proveedores = null;
   for (const ruta of archivos) {
     const texto = readFileSync(ruta, "utf8");
-    const llamadas = llamadasRpc(texto, ruta);
+    conNombre += llamadasRpc(texto, ruta).filter((l) => l.nombre !== null).length;
     nombresEntreComillas(texto, CONOCIDAS, ruta);
-    conNombre += llamadas.filter((l) => l.nombre !== null).length;
-    if (ruta.endsWith("components/ProveedoresPanel.tsx")) proveedores = llamadas;
+    aliasesDeRpc(texto, ruta);
+    erroresDeSintaxis(texto, ruta);
   }
-  assert.ok(conNombre > 250, `la lectura solo encontró ${conNombre} llamadas con nombre: ¿se quedó ciega?`);
-  // El caso que motivó todo: Proveedores llama a dos funciones con un ternario.
-  assert.ok(proveedores?.some((l) => l.nombresEnElNombre.includes("desactivar_proveedor") && l.nombresEnElNombre.includes("reactivar_proveedor")), "ProveedoresPanel.tsx ya no se lee como un ternario con las dos funciones");
+  assert.ok(conNombre > 100, `la lectura solo encontró ${conNombre} llamadas con nombre en apps/web: ¿se quedó ciega? (si este PR movió las llamadas a otra forma, revisa comparar-lectura.mjs; el fallo no es de tu código)`);
 });
