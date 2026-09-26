@@ -28,6 +28,32 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Ficha de producto: lo que no se edita no lo parece; el costo, a mano solo hasta la primera compra (2026-09-26, ADR-0243) — web y migración `20260927190000` **SIN pegar en producción**; rama `claude/productos-ficha-variantes`
+Nace de la revisión de Productos con capturas de producción. Felipe dijo «vamos en orden»: 1a y 1c primero.
+- [x] **1a · Color, talla y código de una variante existente, de solo lectura.**
+  - Antes se podían cambiar, la base los ignoraba y el guardado decía «guardado».
+  - La fila muestra ahora el código que lee la pistola, no el SKU.
+  - Código: `fija` en `ProductoForm.tsx`.
+- [x] **1c · El costo se corrige a mano solo hasta la primera compra** (D-134; Felipe eligió entre tres opciones).
+  - La base lo exige con el disparador `variantes_costo_hasta_la_primera_compra`.
+  - La ficha muestra de solo lectura el costo oficial (`fn_variantes_con_costo_oficial`).
+  - Un campo vacío ya no guarda 0.
+  - Corregir un costo declarado se anota `costo_declarado` y no marca la prenda «alterada».
+- [ ] **Pegar `20260927190000` en producción ANTES de fusionar.** Trae `set search_path` y es re-pegable. Parcha
+      `fn_registrar_cambio_producto` sobre su definición viva: si el ancla no aparece exactamente una vez, aborta sin
+      tocar nada.
+- [ ] Después de pegar, correr la consulta del final de la migración: cuenta las prendas sin compras que ya quedaron
+      «alteradas» por correcciones anteriores.
+- Siguen de la misma revisión, en este orden:
+  - limpieza de productos de prueba (decisión de Felipe: ¿esconder `es_prueba` del catálogo?);
+  - 1d, tallas en orden S-M-L en la vista rápida y la Tabla;
+  - 1e, colores que se cortan en la tarjeta;
+  - 1f, la foto de la grilla ignora «Principal»;
+  - 1b, el margen sin IGV (decisión de Felipe pendiente).
+- Cómo verificas:
+  - En una prenda con compras, Editar: el costo sale como texto y el color, la talla y el código no se pueden cambiar.
+  - En una prenda de la carga inicial sin compras, el costo se corrige y se guarda.
+
 ## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
 Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
 - [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**

@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Ficha de producto: lo que no se edita no lo parece; costo a mano solo hasta la primera compra — ADR-0243)
+La revisión de Productos encontró dos formas de perder un dato sin aviso en la ficha. Cambiar la talla de una variante existente se descartaba y el aviso decía «guardado». Y el costo promedio de las compras se podía pisar a mano, o con un 0 si el campo quedaba vacío. Felipe decidió que el costo se corrige solo hasta la primera compra; la base lo exige con un disparador, y corregir un costo declarado ya no deja la prenda «alterada» en Resumen.
+Por qué así: el candado vive en la tabla porque por ahí pasan los dos caminos (la ficha y el update directo). Qué se rompería sin esto: el «Capital en inventario» y el margen salen del costo, y bastaba un campo vacío para que una prenda dijera margen 100 %.
+Felipe se lleva: **una pantalla que deja escribir promete que se va a guardar.** Si la regla dice que no se cambia, el campo tiene que dejar de parecer editable. Un aviso de «guardado» que miente es peor que un error.
+Sin resolver: pegar `20260927190000` en producción antes de fusionar; contar las prendas que ya quedaron «alteradas» por correcciones anteriores.
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
