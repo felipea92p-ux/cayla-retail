@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   lineasIniciales,
+  porEscanear,
   BOTON_COMPROBAR,
   BOTON_CONFIRMAR_DE_NUEVO,
   BUFER_VACIO,
@@ -232,19 +233,19 @@ describe("leerCodigo: cada disparo de la pistola", () => {
 describe("lineasIniciales: la lista que llega marcada desde Existencias (ADR-0237)", () => {
   const conAtras = prenda({ varianteId: id(1), almacenDisponible: 3 });
   const sinAtras = prenda({ varianteId: id(2), almacen: 1, almacenDisponible: 0 });
-  it("toma solo lo de esta tienda con algo libre atrás, con la cantidad topada a eso", () => {
-    expect(
-      lineasIniciales(
-        [
-          { varianteId: id(1), cantidad: 9 },
-          { varianteId: id(2), cantidad: 1 },
-          { varianteId: id(99), cantidad: 1 },
-        ],
-        [conAtras, sinAtras]
-      )
-    ).toEqual([{ varianteId: id(1), cantidad: 3 }]);
+  it("toma solo lo de esta tienda con algo libre atrás, y TODO llega «por escanear» (en 0), traiga el enlace lo que traiga", () => {
+    const lineas = lineasIniciales(
+      [
+        { varianteId: id(1), cantidad: 9 },
+        { varianteId: id(2), cantidad: 1 },
+        { varianteId: id(99), cantidad: 1 },
+      ],
+      [conAtras, sinAtras]
+    );
+    expect(lineas).toEqual([{ varianteId: id(1), cantidad: 0 }]);
+    expect(lineas.every(porEscanear)).toBe(true);
   });
-  it("no repite una prenda ni acepta cantidades que no son enteras positivas", () => {
+  it("no repite una prenda", () => {
     expect(
       lineasIniciales(
         [
@@ -253,12 +254,45 @@ describe("lineasIniciales: la lista que llega marcada desde Existencias (ADR-023
         ],
         [conAtras]
       )
-    ).toEqual([{ varianteId: id(1), cantidad: 1 }]);
-    expect(lineasIniciales([{ varianteId: id(1), cantidad: 0 }], [conAtras])).toEqual([]);
+    ).toEqual([{ varianteId: id(1), cantidad: 0 }]);
   });
   it("corta en el máximo de líneas de una bajada", () => {
     const muchas = Array.from({ length: MAX_LINEAS_BAJADA + 5 }, (_, i) => prenda({ varianteId: id(i + 1) }));
     expect(lineasIniciales(muchas.map((p) => ({ varianteId: p.varianteId, cantidad: 1 })), muchas)).toHaveLength(MAX_LINEAS_BAJADA);
+  });
+  it("confirmar sin escanear no baja nada: lo «por escanear» no viaja a la base ni cuenta en el resumen", () => {
+    const iniciales = lineasIniciales([{ varianteId: id(1), cantidad: 1 }], [conAtras]);
+    expect(itemsParaRpc(iniciales)).toEqual([]);
+    expect(resumenDeBajada(iniciales, [conAtras])).toEqual({ prendas: 0, modelos: 0 });
+  });
+  it("cada lectura la llena: escanear una prenda marcada la pasa de 0 a 1 y la sube arriba", () => {
+    const otra = prenda({ varianteId: id(3), almacenDisponible: 2 });
+    const iniciales = lineasIniciales(
+      [
+        { varianteId: id(1), cantidad: 1 },
+        { varianteId: id(3), cantidad: 1 },
+      ],
+      [conAtras, otra]
+    );
+    const trasLeer = sumarLectura(iniciales, id(3));
+    expect(trasLeer).toEqual([
+      { varianteId: id(3), cantidad: 1 },
+      { varianteId: id(1), cantidad: 0 },
+    ]);
+    expect(itemsParaRpc(trasLeer)).toEqual([{ variante_id: id(3), cantidad: 1 }]);
+  });
+  it("el borrador conserva lo «por escanear» junto a lo escaneado; sin nada escaneado no hay borrador que ofrecer", () => {
+    const creadoEn = "2026-09-26T15:00:00.000Z";
+    const ahora = new Date("2026-09-26T15:05:00.000Z");
+    const token = "11111111-1111-4111-8111-111111111111";
+    const conUna = JSON.stringify({ v: VERSION_BORRADOR, token, creadoEn, lineas: [{ varianteId: id(1), cantidad: 1 }, { varianteId: id(3), cantidad: 0 }] });
+    const soloPorEscanear = JSON.stringify({ v: VERSION_BORRADOR, token, creadoEn, lineas: [{ varianteId: id(3), cantidad: 0 }] });
+    const prendas = [conAtras, prenda({ varianteId: id(3) })];
+    expect(leerBorrador(conUna, ahora, prendas)?.lineas).toEqual([
+      { varianteId: id(1), cantidad: 1 },
+      { varianteId: id(3), cantidad: 0 },
+    ]);
+    expect(leerBorrador(soloPorEscanear, ahora, prendas)).toBeNull();
   });
 });
 
@@ -912,7 +946,7 @@ describe("el borrador en el navegador", () => {
     expect(leerBorrador(conMas, AHORA, PRENDAS)?.lineas).toEqual([{ varianteId: BLUSA.varianteId, cantidad: 9 }]);
   });
 
-  it("descarta líneas sin forma y la misma prenda repetida (queda la primera)", () => {
+  it("descarta líneas sin forma y la misma prenda repetida (queda la primera); una en 0 es «por escanear» y se conserva", () => {
     const sucio = JSON.stringify({
       v: VERSION_BORRADOR,
       token: TOKEN,
@@ -927,7 +961,10 @@ describe("el borrador en el navegador", () => {
         { varianteId: BLUSA.varianteId, cantidad: 4 },
       ],
     });
-    expect(leerBorrador(sucio, AHORA, PRENDAS)?.lineas).toEqual([{ varianteId: BLUSA.varianteId, cantidad: 2 }]);
+    expect(leerBorrador(sucio, AHORA, PRENDAS)?.lineas).toEqual([
+      { varianteId: BLUSA.varianteId, cantidad: 2 },
+      { varianteId: CAMISON.varianteId, cantidad: 0 },
+    ]);
   });
 
   it("el aviso para retomarlo dice cuántas prendas y a qué hora (Lima)", () => {

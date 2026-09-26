@@ -1,309 +1,388 @@
 # Pantalla — Existencias (`/inventario`)
 
-> **⚠ Desactualizado desde el 2026-09-26:** describe Existencias ANTES del PR #445 (ADR-0231: «Acción hoy», «Stock actual», Ritmo reciente, filtros Acción/Estado, sin «Stock bajo») y del PR #494 (acciones de la cabecera a la derecha, ADR-0220). La tarea #2 (decidir el destino del #445) quedó hecha: se fusionó. Rehacer con `/pantalla` antes de tomar cualquiera de sus tareas (BACKLOG, sección ADR-0231).
->
-> Modo: completo · Fecha: 2026-09-26 · Rol/sede: líder, Tienda TRU (escritorio, ~1.490 px; la operación de piso también se hace desde tablet y celular) · Datos: **real** — las consultas de producción las corrió un agente en solo lectura con la herramienta MCP (proyecto `cayla-dynamic`, schema `retail`); **no las pegó Felipe**. Repetí yo las que sostienen las conclusiones (45 filas y 5 marcas visibles; 4/41/0/0 por estado; argumentos de las 4 RPC de escritura; `fn_resumen_variantes` sin `es_prueba`; `cantidad_apartada` existe). Felipe puede confirmarlas con las consultas del apéndice, al final.
-> SHA analizado: `306a30f9` (origin/main del análisis) **más el PR #461** (`bd01a83e`, «código de etiqueta en vez de sku vacío»), presente en la rama `claude/existencias-busqueda-marca`. Al escribir este archivo `origin/main` ya es `7f95666a` y `git diff HEAD origin/main` sobre `page.tsx`, `InventarioPanel.tsx`, `inventario-v2.ts`, `filtro-busqueda-especial.ts` y `PrendaCelda.tsx` está vacío. Si esos archivos cambian después, este análisis está vencido.
-> Archivos: `apps/web/app/(app)/inventario/page.tsx` · `components/InventarioPanel.tsx` · `components/ui/PrendaCelda.tsx` · `components/ReponerPisoModal.tsx` · `AjustarInventarioModal.tsx` · `ApartarModal.tsx` · `ResolverDanadosModal.tsx` · `DisponibleTotalOverlay.tsx` · `AnalisisCoberturaOverlay.tsx` · `RecomendacionesOverlay.tsx` · `lib/inventario-v2.ts` · `lib/inventario-reglas.ts` · `lib/filtro-busqueda-especial.ts` · `lib/existencias-categorias.ts` · `lib/existencias-recomendaciones.ts` · `lib/resumen-inventario.ts` · RPC `mover_interno`, `registrar_movimiento`, `apartar_stock`, `liberar_apartado`, `listar_apartados`, `resolver_prenda_danada`, `liquidar_prenda_danada`, `fn_stock_por_sede_json`, `fn_resumen_variantes_json` · tablas `stock`, `movimientos`, `variantes`, `productos`, `marcas`, `categorias`, `sububicaciones`, `transferencia_items`, `prendas_danadas`, `apartados`
-> Otra sesión tocándola: **sí** — PR #445 «reestructura Existencias para operación de piso» (rama `claude/inventario-comportamiento-piso-almacen`, abierto el 2026-09-26, `CONFLICTING`, 24 archivos, +1.783/−491) reescribe `page.tsx`, `InventarioPanel.tsx`, `inventario-v2.ts`, `inventario-reglas.ts` y `existencias-recomendaciones.ts`. Últimos commits sobre la pantalla: `07c2ae66` (cabecera común), `ec447684` (otra sede: nada que escriba), `86d16bd4` (modal de piso), `60d5aa4d` (#440, «Retirar del piso»). El PR #464 (eliminar una marca sin productos) no toca la pantalla pero sí el ciclo de vida de la marca que ella mostraría. `docs/SESIONES-ACTIVAS.md` no trae ninguna fila vigente sobre esta ruta (las de Inventario son del 19 al 22 de septiembre).
-> **Ejecución (2026-09-26):** Felipe pidió arreglar «la búsqueda por marca». Se construyeron las tareas **#3** (motor con marca y categoría, con relevancia), **#4** (filtro «Marca», marca en la fila y en el CSV) y **#5** (estado vacío que explica), en la rama `claude/existencias-busqueda-marca` (PR aparte). Pasaron una revisión adversarial de cuatro lentes cuyos hallazgos están corregidos: la lectura de catálogo que habría fallado en producción para toda cuenta (`variantes!inner(count)` exige leer `costo`, que `authenticated` no puede), un color («dorada») que traía toda la marca «Doradas Chic», separadores de marca y categoría («/», «-»), el layout de filtros a 1440–1490 px, el foco del teclado y el orden del vacío. **Quedan sin ejecutar** la #1 (Ajustar con token), #2 (decidir el PR #445), #6 a #12, y el SQL espejo de Movimientos (`fn_movimientos_variantes` todavía no busca por marca ni categoría).
-> **Verificación:** la Estética viene de un análisis parcial del flujo; Lógica, Arquitectura, Funciones, Utilidad y Conexión las armé yo con el mapa del código, la lectura de producción y mis propias comprobaciones, sin verificador independiente. Lo que no pude comprobar va `[inferido]` o `[no verificable]`.
-> Etiquetas: `[visto]` captura · `[código archivo:línea]` · `[producción]` consulta de solo lectura · `[inferido]` · `[no verificable]`.
+> Modo: completo · Fecha: 2026-09-26 · Rol/sede: líder, Tienda Lima (base LOCAL con la siembra estándar) · Dispositivos: celular a 375 px (el ADR-0237 dice que «la mayoría usará el teléfono gran parte del día») y computadora a 1440 px · Datos: **sin SQL** (Felipe eligió seguir sin correr las consultas en producción): las cifras son de la base local y van `[local]`; lo que solo producción puede decir va `[no verificable]`.
+> SHA analizado: **`ffa5d52b`, la cabeza del PR #500** (rama `claude/existencias-screen-analysis-1f7b5e`, ADR-0237, abierto y sin fusionar), no `origin/main` (`60d7aadb`). Es a propósito: el #500 reemplaza la pantalla que hoy está en `main`, y analizar la de `main` habría vencido el mismo día (le pasó al análisis anterior con el #445). `git merge-tree --write-tree ffa5d52b origin/main` no da conflictos, pero `main` cambió `AjustarInventarioModal.tsx` (ADR-0235) después de que el #500 se ramificó: ver tarea #2. Si el #500 cambia antes de fusionarse, o si no se fusiona, este análisis está vencido.
+> Archivos: `app/(app)/inventario/page.tsx` · `components/InventarioPanel.tsx` · `ExistenciasPorPrenda.tsx` · `DetallePrendaExistencias.tsx` · `EscanerBusqueda.tsx` · `ReponerPisoModal.tsx` · `ApartarModal.tsx` · `AjustarInventarioModal.tsx` · `BajarAlPisoForm.tsx` · `lib/existencias-prendas.ts` · `lib/inventario-v2.ts` · `lib/inventario-reglas.ts` · `lib/bajada-reglas.ts` · `lib/etiquetas-precio.ts` · `lib/politica-operativa-inventario.ts` · `lib/resumen-inventario.ts` · RPC `mover_interno`, `bajar_al_piso`, `apartar_stock`, `registrar_movimiento`, `cargar_stock_inicial` (main), `listar_apartados`, `fn_stock_por_sede_json`, `fn_resumen_variantes_json`, `fn_ritmo_reciente_json` · tablas `stock`, `sububicaciones`, `variantes`, `productos`, `apartados`, `transferencias`, `transferencia_items`, `prendas_danadas`, `roles`, `rol_modulos`
+> **Actualización (misma noche):** el #500 se fusionó a `main` a las 20:30 del 2026-09-26 (merge `05939339`), antes de que este análisis terminara de escribirse: vale para `main`. Felipe ordenó la **#2** y la **#4**; las dos están hechas en la rama `claude/ajustar-carga-inicial-sin-bajada` (ver cada tarea). La #2 se hizo **al revés de lo que proponía este archivo**: ver su nota.
+> Otra sesión tocándola: **sí.** El PR #500 es de la sesión `existencias-screen-analysis-1f7b5e` (su worktree ya no está en esta Mac). Ninguna de sus tareas pendientes (cifras Por recibir/Apartadas, fila de avisos, Conteo con lista) choca con las de abajo, pero las #2, #3, #4 y #7 tocan archivos del PR: conviene hacerlas en su rama antes del merge o justo después.
+> Mapa del código: un subagente de solo lectura; yo repetí las comprobaciones que sostienen las tareas #2, #3 y #4. Etiquetas: `[visto]` recorrido en el navegador · `[código archivo:línea]` · `[local]` consulta de solo lectura a la base local · `[inferido]` · `[no verificable]`.
 
 ## 0 · Veredicto
-Es una pantalla sana por debajo (el stock guardado cuadra al 100 % con `movimientos` y las escrituras de piso llevan token) pero tiene tres problemas: **no encuentra por marca ni por categoría y, cuando no encuentra, calla**; **el semáforo marca «Stock bajo» en 41 de 45 prendas**, así que no distingue nada; y **«Ajustar» es la única escritura sin token ni transacción única**, con lo que un corte de red puede duplicar un ajuste.
-**Cumple su finalidad:** 5/10 (promedio 6.0, con tope 5: «Ajustar» puede dejar el stock mal sin dejar rastro anómalo) · **Relevancia:** 7.4/10 — Soporte
+El #500 hace lo que prometía: la lista por prenda, el detalle y la barra de varias funcionan y llevan a Bajar al piso, Mover mercadería y Etiquetas con la lista ya cargada. Pero **abre por el detalle, a un toque de cualquiera que vea Existencias, tres escrituras de stock cuyos candados están solo en la pantalla**. Además, «Ajustar» sigue sin ser todo-o-nada, y al fusionar con `main` va a fallar para quien no tiene «Bajada al piso».
+**Cumple su finalidad:** 5/10 (promedio 6.3; tope 5 por el ajuste que puede duplicarse) · **Relevancia:** 7.8/10 — Soporte (en el borde de Núcleo)
 
 ## 1 · Finalidad declarada
-"Esta pantalla existe para que la encargada de una sede sepa qué hay en piso y en almacén, qué viene en camino y qué debería reponer hoy, y pueda mover, ajustar, apartar y resolver lo dañado sin salir de ahí." Fuente: `docs/ARQUITECTURA.md` (sección «Inventario V2»), `docs/datos/generado/AVIARIO.md:17` (pájaro HALCÓN: `stock`, `movimientos`, `sububicaciones`, `prendas_danadas`), D-39 y D-42 de `docs/datos/DECISIONES-2026-09-12.md` y ADR-0208 (frescura del piso). `docs/datos/modulos/05-inventario-y-movimientos.md` **avisa que su cuerpo describe V1**: no lo cito como vigente. ¿Docs y pantalla coinciden? En lo esencial sí. Dos desajustes: `docs/ARQUITECTURA.md` (línea ~174) todavía dice que `/inventario` sale de `lib/inteligencia.ts` y `InventarioAgrupado.tsx`, que no existen desde el 2026-09-12 `[código]`; y R-48 («cada líder ve solo su sede») no se cumple aquí: el líder elige sede con `?ubicacion=` (`page.tsx:36-40`) y `fn_es_lider()` es global (8 de 25 colaboradores, `[producción]`). Manda el código y producción.
+«Existencias existe para que la tienda sepa qué tiene, dónde está (piso, almacén, en camino, dañado) y qué debe reponer hoy, y actúe sobre eso sin salir.» Fuentes: `docs/ARQUITECTURA.md` (§`/inventario`, ADR-0071 unificó piso y almacén aquí), ADR-0231 («Acción hoy»: una sola regla de piso) y ADR-0237 (el «sin salir» es el aporte del #500). `docs/datos/modulos/05-inventario-y-movimientos.md` avisa en su encabezado que describe V1: no se usó como vigente.
+**¿Docs y pantalla coinciden?** En lo esencial sí. La diferencia está en el alcance: el ADR-0237 promete que «cada acceso solo [aparece] si el rol ve ese módulo», y en el detalle de la prenda eso no se cumple (tarea #3).
 
 ## 2 · Objeción
-1. **«Ajustar inventario» es la única escritura de esta pantalla sin token ni transacción única.** `AjustarInventarioModal.tsx:176-206` hace un `await supabase.rpc("registrar_movimiento")` **por cada variante con cambio**, en fila. `registrar_movimiento` no tiene `p_token` (sus argumentos, `[producción]`: `p_variante_id, p_ubicacion_id, p_tipo, p_cantidad, p_motivo, p_nota, p_sububicacion_id`), mientras que `mover_interno`, `apartar_stock` y `bajar_al_piso` sí lo llevan y `bajar_al_piso` ya recibe `p_items jsonb`. Dos daños posibles: (a) si la red se corta **después** de que la base guardó y **antes** de que llegue la respuesta, el modal muestra error, la líder reintenta y el ajuste entra dos veces; (b) en un ajuste de varias tallas, si falla la 3.ª, la 1.ª y la 2.ª ya quedaron aplicadas y el modal solo muestra el error de la 3.ª (`:186-202`). El stock sigue «consistente» (cada movimiento es válido y `recalcular_stock` cuadra), por eso ni la conciliación ni nada lo avisa hasta que alguien cuente. Probabilidad baja (ajusta solo el líder o quien tenga Existencias/Conteos/Traslados, candado D-13; en producción hay 15 ajustes de conteo físico), costo silencioso. Trade-off: arreglarlo es una función nueva y tocar el modal; no arreglarlo es aceptar que la única puerta de corrección manual del stock es la que menos se protege.
-2. **El arreglo de 5 líneas para «la marca» no alcanza.** Lo que Felipe vio [visto: captura 4] es el comportamiento diseñado: el índice solo tiene nombre, código, códigos de barras, color y talla (`InventarioPanel.tsx:296-299`, `filtro-busqueda-especial.ts`), y `BACKLOG.md:37` lo registraba como «Sin tocar, por decisión de Felipe» (esa línea hoy queda obsoleta). Pero **indexar la marca no devolvería lo que él espera**: `[producción]` hoy TRU tiene 5 productos y 5 marcas visibles (Artemisa, Cayla 2, Doradas Chic, Miramhe, Wayi) y «CAYLA» daría 8 filas de Top Aurora (marca «Cayla 2»), no los dos pantalones de marca CAYLA. Esos pantalones tienen **41 variantes y 0 filas de stock en toda la red**, y Existencias solo lista lo que tiene una fila en `stock` (`inventario-v2.ts:85-111`, `:161`): **69 de 126 variantes activas (55 %) y 6 de 11 productos reales no existen en esta pantalla**, ni siquiera como «Sin stock». Sin un vacío que lo diga, Felipe escribirá «CAYLA», verá Top Aurora, y dirá «sigue sin ser inteligente». La corrección tiene tres piezas (marca en el buscador, filtro «Marca», vacío que explica) y la tercera es la que contesta lo que él vio. Y la premisa «hoy hay una sola marca» es falsa: son 5 en TRU y 80 en la tabla, 8 con producto.
-3. **El semáforo ya no informa: 41 de 45 prendas están en «Stock bajo» (rojo), 4 en «Sin stock», 0 en «Reponer piso», 0 en «Normal».** `[producción]` con la misma regla de `calcularEstado` (`inventario-reglas.ts:54-59`: almacén ≤ 10 ⇒ «Stock bajo»). Efectos: cualquier página de 15 filas trae al menos 11 chips rojos (contando el peor caso de 4 «Sin stock» en esa página) más los 2 rojos de la cabecera, contra `MAX_ROJO_POR_PANTALLA = 2` (`packages/shared/src/design-tokens.ts:73`); y la acción de esa etiqueta es «Pedir traslado de otra sede» (`inventario-reglas.ts:207`) cuando AQP, LIM y el Taller tienen **0 filas de stock** `[producción]`: no hay de dónde traer. El umbral de 10 lo decidió Felipe el 2026-09-17 (comentario `inventario-reglas.ts:19-35`; ninguna D-nn escrita lo cubre) y con lotes de 2 a 14 unidades por variante deja todo en alarma. El PR #445 lo reemplaza por «Acción/Estado» pero no está validado en navegador.
+**Hay dos puertas para la misma escritura de stock, y solo una tiene candado.**
+- Bajar prendas del almacén al piso:
+  - El botón «Bajar al piso» de la cabecera exige el módulo «Bajada al piso» `[código page.tsx:163]`, y la base también lo exige `[código 20260926000200_bajada_piso_funciones.sql:138]`.
+  - «Reponer al piso» y «Retirar del piso» del detalle hacen el mismo movimiento con `mover_interno`, y ahí no pregunta nadie: ni la pantalla (`puedeReponer = separaConSububicaciones && enSedeActiva`) `[código InventarioPanel.tsx:471-472]` ni la base `[código 20260926200100_mover_interno_con_marca.sql, sin fn_ve_modulo]`.
+- Apartar: con `apartar_stock` pasa lo mismo `[código ApartarModal.tsx:66; 20260920160000_apartar_stock.sql:317]`.
+- En la base local, el rol **integrante** ve Existencias y NO tiene «Bajada al piso» ni «Apartados» `[local: roles × rol_modulos]`. O sea: el sistema dice que ese rol no baja ni aparta, y la pantalla le deja hacer las dos cosas.
+- El hueco ya existía antes del #500, en el menú «⋯» de cada fila (tarea #10 del análisis anterior). El #500 lo pone al frente: es el primer botón del detalle.
 
-Descartado tras verificar (enseña algo): «la búsqueda es lenta» no es problema (1,4 ms para 79 filas en base; filtrar en memoria 4.000 filas × 4 términos ≈ 5–10 ms `[inferido]`); «Conteo compara con el `sku` vacío y ofrece “Dar de alta” una prenda que existe» venía en el paquete de entrada, pero ya lo corrigió `cba4db7a` en esta misma rama (`conteo/page.tsx:69-71` pasa por `codigosDeConteo`).
+**Trade-off.** Cerrar la puerta de atrás obliga a decidir qué módulo es dueño de «mover piso ↔ almacén». Mientras nadie lo decida, las dos puertas seguirán diciendo cosas distintas (tarea #3).
+
+Segunda objeción, menos visible:
+- **La bajada que llega desde Existencias viene armada con 1 unidad por talla y se confirma sin escanear nada** `[visto: 4 tallas de 2 prendas llegaron a «Bajar prendas al piso» con 1 c/u y «Confirmar bajada · 4 prendas» activo]`.
+- La pantalla de bajada está pensada para lo contrario: «Cada lectura suma 1» `[código BajarAlPisoForm.tsx:561]`. Lo que queda registrado es lo que se escaneó al colgar.
+- Precargada, registra lo que el sistema sugirió, no lo que la vendedora colgó.
+- Si las dos cosas no coinciden, el piso del sistema deja de ser el piso real. La venta descuenta del piso, así que el error aparece después en la caja (tarea #4).
 
 ## 3 · Lo que está bien y no se toca
-- **El stock guardado cuadra con el libro:** derivado de `movimientos` con la lógica de `recalcular_stock` da 59 filas y 363 uds, igual que `stock`; 0 negativos, 0 apartadas mayores que la cantidad, 0 huérfanas, 0 uds en variantes inactivas. `[producción]`
-- **Candados de esquema en `stock`:** `cantidad >= 0`, `cantidad_apartada <= cantidad`, unicidad `(variante, ubicación, sububicación)` y FK compuesta que obliga a que la sububicación sea de esa ubicación. `[producción]`
-- **Escrituras solo por RPC:** `stock` y `movimientos` son solo SELECT para `authenticated`; `recalcular_stock` y `fn_aplicar_movimiento` no son ejecutables por ningún rol de la app; `fn_aplicar_movimiento` toma `for update` y en traslados bloquea origen y destino en orden fijo. `[producción]`
-- **Idempotencia bien hecha donde existe:** `mover_interno`, `apartar_stock` y `bajar_al_piso` con `p_token` y `pg_advisory_xact_lock`; `ReponerPisoModal.tsx:120-129` lo usa. Es el patrón que #1 copia. `[producción]` `[código]`
-- **Lectura barata y tolerante:** `EXPLAIN (ANALYZE)` 1,4 ms para 79 filas por `stock_ubicacion_idx`; si falla la cobertura, la tabla muestra «N/D» y un aviso ámbar y el stock no se cae (`resumen-inventario.ts:83-92`, `InventarioPanel.tsx:650`); si falla la lectura de `es_prueba`, se muestran todos (`inventario-v2.ts:269`). `[producción]` `[código]`
-- **Datos de prueba fuera por defecto (D-54, ADR-0159):** Producto de Prueba (`POL-0004`, 160 uds) ya está `es_prueba = true` y la tabla y la tarjeta dan 203 = 158 piso + 45 almacén. `[producción]` `[visto captura 4]`
-- **El motor de búsqueda actual está bien pensado:** ignora tildes y mayúsculas, entiende plural, género de color, talla exacta y varias palabras en cualquier orden, y avisa «Se usa lo que escribiste» cuando el texto pisa un filtro (`filtro-busqueda-especial.ts`, `InventarioPanel.tsx:569`). Tiene 110 casos compartidos con su espejo SQL (94 + 16 en `filtro-busqueda-especial.casos.json`). `[código]` No se reemplaza: se le agregan dos campos.
-- **Código de etiqueta en la celda (#461):** `codigoDeEtiqueta` (`prenda-reglas.ts:25-27`) evita el hueco de `variantes.sku` (NULL en 128 de 130, ADR-0058). `[código inventario-v2.ts:145]` `[producción]`
-- **RLS activa** en `stock`, `variantes`, `productos`, `marcas`, `categorias` y compañía; `variantes.costo` no es legible para `authenticated`. `[producción]`
-- **La píldora dice la verdad:** «Por colgar · 9 tallas · 20 uds» cuenta toda la sede, no lo filtrado, y coincide con la consulta (9 variantes con piso 0 y almacén > 0). `[visto captura 4]` `[producción]`
+- **Una sola regla decide «reponer»**:
+  - La curva, el borde ámbar, «Reponer N tallas», la tarjeta y el filtro leen el mismo `accionHoy` de ADR-0231 `[código existencias-prendas.ts:35-45]`.
+  - El #500 no inventó un umbral propio.
+- **Llevar con la lista cargada, sin hacer el trabajo aquí**:
+  - La barra lleva a las pantallas que ya validan y escriben con candado: `bajar_al_piso` es todo-o-nada, con token y `fn_bloquear_en_orden` `[código bajada_piso_funciones.sql:109-235]`.
+  - Existencias no duplica esa lógica: patrón correcto (Carmack).
+- **`mover_interno` y `apartar_stock` son atómicos**:
+  - Llevan token de reintento y bloqueo de fila `[código mover_interno_con_marca.sql:88-103; apartar_stock.sql:101-200]`.
+  - Lo que les falta es el candado de módulo, no la integridad.
+- **La pistola y la cámara abren solo el código exacto, y solo entre las prendas de esta sede** `[código existencias-prendas.ts:161-165]`: un pedazo de código nunca abre otra talla por parecerse.
+- **El detalle es claro para alguien sin contexto** `[visto]`:
+  - Cada acción es verbo + qué pasa («Llega a «Mover mercadería» con la prenda ya cargada; ahí eliges destino y cantidad»).
+  - Tocar una talla muestra solo lo que se puede hacer con ella: sin almacén no aparece «Reponer»; sin piso no aparece «Retirar».
+- **Paleta**: tokens de `globals.css` y ningún rojo de marca en superficie, salvo el punto del chip «Dañado» `[visto + medición de colores calculados]`.
+- **Borrador de bajada**: si hay una bajada a medias en el aparato, gana el borrador `[código BajarAlPisoForm.tsx:176-184]`. Lo ya escaneado no se pisa.
 
 ## 4 · Las seis dimensiones
 | Dimensión | Puntaje | Hallazgo principal | Evidencia |
 |---|---|---|---|
-| Estética | 5.5 | Vacía cumple los 2 rojos; con los datos reales de TRU el semáforo satura, la tabla pide ~1.100 px de columnas y esconde las acciones, y la herramienta que más se usa (buscar y filtrar) queda al fondo, sin Marca y sin diagnóstico | `[visto capturas 3 y 4]` `[código InventarioPanel.tsx:51-55,411-413]` `[producción]` |
-| Lógica de negocio | 6 | Stock íntegro; pero el universo (55 % del catálogo invisible), el umbral (91 % en alarma) y dos reglas de «cuánto hay» no cuadran | `[producción]` `[código inventario-reglas.ts:54-59]` |
-| Arquitectura | 6.5 | Base sólida y lectura barata; «Ajustar» sin token, 8 lecturas + 2 RPC por carga, cifras que salen de otro universo | `[producción]` `[código AjustarInventarioModal.tsx:176-206, page.tsx:44-62]` |
-| Funciones | 6.5 | Reponer, retirar, ajustar, apartar, dañadas y CSV funcionan; faltan marca y un vacío útil; «recarga para ver lo último» sin botón | `[código]` `[visto captura 4]` |
-| Utilidad | 5 | Quien escribe la marca no encuentra nada y no sabe por qué; quien mira la tabla ve todo en rojo | `[visto captura 4]` `[producción]` |
-| Conexión con el ERP | 6.5 | Bien conectada a Vender, Traslados, Conteo y Producción; cinco buscadores distintos en el ERP y cifras de Existencias que salen de un universo distinto al de su tabla | `[código]` `[producción]` |
+| Estética | 7 | Coherente con CAYLA, pero cada fila lleva un botón negro «Reponer N tallas» (11 de 11 en Lima local): el primario deja de jerarquizar | `[visto]` |
+| Lógica de negocio | 5 | La bajada precargada rompe «lo registrado es lo que se colgó»; «Etiquetas» imprime todos los colores; apartados en filas en la cabecera y en unidades en el panel | `[visto]` `[código]` |
+| Arquitectura | 5 | Candados de módulo solo en la pantalla; «Ajustar» sin token ni transacción; una lectura secundaria tumba la pantalla entera | `[código]` `[local]` |
+| Funciones | 7 | Todo lo visible está cableado; dos promesas del ADR no se cumplen (aviso de más de 100, accesos por módulo) | `[visto]` `[código]` |
+| Utilidad | 6 | En el celular la primera prenda aparece a unas 2,5 pantallas de scroll; la notación «0·6» se explica con una leyenda que está abajo del todo | `[visto]` |
+| Conexión con el ERP | 8 | La pantalla que mejor conecta Inventario hoy; faltan «pedir traslado» y «contar esta prenda» | `[visto]` `[código]` |
 
-Cumple su finalidad = (5.5 + 6 + 6.5 + 6.5 + 5 + 6.5) / 6 = **6.0 → tope 5** por el defecto de la objeción 1 (verificado en producción: `registrar_movimiento` sin `p_token`; verificado en el código: una RPC por variante).
+### Estética — 7
+- (a) Coherencia con CAYLA:
+  - Crema, papel, tinta, hueso y ámbar para «por colgar» `[visto]`.
+  - La medición de colores calculados en `/inventario` no encontró `--color-rojo` ni `--color-rojo-profundo` en superficie, salvo el punto del chip «Dañado · 1» (dentro del límite de 2).
+  - Las tarjetas son `TarjetaPrioridad`, no `TarjetaCifra` `[código InventarioPanel.tsx:171]`. ADR-0169 pide `TarjetaCifra`; es una diferencia que ya venía del #445.
+- (b) Jerarquía:
+  - En Lima local, las 11 prendas llevan el botón negro «Reponer N tallas» `[visto]`: es el mismo peso visual que «+ Nuevo traslado», el primario de la cabecera.
+  - Cuando todo es urgente, nada lo es.
+- (c) Heurísticas:
+  - La curva `0·6` necesita leyenda. Existe, pero en computadora queda al pie de la tabla y en el celular no se ve cerca de la curva `[visto]`.
+  - Los objetivos táctiles de la curva miden ~38 px a 375 px `[visto]`: aceptable, bajo los 44 px recomendados.
 
-### Estética — 5.5
-- `[visto captura 4]` Alineada con las hermanas: crema, títulos serif, `CabeceraPantalla` (sobretítulo rojo → título → bajada taupe), tarjetas `card-cayla`. Con la tabla vacía cumple el máximo: sus 2 rojos propios son el sobretítulo y «VER RECOMENDACIONES (25)». Cero hex sueltos en `InventarioPanel.tsx` y `PrendaCelda.tsx`. `[código]`
-- `[producción]` + `[código InventarioPanel.tsx:51-55]` Con la tabla real el rojo se rompe: `stock_bajo` pinta un chip **rojo** y hoy son 41 de 45 prendas (objeción 3). Hay además 4 chips ámbar «Por colgar» por página y el punto rojo de la leyenda (`:57-62`, `:899-909`).
-- `[visto captura 3]` `[código :411-413]` Las 9 columnas suman ≈ 1.100 px solo en anchos mínimos (13,5 + 6,5 + 4,5 + 6 + 7 + 11 + 5 + 9 + 6 rem ≈ 69 rem = ~1.100 px), más márgenes y separaciones; el propio comentario admite que «se desplaza». En la captura la cabecera se corta en «En l…» y los botones Apartar, Ajustar y «⋯» quedan fuera de vista, con «Reponer» apilado debajo de los chips.
-- `[código]` Existencias conserva su copia local `TarjetaPrioridad` (`InventarioPanel.tsx:131-189`) cuando Conteo, Producción y Finanzas ya usan `ui/TarjetaCifra`, cuyo encabezado documenta que se extrajo justamente para no repetir copias (regla de orden de pantalla, ADR-0169).
-- `[visto captura 4]` El campo «CAYLA» sale subrayado por el corrector del navegador: el input no lleva `spellCheck={false}` (otros cinco componentes del repo sí lo hacen). Contraste medido en el navegador: `[no verificable]` desde aquí.
+### Lógica de negocio — 5
+- **Bajada precargada**:
+  - `urlBajarAlPiso` arma 1 unidad por talla `[código existencias-prendas.ts:119-137]`.
+  - `lineasIniciales` la deja lista para confirmar `[código bajada-reglas.ts:213-224]`.
+  - ADR-0231 dice que «CAYLA no sugiere cuánto reponer» y ADR-0237 lo cumple a medias: no sugiere una cantidad, pero precarga una (1) que se confirma sin tocar.
+  - Ninguna decisión escrita (D-nn) cubre si la bajada debe ser escaneada. El diseño de `BajarAlPisoForm` («cada lectura suma 1») lo da por hecho.
+- **Etiquetas del detalle**:
+  - El detalle dice «Todas sus tallas en esta tienda», pero `urlEtiquetas` manda `?producto=` cuando las tallas son de un solo producto `[código existencias-prendas.ts:147-151]`.
+  - Resultado: desde la Casaca Ximena Azul marino se imprimen también las etiquetas de la Negra.
+  - Además `stockEnTienda` cuenta lo físico (`cantidad > 0`, incluye apartado y cuarentena) `[código etiquetas-precio.ts:141]`.
+- **Apartados**:
+  - La cabecera muestra cuántos apartados hay abiertos (`apartados.length`) `[código page.tsx:192]`.
+  - El panel muestra unidades apartadas (`stock.cantidad_apartada`) `[código InventarioPanel.tsx:652-660]`.
+  - Son dos números para «apartados», uno junto al otro.
+- **Umbral 4** (ADR-0231):
+  - En Lima local, 33 de 33 tallas piden reponer `[local Q7]`.
+  - En producción no se midió `[no verificable]`. ADR-0071 lo había subido a 7 porque «con 4 el aviso llegaba tarde».
+  - Con la siembra local, la señal no distingue nada. Es la misma enfermedad que el «Stock bajo en 41 de 45» del análisis anterior, con otra cara.
+- Referente (de memoria, no verificado): Shopify POS y Lightspeed muestran el disponible por talla en una grilla talla × ubicación y dejan «transferir» desde la misma ficha. El #500 ya se parece a eso. Lo que no tienen es la separación piso/almacén dentro de la tienda, que en CAYLA es real y es la razón de esta pantalla.
 
-### Lógica de negocio — 6
-- D-39 («las alertas cuentan piso y almacén y avisan cuántas hay guardadas»): se cumple, la celda «Piso · Almacén» y el chip «Por colgar · N uds» lo dicen. D-42 («la mercadería nueva entra al almacén y de ahí se baja al piso»): coherente con la píldora «Por colgar».
-- **Universo:** la lista nace de filas de `stock` (`inventario-v2.ts:85-111`). Una prenda del catálogo que la sede nunca recibió no existe aquí: 69 de 126 variantes activas. Ninguna decisión escrita dice si «no recibida» debe verse. `[producción]`
-- **Umbral:** ninguna D-nn cubre el «≤ 10 en almacén»; vive en un comentario del 2026-09-17. Con 41 de 45 en alarma, la regla no discrimina.
-- **Dos reglas de «cuánto hay»:** `sumarCantidades` (`inventario-reglas.ts:389-405`) saca la cuarentena del total; `fn_stock_por_sede` (la columna «En la red», Vender, Cambios) la suma y tampoco filtra `es_prueba` ni variante inactiva. Hoy no muerde (cuarentena = 0). `[producción]`
-- R-48 vs `?ubicacion=`: ver sección 1. `[producción]`
+### Arquitectura — 5
+- **Candados**:
+  - Ver Objeción. `fn_puede_operar_ubicacion` sí protege la sede. Lo que falta es el módulo.
+- **Transacción de «Ajustar»**:
+  - El modal hace una llamada `registrar_movimiento` por línea, sin token `[código AjustarInventarioModal.tsx:176-206]`.
+  - Si la red se corta a mitad, quedan líneas aplicadas y otras no, y un reintento duplica las aplicadas.
+  - Es la tarea #1 del análisis anterior, todavía abierta. El #500 la pone a un toque en el detalle.
+- **Tras fusionar con `main`**:
+  - `cargar_stock_inicial` (ADR-0235) llama a `bajar_al_piso` cuando la carga va al piso `[código origin/main:20260927153100:63]`.
+  - `bajar_al_piso` exige `fn_ve_modulo('bajada_piso')` `[código bajada_piso_funciones.sql:138]`.
+  - `cargar_stock_inicial` se deja pasar con `fn_puede_ajustar_inventario()`, que acepta a quien ve Existencias, Conteos o Traslados.
+  - Resultado: un integrante que puede ajustar y no tiene «Bajada al piso» recibe un error al cargar al piso una prenda que la tienda nunca tuvo `[inferido del código; en local el rol integrante está en ese caso]`.
+- **Caída parcial**:
+  - Si falla `fn_resumen_variantes_json`, cae toda la pantalla, porque usa `exigir` `[código resumen-inventario.ts:44]`, aunque solo alimenta el «% vs hace 7 días» de una tarjeta.
+  - Catálogo, ritmo y `es_prueba` sí se degradan con gracia.
+  - Frase que falta escribir: «si el resumen no responde, la tarjeta dice "sin comparación" y el resto de la pantalla sigue».
+- **Volumen**:
+  - `transferencia_items` se lee sin paginar `[código inventario-v2.ts:257]`: PostgREST corta en 1.000 filas sin avisar.
+  - Con 3 tiendas y 1 taller, a ~40 ítems por traslado y ~5 traslados por semana, son unas 10.000 filas por año `[inferido]`. Pasa el tope en el primer trimestre.
+  - Hoy filtra por estado, así que el riesgo real depende de cuántos ítems haya «en tránsito» a la vez `[no verificable sin SQL]`.
+- **Concurrencia**: dos vendedoras reponen la misma talla en el mismo segundo. `mover_interno` bloquea la fila y la segunda falla con «stock insuficiente» si ya no queda. Bien. No se puede apartar la última unidad dos veces (bloqueo en `fn_aplicar_movimiento`). Bien.
 
-### Arquitectura — 6.5
-- **Cadena:** `page.tsx` → `getExistencias` (`inventario-v2.ts:235`, 4 lecturas en paralelo) → `getStockPorUbicacion` (`leerTodas`, páginas de 1.000) → RLS `stock_select` (`fn_es_lider() or ubicacion_id = fn_ubicacion_actual_persona()`). La página hace 8 lecturas y 2 llamadas a `fn_resumen_variantes_json` por carga (`page.tsx:44-62`). `[código]` `[producción]`
-- **Estados imposibles:** los cierra el esquema (sección 3). El único hueco de esta pantalla es de operación, no de esquema: un ajuste sin token (objeción 1).
-- **Transacción:** `mover_interno`, `apartar_stock` y `bajar_al_piso` son todo-o-nada con token. `registrar_movimiento` es todo-o-nada **por variante**; el modal lo repite N veces. La unidad debería ser el ajuste completo (Jim Gray).
-- **Concurrencia:** dos sedes o dos líderes sobre la misma fila se serializan con `for update` en `fn_aplicar_movimiento`. Dos pestañas con el mismo ajuste y sin token: dos movimientos. `[producción]` `[inferido]`
-- **Caída externa:** no toca API externa. Se degrada así: Supabase caído → `app/(app)/error.tsx`, sin pérdida de datos porque la pantalla lee; cobertura caída → «N/D» y aviso; `es_prueba` ilegible → se ven todos. Un guardado cortado a medio camino: seguro en Reponer/Apartar (token), **no seguro en Ajustar**.
-- **Volumen (números):** hoy 45 variantes visibles, 79 filas de `stock`, 655 B por fila con el `select` de la pantalla = 51,8 KB. A 3 años, con el supuesto de 300 modelos × 5 tallas × 4 colores = 6.000 variantes y 1,39 filas de stock por variante: 8.340 filas por tienda × 655 B ≈ 5,5 MB por carga en 9 páginas de 1.000 (3 rondas), más `fn_stock_por_sede_json` ≈ 24.000 filas × 126 B ≈ 3 MB en una sola fila jsonb (`[inferido]`, cuentas del agente). El límite es la descarga (incómoda hacia ~6.000 variantes, sobre todo en celular), no la base ni el filtro en memoria. Con 3.000 variantes (la densidad actual) serían 2,7 + 1,5 MB.
-- **Duplicación temporal:** `getStockPorUbicacion` trae dos copias del mismo `select` (`inventario-v2.ts:85-111` y `:116-134`) por un reintento «TEMPORAL» sin `cantidad_apartada`; la columna ya existe en producción (`information_schema`), así que el reintento es código muerto. `[código]` `[producción]`
-- **Seguridad:** `mover_interno` y `apartar_stock` (SECURITY DEFINER) validan solo `fn_puede_operar_ubicacion` y no llaman a `fn_ve_modulo`; `bajar_al_piso` sí, y `registrar_movimiento` lo hace vía `fn_puede_ajustar_inventario()`. Regla de ADR-0161 aplicada a medias. `[producción]`
-- **Datos personales:** la pantalla no muestra ninguno; `apartar_stock` recibe nombre y contacto de la clienta (`p_clienta_nombre`, `p_clienta_contacto`) y los guarda en `apartados` (0 filas hoy). `[producción]`
+### Funciones — 7
+- **Existen y funcionan** `[visto]`:
+  - lista por prenda con curva;
+  - detalle con talla elegida → «Reponer al piso» abre el modal de siempre (comprobado con un clic directo);
+  - barra de varias → «Bajar al piso» llega con 4 líneas;
+  - accesos de la cabecera;
+  - vista «Por talla».
+- **Fantasmas o a medias**:
+  - «Reponer N tallas» abre el detalle en la primera talla por colgar **o** que pide reponer `[código ExistenciasPorPrenda.tsx:158]`. Si esa talla no tiene almacén, el detalle no muestra «Reponer».
+  - Con más de 100 tallas marcadas, los botones de la barra desaparecen sin aviso, aunque el comentario dice «la barra avisa» `[código existencias-prendas.ts:130-131]`.
+- **Faltan**:
+  - «Pedir traslado» desde «Dónde más hay» (se muestra dónde hay, sin botón; decisión abierta de ADR-0231/0237).
+  - «Contar esta prenda» (Conteo no acepta lista).
+- **Sobran**: el chip «Por colgar · 28 tallas · 164 uds» junto a la tarjeta «Reponer a piso hoy · 33 variantes» `[visto]`. Son dos conteos vecinos para casi lo mismo; una persona sin contexto no sabe cuál manda.
 
-### Funciones — 6.5
-- **Existen y funcionan:** buscar, filtrar por Categoría/Talla/Color/Estado, píldora «Por colgar», Reponer y Retirar del piso (`mover_interno`), Ajustar, Apartar/Liberar, Dañadas (Se botó/Donada/Liquidada), ver historial del producto, exportar CSV, «Bajar al piso», «+ Nuevo traslado», «Dónde más hay», cobertura y recomendaciones. `[código]`
-- **Fantasma o a medias:** «Vista cargada a las 01:26 — recarga para ver lo último» pide una acción que la pantalla no ofrece (`page.tsx:117`, es un párrafo). La tarjeta «Reponer a piso hoy · 0» es un botón que, con 0, deja la tabla vacía y manda a mirar «Por colgar» (`InventarioPanel.tsx:443-462`; `[visto captura 4]`).
-- **Faltan:** buscar y filtrar por Marca y por Categoría escrita; un vacío que explique; distinguir «no existe» de «esta sede no lo ha recibido»; columna Marca en el CSV.
-- **Sobran:** el reintento sin `cantidad_apartada` (código muerto); el texto estático «Enfócate en tener los productos clave en piso…» (`:536`) no es un dato. Nada más que borrar.
+### Utilidad (persona sin contexto) — 6
+Escenario: una vendedora nueva en Lima, sábado 4 p. m., con el celular. Una clienta pregunta si hay la Casaca Ximena azul en M.
+1. Abre Existencias. Ve la cabecera con 5 botones apilados, «Prioridades de hoy» y 4 tarjetas, una debajo de otra `[visto a 375 px]`. **La primera prenda está a unas 2,5 pantallas de scroll.**
+2. Opción rápida: «Escanear prenda» está fijo abajo. Si tiene una etiqueta en la mano, bien. Si solo tiene el nombre, tiene que bajar hasta el buscador.
+3. En el buscador escribe «ximena». Aparecen dos filas con curvas `0·6`. **¿Qué es «0·6»?** La leyenda está al pie de la lista. Duda.
+4. Toca la fila → el detalle dice «Libre en piso 0 · almacén 18». Toca M → «Talla M · Piso 0 · Almacén 6». Entiende: hay, pero está en el almacén. Bien.
+5. Toca «Reponer al piso» → modal, confirma. Si su rol no tiene «Bajada al piso», el sistema la deja igual (Objeción). Ella no se equivoca: el sistema se contradice.
 
-### Utilidad (persona sin contexto) — 5
-Escenario: una colaboradora nueva un sábado en hora pico; una clienta pregunta si hay algo de «Cayla».
-1. Escribe «CAYLA» en «Buscar». Sale «Ningún producto coincide con la búsqueda.» y nada más. ¿No hay? ¿Escribió mal? ¿Es de otra sede? Duda. `[visto captura 4]`
-2. Abre los filtros para buscar por marca: no hay Marca. Prueba con Categoría y no sabe cuál. `[visto captura 4]`
-3. Quita el texto y ve la tabla: casi todo con «Stock bajo» en rojo. No sabe qué es urgente. `[producción]`
-4. En una pantalla de 1.280 px las acciones de la fila no están a la vista. `[visto captura 3]` `[código]`
-El fallo es del diseño, no de la capacitación: el sistema calla justo cuando debería explicar.
+Escenario 2: una líder en TRU mira AQP (`?ubicacion=`) y toca «Imprimir etiquetas» en el detalle. Imprime las de **TRU**, la sede activa, no las de AQP, que es la que está mirando `[código DetallePrendaExistencias.tsx:107,212; etiquetas-de-precio/page.tsx:35-39]`. «Ver historial» también muestra la sede activa.
 
-### Conexión con el ERP — 6.5
-Ver sección 6. Bien conectada aguas abajo; el problema es de coherencia: la misma prenda se busca de cinco formas distintas en el ERP y las cifras de arriba (Disponible total, recomendaciones) salen de un universo distinto al de la tabla.
+### Conexión con el ERP — 8
+Ver sección 6. Es la pantalla que más conecta el módulo de Inventario hoy.
 
 ## 5 · Relevancia
 | Criterio | Peso | Puntaje | Por qué (una línea) |
 |---|---|---|---|
-| Gestión (directo + indirecto) | ×2 | 8 | Aquí la encargada decide qué reponer y el líder qué pedir a otra sede; sus cifras alimentan traslados, recomendaciones y Producción |
-| Dinero y stock que toca | ×1 | 8 | Escribe `movimientos` (reponer, ajustar, apartar, dañadas, liquidar) sobre el stock que la clienta compra |
-| Frecuencia y personas que la usan | ×1 | 7 | Uso diario de cada sede, pero hoy solo TRU tiene stock (79 filas, AQP/LIM/Taller en 0) y 17 colaboradores no líderes |
-| Qué se detiene si falla | ×1 | 6 | Vender sigue por la caja (lee el stock por su cuenta); se detienen reposición, ajuste y apartar |
+| Gestión (directo + indirecto) | ×2 | 8 | Decide qué colgar hoy y dónde está cada talla; indirecto: la separación piso/almacén que la caja usa al vender sale de lo que aquí se mueve |
+| Dinero y stock que toca | ×1 | 8 | Mueve stock (reponer, retirar), lo reserva (apartar) y lo corrige (ajustar) |
+| Frecuencia y personas que la usan | ×1 | 9 | Todas las vendedoras, todos los días, sobre todo en el teléfono (ADR-0237) |
+| Qué se detiene si falla | ×1 | 6 | Vender sigue funcionando; se detiene reponer y apartar desde el piso (Bajar al piso tiene su propia pantalla) |
 
-Relevancia = (2·8 + 8 + 7 + 6) / 5 = **7.4** → **Soporte**.
-Tope de 5 en «cumple su finalidad»: **aplicado**, por la objeción 1.
+Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcleo.
 
 ## 6 · Conexión con el ERP
-- **Aguas arriba:** `stock` es un snapshot derivado de `movimientos` (`fn_aplicar_movimiento`, `recalcular_stock`); lo alimentan Vender (25 salidas por venta), Compras/recepciones (3 entradas de recepción), traslados, conteos (15 ajustes de conteo físico) y la carga inicial (12 entradas, 160 uds). El catálogo (`productos`, `variantes`, `marcas`, `categorias`, `producto_fotos`, `codigos_barras`) le da el nombre; «en camino» sale de `transferencia_items`. `[producción]`
-- **Aguas abajo:** `getStockPorUbicacion` la **comparten** Vender, Cambios y Traslados (`/inventario/mover`, `/inventario/bajar`): tocar su `select` toca la caja. `fn_resumen_variantes` alimenta Análisis, la cobertura, el ritmo de 7 días, «Disponible total» y «Ver recomendaciones»; `planDeReposicion` lo reutiliza Producción. Conteo y Movimientos leen y escriben el mismo libro.
-- **Pájaro dueño y vecinos:** HALCÓN (`AVIARIO.md:17`); vecinos LORO (catálogo y vocabulario: marcas, categorías), Vender (caja), Compras y Producción.
-- **Externos, y qué pasa si caen:** ninguno directo (ni SUNAT ni pasarela). Se degrada así: Supabase caído → `error.tsx`, no se pierde ningún dato porque la pantalla lee; los guardados de piso son idempotentes; el ajuste, no (tarea #1).
+- **Aguas arriba:**
+  - `stock` (snapshot derivado de `movimientos`, principio 4);
+  - `fn_stock_por_sede_json` («Dónde más hay»);
+  - `transferencia_items` («En camino»);
+  - `prendas_danadas`;
+  - `listar_apartados`;
+  - el ritmo de `fn_ritmo_reciente_json`;
+  - el catálogo (`productos`, `variantes`, `marcas`).
+- **Aguas abajo:**
+  - Directo, a través de sus modales: `mover_interno`, `apartar_stock` y `registrar_movimiento`.
+  - A través de las pantallas vecinas: `/inventario/bajar` (`bajar_al_piso`), `/inventario/mover` (traslados) y `/etiquetas-de-precio`.
+  - Vender descuenta del `piso_venta`: todo lo que desincronice piso y almacén aquí se ve después en la caja.
+- **Pájaro dueño y vecinos:** HALCÓN (inventario y movimientos). Vecinos: Traslados, Conteo, Apartados (ventas), Etiquetas (catálogo).
+- **Externos, y qué pasa si caen:** ninguno directo; SUNAT no interviene. Si cae Supabase, no hay pantalla: se degrada a «no se puede ver ni mover». No se pierde un movimiento a medias, porque las escrituras son atómicas, salvo «Ajustar» (tarea #1).
 
 ## 7 · Las 12 tareas, por importancia
 
 ### #1 · Corregir — «Ajustar inventario»: un solo envío, con token, todo-o-nada
-- **Dónde:** `AjustarInventarioModal.tsx:176-206` (bucle de `registrar_movimiento`, una llamada por variante, sin token); `retail.registrar_movimiento(p_variante_id, p_ubicacion_id, p_tipo, p_cantidad, p_motivo, p_nota, p_sububicacion_id)` sin `p_token` `[producción]`. Diseño: función nueva `retail.ajustar_inventario(p_ubicacion_id, p_items jsonb, p_motivo, p_nota, p_token)` copiada del patrón de `bajar_al_piso(p_ubicacion_id, p_items jsonb, p_token)` y de la tabla de intentos de `20260926200000_mover_interno_intentos_tabla.sql`: exige `fn_puede_ajustar_inventario()`, firma con `fn_actor_persona_id(true)` y recorre `registrar_movimiento` **dentro de la misma transacción**. El modal manda un solo `rpc` con un token que nace al abrir y se conserva al reintentar (`useRef`, como `ReponerPisoModal.tsx:120-129`). No se toca `registrar_movimiento` (lo usan otros módulos y tiene parches vivos: buscar sus `reemplazar_vivo` antes de recrearla).
-- **Por qué en este puesto:** es la única puerta de corrección manual del stock y la única sin protección de reintento; el daño es silencioso porque cada movimiento es válido. Va antes que el buscador porque puede dañar stock, no porque Felipe lo haya pedido; no bloquea la búsqueda (archivos distintos).
-- **Cómo lo verificas tú:** en la base local, la prueba de RPC con el mismo token dos veces deja **un** movimiento por variante y el stock sube una vez; un ajuste de 3 tallas con la 3.ª inválida no aplica ninguna (hoy aplica 2). En el navegador contra la base local: DevTools ▸ Network ▸ «Offline» justo después de «Guardar», reintenta: el stock cambia una sola vez. **No se ensaya escribiendo en producción** (lote único que termina en excepción a propósito).
-- **Esfuerzo / dependencias:** M. Ninguna. El SQL se aplica antes que la web (la web nueva llama a una función que producción aún no tiene).
+- **Dónde:** `components/AjustarInventarioModal.tsx:176-206` (loop por línea) · RPC `registrar_movimiento` (sin `p_token`) · nueva RPC de lote en una migración propia.
+- **Por qué en este puesto:**
+  - Es el único camino desde Existencias que puede dejar el stock a medias o duplicado.
+  - Un corte de red a mitad de un ajuste de 6 líneas aplica 3; el reintento aplica 6 más.
+  - Ya era la #1 del análisis anterior; el #500 la deja a un toque en el detalle.
+- **Cómo lo verificas tú:** en Ajustar, carga 3 líneas, pon el navegador en «sin conexión» después de tocar Guardar y vuelve a guardar al reconectar. En Movimientos debe haber **un** ajuste con 3 líneas, no 6 ni 2.
+- **Esfuerzo / dependencias:** M · después de fusionar el #500 con `main` (el modal cambió con ADR-0235: partir de esa versión).
 
-### #2 · Eliminar/fusionar/conectar — Decidir el destino del PR #445 antes de cablear nada en `InventarioPanel.tsx`
-- **Dónde:** PR #445 (`claude/inventario-comportamiento-piso-almacen`, `CONFLICTING`): reescribe `InventarioPanel.tsx`, `page.tsx`, `inventario-v2.ts`, `inventario-reglas.ts`, `existencias-recomendaciones.ts`; quita `EstadoStock`, `calcularEstado`, `necesitaReponerPiso` y la columna Disponible; separa filtros «Acción» y «Estado»; su migración `20260925170551_existencias_ritmo_reciente.sql` (`fn_ritmo_reciente_json`) solo se probó en local; su descripción admite que la validación en navegador no se ejecutó; no agrega marca ni toca el motor de búsqueda.
-- **Por qué en este puesto:** las tareas #3, #4, #5, #8, #11 y #12 editan las mismas líneas (`InventarioPanel.tsx:296-315`, `:411-413`, `:550-594`, `:651-659`; `inventario-v2.ts:85-134`). Dos ramas sobre el mismo archivo es un conflicto de fusión garantizado y trabajo doble.
-- **Cómo lo verificas tú:** la decisión queda escrita en `docs/BACKLOG.md` y `gh pr view 445` deja de decir `CONFLICTING` (fusionado, cerrado o rebasado).
-- **Esfuerzo / dependencias:** S para decidir, M para rebasar. Ninguna; **bloquea el cableado en pantalla** de #3, #4, #5, #8, #11 y #12. La lógica de `lib/filtro-busqueda-especial.ts` de la #3 sí puede adelantarse: ese archivo no está en el PR.
-- Opciones para decidir: **A)** fusionar #445 primero — Ganas: ya resuelve Acción/Estado y la columna Disponible; Pagas: 24 archivos y una migración sin aplicar, validación en navegador pendiente, y el buscador espera. **B)** parchar `main` con #3–#5 ahora y rebasar #445 después — Ganas: Felipe ve la marca ya y los conflictos quedan acotados a `:296-315` y `:550-594`; Pagas: #445 hereda esos choques. **C)** cerrar #445 y rehacer sus mejores partes en tareas chicas — Ganas: pasos verificables (principio 7); Pagas: se pierden 1.783 líneas escritas. Recomiendo **B**. Si no respondes, ejecuto B.
+### #2 · Corregir — Al fusionar con `main`, «Ajustar» al piso falla para quien no tiene «Bajada al piso» — ✅ hecha (2026-09-26)
+- **Hecha, pero al revés de lo propuesto abajo.** ADR-0212 ya había decidido para «Nuevo producto» que «colgadas en el piso» es una bajada y pide su módulo, y que la pantalla lo apaga con su explicación. Quitarle el requisito a `cargar_stock_inicial` habría dejado dos reglas para la misma operación. Se hizo lo que ya hace el alta: sin «Bajada al piso», lo nuevo entra al almacén y la fila lo dice (`cargaInicialAlPiso`, `textoPrendaNueva` en `lib/ajuste-reglas.ts`). La base no cambia. Detalle: ADR-0235, «Actualización 2026-09-26 (noche)». Error de este análisis: no buscó la decisión escrita antes de proponer.
+- **Dónde:** `origin/main:supabase/migrations/20260927153100_cargar_stock_inicial_de_prenda_existente.sql:49,63` → `bajar_al_piso` (`20260926000200_bajada_piso_funciones.sql:138`, `fn_ve_modulo('bajada_piso')`).
+- **Por qué en este puesto:**
+  - Rompe un flujo real el día del merge, sin conflicto de git que lo avise.
+  - La carga inicial se autoriza con `fn_puede_ajustar_inventario()`, pero por dentro llama a una función que exige otro módulo.
+  - Además, las tres migraciones del #496 no están aplicadas en producción (memoria de la sesión de Movimientos, 2026-09-26) `[no verificable sin SQL]`.
+  - Arreglo propuesto: que `cargar_stock_inicial` baje al piso con el mismo cuerpo interno (`fn_aplicar_movimiento`) sin pasar por la puerta pública de `bajar_al_piso`. O, si Felipe decide que cargar al piso ES bajar al piso, que la pantalla lo diga antes de guardar.
+- **Cómo lo verificas tú:** con una cuenta **integrante** (en local no tiene «Bajada al piso»), en una prenda que Lima nunca tuvo: Ajustar → Piso → +3 → Guardar. Hoy (tras el merge): error. Arreglado: queda en el piso, y Movimientos muestra la carga.
+- **Esfuerzo / dependencias:** S · se hace en `main` (es del #496), antes o junto con aplicar sus migraciones en producción.
 
-### #3 · Reconstruir — Un buscador que entienda marca y categoría, con relevancia
+### #3 · Corregir — Una sola puerta por escritura: mismo candado en el botón y en la base
+- **Dónde:** `InventarioPanel.tsx:471-472` (`puedeReponer`, `puedeApartar`) · `DetallePrendaExistencias.tsx:178-191` · `ExistenciasPorPrenda.tsx:158` («Reponer N tallas») · RPC `mover_interno` y `apartar_stock` (agregar `fn_ve_modulo`).
+- **Por qué en este puesto:**
+  - Hoy «Bajar al piso» (cabecera) y «Reponer al piso» (detalle) son la misma escritura con dos candados distintos (Brooks: una de las dos está mal).
+  - En local, integrante ve Existencias sin «Bajada al piso» ni «Apartados» `[local]`, y el detalle le deja hacer las dos cosas.
+  - ADR-0161 dice que el rol decide qué hace cada cuenta, y aquí la pantalla pasa por encima de eso.
+  - **Decide Felipe cuál candado manda**:
+    - (A) mover piso ↔ almacén es de «Bajada al piso», y Apartar es de «Apartados»: se cierran el detalle y la base;
+    - (B) reponer una talla es parte de «Existencias»: se abre el botón de la cabecera.
+    - Recomiendo A: es lo que ya dice Roles y accesos.
+- **Cómo lo verificas tú:** con una cuenta integrante sin «Bajada al piso», abre una prenda por colgar → no aparece «Reponer al piso». Y desde la consola del navegador, `supabase.rpc('mover_interno', …)` con esa cuenta responde «sin acceso».
+- **Esfuerzo / dependencias:** M (migración + pantalla) · decisión A/B de Felipe primero.
+
+### #4 · Corregir — La bajada que llega desde Existencias se escanea, no se confirma a ciegas — ✅ hecha (2026-09-26)
+- **Hecha:** lo marcado llega en 0, «Por escanear»; cada lectura lo llena; confirmar sin escanear está apagado. ADR-0237, «Actualización 2026-09-26 (noche)».
+- **Dónde:** `lib/existencias-prendas.ts:119-137` (`urlBajarAlPiso`, 1 u por talla) · `lib/bajada-reglas.ts:213-224` (`lineasIniciales`) · `components/BajarAlPisoForm.tsx:176-184, 561`.
+- **Por qué en este puesto:**
+  - La venta descuenta del piso. Si se «baja» en el sistema lo que no se colgó, la caja dice «stock insuficiente» con la prenda en la mano, o al revés.
+  - La pantalla de bajada se diseñó para escanear lo que se cuelga, y la precarga la convierte en un formulario de confirmación.
+  - Propuesta: que la lista llegue como **«lo que buscas»** (con cantidad 0 y su almacén a la vista) y que cada lectura la vaya llenando; «Confirmar» solo cuenta lo escaneado.
+- **Cómo lo verificas tú:** marca 2 prendas → «Bajar al piso». Sin escanear nada, «Confirmar bajada» debe decir «0 prendas» (o estar apagado). Escanea una talla → sube a 1.
+- **Esfuerzo / dependencias:** S–M · no depende de otras.
+
+### #5 · Mejorar — Que «Reponer» distinga: ordenar por urgencia y un solo primario por pantalla
+- **Dónde:** `lib/politica-operativa-inventario.ts:14-36` (umbral 4) · `components/ExistenciasPorPrenda.tsx` (botón negro por fila) · orden de `agruparPorPrenda` (`existencias-prendas.ts:77-107`).
+- **Por qué en este puesto:**
+  - En Lima local, 11 de 11 prendas y 33 de 33 tallas piden reponer `[visto][local]`. Una señal que marca todo no ayuda a decidir.
+  - Propuesta:
+    - las prendas con piso libre 0 van arriba («por colgar», lo que de verdad falta en el piso);
+    - el botón de fila pasa a secundario;
+    - el umbral se confirma en producción (decisión abierta de ADR-0231).
+- **Cómo lo verificas tú:** en Lima, las primeras filas son las que tienen el piso en 0, y en la pantalla hay un solo botón negro (el de la cabecera). En producción: la consulta Q7 del anexo cuenta cuántas tallas piden reponer por sede.
+- **Esfuerzo / dependencias:** S · el umbral espera a Felipe; el orden y el botón no.
+
+### #6 · Mejorar — Celular: la primera prenda en la primera pantalla
+- **Dónde:** `app/(app)/inventario/page.tsx:160-195` (5 accesos apilados) · `InventarioPanel.tsx:664` (tarjetas en una columna) · fila de filtros (5 combos a ancho completo).
+- **Por qué en este puesto:**
+  - El #500 existe para el teléfono (ADR-0237), y a 375 px la lista empieza a unas 2,5 pantallas de scroll `[visto]`.
+  - Propuesta para menos de `sm`:
+    - accesos en una fila de iconos o en un menú «Más»;
+    - cifras en una tira horizontal de 2 × 2 compacta;
+    - filtros tras un botón «Filtros (n)», dejando el buscador a la vista.
+  - Casillero PL-105: todo PR que toque piso se prueba a 375 px.
+- **Cómo lo verificas tú:** a 375 px, al entrar se ve el buscador y al menos la primera prenda sin hacer scroll.
+- **Esfuerzo / dependencias:** M · ninguna.
+
+### #7 · Corregir — La letra chica del detalle: que cada acción haga lo que dice
 - **Dónde:**
-  - *Commit 0 (solo renombre, sin cambio de comportamiento):* en `PrendaCelda.tsx` la prop `marca` de `ProductoVarianteCelda` no es la marca comercial sino una **señal** (`ReactNode`, el «≈» de Análisis); pasa a `senal` en sus 4 llamadas (`ResumenComportamiento.tsx:69`, `ResumenComparacionDetalle.tsx:103`, `TrasladoDetallePanel.tsx:338` y `:385`) para dejar libre `marca` = marca comercial. «Marca» ya significa cuatro cosas en el repo (comercial, token de `mover_interno`, esa prop, la «marca de retirada» futura de ADR-0208).
-  - `inventario-v2.ts`: `FilaExistencias` (`:212-223`) suma `marca: string | null`; en `getExistencias` (`:235-326`) la consulta de `:269` (`productos.select("id").eq("es_prueba", true)`) pasa a una lectura paginada con `leerTodas` de `id, referencia, codigo, es_prueba, marca:marcas!productos_marca_fk(nombre), categoria:categorias(nombre)`, tolerante (error → sin marca, como hoy con `42703`); asigna `marca` en los **dos** sitios que arman filas (`:278-285` y `:300-323`) y devuelve además `sinStock` (productos no `es_prueba` sin fila en la sede), que usa la #5. **No se toca el `select` de `stock` (`:85-111`)**: lo comparte la caja.
-  - `lib/filtro-busqueda-especial.ts`: `CamposBuscables` (`:47-55`) y `CamposNormalizados` (`:58-67`) ganan `marca` y `categoria` (opcionales); se comparan con `empiezaPalabra` (inicio de palabra, sin tildes); `filtrarConBusquedaEspecial` (`:214-229`) acepta `{ ordenar: "relevancia", grupo: (f) => f.productoId }`. La marca **no** es una «dimensión» (no pisa los filtros visuales). Relevancia por término: código completo 100 > nombre desde inicio de palabra 60 = marca completa 60 > marca desde inicio 50 > nombre en medio 40 = categoría 40 > color o talla 30 > código parcial 10; suma por término; el grupo (producto) toma el máximo de sus variantes; solo con texto escrito y sin «Por colgar».
-  - `InventarioPanel.tsx:296-299`: la lambda del índice pasa `marca` y `categoria`; `:553` placeholder «Prenda, marca, código, color, talla…», `spellCheck={false}`, `autoComplete="off"`.
-  - Análisis (`resumen-busqueda.ts:25-35`, hoy pega la categoría al nombre) y Movimientos pasan `marca` y `categoria` como campos, no concatenados.
-  - SQL espejo en commit y migración aparte: `20260927100000_movimientos_busqueda_marca_categoria.sql` (`create or replace function retail.fn_movimientos_variantes` con `left join retail.marcas` y `retail.categorias`; `set search_path = retail, public, extensions;`, `set lock_timeout = '3s'`; sin políticas ni `alter`, una sola parte), el escenario «marca y categoría» en `filtro-busqueda-especial.casos.json`, y `scripts/pruebas/fn_movimientos_busqueda_especial.mjs` (hoy siembra «la primera pareja marca/proveedor», `:92-94`). También `FiltrosMovimientos.tsx:175`: su placeholder sigue prometiendo solo «Prenda, código, barras o referencia…» cuando la función ya entiende color, talla y plural.
-- **Por qué en este puesto:** es lo que Felipe pidió, es la forma más rápida de buscar en tienda, y la marca ya se busca en la caja (`buscar-prenda-v2.ts:47`) y se filtra en Productos: Existencias es la única pantalla de stock sin ella.
-- **Cómo lo verificas tú:** en Tienda TRU, «CAYLA» (hoy 0 filas `[visto]`) → 8 filas de Top Aurora (marca «Cayla 2», 65 uds); «miramhe» → 8 (hoy 0); «doradas» → 20 (Blusa Carlita); «blazers» → 3 (Blusa Xd, categoría Blazers); «camisas» → 20 (categoría «Camisas y Blusas», ningún nombre lo dice); «polos» → 8; «wayi jean» → 6; «blusa» → 23 y «blusa l» → 5 (sin cambio); «pol-0004» → 0 (la prueba sigue oculta); «pol-0002» → 8; «plomo» sigue en 0 hasta la fase de sinónimos (#7). Pruebas: escenario nuevo en `casos.json` (`«cayla» → filas de nombre o marca`, `«tica» → []` porque la marca se busca desde inicio de palabra, `«yjj» → []` como límite documentado, `«polo blanco m» → []`) y `pnpm pruebas:fn-movimientos-busqueda-especial` para el SQL. Con 4.000 filas sintéticas una tecla debe tardar menos de 16 ms.
-- **Esfuerzo / dependencias:** M. La parte de `lib/` no espera; el cableado en `InventarioPanel.tsx` va después de la #2. La migración se pega **después** o **con** la web: la web no depende del SQL.
-- **DECIDÍ:** la marca es un dato de la fila (una lectura ligera aparte a `productos` dentro del `Promise.all` que ya existe) y el motor compartido gana dos campos opcionales con relevancia solo en pantalla; el SQL de Movimientos se alinea en commit aparte. Números: 45 filas hoy y ~4.000 por sede a 3 años; una tecla ≈ 110.000 comparaciones de texto ≈ 5–10 ms `[inferido]`; la lectura extra son ~13 filas de `productos` hoy (unas 500–600 y ~60 KB a 3 años), en paralelo a las que ya se hacen.
-- **DESCARTÉ:** (a) el parche de 5 líneas (pasar `marca` a la lambda), porque deja tres formas de leer una fila (Análisis pega la categoría al nombre, Existencias una lambda, Movimientos el SQL) y repite lo que ADR-0121 ya documentó: dos motores respondiendo distinto sobre la misma prenda; (b) búsqueda difusa siempre encendida (Levenshtein o `pg_trgm`), porque en inventario un falso positivo («Cayla» ↔ «Cala») termina en reponer o ajustar la prenda equivocada y `pg_trgm` corre en el servidor: habría que viajar a la base en cada tecla por 45 filas que ya están en el navegador (la tolerancia a errores de tipeo queda solo como sugerencia en el vacío, #5); (c) la marca dentro del `select` de `stock`, porque agrega un join a una lectura que comparte la caja y, si el embed falla, se cae Vender; (d) tratar la marca como «dimensión» (que el texto pise el filtro, como talla y color), porque choca con «Pantalon Cayla» (nombre) frente a marca CAYLA y con «Doradas Chic» (marca) frente al color Dorado; (e) ranking en el servidor (`ts_rank`), porque agrega un viaje por tecla sin ganancia a este volumen.
-- **SE ROMPE SI:** (1) el SQL de Movimientos se pega después de la web y alguien busca «cayla» en las dos pantallas: Existencias trae Top Aurora y Movimientos nada hasta que se pegue la migración; (2) la lectura de `productos` falla: todas las filas quedan con `marca = null`, el filtro de la #4 no se pinta y el buscador queda como hoy (previsto, no es un error); (3) entra un color «Dorado» a la sede: «doradas» se lee como color, el filtro Color se ignora con «Se usa lo que escribiste» y la marca «Doradas Chic» se mezcla con él (hoy TRU no tiene ese color); (4) el motor se llama sin `grupo` con texto escrito: las variantes de un mismo producto se separan por relevancia y la tabla, que se lee por producto, se ve desordenada; (5) alguien vuelve a pasar `marca` (señal) a la celda sin haber hecho el commit 0: el aviso se pintaría como si fuera la marca; (6) Felipe decide que la caja busque como Existencias: se reabre `buscar-prenda-v2.test.ts:32` (ver #7).
+  - `existencias-prendas.ts:147-151`: «Etiquetas» manda `?producto=`, que imprime todos los colores; debe mandar las `variantes` de esta prenda.
+  - `DetallePrendaExistencias.tsx:107,212,215`: Etiquetas e Historial con un líder que mira otra sede actúan sobre la sede activa. Ocultarlos fuera de la sede activa, igual que Reponer.
+  - `page.tsx:192` frente a `InventarioPanel.tsx:652-660`: Apartados en filas frente a unidades. Un solo número, con su unidad escrita.
+  - `existencias-prendas.ts:130-131`: más de 100 tallas marcadas, avisar en vez de esconder los botones.
+  - `ExistenciasPorPrenda.tsx:158`: «Reponer N tallas» debe abrir una talla que se pueda bajar.
+- **Por qué en este puesto:** ninguna daña stock, pero cada una le enseña a la vendedora que la pantalla no es de fiar. La de etiquetas imprime papel de más cada vez.
+- **Cómo lo verificas tú:** desde la Casaca Ximena Azul marino, «Imprimir etiquetas» muestra solo etiquetas azul marino. Con `?ubicacion=` de otra sede, el detalle no ofrece Etiquetas ni Historial.
+- **Esfuerzo / dependencias:** S · ninguna.
 
-### #4 · Mejorar — Filtro «Marca» y la marca a la vista (fila y CSV)
-- **Dónde:** `InventarioPanel.tsx`: estado `marca` (`:250-254`); lista `marcas` derivada de `stock` (`:276-284`; opciones de la **sede**, no las 80 de la tabla) con `mostrarMarca = marcas.length >= 2`; `otros` (`:304-310`) suma `if (marca !== TODAS && f.marca !== marca) return false` (el texto nunca lo ignora, igual que Categoría); `firmaFiltros` (`:325`), `hayFiltrosActivos` (`:343`) y `quitarFiltrosMenosEstado` (`:346-351`) lo incluyen; `CampoSelect` «Marca: todas» justo tras el buscador, ADR-0209 (buscador dentro del combo desde 9 opciones), y la grilla `:552` pasa a `sm:grid-cols-3 xl:grid-cols-[1.4fr_repeat(5,1fr)]` para que quepan 5 filtros sin scroll horizontal; CSV (`:386-402`) agrega la columna «Marca»; `PrendaCelda.tsx` suma `marca?: string | null` (texto taupe pequeño tras el nombre, oculto con una sola marca).
-- **Por qué en este puesto:** Felipe lo pidió («en los filtros tampoco figura marca, que es la forma más rápida»). Si el buscador encuentra Top Aurora por «cayla» y la fila no dice «Cayla 2», la colaboradora cree que es un error.
-- **Cómo lo verificas tú:** en TRU el combo lista Artemisa, Cayla 2, Doradas Chic, Miramhe y Wayi; Marca = Miramhe → 8 filas; con Marca = Miramhe y texto «wayi» el vacío dice «Filtro activo: Marca Miramhe» y ofrece quitarlo; «Limpiar filtros» también lo limpia; con una sola marca (o si falla la lectura) el filtro no se pinta y la grilla vuelve a 5 columnas sin salto; a 1.280 y 1.024 px caben sin scroll horizontal de página; el CSV trae «Marca».
-- **Esfuerzo / dependencias:** M. No antes de la #3 (necesita el dato) ni de la #2 (mismas líneas). No agrega Proveedor ni Precio (Existencias no los muestra); los filtros en cascada con conteos («Miramhe · 8») se posponen: con 5 marcas y 45 filas no aportan.
+### #8 · Corregir — Que una lectura secundaria no tumbe la pantalla ni recorte en silencio
+- **Dónde:** `lib/resumen-inventario.ts:44` (`exigir` → tolerante) · `lib/inventario-v2.ts:257` (`transferencia_items` sin `leerTodas`) · `traslados.ts:122` y `prendas_danadas` sin límite.
+- **Por qué en este puesto:**
+  - Si falla el resumen de 7 días, la tienda se queda sin ver su stock.
+  - Con más de 1.000 ítems en tránsito, «En camino» miente sin avisar.
+- **Cómo lo verificas tú:** renombra temporalmente `fn_resumen_variantes_json` en la base local. Existencias carga, y la tarjeta dice «sin comparación».
+- **Esfuerzo / dependencias:** S · ninguna.
 
-### #5 · Corregir — Estado vacío que dice qué se buscó, cómo salir y si la prenda «existe pero esta sede no la ha recibido»
-- **Dónde:** `InventarioPanel.tsx:651-659` (una sola frase para cualquier vacío); nuevos `lib/existencias-vacio.ts` (puro, con prueba: `explicarVacio({ terminos, filtros, filas, indice, catalogoSinStock })`) y `components/ExistenciasVacio.tsx` (tokens ADR-0169, patrón visual de `SinCoincidencias.tsx`, que no se reutiliza porque lee el contexto de Facturación; `role="status"`, sin animación propia). Contenido: (1) título «Nada coincide con «cayla polo» en Tienda TRU»; (2) una línea de cómo se leyó («polo» texto · «blanco» color · «m» talla); (3) filtros activos con × que los quitan; (4) hasta 3 botones «Quitar «polo» · 8 prendas» calculados relajando de a una condición con el mismo motor, ordenados por cantidad y sin ofrecer los que dan 0; (5) «¿Quisiste decir «Cayla»?» solo si ninguna relajación devuelve filas (distancia ≤ 1, ≤ 2 desde 7 letras, contra nombres, marcas, categorías y colores de la sede) y sin filtrar por sí mismo; (6) bloque «En el catálogo, sin stock en esta sede» con los productos de `sinStock` que coinciden («Pantalon Cayla y Pantalon Sastre (marca CAYLA) están en el catálogo, pero Tienda TRU no los ha recibido», con «Ver en Productos»); (7) botón «Limpiar búsqueda y filtros». Se conservan los dos mensajes actuales de `stock.length === 0` y «Nada por colgar». No se revela la existencia de datos de prueba ocultos (ADR-0159).
-- **Por qué en este puesto:** es la pieza que le habría contestado a Felipe en la captura 4; sin ella, la marca indexada sigue dejando a la colaboradora sin saber si escribió mal o si la prenda no está.
-- **Cómo lo verificas tú:** en TRU «cayla polo» → título con lo buscado y los botones «Quitar «polo» · 8 prendas» y «Quitar «cayla» · 8 prendas»; «pantalon cayla» → «Pantalon Cayla está en el catálogo, pero Tienda TRU no lo ha recibido»; «polo blanco m» → dice que «m» se leyó como talla y ofrece «Quitar «m» · 1 prenda»; «cayls» → «¿Quisiste decir «Cayla»?»; «pol-0004» → no revela el Producto de Prueba; sin texto ni filtros el vacío no aparece.
-- **Esfuerzo / dependencias:** M. No antes de la #3 ni de la #2; el bloque del catálogo usa la lectura a `productos` de la #3.
+### #9 · Replantear — ¿Dónde y cómo pide la tienda un traslado? (sección 8)
+- **Dónde:** «Dónde más hay la S» del detalle (`DetallePrendaExistencias.tsx:219-240`, sin botón) · `/inventario/mover` (solo el líder elige el origen).
+- **Por qué en este puesto:**
+  - Con el #445 se fue «Stock bajo · pedir traslado», y el #500 muestra dónde hay sin dejar pedirlo.
+  - Hoy una vendedora que ve «hay 4 en AQP» tiene que salir del ERP (WhatsApp) para pedirlo.
+  - Es la pregunta abierta de ADR-0231 y ADR-0237. Esta tarea solo le pide a Felipe que decida la sección 8.
+- **DECIDÍ:** proponer una **solicitud de traslado** («Pedir a AQP»): la tienda que necesita pide; la que tiene ve la solicitud en Traslados y la convierte en traslado con un toque.
+- **DESCARTÉ:** que la vendedora arme el traslado desde el origen equivocado. «Mover mercadería» es de quien envía, y dejar que quien recibe elija el origen le mueve stock ajeno sin que el origen lo sepa.
+- **SE ROMPE SI:** dos tiendas piden la misma última unidad de AQP en la misma hora. La solicitud no reserva, y la segunda recibe «ya no hay» recién cuando AQP intenta enviar. Por eso la solicitud no debe prometer stock, solo pedirlo.
+- **Esfuerzo / dependencias:** L (tabla nueva + pantalla en Traslados) · decisión de Felipe.
 
-### #6 · Replantear — Decidir la «Estrategia alternativa» (sección 8)
-- **Dónde:** sección 8 de este archivo; toca `getExistencias` (`inventario-v2.ts:235`), `page.tsx` y la lectura compartida `getStockPorUbicacion`.
-- **Por qué en este puesto:** define hasta dónde llega la #5 (¿basta el bloque «sin stock en esta sede» o Existencias debe partir del catálogo?) y qué pasa cuando abran AQP y LIM, que hoy tienen 0 filas de stock. No bloquea #3 ni #4.
-- **Cómo lo verificas tú:** Felipe contesta A, B o C en chat y queda escrito en `BACKLOG.md`; si elige B o C, esta tarea se cierra abriendo su ADR.
-- **Esfuerzo / dependencias:** S (decidir). Ninguna. Si no respondes, ejecuto A.
-- **DECIDÍ:** proponer **A** (mejorar la pantalla actual con #3–#5) e incorporar la mitad barata de B, el bloque «en el catálogo, sin stock aquí».
-- **DESCARTÉ:** B como reemplazo completo hoy, porque llenaría Tienda TRU de 69 filas «Sin stock» en rojo (con el semáforo actual, #8) y obligaría a una lectura nueva mientras la actual la comparten la caja, Cambios y Traslados.
-- **SE ROMPE SI:** AQP abre con 0 filas de stock y la colaboradora nueva ve «Esta ubicación no tiene stock todavía.» (`InventarioPanel.tsx:652`) sin saber si es un error de carga o que aún no llega mercadería: ahí A se queda corta y B o C valen su costo.
+### #10 · Mejorar — Un solo vocabulario y un solo conteo para «lo que falta en el piso»
+- **Dónde:** tarjeta «Reponer a piso hoy · 33 **variantes**» (`InventarioPanel.tsx:664-718`) · chip «Por colgar · 28 **tallas**» · filas «3 tallas por colgar» + «Reponer 3 tallas».
+- **Por qué en este puesto:** «variante» es palabra de sistema; la tienda dice «talla». Y dos cifras vecinas (33 y 28) para casi lo mismo obligan a adivinar cuál manda.
+- **Cómo lo verificas tú:** en toda la pantalla solo aparece «tallas», y la tarjeta y el chip o dicen lo mismo o dicen en una línea en qué se diferencian.
+- **Esfuerzo / dependencias:** S · junto con la #5.
 
-### #7 · Eliminar/fusionar/conectar — Tarea raíz: un solo motor de búsqueda de prendas para el ERP
-- **Dónde:** el mismo defecto (la misma prenda se busca con reglas distintas) está en más de 8 lugares, con **cinco motores**: (1) `filtro-busqueda-especial.ts` (Existencias, Análisis, Movimientos): varias palabras, tildes, plural, sin marca; (2) `buscar-prenda-v2.ts:43-50` `filtrarPrendasV2` (caja, Apartados, Proformas): con marca pero la frase entera en orden fijo, y `buscar-prenda-v2.test.ts:32` lo fija («negro m» → 0); (3) `fn_productos_buscar` (Productos): un `ILIKE` de la frase, sin tildes ni plural (`«pantalón» → 0`, `«pantalon» → 2`, `«blusas» → 0` `[producción]` según el agente de lectura); (4) `coincidenciaCombo` (`combo-reglas.ts`, todos los combos): frase entera; (5) `coincide` de Facturación. Más los sueltos de Traslados (`traslados-reglas.ts:461`), Recibir (`RecepcionEnvio.tsx:311`), Producción (`NuevaOrdenProduccionForm.tsx:184`, solo nombre) y Compras/prenda (`CompraFormV2.tsx:151`, solo nombre). Sinónimos de color con **tres fuentes**: `ALIAS_DE_COLOR` (`filtro-busqueda-especial.ts:107-111`, 3 alias), su copia en SQL y `colores.sinonimos` (29 de 75 colores; «plomo»→Gris, «guinda»→Vino) que el buscador no lee: hoy «plomo» da 0 en TRU aunque hay 6 filas grises. Y el hueco del código de etiqueta (`variantes.sku` NULL en 128 de 130): `cba4db7a` ya lo cerró en Conteo, Compras y Producción; quedan `fn_prioridad_conteo`, `censo_crear_variante`, `previsualizar_cierre_conteo`, `fn_traslado_lineas`, `fn_movimientos` (solo devuelve `sku`) y Traslados/Mover, que piden SQL (`docs/BACKLOG.md:36`). Otras pantallas analizadas que ya rozan esto: `docs/pantallas/productos.md` (fila «Búsqueda»: «bien; `ilike` sin escapar»), `docs/pantallas/vender.md` (#6, buscador con miles de prendas), `cambios.md` y `devoluciones.md` (`BuscadorVentas`, buscador de comprobantes: otro problema).
-- **Por qué en este puesto:** Felipe lo dijo: la marca es la forma más rápida de buscar, y en la caja (donde la clienta espera) la frase entera en orden fijo rompe con «cayla negro m». Una sola regla evita que cada pantalla nueva invente la suya (Brooks: dos partes resuelven lo mismo de dos formas, una está mal). Va después de #3–#5 porque ese motor es el que se adopta.
-- **Cómo lo verificas tú:** la misma frase («cayla negro m») devuelve el mismo conjunto de prendas en Existencias, Movimientos, Análisis, Productos y la caja; «pantalón» = «pantalon» en Productos; «plomo» encuentra las 6 filas grises de TRU.
-- **Esfuerzo / dependencias:** L, en cortes: (i) Movimientos por SQL (ya en la #3); (ii) Productos con `retail.fn_clave_texto` (ya existe, IMMUTABLE, la usa el índice único de marcas; `unaccent` no está instalada); (iii) sinónimos desde `colores.sinonimos`; (iv) la caja con varias palabras, **decisión de Felipe** (reabre `buscar-prenda-v2.test.ts:32`). No antes de la #3.
-
-### #8 · Corregir — El semáforo de estado no distingue: 41 de 45 prendas en «Stock bajo» (rojo)
-- **Dónde:** `inventario-reglas.ts:19,35,54-59` (`UMBRAL_STOCK_BAJO_ALMACEN = 10`, decisión del 2026-09-17 que el propio comentario dice haber bajado de 20 porque «casi todo caía en Stock bajo»), `ACCION_ESTADO_STOCK.stock_bajo` = «Pedir traslado de otra sede» (`:207`), `InventarioPanel.tsx:51-55` (`stock_bajo` = tono rojo), chips `:746-761`, leyenda `:57-62,:899-909`.
-- **Por qué en este puesto:** una señal encendida en el 91 % de la tabla no informa (y rompe `MAX_ROJO_POR_PANTALLA`). Además recomienda una acción imposible hoy: AQP, LIM y Taller tienen 0 filas de stock `[producción]`. La cobertura que corregiría el criterio (`Cobertura` «N/D») todavía no existe porque la base tiene ventas desde el 2026-09-22 (25 salidas de venta en total).
-- **Cómo lo verificas tú:** con los mismos 45 datos, la consulta del apéndice (Q2) deja de dar 41 en una sola categoría y `document.querySelectorAll` de elementos rojos en la página cuenta ≤ 2 (con el inspector, como en `productos.md` #4).
-- **Esfuerzo / dependencias:** S–M. No antes de la #2: si el PR #445 se fusiona, sus filtros «Acción/Estado» reemplazan esta regla y la tarea se reduce a comprobar con los 45 datos reales que el nuevo estado no marque el 91 %. Decisión de negocio de Felipe (no del código): qué significa «Stock bajo» cuando cada lote es de 2 a 14 unidades y aún no hay historial de ventas; recomiendo chip ámbar «Reserva baja» y rojo solo para «sin nada y con demanda».
-
-### #9 · Corregir — Un solo universo de variantes para «Disponible total», recomendaciones y ritmo
-- **Dónde:** `fn_resumen_variantes` recorre las 126 variantes activas y **no menciona `es_prueba`** `[producción]` (comprobado), por lo que `filasSemana`/`filasRecientes` (`page.tsx:58-61`) traen la prueba (12 variantes, 160 uds) y las 69 variantes que la sede nunca recibió; de ahí salen `DisponibleTotalOverlay` (`existencias-categorias.ts:78-114`, `deltaDisponibleSede` `:138-142`) y «Ver recomendaciones (25)» (`page.tsx:91-92`, `existencias-recomendaciones.ts:31-36`). Corrección: en `page.tsx`, filtrar ambas listas por los `varianteId` de `stock` (el universo de la tabla); **no** recrear la RPC, que comparte Análisis y tiene parches vivos (buscar sus `reemplazar_vivo` antes).
-- **Por qué en este puesto:** la tarjeta dice 203 y el desglose, que sale de otro universo, puede sumar otra cifra; y las recomendaciones alimentan traslados y órdenes de Producción. El efecto exacto del «25» `[inferido]`: no se puede medir sin una sesión de usuario (la RPC devuelve 0 filas sin `auth.uid()`).
-- **Cómo lo verificas tú:** abre «Disponible total»: la suma por categoría iguala la tarjeta (203); busca en la tabla cada prenda de «Ver recomendaciones»: todas aparecen; compara el número «(25)» antes y después.
-- **Esfuerzo / dependencias:** S. Ninguna. Si el efecto se confirma con una sesión real, esta tarea sube y el tope de 5 se justifica dos veces.
-
-### #10 · Corregir — Candado de módulo en `mover_interno` y `apartar_stock`
-- **Dónde:** `retail.mover_interno` y `retail.apartar_stock` (SECURITY DEFINER): validan `fn_puede_operar_ubicacion` y firman con `fn_actor_persona_id(true)`, pero **no llaman a `fn_ve_modulo`** `[producción]`; `bajar_al_piso` sí lo hace y `registrar_movimiento` lo hace vía `fn_puede_ajustar_inventario()`. ADR-0161: lo que ve una cuenta lo decide su rol módulo por módulo.
-- **Por qué en este puesto:** un colaborador de la sede cuyo rol no ve Existencias puede mover piso y almacén o reservar unidades llamando a la RPC directamente; el daño es acotado (misma sede, sin alterar el total) pero contradice la regla que Felipe fijó y deja tres funciones con tres criterios. Decisión previa: qué módulo manda en `apartar_stock` (Existencias o el de apartados de Vender), para no romper `/vender/apartados`. `[no verificable]` cuál usa cada llamador sin leer `ApartarModal` y la caja.
-- **Cómo lo verificas tú:** con una cuenta de prueba cuyo rol no ve Existencias, `select retail.mover_interno(...)` responde error de permiso; con un rol que sí lo ve y con el líder, pasa. Solo en base local o en un lote de producción que termina en excepción a propósito.
-- **Esfuerzo / dependencias:** M. Ninguna. Antes de recrear cualquiera de las dos, buscar sus parches vivos (`reemplazar_vivo`): el PR #397 rompió Análisis en producción por olvidarlos.
-
-### #11 · Mejorar — La tabla cabe en 1.280 px con sus acciones a la vista, y «recarga» se vuelve un botón
-- **Dónde:** `InventarioPanel.tsx:411-413` (9 columnas ≈ 1.100 px de mínimos) y `:746-777` («Reponer» apilado bajo los chips; Apartar, Ajustar y «⋯» en la última columna); `page.tsx:117` («recarga para ver lo último» es un párrafo).
-- **Por qué en este puesto:** `[visto captura 3]` la cabecera se corta en «En l…» y las acciones quedan fuera de vista en una laptop; la operación de piso también se hace en tablet. La tabla admite que «se desplaza» (comentario `:405-410`).
-- **Cómo lo verificas tú:** a 1.440 y a 1.280 px todas las acciones de la fila se ven sin scroll horizontal; un botón «Recargar» junto a la hora cambia «Vista cargada a las…» al pulsarlo (`router.refresh()`).
-- **Esfuerzo / dependencias:** M. No antes de la #2 (el PR #445 quita la columna Disponible y cambia estos anchos). Propuesta de partida: fusionar «En camino» y «En la red» en una sola columna hasta `xl`, y dejar las acciones pegadas a la derecha.
+### #11 · Mejorar — Pruebas de lo que el #500 no probó
+- **Dónde:** falta una prueba del panel para:
+  - los permisos del detalle por módulo y sede (vigila la #3);
+  - la selección con filtros;
+  - el borrador frente a `lineasIniciales`;
+  - `abrirPorCodigo` con códigos repetidos.
+- **Por qué en este puesto:** las pruebas del PR cubren las reglas puras, no la pantalla. La #3 y la #7 son justo lo que una prueba de permisos habría atrapado.
+- **Cómo lo verificas tú:** `pnpm test` incluye un archivo nuevo que falla si «Reponer al piso» aparece para un rol sin «Bajada al piso».
+- **Esfuerzo / dependencias:** M · después de la #3.
 
 ### #12 · Mejorar — bajo valor / opcional / futuro: cuatro pendientes chicos
-- **Dónde y por qué es bajo valor:** (a) *Tallas en curva:* `InventarioPanel.tsx:280` usa `.sort()`, que da 28, 30, 32, Estándar, L, M, S, XL, XS; existe `compararTallas` (`lib/tallas.ts:35`) — es incomodidad, no riesgo. (b) *Borrar el reintento sin `cantidad_apartada`:* `inventario-v2.ts:113-136`, la columna existe en producción, son ~22 líneas de `select` duplicado (Carmack: antes de agregar, borra). (c) *Tarjeta «Reponer a piso hoy · 0»:* `InventarioPanel.tsx:443-462` deshabilitada cuando vale 0, como ya hace la píldora «Por colgar» (`[visto captura 4]`: hoy el clic deja la tabla vacía). (d) *Futuro:* llevar búsqueda y filtros a la URL (`?q=&marca=`) como Movimientos y Productos; hoy `useState` (`:250-254`) los pierde al salir.
-- **Cómo lo verificas tú:** (a) el combo Talla muestra XS, S, M, L, XL, 28, 30, 32, Estándar (curva primero); (b) `pnpm typecheck` verde y la pantalla igual; (c) con «Reponer a piso hoy · 0» la tarjeta no responde al clic; (d) al volver de otra pantalla, la búsqueda sigue en el campo.
-- **Esfuerzo / dependencias:** S cada una. No antes de la #2; (d) además después de la #4.
+- Leyenda de la curva `piso·almacén` junto a la curva en el celular, no al pie.
+- Conteo que arranca con una lista (`?variantes=`), para «Contar esta prenda» (BACKLOG del #500).
+- SQL espejo: `fn_movimientos_variantes` todavía no busca por marca ni categoría (del análisis anterior).
+- Prueba de datos con un PostgREST y el rol `authenticated` (del análisis anterior).
+- **Por qué al final:** ninguno cambia una decisión ni protege stock hoy.
 
-## 8 · Estrategia alternativa
-**Existencias parte del stock (hoy) o parte del catálogo.** Decide Felipe.
-
+## 8 · Estrategia alternativa — pedir traslado desde la tienda
 | | Ganas | Pagas |
 |---|---|---|
-| **A · Mejorar la pantalla actual** (tareas #3, #4, #5, con el bloque «en el catálogo, sin stock aquí») — *recomendada* | Es M, no cambia la lectura ni los permisos, y contesta lo que Felipe vio; lo que la sede no ha recibido se avisa cuando se busca | 69 de 126 variantes siguen fuera de la tabla; AQP, LIM y el Taller siguen mostrando «no tiene stock todavía» |
-| **B · Existencias parte del catálogo × sede** (todas las variantes activas con su cifra en esta sede, 0 si no hay fila, con «Solo lo que esta sede tiene» activo por defecto) | Nunca dice «no coincide» para algo que existe; una sede nueva arranca viendo qué le falta y puede pedir el traslado desde la propia fila | Lectura nueva (la de `stock` la comparten la caja, Cambios y Traslados, no se toca); 126 filas donde hoy hay 45 y hasta 6.000 a 3 años (≈ 3,9 MB, cuenta mía sobre 655 B por fila `[inferido]`); llena el semáforo de «Sin stock» hasta resolver la #8 |
-| **C · Una lupa global de prenda** (una caja: escribes «cayla» y ves marca, categoría y prenda con stock por sede y «pedir traslado») | Es cómo se busca en el mostrador y resuelve la tarea raíz #7 por diseño | Pantalla nueva (L); reabre R-48 porque `fn_stock_por_sede` ya da cifras de toda la red a cualquier colaborador; convive con la lupa del menú móvil `[no verificable]` |
+| **A. Solicitud de traslado** (recomendada) | La tienda pide sin salir del ERP; queda rastro de quién pidió y cuándo; el origen decide con su stock a la vista | Tabla y pantalla nuevas (Traslados: «Solicitudes»), un estado más que atender; no reserva stock |
+| **B. Solo mostrar dónde hay** (lo de hoy) | Cero construcción | El pedido vive en WhatsApp: no hay rastro, y el ERP no sabe que algo se pidió y nunca llegó |
+| **C. Que el líder arme todo desde Análisis** (`planDeReposicion`) | Ya existe el motor | La tienda depende de que el líder mire Análisis; no responde a «la clienta está aquí y lo quiere ahora» |
 
-**Recomendación:** A ahora; decidir B o C cuando abra AQP o LIM, que hoy tienen 0 filas de stock `[producción]`. **Si no respondes, ejecuto A.**
+Decide Felipe (tarea #9).
 
 ## 9 · Referentes de ERP y futuro
-Todo lo que sigue viene de memoria y **no está verificado** `[no verificable]`.
-- **Odoo (Inventario):** su barra de búsqueda deja elegir el campo por el que se busca y filtrar y agrupar por categoría; la marca suele ir como atributo. **Shopify (inventario):** filtros por proveedor («vendor», su nombre para marca) y tipo de producto. **NetSuite:** listas guardadas.
-- **Filtro «¿le sirve a 3 tiendas y 1 taller hoy?»:** *pasa* — buscar y filtrar por marca y categoría (5 marcas hoy en TRU), el vacío que explica, el bloque «sin stock en esta sede» y el ajuste con token. *No pasa todavía (futuro)* — filtros en cascada con conteos («Miramhe · 8»: con 5 marcas y 45 filas no aporta), vistas guardadas, búsqueda global entre sedes (opción C), valorización del inventario por marca, y paginar en el servidor (recién con más de ~10.000 filas de stock por sede: hoy 79, a 3 años ~8.300).
+- (De memoria, no verificado) Lightspeed y Shopify POS: transferencia pedida desde la ficha del producto, con estados «pedida → enviada → recibida». Pasa el filtro de 3 tiendas y 1 taller: es la opción A de la sección 8.
+- Futuro, no ahora: sugerencia automática de traslados entre sedes por ritmo. ADR-0231 decidió que CAYLA no sugiere cantidades, y con 3 tiendas un humano decide mejor que un motor.
 
 ## 10 · Fuera de esta pantalla
-**La caja de Vender busca la frase entera en un orden fijo** (`buscar-prenda-v2.ts:43-50`, fijado por `buscar-prenda-v2.test.ts:32`): «negro m» o «blusa negro» no encuentran nada aunque «blusa» sí. Es la búsqueda con clienta esperando, la de más frecuencia del ERP `[inferido]`, y hoy la marca sí se busca ahí pero no con varias palabras. Felipe dijo que buscar por marca es lo más rápido; en la caja, «cayla negro m» falla. `docs/BACKLOG.md:1041` la dejó como decisión aparte: conviene decidirla junto con la #7.
+**Avisar a las tiendas una sola vez, después de fusionar el #500, no antes.**
+- El #445 cambió Existencias hoy a las 13:03 y nadie avisó (BACKLOG, sección ADR-0231).
+- El #500 la cambia otra vez: de filas por talla a filas por prenda.
+- Si se fusiona sin aviso, la vendedora va a ver dos pantallas distintas en un mismo día y va a concluir que el sistema está roto. Un mensaje corto, con una captura, tras el merge.
 
 ## 11 · Líneas propuestas para BACKLOG.md
-- [ ] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada (`ajustar_inventario`) — M
-- [ ] `[pantalla:inventario]` #2 Decidir el destino del PR #445 antes de cablear en `InventarioPanel.tsx` — S/M
-- [ ] `[pantalla:inventario]` #3 Buscador con marca y categoría y relevancia (motor + `getExistencias` + SQL de Movimientos); renombrar la prop `marca` de la celda a `senal` primero — M
-- [ ] `[pantalla:inventario]` #4 Filtro «Marca» y marca en la fila y el CSV — M
-- [ ] `[pantalla:inventario]` #5 Estado vacío que explica y separa «no existe» de «esta sede no lo ha recibido» — M
-- [ ] `[pantalla:inventario]` #6 Decidir la estrategia alternativa (A/B/C, sección 8 de `docs/pantallas/inventario.md`) — S
-- [ ] `[pantalla:inventario]` #7 Un solo motor de búsqueda de prendas para el ERP (caja, Productos, sinónimos de color, restos del código de etiqueta) — L
-- [ ] `[pantalla:inventario]` #8 Semáforo de estado: 41 de 45 en «Stock bajo» rojo; decidir el umbral — S/M
-- [ ] `[pantalla:inventario]` #9 «Disponible total», recomendaciones y ritmo del mismo universo que la tabla — S
-- [ ] `[pantalla:inventario]` #10 Candado de módulo en `mover_interno` y `apartar_stock` (ADR-0161) — M
-- [ ] `[pantalla:inventario]` #11 La tabla cabe en 1.280 px con acciones a la vista; botón «Recargar» — M
-- [ ] `[pantalla:inventario]` #12 (bajo valor) Tallas en curva, borrar el reintento sin `cantidad_apartada`, tarjeta «Reponer a piso hoy · 0», filtros a la URL — S
-- [ ] `[pantalla:inventario]` Reescribir `BACKLOG.md:37` («Sin tocar, por decisión de Felipe: buscar “CAYLA”…»): Felipe pidió lo contrario el 2026-09-26.
+- [ ] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada — M
+- [x] `[pantalla:inventario]` #2 Ajustar sin «Bajada al piso»: lo nuevo entra al almacén y la fila lo dice (ADR-0212/0235) — S
+- [ ] `[pantalla:inventario]` #3 Un solo candado por escritura: `mover_interno`/`apartar_stock` con `fn_ve_modulo` y el detalle igual (decisión A/B de Felipe) — M
+- [x] `[pantalla:inventario]` #4 La bajada desde Existencias llega en 0 y se llena escaneando (ADR-0237 act.) — S–M
+- [ ] `[pantalla:inventario]` #5 «Reponer» ordenado por urgencia y un solo primario — S
+- [ ] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla — M
+- [ ] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S
+- [ ] `[pantalla:inventario]` #8 Lecturas tolerantes y sin tope silencioso — S
+- [ ] `[pantalla:inventario]` #9 Decidir la solicitud de traslado (sección 8) — L
+- [ ] `[pantalla:inventario]` #10 Un vocabulario («tallas») y un conteo — S
+- [ ] `[pantalla:inventario]` #11 Pruebas del panel (permisos, selección, borrador) — M
+- [ ] `[pantalla:inventario]` #12 Pendientes chicos (leyenda, Conteo con lista, SQL espejo, prueba PostgREST) — S c/u
 
 ## Inventario de elementos
 | Zona | Elemento | Qué hace | Veredicto | Evidencia |
 |---|---|---|---|---|
-| Cabecera | Selector «TIENDA TRU» | Cambia la sede de toda la app; el `key` de `InventarioPanel` reinicia filtros | bien | `[código page.tsx:124]` |
-| Cabecera | «Vista cargada a las 01:26 — recarga para ver lo último» | Solo texto; pide una acción que no tiene control | ajustar (#11) | `[código page.tsx:117]` `[visto captura 4]` |
-| Cabecera | «Bajar al piso» | Enlace a `/inventario/bajar`, solo si el rol ve `bajada_piso` y es su sede | bien | `[código page.tsx:106-110]` |
-| Cabecera | «+ Nuevo traslado» | Enlace a `/inventario/mover`, siempre visible | bien (candado no revisado) | `[código page.tsx:111-113]` `[no verificable]` |
-| Prioridades | «VER RECOMENDACIONES (25)» | Abre `RecomendacionesOverlay`, solo lectura; cifra de otro universo | ajustar (#9) | `[código InventarioPanel.tsx:428-439]` `[visto captura 4]` |
-| Prioridades | «REPONER A PISO HOY · 0» | Alterna `estado`; con 0 deja la tabla vacía y manda a «Por colgar» | ajustar (#12) | `[código :443-462]` `[visto captura 4]` |
-| Prioridades | «DISPONIBLE TOTAL · 203» | Abre el desglose por categoría (universo de `filasSemana`) | ajustar (#9) | `[código :464-473]` `[visto captura 4]` |
-| Prioridades | «EN CAMINO HACIA ACÁ · 0» | Enlace a `/inventario/traslados` | bien | `[código :474-480]` |
-| Prioridades | «DAÑADO / CUARENTENA · 0» | Abre `ResolverDanadosModal` | bien | `[código :481-493]` |
-| Distribución | Barra 78 % piso / 22 % almacén | Cifras de `resumen`; «apartado» es botón solo si hay | bien | `[código :500-534]` `[visto captura 4]` |
-| Distribución | «Ver análisis de cobertura» | Abre `AnalisisCoberturaOverlay` | bien | `[código :537-543]` |
-| Filtros | Caja «Buscar» | Filtra en memoria con el motor especial; no indexa marca ni categoría; sin `spellCheck` | falta (#3) | `[código :296-315,:553]` `[visto captura 4]` |
-| Filtros | «Categoría: todas» | Igualdad exacta sobre las categorías de la sede | bien | `[código :554-561]` |
-| Filtros | «Marca» | No existe | falta (#4) | `[visto captura 4]` |
-| Filtros | «Talla: todas» | Opciones con `.sort()` alfabético | ajustar (#12) | `[código :280,:562-570]` |
-| Filtros | «Color: todos» | Opciones de la sede; sin sinónimos de la base | ajustar (#7) | `[código :571-579]` `[producción]` |
-| Filtros | «Estado: todos» | Mezcla Dañado, Por colgar y el semáforo de 4 estados | ajustar (#8, #2) | `[código :580-594]` |
-| Filtros | Píldora «Por colgar · 9 tallas · 20 uds» | Alterna el mismo filtro; cuenta toda la sede | bien | `[código :600-616]` `[visto captura 4]` `[producción]` |
-| Filtros | «LIMPIAR FILTROS» | Borra búsqueda y los cuatro filtros | bien (incluirá Marca) | `[código :352-355,:640]` |
-| Vacío | «Ningún producto coincide con la búsqueda.» | Una frase para cualquier vacío | ajustar (#5) | `[código :653-659]` `[visto captura 4]` |
-| Tabla | Cabecera de 9 columnas | Producto, Piso·Almacén, Disponible, Cobertura, Ritmo, Prioridad/Estado, En camino, En la red, acciones | ajustar (#11) | `[código :665-689]` `[visto captura 3]` |
-| Tabla | Chips «Por colgar» y «Stock bajo» | Informan; «Stock bajo» en rojo en el 91 % | ajustar (#8) | `[código :746-761]` `[visto captura 3]` `[producción]` |
-| Tabla | «Reponer» | `mover_interno` con token (bajar del almacén al piso) | bien | `[código :767-777]` `[producción]` |
-| Tabla | «Apartar» | `apartar_stock` con token; falta candado de módulo | ajustar (#10) | `[código :826-834]` `[producción]` |
-| Tabla | «Ajustar» | `registrar_movimiento` por variante, sin token | ajustar (#1) | `[código :836-844]` `[producción]` |
-| Tabla | «⋯» Retirar del piso / Ver historial | `mover_interno` al almacén; `router.push` al historial | bien | `[código :863-880]` |
-| Pie | «Exportar CSV» | Descarga todas las páginas filtradas; sin Marca | ajustar (#4) | `[código :387-404,:891-897]` |
-| Pie | Paginador «Mostrando 1–15 de N prendas» | 15 filas; «prendas» cuenta variantes | bien | `[código :324-334,:889-890]` |
-| Pie | Leyenda de estados | Puntos y acciones por estado | ajustar (#8) | `[código :899-909]` |
+| Cabecera | Bajar al piso | Va a `/inventario/bajar`; exige módulo, sede propia y piso+almacén | bien | `[código page.tsx:163]` |
+| Cabecera | + Nuevo traslado | Va a `/inventario/mover`; exige el módulo; **no** exige sede propia (el ADR dice que sí) | ajustar | `[código page.tsx:168]` |
+| Cabecera | Recibir / Contar / Apartados | Accesos por módulo, solo en sede propia; Apartados con número de apartados | ajustar (número) | `[código page.tsx:174-194]` |
+| Cifras | Reponer a piso hoy | Tallas con `accionHoy` = reponer | ajustar (vocabulario) | `[visto]` |
+| Cifras | Disponible total | Total − apartado, con % vs 7 días | bien (ver #8) | `[código inventario-v2.ts:188]` |
+| Cifras | En camino / Dañado | Ítems en tránsito / prendas dañadas pendientes | bien | `[visto]` |
+| Filtros | Buscador + 5 combos + chip «Por colgar» | Filtran la lista | ajustar (celular, chip duplicado) | `[visto]` |
+| Lista | Fila por prenda con curva `piso·almacén` | Agrupa modelo+color | bien | `[visto]` |
+| Lista | «Reponer N tallas» | Abre el detalle en una talla | ajustar (#5, #7) | `[código ExistenciasPorPrenda.tsx:158]` |
+| Lista | Casillas + barra (Bajar / Trasladar / Etiquetas) | Llevan a la pantalla vecina con la lista cargada | ajustar (#4) | `[visto]` |
+| Detalle | Tallas, Reponer, Apartar, Retirar | Modales de siempre | ajustar (#3) | `[visto][código]` |
+| Detalle | Trasladar, Etiquetas, Ajustar, Historial | Enlaces y modal | ajustar (#1, #7) | `[código]` |
+| Detalle | Dónde más hay | Stock de la talla en otras sedes, sin acción | falta acción (#9) | `[visto]` |
+| Celular | «Escanear prenda» fijo | Cámara → talla exacta | bien | `[visto]` |
+| Pie | Mostrando N prendas · CSV · leyenda | | ajustar (leyenda en celular) | `[visto]` |
 
 ## Historial
 | Fecha | Modo | Cumplimiento | Relevancia | Tareas cerradas de las 12 anteriores |
 |---|---|---|---|---|
-| 2026-09-26 | completo | 5/10 (promedio 6.0, con tope 5) | 7.4 — Soporte | primer análisis |
+| 2026-09-26 | completo | 5/10 (promedio 6.0, con tope 5) | 7.4 — Soporte | primer análisis (pantalla anterior al #445) |
+| 2026-09-26 (tarde) | completo, sin SQL | 5/10 (promedio 6.3, con tope 5) | 7.8 — Soporte | Sobre el PR #500 (`ffa5d52b`). **Cerradas:** #2 (el #445 se fusionó), #3, #4 y #5 (buscador con marca, filtro Marca y vacío que explica: están en el código). **Superadas por el rediseño:** #8 (el semáforo de 4 estados ya no existe, pero su defecto reaparece como «todo pide reponer»: nueva #5) y #11 (la tabla por talla dejó de ser la vista principal). **Siguen abiertas:** #1 (Ajustar, nueva #1), #10 (candado de módulo, nueva #3), #6 (estrategia alternativa: ahora sección 8), #7 (motor único de búsqueda), #9 (`es_prueba`: la lista lo excluye, `fn_resumen_variantes` sin verificar) y #12. |
 
-## Apéndice · consultas para confirmar (solo lectura, proyecto `cayla-dynamic`, schema `retail`)
-Q1 · ¿Cuántas variantes y marcas ve Existencias en TRU? (esperado: 45 variantes, 5 marcas, 203 uds)
+## Anexo · consultas de solo lectura para confirmar en producción (proyecto `cayla-dynamic`, schema `retail`)
+Felipe eligió seguir sin SQL. Estas consultas convierten en `[producción]` lo que arriba va `[local]` o `[no verificable]`; se probaron contra la base local.
+- **Q2** (tarea #3): qué roles ven Existencias sin «Bajada al piso», «Apartados» o «Traslados», y cuántas cuentas activas tiene cada uno.
+- **Q3** (tarea #2): si `cargar_stock_inicial` ya existe en producción, y qué funciones preguntan el módulo.
+- **Q7** (tarea #5): cuántas tallas piden reponer por sede con el umbral 4, y cuántas no tienen almacén para bajar.
+
 ```sql
-select count(distinct v.id) as variantes, count(distinct m.nombre) as marcas
-from retail.stock s
-join retail.variantes v on v.id = s.variante_id and v.activo
-join retail.productos p on p.id = v.producto_id and not p.es_prueba
-join retail.marcas m on m.id = p.marca_id
-where s.ubicacion_id = (select id from retail.ubicaciones where nombre ilike '%TRU%' limit 1);
-```
-Q2 · Estado de las 45 prendas con la regla de `calcularEstado` (esperado: 4 sin stock, 41 stock bajo, 0 reponer piso, 0 normal, 9 por colgar)
-```sql
+-- Q2
+select r.clave as rol,
+       bool_or(rm.modulo = 'existencias') as existencias, bool_or(rm.modulo = 'bajada_piso') as bajada_piso,
+       bool_or(rm.modulo = 'apartados') as apartados, bool_or(rm.modulo = 'traslados') as traslados,
+       (select count(*) from retail.colaboradores c where c.rol_id = r.id and c.estado = 'activo') as cuentas_activas
+from retail.roles r left join retail.rol_modulos rm on rm.rol_id = r.id
+where r.archivado_at is null group by r.id, r.clave order by 1;
+
+-- Q3
+select p.proname, pg_get_function_identity_arguments(p.oid) as argumentos,
+       p.prosrc ~* 'fn_ve_modulo' as pregunta_modulo, p.prosrc ~* 'bajar_al_piso' as llama_bajar_al_piso
+from pg_proc p
+where p.pronamespace = 'retail'::regnamespace
+  and p.proname in ('mover_interno','bajar_al_piso','apartar_stock','registrar_movimiento','cargar_stock_inicial')
+order by 1;
+
+-- Q7
 with por_var as (
-  select s.variante_id,
-    sum(s.cantidad) filter (where ss.tipo = 'piso_venta') as piso,
-    sum(s.cantidad) filter (where ss.tipo = 'almacen_tienda') as alm
+  select s.ubicacion_id, s.variante_id,
+    sum(s.cantidad - s.cantidad_apartada) filter (where ss.tipo = 'piso_venta') as piso_libre,
+    sum(s.cantidad - s.cantidad_apartada) filter (where ss.tipo = 'almacen_tienda') as alm_libre
   from retail.stock s
   join retail.sububicaciones ss on ss.id = s.sububicacion_id
   join retail.variantes v on v.id = s.variante_id and v.activo
-  join retail.productos p on p.id = v.producto_id and not p.es_prueba
-  where s.ubicacion_id = (select id from retail.ubicaciones where nombre ilike '%TRU%' limit 1)
-  group by 1)
-select count(*) filter (where coalesce(piso,0) <= 0 and coalesce(alm,0) <= 0) as sin_stock,
-       count(*) filter (where not (coalesce(piso,0) <= 0 and coalesce(alm,0) <= 0) and coalesce(alm,0) <= 10) as stock_bajo,
-       count(*) filter (where coalesce(alm,0) > 10 and coalesce(piso,0) <= 7) as reponer_piso,
-       count(*) filter (where coalesce(alm,0) > 10 and coalesce(piso,0) > 7) as normal,
-       count(*) filter (where coalesce(piso,0) <= 0 and coalesce(alm,0) > 0) as por_colgar
-from por_var;
-```
-Q3 · ¿Qué escrituras llevan token y cuáles llaman a `fn_ve_modulo`? (esperado: `registrar_movimiento` sin `p_token`; `mover_interno` y `apartar_stock` sin `fn_ve_modulo`)
-```sql
-select p.proname, pg_get_function_arguments(p.oid) as argumentos,
-       (p.prosrc ~* 'fn_ve_modulo') as llama_fn_ve_modulo
-from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'retail' and p.proname in ('registrar_movimiento','mover_interno','apartar_stock','bajar_al_piso')
-order by 1;
-```
-Q4 · ¿`fn_resumen_variantes` mira `es_prueba`? (esperado: 0)
-```sql
-select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-where n.nspname = 'retail' and p.proname = 'fn_resumen_variantes' and p.prosrc ~* 'es_prueba';
+  join retail.productos p on p.id = v.producto_id and not coalesce(p.es_prueba, false)
+  group by 1, 2)
+select u.nombre as sede,
+       count(*) as tallas,
+       count(*) filter (where coalesce(piso_libre,0) <= 4) as piden_reponer,
+       count(*) filter (where coalesce(piso_libre,0) <= 4 and coalesce(alm_libre,0) <= 0) as sin_almacen_para_bajar
+from por_var join retail.ubicaciones u on u.id = por_var.ubicacion_id
+group by 1 order by 1;
 ```

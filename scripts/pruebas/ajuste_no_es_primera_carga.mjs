@@ -204,5 +204,29 @@ ${K("interna", "not has_function_privilege('authenticated', 'retail.fn_cargar_st
   },
 );
 
+// La integrante de la siembra (TRU) ajusta stock (ve Existencias) pero su rol NO tiene «Bajada al piso». «Colgadas en el
+// piso» es una bajada y la pide (ADR-0212): la base la frena, y por eso «Ajustar» le manda sus prendas nuevas al almacén
+// (`cargaInicialAlPiso`, ajuste-reglas.ts) en vez de dejarla con este error al confirmar.
+const INTEGRANTE = "22222222-2222-4222-8222-000000000003";
+correr(
+  "7. Sin el módulo «Bajada al piso»: la carga inicial entra al almacén; al piso, la base la frena",
+  `set local request.jwt.claim.sub = '${INTEGRANTE}';
+set local request.jwt.claims = '{"sub":"${INTEGRANTE}","role":"authenticated"}';
+${COMO_API}${K("ajusta", "retail.fn_puede_ajustar_inventario()")}
+${K("baja", "retail.fn_ve_modulo('bajada_piso')")}
+${K("al_piso", carga(items(["v1", 2]), true))}
+${K("al_almacen", carga(items(["v2", 2]), false))}
+${COMO_POSTGRES}${K("v1", movs("v1"))}
+${K("alm_v2", stock("v2", "alm"))}`,
+  (d) => {
+    afirmar("(la siembra) la integrante puede ajustar stock", d.ajusta === "true", `ajusta=${d.ajusta}`);
+    afirmar("(la siembra) y su rol no tiene «Bajada al piso»", d.baja === "false", `baja=${d.baja}`);
+    const piso = j(d.al_piso);
+    afirmar("al piso se rechaza con `bajada_sin_modulo`", piso && piso.ok === false && piso.hint === "bajada_sin_modulo", d.al_piso);
+    afirmar("y no queda nada a medias (ni la entrada al almacén)", d.v1 === "0", `movimientos v1=${d.v1}`);
+    afirmar("al almacén entra sin problema", j(d.al_almacen)?.ok === true && d.alm_v2 === "2", `${d.al_almacen} alm=${d.alm_v2}`);
+  },
+);
+
 console.log(`\n${fallos === 0 ? "✔" : "✘"} ${total - fallos}/${total} verificaciones${fallos ? ` — ${fallos} fallaron` : ""}`);
 process.exit(fallos === 0 ? 0 : 1);

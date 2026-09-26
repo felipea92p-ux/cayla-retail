@@ -114,8 +114,10 @@ export function lineasEnUrl(lineas: readonly { varianteId: string; cantidad: num
     .join(",");
 }
 
-/** Lo que va a «Bajar al piso» desde lo marcado: solo las tallas que se pueden bajar, con UNA unidad cada una. CAYLA no
- *  sugiere cuánto reponer (ADR-0231): la lista llega armada y la vendedora pone la cantidad que cuelga. */
+/** Lo que va a «Bajar al piso» desde lo marcado: solo las tallas que se pueden bajar. El 1 es solo la forma del enlace
+ *  (`lineasEnUrl` no lleva ceros): «Bajar al piso» las recibe todas «por escanear», en 0, y cada lectura suma una
+ *  (`lineasIniciales`, ADR-0237 act. 2026-09-26). CAYLA no sugiere cuánto reponer (ADR-0231): lo que se baja es lo que
+ *  la vendedora escanea al colgar. */
 export function lineasParaBajar(filas: readonly FilaPrenda[]): { varianteId: string; cantidad: number }[] {
   return filas.filter(sePuedeBajar).map((f) => ({ varianteId: f.varianteId, cantidad: 1 }));
 }

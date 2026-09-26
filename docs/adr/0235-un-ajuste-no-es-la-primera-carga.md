@@ -96,3 +96,34 @@ SE ROMPE SI: se usa para mercadería que LLEGA de un proveedor (entraría sin co
   `alta_con_stock_inicial` (28), `terminales_sin_persona` (55) y `roles` (70).
 - `lib/ajuste-reglas.test.ts` (20). En el navegador: Existencias ▸ Ajustar «Vestido Antonella» en Lima marca S y L como
   «Nueva en esta tienda · entra como stock inicial» y deja M (que llegó por el Traslado 3) como ajuste.
+
+## Actualización 2026-09-26 (noche) — sin «Bajada al piso», la carga inicial entra al almacén
+
+**Problema.** `cargar_stock_inicial` con «al piso» llama a `bajar_al_piso`, que pide el módulo «Bajada al piso». Pero
+se puede entrar con `fn_puede_ajustar_inventario()`, que acepta a quien ve Existencias, Conteos o Traslados. La
+integrante de la siembra está justo en ese caso: ajusta stock y su rol no tiene «Bajada al piso». Si elegía «Piso de
+venta» en «Ajustar» con una prenda nueva en la tienda, al confirmar recibía `bajada_sin_modulo`. No había conflicto de
+git que lo avisara. Lo encontró el análisis `/pantalla` de Existencias (`docs/pantallas/inventario.md`, tarea #2).
+
+**Decidí.** Lo mismo que ya decidió ADR-0212 para «Nuevo producto»: «colgadas en el piso» es una bajada y pide su
+módulo. Quien no lo tiene no queda trabado con un error:
+- sus prendas nuevas entran al almacén (`cargaInicialAlPiso`, `lib/ajuste-reglas.ts`);
+- la fila lo dice antes de confirmar: «Nueva en esta tienda · entra al almacén: tu rol no baja prendas al piso»
+  (`textoPrendaNueva`).
+
+Quién puede bajar lo decide la página en el servidor (`veModulo(persona, "bajada_piso")`) y se lo pasa al modal
+(`puedeBajarAlPiso`) desde las tres pantallas que lo abren: Existencias, y Productos en sus dos vistas. **La base no
+cambia.**
+
+**Descarté.** Que `cargar_stock_inicial` bajara al piso sin pedir el módulo, por una puerta interna. Era la propuesta
+inicial del análisis. Contradecía ADR-0212: la misma prenda nueva pediría el módulo al crearla y no al cargarla desde
+«Ajustar», y quedarían dos reglas para una misma operación.
+
+**Se rompe si** alguien abre «Ajustar» desde una pantalla nueva y le pasa `puedeBajarAlPiso` sin preguntar el módulo. La
+base igual lo frena (`bajada_sin_modulo`) y no deja nada a medias. La prop es obligatoria, así que `tsc` obliga a
+decidirla en cada pantalla.
+
+**Verificación.** Caso 7 nuevo en `scripts/pruebas/ajuste_no_es_primera_carga.mjs`: la integrante carga al almacén; al
+piso, la base la frena y no deja ni la entrada; 25/25 en local. `lib/ajuste-reglas.test.ts` suma 3 casos (23 en total).
+En el navegador, con la cuenta de líder, que sí tiene el módulo, el texto sigue siendo «entra como stock inicial». Falta
+verlo con la cuenta de integrante.
