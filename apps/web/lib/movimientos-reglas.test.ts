@@ -21,7 +21,6 @@ import {
   restarDias,
   serializarCursorMovimientos,
   textoDelta,
-  textoOrigenDestino,
   textoPeriodo,
   tonoCategoria,
   type Movimiento,
@@ -92,37 +91,6 @@ describe("tonoCategoria", () => {
     expect(tonoCategoria("ajuste", 1)).toBe("neutro");
     expect(tonoCategoria("entrada", 3)).toBe("verde");
     expect(tonoCategoria("interno", 0)).toBe("ambar");
-  });
-});
-
-describe("textoOrigenDestino", () => {
-  it("interno: sububicación origen → destino, abreviadas para la lista", () => {
-    const m = movimiento({
-      categoria: "interno",
-      tipo: "traslado",
-      motivo: "movimiento_interno",
-      ubicacionDestinoId: "u-lima",
-      ubicacionDestino: "Tienda Lima",
-      sububicacion: { id: "s1", nombre: "Almacén de tienda", tipo: "almacen_tienda" },
-      sububicacionDestino: { id: "s2", nombre: "Piso de venta", tipo: "piso_venta" },
-    });
-    expect(textoOrigenDestino(m)).toBe("Almacén → Piso");
-  });
-
-  it("la activación de piso/almacén (sin sububicación de origen) lo dice, no inventa una", () => {
-    const m = movimiento({
-      categoria: "interno",
-      tipo: "traslado",
-      motivo: "activacion_piso_almacen",
-      esSistema: true,
-      sububicacionDestino: { id: "s1", nombre: "Almacén de tienda", tipo: "almacen_tienda" },
-    });
-    expect(textoOrigenDestino(m)).toBe("Sin sububicación → Almacén");
-  });
-
-  it("transferencia: sede origen → sede destino", () => {
-    const m = movimiento({ categoria: "transferencia", tipo: "traslado", ubicacion: "Taller", ubicacionDestino: "Tienda Lima" });
-    expect(textoOrigenDestino(m)).toBe("Taller → Tienda Lima");
   });
 });
 

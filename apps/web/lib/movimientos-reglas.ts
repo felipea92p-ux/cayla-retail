@@ -298,19 +298,6 @@ export function nombreCortoSububicacion(s: Movimiento["sububicacion"]): string {
   return s.nombre;
 }
 
-/** De dónde a dónde, según lo que importa en cada categoría: sububicaciones
- *  en un interno, sedes en una transferencia, la sububicación tocada en el
- *  resto (o nada, en una ubicación sin piso/almacén). */
-export function textoOrigenDestino(m: Movimiento): string | null {
-  if (m.categoria === "interno") {
-    return `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`;
-  }
-  if (m.categoria === "transferencia") {
-    return `${m.ubicacion} → ${m.ubicacionDestino ?? "—"}`;
-  }
-  return m.sububicacion?.nombre ?? null;
-}
-
 /** De dónde a dónde, para la columna «Origen → Destino» de la lista (diseño
  *  de Felipe, 2026-09-16): cada proceso nombra sus dos puntas en el
  *  vocabulario de la tienda, no en el de la base. Una venta sale del piso
