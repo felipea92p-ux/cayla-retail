@@ -44,7 +44,7 @@ import {
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
 /** Lee un cuadro del video; `null` si no hay código a la vista. */
-type Lector = (video: HTMLVideoElement, lienzo: HTMLCanvasElement) => Promise<string | null>;
+export type Lector = (video: HTMLVideoElement, lienzo: HTMLCanvasElement) => Promise<string | null>;
 
 /** Lo mínimo del `BarcodeDetector` nativo que se usa (no está en los tipos de TypeScript). */
 type DetectorNativo = { detect: (fuente: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
@@ -64,7 +64,9 @@ export function precargarLectorQR(): void {
   });
 }
 
-async function crearLector(): Promise<Lector> {
+/** El lector de un cuadro de video: el detector del navegador o jsQR. Lo usa también el escáner de Cambios
+ *  (`EscanerBusqueda`), que lee UNA vez y busca. */
+export async function crearLector(): Promise<Lector> {
   const Nativo = (window as unknown as { BarcodeDetector?: ClaseDetector }).BarcodeDetector;
   if (Nativo) {
     try {
