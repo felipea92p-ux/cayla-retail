@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Caja de trabajo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Caja como pantalla de trabajo (2026-09-26)
+   Tokens = los reales de apps/web/app/globals.css. Modales = ADR-0136.
+   Datos inventados: Tienda TRU, apertura S/ 300.00, 4 ventas.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--verde-p:#44583a;--ambar:#74501a;
+  --g-neutro:#d3c8b4;
+  --m-efectivo:#d19a12;--m-efectivo-t:#6b4a00;--m-tarjeta:#525a64;--m-yape:#6d3fa3;--m-plin:#1c6b56;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t10:rgba(26,26,24,.10);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);--ease-out:cubic-bezier(.4,0,1,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#e9e2d6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.45}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px}
+.tab{font-variant-numeric:tabular-nums lining-nums}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+[hidden]{display:none!important}
+a{color:inherit}
+
+/* ---------- panel de control del spike (no es parte del ERP) ---------- */
+.ctl{position:sticky;top:0;z-index:40;background:#1a1a18;color:#f5f0e8;padding:10px 20px;display:flex;flex-wrap:wrap;gap:8px 22px;align-items:center;font-size:12.5px}
+.ctl b{font-weight:600;margin-right:6px;opacity:.7}
+.seg{display:inline-flex;background:rgba(255,255,255,.08);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{padding:5px 10px;border-radius:6px;font-size:12.5px;color:rgba(245,240,232,.7);transition:background .2s var(--ease),color .2s}
+.seg button[aria-pressed=true]{background:#f5f0e8;color:#1a1a18}
+.guia{max-width:1320px;margin:18px auto 0;padding:0 20px;display:grid;grid-template-columns:1fr;gap:10px}
+.guia .caja-nota{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 18px;font-size:13.5px;color:var(--t80)}
+.guia .caja-nota strong{color:var(--tinta)}
+.guia h1{font-size:30px}
+
+.escena{max-width:1700px;margin:16px auto 60px;padding:0 20px;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;justify-content:safe center}
+.escena > div{max-width:100%;min-width:0}
+.marco-titulo{font-size:12px;color:var(--t65);margin:0 0 8px 4px}
+
+/* ====================== ESCRITORIO ====================== */
+.escritorio{width:1240px;max-width:100%;overflow-x:auto;border-radius:14px;box-shadow:0 30px 60px -30px rgba(60,40,20,.45);outline:1px solid var(--t10);background:var(--crema)}
+.esc-interior{min-width:1100px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 28px;border-bottom:1px solid var(--sand);background:#f2ece2}
+.topbar .der{display:flex;gap:18px;align-items:center}
+.selector{border:1px solid var(--sand);border-radius:6px;padding:6px 10px;background:var(--papel)}
+.esc-cuerpo{padding:26px 34px 34px}
+
+/* cabecera (EncabezadoPagina / CabeceraPantalla) */
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px}
+.sobre{display:flex;align-items:center;gap:10px;color:var(--taupe)}
+.sobre::before{content:"";width:28px;height:1px;background:var(--rojo)}
+.cab h1{font-size:44px;line-height:1.05;margin-top:6px}
+.cab .bajada{color:var(--taupe);margin-top:4px;font-size:14px}
+.cab .acciones{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.reloj-mini{display:flex;align-items:baseline;gap:6px;color:var(--t65);font-size:13px}
+.reloj-mini b{font-family:'EB Garamond',serif;font-size:22px;color:var(--tinta);font-weight:500}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:7px;padding:10px 16px;font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;transition:background .2s var(--ease),border-color .2s,transform .15s var(--ease);white-space:nowrap}
+.btn:active{transform:scale(.98)}
+.btn-p{background:var(--tinta);color:var(--crema)}
+.btn-p:hover{background:#000}
+.btn-s{border:1px solid var(--taupe);background:transparent}
+.btn-s:hover{background:rgba(232,224,208,.5)}
+.btn-sutil{font-size:11px;padding:6px 8px;color:var(--taupe)}
+.btn-sutil:hover{color:var(--tinta);background:rgba(232,224,208,.4)}
+
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip-verde{background:rgba(72,96,63,.12);color:var(--verde)}
+.chip-ambar{background:rgba(116,80,26,.12);color:var(--ambar)}
+.chip-rojo{background:rgba(184,65,45,.12);color:var(--rojo-p)}
+.chip-pizarra{background:rgba(76,93,110,.12);color:var(--pizarra)}
+.chip-gris{background:var(--t07);color:var(--t65)}
+
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:18px 20px}
+.card-t{font-weight:700;font-size:14px}
+.card-b{color:var(--t50);font-size:12px;margin-top:1px}
+.fila{display:flex;align-items:center;gap:10px}
+.entre{justify-content:space-between}
+
+/* héroe: efectivo en el cajón */
+.fila-heroe{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px}
+.heroe{border-left:3px solid var(--m-efectivo);position:relative}
+.heroe .monto{font-size:46px;line-height:1;margin-top:10px}
+.heroe .monto small{font-size:26px}
+.desglose{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:14px;font-size:12.5px;color:var(--t65)}
+.desglose b{color:var(--tinta);font-weight:600}
+.desglose .op{color:var(--t50)}
+.cobrado .monto{font-size:32px;line-height:1;margin-top:10px}
+.barra-met{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:14px;background:var(--hueso)}
+.barra-met span{height:100%;transition:width .6s var(--ease)}
+.leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:10px;font-size:12px;color:var(--t65)}
+.leyenda i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.leyenda b{color:var(--tinta);font-weight:600}
+.aviso-anticipo{margin-top:10px;font-size:11.5px;color:var(--t65);background:var(--hueso);border-radius:8px;padding:6px 10px}
+.ritmo-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;text-align:center}
+.ritmo-mini .v{font-family:'EB Garamond',serif;font-size:24px;line-height:1.1}
+.ritmo-mini .l{font-size:9.5px;color:var(--t65)}
+.linea-tiempo{position:relative;height:34px;margin-top:14px;border-bottom:1px solid var(--sand)}
+.linea-tiempo i{position:absolute;bottom:-5px;border-radius:50%;transform:translateX(-50%)}
+.lt-pie{display:flex;justify-content:space-between;font-size:10.5px;color:var(--t50);margin-top:6px}
+
+/* pendientes del turno */
+.pendientes{display:flex;align-items:center;gap:14px;background:rgba(116,80,26,.07);border:1px solid rgba(116,80,26,.22);border-radius:12px;padding:10px 14px;margin-top:12px;flex-wrap:wrap}
+.pendientes .tit{font-weight:700;font-size:13px;color:var(--ambar);display:flex;gap:8px;align-items:center}
+.pend{display:inline-flex;flex:none;white-space:nowrap;text-decoration:none;align-items:center;gap:8px;background:var(--papel);border:1px solid var(--sand);border-radius:999px;padding:5px 12px 5px 10px;font-size:12.5px;transition:border-color .2s}
+.pend:hover{border-color:var(--taupe)}
+.pend b{font-weight:700}
+.pend .fl{color:var(--taupe)}
+
+/* accesos: botones */
+.accesos{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}
+.acceso{display:flex;gap:12px;align-items:flex-start;text-align:left;background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.acceso:hover{border-color:var(--taupe);transform:translateY(-1px)}
+.acceso .ico{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--hueso);color:var(--tinta)}
+.acceso .t{font-weight:700;font-size:13.5px;line-height:1.2}
+.acceso .d{font-size:11.5px;color:var(--t65);margin-top:2px}
+.acceso .n{display:inline-block;margin-top:6px}
+.acceso.principal{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.acceso.principal .ico{background:rgba(245,240,232,.12);color:var(--crema)}
+.acceso.principal .d{color:rgba(245,240,232,.7)}
+
+/* accesos: filtros */
+.filtros{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.filtros .lbl{color:var(--t65);margin-right:4px}
+.pildora{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--sand);background:var(--papel);border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:500;transition:all .2s var(--ease)}
+.pildora[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pildora .cnt{font-size:11px;opacity:.7}
+.filtros .recuerda{font-size:11.5px;color:var(--t50);margin-left:6px}
+.paneles{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:12px}
+.panel-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
+.lista-mini > div{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--sand);font-size:12.5px}
+.lista-mini > div:first-child{border-top:0}
+.lista-mini .s{font-size:11.5px;color:var(--t50)}
+.mini-btn{font-size:11px;font-weight:600;border:1px solid var(--sand);border-radius:6px;padding:4px 9px;white-space:nowrap}
+.mini-btn:hover{border-color:var(--taupe)}
+
+/* cuerpo inferior */
+.fila-baja{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin-top:12px}
+.segm{display:inline-flex;background:var(--hueso);border-radius:8px;padding:3px;gap:2px}
+.segm button{font-size:11.5px;padding:4px 10px;border-radius:6px;color:var(--t65)}
+.segm button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px var(--t07)}
+.movs > div{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--sand)}
+.movs > div:first-child{border-top:0}
+.movs .ic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:var(--hueso)}
+.movs .t{font-weight:600;font-size:13px}
+.movs .s{font-size:11.5px;color:var(--t50)}
+.movs .m{font-weight:700;font-size:13.5px}
+.pos{color:var(--verde)}.neg{color:var(--rojo-p)}.cero{color:var(--t50)}
+
+/* historial */
+.ult{display:flex;gap:14px;align-items:center}
+.ult .sello{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:rgba(72,96,63,.12);color:var(--verde);flex:none}
+.sem{display:grid;grid-template-columns:repeat(12,1fr);gap:6px;margin-top:12px}
+.sem div{text-align:center;font-size:10px;color:var(--t50)}
+.sem span{display:block;height:30px;border-radius:7px;margin-bottom:4px;position:relative}
+.sem span.ok{background:rgba(72,96,63,.18);border:1px solid rgba(72,96,63,.35)}
+.sem span.poco{background:rgba(116,80,26,.16);border:1px solid rgba(116,80,26,.4)}
+.sem span.mal{background:rgba(184,65,45,.16);border:1px solid rgba(184,65,45,.45)}
+.sem span.sin{background:repeating-linear-gradient(45deg,var(--hueso) 0 4px,transparent 4px 8px);border:1px dashed var(--sand)}
+.sem span b{position:absolute;inset:0;display:grid;place-items:center;font-size:10px;font-weight:700;color:var(--tinta)}
+.tabla{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.tabla th{text-align:left;font-weight:600;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--t65);padding:8px 10px;border-bottom:1px solid var(--sand)}
+.tabla td{padding:9px 10px;border-bottom:1px solid var(--sand)}
+.tabla tr:nth-child(even) td{background:rgba(234,225,210,.45)}
+.tabla .num{text-align:right}
+.barras{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:14px;padding-bottom:2px;border-bottom:1px solid var(--sand)}
+.barras div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.barras .b{width:70%;background:var(--g-neutro);border-radius:4px 4px 0 0;position:relative}
+.barras .p{width:9px;height:9px;border-radius:50%}
+.bar-et{display:flex;gap:10px;font-size:10px;color:var(--t50);margin-top:5px}
+.bar-et span{flex:1;text-align:center}
+
+.nota-cayla{background:var(--hueso);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t80);margin-top:12px}
+
+/* ====================== CELULAR ====================== */
+.telefono{width:390px;flex:none;border-radius:44px;background:#1a1a18;padding:12px;box-shadow:0 30px 60px -30px rgba(60,40,20,.55)}
+.pantalla-tel{position:relative;width:366px;height:780px;border-radius:34px;overflow:hidden;background:var(--crema)}
+.tel-scroll{position:absolute;inset:0;overflow-y:auto;padding-bottom:150px;scrollbar-width:none}
+.tel-scroll::-webkit-scrollbar{display:none}
+.tel-status{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;font-size:13px;font-weight:600}
+.tel-top{display:flex;justify-content:space-between;align-items:center;padding:4px 16px 8px}
+.tel-top .selector{font-size:10px;padding:5px 8px;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.tel-cuerpo{padding:0 16px}
+.tel-cab h1{font-size:32px;line-height:1.05;margin-top:4px}
+.tel-cab .bajada{font-size:12.5px;color:var(--taupe);margin-top:2px}
+.tel .card{padding:14px 16px;border-radius:14px}
+.tel .heroe .monto{font-size:40px}
+.tel .desglose{font-size:11.5px;gap:3px 10px}
+.tel .accesos{grid-template-columns:1fr 1fr;gap:8px}
+.tel .acceso{padding:12px;gap:10px}
+.tel .acceso .ico{width:30px;height:30px}
+.tel .pendientes{padding:10px 12px;gap:8px}
+.tel .scroll-x{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px}
+.tel .scroll-x::-webkit-scrollbar{display:none}
+.tel .paneles{grid-template-columns:1fr}
+.tel .sem{grid-template-columns:repeat(6,1fr)}
+.tel-seccion{margin-top:12px}
+.barra-caja{position:absolute;left:10px;right:10px;bottom:74px;background:var(--tinta);color:var(--crema);border-radius:16px;display:grid;grid-template-columns:repeat(4,1fr);padding:6px;box-shadow:0 12px 24px -10px rgba(0,0,0,.45);z-index:3}
+.barra-caja button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 2px;border-radius:11px;font-size:10.5px;font-weight:600;letter-spacing:.02em}
+.barra-caja button:active{background:rgba(245,240,232,.12)}
+.barra-caja button.fuerte{background:var(--rojo)}
+.nav-app{position:absolute;left:0;right:0;bottom:0;height:66px;background:#f2ece2;border-top:1px solid var(--sand);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px 14px;z-index:2}
+.nav-app div{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--t65)}
+.nav-app div.on{color:var(--tinta);font-weight:700}
+.tabs-tel{position:sticky;top:0;z-index:2;background:var(--crema);display:flex;gap:4px;padding:8px 16px;border-bottom:1px solid var(--sand);margin-top:10px}
+.tabs-tel button{flex:1;padding:8px 0;font-size:12.5px;font-weight:600;color:var(--t65);border-bottom:2px solid transparent}
+.tabs-tel button[aria-pressed=true]{color:var(--tinta);border-color:var(--rojo)}
+.plegable summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-weight:600;font-size:13px}
+.plegable summary::-webkit-details-marker{display:none}
+.plegable[open] summary .flecha{transform:rotate(180deg)}
+.flecha{transition:transform .25s var(--ease)}
+.marca-hoy{position:relative}
+.marca-hoy::after{content:attr(data-marca);position:absolute;right:8px;top:8px;background:var(--rojo);color:var(--crema);font-size:9.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:5px}
+.reloj-grande{font-family:'EB Garamond',serif;font-size:54px;line-height:1}
+
+/* entrada */
+@keyframes sube{from{opacity:0;transform:translate3d(0,10px,0)}}
+.cascada > *{animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms)}
+
+/* ---------- modal (ADR-0136) ---------- */
+.velo{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-start;justify-content:center;padding:8vh 16px 24px;overflow-y:auto;background:rgba(245,240,232,.62);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:velo .22s var(--ease) both}
+.velo.en-tel{position:absolute;align-items:flex-end;padding:0;border-radius:34px}
+.velo.sale{animation:velo-sale .2s var(--ease-out) both}
+.hoja{width:min(540px,100%);background:var(--papel);border-radius:20px;padding:24px 26px 22px;box-shadow:0 22px 44px -22px rgba(80,50,20,.5);outline:1px solid var(--t07);animation:hoja .42s var(--ease) both}
+.en-tel .hoja{border-radius:22px 22px 0 0;padding:18px 18px 26px;max-height:88%;overflow-y:auto}
+.velo.sale .hoja{animation:hoja-sale .2s var(--ease-out) both}
+.hoja > *{animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms)}
+.velo.quieto,.velo.quieto .hoja,.velo.quieto .hoja > *{animation:none}
+@keyframes velo{from{opacity:0}}
+@keyframes velo-sale{to{opacity:0}}
+@keyframes hoja{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+@keyframes hoja-sale{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+.hoja h2{font-size:30px;line-height:1.1}
+.hoja .bajada{color:var(--taupe);font-size:13.5px;margin-top:2px}
+.opciones{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.en-tel .opciones{grid-template-columns:1fr}
+.opcion{text-align:left;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--papel);transition:border-color .2s,background .2s}
+.opcion:hover{border-color:var(--taupe)}
+.opcion[aria-pressed=true]{border-color:var(--tinta);background:var(--hueso)}
+.opcion .t{font-weight:700;font-size:13.5px}
+.opcion .d{font-size:11.5px;color:var(--t65);margin-top:2px}
+.opcion .va{font-size:10.5px;color:var(--pizarra);margin-top:6px;font-weight:600;letter-spacing:.04em}
+.campo{margin-top:12px}
+.campo label{display:block;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);margin-bottom:5px}
+.campo .caja{background:var(--hueso);border-radius:8px;padding:10px 12px;font-size:14px}
+.hoja-pie{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="ctl" role="toolbar" aria-label="Controles del spike">
+  <span><b>Pantalla</b><span class="seg" data-ctl="vista"><button data-v="ambos">Ambas</button><button data-v="escritorio">Computadora</button><button data-v="celular">Celular</button></span></span>
+  <span><b>Accesos</b><span class="seg" data-ctl="accesos"><button data-v="botones">A · Botones a la vista</button><button data-v="filtros">B · Filtros a elegir</button></span></span>
+  <span><b>Celular</b><span class="seg" data-ctl="cel"><button data-v="barra">Barra fija</button><button data-v="pestanas">Pestañas</button><button data-v="apilado">Apilado (hoy)</button></span></span>
+  <span><b>Historial</b><span class="seg" data-ctl="hist"><button data-v="ultimo">Último cierre</button><button data-v="semaforo">Semáforo</button><button data-v="tabla">Tabla de turnos</button><button data-v="grafico">Gráfico corregido</button></span></span>
+  <span><b>Quién mira</b><span class="seg" data-ctl="rol"><button data-v="integrante">Colaboradora</button><button data-v="lider">Líder</button></span></span>
+</div>
+
+<div class="guia">
+  <div class="caja-nota" id="nota"></div>
+</div>
+
+<div class="escena" id="escena"></div>
+<div id="modal-raiz"></div>
+
+<script>
+/* ====================================================================
+   Datos inventados. Cuadran entre sí:
+   cajón = apertura 300 + ventas en efectivo 185 + entradas 0 − salidas 25 = 460
+   cobrado hoy = 185 + 120 + 68 = 373 (el adelanto de 30 se cobró el día que se separó)
+   ==================================================================== */
+const D = {
+  sede: 'Tienda TRU', dia: 'Sábado, 26 de setiembre', abrio: '09:06 a. m.', lleva: '2 h 47 min', ahora: '11:53',
+  apertura: 300, ventasEf: 185, entradas: 0, salidas: 25, anticipo: 30,
+  metodos: [
+    { k: 'Efectivo', m: 185, c: 'var(--m-efectivo)' },
+    { k: 'Tarjeta', m: 120, c: 'var(--m-tarjeta)' },
+    { k: 'Yape / Plin', m: 68, c: 'var(--m-yape)' },
+  ],
+  ventas: [ // minutos desde que abrió
+    { min: 35, m: 65, c: 'var(--m-efectivo)' }, { min: 83, m: 98, c: 'var(--m-yape)' },
+    { min: 134, m: 120, c: 'var(--m-tarjeta)' }, { min: 162, m: 120, c: 'var(--m-efectivo)' },
+  ],
+  movs: [
+    { h: '11:48', tipo: 'venta', t: 'Venta · efectivo', s: 'Atendió Ana Ríos', m: 120 },
+    { h: '11:20', tipo: 'venta', t: 'Venta · tarjeta', s: 'Atendió Felipe Alvarez', m: 120, noCajon: true },
+    { h: '11:02', tipo: 'salida', t: 'Gasto · agua y útiles de limpieza', s: 'Del cajón · con boleta · Ana Ríos', m: -25 },
+    { h: '10:48', tipo: 'posventa', t: 'Cambio · talla M por L', s: 'Sin diferencia de precio', m: 0 },
+    { h: '10:29', tipo: 'venta', t: 'Venta · Yape + adelanto', s: 'Recogió su separación · María Quispe', m: 68, extra: '+ S/ 30.00 de adelanto ya cobrado', noCajon: true },
+    { h: '09:41', tipo: 'venta', t: 'Venta · efectivo', s: 'Atendió Ana Ríos', m: 65 },
+  ],
+  apartados: [
+    { n: 'María Quispe', p: 'Blusa lino · T/M', saldo: 0, vence: 'Recogida hoy 10:29', ok: true },
+    { n: 'Rosa Díaz', p: 'Vestido midi · T/S', saldo: 90, vence: 'Vence hoy' },
+    { n: 'Lucía Paredes', p: 'Pantalón palazzo · T/L', saldo: 45, vence: 'Vence lun 28' },
+  ],
+  pendientes: [
+    { n: 1, t: 'comprobante sin emitir', a: 'Comprobantes' },
+    { n: 1, t: 'separación vence hoy', a: 'Apartados' },
+    { n: 1, t: 'traslado por recibir', a: 'Traslados' },
+  ],
+  cierres: [ // del más viejo al más nuevo
+    { f: 'sáb 12', q: 'Ana Ríos', v: 300, esp: 600, cont: 600 },
+    { f: 'lun 14', q: 'Ana Ríos', v: 841, esp: 1141, cont: 1141 },
+    { f: 'mar 15', q: 'Felipe Alvarez', v: 513, esp: 813, cont: 811 },
+    { f: 'mié 16', q: 'Ana Ríos', v: 60, esp: 360, cont: 360 },
+    { f: 'jue 17', q: 'Ana Ríos', v: 0, esp: null, cont: null },
+    { f: 'vie 18', q: 'Felipe Alvarez', v: 513, esp: 813, cont: 814.5 },
+    { f: 'sáb 19', q: 'Ana Ríos', v: 1290, esp: 1590, cont: 1590 },
+    { f: 'lun 21', q: 'Ana Ríos', v: 420, esp: 720, cont: 720 },
+    { f: 'mar 22', q: 'Ana Ríos', v: 3344, esp: 3644, cont: 3632 },
+    { f: 'mié 23', q: 'Felipe Alvarez', v: 714, esp: 1014, cont: 1014 },
+    { f: 'jue 24', q: 'Ana Ríos', v: 200, esp: 500, cont: 500 },
+    { f: 'vie 25', q: 'Felipe Alvarez', v: 240, esp: 540, cont: 540 },
+  ],
+};
+const cajon = D.apertura + D.ventasEf + D.entradas - D.salidas;
+const cobrado = D.metodos.reduce((a, x) => a + x.m, 0);
+const totalVentas = cobrado + D.anticipo;
+
+const S = { vista: 'ambos', accesos: 'botones', cel: 'barra', hist: 'ultimo', rol: 'integrante', filtros: new Set(['pendientes', 'apartados']), filtroMov: 'todo', tabTel: 'hoy' };
+
+const soles = (n, dec = 2) => (n < 0 ? '−' : '') + 'S/ ' + Math.abs(n).toLocaleString('es-PE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+const signo = n => n > 0 ? '+' + soles(n) : n < 0 ? soles(n) : soles(0);
+
+/* ---------- íconos (trazo lucide) ---------- */
+const P = {
+  carrito: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
+  recibo: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  flechas: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+  cambio: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+  apartado: '<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"/><path d="m9 10 2 2 4-4"/>',
+  alerta: '<path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  candado: '<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  sync: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  mas: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  chevron: '<path d="m6 9 6 6 6-6"/>',
+  inicio: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  bolsa: '<path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>',
+  caja: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>',
+  menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  documento: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+  camion: '<path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62L18.3 9.38A1 1 0 0 0 17.52 9H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/>',
+  historial: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+};
+const ic = (k, s = 16) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]}</svg>`;
+
+/* ====================================================================
+   PIEZAS (las mismas para computadora y celular; `tel` ajusta tamaños)
+   ==================================================================== */
+function heroe(tel) {
+  return `<div class="card heroe">
+    <div class="fila entre"><span class="lbl" style="color:var(--m-efectivo-t)">Efectivo en el cajón ahora</span>${ic('candado', 15)}</div>
+    <div class="monto disp tab">${soles(cajon).replace('.00', '<small>.00</small>')}</div>
+    <div class="desglose tab">
+      <span>Apertura <b>${soles(D.apertura)}</b></span><span class="op">+</span>
+      <span>Ventas en efectivo <b>${soles(D.ventasEf)}</b></span><span class="op">+</span>
+      <span>Entradas <b>${soles(D.entradas)}</b></span><span class="op">−</span>
+      <span>Salidas <b>${soles(D.salidas)}</b></span>
+    </div>
+    ${tel ? '' : `<p class="card-b" style="margin-top:10px">Es lo que debería haber si cuentas ahora. La tarjeta y el Yape no están aquí: no entran al cajón.</p>`}
+  </div>`;
+}
+function cobradoCard() {
+  return `<div class="card cobrado">
+    <span class="lbl" style="color:var(--t65)">Cobrado en el turno</span>
+    <div class="monto disp tab">${soles(cobrado)}</div>
+    <div class="barra-met">${D.metodos.map(x => `<span style="width:${x.m / cobrado * 100}%;background:${x.c}"></span>`).join('')}</div>
+    <div class="leyenda tab">${D.metodos.map(x => `<span><i style="background:${x.c}"></i>${x.k} <b>${soles(x.m, 0)}</b></span>`).join('')}</div>
+    <div class="aviso-anticipo">+ ${soles(D.anticipo)} de adelantos aplicados: se cobraron el día que se separó, no suman hoy.</div>
+  </div>`;
+}
+function ritmoCard() {
+  const dur = 167;
+  return `<div class="card">
+    <span class="lbl" style="color:var(--t65)">Ritmo del turno</span>
+    <div class="ritmo-mini tab">
+      <div><div class="v">${D.ventas.length}</div><div class="lbl l">ventas</div></div>
+      <div><div class="v">${soles(totalVentas / D.ventas.length, 0)}</div><div class="lbl l">ticket prom.</div></div>
+      <div><div class="v">5 min</div><div class="lbl l">últ. venta</div></div>
+    </div>
+    <div class="linea-tiempo">${D.ventas.map(v => { const s = 8 + v.m / 12; return `<i style="left:${v.min / dur * 100}%;width:${s}px;height:${s}px;background:${v.c}"></i>`; }).join('')}</div>
+    <div class="lt-pie"><span>Abrió ${D.abrio}</span><span>Ahora ${D.ahora}</span></div>
+  </div>`;
+}
+function pendientes(tel) {
+  const items = D.pendientes.map(p => `<a class="pend" href="#" onclick="return false"><b>${p.n}</b> ${p.t} <span class="fl">→</span></a>`).join('');
+  if (tel) return `<div class="pendientes" style="display:block"><div class="tit" style="margin-bottom:8px">${ic('alerta', 14)} Antes de cerrar · 3 pendientes</div><div class="scroll-x">${items}</div></div>`;
+  return `<div class="pendientes"><div class="tit">${ic('alerta', 15)} Antes de cerrar</div>${items}</div>`;
+}
+const ACCESOS = [
+  { k: 'vender', ico: 'carrito', t: 'Cobrar', d: 'Abre el Punto de venta', principal: true },
+  { k: 'gasto', ico: 'recibo', t: 'Registrar gasto', d: 'Sale del cajón y va a Finanzas', modal: 'gasto' },
+  { k: 'mov', ico: 'flechas', t: 'Depósito o retiro', d: 'Banco, líder o sencillo', modal: 'movimiento' },
+  { k: 'posventa', ico: 'cambio', t: 'Cambio o devolución', d: 'Si devuelves plata, sale de aquí' },
+  { k: 'apartados', ico: 'apartado', t: 'Apartados', d: 'Cobrar saldo o separar', n: '2 por cobrar' },
+];
+function accesosBotones(tel) {
+  const lista = tel ? ACCESOS.filter(a => a.k !== 'vender') : ACCESOS;
+  return `<div class="accesos">${lista.map(a => `<button class="acceso${a.principal ? ' principal' : ''}" ${a.modal ? `data-modal="${a.modal}"` : ''}>
+      <span class="ico">${ic(a.ico, 17)}</span>
+      <span><span class="t">${a.t}</span><span class="d" style="display:block">${a.d}</span>${a.n ? `<span class="chip chip-ambar n">${a.n}</span>` : ''}</span>
+    </button>`).join('')}</div>`;
+}
+const FILTROS = [
+  { k: 'pendientes', t: 'Pendientes', n: 3 },
+  { k: 'apartados', t: 'Apartados', n: 2 },
+  { k: 'gastos', t: 'Gastos', n: 1 },
+  { k: 'posventa', t: 'Cambios y devoluciones', n: 1 },
+];
+function panel(k, tel) {
+  if (k === 'pendientes') return `<div class="card"><div class="panel-h"><div><div class="card-t">Pendientes del turno</div><div class="card-b">Resuélvelos antes de cerrar</div></div><span class="chip chip-ambar">3</span></div>
+    <div class="lista-mini">
+      <div><span>${ic('documento', 14)} Boleta de la venta de 11:20 sin emitir<div class="s">Se transmite a SUNAT desde Comprobantes</div></span><button class="mini-btn">Emitir</button></div>
+      <div><span>${ic('apartado', 14)} Separación de Rosa Díaz vence hoy<div class="s">Saldo ${soles(90)}</div></span><button class="mini-btn">Ver</button></div>
+      <div><span>${ic('camion', 14)} Traslado del Taller en camino<div class="s">12 prendas · salió ayer</div></span><button class="mini-btn">Recibir</button></div>
+    </div></div>`;
+  if (k === 'apartados') return `<div class="card"><div class="panel-h"><div><div class="card-t">Apartados de la tienda</div><div class="card-b">Saldo por cobrar ${soles(135)}</div></div><button class="btn btn-sutil">Ver todos →</button></div>
+    <div class="lista-mini">${D.apartados.map(a => `<div><span>${a.n}<div class="s">${a.p} · ${a.vence}</div></span>${a.ok ? '<span class="chip chip-verde">Recogida</span>' : `<button class="mini-btn">Cobrar ${soles(a.saldo, 0)}</button>`}</div>`).join('')}</div></div>`;
+  if (k === 'gastos') return `<div class="card"><div class="panel-h"><div><div class="card-t">Gastos del turno</div><div class="card-b">Salieron del cajón · ${soles(25)}</div></div><button class="mini-btn" data-modal="gasto">+ Registrar gasto</button></div>
+    <div class="lista-mini"><div><span>Agua y útiles de limpieza<div class="s">11:02 · con boleta · Ana Ríos</div></span><b class="neg tab">−${soles(25)}</b></div></div>
+    <p class="card-b" style="margin-top:8px">Se ve también en Finanzas ▸ Gastos, con su comprobante.</p></div>`;
+  if (k === 'posventa') return `<div class="card"><div class="panel-h"><div><div class="card-t">Cambios y devoluciones</div><div class="card-b">Hoy · efectivo devuelto ${soles(0)}</div></div><span class="fila" style="gap:6px"><button class="mini-btn">Cambio</button><button class="mini-btn">Devolución</button></span></div>
+    <div class="lista-mini"><div><span>Cambio · talla M por L<div class="s">10:48 · sin diferencia de precio</div></span><span class="chip chip-gris">Sin plata</span></div></div></div>`;
+}
+function accesosFiltros(tel) {
+  const pills = FILTROS.map(f => `<button class="pildora" data-filtro="${f.k}" aria-pressed="${S.filtros.has(f.k)}">${S.filtros.has(f.k) ? ic('check', 13) : ic('mas', 13)} ${f.t} <span class="cnt">${f.n}</span></button>`).join('');
+  const activos = FILTROS.filter(f => S.filtros.has(f.k));
+  return `<div class="filtros">${tel ? `<div class="scroll-x" style="width:calc(100% + 32px)"><span class="lbl" style="align-self:center;flex:none">Mostrar</span>${pills}</div>` : `<span class="lbl">Tu caja muestra</span>${pills}<span class="recuerda">Se recuerda en este aparato</span>`}</div>
+    ${activos.length ? `<div class="paneles">${activos.map(f => panel(f.k, tel)).join('')}</div>` : `<p class="nota-cayla">Elige qué quieres tener a mano: cada píldora agrega una tarjeta con su acción.</p>`}`;
+}
+function accionesTop(tel) {
+  if (S.accesos === 'botones') return (tel ? '' : '') + accesosBotones(tel);
+  return accesosFiltros(tel);
+}
+function movimientos(tel, limite) {
+  const f = S.filtroMov;
+  let l = D.movs.filter(m => f === 'todo' || (f === 'ventas' && m.tipo === 'venta') || (f === 'cajon' && !m.noCajon && m.tipo !== 'posventa'));
+  if (limite) l = l.slice(0, limite);
+  const icono = { venta: 'bolsa', salida: 'recibo', posventa: 'cambio' };
+  return `<div class="card">
+    <div class="fila entre" style="flex-wrap:wrap;gap:8px"><div><div class="card-t">Movimientos del turno</div><div class="card-b">Toca uno para ver el detalle</div></div>
+      <span class="segm" data-ctl-mov>${[['todo', 'Todo'], ['ventas', 'Ventas'], ['cajon', 'Mueve el cajón']].map(([k, t]) => `<button data-mov="${k}" aria-pressed="${f === k}">${t}</button>`).join('')}</span></div>
+    <div class="movs" style="margin-top:8px">${l.map(m => `<div><span class="ic">${ic(icono[m.tipo], 15)}</span>
+      <span><div class="t">${m.t}</div><div class="s">${m.h} · ${m.s}${m.extra ? ` · <span style="color:var(--taupe)">${m.extra}</span>` : ''}</div></span>
+      <span class="m tab ${m.m > 0 ? 'pos' : m.m < 0 ? 'neg' : 'cero'}">${m.m === 0 ? '—' : signo(m.m)}</span></div>`).join('')}</div>
+    ${limite ? `<button class="btn btn-sutil" style="margin-top:6px">Ver los ${D.movs.length} →</button>` : ''}
+  </div>`;
+}
+function estado(c) {
+  if (c.esp === null) return { cl: 'sin', txt: 'Sin caja', chip: '<span class="chip chip-gris">Sin caja</span>', d: null };
+  const d = +(c.cont - c.esp).toFixed(2);
+  if (d === 0) return { cl: 'ok', txt: 'Cuadró', chip: '<span class="chip chip-verde">Cuadró</span>', d };
+  if (Math.abs(d) <= 5) return { cl: 'poco', txt: (d > 0 ? 'Sobró ' : 'Faltó ') + soles(Math.abs(d)), chip: `<span class="chip chip-ambar">${d > 0 ? 'Sobró' : 'Faltó'} ${soles(Math.abs(d))}</span>`, d };
+  return { cl: 'mal', txt: (d > 0 ? 'Sobró ' : 'Faltó ') + soles(Math.abs(d)), chip: `<span class="chip chip-rojo">${d > 0 ? 'Sobró' : 'Faltó'} ${soles(Math.abs(d))}</span>`, d };
+}
+function historial(tel) {
+  const ult = D.cierres[D.cierres.length - 1];
+  const pie = `<a href="#" onclick="return false" class="btn btn-sutil" style="margin-top:8px;padding-left:0">${ic('historial', 13)} Ver historial completo →</a>`;
+  if (S.hist === 'ultimo') return `<div class="card"><div class="card-t">Último cierre</div>
+    <div class="ult" style="margin-top:12px"><span class="sello">${ic('check', 18)}</span>
+      <div><div style="font-weight:600">${ult.f} · 8:02 p. m. · ${ult.q}</div>
+      <div class="card-b tab" style="font-size:12.5px">Contó ${soles(ult.cont)} · el sistema esperaba ${soles(ult.esp)} · dejó ${soles(300)} para hoy</div></div>
+      <span class="chip chip-verde" style="margin-left:auto">Cuadró</span></div>
+    <p class="card-b" style="margin-top:12px">Últimas 2 semanas: 8 de 11 turnos cuadraron.</p>${pie}</div>`;
+  if (S.hist === 'semaforo') {
+    const conCaja = D.cierres.filter(c => c.esp !== null);
+    const buenos = conCaja.filter(c => estado(c).d === 0).length;
+    return `<div class="card"><div class="fila entre"><div><div class="card-t">¿Cuadró la caja?</div><div class="card-b">Un cuadro por turno · últimas 2 semanas</div></div><span class="chip chip-verde">${buenos} de ${conCaja.length}</span></div>
+      <div class="sem tab">${D.cierres.map(c => { const e = estado(c); return `<div title="${c.f} · ${c.q} · ${e.txt}"><span class="${e.cl}">${e.d ? `<b>${e.d > 0 ? '+' : '−'}${Math.abs(e.d) >= 10 ? Math.round(Math.abs(e.d)) : Math.abs(e.d)}</b>` : ''}</span>${c.f}</div>`; }).join('')}</div>
+      <div class="leyenda" style="margin-top:12px"><span><i style="background:var(--verde)"></i>Cuadró</span><span><i style="background:var(--ambar)"></i>Hasta S/ 5</span><span><i style="background:var(--rojo)"></i>Más de S/ 5</span><span><i style="background:var(--g-neutro)"></i>No abrió</span></div>
+      <p class="card-b" style="margin-top:8px">El descuadre más grande: mar 22, faltaron ${soles(12)} (Ana Ríos).</p>${pie}</div>`;
+  }
+  if (S.hist === 'tabla') {
+    const filas = D.cierres.filter(c => c.esp !== null).slice(-5).reverse();
+    if (tel) return `<div class="card"><div class="card-t">Últimos turnos</div><div class="lista-mini" style="margin-top:6px">${filas.map(c => `<div><span>${c.f} · ${c.q}<div class="s tab">Esperado ${soles(c.esp, 0)} · contó ${soles(c.cont, c.cont % 1 ? 2 : 0)}</div></span>${estado(c).chip}</div>`).join('')}</div>${pie}</div>`;
+    return `<div class="card"><div class="fila entre"><div><div class="card-t">Últimos turnos</div><div class="card-b">Como un cuaderno de caja: una fila por turno, la diferencia primero</div></div></div>
+      <table class="tabla tab"><thead><tr><th>Turno</th><th>Cerró</th><th class="num">Vendido</th><th class="num">Esperado</th><th class="num">Contó</th><th>Resultado</th></tr></thead>
+      <tbody>${filas.map(c => `<tr><td>${c.f}</td><td>${c.q}</td><td class="num">${soles(c.v, 0)}</td><td class="num">${soles(c.esp)}</td><td class="num">${soles(c.cont)}</td><td>${estado(c).chip}</td></tr>`).join('')}</tbody></table>${pie}</div>`;
+  }
+  // gráfico corregido
+  const max = Math.max(...D.cierres.map(c => c.v));
+  const lista = tel ? D.cierres.slice(-7) : D.cierres;
+  return `<div class="card"><div class="card-t">Ventas por día y si cuadró</div><div class="card-b">Una barra por día · el punto dice si la caja cuadró</div>
+    <div class="barras">${lista.map(c => { const e = estado(c); const col = { ok: 'var(--verde)', poco: 'var(--ambar)', mal: 'var(--rojo)', sin: 'var(--g-neutro)' }[e.cl]; return `<div title="${c.f} · ${soles(c.v, 0)} · ${e.txt}"><span class="p" style="background:${col}"></span><span class="b" style="height:${Math.max(2, c.v / max * 85)}%"></span></div>`; }).join('')}</div>
+    <div class="bar-et tab">${lista.map(c => `<span>${c.f.split(' ')[1]}</span>`).join('')}</div>
+    <div class="leyenda" style="margin-top:10px"><span><i style="background:var(--verde)"></i>Cuadró</span><span><i style="background:var(--ambar)"></i>Hasta S/ 5</span><span><i style="background:var(--rojo)"></i>Más de S/ 5</span></div>${pie}</div>`;
+}
+
+/* ====================================================================
+   COMPUTADORA
+   ==================================================================== */
+function escritorio() {
+  const lider = S.rol === 'lider';
+  const histAncho = S.hist === 'tabla' || S.hist === 'grafico';
+  return `<div><p class="marco-titulo">Computadora · 1240 px (menú lateral plegado)</p>
+  <div class="escritorio"><div class="esc-interior">
+    <div class="topbar"><span style="color:var(--t50)">${ic('menu', 18)}</span><div class="der"><span class="lbl" style="color:var(--t65)">${ic('historial', 13)} Actividad</span><span class="selector lbl">Tienda TRU ▾</span></div></div>
+    <div class="esc-cuerpo cascada">
+      <div class="cab" style="--k:0">
+        <div>
+          <div class="sobre lbl">${D.sede} · ${D.dia}</div>
+          <h1 class="disp">Caja</h1>
+          <p class="bajada">Turno de ${lider ? 'Felipe Alvarez · Líder de equipo' : 'Ana Ríos · Integrante'}</p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+          <div class="fila"><span class="chip chip-verde">Todo sincronizado</span><span class="reloj-mini">Abrió ${D.abrio} · lleva <b class="tab">${D.lleva}</b></span></div>
+          <div class="acciones">
+            <button class="btn btn-s" data-modal="movimiento">Registrar movimiento</button>
+            ${lider ? '<button class="btn btn-p">Cerrar caja</button>' : '<span class="card-b" style="max-width:190px;text-align:right">La caja la cierra un líder de equipo.</span>'}
+          </div>
+        </div>
+      </div>
+      <div class="fila-heroe" style="--k:1">${heroe(false)}${cobradoCard()}${ritmoCard()}</div>
+      ${S.accesos === 'botones' ? `<div style="--k:2">${pendientes(false)}</div><div style="--k:3">${accesosBotones(false)}</div>` : `<div style="--k:2">${accesosFiltros(false)}</div>`}
+      <div class="fila-baja" style="--k:4;${histAncho ? 'grid-template-columns:1fr' : ''}">${movimientos(false)}${histAncho ? '' : historial(false)}</div>
+      ${histAncho ? `<div style="--k:5;margin-top:12px">${historial(false)}</div>` : ''}
+      <p class="nota-cayla" style="--k:6">Lo que se fue: los cinco recuadros de igual peso (Apertura, Ventas efectivo, Ventas otro método, Entradas, Salidas) quedan dentro del desglose de «Efectivo en el cajón»; la dona pasa a una barra en «Cobrado en el turno».</p>
+    </div>
+  </div></div></div>`;
+}
+
+/* ====================================================================
+   CELULAR
+   ==================================================================== */
+function barraCaja() {
+  const lider = S.rol === 'lider';
+  return `<div class="barra-caja">
+    <button class="fuerte">${ic('carrito', 18)}Cobrar</button>
+    <button data-modal="gasto">${ic('recibo', 18)}Gasto</button>
+    <button data-modal="movimiento">${ic('flechas', 18)}Movimiento</button>
+    ${lider ? `<button>${ic('candado', 18)}Cerrar</button>` : `<button>${ic('apartado', 18)}Apartados</button>`}
+  </div>`;
+}
+function navApp() {
+  return `<div class="nav-app"><div>${ic('inicio', 19)}Inicio</div><div class="on">${ic('bolsa', 19)}Ventas</div><div>${ic('caja', 19)}Inventario</div><div>${ic('menu', 19)}Más</div></div>`;
+}
+function cabTel() {
+  return `<div class="tel-top"><span style="color:var(--t50)">${ic('menu', 18)}</span><span class="selector">Tienda TRU ▾</span></div>
+    <div class="tel-cuerpo tel-cab"><div class="sobre lbl" style="font-size:9.5px">${D.sede} · sáb 26 set</div><h1 class="disp">Caja</h1>
+    <div class="fila entre" style="margin-top:4px"><span class="bajada">Abrió ${D.abrio} · ${D.lleva}</span><span class="chip chip-verde" style="font-size:9.5px">Al día</span></div></div>`;
+}
+function celular() {
+  let cuerpo = '';
+  if (S.cel === 'barra') {
+    cuerpo = `${cabTel()}<div class="tel-cuerpo cascada">
+      <div class="tel-seccion" style="--k:1">${heroe(true)}</div>
+      ${S.accesos === 'botones' ? `<div class="tel-seccion" style="--k:2">${pendientes(true)}</div>` : ''}
+      <div class="tel-seccion" style="--k:3">${S.accesos === 'botones' ? accesosBotones(true) : accesosFiltros(true)}</div>
+      <div class="tel-seccion" style="--k:4">${cobradoCard()}</div>
+      <div class="tel-seccion" style="--k:5">${movimientos(true, 4)}</div>
+      <details class="card plegable tel-seccion" style="--k:6"><summary>Ritmo y cierres anteriores <span class="flecha">${ic('chevron', 16)}</span></summary><div style="margin-top:10px">${ritmoCard()}<div style="margin-top:10px">${historial(true)}</div></div></details>
+    </div>${barraCaja()}`;
+  } else if (S.cel === 'pestanas') {
+    const t = S.tabTel;
+    const cont = t === 'hoy'
+      ? `${S.accesos === 'botones' ? `<div class="tel-seccion">${pendientes(true)}</div>` : ''}<div class="tel-seccion">${S.accesos === 'botones' ? accesosBotones(true) : accesosFiltros(true)}</div><div class="tel-seccion">${cobradoCard()}</div><div class="tel-seccion">${ritmoCard()}</div>`
+      : t === 'movs' ? `<div class="tel-seccion">${movimientos(true)}</div>` : `<div class="tel-seccion">${historial(true)}</div>`;
+    cuerpo = `${cabTel()}<div class="tel-cuerpo"><div class="tel-seccion">${heroe(true)}</div></div>
+      <div class="tabs-tel">${[['hoy', 'Hoy'], ['movs', 'Movimientos'], ['cierres', 'Cierres']].map(([k, l]) => `<button data-tabtel="${k}" aria-pressed="${t === k}">${l}</button>`).join('')}</div>
+      <div class="tel-cuerpo cascada" key="${t}">${cont}</div>${barraCaja()}`;
+  } else {
+    // Apilado: la pantalla de hoy en una columna, para comparar
+    const kpi = (e, v, c) => `<div class="card" style="border-left:3px solid ${c};padding:12px 14px"><div class="lbl" style="font-size:9.5px;color:var(--t65)">${e}</div><div class="disp tab" style="font-size:20px;margin-top:6px">${soles(v)}</div></div>`;
+    cuerpo = `${cabTel()}<div class="tel-cuerpo">
+      <div class="fila tel-seccion" style="gap:8px"><button class="btn btn-s" style="font-size:10px;padding:9px 10px">Registrar movimiento</button>${S.rol === 'lider' ? '<button class="btn btn-p" style="font-size:10px;padding:9px 10px">Cerrar caja</button>' : ''}</div>
+      <div class="card tel-seccion marca-hoy" data-marca="Ocupa media pantalla"><div class="reloj-grande tab">11:53<span style="font-size:22px;color:var(--rojo)">:08</span></div><div class="fila entre card-b" style="margin-top:8px"><span>Abrió 09:06 a. m.</span><span>Lleva 2 h 47 min</span></div></div>
+      <div class="tel-seccion marca-hoy" data-marca="5 cifras del mismo peso" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:26px">${kpi('Apertura', D.apertura, 'var(--taupe)')}${kpi('Ventas efectivo', D.ventasEf, 'var(--m-efectivo)')}${kpi('Otro método', 218, 'var(--taupe)')}${kpi('Entradas', 0, 'var(--verde)')}${kpi('Salidas', 25, 'var(--rojo)')}</div>
+      <div class="card tel-seccion marca-hoy" data-marca="Dona" style="height:260px"><div class="card-t">Métodos de pago</div><div style="width:150px;height:150px;border-radius:50%;margin:24px auto 0;background:conic-gradient(var(--m-efectivo) 0 43%,var(--m-tarjeta) 0 71%,var(--m-yape) 0 87%,var(--taupe) 0);-webkit-mask:radial-gradient(circle,transparent 52%,#000 53%);mask:radial-gradient(circle,transparent 52%,#000 53%)"></div></div>
+      <div class="tel-seccion">${ritmoCard()}</div>
+      <div class="tel-seccion">${historial(true)}</div>
+      <div class="tel-seccion">${movimientos(true)}</div>
+    </div>`;
+  }
+  return `<div><p class="marco-titulo">Celular · 375 px · ${{ barra: 'barra fija', pestanas: 'pestañas', apilado: 'apilado, como hoy' }[S.cel]}</p>
+    <div class="telefono"><div class="pantalla-tel tel" id="tel">
+      <div class="tel-scroll"><div class="tel-status"><span>11:53</span><span>●●● 5G ▮</span></div>${cuerpo}</div>
+      ${navApp()}
+    </div></div></div>`;
+}
+
+/* ====================================================================
+   MODAL · «¿Qué pasó con la plata?» (ADR-0136, variante hoja)
+   ==================================================================== */
+const OPC = [
+  { k: 'gasto', t: 'Un gasto de la tienda', d: 'Agua, taxi, útiles, un arreglo.', va: 'QUEDA EN FINANZAS ▸ GASTOS · PIDE COMPROBANTE', sale: true },
+  { k: 'deposito', t: 'Depósito al banco', d: 'La plata no se fue: pasó a una cuenta.', va: 'QUEDA EN CUENTAS Y DINERO · PIDE N.º DE OPERACIÓN', sale: true },
+  { k: 'lider', t: 'Se la entregué al líder', d: 'Para no tener mucho efectivo en el cajón.', va: 'QUEDA EN CUENTAS Y DINERO · «LO QUE TIENE EL LÍDER»', sale: true },
+  { k: 'sencillo', t: 'Entró sencillo', d: 'Monedas o billetes chicos para dar vuelto.', va: 'ENTRADA AL CAJÓN', sale: false },
+];
+let elegido = null;
+function abrirModal(tipo) {
+  elegido = tipo === 'gasto' ? 'gasto' : null;
+  pintarModal(true);
+}
+function pintarModal(entra) {
+  const enTel = S.vista === 'celular' || (S.vista === 'ambos' && window.__ultimoToqueTel);
+  const o = OPC.find(x => x.k === elegido);
+  const html = `<div class="velo${enTel ? ' en-tel' : ''}${entra ? '' : ' quieto'}" id="velo"><div class="hoja" role="dialog" aria-modal="true" aria-labelledby="mt">
+    <h2 class="disp" id="mt" style="--k:0">¿Qué pasó con la plata?</h2>
+    <p class="bajada" style="--k:1">Elige lo que pasó. El ERP lo guarda donde corresponde: no tienes que saber en qué pantalla va.</p>
+    <div class="opciones" style="--k:2">${OPC.map(x => `<button class="opcion" data-opc="${x.k}" aria-pressed="${elegido === x.k}"><div class="t">${x.t}</div><div class="d">${x.d}</div><div class="va">${x.va}</div></button>`).join('')}</div>
+    ${o ? `<div style="--k:3">
+      <div class="campo"><label>Monto</label><div class="caja tab">S/ 0.00</div></div>
+      ${o.k === 'gasto' ? `<div class="campo"><label>¿En qué se gastó?</label><div class="caja" style="color:var(--t50)">Ej.: agua y útiles de limpieza</div></div><div class="campo"><label>Comprobante</label><div class="caja" style="color:var(--t50)">Foto de la boleta o «no me dieron»</div></div>` : ''}
+      ${o.k === 'deposito' ? `<div class="campo"><label>Cuenta y n.º de operación</label><div class="caja" style="color:var(--t50)">BCP soles · 000000</div></div>` : ''}
+      ${o.sale ? `<p class="nota-cayla">Sale del cajón: quedarían <b class="tab">${soles(cajon)}</b> menos lo que escribas.</p>` : ''}
+      <div class="campo"><label>Responsable</label><div class="caja">Ana Ríos ▾</div></div>
+    </div>` : ''}
+    <div class="hoja-pie" style="--k:4"><button class="btn btn-s" data-cerrar>Cancelar</button><button class="btn btn-p" ${o ? '' : 'disabled style="opacity:.35"'} data-cerrar>Guardar</button></div>
+  </div></div>`;
+  const raiz = enTel ? document.getElementById('tel') : document.getElementById('modal-raiz');
+  cerrarModal(true);
+  raiz.insertAdjacentHTML('beforeend', html);
+}
+function cerrarModal(inmediato) {
+  const v = document.getElementById('velo');
+  if (!v) return;
+  if (inmediato) { v.remove(); return; }
+  v.classList.add('sale'); setTimeout(() => v.remove(), 200);
+}
+
+/* ====================================================================
+   NOTA de la guía según lo elegido
+   ==================================================================== */
+const NOTAS = {
+  accesos: {
+    botones: '<strong>A · Botones a la vista.</strong> Cinco accesos fijos bajo las cifras: todas ven lo mismo y nada se esconde. Es lo que más rápido se aprende, pero siempre ocupa una fila aunque la tienda no use Apartados.',
+    filtros: '<strong>B · Filtros a elegir.</strong> Cada colaboradora prende las tarjetas que usa (Pendientes, Apartados, Gastos, Cambios y devoluciones) y cada una trae su acción. Se recuerda en el aparato, como las píldoras de filtro del ERP. Deja la pantalla más limpia, pero una tarjeta apagada se olvida.',
+  },
+  cel: {
+    barra: '<strong>Celular · barra fija.</strong> Arriba el efectivo en el cajón, debajo lo pendiente y los accesos. Cobrar / Gasto / Movimiento / Cerrar (o Apartados si no cierra) quedan siempre al pulgar, sobre el menú del ERP. Los gráficos se pliegan.',
+    pestanas: '<strong>Celular · pestañas.</strong> El efectivo en el cajón no se mueve; debajo, «Hoy», «Movimientos» y «Cierres» parten la pantalla en tres cortas. Ordena mejor, pero un pendiente en otra pestaña no se ve.',
+    apilado: '<strong>Celular · apilado (lo de hoy).</strong> Solo para comparar: el reloj y las cinco cifras llenan la primera pantalla y el primer dato útil para cuadrar (cuánto hay en el cajón) no existe.',
+  },
+  hist: {
+    ultimo: '<strong>Historial · último cierre.</strong> Una línea: quién cerró, si cuadró y cuánto dejó. Es lo que muestran Odoo y Loyverse en el tablero del punto de venta; la lista completa vive en su propia página.',
+    semaforo: '<strong>Historial · semáforo de cuadre.</strong> Un cuadro por turno, con la diferencia escrita en él. Lo que importa de un cierre es si cuadró, no cuánto se vendió: así lo ponen Square y Shopify POS en su reporte de caja.',
+    tabla: '<strong>Historial · tabla de turnos.</strong> Los últimos 5 turnos como un cuaderno de caja: esperado, contado y resultado. Es el formato de Square («Cash drawer report») y de las sesiones de caja de Shopify POS.',
+    grafico: '<strong>Historial · gráfico corregido.</strong> El de hoy, con una barra por día (sin tres «mar 22»), en color neutro, y el punto de arriba dice si cuadró, con leyenda.',
+  },
+};
+function pintarNota() {
+  document.getElementById('nota').innerHTML = `<div style="display:grid;gap:6px"><p>${NOTAS.accesos[S.accesos]}</p><p>${NOTAS.cel[S.cel]}</p><p>${NOTAS.hist[S.hist]}</p></div>`;
+}
+
+/* ====================================================================
+   Pintar y eventos
+   ==================================================================== */
+function pintar() {
+  document.querySelectorAll('.seg[data-ctl]').forEach(g => g.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', S[g.dataset.ctl] === b.dataset.v)));
+  const e = document.getElementById('escena');
+  const telScroll = document.querySelector('.tel-scroll')?.scrollTop ?? 0;
+  e.innerHTML = (S.vista !== 'celular' ? escritorio() : '') + (S.vista !== 'escritorio' ? celular() : '');
+  const ts = document.querySelector('.tel-scroll'); if (ts) ts.scrollTop = telScroll;
+  pintarNota();
+}
+document.addEventListener('click', ev => {
+  const seg = ev.target.closest('.seg[data-ctl] button');
+  if (seg) { S[seg.parentElement.dataset.ctl] = seg.dataset.v; pintar(); return; }
+  window.__ultimoToqueTel = !!ev.target.closest('#tel');
+  const f = ev.target.closest('[data-filtro]');
+  if (f) { const k = f.dataset.filtro; S.filtros.has(k) ? S.filtros.delete(k) : S.filtros.add(k); pintar(); return; }
+  const m = ev.target.closest('[data-mov]');
+  if (m) { S.filtroMov = m.dataset.mov; pintar(); return; }
+  const t = ev.target.closest('[data-tabtel]');
+  if (t) { S.tabTel = t.dataset.tabtel; pintar(); return; }
+  const o = ev.target.closest('[data-opc]');
+  if (o) { elegido = o.dataset.opc; pintarModal(); return; }
+  if (ev.target.closest('[data-cerrar]') || ev.target.id === 'velo') { cerrarModal(); return; }
+  const md = ev.target.closest('[data-modal]');
+  if (md) { abrirModal(md.dataset.modal); return; }
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarModal(); });
+pintar();
+</script>
+</body>
+</html>
