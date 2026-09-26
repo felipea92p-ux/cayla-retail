@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { Bookmark, Clock, ShoppingBag } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
 import { estadoVisible, TOPE_SEPARACIONES, type Apartado } from "@/lib/separaciones-reglas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
+import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -37,27 +39,34 @@ export function ApartadosPanel(props: Props) {
   const [elegido, setElegido] = useState<string | null>(null);
   const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
 
+  const irA = (v: Vista) => {
+    setVista(v);
+    // En el celular la pestaña se toca abajo: la vista nueva empieza arriba, no a media página.
+    document.getElementById("hoja-apartados")?.scrollIntoView({ block: "start" });
+  };
   const irAEntregar = (id: string) => {
     setElegido(id);
-    setVista("entregar");
+    irA("entregar");
   };
 
-  const pestañas: { id: Vista; etiqueta: string; insignia?: number }[] = [
-    { id: "apartar", etiqueta: "Apartar" },
-    { id: "entregar", etiqueta: "Entregar" },
-    { id: "todos", etiqueta: "Todos", insignia: necesitanAlgo },
+  const pestañas: { id: Vista; etiqueta: string; icono: React.ReactNode; insignia?: number }[] = [
+    { id: "apartar", etiqueta: "Apartar", icono: <Bookmark className="h-5 w-5" aria-hidden /> },
+    { id: "entregar", etiqueta: "Entregar", icono: <ShoppingBag className="h-5 w-5" aria-hidden /> },
+    { id: "todos", etiqueta: "Todos", icono: <Clock className="h-5 w-5" aria-hidden />, insignia: necesitanAlgo },
   ];
 
   return (
-    <section className="anim-sube flex min-h-[calc(100vh-9rem)] flex-col overflow-hidden rounded-[22px] border border-sand bg-papel">
+    // Celular (Felipe, 2026-09-26, spike `docs/maquetas/apartados-v2-2026-09/`): las pestañas bajan a la altura del
+    // pulgar y la barra de cada paso se apoya encima; el margen de abajo deja ver lo último que queda bajo las dos.
+    <section id="hoja-apartados" className="anim-sube flex min-h-[calc(100vh-9rem)] scroll-mt-20 flex-col overflow-hidden rounded-[22px] border border-sand bg-papel max-lg:mb-40">
       <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-sand px-6 py-3 sm:h-16 sm:py-0">
         <p className="label-cayla text-[11px] text-tinta/80">Apartados · {props.ubicacionEtiqueta}</p>
-        <nav aria-label="Apartados" className="flex items-center gap-6">
+        <nav aria-label="Apartados" className="flex items-center gap-6 max-lg:hidden">
           {pestañas.map((p) => (
             <button
               key={p.id}
               type="button"
-              onClick={() => setVista(p.id)}
+              onClick={() => irA(p.id)}
               aria-current={vista === p.id ? "page" : undefined}
               className={`label-cayla relative h-11 text-[11px] transition-colors sm:h-16 ${vista === p.id ? "text-tinta after:absolute after:inset-x-0 after:-bottom-px after:h-0.5 after:bg-tinta" : "text-tinta/55 hover:text-tinta"}`}
             >
@@ -88,7 +97,7 @@ export function ApartadosPanel(props: Props) {
       )}
 
       {vista === "apartar" && (
-        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} lineasIniciales={props.lineasDesdeTicket} irAEntregar={() => setVista("entregar")} />
+        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} lineasIniciales={props.lineasDesdeTicket} />
       )}
       {vista === "entregar" && (
         <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} />
@@ -96,6 +105,31 @@ export function ApartadosPanel(props: Props) {
       {vista === "todos" && (
         <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} irAEntregar={irAEntregar} />
       )}
+
+      {/* Las mismas pestañas, abajo y solo en el celular. No es un segundo menú: el ☰ sigue siendo el del ERP (ADR-0206). */}
+      <EnCuerpo>
+      <nav
+        aria-label="Apartados"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-3 border-t border-sand bg-papel pb-[env(safe-area-inset-bottom)] sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+      >
+        {pestañas.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => irA(p.id)}
+            aria-current={vista === p.id ? "page" : undefined}
+            style={{ height: ALTO_PESTANAS_MOVIL }}
+            className={`relative flex flex-col items-center justify-center gap-1 text-[11px] transition-colors ${vista === p.id ? "text-tinta" : "text-tinta/50"}`}
+          >
+            {p.icono}
+            {p.etiqueta}
+            {!!p.insignia && (
+              <span className="absolute top-2 left-[calc(50%+6px)] grid h-[17px] min-w-[17px] place-items-center rounded-full bg-rojo px-1 text-[10px] text-papel">{p.insignia}</span>
+            )}
+          </button>
+        ))}
+      </nav>
+      </EnCuerpo>
     </section>
   );
 }

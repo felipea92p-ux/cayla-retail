@@ -618,6 +618,12 @@ Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras d
 - [ ] Probarlo con clics con una cuenta de tienda (no Admin), a 375 px.
 - [ ] Borrar el producto de prueba «Blusa Prueba Spike 3673» (`CAR-0001`) del Postgres LOCAL, si molesta.
 
+## 🎯 Apartados en el celular + arreglos (2026-09-26, ADR-0223) — solo web, sin migración; PR abierto
+Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apartar en tres pasos con barra fija, cámara QR, y los arreglos de las capturas de Felipe (color · talla · código en ticket y Entregar, celular que empieza en 9, avisos al salir del campo, pie fijo en los modales, sin «Buscar apartado», texto de En custodia).
+- [x] Web + `esCelularPeru` con prueba; verificado a 375 px y en computador con una página de prueba sin base (capturas en `docs/maquetas/apartados-v2-2026-09/implementacion-375px/`).
+- [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
+- [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
+
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
 Encender «Punto de venta» ya no trae Apartados: son dos interruptores. Apartados nace sin rol (solo lo ve el líder).
 - [ ] Pegar `supabase/migrations/20260924220000_apartados_modulo_propio.sql` en el SQL Editor de producción (ya trae `retail.`).
