@@ -38,7 +38,7 @@ Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-cat
 - [ ] **Pegar `20260927200000` en producción ANTES de fusionar** y correr las 5 consultas de verificación de su pie. Luego `pnpm datos:generar:produccion`.
 - [ ] Hueco hermano, fuera de este lote: un producto todavía puede apuntar a una categoría **inactiva** por UPDATE directo en `productos` (el alta y la edición lo impiden en la RPC). Toca el núcleo (`productos`): decide Felipe.
 - [ ] Del análisis quedan: #3 cabecera (hoy cuadra), #7 Editar en pasos, #8 una sola RPC, #9 más pruebas de pantalla, resto de #10, #11 (decide Felipe), #12.
-- Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`, en CI).
+- Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`). **No corre en CI todavía:** la sesión no podía tocar `.github/workflows/`. Falta el paso junto a `pruebas:editar-marca` y sacarla de `EXCLUIDAS` en `lib/ci-paridad.test.ts`; su primera corrida real será esa.
 - Cómo verificas:
   - **#2:** en el SQL Editor, `update retail.categorias set activo = false where nombre = 'Camisas y Blusas';` falla diciendo cuántos productos activos tiene.
   - **#4:** en «Desactivadas», «Polos (V1, retirada)» dice «No se reactiva» en vez del botón.
