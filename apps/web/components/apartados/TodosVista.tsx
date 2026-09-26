@@ -75,7 +75,7 @@ export function TodosVista({
 
   const cifras = [
     { etiqueta: "Por recoger", valor: String(resumen.porRecoger), pie: `${resumen.prendasGuardadas} ${resumen.prendasGuardadas === 1 ? "prenda guardada" : "prendas guardadas"}` },
-    { etiqueta: "En custodia", valor: money(resumen.enCustodia), pie: `No es ingreso hasta que recojan · ${money(resumen.enCustodiaEfectivo)} en el cajón`, custodia: true },
+    { etiqueta: "En custodia", valor: money(resumen.enCustodia), pie: `Anticipos: entran a ventas al entregar${resumen.enCustodiaEfectivo > 0 ? ` · ${money(resumen.enCustodiaEfectivo)} fue en efectivo` : ""}`, custodia: true },
     { etiqueta: "Por devolver", valor: money(resumen.montoPorDevolver), pie: `${resumen.porDevolver} ${resumen.porDevolver === 1 ? "clienta espera" : "clientas esperan"} su dinero`, alerta: resumen.porDevolver > 0 },
     { etiqueta: "Vencen en 2 días", valor: String(resumen.vencenPronto), pie: "Buen momento para escribirles" },
   ];

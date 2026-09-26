@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { EMISOR } from "@/lib/emisor";
 import { fotoOptimizable } from "@/lib/foto-prenda-reglas";
@@ -154,4 +154,62 @@ export function ReciboApartado({ apartado, tipo, sede, pagadoHoy }: { apartado: 
     </div>
   );
   return typeof document === "undefined" ? null : createPortal(cuerpo, document.body);
+}
+
+/** Alto de las pestañas de abajo en el celular (`ApartadosPanel`): la barra de acción se apoya encima. Un solo número
+ *  para las dos piezas, o la barra taparía las pestañas o dejaría una rendija. */
+export const ALTO_PESTANAS_MOVIL = "4rem";
+
+/** Monta lo fijo del celular en `document.body` (ADR-0211): la hoja de Apartados entra con un `transform`
+ *  (`anim-sube`) y, mientras dura, un `position: fixed` adentro se pegaría a la hoja y no a la pantalla. */
+const sinSuscripcion = () => () => {};
+
+export function EnCuerpo({ children }: { children: React.ReactNode }) {
+  // En el servidor no hay `document`: el portal nace en el navegador, sin romper la hidratación.
+  const montado = useSyncExternalStore(sinSuscripcion, () => true, () => false);
+  return montado ? createPortal(children, document.body) : null;
+}
+
+/**
+ * La barra negra del celular (Felipe, 2026-09-26: «Pasos + pestañas abajo», spike `docs/maquetas/apartados-v2-2026-09/`):
+ * fija sobre las pestañas, dice cuánto es y lleva el botón que sigue, para que el paso nunca quede enterrado bajo la
+ * búsqueda. Solo existe por debajo de `lg`; en computador el panel de la derecha ya está siempre a la vista.
+ */
+export function BarraMovil({
+  etiqueta,
+  monto,
+  accion,
+  icono,
+  deshabilitado,
+  onClick,
+}: {
+  etiqueta: string;
+  monto: number;
+  accion: string;
+  icono?: React.ReactNode;
+  deshabilitado?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <EnCuerpo>
+    <div
+      className="anim-revelar fixed inset-x-0 z-20 flex items-center justify-between gap-3 border-t border-tinta bg-tinta px-5 py-3 text-crema sm:left-lateral sm:transition-[left] sm:duration-300 lg:hidden"
+      style={{ bottom: `calc(${ALTO_PESTANAS_MOVIL} + env(safe-area-inset-bottom))` }}
+    >
+      <div className="min-w-0">
+        <p className="label-cayla truncate text-[10px] text-crema/60">{etiqueta}</p>
+        <p className="font-display text-2xl leading-tight tabular-nums">{money(monto)}</p>
+      </div>
+      <button
+        type="button"
+        disabled={deshabilitado}
+        onClick={onClick}
+        className="label-cayla flex h-12 shrink-0 items-center gap-2 rounded-lg bg-crema px-4 text-[11px] text-tinta disabled:opacity-45"
+      >
+        {accion}
+        {icono}
+      </button>
+    </div>
+    </EnCuerpo>
+  );
 }
