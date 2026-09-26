@@ -133,12 +133,12 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [ ] El «Archivar» del menú «···» de la vista tabla sigue siendo un adorno («todavía no está conectado»); convive con «Eliminar».
 - [ ] Los archivos de las fotos de un producto eliminado quedan en Storage (quitar una foto desde la ficha tampoco los borra hoy). Decidir una sola regla para ambos casos.
 
-## 🎯 Catálogo ▸ Marcas: «Eliminar» (2026-09-26, ADR-0217) — migración `20260926213000` EN PRODUCCIÓN (aplicada 2026-09-26, verificada por efectos); web en PR
+## 🎯 Catálogo ▸ Marcas: «Eliminar» (2026-09-26, ADR-0217) — migración `20260926213000` EN PRODUCCIÓN (aplicada 2026-09-26, verificada por efectos); web fusionada (#464) y **cerrado el caso «Cayla 2»**
 - [x] `retail.eliminar_marca(p_marca_id)`: borra la marca y sus vínculos, todo o nada, solo si ningún producto (de cualquier estado) la tiene. Botón «Eliminar» en la tarjeta y en «Desactivadas», visible solo cuando se puede (`sePuedeEliminarMarca`).
 - [x] Probado: `pnpm pruebas:eliminar-marca` 21/21 (sumada al CI), 3 mutaciones detectadas, carrera con COMMIT en los dos órdenes, `pruebas:editar-marca` sigue 23/23.
 - [x] **Aplicada en producción** (2026-09-26, con el «dale» de Felipe): ensayo revertido en la base real y luego `apply_migration`. Verificada por efectos: `eliminar_marca(uuid) → text`, `security definer`, `search_path` fijo, `authenticated` sí / `anon` no, una sola versión, md5 del cuerpo = el del archivo (`29675633…`).
-- [ ] **Corregir «Cayla 2» en producción (lo hace Felipe en la pantalla):** su único producto es `TOP-0011 Top Aurora` (proveedor Jacard Peru SAC, 65 u. en Tienda TRU, 1 venta completada del 25-sep). Cambiarle la marca a **Krisstell** (Jacard ya la trae) en Productos; recargar Marcas; «Eliminar».
-- [ ] Decidir con Felipe si `TOP-0011` y la venta del 25-sep (19 líneas, 7 de Top Aurora) eran de prueba: de serlo, `archivar_producto_prueba` / `archivar_venta_prueba` (ADR-0159) las esconden sin borrar. No se tocó nada.
+- [x] **«Cayla 2» eliminada** (Felipe, 2026-09-26, desde la pantalla). Verificado en producción, solo lectura: 79 marcas / 79 vínculos (eran 80/80), 0 vínculos huérfanos, 0 productos sin marca. Su único producto, `TOP-0011 Top Aurora`, ya no existía: se purgó antes (ADR-0219), así que no hizo falta moverlo a Krisstell. Es la primera corrida real del botón.
+- [x] Decidido: `TOP-0011` y la nota de venta `NV01-000007` eran de prueba y se **purgaron** de producción (ADR-0219, con el «dale» de Felipe), no se archivaron.
 - [ ] Ninguna pantalla resuelve el `marca_id` del historial de un producto a un nombre (ver ADR-0217, «Lo que no deja rastro»): si Felipe quiere ver «cambió de marca X a Y» en la ficha, es una tarea aparte.
 
 ## 🎯 Catálogo ▸ Marcas: buscador y «Editar» (2026-09-25) — migración `20260926150000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base); web en PR
