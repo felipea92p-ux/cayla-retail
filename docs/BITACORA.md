@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Gastos: «¿no será un proveedor que ya tienes?» — ADR-0109, actualización (c))
+La tercera puerta quedó cerrada: «¿No está? Súmalo» en Registrar gasto pregunta como Nueva marca y Compras ▸ Proveedores («Hidrandina S.A.A.» ~ «Hidrandina SA»). «Sí» lo elige en el combo, «No, es otro» deja sumar, y «Sumar» sin contestar no suma. Si el RUC o el nombre ya son de uno de la lista, «Sumar» elige ese sin ir a la base: es lo que la base habría hecho. Regla pura `sumarProveedorDeGasto` (`lib/gastos-reglas.ts`) con 9 pruebas; verificado con andamio a 800 y 375 px. Sin migración.
+Felipe se lleva: la RPC de Gastos ya «reutilizaba» al proveedor igual, y por eso esta puerta tenía que mirar el RUC antes que el nombre: preguntando solo por nombre, «No, es otro» con el mismo RUC habría dicho «otro» en pantalla y la base habría devuelto el mismo. Una pregunta que la base contradice es peor que no preguntar.
+
 ## 2026-09-25 (Proveedores: «¿no será uno que ya tienes?» — ADR-0109, actualización (b))
 La pregunta de las marcas llegó a los proveedores, en las dos puertas que los registran: Nueva marca ▸ «+ Registrar … como proveedor nuevo» y Compras ▸ Proveedores ▸ Registrar. La regla es una sola (`lib/nombres-parecidos.ts`, sacada de `marcas.ts` sin cambiarle nada); para proveedores no cuentan «SAC/S.A.C./EIRL/SRL/SCRL/SA/SAA» y no se pregunta entre dos RUC válidos distintos. «Sí» elige al que existe (o abre su ficha, en Compras); «No, es otro» deja seguir. Verificado con un andamio (sin base local) a 800 y 375 px. Sin migración.
 Felipe se lleva: (1) medida contra los 76 proveedores reales, la pregunta salta en UN solo par (Moda Mia ~ Valeria Mia Peru Moda EIRL): no molesta, y ese par hay que mirarlo. (2) La base promete, en el comentario de su índice, que «textiles andina s.a.c.» y «Textiles Andina SAC» no pueden convivir; preguntada, dice `false` (P-25). (3) Queda una tercera puerta sin la pregunta: el proveedor rápido de Gastos.

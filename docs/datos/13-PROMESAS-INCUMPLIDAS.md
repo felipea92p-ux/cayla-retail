@@ -1001,9 +1001,9 @@ la regla que ya quedó anotada: **el número de ADR y el de migración se piden 
 **Qué cuesta.** Plata repartida: un proveedor en dos fichas lleva sus facturas, su Por
 pagar y sus notas de crédito partidos, y el saldo a favor de una ficha no se ve desde la
 otra. Desde el 2026-09-25 la web pregunta antes de registrar (`proveedoresParecidos`,
-ADR-0109 act. (b)), pero esa pregunta vive en la pantalla: una carga por SQL, o una puerta
-que no la use —hoy el proveedor rápido de Gastos, `registrar_proveedor_de_gasto`—, sigue
-pasando.
+ADR-0109 act. (b)) en las tres puertas de la web —desde el act. (c), también el proveedor
+rápido de Gastos—, pero esa pregunta vive en la pantalla: una carga por SQL, o una puerta
+nueva que no la use, sigue pasando.
 
 **Qué hacer. Base (texto).** Corregir el comentario en la próxima migración de proveedores:
 que diga que junta mayúsculas, tildes y espacios, y que «SAC» contra «S.A.C.» lo pregunta

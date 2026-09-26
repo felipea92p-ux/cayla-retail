@@ -490,3 +490,34 @@ Medida contra los 76 proveedores de producción (2026-09-25, solo lectura): ning
 solo: Moda Mia ~ Valeria Mia Peru Moda EIRL (por nombre contenido; Moda Mia no tiene RUC). Hay que mirarlo a mano. Los casos
 del pedido la disparan todos: «Jacard Perú S.A.C.», «Jacard Peru», «Skopjer S.R.L.», «Corporacion Imperium S.C.R.L.».
 Pruebas: `lib/nombres-parecidos.test.ts` y `lib/proveedores-parecidos.test.ts`.
+
+## Actualización 2026-09-25 (c) — la tercera puerta: el proveedor rápido de Gastos
+
+Finanzas ▸ Gastos ▸ Registrar gasto ▸ «¿No está? Súmalo» registra con `registrar_proveedor_de_gasto`
+(`20260924235100`), que ya reutiliza el proveedor si el RUC coincide o si el nombre es IGUAL (`fn_clave_texto`), pero
+dejaba pasar «Hidrandina S.A.A.» junto a «Hidrandina SA». Ahora pregunta como las otras dos puertas, con la misma pieza
+(`PreguntaParecido`) y la misma regla (`proveedoresParecidos`). Sin migración.
+
+La diferencia con las otras puertas sale de la RPC: `registrar_proveedor` crea siempre; `registrar_proveedor_de_gasto`
+«suma o reutiliza». Por eso la regla de esta puerta, `sumarProveedorDeGasto` (`lib/gastos-reglas.ts`), dice ANTES lo que la
+base haría: mismo RUC → es ese (aunque el nombre diga otra cosa, o todavía no haya nombre); mismo nombre → es ese; si no,
+pregunta por los parecidos que nadie contestó; si no queda pregunta, suma.
+
+```
+DECIDÍ: «Sí» elige al que existe en el combo de proveedor, aquí mismo; «No, «X» es otro proveedor» deja sumar; «Sumar
+  proveedor» sin contestar no suma (aviso que lleva a la pregunta). Con el mismo RUC o el mismo nombre no hay «No»: la caja
+  dice «ya es de…» y «Sumar» elige ese, sin viaje a la base y con el aviso «ya estaba en el directorio: no se creó otro».
+DESCARTÉ: (a) preguntar solo por nombre, como Nueva marca: con un RUC igual y un nombre parecido, «No, es otro» habría
+  mandado a la base un proveedor que la base igual devuelve —la pantalla diría «otro» y el gasto quedaría en el mismo—;
+  (b) traer también los proveedores desactivados para comparar: es 1 de 76 (2026-09-25) y la base igual lo reutiliza si es
+  el mismo RUC o nombre; cambiaría `getProveedoresParaGasto`, que usan dos pantallas, por un caso que hoy no existe.
+SE ROMPE SI: dos personas suman a la vez, desde dos pantallas abiertas antes, «Hidrandina SA» y «Hidrandina S.A.A.» sin
+  RUC: ninguna ve a la otra en su lista, y la base (candado por nombre IGUAL) deja entrar las dos. La pregunta es un aviso,
+  no un candado (ver el DESCARTÉ (a) de la actualización (b)).
+```
+
+Pruebas: `lib/gastos-proveedor-parecido.test.ts` (9 casos: el de Hidrandina, «No» que deja seguir, igual con tildes y
+mayúsculas, RUC antes que nombre, RUC válido distinto, RUC a medio escribir, mismo nombre con otro RUC, vacío, y el tope que
+se aplica después de «es otro»). Verificado con un andamio (sin base local) a 800 y 375 px: la pregunta, «Sumar» sin
+contestar (no sale ninguna petición), «Sí» (queda elegido), «No» (sale `registrar_proveedor_de_gasto`), mismo RUC con otro
+nombre (elige sin petición ni opción duplicada) y mismo nombre escrito distinto.
