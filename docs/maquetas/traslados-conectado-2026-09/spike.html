@@ -365,7 +365,7 @@ const LINEAS_NUEVO = [
 const q = new URLSearchParams(location.search);
 const S = {
   esc: q.get('esc') || 'lista',            // lista | nuevo | recibido | guia
-  lista: q.get('lista') || 'tabs',         // tabs | cifras | hoy
+  lista: q.get('lista') || 'hoy',          // tabs | cifras | hoy  (Felipe eligió «hoy», ADR-0242)
   agregar: q.get('agregar') || 'scan',     // scan | buscar | combo
   guia: q.get('guia') || 'qrwa',           // qrwa | qr | wa | nada
   lugar: q.get('lugar') || 'almacen',      // piso | almacen (recibido)

@@ -41,11 +41,14 @@ cuenta a ciegas (ADR-0239, D-130).
 4. **Pedir a otra sede** — útil, pero es modelo nuevo (tabla y funciones) y se cruza con los pedidos para apartar;
    conviene como extensión de ADR-0233 con la clienta opcional, después.
 
-## Decisiones que esperan a Felipe
+## Lo que Felipe eligió (2026-09-26, ADR-0242)
 
-- Qué lista: pestañas, cifras + tabla u «Hoy te toca».
-- Cómo se agregan prendas: escanear + buscar, solo buscar o combo.
-- Qué acompaña a la caja: guía QR + WhatsApp, solo QR, solo WhatsApp o nada.
-- Qué conexiones entran en la primera tanda (las tres sin migración, o también «Pedir a otra sede»).
+- Lista: **«Hoy te toca»** (el spike abre con ella).
+- Agregar prendas: **escanear + buscar**.
+- Con la caja: **guía con QR + WhatsApp**.
+- Conexiones: **las cuatro**. «Pedir a otra sede» extiende los pedidos de ADR-0233 con la clienta opcional.
+- Un solo Nuevo traslado en `/inventario/traslados/nuevo`: Existencias lleva ahí, y ahí suma «Traslados · N por recibir».
+
+Orden de construcción y lo que queda por diseñar: `docs/adr/0242-traslados-conectado-hoy-te-toca-escanear-guia.md`.
 
 Datos inventados; el dominio `erp.cayla.pe/t/15` del mensaje es ilustrativo.

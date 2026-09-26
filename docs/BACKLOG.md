@@ -127,7 +127,9 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] Vaciar una casilla ya guardada no vuelve a «sin contar» (la base no tiene cómo): al recargar reaparece el último número. Dos tablets contando la misma caja se pisan entre sí.
 - [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
-- [ ] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, rama `claude/traslados-screen-improvements-e3191e`, solo docs): Felipe elige lista (pestañas / cifras + tabla / «Hoy te toca»), cómo se agregan prendas al enviar (escanear + buscar / solo buscar / combo), qué acompaña a la caja (guía QR + WhatsApp / QR / WhatsApp / nada) y qué conexiones entran (después de recibir, pedidos de otras tiendas y sugeridos, sin migración; «pedir a otra sede», con migración).
+- [x] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, PR #515): Felipe eligió «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en `/inventario/traslados/nuevo` (ADR-0242).
+- [ ] ADR-0242 tanda 1: Nuevo traslado (ruta nueva + redirección de `/inventario/mover`, escaneo y búsqueda con foto, destino en botones, llegada por día, «Volver» según el origen). Sin migración.
+- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: «Pedir a otra sede» (extiende `separacion_pedidos`, clienta opcional; **migración con OK de Felipe**, diseñar el agrupado antes). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
 
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 
