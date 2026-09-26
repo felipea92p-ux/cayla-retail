@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClipboardCheck, PackageOpen, ShoppingBag } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getExistencias, resumirExistencias, getPrendasDanadasPendientes } from "@/lib/inventario-v2";
@@ -112,8 +113,8 @@ export default async function InventarioPage({
   // «Bajar al piso» (ADR-0208): la única entrada a /inventario/bajar (Felipe, 2026-09-25; el lateral no cambia). Solo si
   // su rol ve «Bajada al piso» y si lo que se mira es SU sede activa y separa piso y almacén: esa pantalla baja siempre en
   // la sede activa, y en otra (o en el Taller) no tendría nada que bajar.
-  const puedeBajarAlPiso =
-    veModulo(persona, "bajada_piso") && ubicacionActivaId === persona.ubicacionId && sububicacionPiso !== null && sububicacionAlmacen !== null;
+  const enSuSede = ubicacionActivaId === persona.ubicacionId;
+  const puedeBajarAlPiso = veModulo(persona, "bajada_piso") && enSuSede && sububicacionPiso !== null && sububicacionAlmacen !== null;
 
   // Lo que viene HACIA esta ubicación, para la tarjeta «En camino»: cuántos
   // traslados, cuándo llega el próximo y si alguno ya debería haber llegado.
@@ -151,17 +152,49 @@ export default async function InventarioPage({
         // A la derecha, donde la cabecera tenía espacio libre (Felipe, 2026-09-26): la fila de botones bajo la frase le
         // sumaba 54 px de alto (medido a 1440) a una pantalla que se abre para mirar la tabla. «+ Nuevo traslado» va al
         // final y queda en el borde aunque «Bajar al piso» no se muestre.
+        //
+        // Existencias conectada (ADR-0237): debajo, en un segundo renglón chico, las pantallas que trabajan de la mano con
+        // esta (Recibir, Contar, Apartados), a un toque y sin volver al lateral. Dos renglones y no uno: cinco botones en
+        // fila no caben junto al título a 1440 y la cabecera volvía a partirse. Cada acceso solo si su rol ve esa pantalla
+        // (ADR-0161) y mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
         acciones={
-          <>
-            {puedeBajarAlPiso && (
-              <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
-                Bajar al piso
-              </Link>
+          <div className="flex flex-col items-start gap-2.5 sm:items-end">
+            <div className="flex flex-wrap items-center gap-3">
+              {puedeBajarAlPiso && (
+                <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
+                  Bajar al piso
+                </Link>
+              )}
+              {veModulo(persona, "traslados") && (
+                <Link href="/inventario/mover" className="btn-cayla btn-primario">
+                  + Nuevo traslado
+                </Link>
+              )}
+            </div>
+            {enSuSede && (
+              <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+                {veModulo(persona, "recibir") && (
+                  <Link href="/recibir" className="btn-cayla btn-sutil btn-chico">
+                    <PackageOpen aria-hidden className="h-4 w-4" />
+                    Recibir mercadería
+                  </Link>
+                )}
+                {veModulo(persona, "conteos") && (
+                  <Link href="/inventario/conteo" className="btn-cayla btn-sutil btn-chico">
+                    <ClipboardCheck aria-hidden className="h-4 w-4" />
+                    Contar
+                  </Link>
+                )}
+                {vende && veModulo(persona, "apartados") && (
+                  <Link href="/vender/apartados" className="btn-cayla btn-sutil btn-chico">
+                    <ShoppingBag aria-hidden className="h-4 w-4" />
+                    Apartados
+                    {apartados.length > 0 && <span className="rounded-full bg-hueso px-1.5 text-[11px] tabular-nums text-tinta/80">{apartados.length}</span>}
+                  </Link>
+                )}
+              </nav>
             )}
-            <Link href="/inventario/mover" className="btn-cayla btn-primario">
-              + Nuevo traslado
-            </Link>
-          </>
+          </div>
         }
       />
 
@@ -191,6 +224,8 @@ export default async function InventarioPage({
         deltaSede={deltaSede}
         recomendaciones={recomendaciones}
         politica={politica}
+        veTraslados={veModulo(persona, "traslados")}
+        puedeBajarAlPiso={puedeBajarAlPiso}
       />
     </div>
   );

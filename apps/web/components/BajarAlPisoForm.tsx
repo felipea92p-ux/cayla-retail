@@ -97,7 +97,19 @@ function borrarTexto(clave: string): void {
   }
 }
 
-export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: string; sede: string; prendas: PrendaBajable[] }) {
+export function BajarAlPisoForm({
+  ubicacionId,
+  sede,
+  prendas,
+  iniciales = [],
+}: {
+  ubicacionId: string;
+  sede: string;
+  prendas: PrendaBajable[];
+  /** Lo que llega marcado desde Existencias (`?lineas=`, ADR-0237), ya validado contra esta tienda. Si había una bajada
+   *  a medias guardada en el aparato, manda esa: la lista de Existencias no pisa lo que se escaneó y no se confirmó. */
+  iniciales?: LineaBajada[];
+}) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId, etiqueta: sede });
   const clave = claveDeBorrador(ubicacionId);
@@ -162,7 +174,15 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
     if (borradorLeido.current) return;
     borradorLeido.current = true;
     const b = leerBorrador(leerTexto(clave), new Date(), prendas);
-    if (!b) return;
+    if (!b) {
+      // Solo se carga: el borrador se escribe con el primer cambio (escanear, fijar o quitar). Si se va sin tocarla, la
+      // lista no se perdió — se rearma desde Existencias.
+      if (iniciales.length > 0) {
+        lineasRef.current = iniciales;
+        setLineas(iniciales);
+      }
+      return;
+    }
     if (!b.enviadoEn) {
       borradorPendiente.current = b;
       return setBorrador(b);

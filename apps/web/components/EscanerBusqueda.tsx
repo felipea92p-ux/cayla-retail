@@ -17,7 +17,17 @@ import { normalizarLectura } from "@/lib/escaner-reglas";
 
 type Estado = "abriendo" | "leyendo" | "sin-permiso" | "sin-camara";
 
-export function EscanerBusqueda({ onCodigo, onEscribir, onClose }: {
+export function EscanerBusqueda({
+  onCodigo,
+  onEscribir,
+  onClose,
+  titulo = "Escanear para cambiar",
+  pista = "Centra la etiqueta o el QR de la boleta en el cuadro",
+}: {
+  /** Lo que dice la barra de arriba. Cambios lee etiquetas y boletas; Existencias solo etiquetas (ADR-0237). */
+  titulo?: string;
+  /** La indicación bajo el cuadro. */
+  pista?: string;
   /** El código tal como se leyó; quien lo recibe decide qué buscar (`busquedaDesdeLectura`). */
   onCodigo: (codigo: string) => void;
   /** Sin cámara: cerrar y dejar el campo de búsqueda listo. */
@@ -89,7 +99,7 @@ export function EscanerBusqueda({ onCodigo, onEscribir, onClose }: {
     "grid h-11 w-11 shrink-0 place-items-center rounded-full bg-crema/15 text-crema backdrop-blur-md transition-[background-color,transform] duration-200 ease-cayla hover:bg-crema/25 active:scale-95";
 
   return (
-    <Modal variante="camara" titulo="Escanear para cambiar" subtitulo="Apunta la cámara a la etiqueta de la prenda o al QR de la boleta." onClose={onClose}>
+    <Modal variante="camara" titulo={titulo} subtitulo={pista} onClose={onClose}>
       {(cerrar) => (
         <>
           <div data-sin-cascada className="absolute inset-0">
@@ -101,7 +111,7 @@ export function EscanerBusqueda({ onCodigo, onEscribir, onClose }: {
             <button type="button" onClick={cerrar} aria-label="Cerrar la cámara" className={botonRedondo}>
               <X aria-hidden className="h-5 w-5" />
             </button>
-            <p className="label-cayla text-[11px] text-crema/90">Escanear para cambiar</p>
+            <p className="label-cayla text-[11px] text-crema/90">{titulo}</p>
             <span aria-hidden className="w-11" />
           </div>
 
@@ -133,7 +143,7 @@ export function EscanerBusqueda({ onCodigo, onEscribir, onClose }: {
                   {estado === "abriendo" && <p className="absolute inset-0 grid place-items-center text-sm text-crema/80">Abriendo la cámara…</p>}
                 </div>
                 <p className="relative rounded-full bg-tinta/50 px-4 py-2 text-center text-[13px] text-crema/90 backdrop-blur-md">
-                  Centra la etiqueta o el QR de la boleta en el cuadro
+                  {pista}
                 </p>
               </>
             )}
