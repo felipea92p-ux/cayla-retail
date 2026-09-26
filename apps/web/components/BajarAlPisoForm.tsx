@@ -26,6 +26,7 @@ import {
   claveDeBorrador,
   conTopeDeLaBase,
   fijarCantidad,
+  porEscanear,
   interpretarErrorDeBajada,
   leerBorrador,
   leerCodigo,
@@ -160,10 +161,13 @@ export function BajarAlPisoForm({
   const prendasConTope = useMemo(() => prendas.map((p) => conTopeDeLaBase(p, problemas[p.varianteId])), [prendas, problemas]);
   const porIdConTope = useMemo(() => new Map(prendasConTope.map((p) => [p.varianteId, p] as const)), [prendasConTope]);
   const resumen = resumenDeBajada(lineas, prendas);
-  const motivo =
-    lineas.length === 0
-      ? "Escanea al menos una prenda."
-      : lineas.length > MAX_LINEAS_BAJADA
+  // Lo marcado en Existencias llega «por escanear» (en 0): no se baja hasta leerlo al colgarlo (ADR-0237, act. 2026-09-26).
+  const hayEscaneadas = resumen.prendas > 0;
+  const motivo = !hayEscaneadas
+    ? lineas.length > 0
+      ? "Escanea cada prenda de la lista al colgarla: solo se baja lo escaneado."
+      : "Escanea al menos una prenda."
+    : lineas.length > MAX_LINEAS_BAJADA
         ? `Una bajada admite hasta ${MAX_LINEAS_BAJADA} prendas distintas y esta lista tiene ${lineas.length}: quita ${lineas.length - MAX_LINEAS_BAJADA} y bájalas en otra.`
         : responsable.motivo;
   const puedeConfirmar = !enviando && motivo === null;
@@ -240,17 +244,18 @@ export function BajarAlPisoForm({
     return () => window.removeEventListener("keydown", alTeclear);
   }, [bloqueada, congelada]);
 
-  // Cerrar o recargar con prendas escaneadas y sin confirmar: el aviso nativo del navegador.
+  // Cerrar o recargar con prendas escaneadas y sin confirmar: el aviso nativo del navegador. Lo «por escanear» no cuenta:
+  // si se va sin leer nada, no pierde nada (la lista se rearma desde Existencias).
   const hayLineas = lineas.length > 0;
   useEffect(() => {
-    if (!hayLineas) return;
+    if (!hayEscaneadas) return;
     const alSalir = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", alSalir);
     return () => window.removeEventListener("beforeunload", alSalir);
-  }, [hayLineas]);
+  }, [hayEscaneadas]);
 
   function volverAlEscaner() {
     escaner.current?.focus({ preventScroll: true });
@@ -647,6 +652,7 @@ export function BajarAlPisoForm({
                               ) : (
                                 <span className="tabular-nums">En almacén: {tope}</span>
                               )}
+                              {porEscanear(l) && <Chip tono="pizarra">Por escanear</Chip>}
                             </p>
                           </div>
                         </div>
@@ -654,7 +660,7 @@ export function BajarAlPisoForm({
                           <button
                             type="button"
                             aria-label={`Una menos de ${nombre}`}
-                            disabled={listaQuieta}
+                            disabled={listaQuieta || porEscanear(l)}
                             onClick={() => cambiarCantidad(l.varianteId, l.cantidad - 1)}
                             className="btn-cayla btn-secundario h-11 w-11 p-0"
                           >
@@ -701,7 +707,7 @@ export function BajarAlPisoForm({
           )}
 
           {hayLineas && <p className="nota-cayla">{textoNotaDelPie(congelada)}</p>}
-          {sinGuardado && hayLineas && (
+          {sinGuardado && hayEscaneadas && (
             <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
               Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.
             </p>
@@ -734,7 +740,7 @@ export function BajarAlPisoForm({
                     </>
                   ) : congelada ? (
                     botonIncierto
-                  ) : hayLineas ? (
+                  ) : hayEscaneadas ? (
                     textoDeConfirmar(resumen.prendas)
                   ) : (
                     "Confirmar bajada"
