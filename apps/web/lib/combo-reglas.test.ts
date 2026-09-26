@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { comboLlegoAlFinal, comboNecesitaBuscador, TAMANO_PAGINA_COMBO, UMBRAL_BUSCAR_COMBO, coincidenciaCombo } from "./combo-reglas";
+import {
+  comboLlegoAlFinal,
+  comboNecesitaBuscador,
+  TAMANO_PAGINA_COMBO,
+  UMBRAL_BUSCAR_COMBO,
+  coincidenciaCombo,
+  primeraElegible,
+  siguienteElegible,
+  tramosPorGrupo,
+} from "./combo-reglas";
 
 describe("comboNecesitaBuscador", () => {
   it("no busca con el umbral exacto", () => {
@@ -64,5 +73,57 @@ describe("coincidenciaCombo", () => {
     expect(coincidenciaCombo(gris, "azul", clave)).toBeNull();
     expect(coincidenciaCombo({ texto: "Azul" }, "plomo", clave)).toBeNull();
     expect(coincidenciaCombo(gris, "", clave)).toBe("");
+  });
+});
+
+describe("opciones que se ven pero no se eligen", () => {
+  // Como el combo de cuentas: dos bancos, un cajón con la caja cerrada y otro abierto.
+  const cuentas = [{ deshabilitada: false }, { deshabilitada: false }, { deshabilitada: true }, { deshabilitada: false }];
+
+  it("las flechas saltan la bloqueada, en las dos direcciones", () => {
+    expect(siguienteElegible(cuentas, 1, 1)).toBe(3);
+    expect(siguienteElegible(cuentas, 3, -1)).toBe(1);
+  });
+
+  it("en el borde, o sin otra elegible, se quedan donde están", () => {
+    expect(siguienteElegible(cuentas, 3, 1)).toBe(3);
+    expect(siguienteElegible(cuentas, 0, -1)).toBe(0);
+    expect(siguienteElegible([{ deshabilitada: false }, { deshabilitada: true }], 0, 1)).toBe(0);
+  });
+
+  it("Inicio y Fin van a la primera y la última elegibles; sin ninguna, −1", () => {
+    const bordes = [{ deshabilitada: true }, { deshabilitada: false }, { deshabilitada: false }, { deshabilitada: true }];
+    expect(primeraElegible(bordes)).toBe(1);
+    expect(primeraElegible(bordes, true)).toBe(2);
+    expect(primeraElegible([{ deshabilitada: true }])).toBe(-1);
+  });
+
+  it("sin `deshabilitada` todas se eligen: el combo de siempre no cambia", () => {
+    const simples = [{}, {}, {}];
+    expect(siguienteElegible(simples, 0, 1)).toBe(1);
+    expect(primeraElegible(simples, true)).toBe(2);
+  });
+});
+
+describe("tramosPorGrupo", () => {
+  it("agrupa las seguidas del mismo grupo y conserva el índice plano", () => {
+    const opciones = [{ grupo: "Bancos" }, { grupo: "Bancos" }, { grupo: "Cajones" }];
+    expect(tramosPorGrupo(opciones).map((t) => [t.grupo, t.items.map((x) => x.i)])).toEqual([
+      ["Bancos", [0, 1]],
+      ["Cajones", [2]],
+    ]);
+  });
+
+  it("una opción suelta arriba («Aún no llegan») va sin título, antes del grupo", () => {
+    const opciones = [{}, { grupo: "No van a llegar" }, { grupo: "No van a llegar" }];
+    expect(tramosPorGrupo(opciones).map((t) => [t.grupo, t.items.length])).toEqual([
+      [undefined, 1],
+      ["No van a llegar", 2],
+    ]);
+  });
+
+  it("sin grupos, un solo tramo sin título: la lista de siempre", () => {
+    expect(tramosPorGrupo([{}, {}]).map((t) => [t.grupo, t.items.length])).toEqual([[undefined, 2]]);
+    expect(tramosPorGrupo([])).toEqual([]);
   });
 });
