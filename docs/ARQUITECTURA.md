@@ -535,11 +535,14 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición de la prenda que vuelve:
   vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
   ventas anuladas; migración 20260919000100).
-- `/devoluciones` (ADR-0122) → `getVentasRecientes` + `lib/devoluciones.ts`
-  (`getDevolucionesPendientes`, `getEstadisticasDevoluciones`) + `getCajaAbierta` →
-  `DevolucionesPanel.tsx` (bloques "Iniciar una devolución", "Por aprobar" y "Actividad
-  reciente"; filas en `DevolucionesVentas.tsx`; "Anular venta" en el encabezado de cada compra,
-  solo líder) → `DevolucionesFlujo.tsx` (Venta → Prendas → Detalle → Confirmación: VARIAS
+- `/devoluciones` (ADR-0122, ADR-0232) → `getVentasRecientes` + `lib/devoluciones.ts`
+  (`getDevolucionesPendientes`, `getDevolucionesResueltas`, `getEstadisticasDevoluciones`,
+  `contarPrendasEnCuarentena`) + `getCajaAbierta` → `DevolucionesPanel.tsx` (avisos de cuarentena →
+  `/inventario?danados=1` y de caja cerrada → `/caja`; "Iniciar una devolución"; pestañas Compras /
+  Por aprobar / Resueltas —`DevolucionesResueltas.tsx`, NC → Comprobantes ▸ Emitidos—; en celular,
+  "Escanear prenda" fijo abajo; la cifra "Por aprobar" de `ResumenSede` es un enlace `#por-aprobar`;
+  tarjetas en `DevolucionesVentas.tsx` con "Devolver", "Cambiar" → `/cambios?item=` y "Ver venta" →
+  `DetalleVentaModal`; "Anular venta" en el encabezado de cada compra, solo líder) → `DevolucionesFlujo.tsx` (Venta → Prendas → Detalle → Confirmación: VARIAS
   prendas en una sola devolución) → RPC `crear_devolucion` (queda `pendiente`; no mueve nada) →
   `DevolucionesPendientes.tsx` (solo un líder) → RPCs `aprobar_devolucion` (mueve el stock, emite
   la Nota de Crédito si el comprobante está aceptado —ADR-0100— y el reembolso opcional; lo

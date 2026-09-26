@@ -3,6 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Devoluciones conectada y en el celular: del spike al sistema — ADR-0232)
+Lo elegido en el demo ya está en la web, sin migración: tarjeta con «Devolver» y «Cambiar», «Escanear prenda» fijo abajo en el celular, cifra «Por aprobar» tocable, pestaña «Resueltas» con la nota de crédito y el destino de cada prenda, y avisos que llevan a Inventario (cuarentena) y a Caja. La ficha de la clienta quedó fuera porque `/clientas` todavía es una pantalla de pruebas.
+Felipe se lleva: (1) **un enlace solo sirve si la cuenta puede entrar**: cada acceso pregunta por el módulo (ADR-0161) antes de dibujarse. (2) **Dos filas de píldoras iguales no dicen cuál manda**: las pestañas y los filtros quedaron con formas distintas.
+
+## 2026-09-26 (Devoluciones en computadora y celular: demo + spike)
+Pediste sumar a Devoluciones las pantallas que trabajan con ella y hacerla ágil en el celular. Hubo análisis de la pantalla, investigación de 5 sistemas (Shopify, Square, Lightspeed, Odoo, Bsale), un demo con las opciones y un spike final (`docs/maquetas/devoluciones-2026-09/`): tarjeta compacta con «Devolver» y «Cambiar», «Escanear prenda» fijo abajo en el celular, cifra «Por aprobar» tocable y pestaña «Resueltas» con su nota de crédito, y avisos de cuarentena y de caja cerrada (este último también para la colaboradora). Sin código de la web ni migración.
+Felipe se lleva: (1) **siete botones negros iguales no dicen nada**: cuando todo es principal, nada lo es; por eso «Devolver» baja a borde y el negro queda para escanear. (2) **Los referentes ponen el cambio al lado de la devolución**, justo lo que pide R-37. (3) **Lo resuelto también es trabajo**: sin «Resueltas», la nota de crédito y la cuarentena quedaban fuera de la vista.
+
 ## 2026-09-26 (Historial conectado: del spike al sistema — ADR-0230)
 Felipe eligió las opciones del spike y pidió llevarlas al sistema: buscador único (misma búsqueda que Cambios, ahora también por nº de operación), «Hoy» y atajos (los elegidos, en el navegador), avisos de SUNAT y apartados, marcas de posventa, recorrido y acciones que llevan a Cambios, Devoluciones, Comprobantes, Clientas, Apartados y el POS («Volver a vender»), exportar CSV y celular. Una migración (`venta_pagos.referencia`) queda SIN pegar hasta su OK.
 Felipe se lleva: (1) **Historial no cambia nada, lleva**: cada acción abre la pantalla que hace el proceso con la venta ya buscada, y esa pantalla decide si se puede. (2) **Una migración puede tocar una función de cobro sin reescribirla**: se reemplaza una línea sobre la definición viva y se detiene si no la encuentra. (3) **Un filtro que la base no sabe sumar no se inventa**: sus cifras se calculan con los mismos filtros que la lista.
