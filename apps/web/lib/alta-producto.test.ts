@@ -6,7 +6,9 @@ import {
   codigoVariantePrevisto,
   construirCeldas,
   desbloqueos,
+  estadoSubidaSinConexion,
   faltaDelPaso,
+  fraseStockCreado,
   leerCantidad,
   limpiarCantidad,
   ordenarFotosAlta,
@@ -379,5 +381,27 @@ describe("ordenarFotosAlta — la principal es la del primer color", () => {
   });
   it("sin fotos devuelve una lista vacía", () => {
     expect(ordenarFotosAlta([], ["NEG"])).toEqual([]);
+  });
+});
+
+describe("alta sin conexión: qué pasó y qué decir del stock (ADR-0210 + ADR-0212)", () => {
+  it("«subió» solo si salió de la cola sin que la descartaran", () => {
+    expect(estadoSubidaSinConexion({})).toBeUndefined();
+    expect(estadoSubidaSinConexion({ token: "t", enCola: { rechazo: null } })).toBe("esperando");
+    expect(estadoSubidaSinConexion({ token: "t", enCola: { rechazo: "responsable_no_presente" } })).toBe("rechazada");
+    expect(estadoSubidaSinConexion({ token: "t" })).toBe("subio");
+    // Descartarla también la saca de la cola: no es «subió» (revisión adversarial del 2026-09-26).
+    expect(estadoSubidaSinConexion({ token: "t", descartado: true })).toBe("descartada");
+  });
+  it("la frase del stock nunca dice «ya aparecen en Existencias» de algo que no entró", () => {
+    const s = { unidades: 12, donde: "almacén de Tienda TRU" };
+    expect(fraseStockCreado(s, false, undefined)).toBe("12 unidades cargadas al inventario (almacén de Tienda TRU): ya aparecen en Existencias.");
+    expect(fraseStockCreado(s, true, "subio")).toMatch(/ya aparecen en Existencias/);
+    for (const subida of ["esperando", "rechazada", "descartada"] as const) {
+      expect(fraseStockCreado(s, true, subida)).not.toMatch(/Existencias/);
+    }
+    expect(fraseStockCreado(s, true, "descartada")).toMatch(/no se cargaron/);
+    expect(fraseStockCreado(s, true, "rechazada")).toMatch(/todavía no entraron/);
+    expect(fraseStockCreado({ unidades: 1, donde: "Taller" }, false, undefined)).toBe("1 unidad cargada al inventario (Taller): ya aparecen en Existencias.");
   });
 });

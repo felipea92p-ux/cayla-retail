@@ -337,6 +337,39 @@ export type ErrorAlta =
   | { tipo: "nombre_casi_igual"; existenteId: string | null; mensaje: string }
   | { tipo: "otro" };
 
+// ---------------------------------------------------------------------------
+// Un alta guardada sin conexión (ADR-0210): qué pasó con ella, y qué decir de su stock (ADR-0212).
+// ---------------------------------------------------------------------------
+
+/** Dónde está un alta guardada sin conexión: esperando la red, ya en la base, rechazada por la base, o descartada a mano. */
+export type SubidaSinConexion = "esperando" | "subio" | "rechazada" | "descartada";
+
+/**
+ * «Subió» SOLO si la operación salió de la cola sin que nadie la descartara. Salir de la cola pasa de dos maneras (subir
+ * de verdad, o «Descartar» una rechazada) y confundirlas hacía decir «ya subió» y «ya aparecen en Existencias» de un
+ * producto y un stock que no existen (revisión adversarial del 2026-09-26). `undefined` = el alta no fue sin conexión.
+ */
+export function estadoSubidaSinConexion(o: {
+  token?: string;
+  descartado?: boolean;
+  enCola?: { rechazo: string | null };
+}): SubidaSinConexion | undefined {
+  if (!o.token) return undefined;
+  if (o.descartado) return "descartada";
+  if (!o.enCola) return "subio";
+  return o.enCola.rechazo ? "rechazada" : "esperando";
+}
+
+/** La frase del stock en la pantalla de éxito: nunca dice «ya aparecen en Existencias» de algo que todavía no entró. */
+export function fraseStockCreado(stock: { unidades: number; donde: string }, sinConexion: boolean, subida: SubidaSinConexion | undefined): string {
+  const n = stock.unidades;
+  const u = `${n} unidad${n === 1 ? "" : "es"}`;
+  if (sinConexion && subida === "descartada") return `${u}: no se cargaron, se descartaron junto con el producto.`;
+  if (sinConexion && subida === "rechazada") return `${u}: todavía no entraron, porque la base no aceptó el alta (mira el aviso rojo).`;
+  if (sinConexion && subida !== "subio") return `${u}: van al inventario (${stock.donde}) junto con el producto, cuando suba.`;
+  return `${u} cargada${n === 1 ? "" : "s"} al inventario (${stock.donde}): ya aparecen en Existencias.`;
+}
+
 /** Lee el `hint` estable que pone `crear_producto_con_variantes` (20260918230100). Cualquier otro error va por `traducirError`. */
 export function leerErrorAlta(error: { message: string; hint?: string | null; details?: string | null } | null): ErrorAlta {
   if (!error) return { tipo: "otro" };

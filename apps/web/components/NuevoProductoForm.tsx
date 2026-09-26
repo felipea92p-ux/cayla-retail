@@ -37,6 +37,7 @@ import {
   codigoBasePrevisto,
   codigoVariantePrevisto,
   construirCeldas,
+  estadoSubidaSinConexion,
   faltaDelPaso,
   leerCantidad,
   leerErrorAlta,
@@ -491,10 +492,15 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
   if (creado) {
     // Un alta guardada sin conexión se sigue en la cola: la pantalla cambia sola cuando sube (o si la base la rechaza).
     const enCola = creado.token ? colaOffline.cola.find((o) => o.token === creado.token) : undefined;
-    const subida = !creado.token ? undefined : !enCola ? "subio" : enCola.rechazo ? "rechazada" : "esperando";
+    const subida = estadoSubidaSinConexion({ token: creado.token, descartado: creado.descartado, enCola });
+    // Descartar también la saca de la cola: se anota aparte para que la pantalla no la lea como «subió».
+    const descartar = (tokenOp: string) => {
+      colaOffline.descartar(tokenOp);
+      if (tokenOp === creado.token) setCreado((c) => (c ? { ...c, descartado: true } : c));
+    };
     return (
       <div className="space-y-4">
-        {subida === "rechazada" && <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="prenda nueva" varias="prendas nuevas" />}
+        {subida === "rechazada" && <ColaOfflineAviso cola={colaOffline.cola} onDescartar={descartar} uno="prenda nueva" varias="prendas nuevas" />}
         <ProductoCreado creado={creado} onOtroParecido={otroParecido} subida={subida} />
       </div>
     );
