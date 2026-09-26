@@ -3,7 +3,7 @@ import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -72,10 +72,10 @@ export default async function MoverMercaderiaPage({
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo={`Inventario · ${origen.nombre}`}
+      <EncabezadoPagina
+        sede={origen.nombre}
         titulo="Mover mercadería"
-        bajada="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
+        subtitulo="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
       />
 
       {destinos.length === 0 ? (

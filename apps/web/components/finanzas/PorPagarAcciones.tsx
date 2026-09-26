@@ -25,15 +25,16 @@ export function VerPorPagar({ ver, unidades, esLider }: { ver: Ver; unidades: Ub
   return (
     <label className="fin-ver">
       <span className="label-cayla text-[11px] text-taupe">Ver</span>
-      <SelectFin value={ver.clave} onChange={(e) => ir(e.target.value)} aria-label="Qué mirar">
-        <option value="todas">Todas las tiendas</option>
-        {unidades.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.nombre}
-          </option>
-        ))}
-        <option value="empresa">De la empresa</option>
-      </SelectFin>
+      <SelectFin
+        etiqueta="Qué mirar"
+        valor={ver.clave}
+        onValor={ir}
+        opciones={[
+          { valor: "todas", texto: "Todas las tiendas" },
+          ...unidades.map((u) => ({ valor: u.id, texto: u.nombre })),
+          { valor: "empresa", texto: "De la empresa" },
+        ]}
+      />
     </label>
   );
 }

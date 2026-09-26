@@ -1,0 +1,755 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Punto de Venta · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Punto de Venta (2026-09-26)
+   Pregunta: ¿cómo se ve /vender si (1) se conecta con las pantallas que
+   trabajan de la mano con él (Caja, Apartados, Cambios, Devoluciones,
+   Historial, Proformas, Clientas, Pedidos no atendidos) y (2) el celular
+   deja de ser «el escritorio apilado»?
+   Todo es conmutable desde la barra negra (no existe en el ERP): «Hoy»
+   reproduce la pantalla actual; «Propuesta» enciende lo que marques.
+   Tokens = los de apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.10);
+  --m-efectivo:#d19a12;--m-tarjeta:#525a64;--m-yape:#6d3fa3;--m-plin:#1c6b56;--m-transf:#2f6aa3;
+  --ease:cubic-bezier(.32,.72,.24,1);--bar:48px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button,input,select{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer}
+input{outline:none}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.s{width:15px;height:15px}svg.ic.xs{width:13px;height:13px}svg.ic.l{width:22px;height:22px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes hoja{from{transform:translate3d(0,100%,0)}to{transform:none}}
+@keyframes lado{from{transform:translate3d(100%,0,0)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no existe en el ERP) ---------- */
+.spk{position:sticky;top:0;z-index:100;background:var(--tinta);color:var(--crema);font-size:13px}
+.spk-f{display:flex;align-items:center;gap:14px;padding:8px 16px;overflow-x:auto;white-space:nowrap;min-height:var(--bar)}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.spk label{display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.75)}
+.spk select{height:30px;border-radius:8px;border:1px dashed rgba(245,240,232,.4);background:rgba(245,240,232,.06);color:var(--crema);padding:0 8px;font-size:13px}
+.spk select option{color:var(--tinta);background:var(--crema)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7)}
+.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk-op{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 16px 10px;border-top:1px solid rgba(245,240,232,.12);font-size:12.5px}
+.spk-op label{cursor:pointer}.spk-op input{accent-color:var(--rojo)}
+.spk-op.off{display:none}
+.spk .sep{width:1px;height:22px;background:rgba(245,240,232,.18);flex:none}
+
+.escena{padding:28px 20px 60px;display:flex;flex-direction:column;align-items:center;gap:18px}
+.leyenda{max-width:1320px;width:100%;font-size:13px;color:var(--t80);background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px}
+.leyenda b{font-weight:600}
+.scroll-x{width:100%;overflow-x:auto;display:flex}
+.scroll-x>.desk{margin:0 auto}
+
+/* ---------- marco de escritorio ---------- */
+.desk{width:1320px;height:840px;flex:none;position:relative;overflow:hidden;border-radius:14px;background:var(--crema);border:1px solid var(--t30);box-shadow:0 30px 60px -30px rgba(26,26,24,.45)}
+.erp-top{height:56px;border-bottom:1px solid var(--t10);display:flex;align-items:center;padding:0 24px;gap:12px;color:var(--t65);font-size:12px}
+.erp-top .sede{margin-left:auto;display:flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);color:var(--tinta)}
+.pos{position:absolute;inset:76px 24px 20px;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+.pos-cab{display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 20px;background:var(--papel);border-bottom:1px solid var(--sand)}
+.pos-cab .lugar{color:var(--taupe);font-size:11px;white-space:nowrap}
+.pos-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 410px}
+.cat{min-height:0;overflow-y:auto;padding:16px 20px 24px}
+.tk{min-height:0;display:flex;flex-direction:column;border-left:1px solid var(--sand);background:var(--papel)}
+
+/* accesos */
+.acc{display:flex;align-items:center;gap:4px;margin-left:auto}
+.acc a,.acc button.a{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 9px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);font-size:12.5px;color:var(--t80);text-decoration:none;position:relative;white-space:nowrap}
+.acc a:hover{border-color:var(--taupe);color:var(--tinta)}
+.acc .n{min-width:18px;height:18px;border-radius:9px;background:var(--tinta);color:var(--crema);font-size:10.5px;font-weight:600;display:inline-grid;place-items:center;padding:0 5px}
+.acc.min a{border:0;background:none;text-transform:uppercase;letter-spacing:.12em;font-size:11.5px;font-weight:600;color:var(--t80);height:32px;padding:0 10px;border-radius:6px}
+.acc.min a:hover{background:rgba(232,224,208,.6)}
+.acc.hoy a{border:0;background:none;text-transform:uppercase;letter-spacing:.13em;font-size:11px;color:var(--t65);font-weight:500;padding:0 7px}
+.btn-caja{height:36px;padding:0 14px;border-radius:8px;border:1px solid rgba(26,26,24,.28);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;margin-left:6px;white-space:nowrap}
+.resumen{display:inline-flex;align-items:center;gap:10px;height:36px;padding:0 12px;border-radius:999px;background:var(--hueso);font-size:12.5px;cursor:pointer;white-space:nowrap}
+.resumen b{font-weight:600}
+.resumen .meta{width:54px;height:5px;border-radius:9px;background:rgba(26,26,24,.12);overflow:hidden}.resumen .meta i{display:block;height:100%;width:62%;background:var(--verde)}
+.resumen .pct{color:var(--verde);font-weight:600;font-size:11.5px}
+
+/* buscador */
+.busca-f{display:flex;gap:10px;align-items:stretch;position:relative}
+.busca{flex:1;display:flex;align-items:center;gap:10px;height:52px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);color:var(--t50);font-size:15.5px}
+.busca.foco{border-color:var(--rojo);box-shadow:0 0 0 3px rgba(184,65,45,.12);color:var(--tinta)}
+.busca .cam{margin-left:auto;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--hueso);color:var(--tinta)}
+.sinreg{height:52px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.fila-filtros{display:flex;align-items:center;gap:10px;margin:14px 0 10px;font-size:12px;color:var(--t65)}
+.switch{width:36px;height:20px;border-radius:10px;background:var(--tinta);position:relative;flex:none}.switch::after{content:"";position:absolute;right:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--crema)}
+.ocultas{margin-left:auto;font-size:11.5px}
+.ocultas a{color:var(--tinta);text-decoration:underline;text-underline-offset:2px}
+.pills{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
+.pill{height:32px;padding:0 13px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t80);white-space:nowrap;display:inline-flex;align-items:center}
+.pill.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+/* catálogo */
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.grid.denso{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:10px;cursor:pointer;position:relative;transition:border-color .2s var(--ease),transform .2s var(--ease)}
+.card:hover{border-color:var(--taupe)}
+.card:active{transform:translateY(1px)}
+.foto{aspect-ratio:4/5;border-radius:10px;display:grid;place-items:center;position:relative;overflow:hidden}
+.foto .ini{font-family:'EB Garamond',serif;font-size:28px;color:rgba(26,26,24,.28)}
+.denso .foto{aspect-ratio:1/1}
+.foto .catn{position:absolute;left:8px;bottom:7px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:rgba(26,26,24,.55);background:rgba(251,248,242,.75);padding:2px 6px;border-radius:4px}
+.foto .cnt{position:absolute;right:7px;top:7px;min-width:22px;height:22px;border-radius:11px;background:var(--tinta);color:var(--crema);font-size:11px;font-weight:600;display:grid;place-items:center}
+.card h4{font-weight:500;font-size:15px;margin-top:9px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.denso .card h4{font-size:13.5px;margin-top:7px}
+.card .col{font-size:12px;color:var(--t65)}
+.tallas{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.t{min-width:26px;height:24px;padding:0 6px;border-radius:6px;border:1px solid var(--sand);background:var(--hueso);font-size:10.5px;font-weight:600;letter-spacing:.06em;display:inline-grid;place-items:center}
+.t.x{background:none;border-style:dashed;color:var(--t30);text-decoration:line-through}
+.t.alm{background:none;border-style:dashed;border-color:rgba(116,80,26,.45);color:var(--ambar);text-decoration:none}
+.denso .t{min-width:22px;height:21px;font-size:10px;padding:0 4px}
+.card .pie{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
+.card .pr{font-weight:600;font-size:15px}.denso .card .pr{font-size:13.5px}
+.card .st{font-size:11px;color:var(--t65);white-space:nowrap}
+
+/* ticket */
+.tk-cab{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--sand)}
+.tk-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px}
+.btn-espera{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:1px solid rgba(26,26,24,.25);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.esperas{display:flex;gap:6px;padding:8px 20px;scrollbar-width:none;border-bottom:1px solid var(--sand);overflow-x:auto;background:var(--crema)}
+.esp{flex:none;display:flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:1px dashed rgba(26,26,24,.25);border-radius:999px;background:var(--papel);font-size:12px;cursor:pointer;white-space:nowrap}
+.esp b{font-weight:600;font-size:12.5px}.esp span{color:var(--t65);font-size:11px}
+.esp .ret{color:var(--tinta);text-decoration:underline;text-underline-offset:2px;font-size:11px;font-weight:600}
+.cli{margin:12px 20px 0;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:12px;background:var(--crema);border:1px solid var(--sand);cursor:pointer}
+.cli.vacia{border-style:dashed;color:var(--t65);font-size:13px}
+.cli .av{width:32px;height:32px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:14px;flex:none;color:var(--tinta)}
+.cli .d{min-width:0;flex:1}.cli .d b{font-weight:600;font-size:13.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.cli .d span{font-size:11.5px;color:var(--t65)}
+.cli .cambiar{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.tk-items{flex:1;min-height:0;overflow-y:auto}
+.it{padding:14px 20px;border-bottom:1px solid var(--sand)}
+.it .r1{display:flex;align-items:flex-start;gap:8px}
+.it h5{font-size:15px;font-weight:600}
+.it .sku{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--t65)}
+.it .camp{font-size:11.5px;color:var(--t65)}
+.it .acts{margin-left:auto;display:flex;gap:12px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--rojo-p);white-space:nowrap}
+.it .r2{display:flex;align-items:center;gap:14px;margin-top:8px;font-size:13px}
+.qty{display:inline-flex;align-items:center;gap:10px;height:32px;padding:0 10px;border:1px solid var(--sand);border-radius:8px;background:var(--hueso)}
+.it .tachado{text-decoration:line-through;color:var(--t50);font-size:12px}
+.it .imp{margin-left:auto;font-weight:600}
+.tk-acc{display:flex;flex-wrap:wrap;gap:6px;padding:10px 20px;border-top:1px solid var(--sand)}
+.chipb{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:600;color:var(--t80);white-space:nowrap}
+.chipb.nuevo{border-color:rgba(76,93,110,.45)}
+.chipb .dsc{color:var(--rojo-p)}
+.tk-pie{padding:12px 20px 16px;border-top:1px solid var(--sand)}
+.tot{display:flex;align-items:flex-end;gap:12px}
+.tot .desg{font-size:12px;color:var(--t65);line-height:1.6}
+.tot .gran{margin-left:auto;text-align:right}
+.tot .gran .lbl{font-size:10px;color:var(--t65)}
+.tot .gran .v{font-family:'EB Garamond',serif;font-size:40px;line-height:1;font-weight:500}
+.adm-banner{margin-top:10px;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid var(--sand);border-radius:10px;background:var(--hueso);font-size:12.5px}
+.adm-chip{white-space:nowrap;display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;background:rgba(76,93,110,.12);color:var(--pizarra);font-size:10.5px;font-weight:600;letter-spacing:.04em;margin-top:4px}
+.cobrar{margin-top:12px;width:100%;height:54px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:10px;padding:0 18px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+.cobrar .m{margin-left:auto;font-family:'EB Garamond',serif;font-size:21px;letter-spacing:0;text-transform:none;font-weight:500}
+
+/* overlays */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);z-index:50;animation:velo .2s var(--ease) both;display:flex;align-items:flex-start;justify-content:center;padding-top:70px}
+.velo.der{justify-content:flex-end;padding:0}
+.velo.abajo{align-items:flex-end;padding:0}
+.hojam{width:440px;max-height:calc(100% - 100px);overflow-y:auto;background:var(--crema);border-radius:22px;padding:22px 24px;animation:sube .38s var(--ease) both;position:relative}
+.hojam.ancha{width:520px}
+.lado{width:420px;height:100%;background:var(--crema);animation:lado .32s var(--ease) both;display:flex;flex-direction:column;border-left:1px solid var(--sand)}
+.hojam h3,.lado h3{font-family:'EB Garamond',serif;font-weight:500;font-size:22px}
+.hojam .baj{font-size:12.5px;color:var(--t65);margin-top:2px}
+.cerrar{position:absolute;right:16px;top:16px;width:32px;height:32px;border-radius:8px;display:grid;place-items:center;color:var(--t65)}
+.nuevo-tag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:999px;background:rgba(76,93,110,.13);color:var(--pizarra);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;vertical-align:middle}
+.lbl-f{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 7px;display:block}
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tb{border:1px solid var(--sand);border-radius:12px;background:var(--papel);padding:11px 13px;cursor:pointer;text-align:left}
+.tb b{font-family:'EB Garamond',serif;font-size:19px;font-weight:500;display:block}
+.tb span{font-size:11.5px;color:var(--t65)}
+.tb.x{border-style:dashed;background:none}.tb.x b{color:var(--t50);text-decoration:line-through}
+.tb.x.otra b{text-decoration:none;color:var(--t65)}
+.tb.x.otra span{color:var(--ambar)}
+.tb.sel{border:1.5px solid var(--tinta);border-style:solid}
+.otras{margin-top:12px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);overflow:hidden;animation:sube .3s var(--ease) both}
+.otras .t1{padding:11px 14px;font-size:12.5px;border-bottom:1px solid var(--sand)}
+.otras .t1 b{font-weight:600}
+.ot{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--sand);font-size:13px}
+.ot .q{color:var(--t65);font-size:12px}
+.ot .btn{margin-left:auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;white-space:nowrap}
+.btn.p{background:var(--tinta);color:var(--crema)}
+.btn.s{border:1px solid rgba(26,26,24,.25);background:var(--papel)}
+.btn.g{height:44px;font-size:11px;width:100%}
+.otras .pie2{padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--t65);background:var(--crema)}
+.drop{position:absolute;left:0;right:170px;top:58px;z-index:40;background:var(--papel);border:1px solid var(--sand);border-radius:14px;box-shadow:0 18px 40px -20px rgba(26,26,24,.35);overflow:hidden;animation:sube .22s var(--ease) both}
+.drop .g{padding:7px 14px 5px;font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;color:var(--t65);background:var(--crema);border-bottom:1px solid var(--sand)}
+.dr{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--sand)}
+.dr b{font-weight:600;font-size:14px}.dr .s2{font-size:11.5px;color:var(--t65)}
+.dr .der{margin-left:auto;text-align:right}.dr .der b{font-size:13.5px}
+.dr .ok{font-size:11.5px;color:var(--verde)}.dr .al{font-size:11.5px;color:var(--ambar)}.dr .no{font-size:11.5px;color:var(--rojo-p)}
+.dr.apag{opacity:.55}
+.campo{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:10px;background:var(--hueso);border:1px solid transparent;font-size:14px}
+.campo.foco{border-color:var(--rojo);background:var(--papel)}
+.campo .ph{color:var(--t50)}
+.campo .chev{margin-left:auto;color:var(--t50)}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sug{font-size:11.5px;color:var(--t65);margin-top:5px}
+.precio{display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 16px;border-radius:14px;border:1px solid var(--sand);background:var(--papel)}
+.precio .v{font-family:'EB Garamond',serif;font-size:30px}
+.seg2{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:12px;background:var(--hueso)}
+.seg2 button{height:52px;border-radius:9px;font-size:12.5px;text-align:left;padding:0 12px;line-height:1.25}
+.seg2 button b{display:block;font-weight:600;font-size:13px}
+.seg2 button span{font-size:11px;color:var(--t65)}
+.seg2 button.on{background:var(--papel);box-shadow:0 1px 2px rgba(26,26,24,.08)}
+.nota{margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12px;color:var(--t80)}
+.lista-mini{border:1px solid var(--sand);border-radius:12px;background:var(--papel);overflow:hidden}
+.lm{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--sand);font-size:13px}
+.lm:last-child{border-bottom:0}
+.lm .der{margin-left:auto;font-weight:600}
+.lm .s2{font-size:11.5px;color:var(--t65)}
+.met{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--t65)}
+.met i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.placa{padding:26px;text-align:center;color:var(--t65);font-size:13.5px}
+.placa b{display:block;font-family:'EB Garamond',serif;font-size:21px;color:var(--tinta);font-weight:500;margin-bottom:4px}
+.tip{position:absolute;z-index:45;background:var(--papel);border:1px solid var(--sand);border-radius:14px;box-shadow:0 18px 40px -20px rgba(26,26,24,.35);animation:sube .22s var(--ease) both}
+
+/* ---------- celular ---------- */
+.telefonos{display:flex;gap:34px;justify-content:center;flex-wrap:wrap;max-width:100%}
+.tel-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.tel-col .tit{font-size:12px;color:var(--t80);text-align:center;max-width:300px}
+.tel-col .tit b{display:block;font-size:13px;font-weight:600;color:var(--tinta)}
+.tel{width:391px;height:812px;flex:none;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px rgba(26,26,24,.55)}
+.pant{width:375px;height:796px;border-radius:39px;overflow:hidden;position:relative;background:var(--crema)}
+.pscroll{position:absolute;inset:0;overflow-y:auto;scrollbar-width:none}
+.pscroll::-webkit-scrollbar{display:none}
+.m-top{height:52px;padding:14px 16px 0;display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;font-weight:600}
+.m-top .sede{margin-left:auto;letter-spacing:.1em;font-size:10.5px;display:flex;align-items:center;gap:4px;height:28px;padding:0 9px;border:1px solid var(--sand);border-radius:8px;background:var(--papel)}
+.m-cab{display:flex;align-items:center;gap:8px;padding:10px 16px 6px}
+.m-cab .lugar{font-size:10.5px;color:var(--taupe)}
+.m-cab .resumen{height:30px;padding:0 10px;font-size:11.5px;gap:6px;margin-left:auto}
+.m-mas{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;font-weight:600}
+.m-min{display:flex;gap:4px;padding:2px 12px 6px}
+.m-min a{flex:1;text-align:center;height:34px;display:grid;place-items:center;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t80);text-decoration:none}
+.m-sticky{position:sticky;top:0;z-index:5;background:rgba(245,240,232,.94);backdrop-filter:blur(8px);padding:8px 12px 6px}
+.m-busca{display:flex;gap:6px}
+.m-busca .busca{height:46px;border-radius:12px;font-size:14px;padding:0 6px 0 12px;gap:8px}
+.m-busca .busca .cam{width:34px;height:34px}
+.m-sr{width:46px;height:46px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;flex:none}
+.m-sticky .pills{margin:8px 0 0}
+.m-sticky .pill{height:30px;font-size:10px;padding:0 11px}
+.m-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:4px 12px 4px;padding:4px;background:var(--hueso);border-radius:12px}
+.m-tabs button{height:38px;border-radius:9px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);display:flex;align-items:center;justify-content:center;gap:6px}
+.m-tabs button.on{background:var(--papel);color:var(--tinta);box-shadow:0 1px 2px rgba(26,26,24,.08)}
+.m-tabs .n{min-width:18px;height:18px;border-radius:9px;background:var(--rojo);color:var(--crema);font-size:10px;display:inline-grid;place-items:center;padding:0 5px;letter-spacing:0}
+.m-filtro{display:flex;align-items:center;gap:8px;padding:6px 14px 2px;font-size:10.5px;color:var(--t65)}
+.m-filtro .switch{width:30px;height:17px}.m-filtro .switch::after{width:11px;height:11px}
+.m-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 12px 14px}
+.m-grid .card{border-radius:14px;padding:8px}
+.m-grid .card h4{font-size:13.5px;margin-top:7px}
+.m-grid .foto{aspect-ratio:1/1}
+.m-grid .foto .ini{font-size:22px}
+.m-grid .t{min-width:24px;height:22px;font-size:10px}
+.m-grid .card .pr{font-size:13.5px}
+.m-barra{position:absolute;left:10px;right:10px;bottom:12px;z-index:20;height:62px;border-radius:16px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:12px;padding:0 10px 0 16px;box-shadow:0 14px 30px -12px rgba(26,26,24,.6);cursor:pointer;animation:sube .32s var(--ease) both}
+.m-barra .c{flex:none;width:34px;height:34px;border-radius:10px;background:rgba(245,240,232,.12);display:grid;place-items:center;position:relative}
+.m-barra .c .n{position:absolute;right:-5px;top:-5px;min-width:18px;height:18px;border-radius:9px;background:var(--rojo);font-size:10px;display:grid;place-items:center;font-weight:600}
+.m-barra .tx{flex:1;min-width:0;font-size:11px;color:rgba(245,240,232,.7);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m-barra .tx b{display:block;font-family:'EB Garamond',serif;font-size:21px;color:var(--crema);font-weight:500}
+.m-barra .ir{flex:none;white-space:nowrap;height:42px;padding:0 14px;border-radius:10px;background:var(--crema);color:var(--tinta);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:6px}
+.m-velo{position:absolute;inset:0;z-index:30;background:rgba(26,26,24,.32);backdrop-filter:blur(2px);animation:velo .2s var(--ease) both;display:flex;align-items:flex-end}
+.m-hoja{width:100%;max-height:92%;background:var(--crema);border-radius:24px 24px 0 0;animation:hoja .34s var(--ease) both;display:flex;flex-direction:column;overflow:hidden}
+.m-hoja .asa{width:40px;height:5px;border-radius:3px;background:rgba(26,26,24,.2);margin:8px auto 2px;flex:none}
+.m-hoja .cuerpo{overflow-y:auto;padding:8px 18px 20px}
+.m-hoja h3{font-family:'EB Garamond',serif;font-weight:500;font-size:21px}
+.m-hoja.tk-m{height:92%}
+.m-hoja.tk-m .tk{border:0;flex:1;min-height:0}
+.m-acc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.m-acc a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 4px;border-radius:14px;border:1px solid var(--sand);background:var(--papel);font-size:12px;text-decoration:none;color:var(--tinta);position:relative;text-align:center}
+.m-acc a .n{position:absolute;right:8px;top:8px;min-width:18px;height:18px;border-radius:9px;background:var(--tinta);color:var(--crema);font-size:10px;display:grid;place-items:center;font-weight:600}
+.m-hoja .tg .tb b{font-size:18px}
+.m-ticket-in{background:var(--papel);min-height:100%}
+.m-ticket-in .tk{border-left:0}
+.bajo-apilado{border-top:8px solid var(--hueso)}
+
+/* ---------- vistas de texto ---------- */
+.doc{max-width:1120px;width:100%;background:var(--crema);border:1px solid var(--sand);border-radius:16px;padding:32px 36px}
+.doc .sobre{color:var(--rojo)}
+.doc h1{font-family:'EB Garamond',serif;font-weight:400;font-size:36px;line-height:1.1;margin-top:6px}
+.doc .bajada{color:var(--taupe);margin-top:6px;max-width:760px}
+.doc h2{font-family:'EB Garamond',serif;font-weight:500;font-size:23px;margin:30px 0 10px}
+.tabla{width:100%;border-collapse:separate;border-spacing:0;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden;font-size:13px}
+.tabla th{text-align:left;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);padding:10px 12px;border-bottom:1px solid var(--sand);background:var(--crema)}
+.tabla td{padding:10px 12px;border-bottom:1px solid var(--sand);vertical-align:top}
+.tabla tr:last-child td{border-bottom:0}
+.tabla td:first-child{font-weight:600}
+.si{color:var(--verde);font-weight:600}.parcial{color:var(--ambar);font-weight:600}.no2{color:var(--t50)}
+.tarjetas{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.tj{background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:14px 16px;font-size:13px}
+.tj h4{font-weight:600;font-size:14px;margin-bottom:4px}
+.tj p{color:var(--t80)}
+.tj .toma{margin-top:8px;padding-top:8px;border-top:1px dashed var(--sand);color:var(--tinta)}
+.tj .toma b{color:var(--rojo-p);font-weight:600}
+.hall{display:grid;grid-template-columns:34px 1fr;gap:4px 12px;padding:14px 0;border-bottom:1px solid var(--sand)}
+.hall .num{font-family:'EB Garamond',serif;font-size:24px;color:var(--taupe);line-height:1}
+.hall h4{font-weight:600;font-size:14.5px}
+.hall p{color:var(--t80);font-size:13px}
+.hall .prop{font-size:13px;margin-top:4px}.hall .prop b{color:var(--verde);font-weight:600}
+.hall code{font-size:11.5px;background:var(--hueso);padding:1px 5px;border-radius:4px}
+.nota-doc{margin-top:20px;padding:12px 14px;border-radius:10px;background:var(--hueso);font-size:12.5px;color:var(--t80)}
+@media (max-width:720px){.doc{padding:22px 18px}.doc h1{font-size:28px}.escena{padding:18px 10px 40px}.tabla{font-size:12px}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-dollar" viewBox="0 0 24 24"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+<symbol id="i-bookmark" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+<symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-barcode" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chevr" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-chevu" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-percent" viewBox="0 0 24 24"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+<symbol id="i-truck" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></symbol>
+<symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><path d="M4 22v-7"/></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+<symbol id="i-store" viewBox="0 0 24 24"><path d="m2 7 4.41-4.41A2 2 0 0 1 7.83 2h8.34a2 2 0 0 1 1.42.59L22 7"/><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="M2 7h20"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+<symbol id="i-side" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+</svg>
+
+<div class="spk" id="spk"></div>
+<div class="escena" id="escena"></div>
+
+<script>
+/* =========================== datos inventados =========================== */
+const PROD = [
+  {n:'Blusa Carlita',c:'Blanco',cat:'Camisas y blusas',p:90,piso:2,hex:'#efe9df',tallas:[['XS',1],['S',0,'alm'],['M',0,'otra'],['L',0],['XL',1]],cnt:1},
+  {n:'Top Aurora',c:'Blanco',cat:'Tops',p:65,piso:28,hex:'#ece6db',tallas:[['S',9],['M',11],['L',8]]},
+  {n:'Jean Baggy',c:'Azul claro',cat:'Jeans',p:99,piso:3,hex:'#c9d4dc',tallas:[['28',1],['30',1],['32',1]]},
+  {n:'Polo Básico M/corta',c:'Blanco',cat:'Polos',p:39.9,piso:2,hex:'#f0ebe2',tallas:[['Est.',2]]},
+  {n:'Vestido Lía',c:'Rojo vino',cat:'Vestidos',p:149.9,piso:4,hex:'#d9b3ab',tallas:[['S',1],['M',2],['L',1]]},
+  {n:'Blazer Nora',c:'Negro',cat:'Blazers',p:189.9,piso:3,hex:'#b9b3ab',tallas:[['S',1],['M',0,'otra'],['L',2]]},
+  {n:'Pantalón Cayla',c:'Beige',cat:'Pantalones',p:89.9,piso:5,hex:'#e2d3bb',tallas:[['26',2],['28',2],['30',1]]},
+  {n:'Camisa Mar',c:'Celeste',cat:'Camisas y blusas',p:79.9,piso:6,hex:'#cfdde4',tallas:[['S',2],['M',3],['L',1]]},
+  {n:'Top Sol',c:'Nude',cat:'Tops',p:59.9,piso:7,hex:'#e9cdb9',tallas:[['S',3],['M',4]]},
+  {n:'Polo Básico M/corta',c:'Gris antracita',cat:'Polos',p:39.9,piso:1,hex:'#bdbab4',tallas:[['Est.',1]]},
+];
+const CATS = ['Todo','Blazers','Camisas y blusas','Jeans','Pantalones','Polos','Tops','Vestidos'];
+const ESPERAS = [{q:'Vestido Lía M + Top Sol S',m:209.80,t:'hace 6 min',quien:'Probador 2'},{q:'Jean Baggy 30',m:99,t:'hace 14 min',quien:'Clienta de lentes'}];
+const VENTAS = [
+  {h:'17:42',q:'Blazer Nora L',m:189.90,met:['yape'],v:'Rosa'},
+  {h:'16:05',q:'Top Aurora M · Camisa Mar S',m:144.90,met:['efectivo','tarjeta'],v:'Kiara'},
+  {h:'13:28',q:'Pantalón Cayla 28',m:89.90,met:['plin'],v:'Rosa'},
+  {h:'11:10',q:'Vestido Lía S · Polo Básico',m:187.70,met:['tarjeta'],v:'Kiara'},
+];
+const MET = {efectivo:['Efectivo','var(--m-efectivo)'],tarjeta:['Tarjeta','var(--m-tarjeta)'],yape:['Yape','var(--m-yape)'],plin:['Plin','var(--m-plin)'],transf:['Transferencia','var(--m-transf)']};
+const TICKET = [
+  {n:'Blusa Carlita',sku:'CMS-0001-BLA-XS',camp:'Campaña · Para liquidar',p:90,pf:71.90,dsc:'-20 %'},
+  {n:'Top Aurora',sku:'TOP-0011-BLA-M',camp:null,p:65,pf:65},
+];
+
+/* =========================== estado =========================== */
+const S = {
+  vista:'escritorio', version:'propuesta', movil:'barra', escena:'ninguna',
+  op:{accesos:'barra', resumen:true, espera:true, talla:true, clienta:true, apartar:true, buscador:true, admin:true, sinreg:true, denso:true, camara:true},
+  clientaSel:true, tallaSel:'S', apartarModo:'apartar', mTab:'catalogo', mTicket:false,
+};
+const P = () => S.version==='propuesta';
+const on = k => P() && S.op[k];
+const ic = (n,c='') => `<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const sol = v => 'S/' + v.toFixed(2);
+const nuevo = () => `<span class="nuevo-tag">nuevo</span>`;
+
+/* =========================== barra del spike =========================== */
+function barra(){
+  const seg = (k,ops) => `<div class="seg">${ops.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="S.${k}='${v}';S.escena='ninguna';S.mTicket=false;pinta()">${t}</button>`).join('')}</div>`;
+  const chk = (k,t) => `<label><input type="checkbox" ${S.op[k]?'checked':''} onchange="S.op.${k}=this.checked;pinta()"> ${t}</label>`;
+  const escenas = [['ninguna','— Ninguna —'],['talla','Talla sin stock'],['buscador','Buscador al escribir'],['clienta','Clienta en el ticket'],['apartar','Apartar / Proforma'],['sinreg','Prenda sin registrar'],['espera','Tickets en espera'],['ventas','Ventas de hoy'],['mas','Más accesos (celular)']];
+  document.getElementById('spk').innerHTML = `
+  <div class="spk-f">
+    <span class="tag">Spike · Punto de Venta</span>
+    ${seg('vista',[['escritorio','Escritorio'],['celular','Celular'],['otros','Otros POS'],['hallazgos','Hallazgos']])}
+    <span class="sep"></span>
+    <label>Versión ${seg('version',[['hoy','Hoy'],['propuesta','Propuesta']])}</label>
+    ${S.vista==='celular'?`<label>Celular <select onchange="S.movil=this.value;S.escena='ninguna';S.mTicket=false;pinta()">
+      ${[['barra','A · Barra fija de cobro'],['pestanas','B · Pestañas Catálogo/Ticket'],['apilado','C · Apilado (como hoy)'],['comparar','Comparar A · B · C']].map(([v,t])=>`<option value="${v}" ${S.movil===v?'selected':''}>${t}</option>`).join('')}</select></label>`:''}
+    ${S.vista==='escritorio'||S.vista==='celular'?`<label>Abrir <select onchange="S.escena=this.value;S.mTicket=false;pinta()">${escenas.map(([v,t])=>`<option value="${v}" ${S.escena===v?'selected':''}>${t}</option>`).join('')}</select></label>`:''}
+  </div>
+  <div class="spk-op ${P() && (S.vista==='escritorio'||S.vista==='celular')?'':'off'}">
+    <label>Accesos <select onchange="S.op.accesos=this.value;pinta()">
+      <option value="barra" ${S.op.accesos==='barra'?'selected':''}>Barra de accesos (6)</option>
+      <option value="minimo" ${S.op.accesos==='minimo'?'selected':''}>Solo lo mínimo (3, legibles)</option></select></label>
+    ${chk('resumen','Resumen de hoy arriba')}${chk('espera','Tickets en espera visibles')}
+    ${chk('talla','Talla sin stock accionable')}${chk('clienta','Clienta en el ticket')}${chk('apartar','Apartar / Proforma')}${chk('buscador','Buscador: vendible primero')}
+    ${chk('admin','Admin como chip')}${chk('sinreg','Prenda sin registrar ágil')}${chk('denso','Catálogo más denso')}${chk('camara','Cámara para escanear')}
+  </div>`;
+}
+
+/* =========================== piezas compartidas =========================== */
+const ACCESOS = [
+  ['Caja','wallet','/caja',null],['Apartados','bookmark','/vender/apartados',2],['Cambios','swap','/cambios',null],
+  ['Devoluciones','undo','/devoluciones',1],['Historial','history','/vender/historial',null],['Proformas','file','/vender/comprobantes/proformas',1],
+];
+function accesosDesk(){
+  if(!P()) return `<nav class="acc hoy">${['Caja','Cambios','Devoluciones'].map(t=>`<a href="#">${t}</a>`).join('')}<button class="btn-caja">Cerrar caja</button></nav>`;
+  if(S.op.accesos==='minimo') return `<nav class="acc min">${['Caja','Cambios','Devoluciones'].map(t=>`<a href="#">${t}</a>`).join('')}<button class="btn-caja">Cerrar caja</button></nav>`;
+  // Los 4 de uso diario a la vista; Historial y Proformas en «Más» (con el lateral abierto no caben 6).
+  return `<nav class="acc">${ACCESOS.slice(0,4).map(([t,i,h,n])=>`<a href="#" title="${h}">${ic(i,'s')}${t}${n?`<span class="n">${n}</span>`:''}</a>`).join('')}<button class="a" style="display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 9px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);font-size:12.5px;color:var(--t80)" onclick="S.escena='mas';pinta()">${ic('grid','s')}Más<span class="n">1</span></button><button class="btn-caja">Cerrar caja</button></nav>`;
+}
+function resumenPill(corto){
+  if(!on('resumen')) return '';
+  const tot = VENTAS.reduce((a,v)=>a+v.m,0);
+  return corto
+    ? `<span class="resumen" onclick="S.escena='ventas';pinta()">Hoy <b>${sol(tot)}</b><span class="pct">62%</span></span>`
+    : `<span class="resumen" title="62 % de la meta del día" onclick="S.escena='ventas';pinta()">${ic('clock','s')}Hoy <b>${sol(tot)}</b><span style="color:var(--t65)">${VENTAS.length} ventas</span><span class="meta"><i></i></span><span class="pct">62%</span></span>`;
+}
+function fotoHtml(pr){
+  if(on('denso')) return `<div class="foto" style="background:linear-gradient(160deg,${pr.hex},var(--hueso))"><span class="catn">${pr.cat}</span>${pr.cnt?`<span class="cnt">${pr.cnt}</span>`:''}</div>`;
+  const ini = pr.n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  return `<div class="foto" style="background:var(--hueso)"><span class="ini">${ini}</span>${pr.cnt?`<span class="cnt">${pr.cnt}</span>`:''}</div>`;
+}
+function tarjeta(pr,i){
+  const tl = pr.tallas.map(([t,q,d])=>{
+    if(q>0) return `<span class="t">${t}</span>`;
+    if(P() && S.op.talla && d) return `<span class="t alm" title="${d==='alm'?'En el almacén':'En otra sede'}">${t}</span>`;
+    return `<span class="t x">${t}</span>`;
+  }).join('');
+  return `<div class="card" onclick="S.escena='talla';S.tallaSel='S';S.mTicket=false;pinta()">${fotoHtml(pr)}<h4>${pr.n}</h4><div class="col">${pr.c}</div><div class="tallas">${tl}</div><div class="pie"><span class="pr">${sol(pr.p)}</span><span class="st">${pr.piso} en piso</span></div></div>`;
+}
+function filtros(){
+  return `<div class="fila-filtros"><span class="switch"></span><span class="lbl" style="font-size:10.5px;color:var(--tinta)">Solo con stock</span>
+    <span class="ocultas">33 prendas ocultas (7 con stock en el almacén)${P()&&S.op.talla?` · <a href="#">ver las del almacén</a>`:''}</span></div>
+    <div class="pills">${CATS.map((c,i)=>`<span class="pill ${i===0?'on':''}">${c}</span>`).join('')}</div>`;
+}
+
+/* ticket (escritorio y celular lo comparten) */
+function ticket(movil){
+  const tot = TICKET.reduce((a,t)=>a+t.pf,0), sub = tot/1.18;
+  const esperasTira = on('espera') ? `<div class="esperas">${ESPERAS.map(e=>`<div class="esp" title="${e.q}" onclick="S.escena='espera';pinta()">${ic('pause','xs')}<b>${e.quien}</b><span>${sol(e.m)} · ${e.t.replace('hace ','')}</span><span class="ret">Retomar</span></div>`).join('')}</div>` : '';
+  const cli = !on('clienta') ? '' : S.clientaSel
+    ? `<div class="cli" onclick="S.escena='clienta';pinta()"><span class="av">MQ</span><div class="d"><b>María Fernanda Quispe</b><span>Del club · 5 compras · última 14 set · suele llevar S</span></div><span class="cambiar">Cambiar</span></div>`
+    : `<div class="cli vacia" onclick="S.escena='clienta';pinta()">${ic('user','s')} Agregar clienta <span style="margin-left:auto;font-size:11.5px">DNI o celular · opcional</span></div>`;
+  const items = TICKET.map(t=>`<div class="it"><div class="r1"><div><h5>${t.n}</h5><div class="sku">${t.sku}</div>${t.camp?`<div class="camp">${t.camp}</div>`:''}</div>
+      <div class="acts">${t.dsc?`<span>${ic('percent','xs')} ${t.dsc}</span>`:''}<span>${ic('trash','xs')} Quitar</span></div></div>
+      <div class="r2"><span class="qty">${ic('trash','xs')} 1 <span style="color:var(--t30)">+</span></span>${t.p!==t.pf?`<span class="tachado">${sol(t.p)}</span>`:''}<b>${sol(t.pf)}</b><span class="imp">${sol(t.pf)}</span></div></div>`).join('');
+  const acciones = `<div class="tk-acc">
+      <span class="chipb">${ic('percent','xs')} Descuento <span class="dsc">-S/18.10</span></span>
+      <span class="chipb" onclick="${on('espera')?"S.escena='espera';pinta()":''}">${ic('pause','xs')} Dejar en espera</span>
+      ${on('apartar')?`<span class="chipb nuevo" onclick="S.escena='apartar';S.apartarModo='apartar';pinta()">${ic('bookmark','xs')} Apartar</span><span class="chipb nuevo" onclick="S.escena='apartar';S.apartarModo='proforma';pinta()">${ic('file','xs')} Proforma</span>`:''}
+    </div>`;
+  const adm = on('admin')
+    ? `<span class="adm-chip">${ic('shield','xs')} Admin · sin autorización</span>`
+    : '';
+  return `<aside class="tk">
+    ${movil?'':`<div class="tk-cab">${ic('bag','l')}<h3>Ticket actual</h3><button class="btn-espera" onclick="S.escena='espera';pinta()">${ic('pause','xs')} En espera · ${P()?ESPERAS.length:1}</button></div>`}
+    ${esperasTira}${cli}
+    <div class="tk-items">${items}
+      <div style="padding:12px 20px"><div style="font-size:11.5px;color:var(--t65);margin-bottom:6px">${ic('file','xs')} Nota para esta venta (opcional)</div><div class="campo"><span class="ph">Lo recoge el sábado, va con arreglo de bastilla…</span></div></div>
+    </div>
+    ${acciones}
+    <div class="tk-pie">
+      <div class="tot"><div class="desg">${TICKET.length} prendas<br>Subtotal ${sol(sub)}<br>IGV (18%) ${sol(tot-sub)}${adm?'<br>'+adm:''}</div>
+        <div class="gran"><div class="lbl">Total</div><div class="v">${sol(tot)}</div></div></div>
+      ${adm?'':`<div class="adm-banner">${ic('shield','s')}<span><b>Eres admin:</b> no necesitas autorización. Lo que guardes queda a tu nombre.</span></div>`}
+      <button class="cobrar">${ic('wallet','s')} Cobrar <span class="m">${sol(tot)}</span></button>
+    </div>
+  </aside>`;
+}
+
+/* =========================== escenas (overlays) =========================== */
+function escenaTalla(){
+  const pr = PROD[0];
+  const accion = P() && S.op.talla;
+  const botones = pr.tallas.map(([t,q,d])=>{
+    if(q>0) return `<button class="tb"><b>${t}</b><span>${q} aquí</span></button>`;
+    if(accion && d) return `<button class="tb x otra ${S.tallaSel===t?'sel':''}" onclick="S.tallaSel='${t}';pinta()"><b>${t}</b><span>${d==='alm'?'1 en el almacén':'1 en Tienda AQP'}</span></button>`;
+    if(accion) return `<button class="tb x ${S.tallaSel===t?'sel':''}" onclick="S.tallaSel='${t}';pinta()"><b>${t}</b><span>No hay en ninguna sede</span></button>`;
+    return `<button class="tb x"><b>${t}</b><span>Sin stock aquí</span></button>`;
+  }).join('');
+  let panel = '';
+  if(accion){
+    const t = S.tallaSel, info = pr.tallas.find(x=>x[0]===t);
+    if(info && info[1]===0){
+      const filas = info[2]==='alm'
+        ? `<div class="ot">${ic('box','s')}<div><b>Almacén central</b><div class="q">1 unidad · llega mañana con el reparto</div></div><button class="btn p">Pedir al almacén</button></div>`
+        : info[2]==='otra'
+        ? `<div class="ot">${ic('store','s')}<div><b>Tienda AQP</b><div class="q">1 unidad · traslado de 2 a 3 días</div></div><button class="btn p">Pedir traslado</button></div>`
+        : `<div class="ot" style="color:var(--t65)">${ic('box','s')} Ninguna sede ni el almacén la tienen.</div>`;
+      panel = `<div class="otras"><div class="t1">Talla <b>${t}</b> no está en Tienda TRU ${nuevo()}</div>${filas}
+        ${info[2]?`<div class="ot">${ic('bookmark','s')}<div><b>Apartarla para la clienta</b><div class="q">Llega a TRU y queda en Apartados a su nombre</div></div><button class="btn s">Apartar</button></div>`:''}
+        <div class="pie2">${ic('flag','s')}<span>¿No le sirve esperar? Anótalo: Compras ve qué se pidió y no había.</span><button class="btn s" style="margin-left:auto">Anotar</button></div></div>`;
+    }
+  }
+  return `<h3>${pr.n}</h3><div class="baj">${pr.c} · Tienda TRU</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:14px"><div style="width:62px;height:78px;border-radius:8px;background:linear-gradient(160deg,${pr.hex},var(--hueso))"></div><b style="font-size:16px">${sol(pr.p)}</b></div>
+    <span class="lbl-f">Elige la talla</span><div class="tg">${botones}</div>${panel}`;
+}
+function escenaBuscador(){
+  const filas = P() && S.op.buscador
+    ? `<div class="g">Aquí, en Tienda TRU · 3</div>
+       <div class="dr"><div><b>Top Aurora</b><div class="s2">Estándar/Blanco · TOP-0011-BLA-STD</div></div><div class="der"><b>S/65.00</b><div class="ok">9 aquí</div></div></div>
+       <div class="dr"><div><b>Camisa Mar</b><div class="s2">M/Celeste · CMS-0008-CEL-M</div></div><div class="der"><b>S/79.90</b><div class="ok">3 aquí</div></div></div>
+       <div class="dr"><div><b>Blusa Carlita</b><div class="s2">XS/Blanco · CMS-0001-BLA-XS</div></div><div class="der"><b>S/90.00</b><div class="ok">1 aquí</div></div></div>
+       <div class="g">En el almacén · se pide y se aparta · 2</div>
+       <div class="dr"><div><b>Polo Básico M/corta</b><div class="s2">Estándar/Crudo · POL-0002-CRU-STD</div></div><div class="der"><b>S/39.90</b><div class="al">2 en el almacén</div></div></div>
+       <div class="dr"><div><b>Producto de Prueba</b><div class="s2">L/Violeta · POL-0004-VIO-L</div></div><div class="der"><b>S/39.00</b><div class="al">5 en el almacén</div></div></div>
+       <div class="g">Sin stock en ninguna parte · 2</div>
+       <div class="dr apag"><div><b>Polo Básico M/corta</b><div class="s2">Estándar/Arena · POL-0002-ARN-STD</div></div><div class="der"><b>S/39.90</b><div class="no">anotar «no había»</div></div></div>`
+    : `<div class="dr apag"><div><b>Polo Básico M/corta</b><div class="s2">Estándar/Arena · POL-0002-ARN-STD</div></div><div class="der"><b>S/39.90</b><div class="no">sin stock aquí</div></div></div>
+       <div class="dr apag"><div><b>Blusa Carlita</b><div class="s2">M/Blanco · CMS-0001-BLA-M</div></div><div class="der"><b>S/90.00</b><div class="no">sin stock aquí</div></div></div>
+       <div class="dr"><div><b>Top Aurora</b><div class="s2">Estándar/Blanco · TOP-0011-BLA-STD</div></div><div class="der"><b>S/65.00</b><div class="ok">9 aquí</div></div></div>
+       <div class="dr apag"><div><b>Pantalon Cayla</b><div class="s2">26/Beige · PAN-0007-BEI-26</div></div><div class="der"><b>S/89.90</b><div class="no">sin stock aquí</div></div></div>
+       <div class="dr"><div><b>Polo Básico M/corta</b><div class="s2">Estándar/Crudo · POL-0002-CRU-STD</div></div><div class="der"><b>S/39.90</b><div class="al">2 en el almacén</div></div></div>`;
+  return filas;
+}
+function escenaClienta(){
+  if(!on('clienta')) return `<div class="placa"><b>Hoy no existe</b>La clienta solo aparece al cobrar (DNI y nombre del comprobante). Enciende «Clienta en el ticket» en «Propuesta».</div>`;
+  // Calza con el acta de clientas del 2026-09-26 (D-92 a D-111), paso 1 «Caja»: «DNI o celular», la
+  // pregunta del club y «es para regalo». La ficha la crea el «sí» al club, no el DNI de la boleta (G.6).
+  return `<h3>Clienta de esta venta ${nuevo()}</h3><div class="baj">Opcional. Si ya es del club, la venta queda en su ficha.</div>
+    <div class="campo foco" style="margin-top:14px">${ic('search','s')}<span>987 6</span><span class="ph" style="margin-left:auto;font-size:11.5px">DNI o celular</span></div>
+    <div class="lista-mini" style="margin-top:10px">
+      <div class="lm" onclick="S.clientaSel=true;S.escena='ninguna';pinta()"><span style="width:30px;height:30px;border-radius:50%;background:var(--sand);display:grid;place-items:center;font-family:'EB Garamond',serif;flex:none">MQ</span><div><b style="font-weight:600">María Fernanda Quispe</b><div class="s2">Del club · 987 6•• 214 · 5 compras · suele llevar S</div></div><span class="der">Elegir</span></div>
+      <div class="lm" style="background:var(--crema);align-items:flex-start">${ic('plus','s')}<div style="flex:1"><b style="font-weight:600">No está: ¿quiere unirse al club?</b><div class="s2">Le llega por WhatsApp «responde SÍ». Sin ese sí no se crea ficha; el DNI igual puede ir en la boleta.</div>
+        <div style="display:flex;gap:6px;margin-top:8px"><button class="btn p">Sí, unirla</button><button class="btn s">Ahora no</button></div></div></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px"><input type="checkbox" style="accent-color:var(--tinta)"> Es para regalo <span style="color:var(--t65);font-size:11.5px">(no cuenta su talla en la ficha)</span></label>
+    <div class="nota">Con la clienta en el ticket, <b>Apartar</b> y <b>Proforma</b> ya saben a nombre de quién van, y el cobro trae su DNI si pide boleta con DNI.</div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn s" style="flex:1;height:42px" onclick="S.clientaSel=false;S.escena='ninguna';pinta()">Venta sin clienta</button></div>`;
+}
+function escenaApartar(){
+  if(!on('apartar')) return `<div class="placa"><b>Hoy no existe desde el ticket</b>Para apartar hay que ir a Apartados y buscar la prenda otra vez; la proforma se arma en Comprobantes. Enciende «Apartar / Proforma».</div>`;
+  const ap = S.apartarModo==='apartar';
+  return `<h3>Guardar para la clienta ${nuevo()}</h3><div class="baj">Las 2 prendas del ticket · ${sol(136.90)}</div>
+    <div class="seg2" style="margin-top:14px">
+      <button class="${ap?'on':''}" onclick="S.apartarModo='apartar';pinta()"><b>Apartar</b><span>Separa las prendas del piso</span></button>
+      <button class="${!ap?'on':''}" onclick="S.apartarModo='proforma';pinta()"><b>Proforma</b><span>Solo promete el precio</span></button>
+    </div>
+    <span class="lbl-f">Clienta</span>
+    <div class="campo">${ic('user','s')} María Fernanda Quispe · DNI 71•••482<span class="chev">${ic('chev','s')}</span></div>
+    ${ap?`<div class="dos"><div><span class="lbl-f">Adelanto</span><div class="campo">S/ <b style="font-weight:600">40.00</b></div></div>
+      <div><span class="lbl-f">Recoge hasta</span><div class="campo">sáb 3 oct<span class="chev">${ic('chev','s')}</span></div></div></div>
+      <span class="lbl-f">Cómo pagó el adelanto</span>
+      <div style="display:flex;gap:6px">${['efectivo','yape','plin','tarjeta'].map((m,i)=>`<span class="chipb" style="${i===1?'border-color:var(--m-yape);color:var(--m-yape)':''}"><i style="width:8px;height:8px;border-radius:50%;background:${MET[m][1]};display:inline-block"></i>${MET[m][0]}</span>`).join('')}</div>
+      <div class="nota">Las prendas dejan de verse como vendibles en todas las pantallas y aparecen en <b>Apartados</b> con su saldo de ${sol(96.90)}. El adelanto entra a la caja de hoy.</div>
+      <button class="btn p g" style="margin-top:14px">${ic('bookmark','s')} Apartar · adelanto S/40.00</button>`
+    :`<div class="dos"><div><span class="lbl-f">Válida hasta</span><div class="campo">jue 1 oct<span class="chev">${ic('chev','s')}</span></div></div>
+      <div><span class="lbl-f">Comprobante</span><div class="campo">Boleta<span class="chev">${ic('chev','s')}</span></div></div></div>
+      <div class="nota">No separa stock: si otra clienta se lleva la prenda, la proforma avisa al cobrarla. Queda en <b>Comprobantes ▸ Proformas</b> y se cobra con un toque desde ahí.</div>
+      <button class="btn p g" style="margin-top:14px">${ic('file','s')} Guardar proforma</button>`}
+    <p style="font-size:11.5px;color:var(--t65);margin-top:8px;text-align:center">El ticket queda vacío para la siguiente clienta.</p>`;
+}
+function escenaSinReg(movil){
+  const agil = P() && S.op.sinreg;
+  const numpad = (!agil || movil===false&&!agil) ? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px">${['1','2','3','4','5','6','7','8','9','.','0','←'].map(k=>`<span style="height:40px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);display:grid;place-items:center">${k}</span>`).join('')}</div>` : '';
+  return `<h3>Prenda sin registrar</h3><div class="baj">Para una prenda que todavía no tiene etiqueta. Almacén la registra después con estos datos.</div>
+    <span class="lbl-f">Categoría</span><div class="campo">Bodys<span class="chev">${agil?ic('chev','s'):ic('user','s')}</span></div>
+    <div class="dos"><div><span class="lbl-f">Talla</span><div class="campo">M<span class="chev">${ic('chev','s')}</span></div></div><div><span class="lbl-f">Color</span><div class="campo">Gris piedra<span class="chev">${agil?ic('chev','s'):ic('user','s')}</span></div></div></div>
+    <span class="lbl-f" style="${agil?'':'color:var(--rojo)'}">Descripción corta</span>
+    ${agil?`<div class="campo">Bodys · Gris piedra · Talla M</div><div class="sug">Se armó sola con lo que elegiste; puedes cambiarla.</div>`
+          :`<div class="campo" style="border-bottom:1.5px solid var(--rojo);border-radius:10px 10px 0 0"><span class="ph">Bodys · Gris piedra · Talla M</span></div><div class="sug" style="color:var(--rojo)">Escribe una descripción corta</div><div class="sug">Sugerencia: «Bodys · Gris piedra · Talla M» <u>Usar</u></div>`}
+    <span class="lbl-f">Precio cobrado</span>
+    <div class="precio" ${agil?'style="border-color:var(--rojo)"':''}><span class="lbl" style="color:var(--t65)">S/</span><span class="v">${agil?'45.00':'0.00'}</span></div>
+    ${agil?`<div class="sug">${movil?'Se abre el teclado numérico del teléfono.':'Escríbelo con el teclado; Enter agrega al ticket.'}</div>`:numpad}
+    <button class="btn p g" style="margin-top:14px;${agil?'':'background:#8a857d'}">Agregar al ticket</button>`;
+}
+function escenaEspera(){
+  if(!on('espera')) return `<div class="placa"><b>Hoy: «En espera · 1»</b>Abre una lista sin nombre ni hora. Enciende «Tickets en espera visibles».</div>`;
+  return `<h3>Tickets en espera</h3><div class="baj">Se guardan en este aparato. El más viejo arriba.</div>
+    <div class="lista-mini" style="margin-top:14px">${ESPERAS.map(e=>`<div class="lm">${ic('pause','s')}<div><b style="font-weight:600">${e.quien}</b><div class="s2">${e.q} · ${e.t}</div></div><span class="der">${sol(e.m)}</span><button class="btn p" style="margin-left:8px">Retomar</button></div>`).join('')}</div>
+    <span class="lbl-f">Nombre para el ticket actual</span><div class="campo"><span class="ph">Ej. «Probador 3», «Señora del abrigo»</span></div>
+    <button class="btn s g" style="margin-top:12px">${ic('pause','s')} Dejar el actual en espera</button>`;
+}
+function escenaVentas(){
+  const tot = VENTAS.reduce((a,v)=>a+v.m,0);
+  const por = {}; VENTAS.forEach(v=>v.met.forEach(m=>por[m]=(por[m]||0)+v.m/v.met.length));
+  return `<div style="padding:20px 22px;border-bottom:1px solid var(--sand);position:relative"><span class="lbl" style="color:var(--rojo)">Tienda TRU · sábado 26</span><h3 style="margin-top:4px">Ventas de hoy</h3>
+      <button class="cerrar" onclick="S.escena='ninguna';pinta()">${ic('x')}</button>
+      <div style="display:flex;align-items:baseline;gap:10px;margin-top:8px"><span class="serif" style="font-size:34px">${sol(tot)}</span><span style="font-size:12.5px;color:var(--t65)">${VENTAS.length} ventas · meta S/1,000</span></div>
+      <div class="resumen" style="margin-top:6px;background:none;padding:0;height:auto"><span class="meta" style="width:100%;height:6px"><i></i></span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:10px">${Object.entries(por).map(([m,v])=>`<span class="met"><i style="background:${MET[m][1]}"></i>${MET[m][0]} ${sol(v)}</span>`).join('')}</div></div>
+    <div style="flex:1;overflow-y:auto;padding:14px 22px"><div class="lista-mini">${VENTAS.map(v=>`<div class="lm"><span style="font-size:12px;color:var(--t65);width:38px">${v.h}</span><div><b style="font-weight:500">${v.q}</b><div class="s2">${v.v} · ${v.met.map(m=>MET[m][0]).join(' + ')}</div></div><span class="der">${sol(v.m)}</span></div>`).join('')}</div>
+      <p style="font-size:12px;color:var(--t65);margin-top:10px">Tocar una venta abre su detalle (reimprimir, cambiar, anular) — la misma ficha de Historial.</p></div>
+    <div style="padding:14px 22px;border-top:1px solid var(--sand);display:flex;gap:8px"><a class="btn s" style="flex:1;height:40px;text-decoration:none;color:var(--tinta)" href="#">${ic('history','s')} Historial completo</a><a class="btn s" style="flex:1;height:40px;text-decoration:none;color:var(--tinta)" href="#">${ic('wallet','s')} Ir a Caja</a></div>`;
+}
+function escenaMas(){
+  const lista = P() && S.op.accesos==='minimo' ? ACCESOS.filter(a=>['Caja','Cambios','Devoluciones'].includes(a[0])) : ACCESOS;
+  return `<h3>Más de la tienda</h3><div class="baj">Lo que trabaja de la mano con la venta. Los números piden atención.</div>
+    <div class="m-acc">${lista.map(([t,i,h,n])=>`<a href="#">${ic(i,'l')}${t}${n?`<span class="n">${n}</span>`:''}</a>`).join('')}</div>
+    ${P()?`<button class="btn s g" style="margin-top:12px">${ic('wallet','s')} Cerrar caja</button>`:''}`;
+}
+
+/* =========================== escritorio =========================== */
+function escritorio(){
+  const tituloEscena = {talla:'Toca una tarjeta: la talla agotada ya no es un callejón sin salida.',buscador:'Escribiendo «c» en el buscador.',clienta:'Fila «Clienta» arriba del ticket.',apartar:'Desde el ticket, sin ir a otra pantalla.',sinreg:'Prenda sin registrar.',espera:'Tickets en espera con nombre.',ventas:'La píldora «Hoy» abre las ventas del día (hoy están al fondo del catálogo).',mas:'«Más» guarda lo de menos uso (Historial, Proformas) y el cierre de caja; en el celular guarda los seis.'}[S.escena];
+  const grid = `<div class="grid ${on('denso')?'denso':''}">${(on('denso')?PROD:PROD.slice(0,8)).map(tarjeta).join('')}</div>`;
+  const ventasFondo = !on('resumen') ? `<div style="margin-top:22px;border-top:1px solid var(--sand);padding-top:14px"><span class="lbl" style="color:var(--t65)">Ventas de hoy ^</span><div class="lista-mini" style="margin-top:8px"><div class="placa" style="padding:18px"><i class="serif">4 ventas hoy en Tienda TRU (hay que bajar hasta aquí para verlas)</i></div></div></div>` : '';
+  let ov = '';
+  const e = S.escena;
+  if(e==='talla') ov = `<div class="velo" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="hojam"><button class="cerrar" onclick="S.escena='ninguna';pinta()">${ic('x')}</button>${escenaTalla()}</div></div>`;
+  if(e==='clienta'||e==='apartar'||e==='sinreg'||e==='espera'||e==='mas') {
+    const cont = {clienta:escenaClienta,apartar:escenaApartar,sinreg:()=>escenaSinReg(false),espera:escenaEspera,mas:escenaMas}[e]();
+    ov = `<div class="velo" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="hojam ${e==='apartar'?'ancha':''}"><button class="cerrar" onclick="S.escena='ninguna';pinta()">${ic('x')}</button>${cont}</div></div>`;
+  }
+  if(e==='ventas') ov = on('resumen')
+    ? `<div class="velo der" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="lado">${escenaVentas()}</div></div>`
+    : `<div class="velo" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="hojam"><div class="placa"><b>Hoy: al fondo del catálogo</b>«Ventas de hoy» está debajo de la última tarjeta. Enciende «Resumen de hoy arriba».</div></div></div>`;
+  return `${tituloEscena?`<div class="leyenda"><b>Escena:</b> ${tituloEscena}</div>`:''}
+  <div class="scroll-x"><div class="desk">
+    <div class="erp-top">${ic('side','s')}<span class="sede" style="margin-left:auto;border:0;background:none;color:var(--t65)">${ic('history','s')} ACTIVIDAD</span><span class="sede" style="margin-left:0">TIENDA TRU ${ic('chev','xs')}</span></div>
+    <div class="pos">
+      <div class="pos-cab"><span class="lbl lugar">Venta en tienda · Tienda TRU</span>${resumenPill(false)}${accesosDesk()}</div>
+      <div class="pos-body">
+        <section class="cat">
+          <div class="busca-f"><div class="busca ${e==='buscador'?'foco':''}" onclick="S.escena='buscador';pinta()">${ic('barcode')}${e==='buscador'?'<span style="color:var(--tinta)">c</span>':'Escanea la etiqueta o busca la prenda'}</div>
+            <button class="sinreg" onclick="S.escena='sinreg';pinta()">${P()?ic('plus','s'):''}Prenda sin registrar</button>
+            ${e==='buscador'?`<div class="drop">${escenaBuscador()}</div>`:''}</div>
+          ${filtros()}${grid}${ventasFondo}
+        </section>
+        ${ticket(false)}
+      </div>
+    </div>
+    ${ov}
+  </div></div>`;
+}
+
+/* =========================== celular =========================== */
+function telefono(modo, soloVista){
+  const tot = TICKET.reduce((a,t)=>a+t.pf,0);
+  const e = soloVista ? 'ninguna' : S.escena;
+  const mTicket = soloVista ? false : S.mTicket;
+  const tab = soloVista ? 'catalogo' : S.mTab;
+  const cab = `<div class="m-top">${ic('menu','s')} CAYLA<span class="sede">TIENDA TRU ${ic('chev','xs')}</span></div>
+    <div class="m-cab"><span class="lbl lugar">Venta · TRU</span>${resumenPill(true)}
+      ${P()&&S.op.accesos==='barra'?`<button class="m-mas" ${on('resumen')?'':'style="margin-left:auto"'} onclick="S.escena='mas';pinta()">${ic('grid','xs')} Más<span style="min-width:16px;height:16px;border-radius:8px;background:var(--tinta);color:var(--crema);font-size:9.5px;display:inline-grid;place-items:center;padding:0 4px">4</span></button>`
+        : !P()?`<button class="m-mas" style="margin-left:auto">Cerrar caja</button>`:''}</div>
+    ${P()&&S.op.accesos==='minimo'?`<div class="m-min"><a href="#">Caja</a><a href="#">Cambios</a><a href="#">Devol.</a></div>`:''}`;
+  const buscador = `<div class="m-sticky"><div class="m-busca"><div class="busca ${e==='buscador'?'foco':''}" onclick="S.escena='buscador';pinta()">${ic('barcode','s')}<span style="flex:1;${e==='buscador'?'color:var(--tinta)':''}">${e==='buscador'?'c':'Escanea o busca'}</span>${on('camara')?`<span class="cam">${ic('scan','s')}</span>`:''}</div>
+      <button class="m-sr" onclick="S.escena='sinreg';pinta()" title="Prenda sin registrar">${ic('plus','s')}</button></div>
+      <div class="pills">${CATS.map((c,i)=>`<span class="pill ${i===0?'on':''}">${c}</span>`).join('')}</div></div>`;
+  const catalogo = `<div class="m-filtro"><span class="switch"></span>SOLO CON STOCK<span style="margin-left:auto">33 ocultas</span></div>
+    <div class="m-grid">${PROD.slice(0,8).map(tarjeta).join('')}</div>`;
+  const tabs = modo==='pestanas' ? `<div class="m-tabs"><button class="${tab==='catalogo'?'on':''}" onclick="S.mTab='catalogo';pinta()">${ic('grid','xs')} Catálogo</button><button class="${tab==='ticket'?'on':''}" onclick="S.mTab='ticket';pinta()">${ic('bag','xs')} Ticket <span class="n">2</span></button></div>` : '';
+  let cuerpo;
+  if(modo==='pestanas' && tab==='ticket') cuerpo = `${cab}${tabs}<div class="m-ticket-in">${ticket(true)}</div>`;
+  else if(modo==='apilado') cuerpo = `${cab}${buscador}${catalogo}<div class="bajo-apilado"><div class="tk-cab" style="background:var(--papel)">${ic('bag')}<h3>Ticket actual</h3></div>${ticket(true)}</div>`;
+  else cuerpo = `${cab}${tabs}${buscador}${catalogo}${modo==='barra'?'<div style="height:84px"></div>':''}`;
+  const barraCobro = modo==='barra' && !mTicket ? `<div class="m-barra" onclick="S.mTicket=true;S.escena='ninguna';pinta()"><span class="c">${ic('bag','s')}<span class="n">2</span></span><span class="tx">2 prendas · Blusa Carlita, Top Aurora<b>${sol(tot)}</b></span><span class="ir">Ver ticket ${ic('chevu','xs')}</span></div>` : '';
+  let hoja = '';
+  if(mTicket) hoja = `<div class="m-velo" onclick="if(event.target===this){S.mTicket=false;pinta()}"><div class="m-hoja tk-m"><div class="asa"></div><div style="display:flex;align-items:center;gap:8px;padding:4px 18px 8px">${ic('bag')}<h3>Ticket actual</h3><button class="btn-espera" onclick="S.escena='espera';S.mTicket=false;pinta()">${ic('pause','xs')} En espera · ${P()?2:1}</button></div>${ticket(true)}</div></div>`;
+  if(e!=='ninguna' && e!=='buscador'){
+    const cont = {talla:escenaTalla,clienta:escenaClienta,apartar:escenaApartar,sinreg:()=>escenaSinReg(true),espera:escenaEspera,mas:escenaMas,ventas:null}[e];
+    if(e==='ventas') hoja = on('resumen') ? `<div class="m-velo" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="m-hoja" style="height:88%"><div class="asa"></div><div style="display:flex;flex-direction:column;min-height:0;flex:1">${escenaVentas()}</div></div></div>`
+      : `<div class="m-velo" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="m-hoja"><div class="asa"></div><div class="cuerpo"><div class="placa"><b>Hoy: al fondo de la página</b>En el celular hay que bajar todo el catálogo y el ticket para ver las ventas del día.</div></div></div></div>`;
+    else hoja = `<div class="m-velo" onclick="if(event.target===this){S.escena='ninguna';pinta()}"><div class="m-hoja"><div class="asa"></div><div class="cuerpo">${cont()}</div></div></div>`;
+  }
+  const drop = e==='buscador' ? `<div style="position:absolute;left:12px;right:12px;top:${P()&&S.op.accesos==='minimo'?188:150}px;z-index:25" onclick="S.escena='ninguna';pinta()"><div class="drop" style="position:static">${escenaBuscador()}</div></div>` : '';
+  return `<div class="tel"><div class="pant"><div class="pscroll">${cuerpo}</div>${barraCobro}${drop}${hoja}</div></div>`;
+}
+function celular(){
+  const d = {barra:['A · Barra fija de cobro','El catálogo usa toda la pantalla; el ticket y el cobro viven en una barra que siempre está abajo y sube como hoja.'],
+             pestanas:['B · Pestañas Catálogo / Ticket','Dos pestañas arriba; el contador rojo avisa que hay prendas en el ticket.'],
+             apilado:['C · Apilado (como hoy)','Catálogo y, debajo, el ticket. Para cobrar hay que bajar toda la lista.']};
+  if(S.movil==='comparar') return `<div class="leyenda"><b>Comparación:</b> las tres formas con la misma venta en curso (2 prendas). Toca dentro de cada teléfono para desplazarte.</div>
+    <div class="telefonos">${['barra','pestanas','apilado'].map(m=>`<div class="tel-col"><div class="tit"><b>${d[m][0]}</b>${d[m][1]}</div>${telefono(m,true)}</div>`).join('')}</div>`;
+  const esc = {talla:'Toca una tarjeta: la talla que no hay aquí dice dónde sí está.',clienta:'«Clienta» dentro del ticket (ábrelo con la barra).',apartar:'Apartar / Proforma desde el ticket.',sinreg:'El «+» junto al buscador abre Prenda sin registrar.',espera:'Tickets en espera.',ventas:'La píldora «Hoy» abre las ventas del día.',mas:'«Más» reemplaza a los enlaces que hoy se esconden en el celular.',buscador:'Escribiendo «c».'}[S.escena];
+  return `<div class="leyenda"><b>${d[S.movil][0]}.</b> ${d[S.movil][1]}${esc?` <b>Escena:</b> ${esc}`:''}${S.movil==='barra'?' Toca la barra negra para abrir el ticket.':''}</div>
+    <div class="telefonos"><div class="tel-col">${telefono(S.movil,false)}</div></div>`;
+}
+
+/* =========================== otros POS =========================== */
+function otros(){
+  const f = (t,a,b,c,d,e,cayla) => `<tr><td>${t}</td><td>${a}</td><td>${b}</td><td>${c}</td><td>${d}</td><td>${e}</td><td>${cayla}</td></tr>`;
+  const si = t=>`<span class="si">Sí</span> ${t||''}`, pa = t=>`<span class="parcial">Parcial</span> ${t||''}`, no = t=>`<span class="no2">No</span> ${t||''}`;
+  return `<div class="doc">
+    <span class="lbl sobre">Referentes · cómo resuelven lo mismo</span>
+    <h1>Cómo lo hacen otros puntos de venta</h1>
+    <p class="bajada">Cinco POS de retail que se usan en tienda física y en el celular. Sale de su documentación pública y de su uso conocido (no se revisó en vivo hoy); cada fila dice qué tomamos para CAYLA y qué no.</p>
+    <h2>Lo que se repite en todos</h2>
+    <div class="tarjetas">
+      <div class="tj"><h4>La clienta va arriba del carrito</h4><p>Shopify POS, Square, Lightspeed y Odoo muestran «Agregar cliente» en la cabecera del carrito, <i>antes</i> de cobrar. Así el historial, los puntos y el comprobante salen solos.</p><div class="toma"><b>Tomamos:</b> fila «Clienta» opcional arriba del ticket, con la ficha de clienta que ya existe en la base.</div></div>
+      <div class="tj"><h4>Stock de otras tiendas en la ficha</h4><p>Shopify POS («ver inventario en otras ubicaciones»), Lightspeed y Odoo muestran cuánto hay en las otras sedes al tocar un producto agotado, y ofrecen pedirlo o enviarlo.</p><div class="toma"><b>Tomamos:</b> la talla agotada dice dónde sí hay y deja pedirla al almacén, pedir un traslado o apartarla.</div></div>
+      <div class="tj"><h4>Guardar el carrito con nombre</h4><p>Square («tickets abiertos»), Loyverse y Shopify («guardar carrito») piden un nombre corto para retomarlo. Nadie tiene «en espera · 1» sin decir de quién es.</p><div class="toma"><b>Tomamos:</b> tickets en espera con nombre («Probador 2») y hora, visibles en el ticket.</div></div>
+      <div class="tj"><h4>Apartado y proforma desde el carrito</h4><p>Lightspeed («layaway» y «special order») y Odoo («cotización») convierten el carrito en un apartado o una cotización sin rehacerlo en otra pantalla.</p><div class="toma"><b>Tomamos:</b> «Apartar» y «Proforma» junto a «Dejar en espera».</div></div>
+      <div class="tj"><h4>En el celular, el cobro es una barra fija</h4><p>Shopify POS Go, Square para celular y Odoo en pantalla chica: grilla a pantalla completa y abajo una barra «Ver carrito · total» que sube como hoja. Nadie apila el carrito debajo del catálogo.</p><div class="toma"><b>Tomamos:</b> variante A (barra fija). La B (pestañas) es la segunda opción.</div></div>
+      <div class="tj"><h4>Accesos configurables, no enlaces sueltos</h4><p>Shopify POS tiene una «grilla inteligente» de atajos en la pantalla de venta; Square, un menú «Más». Los atajos llevan un contador cuando hay algo pendiente.</p><div class="toma"><b>Tomamos:</b> barra de 6 accesos con contador en escritorio y un «Más» en el celular. <b>No tomamos:</b> que cada tienda los reordene (hoy es una sola marca).</div></div>
+    </div>
+    <h2>Comparación por función</h2>
+    <div style="overflow-x:auto"><table class="tabla">
+      <tr><th>Función</th><th>Shopify POS</th><th>Square Retail</th><th>Lightspeed Retail</th><th>Odoo PdV</th><th>Loyverse</th><th>CAYLA propuesta</th></tr>
+      ${f('Cliente en el carrito',si('arriba del carrito'),si(),si(),si('botón Cliente'),si(),si('fila Clienta, opcional'))}
+      ${f('Stock en otras sedes',si('en la ficha'),pa('por tienda'),si(),si('por almacén'),no(),si('en la talla agotada'))}
+      ${f('Pedir lo que no hay',si('enviar al cliente'),no(),si('pedido especial'),pa('vía Inventario'),no(),si('pedir al almacén / traslado'))}
+      ${f('Registrar «no había»',no(),no(),pa('pedido especial'),no(),no(),si('pedidos no atendidos'))}
+      ${f('Apartado desde el carrito',pa('con apps'),no(),si('layaway'),pa('abono'),no(),si('Apartar'))}
+      ${f('Cotización desde el carrito',pa('borrador'),pa('factura'),si('presupuesto'),si(),no(),si('Proforma'))}
+      ${f('Carritos en espera con nombre',si(),si('tickets abiertos'),si(),si('órdenes'),si(),si('con nombre y hora'))}
+      ${f('Ventas del día a la vista',pa('en otra pantalla'),si('resumen'),pa(),si('sesión'),si('recibos'),si('píldora «Hoy»'))}
+      ${f('Escanear con la cámara',si(),si(),si('app'),si(),si(),si('en el celular'))}
+      ${f('Celular: carrito como',si('barra + hoja'),si('barra + hoja'),pa('pantalla aparte'),si('botón Revisar'),si('barra'),si('barra + hoja (A)'))}
+    </table></div>
+    <div class="nota-doc">Lo que <b>ninguno</b> hace y CAYLA sí necesita: la prenda «en el almacén» como estado propio (ni vendible aquí ni agotada), y anotar lo que se pidió y no había para que Compras decida qué reponer. Esas dos piezas ya existen en la base: solo falta sacarlas al mostrador.</div>
+  </div>`;
+}
+
+/* =========================== hallazgos =========================== */
+function hallazgos(){
+  const H = [
+    ['Los accesos se ven poco y en el celular desaparecen','Caja · Cambios · Devoluciones son texto de 11 px y <code>hidden sm:flex</code> los esconde bajo 640 px. Faltan Apartados, Historial y Proformas.','<code>PuntoDeVenta.tsx:1203</code>','Barra de 6 accesos con contador (escritorio) y «Más» (celular), o la versión mínima legible.'],
+    ['«Ventas de hoy» está al fondo del catálogo','Para saber cuánto se vendió hay que bajar hasta la última tarjeta.','<code>VentasDeHoy.tsx</code>','Píldora «Hoy · 4 ventas · S/612 · 62 % de la meta» en la cabecera, que abre un panel lateral.'],
+    ['La talla agotada no lleva a ninguna parte','«Sin stock aquí» y nada más. El registro de pedidos no atendidos existe en la base (D-79) y nunca llegó al mostrador.','<code>ElegirTallaModal.tsx</code> · <code>20260922190000_pedidos_no_atendidos.sql</code>','La talla dice dónde hay; ofrece pedir al almacén, pedir traslado, apartar o anotar «no había».'],
+    ['La clienta solo aparece al cobrar','La ficha de clienta (<code>buscar_clienta</code>/<code>registrar_clienta</code>) existe, pero el ticket no la usa. Es el paso 1 del acta de clientas de hoy (D-92 a D-111).','<code>20260922140000_ficha_de_clienta_v1_backend.sql</code> · <code>DECISIONES-2026-09-26-clientas.md</code>','Fila «Clienta» opcional arriba del ticket: «DNI o celular», la pregunta del club y «es para regalo»; pasa al apartado y a la proforma.'],
+    ['Apartar y hacer proforma obliga a rehacer el ticket en otra pantalla','Apartados y Proformas son módulos propios (ADR-0196, ADR-0167): se busca la prenda de nuevo.','<code>/vender/apartados</code> · <code>/vender/comprobantes/proformas</code>','Botones «Apartar» y «Proforma» junto a «Dejar en espera», que usan el ticket ya armado.'],
+    ['«En espera · 1» no dice de quién es','Con dos clientas en probador no se sabe cuál es cuál.','<code>PuntoDeVenta.tsx:151</code>','Tira de tickets en espera con nombre y hora; «Retomar» de un toque.'],
+    ['El buscador muestra primero lo que no se puede vender','Con «c», la primera fila es un Polo sin stock.','captura 13','Tres grupos: aquí → en el almacén → sin stock (con «anotar no había»).'],
+    ['Prenda sin registrar pide de más','Rojo antes de escribir, ícono de persona en combos de categoría y color, teclado numérico en escritorio.','capturas 5–9','Descripción armada sola, rojo solo al intentar agregar, combos con chevron, sin teclado numérico en pantalla.'],
+    ['El aviso de admin ocupa el mejor espacio','~60 px fijos en el pie del ticket, siempre, aunque no cambia nada.','capturas 4 y 10','Chip pequeño bajo el desglose.'],
+    ['Catálogo con poca información por pantalla','Iniciales gigantes cuando no hay foto; 4 tarjetas altas por fila.','captura 2','5 por fila y foto cuadrada; sin foto, un fondo del color de la prenda y la categoría.'],
+    ['Celular: para cobrar hay que bajar todo','El POS se apila: catálogo y luego el ticket. No hay cámara para escanear.','<code>PuntoDeVenta.tsx:1185</code>','A (barra fija + hoja), B (pestañas) o C (como hoy); cámara en el buscador.'],
+  ];
+  return `<div class="doc"><span class="lbl sobre">Análisis · /vender · 2026-09-26</span><h1>Qué frena a la colaboradora hoy</h1>
+    <p class="bajada">Once hallazgos sobre las capturas y el código de <code>main</code> (${'b6935a18'}). El motor de cobro no se toca: todo esto es mostrador y conexión con pantallas que ya existen.</p>
+    ${H.map((h,i)=>`<div class="hall"><span class="num">${i+1}</span><div><h4>${h[0]}</h4><p>${h[1]} <span style="color:var(--t50)">— ${h[2]}</span></p><p class="prop"><b>Propuesta:</b> ${h[3]}</p></div></div>`).join('')}
+    <div class="nota-doc"><b>Qué necesita base y qué no.</b> Solo pantalla: accesos, resumen de hoy (lee <code>fn_ventas_del_dia</code>), orden del buscador, espera con nombre (vive en el navegador), admin como chip, prenda sin registrar, catálogo denso, variantes de celular. Usa funciones que ya existen: clienta en el ticket (<code>buscar_clienta</code>), «anotar no había» (<code>registrar_pedido_no_atendido</code>), proforma desde el ticket. <b>Pide decisión y quizá base:</b> apartar desde el ticket con adelanto (hay que ver si <code>apartar_stock</code> recibe el pago), pedir al almacén / traslado desde la talla (hoy los traslados los inicia Inventario) y la cámara (librería de lectura de códigos).</div>
+  </div>`;
+}
+
+/* =========================== pintar =========================== */
+function pinta(){
+  barra();
+  const v = S.vista, el = document.getElementById('escena');
+  el.innerHTML = v==='escritorio' ? escritorio() : v==='celular' ? celular() : v==='otros' ? otros() : hallazgos();
+}
+pinta();
+</script>
+</body>
+</html>

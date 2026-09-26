@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
 import { VentasDeHoyLista } from "@/components/VentasDeHoy";
-import { almacenDeLaSede, cantidadCobrable } from "@/lib/vender-stock-local";
+import { almacenDeLaSede, apartadoEnPiso, cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
@@ -101,6 +101,9 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
       // Del MISMO mapa, sin otra lectura: lo guardado en el almacén de esta sede. No se cobra (la venta descuenta el
       // piso), pero con el piso en 0 la caja dice «está en el almacén» en vez de «agotada» (D-40).
       almacenAqui: almacenDeLaSede(stockAqui.get(v.varianteId)),
+      // Del MISMO mapa: lo apartado para clientas en el piso. Con el piso y el almacén en 0 distingue «apartada para una
+      // clienta» de «agotada» (`motivoNoCobrable`).
+      apartadoAqui: apartadoEnPiso(stockAqui.get(v.varianteId)),
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 

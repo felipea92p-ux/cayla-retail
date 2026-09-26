@@ -2,17 +2,23 @@ import { describe, expect, it } from "vitest";
 import {
   almacenDeLaSede,
   almacenReleido,
+  apartadoEnPiso,
+  apartadoReleido,
   avisoCortas,
   avisoQuedaronEnAlmacen,
   avisoSinPiso,
   avisoTope,
   cantidadCobrable,
   conAlmacenAjustado,
+  conApartadoAjustado,
   conPisoAlDia,
   conStockAjustado,
   conStockReleido,
   descontarVendido,
   motivoNoCobrable,
+  quedoEnAlmacen,
+  textoStockDeFila,
+  tooltipTallaSinPiso,
 } from "./vender-stock-local";
 import { sumarCantidades } from "./inventario-reglas";
 
@@ -104,6 +110,98 @@ describe("¿agotada o en el almacén? (motivoNoCobrable)", () => {
     expect(motivoNoCobrable({ stockAqui: 0 })).toBe("agotada");
     expect(motivoNoCobrable({ stockAqui: 3, almacenAqui: null })).toBe("cobrable");
   });
+
+  it("lo único que queda en el piso está apartado y no hay nada libre en el almacén: apartada, no agotada", () => {
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe("apartada");
+    // Taller o quien no trae el almacén: con el piso apartado también es «apartada».
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: null, apartadoAqui: 2 })).toBe("apartada");
+    expect(motivoNoCobrable({ stockAqui: 0, apartadoAqui: 2 })).toBe("apartada");
+  });
+
+  it("EL ORDEN: con stock libre en el almacén gana «en el almacén» (hay un camino de venta) y con piso libre, cobrable", () => {
+    // Piso apartado + almacén libre: la colaboradora PUEDE vender bajando una del almacén, así que «apartada» a secas
+    // se leería «no hay ninguna» y la dejaría sin ese camino.
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: 3, apartadoAqui: 1 })).toBe("en_almacen");
+    expect(motivoNoCobrable({ stockAqui: 2, almacenAqui: 3, apartadoAqui: 1 })).toBe("cobrable");
+    expect(motivoNoCobrable({ stockAqui: 2, apartadoAqui: 5 })).toBe("cobrable");
+  });
+
+  it("sin nada apartado (0, null o ausente) sigue siendo agotada", () => {
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 0 })).toBe("agotada");
+    expect(motivoNoCobrable({ stockAqui: 0, almacenAqui: 0, apartadoAqui: null })).toBe("agotada");
+  });
+});
+
+describe("lo apartado en el piso (apartadoEnPiso, apartadoReleido, conApartadoAjustado)", () => {
+  // La misma prenda con los tres números distintos: cobrable 4, apartado total 3 (1 en el piso + 2 en el almacén) y
+  // apartado en el piso 1. Si algo usara el cobrable o el total en vez de lo apartado EN EL PISO, esto lo ve.
+  const almacenConApartado = (variante_id: string, cantidad: number, cantidad_apartada: number) => ({ variante_id, cantidad, cantidad_apartada, sububicacion: { tipo: "almacen_tienda" } });
+  const tres = () => sumarCantidades([piso("a", 5, 1), almacenConApartado("a", 3, 2)]);
+
+  it("solo cuenta lo apartado en el piso (no el del almacén); sin piso/almacén, el total apartado; sin fila, 0", () => {
+    const c = tres().get("a");
+    expect([cantidadCobrable(c), c?.apartado, apartadoEnPiso(c)]).toEqual([4, 3, 1]);
+    const taller = sumarCantidades([{ variante_id: "b", cantidad: 7, cantidad_apartada: 2, sububicacion: null }]);
+    expect(apartadoEnPiso(taller.get("b"))).toBe(2);
+    expect(apartadoEnPiso(undefined)).toBe(0);
+  });
+
+  it("lo releído sale de las mismas filas; una prenda que no volvió queda en 0", () => {
+    expect([...apartadoReleido(["a", "b"], tres())]).toEqual([["a", 1], ["b", 0]]);
+  });
+
+  it("un apartado que PASA A 0 se refleja (un 0 releído pisa al valor viejo; no se confunde con «sin dato»)", () => {
+    // La clienta retiró la última unidad apartada: el sondeo trae 0 y la caja debe dejar de decir «apartada».
+    expect(conApartadoAjustado([{ varianteId: "a", apartadoAqui: 2 }], new Map([["a", 0]]))).toEqual([{ varianteId: "a", apartadoAqui: 0 }]);
+  });
+
+  it("se aplica a las variantes y devuelve el mismo arreglo si no hay ajustes", () => {
+    const variantes = [{ varianteId: "a", apartadoAqui: 0 }, { varianteId: "b" }];
+    expect(conApartadoAjustado(variantes, new Map())).toBe(variantes);
+    expect(conApartadoAjustado(variantes, new Map([["b", 2]]))).toEqual([{ varianteId: "a", apartadoAqui: 0 }, { varianteId: "b", apartadoAqui: 2 }]);
+  });
+});
+
+describe("el texto de la fila del buscador (textoStockDeFila)", () => {
+  it("dice una cosa distinta por motivo: cobrable, en el almacén, apartada y agotada", () => {
+    expect(textoStockDeFila({ stockAqui: 3, almacenAqui: 5 })).toBe("3 aquí");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 2 })).toBe("2 en el almacén");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0 })).toBe("sin stock aquí");
+  });
+
+  it("con stock libre en el almacén gana «en el almacén» aunque el piso tenga apartadas (el mismo orden que el aviso)", () => {
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 2, apartadoAqui: 1 })).toBe("2 en el almacén");
+  });
+});
+
+describe("lo que la cámara deja «en el almacén» para el aviso al cerrarla (quedoEnAlmacen)", () => {
+  it("cuenta lo que no entró por estar en el almacén, y el tope de las del piso si hay más allá", () => {
+    expect(quedoEnAlmacen("en_almacen")).toBe(true);
+    expect(quedoEnAlmacen("tope", 3)).toBe(true);
+    expect(quedoEnAlmacen("tope", 0)).toBe(false);
+    expect(quedoEnAlmacen("tope", null)).toBe(false);
+    expect(quedoEnAlmacen("tope")).toBe(false);
+  });
+
+  it("NO cuenta lo apartado (ni lo agotado ni lo que entró): una prenda que otra caja apartó ya no es «que la bajen»", () => {
+    expect(quedoEnAlmacen("apartada")).toBe(false);
+    expect(quedoEnAlmacen("apartada", 3)).toBe(false);
+    expect(quedoEnAlmacen("agotada")).toBe(false);
+    expect(quedoEnAlmacen("agregada", 3)).toBe(false);
+  });
+});
+
+describe("tooltip de una talla que no se puede cobrar ni bajar (tooltipTallaSinPiso)", () => {
+  it("agotada: conserva sus textos de siempre, con o sin otras sedes", () => {
+    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0 }, null)).toBe("Sin stock en ninguna sede");
+    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0 }, "2 en Trujillo")).toBe("Sin stock aquí · 2 en Trujillo");
+  });
+
+  it("apartada: lo dice, y agrega dónde más hay si lo hay (no «sin stock en ninguna sede»: la unidad existe)", () => {
+    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 }, null)).toBe("Apartada para una clienta");
+    expect(tooltipTallaSinPiso({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 }, "2 en Trujillo")).toBe("Apartada para una clienta · 2 en Trujillo");
+  });
 });
 
 describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () => {
@@ -126,6 +224,21 @@ describe("los avisos de la caja dicen dónde está la prenda y qué hacer", () =
       titulo: "Blusa Paracas · M está agotada",
       detalle: "No hay stock en Taller.",
     });
+  });
+
+  it("apartada: es de una clienta —no «no hay»— y no hay nada que bajar", () => {
+    const aviso = avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 });
+    expect(aviso).toEqual({
+      titulo: "Blusa Paracas · M está apartada para una clienta",
+      detalle: "No se vende desde aquí: es de la clienta que la apartó en Tienda TRU.",
+    });
+    // Nada de «bajar» ni de «no hay»: ninguna de las dos cosas es cierta.
+    expect(aviso.detalle).not.toContain("bajen");
+    expect(aviso.detalle).not.toContain("No hay");
+  });
+
+  it("piso apartado pero con almacén libre: el aviso es el del almacén (hay camino de venta), no el de apartada", () => {
+    expect(avisoSinPiso({ ...base, stockAqui: 0, almacenAqui: 2, apartadoAqui: 1 }).titulo).toBe("Blusa Paracas · M está en el almacén");
   });
 
   it("tope sin almacén: el aviso de siempre", () => {
