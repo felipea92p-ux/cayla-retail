@@ -3,6 +3,7 @@
 > Modo: completo · Fecha: 2026-09-26 · Rol/sede: líder, Tienda Lima (base LOCAL con la siembra estándar) · Dispositivos: celular a 375 px (el ADR-0237 dice que «la mayoría usará el teléfono gran parte del día») y computadora a 1440 px · Datos: **sin SQL** (Felipe eligió seguir sin correr las consultas en producción): las cifras son de la base local y van `[local]`; lo que solo producción puede decir va `[no verificable]`.
 > SHA analizado: **`ffa5d52b`, la cabeza del PR #500** (rama `claude/existencias-screen-analysis-1f7b5e`, ADR-0237, abierto y sin fusionar), no `origin/main` (`60d7aadb`). Es a propósito: el #500 reemplaza la pantalla que hoy está en `main`, y analizar la de `main` habría vencido el mismo día (le pasó al análisis anterior con el #445). `git merge-tree --write-tree ffa5d52b origin/main` no da conflictos, pero `main` cambió `AjustarInventarioModal.tsx` (ADR-0235) después de que el #500 se ramificó: ver tarea #2. Si el #500 cambia antes de fusionarse, o si no se fusiona, este análisis está vencido.
 > Archivos: `app/(app)/inventario/page.tsx` · `components/InventarioPanel.tsx` · `ExistenciasPorPrenda.tsx` · `DetallePrendaExistencias.tsx` · `EscanerBusqueda.tsx` · `ReponerPisoModal.tsx` · `ApartarModal.tsx` · `AjustarInventarioModal.tsx` · `BajarAlPisoForm.tsx` · `lib/existencias-prendas.ts` · `lib/inventario-v2.ts` · `lib/inventario-reglas.ts` · `lib/bajada-reglas.ts` · `lib/etiquetas-precio.ts` · `lib/politica-operativa-inventario.ts` · `lib/resumen-inventario.ts` · RPC `mover_interno`, `bajar_al_piso`, `apartar_stock`, `registrar_movimiento`, `cargar_stock_inicial` (main), `listar_apartados`, `fn_stock_por_sede_json`, `fn_resumen_variantes_json`, `fn_ritmo_reciente_json` · tablas `stock`, `sububicaciones`, `variantes`, `productos`, `apartados`, `transferencias`, `transferencia_items`, `prendas_danadas`, `roles`, `rol_modulos`
+> **Actualización (misma noche):** el #500 se fusionó a `main` a las 20:30 del 2026-09-26 (merge `05939339`), antes de que este análisis terminara de escribirse: vale para `main`. Felipe ordenó la **#2** y la **#4**; las dos están hechas en la rama `claude/ajustar-carga-inicial-sin-bajada` (ver cada tarea). La #2 se hizo **al revés de lo que proponía este archivo**: ver su nota.
 > Otra sesión tocándola: **sí.** El PR #500 es de la sesión `existencias-screen-analysis-1f7b5e` (su worktree ya no está en esta Mac). Ninguna de sus tareas pendientes (cifras Por recibir/Apartadas, fila de avisos, Conteo con lista) choca con las de abajo, pero las #2, #3, #4 y #7 tocan archivos del PR: conviene hacerlas en su rama antes del merge o justo después.
 > Mapa del código: un subagente de solo lectura; yo repetí las comprobaciones que sostienen las tareas #2, #3 y #4. Etiquetas: `[visto]` recorrido en el navegador · `[código archivo:línea]` · `[local]` consulta de solo lectura a la base local · `[inferido]` · `[no verificable]`.
 
@@ -177,7 +178,8 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** en Ajustar, carga 3 líneas, pon el navegador en «sin conexión» después de tocar Guardar y vuelve a guardar al reconectar. En Movimientos debe haber **un** ajuste con 3 líneas, no 6 ni 2.
 - **Esfuerzo / dependencias:** M · después de fusionar el #500 con `main` (el modal cambió con ADR-0235: partir de esa versión).
 
-### #2 · Corregir — Al fusionar con `main`, «Ajustar» al piso falla para quien no tiene «Bajada al piso»
+### #2 · Corregir — Al fusionar con `main`, «Ajustar» al piso falla para quien no tiene «Bajada al piso» — ✅ hecha (2026-09-26)
+- **Hecha, pero al revés de lo propuesto abajo.** ADR-0212 ya había decidido para «Nuevo producto» que «colgadas en el piso» es una bajada y pide su módulo, y que la pantalla lo apaga con su explicación. Quitarle el requisito a `cargar_stock_inicial` habría dejado dos reglas para la misma operación. Se hizo lo que ya hace el alta: sin «Bajada al piso», lo nuevo entra al almacén y la fila lo dice (`cargaInicialAlPiso`, `textoPrendaNueva` en `lib/ajuste-reglas.ts`). La base no cambia. Detalle: ADR-0235, «Actualización 2026-09-26 (noche)». Error de este análisis: no buscó la decisión escrita antes de proponer.
 - **Dónde:** `origin/main:supabase/migrations/20260927153100_cargar_stock_inicial_de_prenda_existente.sql:49,63` → `bajar_al_piso` (`20260926000200_bajada_piso_funciones.sql:138`, `fn_ve_modulo('bajada_piso')`).
 - **Por qué en este puesto:**
   - Rompe un flujo real el día del merge, sin conflicto de git que lo avise.
@@ -200,7 +202,8 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** con una cuenta integrante sin «Bajada al piso», abre una prenda por colgar → no aparece «Reponer al piso». Y desde la consola del navegador, `supabase.rpc('mover_interno', …)` con esa cuenta responde «sin acceso».
 - **Esfuerzo / dependencias:** M (migración + pantalla) · decisión A/B de Felipe primero.
 
-### #4 · Corregir — La bajada que llega desde Existencias se escanea, no se confirma a ciegas
+### #4 · Corregir — La bajada que llega desde Existencias se escanea, no se confirma a ciegas — ✅ hecha (2026-09-26)
+- **Hecha:** lo marcado llega en 0, «Por escanear»; cada lectura lo llena; confirmar sin escanear está apagado. ADR-0237, «Actualización 2026-09-26 (noche)».
 - **Dónde:** `lib/existencias-prendas.ts:119-137` (`urlBajarAlPiso`, 1 u por talla) · `lib/bajada-reglas.ts:213-224` (`lineasIniciales`) · `components/BajarAlPisoForm.tsx:176-184, 561`.
 - **Por qué en este puesto:**
   - La venta descuenta del piso. Si se «baja» en el sistema lo que no se colgó, la caja dice «stock insuficiente» con la prenda en la mano, o al revés.
@@ -306,9 +309,9 @@ Decide Felipe (tarea #9).
 
 ## 11 · Líneas propuestas para BACKLOG.md
 - [ ] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada — M
-- [ ] `[pantalla:inventario]` #2 `cargar_stock_inicial` al piso no debe exigir «Bajada al piso» (rompe Ajustar al fusionar #500 con main) — S
+- [x] `[pantalla:inventario]` #2 Ajustar sin «Bajada al piso»: lo nuevo entra al almacén y la fila lo dice (ADR-0212/0235) — S
 - [ ] `[pantalla:inventario]` #3 Un solo candado por escritura: `mover_interno`/`apartar_stock` con `fn_ve_modulo` y el detalle igual (decisión A/B de Felipe) — M
-- [ ] `[pantalla:inventario]` #4 La bajada desde Existencias llega en 0 y se llena escaneando — S–M
+- [x] `[pantalla:inventario]` #4 La bajada desde Existencias llega en 0 y se llena escaneando (ADR-0237 act.) — S–M
 - [ ] `[pantalla:inventario]` #5 «Reponer» ordenado por urgencia y un solo primario — S
 - [ ] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla — M
 - [ ] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S

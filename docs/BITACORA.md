@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
+El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
+Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
+Felipe se lleva: **buscar la decisión escrita antes de proponer un arreglo.** El análisis proponía quitarle el candado a la base; ADR-0212 ya decía lo contrario, y la solución correcta resultó ser la de la pantalla.
+Sin resolver: verlo con la cuenta de integrante; las tareas #1 y #3 (la #3 espera la decisión A/B de Felipe).
+
 ## 2026-09-26 (Fotos: el recorte agujereado ya no se sugiere — ADR-0228 act.)
 Felipe probó un jean de internet sobre fondo liso: MODNet le abrió manchones blancos en la tela y la revisión igual sugería «Sin fondo». Ahora se mide la tela agujereada (solo huecos encerrados, así el espacio entre las piernas no cuenta) y sobre 0,5 % la foto nace en «Con fondo» con aviso.
 Por qué así: el umbral se midió con seis fotos por el proceso real (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %), no se eligió a ojo. Qué se rompería sin esto: una tienda apura «Usar esta foto» y el catálogo muestra un jean con agujeros que no tiene.
