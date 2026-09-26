@@ -2,9 +2,9 @@
 
 - **Fecha:** 2026-09-26 · **Estado:** Aprobado por Felipe («Tomo todas tus recomendaciones», sobre las cuatro decisiones de
   `docs/pantallas/traslados.md` §6). Acta: `docs/datos/DECISIONES-2026-09-26-traslados.md` (D-129 a D-132).
-- **Producción:** una migración, `20260927160000_traslados_recibir_sin_perder_nada.sql`, **sin aplicar**. Espera el OK de
-  Felipe. Va ANTES de la web: la web nueva llama `anular_traslado` y `confirmar_traslado(…, p_destino)`, y la web vieja sigue
-  funcionando con la base nueva (los parámetros nuevos tienen valor por defecto y las columnas nuevas son aditivas).
+- **Producción:** `20260927160000_traslados_recibir_sin_perder_nada.sql` **aplicada el 2026-09-26** con el OK de Felipe
+  (ensayo revertido antes; verificada por md5 de las 14 funciones contra local). Fue ANTES de la web: la web vieja siguió
+  funcionando con la base nueva (los parámetros nuevos tienen valor por defecto y las columnas son aditivas).
 - **Nace de:** el recorrido de usabilidad del 2026-09-26 (`docs/pantallas/traslados.md`, PR #498).
 - **Complementa:** ADR-0068 (traslado en dos fases), ADR-0113 (Recibir por envío), ADR-0173 (se cuenta, no se asume),
   ADR-0190 (doble clic y candados en orden), ADR-0233 (pedido para apartar que llega por traslado), ADR-0231 (regla de piso).
