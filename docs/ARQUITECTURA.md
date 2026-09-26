@@ -255,7 +255,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   los dos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
   `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
   `AjustarInventarioModal.tsx` (RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
-  dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»;
+  dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»; «Pedir para una clienta» en «Dónde más hay» abre el
+  `PedirOtraSedeModal` de Apartados (RPC `pedir_prenda_para_apartar`, ADR-0233; tarea #9 del análisis); lo que decide cada
+  botón del detalle vive en `lib/existencias-permisos.ts`;
   desde 2026-09-25, ADR-0208, en una
   tienda que separa piso y almacén el Motivo no ofrece «Reposición» cuando la ubicación es Piso —`motivosAjusteDisponibles`
   y `NOTA_REPOSICION_CERRADA` de `lib/ajuste-reglas.ts`, con la nota que reserva su alto, ADR-0185— y la base lo
@@ -295,11 +297,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
 - `/inventario/conteo` → `lib/conteos.ts` (`getConteoAbierto`, `getConteosResumen` → RPC
   `fn_conteos_resumen`, `getPrevisualizacionCierre`, `getPrioridadConteo` + su `apariencia`: foto principal y
   `colorHex` de `lib/apariencia-variantes.ts`, la regla de Existencias; si falla degrada, no tumba) →
-  `ConteoVista.tsx` (dibuja; la página solo lee) → `ConteoPanel.tsx` (abrir en tres pasos; contar con «Suma por
-  escaneo» o «Escribir cantidad», escrituras en fila; «Faltan por contar» sin la cifra del sistema; revisar en
-  `<Modal>`; RPC `abrir_conteo`, `conteo_contar`, `cerrar_conteo`, `anular_conteo`) + `ConteosLista.tsx` (historial,
+  `ConteoVista.tsx` (dibuja; la página solo lee; sin cifras con un conteo abierto, vacíos plegados) → `ConteoPanel.tsx`
+  (abrir en tres pasos, con aviso de traslados por atender (`getTrasladosPorAtender`); contar con «Suma por escaneo» o
+  «Escribir cantidad», escrituras en fila, bip y vibración (`lib/sonido-conteo.ts`), cámara en ráfaga
+  (`EscanerConteo.tsx`); «Faltan» por modelo y color sin la cifra del sistema; «Imprimir etiquetas» de lo anotado a mano;
+  revisar en `<Modal>` con «No se encontraron» y «Recontar» (ADR-0244, reglas en `lib/conteo-conectado.ts`); RPC
+  `abrir_conteo`, `conteo_contar`, `cerrar_conteo`, `anular_conteo`) + `ConteosLista.tsx` (historial,
   «Vacío») → `/inventario/conteo/[id]` → `ConteoDetalleVista.tsx` (`getConteoDetalle`, que trae foto, `colorHex` y
-  soles por línea en su misma consulta; solo lectura; `?ver=todas`). Reglas puras en `lib/conteo-reglas.ts`
+  soles por línea en su misma consulta; solo lectura; `?ver=todas`; «Lo que sigue»: Bajar al piso con `getLibreEnAlmacen`
+  y Movimientos, ADR-0244). Reglas puras en `lib/conteo-reglas.ts`
   (ADR-0174); exactitud con `exactitudConteos` (`lib/conteo-varianza.ts`). `cerrar_conteo` rechaza un conteo sin
   prendas (hint `conteo_vacio`, `20260923120000`, en producción desde el 2026-09-22).
 - `/inventario/resumen` (**Análisis de inventario**, solo líder; nació como «Resumen» en ADR-0101/0121 y se

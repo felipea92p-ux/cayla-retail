@@ -27,6 +27,7 @@ import {
   conTopeDeLaBase,
   fijarCantidad,
   porEscanear,
+  unirConIniciales,
   interpretarErrorDeBajada,
   leerBorrador,
   leerCodigo,
@@ -297,15 +298,17 @@ export function BajarAlPisoForm({
   }
 
   // Seguir con el borrador: su lista y SU token, para que un reintento de algo que sí se guardó no baje dos veces.
+  // Lo marcado en Existencias (si vino con `?lineas=`) se suma al final, «por escanear» (tarea #11): antes se perdía.
   function seguirConBorrador(b: BorradorDeBajada): LineaBajada[] {
+    const lineasDelBorrador = unirConIniciales(b.lineas, iniciales);
     borradorPendiente.current = null;
     token.current = b.token;
     creadoEn.current = b.creadoEn;
-    lineasRef.current = b.lineas;
-    setLineas(b.lineas);
+    lineasRef.current = lineasDelBorrador;
+    setLineas(lineasDelBorrador);
     setBorrador(null);
     setDescartarBorrador(false);
-    return b.lineas;
+    return lineasDelBorrador;
   }
 
   function leerEscaneo(texto: string, { conservarExito = false }: { conservarExito?: boolean } = {}) {
@@ -506,6 +509,10 @@ export function BajarAlPisoForm({
     borrarTexto(clave);
     setBorrador(null);
     setDescartarBorrador(false);
+    // Empezar de nuevo es empezar con lo marcado en Existencias, si vino algo (tarea #11), no con la lista vacía.
+    const deExistencias = unirConIniciales([], iniciales);
+    lineasRef.current = deExistencias;
+    setLineas(deExistencias);
     volverAlEscaner();
   }
 

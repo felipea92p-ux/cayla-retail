@@ -165,3 +165,38 @@ Tareas #7 y #8 del análisis `/pantalla` (`docs/pantallas/inventario.md`), orden
   pasado el tope de 1.000 filas de PostgREST, antes se cortaban sin aviso.
 - Los traslados en curso (`traslados.ts`) quedan sin paginar a propósito. Con 3 tiendas son decenas, y ese archivo es
   de la pantalla Traslados, donde trabaja otra sesión.
+
+## Actualización 2026-09-26 (noche, 4) — pedir para una clienta, un vocabulario y pruebas del panel
+
+Tareas #9, #10 y #11 del análisis `/pantalla` (`docs/pantallas/inventario.md`), ordenadas por Felipe. Solo web, sin
+migración.
+
+**#9 · Pedir a otra tienda desde «Dónde más hay».**
+- Junto a cada tienda con stock de esa talla aparece «Pedir para una clienta». Abre el mismo `PedirOtraSedeModal` de
+  Apartados (ADR-0233): la otra tienda la envía por traslado y, al cerrarlo aquí, queda apartada sola.
+- El modal ahora pide solo los campos que usa (`Pick<PrendaApartable, …>`) para que Existencias lo abra sin tener la
+  prenda del catálogo.
+- Se ofrece con el módulo «Apartados», en su tienda y entre tiendas.
+- La reposición SIN clienta NO se hizo aquí: es ADR-0242 D-7 (una sola tabla de pedidos, tanda 4 de Traslados), que
+  descartó la tabla de solicitudes aparte que proponía el análisis.
+
+**#10 · «Tallas», no «variantes».**
+- La tarjeta «Reponer a piso hoy», la columna «Prenda / talla» de la vista por talla y el desglose de «Disponible total»
+  dicen «tallas».
+- La tarjeta dice en qué se distingue de la píldora «Por colgar»: «16 sin nada en el piso (por colgar) · 71 uds en
+  almacén para bajar».
+
+**#11 · Lo que la pantalla decide, con prueba.**
+- `permisosDelDetalle` y `alternarMarcasDePrenda` (`lib/existencias-permisos.ts`) reemplazan las líneas sueltas del
+  panel. Un `&&` quitado ya no vuelve a abrir «Reponer» a quien no tiene el módulo sin que falle una prueba.
+- Dos defectos que las pruebas destaparon:
+  - Con una bajada a medias en el aparato, lo marcado en Existencias se perdía. Ahora «Continuar» lo suma al borrador
+    y «Empezar de nuevo» arranca con ello, siempre «por escanear» (`unirConIniciales`).
+  - Un código repetido en dos tallas abría la primera que aparecía. Ahora no abre ninguna y la lista muestra las dos
+    (`tallaPorCodigo`).
+
+**Verificado en el navegador**, con la cuenta de líder en Trujillo, local:
+- tarjeta «18 tallas»;
+- «Pedir para una clienta» en Lima abre el modal. La llamada, cortada a propósito, lleva origen Lima, destino Trujillo
+  y marca; la misma llamada en la base, con ROLLBACK, crea el pedido «pedido»;
+- con una bajada a medias, «Continuar» junta la talla escaneada y la marcada, y «Empezar de nuevo» deja solo la marcada.
