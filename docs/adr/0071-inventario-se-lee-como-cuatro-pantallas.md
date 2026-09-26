@@ -6,6 +6,8 @@ mientras esta pieza seguía en PR sin fusionar. Se renumera a 0071, siguiendo el
 protocolo que ADR-0067/0068 (quien fusiona en segundo lugar renumera).
 
 **Fecha:** 2026-09-16
+**Reemplazado en parte por ADR-0231 (2026-09-26):** el semáforo de cuatro estados y el umbral de «Reponer piso» ya no
+rigen Existencias. Desde el PR #445 decide una sola regla: 4 o menos LIBRES en el piso (`politica-operativa-inventario.ts`).
 **Estado:** Aplicado en local. La migración `20260916200000_numeracion_traslados_conteos.sql`
 está **pendiente de aplicar en producción** — Felipe autorizó la pieza (número corrido) al
 elegir la opción, pero el paso concreto contra `cayla-dynamic` espera su ok puntual, como

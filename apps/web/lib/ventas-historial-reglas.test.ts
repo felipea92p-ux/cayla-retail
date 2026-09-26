@@ -21,6 +21,8 @@ import {
   textoMetodos,
   textoPrendas,
   totalDeVenta,
+  totalesEnLaBase,
+  posventaDeVenta,
   unidadesDeVenta,
   type ItemCrudo,
   type VentaCruda,
@@ -91,12 +93,54 @@ describe("filtrosDesdeParams", () => {
       desde: "2026-08-23",
       hasta: undefined,
       sedeId: undefined,
+      sedeExplicita: false,
       vendedorId: undefined,
       estado: "todas",
       pago: undefined,
       comprobante: "todos",
       incluirPrueba: false,
+      busqueda: undefined,
+      mias: false,
+      posventa: false,
+      conClienta: false,
     });
+  });
+
+  it("«Hoy» es un período: desde y hasta son el mismo día de Lima", () => {
+    expect(filtrosDesdeParams({ rango: "hoy" }, ctxLider)).toMatchObject({ periodo: "hoy", desde: HOY, hasta: HOY });
+  });
+
+  it("el líder ve por defecto la tienda de la cabecera; «todas» a propósito; una elegida es explícita", () => {
+    const ctx = { ...ctxLider, sedePorDefecto: SEDE_LIMA };
+    expect(filtrosDesdeParams({}, ctx)).toMatchObject({ sedeId: SEDE_LIMA, sedeExplicita: false });
+    expect(filtrosDesdeParams({ sede: "todas" }, ctx)).toMatchObject({ sedeId: undefined, sedeExplicita: false });
+    expect(filtrosDesdeParams({ sede: SEDE_TRUJILLO }, ctx)).toMatchObject({ sedeId: SEDE_TRUJILLO, sedeExplicita: true });
+    // Una integrante no elige tienda: la decide la RLS.
+    expect(filtrosDesdeParams({ sede: SEDE_TRUJILLO }, { ...ctxIntegrante, sedePorDefecto: SEDE_LIMA })).toMatchObject({ sedeId: undefined, sedeExplicita: false });
+  });
+
+  it("«Mis ventas» filtra por quien mira, sea o no líder; sin persona (una terminal) no aplica", () => {
+    expect(filtrosDesdeParams({ mias: "1" }, { ...ctxIntegrante, personaId: VENDEDORA })).toMatchObject({ mias: true, vendedorId: VENDEDORA });
+    expect(filtrosDesdeParams({ mias: "1", vendedor: SEDE_LIMA }, { ...ctxLider, personaId: VENDEDORA })).toMatchObject({ vendedorId: VENDEDORA });
+    expect(filtrosDesdeParams({ mias: "1" }, ctxIntegrante)).toMatchObject({ mias: false, vendedorId: undefined });
+  });
+
+  it("buscador, posventa, clienta y los comprobantes nuevos", () => {
+    expect(filtrosDesdeParams({ q: "  B004-31 ", posventa: "1", clienta: "1", comp: "por_enviar" }, ctxLider)).toMatchObject({
+      busqueda: "B004-31",
+      posventa: true,
+      conClienta: true,
+      comprobante: "por_enviar",
+    });
+    expect(filtrosDesdeParams({ comp: "factura", pago: "anticipo" }, ctxLider)).toMatchObject({ comprobante: "factura", pago: "anticipo" });
+    expect(filtrosDesdeParams({ q: "   " }, ctxLider).busqueda).toBeUndefined();
+  });
+
+  it("los totales los suma la base solo con los filtros que ella conoce", () => {
+    expect(totalesEnLaBase(filtrosDesdeParams({ comp: "sin", pago: "yape" }, ctxLider))).toBe(true);
+    expect(totalesEnLaBase(filtrosDesdeParams({ comp: "por_enviar" }, ctxLider))).toBe(false);
+    expect(totalesEnLaBase(filtrosDesdeParams({ posventa: "1" }, ctxLider))).toBe(false);
+    expect(totalesEnLaBase(filtrosDesdeParams({ clienta: "1" }, ctxLider))).toBe(false);
   });
 
   it("un rango rápido y unas fechas propias se resuelven como en Movimientos", () => {
@@ -182,7 +226,7 @@ describe("elegirComprobante", () => {
   });
 
   it("da el número con el formato de siempre", () => {
-    expect(elegirComprobante([c({})])).toEqual({ tipo: "boleta", numero: "B001-000010", estado: "aceptado" });
+    expect(elegirComprobante([c({})])).toMatchObject({ tipo: "boleta", numero: "B001-000010", estado: "aceptado", enviadoEn: null });
   });
 
   it("una nota de crédito no ampara la venta: no cuenta como comprobante", () => {
@@ -385,9 +429,14 @@ describe("títulos de una venta", () => {
     expect(titulosDePrendas([])).toBe("—");
   });
 
-  it("el subtítulo: talla y color de una sola línea, o cuántas prendas fueron", () => {
+  it("la misma prenda va una vez con ×N, no repetida (captura del 2026-09-26)", () => {
+    expect(titulosDePrendas([pz("Test de Produto 2", "Única · Celeste", 2)])).toBe("Test de Produto 2 ×2");
+    expect(titulosDePrendas([pz("Blusa Emma", "M · Negro"), pz("Blusa Emma", "S · Blanco")])).toBe("Blusa Emma ×2");
+  });
+
+  it("el subtítulo: talla y color de una sola pieza (el ×N va en el título), o cuántas prendas fueron", () => {
     expect(subtituloDePrendas([pz("Blusa Emma")], 1)).toBe("M · Negro");
-    expect(subtituloDePrendas([pz("Blusa Emma", "M · Negro", 2)], 2)).toBe("M · Negro ×2");
+    expect(subtituloDePrendas([pz("Blusa Emma", "M · Negro", 2)], 2)).toBe("M · Negro");
     expect(subtituloDePrendas([pz("A"), pz("B")], 3)).toBe("3 prendas");
   });
 });
@@ -454,7 +503,7 @@ describe("agruparEnSemanas", () => {
 describe("elegirComprobante — la nota de venta (ADR-0164)", () => {
   it("una venta con nota de venta la muestra, no «sin comprobante»", () => {
     const nv = { tipo: "nota_venta", serie: "NV01", numero: 3, estado: "interna", created_at: "2026-09-22T17:06:00+00:00" };
-    expect(elegirComprobante([nv])).toEqual({ tipo: "nota_venta", numero: "NV01-000003", estado: "interna" });
+    expect(elegirComprobante([nv])).toMatchObject({ tipo: "nota_venta", numero: "NV01-000003", estado: "interna" });
   });
 });
 
@@ -503,5 +552,53 @@ describe("totalesDesdeLaBase", () => {
       { fecha: "2026-09-02", ventas: 0, total: 0 },
     ]);
     expect(r.porMetodo).toEqual([]);
+  });
+});
+
+describe("piezasDeVenta junta las líneas iguales", () => {
+  it("dos líneas de la misma prenda, talla y color son una pieza con cantidad 2", () => {
+    const piezas = piezasDeVenta([item(), item()]);
+    expect(piezas).toHaveLength(1);
+    expect(piezas[0].cantidad).toBe(2);
+  });
+  it("otra talla es otra pieza", () => {
+    const otra = item({ variante: { talla: { valor: "S" }, color: { nombre: "Negro" }, producto: { referencia: "Blusa Emma" } } });
+    expect(piezasDeVenta([item(), otra])).toHaveLength(2);
+  });
+});
+
+describe("posventa y apartado en la fila (ADR-0230)", () => {
+  it("cambios de cada línea y devoluciones, en orden; una devolución rechazada no se marca", () => {
+    const marcas = posventaDeVenta({
+      venta_items: [item({ cambios: [{ created_at: "2026-09-20T15:00:00Z" }] })],
+      devoluciones: [
+        { estado: "rechazada", created_at: "2026-09-19T15:00:00Z" },
+        { estado: "pendiente", created_at: "2026-09-21T15:00:00Z" },
+      ],
+    });
+    expect(marcas).toEqual([
+      { tipo: "cambio", fecha: "2026-09-20T15:00:00Z", pendiente: false },
+      { tipo: "devolucion", fecha: "2026-09-21T15:00:00Z", pendiente: true },
+    ]);
+  });
+
+  it("aFila trae el apartado, el anticipo, los nº de operación y las líneas", () => {
+    const f = aFila(
+      venta({
+        venta_items: [item({ id: "vi1" }), item({ id: "vi2" })],
+        venta_pagos: [
+          { metodo: "anticipo", monto: 30 },
+          { metodo: "yape", monto: 170, referencia: "01234567" },
+        ],
+        separaciones: [{ codigo: "AP-0012", created_at: "2026-09-19T10:00:00Z" }],
+      }),
+      new Map()
+    );
+    expect(f).toMatchObject({ ventaItemIds: ["vi1", "vi2"], conAnticipo: true, operaciones: ["01234567"], apartado: { codigo: "AP-0012" }, pagos: "Anticipo + Yape" });
+  });
+
+  it("sin datos de posventa (lecturas viejas) la fila no inventa nada", () => {
+    const f = aFila(venta(), new Map());
+    expect(f).toMatchObject({ posventa: [], apartado: null, conAnticipo: false, operaciones: [], anuladaEn: null });
   });
 });

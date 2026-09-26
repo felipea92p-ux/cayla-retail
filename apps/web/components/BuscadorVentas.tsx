@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useState, type MutableRefObject, type ReactNode, type RefObject } from "react";
 import { ArrowRight, Loader2, ReceiptText, ScanLine, Search, X } from "lucide-react";
 import { Desplegable } from "@/components/ui/campos";
 
@@ -51,6 +51,8 @@ export function BuscadorVentas({
   onBuscar,
   onLimpiar,
   onSinComprobante,
+  escanearRef,
+  escanearEnBarraMovil = false,
   onCamara,
   extra,
 }: {
@@ -63,6 +65,11 @@ export function BuscadorVentas({
   onBuscar: (texto: string, todas: boolean) => void;
   onLimpiar: () => void;
   onSinComprobante: () => void;
+  /** Deja «Escanear prenda» al alcance de otra pieza (la barra fija del celular en Devoluciones):
+   *  hace lo mismo que el chip, sin duplicar el estado del escaneo. */
+  escanearRef?: MutableRefObject<(() => void) | null>;
+  /** En el celular «Escanear prenda» ya está fijo abajo: el chip no se repite. */
+  escanearEnBarraMovil?: boolean;
   /** Abre la cámara del teléfono. Sin esta prop (Devoluciones) el botón siempre prepara la pistola. */
   onCamara?: () => void;
   /** Un dato de contexto en la fila de los botones (Cambios: si la caja está abierta). */
@@ -87,6 +94,14 @@ export function BuscadorVentas({
     setTexto("");
     campoRef.current?.focus();
   }
+
+  useEffect(() => {
+    if (!escanearRef) return;
+    escanearRef.current = prepararEscaneo;
+    return () => {
+      escanearRef.current = null;
+    };
+  });
 
   return (
     <form role="search" onSubmit={enviar} className="space-y-4">
@@ -147,8 +162,9 @@ export function BuscadorVentas({
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        {/* Con cámara (Cambios), en el celular este chip repite el botón fijo de abajo: se esconde ahí. */}
-        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara ? "max-sm:hidden" : ""}`}>
+        {/* En el celular este chip repite un botón fijo de abajo (la cámara en Cambios, «Escanear prenda» en
+            Devoluciones): se esconde ahí. */}
+        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
