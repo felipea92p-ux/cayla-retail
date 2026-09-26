@@ -159,8 +159,11 @@ export default async function InventarioPage({
         // fila no caben junto al título a 1440 y la cabecera volvía a partirse. Cada acceso solo si su rol ve esa pantalla
         // (ADR-0161) y mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
         acciones={
-          <div className="flex flex-col items-start gap-2.5 sm:items-end">
-            <div className="flex flex-wrap items-center gap-3">
+          // En el celular (tarea #6 del análisis): los cinco accesos en UNA fila que se desliza de lado, en vez de tres
+          // filas apiladas que empujaban la lista una pantalla más abajo. El ancho se topa al de la pantalla menos el
+          // margen, así la página nunca se corre a los costados. En computadora, las dos filas de siempre.
+          <div className="flex flex-col items-start gap-2.5 sm:items-end max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-row max-sm:items-center max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
+            <div className="flex flex-wrap items-center gap-3 max-sm:shrink-0 max-sm:flex-nowrap max-sm:gap-2">
               {puedeBajarAlPiso && (
                 <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
                   Bajar al piso
@@ -173,7 +176,7 @@ export default async function InventarioPage({
               )}
             </div>
             {enSuSede && (
-              <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+              <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end max-sm:shrink-0 max-sm:flex-nowrap">
                 {veModulo(persona, "recibir") && (
                   <Link href="/recibir" className="btn-cayla btn-sutil btn-chico">
                     <PackageOpen aria-hidden className="h-4 w-4" />
