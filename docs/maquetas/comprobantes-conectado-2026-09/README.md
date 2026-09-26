@@ -59,3 +59,10 @@ de cada pestaña (monto facturado, monto cotizado…). Eso es `spike.html`:
 
 **Falta decidir:** cómo se ven las cifras en celular, **A** carrusel, **B** 2×2 compacto o **C** franja que se abre
 (barra del spike).
+
+**2026-09-26, segunda vuelta:** Felipe pidió que estén **las 4 pestañas, Hoy · Series · Por enviar · Proformas** (para
+todos, y las mismas 4 en la barra de abajo del celular) y que **los gráficos lleven los colores de CAYLA**.
+- Emitidos deja de ser pestaña: «Hoy · Este mes» cubre la lista del mes, el monto facturado y el selector de mes.
+- Cada tarjeta dibuja su cifra (barra por tipo, barras por hora o día, enviados contra faltan, vigente contra por
+  vencer, puntos) con tinta, taupe, `--color-grafico-neutro`, `--color-grafico-alza` (verde), `--color-grafico-baja`
+  (ámbar) y sand. **El rojo no entra en ningún gráfico** (acento sagrado, máx. 2 por pantalla).

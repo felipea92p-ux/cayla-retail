@@ -7,6 +7,7 @@
 Re-análisis de `/vender/comprobantes` (`docs/pantallas/vender-comprobantes.md`): 6,3/10. Hay 3 boletas «pendiente» sin ningún intento de envío que «Por reintentar» no muestra, y la pantalla no lleva a la venta, a la clienta ni a Posventa. Después vinieron un demo con 3 decisiones y una investigación de 6 sistemas (Shopify, Square, Lightspeed, Nubefact, Alegra, Bsale), y Felipe eligió 1A «Hoy», 2B barra abajo y 3A Cobrar + Apartar. El spike (`docs/maquetas/comprobantes-conectado-2026-09/spike.html`) suma las cifras de cada pestaña (monto facturado, monto cotizado) y tres formas de mostrarlas en celular.
 Por qué así: cada pestaña trae sus propias cifras y sale el bloque de la cabecera, que repetía lo mismo y cambiaba de lugar. «Por enviar» queda como número en la pestaña y en la barra. Qué se rompería sin esto: la colaboradora copia el número de boleta a mano para un cambio, y una boleta sin enviar queda invisible el día de SUNAT real.
 Felipe se lleva: (1) **dos definiciones de «por enviar» (la del resumen y la de la cola) bastan para que una pantalla se contradiga**; (2) la barra inferior (2B) choca con ADR-0206 y hay que escribir su excepción.
+Segunda vuelta: las 4 pestañas para todos (Hoy · Series · Por enviar · Proformas; Emitidos pasa a «Hoy · Este mes») y gráficos en cada tarjeta, solo con tokens CAYLA y sin rojo.
 Sin resolver: cómo se ven las cifras en celular (A carrusel / B 2×2 / C franja); qué flujo crea boletas sin venta; la tarea #1 toca una RPC de producción.
 
 ## 2026-09-26 (Fotos de prenda sin fondo y del mismo tamaño — ADR-0228)

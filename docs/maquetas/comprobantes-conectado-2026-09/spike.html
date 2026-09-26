@@ -189,6 +189,17 @@ button.kpi:hover{transform:translateY(-1px);box-shadow:0 8px 20px -14px rgba(26,
 .kpi .bar{height:5px;border-radius:9px;background:var(--t10);margin-top:auto;overflow:hidden}.kpi .bar i{display:block;height:100%;background:var(--verde);border-radius:9px}
 .kpi .bar+.d{margin-top:5px}
 .kpi .filtra{font-size:10.5px;color:var(--taupe);margin-top:6px}
+:root{--g-neutro:#d3c8b4;--g-alza:#48603f;--g-baja:#a8741f}
+.k-tinta{--k:var(--tinta)}.k-neutro{--k:#b9ab93}
+.g-apil{display:flex;gap:2px;height:8px;border-radius:9px;overflow:hidden;margin-top:10px;background:var(--sand)}
+.g-apil i{display:block;min-width:0}
+.g-ley{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:10.5px;color:var(--t65);margin-top:5px}
+.g-ley span{display:inline-flex;align-items:center;gap:4px}.g-ley b{color:var(--tinta);font-weight:600}
+.g-ley i{width:7px;height:7px;border-radius:2px;display:inline-block}
+.g-bar{width:100%;height:34px;margin-top:8px;display:block}
+.g-eje{display:flex;justify-content:space-between;font-size:10px;color:var(--t50);margin-top:2px}
+.g-pts{display:flex;gap:4px;margin-top:10px}.g-pts i{width:14px;height:8px;border-radius:3px}
+.tel .kpis.dos .kpi .g-ley{display:none}.tel .kpis.dos .kpi .g-eje{display:none}.tel .kpis.dos .kpi .g-bar{height:22px;margin-top:4px}
 .k-taupe{--k:var(--taupe)}.k-rojo{--k:var(--rojo-p)}.k-ambar{--k:var(--ambar);--kv:var(--ambar)}.k-verde{--k:var(--verde);--kv:var(--verde)}
 /* celular A: carrusel */
 .tel .kpis.carr{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;margin:0 0 6px;padding:0 0 6px;scrollbar-width:none}
@@ -248,6 +259,7 @@ const I = {
   print:'<path d="M7 9V3h10v6"/><rect x="4" y="9" width="16" height="8" rx="1"/><path d="M7 14h10v7H7z"/>',
   mas:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
   enviar:'<path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/>',
+  serie:'<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
   hoy:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
   prof:'<path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h3"/>',
   apartar:'<path d="M6 3h12v18l-6-4-6 4z"/>',
@@ -287,14 +299,9 @@ const S = (n)=>'S/ '+Math.abs(n).toLocaleString('es-PE',{minimumFractionDigits:2
 
 // ── Estado del demo ─────────────────────────────────────────────
 const st = {pantalla:'demo', rol:'colab', entrada:'A', movil:'B', prof:'A', cif:'A', periodo:'hoy', filtro:null, abierta:false, vista:null, sel:null, selProf:null, pc:true};
-function vistasDe(){
-  if (st.rol==='lider') return st.entrada==='A' ? ['hoy','emitidos','proformas','porenviar','series'] : (st.entrada==='B' ? ['emitidos','series','porenviar','proformas'] : ['series','emitidos','porenviar','proformas']);
-  if (st.entrada==='A') return ['hoy','proformas','porenviar'];
-  if (st.entrada==='B') return ['emitidos','series','porenviar','proformas'];
-  return ['series','emitidos','porenviar','proformas'];
-}
+function vistasDe(){ return ['hoy','series','porenviar','proformas']; }
 const NOMBRE = {hoy:'Hoy', emitidos:'Emitidos', series:'Series', porenviar:'Por enviar', proformas:'Proformas'};
-const CUENTA = {hoy:4, emitidos:6, porenviar:1, proformas:2};
+const CUENTA = {hoy:4, porenviar:1, proformas:2};
 function vistaActual(){ const v = vistasDe(); if (!v.includes(st.vista)) st.vista = v[0]; return st.vista; }
 function set(k,v){ if(k==='filtro'&&st.filtro===v) v=null; st[k]=v; if(k==='rol'||k==='entrada'){st.vista=null;} if(k==='vista'||k==='rol'||k==='periodo'){st.filtro=null;} dibujar(); }
 
@@ -307,7 +314,7 @@ function barra(){
   <div class="g"><span>Quién mira</span>${seg('rol',[['colab','Colaboradora'],['lider','Líder']])}</div>
   <div class="g"><span>Pestaña</span>${seg('vista',vistasDe().map(x=>[x,NOMBRE[x]]))}</div>
   <div class="g"><span>Cifras en celular</span>${seg('cif',[['A','A · Carrusel'],['B','B · 2×2 compacto'],['C','C · Franja que se abre']])}</div>
-  <div class="g"><span>Elegido</span><div class="seg"><button aria-pressed="true" style="cursor:default">1A · 2B · 3A</button></div></div>`:''}`;
+  <div class="g"><span>Elegido</span><div class="seg"><button aria-pressed="true" style="cursor:default">4 pestañas · 1A · 2B · 3A</button></div></div>`:''}`;
 }
 
 // ── Piezas de pantalla ─────────────────────────────────────────
@@ -317,7 +324,7 @@ function chipEst(c){
   return `<span class="chip c-sand">${c.est}</span>`;
 }
 function cabecera(dev){
-  const cif = st.rol==='lider' && dev==='tel' ? `<button class="btn btn-s" style="height:36px;margin-top:10px" onclick="set('vista','series')">${ic('doc')}Series de las tiendas ›</button>` : '';
+  const cif = '';
   const hilo = `<div class="hilo">Tienda TRU · sábado 26 de setiembre · 16:50 <span class="chip c-ambar" style="letter-spacing:0;text-transform:none">Pruebas: sandbox</span></div>`;
   const baj = st.rol==='colab' ? 'Tus boletas y facturas. Búscalas, reenvíalas o empieza un cambio.' : 'Cada venta se declara sola a SUNAT al cobrar. Aquí ves cuánto se facturó, qué falta enviar y las series.';
   if (dev==='pc') return `<div style="display:flex;gap:24px;align-items:flex-end;justify-content:space-between;flex-wrap:wrap">
@@ -447,7 +454,7 @@ function tarjeta(k, dev){
   return `<${tag} class="kpi k-${k.k} ${on}" ${k.filtra?`onclick="set('filtro','${k.filtra}')"`:''}>
     <div class="l"><span>${k.l}</span>${ic(k.i)}</div>
     <div class="v num">${k.v}</div>
-    ${k.bar!=null?`<div class="bar"><i style="width:${k.bar}%"></i></div>`:''}
+    ${k.g||''}
     <div class="d">${k.d}</div>
     ${k.filtra&&dev==='pc'?`<div class="filtra">${on?'Mostrando solo estos · toca para ver todos':'Toca para ver solo estos'}</div>`:''}
   </${tag}>`;
@@ -460,25 +467,48 @@ function kpis(dev, defs){
   return `<button class="franja ${st.abierta?'abierta':''}" onclick="st.abierta=!st.abierta;dibujar()">${r.map((k,i)=>`${i?'<span class="sep"></span>':''}<div><div class="v num" style="${k.k==='ambar'?'color:var(--ambar)':''}">${k.v}</div><div class="d">${k.corto||k.l}</div></div>`).join('')}<span class="chev">${ic('chev')}</span></button>
    ${st.abierta?`<div class="kpis dos" style="margin-bottom:14px">${defs.map(k=>tarjeta(k,dev)).join('')}</div>`:''}`;
 }
+// ── Gráficos de las tarjetas: SOLO tokens CAYLA (globals.css, ADR-0169) ──
+// tinta = lo principal · taupe = lo secundario · neutro (--color-grafico-neutro) = lo que no cuenta
+// verde = va bien / hecho · ámbar = al filo / falta · pizarra = informativo. El rojo NO se usa en gráficos
+// (acento sagrado, máx. 2 por pantalla).
+const G = {tinta:'var(--tinta)', taupe:'var(--taupe)', neutro:'var(--g-neutro)', verde:'var(--verde)', ambar:'var(--g-baja)', pizarra:'var(--pizarra)', sand:'var(--sand)'};
+function apilada(partes){
+  const tot = partes.reduce((s,p)=>s+p.v,0)||1;
+  return `<div class="g-apil">${partes.map(p=>`<i style="flex:${p.v/tot};background:${G[p.c]}" title="${p.t}"></i>`).join('')}</div>
+   <div class="g-ley">${partes.map(p=>`<span><i style="background:${G[p.c]}"></i>${p.t} <b>${p.n??p.v}</b></span>`).join('')}</div>`;
+}
+function barritas(vals, etq, marca){
+  const mx = Math.max(...vals)||1, w=100/vals.length;
+  return `<svg class="g-bar" viewBox="0 0 100 34" preserveAspectRatio="none">${vals.map((v,i)=>{const h=Math.max(1.5,v/mx*30);return `<rect x="${i*w+w*.18}" y="${34-h}" width="${w*.64}" height="${h}" rx="1" fill="${i===marca?G.tinta:(v?G.taupe:G.sand)}" opacity="${i===marca?1:.55}"/>`}).join('')}</svg>
+   <div class="g-eje"><span>${etq[0]}</span><span>${etq[1]}</span></div>`;
+}
+function progreso(hecho, total, txt){
+  const p = Math.round(hecho/total*100);
+  return `<div class="g-apil"><i style="flex:${hecho};background:${G.verde}"></i><i style="flex:${total-hecho};background:${G.ambar}"></i></div>
+   <div class="g-ley"><span><i style="background:${G.verde}"></i>enviados <b>${hecho}</b></span><span><i style="background:${G.ambar}"></i>faltan <b>${total-hecho}</b></span><span style="margin-left:auto">${p} %</span></div>`;
+}
+function puntos(n, total, c){ return `<div class="g-pts">${Array.from({length:total},(_,i)=>`<i style="background:${i<n?G[c]:G.sand}"></i>`).join('')}</div>`; }
+
 const K = {
   hoy: ()=>[
-    {l:'Emitidos hoy', corto:'emitidos', i:'doc', k:'taupe', v:'4', d:'Boletas y facturas de Tienda TRU. <b>1 factura</b> a empresa.'},
-    {l:'Facturado hoy', corto:'facturado', i:'caja', k:'rojo', v:'S/ 1,449.80', d:'Aceptado por SUNAT. Aparte: S/ 249.80 aún sin enviar.'},
-    {l:'Por enviar', corto:'por enviar', i:'enviar', k:'ambar', v:'1', bar:75, d:'Hoy: 3 de 4 ya llegaron. La más antigua, hace 3 h 40 min.', filtra:'pendiente'},
+    {l:'Emitidos hoy', corto:'emitidos', i:'doc', k:'tinta', v:'4', g:apilada([{v:3,c:'tinta',t:'Boletas'},{v:1,c:'taupe',t:'Facturas'},{v:0,c:'neutro',t:'NC'}]), d:'De Tienda TRU. 1 factura a empresa.'},
+    {l:'Facturado hoy', corto:'facturado', i:'caja', k:'taupe', v:'S/ 1,449.80', g:barritas([0,0,1180,0,249.8,79.9,189.9,0],['10 h','17 h'],6), d:'Aceptado por SUNAT, por hora. Aparte: S/ 249.80 sin enviar.'},
+    {l:'Por enviar', corto:'por enviar', i:'enviar', k:'ambar', v:'1', g:progreso(3,4), d:'La más antigua, hace 3 h 40 min.', filtra:'pendiente'},
   ],
   mes: ()=>[
-    {l:'Emitidos', corto:'emitidos', i:'doc', k:'taupe', v:'6', d:'Este mes · boletas, facturas y notas. <b>2 de prueba</b>: no valen ante SUNAT.'},
-    {l:'Monto facturado', corto:'facturado', i:'caja', k:'rojo', v:'S/ 1,449.80', d:'Aceptado por SUNAT, ya restada 1 nota de crédito (−S/ 39.90). Sin enviar: S/ 249.80.'},
-    {l:'Pendientes de enviar', corto:'por enviar', i:'enviar', k:'ambar', v:'1', bar:83, d:'Este mes: 5 de 6 enviados. Suma todos los meses.', filtra:'pendiente'},
-    {l:'Rechazados', corto:'rechazados', i:'x', k:'verde', v:'0', d:'Ninguno.'},
+    {l:'Emitidos', corto:'emitidos', i:'doc', k:'tinta', v:'6', g:apilada([{v:4,c:'tinta',t:'Boletas'},{v:1,c:'taupe',t:'Facturas'},{v:1,c:'neutro',t:'NC'}]), d:'Este mes. <b>2 de prueba</b>: no valen ante SUNAT.'},
+    {l:'Monto facturado', corto:'facturado', i:'caja', k:'taupe', v:'S/ 1,449.80', g:barritas([0,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,39.9,39.9,1449.8-89.8],['1 set','26 set'],25), d:'Aceptado, ya restada 1 nota de crédito (−S/ 39.90). Sin enviar: S/ 249.80.'},
+    {l:'Pendientes de enviar', corto:'por enviar', i:'enviar', k:'ambar', v:'1', g:progreso(5,6), d:'Suma todos los meses.', filtra:'pendiente'},
+    {l:'Rechazados', corto:'rechazados', i:'x', k:'verde', v:'0', g:puntos(0,6,'ambar'), d:'Ninguno de los 6.'},
   ],
   prof: ()=>[
-    {l:'Vigentes', corto:'vigentes', i:'prof', k:'taupe', v:'2', d:'Siguen valiendo, de cualquier mes.', filtra:'vigente'},
-    {l:'Monto cotizado', corto:'cotizado', i:'caja', k:'rojo', v:'S/ 1,758.60', d:'Lo que suman las vigentes: lo que entraría si se cobran todas.'},
-    {l:'Por vencer (48 h)', corto:'por vencer', i:'hoy', k:'ambar', v:'1', d:'Camila Paredes · vence en 2 d. Escríbele antes.', filtra:'porvencer'},
-    {l:'Vencidas', corto:'vencidas', i:'hoy', k:'verde', v:'1', d:'Ya pasó su plazo: la clienta no tiene el precio cotizado.', filtra:'vencida'},
+    {l:'Vigentes', corto:'vigentes', i:'prof', k:'tinta', v:'2', g:puntos(2,4,'verde'), d:'2 de las 4 de este mes siguen valiendo.', filtra:'vigente'},
+    {l:'Monto cotizado', corto:'cotizado', i:'caja', k:'taupe', v:'S/ 1,758.60', g:apilada([{v:1498.8,c:'verde',t:'Vigente',n:'S/ 1,498.80'},{v:259.8,c:'ambar',t:'Por vencer',n:'S/ 259.80'}]), d:'Lo que suman las vigentes, si se cobran todas.'},
+    {l:'Por vencer (48 h)', corto:'por vencer', i:'hoy', k:'ambar', v:'1', g:`<div class="g-apil"><i style="flex:5;background:${G.ambar}"></i><i style="flex:2;background:${G.sand}"></i></div><div class="g-ley"><span>Creada 23/09</span><span style="margin-left:auto">Vence 28/09</span></div>`, d:'Camila Paredes. Escríbele antes.', filtra:'porvencer'},
+    {l:'Vencidas', corto:'vencidas', i:'hoy', k:'neutro', v:'1', g:puntos(1,4,'neutro'), d:'La clienta ya no tiene el precio cotizado.', filtra:'vencida'},
   ],
 };
+
 function filtrar(datos){
   if (st.filtro==='pendiente') return datos.filter(c=>c.est==='pendiente');
   return datos;
@@ -491,7 +521,7 @@ function hoy(dev){
   const falta = `<div class="aviso ambar" style="margin-bottom:12px">${ic('doc')}<span><b>Tienda LIM no tiene serie de boleta.</b> ${st.rol==='lider'?'Regístrala en Series.':'Avísale a tu líder.'}</span></div>`;
   const per = `<div class="periodo"><button class="${!mes?'act':''}" onclick="set('periodo','hoy')">Hoy</button><button class="${mes?'act':''}" onclick="set('periodo','mes')">Este mes</button></div>`;
   return `${st.rol==='colab'?falta:''}
-   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><h3 class="sec-t" style="margin:0">${mes?'Setiembre':'Hoy'} en Tienda TRU</h3>${per}</div>
+   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px"><div style="display:flex;align-items:center;gap:10px">${mes?`<span class="btn btn-s" style="height:30px;font-size:11px;letter-spacing:.12em;text-transform:uppercase">← Ago</span>`:''}<h3 class="sec-t" style="margin:0">${mes?'Setiembre 2026':'Hoy'} en Tienda TRU</h3></div>${per}</div>
    ${kpis(dev, mes?K.mes():K.hoy())}
    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin-bottom:8px"><p class="sec-d">${st.filtro?'Solo los que faltan enviar · <a style="color:var(--rojo);cursor:pointer" onclick="set(\'filtro\',null)">ver todos</a>':(mes?'Los de este mes, el más nuevo primero.':'Los de hoy, el más nuevo primero.')}</p>${dev==='pc'?`<a class="btn btn-s">${ic('hist')}Ver en Historial</a>`:''}</div>
    ${lista(dev, datos)}
@@ -530,8 +560,8 @@ function pc(){
 }
 function tel(){
   const v = vistaActual();
-  const bv = vistasDe().filter(x=>x!=='series').slice(0,4);
-  const barraInf = st.movil==='B' ? `<nav class="barra-inf ${bv.length===4?'cuatro':''}">${bv.map(x=>`<button class="${x===v?'act':''}" onclick="set('vista','${x}')">${ic({hoy:'hoy',emitidos:'doc',series:'doc',porenviar:'enviar',proformas:'prof'}[x])}${x==='porenviar'?'<span class="n">1</span>':''}${NOMBRE[x]}</button>`).join('')}</nav>` : '';
+  const bv = vistasDe();
+  const barraInf = st.movil==='B' ? `<nav class="barra-inf ${bv.length===4?'cuatro':''}">${bv.map(x=>`<button class="${x===v?'act':''}" onclick="set('vista','${x}')">${ic({hoy:'hoy',emitidos:'doc',series:'serie',porenviar:'enviar',proformas:'prof'}[x])}${x==='porenviar'?'<span class="n">1</span>':''}${NOMBRE[x]}</button>`).join('')}</nav>` : '';
   const colabHoy = st.rol==='colab' && st.entrada==='A';
   return `<div class="tel ${st.movil==='B'?'con-barra':''}"><div class="top"><span>${ic('menu')}</span><img src="${LOGO}" alt=""><span class="esp"></span><span class="chipcab" style="height:30px">TRU ▾</span></div>
     <div class="cuerpo">${cabecera('tel')}
@@ -542,21 +572,24 @@ function tel(){
 
 // ── Por qué (bajo cada escena) ─────────────────────────────────
 function porque(){
-  return `<div class="porque"><h4>Las cifras: dónde va cada una</h4><ul>
-   <li><b>Cada pestaña trae sus propias cifras, arriba de su lista</b>: Hoy (emitidos, facturado, por enviar), Emitidos (emitidos, <b>monto facturado</b>, pendientes, rechazados), Proformas (vigentes, <b>monto cotizado</b>, por vencer, vencidas) y Por enviar.</li>
-   <li><b>Se quita el bloque «3 Por enviar · 2 Proformas vigentes» de la cabecera.</b> Repetía lo mismo que las tarjetas y cambiaba de lugar según la pestaña. Lo que no se puede perder, «por enviar», queda como número en la pestaña y en la barra de abajo del celular.</li>
-   <li><b>Las tarjetas que filtran se tocan</b>: «Por enviar», «Vigentes», «Por vencer» y «Vencidas» dejan en la lista solo esos. Es lo que ya hace Por pagar (ADR-0131).</li>
-   <li><b>La colaboradora también ve el monto</b>, de su sede, en «Hoy» y en «Este mes». Es la misma cifra que ya ve en Caja; si no debe verla, se oculta por rol.</li>
-   <li><b>El monto facturado es el aceptado por SUNAT, ya restadas las notas de crédito.</b> Lo de prueba y lo que aún no se envía va aparte, en la bajada.</li></ul></div>
-   <div class="porque"><h4>Cifras en celular: tres formas (barra de arriba)</h4>
-   <div class="gp" style="grid-template-columns:1fr 1fr 1fr"><div><b>A · Carrusel</b>: tarjetas completas, se deslizan de lado. <b>Ganas:</b> se lee todo el texto. <b>Pagas:</b> la tercera y la cuarta no se ven sin deslizar.</div>
-   <div><b>B · 2×2 compacto</b>: las cuatro a la vista, con texto de 2 líneas. <b>Ganas:</b> todo de un vistazo. <b>Pagas:</b> ~190 px antes de la lista.</div>
-   <div><b>C · Franja que se abre</b>: una fila con 3 números; al tocarla se abren las tarjetas. <b>Ganas:</b> la lista queda arriba. <b>Pagas:</b> la explicación de cada cifra queda a un toque.</div></div></div>
-   <div class="porque"><h4>Lo que eligió Felipe (1A · 2B · 3A)</h4><ul>
-   <li><b>1A:</b> la colaboradora entra a «Hoy» (Hoy · Proformas · Por enviar) y el líder suma Emitidos y Series.</li>
-   <li><b>2B:</b> barra fija abajo en celular. <b>Choca con ADR-0206</b>, que en celular deja solo el ☰ sin barra de navegación: hay que escribir la excepción en ese ADR, como ya pasó con Apartados (PR #482). Series no entra en la barra; el líder la abre desde «Series de las tiendas ›» bajo el título.</li>
-   <li><b>3A:</b> «Apartar» junto a «Cobrar» en cada proforma vigente.</li>
-   <li>Sin cambios desde el demo: tocar un comprobante abre la venta, WhatsApp a la clienta, Cambio y Devolución, y NC ↔ devolución.</li></ul></div>`;
+  const sw = (c,n,h)=>`<span style="display:inline-flex;align-items:center;gap:6px;margin:3px 12px 3px 0"><i style="width:14px;height:14px;border-radius:4px;background:${c};border:1px solid var(--t10)"></i><b>${n}</b> <code style="font-size:11px;color:var(--t65)">${h}</code></span>`;
+  return `<div class="porque"><h4>Las 4 pestañas, para todos: Hoy · Series · Por enviar · Proformas</h4><ul>
+   <li><b>Hoy</b> entra primero. Con «Hoy · Este mes» cubre lo que antes era «Emitidos»: la lista del mes y el <b>monto facturado</b>, con el selector de mes. Por eso Emitidos deja de ser una pestaña aparte.</li>
+   <li><b>Series</b> está para todos: el líder registra y archiva; la colaboradora la ve en solo lectura.</li>
+   <li>En celular, la barra de abajo lleva las mismas 4, en el mismo orden (2B; hay que escribir la excepción de ADR-0206).</li></ul></div>
+   <div class="porque"><h4>Colores de los gráficos: solo los de CAYLA</h4>
+   <div style="margin-top:4px">${sw('var(--tinta)','Tinta','--color-tinta')}${sw('var(--taupe)','Taupe','--color-taupe')}${sw('var(--g-neutro)','Neutro','--color-grafico-neutro')}${sw('var(--verde)','Verde','--color-grafico-alza')}${sw('var(--g-baja)','Ámbar','--color-grafico-baja')}${sw('var(--sand)','Sand','--color-sand')}</div>
+   <ul><li><b>Tinta</b> es lo principal (boletas, la barra de ahora) y <b>taupe</b>, lo secundario (facturas, las otras horas o días). <b>Neutro</b> es lo que no suma (notas de crédito, vencidas) y <b>sand</b>, el fondo vacío.</li>
+   <li><b>Verde</b> = hecho o vale (enviado, vigente) y <b>ámbar</b> = falta o está al filo (por enviar, por vencer). Son los mismos tonos de los gráficos de Caja (<code>--color-grafico-*</code>).</li>
+   <li><b>El rojo no entra en ningún gráfico</b>: es el acento sagrado, con un máximo de 2 por pantalla. Aquí queda para «PDF» y los enlaces.</li>
+   <li>El borde izquierdo de cada tarjeta sigue el mismo código: tinta, taupe, ámbar, verde o neutro.</li></ul></div>
+   <div class="porque"><h4>Qué dibuja cada tarjeta</h4><ul>
+   <li><b>Emitidos</b>: barra apilada por tipo (boletas, facturas, NC).</li>
+   <li><b>Facturado / Monto facturado</b>: barras por hora (Hoy) o por día (mes); la de ahora va en tinta.</li>
+   <li><b>Por enviar</b>: enviados contra faltan, con su porcentaje.</li>
+   <li><b>Monto cotizado</b>: vigente contra por vencer, en soles. <b>Por vencer</b>: cuánto plazo ya pasó. <b>Vigentes, Vencidas y Rechazados</b>: un punto por proforma o comprobante.</li>
+   <li>En celular 2×2 se esconden las leyendas y queda solo el dibujo; en el carrusel y en la franja abierta se ven completas.</li></ul></div>
+   <div class="porque"><h4>Sin cambios desde el spike anterior</h4>Tocar un comprobante abre la venta; WhatsApp a la clienta; Cambio y Devolución; NC ↔ devolución; Cobrar + Apartar en proformas; las tarjetas que filtran; y tres formas de mostrar las cifras en celular (barra de arriba).</div>`;
 }
 
 // ── Otras empresas (se llena con la investigación) ─────────────
