@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   buscarMarcaProveedor,
-  claveMarca,
   contarParejasPorCategoria,
   contarProductosPorProveedor,
   marcaAutomatica,
@@ -136,7 +135,6 @@ describe("¿No será la misma marca? (el caso «Cayla 2», 2026-09-25)", () => {
   const parecidasA = (nombre: string) => marcasParecidas(nombre, existentes).parecidas.map((p) => `${p.marca.nombre}:${p.por}`);
 
   it("la clave es la de la base: mayúsculas, tildes, ñ y espacios repetidos no hacen otra marca", () => {
-    expect(claveMarca("  Cáyla   Ñusta ")).toBe("cayla nusta");
     expect(marcasParecidas("cayla", existentes).igual?.nombre).toBe("CAYLA");
     expect(marcasParecidas("Cáyla", existentes).igual?.nombre).toBe("CAYLA");
   });

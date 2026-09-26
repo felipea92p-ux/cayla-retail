@@ -9,6 +9,8 @@
 //            ahorra clics y evita ofrecer lo imposible.
 //   NO HACE: no crea nada ni habla con la base.
 
+import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
+
 export type MarcaOpcion = { id: string; nombre: string };
 /** Una marca con los nombres de quienes la traen: lo que el formulario de nueva marca muestra al preguntar «¿no es esta?». */
 export type MarcaConProveedores = MarcaOpcion & { proveedores: readonly string[] };
@@ -29,7 +31,8 @@ export function sinTildes(t: string): string {
 //
 // El 24-sep alguien creó «Cayla 2» para un top que confecciona Jacard: CAYLA ya existía, pero traída por CAYLA SAC, y el
 // formulario de nueva marca no dijo nada. Desde entonces CAYLA vive partida en dos y todo lo que se filtra o agrupa por marca
-// la cuenta a medias. Estas funciones le dan al formulario con qué preguntar ANTES de crear.
+// la cuenta a medias. Esta función le da al formulario con qué preguntar ANTES de crear. La regla es la general de
+// `nombres-parecidos.ts` (la misma que usan los proveedores); en una marca todas las palabras cuentan.
 //
 // CONTRATO
 //   PROMETE: dado el nombre que se va a crear y las marcas que existen, devuelve la marca IGUAL (la que la base
@@ -40,71 +43,13 @@ export function sinTildes(t: string): string {
 //
 // Medido contra las 80 marcas de producción (2026-09-25): entre ellas solo se parecen CAYLA ~ Cayla 2 y
 // Divas ~ Divas Now. Ningún otro par dispara la pregunta, así que no molesta en el censo.
-
-/** Lo que la base compara (`retail.fn_clave_texto` sobre el nombre ya limpiado por `crear_marca`): espacios juntados,
- *  minúsculas, y sin las tildes y la ñ que la base traduce (solo esas: «ç» sigue siendo «ç», como en la base). */
-export function claveMarca(nombre: string): string {
-  const traduce: Record<string, string> = { á: "a", é: "e", í: "i", ó: "o", ú: "u", ü: "u", ñ: "n" };
-  return nombre
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase()
-    .replace(/[áéíóúüñ]/g, (c) => traduce[c]);
-}
-
-/** Por qué se parece: mismo nombre salvo números o signos («Cayla 2»), una o dos letras cambiadas («Kristell»), o el
- *  nombre entero cabe en el otro, palabra por palabra («Divas» en «Divas Now»). */
-export type MotivoParecido = "raiz" | "letras" | "contenida";
-
-const palabrasDe = (nombre: string) => claveMarca(nombre).normalize("NFD").replace(/[\u0300-\u036f]/g, "").split(/[^a-z0-9]+/).filter(Boolean);
-// La raíz: todo junto, sin signos y sin el número del final. «Cayla 2», «CAYLA.» y «cayla» dan «cayla».
-const raizDe = (nombre: string) => palabrasDe(nombre).join("").replace(/\d+$/, "");
-
-function distancia(a: string, b: string): number {
-  let previa = Array.from({ length: b.length + 1 }, (_, j) => j);
-  for (let i = 1; i <= a.length; i++) {
-    const fila = [i];
-    for (let j = 1; j <= b.length; j++) fila[j] = Math.min(previa[j] + 1, fila[j - 1] + 1, previa[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-    previa = fila;
-  }
-  return previa[b.length];
-}
-
-function motivoParecido(a: string, b: string): { por: MotivoParecido; peso: number } | null {
-  const ra = raizDe(a);
-  const rb = raizDe(b);
-  if (!ra || !rb) return null;
-  if (ra === rb) return { por: "raiz", peso: 0 };
-  // Con nombres cortos una letra ya es otra marca («Kero» / «Kera»): solo se cuenta el error de tipeo desde 5 letras,
-  // y dos letras desde 8.
-  const corta = Math.min(ra.length, rb.length);
-  const d = distancia(ra, rb);
-  if ((corta >= 5 && d <= 1) || (corta >= 8 && d <= 2)) return { por: "letras", peso: d };
-  const pa = palabrasDe(a).filter((w) => !/^\d+$/.test(w));
-  const pb = palabrasDe(b).filter((w) => !/^\d+$/.test(w));
-  const [menos, mas] = pa.length <= pb.length ? [pa, pb] : [pb, pa];
-  if (menos.join("").length >= 4 && menos.every((w) => mas.includes(w))) return { por: "contenida", peso: 3 };
-  return null;
-}
-
 export function marcasParecidas<M extends MarcaOpcion>(
   nombre: string,
   marcas: readonly M[],
   max = 3
 ): { igual: M | null; parecidas: { marca: M; por: MotivoParecido }[] } {
-  const clave = claveMarca(nombre);
-  if (!clave) return { igual: null, parecidas: [] };
-  const igual = marcas.find((m) => claveMarca(m.nombre) === clave) ?? null;
-  const parecidas = marcas
-    .filter((m) => m !== igual)
-    .flatMap((m) => {
-      const r = motivoParecido(nombre, m.nombre);
-      return r ? [{ marca: m, ...r }] : [];
-    })
-    .sort((x, y) => x.peso - y.peso || x.marca.nombre.localeCompare(y.marca.nombre, "es"))
-    .slice(0, max)
-    .map(({ marca, por }) => ({ marca, por }));
-  return { igual, parecidas };
+  const { igual, parecidos } = nombresParecidos(nombre, marcas, { max });
+  return { igual, parecidas: parecidos.map(({ item, por }) => ({ marca: item, por })) };
 }
 
 export function proveedoresDeMarca(vinculos: Vinculo[], marcaId: string): string[] {
