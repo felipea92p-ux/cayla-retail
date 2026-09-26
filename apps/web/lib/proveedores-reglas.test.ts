@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  agregarRubro,
+  alternarRubro,
   bancoDeCci,
   billeterasTexto,
   chipEntregas,
@@ -16,8 +18,10 @@ import {
   normalizarCelular,
   haceCuanto,
   inicialesMeses,
+  limpiarRubros,
   marcasParaMostrar,
   marcasPorProveedor,
+  opcionesDeRubro,
   ordenarProveedores,
   proveedorConRuc,
   repartoDeuda,
@@ -29,6 +33,7 @@ import {
   sinDatosDePago,
   subeEnCadaCompra,
   textoBuscableProveedor,
+  tieneRubro,
   urlWhatsApp,
   validarCci,
   validarCelular,
@@ -39,11 +44,43 @@ import {
 describe("rubros", () => {
   it("«Tela», «tela » y «Telas ¹» se agrupan por clave, sin tildes ni mayúsculas", () => {
     expect(claveRubro("  Prénda  Terminada ")).toBe("prenda terminada");
-    const r = rubrosConConteo([{ rubro: "Tela" }, { rubro: "tela " }, { rubro: "Avíos" }, { rubro: null }, { rubro: "Tela" }]);
+    const r = rubrosConConteo([{ rubros: ["Tela"] }, { rubros: ["tela "] }, { rubros: ["Avíos"] }, { rubros: [] }, { rubros: ["Tela"] }]);
     expect(r).toEqual([
       { clave: "tela", etiqueta: "Tela", conteo: 3 },
       { clave: "avios", etiqueta: "Avíos", conteo: 1 },
     ]);
+  });
+
+  it("un proveedor con varios rubros cuenta en cada uno (el conteo es de proveedores por rubro, no suma el total)", () => {
+    const r = rubrosConConteo([{ rubros: ["Polos", "Casacas"] }, { rubros: ["Polos"] }]);
+    expect(r).toEqual([
+      { clave: "polos", etiqueta: "Polos", conteo: 2 },
+      { clave: "casacas", etiqueta: "Casacas", conteo: 1 },
+    ]);
+    expect(tieneRubro({ rubros: ["Polos", "Casacas"] }, "casacas")).toBe(true);
+    expect(tieneRubro({ rubros: ["Polos"] }, "casacas")).toBe(false);
+  });
+
+  it("limpiarRubros sigue la regla de la base: sin vacíos, recortado y uno por clave (gana el primero)", () => {
+    expect(limpiarRubros(["  Camisas   y Blusas ", "polos", "Pólos ", "", "   ", "camisas y blusas"])).toEqual(["Camisas y Blusas", "polos"]);
+    expect(limpiarRubros([])).toEqual([]);
+  });
+
+  it("alternarRubro: tocar suma al final; tocar de nuevo (con cualquier escritura) lo quita", () => {
+    expect(alternarRubro(["Polos"], "Casacas")).toEqual(["Polos", "Casacas"]);
+    expect(alternarRubro(["Polos", "Casacas"], "polos")).toEqual(["Casacas"]);
+    expect(alternarRubro(["Polos"], "   ")).toEqual(["Polos"]);
+  });
+
+  it("agregarRubro: lo escrito queda elegido con la escritura de la lista si ya existe; vacío o repetido no cambia nada", () => {
+    expect(agregarRubro(["Polos"], "  lencería ", ["Polos", "Casacas"])).toEqual(["Polos", "lencería"]);
+    expect(agregarRubro(["Polos"], "casacas", ["Polos", "Casacas"])).toEqual(["Polos", "Casacas"]);
+    expect(agregarRubro(["Polos"], "POLOS", ["Polos"])).toEqual(["Polos"]);
+    expect(agregarRubro(["Polos"], "  ", ["Polos"])).toEqual(["Polos"]);
+  });
+
+  it("opcionesDeRubro: los ya usados primero y, al final, los elegidos que nadie más usa, sin repetir", () => {
+    expect(opcionesDeRubro(["Polos", "Casacas"], ["casacas", "Chalecos"])).toEqual(["Polos", "Casacas", "Chalecos"]);
   });
 });
 
