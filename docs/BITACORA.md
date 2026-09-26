@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Traslados conectado: análisis y spike visual, computadora y celular)
+Felipe pidió conectar Traslados con las pantallas nuevas y hacerla rápida en el celular. El análisis encontró que el mismo «tienes que recibir» se decía cinco veces y empujaba el primer traslado bajo el borde del teléfono, y que cuatro conexiones ya existen fuera de la pantalla (pedidos para apartar de ADR-0233, Bajar al piso y Etiquetas con lista, sugeridos de Análisis). En vez de elegir a ciegas, Felipe pidió un spike con interruptores: `docs/maquetas/traslados-conectado-2026-09/`.
+Por qué así: tres de las cuatro conexiones no piden migración, y la guía con QR es solo web. Qué se rompería sin cuidado: una guía o un WhatsApp que dijera cuántas van rompería el conteo a ciegas (D-130); por eso dicen qué buscar, no cuántas.
+Felipe se lleva: **lo que acompaña a la caja también es parte del control.** Si el papel dice cuántas van, contar a ciegas en pantalla ya no sirve.
+Sin resolver: las cuatro elecciones del spike (lista, agregar, guía, conexiones).
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.

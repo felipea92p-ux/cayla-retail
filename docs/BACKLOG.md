@@ -127,6 +127,7 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] Vaciar una casilla ya guardada no vuelve a «sin contar» (la base no tiene cómo): al recargar reaparece el último número. Dos tablets contando la misma caja se pisan entre sí.
 - [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
+- [ ] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, rama `claude/traslados-screen-improvements-e3191e`, solo docs): Felipe elige lista (pestañas / cifras + tabla / «Hoy te toca»), cómo se agregan prendas al enviar (escanear + buscar / solo buscar / combo), qué acompaña a la caja (guía QR + WhatsApp / QR / WhatsApp / nada) y qué conexiones entran (después de recibir, pedidos de otras tiendas y sugeridos, sin migración; «pedir a otra sede», con migración).
 
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 

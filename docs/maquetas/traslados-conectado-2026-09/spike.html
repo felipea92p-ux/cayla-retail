@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Traslados conectado · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Traslados conectado, computadora y celular (2026-09-26)
+   Felipe pidió ver las opciones antes de elegir. La barra oscura (no existe
+   en el ERP) alterna:
+     Pantalla  · la lista, Nuevo traslado, el detalle recién recibido y lo
+                 que sale al enviar (la guía de la caja).
+     Lista     · pestañas / cifras + tabla (hoy, sin lo redundante) / «Hoy te toca».
+     Agregar   · escanear + buscar / solo buscar / combo por línea (hoy).
+     Guía      · QR + WhatsApp / solo QR / solo WhatsApp / nada (hoy).
+     Conexiones· pedidos de otras tiendas (ADR-0233), después de recibir,
+                 sugeridos (Análisis), pedir a otra sede (NUEVO, pide migración).
+   Tokens = apps/web/app/globals.css (ADR-0169). Cabecera = EncabezadoPagina
+   (ADR-0220). Hojas = efecto de <Modal> (ADR-0136). Parte del código de main
+   tras el PR #509 (ADR-0239: conteo a ciegas, piso/almacén, anular).
+   Datos inventados. Los enlaces no navegan: muestran a dónde irían.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t35:rgba(26,26,24,.35);--t10:rgba(26,26,24,.10);--t06:rgba(26,26,24,.06);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+input{font:inherit;color:inherit}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px;color:var(--t65)}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--t65)}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:6px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.seg.multi button[aria-pressed=true]:before{content:"✓ "}
+
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:24px;align-items:start}
+@media (max-width:1180px){.escena{grid-template-columns:1fr}.col-tel{justify-self:center}}
+.escena.solo{grid-template-columns:1fr}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+
+/* ── marcos ── */
+.marco{position:relative;background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 30px 64px -22px rgba(26,26,24,.28);border:1px solid rgba(26,26,24,.08)}
+.marco-pc{height:920px}
+.marco-tel{width:395px;height:820px;border-radius:44px;border:10px solid var(--tinta);background:var(--crema)}
+.scroll{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+.marco-tel .scroll{padding-bottom:100px}
+
+/* ── app de computadora ── */
+.app{display:grid;grid-template-columns:196px minmax(0,1fr);min-height:100%}
+.lat{background:var(--crema);border-right:1px solid var(--sand);padding:20px 12px;position:sticky;top:0;height:920px}
+.lat .logo{display:flex;align-items:center;gap:8px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.sub{padding-left:26px;font-size:13px}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.lat a .bd{margin-left:auto;background:var(--rojo);color:#fff;border-radius:99px;font-size:10.5px;padding:0 6px}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 22px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.main{padding:24px 28px 110px}
+
+/* ── cabecera (EncabezadoPagina) ── */
+.cab{display:flex;gap:18px;align-items:flex-start}
+.cab>div:first-child{flex:1;min-width:0}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+h1.tit{font-family:'EB Garamond',serif;font-weight:400;font-size:46px;line-height:1.05;margin:10px 0 6px;letter-spacing:-.01em}
+.m h1.tit{font-size:36px}
+.frase{color:var(--t65);max-width:520px}
+.acc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end;padding-top:26px}
+.volver{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:13px;border:1px solid var(--sand);border-radius:9px;padding:5px 11px;background:var(--papel)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:500;border:1px solid var(--sand);background:var(--papel);white-space:nowrap;transition:background .2s var(--ease),border-color .2s}
+.btn:hover{border-color:var(--taupe)}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn.sut{background:transparent;border-color:transparent;color:var(--t80)}
+.btn.chico{padding:5px 11px;font-size:12.5px}
+.btn.gr{padding:11px 16px;font-size:14px;border-radius:11px}
+.btn.wa{background:#e9efe4;border-color:#cdd8c4;color:var(--verde)}
+.enl{font-weight:600;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+
+/* ── chips (Chip del sistema) ── */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:2px 9px;font-size:11.5px;font-weight:500;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.rojo{background:rgba(184,65,45,.09);color:var(--rojo-p)}
+.chip.amb{background:rgba(116,80,26,.10);color:var(--ambar)}
+.chip.piz{background:rgba(76,93,110,.10);color:var(--pizarra)}
+.chip.ver{background:rgba(72,96,63,.11);color:var(--verde)}
+.chip.tau{background:var(--hueso);color:var(--taupe)}
+.chip.sin:before{display:none}
+
+/* ── miniaturas (colores de la prenda: dato, no paleta) ── */
+.minis{display:flex;flex:none}
+.minis i{width:26px;height:32px;border-radius:6px;border:2px solid var(--papel);display:block;margin-left:-8px;box-shadow:0 0 0 1px var(--t10)}
+.minis i:first-child{margin-left:0}
+.foto{width:38px;height:46px;border-radius:7px;flex:none;box-shadow:inset 0 0 0 1px var(--t10);position:relative;overflow:hidden}
+.foto:after{content:"";position:absolute;left:30%;right:30%;top:14%;bottom:10%;border-radius:40% 40% 8px 8px;background:rgba(255,255,255,.22)}
+
+/* ── tarjetas y bloques ── */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.mt{margin-top:16px}
+.nota{background:var(--hueso);border-radius:12px;padding:10px 13px;font-size:12.5px;color:var(--t80);display:flex;gap:9px;align-items:flex-start}
+.nota .ic{color:var(--taupe);margin-top:1px}
+.tag-nuevo{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--rojo);border:1px solid rgba(184,65,45,.35);border-radius:5px;padding:1px 5px;margin-left:6px;vertical-align:2px}
+
+/* ── pestañas ── */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--sand);padding:0 12px;overflow-x:auto;scrollbar-width:none}
+.tab{padding:12px 12px 11px;border-bottom:2px solid transparent;font-size:13.5px;color:var(--t65);white-space:nowrap;display:flex;align-items:center;gap:7px}
+.tab.on{border-color:var(--tinta);color:var(--tinta);font-weight:600}
+.tab .n{font-size:11px;background:var(--hueso);border-radius:99px;padding:0 7px;color:var(--t80);font-weight:600}
+.tab .n.urg{background:var(--rojo);color:#fff}
+.herr{padding:12px 14px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.buscar{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:10px;padding:0 6px 0 12px;height:40px;flex:1;min-width:200px}
+.buscar input{flex:1;border:0;background:transparent;outline:none;font-size:14px;min-width:0}
+.buscar input::placeholder{color:var(--t50)}
+.buscar .cam{display:inline-flex;align-items:center;gap:6px;background:var(--papel);border:1px solid var(--sand);border-radius:8px;padding:4px 9px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.pil{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:4px 11px;font-size:12.5px;white-space:nowrap}
+.pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+
+/* ── filas de traslado (computadora) ── */
+.thead,.tr{display:grid;grid-template-columns:118px minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr) 128px 116px;gap:12px;align-items:center;padding:0 18px}
+.thead{padding-top:8px;padding-bottom:8px;border-top:1px solid var(--sand);font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.tr{padding-top:12px;padding-bottom:12px;border-top:1px solid var(--sand);cursor:pointer;transition:background .2s}
+.tr:hover{background:rgba(234,225,210,.45)}
+.tr.urge{background:rgba(184,65,45,.035)}
+.tr .t1{font-weight:500;font-size:13.5px}
+.tr .t2{font-size:12px;color:var(--t65)}
+.tr .ct{display:flex;align-items:center;gap:10px;min-width:0}
+.tr .ct>div{min-width:0}
+.tr .ct .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr .der{justify-self:end}
+.pie{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 18px;border-top:1px solid var(--sand);font-size:12px;color:var(--t65)}
+
+/* ── tarjeta de traslado (celular) ── */
+.card{padding:13px 14px;border-top:1px solid var(--sand);display:grid;gap:7px}
+.card:first-child{border-top:0}
+.card.urge{background:rgba(184,65,45,.035)}
+.card .l1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .l3{display:flex;align-items:center;gap:10px}
+.card .l4{display:flex;justify-content:space-between;align-items:center;gap:8px}
+
+/* ── cifras ── */
+.cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.m .cifras{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px;text-align:left}
+.m .cifra{padding:9px 10px;border-radius:12px}
+.cifra.act{border-color:var(--rojo);background:#f7eee6}
+.cifra .v{font-family:'EB Garamond',serif;font-size:30px;line-height:1.1;margin-top:4px}
+.m .cifra .v{font-size:24px}
+.cifra .v small{font-family:'DM Sans';font-size:12px;color:var(--t65);margin-left:4px}
+.cifra p{font-size:12px;color:var(--t65);margin-top:2px}
+.m .cifra p{font-size:11px;line-height:1.3}
+.aviso{display:flex;align-items:center;gap:10px;background:var(--hueso);border-radius:12px;padding:9px 12px;font-size:13px}
+.aviso .ic{color:var(--pizarra)}
+.aviso .ir{margin-left:auto}
+
+/* ── pedidos / tareas ── */
+.tarea{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--sand)}
+.tarea:first-child{border-top:0}
+.m .tarea{grid-template-columns:auto minmax(0,1fr);padding:12px 14px}
+.m .tarea .act{grid-column:1/-1;display:flex;gap:8px}
+.m .tarea .act .btn{flex:1}
+.tarea .ico{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;background:var(--hueso);color:var(--taupe)}
+.tarea .ico.rojo{background:rgba(184,65,45,.09);color:var(--rojo-p)}
+.tarea .ico.piz{background:rgba(76,93,110,.10);color:var(--pizarra)}
+.tarea .t1{font-weight:500}
+.tarea .t2{font-size:12.5px;color:var(--t65)}
+.grupo-t{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 4px;gap:8px}
+.grupo-t h3{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.hoy{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.m .hoy{grid-template-columns:1fr;gap:8px}
+.tk{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px;display:grid;gap:8px}
+.tk.urge{border-color:rgba(184,65,45,.35);background:#fbf3ee}
+.tk .top1{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.tk .fila{display:flex;align-items:center;gap:10px}
+
+/* ── nuevo traslado ── */
+.form{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.m .form{grid-template-columns:1fr}
+.bloque{padding:16px 18px;border-top:1px solid var(--sand)}
+.bloque:first-child{border-top:0}
+.m .bloque{padding:14px}
+.bloque>.lbl{display:block;margin-bottom:9px}
+.sedes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sede-b{border:1px solid var(--sand);background:var(--papel);border-radius:12px;padding:10px 12px;text-align:left;transition:border-color .2s}
+.sede-b b{display:block;font-weight:500;font-size:13.5px}
+.sede-b span{font-size:11.5px;color:var(--t65)}
+.sede-b.on{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.caja{background:var(--hueso);border-radius:10px;height:40px;display:flex;align-items:center;padding:0 12px;font-size:13.5px;color:var(--t50)}
+.combo{border-bottom:1px solid var(--t35);display:flex;align-items:center;justify-content:space-between;padding:8px 2px;font-size:13.5px;gap:10px}
+.resultados{border:1px solid var(--sand);border-radius:12px;background:var(--papel);margin-top:6px;overflow:hidden;box-shadow:0 14px 30px -18px rgba(26,26,24,.35)}
+.res{display:flex;align-items:center;gap:10px;padding:8px 10px;border-top:1px solid var(--sand)}
+.res:first-child{border-top:0}
+.res.sel{background:rgba(234,225,210,.5)}
+.linea{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--sand)}
+.linea:first-child{border-top:0}
+.linea .nm{flex:1;min-width:0}
+.step{display:flex;align-items:center;border:1px solid var(--sand);border-radius:10px;overflow:hidden;background:var(--papel);flex:none}
+.step button{width:34px;height:34px;display:grid;place-items:center}
+.step span{min-width:30px;text-align:center;font-weight:600}
+.m .step button{width:38px;height:38px}
+.x{color:var(--t50);padding:4px}
+.sugiere{display:flex;align-items:center;gap:10px;border:1px dashed rgba(76,93,110,.45);background:rgba(76,93,110,.05);border-radius:12px;padding:9px 12px;font-size:12.5px;margin-top:10px}
+.sugiere .ic{color:var(--pizarra)}
+.resumen{position:sticky;top:12px}
+.resumen .rr{display:flex;justify-content:space-between;font-size:13px;padding:6px 0;border-top:1px solid var(--sand)}
+.resumen .rr:first-of-type{border-top:0}
+.resp{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:10px;padding:8px 10px;font-size:12.5px}
+.resp i{width:22px;height:22px;border-radius:50%;background:#c9a58f;display:block}
+
+/* ── recibido ── */
+.exito{display:flex;gap:14px;align-items:flex-start;padding:18px}
+.visto{width:42px;height:42px;border-radius:50%;background:rgba(72,96,63,.12);color:var(--verde);display:grid;place-items:center;flex:none}
+.sig{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.m .sig{grid-template-columns:1fr;gap:8px}
+.sig .op{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px;display:grid;gap:6px;text-align:left}
+.sig .op.pri{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.sig .op .ic{width:20px;height:20px;color:var(--taupe)}
+.sig .op b{font-weight:600;font-size:13.5px}
+.sig .op span{font-size:12px;color:var(--t65)}
+.lin-r{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 16px;border-top:1px solid var(--sand);font-size:13px}
+
+/* ── guía de la caja ── */
+.guia-w{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start}
+.m .guia-w{grid-template-columns:1fr}
+.ticket{background:#fff;border-radius:6px;padding:18px 16px 20px;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#222;box-shadow:0 18px 40px -22px rgba(26,26,24,.45);position:relative}
+.ticket:after{content:"";position:absolute;left:0;right:0;bottom:-8px;height:8px;background:radial-gradient(circle at 6px 0,#fff 5px,transparent 5.5px) repeat-x;background-size:12px 8px}
+.ticket .c{text-align:center}
+.ticket hr{border:0;border-top:1px dashed #999;margin:9px 0}
+.ticket .row{display:flex;justify-content:space-between;gap:8px}
+.ticket .box{display:inline-block;width:34px;height:15px;border:1px solid #333;vertical-align:middle}
+.qr{display:block;margin:6px auto 2px}
+.wa-msg{background:#e7f1df;border-radius:12px 12px 12px 3px;padding:10px 12px;font-size:13px;color:#1f2a1a;max-width:340px;box-shadow:0 1px 0 rgba(0,0,0,.05)}
+.wa-msg a{color:#2a6fb0;word-break:break-all}
+.cierre{display:grid;gap:8px}
+
+/* ── celular ── */
+.tel-top{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 6px}
+.tel-top .logo{letter-spacing:.3em;font-weight:600;font-size:12px;display:flex;align-items:center;gap:7px}
+.tel-top .logo i{width:18px;height:15px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.tel-top .sede{border:1px solid var(--sand);border-radius:8px;padding:3px 8px;font-size:10px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.m .main{padding:10px 16px 24px}
+.m .cab{display:block}
+.m .acc{display:none}
+.fijo{position:absolute;left:0;right:0;bottom:0;padding:10px 14px 18px;background:linear-gradient(to top,var(--crema) 70%,rgba(245,240,232,0));display:flex;gap:8px;z-index:20}
+.fijo .btn{flex:1;padding:12px 10px;font-size:14px;border-radius:12px}
+.sticky-tabs{position:sticky;top:0;z-index:5;background:var(--papel)}
+
+/* ── hojas (efecto de <Modal>) ── */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);z-index:40;display:flex;align-items:flex-start;justify-content:center;padding:60px 20px;animation:velo .24s var(--ease)}
+.m .velo{align-items:flex-end;padding:0}
+.hoja{background:var(--papel);border-radius:18px;width:min(560px,100%);padding:20px 22px;animation:sube .32s var(--ease);max-height:100%;overflow:auto}
+.m .hoja{border-radius:20px 20px 0 0;padding:18px 16px 26px}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:400;font-size:26px;line-height:1.1}
+.hoja .cerrar{float:right;color:var(--t65)}
+.camara{height:250px;border-radius:14px;background:#1c1c1a;position:relative;overflow:hidden;margin-top:12px}
+.camara .mira{position:absolute;inset:40px 70px;border:2px solid rgba(245,240,232,.85);border-radius:14px}
+.camara .linea-s{position:absolute;left:78px;right:78px;top:50%;height:2px;background:var(--rojo);box-shadow:0 0 12px var(--rojo)}
+.camara p{position:absolute;bottom:12px;left:0;right:0;text-align:center;color:rgba(245,240,232,.8);font-size:12.5px}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes sube{from{opacity:0;transform:translateY(18px) scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.velo,.hoja{animation:none}}
+
+.destino{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:9px 14px;border-radius:10px;font-size:12.5px;z-index:99;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw}
+.destino.on{opacity:1}
+.notas{margin:0 24px 40px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:18px 22px;font-size:13.5px;line-height:1.6}
+.notas h2{font-family:'EB Garamond',serif;font-weight:400;font-size:24px;margin-bottom:6px}
+.notas ol,.notas ul{padding-left:20px}
+.notas li{margin:3px 0}
+</style>
+</head>
+<body>
+
+<div class="spk" id="spk"></div>
+
+<div class="escena">
+  <div class="col-pc"><p class="rot">Computadora · 1.440 px</p><div class="marco marco-pc"><div class="scroll" id="pc"></div></div></div>
+  <div class="col-tel"><p class="rot">Celular · 375 px</p><div class="marco marco-tel"><div class="scroll" id="tel"></div><div id="tel-fijo"></div><div id="tel-hoja"></div></div></div>
+</div>
+
+<section class="notas" id="notas"></section>
+<div class="destino" id="destino"></div>
+
+<script>
+/* ============================ íconos (trazos tipo lucide) ============================ */
+const P = {
+  truck:'<path d="M3 6h11v9H3z"/><path d="M14 9h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/>',
+  scan:'<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  minus:'<path d="M5 12h14"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  printer:'<path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="2"/><path d="M7 14h10v6H7z"/>',
+  chat:'<path d="M4 19l1.4-3.6A7.5 7.5 0 1 1 8.6 19.2z"/><path d="M9 10.5c.5 1.7 1.8 3 3.5 3.5l1.2-1 1.8.8"/>',
+  tag:'<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+  down:'<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+  box:'<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.3-4.3"/>',
+  camera:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  inbox:'<path d="M3 13h5l1.5 3h5L16 13h5"/><path d="M5 5h14l2 8v6H3v-6z"/>',
+  bulb:'<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+  send:'<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
+  user:'<circle cx="12" cy="8" r="3.8"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>',
+  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  home:'<path d="M4 11l8-7 8 7v9H4z"/>',
+  bag:'<path d="M5 8h14l-1 12H6z"/><path d="M9 8a3 3 0 0 1 6 0"/>',
+  grid:'<rect x="4" y="4" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1"/>',
+  cart:'<path d="M3 4h2l2.5 11h10L20 7H6.5"/><circle cx="9" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/>',
+  wallet:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M16 12.5h2"/>',
+  swap:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  clip:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9z"/>',
+  chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  hand:'<path d="M12 21c-4 0-6-3-6-6v-4a1.5 1.5 0 0 1 3 0V6.5a1.5 1.5 0 0 1 3 0V11V5a1.5 1.5 0 0 1 3 0v6-3.5a1.5 1.5 0 0 1 3 0V15c0 3-2 6-6 6z"/>',
+};
+const ic = (n, cls='') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[n]}</svg>`;
+
+/* ============================ datos inventados ============================ */
+const C = {rosado:'#d9a5a0', beige:'#d8c7a8', blanco:'#f1ece2', negro:'#2b2b2b', gris:'#9a9a96', oliva:'#56663f', azul:'#6f86a0', vino:'#7a3b3b'};
+const T = [
+  {n:14, de:'Taller', a:'Tienda TRU', dir:'in', est:'recibir', salio:'hoy 9:40', llega:'Llega hoy · 15:00', llegaCorto:'Llega hoy', dist:3, prendas:8, ref:'Casaca Luna, Vestido Antonella, Blusa Emma', col:[C.oliva,C.rosado,C.beige]},
+  {n:13, de:'Tienda AQP', a:'Tienda TRU', dir:'in', est:'recibir', atras:true, salio:'ayer 16:05', llega:'Debió llegar hoy 10:00', llegaCorto:'Atrasado 3 h', dist:3, prendas:4, ref:'Vestido Antonella M rosado, Blusa Valentina…', col:[C.rosado,C.blanco,C.negro], apartar:'Lucía R.'},
+  {n:12, de:'Tienda TRU', a:'Tienda LIM', dir:'out', est:'camino', salio:'ayer 11:20', llega:'Llega mañana', llegaCorto:'Llega mañana', dist:4, prendas:6, ref:'Blusa Valentina, Pantalón Olivia, Casaca Luna…', col:[C.blanco,C.negro,C.gris]},
+  {n:11, de:'Tienda TRU', a:'Taller', dir:'out', est:'dif', salio:'23 set', llega:'Recibido el 24 set', llegaCorto:'Recibido 24 set', dist:2, prendas:5, ref:'Blusa Carlita XL gris, Falda Mía S', col:[C.gris,C.vino], difTxt:'1 prenda espera a un líder'},
+  {n:10, de:'Taller', a:'Tienda TRU', dir:'in', est:'ok', salio:'22 set', llega:'Recibido el 22 set', llegaCorto:'Recibido 22 set', dist:6, prendas:12, ref:'Casaca Luna, Vestido Antonella, Top Nina…', col:[C.oliva,C.rosado,C.negro]},
+  {n:9, de:'Tienda TRU', a:'Tienda AQP', dir:'out', est:'anulado', salio:'21 set', llega:'Anulado · se eligió mal la sede', llegaCorto:'Anulado', dist:1, prendas:2, ref:'Blusa Emma L beige', col:[C.beige]},
+];
+const PEDIDOS = [ // ADR-0233: pedidos para apartar que OTRA sede le hizo a esta
+  {de:'Tienda AQP', prenda:'Blusa Emma', var:'L · beige', clienta:'Carla M.', hace:'hace 2 h', stock:'tienes 3 en el almacén', col:C.beige},
+  {de:'Tienda LIM', prenda:'Casaca Luna', var:'S · oliva', clienta:'Rosa T.', hace:'hace 20 min', stock:'tienes 1 en el piso', col:C.oliva},
+];
+const SUGERIDOS = [ // Análisis ▸ reposición (resumen-acciones.ts ya arma el enlace prellenado)
+  {prenda:'Blusa Valentina', var:'S · blanca', a:'Tienda AQP', cant:3, porque:'A AQP le quedan 2 días de venta; aquí llevan 40 días sin venderse 6.', col:C.blanco},
+];
+const MIS_PEDIDOS = [ // NUEVO (pedir a otra sede): pide migración
+  {a:'Taller', txt:'4 Blusa Carlita gris (S · M · L · XL)', est:'El Taller todavía no lo envía', hace:'ayer 18:10', col:C.gris},
+];
+const LINEAS_NUEVO = [
+  {prenda:'Blusa Emma', var:'L · beige', cod:'CMS-0014-BEI-L', hay:3, cant:1, col:C.beige, pedido:'Carla M.'},
+  {prenda:'Blusa Valentina', var:'S · blanca', cod:'CMS-0021-BLA-S', hay:6, cant:3, col:C.blanco},
+  {prenda:'Pantalón Olivia', var:'M · negro', cod:'PAN-0007-NEG-M', hay:2, cant:1, col:C.negro},
+];
+
+/* ============================ estado ============================ */
+const q = new URLSearchParams(location.search);
+const S = {
+  esc: q.get('esc') || 'lista',            // lista | nuevo | recibido | guia
+  lista: q.get('lista') || 'tabs',         // tabs | cifras | hoy
+  agregar: q.get('agregar') || 'scan',     // scan | buscar | combo
+  guia: q.get('guia') || 'qrwa',           // qrwa | qr | wa | nada
+  lugar: q.get('lugar') || 'almacen',      // piso | almacen (recibido)
+  con: (q.get('con') ?? 'ped,desp,sug,pedir').split(',').filter(Boolean),
+  tab: q.get('tab') || 'recibir',
+  hoja: q.get('hoja') || null,             // scan | pedir
+  solo: q.get('solo') || null,
+};
+const con = k => S.con.includes(k);
+
+/* ============================ piezas ============================ */
+const minis = cols => `<span class="minis">${cols.map(c=>`<i style="background:${c}"></i>`).join('')}</span>`;
+const foto = (c, sz='') => `<span class="foto" style="background:${c};${sz}"></span>`;
+function chip(t){
+  if (t.est==='recibir') return t.atras ? '<span class="chip amb">Atrasado</span>' : '<span class="chip rojo">Por recibir</span>';
+  return {camino:'<span class="chip piz">En camino</span>', dif:'<span class="chip amb">Con diferencia</span>', ok:'<span class="chip ver">Recibido</span>', anulado:'<span class="chip tau">Anulado</span>'}[t.est];
+}
+function contenido(t){
+  // D-130: quien recibe cuenta a ciegas, así que la fila no adelanta cuántas vienen.
+  return t.est==='recibir' ? `${t.dist} prendas distintas · se cuentan al recibir` : `${t.prendas} prendas · ${t.dist} distintas`;
+}
+function boton(t, m){
+  const cls = m ? 'btn chico' : 'btn chico';
+  if (t.est==='recibir') return `<button class="${cls} pri" data-ir="/inventario/traslados/${t.n} · recibir (conteo a ciegas)">Recibir</button>`;
+  if (t.est==='dif') return `<button class="${cls}" data-ir="/inventario/traslados/${t.n} · el líder cierra la diferencia">Revisar</button>`;
+  return `<button class="${cls} sut" data-ir="/inventario/traslados/${t.n}">Ver detalle</button>`;
+}
+function filaPC(t){
+  const apartar = t.apartar ? `<span class="chip piz sin" style="margin-top:3px">${ic('user')} Para ${t.apartar}</span>` : '';
+  return `<div class="tr ${t.est==='recibir'?'urge':''}" data-ir="/inventario/traslados/${t.n}">
+    <div><div class="t1">Traslado ${t.n}</div><div class="t2">Salió ${t.salio}</div></div>
+    <div style="min-width:0"><div class="trunc" style="font-size:13.5px">${t.de} <span class="muted">→</span> ${t.a}</div><div class="t2">${t.dir==='in'?'Entra a tu sede':'Sale de tu sede'}</div></div>
+    <div class="ct">${minis(t.col)}<div><div class="trunc" style="font-size:13px;font-weight:500">${contenido(t)}</div><div class="t2 trunc">${t.ref}</div>${apartar}</div></div>
+    <div class="t2" style="color:${t.atras?'var(--ambar)':''}">${t.llega}${t.difTxt?`<br><span style="color:var(--ambar)">${t.difTxt}</span>`:''}</div>
+    <div>${chip(t)}</div>
+    <div class="der">${boton(t)}</div>
+  </div>`;
+}
+function cardTel(t){
+  const apartar = t.apartar ? `<span class="chip piz sin">${ic('user')} Para ${t.apartar}</span>` : '';
+  return `<div class="card ${t.est==='recibir'?'urge':''}" data-ir="/inventario/traslados/${t.n}">
+    <div class="l1"><b style="font-weight:600">Traslado ${t.n}</b>${chip(t)}</div>
+    <div style="font-size:13px">${t.de} <span class="muted">→</span> ${t.a}</div>
+    <div class="l3">${minis(t.col)}<div style="min-width:0"><div style="font-size:12.5px;font-weight:500">${contenido(t)}</div><div class="trunc muted" style="font-size:12px">${t.ref}</div></div></div>
+    ${apartar?`<div>${apartar}</div>`:''}
+    <div class="l4"><span class="muted" style="font-size:12px;color:${t.atras?'var(--ambar)':''}">${ic('clock')} ${t.llegaCorto}</span>${boton(t,true)}</div>
+  </div>`;
+}
+function cabecera(m, {titulo, frase, acciones='', pie=''}){
+  return `<div class="cab"><div>
+      <div class="hilo">${m?'Tienda TRU · sáb 26 set · 17:13':'Tienda TRU · sábado, 26 de setiembre · 17:13'}</div>
+      <h1 class="tit">${titulo}</h1>
+      <p class="frase">${frase}</p>${pie}
+    </div>${acciones?`<div class="acc">${acciones}</div>`:''}</div>`;
+}
+const accionesLista = () => (con('pedir')?`<button class="btn" data-hoja="pedir">${ic('hand')} Pedir a otra sede</button>`:'') + `<button class="btn pri" data-esc="nuevo">+ Nuevo traslado</button>`;
+
+/* ---- bloques de conexiones ---- */
+function pedidosBloque(m){
+  if (!con('ped')) return '';
+  return `<div class="grupo-t"><h3>Te piden para una clienta · ${PEDIDOS.length}</h3><span class="muted" style="font-size:11.5px">de Apartados</span></div>` +
+    PEDIDOS.map(p=>`<div class="tarea">
+      <span class="ico piz">${ic('user')}</span>
+      <div style="min-width:0"><div class="t1">${p.de} pide ${p.prenda} ${p.var}</div><div class="t2">Para ${p.clienta} · ${p.hace} · ${p.stock}</div></div>
+      <div class="act"><button class="btn chico" data-ir="Apartados ▸ Todos ▸ Pedidos entre tiendas ▸ «No la tengo» (cancelar_pedido_para_apartar)">No la tengo</button><button class="btn chico pri" data-ir="enviar_pedido_para_apartar → crea el traslado con la clienta en la nota">${ic('send')} Enviar</button></div>
+    </div>`).join('');
+}
+function sugeridosBloque(m){
+  if (!con('sug')) return '';
+  return `<div class="grupo-t"><h3>Sugerido para enviar · ${SUGERIDOS.length}</h3><span class="muted" style="font-size:11.5px">de Análisis</span></div>` +
+    SUGERIDOS.map(s=>`<div class="tarea">
+      <span class="ico">${ic('bulb')}</span>
+      <div style="min-width:0"><div class="t1">${s.cant} ${s.prenda} ${s.var} a ${s.a}</div><div class="t2">${s.porque}</div></div>
+      <div class="act"><button class="btn chico" data-ir="Descartar la sugerencia (no vuelve esta semana)">Ahora no</button><button class="btn chico pri" data-ir="/inventario/mover?destino=AQP&variante=…&cantidad=${s.cant} (prellenado, ADR-0101)">Armar traslado</button></div>
+    </div>`).join('');
+}
+function misPedidosBloque(m){
+  if (!con('pedir')) return '';
+  return `<div class="grupo-t"><h3>Pediste a otra sede · ${MIS_PEDIDOS.length}<span class="tag-nuevo">nuevo</span></h3></div>` +
+    MIS_PEDIDOS.map(p=>`<div class="tarea">
+      <span class="ico">${ic('hand')}</span>
+      <div style="min-width:0"><div class="t1">${p.txt}</div><div class="t2">A ${p.a} · ${p.hace} · ${p.est}</div></div>
+      <div class="act"><button class="btn chico sut" data-ir="Cancelar el pedido">Cancelar</button></div>
+    </div>`).join('');
+}
+
+/* ---- LISTA · A) pestañas ---- */
+function listaTabs(m){
+  const porEnviar = (con('ped')?PEDIDOS.length:0) + (con('sug')?SUGERIDOS.length:0);
+  const tabs = [
+    ['recibir','Por recibir', T.filter(t=>t.est==='recibir').length, true],
+    ...(porEnviar ? [['enviar','Por enviar', porEnviar, false]] : []),
+    ['enviados','Enviados', T.filter(t=>t.est==='camino').length, false],
+    ['historial','Historial', null, false],
+  ];
+  const tab = tabs.some(x=>x[0]===S.tab) ? S.tab : 'recibir';
+  let cuerpo = '';
+  if (tab==='recibir'){
+    const ts = T.filter(t=>t.est==='recibir');
+    cuerpo = (m ? ts.map(cardTel).join('') : `<div class="thead"><span>Traslado</span><span>Ruta</span><span>Contenido</span><span>Llegada</span><span>Estado</span><span style="justify-self:end">Acción</span></div>` + ts.map(filaPC).join(''))
+      + (con('pedir') ? `<div style="border-top:1px solid var(--sand)">${misPedidosBloque(m)}</div>` : '');
+  } else if (tab==='enviar'){
+    cuerpo = pedidosBloque(m) + sugeridosBloque(m);
+  } else if (tab==='enviados'){
+    const ts = T.filter(t=>t.dir==='out' && t.est==='camino');
+    cuerpo = m ? ts.map(cardTel).join('') : `<div class="thead"><span>Traslado</span><span>Ruta</span><span>Contenido</span><span>Llegada</span><span>Estado</span><span style="justify-self:end">Acción</span></div>` + ts.map(filaPC).join('');
+  } else {
+    const ts = T.filter(t=>!['recibir','camino'].includes(t.est));
+    cuerpo = (m ? '' : `<div class="herr" style="border-top:1px solid var(--sand)"><div class="buscar">${ic('search')}<input placeholder="Nº de traslado, prenda o código de etiqueta"><span class="cam">${ic('scan')} Escanear</span></div><span class="pil on">Todos</span><span class="pil">Entraron</span><span class="pil">Salieron</span></div>`)
+      + (m ? `<div class="herr"><div class="buscar">${ic('search')}<input placeholder="Nº, prenda o código"></div></div>` : '')
+      + (m ? ts.map(cardTel).join('') : `<div class="thead"><span>Traslado</span><span>Ruta</span><span>Contenido</span><span>Llegada</span><span>Estado</span><span style="justify-self:end">Acción</span></div>` + ts.map(filaPC).join(''));
+  }
+  const tabsHtml = `<div class="tabs" role="tablist">${tabs.map(([k,l,n,urg])=>`<button class="tab ${k===tab?'on':''}" data-tab="${k}" role="tab">${l}${n!=null?`<span class="n ${urg&&n?'urg':''}">${n}</span>`:''}</button>`).join('')}</div>`;
+  return `<div class="tarjeta mt">${m?`<div class="sticky-tabs">${tabsHtml}</div>`:tabsHtml}${cuerpo}
+    ${m?'':`<div class="pie"><span>Se actualiza sola cada minuto</span><span>${tab==='historial'?'Mostrando los últimos 30':''}</span></div>`}</div>`;
+}
+
+/* ---- LISTA · B) cifras + tabla (lo de hoy, sin lo redundante) ---- */
+function listaCifras(m){
+  const avisos = [];
+  if (con('ped')) avisos.push(`<div class="aviso">${ic('user')}<span><b>2 tiendas te piden prendas</b> para clientas que esperan</span><button class="enl ir" data-ir="Apartados ▸ Todos ▸ Pedidos entre tiendas">Ver pedidos</button></div>`);
+  if (con('sug')) avisos.push(`<div class="aviso">${ic('bulb')}<span><b>Sugerido:</b> 3 Blusa Valentina S a Tienda AQP</span><button class="enl ir" data-ir="/inventario/mover prellenado">Armar</button></div>`);
+  if (con('pedir')) avisos.push(`<div class="aviso">${ic('hand')}<span>Pediste 4 Blusa Carlita al Taller · aún no sale</span><button class="enl ir" data-ir="Tus pedidos">Ver</button></div>`);
+  const cifras = `<div class="cifras mt">
+      <button class="cifra act"><span class="lbl">Por recibir</span><div class="v" style="color:var(--rojo-p)">2<small>traslados</small></div><p>1 ya debió llegar</p></button>
+      <button class="cifra"><span class="lbl">${m?'Enviados':'Enviados en camino'}</span><div class="v">1<small>${m?'':'traslado'}</small></div><p>${m?'La otra sede recibe':'Salieron; los recibe la otra sede'}</p></button>
+      <button class="cifra"><span class="lbl">${m?'Diferencia':'Con diferencia'}</span><div class="v" style="color:var(--ambar)">1<small>${m?'':'caso'}</small></div><p>Espera a un líder</p></button>
+    </div>`;
+  const filas = m ? T.map(cardTel).join('') : `<div class="thead"><span>Traslado</span><span>Ruta</span><span>Contenido</span><span>Llegada</span><span>Estado</span><span style="justify-self:end">Acción</span></div>` + T.map(filaPC).join('');
+  return `${avisos.length?`<div style="display:grid;gap:6px" class="mt">${avisos.join('')}</div>`:''}${cifras}
+    <div class="tarjeta mt"><div class="herr"><div class="buscar">${ic('search')}<input placeholder="${m?'Nº, prenda o código':'Nº de traslado, prenda o código de etiqueta'}">${m?'':`<span class="cam">${ic('scan')} Escanear</span>`}</div>${m?'':'<span class="pil on">Todos</span><span class="pil">Entrantes</span><span class="pil">Salientes</span>'}</div>${filas}</div>`;
+}
+
+/* ---- LISTA · C) «Hoy te toca» ---- */
+function listaHoy(m){
+  const tareas = [];
+  T.filter(t=>t.est==='recibir').forEach(t=>tareas.push(`<div class="tk urge">
+      <div class="top1"><b style="font-weight:600">Recibir el Traslado ${t.n}</b>${chip(t)}</div>
+      <div class="fila">${minis(t.col)}<div style="min-width:0"><div style="font-size:13px">De ${t.de} · ${t.dist} prendas distintas</div><div class="muted" style="font-size:12px">${t.llega}${t.apartar?` · 1 va apartada para ${t.apartar}`:''}</div></div></div>
+      <button class="btn pri" data-ir="/inventario/traslados/${t.n}">${ic('box')} Contar lo que llegó</button></div>`));
+  if (con('ped')) PEDIDOS.forEach(p=>tareas.push(`<div class="tk">
+      <div class="top1"><b style="font-weight:600">Enviar a ${p.de}</b><span class="chip piz sin">${ic('user')} ${p.clienta}</span></div>
+      <div class="fila">${foto(p.col)}<div><div style="font-size:13px">${p.prenda} ${p.var}</div><div class="muted" style="font-size:12px">${p.hace} · ${p.stock}</div></div></div>
+      <button class="btn pri" data-ir="enviar_pedido_para_apartar">${ic('send')} Enviar</button></div>`));
+  if (con('sug')) SUGERIDOS.forEach(s=>tareas.push(`<div class="tk">
+      <div class="top1"><b style="font-weight:600">Sugerido: enviar a ${s.a}</b><span class="chip tau sin">${ic('bulb')} Análisis</span></div>
+      <div class="fila">${foto(s.col)}<div><div style="font-size:13px">${s.cant} ${s.prenda} ${s.var}</div><div class="muted" style="font-size:12px">${s.porque}</div></div></div>
+      <button class="btn" data-ir="/inventario/mover prellenado">Armar traslado</button></div>`));
+  const resto = T.filter(t=>t.est!=='recibir');
+  return `<div class="grupo-t" style="padding:18px 2px 8px"><h3>Hoy te toca · ${tareas.length}</h3></div>
+    <div class="hoy">${tareas.join('')}</div>
+    ${con('pedir')?`<div class="tarjeta mt">${misPedidosBloque(m)}</div>`:''}
+    <div class="tarjeta mt"><div class="herr"><div class="buscar">${ic('search')}<input placeholder="Buscar en todos los traslados"></div></div>
+    ${m ? resto.map(cardTel).join('') : `<div class="thead"><span>Traslado</span><span>Ruta</span><span>Contenido</span><span>Llegada</span><span>Estado</span><span style="justify-self:end">Acción</span></div>` + resto.map(filaPC).join('')}</div>`;
+}
+
+function escLista(m){
+  const frase = 'Lo que viene hacia tu sede y lo que sale de ella, hasta que la otra sede lo recibe.';
+  const cuerpo = S.lista==='tabs' ? listaTabs(m) : S.lista==='cifras' ? listaCifras(m) : listaHoy(m);
+  return cabecera(m, {titulo:'Traslados', frase: m && S.lista!=='cifras' ? 'Lo que viene y lo que sale de tu sede.' : frase, acciones: accionesLista()}) + cuerpo;
+}
+
+/* ---- NUEVO TRASLADO ---- */
+function escNuevo(m){
+  const total = LINEAS_NUEVO.reduce((a,l)=>a+l.cant,0);
+  const sedes = `<div class="sedes">${[['Taller','Lima · rack'],['Tienda AQP','Arequipa'],['Tienda LIM','Lima']].map(([s,d],i)=>`<button class="sede-b ${i===1?'on':''}"><b>${s}</b><span>${d}</span></button>`).join('')}</div>`;
+  const llega = `<div class="chips"><span class="pil">Hoy</span><span class="pil on">Mañana</span><span class="pil">Pasado mañana</span><span class="pil">Otro día…</span></div>`;
+  let prendas = '';
+  if (S.agregar==='combo'){
+    prendas = LINEAS_NUEVO.map(l=>`<div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:10px"><div class="combo" style="flex:1;min-width:0"><span class="trunc">${l.prenda} · ${l.var} — hay ${l.hay} · ${l.cod}</span>${ic('down')}</div><div class="combo" style="width:64px;justify-content:center">${l.cant}</div><span class="muted" style="font-size:12px">de ${l.hay}</span></div>`).join('')
+      + `<button class="lbl" style="color:var(--t65)">+ Agregar otra prenda</button>`;
+  } else {
+    const scan = S.agregar==='scan';
+    prendas = `<div class="buscar" style="height:46px;${scan?'box-shadow:inset 0 0 0 1.5px var(--tinta)':''}">${ic(scan?'scan':'search')}<input value="blusa emma" placeholder="${scan?'Escanea la etiqueta o escribe «blusa emma l»':'Escribe «blusa emma l»'}">${scan?`<span class="cam">${ic('camera')} Cámara</span>`:''}</div>
+      <div class="resultados">
+        ${[['L · beige',3,C.beige,true],['M · beige',1,C.beige],['S · negro',0,C.negro]].map(([v,h,c,sel])=>`<div class="res ${sel?'sel':''}">${foto(c,'width:30px;height:36px')}<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:500">Blusa Emma · ${v}</div><div class="muted" style="font-size:11.5px">${h?`hay ${h} en el almacén`:'sin stock para mover'}</div></div>${h?`<button class="btn chico">${sel?'Agregada ✓':'Agregar'}</button>`:''}</div>`).join('')}
+      </div>
+      ${scan?`<p class="muted" style="font-size:12px;margin-top:8px">${ic('info')} Cada escaneo suma una. Con la pistola no hace falta tocar la pantalla.</p>`:''}
+      <div style="margin-top:12px">${LINEAS_NUEVO.map(l=>`<div class="linea">${foto(l.col)}<div class="nm"><div style="font-weight:500;font-size:13.5px">${l.prenda}</div><div class="muted" style="font-size:12px">${l.var} · hay ${l.hay}${l.pedido?` · <span style="color:var(--pizarra)">pedido para ${l.pedido}</span>`:''}</div></div><div class="step"><button>${ic('minus')}</button><span class="num">${l.cant}</span><button>${ic('plus')}</button></div>${m?'':`<button class="x">${ic('x')}</button>`}</div>`).join('')}</div>`;
+  }
+  const extras = (con('ped')?`<div class="sugiere">${ic('user')}<span style="flex:1">Tienda AQP te pidió <b>Blusa Emma L</b> para Carla M.: ya va en esta caja y se le aparta al llegar.</span></div>`:'')
+    + (con('sug')?`<div class="sugiere">${ic('bulb')}<span style="flex:1">Análisis sugiere sumar <b>3 Blusa Valentina S</b> para AQP.</span><button class="enl">Sumar</button></div>`:'')
+    + `<div class="sugiere" style="border-style:solid;border-color:var(--sand);background:transparent">${ic('grid')}<span style="flex:1">¿Son muchas? Márcalas en Existencias y toca «Trasladar»: llegan aquí cargadas.</span><button class="enl" data-ir="/inventario (Existencias) ▸ marcar varias ▸ Trasladar (ADR-0237)">Ir</button></div>`;
+  const resumen = `<div class="tarjeta resumen" style="padding:16px 18px">
+      <span class="lbl">La caja</span>
+      <div style="margin-top:8px">
+        <div class="rr"><span class="muted">Hacia</span><b style="font-weight:500">Tienda AQP</b></div>
+        <div class="rr"><span class="muted">Llega</span><b style="font-weight:500">Mañana</b></div>
+        <div class="rr"><span class="muted">Prendas</span><b style="font-weight:500" class="num">${total} · ${LINEAS_NUEVO.length} distintas</b></div>
+      </div>
+      <div class="resp" style="margin-top:12px"><i></i><span style="flex:1">Responsable: <b style="font-weight:600">Ana Q.</b></span><span class="enl" style="font-size:11.5px">Cambiar</span></div>
+      <button class="btn pri gr" style="width:100%;margin-top:12px" data-esc="guia">Enviar ${total} prendas a AQP</button>
+      <p class="muted" style="font-size:11.5px;margin-top:8px">Salen de tu almacén al enviar. Entran a AQP cuando las cuenten al recibirlas.</p>
+    </div>`;
+  return cabecera(m, {titulo:'Nuevo traslado', frase:'Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas.', pie:`<button class="volver" data-esc="lista">${ic('back')} Traslados</button>`})
+    + `<div class="form mt"><div class="tarjeta">
+        <div class="bloque"><span class="lbl">¿A qué sede va?</span>${sedes}</div>
+        <div class="bloque"><span class="lbl">¿Cuándo llega?</span>${llega}<div class="caja" style="margin-top:10px">Nota para quien recibe (opcional)</div></div>
+        <div class="bloque"><span class="lbl">Prendas que envías</span>${prendas}${extras}</div>
+        ${m?`<div class="bloque"><div class="resp"><i></i><span style="flex:1">Responsable: <b style="font-weight:600">Ana Q.</b></span><span class="enl" style="font-size:11.5px">Cambiar</span></div></div>`:''}
+      </div>${m?'':resumen}</div>`;
+}
+
+/* ---- RECIBIDO (detalle después de confirmar) ---- */
+function escRecibido(m){
+  const piso = S.lugar==='piso';
+  const lugar = piso ? 'al piso de venta' : 'al almacén';
+  const lineas = [
+    ['Vestido Antonella','M · rosado',1,C.rosado,'Apartada para Lucía R.'],
+    ['Blusa Valentina','S · blanca',2,C.blanco,''],
+    ['Top Nina','U · negro',1,C.negro,''],
+  ];
+  const sig = con('desp') ? `<div class="grupo-t" style="padding:20px 2px 8px"><h3>Lo siguiente</h3></div>
+      <div class="sig">
+        ${piso?'':`<button class="op pri" data-ir="/inventario/bajar?lineas=… (Bajar al piso, ya cargado con las 3 que se venden)">${ic('down')}<b>Bajar al piso</b><span>3 prendas quedaron en el almacén. Bájalas para que Vender las encuentre.</span></button>`}
+        <button class="op ${piso?'pri':''}" data-ir="/etiquetas-de-precio?variantes=… (lo que llegó)">${ic('tag')}<b>Imprimir etiquetas</b><span>De las 4 prendas que llegaron, con su precio de hoy.</span></button>
+        <button class="op" data-ir="WhatsApp a Lucía R.: «Tu vestido ya llegó a CAYLA Trujillo, te lo guardamos hasta el martes»">${ic('chat')}<b>Avisar a Lucía R.</b><span>Su vestido quedó apartado 3 días. Mándale un WhatsApp.</span></button>
+        ${piso?`<button class="op" data-ir="/inventario (Existencias) filtrado por lo que llegó">${ic('grid')}<b>Ver en Existencias</b><span>Las 4 prendas, dónde están y cuánto hay.</span></button>`:''}
+      </div>` : `<div style="margin-top:14px"><button class="btn" data-esc="lista">${ic('back')} Volver a Traslados</button></div>`;
+  return cabecera(m, {titulo:'Traslado 13', frase:'Tienda AQP → Tienda TRU · salió ayer 16:05 · recibido hoy 17:10', pie:`<button class="volver" data-esc="lista">${ic('back')} Traslados</button>`, acciones:'<span class="chip ver">Recibido</span>'})
+    + `<div class="tarjeta mt"><div class="exito"><span class="visto">${ic('check')}</span><div>
+        <div class="serif" style="font-size:24px;line-height:1.15">Todo coincidió: entraron 4 prendas ${lugar}</div>
+        <p class="muted" style="margin-top:2px">Contó Ana Q. a las 17:08. ${piso?'Ya se pueden vender.':'Para venderlas, primero bájalas al piso.'}</p></div></div></div>
+      ${sig}
+      <div class="tarjeta mt"><div class="grupo-t"><h3>Lo que llegó</h3><span class="muted" style="font-size:11.5px">contado = enviado</span></div>
+        ${lineas.map(([p,v,n,c,a])=>`<div class="lin-r">${foto(c,'width:30px;height:36px')}<div style="min-width:0"><div style="font-weight:500">${p}</div><div class="muted" style="font-size:12px">${v}${a?` · <span style="color:var(--pizarra)">${a}</span>`:''}</div></div><span class="num">${n}</span><span class="chip ver sin">${ic('check')}</span></div>`).join('')}
+      </div>`;
+}
+
+/* ---- GUÍA DE LA CAJA (después de enviar) ---- */
+function qrSvg(size){
+  // QR de mentira (determinístico) con sus tres ojos: solo ilustra.
+  const n=25, c=size/n; let r=''; let s=7;
+  const rnd=()=>{s=(s*9301+49297)%233280;return s/233280;};
+  const ojo=(x,y)=>`<rect x="${x*c}" y="${y*c}" width="${7*c}" height="${7*c}" fill="#111"/><rect x="${(x+1)*c}" y="${(y+1)*c}" width="${5*c}" height="${5*c}" fill="#fff"/><rect x="${(x+2)*c}" y="${(y+2)*c}" width="${3*c}" height="${3*c}" fill="#111"/>`;
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    const enOjo=(x<8&&y<8)||(x>n-9&&y<8)||(x<8&&y>n-9); if(enOjo) continue;
+    if(rnd()>.52) r+=`<rect x="${x*c}" y="${y*c}" width="${c}" height="${c}" fill="#111"/>`;
+  }
+  return `<svg class="qr" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${r}${ojo(0,0)}${ojo(n-7,0)}${ojo(0,n-7)}</svg>`;
+}
+function ticket(){
+  return `<div class="ticket">
+    <div class="c" style="letter-spacing:.3em;font-weight:700">CAYLA</div>
+    <div class="c">GUÍA DE TRASLADO</div>
+    <div class="c" style="font-size:18px;font-weight:700;margin-top:4px">Nº 15</div>
+    <hr>
+    <div class="row"><span>DE</span><b>Tienda TRU</b></div>
+    <div class="row"><span>A</span><b>Tienda AQP</b></div>
+    <div class="row"><span>SALIÓ</span><span>26/09 17:20</span></div>
+    <div class="row"><span>LLEGA</span><span>mañana</span></div>
+    <div class="row"><span>ENVÍA</span><span>Ana Q.</span></div>
+    <hr>
+    <div>BUSCA EN LA CAJA · ANOTA CUÁNTAS</div>
+    <div style="margin-top:6px;display:grid;gap:7px">
+      ${LINEAS_NUEVO.map(l=>`<div class="row"><span>${l.prenda} ${l.var}<br><span style="color:#777">${l.cod}</span></span><span class="box"></span></div>`).join('')}
+    </div>
+    <hr>
+    ${qrSvg(118)}
+    <div class="c" style="font-size:10.5px">Escanéalo con el celular al recibir:<br>abre el conteo de este traslado</div>
+  </div>`;
+}
+function escGuia(m){
+  const g = S.guia;
+  const wa = `<div><span class="lbl">Mensaje para Tienda AQP</span><div class="wa-msg" style="margin-top:8px">Hola AQP 👋 Va en camino el <b>Traslado 15</b> desde Trujillo: 3 prendas distintas, llega mañana. Cuéntalo al recibir aquí: <a>erp.cayla.pe/t/15</a></div>
+      <button class="btn wa gr" style="margin-top:10px;${m?'width:100%':''}" data-ir="Abre WhatsApp con el mensaje listo (wa.me), al grupo o número de la sede">${ic('chat')} Avisar por WhatsApp</button></div>`;
+  const impr = `<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri gr" style="${m?'flex:1':''}" data-ir="Imprime en la térmica de 80 mm (window.print con @page 80mm)">${ic('printer')} Imprimir guía</button><button class="btn gr" style="${m?'flex:1':''}" data-ir="Misma guía en A4">A4</button></div>`;
+  const titulo = `<div class="exito" style="padding:0 0 4px"><span class="visto">${ic('check')}</span><div><div class="serif" style="font-size:26px;line-height:1.15">Traslado 15 enviado a Tienda AQP</div><p class="muted">5 prendas salieron de tu almacén. Entran a AQP cuando las cuenten.</p></div></div>`;
+  const fin = `<div class="cierre" style="margin-top:16px"><button class="btn" data-esc="nuevo">+ Enviar otro traslado</button><button class="btn sut" data-esc="lista">Ver traslados</button></div>`;
+  const notaCiegas = (g==='qrwa'||g==='qr'||g==='wa') ? `<div class="nota" style="margin-top:14px">${ic('info')}<span>La guía y el mensaje <b>no dicen cuántas van</b>: la otra sede cuenta a ciegas (ADR-0239, D-130). Dicen qué buscar y traen la casilla para anotar.</span></div>` : '';
+  let cuerpo;
+  if (g==='nada'){
+    cuerpo = `<div class="tarjeta mt" style="padding:22px;text-align:center"><span class="lbl">Traslado enviado</span><div class="serif" style="font-size:34px">5 prendas</div><p class="muted">De Tienda TRU hacia Tienda AQP: en camino hasta que AQP las cuente al recibirlas.</p>${fin}</div>`;
+  } else if (g==='wa'){
+    cuerpo = `<div class="tarjeta mt" style="padding:20px">${titulo}<div style="margin-top:16px">${wa}</div>${notaCiegas}${fin}</div>`;
+  } else {
+    cuerpo = `<div class="tarjeta mt" style="padding:20px">${titulo}
+      <div class="guia-w" style="margin-top:18px">
+        <div>${ticket()}</div>
+        <div style="display:grid;gap:18px;align-content:start">
+          <div><span class="lbl">Pégala en la caja</span><p class="muted" style="font-size:12.5px;margin:4px 0 10px">Quien recibe escanea el QR y se abre el conteo de este traslado, sin buscarlo en la lista.</p>${impr}</div>
+          ${g==='qrwa'?wa:''}
+          ${notaCiegas}
+          ${fin}
+        </div>
+      </div></div>`;
+  }
+  return cabecera(m, {titulo:'Nuevo traslado', frase:'Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas.', pie:`<button class="volver" data-esc="lista">${ic('back')} Traslados</button>`}) + cuerpo;
+}
+
+/* ---- hojas ---- */
+function hoja(m){
+  if (S.hoja==='scan') return `<div class="velo" data-cerrar><div class="hoja">
+      <button class="cerrar" data-cerrar>${ic('x')}</button>
+      <h2>Escanear</h2><p class="muted" style="font-size:13px">Apunta al <b>QR de la guía</b> de la caja o a la <b>etiqueta de una prenda</b>.</p>
+      <div class="camara"><div class="mira"></div><div class="linea-s"></div><p>Buscando código…</p></div>
+      <div class="tarea" style="padding:12px 0 0;border:0;grid-template-columns:auto minmax(0,1fr) auto"><span class="ico rojo">${ic('box')}</span><div><div class="t1">Traslado 14 · del Taller</div><div class="t2">La prenda escaneada viene en este traslado</div></div><button class="btn chico pri" data-ir="/inventario/traslados/14 · recibir">Recibir</button></div>
+    </div></div>`;
+  if (S.hoja==='pedir') return `<div class="velo" data-cerrar><div class="hoja">
+      <button class="cerrar" data-cerrar>${ic('x')}</button>
+      <h2>Pedir a otra sede <span class="tag-nuevo">nuevo · pide migración</span></h2>
+      <p class="muted" style="font-size:13px;margin-top:2px">La otra sede lo ve en su «Por enviar» y lo despacha con un toque.</p>
+      <div style="margin-top:14px"><span class="lbl">¿A quién?</span><div class="sedes" style="margin-top:8px"><button class="sede-b on"><b>Taller</b><span>tiene 11</span></button><button class="sede-b"><b>Tienda AQP</b><span>tiene 3</span></button><button class="sede-b"><b>Tienda LIM</b><span>tiene 0</span></button></div></div>
+      <div style="margin-top:14px"><span class="lbl">¿Qué necesitas?</span><div class="buscar" style="margin-top:8px">${ic('search')}<input placeholder="Escribe o escanea la prenda"></div>
+        <div class="linea" style="border:0">${foto(C.gris)}<div class="nm"><div style="font-weight:500">Blusa Carlita</div><div class="muted" style="font-size:12px">M · gris · aquí tienes 0</div></div><div class="step"><button>${ic('minus')}</button><span>2</span><button>${ic('plus')}</button></div></div></div>
+      <div class="caja" style="margin-top:6px">¿Por qué? (opcional) · «se acabó la talla M»</div>
+      <button class="btn pri gr" style="width:100%;margin-top:14px" data-ir="pedir_a_otra_sede (función nueva)">Enviar pedido al Taller</button>
+    </div></div>`;
+  return '';
+}
+
+/* ============================ armar las dos pantallas ============================ */
+function cuerpo(m){
+  return S.esc==='lista' ? escLista(m) : S.esc==='nuevo' ? escNuevo(m) : S.esc==='recibido' ? escRecibido(m) : escGuia(m);
+}
+function lateral(){
+  const a = (t,i,on,bd,sub)=>`<a class="${sub?'sub':''} ${on?'on':''}">${ic(i)} ${t}${bd?`<span class="bd">${bd}</span>`:''}</a>`;
+  return `<nav class="lat"><div class="logo"><i></i>CAYLA</div>
+    ${a('Inicio','home')}${a('Ventas','bag')}${a('Inventario','box')}
+    ${a('Existencias','box',false,0,1)}${a('Movimientos','swap',false,0,1)}${a('Traslados','truck',true,con('ped')?4:2,1)}${a('Conteo','clip',false,0,1)}${a('Análisis','chart',false,0,1)}
+    ${a('Catálogo','grid')}${a('Compras','cart')}${a('Finanzas','wallet')}</nav>`;
+}
+function pintar(){
+  document.getElementById('pc').innerHTML = `<div class="app">${lateral()}<div><div class="top"><span class="muted" style="font-size:11px;letter-spacing:.12em;font-weight:600">ACTIVIDAD</span><span class="sede">TIENDA TRU ▾</span></div><div class="main">${cuerpo(false)}</div></div></div>${S.solo!=='tel'?hojaPC():''}`;
+  document.getElementById('tel').innerHTML = `<div class="m"><div class="tel-top"><span class="logo"><i></i>CAYLA</span><span class="sede">TIENDA TRU ▾</span></div><div class="main">${cuerpo(true)}</div></div>`;
+  // Botón fijo del celular: acción de ESTA pantalla (ADR-0206: no hay barra de navegación inferior).
+  let fijo = '';
+  if (S.esc==='lista') fijo = `<div class="fijo"><button class="btn" data-hoja="scan">${ic('scan')} Escanear</button><button class="btn pri" data-esc="nuevo">+ Nuevo traslado</button></div>`;
+  if (S.esc==='nuevo') fijo = `<div class="fijo"><button class="btn pri" data-esc="guia">Enviar 5 prendas a AQP</button></div>`;
+  document.getElementById('tel-fijo').innerHTML = fijo;
+  document.getElementById('tel-hoja').innerHTML = `<div class="m">${hoja(true)}</div>`;
+  pintarBarra(); pintarNotas();
+}
+function hojaPC(){ return S.hoja ? hoja(false) : ''; }
+
+/* ============================ barra del demo ============================ */
+function seg(nombre, clave, opciones, multi){
+  return `<div class="g"><span>${nombre}</span><div class="seg ${multi?'multi':''}">${opciones.map(([v,t])=>{
+    const on = multi ? S.con.includes(v) : S[clave]===v;
+    return `<button aria-pressed="${on}" data-set="${clave}" data-v="${v}">${t}</button>`;}).join('')}</div></div>`;
+}
+function pintarBarra(){
+  document.getElementById('spk').innerHTML = `<span class="tit">Traslados · spike</span>`
+    + seg('Pantalla','esc',[['lista','Traslados'],['nuevo','Nuevo traslado'],['guia','Al enviar'],['recibido','Al recibir']])
+    + (S.esc==='lista' ? seg('Lista','lista',[['tabs','Pestañas'],['cifras','Cifras + tabla'],['hoy','Hoy te toca']]) : '')
+    + (S.esc==='nuevo' ? seg('Agregar prendas','agregar',[['scan','Escanear + buscar'],['buscar','Solo buscar'],['combo','Combo (hoy)']]) : '')
+    + (S.esc==='guia' ? seg('Con la caja','guia',[['qrwa','Guía QR + WhatsApp'],['qr','Solo guía QR'],['wa','Solo WhatsApp'],['nada','Nada (hoy)']]) : '')
+    + (S.esc==='recibido' ? seg('Entró a','lugar',[['almacen','Almacén'],['piso','Piso de venta']]) : '')
+    + seg('Conexiones','con',[['ped','Pedidos de tiendas'],['desp','Después de recibir'],['sug','Sugeridos'],['pedir','Pedir a otra sede']], true);
+}
+
+/* ============================ notas debajo ============================ */
+function pintarNotas(){
+  const n = {
+    lista: {
+      tabs:'<b>Pestañas.</b> Se van la franja «necesita tu acción», las 4 tarjetas, las píldoras de dirección y «Más filtros»: la pestaña con número rojo ya dice lo que pide acción. En el celular el primer traslado aparece a ~330 px (hoy ~990). «Por enviar» junta los pedidos de otras tiendas y los sugeridos. El historial trae el buscador (también por código de etiqueta, hallazgo §17).',
+      cifras:'<b>Cifras + tabla.</b> Es lo de hoy sin lo redundante: sin la franja, sin «Prendas en tránsito» (un total que no lleva a nada) y sin la nota del pie. Las conexiones entran como avisos arriba. Sigue habiendo dos lugares que filtran (cifras y píldoras).',
+      hoy:'<b>Hoy te toca.</b> Una bandeja de tareas: cada tarjeta es algo que hacer ahora (contar, enviar un pedido, un sugerido), con su botón. Debajo, todo lo demás sin filtros. Es la más clara para una colaboradora nueva; la más larga cuando hay muchos traslados abiertos.',
+    }[S.lista],
+    nuevo: {
+      scan:'<b>Escanear + buscar.</b> La pistola (o la cámara del celular) suma de a una prenda; escribiendo «blusa emma l» busca por palabras, con foto, talla, color y cuánto hay. La cantidad se corrige con − / +. El destino son 3 botones y la llegada, chips (el día basta: la hora exacta no la usa nadie).',
+      buscar:'<b>Solo buscar.</b> Igual, sin pistola ni cámara. Más simple de construir; más lento con 20 prendas.',
+      combo:'<b>Combo (hoy).</b> Un combo por línea con el texto largo de la variante. Se conservan destino en botones y llegada en chips.',
+    }[S.agregar],
+    guia: {
+      qrwa:'<b>Guía con QR + WhatsApp.</b> La guía va pegada en la caja: quien recibe escanea el QR con el celular y se abre el conteo de ESE traslado. El WhatsApp avisa a la otra sede antes de que llegue. Ninguno dice cuántas van (conteo a ciegas).',
+      qr:'<b>Solo guía con QR.</b> El papel viaja con la caja; no hay aviso previo.',
+      wa:'<b>Solo WhatsApp.</b> Aviso previo con enlace directo; sin papel en la caja.',
+      nada:'<b>Nada (hoy).</b> La otra sede lo encuentra en su lista «Por recibir».',
+    }[S.guia],
+    recibido: S.lugar==='almacen' ? '<b>Entró al almacén.</b> Lo primero que ofrece es «Bajar al piso» con las prendas ya cargadas: es el paso que hoy se olvida y termina en «está en el almacén» al cobrar.' : '<b>Entró al piso.</b> Ya se vende: lo primero son las etiquetas.',
+  }[S.esc];
+  document.getElementById('notas').innerHTML = `<h2>Qué estás viendo</h2><p>${n}</p>
+    <h2 style="margin-top:14px">Conexiones, de más a menos beneficio para la colaboradora</h2>
+    <ol>
+      <li><b>Después de recibir</b> (etiquetas, bajar al piso, avisar a la clienta): pasa con CADA caja que llega y evita el error más caro de hoy (vender lo que «no está»). Sin migración.</li>
+      <li><b>Pedidos de otras tiendas</b> (ADR-0233): hay una clienta esperando en otra sede; hoy el pedido vive solo en Apartados y quien despacha no lo ve. Sin migración.</li>
+      <li><b>Sugeridos para enviar</b> (Análisis): ahorra pensar qué mandar, pero decide sobre todo el líder o la encargada; se muestra solo a quien ve Análisis. Sin migración.</li>
+      <li><b>Pedir a otra sede</b>: útil, pero es un modelo nuevo (tabla y funciones) y se cruza con los pedidos para apartar. Conviene después, como extensión de ADR-0233 con la clienta opcional.</li>
+    </ol>`;
+}
+
+/* ============================ interacción ============================ */
+let tDestino;
+function mostrarDestino(t){ const d=document.getElementById('destino'); d.textContent='Iría a: '+t; d.classList.add('on'); clearTimeout(tDestino); tDestino=setTimeout(()=>d.classList.remove('on'),2600); }
+document.addEventListener('click', e=>{
+  const set = e.target.closest('[data-set]');
+  if (set){ const k=set.dataset.set, v=set.dataset.v;
+    if (k==='con') S.con = S.con.includes(v) ? S.con.filter(x=>x!==v) : [...S.con, v]; else S[k]=v;
+    if (k==='esc') S.hoja=null; pintar(); return; }
+  const esc = e.target.closest('[data-esc]'); if (esc){ S.esc=esc.dataset.esc; S.hoja=null; pintar(); return; }
+  const tab = e.target.closest('[data-tab]'); if (tab){ S.tab=tab.dataset.tab; pintar(); return; }
+  const h = e.target.closest('[data-hoja]'); if (h){ S.hoja=h.dataset.hoja; pintar(); return; }
+  if (e.target.closest('[data-cerrar]') && (e.target.matches('.velo') || e.target.closest('.cerrar'))){ S.hoja=null; pintar(); return; }
+  const ir = e.target.closest('[data-ir]'); if (ir){ mostrarDestino(ir.dataset.ir); }
+});
+document.addEventListener('keydown', e=>{ if (e.key==='Escape' && S.hoja){ S.hoja=null; pintar(); } });
+if (S.solo) document.querySelector('.escena').classList.add('solo');
+if (S.solo==='pc') document.querySelector('.col-tel').style.display='none';
+if (S.solo==='tel') document.querySelector('.col-pc').style.display='none';
+pintar();
+</script>
+</body>
+</html>
