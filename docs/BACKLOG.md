@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Un solo combo en todo el ERP: sin `<select>` del navegador y una prueba que lo vigila (2026-09-26, ADR-0209 act. b) — solo web, sin migración; rama `claude/activity-combo-box-style-819a5d`
+## 🎯 Un solo combo en todo el ERP: sin `<select>` del navegador y una prueba que lo vigila (2026-09-26, ADR-0209 act. b) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
 Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prueba que avise si aparece uno nuevo y que el diseño del sistema sea el de siempre. Eligió incluir Finanzas.
 - [x] `Desplegable` aprendió grupos (`Opcion.grupo`), opciones que se ven y no se eligen (`Opcion.deshabilitada`), `id`, `ref` y las formas `fin`/`finEnLinea` de Finanzas (reglas en `lib/combo-reglas.ts`, con pruebas).
 - [x] Migrados: Devoluciones pendientes, Medios de pago, Apartados, los combos de cuentas (`opcionesDeCuenta`), «Decidir todas» de Recibir, el medio de la diferencia en Cambios y los 44 combos de Finanzas (18 archivos). Borrados `SelectNativo`, `CampoSelectNativo`, `campoSelect`, `OpcionesCuenta` y `OpcionesDecision`.
@@ -38,7 +38,7 @@ Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prue
 - [ ] **Con sesión (falta):** recorrer Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre contra el spike al mismo ancho (regla del ADR-0195), y `/cambios` y `/devoluciones` a 375 px con captura (PL-105).
 - Cómo verificas: en Finanzas ▸ Gastos, «+ Registrar gasto» → «Proveedor»: cerrado se ve como siempre; abierto trae buscador (escribe parte del nombre). En cualquier «Sale de» con efectivo: los cajones van bajo su título y uno con la caja cerrada se ve gris y no se puede elegir.
 
-## 🩹 El combo de Actividad no era el del sistema (2026-09-26, ADR-0209 act.) — solo web, sin migración; rama `claude/activity-combo-box-style-819a5d`
+## 🩹 El combo de Actividad no era el del sistema (2026-09-26, ADR-0209 act.) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
 - [x] Panel «Actividad» de la cabecera y `/actividad`: sus combos (Módulo; en la pantalla también Sede y Persona) eran el `<select>` del navegador dentro de una caja, con el hilo dibujado adentro, otra flecha y la lista del sistema operativo. Ahora son `Desplegable` en caja, medidos iguales al de «Quién vendió» (Por regularizar). Lo elegido siempre está en la lista (`opcionesDeModulo`, `opcionesDePersona`, 3 pruebas). Verificado con un banco de pruebas sin sesión (escritorio y 375 px); falta el clic con sesión real.
 - [ ] **Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito. Radix escucha Escape en la captura del `document`, antes que el combo: el `stopPropagation` de `Desplegable` y `ComboResponsable` llega tarde. Propuesta: `onEscapeKeyDown` en `Modal.tsx` que no cierre la hoja si dentro hay un combo desplegado.
 - [x] ~~Quedan `<select>` nativos que la migración del ADR-0209 no alcanzó~~ — migrados todos, Finanzas incluida, y vigilados por una prueba: ver «Un solo combo en todo el ERP», arriba.
