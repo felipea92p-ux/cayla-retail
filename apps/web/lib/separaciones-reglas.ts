@@ -375,6 +375,7 @@ export const FUNCIONES_APARTADOS = [
   { clave: "clienta", grupo: "Apartar", titulo: "Clienta por DNI o celular", texto: "Busca a la clienta en la ficha y llena sus datos solos." },
   { clave: "qr", grupo: "Apartar", titulo: "Cámara QR en el celular", texto: "El mismo escáner de Vender, para apartar sin pistola." },
   { clave: "estante", grupo: "Apartar", titulo: "Estante «Apartados»", texto: "Cada apartado recibe su lugar (A-01, A-02…) para encontrarlo al entregar." },
+  { clave: "otra_sede", grupo: "Apartar", titulo: "Pedir a otra sede", texto: "Si aquí no queda, se pide a la tienda que la tiene y al llegar se guarda sola." },
   { clave: "abonos", grupo: "Cobro", titulo: "Abonos a cuenta", texto: "Pagar una parte antes de recoger, las veces que quiera." },
   { clave: "editar", grupo: "Cobro", titulo: "Editar un apartado abierto", texto: "Sumar, quitar o cambiar la talla sin liberar y volver a apartar." },
   { clave: "lote", grupo: "Seguimiento", titulo: "Recordar en lote", texto: "Escribirles una por una a las que vencen pronto, con el mensaje listo." },
@@ -398,5 +399,54 @@ export function presetDe(apagadas: readonly string[]): keyof typeof PRESETS_APAR
     if (p.encendidas.length === on.size && p.encendidas.every((c) => on.has(c))) return k as keyof typeof PRESETS_APARTADOS;
   }
   return null;
+}
+
+// ---- Pedir a otra sede para apartar (20260927140000) -------------------------------------------------------------
+
+export type EstadoPedido = "pedido" | "en_camino" | "llego" | "apartado" | "cancelado";
+/** Un pedido entre tiendas: `pedi` = esta tienda lo pidió para su clienta; `me_piden` = otra tienda se lo pide a esta. */
+export type PedidoApartado = {
+  id: string;
+  direccion: "pedi" | "me_piden";
+  otraSede: string;
+  varianteId: string;
+  cantidad: number;
+  nombres: string;
+  apellidos: string;
+  celular: string;
+  nota: string | null;
+  estado: EstadoPedido;
+  creadoEn: string;
+  guardadaHasta: string | null;
+  trasladoNumero: number | null;
+  canceladoMotivo: string | null;
+};
+
+export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
+  return {
+    id: String(f.id),
+    direccion: f.direccion === "me_piden" ? "me_piden" : "pedi",
+    otraSede: String(f.otra_sede ?? ""),
+    varianteId: String(f.variante_id),
+    cantidad: Number(f.cantidad ?? 1),
+    nombres: String(f.clienta_nombres ?? ""),
+    apellidos: String(f.clienta_apellidos ?? ""),
+    celular: String(f.clienta_celular ?? ""),
+    nota: (f.nota as string | null) ?? null,
+    estado: f.estado as EstadoPedido,
+    creadoEn: String(f.created_at),
+    guardadaHasta: (f.guardada_hasta as string | null) ?? null,
+    trasladoNumero: f.traslado_numero == null ? null : Number(f.traslado_numero),
+    canceladoMotivo: (f.cancelado_motivo as string | null) ?? null,
+  };
+}
+
+/** Lo que dice el chip de un pedido, según de qué lado se mira. */
+export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion" | "otraSede">): string {
+  if (p.estado === "pedido") return p.direccion === "pedi" ? `Pedido a ${p.otraSede}` : `${p.otraSede} lo pide`;
+  if (p.estado === "en_camino") return p.direccion === "pedi" ? `En camino desde ${p.otraSede}` : `Enviado a ${p.otraSede}`;
+  if (p.estado === "llego") return p.direccion === "pedi" ? "Llegó · guardada" : `Llegó a ${p.otraSede}`;
+  if (p.estado === "apartado") return "Apartado con adelanto";
+  return "Cancelado";
 }
 

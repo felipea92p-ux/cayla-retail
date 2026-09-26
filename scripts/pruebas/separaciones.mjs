@@ -569,6 +569,59 @@ error("opciones: una función que no existe no se guarda",
 select retail.guardar_opciones_apartados(:'ubic', array['vuela']);`, "violates check constraint");
 
 // ---------------------------------------------------------------------------
+// Apartar de otra sede (20260927140000): pedir, enviar, llegar guardada, apartar con adelanto
+// ---------------------------------------------------------------------------
+// Lima tiene la prenda en su almacén; la clienta está en Trujillo. Todo como Felipe (líder: opera las dos tiendas).
+const conLima = `select id as lima from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'lima', 'Almacén de tienda', 'almacen_tienda'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'lima' and tipo = 'almacen_tienda');
+select retail.fn_sububicacion_por_defecto(:'lima', 'traslado_salida') as alm_lima \\gset
+insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo)
+  values (:'v', :'lima', :'alm_lima', 'entrada', 5, 'colchón de prueba Lima') returning id as ml \\gset
+select retail.fn_aplicar_movimiento(:'ml') as _al \\gset
+`;
+const pedir = (como = "ped") => `select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222', 'la quiere para el sábado') as ${como} \\gset\n`;
+const enviarYRecibir = `select retail.enviar_pedido_para_apartar(:'ped', now() + interval '1 day') as tr \\gset
+select retail.registrar_recepcion_traslado(:'tr', :'v', 1) as _rr \\gset
+select * from retail.confirmar_traslado(:'tr') \\gset
+`;
+exito("otra sede: pedir queda «pedido» y no toca el stock de la otra tienda",
+  `${preparar(FELIPE)}${conLima}${pedir()}
+select pe.estado, (select sum(cantidad_apartada) from retail.stock where variante_id = :'v' and ubicacion_id = :'lima')
+  from retail.separacion_pedidos pe where pe.id = :'ped';`,
+  (x) => x === "pedido|0");
+exito("otra sede: al cerrar el traslado, la prenda queda guardada sola para la clienta en el almacén",
+  `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
+select pe.estado, a.estado, a.clienta_nombre, a.sububicacion_id = retail.fn_sububicacion_por_defecto(:'ubic', 'traslado_entrada'),
+       (select count(*) from retail.fn_pedidos_para_apartar(:'ubic') f where f.id = :'ped' and f.direccion = 'pedi' and f.guardada_hasta is not null)
+  from retail.separacion_pedidos pe join retail.apartados a on a.id = pe.apartado_id where pe.id = :'ped';`,
+  (x) => x === "llego|abierto|Ana Lozano|t|1");
+exito("otra sede: con el adelanto se suelta la reserva, pasa al piso y queda un apartado de verdad, todo junto",
+  `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
+select retail.separar_pedido_para_apartar(:'ped', jsonb_build_object(
+  'p_ubicacion_id', :'ubic', 'p_items', ${items(1)}, 'p_pagos', ${pagos(["yape", 30])},
+  'p_clienta_nombres', 'Ana', 'p_clienta_apellidos', 'Lozano', 'p_clienta_celular', '987111222', 'p_devolucion_medio', 'yape')) as sep2 \\gset
+select pe.estado, pe.separacion_id = :'sep2', (select estado from retail.apartados where id = pe.apartado_id),
+       (select s.estado || ':' || s.adelanto || ':' || (s.estante is not null) from retail.separaciones s where s.id = :'sep2'),
+       (select count(*) from retail.fn_verificar_separaciones()), (select count(*) from retail.fn_verificar_apartados())
+  from retail.separacion_pedidos pe where pe.id = :'ped';`,
+  (x) => x === "apartado|t|liberado|abierta:30.00:true|0|0");
+error("otra sede: no se pide lo que la otra tienda no tiene",
+  `${preparar(FELIPE)}${conLima}
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 99, 'Ana', 'Lozano', '987111222');`,
+  "ya no tiene disponible");
+exito("otra sede: cancelar lo que ya llegó suelta la reserva",
+  `${preparar(FELIPE)}${conLima}${pedir()}${enviarYRecibir}
+select retail.cancelar_pedido_para_apartar(:'ped', 'ya no la quiere') as _c \\gset
+select pe.estado, (select estado from retail.apartados where id = pe.apartado_id) from retail.separacion_pedidos pe where pe.id = :'ped';`,
+  (x) => x === "cancelado|liberado");
+error("otra sede: sin el módulo Apartados no se pide",
+  `${preparar(FELIPE)}${conLima}
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.pedir_prenda_para_apartar(:'ubic', :'lima', :'v', 1, 'Ana', 'Lozano', '987111222');`, "no tiene el módulo Apartados");
+
+// ---------------------------------------------------------------------------
 let ok = 0;
 const fallos = [];
 try { execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]); } catch {

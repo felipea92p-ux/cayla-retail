@@ -15,12 +15,15 @@ import {
   estadoVisible,
   formatoCelular,
   textoDevolucion,
+  textoEstadoPedido,
   type Apartado,
+  type PedidoApartado,
   type AvisoApartado,
   type ClaveEstado,
 } from "@/lib/separaciones-reglas";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { DevolverModal, ExtenderModal, LiberarModal, RecordarModal } from "@/components/apartados/ModalesApartado";
+import { CancelarPedidoModal, DevolverModal, EnviarPedidoModal, ExtenderModal, LiberarModal, RecordarModal } from "@/components/apartados/ModalesApartado";
+import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
@@ -76,6 +79,8 @@ export function TodosVista({
   avisos,
   irAEntregar,
   apagadas = [],
+  pedidos = [],
+  onApartarPedido,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -89,6 +94,9 @@ export function TodosVista({
   irAEntregar: (id: string) => void;
   /** Lo que la tienda apagó en «Opciones» (paso 5). */
   apagadas?: string[];
+  /** Pedidos a otras tiendas para apartar (20260927140000). */
+  pedidos?: PedidoApartado[];
+  onApartarPedido?: (p: PedidoApartado) => void;
 }) {
   const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
   const [filtro, setFiltro] = useState<Filtro>("hoy");
@@ -107,6 +115,10 @@ export function TodosVista({
   const conLote = encendida(apagadas, "lote");
   const conEstante = encendida(apagadas, "estante");
   const conAbonos = encendida(apagadas, "abonos");
+  const conOtraSede = encendida(apagadas, "otra_sede");
+  const [enviarPedido, setEnviarPedido] = useState<PedidoApartado | null>(null);
+  const [cancelarPedido, setCancelarPedido] = useState<PedidoApartado | null>(null);
+  const prendaDe = (id: string) => (prendas as PrendaApartable[]).find((p) => p.varianteId === id);
   // «Qué ver» (spike Apartados v2): qué lleva cada fila. Es comodidad de quien mira, así que vive en SU navegador; si el
   // navegador no deja guardar, queda lo de fábrica.
   const crudo = useSyncExternalStore(suscribirQueVer, leerQueVer, () => null);
@@ -177,6 +189,54 @@ export function TodosVista({
             </button>
           )}
         </div>
+      )}
+
+      {conOtraSede && pedidos.length > 0 && (
+        <section className="rounded-2xl border border-sand">
+          <h3 className="font-display flex items-baseline gap-2 border-b border-sand px-5 py-3 text-lg text-tinta">
+            Pedidos entre tiendas <span className="font-sans text-[11px] text-tinta/55">{pedidos.length}</span>
+          </h3>
+          <ul className="divide-y divide-sand">
+            {pedidos.map((pe) => {
+              const pr = prendaDe(pe.varianteId);
+              const activo = pe.estado === "pedido" || pe.estado === "en_camino" || pe.estado === "llego";
+              return (
+                <li key={pe.id} className="flex flex-wrap items-center gap-3 px-5 py-3">
+                  <FotoPrenda fotoUrl={pr?.fotoUrl} referencia={pr?.referencia ?? "Prenda"} ancho={32} className="w-8" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {pr?.referencia ?? "Prenda"} <span className="font-normal text-tinta/60">{[pr?.color, pr?.talla].filter(Boolean).join(" · ")}</span>
+                    </p>
+                    <p className="text-xs text-tinta/60">
+                      {pe.direccion === "pedi" ? "Para" : "Para la clienta de " + pe.otraSede + ":"} {pe.nombres} {pe.apellidos}
+                      {pe.guardadaHasta && ` · guardada hasta el ${fechaCorta(pe.guardadaHasta)}`}
+                      {pe.trasladoNumero != null && ` · traslado N.º ${pe.trasladoNumero}`}
+                      {pe.estado === "cancelado" && pe.canceladoMotivo && ` · ${pe.canceladoMotivo}`}
+                    </p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] ${pe.estado === "llego" ? "bg-verde/10 text-verde-profundo" : pe.estado === "cancelado" ? "bg-hueso text-tinta/60" : "bg-pizarra/10 text-pizarra"}`}>
+                    {textoEstadoPedido(pe)}
+                  </span>
+                  <div className="flex gap-1.5">
+                    {pe.direccion === "me_piden" && pe.estado === "pedido" && (
+                      <button type="button" onClick={() => setEnviarPedido(pe)} className={BOTON_CHICO_NEGRO}>Enviar</button>
+                    )}
+                    {pe.direccion === "pedi" && pe.estado === "llego" && onApartarPedido && (
+                      <button type="button" onClick={() => onApartarPedido(pe)} disabled={!cajaAbierta} title={cajaAbierta ? undefined : "Abre la caja para cobrar el adelanto."} className={BOTON_CHICO_NEGRO}>
+                        Apartar con adelanto
+                      </button>
+                    )}
+                    {activo && pe.estado !== "en_camino" && (
+                      <button type="button" onClick={() => setCancelarPedido(pe)} className={BOTON_CHICO}>
+                        {pe.direccion === "me_piden" ? "No la tenemos" : "Cancelar"}
+                      </button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -311,6 +371,8 @@ export function TodosVista({
         })
       )}
 
+      {enviarPedido && <EnviarPedidoModal pedido={enviarPedido} prenda={prendaDe(enviarPedido.varianteId)} ubicacion={ubicacion} onClose={() => setEnviarPedido(null)} />}
+      {cancelarPedido && <CancelarPedidoModal pedido={cancelarPedido} ubicacion={ubicacion} onClose={() => setCancelarPedido(null)} />}
       {recordar && (
         <RecordarModal
           cola={recordar}

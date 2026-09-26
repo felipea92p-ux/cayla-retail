@@ -697,7 +697,8 @@ Abonos, estante, editar, actividad, opciones por tienda, clienta por DNI y «Qu�
 - [x] Migraciones + `pnpm pruebas:separaciones` 71/71 en el Postgres local; web con tipos, lint y pruebas en verde; vista a 1440 y 375 px con datos de prueba.
 - [x] **Pegadas en producción** el 2026-09-26 con el OK de Felipe (por el MCP, en orden; antes se verificó que `entregar_separacion`, `registrar_devolucion_separacion` y `buscar_separaciones` seguían idénticas a las leídas): 5 tablas con RLS y 0 políticas, 5 funciones solo para `authenticated`, 7 disparadores, APT-TRU-0005 con estante A-01, `fn_verificar_separaciones` 0 problemas; lectura como líder (en transacción revertida) trae estante, id de prenda y fecha de pago.
 - [ ] Refrescar el diccionario tras pegarlas; probar con clics reales en TRU: abonar (con y sin espera), editar la talla, ver el estante, la Actividad y las Opciones.
-- [ ] **Apartar de otra sede — decidido por Felipe (2026-09-26): «pedir traslado y apartar al llegar»** (TRU pide a AQP con el nombre de la clienta; al recibirla en TRU se aparta sola). Va en su propio PR: toca Traslados.
+- [x] **Apartar de otra sede (ADR-0233)** — «pedir traslado y apartar al llegar»: migración `20260927140000` (tabla `separacion_pedidos`, disparador sobre `transferencias`, sin reescribir Traslados); `pruebas:separaciones` 77/77. En el mismo PR #495.
+- [ ] Pedidos entre tiendas: la tienda que envía necesita el módulo Apartados para ver «Enviar» en su «Todos» (o Traslados, que la base también acepta, pero sin pantalla propia todavía).
 - [x] **Editar a un total menor que lo pagado — decidido por Felipe (2026-09-26): no se permite** (como ya hace `editar_separacion`).
 - [ ] Hueco previo (no de este cambio): en el Postgres local de esta máquina hay dos `registrar_movimiento_caja` (sobrecarga de otra sesión) y `pruebas:actividad`/`pruebas:actor-firma` fallan por ambigüedad; el CI arma la base desde cero.
 

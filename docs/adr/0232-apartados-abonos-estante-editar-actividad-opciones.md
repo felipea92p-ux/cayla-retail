@@ -51,9 +51,10 @@ cada prenda.
 - **«Qué ver»** en Todos: qué datos lleva cada fila. Es comodidad de quien mira, así que vive en su navegador
   (`localStorage`, con lo de fábrica si no se puede guardar).
 
-## Lo que NO entró
+## Lo que NO entró (y cómo se resolvió)
 
-**Apartar de otra sede.** Toca Traslados, otro módulo. Hoy `iniciar_traslado` no puede despachar una prenda apartada
+**Apartar de otra sede** — resuelto el mismo día en **ADR-0233** («pedir el traslado y apartar al llegar», decisión de Felipe).
+Lo que sigue es por qué no entró en este paso. Toca Traslados, otro módulo. Hoy `iniciar_traslado` no puede despachar una prenda apartada
 en la sede de origen, y la entrega vende desde la sede del apartado. Hacerlo bien exige reescribir funciones de
 Traslados, y es una decisión de varios módulos que se confirma con Felipe antes (CLAUDE.md, «Reglas de ejecución»).
 

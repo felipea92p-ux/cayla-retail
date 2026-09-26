@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bookmark, Clock, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
-import { estadoVisible, TOPE_SEPARACIONES, type Apartado, type AvisoApartado } from "@/lib/separaciones-reglas";
+import { estadoVisible, TOPE_SEPARACIONES, type Apartado, type AvisoApartado, type PedidoApartado } from "@/lib/separaciones-reglas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
@@ -34,6 +34,10 @@ type Props = {
   apagadas?: string[];
   /** Solo el líder cambia las opciones (`guardar_opciones_apartados`). */
   esLider?: boolean;
+  /** Pedidos a otras tiendas para apartar (hechos y recibidos). */
+  pedidos?: PedidoApartado[];
+  /** Las otras tiendas, con su nombre corto (AQP, LIM…), para pedirles una prenda. */
+  tiendas?: { id: string; nombre: string }[];
 };
 
 /**
@@ -45,6 +49,8 @@ export function ApartadosPanel(props: Props) {
   const [vista, setVista] = useState<Vista>("apartar");
   const [elegido, setElegido] = useState<string | null>(null);
   const [opciones, setOpciones] = useState(false);
+  // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
+  const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
   const apagadas = props.apagadas ?? [];
   const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
 
@@ -118,13 +124,28 @@ export function ApartadosPanel(props: Props) {
       )}
 
       {vista === "apartar" && (
-        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} lineasIniciales={props.lineasDesdeTicket} apagadas={apagadas} />
+        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas}
+          lineasIniciales={pedidoParaApartar ? undefined : props.lineasDesdeTicket}
+          apagadas={apagadas}
+          tiendas={props.tiendas ?? []}
+          pedido={pedidoParaApartar}
+          key={pedidoParaApartar?.id ?? "apartar"}
+          onPedidoHecho={() => setPedidoParaApartar(null)}
+        />
       )}
       {vista === "entregar" && (
         <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} />
       )}
       {vista === "todos" && (
-        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}} irAEntregar={irAEntregar} apagadas={apagadas} />
+        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}
+          irAEntregar={irAEntregar}
+          apagadas={apagadas}
+          pedidos={props.pedidos ?? []}
+          onApartarPedido={(p) => {
+            setPedidoParaApartar(p);
+            irA("apartar");
+          }}
+        />
       )}
 
       {opciones && (

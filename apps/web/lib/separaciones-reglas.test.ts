@@ -244,7 +244,7 @@ describe("abonos y opciones", () => {
     expect(encendida([], "abonos")).toBe(true);
     expect(encendida(["abonos"], "abonos")).toBe(false);
     expect(presetDe(["abonos"])).toBe(null);
-    expect(presetDe(["editar"])).toBe("recomendado");
+    expect(presetDe(["editar", "otra_sede"])).toBe("recomendado");
     expect(presetDe(FUNCIONES_APARTADOS.map((f) => f.clave))).toBe("esencial");
   });
   it("una fila sin id ni estante (base vieja) se lee igual", () => {

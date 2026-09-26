@@ -22,6 +22,7 @@ import {
   diasEsperaPorAbono,
   presetDe,
   type FuncionApartados,
+  type PedidoApartado,
   PLAZO_DIAS,
   enlaceWhatsapp,
   estadoVisible,
@@ -948,6 +949,187 @@ export function OpcionesApartadosModal({ ubicacion, apagadas: inicial, onClose }
             <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
             <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => guardar(cerrar)} className={botonPrimario}>
               {enviando ? "Guardando…" : "Guardar opciones"}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/**
+ * Pedir a otra sede para apartar (20260927140000; Felipe: «pedir traslado y apartar al llegar»). La otra tienda la envía
+ * por traslado y, al cerrarlo aquí, queda guardada sola para la clienta; su adelanto se cobra cuando la recoge.
+ */
+export function PedirOtraSedeModal({
+  prenda,
+  tienda,
+  ubicacion,
+  onClose,
+}: {
+  prenda: PrendaApartable;
+  tienda: { id: string; nombre: string };
+  ubicacion: UbicacionApartado;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [nombres, setNombres] = useState("");
+  const [apellidos, setApellidos] = useState("");
+  const [celular, setCelular] = useState("");
+  const [nota, setNota] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const token = useRef<string>(crypto.randomUUID());
+  const responsable = useResponsable(ubicacion, { modo: "atencion" });
+  const cel = soloDigitos(celular);
+  const valido = nombres.trim() !== "" && apellidos.trim() !== "" && /^9\d{8}$/.test(cel);
+
+  async function pedir(cerrar: () => void) {
+    if (!valido || !responsable.listo) return;
+    setEnviando(true);
+    const { error } = await firmar(
+      createClient().rpc("pedir_prenda_para_apartar", {
+        p_ubicacion_id: ubicacion.ubicacionId,
+        p_origen_id: tienda.id,
+        p_variante_id: prenda.varianteId,
+        p_cantidad: 1,
+        p_clienta_nombres: nombres.trim(),
+        p_clienta_apellidos: apellidos.trim(),
+        p_clienta_celular: cel,
+        p_nota: nota.trim() || undefined,
+        p_token: token.current,
+      }),
+      responsable.firma(),
+    );
+    setEnviando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "pedir la prenda", { confirmarAntesDeRepetir: true }));
+    avisar.exito(`Pedido a ${tienda.nombre}`, { detalle: `${prenda.referencia} para ${nombres.trim()}. Lo verás en «Todos» y te avisará cuando llegue.` });
+    router.refresh();
+    cerrar();
+  }
+
+  return (
+    <Modal titulo={`Pedir a ${tienda.nombre} para apartar`} subtitulo={`${prenda.referencia} · ${detalleVariante(prenda)}`} onClose={onClose} ancho="max-w-md">
+      {(cerrar) => (
+        <div className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className={campoEtiqueta}>Nombres</span>
+              <input value={nombres} onChange={(e) => setNombres(e.target.value)} className={campoTexto} autoComplete="off" />
+            </label>
+            <label className="block">
+              <span className={campoEtiqueta}>Apellidos</span>
+              <input value={apellidos} onChange={(e) => setApellidos(e.target.value)} className={campoTexto} autoComplete="off" />
+            </label>
+            <label className="block sm:col-span-2">
+              <span className={campoEtiqueta}>Celular · WhatsApp</span>
+              <input value={celular} onChange={(e) => setCelular(e.target.value)} inputMode="numeric" placeholder="9 dígitos" className={`${campoTexto} font-mono`} />
+              {cel.length > 0 && !/^9\d{8}$/.test(cel) && <span className="mt-0.5 block text-xs text-rojo-profundo">9 dígitos y empieza en 9.</span>}
+            </label>
+            <label className="block sm:col-span-2">
+              <span className={campoEtiqueta}>Nota para {tienda.nombre} (opcional)</span>
+              <input value={nota} onChange={(e) => setNota(e.target.value)} maxLength={200} placeholder="La quiere para el sábado" className={campoTexto} />
+            </label>
+          </div>
+          <ol className="list-decimal space-y-1 rounded-xl bg-hueso px-8 py-3 text-xs text-tinta/75">
+            <li>{tienda.nombre} la envía por traslado (la ve en su «Todos»).</li>
+            <li>Al cerrar el traslado aquí, queda guardada sola para la clienta 3 días.</li>
+            <li>Cuando venga, se cobra su adelanto y queda apartada.</li>
+          </ol>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <div className="flex gap-2">
+            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
+            <button type="button" disabled={!valido || enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => pedir(cerrar)} className={botonPrimario}>
+              {enviando ? "Pidiendo…" : `Pedir a ${tienda.nombre}`}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/** La otra tienda envía lo que le pidieron: es el traslado de siempre, con la clienta en la nota. */
+export function EnviarPedidoModal({ pedido, prenda, ubicacion, onClose }: { pedido: PedidoApartado; prenda: PrendaApartable | undefined; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const router = useRouter();
+  const manana = sumarDiasIso(new Date().toLocaleDateString("en-CA", { timeZone: "America/Lima" }), 1);
+  const [llega, setLlega] = useState(manana);
+  const [enviando, setEnviando] = useState(false);
+  const token = useRef<string>(crypto.randomUUID());
+  const responsable = useResponsable(ubicacion, { modo: "atencion" });
+
+  async function enviar(cerrar: () => void) {
+    if (!responsable.listo || !llega) return;
+    setEnviando(true);
+    const { error } = await firmar(
+      createClient().rpc("enviar_pedido_para_apartar", { p_pedido_id: pedido.id, p_fecha_estimada_llegada: `${llega}T12:00:00-05:00`, p_token: token.current }),
+      responsable.firma(),
+    );
+    setEnviando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "enviar la prenda", { confirmarAntesDeRepetir: true }));
+    avisar.exito(`Enviado a ${pedido.otraSede}`, { detalle: "Salió como traslado: sepárala y mándala con la nota de la clienta." });
+    router.refresh();
+    cerrar();
+  }
+
+  return (
+    <Modal titulo={`Enviar a ${pedido.otraSede}`} subtitulo={`Para apartar a ${pedido.nombres} ${pedido.apellidos}`} onClose={onClose} ancho="max-w-md">
+      {(cerrar) => (
+        <div className="space-y-4">
+          <div className="card-cayla p-4 text-sm">
+            <p className="font-semibold">{prenda?.referencia ?? "Prenda"} · {pedido.cantidad} u.</p>
+            <p className="text-xs text-tinta/60">{prenda ? detalleVariante(prenda) : ""}</p>
+            {pedido.nota && <p className="mt-2 text-xs text-tinta/70">Nota: {pedido.nota}</p>}
+          </div>
+          <label className="block">
+            <span className={campoEtiqueta}>¿Cuándo llega?</span>
+            <input type="date" value={llega} min={manana.slice(0, 10)} onChange={(e) => setLlega(e.target.value)} className={campoTexto} />
+          </label>
+          <p className="rounded-xl bg-hueso px-3.5 py-2.5 text-xs text-tinta/75">Sale de tu almacén como un traslado más; Traslados lo muestra en camino hasta que {pedido.otraSede} lo reciba.</p>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <div className="flex gap-2">
+            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
+            <button type="button" disabled={enviando || !responsable.listo || !llega} title={responsable.motivo ?? undefined} onClick={() => enviar(cerrar)} className={botonPrimario}>
+              {enviando ? "Enviando…" : "Enviar por traslado"}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+/** Cancelar un pedido (cualquiera de las dos tiendas, antes de apartarlo con adelanto). Si ya llegó, suelta la reserva. */
+export function CancelarPedidoModal({ pedido, ubicacion, onClose }: { pedido: PedidoApartado; ubicacion: UbicacionApartado; onClose: () => void }) {
+  const router = useRouter();
+  const [motivo, setMotivo] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const responsable = useResponsable(ubicacion, { modo: "atencion" });
+  async function cancelar(cerrar: () => void) {
+    if (!responsable.listo) return;
+    setEnviando(true);
+    const { error } = await firmar(createClient().rpc("cancelar_pedido_para_apartar", { p_pedido_id: pedido.id, p_motivo: motivo.trim() || undefined }), responsable.firma());
+    setEnviando(false);
+    responsable.despues(error);
+    if (error) return avisar.error(traducirError(error, "cancelar el pedido"));
+    avisar.exito("Pedido cancelado", { detalle: pedido.estado === "llego" ? "La prenda quedó libre para vender." : `Se le avisa a ${pedido.otraSede} al ver su lista.` });
+    router.refresh();
+    cerrar();
+  }
+  return (
+    <Modal titulo="¿Cancelar el pedido?" subtitulo={`${pedido.nombres} ${pedido.apellidos} · ${pedido.otraSede}`} onClose={onClose}>
+      {(cerrar) => (
+        <div className="space-y-4">
+          <label className="block">
+            <span className={campoEtiqueta}>Por qué (opcional)</span>
+            <input value={motivo} onChange={(e) => setMotivo(e.target.value)} maxLength={120} placeholder={pedido.direccion === "me_piden" ? "Ya no la tenemos" : "La clienta ya no la quiere"} className={campoTexto} />
+          </label>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <div className="flex gap-2">
+            <button type="button" onClick={cerrar} className={botonCancelar}>Mejor no</button>
+            <button type="button" disabled={enviando || !responsable.listo} title={responsable.motivo ?? undefined} onClick={() => cancelar(cerrar)} className={botonPrimario}>
+              {enviando ? "Cancelando…" : "Cancelar pedido"}
             </button>
           </div>
         </div>
