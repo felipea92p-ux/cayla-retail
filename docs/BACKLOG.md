@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0223) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
+- [x] «Te toca» (9 avisos por módulo, urgente → por hacer → info, «Al día»), filtro «Ajustar» con urgentes que no se
+      ocultan, accesos del rol, «Vender» fijo en celular y «Equipo de hoy». 25 pruebas nuevas; probado en local por Felipe.
+- [ ] **Confirmar la cabecera del Inicio** (`CabeceraPantalla`): ADR-0220 la deja sin decidir fuera de Ventas, Inventario y
+      Finanzas.
+- [ ] **Paso 2 del filtro:** guardar la elección en la base (hoy es una cookie por cuenta en cada aparato).
+- [ ] **Avisos que piden lectura nueva:** mercadería por recibir, efectivo sin depositar, cierre de mes, impuestos, órdenes
+      del taller atrasadas, insumos bajo mínimo. Y las cifras «Hoy» de Almacén y Taller.
+- [ ] **Base local atrasada:** le faltan 26 migraciones del repo (solo se aplicó la de actividad, `20260926090000`).
+      Sincronizarla con `migration repair` y `migration up`, nunca con `db reset`.
+
 ## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
 Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
 ticket, espera con nombre, Apartar y Proforma desde el ticket, «Anotar que no había» en la talla, buscador con lo
