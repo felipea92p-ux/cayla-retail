@@ -11,7 +11,7 @@
 
 import { resolverCodigoV2 } from "./buscar-prenda-v2";
 import { ID_CARGO_ESPECIAL } from "./cargo-especial";
-import { esFalloDeRed, traducirError, type ErrorEscritura } from "./error-escritura";
+import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 import { diaYHoraLima } from "./fechas-lima";
 
 export const MAX_LINEAS_BAJADA = 300;
@@ -297,15 +297,6 @@ export function leerRespuestaDeBajada(data: unknown): RespuestaBajada | null {
 // Aquí no va el «no se guardó nada» genérico: sería falso si la respuesta se perdió DESPUÉS de guardar. El mismo token
 // con la misma lista hace seguro volver a enviar; por eso la lista se congela hasta que la base responda.
 const TEXTO_RED_CAIDA = `Se cortó la conexión y no sabemos si la bajada se guardó. Tu lista sigue aquí: pulsa «${BOTON_CONFIRMAR_DE_NUEVO}». Si ya se había guardado, no se repite.`;
-
-/**
- * ¿La respuesta NO trae el veredicto de la base? Un corte de red, o un error sin código de Postgres (un 502/504 del
- * camino, una excepción del cliente): en esos casos la transacción pudo confirmarse igual. Un error CON código es la
- * base diciendo que no: la transacción se deshizo.
- */
-function esRespuestaIncierta(error: ErrorEscritura): boolean {
-  return !!error && (esFalloDeRed(error) || !error.code);
-}
 
 function lineasSinAlcance(details: string | null | undefined): { varianteId: string; hay: number; motivo: string }[] {
   if (!details) return [];

@@ -398,6 +398,17 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
 }
 
 /**
+ * ¿La respuesta NO trae el veredicto de la base? Un corte de red, o un error sin código de Postgres (un 502/504 del
+ * camino, una excepción del cliente, un envío cortado por tiempo): en esos casos la transacción pudo confirmarse
+ * igual. Un error CON código es la base diciendo que no: la transacción se deshizo. Lo usan las pantallas que envían
+ * con marca (la bajada al piso, «Reponer» y «Retirar del piso»): mientras la respuesta es incierta, solo se puede
+ * reenviar lo mismo con la misma marca.
+ */
+export function esRespuestaIncierta(error: ErrorEscritura): boolean {
+  return !!error && (esFalloDeRed(error) || !error.code);
+}
+
+/**
  * SQLSTATE que dicen «ahora no, intenta de nuevo» y no «esto está mal»: choque de transacciones, bloqueo que no se
  * soltó a tiempo (`lock_timeout`), consulta cortada por tiempo, base reiniciando o sin conexiones libres. Y los de
  * PostgREST cuando no alcanza a la base (PGRST000–003).

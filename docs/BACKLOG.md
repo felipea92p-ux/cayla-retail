@@ -134,7 +134,7 @@ El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cu
 | 2 | La caja dice «está en el almacén: hay N» | Fuera de los bloques; roza la D-40, que se decide antes del bloque 3. Hecha (#437). |
 | 3 | «Retirar del piso», y el ajuste pregunta dónde está la ropa | Bloque 2, solo el retiro (#440, opción A); los motivos nuevos se descartaron. Lo del ajuste no salió: sigue arrancando en «Piso» (`AjustarInventarioModal.tsx:53`), aunque con la `0400` «Reposición» ya no suma ahí. |
 | 4 | «Por colgar» en Existencias | Fuera de los bloques. Hecha (#438). |
-| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso» no: es el **candado de `mover_interno`**, pendiente entre el bloque 2 y el 3 (ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
+| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso», con la marca de `mover_interno` (construida el 2026-09-26, por pegar; ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
 | 6 | Bajar un fardo entero escaneando | Bloque 1 (`/inventario/bajar`). |
 | 7 | «Traer y vender» desde la caja: la bajada de último minuto se declara | Sin bloque. Depende de la D-40 (ADR-0208, (g)): el bloque 1 eligió deducir la bajada tardía al leer, no declararla. Se concilia antes del bloque 3. |
 | 8 | Una fecha de arranque por sede, más la cobertura del registro | No se puede mapear entera: la cobertura se parece al indicador de «confianza del registro» del bloque 3, pero la fecha de arranque no está en ningún bloque. |
@@ -444,13 +444,14 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - [x] El mismo hueco de sede, cerrado en todo Existencias (Felipe, 2026-09-26): mirando otra sede con `?ubicacion=`,
     «Apartar», «Ajustar», «Liberar» (apartados) y resolver o liquidar dañados ya no se ofrecen (firmaban con el
     Responsable de la sede activa); una nota dice que se cambie la sede activa en la cabecera.
-- [ ] **Candado de `mover_interno` (entre el bloque 2 y el 3):** un token contra el doble envío, como el de
-  `bajar_al_piso`, para «Reponer» y «Retirar del piso». Es la parte pendiente de la «tarea 5» del plan del termómetro.
-  Va antes del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas filas, y un envío doble
-  las infla. Toca una función en producción que también usa `bajar_al_piso`: si el token entra como parámetro, cambia
-  su firma (la `0200` la busca con 6 argumentos; `pruebas:una-sola-firma` no deja dos versiones). Va con su migración,
-  su ensayo y un caso de concurrencia. Hasta entonces la pantalla frena el doble clic, no deja cerrar mientras guarda y,
-  tras un corte de red, pide revisar antes de repetir.
+- [x] **Candado de `mover_interno` (entre el bloque 2 y el 3)** — construido el 2026-09-26, **no está en producción**:
+  `mover_interno` suma `p_token` opcional (una sola firma) y la tabla `movimientos_internos_intentos`; el reintento con
+  la misma marca devuelve el mismo movimiento, con otros datos se rechaza, y la marca se mira antes del responsable.
+  «Reponer» y «Retirar del piso» mandan una marca por modal y, tras un corte, dejan la cantidad fija con «Confirmar de
+  nuevo». **Pegar `20260926200000` → `20260926200100` ANTES de fusionar su web** (si no, «Reponer» y «Retirar» fallan
+  hasta pegarlas; `pnpm datos:comparar` lo avisa). Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
+  ADR-0208, «Actualización 2026-09-26 — la marca de `mover_interno`». Cierra la «tarea 5» del plan del termómetro en lo
+  que toca a Reponer y Retirar (el contexto por documento sigue sin construir).
 - [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
   - Reloj de novedad por modelo+color.
@@ -571,7 +572,7 @@ Auditoría completa (343 funciones, 229 consultas web, estadísticas de producci
 - [x] Pegadas 1→5 y fusionados los 6 PRs (2026-09-23). Verificado en producción: 7/7 funciones de caja con `for share`, costo con `for no key update`, 14/14 índices, `fn_exigir_linea_venta_disponible` en cambio y devolución, `fn_bloquear_en_orden` en 8/8 funciones, `p_token` en 5/5 y `token_cliente` en 5/5 tablas (legible en `insumo_lotes`), 0 sobrecargas, 3/3 funciones de totales sin acceso `anon`, `version` en `productos` y `roles`.
 - [ ] Verlo con clics tras publicar: cobrar mientras se cierra caja (debe decir «No hay una caja abierta»), historial de 60 días con totales, Vender sin recarga, dos pestañas editando la misma prenda.
 - [ ] Regenerar tipos y diccionario (`pnpm datos:generar:produccion`) tras pegar: las funciones nuevas se agregaron a mano en `packages/database/src/types.ts`.
-- [ ] Pendientes que dejó cada etapa: ~~`registrar_cambio`/`crear_devolucion`/conteo aún sin `fn_bloquear_en_orden`~~ (hecho en ADR-0194: `registrar_cambio` parchada; `crear_devolucion` no mueve stock y `cerrar_conteo` ya bloqueaba en orden); token en Ajustar inventario (`registrar_movimiento`) y `mover_interno`; `recibir_lote` y `registrar_movimiento_caja` siguen ejecutables por `PUBLIC`; el costo que recalcula una recepción puede pisarse desde una ficha abierta (la ficha debe mandar el costo solo si cambió); versión en etiquetas, marcas, categorías y clientas.
+- [ ] Pendientes que dejó cada etapa: ~~`registrar_cambio`/`crear_devolucion`/conteo aún sin `fn_bloquear_en_orden`~~ (hecho en ADR-0194: `registrar_cambio` parchada; `crear_devolucion` no mueve stock y `cerrar_conteo` ya bloqueaba en orden); token en Ajustar inventario (`registrar_movimiento`) (el de `mover_interno` se construyó el 2026-09-26, ADR-0208); `recibir_lote` y `registrar_movimiento_caja` siguen ejecutables por `PUBLIC`; el costo que recalcula una recepción puede pisarse desde una ficha abierta (la ficha debe mandar el costo solo si cambió); versión en etiquetas, marcas, categorías y clientas.
 - [ ] **Decisión de Felipe:** la base ya no deja devolver una prenda que se cambió (la pantalla ya lo impedía). Si CAYLA quiere aceptarlo, necesita su propio flujo.
 - [ ] Previo, ajeno: `pruebas:aprobar-devolucion-caja` 2/5 y `candado_dinero_caja_cambios_devoluciones` 7/21 en local (cuenta de prueba sin líder); `archivar-datos-prueba` busca tablas sin esquema `retail`.
 - [ ] Siguen abiertos de la auditoría (sin etapa aún): ~~36 políticas con `auth.role()` evaluado por fila~~ (ADR-0194), 192 FK sin índice (las de más uso ya van en la 110000; ADR-0194 sumó ventas por prenda y por clienta; las demás no se usan en búsquedas y las tablas padre no se borran), ~~`fn_vencer_separaciones` escribe al abrir la pantalla~~ (medido en ADR-0194: usa `skip locked`, no traba a nadie), `fn_traslado_lineas` una vez por traslado.
