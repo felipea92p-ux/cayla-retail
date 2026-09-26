@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔒 Auditoría «¿algún SQL por pegar?» y candado de movimientos (2026-09-26)
+Se revisaron por EFECTOS en producción (solo lectura, 144 consultas) las 89 migraciones de `main` posteriores a la auditoría del 22-sep y las 6 de PR abiertos. 86 aplicadas, 1 superada (#58), el resto abajo.
+- [x] **Aplicadas con el «sí» de Felipe (ensayo revertido + huella md5 idéntica al repo + humo):** `20260918191000_panel_comercial`, `20260918191500_fn_origen_producto`, `20260918192000_panel_calidad` (entraron a `main` el 25-sep con fecha vieja; `/comercial` y `/comercial/calidad` se caían) y `20260924000000_colaborador_a_integrante_paso1_codigo` (paso 1 de 3; las 25 filas intactas, colaborador=17 y lider=8; los pasos 2 y 3 siguen pendientes y van aparte).
+- [ ] **Candado de movimientos en ALWAYS (D-22):** `20260926160000_movimientos_candado_siempre.sql`. Producción tenía `movimientos_inmutables` en 'O' (lo dejó así `scripts/demo/deshacer-90-dias.sql` el 24-sep) y `main` nunca lo escribió. **Felipe lo pega** en el SQL Editor, fuera de la hora de venta. En este PR también: el script de la demo reenciende con `enable always` y su verificación exige 'A', y `frescura_bajadas.mjs` apaga el candado a la vista en vez de usar el modo réplica.
+- [ ] **SQL de PR abiertos, recién al fusionarlos:** #445 `20260925170551_existencias_ritmo_reciente` (antes o junto a su web); #409 `20260925220000_inicio_modulo_y_pantalla_principal` (justo antes de su web y sin guardar roles entre medio; su `20260925211500` ya está en producción); #168 `20260918194000_panel_rentabilidad` (después de `fn_origen_producto`, que ya está). #58: NO pegar (superada). #56: no volver a pegar (su parte vigente ya está; lo que faltaba es este candado).
+
 ## 📦 Nuevo producto con su stock de hoy — la carga inicial (2026-09-26, ADR-0212)
 Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya está; 0 papeleo por ahora».
 - [x] **Paso 5 «Cuántas tienes hoy»** en `/productos/nuevo`: cantidades por talla × color y «¿Dónde están?» (piso o almacén), en la misma transacción que el producto (`crear_producto_con_stock_inicial`). 28 pruebas SQL + carrera real con COMMIT + navegador a 1440 y 375 px.
