@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
@@ -15,6 +15,8 @@ type Props = {
   onAgregar: (v: VarianteBusqueda) => void;
   onClose: () => void;
   alCerrarEnfocar: RefObject<HTMLElement | null>;
+  /** Debajo de las tallas: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
+  pie?: ReactNode;
 };
 
 /**
@@ -30,7 +32,7 @@ type Props = {
  * y prendas en el almacén de esta sede no está agotada (D-40): dice cuántas hay ahí y
  * que la bajen, sin tacharla — todavía no entra al ticket (la venta descuenta el piso).
  */
-export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar }: Props) {
+export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie }: Props) {
   const nombre = [grupo.referencia, grupo.color].filter(Boolean).join(" ");
   return (
     <Modal titulo={grupo.referencia} subtitulo={`${grupo.color ?? "Sin color"} · ${ubicacionEtiqueta}`} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
@@ -103,6 +105,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
               );
             })}
           </div>
+          {pie}
         </div>
       )}
     </Modal>

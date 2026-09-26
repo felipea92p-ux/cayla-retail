@@ -28,6 +28,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
+Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
+ticket, espera con nombre, Apartar y Proforma desde el ticket, «Anotar que no había» en la talla, buscador con lo
+vendible arriba, hoja del ticket en el celular (`Modal variante="ticket"`), Admin como chip, «Prenda sin registrar»
+sin teclado de pantalla y catálogo de hasta 5 columnas.
+- [ ] Clic real con sesión y datos de producción (Felipe), a 1440 y a 375 px. Verificado solo con una página de prueba sin sesión.
+- [ ] **Decidir:** ¿la proforma acepta el descuento de campaña? Hoy `crear_proforma` no lo acepta y la caja lo avisa.
+- [ ] La pregunta del club y «es para regalo» en la fila «Clienta» (paso 1 del acta de clientas): esperan el historial de permisos (G.2).
+- [ ] Contadores en los accesos (apartados por vencer, devoluciones por aprobar): consultas nuevas, decidir si valen.
+- [ ] «Pedir al almacén / traslado» desde la talla agotada: hoy los traslados los inicia Inventario.
+- [ ] Coordinar con el PR #433 (apartada en Vender): toca `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx` y `ElegirTallaModal.tsx`.
+
 ## 🔎 Existencias: buscar y filtrar por marca, y un vacío que explica (2026-09-26) — solo web, sin migración; rama `claude/existencias-busqueda-marca`
 Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtros tampoco figura marca»). Análisis `/pantalla` completo en [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple su finalidad 5/10, relevancia 7,4/10). Lo que descubrió: **«CAYLA» y «Cayla 2» son dos marcas** (80 en la tabla, 8 con productos, 5 en TRU) y los productos de marca CAYLA (41 variantes) **no tienen ni una fila de stock en TRU**, así que indexar la marca no bastaba.
 - [x] Buscador con marca y categoría (por inicio de palabra, también tras «/» y «-», y la marca escrita sin puntos: «yjj», «cayla2»); un color escrito NO busca en la marca («dorada» ya no trae toda «Doradas Chic»); orden por relevancia solo con texto. `lib/filtro-busqueda-especial.ts` (campos opcionales: Análisis y Movimientos no cambian; 40.330 comparaciones contra el motor anterior, 0 diferencias). Prueba nueva `filtro-busqueda-especial-marca.test.ts`.

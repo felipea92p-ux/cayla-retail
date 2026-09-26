@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Punto de venta conectado: del spike a la interfaz — ADR-0221)
+Felipe aprobó el spike y pidió llevarlo al sistema. Sin migración: las cinco funciones de base que hacían falta (clienta, «no había», proforma, apartados, ventas del día) ya estaban en producción, verificado con `pg_proc` antes de escribir una línea. Apartar desde el ticket no duplica el cobro del adelanto: lleva las prendas a Apartados. La hoja del celular es una variante de `<Modal>`, no un overlay nuevo.
+Felipe se lleva: (1) **lo que ya existe en la base a veces solo falta sacarlo al mostrador**: la ficha de clienta y «no había» llevaban días sin una sola llamada. (2) **Una firma obligatoria alcanza también a lo pequeño**: «Anotar que no había» se rechazaba sin responsable; se firma con el mismo combo del ticket. (3) **La campaña no cabe en una proforma** con las reglas de hoy (tope 20 % y otros motivos): la caja lo avisa y la decisión queda para ti.
+
 ## 2026-09-26 (Punto de Venta: análisis y spike de accesos, clienta y celular)
 Felipe pasó 13 capturas de `/vender` y pidió conectarlo con las pantallas nuevas y hacerlo usable en el teléfono. Se revisó contra el código de `main` y quedaron 11 hallazgos. Las respuestas pidieron ver todas las opciones, así que el spike (`docs/maquetas/punto-venta-spike-2026-09/`) las muestra conmutables («Hoy» / «Propuesta»), con tres formas de celular lado a lado y una comparación con Shopify POS, Square, Lightspeed, Odoo y Loyverse. Sin código ni migración.
 Felipe se lleva: (1) **la ficha de clienta y los pedidos no atendidos ya existen en la base y nunca llegaron al mostrador**: conectarlos cuesta poco porque no pide base nueva. (2) **Seis accesos no caben en la cabecera** junto a «Hoy» y «Cerrar caja» (medido: desborda 58 px), así que quedan cuatro a la vista y un «Más». (3) **En el celular, todos los POS de referencia usan una barra de cobro fija**; apilar el ticket bajo el catálogo es lo que hoy obliga a bajar toda la lista para cobrar.
