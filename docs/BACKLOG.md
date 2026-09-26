@@ -28,6 +28,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
+Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
+ticket, espera con nombre, Apartar y Proforma desde el ticket, «Anotar que no había» en la talla, buscador con lo
+vendible arriba, hoja del ticket en el celular (`Modal variante="ticket"`), Admin como chip, «Prenda sin registrar»
+sin teclado de pantalla y catálogo de hasta 5 columnas.
+- [ ] Clic real con sesión y datos de producción (Felipe), a 1440 y a 375 px. Verificado solo con una página de prueba sin sesión.
+- [ ] **Decidir:** ¿la proforma acepta el descuento de campaña? Hoy `crear_proforma` no lo acepta y la caja lo avisa.
+- [ ] La pregunta del club y «es para regalo» en la fila «Clienta» (paso 1 del acta de clientas): esperan el historial de permisos (G.2).
+- [ ] Contadores en los accesos (apartados por vencer, devoluciones por aprobar): consultas nuevas, decidir si valen.
+- [ ] «Pedir al almacén / traslado» desde la talla agotada: hoy los traslados los inicia Inventario.
+- [ ] Coordinar con el PR #433 (apartada en Vender): toca `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx` y `ElegirTallaModal.tsx`.
+## 🧭 Inventario con la cabecera de Ventas (2026-09-26, ADR-0220) — hecho, solo web, sin migración; rama `claude/inventory-module-headers-2683ef`
+Pedido de Felipe: «que el header de todos los módulos de inventario tome como referencia los de Caja, Historial, Postventa».
+- [x] Las 9 pantallas de Inventario usan `EncabezadoPagina`: sede y fecha arriba, título = palabra del menú (Existencias, Movimientos, Traslados, Conteo, Análisis), acciones bajo la frase; Existencias con «vista de las HH:MM» en vez de reloj vivo. Las cifras no se movieron. CLAUDE.md dice ahora que la cabecera es la de su módulo.
+- [ ] **Verlo con sesión real** (líder e integrante) en las 9 pantallas: se verificó sin sesión, con una ruta temporal y los componentes reales de Conteo con datos de muestra.
+- [ ] **Decisión de Felipe:** Recibir mercadería e Ingreso sin comprobante (tercera cabecera, escrita a mano; `/recibir` la comparte Compras) y cuál cabecera manda en Catálogo, Compras, Producción, Colaboradores, Clientas e Inicio.
+
 ## 🧭 Existencias: «Reponer a piso hoy» lleva la vista a la tabla filtrada (2026-09-26) — solo web, sin migración; rama `claude/inventory-stock-smooth-scroll-e41caf`
 - [x] Al poner el filtro desde la tarjeta, la vista baja suave hasta la tarjeta de filtros y tabla (`mostrarTablaFiltrada`, `InventarioPanel.tsx`); al quitarlo no se mueve; con `prefers-reduced-motion`, salta de una vez. La tarjeta de la tabla pasó de `scroll-mt-4` a `scroll-mt-24`: con 16 px, al paginar, 23 de los 40 px del buscador quedaban bajo la cabecera fija (61 px, medido). Verificado en un banco temporal sin sesión (borrado) a 1.280 y 375 px; falta mirarlo con sesión real en `/inventario`.
 - [ ] Con «0 variantes» la tarjeta sigue aplicando un filtro vacío (tarea #12 (c) de `docs/pantallas/inventario.md`): ahora la vista baja a ese vacío, que al menos deja a la vista la píldora «Por colgar» que el texto recomienda.
@@ -63,7 +80,7 @@ Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prue
 
 ## 🩹 El combo de Actividad no era el del sistema (2026-09-26, ADR-0209 act.) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
 - [x] Panel «Actividad» de la cabecera y `/actividad`: sus combos (Módulo; en la pantalla también Sede y Persona) eran el `<select>` del navegador dentro de una caja, con el hilo dibujado adentro, otra flecha y la lista del sistema operativo. Ahora son `Desplegable` en caja, medidos iguales al de «Quién vendió» (Por regularizar). Lo elegido siempre está en la lista (`opcionesDeModulo`, `opcionesDePersona`, 3 pruebas). Verificado con un banco de pruebas sin sesión (escritorio y 375 px); falta el clic con sesión real.
-- [ ] **Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito. Radix escucha Escape en la captura del `document`, antes que el combo: el `stopPropagation` de `Desplegable` y `ComboResponsable` llega tarde. Propuesta: `onEscapeKeyDown` en `Modal.tsx` que no cierre la hoja si dentro hay un combo desplegado.
+- [x] ~~**Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito.~~ Arreglado el 2026-09-26 con `useEscapeLibre` (y no con la propuesta de mirar el combo desplegado, que trababa «Registrar nota de crédito»): ver «Escape con un combo abierto cerraba el modal entero», más abajo.
 - [x] ~~Quedan `<select>` nativos que la migración del ADR-0209 no alcanzó~~ — migrados todos, Finanzas incluida, y vigilados por una prueba: ver «Un solo combo en todo el ERP», arriba.
 - Cómo verificas: con sesión de líder, en cualquier pantalla, «Actividad» (arriba, junto a la sede) → el combo «Módulo» se ve como los demás filtros y su lista es la del sistema (fondo papel, marca roja en la elegida). Igual en «Ver todo el historial →».
 
@@ -78,8 +95,8 @@ Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtr
 - [ ] Prueba de datos real: nada del camino de datos de Existencias se prueba contra un PostgREST con el rol `authenticated`. Una prueba en `scripts/pruebas/` con `postgrest` (Homebrew) y la restricción de columnas de `variantes` habría atrapado el fallo de arriba.
 - [ ] Sin ejecutar del análisis (Felipe decide): #1 «Ajustar inventario» sin token ni transacción única, #8 el semáforo marca «Stock bajo» en 41 de 45 prendas, #9 «Disponible total» y recomendaciones no excluyen `es_prueba`, #10 candado de módulo en `mover_interno` y `apartar_stock`, #6 la estrategia alternativa (stock vs catálogo × sede).
 
-## 🩹 Escape con un combo abierto cerraba el modal entero (2026-09-26, ADR-0136 act.) — solo web, sin migración; rama `claude/relaxed-jemison-ebbdfc`
-Cierra el pendiente «Encontrado, sin arreglar» de la entrada «El combo de Actividad no era el del sistema» (rama `claude/activity-combo-box-style-819a5d`): **al fusionar las dos ramas, marcar ese ítem [x]**.
+## 🩹 Escape con un combo abierto cerraba el modal entero (2026-09-26, ADR-0136 act.) — solo web, sin migración; [PR #481](https://github.com/felipea92p-ux/cayla-retail/pull/481)
+Cierra el pendiente «Encontrado, sin arreglar» de la entrada «El combo de Actividad no era el del sistema» (#475, ya en `main`), marcado [x] al fusionar.
 - [x] Toda hoja de Radix cierra solo con un Escape que ningún control de adentro usó (`components/ui/useEscapeLibre.ts`): `<Modal>` (respeta `bloqueado`) y los seis cajones con `Dialog.Content` propio (vistas rápidas de Proveedor, Recepción, Nota de crédito y Por pagar; `OrdenPanel`, que tenía el mismo bug con su «Responsable»; `ProveedorModal`). Regla: un control que usa el Escape corta su propagación. Prueba nueva `lib/hojas-escape.test.ts` (un `Dialog.Content` sin la regla rompe el CI).
 - [x] Ajustados: `ComboBuscable`, `CampoFecha` (devuelve el foco a la fecha) y `MenuAcciones` cortan la propagación de su Escape; `ComboResponsable` devuelve el foco a su botón y cierra la lista con `Tab` desde el botón. El buscador de «Registrar nota de crédito» ya tenía su Escape escalonado (borra, cancela el cambio, recién cierra) y ahora funciona como dice su comentario.
 - [x] Verificado en el navegador: banco temporal con todos los combos (≤8 y >8 opciones, buscable, responsable con 3 y 10 personas, píldoras, fecha), acordeón, buscador escalonado, cajón propio, `bloqueado` y dos modales apilados, en escritorio y a 375 px; y en Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color» con sesión real (escritorio y 375 px). 77.623 pruebas, `tsc` y `eslint` en verde.
@@ -944,7 +961,7 @@ Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://clau
 - [ ] Movimientos: verlo con clics reales contra la base (filtros, `?proc=conteo` desde Conteo, vacío con 90 días, detalle).
 - [ ] Movimientos: cantidades por proceso en el drill-down — pide agrupar `fn_movimientos_resumen` por motivo (cambio de RPC en producción). Solo si el equipo lo pide.
 - [ ] **Verlo con clics reales** contra la base local o de producción (líder e integrante): filtros en caja, píldoras, zebra, chips y los modales que abren desde Existencias.
-- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas).
+- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas). **La cabecera ya no entra en esto (2026-09-26, ADR-0220):** Felipe eligió la de Ventas (`EncabezadoPagina`) y fue Inventario el que pasó a ella; Ventas conserva la suya.
 - [ ] Decisiones abiertas de la guía (ADR-0169, «Lo que NO se hizo»): modo oscuro, pasar la caja hueso a todos los formularios, botones de modal sin versalitas y la curva `ease-salida` frente a `--ease-cayla`.
 
 ## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — EN PRODUCCIÓN (base y web)

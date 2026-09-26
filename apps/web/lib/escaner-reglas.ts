@@ -15,8 +15,10 @@ export const MQ_TELEFONO = "(pointer: coarse) and (max-width: 639.98px), (pointe
 export const PAUSA_MISMO_CODIGO_MS = 2000;
 
 /** `en_almacen`: el piso está en 0 pero hay en el almacén de esta tienda (D-40) — no entra al ticket hasta que la bajen,
- *  y no es lo mismo que `agotada`. Mismo nombre que devuelve `motivoNoCobrable` (`lib/vender-stock-local.ts`). */
-export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "tope" | "no-encontrada";
+ *  y no es lo mismo que `agotada`. `apartada`: lo único que queda en el piso es de una clienta que lo apartó (no hay
+ *  nada libre ni en el almacén): tampoco es `agotada`. Mismos nombres que devuelve `motivoNoCobrable`
+ *  (`lib/vender-stock-local.ts`). */
+export type EstadoEscaneo = "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | "no-encontrada";
 export type ResultadoEscaneo = {
   estado: EstadoEscaneo;
   codigo: string;
@@ -80,6 +82,8 @@ export function mensajeEscaneo(r: ResultadoEscaneo): { tono: "verde" | "ambar"; 
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} está agotada aquí` };
     case "en_almacen":
       return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está en el almacén` };
+    case "apartada":
+      return { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: está apartada para una clienta` };
     case "tope":
       return (r.almacen ?? 0) > 0
         ? { tono: "ambar", texto: `${r.nombre ?? r.codigo} no entró: las del piso ya están en el ticket y las demás en el almacén` }
@@ -103,6 +107,8 @@ export function estadoCorto(r: ResultadoEscaneo): string | null {
       return "Agotada aquí";
     case "en_almacen":
       return "No entró · en almacén";
+    case "apartada":
+      return "No entró · apartada";
     case "tope":
       return enAlmacen ? "No entró · en almacén" : "Sin más stock";
     case "no-encontrada":

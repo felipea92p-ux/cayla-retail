@@ -266,7 +266,7 @@ describe("validarCambio / primerBloqueo", () => {
     disponible: 1,
     motivo: "talla_chica" as const,
     eligioPrenda: true,
-    nueva: { descripcion: "L / Negro", stockAqui: 3, otrasSedes: null },
+    nueva: { descripcion: "L / Negro", stockAqui: 3, apartadoAqui: 0, otrasSedes: null },
     sede: "Tienda Lima",
     diferencia: 0,
     metodo: "efectivo" as const,
@@ -295,8 +295,27 @@ describe("validarCambio / primerBloqueo", () => {
   });
 
   it("sin stock aquí dice dónde más hay", () => {
-    const sinStock = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, otrasSedes: "2 en Trujillo" } };
+    const sinStock = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: "2 en Trujillo" } };
     expect(primerBloqueo(validarCambio(sinStock))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Hay 2 en Trujillo." });
+  });
+
+  it("lo que queda en el piso es de otra clienta: dice «apartada», no «no queda»", () => {
+    const apartada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: "2 en Trujillo" } };
+    expect(primerBloqueo(validarCambio(apartada))).toMatchObject({
+      clave: "stock",
+      estado: "alerta",
+      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      detalle: "Hay 2 en Trujillo.",
+    });
+    // Apartada y sin otra sede donde buscar: lo dice sin «tampoco» (no falta la prenda, es de otra clienta).
+    const sinOtrasSedes = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 1, otrasSedes: null } };
+    expect(primerBloqueo(validarCambio(sinOtrasSedes))).toMatchObject({
+      titulo: "L / Negro está apartada para una clienta en Tienda Lima",
+      detalle: "No hay en otra sede.",
+    });
+    // Sin nada apartado sigue diciendo lo de siempre.
+    const agotada = { ...listo, nueva: { descripcion: "L / Negro", stockAqui: 0, apartadoAqui: 0, otrasSedes: null } };
+    expect(primerBloqueo(validarCambio(agotada))).toMatchObject({ titulo: "No queda L / Negro en Tienda Lima", detalle: "Tampoco hay en otra sede." });
   });
 
   it("diferencia en efectivo con la caja cerrada frena (registrar_cambio la rechazaría)", () => {

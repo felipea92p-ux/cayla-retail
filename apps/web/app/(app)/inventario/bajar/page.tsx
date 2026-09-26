@@ -3,7 +3,7 @@ import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { aPrendasBajables } from "@/lib/bajada-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { BajarAlPisoForm } from "@/components/BajarAlPisoForm";
 
 // «Bajar prendas al piso» (ADR-0208, paso 1): Frescura del piso solo mide algo si la bajada se registra al colgar la
@@ -20,19 +20,20 @@ export default async function BajarAlPisoPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        {/* Solo si puede entrar a Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso». */}
-        {veModulo(persona, "existencias") && (
-          <Link href="/inventario" className="label-cayla mb-2 inline-block text-[11px] text-tinta/65 transition-colors hover:text-rojo">
-            ← Volver a Existencias
-          </Link>
-        )}
-        <CabeceraPantalla
-          sobretitulo={`Inventario · ${sede}`}
-          titulo="Bajar prendas al piso"
-          bajada="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
-        />
-      </div>
+      <EncabezadoPagina
+        sede={sede}
+        titulo="Bajar prendas al piso"
+        subtitulo="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
+        // La vuelta es un botón de la cabecera, como «← Traslados» y «← Conteos» en sus detalles. Solo si puede entrar a
+        // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
+        pie={
+          veModulo(persona, "existencias") && (
+            <Link href="/inventario" className="btn-cayla btn-secundario">
+              ← Existencias
+            </Link>
+          )
+        }
+      />
 
       {separaPisoYAlmacen ? (
         // `key`: si el líder cambia de sede, la lista de la otra tienda no se arrastra a esta.

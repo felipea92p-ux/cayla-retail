@@ -174,13 +174,16 @@ props serializables; NUNCA llames desde el servidor a una función exportada por
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se
 importa desde ambos lados.
 
-## Paleta y orden de pantalla (regla — ADR-0169)
+## Paleta y orden de pantalla (regla — ADR-0169, ADR-0220)
 
 **El ERP usa la guía oficial «CAYLA Dynamic»: los colores salen SOLO de los tokens de `apps/web/app/globals.css`**
 (crema, papel, tinta, rojo, rojo-profundo, sand, taupe, verde, ámbar, hueso, pizarra). Nunca un hex suelto. Pantalla nueva
-o rediseñada: `<CabeceraPantalla>` (`components/ui/CabeceraPantalla.tsx`: sobretítulo rojo → título serif → bajada taupe,
-acción principal a la derecha) → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
-`pildora-cayla`) → nota en hueso (`nota-cayla`). Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
+o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
+`pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas e Inventario,
+`<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
+nombre del menú, nunca la sede → frase; acciones bajo la frase, cifras o reloj a la derecha; ADR-0220, Felipe 2026-09-26);
+en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
+pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
 contraste medido y lo que quedó fuera (modo oscuro, formularios con caja): `docs/adr/0169-paleta-oficial-cayla-dynamic.md`.
 

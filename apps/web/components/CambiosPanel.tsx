@@ -12,7 +12,7 @@ import {
   SinResultadosVentas,
   mostrarActividad,
 } from "@/components/ComprasAgrupadas";
-import type { VarianteCatalogo } from "@/components/CambioReemplazo";
+import type { VarianteCatalogo } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
 

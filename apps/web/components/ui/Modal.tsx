@@ -26,13 +26,16 @@ type Props = {
   bloqueado?: boolean;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
-  variante?: "papel" | "hoja" | "camara";
+  variante?: "papel" | "hoja" | "camara" | "ticket";
   /* «hoja» (Finanzas, 2026-09-24, spike docs/maquetas/finanzas-2026-09/): el panel en `papel` sin sombra ni ✕, con el
      título en serif grande y la bajada en taupe —la hoja del spike—. Los campos de adentro van en caja (`fin-control`,
      app/estilos/finanzas.css). */
   /* «camara» (Vender en el teléfono, 2026-09-25): pantalla completa, sin padding ni borde, fondo tinta; el título queda
      para lectores de pantalla y el contenido dibuja su propia barra (EscanerCamara). Hereda igual el velo, la entrada,
      la cascada de sus piezas y el foco atrapado. */
+  /* «ticket» (Punto de venta apilado, 2026-09-26, spike docs/maquetas/punto-venta-spike-2026-09/, variante A): la hoja
+     que sube desde abajo con el ticket (92 % del alto, también en tablet), sin padding: el ticket dibuja su cabecera y
+     su pie fijo con «Cobrar». El título queda para lectores de pantalla, como en «camara». */
 };
 
 // REGLA DE MOVIMIENTO (ADR-0136): todo modal nuevo se hace con este componente y hereda, sin definir nada, el
@@ -87,12 +90,19 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             cambio de alto del contenido (elegir un medio, un motivo, un responsable) movía también su borde de
             arriba y la hoja «bailaba». Anclada, el título no se mueve nunca; solo crece o se acorta el borde de
             abajo. En celular sigue siendo una hoja pegada abajo. */}
-        <div className={`pointer-events-none fixed inset-0 z-50 flex ${variante === "camara" ? "" : "items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]"}`}>
+        <div
+          className={`pointer-events-none fixed inset-0 z-50 flex ${
+            variante === "camara" ? "" : variante === "ticket" ? "items-end justify-center" : "items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]"
+          }`}
+        >
           <Dialog.Content
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
                 ? "flex h-dvh flex-col overflow-hidden bg-tinta"
-                : `scroll-cayla max-h-[90vh] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
+                : variante === "ticket"
+                  ? // El panel de adentro (el `<aside>` del ticket) llena la hoja: cabecera y pie fijos, el medio scrollea.
+                    `flex h-[92dvh] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel [&>aside]:min-h-0 [&>aside]:flex-1 ${ancho}`
+                  : `scroll-cayla max-h-[90vh] overflow-y-auto rounded-t-2xl border border-sand p-6 sm:max-h-[calc(100dvh-8vh-1.5rem)] sm:rounded-2xl ${
                     variante === "papel" || variante === "hoja" ? "bg-papel" : "bg-crema shadow-xl"
                   } ${ancho}`
             } ${
@@ -122,11 +132,11 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             </button>
           )}
           <Dialog.Title asChild>
-            <h2 className={`font-display text-tinta ${variante === "camara" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""}`}>{titulo}</h2>
+            <h2 className={`font-display text-tinta ${variante === "camara" || variante === "ticket" ? "sr-only" : ""} ${variante === "hoja" ? "text-2xl leading-tight" : "text-lg"} ${variante === "papel" ? "pr-8" : ""}`}>{titulo}</h2>
           </Dialog.Title>
           {subtitulo ? (
             <Dialog.Description asChild>
-              <p className={variante === "camara" ? "sr-only" : variante === "hoja" ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "mb-4 mt-1 text-xs text-tinta/70"}>{subtitulo}</p>
+              <p className={variante === "camara" || variante === "ticket" ? "sr-only" : variante === "hoja" ? "mb-[18px] mt-1 text-[13.5px] leading-normal text-taupe" : "mb-4 mt-1 text-xs text-tinta/70"}>{subtitulo}</p>
             </Dialog.Description>
           ) : (
             // Radix exige una Description por accesibilidad aunque el modal no muestre una visualmente.

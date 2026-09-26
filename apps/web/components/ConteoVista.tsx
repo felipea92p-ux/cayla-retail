@@ -6,7 +6,7 @@ import type { ConteoAbierto, ConteoResumen, PrioridadConteo } from "@/lib/conteo
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { ConteoPanel } from "@/components/ConteoPanel";
 import { ConteosLista } from "@/components/ConteosLista";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 function fecha(iso: string) {
@@ -89,10 +89,10 @@ export function ConteoVista({
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo={`Inventario · Conteo · ${ubicacionEtiqueta}`}
-        titulo="Conteo físico"
-        bajada="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
+      <EncabezadoPagina
+        sede={ubicacionEtiqueta}
+        titulo="Conteo"
+        subtitulo="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">

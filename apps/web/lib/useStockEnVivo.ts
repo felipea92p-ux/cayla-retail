@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { almacenReleido, conStockReleido } from "@/lib/vender-stock-local";
+import { almacenReleido, apartadoReleido, conStockReleido } from "@/lib/vender-stock-local";
 import { sumarCantidades } from "@/lib/inventario-reglas";
 import { leerTodas } from "@/lib/resultado";
 
@@ -19,11 +19,13 @@ import { leerTodas } from "@/lib/resultado";
  */
 
 /**
- * Dos números por prenda, de las MISMAS filas: lo cobrable (`cobrable`, el piso disponible) y el almacén disponible de
- * esta sede (`almacen`, `null` sin almacén). El almacén no se cobra, pero sin releerlo la caja diría «está en el
- * almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar al almacén (D-40, D-42).
+ * Tres números por prenda, de las MISMAS filas: lo cobrable (`cobrable`, el piso disponible), el almacén disponible de
+ * esta sede (`almacen`, `null` sin almacén) y lo apartado en el piso (`apartado`). El almacén no se cobra, pero sin
+ * releerlo la caja diría «está en el almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar al
+ * almacén (D-40, D-42). Y sin releer lo apartado, una prenda que otra caja aparta después de cargar la pantalla diría
+ * «agotada» y no «apartada para una clienta».
  */
-export type StockReleido = { cobrable: Map<string, number>; almacen: Map<string, number | null> };
+export type StockReleido = { cobrable: Map<string, number>; almacen: Map<string, number | null>; apartado: Map<string, number> };
 
 /**
  * Lee de la base el stock cobrable de una sede (lectura directa de `stock`, la misma de `getDisponibleEnSede`
@@ -42,7 +44,7 @@ export type StockReleido = { cobrable: Map<string, number>; almacen: Map<string,
 export async function leerStockDeSede(ubicacionId: string, conocidos: string[], ids?: string[]): Promise<StockReleido | null> {
   const conocidosSet = new Set(conocidos);
   const pedidas = ids ? [...new Set(ids)].filter((id) => conocidosSet.has(id)) : conocidos;
-  if (pedidas.length === 0) return { cobrable: new Map(), almacen: new Map() };
+  if (pedidas.length === 0) return { cobrable: new Map(), almacen: new Map(), apartado: new Map() };
   const supabase = createClient();
   const { data, error } = await leerTodas(
     (desde, hasta) => {
@@ -58,14 +60,14 @@ export async function leerStockDeSede(ubicacionId: string, conocidos: string[], 
   );
   if (error || !data) return null;
   const cantidades = sumarCantidades(data);
-  return { cobrable: conStockReleido(new Map(), pedidas, cantidades), almacen: almacenReleido(pedidas, cantidades) };
+  return { cobrable: conStockReleido(new Map(), pedidas, cantidades), almacen: almacenReleido(pedidas, cantidades), apartado: apartadoReleido(pedidas, cantidades) };
 }
 
 /**
  * Sondea `leerStockDeSede` mientras la pantalla sigue montada y `activo` (p. ej. hay caja abierta: no hay nada
  * que cobrar/apartar/cambiar igual). `alLeer` recibe el mapa releído cada vez que la lectura sale bien —cada
- * pantalla decide dónde aterriza (su propio `ajustesStock`)—, y de yapa el almacén (solo Vender lo usa; las
- * demás pueden ignorar el segundo argumento); una lectura que falla no llama a `alLeer`, la
+ * pantalla decide dónde aterriza (su propio `ajustesStock`)—, y de yapa el almacén (solo Vender lo usa) y lo
+ * apartado en el piso (Vender y Cambios); quien no los necesita ignora los argumentos que sobran; una lectura que falla no llama a `alLeer`, la
  * pantalla se queda con lo que ya mostraba. Sondea también al volver a la pestaña o a la red; nunca con la
  * pestaña oculta, sin conexión, ni con `activo` en falso.
  *
@@ -77,7 +79,7 @@ export function useStockEnVivo(
   ubicacionId: string,
   conocidos: string[],
   activo: boolean,
-  alLeer: (releido: Map<string, number>, almacen: Map<string, number | null>) => void,
+  alLeer: (releido: Map<string, number>, almacen: Map<string, number | null>, apartado: Map<string, number>) => void,
   cadaMs = 10_000,
 ) {
   const conocidosRef = useRef(conocidos);
@@ -93,7 +95,7 @@ export function useStockEnVivo(
     const sondear = async () => {
       if (document.visibilityState !== "visible" || !navigator.onLine) return;
       const releido = await leerStockDeSede(ubicacionId, conocidosRef.current);
-      if (releido && !cancelado) alLeerRef.current(releido.cobrable, releido.almacen);
+      if (releido && !cancelado) alLeerRef.current(releido.cobrable, releido.almacen, releido.apartado);
     };
     void sondear();
     const id = window.setInterval(sondear, cadaMs);
