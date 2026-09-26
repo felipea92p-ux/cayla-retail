@@ -86,12 +86,10 @@ Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
 - [x] **#3.** «Reponer al piso» y «Retirar del piso» piden «Bajada al piso», y «Apartar» pide «Apartados». Se cumple en la pantalla y en la base (`mover_entre_piso_y_almacen`, `apartar_prenda`). `mover_interno` y `apartar_stock` quedan internas: la parte 2 les quita el permiso de ejecución desde el navegador. Recibir traslados, separaciones y `bajar_al_piso` no pierden nada.
 - [x] **#1.** «Ajustar inventario» guarda todo en una sola llamada (`ajustar_inventario`): todo o nada, con marca de reintento. Si se corta la red, los campos quedan fijos y el reintento no duplica.
 - [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** qué roles necesitan «Bajada al piso» y «Apartados». Al 2026-09-25, las Terminal Almacén y de ventas reponían con «Reponer» (ADR-0208) y, sin el módulo, lo pierden.
-- [ ] **Producción, en orden y con visto bueno:**
-  1. módulos en los roles;
-  2. `20260927180000` y `20260927180100`;
-  3. publicar la web;
-  4. `20260927180200`;
-  5. refrescar el volcado y correr `datos:comparar`.
+- [x] **`20260927180000` y `20260927180100` aplicadas en producción** (2026-09-26). La web ya estaba publicada: el #514 se fusionó antes de pegarlas, y durante unos minutos las cuatro acciones fallaron. Huellas idénticas a local (ADR-0240, «Aplicación en producción»).
+- [ ] Pegar `20260927180200` (los `revoke`): ya es seguro, la web usa las puertas nuevas.
+- [ ] **Terminal Almacén y Terminal de ventas** ven Existencias sin «Bajada al piso» ni «Apartados»: hoy no ven «Reponer», «Retirar» ni «Apartar». Felipe decide si se los enciende.
+- [ ] Refrescar el volcado (`pnpm datos:refrescar`).
 - [ ] Verlo con una cuenta sin los módulos.
 - [ ] Encontrado, sin tocar: `scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs` da 14/21 en local porque su preparación falla con `venta_descuento_requiere_argumento`. Es de ventas, no de este cambio.
 - [ ] Encontrado, sin tocar: `registrar_movimiento` tiene EXECUTE para PUBLIC, incluido `anon`. Adentro frena por permisos, pero el grant sobra.
