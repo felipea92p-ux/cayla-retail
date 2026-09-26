@@ -1,7 +1,8 @@
 # ADR-0240 · Existencias: una puerta, un candado; y «Ajustar» de una vez
 
-- **Fecha:** 2026-09-26 · **Estado:** implementado en local, en un PR sin fusionar. **Producción:** nada aplicado; pide el
-  visto bueno de Felipe y el orden de abajo.
+- **Fecha:** 2026-09-26 · **Estado:** fusionado (PR #514) y publicado. **Producción:** `20260927180000` y
+  `20260927180100` **aplicadas el 2026-09-26** (ver «Aplicación en producción», al final); `20260927180200` (los
+  `revoke`) **todavía no**.
 - **Pedido:** análisis `/pantalla` de Existencias (`docs/pantallas/inventario.md`). Felipe ordenó la tarea **#3 con la
   opción A** y la **#1**.
 - **Migraciones:**
@@ -131,3 +132,35 @@
 - **Falta:**
   - verlo con una cuenta sin los módulos;
   - revisar los roles de producción (paso 1).
+
+## Aplicación en producción (2026-09-26, noche)
+
+**Qué pasó:**
+- El PR #514 se fusionó y Vercel publicó la web (`792158aa`, 22:56 UTC) **antes** de pegar las migraciones: el orden
+  de arriba decía lo contrario.
+- La base de producción no tenía `mover_entre_piso_y_almacen`, `apartar_prenda` ni `ajustar_inventario` (consultado
+  en vivo, solo lectura).
+- Durante unos minutos, «Reponer», «Retirar del piso», «Apartar» y «Ajustar» pudieron fallar en las tiendas.
+
+**Qué se hizo, con el visto bueno de Felipe en el momento:**
+1. Se comprobaron en producción las firmas de las funciones que llaman las nuevas: `mover_interno`, `apartar_stock`,
+   `cargar_stock_inicial`, `registrar_movimiento`, `fn_ve_modulo`, `fn_bloquear_en_orden`,
+   `fn_historial_sin_truncate` y `fn_puede_operar_ubicacion`. Las ocho coinciden con local.
+2. Se ensayó cada migración en una transacción con `ROLLBACK`.
+3. Se aplicaron `20260927180000` y `20260927180100` con la integración de Supabase.
+4. Verificado:
+   - las tres funciones existen, `authenticated` las ejecuta y `anon` no;
+   - la huella del cuerpo sin comentarios (`md5` de `prosrc`) es idéntica a la de local;
+   - `ajustar_inventario` sin marca responde `ajuste_sin_token` y no guarda nada.
+
+**Sigue pendiente:**
+- `20260927180200` (quitarles el permiso de ejecución desde el navegador a `mover_interno` y `apartar_stock`). No
+  rompe nada si se pega: la web ya usa las puertas nuevas.
+- **Roles, consultado en vivo el 2026-09-26:**
+  - «Integrante» (17 cuentas) tiene Existencias, «Bajada al piso» y «Apartados»: no pierde nada.
+  - «Terminal Almacén» y «Terminal de ventas» ven Existencias **sin** «Bajada al piso» ni «Apartados». Con la web
+    publicada, ya no ven «Reponer», «Retirar» ni «Apartar». Si deben tenerlos, Felipe los enciende en Roles y accesos.
+- Refrescar el volcado (`pnpm datos:refrescar`).
+
+**Lección:** una migración que la web necesita se pega ANTES de fusionar, no «antes de publicar». En este repo,
+fusionar a `main` ES publicar.
