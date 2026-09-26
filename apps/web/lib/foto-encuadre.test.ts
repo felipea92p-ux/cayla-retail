@@ -22,7 +22,7 @@ function imagen(ancho: number, alto: number, rect: { x: number; y: number; ancho
 describe("cajaDeContenido", () => {
   it("encierra exactamente lo visible", () => {
     const d = imagen(100, 80, { x: 10, y: 20, ancho: 30, alto: 40 });
-    expect(cajaDeContenido(d, 100, 80)).toEqual({ x: 10, y: 20, ancho: 30, alto: 40 });
+    expect(cajaDeContenido(d, 100, 80)).toEqual({ x: 10, y: 20, ancho: 30, alto: 40, pixeles: 1200 });
   });
 
   it("sin nada visible devuelve null", () => {
@@ -32,18 +32,29 @@ describe("cajaDeContenido", () => {
   it("el halo casi transparente del recorte no agranda la caja", () => {
     const d = imagen(100, 100, { x: 0, y: 0, ancho: 100, alto: 100 }, 10); // bruma en toda la imagen
     for (let y = 40; y < 60; y++) for (let x = 30; x < 70; x++) d[(y * 100 + x) * 4 + 3] = 255;
-    expect(cajaDeContenido(d, 100, 100)).toEqual({ x: 30, y: 40, ancho: 40, alto: 20 });
+    expect(cajaDeContenido(d, 100, 100)).toEqual({ x: 30, y: 40, ancho: 40, alto: 20, pixeles: 800 });
   });
 });
 
 describe("recorteUtil", () => {
-  it("una prenda que ocupa buena parte de la foto sirve", () => {
-    expect(recorteUtil({ x: 0, y: 0, ancho: 50, alto: 50 }, 100, 100)).toBe(true);
+  it("una prenda que ocupa buena parte de la foto y llena su caja sirve", () => {
+    const d = imagen(100, 100, { x: 20, y: 10, ancho: 50, alto: 70 });
+    expect(recorteUtil(cajaDeContenido(d, 100, 100), 100, 100)).toBe(true);
   });
 
   it("un puntito suelto (el modelo no encontró la prenda) no sirve", () => {
-    expect(recorteUtil({ x: 0, y: 0, ancho: 5, alto: 5 }, 100, 100)).toBe(false);
+    const d = imagen(100, 100, { x: 0, y: 0, ancho: 5, alto: 5 });
+    expect(recorteUtil(cajaDeContenido(d, 100, 100), 100, 100)).toBe(false);
     expect(recorteUtil(null, 100, 100)).toBe(false);
+  });
+
+  it("pedazos desparramados por toda la foto no son una prenda, aunque su caja sea grande", () => {
+    // Lo que pasó con la foto de una tienda llena de ropa: dos manchas en esquinas opuestas.
+    const d = imagen(100, 100, { x: 5, y: 5, ancho: 15, alto: 15 });
+    for (let y = 75; y < 95; y++) for (let x = 75; x < 95; x++) d[(y * 100 + x) * 4 + 3] = 255;
+    const c = cajaDeContenido(d, 100, 100);
+    expect(c && c.ancho * c.alto).toBeGreaterThan(0.5 * 100 * 100);
+    expect(recorteUtil(c, 100, 100)).toBe(false);
   });
 });
 

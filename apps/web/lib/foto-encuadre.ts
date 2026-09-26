@@ -20,17 +20,24 @@ export const LADO_MAX_ORIGINAL = 2400;
  *  recorte: contarlo agrandaría la caja con bruma que no se ve. */
 export const UMBRAL_ALFA = 32;
 
-/** Si lo recortado ocupa menos que esto de la foto, el modelo no encontró la prenda (le pasa con una foto de tienda
- *  llena de ropa, o con un afiche): se ofrece la foto con su fondo en vez de un recorte vacío o de un botón suelto. */
+/** Si lo recortado ocupa menos que esto de la foto, el modelo no encontró la prenda (un botón suelto, un gancho). */
 export const AREA_MINIMA_PRENDA = 0.02;
 
+/** Qué parte de su propia caja llena una prenda de verdad. Medido el 2026-09-26 con MODNet (ADR-0220): una camisa
+ *  en gancho llenó el 79 % de la caja que la encierra; los pedazos que dejó en una foto de una tienda llena de ropa,
+ *  el 15 %. El umbral queda en medio, lejos de los dos. */
+export const RELLENO_MINIMO_PRENDA = 0.3;
+
 export type Caja = { x: number; y: number; ancho: number; alto: number };
+/** La caja de lo visible y cuántos píxeles visibles hay adentro. */
+export type Contenido = Caja & { pixeles: number };
 
 /**
  * La caja que encierra lo que el recorte dejó visible, leyendo el canal alfa de una imagen RGBA (4 bytes por píxel).
  * `null` si no quedó nada visible.
  */
-export function cajaDeContenido(rgba: ArrayLike<number>, ancho: number, alto: number, umbral = UMBRAL_ALFA): Caja | null {
+export function cajaDeContenido(rgba: ArrayLike<number>, ancho: number, alto: number, umbral = UMBRAL_ALFA): Contenido | null {
+  let pixeles = 0;
   let x0 = ancho;
   let y0 = alto;
   let x1 = -1;
@@ -39,6 +46,7 @@ export function cajaDeContenido(rgba: ArrayLike<number>, ancho: number, alto: nu
     const fila = y * ancho * 4;
     for (let x = 0; x < ancho; x++) {
       if (rgba[fila + x * 4 + 3] > umbral) {
+        pixeles++;
         if (x < x0) x0 = x;
         if (x > x1) x1 = x;
         if (y < y0) y0 = y;
@@ -47,13 +55,14 @@ export function cajaDeContenido(rgba: ArrayLike<number>, ancho: number, alto: nu
     }
   }
   if (x1 < 0) return null;
-  return { x: x0, y: y0, ancho: x1 - x0 + 1, alto: y1 - y0 + 1 };
+  return { x: x0, y: y0, ancho: x1 - x0 + 1, alto: y1 - y0 + 1, pixeles };
 }
 
-/** ¿El recorte encontró una prenda que valga la pena mostrar? (ver `AREA_MINIMA_PRENDA`) */
-export function recorteUtil(caja: Caja | null, ancho: number, alto: number): caja is Caja {
-  if (!caja || ancho <= 0 || alto <= 0) return false;
-  return (caja.ancho * caja.alto) / (ancho * alto) >= AREA_MINIMA_PRENDA;
+/** ¿El recorte encontró UNA prenda? Tiene que ocupar algo de la foto (`AREA_MINIMA_PRENDA`) y llenar su caja
+ *  (`RELLENO_MINIMO_PRENDA`): mirar solo la caja confunde unos pedazos desparramados con una prenda grande. */
+export function recorteUtil(c: Contenido | null, ancho: number, alto: number): c is Contenido {
+  if (!c || ancho <= 0 || alto <= 0) return false;
+  return c.pixeles / (ancho * alto) >= AREA_MINIMA_PRENDA && c.pixeles / (c.ancho * c.alto) >= RELLENO_MINIMO_PRENDA;
 }
 
 /**

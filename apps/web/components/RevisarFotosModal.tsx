@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { escucharDescargaModelo, prepararFotoPrenda, type FotoPreparada } from "@/lib/preparar-foto";
@@ -27,7 +27,9 @@ type Item = {
   fuente: Fuente;
   estado: "esperando" | "procesando" | "listo" | "error";
   preparada: FotoPreparada | null;
-  vistas: { antes: string; sinFondo: string | null; conFondo: string | null };
+  /** Vistas previas (blob:). Se crean y se liberan en el mismo efecto: creadas en el estado inicial, el doble montaje
+   *  de React las liberaba y la miniatura «Antes» salía rota. */
+  vistas: { antes: string | null; sinFondo: string | null; conFondo: string | null };
   /** `null` = todavía no hay versiones para elegir, o la imagen no se pudo leer (no se usa). */
   eleccion: Eleccion | null;
   error: string | null;
@@ -56,37 +58,31 @@ export function RevisarFotosModal({
       fuente,
       estado: "esperando",
       preparada: null,
-      vistas: { antes: URL.createObjectURL(fuente.blob), sinFondo: null, conFondo: null },
+      vistas: { antes: null, sinFondo: null, conFondo: null },
       eleccion: null,
       error: null,
     })),
   );
   const [descarga, setDescarga] = useState<number | null>(null);
-  const itemsRef = useRef(items);
-  useEffect(() => {
-    itemsRef.current = items;
-  }, [items]);
-
-  // Las vistas previas (blob:) se liberan al cerrar: con varias fotos elegidas de una vez son decenas de imágenes en memoria.
-  useEffect(
-    () => () => {
-      for (const it of itemsRef.current) Object.values(it.vistas).forEach((u) => u && URL.revokeObjectURL(u));
-    },
-    [],
-  );
-
   // Una foto a la vez, en orden: el recortador es uno solo y así la primera se ve lista enseguida.
   useEffect(() => {
     let vivo = true;
+    const creadas: string[] = [];
+    const vista = (b: Blob) => {
+      const u = URL.createObjectURL(b);
+      creadas.push(u);
+      return u;
+    };
     const quitar = escucharDescargaModelo((p) => vivo && setDescarga(p >= 100 ? null : p));
     (async () => {
       for (let i = 0; i < fuentes.length && vivo; i++) {
-        setItems((prev) => prev.map((it, n) => (n === i ? { ...it, estado: "procesando" } : it)));
+        const antes = vista(fuentes[i].blob);
+        setItems((prev) => prev.map((it, n) => (n === i ? { ...it, estado: "procesando", vistas: { ...it.vistas, antes } } : it)));
         try {
           const p = await prepararFotoPrenda(fuentes[i].blob);
           if (!vivo) return;
-          const sinFondo = p.sinFondo ? URL.createObjectURL(p.sinFondo) : null;
-          const conFondo = URL.createObjectURL(p.conFondo);
+          const sinFondo = p.sinFondo ? vista(p.sinFondo) : null;
+          const conFondo = vista(p.conFondo);
           setItems((prev) =>
             prev.map((it, n) =>
               n === i
@@ -114,6 +110,7 @@ export function RevisarFotosModal({
     return () => {
       vivo = false;
       quitar();
+      creadas.forEach((u) => URL.revokeObjectURL(u));
     };
     // `fuentes` llega una sola vez: el modal se monta con ellas y se desmonta al cerrar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,11 +211,11 @@ function TarjetaRevision({
           <img src={grande} alt="" className="h-full w-full object-contain" />
         ) : estado === "error" ? (
           // eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:)
-          <img src={vistas.antes} alt="" className="h-full w-full object-cover opacity-40" />
+          vistas.antes && <img src={vistas.antes} alt="" className="h-full w-full object-cover opacity-40" />
         ) : (
           <div className="grid h-full w-full place-items-center text-xs text-taupe">{estado === "procesando" ? "Quitando el fondo…" : "En cola"}</div>
         )}
-        {estado === "listo" && (
+        {estado === "listo" && vistas.antes && (
           <figure className="absolute bottom-1.5 left-1.5 w-1/4 overflow-hidden rounded border border-sand bg-papel" title="La foto como llegó">
             {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
             <img src={vistas.antes} alt="" className="aspect-[4/5] w-full object-cover" />
