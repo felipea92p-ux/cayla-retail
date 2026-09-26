@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Camera, Search, SlidersHorizontal, X } from "lucide-react";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { Modal } from "@/components/ui/Modal";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
 import {
   CATEGORIAS,
-  DIAS_POR_DEFECTO,
   FILTROS_SUBUBICACION,
   FILTROS_TIPO,
   PERIODOS_RAPIDOS,
@@ -57,11 +58,14 @@ function Pastilla({
   onClick,
   cuenta,
   sutil = false,
+  quitable = false,
   children,
 }: {
   activa: boolean;
   onClick: () => void;
   cuenta?: number;
+  /** Activa y se puede soltar con otro toque (ADR-0241): lleva una × en vez de la línea «Filtrando: …». */
+  quitable?: boolean;
   /** La píldora de proceso: más chica y, activa, en hueso — no compite con el tipo en tinta. */
   sutil?: boolean;
   children: ReactNode;
@@ -71,18 +75,22 @@ function Pastilla({
       type="button"
       onClick={onClick}
       aria-pressed={activa}
+      // Un tipo sin nada en el período se ve (dice «0») pero no se toca: antes llevaba a «Ningún movimiento coincide»
+      // con las tres cifras en «—» (ADR-0241).
+      disabled={!activa && cuenta === 0}
       className={
         sutil
           ? `inline-flex shrink-0 items-center whitespace-nowrap rounded-full border px-3 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo ${
               activa ? "border-taupe bg-hueso text-tinta" : "border-sand text-taupe hover:bg-sand/40 hover:text-tinta"
             }`
-          : "pildora-cayla shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
+          : "pildora-cayla shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo disabled:cursor-default disabled:opacity-40"
       }
     >
       {children}
       {cuenta !== undefined && (
         <span className={`text-[11px] font-medium tabular-nums ${activa ? "text-crema/70" : "text-taupe/80"}`}>{cuenta.toLocaleString("es-PE")}</span>
       )}
+      {activa && quitable && <X aria-label="quitar" strokeWidth={1.75} className="-mr-1 h-3.5 w-3.5 opacity-70" />}
     </button>
   );
 }
@@ -91,6 +99,8 @@ export function FiltrosMovimientos({
   sububicaciones,
   sub,
   periodo,
+  periodoPorDefecto = "30",
+  hrefExportar,
   desde,
   hasta,
   resumen,
@@ -100,6 +110,10 @@ export function FiltrosMovimientos({
   /** Cuál quedó apretada (ya resuelta por la página: sirve también para un enlace viejo con uuid). */
   sub: TokenSububicacion | null;
   periodo: PeriodoMovimientos;
+  /** El que rige sin nada en la URL: «hoy» en el celular, «30» en lo demás (ADR-0241). No cuenta como filtro. */
+  periodoPorDefecto?: "hoy" | "30";
+  /** La descarga con estos filtros: en el celular va al pie de la hoja de Filtros (en la computadora, en el «⋯»). */
+  hrefExportar?: string;
   /** Las fechas que rigen, para los campos de «Personalizado» (con un período rápido, el desde que aplicó la página). */
   desde: string;
   hasta: string;
@@ -113,6 +127,9 @@ export function FiltrosMovimientos({
   const [busqueda, setBusqueda] = useState(params.get("q") ?? "");
   const primera = useRef(true);
   const entrada = useRef<HTMLInputElement>(null);
+  // Celular (ADR-0241): los filtros viven en una hoja y la cámara lee una etiqueta.
+  const [hoja, setHoja] = useState(false);
+  const [camara, setCamara] = useState(false);
 
   const proc = params.get("proc") || null;
   // Un enlace con solo `?proc=conteo` (el de Conteo) aprieta igual «Ajustes»: el tipo se deduce.
@@ -155,7 +172,9 @@ export function FiltrosMovimientos({
   }, [busqueda]);
 
   const subDisponibles = FILTROS_SUBUBICACION.filter((f) => sububicaciones.some((s) => s.tipo === f.tipo));
-  const hayFiltros = !!(params.get("q") || cat || sub || proc || periodo !== String(DIAS_POR_DEFECTO));
+  const hayFiltros = !!(params.get("q") || cat || sub || proc || periodo !== periodoPorDefecto);
+  // Cuántos filtros hay puestos, para el botón «Filtros · n» del celular (la búsqueda se ve sola: no cuenta).
+  const cuantosFiltros = [cat, proc, sub, periodo !== periodoPorDefecto].filter(Boolean).length;
   // Los procesos que se ofrecen bajo el tipo elegido: los que tuvieron algo en el período (en su orden), y el elegido
   // aunque esté en cero. Sin cifras (la base no respondió), todos los del tipo.
   const procesosDelTipo = cat
@@ -165,26 +184,142 @@ export function FiltrosMovimientos({
   // lo muestre, así que se dice en la línea de «Filtrando».
   const procesoSuelto = proc && !(cat && PROCESOS_POR_CATEGORIA[cat].includes(proc));
 
-  function elegirPeriodo(dias: (typeof PERIODOS_RAPIDOS)[number]) {
+  // El período por defecto no va en la URL (así el enlace de un celular abierto en la computadora sigue diciendo lo que
+  // se ve); cualquier otro, sí.
+  function elegirPeriodo(valor: "hoy" | (typeof PERIODOS_RAPIDOS)[number]) {
     setPersonalizadoAbierto(false);
-    aplicar({ rango: dias === DIAS_POR_DEFECTO ? "" : String(dias), desde: "", hasta: "" });
+    aplicar({ rango: String(valor) === periodoPorDefecto ? "" : String(valor), desde: "", hasta: "" });
+  }
+  const PERIODOS: { valor: "hoy" | (typeof PERIODOS_RAPIDOS)[number]; texto: string }[] = [
+    { valor: "hoy", texto: "Hoy" },
+    ...PERIODOS_RAPIDOS.map((d) => ({ valor: d, texto: `${d} días` })),
+  ];
+  // Tocar el tipo que ya está elegido lo suelta (vuelve a «Todos»): la × de la píldora.
+  const elegirTipo = (valor: string) => aplicar(cat === valor ? { cat: "", proc: "" } : { cat: valor, proc: "" });
+  // La fila de procesos solo si hay entre qué elegir (ADR-0241): «Todos · Venta» con solo ventas no filtraba nada.
+  const hayProcesos = procesosDelTipo.length >= 2 || (!!proc && procesosDelTipo.length >= 1);
+
+  function limpiar() {
+    setBusqueda("");
+    setPersonalizadoAbierto(false);
+    router.push(pathname);
   }
 
-  const activos = [
-    params.get("q") && `«${params.get("q")}»`,
-    cat && FILTROS_TIPO.find((f) => f.valor === cat)?.etiqueta,
-    proc && etiquetaProceso(proc),
-    sub && FILTROS_SUBUBICACION.find((f) => f.token === sub)?.etiqueta,
-  ].filter(Boolean);
+  function alLeerCodigo(codigo: string) {
+    setCamara(false);
+    const texto = codigo.trim();
+    setBusqueda(texto);
+    aplicar({ q: texto });
+  }
+
+  const periodos = (
+    <div role="group" aria-label="Período" className={FILA_DESLIZA}>
+      {PERIODOS.map((p) => (
+        <Pastilla key={p.valor} activa={!mostrarFechas && periodo === String(p.valor)} onClick={() => elegirPeriodo(p.valor)}>
+          {p.texto}
+        </Pastilla>
+      ))}
+      <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
+        Personalizado
+      </Pastilla>
+    </div>
+  );
+
+  const fechas = mostrarFechas && (
+    <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-hueso/70 px-4 py-2.5">
+      {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
+          control dice la verdad. Tocarlo la vuelve explícita. */}
+      <div className="w-40 sm:w-44">
+        <CampoFecha etiqueta="Desde" valor={periodo === "todo" ? "" : desde} onValor={(v) => aplicar({ desde: v, rango: "" })} />
+      </div>
+      <div className="w-40 sm:w-44">
+        <CampoFecha etiqueta="Hasta" valor={periodo === "todo" ? "" : hasta} onValor={(v) => aplicar({ hasta: v, rango: "" })} />
+      </div>
+      <button
+        type="button"
+        onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
+        aria-pressed={periodo === "todo"}
+        className={`btn-cayla btn-enlace mb-2 text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
+      >
+        Todo el historial
+      </button>
+    </div>
+  );
+
+  const tipos = (
+    <div role="group" aria-label="Tipo" className={`${FILA_DESLIZA} min-w-0 sm:flex-1`}>
+      <Pastilla activa={cat === null && !procesoSuelto} onClick={() => aplicar({ cat: "", proc: "" })} cuenta={resumen?.todos.operaciones}>
+        Todos
+      </Pastilla>
+      {FILTROS_TIPO.map((f) => (
+        <Pastilla key={f.valor} activa={cat === f.valor} quitable onClick={() => elegirTipo(f.valor)} cuenta={resumen?.[f.valor].operaciones}>
+          {f.etiqueta}
+        </Pastilla>
+      ))}
+      {/* Un proceso que vive en dos tipos (cambio) llegado sin `?cat=`: su propia píldora, que se suelta con la ×. */}
+      {procesoSuelto && proc && (
+        <Pastilla activa quitable onClick={() => aplicar({ proc: "" })}>
+          {etiquetaProceso(proc)}
+        </Pastilla>
+      )}
+    </div>
+  );
+
+  const zona = subDisponibles.length > 0 && (
+    // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
+    // dicen qué se está eligiendo.
+    <div className="flex max-w-full shrink-0 items-center gap-2">
+      <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
+        Zona
+      </span>
+      <div role="group" aria-label="Zona de la tienda" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg bg-hueso p-[3px]">
+        {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => {
+          const activa = sub === f.token;
+          return (
+            <button
+              key={f.token ?? "todo"}
+              type="button"
+              aria-pressed={activa}
+              onClick={() => aplicar({ sub: f.token ?? "" })}
+              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
+                activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
+              }`}
+            >
+              {f.etiqueta}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const procesos = cat && hayProcesos && (
+    <div role="group" aria-label={`Proceso dentro de ${FILTROS_TIPO.find((f) => f.valor === cat)?.etiqueta ?? cat}`} className="anim-revelar flex items-center gap-2 border-l-2 border-sand pl-3">
+      <span aria-hidden className="label-cayla shrink-0 text-[10px] font-bold text-taupe">
+        Proceso
+      </span>
+      <div className={`${FILA_DESLIZA} min-w-0 flex-1`}>
+        <Pastilla sutil activa={proc === null} onClick={() => aplicar({ proc: "" })}>
+          Todos
+        </Pastilla>
+        {procesosDelTipo.map((p) => (
+          <Pastilla key={p} sutil activa={proc === p} onClick={() => aplicar({ cat, proc: p })}>
+            {etiquetaProceso(p)}
+          </Pastilla>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     // Sin caja propia: vive arriba de la lista, en la misma tarjeta (la pone la página).
-    <div className="space-y-3 border-b border-sand p-3.5 sm:p-4">
-      {/* Fila 1: búsqueda + período. */}
-      <div className="flex flex-wrap items-center gap-2">
+    <div className="border-b border-sand">
+      {/* Búsqueda. En el celular queda FIJA arriba al bajar (ADR-0241), con la cámara para leer una etiqueta y el botón
+          de los filtros: lo que se hace con el pulgar sin volver a subir. La cabecera del ERP es `fixed` (≈58 px). */}
+      <div className="sticky top-[3.625rem] z-20 flex items-center gap-2 bg-papel/95 px-3 pb-2 pt-3 backdrop-blur-sm sm:static sm:z-auto sm:bg-transparent sm:px-4 sm:pb-0 sm:pt-4 sm:backdrop-blur-none">
         {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: al desaparecer la X el
             foco se perdía; ahora vuelve al campo (mismo criterio que Traslados). */}
-        <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_16rem] items-center">
+        <div className="caja-cayla relative flex h-11 min-w-0 flex-1 items-center sm:h-10">
           <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
           <input
             ref={entrada}
@@ -210,115 +345,99 @@ export function FiltrosMovimientos({
             </button>
           )}
         </div>
-        <div role="group" aria-label="Período" className={`${FILA_DESLIZA} w-full sm:w-auto`}>
-          {PERIODOS_RAPIDOS.map((dias) => (
-            <Pastilla key={dias} activa={!mostrarFechas && periodo === String(dias)} onClick={() => elegirPeriodo(dias)}>
-              {dias} días
-            </Pastilla>
-          ))}
-          <Pastilla activa={mostrarFechas} onClick={() => setPersonalizadoAbierto(true)}>
-            Personalizado
-          </Pastilla>
-        </div>
+        <button
+          type="button"
+          onClick={() => setCamara(true)}
+          aria-label="Escanear una etiqueta"
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-sand bg-papel text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
+        >
+          <Camera aria-hidden strokeWidth={1.5} className="h-[18px] w-[18px]" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setHoja(true)}
+          className="flex h-11 shrink-0 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[13px] font-medium text-tinta focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:hidden"
+        >
+          <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-4 w-4" />
+          Filtros
+          {cuantosFiltros > 0 && <span className="rounded-full bg-tinta px-1.5 text-[10.5px] tabular-nums text-crema">{cuantosFiltros}</span>}
+        </button>
+        <div className="hidden sm:block">{periodos}</div>
       </div>
 
-      {mostrarFechas && (
-        <div className="anim-revelar flex flex-wrap items-end gap-x-4 gap-y-1 rounded-xl bg-hueso/70 px-4 py-2.5">
-          {/* Con un período rápido vigente, «Desde» muestra la fecha que rige aunque no esté en la URL: el
-              control dice la verdad. Tocarlo la vuelve explícita. */}
-          <div className="w-40 sm:w-44">
-            <CampoFecha etiqueta="Desde" valor={periodo === "todo" ? "" : desde} onValor={(v) => aplicar({ desde: v, rango: "" })} />
-          </div>
-          <div className="w-40 sm:w-44">
-            <CampoFecha etiqueta="Hasta" valor={periodo === "todo" ? "" : hasta} onValor={(v) => aplicar({ hasta: v, rango: "" })} />
-          </div>
-          <button
-            type="button"
-            onClick={() => aplicar({ rango: "todo", desde: "", hasta: "" })}
-            aria-pressed={periodo === "todo"}
-            className={`btn-cayla btn-enlace mb-2 text-[12.5px] ${periodo === "todo" ? "font-semibold" : ""}`}
-          >
-            Todo el historial
-          </button>
-        </div>
-      )}
-
-      {/* Fila 2: tipo (con su cifra) y, a la derecha, la sububicación. */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
-        <div role="group" aria-label="Tipo" className={`${FILA_DESLIZA} min-w-0 sm:flex-1`}>
-          <Pastilla activa={cat === null} onClick={() => aplicar({ cat: "", proc: "" })} cuenta={resumen?.todos.operaciones}>
-            Todos
+      {/* Celular: lo que más se toca sin abrir la hoja — el período y, si hay, el tipo elegido con su ×. */}
+      <div className="flex items-center gap-1.5 overflow-x-auto px-3 pb-3 [scrollbar-width:none] sm:hidden">
+        {PERIODOS.slice(0, 3).map((p) => (
+          <Pastilla key={p.valor} activa={!mostrarFechas && periodo === String(p.valor)} onClick={() => elegirPeriodo(p.valor)}>
+            {p.texto}
           </Pastilla>
-          {FILTROS_TIPO.map((f) => (
-            <Pastilla key={f.valor} activa={cat === f.valor} onClick={() => aplicar({ cat: f.valor, proc: "" })} cuenta={resumen?.[f.valor].operaciones}>
-              {f.etiqueta}
-            </Pastilla>
-          ))}
-        </div>
-
-        {subDisponibles.length > 0 && (
-          // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
-          // dicen qué se está eligiendo.
-          <div className="flex max-w-full shrink-0 items-center gap-2">
-            <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
-              Zona
-            </span>
-          <div role="group" aria-label="Zona de la tienda" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg bg-hueso p-[3px]">
-            {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => {
-              const activa = sub === f.token;
-              return (
-                <button
-                  key={f.token ?? "todo"}
-                  type="button"
-                  aria-pressed={activa}
-                  onClick={() => aplicar({ sub: f.token ?? "" })}
-                  className={`whitespace-nowrap rounded-md px-2.5 py-1 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
-                    activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
-                  }`}
-                >
-                  {f.etiqueta}
-                </button>
-              );
-            })}
-          </div>
-          </div>
+        ))}
+        {cat && (
+          <Pastilla activa quitable onClick={() => aplicar({ cat: "", proc: "" })}>
+            {FILTROS_TIPO.find((f) => f.valor === cat)?.etiqueta}
+          </Pastilla>
         )}
       </div>
 
-      {/* Los procesos del tipo elegido, justo debajo: la jerarquía se lee sola. */}
-      {cat && (
-        <div role="group" aria-label={`Proceso dentro de ${FILTROS_TIPO.find((f) => f.valor === cat)?.etiqueta ?? cat}`} className="anim-revelar flex items-center gap-2 border-l-2 border-sand pl-3">
-          <span aria-hidden className="label-cayla shrink-0 text-[10px] font-bold text-taupe">
-            Proceso
-          </span>
-          <div className={`${FILA_DESLIZA} min-w-0 flex-1`}>
-            <Pastilla sutil activa={proc === null} onClick={() => aplicar({ proc: "" })}>
-              Todos
-            </Pastilla>
-            {procesosDelTipo.map((p) => (
-              <Pastilla key={p} sutil activa={proc === p} onClick={() => aplicar({ cat, proc: p })}>
-                {etiquetaProceso(p)}
-              </Pastilla>
-            ))}
-          </div>
+      {/* Computadora: todo a la vista, como siempre. */}
+      <div className="hidden space-y-3 px-4 pb-4 pt-3 sm:block">
+        {fechas}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
+          {tipos}
+          {zona}
+          {hayFiltros && (
+            <button type="button" onClick={limpiar} className="btn-cayla btn-enlace text-xs">
+              Limpiar filtros
+            </button>
+          )}
         </div>
+        {procesos}
+      </div>
+
+      {hoja && (
+        <Modal titulo="Filtros" subtitulo="Se aplican al tocarlos." onClose={() => setHoja(false)} variante="hoja">
+          {(cerrar) => (
+            <div className="space-y-5">
+              <section className="space-y-2">
+                <p className="label-cayla text-[10.5px] text-taupe">Período</p>
+                <div className="flex flex-wrap gap-1.5 [&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{periodos}</div>
+                {fechas}
+              </section>
+              <section className="space-y-2">
+                <p className="label-cayla text-[10.5px] text-taupe">Qué pasó</p>
+                <div className="[&>div]:mx-0 [&>div]:flex-wrap [&>div]:px-0">{tipos}</div>
+                {procesos}
+              </section>
+              {zona && <section className="space-y-2">{zona}</section>}
+              {hrefExportar && (
+                <a href={hrefExportar} download className="btn-cayla btn-enlace text-[13px]">
+                  Exportar a Excel con estos filtros
+                </a>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={limpiar} className="btn-cayla btn-secundario flex-1">
+                  Limpiar
+                </button>
+                <button type="button" onClick={cerrar} className="btn-cayla btn-primario flex-1">
+                  Ver movimientos
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
 
-      {hayFiltros && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-taupe">
-          {(activos.length > 0 || procesoSuelto) && <span>Filtrando: {activos.join(" · ")}</span>}
-          <button
-            type="button"
-            onClick={() => {
-              setBusqueda("");
-              setPersonalizadoAbierto(false);
-              router.push(pathname);
-            }}
-            className="btn-cayla btn-enlace text-xs"
-          >
-            Limpiar filtros
-          </button>
-        </div>
+      {camara && (
+        <EscanerBusqueda
+          titulo="Escanear prenda"
+          pista="Centra la etiqueta de la prenda en el cuadro: verás todo lo que le pasó en esta sede"
+          onCodigo={alLeerCodigo}
+          onEscribir={() => {
+            setCamara(false);
+            entrada.current?.focus();
+          }}
+          onClose={() => setCamara(false)}
+        />
       )}
     </div>
   );

@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movimientos conectado · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Movimientos conectado, computadora y celular (2026-09-26)
+   Felipe pidió ver TODAS las opciones antes de elegir: la barra oscura (no
+   existe en el ERP) alterna (1) los atajos del detalle, (2) qué hacer con
+   las bajadas al piso, (3) la parte de arriba del celular y (4) lo repetido.
+   Tokens = apps/web/app/globals.css (ADR-0169). Cabecera = EncabezadoPagina
+   (ADR-0220). Hojas = efecto de <Modal> (ADR-0136). Datos inventados sobre
+   las capturas de TRU del 26-09. Los enlaces no navegan: dicen a dónde irían.
+   Análisis: docs/pantallas/inventario-movimientos.md
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t35:rgba(26,26,24,.35);--t10:rgba(26,26,24,.10);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled{cursor:default}
+input{font:inherit;color:inherit}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px;color:var(--t65)}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:4px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:24px;align-items:start}
+@media (max-width:1180px){.escena{grid-template-columns:1fr}.col-tel{justify-self:center}}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+
+/* ── marcos ── */
+.marco{position:relative;background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 30px 64px -22px rgba(26,26,24,.28);border:1px solid rgba(26,26,24,.08)}
+.marco-pc{height:920px}
+.marco-tel{width:395px;height:820px;border-radius:44px;border:10px solid var(--tinta)}
+.scroll{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+
+/* ── computadora ── */
+.app{display:grid;grid-template-columns:196px minmax(0,1fr);min-height:100%}
+.lat{border-right:1px solid var(--sand);padding:20px 12px;position:sticky;top:0;height:920px}
+.lat .logo{display:flex;align-items:center;gap:8px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat a{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.sub{padding-left:26px;font-size:13px}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 22px;position:relative}
+.top .act{font-size:11px;letter-spacing:.14em;font-weight:600;color:var(--t65);display:flex;align-items:center;gap:6px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.main{padding:24px 28px 60px}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+.cabecera{display:flex;gap:20px;align-items:flex-start;justify-content:space-between}
+h1.tit{font-family:'EB Garamond',serif;font-weight:400;font-size:46px;line-height:1.05;margin:10px 0 6px;letter-spacing:-.01em}
+.frase{color:var(--t65);max-width:520px}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:500;border:1px solid var(--sand);background:var(--papel);white-space:nowrap}
+.btn:hover{border-color:var(--taupe)}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.mas{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);background:var(--papel);border:1px solid var(--sand);border-radius:12px;padding:6px;min-width:230px;z-index:30;box-shadow:0 18px 40px -16px rgba(26,26,24,.3);display:none}
+.menu.on{display:block;animation:rev .24s var(--ease) both}
+.menu button{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:8px;font-size:13px;text-align:left}
+.menu button:hover{background:var(--hueso)}
+.menu small{display:block;color:var(--t50);font-size:11px}
+@keyframes rev{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+/* cifras */
+.cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:20px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 18px;text-align:left;position:relative}
+button.cifra{transition:border-color .2s}
+button.cifra:hover{border-color:var(--taupe)}
+button.cifra.act{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.cifra .lbl{font-size:10px}
+.cifra .v{font-family:'EB Garamond',serif;font-size:30px;line-height:1.1;margin-top:6px}
+.cifra .v small{font-family:'DM Sans';font-size:13px;color:var(--t65);margin-left:6px}
+.cifra .v.ver{color:var(--verde)}
+.cifra p{font-size:12px;color:var(--t65);margin-top:3px}
+.cifra .flecha{position:absolute;right:14px;top:14px;color:var(--t35)}
+
+/* tarjeta de filtros */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;margin-top:16px}
+.herr{padding:14px 16px;display:grid;gap:10px}
+.fila1{display:flex;gap:8px;align-items:center}
+.buscar{flex:1;display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:10px;padding:0 6px 0 12px;height:40px;min-width:0}
+.buscar input{flex:1;border:0;background:transparent;outline:none;font-size:14px;min-width:0}
+.buscar input::placeholder{color:var(--t50)}
+.cam{display:inline-flex;align-items:center;gap:6px;background:var(--papel);border:1px solid var(--sand);border-radius:8px;padding:4px 9px;font-size:12.5px;font-weight:500;white-space:nowrap}
+.pils{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pil{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:5px 13px;font-size:12.5px;font-weight:500;white-space:nowrap;transition:background .2s,opacity .2s}
+.pil:not(:disabled):hover{border-color:var(--taupe)}
+.pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pil .d{color:var(--t50);font-size:11px}
+.pil.on .d{color:rgba(245,240,232,.65)}
+.pil:disabled{opacity:.42}
+.pil .u{font-size:11px;color:var(--verde);font-weight:600}
+.pil.on .u{color:#cfe0c4}
+.pil .xx{margin-left:2px;opacity:.7}
+.proc{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-left:10px;border-left:1px solid var(--sand)}
+.proc .pil{padding:3px 11px;font-size:12px;color:var(--taupe)}
+.proc .pil.on{background:var(--hueso);color:var(--tinta);border-color:var(--taupe)}
+.zona{margin-left:auto;display:flex;align-items:center;gap:8px}
+.segz{display:flex;background:var(--hueso);border-radius:9px;padding:3px;font-size:12.5px}
+.segz button{padding:3px 10px;border-radius:7px;color:var(--t65)}
+.segz button.on{background:var(--papel);color:var(--tinta);font-weight:500}
+.filtrando{font-size:12.5px;color:var(--t65)}
+.filtrando u{color:var(--tinta);text-underline-offset:3px}
+.ayuda{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t50);margin:18px 0 10px}
+
+/* lista */
+.lista{background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:0 18px 6px;margin-top:16px}
+.ayuda+.lista{margin-top:0}
+.dia{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid var(--sand);padding:16px 0 8px}
+.dia b{font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+.dia span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.fila{display:grid;grid-template-columns:8px minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 6.5rem;gap:0 16px;align-items:center;padding:11px 8px;border-bottom:1px solid var(--sand);cursor:pointer;transition:background .15s}
+.fila:hover{background:#f6f1e8}
+.fila:last-child{border-bottom:0}
+.punto{width:7px;height:7px;border-radius:50%}
+.p-ver{background:var(--verde)}.p-tin{background:var(--t35)}.p-amb{background:var(--ambar)}.p-piz{background:var(--pizarra)}.p-roj{background:var(--rojo-p)}
+.pr{display:flex;align-items:center;gap:11px;min-width:0}
+.fotos{display:flex;flex:none}
+.fotos .foto+.foto{margin-left:-12px}
+.foto{width:36px;height:40px;border-radius:7px;flex:none;position:relative;overflow:hidden;background:var(--hueso);box-shadow:0 0 0 2px var(--papel)}
+.foto i{position:absolute;inset:7px 8px 0;border-radius:40% 40% 4px 4px}
+.foto.vacia i{inset:10px;border:1.5px solid var(--sand);border-radius:60% 10% 60% 10%;background:none}
+.pr .n{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pr .m{font-size:12px;color:var(--taupe);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc2{font-size:13px;line-height:1.35}
+.pc2 small{display:block;color:var(--taupe);font-size:12px}
+.ref{font-size:12.5px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--t35)}
+.ref:hover{color:var(--rojo)}
+.q{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-weight:700;font-size:13.5px}
+.q.ver{color:var(--verde)}.q.tau{color:var(--taupe);font-weight:500}
+.q svg{color:var(--t35)}
+.q .mini{font-size:11.5px;font-weight:500}
+.hijos{margin:0 0 8px 12px;border-left:2px solid var(--sand);padding-left:8px}
+.hijos .fila{grid-template-columns:8px minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr) 6.5rem;padding:8px 8px}
+.plegado .pc2{color:var(--taupe)}
+.acciones-op{display:flex;flex-wrap:wrap;gap:6px;padding:8px 8px 12px}
+.chipac{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);background:var(--papel);border-radius:9px;padding:5px 11px;font-size:12.5px;font-weight:500}
+.chipac:hover{border-color:var(--taupe)}
+.chipac.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.aparte{font-size:12px;color:var(--t65);padding:12px 8px;display:flex;align-items:center;gap:8px}
+.aparte u{color:var(--tinta);cursor:pointer;text-underline-offset:3px}
+.pie{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:12.5px;color:var(--t65)}
+.pie b{letter-spacing:.14em;font-size:11px;color:var(--tinta)}
+.nota-pie{margin-top:14px;background:var(--hueso);border-radius:12px;padding:12px 16px;font-size:12.5px;color:var(--t65)}
+.nota-pie b{color:var(--tinta)}
+.vacio{padding:40px 20px;text-align:center}
+.vacio h3{font-family:'EB Garamond',serif;font-weight:400;font-size:22px}
+.vacio p{color:var(--t65);font-size:13px;margin-top:4px}
+
+/* ── celular ── */
+.m{font-size:13.5px}
+.m .barra{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--sand);background:var(--crema)}
+.m .barra .hb{display:flex;gap:10px;align-items:center;font-weight:600;letter-spacing:.28em;font-size:12px}
+.m .barra .sede{border:1px solid var(--sand);border-radius:8px;padding:3px 8px;font-size:10.5px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.m .cab{padding:14px 16px 0}
+.m h1.tit{font-size:34px;margin:6px 0 2px}
+.m .frase{font-size:12.5px}
+.fijo{position:sticky;top:0;z-index:12;background:var(--crema);padding:10px 12px;border-bottom:1px solid var(--sand);display:flex;gap:8px;align-items:center}
+.fijo .buscar{height:44px}
+.fijo .cam{padding:0;width:34px;height:34px;justify-content:center}
+.btnfil{display:inline-flex;align-items:center;gap:6px;height:44px;padding:0 12px;border-radius:10px;border:1px solid var(--sand);background:var(--papel);font-weight:500;font-size:13px;white-space:nowrap}
+.btnfil .n{background:var(--tinta);color:var(--crema);border-radius:99px;font-size:10.5px;padding:0 6px}
+.franja{display:flex;gap:0;margin:10px 12px 0;background:var(--papel);border:1px solid var(--sand);border-radius:12px;overflow:hidden}
+.franja>*{flex:1;padding:8px 10px;text-align:left;border-right:1px solid var(--sand)}
+.franja>*:last-child{border-right:0}
+.franja .lbl{font-size:9px}
+.franja .v{font-family:'EB Garamond',serif;font-size:22px;line-height:1.1}
+.franja .v.ver{color:var(--verde)}
+.franja button.act{background:var(--hueso)}
+.m .per{display:flex;gap:6px;padding:10px 12px 0;overflow-x:auto;scrollbar-width:none}
+.m .pils.desl{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+.m .lista{margin:10px 10px 0;padding:0 12px 4px;border-radius:14px}
+.m .fila{grid-template-columns:8px minmax(0,1fr) auto;gap:4px 10px;padding:11px 2px;align-items:start}
+.m .fila .punto{margin-top:6px}
+.m .fila .pc2{grid-column:2/4;grid-row:2;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:12.5px}
+.m .fila .pc2 small{display:inline}
+.m .fila .rf{display:none}
+.m .fila .q{grid-column:3;grid-row:1}
+.m .hijos .fila{grid-template-columns:8px minmax(0,1fr) auto}
+.m .dia{padding:12px 0 6px}
+.m .foto{width:34px;height:38px}
+.tabs{position:absolute;left:0;right:0;bottom:0;z-index:20;background:var(--papel);border-top:1px solid var(--sand);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 4px 16px}
+.tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--t65);padding:4px 0;border-radius:10px}
+.tabs button.on{color:var(--tinta);font-weight:600}
+.tabs button.on{background:var(--hueso)}
+.tabs .c{font-size:9.5px;color:var(--t50);font-weight:500}
+.m .pieM{padding:14px 16px 24px;text-align:center}
+
+/* hojas / cajón (efecto Modal) */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.32);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .28s var(--ease);z-index:40}
+.velo.on{opacity:1;pointer-events:auto}
+.cajon{position:absolute;top:0;right:0;bottom:0;width:440px;background:var(--papel);z-index:41;transform:translateX(24px);opacity:0;pointer-events:none;transition:transform .32s var(--ease),opacity .32s var(--ease);display:flex;flex-direction:column;border-left:1px solid var(--sand)}
+.cajon.on{transform:none;opacity:1;pointer-events:auto}
+.hoja{position:absolute;left:0;right:0;bottom:0;max-height:90%;background:var(--papel);z-index:41;border-radius:22px 22px 0 0;transform:translateY(18px) scale(.98);opacity:0;pointer-events:none;transition:transform .32s var(--ease),opacity .32s var(--ease);display:flex;flex-direction:column}
+.hoja.on{transform:none;opacity:1;pointer-events:auto}
+.hoja .asa{width:38px;height:4px;border-radius:9px;background:var(--sand);margin:8px auto 0}
+.cz{padding:16px 18px 12px;border-bottom:1px solid var(--sand);display:flex;gap:12px;align-items:flex-start}
+.cz h3{font-family:'EB Garamond',serif;font-weight:400;font-size:23px;line-height:1.1}
+.cz p{font-size:12px;color:var(--t65);margin-top:3px}
+.cz .x{margin-left:auto;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--t65);flex:none}
+.cuerpo{overflow:auto;padding:14px 18px 18px;display:grid;gap:16px}
+.cascada>*{animation:cas .42s var(--ease) both}
+.cascada>*:nth-child(2){animation-delay:.055s}.cascada>*:nth-child(3){animation-delay:.11s}.cascada>*:nth-child(4){animation-delay:.165s}
+@keyframes cas{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.cab-det{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.cab-det .n{font-size:15px}
+.cab-det .m2{font-size:12px;color:var(--t65)}
+.cab-det .big{font-family:'EB Garamond',serif;font-size:32px;line-height:1;text-align:right}
+.cab-det .big.ver{color:var(--verde)}
+.cab-det .big small{display:block;font-family:'DM Sans';font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--t50);font-weight:600;margin-top:4px}
+dl{border-top:1px solid var(--t10)}
+dl div{display:grid;grid-template-columns:8rem 1fr;gap:10px;padding:8px 0;border-bottom:1px solid var(--t10);font-size:13px}
+dt{text-transform:uppercase;letter-spacing:.12em;font-weight:600;font-size:10.5px;color:var(--t65);padding-top:2px}
+dd a,dd u{color:var(--tinta);text-decoration:underline;text-decoration-color:var(--t35);text-underline-offset:3px;cursor:pointer}
+.atajos .lbl{display:block;margin-bottom:8px}
+.acc{display:grid;gap:6px}
+.acc button{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;border:1px solid var(--sand);background:var(--papel);text-align:left}
+.acc button:hover{border-color:var(--taupe)}
+.acc button .t{font-weight:500;font-size:13.5px;display:block}
+.acc button .s{font-size:11.5px;color:var(--t65);display:block}
+.acc button.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.acc button.pri .s{color:rgba(245,240,232,.65)}
+.acc button .lider{margin-left:auto;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--taupe);font-weight:600}
+.acc2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pie-det{display:flex;gap:8px;padding:12px 18px 18px;border-top:1px solid var(--sand)}
+.pie-det .btn{flex:1;justify-content:center}
+.sinatajos{font-size:12px;color:var(--t50);font-style:italic}
+.fil-h .grupo{display:grid;gap:8px}
+.fil-h .grupo .pils{gap:6px}
+.cam-v{background:#141412;border-radius:16px;height:230px;position:relative;display:grid;place-items:center;overflow:hidden}
+.cam-v .mira{width:210px;height:100px;border:2px dashed rgba(245,240,232,.7);border-radius:10px}
+.cam-v .laser{position:absolute;left:14%;right:14%;top:50%;height:2px;background:var(--rojo);opacity:.8}
+.cam-v p{position:absolute;bottom:12px;color:rgba(245,240,232,.7);font-size:12px}
+
+.toast{position:fixed;right:22px;top:76px;z-index:99;background:var(--tinta);color:var(--crema);border-radius:12px;padding:10px 14px;font-size:12.5px;max-width:440px;opacity:0;transform:translateY(-8px);transition:all .3s var(--ease);pointer-events:none}
+.toast.on{opacity:1;transform:none}
+.toast code{font-family:ui-monospace,monospace;font-size:11.5px;color:#f0d9b5;word-break:break-all}
+
+.notas{padding:0 24px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.nota{background:var(--papel);border:1px dashed var(--taupe);border-radius:14px;padding:16px 18px;font-size:13px}
+.nota h4{font-family:'EB Garamond',serif;font-weight:400;font-size:20px;margin-bottom:6px}
+.nota ul{padding-left:18px;display:grid;gap:4px}
+.nota .gp{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:8px}
+.nota .gp b{font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="spk" id="spk">
+  <span class="tit">Movimientos · spike</span>
+  <div class="g"><span>1 · Atajos del detalle (varios)</span>
+    <div class="seg" data-multi="atajos">
+      <button data-v="venta">Venta → Cambio/Devol.</button><button data-v="entrada">Entrada → Bajar/Etiquetas</button><button data-v="corregir">Corregir: Ajustar/Contar</button><button data-v="existencias">Ver en Existencias</button>
+    </div></div>
+  <div class="g"><span>Abrir un ejemplo</span>
+    <div class="seg" id="ejemplos">
+      <button data-ej="venta">Venta</button><button data-ej="entrada">Entrada</button><button data-ej="ajuste">Ajuste</button><button data-ej="traslado">Traslado</button><button data-ej="apartado">Apartado</button>
+    </div></div>
+  <div class="g"><span>2 · Bajadas al piso</span>
+    <div class="seg" data-uno="piso"><button data-v="plegar">Plegar por día</button><button data-v="sacar">Sacar de «Todos»</button><button data-v="hoy">Como hoy</button></div></div>
+  <div class="g"><span>3 · Celular arriba</span>
+    <div class="seg" data-uno="movil"><button data-v="buscar">Buscar + Escanear</button><button data-v="pestanas">Pestañas abajo</button><button data-v="hoy">Como hoy</button></div></div>
+  <div class="g"><span>4 · Lo repetido</span>
+    <div class="seg" data-uno="rep"><button data-v="tarjetas">Tarjetas tocables + limpiar</button><button data-v="sin">Sin tarjetas</button><button data-v="texto">Solo limpiar texto</button><button data-v="hoy">Como hoy</button></div></div>
+  <div class="g"><span>5 · Un apartado lleva…</span>
+    <div class="seg" data-uno="apt"><button data-v="exacto">Al apartado exacto</button><button data-v="lista">A la lista de Apartados</button></div></div>
+</div>
+
+<div class="escena">
+  <div>
+    <p class="rot">Computadora · 1.440 px</p>
+    <div class="marco marco-pc" id="pc"></div>
+  </div>
+  <div class="col-tel">
+    <p class="rot">Celular · 375 px</p>
+    <div class="marco marco-tel" id="tel"></div>
+  </div>
+</div>
+
+<div class="notas" id="notas"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ íconos ============================ */
+const P={
+ buscar:'<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+ cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+ fil:'<path d="M4 6h16M7 12h10M10 18h4"/>',
+ dl:'<path d="M12 4v11m-4-4 4 4 4-4M5 20h14"/>',
+ mas:'<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+ der:'<path d="m9 6 6 6-6 6"/>',
+ abajo:'<path d="m6 9 6 6 6-6"/>',
+ x:'<path d="M6 6l12 12M18 6 6 18"/>',
+ cambio:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+ devol:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+ bajar:'<path d="M12 4v13m-5-5 5 5 5-5M5 20h14"/>',
+ tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+ lapiz:'<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+ conteo:'<path d="M9 4h6v3H9z"/><path d="M7 5H5v16h14V5h-2M9 13l2 2 4-4"/>',
+ capas:'<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+ reloj:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+ marca:'<path d="M6 3h12v18l-6-4-6 4z"/>',
+ recibo:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+ camion:'<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+ enlace:'<path d="M10 14a4 4 0 0 0 5.6 0l3-3a4 4 0 0 0-5.6-5.6l-1 1M14 10a4 4 0 0 0-5.6 0l-3 3a4 4 0 0 0 5.6 5.6l1-1"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ todos:'<path d="M4 6h16M4 12h16M4 18h10"/>',
+ ent:'<path d="M12 20V8m-5 5 5-5 5 5M5 4h14"/>',
+ sal:'<path d="M12 4v12m-5-5 5 5 5-5M5 20h14"/>',
+ aj:'<path d="M5 12h14M12 5v14"/>',
+ info:'<circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/>',
+ hist:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 8v4l3 2"/>',
+};
+const ic=(n,s=16)=>`<svg class="ic" style="width:${s}px;height:${s}px" viewBox="0 0 24 24">${P[n]}</svg>`;
+
+/* ============================ datos (inventados sobre las capturas de TRU) ============================ */
+const C={gris:'#9a9a94',beige:'#d6c3a3',celeste:'#a9c1d6',negro:'#2b2b28',blanco:'#f1ece2',arena:'#cdb892',antracita:'#55575a',rojo:'#b8412d',verde:'#7d8f6b'};
+// cat: entrada | salida | interno | ajuste | transferencia | apartado | liberacion
+const OPS=[
+ {id:'o1',dia:'hoy',hora:'15:18',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:[['Blusa Carlita','M · Gris',2,C.gris,1]],quien:'Rosa'},
+ {id:'o2',dia:'hoy',hora:'15:17',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:[['Blusa Carlita','L · Beige',2,C.beige,1]],quien:'Rosa'},
+ {id:'o3',dia:'hoy',hora:'15:13',cat:'entrada',proc:'Stock inicial',et:'Entrada · Stock inicial',o:'Almacén',pr:[['Blusa V','S · Celeste',1,C.celeste,1],['Blusa V','M · Celeste',1,C.celeste,1]],quien:'Rosa'},
+ {id:'o4',dia:'hoy',hora:'12:56',cat:'apartado',proc:'Apartado',et:'Apartado',o:'Piso',pr:[['Test de Produto 2','L · Gris',1,null]],quien:'Carla'},
+ {id:'o5',dia:'hoy',hora:'10:29',cat:'salida',proc:'Venta',et:'Salida · Venta',o:'Piso',d:'Clienta',ref:{t:'Boleta B004-000031',venta:true},pr:[['Test de Produto 2','M · Gris',1,null],['Test de Produto 2','L · Gris',1,null]],quien:'Carla'},
+ {id:'o6',dia:'hoy',hora:'10:29',cat:'liberacion',proc:'Apartado liberado',et:'Apartado liberado',o:'Piso',pr:[['Test de Produto 2','M · Gris',1,null],['Test de Produto 2','L · Gris',1,null]],quien:'Carla'},
+ {id:'o7',dia:'hoy',hora:'10:28',cat:'apartado',proc:'Apartado',et:'Apartado',o:'Piso',pr:[['Test de Produto 2','M · Gris',1,null],['Test de Produto 2','L · Gris',1,null]],quien:'Carla'},
+ {id:'o8',dia:'hoy',hora:'10:15',cat:'entrada',proc:'Stock inicial',et:'Entrada · Stock inicial',o:'Almacén',pr:rep('Fdhh',['S','M','L'],['Negro','Blanco'],20,[C.negro,C.blanco]),quien:'Rosa'},
+ {id:'o9',dia:'hoy',hora:'10:13',cat:'entrada',proc:'Stock inicial',et:'Entrada · Stock inicial',o:'Almacén',pr:rep('Test de Produto 2',['XS','S','M','L'],['Gris','Beige','Negro'],'a',[null]),quien:'Rosa',total:80},
+ {id:'o10',dia:'hoy',hora:'10:13',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:rep('Test de Produto 2',['XS','S','M','L'],['Gris','Beige','Negro'],'a',[null]),quien:'Rosa',total:80},
+ {id:'o11',dia:'hoy',hora:'10:09',cat:'entrada',proc:'Stock inicial',et:'Entrada · Stock inicial',o:'Almacén',pr:rep('Fhfh',['S','M','L'],['Rojo'],5,[C.rojo]),quien:'Rosa'},
+ {id:'o12',dia:'hoy',hora:'10:09',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:rep('Fhfh',['S','M','L'],['Rojo'],5,[C.rojo]),quien:'Rosa'},
+ {id:'o13',dia:'ayer',hora:'13:22',cat:'salida',proc:'Venta',et:'Salida · Venta',o:'Piso',d:'Clienta',ref:{t:'Boleta B004-000029',venta:true},pr:[['Polo Básico M/corta','Estándar · Arena',1,C.arena]],quien:'Carla'},
+ {id:'o14',dia:'ayer',hora:'13:22',cat:'salida',proc:'Venta',et:'Salida · Venta',o:'Piso',d:'Clienta',ref:{t:'Venta sin comprobante',venta:true},pr:[['Blusa Carlita','L · Blanco',1,C.blanco,1]],quien:'Carla'},
+ {id:'o15',dia:'ayer',hora:'11:53',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:[['Blusa Carlita','L · Gris',2,C.gris,1]],quien:'Rosa'},
+ {id:'o16',dia:'ayer',hora:'11:53',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:[['Blusa Carlita','M · Negro',2,C.negro,1]],quien:'Rosa'},
+ {id:'o17',dia:'ayer',hora:'11:52',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:[['Blusa Carlita','XS · Beige',2,C.beige,1]],quien:'Rosa'},
+ {id:'o18',dia:'ayer',hora:'10:15',cat:'salida',proc:'Venta',et:'Salida · Venta',o:'Piso',d:'Clienta',ref:{t:'Venta sin comprobante',venta:true},pr:[['Polo Básico M/corta','Estándar · Gris antracita',1,C.antracita]],quien:'Carla'},
+ {id:'o19',dia:'ayer',hora:'10:08',cat:'salida',proc:'Venta',et:'Salida · Venta',o:'Piso',d:'Clienta',ref:{t:'Venta sin comprobante',venta:true},pr:[['Blusa Carlita','M · Blanco',1,C.blanco,1]],quien:'Carla'},
+ {id:'o20',dia:'ayer',hora:'10:05',cat:'ajuste',proc:'Ajuste · reposición',et:'Ajuste · reposición',o:'Almacén',pr:[['Blusa Carlita','L · Negro',22,C.negro,1]],quien:'Felipe',nota:'Faltaba cargar la caja 2'},
+ {id:'o21',dia:'ayer',hora:'10:05',cat:'ajuste',proc:'Ajuste · reposición',et:'Ajuste · reposición',o:'Almacén',pr:[['Blusa Carlita','XL · Gris',2,C.gris,1]],quien:'Felipe'},
+ {id:'o22',dia:'ayer',hora:'09:40',cat:'ajuste',proc:'Ajuste · conteo físico',et:'Ajuste · conteo físico',o:'Piso',ref:{t:'Conteo 4',href:'/inventario/conteo/…'},pr:[['Polo Básico M/corta','Estándar · Negro',-1,C.negro]],quien:'Rosa'},
+ {id:'o23',dia:'mie',hora:'17:06',cat:'entrada',proc:'Recepción',et:'Entrada · Recepción',o:'Textiles Norte',d:'Almacén',ref:{t:'Factura F001-000022',href:'/compras/factura/…'},pr:rep('Blusa Xd',['S','M','L'],['Gris antracita'],'b',[C.antracita]),quien:'Rosa',total:50},
+ {id:'o24',dia:'mie',hora:'11:10',cat:'transferencia',proc:'Traslado recibido',et:'Entrada · Traslado recibido',o:'Taller',d:'Almacén',ref:{t:'Traslado 7',href:'/inventario/traslados/…'},pr:[['Polo Básico M/corta','Estándar · Arena',6,C.arena],['Polo Básico M/corta','Estándar · Negro',6,C.negro]],quien:'Rosa',entra:true},
+ {id:'o25',dia:'mie',hora:'09:39',cat:'interno',proc:'Movido dentro de la sede',et:'Bajada al piso',o:'Almacén',d:'Piso',pr:[['Blusa Xd','L · Gris antracita',5,C.antracita]],quien:'Rosa'},
+];
+function rep(n,tallas,colores,q,cols){const out=[];let i=0;const qs=q==='a'?[5,8,7,6,7,6,8,7,6,7,6,7]:q==='b'?[15,15,20]:null;
+  colores.forEach((c,ci)=>tallas.forEach(t=>{out.push([n,`${t} · ${c}`,qs?qs[i%qs.length]:q,cols[ci%cols.length]??null,n==='Blusa Carlita'?1:0]);i++}));return out}
+// El apartado de cada movimiento: se lee por apartados.movimiento_id / movimiento_cierre_id (ya existen: sin migración).
+const APT={o4:{cod:'APT-TRU-0014',clienta:'María P.',vence:'mié 30 set · en 4 días',pagado:40,total:89,estado:'Abierto'},
+ o7:{cod:'APT-TRU-0012',clienta:'Lucía R.',vence:'—',pagado:120,total:120,estado:'Recogido: se vendió (Boleta B004-000031)'},
+ o6:{cod:'APT-TRU-0012',clienta:'Lucía R.',vence:'—',pagado:120,total:120,estado:'Recogido: se vendió (Boleta B004-000031)'}};
+const DIAS={hoy:'Hoy',ayer:'Ayer',mie:'Miércoles, 23 de setiembre'};
+const unid=op=>op.total??op.pr.reduce((s,p)=>s+Math.abs(p[2]),0);
+const signo=op=>op.cat==='entrada'||(op.cat==='transferencia'&&op.entra)?1:op.cat==='salida'?-1:op.cat==='ajuste'?Math.sign(op.pr.reduce((s,p)=>s+p[2],0)):0;
+
+/* ============================ estado ============================ */
+const E={atajos:new Set(['venta','entrada','corregir','existencias']),piso:'plegar',movil:'buscar',rep:'tarjetas',apt:'exacto',
+ pc:{cat:'todos',proc:null,per:'30',q:'',abiertas:new Set(),det:null,menu:false},
+ tel:{cat:'todos',proc:null,per:'hoy',q:'',abiertas:new Set(),det:null,hoja:null}};
+const limpio=()=>E.rep!=='hoy';
+
+function enPeriodo(op,f){if(f.per==='hoy')return op.dia==='hoy';if(f.per==='7')return true;return true}
+function coincide(op,f){if(!f.q)return true;const q=f.q.toLowerCase();return op.pr.some(p=>(p[0]+' '+p[1]).toLowerCase().includes(q))||(op.ref?.t||'').toLowerCase().includes(q)||op.et.toLowerCase().includes(q)}
+function enCat(op,cat){if(cat==='todos')return true;if(cat==='entrada')return op.cat==='entrada'||(op.cat==='transferencia'&&op.entra);if(cat==='salida')return op.cat==='salida'||(op.cat==='transferencia'&&!op.entra);if(cat==='apartado')return op.cat==='apartado'||op.cat==='liberacion';return op.cat===cat}
+function base(f){return OPS.filter(o=>enPeriodo(o,f)&&coincide(o,f))}
+function visibles(f){let l=base(f).filter(o=>enCat(o,f.cat));if(f.proc)l=l.filter(o=>o.proc===f.proc);return l}
+function cuentas(f){const b=base(f);const c={};['todos','entrada','salida','transferencia','interno','ajuste','apartado'].forEach(k=>c[k]=b.filter(o=>enCat(o,k)).length);
+ if(E.piso==='sacar')c.todos-=c.interno; // «Todos» cuenta lo que muestra
+ return c}
+function cifras(f){const b=base(f);let ent=0,sal=0,aj=0,mov=0,ini=0,prov=0,tras=0,vend=0;
+ b.forEach(o=>{const u=unid(o);if(enCat(o,'entrada')){ent+=u;if(o.proc==='Stock inicial')ini+=u;else if(o.proc==='Recepción')prov+=u;else tras+=u}
+  if(enCat(o,'salida')){sal+=u;vend+=u}if(o.cat==='ajuste')aj+=o.pr.reduce((s,p)=>s+p[2],0);if(o.cat==='interno')mov+=u});
+ return {ent,sal,aj,mov,ini,prov,tras,vend}}
+
+/* ============================ piezas comunes ============================ */
+const foto=p=>`<span class="foto ${p[3]?'':'vacia'}"><i style="${p[3]?`background:${p[3]}`:''}"></i></span>`;
+function fotosOp(op){const vistos=[];op.pr.forEach(p=>{const k=p[3]||'x';if(!vistos.find(v=>(v[3]||'x')===k))vistos.push(p)});return `<span class="fotos">${vistos.slice(0,3).map(foto).join('')}</span>`}
+function cant(op){const u=unid(op);
+ if(op.cat==='interno')return `<span class="q tau">⇄ ${u}`;
+ if(op.cat==='apartado')return `<span class="q tau"><span class="mini">${u} ${u===1?'apartada':'apartadas'}</span>`;
+ if(op.cat==='liberacion')return `<span class="q tau"><span class="mini">${u} ${u===1?'libre':'libres'}</span>`;
+ const s=signo(op);const t=op.cat==='ajuste'?op.pr.reduce((a,p)=>a+p[2],0):u*s;
+ return `<span class="q ${t>0?'ver':''}">${t>0?'+':t<0?'−':''}${Math.abs(t)}`}
+const punto=op=>`<span class="punto ${op.cat==='entrada'||(op.cat==='transferencia'&&op.entra)?'p-ver':op.cat==='salida'?'p-tin':op.cat==='ajuste'?'p-piz':'p-amb'}"></span>`;
+function refHtml(op){if(op.cat==='apartado'||op.cat==='liberacion'){const a=APT[op.id];
+  return E.apt==='exacto'&&a?`<span class="ref" data-destino="${op.id}">${a.cod}</span>`:`<span class="ref" data-destino="lista">Ir a Apartados</span>`}
+ if(!op.ref)return '';return `<span class="ref" data-ir="${op.ref.venta?'(abre el detalle de la venta, como hoy)':op.ref.href}">${op.ref.t}</span>`}
+function meta(op,dentro){const v=op.pr.length===1?op.pr[0][1]:`${op.pr.length} variantes`;return [v,dentro?null:op.hora,op.o==='Piso'||op.o==='Almacén'?op.o:(op.d||op.o)].filter(Boolean).join(' · ')}
+function nombreOp(op){const ns=[...new Set(op.pr.map(p=>p[0]))];return ns.length<=2?ns.join(' y '):`${ns.slice(0,2).join(', ')} y ${ns.length-2} más`}
+
+function filaOp(op,f,lado){
+ const varias=op.pr.length>1;const abierta=f.abiertas.has(op.id);
+ const flecha=varias?`<span style="display:inline-flex;transition:transform .2s;${abierta?'transform:rotate(180deg)':''}">${ic('abajo',15)}</span>`:ic('der',15);
+ let h=`<div class="fila" data-op="${op.id}" data-lado="${lado}">${punto(op)}
+  <span class="pr">${fotosOp(op)}<span style="min-width:0"><span class="n" style="display:block">${nombreOp(op)}</span><span class="m" style="display:block">${meta(op)}</span></span></span>
+  <span class="pc2">${op.et}<small>${op.d?`${op.o} → ${op.d}`:op.o}</small>${lado==='tel'?refHtml(op):''}</span>
+  <span class="rf">${refHtml(op)}</span>${cant(op)}${flecha}</span></div>`;
+ if(varias&&abierta){
+  h+=`<div class="hijos">${op.pr.map((p,i)=>`<div class="fila" data-op="${op.id}" data-i="${i}" data-lado="${lado}"><span class="punto ${punto(op).match(/p-\w+/)[0]}"></span><span class="pr">${foto(p)}<span style="min-width:0"><span class="n" style="display:block">${p[0]}</span><span class="m" style="display:block">${p[1]}</span></span></span><span class="pc2"></span><span class="rf"></span>${cant({...op,pr:[p],total:undefined})}${ic('der',15)}</span></div>`).join('')}</div>`;
+  h+=accionesOp(op);
+ }
+ return h;
+}
+function accionesOp(op){ // lo que se hace con TODA la operación: solo con el atajo «Entrada» encendido
+ const a=[];const n=op.pr.length;
+ if(E.atajos.has('entrada')&&(op.cat==='entrada'||(op.cat==='transferencia'&&op.entra)))a.push(`<button class="chipac pri" data-ir="/inventario/bajar?lineas=…(${n} tallas)" data-que="Bajar al piso con las ${n} tallas cargadas (1 por talla: la vendedora pone cuántas)">${ic('bajar',14)} Bajar estas ${n} al piso</button>`,`<button class="chipac" data-ir="/etiquetas-de-precio?variantes=…(${n})" data-que="Imprimir las etiquetas de estas ${n} tallas">${ic('tag',14)} Imprimir ${n} etiquetas</button>`);
+ if(E.atajos.has('venta')&&op.cat==='salida'&&op.ref?.venta)a.push(`<button class="chipac" data-ir="/cambios?q=${op.ref.t.replace('Boleta ','')}" data-que="Cambios, buscando esta venta">${ic('cambio',14)} Cambio</button>`,`<button class="chipac" data-ir="/devoluciones?q=${op.ref.t.replace('Boleta ','')}" data-que="Devoluciones, buscando esta venta">${ic('devol',14)} Devolución</button>`);
+ return a.length?`<div class="acciones-op">${a.join('')}</div>`:'';
+}
+function plegadoFila(ops,f,lado,dia){ // «Bajadas al piso» del día en una fila
+ const id='pleg-'+dia;const u=ops.reduce((s,o)=>s+unid(o),0);const ab=f.abiertas.has(id);const prendas=ops.reduce((s,o)=>s+o.pr.length,0);
+ const horas=ops.map(o=>o.hora).sort();
+ let h=`<div class="fila plegado" data-pleg="${id}" data-lado="${lado}"><span class="punto p-amb"></span>
+  <span class="pr">${fotosOp({pr:ops.flatMap(o=>o.pr)})}<span style="min-width:0"><span class="n" style="display:block">Bajadas al piso</span><span class="m" style="display:block">${ops.length} ${ops.length===1?'vez':'veces'} · ${prendas} tallas · ${horas[0]}–${horas[horas.length-1]}</span></span></span>
+  <span class="pc2">Almacén → Piso<small>no cambian el total</small></span><span class="rf"></span>
+  <span class="q tau">⇄ ${u}<span style="display:inline-flex;${ab?'transform:rotate(180deg)':''}">${ic('abajo',15)}</span></span></div>`;
+ if(ab)h+=`<div class="hijos">${ops.map(o=>filaOp(o,f,lado)).join('')}</div>`;
+ return h;
+}
+function listaHtml(f,lado){
+ const l=visibles(f);
+ if(!l.length)return `<div class="lista"><div class="vacio"><h3>Ningún movimiento coincide</h3><p>No hay movimientos de Tienda TRU con esos filtros${f.per==='hoy'?' hoy':' en los últimos 30 días'}.</p></div></div>`;
+ const dias=[...new Set(l.map(o=>o.dia))];let fuera=0;
+ let h='<div class="lista">';
+ dias.forEach(d=>{let ops=l.filter(o=>o.dia===d);
+  const pleg=f.cat==='todos'&&!f.q&&E.piso!=='hoy';
+  const internos=pleg?ops.filter(o=>o.cat==='interno'):[];
+  if(pleg){ops=ops.filter(o=>o.cat!=='interno');fuera+=internos.length}
+  const n=ops.length+(E.piso==='plegar'&&internos.length?1:0);
+  h+=`<div class="dia"><b>${DIAS[d]}</b><span>${n} ${n===1?'movimiento':'movimientos'}</span></div>`;
+  let puesto=false;
+  ops.forEach(o=>{ if(E.piso==='plegar'&&internos.length&&!puesto&&o.hora<internos[0].hora){h+=plegadoFila(internos,f,lado,d);puesto=true} h+=filaOp(o,f,lado)});
+  if(E.piso==='plegar'&&internos.length&&!puesto)h+=plegadoFila(internos,f,lado,d);
+ });
+ if(E.piso==='sacar'&&fuera)h+=`<div class="aparte">${ic('info',14)} ${fuera} bajadas al piso no se muestran en «Todos» (no cambian el total). <u data-cat="interno" data-lado="${lado}">Verlas</u></div>`;
+ return h+'</div>';
+}
+
+/* ============================ filtros ============================ */
+const TIPOS=[['todos','Todos'],['entrada','Entradas'],['salida','Salidas'],['transferencia','Traslados'],['interno','Piso ↔ almacén'],['ajuste','Ajustes']];
+function pildorasTipo(f,lado,conUnid){const c=cuentas(f);const ci=cifras(f);
+ let tipos=[...TIPOS];if(limpio())tipos.push(['apartado','Apartados']);
+ return tipos.map(([k,t])=>{const on=f.cat===k;const cero=c[k]===0&&k!=='todos';const dis=limpio()&&cero&&!on;
+  const u=conUnid?(k==='entrada'?`<span class="u">+${ci.ent}</span>`:k==='salida'?`<span class="u" style="color:inherit">−${ci.sal}</span>`:''):'';
+  return `<button class="pil ${on?'on':''}" data-cat="${k}" data-lado="${lado}" ${dis?'disabled title="Nada en este período"':''}>${t} <span class="d">${c[k]}</span>${u}${on&&limpio()&&k!=='todos'?`<span class="xx">${ic('x',12)}</span>`:''}</button>`}).join('')}
+function procesos(f,lado){if(f.cat==='todos')return '';const pr=[...new Set(base(f).filter(o=>enCat(o,f.cat)).map(o=>o.proc))];
+ if(limpio()&&pr.length<2)return '';
+ return `<div class="proc"><span class="lbl" style="font-size:9.5px">Proceso</span><button class="pil ${!f.proc?'on':''}" data-proc="" data-lado="${lado}">Todos</button>${pr.map(p=>`<button class="pil ${f.proc===p?'on':''}" data-proc="${p}" data-lado="${lado}">${p}</button>`).join('')}</div>`}
+function periodos(f,lado){const ps=limpio()?[['hoy','Hoy'],['7','7 días'],['30','30 días'],['90','90 días'],['pers','Personalizado']]:[['7','7 días'],['30','30 días'],['90','90 días'],['pers','Personalizado']];
+ return ps.map(([k,t])=>`<button class="pil ${f.per===k?'on':''}" data-per="${k}" data-lado="${lado}">${t}</button>`).join('')}
+
+/* ============================ cifras ============================ */
+function tarjetas(f,lado){const c=cifras(f);const toc=E.rep==='tarjetas';const per=f.per==='hoy'?'hoy':'30 días';
+ const T=[['entrada','Entró a Tienda TRU · '+per,`+${c.ent}`,'ver',[c.ini?`${c.ini} de stock inicial`:null,c.prov?`${c.prov} de proveedor`:null,c.tras?`${c.tras} por traslado`:null].filter(Boolean).join(' · ')||'No entró nada'],
+  ['salida','Salió de Tienda TRU · '+per,c.sal?`−${c.sal}`:'—','',c.vend?`${c.vend} vendidas`:'No salió nada'],
+  ['ajuste','Ajustes en Tienda TRU · '+per,c.aj?`${c.aj>0?'+':''}${c.aj}`:'—','',c.aj?'por reposición y conteo físico':'Sin ajustes']];
+ return `<div class="cifras">${T.map(([k,l,v,cl,p])=>{const tag=toc?'button':'div';
+  const extra=k==='ajuste'&&!limpio()&&c.mov?`<br>Además, ${c.mov} movidas entre piso y almacén (no cambian el total).`:'';
+  return `<${tag} class="cifra ${toc&&f.cat===k?'act':''}" ${toc?`data-cat="${k}" data-lado="${lado}"`:''}>${toc?`<span class="flecha">${ic('der',14)}</span>`:''}<span class="lbl">${l}</span><div class="v num ${cl}">${v}<small>unidades</small></div><p>${p}${extra}</p></${tag}>`}).join('')}</div>`}
+function franja(f){const c=cifras(f);const toc=E.rep==='tarjetas';const tag=toc?'button':'div';
+ return `<div class="franja">${[['entrada','Entró',`+${c.ent}`,'ver'],['salida','Salió',c.sal?`−${c.sal}`:'—',''],['ajuste','Ajustes',c.aj?`${c.aj>0?'+':''}${c.aj}`:'—','']].map(([k,l,v,cl])=>`<${tag} class="${toc&&f.cat===k?'act':''}" ${toc?`data-cat="${k}" data-lado="tel"`:''}><span class="lbl">${l}</span><div class="v num ${cl}">${v}</div></${tag}>`).join('')}</div>`}
+
+/* ============================ computadora ============================ */
+function pintarPC(){const f=E.pc;const sc=document.querySelector('#pc .scroll');const top=sc?sc.scrollTop:0;
+ const hayFiltro=f.cat!=='todos'||f.q||f.proc;
+ const cab=`<div class="cabecera"><div><div class="hilo">Tienda TRU · Sábado, 26 de setiembre · 16:26</div><h1 class="tit">Movimientos</h1>
+  <p class="frase">Qué entró y qué salió del stock de esta sede, quién lo hizo y por qué. No se edita ni se borra nunca.</p>
+  ${E.rep==='hoy'||E.rep==='texto'?`<div style="margin-top:14px"><button class="btn" data-ir="/inventario/movimientos/exportar?…" data-que="Descarga el Excel con los filtros de la pantalla">${ic('dl',15)} Exportar a Excel</button></div>`:''}</div></div>`;
+ const conUnid=E.rep==='sin';
+ const filtros=`<div class="tarjeta"><div class="herr">
+   <div class="fila1"><label class="buscar">${ic('buscar')}<input data-q="pc" value="${f.q}" placeholder="Prenda, código, barras o referencia… (o dispara la pistola)"><button class="cam" data-scan="pc">${ic('cam',15)} Escanear</button></label>
+   <div class="pils" style="flex-wrap:nowrap">${periodos(f,'pc')}</div></div>
+   <div class="pils">${pildorasTipo(f,'pc',conUnid)}<div class="zona"><span class="lbl" style="font-size:9.5px">Zona</span><div class="segz"><button class="on">Todas</button><button>Piso</button><button>Almacén</button><button>Cuarentena</button></div></div></div>
+   ${procesos(f,'pc')}
+   ${!limpio()&&hayFiltro?`<div class="filtrando">Filtrando: ${TIPOS.find(t=>t[0]===f.cat)?.[1]||''} <u data-cat="todos" data-lado="pc">Limpiar filtros</u></div>`:''}
+ </div></div>`;
+ const ayuda=!limpio()?`<p class="ayuda">${ic('info',14)} Toca un movimiento para ver qué prendas fueron y quién lo hizo. «Traslado N» y «Conteo N» abren su pantalla; una boleta, su venta.</p>`:'';
+ const n=visibles(f).length;
+ const pie=`<div class="pie"><span>${limpio()?'':`${n} movimientos en esta página`}</span>${limpio()?`<button class="btn" style="margin:0 auto">Ver más movimientos</button>`:`<b>SIGUIENTE PÁGINA →</b>`}</div>`+(limpio()?'':`<div class="nota-pie"><b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento. No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.</div>`);
+ const menuMas=limpio()&&E.rep!=='texto'?`<div class="mas"><button class="btn" data-menu="pc" style="padding:6px 9px" title="Más">${ic('mas')}</button><div class="menu ${f.menu?'on':''}">
+   <button data-ir="/inventario/movimientos/exportar?…" data-que="El Excel con los filtros de la pantalla">${ic('dl',15)}<span>Exportar a Excel<small>con los filtros de ahora</small></span></button>
+   <button data-ir="(copia el enlace de esta vista)" data-que="Enlace para WhatsApp con estos filtros">${ic('enlace',15)}<span>Copiar enlace de esta vista<small>para mandarlo por WhatsApp</small></span></button></div></div>`:'';
+ document.getElementById('pc').innerHTML=`<div class="scroll"><div class="app"><nav class="lat"><div class="logo"><i></i>CAYLA</div>
+  <a>Inicio</a><a>Ventas</a><a>Inventario</a><a class="sub">Existencias</a><a class="sub on">Movimientos</a><a class="sub">Traslados</a><a class="sub">Conteo</a><a class="sub">Análisis</a><a>Catálogo</a><a>Compras</a><a>Finanzas</a></nav>
+  <div><div class="top"><span class="act">${ic('reloj',14)} ACTIVIDAD</span>${menuMas}<span class="sede">TIENDA TRU ▾</span></div>
+  <div class="main">${cab}${E.rep==='sin'?'':tarjetas(f,'pc')}${filtros}${ayuda}${listaHtml(f,'pc')}${pie}</div></div></div></div>
+  <div class="velo ${f.det?'on':''}" data-cerrar="pc"></div><div class="cajon ${f.det?'on':''}">${f.det?detalleHtml(f.det,'pc'):''}</div>${destinoHtml(f.destino,'pc')}`;
+ document.querySelector('#pc .scroll').scrollTop=top;
+}
+
+/* ============================ celular ============================ */
+function pintarTel(){const f=E.tel;const sc=document.querySelector('#tel .scroll');const top=sc?sc.scrollTop:0;
+ const nFil=(f.cat!=='todos'?1:0)+(f.per!==(E.movil==='hoy'?'30':'hoy')?1:0)+(f.proc?1:0);
+ let cuerpo='';
+ const barra=`<div class="barra"><span class="hb">${ic('menu',18)} CAYLA</span><span class="sede">TIENDA TRU ▾</span></div>`;
+ const buscador=(extra)=>`<label class="buscar">${ic('buscar')}<input data-q="tel" value="${f.q}" placeholder="Prenda, código o boleta…"><button class="cam" data-scan="tel" title="Escanear etiqueta">${ic('cam',16)}</button></label>${extra||''}`;
+ if(E.movil==='buscar'){
+  cuerpo=`${barra}<div class="cab"><div class="hilo">Tienda TRU · Sáb 26 set</div><h1 class="tit">Movimientos</h1></div>
+   <div class="fijo">${buscador(`<button class="btnfil" data-hoja="filtros">${ic('fil',15)} Filtros${nFil?` <span class="n">${nFil}</span>`:''}</button>`)}</div>
+   ${E.rep==='sin'?'':franja(f)}
+   <div class="per">${[['hoy','Hoy'],['7','7 días'],['30','30 días']].map(([k,t])=>`<button class="pil ${f.per===k?'on':''}" data-per="${k}" data-lado="tel">${t}</button>`).join('')}${f.cat!=='todos'?`<button class="pil on" data-cat="todos" data-lado="tel">${TIPOS.concat([['apartado','Apartados']]).find(t=>t[0]===f.cat)[1]} ${ic('x',12)}</button>`:''}</div>
+   ${listaHtml(f,'tel')}<div class="pieM">${limpio()?'<button class="btn">Ver más</button>':'<b class="lbl">Siguiente página →</b>'}</div>`;
+ }else if(E.movil==='pestanas'){
+  cuerpo=`${barra}<div class="fijo">${buscador(`<button class="btnfil" data-hoja="filtros" style="padding:0 10px">${ic('fil',15)}</button>`)}</div>
+   ${E.rep==='sin'?'':franja(f)}
+   <div class="per">${[['hoy','Hoy'],['7','7 días'],['30','30 días']].map(([k,t])=>`<button class="pil ${f.per===k?'on':''}" data-per="${k}" data-lado="tel">${t}</button>`).join('')}</div>
+   ${listaHtml(f,'tel')}<div class="pieM" style="padding-bottom:90px">${limpio()?'<button class="btn">Ver más</button>':'<b class="lbl">Siguiente página →</b>'}</div>`;
+ }else{
+  const c=cuentas(f);
+  cuerpo=`${barra}<div class="cab"><div class="hilo">Tienda TRU · Sábado, 26 de setiembre</div><h1 class="tit">Movimientos</h1><p class="frase">Qué entró y qué salió del stock de esta sede, quién lo hizo y por qué. No se edita ni se borra nunca.</p>
+   ${E.rep==='hoy'||E.rep==='texto'?`<div style="margin-top:10px"><button class="btn">${ic('dl',15)} Exportar a Excel</button></div>`:''}</div>
+   ${E.rep==='sin'?'':franja(f)}
+   <div style="margin:10px 12px 0;background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:10px 0;display:grid;gap:8px">
+    <div style="padding:0 10px"><label class="buscar">${ic('buscar')}<input data-q="tel" value="${f.q}" placeholder="Prenda, código, barras o referencia…"></label></div>
+    <div class="pils desl">${periodos(f,'tel')}</div><div class="pils desl">${pildorasTipo(f,'tel',false)}</div>
+    ${!limpio()&&f.cat!=='todos'?`<div class="filtrando" style="padding:0 12px">Filtrando: ${TIPOS.find(t=>t[0]===f.cat)?.[1]} <u data-cat="todos" data-lado="tel">Limpiar filtros</u></div>`:''}
+   </div>
+   ${!limpio()?`<p class="ayuda" style="margin:12px 14px 8px">${ic('info',14)} Toca un movimiento para ver qué prendas fueron y quién lo hizo.</p>`:''}
+   ${listaHtml(f,'tel')}<div class="pieM">${limpio()?'<button class="btn">Ver más</button>':'<b class="lbl">Siguiente página →</b>'}</div>`;
+ }
+ const c=cuentas(f);
+ const tabs=E.movil==='pestanas'?`<nav class="tabs">${[['todos','Todos','todos'],['entrada','Entradas','ent'],['salida','Salidas','sal'],['ajuste','Ajustes','aj']].map(([k,t,i])=>`<button class="${f.cat===k?'on':''}" data-cat="${k}" data-lado="tel">${ic(i,19)}${t}<span class="c">${c[k]}</span></button>`).join('')}<button data-hoja="filtros" class="${['transferencia','interno','apartado'].includes(f.cat)?'on':''}">${ic('mas',19)}Más<span class="c">traslados…</span></button></nav>`:'';
+ let hoja='';
+ if(f.hoja==='filtros')hoja=hojaFiltros(f);else if(f.hoja==='scan')hoja=hojaScan();else if(f.det)hoja=`<div class="asa"></div>${detalleHtml(f.det,'tel')}`;
+ const abierta=!!(f.hoja||f.det);
+ document.getElementById('tel').innerHTML=`<div class="scroll m">${cuerpo}</div>${tabs}<div class="velo ${abierta?'on':''}" data-cerrar="tel"></div><div class="hoja m ${abierta?'on':''}">${hoja}</div>${destinoHtml(f.destino,'tel')}`;
+ document.querySelector('#tel .scroll').scrollTop=top;
+}
+function hojaFiltros(f){return `<div class="asa"></div><div class="cz"><div><h3>Filtros</h3><p>Se aplican al tocar.</p></div><button class="x" data-cerrar="tel">${ic('x')}</button></div>
+ <div class="cuerpo fil-h cascada">
+  <div class="grupo"><span class="lbl">Período</span><div class="pils">${periodos(f,'tel')}</div></div>
+  ${E.movil==='buscar'?`<div class="grupo"><span class="lbl">Qué pasó</span><div class="pils">${pildorasTipo(f,'tel',E.rep==='sin')}</div>${procesos(f,'tel')}</div>`:`<div class="grupo"><span class="lbl">También</span><div class="pils">${[['transferencia','Traslados'],['interno','Piso ↔ almacén'],['apartado','Apartados']].map(([k,t])=>`<button class="pil ${f.cat===k?'on':''}" data-cat="${k}" data-lado="tel" ${cuentas(f)[k]===0&&limpio()?'disabled':''}>${t} <span class="d">${cuentas(f)[k]}</span></button>`).join('')}</div>${procesos(f,'tel')}</div>`}
+  <div class="grupo"><span class="lbl">Zona</span><div class="segz" style="width:max-content"><button class="on">Todas</button><button>Piso</button><button>Almacén</button><button>Cuarentena</button></div></div>
+  ${limpio()&&E.rep!=='texto'?`<div class="grupo"><span class="lbl">Llevar</span><button class="btn" data-ir="/inventario/movimientos/exportar?…" data-que="El Excel con estos filtros">${ic('dl',15)} Exportar a Excel</button></div>`:''}
+ </div><div class="pie-det"><button class="btn" data-cat="todos" data-lado="tel" data-per0="1">Limpiar</button><button class="btn pri" data-cerrar="tel">Ver ${visibles(f).length} movimientos</button></div>`}
+function hojaScan(){return `<div class="asa"></div><div class="cz"><div><h3>Escanear etiqueta</h3><p>Apunta al código de la etiqueta de precio.</p></div><button class="x" data-cerrar="tel">${ic('x')}</button></div>
+ <div class="cuerpo cascada"><div class="cam-v"><div class="mira"></div><div class="laser"></div><p>Cámara (simulada)</p></div>
+ <button class="btn pri" data-leer="1" style="justify-content:center">Simular lectura: Blusa Carlita · M · Gris</button>
+ <p style="font-size:12px;color:var(--t65)">Lee UNA etiqueta y muestra todo lo que le pasó a esa prenda en esta sede (el mismo EscanerBusqueda de Cambios y Existencias). En la computadora, la pistola escribe el código en el buscador y Enter.</p></div>`}
+
+/* ============================ detalle ============================ */
+function detalleHtml(d,lado){const op=OPS.find(o=>o.id===d.op);const p=op.pr[d.i??0];const u=Math.abs(p[2]);
+ const verbo={entrada:op.proc==='Recepción'?'Recibió':'Cargó',salida:'Vendió',interno:'Bajó',ajuste:'Ajustó',transferencia:'Recibió',apartado:'Apartó',liberacion:'Liberó'}[op.cat];
+ const esEntrada=op.cat==='entrada'||(op.cat==='transferencia'&&op.entra);
+ const big=op.cat==='interno'?`⇄ ${u}<small>unidades movidas</small>`:op.cat==='apartado'?`${u}<small>apartada para una clienta</small>`:op.cat==='liberacion'?`${u}<small>vuelve a estar libre</small>`:op.cat==='ajuste'?`${p[2]>0?'+':''}${p[2]}<small>ajuste</small>`:esEntrada?`+${u}<small>entran</small>`:`−${u}<small>salen</small>`;
+ const at=[];
+ if(E.atajos.has('venta')&&op.cat==='salida'&&op.ref?.venta){const b=op.ref.t.replace('Boleta ','');
+  at.push(`<div class="acc2"><button data-ir="/cambios?q=${b}" data-que="Cambios, con esta venta ya buscada"><span>${ic('cambio',17)}</span><span><span class="t">Cambio</span><span class="s">talla o color</span></span></button><button data-ir="/devoluciones?q=${b}" data-que="Devoluciones, con esta venta ya buscada"><span>${ic('devol',17)}</span><span><span class="t">Devolución</span><span class="s">reingresa la prenda</span></span></button></div>`)}
+ if(E.atajos.has('entrada')&&esEntrada){at.push(`<button class="pri" data-ir="/inventario/bajar?lineas=${encodeURIComponent(p[0]+' '+p[1])}:1" data-que="Bajar al piso con esta talla cargada">${ic('bajar',17)}<span><span class="t">Bajar al piso</span><span class="s">llega con esta talla cargada</span></span></button>`,
+  `<button data-ir="/etiquetas-de-precio?variantes=…" data-que="Imprimir la etiqueta de esta talla">${ic('tag',17)}<span><span class="t">Imprimir etiqueta</span><span class="s">${u} ${u===1?'unidad':'unidades'} · ${p[1]}</span></span></button>`)}
+ if(op.cat==='apartado'||op.cat==='liberacion'){const a=APT[op.id];
+  at.push(E.apt==='exacto'&&a?`<button class="pri" data-destino="${op.id}">${ic('marca',17)}<span><span class="t">Abrir ${a.cod}</span><span class="s">${a.estado==='Abierto'?'cobrar el saldo, recordar o liberar':'ver cómo terminó'}</span></span></button>`
+   :`<button data-destino="lista">${ic('marca',17)}<span><span class="t">Ir a Apartados</span><span class="s">buscarlo en la lista de la sede</span></span></button>`)}
+ if(op.cat==='transferencia')at.push(`<button data-ir="/inventario/traslados/…?volver=…" data-que="Traslado 7, y vuelve a Movimientos con los filtros">${ic('camion',17)}<span><span class="t">Ver Traslado 7</span><span class="s">qué viajó junto, envío y recepción</span></span></button>`);
+ if(E.atajos.has('corregir')&&!['salida','apartado','liberacion'].includes(op.cat)){at.push(`<div class="acc2"><button data-ir="/inventario/conteo (con esta prenda)" data-que="Conteo con esta prenda cargada — hoy Conteo no acepta lista inicial (BACKLOG, ADR-0237)"><span>${ic('conteo',17)}</span><span><span class="t">Contar</span><span class="s">esta prenda</span></span></button><button data-ir="(abre Ajustar inventario con esta talla)" data-que="AjustarInventarioModal con la talla elegida — solo líder (D-13)"><span>${ic('lapiz',17)}</span><span><span class="t">Corregir</span><span class="s">con un ajuste</span></span><span class="lider">líder</span></button></div>`)}
+ if(E.atajos.has('existencias'))at.push(`<button data-ir="/inventario?abrir=${encodeURIComponent(p[0])}&talla=${p[1].split(' · ')[0]}" data-que="Existencias con el detalle de la prenda abierto en esa talla (ADR-0237)">${ic('capas',17)}<span><span class="t">Ver en Existencias</span><span class="s">tallas, piso y almacén, dónde más hay</span></span></button>`);
+ const refDato=op.ref?`<div><dt>${op.ref.venta?'Comprobante':op.ref.t.startsWith('Factura')?'Compra':op.ref.t.startsWith('Conteo')?'Conteo':'Traslado'}</dt><dd><u data-ir="${op.ref.href||'(detalle de la venta)'}">${op.ref.t} →</u>${op.ref.venta?' <span style="font-size:11px;color:var(--verde)">● Aceptada</span>':''}</dd></div>`:'';
+ const cuerpo=`<div class="cuerpo cascada">
+  <div class="cab-det"><div style="display:flex;gap:10px;align-items:center">${foto(p)}<div><div class="n">${p[0]}</div><div class="m2">${p[1]}</div></div></div><div class="big num ${esEntrada?'ver':''}">${big}</div></div>
+  <dl><div><dt>Sede</dt><dd>Tienda TRU</dd></div><div><dt>${op.cat==='interno'?'Dentro de la sede':'Zona'}</dt><dd>${op.d&&op.cat==='interno'?`${op.o} → ${op.d}`:op.o==='Piso'||op.o==='Almacén'?op.o:op.d||'—'}</dd></div>
+   <div><dt>Hoy en la sede</dt><dd>7 unidades <span style="color:var(--t65)">(3 en piso, 4 en almacén)</span><br><u data-ir="/productos/…/historial" data-que="Todo lo que le pasó a esta prenda (ya existe)">Ver todo lo que le pasó a esta prenda →</u></dd></div>
+   ${refDato}${(op.cat==='apartado'||op.cat==='liberacion')&&E.apt==='exacto'&&APT[op.id]?(a=>`<div><dt>Apartado</dt><dd><u data-destino="${op.id}">${a.cod} →</u></dd></div><div><dt>Clienta</dt><dd>${a.clienta}</dd></div><div><dt>Estado</dt><dd>${a.estado}${a.estado==='Abierto'?` · vence ${a.vence}`:''}</dd></div><div><dt>Pagado</dt><dd>S/ ${a.pagado} de S/ ${a.total}${a.total>a.pagado?` · <b>falta S/ ${a.total-a.pagado}</b>`:''}</dd></div>`)(APT[op.id]):''}${op.nota?`<div><dt>Nota</dt><dd>${op.nota}</dd></div>`:''}</dl>
+  <div class="atajos"><span class="lbl">Seguir con esta prenda</span>${at.length?`<div class="acc">${at.join('')}</div>`:`<p class="sinatajos">Con los atajos elegidos arriba, este movimiento no ofrece ninguno.</p>`}</div>
+ </div>`;
+ return `<div class="cz"><div><h3>${op.et}</h3><p>${DIAS[op.dia]} · ${op.hora} · ${verbo}: ${op.quien}</p></div><button class="x" data-cerrar="${lado}">${ic('x')}</button></div>${cuerpo}
+  <div class="pie-det"><button class="btn" data-ir="(copia el enlace ?mov=)" data-que="Enlace a este movimiento para WhatsApp">${ic('enlace',15)} Copiar enlace</button><button class="btn" data-cerrar="${lado}">Cerrar</button></div>`}
+
+/* ============================ destino: Apartados ============================ */
+function destinoHtml(d,lado){if(!d)return '';const a=APT[d];const tel=lado==='tel';
+ const lista=[['APT-TRU-0014','María P.','Test de Produto 2 · L · Gris','vence en 4 días','falta S/ 49'],['APT-TRU-0013','Ana G.','Blusa Carlita · M · Negro','vence mañana','falta S/ 30'],['APT-TRU-0011','Rosa M.','Polo Básico M/corta · Arena','vence hoy','falta S/ 25'],['APT-TRU-0010','Carmen T.','Blusa V · S · Celeste','vencido hace 2 días','falta S/ 60']];
+ const cab=`<div style="padding:${tel?'12px 14px':'18px 28px'};border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:12px"><button class="btn" data-volver="${lado}">← Movimientos</button><span class="lbl">Así llegarías a Apartados</span></div>`;
+ const filas=lista.map(r=>`<div style="display:flex;gap:10px;align-items:center;padding:11px 12px;border-top:1px solid var(--sand);${a&&r[0]===a.cod?'background:#f3ece0':''}"><span class="foto vacia"><i></i></span><div style="min-width:0;flex:1"><div style="font-weight:600;font-size:13px">${r[1]} <span style="color:var(--t50);font-weight:400;font-size:11.5px">${r[0]}</span></div><div style="font-size:12px;color:var(--taupe)">${r[2]} · ${r[3]}</div></div><span style="font-size:12px;font-weight:600">${r[4]}</span></div>`).join('');
+ let cuerpo;
+ if(d==='lista'){cuerpo=`<div style="padding:${tel?'12px':'20px 28px'}"><h2 style="font-family:'EB Garamond',serif;font-weight:400;font-size:${tel?30:40}px">Apartados</h2><p style="color:var(--t65);font-size:13px;margin:4px 0 12px">Llegas a la lista de la sede. Para encontrar el de este movimiento tienes que reconocerlo por la prenda o la clienta, o escribirla en el buscador.</p>
+  <label class="buscar" style="margin-bottom:10px">${ic('buscar')}<input placeholder="Clienta, prenda o código…"></label><div class="lista" style="margin:0;padding:0;overflow:hidden">${filas}</div></div>`}
+ else{cuerpo=`<div style="padding:${tel?'12px':'20px 28px'};opacity:.45;pointer-events:none"><h2 style="font-family:'EB Garamond',serif;font-weight:400;font-size:${tel?30:40}px">Apartados</h2><div class="lista" style="margin:12px 0 0;padding:0;overflow:hidden">${filas}</div></div>
+  <div class="${tel?'hoja m':'cajon'} on" style="${tel?'max-height:78%':''}">${tel?'<div class="asa"></div>':''}<div class="cz"><div><h3>${a.clienta} · ${a.cod}</h3><p>${a.estado}${a.estado==='Abierto'?` · vence ${a.vence}`:''}</p></div></div>
+   <div class="cuerpo cascada"><div class="cab-det"><div style="display:flex;gap:10px;align-items:center"><span class="foto vacia"><i></i></span><div><div class="n">Test de Produto 2</div><div class="m2">L · Gris · 1 unidad</div></div></div><div class="big">S/ ${a.total-a.pagado}<small>${a.total>a.pagado?'falta pagar':'pagado completo'}</small></div></div>
+   <dl><div><dt>Pagado</dt><dd>S/ ${a.pagado} de S/ ${a.total}</dd></div><div><dt>Celular</dt><dd>9•• ••• 214</dd></div></dl>
+   ${a.estado==='Abierto'?`<div class="acc"><button class="pri">${ic('recibo',17)}<span><span class="t">Cobrar el saldo y entregar</span></span></button><div class="acc2"><button><span class="t">Recordar por WhatsApp</span></button><button><span class="t">Liberar</span></button></div></div>`:`<p class="sinatajos">Ya terminó: se vendió con la boleta B004-000031.</p>`}</div></div>`}
+ return `<div style="position:absolute;inset:0;background:var(--crema);z-index:60;overflow:auto;animation:rev .28s var(--ease) both">${cab}${cuerpo}</div>`}
+
+/* ============================ notas ============================ */
+function pintarNotas(){const pi={plegar:['Plegar por día','Una fila por día con todas las bajadas; se despliega. «Todos» pasa de 25 a 18 filas en este ejemplo. Con la píldora «Piso ↔ almacén» se ven sueltas.','La fila plegada no es una operación: es un resumen de pantalla. Si alguien busca «¿la bajé?», la ve desplegando o escribiendo la prenda (la búsqueda nunca pliega).'],
+ sacar:['Sacar de «Todos»','«Todos» muestra solo lo que cambió el total; al pie, una línea dice cuántas bajadas quedaron fuera y un enlace a verlas.','Quien vino a confirmar que bajó una prenda no la encuentra en «Todos»: tiene que saber la píldora o leer la línea del pie.'],
+ hoy:['Como hoy','Una fila por bajada.','En TRU son 27 de 84 operaciones en 30 días: un tercio de la lista no cambió el stock.']}[E.piso];
+ const mo={buscar:['Buscar + Escanear fijo','Arriba, fijo al bajar: buscador con cámara y «Filtros · n». Cifras en franja. Período «Hoy» por defecto en el celular (la pregunta de la tienda). Los filtros viven en una hoja con «Ver N movimientos».','Un toque más para cambiar de tipo (abrir la hoja).'],
+ pestanas:['Pestañas abajo','Como Comprobantes y Apartados (ADR-0238 dejó escrita la excepción a ADR-0206): Todos · Entradas · Salidas · Ajustes · Más, al alcance del pulgar. Traslados, Piso↔almacén y Apartados en «Más».','Cinco pestañas con cifra en 375 px quedan justas; y Movimientos no es una pantalla de uso continuo como Apartados.'],
+ hoy:['Como hoy','Cabecera completa, Exportar, franja, buscador, dos filas de píldoras que se deslizan y la frase de ayuda.','El primer movimiento aparece recién después de ~560 px.']}[E.movil];
+ const re={tarjetas:['Tarjetas tocables + limpiar','Tocar «Salió» = píldora Salidas (borde en tinta). Fuera: la frase de ayuda, «Filtrando: …» (la píldora activa lleva ×), la nota del pie, la fila «Proceso» con una sola opción y el «13 movimientos en esta página». Píldoras en 0 apagadas (se ven, no se tocan). Exportar pasa al menú «⋯» junto a Actividad. Se suma «Hoy» al período y «Apartados» como píldora.','Las tarjetas y las píldoras siguen contando lo mismo en dos unidades (unidades vs. operaciones).'],
+ sin:['Sin tarjetas','Las píldoras llevan las unidades (Entradas 6 · +427). La pantalla sube ~140 px. Lo demás, igual que la opción anterior.','Se pierde el desglose «377 de stock inicial · 50 de proveedor»; quedaría en un tooltip o no estaría.'],
+ texto:['Solo limpiar texto','Tarjetas y Exportar como están; se quita lo repetido y se apagan las píldoras en 0.','Las tarjetas siguen sin hacer nada al tocarlas.'],
+ hoy:['Como hoy','Todo como en las capturas.','«Traslados 0» se puede tocar y deja la pantalla vacía.']}[E.rep];
+ const at=[...E.atajos];
+ document.getElementById('notas').innerHTML=`
+ <div class="nota"><h4>1 · Atajos encendidos (${at.length})</h4><ul>
+  <li><b>Venta → Cambio / Devolución</b>: ${E.atajos.has('venta')?'sí':'no'}. Llevan a <code>/cambios?q=</code> y <code>/devoluciones?q=</code>, que ya buscan por comprobante (ADR-0238).</li>
+  <li><b>Entrada → Bajar al piso / Etiquetas</b>: ${E.atajos.has('entrada')?'sí':'no'}. En la prenda y en la operación entera («Bajar estas 12 al piso»). Usan <code>?lineas=</code> y <code>?variantes=</code> de ADR-0237.</li>
+  <li><b>Corregir: Contar / Ajustar</b>: ${E.atajos.has('corregir')?'sí':'no'}. Ajustar solo líder (D-13). <i>Contar esta prenda</i> pide que Conteo acepte una lista inicial (hoy no: BACKLOG).</li>
+  <li><b>Ver en Existencias</b>: ${E.atajos.has('existencias')?'sí':'no'}. Abre el detalle de la prenda en esa talla (ADR-0237).</li>
+  <li>Siempre (arreglos, no opciones): el apartado dice «2 apartadas» (hoy dice <b>0</b> cuando son varias); un traslado lleva a su pantalla.</li></ul></div>
+ <div class="nota"><h4>5 · ${E.apt==='exacto'?'Al apartado exacto':'A la lista de Apartados'}</h4><p>${E.apt==='exacto'?'La fila dice el código (APT-TRU-0014) y el detalle trae clienta, estado y cuánto falta; «Abrir» llega a Apartados con ESA hoja abierta. <b>No pide migración:</b> <code>apartados</code> ya guarda <code>movimiento_id</code> y <code>movimiento_cierre_id</code>; Apartados solo tiene que aceptar <code>?abrir=</code>.':'La fila dice «Ir a Apartados» y llega a la lista: hay que reconocerlo por la prenda o escribir la clienta.'}</p><div class="gp"><b>Pagas</b><span>${E.apt==='exacto'?'Una lectura más por página (solo si hay apartados en ella) y tocar Apartados para que abra uno por enlace.':'Un paso más cada vez, y con dos apartados de la misma prenda no sabes cuál es.'}</span></div></div>
+ <div class="nota"><h4>2 · ${pi[0]}</h4><p>${pi[1]}</p><div class="gp"><b>Pagas</b><span>${pi[2]}</span></div></div>
+ <div class="nota"><h4>3 · ${mo[0]}</h4><p>${mo[1]}</p><div class="gp"><b>Pagas</b><span>${mo[2]}</span></div></div>
+ <div class="nota"><h4>4 · ${re[0]}</h4><p>${re[1]}</p><div class="gp"><b>Pagas</b><span>${re[2]}</span></div></div>
+ <div class="nota"><h4>Qué hacen otros</h4><ul>
+  <li><b>Loyverse</b> y <b>Lightspeed R</b>: el motivo es un enlace al documento de origen (lo que ya hacemos con Boleta/Traslado/Conteo).</li>
+  <li><b>Square</b>: historial global y por prenda con los mismos filtros; <b>Loyverse</b> y <b>Alegra</b>: botón «Historial» en la ficha → dos puertas a una sola vista.</li>
+  <li><b>Odoo</b>: agrupa por operación (como ADR-0234) y deja revertir un ajuste desde el historial con otro movimiento → nuestro «Corregir con un ajuste».</li>
+  <li><b>Shopify</b> y <b>Lightspeed R</b> muestran el saldo tras cada cambio (kardex). ADR-0234 lo dejó fuera a propósito: «Hoy en la sede» responde la pregunta real.</li>
+  <li>Ninguno documenta un historial pensado para el celular: escanear para ver la historia de una prenda sería propio de CAYLA.</li></ul></div>`}
+
+/* ============================ interacción ============================ */
+function pintar(){
+ // «Hoy» solo existe en las opciones que limpian; con «Como hoy» la computadora vuelve a 30 días.
+ if(!limpio()&&E.pc.per==='hoy')E.pc.per='30';
+ pintarPC();pintarTel();pintarNotas();
+ document.querySelectorAll('[data-multi=atajos] button').forEach(b=>b.setAttribute('aria-pressed',E.atajos.has(b.dataset.v)));
+ ['piso','movil','rep','apt'].forEach(k=>document.querySelectorAll(`[data-uno=${k}] button`).forEach(b=>b.setAttribute('aria-pressed',E[k]===b.dataset.v)));}
+let tt;function toast(ir,que){const t=document.getElementById('toast');t.innerHTML=`Iría a <code>${ir}</code>${que?`<br><span style="opacity:.75">${que}</span>`:''}`;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),3200)}
+
+document.addEventListener('click',e=>{
+ const el=e.target.closest('button,[data-op],[data-pleg],[data-cerrar],[data-ir],[data-destino],u[data-cat]');if(!el)return;
+ const lado=el.dataset.lado||(el.closest('#tel')?'tel':'pc');const f=E[lado];
+ if(el.closest('[data-multi=atajos]')){const v=el.dataset.v;E.atajos.has(v)?E.atajos.delete(v):E.atajos.add(v);return pintar()}
+ const uno=el.closest('[data-uno]');if(uno){E[uno.dataset.uno]=el.dataset.v;if(uno.dataset.uno==='movil'){E.tel.hoja=null;E.tel.det=null;E.tel.per=el.dataset.v==='hoy'?'30':'hoy'}if(uno.dataset.uno==='rep'&&el.dataset.v==='hoy'){E.pc.per='30';E.tel.per=E.movil==='hoy'?'30':E.tel.per}return pintar()}
+ if(el.dataset.ej){const m={venta:['o5',0],entrada:['o8',1],ajuste:['o20',0],traslado:['o24',0],apartado:['o4',0]}[el.dataset.ej];E.pc.det={op:m[0],i:m[1]};E.tel.det={op:m[0],i:m[1]};E.tel.hoja=null;return pintar()}
+ if(el.dataset.ir){e.stopPropagation();return toast(el.dataset.ir,el.dataset.que)}
+ if(el.dataset.destino){e.stopPropagation();f.det=null;if(lado==='tel')f.hoja=null;f.destino=el.dataset.destino;
+  toast(el.dataset.destino==='lista'?'/vender/apartados':`/vender/apartados?abrir=${APT[el.dataset.destino].cod}`,el.dataset.destino==='lista'?'La lista de la sede, sin nada abierto':'Apartados con ESE apartado abierto (se lee por apartados.movimiento_id: sin migración)');return pintar()}
+ if(el.dataset.volver){f.destino=null;return pintar()}
+ if(el.dataset.cerrar){f.det=null;if(lado==='tel')f.hoja=null;return pintar()}
+ if(el.dataset.menu){E.pc.menu=!E.pc.menu;return pintar()}
+ if(el.dataset.scan){if(el.dataset.scan==='tel'){f.hoja='scan';return pintar()}return toast('(la pistola escribe el código y Enter)','Con el código exacto, filtra esa prenda y abre su historia en esta sede')}
+ if(el.dataset.leer){f.hoja=null;f.q='Blusa Carlita';f.cat='todos';f.per='30';return pintar()}
+ if(el.dataset.hoja){f.det=null;f.hoja=el.dataset.hoja;return pintar()}
+ if(el.dataset.cat!==undefined){f.cat=(f.cat===el.dataset.cat&&el.dataset.cat!=='todos'&&limpio())?'todos':el.dataset.cat;f.proc=null;if(el.dataset.per0)f.per=lado==='tel'&&E.movil!=='hoy'?'hoy':'30';if(el.dataset.cat==='todos')f.q='';return pintar()}
+ if(el.dataset.proc!==undefined){f.proc=el.dataset.proc||null;return pintar()}
+ if(el.dataset.per){if(el.dataset.per!=='pers')f.per=el.dataset.per;return pintar()}
+ if(el.dataset.pleg){f.abiertas.has(el.dataset.pleg)?f.abiertas.delete(el.dataset.pleg):f.abiertas.add(el.dataset.pleg);return pintar()}
+ if(el.dataset.op){const op=OPS.find(o=>o.id===el.dataset.op);
+  if(op.pr.length>1&&el.dataset.i===undefined){f.abiertas.has(op.id)?f.abiertas.delete(op.id):f.abiertas.add(op.id);return pintar()}
+  f.det={op:op.id,i:+(el.dataset.i||0)};if(lado==='tel')f.hoja=null;return pintar()}
+});
+document.addEventListener('input',e=>{const l=e.target.dataset.q;if(!l)return;E[l].q=e.target.value;clearTimeout(E[l]._t);E[l]._t=setTimeout(()=>{const pos=e.target.selectionStart;pintar();const n=document.querySelector(`[data-q=${l}]`);if(n){n.focus();n.setSelectionRange(pos,pos)}},300)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){['pc','tel'].forEach(l=>{E[l].det=null;E[l].hoja=null});E.pc.menu=false;pintar()}});
+
+// ?piso=&movil=&rep=&abrir=venta — fija un estado (para capturas)
+const u=new URLSearchParams(location.search);['piso','movil','rep'].forEach(k=>{if(u.get(k))E[k]=u.get(k)});
+if(u.get('apt'))E.apt=u.get('apt');if(E.movil==='hoy')E.tel.per='30';if(E.rep==='hoy')E.pc.per='30';
+if(u.get('atajos'))E.atajos=new Set(u.get('atajos').split(',').filter(Boolean));
+if(u.get('abrir')){const m={venta:['o5',0],entrada:['o8',1],ajuste:['o20',0],traslado:['o24',0],apartado:['o4',0]}[u.get('abrir')];if(m){E.pc.det={op:m[0],i:m[1]};E.tel.det={op:m[0],i:m[1]}}}
+if(u.get('hoja'))E.tel.hoja=u.get('hoja');
+pintar();
+</script>
+</body>
+</html>
