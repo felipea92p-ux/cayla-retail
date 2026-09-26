@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Clienta } from "@/lib/clientas-reglas";
 import { buscarClienta, registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
 import { traducirError } from "@/lib/error-escritura";
@@ -15,8 +15,8 @@ import { useResponsable } from "@/lib/useResponsable";
 // esto no está enganchado a `lib/menu.ts`.
 const ALTA_VACIA: DatosAlta = { dni: "", nombre: "", telefonoWhatsapp: "", aceptaWhatsapp: false, cumpleDia: "", cumpleMes: "" };
 
-export function ClientasPanel({ clientasIniciales }: { clientasIniciales: Clienta[] }) {
-  const [termino, setTermino] = useState("");
+export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { clientasIniciales: Clienta[]; busquedaInicial?: string }) {
+  const [termino, setTermino] = useState(busquedaInicial);
   const [resultados, setResultados] = useState<Clienta[] | null>(null);
   const [buscando, setBuscando] = useState(false);
   const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);
@@ -27,6 +27,10 @@ export function ClientasPanel({ clientasIniciales }: { clientasIniciales: Client
 
   async function onBuscar(e: React.FormEvent) {
     e.preventDefault();
+    await buscar(termino);
+  }
+
+  async function buscar(termino: string) {
     if (termino.trim() === "") {
       setResultados(null);
       return;
@@ -40,6 +44,15 @@ export function ClientasPanel({ clientasIniciales }: { clientasIniciales: Client
     }
     setResultados(clientas);
   }
+
+  // «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con `?q=<nombre>`: se busca una vez al abrir.
+  const yaBuscoInicial = useRef(false);
+  useEffect(() => {
+    if (!busquedaInicial.trim() || yaBuscoInicial.current) return;
+    yaBuscoInicial.current = true;
+    void buscar(busquedaInicial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
+  }, []);
 
   async function onRegistrar(e: React.FormEvent) {
     e.preventDefault();

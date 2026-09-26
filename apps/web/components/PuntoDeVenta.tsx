@@ -29,6 +29,7 @@ import {
   SIN_DETALLE_DESCUENTO,
   vueltoDe,
   conDescuentoDeCampana,
+  limpiarOperacion,
   type CampanaLinea,
   type DetalleDescuento,
   type MomentoTicket,
@@ -71,6 +72,7 @@ import {
 } from "@/lib/vender-stock-local";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
+import { avisoFaltanDeRepeticion, type RepeticionDeVenta } from "@/lib/repetir-venta";
 import { buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
 import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
@@ -246,6 +248,8 @@ type Props = {
   proforma?: ProformaEnCobro | null;
   /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
   avisoProforma?: string | null;
+  /** «Volver a vender» desde Ventas ▸ Historial (`/vender?repetir=<id>`, ADR-0230): el ticket arranca con esas prendas. */
+  repeticion?: RepeticionDeVenta | null;
 };
 
 /** La proforma que se está cobrando: lo que la franja muestra y lo que `marcar_proforma_cobrada` necesita. */
@@ -266,7 +270,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeProforma, proforma = null, avisoProforma = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeProforma, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -292,7 +296,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // no el grupo: el grupo se vuelve a buscar en `grupos` en cada render, así nunca muestra
   // un stock viejo.
   const [tarjetaElegida, setTarjetaElegida] = useState<string | null>(null);
-  const [carrito, setCarrito] = useState<ItemCarrito[]>(() => proforma?.lineas ?? []);
+  const [carrito, setCarrito] = useState<ItemCarrito[]>(() => proforma?.lineas ?? repeticion?.lineas ?? []);
   // La proforma en cobro (ADR-0167): se suelta al cobrar o con «Soltar». Una vencida pide confirmar el precio.
   const [proformaActiva, setProformaActiva] = useState<ProformaEnCobro | null>(proforma);
   const [confirmoVencida, setConfirmoVencida] = useState(false);
@@ -975,9 +979,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (avisoProforma) avisar.aviso(avisoProforma);
     // Al ticket entra solo lo del piso (la venta descuenta el piso). Cada prenda que falta lleva su razón, y lo del
     // almacén dice qué hacer y que entra al precio de la proforma (D-40, `avisoFaltanDeProforma`).
-    const faltantes = proforma ? avisoFaltanDeProforma(proforma) : null;
+    const faltantes = proforma ? avisoFaltanDeProforma(proforma) : repeticion ? avisoFaltanDeRepeticion(repeticion) : null;
     if (faltantes) avisar.aviso(faltantes.titulo, { detalle: faltantes.detalle });
-  }, [avisoProforma, proforma]);
+    else if (repeticion && repeticion.lineas.length > 0) avisar.exito(`Prendas de ${repeticion.origen} en el ticket`, { detalle: "Al precio de hoy. Cambia la talla o el color si hace falta." });
+  }, [avisoProforma, proforma, repeticion]);
 
   function soltarProforma() {
     setProformaActiva(null);
@@ -1034,6 +1039,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Lo que la clienta entregó en efectivo. Viaja a la RPC en su propia clave (`recibido`,
   // aparte de `monto`, que es lo que cubre) solo si alcanza — ver `pagosParaRpc` — para poder
   // reimprimir el ticket con su vuelto.
+  /** El nº de operación de un pago digital (ADR-0230). Opcional: no frena el cobro. */
+  function cambiarOperacion(indice: number, texto: string) {
+    setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, referencia: limpiarOperacion(texto) } : p)));
+  }
+
   function cambiarRecibido(monto: number | null) {
     setPagos((actual) => actual.map((p) => (p.metodo === "efectivo" ? { ...p, recibido: monto ?? undefined } : p)));
   }
@@ -1309,6 +1319,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
             onMontoPago={cambiarMontoPago}
             onQuitarPago={quitarPago}
             onRecibido={cambiarRecibido}
+            onOperacion={cambiarOperacion}
             tipoComprobante={tipoComprobante}
             onTipoComprobante={setTipoComprobante}
             clienteNumDoc={clienteNumDoc}

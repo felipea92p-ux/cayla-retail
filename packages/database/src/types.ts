@@ -4334,6 +4334,7 @@ export type Database = {
           metodo: string
           monto: number
           recibido: number | null
+          referencia: string | null
           venta_id: string
         }
         Insert: {
@@ -4341,6 +4342,7 @@ export type Database = {
           metodo: string
           monto: number
           recibido?: number | null
+          referencia?: string | null
           venta_id: string
         }
         Update: {
@@ -4348,6 +4350,7 @@ export type Database = {
           metodo?: string
           monto?: number
           recibido?: number | null
+          referencia?: string | null
           venta_id?: string
         }
         Relationships: [
