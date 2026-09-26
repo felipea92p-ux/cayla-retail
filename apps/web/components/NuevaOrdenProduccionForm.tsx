@@ -77,7 +77,7 @@ export function NuevaOrdenProduccionForm({
   // por color, una columna por talla, y en cada celda cuántas van. Solo
   // existen las celdas que el catálogo ya tiene como variante — Producción
   // no inventa tallas ni colores (decisión con Felipe, 2026-09-15: las
-  // variantes nacen en Productos, con su SKU y su precio, nunca al vuelo desde
+  // variantes nacen en Productos, con su código y su precio, nunca al vuelo desde
   // una orden; en V1 sí pasaba y dejaba colores duplicados y prendas sin precio).
   const matriz = useMemo(() => {
     const variantes = modelo?.variantes ?? [];
@@ -232,7 +232,7 @@ export function NuevaOrdenProduccionForm({
                                 min={0}
                                 placeholder={String(curva.porVariante.get(v.varianteId)?.sugerido || 0)}
                                 aria-label={`${color} ${t}`}
-                                title={`${v.sku}${curva.porVariante.get(v.varianteId) ? ` · ${curva.porVariante.get(v.varianteId)?.motivo}` : ""}`}
+                                title={[v.sku, curva.porVariante.get(v.varianteId)?.motivo].filter(Boolean).join(" · ")}
                                 value={valor}
                                 onChange={(e) => setCantidades((c) => ({ ...c, [v.varianteId]: e.target.value }))}
                                 className={`w-14 rounded-md border bg-transparent px-1.5 py-1 text-center text-sm tabular-nums text-tinta outline-none transition-colors placeholder:text-tinta/30 focus:border-rojo ${

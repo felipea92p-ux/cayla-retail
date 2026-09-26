@@ -1,5 +1,6 @@
 import { compararTallas } from "./tallas";
 import { diasEntreFechas } from "./fechas-lima";
+import { codigoDeEtiqueta } from "./prenda-reglas";
 
 // Reglas puras de Producción: sin Supabase, sin `next/headers`, para que las
 // importen tanto la página (servidor) como los formularios (cliente) — mismo
@@ -98,6 +99,29 @@ export function estadoEntrega(fechaEntrega: string | null, hoy: string): EstadoE
   if (falta < 0) return { tipo: "vencida", dias: -falta };
   if (falta <= DIAS_ENTREGA_PRONTO) return { tipo: "pronto", dias: falta };
   return { tipo: "holgada", dias: falta };
+}
+
+/** Lo que el select de Producción trae de `variantes` (con sus embebidos de talla y color): `sku` y `codigo` van
+ *  los dos porque en producción `sku` es NULL en casi todas las variantes (ADR-0058) y el que la colaboradora
+ *  reconoce es el `codigo` de la etiqueta. */
+export type VarianteLeida = {
+  sku?: string | null;
+  codigo?: string | null;
+  talla?: { valor: string } | null;
+  color?: { nombre: string; hex: string | null } | null;
+};
+
+/** Cómo Producción nombra una prenda en pantalla. Las dos lecturas del módulo (las líneas de una orden y las variantes
+ *  del formulario de nueva orden) pasan por aquí, para que ninguna vuelva a leer solo `sku` y deje un hueco.
+ *  El campo se sigue llamando `sku` (lo consumen buscadores y tooltips), pero trae el CÓDIGO DE ETIQUETA con respaldo al
+ *  sku legado, o `""` si la variante no tiene ninguno. Solo se MUESTRA: para identificar una prenda se compara `varianteId`. */
+export function datosDeVariante(v: VarianteLeida | null | undefined): { sku: string; talla: string | null; color: string | null; colorHex: string | null } {
+  return {
+    sku: v ? codigoDeEtiqueta(v) : "",
+    talla: v?.talla?.valor ?? null,
+    color: v?.color?.nombre ?? null,
+    colorHex: v?.color?.hex ?? null,
+  };
 }
 
 type LineaMatriz = { varianteId: string; talla: string | null; color: string | null; colorHex: string | null; cantidadPlan: number; cantidadBuenas: number | null };

@@ -596,6 +596,13 @@ las responde, y **no se escribe tabla antes**:
   y eso cambia quién puede canjear y cómo se reparte el descuento en el estado de
   resultados por sede (D-30).
 
+> **Actualización 2026-09-26:** la mecánica ya no está abierta. D-77
+> (`DECISIONES-2026-09-21-menu-comercial.md`) fijó una versión 1 sin puntos, y la ronda
+> del 2026-09-26 (`DECISIONES-2026-09-26-clientas.md`, D-92 a D-111) la afinó: sin
+> puntos, sin saldo y sin niveles, con un solo beneficio con costo (el de cumpleaños,
+> dentro de un 2%). El punto 5 de abajo no se construye en esta versión. *El texto de
+> arriba se conserva como quedó el 2026-09-12.*
+
 **5 · Recién con eso decidido: `clienta_puntos_movimientos`.**
 
 ```

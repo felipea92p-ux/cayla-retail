@@ -8,7 +8,7 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 // Primera columna con el mismo piso (13.5rem) que Existencias: la celda de la prenda es la misma
-// y necesita el mismo ancho para que «SKU · talla · cápsula» no se salga hacia la columna vecina.
+// y necesita el mismo ancho para que «código · talla · cápsula» no se salga hacia la columna vecina.
 const PLANTILLA = "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_5rem_6rem_7rem]";
 
 function fechaHora(iso: string) {
@@ -143,7 +143,7 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
               />
               {lineas.map((l) => (
                 <div key={l.varianteId} className={fila(PLANTILLA)}>
-                  <ProductoVarianteCelda referencia={l.referencia} sku={l.sku} talla={l.talla} color={l.color} colorHex={l.colorHex} fotoUrl={l.fotoUrl} />
+                  <ProductoVarianteCelda referencia={l.referencia} sku={l.sku || "sin código"} talla={l.talla} color={l.color} colorHex={l.colorHex} fotoUrl={l.fotoUrl} />
                   <span className={celda("centro", "text-sm tabular-nums text-tinta/75")}>
                     <span className="mr-1 text-[11px] text-taupe sm:hidden">Sistema</span>
                     {l.sistema}

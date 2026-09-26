@@ -741,3 +741,12 @@ jobs:
       - name: pruebas:purgar-producto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:purgar-producto
+
+      # Productos ▸ Eliminar (20260926220000, solo Líder/Admin): un producto que nunca se movió se elimina completo (variantes,
+      # códigos de barras, fotos), deja UNA fila de rastro y libera su nombre; con historia (movimientos, ventas, un pedido no
+      # atendido…) se rechaza diciendo cuál y sin llevarse nada; la pieza «Monto manual» del punto de venta nunca se elimina, ni
+      # sin historia; una integrante que edita el catálogo tampoco elimina; y una prueba de deriva falla si nace una tabla nueva
+      # que cita productos/variantes sin clasificar. Cada caso termina en ROLLBACK.
+      - name: pruebas:eliminar-producto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:eliminar-producto
