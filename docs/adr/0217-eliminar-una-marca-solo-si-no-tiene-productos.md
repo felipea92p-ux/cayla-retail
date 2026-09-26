@@ -63,7 +63,7 @@ producto con ventas nunca se borra; se re-marca.
 - `marcas.test.ts` y `confirmar-catalogo.test.ts` con los casos nuevos; `tsc` y `eslint` limpios sobre los archivos tocados.
 - **Primera corrida real (2026-09-26):** Felipe eliminó «Cayla 2» desde la pantalla. Producción antes/después: 80 → 79 marcas y 80 → 79 vínculos, 0 vínculos
   huérfanos, 0 productos sin marca. Cierra el hueco que este ADR declaraba («sin probar el clic real contra la base»). Su único producto, `TOP-0011`, ya no
-  existía: se había purgado antes (ADR-0219), así que no hubo que re-marcarlo.
+  existía: se había purgado antes (ADR-0224), así que no hubo que re-marcarlo.
 
 ## Producción
 
