@@ -76,6 +76,8 @@ export function MarcasLista({
   const activasVisibles = filtrarMarcas(activas, busqueda);
   const desactivadasVisibles = filtrarMarcas(desactivadas, busqueda);
   const buscandoAlgo = busqueda.trim() !== "";
+  // Contra estas pregunta el formulario «¿no será una marca que ya existe?» (las mismas que ofrece Nuevo producto).
+  const existentes = activas.map((m) => ({ id: m.id, nombre: m.nombre, proveedores: m.proveedores.map((p) => p.nombre) }));
 
   function alGuardar(r: MarcaGuardada) {
     if (r.proveedorNuevo) setProveedores((prev) => [...prev, { id: r.proveedorId, nombre: r.proveedorNombre }]);
@@ -167,7 +169,7 @@ export function MarcasLista({
       </div>
 
       {modo?.tipo === "nueva" && (
-        <NuevaMarcaForm proveedores={proveedores} nombreExistente={(n) => marcas.find((m) => m.nombre.toLowerCase() === n.toLowerCase())?.nombre} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
+        <NuevaMarcaForm proveedores={proveedores} marcas={existentes} onGuardado={alGuardar} onCancelar={() => setModo(null)} />
       )}
 
       {activas.length === 0 && <p className="card-cayla p-5 text-sm text-tinta/70">Todavía no hay marcas activas.</p>}

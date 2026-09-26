@@ -388,6 +388,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   reglas puras `problemaEdicionMarca`/`borradorCambia`). Crear: `NuevaMarcaForm` → `crear_marca`. Desactivar: UPDATE
   directo a `marcas` (policy + trigger `fn_marcas_desactivar_candado`).
 
+- `/productos/nuevo` → `NuevoProductoForm.tsx` en 5 pasos (reglas puras en `lib/alta-producto.ts`, contexto en
+  `lib/alta-producto-datos.ts`; la tienda del stock sale de la sede activa y `lib/sububicaciones.ts`). Guarda con UNA
+  RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
+  copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
+  a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
+
 **Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
 - Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4
   pantallas, sin cambios). Producción arranca con `/produccion/ordenes` y suma pantallas con sus fases.
@@ -556,6 +562,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`/compras/proveedores/[id]`, «Datos para pagar»), `PagoJuntosModal` y el pago individual; `ProveedorModal` («Cómo
   pagarle»), la lista (chip/filtro «Sin datos de pago»), `LineasPago` y `CompraFormV2` (avisos de destino). Reglas puras en
   `lib/proveedores-reglas.ts` (normalizar/enmascarar/validar, `bancoDeCci`, `sinDatosDePago`, `cuentaLocalVisible`).
+  **Varios rubros por proveedor (ADR-0213, 2026-09-25; sin pegar en producción):** `proveedores.rubro text` pasa a
+  `rubros text[] not null default '{}'` con el CHECK `proveedores_rubros_limpios` (= `fn_rubros_limpios(rubros)`: sin vacíos,
+  recortado, uno por `fn_clave_texto`). `registrar_proveedor`/`actualizar_proveedor` cambian `p_rubro text` por
+  `p_rubros text[]` (mismo lugar, una sola firma) y `fn_proveedores()` devuelve `rubros text[]`; `registrar_proveedor_de_gasto`
+  escribe `{Gastos}`. Migración `20260926110000_proveedores_varios_rubros.sql` (parche sobre la definición viva). Reglas puras
+  en `lib/proveedores-reglas.ts` (`limpiarRubros`, `alternarRubro`, `agregarRubro`, `opcionesDeRubro`, `tieneRubro`,
+  `rubrosConConteo`); pruebas SQL en `scripts/pruebas/proveedores_rubros.mjs`.
   **Marcas del proveedor (ADR-0142):** `lib/proveedores.ts:getMarcasPorProveedor` lee las tablas `marcas` y `marca_proveedores`
   (sin RPC ni migración) para que la lista, el detalle rápido, la ficha y el combo de `/compras/nueva` busquen y muestren al
   proveedor por su marca; es una lectura **opcional** (si falla llega `null` y todo se pinta sin marcas). Reglas puras:

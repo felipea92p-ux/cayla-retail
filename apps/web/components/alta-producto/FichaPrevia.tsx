@@ -23,6 +23,8 @@ export type DatosFicha = {
   /** Vista previa local de la foto que quedaría de principal. */
   foto: string | null;
   fotos: number;
+  /** Paso 5 (ADR-0212): las unidades de hoy y dónde («12 · piso»), «Ninguna todavía», o null si aún no se decidió. */
+  stock: string | null;
   siguiente: string | null;
 };
 
@@ -64,6 +66,8 @@ function Tarjeta({ d }: { d: DatosFicha }) {
           <dd className="text-right font-medium">{d.tejidoPatron || <Vacio />}</dd>
           <dt className="text-taupe">Variantes</dt>
           <dd className="text-right font-medium tabular-nums">{d.variantes ?? <Vacio />}</dd>
+          <dt className="text-taupe">Stock de hoy</dt>
+          <dd className="text-right font-medium tabular-nums">{d.stock ?? <Vacio />}</dd>
         </dl>
         {d.codigosVariantes.length > 0 && (
           <p className="mt-1.5 break-all font-mono text-[11px] tabular-nums text-tinta/45">
@@ -138,6 +142,7 @@ export function FichaPrevia({
             <b className="block truncate text-sm text-tinta">{datos.nombre || "Nuevo producto"}</b>
             <span className="tabular-nums text-taupe">
               {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/ —"}
+              {datos.stock && ` · ${datos.stock}`}
             </span>
           </div>
           <button type="button" onClick={() => setVerMovil((v) => !v)} aria-expanded={verMovil} className="btn-cayla btn-secundario px-3">

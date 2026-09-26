@@ -3,13 +3,41 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
+Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
+Felipe se lleva:
+1. **«Cargar lo que ya hay» y «recibir lo que llega» son dos hechos distintos.** Si se registran por la misma puerta, el número de «compras sin comprobante» para el contador se llena con la migración entera. Por eso la carga inicial tiene su propio motivo y no pasa por Compras.
+2. **Una función nueva que LLAMA a las de siempre, en vez de copiarlas, hereda sus candados y sus parches futuros.** Copiar el cuerpo de una función viva ya rompió Análisis en producción el 25-sep.
+3. **El doble clic tenía un caso que solo se ve con dos sesiones de verdad.** Dos llegadas simultáneas del mismo intento: la segunda mostraba un error aunque el producto sí se había guardado. Lo cerró el candado por token (ADR-0190), probado con COMMIT real.
+
+Más tarde el mismo día, con el «sí» de Felipe: SQL en producción (`20260926000932`) tras una revisión adversarial de 12 agentes (ningún bloqueo; un arreglo de pantalla: «Descartar» ya no se lee como «subió») y un ensayo revertido con un Admin real. Producción quedó con los mismos conteos después de ensayo y humo.
+Y con su «dale»: la migración de rubros del #444 (ADR-0213), fusionada a `main` sin pegar, quedó en producción (`20260926003322`). Mientras tanto la web de `main` pedía una columna que no existía y dejaba caídas Proveedores, Por pagar, Registrar factura y Notas de crédito. Antes de aplicar: se revisó que ninguna otra función use la columna vieja, un ensayo revertido (0 rubros perdidos) y un respaldo. Después: huella idéntica en los 76 proveedores.
+
+## 2026-09-25 (Marcas: «¿no será una que ya existe?» y la pareja elegida con salida — ADR-0109, actualización)
+Felipe aprobó el aviso tras ver «Cayla 2» en Proveedores. El formulario único de nueva marca (Nuevo producto, censo, editar producto, Catálogo ▸ Marcas) ahora dice si el nombre es igual a una marca (no se crea otra, se le suma el proveedor) y pregunta si se parece (`marcasParecidas`: «Cayla 2» ~ CAYLA, «Kristell» ~ Krisstell, «Divas» ~ Divas Now). Y la pareja que se elige sola ofrece «+ Otro proveedor para CAYLA» y «+ Otra marca de Jacard». Verificado en el navegador con un andamio (sin base local), también a 375 px. Sin migración.
+Felipe se lleva: el error no fue de quien creó «Cayla 2». El sistema elegía solo a CAYLA SAC y no le dejaba decir «esta vez la trae Jacard». Inventar un nombre era la única salida que tenía. Medida contra las 80 marcas reales, la pregunta solo salta en dos pares (CAYLA ~ Cayla 2, Divas ~ Divas Now): hay que mirar si Divas y Divas Now son la misma.
+
+## 2026-09-25 (Catálogo ▸ Marcas entra al menú)
+Felipe vio en Proveedores la marca «Cayla 2» colgada de Jacard Peru SAC y no encontró por dónde editarla: la pantalla `/productos/marcas` existía desde el ADR-0109 (`cc36213d`) pero nunca entró al menú, y solo se llegaba por un enlace dentro de Nuevo producto. Se suma «Marcas» a Catálogo (módulo `atributos`, que en Roles y accesos ya se llama «Categorías, marcas y atributos»), con ícono propio, y se actualiza la foto del lateral (`menu-hoy.golden.json`). Sin migración.
+En producción (solo lectura): «Cayla 2» se creó el 24-sep al dar de alta **Top Aurora (TOP-0011)**, 8 variantes, 65 prendas en stock y 15 movimientos; no vino de la carga de proveedores. Pendiente de Felipe decidir de qué marca es Top Aurora; el arreglo es por pantalla (editar el producto y luego desactivar «Cayla 2»), no por SQL.
+Felipe se lleva: una pantalla que no está en el menú no existe para quien opera — funcionaba, tenía pruebas y un ADR, y aun así nadie la podía encontrar cuando la necesitó. Y la base no deja **fusionar** dos marcas ni **quitarle** una marca a un proveedor: «Renombrar Cayla 2 a CAYLA» choca con el índice de nombre único.
+
+## 2026-09-25 (Varios rubros por proveedor — ADR-0213)
+Felipe pidió elegir varias categorías por proveedor en «Editar proveedor». El rubro pasó de un texto a una lista (`rubros text[]`), con un candado en la base que impide vacíos y repetidos. La migración `20260926110000` está por pegar; la web muestra los rubros como botones que se prenden y apagan, más «Otro rubro».
+Felipe se lleva: (1) **las funciones de proveedores ya no son las de sus archivos**: tenían parches en vivo, así que la migración las cambia sobre su versión real (y se comprobó que la local es idéntica a producción); copiar el `create function` viejo habría deshecho permisos de roles. (2) **El arnés de Postgres sin Docker nacía en SQL_ASCII**: «Pólos» y «polos» no se juntaban solo en la prueba; ahora usa `-E UTF8`, como producción. (3) Las 7 pruebas SQL que fallan en `main` fallan igual sin este cambio (base gemela sin la migración).
+
+## 2026-09-25 (Paleta esencial de moda: 63 colores de claro a oscuro)
+Felipe pidió completar las gamas esenciales de la moda, unas 9 por familia. Entraron 32 colores (de 32 a 63; 64 en producción con MAC), y la paleta de Nuevo producto pasó a ser una carta de 9 columnas alineadas, de claro a oscuro. Con el ok de Felipe, la migración `20260926100000` quedó aplicada en producción (primero se ensayó y se revirtió; luego se aplicó y se verificó: 64 activas). «Marrón chocolate» (MAC) pasó a llamarse «Coñac».
+Felipe se lleva: (1) **9 por familia es un tope, no una cuota.** Medidos con ΔE2000, Índigo, Cereza, Durazno y Menta se confundían con un color que ya existía. Sumarlos habría partido el stock de una misma prenda en dos filas; por eso son 63 y no 72. (2) No existe una lista oficial de Adobe: la lista sale del nombre que usa el retail de moda en Perú. (3) **Un duplicado ya se coló:** «Marrón chocolate» vive al lado de «Chocolate». El candado de nombre no lo frena porque los nombres son distintos. Lo que sí puede frenarlo es un buscador que conozca los sinónimos.
+
 ## 2026-09-25 (Catálogo ▸ Marcas: buscador y «Editar»)
-Felipe mandó la captura de Marcas: 80 tarjetas sin buscador y no encontraba cómo editar una marca. Ahora hay un buscador por marca o por proveedor, y «Editar» abre una ventana con el nombre y quién la trae: se suma un proveedor (de la lista o uno nuevo) y se quita uno puesto por error si ningún producto lo usa. La base lo guarda todo o nada con `editar_marca` (`20260926150000`, por pegar), probada con 23 casos, 3 mutaciones y una carrera real de dos ediciones a la vez.
+Felipe mandó la captura de Marcas: 80 tarjetas sin buscador y no encontraba cómo editar una marca. Ahora hay un buscador por marca o por proveedor, y «Editar» abre una ventana con el nombre y quién la trae: se suma un proveedor (de la lista o uno nuevo) y se quita uno puesto por error si ningún producto lo usa. La base lo guarda todo o nada con `editar_marca` (`20260926150000`, ya pegada en producción por Felipe), probada con 23 casos, 3 mutaciones y una carrera real de dos ediciones a la vez.
 Felipe se lleva: (1) **«Renombrar» no se lee como «editar»**: la acción existía, pero con el nombre de un pedazo; (2) **se manda «qué cambió», no «cómo debe quedar»**: si dos personas editan la misma marca, la segunda no borra lo que sumó la primera; (3) **un código de error técnico esconde un mensaje bueno**: el primer intento devolvía «Ya existe la marca…» envuelto en «Código:», porque la pantalla solo deja pasar tal cual los errores de negocio.
 
 ## 2026-09-25 (Existencias en celular: la tarjeta de cada variante, ordenada)
 Felipe mandó capturas del celular: en Inventario ▸ Existencias cada variante era una lista de datos amontonada a la izquierda. Ahora la tarjeta va en bloques: la prenda arriba; Piso · Almacén, Disponible, Cobertura y Ritmo en una grilla de 2×2; «En camino» y «En la red» a la izquierda, con el chip de estado y «Reponer» a su derecha; y «Apartar» a la izquierda y «Ajustar» con «···» a la derecha, en la misma línea. Todo es solo de celular: `sm:contents` y `sm:[grid-area:auto]` devuelven cada celda a su columna, y en escritorio la tabla queda igual (medido a 1400 px: cada celda bajo su título). Probado a 375 px en local.
 Felipe se lleva: (1) **una tabla apilada no es una tarjeta**: poner cada columna en un renglón propio cabe en el celular, pero no ordena nada; (2) **el hueco vacío a la derecha es espacio que se puede usar**: el estado subió junto a «En camino» y la tarjeta quedó más baja; (3) **el celular se arregla sin tocar el escritorio** si se reagrupa con CSS y no se cambia el orden de las celdas.
+
 ## 2026-09-25 (Frescura, bloque 2: «Retirar del piso» — #440)
 Felipe eligió la opción A: de la tarea 3 del plan del termómetro se rescató solo el retiro, rebasado sobre `main` con el
 #434, el #437, el #438 y el #439, y se descartaron los motivos nuevos del ajuste. En Existencias, el menú «⋯» de cada
@@ -1033,6 +1061,44 @@ Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
+## 2026-09-18 (Calidad — la regla de "de quién es esta prenda" vive una sola vez)
+Al construir Rentabilidad quedó una copia de la lógica de origen dentro de `fn_calidad`. Dos copias de la misma regla son dos
+pantallas que tarde o temprano dan números distintos de la misma prenda. Se extrajo a `fn_origen_producto` en su propia
+migración (`20260918191500`, anterior a Calidad y a Rentabilidad, para que ninguna dependa de algo posterior) y Calidad la llama.
+La prueba de Calidad ahora carga primero la auxiliar, simula los permisos por defecto de `0005_grants.sql` y comprueba que la
+función NO es ejecutable por `authenticated`; seis mutaciones (las tres de la regla de origen apuntan ahora a la auxiliar) la
+hacen fallar. Sin cambios de comportamiento: las 27 verificaciones dan los mismos números de antes. ADR-0214 actualizado.
+
+## 2026-09-18 (Calidad — una tasa con pocas ventas no es una tasa, y una fila no puede medirse contra sí misma)
+Tarea 15 del plan: `/comercial/calidad` (solo líder) responde "¿qué talla, qué proveedor o qué producto genera
+devoluciones?". Tres decisiones pesan más que el código. (1) La cohorte es madura: solo entran ventas que ya cumplieron
+su plazo de cambio de 15 días, porque una prenda vendida hace 3 días no tuvo tiempo de ser devuelta y contarla como "vendida
+y no devuelta" haría parecer que todo va mejor. (2) Una fila con menos de 10 ventas es "muestra chica" y va al final: una
+talla con 2 ventas y 1 devolución "tiene 50%" y no dice nada. (3) Cada fila se compara contra el RESTO y no contra el
+total; esto lo destapó la prueba visual, no el diseño: con el promedio general la talla L (17,5% frente a 9,2%) salía
+"dentro de lo normal" siendo el problema, porque ella misma subía la vara. Felipe decidió la atribución: al proveedor de
+la compra más reciente anterior a la venta, con el Taller como otro origen posible.
+
+En V2 el producto no guarda su proveedor (era del modelo V1) y `variantes.talla` ya no existe (vive en `tallas.valor`): un
+SQL escrito contra el esquema viejo habría fallado al ejecutarse. Probado sin Docker con un Postgres desechable: la prueba
+cazó un defecto real (un total con NULL en una ventana sin ventas) y cinco mutaciones del SQL la hacen fallar. También se
+descubrió que el compilador de JSX se come el espacio entre un número y su palabra ("15días"): se arregló con un espacio
+explícito y se verificó en el DOM. No se probó contra el esquema real. ADR-0214.
+
+## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
+Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
+tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
+tienda. Tres funciones SQL de solo lectura hacen todas las sumas y la pantalla solo pinta, así dos pantallas no
+pueden decir cifras distintas de lo vendido. La decisión que más pesa: el semáforo compara el ritmo del mes hasta
+el CIERRE DE AYER, no lo de hoy — a las 11 am toda tienda lleva una fracción de su meta y una alerta que salta
+siempre se deja de mirar. Todo se mide en hora de Lima: una venta de las 7:30 pm es 00:30 UTC del día siguiente.
+
+Probado sin Docker (caído): un Postgres desechable con datos que cruzan medianoche, una semana que empieza en el mes
+anterior, una anulada, el Taller y una tienda inactiva — 22 verificaciones, y tres mutaciones del SQL (zona UTC,
+contar líneas como tickets, contar anuladas) hacen fallar la prueba, así que sabe detectar lo que dice detectar. No
+se probó contra el esquema real (RLS, `fn_es_lider` verdadera): hay que abrirla como líder contra el stack local. Al
+armar el panel salió a la luz que `getSeriesVentasCaja` agrupa por hora con `getHours()`, que en Vercel (UTC) daría las
+barras de Caja desplazadas cinco horas — sin verificar en producción. ADR-0110.
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
@@ -9458,3 +9524,12 @@ Tres revisores adversariales encontraron fallas en el bloque 1 y, en paralelo, l
 Por qué así: si la lista seguía editable después de un corte, cualquier prenda sumada cambiaba la huella y la pantalla borraba todo, incluso lo que nunca se guardó; y una lectura que reconstruye el libro por su cuenta ya daba piso 4 donde el libro daba 2. Qué se rompería sin esto: la colaboradora perdería el registro de lo último que colgó sin saber cuáles eran, o bajaría dos veces el mismo fardo al «empezar de nuevo»; y la misma prenda tendría dos pisos distintos según la pantalla.
 Felipe se lleva: (1) **una rama que no se fusiona con main se desactualiza en horas**: dos hallazgos bloqueantes (la entrada por «+ Nuevo» y el cálculo propio del libro) existían solo porque main había cambiado esa misma mañana; (2) **reintentar es seguro solo si lo que se reintenta no cambió**: el token protege una lista, no una lista que sigue creciendo, y por eso tras un corte la lista se congela; (3) **reutilizar el libro común costó velocidad** (de unos 126 a unos 560 ms a 120 días con carga sintética, todavía bajo 1 s): la causa está en `fn_ledger_puntos` y se arregla ahí, una vez, para todas las pantallas que lo leen.
 Sin resolver: pegar las 5 migraciones en orden (0000 → 0100 → 0200 → 0300 → publicar la web → 0400); encender «Bajada al piso» en los roles de quien cuelga; «Reposición» en el almacén (sigue abierta); si «Reponer» se ofrece en toda fila con almacén; que traslados y anulaciones pre-bloqueen (un choque hoy da 40P01 y se reintenta); si la exclusión de las prendas por regularizar vale también para Análisis; acelerar `fn_ledger_puntos`; la D-40 contra la caja antes del bloque 3; si hay pistola en el almacén; y la primera bajada real con la pistola.
+
+## 2026-09-25 (Desplegables sin portal se escondían detrás de la fila de abajo — ADR-0211)
+Felipe pasó capturas de celular: en Historial y Comprobantes, el filtro «Vendedor»/«Tipo» abría su lista y la fila de venta/comprobante de abajo se la tapaba a medio camino. Causa: `usePosicionLista`/`usePosicionAnclada` (2026-09-22) miden el control y dibujan la lista en `position: fixed`, pero cuatro de sus consumidores (`Desplegable` en `campos.tsx`, `ComboBuscable`, `DesplegablePildora`, `ComboResponsable`) la dejaban colgando dentro del árbol normal en vez de en portal a `document.body` — como sí hacían `MenuAcciones` y `ResumenControles` desde el principio. Atrapada dentro de una tarjeta `@container` (containment = nuevo containing block para `fixed`), el `z-50` de la lista solo competía adentro de esa tarjeta, no contra toda la página. De paso, `PanelPildoras` pasa a una sola fila con scroll horizontal en celular (antes `flex-wrap` apilaba las píldoras de texto largo una sobre otra).
+Felipe se lleva: **`position: fixed` con `z-index` alto no garantiza pintar encima de todo** — si un ancestro tiene `transform`, `filter` o `contain`/`container-type` (la `@container` de Tailwind, en particular), ese elemento pasa a posicionarse Y a apilarse DENTRO de ese ancestro. El portal a `document.body` es lo que de verdad lo saca de ahí; el `useAnclaje.ts` que generalizó el mecanismo en 2026-09-22 calculaba la posición pero se olvidó la mitad portal en 4 de sus 6 consumidores.
+Verificado en el navegador (celular 375px y escritorio) en Historial y Comprobantes; `tsc --noEmit` y `eslint` en verde sobre los 4 archivos. Sin resolver: nada pendiente de este cambio — alcance acotado a los 4 consumidores sin portal.
+
+## 2026-09-25 (Segunda vuelta del arreglo anterior: texto envuelto, scroll doble y línea negra en el panel de píldoras)
+Felipe probó el arreglo de ADR-0211 en el celular real y encontró tres cosas más en el mismo panel: el texto de cada píldora se envolvía en 2-3 líneas dentro de su caja de 36px (faltaba `whitespace-nowrap` — `flex-shrink:0` no evita que el texto envuelva), lo que además disparaba scroll vertical (con `overflow-x:auto` puesto, el spec fuerza `overflow-y` a `auto` si hay overflow vertical), y una línea gris de reposo por píldora (`Hilo`, pensada para un campo suelto) se leía como una barra negra continua al quedar varias píldoras borde a borde. Arreglado: `whitespace-nowrap` en la píldora, y un nuevo prop `reposo={false}` en `Hilo` para apagar solo esa línea en `DesplegablePildora` y `PildoraFechas` (Compras). Verificado con JS en el navegador (`scrollHeight === clientHeight`, cero overflow vertical) y por captura en Historial y Comprobantes, celular y escritorio.
+Felipe se lleva: verificar en el navegador emulado no basta cuando el bug depende de comportamientos de layout finos (wrap de texto, la regla `overflow-x`/`overflow-y` del CSS spec) — hace falta probar en el dispositivo real, que es donde esto se notó.
