@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Conteo conectado: análisis y spike, sin código)
+Felipe pasó 4 capturas de Conteo y pidió conectarlo con las pantallas nuevas y hacerlo rápido en el celular. El análisis encontró que en el celular no hay cámara y que dos personas contando a la vez se pisan: `conteo_contar` guarda el total, así que gana la última escritura. En dos tandas de preguntas se decidieron las tandas por persona, «Contando ahora», los avisos entre compañeras, las no encontradas al revisar y los cuatro accesos. Spike en `docs/maquetas/conteo-conectado-2026-09/`.
+Por qué así: cada persona cuenta a su nombre y el total suma, porque dos que cuentan la misma prenda en racks distintos deben sumar. El riesgo real es contar dos veces la misma pila, y eso se pregunta. Qué se rompería sin esto: con dos celulares, el conteo guardaba cifras menores que la realidad y el cierre ajustaba el stock a la baja.
+Felipe se lleva: **«varias a la vez» es una pregunta de la base, no de la pantalla.** Una función que guarda el total no puede recibir dos celulares, por más avisos que ponga la pantalla.
+Sin resolver: elegir A, B o C para las diferencias; construir (tabla de tandas, función que suma y migración con OK).
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
