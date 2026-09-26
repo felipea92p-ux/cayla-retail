@@ -1,11 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   armarVariantesAjuste,
+  cargaInicialAlPiso,
   MOTIVOS_AJUSTE,
   motivosAjusteDisponibles,
   NOTA_REPOSICION_CERRADA,
   reposicionCerrada,
   repartirLineasAjuste,
+  textoPrendaNueva,
   type FilaAjuste,
 } from "./ajuste-reglas";
 
@@ -184,5 +186,26 @@ describe("una prenda sin historia en la tienda no se ajusta: entra como stock in
     ]);
     expect(cargaInicial.map((l) => l.delta)).toEqual([3]);
     expect(ajustes.map((l) => l.delta)).toEqual([-1, 2]);
+  });
+});
+
+describe("la carga inicial «en el piso» es una bajada: pide el módulo «Bajada al piso» (ADR-0212, ADR-0235)", () => {
+  it("con el módulo, lo nuevo elegido en Piso queda en el piso", () => {
+    expect(cargaInicialAlPiso("piso", true, true)).toBe(true);
+    expect(textoPrendaNueva("piso", true, true)).toBe("Nueva en esta tienda · entra como stock inicial");
+  });
+
+  it("sin el módulo, lo nuevo elegido en Piso entra al almacén, y la fila lo dice antes de confirmar", () => {
+    expect(cargaInicialAlPiso("piso", true, false)).toBe(false);
+    expect(textoPrendaNueva("piso", true, false)).toMatch(/entra al almacén/);
+  });
+
+  it("en Almacén, o en una sede que no separa piso y almacén, nunca se baja nada y el módulo no importa", () => {
+    for (const puede of [true, false]) {
+      expect(cargaInicialAlPiso("almacen", true, puede)).toBe(false);
+      expect(cargaInicialAlPiso("piso", false, puede)).toBe(false);
+      expect(textoPrendaNueva("almacen", true, puede)).toBe("Nueva en esta tienda · entra como stock inicial");
+      expect(textoPrendaNueva("piso", false, puede)).toBe("Nueva en esta tienda · entra como stock inicial");
+    }
   });
 });

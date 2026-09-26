@@ -12,7 +12,8 @@ import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 // navegador y la base se toca una sola vez, al confirmar (`bajar_al_piso`, todo o nada).
 // Se llega por el botón «Bajar al piso» de Existencias (Felipe, 2026-09-25): el lateral no tiene entrada propia.
 // `?lineas=<variante>:<cantidad>,…` (ADR-0237): lo marcado en Existencias llega ya en la lista, con el mismo formato que
-// «Mover mercadería». Solo entra lo que esta tienda puede bajar, con la cantidad topada a lo libre en su almacén.
+// «Mover mercadería». Solo entra lo que esta tienda puede bajar, y llega «por escanear» (en 0): se baja lo que se lea al
+// colgarlo, no lo que se marcó (ADR-0237, actualización 2026-09-26).
 export default async function BajarAlPisoPage({ searchParams }: { searchParams: Promise<{ lineas?: string }> }) {
   // Se repite la puerta del layout: un layout no vuelve a correr al navegar entre sus hijas.
   const persona = await exigirModulo("bajada_piso");

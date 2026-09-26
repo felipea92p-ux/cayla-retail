@@ -1286,6 +1286,7 @@ export function InventarioPanel({
           productoId={ajustando.productoId}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
+          puedeBajarAlPiso={puedeBajarAlPiso}
           onClose={() => setAjustando(null)}
         />
       )}
