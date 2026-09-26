@@ -98,6 +98,7 @@ export function CategoriasLista({
   ejesPorCategoria: ejesPorCategoriaInicial,
   familias,
   productosPorCategoria,
+  productosTotalesPorCategoria,
 }: {
   categoriasIniciales: Categoria[];
   puedeEditar: boolean;
@@ -105,6 +106,9 @@ export function CategoriasLista({
   ejesPorCategoria: EjesPorCategoria;
   familias: FamiliaOpcion[];
   productosPorCategoria: Record<string, number>;
+  /** Productos de cualquier estado por categoría (`n_total`): con uno solo el prefijo ya no cambia. Vacío si la base
+   *  todavía no lo devuelve — entonces el campo no se bloquea de antemano y el rechazo llega al guardar, como antes. */
+  productosTotalesPorCategoria: Record<string, number>;
 }) {
   const etiquetaFamilia = (codigo: Familia) => familias.find((f) => f.codigo === codigo)?.nombre ?? codigo;
   const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
@@ -310,6 +314,11 @@ export function CategoriasLista({
   }
 
   const hijasDeEditada = editando && borrador ? hijasDe(borrador.id!) : [];
+  // El prefijo es la letra del código de cada prenda (BLU-0042-AZM-M): con un producto creado, de cualquier estado,
+  // ya no cambia. Se bloquea ANTES de escribir, con el mismo conteo que usa el candado de la base
+  // (`fn_categorias_vigencia_candados`), en vez de dejar tipearlo y rechazarlo al guardar.
+  const productosConEstePrefijo = editando && borrador ? productosTotalesPorCategoria[borrador.id!] ?? 0 : 0;
+  const prefijoFijo = productosConEstePrefijo > 0;
 
   return (
     <div className="space-y-3">
@@ -391,7 +400,9 @@ export function CategoriasLista({
           titulo={editando ? "Editar categoría" : "Nueva categoría"}
           subtitulo={
             editando
-              ? "El prefijo ya no se puede cambiar si hay productos con esta categoría."
+              ? prefijoFijo
+                ? "El prefijo queda fijo: ya hay productos creados con este código."
+                : "El prefijo ya no se puede cambiar si hay productos con esta categoría."
               : "Queda disponible de inmediato en Productos."
           }
           ancho="max-w-xl"
@@ -437,7 +448,7 @@ export function CategoriasLista({
                 etiqueta="Nombre"
                 value={borrador.nombre}
                 onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-                placeholder="Ej. Chalecos"
+                placeholder="Ej. Kimonos"
               />
               <CampoTexto
                 etiqueta="Prefijo (3 letras)"
@@ -445,7 +456,11 @@ export function CategoriasLista({
                 value={borrador.prefijo}
                 maxLength={3}
                 onChange={(e) => setBorrador({ ...borrador, prefijo: e.target.value.toUpperCase() })}
-                placeholder="CHA"
+                placeholder="KIM"
+                disabled={prefijoFijo}
+                title={prefijoFijo ? "Es la letra del código de cada prenda: ya está impreso en sus etiquetas." : undefined}
+                className={prefijoFijo ? "cursor-not-allowed text-tinta/65" : ""}
+                pie={prefijoFijo ? `Fijo: ${productosConEstePrefijo === 1 ? "1 producto lo usa" : `${productosConEstePrefijo.toLocaleString("es-PE")} productos lo usan`}` : undefined}
               />
             </div>
 
@@ -639,7 +654,14 @@ export function CategoriasLista({
               >
                 <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/50">{c.prefijo ?? "—"}</span>
                 {c.nombre}
-                {puedeEditar && (
+                {/* Sin familia o sin prefijo no hay nada que reactivar: quedaría activa, sin código y fuera de toda
+                    sección. La base lo rechaza igual (`fn_categorias_vigencia_candados`); acá no se ofrece el botón. */}
+                {puedeEditar && (!c.familia || !c.prefijo) && (
+                  <span className="text-[11px] text-tinta/65" title="Le falta la familia o el prefijo. Para usarla, crea una categoría nueva.">
+                    No se reactiva
+                  </span>
+                )}
+                {puedeEditar && c.familia && c.prefijo && (
                   <Boton
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"

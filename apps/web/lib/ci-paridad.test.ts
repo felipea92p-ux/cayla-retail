@@ -24,6 +24,10 @@ const EXCLUIDAS: Record<string, string> = {
   "pruebas:cotizaciones-maquila": "en rojo (10 de 11) en el stack donde se midió; verde en un Postgres 17 desechable: confirmar en `supabase start` antes de cablearla",
   "pruebas:fn-movimientos-busqueda-especial": "en rojo (134 de 146) en el stack donde se midió; verde en un Postgres 17 desechable: confirmar en `supabase start` antes de cablearla",
   "pruebas:lecturas-rapidas-y-cambio": "no PUEDE correr en el job: necesita la base `cayla_carga` (volumen + asistencia, la arma `pnpm carga:preparar`) y el job no la crea",
+  // Pasa en local (el disparador, 12 casos); no está en ci.yml solo porque el token de la sesión que la escribió no podía
+  // tocar `.github/workflows/` (GitHub pide el permiso `workflow`). Se cablea con un paso junto a `pruebas:editar-marca`
+  // y sale de aquí.
+  "pruebas:categorias-candados": "falta cablearla en ci.yml: la sesión que la escribió no podía tocar workflows (2026-09-26)",
   "pruebas:bajada-al-piso-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez) y `movimientos` no se puede borrar: sus filas quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0208)",
 };
 

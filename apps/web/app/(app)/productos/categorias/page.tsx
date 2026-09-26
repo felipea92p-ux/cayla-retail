@@ -5,6 +5,7 @@ import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { CategoriasLista } from "@/components/CategoriasLista";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { compararTallas } from "@/lib/tallas";
 import type { Familia } from "@cayla-retail/shared";
 
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0095: familia+prefijo
@@ -39,24 +40,38 @@ export default async function CategoriasPage() {
     // truncaba en silencio pasado el tope de Supabase. Si la función aún no está en producción, cae al
     // conteo anterior en vez de romper la pantalla.
     // Cast: los tipos generados aún no conocen la función (se regeneran al aplicarla en producción).
-    (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { categoria_id: string; n: number }[] | null; error: unknown }>)("fn_productos_por_categoria"),
+    // `n_total` (productos de cualquier estado) llega con 20260927200000; antes de pegarla no viene y la pantalla
+    // simplemente no bloquea el prefijo por adelantado (la base lo sigue rechazando al guardar).
+    (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { categoria_id: string; n: number; n_total?: number }[] | null; error: unknown }>)("fn_productos_por_categoria"),
   ]);
   const filas = exigir(res, "las categorías del catálogo");
   const familias = exigir(resFamilias, "las familias del catálogo");
   const productosPorCategoria: Record<string, number> = {};
+  // Productos de CUALQUIER estado: con uno solo, el prefijo ya no cambia (es la letra del código impreso). Es el
+  // mismo conteo que usa el candado de la base (`fn_categorias_vigencia_candados`), no el de la tarjeta.
+  const productosTotalesPorCategoria: Record<string, number> = {};
   if (!resProductos.error) {
-    for (const f of resProductos.data ?? []) productosPorCategoria[f.categoria_id] = Number(f.n);
+    for (const f of resProductos.data ?? []) {
+      productosPorCategoria[f.categoria_id] = Number(f.n);
+      if (f.n_total !== undefined) productosTotalesPorCategoria[f.categoria_id] = Number(f.n_total);
+    }
   } else {
     const respaldo = exigir(await supabase.from("productos").select("categoria_id, estado"), "los productos del catálogo");
     for (const p of respaldo) {
-      if (p.categoria_id && p.estado === "activo") productosPorCategoria[p.categoria_id] = (productosPorCategoria[p.categoria_id] ?? 0) + 1;
+      if (!p.categoria_id) continue;
+      if (p.estado === "activo") productosPorCategoria[p.categoria_id] = (productosPorCategoria[p.categoria_id] ?? 0) + 1;
+      productosTotalesPorCategoria[p.categoria_id] = (productosTotalesPorCategoria[p.categoria_id] ?? 0) + 1;
     }
   }
   // El universo completo de valores aprobados, para ofrecer en el selector
   // de "qué tallas/tejidos/patrones ofrece esta categoría" — distinto de
   // `ejesPorCategoria`, que es lo YA elegido por cada categoría.
+  // Las tallas, en el orden en que se leen en tienda (XS S M L XL XXL, 26 28 30, Estándar al final) y no
+  // alfabético: `.order("valor")` sobre texto daba «L, M, S, XL, XS» y «26…42, 6, 7, 8, 9».
+  const porTalla = (a: { texto: string }, b: { texto: string }) => compararTallas(a.texto, b.texto);
+  for (const id of Object.keys(ejesPorCategoria.tallas)) ejesPorCategoria.tallas[id] = [...ejesPorCategoria.tallas[id]].sort(porTalla);
   const universo = {
-    tallas: exigir(resTallas, "las tallas aprobadas").map((t) => ({ id: t.id, texto: t.valor })),
+    tallas: exigir(resTallas, "las tallas aprobadas").map((t) => ({ id: t.id, texto: t.valor })).sort(porTalla),
     tejidos: exigir(resTejidos, "los tejidos aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
     patrones: exigir(resPatrones, "los patrones aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
   };
@@ -125,6 +140,7 @@ export default async function CategoriasPage() {
         universo={universo}
         ejesPorCategoria={ejesPorCategoria}
         productosPorCategoria={productosPorCategoria}
+        productosTotalesPorCategoria={productosTotalesPorCategoria}
       />
     </div>
   );
