@@ -1,7 +1,7 @@
 # ADR-0219 — Purgar por completo un producto de prueba y la venta de prueba que lo tocó
 
 **Fecha:** 2026-09-26
-**Estado:** Escrito, probado y ensayado en producción (revertido, 2026-09-26 03:13 Lima). **La corrida real NO se ha hecho: falta el «dale» de Felipe.**
+**Estado:** **Corrida real HECHA en producción el 2026-09-26 a las 10:06 (Lima)**, con el «dale» de Felipe. Verificada por consulta directa (abajo). Respaldo: `respaldo_purgas.filas`, purga «purga TOP-0011 2026-09-26 10:06» (87 filas).
 **Decide:** Felipe, 2026-09-26: «quiero eliminarlo por completo» (Top Aurora, `TOP-0011`) y confirmó que la venta `NV01-000007` «toda fue de prueba».
 **Afecta:** `scripts/purga/purgar-producto-de-prueba.sql`, `scripts/purga/restaurar-purga.sql`, `scripts/pruebas/purgar_producto_de_prueba.mjs`
 (sumada al CI), y un esquema nuevo `respaldo_purgas` (una tabla, creada por el propio script). **No toca ninguna función, tabla ni política de `retail`,
@@ -82,10 +82,30 @@ respaldado.
   después: producto, variantes, movimientos (112), venta y líneas (19) intactos, NV01 en 8, sin esquema de respaldo, candados en ALWAYS.
 - Antes de la corrida real el libro ya cuadraba en producción: 79 filas de stock, 0 descuadres (fórmula: entrada +, salida −, ajuste ±, traslado −origen +destino).
 
-## Producción — cómo se corre (solo con el «dale» de Felipe)
+## Corrida real (2026-09-26 10:06 Lima)
 
-1. Parámetros y modo en la misma llamada, antes del script: `select set_config('cayla_purga.producto','TOP-0011',false)`,
-   `select set_config('cayla_purga.ventas','269a926c-4091-4f84-9cde-04a4c60e953e',false)`, `select set_config('cayla_purga.modo','definitivo',false)`.
-2. Esperado: lo mismo que el ensayo. Después: `movimientos` 112 → 85, stock total 363 → 311 (−65 de Top Aurora, +13 devueltas), NV01 siguiente 8 → 7,
-   Actividad +1, y `respaldo_purgas.filas` con 87 filas.
-3. Volver atrás: `scripts/purga/restaurar-purga.sql` con `cayla_purga.nombre` = el nombre de la purga que trae el resumen.
+Se corrió con `cayla_purga.modo = definitivo`, después del ensayo del mismo día (03:13) y antes de nada más. A las 10:04 se volvió a comprobar que producción
+no había cambiado desde el ensayo (mismos 112 movimientos, 7 ventas, stock 363, NV01 en 8; `actividad` sí había crecido en 2 líneas por otras causas).
+Verificado después con una consulta aparte, sin fiarse del resumen del propio script:
+
+| | Antes | Después |
+|---|---|---|
+| Producto `TOP-0011`, sus 8 variantes, la venta, sus 19 líneas y la nota NV01-000007 | existen | **no existen** |
+| Ventas | 7 | 6 |
+| Movimientos | 112 | 85 |
+| Stock total (prendas) | 363 | 311 (−65 de Top Aurora, +13 devueltas a otras prendas) |
+| Serie NV01, siguiente número | 8 | 7 |
+| Actividad | 43 | 44 (una línea `prueba_deshecha`; la original se queda) |
+| Libro de movimientos vs stock | 0 descuadres | **0 descuadres** |
+| `movimientos_inmutables` / `movimientos_sin_truncate` | ALWAYS | ALWAYS |
+| `respaldo_purgas.filas` | no existía | 87 filas, RLS encendido, sin permisos para `anon`/`authenticated` |
+| Productos con la marca «Cayla 2» | 1 | **0** (ya se puede eliminar desde Marcas, ADR-0217) |
+
+## Cómo se corre otra vez (solo con el «dale» de Felipe)
+
+1. Parámetros y modo en la misma llamada, antes del script: `select set_config('cayla_purga.producto','<CÓDIGO>',false)`,
+   `select set_config('cayla_purga.ventas','<ids de venta, coma; - si no hay>',false)`; primero SIN `cayla_purga.modo` (ensayo, termina en excepción con el resumen), y
+   con `select set_config('cayla_purga.modo','definitivo',false)` solo después.
+2. Volver atrás: `scripts/purga/restaurar-purga.sql` con `cayla_purga.nombre` = el nombre de la purga que trae el resumen («purga TOP-0011 2026-09-26 10:06»).
+   Probado en la base desechable; en producción solo se comprobó que este rol puede poner `session_replication_role = replica`.
+3. `respaldo_purgas.filas` se conserva. Cuando Felipe confirme que no hace falta volver atrás, se borra a mano (es un respaldo, no historia del negocio).
