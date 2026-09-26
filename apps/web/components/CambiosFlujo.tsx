@@ -144,7 +144,7 @@ export function CambiosFlujo({
   const errorRef = useRef<HTMLDivElement>(null);
   const refMotivo = useRef<HTMLFieldSetElement>(null);
   const refPrenda = useRef<HTMLDivElement>(null);
-  const refMetodo = useRef<HTMLSelectElement>(null);
+  const refMetodo = useRef<HTMLButtonElement>(null);
 
   const porProducto = useMemo(() => agruparCatalogo(catalogo), [catalogo]);
   const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto) : []), [linea, porProducto]);

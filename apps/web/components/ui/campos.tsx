@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes } from "react";
+import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
 import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
@@ -11,7 +11,8 @@ import { comboNecesitaBuscador, primeraElegible, siguienteElegible, tramosPorGru
    Campos del sistema CAYLA · v3.1 (2026-09-08)
 
    Por qué existe este archivo: hasta ahora cada modal armaba sus campos
-   pegando strings de clases (`campoTexto`, `campoSelect` en ui/Modal.tsx).
+   pegando strings de clases (`campoTexto` en ui/Modal.tsx; el `campoSelect` de
+   entonces ya no existe).
    Eso alcanza para un input suelto, pero no puede expresar comportamiento
    — un desplegable que se abre, una línea que se dibuja, una cifra que se
    re-asienta. Un string de clases no tiene estado.
@@ -181,75 +182,6 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
         />
         {!caja && <Hilo activo={enfocado} trabajando={trabajando} valido={valido} />}
       </div>
-    </Campo>
-  );
-}
-
-/* ------------------------------------------------------------------
-   SelectNativo / CampoSelectNativo — el <select> del navegador, vestido
-   igual que CampoTexto: mismo padding (py-2), mismo tamaño de letra,
-   sin caja, y el mismo hilo vivo al enfocar. Agregado el 2026-09-12
-   para el módulo de Compras: un combo con la caja de `campoSelect`
-   (borde + px-3) al lado de un input sobre el hilo medía distinto y se
-   veía como de otro sistema. Se usa donde la lista es larga (292
-   proveedores, todo el catálogo) o donde hace falta un <select> real
-   dentro de una fila de líneas; para 2-6 opciones que cambian el
-   formulario sigue siendo `Segmentado`, y `Desplegable` para listas
-   cortas con estilo propio.
-   ------------------------------------------------------------------ */
-type SelectNativoProps = SelectHTMLAttributes<HTMLSelectElement> & { mono?: boolean };
-
-export function SelectNativo({ mono, className = "", children, ...props }: SelectNativoProps) {
-  const [enfocado, setEnfocado] = useState(false);
-  return (
-    <div className="relative">
-      <select
-        {...props}
-        onFocus={(e) => {
-          setEnfocado(true);
-          props.onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setEnfocado(false);
-          props.onBlur?.(e);
-        }}
-        // `appearance-none` saca la flecha y el fondo del sistema operativo,
-        // que es lo que hacía que midiera distinto; la flecha se dibuja abajo.
-        className={`w-full cursor-pointer appearance-none [-webkit-appearance:none] bg-transparent py-2 pl-0.5 pr-6 text-sm text-tinta outline-none disabled:cursor-not-allowed disabled:text-tinta/40 ${ALTO_CONTROL} ${
-          mono ? "font-mono tabular-nums tracking-wider" : ""
-        } ${className}`}
-      >
-        {children}
-      </select>
-      <svg
-        aria-hidden
-        viewBox="0 0 16 16"
-        className={`pointer-events-none absolute right-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 transition-colors ${enfocado ? "text-rojo" : "text-tinta/55"}`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 6l4 4 4-4" />
-      </svg>
-      <Hilo activo={enfocado} />
-    </div>
-  );
-}
-
-export function CampoSelectNativo({
-  etiqueta,
-  ayuda,
-  pie,
-  tono,
-  ...props
-}: SelectNativoProps & { etiqueta: ReactNode; ayuda?: ReactNode; pie?: ReactNode; tono?: CampoProps["tono"] }) {
-  const idPropio = useId();
-  const id = props.id ?? idPropio;
-  return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
-      <SelectNativo id={id} {...props} />
     </Campo>
   );
 }
@@ -491,11 +423,12 @@ export function Segmentado<T extends string>({
    literalmente `opciones`, el mismo control de siempre. La regla vive en
    lib/combo-reglas.ts (puro, con pruebas); acá solo se usa.
 
-   El 2026-09-26 aprendió lo que el <select> del navegador resolvía
-   solo: grupos (`Opcion.grupo`, el <optgroup>), opciones que se ven pero
-   no se eligen (`Opcion.deshabilitada`), un `id` y un `ref` para que la
-   pantalla lo enfoque al avisar un error, y las dos formas de Finanzas.
-   Con eso ningún combo necesita ya el nativo.
+   Desde el 2026-09-26 es el ÚNICO combo del ERP: el <select> del
+   navegador ya no existe en la web y `lib/sin-select-nativo.test.ts` lo
+   vigila. Para eso aprendió lo que el nativo resolvía solo: grupos
+   (`Opcion.grupo`, el <optgroup>), opciones que se ven pero no se eligen
+   (`Opcion.deshabilitada`), un `id` y un `ref` para que la pantalla lo
+   enfoque al avisar un error, y las dos formas de Finanzas.
    ------------------------------------------------------------------ */
 
 // Formas, no modos: es dónde vive el control, no cómo se porta.
@@ -521,8 +454,9 @@ const FORMA_DESPLEGABLE = {
   },
   /** Sola con su borde, en la cabecera (la sede). */
   pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
-  /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso, para las barras de filtros. */
-  caja: { boton: "caja-cayla h-10 w-full justify-between gap-3 bg-transparent px-3 text-sm text-tinta", flecha: true, hilo: false, comoNativo: false },
+  /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
+   *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
+  caja: { boton: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm text-tinta", flecha: true, hilo: false, comoNativo: false },
   /** Finanzas (ADR-0195): cerrado, el control en caja de su spike (`fin-control`, app/estilos/finanzas.css). */
   fin: { boton: "fin-control fin-desplegable", flecha: false, hilo: false, comoNativo: true },
   /** Finanzas, dentro de un sobretítulo («Lo que ya pasó · SETIEMBRE DE 2026»): sin caja, hereda la letra. El contorno de

@@ -127,15 +127,10 @@ export function EscenariosPanel({
                 <label htmlFor="esc-tienda">¿Qué tienda?</label>
                 <SelectFin
                   id="esc-tienda"
-                  value={p.tienda ?? ""}
-                  onChange={(e) => cambiar({ tienda: e.target.value, ventasTienda: 0, alquilerTienda: null, cerrarTienda: false })}
-                >
-                  {tiendas.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.nombre}
-                    </option>
-                  ))}
-                </SelectFin>
+                  valor={p.tienda ?? ""}
+                  onValor={(tienda) => cambiar({ tienda, ventasTienda: 0, alquilerTienda: null, cerrarTienda: false })}
+                  opciones={tiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
+                />
               </div>
             )}
 
@@ -195,20 +190,18 @@ export function EscenariosPanel({
                 </label>
                 {p.moverPago && (
                   <div className="fin-opcion-esc-campos">
-                    <SelectFin aria-label="Qué pago" value={p.moverPago.id} onChange={(e) => cambiar({ moverPago: { id: e.target.value, semanas: p.moverPago!.semanas } })}>
-                      {pagos.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.titulo} · {soles(s.monto)} · {s.atrasada ? "vencido" : `vence ${fechaCorta(s.fecha)}`}
-                        </option>
-                      ))}
-                    </SelectFin>
-                    <SelectFin aria-label="Cuántas semanas" value={String(p.moverPago.semanas)} onChange={(e) => cambiar({ moverPago: { id: p.moverPago!.id, semanas: Number(e.target.value) } })}>
-                      {MOVER.map((n) => (
-                        <option key={n} value={n}>
-                          {textoMover(n)}
-                        </option>
-                      ))}
-                    </SelectFin>
+                    <SelectFin
+                      etiqueta="Qué pago"
+                      valor={p.moverPago.id}
+                      onValor={(id) => cambiar({ moverPago: { id, semanas: p.moverPago!.semanas } })}
+                      opciones={pagos.map((s) => ({ valor: s.id, texto: `${s.titulo} · ${soles(s.monto)} · ${s.atrasada ? "vencido" : `vence ${fechaCorta(s.fecha)}`}` }))}
+                    />
+                    <SelectFin
+                      etiqueta="Cuántas semanas"
+                      valor={String(p.moverPago.semanas)}
+                      onValor={(n) => cambiar({ moverPago: { id: p.moverPago!.id, semanas: Number(n) } })}
+                      opciones={MOVER.map((n) => ({ valor: String(n), texto: textoMover(n) }))}
+                    />
                   </div>
                 )}
               </div>
@@ -266,13 +259,12 @@ export function EscenariosPanel({
                       { valor: "una", texto: "Una vez" },
                     ]}
                   />
-                  <SelectFin aria-label="Desde qué semana" value={String(p.gastoNuevo.semana)} onChange={(e) => cambiar({ gastoNuevo: { ...p.gastoNuevo!, semana: Number(e.target.value) } })}>
-                    {proyeccion.semanas.map((w, i) => (
-                      <option key={w.desde} value={i}>
-                        Desde la semana del {etiquetaSemana(w.desde, w.hasta)}
-                      </option>
-                    ))}
-                  </SelectFin>
+                  <SelectFin
+                    etiqueta="Desde qué semana"
+                    valor={String(p.gastoNuevo.semana)}
+                    onValor={(i) => cambiar({ gastoNuevo: { ...p.gastoNuevo!, semana: Number(i) } })}
+                    opciones={proyeccion.semanas.map((w, i) => ({ valor: String(i), texto: `Desde la semana del ${etiquetaSemana(w.desde, w.hasta)}` }))}
+                  />
                 </div>
               )}
             </div>
