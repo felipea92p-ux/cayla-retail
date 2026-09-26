@@ -165,3 +165,21 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
   if (!buscado) return null;
   return filas.find((f) => normalizarCodigo(f.sku) === buscado || f.codigosBarras.some((c) => normalizarCodigo(c) === buscado)) ?? null;
 }
+
+/** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo
+ *  atrás), 1 = pide reponer y se puede bajar, 2 = nada que hacer hoy. */
+export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasParaBajar">): 0 | 1 | 2 {
+  if (p.tallasPorColgar > 0) return 0;
+  if (p.tallasParaBajar > 0) return 1;
+  return 2;
+}
+
+/** La lista SIN búsqueda escrita, por urgencia (análisis de Existencias, tarea #5): primero lo que falta en el piso, y
+ *  dentro de cada grupo, la que más tallas tiene por colgar. Es estable: a igual urgencia, se respeta el orden de
+ *  llegada (modelo y color). Con texto escrito NO se usa: manda la relevancia de la búsqueda. */
+export function ordenarPorUrgencia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[]): PrendaAgrupada<F>[] {
+  return prendas
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => urgenciaDePrenda(a.p) - urgenciaDePrenda(b.p) || b.p.tallasPorColgar - a.p.tallasPorColgar || a.i - b.i)
+    .map(({ p }) => p);
+}

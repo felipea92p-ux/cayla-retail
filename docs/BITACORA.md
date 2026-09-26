@@ -8,6 +8,12 @@ Un colaborador logró que la Brother imprima bien en Windows, pero la nota del p
 Por qué así: lo que traba a un equipo nuevo son tres ajustes (Longitud 40.1, Vertical, cortar cada 1) y cerrar Chrome; un párrafo no los hacía visibles. Qué se rompería sin esto: cada computadora nueva repetía la prueba y error, gastando rollo.
 Felipe se lleva: **una instrucción que nadie probó en la máquina real es una hipótesis**: la de Windows era una suposición y la de Mac lo sigue siendo hasta que alguien imprima con ella.
 
+## 2026-09-26 (Existencias: lo urgente primero y el celular llega a la lista — tareas #5 y #6)
+La lista por prenda empieza por lo que la clienta no ve (tallas por colgar), y los «Reponer» de fila dejan de ser botones negros. En el celular, la primera prenda subió de ~1.900 px a 764 px: accesos en una fila, cifras de a dos, filtros plegados. En computadora no cambió nada.
+Por qué así: con todas las tallas pidiendo reponer, diez botones iguales no dicen por dónde empezar; el orden sí. En el teléfono, la pantalla gastaba dos scrolls en botones y cifras antes de mostrar una sola prenda. Qué se rompería sin esto: en hora pico, la vendedora baja dos pantallas para encontrar lo que busca, o empieza a reponer por cualquier prenda.
+Felipe se lleva: **cuando todo es urgente, nada lo es.** La jerarquía (un solo primario, un orden) es lo que convierte una lista en una decisión.
+Sin resolver: el umbral de 4 (ADR-0231); la frase de la cabecera en el celular es común a Ventas e Inventario.
+
 ## 2026-09-26 (Traslados conectado: análisis y spike visual, computadora y celular)
 Felipe pidió conectar Traslados con las pantallas nuevas y hacerla rápida en el celular. El análisis encontró que el mismo «tienes que recibir» se decía cinco veces y empujaba el primer traslado bajo el borde del teléfono, y que cuatro conexiones ya existen fuera de la pantalla (pedidos para apartar de ADR-0233, Bajar al piso y Etiquetas con lista, sugeridos de Análisis). En vez de elegir a ciegas, Felipe pidió un spike con interruptores: `docs/maquetas/traslados-conectado-2026-09/`.
 Por qué así: tres de las cuatro conexiones no piden migración, y la guía con QR es solo web. Qué se rompería sin cuidado: una guía o un WhatsApp que dijera cuántas van rompería el conteo a ciegas (D-130); por eso dicen qué buscar, no cuántas.

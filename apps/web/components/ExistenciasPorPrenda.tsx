@@ -104,7 +104,9 @@ function AccionPrenda({
             e.stopPropagation();
             onReponer();
           }}
-          className="btn-cayla btn-primario px-2.5 py-0.5 text-xs"
+          // Secundario, no primario (tarea #5): una fila no compite con la acción de la pantalla; con todas pidiendo
+          // reponer, diez botones negros no decían por dónde empezar. Eso lo dice el orden (`ordenarPorUrgencia`).
+          className="btn-cayla btn-secundario px-2.5 py-0.5 text-xs"
         >
           Reponer {prenda.tallasParaBajar} {prenda.tallasParaBajar === 1 ? "talla" : "tallas"}
         </button>
