@@ -6,7 +6,7 @@ import type { ConteoAbierto, ConteoResumen, PrioridadConteo } from "@/lib/conteo
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { ConteoPanel } from "@/components/ConteoPanel";
 import { ConteosLista } from "@/components/ConteosLista";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 function fecha(iso: string) {
@@ -89,12 +89,10 @@ export function ConteoVista({
 
   return (
     <div className="space-y-6">
-      <InventarioHero
-        eyebrow={`Inventario · Conteo · ${ubicacionEtiqueta}`}
+      <CabeceraPantalla
+        sobretitulo={`Inventario · Conteo · ${ubicacionEtiqueta}`}
         titulo="Conteo físico"
-        descripcion="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
-        foto={fotoHeroPorPantalla("conteo")}
-        variante="integrado"
+        bajada="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">

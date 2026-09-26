@@ -73,3 +73,7 @@ Typecheck, lint y las 7,868 pruebas unitarias en verde. En esta sesión no habí
 - Alguien reintroduce un tono a mano (`#a47865`, `#556e49`…) en lugar del token.
 - Una tabla arma sus filas sin `fila()` ni `fila-cayla`: pierde la zebra.
 - Un rojo nuevo se suma a la cabecera: el sobretítulo ya gasta uno de los dos rojos por pantalla.
+
+## Actualización 2026-09-26
+
+Inventario, que conservaba una foto en la cabecera (`InventarioHero`, 2026-09-22), pasó también a `CabeceraPantalla`: ver ADR-0216.
