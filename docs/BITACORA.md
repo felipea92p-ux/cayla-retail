@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Marcas: «¿no será una que ya existe?» y la pareja elegida con salida — ADR-0109, actualización)
+Felipe aprobó el aviso tras ver «Cayla 2» en Proveedores. El formulario único de nueva marca (Nuevo producto, censo, editar producto, Catálogo ▸ Marcas) ahora dice si el nombre es igual a una marca (no se crea otra, se le suma el proveedor) y pregunta si se parece (`marcasParecidas`: «Cayla 2» ~ CAYLA, «Kristell» ~ Krisstell, «Divas» ~ Divas Now). Y la pareja que se elige sola ofrece «+ Otro proveedor para CAYLA» y «+ Otra marca de Jacard». Verificado en el navegador con un andamio (sin base local), también a 375 px. Sin migración.
+Felipe se lleva: el error no fue de quien creó «Cayla 2». El sistema elegía solo a CAYLA SAC y no le dejaba decir «esta vez la trae Jacard». Inventar un nombre era la única salida que tenía. Medida contra las 80 marcas reales, la pregunta solo salta en dos pares (CAYLA ~ Cayla 2, Divas ~ Divas Now): hay que mirar si Divas y Divas Now son la misma.
+
 ## 2026-09-25 (Catálogo ▸ Marcas entra al menú)
 Felipe vio en Proveedores la marca «Cayla 2» colgada de Jacard Peru SAC y no encontró por dónde editarla: la pantalla `/productos/marcas` existía desde el ADR-0109 (`cc36213d`) pero nunca entró al menú, y solo se llegaba por un enlace dentro de Nuevo producto. Se suma «Marcas» a Catálogo (módulo `atributos`, que en Roles y accesos ya se llama «Categorías, marcas y atributos»), con ícono propio, y se actualiza la foto del lateral (`menu-hoy.golden.json`). Sin migración.
 En producción (solo lectura): «Cayla 2» se creó el 24-sep al dar de alta **Top Aurora (TOP-0011)**, 8 variantes, 65 prendas en stock y 15 movimientos; no vino de la carga de proveedores. Pendiente de Felipe decidir de qué marca es Top Aurora; el arreglo es por pantalla (editar el producto y luego desactivar «Cayla 2»), no por SQL.
