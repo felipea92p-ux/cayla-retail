@@ -3,7 +3,8 @@
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
 import { compararTallas } from "./tallas";
-import { traducirError, type ErrorEscritura } from "./error-escritura";
+import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
+import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
 
 export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock";
 
@@ -466,7 +467,20 @@ export function avisoTrasRetiro(disponible: { piso: number | null; almacen: numb
   return null;
 }
 
-/** `mover_interno` no tiene token: tras un corte de red no se dice «no se guardó nada» (repetir movería dos veces). */
-export function mensajeErrorMovimientoPiso(sentido: SentidoPiso, error: ErrorEscritura): string {
-  return traducirError(error, SENTIDO_PISO[sentido].accion, { confirmarAntesDeRepetir: true });
+/**
+ * El error de «Reponer» o «Retirar del piso», dicho para quien está junto a la percha. El modal manda una marca por
+ * intento (ADR-0208, `mover_interno` con `p_token`): tras una respuesta incierta la cantidad queda fija y reenviar
+ * con la misma marca no mueve dos veces; por eso aquí nunca se dice «no se guardó nada» ni «revisa antes de repetir».
+ * `conDuda`: antes de este rechazo ya había un envío sin respuesta, y el rechazo no dice qué pasó con él.
+ */
+export function mensajeErrorMovimientoPiso(sentido: SentidoPiso, error: ErrorEscritura, conDuda = false): string {
+  const { accion } = SENTIDO_PISO[sentido];
+  if (esRespuestaIncierta(error)) {
+    return `Se cortó la conexión mientras se intentaba ${accion}: no sabemos si llegó a guardarse. La cantidad queda fija: pulsa «${BOTON_CONFIRMAR_DE_NUEVO}» sin cambiar nada; si ya se había guardado, no se repite.`;
+  }
+  const mensaje = traducirError(error, accion);
+  // La marca ya se había usado con otros datos: la base lo dice entero («Cierra y revisa Existencias…»).
+  if (!conDuda || error?.hint === "mover_interno_token_reusado") return mensaje;
+  // Los textos de la base no siempre cierran con punto («…se pide trasladar 2»): sin él, las dos frases se pegan.
+  return `${/[.!?…»]$/.test(mensaje.trim()) ? mensaje.trim() : `${mensaje.trim()}.`} Aún no sabemos si el envío anterior se guardó: cuando se resuelva, pulsa «${BOTON_CONFIRMAR_DE_NUEVO}» (no se repite), o cierra y revisa Existencias.`;
 }

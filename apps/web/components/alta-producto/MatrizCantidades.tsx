@@ -24,7 +24,7 @@ export function MatrizCantidades({
   celdas: CeldaAlta[];
   /** Las tallas elegidas, ya ordenadas. Vacío = el producto no tiene talla (una sola columna). */
   tallas: { id: string; texto: string }[];
-  colores: { codigo: string; nombre: string; hex: string | null }[];
+  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null }[];
   excluidas: Set<string>;
   cantidades: Record<string, string>;
   onCantidad: (clave: string, valor: string) => void;
@@ -64,7 +64,7 @@ export function MatrizCantidades({
                   <span className="flex items-center gap-2">
                     {c ? (
                       <>
-                        <Punto hex={c.hex} />
+                        <Punto hex={c.hex} familia={c.familiaColor} />
                         {c.nombre}
                       </>
                     ) : (
