@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   buscarMarcaProveedor,
+  claveMarca,
   contarParejasPorCategoria,
   contarProductosPorProveedor,
   marcaAutomatica,
+  marcasParecidas,
   proveedorAutomatico,
   proveedoresDeMarca,
   sugerenciasDeCategoria,
@@ -123,5 +125,50 @@ describe("A quién pedirle: productos por reponer, por proveedor", () => {
   it("una fila sin proveedor (la base aún sin el SQL de proveedores) no tiene a quién pedirle: se salta, no rompe", () => {
     const sinProveedor = { producto_id: "p9" } as unknown as Parameters<typeof contarProductosPorProveedor>[0][number];
     expect(contarProductosPorProveedor([sinProveedor, f("p1", "a", "Ámbar")])).toEqual([{ proveedorId: "a", proveedor: "Ámbar", productos: 1 }]);
+  });
+});
+
+describe("¿No será la misma marca? (el caso «Cayla 2», 2026-09-25)", () => {
+  // Nombres reales de producción, para que la regla se pruebe contra lo que el censo va a encontrar.
+  const existentes: MarcaOpcion[] = ["CAYLA", "Divas", "Divas Now", "Krisstell", "La Femme 21", "Maiah Moda", "Matic Moda", "Moda Mia", "Susan Moda", "Mias", "Sassari"].map(
+    (nombre, i) => ({ id: `m${i}`, nombre })
+  );
+  const parecidasA = (nombre: string) => marcasParecidas(nombre, existentes).parecidas.map((p) => `${p.marca.nombre}:${p.por}`);
+
+  it("la clave es la de la base: mayúsculas, tildes, ñ y espacios repetidos no hacen otra marca", () => {
+    expect(claveMarca("  Cáyla   Ñusta ")).toBe("cayla nusta");
+    expect(marcasParecidas("cayla", existentes).igual?.nombre).toBe("CAYLA");
+    expect(marcasParecidas("Cáyla", existentes).igual?.nombre).toBe("CAYLA");
+  });
+
+  it("«Cayla 2» no es igual a CAYLA para la base (crearía otra), pero se pregunta: mismo nombre salvo el número", () => {
+    const r = marcasParecidas("Cayla 2", existentes);
+    expect(r.igual).toBeNull();
+    expect(r.parecidas.map((p) => `${p.marca.nombre}:${p.por}`)).toEqual(["CAYLA:raiz"]);
+    expect(parecidasA("CAYLA.")).toEqual(["CAYLA:raiz"]);
+    expect(parecidasA("La Femme")).toEqual(["La Femme 21:raiz"]);
+  });
+
+  it("una letra de más o de menos es un error de tipeo, desde 5 letras", () => {
+    expect(parecidasA("Kristell")).toEqual(["Krisstell:letras"]);
+    expect(parecidasA("Sassary")).toEqual(["Sassari:letras"]);
+    // Con 4 letras o menos, una letra ya es otra marca: «Mía» no es «Mias».
+    expect(parecidasA("Mía")).toEqual([]);
+  });
+
+  it("un nombre que cabe entero en otro, palabra por palabra, también se pregunta", () => {
+    expect(parecidasA("Divas")).toEqual(["Divas Now:contenida"]);
+    expect(parecidasA("Cayla Kids")).toEqual(["CAYLA:contenida"]);
+  });
+
+  it("muestra a lo más 3, de más a menos parecida", () => {
+    expect(parecidasA("Moda")).toEqual(["Maiah Moda:contenida", "Matic Moda:contenida", "Moda Mia:contenida"]);
+    expect(marcasParecidas("Divs Now", existentes).parecidas[0]).toMatchObject({ marca: { nombre: "Divas Now" }, por: "letras" });
+  });
+
+  it("una marca igual no se repite como parecida, y un nombre nuevo de verdad no dispara nada", () => {
+    expect(marcasParecidas("Divas", existentes)).toMatchObject({ igual: { nombre: "Divas" }, parecidas: [{ marca: { nombre: "Divas Now" } }] });
+    expect(marcasParecidas("Kero", existentes)).toEqual({ igual: null, parecidas: [] });
+    expect(marcasParecidas("   ", existentes)).toEqual({ igual: null, parecidas: [] });
   });
 });

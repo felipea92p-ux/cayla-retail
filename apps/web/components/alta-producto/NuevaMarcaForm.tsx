@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
-import type { ProveedorOpcion } from "@/lib/marcas";
+import { marcasParecidas, type MarcaConProveedores, type ProveedorOpcion } from "@/lib/marcas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -32,6 +32,13 @@ import { firmar } from "@/lib/responsable-reglas";
 // «¿Quién la trae?» es un buscador (ComboBuscable, 6 a la vista) y NO la lista entera de proveedores como botones: con
 // ~60 proveedores el muro de chips ocupaba media pantalla (captura de Felipe, 2026-09-24). Registrar uno nuevo es la
 // última opción de esa misma lista, con lo tipeado ya puesto como nombre.
+//
+// «¿No será una marca que ya existe?» (2026-09-25): el 24-sep se creó «Cayla 2» para un top que confecciona Jacard,
+// cuando lo que hacía falta era sumarle Jacard a CAYLA. Mientras se escribe el nombre, el formulario dice dos cosas:
+//   · si es IGUAL a una marca (como la compara la base), que no se crea otra: se le suma el proveedor;
+//   · si se PARECE a una o más (`marcasParecidas`), pregunta. «Sí, es CAYLA» cambia el nombre a la que existe;
+//     «No, es otra marca» deja seguir. Guardar sin responder no guarda: la pregunta es barata, la marca partida en
+//     dos no (cada filtro y cada reporte por marca la cuenta a medias, y la base no sabe fusionar marcas).
 
 export type MarcaGuardada = {
   marcaId: string;
@@ -48,8 +55,7 @@ export function NuevaMarcaForm({
   marcaFija = false,
   /** Proveedor ya elegido que todavía no trae ninguna marca: la marca nueva se le cuelga a ese, sin volver a preguntar quién la trae. */
   proveedorFijo,
-  /** Cómo se llama la marca que ya existe con ese nombre (si la hay), para no mostrar la que escribió la persona sino la real. */
-  nombreExistente,
+  marcas,
   onGuardado,
   onCancelar,
 }: {
@@ -58,11 +64,15 @@ export function NuevaMarcaForm({
   /** Marca ya existente a la que solo se le suma un proveedor: el nombre no se toca. */
   marcaFija?: boolean;
   proveedorFijo?: ProveedorOpcion;
-  nombreExistente?: (nombre: string) => string | undefined;
+  /** Las marcas activas que ya existen, con quién las trae: contra ellas se pregunta «¿no es esta?». Obligatorio a
+   *  propósito: una pantalla nueva que lo olvidara perdería la pregunta sin que nada avise. */
+  marcas: readonly MarcaConProveedores[];
   onGuardado: (r: MarcaGuardada) => void;
   onCancelar: () => void;
 }) {
   const [nombreMarca, setNombreMarca] = useState(nombreInicial);
+  // Las parecidas a las que ya se respondió «No, es otra marca»: no se vuelve a preguntar por ellas.
+  const [descartadas, setDescartadas] = useState<ReadonlySet<string>>(() => new Set());
   const [modo, setModo] = useState<"existente" | "nuevo">(proveedorFijo || proveedores.length > 0 ? "existente" : "nuevo");
   const [proveedorId, setProveedorId] = useState(proveedorFijo?.id ?? "");
   // El proveedor que ESTE formulario acaba de registrar: existe aunque la marca haya fallado, y tiene que estar en la lista para reintentar.
@@ -74,11 +84,32 @@ export function NuevaMarcaForm({
   const [error, setError] = useState<string | null>(null);
   const responsable = useResponsable();
 
+  // Con `marcaFija` el nombre ya es el de una marca que existe: no hay nada que preguntar.
+  const { igual, parecidas } = marcaFija ? { igual: null, parecidas: [] } : marcasParecidas(nombreMarca, marcas);
+  const porResponder = igual ? [] : parecidas.filter((p) => !descartadas.has(p.marca.id));
+  const provElegido = proveedorFijo?.nombre ?? (modo === "nuevo" ? provNombre.trim() : lista.find((p) => p.id === proveedorId)?.nombre) ?? "";
+
+  function usarExistente(nombre: string) {
+    setNombreMarca(nombre);
+    setError(null);
+  }
+  function esOtraMarca() {
+    setDescartadas((prev) => new Set([...prev, ...porResponder.map((p) => p.marca.id)]));
+    setError(null);
+  }
+
   async function guardar() {
     if (guardando) return;
     if (!responsable.listo) return setError(responsable.motivo);
     const nombre = nombreMarca.trim();
     if (!nombre) return setError("Escribe el nombre de la marca.");
+    if (porResponder.length > 0) {
+      return setError(
+        porResponder.length === 1
+          ? `Antes de guardar, dinos si «${nombre}» es la misma marca que «${porResponder[0].marca.nombre}».`
+          : `Antes de guardar, dinos si «${nombre}» es alguna de las marcas de arriba.`
+      );
+    }
     if (modo === "existente" && !proveedorId) return setError("Elige el proveedor que la trae.");
     if (modo === "nuevo" && !provNombre.trim()) return setError("Escribe el nombre del proveedor.");
 
@@ -123,7 +154,8 @@ export function NuevaMarcaForm({
 
     onGuardado({
       marcaId,
-      marcaNombre: nombreExistente?.(nombre) ?? nombre,
+      // Si ya existía, se muestra como se llama de verdad («CAYLA»), no como se tipeó («cayla»).
+      marcaNombre: igual?.nombre ?? nombre,
       proveedorId: provId,
       proveedorNombre: eraNuevo ? provNombre.trim() : (lista.find((p) => p.id === provId)?.nombre ?? ""),
       // «Nuevo» también si se registró en un intento anterior de este mismo formulario: el padre todavía no lo tiene en su lista.
@@ -199,6 +231,40 @@ export function NuevaMarcaForm({
           </div>
         )}
       </div>
+
+      {igual && (
+        <p className="nota-cayla text-xs">
+          <b>{igual.nombre}</b> ya existe{igual.proveedores.length > 0 && <> (la trae {igual.proveedores.join(", ")})</>}. No se crea otra:{" "}
+          {provElegido && igual.proveedores.includes(provElegido)
+            ? `${provElegido} ya la trae, así que se usa tal cual.`
+            : provElegido
+              ? `al guardar, ${provElegido} pasa a ser otro proveedor de ${igual.nombre}.`
+              : "al guardar, se le suma el proveedor que elijas."}
+        </p>
+      )}
+
+      {porResponder.length > 0 && (
+        <div role="status" className="anim-revelar rounded-xl border border-ambar/35 bg-ambar/[0.07] p-3.5">
+          <p className="text-sm font-semibold text-ambar-profundo">¿No será una marca que ya existe?</p>
+          <p className="mt-0.5 text-xs text-tinta/70">Si es la misma, elígela: se le suma el proveedor y la marca no queda partida en dos.</p>
+          <ul className="mt-2.5 space-y-2">
+            {porResponder.map(({ marca }) => (
+              <li key={marca.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-sm text-tinta">
+                  <span className="font-medium">{marca.nombre}</span>
+                  <span className="text-tinta/55"> · {marca.proveedores.length > 0 ? `la trae ${marca.proveedores.join(", ")}` : "sin proveedor"}</span>
+                </span>
+                <button type="button" onClick={() => usarExistente(marca.nombre)} disabled={guardando} className="btn-cayla btn-secundario">
+                  Sí, es {marca.nombre}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={esOtraMarca} disabled={guardando} className="btn-cayla btn-enlace mt-2.5 text-xs">
+            No, «{nombreMarca.trim()}» es otra marca
+          </button>
+        </div>
+      )}
 
       {!proveedorFijo && modo === "nuevo" && (
         <div className="grid gap-3 sm:grid-cols-2">

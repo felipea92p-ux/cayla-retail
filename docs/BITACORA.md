@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-25 (Marcas: «¿no será una que ya existe?» y la pareja elegida con salida — ADR-0109, actualización)
+Felipe aprobó el aviso tras ver «Cayla 2» en Proveedores. El formulario único de nueva marca (Nuevo producto, censo, editar producto, Catálogo ▸ Marcas) ahora dice si el nombre es igual a una marca (no se crea otra, se le suma el proveedor) y pregunta si se parece (`marcasParecidas`: «Cayla 2» ~ CAYLA, «Kristell» ~ Krisstell, «Divas» ~ Divas Now). Y la pareja que se elige sola ofrece «+ Otro proveedor para CAYLA» y «+ Otra marca de Jacard». Verificado en el navegador con un andamio (sin base local), también a 375 px. Sin migración.
+Felipe se lleva: el error no fue de quien creó «Cayla 2». El sistema elegía solo a CAYLA SAC y no le dejaba decir «esta vez la trae Jacard». Inventar un nombre era la única salida que tenía. Medida contra las 80 marcas reales, la pregunta solo salta en dos pares (CAYLA ~ Cayla 2, Divas ~ Divas Now): hay que mirar si Divas y Divas Now son la misma.
+
 ## 2026-09-25 (Varios rubros por proveedor — ADR-0213)
 Felipe pidió elegir varias categorías por proveedor en «Editar proveedor». El rubro pasó de un texto a una lista (`rubros text[]`), con un candado en la base que impide vacíos y repetidos. La migración `20260926110000` está por pegar; la web muestra los rubros como botones que se prenden y apagan, más «Otro rubro».
 Felipe se lleva: (1) **las funciones de proveedores ya no son las de sus archivos**: tenían parches en vivo, así que la migración las cambia sobre su versión real (y se comprobó que la local es idéntica a producción); copiar el `create function` viejo habría deshecho permisos de roles. (2) **El arnés de Postgres sin Docker nacía en SQL_ASCII**: «Pólos» y «polos» no se juntaban solo en la prueba; ahora usa `-E UTF8`, como producción. (3) Las 7 pruebas SQL que fallan en `main` fallan igual sin este cambio (base gemela sin la migración).

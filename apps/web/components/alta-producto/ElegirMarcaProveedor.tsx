@@ -10,8 +10,8 @@ import {
   marcasDeProveedor,
   proveedorAutomatico,
   proveedoresDeMarca,
-  sinTildes,
   sugerenciasDeCategoria,
+  type MarcaConProveedores,
   type MarcaOpcion,
   type ParejaUso,
   type ProveedorOpcion,
@@ -77,11 +77,23 @@ export function ElegirMarcaProveedor({
   const [marcaTentativa, setMarcaTentativa] = useState<string | null>(null);
   const [provTentativo, setProvTentativo] = useState<string | null>(null);
   // null = no se está creando nada; si no, con qué se abre el formulario (marca nueva, solo otro proveedor para una marca, o la primera marca de un proveedor que no trae ninguna).
-  const [creando, setCreando] = useState<{ nombre: string; marcaFija: boolean; proveedorFijo?: ProveedorOpcion } | null>(null);
+  // `marcaId` va solo con `marcaFija` (sumar otro proveedor a una marca que existe): sirve para no ofrecer a quien ya la trae.
+  const [creando, setCreando] = useState<{ nombre: string; marcaFija: boolean; marcaId?: string; proveedorFijo?: ProveedorOpcion } | null>(null);
 
   const marcaPor = (id: string) => marcas.find((m) => m.id === id);
   const provPor = (id: string) => proveedores.find((p) => p.id === id);
   const sugeridas = useMemo(() => sugerenciasDeCategoria(usosCategoria, marcas, proveedores), [usosCategoria, marcas, proveedores]);
+  // Para que «+ Nueva marca» pregunte «¿no será CAYLA, que la trae CAYLA SAC?» antes de crear otra.
+  const marcasConProveedores = useMemo<MarcaConProveedores[]>(
+    () =>
+      marcas.map((m) => ({
+        ...m,
+        proveedores: proveedoresDeMarca(vinculos, m.id)
+          .map((id) => proveedores.find((p) => p.id === id)?.nombre)
+          .filter((n): n is string => Boolean(n)),
+      })),
+    [marcas, proveedores, vinculos]
+  );
   // Marcas y proveedores en UNA lista para el buscador; el detalle dice qué es cada uno y con quién va.
   const opcionesBusqueda = useMemo(
     () =>
@@ -148,17 +160,44 @@ export function ElegirMarcaProveedor({
   }
 
   // ---------- ya elegidos ----------
+  // «+ Otro proveedor para CAYLA» también acá (2026-09-25): una marca con UN solo proveedor se elige sola con ese
+  // proveedor (paso 3 de arriba), y hasta ahora de este estado solo se salía con «Cambiar», que vuelve a elegir lo
+  // mismo. Quien necesitaba «CAYLA, pero la confecciona Jacard» no tenía cómo decirlo y terminó creando «Cayla 2».
+  // Y al revés: elegir a Jacard trae sola su única marca (Krisstell), así que «+ Otra marca de Jacard» también va acá.
+  // Son las mismas salidas que ya tenían los estados «falta el proveedor» y «falta la marca».
   if (marcaId && proveedorId && !creando) {
+    const m = marcaPor(marcaId);
+    const p = provPor(proveedorId);
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-tinta/20 bg-tinta/[0.03] px-3 py-2.5">
         <p className="text-sm text-tinta">
-          <span className="font-medium">{marcaPor(marcaId)?.nombre ?? nombresIniciales?.marca ?? "Marca"}</span>
+          <span className="font-medium">{m?.nombre ?? nombresIniciales?.marca ?? "Marca"}</span>
           <span className="text-tinta/45"> · </span>
-          <span className="text-tinta/80">{provPor(proveedorId)?.nombre ?? nombresIniciales?.proveedor ?? "Proveedor"}</span>
+          <span className="text-tinta/80">{p?.nombre ?? nombresIniciales?.proveedor ?? "Proveedor"}</span>
         </p>
-        <button type="button" onClick={onLimpiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
-          Cambiar
-        </button>
+        <div className="flex flex-wrap gap-4">
+          {puedeCrear && m && (
+            <button
+              type="button"
+              onClick={() => setCreando({ nombre: m.nombre, marcaFija: true, marcaId: m.id })}
+              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
+            >
+              + Otro proveedor para {m.nombre}
+            </button>
+          )}
+          {puedeCrear && p && (
+            <button
+              type="button"
+              onClick={() => setCreando({ nombre: "", marcaFija: false, proveedorFijo: p })}
+              className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
+            >
+              + Otra marca de {p.nombre}
+            </button>
+          )}
+          <button type="button" onClick={onLimpiar} className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo">
+            Cambiar
+          </button>
+        </div>
       </div>
     );
   }
@@ -167,11 +206,11 @@ export function ElegirMarcaProveedor({
   if (creando) {
     return (
       <NuevaMarcaForm
-        proveedores={proveedores}
+        proveedores={creando.marcaId ? proveedores.filter((p) => !vinculos.some((v) => v.marcaId === creando.marcaId && v.proveedorId === p.id)) : proveedores}
         nombreInicial={creando.nombre}
         marcaFija={creando.marcaFija}
         proveedorFijo={creando.proveedorFijo}
-        nombreExistente={(n) => marcas.find((m) => sinTildes(m.nombre) === sinTildes(n))?.nombre}
+        marcas={marcasConProveedores}
         onGuardado={alGuardarNueva}
         onCancelar={() => setCreando(null)}
       />
@@ -202,7 +241,7 @@ export function ElegirMarcaProveedor({
           {puedeCrear && m && (
             <button
               type="button"
-              onClick={() => setCreando({ nombre: m.nombre, marcaFija: true })}
+              onClick={() => setCreando({ nombre: m.nombre, marcaFija: true, marcaId: m.id })}
               className="label-cayla text-[11px] text-tinta/70 underline underline-offset-4 hover:text-rojo"
             >
               + Otro proveedor para {m.nombre}
