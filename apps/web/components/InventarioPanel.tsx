@@ -228,13 +228,13 @@ function TarjetaPrioridad({
 // asume que toda ubicación separa piso y almacén — se adapta según lo que
 // `getSububicaciones` encontró para ESA ubicación (`resumen.separaPisoAlmacen`),
 // nunca por el nombre ("Taller" vs. "Tienda X"). Taller sigue viendo una
-// tabla más corta: sin piso/almacén ni semáforo, pero con tránsito y red.
+// tabla más corta: sin piso/almacén ni «Acción hoy», pero con tránsito y red.
 //
-// Existencias (rediseño 2026-09-22, boceto de Felipe): de tabla de stock a pantalla de acción diaria.
-// «Prioridades de hoy» (4 tarjetas) reemplaza las cifras sueltas de antes; la franja de distribución
-// (piso/almacén/apartado) abre el análisis de cobertura; «Disponible total» abre el desglose por
-// categoría con costo/margen (solo líder) y el delta de 7 días. La tabla suma Cobertura y Ritmo de
-// venta (7D) como columnas propias — antes la cobertura vivía como segunda línea de «Disponible».
+// Existencias (rediseño 2026-09-22, boceto de Felipe; reestructurada el 2026-09-25, PR #445): de tabla de
+// stock a pantalla de acción diaria. «Prioridades de hoy» (4 tarjetas) reemplaza las cifras sueltas de antes,
+// con los enlaces de la sede encima (recomendaciones, análisis de cobertura, apartadas); «Disponible total»
+// abre el desglose por categoría con costo/margen (solo líder) y el delta de 7 días. La tabla: Stock actual
+// (lo libre en piso / almacén), Cobertura piso, Ritmo reciente, En camino, Acción hoy y En la red.
 export function InventarioPanel({
   ubicacionId,
   stock,
@@ -288,7 +288,8 @@ export function InventarioPanel({
   /** ¿Su rol ve el módulo Productos (ADR-0161)? Sin él, «Ver en Productos» llevaría a «Sin acceso»: los nombres se muestran, sin enlace. */
   verProductos?: boolean;
   /** Los últimos 7 días de la sede (`getFilasSemanaDeSede`): ritmo de venta, costo/precio/categoría y
-   *  el delta vs. hace 7 días — alimenta la columna «Ritmo de venta (7D)» y el overlay de «Disponible total». */
+   *  el delta vs. hace 7 días — alimenta el overlay de «Disponible total» (el ritmo de la tabla ya no sale de aquí: es el
+   *  Ritmo reciente, `existencias-ritmo.ts`). */
   filasSemana: FilaSemana[];
   /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
@@ -296,7 +297,7 @@ export function InventarioPanel({
    *  por cada variante de la sede — ya ordenada por urgencia, vacía en Taller. */
   recomendaciones: Recomendacion[];
   /** Política operativa de Inventario (`politica-operativa-inventario.ts`): una sola fuente para
-   *  los umbrales que leen el popover de Ritmo reciente y el análisis de cobertura. */
+   *  los umbrales que leen el popover de Ritmo reciente y el aviso de «Retirar del piso» (`ReponerPisoModal`). */
   politica: PoliticaOperativaInventario;
 }) {
   const router = useRouter();
@@ -555,7 +556,7 @@ export function InventarioPanel({
           propósito de acción cada una. A es la más urgente (acento rojo); B abre el desglose por
           categoría; C y D se comportaban igual antes, solo con más presencia visual.
           «Reponer a piso hoy» (2026-09-25) cuenta y filtra por «Acción hoy» — MISMA fuente que la
-          columna de la tabla (`planDeReposicion`), nunca `EstadoStock` por separado (sección 15). */}
+          columna de la tabla (`calcularAccionHoy`), nunca un semáforo aparte (sección 15). */}
       <div>
         <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1">
           <div>

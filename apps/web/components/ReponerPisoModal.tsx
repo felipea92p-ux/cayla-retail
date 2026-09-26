@@ -163,9 +163,9 @@ export function ReponerPisoModal({
           </p>
 
           {/* Las dos cifras llegan NETAS de lo apartado para clientas (Existencias pasa `pisoDisponible` y
-              `almacenDisponible`): por eso dicen «Disponible», la misma palabra que usa la tabla para lo que
-              se puede vender o mover. Rotularlas «actual» hacía creer que el sistema perdió prendas cuando la
-              tabla (que muestra lo físico en «Piso · Almacén») decía otra cifra. */}
+              `almacenDisponible`): por eso dicen «Disponible». Rotularlas «actual» hacía creer que el sistema
+              perdió prendas cuando la tabla mostraba lo físico y decía otra cifra; desde el 2026-09-26 la tabla
+              («Stock actual») también muestra lo libre, con lo apartado debajo: las dos dicen lo mismo. */}
           <div className="card-cayla grid grid-cols-2 divide-x divide-tinta/10 text-center">
             <div className="p-3">
               <p className="label-cayla text-[10px] text-tinta/55">Disponible en piso</p>

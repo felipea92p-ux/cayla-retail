@@ -219,9 +219,9 @@ export type FilaExistencias = FilaStock & {
   /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
    *  ausente o null = no se pudo calcular. */
   coberturaPiso?: CoberturaPiso | null;
-  /** «Acción hoy» (2026-09-25): la clasificación única de `planDeReposicion`, reducida a texto
-   *  cualitativo — MISMA fuente que la tarjeta «Reponer a piso hoy» y «Ver recomendaciones».
-   *  Ausente o null = sin Ritmo reciente para armar el plan (no se inventa una acción). */
+  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`) — MISMA fuente que
+   *  la tarjeta «Reponer a piso hoy», el filtro Acción y «Ver recomendaciones». Ausente o null = la sede no
+   *  vende (Taller): no se inventa una acción. No depende del Ritmo reciente. */
   accionHoy?: AccionHoy | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;

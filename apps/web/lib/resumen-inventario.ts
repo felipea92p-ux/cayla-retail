@@ -63,7 +63,7 @@ export async function getFilasRecientesDeSede(ubicacionId: string, ahora: Date =
 
 /** Los últimos 7 días de una sede (2026-09-22, rediseño de Existencias): mismo dato que
  *  `getFilasRecientesDeSede`, ventana corta — `stockInicial` de esta fila es el stock de hace 7 días,
- *  y `ventas`/`devoluciones` son la semana, para «Ritmo de venta (7D)» y el delta de «Disponible total».
+ *  y `ventas`/`devoluciones` son la semana, para el delta de «Disponible total» y su desglose.
  *  Trae también `costo`/`precio`/`categoria` de una sola pasada: no hace falta otra llamada para
  *  valorar el stock. */
 export async function getFilasSemanaDeSede(ubicacionId: string, ahora: Date = new Date()): Promise<FilaResumen[]> {

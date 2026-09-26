@@ -41,17 +41,17 @@ export const UMBRAL_REPOSICION_PISO = 7;
 // mención era ilustrativa (contrastar «Por colgar» con la vieja «Reponer»), no una dependencia
 // funcional real: `porColgar` nunca llamó a `necesitaReponerPiso`. El test que sí la invocaba
 // («toda talla por colgar conserva su botón Reponer») se reescribió contra `calcularAccionHoy`
-// (`existencias-recomendaciones.test.ts`) — misma garantía, fuente canónica nueva.
+// (`inventario-reglas.test.ts`, «toda talla por colgar tiene Acción hoy…») — misma garantía, fuente canónica nueva.
 
 /** «Por colgar» (Frescura del piso, 2026-09-25): la talla tiene unidades DISPONIBLES en el almacén de
  *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
  *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
  *
- *  No usa `UMBRAL_REPOSICION_PISO` a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
+ *  No usa el umbral de «Reponer a piso» (`umbralStockPisoReposicion`) a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
  *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
  *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
  *
- *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que el semáforo y el modal de
+ *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que «Acción hoy» y el modal de
  *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
  *  y la talla está por colgar; si lo del almacén está todo apartado, no hay nada que bajar y no lo está.
  *  Donde la sede no separa piso de almacén (Taller: `null`) la pregunta no existe → nunca. */
@@ -385,7 +385,7 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
 
 // La nota no llega a Existencias (solo al detalle de Movimientos): el aviso no la vende como remedio, pide avisar al equipo.
 const NOTA_SOLO_EN_MOVIMIENTOS = "Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento.";
-// «libre»: la cifra es neta de lo apartado; con apartadas colgadas, «Piso · Almacén» de la tabla mostrará más.
+// «libre»: la cifra es neta de lo apartado, la misma que muestra «Stock actual» en la tabla (lo apartado va debajo).
 const AVISO_RETIRO_POR_COLGAR = `Quedará 0 libre en el piso: Existencias la mostrará «Por colgar» y pedirá bajarla. ${NOTA_SOLO_EN_MOVIMIENTOS}`;
 const avisoRetiroReponer = (quedan: number) =>
   `${quedan === 1 ? "Quedará 1 libre" : `Quedarán ${quedan} libres`} en el piso: Existencias sugerirá «Reponer». ${NOTA_SOLO_EN_MOVIMIENTOS}`;
