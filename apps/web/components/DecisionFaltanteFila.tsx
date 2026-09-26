@@ -1,6 +1,6 @@
 "use client";
 
-import { SelectNativo } from "@/components/ui/campos";
+import { Desplegable, type Opcion } from "@/components/ui/campos";
 import { ETIQUETA_MOTIVO_CIERRE, type MotivoCierre } from "@/lib/compras-reglas";
 import type { DecisionFaltante } from "@/lib/recepciones-reglas";
 
@@ -18,26 +18,20 @@ import type { DecisionFaltante } from "@/lib/recepciones-reglas";
 
 export type Decision = DecisionFaltante<MotivoCierre>;
 
-const VALOR_VACIO = "";
-
 export function etiquetaDecision(d: Decision): string {
   return d === "espero" ? "Lo espero: sigue pendiente" : `Se cierra: ${ETIQUETA_MOTIVO_CIERRE[d]}`;
 }
 
-export function OpcionesDecision() {
-  return (
-    <>
-      <option value="espero">Aún no llegan: los espero</option>
-      <optgroup label="No van a llegar: se cierra el faltante">
-        {(Object.keys(ETIQUETA_MOTIVO_CIERRE) as MotivoCierre[]).map((m) => (
-          <option key={m} value={m}>
-            {ETIQUETA_MOTIVO_CIERRE[m]}
-          </option>
-        ))}
-      </optgroup>
-    </>
-  );
-}
+/** Las respuestas de «Decidir todas»: «los espero» suelta arriba y los motivos de cierre bajo su título (el <optgroup>
+ *  que tenía el <select> del navegador, ahora grupo del combo del sistema — ADR-0209). */
+const OPCIONES_DECISION: readonly Opcion<Decision>[] = [
+  { valor: "espero", texto: "Aún no llegan: los espero" },
+  ...(Object.keys(ETIQUETA_MOTIVO_CIERRE) as MotivoCierre[]).map((m) => ({
+    valor: m,
+    texto: ETIQUETA_MOTIVO_CIERRE[m],
+    grupo: "No van a llegar: se cierra el faltante",
+  })),
+];
 
 /** Una respuesta posible: una píldora que se elige con un toque. */
 function Pildora({ elegida, onClick, children }: { elegida: boolean; onClick: () => void; children: string }) {
@@ -106,20 +100,18 @@ export function ResumenDecision({ decision, onEditar }: { decision: Decision; on
   );
 }
 
-/** «Decidir todas»: aplica la misma decisión a todas las filas con faltante de un comprobante. */
+/** «Decidir todas»: aplica la misma decisión a todas las filas con faltante de un comprobante. No guarda una elección
+ *  propia (cada fila muestra la suya): el combo no tiene valor y siempre dice qué hace. */
 export function DecidirTodas({ cuantas, onDecidir }: { cuantas: number; onDecidir: (d: Decision) => void }) {
   return (
     <div className="w-72 max-w-full">
-      <SelectNativo
-        aria-label={`Decidir las ${cuantas} filas con faltante`}
-        value={VALOR_VACIO}
-        onChange={(e) => e.target.value !== VALOR_VACIO && onDecidir(e.target.value as Decision)}
-      >
-        <option value={VALOR_VACIO} disabled>
-          Decidir las {cuantas} filas con faltante…
-        </option>
-        <OpcionesDecision />
-      </SelectNativo>
+      <Desplegable<Decision | "">
+        etiquetaAccesible={`Decidir las ${cuantas} filas con faltante`}
+        valor=""
+        onValor={(d) => d && onDecidir(d)}
+        opciones={OPCIONES_DECISION}
+        marcador={`Decidir las ${cuantas} filas con faltante…`}
+      />
     </div>
   );
 }

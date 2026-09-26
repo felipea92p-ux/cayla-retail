@@ -28,6 +28,36 @@ export function comboLlegoAlFinal(medida: { scrollTop: number; clientHeight: num
   return medida.scrollTop + medida.clientHeight >= medida.scrollHeight - margen;
 }
 
+/* Grupos y opciones que se ven pero no se eligen (2026-09-26): lo que el <select> del navegador resolvía con <optgroup>
+   y `disabled` —las cuentas agrupadas en bancos, cajas fuertes y cajones; un cajón con la caja cerrada—, y lo que dejó
+   fuera de la regla a los últimos combos nativos del ERP. Las flechas y el «activo» siguen contando la lista PLANA: el
+   grupo solo agrega un título al dibujarla. */
+
+/** Desde `desde`, la siguiente opción elegible en esa dirección (+1 baja, −1 sube). Sin otra elegible, se queda donde
+ *  está: las flechas no aterrizan nunca en una opción que no se puede elegir. */
+export function siguienteElegible(opciones: readonly { deshabilitada?: boolean }[], desde: number, paso: 1 | -1): number {
+  for (let i = desde + paso; i >= 0 && i < opciones.length; i += paso) if (!opciones[i].deshabilitada) return i;
+  return desde;
+}
+
+/** La primera elegible (Inicio) o, `desdeElFinal`, la última (Fin). −1 si no hay ninguna. */
+export function primeraElegible(opciones: readonly { deshabilitada?: boolean }[], desdeElFinal = false): number {
+  return desdeElFinal ? opciones.findLastIndex((o) => !o.deshabilitada) : opciones.findIndex((o) => !o.deshabilitada);
+}
+
+/** La lista en tramos seguidos del mismo grupo, en el mismo orden y con el índice de siempre. Un tramo sin `grupo` se
+ *  dibuja sin título; dos tramos del mismo grupo separados por otro son dos tramos (el orden lo decide quien arma las
+ *  opciones, no el combo). */
+export function tramosPorGrupo<O extends { grupo?: string }>(opciones: readonly O[]): { grupo?: string; items: { o: O; i: number }[] }[] {
+  const tramos: { grupo?: string; items: { o: O; i: number }[] }[] = [];
+  opciones.forEach((o, i) => {
+    const ultimo = tramos.at(-1);
+    if (ultimo && ultimo.grupo === o.grupo) ultimo.items.push({ o, i });
+    else tramos.push({ grupo: o.grupo, items: [{ o, i }] });
+  });
+  return tramos;
+}
+
 /**
  * ¿Una opción de combo responde a lo que se escribió? Por su texto, su detalle o una de sus `claves` (sinónimos:
  * «plomo» encuentra Gris, «guinda» encuentra Vino — revisión de la paleta, 2026-09-26). `k` ya viene como `clave()`

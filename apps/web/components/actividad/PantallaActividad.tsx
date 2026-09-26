@@ -2,15 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { SelectNativo } from "@/components/ui/campos";
+import { Desplegable } from "@/components/ui/campos";
 import { ListaActividad, useActividad } from "@/components/actividad/ListaActividad";
-import { MODULOS_CON_ACTIVIDAD, PERIODOS, nombreDeModulo, type Periodo } from "@/lib/actividad-reglas";
+import {
+  MODULOS_CON_ACTIVIDAD,
+  PERIODOS,
+  nombreDeModulo,
+  opcionesDeModulo,
+  opcionesDePersona,
+  type Periodo,
+  type PersonaConActividad,
+} from "@/lib/actividad-reglas";
 import type { ClaveModulo } from "@/lib/modulos";
 
 // La pantalla completa de la actividad (ADR-0207): filtros y lista en UNA tarjeta (ADR-0169). El líder elige la sede
 // (o todas); la líder de tienda ve la suya, y la base se lo asegura aunque la pantalla pidiera otra.
-
-type Persona = { persona_id: string; nombre: string };
 
 export function PantallaActividad({
   esLider,
@@ -25,10 +31,11 @@ export function PantallaActividad({
 }) {
   const [modulo, setModulo] = useState<ClaveModulo | null>(moduloInicial);
   const [ubicacionId, setUbicacionId] = useState<string | null>(null);
-  const [personaId, setPersonaId] = useState<string | null>(null);
+  // La persona entera, no solo su id: si deja de tener actividad en lo que se mira, el combo igual tiene que decir su nombre.
+  const [persona, setPersona] = useState<PersonaConActividad | null>(null);
   const [periodo, setPeriodo] = useState<Periodo>("7d");
-  const [personas, setPersonas] = useState<Persona[]>([]);
-  const actividad = useActividad({ modulo, ubicacionId, personaId, periodo });
+  const [personas, setPersonas] = useState<PersonaConActividad[]>([]);
+  const actividad = useActividad({ modulo, ubicacionId, personaId: persona?.persona_id ?? null, periodo });
 
   // Quiénes tienen actividad en lo que se mira, para el filtro «Persona».
   useEffect(() => {
@@ -36,7 +43,7 @@ export function PantallaActividad({
     void createClient()
       .rpc("fn_actividad_personas" as never, { p_ubicacion_id: ubicacionId, p_modulo: modulo } as never)
       .then(({ data }) => {
-        if (vigente) setPersonas(((data ?? []) as Persona[]).filter((p) => p.persona_id));
+        if (vigente) setPersonas(((data ?? []) as PersonaConActividad[]).filter((p) => p.persona_id));
       });
     return () => {
       vigente = false;
@@ -45,42 +52,43 @@ export function PantallaActividad({
 
   return (
     <div className="card-cayla p-4 sm:p-5">
+      {/* Los combos de las barras de filtros del sistema (`Desplegable` en caja, ADR-0169/0209), no el <select> del
+          navegador: misma caja, misma flecha y la misma lista que el resto del ERP, con buscador si pasan de 8. */}
       <div className="mb-5 flex flex-wrap items-end gap-3">
         <Filtro etiqueta="Módulo">
-          <SelectNativo aria-label="Módulo" value={modulo ?? ""} onChange={(e) => setModulo((e.target.value || null) as ClaveModulo | null)}>
-            <option value="">Todos los módulos</option>
-            {MODULOS_CON_ACTIVIDAD.map((m) => (
-              <option key={m} value={m}>
-                {nombreDeModulo(m)}
-              </option>
-            ))}
-          </SelectNativo>
+          <Desplegable
+            forma="caja"
+            etiquetaAccesible="Módulo"
+            valor={modulo ?? ""}
+            onValor={(v) => setModulo(v || null)}
+            opciones={opcionesDeModulo(modulo)}
+          />
         </Filtro>
         {esLider ? (
           <Filtro etiqueta="Sede">
-            <SelectNativo aria-label="Sede" value={ubicacionId ?? ""} onChange={(e) => setUbicacionId(e.target.value || null)}>
-              <option value="">Todas las sedes</option>
-              {ubicaciones.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre}
-                </option>
-              ))}
-            </SelectNativo>
+            <Desplegable
+              forma="caja"
+              etiquetaAccesible="Sede"
+              valor={ubicacionId ?? ""}
+              onValor={(v) => setUbicacionId(v || null)}
+              opciones={[{ valor: "", texto: "Todas las sedes" }, ...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre }))]}
+            />
           </Filtro>
         ) : (
           <Filtro etiqueta="Sede">
-            <p className="flex h-9 items-center text-sm text-tinta">{ubicacionEtiqueta}</p>
+            {/* Fija (la base solo le da su sede): la misma caja y el mismo alto que sus vecinos, sin flecha porque no se abre. */}
+            <p className="caja-cayla flex h-10 items-center px-3 text-sm text-tinta">{ubicacionEtiqueta}</p>
           </Filtro>
         )}
         <Filtro etiqueta="Persona">
-          <SelectNativo aria-label="Persona" value={personaId ?? ""} onChange={(e) => setPersonaId(e.target.value || null)}>
-            <option value="">Todas las personas</option>
-            {personas.map((p) => (
-              <option key={p.persona_id} value={p.persona_id}>
-                {p.nombre}
-              </option>
-            ))}
-          </SelectNativo>
+          <Desplegable
+            forma="caja"
+            etiquetaAccesible="Persona"
+            valor={persona?.persona_id ?? ""}
+            // La única que puede no estar en `personas` es la ya elegida (`opcionesDePersona` la conserva).
+            onValor={(id) => setPersona(id ? (personas.find((p) => p.persona_id === id) ?? persona) : null)}
+            opciones={opcionesDePersona(personas, persona)}
+          />
         </Filtro>
         <div className="flex flex-wrap gap-1.5 pb-1" role="group" aria-label="Periodo">
           {PERIODOS.map((p) => (
@@ -106,7 +114,7 @@ function Filtro({ etiqueta, children }: { etiqueta: string; children: React.Reac
   return (
     <div className="w-full sm:w-52">
       <p className="label-cayla mb-1 text-[11px] text-taupe">{etiqueta}</p>
-      <div className="caja-cayla px-3">{children}</div>
+      {children}
     </div>
   );
 }

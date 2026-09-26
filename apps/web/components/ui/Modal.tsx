@@ -137,7 +137,6 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
 export const campoEtiqueta = "label-cayla text-[11px] text-tinta/70";
 export const campoTexto =
   "w-full border-b border-tinta/20 bg-transparent px-1 py-2 text-sm text-tinta outline-none focus:border-rojo";
-export const campoSelect = "w-full card-cayla px-3 py-2 text-sm text-tinta outline-none focus:border-rojo";
 export const botonCancelar =
   "label-cayla rounded-md flex-1 border border-tinta/25 px-3 py-2.5 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo";
 export const botonPrimario =

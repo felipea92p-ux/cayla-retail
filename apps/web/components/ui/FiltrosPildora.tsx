@@ -68,7 +68,7 @@ export function PanelPildoras({ children }: { children: ReactNode }) {
  *  sentinel `TODOS`, este componente no sabe de URLs.
  *
  *  Sin caja propia (2026-09-17, pedido de Felipe: "no me gusta que estén encapsulados en esos rectángulos
- *  blancos") — nada de borde ni fondo en reposo: el mismo hilo vivo de `CampoTexto`/`SelectNativo` marca dónde
+ *  blancos") — nada de borde ni fondo en reposo: el mismo hilo vivo de `CampoTexto`/`CampoSelect` marca dónde
  *  está parado, la tipografía marca si hay un valor elegido (`activa`, no `elegida`: "Todos" es una opción real
  *  y SIEMPRE hay una elegida — lo que importa es si es distinta de "Todos"). El panel que los agrupa
  *  (`divide-x`) es la única superficie; cada campo adentro es texto, no una caja más.
