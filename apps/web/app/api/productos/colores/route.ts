@@ -80,12 +80,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  // orden=200: los de CAYLA usan una decena por familia (neutro 10-19 …
-  // metálico 80-89, de claro a oscuro: 20260926100000); un color agregado
-  // desde esta pantalla entra al final de su familia.
+  // orden=2000: los de CAYLA usan una centena por familia (neutro 100-190 …
+  // metálico 800-890, de claro a oscuro: 20260926210000); un color agregado
+  // desde esta pantalla entra al final de su familia y de cualquier lista.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, notas, pantone_tcx: pantoneTcx, sinonimos })
+    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 2000, notas, pantone_tcx: pantoneTcx, sinonimos })
     .select("codigo, nombre, familia_color, hex, notas, estado, pantone_tcx, sinonimos")
     .single();
 
