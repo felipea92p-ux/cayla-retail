@@ -13,6 +13,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { MatrizOrdenTabla } from "@/components/MatrizOrden";
 import { ChipEntrega, semaforoDeOrden } from "@/components/OrdenTarjeta";
 import { OrdenCierre } from "@/components/OrdenCierre";
@@ -82,6 +83,9 @@ export function OrdenPanel({
     const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [saliendo, onCerrar]);
+  // Escape cierra el cajón solo si ningún control de adentro lo usó: con la lista del combo «Responsable» abierta, el
+  // primer Escape cierra la lista y el cajón sigue ahí (useEscapeLibre.ts).
+  const alEscape = useEscapeLibre(pedirSalida);
 
   const abierta = orden.estado === "en_proceso";
   // F8: una orden de producción cerrada deja prendas en el stock del Taller; el enlace lleva al traslado con el origen y las líneas ya puestas.
@@ -141,6 +145,7 @@ export function OrdenPanel({
       <Dialog.Portal>
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${saliendo ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
+          onEscapeKeyDown={alEscape}
           aria-describedby={undefined}
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[34rem] flex-col border-l border-sand bg-papel outline-none ${saliendo ? "anim-cajon-salida" : "anim-cajon"}`}
         >
