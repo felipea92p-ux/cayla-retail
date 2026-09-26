@@ -692,13 +692,13 @@ Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apart
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
 - [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
 
-## 🎯 Apartados v2, pasos 2 a 5 (2026-09-26, ADR-0232) — 4 migraciones NO están en producción; web en PR
+## 🎯 Apartados v2, pasos 2 a 5 (2026-09-26, ADR-0232) — 4 migraciones EN PRODUCCIÓN (2026-09-26, versiones `20260926194…`, verificadas); web en PR #495
 Abonos, estante, editar, actividad, opciones por tienda, clienta por DNI y «Qué ver». Orden de pegado: `20260927100000` → `110000` → `120000` → `130000` (cada una en una parte, sin políticas, idempotentes).
 - [x] Migraciones + `pnpm pruebas:separaciones` 71/71 en el Postgres local; web con tipos, lint y pruebas en verde; vista a 1440 y 375 px con datos de prueba.
-- [ ] **Pegar las 4 migraciones en producción, en orden, con el OK de Felipe** (abonos emite boletas de anticipo; hoy no se transmiten a SUNAT), y después fusionar la web.
+- [x] **Pegadas en producción** el 2026-09-26 con el OK de Felipe (por el MCP, en orden; antes se verificó que `entregar_separacion`, `registrar_devolucion_separacion` y `buscar_separaciones` seguían idénticas a las leídas): 5 tablas con RLS y 0 políticas, 5 funciones solo para `authenticated`, 7 disparadores, APT-TRU-0005 con estante A-01, `fn_verificar_separaciones` 0 problemas; lectura como líder (en transacción revertida) trae estante, id de prenda y fecha de pago.
 - [ ] Refrescar el diccionario tras pegarlas; probar con clics reales en TRU: abonar (con y sin espera), editar la talla, ver el estante, la Actividad y las Opciones.
-- [ ] **Decisión de Felipe — apartar de otra sede:** toca Traslados (otro módulo); hoy `iniciar_traslado` no despacha una prenda apartada en origen. Opciones en ADR-0232 «Lo que NO entró».
-- [ ] **Decisión de Felipe — editar a un total menor que lo pagado:** hoy se rechaza; ¿devolver la diferencia o saldo a favor?
+- [ ] **Apartar de otra sede — decidido por Felipe (2026-09-26): «pedir traslado y apartar al llegar»** (TRU pide a AQP con el nombre de la clienta; al recibirla en TRU se aparta sola). Va en su propio PR: toca Traslados.
+- [x] **Editar a un total menor que lo pagado — decidido por Felipe (2026-09-26): no se permite** (como ya hace `editar_separacion`).
 - [ ] Hueco previo (no de este cambio): en el Postgres local de esta máquina hay dos `registrar_movimiento_caja` (sobrecarga de otra sesión) y `pruebas:actividad`/`pruebas:actor-firma` fallan por ambigüedad; el CI arma la base desde cero.
 
 ## 🎯 Apartados: recordar en lote (2026-09-26, ADR-0227) — migración `20260926233000` EN PRODUCCIÓN (aplicada 2026-09-26 como `20260926174611`, verificada por efectos); web en PR #490
