@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Apartados a lo alto · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Apartados: pestañas a la izquierda y el ticket a lo alto
+   (2026-09-26). Mismo ajuste que Punto de Venta (spike «ticket a lo alto»):
+   1. Las pestañas Apartar / Entregar / Todos y «Opciones» se corren a la
+      izquierda, junto a «Apartados · Tienda TRU», sobre la columna de trabajo.
+   2. El ticket («Por apartar» en Apartar, «Saldo» en Entregar) sube hasta el
+      borde de arriba de la hoja y ocupa la columna derecha entera.
+   3. Su cabecera se alinea con la fila de pestañas (64 px, la misma raya).
+   Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);--ease:cubic-bezier(.32,.72,.24,1)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.l{width:22px;height:22px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+/* barra de la demo */
+.spk{position:sticky;top:0;z-index:100;background:var(--tinta);color:var(--crema);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7)}.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk label{display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.75);cursor:pointer}
+.escena{padding:22px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.ley{max-width:1320px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--t80)}.ley b{font-weight:600}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.desk{margin:0 auto}
+/* escritorio */
+.desk{width:1320px;height:820px;flex:none;position:relative;overflow:hidden;border-radius:14px;background:var(--crema);border:1px solid var(--t30);box-shadow:0 30px 60px -30px rgba(26,26,24,.45)}
+.top{height:54px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 22px;font-size:11px;letter-spacing:.12em;color:var(--t65)}
+.top .sede{height:30px;display:flex;align-items:center;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);color:var(--tinta);font-weight:600}
+.hoja{position:absolute;inset:72px 22px 18px;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:22px;background:var(--papel);overflow:hidden;animation:sube .38s var(--ease) both}
+/* cabecera de la hoja */
+.cab{height:64px;flex:none;display:flex;align-items:center;gap:24px;padding:0 24px;border-bottom:1px solid var(--sand)}
+.cab .lugar{color:var(--t80);font-size:11px;white-space:nowrap}
+.cab.hoy .lugar{margin-right:auto}
+.tabs{display:flex;align-items:center;gap:24px;height:100%}
+.tab{position:relative;height:100%;display:flex;align-items:center;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:rgba(26,26,24,.55)}
+.tab.on{color:var(--tinta)}.tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--tinta)}
+.tab .n{margin-left:6px;min-width:17px;height:17px;border-radius:9px;background:var(--rojo);color:var(--papel);font-size:10px;display:inline-grid;place-items:center;padding:0 4px;letter-spacing:0}
+.sep{width:1px;height:22px;background:var(--sand)}
+.opc{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t80)}
+.aviso{flex:none;height:40px;padding:0 24px;border-bottom:1px solid var(--sand);background:var(--crema);font-size:12.5px;display:flex;gap:10px;align-items:center}
+.aviso .r{color:var(--rojo-p)}.aviso u{font-weight:600;text-decoration:none;border-bottom:1px solid currentColor}
+/* cuerpo */
+.cuerpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 420px}
+.cuerpo.solo{grid-template-columns:minmax(0,1fr)}
+.col{min-height:0;display:flex;flex-direction:column;border-right:1px solid var(--sand)}
+.trab{flex:1;min-height:0;overflow:hidden;padding:24px;display:flex;flex-direction:column;gap:16px}
+.busca{display:flex;align-items:center;gap:12px;height:56px;padding:0 16px;border:1px solid var(--sand);border-radius:12px;background:var(--papel);color:rgba(26,26,24,.4);font-size:15px}
+.busca .ic{color:var(--t65)}
+.prenda{display:grid;grid-template-columns:200px minmax(0,1fr);gap:20px;padding:16px;border:1px solid var(--sand);border-radius:16px;background:var(--papel)}
+.foto{aspect-ratio:1;border-radius:12px;background:linear-gradient(var(--sand),var(--hueso));display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:28px;color:var(--t30)}
+.prenda h3{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;margin-top:4px}
+.prenda .co{font-size:14px;color:rgba(26,26,24,.6)}
+.tl{display:flex;gap:6px;margin-top:12px}.t{min-width:44px;height:40px;padding:0 10px;border-radius:9px;border:1px solid var(--sand);background:var(--papel);font-size:13px;font-weight:600;display:grid;place-items:center}.t.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}.t.off{opacity:.35;text-decoration:line-through}
+.stk{margin-top:12px;font-size:12.5px;color:var(--t65)}.stk b{color:var(--tinta);font-weight:600}
+.agr{margin-top:auto;height:46px;border-radius:10px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.hint{font-size:12.5px;color:var(--t50)}
+/* ticket */
+.tk{min-height:0;display:flex;flex-direction:column;background:var(--papel);position:relative}
+.tk-cab{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 20px;border-bottom:1px solid var(--sand)}
+.tk-cab.alto{height:84px}.tk-cab.bajo{height:64px}
+.tk-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:24px;line-height:1;display:flex;align-items:center;gap:10px}
+.tk-cab h2 .ic{color:rgba(26,26,24,.7)}
+.tk-cab span{font-size:12px;color:rgba(26,26,24,.6)}
+.items{flex:1;min-height:0;overflow:hidden;position:relative}
+.it{padding:16px 20px;border-bottom:1px solid var(--sand)}
+.it .r1{display:flex;justify-content:space-between;gap:12px}.it h5{font-size:15px;font-weight:600}.it .v{font-size:12px;color:rgba(26,26,24,.6)}.it .v code{font:11px ui-monospace,Menlo,monospace}
+.it .q{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--rojo-p);display:flex;align-items:center;gap:4px;height:28px}
+.it .r2{display:grid;grid-template-columns:auto 1fr auto;column-gap:16px;margin-top:10px;align-items:end}
+.it .r2 small{font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:rgba(26,26,24,.55)}
+.qty{display:inline-flex;align-items:center;height:36px;border:1px solid var(--sand);border-radius:8px}.qty i{width:32px;text-align:center;font-style:normal;color:var(--t50)}.qty b{min-width:22px;text-align:center;font-weight:600;font-size:14px}
+.it .r2 .p{font-size:14px;font-weight:600}.it .r2 .im{text-align:right;font-size:14px;font-weight:600}
+.it .nt{margin-top:8px;font-size:11px;color:var(--taupe)}
+.mas{position:absolute;left:0;right:0;bottom:0;height:64px;z-index:4;background:linear-gradient(rgba(251,248,242,0),var(--papel) 55%);display:flex;align-items:flex-end;justify-content:space-between;padding:0 14px 10px;font-size:11px;color:var(--t65)}
+.vacio{padding:40px 20px;text-align:center}.vacio p:first-child{font-family:'EB Garamond',serif;font-size:20px}.vacio p+p{font-size:13px;color:rgba(26,26,24,.6);margin-top:4px}
+.tpie{flex:none;padding:20px;border-top:1px solid var(--sand)}
+.tot{display:flex;align-items:flex-end;justify-content:space-between}.tot .d{font-size:12.5px;color:rgba(26,26,24,.6);line-height:1.5}.tot .g{text-align:right}.tot .g .v{font-family:'EB Garamond',serif;font-size:44px;line-height:1}
+.prim{margin-top:12px;width:100%;height:56px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:10px;padding:0 18px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}.prim b{margin-left:auto;font-family:'EB Garamond',serif;font-size:20px;letter-spacing:0;font-weight:500}
+.prim.off{opacity:.35}
+/* la marca de lo ganado */
+.gana{position:absolute;right:0;top:0;width:100%;pointer-events:none;border-bottom:2px dashed var(--rojo);background:rgba(184,65,45,.06);z-index:3;display:flex;align-items:flex-end;justify-content:flex-end;padding:0 10px 4px}
+.cuenta{font-size:10.5px;font-weight:700;color:var(--pizarra);background:rgba(76,93,110,.12);padding:3px 8px;border-radius:999px}
+/* entregar */
+.lista{border:1px solid var(--sand);border-radius:14px;overflow:hidden}
+.fila{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--sand);background:var(--papel)}.fila:last-child{border:0}
+.fila.on{background:var(--crema);box-shadow:inset 3px 0 0 var(--tinta)}
+.fila .cd{font:11px ui-monospace,Menlo,monospace;color:var(--t65)}.fila h5{font-size:14px;font-weight:600}.fila .dt{font-size:12px;color:var(--t65)}
+.fila .sd{text-align:right;font-size:14px;font-weight:600}.fila .sd small{display:block;font-size:11px;font-weight:500;color:var(--t65)}
+.chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;background:rgba(116,80,26,.12);color:var(--ambar)}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.ok{background:rgba(72,96,63,.12);color:var(--verde)}.chip.v{background:rgba(184,65,45,.1);color:var(--rojo-p)}
+.caja{margin:16px 20px 0;border:1px solid var(--sand);border-radius:12px;background:var(--crema);padding:14px 16px;font-size:12.5px;color:rgba(26,26,24,.75)}
+.caja p{display:flex;justify-content:space-between;line-height:1.9}.caja p.f{border-top:1px solid var(--sand);margin-top:6px;padding-top:6px;font-size:14px;color:var(--tinta)}.caja p.f b{font-weight:600}
+.leg{margin:18px 20px 8px;font-size:11px;color:var(--t50)}
+.medios{margin:0 20px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:4px;border-radius:12px;background:rgba(232,224,208,.5)}
+.medios span{height:36px;border-radius:9px;display:grid;place-items:center;font-size:12px;color:var(--t65)}.medios span.on{background:var(--papel);color:var(--tinta);font-weight:600;box-shadow:0 1px 0 var(--sand)}
+.monto{margin:12px 20px 0;height:46px;border-radius:12px;background:var(--hueso);display:flex;align-items:center;padding:0 14px;font-size:15px;font-weight:600}
+.resp{height:44px;border-radius:12px;background:var(--hueso);display:flex;align-items:center;gap:8px;padding:0 14px;font-size:13px}.resp span{margin-left:auto;font-size:11px;color:var(--t65)}
+/* todos */
+.cifras{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.cifras div{padding:14px 18px;border-right:1px solid var(--sand)}.cifras div:last-child{border:0}.cifras small{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65)}.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:30px;line-height:1.2}
+.tabla{border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.tabla .h,.tabla .r{display:grid;grid-template-columns:1.3fr 1fr 150px 170px 120px;gap:20px;padding:12px 20px;align-items:center}
+.tabla .h{background:var(--crema);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);border-bottom:1px solid var(--sand)}
+.tabla .r{border-bottom:1px solid var(--sand);font-size:13px}.tabla .r:last-child{border:0}.tabla .r b{font-weight:600}
+/* celular */
+.tels{display:flex;gap:30px;flex-wrap:wrap;justify-content:center}
+.tc{display:flex;flex-direction:column;align-items:center;gap:8px}.tc .tt{font-size:12.5px;font-weight:600}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px rgba(26,26,24,.55)}
+.pn{width:375px;height:796px;border-radius:39px;overflow:hidden;position:relative;background:var(--crema)}
+.mtop{height:50px;padding:14px 16px 0;display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;font-weight:600}.mtop .sd{margin-left:auto;font-size:10.5px;letter-spacing:.1em;border:1px solid var(--sand);border-radius:8px;padding:5px 9px;background:var(--papel)}
+.mhoja{margin:10px 10px 0;border:1px solid var(--sand);border-radius:22px;background:var(--papel);overflow:hidden}
+.mcab{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--sand)}
+.mcab .lugar{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t80)}
+.mcab.hoy .lugar{margin-right:auto}
+.mtrab{padding:16px;display:flex;flex-direction:column;gap:12px}
+.mbus{display:flex;gap:8px}.mbus .busca{flex:1;height:52px;font-size:14px}.cam{width:52px;height:52px;border-radius:12px;background:var(--tinta);color:var(--crema);display:grid;place-items:center}
+.mprenda{border:1px solid var(--sand);border-radius:16px;padding:12px}.mprenda .foto{width:100%;aspect-ratio:1.6}
+.mbar{position:absolute;left:10px;right:10px;bottom:74px;height:62px;border-radius:16px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:12px;padding:0 10px 0 14px;z-index:5}
+.mbar .tx{flex:1;min-width:0;font-size:11px;color:rgba(245,240,232,.7)}.mbar .tx b{display:block;font-family:'EB Garamond',serif;font-size:21px;color:var(--crema);font-weight:500}
+.mbar .ir{height:42px;padding:0 13px;border-radius:10px;background:var(--crema);color:var(--tinta);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:6px}
+.mtabs{position:absolute;left:0;right:0;bottom:0;height:64px;border-top:1px solid var(--sand);background:var(--papel);display:grid;grid-template-columns:repeat(3,1fr)}
+.mtabs span{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:11px;color:rgba(26,26,24,.5)}.mtabs span.on{color:var(--tinta);font-weight:600}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-hist" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+<symbol id="i-bar" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+<symbol id="i-pct" viewBox="0 0 24 24"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena" id="esc"></div>
+<script>
+/* Estado por la URL: #device=pc|cel&v=hoy|prop&tab=apartar|entregar|todos&aviso=1|0&lleno=1|0 */
+const S={device:'pc',v:'prop',tab:'apartar',aviso:'1',lleno:'1'};
+for(const [k,val] of new URLSearchParams(location.hash.slice(1))) if(k in S) S[k]=val;
+const ic=(n,c='')=>`<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const P=()=>S.v==='prop';
+const set=(k,val)=>{S[k]=val;location.hash=new URLSearchParams(S).toString();pinta()};
+
+const PRENDAS=[
+  ['Vestido Amaya','Arena · M','AMY-ARE-M',189],
+  ['Blusa Killa','Blanco · S','KIL-BLA-S',119],
+  ['Pantalón Wari','Negro · 28','WAR-NEG-28',149],
+  ['Chaqueta Inti','Tierra · M','INT-TIE-M',229],
+  ['Falda Qori','Terracota · S','QOR-TER-S',99],
+];
+const TOTAL=PRENDAS.reduce((s,p)=>s+p[3],0);
+const m=n=>'S/'+n.toFixed(2);
+
+function barra(){
+  const seg=(k,ops)=>`<div class="seg">${ops.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="set('${k}','${v}')">${t}</button>`).join('')}</div>`;
+  document.getElementById('spk').innerHTML=`<span class="tag">Spike · Apartados a lo alto</span>
+  ${seg('device',[['pc','Computador'],['cel','Celular 375']])}
+  ${seg('v',[['hoy','Hoy (publicado)'],['prop','Propuesta']])}
+  ${seg('tab',[['apartar','Apartar'],['entregar','Entregar'],['todos','Todos']])}
+  <label><input type="checkbox" ${S.aviso==='1'?'checked':''} onchange="set('aviso',this.checked?'1':'0')"> Con aviso arriba</label>
+  <label><input type="checkbox" ${S.lleno==='1'?'checked':''} onchange="set('lleno',this.checked?'1':'0')"> Ticket con prendas</label>`;
+}
+
+/* La fila de pestañas: hoy a la derecha, en la propuesta pegada a la izquierda. */
+function cabecera(){
+  const tabs=`<nav class="tabs">${[['apartar','Apartar'],['entregar','Entregar'],['todos','Todos',2]].map(([id,t,n])=>`<button class="tab ${S.tab===id?'on':''}" onclick="set('tab','${id}')">${t}${n?`<span class="n">${n}</span>`:''}</button>`).join('')}</nav>`;
+  const opc=`<button class="opc">${ic('sliders','s')}Opciones</button>`;
+  if(!P()) return `<header class="cab hoy"><span class="lbl lugar">Apartados · Tienda TRU</span>${tabs}${opc}</header>`;
+  return `<header class="cab"><span class="lbl lugar">Apartados · Tienda TRU</span><span class="sep"></span>${tabs}${opc}</header>`;
+}
+const aviso=()=>S.aviso==='1'?`<div class="aviso"><span class="r">${ic('bell','s')}</span><span><b>3 clientas</b> vencen mañana y no se les ha avisado.</span><u>Recordar en lote</u></div>`:'';
+
+function trabajoApartar(){
+  return `<div class="trab">
+    <div class="busca">${ic('bar')}Escanea la etiqueta o busca la prenda por nombre</div>
+    <article class="prenda"><div class="foto">CAYLA</div><div style="display:flex;flex-direction:column;min-width:0">
+      <span class="lbl" style="color:rgba(26,26,24,.6)">Recién escaneada</span>
+      <h3>Falda Qori</h3><span class="co">Terracota</span>
+      <div class="tl"><span class="t off">XS</span><span class="t on">S</span><span class="t">M</span><span class="t">L</span></div>
+      <p class="stk">Quedan <b>2</b> en Tienda TRU · AQP 3 · LIM 1</p>
+      <p class="stk">Precio <b>S/99.00</b> · congelado 7 días</p>
+      <button class="agr">${ic('plus','s')}Agregar al apartado</button>
+    </div></article>
+    <p class="hint">Enter agrega la talla elegida. El catálogo entero no se muestra: solo lo que escaneas.</p>
+  </div>`;
+}
+function trabajoEntregar(){
+  const F=[['AP-0412','Rosa Quispe','2 prendas · pagó S/150','v','Vence hoy',180],['AP-0409','Lucía Mamani','1 prenda · pagó S/60','','En 2 días',89],['AP-0405','Carmen Huamán','3 prendas · abonó 2 veces','','En 4 días',210],['AP-0401','Diana Flores','1 prenda · pagada','ok','Lista',0],['AP-0398','María Condori','2 prendas · pagó S/100','','En 6 días',168]];
+  return `<div class="trab">
+    <div class="busca">${ic('search')}Busca por DNI, nombre, celular o código</div>
+    <div class="lista">${F.map((f,i)=>`<div class="fila ${i===0?'on':''}"><span class="cd">${f[0]}</span><div style="min-width:0"><h5>${f[1]}</h5><span class="dt">${f[2]}</span> <span class="chip ${f[3]}">${f[4]}</span></div><div class="sd">${f[5]?m(f[5]):'—'}<small>${f[5]?'saldo':'sin saldo'}</small></div></div>`).join('')}</div>
+  </div>`;
+}
+function trabajoTodos(){
+  const R=[['Rosa Quispe','AP-0412 · 2 prendas','S/150 · falta S/180','Vence hoy','v'],['Lucía Mamani','AP-0409 · 1 prenda','S/60 · falta S/89','En 2 días',''],['Carmen Huamán','AP-0405 · 3 prendas','S/190 · falta S/210','En 4 días',''],['Diana Flores','AP-0401 · 1 prenda','Pagada','Lista','ok'],['María Condori','AP-0398 · 2 prendas','S/100 · falta S/168','En 6 días','']];
+  return `<div class="trab">
+    <div class="cifras"><div><small>Abiertos</small><b>12</b></div><div><small>Vencen esta semana</small><b>4</b></div><div><small>Anticipos</small><b>S/1,240</b></div><div><small>Por cobrar</small><b>S/2,015</b></div></div>
+    <div class="tabla"><div class="h"><span>Clienta</span><span>Prendas</span><span>Pagado</span><span>Vence</span><span></span></div>
+    ${R.map(r=>`<div class="r"><b>${r[0]}</b><span>${r[1]}</span><span>${r[2]}</span><span class="chip ${r[4]}">${r[3]}</span><span class="lbl" style="font-size:10px;color:var(--rojo-p)">Entregar →</span></div>`).join('')}</div>
+  </div>`;
+}
+
+/* El ticket de la derecha. `gana` = px que sube respecto de hoy (para la marca roja). */
+function ticketApartar(gana){
+  const lleno=S.lleno==='1';
+  const lineas=lleno?PRENDAS.map(p=>`<div class="it"><div class="r1"><div style="min-width:0"><h5>${p[0]}</h5><div class="v">${p[1]} · <code>${p[2]}</code></div></div><span class="q">${ic('trash','s')}Quitar</span></div>
+    <div class="r2"><small>Cantidad</small><small>Precio</small><small style="text-align:right">Importe</small><span class="qty"><i>−</i><b>1</b><i>+</i></span><span class="p">${m(p[3])}</span><span class="im">${m(p[3])}</span></div>
+    <p class="nt">Quedan 1 disponibles en sede tras apartar</p></div>`).join(''):`<div class="vacio"><p>Nada por apartar todavía</p><p>Escanea la etiqueta de la prenda.</p></div>`;
+  return `<aside class="tk">
+    ${gana?`<div class="gana" style="height:${gana}px"></div>`:''}
+    <div class="tk-cab ${P()?'bajo':'alto'}"><h2>${ic('book','l')}Por apartar</h2>${lleno?`<span>${PRENDAS.length} prendas</span>`:''}</div>
+    <div class="items" id="items">${lineas}${lleno?`<div class="mas"><span class="cuenta" id="cuenta" data-gana="${gana||0}"></span><span>sigue más abajo ↓</span></div>`:''}</div>
+    <div class="tpie"><div class="tot"><p class="d">Precio congelado<br>hasta el 3 oct</p><div class="g"><p class="lbl" style="color:rgba(26,26,24,.6)">Total</p><p class="v">${m(lleno?TOTAL:0)}</p></div></div>
+    <button class="prim ${lleno?'':'off'}">${ic('book','s')}Apartar<b>${m(lleno?TOTAL:0)}</b></button></div>
+  </aside>`;
+}
+function ticketEntregar(gana){
+  return `<aside class="tk">
+    ${gana?`<div class="gana" style="height:${gana}px"></div>`:''}
+    <div class="tk-cab ${P()?'bajo':'alto'}"><h2>${ic('wallet','l')}Saldo</h2><span style="font-family:ui-monospace,Menlo,monospace">AP-0412</span></div>
+    <div class="items">
+      <div class="caja"><p><span>Total de las prendas</span><span>S/330.00</span></p><p><span>Adelantó con Yape · 19 sep</span><span>−S/100.00</span></p><p><span>Abonó en efectivo · 23 sep</span><span>−S/50.00</span></p><p class="f"><span>Falta pagar</span><b>S/180.00</b></p></div>
+      <p class="leg">Cómo paga el saldo</p>
+      <div class="medios"><span class="on">Efectivo</span><span>Yape</span><span>Plin</span><span>Tarjeta</span><span>Transf.</span></div>
+      <div class="monto">S/180.00</div>
+      <p class="leg">Prendas que se lleva</p>
+      <div style="margin:0 20px;font-size:13px;line-height:1.9"><p>Vestido Amaya · Arena · M · <code style="font-size:11px">AMY-ARE-M</code></p><p>Blusa Killa · Blanco · S · <code style="font-size:11px">KIL-BLA-S</code></p><p style="color:var(--t65)">Estante A-07</p></div>
+    </div>
+    <div class="tpie"><div class="resp">${ic('user','s')}Responsable: Ana Torres<span>cambiar</span></div>
+    <button class="prim">${ic('bag','s')}Entregar y cobrar<b>S/180.00</b></button></div>
+  </aside>`;
+}
+
+function escritorio(){
+  const conTicket=S.tab!=='todos';
+  const trab=S.tab==='apartar'?trabajoApartar():S.tab==='entregar'?trabajoEntregar():trabajoTodos();
+  const avisoAlto=S.aviso==='1'?40:0;
+  // Lo que gana el ticket: la franja de 64 px, el aviso y los 20 px de su propia cabecera (84 → 64).
+  const gana=64+avisoAlto+20;
+  const tk=g=>S.tab==='apartar'?ticketApartar(g):ticketEntregar(g);
+  let hoja;
+  if(!P()||!conTicket){
+    hoja=`${cabecera()}${aviso()}<div class="cuerpo ${conTicket?'':'solo'}"><div class="col" ${conTicket?'':'style="border:0"'}>${trab}</div>${conTicket?tk(0):''}</div>`;
+  }else{
+    hoja=`<div class="cuerpo"><div class="col">${cabecera()}${aviso()}${trab}</div>${tk(gana)}</div>`;
+  }
+  const ley=P()
+    ? (conTicket
+      ? `<b>Propuesta.</b> Las pestañas y «Opciones» se corren a la izquierda, junto a «Apartados · Tienda TRU», y viven solo sobre la columna de trabajo. El ticket («${S.tab==='apartar'?'Por apartar':'Saldo'}») arranca en el borde de arriba de la hoja: su cabecera baja de 84 a 64 px y queda en la misma raya que las pestañas. Gana <b>${gana} px</b> (la franja${avisoAlto?', el aviso':''} y 20 px de su cabecera): ${S.tab==='apartar'?'una prenda más a la vista':'el cobro y las prendas que se lleva caben sin desplazar'}. El aviso de arriba, si hay, queda sobre la columna de trabajo.`
+      : `<b>Propuesta · Todos.</b> Sin ticket: la fila ocupa todo el ancho, pero las pestañas y «Opciones» quedan a la izquierda igual que en Apartar y Entregar, para que no salten de lugar al cambiar de pestaña.`)
+    : `<b>Hoy (publicado).</b> Una franja de 64 px cruza la hoja entera: «Apartados · Tienda TRU» a la izquierda y las pestañas con «Opciones» al otro extremo. El ticket empieza debajo de esa franja${S.aviso==='1'?' y del aviso':''}, con su cabecera de 84 px.`;
+  return `<div class="ley">${ley}</div><div class="sx"><div class="desk"><div class="top"><span>VIE 26 SEP</span><span class="sede">TIENDA TRU ▾</span></div><section class="hoja">${hoja}</section></div></div>`;
+}
+
+function celular(){
+  const cab=P()
+    ? `<div class="mcab"><span class="lugar">Apartados · TRU</span><button class="opc">${ic('sliders','s')}Opciones</button></div>`
+    : `<div class="mcab hoy"><span class="lugar">Apartados · TRU</span><button class="opc">${ic('sliders','s')}Opciones</button></div>`;
+  const lleno=S.lleno==='1';
+  return `<div class="ley">${P()?'<b>Propuesta · celular.</b> Aquí el ticket ya es su propio paso (Prendas → Clienta → Adelanto) y las pestañas están abajo, así que no hay franja que quitar. Lo único que cambia es «Opciones», que pasa junto al nombre, como en el computador.':'<b>Hoy · celular.</b> Las pestañas ya viven abajo (ADR-0223) y el ticket es el paso siguiente, con la barra negra. «Opciones» está al extremo derecho.'}</div>
+  <div class="tels"><div class="tc"><div class="tel"><div class="pn">
+    <div class="mtop">☰ CAYLA<span class="sd">TRU ▾</span></div>
+    <div class="mhoja">${cab}${aviso().replace('padding:9px 24px','')}
+      <div class="mtrab"><div class="mbus"><div class="busca">${ic('search')}Busca la prenda</div><span class="cam">${ic('scan')}</span></div>
+      <div class="mprenda"><div class="foto">CAYLA</div><h3 style="font-family:'EB Garamond',serif;font-weight:500;font-size:21px;margin-top:8px">Falda Qori</h3><span class="co" style="font-size:13px;color:var(--t65)">Terracota · quedan 2 en TRU</span><div class="tl"><span class="t on">S</span><span class="t">M</span><span class="t">L</span></div></div></div>
+    </div>
+    ${lleno?`<div class="mbar"><div class="tx">${PRENDAS.length} prendas · por apartar<b>${m(TOTAL)}</b></div><span class="ir">Clienta ${ic('arrow','s')}</span></div>`:''}
+    <div class="mtabs"><span class="on">${ic('book')}Apartar</span><span>${ic('bag')}Entregar</span><span>${ic('clock')}Todos</span></div>
+  </div></div><span class="tt">${P()?'Propuesta':'Hoy'} · 375 px</span></div></div>`;
+}
+
+function pinta(){
+  barra();
+  document.getElementById('esc').innerHTML=S.device==='pc'?escritorio():celular();
+  // Cuántas prendas del ticket se ven enteras: la cifra que importa.
+  const it=document.getElementById('items'),c=document.getElementById('cuenta');
+  if(it&&c){const box=it.getBoundingClientRect();const n=[...it.querySelectorAll('.it')].filter(e=>e.getBoundingClientRect().bottom<=box.bottom+1).length;const g=+c.dataset.gana;c.textContent=`${g?`+${g} px · `:''}${n} de ${PRENDAS.length} prendas enteras a la vista`;}
+}
+window.addEventListener('hashchange',()=>{for(const [k,val] of new URLSearchParams(location.hash.slice(1))) if(k in S) S[k]=val;pinta()});
+pinta();
+</script>
+</body>
+</html>
