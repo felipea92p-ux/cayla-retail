@@ -4,7 +4,7 @@ import { resultadoConteo } from "@/lib/conteo-reglas";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 // Primera columna con el mismo piso (13.5rem) que Existencias: la celda de la prenda es la misma
@@ -43,8 +43,8 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo={`Inventario · Conteo · ${ubicacionEtiqueta}`}
+      <EncabezadoPagina
+        sede={ubicacionEtiqueta}
         titulo={
           <>
             Conteo {conteo.numero}
@@ -52,8 +52,8 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
             {conteo.sububicacionNombre ?? "Toda la ubicación"}
           </>
         }
-        bajada={`${alcance} · ${quien}`}
-        acciones={
+        subtitulo={`${alcance} · ${quien}`}
+        pie={
           <>
             <Link href="/inventario/conteo" className="btn-cayla btn-secundario">
               ← Conteos
