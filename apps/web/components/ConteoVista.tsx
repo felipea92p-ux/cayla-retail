@@ -166,7 +166,7 @@ export function ConteoVista({
       )}
 
       <p className="nota-cayla">
-        <b>Cómo se cuenta:</b> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
+        <b>Cómo se cuenta:</b> se escanea o se escribe el código de la etiqueta y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
         revisar, se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento.{" "}
         <Link href="/inventario/movimientos?proc=conteo" className="text-tinta underline underline-offset-2 hover:text-taupe">
           Ver ajustes por conteo →

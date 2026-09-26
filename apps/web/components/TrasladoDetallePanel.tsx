@@ -335,7 +335,7 @@ export function TrasladoDetallePanel({
                     color={l.color}
                     colorHex={l.colorHex}
                     fotoUrl={l.fotoUrl}
-                    marca={nueva ? <span className="ml-2 text-xs text-ambar">no estaba en el envío</span> : undefined}
+                    senal={nueva ? <span className="ml-2 text-xs text-ambar">no estaba en el envío</span> : undefined}
                   />
                   <Diferencia dif={lin?.diferencia ?? null} />
                 </div>
@@ -382,7 +382,7 @@ export function TrasladoDetallePanel({
                         color={l.color}
                         colorHex={l.colorHex}
                         fotoUrl={l.fotoUrl}
-                        marca={nueva ? <span className="ml-2 text-xs text-ambar">no estaba en el envío</span> : undefined}
+                        senal={nueva ? <span className="ml-2 text-xs text-ambar">no estaba en el envío</span> : undefined}
                       />
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums text-taupe">{l.cantidadEnviada ?? "—"}</td>

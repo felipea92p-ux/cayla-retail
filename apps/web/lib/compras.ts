@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, leerTodas } from "@/lib/resultado";
 import {
   ADJUNTOS_BUCKET,
+  codigoDeLinea,
   comprobanteDeFilaOperativa,
   destinoDesdeParam,
   esFuncionAusente,
@@ -422,12 +423,12 @@ export async function getLineasCompra(compraIds: string[], opciones: { sinMontos
   const [productosRes, variantesRes] = await Promise.all([
     productoIds.length ? supabase.from("productos").select("id, referencia").in("id", productoIds) : Promise.resolve({ data: [], error: null }),
     varianteIds.length
-      ? supabase.from("variantes").select("id, sku, talla:tallas ( valor ), color:colores ( nombre )").in("id", varianteIds)
+      ? supabase.from("variantes").select("id, sku, codigo, talla:tallas ( valor ), color:colores ( nombre )").in("id", varianteIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   const productos = new Map(exigir(productosRes, "los productos de la factura").map((p) => [p.id, p.referencia]));
   const variantes = new Map(
-    exigir(variantesRes, "las variantes de la factura").map((v) => [v.id, { sku: v.sku, talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null }])
+    exigir(variantesRes, "las variantes de la factura").map((v) => [v.id, { sku: codigoDeLinea(v), talla: v.talla?.valor ?? null, color: v.color?.nombre ?? null }])
   );
 
   return filas.map((f) => {
@@ -615,7 +616,7 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
       supabase
         .from("movimientos")
         .select(
-          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
+          "lote_id, cantidad, compra_item_id, compra_item:compra_items ( compra_id, compra:compras ( documento ) ), variante:variantes ( sku, codigo, talla:tallas ( valor ), producto:productos ( referencia ), color:colores ( nombre ) )"
         )
         .in("lote_id", loteIds)
         .order("created_at")
@@ -647,7 +648,7 @@ export async function getRecepcionesRecientes(opciones: { conFactura?: boolean; 
     }
     actual.detalle.push({
       referencia: m.variante?.producto?.referencia ?? "",
-      sku: m.variante?.sku ?? null,
+      sku: codigoDeLinea(m.variante),
       talla: m.variante?.talla?.valor ?? null,
       color: m.variante?.color?.nombre ?? null,
       cantidad: m.cantidad,
