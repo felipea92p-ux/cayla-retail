@@ -22,8 +22,11 @@ El spike ya no muestra variantes para comparar: dibuja lo elegido. En la barra n
   **Predeterminado: Pendientes y Apartados**, que es lo que pide acción. Una píldora apagada con algo por atender se
   marca en ámbar, y «Volver a lo predeterminado» restaura la elección. Las tarjetas ya no repiten los botones de arriba:
   solo traen «Ver en…».
-- **Celular: barra fija.** Cobrar / Gasto / Movimiento / Cerrar (o Apartados si quien mira no cierra). En la pantalla
-  solo quedan los botones que no están en la barra.
+- **Celular: barra fija como la de Inicio (corregida el 2026-09-26).** No hay pestañas de menú (Inicio/Ventas/Inventario/Más):
+  la navegación del celular es el cajón ☰ (ADR-0206). Abajo solo van acciones de Caja, con el patrón del spike de Inicio
+  (`inicio-movil-roles-2026-09`): «Vender» ancho y oscuro, y los cuadrados Gasto y Mover, más Cerrar si quien mira es líder.
+  Arriba, la cabecera del ERP (☰, logo, sede, lupa). Las pantallas vecinas (Apartados, Cambios, Devoluciones) van en
+  «Accesos», en el mismo formato de Inicio (ícono sobre la palabra).
 - **Cierres anteriores: una tarjeta con cuatro vistas** (Último cierre, Semáforo, Tabla de turnos, Gráfico), que se
   cambian en la misma tarjeta. **Predeterminada según quién mira: Último cierre para la colaboradora** (cómo recibió la
   caja) **y Semáforo para el líder** (el patrón de descuadres). Se marca con un punto rojo. La elección se recuerda en el
