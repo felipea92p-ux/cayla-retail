@@ -8,12 +8,15 @@
 >   `cuarentena`), y `stock` es una fila por variante, ubicación y sububicación.
 > - Bajar y retirar del piso es la misma función: `retail.mover_interno(p_ubicacion_id, p_variante_id, p_cantidad,
 >   p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota)`, una prenda por llamada. Escribe UNA fila `traslado`
->   con motivo `movimiento_interno` («Bajada al piso» o «Retiro del piso» en Movimientos, según a dónde llegó la prenda; el filtro que trae los dos es «Bajada o retiro del piso»). La usan «Reponer» y, desde el 2026-09-25, «Retirar del piso»
->   (menú «⋯» de cada talla), los dos en Existencias.
-> - Desde el 2026-09-25 (sin pegar en producción) hay además `retail.bajar_al_piso`: varias prendas, todo o nada, con
->   token, que llama a `mover_interno` por prenda y guarda el documento en `bajadas_piso` / `bajada_piso_items`
->   (ADR-0208, «Construcción — bloque 1»). Se llega por el botón «Bajar al piso» de Existencias.
-> - También desde el 2026-09-25 (sin pegar en producción, migración `20260926000400`): un ajuste con motivo
+>   con motivo `movimiento_interno`. Movimientos la nombra por el par de sububicaciones: «Bajada al piso» (almacén →
+>   piso) o «Retiro del piso» (piso → almacén); otro par sale como «Movimiento interno», que es también el nombre del
+>   filtro (ADR-0208, «Movimientos nombra la bajada y el retiro por su par»). La usan «Reponer» y, desde el 2026-09-25,
+>   «Retirar del piso» (menú «⋯» de cada talla), los dos en Existencias y solo en la sede activa.
+> - Desde el 2026-09-25 hay además `retail.bajar_al_piso` (migración `0200`, pegada en producción según Felipe):
+>   varias prendas, todo o nada, con token, que llama a `mover_interno` por prenda y guarda el documento en
+>   `bajadas_piso` / `bajada_piso_items` (ADR-0208, «Construcción — bloque 1»). Se llega por el botón «Bajar al piso» de
+>   Existencias; el módulo que lo enciende (`0000`) está sin confirmar en producción.
+> - También desde el 2026-09-25 (migración `20260926000400`, pegada en producción según Felipe): un ajuste con motivo
 >   «Reposición» ya no puede subir ni bajar el piso; `registrar_movimiento` lo rechaza con el hint
 >   `reposicion_piso_cerrada`. Lo que sube del almacén se baja; lo que aparece de más al contar va por «Conteo físico».
 >   En el almacén sigue permitido.
@@ -627,7 +630,7 @@ sin historia se puede creer o no creer, pero no se puede auditar.
   Hoy no se cumple: hueco 6.
 - **D-40** — Vender desde el almacén se puede y el sistema registra solo el paso por el piso.
   Hoy no existe: hueco 5.
-- **D-41** — Devolver del piso al almacén ya pasa en la base; **la pantalla existe desde el 2026-09-25** («Retirar del piso», bloque 2 de ADR-0208). Hueco 7, resuelto.
+- **D-41** — Devolver del piso al almacén ya pasa en la base; **la pantalla existe desde el 2026-09-25** («Retirar del piso», bloque 2 de ADR-0208). Hueco 7: el registro está resuelto; la consecuencia no del todo, porque el semáforo de Existencias («Reponer», «Por colgar») vuelve a pedir bajar lo que se guardó a propósito, hasta que Felipe decida la marca de «retirada de la venta» (bloque 3 de ADR-0208).
 - **D-42** — La mercadería nueva entra al almacén y de ahí se baja al piso. Lo cumple
   `recibir_lote` con el contenedor `ALMACEN`.
 - **D-45 (abierta)** — Método de costeo del inventario. No se toca el núcleo hoy. Hueco 15.

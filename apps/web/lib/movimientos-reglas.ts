@@ -78,9 +78,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   transferencia: "Transferencia",
   traslado_salida: "Transferencia · salida",
   traslado_entrada: "Transferencia · llegada",
-  // Un solo motivo para los dos sentidos (bajar y retirar van por `mover_interno`). Este nombre es el del
-  // FILTRO, que trae los dos; cada fila se nombra por su destino en `etiquetaMovimiento`.
-  movimiento_interno: "Bajada o retiro del piso",
+  // El filtro es por motivo y trae todo lo que escribe `mover_interno`, sea cual sea el par: no promete bajada ni retiro.
+  movimiento_interno: "Movimiento interno",
   devolucion: "Devolución",
   cambio: "Cambio",
   anulacion_venta: "Anulación de venta",
@@ -154,24 +153,23 @@ export function etiquetaProceso(motivo: string | null): string {
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
 }
 
-/** `movimiento_interno` cubre los dos sentidos entre piso y almacén (los dos van por `mover_interno`,
- *  con el mismo motivo): lo que distingue una bajada de un retiro es a dónde llegó la prenda. */
-const INTERNO_POR_DESTINO: Record<string, string> = {
-  piso_venta: "Bajada al piso",
-  almacen_tienda: "Retiro del piso",
+/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
+const INTERNO_POR_PAR: Record<string, string> = {
+  "almacen_tienda→piso_venta": "Bajada al piso",
+  "piso_venta→almacen_tienda": "Retiro del piso",
 };
 
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
  *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
  *  MIRA («llegada» si suma, «salida» si resta): lo dice el signo, no el motivo — así
  *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas.
- *  Un movimiento entre piso y almacén se nombra por su destino («Bajada al piso» /
- *  «Retiro del piso»); con un destino que no sea ninguno de los dos, el nombre del filtro. */
-export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacionDestino">): string {
+ *  «Interno» sale de la categoría (estructura, `fn_es_traslado_interno`), nunca del motivo (ADR-0203); un par que no es
+ *  bajada ni retiro conserva el nombre de su proceso («Movimiento interno», «Activación piso/almacén»). */
+export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
-  if (m.motivo === "movimiento_interno") {
-    const porDestino = m.sububicacionDestino?.tipo ? INTERNO_POR_DESTINO[m.sububicacionDestino.tipo] : undefined;
-    if (porDestino) return porDestino;
+  if (m.categoria === "interno") {
+    const porPar = INTERNO_POR_PAR[`${m.sububicacion?.tipo ?? ""}→${m.sububicacionDestino?.tipo ?? ""}`];
+    if (porPar) return porPar;
   }
   return etiquetaProceso(m.motivo);
 }
@@ -436,7 +434,7 @@ export function etiquetaEstadoComprobante(estado: EstadoComprobante): string {
 //
 // Quedan a la vista cuatro controles: la búsqueda, el tipo (`cat`), la sububicación
 // (`sub`) y el período (`rango`, o `desde`/`hasta` cuando es personalizado). Todo lo
-// demás (el proceso específico, `proc`) va dentro de «Más filtros». Ya no se filtra
+// demás (el proceso específico, `proc`) sale debajo del tipo elegido («Internos» ▸ «Movimiento interno»). Ya no se filtra
 // por persona: la autoría sigue guardada en `movimientos.usuario_id` y en el detalle
 // de cada movimiento, pero un `?usuario=` viejo se ignora sin romper nada.
 // ---------------------------------------------------------------------------

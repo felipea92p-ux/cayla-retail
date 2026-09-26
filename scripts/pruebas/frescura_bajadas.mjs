@@ -367,11 +367,12 @@ select retail.mover_interno(:'ubic', :'vr', 2, :'sa', :'sp', null) as mov_repone
 select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vb', 'cantidad', 3)), gen_random_uuid()) ->> 'bajada_id' as bid \\gset
 -- Lo recién escrito tiene created_at = now() de ESTA transacción y la lectura va hasta now() sin incluirlo ([desde,
 -- hasta)): en la vida real la lectura es otra transacción, posterior. Se corre 1 minuto hacia atrás por fuera de los
--- disparadores (solo postgres y solo en esta transacción, que termina en ROLLBACK); el stock no cambia.
-set local session_replication_role = replica;
+-- disparadores (solo postgres y solo en esta transacción, que termina en ROLLBACK); el stock no cambia. El candado se
+-- apaga A LA VISTA y no con el modo réplica: desde 20260926160000 está en ALWAYS y el modo réplica ya no lo salta (D-22).
+alter table retail.movimientos disable trigger movimientos_inmutables;
 update retail.movimientos set created_at = created_at - interval '1 minute'
  where id = :'mov_reponer' or id in (select movimiento_id from retail.bajada_piso_items where bajada_id = :'bid');
-set local session_replication_role = origin;
+alter table retail.movimientos enable always trigger movimientos_inmutables;
 select 'BID|' || :'bid';
 select 'FELIPE|' || :'felipe';
 select 'MOVR|' || :'mov_reponer';

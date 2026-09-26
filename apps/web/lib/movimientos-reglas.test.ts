@@ -147,19 +147,47 @@ describe("etiquetaMovimiento", () => {
     expect(etiquetaMovimiento(movimiento({ motivo: "conteo", categoria: "ajuste", tipo: "ajuste" }))).toBe("Conteo");
   });
 
-  // Bajar y retirar comparten motivo (`movimiento_interno`): lo que los distingue es a dónde llegó la prenda.
-  it("un movimiento entre piso y almacén se nombra por su destino: bajada al piso o retiro del piso", () => {
+  // Bajar y retirar comparten motivo (`movimiento_interno`) y `mover_interno` acepta cualquier par de sububicaciones de
+  // la sede: lo que hace a una bajada o a un retiro es el PAR origen → destino, el mismo que usa `fn_bajadas_del_piso`.
+  describe("un movimiento interno se nombra por el par exacto de sububicaciones", () => {
     const interno = { motivo: "movimiento_interno", categoria: "interno" as const, tipo: "traslado" as const, delta: 0 };
     const piso = { id: "s1", nombre: "Piso de venta", tipo: "piso_venta" };
     const almacen = { id: "s2", nombre: "Almacén de tienda", tipo: "almacen_tienda" };
-    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacion: almacen, sububicacionDestino: piso }))).toBe("Bajada al piso");
-    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Retiro del piso");
-  });
+    const cuarentena = { id: "s3", nombre: "Cuarentena", tipo: "cuarentena" };
+    const rackA = { id: "r1", nombre: "Rack A", tipo: null };
+    const rackB = { id: "r2", nombre: "Rack B", tipo: null };
+    const par = (sububicacion: Movimiento["sububicacion"], sububicacionDestino: Movimiento["sububicacionDestino"]) =>
+      etiquetaMovimiento(movimiento({ ...interno, sububicacion, sububicacionDestino }));
 
-  it("sin destino reconocible, el movimiento interno usa el nombre del filtro (nunca rompe)", () => {
-    const interno = { motivo: "movimiento_interno", categoria: "interno" as const, tipo: "traslado" as const, delta: 0 };
-    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacionDestino: null }))).toBe("Bajada o retiro del piso");
-    expect(etiquetaMovimiento(movimiento({ ...interno, sububicacionDestino: { id: "r1", nombre: "Rack A", tipo: null } }))).toBe("Bajada o retiro del piso");
+    it("almacén → piso es «Bajada al piso» y piso → almacén es «Retiro del piso»", () => {
+      expect(par(almacen, piso)).toBe("Bajada al piso");
+      expect(par(piso, almacen)).toBe("Retiro del piso");
+    });
+
+    it("cualquier otro par se llama «Movimiento interno»: no afirma una bajada ni un retiro que no fueron", () => {
+      expect(par(cuarentena, piso)).toBe("Movimiento interno"); // fn_bajadas_del_piso tampoco la cuenta como bajada
+      expect(par(cuarentena, almacen)).toBe("Movimiento interno"); // nunca estuvo en el piso: no es un retiro
+      expect(par(null, almacen)).toBe("Movimiento interno");
+      expect(par(piso, cuarentena)).toBe("Movimiento interno");
+      expect(par(rackA, rackB)).toBe("Movimiento interno"); // el Taller no tiene piso
+      expect(par(almacen, null)).toBe("Movimiento interno");
+    });
+
+    it("«interno» se decide por la estructura (la categoría), no por el texto del motivo (ADR-0203)", () => {
+      // Una fila interna almacén → piso escrita con otro motivo es igual una bajada: la misma que ve fn_bajadas_del_piso.
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: "activacion_piso_almacen", sububicacion: almacen, sububicacionDestino: piso }))).toBe("Bajada al piso");
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: null, sububicacion: piso, sububicacionDestino: almacen }))).toBe("Retiro del piso");
+      // Y el motivo `movimiento_interno` fuera de la categoría interna no se vuelve bajada por su texto.
+      expect(etiquetaMovimiento(movimiento({ motivo: "movimiento_interno", categoria: "ajuste", tipo: "ajuste", sububicacion: almacen, sububicacionDestino: piso }))).toBe(
+        "Movimiento interno"
+      );
+    });
+
+    it("la activación de piso/almacén (sin origen → almacén) conserva su nombre, el mismo de su filtro", () => {
+      expect(etiquetaMovimiento(movimiento({ ...interno, motivo: "activacion_piso_almacen", esSistema: true, sububicacion: null, sububicacionDestino: almacen }))).toBe(
+        "Activación piso/almacén"
+      );
+    });
   });
 
   it("los ajustes sueltos llevan «Ajuste ·»: «Reposición» a secas se confundía con la bajada al piso", () => {
@@ -278,7 +306,7 @@ describe("referenciaMovimiento", () => {
 
 describe("etiquetaProceso", () => {
   it("conoce los procesos de operación y los de sistema", () => {
-    expect(etiquetaProceso("movimiento_interno")).toBe("Bajada o retiro del piso");
+    expect(etiquetaProceso("movimiento_interno")).toBe("Movimiento interno");
     expect(etiquetaProceso("carga_inicial")).toBe("Carga inicial");
     expect(etiquetaProceso("activacion_piso_almacen")).toBe("Activación piso/almacén");
     expect(etiquetaProceso("traslado_salida")).toBe("Transferencia · salida");
@@ -290,13 +318,15 @@ describe("etiquetaProceso", () => {
     expect(etiquetaProceso(null)).toBe("Sin proceso");
   });
 
-  it("«Más filtros → Proceso» ofrece cada proceso con el mismo nombre que la columna «Movimiento»", () => {
+  it("los procesos bajo cada tipo tienen el mismo nombre que la columna «Movimiento»", () => {
     const porValor = Object.fromEntries(PROCESOS_FILTRO.map((p) => [p.valor, p.etiqueta]));
     expect(porValor.traslado_salida).toBe("Transferencia · salida");
     expect(porValor.traslado_entrada).toBe("Transferencia · llegada");
     expect(porValor.recepcion).toBe("Recepción");
     expect(porValor.venta).toBe("Venta");
-    expect(porValor.movimiento_interno).toBe("Bajada o retiro del piso");
+    // El filtro es por motivo: trae TODO lo que escribe `mover_interno` (bajadas, retiros y cualquier otro par), así que
+    // su nombre no promete solo bajadas y retiros.
+    expect(porValor.movimiento_interno).toBe("Movimiento interno");
     expect(PROCESOS_FILTRO.every((p) => p.etiqueta && !p.etiqueta.includes("_"))).toBe(true);
   });
 });
