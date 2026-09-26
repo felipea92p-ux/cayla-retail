@@ -30,6 +30,12 @@
  *     variable aparte no se puede analizar mirando el texto, y sale listada como
  *     "no analizada" — nunca como aprobada. Un verificador que aprueba lo que no
  *     entendió enseña a confiar en un verde que no significa nada.
+ *   · Un nombre de función que la pantalla escribe entre comillas fuera de un `.rpc("…")`
+ *     directo (un ternario, un ayudante) también es "no analizado": se ve que la pantalla
+ *     la usa, pero no qué parámetros manda. Los comentarios NO cuentan (`comparar-lectura.mjs`).
+ *   · «Sin llamada detectada» NO prueba que una función sobre: la puede llamar otra
+ *     función, un disparador, un script o Dynamic. Nunca se retira una función por estar
+ *     en esa lista sin buscar antes quién la usa.
  *
  * DE DÓNDE SACA LA VERDAD DE PRODUCCIÓN
  *   `docs/datos/generado/funciones-produccion.txt`. Para refrescarlo, corre esta
@@ -48,12 +54,23 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { fechaDeLaFoto, nombresEntreComillas } from "./comparar-lectura.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..");
 const GEN = join(RAIZ, "docs", "datos", "generado");
 const WEB = join(RAIZ, "apps", "web");
 const FIRMAS = join(GEN, "funciones-produccion.txt");
+const FOTO = join(GEN, "retail_foto.json");
+
+// Cuándo se tomó la foto de producción con la que se compara. Todo lo que dice este informe es tan fresco como ella.
+function fechaFoto() {
+  try {
+    return fechaDeLaFoto(JSON.parse(readFileSync(FOTO, "utf8")).leido_en);
+  } catch {
+    return null;
+  }
+}
 
 // ── La verdad de producción ─────────────────────────────────────────────────
 
@@ -151,13 +168,22 @@ function archivosDeCodigo(dir, acc = []) {
   return acc;
 }
 
-function llamadas() {
+function llamadas(conocidas) {
   const encontradas = [];
   const noAnalizadas = [];
+  // Nombres de función que la pantalla escribe entre comillas (sin contar comentarios ni pruebas): la primera aparición
+  // de cada uno. Los que además tienen un `.rpc("…")` directo ya están en `encontradas`/`noAnalizadas`.
+  const mencionadas = new Map();
 
   for (const ruta of archivosDeCodigo(WEB)) {
     const texto = readFileSync(ruta, "utf8");
     const lineas = texto.split("\n");
+
+    if (!/\.test\.(ts|tsx|mts)$/.test(ruta)) {
+      for (const { nombre, linea } of nombresEntreComillas(texto, conocidas)) {
+        if (!mencionadas.has(nombre)) mencionadas.set(nombre, { archivo: relative(RAIZ, ruta), linea });
+      }
+    }
 
     // `.rpc("nombre" as never, …)` es la forma en que las pantallas de Finanzas esquivan los tipos generados que aún no
     // conocen la función: sin el `as never` opcional, esas 71 llamadas eran invisibles y sus funciones salían como «nadie las llama».
@@ -192,13 +218,21 @@ function llamadas() {
       else encontradas.push({ ...contexto, envia, textoLinea: (lineas[linea - 1] ?? "").trim() });
     }
   }
+
+  // Lo que la pantalla nombra pero no llama con un `.rpc("…")` directo (un ternario, un ayudante): la usa, pero no se
+  // pueden leer sus parámetros. Sale como «no analizada», nunca como aprobada.
+  const conLlamadaDirecta = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
+  for (const [nombre, donde] of mencionadas) {
+    if (conLlamadaDirecta.has(nombre)) continue;
+    noAnalizadas.push({ ...donde, nombre, porque: 'el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros' });
+  }
   return { encontradas, noAnalizadas };
 }
 
 // ── El informe ──────────────────────────────────────────────────────────────
 
 const produccion = firmasDeProduccion();
-const { encontradas, noAnalizadas } = llamadas();
+const { encontradas, noAnalizadas } = llamadas(new Set(produccion.keys()));
 
 const rotas = [];
 const avisos = [];
@@ -223,7 +257,10 @@ for (const ll of encontradas) {
 const llamadasUnicas = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
 const sinUsar = [...produccion.keys()].filter(n => !llamadasUnicas.has(n) && !n.startsWith("fn_") && !["set_updated_at"].includes(n));
 
-console.log(`\n  Comparando ${encontradas.length} llamadas de apps/web contra ${produccion.size} funciones de producción\n`);
+const FOTO_FECHA = fechaFoto();
+console.log(`\n  Comparando ${encontradas.length} llamadas de apps/web contra ${produccion.size} funciones de producción`);
+console.log(`  Foto de producción: ${FOTO_FECHA ?? "SIN FECHA"}. Una función creada o cambiada DESPUÉS sale como «no existe» o con`);
+console.log(`  parámetros de más aunque en producción ya esté bien: confirmar en producción antes de dar una pantalla por rota.\n`);
 
 if (sobrecargas.size) {
   console.log(`  ✗ SOBRECARGAS EN PRODUCCIÓN — ${sobrecargas.size}  (la llamada por nombre queda ambigua y falla)\n`);
@@ -262,9 +299,10 @@ if (noAnalizadas.length) {
 }
 
 if (sinUsar.length) {
-  console.log(`  · Funciones en producción que ninguna pantalla llama — ${sinUsar.length}`);
+  console.log(`  · Funciones en producción SIN llamada detectada desde apps/web — ${sinUsar.length}`);
   console.log(`    ${sinUsar.join(", ")}`);
-  console.log(`    (puede ser una pantalla que falta, o una función que sobra — las dos hay que mirarlas)\n`);
+  console.log(`    (ninguna pantalla las nombra. NO prueba que sobren: las puede llamar otra función, un disparador, un script o Dynamic.`);
+  console.log(`     Antes de retirar una, buscar quién la usa)\n`);
 }
 
 if (process.argv.includes("--md")) {
@@ -273,22 +311,14 @@ if (process.argv.includes("--md")) {
   L.push("");
   L.push(`> ⚠️ **ARCHIVO GENERADO.** Se reescribe con \`pnpm datos:comparar --md\`.`);
   L.push(`> Comparadas ${encontradas.length} llamadas de \`apps/web\` contra ${produccion.size} funciones del schema \`retail\` en producción.`);
+  L.push(`> **Foto de producción: ${FOTO_FECHA ?? "sin fecha"}.** Todo lo de este archivo es tan fresco como esa foto: una función`);
+  L.push(`> creada o cambiada DESPUÉS sale como «no existe» o con parámetros de más aunque en producción ya esté bien. Antes de dar`);
+  L.push(`> una pantalla por rota, confirmarlo en producción; para refrescar la foto, \`docs/datos/generado/COMO-REFRESCAR.md\`.`);
   L.push("");
   L.push(`---`);
   L.push("");
   L.push(`## Roto en producción — ${rotas.length}`);
   L.push("");
-  L.push(`## Sobrecargas — ${sobrecargas.size}`);
-  L.push("");
-  if (!sobrecargas.size) L.push(`Ninguna. Cada función tiene una sola firma en producción.`);
-  for (const [nombre, firmas] of sobrecargas) {
-    L.push(`### \`${nombre}\` — ${firmas.length} firmas`);
-    L.push("");
-    L.push(`Una llamada por nombre que no nombre todos los parámetros queda ambigua («function … is not unique») y falla siempre. Hay que soltar la firma sobrante (\`drop function\`).`);
-    L.push("");
-    for (const f of firmas) L.push(`- \`${f}\``);
-    L.push("");
-  }
   if (!rotas.length) L.push(`Nada. Todas las llamadas encajan con la firma real.`);
   for (const r of rotas) {
     L.push(`### \`${r.nombre}\` — ${r.tipo}`);
@@ -300,7 +330,19 @@ if (process.argv.includes("--md")) {
       L.push(`**La app manda:** \`${r.envia.join("`, `") || "—"}\``);
       L.push(`**Producción acepta:** \`${fn.parametros.join("`, `") || "—"}\``);
     }
-    L.push(`**Consecuencia:** esa pantalla falla siempre en las tiendas. No es intermitente.`);
+    L.push(`**Ojo:** si esa función o esa firma es más nueva que la foto (${FOTO_FECHA ?? "sin fecha"}), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.`);
+    L.push(`**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.`);
+    L.push("");
+  }
+  L.push(`## Sobrecargas — ${sobrecargas.size}`);
+  L.push("");
+  if (!sobrecargas.size) L.push(`Ninguna. Cada función tiene una sola firma en producción.`);
+  for (const [nombre, firmas] of sobrecargas) {
+    L.push(`### \`${nombre}\` — ${firmas.length} firmas`);
+    L.push("");
+    L.push(`Una llamada por nombre que no nombre todos los parámetros queda ambigua («function … is not unique») y falla siempre. Hay que soltar la firma sobrante (\`drop function\`).`);
+    L.push("");
+    for (const f of firmas) L.push(`- \`${f}\``);
     L.push("");
   }
   L.push(`## Avisos — ${avisos.length}`);
@@ -309,15 +351,24 @@ if (process.argv.includes("--md")) {
   L.push("");
   L.push(`## No analizadas — ${noAnalizadas.length}`);
   L.push("");
-  L.push(`Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se`);
-  L.push(`pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**`);
+  L.push(`Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un`);
+  L.push(`\`.rpc("…")\` directo (un ternario, un ayudante), así que no se pueden revisar leyendo el texto.`);
+  L.push(`**No están aprobadas: están sin revisar.**`);
   L.push("");
   for (const n of noAnalizadas) L.push(`- \`${n.nombre}\` · \`${n.archivo}:${n.linea}\` — ${n.porque}`);
   L.push("");
-  L.push(`## Funciones que nadie llama — ${sinUsar.length}`);
+  L.push(`## Funciones sin llamada detectada desde \`apps/web\` — ${sinUsar.length}`);
   L.push("");
-  L.push(`Existen en producción y ninguna pantalla las usa. Cada una es una de dos cosas:`);
-  L.push(`una pantalla que falta construir, o una función que sobra y habría que retirar.`);
+  L.push(`Existen en producción y ninguna pantalla de \`apps/web\` las nombra entre comillas (ni con un \`.rpc("…")\``);
+  L.push(`directo ni de otra forma; los comentarios y las pruebas no cuentan; las \`fn_*\` se descartan a propósito).`);
+  L.push(`**Esto NO prueba que sobren.** Cada una puede ser:`);
+  L.push("");
+  L.push(`- una función que **llama otra función o un disparador** de la base (aquí no se leen los cuerpos SQL);`);
+  L.push(`- una que llama **un script o Dynamic**, no una pantalla;`);
+  L.push(`- una **pantalla que falta construir**;`);
+  L.push(`- o una función que de verdad **sobra**.`);
+  L.push("");
+  L.push(`Antes de retirar una, buscar quién la usa (\`git grep\`, los cuerpos de las demás funciones y los disparadores).`);
   L.push("");
   for (const s of sinUsar) L.push(`- \`${s}\``);
   L.push("");

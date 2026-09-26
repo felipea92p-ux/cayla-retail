@@ -1,17 +1,75 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 257 llamadas de `apps/web` contra 544 funciones del schema `retail` en producción.
+> Comparadas 267 llamadas de `apps/web` contra 544 funciones del schema `retail` en producción.
+> **Foto de producción: 2026-09-25 16:09 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> creada o cambiada DESPUÉS sale como «no existe» o con parámetros de más aunque en producción ya esté bien. Antes de dar
+> una pantalla por rota, confirmarlo en producción; para refrescar la foto, `docs/datos/generado/COMO-REFRESCAR.md`.
 
 ---
 
-## Roto en producción — 0
+## Roto en producción — 8
+
+### `editar_marca` — no existe
+
+**Dónde:** `apps/web/components/EditarMarcaModal.tsx:84`
+**Qué pasa:** la función `editar_marca` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_actividad` — no existe
+
+**Dónde:** `apps/web/components/actividad/ListaActividad.tsx:43`
+**Qué pasa:** la función `fn_actividad` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_actividad_personas` — no existe
+
+**Dónde:** `apps/web/components/actividad/PantallaActividad.tsx:37`
+**Qué pasa:** la función `fn_actividad_personas` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_calidad` — no existe
+
+**Dónde:** `apps/web/lib/calidad.ts:56`
+**Qué pasa:** la función `fn_calidad` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_calidad_danadas` — no existe
+
+**Dónde:** `apps/web/lib/calidad.ts:57`
+**Qué pasa:** la función `fn_calidad_danadas` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_comercial_sedes` — no existe
+
+**Dónde:** `apps/web/lib/comercial.ts:62`
+**Qué pasa:** la función `fn_comercial_sedes` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_comercial_horas` — no existe
+
+**Dónde:** `apps/web/lib/comercial.ts:63`
+**Qué pasa:** la función `fn_comercial_horas` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
+
+### `fn_comercial_colaboradoras` — no existe
+
+**Dónde:** `apps/web/lib/comercial.ts:64`
+**Qué pasa:** la función `fn_comercial_colaboradoras` no existe en producción
+**Ojo:** si esa función o esa firma es más nueva que la foto (2026-09-25 16:09 UTC), ya está bien en producción: confirmarlo antes de dar la pantalla por rota.
+**Consecuencia si sigue así:** esa pantalla falla siempre en las tiendas. No es intermitente.
 
 ## Sobrecargas — 0
 
 Ninguna. Cada función tiene una sola firma en producción.
-Nada. Todas las llamadas encajan con la firma real.
-## Avisos — 33
+## Avisos — 32
 
 - `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:88` — no manda `p_motivo` (normal si tienen valor por defecto)
 - `actualizar_categoria_ejes` · `apps/web/app/api/productos/categorias/ejes/route.ts:26` — no manda `p_talla_habitual_ids` (normal si tienen valor por defecto)
@@ -20,16 +78,15 @@ Nada. Todas las llamadas encajan con la firma real.
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
 - `crear_devolucion` · `apps/web/components/DevolucionesFlujo.tsx:232` — no manda `p_motivo_codigo` (normal si tienen valor por defecto)
 - `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:602` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
-- `recibir_insumo` · `apps/web/components/InsumoModales.tsx:158` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
+- `recibir_insumo` · `apps/web/components/InsumoModales.tsx:151` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_consumo_insumo` · `apps/web/components/OrdenInsumos.tsx:124` — no manda `p_nota` (normal si tienen valor por defecto)
 - `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:154` — no manda `p_nota` (normal si tienen valor por defecto)
 - `guardar_proveedor_produccion` · `apps/web/components/ProveedorProduccionModal.tsx:85` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
-- `mover_interno` · `apps/web/components/ReponerPisoModal.tsx:71` — no manda `p_nota` (normal si tienen valor por defecto)
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:67` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_serie_comprobante` · `apps/web/components/SeriesPanel.tsx:92` — no manda `p_siguiente_numero` (normal si tienen valor por defecto)
-- `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:93` — no manda `p_contacto`, `p_rubro`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
-- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:232` — no manda `p_clienta_id` (normal si tienen valor por defecto)
-- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:261` — no manda `p_estados` (normal si tienen valor por defecto)
+- `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:161` — no manda `p_contacto`, `p_rubro`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
+- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:251` — no manda `p_clienta_id` (normal si tienen valor por defecto)
+- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:280` — no manda `p_estados` (normal si tienen valor por defecto)
 - `fn_presupuesto_propuesta` · `apps/web/components/finanzas/ConfiguracionPresupuesto.tsx:115` — no manda `p_hoy` (normal si tienen valor por defecto)
 - `registrar_adjunto_compra` · `apps/web/lib/adjuntos-compra.ts:84` — no manda `p_nota_credito_id` (normal si tienen valor por defecto)
 - `fn_balance_general` · `apps/web/lib/balance.ts:33` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
@@ -47,12 +104,13 @@ Nada. Todas las llamadas encajan con la firma real.
 - `actualizar_transmision_comprobante` · `apps/web/lib/transmitir-comprobante.ts:170` — no manda `p_entorno`, `p_motivo_rechazo` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:166` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 38
+## No analizadas — 50
 
-Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
-pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
+Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un
+`.rpc("…")` directo (un ternario, un ayudante), así que no se pueden revisar leyendo el texto.
+**No están aprobadas: están sin revisar.**
 
-- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:170` — el objeto se arma con «...», no se puede leer entero
+- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:179` — el objeto se arma con «...», no se puede leer entero
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:65` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:278` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:364` — el objeto se arma con «...», no se puede leer entero
@@ -60,20 +118,23 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `registrar_gasto` · `apps/web/components/GastosPanel.tsx:599` — el objeto se arma con «...», no se puede leer entero
 - `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:69` — los parámetros no van escritos ahí mismo
 - `fn_impuestos_registro_compras` · `apps/web/components/ImpuestosPanel.tsx:71` — los parámetros no van escritos ahí mismo
+- `crear_producto_con_stock_inicial` · `apps/web/components/NuevoProductoForm.tsx:366` — los parámetros no van escritos ahí mismo
 - `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:189` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:199` — el objeto se arma con «...», no se puede leer entero
 - `catalogo_actualizar_producto` · `apps/web/components/ProductoForm.tsx:346` — el objeto se arma con «...», no se puede leer entero
-- `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:261` — el objeto se arma con «...», no se puede leer entero
-- `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:265` — los parámetros no van escritos ahí mismo
-- `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:276` — los parámetros no van escritos ahí mismo
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:432` — los parámetros no van escritos ahí mismo
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:927` — los parámetros no van escritos ahí mismo
+- `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:302` — el objeto se arma con «...», no se puede leer entero
+- `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:306` — los parámetros no van escritos ahí mismo
+- `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:317` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:487` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1040` — los parámetros no van escritos ahí mismo
 - `reasignar_reparto_compra` · `apps/web/components/ReasignarReparto.tsx:146` — el objeto se arma con «...», no se puede leer entero
-- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:642` — los parámetros no van escritos ahí mismo
-- `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:80` — el objeto se arma con «...», no se puede leer entero
+- `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:675` — los parámetros no van escritos ahí mismo
+- `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:97` — los parámetros no van escritos ahí mismo
 - `registrar_nota_credito_compra` · `apps/web/components/RegistrarNotaCreditoModal.tsx:204` — el objeto se arma con «...», no se puede leer entero
+- `mover_interno` · `apps/web/components/ReponerPisoModal.tsx:95` — el objeto se arma con «...», no se puede leer entero
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:61` — el objeto se arma con «...», no se puede leer entero
 - `registrar_movimiento_dinero` · `apps/web/components/finanzas/CuentasDinero.tsx:859` — el objeto se arma con «...», no se puede leer entero
+- `editar_cuenta_dinero` · `apps/web/components/finanzas/EditarCuentaModal.tsx:90` — los parámetros no van escritos ahí mismo
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:283` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:363` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos_resumen` · `apps/web/lib/catalogo-v2.ts:386` — los parámetros no van escritos ahí mismo
@@ -90,11 +151,28 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `fn_facturas_para_nota_credito` · `apps/web/lib/notas-credito.ts:148` — el objeto se arma con «...», no se puede leer entero
 - `asignar_rol` · `apps/web/lib/roles-acciones.ts:50` — el objeto se arma con «...», no se puede leer entero
 - `abrir_caja` · `apps/web/lib/useResponsable.ts:26` — el objeto se arma con «...», no se puede leer entero
+- `fn_productos_por_categoria` · `apps/web/app/(app)/productos/categorias/page.tsx:42` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `reactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `desactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `desactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:177` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `reactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:177` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `registrar_activo` · `apps/web/components/RegistrarGastoModal.tsx:176` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `cerrar_periodo` · `apps/web/components/finanzas/CierreMes.tsx:273` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `reabrir_periodo` · `apps/web/components/finanzas/CierreMes.tsx:351` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
+- `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros
 
-## Funciones que nadie llama — 30
+## Funciones sin llamada detectada desde `apps/web` — 21
 
-Existen en producción y ninguna pantalla las usa. Cada una es una de dos cosas:
-una pantalla que falta construir, o una función que sobra y habría que retirar.
+Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")`
+directo ni de otra forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito).
+**Esto NO prueba que sobren.** Cada una puede ser:
+
+- una función que **llama otra función o un disparador** de la base (aquí no se leen los cuerpos SQL);
+- una que llama **un script o Dynamic**, no una pantalla;
+- una **pantalla que falta construir**;
+- o una función que de verdad **sobra**.
+
+Antes de retirar una, buscar quién la usa (`git grep`, los cuerpos de las demás funciones y los disparadores).
 
 - `agregar_colaborador`
 - `agregar_comprador_de_tienda`
@@ -106,23 +184,14 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `archivar_venta_prueba`
 - `cambiar_tienda_gestora_compra`
 - `catalogo_crear_producto`
-- `cerrar_periodo`
 - `convertir_proforma_a_comprobante`
-- `desactivar_categoria`
-- `desactivar_proveedor`
-- `editar_cuenta_dinero`
-- `eliminar_cuenta_dinero`
 - `emitir_comprobante`
 - `emitir_nota`
 - `quitar_comprador_de_tienda`
-- `reabrir_periodo`
-- `reactivar_categoria`
-- `reactivar_proveedor`
 - `recalcular_compras`
 - `recalcular_stock`
 - `recibir_compras`
 - `recibir_y_cerrar_compras`
-- `registrar_activo`
 - `registrar_gasto_legado_2026_09`
 - `registrar_pago_compra`
 - `registrar_pedido_no_atendido`
