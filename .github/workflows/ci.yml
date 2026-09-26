@@ -428,6 +428,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:movimientos-desde-la-tienda
 
+      # Un ajuste no es la primera carga (ADR-0233): la base rechaza un ajuste que sería el primer movimiento de una prenda
+      # en la tienda (`ajuste_sin_historia`) y `cargar_stock_inicial` la carga como entrada, todas o ninguna, al almacén o
+      # al piso con su bajada; después, un ajuste de verdad pasa como siempre. Cada caso en ROLLBACK.
+      - name: pruebas:ajuste-no-es-primera-carga
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ajuste-no-es-primera-carga
+
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes

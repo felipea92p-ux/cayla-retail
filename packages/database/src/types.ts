@@ -5121,6 +5121,16 @@ export type Database = {
         Args: { p_nombre: string; p_proveedor_id: string }
         Returns: string
       }
+      cargar_stock_inicial: {
+        Args: {
+          p_al_piso?: boolean
+          p_items: Json
+          p_nota?: string
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: number
+      }
       crear_producto_con_stock_inicial: {
         Args: {
           p_al_piso?: boolean

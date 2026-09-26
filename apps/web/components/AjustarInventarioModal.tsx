@@ -12,6 +12,7 @@ import {
   NOTA_REPOSICION_CERRADA,
   armarVariantesAjuste,
   motivosAjusteDisponibles,
+  repartirLineasAjuste,
   reposicionCerrada,
   type MotivoAjuste,
   type VarianteAjuste,
@@ -29,6 +30,10 @@ import { firmar } from "@/lib/responsable-reglas";
 // Este modal valida en pantalla con el stock ya cargado para dar feedback instantáneo
 // (principio 10) — la RPC queda como red real si el stock cambió mientras el modal
 // estaba abierto.
+//
+// ADR-0233: una prenda que nunca tuvo un movimiento en esta tienda no se «ajusta» —la base ya no lo deja
+// (`ajuste_sin_historia`)—: su primera cantidad entra como STOCK INICIAL (`cargar_stock_inicial`, una entrada), así
+// Movimientos no la muestra para siempre como un sobrante. El modal lo hace solo al confirmar, y lo dice en la fila.
 
 export function AjustarInventarioModal({
   productoId,
@@ -116,6 +121,8 @@ export function AjustarInventarioModal({
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
   const negativas = lineas.filter((l) => l.resultado < 0);
+  // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
+  const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
 
   // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
   const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
@@ -155,7 +162,8 @@ export function AjustarInventarioModal({
       if (responsable.motivo) setError(responsable.motivo);
       return;
     }
-    if (!motivo) {
+    // El motivo es del ajuste: las prendas nuevas en la tienda entran como stock inicial y no lo necesitan.
+    if (ajustes.length > 0 && !motivo) {
       setError("Elige un motivo para el ajuste.");
       return;
     }
@@ -173,9 +181,35 @@ export function AjustarInventarioModal({
     setEnviando(true);
     setError(null);
     const supabase = createClient();
-    const pendientes = [...lineas];
-    // Una sola firma para todo el ajuste: cada línea es una llamada, pero la operación es una y la hace una persona.
+    // Una sola firma para todo: cada línea es una llamada, pero la operación es una y la hace una persona.
     const firma = responsable.firma();
+
+    // Primero las prendas nuevas en la tienda, todas juntas (todas o ninguna): entran como stock inicial.
+    if (cargaInicial.length > 0) {
+      const { error: errorCarga } = await firmar(
+        supabase.rpc("cargar_stock_inicial", {
+          p_ubicacion_id: ubicacionId,
+          p_items: cargaInicial.map((l) => ({ variante_id: l.variante.varianteId, cantidad: l.delta })),
+          p_nota: nota.trim() || undefined,
+          p_al_piso: separaPisoAlmacen && ubicado === "piso",
+        }),
+        firma
+      );
+      if (errorCarga) {
+        setEnviando(false);
+        responsable.despues(errorCarga);
+        setError(traducirError(errorCarga, "cargar el stock inicial"));
+        return;
+      }
+      // Ya entraron: se quitan del formulario para no volver a mandarlas si un ajuste de abajo falla y se reintenta.
+      setDeltas((prev) => {
+        const siguiente = { ...prev };
+        for (const cargada of cargaInicial) delete siguiente[cargada.variante.varianteId];
+        return siguiente;
+      });
+    }
+
+    const pendientes = [...ajustes];
     for (const linea of pendientes) {
       const { error: errorRpc } = await firmar(supabase.rpc("registrar_movimiento", {
         p_variante_id: linea.variante.varianteId,
@@ -206,9 +240,11 @@ export function AjustarInventarioModal({
     }
     setEnviando(false);
     responsable.despues(null);
-    avisar.exito(`${lineas.length} ${lineas.length === 1 ? "variante ajustada" : "variantes ajustadas"}`, {
-      detalle: referencia,
-    });
+    const partes = [
+      ajustes.length > 0 && `${ajustes.length} ${ajustes.length === 1 ? "variante ajustada" : "variantes ajustadas"}`,
+      cargaInicial.length > 0 && `${cargaInicial.length} ${cargaInicial.length === 1 ? "cargada" : "cargadas"} como stock inicial`,
+    ].filter(Boolean);
+    avisar.exito(partes.join(" · "), { detalle: referencia });
     router.refresh();
     onClose();
   }
@@ -251,6 +287,7 @@ export function AjustarInventarioModal({
                           {v.sku} · stock {actual}
                           {conAjuste ? ` → ${actual + delta}` : ""}
                         </p>
+                        {v.sinHistoria && <p className="text-[11px] text-taupe">Nueva en esta tienda · entra como stock inicial</p>}
                       </div>
                       <input
                         type="number"
