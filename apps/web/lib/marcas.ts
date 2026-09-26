@@ -217,7 +217,7 @@ export function textoProductosMarca(activos: number, total: number): string {
 
 /** ¿Se ofrece «Eliminar»? Solo si ningún producto tiene la marca — activo, descontinuado o archivado como prueba: todos
  *  siguen citándola en su ficha y en las ventas ya hechas. Una marca sin proveedores tampoco tiene productos (la llave de
- *  `productos` pide la pareja). Avisa antes de ir a la base, pero la que manda es `eliminar_marca` (20260926210000). */
+ *  `productos` pide la pareja). Avisa antes de ir a la base, pero la que manda es `eliminar_marca` (20260926213000). */
 export function sePuedeEliminarMarca(proveedores: readonly Pick<ParejaDeMarca, "productosTotal">[]): boolean {
   return proveedores.every((p) => p.productosTotal === 0);
 }

@@ -4,8 +4,12 @@
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
 ## 2026-09-26 (Catálogo ▸ Marcas: «Eliminar» para una marca puesta por error — ADR-0217)
-«Cayla 2» se creó por error al dar de alta un producto y solo se podía desactivar: quedaba en «Desactivadas» para siempre y ocupaba su nombre. Ahora hay «Eliminar», pero solo cuando ningún producto tiene la marca —ni descontinuado ni archivado como prueba—. La migración `20260926210000` (una función, `eliminar_marca`) está probada 21/21 en un Postgres desechable, con 3 mutaciones detectadas y una carrera real con COMMIT en los dos órdenes; **ya está en producción** (aplicada el mismo día con tu «dale», con ensayo previo revertido y verificada por efectos), antes que la web.
+«Cayla 2» se creó por error al dar de alta un producto y solo se podía desactivar: quedaba en «Desactivadas» para siempre y ocupaba su nombre. Ahora hay «Eliminar», pero solo cuando ningún producto tiene la marca —ni descontinuado ni archivado como prueba—. La migración `20260926213000` (una función, `eliminar_marca`) está probada 21/21 en un Postgres desechable, con 3 mutaciones detectadas y una carrera real con COMMIT en los dos órdenes; **ya está en producción** (aplicada el mismo día con tu «dale», con ensayo previo revertido y verificada por efectos), antes que la web.
 Felipe se lleva: (1) **el producto que «solo era una prueba» tenía una venta completada**, así que no se puede borrar: se re-marca (Top Aurora → Krisstell, que Jacard ya trae) y recién entonces la marca se elimina. (2) **Descontinuar o archivar como prueba no libera la marca**: el producto sigue apuntándole. (3) **Borrar solo es seguro donde no hay historia**: por eso Eliminar existe para marcas sin productos y no para las demás.
+
+## 2026-09-26 (Colores del lujo: Gris piedra, Índigo y Nude — ADR-0215 act. b)
+Se revisó la paleta contra Ralph Lauren, LVMH y Hermès: de 62 colores que usan 2 o más marcas, CAYLA cubría 53. Midiendo cada faltante contra producción, 3 de los 4 ya estaban con otro nombre (latte = Arena, tabaco = Tostado; crema, azul hielo, amaranto y greige también), y entran como sinónimos. Se sumaron los que de verdad faltaban: Gris piedra (8 marcas), Índigo (4 y Pantone) y Nude (2). Quedan 71 colores; el orden pasó a centenas y la paleta a columnas que se ajustan al ancho. La migración `20260926210000` está en producción.
+Felipe se lleva: (1) **un nombre distinto no es un color distinto**: «Latte» es nuestra Arena a ΔE 2,0. (2) **Antes de sumar un color, se mide contra lo que ya hay**: así el informe de «4 faltantes» quedó en 3 colores nuevos y 7 sinónimos. (3) **«Gris piedra» y no «Piedra»**: en tienda, «piedra» también es pedrería y lavado a la piedra.
 
 ## 2026-09-26 (Revisión de errores en Catálogo ▸ Productos y Existencias: el código de la prenda salía vacío)
 Felipe pasó tres capturas («esto está lleno de errores»). Se verificó cada síntoma contra el código y, en solo lectura, contra producción: 128 de 130 variantes tienen `sku` NULL (ADR-0058: nació opcional), pero 129 tienen `codigo`. Existencias leía solo `sku`, por eso la celda decía «· L ·» sin nada; ahora lee el código de la etiqueta (y con él buscan, ordenan y exportan Existencias, Ajustar y la tabla de Productos). También: «1 productos» → «1 producto», y la tarjeta «Reponer a piso hoy» ya no afirma «con demanda» (la regla nunca mira ventas).
@@ -16,12 +20,15 @@ Felipe se lleva:
 
 Con el «sí» de Felipe, «Producto de Prueba» quedó marcado `es_prueba` en producción: tenía 160 de las 363 unidades de TRU y falseaba «Disponible total», la barra piso/almacén y «Por colgar». Existencias de TRU pasa de 363 a 203 (158 piso · 45 almacén). Un producto de prueba sin marcar no es inocente: contamina cada cifra que suma stock.
 
+
 ## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)
 «Reponer» y «Retirar del piso» ya no pueden mover dos veces tras un corte de red: cada intento lleva una marca, y la base devuelve el mismo movimiento si llega repetida. `mover_interno` sigue siendo UNA función (séptimo parámetro opcional); `bajar_al_piso`, que ya tenía su marca, no cambia. Sin pegar: `20260926200000` → `20260926200100` y recién entonces la web. Probado con 12 casos SQL, dos envíos simultáneos con COMMIT y en el navegador con la red cortada.
 Felipe se lleva:
 1. **Tras un corte, la pantalla no sabe si se guardó; la base sí.** Por eso el reintento es una pregunta a la base con la misma marca, no un segundo movimiento. Y mientras no se sabe, la cantidad queda fija: cambiarla sería otro pedido y movería de nuevo lo que quizá ya se movió.
 2. **La marca se mira antes que el responsable.** Comprobar algo ya guardado no escribe nada: si la colaboradora marcó salida en el medio, el reintento igual responde «ya estaba».
 3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
+
+Más tarde el mismo día: Felipe pegó `20260926200000` → `20260926200100` en producción (una sola firma de `mover_interno`, terminada en `p_token uuid`) y recién después fusionó la web (#458). El orden «SQL antes que la web» se cumplió.
 
 ## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
 Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.

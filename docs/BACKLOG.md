@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎨 Colores del lujo: Gris piedra, Índigo y Nude (2026-09-26, ADR-0215 act. b) — migración `20260926210000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR
+- [x] Ralph Lauren, LVMH y Hermès, investigados en vivo: CAYLA cubría 53 de 62 colores recurrentes. Entraron Gris piedra (14-0105), Índigo (19-3928) y Nude (12-0911); latte, capuchino, tabaco, crema, azul hielo, amaranto, greige y castaño son sinónimos. 71 activos.
+- [x] Orden en centenas por familia; un color creado desde Atributos entra en 2000. La paleta usa tantas columnas como quepan (alineadas), verificada en escritorio y a 375 px.
+- [ ] Caoba (18-1425 Mahogany, 5 marcas) cabe sin duplicar; Felipe decidió no sumarla por ahora.
+
+---
+
 ## 🩹 El código de la prenda salía vacío en Existencias y Productos (2026-09-26) — solo web, sin migración
 Causa: `variantes.sku` es NULL en 128 de 130 variantes (ADR-0058) y esas pantallas leían solo `sku`; el que casi todas tienen es `variantes.codigo` (129 de 130, consultado en vivo). Regla nueva y única: `codigoDeEtiqueta` en `lib/prenda-reglas.ts` (código → sku legado → `""`; `codigoPrenda` la usa y agrega «sin código»).
 - [x] Existencias y todo lo que sale de `getStockPorUbicacion`/`getExistencias` (análisis de cobertura, recomendaciones, Reponer, Apartar, Bajar al piso, CSV, buscador), Ajustar inventario (`ajuste-reglas.ts`) y la tabla de Productos (`ProductosAgrupados.tsx`, encabezado «Código»). Pruebas: `prenda-reglas.test.ts`, `ajuste-reglas.test.ts`.
@@ -35,6 +42,7 @@ Causa: `variantes.sku` es NULL en 128 de 130 variantes (ADR-0058) y esas pantall
 - [x] **«Producto de Prueba» (`POL-0004`) marcado `es_prueba = true` EN PRODUCCIÓN (2026-09-26, con el «sí» de Felipe).** Tenía 160 de las 363 unidades de TRU (todas en almacén) e inflaba Existencias. Ensayo revertido antes (1 fila; solo cambian `es_prueba`, `version` 2→3 y `catalogo_version` 385→386) y `update` con candado por id + nombre; verificado: stock intacto (160), TRU sin prueba = 158 piso + 45 almacén = 203. **Sigue visible** en Catálogo ▸ Productos, Vender, Cambios y Traslados (ADR-0159: solo Existencias, Historial de ventas, Caja y Conteos lo excluyen); si Felipe quiere que también desaparezca de ahí, es decisión aparte. Para deshacer: `update retail.productos set es_prueba = false where id = 'd432c60e-c77e-4e59-9794-88ddead44939';`.
 - [ ] **Siguen leyendo `variantes.sku` directo y mostrarán el hueco** (verificado en el código, no en pantalla): Conteo (`lib/conteos.ts` ×3, `ConteoDetalleVista`), Compras (`lib/compras.ts` ×2), Producción (`lib/produccion.ts` ×2), Traslados y Recepción (`TrasladoDetallePanel`, `RecepcionEnvio`), `getCatalogo` y `VarianteDetalle` (`catalogo-v2.ts`), y **Movimientos** (la RPC `fn_movimientos` devuelve solo `sku`: pide migración). Cada una: agregar `codigo` al select y pasar por `codigoDeEtiqueta`. **No** rellenar `variantes.sku` con el código en producción (ADR-0058: sería un dato inventado para tapar un NOT NULL que ya no existe).
 - [ ] Sin tocar, por decisión de Felipe: buscar «CAYLA» (la marca) en Existencias no encuentra nada porque el buscador solo mira nombre, código, color y talla. (La foto de cabecera con letreros en inglés que se vio en la captura ya no existe: `main` quitó las fotos de cabecera de Inventario en `07c2ae66`.)
+
 
 ## 🎨 Colores: Pantone TCX, sinónimos y 4 colores nuevos (2026-09-26, ADR-0215) — migración `20260926180000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR #456
 - [x] `colores.pantone_tcx` (único, con formato) y `colores.sinonimos`. 60 colores con su TCX (los metálicos, sin código); 23 con sinónimos. Cereza, Moka, Durazno y Mora: 68 activos.
@@ -97,7 +105,7 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [x] **«Marrón chocolate» (MAC) se llama «Coñac»** (decisión de Felipe). Cambió solo el nombre; el código sigue siendo MAC y el color va en el lugar 75 de Tierra. Queda en la misma migración. Su nota interna todavía dice «Marrón más oscuro»: quien la escribió puede corregirla en Atributos ▸ Colores.
 - [ ] **Sinónimos peruanos en el buscador de colores** (plomo → Gris, café → Marrón, guinda → Vino, jaspeado → Gris melange). Hoy quien escribe «plomo» no encuentra nada, y lo natural es proponer un color nuevo (un duplicado de Gris que el candado de nombre no frena, como pasó con MAC al lado de Chocolate). `ComboBuscable` ya busca también en `detalle`; falta decidir si los sinónimos van en una columna `colores.sinonimos` o en una lista en `lib/`.
 
-## 🎯 Catálogo ▸ Marcas: «Eliminar» (2026-09-26, ADR-0217) — migración `20260926210000` EN PRODUCCIÓN (aplicada 2026-09-26, verificada por efectos); web en PR
+## 🎯 Catálogo ▸ Marcas: «Eliminar» (2026-09-26, ADR-0217) — migración `20260926213000` EN PRODUCCIÓN (aplicada 2026-09-26, verificada por efectos); web en PR
 - [x] `retail.eliminar_marca(p_marca_id)`: borra la marca y sus vínculos, todo o nada, solo si ningún producto (de cualquier estado) la tiene. Botón «Eliminar» en la tarjeta y en «Desactivadas», visible solo cuando se puede (`sePuedeEliminarMarca`).
 - [x] Probado: `pnpm pruebas:eliminar-marca` 21/21 (sumada al CI), 3 mutaciones detectadas, carrera con COMMIT en los dos órdenes, `pruebas:editar-marca` sigue 23/23.
 - [x] **Aplicada en producción** (2026-09-26, con el «dale» de Felipe): ensayo revertido en la base real y luego `apply_migration`. Verificada por efectos: `eliminar_marca(uuid) → text`, `security definer`, `search_path` fijo, `authenticated` sí / `anon` no, una sola versión, md5 del cuerpo = el del archivo (`29675633…`).
@@ -142,7 +150,7 @@ El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cu
 | 2 | La caja dice «está en el almacén: hay N» | Fuera de los bloques; roza la D-40, que se decide antes del bloque 3. Hecha (#437). |
 | 3 | «Retirar del piso», y el ajuste pregunta dónde está la ropa | Bloque 2, solo el retiro (#440, opción A); los motivos nuevos se descartaron. Lo del ajuste no salió: sigue arrancando en «Piso» (`AjustarInventarioModal.tsx:53`), aunque con la `0400` «Reposición» ya no suma ahí. |
 | 4 | «Por colgar» en Existencias | Fuera de los bloques. Hecha (#438). |
-| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso», con la marca de `mover_interno` (construida el 2026-09-26, por pegar; ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
+| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso», con la marca de `mover_interno` (en producción desde el 2026-09-26; ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
 | 6 | Bajar un fardo entero escaneando | Bloque 1 (`/inventario/bajar`). |
 | 7 | «Traer y vender» desde la caja: la bajada de último minuto se declara | Sin bloque. Depende de la D-40 (ADR-0208, (g)): el bloque 1 eligió deducir la bajada tardía al leer, no declararla. Se concilia antes del bloque 3. |
 | 8 | Una fecha de arranque por sede, más la cobertura del registro | No se puede mapear entera: la cobertura se parece al indicador de «confianza del registro» del bloque 3, pero la fecha de arranque no está en ningún bloque. |
@@ -449,12 +457,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - [x] El mismo hueco de sede, cerrado en todo Existencias (Felipe, 2026-09-26): mirando otra sede con `?ubicacion=`,
     «Apartar», «Ajustar», «Liberar» (apartados) y resolver o liquidar dañados ya no se ofrecen (firmaban con el
     Responsable de la sede activa); una nota dice que se cambie la sede activa en la cabecera.
-- [x] **Candado de `mover_interno` (entre el bloque 2 y el 3)** — construido el 2026-09-26, **no está en producción**:
+- [x] **Candado de `mover_interno` (entre el bloque 2 y el 3)** — en producción desde el 2026-09-26 (Felipe pegó `20260926200000` y `20260926200100`; `mover_interno` quedó con UNA firma, terminada en `p_token uuid`; web fusionada en #458). Falta que entre al diccionario (`docs/datos/generado/`) con el próximo volcado de producción:
   `mover_interno` suma `p_token` opcional (una sola firma) y la tabla `movimientos_internos_intentos`; el reintento con
   la misma marca devuelve el mismo movimiento, con otros datos se rechaza, y la marca se mira antes del responsable.
   «Reponer» y «Retirar del piso» mandan una marca por modal y, tras un corte, dejan la cantidad fija con «Confirmar de
-  nuevo». **Pegar `20260926200000` → `20260926200100` ANTES de fusionar su web** (si no, «Reponer» y «Retirar» fallan
-  hasta pegarlas; `pnpm datos:comparar` lo avisa). Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
+  nuevo». Se pegó en el orden previsto (200000 → 200100) antes de fusionar la web. Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
   ADR-0208, «Actualización 2026-09-26 — la marca de `mover_interno`». Cierra la «tarea 5» del plan del termómetro en lo
   que toca a Reponer y Retirar (el contexto por documento sigue sin construir).
 - [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del

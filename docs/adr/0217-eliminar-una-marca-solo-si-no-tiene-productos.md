@@ -5,7 +5,7 @@
 `eliminar_marca` con ensayo previo revertido) — verificada por efectos: firma, `security definer`, `search_path`, `authenticated` sí / `anon` no, una sola versión y
 md5 del cuerpo idéntico al archivo. Quedó **antes que la web**, como debe (sin la función, el botón llamaría a algo que producción no tiene).
 **Decide:** Felipe, 2026-09-26: «"Cayla 2" no existe, quiero eliminarla; sería más útil tener una opción para eliminarla».
-**Afecta:** `supabase/migrations/20260926210000_eliminar_marca.sql` (una función, `retail.eliminar_marca`), `apps/web/components/MarcasLista.tsx`,
+**Afecta:** `supabase/migrations/20260926213000_eliminar_marca.sql` (una función, `retail.eliminar_marca`), `apps/web/components/MarcasLista.tsx`,
 `lib/marcas.ts` (`sePuedeEliminarMarca`), `lib/confirmar-catalogo.ts` (acción «eliminar»), `packages/database/src/types.ts`,
 `scripts/pruebas/eliminar_marca.mjs` (sumada al CI). No toca `productos` ni `marca_proveedores` como estructura.
 
@@ -65,6 +65,10 @@ producto con ventas nunca se borra; se re-marca.
 ## Producción
 
 Solo crea una función: sin `alter` ni políticas (ADR-0195), una sola parte. **Orden seguido:** SQL primero, luego el PR (lección del #444, 2026-09-26).
+**Numeración (dos renombres, 2026-09-26):** el archivo nació como `20260926200000_eliminar_marca.sql`, chocó con `mover_interno_intentos_tabla`; pasó a
+`…210000` y chocó con `colores_lujo_piedra_indigo_nude`; quedó en **`20260926213000`**. El ADR nació como 0216 y cedió ante
+`0216-inventario-sin-fotos-de-cabecera`. En producción la migración está registrada con la versión de aplicación `20260926063402`, así que ningún renombre
+de archivo la toca. Los dos choques los habría evitado correr `scripts/migraciones/versiones.mjs` y `scripts/adr/numeros.mjs` justo después de cada merge.
 Ensayo previo contra la base real en un solo lote con `set local role authenticated` y la cuenta de un Admin Líder, terminado en excepción a propósito
 (nada quedó escrito; comprobado: 80 marcas / 80 vínculos antes y después): eliminar una marca de ensayo la borró con su vínculo y dejó al proveedor;
 «Cayla 2» se rechazó con su mensaje y siguió intacta; marca inexistente y sesión sin permiso dieron su mensaje.

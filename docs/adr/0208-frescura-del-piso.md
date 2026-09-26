@@ -175,8 +175,8 @@ conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1,
    está publicada; la revisión suma la migración `20260926170000`, por pegar.
    - **Entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
      `bajar_al_piso`). Va ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas
-     filas: un envío doble infla las dos cosas. **Construido el 2026-09-26, por pegar** (migraciones `20260926200000` y
-     `20260926200100`; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
+     filas: un envío doble infla las dos cosas. **Construido y en producción el 2026-09-26** (migraciones `20260926200000`
+     y `20260926200100`, web #458; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
 3. **Bloque 3 — La pantalla de Frescura** (pasos 3, 4, 5 y 7): reloj de novedad por modelo+color, reloj de piso por
    unidad con emparejamiento FIFO, curva de Kaplan-Meier con P50, P75 y P90 por categoría y sede, tramos e índice de
    rapidez, el indicador de «confianza del registro» por sede (contrato en (d)) y atributos y marcas en la lectura. Se
@@ -1047,6 +1047,10 @@ descuente ese mismo envío, y la pregunta es para la base. La nota se manda escr
 **La guarda de la `0200`.** Buscaba `mover_interno` por su firma de seis parámetros; ahora la busca por nombre, para
 que la `0200` se pueda volver a pegar después de la `200100` (las pruebas del CI lo hacen). Solo cambia la guarda, no
 lo que crea: en producción no hay que volver a pegarla.
+
+**Estado:** en producción desde el 2026-09-26. Felipe pegó las dos partes en orden y la base respondió con UNA sola
+firma de `mover_interno`, terminada en `p_token uuid` (la guarda de la segunda parte exige la tabla, así que la tabla
+también está); después fusionó la web (#458, `306a30f9`).
 
 **Cómo se pega (en este orden, fuera de hora pico):**
 1. `20260926200000_mover_interno_intentos_tabla.sql` (la tabla; su FK toma un candado breve sobre `movimientos`, con

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de Catálogo ▸ Marcas ▸ Eliminar (`20260926210000_eliminar_marca.sql`).
+ * Prueba de Catálogo ▸ Marcas ▸ Eliminar (`20260926213000_eliminar_marca.sql`).
  *
  * QUÉ CUBRE
  *   · una marca sin ningún producto se elimina, con sus vínculos con proveedores (todos), y el proveedor sigue existiendo;

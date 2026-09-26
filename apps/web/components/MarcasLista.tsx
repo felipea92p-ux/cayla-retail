@@ -29,7 +29,7 @@ import { firmar } from "@/lib/responsable-reglas";
  *
  * «Eliminar» (Felipe, 2026-09-26: «Cayla 2» se creó por error y desactivarla no la quitaba) aparece SOLO si ningún producto
  * —activo, descontinuado o archivado como prueba— la tiene (`sePuedeEliminarMarca`): borrarla entonces no pierde historia.
- * Una marca con productos se sigue desactivando. Va por `eliminar_marca` (20260926210000, todo o nada), no por un DELETE.
+ * Una marca con productos se sigue desactivando. Va por `eliminar_marca` (20260926213000, todo o nada), no por un DELETE.
  *
  * El buscador encuentra por marca o por proveedor, sin tildes («¿qué me trae
  * Saavedra?»): con 80 marcas en tarjetas, bajar buscando una no es opción.
