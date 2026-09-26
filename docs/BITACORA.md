@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Etiquetas de precio: Guía de impresión paso a paso — ADR-0180 act.)
+Un colaborador logró que la Brother imprima bien en Windows, pero la nota del pie de Etiquetas estaba escrita para Mac y en Windows decía lo contrario de lo que funcionó. Ahora hay un botón «Guía de impresión» (cabecera y pie): Windows y Mac por separado, un paso por pantalla, las fotos reales de la tienda con un número sobre cada clic, y un diagnóstico final por síntoma que devuelve al paso que lo arregla. La nota se partió en dos: impresora y precio/campaña.
+Por qué así: lo que traba a un equipo nuevo son tres ajustes (Longitud 40.1, Vertical, cortar cada 1) y cerrar Chrome; un párrafo no los hacía visibles. Qué se rompería sin esto: cada computadora nueva repetía la prueba y error, gastando rollo.
+Felipe se lleva: **una instrucción que nadie probó en la máquina real es una hipótesis**: la de Windows era una suposición y la de Mac lo sigue siendo hasta que alguien imprima con ella.
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
