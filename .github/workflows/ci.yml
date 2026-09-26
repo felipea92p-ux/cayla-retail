@@ -15,8 +15,8 @@
 # migraciones están aplicadas" ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
 #
-# OBLIGATORIO DESDE 2026-09-25: si falla, el PR sale en rojo. Para que además impida
-# fusionar, el ruleset `main-protegida` tiene que exigir este check (CONTRIBUTING.md §2).
+# OBLIGATORIO DESDE 2026-09-25: si falla, el PR sale en rojo y el ruleset `main-protegida`
+# no deja fusionarlo (CONTRIBUTING.md §2).
 # `pruebas-postgres`, abajo, SÍ levanta Postgres real
 # (`npx supabase start`) y corre `caja:verificar` + `scripts/pruebas/*.mjs` contra él.
 # Nació el 2026-09-17 como piloto con `continue-on-error: true`: ADR-0066 temía que "cada
