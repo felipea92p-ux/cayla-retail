@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
@@ -31,6 +31,8 @@ export function DetalleVentaModal({
   ubicacionNombre,
   cargar,
   onClose,
+  recorrido,
+  pie,
 }: {
   ventaId: string;
   vendedor: string | null;
@@ -38,6 +40,10 @@ export function DetalleVentaModal({
   /** Solo para probar con datos de mentira. Debe ser estable (módulo o `useCallback`). */
   cargar?: (ventaId: string) => Promise<VentaDetalle>;
   onClose: () => void;
+  /** Ventas ▸ Historial (ADR-0229): el recorrido de la venta, bajo los pagos. Caja y Proformas no lo pasan. */
+  recorrido?: ReactNode;
+  /** Ventas ▸ Historial: «Qué hacer con esta venta», al pie de la hoja. */
+  pie?: ReactNode;
 }) {
   const [carga, setCarga] = useState<Carga>({ fase: "cargando" });
   const [intento, setIntento] = useState(0);
@@ -199,6 +205,9 @@ export function DetalleVentaModal({
               {!permiso.ok && <p className="text-xs text-tinta/65">{permiso.motivo}</p>}
               {permiso.ok && permiso.leyenda && <p className="text-xs text-ambar-profundo">{permiso.leyenda}</p>}
             </div>
+
+            {recorrido}
+            {pie}
 
             {/* Raíz de impresión: solo una a la vez, pegada a <body> (el CSS oculta el resto). */}
             {imprimiendo === "ticket" && d.recibo && createPortal(<ReciboTermico recibo={d.recibo} />, document.body)}

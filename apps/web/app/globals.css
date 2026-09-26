@@ -93,6 +93,9 @@
   --color-metodo-yape: #6d3fa3;
   --color-metodo-plin: #1c6b56;
   --color-metodo-transferencia: #2f6aa3;
+  /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
+     de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0229). */
+  --color-metodo-anticipo: var(--color-taupe);
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a

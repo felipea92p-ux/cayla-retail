@@ -1,9 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { hoyEnLima } from "@/lib/movimientos-reglas";
+import { idsDeVentasBuscadas } from "@/lib/ventas-v2";
 import {
+  ESTADOS_POR_ENVIAR,
   TAMANO_PAGINA,
   TOPE_TOTALES,
+  totalesEnLaBase,
   aFila,
   quienVendio,
   diaDeLima,
@@ -43,16 +46,32 @@ export * from "@/lib/ventas-historial-reglas";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id, asesora_id";
-const EMBEBIDOS_LISTA = `ubicacion:ubicaciones ( id, nombre ),
+const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id, asesora_id, anulado_en";
+/** Lo que se dibuja de cada venta. Las marcas de posventa (ADR-0229) salen de relaciones que ya existían:
+ *  `cambios.venta_item_id`, `devoluciones.venta_id` y `separaciones.venta_id` (el apartado entregado). */
+const embebidosLista = (conReferencia: boolean) => `ubicacion:ubicaciones ( id, nombre ),
   cliente:clientas ( nombre ),
-  venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal,
+  venta_items ( id, cantidad, precio_unitario, descuento_unitario, subtotal,
     variante:variantes ( color_codigo, talla:tallas ( valor ), color:colores ( nombre, hex ),
-      producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ) ),
-  venta_pagos ( metodo, monto ),
-  comprobantes ( tipo, serie, numero, estado, created_at )`;
-const SELECT_LISTA = `${CAMPOS_LISTA}, es_prueba, ${EMBEBIDOS_LISTA}`;
-const SELECT_LISTA_SIN_PRUEBA = `${CAMPOS_LISTA}, ${EMBEBIDOS_LISTA}`;
+      producto:productos ( referencia, producto_fotos ( url, color_codigo ) ) ),
+    cambios ( created_at ) ),
+  venta_pagos ( metodo, monto${conReferencia ? ", referencia" : ""} ),
+  comprobantes ( tipo, serie, numero, estado, created_at, enviado_at ),
+  devoluciones ( estado, created_at ),
+  separaciones ( codigo, created_at )`;
+const selectLista = (o: Columnas) => `${CAMPOS_LISTA}${o.prueba ? ", es_prueba" : ""}, ${embebidosLista(o.referencia)}`;
+
+/** Columnas aditivas que pueden no estar todavía en la base: `es_prueba` (D-54) y `venta_pagos.referencia` (ADR-0229). */
+type Columnas = { prueba: boolean; referencia: boolean };
+const TODAS: Columnas = { prueba: true, referencia: true };
+
+/** Qué columna quitar tras un 42703: la que nombra el mensaje de Postgres. Si no nombra ninguna conocida, null (no se
+ *  reintenta a ciegas: el error sale tal cual). */
+function sinLaColumnaQueFalta(o: Columnas, mensaje: string | undefined): Columnas | null {
+  if (o.referencia && mensaje?.includes("referencia")) return { ...o, referencia: false };
+  if (o.prueba && mensaje?.includes("es_prueba")) return { ...o, prueba: false };
+  return null;
+}
 
 // `42703` = undefined_column: PostgREST lo devuelve cuando el `select`/filtro nombra una columna
 // que la base no tiene todavía. Mismo criterio que `getStockPorUbicacion` con `cantidad_apartada`
@@ -72,18 +91,25 @@ const COLUMNA_INEXISTENTE = "42703";
  *
  *  `conPrueba = false` (el reintento de más abajo) quita `es_prueba` del `select` Y del filtro:
  *  pedirla en el `select` con la columna inexistente fallaría igual que filtrarla por ella. */
-function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPrueba = true) {
+function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPrueba = true, ids: string[] | null = null) {
+  const conComprobante = f.comprobante === "con" || f.comprobante === "por_enviar" || f.comprobante === "factura";
   const extras = [
     f.pago ? "pago_filtro:venta_pagos!inner ( metodo )" : null,
-    f.comprobante === "con" ? "comp_filtro:comprobantes!inner ( tipo )" : null,
+    conComprobante ? "comp_filtro:comprobantes!inner ( tipo, estado )" : null,
     f.comprobante === "sin" ? "comp_filtro:comprobantes!left ( tipo )" : null,
   ].filter((e): e is string => e !== null);
 
   const { desdeISO, hastaISO } = limitesUTC(f.desde, f.hasta);
   let q = supabase.from("ventas").select([select, ...extras].join(", "));
-  if (desdeISO) q = q.gte("created_at", desdeISO);
-  if (hastaISO) q = q.lt("created_at", hastaISO);
-  if (f.sedeId) q = q.eq("ubicacion_id", f.sedeId);
+  // Con el buscador (ADR-0229) la lista ignora el período: la clienta vuelve semanas después y su venta está fuera de
+  // «30 días». Los ids ya vienen acotados por la búsqueda y por la RLS.
+  if (ids) q = q.in("id", ids);
+  if (!f.busqueda) {
+    if (desdeISO) q = q.gte("created_at", desdeISO);
+    if (hastaISO) q = q.lt("created_at", hastaISO);
+  }
+  // Buscando, la tienda solo limita si el líder la eligió; la de la cabecera por defecto no (la clienta pudo comprar en otra).
+  if (f.sedeId && (!f.busqueda || f.sedeExplicita)) q = q.eq("ubicacion_id", f.sedeId);
   // «Vendedor X» = las que atendió X y, de las anteriores a la fila «Atendió» (sin vendedora), las que cobró su sesión.
   // `vendedorId` ya pasó por `esUuid` en `filtrosDesdeParams`, así que no trae nada que rompa el filtro.
   if (f.vendedorId) q = q.or(`asesora_id.eq.${f.vendedorId},and(asesora_id.is.null,usuario_id.eq.${f.vendedorId})`);
@@ -93,9 +119,53 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
   if (conPrueba && !f.incluirPrueba) q = q.eq("es_prueba", false);
   if (f.pago) q = q.eq("pago_filtro.metodo", f.pago);
   // Una nota de crédito corrige un comprobante, no ampara la venta: cuentan boleta, factura y nota de venta (ADR-0164).
-  if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura", "nota_venta"]);
+  if (f.comprobante === "factura") q = q.eq("comp_filtro.tipo", "factura");
+  else if (f.comprobante !== "todos") q = q.in("comp_filtro.tipo", ["boleta", "factura", "nota_venta"]);
   if (f.comprobante === "sin") q = q.is("comp_filtro", null);
+  if (f.comprobante === "por_enviar") q = q.in("comp_filtro.estado", [...ESTADOS_POR_ENVIAR]);
+  if (f.conClienta) q = q.not("cliente_id", "is", null);
   return q;
+}
+
+/** Los ids que acotan la consulta, o null si nada la acota. `busqueda`: las ventas que calzan con el buscador (en
+ *  cualquier fecha); `posventa`: las que tuvieron un cambio o una devolución. La lista usa las dos (intersección); los
+ *  totales del período, solo `posventa` (buscar no cambia las cifras del período). */
+export type IdsHistorial = { busqueda: string[] | null; posventa: string[] | null };
+
+export async function idsDeHistorial(f: FiltrosHistorial, ctx: { ubicacionId: string; esLider: boolean }): Promise<IdsHistorial> {
+  const [busqueda, posventa] = await Promise.all([
+    // Un líder busca en todas las tiendas salvo que haya elegido una; una integrante, en la suya (RLS).
+    f.busqueda
+      ? idsDeVentasBuscadas(f.sedeExplicita && f.sedeId ? f.sedeId : ctx.ubicacionId, f.busqueda, ctx.esLider && !f.sedeExplicita)
+      : Promise.resolve(null),
+    f.posventa ? idsConPosventa(f) : Promise.resolve(null),
+  ]);
+  return { busqueda, posventa };
+}
+
+/** Intersección de dos listas opcionales de ids: null = «sin acotar». */
+export function combinarIds(a: string[] | null, b: string[] | null): string[] | null {
+  if (!a) return b;
+  if (!b) return a;
+  const enB = new Set(b);
+  return a.filter((id) => enB.has(id));
+}
+
+/** Las ventas que tuvieron un cambio o una devolución (no rechazada). Un cambio o una devolución siempre ocurre DESPUÉS
+ *  de la venta, así que basta mirar desde el inicio del período: son pocos (3 tiendas), caben en un `in (...)`. */
+async function idsConPosventa(f: FiltrosHistorial): Promise<string[]> {
+  const supabase = await createClient();
+  const { desdeISO } = limitesUTC(f.busqueda ? undefined : f.desde);
+  let devoluciones = supabase.from("devoluciones").select("venta_id").neq("estado", "rechazada");
+  let cambios = supabase.from("cambios").select("venta_item:venta_items!inner ( venta_id )");
+  if (desdeISO) {
+    devoluciones = devoluciones.gte("created_at", desdeISO);
+    cambios = cambios.gte("created_at", desdeISO);
+  }
+  const [d, c] = await Promise.all([devoluciones.limit(TOPE_TOTALES), cambios.limit(TOPE_TOTALES)]);
+  const deDevoluciones = exigir(d, "las devoluciones del período").map((x) => x.venta_id as string);
+  const deCambios = (exigir(c, "los cambios del período") as unknown as { venta_item: { venta_id: string } | null }[]).map((x) => x.venta_item?.venta_id).filter((id): id is string => !!id);
+  return [...new Set([...deDevoluciones, ...deCambios])];
 }
 
 /** Quién registró cada venta. `personas` vive en `public` (Dynamic) y PostgREST no embebe entre
@@ -115,21 +185,29 @@ export type PaginaHistorial = {
 
 export async function listarVentasHistorial(
   f: FiltrosHistorial,
-  opciones: { cursor?: CursorVentas | null; limite?: number } = {}
+  opciones: { cursor?: CursorVentas | null; limite?: number; ids?: IdsHistorial } = {}
 ): Promise<PaginaHistorial> {
   const limite = opciones.limite ?? TAMANO_PAGINA;
   const supabase = await createClient();
   const c = opciones.cursor;
-  const pedir = (select: string, conPrueba: boolean) => {
-    let q = consulta(supabase, select, f, conPrueba);
+  const ids = combinarIds(opciones.ids?.busqueda ?? null, opciones.ids?.posventa ?? null);
+  const pedir = (columnas: Columnas) => {
+    let q = consulta(supabase, selectLista(columnas), f, columnas.prueba, ids);
     // «Las siguientes a ESTA»: más vieja, o del mismo instante con un id menor. Los valores ya pasaron por
     // `leerCursorVentas` (formato de fecha y de uuid), así que no traen nada que rompa el filtro.
     if (c) q = q.or(`created_at.lt."${c.creadoEn}",and(created_at.eq."${c.creadoEn}",id.lt.${c.id})`);
     // Una fila de más: si llega, hay página siguiente (sin un `count` aparte).
     return q.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limite + 1);
   };
-  let res = await pedir(SELECT_LISTA, true);
-  if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(SELECT_LISTA_SIN_PRUEBA, false);
+  // Hasta dos reintentos, uno por cada columna aditiva que la base todavía no tenga.
+  let columnas = TODAS;
+  let res = await pedir(columnas);
+  for (let i = 0; i < 2 && res.error?.code === COLUMNA_INEXISTENTE; i++) {
+    const siguiente = sinLaColumnaQueFalta(columnas, res.error.message);
+    if (!siguiente) break;
+    columnas = siguiente;
+    res = await pedir(columnas);
+  }
   const crudas = exigir(res, "el historial de ventas") as unknown as VentaCruda[];
 
   const hayMas = crudas.length > limite;
@@ -160,8 +238,12 @@ const FUNCION_INEXISTENTE = new Set(["PGRST202", "42883"]);
 /** Los totales de TODO el rango filtrado (no de la página): cuántas ventas, cuánto se vendió, ticket promedio,
  *  más lo vendido por día y por forma de pago. Los suma la base (`fn_totales_historial_ventas`, ADR-0191) con los
  *  MISMOS filtros que `consulta()` y la misma regla de lectura que la RLS: sin tope de filas. */
-export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<TotalesHistorial> {
+export async function totalesVentasHistorial(f: FiltrosHistorial, ids: IdsHistorial = { busqueda: null, posventa: null }): Promise<TotalesHistorial> {
   const supabase = await createClient();
+  // Las cifras son del PERÍODO: el buscador no las cambia (la lista dice aparte cuántas ventas encontró).
+  const delPeriodo: FiltrosHistorial = { ...f, busqueda: undefined };
+  if (!totalesEnLaBase(delPeriodo) || ids.posventa) return totalesConTope(supabase, delPeriodo, ids.posventa);
+  f = delPeriodo;
   const { desdeISO, hastaISO } = limitesUTC(f.desde, f.hasta);
   const res = await supabase.rpc("fn_totales_historial_ventas", {
     p_desde: desdeISO,
@@ -181,10 +263,10 @@ export async function totalesVentasHistorial(f: FiltrosHistorial): Promise<Total
 // Para los totales del rango solo hacen falta los importes, el día y cómo se pagó: sin prendas ni comprobantes.
 const SELECT_TOTALES = "id, created_at, estado, venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ), venta_pagos ( metodo, monto )";
 
-/** Respaldo mientras la migración 20260924140000 no esté en la base: el cálculo de antes, fila por fila y con el
- *  tope de PostgREST. Se retira cuando la función esté en producción. */
-async function totalesConTope(supabase: Supabase, f: FiltrosHistorial): Promise<TotalesHistorial> {
-  const pedir = (conPrueba: boolean) => consulta(supabase, SELECT_TOTALES, f, conPrueba).order("created_at", { ascending: false }).limit(TOPE_TOTALES + 1);
+/** El cálculo fila por fila con el tope de PostgREST: el respaldo si la base aún no tuviera `fn_totales_historial_ventas`
+ *  y, desde ADR-0229, el camino de los filtros que esa función no conoce (por enviar, factura, con clienta, posventa). */
+async function totalesConTope(supabase: Supabase, f: FiltrosHistorial, ids: string[] | null = null): Promise<TotalesHistorial> {
+  const pedir = (conPrueba: boolean) => consulta(supabase, SELECT_TOTALES, f, conPrueba, ids).order("created_at", { ascending: false }).limit(TOPE_TOTALES + 1);
   let res = await pedir(true);
   if (res.error?.code === COLUMNA_INEXISTENTE) res = await pedir(false);
   const crudas = exigir(res, "los totales del historial de ventas") as unknown as {

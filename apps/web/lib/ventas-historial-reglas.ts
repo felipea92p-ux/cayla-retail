@@ -2,6 +2,7 @@ import type { MetodoPago } from "@cayla-retail/shared";
 import type { EstadoComprobante, TipoComprobante } from "./comprobantes-reglas";
 import {
   filtrosDesdeParams as filtrosDeMovimientos,
+  textoPeriodo as textoPeriodoMovimientos,
   leerCursorMovimientos,
   restarDias,
   serializarCursorMovimientos,
@@ -28,7 +29,13 @@ export const TAMANO_PAGINA = 20;
 export const TOPE_TOTALES = 999;
 
 export type EstadoFiltro = "todas" | "completada" | "anulada";
-export type ComprobanteFiltro = "todos" | "con" | "sin";
+/** «por_enviar» = su comprobante espera a SUNAT (pendiente, en reintento o rechazado, como la cola de Comprobantes);
+ *  «factura» = se emitió factura. Los dos llegaron con los atajos (2026-09-26). */
+export type ComprobanteFiltro = "todos" | "con" | "sin" | "por_enviar" | "factura";
+/** El período de Historial: los de Movimientos más «hoy» (el atajo que más usa el mostrador). */
+export type PeriodoHistorial = PeriodoMovimientos | "hoy";
+/** Los pagos que se filtran: los del mostrador más el «anticipo» de un apartado entregado (ADR-0196). */
+export type MetodoFiltro = MetodoPago | "anticipo";
 
 /** Parámetros de la URL. `sede` y `vendedor` solo los honra un líder (una integrante ve su tienda: lo decide la RLS). */
 export type ParamsHistorial = {
@@ -43,21 +50,38 @@ export type ParamsHistorial = {
   cursor?: string;
   /** «1» incluye los datos de prueba (D-54) en la lista; ausente o cualquier otro valor los deja fuera. */
   prueba?: string;
+  /** Lo escrito en el buscador (comprobante, DNI o RUC, clienta, prenda, código o nº de operación). Busca en TODAS las fechas. */
+  q?: string;
+  /** «1»: solo las ventas de quien mira (atajo «Mis ventas»). Sirve a cualquiera, no solo al líder. */
+  mias?: string;
+  /** «1»: solo las ventas que tuvieron un cambio o una devolución. */
+  posventa?: string;
+  /** «1»: solo las ventas con una clienta anotada. */
+  clienta?: string;
 };
 
 export type FiltrosHistorial = {
-  periodo: PeriodoMovimientos;
+  periodo: PeriodoHistorial;
   /** `aaaa-mm-dd` inclusivos, en día de Lima. */
   desde?: string;
   hasta?: string;
   sedeId?: string;
+  /** La tienda la eligió el líder en el filtro (y no es la de la cabecera por defecto). El buscador solo se limita a una
+   *  tienda si fue elegida así: buscar a una clienta no debe fallar porque compró en otra sede. */
+  sedeExplicita: boolean;
   vendedorId?: string;
   estado: EstadoFiltro;
-  pago?: MetodoPago;
+  pago?: MetodoFiltro;
   /** «con» / «sin» boleta o factura. Una nota de crédito no cuenta como comprobante de la venta. */
   comprobante: ComprobanteFiltro;
   /** Ventas marcadas `es_prueba` (D-54, ADR-0159): fuera por defecto, un toggle las trae de vuelta. */
   incluirPrueba: boolean;
+  /** El texto del buscador, ya recortado. Con él la lista ignora el período: la clienta vuelve semanas después. */
+  busqueda?: string;
+  /** El atajo «Mis ventas» está puesto (`vendedorId` es entonces quien mira). */
+  mias: boolean;
+  posventa: boolean;
+  conClienta: boolean;
 };
 
 // El cursor tiene la misma forma que el de Movimientos (`created_at` + `id`): no hay una fecha de
@@ -66,27 +90,64 @@ export type CursorVentas = CursorMovimientos;
 export const leerCursorVentas = leerCursorMovimientos;
 export const serializarCursorVentas = serializarCursorMovimientos;
 
-const METODOS = Object.keys(NOMBRE_METODO) as MetodoPago[];
+const METODOS: MetodoFiltro[] = [...(Object.keys(NOMBRE_METODO) as MetodoPago[]), "anticipo"];
+const COMPROBANTES: ComprobanteFiltro[] = ["con", "sin", "por_enviar", "factura"];
+
+/** El nombre de cada forma de pago en Historial: las del mostrador y el anticipo de un apartado. */
+export const NOMBRE_METODO_HISTORIAL: Record<string, string> = { ...NOMBRE_METODO, anticipo: "Anticipo" };
+
+/** Los estados de un comprobante que esperan a SUNAT: la misma cola que «Por reintentar» (`resumenPorEnviar`). */
+export const ESTADOS_POR_ENVIAR = ["pendiente", "pendiente_reintento", "rechazado"] as const;
 const esUuid = (v?: string): v is string => !!v && /^[0-9a-f-]{36}$/i.test(v);
 
 /** Traduce la URL a filtros, descartando cualquier valor que no sea válido. El período (7/30/90
  *  días, fechas propias o todo) se resuelve con la misma regla que Movimientos. */
 export function filtrosDesdeParams(
   p: ParamsHistorial,
-  ctx: { esLider: boolean; sedesIds: string[]; hoy?: string }
+  ctx: { esLider: boolean; sedesIds: string[]; hoy?: string; personaId?: string; sedePorDefecto?: string }
 ): FiltrosHistorial {
-  const { periodo, desde, hasta } = filtrosDeMovimientos({ rango: p.rango, desde: p.desde, hasta: p.hasta }, { hoy: ctx.hoy });
+  const hoy = ctx.hoy ?? hoyLima();
+  const periodoResuelto =
+    p.rango === "hoy" && !p.desde && !p.hasta
+      ? { periodo: "hoy" as const, desde: hoy, hasta: hoy }
+      : filtrosDeMovimientos({ rango: p.rango, desde: p.desde, hasta: p.hasta }, { hoy });
+  // «Mis ventas» gana sobre el filtro de vendedor: es quien mira, así que no hace falta ser líder.
+  const mias = p.mias === "1" && esUuid(ctx.personaId);
+  const busqueda = p.q?.trim().slice(0, 60) || undefined;
+  // La tienda del líder: la que eligió en el filtro; «todas» a propósito; o, sin nada en la URL, la sede elegida arriba en
+  // la cabecera (captura del 2026-09-26: decía «Todas las tiendas» con «Tienda TRU» elegida arriba).
+  const sedeExplicita = !!p.sede && p.sede !== "todas" && ctx.sedesIds.includes(p.sede);
+  const sedePorDefecto = !p.sede && ctx.sedePorDefecto && ctx.sedesIds.includes(ctx.sedePorDefecto) ? ctx.sedePorDefecto : undefined;
   return {
-    periodo,
-    desde,
-    hasta,
-    sedeId: ctx.esLider && p.sede && ctx.sedesIds.includes(p.sede) ? p.sede : undefined,
-    vendedorId: ctx.esLider && esUuid(p.vendedor) ? p.vendedor : undefined,
+    periodo: periodoResuelto.periodo,
+    desde: periodoResuelto.desde,
+    hasta: periodoResuelto.hasta,
+    sedeId: !ctx.esLider ? undefined : sedeExplicita ? p.sede : sedePorDefecto,
+    sedeExplicita: ctx.esLider && sedeExplicita,
+    vendedorId: mias ? ctx.personaId : ctx.esLider && esUuid(p.vendedor) ? p.vendedor : undefined,
     estado: p.estado === "completada" || p.estado === "anulada" ? p.estado : "todas",
     pago: METODOS.find((m) => m === p.pago),
-    comprobante: p.comp === "con" || p.comp === "sin" ? p.comp : "todos",
+    comprobante: COMPROBANTES.find((c) => c === p.comp) ?? "todos",
     incluirPrueba: p.prueba === "1",
+    busqueda,
+    mias,
+    posventa: p.posventa === "1",
+    conClienta: p.clienta === "1",
   };
+}
+
+const hoyLima = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" }).format(new Date());
+
+/** El período en palabras. «Hoy» no existe en Movimientos: se dice aquí. */
+export function textoPeriodoHistorial(periodo: PeriodoHistorial, desde?: string, hasta?: string): string {
+  return periodo === "hoy" ? "Hoy" : textoPeriodoMovimientos(periodo, desde, hasta);
+}
+
+/** `fn_totales_historial_ventas` (ADR-0191) solo conoce tienda, vendedor, estado, pago y «con / sin» comprobante. Con
+ *  cualquier otro filtro (los de los atajos nuevos) los totales se calculan fila por fila con los MISMOS filtros que la
+ *  lista, para que la cifra nunca diga otra cosa que la lista. */
+export function totalesEnLaBase(f: FiltrosHistorial): boolean {
+  return (f.comprobante === "todos" || f.comprobante === "con" || f.comprobante === "sin") && !f.posventa && !f.conClienta;
 }
 
 /** Lima no tiene horario de verano: siempre UTC−5. */
@@ -108,6 +169,8 @@ export function limitesUTC(desde?: string, hasta?: string): { desdeISO?: string;
 type Numero = number | string;
 
 export type ItemCrudo = {
+  /** Ausente en las lecturas de solo importes (totales). */
+  id?: string;
   cantidad: number;
   precio_unitario: Numero;
   descuento_unitario: Numero;
@@ -119,6 +182,8 @@ export type ItemCrudo = {
     color: { nombre: string; hex?: string | null } | null;
     producto: { referencia: string; producto_fotos?: { url: string; color_codigo: string | null }[] | null } | null;
   } | null;
+  /** Los cambios hechos sobre esta línea (`cambios.venta_item_id`). */
+  cambios?: { created_at: string }[] | null;
 };
 
 export type VentaCruda = {
@@ -131,10 +196,17 @@ export type VentaCruda = {
   /** Quién atendió (`ventas.asesora_id`); ausente/null en las ventas anteriores a la fila «Atendió». */
   asesora_id?: string | null;
   ubicacion: { id: string; nombre: string } | null;
+  cliente_id?: string | null;
+  anulado_en?: string | null;
   cliente: { nombre: string } | null;
   venta_items: ItemCrudo[];
-  venta_pagos: { metodo: string; monto: Numero }[];
-  comprobantes: { tipo: string; serie: string; numero: number; estado: string; created_at: string }[];
+  /** `referencia`: el nº de operación de Yape, Plin o transferencia; ausente mientras la columna no esté en la base. */
+  venta_pagos: { metodo: string; monto: Numero; referencia?: string | null }[];
+  comprobantes: { tipo: string; serie: string; numero: number; estado: string; created_at: string; enviado_at?: string | null }[];
+  /** Las devoluciones de la venta (`devoluciones.venta_id`); las rechazadas no movieron nada y no se marcan. */
+  devoluciones?: { estado: string; created_at: string }[] | null;
+  /** El apartado (ADR-0196, `separaciones.venta_id`) que se entregó con esta venta. */
+  separaciones?: { codigo: string; created_at: string }[] | null;
 };
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
@@ -154,28 +226,39 @@ export type PrendaDeVenta = { referencia: string; detalle: string; cantidad: num
  *  vendido (mismo criterio que el catálogo y Cambios: `producto_fotos.color_codigo`) y el tono de ese color,
  *  que siempre existe aunque la prenda no tenga foto todavía. */
 export function piezasDeVenta(items: ItemCrudo[]): PrendaDeVenta[] {
-  return items.map((i) => {
+  // Dos líneas de la misma prenda, talla y color (se escaneó dos veces) son UNA pieza con cantidad 2: se dibuja un solo
+  // mosaico con ×2 y no dos iguales encimados (captura del 2026-09-26).
+  const piezas: PrendaDeVenta[] = [];
+  for (const i of items) {
     const v = i.variante;
-    return {
+    const pieza = {
       referencia: v?.producto?.referencia ?? "Prenda",
       detalle: [v?.talla?.valor, v?.color?.nombre].filter(Boolean).join(" · "),
       cantidad: i.cantidad,
       fotoUrl: v?.color_codigo ? (v.producto?.producto_fotos?.find((f) => f.color_codigo === v.color_codigo)?.url ?? null) : null,
       colorHex: v?.color?.hex ?? null,
     };
-  });
+    const igual = piezas.find((p) => p.referencia === pieza.referencia && p.detalle === pieza.detalle);
+    if (igual) igual.cantidad += pieza.cantidad;
+    else piezas.push(pieza);
+  }
+  return piezas;
 }
 
-/** El título de una venta: solo los nombres —«Blusa Emma, Pantalón Carla y 1 más»—. La talla y el color van debajo. */
+/** El título de una venta: solo los nombres, cada uno una vez y con ×N si se llevó más de una —«Test de Produto 2 ×2»,
+ *  no «Test de Produto 2, Test de Produto 2»—; más de dos se resumen: «Blusa Emma, Pantalón Carla y 1 más». La talla y el
+ *  color van debajo. */
 export function titulosDePrendas(piezas: PrendaDeVenta[], max = 2): string {
   if (piezas.length === 0) return "—";
-  const nombres = piezas.map((p) => p.referencia);
+  const unidades = new Map<string, number>();
+  for (const p of piezas) unidades.set(p.referencia, (unidades.get(p.referencia) ?? 0) + p.cantidad);
+  const nombres = [...unidades].map(([nombre, n]) => (n > 1 ? `${nombre} ×${n}` : nombre));
   return nombres.length <= max ? nombres.join(", ") : `${nombres.slice(0, max).join(", ")} y ${nombres.length - max} más`;
 }
 
-/** Lo que va bajo el título: con una sola línea, su «talla · color» (y ×N si son varias unidades); con más, cuántas prendas fueron. */
+/** Lo que va bajo el título: con una sola pieza, su «talla · color» (el ×N ya va en el título); con más, cuántas prendas fueron. */
 export function subtituloDePrendas(piezas: PrendaDeVenta[], unidades: number): string {
-  if (piezas.length === 1) return `${piezas[0].detalle}${piezas[0].cantidad > 1 ? ` ×${piezas[0].cantidad}` : ""}`.trim();
+  if (piezas.length === 1) return piezas[0].detalle;
   return `${unidades} ${unidades === 1 ? "prenda" : "prendas"}`;
 }
 
@@ -191,10 +274,17 @@ export function textoPrendas(items: ItemCrudo[], max = 2): string {
 
 /** «Efectivo + Yape»: cada método una vez, en el orden en que se cobró. */
 export function textoMetodos(pagos: { metodo: string }[]): string {
-  return [...new Set(pagos.map((p) => p.metodo))].map((m) => NOMBRE_METODO[m as MetodoPago] ?? m).join(" + ");
+  return [...new Set(pagos.map((p) => p.metodo))].map((m) => NOMBRE_METODO_HISTORIAL[m] ?? m).join(" + ");
 }
 
-export type ComprobanteVenta = { tipo: TipoComprobante; numero: string; estado: EstadoComprobante };
+export type ComprobanteVenta = {
+  tipo: TipoComprobante;
+  numero: string;
+  estado: EstadoComprobante;
+  /** Cuándo se emitió y cuándo se envió a SUNAT (para el recorrido de la venta). */
+  emitidoEn: string;
+  enviadoEn: string | null;
+};
 
 const ESTADOS_MUERTOS = ["anulado", "rechazado", "no_emitido"];
 
@@ -203,7 +293,9 @@ const ESTADOS_MUERTOS = ["anulado", "rechazado", "no_emitido"];
 export function elegirComprobante(cs: VentaCruda["comprobantes"]): ComprobanteVenta | null {
   const propios = cs.filter((c) => c.tipo === "boleta" || c.tipo === "factura" || c.tipo === "nota_venta").sort((a, b) => b.created_at.localeCompare(a.created_at));
   const c = propios.find((x) => !ESTADOS_MUERTOS.includes(x.estado)) ?? propios[0];
-  return c ? { tipo: c.tipo as TipoComprobante, numero: textoNumeroRecibo(c), estado: c.estado as EstadoComprobante } : null;
+  return c
+    ? { tipo: c.tipo as TipoComprobante, numero: textoNumeroRecibo(c), estado: c.estado as EstadoComprobante, emitidoEn: c.created_at, enviadoEn: c.enviado_at ?? null }
+    : null;
 }
 
 export type FilaHistorial = {
@@ -227,7 +319,30 @@ export type FilaHistorial = {
   nota: string | null;
   /** Dato ficticio de prueba (D-54, ADR-0159): solo llega a esta fila con el toggle «Ver datos de prueba». */
   esPrueba: boolean;
+  /** Cuándo se anuló (para el recorrido); null si sigue vigente o si la base no lo trajo. */
+  anuladaEn: string | null;
+  /** Las líneas de la venta, para abrir Cambios o Devoluciones directo sobre una prenda. */
+  ventaItemIds: string[];
+  /** Lo que pasó después de venderla: cambios y devoluciones, del más viejo al más nuevo. */
+  posventa: MarcaPosventa[];
+  /** El apartado que terminó en esta venta (ADR-0196), o null. */
+  apartado: { codigo: string; creadoEn: string } | null;
+  /** Se cobró con el anticipo de un apartado (aunque sea un apartado viejo, sin código). */
+  conAnticipo: boolean;
+  /** Los nº de operación anotados al cobrar (Yape, Plin, transferencia). */
+  operaciones: string[];
 };
+
+export type MarcaPosventa = { tipo: "cambio" | "devolucion"; fecha: string; pendiente: boolean };
+
+/** Los cambios de cada línea y las devoluciones de la venta, en orden. Una devolución rechazada no movió nada: no se marca. */
+export function posventaDeVenta(v: Pick<VentaCruda, "venta_items" | "devoluciones">): MarcaPosventa[] {
+  const cambios = v.venta_items.flatMap((i) => (i.cambios ?? []).map((c) => ({ tipo: "cambio" as const, fecha: c.created_at, pendiente: false })));
+  const devoluciones = (v.devoluciones ?? [])
+    .filter((d) => d.estado !== "rechazada")
+    .map((d) => ({ tipo: "devolucion" as const, fecha: d.created_at, pendiente: d.estado === "pendiente" }));
+  return [...cambios, ...devoluciones].sort((a, b) => a.fecha.localeCompare(b.fecha));
+}
 
 const FORMATO_DIA = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Lima" });
 const FORMATO_HORA = new Intl.DateTimeFormat("es-PE", { timeZone: "America/Lima", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
@@ -263,6 +378,12 @@ export function aFila(v: VentaCruda, nombres: ReadonlyMap<string, string>): Fila
     anulada: v.estado === "anulada",
     nota: v.nota,
     esPrueba: v.es_prueba === true,
+    anuladaEn: v.anulado_en ?? null,
+    ventaItemIds: v.venta_items.map((i) => i.id).filter((id): id is string => !!id),
+    posventa: posventaDeVenta(v),
+    apartado: v.separaciones?.[0] ? { codigo: v.separaciones[0].codigo, creadoEn: v.separaciones[0].created_at } : null,
+    conAnticipo: v.venta_pagos.some((p) => p.metodo === "anticipo"),
+    operaciones: [...new Set(v.venta_pagos.map((p) => p.referencia?.trim()).filter((r): r is string => !!r))],
   };
 }
 

@@ -36,6 +36,7 @@ import {
   RAZONES_DESCUENTO,
   type MomentoTicket,
   type PasoDescuento,
+  METODOS_CON_OPERACION,
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
@@ -215,6 +216,8 @@ type Props = {
   onQuitarPago: (indice: number) => void;
   /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
   onRecibido: (monto: number | null) => void;
+  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0229). */
+  onOperacion: (indice: number, texto: string) => void;
   // Comprobante + documento de la clienta
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
   onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
@@ -286,6 +289,7 @@ export function PuntoDeVentaTicket({
   onMontoPago,
   onQuitarPago,
   onRecibido,
+  onOperacion,
   tipoComprobante,
   onTipoComprobante,
   clienteNumDoc,
@@ -928,6 +932,24 @@ export function PuntoDeVentaTicket({
                               </p>
                             )}
                           </div>
+                        )}
+
+                        {/* El nº de operación que la clienta ve en su celular (ADR-0229): opcional, no frena el cobro. Con él,
+                            Ventas ▸ Historial encuentra esta venta aunque la clienta pierda la boleta. */}
+                        {METODOS_CON_OPERACION.includes(p.metodo) && (
+                          <label className="flex items-center justify-between gap-2 text-[11px] text-tinta/50">
+                            <span>Nº de operación (opcional)</span>
+                            <input
+                              aria-label={`Número de operación de ${p.metodo}`}
+                              inputMode="numeric"
+                              autoComplete="off"
+                              value={p.referencia ?? ""}
+                              onChange={(e) => onOperacion(i, e.target.value)}
+                              placeholder="Ej. 01234567"
+                              disabled={bloqueado}
+                              className="h-8 w-36 rounded-md border border-sand bg-papel px-2 text-right font-mono text-sm text-tinta outline-none placeholder:font-sans placeholder:text-tinta/30 focus:border-rojo focus:ring-2 focus:ring-rojo/20"
+                            />
+                          </label>
                         )}
                       </div>
                     ))}

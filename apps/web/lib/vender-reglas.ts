@@ -41,7 +41,22 @@ export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: st
  *  para el efectivo: lo que entregó, para calcular el vuelto. `monto` es lo que el medio
  *  CUBRE (lo que suma contra los ítems); `recibido` viaja aparte (ver `pagosParaRpc`) y
  *  nunca sustituye a `monto`, o `registrar_venta` rechazaría la venta por no cuadrar. */
-export type PagoAplicado = { metodo: MetodoPago; monto: number; recibido?: number };
+export type PagoAplicado = {
+  metodo: MetodoPago;
+  monto: number;
+  recibido?: number;
+  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0229): con él, Ventas ▸ Historial encuentra la venta
+   *  aunque la clienta haya perdido la boleta y solo tenga la captura del pago. */
+  referencia?: string;
+};
+
+/** Los medios que dan un nº de operación que la clienta ve en su celular. */
+export const METODOS_CON_OPERACION: readonly MetodoPago[] = ["yape", "plin", "transferencia"];
+
+/** El nº de operación tal como se guarda: sin espacios, solo letras y dígitos, hasta 40. Vacío = no se anotó. */
+export function limpiarOperacion(texto: string): string {
+  return texto.replace(/[^0-9a-z]/gi, "").slice(0, 40);
+}
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -126,12 +141,16 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): Pas
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
  *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
-export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number }[] {
+export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[] {
   return pagos
     .filter((p) => p.monto > 0)
-    .map(({ metodo, monto, recibido }) =>
-      metodo === "efectivo" && recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto }
-    );
+    .map(({ metodo, monto, recibido, referencia }) => {
+      if (metodo === "efectivo") return recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto };
+      // El nº de operación viaja solo si se anotó. Una base que todavía no tiene `venta_pagos.referencia` lo ignora (lee
+      // el pago clave por clave): la venta se registra igual.
+      const operacion = METODOS_CON_OPERACION.includes(metodo) ? limpiarOperacion(referencia ?? "") : "";
+      return operacion ? { metodo, monto, referencia: operacion } : { metodo, monto };
+    });
 }
 
 /**

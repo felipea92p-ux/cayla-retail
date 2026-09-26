@@ -14,6 +14,8 @@ import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
 import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
+import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
+import { elegirComprobante, diaDeLima, type VentaCruda } from "@/lib/ventas-historial-reglas";
 import type { CampanaLinea } from "@/lib/vender-reglas";
 import { ordenTalla } from "@/lib/catalogo-grupos";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
@@ -29,16 +31,16 @@ import { usoDeColores, type ListasPrendaLibre } from "@/lib/prenda-sin-registrar
  * `registrar_venta`. Vive dentro de `(app)` con el sidebar de AppShell,
  * sin el tope de ancho `max-w-5xl` (ver AppShell.tsx).
  */
-export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string }> }) {
-  const { proforma } = await searchParams;
+export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string; repetir?: string }> }) {
+  const { proforma, repetir } = await searchParams;
   return (
     <Suspense fallback={<p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>}>
-      <Caja proformaId={proforma ?? null} />
+      <Caja proformaId={proforma ?? null} repetirVentaId={!proforma && repetir && /^[0-9a-f-]{36}$/i.test(repetir) ? repetir : null} />
     </Suspense>
   );
 }
 
-async function Caja({ proformaId }: { proformaId: string | null }) {
+async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null; repetirVentaId: string | null }) {
   const persona = await exigirModulo("vender"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const supabase = await createClient();
   // Dos lecturas de stock con dos preguntas distintas:
@@ -135,6 +137,37 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     }
   }
 
+  // «Volver a vender» desde Ventas ▸ Historial (ADR-0229): las prendas de esa venta entran al ticket al precio de HOY. La
+  // RLS de `ventas` decide si esta cuenta la ve (una integrante, solo las de su tienda); si no, se avisa y el ticket va vacío.
+  let repeticion: RepeticionDeVenta | null = null;
+  let avisoRepeticion: string | null = null;
+  if (repetirVentaId) {
+    const res = await supabase
+      .from("ventas")
+      .select(
+        `created_at, venta_items ( variante_id, cantidad, variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ),
+         comprobantes ( tipo, serie, numero, estado, created_at )`
+      )
+      .eq("id", repetirVentaId)
+      .maybeSingle();
+    if (res.error || !res.data) avisoRepeticion = "No se encontró esa venta para volver a venderla.";
+    else {
+      const v = res.data as unknown as {
+        created_at: string;
+        venta_items: { variante_id: string; cantidad: number; variante: { talla: { valor: string } | null; color: { nombre: string } | null; producto: { referencia: string } | null } | null }[];
+        comprobantes: VentaCruda["comprobantes"];
+      };
+      const comprobante = elegirComprobante(v.comprobantes);
+      const [, mes, dia] = diaDeLima(v.created_at).split("-");
+      const prendas = v.venta_items.map((i) => ({
+        varianteId: i.variante_id,
+        cantidad: i.cantidad,
+        descripcion: [i.variante?.producto?.referencia ?? "Prenda", i.variante?.talla?.valor, i.variante?.color?.nombre].filter(Boolean).join(" · "),
+      }));
+      repeticion = { origen: comprobante?.numero ?? `la venta del ${Number(dia)}/${Number(mes)}`, ...lineasDelCarritoDesdeVenta(prendas, variantesParaVenta) };
+    }
+  }
+
   // Sin caja (ADR-0186): lo que dejó el último cierre, para que el modal «Abrir caja» pida contar el cajón.
   const fondoUltimoCierre = caja ? null : ((await getUltimoCierre(persona.ubicacionId))?.montoFondo ?? null);
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
@@ -157,9 +190,10 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   return (
     <PuntoDeVenta
       // Otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
-      key={proformaEnCobro?.id ?? "caja"}
+      key={proformaEnCobro?.id ?? (repeticion ? `repetir-${repetirVentaId}` : "caja")}
       proforma={proformaEnCobro}
-      avisoProforma={avisoProforma}
+      avisoProforma={avisoProforma ?? avisoRepeticion}
+      repeticion={repeticion}
       ubicacionId={persona.ubicacionId}
       // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
       // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).

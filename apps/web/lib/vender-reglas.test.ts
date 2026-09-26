@@ -587,6 +587,13 @@ describe("pagosParaRpc — lo que viaja a registrar_venta", () => {
     expect(p).not.toHaveProperty("recibido");
   });
 
+  it("el nº de operación viaja limpio en Yape, Plin y transferencia (ADR-0229); vacío no inventa la clave", () => {
+    expect(pagosParaRpc([{ metodo: "yape", monto: 50, referencia: " 0123 4567 " }])).toEqual([{ metodo: "yape", monto: 50, referencia: "01234567" }]);
+    expect(pagosParaRpc([{ metodo: "plin", monto: 50, referencia: "" }])[0]).not.toHaveProperty("referencia");
+    expect(pagosParaRpc([{ metodo: "tarjeta", monto: 50, referencia: "999" }])[0]).not.toHaveProperty("referencia");
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 50, recibido: 50, referencia: "999" }])[0]).toEqual({ metodo: "efectivo", monto: 50, recibido: 50 });
+  });
+
   it("descarta los pagos en 0 (venta_pagos exige monto > 0)", () => {
     expect(pagosParaRpc([{ metodo: "efectivo", monto: 0, recibido: 10 }, { metodo: "yape", monto: 30 }])).toEqual([
       { metodo: "yape", monto: 30 },
