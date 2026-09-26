@@ -128,7 +128,8 @@ almacén, sin cuarentena, el «total» de Existencias— al terminar ese movimie
 de «Hoy en la sede».
 
 - **DECIDÍ:** una función de lectura nueva, `retail.fn_movimientos_saldos(p_ubicacion_id, p_movimiento_ids)`
-  (`20260927173000`), que lee el saldo de `fn_ledger_puntos` (bucket `total`), la fuente única del ledger (ADR-0202). La
+  (`20260927173000`, **en producción desde el 2026-09-26**: ensayo revertido en Tienda TRU —138 movimientos con saldo,
+  las 78 prendas cuadran con su stock de hoy— y huella `1e87255b…` igual a la local), que lee el saldo de `fn_ledger_puntos` (bucket `total`), la fuente única del ledger (ADR-0202). La
   web solo lo dice en palabras (`lib/movimientos-saldo.ts`).
 - **DESCARTÉ:** calcular el saldo en la web restando desde el stock de hoy (una segunda reconstrucción del ledger, justo
   lo que ADR-0202 prohibió: Análisis y Movimientos podrían dar dos números) y agregar la columna a `fn_movimientos` (su

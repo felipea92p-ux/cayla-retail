@@ -74,8 +74,10 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
 - [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
       `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
-- [ ] **Aplicar `20260927173000` en producción** (OK de Felipe; una sola parte, solo lectura; puede ir antes o después de
-      la web: sin ella la lista sigue sin el saldo) y refrescar el volcado.
+- [x] `20260927173000` en producción (2026-09-26): ensayo revertido sobre Tienda TRU (138 movimientos con saldo; las 78
+      prendas terminan en su stock de hoy), aplicada y verificada por huella (`md5` `1e87255b…` = local).
+- [ ] Refrescar `docs/datos/generado/` (la foto del 20:45 UTC no tiene `fn_movimientos_saldos` ni lo que Traslados aplicó
+      después): hasta entonces `pnpm datos:comparar` la marca como ausente aunque existe.
 - [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
       que «Todos 8»): decir por qué, o separar «Traslados».
 - [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
