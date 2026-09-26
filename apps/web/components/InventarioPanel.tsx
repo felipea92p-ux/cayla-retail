@@ -418,14 +418,17 @@ export function InventarioPanel({
 
   const hayFiltrosActivos =
     busqueda !== "" || categoria !== TODAS || marcaEfectiva !== TODAS || talla !== TODAS || color !== TODAS || accion !== TODAS || condicion !== TODAS;
-  /** Quita búsqueda, categoría, marca, talla y color, pero deja Acción y Estado puestos. Es el «Ver todas» de
-   *  «Por colgar»: que la lista vuelva a ser lo que cuenta la píldora. */
+  /** Quita todo menos el Estado (búsqueda, categoría, marca, talla, color y Acción). Es el «Ver todas» de «Por colgar»: que la
+   *  lista vuelva a ser lo que cuenta la píldora. Quitar Acción nunca esconde una talla por colgar (todas piden «Reponer a
+   *  piso»), y dejarla puesta podía trabar la lista: «Sin acción» + «Por colgar» no tiene ni una fila (dos filtros que se
+   *  vacían entre sí, lo que esta pantalla no permite). */
   function quitarFiltrosMenosEstado() {
     setBusqueda("");
     setCategoria(TODAS);
     setMarca(TODAS);
     setTalla(TODAS);
     setColor(TODAS);
+    setAccion(TODAS);
   }
   function limpiarFiltros() {
     quitarFiltrosMenosEstado();
@@ -894,19 +897,27 @@ export function InventarioPanel({
                   {/* «Stock actual P/A» (2026-09-25, sección 4 del pedido): fusiona Piso·Almacén y
                       Disponible — mostrar los dos por separado era la misma información repetida
                       (Disponible = piso + almacén utilizable). En Taller (sin separación) es un solo
-                      número: no hay un split que reportar con rigor. */}
+                      número: no hay un split que reportar con rigor.
+                      Las cifras son las LIBRES (`pisoDisponible`/`almacenDisponible`, 2026-09-26, al resolver
+                      el PR con main): las mismas que decide «Acción hoy», que pinta el ámbar, y que muestra el
+                      modal de Reponer. Dibujar lo físico bajo una ayuda que dice «nunca lo apartado» hacía que
+                      tabla y modal dieran dos cifras distintas para la misma percha; lo apartado va debajo. */}
                   <span
                     className={celda("centro", "rounded-lg bg-hueso/60 px-2 py-1.5 sm:rounded-none sm:bg-transparent sm:px-0 sm:py-0 text-sm tabular-nums")}
-                    title={separa ? `Piso: ${f.piso ?? 0}\nAlmacén: ${f.almacen ?? 0}\nTotal: ${f.disponible}` : undefined}
+                    title={
+                      separa
+                        ? `Libre en piso: ${f.pisoDisponible ?? 0}\nLibre en almacén: ${f.almacenDisponible ?? 0}\nTotal libre: ${f.disponible}${f.apartado > 0 ? `\nApartadas para clientas: ${f.apartado}` : ""}`
+                        : undefined
+                    }
                   >
                     <span className="label-cayla mb-0.5 block text-[10px] text-tinta/45 sm:hidden">Stock actual</span>
                     {separa ? (
                       <>
                         {/* Ámbar exactamente cuando «Acción hoy» ya dice que esta fila necesita algo —
                             misma fuente que la columna, nunca un umbral aparte (2026-09-25). */}
-                        <span className={f.accionHoy?.tipo === "reponer_a_piso" ? "text-ambar-profundo" : "text-tinta"}>{f.piso}</span>
+                        <span className={f.accionHoy?.tipo === "reponer_a_piso" ? "text-ambar-profundo" : "text-tinta"}>{f.pisoDisponible}</span>
                         <span className="text-tinta/45"> / </span>
-                        <span className="text-tinta">{f.almacen}</span>
+                        <span className="text-tinta">{f.almacenDisponible}</span>
                       </>
                     ) : (
                       <span className="font-semibold text-tinta">{f.disponible}</span>
@@ -968,7 +979,11 @@ export function InventarioPanel({
                       {/* Contexto (2026-09-25, tercera ronda): «Sin stock en almacén», «Sin stock en
                           almacén · 8 uds en camino» — nota corta, nunca reemplaza el chip: la necesidad
                           de piso sigue siendo «Reponer a piso» aunque no haya de dónde bajarlo hoy. */}
-                      {f.accionHoy?.contexto && <span className="text-[11px] text-taupe">{f.accionHoy.contexto}</span>}
+                      {/* `whitespace-normal`: la celda hereda `truncate` (una sola línea) y este texto mide ~200 px en una
+                          columna de 9 rem: sin partirse, se montaba sobre «En la red». */}
+                      {f.accionHoy?.contexto && (
+                        <span className="whitespace-normal text-right text-[11px] leading-tight text-taupe sm:text-center">{f.accionHoy.contexto}</span>
+                      )}
                       {/* CORREGIDO 2026-09-25 (CASO K del pedido): hasta ahora este botón tenía su PROPIO
                           motor (`necesitaReponerPiso`, un umbral aparte) y podía aparecer aunque la columna
                           dijera «Sin acción» — dos fuentes de verdad decidiendo lo mismo distinto. Ahora la
