@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
+Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
+ticket, espera con nombre, Apartar y Proforma desde el ticket, «Anotar que no había» en la talla, buscador con lo
+vendible arriba, hoja del ticket en el celular (`Modal variante="ticket"`), Admin como chip, «Prenda sin registrar»
+sin teclado de pantalla y catálogo de hasta 5 columnas.
+- [ ] Clic real con sesión y datos de producción (Felipe), a 1440 y a 375 px. Verificado solo con una página de prueba sin sesión.
+- [ ] **Decidir:** ¿la proforma acepta el descuento de campaña? Hoy `crear_proforma` no lo acepta y la caja lo avisa.
+- [ ] La pregunta del club y «es para regalo» en la fila «Clienta» (paso 1 del acta de clientas): esperan el historial de permisos (G.2).
+- [ ] Contadores en los accesos (apartados por vencer, devoluciones por aprobar): consultas nuevas, decidir si valen.
+- [ ] «Pedir al almacén / traslado» desde la talla agotada: hoy los traslados los inicia Inventario.
+- [ ] Coordinar con el PR #433 (apartada en Vender): toca `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx` y `ElegirTallaModal.tsx`.
 ## 🧭 Inventario con la cabecera de Ventas (2026-09-26, ADR-0220) — hecho, solo web, sin migración; rama `claude/inventory-module-headers-2683ef`
 Pedido de Felipe: «que el header de todos los módulos de inventario tome como referencia los de Caja, Historial, Postventa».
 - [x] Las 9 pantallas de Inventario usan `EncabezadoPagina`: sede y fecha arriba, título = palabra del menú (Existencias, Movimientos, Traslados, Conteo, Análisis), acciones bajo la frase; Existencias con «vista de las HH:MM» en vez de reloj vivo. Las cifras no se movieron. CLAUDE.md dice ahora que la cabecera es la de su módulo.

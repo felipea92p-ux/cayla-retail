@@ -10,21 +10,24 @@ import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
+import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
 
 /**
  * Apartados (ADR-0166): la clienta aparta prendas con un adelanto, las recoge pagando el saldo, o vencen y se le
  * devuelve el adelanto. Vive en Ventas junto al Punto de venta y usa su misma forma (hoja, panel de cobro, modales).
  * Solo tiendas: el adelanto entra a una caja y la prenda se guarda en el piso de una tienda.
  */
-export default async function ApartadosPage() {
+export default async function ApartadosPage({ searchParams }: { searchParams: Promise<{ prendas?: string }> }) {
+  // «Apartar» desde el ticket del Punto de venta: las prendas ya elegidas llegan en la dirección (`lib/apartar-desde-ticket.ts`).
+  const { prendas } = await searchParams;
   return (
     <Suspense fallback={null}>
-      <Apartados />
+      <Apartados desdeTicket={prendas ?? null} />
     </Suspense>
   );
 }
 
-async function Apartados() {
+async function Apartados({ desdeTicket }: { desdeTicket: string | null }) {
   const persona = await requirePersonaActualV2();
   if (persona.ubicacionTipo !== "tienda") {
     return (
@@ -95,6 +98,7 @@ async function Apartados() {
       resumen={datos.resumen}
       liberadosAhora={datos.liberadosAhora}
       hayMas={datos.hayMas}
+      lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
     />
   );
 }
