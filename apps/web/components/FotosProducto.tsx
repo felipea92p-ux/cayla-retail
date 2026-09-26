@@ -18,7 +18,7 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
    la lista final (orden + cuál es principal) como `p_fotos` de
    catalogo_crear_producto/catalogo_actualizar_producto, no los bytes.
 
-   Antes de subir, cada foto pasa por la revisión del ADR-0220
+   Antes de subir, cada foto pasa por la revisión del ADR-0228
    (`RevisarFotosModal`): sale en 1200×1500 sobre blanco, sin fondo o con
    su fondo según se elija, y se guarda también su original.
 

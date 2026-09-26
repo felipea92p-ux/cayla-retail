@@ -1,4 +1,4 @@
-# ADR-0220 — Fotos de prenda sin fondo y del mismo tamaño, preparadas en el navegador
+# ADR-0228 — Fotos de prenda sin fondo y del mismo tamaño, preparadas en el navegador
 
 **Fecha:** 2026-09-26
 **Estado:** Construido. `tsc`, `eslint` y las pruebas en verde; la revisión se vio en el navegador con dos fotos reales,

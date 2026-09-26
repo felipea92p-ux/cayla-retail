@@ -2,7 +2,7 @@
 
 import { cajaDeContenido, encuadrar, LADO_MAX_ORIGINAL, LIENZO_FOTO, MARGEN_PRENDA, recorteUtil, reducirA } from "@/lib/foto-encuadre";
 
-// Prepara una foto de prenda para el catálogo, en el NAVEGADOR (ADR-0220): el original reducido a un tamaño que se
+// Prepara una foto de prenda para el catálogo, en el NAVEGADOR (ADR-0228): el original reducido a un tamaño que se
 // pueda guardar, y dos versiones encuadradas en 1200×1500 sobre blanco —sin fondo y con su fondo— para que quien la
 // sube elija. Nada sale de este archivo hacia el almacén: subir es de `producto-fotos.ts`.
 

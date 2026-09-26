@@ -15,7 +15,7 @@ import { subirFotoProducto } from "@/lib/producto-fotos";
  * navegador sin IndexedDB degrada a «las fotos no se guardaron», nunca a perder el alta.
  */
 
-/** `original` (ADR-0220): la foto tal cual, para guardarla junto a la preparada. Opcional: un alta encolada antes de
+/** `original` (ADR-0228): la foto tal cual, para guardarla junto a la preparada. Opcional: un alta encolada antes de
  *  este cambio la trae sin él, y sube igual. */
 type FotoGuardada = { archivo: File; original?: Blob | null; colorCodigo: string | null };
 type Entrada = { token: string; nombre: string; fotos: FotoGuardada[]; productoId: string | null };

@@ -1,4 +1,4 @@
-// El modelo que quita el fondo de las fotos de prenda, en un hilo aparte (ADR-0220). Corre ~1 s por foto en la CPU:
+// El modelo que quita el fondo de las fotos de prenda, en un hilo aparte (ADR-0228). Corre ~1 s por foto en la CPU:
 // en el hilo de la pantalla la congelaría ese segundo por cada foto.
 //
 // Por qué vive en `public/` como JavaScript plano y no en `lib/` como TypeScript: Next 16.2 con Turbopack no reconoció

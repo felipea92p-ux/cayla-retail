@@ -28,14 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Fotos de prenda sin fondo y del mismo tamaño (2026-09-26, ADR-0220) — solo web, sin migración; rama `claude/fotos-fondo-blanco`
+## 🎯 Fotos de prenda sin fondo y del mismo tamaño (2026-09-26, ADR-0228) — solo web, sin migración; rama `claude/fotos-fondo-blanco`
 - [x] Toda foto de prenda sale en 1200×1500 (el 4:5 de la grilla), JPEG sobre blanco, centrada y del mismo tamaño que las demás (`lib/foto-encuadre.ts`, 14 pruebas).
 - [x] El fondo lo quita MODNet en el navegador (`public/quitar-fondo.worker.js`, CPU, 26 MB una vez por equipo). Antes de subir, `RevisarFotosModal` muestra el antes y el después y quien sube elige «Sin fondo» o «Con fondo». Lo usan la galería de edición y el alta (también sin conexión).
 - [x] El original queda en `originales/<id>.jpg` junto a `fotos/<id>.jpg`, para poder reprocesar sin volver a fotografiar. Se aceptan fotos de hasta 25 MB.
 - [x] Verificado en el navegador con dos fotos reales en `next dev` (escritorio y 375 px) y en el build de producción (`next build` + `next start`, donde se encontró y corrigió que el worker no arrancaba).
 - [ ] **Falta con sesión real:** subir una foto a una ficha (`/productos/<id>/editar` ▸ Fotos) y crear un producto con foto; confirmar que aparecen `fotos/` y `originales/` en el bucket `retail-productos-fotos`.
 - [ ] **Decidido no hacer (Felipe):** sin botón para reprocesar el catálogo. Las pocas fotos existentes las editó un compañero con ChatGPT: **conviene compararlas con la prenda en la mano**, porque ChatGPT redibuja la foto y puede cambiar encaje, botones o tono. La que no se parezca se reemplaza subiendo una foto real. Y «Blusa Carlita» tiene de foto el afiche de la convocatoria.
-- [ ] Si MODNet muerde demasiadas prendas (entrenado con personas), el reemplazo medido es Photoroom (US$0.02/foto), que se enchufa en `lib/preparar-foto.ts`: ver ADR-0220, «Descarté».
+- [ ] Si MODNet muerde demasiadas prendas (entrenado con personas), el reemplazo medido es Photoroom (US$0.02/foto), que se enchufa en `lib/preparar-foto.ts`: ver ADR-0228, «Descarté».
 - Cómo verificas: Productos ▸ una prenda ▸ Editar ▸ Fotos ▸ «Agregar foto» con una foto de celular → se abre «Revisa las fotos»; la primera vez dice «Preparando el recortador · N %»; la prenda aparece recortada sobre blanco con la miniatura «Antes»; «Usar esta foto» → la tarjeta de la grilla la muestra del mismo tamaño que las demás.
 
 ## 🎯 Un solo combo en todo el ERP: sin `<select>` del navegador y una prueba que lo vigila (2026-09-26, ADR-0209 act. b) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)

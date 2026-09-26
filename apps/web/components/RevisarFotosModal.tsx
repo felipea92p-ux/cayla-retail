@@ -6,7 +6,7 @@ import { Boton } from "@/components/ui/campos";
 import { escucharDescargaModelo, prepararFotoPrenda, type FotoPreparada } from "@/lib/preparar-foto";
 
 /* ====================================================================
-   RevisarFotosModal · antes de que una foto entre al catálogo (ADR-0220)
+   RevisarFotosModal · antes de que una foto entre al catálogo (ADR-0228)
 
    Cada foto se prepara en el navegador en dos versiones, las dos en
    1200×1500 sobre blanco: SIN FONDO (la prenda recortada, centrada y del

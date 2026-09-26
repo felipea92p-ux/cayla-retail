@@ -1,4 +1,4 @@
-// Encuadre de las fotos de prenda (ADR-0220). Lógica pura, sin navegador: la usan `preparar-foto.ts` (que dibuja en un
+// Encuadre de las fotos de prenda (ADR-0228). Lógica pura, sin navegador: la usan `preparar-foto.ts` (que dibuja en un
 // canvas) y sus pruebas. Sin imports de `@/`: vitest local no los resuelve.
 //
 // El problema que resuelve: cada foto llegaba con su tamaño, su encuadre y su fondo, y la grilla de Productos las
@@ -23,7 +23,7 @@ export const UMBRAL_ALFA = 32;
 /** Si lo recortado ocupa menos que esto de la foto, el modelo no encontró la prenda (un botón suelto, un gancho). */
 export const AREA_MINIMA_PRENDA = 0.02;
 
-/** Qué parte de su propia caja llena una prenda de verdad. Medido el 2026-09-26 con MODNet (ADR-0220): una camisa
+/** Qué parte de su propia caja llena una prenda de verdad. Medido el 2026-09-26 con MODNet (ADR-0228): una camisa
  *  en gancho llenó el 79 % de la caja que la encierra; los pedazos que dejó en una foto de una tienda llena de ropa,
  *  el 15 %. El umbral queda en medio, lejos de los dos. */
 export const RELLENO_MINIMO_PRENDA = 0.3;

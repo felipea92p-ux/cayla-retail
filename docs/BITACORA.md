@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-26 (Fotos de prenda sin fondo y del mismo tamaño — ADR-0220)
+## 2026-09-26 (Fotos de prenda sin fondo y del mismo tamaño — ADR-0228)
 Felipe pidió quitar el fondo de las fotos de prenda automáticamente y que todas salgan del mismo tamaño. Eligió hacerlo gratis en el navegador, y antes de construir se midió en su Mac. BiRefNet_lite, el que mejor recorta ropa, no corrió en ningún navegador: en el de Claude falla por la tarjeta gráfica, y en Safari 26.5 y en CPU se queda sin memoria. MODNet sí corre (menos de 1 s por foto), pero está entrenado con personas y a veces muerde una manga. Se construyó con revisión obligatoria: cada foto sale en 1200×1500 sobre blanco, en dos versiones, y quien la sube elige. El original se guarda al lado. Sin botón para reprocesar el catálogo: las pocas fotos existentes las editó un compañero con ChatGPT.
 Por qué así: la revisión no es un paso de más. Una foto de catálogo mordida se ve peor que una con fondo, y solo alguien mirándola lo decide. Qué se rompería sin esto: la sugerencia «Sin fondo» habría puesto pedazos sueltos como foto de una prenda (pasó con una foto de tienda llena de ropa; ahora el recorte tiene que llenar su caja: 79 % contra 15 %, medido).
 Felipe se lleva: (1) **lo que funciona en `next dev` no está probado para producción**: el worker andaba en desarrollo y el build lo copiaba como archivo crudo; solo `next build` + `next start` lo mostró. (2) **ChatGPT no recorta una foto, la vuelve a dibujar**: puede cambiar el encaje, los botones o el tono. En un catálogo donde la clienta elige por la foto, hay que compararla con la prenda.

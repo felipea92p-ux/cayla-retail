@@ -15,7 +15,7 @@ import { rutasFotoPrenda } from "@/lib/foto-encuadre";
 // (dentro de `catalogo_crear_producto`/`catalogo_actualizar_producto`,
 // como `p_fotos`) — este archivo solo sube bytes y devuelve la URL.
 //
-// Desde el ADR-0220 (2026-09-26) lo que llega acá ya viene preparado en el
+// Desde el ADR-0228 (2026-09-26) lo que llega acá ya viene preparado en el
 // navegador (`preparar-foto.ts`): encuadrado en 1200×1500 sobre blanco, con o
 // sin fondo según eligió quien la sube. Se guarda en `fotos/<id>.jpg` y, si
 // viene, su original en `originales/<id>.jpg` —mismo id—, para poder volver a
@@ -27,7 +27,7 @@ export const PRODUCTO_FOTOS_BUCKET = "retail-productos-fotos";
 export const PRODUCTO_FOTOS_MAX_BYTES = 5 * 1024 * 1024;
 const TIPOS_ACEPTADOS = ["image/jpeg", "image/png", "image/webp"] as const;
 
-/** Lo que se puede ELEGIR para subir (ADR-0220): la foto no se sube tal cual —se reduce y encuadra antes—, así que
+/** Lo que se puede ELEGIR para subir (ADR-0228): la foto no se sube tal cual —se reduce y encuadra antes—, así que
  *  aguanta la foto entera de un celular. Lo que llega al almacén lo vuelve a validar `objecionFotoProducto`. */
 export const FOTO_ELEGIDA_MAX_BYTES = 25 * 1024 * 1024;
 
@@ -60,7 +60,7 @@ export type ResultadoSubidaFoto = { url: string } | { error: string };
 
 /**
  * Sube UNA foto y devuelve su URL pública, o el motivo por el que no se pudo. `original` es la foto tal cual la tomaron
- * (ADR-0220): si no sube, la foto elegida sigue siendo válida y se sube igual —perder el original solo quita la opción
+ * (ADR-0228): si no sube, la foto elegida sigue siendo válida y se sube igual —perder el original solo quita la opción
  * de reprocesarla, no la foto del producto—.
  */
 export async function subirFotoProducto(supabase: Cliente, archivo: File, original?: Blob | null): Promise<ResultadoSubidaFoto> {

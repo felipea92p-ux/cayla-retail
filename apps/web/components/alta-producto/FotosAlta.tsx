@@ -18,14 +18,14 @@ import { Punto } from "@/components/alta-producto/ElegirColores";
 // producto sigue siendo una sola transacción: si una foto no sube, el producto ya existe y la pantalla de éxito dice
 // cuál faltó (principio 9: se degrada, no pierde el producto).
 //
-// Desde el ADR-0220 cada foto pasa antes por la revisión (`RevisarFotosModal`): lo que queda acá ya es la foto
+// Desde el ADR-0228 cada foto pasa antes por la revisión (`RevisarFotosModal`): lo que queda acá ya es la foto
 // preparada —1200×1500 sobre blanco, sin fondo o con su fondo— y su original, que se suben juntos al crear.
 
 export type FotoPendiente = {
   clave: string;
   /** La foto preparada (encuadrada, con o sin fondo): la que se sube y se muestra. */
   archivo: File;
-  /** La foto tal cual la tomaron, reducida: se guarda al lado para poder reprocesarla (ADR-0220). */
+  /** La foto tal cual la tomaron, reducida: se guarda al lado para poder reprocesarla (ADR-0228). */
   original: Blob | null;
   /** URL local (blob:) solo para mostrarla; se libera al quitarla o al salir. */
   vista: string;
