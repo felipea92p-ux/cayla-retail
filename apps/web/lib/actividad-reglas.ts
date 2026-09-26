@@ -17,6 +17,16 @@ export function anotaActividad(clave: ClaveModulo): boolean {
   return MODULOS_CON_ACTIVIDAD.includes(clave);
 }
 
+/** Los módulos que solo CONSULTAN (ADR-0234): no cambian nada, así que nunca tendrán actividad propia. Decir que
+ *  «Movimientos todavía no anota su actividad» encima de una lista de movimientos era una contradicción para quien no
+ *  conoce el sistema. Desde ellos, el panel abre con todos los módulos: lo que pasó en la tienda. */
+export const MODULOS_SOLO_CONSULTA: readonly ClaveModulo[] = ["movimientos"];
+
+/** El módulo con que abre el panel desde una pantalla: el suyo, salvo que la pantalla solo consulte (entonces todos). */
+export function moduloInicialDelPanel(modulo: ClaveModulo | null): ClaveModulo | null {
+  return modulo && MODULOS_SOLO_CONSULTA.includes(modulo) ? null : modulo;
+}
+
 /** ¿Esta cuenta ve el botón «Actividad»? El líder (y el Admin, que es líder), o una PERSONA cuyo rol ve el módulo. Una
  *  terminal nunca: es un aparato compartido de mostrador. */
 export function veActividad(perfil: { rol: "lider" | "integrante"; terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): boolean {

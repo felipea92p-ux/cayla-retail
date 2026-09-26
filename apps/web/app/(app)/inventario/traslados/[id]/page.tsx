@@ -7,9 +7,12 @@ import { TrasladoDetallePanel } from "@/components/TrasladoDetallePanel";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TrasladoEstado } from "@/components/TrasladoEstado";
 import { situacionTraslado } from "@/lib/traslados-reglas";
+import { volverAMovimientos } from "@/lib/movimientos-reglas";
 
-export default async function TrasladoDetallePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function TrasladoDetallePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ volver?: string }> }) {
+  const [{ id }, { volver }] = await Promise.all([params, searchParams]);
+  // Abierto desde Movimientos (ADR-0234): «←» vuelve a esa lista, con sus filtros, en vez de a Traslados.
+  const volverA = volverAMovimientos(volver);
   const persona = await requirePersonaActualV2();
   const [traslado, catalogo] = await Promise.all([getTrasladoDetalle(id), getCatalogo()]);
   if (!traslado) notFound();
@@ -49,8 +52,8 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
           </>
         }
         pie={
-          <Link href="/inventario/traslados" className="btn-cayla btn-secundario">
-            ← Traslados
+          <Link href={volverA ?? "/inventario/traslados"} className="btn-cayla btn-secundario">
+            {volverA ? "← Movimientos" : "← Traslados"}
           </Link>
         }
       />

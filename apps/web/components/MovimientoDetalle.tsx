@@ -3,18 +3,18 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Modal, botonCancelar } from "@/components/ui/Modal";
-import { Chip } from "@/components/ui/Chip";
+import { avisar } from "@/components/ui/Avisos";
 import {
   ETIQUETA_ESTADO_DEVOLUCION,
-  ETIQUETA_ESTADO_TRASLADO,
+  etiquetaConDireccion,
   etiquetaDia,
   etiquetaEstadoComprobante,
-  etiquetaMovimiento,
   hoyEnLima,
   textoComprobante,
   textoDelta,
-  tonoEstadoTraslado,
+  verboDelResponsable,
   type Movimiento,
+  type PrendaDeMovimiento,
 } from "@/lib/movimientos-reglas";
 import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
 
@@ -22,7 +22,22 @@ import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
 // el apartado que corresponde a SU proceso (una venta muestra el
 // comprobante; una recepción, la guía y el proveedor; un conteo, sistema vs
 // contado). Solo lectura: acá no hay nada que editar ni borrar, a propósito.
-export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movimiento; onClose: () => void }) {
+//
+// ADR-0234: dice qué hizo la persona («Vendió: …», «Recibió: …»), cuánto queda HOY de esa prenda en la sede y lleva a
+// todo lo que le pasó (su historial). Sin el código interno del movimiento: para mostrarlo a alguien está «Copiar
+// enlace», que abre exactamente esto (lo pega por WhatsApp y listo).
+export function MovimientoDetalle({
+  movimiento: m,
+  prenda,
+  onVerVenta,
+  onClose,
+}: {
+  movimiento: Movimiento;
+  prenda?: PrendaDeMovimiento;
+  /** Si quien mira ve el Historial de ventas, cómo abrir la venta desde acá. Sin esto (el historial de un producto), no se ofrece. */
+  onVerVenta?: () => void;
+  onClose: () => void;
+}) {
   // El delta ya lo calculó `fn_movimientos` en SQL (es `m.delta`, la misma
   // fuente que decide el signo/color del chip) — no se vuelve a restar
   // `contado - sistema` acá para no tener la misma regla en dos lugares.
@@ -30,8 +45,8 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
 
   return (
     <Modal
-      titulo={etiquetaMovimiento(m)}
-      subtitulo={`${etiquetaDia(m.fecha, hoyEnLima())} · ${m.hora} · ${m.esSistema ? "Movimiento de sistema, sin persona" : (m.usuario ?? "Persona no identificada")}`}
+      titulo={etiquetaConDireccion(m)}
+      subtitulo={`${etiquetaDia(m.fecha, hoyEnLima())} · ${m.hora} · ${m.esSistema ? "Carga del sistema, sin persona" : `${verboDelResponsable(m)}: ${m.usuario ?? "persona no identificada"}`}`}
       onClose={onClose}
       ancho="max-w-md"
     >
@@ -65,7 +80,7 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
           </div>
 
           <dl className="divide-y divide-tinta/10 border-y border-tinta/10">
-            <Dato etiqueta="Ubicación">
+            <Dato etiqueta={m.categoria === "transferencia" ? "Sedes" : "Sede"}>
               {m.categoria === "transferencia" ? (
                 <>
                   {m.ubicacion} <span className="text-tinta/55">→</span> {m.ubicacionDestino ?? "—"}
@@ -75,13 +90,13 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
               )}
             </Dato>
             {m.categoria === "interno" ? (
-              <Dato etiqueta="Dentro de la tienda">
-                {m.sububicacion?.nombre ?? "Sin sububicación"} <span className="text-tinta/55">→</span> {m.sububicacionDestino?.nombre ?? "Sin sububicación"}
+              <Dato etiqueta="Dentro de la sede">
+                {m.sububicacion?.nombre ?? "Sin zona"} <span className="text-tinta/55">→</span> {m.sububicacionDestino?.nombre ?? "Sin zona"}
               </Dato>
             ) : m.categoria === "transferencia" ? (
               m.sububicacion && m.sububicacionDestino ? (
                 // Una fila del modelo anterior (una sola fila que sale de una sede y entra a otra): las dos puntas.
-                <Dato etiqueta="Sububicaciones">
+                <Dato etiqueta="Zonas">
                   {m.sububicacion.nombre} <span className="text-tinta/55">→</span> {m.sububicacionDestino.nombre}
                 </Dato>
               ) : (
@@ -92,13 +107,34 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
                 )
               )
             ) : (
-              m.sububicacion && <Dato etiqueta="Sububicación">{m.sububicacion.nombre}</Dato>
+              m.sububicacion && <Dato etiqueta="Zona">{m.sububicacion.nombre}</Dato>
+            )}
+
+            {/* Cuánto queda HOY: la pregunta con la que se llega a esta pantalla («¿por qué dice 3 si cuento 2?»). Las
+                mismas cuentas que Existencias (`sumarCantidades`): la cuarentena no suma. */}
+            {prenda?.stockHoy && (
+              <Dato etiqueta="Hoy en la sede">
+                {prenda.stockHoy.total === 0 ? "No queda ninguna" : `${prenda.stockHoy.total} ${prenda.stockHoy.total === 1 ? "unidad" : "unidades"}`}
+                {prenda.stockHoy.piso !== null && prenda.stockHoy.total > 0 && (
+                  <span className="text-tinta/65">
+                    {" "}
+                    ({prenda.stockHoy.piso} en piso, {prenda.stockHoy.almacen ?? 0} en almacén)
+                  </span>
+                )}
+                {(prenda.stockHoy.danado ?? 0) > 0 && <span className="text-tinta/65"> · {prenda.stockHoy.danado} dañadas en cuarentena</span>}
+                {prenda.productoId && (
+                  <Link href={`/productos/${prenda.productoId}/historial`} className="mt-1 block text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo" onClick={cerrar}>
+                    Ver todo lo que le pasó a esta prenda →
+                  </Link>
+                )}
+              </Dato>
             )}
 
             {/* ---- lo propio de cada proceso ---- */}
             {m.venta && m.motivo !== "devolucion" && m.motivo !== "cambio" && (
               <Dato etiqueta="Comprobante">
                 <Comprobante comprobante={m.venta.comprobante} />
+                {onVerVenta && <VerVenta onClick={onVerVenta} />}
               </Dato>
             )}
             {m.venta?.nota && m.motivo === "venta" && <Dato etiqueta="Nota de la venta">{m.venta.nota}</Dato>}
@@ -120,21 +156,17 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
 
             {m.transferencia && (
               <>
-                {/* El proceso completo (qué prendas viajaron juntas, envío, recepción, diferencias) lo cuenta
-                    Traslados: acá solo el número, el estado y el camino para llegar. */}
+                {/* El proceso completo (qué prendas viajaron juntas, envío, recepción, diferencias) y su estado los cuenta
+                    Traslados, con sus palabras: acá solo el número y el camino para llegar (ADR-0234 quitó la insignia que
+                    decía «Cerrada» donde Traslados dice «Completado»). */}
                 <Dato etiqueta="Traslado">
-                  <span className="flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`/inventario/traslados/${m.transferencia.id}`}
-                      className="text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo"
-                      onClick={cerrar}
-                    >
-                      {m.transferencia.numero !== null ? `Traslado ${m.transferencia.numero}` : "Ver traslado"} →
-                    </Link>
-                    <Chip tono={tonoEstadoTraslado(m.transferencia.estado ?? "completada")}>
-                      {ETIQUETA_ESTADO_TRASLADO[m.transferencia.estado ?? "completada"] ?? m.transferencia.estado ?? "—"}
-                    </Chip>
-                  </span>
+                  <Link
+                    href={`/inventario/traslados/${m.transferencia.id}`}
+                    className="text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo"
+                    onClick={cerrar}
+                  >
+                    {m.transferencia.numero !== null ? `Traslado ${m.transferencia.numero}` : "Ver traslado"} →
+                  </Link>
                 </Dato>
                 {m.transferencia.nota && <Dato etiqueta="Nota">{m.transferencia.nota}</Dato>}
               </>
@@ -147,6 +179,7 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
                 {m.venta && (
                   <Dato etiqueta="Venta original">
                     <Comprobante comprobante={m.venta.comprobante} />
+                    {onVerVenta && <VerVenta onClick={onVerVenta} />}
                   </Dato>
                 )}
               </>
@@ -185,6 +218,7 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
                 {m.venta && (
                   <Dato etiqueta="Venta original">
                     <Comprobante comprobante={m.venta.comprobante} />
+                    {onVerVenta && <VerVenta onClick={onVerVenta} />}
                   </Dato>
                 )}
               </>
@@ -193,16 +227,57 @@ export function MovimientoDetalle({ movimiento: m, onClose }: { movimiento: Movi
             {m.nota && <Dato etiqueta="Nota">{m.nota}</Dato>}
           </dl>
 
-          {/* El id existe para citarlo en una consulta («¿por qué este movimiento?»);
-              no se edita ni se borra: el trigger de inmutabilidad lo impide. */}
-          <p className="font-mono text-[10px] text-tinta/40">{m.id}</p>
-
-          <button type="button" onClick={cerrar} className={botonCancelar}>
+          <div className="flex gap-2">
+            <button type="button" onClick={copiarEnlace} className={botonCancelar}>
+              Copiar enlace
+            </button>
+            <button type="button" onClick={cerrar} className={botonCancelar}>
             Cerrar
-          </button>
+            </button>
+          </div>
         </div>
       )}
     </Modal>
+  );
+}
+
+/** El enlace de ESTE movimiento (la URL ya lleva `?mov=`), para mandarlo por WhatsApp. El portapapeles moderno falla en
+ *  algunos celulares y navegadores embebidos (sin permiso): entonces se copia a la antigua, con un campo escondido. */
+async function copiarEnlace() {
+  const enlace = window.location.href;
+  const copiado = await navigator.clipboard?.writeText(enlace).then(
+    () => true,
+    () => false
+  );
+  if (copiado || copiarALaAntigua(enlace)) {
+    avisar.exito("Enlace copiado", { detalle: "Pégalo en WhatsApp: abre este mismo movimiento." });
+  } else {
+    avisar.error("No se pudo copiar el enlace", { detalle: "Copia la dirección de arriba del navegador." });
+  }
+}
+
+function copiarALaAntigua(texto: string): boolean {
+  const campo = document.createElement("textarea");
+  campo.value = texto;
+  campo.setAttribute("readonly", "");
+  campo.style.position = "fixed";
+  campo.style.opacity = "0";
+  document.body.appendChild(campo);
+  campo.select();
+  try {
+    return document.execCommand("copy");
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(campo);
+  }
+}
+
+function VerVenta({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="mt-1 block text-left text-tinta underline decoration-tinta/30 underline-offset-2 hover:text-rojo hover:decoration-rojo">
+      Ver la venta →
+    </button>
   );
 }
 

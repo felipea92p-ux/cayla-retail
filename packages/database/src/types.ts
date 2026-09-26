@@ -5124,6 +5124,16 @@ export type Database = {
         Args: { p_nombre: string; p_proveedor_id: string }
         Returns: string
       }
+      cargar_stock_inicial: {
+        Args: {
+          p_al_piso?: boolean
+          p_items: Json
+          p_nota?: string
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: number
+      }
       crear_producto_con_stock_inicial: {
         Args: {
           p_al_piso?: boolean
@@ -5717,6 +5727,26 @@ export type Database = {
           delta: number
           movimientos: number
           unidades: number
+        }[]
+      }
+      fn_movimientos_resumen_procesos: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_hasta?: string
+          p_motivo?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_usuario_id?: string
+        }
+        Returns: {
+          entran: number
+          filas: number
+          grupo: string
+          movidas: number
+          operaciones: number
+          proceso: string
+          salen: number
         }[]
       }
       fn_movimientos_variantes: {
