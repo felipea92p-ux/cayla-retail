@@ -3,6 +3,7 @@ import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getVentasRecientes } from "@/lib/ventas-v2";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
+import { apartadoEnPiso } from "@/lib/vender-stock-local";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getCajaAbierta } from "@/lib/caja";
 import { agruparStockPorSede } from "@/lib/stock-por-sede";
@@ -40,6 +41,8 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
   // Lo que se entrega a cambio sale del piso y solo puede ser lo DISPONIBLE: lo apartado para otra
   // clienta no se ofrece (ADR-0141).
   const stockAquiPorVariante = new Map([...stock].map(([id, c]) => [id, c.pisoDisponible ?? c.disponible]));
+  // Lo apartado en ese mismo piso: con él, una talla sin nada libre dice «apartada para una clienta» y no «no queda».
+  const apartadoAquiPorVariante = new Map([...stock].map(([id, c]) => [id, apartadoEnPiso(c)]));
   const stockPorSede = agruparStockPorSede(exigir(resStockSedes, "el stock de las sedes"), ubicaciones, persona.ubicacionId);
 
   return (
@@ -83,6 +86,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
             fotoUrl: v.fotoUrl,
             precio: v.precio,
             stockAqui: stockAquiPorVariante.get(v.varianteId) ?? 0,
+            apartadoAqui: apartadoAquiPorVariante.get(v.varianteId) ?? 0,
             stockOtrasSedes: stockPorSede.get(v.varianteId)?.otrasSedes ?? [],
           }))}
       />

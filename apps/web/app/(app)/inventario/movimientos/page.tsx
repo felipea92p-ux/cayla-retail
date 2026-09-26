@@ -15,7 +15,7 @@ import {
   type ResumenMovimientos,
 } from "@/lib/movimientos-v2";
 import { CATEGORIAS, desdeDeUltimosDias, type CategoriaMovimiento } from "@/lib/movimientos-reglas";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
@@ -82,10 +82,10 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla
-        sobretitulo="Inventario · Movimientos"
-        titulo={ubicacionActiva?.nombre ?? "—"}
-        bajada="Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca."
+      <EncabezadoPagina
+        sede={ubicacionActiva?.nombre ?? "—"}
+        titulo="Movimientos"
+        subtitulo="Qué cambió en el stock de esta sede, el proceso que lo originó y de dónde a dónde. No se edita ni se borra nunca."
       />
 
       <Resumen resumen={resumen} periodo={periodoEnPalabras} />

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
+import { Desplegable, type Opcion } from "@/components/ui/campos";
 
 // Las piezas de las pantallas de Finanzas (ADR-0195), tal como las dibuja el spike aprobado
 // (docs/maquetas/finanzas-2026-09/). Solo presentación: reciben valores y avisan cambios; la lógica vive en lib/*-reglas.ts.
@@ -89,12 +90,50 @@ export function Buscador({ valor, onValor, placeholder }: { valor: string; onVal
   );
 }
 
-export function SelectFin({ className = "", children, ...resto }: SelectHTMLAttributes<HTMLSelectElement>) {
+/** El combo de Finanzas (ADR-0195 + ADR-0209, 2026-09-26): cerrado es el control en caja del spike (`fin-control`, su
+ *  flecha, su relleno, el ancho de su opción más larga); abierto, la lista de todo el ERP —con buscador pasadas 8
+ *  opciones, grupos y opciones que se ven pero no se eligen—. Ya no es el <select> del navegador. `className` ubica la
+ *  caja en su fila (`w-fit`, `min-w-*`, `fin-mes-chico`, `fin-compacto`); el aspecto no se toca desde afuera. */
+export function SelectFin<T extends string>({
+  valor,
+  onValor,
+  opciones,
+  etiqueta,
+  id,
+  deshabilitado,
+  marcador,
+  className = "",
+}: {
+  valor: T;
+  onValor: (v: T) => void;
+  opciones: readonly Opcion<T>[];
+  /** El nombre para lectores de pantalla cuando no hay un `<label htmlFor={id}>` (las barras de herramientas). */
+  etiqueta?: string;
+  id?: string;
+  deshabilitado?: boolean;
+  /** Lo que dice mientras no hay nada elegido. */
+  marcador?: string;
+  className?: string;
+}) {
   return (
-    <select className={`fin-control ${className}`} {...resto}>
-      {children}
-    </select>
+    <Desplegable
+      forma="fin"
+      className={`fin-desplegable-caja ${className}`}
+      id={id}
+      etiquetaAccesible={etiqueta}
+      valor={valor}
+      onValor={onValor}
+      opciones={opciones}
+      deshabilitado={deshabilitado}
+      marcador={marcador}
+    />
   );
+}
+
+/** El mismo combo dentro de un sobretítulo («Lo que ya pasó · SETIEMBRE DE 2026», Flujo de caja): sin caja, con la
+ *  letra del texto que lo rodea. Va dentro de un <div>, no de un <p>: su caja es un bloque. */
+export function SelectEnLineaFin<T extends string>({ valor, onValor, opciones, etiqueta }: { valor: T; onValor: (v: T) => void; opciones: readonly Opcion<T>[]; etiqueta: string }) {
+  return <Desplegable forma="finEnLinea" className="inline-block" etiquetaAccesible={etiqueta} valor={valor} onValor={onValor} opciones={opciones} />;
 }
 
 export function InputFin({ className = "", ...resto }: InputHTMLAttributes<HTMLInputElement>) {
