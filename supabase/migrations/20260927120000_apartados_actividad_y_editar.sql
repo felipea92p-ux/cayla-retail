@@ -1,4 +1,4 @@
--- Actividad de Apartados y editar un apartado abierto (Apartados v2, paso 4 — ADR-0232).
+-- Actividad de Apartados y editar un apartado abierto (Apartados v2, paso 4 — ADR-0236).
 --
 -- 1. ACTIVIDAD (receta de ADR-0207). EL PROBLEMA: el líder no tenía cómo saber quién apartó, abonó, avisó, extendió,
 --    liberó o devolvió, ni cuándo. LA DECISIÓN: el mismo diario `retail.actividad` que ya usan Vender, Caja y Cambios,

@@ -5,7 +5,7 @@
 **Afecta:** migración `20260927140000_apartados_pedido_otra_sede.sql` (tabla `separacion_pedidos`, cinco funciones y un
 disparador sobre `transferencias`). Web: `ApartarVista` («Pedir a AQP para apartar»), `TodosVista` («Pedidos entre
 tiendas»), `ModalesApartado` (`PedirOtraSedeModal`, `EnviarPedidoModal`, `CancelarPedidoModal`) y la opción `otra_sede`.
-**Sigue a:** ADR-0232 («Lo que NO entró»).
+**Sigue a:** ADR-0236 («Lo que NO entró»).
 
 ## El problema
 

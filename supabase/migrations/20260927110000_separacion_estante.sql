@@ -1,4 +1,4 @@
--- Estante «Apartados» (Apartados v2, paso 3 — ADR-0232; spike `docs/maquetas/apartados-v2-2026-09/`).
+-- Estante «Apartados» (Apartados v2, paso 3 — ADR-0236; spike `docs/maquetas/apartados-v2-2026-09/`).
 --
 -- EL PROBLEMA. «Guárdala en Apartados del almacén» era un recordatorio: nadie sabía en qué lugar quedaba cada prenda,
 -- y al entregar había que buscarla entre todas por la etiqueta.

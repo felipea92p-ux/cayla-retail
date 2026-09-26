@@ -1,4 +1,4 @@
--- «Opciones» de Apartados (Apartados v2, paso 5 — ADR-0232; spike `docs/maquetas/apartados-v2-2026-09/`).
+-- «Opciones» de Apartados (Apartados v2, paso 5 — ADR-0236; spike `docs/maquetas/apartados-v2-2026-09/`).
 --
 -- EL PROBLEMA. Apartados sumó funciones (abonos, estante, recordar en lote, editar, actividad, clienta por DNI, cámara)
 -- y no toda tienda las quiere a la vista: una tienda chica puede no querer abonos, otra sí.

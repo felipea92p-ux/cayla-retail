@@ -1,4 +1,4 @@
--- Abonos a cuenta (Apartados v2, paso 2 — ADR-0232; spike `docs/maquetas/apartados-v2-2026-09/`).
+-- Abonos a cuenta (Apartados v2, paso 2 — ADR-0236; spike `docs/maquetas/apartados-v2-2026-09/`).
 --
 -- EL PROBLEMA. Hoy un apartado tiene dos pagos: el adelanto y el saldo al recoger. Si la clienta viene a mitad de
 -- semana con una parte, no hay dónde registrarlo: o se le pide que vuelva con todo, o se cobra «por fuera».

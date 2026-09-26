@@ -10,7 +10,7 @@ Capturas en `capturas/`. Estado por URL para abrir una vista concreta, por ejemp
 |---|---|---|
 | Celular pasos + pestañas abajo, cámara QR, arreglos | #482, ADR-0223 | En producción |
 | Recordar en lote | #490, ADR-0227 | En producción |
-| Abonos, estante, editar, actividad, opciones, clienta por DNI, «Qué ver» | ADR-0232 | Web en PR; 4 migraciones por pegar |
+| Abonos, estante, editar, actividad, opciones, clienta por DNI, «Qué ver» | ADR-0236 | Web en PR; 4 migraciones por pegar |
 | Apartar de otra sede | — | Espera decisión de Felipe (toca Traslados) |
 
 Abonos (Felipe): sin mínimo; el plazo no cambia solo; «esperarla» da 2 días, o 3 si abona la mitad o más de lo que le faltaba.

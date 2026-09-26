@@ -1,4 +1,4 @@
-# ADR-0232 — Apartados v2, pasos 2 a 5: abonos, estante, editar, actividad y opciones
+# ADR-0236 — Apartados v2, pasos 2 a 5: abonos, estante, editar, actividad y opciones
 
 **Fecha:** 2026-09-26
 **Estado:** Aprobado por Felipe el 2026-09-26 («realiza los pasos 2 a 5 y sube todo lo pendiente completo»).
