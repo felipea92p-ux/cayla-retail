@@ -216,7 +216,7 @@ end;
 $function$;
 
 comment on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) is
-  'ADR-0234: las tarjetas y las cifras de Movimientos leídas desde la tienda. Por (grupo de la pantalla: todos, entrada, salida, transferencia, ajuste, interno; proceso): operaciones (lo guardado en una sola transacción: misma hora exacta, persona y proceso), filas, unidades que entraron a la sede, que salieron y que se movieron entre piso y almacén. Una fila cuenta en cada grupo donde la pantalla la muestra. Mismos filtros y permiso que fn_movimientos.';
+  'ADR-0234: las tarjetas y las cifras de Movimientos leídas desde la tienda. Por (grupo de la pantalla: todos, entrada, salida, transferencia, ajuste, interno; proceso): operaciones (lo guardado de una sola vez sobre un mismo documento: misma hora exacta, persona, proceso y documento), filas, unidades que entraron a la sede, que salieron y que se movieron entre piso y almacén. Una fila cuenta en cada grupo donde la pantalla la muestra. Mismos filtros y permiso que fn_movimientos.';
 
 revoke all on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) from public, anon;
 grant execute on function retail.fn_movimientos_resumen_procesos(uuid, date, date, text, text, uuid, uuid) to authenticated;
