@@ -65,6 +65,64 @@ export function recorteUtil(c: Contenido | null, ancho: number, alto: number): c
   return c.pixeles / (ancho * alto) >= AREA_MINIMA_PRENDA && c.pixeles / (c.ancho * c.alto) >= RELLENO_MINIMO_PRENDA;
 }
 
+/** Qué tan grande tiene que ser una pieza del recorte, comparada con la más grande, para seguir siendo prenda. Un
+ *  conjunto de dos prendas separadas se conserva entero; una mancha, un resto de gancho o un borde de otra prenda al
+ *  costado —lo que dejó MODNet en la «Blusa V» del 2026-09-26— queda muy por debajo y se borra. */
+export const FRACCION_MINIMA_PIEZA = 0.15;
+
+/**
+ * Deja en el recorte solo la prenda: busca las piezas visibles que no se tocan entre sí y borra (alfa 0) las que son
+ * mucho más chicas que la mayor. Modifica `rgba` en el lugar y devuelve cuántos píxeles borró. Los píxeles casi
+ * transparentes (el halo del borde, por debajo de `umbral`) no cuentan como pieza ni se tocan.
+ */
+export function soloLaPrenda(
+  rgba: Uint8ClampedArray,
+  ancho: number,
+  alto: number,
+  umbral = UMBRAL_ALFA,
+  fraccionMinima = FRACCION_MINIMA_PIEZA,
+): number {
+  const total = ancho * alto;
+  const pieza = new Int32Array(total); // 0 = sin pieza; 1..n = número de pieza
+  const tamanos: number[] = [0];
+  const cola = new Int32Array(total);
+  for (let inicio = 0; inicio < total; inicio++) {
+    if (pieza[inicio] !== 0 || rgba[inicio * 4 + 3] <= umbral) continue;
+    const n = tamanos.length;
+    let tam = 0;
+    let lee = 0;
+    let escribe = 0;
+    cola[escribe++] = inicio;
+    pieza[inicio] = n;
+    while (lee < escribe) {
+      const i = cola[lee++];
+      tam++;
+      const x = i % ancho;
+      // Vecinos de los cuatro lados: una diagonal sola no une dos piezas (así un hilo de un píxel no pega una mancha
+      // a la prenda). Sin arreglos intermedios: una foto de celular son millones de píxeles.
+      for (let k = 0; k < 4; k++) {
+        const v = k === 0 ? (x > 0 ? i - 1 : -1) : k === 1 ? (x < ancho - 1 ? i + 1 : -1) : k === 2 ? i - ancho : i + ancho;
+        if (v < 0 || v >= total || pieza[v] !== 0 || rgba[v * 4 + 3] <= umbral) continue;
+        pieza[v] = n;
+        cola[escribe++] = v;
+      }
+    }
+    tamanos.push(tam);
+  }
+  if (tamanos.length <= 2) return 0; // ninguna o una sola pieza: nada que borrar
+  let mayor = 0;
+  for (const t of tamanos) if (t > mayor) mayor = t; // no Math.max(...): con miles de manchas revienta la pila
+  let borrados = 0;
+  for (let i = 0; i < total; i++) {
+    const n = pieza[i];
+    if (n !== 0 && tamanos[n] < mayor * fraccionMinima) {
+      rgba[i * 4 + 3] = 0;
+      borrados++;
+    }
+  }
+  return borrados;
+}
+
 /**
  * Dónde dibujar algo de `origen.ancho × origen.alto` dentro del lienzo: escalado para caber en el área útil (el lienzo
  * menos `margen` por lado), sin deformarlo, y centrado. Sirve igual para la prenda recortada (con margen) que para la

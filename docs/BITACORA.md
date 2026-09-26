@@ -3,6 +3,20 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Fotos de prenda: mejor calidad sin cambiar la prenda — ADR-0228 act.)
+Felipe comparó una foto editada con ChatGPT con una tomada en tienda y pidió mejor calidad sin cambiar la prenda. Casi toda la diferencia estaba en la toma (arrugas, gancho, etiqueta, luz lateral), así que se agregó lo que sí se arregla sin inventar: se borran los pedazos sueltos del recorte, la luz de la prenda se corrige con tope y una nitidez leve. En la revisión aparecen «Luz corregida / Luz original» y cuatro consejos para tomar la foto.
+Por qué así: la clienta compra por la foto; un celeste que sale gris o más vivo es una devolución. Por eso la luz se corrige sobre el brillo y los tres colores se escalan en la misma proporción. Qué se rompería sin esto: la primera versión, canal por canal, avivaba los colores (celeste de 42 % a 47-50 % de saturación). Se vio midiendo en el navegador y se corrigió antes de publicar.
+Felipe se lleva: **«mejorar» una foto tiene dos caminos: ajustar los píxeles que ya están, o redibujarla.** El primero no puede quitar una arruga; el segundo sí, pero ya no es la prenda. La mejor foto se consigue al tomarla.
+Sin resolver: probar con una foto real de tienda y sesión real.
+
+## 2026-09-26 (Punto de venta: spike «el ticket a lo alto»)
+Sobre la pantalla ya publicada (ADR-0221), Felipe pidió más aire para el ticket: sin la franja de arriba, sin «Apartar»/«Proforma» en el pie, todo en «Más» sobre el catálogo, y «Apartados» a la vista llevándose las prendas del ticket. Spike en `docs/maquetas/punto-venta-ticket-alto-2026-09/`, sin código.
+Felipe se lleva: (1) **una franja de ancho completo le quita alto a la columna que más lo necesita**: el ticket gana ~62 px, una prenda más a la vista. (2) **Un botón que se lleva el ticket vale más que dos**: «Apartados» hace de puerta y de «Apartar». (3) La tira de espera mostraba «3216 min»: se corrige a «hace 2 días».
+## 2026-09-26 (Nuevo producto: «Seguir al precio» ya no deja la pantalla en blanco)
+Felipe y una compañera, desde dos cuentas, tocaban «Seguir al precio» y el contenido desaparecía. Reproducido en producción con sesión real y medido: el paso 3 (con tallas, colores y fotos) se pliega, la página baja de 2244 a 1294 px, y 33 ms después `PaginaEstable` (ADR-0185) agregaba 872 px de aire al fondo y devolvía la vista abajo: el paso 4 quedaba 1109 px por encima de lo visible. Arreglo: el cambio de paso suelta `PaginaEstable` antes de pintar (`soltarPaginaEstable`, como el ticket del Punto de Venta). Probado en producción soltándola en ese clic: 0 px de aire y el paso 4 a la vista.
+Felipe se lleva: **una pantalla «en blanco» no siempre es una pantalla rota**: aquí el formulario seguía entero, 1 100 px más arriba. La barra de desplazamiento pegada abajo era la pista.
+Sin resolver: nada; el cambio de paso de 2→3 y 4→5 pasa por el mismo arreglo.
+
 ## 2026-09-26 (Traslados: recibir sin perder nada — ADR-0238, D-129 a D-132)
 Felipe tomó las cuatro recomendaciones del recorrido de Traslados y se construyeron en paralelo con tres agentes (base, recepción, lista y envío) sobre un contrato escrito primero en el ADR: entra lo que coincide y solo la línea con diferencia espera al líder; se cuenta a ciegas y cada casilla se guarda sola; se elige piso o almacén al confirmar; y un envío se anula mientras nadie haya contado. Migración `20260927160000` en local, no en producción; recorrido completo en el navegador local.
 Felipe se lleva: (1) **el contrato antes que el código** deja trabajar a tres manos a la vez: la web se escribió contra `types.ts` y el ADR mientras la migración todavía no existía, y encajaron al primer intento. (2) **Un «Coincide» es asumir, no contar**: esconder lo enviado hasta terminar es lo que convierte la recepción en un control. (3) **Anular no es borrar**: el stock vuelve con su propio movimiento (`traslado_anulado`) y el traslado queda con quién, cuándo y por qué.
