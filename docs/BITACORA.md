@@ -3,8 +3,8 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-26 (Catálogo ▸ Marcas: «Eliminar» para una marca puesta por error — ADR-0216)
-«Cayla 2» se creó por error al dar de alta un producto y solo se podía desactivar: quedaba en «Desactivadas» para siempre y ocupaba su nombre. Ahora hay «Eliminar», pero solo cuando ningún producto tiene la marca —ni descontinuado ni archivado como prueba—. La migración `20260926200000` (una función, `eliminar_marca`) está probada 21/21 en un Postgres desechable, con 3 mutaciones detectadas y una carrera real con COMMIT en los dos órdenes; **ya está en producción** (aplicada el mismo día con tu «dale», con ensayo previo revertido y verificada por efectos), antes que la web.
+## 2026-09-26 (Catálogo ▸ Marcas: «Eliminar» para una marca puesta por error — ADR-0217)
+«Cayla 2» se creó por error al dar de alta un producto y solo se podía desactivar: quedaba en «Desactivadas» para siempre y ocupaba su nombre. Ahora hay «Eliminar», pero solo cuando ningún producto tiene la marca —ni descontinuado ni archivado como prueba—. La migración `20260926210000` (una función, `eliminar_marca`) está probada 21/21 en un Postgres desechable, con 3 mutaciones detectadas y una carrera real con COMMIT en los dos órdenes; **ya está en producción** (aplicada el mismo día con tu «dale», con ensayo previo revertido y verificada por efectos), antes que la web.
 Felipe se lleva: (1) **el producto que «solo era una prueba» tenía una venta completada**, así que no se puede borrar: se re-marca (Top Aurora → Krisstell, que Jacard ya trae) y recién entonces la marca se elimina. (2) **Descontinuar o archivar como prueba no libera la marca**: el producto sigue apuntándole. (3) **Borrar solo es seguro donde no hay historia**: por eso Eliminar existe para marcas sin productos y no para las demás.
 
 ## 2026-09-26 (Revisión de errores en Catálogo ▸ Productos y Existencias: el código de la prenda salía vacío)

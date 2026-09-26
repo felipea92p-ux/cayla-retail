@@ -1,11 +1,11 @@
-# ADR-0216 — Eliminar una marca solo si ningún producto la tiene
+# ADR-0217 — Eliminar una marca solo si ningún producto la tiene
 
 **Fecha:** 2026-09-26
 **Estado:** Construido y verificado contra un Postgres desechable. **Migración EN PRODUCCIÓN desde el 2026-09-26** (Felipe dio el «dale»; se aplicó por MCP como
 `eliminar_marca` con ensayo previo revertido) — verificada por efectos: firma, `security definer`, `search_path`, `authenticated` sí / `anon` no, una sola versión y
 md5 del cuerpo idéntico al archivo. Quedó **antes que la web**, como debe (sin la función, el botón llamaría a algo que producción no tiene).
 **Decide:** Felipe, 2026-09-26: «"Cayla 2" no existe, quiero eliminarla; sería más útil tener una opción para eliminarla».
-**Afecta:** `supabase/migrations/20260926200000_eliminar_marca.sql` (una función, `retail.eliminar_marca`), `apps/web/components/MarcasLista.tsx`,
+**Afecta:** `supabase/migrations/20260926210000_eliminar_marca.sql` (una función, `retail.eliminar_marca`), `apps/web/components/MarcasLista.tsx`,
 `lib/marcas.ts` (`sePuedeEliminarMarca`), `lib/confirmar-catalogo.ts` (acción «eliminar»), `packages/database/src/types.ts`,
 `scripts/pruebas/eliminar_marca.mjs` (sumada al CI). No toca `productos` ni `marca_proveedores` como estructura.
 

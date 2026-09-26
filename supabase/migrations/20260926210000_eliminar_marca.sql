@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260926200000_eliminar_marca.sql — CAYLA V2 (Catálogo ▸ Marcas ▸ Eliminar)
+-- 20260926210000_eliminar_marca.sql — CAYLA V2 (Catálogo ▸ Marcas ▸ Eliminar)
 --
 -- EL PROBLEMA. Una marca creada por error («Cayla 2», 2026-09-26: se tecleó al dar de alta un producto) solo se
 -- podía DESACTIVAR. Desactivar no la quita: queda en «Desactivadas» para siempre, sigue ocupando su nombre (crear
