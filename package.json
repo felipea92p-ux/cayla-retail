@@ -50,6 +50,7 @@
     "pruebas:traslados-recibir-sin-perder-nada": "node scripts/pruebas/traslados_recibir_sin_perder_nada.mjs",
     "pruebas:ajuste-no-es-primera-carga": "node scripts/pruebas/ajuste_no_es_primera_carga.mjs",
     "pruebas:movimientos-saldo": "node scripts/pruebas/movimientos_saldo.mjs",
+    "pruebas:existencias-candados-y-ajuste": "node scripts/pruebas/existencias_candados_y_ajuste.mjs",
     "pruebas:fn-movimientos-busqueda-especial": "node scripts/pruebas/fn_movimientos_busqueda_especial.mjs",
     "pruebas:fn-resumen-comparacion": "node scripts/pruebas/fn_resumen_comparacion.mjs",
     "pruebas:fn-ledger-fuente-unica": "node scripts/pruebas/fn_ledger_fuente_unica.mjs",

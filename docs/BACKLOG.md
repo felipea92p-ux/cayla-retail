@@ -28,6 +28,26 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔐 Existencias: una puerta, un candado; y «Ajustar» de una vez (2026-09-26, ADR-0240) — web + 3 migraciones **sin pegar en producción**; rama `claude/existencias-candados-y-ajuste-atomico`
+Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
+- [x] **#3.** «Reponer al piso» y «Retirar del piso» piden «Bajada al piso», y «Apartar» pide «Apartados». Se cumple en la pantalla y en la base (`mover_entre_piso_y_almacen`, `apartar_prenda`). `mover_interno` y `apartar_stock` quedan internas: la parte 2 les quita el permiso de ejecución desde el navegador. Recibir traslados, separaciones y `bajar_al_piso` no pierden nada.
+- [x] **#1.** «Ajustar inventario» guarda todo en una sola llamada (`ajustar_inventario`): todo o nada, con marca de reintento. Si se corta la red, los campos quedan fijos y el reintento no duplica.
+- [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** qué roles necesitan «Bajada al piso» y «Apartados». Al 2026-09-25, las Terminal Almacén y de ventas reponían con «Reponer» (ADR-0208) y, sin el módulo, lo pierden.
+- [ ] **Producción, en orden y con visto bueno:**
+  1. módulos en los roles;
+  2. `20260927180000` y `20260927180100`;
+  3. publicar la web;
+  4. `20260927180200`;
+  5. refrescar el volcado y correr `datos:comparar`.
+- [ ] Verlo con una cuenta sin los módulos.
+- [ ] Encontrado, sin tocar: `scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs` da 14/21 en local porque su preparación falla con `venta_descuento_requiere_argumento`. Es de ventas, no de este cambio.
+- [ ] Encontrado, sin tocar: `registrar_movimiento` tiene EXECUTE para PUBLIC, incluido `anon`. Adentro frena por permisos, pero el grant sobra.
+- **Base local:** la parte 2 está marcada como aplicada, pero **el permiso de ejecución de `mover_interno` y `apartar_stock` se devolvió a mano**, para no romper «Reponer» y «Apartar» a las sesiones que corren `main` sobre la base compartida. Para probar el cierre, se vuelve a pegar `20260927180200`.
+- Cómo verificas:
+  - `pnpm pruebas:existencias-candados-y-ajuste` (33/33).
+  - Con una cuenta sin «Bajada al piso», en una prenda por colgar no aparece «Reponer al piso» y la talla dice «pídesela a quien tenga el módulo».
+  - En «Ajustar», con la red cortada al confirmar: aparece «no sabemos si llegó a guardarse» y los campos quedan fijos.
+
 ## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
 Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
 - [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**

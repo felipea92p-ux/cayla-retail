@@ -35,7 +35,7 @@ export type FilaParaReponer = {
   almacen: number | null;
 };
 
-// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql; la marca, 20260926200100):
+// Llama a `retail.mover_entre_piso_y_almacen` (ADR-0240: `mover_interno` + el módulo «Bajada al piso»; la marca, 20260926200100):
 // mismo motor que un traslado entre sedes, pero dentro de la misma
 // ubicación — el total de la tienda no cambia, solo dónde vive físicamente
 // la prenda. Los UUID de piso/almacén ya vienen resueltos desde el server
@@ -121,7 +121,8 @@ export function ReponerPisoModal({
     // corte de red (mensaje honesto, se puede cerrar), porque la base pudo haber guardado igual.
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
-    const { error: errorRpc } = await firmar(supabase.rpc("mover_interno", {
+    // La puerta con el candado de «Bajada al piso» (ADR-0240); `mover_interno` ya no se llama desde el navegador.
+    const { error: errorRpc } = await firmar(supabase.rpc("mover_entre_piso_y_almacen", {
       p_ubicacion_id: ubicacionId,
       p_variante_id: fila.varianteId,
       p_cantidad: n,

@@ -14,7 +14,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
-// Apartar una prenda para una clienta (ADR-0141): `retail.apartar_stock`. La prenda sigue físicamente
+// Apartar una prenda para una clienta (ADR-0141): `retail.apartar_prenda` (ADR-0240: `apartar_stock` + el módulo «Apartados»). La prenda sigue físicamente
 // en la tienda —el conteo no cambia— pero deja de estar DISPONIBLE: ninguna caja puede cobrarla ni
 // nadie moverla. La base es quien manda (rechaza si no hay disponible, si falta el nombre, si la fecha
 // es absurda); este formulario adelanta esos mismos candados para avisar al lado del campo, y muestra
@@ -63,7 +63,8 @@ export function ApartarModal({
     if (!responsable.listo) return;
 
     setEnviando(true);
-    const { error } = await firmar(createClient().rpc("apartar_stock", {
+    // La puerta con el candado de «Apartados» (ADR-0240); `apartar_stock` ya no se llama desde el navegador.
+    const { error } = await firmar(createClient().rpc("apartar_prenda", {
       p_variante_id: fila.varianteId,
       p_ubicacion_id: ubicacionId,
       p_cantidad: Number(cantidad),
