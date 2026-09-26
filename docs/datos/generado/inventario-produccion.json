@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-09-26T20:45:45.972186+00:00",
-  "funciones_en_produccion": 604,
+  "leido_en": "2026-09-26T21:55:14.388986+00:00",
+  "funciones_en_produccion": 607,
   "tablas": [
     {
       "esquema": "retail",
@@ -2724,7 +2724,7 @@
       "tabla": "codigos_barras",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 149,
+      "filas_estimadas": 155,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -12104,7 +12104,7 @@
       "tabla": "movimientos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 132,
+      "filas_estimadas": 138,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15085,7 +15085,7 @@
       "tabla": "producto_fotos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 9,
+      "filas_estimadas": 10,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -15201,7 +15201,7 @@
       "tabla": "productos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 16,
+      "filas_estimadas": 17,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -18863,7 +18863,7 @@
       "tabla": "stock",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 111,
+      "filas_estimadas": 117,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -20144,9 +20144,65 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "sububicacion_destino_id",
+          "orden": 17,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "anulado_por",
+          "orden": 18,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "anulado_en",
+          "orden": 19,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "motivo_anulacion",
+          "orden": 20,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
+        {
+          "nombre": "transferencias_anulada_con_fecha",
+          "clase": "regla",
+          "definicion": "CHECK (((estado = 'anulada'::text) = (anulado_en IS NOT NULL)))"
+        },
+        {
+          "nombre": "transferencias_anulada_con_motivo",
+          "clase": "regla",
+          "definicion": "CHECK (((estado = 'anulada'::text) = (NULLIF(btrim(motivo_anulacion), ''::text) IS NOT NULL)))"
+        },
+        {
+          "nombre": "transferencias_anulado_por_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (anulado_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "transferencias_anulado_por_solo_si_anulada",
+          "clase": "regla",
+          "definicion": "CHECK (((anulado_por IS NULL) OR (estado = 'anulada'::text)))"
+        },
         {
           "nombre": "transferencias_cerrado_por_fkey",
           "clase": "llave foránea",
@@ -20165,7 +20221,7 @@
         {
           "nombre": "transferencias_estado_check",
           "clase": "regla",
-          "definicion": "CHECK ((estado = ANY (ARRAY['completada'::text, 'en_transito'::text, 'recibido_con_diferencia'::text, 'cerrada'::text])))"
+          "definicion": "CHECK ((estado = ANY (ARRAY['completada'::text, 'en_transito'::text, 'recibido_con_diferencia'::text, 'cerrada'::text, 'anulada'::text])))"
         },
         {
           "nombre": "transferencias_numero_unique",
@@ -20181,6 +20237,11 @@
           "nombre": "transferencias_pkey",
           "clase": "llave primaria",
           "definicion": "PRIMARY KEY (id)"
+        },
+        {
+          "nombre": "transferencias_sububicacion_destino_pertenece_fk",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (sububicacion_destino_id, ubicacion_destino_id) REFERENCES retail.sububicaciones(id, ubicacion_id)"
         },
         {
           "nombre": "transferencias_terminal_id_fkey",
@@ -20747,7 +20808,7 @@
       "tabla": "variantes",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 149,
+      "filas_estimadas": 155,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
