@@ -1,6 +1,8 @@
-# ADR-0230 — Existencias decide con una sola regla de piso («Acción hoy»)
+# ADR-0231 — Existencias decide con una sola regla de piso («Acción hoy»)
 
 **Fecha:** 2026-09-26
+**Numeración:** nació como ADR-0230; antes de subirla, el PR #488 (Historial conectado) se renumeró a ese número al chocar
+con el #492 en el 0229, así que esta pasa a 0231.
 **Estado:** En producción. PR #445 fusionado por Felipe el 2026-09-26 (merge `3b7dac06`, desplegado por Vercel). Su
 migración `20260925170551_existencias_ritmo_reciente` ya estaba en producción antes del merge: consultada en vivo,
 `retail.fn_ritmo_reciente_json` tiene el mismo cuerpo que el archivo (md5 de `prosrc` igual al de la base local).
