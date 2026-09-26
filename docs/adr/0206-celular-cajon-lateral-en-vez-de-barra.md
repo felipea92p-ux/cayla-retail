@@ -40,3 +40,8 @@ ajuste de 4.25 rem que tres barras fijas tenían escrito a mano.
 
 - `COLUMNAS_MOVIL` y `menu.movil` (`lib/menu.ts`) ya no los pinta nadie. Se dejaron porque `menu.test.ts` los fija
   en sus perfiles dorados; retirarlos es un cambio aparte con su regeneración del dorado.
+
+## Actualización 2026-09-26 — barras de pestañas de una pantalla
+
+Una pantalla con pestañas puede llevarlas abajo en el celular (Apartados, PR #482; Comprobantes, ADR-0238). No es un
+segundo menú: el ☰ sigue siendo la única navegación del ERP.
