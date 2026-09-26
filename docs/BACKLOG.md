@@ -42,6 +42,13 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
 
+## 🎨 Paleta esencial de moda: de 32 a 63 colores (2026-09-25) — migración `20260926100000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR
+- [x] **32 colores nuevos**, de claro a oscuro, con tope de 9 por familia: `supabase/migrations/20260926100000_colores_paleta_esencial.sql`. Cada tono se midió con ΔE2000 contra todos los demás: todo par que no es metálico queda en ≥ 8,8. Probada en un Postgres desechable, dos pasadas, idempotente.
+- [x] **Nuevo producto: la paleta es una carta de 9 columnas alineadas** (`ElegirColores.tsx`). Verificada en navegador a 800 y 375 px.
+- [x] **Migración aplicada en producción** con el ok de Felipe (2026-09-25). Primero se ensayó con una excepción a propósito (68 filas, 64 activas) y se confirmó que la base quedaba intacta. Se aplicó con `apply_migration`: queda en `schema_migrations` como `20260925233411 20260926100000_colores_paleta_esencial`. Verificado después: 68 filas, 64 activas, 0 activas sin aprobar.
+- [x] **«Marrón chocolate» (MAC) se llama «Coñac»** (decisión de Felipe). Cambió solo el nombre; el código sigue siendo MAC y el color va en el lugar 75 de Tierra. Queda en la misma migración. Su nota interna todavía dice «Marrón más oscuro»: quien la escribió puede corregirla en Atributos ▸ Colores.
+- [ ] **Sinónimos peruanos en el buscador de colores** (plomo → Gris, café → Marrón, guinda → Vino, jaspeado → Gris melange). Hoy quien escribe «plomo» no encuentra nada, y lo natural es proponer un color nuevo (un duplicado de Gris que el candado de nombre no frena, como pasó con MAC al lado de Chocolate). `ComboBuscable` ya busca también en `detalle`; falta decidir si los sinónimos van en una columna `colores.sinonimos` o en una lista en `lib/`.
+
 ## 🎯 Modo sin conexión para agregar productos (2026-09-25, ADR-0210) — solo web, sin migración
 - [x] **Paso 1 — Recibir mercadería.** Cola genérica (`lib/cola-offline.ts` + `useColaOffline`), sincronizador único en el layout (`ColasSinConexion`), `/recibir` (`recibir_envio`) y `/inventario/recibir` (`recibir_lote`). Lo contado sale de «pendientes» mientras espera. Probado en local cortando la red: encola, sube al volver, no duplica con el mismo token, un rechazo queda con «Descartar», una RPC fuera de la lista blanca no corre.
 - [x] **Paso 2 — Alta de producto** sin red: «pendiente de código» hasta subir (Felipe 2A), fotos en IndexedDB que suben después del producto, freno a dos altas con el mismo nombre en la cola. Probado: `CIN-0001` con sus 3 variantes al volver la red.
@@ -1550,6 +1557,33 @@ Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `re
 sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0139 (antes 0107, 0132 y 0138; `modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
 
+
+
+---
+
+## 🎯 Panel comercial (2026-09-18, ADR-0110)
+
+- [x] **`/comercial` construido y verificado en lo que no depende de la base real:** 3 funciones SQL
+      (`20260918191000_panel_comercial.sql`), reglas puras con 30 pruebas, pantalla vista en escritorio y
+      celular, prueba aislada de 22 verificaciones con 3 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo único que la prueba aislada no cubre: RLS, la `fn_es_lider` verdadera, `fn_nombres_personas`.
+- [ ] **Aplicar en producción, en orden:** `20260916172645_anular_venta` (da `ventas.estado`) y
+      `20260918100000_meta_venta_diaria_por_ubicacion` si faltan — ninguna da error al crear la función, la
+      pantalla falla al abrir —, y después `20260918191000_panel_comercial`. Solo lectura; se deshace con 3 `drop function`.
+- [ ] **Sospecha, sin verificar en producción: las barras de "ventas por hora" de Caja están desplazadas 5 horas.**
+      `getSeriesVentasCaja` (`lib/caja.ts`) agrupa con `new Date(created_at).getHours()` = zona del servidor; Vercel
+      corre en UTC, Lima es UTC−5. En tu Mac (zona Lima) no se nota. Corrección: agrupar en SQL con
+      `at time zone 'America/Lima'` como hace `fn_comercial_horas`.
+- [ ] **Metas por día de la semana** (hoy es una cifra plana: un sábado vale como un martes) y comparativo contra
+      el mismo día de la semana anterior. Umbrales 85% / 100% provisionales: calibrar con Felipe con meses reales.
+- [ ] **DECISIÓN PENDIENTE (Felipe): `/comercial` no tiene entrada en el menú.** Al fusionar con `main` (2026-09-25) el menú
+      pasó a ser el árbol gobernado de `lib/menu.ts`, donde toda pantalla viva debe declarar un **módulo del sistema de
+      roles** (`CLAVES_MODULO`, `retail.modulos` y su migración) y `menu.test.ts` lo exige. `main` ya deja «Comercial» como fila
+      *futura* (pájaro 13 Águila). La pantalla existe y está protegida (líder en pantalla, RPC y RLS), solo se llega por
+      la URL. Para activarla: decidir qué roles ven «Comercial» (¿solo líder? ¿o un módulo delegable?), alta del módulo con su
+      migración, pasar la fila a «viva» (`ruta: "/comercial"`, `icono: "comercial"`, trazo `M4 20h16M7 20v-7m5 7V6m5 14v-10`) y
+      actualizar `menu-hoy.golden.json`.
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
