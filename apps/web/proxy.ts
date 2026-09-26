@@ -95,5 +95,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // `sw.js` y `sin-conexion.html` (ADR-0210) tampoco pasan por la sesión: el navegador pide el service worker sin
   // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `quitar-fondo.worker.js` (ADR-0220), igual: es código público; redirigido al login, el navegador recibía HTML
+  // donde esperaba JavaScript y el recortador no arrancaba.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|quitar-fondo\\.worker\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

@@ -1,6 +1,5 @@
 "use client";
 
-import type { RespuestaWorker } from "@/lib/quitar-fondo.worker";
 import { cajaDeContenido, encuadrar, LADO_MAX_ORIGINAL, LIENZO_FOTO, MARGEN_PRENDA, recorteUtil, reducirA } from "@/lib/foto-encuadre";
 
 // Prepara una foto de prenda para el catálogo, en el NAVEGADOR (ADR-0220): el original reducido a un tamaño que se
@@ -19,6 +18,12 @@ export type FotoPreparada = {
 };
 
 const CALIDAD_JPEG = 0.9;
+
+/** Lo que responde `public/quitar-fondo.worker.js`. */
+type RespuestaWorker =
+  | { tipo: "progreso"; porcentaje: number }
+  | { tipo: "listo"; id: number; ancho: number; alto: number; rgba: Uint8ClampedArray }
+  | { tipo: "error"; id: number; mensaje: string };
 
 function lienzo(ancho: number, alto: number): HTMLCanvasElement {
   const c = document.createElement("canvas");
@@ -57,7 +62,8 @@ const oyentesProgreso = new Set<(porcentaje: number) => void>();
 
 function obtenerWorker(): Worker {
   if (worker) return worker;
-  worker = new Worker(new URL("./quitar-fondo.worker.ts", import.meta.url), { type: "module" });
+  // Desde `public/` y no con `new URL(…, import.meta.url)`: ver el encabezado del worker.
+  worker = new Worker("/quitar-fondo.worker.js", { type: "module" });
   worker.onmessage = (e: MessageEvent<RespuestaWorker>) => {
     const m = e.data;
     if (m.tipo === "progreso") {
