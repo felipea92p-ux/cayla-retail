@@ -30,6 +30,10 @@ import {
   periodoCorto,
   resumirOperacion,
   textoCantidadOperacion,
+  textoApartado,
+  plegarBajadas,
+  resumirBajadas,
+  esOperacionInterna,
   unidades,
   verboDelResponsable,
   volverAMovimientos,
@@ -764,5 +768,70 @@ describe("exportar a Excel", () => {
     expect(fila[3]).toBe("'+Blusa");
     expect(fila[15]).toBe("'=HIPERVINCULO(\"x\")");
     expect(fila[8]).toBe(-1);
+  });
+});
+
+describe("ADR-0241: apartados, bajadas plegadas y «Hoy»", () => {
+  it("una operación de dos apartados dice «2 apartadas», no «0»", () => {
+    const [op] = agruparPorOperacion([
+      movimiento({ tipo: "apartado", categoria: "apartado", motivo: "apartado", cantidad: 1, delta: 0 }),
+      movimiento({ id: "m2", varianteId: "v2", tipo: "apartado", categoria: "apartado", motivo: "apartado", cantidad: 1, delta: 0 }),
+    ]);
+    expect(textoCantidadOperacion(resumirOperacion(op))).toBe("2 apartadas");
+  });
+
+  it("una liberación dice cuántas vuelven a estar libres", () => {
+    const [op] = agruparPorOperacion([movimiento({ tipo: "liberacion_apartado", categoria: "liberacion_apartado", motivo: "liberacion_apartado", cantidad: 1, delta: 0 })]);
+    expect(textoCantidadOperacion(resumirOperacion(op))).toBe("1 libre");
+    expect(textoApartado(3, "liberacion_apartado")).toBe("3 libres");
+    expect(textoApartado(1, "apartado")).toBe("1 apartada");
+  });
+
+  const interna = (id: string, hora: string, varianteId = "v1") =>
+    movimiento({
+      id,
+      hora,
+      creadoEn: `2026-09-26T${hora}:00+00:00`,
+      varianteId,
+      tipo: "traslado",
+      categoria: "interno",
+      motivo: "movimiento_interno",
+      cantidad: 2,
+      delta: 0,
+      sububicacion: { id: "sa", nombre: "Almacén", tipo: "almacen_tienda" },
+      sububicacionDestino: { id: "sp", nombre: "Piso de venta", tipo: "piso_venta" },
+    });
+  const venta = (id: string, hora: string) =>
+    movimiento({ id, hora, creadoEn: `2026-09-26T${hora}:00+00:00`, tipo: "salida", categoria: "salida", motivo: "venta", cantidad: 1, delta: -1 });
+
+  it("junta las bajadas del día en un ítem, donde estaba la más reciente", () => {
+    const ops = agruparPorOperacion([venta("a", "16:00"), interna("b", "15:18"), venta("c", "12:00"), interna("d", "10:09", "v2")]);
+    const items = plegarBajadas(ops);
+    expect(items.map((i) => i.tipo)).toEqual(["operacion", "bajadas", "operacion"]);
+    const plegado = items[1];
+    if (plegado.tipo !== "bajadas") throw new Error("esperaba bajadas");
+    expect(plegado.operaciones).toHaveLength(2);
+    expect(resumirBajadas(plegado.operaciones)).toEqual({ etiqueta: "Bajadas al piso", veces: 2, tallas: 2, unidades: 4, desde: "10:09", hasta: "15:18" });
+  });
+
+  it("con una sola bajada no pliega nada", () => {
+    const ops = agruparPorOperacion([venta("a", "16:00"), interna("b", "15:18")]);
+    expect(plegarBajadas(ops).map((i) => i.tipo)).toEqual(["operacion", "operacion"]);
+  });
+
+  it("una operación con una fila que no es interna no se pliega", () => {
+    const [op] = agruparPorOperacion([interna("b", "15:18")]);
+    expect(esOperacionInterna(op)).toBe(true);
+    expect(esOperacionInterna({ filas: [...op.filas, venta("x", "15:18")] })).toBe(false);
+  });
+
+  it("«Hoy» por URL o por defecto en el celular; 30 días si no", () => {
+    const hoy = "2026-09-26";
+    expect(filtrosDesdeParams({ rango: "hoy" }, { hoy })).toMatchObject({ periodo: "hoy", desde: hoy });
+    expect(filtrosDesdeParams({}, { hoy, porDefecto: "hoy" })).toMatchObject({ periodo: "hoy", desde: hoy });
+    expect(filtrosDesdeParams({ rango: "7" }, { hoy, porDefecto: "hoy" })).toMatchObject({ periodo: "7" });
+    expect(filtrosDesdeParams({}, { hoy })).toMatchObject({ periodo: "30" });
+    expect(periodoCorto("hoy")).toBe("hoy");
+    expect(textoPeriodo("hoy")).toBe("Hoy");
   });
 });

@@ -18,6 +18,7 @@ import {
 } from "@/lib/movimientos-reglas";
 import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
 import { textoQuedaron } from "@/lib/movimientos-saldo";
+import { textoEstadoApartado, type ApartadoDeMovimiento, type Atajo } from "@/lib/movimientos-atajos";
 
 // El detalle de un movimiento: los mismos datos de la fila, completos y con
 // el apartado que corresponde a SU proceso (una venta muestra el
@@ -31,6 +32,9 @@ export function MovimientoDetalle({
   movimiento: m,
   prenda,
   quedan = null,
+  apartado = null,
+  atajos = [],
+  onAjustar,
   onVerVenta,
   onClose,
 }: {
@@ -39,6 +43,13 @@ export function MovimientoDetalle({
   /** Cuántas quedaron en la tienda al terminar este movimiento (ADR-0234, saldo). Null = sin el dato (o el historial
    *  de un producto, que no lo pide). */
   quedan?: number | null;
+  /** El apartado de este movimiento de apartar o liberar (ADR-0241): código, clienta y estado. */
+  apartado?: ApartadoDeMovimiento | null;
+  /** «Seguir con esta prenda» (ADR-0241): a la pantalla que hace lo siguiente. Sin atajos (el historial de un
+   *  producto), la sección no aparece. */
+  atajos?: Atajo[];
+  /** «Corregir con un ajuste»: la lista cierra este detalle y abre Ajustar inventario. */
+  onAjustar?: () => void;
   /** Si quien mira ve el Historial de ventas, cómo abrir la venta desde acá. Sin esto (el historial de un producto), no se ofrece. */
   onVerVenta?: () => void;
   onClose: () => void;
@@ -233,8 +244,49 @@ export function MovimientoDetalle({
               </>
             )}
 
+            {apartado && (
+              <>
+                <Dato etiqueta="Apartado">{apartado.codigo}</Dato>
+                {apartado.clienta && <Dato etiqueta="Clienta">{apartado.clienta}</Dato>}
+                <Dato etiqueta="Estado">
+                  {textoEstadoApartado(apartado.estado)}
+                  {apartado.estado === "abierta" && apartado.venceEl && <span className="text-tinta/65"> · vence el {fechaCorta(apartado.venceEl)}</span>}
+                </Dato>
+              </>
+            )}
+
             {m.nota && <Dato etiqueta="Nota">{m.nota}</Dato>}
           </dl>
+
+          {/* Seguir con esta prenda (ADR-0241): el movimiento no se toca; lo siguiente se hace en su pantalla, que llega
+              con la prenda cargada. Primero lo propio del proceso (destacado), después corregir y ver en Existencias. */}
+          {atajos.length > 0 && (
+            <section aria-label="Seguir con esta prenda">
+              <p className="label-cayla mb-2 text-[10.5px] text-tinta/65">Seguir con esta prenda</p>
+              <div className="grid grid-cols-2 gap-2">
+                {atajos.map((a) => {
+                  const clase = `flex min-h-[3rem] flex-col justify-center rounded-xl border px-3 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${
+                    a.principal ? "col-span-2 border-tinta bg-tinta text-crema hover:bg-tinta/90" : "border-sand bg-papel text-tinta hover:border-taupe"
+                  } ${["existencias", "etiquetas", "apartado"].includes(a.clave) ? "col-span-2" : ""}`;
+                  const cuerpo = (
+                    <>
+                      <span className="text-[13.5px] font-medium">{a.texto}</span>
+                      {a.detalle && <span className={`text-[11.5px] ${a.principal ? "text-crema/70" : "text-tinta/60"}`}>{a.detalle}</span>}
+                    </>
+                  );
+                  return a.href ? (
+                    <Link key={a.clave} href={a.href} className={clase} onClick={cerrar}>
+                      {cuerpo}
+                    </Link>
+                  ) : a.clave === "ajustar" && onAjustar ? (
+                    <button key={a.clave} type="button" className={clase} onClick={onAjustar}>
+                      {cuerpo}
+                    </button>
+                  ) : null;
+                })}
+              </div>
+            </section>
+          )}
 
           <div className="flex gap-2">
             <button type="button" onClick={copiarEnlace} className={botonCancelar}>
@@ -309,4 +361,10 @@ function Comprobante({ comprobante }: { comprobante: NonNullable<Movimiento["ven
       </span>
     </span>
   );
+}
+
+/** «30/9», sin pasar por la zona horaria del navegador (`aaaa-mm-dd` de la base). */
+function fechaCorta(iso: string): string {
+  const [, mes, dia] = iso.split("-");
+  return `${Number(dia)}/${Number(mes)}`;
 }
