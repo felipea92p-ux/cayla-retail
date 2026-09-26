@@ -452,7 +452,7 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:proveedores-cuentas
 
-      # Varios rubros por proveedor (ADR-0211): registrar/editar limpian la lista (espacios, vacíos, repetidos sin
+      # Varios rubros por proveedor (ADR-0213): registrar/editar limpian la lista (espacios, vacíos, repetidos sin
       # tildes ni mayúsculas), «sin rubro» es {} y nunca NULL, el CHECK y NOT NULL rechazan por su cuenta, fn_proveedores()
       # devuelve la lista, UNA sola firma de cada función, Gastos sigue naciendo con {Gastos} y la migración se puede
       # pegar dos veces. Cada caso termina en ROLLBACK.

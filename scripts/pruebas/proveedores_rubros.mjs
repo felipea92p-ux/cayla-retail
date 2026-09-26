@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Pruebas de «varios rubros por proveedor» (ADR-0211) contra el Postgres local — CAYLA V2.
+ * Pruebas de «varios rubros por proveedor» (ADR-0213) contra el Postgres local — CAYLA V2.
  *
  * QUÉ PRUEBA. Que un proveedor pueda tener todos los rubros que vende SIN poder quedar en un estado imposible:
  *   · `registrar_proveedor` y `actualizar_proveedor` reciben la lista y la limpian (espacios, vacíos, NULL y

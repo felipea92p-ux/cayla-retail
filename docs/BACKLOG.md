@@ -28,12 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0211) — migración `20260926110000` POR PEGAR en producción, ANTES de desplegar la web
+## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` POR PEGAR en producción, ANTES de desplegar la web
 Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
 - [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
 - [x] Web: `ProveedorModal` (botones que se prenden y apagan + «Otro rubro»), lista, filtro, vista rápida y ficha. Verificado en navegador y a 375 px.
 - [ ] **Felipe:** pegar `20260926110000_proveedores_varios_rubros.sql` en el SQL Editor y enseguida fusionar el PR. Cómo verificas: en «Editar proveedor» marca Polos y Casacas, guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion`.
-- [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0211, «Pendiente»).
+- [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
 
 ---
 

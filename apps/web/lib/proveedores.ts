@@ -45,7 +45,7 @@ export type Proveedor = {
   facturas_recibidas_completas: number | null;
   facturas_con_recepcion_pendiente: number | null;
   facturas_atrasadas: number | null;
-  /** Todo lo que vende (Polos, Casacas…), texto libre; `[]` = sin rubro, nunca null (ADR-0211). */
+  /** Todo lo que vende (Polos, Casacas…), texto libre; `[]` = sin rubro, nunca null (ADR-0213). */
   rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;

@@ -42,7 +42,7 @@ import {
 //
 // El rubro sigue siendo texto libre (ADR-0094) pero sugiere los ya usados (`rubros`): así «Tela»,
 // «tela» y «Telas» no terminan siendo tres filtros distintos en la lista. ADR-0128: las sugerencias
-// son botones a la vista (un toque). ADR-0211: se eligen VARIOS (tocar de nuevo quita); uno que no está en la
+// son botones a la vista (un toque). ADR-0213: se eligen VARIOS (tocar de nuevo quita); uno que no está en la
 // lista se escribe en «Otro rubro» y queda elegido como botón más.
 //
 // ADR-0128 (spike visual 2026-09-19): el formulario se rehízo con la carcasa y las piezas del spike — encabezado

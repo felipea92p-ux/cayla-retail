@@ -44,7 +44,7 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260919170
  * pruebas re-pegan migraciones que corrieron ANTES de eso (y ya están en producción) y cuya definición todavía la usa:
  * lo que se prueba es su re-pegado en ese estado, así que a cada escenario que lo necesita se le devuelve la columna
  * DENTRO de su transacción (que termina en ROLLBACK). No toca la base compartida.
- * Lo mismo con `proveedores.rubro`: desde ADR-0211 (20260926110000) es `rubros text[]`, y la migración re-pegada
+ * Lo mismo con `proveedores.rubro`: desde ADR-0213 (20260926110000) es `rubros text[]`, y la migración re-pegada
  * todavía recrea `fn_proveedores()` con la columna vieja.
  */
 const CABECERA_DE_ANTES = `do $c$ begin

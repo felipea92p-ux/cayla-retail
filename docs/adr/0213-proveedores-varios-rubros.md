@@ -1,4 +1,7 @@
-# ADR-0211 · Un proveedor puede tener varios rubros
+# ADR-0213 · Un proveedor puede tener varios rubros
+
+> Nació como ADR-0211. Renumerado a 0213 al subir: `main` ya tenía el 0211 de los desplegables (#442) y el 0212
+> estaba tomado en otro worktree.
 
 **Fecha:** 2026-09-25 · **Estado:** construido y verificado en local; **sin pegar en producción** · **Alcance:** Compras ▸ Proveedores
 

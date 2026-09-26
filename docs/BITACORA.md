@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-25 (Varios rubros por proveedor — ADR-0211)
+## 2026-09-25 (Varios rubros por proveedor — ADR-0213)
 Felipe pidió elegir varias categorías por proveedor en «Editar proveedor». El rubro pasó de un texto a una lista (`rubros text[]`), con un candado en la base que impide vacíos y repetidos. La migración `20260926110000` está por pegar; la web muestra los rubros como botones que se prenden y apagan, más «Otro rubro».
 Felipe se lleva: (1) **las funciones de proveedores ya no son las de sus archivos**: tenían parches en vivo, así que la migración las cambia sobre su versión real (y se comprobó que la local es idéntica a producción); copiar el `create function` viejo habría deshecho permisos de roles. (2) **El arnés de Postgres sin Docker nacía en SQL_ASCII**: «Pólos» y «polos» no se juntaban solo en la prueba; ahora usa `-E UTF8`, como producción. (3) Las 7 pruebas SQL que fallan en `main` fallan igual sin este cambio (base gemela sin la migración).
 

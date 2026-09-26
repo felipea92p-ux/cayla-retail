@@ -51,7 +51,7 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // (lo reciente pesa más que «desde siempre»), «Saldo» en rojo si ya venció algo, «Entregas» (lo que
 // hay que reclamar), columnas ordenables (por defecto por saldo) y «+ Comprobante» en la fila.
 // Un filtro por rubro con conteo — el rubro ya se guardaba y se veía por fila, faltaba poder filtrar. Desde
-// ADR-0211 un proveedor tiene varios: aparece bajo cada uno, y el conteo de cada botón es de proveedores (por eso
+// ADR-0213 un proveedor tiene varios: aparece bajo cada uno, y el conteo de cada botón es de proveedores (por eso
 // la suma de los botones puede pasar de «Todos»).
 //
 // ADR-0128 (spike visual 2026-09-19): la lista RESPONDE. Tocar una fila abre una vista rápida (cajón)

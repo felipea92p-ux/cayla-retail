@@ -5,7 +5,7 @@ import { soles } from "./compras-reglas";
 
 // ---------------------------------------------------------------------------
 // Rubros: texto libre a propósito (ADR-0094) — sin vocabulario cerrado —, varios por proveedor desde
-// ADR-0211 (el que vende polos y casacas aparece al filtrar por cualquiera de los dos). Para que «Tela»,
+// ADR-0213 (el que vende polos y casacas aparece al filtrar por cualquiera de los dos). Para que «Tela»,
 // «tela » y «Telas» no se partan en tres filtros se agrupa por una clave normalizada; se muestra la
 // escritura más común de cada grupo.
 // ---------------------------------------------------------------------------

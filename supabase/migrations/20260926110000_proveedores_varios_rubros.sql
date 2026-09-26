@@ -1,5 +1,5 @@
 -- ============================================================================
--- PROVEEDORES: VARIOS RUBROS POR PROVEEDOR (ADR-0211, Felipe 2026-09-25)
+-- PROVEEDORES: VARIOS RUBROS POR PROVEEDOR (ADR-0213, Felipe 2026-09-25)
 --
 -- Hasta hoy `proveedores.rubro` era UN texto: un proveedor que vende polos Y casacas tenía que elegir uno, y
 -- en la lista, al filtrar por «Casacas», no aparecía. Pasa a `rubros text[]`: todos los que vende.
@@ -49,7 +49,7 @@ returns text[] language sql immutable set search_path = retail, public, extensio
 $$;
 
 comment on function retail.fn_rubros_limpios(text[]) is
-  'ADR-0211: rubros de un proveedor sin vacíos, sin espacios sobrantes y sin repetidos (misma clave que fn_clave_texto), en el orden en que se eligieron. NULL o vacío → {}.';
+  'ADR-0213: rubros de un proveedor sin vacíos, sin espacios sobrantes y sin repetidos (misma clave que fn_clave_texto), en el orden en que se eligieron. NULL o vacío → {}.';
 
 revoke all on function retail.fn_rubros_limpios(text[]) from public, anon;
 grant execute on function retail.fn_rubros_limpios(text[]) to authenticated;
@@ -80,7 +80,7 @@ begin
 end $$;
 
 comment on column retail.proveedores.rubros is
-  'ADR-0211: todo lo que vende el proveedor (Polos, Casacas…). Texto libre sin vocabulario cerrado (ADR-0094). Sin rubro = {} (nunca NULL); sin vacíos ni repetidos: lo exige el CHECK proveedores_rubros_limpios.';
+  'ADR-0213: todo lo que vende el proveedor (Polos, Casacas…). Texto libre sin vocabulario cerrado (ADR-0094). Sin rubro = {} (nunca NULL); sin vacíos ni repetidos: lo exige el CHECK proveedores_rubros_limpios.';
 
 -- ---------- 3. las funciones, parchadas sobre su definición viva ----------
 -- Un texto literal como patrón: escapa lo especial y acepta cualquier espacio o salto de línea donde hay espacios.
