@@ -6,11 +6,13 @@ import {
   lineasParaBajar,
   lineasParaTrasladar,
   MAX_VARIANTES_EN_URL,
+  ordenarPorUrgencia,
   sePuedeBajar,
   tallaPorCodigo,
   urlBajarAlPiso,
   urlEtiquetas,
   urlTrasladar,
+  urgenciaDePrenda,
   type FilaPrenda,
 } from "./existencias-prendas";
 
@@ -148,5 +150,35 @@ describe("tallaPorCodigo", () => {
   it("nunca por un pedazo: «POL-0004-NEG» no abre ninguna talla", () => {
     expect(tallaPorCodigo(filas, "POL-0004-NEG")).toBeNull();
     expect(tallaPorCodigo(filas, "")).toBeNull();
+  });
+});
+
+describe("ordenarPorUrgencia (análisis de Existencias, tarea #5)", () => {
+  // Cuatro prendas en orden de llegada: una sin nada que hacer, una que pide reponer, una con 1 talla por colgar y una
+  // con 2 tallas por colgar.
+  const filas = [
+    fila({ varianteId: "tranquila", productoId: "tranquila" }),
+    fila({ varianteId: "reponer", productoId: "reponer", pisoDisponible: 1, almacenDisponible: 3, accionHoy: REPONER }),
+    fila({ varianteId: "colgar-1", productoId: "colgar-1", pisoDisponible: 0, almacenDisponible: 2, accionHoy: REPONER }),
+    fila({ varianteId: "colgar-2a", productoId: "colgar-2", talla: "S", pisoDisponible: 0, almacenDisponible: 2, accionHoy: REPONER }),
+    fila({ varianteId: "colgar-2b", productoId: "colgar-2", talla: "M", pisoDisponible: 0, almacenDisponible: 1, accionHoy: REPONER }),
+  ];
+  const prendas = agruparPorPrenda(filas);
+
+  it("primero lo que la clienta no ve (por colgar, la de más tallas antes), después lo que pide reponer, al final el resto", () => {
+    expect(ordenarPorUrgencia(prendas).map((p) => p.productoId)).toEqual(["colgar-2", "colgar-1", "reponer", "tranquila"]);
+  });
+  it("la urgencia de cada una", () => {
+    expect(prendas.map((p) => [p.productoId, urgenciaDePrenda(p)])).toEqual([
+      ["tranquila", 2],
+      ["reponer", 1],
+      ["colgar-1", 0],
+      ["colgar-2", 0],
+    ]);
+  });
+  it("a igual urgencia respeta el orden de llegada, y no toca la lista original", () => {
+    const dos = agruparPorPrenda([fila({ varianteId: "b", productoId: "b" }), fila({ varianteId: "a", productoId: "a" })]);
+    expect(ordenarPorUrgencia(dos).map((p) => p.productoId)).toEqual(["b", "a"]);
+    expect(prendas.map((p) => p.productoId)).toEqual(["tranquila", "reponer", "colgar-1", "colgar-2"]);
   });
 });
