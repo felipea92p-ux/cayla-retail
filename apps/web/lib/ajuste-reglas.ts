@@ -37,6 +37,10 @@ export type VarianteAjuste = {
   stockAlmacen: number;
   /** Suma de todas las sububicaciones: es el stock que se ve en una sede que no separa piso de almacén. */
   stockSinDividir: number;
+  /** Nunca tuvo un movimiento en esta sede (ni una fila de stock): su primera cantidad es stock inicial, no un ajuste
+   *  (ADR-0235; la base lo exige con `ajuste_sin_historia`). Toda fila de `stock` nace de un movimiento, así que «sin
+   *  filas de stock» es «sin historia». */
+  sinHistoria: boolean;
 };
 
 // Una variante sin talla va al final: en pantalla se rotula «Única», y `compararTallas`
@@ -62,6 +66,7 @@ export function armarVariantesAjuste(
         stockPiso: porSub.find((s) => s.sububicacion_id === sububicacionPisoId)?.cantidad ?? 0,
         stockAlmacen: porSub.find((s) => s.sububicacion_id === sububicacionAlmacenId)?.cantidad ?? 0,
         stockSinDividir: porSub.reduce((acc, s) => acc + s.cantidad, 0),
+        sinHistoria: porSub.length === 0,
       };
     })
     // `sort` es estable: dentro de una misma talla queda el orden en que llegaron (por SKU,
@@ -95,3 +100,13 @@ export function motivosAjusteDisponibles(
 // Nombra el retiro: sin él, quien guarda prendas del piso lo arma aquí a mano («Otro» −N, «Reposición» +N) y sin rastro.
 export const NOTA_REPOSICION_CERRADA =
   "Subir al piso: «Bajar al piso» o «Reponer». Guardar en el almacén: «⋯» ▸ «Retirar del piso». Todo en Existencias (si no ves «Bajar al piso», pídele al líder ese módulo). Prendas de más al contar: «Conteo físico».";
+
+/** ADR-0235: las líneas del modal, repartidas en lo que se AJUSTA (prendas con historia en la tienda) y lo que se CARGA
+ *  como stock inicial (prendas nuevas en ella, que la base ya no deja ajustar). Una prenda nueva con una cantidad
+ *  negativa no es stock inicial: el modal la frena antes (dejaría el stock en negativo). */
+export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, "sinHistoria">; delta: number }>(lineas: readonly L[]): { ajustes: L[]; cargaInicial: L[] } {
+  return {
+    ajustes: lineas.filter((l) => !l.variante.sinHistoria),
+    cargaInicial: lineas.filter((l) => l.variante.sinHistoria && l.delta > 0),
+  };
+}

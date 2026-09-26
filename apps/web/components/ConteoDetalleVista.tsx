@@ -31,7 +31,18 @@ function soles(n: number | null) {
 //
 // Server Component sin datos propios: la página lee (`getConteoDetalle`) y esto dibuja. Separado para poder mirarlo con
 // datos de muestra sin base (principio 7) y porque la vista no necesita saber de dónde vino el conteo.
-export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo: ConteoDetalle; ver?: string; ubicacionEtiqueta: string }) {
+export function ConteoDetalleVista({
+  conteo,
+  ver,
+  ubicacionEtiqueta,
+  volverA = null,
+}: {
+  conteo: ConteoDetalle;
+  ver?: string;
+  ubicacionEtiqueta: string;
+  /** Abierto desde Movimientos: «←» vuelve a esa lista (ya validada con `volverAMovimientos`). */
+  volverA?: string | null;
+}) {
   const abierto = conteo.estado === "abierto";
   const resultado = resultadoConteo(conteo);
   const alcance = conteo.alcance === "categoria" && conteo.alcanceCategoriaNombre ? `Solo ${conteo.alcanceCategoriaNombre}` : "Todo el catálogo";
@@ -57,8 +68,8 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
         // derecha, como las acciones de Existencias y Traslados (ADR-0220, actualización).
         pie={
           <>
-            <Link href="/inventario/conteo" className="btn-cayla btn-secundario">
-              ← Conteos
+            <Link href={volverA ?? "/inventario/conteo"} className="btn-cayla btn-secundario">
+              {volverA ? "← Movimientos" : "← Conteos"}
             </Link>
             {!abierto &&
               (resultado === "vacio" ? (

@@ -5,6 +5,7 @@ import {
   motivosAjusteDisponibles,
   NOTA_REPOSICION_CERRADA,
   reposicionCerrada,
+  repartirLineasAjuste,
   type FilaAjuste,
 } from "./ajuste-reglas";
 
@@ -155,5 +156,33 @@ describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", ()
     expect(NOTA_REPOSICION_CERRADA).toContain("Todo en Existencias");
     // Corta a propósito: la nota ocupa su lugar aunque esté invisible en «Almacén» (ADR-0185).
     expect(NOTA_REPOSICION_CERRADA.length).toBeLessThan(260);
+  });
+});
+
+describe("una prenda sin historia en la tienda no se ajusta: entra como stock inicial (ADR-0235)", () => {
+  it("sin ninguna fila de stock en la sede es «sin historia»; con una fila (aunque esté en 0), no", () => {
+    const filas = armarVariantesAjuste(
+      [fila("1", "S", { stock: [] }), fila("2", "M", { stock: null }), fila("3", "L", { stock: [{ cantidad: 0, sububicacion_id: PISO }] })],
+      PISO,
+      ALMACEN
+    );
+    expect(filas.map((v) => [v.varianteId, v.sinHistoria])).toEqual([
+      ["1", true],
+      ["2", true],
+      ["3", false],
+    ]);
+  });
+
+  it("reparte las líneas: las nuevas con cantidad positiva van a stock inicial, el resto se ajusta", () => {
+    const nueva = { sinHistoria: true };
+    const conHistoria = { sinHistoria: false };
+    const { ajustes, cargaInicial } = repartirLineasAjuste([
+      { variante: nueva, delta: 3 },
+      { variante: conHistoria, delta: -1 },
+      { variante: conHistoria, delta: 2 },
+      { variante: nueva, delta: -2 },
+    ]);
+    expect(cargaInicial.map((l) => l.delta)).toEqual([3]);
+    expect(ajustes.map((l) => l.delta)).toEqual([-1, 2]);
   });
 });

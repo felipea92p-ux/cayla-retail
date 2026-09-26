@@ -28,6 +28,36 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web + migración de lectura `20260927153000` **SIN APLICAR en producción**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+
+- [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
+      «Entradas»/«Salidas» traen también el traslado que llegó/salió; las píldoras cuentan operaciones.
+- [x] Una fila por operación que se despliega (D2); la página no corta una operación; foto de cada prenda.
+- [x] Vocabulario de tienda, buscador que entiende «venta»/«traslado», detalle con verbo, stock de hoy, «Ver la venta» y
+      «Copiar enlace»; «← Movimientos» desde Traslado y Conteo; Actividad abre con todos los módulos en Movimientos.
+- [x] Exportar a Excel por ruta (`/inventario/movimientos/exportar`), igual que Historial (D3).
+- [x] Candado de CI `lib/reglas-sin-uso.test.ts` («probado = en pantalla»).
+- [ ] **Aplicar `20260927153000` en producción** (OK de Felipe; una sola parte, sin políticas) y refrescar
+      `docs/datos/generado/` después. Hasta entonces `pnpm datos:comparar` marcará `fn_movimientos_resumen_procesos`.
+- [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
+- [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
+      Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o
+      borrarla; la lista solo puede achicarse.
+- [ ] Aparte (tarea propuesta en la sesión): el primer clic tras renovarse la sesión puede mandar a `/login` con «tu
+      cuenta no puede entrar»; `lib/persona-actual.ts:109` convierte cualquier error en «sin acceso».
+
+## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **SIN APLICAR en producción**; mismo [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+
+- [x] `cargar_stock_inicial` (prendas que ya existen, en una tienda donde no tienen historia) y candado
+      `ajuste_sin_historia` en `registrar_movimiento`; Ajustar stock guarda las prendas nuevas en la tienda como stock
+      inicial. Prueba `pnpm pruebas:ajuste-no-es-primera-carga` (20). El candado va después de saber quién firma (el CI
+      lo pidió: `terminales` y `candado-lider` fallaban con la primera versión; sus casos de ajuste ahora le dan historia
+      a la prenda).
+- [ ] **Orden en producción:** `20260927153100` → publicar la web → `20260927153200` (con OK de Felipe).
+- [ ] Decidir si un conteo formal (`cerrar_conteo`) también debe escribir como «carga_inicial» la primera cantidad de una
+      prenda que la tienda nunca tuvo (hoy queda como «Ajuste · Conteo»).
+- [ ] Cerrar la carga inicial cuando termine el paso de las tiendas al sistema (heredado de ADR-0212).
+
 ## 🔍 Traslados: recorrido de usabilidad como persona sin contexto (2026-09-26) — solo análisis, sin cambios de código; `docs/pantallas/traslados.md`; rama `claude/traslados-usability-review-9b0615`
 - [x] Recorrido en local con clics reales (líder; Trujillo envía, Lima recibe): enviar, contar con un faltante, cerrar con diferencia e intentar vender lo recibido. 17 hallazgos con archivo:línea en `docs/pantallas/traslados.md`.
 - [ ] Arreglables sin decisión de negocio: «por recibir» que no dependa de la hora estimada y botón «Recibir» en la fila (§2); conteo que sobreviva a una recarga (§4); formulario sin destino ni prendas elegidas de antemano (§6); buscador por palabras (§7); escáner que busque por nombre y muestre el código de etiqueta (§12); la lista dice «Cerrado con diferencia» (§15).
