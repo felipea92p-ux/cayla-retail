@@ -10,6 +10,8 @@ Felipe se lleva:
 2. **Una frase de la pantalla es una afirmación.** «Con demanda» decía algo que ni la regla ni la tabla (Ritmo «N/D») sabían; se quitó en vez de mantenerla por costumbre.
 3. **Para confirmar un dato no hay que adivinar en pantalla:** una consulta de solo lectura a producción separó «el dato no existe» de «la pantalla no lo lee» en un minuto.
 
+Con el «sí» de Felipe, «Producto de Prueba» quedó marcado `es_prueba` en producción: tenía 160 de las 363 unidades de TRU y falseaba «Disponible total», la barra piso/almacén y «Por colgar». Existencias de TRU pasa de 363 a 203 (158 piso · 45 almacén). Un producto de prueba sin marcar no es inocente: contamina cada cifra que suma stock.
+
 ## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
 Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.
 Felipe se lleva:
