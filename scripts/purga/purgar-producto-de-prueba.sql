@@ -1,5 +1,5 @@
 -- ============================================================================
--- scripts/purga/purgar-producto-de-prueba.sql — ADR-0219
+-- scripts/purga/purgar-producto-de-prueba.sql — ADR-0224
 -- Deshace POR COMPLETO un producto de prueba y las ventas de prueba que lo tocaron. Se corre a mano, una vez por caso,
 -- nunca desde la web: borra historia que el sistema declara inmutable (`movimientos`), y esa promesa solo se rompe
 -- con una persona presente, un ensayo a la vista y un respaldo.

@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-26 (Purga de un producto de prueba con su venta — ADR-0219)
+## 2026-09-26 (Purga de un producto de prueba con su venta — ADR-0224)
 Top Aurora se dio de alta como prueba y estorbaba, pero tenía 15 movimientos y 7 líneas de venta dentro de una nota interna de S/ 2,007.10 que también vendió 13 prendas de otros productos; por los caminos normales no se puede borrar (`movimientos` es inmutable). Se escribió un script de un solo uso, parametrizado y con ensayo por defecto, que deshace la venta entera, devuelve a stock las prendas ajenas, respalda cada fila y demuestra antes de cerrar que el libro de movimientos cuadra con el stock en toda la base. Probado 36/36 + 6 mutaciones, ensayado (revertido) en producción y **corrido de verdad el 2026-09-26 a las 10:06 (Lima), con el «dale» de Felipe**: ventas 7 → 6, movimientos 112 → 85, stock 363 → 311, libro con 0 descuadres, respaldo de 87 filas.
 Felipe se lleva: (1) **borrar historia inmutable es una decisión de una persona, no un botón**: por eso es un script con ensayo y «dale», no una función de la web. (2) **Un respaldo que no se puede restaurar es un respaldo falso**: la primera receta falló por una columna generada (`venta_items.subtotal`) y solo lo descubrió probar la restauración. (3) **El stock es un snapshot derivado**: al borrar una venta hay que devolver lo que sacó de las otras prendas, y la prueba de que quedó bien es que el libro de movimientos cuadre con el stock (en producción hoy: 79 filas, 0 descuadres).
 

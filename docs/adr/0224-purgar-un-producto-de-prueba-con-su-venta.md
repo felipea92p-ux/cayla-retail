@@ -1,4 +1,4 @@
-# ADR-0219 — Purgar por completo un producto de prueba y la venta de prueba que lo tocó
+# ADR-0224 — Purgar por completo un producto de prueba y la venta de prueba que lo tocó
 
 **Fecha:** 2026-09-26
 **Estado:** **Corrida real HECHA en producción el 2026-09-26 a las 10:06 (Lima)**, con el «dale» de Felipe. Verificada por consulta directa (abajo). Respaldo: `respaldo_purgas.filas`, purga «purga TOP-0011 2026-09-26 10:06» (87 filas).

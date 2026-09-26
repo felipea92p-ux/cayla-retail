@@ -1,5 +1,5 @@
 -- ============================================================================
--- scripts/purga/restaurar-purga.sql — ADR-0219
+-- scripts/purga/restaurar-purga.sql — ADR-0224
 -- Deshace una purga hecha con `purgar-producto-de-prueba.sql`: devuelve, fila por fila, lo que quedó en
 -- `respaldo_purgas.filas`. Solo se corre si Felipe se arrepiente.
 --

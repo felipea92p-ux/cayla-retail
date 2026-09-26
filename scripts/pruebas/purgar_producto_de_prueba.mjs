@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de `scripts/purga/purgar-producto-de-prueba.sql` (ADR-0219): deshacer POR COMPLETO un producto de prueba y la
+ * Prueba de `scripts/purga/purgar-producto-de-prueba.sql` (ADR-0224): deshacer POR COMPLETO un producto de prueba y la
  * venta de prueba que lo tocó, sin dejar el libro de movimientos descuadrado.
  *
  * EL ESCENARIO reproduce el caso real (Top Aurora, 2026-09-26): un producto con dos variantes, cada una con una reposición
