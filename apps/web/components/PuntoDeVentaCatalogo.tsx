@@ -6,7 +6,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
+import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -243,7 +243,7 @@ export function PuntoDeVentaCatalogo({
                         onClick={() => onAgregar(v)}
                         className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
                           i === activo ? "bg-sand/60" : ""
-                        } ${motivo === "agotada" ? "opacity-55" : ""}`}
+                        } ${motivo === "agotada" || motivo === "apartada" ? "opacity-55" : ""}`}
                       >
                         <span>
                           <span className="block font-semibold text-tinta">{v.referencia}</span>
@@ -254,9 +254,9 @@ export function PuntoDeVentaCatalogo({
                         <span className="shrink-0 text-right">
                           <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
                           <span
-                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
+                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "apartada" ? "text-pizarra" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
                           >
-                            {motivo === "agotada" ? "sin stock aquí" : motivo === "en_almacen" ? `${v.almacenAqui} en el almacén` : `${v.stockAqui} aquí`}
+                            {textoStockDeFila(v)}
                           </span>
                           {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                           {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
@@ -521,16 +521,18 @@ export function PuntoDeVentaCatalogo({
                           <TooltipTrigger asChild>
                             <span
                               tabIndex={0}
-                              aria-label={`Talla ${t.talla} sin stock aquí`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through outline-none focus-visible:border-rojo/60"
+                              aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para una clienta" : "sin stock aquí"}`}
+                              className={`label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed px-1.5 text-[11px] outline-none focus-visible:border-rojo/60 ${
+                                // Agotada: tachada. Apartada para una clienta: SIN tachar y en el token informativo — la
+                                // diferencia se ve de un vistazo, no solo en el tooltip (que el celular no muestra).
+                                motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
+                              }`}
                             >
                               {t.talla}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent sideOffset={4}>
-                            {textoOtrasSedes(t.variante.stockOtrasSedes ?? [])
-                              ? `Sin stock aquí · ${textoOtrasSedes(t.variante.stockOtrasSedes ?? [])}`
-                              : "Sin stock en ninguna sede"}
+                            {tooltipTallaSinPiso(t.variante, textoOtrasSedes(t.variante.stockOtrasSedes ?? []))}
                           </TooltipContent>
                         </Tooltip>
                       )

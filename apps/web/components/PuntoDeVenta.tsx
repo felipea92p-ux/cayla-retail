@@ -62,10 +62,12 @@ import {
   avisoSinPiso,
   avisoTope,
   conAlmacenAjustado,
+  conApartadoAjustado,
   conPisoAlDia,
   conStockAjustado,
   descontarVendido,
   motivoNoCobrable,
+  quedoEnAlmacen,
 } from "@/lib/vender-stock-local";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
@@ -109,6 +111,9 @@ export type VarianteBusqueda = PrendaBuscableV2 & {
    *  —la venta descuenta el piso—, pero con el piso en 0 la caja dice «está en el almacén» en vez de «agotada» (D-40).
    *  `null` sin almacén (Taller); ausente para quien arme variantes sin este dato: se comporta como antes. */
   almacenAqui?: number | null;
+  /** Lo APARTADO para clientas en el piso de esta sede (`apartadoEnPiso`): con el piso y el almacén en 0, es lo que
+   *  distingue «apartada para una clienta» de «agotada» (`motivoNoCobrable`). Ausente = 0: se comporta como antes. */
+  apartadoAqui?: number | null;
   /** Dónde más hay, de más a menos (`lib/stock-por-sede.ts`). Solo sedes con stock > 0 y
    *  sin la actual; una colaboradora con sede fija lo recibe vacío porque RLS no le deja
    *  ver otras sedes. Opcional para no romper a quien arme variantes sin esta consulta. */
@@ -361,18 +366,22 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // `ajustesStock` a propósito: una venta descuenta el piso y nunca el almacén, así que `descontarVendido` no lo toca.
   // Sin releerlo, la caja diría «está en el almacén» de algo que ya se trasladó, o «agotada» de lo que acaba de llegar.
   const [ajustesAlmacen, setAjustesAlmacen] = useState<Map<string, number | null>>(() => new Map());
+  // Lo apartado en el piso, releído con las MISMAS lecturas: aparte del stock porque una venta nunca lo toca. Sin
+  // releerlo, una prenda que otra caja aparta después de cargar esta pantalla diría «agotada» y no «apartada para una clienta».
+  const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [variantesPrevias, setVariantesPrevias] = useState(variantes);
   if (variantes !== variantesPrevias) {
     setVariantesPrevias(variantes);
     setAjustesStock(new Map());
     setAjustesAlmacen(new Map());
+    setAjustesApartado(new Map());
   }
   // Sube tras cada venta: «Ventas de hoy» se relee sola (`useVentasDeHoy`).
   const [versionVentas, setVersionVentas] = useState(0);
   const ventasDeHoy = useVentasDeHoy(ubicacionId, ventasHoy.inicial, ventasHoy.fallo, versionVentas);
   const variantesAjustadas = useMemo(
-    () => conStockAjustado(conAlmacenAjustado(variantes, ajustesAlmacen), ajustesStock),
-    [variantes, ajustesAlmacen, ajustesStock],
+    () => conStockAjustado(conApartadoAjustado(conAlmacenAjustado(variantes, ajustesAlmacen), ajustesApartado), ajustesStock),
+    [variantes, ajustesAlmacen, ajustesApartado, ajustesStock],
   );
   const variantesConOverlay = useMemo(() => conStockComprometidoDescontado(variantesAjustadas, cola), [variantesAjustadas, cola]);
   const variantesVisibles = useMemo(() => variantesConOverlay.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL), [variantesConOverlay]);
@@ -563,6 +572,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     if (!releido) return null;
     setAjustesStock((prev) => new Map([...prev, ...releido.cobrable]));
     setAjustesAlmacen((prev) => new Map([...prev, ...releido.almacen]));
+    setAjustesApartado((prev) => new Map([...prev, ...releido.apartado]));
     return releido;
   }
 
@@ -577,9 +587,10 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     ubicacionId,
     useMemo(() => variantes.filter((v) => v.varianteId !== ID_CARGO_ESPECIAL).map((v) => v.varianteId), [variantes]),
     !bloqueado,
-    (releido, almacen) => {
+    (releido, almacen, apartado) => {
       setAjustesStock((prev) => new Map([...prev, ...releido]));
       setAjustesAlmacen((prev) => new Map([...prev, ...almacen]));
+      setAjustesApartado((prev) => new Map([...prev, ...apartado]));
     },
   );
 
@@ -646,14 +657,15 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   /** Suma una unidad al ticket y dice qué pasó (la cámara lo muestra en su hoja; el lector no lo necesita). */
   /** `silencioso`: la cámara (`EscanerCamara`) ya dice qué pasó en su tarjeta y su bandeja; el aviso de arriba a la derecha
    *  repetiría lo mismo tapándole la ✕. */
-  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "tope" | null {
+  function agregar(v: VarianteBusqueda, { silencioso = false }: { silencioso?: boolean } = {}): "agregada" | "agotada" | "en_almacen" | "apartada" | "tope" | null {
     if (bloqueado) return null;
     // Los avisos de stock salen como notificación (`avisar`, arriba a la derecha): la línea
     // inline de debajo del escáner pasaba desapercibida. No toman el foco ni bloquean nada.
     const nombreVariante = [v.referencia, v.talla].filter(Boolean).join(" · ");
-    const datosAviso = { nombre: nombreVariante, sede: ubicacionEtiqueta, stockAqui: v.stockAqui, almacenAqui: v.almacenAqui };
+    const datosAviso = { nombre: nombreVariante, sede: ubicacionEtiqueta, stockAqui: v.stockAqui, almacenAqui: v.almacenAqui, apartadoAqui: v.apartadoAqui };
     // Con el piso en 0 no entra al ticket (la venta descuenta el piso), pero no es lo mismo «agotada» que «está en el
-    // almacén de esta tienda»: el aviso dice cuál y qué hacer (D-40, `lib/vender-stock-local.ts`).
+    // almacén de esta tienda» ni que «apartada para una clienta»: el aviso dice cuál y qué hacer (D-40,
+    // `lib/vender-stock-local.ts`).
     const motivo = motivoNoCobrable(v);
     if (motivo !== "cobrable") {
       if (!silencioso) {
@@ -730,8 +742,11 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     const nombre = [v.referencia, v.talla].filter(Boolean).join(" · ");
     const prenda = { referencia: v.referencia, detalle: [v.color, v.talla].filter(Boolean).join(" · "), precio: v.precio, fotoUrl: v.fotoUrl };
     const estado = agregar(v, { silencioso: true }) ?? "agotada";
-    if (estado === "en_almacen" || (estado === "tope" && (v.almacenAqui ?? 0) > 0)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
-    else if (estado === "agregada") quedaronEnAlmacen.current.delete(v.varianteId);
+    // Solo queda «en el almacén» lo que en ESTA lectura sigue estando ahí. Cualquier otro resultado (entró, o ahora está
+    // apartada o agotada) la saca: si no, al cerrar la cámara diría «está en el almacén, que la bajen» de una prenda que
+    // ya no está en el almacén (la apartó otra caja entre dos lecturas).
+    if (quedoEnAlmacen(estado, v.almacenAqui)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
+    else quedaronEnAlmacen.current.delete(v.varianteId);
     return { estado, codigo, nombre, prenda, almacen: v.almacenAqui };
   }
 
