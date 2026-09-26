@@ -1206,7 +1206,7 @@ export function RecepcionEnvio({
                             const exacto = variantes.some((v) => clave(v.sku) === kEsc || v.codigosBarras.some((c) => clave(c) === kEsc));
                             escanear(!exacto && sugerencias[0]?.sku ? sugerencias[0].sku : escaneo);
                           }}
-                          placeholder="Escanea la etiqueta o busca por SKU…"
+                          placeholder="Escanea la etiqueta o busca por código…"
                           aria-label="Escanear una prenda: suma 1 al comprobante que la trae"
                           autoComplete="off"
                           className={`${CASILLA_TEXTO} pl-10`}
@@ -1270,7 +1270,7 @@ export function RecepcionEnvio({
                     </div>
 
                     <div className={`hidden gap-x-3 border-b border-tinta/10 px-5 py-2 @[46rem]:grid ${PLANTILLA_LINEA}`}>
-                      {["Prenda", "SKU", "Pendiente", "Llegó", "Dif.", "Estado"].map((t, i) => (
+                      {["Prenda", "Código", "Pendiente", "Llegó", "Dif.", "Estado"].map((t, i) => (
                         <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i === 1 ? "hidden @[60rem]:block" : ""} ${i === 2 || i === 3 || i === 4 ? "text-center" : ""}`}>
                           {t}
                         </span>

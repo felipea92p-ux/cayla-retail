@@ -1,6 +1,7 @@
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
-import { pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
+import { codigosDeConteo, pendientesConCodigo, pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getCatalogo, getCostosVariantes, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import { createClient } from "@/lib/supabase/server";
@@ -34,8 +35,13 @@ export default async function ConteoPage() {
   // acotado al alcance: en un conteo «Solo Blusas», la lista son blusas (la vista previa no conoce el alcance).
   const previsualizacion = conteoAbierto ? await getPrevisualizacionCierre(conteoAbierto.id) : [];
   const categoriaDe = new Map(catalogo.map((v) => [v.varianteId, v.categoria]));
+  // La función de Postgres da «el primer código de barras»; el que se lee en la etiqueta lo trae el catálogo.
+  const codigoDe = new Map(catalogo.map((v) => [v.varianteId, codigoDeEtiqueta(v)]));
   const pendientes = conteoAbierto
-    ? pendientesEnAlcance(pendientesSinCifras(previsualizacion), categoriaDe, conteoAbierto.alcance === "categoria" ? conteoAbierto.alcanceCategoriaNombre : null)
+    ? pendientesConCodigo(
+        pendientesEnAlcance(pendientesSinCifras(previsualizacion), categoriaDe, conteoAbierto.alcance === "categoria" ? conteoAbierto.alcanceCategoriaNombre : null),
+        codigoDe
+      )
     : [];
   return (
     <ConteoVista
@@ -56,12 +62,13 @@ export default async function ConteoPage() {
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.varianteId,
-          sku: v.sku,
           referencia: v.referencia,
           talla: v.talla,
           color: v.color,
           costo: costos ? (costos.get(v.varianteId) ?? 0) : null,
-          codigosBarras: v.codigosBarras,
+          // `sku` es el código de la etiqueta (casi ninguna prenda tiene `sku`, ADR-0058) y `codigosBarras` conserva el
+          // sku legado como opción de escaneo: lo que se teclea o se escanea sigue resolviendo la misma prenda.
+          ...codigosDeConteo(v),
         }))}
     />
   );

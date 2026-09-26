@@ -174,6 +174,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
@@ -183,6 +184,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           sububicaciones={sububicaciones}
           puedeEditar={puede(persona, "editarCatalogo")}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}

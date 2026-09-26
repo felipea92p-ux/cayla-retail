@@ -36,6 +36,8 @@
     "pruebas:concurrencia-orden-doble-clic": "node scripts/pruebas/concurrencia_orden_y_doble_clic.mjs",
     "pruebas:bajada-al-piso": "node scripts/pruebas/bajada_al_piso.mjs",
     "pruebas:editar-marca": "node scripts/pruebas/editar_marca.mjs",
+    "pruebas:eliminar-marca": "node scripts/pruebas/eliminar_marca.mjs",
+    "pruebas:eliminar-producto": "node scripts/pruebas/eliminar_producto.mjs",
     "pruebas:bajada-al-piso-concurrencia": "node scripts/pruebas/bajada_al_piso_concurrencia.mjs",
     "pruebas:alta-con-stock-inicial": "node scripts/pruebas/alta_con_stock_inicial.mjs",
     "pruebas:frescura-bajadas": "node scripts/pruebas/frescura_bajadas.mjs",

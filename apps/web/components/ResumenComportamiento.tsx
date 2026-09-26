@@ -66,7 +66,7 @@ function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
           color={f.color}
           colorHex={f.colorHex}
           fotoUrl={null}
-          marca={
+          senal={
             !f.ledgerConsistente && (
               <span className="ml-1 text-ambar-profundo" title="El historial de movimientos no cuadra con el stock de hoy: cifras estimadas">
                 ≈

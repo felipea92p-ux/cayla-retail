@@ -361,7 +361,7 @@ Skills de este repo: `/backlog` (audita y reescribe el backlog), `/decide` (fuer
 protocolo de pregunta sobre un punto concreto), `/examen` (verifica qué entendió
 Felipe), `/explica` (desarrollo profundo de un concepto o decisión), `/pantalla`
 (analiza una captura o un flujo y propone 12 tareas por importancia; guarda el
-resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código).
+resultado en `docs/pantallas/<slug>.md` con el SHA analizado — solo analiza, no toca código). `/revision` (revisión maestra de todo el repo: cinco revisores en paralelo —módulos y diccionario, base de datos, cierre y pendientes, instrucciones a Claude Code, duplicación de la web— y un escéptico que refuta; entrega un informe de hallazgos rankeados. Solo lee, no arregla, y **no publica el informe si el repo es público y el informe trae un hueco de seguridad abierto**).
 
 ## graphify
 

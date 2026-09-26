@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import { Chip } from "@/components/ui/Chip";
 import { describirRotacion } from "@/lib/reorden-reglas";
 import type { Sububicacion } from "@/lib/sububicaciones";
@@ -63,6 +64,7 @@ export function ProductosAgrupados({
   sububicaciones,
   puedeEditar,
   puedeAjustar,
+  puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
@@ -70,6 +72,8 @@ export function ProductosAgrupados({
   sububicaciones: Sububicacion[];
   puedeEditar: boolean;
   puedeAjustar: boolean;
+  /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
+  puedeEliminar: boolean;
   mensajeVacio?: string;
 }) {
   const router = useRouter();
@@ -216,7 +220,13 @@ export function ProductosAgrupados({
                 </Chip>
               </span>
               <span className="justify-self-end">
-                <MenuFila productoId={p.productoId} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} />
+                <MenuFila
+                  productoId={p.productoId}
+                  ubicacionId={ubicacionId}
+                  sububicaciones={sububicaciones}
+                  puedeAjustar={puedeAjustar}
+                  eliminable={puedeEliminar ? { referencia: p.referencia, estado: p.estado, numVariantes: p.variantes.length } : null}
+                />
               </span>
             </div>
 
@@ -297,14 +307,18 @@ function MenuFila({
   ubicacionId,
   sububicaciones,
   puedeAjustar,
+  eliminable,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
+  /** Los datos que la ventana de «Eliminar» necesita, o `null` si quien mira no es Admin ni Líder (entonces no hay opción). */
+  eliminable: { referencia: string; estado: string; numVariantes: number } | null;
 }) {
   const [abierto, setAbierto] = useState(false);
   const [ajustando, setAjustando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
   const contenedor = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -417,6 +431,21 @@ function MenuFila({
               Archivar
             </button>
           </li>
+          {/* Solo Admin y Líder. Abre una ventana que pregunta a la base si nunca se movió; con historia explica por qué no. */}
+          {eliminable && (
+            <li role="none">
+              <button
+                role="menuitem"
+                onClick={() => {
+                  setAbierto(false);
+                  setEliminando(true);
+                }}
+                className="block w-full px-3 py-2 text-left text-sm text-rojo/85 hover:bg-rojo/10"
+              >
+                Eliminar
+              </button>
+            </li>
+          )}
         </ul>
       )}
       {ajustando && (
@@ -427,6 +456,7 @@ function MenuFila({
           onClose={() => setAjustando(false)}
         />
       )}
+      {eliminando && eliminable && <EliminarProductoModal producto={{ productoId, ...eliminable }} onClose={() => setEliminando(false)} />}
     </div>
   );
 }
