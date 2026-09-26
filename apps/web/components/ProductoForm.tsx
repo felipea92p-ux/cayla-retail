@@ -53,7 +53,10 @@ import { firmar } from "@/lib/responsable-reglas";
    `catalogo_actualizar_producto` (20260915150000). Cambiar color o talla de
    una variante que ya se etiquetó es el hueco 3 que V1 nunca cerró
    (docs/datos/modulos/02-catalogo-y-vocabulario.md); para eso se desactiva
-   y se agrega una fila nueva.
+   y se agrega una fila nueva. Hasta el 2026-09-26 la pantalla igual ofrecía
+   los combos de color/talla y el SKU en esas filas: se podían cambiar, la
+   RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
+   muestran de solo lectura (`fija`), con el código que lee la pistola.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
@@ -72,6 +75,9 @@ type FilaVariante = {
   activo: boolean;
   /** Etiquetas de catálogo aplicadas a esta variante — solo editable si `id` ya existe. */
   etiquetaIds: string[];
+  /** Solo variantes existentes: lo que se muestra en lugar de los campos que ya no se pueden cambiar (color, talla y
+   *  código). `codigo` es el que lee la pistola (BLU-0042-AZM-M); el SKU queda como respaldo si todavía no lo tiene. */
+  fija: { color: string; talla: string; codigo: string } | null;
 };
 
 const NUMERO =
@@ -132,7 +138,7 @@ function mismoConjunto(a: string[], b: string[]): boolean {
 }
 
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true, etiquetaIds: [] };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true, etiquetaIds: [], fija: null };
 }
 
 export function ProductoForm({
@@ -204,6 +210,7 @@ export function ProductoForm({
           costo: v.costo === null ? "" : String(v.costo),
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
+          fija: { color: v.color ?? (colorCodigo || "Sin color"), talla: talla || "Sin talla", codigo: v.codigo ?? v.sku },
         };
       });
   });
@@ -305,7 +312,8 @@ export function ProductoForm({
     if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
     const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
     if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
-    const sinSku = variantes.findIndex((v) => !v.sku.trim());
+    // Solo filas nuevas: en una variante que ya existe el SKU no se edita (la base tampoco lo cambiaría).
+    const sinSku = variantes.findIndex((v) => !v.id && !v.sku.trim());
     if (sinSku >= 0) return void avisar.error("Cada variante necesita un SKU.", { enfocar: `producto-variante-${sinSku}-sku` });
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
@@ -563,7 +571,7 @@ export function ProductoForm({
         <section className="card-cayla space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
           <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA}`}>
-            {["Color", "Talla", "SKU", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
+            {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
               <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : ""}`}>
                 {t}
               </span>
@@ -572,27 +580,43 @@ export function ProductoForm({
           {variantes.map((v, i) => (
             <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
             <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
-              <ComboBuscable
-                etiquetaAccesible="Color"
-                valor={v.colorCodigo}
-                onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
-                opciones={opcionesColor}
-                marcador="Sin color"
-              />
-              <ComboBuscable
-                etiquetaAccesible="Talla"
-                valor={v.tallaId}
-                onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
-                opciones={opcionesTalla}
-                marcador={categoriaId ? "Sin talla" : "Elige categoría"}
-              />
-              <input
-                aria-label="SKU"
-                id={`producto-variante-${i}-sku`}
-                value={v.sku}
-                onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-              />
+              {v.fija ? (
+                <>
+                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
+                    {v.fija.color}
+                  </span>
+                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
+                    {v.fija.talla}
+                  </span>
+                  <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
+                    {v.fija.codigo}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ComboBuscable
+                    etiquetaAccesible="Color"
+                    valor={v.colorCodigo}
+                    onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
+                    opciones={opcionesColor}
+                    marcador="Sin color"
+                  />
+                  <ComboBuscable
+                    etiquetaAccesible="Talla"
+                    valor={v.tallaId}
+                    onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                    opciones={opcionesTalla}
+                    marcador={categoriaId ? "Sin talla" : "Elige categoría"}
+                  />
+                  <input
+                    aria-label="SKU"
+                    id={`producto-variante-${i}-sku`}
+                    value={v.sku}
+                    onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
+                    className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                  />
+                </>
+              )}
               <input
                 type="number"
                 min={0}
@@ -669,6 +693,12 @@ export function ProductoForm({
             )}
             </div>
           ))}
+          {variantes.some((v) => v.fija) && (
+            <p className="text-xs text-tinta/55">
+              Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
+              Si está mal, desactívala y agrega la correcta.
+            </p>
+          )}
           <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
             + Agregar variante
           </button>
