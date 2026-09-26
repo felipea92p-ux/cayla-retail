@@ -28,6 +28,19 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧾 Comprobantes conectado: «Hoy», Opciones por boleta y pestañas abajo en celular (2026-09-26, ADR-0238) — solo web, sin migración; rama `claude/comprobantes-screen-analysis-78ca38`
+- [x] Pestañas Hoy · Series · Por enviar · Proformas (Emitidos pasa a «Este mes» de Hoy, misma ruta `/emitidos`; Series a `/series`).
+- [x] «Por enviar» lista también los `pendiente` y `rechazado` (antes decía «todo llegó» con 3 boletas sin intentar en producción).
+- [x] Gráficos en las tarjetas solo con tokens CAYLA (sin rojo); sin cifras duplicadas en la cabecera.
+- [x] «Opciones» por comprobante: WhatsApp al número de la clienta, Ver la venta, Imprimir, Cambio, Devolución, NC ↔ devolución.
+- [x] Celular: las 4 pestañas abajo (excepción anotada en ADR-0206). Proforma → «Apartar».
+- [ ] Ver con cuenta real (líder y colaboradora) en computadora y a 375 px, tras el despliegue.
+- [ ] **Causa raíz:** por qué el barrido toma las boletas `pendiente` y no las intenta (`intentos_transmision = 0`, `proximo_reintento_at` corriéndose), y qué flujo creó 2 boletas sin venta.
+- [ ] Tarjetas que filtran la lista al tocarlas (`?estado=`), como en el spike.
+- [ ] Buscar un comprobante fuera del mes cargado (por número, DNI o nombre).
+- [ ] «Apartar» desde proforma lleva solo las prendas: faltan la clienta y el precio cotizado.
+- [ ] Proformas vencidas siguen `vigente` en la base (la pantalla las separa por fecha).
+
 ## 📸 Fotos de prenda: mejor calidad sin cambiar la prenda (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-mejor-calidad`
 - [x] Del recorte se borran los pedazos sueltos, como la mancha rosada de la «Blusa V» (`soloLaPrenda`, 4 pruebas).
 - [x] «Luz corregida / Luz original» en la revisión: la luz de la prenda se estira con tope, sin tocar el tono ni la intensidad del color (`lib/foto-luz.ts`, 10 pruebas; medido: brillo 145 → 190, saturación igual).
@@ -36,7 +49,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **Falta con sesión real:** subir la foto de una prenda tomada en tienda y comparar las dos luces.
 - Cómo verificas: Productos ▸ Nuevo producto (o Editar) ▸ Fotos ▸ «+» con una foto algo oscura → en «Revisa las fotos» aparece «Luz corregida» elegida; «Luz original» muestra la de antes, más apagada, con el mismo color. «Cómo tomar una buena foto» se despliega con los consejos.
 
-## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web + migración de lectura `20260927153000` **SIN APLICAR en producción**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web y migración de lectura `20260927153000` **en producción (2026-09-26)**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
       «Entradas»/«Salidas» traen también el traslado que llegó/salió; las píldoras cuentan operaciones.
@@ -45,8 +58,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       «Copiar enlace»; «← Movimientos» desde Traslado y Conteo; Actividad abre con todos los módulos en Movimientos.
 - [x] Exportar a Excel por ruta (`/inventario/movimientos/exportar`), igual que Historial (D3).
 - [x] Candado de CI `lib/reglas-sin-uso.test.ts` («probado = en pantalla»).
-- [ ] **Aplicar `20260927153000` en producción** (OK de Felipe; una sola parte, sin políticas) y refrescar
-      `docs/datos/generado/` después. Hasta entonces `pnpm datos:comparar` marcará `fn_movimientos_resumen_procesos`.
+- [x] Aplicar `20260927153000` en producción (2026-09-26, ensayo revertido + verificación).
+- [x] Refrescar `docs/datos/generado/` desde producción (2026-09-26 20:45 UTC: 134 relaciones, 604 funciones; las 950
+      huellas por grupo iguales a producción). Trajo 11 tablas nuevas de otras sesiones (Apartados, Actividad, bajadas al
+      piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
+- [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
+      subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
       Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o
@@ -54,14 +71,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Aparte (tarea propuesta en la sesión): el primer clic tras renovarse la sesión puede mandar a `/login` con «tu
       cuenta no puede entrar»; `lib/persona-actual.ts:109` convierte cualquier error en «sin acceso».
 
-## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **SIN APLICAR en producción**; mismo [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **en producción (2026-09-26)**; mismo [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] `cargar_stock_inicial` (prendas que ya existen, en una tienda donde no tienen historia) y candado
       `ajuste_sin_historia` en `registrar_movimiento`; Ajustar stock guarda las prendas nuevas en la tienda como stock
       inicial. Prueba `pnpm pruebas:ajuste-no-es-primera-carga` (20). El candado va después de saber quién firma (el CI
       lo pidió: `terminales` y `candado-lider` fallaban con la primera versión; sus casos de ajuste ahora le dan historia
       a la prenda).
-- [ ] **Orden en producción:** `20260927153100` → publicar la web → `20260927153200` (con OK de Felipe).
+- [x] Orden en producción: `20260927153100` → publicar la web (PR #496, 20:22 UTC) → `20260927153200`. Las dos con ensayo
+      revertido y verificadas por huella (2026-09-26).
 - [ ] Decidir si un conteo formal (`cerrar_conteo`) también debe escribir como «carga_inicial» la primera cantidad de una
       prenda que la tienda nunca tuvo (hoy queda como «Ajuste · Conteo»).
 - [ ] Cerrar la carga inicial cuando termine el paso de las tiendas al sistema (heredado de ADR-0212).
@@ -303,6 +321,11 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Apartados: pestañas a la izquierda y el ticket a lo alto (2026-09-26) — solo web
+Spike `docs/maquetas/apartados-ticket-alto-2026-09/` (igual que el de Punto de Venta) e implementación en el mismo PR.
+- [x] Pestañas, «Opciones» y avisos sobre la columna de trabajo; el ticket («Por apartar» / «Saldo») sube al borde de arriba de la hoja, con la cabecera en la misma raya. Verificado a 1440, 1024 y 375 px.
+- [ ] **Felipe:** verlo con prendas reales en el ticket (en la verificación el ticket estaba vacío: no se tocaron datos de producción).
 
 ## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
 Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.

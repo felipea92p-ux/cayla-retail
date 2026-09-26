@@ -191,6 +191,17 @@ Si `datos:aviario` falla, la tabla nueva necesita pájaro antes de commitear el 
 se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelve a correr. El CI corre
 la misma revisión en cada push, así que un volcado commiteado sin eso sale en rojo.
 
+## Refresco por diferencia (cuando solo cambió una parte)
+
+Traer las 9 consultas enteras son unos 600 KB. El 2026-09-26 se hizo por diferencia y fue exacto: (1) la base local
+calcula, desde los archivos de esta carpeta, una huella por grupo —por tabla en columnas, candados, índices, políticas,
+llaves y RLS; por los primeros 8 caracteres de la firma en funciones— con `md5(jsonb::text)` y `order by … collate "C"`,
+así se serializa igual que en producción; (2) producción devuelve sus propias huellas con las mismas consultas de arriba
+agrupadas igual; (3) se piden solo los grupos nuevos o distintos, se reemplazan y se reordenan como están los archivos
+(JSON con `indent=1`, claves ordenadas, salto de línea final); (4) se recalculan las huellas locales, **las 950 tienen que
+coincidir**, y recién ahí se piden `retail_filas` y `retail_foto`, al final. Las respuestas de producción se leyeron del
+registro de la sesión en disco, sin copiarlas a mano.
+
 ## Cuándo hace falta hacer todo esto
 
 Casi nunca, y esa es la idea. Solo cuando **el esquema de producción** cambia: una

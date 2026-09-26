@@ -46,6 +46,7 @@ export function EntregarVista({
   elegido,
   onElegir,
   apagadas = [],
+  cabecera,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -57,6 +58,8 @@ export function EntregarVista({
   onElegir: (id: string | null) => void;
   /** Lo que la tienda apagó en «Opciones» (paso 5). */
   apagadas?: string[];
+  /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
+  cabecera?: React.ReactNode;
 }) {
   const router = useRouter();
   const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
@@ -126,8 +129,10 @@ export function EntregarVista({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
-      <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-r lg:border-b-0">
+    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
+      {cabecera}
+      <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
         <label className="flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
           <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
           <input
@@ -227,10 +232,11 @@ export function EntregarVista({
           </>
         )}
       </div>
+      </div>
 
       {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
       <aside className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
-        <div className="flex min-h-[84px] items-center justify-between gap-3 border-b border-sand px-5 py-5">
+        <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
           <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
             <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo
           </h2>

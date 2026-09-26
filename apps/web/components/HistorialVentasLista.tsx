@@ -165,7 +165,7 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
                 (comprobanteAccionable(v, puedeFacturar) ? (
                   <Link
                     href="/vender/comprobantes/por-reintentar"
-                    title="Resolverlo en Comprobantes ▸ Por reintentar"
+                    title="Resolverlo en Comprobantes ▸ Por enviar"
                     className="relative z-10 rounded-full transition-shadow hover:ring-1 hover:ring-current focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
                   >
                     <Chip tono={TONO_COMPROBANTE[v.comprobante.estado]}>{ESTADO_ETIQUETA[v.comprobante.estado]} →</Chip>
