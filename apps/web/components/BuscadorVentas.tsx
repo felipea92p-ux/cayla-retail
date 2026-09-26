@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, type MutableRefObject, type RefObject } from "react";
 import { ArrowRight, Loader2, ReceiptText, ScanLine, Search, X } from "lucide-react";
 import { Desplegable } from "@/components/ui/campos";
 
@@ -49,6 +49,8 @@ export function BuscadorVentas({
   onBuscar,
   onLimpiar,
   onSinComprobante,
+  escanearRef,
+  escanearEnBarraMovil = false,
 }: {
   valorInicial: string;
   todasInicial: boolean;
@@ -59,6 +61,11 @@ export function BuscadorVentas({
   onBuscar: (texto: string, todas: boolean) => void;
   onLimpiar: () => void;
   onSinComprobante: () => void;
+  /** Deja «Escanear prenda» al alcance de otra pieza (la barra fija del celular en Devoluciones):
+   *  hace lo mismo que el chip, sin duplicar el estado del escaneo. */
+  escanearRef?: MutableRefObject<(() => void) | null>;
+  /** En el celular «Escanear prenda» ya está fijo abajo: el chip no se repite. */
+  escanearEnBarraMovil?: boolean;
 }) {
   const [texto, setTexto] = useState(valorInicial);
   const [todas, setTodas] = useState(todasInicial);
@@ -77,6 +84,14 @@ export function BuscadorVentas({
     setTexto("");
     campoRef.current?.focus();
   }
+
+  useEffect(() => {
+    if (!escanearRef) return;
+    escanearRef.current = prepararEscaneo;
+    return () => {
+      escanearRef.current = null;
+    };
+  });
 
   return (
     <form role="search" onSubmit={enviar} className="space-y-4">
@@ -137,7 +152,7 @@ export function BuscadorVentas({
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <button type="button" onClick={prepararEscaneo} className={CHIP_ACCION}>
+        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>

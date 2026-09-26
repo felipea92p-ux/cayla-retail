@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowRight, Check, Clock } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeftRight, ArrowRight, Check, Clock, ReceiptText, Undo2 } from "lucide-react";
 import { CLASE_BOTON_FILA, ChipEstado, ComprasAgrupadas, FilaPrendaVenta, formatearHora, type CompraAgrupada } from "@/components/ComprasAgrupadas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { actividadPreviaVenta, descripcionEntregada, etiquetaDia, totalesVenta } from "@/lib/cambios-reglas";
@@ -30,10 +31,16 @@ export function DevolucionesVentas({
   resumen = false,
   onIniciar,
   onAnular,
+  onVerVenta,
+  veCambios = false,
 }: {
   lineas: LineaVentaReciente[];
   ahora: Date;
   esLider: boolean;
+  /** Abre el detalle de la venta (prendas, pago, comprobante y reimpresión). */
+  onVerVenta?: (linea: LineaVentaReciente) => void;
+  /** La cuenta ve el módulo Cambios: la tarjeta ofrece «Cambiar» (R-37, ADR-0161). */
+  veCambios?: boolean;
   /** `true` en Actividad reciente: una tarjeta por venta en vez de una fila por prenda. */
   resumen?: boolean;
   /** `preseleccionar` marca esa prenda al entrar al flujo (clic en una fila puntual); en
@@ -58,7 +65,7 @@ export function DevolucionesVentas({
         lineas={lineas}
         ahora={ahora}
         accionCompra={accionCompra}
-        renderCompra={(compra) => <ResumenCompraVenta compra={compra} ahora={ahora} onIniciar={onIniciar} />}
+        renderCompra={(compra) => <ResumenCompraVenta compra={compra} ahora={ahora} onIniciar={onIniciar} onVerVenta={onVerVenta} veCambios={veCambios} />}
       />
     );
   }
@@ -114,37 +121,64 @@ export function DevolucionesVentas({
 }
 
 /** El resumen de UNA venta para Actividad reciente: cuánto sumó, el plazo de la boleta
- *  (una sola vez, no por prenda) y si ya tuvo un cambio o una devolución. El botón solo
- *  aparece si queda algo por devolver — la misma regla que ya usa cada prenda
+ *  (una sola vez, no por prenda) y si ya tuvo un cambio o una devolución.
+ *
+ *  Acciones (spike 2026-09-26, `docs/maquetas/devoluciones-2026-09`, ADR-0228): ya no un botón negro por
+ *  tarjeta —siete iguales no decían nada—, sino «Devolver» con borde y, al lado, «Cambiar» (R-37: el
+ *  cambio primero; lleva a Cambios con la prenda elegida). «Ver venta» abre el detalle. Las dos
+ *  acciones solo aparecen si queda algo por devolver: la misma regla que ya usa cada prenda
  *  (`estadoPrendaDevolucion`), aplicada a la venta completa. */
 function ResumenCompraVenta({
   compra,
   ahora,
   onIniciar,
+  onVerVenta,
+  veCambios,
 }: {
   compra: CompraAgrupada;
   ahora: Date;
   onIniciar: (linea: LineaVentaReciente, preseleccionar: boolean) => void;
+  onVerVenta?: (linea: LineaVentaReciente) => void;
+  veCambios: boolean;
 }) {
   const primera = compra.lineas[0]!;
   const { prendas, importe } = totalesVenta(compra.lineas);
   const actividadPrevia = actividadPreviaVenta(compra.lineas);
-  const algoDevolvible = compra.lineas.some((l) => estadoPrendaDevolucion(l, ahora).devolvible);
+  const devolvible = compra.lineas.find((l) => estadoPrendaDevolucion(l, ahora).devolvible);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <p className="text-sm text-tinta/85">
+        <p className="text-[15px] tabular-nums text-tinta/85">
           {prendas} {prendas === 1 ? "prenda" : "prendas"} · {soles(importe)}
         </p>
         {!primera.anulada && <ChipEstado estado={estadoPlazoDevolucion(primera.creadoEn, ahora)} />}
         {actividadPrevia && <ChipEstado estado={actividadPrevia} />}
       </div>
-      {algoDevolvible && (
-        <button type="button" onClick={() => onIniciar(primera, false)} className={CLASE_BOTON_FILA}>
-          Iniciar devolución
-          <ArrowRight className="h-4 w-4" aria-hidden />
-        </button>
+      {(onVerVenta || devolvible) && (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-sand pt-3">
+          {onVerVenta && (
+            <button type="button" onClick={() => onVerVenta(primera)} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+              <ReceiptText className="h-3.5 w-3.5" aria-hidden />
+              Ver venta
+            </button>
+          )}
+          {devolvible && (
+            <span className="ml-auto flex items-center gap-4">
+              {veCambios && (
+                // Con la prenda que todavía se puede tocar: Cambios abre su flujo sobre ella.
+                <Link href={`/cambios?item=${devolvible.ventaItemId}`} className="btn-cayla btn-enlace gap-1.5 text-[13px]">
+                  <ArrowLeftRight className="h-3.5 w-3.5" aria-hidden />
+                  Cambiar
+                </Link>
+              )}
+              <button type="button" onClick={() => onIniciar(primera, false)} className="btn-cayla btn-secundario h-10 border-taupe/50 px-4">
+                <Undo2 className="h-4 w-4" aria-hidden />
+                Devolver
+              </button>
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

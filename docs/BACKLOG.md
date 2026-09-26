@@ -28,6 +28,16 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0228) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
+
+- [x] Tarjeta compacta con «Devolver», «Cambiar» (→ Cambios) y «Ver venta»; chip «Quedan N días» (ámbar los últimos 3).
+- [x] Celular: «Escanear prenda» y lupa fijos abajo.
+- [x] Cifra «Por aprobar» tocable y pestañas Compras / Por aprobar / Resueltas (NC, reembolso y destino de cada prenda).
+- [x] Avisos de cuarentena (→ `/inventario?danados=1`) y de caja cerrada (líder y colaboradora), según los módulos de la cuenta.
+- [ ] Verificar con clic real: el aviso de caja cerrada y «Cambiar» hasta el flujo de Cambios; con una cuenta sin Cambios/Caja.
+- [ ] Ficha de la clienta desde la tarjeta: espera la ficha real (`/clientas` es de verificación y la venta no guarda `clienta_id`).
+- [ ] Decidir: «Sin comprobante» solo con saldo a favor, y la nota de crédito como pago en Vender (R-37).
+
 ## 🧹 Purga de Top Aurora y su venta de prueba (2026-09-26, ADR-0224) — **HECHA en producción el 2026-09-26 10:06 (Lima)**; scripts en el repo, sin web ni migración
 - [x] `scripts/purga/purgar-producto-de-prueba.sql` (parametrizado, ensayo por defecto) y `scripts/purga/restaurar-purga.sql`: deshacen por completo `TOP-0011` y la nota `NV01-000007` (S/ 2,007.10, sin SUNAT), devuelven a stock las 13 prendas de otros productos que esa venta sacó, devuelven la serie NV01 a 7, respaldan cada fila en `respaldo_purgas.filas` y demuestran antes de cerrar que el libro de movimientos cuadra con el stock en toda la base.
 - [x] Probado: `pnpm pruebas:purgar-producto` **36/36** (sumada al CI), 6 mutaciones detectadas, respaldo restaurado idéntico fila por fila. La prueba encontró que `venta_items.subtotal` es columna generada: por eso existe `restaurar-purga.sql`.

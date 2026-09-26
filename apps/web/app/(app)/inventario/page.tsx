@@ -29,10 +29,11 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string }>;
+  searchParams: Promise<{ ubicacion?: string; danados?: string }>;
 }) {
   const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
-  const { ubicacion: ubicacionQuery } = await searchParams;
+  // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0228).
+  const { ubicacion: ubicacionQuery, danados } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -139,6 +140,7 @@ export default async function InventarioPage({
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
+        abrirDanados={danados === "1"}
         apartados={apartados}
         esLider={persona.rol === "lider"}
         puedeAjustar={puede(persona, "ajustarInventario")}

@@ -238,6 +238,7 @@ export function InventarioPanel({
   sububicacionPiso,
   sububicacionAlmacen,
   danadosPendientes,
+  abrirDanados = false,
   apartados,
   esLider,
   puedeAjustar,
@@ -261,6 +262,8 @@ export function InventarioPanel({
    *  / Se botó / Donada. Vacía en Taller (no separa piso/almacén, nunca
    *  recibe devoluciones). */
   danadosPendientes: PrendaDanada[];
+  /** Abrir la cola de dañadas al entrar (`?danados=1`, aviso de cuarentena de Devoluciones). */
+  abrirDanados?: boolean;
   /** Apartados ABIERTOS de esta ubicación (ADR-0141), ya ordenados por fecha límite. Vacía en Taller. */
   apartados: Apartado[];
   /** Solo un líder puede resolver una prenda dañada (`resolver_prenda_danada`) —
@@ -310,7 +313,7 @@ export function InventarioPanel({
     setMoviendo({ varianteId, sentido });
   }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
-  const [viendoDanados, setViendoDanados] = useState(false);
+  const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
   const [viendoApartados, setViendoApartados] = useState(false);
   const [viendoDisponible, setViendoDisponible] = useState(false);
