@@ -234,8 +234,11 @@ diccionario y su porqué está escrito.
 2. **Avisarle al pájaro** del módulo que toca. Si toca dos módulos, a los dos.
 3. **Escribir el porqué** — una nota corta (§7) con tres cosas: qué cambié, por qué
    así, y qué se rompería sin esto. No hace falta que sea largo; hace falta que exista.
-4. **La migración va en `supabase/migrations/`**, sin el prefijo `retail.`, numerada
-   en secuencia **mirando `origin`, no la carpeta local** (§6).
+4. **La migración va en `supabase/migrations/`**, con el prefijo `retail.` en cada tabla
+   (o `set search_path` al inicio) y con nombre de timestamp: `npx supabase migration new
+   <nombre>` (ADR-0034), nunca «el número siguiente» a ojo (§6). *(Corregido el
+   2026-09-26: decía «sin el prefijo» y «numerada en secuencia», que era el régimen de
+   antes del corte V1→V2 y ya causó choques y una migración rota.)*
 5. **Si reemplazas una función y le cambias los parámetros, borra la firma vieja
    explícitamente.** En Postgres, reemplazar una función con parámetros distintos **no
    la reemplaza: crea una segunda**, y cuál de las dos atiende cada llamada depende de
