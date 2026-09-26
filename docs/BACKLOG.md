@@ -38,6 +38,7 @@ Demo e investigación en `docs/maquetas/cambios-mejoras-2026-09/`; Felipe eligi�
 - [ ] Imprimir el ticket en la térmica de verdad y ajustar el largo si sale largo.
 - [ ] Ficha de la clienta desde el cambio: hoy la venta guarda la clienta como texto y `/clientas` no recibe búsqueda por URL.
 - [ ] Sigue abierto (no es de esta tarea): la diferencia de precio sin comprobante ni líder (`docs/pantallas/cambios.md` §2).
+
 ## 🎯 Fotos de prenda sin fondo y del mismo tamaño (2026-09-26, ADR-0228) — solo web, sin migración; rama `claude/fotos-fondo-blanco`
 - [x] Toda foto de prenda sale en 1200×1500 (el 4:5 de la grilla), JPEG sobre blanco, centrada y del mismo tamaño que las demás (`lib/foto-encuadre.ts`, 14 pruebas).
 - [x] El fondo lo quita MODNet en el navegador (`public/quitar-fondo.worker.js`, CPU, 26 MB una vez por equipo). Antes de subir, `RevisarFotosModal` muestra el antes y el después y quien sube elige «Sin fondo» o «Con fondo». Lo usan la galería de edición y el alta (también sin conexión).
