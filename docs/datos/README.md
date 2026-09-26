@@ -126,9 +126,10 @@ detecta que algo está roto en las tiendas sin que nada falle en tu máquina:
 pnpm datos:comparar
 ```
 
-Sale con error si encuentra una pantalla rota, así que sirve como alarma automática
-(D-19). Hoy encuentra dos: registrar un gasto y recibir mercadería ligada a una
-producción.
+Sale con código 1 si encuentra una llamada que la foto de producción no respalda, así
+que sirve como alarma automática (D-19). No es lo mismo que «pantalla rota»: la foto
+puede estar vieja (el informe dice de cuándo es). Los dos casos que motivaron la
+herramienta fueron registrar un gasto y recibir mercadería ligada a una producción.
 
 **La mitad escrita a mano** se actualiza cuando cambia el *porqué*, no cuando cambia
 una columna. En la práctica: cuando se agrega un módulo, cuando se cierra un hueco

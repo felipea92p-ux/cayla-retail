@@ -814,7 +814,7 @@ vender, ajustar stock y cerrar caja, y cada cosa que haga queda firmada con el
 > El párrafo que sigue es el de V1.
 
 `devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` (V1) **ya existe en
-producción** y está en la lista de funciones que nadie llama
+producción** y está en la lista de funciones sin llamada detectada desde `apps/web`
 (`generado/DRIFT.md`). El camino de ida tiene pantalla —`BajarATiendaModal.tsx` llama
 a `bajar_a_piso` (V1)— y el de vuelta no.
 

@@ -551,8 +551,10 @@ Medido hoy: producción tiene 56 funciones y ni un nombre repetido.
 2. **`pnpm datos:comparar` antes de dar por buena una pantalla.** Es la única
    herramienta que compara **la pantalla contra la base real** — `typecheck`
    compara contra tipos viejos y `migraciones:verificar` compara el repo contra
-   la base, pero ninguno de los dos mira esa tercera pareja. Sale con error si
-   encuentra una pantalla rota, así que sirve como la alarma automática de D-19.
+   la base, pero ninguno de los dos mira esa tercera pareja. Sale con código 1 si
+   encuentra una llamada que la foto de producción no respalda (D-19), así que sirve
+   como alarma. OJO: eso no es lo mismo que «pantalla rota» — la foto puede estar
+   vieja y una función posterior sale como «no está»; confirmarlo en producción.
 
 **Y una trampa que sigue armada.**
 `unificacion/31_una_sola_firma_por_funcion.sql:72` solo borra la firma vieja de

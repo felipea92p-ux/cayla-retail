@@ -5,82 +5,89 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { esDePrueba, fechaDeLaFoto, nombresEntreComillas, sinComentarios } from "./comparar-lectura.mjs";
+import { esDePrueba, fechaDeLaFoto, llamadasRpc, nombresEntreComillas } from "./comparar-lectura.mjs";
 
 const CONOCIDAS = new Set(["desactivar_proveedor", "reactivar_proveedor", "cerrar_periodo", "registrar_activo", "agregar_colaborador", "registrar_venta", "fn_balance_general"]);
 const nombres = (texto) => nombresEntreComillas(texto, CONOCIDAS).map((x) => x.nombre);
 
-// ---- sinComentarios ------------------------------------------------------------------------------------------------
+// ---- llamadasRpc ---------------------------------------------------------------------------------------------------
 
-test("los comentarios de línea y de bloque quedan en blanco, sin mover ninguna posición ni línea", () => {
-  const texto = "a(1); // uno\n/* dos\n   tres */ b(2);\n";
-  const limpio = sinComentarios(texto);
-  assert.equal(limpio.length, texto.length);
-  assert.equal(limpio.split("\n").length, texto.split("\n").length);
-  assert.ok(!limpio.includes("uno") && !limpio.includes("dos") && !limpio.includes("tres"));
-  assert.ok(limpio.includes("a(1);") && limpio.includes("b(2);"));
+const rpc = (texto, ruta) => llamadasRpc(texto, ruta);
+
+test("una llamada `.rpc(\"x\", { … })`: su nombre, su línea y las claves del primer nivel", () => {
+  const [ll] = rpc('\nawait supabase.rpc("abrir_caja", { p_a: 1, p_b: x, p_c })');
+  assert.deepEqual(ll, { linea: 2, nombre: "abrir_caja", nombresEnElNombre: [], argumentos: "objeto", claves: ["p_a", "p_b", "p_c"] });
 });
 
-test("un comentario JSDoc (`/** … */`) también se quita", () => {
-  const limpio = sinComentarios('/**\n * Ejemplo: `supabase.rpc("abrir_caja", {...})`\n */\nexport const x = 1;\n');
-  assert.ok(!limpio.includes("abrir_caja") && limpio.includes("export const x = 1;"));
+test("sin argumentos, `.rpc(\"x\")` es una llamada sin parámetros", () => {
+  assert.deepEqual(rpc('supabase.rpc("x")').map((l) => [l.nombre, l.argumentos, l.claves]), [["x", "ninguno", []]]);
 });
 
-test("una «//» dentro de un texto entre comillas NO es un comentario (una URL no se come lo que sigue)", () => {
-  const limpio = sinComentarios('const u = "https://cayla.pe/x"; const v = 2; // sí es comentario');
-  assert.ok(limpio.includes('"https://cayla.pe/x"') && limpio.includes("const v = 2;"));
-  assert.ok(!limpio.includes("sí es comentario"));
+test("`.rpc(\"x\" as never, …)` (Finanzas esquiva los tipos generados) se lee igual que `.rpc(\"x\", …)`", () => {
+  const [ll] = rpc('supabase.rpc("x" as never, { p_a: 1 } as never)');
+  assert.equal(ll.nombre, "x");
+  assert.deepEqual(ll.claves, ["p_a"]);
 });
 
-test("una plantilla puede cruzar líneas y sus «//» tampoco son comentarios", () => {
-  const limpio = sinComentarios("const t = `linea 1 // no\nlinea 2`; // sí\n");
-  assert.ok(limpio.includes("linea 1 // no") && limpio.includes("linea 2"));
-  assert.ok(!limpio.includes("sí"));
+test("solo las claves del PRIMER nivel: las de un objeto anidado son campos, no parámetros", () => {
+  const [ll] = rpc('supabase.rpc("x", { p_items: items.map((i) => ({ variante_id: i.id, cantidad: 1 })), p_b: { z: 1 } })');
+  assert.deepEqual(ll.claves, ["p_items", "p_b"]);
 });
 
-// Los casos que ROMPÍAN la primera versión (un recorrido a mano): salen de código real de apps/web.
-
-test("una expresión regular con «//» (foto-perfil.ts) NO abre un comentario: lo de después en la línea se conserva", () => {
-  const limpio = sinComentarios('const re = /^https?:\\/\\//i; rpc("cerrar_periodo"); // nota\n');
-  assert.ok(limpio.includes('rpc("cerrar_periodo")'), "el `rpc` de la misma línea se perdió");
-  assert.ok(!limpio.includes("nota"));
+test("un comentario entre la coma y la clave NO hace que la clave se pierda (8 avisos falsos de «no manda p_x»)", () => {
+  const [ll] = rpc('supabase.rpc("abrir_caja", {\n  p_a: 1,\n  // `undefined` no viaja en el JSON\n  p_motivo: m ? 1 : undefined,\n})');
+  assert.deepEqual(ll.claves, ["p_a", "p_motivo"]);
 });
 
-test("el idioma CSV (`/[;\"\\n]/` + plantilla) no desincroniza: un comentario de varias líneas después SÍ se quita", () => {
-  const texto = [
-    "export function celda(s) {",
-    '  return /[;"\\n]/.test(s) ? `"${s.replace(/"/g, \'""\')}"` : s;',
-    "}",
-    "",
-    "// Sale de `fn_balance_general` (esto es un comentario, no una llamada).",
-    "export const otra = 1;",
-    "",
-  ].join("\n");
-  const limpio = sinComentarios(texto);
-  assert.ok(!limpio.includes("fn_balance_general"), "el comentario de después del idioma CSV quedó sin quitar");
-  assert.ok(limpio.includes("export const otra = 1;"));
+// El defecto que dejó el revisor: contar llaves y comillas a mano se desordena con una expresión regular dentro.
+test("una expresión regular con comilla o con «//» dentro del objeto no desordena las claves", () => {
+  assert.deepEqual(rpc('supabase.rpc("f", { p_a: t.replace(/\'/g, "’"), p_b: 1, p_c: 2 })')[0].claves, ["p_a", "p_b", "p_c"]);
+  assert.deepEqual(rpc('supabase.rpc("f", { p_a: t.replace(/\\/\\//g, ""), p_b: 1, p_c: 2 })')[0].claves, ["p_a", "p_b", "p_c"]);
+  assert.deepEqual(rpc('supabase.rpc("f", { p_a: t.replace(/"/g, ""), p_b: 1, p_c: 2 })')[0].claves, ["p_a", "p_b", "p_c"]);
+  assert.deepEqual(rpc('supabase.rpc("f", { p_a: /^https?:\\/\\//i.test(t) ? 1 : 2, p_b: 1 })')[0].claves, ["p_a", "p_b"]);
 });
 
-test("una «/*» dentro de una expresión regular no abre un comentario de bloque que se trague el resto del archivo", () => {
-  const limpio = sinComentarios('const r = /\\/*x/; rpc("cerrar_periodo");\nconst z = 2; // fin\n');
-  assert.ok(limpio.includes('rpc("cerrar_periodo")') && limpio.includes("const z = 2;"));
+test("un objeto con «...», con una clave calculada o que no es un objeto NO se puede leer entero", () => {
+  assert.equal(rpc('supabase.rpc("f", { ...resto, p_a: 1 })')[0].argumentos, "objeto con spread");
+  assert.equal(rpc('supabase.rpc("f", { [k]: 1 })')[0].argumentos, "objeto con clave calculada");
+  assert.equal(rpc('supabase.rpc("f", params)')[0].argumentos, "no es un objeto");
+  assert.equal(rpc('supabase.rpc("f", cond ? { p_a: 1 } : {})')[0].argumentos, "no es un objeto");
 });
 
-test("el texto de un JSX no es un comentario, aunque empiece con «//»", () => {
-  const limpio = sinComentarios("export const A = () => <p>// esto se ve en pantalla</p>;\n", "A.tsx");
-  assert.ok(limpio.includes("// esto se ve en pantalla"));
+test("un `.rpc(…)` en un comentario o dentro de un texto NO es una llamada", () => {
+  assert.deepEqual(rpc('// supabase.rpc("x", { p_a: 1 })\n/* supabase.rpc("y") */\nconst t = "supabase.rpc(\'z\')";'), []);
+  assert.deepEqual(rpc("/**\n * Ejemplo: `supabase.rpc(\"abrir_caja\", {...})`\n */\nexport const x = 1;"), []);
 });
 
-test("ni «/* … */» en el texto de un JSX es un comentario", () => {
-  const limpio = sinComentarios("export const A = () => <p>/* se ve en pantalla */</p>; // sí es comentario\n", "A.tsx");
-  assert.ok(limpio.includes("/* se ve en pantalla */"));
-  assert.ok(!limpio.includes("sí es comentario"));
+test("`createClient().rpc(…)` y `x?.rpc(…)` también son llamadas", () => {
+  assert.deepEqual(rpc('createClient().rpc("a", {})').map((l) => l.nombre), ["a"]);
+  assert.deepEqual(rpc('cliente?.rpc("b", {})').map((l) => l.nombre), ["b"]);
 });
 
-test("un apóstrofo suelto en el texto de un JSX no se «traga» los comentarios ni el código que sigue", () => {
-  const limpio = sinComentarios("export const A = () => <p>d'Artagnan</p>; // c\nconst x = rpc('cerrar_periodo'); // d\n", "A.tsx");
-  assert.ok(limpio.includes("rpc('cerrar_periodo')"));
-  assert.ok(!limpio.includes("// c") && !limpio.includes("// d"));
+test("un ternario en el nombre: no hay nombre único, pero trae los DOS textos que hay dentro", () => {
+  const [ll] = rpc('supabase.rpc(p.activo ? "desactivar_proveedor" : "reactivar_proveedor", { p_id: p.id })');
+  assert.equal(ll.nombre, null);
+  assert.deepEqual(ll.nombresEnElNombre, ["desactivar_proveedor", "reactivar_proveedor"]);
+  assert.deepEqual(ll.claves, ["p_id"]);
+});
+
+test("un nombre en una variable o en una plantilla con partes: no se sabe cuál llama (`nombre` null, sin textos)", () => {
+  assert.deepEqual(rpc("supabase.rpc(RPC_BAJADA, {})").map((l) => [l.nombre, l.nombresEnElNombre]), [[null, []]]);
+  assert.deepEqual(rpc("supabase.rpc(`registrar_${x}`, {})").map((l) => [l.nombre, l.nombresEnElNombre]), [[null, []]]);
+});
+
+test("un `.rpc` que no es de supabase pero se llama igual sin argumentos no cuenta (no hay nombre que leer)", () => {
+  assert.deepEqual(rpc("cliente.rpc()"), []);
+});
+
+test("un archivo `.ts` con un cast `<T>x` y genéricos se lee (no se tumba por leerlo como TSX)", () => {
+  const texto = 'export function f<T>(x: unknown): T { const y = <T>x; return supabase.rpc("a", { p_x: y }) as unknown as T; }';
+  assert.deepEqual(rpc(texto, "lib/f.ts").map((l) => [l.nombre, l.claves]), [["a", ["p_x"]]]);
+});
+
+test("la línea de la llamada es la de `.rpc`, aunque haya comentarios de bloque antes y la cadena cruce líneas", () => {
+  const [ll] = rpc('/* a\n b */\nconst r = await supabase\n  .rpc("x", {});');
+  assert.equal(ll.linea, 4);
 });
 
 // ---- nombresEntreComillas ------------------------------------------------------------------------------------------
@@ -184,16 +191,21 @@ function archivosDeWeb(dir, acc = []) {
   return acc;
 }
 
-// Lo que el resto del script da por hecho: que las posiciones no se muevan (el número de línea de cada llamada se saca
-// del texto original) y que leer cualquier archivo real no falle. Recorre TODOS los de apps/web.
-test("en cada archivo real de apps/web, quitar comentarios conserva la longitud y las líneas", () => {
-  const archivos = archivosDeWeb(join(RAIZ, "apps", "web"));
+// Que leer cualquier archivo real no falle (un error de sintaxis o una sintaxis nueva no debe tumbar el informe) y que la
+// lectura no se quede ciega: hoy hay ~300 llamadas `.rpc("…")` con nombre en apps/web.
+test("la lectura recorre TODOS los archivos de apps/web sin fallar y encuentra las llamadas de siempre", () => {
+  const archivos = archivosDeWeb(join(RAIZ, "apps", "web")).filter((r) => !esDePrueba(r));
   assert.ok(archivos.length > 100, "no se encontraron los archivos de apps/web");
-  const mal = [];
+  let conNombre = 0;
+  let proveedores = null;
   for (const ruta of archivos) {
     const texto = readFileSync(ruta, "utf8");
-    const limpio = sinComentarios(texto, ruta);
-    if (limpio.length !== texto.length || limpio.split("\n").length !== texto.split("\n").length) mal.push(ruta.replace(RAIZ + "/", ""));
+    const llamadas = llamadasRpc(texto, ruta);
+    nombresEntreComillas(texto, CONOCIDAS, ruta);
+    conNombre += llamadas.filter((l) => l.nombre !== null).length;
+    if (ruta.endsWith("components/ProveedoresPanel.tsx")) proveedores = llamadas;
   }
-  assert.deepEqual(mal, [], `Estos archivos cambian de largo o de líneas al quitar los comentarios:\n  ${mal.slice(0, 10).join("\n  ")}`);
+  assert.ok(conNombre > 250, `la lectura solo encontró ${conNombre} llamadas con nombre: ¿se quedó ciega?`);
+  // El caso que motivó todo: Proveedores llama a dos funciones con un ternario.
+  assert.ok(proveedores?.some((l) => l.nombresEnElNombre.includes("desactivar_proveedor") && l.nombresEnElNombre.includes("reactivar_proveedor")), "ProveedoresPanel.tsx ya no se lee como un ternario con las dos funciones");
 });

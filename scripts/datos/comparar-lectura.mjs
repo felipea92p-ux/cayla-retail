@@ -9,14 +9,15 @@
  *
  * LA REGLA. Un nombre de función de producción que aparece ENTRE COMILLAS en código de una pantalla (no en un
  * comentario ni en una prueba) cuenta como usado: no se puede leer qué parámetros manda, pero la pantalla lo nombra.
- * Por eso hay que ignorar los comentarios: uno que cita `agregar_colaborador` entre acentos graves NO usa la función,
- * y contarlo taparía a una función que de verdad sobra.
+ * Los comentarios no cuentan: uno que cita `agregar_colaborador` entre acentos graves NO usa la función, y contarlo
+ * taparía a una función que de verdad sobra.
  *
- * POR QUÉ CON EL PARSER DE TYPESCRIPT Y NO A MANO. La primera versión leía el texto con un recorrido propio y se
- * equivocaba en código real: un literal de expresión regular con `//` (`/^https?:\/\//i`) lo tomaba por un comentario, y
- * el idioma CSV `/[;"\n]/.test(s) ? `"…"` : s` desincronizaba el estado de las plantillas y dejaba comentarios sin
- * quitar varias líneas después. Distinguir un comentario de una expresión regular, de un texto o de una plantilla
- * es justo el trabajo del parser, y ya está en el repo (dependencia de la raíz): aquí no se reescribe.
+ * POR QUÉ CON EL PARSER DE TYPESCRIPT Y NO A MANO. Este script leía el código con recorridos propios (una expresión
+ * regular para `.rpc(`, un contador de llaves y comillas para las claves de los parámetros) y se equivocaba en código
+ * real: un literal de expresión regular con una comilla o con `//` (`t.replace(/'/g, "’")`, `/^https?:\/\//i`) lo
+ * desordenaba, y un comentario entre la coma y una clave hacía que la clave no se reconociera (8 avisos falsos de «no manda
+ * `p_x`»). Distinguir un comentario de una expresión regular, de un texto o de una plantilla es justo el trabajo del
+ * parser, y ya está en el repo (dependencia de la raíz): aquí no se reescribe.
  */
 import { createRequire } from "node:module";
 
@@ -37,34 +38,68 @@ function parsear(texto, ruta) {
   return ts.createSourceFile(ruta, texto, ts.ScriptTarget.Latest, true, tipo);
 }
 
-const esDeJSDoc = (n) => n.kind >= ts.SyntaxKind.FirstJSDocNode && n.kind <= ts.SyntaxKind.LastJSDocNode;
+// `x as never`, `(x)`, `x!`, `x satisfies T`, `<T>x`: lo que envuelve a un valor sin cambiarlo.
+function desenvolver(e) {
+  while (ts.isAsExpression(e) || ts.isParenthesizedExpression(e) || ts.isNonNullExpression(e) || ts.isSatisfiesExpression(e) || ts.isTypeAssertionExpression(e)) e = e.expression;
+  return e;
+}
+
+// Todos los textos entre comillas (`"x"`, `'x'`, `` `x` `` sin partes) que hay dentro de una expresión.
+function textosDe(nodo) {
+  const textos = [];
+  const visita = (n) => {
+    if (ts.isStringLiteralLike(n)) textos.push(n.text);
+    ts.forEachChild(n, visita);
+  };
+  visita(nodo);
+  return textos;
+}
 
 /**
- * El texto con los comentarios reemplazados por espacios. Conserva la longitud y los saltos de línea, así una posición
- * en el resultado es la misma posición en el original (los números de línea no se mueven).
+ * Las llamadas `X.rpc(…)` de un archivo (`supabase.rpc`, `createClient().rpc`…), leídas del árbol, una por llamada:
  *
- * Cómo: lo que hay entre el final de un token y el principio del siguiente es SOLO espacio y comentarios (el parser lo
- * llama «trivia»). Se recorren todos los tokens y en cada trivia se borra lo que no sea espacio. Un `//` dentro de un
- * texto, de una plantilla o de una expresión regular no es trivia de nadie, así que no se toca.
+ *   { linea, nombre, nombresEnElNombre, argumentos, claves }
+ *
+ *   · `nombre`: el nombre de la función si el primer argumento es UN texto (`"x"`, `"x" as never`), y `null` si es otra
+ *     cosa (una variable, un ternario, una plantilla con partes). En ese caso `nombresEnElNombre` trae los textos que
+ *     hay dentro (los dos de `cond ? "a" : "b"`); el que llama decide cuáles son funciones conocidas.
+ *   · `argumentos`: `"ninguno"` (`.rpc("x")`), `"objeto"` (`{ p_a: 1 }`: sus claves están en `claves`, solo las del primer
+ *     nivel), `"objeto con spread"` (`{ ...resto }`), `"objeto con clave calculada"` (`{ [k]: 1 }`) o `"no es un objeto"`
+ *     (una variable, un ternario…). En los tres últimos no se puede saber qué parámetros manda.
+ *   · `linea`: la línea de `.rpc`, contada desde 1.
  */
-export function sinComentarios(texto, ruta = "archivo.tsx") {
+export function llamadasRpc(texto, ruta = "archivo.tsx") {
   const sf = parsear(texto, ruta);
-  const salida = texto.split("");
-  const blanquear = (desde, hasta) => {
-    for (let i = desde; i < hasta; i++) if (!/\s/.test(salida[i])) salida[i] = " ";
-  };
-  const visita = (nodo) => {
-    if (esDeJSDoc(nodo)) return; // su texto es un comentario: lo borra la trivia del token que le sigue
-    const hijos = nodo.getChildren(sf);
-    if (hijos.length === 0) {
-      // (Para el texto de un JSX —`<p>// no es un comentario</p>`— `getStart` ya no salta lo que parece un comentario.)
-      blanquear(nodo.pos, nodo.getStart(sf));
-      return;
+  const llamadas = [];
+  const visita = (n) => {
+    if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && n.expression.name.text === "rpc" && n.arguments.length > 0) {
+      const [primero, segundo] = n.arguments;
+      const nombreDelTexto = desenvolver(primero);
+      const llamada = {
+        linea: sf.getLineAndCharacterOfPosition(n.expression.name.getStart(sf)).line + 1,
+        nombre: ts.isStringLiteralLike(nombreDelTexto) ? nombreDelTexto.text : null,
+        nombresEnElNombre: ts.isStringLiteralLike(nombreDelTexto) ? [] : textosDe(primero),
+        argumentos: "ninguno",
+        claves: [],
+      };
+      if (segundo) {
+        const objeto = desenvolver(segundo);
+        if (!ts.isObjectLiteralExpression(objeto)) llamada.argumentos = "no es un objeto";
+        else {
+          llamada.argumentos = "objeto";
+          for (const p of objeto.properties) {
+            if (ts.isSpreadAssignment(p)) llamada.argumentos = "objeto con spread";
+            else if (p.name && (ts.isIdentifier(p.name) || ts.isStringLiteralLike(p.name) || ts.isNumericLiteral(p.name))) llamada.claves.push(p.name.text);
+            else if (llamada.argumentos === "objeto") llamada.argumentos = "objeto con clave calculada";
+          }
+        }
+      }
+      llamadas.push(llamada);
     }
-    for (const h of hijos) visita(h);
+    ts.forEachChild(n, visita);
   };
   visita(sf);
-  return salida.join("");
+  return llamadas;
 }
 
 /**

@@ -59,7 +59,7 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
-import { esDePrueba, fechaDeLaFoto, nombresEntreComillas, sinComentarios } from "./comparar-lectura.mjs";
+import { esDePrueba, fechaDeLaFoto, llamadasRpc, nombresEntreComillas } from "./comparar-lectura.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 // `COMPARAR_RAIZ` solo existe para la prueba de extremo a extremo (`comparar.test.mjs`), que arma un repositorio de juguete.
@@ -118,51 +118,6 @@ function firmasDeProduccion() {
 
 // ── Lo que las pantallas llaman ─────────────────────────────────────────────
 
-/**
- * Las claves del PRIMER NIVEL del objeto de argumentos, y solo esas.
- *
- * Una llamada real se ve así:
- *   { p_caja_id: id, p_items: carrito.map(l => ({ variante_id: l.id, cantidad: l.n })) }
- *
- * `variante_id` y `cantidad` son campos de un item, no parámetros de la función. Una
- * primera versión de este script los contaba y daba doce alarmas falsas por una real
- * — y una herramienta que grita en falso se apaga a la tercera vez. Así que hay que
- * contar profundidad de verdad: llaves, corchetes, paréntesis, comillas y plantillas.
- */
-function clavesDePrimerNivel(cuerpo) {
-  const claves = [];
-  let nivel = 0;
-  let comilla = null;
-
-  for (let i = 0; i < cuerpo.length; i++) {
-    const c = cuerpo[i];
-
-    if (comilla) {
-      if (c === "\\") { i++; continue; }
-      if (c === comilla) comilla = null;
-      continue;
-    }
-    if (c === '"' || c === "'" || c === "`") { comilla = c; continue; }
-    if (c === "/" && cuerpo[i + 1] === "/") { while (i < cuerpo.length && cuerpo[i] !== "\n") i++; continue; }
-    if (c === "/" && cuerpo[i + 1] === "*") { i = cuerpo.indexOf("*/", i) + 1; continue; }
-
-    if (c === "{" || c === "[" || c === "(") { nivel++; continue; }
-    if (c === "}" || c === "]" || c === ")") { nivel--; continue; }
-
-    if (nivel !== 0) continue;
-
-    // En el primer nivel, una clave es un identificador seguido de ":" — pero NO el ":"
-    // de un ternario (`a ? b : c`) ni el de un tipo. Miramos hacia atrás: antes de la
-    // clave solo puede haber principio de objeto o una coma.
-    const m = /^([A-Za-z_$][\w$]*)\s*:/.exec(cuerpo.slice(i));
-    if (!m) continue;
-    const antes = cuerpo.slice(0, i).replace(/\s+$/, "");
-    if (antes === "" || antes.endsWith(",")) claves.push(m[1]);
-    i += m[0].length - 1;
-  }
-  return claves.filter((v, i, a) => a.indexOf(v) === i);
-}
-
 function archivosDeCodigo(dir, acc = []) {
   for (const entrada of readdirSync(dir)) {
     if (entrada === "node_modules" || entrada === ".next" || entrada.startsWith(".")) continue;
@@ -184,55 +139,45 @@ function llamadas(conocidas) {
   for (const ruta of archivosDeCodigo(WEB)) {
     if (esDePrueba(ruta)) continue; // una prueba no es una pantalla: ni sus llamadas ni sus menciones cuentan
     const texto = readFileSync(ruta, "utf8");
-    const lineas = texto.split("\n");
-    // El mismo texto SIN comentarios (misma longitud y mismas líneas): un `.rpc("x")` que solo aparece en un ejemplo de
-    // JSDoc no es una llamada. Lo leen el parser de TypeScript, no una expresión regular (`comparar-lectura.mjs`).
-    const limpio = sinComentarios(texto, ruta);
+    const archivo = relative(RAIZ, ruta);
 
-    for (const { nombre, linea } of nombresEntreComillas(texto, conocidas, ruta)) {
-      if (!mencionadas.has(nombre)) mencionadas.set(nombre, { archivo: relative(RAIZ, ruta), linea });
-    }
+    // Las llamadas `.rpc(…)` y sus claves las lee el parser de TypeScript (`comparar-lectura.mjs`), no una expresión
+    // regular ni un contador de llaves: un comentario, un texto o una expresión regular dentro de la llamada no la
+    // desordenan. `.rpc("nombre" as never, …)` es la forma en que las pantallas de Finanzas esquivan los tipos
+    // generados que aún no conocen la función; el parser la ve igual que `.rpc("nombre", …)`.
+    for (const ll of llamadasRpc(texto, ruta)) {
+      const contexto = { archivo, linea: ll.linea };
 
-    // `.rpc("nombre" as never, …)` es la forma en que las pantallas de Finanzas esquivan los tipos generados que aún no
-    // conocen la función: sin el `as never` opcional, esas 71 llamadas eran invisibles y sus funciones salían como «nadie las llama».
-    const re = /\.rpc\(\s*["'`]([a-z0-9_]+)["'`](?:\s+as\s+never)?\s*(,|\))/gi;
-    let m;
-    while ((m = re.exec(limpio)) !== null) {
-      const nombre = m[1];
-      const linea = limpio.slice(0, m.index).split("\n").length;
-      const contexto = { archivo: relative(RAIZ, ruta), linea, nombre };
-
-      if (m[2] === ")") { encontradas.push({ ...contexto, envia: [] }); continue; }
-
-      // Recortamos el objeto de argumentos equilibrando llaves. Frágil a propósito:
-      // si no cierra limpio, lo decimos en vez de adivinar.
-      const desde = limpio.indexOf("{", m.index + m[0].length - 1);
-      const hastaParen = limpio.indexOf(")", m.index + m[0].length - 1);
-      if (desde === -1 || (hastaParen !== -1 && hastaParen < desde)) {
-        noAnalizadas.push({ ...contexto, porque: "los parámetros no van escritos ahí mismo" });
+      if (ll.nombre === null) {
+        // El nombre no es UN texto: un ternario (`cond ? "a" : "b"`), una variable, una plantilla.
+        const funciones = ll.nombresEnElNombre.filter(n => conocidas.has(n));
+        if (funciones.length) {
+          for (const nombre of funciones) noAnalizadas.push({ ...contexto, nombre, porque: "el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros" });
+        } else {
+          noAnalizadas.push({ ...contexto, nombre: "(nombre calculado)", porque: "el nombre de la función no va escrito ahí mismo (una variable o una plantilla): no se sabe cuál llama" });
+        }
         continue;
       }
-      let nivel = 0, fin = -1;
-      for (let i = desde; i < limpio.length; i++) {
-        if (limpio[i] === "{") nivel++;
-        else if (limpio[i] === "}") { nivel--; if (nivel === 0) { fin = i; break; } }
-      }
-      if (fin === -1) { noAnalizadas.push({ ...contexto, porque: "no pude cerrar el objeto" }); continue; }
 
-      const cuerpo = limpio.slice(desde + 1, fin);
-      const envia = clavesDePrimerNivel(cuerpo);
+      const c = { ...contexto, nombre: ll.nombre, directa: true };
+      if (ll.argumentos === "ninguno") encontradas.push({ ...c, envia: [] });
+      else if (ll.argumentos === "objeto") encontradas.push({ ...c, envia: ll.claves });
+      else if (ll.argumentos === "objeto con spread") noAnalizadas.push({ ...c, porque: "el objeto se arma con «...», no se puede leer entero" });
+      else if (ll.argumentos === "objeto con clave calculada") noAnalizadas.push({ ...c, porque: "el objeto tiene una clave calculada, no se puede leer entero" });
+      else noAnalizadas.push({ ...c, porque: "los parámetros no van escritos ahí mismo" });
+    }
 
-      if (/(^|[\s,{])\.\.\./.test(cuerpo)) noAnalizadas.push({ ...contexto, porque: "el objeto se arma con «...», no se puede leer entero" });
-      else encontradas.push({ ...contexto, envia, textoLinea: (lineas[linea - 1] ?? "").trim() });
+    for (const { nombre, linea } of nombresEntreComillas(texto, conocidas, ruta)) {
+      if (!mencionadas.has(nombre)) mencionadas.set(nombre, { archivo, linea });
     }
   }
 
-  // Lo que la pantalla nombra pero no llama con un `.rpc("…")` directo (un ternario, un ayudante): la usa, pero no se
-  // pueden leer sus parámetros. Sale como «no analizada», nunca como aprobada.
-  const conLlamadaDirecta = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
+  // Lo que la pantalla nombra pero no llama con un `.rpc("…")` directo (un ayudante, una lista de nombres): la usa, pero no
+  // se pueden leer sus parámetros. Sale como «no analizada», nunca como aprobada.
+  const yaVistas = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
   for (const [nombre, donde] of mencionadas) {
-    if (conLlamadaDirecta.has(nombre)) continue;
-    noAnalizadas.push({ ...donde, nombre, porque: 'el nombre va entre comillas pero no como `.rpc("…")` directo (un ternario, un ayudante…): no se leen sus parámetros' });
+    if (yaVistas.has(nombre)) continue;
+    noAnalizadas.push({ ...donde, nombre, porque: 'el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante…): no se leen sus parámetros' });
   }
   return { encontradas, noAnalizadas };
 }
@@ -278,6 +223,15 @@ for (const ll of encontradas) {
   }
 }
 
+// Una llamada directa que no se pudo leer entera (parámetros en una variable, «...») también se comprueba contra la foto:
+// que la FUNCIÓN exista no depende de cómo estén armados sus parámetros. Sin esto, una llamada a una función que la foto no
+// tiene salía solo como «no analizada» y el informe contaba de menos (`crear_producto_con_stock_inicial`, 2026-09-26).
+for (const n of noAnalizadas) {
+  if (n.directa && !produccion.has(n.nombre)) {
+    rotas.push({ ...n, envia: [], tipo: "no está en la foto", detalle: `la función \`${n.nombre}\` no está en la foto de producción (${FOTO_FECHA ?? "sin fecha"}); sus parámetros no se pudieron leer`, migracion: migracionQueDefine(n.nombre) });
+  }
+}
+
 // Una llamada que no se pudo leer entera («...», parámetros armados fuera) sigue siendo una llamada: la función tiene
 // pantalla. Sin esto, `registrar_venta` salía como «nadie la llama» estando en el punto de venta.
 const llamadasUnicas = new Set([...encontradas, ...noAnalizadas].map(l => l.nombre));
@@ -305,7 +259,7 @@ if (rotas.length) {
     console.log(`      ${r.detalle}`);
     const fn = produccion.get(r.nombre);
     if (fn) console.log(`      la foto acepta: ${fn.parametros.join(", ") || "(sin parámetros)"}`);
-    if (r.migracion) console.log(`      definida en supabase/migrations/${r.migracion}: o es posterior a la foto, o no se ha pegado en producción`);
+    if (r.migracion) console.log(`      la crea supabase/migrations/${r.migracion}: se pegó después de la foto, o todavía no se ha pegado en producción`);
     console.log("");
   }
 } else {
@@ -342,6 +296,11 @@ if (process.argv.includes("--md")) {
   L.push(`> creada o cambiada DESPUÉS sale como «no existe» o con parámetros de más aunque en producción ya esté bien. Antes de dar`);
   L.push(`> una pantalla por rota, confirmarlo en producción; para refrescar la foto, \`docs/datos/generado/COMO-REFRESCAR.md\`.`);
   L.push("");
+  L.push(`> **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en \`funciones-produccion.txt\`, tomada en la fecha`);
+  L.push(`> de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos`);
+  L.push(`> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las \`fn_*\` (permisos y`);
+  L.push(`> ayudantes que llaman otras funciones, no las pantallas) se dejan fuera de «sin llamada» a propósito.`);
+  L.push("");
   L.push(`---`);
   L.push("");
   L.push(`## Llamadas sin respaldo en la foto de producción — ${rotas.length}`);
@@ -358,22 +317,22 @@ if (process.argv.includes("--md")) {
     L.push(`select proname from pg_proc where pronamespace = 'retail'::regnamespace and proname = '<nombre>';`);
     L.push("```");
     L.push("");
-    L.push(`Si la foto está vieja, refrescarla (\`docs/datos/generado/COMO-REFRESCAR.md\`). Si la entrada dice «Definida en», esa migración`);
-    L.push(`la crea: o es posterior a la foto, o todavía no se ha pegado en producción.`);
+    L.push(`Si la foto está vieja, refrescarla (\`docs/datos/generado/COMO-REFRESCAR.md\`). Si la entrada trae «Migración que la crea», esa`);
+    L.push(`migración define la función: se pegó en producción después de la foto, o todavía no se ha pegado.`);
     L.push("");
   }
   for (const r of rotas) {
     L.push(`### \`${r.nombre}\` — ${r.tipo}`);
     L.push("");
-    L.push(`**Dónde:** \`${r.archivo}:${r.linea}\``);
-    L.push(`**Qué pasa:** ${r.detalle}`);
+    L.push(`- **Dónde:** \`${r.archivo}:${r.linea}\``);
+    L.push(`- **Qué pasa:** ${r.detalle}`);
     const fn = produccion.get(r.nombre);
     if (fn) {
-      L.push(`**La app manda:** \`${r.envia.join("`, `") || "—"}\``);
-      L.push(`**La foto acepta:** \`${fn.parametros.join("`, `") || "—"}\``);
+      L.push(`- **La app manda:** \`${r.envia.join("`, `") || "—"}\``);
+      L.push(`- **La foto acepta:** \`${fn.parametros.join("`, `") || "—"}\``);
     }
-    if (r.migracion) L.push(`**Definida en:** \`supabase/migrations/${r.migracion}\` (posterior a la foto, o sin pegar aún en producción)`);
-    L.push(`**Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.`);
+    if (r.migracion) L.push(`- **Migración que la crea:** \`supabase/migrations/${r.migracion}\` (se pegó después de la foto, o todavía no)`);
+    L.push(`- **Si la foto estuviera al día,** esa pantalla fallaría siempre en las tiendas (no es intermitente): por eso hay que confirmarlo.`);
     L.push("");
   }
   L.push(`## Sobrecargas — ${sobrecargas.size}`);
@@ -398,8 +357,9 @@ if (process.argv.includes("--md")) {
   L.push("");
   L.push(`Estas llamadas arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un`);
   L.push(`\`.rpc("…")\` directo (un ternario, un ayudante), así que no se pueden revisar leyendo el texto.`);
-  L.push(`**No están aprobadas: están sin revisar.** Y una llamada indirecta a una función que NO existe en producción no se ve aquí:`);
-  L.push(`solo se buscan los nombres que la foto conoce.`);
+  L.push(`**No están aprobadas: están sin revisar.** Ojo con lo que aquí NO se ve: una llamada indirecta (un ternario, un ayudante) a una`);
+  L.push(`función que la foto no conoce no sale, porque de un nombre calculado solo se listan los que la foto sí tiene. Las llamadas`);
+  L.push(`directas a una función ausente sí se cuentan, arriba, entre las «sin respaldo».`);
   L.push("");
   for (const n of noAnalizadas) L.push(`- \`${n.nombre}\` · \`${n.archivo}:${n.linea}\` — ${n.porque}`);
   L.push("");
@@ -409,14 +369,16 @@ if (process.argv.includes("--md")) {
   L.push(`forma; los comentarios y las pruebas no cuentan; las \`fn_*\` se descartan a propósito). **Esto NO prueba que sobren.** Cada`);
   L.push(`una puede ser:`);
   L.push("");
-  L.push(`- una función **a la que llama otra función o un disparador** de la base (aquí no se leen los cuerpos SQL);`);
+  L.push(`- una función **a la que llama otra función o un disparador** de la base (aquí no se leen los cuerpos SQL): p. ej. \`recibir_compras\``);
+  L.push(`  la llama \`recibir_envio\` (migración \`20260919121000\`), que es la que la pantalla de recepción nombra;`);
   L.push(`- una que **usa un script o Dynamic** desde fuera, no una pantalla;`);
   L.push(`- una **herramienta de mantenimiento que se corre a mano** desde el SQL Editor (p. ej. \`recalcular_stock\`, \`archivar_*_prueba\`);`);
   L.push(`- una función **retirada o de legado** que sigue en la base;`);
   L.push(`- una **pantalla que falta construir**;`);
   L.push(`- o una función que de verdad **sobra**.`);
   L.push("");
-  L.push(`Antes de retirar una, buscar quién la usa (\`git grep\` y, en producción, los cuerpos de las demás funciones y los disparadores):`);
+  L.push(`Antes de retirar una, buscar quién la usa (\`git grep\` y, en producción, los cuerpos de las demás funciones). Esta consulta lee SOLO`);
+  L.push(`cuerpos de funciones de \`retail\`: los disparadores, las políticas de seguridad y los trabajos programados (cron) se miran aparte.`);
   L.push("");
   L.push("```sql");
   L.push(`select p.proname from pg_proc p`);

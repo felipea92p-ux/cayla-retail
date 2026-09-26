@@ -118,7 +118,7 @@ mercadería física en la percha que el sistema no sabe que llegó.
 2. **Texto:** `unificacion/31:43-47` y `unificacion/12:56-66`, con la firma real y la
    fecha de verificación.
 
-`pnpm datos:comparar` sale con error cuando encuentra una pantalla rota (D-19). Debería
+`pnpm datos:comparar` sale con error cuando encuentra una llamada que la foto de producción no respalda (D-19). Debería
 correr en cada subida, no cuando alguien se acuerda.
 
 ---
@@ -364,7 +364,7 @@ O sea que el candado pregunta por **`admin`**, no por `lider`. Existe
 `retail.es_supervisor()` — `fn_rol_actual() = 'supervisor_sede'` — y **ninguna política la
 usa**: de las 70 políticas de producción, **26 llaman a `es_lider()` y 0 a
 `es_supervisor()`** (`generado/retail_policies.json`). `es_supervisor` aparece en la lista
-*"Funciones que nadie llama"* de `generado/DRIFT.md`.
+*"Funciones sin llamada detectada desde `apps/web`"* de `generado/DRIFT.md`.
 
 Y el sistema tampoco conoce cuatro niveles: hoy conoce dos por el lado de retail
 (`personas.rol` = `lider`/`integrante` en local) y resuelve la identidad real contra
@@ -410,7 +410,7 @@ la venta.
 Y hay un segundo tramo, peor: **`emitir_nota` no tiene ninguna pantalla.** Existe en
 producción con 7 argumentos y no la llama nadie en `apps/web` — solo la mencionan
 comentarios (`lucode.ts:3`, `api/lucode/emitir/route.ts:8,135`). Está en la lista
-*"Funciones que nadie llama"* de `DRIFT.md`.
+*"Funciones sin llamada detectada desde `apps/web`"* de `DRIFT.md`.
 
 **Qué cuesta.** Tres cosas, encadenadas:
 - No se puede responder *"¿qué boleta corresponde a esta venta?"*, ni al revés.
@@ -854,8 +854,8 @@ pistola:
 O sea: escanear la etiqueta que CAYLA misma imprimió devuelve **"Sin coincidencias"**.
 
 Y las dos funciones que existían para este camino no las llama nadie:
-`registrar_codigo_barras` y `conteo_contar_por_codigo` están en la lista *"Funciones que
-nadie llama"* de `generado/DRIFT.md`.
+`registrar_codigo_barras` y `conteo_contar_por_codigo` están en la lista *"Funciones sin llamada detectada desde
+`apps/web`"* de `generado/DRIFT.md`.
 
 **Qué cuesta.** Es la pantalla que Felipe nombró como el dolor número uno del negocio —el
 comentario de `buscar/page.tsx:11-13` lo cita: *"no saber si se tiene stock e ir a almacén
