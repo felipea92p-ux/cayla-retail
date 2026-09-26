@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { textoQuedan } from "@/lib/movimientos-saldo";
 import type { TonoChip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import {
@@ -55,6 +56,8 @@ export type ContextoFila = {
   enlaceVentas: boolean;
   /** La lista con sus filtros, para que «←» en un traslado o un conteo vuelva aquí (`?volver=`). */
   volverA: string;
+  /** Cuántas quedaron en la tienda después de cada movimiento, por id (ADR-0234, saldo). Null = sin el dato. */
+  saldos: Record<string, number> | null;
   onAbrir: (m: Movimiento) => void;
   onAbrirVenta: (m: Movimiento) => void;
 };
@@ -71,12 +74,13 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
   const donde = m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : null;
   const variante = [m.talla, m.color].filter(Boolean).join(" · ");
   const interno = m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado";
+  const quedan = textoQuedan(ctx.saldos?.[m.id]);
   return (
     <li className={`${FILA_MOVIMIENTO} ${dentroDeOperacion ? "sm:pl-6" : ""}`}>
       <button
         type="button"
         onClick={() => ctx.onAbrir(m)}
-        aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? ` ${variante}` : ""}, ${textoDelta(m)}`}
+        aria-label={`Ver el detalle: ${etiqueta}, ${m.referencia}${variante ? ` ${variante}` : ""}, ${textoDelta(m)}${quedan ? `, ${quedan}` : ""}`}
         className="absolute inset-0 rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-rojo"
       />
 
@@ -119,8 +123,15 @@ export function FilaMovimiento({ m, prenda, ctx, dentroDeOperacion = false }: { 
           m.delta > 0 ? "text-verde" : interno ? "font-medium text-taupe" : "text-tinta"
         }`}
       >
-        {interno && <span aria-hidden>⇄ </span>}
-        {textoDelta(m)}
+        {/* La cantidad y, debajo, cuántas quedaron en la tienda al terminar (ADR-0234, saldo): la pregunta con la que se
+            llega a esta pantalla («¿cuántas nos quedan?»). En chico y en taupe: acompaña a la cantidad, no compite. */}
+        <span className="flex flex-col items-end leading-tight">
+          <span>
+            {interno && <span aria-hidden>⇄ </span>}
+            {textoDelta(m)}
+          </span>
+          {quedan && <span className="mt-0.5 whitespace-nowrap text-[11px] font-normal text-taupe">{quedan}</span>}
+        </span>
         {/* Que se puede tocar, sin tener que descubrirlo: la misma flecha que las tarjetas clicables. */}
         <ChevronRight aria-hidden strokeWidth={1.5} className="h-4 w-4 shrink-0 text-tinta/30" />
       </span>
@@ -183,7 +194,7 @@ export function FilaOperacion({
               {productos}
             </span>
             <span className="block truncate text-xs tabular-nums text-taupe">
-              {[`${r.variantes} ${r.variantes === 1 ? "variante" : "variantes"}`, op.hora, donde].filter(Boolean).join(" · ")}
+              {[`${r.variantes} ${r.variantes === 1 ? "prenda distinta" : "prendas distintas"}`, op.hora, donde].filter(Boolean).join(" · ")}
             </span>
           </span>
         </span>

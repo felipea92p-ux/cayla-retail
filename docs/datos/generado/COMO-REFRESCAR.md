@@ -191,16 +191,21 @@ Si `datos:aviario` falla, la tabla nueva necesita pájaro antes de commitear el 
 se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelve a correr. El CI corre
 la misma revisión en cada push, así que un volcado commiteado sin eso sale en rojo.
 
-## Refresco por diferencia (cuando solo cambió una parte)
+## Refresco por diferencia: `pnpm datos:refrescar` (lo normal)
 
-Traer las 9 consultas enteras son unos 600 KB. El 2026-09-26 se hizo por diferencia y fue exacto: (1) la base local
-calcula, desde los archivos de esta carpeta, una huella por grupo —por tabla en columnas, candados, índices, políticas,
-llaves y RLS; por los primeros 8 caracteres de la firma en funciones— con `md5(jsonb::text)` y `order by … collate "C"`,
-así se serializa igual que en producción; (2) producción devuelve sus propias huellas con las mismas consultas de arriba
-agrupadas igual; (3) se piden solo los grupos nuevos o distintos, se reemplazan y se reordenan como están los archivos
-(JSON con `indent=1`, claves ordenadas, salto de línea final); (4) se recalculan las huellas locales, **las 950 tienen que
-coincidir**, y recién ahí se piden `retail_filas` y `retail_foto`, al final. Las respuestas de producción se leyeron del
-registro de la sesión en disco, sin copiarlas a mano.
+Traer las 9 consultas enteras son unos 600 KB aunque solo hayan cambiado dos funciones. `pnpm datos:refrescar` lo hace
+en dos pasos y trae solo lo que cambió:
+
+1. `pnpm datos:refrescar` — la base local (Docker) calcula una huella de cada grupo de la foto actual (por tabla; en
+   funciones, por los primeros 8 caracteres de la firma) y escribe UNA consulta con esas huellas adentro. Pégala entera
+   en el SQL Editor de producción: devuelve una sola celda, `refresco`, con los grupos nuevos o distintos, los quitados,
+   las huellas de todo, las filas y la foto (las consultas 1 a 9 de arriba, en una sola sentencia).
+2. Guarda esa celda en un archivo y corre `pnpm datos:refrescar <archivo>`: reemplaza esos grupos en los archivos, con el
+   mismo formato, y vuelve a calcular las huellas. Si alguna no coincide con producción, lo dice y termina en error: no
+   commitees (`git checkout -- docs/datos/generado/`).
+
+Después, lo de siempre (abajo). Se probó el 2026-09-26 de punta a punta contra la base local (11 grupos nuevos o
+cambiados, 9 quitados: las 943 huellas coincidieron) y, a mano con el mismo método, contra producción dos veces.
 
 ## Cuándo hace falta hacer todo esto
 

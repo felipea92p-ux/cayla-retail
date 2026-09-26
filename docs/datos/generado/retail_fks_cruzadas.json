@@ -565,6 +565,11 @@
   "src_table": "transferencia_recepciones"
  },
  {
+  "conname": "transferencias_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "transferencias"
+ },
+ {
   "conname": "transferencias_cerrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "transferencias"
