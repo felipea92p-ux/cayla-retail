@@ -1,9 +1,10 @@
 # ADR-0212 — Nuevo producto con su stock de hoy (la carga inicial, en la misma operación)
 
 **Fecha:** 2026-09-26
-**Estado:** Construido y probado en local (Postgres desechable y navegador sin base). **No está en producción:** falta
-pegar `supabase/migrations/20260926130000_alta_producto_con_stock_inicial.sql` en el SQL Editor **antes** de publicar la
-web; si no, «Crear producto» falla entero («function does not exist»).
+**Estado:** **SQL en producción desde el 2026-09-26** (Felipe: «pega el SQL en producción»). Se aplicó con el conector
+MCP después de un ensayo revertido y de una revisión adversarial (ver «Antes de pegar»). Quedó registrada como
+`20260926000932`, y las huellas md5 de las dos funciones son idénticas a las probadas en local. La web sale al fusionar
+el PR: el orden «SQL antes que la web» ya se cumplió.
 **Número:** se escribió como 0211; 0210 y 0211 los tomaron otras ramas el mismo día (`0210-cola-sin-conexion-generica-empezando-por-recibir.md`, `0211-los-desplegables-fixed-van-en-portal-a-document-body.md`).
 **Decidió:** Felipe, el 2026-09-26: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya
 está; me interesaría 0 papeleo por ahora». Lo técnico (cómo se guarda, dónde queda, quién puede) lo decidí yo con esa
@@ -85,6 +86,19 @@ El alta ya se podía guardar sin red (cola en el navegador, PR #436, fusionado e
   responsable; por eso antes no hacía falta.
 - Las unidades se cargan al subir, con la fecha de subida (`movimientos.created_at`), no la del alta. Para una carga
   inicial la diferencia es de horas y no cambia ninguna decisión.
+- «Subió» y «se descartó» ya no se confunden: las dos sacan la operación de la cola, y la pantalla de éxito decía «ya
+  subió» y «12 unidades… ya aparecen en Existencias» de un alta rechazada y descartada. Ahora lo decide
+  `estadoSubidaSinConexion` (con `descartado` anotado al descartar) y la frase sale de `fraseStockCreado`, las dos con
+  pruebas en `lib/alta-producto.test.ts`.
+- **Límites conocidos, aceptados por ahora** (revisión del 2026-09-26, todos «menor»):
+  - Una pestaña abierta ANTES de publicar esta versión filtra la cola con la lista vieja de RPC y, si escribe en ella,
+    borra en silencio un alta con stock encolada por otra pestaña nueva. Hay que recargar las tablets después de publicar.
+  - La hora del alta (`x-momento`) sale del reloj del equipo. Si ese reloj va más de 5 minutos adelantado, o la cola pasa
+    más de 7 días sin red, la base rechaza el alta con stock (22007) y hay que descartarla y rehacerla. Es el mismo límite
+    que ya tiene la venta sin conexión.
+  - La copia de `/productos/nuevo` que guarda el service worker (`soloDeHoy: false`) trae la sede de cuando se guardó.
+    Un líder que después cambió de sede y abre la pantalla sin red cargaría en la sede de la copia. El paso 5 dice en
+    qué tienda carga («¿Cuántas tienes hoy en Tienda TRU?»); la opción más firme sería `soloDeHoy: true`, como Vender.
 
 ## Estados que dejan de ser posibles
 
@@ -115,11 +129,30 @@ cola, caché ni lote masivo.
   no envía, «Todavía no tengo» deja crear, y sin el módulo «Bajada al piso» el piso sale apagado con su explicación.
 - `tsc`, `eslint` y la batería web completa (152 archivos, 77.268 pruebas) en verde.
 
+## Antes de pegar: revisión adversarial y ensayo (2026-09-26)
+
+- **Revisión adversarial** (12 agentes): cinco lentes independientes (compatibilidad con producción, seguridad,
+  atomicidad, pegado y pantalla), cada una con los cuerpos vivos de producción a la vista, y un escéptico por hallazgo
+  que intentó refutarlo en el Postgres desechable. Resultado: 7 hallazgos, 6 confirmados y 1 refutado. **Ninguno
+  bloqueaba el pegado**, y la lente de producción no encontró nada. Se corrigió el único «antes de publicar» (la
+  pantalla de éxito tras «Descartar», arriba). Los 4 menores quedaron en «Límites conocidos» y en el BACKLOG (entre
+  ellos, uno que ya existía: `recibir_lote` no pide el módulo Recibir).
+- **Ensayo en producción:** un solo lote con la migración y un alta de prueba (rol `authenticated`, claims de un Admin
+  Líder real, encabezado `x-ubicacion`), que termina en una excepción a propósito. Resultado:
+  `mismo_producto=t variantes=2 almacen=0 piso=3 movimientos=[entrada:carga_inicial:3,traslado:movimiento_interno:3]
+  firma_admin=t bajadas=1`. Los conteos de productos, variantes, movimientos, bajadas y stock quedaron idénticos antes y
+  después.
+- **Después de aplicar:** las huellas md5 de las dos funciones coinciden con las de local. En los permisos,
+  `authenticated` ejecuta la RPC y no la carga interna, y `anon` no ejecuta ninguna. En la prueba de humo contra la
+  función instalada (también revertida), el almacén recibe 4 + 2, un «2» enviado como texto se acepta y un reintento con
+  otras cantidades devuelve el mismo producto sin volver a cargar.
+
 ## Cómo se pega en producción
 
 Tal cual, en una vez, en el SQL Editor (ya trae `set search_path = retail, ...`). Solo crea dos funciones: no toca
 tablas en uso, ni políticas ni disparadores (ADR-0195 no aplica). Se puede pegar dos veces. **Después** se publica la
-web. Verificación de solo lectura después de pegar:
+web. **Ya se aplicó el 2026-09-26** (versión `20260926000932`); si se vuelve a pegar, no cambia nada. Verificación de
+solo lectura:
 
 ```sql
 select to_regprocedure('retail.crear_producto_con_stock_inicial(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid, uuid, boolean)') is not null as rpc,
@@ -133,4 +166,7 @@ select to_regprocedure('retail.crear_producto_con_stock_inicial(text, uuid, json
   Felipe: una fecha de cierre en Configuración, o un módulo propio «Carga inicial» que el líder apaga.
 - **Productos que ya se crearon sin stock** (los de producción de antes de esto) no pueden usar el paso 5.
   `fn_cargar_stock_inicial` ya sirve para ellos (solo prendas sin historia); falta la pantalla.
-- Una fila en `docs/datos/generado/` cuando se pegue en producción (`pnpm datos:generar:produccion`).
+- Refrescar `docs/datos/generado/` con el próximo volcado de producción (`generado/COMO-REFRESCAR.md`); hasta entonces
+  `pnpm datos:comparar` lee un volcado viejo y sigue marcando la RPC como «no existe en producción».
+- Cerrar en su propia migración el hueco previo de `recibir_lote` (no pide el módulo Recibir) y el de la cola sin
+  conexión que borra operaciones con un nombre de RPC desconocido (ver «Límites conocidos»).
