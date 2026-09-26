@@ -3,6 +3,7 @@
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
 import { compararTallas } from "./tallas";
+import { traducirError, type ErrorEscritura } from "./error-escritura";
 
 export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock";
 
@@ -139,7 +140,7 @@ export type ReglaSentidoPiso = {
    *  distintas con el mismo nombre confunden. En Movimientos las dos quedan como «Bajada al piso». */
   titulo: string;
   etiquetaCantidad: string;
-  /** El recorrido, en palabras de tienda, bajo el campo de cantidad. */
+  /** El recorrido, en palabras de tienda: va en la bajada del título para que ni un error ni el aviso lo tapen. */
   recorrido: string;
   /** Lo que se le dice a la persona cuando pide más de lo que hay en el origen. */
   noAlcanza: (pedido: number, hay: number) => string;
@@ -435,22 +436,37 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
   return cantidades;
 }
 
+// La nota no llega a Existencias (solo al detalle de Movimientos): el aviso no la vende como remedio, pide avisar al equipo.
+const NOTA_SOLO_EN_MOVIMIENTOS = "Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento.";
+// «libre»: la cifra es neta de lo apartado; con apartadas colgadas, «Piso · Almacén» de la tabla mostrará más.
+const AVISO_RETIRO_POR_COLGAR = `Quedará 0 libre en el piso: Existencias la mostrará «Por colgar» y pedirá bajarla. ${NOTA_SOLO_EN_MOVIMIENTOS}`;
+const avisoRetiroReponer = (quedan: number) =>
+  `${quedan === 1 ? "Quedará 1 libre" : `Quedarán ${quedan} libres`} en el piso: Existencias sugerirá «Reponer». ${NOTA_SOLO_EN_MOVIMIENTOS}`;
+
+/** El bloque del retiro cuando la fila no va a pedir nada: «retirar» se lee fácil como «dar de baja», y no lo es. */
+// Lo del almacén no se cobra (la venta descuenta del piso): «siguen disponibles para vender» sería falso.
+export const RETIRO_NO_ES_BAJA = "Pasan al almacén de la tienda: siguen siendo stock de la tienda (no es una baja), pero la caja no las cobra hasta que vuelvan al piso.";
+
+/** Todo lo que puede mostrar ese bloque, para que el modal reserve el alto del más largo (ADR-0185); «Reponer», con el umbral. */
+export const TEXTOS_BLOQUE_RETIRO: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_RETIRO_POR_COLGAR, avisoRetiroReponer(UMBRAL_REPOSICION_PISO)];
+
 /** Qué va a decir Existencias de la talla DESPUÉS de retirar `n` del piso, si eso contradice el retiro.
  *  El semáforo solo mira cifras (`necesitaReponerPiso`, `porColgar`): no sabe que la encargada guardó la
  *  talla a propósito (fin de temporada), así que al turno siguiente le pide bajarla de nuevo. Hasta que
  *  exista una marca de «retirada de la venta» (decisión de Felipe, bloque 3 de ADR-0208), el modal lo avisa
- *  ANTES de confirmar y pide dejarlo en la nota. `null`: la fila no va a pedir nada, o la cantidad no vale
+ *  ANTES de confirmar y dice dónde queda la nota. `null`: la fila no va a pedir nada, o la cantidad no vale
  *  (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como el modal y el semáforo. */
 export function avisoTrasRetiro(disponible: { piso: number | null; almacen: number | null }, n: number): string | null {
   if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return null;
   const piso = disponible.piso - n;
   const almacen = disponible.almacen + n;
   if (piso < 0) return null;
-  if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) {
-    return "Quedará 0 en el piso: Existencias la mostrará «Por colgar» y sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.";
-  }
-  if (necesitaReponerPiso(piso, almacen)) {
-    return `Quedarán ${piso} en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.`;
-  }
+  if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) return AVISO_RETIRO_POR_COLGAR;
+  if (necesitaReponerPiso(piso, almacen)) return avisoRetiroReponer(piso);
   return null;
+}
+
+/** `mover_interno` no tiene token: tras un corte de red no se dice «no se guardó nada» (repetir movería dos veces). */
+export function mensajeErrorMovimientoPiso(sentido: SentidoPiso, error: ErrorEscritura): string {
+  return traducirError(error, SENTIDO_PISO[sentido].accion, { confirmarAntesDeRepetir: true });
 }
