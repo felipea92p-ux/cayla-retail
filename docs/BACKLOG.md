@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧹 Purga de Top Aurora y su venta de prueba (2026-09-26, ADR-0219) — script listo y ensayado; **corrida real pendiente del «dale» de Felipe**
+- [x] `scripts/purga/purgar-producto-de-prueba.sql` (parametrizado, ensayo por defecto) y `scripts/purga/restaurar-purga.sql`: deshacen por completo `TOP-0011` y la nota `NV01-000007` (S/ 2,007.10, sin SUNAT), devuelven a stock las 13 prendas de otros productos que esa venta sacó, devuelven la serie NV01 a 7, respaldan cada fila en `respaldo_purgas.filas` y demuestran antes de cerrar que el libro de movimientos cuadra con el stock en toda la base.
+- [x] Probado: `pnpm pruebas:purgar-producto` **36/36** (sumada al CI), 6 mutaciones detectadas, respaldo restaurado idéntico fila por fila. La prueba encontró que `venta_items.subtotal` es columna generada: por eso existe `restaurar-purga.sql`.
+- [x] **Ensayo revertido en producción** (03:13 Lima): 1 producto · 8 variantes · 27 movimientos · 1 venta · 19 líneas · 13 prendas devueltas en 12 filas · libro 0 descuadres antes y después · 87 filas respaldadas. Comprobado después: nada cambió.
+- [ ] **Corrida real (Felipe da el «dale»):** de noche, con `cayla_purga.modo = definitivo`. Esperado: `movimientos` 112 → 85, stock total 363 → 311, NV01 siguiente 8 → 7, Actividad +1. Después, «Cayla 2» ya se puede eliminar desde Marcas (ADR-0217).
+- [ ] Al correrla: actualizar ADR-0219 («Estado»), mover a «hecho» las dos líneas de «Corregir “Cayla 2”» y «Decidir si TOP-0011 era de prueba» del bloque de Marcas, y anotar la corrida en la BITÁCORA.
+
 ## 🎨 Colores del lujo: Gris piedra, Índigo y Nude (2026-09-26, ADR-0215 act. b) — migración `20260926210000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR
 - [x] Ralph Lauren, LVMH y Hermès, investigados en vivo: CAYLA cubría 53 de 62 colores recurrentes. Entraron Gris piedra (14-0105), Índigo (19-3928) y Nude (12-0911); latte, capuchino, tabaco, crema, azul hielo, amaranto, greige y castaño son sinónimos. 71 activos.
 - [x] Orden en centenas por familia; un color creado desde Atributos entra en 2000. La paleta usa tantas columnas como quepan (alineadas), verificada en escritorio y a 375 px.
