@@ -364,8 +364,8 @@ describe("pasos del alta — cada problema cae en su paso", () => {
   });
 });
 
-describe("ordenarFotosAlta — la principal es la del primer color", () => {
-  it("ordena por color elegido, las generales al final, y marca principal a la primera", () => {
+describe("ordenarFotosAlta — la foto de «Todos los colores» es la principal", () => {
+  it("la foto sin color va primero y es la principal; después las de cada color, en su orden", () => {
     const r = ordenarFotosAlta(
       [
         { id: "g", colorCodigo: null },
@@ -375,8 +375,12 @@ describe("ordenarFotosAlta — la principal es la del primer color", () => {
       ],
       ["NEG", "BLA"]
     );
-    expect(r.map((f) => f.id)).toEqual(["n", "b2", "b1", "g"]);
+    expect(r.map((f) => f.id)).toEqual(["g", "n", "b2", "b1"]);
     expect(r.map((f) => f.orden)).toEqual([0, 1, 2, 3]);
+    expect(r.filter((f) => f.esPrincipal).map((f) => f.id)).toEqual(["g"]);
+  });
+  it("solo con fotos por color, la principal sigue siendo la del primer color", () => {
+    const r = ordenarFotosAlta([{ id: "b", colorCodigo: "BLA" }, { id: "n", colorCodigo: "NEG" }], ["NEG", "BLA"]);
     expect(r.filter((f) => f.esPrincipal).map((f) => f.id)).toEqual(["n"]);
   });
   it("sin fotos devuelve una lista vacía", () => {

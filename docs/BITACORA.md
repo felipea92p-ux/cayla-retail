@@ -8,6 +8,10 @@ Felipe probó un jean de internet sobre fondo liso: MODNet le abrió manchones b
 Por qué así: el umbral se midió con seis fotos por el proceso real (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %), no se eligió a ojo. Qué se rompería sin esto: una tienda apura «Usar esta foto» y el catálogo muestra un jean con agujeros que no tiene.
 Felipe se lleva: **detectar un defecto es más barato que evitarlo**: este cambio no arregla el recorte, pero impide que un recorte malo pase sin que nadie lo mire. Evitarlo (recorte por color con fondo liso) queda para cuando haga falta.
 Sin resolver: probar con fotos reales de tienda.
+## 2026-09-26 (Una foto por prenda: la de «Todos los colores» se ve en cada color)
+Felipe decidió cómo se fotografía: una foto por prenda y luego se eligen los colores, sin fotografiar cada color. Hasta hoy una foto sin color no se veía en la tarjeta (`fn_productos` solo trae la del color exacto; así quedó «Blusa V» con el gancho vacío). Ahora `listarProductos` completa cada color sin foto con la General de la prenda (una consulta más, solo si falta alguna) y `getCatalogo` usa `fotoDeVariante` (color → General → nada, nunca la de otro color: la misma regla que Traslados). En el alta, la casilla sin color va primero, se llama «Todos los colores» y su foto es la principal. Sin SQL.
+Felipe se lleva: **una foto guardada no es una foto que se ve**: la de Blusa V estaba en la base, subida y registrada, y la tarjeta la ignoraba por una regla de color.
+Sin resolver: la copia del catálogo de Vender (`getCatalogo`) se refresca cada hora; una foto nueva puede tardar hasta eso en verse ahí.
 
 ## 2026-09-26 (Punto de venta: el ticket a lo alto, en la pantalla — ADR-0221 act. b)
 Felipe recargó y no veía el cambio: lo subido antes era solo el spike. Ahora está en la pantalla: sin la franja de arriba, todo en «Más» (con «Hoy» arriba y «Cerrar caja» al pie), «Apartados» a la vista llevándose el ticket, y el ticket de arriba abajo. Verificado con la sesión local: «Apartar 1» llevó una prenda real a Apartados ya cargada.
