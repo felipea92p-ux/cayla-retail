@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Categorías: los candados pasan a la tabla)
+Revisión de Categorías con Felipe sobre el análisis del 21-09: ninguna de sus 12 tareas se había hecho. Se hizo el lote #2, #4, #5, #6 y parte de #10. Un disparador en `retail.categorias` cumple las tres reglas (prefijo fijo con productos, no desactivar con activos, no activar incompleta o con la familia apagada). Las tallas salen en orden de tienda, el prefijo se ve bloqueado antes de guardar, la huérfana de V1 ya no ofrece «Reactivar» y el ícono de Accesorios dejó de parecer un candado.
+Por qué así: las RPC ya validaban, pero la RLS `for all` y cualquier migración escriben sin pasar por ellas, y así quedó «Blusas». Qué se rompería sin esto: la próxima fusión de categorías repite Blusas, o un clic deja una categoría activa sin código.
+Felipe se lleva: **un candado que vive en la función protege solo a quien entra por esa puerta**; el de la tabla protege a todos, incluida la próxima migración. Sin resolver: pegar la migración en producción antes de fusionar; que un producto no pueda apuntar a una categoría inactiva (toca `productos`).
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.

@@ -28,6 +28,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Categorías: los candados pasan a la tabla, tallas en orden y prefijo a la vista (2026-09-26) — migración `20260927200000` **NO está en producción**; rama `claude/categorias-mejoras`
+Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-categorias.md) (2026-09-21), Felipe ordenó el lote #2, #4, #5, #6 y parte de #10.
+- [x] **#2 Candados en la tabla.** El disparador `categorias_vigencia_candados` (`fn_categorias_vigencia_candados`) cumple, sea quien sea el que escriba: prefijo fijo con productos de cualquier estado; no desactivar con productos activos; no activar sin familia, sin prefijo o con la familia apagada. Antes vivía solo en las RPC, y así quedó «Blusas» desactivada con un producto activo.
+- [x] **#4 Reactivar valida.** Lo cubre el mismo disparador (sin reescribir `reactivar_categoria`). La «Polos» huérfana pasa a llamarse «Polos (V1, retirada)», con la nota en `notas`; la pantalla ya no le ofrece «Reactivar».
+- [x] **#5 Tallas en orden de tienda** (`compararTallas`) en Editar y en la Vista rápida.
+- [x] **#6 El prefijo se ve bloqueado** antes de guardar: «Fijo: N productos lo usan». `fn_productos_por_categoria` devuelve `n_total`.
+- [x] **#10 (parte)** Ícono de Accesorios (ya no parece candado) y el ejemplo «Kimonos / KIM».
+- [ ] **Pegar `20260927200000` en producción ANTES de fusionar** y correr las 5 consultas de verificación de su pie. Luego `pnpm datos:generar:produccion`.
+- [ ] Hueco hermano, fuera de este lote: un producto todavía puede apuntar a una categoría **inactiva** por UPDATE directo en `productos` (el alta y la edición lo impiden en la RPC). Toca el núcleo (`productos`): decide Felipe.
+- [ ] Del análisis quedan: #3 cabecera (hoy cuadra), #7 Editar en pasos, #8 una sola RPC, #9 más pruebas de pantalla, resto de #10, #11 (decide Felipe), #12.
+- Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`, en CI).
+- Cómo verificas:
+  - **#2:** en el SQL Editor, `update retail.categorias set activo = false where nombre = 'Camisas y Blusas';` falla diciendo cuántos productos activos tiene.
+  - **#4:** en «Desactivadas», «Polos (V1, retirada)» dice «No se reactiva» en vez del botón.
+  - **#5:** Editar «Tops» → tallas «XS S M L XL XXL … Estándar».
+  - **#6:** Editar «Camisas y Blusas» → el prefijo sale gris, con «Fijo: N productos lo usan» (N ≥ 5: cuenta también los descontinuados).
+
 ## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
 Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
 - [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**
