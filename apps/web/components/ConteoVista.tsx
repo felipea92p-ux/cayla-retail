@@ -45,6 +45,7 @@ export function ConteoVista({
   conteoAbierto,
   conteos,
   pendientes,
+  soloPrendas = [],
   sububicaciones,
   categorias,
   prioridad,
@@ -60,6 +61,8 @@ export function ConteoVista({
   conteoAbierto: ConteoAbierto | null;
   conteos: ConteoResumen[];
   pendientes: PrendaPendiente[];
+  /** Las prendas de «Contar esta prenda» (`?variantes=`, ADR-0241), ya con su nombre. Vacío = la lista de siempre. */
+  soloPrendas?: string[];
   sububicaciones: Sububicacion[];
   categorias: { id: string; nombre: string }[];
   prioridad: PrioridadConteo[];
@@ -94,6 +97,21 @@ export function ConteoVista({
         titulo="Conteo"
         subtitulo="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
       />
+
+      {soloPrendas.length > 0 && (
+        // Llegó desde un movimiento (ADR-0241). Dice qué se cuenta y que lo demás no se toca: cerrar ajusta solo lo contado.
+        <div className="nota-cayla flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+          <span>
+            <b>Contando solo:</b> {soloPrendas.join(", ")}.{" "}
+            {conteoAbierto
+              ? "«Faltan por contar» muestra solo esto; al cerrar se ajusta solo lo que cuentes."
+              : "Abre un conteo del lugar donde está y la lista mostrará solo esto."}
+          </span>
+          <Link href="/inventario/conteo" className="btn-cayla btn-enlace text-xs">
+            Contar todo
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <Tarjeta

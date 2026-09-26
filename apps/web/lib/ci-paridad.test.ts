@@ -15,6 +15,7 @@ import { describe, expect, it } from "vitest";
  * 2026-09-25 contra una base con todas las migraciones y el seed. Cada una entra al CI el día que se arregle (y sale de aquí).
  */
 const EXCLUIDAS: Record<string, string> = {
+  "pruebas:costo-hasta-primera-compra": "pasa (15/15 en un stack aislado, PR #520) pero la sesión que la escribió no tiene permiso de GitHub para tocar ci.yml: cablear el paso que trae la descripción del PR y borrarla de aquí",
   "pruebas:archivar-datos-prueba": "no pasa: 1 de 16 verificaciones en verde",
   "pruebas:caja-cierre-traslado": "quedó vieja tras 20260923233000 (depósito sin número de operación): 4 casos fallan",
   "pruebas:colaboradores-endurecimiento": "nunca pudo pasar: 6 casos fallan",
