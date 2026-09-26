@@ -1,7 +1,7 @@
 # Análisis conectado: spike (2026-09-26)
 
 `spike.html` se abre directo en el navegador: computadora (1440 px) y celular (375 px) lado a lado. La barra oscura
-(no existe en el ERP) alterna lo que Felipe pidió **ver** antes de elegir: cómo se lista la tabla, qué va arriba, qué
+(no existe en el ERP) alterna lo que Felipe pidió **ver** antes de elegir (✓ = lo que eligió): cómo se lista la tabla, qué va arriba, qué
 pasa con Comparar, y quién mira (líder / integrante). ★ = lo recomendado. Datos inventados; los botones no navegan,
 muestran a qué pantalla irían y con qué lista.
 
@@ -67,9 +67,23 @@ Fricción:
 - **Comparar:** en cada cifra («↑ 22 % vs 30 d antes») y A vs B a medida solo para el líder ★ · dos pestañas (arregladas,
   con el aviso honesto cuando A no tiene historial) · sin comparar.
 
+## Lo que eligió Felipe (2026-09-26, después de ver el spike)
+
+- **Tabla:** interruptor — entra por prenda, «Por talla» a un toque.
+- **Arriba:** «Qué hacer» + gráficos plegados («Ver gráficos del período»).
+- **Comparar:** dos pestañas, arregladas (sin barra de scroll, con el aviso cuando A no tiene historial).
+- **«Pedir traslado» para todos, si nada lo impide.** Revisado: **sí hay una restricción, y está en la base**, no solo en
+  la pantalla. `iniciar_traslado` exige operar la sede de ORIGEN (`fn_puede_operar_ubicacion`,
+  `supabase/migrations/0003_funciones.sql:297`, y la RLS de `transferencias` en `0004_rls.sql:149`), y Mover mercadería
+  solo respeta un `?origen=` ajeno si quien entra es líder (`app/(app)/inventario/mover/page.tsx:32`). Una integrante de
+  TRU no puede crear un traslado que saque stock de AQP: el traslado lo despacha quien tiene la prenda. Lo que sí existe
+  es el patrón de ADR-0233 (TRU **pide**, AQP **envía** con un toque), hoy solo para apartar a una clienta. El spike
+  muestra la salida propuesta: el líder ve «Pedir traslado» (Mover con el origen cargado); la integrante, «Pedir a LIM»,
+  una **solicitud** que la otra sede ve y envía. Construirla pide una migración (tabla de solicitudes + dos funciones);
+  la decisión de hacerlo sigue abierta (BACKLOG, «¿Dónde ve la tienda que tiene que pedir un traslado?»).
+
 ## Pendiente de decidir (Felipe)
 
-- Las tres de la barra.
 - Si «Quieto sin vender» muestra costo al líder (hoy la pantalla ya muestra «Sin capital a costo»).
 - Si «Pedir traslado» (traer de otra sede) queda solo para el líder o se abre a la integrante (pregunta abierta desde
   ADR-0231).

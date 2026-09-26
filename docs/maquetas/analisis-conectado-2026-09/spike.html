@@ -319,16 +319,16 @@ tr.fila.sel{background:#f3ece0}
 <div class="spk" id="spk">
   <span class="tit">Análisis conectado · spike</span>
   <div class="g"><span>Tabla</span><div class="seg" data-k="tabla">
-    <button data-v="prenda">Por prenda <b class="rec">★</b></button><button data-v="talla">Por talla</button><button data-v="interr">Interruptor</button></div></div>
+    <button data-v="prenda">Por prenda</button><button data-v="talla">Por talla</button><button data-v="interr">Interruptor <b class="rec">✓</b></button></div></div>
   <div class="g"><span>Arriba</span><div class="seg" data-k="arriba">
-    <button data-v="qh">«Qué hacer» <b class="rec">★</b></button><button data-v="qhg">«Qué hacer» + gráficos</button><button data-v="graf">Solo gráficos</button></div></div>
+    <button data-v="qh">«Qué hacer»</button><button data-v="qhg">«Qué hacer» + gráficos <b class="rec">✓</b></button><button data-v="graf">Solo gráficos</button></div></div>
   <div class="g"><span>Comparar</span><div class="seg" data-k="comparar">
-    <button data-v="cifra">En cada cifra <b class="rec">★</b></button><button data-v="tabs">Dos pestañas</button><button data-v="no">Sin comparar</button></div></div>
+    <button data-v="cifra">En cada cifra</button><button data-v="tabs">Dos pestañas <b class="rec">✓</b></button><button data-v="no">Sin comparar</button></div></div>
   <div class="g"><span>Quién mira</span><div class="seg" data-k="rol">
     <button data-v="lider">Líder</button><button data-v="integ">Integrante</button></div></div>
 </div>
 
-<p class="nota-spk">★ = lo que recomiendo. Toca un grupo de «Qué hacer», una fila, una casilla o un botón de acción: <b>ningún botón mueve stock</b>, te muestra a qué pantalla te llevaría y con qué lista. En el celular, «Escanear prenda» abre el análisis de una sola prenda.</p>
+<p class="nota-spk">✓ = lo que elegiste (2026-09-26); las otras opciones quedan para comparar. Cambia «Quién mira» a Integrante para ver «Pedir a AQP» (solicitud: la otra sede la envía). Toca un grupo de «Qué hacer», una fila, una casilla o un botón de acción: <b>ningún botón mueve stock</b>, te muestra a qué pantalla te llevaría y con qué lista. En el celular, «Escanear prenda» abre el análisis de una sola prenda.</p>
 
 <div class="escena">
   <div>
@@ -417,7 +417,10 @@ function accion(p,rol){
   const redTot=Object.values(p.red).reduce((s,n)=>s+n,0);
   if(p.g==='agotada'){
     if(alm>0) return {k:'bajar',t:'Bajar al piso',href:'/inventario/bajar?lineas=…',sub:'las tallas vacías que tienen almacén'};
-    if(rol==='lider'&&redTot>0) return {k:'mover',t:'Pedir traslado',href:'/inventario/mover?destino=TRU&lineas=…',sub:'traer de '+Object.entries(p.red).filter(e=>e[1]>0).map(e=>e[0]).join(' / ')};
+    const donde=Object.entries(p.red).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
+    if(rol==='lider'&&redTot>0) return {k:'mover',t:'Pedir traslado',href:'/inventario/mover?origen='+donde[0][0]+'&destino=TRU&lineas=…',sub:'traer de '+donde.map(e=>e[0]).join(' / ')};
+    // La integrante no puede iniciar un traslado desde otra sede (iniciar_traslado exige operar el origen): PIDE, y la otra sede lo envía (patrón de ADR-0233).
+    if(redTot>0) return {k:'mover',t:'Pedir a '+donde[0][0],href:'Solicitud nueva → '+donde[0][0]+' la ve en Traslados › «Te piden» y la envía con un toque',sub:donde[0][0]+' la envía; tú la recibes'};
     return {k:'repo',t:p.org==='produccion'?'Pedir a Producción':'Reponer en Compras',href:p.org==='produccion'?'/produccion/ordenes?nueva=1&variantes=…':'/compras/nueva?variantes=…',sub:'según cómo se abastece',lider:true};
   }
   if(p.g==='duerme') return {k:'bajar',t:'Bajar al piso',href:'/inventario/bajar?lineas=…',sub:'lo que espera en almacén'};
@@ -434,7 +437,7 @@ function accion(p,rol){
 const CHIP={agotada:['rojo','Se agotó'],duerme:['ambar','Duerme en almacén'],estancada:['ambar','Estancada'],top:['verde','Vende bien'],sinbase:['gris','Recién colgada'],ok:['gris','Sin novedad']};
 
 /* ───────────── estado ───────────── */
-const S={tabla:'prenda',arriba:'qh',comparar:'cifra',rol:'lider',grupo:null,sel:new Set(),vistaT:'prenda',tab:'des',det:{pc:null,tel:null},esc:false,per:'30'};
+const S={tabla:'interr',arriba:'qhg',comparar:'tabs',rol:'lider',grupo:null,sel:new Set(),vistaT:'prenda',tab:'des',det:{pc:null,tel:null},esc:false,per:'30'};
 
 /* ───────────── piezas compartidas ───────────── */
 const foto=p=>`<span class="foto"><i style="background:${p.hex}"></i></span>`;
