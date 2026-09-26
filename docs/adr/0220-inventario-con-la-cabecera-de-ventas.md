@@ -33,6 +33,8 @@ Las 9 pantallas de Inventario usan `EncabezadoPagina`, con las mismas reglas que
   Traslado 12, Conteo 4 · Almacén de tienda).
 - **Las acciones van bajo la frase (`pie`)**, como «Registrar movimiento» y «Cerrar caja» en Caja. «← Traslados»,
   «← Conteos» y «← Existencias» (Bajar al piso, que antes era un enlace suelto sobre el sobretítulo) son botones del pie.
+  *Cambiado esa misma tarde: las acciones van a la derecha cuando está libre; la vuelta sigue en el pie. Ver
+  «Actualización 2026-09-26 (tarde)».*
 - **Existencias no lleva reloj vivo:** `sinHora` y, en la línea de arriba, «vista de las 10:21». Su stock es una foto del
   momento en que se cargó (la app no sincroniza en segundo plano); un reloj que corre encima haría creer que está al
   minuto. Se pierde «— recarga para ver lo último», que pedía una acción que la pantalla no ofrece
@@ -49,7 +51,8 @@ Las 9 pantallas de Inventario usan `EncabezadoPagina`, con las mismas reglas que
   «153 uds disponibles en almacén para bajar al piso» en Existencias, la tarjeta que filtra la tabla). Moverlas perdía
   esa información o obligaba a ensanchar `ResumenSede`. Las cifras siguen donde estaban.
 - **Dejar las acciones a la derecha**, como en `CabeceraPantalla`: en la cabecera de Ventas la derecha es de las cifras o
-  del reloj. Botones a la derecha era mezclar las dos cabeceras en una.
+  del reloj. Botones a la derecha era mezclar las dos cabeceras en una. *Revertido esa tarde: Existencias y Traslados no
+  tienen cifras ni reloj a la derecha, y el hueco quedaba vacío (ver la actualización).*
 - **Conservar «Traslados entre sedes», «Conteo físico» y «Análisis de inventario»**: en Ventas el título es la palabra del
   menú (Caja, Historial, Comprobantes). Lo que se tocó en el menú es lo que se lee en grande.
 - **Cambiar los botones a los de Caja (`Boton`, en versalitas)**: el resto de cada pantalla de Inventario usa `btn-cayla`;
@@ -84,3 +87,54 @@ Medidos en la ruta temporal a 1440 px (contenido de 993 px):
 El ERP sigue con tres cabeceras: `EncabezadoPagina` (Ventas, Inventario), `CabeceraPantalla` (Finanzas, Actividad, Parte
 de compra, Nuevo producto, Etiquetas) y la escrita a mano (Catálogo, Compras, Producción, Colaboradores, Clientas,
 Comercial, Recibir, Inicio). Cuál manda para las que no son de Ventas, Inventario ni Finanzas no se decidió aquí.
+
+## Actualización 2026-09-26 (tarde) — las acciones van a la derecha cuando está libre
+
+**Pedido de Felipe, mirando Existencias con datos:** «esos botones de bajar a piso y nuevo traslado hay que moverlos al
+lado derecho ya que hay espacio».
+
+**Qué cambió.** `EncabezadoPagina` tiene una ranura `acciones`. Van a la derecha cuando la derecha está libre; si ya la
+ocupan las cifras (`ResumenSede`) o el reloj de Caja (`children`), bajan solas bajo la frase. La regla vive en la
+cabecera: una pantalla dice cuáles son sus acciones, no dónde van. `pie` queda para la vuelta («← Traslados»,
+«← Existencias», «← Conteos») y para estados que no son acción (el resultado de un conteo).
+
+- **Existencias:** «Bajar al piso» y «+ Nuevo traslado» a la derecha. La principal va al final: queda en el borde aunque
+  «Bajar al piso» no se muestre (otro rol, otra sede, el Taller).
+- **Traslados:** «+ Nuevo traslado», por lo mismo: el mismo botón en dos lugares distintos dentro de Inventario obligaba
+  a buscarlo.
+- **Detalle de un conteo abierto:** «Seguir contando» a la derecha; «← Conteos» y el resultado se quedan bajo la frase.
+- **Caja:** pasa sus acciones por `acciones` y quedan donde estaban, porque su derecha es del reloj. HTML idéntico,
+  comparado en un banco temporal (borrado) antes del commit.
+- Nada más cambia: Bajar al piso y el detalle de Traslado solo tienen la vuelta; Movimientos, Análisis, Conteo y Mover
+  mercadería no tienen acciones en la cabecera.
+
+**Por qué la razón de la mañana no alcanzaba.** Se había descartado «acciones a la derecha» porque en la cabecera de
+Ventas la derecha es de las cifras o del reloj. Existencias y Traslados no tienen ni lo uno ni lo otro: la derecha
+quedaba vacía (en la captura de Felipe, más de la mitad del ancho) y los botones se llevaban una fila entera. Caja
+cerrada ya ponía su enlace «Historial de cierres →» a la derecha por la misma razón.
+
+**Números** (sesión real de líder en Tienda Trujillo):
+- A 1440 px, `/inventario`: la cabecera pasa de 184 a 130 px y «Prioridades de hoy» sube 54 px. Los botones quedan
+  centrados con el bloque de la izquierda (su centro, 13 px bajo el del título) y al ras del borde derecho del contenido.
+  `/inventario/traslados`: también 130 px.
+- A 1920 px: alineados con el borde de las tarjetas y de «Ver recomendaciones»; las primeras filas de la tabla se ven sin
+  bajar.
+- El corte está entre 1180 y 1280 px de ventana: la línea de sede y fecha mide ~514 px y, con los dos botones y el
+  espacio entre ambos, hacen falta ~817 px de contenido. Por debajo, la fila se parte y los botones vuelven bajo la
+  frase, a la izquierda y a los mismos 20 px: la cabecera de antes, 184 px. A 375 px, igual, sin desborde.
+
+**Descarté:**
+- **Moverlos solo en Existencias:** «+ Nuevo traslado» quedaba a la derecha en Existencias y bajo la frase en Traslados,
+  dentro del mismo módulo.
+- **Pasar los botones como `children`:** funcionaba sin tocar el componente, pero cada pantalla elegía su envoltorio y su
+  alineación, y una pantalla con cifras y acciones a la vez no tenía regla.
+- **Alinearlos con el título en vez de centrarlos:** pedía un margen a mano (~31 px) que se descuadra cuando la línea de
+  sede se parte en dos. Centrado es como ya van el resumen de la sede y el reloj.
+- **Llevar también a la derecha las acciones de Caja:** su derecha es del reloj, y Ventas no se decidió aquí.
+
+**Se rompe si:**
+- Una pantalla pone sus acciones en `pie`: quedan bajo la frase aunque la derecha esté libre. `pie` es para la vuelta.
+- Existencias suma una tercera acción: el corte sube a ~1330 px de ventana y en una laptop de 1280 los botones volverían
+  bajo la frase. Se degrada sola, pero ese día conviene mirar si alguna sobra.
+- La línea de arriba se alarga (una sede de nombre largo, «miércoles, 30 de setiembre»): el corte se mueve unas decenas de
+  px, y se degrada igual.

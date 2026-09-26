@@ -173,7 +173,9 @@ importa desde ambos lados.
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
 `pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas e Inventario,
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
-nombre del menú, nunca la sede → frase; acciones bajo la frase, cifras o reloj a la derecha; ADR-0220, Felipe 2026-09-26);
+nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
+(prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); bajo la frase, solo la vuelta «← Traslados» y
+estados; ADR-0220 y su actualización de la tarde, Felipe 2026-09-26);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
