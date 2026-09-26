@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Apartados: pestañas a la izquierda y el ticket a lo alto)
+Mismo ajuste que Punto de Venta, primero en spike y después en la pantalla, sin migración: las pestañas, «Opciones» y los avisos pasan a la columna de trabajo, y «Por apartar» / «Saldo» suben al borde de arriba de la hoja con la cabecera en la misma raya (+84 px, +124 px con aviso: 3 prendas a la vista en vez de 2). Spike en `docs/maquetas/apartados-ticket-alto-2026-09/`.
+Felipe se lleva: (1) **lo que va a lo alto se mide al ancho más chico**: a 1024 px la fila no entraba, así que en ese rango la etiqueta se oculta, «Opciones» queda en su ícono y el ticket mide 380 px. (2) **Dos rayas «alineadas» pueden quedar a 1 px**: la fila mide 64 más su raya, y por eso la cabecera del ticket mide 65. (3) En el celular solo se corre «Opciones», porque ahí el ticket ya es un paso aparte.
+
 ## 2026-09-26 (Comprobantes conectado, implementado — ADR-0238)
 Del spike aprobado a la pantalla real, sin migración: pestañas Hoy · Series · Por enviar · Proformas, gráficos con tokens CAYLA en cada tarjeta, «Opciones» por boleta (WhatsApp al número de la clienta, ver la venta, Cambio, Devolución, NC ↔ devolución), pestañas abajo en celular y «Apartar» en las proformas. «Por enviar» ya muestra las boletas que nunca se intentaron.
 Por qué así: se reusaron piezas probadas (el detalle de venta de Historial, la búsqueda por comprobante de Posventa, el `?prendas=` del POS a Apartados, la barra de Apartados) en vez de construir otras. Qué se rompería sin esto: la colaboradora seguiría copiando números a mano, y una boleta sin enviar seguiría invisible.
