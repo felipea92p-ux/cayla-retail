@@ -169,7 +169,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · Corregir — «Ajustar inventario»: un solo envío, con token, todo-o-nada
+### #1 · Corregir — «Ajustar inventario»: un solo envío, con token, todo-o-nada — ✅ hecha (2026-09-26, ADR-0240; sin pegar en producción)
 - **Dónde:** `components/AjustarInventarioModal.tsx:176-206` (loop por línea) · RPC `registrar_movimiento` (sin `p_token`) · nueva RPC de lote en una migración propia.
 - **Por qué en este puesto:**
   - Es el único camino desde Existencias que puede dejar el stock a medias o duplicado.
@@ -189,7 +189,8 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** con una cuenta **integrante** (en local no tiene «Bajada al piso»), en una prenda que Lima nunca tuvo: Ajustar → Piso → +3 → Guardar. Hoy (tras el merge): error. Arreglado: queda en el piso, y Movimientos muestra la carga.
 - **Esfuerzo / dependencias:** S · se hace en `main` (es del #496), antes o junto con aplicar sus migraciones en producción.
 
-### #3 · Corregir — Una sola puerta por escritura: mismo candado en el botón y en la base
+### #3 · Corregir — Una sola puerta por escritura: mismo candado en el botón y en la base — ✅ hecha con la opción A (2026-09-26, ADR-0240; sin pegar en producción)
+- **Hecha:** las puertas se llaman `mover_entre_piso_y_almacen` y `apartar_prenda`. El candado NO va dentro de `mover_interno` ni de `apartar_stock`, porque las usan otras funciones por dentro (recibir un traslado aparta sola la prenda de un pedido). **Antes de publicar**, hay que encender los módulos en los roles que hoy reponen (ADR-0240, «Se rompe si»).
 - **Dónde:** `InventarioPanel.tsx:471-472` (`puedeReponer`, `puedeApartar`) · `DetallePrendaExistencias.tsx:178-191` · `ExistenciasPorPrenda.tsx:158` («Reponer N tallas») · RPC `mover_interno` y `apartar_stock` (agregar `fn_ve_modulo`).
 - **Por qué en este puesto:**
   - Hoy «Bajar al piso» (cabecera) y «Reponer al piso» (detalle) son la misma escritura con dos candados distintos (Brooks: una de las dos está mal).
@@ -212,7 +213,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** marca 2 prendas → «Bajar al piso». Sin escanear nada, «Confirmar bajada» debe decir «0 prendas» (o estar apagado). Escanea una talla → sube a 1.
 - **Esfuerzo / dependencias:** S–M · no depende de otras.
 
-### #5 · Mejorar — Que «Reponer» distinga: ordenar por urgencia y un solo primario por pantalla
+### #5 · Mejorar — Que «Reponer» distinga: ordenar por urgencia y un solo primario por pantalla — ✅ hecha (2026-09-26; el umbral sigue abierto)
 - **Dónde:** `lib/politica-operativa-inventario.ts:14-36` (umbral 4) · `components/ExistenciasPorPrenda.tsx` (botón negro por fila) · orden de `agruparPorPrenda` (`existencias-prendas.ts:77-107`).
 - **Por qué en este puesto:**
   - En Lima local, 11 de 11 prendas y 33 de 33 tallas piden reponer `[visto][local]`. Una señal que marca todo no ayuda a decidir.
@@ -223,7 +224,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** en Lima, las primeras filas son las que tienen el piso en 0, y en la pantalla hay un solo botón negro (el de la cabecera). En producción: la consulta Q7 del anexo cuenta cuántas tallas piden reponer por sede.
 - **Esfuerzo / dependencias:** S · el umbral espera a Felipe; el orden y el botón no.
 
-### #6 · Mejorar — Celular: la primera prenda en la primera pantalla
+### #6 · Mejorar — Celular: la primera prenda en la primera pantalla — ✅ hecha (2026-09-26: de ~1.900 px a 764 px; queda bajo el botón «Escanear»)
 - **Dónde:** `app/(app)/inventario/page.tsx:160-195` (5 accesos apilados) · `InventarioPanel.tsx:664` (tarjetas en una columna) · fila de filtros (5 combos a ancho completo).
 - **Por qué en este puesto:**
   - El #500 existe para el teléfono (ADR-0237), y a 375 px la lista empieza a unas 2,5 pantallas de scroll `[visto]`.
@@ -235,7 +236,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** a 375 px, al entrar se ve el buscador y al menos la primera prenda sin hacer scroll.
 - **Esfuerzo / dependencias:** M · ninguna.
 
-### #7 · Corregir — La letra chica del detalle: que cada acción haga lo que dice
+### #7 · Corregir — La letra chica del detalle: que cada acción haga lo que dice — ✅ hecha (2026-09-26, ADR-0237 act.)
 - **Dónde:**
   - `existencias-prendas.ts:147-151`: «Etiquetas» manda `?producto=`, que imprime todos los colores; debe mandar las `variantes` de esta prenda.
   - `DetallePrendaExistencias.tsx:107,212,215`: Etiquetas e Historial con un líder que mira otra sede actúan sobre la sede activa. Ocultarlos fuera de la sede activa, igual que Reponer.
@@ -246,7 +247,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** desde la Casaca Ximena Azul marino, «Imprimir etiquetas» muestra solo etiquetas azul marino. Con `?ubicacion=` de otra sede, el detalle no ofrece Etiquetas ni Historial.
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #8 · Corregir — Que una lectura secundaria no tumbe la pantalla ni recorte en silencio
+### #8 · Corregir — Que una lectura secundaria no tumbe la pantalla ni recorte en silencio — ✅ hecha (2026-09-26; traslados en curso sin paginar a propósito)
 - **Dónde:** `lib/resumen-inventario.ts:44` (`exigir` → tolerante) · `lib/inventario-v2.ts:257` (`transferencia_items` sin `leerTodas`) · `traslados.ts:122` y `prendas_danadas` sin límite.
 - **Por qué en este puesto:**
   - Si falla el resumen de 7 días, la tienda se queda sin ver su stock.
@@ -308,14 +309,14 @@ Decide Felipe (tarea #9).
 - Si se fusiona sin aviso, la vendedora va a ver dos pantallas distintas en un mismo día y va a concluir que el sistema está roto. Un mensaje corto, con una captura, tras el merge.
 
 ## 11 · Líneas propuestas para BACKLOG.md
-- [ ] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada — M
+- [x] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada (ADR-0240) — M
 - [x] `[pantalla:inventario]` #2 Ajustar sin «Bajada al piso»: lo nuevo entra al almacén y la fila lo dice (ADR-0212/0235) — S
-- [ ] `[pantalla:inventario]` #3 Un solo candado por escritura: `mover_interno`/`apartar_stock` con `fn_ve_modulo` y el detalle igual (decisión A/B de Felipe) — M
+- [x] `[pantalla:inventario]` #3 Un solo candado por escritura, opción A (ADR-0240) — M
 - [x] `[pantalla:inventario]` #4 La bajada desde Existencias llega en 0 y se llena escaneando (ADR-0237 act.) — S–M
-- [ ] `[pantalla:inventario]` #5 «Reponer» ordenado por urgencia y un solo primario — S
-- [ ] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla — M
-- [ ] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S
-- [ ] `[pantalla:inventario]` #8 Lecturas tolerantes y sin tope silencioso — S
+- [x] `[pantalla:inventario]` #5 «Reponer» ordenado por urgencia y un solo primario (ADR-0237 act.) — S
+- [x] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla (ADR-0237 act.) — M
+- [x] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S
+- [x] `[pantalla:inventario]` #8 Lecturas tolerantes y sin tope silencioso — S
 - [ ] `[pantalla:inventario]` #9 Decidir la solicitud de traslado (sección 8) — L
 - [ ] `[pantalla:inventario]` #10 Un vocabulario («tallas») y un conteo — S
 - [ ] `[pantalla:inventario]` #11 Pruebas del panel (permisos, selección, borrador) — M

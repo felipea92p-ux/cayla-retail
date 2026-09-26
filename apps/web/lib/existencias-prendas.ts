@@ -144,13 +144,19 @@ export function urlTrasladar(filas: readonly FilaPrenda[]): string | null {
   return `/inventario/mover?lineas=${lineasEnUrl(lineas)}`;
 }
 
-/** Etiquetas de precio de lo marcado. Con un solo producto va por `?producto=` (el origen de siempre, con su nombre en la
- *  cabecera); con varios, por `?variantes=`. */
+/** Etiquetas de precio de EXACTAMENTE esas tallas, siempre por `?variantes=` (tarea #7 del análisis). Antes, con un solo
+ *  producto iba por `?producto=`, que imprime TODOS sus colores: desde la Casaca Ximena azul salían también las negras,
+ *  aunque el detalle prometía «todas sus tallas». */
 export function urlEtiquetas(filas: readonly FilaPrenda[]): string | null {
   if (filas.length === 0 || filas.length > MAX_VARIANTES_EN_URL) return null;
-  const productos = new Set(filas.map((f) => f.productoId));
-  if (productos.size === 1) return `/etiquetas-de-precio?producto=${[...productos][0]}`;
   return `/etiquetas-de-precio?variantes=${filas.map((f) => f.varianteId).join(",")}`;
+}
+
+/** Con qué talla se abre el detalle desde «Reponer N tallas» (tarea #7): una que SE PUEDA bajar —primero una por colgar—,
+ *  para que el detalle muestre «Reponer al piso». Antes podía abrir una talla que pedía reponer sin nada en el almacén, y
+ *  el botón que llevó hasta ahí no llevaba a la acción. */
+export function tallaParaReponer<F extends FilaPrenda>(tallas: readonly F[]): F | null {
+  return tallas.find((f) => estadoTalla(f) === "por_colgar" && sePuedeBajar(f)) ?? tallas.find(sePuedeBajar) ?? null;
 }
 
 /** Normaliza un código leído (pistola, cámara o tipeo) para compararlo: sin espacios y sin mayúsculas. */
@@ -164,4 +170,22 @@ export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo
   const buscado = normalizarCodigo(codigo);
   if (!buscado) return null;
   return filas.find((f) => normalizarCodigo(f.sku) === buscado || f.codigosBarras.some((c) => normalizarCodigo(c) === buscado)) ?? null;
+}
+
+/** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo
+ *  atrás), 1 = pide reponer y se puede bajar, 2 = nada que hacer hoy. */
+export function urgenciaDePrenda(p: Pick<PrendaAgrupada<FilaPrenda>, "tallasPorColgar" | "tallasParaBajar">): 0 | 1 | 2 {
+  if (p.tallasPorColgar > 0) return 0;
+  if (p.tallasParaBajar > 0) return 1;
+  return 2;
+}
+
+/** La lista SIN búsqueda escrita, por urgencia (análisis de Existencias, tarea #5): primero lo que falta en el piso, y
+ *  dentro de cada grupo, la que más tallas tiene por colgar. Es estable: a igual urgencia, se respeta el orden de
+ *  llegada (modelo y color). Con texto escrito NO se usa: manda la relevancia de la búsqueda. */
+export function ordenarPorUrgencia<F extends FilaPrenda>(prendas: readonly PrendaAgrupada<F>[]): PrendaAgrupada<F>[] {
+  return prendas
+    .map((p, i) => ({ p, i }))
+    .sort((a, b) => urgenciaDePrenda(a.p) - urgenciaDePrenda(b.p) || b.p.tallasPorColgar - a.p.tallasPorColgar || a.i - b.i)
+    .map(({ p }) => p);
 }

@@ -276,3 +276,15 @@ export function coincidenciasPorCodigo<T extends { sku: string | null; codigosBa
 export function codigoDePrendaNueva(fila: { sku: string | null; codigo?: string | null; codigo_barras: string }): string {
   return codigoDeEtiqueta(fila) || fila.codigo_barras;
 }
+
+/**
+ * «Contar esta prenda» (ADR-0241, desde un movimiento de Movimientos): `?variantes=` acota «Faltan por contar» a esas
+ * tallas. Solo la lista de la pantalla: el conteo abierto sigue siendo el que es (su alcance en la base no cambia), y
+ * cerrarlo ajusta SOLO lo contado (`cerrar_conteo` recorre `conteo_items`), así que lo demás no queda en cero. Sin
+ * lista, todo.
+ */
+export function pendientesDeLista(pendientes: readonly PrendaPendiente[], varianteIds: readonly string[]): PrendaPendiente[] {
+  if (varianteIds.length === 0) return [...pendientes];
+  const ids = new Set(varianteIds);
+  return pendientes.filter((p) => ids.has(p.varianteId));
+}

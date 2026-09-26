@@ -8,6 +8,36 @@ Revisión de Categorías con Felipe sobre el análisis del 21-09: ninguna de sus
 Por qué así: las RPC ya validaban, pero la RLS `for all` y cualquier migración escriben sin pasar por ellas, y así quedó «Blusas». Qué se rompería sin esto: la próxima fusión de categorías repite Blusas, o un clic deja una categoría activa sin código.
 Felipe se lleva: **un candado que vive en la función protege solo a quien entra por esa puerta**; el de la tabla protege a todos, incluida la próxima migración. Sin resolver: pegar la migración en producción antes de fusionar; que un producto no pueda apuntar a una categoría inactiva (toca `productos`).
 
+## 2026-09-26 (Existencias: la letra chica cumple y las lecturas no tumban — tareas #7 y #8)
+Cinco promesas del detalle ahora se cumplen: etiquetas solo del color que se mira, «Reponer N tallas» abre una talla que se puede bajar, otra sede sin etiquetas ni historial equivocados, «Apartados» sin un número que no coincidía, y un aviso al pasar de 100 tallas. Además, la comparación de 7 días ya no tumba la pantalla, y lo que viene en camino no se corta en 1.000 filas.
+Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la cifra buena ya vive en su pantalla. El fallo de la comparación se probó forzándolo, no suponiéndolo. Qué se rompería sin esto: etiquetas de más en cada impresión, un botón que no lleva a la acción, y una tienda sin ver su stock porque falló un porcentaje.
+Felipe se lleva: **un dato secundario nunca debe poder apagar uno principal.** Si el % de la semana no responde, se dice, y el resto sigue.
+Sin resolver: hay dos «apartados» (reserva simple y separación con adelanto) y el de Existencias no aparece en Apartados.
+
+## 2026-09-26 (Existencias: lo urgente primero y el celular llega a la lista — tareas #5 y #6)
+La lista por prenda empieza por lo que la clienta no ve (tallas por colgar), y los «Reponer» de fila dejan de ser botones negros. En el celular, la primera prenda subió de ~1.900 px a 764 px: accesos en una fila, cifras de a dos, filtros plegados. En computadora no cambió nada.
+Por qué así: con todas las tallas pidiendo reponer, diez botones iguales no dicen por dónde empezar; el orden sí. En el teléfono, la pantalla gastaba dos scrolls en botones y cifras antes de mostrar una sola prenda. Qué se rompería sin esto: en hora pico, la vendedora baja dos pantallas para encontrar lo que busca, o empieza a reponer por cualquier prenda.
+Felipe se lleva: **cuando todo es urgente, nada lo es.** La jerarquía (un solo primario, un orden) es lo que convierte una lista en una decisión.
+Sin resolver: el umbral de 4 (ADR-0231); la frase de la cabecera en el celular es común a Ventas e Inventario.
+
+## 2026-09-26 (Traslados conectado: análisis y spike visual, computadora y celular)
+Felipe pidió conectar Traslados con las pantallas nuevas y hacerla rápida en el celular. El análisis encontró que el mismo «tienes que recibir» se decía cinco veces y empujaba el primer traslado bajo el borde del teléfono, y que cuatro conexiones ya existen fuera de la pantalla (pedidos para apartar de ADR-0233, Bajar al piso y Etiquetas con lista, sugeridos de Análisis). En vez de elegir a ciegas, Felipe pidió un spike con interruptores: `docs/maquetas/traslados-conectado-2026-09/`.
+Por qué así: tres de las cuatro conexiones no piden migración, y la guía con QR es solo web. Qué se rompería sin cuidado: una guía o un WhatsApp que dijera cuántas van rompería el conteo a ciegas (D-130); por eso dicen qué buscar, no cuántas.
+Felipe se lleva: **lo que acompaña a la caja también es parte del control.** Si el papel dice cuántas van, contar a ciegas en pantalla ya no sirve.
+Decidido el mismo día (ADR-0242): «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en Traslados al que lleva Existencias. Sin resolver: cómo se agrupa un pedido de reposición de varias prendas (tanda 4, antes de su migración).
+
+## 2026-09-26 (Movimientos conectado — ADR-0241)
+Análisis de 8 capturas → spike con TODAS las opciones → Felipe eligió las recomendadas, los cuatro atajos y el apartado exacto (tras verlo en demo). Construido encima del PR #512 (otra sesión, mismos archivos) para no chocar: atajos por proceso en el detalle y la operación, código del apartado en la fila, bajadas plegadas por día, tarjetas que filtran, celular con buscador fijo, cámara y filtros en hoja, «Hoy» por defecto en el teléfono, Conteo con `?variantes=` y Existencias con `?variante=`.
+Por qué así: cada atajo lleva a la pantalla que ya hace el trabajo (Movimientos sigue sin escribir nada), y solo si se ve el módulo. Qué se rompería sin esto: la nota del pie prometía «se corrige con otro movimiento» sin camino, y un apartado de dos prendas decía «0».
+Felipe se lleva: **antes de pedir una columna nueva, mirar si la relación ya existe al revés**: se iba a proponer `movimientos.apartado_id` (migración) y `apartados.movimiento_id` ya lo resolvía. Y **mirar el tablero antes de programar**: el #512 apareció al traer `main`; construir encima evitó un choque en 7 archivos.
+Sin resolver: verlo con una cuenta real (Apartados, Existencias, Conteo) y la cámara en un teléfono; píldora «Apartados» (migración de lectura).
+
+## 2026-09-26 (Existencias: una puerta, un candado; y «Ajustar» de una vez — ADR-0240)
+Felipe eligió la opción A: reponer, retirar y apartar piden su módulo, en la pantalla y en la base. Las funciones de siempre quedan internas porque otras las usan por dentro: recibir un traslado aparta sola la prenda de un pedido. «Ajustar» pasa a una sola transacción con marca: un corte ya no deja la mitad guardada y el reintento no duplica.
+Por qué así: con un candado dentro de `apartar_stock` se rompía recibir traslados para quien no tiene «Apartados»; la puerta nueva deja cada candado donde corresponde. Qué se rompería sin esto: cualquiera con Existencias movía y reservaba stock que su rol no le daba, y un ajuste cortado a mitad se podía duplicar.
+Felipe se lleva: **un candado solo en la pantalla es un letrero, no un candado.** Si la base no pregunta, cualquiera que llame a la función directamente se lo salta. Y antes de publicar hay que encender «Bajada al piso» en las terminales que hoy reponen, o pierden el botón.
+Sin resolver: revisar los roles de producción; pegar las tres migraciones en orden; verlo con una cuenta sin los módulos.
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
