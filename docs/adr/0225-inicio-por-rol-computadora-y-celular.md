@@ -1,4 +1,4 @@
-# ADR-0223 · Inicio por rol, en computadora y celular: «Te toca», accesos y «Equipo de hoy»
+# ADR-0225 · Inicio por rol, en computadora y celular: «Te toca», accesos y «Equipo de hoy»
 
 - **Fecha:** 2026-09-26 · **Estado:** Aceptado y construido (solo web). **Producción:** ninguna migración. Usa
   `fn_actividad` (ADR-0207) y `fn_asesoras_de_turno`, que ya están en producción.

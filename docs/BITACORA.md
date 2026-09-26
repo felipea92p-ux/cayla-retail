@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-26 (Inicio por rol en computadora y celular — ADR-0223)
+## 2026-09-26 (Inicio por rol en computadora y celular — ADR-0225)
 Felipe pidió que el Inicio mostrara las pantallas nuevas y funcionara bien en el celular. Antes de construir hubo investigación de 5 referentes (Shopify, Square, Toast, Dynamics 365, Zebra), un demo comparativo con dos rondas de preguntas y un spike (`docs/maquetas/inicio-movil-roles-2026-09/`). Luego se pasó al código real y Felipe lo probó en local. «Te toca» reemplaza «Por atender» con 9 avisos por módulo y un filtro «Ajustar». Accesos del rol reemplazan «Ir a», con «Vender» fijo abajo en el celular, y «Equipo de hoy» reemplaza «Actividad reciente». Sin migración.
 Felipe se lleva: (1) **lo urgente es un canal que no se apaga**: por eso el filtro deja ocultar casi todo, pero SUNAT y la caja nunca. (2) **Ninguno de los 5 referentes muestra un feed automático en el inicio**: todos lo cambian por contadores o por el equipo de turno. (3) **Un botón fijo no es una barra de menú**: «Vender» abajo convive con el cajón ☰ del ADR-0206 sin reabrirlo.
 
