@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
+Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.
+Felipe se lleva:
+1. **El registro de migraciones de Supabase no sirve para saber qué está pegado:** reconoce 17 de 103 por nombre. Solo los efectos dicen la verdad.
+2. **Una migración con fecha vieja que se fusiona tarde se esconde de cualquier revisión por fecha:** hay que mirar qué ENTRÓ a `main`, no qué fecha dice el archivo.
+3. **Un «encender» a secas puede debilitar un candado sin apagarlo:** la verificación tiene que mirar el modo, no solo si está prendido.
+
 ## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
 Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
 Felipe se lleva:
