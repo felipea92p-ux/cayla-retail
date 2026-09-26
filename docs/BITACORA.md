@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Fotos: el recorte agujereado ya no se sugiere — ADR-0228 act.)
+Felipe probó un jean de internet sobre fondo liso: MODNet le abrió manchones blancos en la tela y la revisión igual sugería «Sin fondo». Ahora se mide la tela agujereada (solo huecos encerrados, así el espacio entre las piernas no cuenta) y sobre 0,5 % la foto nace en «Con fondo» con aviso.
+Por qué así: el umbral se midió con seis fotos por el proceso real (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %), no se eligió a ojo. Qué se rompería sin esto: una tienda apura «Usar esta foto» y el catálogo muestra un jean con agujeros que no tiene.
+Felipe se lleva: **detectar un defecto es más barato que evitarlo**: este cambio no arregla el recorte, pero impide que un recorte malo pase sin que nadie lo mire. Evitarlo (recorte por color con fondo liso) queda para cuando haga falta.
+Sin resolver: probar con fotos reales de tienda.
+
 ## 2026-09-26 (Una foto por prenda: la de «Todos los colores» se ve en cada color)
 Felipe decidió cómo se fotografía: una foto por prenda y luego se eligen los colores, sin fotografiar cada color. Hasta hoy una foto sin color no se veía en la tarjeta (`fn_productos` solo trae la del color exacto; así quedó «Blusa V» con el gancho vacío). Ahora `listarProductos` completa cada color sin foto con la General de la prenda (una consulta más, solo si falta alguna) y `getCatalogo` usa `fotoDeVariante` (color → General → nada, nunca la de otro color: la misma regla que Traslados). En el alta, la casilla sin color va primero, se llama «Todos los colores» y su foto es la principal. Sin SQL.
 Felipe se lleva: **una foto guardada no es una foto que se ve**: la de Blusa V estaba en la base, subida y registrada, y la tarjeta la ignoraba por una regla de color.
@@ -41,6 +47,10 @@ Felipe se lleva: (1) **una franja de ancho completo le quita alto a la columna q
 Felipe y una compañera, desde dos cuentas, tocaban «Seguir al precio» y el contenido desaparecía. Reproducido en producción con sesión real y medido: el paso 3 (con tallas, colores y fotos) se pliega, la página baja de 2244 a 1294 px, y 33 ms después `PaginaEstable` (ADR-0185) agregaba 872 px de aire al fondo y devolvía la vista abajo: el paso 4 quedaba 1109 px por encima de lo visible. Arreglo: el cambio de paso suelta `PaginaEstable` antes de pintar (`soltarPaginaEstable`, como el ticket del Punto de Venta). Probado en producción soltándola en ese clic: 0 px de aire y el paso 4 a la vista.
 Felipe se lleva: **una pantalla «en blanco» no siempre es una pantalla rota**: aquí el formulario seguía entero, 1 100 px más arriba. La barra de desplazamiento pegada abajo era la pista.
 Sin resolver: nada; el cambio de paso de 2→3 y 4→5 pasa por el mismo arreglo.
+
+## 2026-09-26 (Traslados: recibir sin perder nada — ADR-0239, D-129 a D-132)
+Felipe tomó las cuatro recomendaciones del recorrido de Traslados y se construyeron en paralelo con tres agentes (base, recepción, lista y envío) sobre un contrato escrito primero en el ADR: entra lo que coincide y solo la línea con diferencia espera al líder; se cuenta a ciegas y cada casilla se guarda sola; se elige piso o almacén al confirmar; y un envío se anula mientras nadie haya contado. Migración `20260927160000` en local, no en producción; recorrido completo en el navegador local.
+Felipe se lleva: (1) **el contrato antes que el código** deja trabajar a tres manos a la vez: la web se escribió contra `types.ts` y el ADR mientras la migración todavía no existía, y encajaron al primer intento. (2) **Un «Coincide» es asumir, no contar**: esconder lo enviado hasta terminar es lo que convierte la recepción en un control. (3) **Anular no es borrar**: el stock vuelve con su propio movimiento (`traslado_anulado`) y el traslado queda con quién, cuándo y por qué.
 
 ## 2026-09-26 (Movimientos leído desde la tienda — ADR-0234; un ajuste no es la primera carga — ADR-0235)
 Revisión de Movimientos como una integrante sin contexto y los arreglos, con las cuatro decisiones de Felipe: «Entró» cuenta el traslado recibido (Lima pasó de «+3» a «+197»), una fila por operación (46 filas → 8 movimientos), vocabulario de tienda («Traslado», «Zona»), el buscador entiende «venta», detalle con cuánto queda hoy y «Ver la venta», exportar por ruta (como Historial), «← Movimientos» desde un traslado, y la base rechaza un ajuste que sería la primera carga de una prenda (Ajustar stock la guarda como stock inicial). Tres migraciones SIN aplicar en producción; candado nuevo en CI para funciones de reglas que solo usa su prueba.

@@ -73,12 +73,14 @@ export default async function MoverMercaderiaPage({
 
   return (
     <div className="space-y-6">
+      {/* «Nuevo traslado», como el botón que trae hasta acá y como «Traslado 12» en el detalle (hallazgo 16): antes
+          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados va bajo la frase (ADR-0220). */}
       <EncabezadoPagina
         sede={origen.nombre}
-        titulo="Mover mercadería"
-        subtitulo="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
-        // Mover es crear un traslado: la vuelta es a Traslados. Quien no ve ese módulo llegó desde Existencias (el enlace a
-        // un módulo que no ve lo dejaría en «Sin acceso»), igual que en Bajar al piso.
+        titulo="Nuevo traslado"
+        subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
+        // Quien no ve Traslados llegó desde Existencias (el enlace a un módulo que no ve lo dejaría en «Sin acceso»),
+        // igual que en Bajar al piso.
         pie={
           veModulo(persona, "traslados") ? (
             <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
@@ -90,7 +92,7 @@ export default async function MoverMercaderiaPage({
 
       {destinos.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay otra ubicación registrada todavía — un traslado necesita al menos dos.
+          No hay otra sede registrada todavía: un traslado necesita al menos dos.
         </p>
       ) : (
         <MoverMercaderiaFormV2

@@ -123,6 +123,70 @@ export function soloLaPrenda(
   return borrados;
 }
 
+/** Desde qué opacidad (0–255) un píxel del recorte cuenta como tela al buscar huecos. Más alto que `UMBRAL_ALFA` a
+ *  propósito: una zona que el recortador dejó medio transparente es tela «lavada» —se ve como un manchón blanco sobre la
+ *  prenda— y para la pregunta «¿quedó agujereada?» cuenta como hueco. */
+export const ALFA_TELA = 128;
+
+/** Desde qué fracción de huecos el recorte se considera agujereado y la revisión sugiere «Con fondo». Medido el
+ *  2026-09-26 con seis fotos por el proceso real: las limpias dieron 0,00 % y 0,07 %; las que el recortador agujereó
+ *  (jean Levi's, pantalón de museo, ropa interior, camisa en gancho) entre 1,38 % y 1,86 %. 0,5 % queda lejos de las dos.
+ *  Si una prenda de verdad tiene un hueco cerrado (un asa, un escote con tira), solo cambia la SUGERENCIA: quien sube la
+ *  foto puede elegir «Sin fondo» igual. */
+export const HUECOS_MAXIMOS = 0.005;
+
+/** ¿El recorte quedó agujereado? (ver `HUECOS_MAXIMOS`) */
+export function recorteAgujereado(huecos: number | null): boolean {
+  return huecos !== null && huecos > HUECOS_MAXIMOS;
+}
+
+/**
+ * Qué parte de la prenda quedó agujereada: los píxeles transparentes ENCERRADOS dentro de la caja —los que no se pueden
+ * alcanzar desde el borde de la caja pasando solo por transparencia— sobre el total (tela + huecos). El espacio entre
+ * las piernas de un pantalón o bajo una manga llega al borde, así que no cuenta: solo cuentan los manchones que el
+ * recortador abrió en medio de la tela (ADR-0228, «control de huecos»). 0 si no hay caja o no hay tela.
+ */
+export function fraccionDeHuecos(rgba: ArrayLike<number>, ancho: number, caja: Caja, alfaTela = ALFA_TELA): number {
+  const { x: x0, y: y0, ancho: w, alto: h } = caja;
+  const total = w * h;
+  if (total === 0) return 0;
+  const esTela = (cx: number, cy: number) => rgba[((y0 + cy) * ancho + (x0 + cx)) * 4 + 3] >= alfaTela;
+  const alcanzado = new Uint8Array(total);
+  const cola = new Int32Array(total);
+  let escribe = 0;
+  const sembrar = (cx: number, cy: number) => {
+    const i = cy * w + cx;
+    if (alcanzado[i] || esTela(cx, cy)) return;
+    alcanzado[i] = 1;
+    cola[escribe++] = i;
+  };
+  for (let cx = 0; cx < w; cx++) {
+    sembrar(cx, 0);
+    sembrar(cx, h - 1);
+  }
+  for (let cy = 0; cy < h; cy++) {
+    sembrar(0, cy);
+    sembrar(w - 1, cy);
+  }
+  for (let lee = 0; lee < escribe; lee++) {
+    const i = cola[lee];
+    const cx = i % w;
+    const cy = (i - cx) / w;
+    if (cx > 0) sembrar(cx - 1, cy);
+    if (cx < w - 1) sembrar(cx + 1, cy);
+    if (cy > 0) sembrar(cx, cy - 1);
+    if (cy < h - 1) sembrar(cx, cy + 1);
+  }
+  let tela = 0;
+  let huecos = 0;
+  for (let cy = 0; cy < h; cy++)
+    for (let cx = 0; cx < w; cx++) {
+      if (esTela(cx, cy)) tela++;
+      else if (!alcanzado[cy * w + cx]) huecos++;
+    }
+  return tela + huecos === 0 ? 0 : huecos / (tela + huecos);
+}
+
 /**
  * Dónde dibujar algo de `origen.ancho × origen.alto` dentro del lienzo: escalado para caber en el área útil (el lienzo
  * menos `margen` por lado), sin deformarlo, y centrado. Sirve igual para la prenda recortada (con margen) que para la

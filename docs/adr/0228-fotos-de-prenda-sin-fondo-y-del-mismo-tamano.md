@@ -104,3 +104,18 @@ que Felipe pidió evitar. Tampoco se corrige el balance de blancos: es lo que pu
 
 **No se arregla con código:** arrugas, gancho, etiqueta y cómo cae la prenda. Eso se decide al tomar la foto, y por eso
 los consejos viven en la misma ventana donde se revisa.
+
+## Actualización 2026-09-26 (noche): el recorte agujereado ya no se sugiere
+
+Con fotos de jean de fondo liso bajadas de internet, MODNet abrió manchones blancos en medio de la tela, y la revisión
+igual sugería «Sin fondo». Ahora se mide qué parte de la prenda quedó agujereada (`fraccionDeHuecos`): los píxeles
+transparentes —o medio borrados, alfa < 128— **encerrados** dentro de la caja. El espacio entre las piernas de un
+pantalón llega al borde, así que no cuenta. Si pasa de **0,5 %** (`HUECOS_MAXIMOS`), la foto nace en «Con fondo» con el
+aviso «El recorte dejó huecos en la prenda»; quien sube puede elegir «Sin fondo» igual.
+
+Umbral medido con seis fotos por el proceso real: limpias 0,00 % y 0,07 %; agujereadas (jean Levi's, pantalón de
+museo, ropa interior, camisa en gancho) entre 1,38 % y 1,86 %.
+
+**Descartado por ahora (Felipe):** el recorte por color para fotos de fondo liso, que evitaría el agujero en vez de
+solo detectarlo. Queda como la siguiente mejora si los agujeros se vuelven frecuentes con fotos reales de tienda.
+
