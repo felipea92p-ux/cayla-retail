@@ -3,6 +3,16 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
+Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
+Felipe se lleva:
+1. **«Cargar lo que ya hay» y «recibir lo que llega» son dos hechos distintos.** Si se registran por la misma puerta, el número de «compras sin comprobante» para el contador se llena con la migración entera. Por eso la carga inicial tiene su propio motivo y no pasa por Compras.
+2. **Una función nueva que LLAMA a las de siempre, en vez de copiarlas, hereda sus candados y sus parches futuros.** Copiar el cuerpo de una función viva ya rompió Análisis en producción el 25-sep.
+3. **El doble clic tenía un caso que solo se ve con dos sesiones de verdad.** Dos llegadas simultáneas del mismo intento: la segunda mostraba un error aunque el producto sí se había guardado. Lo cerró el candado por token (ADR-0190), probado con COMMIT real.
+
+Más tarde el mismo día, con el «sí» de Felipe: SQL en producción (`20260926000932`) tras una revisión adversarial de 12 agentes (ningún bloqueo; un arreglo de pantalla: «Descartar» ya no se lee como «subió») y un ensayo revertido con un Admin real. Producción quedó con los mismos conteos después de ensayo y humo.
+Y con su «dale»: la migración de rubros del #444 (ADR-0213), fusionada a `main` sin pegar, quedó en producción (`20260926003322`). Mientras tanto la web de `main` pedía una columna que no existía y dejaba caídas Proveedores, Por pagar, Registrar factura y Notas de crédito. Antes de aplicar: se revisó que ninguna otra función use la columna vieja, un ensayo revertido (0 rubros perdidos) y un respaldo. Después: huella idéntica en los 76 proveedores.
+
 ## 2026-09-25 (Proveedores: «¿no será uno que ya tienes?» — ADR-0109, actualización (b))
 La pregunta de las marcas llegó a los proveedores, en las dos puertas que los registran: Nueva marca ▸ «+ Registrar … como proveedor nuevo» y Compras ▸ Proveedores ▸ Registrar. La regla es una sola (`lib/nombres-parecidos.ts`, sacada de `marcas.ts` sin cambiarle nada); para proveedores no cuentan «SAC/S.A.C./EIRL/SRL/SCRL/SA/SAA» y no se pregunta entre dos RUC válidos distintos. «Sí» elige al que existe (o abre su ficha, en Compras); «No, es otro» deja seguir. Verificado con un andamio (sin base local) a 800 y 375 px. Sin migración.
 Felipe se lleva: (1) medida contra los 76 proveedores reales, la pregunta salta en UN solo par (Moda Mia ~ Valeria Mia Peru Moda EIRL): no molesta, y ese par hay que mirarlo. (2) La base promete, en el comentario de su índice, que «textiles andina s.a.c.» y «Textiles Andina SAC» no pueden convivir; preguntada, dice `false` (P-25). (3) Queda una tercera puerta sin la pregunta: el proveedor rápido de Gastos.
@@ -10,6 +20,15 @@ Felipe se lleva: (1) medida contra los 76 proveedores reales, la pregunta salta 
 ## 2026-09-25 (Marcas: «¿no será una que ya existe?» y la pareja elegida con salida — ADR-0109, actualización)
 Felipe aprobó el aviso tras ver «Cayla 2» en Proveedores. El formulario único de nueva marca (Nuevo producto, censo, editar producto, Catálogo ▸ Marcas) ahora dice si el nombre es igual a una marca (no se crea otra, se le suma el proveedor) y pregunta si se parece (`marcasParecidas`: «Cayla 2» ~ CAYLA, «Kristell» ~ Krisstell, «Divas» ~ Divas Now). Y la pareja que se elige sola ofrece «+ Otro proveedor para CAYLA» y «+ Otra marca de Jacard». Verificado en el navegador con un andamio (sin base local), también a 375 px. Sin migración.
 Felipe se lleva: el error no fue de quien creó «Cayla 2». El sistema elegía solo a CAYLA SAC y no le dejaba decir «esta vez la trae Jacard». Inventar un nombre era la única salida que tenía. Medida contra las 80 marcas reales, la pregunta solo salta en dos pares (CAYLA ~ Cayla 2, Divas ~ Divas Now): hay que mirar si Divas y Divas Now son la misma.
+
+## 2026-09-25 (Catálogo ▸ Marcas entra al menú)
+Felipe vio en Proveedores la marca «Cayla 2» colgada de Jacard Peru SAC y no encontró por dónde editarla: la pantalla `/productos/marcas` existía desde el ADR-0109 (`cc36213d`) pero nunca entró al menú, y solo se llegaba por un enlace dentro de Nuevo producto. Se suma «Marcas» a Catálogo (módulo `atributos`, que en Roles y accesos ya se llama «Categorías, marcas y atributos»), con ícono propio, y se actualiza la foto del lateral (`menu-hoy.golden.json`). Sin migración.
+En producción (solo lectura): «Cayla 2» se creó el 24-sep al dar de alta **Top Aurora (TOP-0011)**, 8 variantes, 65 prendas en stock y 15 movimientos; no vino de la carga de proveedores. Pendiente de Felipe decidir de qué marca es Top Aurora; el arreglo es por pantalla (editar el producto y luego desactivar «Cayla 2»), no por SQL.
+Felipe se lleva: una pantalla que no está en el menú no existe para quien opera — funcionaba, tenía pruebas y un ADR, y aun así nadie la podía encontrar cuando la necesitó. Y la base no deja **fusionar** dos marcas ni **quitarle** una marca a un proveedor: «Renombrar Cayla 2 a CAYLA» choca con el índice de nombre único.
+
+## 2026-09-25 (Varios rubros por proveedor — ADR-0213)
+Felipe pidió elegir varias categorías por proveedor en «Editar proveedor». El rubro pasó de un texto a una lista (`rubros text[]`), con un candado en la base que impide vacíos y repetidos. La migración `20260926110000` está por pegar; la web muestra los rubros como botones que se prenden y apagan, más «Otro rubro».
+Felipe se lleva: (1) **las funciones de proveedores ya no son las de sus archivos**: tenían parches en vivo, así que la migración las cambia sobre su versión real (y se comprobó que la local es idéntica a producción); copiar el `create function` viejo habría deshecho permisos de roles. (2) **El arnés de Postgres sin Docker nacía en SQL_ASCII**: «Pólos» y «polos» no se juntaban solo en la prueba; ahora usa `-E UTF8`, como producción. (3) Las 7 pruebas SQL que fallan en `main` fallan igual sin este cambio (base gemela sin la migración).
 
 ## 2026-09-25 (Paleta esencial de moda: 63 colores de claro a oscuro)
 Felipe pidió completar las gamas esenciales de la moda, unas 9 por familia. Entraron 32 colores (de 32 a 63; 64 en producción con MAC), y la paleta de Nuevo producto pasó a ser una carta de 9 columnas alineadas, de claro a oscuro. Con el ok de Felipe, la migración `20260926100000` quedó aplicada en producción (primero se ensayó y se revirtió; luego se aplicó y se verificó: 64 activas). «Marrón chocolate» (MAC) pasó a llamarse «Coñac».
@@ -1042,6 +1061,44 @@ Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
+## 2026-09-18 (Calidad — la regla de "de quién es esta prenda" vive una sola vez)
+Al construir Rentabilidad quedó una copia de la lógica de origen dentro de `fn_calidad`. Dos copias de la misma regla son dos
+pantallas que tarde o temprano dan números distintos de la misma prenda. Se extrajo a `fn_origen_producto` en su propia
+migración (`20260918191500`, anterior a Calidad y a Rentabilidad, para que ninguna dependa de algo posterior) y Calidad la llama.
+La prueba de Calidad ahora carga primero la auxiliar, simula los permisos por defecto de `0005_grants.sql` y comprueba que la
+función NO es ejecutable por `authenticated`; seis mutaciones (las tres de la regla de origen apuntan ahora a la auxiliar) la
+hacen fallar. Sin cambios de comportamiento: las 27 verificaciones dan los mismos números de antes. ADR-0214 actualizado.
+
+## 2026-09-18 (Calidad — una tasa con pocas ventas no es una tasa, y una fila no puede medirse contra sí misma)
+Tarea 15 del plan: `/comercial/calidad` (solo líder) responde "¿qué talla, qué proveedor o qué producto genera
+devoluciones?". Tres decisiones pesan más que el código. (1) La cohorte es madura: solo entran ventas que ya cumplieron
+su plazo de cambio de 15 días, porque una prenda vendida hace 3 días no tuvo tiempo de ser devuelta y contarla como "vendida
+y no devuelta" haría parecer que todo va mejor. (2) Una fila con menos de 10 ventas es "muestra chica" y va al final: una
+talla con 2 ventas y 1 devolución "tiene 50%" y no dice nada. (3) Cada fila se compara contra el RESTO y no contra el
+total; esto lo destapó la prueba visual, no el diseño: con el promedio general la talla L (17,5% frente a 9,2%) salía
+"dentro de lo normal" siendo el problema, porque ella misma subía la vara. Felipe decidió la atribución: al proveedor de
+la compra más reciente anterior a la venta, con el Taller como otro origen posible.
+
+En V2 el producto no guarda su proveedor (era del modelo V1) y `variantes.talla` ya no existe (vive en `tallas.valor`): un
+SQL escrito contra el esquema viejo habría fallado al ejecutarse. Probado sin Docker con un Postgres desechable: la prueba
+cazó un defecto real (un total con NULL en una ventana sin ventas) y cinco mutaciones del SQL la hacen fallar. También se
+descubrió que el compilador de JSX se come el espacio entre un número y su palabra ("15días"): se arregló con un espacio
+explícito y se verificó en el DOM. No se probó contra el esquema real. ADR-0214.
+
+## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
+Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
+tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
+tienda. Tres funciones SQL de solo lectura hacen todas las sumas y la pantalla solo pinta, así dos pantallas no
+pueden decir cifras distintas de lo vendido. La decisión que más pesa: el semáforo compara el ritmo del mes hasta
+el CIERRE DE AYER, no lo de hoy — a las 11 am toda tienda lleva una fracción de su meta y una alerta que salta
+siempre se deja de mirar. Todo se mide en hora de Lima: una venta de las 7:30 pm es 00:30 UTC del día siguiente.
+
+Probado sin Docker (caído): un Postgres desechable con datos que cruzan medianoche, una semana que empieza en el mes
+anterior, una anulada, el Taller y una tienda inactiva — 22 verificaciones, y tres mutaciones del SQL (zona UTC,
+contar líneas como tickets, contar anuladas) hacen fallar la prueba, así que sabe detectar lo que dice detectar. No
+se probó contra el esquema real (RLS, `fn_es_lider` verdadera): hay que abrirla como líder contra el stack local. Al
+armar el panel salió a la luz que `getSeriesVentasCaja` agrupa por hora con `getHours()`, que en Vercel (UTC) daría las
+barras de Caja desplazadas cinco horas — sin verificar en producción. ADR-0110.
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción

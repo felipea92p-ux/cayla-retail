@@ -5,9 +5,12 @@ import { avisar } from "@/components/ui/Avisos";
 import { useColaOffline } from "@/lib/useColaOffline";
 import { borrarFotos, marcarCreado, subirFotosListas } from "@/lib/fotos-pendientes";
 
-/** La única RPC que la cola de Productos puede ejecutar (ADR-0210, paso 2). Idempotente por `productos.token_cliente`:
- *  reintentar devuelve el mismo producto. */
-export const RPCS_PRODUCTOS = ["crear_producto_con_variantes"] as const;
+/** Las RPC que la cola de Productos puede ejecutar (ADR-0210, paso 2). Las dos son idempotentes por
+ *  `productos.token_cliente`: reintentar devuelve el mismo producto (y, con stock, no lo vuelve a cargar). Desde ADR-0212 el
+ *  alta encola `crear_producto_con_stock_inicial`; `crear_producto_con_variantes` se queda en la lista para que un alta
+ *  guardada sin conexión ANTES de publicar esa versión (sigue en el `localStorage` de ese equipo) no se descarte como
+ *  inválida al volver la red. */
+export const RPCS_PRODUCTOS = ["crear_producto_con_stock_inicial", "crear_producto_con_variantes"] as const;
 
 /**
  * La cola sin conexión del alta de producto. El código (`PREFIJO-NNNN`) y el de barras los reparte la base al subir,

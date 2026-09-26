@@ -11,7 +11,7 @@ import { ProveedorVistaRapida } from "@/components/ProveedorVistaRapida";
 import { ProveedoresIndicadores } from "@/components/ProveedoresIndicadores";
 import { soles } from "@/lib/compras-reglas";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, claveRubro, siguienteOrden, sinDatosDePago, textoBuscableProveedor, type CampoOrden, type MarcasDeProveedor, type Orden } from "@/lib/proveedores-reglas";
+import { chipEntregas, haceCuanto, marcasParaMostrar, ordenarProveedores, repartoDeuda, rubrosConConteo, siguienteOrden, sinDatosDePago, textoBuscableProveedor, tieneRubro, type CampoOrden, type MarcasDeProveedor, type Orden } from "@/lib/proveedores-reglas";
 import { useFlip } from "@/lib/useFlip";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
@@ -50,7 +50,9 @@ const PLANTILLA_BASE = "sm:grid-cols-[1fr_8rem]";
 // cuánta deuda concentra uno solo, quiénes llevan meses sin comprar). En la tabla, «Facturado · 12 m»
 // (lo reciente pesa más que «desde siempre»), «Saldo» en rojo si ya venció algo, «Entregas» (lo que
 // hay que reclamar), columnas ordenables (por defecto por saldo) y «+ Comprobante» en la fila.
-// Un filtro por rubro con conteo — el rubro ya se guardaba y se veía por fila, faltaba poder filtrar.
+// Un filtro por rubro con conteo — el rubro ya se guardaba y se veía por fila, faltaba poder filtrar. Desde
+// ADR-0213 un proveedor tiene varios: aparece bajo cada uno, y el conteo de cada botón es de proveedores (por eso
+// la suma de los botones puede pasar de «Todos»).
 //
 // ADR-0128 (spike visual 2026-09-19): la lista RESPONDE. Tocar una fila abre una vista rápida (cajón)
 // sin perder el orden ni el filtro; ordenar y filtrar deslizan las filas a su lugar (FLIP); el filtro
@@ -120,7 +122,7 @@ export function ProveedoresPanel({
   // Solo se promete «marca» si hay marcas que buscar: sin lectura (`null`) o sin ningún vínculo, sería una promesa vacía.
   const hayMarcas = !!marcas && Object.keys(marcas).length > 0;
   const coincide = (p: Proveedor) =>
-    (!k || clave(textoBuscableProveedor(p, marcasDe(p.id))).includes(k)) && (!rubro || claveRubro(p.rubro) === rubro) && (!filtrarSinPago || faltaPago(p));
+    (!k || clave(textoBuscableProveedor(p, marcasDe(p.id))).includes(k)) && (!rubro || tieneRubro(p, rubro)) && (!filtrarSinPago || faltaPago(p));
   const activos = ordenarProveedores(
     proveedores.filter((p) => p.activo && coincide(p)),
     orden,
@@ -465,7 +467,7 @@ function NombreCelda({
         </span>
         <span className="block truncate text-xs text-tinta/65">
           {p.contacto ? <Resaltado texto={p.contacto} busqueda={busqueda} /> : "Sin contacto"}
-          {p.rubro && ` · ${p.rubro}`}
+          {p.rubros.length > 0 && ` · ${p.rubros.join(", ")}`}
           {p.plazo_credito_dias != null && ` · Crédito ${p.plazo_credito_dias} d`}
         </span>
         {/* Debajo, no al lado: junto al nombre le quitaba ancho y lo cortaba («Confecciones d…»). Las marcas van en la

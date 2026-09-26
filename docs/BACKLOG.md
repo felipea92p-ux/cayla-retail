@@ -28,12 +28,36 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎯 «¿No será un proveedor que ya tienes?» (2026-09-25, ADR-0109 act. (b)) — solo web, sin migración; rama `claude/proveedor-parecido-aviso` (va encima de #447)
+## 📦 Nuevo producto con su stock de hoy — la carga inicial (2026-09-26, ADR-0212)
+Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya está; 0 papeleo por ahora».
+- [x] **Paso 5 «Cuántas tienes hoy»** en `/productos/nuevo`: cantidades por talla × color y «¿Dónde están?» (piso o almacén), en la misma transacción que el producto (`crear_producto_con_stock_inicial`). 28 pruebas SQL + carrera real con COMMIT + navegador a 1440 y 375 px.
+- [x] **SQL en producción (2026-09-26, versión `20260926000932`):** ensayo revertido, `apply_migration`, huellas md5 idénticas a las de local y prueba de humo revertida. Antes de pegar pasó una revisión adversarial de 12 agentes: ningún hallazgo bloqueaba; se corrigió uno de pantalla (tras «Descartar» un alta sin conexión decía «ya subió»). Ver ADR-0212, «Antes de pegar».
+- [ ] **Publicar la web** (fusionar el PR) y **recargar las tablets** después: una pestaña abierta antes del despliegue puede borrar de la cola un alta con stock guardada sin conexión por otra pestaña (ADR-0212, «Límites conocidos»).
+- [ ] Refrescar `docs/datos/generado/` con el próximo volcado de producción: hasta entonces `pnpm datos:comparar` sigue marcando `crear_producto_con_stock_inicial` como «no existe en producción» (el volcado es del 09-23).
+- [ ] **Decidir cuándo se cierra la carga inicial.** Terminado el paso al sistema, la mercadería nueva entra por Compras o «Recibir sin comprobante»; esta puerta la deja entrar sin papeles. Opciones: fecha de cierre en Configuración o un módulo «Carga inicial» que el líder apaga.
+- [ ] **Productos ya creados sin stock** (antes de esto): `fn_cargar_stock_inicial` ya los acepta (solo prendas sin movimientos en esa tienda); falta la pantalla. Mientras tanto siguen por Ajustar stock.
+- [x] **Con la cola sin conexión (ADR-0210):** el alta encola `crear_producto_con_stock_inicial` (la lista blanca `RPCS_PRODUCTOS` conserva la vieja para altas ya encoladas) y, con stock, firma con la hora del alta (`x-momento`): al subir, la base revisa el turno de ese momento. Las unidades se cargan al subir, con esa fecha.
+- [ ] **Hueco previo, no de este cambio: `recibir_lote` no pide el módulo Recibir** (solo «es líder o es su tienda»). Una cuenta sin ese módulo puede subir el stock de una prenda que ya existe llamando la RPC directo, con firma pero sin ser líder (lo que ADR-0143 quiere impedir). Misma familia que «hoy solo la pantalla revisa el módulo» de Vender/Apartados: sumarle `fn_ve_modulo('recibir')` en su propia migración (revisión adversarial del 2026-09-26).
+- [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
+- [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
+- [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
+Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
+- [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
+- [x] Web: `ProveedorModal` (botones que se prenden y apagan + «Otro rubro»), lista, filtro, vista rápida y ficha. Verificado en navegador y a 375 px.
+- [x] **Pegada en producción el 2026-09-26** (con el «sí» de Felipe, por el conector MCP; versión `20260926003322`). El PR #444 ya estaba fusionado sin ella, así que la web de `main` pedía una columna `rubros` que no existía. Primero hubo un ensayo revertido en producción: 0 rubros perdidos, y alta, edición, gasto y lista funcionando como las llama la pantalla, con el candado rechazando repetidos. Se guardó un respaldo id→rubro. Después de aplicar: la huella `rubro` → `rubros[1]` es idéntica en los 76 proveedores (73 con rubro), queda una sola firma por función con los permisos de antes, y la lista, vista como Admin, trae los 76.
+- [ ] **Felipe:** mirarlo en pantalla. En «Editar proveedor» marca Polos y Casacas y guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion` con el próximo volcado.
+- [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
+
+## 🎯 «¿No será un proveedor que ya tienes?» (2026-09-25, ADR-0109 act. (b)) — solo web, sin migración; rama `claude/proveedor-parecido-aviso` (#447 ya fusionado)
 - [x] **Una sola regla:** `lib/nombres-parecidos.ts` (salió de `marcas.ts` sin cambiar nada) y `proveedoresParecidos` en `lib/proveedores-reglas.ts`: sin forma societaria (SA, SAA, SAC, SACS, SRL, SCRL, EIRL, con o sin puntos) y sin preguntar entre dos RUC válidos distintos. Medida contra los 76 proveedores de producción: 0 iguales, 1 par que pregunta.
 - [x] **La pregunta en las dos puertas** de `registrar_proveedor`: Nueva marca (`NuevaMarcaForm`) y Compras ▸ Proveedores (`ProveedorModal`, solo al registrar). Pieza compartida `components/ui/PreguntaParecido.tsx`. Verificado con andamio a 800 y 375 px.
 - [ ] **Tercera puerta sin la pregunta: el proveedor rápido de Gastos** (`RegistrarGastoModal.tsx` → `registrar_proveedor_de_gasto`). Reutiliza el igual, pero «Hidrandina S.A.A.» junto a «Hidrandina SA» pasa. No se tocó porque la sesión de Finanzas F2b trabaja ese archivo: sumarle `proveedoresParecidos` cuando cierre.
 - [ ] **Mirar a mano Moda Mia ~ Valeria Mia Peru Moda EIRL**, el único par que pregunta en producción (Moda Mia no tiene RUC). Si son el mismo, unir las fichas es a mano: la base no sabe fusionar proveedores.
 - [ ] **P-25:** corregir el comentario del índice `proveedores_nombre_clave_unica` en la próxima migración de proveedores (promete juntar «SAC» y «s.a.c.», y no lo hace).
+
+---
 
 ## 🎨 Paleta esencial de moda: de 32 a 63 colores (2026-09-25) — migración `20260926100000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR
 - [x] **32 colores nuevos**, de claro a oscuro, con tope de 9 por familia: `supabase/migrations/20260926100000_colores_paleta_esencial.sql`. Cada tono se midió con ΔE2000 contra todos los demás: todo par que no es metálico queda en ≥ 8,8. Probada en un Postgres desechable, dos pasadas, idempotente.
@@ -51,6 +75,8 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [~] **Conteo sin conexión — EN PAUSA (Felipe, 2026-09-25: «por ahora no»).** No se construye. Si se retoma: guarda escaneo por escaneo (`conteo_contar`) y el alta al vuelo (`censo_crear_variante`) necesita `p_token` (migración).
 - [x] **Huecos cerrados (ADR-0210 «(c)»):** error pasajero del servidor se reintenta (tope 10), contador global de pendientes, pregunta al salir con algo pendiente, el alta avisa qué necesita internet, lector QR precargado (era lo único que se cargaba al usarse).
 - [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
+
+---
 
 ## 🌡️ Frescura del piso — plan del termómetro, tareas 1-4 (2026-09-25)
 El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cuatro tareas vienen de otro plan de la misma fecha y se reconciliaron con él antes de abrir los PR.
@@ -1550,6 +1576,47 @@ Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `re
 sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0139 (antes 0107, 0132 y 0138; `modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
 
+---
+
+## 🎯 Calidad de las ventas (2026-09-18, ADR-0214)
+
+- [x] **`/comercial/calidad` construido y verificado en lo que no depende de la base real:** 2 funciones SQL
+      (`20260918192000_panel_calidad.sql`), reglas puras con 26 pruebas, pantalla vista en escritorio y celular, prueba
+      aislada de 26 verificaciones con 5 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial/calidad` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo que la prueba aislada no cubre: RLS, `fn_es_lider` verdadera, `getUbicaciones` real.
+- [ ] **Aplicar en producción `20260918191500_fn_origen_producto.sql` y DESPUÉS `20260918192000_panel_calidad.sql`** (después del panel comercial). Depende de
+      `variantes.talla_id`, `compras.estado` y `producciones.es_muestra`. Solo lectura; se deshace con 2 `drop function`.
+- [ ] **La vista por proveedor no dirá nada hasta que haya compras reales:** hoy el catálogo casi no está cargado y
+      casi todo saldría como "Sin origen registrado". Es un dato, no un defecto.
+- [ ] **Cambios de una talla a otra** (M→L dice más sobre las medidas que un cambio suelto) y **motivo de devolución con
+      vocabulario cerrado** (`devoluciones.motivo` es texto libre). Umbrales 10 / 2× / 3 provisionales: calibrar con meses reales.
+
+---
+
+## 🎯 Panel comercial (2026-09-18, ADR-0110)
+
+- [x] **`/comercial` construido y verificado en lo que no depende de la base real:** 3 funciones SQL
+      (`20260918191000_panel_comercial.sql`), reglas puras con 30 pruebas, pantalla vista en escritorio y
+      celular, prueba aislada de 22 verificaciones con 3 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo único que la prueba aislada no cubre: RLS, la `fn_es_lider` verdadera, `fn_nombres_personas`.
+- [ ] **Aplicar en producción, en orden:** `20260916172645_anular_venta` (da `ventas.estado`) y
+      `20260918100000_meta_venta_diaria_por_ubicacion` si faltan — ninguna da error al crear la función, la
+      pantalla falla al abrir —, y después `20260918191000_panel_comercial`. Solo lectura; se deshace con 3 `drop function`.
+- [ ] **Sospecha, sin verificar en producción: las barras de "ventas por hora" de Caja están desplazadas 5 horas.**
+      `getSeriesVentasCaja` (`lib/caja.ts`) agrupa con `new Date(created_at).getHours()` = zona del servidor; Vercel
+      corre en UTC, Lima es UTC−5. En tu Mac (zona Lima) no se nota. Corrección: agrupar en SQL con
+      `at time zone 'America/Lima'` como hace `fn_comercial_horas`.
+- [ ] **Metas por día de la semana** (hoy es una cifra plana: un sábado vale como un martes) y comparativo contra
+      el mismo día de la semana anterior. Umbrales 85% / 100% provisionales: calibrar con Felipe con meses reales.
+- [ ] **DECISIÓN PENDIENTE (Felipe): `/comercial` no tiene entrada en el menú.** Al fusionar con `main` (2026-09-25) el menú
+      pasó a ser el árbol gobernado de `lib/menu.ts`, donde toda pantalla viva debe declarar un **módulo del sistema de
+      roles** (`CLAVES_MODULO`, `retail.modulos` y su migración) y `menu.test.ts` lo exige. `main` ya deja «Comercial» como fila
+      *futura* (pájaro 13 Águila). La pantalla existe y está protegida (líder en pantalla, RPC y RLS), solo se llega por
+      la URL. Para activarla: decidir qué roles ven «Comercial» (¿solo líder? ¿o un módulo delegable?), alta del módulo con su
+      migración, pasar la fila a «viva» (`ruta: "/comercial"`, `icono: "comercial"`, trazo `M4 20h16M7 20v-7m5 7V6m5 14v-10`) y
+      actualizar `menu-hoy.golden.json`.
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
