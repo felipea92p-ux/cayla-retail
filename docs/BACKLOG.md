@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📷 Conteo conectado: cámara en ráfaga, «no se encontraron» y recontar (2026-09-26, ADR-0244) — parte 1 solo web, sin migración; rama `claude/conteo-screen-analysis-56c54a`
+- [x] Spike y análisis (`docs/maquetas/conteo-conectado-2026-09/`): computadora y celular, cruces entre compañeras, A/B/C de diferencias.
+- [x] Cámara en ráfaga en el celular (`EscanerConteo`, `debeContarLectura`: el mismo código suma solo si la etiqueta salió del cuadro) y bip + vibración por lectura (`sonido-conteo.ts`).
+- [x] Con un conteo abierto se van las tres cifras; «Faltan» por modelo y color en pestañas con «Contadas»; tocar una talla la anota a mano.
+- [x] «Imprimir etiquetas · N» de lo anotado a mano en este aparato (`?variantes=`).
+- [x] Revisar: «No se encontraron» con decisión obligatoria (no está → 0 / dejar) y «Recontar las N» (opción A de Felipe).
+- [x] Aviso de traslados por atender antes de abrir; «Lo que sigue» en el detalle (Bajar al piso tras contar el piso, Movimientos); conteos vacíos plegados.
+- [ ] **Probar la cámara con un teléfono real y etiquetas reales** (solo se vio con una cámara falsa): ¿la pila de 12 iguales suma 12 pasando las etiquetas de a una?
+- [ ] Verlo con cuenta real (líder e integrante) y un conteo de verdad; el «No está → 0» baja el stock de verdad.
+- [ ] **Parte 2 (necesita migración, pedir OK antes de pegar):** tandas por persona y prenda, función que **suma** (hoy `conteo_contar` guarda el total y dos celulares se pisan), «Contando ahora» cada 4 s, confirmar al pasar con Deshacer, avisos «otras unidades / misma pila», «otra talla» y «ya contada». Con eso, «a mano» y «recontar» pasan del aparato a la base.
+
 ## 🧵 Existencias: pedir para una clienta, «tallas» y pruebas del panel (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-9-10-11`
 Tareas #9, #10 y #11 del análisis `/pantalla` de Existencias.
 - [x] **#9.** «Pedir para una clienta» en «Dónde más hay». Usa el pedido para apartar de ADR-0233, el mismo modal de Apartados.
@@ -1036,6 +1047,8 @@ Barrido de todo el ERP: ventanas ancladas arriba, lista del Responsable flotando
 Felipe pidió dejar P-touch Editor: la etiqueta sale del ERP al ingresar mercadería, y con campaña se reimprime con el precio rebajado y el porqué. Diseño elegido en 3 rondas de maquetas: «D · Editorial, corregida» (`docs/maquetas/etiqueta-precio-2026-09/`).
 - [x] **Paso 1:** `/etiquetas-de-precio`, una etiqueta por prenda que entró (Recibir, Ingreso sin comprobante, orden del Taller cerrada). Lee `movimientos` por lote o producción, no hay RPC nuevo. PDF real revisado y los 6 QR decodificados a 300 dpi. Producción verificada en solo lectura: las columnas y funciones que usa existen, y las 1.295 variantes activas tienen código.
 - [x] **Medida del cartón (Felipe, 2026-09-23): 5 × 8 cm** → la etiqueta pasa a **44 × 62 mm**, impresa de lado (papel del driver: 62 × 44 mm). Arreglo «QR abajo» con el QR lo más grande que entra: 22 mm (20 con campaña). Verificado en PDF real y con los QR decodificados (ADR-0180, «El cartón de 5 × 8 cm»).
+- [x] **Windows de la tienda imprime bien (2026-09-26):** Longitud 40.1, Vertical, cortar cada 1, reiniciar Chrome y diálogo de Chrome con márgenes Ninguno y escala 100. Queda paso a paso en la **Guía de impresión** de la pantalla (`components/GuiaImpresion.tsx`, fotos en `public/guia-impresion/`).
+- [ ] **Probar la guía de Mac contra la Brother real** (sus pasos no se probaron): si algo difiere, corregir `GuiaImpresion.tsx` y, si se puede, reemplazar sus maquetas por fotos reales como las de Windows.
 - [ ] **Felipe:** en la Mac de la tienda, crear el papel **62 × 40,1 mm** con ⌥⌘P → Tamaño del papel → «Gestionar tamaños personalizados…» (márgenes 0) y guardarlo como preajuste; el «62 mm» del diálogo de Chrome corta 100 mm. Recargar la pantalla (que «Impreso» diga la fecha de hoy), imprimir 1 etiqueta y escanear su QR de 19 mm en Vender (ADR-0180 «Configurar la Brother»). Mirar que salga completa, a lo ancho del rollo y en un corte de 40,1 mm.
 - [x] **Legibilidad en la térmica (2026-09-25, ADR-0180):** trazo mínimo 0,2 mm (textos chicos en 600–700), QR de 19 mm con el código de 16 caracteres entero (con 22 mm salía «CMS-0011-NAR…») y la píldora de la forma A/B otra vez legible. Verificado en banco de 6 variantes a 300 dpi y en la app local con `@media print` emulado.
 - [x] **Paso 3 (ADR-0182):** el precio de campaña baja al .90. Una sola regla: `retail.fn_descuento_campana` en la base y `descuentoDeCampana` en la caja, iguales al céntimo en 29.187 combinaciones. Parchea `registrar_venta` y `separar_prendas` (las únicas que calculan campaña en producción). `pnpm pruebas:campana-redondeo` 7/7 y 24.265 pruebas web en verde.
