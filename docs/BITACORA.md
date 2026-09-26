@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Punto de venta: el ticket a lo alto, en la pantalla — ADR-0221 act. b)
+Felipe recargó y no veía el cambio: lo subido antes era solo el spike. Ahora está en la pantalla: sin la franja de arriba, todo en «Más» (con «Hoy» arriba y «Cerrar caja» al pie), «Apartados» a la vista llevándose el ticket, y el ticket de arriba abajo. Verificado con la sesión local: «Apartar 1» llevó una prenda real a Apartados ya cargada.
+Felipe se lleva: (1) **un spike no cambia la pantalla**: es la maqueta para decidir; el cambio real llega cuando se fusiona su implementación. (2) **Con la caja cerrada, lo que se apaga es el catálogo, no la fila de controles**: si no, «Abrir caja» quedaría inalcanzable. (3) **El servidor no sabe el ancho del teléfono**: lo que depende del tamaño se esconde también con CSS para no dar un destello al cargar.
+
 ## 2026-09-26 (Punto de venta: spike «el ticket a lo alto»)
 Sobre la pantalla ya publicada (ADR-0221), Felipe pidió más aire para el ticket: sin la franja de arriba, sin «Apartar»/«Proforma» en el pie, todo en «Más» sobre el catálogo, y «Apartados» a la vista llevándose las prendas del ticket. Spike en `docs/maquetas/punto-venta-ticket-alto-2026-09/`, sin código.
 Felipe se lleva: (1) **una franja de ancho completo le quita alto a la columna que más lo necesita**: el ticket gana ~62 px, una prenda más a la vista. (2) **Un botón que se lleva el ticket vale más que dos**: «Apartados» hace de puerta y de «Apartar». (3) La tira de espera mostraba «3216 min»: se corrige a «hace 2 días».

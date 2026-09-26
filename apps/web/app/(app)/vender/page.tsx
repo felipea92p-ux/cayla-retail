@@ -210,7 +210,6 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
       accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
       puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
-      puedeProforma={puedeProforma}
     />
   );
 }
