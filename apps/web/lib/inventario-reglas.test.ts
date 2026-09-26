@@ -13,6 +13,9 @@ import {
   sumarCantidades,
   topeMovimientoPiso,
   avisoTrasRetiro,
+  mensajeErrorMovimientoPiso,
+  RETIRO_NO_ES_BAJA,
+  TEXTOS_BLOQUE_RETIRO,
   UMBRAL_REPOSICION_PISO,
   UMBRAL_STOCK_BAJO_ALMACEN,
 } from "./inventario-reglas";
@@ -318,10 +321,52 @@ describe("ordenarPorModeloColorTalla (la lista «Por colgar» se lee por percha)
 // El modal lo avisa antes de confirmar (revisión del bloque 2 de ADR-0208, 2026-09-25).
 describe("avisoTrasRetiro", () => {
   it("retirar todo lo colgado con reserva en el almacén: la talla saldrá «Por colgar»", () => {
-    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 3)).toMatch(/Quedará 0 en el piso.*Por colgar/);
+    expect(avisoTrasRetiro({ piso: 3, almacen: 0 }, 3)).toMatch(/^Quedará 0 libre en el piso: .*«Por colgar»/);
   });
   it("dejar poco colgado: Existencias sugerirá «Reponer»", () => {
-    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)).toBe("Quedarán 6 en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, dilo en la nota.");
+    expect(avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)).toBe(
+      "Quedarán 6 libres en el piso: Existencias sugerirá «Reponer». Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento."
+    );
+  });
+  it("si queda una sola, en singular", () => {
+    expect(avisoTrasRetiro({ piso: 4, almacen: 0 }, 3)).toMatch(/^Quedará 1 libre en el piso: /);
+  });
+  it("no promete que la nota proteja la talla: dice que en Existencias no se ve y pide avisar al equipo", () => {
+    for (const aviso of [avisoTrasRetiro({ piso: 3, almacen: 0 }, 3), avisoTrasRetiro({ piso: 10, almacen: 0 }, 4)]) {
+      expect(aviso).toContain("avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento");
+      expect(aviso).not.toContain("dilo en la nota");
+    }
+  });
+  it("con apartadas colgadas cuenta solo lo libre, y lo dice: la tabla seguirá mostrando las apartadas en el piso", () => {
+    // Piso físico 5, 2 apartadas para clientas, almacén 0 (la misma regla que arma la fila de Existencias).
+    const c = sumarCantidades([{ variante_id: "v1", cantidad: 5, cantidad_apartada: 2, sububicacion: { tipo: "piso_venta" } }]).get("v1")!;
+    const disponible = { piso: c.pisoDisponible, almacen: c.almacenDisponible };
+    expect(topeMovimientoPiso("retirar", disponible)).toBe(3);
+    // Retira las 3 libres: en la tabla quedan 2 colgadas (las apartadas), y el aviso no dice «0 en el piso» a secas.
+    expect(avisoTrasRetiro(disponible, 3)).toMatch(/^Quedará 0 libre en el piso: /);
+    // Retira 1: quedan 2 libres (4 colgadas en la tabla).
+    expect(avisoTrasRetiro(disponible, 1)).toMatch(/^Quedarán 2 libres en el piso: /);
+  });
+  it("el bloque del aviso reserva el alto del texto más largo que puede salir (ADR-0185)", () => {
+    const reservado = Math.max(...TEXTOS_BLOQUE_RETIRO.map((t) => t.length));
+    let vistos = 0;
+    for (let piso = 1; piso <= UMBRAL_REPOSICION_PISO + 5; piso++) {
+      for (const almacen of [0, 3, UMBRAL_STOCK_BAJO_ALMACEN + 5]) {
+        for (let n = 1; n <= piso; n++) {
+          const aviso = avisoTrasRetiro({ piso, almacen }, n);
+          if (!aviso) continue;
+          vistos++;
+          expect(aviso.length, aviso).toBeLessThanOrEqual(reservado);
+        }
+      }
+    }
+    expect(vistos).toBeGreaterThan(0);
+    expect(TEXTOS_BLOQUE_RETIRO).toContain(RETIRO_NO_ES_BAJA);
+  });
+
+  it("el bloque del retiro no promete que lo del almacén se pueda vender: la caja solo cobra lo del piso", () => {
+    expect(RETIRO_NO_ES_BAJA).not.toMatch(/disponibles? para vender/);
+    expect(RETIRO_NO_ES_BAJA).toContain("la caja no las cobra hasta que vuelvan al piso");
   });
   it("si después del retiro la fila no pide nada, no hay aviso", () => {
     expect(avisoTrasRetiro({ piso: 30, almacen: 0 }, 2)).toBeNull();
@@ -333,5 +378,25 @@ describe("avisoTrasRetiro", () => {
   });
   it("una sede que no separa piso y almacén (Taller): nunca", () => {
     expect(avisoTrasRetiro({ piso: null, almacen: null }, 1)).toBeNull();
+  });
+});
+
+// `mover_interno` no tiene token (revisión del bloque 2, B2-1): si la conexión se corta después de que la base guardó,
+// decir «no se guardó nada, vuelve a intentar» haría mover la prenda dos veces.
+describe("mensajeErrorMovimientoPiso", () => {
+  it("un corte de red, en los dos sentidos, dice que no se sabe si guardó y pide mirar antes de repetir", () => {
+    for (const sentido of ["bajar", "retirar"] as const) {
+      for (const message of ["TypeError: Failed to fetch", "TypeError: Load failed"]) {
+        const texto = mensajeErrorMovimientoPiso(sentido, { message, code: "" });
+        expect(texto).toContain(`mientras se intentaba ${SENTIDO_PISO[sentido].accion}`);
+        expect(texto).toContain("no podemos confirmar si llegó a guardarse");
+        expect(texto).not.toContain("No se guardó nada");
+      }
+    }
+  });
+  it("un rechazo de negocio de la base (P0001) pasa tal cual", () => {
+    expect(mensajeErrorMovimientoPiso("retirar", { message: "No hay suficiente stock libre en el piso.", code: "P0001" })).toBe(
+      "No hay suficiente stock libre en el piso."
+    );
   });
 });

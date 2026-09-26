@@ -10,6 +10,7 @@ import { CampoTexto, CampoSelect } from "@/components/ui/campos";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
 import { MenuAcciones } from "@/components/ui/MenuAcciones";
 import { PaginacionLocal } from "@/components/ui/PaginacionLocal";
+import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
@@ -252,7 +253,18 @@ export function InventarioPanel({
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
   // Reponer y retirar del piso abren el mismo modal; lo único que cambia es el sentido.
-  const [moviendo, setMoviendo] = useState<{ fila: FilaExistencias; sentido: SentidoPiso } | null>(null);
+  // Se guarda la prenda y no una copia de su fila: tras un corte de red el modal refresca y sus cifras dicen si llegó.
+  const [moviendo, setMoviendo] = useState<{ varianteId: string; sentido: SentidoPiso } | null>(null);
+  const filaMoviendo = moviendo ? stock.find((f) => f.varianteId === moviendo.varianteId) : undefined;
+  // El control que abrió el modal: al cerrarlo, el teclado vuelve a esa fila y no al principio de la página.
+  const volverFoco = useRef<HTMLElement | null>(null);
+  // El «⋯» de cada fila, para devolverle el foco (MenuAcciones no expone su botón).
+  const menusPorFila = useRef(new Map<string, HTMLElement>());
+  function abrirMovimiento(varianteId: string, sentido: SentidoPiso, origen: HTMLElement | null) {
+    // Al «⋯» de la fila, que no depende del semáforo: tras reponer, el refresh suele quitar el botón «Reponer» que abrió.
+    volverFoco.current = menusPorFila.current.get(varianteId)?.querySelector("button") ?? origen;
+    setMoviendo({ varianteId, sentido });
+  }
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(false);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
@@ -342,9 +354,12 @@ export function InventarioPanel({
     setEstado(TODAS);
   }
 
-  const puedeReponer = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
+  const separaConSububicaciones = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
   // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
-  const puedeApartar = puedeReponer;
+  const puedeApartar = separaConSububicaciones;
+  // Firman con el Responsable de la sede ACTIVA: mirando otra (`?ubicacion=`) quedarían allá firmados por alguien de turno acá.
+  const sedeActiva = useSedeActiva();
+  const puedeReponer = separaConSububicaciones && sedeActiva?.ubicacionId === ubicacionId;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
@@ -669,6 +684,7 @@ export function InventarioPanel({
           {paginaActual.filas.map((f) => {
             const red = resumenRed(f.enRed);
             const ritmo = ritmoPorVariante.get(f.varianteId) ?? null;
+            const tallaColor = [f.talla, f.color].filter(Boolean).join("/");
             return (
               <div key={f.varianteId} className={fila(plantilla)}>
                 {/* La misma celda que dibuja Conteo (`ui/PrendaCelda.tsx`). */}
@@ -747,7 +763,7 @@ export function InventarioPanel({
                           type="button"
                           // Lo apartado para una clienta no se puede bajar del almacén (la base lo rechaza): el modal
                           // ofrece y valida contra lo DISPONIBLE, no contra lo físico (ADR-0141).
-                          onClick={() => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "bajar" })}
+                          onClick={(e) => abrirMovimiento(f.varianteId, "bajar", e.currentTarget)}
                           className="btn-cayla btn-primario px-2 py-0.5 text-xs"
                         >
                           Reponer
@@ -831,22 +847,32 @@ export function InventarioPanel({
                         - El historial del producto (verificado que existe como página propia; `/productos/[id]` a
                           secas SOLO existe como modal interceptado desde DENTRO de /productos, no como destino
                           navegable — de ahí llegando, un `router.push` directo daba 404). */}
-                    <MenuAcciones
-                      etiqueta={`Más acciones: ${f.referencia}`}
-                      items={[
-                        ...(puedeReponer && puedeRetirarPiso(f.pisoDisponible)
-                          ? [
-                              {
-                                clave: "retirar",
-                                etiqueta: "Retirar del piso",
-                                // Como «Reponer»: el modal ofrece y valida contra lo DISPONIBLE (lo apartado no se mueve, ADR-0141).
-                                onSelect: () => setMoviendo({ fila: { ...f, piso: f.pisoDisponible, almacen: f.almacenDisponible }, sentido: "retirar" }),
-                              },
-                            ]
-                          : []),
-                        { clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) },
-                      ]}
-                    />
+                    <span
+                      className="contents"
+                      ref={(el) => {
+                        if (el) menusPorFila.current.set(f.varianteId, el);
+                        else menusPorFila.current.delete(f.varianteId);
+                      }}
+                    >
+                      <MenuAcciones
+                        // Con talla y color: un lector de pantalla distingue el «⋯» de la M del de la L del mismo modelo.
+                        etiqueta={`Más acciones: ${f.referencia}${tallaColor ? ` · ${tallaColor}` : ""}`}
+                        items={[
+                          ...(puedeReponer && puedeRetirarPiso(f.pisoDisponible)
+                            ? [
+                                {
+                                  clave: "retirar",
+                                  etiqueta: "Retirar del piso",
+                                  // Como «Reponer»: el modal ofrece y valida contra lo DISPONIBLE (lo apartado no se mueve, ADR-0141).
+                                  onSelect: () =>
+                                    abrirMovimiento(f.varianteId, "retirar", menusPorFila.current.get(f.varianteId)?.querySelector("button") ?? null),
+                                },
+                              ]
+                            : []),
+                          { clave: "historial", etiqueta: "Ver historial del producto", onSelect: () => router.push(`/productos/${f.productoId}/historial`) },
+                        ]}
+                      />
+                    </span>
                   </span>
                 </span>
               </div>
@@ -880,13 +906,15 @@ export function InventarioPanel({
       )}
       </div>
 
-      {moviendo && sububicacionPiso && sububicacionAlmacen && (
+      {moviendo && filaMoviendo && sububicacionPiso && sububicacionAlmacen && (
         <ReponerPisoModal
           sentido={moviendo.sentido}
-          fila={moviendo.fila}
+          // El modal ofrece y valida contra lo DISPONIBLE, no contra lo físico: lo apartado no se mueve (ADR-0141).
+          fila={{ ...filaMoviendo, piso: filaMoviendo.pisoDisponible, almacen: filaMoviendo.almacenDisponible }}
           ubicacionId={ubicacionId}
           sububicacionPisoId={sububicacionPiso.id}
           sububicacionAlmacenId={sububicacionAlmacen.id}
+          alCerrarEnfocar={volverFoco}
           onClose={() => setMoviendo(null)}
         />
       )}

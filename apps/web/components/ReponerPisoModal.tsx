@@ -1,18 +1,28 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { avisoTrasRetiro, SENTIDO_PISO, topeMovimientoPiso, type SentidoPiso } from "@/lib/inventario-reglas";
+import { esFalloDeRed } from "@/lib/error-escritura";
+import {
+  avisoTrasRetiro,
+  mensajeErrorMovimientoPiso,
+  RETIRO_NO_ES_BAJA,
+  SENTIDO_PISO,
+  TEXTOS_BLOQUE_RETIRO,
+  topeMovimientoPiso,
+  type SentidoPiso,
+} from "@/lib/inventario-reglas";
 /** Lo que el modal necesita de una prenda: sirve tanto a la fila de Existencias
  *  como a la de Resumen, que no comparten el resto de sus campos. */
+
+const TOPE_ESPERA_MS = 20_000;
 export type FilaParaReponer = {
   varianteId: string;
   referencia: string;
@@ -39,6 +49,7 @@ export function ReponerPisoModal({
   sububicacionPisoId,
   sububicacionAlmacenId,
   cantidadInicial,
+  alCerrarEnfocar,
   onClose,
 }: {
   /** «bajar» = del almacén al piso; «retirar» = del piso al almacén. */
@@ -50,6 +61,8 @@ export function ReponerPisoModal({
   /** Prellenado que sugiere Resumen. La persona lo confirma o lo cambia: el modal
    *  nunca mueve nada hasta que aprieta «Confirmar». */
   cantidadInicial?: number;
+  /** El control que abrió el modal (el «⋯» o el «Reponer» de la fila): al cerrar, el teclado vuelve ahí. */
+  alCerrarEnfocar?: RefObject<HTMLElement | null>;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -66,8 +79,10 @@ export function ReponerPisoModal({
   // Candado contra el doble clic, del lado de la pantalla. `mover_interno` NO tiene token de
   // idempotencia: dos envíos seguidos mueven dos veces (2 clics sobre «Retirar 3» = 6 al almacén).
   // `cargando` apaga el botón, pero recién en el render siguiente; esta referencia cierra el hueco
-  // en el mismo instante del clic. El candado de verdad, en la base, llega cuando Reponer y
-  // Retirar pasen a una función con token (pendiente en ADR-0208): hasta entonces, esto.
+  // en el mismo instante del clic. Mientras guarda tampoco se puede cerrar (Cancelar apagado y
+  // `bloqueado` en el Modal): cerrar y reabrir dejaría enviar otra vez antes de saber si llegó. El
+  // candado de verdad, en la base, llega cuando Reponer y Retirar pasen a una función con token
+  // (pendiente en ADR-0208): hasta entonces, esto.
   const enVuelo = useRef(false);
   // Mover entre piso y almacén mueve stock: pide Responsable como toda acción que guarda en la tienda (ADR-0161).
   const responsable = useResponsable();
@@ -92,6 +107,10 @@ export function ReponerPisoModal({
     setLoading(true);
     setError(null);
     const supabase = createClient();
+    // Sin tope, una conexión colgada dejaría el modal bloqueado para siempre: a los 20 s se corta y se trata como un
+    // corte de red (mensaje honesto, se puede cerrar), porque la base pudo haber guardado igual.
+    const control = new AbortController();
+    const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
     const { error: errorRpc } = await firmar(supabase.rpc("mover_interno", {
       p_ubicacion_id: ubicacionId,
       p_variante_id: fila.varianteId,
@@ -99,13 +118,17 @@ export function ReponerPisoModal({
       p_sububicacion_origen_id: sububicacion[regla.origen],
       p_sububicacion_destino_id: sububicacion[regla.destino],
       ...(sentido === "retirar" && nota.trim() ? { p_nota: nota.trim() } : {}),
-    }), responsable.firma());
+    }).abortSignal(control.signal), responsable.firma());
+    window.clearTimeout(tope);
     setLoading(false);
     responsable.despues(errorRpc);
     if (errorRpc) {
       // Solo se vuelve a abrir si falló: si guardó, el modal se cierra y no debe aceptar otro envío.
       enVuelo.current = false;
-      setError(traducirError(errorRpc, regla.accion));
+      setError(mensajeErrorMovimientoPiso(sentido, errorRpc));
+      // Con la red caída no se refresca: un refresh sin red se vuelve navegación completa y borra el mensaje honesto.
+      // Con la base respondiendo, las cifras refrescadas muestran si llegó a guardarse antes de repetir.
+      if (!esFalloDeRed(errorRpc)) router.refresh();
       return;
     }
     avisar.exito(regla.exito(n), {
@@ -116,9 +139,11 @@ export function ReponerPisoModal({
   }
 
   return (
-    <Modal titulo={regla.titulo} onClose={onClose}>
+    // El recorrido va en la bajada del título: siempre a la vista, aunque debajo haya un error o un aviso.
+    <Modal titulo={regla.titulo} subtitulo={regla.recorrido} onClose={onClose} bloqueado={loading} alCerrarEnfocar={alCerrarEnfocar}>
       {(cerrar) => (
-        <form onSubmit={onSubmit} className="mt-5 space-y-4">
+        // `noValidate`: sin él la burbuja del navegador frena el envío y no salen los textos propios (lo apartado no se mueve).
+        <form onSubmit={onSubmit} className="mt-2 space-y-4" noValidate>
           <p className="text-sm text-tinta">
             {fila.referencia} <span className="text-tinta/65">{[fila.talla, fila.color].filter(Boolean).join("/")}</span>{" "}
             <span className="font-mono text-xs text-tinta/65">{fila.sku}</span>
@@ -146,11 +171,27 @@ export function ReponerPisoModal({
             max={disponible}
             inputMode="numeric"
             value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-            pie={error ?? avisoRetiro ?? regla.recorrido}
-            tono={error ? "error" : avisoRetiro ? "aviso" : "neutro"}
+            // Un error viejo no se queda pegado a una cifra nueva: taparía el aviso del retiro.
+            onChange={(e) => {
+              setCantidad(e.target.value);
+              setError(null);
+            }}
+            pie={error ?? undefined}
+            tono={error ? "error" : "neutro"}
             autoFocus
           />
+
+          {sentido === "retirar" && (
+            // Los textos posibles se apilan invisibles en la misma celda: mide lo del más largo y nada salta al tipear (ADR-0185).
+            <div className="grid text-xs leading-snug" aria-live="polite">
+              {TEXTOS_BLOQUE_RETIRO.map((t) => (
+                <p key={t} aria-hidden inert className="invisible [grid-area:1/1]">
+                  {t}
+                </p>
+              ))}
+              <p className={`[grid-area:1/1] ${avisoRetiro ? "text-ambar" : "text-tinta/65"}`}>{avisoRetiro ?? RETIRO_NO_ES_BAJA}</p>
+            </div>
+          )}
 
           {sentido === "retirar" && (
             <CampoTexto
@@ -166,7 +207,7 @@ export function ReponerPisoModal({
           <ComboResponsable control={responsable} deshabilitado={loading} />
 
           <div className="flex gap-2 pt-1">
-            <Boton type="button" onClick={cerrar} className="flex-1">
+            <Boton type="button" onClick={cerrar} disabled={loading} className="flex-1">
               Cancelar
             </Boton>
             <Boton
