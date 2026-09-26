@@ -228,6 +228,7 @@ export default async function InventarioPage({
         politica={politica}
         veTraslados={veModulo(persona, "traslados")}
         puedeBajarAlPiso={puedeBajarAlPiso}
+        veApartados={veModulo(persona, "apartados")}
       />
     </div>
   );

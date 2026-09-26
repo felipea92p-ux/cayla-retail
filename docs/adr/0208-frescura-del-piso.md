@@ -1079,3 +1079,11 @@ marca antes del responsable, la tabla inmutable, la guarda md5 aborta, pegada do
 Aparte, contra un Postgres desechable y con COMMIT: dos envíos simultáneos con la misma marca dan UN movimiento (el
 segundo espera el candado y responde el mismo). En el navegador, con la red cortada a propósito: corte → congelado →
 rechazo → éxito, tres envíos con la misma marca, la misma cifra y la misma nota; un modal nuevo estrena marca.
+
+## Nota 2026-09-26 — ADR-0240 revierte «Reponer le sigue funcionando con solo Existencias»
+
+Felipe eligió la opción A del análisis de Existencias: mover piso↔almacén es de «Bajada al piso» por CUALQUIER puerta.
+«Reponer» y «Retirar del piso» pasan por `mover_entre_piso_y_almacen`, que pide el módulo, y `mover_interno` queda
+interno. La prueba `bajada_al_piso.mjs` (P2) ahora afirma lo contrario de lo que decía. Antes de publicarlo hay que
+encender «Bajada al piso» en los roles que hoy reponen desde Existencias (aquí se anotaron las Terminal Almacén y de
+ventas): ver ADR-0240, «Se rompe si».

@@ -8,11 +8,23 @@ Un colaborador logró que la Brother imprima bien en Windows, pero la nota del p
 Por qué así: lo que traba a un equipo nuevo son tres ajustes (Longitud 40.1, Vertical, cortar cada 1) y cerrar Chrome; un párrafo no los hacía visibles. Qué se rompería sin esto: cada computadora nueva repetía la prueba y error, gastando rollo.
 Felipe se lleva: **una instrucción que nadie probó en la máquina real es una hipótesis**: la de Windows era una suposición y la de Mac lo sigue siendo hasta que alguien imprima con ella.
 
+## 2026-09-26 (Traslados conectado: análisis y spike visual, computadora y celular)
+Felipe pidió conectar Traslados con las pantallas nuevas y hacerla rápida en el celular. El análisis encontró que el mismo «tienes que recibir» se decía cinco veces y empujaba el primer traslado bajo el borde del teléfono, y que cuatro conexiones ya existen fuera de la pantalla (pedidos para apartar de ADR-0233, Bajar al piso y Etiquetas con lista, sugeridos de Análisis). En vez de elegir a ciegas, Felipe pidió un spike con interruptores: `docs/maquetas/traslados-conectado-2026-09/`.
+Por qué así: tres de las cuatro conexiones no piden migración, y la guía con QR es solo web. Qué se rompería sin cuidado: una guía o un WhatsApp que dijera cuántas van rompería el conteo a ciegas (D-130); por eso dicen qué buscar, no cuántas.
+Felipe se lleva: **lo que acompaña a la caja también es parte del control.** Si el papel dice cuántas van, contar a ciegas en pantalla ya no sirve.
+Decidido el mismo día (ADR-0242): «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en Traslados al que lleva Existencias. Sin resolver: cómo se agrupa un pedido de reposición de varias prendas (tanda 4, antes de su migración).
+
 ## 2026-09-26 (Movimientos conectado — ADR-0241)
 Análisis de 8 capturas → spike con TODAS las opciones → Felipe eligió las recomendadas, los cuatro atajos y el apartado exacto (tras verlo en demo). Construido encima del PR #512 (otra sesión, mismos archivos) para no chocar: atajos por proceso en el detalle y la operación, código del apartado en la fila, bajadas plegadas por día, tarjetas que filtran, celular con buscador fijo, cámara y filtros en hoja, «Hoy» por defecto en el teléfono, Conteo con `?variantes=` y Existencias con `?variante=`.
 Por qué así: cada atajo lleva a la pantalla que ya hace el trabajo (Movimientos sigue sin escribir nada), y solo si se ve el módulo. Qué se rompería sin esto: la nota del pie prometía «se corrige con otro movimiento» sin camino, y un apartado de dos prendas decía «0».
 Felipe se lleva: **antes de pedir una columna nueva, mirar si la relación ya existe al revés**: se iba a proponer `movimientos.apartado_id` (migración) y `apartados.movimiento_id` ya lo resolvía. Y **mirar el tablero antes de programar**: el #512 apareció al traer `main`; construir encima evitó un choque en 7 archivos.
 Sin resolver: verlo con una cuenta real (Apartados, Existencias, Conteo) y la cámara en un teléfono; píldora «Apartados» (migración de lectura).
+
+## 2026-09-26 (Existencias: una puerta, un candado; y «Ajustar» de una vez — ADR-0240)
+Felipe eligió la opción A: reponer, retirar y apartar piden su módulo, en la pantalla y en la base. Las funciones de siempre quedan internas porque otras las usan por dentro: recibir un traslado aparta sola la prenda de un pedido. «Ajustar» pasa a una sola transacción con marca: un corte ya no deja la mitad guardada y el reintento no duplica.
+Por qué así: con un candado dentro de `apartar_stock` se rompía recibir traslados para quien no tiene «Apartados»; la puerta nueva deja cada candado donde corresponde. Qué se rompería sin esto: cualquiera con Existencias movía y reservaba stock que su rol no le daba, y un ajuste cortado a mitad se podía duplicar.
+Felipe se lleva: **un candado solo en la pantalla es un letrero, no un candado.** Si la base no pregunta, cualquiera que llame a la función directamente se lo salta. Y antes de publicar hay que encender «Bajada al piso» en las terminales que hoy reponen, o pierden el botón.
+Sin resolver: revisar los roles de producción; pegar las tres migraciones en orden; verlo con una cuenta sin los módulos.
 
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.

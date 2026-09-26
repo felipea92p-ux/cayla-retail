@@ -169,7 +169,7 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 
 ## 7 · Las 12 tareas, por importancia
 
-### #1 · Corregir — «Ajustar inventario»: un solo envío, con token, todo-o-nada
+### #1 · Corregir — «Ajustar inventario»: un solo envío, con token, todo-o-nada — ✅ hecha (2026-09-26, ADR-0240; sin pegar en producción)
 - **Dónde:** `components/AjustarInventarioModal.tsx:176-206` (loop por línea) · RPC `registrar_movimiento` (sin `p_token`) · nueva RPC de lote en una migración propia.
 - **Por qué en este puesto:**
   - Es el único camino desde Existencias que puede dejar el stock a medias o duplicado.
@@ -189,7 +189,8 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** con una cuenta **integrante** (en local no tiene «Bajada al piso»), en una prenda que Lima nunca tuvo: Ajustar → Piso → +3 → Guardar. Hoy (tras el merge): error. Arreglado: queda en el piso, y Movimientos muestra la carga.
 - **Esfuerzo / dependencias:** S · se hace en `main` (es del #496), antes o junto con aplicar sus migraciones en producción.
 
-### #3 · Corregir — Una sola puerta por escritura: mismo candado en el botón y en la base
+### #3 · Corregir — Una sola puerta por escritura: mismo candado en el botón y en la base — ✅ hecha con la opción A (2026-09-26, ADR-0240; sin pegar en producción)
+- **Hecha:** las puertas se llaman `mover_entre_piso_y_almacen` y `apartar_prenda`. El candado NO va dentro de `mover_interno` ni de `apartar_stock`, porque las usan otras funciones por dentro (recibir un traslado aparta sola la prenda de un pedido). **Antes de publicar**, hay que encender los módulos en los roles que hoy reponen (ADR-0240, «Se rompe si»).
 - **Dónde:** `InventarioPanel.tsx:471-472` (`puedeReponer`, `puedeApartar`) · `DetallePrendaExistencias.tsx:178-191` · `ExistenciasPorPrenda.tsx:158` («Reponer N tallas») · RPC `mover_interno` y `apartar_stock` (agregar `fn_ve_modulo`).
 - **Por qué en este puesto:**
   - Hoy «Bajar al piso» (cabecera) y «Reponer al piso» (detalle) son la misma escritura con dos candados distintos (Brooks: una de las dos está mal).
@@ -308,9 +309,9 @@ Decide Felipe (tarea #9).
 - Si se fusiona sin aviso, la vendedora va a ver dos pantallas distintas en un mismo día y va a concluir que el sistema está roto. Un mensaje corto, con una captura, tras el merge.
 
 ## 11 · Líneas propuestas para BACKLOG.md
-- [ ] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada — M
+- [x] `[pantalla:inventario]` #1 Ajustar inventario: un solo envío con token, todo-o-nada (ADR-0240) — M
 - [x] `[pantalla:inventario]` #2 Ajustar sin «Bajada al piso»: lo nuevo entra al almacén y la fila lo dice (ADR-0212/0235) — S
-- [ ] `[pantalla:inventario]` #3 Un solo candado por escritura: `mover_interno`/`apartar_stock` con `fn_ve_modulo` y el detalle igual (decisión A/B de Felipe) — M
+- [x] `[pantalla:inventario]` #3 Un solo candado por escritura, opción A (ADR-0240) — M
 - [x] `[pantalla:inventario]` #4 La bajada desde Existencias llega en 0 y se llena escaneando (ADR-0237 act.) — S–M
 - [ ] `[pantalla:inventario]` #5 «Reponer» ordenado por urgencia y un solo primario — S
 - [ ] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla — M
