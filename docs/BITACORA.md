@@ -3,6 +3,9 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Punto de venta: el ticket a lo alto, en la pantalla — ADR-0221 act. b)
+Felipe recargó y no veía el cambio: lo subido antes era solo el spike. Ahora está en la pantalla: sin la franja de arriba, todo en «Más» (con «Hoy» arriba y «Cerrar caja» al pie), «Apartados» a la vista llevándose el ticket, y el ticket de arriba abajo. Verificado con la sesión local: «Apartar 1» llevó una prenda real a Apartados ya cargada.
+Felipe se lleva: (1) **un spike no cambia la pantalla**: es la maqueta para decidir; el cambio real llega cuando se fusiona su implementación. (2) **Con la caja cerrada, lo que se apaga es el catálogo, no la fila de controles**: si no, «Abrir caja» quedaría inalcanzable. (3) **El servidor no sabe el ancho del teléfono**: lo que depende del tamaño se esconde también con CSS para no dar un destello al cargar.
 ## 2026-09-26 (Apartados: pestañas a la izquierda y el ticket a lo alto)
 Mismo ajuste que Punto de Venta, primero en spike y después en la pantalla, sin migración: las pestañas, «Opciones» y los avisos pasan a la columna de trabajo, y «Por apartar» / «Saldo» suben al borde de arriba de la hoja con la cabecera en la misma raya (+84 px, +124 px con aviso: 3 prendas a la vista en vez de 2). Spike en `docs/maquetas/apartados-ticket-alto-2026-09/`.
 Felipe se lleva: (1) **lo que va a lo alto se mide al ancho más chico**: a 1024 px la fila no entraba, así que en ese rango la etiqueta se oculta, «Opciones» queda en su ícono y el ticket mide 380 px. (2) **Dos rayas «alineadas» pueden quedar a 1 px**: la fila mide 64 más su raya, y por eso la cabecera del ticket mide 65. (3) En el celular solo se corre «Opciones», porque ahí el ticket ya es un paso aparte.
