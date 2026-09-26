@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Volver } from "@/components/ui/Volver";
 import { notFound } from "next/navigation";
 import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladoDetalle } from "@/lib/traslados";
@@ -75,9 +75,8 @@ export default async function TrasladoDetallePage({ params, searchParams }: { pa
           </>
         }
         pie={
-          <Link href={volverA ?? "/inventario/traslados"} className="btn-cayla btn-secundario">
-            {volverA ? "← Movimientos" : "← Traslados"}
-          </Link>
+          // La vuelta común (`Volver`): a Movimientos si se llegó desde ahí, con sus filtros; si no, a Traslados.
+          volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
         }
       />
       <TrasladoDetallePanel

@@ -28,6 +28,61 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
+Tareas #7 y #8 del análisis `/pantalla` de Existencias.
+- [x] **#7.**
+  - Etiquetas por tallas exactas (`?variantes=`).
+  - «Reponer N tallas» abre una talla que se puede bajar.
+  - Mirando otra sede, sin Etiquetas ni Historial (y lo explica).
+  - «Apartados» de la cabecera sin número engañoso.
+  - Aviso al pasar de 100 tallas marcadas.
+- [x] **#8.**
+  - La comparación de 7 días ya no tumba la pantalla («No se pudo calcular la comparación ahora»).
+  - En tránsito y dañadas se leen por páginas.
+- [ ] **Encontrado, decide Felipe:** hay dos «apartados» distintos.
+  - El «Apartar» de Existencias crea una reserva simple (tabla `apartados`, ADR-0141) que NO aparece en `/vender/apartados`: esa pantalla lista separaciones con adelanto.
+  - Una vendedora que aparta desde Existencias y después busca en Apartados no la encuentra.
+- [ ] Sin tocar: las etiquetas cuentan lo físico (`cantidad > 0`, incluye apartadas y en cuarentena, `etiquetas-precio.ts`).
+- [ ] Sin tocar, a propósito: `getTrasladosEnCurso` sin paginar. Son decenas y es archivo de Traslados, donde trabaja otra sesión.
+- Cómo verificas:
+  - Desde la Casaca Ximena azul, «Imprimir etiquetas» muestra solo las azules.
+  - Con `?ubicacion=` de otra sede, el detalle no ofrece Etiquetas ni Historial.
+  - «Apartados» arriba va sin número.
+
+## 📱 Existencias: lo urgente primero y el celular llega a la lista (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-urgencia-y-celular` (sobre la del #514)
+Tareas #5 y #6 del análisis `/pantalla` de Existencias.
+- [x] **#5.** Sin texto en el buscador, la lista por prenda sale por urgencia: por colgar, después las que piden reponer, al final el resto (`ordenarPorUrgencia`). Los «Reponer» de fila son secundarios: queda un solo botón negro en la pantalla.
+- [x] **#6.** A 375 px, la primera prenda pasó de ~1.900 px a 764 px:
+  - accesos de la cabecera en una fila que se desliza de lado;
+  - cifras de a dos por fila y compactas;
+  - filtros plegados tras «Filtros · n».
+  - La computadora no cambia.
+- [ ] Sigue abierto (decide Felipe): confirmar el umbral de «Reponer a piso» (4) en las tiendas (ADR-0231). El orden por urgencia ayuda a leerlo, pero no lo reemplaza.
+- [ ] Si se quiere la primera prenda del todo a la vista sobre el botón «Escanear», lo que queda por recortar en el celular es la frase de la cabecera y «Prioridades de hoy». Eso toca `EncabezadoPagina` (común a Ventas e Inventario), así que es decisión aparte.
+- Cómo verificas:
+  - **Computadora:** en Existencias, las primeras filas son las de «tallas por colgar», y el único botón negro es «+ Nuevo traslado».
+  - **Celular (375 px):** al entrar se ve el buscador; la primera prenda asoma bajo «Escanear prenda»; «Filtros» abre los combos debajo sin moverse.
+
+## 🔐 Existencias: una puerta, un candado; y «Ajustar» de una vez (2026-09-26, ADR-0240) — web + 3 migraciones **sin pegar en producción**; rama `claude/existencias-candados-y-ajuste-atomico`
+Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
+- [x] **#3.** «Reponer al piso» y «Retirar del piso» piden «Bajada al piso», y «Apartar» pide «Apartados». Se cumple en la pantalla y en la base (`mover_entre_piso_y_almacen`, `apartar_prenda`). `mover_interno` y `apartar_stock` quedan internas: la parte 2 les quita el permiso de ejecución desde el navegador. Recibir traslados, separaciones y `bajar_al_piso` no pierden nada.
+- [x] **#1.** «Ajustar inventario» guarda todo en una sola llamada (`ajustar_inventario`): todo o nada, con marca de reintento. Si se corta la red, los campos quedan fijos y el reintento no duplica.
+- [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** qué roles necesitan «Bajada al piso» y «Apartados». Al 2026-09-25, las Terminal Almacén y de ventas reponían con «Reponer» (ADR-0208) y, sin el módulo, lo pierden.
+- [ ] **Producción, en orden y con visto bueno:**
+  1. módulos en los roles;
+  2. `20260927180000` y `20260927180100`;
+  3. publicar la web;
+  4. `20260927180200`;
+  5. refrescar el volcado y correr `datos:comparar`.
+- [ ] Verlo con una cuenta sin los módulos.
+- [ ] Encontrado, sin tocar: `scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs` da 14/21 en local porque su preparación falla con `venta_descuento_requiere_argumento`. Es de ventas, no de este cambio.
+- [ ] Encontrado, sin tocar: `registrar_movimiento` tiene EXECUTE para PUBLIC, incluido `anon`. Adentro frena por permisos, pero el grant sobra.
+- **Base local:** la parte 2 está marcada como aplicada, pero **el permiso de ejecución de `mover_interno` y `apartar_stock` se devolvió a mano**, para no romper «Reponer» y «Apartar» a las sesiones que corren `main` sobre la base compartida. Para probar el cierre, se vuelve a pegar `20260927180200`.
+- Cómo verificas:
+  - `pnpm pruebas:existencias-candados-y-ajuste` (33/33).
+  - Con una cuenta sin «Bajada al piso», en una prenda por colgar no aparece «Reponer al piso» y la talla dice «pídesela a quien tenga el módulo».
+  - En «Ajustar», con la red cortada al confirmar: aparece «no sabemos si llegó a guardarse» y los campos quedan fijos.
+
 ## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
 Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
 - [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**
@@ -76,6 +131,22 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] **Falta con sesión real:** subir la foto de una prenda tomada en tienda y comparar las dos luces.
 - Cómo verificas: Productos ▸ Nuevo producto (o Editar) ▸ Fotos ▸ «+» con una foto algo oscura → en «Revisa las fotos» aparece «Luz corregida» elegida; «Luz original» muestra la de antes, más apagada, con el mismo color. «Cómo tomar una buena foto» se despliega con los consejos.
 
+## 🔗 Movimientos conectado: atajos por proceso, apartado exacto y celular (2026-09-26, ADR-0241) — solo web, sin migración; rama `claude/movimientos-screen-analysis-8d874f` (encima del #512, ya fusionado)
+
+- [x] Atajos del detalle (Cambio/Devolución, Bajar al piso/Etiqueta, Contar/Corregir, Ver en Existencias) y de la operación
+      («Bajar estas N al piso», «Imprimir N etiquetas»), cada uno solo si se ve el módulo.
+- [x] Apartado exacto sin migración (`apartados.movimiento_id`): código y clienta en la fila, «Abrir» → `/vender/apartados?abrir=`;
+      la cifra dice «2 apartadas», no «0».
+- [x] Bajadas al piso plegadas por día en «Todos»; tarjetas que filtran; píldoras en 0 apagadas; sin «Filtrando» ni la ayuda
+      repetida; Exportar en «⋯» (computadora) y en la hoja de Filtros (celular).
+- [x] Celular: buscador fijo con cámara y «Filtros · n» en hoja; «Hoy» por defecto.
+- [x] Conteo acepta `?variantes=` («Contar esta prenda»); Existencias acepta `?variante=`.
+- [ ] Verlo con una cuenta real: Apartados con `?abrir=`, Existencias con `?variante=`, Conteo con `?variantes=`, y la
+      cámara en un teléfono. [pantalla:inventario-movimientos]
+- [ ] Píldora «Apartados»: `fn_movimientos` rechaza `p_categoria = 'apartado'` (migración de lectura). [pantalla:inventario-movimientos]
+- [ ] ¿Alcance «variantes» en `abrir_conteo`? Hoy «Contar esta prenda» abre un conteo «todo» con la lista acotada en
+      pantalla (seguro: `cerrar_conteo` ajusta solo lo contado). Decidir si ensucia la exactitud. [pantalla:inventario-movimientos]
+
 ## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web y migración de lectura `20260927153000` **en producción (2026-09-26)**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
@@ -91,6 +162,21 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
       piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
 - [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
       subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
+- [x] La lista entra en la primera pantalla (Exportar a la derecha, filtros y lista en una tarjeta, ayuda en la nota) y
+      «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
+- [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
+      `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
+- [x] `20260927173000` en producción (2026-09-26): ensayo revertido sobre Tienda TRU (138 movimientos con saldo; las 78
+      prendas terminan en su stock de hoy), aplicada y verificada por huella (`md5` `1e87255b…` = local).
+- [x] Volcado refrescado de nuevo (2026-09-26 21:55 UTC: 134 relaciones, 607 funciones; las 952 huellas iguales a
+      producción): entran `fn_movimientos_saldos` y lo de Traslados (`anular_traslado`, columnas de anulación en
+      `transferencias`). `datos:comparar` limpio.
+- [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
+      que «Todos 8»): decir por qué, o separar «Traslados».
+- [x] Traslado N, Conteo N y Bajar al piso usan la vuelta común `Volver` (pendiente que dejó la bitácora de «Toda pantalla
+      interna tiene cómo volver»): «← Movimientos» con sus filtros si se llegó desde ahí; si no, «← Traslados», «← Conteo»
+      (el nombre del menú; antes decía «Conteos») y «← Existencias».
+- [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
       Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o
@@ -127,6 +213,9 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] Vaciar una casilla ya guardada no vuelve a «sin contar» (la base no tiene cómo): al recargar reaparece el último número. Dos tablets contando la misma caja se pisan entre sí.
 - [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
+- [x] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, PR #515): Felipe eligió «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en `/inventario/traslados/nuevo` (ADR-0242).
+- [ ] ADR-0242 tanda 1: Nuevo traslado (ruta nueva + redirección de `/inventario/mover`, escaneo y búsqueda con foto, destino en botones, llegada por día, «Volver» según el origen). Sin migración.
+- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: «Pedir a otra sede» (extiende `separacion_pedidos`, clienta opcional; **migración con OK de Felipe**, diseñar el agrupado antes). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
 
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 

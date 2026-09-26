@@ -418,7 +418,9 @@ export const DIAS_POR_DEFECTO = 30;
 /** Los períodos que se eligen con un toque. «Todo el historial» (`rango=todo`) sigue
  *  existiendo, dentro de «Personalizado», para quien de verdad necesita ir más atrás. */
 export const PERIODOS_RAPIDOS = [7, 30, 90] as const;
-export type PeriodoMovimientos = "7" | "30" | "90" | "todo" | "personalizado";
+/** «Hoy» (ADR-0241): la pregunta de la tienda es «qué pasó hoy». En el celular es lo que se ve sin tocar nada; en la
+ *  computadora, un botón más antes de «7 días». */
+export type PeriodoMovimientos = "hoy" | "7" | "30" | "90" | "todo" | "personalizado";
 
 /** Las sububicaciones que se pueden filtrar, por su TIPO (una tienda tiene una de cada
  *  una). En la URL viaja el nombre corto (`?sub=piso`), no un uuid: así el enlace sigue
@@ -482,7 +484,12 @@ export function desdeDeUltimosDias(dias: number, hoy: string = hoyEnLima()): str
  *  `sububicaciones`: las de la ubicación que se mira (para pasar «piso» a su id). */
 export function filtrosDesdeParams(
   p: ParamsMovimientos,
-  contexto: { hoy?: string; sububicaciones?: { id: string; tipo: string | null }[] } = {}
+  contexto: {
+    hoy?: string;
+    sububicaciones?: { id: string; tipo: string | null }[];
+    /** Qué período rige sin nada en la URL: «hoy» en el celular, 30 días en lo demás (ADR-0241). */
+    porDefecto?: "hoy" | "30";
+  } = {}
 ): FiltrosResueltos {
   const hoy = contexto.hoy ?? hoyEnLima();
   const desdeUrl = esFecha(p.desde) ? p.desde : undefined;
@@ -497,6 +504,9 @@ export function filtrosDesdeParams(
     hasta = hastaUrl;
   } else if (p.rango === "todo") {
     periodo = "todo";
+  } else if (p.rango === "hoy" || (!p.rango && contexto.porDefecto === "hoy")) {
+    periodo = "hoy";
+    desde = hoy;
   } else {
     const dias = PERIODOS_RAPIDOS.find((n) => String(n) === p.rango) ?? DIAS_POR_DEFECTO;
     periodo = String(dias) as PeriodoMovimientos;
@@ -524,6 +534,7 @@ export function filtrosDesdeParams(
 
 /** El período en palabras, para el título de la primera tarjeta. */
 export function textoPeriodo(periodo: PeriodoMovimientos, desde?: string, hasta?: string): string {
+  if (periodo === "hoy") return "Hoy";
   if (periodo === "7" || periodo === "30" || periodo === "90") return `Últimos ${periodo} días`;
   if (periodo === "todo") return "Todo el historial";
   if (desde && hasta) return `${fechaCorta(desde)} – ${fechaCorta(hasta)}`;
@@ -582,6 +593,10 @@ export type ResumenOperacion = {
   entran: number;
   salen: number;
   movidas: number;
+  /** Unidades que se apartaron para una clienta o que volvieron a estar libres (ADR-0141): no cambian el stock, pero
+   *  la fila tiene que decir cuántas — hasta el 2026-09-26 una operación de dos apartados decía «0». */
+  apartadas: number;
+  liberadas: number;
   /** Cuántas variantes distintas (talla y color) y de qué productos, en el orden en que aparecen. */
   variantes: number;
   productos: string[];
@@ -597,12 +612,16 @@ export function resumirOperacion(op: OperacionMovimiento, opciones: { enlaceComp
   let entran = 0;
   let salen = 0;
   let movidas = 0;
+  let apartadas = 0;
+  let liberadas = 0;
   const variantes = new Set<string>();
   const productos: string[] = [];
   const etiquetas = new Set<string>();
   let referencia: ReferenciaMovimiento | null = null;
   for (const m of op.filas) {
     if (m.categoria === "interno") movidas += Math.abs(m.cantidad);
+    else if (m.categoria === "apartado") apartadas += Math.abs(m.cantidad);
+    else if (m.categoria === "liberacion_apartado") liberadas += Math.abs(m.cantidad);
     else if (m.delta > 0) entran += m.delta;
     else if (m.delta < 0) salen -= m.delta;
     variantes.add(m.varianteId);
@@ -618,6 +637,8 @@ export function resumirOperacion(op: OperacionMovimiento, opciones: { enlaceComp
     entran,
     salen,
     movidas,
+    apartadas,
+    liberadas,
     variantes: variantes.size,
     productos,
     etiqueta: mixta ? etiquetaProceso(primera.motivo) : etiquetaConDireccion(primera),
@@ -627,11 +648,80 @@ export function resumirOperacion(op: OperacionMovimiento, opciones: { enlaceComp
   };
 }
 
-/** La cantidad de una operación, como la de una fila: «+80», «−3», «+1 / −1» (un cambio) o «⇄ 54» (piso ↔ almacén). */
-export function textoCantidadOperacion(r: Pick<ResumenOperacion, "entran" | "salen" | "movidas">): string {
+/** La cantidad de una operación, como la de una fila: «+80», «−3», «+1 / −1» (un cambio), «⇄ 54» (piso ↔ almacén),
+ *  «2 apartadas» o «1 libre». */
+export function textoCantidadOperacion(
+  r: Pick<ResumenOperacion, "entran" | "salen" | "movidas"> & Partial<Pick<ResumenOperacion, "apartadas" | "liberadas">>
+): string {
   const partes = [r.entran > 0 && `+${r.entran}`, r.salen > 0 && `−${r.salen}`].filter(Boolean);
   if (partes.length > 0) return partes.join(" / ");
-  return r.movidas > 0 ? `⇄ ${r.movidas}` : "0";
+  if (r.movidas > 0) return `⇄ ${r.movidas}`;
+  if (r.apartadas) return textoApartado(r.apartadas, "apartado");
+  if (r.liberadas) return textoApartado(r.liberadas, "liberacion_apartado");
+  return "0";
+}
+
+/** «1 apartada», «3 apartadas», «1 libre», «2 libres»: lo que un apartado hizo con las unidades, sin signo (no entran
+ *  ni salen de la sede: quedan reservadas para una clienta o vuelven a estar a la venta). */
+export function textoApartado(unidades: number, categoria: "apartado" | "liberacion_apartado"): string {
+  const n = Math.abs(unidades);
+  if (categoria === "apartado") return `${n} ${n === 1 ? "apartada" : "apartadas"}`;
+  return `${n} ${n === 1 ? "libre" : "libres"}`;
+}
+
+// ---------------------------------------------------------------------------
+// Bajadas plegadas (ADR-0241): en «Todos», las operaciones de piso ↔ almacén del día —no cambian el total— van en UNA
+// fila que se despliega. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía el stock.
+// ---------------------------------------------------------------------------
+
+export type ItemLista =
+  | { tipo: "operacion"; op: OperacionMovimiento }
+  | { tipo: "bajadas"; clave: string; operaciones: OperacionMovimiento[] };
+
+/** Una operación es «de piso ↔ almacén» si todas sus filas lo son (una bajada escaneada de 12 tallas, un retiro). */
+export function esOperacionInterna(op: Pick<OperacionMovimiento, "filas">): boolean {
+  return op.filas.length > 0 && op.filas.every((m) => m.categoria === "interno");
+}
+
+/** Las operaciones de UN día, con las de piso ↔ almacén juntas en un solo ítem puesto donde estaba la más reciente.
+ *  Con una sola no se pliega nada: una fila que se despliega para mostrar una fila no ahorra nada. */
+export function plegarBajadas(operaciones: readonly OperacionMovimiento[]): ItemLista[] {
+  const internas = operaciones.filter(esOperacionInterna);
+  if (internas.length < 2) return operaciones.map((op) => ({ tipo: "operacion", op }));
+  const items: ItemLista[] = [];
+  let puesto = false;
+  for (const op of operaciones) {
+    if (!esOperacionInterna(op)) items.push({ tipo: "operacion", op });
+    else if (!puesto) {
+      items.push({ tipo: "bajadas", clave: `bajadas-${op.fecha}`, operaciones: internas });
+      puesto = true;
+    }
+  }
+  return items;
+}
+
+/** Lo que dice la fila plegada: «Bajadas al piso» si todas lo fueron (lo normal), si no «Movido dentro de la sede»;
+ *  cuántas veces, cuántas tallas, cuántas unidades y entre qué horas (las operaciones llegan de la más nueva a la más
+ *  vieja). */
+export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
+  etiqueta: string;
+  veces: number;
+  tallas: number;
+  unidades: number;
+  desde: string;
+  hasta: string;
+} {
+  const filas = operaciones.flatMap((op) => op.filas);
+  const etiquetas = new Set(filas.map((m) => etiquetaConDireccion(m)));
+  const soloBajadas = etiquetas.size === 1 && etiquetas.has("Bajada al piso");
+  return {
+    etiqueta: soloBajadas ? "Bajadas al piso" : "Movido dentro de la sede",
+    veces: operaciones.length,
+    tallas: new Set(filas.map((m) => m.varianteId)).size,
+    unidades: filas.reduce((s, m) => s + Math.abs(m.cantidad), 0),
+    desde: operaciones[operaciones.length - 1]?.hora ?? "",
+    hasta: operaciones[0]?.hora ?? "",
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -795,6 +885,7 @@ export function verboDelResponsable(m: Pick<Movimiento, "categoria" | "motivo" |
 
 /** El período para la etiqueta de una tarjeta, corto: «30 días», «todo el historial», «1/9 – 26/9». */
 export function periodoCorto(periodo: PeriodoMovimientos, desde?: string, hasta?: string): string {
+  if (periodo === "hoy") return "hoy";
   if (periodo === "7" || periodo === "30" || periodo === "90") return `${periodo} días`;
   const corta = (iso: string) => {
     const [, m, d] = iso.split("-");
@@ -835,6 +926,9 @@ export const ENCABEZADOS_CSV_MOVIMIENTOS = [
   "Color",
   "Unidades",
   "Efecto en la sede",
+  // Cuántas quedaron en la sede al terminar ese movimiento (ADR-0234, saldo): lo mismo que dice la pantalla («quedan 4»).
+  // Vacía si la base no lo pudo decir.
+  "Quedan en la sede",
   "De dónde",
   "A dónde",
   "Zona",
@@ -850,8 +944,9 @@ function sinFormula(texto: string): string {
   return /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
 }
 
-/** Una fila del archivo. «Efecto en la sede»: +5 entró, −1 salió, 0 se movió entre piso y almacén. */
-export function filaCsvMovimiento(m: Movimiento): (string | number)[] {
+/** Una fila del archivo. «Efecto en la sede»: +5 entró, −1 salió, 0 se movió entre piso y almacén. `quedan`: el saldo
+ *  de `fn_movimientos_saldos` para ese movimiento; sin él, la celda va vacía (nunca un 0 que parezca dato). */
+export function filaCsvMovimiento(m: Movimiento, quedan: number | null = null): (string | number)[] {
   const { origen, destino } = partesOrigenDestino(m);
   const efecto = m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado" ? 0 : m.delta;
   const texto = (v: string | null | undefined) => sinFormula(v ?? "");
@@ -865,6 +960,7 @@ export function filaCsvMovimiento(m: Movimiento): (string | number)[] {
     texto(m.color),
     Math.abs(m.cantidad),
     efecto,
+    quedan ?? "",
     texto(origen),
     texto(destino),
     m.sububicacion ? texto(nombreCortoSububicacion(m.sububicacion)) : "",

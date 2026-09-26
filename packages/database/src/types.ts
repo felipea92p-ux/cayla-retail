@@ -4809,6 +4809,36 @@ export type Database = {
         Args: { p_items: Json; p_motivo: string; p_venta_id: string }
         Returns: undefined
       }
+      // ADR-0240 (20260927180100): «Ajustar inventario» de una vez, con marca. Escrito a mano con la forma que da
+      // `supabase gen types`: regenerar al pegar la migración en producción.
+      ajustar_inventario: {
+        Args: {
+          p_ajustes: Json
+          p_al_piso: boolean
+          p_cargas: Json
+          p_motivo: string | null
+          p_nota: string | null
+          p_sububicacion_id: string | null
+          p_token: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      // ADR-0240 (20260927180000): la puerta de «Apartar» de Existencias (apartar_stock + el módulo «Apartados»).
+      apartar_prenda: {
+        Args: {
+          p_cantidad: number
+          p_clienta_contacto: string
+          p_clienta_nombre: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+          p_vence_el: string
+        }
+        Returns: string
+      }
       apartar_stock: {
         Args: {
           p_cantidad: number
@@ -5829,6 +5859,13 @@ export type Database = {
           salen: number
         }[]
       }
+      fn_movimientos_saldos: {
+        Args: { p_movimiento_ids: string[]; p_ubicacion_id: string }
+        Returns: {
+          movimiento_id: string
+          quedan: number
+        }[]
+      }
       fn_movimientos_variantes: {
         Args: { p_busqueda: string }
         Returns: string[]
@@ -6771,6 +6808,19 @@ export type Database = {
       marcar_pedido_no_atendido_resuelto: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      // ADR-0240 (20260927180000): la puerta de «Reponer» y «Retirar del piso» (mover_interno + «Bajada al piso»).
+      mover_entre_piso_y_almacen: {
+        Args: {
+          p_cantidad: number
+          p_nota?: string
+          p_sububicacion_destino_id: string
+          p_sububicacion_origen_id: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
       }
       mover_interno: {
         Args: {
