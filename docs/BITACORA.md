@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Cierre de sesión: dónde queda Existencias)
+El PR #494 (acciones de la cabecera a la derecha + ADR-0231) se fusionó solo con el CI en verde y está en producción, igual que el #445. Lo que quedaba solo en la conversación pasó al BACKLOG: analizar la Existencias nueva con `/pantalla`, avisar a las tiendas del cambio, y rescatar el trabajo sin guardar de Análisis en otro worktree. El análisis viejo (`docs/pantallas/inventario.md`) ahora avisa que está viejo.
+Felipe se lleva: (1) **lo que no está en el repo no existe para la próxima sesión**, sobre todo si se retoma desde otra cuenta. (2) **Un análisis de pantalla caduca con el PR que la cambia**: si no lo dice arriba, alguien toma sus tareas creyendo que siguen vigentes. (3) **El cambio también se comunica**: una pantalla nueva sin aviso a quien la usa se lee como pantalla rota.
+
 ## 2026-09-26 (Devoluciones conectada y en el celular: del spike al sistema — ADR-0232)
 Lo elegido en el demo ya está en la web, sin migración: tarjeta con «Devolver» y «Cambiar», «Escanear prenda» fijo abajo en el celular, cifra «Por aprobar» tocable, pestaña «Resueltas» con la nota de crédito y el destino de cada prenda, y avisos que llevan a Inventario (cuarentena) y a Caja. La ficha de la clienta quedó fuera porque `/clientas` todavía es una pantalla de pruebas.
 Felipe se lleva: (1) **un enlace solo sirve si la cuenta puede entrar**: cada acceso pregunta por el módulo (ADR-0161) antes de dibujarse. (2) **Dos filas de píldoras iguales no dicen cuál manda**: las pestañas y los filtros quedaron con formas distintas.
