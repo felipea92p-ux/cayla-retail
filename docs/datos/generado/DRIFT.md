@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 316 llamadas `.rpc` de `apps/web` contra 544 funciones del schema `retail` en producción: 269 con los parámetros leídos (se comparan uno por uno), 41 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
+> Comparadas 318 llamadas `.rpc` de `apps/web` contra 544 funciones del schema `retail` en producción: 271 con los parámetros leídos (se comparan uno por uno), 41 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
 > **Foto de producción: 2026-09-25 16:09 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
@@ -124,7 +124,7 @@ migración define la función: se pegó en producción después de la foto, o to
 
 Ninguna. Cada función tiene una sola firma en producción.
 
-## Avisos — 24
+## Avisos — 25
 
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
 - `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:595` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
@@ -133,9 +133,10 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:154` — no manda `p_nota` (normal si tienen valor por defecto)
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:71` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_proveedor` · `apps/web/components/alta-producto/NuevaMarcaForm.tsx:161` — no manda `p_contacto`, `p_rubro`, `p_plazo_credito_dias`, `p_forma_pago_preferida`, `p_telefono`, `p_banco`, `p_cuenta_bancaria` (normal si tienen valor por defecto)
-- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:251` — no manda `p_clienta_id` (normal si tienen valor por defecto)
-- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:280` — no manda `p_estados` (normal si tienen valor por defecto)
+- `separar_prendas` · `apps/web/components/apartados/ApartarVista.tsx:273` — no manda `p_clienta_id` (normal si tienen valor por defecto)
+- `buscar_separaciones` · `apps/web/components/apartados/ApartarVista.tsx:302` — no manda `p_estados` (normal si tienen valor por defecto)
 - `fn_presupuesto_propuesta` · `apps/web/components/finanzas/ConfiguracionPresupuesto.tsx:115` — no manda `p_hoy` (normal si tienen valor por defecto)
+- `registrar_pedido_no_atendido` · `apps/web/components/punto-de-venta/AnotarNoHabia.tsx:43` — no manda `p_producto_id` (normal si tienen valor por defecto)
 - `registrar_adjunto_compra` · `apps/web/lib/adjuntos-compra.ts:84` — no manda `p_nota_credito_id` (normal si tienen valor por defecto)
 - `fn_balance_general` · `apps/web/lib/balance.ts:33` — no manda `p_ubicacion_id` (normal si tienen valor por defecto)
 - `fn_configuracion_tiendas` · `apps/web/lib/configuracion.ts:20` — no manda `p_mes` (normal si tienen valor por defecto)
@@ -179,13 +180,13 @@ foto ni ninguna migración del repo conocen.
 - `registrar_pago_compras_medios` · `apps/web/components/PagoJuntosModal.tsx:189` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pago_compras` · `apps/web/components/PagoJuntosModal.tsx:199` — el objeto se arma con «...», no se puede leer entero
 - `catalogo_actualizar_producto` · `apps/web/components/ProductoForm.tsx:346` — el objeto se arma con «...», no se puede leer entero
-- `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:302` — el objeto se arma con «...», no se puede leer entero
-- `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:306` — los parámetros no van escritos ahí mismo
-- `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:317` — los parámetros no van escritos ahí mismo
+- `actualizar_proveedor` · `apps/web/components/ProveedorModal.tsx:307` — el objeto se arma con «...», no se puede leer entero
+- `registrar_proveedor` · `apps/web/components/ProveedorModal.tsx:311` — los parámetros no van escritos ahí mismo
+- `guardar_cuentas_proveedor` · `apps/web/components/ProveedorModal.tsx:322` — los parámetros no van escritos ahí mismo
 - `desactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:177` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `reactivar_proveedor` · `apps/web/components/ProveedoresPanel.tsx:177` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:487` — los parámetros no van escritos ahí mismo
-- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1040` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:517` — los parámetros no van escritos ahí mismo
+- `registrar_venta` · `apps/web/components/PuntoDeVenta.tsx:1133` — los parámetros no van escritos ahí mismo
 - `reasignar_reparto_compra` · `apps/web/components/ReasignarReparto.tsx:146` — el objeto se arma con «...», no se puede leer entero
 - `recibir_envio` · `apps/web/components/RecepcionEnvio.tsx:675` — los parámetros no van escritos ahí mismo
 - `recibir_lote` · `apps/web/components/RecepcionFormV2.tsx:97` — los parámetros no van escritos ahí mismo
@@ -220,7 +221,7 @@ foto ni ninguna migración del repo conocen.
 - `bajar_al_piso` · `apps/web/lib/bajada-reglas.ts:27` — el nombre va entre comillas (un ayudante, una constante…) y la foto de producción NO tiene esa función; la crea supabase/migrations/20260926000200_bajada_piso_funciones.sql (posterior a la foto, sin pegar aún en producción, o retirada después)
 - `crear_producto_con_variantes` · `apps/web/lib/useColaProductos.ts:13` — el nombre va entre comillas pero no como `.rpc("…")` directo (un ayudante, una constante…): no se leen sus parámetros
 
-## Funciones sin llamada detectada desde `apps/web` — 21
+## Funciones sin llamada detectada desde `apps/web` — 20
 
 Existen en producción y ninguna pantalla de `apps/web` las nombra entre comillas (ni con un `.rpc("…")` directo ni de otra
 forma; los comentarios y las pruebas no cuentan; las `fn_*` se descartan a propósito). **Esto NO prueba que sobren.** Cada
@@ -262,4 +263,3 @@ select p.proname from pg_proc p
 - `recibir_y_cerrar_compras`
 - `registrar_gasto_legado_2026_09`
 - `registrar_pago_compra`
-- `registrar_pedido_no_atendido`
