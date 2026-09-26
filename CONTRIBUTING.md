@@ -47,9 +47,9 @@ facturación) funciona igual que en producción.
 
 ## 2. GitHub — rama por tarea, nunca directo a `main`
 
-`main` tiene un ruleset (`main-protegida`) que impide borrarla y reescribir su historia,
-pero todavía no exige ningún check para fusionar (eso lo activa el punto 4): un PR en rojo
-se fusiona igual. Pasó el 2026-09-25 con el #397 (el detalle está en
+`main` tiene un ruleset (`main-protegida`) que impide borrarla y reescribir su historia y,
+desde el 2026-09-25, exige los dos checks del CI para fusionar (punto 4). Antes de eso un
+PR en rojo se fusionaba igual: pasó ese día con el #397 (el detalle está en
 `.github/workflows/ci.yml`). Los choques que ya pasaron (migraciones `0054` duplicadas,
 19-sep; renumeración `0057`→`0059`, 12-sep) tienen la misma causa: nadie vio el trabajo
 del otro antes de que aterrizara en `main`.
@@ -66,10 +66,11 @@ del otro antes de que aterrizara en `main`.
    no al final del proyecto, al final de cada paso chico. Esto es lo que reemplaza
    "juntar todo al final": integración seguida, con historial visible, no un merge
    gigante y sorpresivo.
-4. **`main` debe exigir los dos checks del CI antes de fusionar:** `Tipos, lint y pruebas`
-   y `Pruebas de RPC contra Postgres` (`.github/workflows/ci.yml`). Lo activa quien tenga
-   permiso de administrador en GitHub, agregándolos al ruleset `main-protegida`
-   (Settings ▸ Rules), o con:
+4. **`main` exige los dos checks del CI antes de fusionar** (activo desde el 2026-09-25):
+   `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` (`.github/workflows/ci.yml`),
+   en el ruleset `main-protegida` (Settings ▸ Rules). No tiene excepciones, ni para el
+   administrador. Si hay que cambiarlo, lo hace quien tenga permiso de administrador en
+   GitHub; este es el comando con el que se activó:
    ```bash
    gh api -X PUT repos/felipea92p-ux/cayla-retail/rulesets/23629061 --input - <<'EOF'
    {
@@ -92,9 +93,8 @@ del otro antes de que aterrizara en `main`.
    }
    EOF
    ```
-   Se activa **después** de fusionar el PR que le quitó al check de Postgres el «(piloto, no
-   bloquea)» del nombre: un PR abierto antes lo sigue reportando con el nombre viejo y queda
-   trabado hasta que trae `main`. `strict` va en `false` a propósito: con `main` moviéndose
+   Un PR abierto antes del 2026-09-25 reporta el check de Postgres con su nombre viejo
+   («piloto, no bloquea») y queda trabado hasta que trae `main`. `strict` va en `false` a propósito: con `main` moviéndose
    varias veces por hora, exigir la rama al día obligaría a correr el CI otra vez en cada
    fusión. Si aparecen choques entre dos PR que pasan cada uno por su lado, se sube a `true`.
 
@@ -110,9 +110,11 @@ Nunca se elige a mano el "próximo número libre" — con 5 personas escribiendo
 eso es lo que ya chocó dos veces. El timestamp hace el choque imposible por diseño, no
 por disciplina. `0001`-`0010` (las migraciones del corte V2) no se tocan ni se renumeran.
 
-Las migraciones se escriben **sin** el prefijo `retail.` — corren así contra el Postgres
-local. El prefijo se agrega solo al pegar en el SQL Editor de producción (ver CLAUDE.md
-§"Cómo aplicar SQL a producción").
+Las migraciones se escriben **con** el prefijo `retail.` en cada tabla y función (o con
+`set search_path = retail, public, extensions;` al inicio): desde el corte V1→V2
+(2026-09-12) el Postgres local también vive en `retail`, así que el mismo archivo corre en
+local, en CI y en producción (ver CLAUDE.md §"Cómo aplicar SQL a producción"). Escribirlas
+sin prefijo ya rompió una migración (#345 → #346).
 
 ## 4. Antes de cada commit
 

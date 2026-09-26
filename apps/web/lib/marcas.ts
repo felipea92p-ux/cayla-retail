@@ -207,6 +207,21 @@ export function sePuedeQuitar(p: ParejaDeMarca): boolean {
   return p.productosTotal === 0;
 }
 
+/** La línea de la tarjeta bajo el nombre. Si no hay productos activos pero sí descontinuados lo dice: es lo que explica por
+ *  qué esa marca no ofrece «Eliminar» (un descontinuado sigue citándola). `total` cuenta también los descontinuados. */
+export function textoProductosMarca(activos: number, total: number): string {
+  if (activos > 0) return `${activos} producto${activos === 1 ? "" : "s"} activo${activos === 1 ? "" : "s"}`;
+  if (total > 0) return `Sin productos activos · ${total} descontinuado${total === 1 ? "" : "s"}`;
+  return "Sin productos todavía";
+}
+
+/** ¿Se ofrece «Eliminar»? Solo si ningún producto tiene la marca — activo, descontinuado o archivado como prueba: todos
+ *  siguen citándola en su ficha y en las ventas ya hechas. Una marca sin proveedores tampoco tiene productos (la llave de
+ *  `productos` pide la pareja). Avisa antes de ir a la base, pero la que manda es `eliminar_marca` (20260926213000). */
+export function sePuedeEliminarMarca(proveedores: readonly Pick<ParejaDeMarca, "productosTotal">[]): boolean {
+  return proveedores.every((p) => p.productosTotal === 0);
+}
+
 /** Qué impide guardar el borrador, en palabras de la pantalla; null = se puede. Espeja a `editar_marca` para avisar antes
  *  de ir a la base, pero la que manda es la base. */
 export function problemaEdicionMarca(actuales: ParejaDeMarca[], b: BorradorMarca): string | null {

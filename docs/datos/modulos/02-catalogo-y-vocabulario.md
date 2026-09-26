@@ -219,7 +219,7 @@ cliente. Y **directo, sin RPC**: `app/api/taxonomia/anclar/route.ts:130` escribe
 | `familia_color` | text | no | — | Uno de nueve: `neutro`, `azul`, `rojo`, `amarillo`, `verde`, `morado`, `tierra`, `metalico`, `estampado`. Sirve para agrupar y para derivar la familia de un color importado. |
 | `hex` | text | sí | — | El chip de color de la pantalla. Para Estampado, Multicolor y Animal print no significa nada y queda null. |
 | `activo` | boolean | no | `true` | Si aparece o no en el selector (`lib/conteo.ts:253-257`). |
-| `orden` | integer | no | `100` | Orden del selector. Una decena por familia (neutro 10-19, azul 20-29, rojo 30-39, amarillo 40-49, verde 50-59, morado 60-69, tierra 70-79, metálico 80-89, estampado 90-99), de claro a oscuro dentro de cada una (`20260926100000`, 2026-09-25). Los creados desde Atributos y los importados entran en 200: al final de su familia. |
+| `orden` | integer | no | `100` | Orden del selector. Una centena por familia (neutro 100-190, azul 200-290, rojo 300-390, amarillo 400-490, verde 500-590, morado 600-690, tierra 700-790, metálico 800-890, estampado 900-990), de claro a oscuro dentro de cada una, de 10 en 10 para poder intercalar (`20260926210000`, 2026-09-26; antes, una decena: `20260926100000`). Los creados desde Atributos entran en 2000: al final de su familia y de cualquier lista. |
 | `taxonomia_valor_id` | text | sí | — | De qué color del estándar universal cuelga: Arena → Beige. Null = sin anclar. |
 | `created_at` | timestamptz | no | `now()` | Cuándo entró al vocabulario. |
 

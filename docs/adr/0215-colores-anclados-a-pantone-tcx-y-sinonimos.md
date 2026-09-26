@@ -69,3 +69,41 @@ Consultadas en vivo el 2026-09-26:
 - **Hex de los 4 nuevos:** páginas oficiales de Pantone (reportes de tendencia NYFW/LFW 2025-2027 y Color del Año).
 - **Hex del resto:** chromafinder.com, que coincidió 110 de 110 con los hex oficiales de Pantone.
 - **Nombre de cada TCX:** confirmado en pantone.com/color-finder.
+
+## Actualización (b), 2026-09-26: el vocabulario del lujo, y el orden en centenas
+
+**Qué se investigó:** Felipe pidió revisar la paleta contra Ralph Lauren, LVMH (Louis Vuitton, Dior, Celine, Loewe,
+Fendi, Givenchy, Loro Piana, Berluti) y Hermès. Se hizo en vivo:
+
+- Loewe, en su web oficial.
+- Hermès, en tres revendedores con miles de productos.
+- El resto, con fichas oficiales vistas en el buscador y tiendas multimarca.
+- Casi todas las webs de lujo bloquean a los agentes, y no se esquivó ningún bloqueo.
+
+**Qué salió:** de 62 colores que usan 2 o más de esas marcas, CAYLA cubría 53. Cada faltante se midió con ΔE2000
+contra la paleta de producción, y **3 de los 4 «faltantes» ya estaban**, con otro nombre:
+
+- Latte y capuchino son Arena (ΔE 2,0).
+- Tabaco es Tostado (3,9).
+- Crema es Crudo, azul hielo es Celeste, amaranto es Mora y greige es Topo.
+
+Esos nombres entran como sinónimos (`20260926210000`).
+
+**Qué se sumó:** los que sí faltaban y no chocan con nada (ΔE ≥ 8):
+
+- **Gris piedra:** 14-0105 TCX Overcast. Aparece en 8 marcas.
+- **Índigo:** 19-3928 TCX Blue Indigo. Aparece en 4 marcas y como tono sin temporada de Pantone en NYFW PV27.
+- **Nude:** 12-0911 TCX, que hoy Pantone llama «Peach Taffy». Aparece en 2 marcas.
+- **Caoba** (18-1425 Mahogany) también cabía; Felipe decidió no sumarla.
+
+**Por qué «Gris piedra» y no «Piedra»:** en tienda «piedra» también es pedrería y lavado a la piedra, que es un
+denim azul. «piedra» queda como sinónimo.
+
+**Orden en centenas:** con 11 neutros, la decena por familia (10-19) ya no alcanzaba. Ahora es una centena por
+familia (neutro 100-190…), de 10 en 10, para poder intercalar colores. Un color creado desde Atributos entra en 2000.
+La paleta de Nuevo producto deja las 9 columnas fijas: usa tantas columnas como quepan (`auto-fill`), iguales en
+todas las familias, así que siguen alineadas.
+
+**Corrección a «Qué queda aceptado a propósito»:** con el hex oficial de chromafinder, Moka–Tostado mide **7,9**,
+no 8,0. Blanco–Crudo ya supera 8, porque el Bright White oficial es azulado. Quedan bajo 8 solo Beige–Arena (6,0)
+y Moka–Tostado (7,9), los dos aceptados.

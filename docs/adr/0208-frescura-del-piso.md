@@ -8,9 +8,8 @@
 bloque 2» y «Actualización 2026-09-25 — revisión del bloque 2»). **La web de los dos ya está publicada** (Vercel
 publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la `0200` y la `0400` están pegadas y
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
-separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. Falta confirmar
-(o pegar) la `0000` y la `0300` cuanto antes, pegar después la `20260926170000` de la revisión y encender el módulo en
-los roles (ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
+separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
+terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
 ver «Verificación en local». Del bloque 3 en adelante no hay nada construido.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
@@ -166,17 +165,17 @@ conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1,
 
 1. **Bloque 1 — Bajada al piso, «Reposición» cerrada en el piso y marca de bajada tardía** (paso 1). Registro de la
    bajada con escaneo por fardo; permiso para bajar sin darle a la persona todo Existencias; la marca tardía como
-   lectura. **Construido el 2026-09-25 y fusionado (#434); en producción, en parte** (estado en la cabecera y en (f)).
+   lectura. **Construido el 2026-09-25 y fusionado (#434); en producción completo desde el 2026-09-26** (ver (f)).
    El indicador de «confianza del registro» por sede pasó al bloque 3.
 2. **Bloque 2 — «Retirar del piso»** (paso 2): no hace falta una función nueva, falta la pantalla. Es `mover_interno`
    con origen (piso) y destino (almacén) invertidos. *Corregido el 2026-09-25: este punto decía «la función existe»
    pensando en `devolver_a_almacen`, que era del modelo V1 y ya no existe; `bajar_a_piso` tampoco.*
    **Construido y fusionado el 2026-09-25** (#440, `60d5aa4d`; ver «Actualización 2026-09-25 — bloque 2»). Su web ya
-   está publicada; la revisión suma la migración `20260926170000`, por pegar.
+   está publicada; la revisión sumó la migración `20260926170000`, pegada el 2026-09-26.
    - **Entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
      `bajar_al_piso`). Va ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas
-     filas: un envío doble infla las dos cosas. **Construido el 2026-09-26, por pegar** (migraciones `20260926200000` y
-     `20260926200100`; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
+     filas: un envío doble infla las dos cosas. **Construido y en producción el 2026-09-26** (migraciones `20260926200000`
+     y `20260926200100`, web #458; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
 3. **Bloque 3 — La pantalla de Frescura** (pasos 3, 4, 5 y 7): reloj de novedad por modelo+color, reloj de piso por
    unidad con emparejamiento FIFO, curva de Kaplan-Meier con P50, P75 y P90 por categoría y sede, tramos e índice de
    rapidez, el indicador de «confianza del registro» por sede (contrato en (d)) y atributos y marcas en la lectura. Se
@@ -683,6 +682,12 @@ Verificado en local el 2026-09-25, sobre un Postgres desechable con las cinco mi
 
 ### (f) Cómo se pega en producción
 
+**Actualización 2026-09-26: está todo en producción.** Una consulta por efectos (solo lectura; una fila por migración)
+dio «sí» a la `0000`, `0100`, `0200`, `0300` y `0400`; Felipe pegó después la `20260926170000` y se leyó el texto nuevo
+de Existencias en la base. Roles: «Integrante» ve Productos, Vender, Existencias y Bajada al piso; las 3 «Terminal
+Almacén» ven Existencias y Productos, sin «Bajada al piso» (si la pistola va en esa terminal, falta marcarlo en su rol,
+sin SQL). Lo de abajo queda como registro de cómo se llegó.
+
 **Estado al 2026-09-25 (lo dijo Felipe; corregido en la revisión del bloque 2).** El orden de abajo ya no se cumplió:
 la web de los bloques 1 y 2 salió con la fusión del #434 y del #440 (Vercel publica cada push a `main`), antes de
 confirmar la `0000`. Hoy: `0200` y `0400` **pegadas** (`fn_verificar_bajadas()` = 0 filas); `0100` no confirmada por
@@ -693,7 +698,7 @@ separado, pero sus tablas existen si esa función respondió; `0000` y `0300` **
    Roles y accesos muestra «Bajada al piso» y encenderlo falla, y el mensaje de la `0400` le dice a la colaboradora que
    pida al líder ese mismo módulo. Las dos se pueden repegar.
 2. Pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` **después de la `0000`**: el upsert de la `0000`
-   escribe el texto viejo de Existencias; si la `0000` se pega (o se repega) después, hay que repegar la `150000`.
+   escribe el texto viejo de Existencias; si la `0000` se pega (o se repega) después, hay que repegar la `170000`.
 3. Encender «Bajada al piso» en los roles (ver abajo) y refrescar el diccionario (paso 7).
 
 El orden original, que sigue valiendo como referencia de qué hace cada archivo: cinco archivos, una ejecución por
@@ -1047,6 +1052,10 @@ descuente ese mismo envío, y la pregunta es para la base. La nota se manda escr
 **La guarda de la `0200`.** Buscaba `mover_interno` por su firma de seis parámetros; ahora la busca por nombre, para
 que la `0200` se pueda volver a pegar después de la `200100` (las pruebas del CI lo hacen). Solo cambia la guarda, no
 lo que crea: en producción no hay que volver a pegarla.
+
+**Estado:** en producción desde el 2026-09-26. Felipe pegó las dos partes en orden y la base respondió con UNA sola
+firma de `mover_interno`, terminada en `p_token uuid` (la guarda de la segunda parte exige la tabla, así que la tabla
+también está); después fusionó la web (#458, `306a30f9`).
 
 **Cómo se pega (en este orden, fuera de hora pico):**
 1. `20260926200000_mover_interno_intentos_tabla.sql` (la tabla; su FK toma un candado breve sobre `movimientos`, con

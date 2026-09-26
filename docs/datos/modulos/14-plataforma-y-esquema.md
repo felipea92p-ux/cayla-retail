@@ -160,6 +160,14 @@ existe ninguna forma de cambiar el esquema desde la aplicación, y eso es correc
 
 ### El procedimiento real, paso a paso (D-11)
 
+> **Actualización (2026-09-26):** los pasos 1 a 3 describen el procedimiento de antes del
+> corte V1→V2. Desde el 2026-09-12 el Postgres local vive en `retail`: la migración se
+> escribe **una sola vez**, con `retail.` en cada tabla (o `set search_path` al inicio) y
+> nombre de timestamp (ADR-0034), y ese mismo archivo es el que se pega. No hay gemelo en
+> `supabase/unificacion/`, que no recibe archivos desde el 2026-09-11 (ver `CLAUDE.md`,
+> §"Cómo aplicar SQL a producción", y `08-OPERACION.md` §3). El texto de abajo se conserva
+> como registro.
+
 1. **La migración se escribe en `supabase/migrations/NNNN_nombre.sql`, sin prefijo de
    schema.** Corre limpia contra el Postgres local, que sí usa `public`.
 2. **Se prueba en local** con `npx supabase db reset`. El seed la deja en `retail`

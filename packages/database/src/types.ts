@@ -5197,6 +5197,10 @@ export type Database = {
         }
         Returns: Json
       }
+      eliminar_marca: {
+        Args: { p_marca_id: string }
+        Returns: string
+      }
       emitir_comprobante: {
         Args: {
           p_cliente_nombre?: string

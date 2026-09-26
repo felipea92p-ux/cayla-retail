@@ -10,6 +10,14 @@ Felipe se lleva:
 2. **Probar con la llave pública (anon) no prueba permisos:** una consulta inválida y una válida contestaban igual. La prueba que sí sirve es la que usa el rol real, con la misma restricción de columnas, aunque sea en una base desechable.
 3. **Un color no es una marca.** «dorada» traía toda la blusa de la marca «Doradas Chic» en cualquier color, según el género con que se escribiera. El buscador compartido se cambió sin tocar el comportamiento de Análisis ni de Movimientos: se comparó contra el motor anterior en 40.330 casos.
 
+## 2026-09-26 (Catálogo ▸ Marcas: «Eliminar» para una marca puesta por error — ADR-0217)
+«Cayla 2» se creó por error al dar de alta un producto y solo se podía desactivar: quedaba en «Desactivadas» para siempre y ocupaba su nombre. Ahora hay «Eliminar», pero solo cuando ningún producto tiene la marca —ni descontinuado ni archivado como prueba—. La migración `20260926213000` (una función, `eliminar_marca`) está probada 21/21 en un Postgres desechable, con 3 mutaciones detectadas y una carrera real con COMMIT en los dos órdenes; **ya está en producción** (aplicada el mismo día con tu «dale», con ensayo previo revertido y verificada por efectos), antes que la web.
+Felipe se lleva: (1) **el producto que «solo era una prueba» tenía una venta completada**, así que no se puede borrar: se re-marca (Top Aurora → Krisstell, que Jacard ya trae) y recién entonces la marca se elimina. (2) **Descontinuar o archivar como prueba no libera la marca**: el producto sigue apuntándole. (3) **Borrar solo es seguro donde no hay historia**: por eso Eliminar existe para marcas sin productos y no para las demás.
+
+## 2026-09-26 (Colores del lujo: Gris piedra, Índigo y Nude — ADR-0215 act. b)
+Se revisó la paleta contra Ralph Lauren, LVMH y Hermès: de 62 colores que usan 2 o más marcas, CAYLA cubría 53. Midiendo cada faltante contra producción, 3 de los 4 ya estaban con otro nombre (latte = Arena, tabaco = Tostado; crema, azul hielo, amaranto y greige también), y entran como sinónimos. Se sumaron los que de verdad faltaban: Gris piedra (8 marcas), Índigo (4 y Pantone) y Nude (2). Quedan 71 colores; el orden pasó a centenas y la paleta a columnas que se ajustan al ancho. La migración `20260926210000` está en producción.
+Felipe se lleva: (1) **un nombre distinto no es un color distinto**: «Latte» es nuestra Arena a ΔE 2,0. (2) **Antes de sumar un color, se mide contra lo que ya hay**: así el informe de «4 faltantes» quedó en 3 colores nuevos y 7 sinónimos. (3) **«Gris piedra» y no «Piedra»**: en tienda, «piedra» también es pedrería y lavado a la piedra.
+
 ## 2026-09-26 (Revisión de errores en Catálogo ▸ Productos y Existencias: el código de la prenda salía vacío)
 Felipe pasó tres capturas («esto está lleno de errores»). Se verificó cada síntoma contra el código y, en solo lectura, contra producción: 128 de 130 variantes tienen `sku` NULL (ADR-0058: nació opcional), pero 129 tienen `codigo`. Existencias leía solo `sku`, por eso la celda decía «· L ·» sin nada; ahora lee el código de la etiqueta (y con él buscan, ordenan y exportan Existencias, Ajustar y la tabla de Productos). También: «1 productos» → «1 producto», y la tarjeta «Reponer a piso hoy» ya no afirma «con demanda» (la regla nunca mira ventas).
 Felipe se lleva:
@@ -19,12 +27,17 @@ Felipe se lleva:
 
 Con el «sí» de Felipe, «Producto de Prueba» quedó marcado `es_prueba` en producción: tenía 160 de las 363 unidades de TRU y falseaba «Disponible total», la barra piso/almacén y «Por colgar». Existencias de TRU pasa de 363 a 203 (158 piso · 45 almacén). Un producto de prueba sin marcar no es inocente: contamina cada cifra que suma stock.
 
+
+
 ## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)
 «Reponer» y «Retirar del piso» ya no pueden mover dos veces tras un corte de red: cada intento lleva una marca, y la base devuelve el mismo movimiento si llega repetida. `mover_interno` sigue siendo UNA función (séptimo parámetro opcional); `bajar_al_piso`, que ya tenía su marca, no cambia. Sin pegar: `20260926200000` → `20260926200100` y recién entonces la web. Probado con 12 casos SQL, dos envíos simultáneos con COMMIT y en el navegador con la red cortada.
 Felipe se lleva:
 1. **Tras un corte, la pantalla no sabe si se guardó; la base sí.** Por eso el reintento es una pregunta a la base con la misma marca, no un segundo movimiento. Y mientras no se sabe, la cantidad queda fija: cambiarla sería otro pedido y movería de nuevo lo que quizá ya se movió.
 2. **La marca se mira antes que el responsable.** Comprobar algo ya guardado no escribe nada: si la colaboradora marcó salida en el medio, el reintento igual responde «ya estaba».
 3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
+
+Más tarde el mismo día: Felipe pegó `20260926200000` → `20260926200100` en producción (una sola firma de `mover_interno`, terminada en `p_token uuid`) y recién después fusionó la web (#458). El orden «SQL antes que la web» se cumplió.
+Y con eso Frescura quedó completa en producción: una consulta por efectos (una fila por migración, probada antes en local en verde y en rojo) mostró que la `0000` y la `0300`, que estaban «sin confirmar» desde el 25-sep, sí estaban; faltaba solo la `20260926170000`, que Felipe pegó. «Bajada al piso» está encendido en Integrante; las terminales del almacén no lo tienen.
 
 ## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
 Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.
@@ -9592,3 +9605,13 @@ Felipe preguntó si las fotos de la cabecera de Inventario rompían la estética
 Por qué así: se borró en vez de optimizar, porque optimizar solo arreglaba el peso y no lo estético; una sola cabecera en todo el ERP. Qué se rompería sin esto: Inventario seguiría siendo el único módulo con foto, con dos «cabeceras oficiales» conviviendo, y cada pantalla nueva tendría que elegir cuál copiar.
 Felipe se lleva: **«se siente lenta» no es lo mismo que «pesa»** — una imagen ya guardada por el navegador no frena una pantalla; si Existencias se siente lenta, hay que medir lo del servidor (consultas de stock por sede y el loader global), no las fotos. Verificado en el navegador con un andamio (mismas props que las pantallas reales; Existencias real necesita base de datos) y con `tsc --noEmit` y `eslint`.
 Sin resolver: medir cuánto tarda Existencias en el servidor, si Felipe lo quiere.
+
+## 2026-09-26 (Documentos al día: el hook de graphify, config.toml y las skills de Codex)
+Tres archivos seguían contradiciendo a `CLAUDE.md`. El hook de graphify vivía en `.claude/settings.json` con la ruta de Windows de una sola máquina, y corría antes de cada búsqueda y lectura en las cinco: pasa a `.claude/settings.local.json` de quien lo use, con la receta en `CLAUDE.md`. El comentario de `supabase/config.toml` describía el schema de antes del corte V1→V2. Las skills de Codex (`.agents/skills`) mandaban al protocolo de `AGENTS.md`, que ya es un puntero. Además se borró una copia vieja de la sección «CLAUDE.md y 15-COMO-OPERA» del BACKLOG, que una fusión había traído de vuelta y seguía diciendo «pendiente». Y dos textos del 2026-09-25 (`CONTRIBUTING.md` §2 y el comentario de `ci.yml`) seguían diciendo que el ruleset aún no exigía los checks: ya los exige.
+Felipe se lleva: (1) **una configuración compartida no puede depender de una sola máquina**: lo que es de cada quien va en su archivo local; (2) una fusión que resuelve un conflicto «dejando las dos versiones» revive texto que ya estaba corregido; en el BACKLOG eso se ve como una tarea hecha que vuelve a figurar pendiente.
+Sin resolver: quien usaba el hook de graphify tiene que agregarlo a su `.claude/settings.local.json` (receta en `CLAUDE.md`, sección graphify); el protocolo de pregunta y docencia sigue viviendo solo en `~/.claude/CLAUDE.md`.
+
+## 2026-09-26 (La regla de migraciones «sin prefijo» seguía viva en cinco guías)
+Después de corregir `CLAUDE.md` y `AGENTS.md`, la misma regla —«las migraciones se escriben sin el prefijo `retail.`, se agrega solo al pegar»— seguía en `CONTRIBUTING.md` §3, `07-GOBIERNO.md`, `08-OPERACION.md` §2, `12-ONBOARDING.md` (el ejercicio del primer día) y el módulo 14. Tres de ellas mandaban además numerar «con el número siguiente», contra el ADR-0034. Se corrigieron las instrucciones y el procedimiento viejo del módulo 14 queda marcado con una nota fechada.
+Felipe se lleva: **corregir una regla en un archivo no la corrige en el repo**: la misma frase vivía en siete lugares, y la guía que lee alguien nuevo el primer día era una de las que seguía mal. Antes de dar por corregida una regla, se busca en todo el repo.
+Sin resolver: nada de este cambio.
