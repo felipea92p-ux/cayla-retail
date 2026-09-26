@@ -38,9 +38,9 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [x] Exportar a Excel por ruta (`/inventario/movimientos/exportar`), igual que Historial (D3).
 - [x] Candado de CI `lib/reglas-sin-uso.test.ts` («probado = en pantalla»).
 - [x] Aplicar `20260927153000` en producción (2026-09-26, ensayo revertido + verificación).
-- [ ] Refrescar `docs/datos/generado/` con un volcado nuevo de producción (`generado/COMO-REFRESCAR.md`, las 9 consultas).
-      Hasta entonces `pnpm datos:comparar` marca `fn_movimientos_resumen_procesos` y `cargar_stock_inicial` como
-      ausentes: la foto es del 2026-09-25. Ninguna de las tres migraciones crea tablas; solo cambia la foto de funciones.
+- [x] Refrescar `docs/datos/generado/` desde producción (2026-09-26 20:45 UTC: 134 relaciones, 604 funciones; las 950
+      huellas por grupo iguales a producción). Trajo 11 tablas nuevas de otras sesiones (Apartados, Actividad, bajadas al
+      piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
 - [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
       subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
