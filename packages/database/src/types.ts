@@ -5163,6 +5163,16 @@ export type Database = {
           tramo: string
         }[]
       }
+      editar_marca: {
+        Args: {
+          p_marca_id: string
+          p_nombre: string
+          p_quitar?: string[]
+          p_sumar?: string[]
+          p_sumar_nuevos?: Json
+        }
+        Returns: Json
+      }
       emitir_comprobante: {
         Args: {
           p_cliente_nombre?: string
