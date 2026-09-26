@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔍 Traslados: recorrido de usabilidad como persona sin contexto (2026-09-26) — solo análisis, sin cambios de código; `docs/pantallas/traslados.md`; rama `claude/traslados-usability-review-9b0615`
+- [x] Recorrido en local con clics reales (líder; Trujillo envía, Lima recibe): enviar, contar con un faltante, cerrar con diferencia e intentar vender lo recibido. 17 hallazgos con archivo:línea en `docs/pantallas/traslados.md`.
+- [ ] Arreglables sin decisión de negocio: «por recibir» que no dependa de la hora estimada y botón «Recibir» en la fila (§2); conteo que sobreviva a una recarga (§4); formulario sin destino ni prendas elegidas de antemano (§6); buscador por palabras (§7); escáner que busque por nombre y muestre el código de etiqueta (§12); la lista dice «Cerrado con diferencia» (§15).
+- [ ] Decisiones de Felipe (`docs/pantallas/traslados.md` §6): todo-o-nada al recibir, conteo a ciegas o «Coincide», piso o almacén al recibir en tienda, quién anula un envío y hasta cuándo.
+- [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
+- [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
+
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 
 - [x] Tarjeta compacta con «Devolver», «Cambiar» (→ Cambios) y «Ver venta»; chip «Quedan N días» (ámbar los últimos 3).
@@ -1036,7 +1043,7 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 ## 🎯 Traslados: rediseño de lista y detalle, conteo por borradores y vacíos ocultos (2026-09-22, ADR-0173) — construido y verificado con datos de muestra; SIN migración
 - [x] Demo aprobada por Felipe (`docs/maquetas/traslados-rediseno-2026-09/`). En producción, los 4 traslados tienen 0 líneas y 0 movimientos (quedaron de la limpieza de datos): se **ocultan** en la lista, en las lecturas de `lib/traslados.ts` y en el contador del menú. No se borran.
 - [x] Lista: estados «Por confirmar / Por revisar / En camino / Completado», los colores de lo que va cuando no hay fotos, «Salió» con hora, píldoras en lugar del `<select>` nativo y el aviso de vacíos para el líder. Detalle: recorrido en 4 pasos (quién envió, quién contó, quién cerró), 3 cifras, conteo con −/+/«Coincide» guardado al confirmar, un solo campo para escanear, `<Modal>` para confirmar, nota obligatoria al cerrar con diferencia y tarjetas en celular. Cierra el pendiente «Traslados › detalle sigue con la celda de texto».
-- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió.
+- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió. **Avance 2026-09-26:** hecho en local como líder (Traslado 3, Trujillo → Lima: modal, registro y cierre con diferencia); falta con integrante o terminal. Lo que se encontró: `docs/pantallas/traslados.md`.
 - [ ] Endurecer en la base la nota de cierre: hoy solo la pantalla la exige; `cerrar_traslado_con_diferencia` acepta `p_nota` vacía.
 - [x] (ADR-0175) Las tarjetas son el filtro (los chips repetidos pasan a Abiertos · Cerrados · Todos), dirección Entran/Salen a la vista y tabla en dos acomodos (6 columnas desde 1280 px, tarjeta debajo). Capturas a 1280/1440/390 px con el `TrasladosPanel` real y datos de muestra. Falta verlo con clics reales.
 - [ ] Decidir qué hacer con las 4 cabeceras vacías de producción (Traslados 1 al 4): siguen en la base; el 4 está «en tránsito».
