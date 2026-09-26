@@ -229,6 +229,14 @@ flowchart TB
   (`variantes` + `producto_fotos` + `stock`, las reglas de Existencias); la boleta abre `DetalleVentaModal`; exportar es la
   ruta `inventario/movimientos/exportar/route.ts` (CSV, como la de Historial); Traslado y Conteo aceptan `?volver=`
   (`volverAMovimientos`).
+  **2026-09-26 (ADR-0241, conectado):** atajos del detalle y de la operación en `lib/movimientos-atajos.ts`
+  (`atajosDeMovimiento`, `atajosDeOperacion`) → `/cambios?q=`, `/devoluciones?q=`, `/inventario/bajar?lineas=`,
+  `/etiquetas-de-precio?variantes=`, `/inventario/conteo?variantes=` (nuevo: `pendientesDeLista`),
+  `/inventario?variante=` (nuevo: abre el detalle de la prenda) y `/vender/apartados?abrir=` (nuevo: Entregar o Todos con
+  ese apartado); «Corregir» abre `AjustarInventarioModal`. El apartado de cada movimiento con `getApartadosDeMovimientos`
+  (`apartados.movimiento_id`/`movimiento_cierre_id` → `separaciones`). Bajadas del día plegadas (`plegarBajadas`,
+  `FilaBajadas`); «Hoy» por defecto en el celular (`userAgent` en la página); filtros en hoja y cámara en el celular;
+  Exportar en el «⋯» (`MenuMovimientos.tsx`).
 
 **Inventario V2 — cuatro pantallas operativas + una de decisión (2026-09-16, ADR-0071;
 quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"

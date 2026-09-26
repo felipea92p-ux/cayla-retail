@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Movimientos conectado — ADR-0241)
+Análisis de 8 capturas → spike con TODAS las opciones → Felipe eligió las recomendadas, los cuatro atajos y el apartado exacto (tras verlo en demo). Construido encima del PR #512 (otra sesión, mismos archivos) para no chocar: atajos por proceso en el detalle y la operación, código del apartado en la fila, bajadas plegadas por día, tarjetas que filtran, celular con buscador fijo, cámara y filtros en hoja, «Hoy» por defecto en el teléfono, Conteo con `?variantes=` y Existencias con `?variante=`.
+Por qué así: cada atajo lleva a la pantalla que ya hace el trabajo (Movimientos sigue sin escribir nada), y solo si se ve el módulo. Qué se rompería sin esto: la nota del pie prometía «se corrige con otro movimiento» sin camino, y un apartado de dos prendas decía «0».
+Felipe se lleva: **antes de pedir una columna nueva, mirar si la relación ya existe al revés**: se iba a proponer `movimientos.apartado_id` (migración) y `apartados.movimiento_id` ya lo resolvía. Y **mirar el tablero antes de programar**: el #512 apareció al traer `main`; construir encima evitó un choque en 7 archivos.
+Sin resolver: verlo con una cuenta real (Apartados, Existencias, Conteo) y la cámara en un teléfono; píldora «Apartados» (migración de lectura).
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
