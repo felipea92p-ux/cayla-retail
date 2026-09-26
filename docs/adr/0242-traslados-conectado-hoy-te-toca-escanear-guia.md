@@ -94,3 +94,39 @@ enviarlos:
 Cada tanda: `lint`, `typecheck`, pruebas de las reglas puras nuevas (`lib/traslados-*-reglas.ts`) y un recorrido en el
 navegador local con capturas a 1440 y 375 px (PL-105 no obliga a Traslados, pero la mayoría de las colaboradoras lo usarán
 en el teléfono). La tanda 4 suma su prueba SQL en `scripts/pruebas/` y en CI.
+
+## Tanda 4 construida (2026-09-26, desde Análisis conectado, ADR-0245)
+
+Felipe la pidió junto con Análisis («con migración de todo»), porque la integrante que ve algo agotado en su sede no
+podía traerlo: `iniciar_traslado` exige operar el origen. **La migración no está en producción: pide el OK de Felipe.**
+
+- **Migración `20260927210000_pedir_a_otra_sede.sql`**, una sola parte y sin políticas ni `drop trigger`:
+  - En `separacion_pedidos`, la clienta pasa a ser opcional: van los tres datos o ninguno.
+  - Columnas y estados nuevos: `grupo_id` (varias tallas pedidas juntas) y el estado `recibido`, final de una
+    reposición.
+  - Dos CHECK nuevos: una reposición nunca queda en `llego` ni `apartado`, y siempre tiene grupo.
+  - La tabla estaba vacía en producción (consultado el 2026-09-26).
+- **RPC:**
+  - `pedir_a_otra_sede(p_ubicacion_id, p_origen_id, p_lineas jsonb, p_nota, p_token) → grupo_id`. La aceptan
+    Traslados o Análisis, operando la sede que pide.
+  - `enviar_pedido_a_otra_sede(p_grupo_id, p_fecha_estimada_llegada, p_token) → transferencia`. Solo con Traslados:
+    un solo `iniciar_traslado` con todo el grupo.
+  - `cancelar_pedido_a_otra_sede(p_grupo_id, p_motivo)`: cualquiera de las dos sedes. Es «No la tengo» o «Ya no la
+    necesito».
+  - `fn_pedidos_entre_sedes(p_ubicacion_id)`: la lectura.
+- **Se cambió `fn_apartar_pedidos_que_llegaron` y no el disparador.** Desde `20260927160000` el pedido que llega se
+  atiende línea por línea en esa función. El disparador ya hacía lo correcto para la reposición («no llegó» →
+  cancelado).
+- **Siguen igual para los pedidos con clienta:** `fn_pedidos_para_apartar`, `enviar_pedido_para_apartar` y
+  `cancelar_pedido_para_apartar`. Las tres filtran o rechazan la reposición.
+- **Envío completo o nada:** «Enviar» manda el grupo entero. Si al origen le falta stock, falla `iniciar_traslado`, y la
+  salida es «No la tengo». No hay envío parcial por prenda.
+- **Web provisional hasta la bandeja «Hoy te toca» (tanda 2):**
+  - `PedidosEntreSedes` en `/inventario/traslados`: «Te piden» (Enviar con llegada Hoy / Mañana / Pasado mañana, y
+    No la tengo) y «Pediste».
+  - `PedirAOtraSedeModal`, que usa Análisis.
+  - Si la función no existe en la base, la tarjeta no aparece y la lista de traslados sigue.
+- **Pruebas:**
+  - `pnpm pruebas:pedir-a-otra-sede`: 71/71 (en CI).
+  - `pruebas:separaciones`: 77/77 y `pruebas:traslados-recibir-sin-perder-nada`: 58/58, antes y después.
+  - Todo se corrió en un stack Supabase aparte, sin tocar el Postgres local compartido.

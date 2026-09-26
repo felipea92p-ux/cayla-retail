@@ -763,6 +763,16 @@ export function rangosDeLaComparacion(params: ParametrosResumen, ahora: Date): {
   return { rangoA: resolverComparacion(periodo, "anterior")!, modoA: "anterior", periodoB: periodo };
 }
 
+/**
+ * El período A sin NADA en toda la sede —ni stock al empezar ni al cerrar, ni ventas ni entradas— no es un período
+ * «malo»: es anterior al historial de la sede. Sin este aviso la pantalla llenaba todo de «0 →» y «N/D →» sin decir por qué
+ * (captura de TRU, 2026-09-26; ADR-0245).
+ */
+export function avisoSinHistorialEnA(filas: readonly FilaComparacion[]): string[] {
+  const hubo = filas.some((f) => f.a.stockInicio > 0 || f.a.stockCierre > 0 || f.a.ventas > 0 || f.a.entradas > 0);
+  return filas.length > 0 && !hubo ? ["El período A es anterior al historial de esta sede: no tiene stock, ventas ni entradas que comparar. Elige un A más reciente."] : [];
+}
+
 export function avisosDeComparacion(a: Rango, b: Rango): string[] {
   const avisos: string[] = [];
   const diasA = diasDelRango(a);
@@ -814,7 +824,7 @@ export function armarComparacion(e: {
     categorias: listarCategorias(todas),
     tabla: { filas: p.items, pagina: p.pagina, paginas: p.paginas, total: p.total, totalAlcance: enAlcance.length, totalSede: todas.length },
     exactitud: evaluarExactitud(e.conteos, e.ahora),
-    avisos: avisosDeComparacion(rangoA, rangoB),
+    avisos: [...avisosDeComparacion(rangoA, rangoB), ...avisoSinHistorialEnA(e.filas)],
     estimadas: enAlcance.filter((x) => !x.fila.ledgerConsistente).length,
   };
 }

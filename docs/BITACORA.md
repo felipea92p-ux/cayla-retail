@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Análisis conectado: «Qué hacer», por prenda y celular — ADR-0245; y Pedir a otra sede — ADR-0242 tanda 4)
+Análisis ahora dice qué hacer y deja hacerlo: cuatro grupos de trabajo arriba, la tabla por prenda con el botón que conviene (bajar, pedir a otra tienda, reponer, trasladar o rebajar) y todo usable en el teléfono con escáner. La integrante que ve algo agotado que otra sede tiene lo pide y esa sede lo envía desde Traslados.
+Por qué así: los grupos salen de las lecturas que ya existían, no de reglas nuevas; y «pedir» es una solicitud porque la base (con razón) no deja sacar stock de otra tienda. Qué se rompería sin esto: una pantalla que recomienda «trasladar» sin botón, y pedidos entre tiendas por WhatsApp que nadie sabe si se atendieron.
+Felipe se lleva: **una restricción de la base no se esquiva, se rodea con un paso que el otro confirma.** La tienda que tiene la prenda sigue siendo la única que la despacha.
+Sin resolver: pegar la migración 20260927210000 (pide OK); «Reponer» aún abre Compras o Producción sin la lista.
+
 ## 2026-09-26 (Existencias: la letra chica cumple y las lecturas no tumban — tareas #7 y #8)
 Cinco promesas del detalle ahora se cumplen: etiquetas solo del color que se mira, «Reponer N tallas» abre una talla que se puede bajar, otra sede sin etiquetas ni historial equivocados, «Apartados» sin un número que no coincidía, y un aviso al pasar de 100 tallas. Además, la comparación de 7 días ya no tumba la pantalla, y lo que viene en camino no se corta en 1.000 filas.
 Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la cifra buena ya vive en su pantalla. El fallo de la comparación se probó forzándolo, no suponiéndolo. Qué se rompería sin esto: etiquetas de más en cada impresión, un botón que no lleva a la acción, y una tienda sin ver su stock porque falló un porcentaje.
