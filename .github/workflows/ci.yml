@@ -445,6 +445,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-ledger-fuente-unica
 
+      # Ritmo reciente de Existencias (rediseño 2026-09-25): `fn_ritmo_reciente_json` reutiliza `fn_ledger_puntos`
+      # (ADR-0202) en vez de sumar una cuarta reconstrucción del ledger, sus eventos coinciden exactos con los de
+      # `fn_ledger_puntos` filtrado a 'piso', su permiso es el de todo el personal de tienda (nunca solo líder,
+      # a diferencia de `fn_resumen_comparacion`), y una variante sin movimiento en la ventana igual aparece con
+      # `[]` — nunca ausente. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-ritmo-reciente
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-ritmo-reciente
+
       # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
       # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
       # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.

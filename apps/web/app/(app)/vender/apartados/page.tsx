@@ -98,6 +98,7 @@ async function Apartados({ desdeTicket }: { desdeTicket: string | null }) {
       resumen={datos.resumen}
       liberadosAhora={datos.liberadosAhora}
       hayMas={datos.hayMas}
+      avisos={datos.avisos}
       lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
     />
   );

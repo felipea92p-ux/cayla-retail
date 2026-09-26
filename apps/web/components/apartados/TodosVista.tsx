@@ -1,23 +1,25 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle, Search } from "lucide-react";
+import { Bell, Check, MessageCircle, Search } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
   EXTENSIONES_MAX,
   ORDEN_ESTADO,
+  avisadaHoy,
   coincide,
-  enlaceWhatsapp,
+  colaPorAvisar,
+  diaLima,
   estadoVisible,
   formatoCelular,
-  mensajeWhatsapp,
   textoDevolucion,
   type Apartado,
+  type AvisoApartado,
   type ClaveEstado,
 } from "@/lib/separaciones-reglas";
 import { BarraPlazo, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { DevolverModal, ExtenderModal, LiberarModal } from "@/components/apartados/ModalesApartado";
+import { DevolverModal, ExtenderModal, LiberarModal, RecordarModal } from "@/components/apartados/ModalesApartado";
 
 type Filtro = "hoy" | "abiertos" | "cerrados" | "todos";
 const FILTROS: { id: Filtro; etiqueta: string }[] = [
@@ -44,6 +46,7 @@ export function TodosVista({
   apartados,
   resumen,
   prendas,
+  avisos,
   irAEntregar,
 }: {
   ubicacionId: string;
@@ -54,6 +57,7 @@ export function TodosVista({
   apartados: Apartado[];
   resumen: ResumenApartados;
   prendas: VarianteBusqueda[];
+  avisos: Record<string, AvisoApartado>;
   irAEntregar: (id: string) => void;
 }) {
   const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
@@ -62,6 +66,14 @@ export function TodosVista({
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   const [extender, setExtender] = useState<Apartado | null>(null);
+  // Recordar (Apartados v2, paso 1): la cola del día o una sola clienta desde su fila. Lo avisado en esta visita se
+  // marca al instante; la base lo confirma al refrescar.
+  const [recordar, setRecordar] = useState<Apartado[] | null>(null);
+  const [avisadasAhora, setAvisadasAhora] = useState<ReadonlySet<string>>(() => new Set());
+  const avisoDe = (id: string): AvisoApartado | undefined =>
+    avisadasAhora.has(id) ? { avisos: (avisos[id]?.avisos ?? 0) + 1, ultimoEn: new Date().toISOString(), ultimoPor: null } : avisos[id];
+  const conAvisosAhora = Object.fromEntries(apartados.map((a) => [a.id, avisoDe(a.id)]).filter(([, v]) => v)) as Record<string, AvisoApartado>;
+  const { porAvisar, avisadasHoy } = colaPorAvisar(apartados, conAvisosAhora, hoy);
   // Extender, liberar y devolver firman con el combo «Responsable» (ADR-0161) dentro de su modal, de esta tienda.
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
 
@@ -95,6 +107,26 @@ export function TodosVista({
           </div>
         ))}
       </div>
+
+      {porAvisar.length + avisadasHoy.length > 0 && (
+        <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 ${porAvisar.length ? "bg-ambar/10 text-ambar-profundo" : "bg-verde/10 text-verde-profundo"}`}>
+          {porAvisar.length ? <Bell className="h-5 w-5 shrink-0" aria-hidden /> : <Check className="h-5 w-5 shrink-0" aria-hidden />}
+          <div className="min-w-0 flex-1 text-[13px]">
+            <p className="font-semibold">
+              {porAvisar.length
+                ? `${porAvisar.length} ${porAvisar.length === 1 ? "clienta por avisar" : "clientas por avisar"} hoy`
+                : "Todas avisadas hoy"}
+              {avisadasHoy.length > 0 && <span className="font-normal"> · {avisadasHoy.length} ya {avisadasHoy.length === 1 ? "avisada" : "avisadas"}</span>}
+            </p>
+            {porAvisar.length > 0 && <p>Vencen pronto o ya vencieron. Se abre WhatsApp con el mensaje listo, una tras otra.</p>}
+          </div>
+          {porAvisar.length > 0 && (
+            <button type="button" onClick={() => setRecordar(porAvisar)} className={`${BOTON_CHICO_NEGRO} inline-flex h-10 items-center gap-2 max-sm:w-full max-sm:justify-center`}>
+              <MessageCircle className="h-3.5 w-3.5" aria-hidden /> Escribirles en lote
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {FILTROS.map((f) => (
@@ -152,11 +184,24 @@ export function TodosVista({
                       </p>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1.5">
-                      {(e.clave === "vigente" || e.clave === "porvencer" || e.clave === "vencida") && (
-                        <a href={enlaceWhatsapp(a.celular, mensajeWhatsapp(a, ubicacionEtiqueta))} target="_blank" rel="noreferrer" aria-label={`Escribir a ${a.nombres} por WhatsApp`} className={`${BOTON_CHICO} inline-flex items-center`}>
-                          <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-                        </a>
-                      )}
+                      {(e.clave === "vigente" || e.clave === "porvencer" || e.clave === "vencida") &&
+                        (() => {
+                          // El botón de cada fila abre la misma ventana que el lote, con esta sola clienta: así todo
+                          // aviso queda registrado, y el que ya se dio hoy se ve en verde.
+                          const aviso = avisoDe(a.id);
+                          const hoyYa = avisadaHoy(aviso, hoy);
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => setRecordar([a])}
+                              aria-label={hoyYa ? `${a.nombres} ya fue avisada hoy; escribirle otra vez` : `Escribir a ${a.nombres} por WhatsApp`}
+                              title={hoyYa ? `Avisada hoy${aviso?.ultimoPor ? ` por ${aviso.ultimoPor}` : ""}` : aviso ? `Último aviso: ${fechaCorta(diaLima(aviso.ultimoEn))}` : "Escribirle por WhatsApp"}
+                              className={`${BOTON_CHICO} inline-flex items-center ${hoyYa ? "border-verde/40 text-verde-profundo" : ""}`}
+                            >
+                              {hoyYa ? <Check className="h-3.5 w-3.5" aria-hidden /> : <MessageCircle className="h-3.5 w-3.5" aria-hidden />}
+                            </button>
+                          );
+                        })()}
                       {e.clave === "vencida" && puedeGestionar && (
                         <>
                           <button type="button" disabled={a.extensiones >= EXTENSIONES_MAX} title={a.extensiones >= EXTENSIONES_MAX ? "Ya se extendió una vez" : undefined} onClick={() => setExtender(a)} className={BOTON_CHICO}>
@@ -183,6 +228,15 @@ export function TodosVista({
         })
       )}
 
+      {recordar && (
+        <RecordarModal
+          cola={recordar}
+          ubicacion={ubicacion}
+          hoy={hoy}
+          onAvisada={(id) => setAvisadasAhora((s) => new Set([...s, id]))}
+          onClose={() => setRecordar(null)}
+        />
+      )}
       {extender && <ExtenderModal apartado={extender} ubicacion={ubicacion} onClose={() => setExtender(null)} />}
       {liberar && <LiberarModal apartado={liberar} ubicacion={ubicacion} onClose={() => setLiberar(null)} />}
       {devolver && <DevolverModal apartado={devolver} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setDevolver(null)} />}
