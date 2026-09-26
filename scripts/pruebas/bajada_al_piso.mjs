@@ -269,11 +269,12 @@ select pg_temp.intento('select count(*) from retail.bajada_piso_items');`,
 );
 caso(
   // «Nace sin rol» lo vigila `lib/modulos.test.ts` sobre las migraciones: aquí la base local puede tenerlo encendido a mano.
-  "P1 · el módulo: Inventario, orden 85, delegable, no siempre-del-líder; Existencias dice «reponer el piso»",
+  // El texto de Existencias es el de 20260926150000 (nombra el retiro del bloque 2), que corre después de la 0000.
+  "P1 · el módulo: Inventario, orden 85, delegable, no siempre-del-líder; Existencias dice «reponer y retirar del piso»",
   `select concat_ws('|', m.grupo, m.nombre, m.orden, m.solo_lider::int, m.delegable::int,
      (select incluye from retail.modulos where clave = 'existencias'))
      from retail.modulos m where m.clave = 'bajada_piso';`,
-  "Inventario|Bajada al piso|85|0|1|Consultar stock, reponer el piso, ajustar stock, apartar prendas"
+  "Inventario|Bajada al piso|85|0|1|Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas"
 );
 caso(
   "P1 · firma con el responsable UNA vez (fn_actor_persona_id(true)) y sin el patrón viejo de auth.uid()",
