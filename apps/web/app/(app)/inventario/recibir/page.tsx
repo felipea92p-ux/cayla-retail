@@ -9,6 +9,7 @@ import { nombreDelMes } from "@/lib/comprobantes-lista-reglas";
 import { RecibirLotePanel } from "@/components/RecibirLotePanel";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { Volver } from "@/components/ui/Volver";
 
 // Ingreso sin comprobante (ADR-0111, maqueta 07). Fase UI 1 (2026-09-11): rediseño completo — ver
 // `RecepcionFormV2.tsx` para el porqué no es una adaptación de la pantalla V1. 2026-09-17: lista de
@@ -69,30 +70,34 @@ export default async function RecibirLotePage() {
   );
 
   return (
-    <RecibirLotePanel
-      ubicacionId={persona.ubicacionId}
-      ubicacionEtiqueta={persona.ubicacionEtiqueta}
-      esLider={persona.rol === "lider"}
-      variantes={catalogo
-        .filter((v) => v.activo)
-        .map((v) => ({
-          varianteId: v.varianteId,
-          sku: codigoDeEtiqueta(v), // el código de la etiqueta; el `sku` es NULL en casi todas las variantes (ADR-0058)
-          referencia: v.referencia,
-          talla: v.talla,
-          color: v.color,
-        }))}
-      proveedores={proveedores}
-      recepciones={recepciones}
-      costos={costos}
-      indicadores={indicadores}
-      aviso={
-        proveedores.length === 0
-          ? "Todavía no hay proveedores registrados — no se puede recibir un lote sin uno."
-          : catalogo.length === 0
-            ? "Todavía no hay productos en el catálogo — revisa Productos primero."
-            : undefined
-      }
-    />
+    <div>
+      {/* Es la excepción de Recibir mercadería (se llega desde ahí): la vuelta es a esa pantalla. */}
+      <Volver href="/recibir" a="Recibir mercadería" className="mb-3" />
+      <RecibirLotePanel
+        ubicacionId={persona.ubicacionId}
+        ubicacionEtiqueta={persona.ubicacionEtiqueta}
+        esLider={persona.rol === "lider"}
+        variantes={catalogo
+          .filter((v) => v.activo)
+          .map((v) => ({
+            varianteId: v.varianteId,
+            sku: codigoDeEtiqueta(v), // el código de la etiqueta; el `sku` es NULL en casi todas las variantes (ADR-0058)
+            referencia: v.referencia,
+            talla: v.talla,
+            color: v.color,
+          }))}
+        proveedores={proveedores}
+        recepciones={recepciones}
+        costos={costos}
+        indicadores={indicadores}
+        aviso={
+          proveedores.length === 0
+            ? "Todavía no hay proveedores registrados — no se puede recibir un lote sin uno."
+            : catalogo.length === 0
+              ? "Todavía no hay productos en el catálogo — revisa Productos primero."
+              : undefined
+        }
+      />
+    </div>
   );
 }

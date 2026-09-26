@@ -206,21 +206,29 @@ export function quitarLinea(lineas: readonly LineaBajada[], varianteId: string):
 
 /**
  * La lista con la que arranca la pantalla cuando llega marcada desde Existencias (`?lineas=`, ADR-0237): solo prendas de
- * ESTA tienda con algo libre en el almacén, la cantidad topada a eso (como `fijarCantidad`) y como mucho
- * `MAX_LINEAS_BAJADA` líneas. Lo que no se puede bajar se descarta en silencio: la lista es un punto de partida, no una
- * orden (ADR-0231: CAYLA no sugiere cuánto reponer).
+ * ESTA tienda con algo libre en el almacén y como mucho `MAX_LINEAS_BAJADA` líneas, **todas en 0: «por escanear»**. La
+ * lista dice QUÉ buscar, no cuánto se colgó: cada lectura suma 1, como con cualquier prenda. Así lo que queda registrado es
+ * lo que ella escaneó al colgar, y confirmar sin escanear no baja nada (ADR-0237, actualización del 2026-09-26: antes
+ * llegaba en 1 y se podía confirmar a ciegas, y el piso del sistema dejaba de ser el piso real, del que descuenta la
+ * venta). La cantidad que traiga el enlace no se usa. Lo que no se puede bajar se descarta: la lista es un punto de
+ * partida, no una orden (ADR-0231: CAYLA no sugiere cuánto reponer).
  */
 export function lineasIniciales(pedidas: readonly LineaBajada[], prendas: readonly PrendaBajable[]): LineaBajada[] {
   const porId = new Map(prendas.map((p) => [p.varianteId, p]));
   const lineas: LineaBajada[] = [];
   for (const l of pedidas) {
     const p = porId.get(l.varianteId);
-    if (!p || p.almacenDisponible <= 0 || !Number.isInteger(l.cantidad) || l.cantidad <= 0) continue;
+    if (!p || p.almacenDisponible <= 0) continue;
     if (lineas.some((x) => x.varianteId === l.varianteId)) continue;
-    lineas.push({ varianteId: l.varianteId, cantidad: Math.min(l.cantidad, p.almacenDisponible) });
+    lineas.push({ varianteId: l.varianteId, cantidad: 0 });
     if (lineas.length === MAX_LINEAS_BAJADA) break;
   }
   return lineas;
+}
+
+/** Una línea «por escanear»: llegó marcada desde Existencias y todavía no se leyó ninguna (no viaja a la base). */
+export function porEscanear(l: LineaBajada): boolean {
+  return l.cantidad === 0;
 }
 
 /**
@@ -237,11 +245,11 @@ export function loQueFalta(actuales: readonly LineaBajada[], guardadas: readonly
   });
 }
 
-/** prendas = suma de unidades; modelos = referencias distintas. */
+/** prendas = suma de unidades; modelos = referencias distintas entre lo escaneado (lo «por escanear» no cuenta: no se baja). */
 export function resumenDeBajada(lineas: readonly LineaBajada[], prendas: readonly PrendaBajable[]): { prendas: number; modelos: number } {
   const porId = new Map(prendas.map((p) => [p.varianteId, p] as const));
   const modelos = new Set<string>();
-  for (const l of lineas) modelos.add(porId.get(l.varianteId)?.referencia ?? l.varianteId);
+  for (const l of lineas) if (l.cantidad > 0) modelos.add(porId.get(l.varianteId)?.referencia ?? l.varianteId);
   return { prendas: unidadesDe(lineas), modelos: modelos.size };
 }
 
@@ -552,12 +560,14 @@ export function leerBorrador(texto: string | null, ahora: Date, prendas: readonl
   const vistas = new Set<string>();
   const lineas: LineaBajada[] = [];
   for (const l of crudo.lineas as unknown[]) {
-    if (!esObjeto(l) || typeof l.varianteId !== "string" || !esEnteroPositivo(l.cantidad)) continue;
+    // En 0 = «por escanear» (llegó marcada desde Existencias): se conserva para que el recordatorio vuelva con la lista.
+    if (!esObjeto(l) || typeof l.varianteId !== "string" || !(l.cantidad === 0 || esEnteroPositivo(l.cantidad))) continue;
     if ((!enviadoEn && !enTienda.has(l.varianteId)) || vistas.has(l.varianteId)) continue;
     vistas.add(l.varianteId);
     lineas.push({ varianteId: l.varianteId, cantidad: l.cantidad });
   }
-  if (!lineas.length) return null;
+  // Sin ninguna escaneada no hay nada que perder: la lista se rearma desde Existencias.
+  if (!lineas.some((l) => l.cantidad > 0)) return null;
   return enviadoEn ? { v: VERSION_BORRADOR, token, lineas, creadoEn, enviadoEn } : { v: VERSION_BORRADOR, token, lineas, creadoEn };
 }
 

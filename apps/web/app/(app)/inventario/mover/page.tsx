@@ -1,9 +1,10 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -72,15 +73,26 @@ export default async function MoverMercaderiaPage({
 
   return (
     <div className="space-y-6">
+      {/* «Nuevo traslado», como el botón que trae hasta acá y como «Traslado 12» en el detalle (hallazgo 16): antes
+          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados va bajo la frase (ADR-0220). */}
       <EncabezadoPagina
         sede={origen.nombre}
-        titulo="Mover mercadería"
-        subtitulo="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
+        titulo="Nuevo traslado"
+        subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
+        // Quien no ve Traslados llegó desde Existencias (el enlace a un módulo que no ve lo dejaría en «Sin acceso»),
+        // igual que en Bajar al piso.
+        pie={
+          veModulo(persona, "traslados") ? (
+            <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
+          ) : (
+            veModulo(persona, "existencias") && <Volver forma="boton" href="/inventario" a="Existencias" />
+          )
+        }
       />
 
       {destinos.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay otra ubicación registrada todavía — un traslado necesita al menos dos.
+          No hay otra sede registrada todavía: un traslado necesita al menos dos.
         </p>
       ) : (
         <MoverMercaderiaFormV2

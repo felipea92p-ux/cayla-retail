@@ -4,6 +4,7 @@ import { getAperturasPorRevisar, getHistorialCierres } from "@/lib/caja";
 import { AperturasPorRevisar } from "@/components/AperturasPorRevisar";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { BotonVerDetalleCierre } from "@/components/CierreCajaDetalle";
+import { Volver } from "@/components/ui/Volver";
 
 function money(n: number) {
   return (n >= 0 ? "S/" : "-S/") + Math.abs(n).toFixed(2);
@@ -44,9 +45,7 @@ export default async function HistorialCierresPage({ searchParams }: { searchPar
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <Link href="/caja" className="label-cayla text-[11px] text-tinta/60 hover:text-rojo">
-            ← Caja
-          </Link>
+          <Volver href="/caja" a="Caja" className="mb-2" />
           <h1 className="font-display mt-1 text-2xl text-tinta">Historial de cierres</h1>
           <p className="mt-1 text-sm text-tinta/65">
             {cierres.length === 0 ? "Todavía no se cerró ninguna caja." : `Las últimas ${cierres.length} cajas cerradas, de todas las sedes.`}

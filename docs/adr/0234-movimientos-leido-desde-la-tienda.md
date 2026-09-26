@@ -4,7 +4,8 @@
 - **Origen:** revisión de usabilidad de `/inventario/movimientos` hecha como una integrante nueva, sin contexto (1366×768
   y 375 px), más la causa de cada tropiezo en el código y las cifras reales de TRU en producción (solo lectura).
 - **Producción:** una migración de solo lectura, `supabase/migrations/20260927153000_movimientos_leidos_desde_la_tienda.sql`.
-  **No está aplicada:** espera el OK de Felipe. Puede ir antes o después de la web (ver «Cómo se despliega»).
+  **Aplicada el 2026-09-26** (ensayo revertido primero; verificada: `fn_movimientos_resumen_procesos` existe y el parche
+  «Entradas/Salidas» está en `fn_movimientos`). La web salió con el PR #496 el mismo día.
 - **Complementa:** ADR-0050 (la categoría es una lectura, no un tipo), ADR-0127 (referencias), ADR-0170 (filtro en dos
   pasos, una sede), ADR-0230 (Exportar de Historial), ADR-0207 (Actividad), ADR-0185 (la página no se encoge).
 
