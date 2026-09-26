@@ -12,12 +12,17 @@ Felipe se lleva:
 
 Con el «sí» de Felipe, «Producto de Prueba» quedó marcado `es_prueba` en producción: tenía 160 de las 363 unidades de TRU y falseaba «Disponible total», la barra piso/almacén y «Por colgar». Existencias de TRU pasa de 363 a 203 (158 piso · 45 almacén). Un producto de prueba sin marcar no es inocente: contamina cada cifra que suma stock.
 
+## 2026-09-26 (Listas flotantes: se podían ver pero no elegir — arreglo de ADR-0211)
+Revisando la paleta de colores apareció que desde el #442 (portal a `document.body`) las listas de `CampoSelect`, las píldoras de filtro y el combo «Responsable» no se podían elegir con mouse ni con el dedo: el «¿tocaste afuera?» miraba solo la caja del control, y la lista ya no estaba adentro. Dentro de un modal era peor: tocar un responsable cerraba el modal entero. Arreglo: el «afuera» mira también la caja flotante, y dentro de un modal la lista se cuelga en la propia hoja (`useDestinoFlotante`). Verificado contra `main` (fallaba) y con el arreglo (funciona), con mouse, teclado y a 375 px.
+Felipe se lleva: (1) **un arreglo de «se ve bien» necesita la prueba de «se puede usar»:** el #442 se verificó mirando si la lista quedaba encima, no eligiendo una opción. (2) **Radix protege su modal de todo lo que está fuera de su hoja** (clics, foco, lectores): lo que flota sobre un modal tiene que vivir dentro de él.
+
 ## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
 Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.
 Felipe se lleva:
 1. **El registro de migraciones de Supabase no sirve para saber qué está pegado:** reconoce 17 de 103 por nombre. Solo los efectos dicen la verdad.
 2. **Una migración con fecha vieja que se fusiona tarde se esconde de cualquier revisión por fecha:** hay que mirar qué ENTRÓ a `main`, no qué fecha dice el archivo.
 3. **Un «encender» a secas puede debilitar un candado sin apagarlo:** la verificación tiene que mirar el modo, no solo si está prendido.
+
 
 ## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
 Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
