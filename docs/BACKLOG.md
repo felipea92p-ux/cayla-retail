@@ -633,6 +633,13 @@ Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apart
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
 - [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
 
+## 🎯 Apartados: recordar en lote (2026-09-26, ADR-0227) — migración `20260926233000` NO está en producción; web en PR
+Paso 1 de las funciones del spike Apartados v2 (orden acordado con Felipe: recordar en lote → abonos → estante real → actividad, editar y otra sede → «Opciones» y «Qué ver»).
+- [x] Tabla `separacion_avisos` (append-only), `registrar_aviso_separacion` y `fn_avisos_separaciones`; `pnpm pruebas:separaciones` 53/53 en el Postgres local.
+- [x] Web: aviso «N clientas por avisar hoy» en Todos, `RecordarModal` (lote o una sola clienta), mensaje de vencido con la fecha de gracia; reglas puras con prueba.
+- [ ] **Pegar en producción** `supabase/migrations/20260926233000_separacion_avisos.sql` (una sola parte: solo objetos nuevos, sin políticas) **antes de fusionar la web** — con el OK de Felipe.
+- [ ] Después de pegarla: refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) y verlo con clics reales en TRU.
+
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
 Encender «Punto de venta» ya no trae Apartados: son dos interruptores. Apartados nace sin rol (solo lo ve el líder).
 - [ ] Pegar `supabase/migrations/20260924220000_apartados_modulo_propio.sql` en el SQL Editor de producción (ya trae `retail.`).

@@ -2,16 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Printer } from "lucide-react";
+import { Check, MessageCircle, Printer } from "lucide-react";
 import { Modal, botonCancelar, botonPrimario, campoEtiqueta, campoTexto } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
 import { money } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { AVISO_DIAS, EXTENSIONES_MAX, PLAZO_DIAS, soloDigitos, sumarDiasIso, textoDevolucion, type Apartado, type MedioDevolucionReal } from "@/lib/separaciones-reglas";
+import {
+  AVISO_DIAS,
+  EXTENSIONES_MAX,
+  PLAZO_DIAS,
+  enlaceWhatsapp,
+  estadoVisible,
+  formatoCelular,
+  mensajeWhatsapp,
+  soloDigitos,
+  sumarDiasIso,
+  textoDevolucion,
+  type Apartado,
+  type MedioDevolucionReal,
+} from "@/lib/separaciones-reglas";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
+import { EstadoChip, ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -398,3 +411,134 @@ export function ExtenderModal({ apartado, ubicacion, onClose }: { apartado: Apar
     </Modal>
   );
 }
+
+/**
+ * Recordar (Apartados v2, paso 1 — 20260926233000): escribirle a la clienta por WhatsApp y dejar constancia. Con varias
+ * clientas es la cola del día, una tras otra; desde el botón de una fila, esa sola. El chat se abre ANTES de hablar con
+ * la base: el navegador solo deja abrir una ventana en el mismo toque, no después de esperar una respuesta. Lo envía la
+ * persona desde el WhatsApp de la tienda; el sistema no manda nada solo.
+ */
+export function RecordarModal({
+  cola,
+  ubicacion,
+  hoy,
+  onAvisada,
+  onClose,
+}: {
+  cola: Apartado[];
+  ubicacion: UbicacionApartado;
+  hoy: string;
+  onAvisada: (id: string) => void;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [pos, setPos] = useState(0);
+  const [hechas, setHechas] = useState<ReadonlySet<string>>(() => new Set());
+  const [enviando, setEnviando] = useState(false);
+  // Avisar es una operación de la tienda: firma quien atiende (ADR-0161). En el lote el combo no se vacía entre una
+  // clienta y la siguiente —es la misma persona escribiendo—; vuelve a vacío al terminar.
+  const responsable = useResponsable(ubicacion, { modo: "atencion" });
+  const actual = cola[Math.min(pos, cola.length - 1)];
+  const mensaje = mensajeWhatsapp(actual, ubicacion.etiqueta, hoy);
+
+  async function escribir(cerrar: () => void) {
+    if (!responsable.listo || enviando) return;
+    window.open(enlaceWhatsapp(actual.celular, mensaje), "_blank", "noopener,noreferrer");
+    setEnviando(true);
+    const { error } = await firmar(createClient().rpc("registrar_aviso_separacion", { p_separacion_id: actual.id }), responsable.firma());
+    setEnviando(false);
+    if (error) {
+      responsable.despues(error);
+      return avisar.error(traducirError(error, "anotar el aviso"), { detalle: "El chat se abrió, pero el aviso no quedó anotado: vuelve a intentarlo." });
+    }
+    const nuevas = new Set([...hechas, actual.id]);
+    setHechas(nuevas);
+    onAvisada(actual.id);
+    const siguiente = cola.findIndex((a) => !nuevas.has(a.id));
+    if (siguiente >= 0) return setPos(siguiente);
+    responsable.despues(null);
+    avisar.exito(nuevas.size === 1 ? `Aviso a ${actual.nombres} anotado` : `${nuevas.size} avisos anotados`);
+    router.refresh();
+    cerrar();
+  }
+
+  function saltar() {
+    const resto = cola.map((_, i) => (pos + 1 + i) % cola.length).find((i) => !hechas.has(cola[i].id) && i !== pos);
+    if (resto !== undefined) setPos(resto);
+  }
+
+  const varias = cola.length > 1;
+  return (
+    <Modal
+      titulo={varias ? "Recordar en lote" : `Escribirle a ${actual.nombres}`}
+      subtitulo={varias ? `${hechas.size} de ${cola.length} avisadas · WhatsApp de ${ubicacion.etiqueta}` : `${actual.codigo} · ${formatoCelular(actual.celular)}`}
+      onClose={() => {
+        if (hechas.size) router.refresh();
+        onClose();
+      }}
+      ancho="max-w-lg"
+    >
+      {(cerrar) => (
+        <div className="space-y-4">
+          {varias && (
+            <>
+              <div aria-hidden className="h-1.5 overflow-hidden rounded-full bg-sand">
+                <span className="block h-full rounded-full bg-tinta transition-[width] duration-500 ease-[var(--ease-cayla)]" style={{ width: `${(hechas.size / cola.length) * 100}%` }} />
+              </div>
+              <ul className="divide-y divide-sand overflow-hidden rounded-xl border border-sand">
+                {cola.map((a, i) => (
+                  <li key={a.id}>
+                    <button
+                      type="button"
+                      onClick={() => setPos(i)}
+                      aria-current={a.id === actual.id ? "true" : undefined}
+                      className={`flex w-full items-center gap-3 px-3.5 py-2.5 text-left text-sm transition-colors ${a.id === actual.id ? "bg-crema" : "hover:bg-crema/60"}`}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <b className="font-semibold">{a.nombres} {a.apellidos}</b>{" "}
+                        <span className="text-xs text-tinta/55 tabular-nums">{formatoCelular(a.celular)}</span>
+                      </span>
+                      {hechas.has(a.id) ? (
+                        <span className="flex items-center gap-1 text-xs text-verde-profundo"><Check className="h-3.5 w-3.5" aria-hidden /> Avisada</span>
+                      ) : (
+                        <EstadoChip {...estadoVisible(a, hoy)} />
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <div className="card-cayla space-y-2 p-4">
+            <p className="label-cayla text-[11px] text-tinta/60">Mensaje para {actual.nombres}</p>
+            <p className="rounded-xl rounded-bl-sm bg-hueso px-3.5 py-3 text-[13.5px] text-tinta">{mensaje}</p>
+            <p className="text-xs text-tinta/60">Se abre WhatsApp con este texto y lo envías tú. Al volver, queda anotado quién le escribió y cuándo.</p>
+          </div>
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+          <div className="flex gap-2">
+            {varias ? (
+              <button type="button" onClick={saltar} disabled={cola.length - hechas.size <= 1} className={botonCancelar}>
+                Saltar
+              </button>
+            ) : (
+              <button type="button" onClick={cerrar} className={botonCancelar}>
+                Mejor no
+              </button>
+            )}
+            <button
+              type="button"
+              disabled={enviando || !responsable.listo || hechas.has(actual.id)}
+              title={responsable.motivo ?? undefined}
+              onClick={() => escribir(cerrar)}
+              className={`${botonPrimario} flex flex-1 items-center justify-center gap-2`}
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden />
+              {enviando ? "Anotando…" : varias ? "Abrir WhatsApp y seguir" : "Abrir WhatsApp"}
+            </button>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
