@@ -29,3 +29,15 @@ export function nombreDeEspera(nombre: string | undefined | null, indice: number
 
 /** Tope del nombre de un ticket en espera: es una etiqueta, no una nota (la nota del ticket ya existe). */
 export const NOMBRE_ESPERA_MAX = 30;
+
+/** Hace cuánto se dejó un ticket en espera, legible (spike «el ticket a lo alto»): la tira decía «3216 min» de un
+ *  ticket de hace dos días. Menos de una hora en minutos, menos de un día en horas, y después en días. */
+export function haceCuanto(desdeIso: string, ahora: number): string {
+  const min = Math.max(0, Math.floor((ahora - new Date(desdeIso).getTime()) / 60_000));
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "hace 1 día" : `hace ${d} días`;
+}

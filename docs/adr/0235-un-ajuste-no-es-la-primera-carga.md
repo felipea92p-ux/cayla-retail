@@ -1,8 +1,10 @@
 # ADR-0235 · Un ajuste no es la primera carga de una prenda
 
 - **Fecha:** 2026-09-26 · **Estado:** Aprobado por Felipe («Sí, mandar al stock inicial»).
-- **Producción:** dos migraciones, **ninguna aplicada**: `20260927153100_cargar_stock_inicial_de_prenda_existente.sql`
-  (antes de la web) y `20260927153200_ajuste_no_es_primera_carga.sql` (DESPUÉS de la web). Esperan el OK de Felipe.
+- **Producción:** dos migraciones, **las dos aplicadas el 2026-09-26** en el orden correcto:
+  `20260927153100_cargar_stock_inicial_de_prenda_existente.sql` (antes de la web) y
+  `20260927153200_ajuste_no_es_primera_carga.sql` (después de que Vercel publicara la web del PR #496, 20:22 UTC). Cada una
+  con ensayo revertido sobre los datos reales y verificada por huella (ver «Verificación»).
 - **Complementa:** ADR-0212 (stock inicial de un producto nuevo), ADR-0143 (candado de líder del ajuste), ADR-0208
   (Frescura: el piso no sube solo), ADR-0234 (Movimientos leído desde la tienda).
 
@@ -76,6 +78,11 @@ SE ROMPE SI: se usa para mercadería que LLEGA de un proveedor (entraría sin co
 
 ## Verificación
 
+- **Producción (2026-09-26):** ensayo de `153200` en una transacción que se deshizo sola, sobre Tienda TRU y con sesión de
+  Admin: el ajuste de una prenda sin historia salió `P0001 · ajuste_sin_historia`; el de una prenda con historia y una
+  entrada normal pasaron. Aplicada después: `md5(prosrc)` de `registrar_movimiento` = `3c3c83f8…`, el mismo del ensayo y
+  de la base local; una sola versión, un solo candado, `security definer`, `anon` sin EXECUTE. `cargar_stock_inicial`:
+  `7e2a2d28…`, igual a la local.
 - `pnpm pruebas:ajuste-no-es-primera-carga` (20 verificaciones, ROLLBACK): el candado rechaza y no deja nada, va después
   de saber quién firma, el parche anterior sigue puesto, la carga inicial entra como entrada firmada (al almacén o al
   piso con su bajada), todas o ninguna, y después un ajuste de verdad pasa.

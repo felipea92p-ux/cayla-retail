@@ -74,8 +74,14 @@ export function FotosAlta({
     onFotos(fotos.filter((x) => x.clave !== clave));
   }
 
-  // Sin colores, una sola casilla «General». Con colores, una por color y la general al final (fotos de detalle, etiqueta…).
-  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null }[] = [...colores, { codigo: null, nombre: colores.length ? "General" : "Fotos", hex: null }];
+  // La foto sin color va PRIMERO: una sola foto por prenda alcanza, y se ve en cada color que no tenga la suya
+  // (`fotoDeVariante`, decidido con Felipe el 2026-09-26: «una foto general y luego escoger la gama de colores»). Con
+  // colores se llama «Todos los colores» para que se entienda eso; las casillas por color quedan para quien sí tenga
+  // la foto de ese color.
+  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null }[] = [
+    { codigo: null, nombre: colores.length ? "Todos los colores" : "Fotos", hex: null },
+    ...colores,
+  ];
 
   return (
     <div className="space-y-2">
@@ -112,7 +118,7 @@ export function FotosAlta({
         })}
       </div>
       <p className="text-xs text-taupe">
-        JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de agregarla eliges si va sin fondo. Se suben al crear el producto; si cancelas, no se guarda nada. La primera del primer color queda de principal.
+        Una foto alcanza: la de «Todos los colores» se ve en cada color que no tenga la suya. JPG, PNG o WebP, hasta 25 MB; cada foto sale del mismo tamaño, sobre blanco, y antes de agregarla eliges si va sin fondo. Se suben al crear el producto; si cancelas, no se guarda nada.
       </p>
       {porRevisar && (
         <RevisarFotosModal
