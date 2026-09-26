@@ -62,7 +62,7 @@ begin
      or to_regprocedure('retail.fn_ids_de_items(jsonb, text)') is null then
     raise exception 'Falta fn_bloquear_en_orden (ADR-0190): pega antes 20260924130000_concurrencia_orden_y_doble_clic.sql';
   end if;
-  -- Por nombre y no por firma: 20260926180100 le sumó el séptimo parámetro (la marca), y esta guarda tiene que seguir
+  -- Por nombre y no por firma: 20260926200100 le sumó el séptimo parámetro (la marca), y esta guarda tiene que seguir
   -- sirviendo si esta parte se vuelve a pegar después.
   if not exists (select 1 from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'mover_interno')
      or to_regprocedure('retail.fn_actor_persona_id(boolean)') is null then

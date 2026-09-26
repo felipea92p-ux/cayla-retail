@@ -1,6 +1,6 @@
 -- ============================================================================
--- 20260926180000_mover_interno_intentos_tabla.sql — CAYLA V2 · ADR-0208 «Frescura del piso» · marca de mover_interno
--- PARTE 1 de 2 (la tabla). La PARTE 2 es 20260926180100_mover_interno_con_marca.sql.
+-- 20260926200000_mover_interno_intentos_tabla.sql — CAYLA V2 · ADR-0208 «Frescura del piso» · marca de mover_interno
+-- PARTE 1 de 2 (la tabla). La PARTE 2 es 20260926200100_mover_interno_con_marca.sql.
 --
 -- EL PROBLEMA PRIMERO. «Reponer» y «Retirar del piso» (Existencias) llaman a `mover_interno`, que no tenía marca contra
 -- el doble envío. Si la conexión se corta DESPUÉS de que la base guardó y antes de que llegue la respuesta, la
@@ -15,7 +15,7 @@
 -- ESTADOS QUE DEJAN DE SER POSIBLES: una marca que produjo dos movimientos (PK = la marca); un movimiento citado por
 -- dos marcas (unique); una marca sin movimiento (not null + FK).
 --
--- ORDEN AL PEGAR: esta (180000) → 20260926180100 → recién entonces fusionar/publicar la web que manda `p_token`.
+-- ORDEN AL PEGAR: esta (200000) → 20260926200100 → recién entonces fusionar/publicar la web que manda `p_token`.
 -- Si la web sale antes, «Reponer» y «Retirar» mandarían un parámetro que la base todavía no acepta y fallarían.
 -- La FK hacia `movimientos` toma un candado breve sobre esa tabla: pegar fuera de hora pico (lock_timeout 3 s: si no
 -- lo consigue, falla sin daño y se vuelve a pegar). Sin políticas ni `drop trigger` (ADR-0195). Re-ejecutable.

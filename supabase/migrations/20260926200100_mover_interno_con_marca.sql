@@ -1,6 +1,6 @@
 -- ============================================================================
--- 20260926180100_mover_interno_con_marca.sql — CAYLA V2 · ADR-0208 «Frescura del piso» · marca de mover_interno
--- PARTE 2 de 2 (la función). Va DESPUÉS de 20260926180000 (la tabla).
+-- 20260926200100_mover_interno_con_marca.sql — CAYLA V2 · ADR-0208 «Frescura del piso» · marca de mover_interno
+-- PARTE 2 de 2 (la función). Va DESPUÉS de 20260926200000 (la tabla).
 --
 -- EL PROBLEMA PRIMERO. Ver la PARTE 1: sin marca, un reintento después de un corte de red mueve la prenda dos veces.
 --
@@ -23,7 +23,7 @@
 -- 2026-09-25 y en local). Si el cuerpo vivo de la firma de seis parámetros es OTRO, alguien lo parchó en vivo y
 -- reescribirlo borraría ese parche en silencio: se aborta sin tocar nada.
 --
--- ORDEN AL PEGAR: 20260926180000 → esta → recién entonces fusionar/publicar la web que manda `p_token` (ver PARTE 1).
+-- ORDEN AL PEGAR: 20260926200000 → esta → recién entonces fusionar/publicar la web que manda `p_token` (ver PARTE 1).
 -- Re-ejecutable: pegada dos veces deja lo mismo (la segunda vez ya no hay firma de seis parámetros que revisar).
 --
 -- SE ROMPE SI alguien vuelve a pegar 20260914230000 (recrearía la versión de seis parámetros al lado de esta: dos
@@ -38,7 +38,7 @@ declare
   v_md5 text;
 begin
   if to_regclass('retail.movimientos_internos_intentos') is null then
-    raise exception 'Falta la tabla de marcas: pega antes 20260926180000_mover_interno_intentos_tabla.sql';
+    raise exception 'Falta la tabla de marcas: pega antes 20260926200000_mover_interno_intentos_tabla.sql';
   end if;
   if to_regprocedure('retail.fn_actor_persona_id(boolean)') is null then
     raise exception 'Falta fn_actor_persona_id: pega antes 20260923100000_actor_firma_las_operaciones.sql';

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Prueba de la marca de `mover_interno` (ADR-0208; `20260926180000_mover_interno_intentos_tabla.sql` y
- * `20260926180100_mover_interno_con_marca.sql`).
+ * Prueba de la marca de `mover_interno` (ADR-0208; `20260926200000_mover_interno_intentos_tabla.sql` y
+ * `20260926200100_mover_interno_con_marca.sql`).
  *
  * QUÉ CUBRE
  *   M1 forma: UNA sola firma, con `p_token` opcional al final; authenticated la ejecuta y anon no; la tabla de marcas con
@@ -30,7 +30,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION_FUNCION = readFileSync(join(RAIZ, "supabase", "migrations", "20260926180100_mover_interno_con_marca.sql"), "utf8");
+const MIGRACION_FUNCION = readFileSync(join(RAIZ, "supabase", "migrations", "20260926200100_mover_interno_con_marca.sql"), "utf8");
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const T_ALMACEN = "33333333-3333-4333-8333-0000000000e2"; // cuenta de una terminal administrativa de Trujillo

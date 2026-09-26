@@ -34,7 +34,7 @@ export type FilaParaReponer = {
   almacen: number | null;
 };
 
-// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql; la marca, 20260926180100):
+// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql; la marca, 20260926200100):
 // mismo motor que un traslado entre sedes, pero dentro de la misma
 // ubicación — el total de la tienda no cambia, solo dónde vive físicamente
 // la prenda. Los UUID de piso/almacén ya vienen resueltos desde el server

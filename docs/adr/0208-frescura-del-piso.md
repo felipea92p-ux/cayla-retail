@@ -175,8 +175,8 @@ conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1,
    está publicada; la revisión suma la migración `20260926170000`, por pegar.
    - **Entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
      `bajar_al_piso`). Va ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas
-     filas: un envío doble infla las dos cosas. **Construido el 2026-09-26, por pegar** (migraciones `20260926180000` y
-     `20260926180100`; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
+     filas: un envío doble infla las dos cosas. **Construido el 2026-09-26, por pegar** (migraciones `20260926200000` y
+     `20260926200100`; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
 3. **Bloque 3 — La pantalla de Frescura** (pasos 3, 4, 5 y 7): reloj de novedad por modelo+color, reloj de piso por
    unidad con emparejamiento FIFO, curva de Kaplan-Meier con P50, P75 y P90 por categoría y sede, tramos e índice de
    rapidez, el indicador de «confianza del registro» por sede (contrato en (d)) y atributos y marcas en la lectura. Se
@@ -1045,13 +1045,13 @@ descuente ese mismo envío, y la pregunta es para la base. La nota se manda escr
 `datos:comparar` pueda leer la llamada entera.
 
 **La guarda de la `0200`.** Buscaba `mover_interno` por su firma de seis parámetros; ahora la busca por nombre, para
-que la `0200` se pueda volver a pegar después de la `180100` (las pruebas del CI lo hacen). Solo cambia la guarda, no
+que la `0200` se pueda volver a pegar después de la `200100` (las pruebas del CI lo hacen). Solo cambia la guarda, no
 lo que crea: en producción no hay que volver a pegarla.
 
 **Cómo se pega (en este orden, fuera de hora pico):**
-1. `20260926180000_mover_interno_intentos_tabla.sql` (la tabla; su FK toma un candado breve sobre `movimientos`, con
+1. `20260926200000_mover_interno_intentos_tabla.sql` (la tabla; su FK toma un candado breve sobre `movimientos`, con
    `lock_timeout` de 3 s: si no lo consigue, falla sin daño y se vuelve a pegar).
-2. `20260926180100_mover_interno_con_marca.sql` (la función). Si el cuerpo vivo de `mover_interno` no mide
+2. `20260926200100_mover_interno_con_marca.sql` (la función). Si el cuerpo vivo de `mover_interno` no mide
    `ab13725880e28cabc97d3261d4db8396` (medido en producción el 2026-09-25), aborta sin tocar nada: alguien lo parchó en
    vivo y hay que reescribir la migración desde la definición real.
 3. Recién entonces fusionar la web.

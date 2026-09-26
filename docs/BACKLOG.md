@@ -440,7 +440,7 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   `mover_interno` suma `p_token` opcional (una sola firma) y la tabla `movimientos_internos_intentos`; el reintento con
   la misma marca devuelve el mismo movimiento, con otros datos se rechaza, y la marca se mira antes del responsable.
   «Reponer» y «Retirar del piso» mandan una marca por modal y, tras un corte, dejan la cantidad fija con «Confirmar de
-  nuevo». **Pegar `20260926180000` → `20260926180100` ANTES de fusionar su web** (si no, «Reponer» y «Retirar» fallan
+  nuevo». **Pegar `20260926200000` → `20260926200100` ANTES de fusionar su web** (si no, «Reponer» y «Retirar» fallan
   hasta pegarlas; `pnpm datos:comparar` lo avisa). Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
   ADR-0208, «Actualización 2026-09-26 — la marca de `mover_interno`». Cierra la «tarea 5» del plan del termómetro en lo
   que toca a Reponer y Retirar (el contexto por documento sigue sin construir).
