@@ -461,6 +461,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:proveedores-cuentas
 
+      # Varios rubros por proveedor (ADR-0213): registrar/editar limpian la lista (espacios, vacíos, repetidos sin
+      # tildes ni mayúsculas), «sin rubro» es {} y nunca NULL, el CHECK y NOT NULL rechazan por su cuenta, fn_proveedores()
+      # devuelve la lista, UNA sola firma de cada función, Gastos sigue naciendo con {Gastos} y la migración se puede
+      # pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:proveedores-rubros
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-rubros
+
       # Pagos de Compras endurecidos (ADR-0135): el total del papel con IGV incluido cuadra sin abrir el candado
       # (5 u × 10.00 … 100 u × 1.00; un +S/ 5 sigue rechazado), el pago desde el detalle es idempotente por token, el
       # reintento de un lote con saldo a favor devuelve el éxito original, las tres rutas rechazan fechas futuras o
