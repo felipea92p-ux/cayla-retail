@@ -25,6 +25,11 @@
   "tablename": "activos_fijos"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX ajustes_inventario_intentos_pkey ON retail.ajustes_inventario_intentos USING btree (token_cliente)",
+  "indexname": "ajustes_inventario_intentos_pkey",
+  "tablename": "ajustes_inventario_intentos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX apartados_pkey ON retail.apartados USING btree (id)",
   "indexname": "apartados_pkey",
   "tablename": "apartados"

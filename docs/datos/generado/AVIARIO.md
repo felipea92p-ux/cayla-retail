@@ -4,7 +4,7 @@
 > Para darle pájaro a una tabla se edita `scripts/datos/aviario.mjs`. Para apuntarte a un
 > pájaro, `docs/datos/07-GOBIERNO.md` §1: el pájaro es el puesto, quién lo lleva se dice allá.
 >
-> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 134 · **Sin pájaro:** 0
+> **Origen:** volcado de producción (`retail_columnas.json`) · **Tablas y vistas:** 135 · **Sin pájaro:** 0
 
 ## Por pájaro
 
@@ -14,7 +14,7 @@
 | 02 | **Loro** | Catálogo y vocabulario | `catalogo_version` · `categoria_patrones` · `categoria_tallas` · `categoria_tejidos` · `categorias` · `codigos_barras` · `codigos_correlativos` · `colores` · `etiqueta_categorias` · `etiquetas` · `familias` · `historial_producto_cambios` · `marca_proveedores` · `marcas` · `patrones` · `producto_fotos` · `productos` · `tallas` · `tejidos` · `variante_etiquetas` · `variantes` |
 | 03 | **Tucán** | Taxonomía universal | *sin tablas hoy* |
 | 04 | **Golondrina** | Importación de catálogo | *sin tablas hoy* |
-| 05 | **Halcón** | Inventario y movimientos | `bajada_piso_items` · `bajadas_piso` · `costo_historial` · `envio_extras` · `envio_traslados` · `envios` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
+| 05 | **Halcón** | Inventario y movimientos | `ajustes_inventario_intentos` · `bajada_piso_items` · `bajadas_piso` · `costo_historial` · `envio_extras` · `envio_traslados` · `envios` · `lotes` · `movimientos` · `movimientos_internos_intentos` · `prendas_danadas` · `stock` · `sububicaciones` · `transferencia_items` · `transferencia_recepciones` · `transferencias` |
 | 06 | **Lechuza** | Conteo y censo físico | `conteo_items` · `conteos` |
 | 07 | **Colibrí** | Ventas y caja | `apartados` · `apartados_opciones` · `caja_movimientos` · `caja_traslados` · `cajas` · `cambios` · `campana_efecto_caja` · `clientas` · `codigos_descuento` · `configuracion_historial` · `devolucion_items` · `devoluciones` · `pedidos_no_atendidos` · `prendas_por_regularizar` · `separacion_abonos` · `separacion_avisos` · `separacion_correlativos` · `separacion_ediciones` · `separacion_items` · `separacion_items_retirados` · `separacion_pagos` · `separacion_pedidos` · `separaciones` · `ubicacion_metas_dia` · `venta_anulacion_items` · `venta_items` · `venta_pagos` · `ventas` |
 | 08 | **Cuervo** | Facturación SUNAT | `comprobante_anticipos` · `comprobantes` · `configuracion_empresa` · `proformas` · `series_comprobantes` · `ubicacion_datos_fiscales` |
@@ -33,6 +33,7 @@ Tienes un nombre de tabla, quieres el pájaro.
 |---|---|
 | `actividad` | 13 · Águila |
 | `activos_fijos` | 12 · Urraca |
+| `ajustes_inventario_intentos` | 05 · Halcón |
 | `apartados` | 07 · Colibrí |
 | `apartados_opciones` | 07 · Colibrí |
 | `bajada_piso_items` | 05 · Halcón |

@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 292 llamadas de `apps/web` contra 607 funciones del schema `retail` en producción.
+> Comparadas 289 llamadas de `apps/web` contra 612 funciones del schema `retail` en producción.
 
 ---
 
@@ -11,12 +11,11 @@
 
 Ninguna. Cada función tiene una sola firma en producción.
 Nada. Todas las llamadas encajan con la firma real.
-## Avisos — 37
+## Avisos — 36
 
 - `anular_comprobante` · `apps/web/app/api/lucode/consultar-anulacion/route.ts:88` — no manda `p_motivo` (normal si tienen valor por defecto)
 - `actualizar_categoria_ejes` · `apps/web/app/api/productos/categorias/ejes/route.ts:26` — no manda `p_talla_habitual_ids` (normal si tienen valor por defecto)
 - `abrir_caja` · `apps/web/components/AbrirCajaFormV2.tsx:53` — no manda `p_motivo_diferencia` (normal si tienen valor por defecto)
-- `cargar_stock_inicial` · `apps/web/components/AjustarInventarioModal.tsx:190` — no manda `p_token` (normal si tienen valor por defecto)
 - `cerrar_caja` · `apps/web/components/CerrarCajaModalV2.tsx:176` — no manda `p_traslado_destino` (normal si tienen valor por defecto)
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
 - `crear_devolucion` · `apps/web/components/DevolucionesFlujo.tsx:232` — no manda `p_motivo_codigo` (normal si tienen valor por defecto)
@@ -25,7 +24,7 @@ Nada. Todas las llamadas encajan con la firma real.
 - `registrar_consumo_insumo` · `apps/web/components/OrdenInsumos.tsx:124` — no manda `p_nota` (normal si tienen valor por defecto)
 - `devolver_insumo_de_produccion` · `apps/web/components/OrdenInsumos.tsx:154` — no manda `p_nota` (normal si tienen valor por defecto)
 - `guardar_proveedor_produccion` · `apps/web/components/ProveedorProduccionModal.tsx:85` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
-- `mover_interno` · `apps/web/components/ReponerPisoModal.tsx:124` — no manda `p_nota` (normal si tienen valor por defecto)
+- `mover_entre_piso_y_almacen` · `apps/web/components/ReponerPisoModal.tsx:125` — no manda `p_nota` (normal si tienen valor por defecto)
 - `resolver_prenda_danada` · `apps/web/components/ResolverDanadosModal.tsx:71` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
 - `registrar_serie_comprobante` · `apps/web/components/SeriesPanel.tsx:92` — no manda `p_siguiente_numero` (normal si tienen valor por defecto)
 - `fn_actividad` · `apps/web/components/actividad/ListaActividad.tsx:43` — no manda `p_hasta` (normal si tienen valor por defecto)
@@ -51,12 +50,12 @@ Nada. Todas las llamadas encajan con la firma real.
 - `actualizar_transmision_comprobante` · `apps/web/lib/transmitir-comprobante.ts:170` — no manda `p_entorno`, `p_motivo_rechazo` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:248` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 41
+## No analizadas — 43
 
 Estas llamadas arman sus parámetros fuera de la propia llamada, así que no se
 pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 
-- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:214` — el objeto se arma con «...», no se puede leer entero
+- `ajustar_inventario` · `apps/web/components/AjustarInventarioModal.tsx:215` — los parámetros no van escritos ahí mismo
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:65` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:278` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:365` — el objeto se arma con «...», no se puede leer entero
@@ -85,20 +84,22 @@ pueden revisar leyendo el texto. **No están aprobadas: están sin revisar.**
 - `fn_productos` · `apps/web/lib/catalogo-v2.ts:385` — el objeto se arma con «...», no se puede leer entero
 - `fn_productos_resumen` · `apps/web/lib/catalogo-v2.ts:408` — los parámetros no van escritos ahí mismo
 - `por_pagar_tramos` · `apps/web/lib/compras-indicadores.ts:110` — el objeto se arma con «...», no se puede leer entero
+- `resumen_recepciones` · `apps/web/lib/compras-indicadores.ts:178` — los parámetros no van escritos ahí mismo
 - `listar_recepciones_compras` · `apps/web/lib/compras-indicadores.ts:213` — el objeto se arma con «...», no se puede leer entero
+- `resumen_sin_comprobante` · `apps/web/lib/compras-indicadores.ts:252` — los parámetros no van escritos ahí mismo
 - `recepciones_sin_comprobante` · `apps/web/lib/compras-indicadores.ts:282` — el objeto se arma con «...», no se puede leer entero
 - `listar_compras_operativo` · `apps/web/lib/compras.ts:192` — el objeto se arma con «...», no se puede leer entero
 - `listar_compras` · `apps/web/lib/compras.ts:219` — el objeto se arma con «...», no se puede leer entero
 - `lineas_compra_operativo` · `apps/web/lib/compras.ts:392` — el objeto se arma con «...», no se puede leer entero
 - `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:200` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:183` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:235` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos_resumen_procesos` · `apps/web/lib/movimientos-v2.ts:255` — los parámetros no van escritos ahí mismo
+- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:184` — el objeto se arma con «...», no se puede leer entero
+- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:236` — el objeto se arma con «...», no se puede leer entero
+- `fn_movimientos_resumen_procesos` · `apps/web/lib/movimientos-v2.ts:256` — los parámetros no van escritos ahí mismo
 - `fn_facturas_para_nota_credito` · `apps/web/lib/notas-credito.ts:148` — el objeto se arma con «...», no se puede leer entero
-- `asignar_rol` · `apps/web/lib/roles-acciones.ts:50` — el objeto se arma con «...», no se puede leer entero
+- `asignar_rol` · `apps/web/lib/roles-acciones.ts:50` — los parámetros no van escritos ahí mismo
 - `abrir_caja` · `apps/web/lib/useResponsable.ts:26` — el objeto se arma con «...», no se puede leer entero
 
-## Funciones que nadie llama — 38
+## Funciones que nadie llama — 42
 
 Existen en producción y ninguna pantalla las usa. Cada una es una de dos cosas:
 una pantalla que falta construir, o una función que sobra y habría que retirar.
@@ -107,12 +108,14 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `agregar_comprador_de_tienda`
 - `agregar_terminal`
 - `ajustar_insumo_por_conteo`
+- `apartar_stock`
 - `archivar_caja_prueba`
 - `archivar_conteo_prueba`
 - `archivar_producto_prueba`
 - `archivar_venta_prueba`
 - `bajar_al_piso`
 - `cambiar_tienda_gestora_compra`
+- `cargar_stock_inicial`
 - `catalogo_crear_producto`
 - `cerrar_periodo`
 - `convertir_proforma_a_comprobante`
@@ -121,6 +124,7 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `desactivar_proveedor`
 - `emitir_comprobante`
 - `emitir_nota`
+- `mover_interno`
 - `quitar_comprador_de_tienda`
 - `reabrir_periodo`
 - `reactivar_categoria`
@@ -131,6 +135,7 @@ una pantalla que falta construir, o una función que sobra y habría que retirar
 - `recibir_y_cerrar_compras`
 - `registrar_activo`
 - `registrar_gasto_legado_2026_09`
+- `registrar_movimiento`
 - `registrar_pago_compra`
 - `trg_actividad_caja_movimientos`
 - `trg_actividad_caja_traslados`

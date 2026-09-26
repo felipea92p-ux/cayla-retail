@@ -9,6 +9,11 @@
   "relkind": "r",
   "rls": true
  },
+ "ajustes_inventario_intentos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "apartados": {
   "forzado": false,
   "relkind": "r",

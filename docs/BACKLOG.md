@@ -36,7 +36,7 @@ Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-cat
 - [x] **#6 El prefijo se ve bloqueado** antes de guardar: «Fijo: N productos lo usan». `fn_productos_por_categoria` devuelve `n_total`.
 - [x] **#10 (parte)** Ícono de Accesorios (ya no parece candado) y el ejemplo «Kimonos / KIM».
 - [x] **`20260927200000` aplicada en producción (2026-09-26)**, tras un ensayo revertido contra los datos reales (los tres candados frenaron; renombrar pasó; dos pasadas). Las 5 consultas del pie dan lo esperado; `md5(prosrc)` de las dos funciones = el del archivo (`bec1a61e…`, `1e3afe55…`); permisos solo `authenticated`.
-- [ ] Refrescar el volcado y `pnpm datos:generar:produccion` (`generado/COMO-REFRESCAR.md`).
+- [x] Diccionario refrescado desde producción (foto 2026-09-26 23:17 UTC: 135 relaciones, 612 funciones; las 957 huellas coinciden). `datos:comparar` sin pantallas rotas tras corregir su lectura de `.rpc("x", ayudante({…}))`; `ajustes_inventario_intentos` recibió pájaro (Halcón).
 - [ ] Hueco hermano, fuera de este lote: un producto todavía puede apuntar a una categoría **inactiva** por UPDATE directo en `productos` (el alta y la edición lo impiden en la RPC). Toca el núcleo (`productos`): decide Felipe.
 - [ ] Del análisis quedan: #3 cabecera (hoy cuadra), #7 Editar en pasos, #8 una sola RPC, #9 más pruebas de pantalla, resto de #10, #11 (decide Felipe), #12.
 - Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`). **No corre en CI todavía:** la sesión no podía tocar `.github/workflows/`. Falta el paso junto a `pruebas:editar-marca` y sacarla de `EXCLUIDAS` en `lib/ci-paridad.test.ts`; su primera corrida real será esa.
