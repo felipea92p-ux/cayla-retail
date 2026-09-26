@@ -28,14 +28,15 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🏷️ Categorías: los candados pasan a la tabla, tallas en orden y prefijo a la vista (2026-09-26) — migración `20260927200000` **NO está en producción**; rama `claude/categorias-mejoras`
+## 🏷️ Categorías: los candados pasan a la tabla, tallas en orden y prefijo a la vista (2026-09-26) — migración `20260927200000` **YA en producción** (2026-09-26); rama `claude/categorias-mejoras`
 Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-categorias.md) (2026-09-21), Felipe ordenó el lote #2, #4, #5, #6 y parte de #10.
 - [x] **#2 Candados en la tabla.** El disparador `categorias_vigencia_candados` (`fn_categorias_vigencia_candados`) cumple, sea quien sea el que escriba: prefijo fijo con productos de cualquier estado; no desactivar con productos activos; no activar sin familia, sin prefijo o con la familia apagada. Antes vivía solo en las RPC, y así quedó «Blusas» desactivada con un producto activo.
 - [x] **#4 Reactivar valida.** Lo cubre el mismo disparador (sin reescribir `reactivar_categoria`). La «Polos» huérfana pasa a llamarse «Polos (V1, retirada)», con la nota en `notas`; la pantalla ya no le ofrece «Reactivar».
 - [x] **#5 Tallas en orden de tienda** (`compararTallas`) en Editar y en la Vista rápida.
 - [x] **#6 El prefijo se ve bloqueado** antes de guardar: «Fijo: N productos lo usan». `fn_productos_por_categoria` devuelve `n_total`.
 - [x] **#10 (parte)** Ícono de Accesorios (ya no parece candado) y el ejemplo «Kimonos / KIM».
-- [ ] **Pegar `20260927200000` en producción ANTES de fusionar** y correr las 5 consultas de verificación de su pie. Luego `pnpm datos:generar:produccion`.
+- [x] **`20260927200000` aplicada en producción (2026-09-26)**, tras un ensayo revertido contra los datos reales (los tres candados frenaron; renombrar pasó; dos pasadas). Las 5 consultas del pie dan lo esperado; `md5(prosrc)` de las dos funciones = el del archivo (`bec1a61e…`, `1e3afe55…`); permisos solo `authenticated`.
+- [ ] Refrescar el volcado y `pnpm datos:generar:produccion` (`generado/COMO-REFRESCAR.md`).
 - [ ] Hueco hermano, fuera de este lote: un producto todavía puede apuntar a una categoría **inactiva** por UPDATE directo en `productos` (el alta y la edición lo impiden en la RPC). Toca el núcleo (`productos`): decide Felipe.
 - [ ] Del análisis quedan: #3 cabecera (hoy cuadra), #7 Editar en pasos, #8 una sola RPC, #9 más pruebas de pantalla, resto de #10, #11 (decide Felipe), #12.
 - Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`). **No corre en CI todavía:** la sesión no podía tocar `.github/workflows/`. Falta el paso junto a `pruebas:editar-marca` y sacarla de `EXCLUIDAS` en `lib/ci-paridad.test.ts`; su primera corrida real será esa.
