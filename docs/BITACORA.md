@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Nuevo producto: «Seguir al precio» ya no deja la pantalla en blanco)
+Felipe y una compañera, desde dos cuentas, tocaban «Seguir al precio» y el contenido desaparecía. Reproducido en producción con sesión real y medido: el paso 3 (con tallas, colores y fotos) se pliega, la página baja de 2244 a 1294 px, y 33 ms después `PaginaEstable` (ADR-0185) agregaba 872 px de aire al fondo y devolvía la vista abajo: el paso 4 quedaba 1109 px por encima de lo visible. Arreglo: el cambio de paso suelta `PaginaEstable` antes de pintar (`soltarPaginaEstable`, como el ticket del Punto de Venta). Probado en producción soltándola en ese clic: 0 px de aire y el paso 4 a la vista.
+Felipe se lleva: **una pantalla «en blanco» no siempre es una pantalla rota**: aquí el formulario seguía entero, 1 100 px más arriba. La barra de desplazamiento pegada abajo era la pista.
+Sin resolver: nada; el cambio de paso de 2→3 y 4→5 pasa por el mismo arreglo.
+
 ## 2026-09-26 (Cierre de sesión: dónde queda Existencias)
 El PR #494 (acciones de la cabecera a la derecha + ADR-0231) se fusionó solo con el CI en verde y está en producción, igual que el #445. Lo que quedaba solo en la conversación pasó al BACKLOG: analizar la Existencias nueva con `/pantalla`, avisar a las tiendas del cambio, y rescatar el trabajo sin guardar de Análisis en otro worktree. El análisis viejo (`docs/pantallas/inventario.md`) ahora avisa que está viejo.
 Felipe se lleva: (1) **lo que no está en el repo no existe para la próxima sesión**, sobre todo si se retoma desde otra cuenta. (2) **Un análisis de pantalla caduca con el PR que la cambia**: si no lo dice arriba, alguien toma sus tareas creyendo que siguen vigentes. (3) **El cambio también se comunica**: una pantalla nueva sin aviso a quien la usa se lee como pantalla rota.
