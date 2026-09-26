@@ -1,11 +1,15 @@
 import type { ReactNode } from "react";
 import { FechaHoraLima } from "@/components/ui/FechaHoraLima";
 
-/** La cabecera de Cambios, Devoluciones y Caja (Atelier, 2026-09-19): arriba, dónde y cuándo
- *  —la sede que se mira y la hora de Lima, viva—, con el hilo de CAYLA (taupe) trazándose a
- *  su lado; después el título en la serif de la casa y su frase. A la derecha, lo que
- *  acompañe (el resumen de la sede). El título es de 46 px: más presencia que el 30 de las
- *  demás pantallas, pero sin gritar sobre el menú lateral. */
+/** La cabecera de Cambios, Devoluciones y Caja (Atelier, 2026-09-19), y desde el 2026-09-26 también la
+ *  de Inventario (ADR-0220): arriba, dónde y cuándo —la sede que se mira y la hora de Lima, viva—, con
+ *  el hilo de CAYLA (taupe) trazándose a su lado; después el título en la serif de la casa y su frase.
+ *  A la derecha, lo que acompañe (el resumen de la sede). El título es de 46 px: más presencia que el
+ *  30 de las demás pantallas, pero sin gritar sobre el menú lateral.
+ *
+ *  El título es el nombre de la pantalla tal como lo dice el menú («Existencias», «Caja»): la sede
+ *  va arriba, nunca de título. Título y frase aceptan más que texto para los detalles (Traslado 12
+ *  con su insignia; «Trujillo → Lima» con la flecha en taupe). */
 export function EncabezadoPagina({
   sede,
   titulo,
@@ -16,8 +20,8 @@ export function EncabezadoPagina({
   children,
 }: {
   sede: string;
-  titulo: string;
-  subtitulo: string;
+  titulo: ReactNode;
+  subtitulo: ReactNode;
   /** La línea de arriba dice solo el día: la pantalla trae su propio reloj (Caja). */
   sinHora?: boolean;
   /** Algo más que decir en la línea de arriba, tras la hora (Facturación: desde cuándo está lo que se ve). */

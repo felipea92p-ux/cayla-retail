@@ -253,15 +253,13 @@ export function RegistrarGastoModal({
                   )
                 }
               >
-                <SelectFin id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
-                  <option value="">Elige…</option>
-                  {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                      {p.ruc ? ` · ${p.ruc}` : ""}
-                    </option>
-                  ))}
-                </SelectFin>
+                <SelectFin
+                  id="gasto-proveedor"
+                  valor={b.proveedorId}
+                  onValor={(v) => poner("proveedorId", v)}
+                  marcador="Elige…"
+                  opciones={proveedores.map((p) => ({ valor: p.id, texto: `${p.nombre}${p.ruc ? ` · ${p.ruc}` : ""}` }))}
+                />
               </CampoFin>
               <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
                 <InputFin
@@ -351,13 +349,13 @@ export function RegistrarGastoModal({
       {esActivo ? (
         <div className="fin-dos-campos">
           <CampoFin etiqueta="Dónde está" htmlFor="gasto-ubicacion">
-            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-              {opcionesUbicacion.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="gasto-ubicacion"
+              valor={b.ubicacion}
+              deshabilitado={!!egreso || opcionesUbicacion.length < 2}
+              onValor={(v) => poner("ubicacion", v)}
+              opciones={opcionesUbicacion}
+            />
           </CampoFin>
           <CampoFin
             etiqueta="Vida útil"
@@ -368,36 +366,34 @@ export function RegistrarGastoModal({
                 : "La sugiere el tipo de bien; el contador la confirma."
             }
           >
-            <SelectFin id="activo-tipo" value={activo.tipo} onChange={(e) => setActivo({ tipo: e.target.value })}>
-              <option value="">Elige qué tipo de bien es…</option>
-              {tiposActivo.map((t) => (
-                <option key={t.codigo} value={t.codigo}>
-                  {textoVidaUtil(t.vidaUtilMeses)} · {t.nombre.toLowerCase()}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="activo-tipo"
+              valor={activo.tipo}
+              onValor={(tipo) => setActivo({ tipo })}
+              marcador="Elige qué tipo de bien es…"
+              opciones={tiposActivo.map((t) => ({ valor: t.codigo, texto: `${textoVidaUtil(t.vidaUtilMeses)} · ${t.nombre.toLowerCase()}` }))}
+            />
           </CampoFin>
         </div>
       ) : (
         <div className="fin-dos-campos">
           <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
-            <SelectFin id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
-              <option value="">Elige…</option>
-              {categorias.map((c) => (
-                <option key={c.codigo} value={c.codigo}>
-                  {c.nombre} — {c.ejemplos}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="gasto-categoria"
+              valor={b.categoria}
+              onValor={(v) => poner("categoria", v)}
+              marcador="Elige…"
+              opciones={categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }))}
+            />
           </CampoFin>
           <CampoFin etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
-            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-              {opcionesUbicacion.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="gasto-ubicacion"
+              valor={b.ubicacion}
+              deshabilitado={!!egreso || !!fijo || opcionesUbicacion.length < 2}
+              onValor={(v) => poner("ubicacion", v)}
+              opciones={opcionesUbicacion}
+            />
           </CampoFin>
         </div>
       )}
@@ -459,25 +455,23 @@ export function RegistrarGastoModal({
                   : "Si sale de un cajón, se crea su egreso de caja en la misma operación."
               }
             >
-              <SelectFin id="gasto-medio" value={b.medio} onChange={(e) => poner("medio", e.target.value as BorradorGasto["medio"])}>
-                <option value="">Elige…</option>
-                {mediosPara(b.comprobante).map((m) => (
-                  <option key={m} value={m}>
-                    {m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m]}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin<BorradorGasto["medio"]>
+                id="gasto-medio"
+                valor={b.medio}
+                onValor={(m) => poner("medio", m)}
+                marcador="Elige…"
+                opciones={mediosPara(b.comprobante).map((m) => ({ valor: m, texto: m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m] }))}
+              />
             </CampoFin>
           )}
           {!aCredito && conCuentas && bancoConMedio && (
             <CampoFin etiqueta="Cómo" htmlFor="gasto-medio-banco" ayuda="Del banco, por qué camino salió.">
-              <SelectFin id="gasto-medio-banco" value={bancoConMedio} onChange={(e) => setMedioBanco(e.target.value as typeof medioBanco)}>
-                {mediosDeBanco(conComprobante).map((m) => (
-                  <option key={m} value={m}>
-                    {TEXTO_MEDIO[m]}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin
+                id="gasto-medio-banco"
+                valor={bancoConMedio}
+                onValor={(m) => setMedioBanco(m)}
+                opciones={mediosDeBanco(conComprobante).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))}
+              />
             </CampoFin>
           )}
           {!aCredito && (conCuentas ? !bancoConMedio && medioSalida && medioSalida !== "efectivo" : b.medio && b.medio !== "efectivo") && (

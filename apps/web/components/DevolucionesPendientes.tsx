@@ -19,8 +19,8 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { OpcionesCuenta, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
-import { ayudaCuenta, cuentaEfectiva, hayCuentasPara } from "@/lib/cuenta-sellada-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -324,24 +324,16 @@ function PanelResolver({
             )}
             {hayReembolso && (
               <div className="anim-revelar min-w-0 max-w-full flex-1 basis-[14rem]">
-                <label htmlFor={`cuenta-${d.id}`} className="text-xs font-semibold text-tinta/70">
-                  Sale de
-                </label>
-                <select
+                {/* El combo del sistema, como su vecino «¿Cómo se le devuelve?»: bloqueado, su marcador dice de dónde sale. */}
+                <CampoSelect
+                  etiqueta="Sale de"
                   id={`cuenta-${d.id}`}
-                  value={cuentaSale ?? ""}
-                  disabled={!conCuenta || !hayCuentas}
-                  onChange={(e) => setCuentaElegida(e.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta disabled:text-tinta/55"
-                >
-                  {!conCuenta ? (
-                    <option value="">El cajón de la tienda</option>
-                  ) : hayCuentas ? (
-                    <OpcionesCuenta cuentas={cuentas.cuentas} clase="cobro" medio={metodo} />
-                  ) : (
-                    <option value="">{cuentas.listo ? "Sin cuenta configurada para este medio" : "…"}</option>
-                  )}
-                </select>
+                  valor={cuentaSale ?? ""}
+                  onValor={setCuentaElegida}
+                  opciones={conCuenta && hayCuentas ? opcionesDeCuenta(cuentas.cuentas, "cobro", metodo) : []}
+                  marcador={!conCuenta ? "El cajón de la tienda" : !cuentas.listo ? "…" : hayCuentas ? undefined : "Sin cuenta configurada para este medio"}
+                  deshabilitado={!conCuenta || !hayCuentas}
+                />
               </div>
             )}
           </div>

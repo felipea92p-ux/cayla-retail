@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowUpRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { ETIQUETA_MOTIVO_NOTA, chipEstado, hace, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
@@ -55,6 +56,8 @@ export function NotaCreditoVistaRapida({
     const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [cerrando, onCerrar]);
+  // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
+  const alEscape = useEscapeLibre(pedirCierre);
 
   const chip = chipEstado(f);
   const sugerencia = siguientePaso(f);
@@ -81,6 +84,7 @@ export function NotaCreditoVistaRapida({
       <Dialog.Portal>
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
+          onEscapeKeyDown={alEscape}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") { e.preventDefault(); onNavegar(1); }
             if (e.key === "ArrowUp") { e.preventDefault(); onNavegar(-1); }

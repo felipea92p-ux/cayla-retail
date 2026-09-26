@@ -67,8 +67,8 @@ respaldado.
 - Top Aurora, su venta, su pago y su nota desaparecen; las 12 líneas ajenas vuelven a su stock; la caja de TRU deja de esperar los S/ 2,007.10.
 - En Actividad quedan **dos** líneas: la original («vendió 28 prendas por S/ 2,007.10 · NV01-000007») y la nueva («se deshizo la venta de prueba…»). Es
   inmutable a propósito.
-- **«Cayla 2» sigue sin poder eliminarse hasta que se corra la purga** (mientras Top Aurora exista, la cita); después, «Eliminar» aparece solo en Marcas
-  (ADR-0217). No hace falta re-marcar.
+- **«Cayla 2» ya se pudo eliminar** (mientras Top Aurora existía, la citaba): Felipe la eliminó desde Marcas justo después de la purga (ADR-0217), sin
+  necesidad de re-marcar nada. Comprobado en producción: 79 marcas, 79 vínculos, 0 huérfanos.
 - No se borran los archivos de foto en Storage (Top Aurora no tenía).
 
 ## Verificación

@@ -18,6 +18,9 @@ type Props = {
   /** Mientras se guarda, no se cambia de responsable. */
   deshabilitado?: boolean;
   className?: string;
+  /** El aviso del Admin como chip de una línea (Punto de venta, spike 2026-09-26): el recuadro de siempre ocupaba
+   *  ~60 px del pie del ticket, justo donde el espacio más cuesta, y no cambia nada de lo que se hace. */
+  compacto?: boolean;
 };
 
 /**
@@ -34,7 +37,7 @@ type Props = {
  *    y «Actualizar lista». Igual para un líder, incluso trabajando desde casa (A9).
  *  · El Admin (ADR-0178) no pasa por nada de esto: firma él y solo ve un aviso de que no necesita autorización.
  */
-export function ComboResponsable({ control, deshabilitado = false, className = "" }: Props) {
+export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
@@ -87,6 +90,17 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   useEffect(() => {
     if (abierto && posLista && mostrarBuscador) buscador.current?.focus();
   }, [abierto, posLista, mostrarBuscador]);
+
+  if (estado === "admin" && compacto) {
+    return (
+      <p role="status" className={`flex ${className}`}>
+        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-pizarra/[0.1] px-2.5 text-[11px] font-medium text-pizarra" title="Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Admin · queda a tu nombre
+        </span>
+      </p>
+    );
+  }
 
   if (estado === "admin") {
     return (
@@ -155,7 +169,17 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   function alTeclado(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Escape" && abierto) {
+      // Este Escape cerró la lista: que no siga y cierre también el modal (useEscapeLibre.ts). El foco vuelve al botón,
+      // como en `Desplegable`: si estaba en el buscador o en una persona, se desmontaron con la lista.
       e.stopPropagation();
+      setAbierto(false);
+      boton.current?.focus();
+      return;
+    }
+    // Tab desde el botón deja el combo (la lista cuelga al final de la hoja, no a continuación): se cierra, para que no
+    // quede a la vista con el foco en otro campo, donde un Escape ya no le llegaría. Dentro de la lista, Tab recorre
+    // las personas y la lista sigue abierta.
+    if (e.key === "Tab" && abierto && e.target === boton.current) {
       setAbierto(false);
       return;
     }

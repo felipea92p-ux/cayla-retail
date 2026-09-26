@@ -55,6 +55,30 @@ export function nombreDeModulo(clave: string): string {
   return MODULOS.find((m) => m.clave === clave)?.nombre ?? clave;
 }
 
+// Los combos de la actividad son `Desplegable` del sistema (ADR-0209), no el <select> del navegador. Un `Desplegable`
+// con un valor que no está entre sus opciones muestra «Elegir»: por eso lo elegido SIEMPRE está en la lista. En los dos
+// casos, `""` es «todos».
+
+/** El combo «Módulo» (panel de la cabecera y pantalla completa): todos, los que ya anotan su actividad y, si uno está
+ *  parado en un módulo que todavía no anota, ese también — el combo dice dónde está uno y la nota explica que aún no anota. */
+export function opcionesDeModulo(actual: ClaveModulo | null): { valor: ClaveModulo | ""; texto: string }[] {
+  const claves = actual && !anotaActividad(actual) ? [...MODULOS_CON_ACTIVIDAD, actual] : MODULOS_CON_ACTIVIDAD;
+  return [{ valor: "", texto: "Todos los módulos" }, ...claves.map((m) => ({ valor: m, texto: nombreDeModulo(m) }))];
+}
+
+/** Lo que devuelve `fn_actividad_personas`: quienes tienen actividad en la sede y el módulo que se miran. */
+export type PersonaConActividad = { persona_id: string; nombre: string };
+
+/** El combo «Persona»: todas y quienes tienen actividad en lo que se mira. Si la elegida sale de esa lista (se cambió de
+ *  módulo o de sede y ahí no hizo nada), sigue en el combo: un filtro no se cambia solo, y el combo dice a quién filtra. */
+export function opcionesDePersona(
+  personas: readonly PersonaConActividad[],
+  elegida: PersonaConActividad | null,
+): { valor: string; texto: string }[] {
+  const lista = elegida && !personas.some((p) => p.persona_id === elegida.persona_id) ? [...personas, elegida] : personas;
+  return [{ valor: "", texto: "Todas las personas" }, ...lista.map((p) => ({ valor: p.persona_id, texto: p.nombre }))];
+}
+
 /** Lo que devuelve `fn_actividad`. */
 export type FilaActividad = {
   id: number;

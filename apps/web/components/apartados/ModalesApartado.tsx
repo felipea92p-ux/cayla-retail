@@ -15,8 +15,9 @@ import { ReciboApartado, fechaCorta } from "@/components/apartados/piezas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { OpcionesCuenta, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
-import { ayudaCuenta, cuentaEfectiva, hayCuentasPara } from "@/lib/cuenta-sellada-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
+import { CampoSelect } from "@/components/ui/campos";
 
 /** La tienda del apartado: el combo «Responsable» lista a quien está de turno AHÍ, no en otra sede activa. */
 export type UbicacionApartado = { ubicacionId: string; etiqueta: string };
@@ -36,9 +37,11 @@ function imprimirYSeguir(cerrar: () => void) {
   window.print();
 }
 
+/** Los botones van en un pie pegado al fondo de la hoja: con la pantalla baja (captura de Felipe, 2026-09-26) quedaban
+ *  debajo del borde y «Solo imprimir / Sin imprimir» se cortaban. `-bottom-6`/`-mx-6` compensan el `p-6` de `<Modal>`. */
 function Botones({ cerrar, principal }: { cerrar: () => void; principal: string }) {
   return (
-    <div className="space-y-2">
+    <div className="sticky -bottom-6 z-10 -mx-6 -mb-6 space-y-2 border-t border-sand bg-crema px-6 pt-3 pb-6">
       <button type="button" autoFocus onClick={() => imprimirYSeguir(cerrar)} className={`${botonPrimario} flex w-full items-center justify-center gap-2`}>
         <Printer className="h-4 w-4" aria-hidden />
         {principal}
@@ -323,15 +326,17 @@ export function DevolverModal({ apartado, ubicacion, cajaAbierta, onClose }: { a
                 <input value={operacion} onChange={(e) => setOperacion(e.target.value)} placeholder="Obligatorio" className={`${campoTexto} font-mono`} />
                 {intento && faltaOperacion && <span className="text-xs text-rojo-profundo">Anótalo: es la prueba de que se devolvió.</span>}
               </label>
-              <label className="block sm:col-span-2">
-                <span className={campoEtiqueta}>Sale de</span>
-                <select value={cuentaSale ?? ""} disabled={!hayCuentas} onChange={(e) => setCuentaElegida(e.target.value)} className={campoTexto}>
-                  {hayCuentas ? <OpcionesCuenta cuentas={cuentas.cuentas} clase="cobro" medio={medio} /> : <option value="">{cuentas.listo ? "Sin cuenta configurada para este medio" : "…"}</option>}
-                </select>
-                <span className="mt-1 block text-xs text-tinta/60">
-                  {hayCuentas ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale", "cobro") : "Queda «sin cuenta» hasta que el líder la configure; se registra igual."}
-                </span>
-              </label>
+              <div className="sm:col-span-2">
+                <CampoSelect
+                  etiqueta="Sale de"
+                  valor={cuentaSale ?? ""}
+                  onValor={setCuentaElegida}
+                  opciones={hayCuentas ? opcionesDeCuenta(cuentas.cuentas, "cobro", medio) : []}
+                  marcador={!cuentas.listo ? "…" : hayCuentas ? undefined : "Sin cuenta configurada para este medio"}
+                  deshabilitado={!hayCuentas}
+                  pie={hayCuentas ? ayudaCuenta(cuentas.cuentas.find((c) => c.id === cuentaSale) ?? null, "sale", "cobro") : "Queda «sin cuenta» hasta que el líder la configure; se registra igual."}
+                />
+              </div>
             </div>
           )}
           <p className="text-xs text-tinta/60">Se intentará la nota de crédito sobre la boleta {apartado.comprobanteAnticipo}; si SUNAT aún no la aceptó, queda pendiente con aviso.</p>

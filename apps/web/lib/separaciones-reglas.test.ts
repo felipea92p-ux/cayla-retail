@@ -80,6 +80,12 @@ describe("erroresDelApartado", () => {
     expect(Object.keys(e).sort()).toEqual(["acepta", "asesora", "celular", "dni"]);
     expect(pasoDelApartado(e)).toBe(0);
   });
+  it("celular y número de Yape: 9 dígitos que empiezan en 9", () => {
+    expect(erroresDelApartado(formulario({ celular: "333 333 333" }), 179).celular).toMatch(/empieza en 9/);
+    expect(erroresDelApartado(formulario({ celular: "987-111-222" }), 179).celular).toBeUndefined();
+    expect(erroresDelApartado(formulario({ devolucionNumero: "333333333" }), 179).devolucion).toMatch(/empieza en 9/);
+    expect(erroresDelApartado(formulario({ dni: "333333333" }), 179).dni).toMatch(/8 dígitos/);
+  });
   it("más de S/700 en boleta exige DNI; factura exige RUC y razón social", () => {
     expect(erroresDelApartado(formulario(), 701).dni).toMatch(/DNI/);
     const f = erroresDelApartado(formulario({ comprobante: "factura", ruc: "123" }), 179);
