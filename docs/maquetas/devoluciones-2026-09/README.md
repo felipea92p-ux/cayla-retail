@@ -1,4 +1,4 @@
-# Devoluciones, computadora y celular: demo + spike (2026-09-26) — implementado en ADR-0230
+# Devoluciones, computadora y celular: demo + spike (2026-09-26) — implementado en ADR-0232
 
 - **`spike.html`** es el spike final con lo que eligió Felipe. Su barra oscura solo cambia el rol, la caja y si hay
   devoluciones por aprobar.

@@ -9,8 +9,9 @@ import { ClientasPanel } from "@/components/ClientasPanel";
 //
 // Cualquier colaborador con sesión, sin gate de líder: retail no tiene noción de "mi clienta"
 // (es de la marca), y la RLS de `clientas` ya lo exige del lado de la base.
-export default async function ClientasPage() {
+export default async function ClientasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requirePersonaActualV2();
-  const clientas = await getClientas();
-  return <ClientasPanel clientasIniciales={clientas} />;
+  // `?q=`: «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con su nombre ya buscado.
+  const [clientas, { q }] = await Promise.all([getClientas(), searchParams]);
+  return <ClientasPanel clientasIniciales={clientas} busquedaInicial={q?.trim().slice(0, 80) ?? ""} />;
 }

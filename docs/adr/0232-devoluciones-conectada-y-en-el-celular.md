@@ -1,4 +1,4 @@
-# ADR-0230 · Devoluciones conectada con sus pantallas vecinas y hecha para el celular
+# ADR-0232 · Devoluciones conectada con sus pantallas vecinas y hecha para el celular
 
 - **Fecha:** 2026-09-26 · **Estado:** Aprobado por Felipe («me parece bien, ahora realízalo para visualizarlo en el
   sistema»). **Producción:** sin migración ni RPC nueva: solo pantalla y lecturas con la RLS de siempre.
