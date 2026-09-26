@@ -10,6 +10,8 @@ Felipe se lleva:
 2. **La marca se mira antes que el responsable.** Comprobar algo ya guardado no escribe nada: si la colaboradora marcó salida en el medio, el reintento igual responde «ya estaba».
 3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
 
+Más tarde el mismo día: Felipe pegó `20260926200000` → `20260926200100` en producción (una sola firma de `mover_interno`, terminada en `p_token uuid`) y recién después fusionó la web (#458). El orden «SQL antes que la web» se cumplió.
+
 ## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
 Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.
 Felipe se lleva: (1) **el Pantone que se llama igual no es el que se ve igual**: anclar por nombre creaba 4 casi-duplicados («Mandarin Orange» es nuestro Naranja), así que se ancló por lo que se ve. (2) **44 de 56 colores ya eran tonos Pantone reales**; los que no (Azul eléctrico, Violeta, Cobalto) no existían en tela. (3) **Azul noche no es un color más: es otro nombre de Azul marino**, y va como sinónimo.

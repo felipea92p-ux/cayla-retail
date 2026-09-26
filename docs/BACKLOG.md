@@ -126,7 +126,7 @@ El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cu
 | 2 | La caja dice «está en el almacén: hay N» | Fuera de los bloques; roza la D-40, que se decide antes del bloque 3. Hecha (#437). |
 | 3 | «Retirar del piso», y el ajuste pregunta dónde está la ropa | Bloque 2, solo el retiro (#440, opción A); los motivos nuevos se descartaron. Lo del ajuste no salió: sigue arrancando en «Piso» (`AjustarInventarioModal.tsx:53`), aunque con la `0400` «Reposición» ya no suma ahí. |
 | 4 | «Por colgar» en Existencias | Fuera de los bloques. Hecha (#438). |
-| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso», con la marca de `mover_interno` (construida el 2026-09-26, por pegar; ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
+| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso», con la marca de `mover_interno` (en producción desde el 2026-09-26; ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
 | 6 | Bajar un fardo entero escaneando | Bloque 1 (`/inventario/bajar`). |
 | 7 | «Traer y vender» desde la caja: la bajada de último minuto se declara | Sin bloque. Depende de la D-40 (ADR-0208, (g)): el bloque 1 eligió deducir la bajada tardía al leer, no declararla. Se concilia antes del bloque 3. |
 | 8 | Una fecha de arranque por sede, más la cobertura del registro | No se puede mapear entera: la cobertura se parece al indicador de «confianza del registro» del bloque 3, pero la fecha de arranque no está en ningún bloque. |
@@ -436,12 +436,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - [x] El mismo hueco de sede, cerrado en todo Existencias (Felipe, 2026-09-26): mirando otra sede con `?ubicacion=`,
     «Apartar», «Ajustar», «Liberar» (apartados) y resolver o liquidar dañados ya no se ofrecen (firmaban con el
     Responsable de la sede activa); una nota dice que se cambie la sede activa en la cabecera.
-- [x] **Candado de `mover_interno` (entre el bloque 2 y el 3)** — construido el 2026-09-26, **no está en producción**:
+- [x] **Candado de `mover_interno` (entre el bloque 2 y el 3)** — en producción desde el 2026-09-26 (Felipe pegó `20260926200000` y `20260926200100`; `mover_interno` quedó con UNA firma, terminada en `p_token uuid`; web fusionada en #458). Falta que entre al diccionario (`docs/datos/generado/`) con el próximo volcado de producción:
   `mover_interno` suma `p_token` opcional (una sola firma) y la tabla `movimientos_internos_intentos`; el reintento con
   la misma marca devuelve el mismo movimiento, con otros datos se rechaza, y la marca se mira antes del responsable.
   «Reponer» y «Retirar del piso» mandan una marca por modal y, tras un corte, dejan la cantidad fija con «Confirmar de
-  nuevo». **Pegar `20260926200000` → `20260926200100` ANTES de fusionar su web** (si no, «Reponer» y «Retirar» fallan
-  hasta pegarlas; `pnpm datos:comparar` lo avisa). Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
+  nuevo». Se pegó en el orden previsto (200000 → 200100) antes de fusionar la web. Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
   ADR-0208, «Actualización 2026-09-26 — la marca de `mover_interno`». Cierra la «tarea 5» del plan del termómetro en lo
   que toca a Reponer y Retirar (el contexto por documento sigue sin construir).
 - [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
