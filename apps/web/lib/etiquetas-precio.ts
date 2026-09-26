@@ -15,7 +15,9 @@ export type OrigenEtiquetas =
   | { tipo: "lotes"; ids: string[] }
   | { tipo: "produccion"; id: string }
   | { tipo: "campana"; id: string; ubicacionId: string }
-  | { tipo: "producto"; id: string; ubicacionId: string };
+  | { tipo: "producto"; id: string; ubicacionId: string }
+  /** Tallas sueltas, las marcadas en Existencias (ADR-0237); una por unidad en stock, como `producto`. */
+  | { tipo: "variantes"; ids: string[]; ubicacionId: string };
 
 export type EtiquetasDePrecio = {
   etiquetas: EtiquetaPrecio[];
@@ -53,6 +55,8 @@ export async function getEtiquetasDePrecio(origen: OrigenEtiquetas, hoy: string)
       "lo que entró en este ingreso",
     );
     entradas = sumarEntradas(movimientos);
+  } else if (origen.tipo === "variantes") {
+    entradas = origen.ids.length > 0 ? await stockEnTienda(supabase, origen.ubicacionId, origen.ids) : new Map();
   } else if (origen.tipo === "producto") {
     // En una `const` aparte y no inline en `exigirOpcional(await …)`: con `.maybeSingle()` el tipo sale `never` (conteos.ts).
     const resProducto = await supabase.from("productos").select("referencia").eq("id", origen.id).maybeSingle();

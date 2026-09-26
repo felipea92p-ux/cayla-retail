@@ -241,6 +241,12 @@ describe("encabezadoDeEtiquetas — lo que dice la pantalla según el origen", (
   it("una etiqueta sin descuento no es una campaña", () => {
     expect(encabezadoDeEtiquetas({ tipo: "campana", campana: null }, n, "Tienda Lima").vacio).toContain("no tiene descuento");
   });
+  it("tallas marcadas en Existencias: dice cuántas hay entre las marcadas", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes" }, { unidades: 5, modelos: 2 }, "Tienda Trujillo");
+    expect(e.sobretitulo).toBe("Existencias · Prendas marcadas");
+    expect(e.bajada).toContain("5 prendas de 2 modelos");
+    expect(e.vacio).toContain("Tienda Trujillo");
+  });
   it("un producto habla de lo que hay en la tienda", () => {
     const e = encabezadoDeEtiquetas({ tipo: "producto", nombre: "Blusa Emma" }, { unidades: 1, modelos: 1 }, "Tienda Trujillo");
     expect(e.sobretitulo).toBe("Productos · Blusa Emma");

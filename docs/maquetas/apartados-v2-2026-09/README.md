@@ -4,6 +4,17 @@ Spike interactivo: `apartados-v2-spike.html` (abrir en el navegador, sin servido
 Capturas en `capturas/`. Estado por URL para abrir una vista concreta, por ejemplo
 `apartados-v2-spike.html#device=cel&forma=pasos&paso=2&clienta=1` o `#tab=todos&preset=completo`.
 
+## Estado de construcción (2026-09-26)
+
+| Función | Dónde | Estado |
+|---|---|---|
+| Celular pasos + pestañas abajo, cámara QR, arreglos | #482, ADR-0223 | En producción |
+| Recordar en lote | #490, ADR-0227 | En producción |
+| Abonos, estante, editar, actividad, opciones, clienta por DNI, «Qué ver» | ADR-0236 | Web en PR; 4 migraciones por pegar |
+| Apartar de otra sede | — | Espera decisión de Felipe (toca Traslados) |
+
+Abonos (Felipe): sin mínimo; el plazo no cambia solo; «esperarla» da 2 días, o 3 si abona la mitad o más de lo que le faltaba.
+
 ## Cómo se usa la demo
 
 - **Barra negra de arriba (solo demo):** Computador / Celular; en celular, las tres formas a comparar (Pasos + barra
@@ -81,7 +92,7 @@ vuelve crédito, con su cobranza).
 1. Qué forma de celular se implementa (el spike recomienda **Pasos + barra fija**).
 2. Qué preset queda de fábrica (el spike propone **Recomendado**) y si «Opciones» vive en la pantalla o en
    Configuración ▸ Tiendas y caja, solo para el líder.
-3. Abonos: ¿abonar extiende el plazo 7 días, o el plazo queda fijo? (la demo trae la casilla marcada).
+3. ~~Abonos y plazo~~: decidido (arriba).
 4. Editar: si el nuevo total queda por debajo de lo pagado, ¿se devuelve la diferencia o queda como saldo a favor para
    su próxima compra? (hoy no existe el saldo de clienta: `venta_pagos.metodo` es un CHECK cerrado).
 5. Apartar de otra sede toca Traslados: ¿el plazo corre desde que llega la prenda (propuesta) o desde que se apartó?

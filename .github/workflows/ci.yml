@@ -421,6 +421,20 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-movimientos-referencias
 
+      # Movimientos leído desde la tienda (ADR-0234): el traslado que llega cuenta en «Entradas» y en «Traslados», una
+      # operación es lo guardado de una sola vez sobre un mismo documento (el cambio cuenta una vez; dos ventas en una
+      # transacción son dos), los ajustes van aparte y quien no opera la sede no ve sus cifras. Cada caso en ROLLBACK.
+      - name: pruebas:movimientos-desde-la-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-desde-la-tienda
+
+      # Un ajuste no es la primera carga (ADR-0235): la base rechaza un ajuste que sería el primer movimiento de una prenda
+      # en la tienda (`ajuste_sin_historia`) y `cargar_stock_inicial` la carga como entrada, todas o ninguna, al almacén o
+      # al piso con su bajada; después, un ajuste de verdad pasa como siempre. Cada caso en ROLLBACK.
+      - name: pruebas:ajuste-no-es-primera-carga
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ajuste-no-es-primera-carga
+
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes
@@ -444,6 +458,15 @@ jobs:
       - name: pruebas:fn-ledger-fuente-unica
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-ledger-fuente-unica
+
+      # Ritmo reciente de Existencias (rediseño 2026-09-25): `fn_ritmo_reciente_json` reutiliza `fn_ledger_puntos`
+      # (ADR-0202) en vez de sumar una cuarta reconstrucción del ledger, sus eventos coinciden exactos con los de
+      # `fn_ledger_puntos` filtrado a 'piso', su permiso es el de todo el personal de tienda (nunca solo líder,
+      # a diferencia de `fn_resumen_comparacion`), y una variante sin movimiento en la ventana igual aparece con
+      # `[]` — nunca ausente. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-ritmo-reciente
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-ritmo-reciente
 
       # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
       # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y

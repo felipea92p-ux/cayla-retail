@@ -25,7 +25,8 @@ type Vocabulario = IndiceBusquedaEspecial<unknown>["vocabulario"];
 /** Un producto del catálogo que esta sede NO tiene en su stock (ni una fila). */
 export type ProductoSinStock = { id: string; referencia: string; marca: string | null; categoria: string | null };
 
-export type ClaveFiltro = "categoria" | "talla" | "color" | "marca" | "estado";
+/** «accion» (Acción hoy) y «estado» (dañado, por colgar) son dos ejes desde el 2026-09-25: el vacío puede quitar uno sin el otro. */
+export type ClaveFiltro = "categoria" | "talla" | "color" | "marca" | "accion" | "estado";
 /** Un filtro visual activo, tal como lo ve la persona. Ej.: { clave: "marca", etiqueta: "Marca", valor: "Miramhe" }. */
 export type FiltroActivo = { clave: ClaveFiltro; etiqueta: string; valor: string };
 

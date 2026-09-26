@@ -236,8 +236,9 @@ export function CajaAbiertaPanel({
             titulo="Caja"
             subtitulo={`Turno de ${personaNombre} · ${personaRol === "lider" ? "Líder de equipo" : "Integrante"}`}
             sinHora
-            pie={
-              // En celular estas acciones viven en la barra fija de abajo.
+            acciones={
+              // En celular estas acciones viven en la barra fija de abajo. En escritorio bajan solas bajo la frase: la
+              // derecha es del turno y de la cola sin conexión (`EncabezadoPagina`, ADR-0220).
               <div className="hidden items-center gap-3 sm:flex">
                 {/* D-13: solo quien puede gestionar la caja la cierra. El candado real está en `cerrar_caja`. */}
                 {puedeCerrar ? (
