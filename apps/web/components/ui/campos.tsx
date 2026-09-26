@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { createPortal } from "react-dom";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { comboNecesitaBuscador } from "@/lib/combo-reglas";
@@ -533,6 +533,8 @@ export function Desplegable<T extends string>({
   const disparador = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
+  // La caja flotante entera (buscador + lista): vive en un portal, fuera de `contenedor`.
+  const capa = useRef<HTMLDivElement>(null);
   const tipeo = useRef({ texto: "", reloj: 0 });
 
   // Regla global de combos (ADR-0209): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
@@ -550,6 +552,7 @@ export function Desplegable<T extends string>({
   // el scroll de la hoja. `derecha` (cabecera) sigue en `absolute`: allí nada la recorta y crece con su contenido.
   const flotante = alineacion === "campo";
   const posLista = usePosicionLista(contenedor, abierto && flotante, 224);
+  const destino = useDestinoFlotante(contenedor, abierto && flotante);
   // La lista en `fixed` se pinta recién cuando tiene posición (un render después de abrir).
   const listaVisible = abierto && (!flotante || !!posLista);
 
@@ -583,7 +586,12 @@ export function Desplegable<T extends string>({
     if (mostrarBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
-      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
+      // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
+      // mirar las dos cajas. Mirando solo `contenedor`, tocar una opción contaba como «afuera», la lista se cerraba
+      // en el mousedown y el click de la opción ya no llegaba: no se podía elegir con mouse ni con el dedo.
+      const t = e.target as Node;
+      if (contenedor.current?.contains(t) || capa.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -704,7 +712,9 @@ export function Desplegable<T extends string>({
         // e inline: crece con su contenido y nada lo recorta ahí.
         maybePortal(
           flotante,
+          destino,
           <div
+            ref={capa}
             style={flotante ? { position: "fixed", ...posLista } : undefined}
             className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
               flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
@@ -779,10 +789,12 @@ export function Desplegable<T extends string>({
   );
 }
 
-/** `fijo`: portal a `document.body` (para `position: fixed` medido contra un control, ver comentario de uso arriba).
- *  `false`: el nodo se queda donde está en el árbol (para `position: absolute`, que sí debe crecer con su padre). */
-function maybePortal(fijo: boolean, nodo: ReactNode) {
-  return fijo ? createPortal(nodo, document.body) : nodo;
+/** Con destino: portal ahí (`document.body`, o la hoja del modal: `useDestinoFlotante`), para `position: fixed`
+ *  medido contra un control. `false`: el nodo se queda donde está en el árbol (para `position: absolute`, que sí
+ *  debe crecer con su padre). */
+function maybePortal(fijo: boolean, destino: HTMLElement | null, nodo: ReactNode) {
+  if (!fijo) return nodo;
+  return destino ? createPortal(nodo, destino) : null;
 }
 
 /* ------------------------------------------------------------------
