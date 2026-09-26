@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bookmark, FileText, Minus, Plus, Receipt, ScanBarcode, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
@@ -19,6 +19,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
+import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
 import {
   PLAZO_DIAS,
   TEXTO_PASO_APARTADO,
@@ -79,6 +80,7 @@ export function ApartarVista({
   hoy,
   cajaAbierta,
   prendas: prendasProp,
+  lineasIniciales,
   irAEntregar,
 }: {
   ubicacionId: string;
@@ -86,6 +88,8 @@ export function ApartarVista({
   hoy: string;
   cajaAbierta: boolean;
   prendas: PrendaApartable[];
+  /** Las prendas que llegan del ticket del Punto de venta («Apartar»): arrancan en la lista, topadas por lo disponible. */
+  lineasIniciales?: LineaApartar[];
   irAEntregar: () => void;
 }) {
   const router = useRouter();
@@ -108,11 +112,29 @@ export function ApartarVista({
   );
   const porId = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
-  const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(null);
+  // Desde el ticket del Punto de venta llegan ya elegidas; se topan por lo disponible AHORA en el piso y se dice qué
+  // no entró (otra caja pudo venderla entre el ticket y esta pantalla), en vez de perderla en silencio.
+  const [desdeTicket] = useState(() =>
+    lineasApartables(
+      lineasIniciales ?? [],
+      new Map(prendasProp.map((p) => [p.varianteId, { stockAqui: p.stockAqui, nombre: [p.referencia, p.color, p.talla].filter(Boolean).join(" · ") }])),
+    ),
+  );
+  const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(() =>
+    desdeTicket.noEntraron.length > 0
+      ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
+      : desdeTicket.lineas.length > 0
+        ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos de la clienta." }
+        : null,
+  );
   const [activo, setActivo] = useState(0);
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
-  const [lineas, setLineas] = useState<Linea[]>([]);
+  const [lineas, setLineas] = useState<Linea[]>(() => desdeTicket.lineas);
+  // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
+  useEffect(() => {
+    if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
+  }, [lineasIniciales, router]);
   const [nota, setNota] = useState("");
   const [paso, setPaso] = useState<"ticket" | "formulario">("ticket");
   const [f, setF] = useState(FORMULARIO_VACIO);

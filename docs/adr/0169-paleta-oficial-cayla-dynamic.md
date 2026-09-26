@@ -77,3 +77,10 @@ Typecheck, lint y las 7,868 pruebas unitarias en verde. En esta sesión no habí
 ## Actualización 2026-09-26
 
 Inventario, que conservaba una foto en la cabecera (`InventarioHero`, 2026-09-22), pasó también a `CabeceraPantalla`: ver ADR-0216.
+
+## Actualización 2026-09-26 (b)
+
+La convivencia de las dos cabeceras se resolvió al revés de lo que decía «Consecuencias»: Ventas no pasó a
+`CabeceraPantalla`; Felipe eligió la de Ventas (`EncabezadoPagina`) y **Inventario pasó a ella** (ADR-0220). El punto 4
+(«el orden oficial de una pantalla» empieza con `CabeceraPantalla`) queda para Finanzas, que la usa como su spike
+aprobado (ADR-0195). Lo demás de esta guía (tokens, botones, chips, tablas, notas) sigue igual.

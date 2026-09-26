@@ -491,6 +491,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `prendas_por_regularizar` (estado `pendiente`). El comprobante electrónico la nombra con `descripcion_libre`
   (`itemsParaLucode`). `anular_venta` salta la línea pendiente; un trigger en `ventas` pasa la fila a `anulada`, y
   otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
+  Cabecera y pantallas vecinas (ADR-0221): `lib/vender-accesos.ts` (accesos por rol, «Más») → `punto-de-venta/AccesosVenta`;
+  píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
+  página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`); «no había» → `punto-de-venta/AnotarNoHabia`
+  (RPC `registrar_pedido_no_atendido`, firmada con el responsable); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
+  Proforma → `NuevaProformaModal desdeTicket` (RPC `crear_proforma`); buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
+  ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
   → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
   al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:

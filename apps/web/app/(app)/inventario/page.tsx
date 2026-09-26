@@ -12,7 +12,7 @@ import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
 import { conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -104,11 +104,15 @@ export default async function InventarioPage({
           2026-09-22): el selector global de la barra superior ya cambia toda la app, y uno
           segundo acá desacomodaba el layout al abrirse; el de «datos de prueba» se quitó del
           todo (render, estado y lectura de `?prueba=`), no solo se ocultó. */}
-      <CabeceraPantalla
-        sobretitulo="Inventario · Existencias"
-        titulo={ubicacionActiva?.nombre ?? "—"}
-        bajada="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
-        acciones={
+      <EncabezadoPagina
+        sede={ubicacionActiva?.nombre ?? "—"}
+        titulo="Existencias"
+        subtitulo="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        // La única hora de la cabecera es la de la foto (ADR-0220): el stock de abajo es el del momento en que se
+        // cargó, y un reloj vivo encima haría creer que está al minuto.
+        sinHora
+        detalle={`vista de las ${horaCarga}`}
+        pie={
           <>
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
@@ -120,9 +124,7 @@ export default async function InventarioPage({
             </Link>
           </>
         }
-      >
-        <p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
-      </CabeceraPantalla>
+      />
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
