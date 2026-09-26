@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔒 Auditoría «¿algún SQL por pegar?» y candado de movimientos (2026-09-26)
+Se revisaron por EFECTOS en producción (solo lectura, 144 consultas) las 89 migraciones de `main` posteriores a la auditoría del 22-sep y las 6 de PR abiertos. 86 aplicadas, 1 superada (#58), el resto abajo.
+- [x] **Aplicadas con el «sí» de Felipe (ensayo revertido + huella md5 idéntica al repo + humo):** `20260918191000_panel_comercial`, `20260918191500_fn_origen_producto`, `20260918192000_panel_calidad` (entraron a `main` el 25-sep con fecha vieja; `/comercial` y `/comercial/calidad` se caían) y `20260924000000_colaborador_a_integrante_paso1_codigo` (paso 1 de 3; las 25 filas intactas, colaborador=17 y lider=8; los pasos 2 y 3 siguen pendientes y van aparte).
+- [ ] **Candado de movimientos en ALWAYS (D-22):** `20260926160000_movimientos_candado_siempre.sql`. Producción tenía `movimientos_inmutables` en 'O' (lo dejó así `scripts/demo/deshacer-90-dias.sql` el 24-sep) y `main` nunca lo escribió. **Felipe lo pega** en el SQL Editor, fuera de la hora de venta. En este PR también: el script de la demo reenciende con `enable always` y su verificación exige 'A', y `frescura_bajadas.mjs` apaga el candado a la vista en vez de usar el modo réplica.
+- [ ] **SQL de PR abiertos, recién al fusionarlos:** #445 `20260925170551_existencias_ritmo_reciente` (antes o junto a su web); #409 `20260925220000_inicio_modulo_y_pantalla_principal` (justo antes de su web y sin guardar roles entre medio; su `20260925211500` ya está en producción); #168 `20260918194000_panel_rentabilidad` (después de `fn_origen_producto`, que ya está). #58: NO pegar (superada). #56: no volver a pegar (su parte vigente ya está; lo que faltaba es este candado).
+
 ## 📦 Nuevo producto con su stock de hoy — la carga inicial (2026-09-26, ADR-0212)
 Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya está; 0 papeleo por ahora».
 - [x] **Paso 5 «Cuántas tienes hoy»** en `/productos/nuevo`: cantidades por talla × color y «¿Dónde están?» (piso o almacén), en la misma transacción que el producto (`crear_producto_con_stock_inicial`). 28 pruebas SQL + carrera real con COMMIT + navegador a 1440 y 375 px.
@@ -50,10 +56,10 @@ Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `pro
 - [ ] **Felipe:** mirarlo en pantalla. En «Editar proveedor» marca Polos y Casacas y guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion` con el próximo volcado.
 - [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
 
-## 🎯 «¿No será un proveedor que ya tienes?» (2026-09-25, ADR-0109 act. (b)) — solo web, sin migración; rama `claude/proveedor-parecido-aviso` (#447 ya fusionado)
+## 🎯 «¿No será un proveedor que ya tienes?» (2026-09-25, ADR-0109 act. (b) y (c)) — solo web, sin migración; (b) en `main` con el #450, (c) en el PR #452
 - [x] **Una sola regla:** `lib/nombres-parecidos.ts` (salió de `marcas.ts` sin cambiar nada) y `proveedoresParecidos` en `lib/proveedores-reglas.ts`: sin forma societaria (SA, SAA, SAC, SACS, SRL, SCRL, EIRL, con o sin puntos) y sin preguntar entre dos RUC válidos distintos. Medida contra los 76 proveedores de producción: 0 iguales, 1 par que pregunta.
 - [x] **La pregunta en las dos puertas** de `registrar_proveedor`: Nueva marca (`NuevaMarcaForm`) y Compras ▸ Proveedores (`ProveedorModal`, solo al registrar). Pieza compartida `components/ui/PreguntaParecido.tsx`. Verificado con andamio a 800 y 375 px.
-- [ ] **Tercera puerta sin la pregunta: el proveedor rápido de Gastos** (`RegistrarGastoModal.tsx` → `registrar_proveedor_de_gasto`). Reutiliza el igual, pero «Hidrandina S.A.A.» junto a «Hidrandina SA» pasa. No se tocó porque la sesión de Finanzas F2b trabaja ese archivo: sumarle `proveedoresParecidos` cuando cierre.
+- [x] **Tercera puerta: el proveedor rápido de Gastos** (`RegistrarGastoModal.tsx` → `registrar_proveedor_de_gasto`) ya pregunta (2026-09-25, ADR-0109 act. (c), PR #452): `sumarProveedorDeGasto` en `lib/gastos-reglas.ts` dice antes lo que haría la base (mismo RUC o mismo nombre → elige ese; parecido → pregunta; «No, es otro» → suma). Pruebas en `lib/gastos-proveedor-parecido.test.ts`; verificado con andamio a 800 y 375 px. Sin migración. F2b y F3b ya estaban en `main`: no había sesión de Finanzas abierta sobre el archivo.
 - [ ] **Mirar a mano Moda Mia ~ Valeria Mia Peru Moda EIRL**, el único par que pregunta en producción (Moda Mia no tiene RUC). Si son el mismo, unir las fichas es a mano: la base no sabe fusionar proveedores.
 - [ ] **P-25:** corregir el comentario del índice `proveedores_nombre_clave_unica` en la próxima migración de proveedores (promete juntar «SAC» y «s.a.c.», y no lo hace).
 

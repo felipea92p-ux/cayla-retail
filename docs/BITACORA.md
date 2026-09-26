@@ -10,6 +10,13 @@ Felipe se lleva:
 2. **La marca se mira antes que el responsable.** Comprobar algo ya guardado no escribe nada: si la colaboradora marcó salida en el medio, el reintento igual responde «ya estaba».
 3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
 
+## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
+Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.
+Felipe se lleva:
+1. **El registro de migraciones de Supabase no sirve para saber qué está pegado:** reconoce 17 de 103 por nombre. Solo los efectos dicen la verdad.
+2. **Una migración con fecha vieja que se fusiona tarde se esconde de cualquier revisión por fecha:** hay que mirar qué ENTRÓ a `main`, no qué fecha dice el archivo.
+3. **Un «encender» a secas puede debilitar un candado sin apagarlo:** la verificación tiene que mirar el modo, no solo si está prendido.
+
 ## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
 Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.
 Felipe se lleva:
@@ -19,6 +26,10 @@ Felipe se lleva:
 
 Más tarde el mismo día, con el «sí» de Felipe: SQL en producción (`20260926000932`) tras una revisión adversarial de 12 agentes (ningún bloqueo; un arreglo de pantalla: «Descartar» ya no se lee como «subió») y un ensayo revertido con un Admin real. Producción quedó con los mismos conteos después de ensayo y humo.
 Y con su «dale»: la migración de rubros del #444 (ADR-0213), fusionada a `main` sin pegar, quedó en producción (`20260926003322`). Mientras tanto la web de `main` pedía una columna que no existía y dejaba caídas Proveedores, Por pagar, Registrar factura y Notas de crédito. Antes de aplicar: se revisó que ninguna otra función use la columna vieja, un ensayo revertido (0 rubros perdidos) y un respaldo. Después: huella idéntica en los 76 proveedores.
+
+## 2026-09-25 (Gastos: «¿no será un proveedor que ya tienes?» — ADR-0109, actualización (c))
+La tercera puerta quedó cerrada: «¿No está? Súmalo» en Registrar gasto pregunta como Nueva marca y Compras ▸ Proveedores («Hidrandina S.A.A.» ~ «Hidrandina SA»). «Sí» lo elige en el combo, «No, es otro» deja sumar, y «Sumar» sin contestar no suma. Si el RUC o el nombre ya son de uno de la lista, «Sumar» elige ese sin ir a la base: es lo que la base habría hecho. Regla pura `sumarProveedorDeGasto` (`lib/gastos-reglas.ts`) con 9 pruebas; verificado con andamio a 800 y 375 px. Sin migración.
+Felipe se lleva: la RPC de Gastos ya «reutilizaba» al proveedor igual, y por eso esta puerta tenía que mirar el RUC antes que el nombre: preguntando solo por nombre, «No, es otro» con el mismo RUC habría dicho «otro» en pantalla y la base habría devuelto el mismo. Una pregunta que la base contradice es peor que no preguntar.
 
 ## 2026-09-25 (Proveedores: «¿no será uno que ya tienes?» — ADR-0109, actualización (b))
 La pregunta de las marcas llegó a los proveedores, en las dos puertas que los registran: Nueva marca ▸ «+ Registrar … como proveedor nuevo» y Compras ▸ Proveedores ▸ Registrar. La regla es una sola (`lib/nombres-parecidos.ts`, sacada de `marcas.ts` sin cambiarle nada); para proveedores no cuentan «SAC/S.A.C./EIRL/SRL/SCRL/SA/SAA» y no se pregunta entre dos RUC válidos distintos. «Sí» elige al que existe (o abre su ficha, en Compras); «No, es otro» deja seguir. Verificado con un andamio (sin base local) a 800 y 375 px. Sin migración.
