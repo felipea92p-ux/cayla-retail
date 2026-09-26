@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { avisar } from "@/components/ui/Avisos";
-import { subirFotoProducto } from "@/lib/producto-fotos";
+import { objecionFotoElegida, subirFotoProducto } from "@/lib/producto-fotos";
+import { comoArchivo } from "@/lib/preparar-foto";
+import { RevisarFotosModal, type FotoElegida } from "@/components/RevisarFotosModal";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 
 /* ====================================================================
@@ -15,6 +17,10 @@ import { ComboBuscable } from "@/components/ui/ComboBuscable";
    (igual que AdjuntosCompra.tsx) — lo que se guarda con el formulario es
    la lista final (orden + cuál es principal) como `p_fotos` de
    catalogo_crear_producto/catalogo_actualizar_producto, no los bytes.
+
+   Antes de subir, cada foto pasa por la revisión del ADR-0220
+   (`RevisarFotosModal`): sale en 1200×1500 sobre blanco, sin fondo o con
+   su fondo según se elija, y se guarda también su original.
 
    Reordenar es con flechas (‹ ›), no arrastre nativo: en una tablet de
    tienda el drag&drop HTML5 es poco confiable (touch), y una flecha se
@@ -88,23 +94,42 @@ export function FotosProducto({
   disabled?: boolean;
 }) {
   const [subiendo, setSubiendo] = useState(false);
+  const [porRevisar, setPorRevisar] = useState<File[] | null>(null);
   const opcionesColor = colores.map((c) => ({ valor: c.codigo, texto: c.nombre }));
+  // La subida termina después de un `await`: sin esto, las fotos que se agregaran entre medio se perderían al pisar la lista.
+  const fotosRef = useRef(fotos);
+  useEffect(() => {
+    fotosRef.current = fotos;
+  }, [fotos]);
 
-  async function agregar(archivos: File[]) {
-    if (!archivos.length) return;
+  function elegir(archivos: File[]) {
+    const buenas: File[] = [];
+    const malas: string[] = [];
+    for (const a of archivos) {
+      const objecion = objecionFotoElegida(a);
+      if (objecion) malas.push(`${a.name}: ${objecion}`);
+      else buenas.push(a);
+    }
+    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
+    if (buenas.length) setPorRevisar(buenas);
+  }
+
+  async function subir(elegidas: FotoElegida[], cerrar: () => void) {
     setSubiendo(true);
     const supabase = createClient();
     const nuevas: FotoLocal[] = [];
     const fallidos: string[] = [];
-    for (const archivo of archivos) {
-      const r = await subirFotoProducto(supabase, archivo);
-      if ("error" in r) fallidos.push(`${archivo.name}: ${r.error}`);
+    for (const e of elegidas) {
+      const nombre = porRevisar?.[Number(e.clave)]?.name ?? "foto";
+      const r = await subirFotoProducto(supabase, comoArchivo(e.foto, "foto.jpg"), e.original);
+      if ("error" in r) fallidos.push(`${nombre}: ${r.error}`);
       else nuevas.push({ clientKey: nuevaClave(), id: null, url: r.url, esPrincipal: false, colorCodigo: null });
     }
     setSubiendo(false);
+    cerrar();
     if (fallidos.length) avisar.error(fallidos.length === 1 ? "Una foto no subió" : `${fallidos.length} fotos no subieron`, { detalle: fallidos.join(" · ") });
     if (nuevas.length) {
-      const lista = [...fotos, ...nuevas];
+      const lista = [...fotosRef.current, ...nuevas];
       if (!lista.some((f) => f.esPrincipal) && lista.length > 0) lista[0] = { ...lista[0], esPrincipal: true };
       onFotos(lista);
     }
@@ -184,12 +209,20 @@ export function FotosProducto({
             />
           </div>
         ))}
-        <BotonElegirFotos onArchivos={agregar} disabled={disabled || subiendo} />
+        <BotonElegirFotos onArchivos={elegir} disabled={disabled || subiendo || porRevisar !== null} />
       </div>
       <p className="text-xs text-tinta/45">
-        JPG, PNG o WebP, hasta 5 MB. La primera queda de principal si no marcas otra. Decile a cada foto qué color es — sin eso,
+        JPG, PNG o WebP, hasta 25 MB. Cada foto sale del mismo tamaño, sobre blanco; antes de subirla eliges si va sin fondo. La primera queda de principal si no marcas otra. Decile a cada foto qué color es — sin eso,
         pasar el mouse por ese color en la Grilla no va a mostrar esta foto.
       </p>
+      {porRevisar && (
+        <RevisarFotosModal
+          fuentes={porRevisar.map((a, i) => ({ clave: String(i), etiqueta: a.name, blob: a }))}
+          guardando={subiendo}
+          onListo={(elegidas, cerrar) => void subir(elegidas, cerrar)}
+          onClose={() => setPorRevisar(null)}
+        />
+      )}
     </div>
   );
 }
