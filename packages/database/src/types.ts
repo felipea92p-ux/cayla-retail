@@ -4334,6 +4334,7 @@ export type Database = {
           metodo: string
           monto: number
           recibido: number | null
+          referencia: string | null
           venta_id: string
         }
         Insert: {
@@ -4341,6 +4342,7 @@ export type Database = {
           metodo: string
           monto: number
           recibido?: number | null
+          referencia?: string | null
           venta_id: string
         }
         Update: {
@@ -4348,6 +4350,7 @@ export type Database = {
           metodo?: string
           monto?: number
           recibido?: number | null
+          referencia?: string | null
           venta_id?: string
         }
         Relationships: [
@@ -4823,6 +4826,7 @@ export type Database = {
           devolucion_medio: string
           devolucion_numero: string | null
           estado: string
+          estante: string | null
           extensiones: number
           id: string
           items: Json
@@ -4853,6 +4857,81 @@ export type Database = {
       liberar_separacion: {
         Args: { p_motivo: string; p_separacion_id: string }
         Returns: undefined
+      }
+      pedir_prenda_para_apartar: {
+        Args: {
+          p_cantidad: number
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_nombres: string
+          p_nota?: string
+          p_origen_id: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
+      enviar_pedido_para_apartar: {
+        Args: { p_fecha_estimada_llegada: string; p_pedido_id: string; p_token?: string }
+        Returns: string
+      }
+      cancelar_pedido_para_apartar: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: undefined
+      }
+      separar_pedido_para_apartar: {
+        Args: { p_datos: Json; p_pedido_id: string }
+        Returns: string
+      }
+      fn_pedidos_para_apartar: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cancelado_motivo: string | null
+          cantidad: number
+          clienta_apellidos: string
+          clienta_celular: string
+          clienta_nombres: string
+          created_at: string
+          direccion: string
+          estado: string
+          guardada_hasta: string | null
+          id: string
+          llego_en: string | null
+          nota: string | null
+          otra_sede: string
+          traslado_numero: number | null
+          variante_id: string
+        }[]
+      }
+      abonar_separacion: {
+        Args: { p_esperar?: boolean; p_pagos: Json; p_separacion_id: string; p_token?: string }
+        Returns: Json
+      }
+      editar_separacion: {
+        Args: { p_agregar?: Json; p_quitar?: string[]; p_separacion_id: string; p_token?: string }
+        Returns: Json
+      }
+      fn_opciones_apartados: {
+        Args: { p_ubicacion_id: string }
+        Returns: string[]
+      }
+      guardar_opciones_apartados: {
+        Args: { p_apagadas: string[]; p_ubicacion_id: string }
+        Returns: string[]
+      }
+      registrar_aviso_separacion: {
+        Args: { p_separacion_id: string }
+        Returns: string
+      }
+      fn_avisos_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          avisos: number
+          separacion_id: string
+          ultimo_aviso_en: string
+          ultimo_por: string | null
+        }[]
       }
       registrar_devolucion_separacion: {
         Args: { p_cci?: string; p_medio: string; p_operacion?: string; p_separacion_id: string }
@@ -5107,6 +5186,16 @@ export type Database = {
       crear_marca: {
         Args: { p_nombre: string; p_proveedor_id: string }
         Returns: string
+      }
+      cargar_stock_inicial: {
+        Args: {
+          p_al_piso?: boolean
+          p_items: Json
+          p_nota?: string
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: number
       }
       crear_producto_con_stock_inicial: {
         Args: {
@@ -5703,6 +5792,26 @@ export type Database = {
           unidades: number
         }[]
       }
+      fn_movimientos_resumen_procesos: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_hasta?: string
+          p_motivo?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_usuario_id?: string
+        }
+        Returns: {
+          entran: number
+          filas: number
+          grupo: string
+          movidas: number
+          operaciones: number
+          proceso: string
+          salen: number
+        }[]
+      }
       fn_movimientos_variantes: {
         Args: { p_busqueda: string }
         Returns: string[]
@@ -6197,6 +6306,14 @@ export type Database = {
           p_desde?: string
           p_hasta?: string
           p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      fn_ritmo_reciente_json: {
+        Args: {
+          p_desde: string
+          p_ubicacion_id: string
+          p_variante_ids: string[]
         }
         Returns: Json
       }

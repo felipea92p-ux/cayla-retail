@@ -72,3 +72,26 @@ un worktree sin `jsqr` instalado. Navegador: una página temporal montó el Punt
 1440 px y a 375 px — accesos y «Más», «Hoy», buscador ordenado, modal de talla con «no había», espera con nombre y
 retomar, hoja del ticket, clienta, proforma y «Prenda sin registrar». Pendiente: el clic real con sesión y datos de
 producción (Felipe).
+
+## Actualización 2026-09-26 (b) — «el ticket a lo alto»
+
+Felipe, sobre la pantalla ya publicada: el ticket se veía chico frente a lo que lo rodea. Spike aprobado
+(`docs/maquetas/punto-venta-ticket-alto-2026-09/`, #501) y llevado a la pantalla:
+
+- **Sin la franja de ancho completo.** La columna izquierda arranca con la sede, «Apartados», «Más» y «Hoy» en chico;
+  el ticket ocupa la columna derecha de arriba abajo. Con la caja cerrada se apagan el catálogo y el ticket, no esa fila:
+  «Abrir caja» tiene que poder tocarse.
+- **«Más» lleva todo lo demás** (`accesosDeMas`): «Hoy» arriba (abre la lista del día), Caja, Cambios, Devoluciones,
+  Historial y Proformas, y «Cerrar caja» al pie. Reemplaza al reparto «cuatro a la vista y dos en Más» (`repartirAccesos`,
+  retirado).
+- **Fuera «Apartar» y «Proforma» del pie del ticket.** «Apartados» a la vista hace de las dos cosas: con prendas dice
+  «Apartar N» y las lleva cargadas (`?prendas=`); vacío, abre Apartados. La proforma desde el ticket se retira (se arma en
+  Más ▸ Proformas); con ella se va el aviso de la campaña, y la decisión pendiente sobre la campaña en la proforma sigue
+  en pie para cuando se cotice desde Proformas.
+- **La tira de espera dice «hace 2 días»** en vez de «3216 min» (`haceCuanto`, con la hora en estado que se refresca cada
+  minuto).
+- **Sin destello en el celular:** bajo `lg` el ticket en línea se esconde por CSS desde el primer pintado; antes se
+  dibujaba un instante debajo del catálogo hasta que la consulta de tamaño respondía.
+
+Verificado con la sesión local en `/vender` (1440 px con el lateral abierto y 375 px): la fila nueva, «Más», y
+«Apartar 1» llevando una Falda Renata real a Apartados ya cargada.

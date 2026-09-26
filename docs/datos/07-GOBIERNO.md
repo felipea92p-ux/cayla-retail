@@ -119,11 +119,12 @@ con editar tu línea de arriba: la alarma no mira la columna «Lo lleva».
 - **`activos_fijos` es de Urraca, no de Garza.** Finanzas operativas es la plata del día
   (gasto, depósito, cuadre de efectivo); un activo fijo es una posición de balance.
 
-**Cuatro pájaros no tienen hoy ninguna tabla, y eso es información, no un error.**
+**Tres pájaros no tienen hoy ninguna tabla, y eso es información, no un error.**
 Tucán y Golondrina, porque sus tablas (`taxonomia_*`, `importaciones`) no existen en
-producción desde el corte a V2. Águila, porque lee lo de los demás (`movimientos`,
-`ventas`, `stock`, `producciones`); el día que escriba sus propios resúmenes, esas
-tablas nacen bajo Águila. Y Gorrión, que responde por `supabase/migrations/`,
+producción desde el corte a V2. Águila lee lo de los demás (`movimientos`, `ventas`,
+`stock`, `producciones`) y solo tiene una tabla propia, `actividad` (ADR-0207, refresco
+del 2026-09-26): el «quién hizo qué» de cada módulo, que escriben los disparadores y no
+una pantalla; es el primer resumen propio de Águila. Y Gorrión, que responde por `supabase/migrations/`,
 `supabase/unificacion/` y el camino con que se pega SQL en producción (§4), no por una
 tabla.
 

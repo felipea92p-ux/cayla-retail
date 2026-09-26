@@ -9,12 +9,13 @@ import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 //   - una orden cerrada del Taller (`?produccion=`);
 //   - una campaña (`?campana=`): sus prendas en la tienda, con el precio de campaña o, si ya terminó, el normal;
 //   - un producto (`?producto=`): sus tallas y colores en la tienda.
+//   - tallas sueltas (`?variantes=`): las marcadas en Existencias con «Etiquetas» (ADR-0237).
 // La etiqueta dice lo que la caja cobra HOY: con campaña vigente, el precio rebajado (paso 2, ADR-0182).
 //
 // No es un módulo del menú (ADR-0161): es la salida de otras pantallas que ya tienen su módulo, así que no lleva
 // `exigirModulo`. Lo que cuida los datos es la base: `movimientos_select` y `stock_select` solo dejan ver lo de las
 // sedes que uno opera, y un id escrito a mano de otra tienda devuelve una lista vacía.
-type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string };
+type Params = { lotes?: string | string[]; produccion?: string; campana?: string; producto?: string; variantes?: string | string[] };
 
 export default async function EtiquetasDePrecioPage({ searchParams }: { searchParams: Promise<Params> }) {
   const persona = await requirePersonaActualV2();
@@ -24,6 +25,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
   const [produccion] = idsDeParam(params.produccion);
   const [campana] = idsDeParam(params.campana);
   const [producto] = idsDeParam(params.producto);
+  const variantes = idsDeParam(params.variantes);
 
   const origen: OrigenEtiquetas | null = produccion
     ? { tipo: "produccion", id: produccion }
@@ -33,7 +35,9 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
         ? { tipo: "campana", id: campana, ubicacionId: persona.ubicacionId }
         : producto
           ? { tipo: "producto", id: producto, ubicacionId: persona.ubicacionId }
-          : null;
+          : variantes.length > 0
+            ? { tipo: "variantes", ids: variantes, ubicacionId: persona.ubicacionId }
+            : null;
   const datos = origen ? await getEtiquetasDePrecio(origen, hoy) : { etiquetas: [], sinCodigo: [] };
 
   const texto: OrigenDeTexto =

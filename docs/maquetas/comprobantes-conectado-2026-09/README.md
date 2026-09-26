@@ -1,0 +1,68 @@
+# Comprobantes conectado, computadora y celular: demo (2026-09-26)
+
+`demo.html` es un demo comparativo: un solo archivo con el isotipo incrustado y datos inventados. **No es el spike final
+ni una implementación**: no toca el código del ERP ni la base. Sirve para elegir entre las opciones abiertas con la barra
+oscura. La computadora y el celular se dibujan juntos y comparten el estado: lo que abres en uno se abre en el otro.
+
+Análisis de origen: `docs/pantallas/vender-comprobantes.md` (re-análisis del 2026-09-26, SHA `2227a9fd`).
+
+## El pedido (Felipe, 2026-09-26)
+
+Sumar a Comprobantes accesos a las pantallas nuevas y hacerla cómoda en el teléfono. Tras el análisis, Felipe pidió:
+
+1. Un demo de **con qué vista entra quien no es líder**.
+2. Revisar qué hacen otras empresas: qué sumar y qué quitar (pestaña «Otras empresas» del demo).
+3. Accesos en cada comprobante, aprobados los cuatro: **Ver la venta · Cambio y Devolución · WhatsApp al número de la
+   clienta · Nota de crédito ↔ devolución**.
+4. Un demo de **Proforma → Apartar**.
+5. Un demo de **cómo se ordenan las acciones en el celular**.
+
+## Qué se elige con la barra
+
+| Grupo | Opciones |
+|---|---|
+| Quién mira | Colaboradora · Líder |
+| 1 · Entrada | A «Hoy» para la colaboradora (Series solo para el líder) · B Emitidos para todos · C Series, como hoy |
+| 2 · Celular | A tocar la tarjeta abre una hoja · B barra inferior fija (choca con ADR-0206) · C botones grandes en cada fila |
+| 3 · Proformas | A Cobrar + Apartar · B solo Cobrar |
+
+## Lo que va en todas las opciones
+
+- La fila abre la venta: un cajón en computadora y una hoja en celular (reusa `DetalleVentaModal`).
+- Cambio y Devolución desde un comprobante aceptado (`/cambios?q=`, `/devoluciones?q=`).
+- WhatsApp al `telefono_whatsapp` de la clienta. Si no hay número, se pide y se guarda.
+- NC ↔ devolución ↔ boleta: pruébalo con B004-000029 y NC01-000001.
+- «Por reintentar» pasa a llamarse **«Por enviar»** e incluye las boletas que nunca se intentaron (tarea #1 del análisis).
+- XML, CDR y Anular van a «Más». Anular sigue siendo del líder.
+- Series dice «7 emitidos · va en el 37» en vez de «números usados».
+
+## Otras empresas (resumen)
+
+Revisados en sus centros de ayuda: Shopify POS, Square, Lightspeed, Nubefact, Alegra y Bsale. Lo que se repite en
+todos: **el comprobante vive dentro de la venta**, y desde ahí se reenvía, se devuelve y se reimprime. XML, CDR y los
+resúmenes diarios quedan fuera de la vista de la vendedora. Las fuentes están enlazadas en el demo, junto con lo que no
+se pudo verificar.
+
+## Decisiones de Felipe
+
+**2026-09-26, tras el demo:** Felipe eligió **1A «Hoy» · 2B barra abajo · 3A Cobrar + Apartar**, y pidió sumar las cifras
+de cada pestaña (monto facturado, monto cotizado…). Eso es `spike.html`:
+
+| Tema | Cómo queda en el spike |
+|---|---|
+| Cifras | Cada pestaña trae las suyas, arriba de su lista: **Hoy** (emitidos, facturado, por enviar; con «Hoy · Este mes»), **Emitidos** (emitidos, monto facturado, pendientes, rechazados), **Proformas** (vigentes, monto cotizado, por vencer, vencidas, más la tasa de conversión) y **Por enviar** |
+| Cabecera | Sale el bloque «Por enviar · Proformas vigentes», que repetía las tarjetas y cambiaba de lugar. «Por enviar» queda como número en la pestaña y en la barra |
+| Tarjetas que filtran | Por enviar, Vigentes, Por vencer y Vencidas dejan en la lista solo esos (como Por pagar, ADR-0131) |
+| Monto facturado | Lo aceptado por SUNAT, ya restadas las notas de crédito. Lo de prueba y lo sin enviar van aparte |
+| Barra abajo (2B) | Hoy · Proformas · Por enviar (y Emitidos para el líder). Choca con ADR-0206 y hay que escribir la excepción, como en Apartados |
+| Series (líder, celular) | Sale de la barra: se abre desde «Series de las tiendas ›» bajo el título |
+
+**Falta decidir:** cómo se ven las cifras en celular, **A** carrusel, **B** 2×2 compacto o **C** franja que se abre
+(barra del spike).
+
+**2026-09-26, segunda vuelta:** Felipe pidió que estén **las 4 pestañas, Hoy · Series · Por enviar · Proformas** (para
+todos, y las mismas 4 en la barra de abajo del celular) y que **los gráficos lleven los colores de CAYLA**.
+- Emitidos deja de ser pestaña: «Hoy · Este mes» cubre la lista del mes, el monto facturado y el selector de mes.
+- Cada tarjeta dibuja su cifra (barra por tipo, barras por hora o día, enviados contra faltan, vigente contra por
+  vencer, puntos) con tinta, taupe, `--color-grafico-neutro`, `--color-grafico-alza` (verde), `--color-grafico-baja`
+  (ámbar) y sand. **El rojo no entra en ningún gráfico** (acento sagrado, máx. 2 por pantalla).

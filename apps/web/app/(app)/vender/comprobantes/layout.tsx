@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { exigirPermiso } from "@/lib/persona-actual";
-import { getColaReintento, getResumenPorEnviar } from "@/lib/comprobantes";
+import { getPorEnviar, getResumenPorEnviar } from "@/lib/comprobantes";
 import { getResumenProformas } from "@/lib/proformas";
 import { opcional } from "@/lib/resultado";
 import { conteosDePestanas, resumenCola } from "@/lib/facturacion-reglas";
@@ -27,8 +27,8 @@ export default async function FacturacionLayout({ children }: { children: ReactN
   const [porEnviar, proformas, cola] = await Promise.all([
     opcional(getResumenPorEnviar(), "la cola de SUNAT (marco de Facturación)"), // ya devuelven `null` si la consulta falla (`tolerar`);
     opcional(getResumenProformas(), "las proformas vigentes (marco de Facturación)"), // `opcional` cubre además lo que `tolerar` no ve (`createClient()`)
-    // D-60: la cola de SUNAT, para el contador de «Por reintentar» y el aviso de más de 1 hora.
-    opcional(getColaReintento(persona.rol === "lider" ? null : persona.ubicacionId), "la cola de reintento (marco de Comprobantes)"),
+    // Todo lo que no llegó a SUNAT (cola + nunca intentados + rechazados, 2026-09-26), para el aviso de más de 1 hora.
+    opcional(getPorEnviar(persona.rol === "lider" ? null : persona.ubicacionId), "lo que falta enviar (marco de Comprobantes)"),
   ]);
   const enCola = cola ? resumenCola(cola) : null;
 
@@ -38,8 +38,9 @@ export default async function FacturacionLayout({ children }: { children: ReactN
       atrasadosEnCola={enCola?.masDeUnaHora ?? 0}
       entorno={entornoLucode()}
       sede={persona.ubicacionEtiqueta}
-      // Un `null` (la lectura falló) no dibuja la cifra en la cabecera: nunca un número inventado.
-      cifras={{ porEnviar: porEnviar?.porEnviar ?? null, proformasVigentes: proformas?.vigentes ?? null }}
+      // Sin cifras en la cabecera (2026-09-26): repetían las tarjetas de cada pestaña y cambiaban de lugar.
+      // «Por enviar» sigue siempre a la vista: es el contador de su pestaña.
+      cifras={{ porEnviar: null, proformasVigentes: null }}
     >
       {/* D-60: al abrir, reintenta la cola de SUNAT — todas las sedes si es líder, la suya si es la terminal. */}
       <BarridoColaSunat ubicacionId={persona.rol === "lider" ? null : persona.ubicacionId} />

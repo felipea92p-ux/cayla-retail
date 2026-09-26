@@ -1,6 +1,6 @@
 import { exigirPermiso } from "@/lib/persona-actual";
 import { opcional } from "@/lib/resultado";
-import { getComprobantesMes, getResumenPorEnviar } from "@/lib/comprobantes";
+import { getComprobantesMes, getExtrasDeComprobantes, getResumenPorEnviar } from "@/lib/comprobantes";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
 import { mesDeParametro, periodoDelMes, tiendasOperativas } from "@/lib/facturacion-reglas";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -8,7 +8,10 @@ import { ComprobantesPanel } from "@/components/ComprobantesPanel";
 import { ComprobantesTarjetas } from "@/components/ComprobantesTarjetas";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
 import { SelectorMesFacturacion } from "@/components/SelectorMesFacturacion";
+import { PeriodoComprobantes } from "@/components/PeriodoComprobantes";
+import { diasDelMes, montosPorTramo } from "@/lib/comprobantes-graficos-reglas";
 
+// «Este mes» de la pestaña Hoy (2026-09-26): la vieja «Emitidos», en la misma ruta para no romper enlaces.
 export default async function EmitidosPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const persona = await exigirPermiso("facturar");
   const { m } = await searchParams;
@@ -27,17 +30,29 @@ export default async function EmitidosPage({ searchParams }: { searchParams: Pro
     opcional(getResumenPorEnviar(), "la cola de SUNAT (Emitidos)"),
     getUbicaciones(),
   ]);
+  // Lo que conecta cada comprobante con su venta, la clienta y Posventa. Nunca tumba la vista (`tolerar` adentro).
+  const extras = await getExtrasDeComprobantes(comprobantes);
   const periodo = periodoDelMes(mes, actual);
 
   return (
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
-      <SelectorMesFacturacion ruta="/vender/comprobantes/emitidos" mes={mes} actual={actual} />
-      <ComprobantesTarjetas comprobantes={comprobantes} porEnviar={porEnviar} periodo={periodo} ahora={ahora} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SelectorMesFacturacion ruta="/vender/comprobantes/emitidos" mes={mes} actual={actual} />
+        <PeriodoComprobantes activo="mes" />
+      </div>
+      <ComprobantesTarjetas
+        comprobantes={comprobantes}
+        porEnviar={porEnviar}
+        periodo={periodo}
+        ahora={ahora}
+        tramos={montosPorTramo(comprobantes, "dia", { diasDelMes: diasDelMes(mes.anio, mes.mes) })}
+      />
       <ComprobantesPanel
         comprobantes={comprobantes}
         periodo={periodo}
         esLider={persona.rol === "lider"}
+        extras={extras}
         tiendas={tiendasOperativas(ubicaciones).map(({ id, nombre }) => ({ id, nombre }))}
       />
     </div>

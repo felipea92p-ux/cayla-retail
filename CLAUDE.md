@@ -161,6 +161,14 @@ lista y el segundo, la hoja. **Un control que usa el Escape (cierra su lista, bo
 control, así que su `onEscapeKeyDown` no alcanza para saber si el Escape era del combo. Un cajón que arme su propio
 `Dialog.Content` pasa su `onEscapeKeyDown` por `useEscapeLibre` (lo vigila `lib/hojas-escape.test.ts`).
 
+**Teclas y clics que suben desde un modal (ADR-0128, «Actualización 2026-09-26»):** React hace subir los eventos de un
+portal por sus ancestros de React: un `<Modal>` abierto desde un cajón o una fila le entrega sus teclas y sus clics al
+`onKeyDown`/`onClick` de ese cajón o esa fila, aunque en la página viva fuera. Un cajón que pasa de registro con ↑ ↓ lo
+hace con `useFlechasDelCajon` (ignora la flecha que no nació en su DOM, que otro control ya usó o que viene de un campo;
+lo vigila `lib/vista-rapida-reglas.test.ts`), nunca con un `e.key === "ArrowDown"` propio; y un contenedor clicable que
+puede tener un modal adentro ignora el clic cuyo destino no está en su DOM (`!e.currentTarget.contains(e.target as Node)`,
+como la fila de Por pagar).
+
 **Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles
 props serializables; NUNCA llames desde el servidor a una función exportada por un archivo `"use client"` (Next lanza
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se
@@ -173,7 +181,9 @@ importa desde ambos lados.
 o rediseñada: cabecera → cifras (`TarjetaCifra`) → filtros y tabla en UNA tarjeta (`Tabla`, `caja` en los campos,
 `pildora-cayla`) → nota en hueso (`nota-cayla`). **La cabecera es la de su módulo:** en Ventas e Inventario,
 `<EncabezadoPagina>` (`components/ui/EncabezadoPagina.tsx`: sede y fecha arriba con el hilo taupe → título de 46 px con el
-nombre del menú, nunca la sede → frase; acciones bajo la frase, cifras o reloj a la derecha; ADR-0220, Felipe 2026-09-26);
+nombre del menú, nunca la sede → frase; a la derecha, las cifras o el reloj y, si la pantalla no los tiene, sus acciones
+(prop `acciones`: bajan solas bajo la frase si la derecha está ocupada); bajo la frase, solo la vuelta «← Traslados» y
+estados; ADR-0220 y su actualización de la tarde, Felipe 2026-09-26);
 en Finanzas, `<CabeceraPantalla>` como su spike (ADR-0195). En cualquier otro módulo la cabecera está sin decidir:
 pregúntale a Felipe antes de elegir. Botones: `btn-cayla` + `btn-primario|secundario|peligro|sutil|enlace`;
 estados: `<Chip>` (insignia con punto; `pizarra` = informativo). Sin sombras en superficies pegadas al fondo. Detalle,
@@ -273,6 +283,10 @@ un «Elige…» que solo bloquea guardar → `marcador`, no una opción; foco-en
 `Desplegable`). En Finanzas el combo es `SelectFin` (kit): el mismo `Desplegable` con la caja del spike
 (`forma="fin"`); `className` lo ubica en la fila (`w-fit`, `fin-mes-chico`, `fin-compacto`), no lo pinta. La
 forma `caja` es hueso, igual que `CampoTexto caja`. Detalle: ADR-0209, actualizaciones del 2026-09-26.
+**Todo combo abre tan rápido como el selector de sede:** su lista flotante se cuelga con `useDestinoFlotante` y entra con
+`anim-revelar` (240 ms, sin espera). Dentro de un `<Modal>`, el hook la cuelga de la capa de la hoja
+(`[data-capa-flotante]`, fuera de la cascada). **Nunca la cuelgues suelta en la hoja:** la cascada la toma por contenido y
+la retrasa hasta 1 s (ADR-0211, «Actualización 2026-09-26 (b)»; lo vigila `lib/combos-fuera-de-la-cascada.test.ts`).
 
 ## Vocabulario obligatorio
 
