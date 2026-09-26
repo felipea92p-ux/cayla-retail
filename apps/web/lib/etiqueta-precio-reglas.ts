@@ -191,6 +191,7 @@ export type OrigenDeTexto =
   | { tipo: "produccion" }
   | { tipo: "campana"; campana: { nombre: string; pct: number; vigencia: Vigencia | null } | null }
   | { tipo: "producto"; nombre: string | null }
+  | { tipo: "variantes" }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -228,6 +229,13 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         sobretitulo: `Productos · ${o.nombre ?? "Modelo"}`,
         bajada: `En ${sede} hay ${prendas} de este modelo. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
         vacio: `En ${sede} no hay prendas de este modelo.`,
+      };
+    case "variantes":
+      return {
+        ...base,
+        sobretitulo: "Existencias · Prendas marcadas",
+        bajada: `En ${sede} hay ${prendas} de ${modelos} entre las que marcaste. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
+        vacio: `En ${sede} no hay unidades de las prendas que marcaste.`,
       };
     case "campana": {
       const c = o.campana;

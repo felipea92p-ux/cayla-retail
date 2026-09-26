@@ -244,6 +244,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   La cabecera de Existencias muestra además el botón «Bajar al piso» (→ `/inventario/bajar`, única entrada a esa
   pantalla; web publicada, y en producción su función, `0200`, pegada y su módulo, `0000`, sin confirmar) solo si el rol
   ve `bajada_piso` (`veModulo`), la sede que se mira es la activa y esa sede tiene piso y almacén.
+  **Existencias conectada (ADR-0237, 2026-09-26):** la lista entra por prenda (`components/ExistenciasPorPrenda.tsx`,
+  agrupación en `lib/existencias-prendas.ts`; «Por talla» es la tabla de siempre), tocar una prenda abre
+  `DetallePrendaExistencias.tsx`, y lo marcado se lleva con la lista cargada a `/inventario/bajar?lineas=`,
+  `/inventario/mover?lineas=` y `/etiquetas-de-precio?producto=|?variantes=`. Cabecera: accesos a `/recibir`,
+  `/inventario/conteo` y `/vender/apartados` según módulo. Celular: «Escanear prenda» (`EscanerBusqueda`).
 - `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
   cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
   para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
@@ -344,7 +349,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   solo ofrece «Confirmar de nuevo», o «Comprobar» si el borrador ya se había enviado; mientras se guarda o el loader
   está a la vista, lo que manda la pistola va a un búfer, `esperaOcupada()` de `lib/espera-estado.ts`) → RPC
   `bajar_al_piso`. La base se toca una sola vez, al confirmar.
-- `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…` (ADR-0180; sin módulo propio, la salida de otras
+- `/etiquetas-de-precio?lotes=…|?produccion=…|?campana=…|?producto=…|?variantes=…` (ADR-0180; `?variantes=` desde Existencias, ADR-0237; sin módulo propio, la salida de otras
   pantallas) → `lib/etiquetas-precio.ts` (`getEtiquetasDePrecio`: las `movimientos` de entrada del ingreso por `lote_id` o
   `produccion_id`, o el `stock` de la tienda de la sesión para una campaña o un producto; el alcance de una campaña y la
   campaña de HOY de cada prenda con `fn_campanas_por_variante`; todo con `leerTodas`; SIN RPC ni tabla nueva) +

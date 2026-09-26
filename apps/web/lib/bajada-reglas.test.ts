@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  lineasIniciales,
   BOTON_COMPROBAR,
   BOTON_CONFIRMAR_DE_NUEVO,
   BUFER_VACIO,
@@ -225,6 +226,39 @@ describe("leerCodigo: cada disparo de la pistola", () => {
   it("cuenta lo que ya está en la lista: la siguiente lectura dice cuántas quedarán", () => {
     const lineas: LineaBajada[] = [{ varianteId: BLUSA.varianteId, cantidad: 2 }];
     expect(leerCodigo("7750001000017", PRENDAS, lineas)).toEqual({ tipo: "suma", prenda: BLUSA, cantidadAhora: 3 });
+  });
+});
+
+describe("lineasIniciales: la lista que llega marcada desde Existencias (ADR-0237)", () => {
+  const conAtras = prenda({ varianteId: id(1), almacenDisponible: 3 });
+  const sinAtras = prenda({ varianteId: id(2), almacen: 1, almacenDisponible: 0 });
+  it("toma solo lo de esta tienda con algo libre atrás, con la cantidad topada a eso", () => {
+    expect(
+      lineasIniciales(
+        [
+          { varianteId: id(1), cantidad: 9 },
+          { varianteId: id(2), cantidad: 1 },
+          { varianteId: id(99), cantidad: 1 },
+        ],
+        [conAtras, sinAtras]
+      )
+    ).toEqual([{ varianteId: id(1), cantidad: 3 }]);
+  });
+  it("no repite una prenda ni acepta cantidades que no son enteras positivas", () => {
+    expect(
+      lineasIniciales(
+        [
+          { varianteId: id(1), cantidad: 1 },
+          { varianteId: id(1), cantidad: 2 },
+        ],
+        [conAtras]
+      )
+    ).toEqual([{ varianteId: id(1), cantidad: 1 }]);
+    expect(lineasIniciales([{ varianteId: id(1), cantidad: 0 }], [conAtras])).toEqual([]);
+  });
+  it("corta en el máximo de líneas de una bajada", () => {
+    const muchas = Array.from({ length: MAX_LINEAS_BAJADA + 5 }, (_, i) => prenda({ varianteId: id(i + 1) }));
+    expect(lineasIniciales(muchas.map((p) => ({ varianteId: p.varianteId, cantidad: 1 })), muchas)).toHaveLength(MAX_LINEAS_BAJADA);
   });
 });
 
