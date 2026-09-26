@@ -46,3 +46,18 @@ se pudo verificar.
 ## Decisiones de Felipe
 
 _Pendiente: se completa cuando Felipe elija. Con eso se arma el spike final en esta misma carpeta._
+
+**2026-09-26, tras el demo:** Felipe eligió **1A «Hoy» · 2B barra abajo · 3A Cobrar + Apartar**, y pidió sumar las cifras
+de cada pestaña (monto facturado, monto cotizado…). Eso es `spike.html`:
+
+| Tema | Cómo queda en el spike |
+|---|---|
+| Cifras | Cada pestaña trae las suyas, arriba de su lista: **Hoy** (emitidos, facturado, por enviar; con «Hoy · Este mes»), **Emitidos** (emitidos, monto facturado, pendientes, rechazados), **Proformas** (vigentes, monto cotizado, por vencer, vencidas, más la tasa de conversión) y **Por enviar** |
+| Cabecera | Sale el bloque «Por enviar · Proformas vigentes», que repetía las tarjetas y cambiaba de lugar. «Por enviar» queda como número en la pestaña y en la barra |
+| Tarjetas que filtran | Por enviar, Vigentes, Por vencer y Vencidas dejan en la lista solo esos (como Por pagar, ADR-0131) |
+| Monto facturado | Lo aceptado por SUNAT, ya restadas las notas de crédito. Lo de prueba y lo sin enviar van aparte |
+| Barra abajo (2B) | Hoy · Proformas · Por enviar (y Emitidos para el líder). Choca con ADR-0206 y hay que escribir la excepción, como en Apartados |
+| Series (líder, celular) | Sale de la barra: se abre desde «Series de las tiendas ›» bajo el título |
+
+**Falta decidir:** cómo se ven las cifras en celular, **A** carrusel, **B** 2×2 compacto o **C** franja que se abre
+(barra del spike).
