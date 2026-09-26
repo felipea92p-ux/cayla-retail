@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 313 llamadas `.rpc` de `apps/web` contra 544 funciones del schema `retail` en producción: 266 con los parámetros leídos (se comparan uno por uno), 41 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
+> Comparadas 316 llamadas `.rpc` de `apps/web` contra 544 funciones del schema `retail` en producción: 269 con los parámetros leídos (se comparan uno por uno), 41 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
 > **Foto de producción: 2026-09-25 16:09 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
@@ -15,7 +15,7 @@
 
 ---
 
-## Llamadas sin respaldo en la foto de producción — 10
+## Llamadas sin respaldo en la foto de producción — 13
 
 Cada entrada es una llamada que **la foto no respalda**: la función no aparece, o la app manda un parámetro que la foto no
 tiene. **No es lo mismo que «pantalla rota»**: una función creada o cambiada después de la foto sale aquí aunque en
@@ -33,6 +33,27 @@ migración define la función: se pegó en producción después de la foto, o to
 - **Dónde:** `apps/web/components/EditarMarcaModal.tsx:84`
 - **Qué pasa:** la función `editar_marca` no está en la foto de producción (2026-09-25 16:09 UTC)
 - **Migración que la crea:** `supabase/migrations/20260926150000_editar_marca.sql` (se pegó después de la foto, o todavía no)
+- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
+
+### `fn_producto_se_puede_eliminar` — no está en la foto
+
+- **Dónde:** `apps/web/components/EliminarProductoModal.tsx:45`
+- **Qué pasa:** la función `fn_producto_se_puede_eliminar` no está en la foto de producción (2026-09-25 16:09 UTC)
+- **Migración que la crea:** `supabase/migrations/20260926220000_eliminar_producto.sql` (se pegó después de la foto, o todavía no)
+- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
+
+### `eliminar_producto` — no está en la foto
+
+- **Dónde:** `apps/web/components/EliminarProductoModal.tsx:58`
+- **Qué pasa:** la función `eliminar_producto` no está en la foto de producción (2026-09-25 16:09 UTC)
+- **Migración que la crea:** `supabase/migrations/20260926220000_eliminar_producto.sql` (se pegó después de la foto, o todavía no)
+- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
+
+### `eliminar_marca` — no está en la foto
+
+- **Dónde:** `apps/web/components/MarcasLista.tsx:138`
+- **Qué pasa:** la función `eliminar_marca` no está en la foto de producción (2026-09-25 16:09 UTC)
+- **Migración que la crea:** `supabase/migrations/20260926213000_eliminar_marca.sql` (se pegó después de la foto, o todavía no)
 - **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
 
 ### `mover_interno` — parámetro de más
@@ -149,7 +170,7 @@ foto ni ninguna migración del repo conocen.
 - `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:376` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:65` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:278` — el objeto se arma con «...», no se puede leer entero
-- `registrar_compra` · `apps/web/components/CompraFormV2.tsx:364` — el objeto se arma con «...», no se puede leer entero
+- `registrar_compra` · `apps/web/components/CompraFormV2.tsx:365` — el objeto se arma con «...», no se puede leer entero
 - `guardar_gasto_fijo` · `apps/web/components/GastosFijosYActivos.tsx:382` — el objeto se arma con «...», no se puede leer entero
 - `registrar_gasto` · `apps/web/components/GastosPanel.tsx:599` — el objeto se arma con «...», no se puede leer entero
 - `fn_impuestos_registro_ventas` · `apps/web/components/ImpuestosPanel.tsx:69` — los parámetros no van escritos ahí mismo
@@ -183,10 +204,10 @@ foto ni ninguna migración del repo conocen.
 - `listar_recepciones_compras` · `apps/web/lib/compras-indicadores.ts:213` — el objeto se arma con «...», no se puede leer entero
 - `resumen_sin_comprobante` · `apps/web/lib/compras-indicadores.ts:252` — los parámetros no van escritos ahí mismo
 - `recepciones_sin_comprobante` · `apps/web/lib/compras-indicadores.ts:282` — el objeto se arma con «...», no se puede leer entero
-- `listar_compras_operativo` · `apps/web/lib/compras.ts:191` — el objeto se arma con «...», no se puede leer entero
-- `listar_compras` · `apps/web/lib/compras.ts:218` — el objeto se arma con «...», no se puede leer entero
-- `lineas_compra_operativo` · `apps/web/lib/compras.ts:391` — el objeto se arma con «...», no se puede leer entero
-- `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:196` — el objeto se arma con «...», no se puede leer entero
+- `listar_compras_operativo` · `apps/web/lib/compras.ts:192` — el objeto se arma con «...», no se puede leer entero
+- `listar_compras` · `apps/web/lib/compras.ts:219` — el objeto se arma con «...», no se puede leer entero
+- `lineas_compra_operativo` · `apps/web/lib/compras.ts:392` — el objeto se arma con «...», no se puede leer entero
+- `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:200` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:178` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:208` — el objeto se arma con «...», no se puede leer entero
 - `fn_movimientos_resumen` · `apps/web/lib/movimientos-v2.ts:227` — los parámetros no van escritos ahí mismo
