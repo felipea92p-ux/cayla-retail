@@ -273,6 +273,10 @@ un «Elige…» que solo bloquea guardar → `marcador`, no una opción; foco-en
 `Desplegable`). En Finanzas el combo es `SelectFin` (kit): el mismo `Desplegable` con la caja del spike
 (`forma="fin"`); `className` lo ubica en la fila (`w-fit`, `fin-mes-chico`, `fin-compacto`), no lo pinta. La
 forma `caja` es hueso, igual que `CampoTexto caja`. Detalle: ADR-0209, actualizaciones del 2026-09-26.
+**Todo combo abre tan rápido como el selector de sede:** su lista flotante se cuelga con `useDestinoFlotante` y entra con
+`anim-revelar` (240 ms, sin espera). Dentro de un `<Modal>`, el hook la cuelga de la capa de la hoja
+(`[data-capa-flotante]`, fuera de la cascada). **Nunca la cuelgues suelta en la hoja:** la cascada la toma por contenido y
+la retrasa hasta 1 s (ADR-0211, «Actualización 2026-09-26 (b)»; lo vigila `lib/combos-fuera-de-la-cascada.test.ts`).
 
 ## Vocabulario obligatorio
 
