@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔁 Cambios conectado con las pantallas vecinas (2026-09-26, ADR-0229) — solo web, sin migración; rama `claude/pantalla-cambios-mejoras-511805`
+Demo e investigación en `docs/maquetas/cambios-mejoras-2026-09/`; Felipe eligió tarjeta C, fijo abajo A y ticket A.
+- [x] Salidas cuando la talla no está: pedirla a otra sede (líder), apartarla cuando llegue, anotar que no había, devolver.
+- [x] Celular: botón fijo «Escanear prenda o boleta» con la cámara (etiqueta o QR de SUNAT).
+- [x] Hoja con el ticket del cambio: WhatsApp, térmica, «Seguir vendiendo».
+- [x] «Quedan N días» (ámbar los últimos 3) y chip de caja junto al buscador.
+- [ ] Verlo con una integrante (sin enlace de traslado) y con la cámara de un teléfono real (el panel no tiene cámara).
+- [ ] Imprimir el ticket en la térmica de verdad y ajustar el largo si sale largo.
+- [ ] Ficha de la clienta desde el cambio: hoy la venta guarda la clienta como texto y `/clientas` no recibe búsqueda por URL.
+- [ ] Sigue abierto (no es de esta tarea): la diferencia de precio sin comprobante ni líder (`docs/pantallas/cambios.md` §2).
+
 ## 🧹 Purga de Top Aurora y su venta de prueba (2026-09-26, ADR-0224) — **HECHA en producción el 2026-09-26 10:06 (Lima)**; scripts en el repo, sin web ni migración
 - [x] `scripts/purga/purgar-producto-de-prueba.sql` (parametrizado, ensayo por defecto) y `scripts/purga/restaurar-purga.sql`: deshacen por completo `TOP-0011` y la nota `NV01-000007` (S/ 2,007.10, sin SUNAT), devuelven a stock las 13 prendas de otros productos que esa venta sacó, devuelven la serie NV01 a 7, respaldan cada fila en `respaldo_purgas.filas` y demuestran antes de cerrar que el libro de movimientos cuadra con el stock en toda la base.
 - [x] Probado: `pnpm pruebas:purgar-producto` **36/36** (sumada al CI), 6 mutaciones detectadas, respaldo restaurado idéntico fila por fila. La prueba encontró que `venta_items.subtotal` es columna generada: por eso existe `restaurar-purga.sql`.

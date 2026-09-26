@@ -72,6 +72,7 @@ export default async function CambiosPage({ searchParams }: { searchParams: Prom
         cajaAbierta={caja !== null}
         tallasQueNoCalzan={tallasQueNoCalzan}
         abrirItemId={item}
+        sedes={ubicaciones.map((u) => ({ id: u.id, nombre: u.nombre }))}
         catalogo={catalogo
           .filter((v) => v.activo)
           .map((v) => ({

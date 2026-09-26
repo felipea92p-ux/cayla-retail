@@ -7,6 +7,16 @@ entre las opciones abiertas. La computadora y el celular se dibujan juntos.
 Para abrir una combinación directo se usa el hash, por ejemplo `demo.html#escena=falta&tarjeta=B&fijo=B`.
 Las claves son `escena` (lista/falta/fin), `tarjeta` (A/B/C), `fijo` (A/B/C), `final` (A/B/C) y `camara` (1/2).
 
+## Lo que eligió Felipe (2026-09-26) → implementado en ADR-0229
+
+| Tema | Elección |
+|---|---|
+| Tarjeta de actividad | **C · como hoy**, con «Quedan N días» (ámbar los últimos 3) |
+| Fijo abajo en el celular | **A · «Escanear prenda o boleta»** |
+| Al terminar | **A · ticket + seguir vendiendo** |
+| Accesos | Los cuatro: traslado, apartado, pedido no atendido, devolución |
+| Apartar «cuando llegue» | Decidido por Claude: sin estado «en espera»; se aparta al llegar y se cambia al volver |
+
 ## El pedido (Felipe, 2026-09-26)
 
 Sumar a Cambios las pantallas nuevas que trabajan con ella, para agilizar a la colaboradora, con la pantalla bien en el
