@@ -24,6 +24,8 @@ describe("escaner-reglas", () => {
   it("dice qué pasó con cada lectura", () => {
     expect(mensajeEscaneo({ estado: "agregada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "verde", texto: "Blusa Emma · M · al ticket" });
     expect(mensajeEscaneo({ estado: "agotada", codigo: "C1", nombre: "Blusa Emma · M" }).tono).toBe("ambar");
+    // Apartada para una clienta no es agotada: la que escanea no debe creer que no hay ninguna.
+    expect(mensajeEscaneo({ estado: "apartada", codigo: "C1", nombre: "Blusa Emma · M" })).toEqual({ tono: "ambar", texto: "Blusa Emma · M no entró: está apartada para una clienta" });
     expect(mensajeEscaneo({ estado: "tope", codigo: "C1", nombre: "Blusa Emma · M" }).texto).toContain("Ya están todas");
     expect(mensajeEscaneo({ estado: "no-encontrada", codigo: "XYZ" }).texto).toBe("No encontramos «XYZ» en esta tienda");
     expect(mensajeEscaneo({ estado: "en_almacen", codigo: "C1", nombre: "Blusa Emma · M", almacen: 2 })).toEqual({
@@ -36,6 +38,8 @@ describe("escaner-reglas", () => {
     expect(estadoCorto({ estado: "agregada", codigo: "C1" })).toBeNull();
     expect(estadoCorto({ estado: "agotada", codigo: "C1" })).toBe("Agotada aquí");
     expect(estadoCorto({ estado: "en_almacen", codigo: "C1", almacen: 2 })).toBe("No entró · en almacén");
+    // Apartada tampoco entra: la etiqueta corta dice que NO entró, como la del almacén (no suena a buena noticia).
+    expect(estadoCorto({ estado: "apartada", codigo: "C1" })).toBe("No entró · apartada");
     // Todas las del piso ya están en el ticket y hay más en el almacén: la que se escaneó, para el sistema, está ahí.
     expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: 3 })).toBe("No entró · en almacén");
     expect(estadoCorto({ estado: "tope", codigo: "C1", almacen: null })).toBe("Sin más stock");

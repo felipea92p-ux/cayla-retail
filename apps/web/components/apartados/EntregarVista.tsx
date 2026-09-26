@@ -13,7 +13,8 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
 import { cobroDelSaldo, coincide, diasEntre, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
-import { EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ApartadoEntregadoModal } from "@/components/apartados/ModalesApartado";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
@@ -23,6 +24,14 @@ const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
   "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
 const BILLETES = [10, 20, 50, 100, 200];
+
+/** «Terracota · M · VES-0012-TER-M»: el apartado solo guarda el `sku`, que en producción está vacío en casi todas las
+ *  variantes (ADR-0058: el código vive en `codigo`), y se leía «· 1 u.». Color, talla y código salen del catálogo; si la
+ *  prenda ya no está en él, queda el `sku` guardado. */
+function detallePrenda(v: VarianteBusqueda | undefined, sku: string): string {
+  if (!v) return sku;
+  return [v.color, v.talla, codigoPrenda(v)].filter(Boolean).join(" · ");
+}
 
 const iniciales = (a: Apartado) => `${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase();
 
@@ -46,7 +55,7 @@ export function EntregarVista({
   onElegir: (id: string | null) => void;
 }) {
   const router = useRouter();
-  const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
+  const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -119,7 +128,7 @@ export function EntregarVista({
               elegir(null);
               setPagos([]);
             }}
-            placeholder="Nombre, DNI, celular o N.º de boleta de la clienta"
+            placeholder="Nombre, DNI, celular o N.º de boleta"
             aria-label="Buscar apartado"
             className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
           />
@@ -151,10 +160,10 @@ export function EntregarVista({
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
-                  <FotoPrenda fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={44} className="w-11" />
+                  <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
-                    <p className="font-mono text-[11px] text-tinta/55">{pr.sku} · {pr.cantidad} u.</p>
+                    <p className="text-[12px] text-tinta/60">{detallePrenda(porVariante.get(pr.varianteId), pr.sku)} · {pr.cantidad} u.</p>
                   </div>
                   <span className="text-sm font-semibold tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
                 </li>
@@ -181,7 +190,7 @@ export function EntregarVista({
                       <span className="font-display grid h-9 w-9 place-items-center rounded-full bg-sand/70 text-sm">{iniciales(x)}</span>
                       <span className="min-w-0">
                         <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
-                        <span className="block truncate text-[12.5px] text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${pr.sku}`).join(" · ")}</span>
+                        <span className="block truncate text-[12.5px] text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${detallePrenda(porVariante.get(pr.varianteId), pr.sku)}`).join(" · ")}</span>
                       </span>
                       <span className="text-right">
                         <EstadoChip {...estadoVisible(x, hoy)} />
@@ -196,7 +205,8 @@ export function EntregarVista({
         )}
       </div>
 
-      <aside className="flex min-h-0 flex-col">
+      {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
+      <aside className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
         <div className="flex min-h-[84px] items-center justify-between gap-3 border-b border-sand px-5 py-5">
           <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
             <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo
@@ -287,7 +297,7 @@ export function EntregarVista({
               </div>
             </div>
             <div className="space-y-3 border-t border-sand px-5 py-5">
-              <div className="flex items-end justify-between gap-3">
+              <div className="flex items-end justify-between gap-3 max-lg:hidden">
                 <dl className="grid grid-cols-[auto_auto] gap-x-3 text-[12.5px] text-tinta/60 tabular-nums">
                   <dt>Total</dt><dd className="text-tinta">{money(a.total)}</dd>
                   <dt>Ya pagó</dt><dd className="text-tinta">−{money(a.adelanto)}</dd>
@@ -304,7 +314,7 @@ export function EntregarVista({
                 disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
                 title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined}
                 onClick={entregar}
-                className={BOTON_PRINCIPAL}
+                className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
@@ -314,6 +324,17 @@ export function EntregarVista({
           </>
         )}
       </aside>
+
+      {a && (
+        <BarraMovil
+          etiqueta={`Saldo · ${a.nombres}`}
+          monto={saldo}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
+          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+          onClick={entregar}
+        />
+      )}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
     </div>

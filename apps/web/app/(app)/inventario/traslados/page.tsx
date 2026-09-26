@@ -4,7 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
-import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
 // (transferir()) ahora tiene un tramo intermedio que alguien tiene que poder
@@ -36,11 +36,11 @@ export default async function TrasladosPage() {
 
   return (
     <div className="space-y-5">
-      <CabeceraPantalla
-        sobretitulo="Inventario · Traslados"
-        titulo="Traslados entre sedes"
-        bajada="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
-        acciones={
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
+        titulo="Traslados"
+        subtitulo="Seguimos los traslados de inventario entrantes y salientes hasta que se confirme su recepción."
+        pie={
           <Link href="/inventario/mover" className="btn-cayla btn-primario">
             + Nuevo traslado
           </Link>
