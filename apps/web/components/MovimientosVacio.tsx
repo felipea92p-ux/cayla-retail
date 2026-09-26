@@ -27,7 +27,8 @@ export function MovimientosVacio({
   };
   const titulo = en90 > 0 ? `Nada en ${periodo}` : conFiltros ? "Ningún movimiento coincide" : `Sin movimientos en ${periodo}`;
   return (
-    <div className="card-cayla flex flex-col items-center gap-2.5 px-5 py-9 text-center">
+    // Sin caja propia: ocupa el lugar de la lista, dentro de la tarjeta de los filtros.
+    <div className="flex flex-col items-center gap-2.5 px-5 py-9 text-center">
       <h2 className="font-display text-[22px] leading-tight text-tinta">{titulo}</h2>
       <p className="max-w-[52ch] text-sm leading-relaxed text-taupe">
         {en90 > 0 ? (

@@ -17,6 +17,7 @@ import {
   type PrendaDeMovimiento,
 } from "@/lib/movimientos-reglas";
 import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
+import { textoQuedaron } from "@/lib/movimientos-saldo";
 
 // El detalle de un movimiento: los mismos datos de la fila, completos y con
 // el apartado que corresponde a SU proceso (una venta muestra el
@@ -29,11 +30,15 @@ import { ESTADO_ESTILO } from "@/lib/comprobantes-reglas";
 export function MovimientoDetalle({
   movimiento: m,
   prenda,
+  quedan = null,
   onVerVenta,
   onClose,
 }: {
   movimiento: Movimiento;
   prenda?: PrendaDeMovimiento;
+  /** Cuántas quedaron en la tienda al terminar este movimiento (ADR-0234, saldo). Null = sin el dato (o el historial
+   *  de un producto, que no lo pide). */
+  quedan?: number | null;
   /** Si quien mira ve el Historial de ventas, cómo abrir la venta desde acá. Sin esto (el historial de un producto), no se ofrece. */
   onVerVenta?: () => void;
   onClose: () => void;
@@ -109,6 +114,10 @@ export function MovimientoDetalle({
             ) : (
               m.sububicacion && <Dato etiqueta="Zona">{m.sububicacion.nombre}</Dato>
             )}
+
+            {/* Cuántas quedaron DESPUÉS de este movimiento (ADR-0234, saldo), antes del «hoy»: después de otros movimientos
+                el de hoy ya no es el de ese momento, y juntos explican el camino. */}
+            {quedan !== null && <Dato etiqueta="Después quedaron">{textoQuedaron(quedan)}</Dato>}
 
             {/* Cuánto queda HOY: la pregunta con la que se llega a esta pantalla («¿por qué dice 3 si cuento 2?»). Las
                 mismas cuentas que Existencias (`sumarCantidades`): la cuarentena no suma. */}

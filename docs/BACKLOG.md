@@ -111,6 +111,21 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
       piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
 - [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
       subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
+- [x] La lista entra en la primera pantalla (Exportar a la derecha, filtros y lista en una tarjeta, ayuda en la nota) y
+      «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
+- [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
+      `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
+- [x] `20260927173000` en producción (2026-09-26): ensayo revertido sobre Tienda TRU (138 movimientos con saldo; las 78
+      prendas terminan en su stock de hoy), aplicada y verificada por huella (`md5` `1e87255b…` = local).
+- [x] Volcado refrescado de nuevo (2026-09-26 21:55 UTC: 134 relaciones, 607 funciones; las 952 huellas iguales a
+      producción): entran `fn_movimientos_saldos` y lo de Traslados (`anular_traslado`, columnas de anulación en
+      `transferencias`). `datos:comparar` limpio.
+- [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
+      que «Todos 8»): decir por qué, o separar «Traslados».
+- [x] Traslado N, Conteo N y Bajar al piso usan la vuelta común `Volver` (pendiente que dejó la bitácora de «Toda pantalla
+      interna tiene cómo volver»): «← Movimientos» con sus filtros si se llegó desde ahí; si no, «← Traslados», «← Conteo»
+      (el nombre del menú; antes decía «Conteos») y «← Existencias».
+- [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
       Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o

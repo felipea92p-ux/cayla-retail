@@ -1,10 +1,10 @@
-import Link from "next/link";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
 import { MoverMercaderiaFormV2 } from "@/components/MoverMercaderiaFormV2";
 import { parsearLineasPrellenadas } from "@/lib/produccion-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 
 // Fase UI 1.1 (2026-09-12): pantalla nueva sobre `transferir` (V2). Ver
 // `MoverMercaderiaFormV2.tsx` para el porqué el origen no es un campo del
@@ -79,10 +79,14 @@ export default async function MoverMercaderiaPage({
         sede={origen.nombre}
         titulo="Nuevo traslado"
         subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
+        // Quien no ve Traslados llegó desde Existencias (el enlace a un módulo que no ve lo dejaría en «Sin acceso»),
+        // igual que en Bajar al piso.
         pie={
-          <Link href="/inventario/traslados" className="btn-cayla btn-secundario">
-            ← Traslados
-          </Link>
+          veModulo(persona, "traslados") ? (
+            <Volver forma="boton" href="/inventario/traslados" a="Traslados" />
+          ) : (
+            veModulo(persona, "existencias") && <Volver forma="boton" href="/inventario" a="Existencias" />
+          )
         }
       />
 
