@@ -16,7 +16,7 @@ const variante = (parcial: Partial<VarianteBusqueda>): VarianteBusqueda =>
     ...parcial,
   }) as VarianteBusqueda;
 
-describe("volver a vender (ADR-0229)", () => {
+describe("volver a vender (ADR-0230)", () => {
   it("las prendas entran al precio de HOY y juntas si eran la misma variante", () => {
     const { lineas, faltan } = lineasDelCarritoDesdeVenta(
       [

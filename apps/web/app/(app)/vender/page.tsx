@@ -137,7 +137,7 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
     }
   }
 
-  // «Volver a vender» desde Ventas ▸ Historial (ADR-0229): las prendas de esa venta entran al ticket al precio de HOY. La
+  // «Volver a vender» desde Ventas ▸ Historial (ADR-0230): las prendas de esa venta entran al ticket al precio de HOY. La
   // RLS de `ventas` decide si esta cuenta la ve (una integrante, solo las de su tienda); si no, se avisa y el ticket va vacío.
   let repeticion: RepeticionDeVenta | null = null;
   let avisoRepeticion: string | null = null;

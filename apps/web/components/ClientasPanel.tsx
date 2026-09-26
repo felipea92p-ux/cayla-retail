@@ -45,7 +45,7 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
     setResultados(clientas);
   }
 
-  // «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0229) llega con `?q=<nombre>`: se busca una vez al abrir.
+  // «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con `?q=<nombre>`: se busca una vez al abrir.
   const yaBuscoInicial = useRef(false);
   useEffect(() => {
     if (!busquedaInicial.trim() || yaBuscoInicial.current) return;

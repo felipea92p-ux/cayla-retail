@@ -1,4 +1,4 @@
-# ADR-0229 · Historial conectado: encontrar una venta y actuar sobre ella
+# ADR-0230 · Historial conectado: encontrar una venta y actuar sobre ella
 
 - **Fecha:** 2026-09-26 · **Estado:** Aprobado por Felipe, que eligió las opciones del spike: todo lo «encendido de
   fábrica», más «Volver a vender», «Exportar (líder)» y «Buscar por nº de operación Yape». Quedaron fuera «Enviar por

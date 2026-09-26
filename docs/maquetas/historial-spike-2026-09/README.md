@@ -1,6 +1,6 @@
 # Spike visual · Historial de ventas conectado y usable en el celular (2026-09-26)
 
-> **Estado (2026-09-26): aplicado (ADR-0229, PR #488).** Felipe eligió todo lo «encendido de fábrica» más «Volver a
+> **Estado (2026-09-26): aplicado (ADR-0230, PR #488).** Felipe eligió todo lo «encendido de fábrica» más «Volver a
 > vender», «Exportar (líder)» y «Buscar por nº de operación Yape»; quedaron fuera WhatsApp y nota interna. En el celular
 > se usó la variante A (hoja desde abajo). La migración del nº de operación espera su OK para producción.
 >

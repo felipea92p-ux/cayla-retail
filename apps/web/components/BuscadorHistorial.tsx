@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 
-// El buscador de Ventas ▸ Historial (ADR-0229): un solo campo para encontrar la venta de una clienta que vuelve —por el
+// El buscador de Ventas ▸ Historial (ADR-0230): un solo campo para encontrar la venta de una clienta que vuelve —por el
 // número del comprobante (B004-31), su DNI o RUC, su nombre, la prenda, el código de la etiqueta o el nº de operación
 // de su Yape—. Busca en TODAS las fechas (lo dice la página al mostrar el resultado) con la misma búsqueda que Cambios y
 // Devoluciones (`idsDeVentasBuscadas`), así que una clienta se encuentra igual en las tres pantallas.

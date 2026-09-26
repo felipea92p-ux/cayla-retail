@@ -28,7 +28,7 @@ import {
 // no queda «apretado» acá. Sin nada en la URL rigen los últimos 30 días y «30 días» aparece apretado: nadie se
 // pregunta por qué no ve la venta de hace dos meses. Tienda y vendedor solo los recibe un líder.
 //
-// Atajos (ADR-0229): «Hoy» es un período más; «Mis ventas» y «Por enviar» vienen de fábrica y cada colaboradora suma los
+// Atajos (ADR-0230): «Hoy» es un período más; «Mis ventas» y «Por enviar» vienen de fábrica y cada colaboradora suma los
 // suyos en «+ Atajo» (se guardan en su navegador). Un atajo es solo un conjunto de parámetros de la URL: tocarlo es lo
 // mismo que elegir esos filtros en el panel, así que el panel y el atajo nunca se contradicen.
 
@@ -85,7 +85,7 @@ export function FiltrosHistorialVentas({
   porEnviar: number;
   /** La tienda elegida arriba en la cabecera: la que el líder ve sin elegir nada. */
   sedePorDefecto?: string;
-  /** Solo el líder: descarga lo filtrado (ADR-0229). */
+  /** Solo el líder: descarga lo filtrado (ADR-0230). */
   exportarHref?: string;
 }) {
   const router = useRouter();

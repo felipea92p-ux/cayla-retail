@@ -5,7 +5,7 @@ import { ArrowLeftRight, Ban, BookmarkCheck, FileText, RefreshCw, RotateCcw, Sho
 import { accionesDeVenta, recorridoDeVenta, type ClaveAccion, type ContextoAcciones, type PasoRecorrido } from "@/lib/historial-acciones-reglas";
 import type { FilaHistorial } from "@/lib/ventas-historial-reglas";
 
-// Lo que Ventas ▸ Historial agrega al detalle de una venta (ADR-0229): su recorrido —apartada, vendida, SUNAT, cambios y
+// Lo que Ventas ▸ Historial agrega al detalle de una venta (ADR-0230): su recorrido —apartada, vendida, SUNAT, cambios y
 // devoluciones— y «Qué hacer con esta venta», con cada acción llevando a SU pantalla con la venta ya buscada. Historial no
 // cambia nada: Cambios, Devoluciones o Comprobantes deciden si se puede (y su función en la base lo vuelve a verificar).
 // Es contenido del mismo `<Modal>` del detalle, así que entra en su cascada y en el celular sube con la hoja.

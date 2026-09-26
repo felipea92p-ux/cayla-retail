@@ -4,7 +4,7 @@ import { hoyEnLima } from "@/lib/movimientos-reglas";
 import { filtrosDesdeParams, idsDeHistorial, listarVentasHistorial, type CursorVentas, type FilaHistorial, type ParamsHistorial } from "@/lib/ventas-historial";
 import { csvDeHistorial, nombreArchivoHistorial } from "@/lib/historial-exportar-reglas";
 
-// Exportar Ventas ▸ Historial (ADR-0229, solo el líder): las ventas con los MISMOS filtros de la pantalla, en un CSV que
+// Exportar Ventas ▸ Historial (ADR-0230, solo el líder): las ventas con los MISMOS filtros de la pantalla, en un CSV que
 // Excel abre directo (UTF-8 con BOM). Una ruta y no un botón que arma el archivo en el navegador: la lista de la pantalla
 // es de a 20, y aquí hacen falta todas las del período.
 //

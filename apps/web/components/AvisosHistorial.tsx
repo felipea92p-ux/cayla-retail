@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
-// Los avisos de Ventas ▸ Historial (ADR-0229): lo que espera a alguien, de CUALQUIER fecha —un comprobante rechazado
+// Los avisos de Ventas ▸ Historial (ADR-0230): lo que espera a alguien, de CUALQUIER fecha —un comprobante rechazado
 // hace 40 días no aparece en «30 días», y es justo el que más urge—. Cada uno lleva a la pantalla que lo resuelve.
 // Notas en hueso (la «nota» del orden de pantalla, ADR-0169) con un punto del tono del estado; no se cierran: si el
 // problema sigue, el aviso sigue (lo urgente no se oculta, como en el Inicio).

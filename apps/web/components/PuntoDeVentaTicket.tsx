@@ -216,7 +216,7 @@ type Props = {
   onQuitarPago: (indice: number) => void;
   /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
   onRecibido: (monto: number | null) => void;
-  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0229). */
+  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230). */
   onOperacion: (indice: number, texto: string) => void;
   // Comprobante + documento de la clienta
   tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
@@ -934,7 +934,7 @@ export function PuntoDeVentaTicket({
                           </div>
                         )}
 
-                        {/* El nº de operación que la clienta ve en su celular (ADR-0229): opcional, no frena el cobro. Con él,
+                        {/* El nº de operación que la clienta ve en su celular (ADR-0230): opcional, no frena el cobro. Con él,
                             Ventas ▸ Historial encuentra esta venta aunque la clienta pierda la boleta. */}
                         {METODOS_CON_OPERACION.includes(p.metodo) && (
                           <label className="flex items-center justify-between gap-2 text-[11px] text-tinta/50">

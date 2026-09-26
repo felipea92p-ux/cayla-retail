@@ -35,7 +35,7 @@ const sinSemana = (fecha: string) => partes(fecha).toLocaleDateString("es-PE", {
 const colorMetodo = (metodo: string) => `var(--color-metodo-${metodo})`;
 const nombreMetodo = (metodo: string) => (metodo === "anticipo" ? "Anticipo de apartados" : (NOMBRE_METODO_HISTORIAL[metodo] ?? metodo));
 
-/** Un atajo a una pantalla que trabaja de la mano con Historial (ADR-0229): qué es y cuánto hay ahí. */
+/** Un atajo a una pantalla que trabaja de la mano con Historial (ADR-0230): qué es y cuánto hay ahí. */
 export type EnlacePulso = { href: string; texto: string; detalle: string };
 
 function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: ReactNode; nota?: string }) {

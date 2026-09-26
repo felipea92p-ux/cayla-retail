@@ -36,7 +36,7 @@ import { AccionesVenta, RecorridoVenta, type ContextoAccionesSerializable } from
 // La fila NO es un <button>: el botón que abre el detalle cubre la fila entera (`absolute inset-0`). Lo que se toca DENTRO
 // de la fila (el chip «Pendiente de enviar →», una marca de posventa) va encima con `relative z-10`.
 //
-// Conectada (ADR-0229): cada venta dice lo que le pasó después —«Tuvo cambio», «Devuelta», «Desde apartado»—, el chip de un
+// Conectada (ADR-0230): cada venta dice lo que le pasó después —«Tuvo cambio», «Devuelta», «Desde apartado»—, el chip de un
 // comprobante que espera a SUNAT lleva a resolverlo, y el detalle suma el recorrido y «Qué hacer con esta venta». En el
 // celular el hilo de la izquierda no se dibuja: esos 44 px son de la venta.
 
@@ -177,7 +177,7 @@ function FilaVenta({ v, onAbrir, puedeFacturar }: { v: FilaHistorial; onAbrir: (
           ) : (
             !v.anulada && <Chip tono="ambar">Sin comprobante</Chip>
           )}
-          {/* Lo que pasó después de venderla: se lee sin abrir el detalle (ADR-0229). */}
+          {/* Lo que pasó después de venderla: se lee sin abrir el detalle (ADR-0230). */}
           {(v.apartado || v.conAnticipo) && <Chip tono="pizarra">{v.apartado ? `Desde apartado ${v.apartado.codigo}` : "Desde apartado"}</Chip>}
           {v.posventa.map((m, i) => (
             <Chip key={i} tono={m.pendiente ? "ambar" : "pizarra"}>

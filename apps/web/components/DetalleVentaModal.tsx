@@ -40,7 +40,7 @@ export function DetalleVentaModal({
   /** Solo para probar con datos de mentira. Debe ser estable (módulo o `useCallback`). */
   cargar?: (ventaId: string) => Promise<VentaDetalle>;
   onClose: () => void;
-  /** Ventas ▸ Historial (ADR-0229): el recorrido de la venta, bajo los pagos. Caja y Proformas no lo pasan. */
+  /** Ventas ▸ Historial (ADR-0230): el recorrido de la venta, bajo los pagos. Caja y Proformas no lo pasan. */
   recorrido?: ReactNode;
   /** Ventas ▸ Historial: «Qué hacer con esta venta», al pie de la hoja. */
   pie?: ReactNode;

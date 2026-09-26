@@ -3,7 +3,7 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
-## 2026-09-26 (Historial conectado: del spike al sistema — ADR-0229)
+## 2026-09-26 (Historial conectado: del spike al sistema — ADR-0230)
 Felipe eligió las opciones del spike y pidió llevarlas al sistema: buscador único (misma búsqueda que Cambios, ahora también por nº de operación), «Hoy» y atajos (los elegidos, en el navegador), avisos de SUNAT y apartados, marcas de posventa, recorrido y acciones que llevan a Cambios, Devoluciones, Comprobantes, Clientas, Apartados y el POS («Volver a vender»), exportar CSV y celular. Una migración (`venta_pagos.referencia`) queda SIN pegar hasta su OK.
 Felipe se lleva: (1) **Historial no cambia nada, lleva**: cada acción abre la pantalla que hace el proceso con la venta ya buscada, y esa pantalla decide si se puede. (2) **Una migración puede tocar una función de cobro sin reescribirla**: se reemplaza una línea sobre la definición viva y se detiene si no la encuentra. (3) **Un filtro que la base no sabe sumar no se inventa**: sus cifras se calculan con los mismos filtros que la lista.
 

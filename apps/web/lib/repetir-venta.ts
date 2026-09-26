@@ -3,7 +3,7 @@ import { conDescuentoDeCampana } from "./vender-reglas";
 import { motivoNoCobrable, type AvisoStock } from "./vender-stock-local";
 
 /**
- * «Volver a vender» desde Ventas ▸ Historial (ADR-0229): el ticket del Punto de Venta arranca con las MISMAS prendas de
+ * «Volver a vender» desde Ventas ▸ Historial (ADR-0230): el ticket del Punto de Venta arranca con las MISMAS prendas de
  * una venta anterior —la clienta vuelve por la misma blusa en otro color, o se lleva otra igual para su hermana—. No es
  * una copia de la venta: el precio es la etiqueta de HOY (con la campaña del día si la hay, la regla de siempre del
  * carrito) y la cantidad se recorta al PISO de esta tienda, igual que al cobrar una proforma. Lo que no hay o no alcanza

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Nº de operación en los pagos digitales (ADR-0229, Ventas ▸ Historial conectado, 2026-09-26)
+-- Nº de operación en los pagos digitales (ADR-0230, Ventas ▸ Historial conectado, 2026-09-26)
 -- ============================================================================
 --
 -- EL PROBLEMA. La clienta vuelve a cambiar una prenda sin la boleta, pero con la captura de su Yape en el celular. Ese
@@ -30,7 +30,7 @@ set search_path = retail, public, extensions;
 alter table retail.venta_pagos add column if not exists referencia text;
 
 comment on column retail.venta_pagos.referencia is
-  'Nº de operación de Yape, Plin o transferencia que anotó el mostrador (opcional, ADR-0229). Solo letras y dígitos, hasta 40.';
+  'Nº de operación de Yape, Plin o transferencia que anotó el mostrador (opcional, ADR-0230). Solo letras y dígitos, hasta 40.';
 
 do $$
 begin
@@ -58,7 +58,7 @@ begin
     return;
   end if;
   if position(c_insert in v_def) = 0 or position(c_valores in v_def) = 0 then
-    raise exception 'registrar_venta no tiene el insert de pagos esperado: revisar su definición viva antes de aplicar (ADR-0229)';
+    raise exception 'registrar_venta no tiene el insert de pagos esperado: revisar su definición viva antes de aplicar (ADR-0230)';
   end if;
   v_nueva := replace(v_def, c_insert, 'insert into venta_pagos (venta_id, metodo, monto, recibido, referencia)');
   v_nueva := replace(v_nueva, c_valores, $txt$then nullif(v_pago ->> 'recibido', '')::numeric end,

@@ -1211,7 +1211,7 @@ Análisis completo en [docs/pantallas/colaboradores.md](pantallas/colaboradores.
 - [ ] #3 historial de accesos (tabla que solo se agrega), #6 cambiar ubicación sin quitar y agregar, #10 «Último acceso», #11 aclarar «Sede en Dynamic», #12 decidir dónde vive el alta (retail o Dynamic).
 - [ ] **Decisión de Felipe:** quiénes de los 9 líderes deben seguir siéndolo (salieron de un backfill «todos líderes», `0016`); hoy la pantalla no permite bajar ni subir a nadie.
 
-## 🎯 Historial conectado: buscar y actuar (2026-09-26, ADR-0229) — web lista en PR #488; UNA migración SIN pegar
+## 🎯 Historial conectado: buscar y actuar (2026-09-26, ADR-0230) — web lista en PR #488; UNA migración SIN pegar
 Spike y decisiones: [docs/maquetas/historial-spike-2026-09/](maquetas/historial-spike-2026-09/README.md).
 - [x] Buscador único en todas las fechas (misma búsqueda que Cambios/Devoluciones), «Hoy», atajos de fábrica y elegibles (en el navegador), avisos de SUNAT y apartados, marcas de posventa y apartado, recorrido y «Qué hacer con esta venta», Volver a vender (`/vender?repetir=`), Exportar CSV (líder), sede de la cabecera por defecto, celular (buscador fijo, hoja desde abajo). Probado en el navegador contra la base local (escritorio y 375 px).
 - [ ] **Pegar `20260926230000_venta_pagos_referencia.sql` en producción (pide el OK de Felipe):** agrega `venta_pagos.referencia` y hace que `registrar_venta` la guarde (reemplazo del insert sobre la definición viva, misma firma). Una sola parte, sin políticas. Después: sus 3 consultas de verificación, `pnpm datos:generar:produccion` y `pnpm datos:comparar`. Mientras tanto el campo del cobro se ve, pero el número no se guarda.

@@ -248,7 +248,7 @@ type Props = {
   proforma?: ProformaEnCobro | null;
   /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
   avisoProforma?: string | null;
-  /** «Volver a vender» desde Ventas ▸ Historial (`/vender?repetir=<id>`, ADR-0229): el ticket arranca con esas prendas. */
+  /** «Volver a vender» desde Ventas ▸ Historial (`/vender?repetir=<id>`, ADR-0230): el ticket arranca con esas prendas. */
   repeticion?: RepeticionDeVenta | null;
 };
 
@@ -1039,7 +1039,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // Lo que la clienta entregó en efectivo. Viaja a la RPC en su propia clave (`recibido`,
   // aparte de `monto`, que es lo que cubre) solo si alcanza — ver `pagosParaRpc` — para poder
   // reimprimir el ticket con su vuelto.
-  /** El nº de operación de un pago digital (ADR-0229). Opcional: no frena el cobro. */
+  /** El nº de operación de un pago digital (ADR-0230). Opcional: no frena el cobro. */
   function cambiarOperacion(indice: number, texto: string) {
     setPagos((actual) => actual.map((p, i) => (i === indice ? { ...p, referencia: limpiarOperacion(texto) } : p)));
   }

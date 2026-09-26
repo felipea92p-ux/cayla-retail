@@ -1,7 +1,7 @@
 import { ETIQUETA_TIPO, ESTADO_ETIQUETA } from "./comprobantes-reglas";
 import type { FilaHistorial } from "./ventas-historial-reglas";
 
-// El archivo de «Exportar» de Ventas ▸ Historial (ADR-0229): una fila por venta, en CSV que Excel abre directo. Regla pura,
+// El archivo de «Exportar» de Ventas ▸ Historial (ADR-0230): una fila por venta, en CSV que Excel abre directo. Regla pura,
 // con pruebas. UTF-8 con BOM (sin él Excel lee «Blusa Ã‰mma»), coma como separador y punto decimal (así lo lee el Excel
 // con la configuración de Perú), y cada celda con comillas si trae coma, comillas o salto de línea.
 

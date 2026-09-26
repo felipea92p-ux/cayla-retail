@@ -47,7 +47,7 @@ export * from "@/lib/ventas-historial-reglas";
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 const CAMPOS_LISTA = "id, created_at, estado, nota, usuario_id, asesora_id, anulado_en";
-/** Lo que se dibuja de cada venta. Las marcas de posventa (ADR-0229) salen de relaciones que ya existían:
+/** Lo que se dibuja de cada venta. Las marcas de posventa (ADR-0230) salen de relaciones que ya existían:
  *  `cambios.venta_item_id`, `devoluciones.venta_id` y `separaciones.venta_id` (el apartado entregado). */
 const embebidosLista = (conReferencia: boolean) => `ubicacion:ubicaciones ( id, nombre ),
   cliente:clientas ( nombre ),
@@ -61,7 +61,7 @@ const embebidosLista = (conReferencia: boolean) => `ubicacion:ubicaciones ( id, 
   separaciones ( codigo, created_at )`;
 const selectLista = (o: Columnas) => `${CAMPOS_LISTA}${o.prueba ? ", es_prueba" : ""}, ${embebidosLista(o.referencia)}`;
 
-/** Columnas aditivas que pueden no estar todavía en la base: `es_prueba` (D-54) y `venta_pagos.referencia` (ADR-0229). */
+/** Columnas aditivas que pueden no estar todavía en la base: `es_prueba` (D-54) y `venta_pagos.referencia` (ADR-0230). */
 type Columnas = { prueba: boolean; referencia: boolean };
 const TODAS: Columnas = { prueba: true, referencia: true };
 
@@ -101,7 +101,7 @@ function consulta(supabase: Supabase, select: string, f: FiltrosHistorial, conPr
 
   const { desdeISO, hastaISO } = limitesUTC(f.desde, f.hasta);
   let q = supabase.from("ventas").select([select, ...extras].join(", "));
-  // Con el buscador (ADR-0229) la lista ignora el período: la clienta vuelve semanas después y su venta está fuera de
+  // Con el buscador (ADR-0230) la lista ignora el período: la clienta vuelve semanas después y su venta está fuera de
   // «30 días». Los ids ya vienen acotados por la búsqueda y por la RLS.
   if (ids) q = q.in("id", ids);
   if (!f.busqueda) {
@@ -264,7 +264,7 @@ export async function totalesVentasHistorial(f: FiltrosHistorial, ids: IdsHistor
 const SELECT_TOTALES = "id, created_at, estado, venta_items ( cantidad, precio_unitario, descuento_unitario, subtotal ), venta_pagos ( metodo, monto )";
 
 /** El cálculo fila por fila con el tope de PostgREST: el respaldo si la base aún no tuviera `fn_totales_historial_ventas`
- *  y, desde ADR-0229, el camino de los filtros que esa función no conoce (por enviar, factura, con clienta, posventa). */
+ *  y, desde ADR-0230, el camino de los filtros que esa función no conoce (por enviar, factura, con clienta, posventa). */
 async function totalesConTope(supabase: Supabase, f: FiltrosHistorial, ids: string[] | null = null): Promise<TotalesHistorial> {
   const pedir = (conPrueba: boolean) => consulta(supabase, SELECT_TOTALES, f, conPrueba, ids).order("created_at", { ascending: false }).limit(TOPE_TOTALES + 1);
   let res = await pedir(true);

@@ -567,7 +567,7 @@ describe("piezasDeVenta junta las líneas iguales", () => {
   });
 });
 
-describe("posventa y apartado en la fila (ADR-0229)", () => {
+describe("posventa y apartado en la fila (ADR-0230)", () => {
   it("cambios de cada línea y devoluciones, en orden; una devolución rechazada no se marca", () => {
     const marcas = posventaDeVenta({
       venta_items: [item({ cambios: [{ created_at: "2026-09-20T15:00:00Z" }] })],

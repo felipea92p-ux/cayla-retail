@@ -45,7 +45,7 @@ export type PagoAplicado = {
   metodo: MetodoPago;
   monto: number;
   recibido?: number;
-  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0229): con él, Ventas ▸ Historial encuentra la venta
+  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230): con él, Ventas ▸ Historial encuentra la venta
    *  aunque la clienta haya perdido la boleta y solo tenga la captura del pago. */
   referencia?: string;
 };

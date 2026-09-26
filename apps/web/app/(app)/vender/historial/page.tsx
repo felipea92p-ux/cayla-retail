@@ -40,7 +40,7 @@ import { PaginacionCursor } from "@/components/Paginacion";
 // política de UPDATE ni de DELETE, una venta se corrige con el proceso (anularla, un cambio, una
 // devolución), nunca tocando la fila.
 //
-// Conectada (2026-09-26, ADR-0229, spike docs/maquetas/historial-spike-2026-09/): Historial ya no es solo un libro para
+// Conectada (2026-09-26, ADR-0230, spike docs/maquetas/historial-spike-2026-09/): Historial ya no es solo un libro para
 // leer. Un buscador encuentra la venta en cualquier fecha (la misma búsqueda de Cambios y Devoluciones), los atajos
 // filtran de un toque, arriba se avisa lo que espera a alguien (SUNAT, apartados que vencen) y el detalle lleva a la
 // pantalla que hace cada proceso con la venta ya buscada. Sigue sin cambiar nada desde aquí. El líder ve por defecto la

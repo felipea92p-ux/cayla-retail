@@ -11,7 +11,7 @@ import { ClientasPanel } from "@/components/ClientasPanel";
 // (es de la marca), y la RLS de `clientas` ya lo exige del lado de la base.
 export default async function ClientasPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   await requirePersonaActualV2();
-  // `?q=`: «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0229) llega con su nombre ya buscado.
+  // `?q=`: «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con su nombre ya buscado.
   const [clientas, { q }] = await Promise.all([getClientas(), searchParams]);
   return <ClientasPanel clientasIniciales={clientas} busquedaInicial={q?.trim().slice(0, 80) ?? ""} />;
 }

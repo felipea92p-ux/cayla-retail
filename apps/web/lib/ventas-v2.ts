@@ -86,7 +86,7 @@ async function ventasPorClienta(ubicacionId: string, campo: "documento" | "nombr
   return [...new Set(filas.map((f) => f.venta_id as string))];
 }
 
-/** Ventas pagadas con ese nº de operación (Yape, Plin o transferencia; `venta_pagos.referencia`, ADR-0229): la clienta
+/** Ventas pagadas con ese nº de operación (Yape, Plin o transferencia; `venta_pagos.referencia`, ADR-0230): la clienta
  *  perdió la boleta pero tiene la captura del pago. Mientras la columna no esté en la base (42703) no encuentra nada, sin
  *  error: la búsqueda por boleta o DNI sigue igual. */
 async function ventasPorOperacion(ubicacionId: string, texto: string, todasLasSedes: boolean): Promise<string[]> {
@@ -179,7 +179,7 @@ async function buscarVentas(
 
 /** Las ventas que calzan con lo escrito en un buscador (comprobante, DNI o RUC, clienta, prenda, código de etiqueta o
  *  nº de operación), de la más nueva a la más vieja y en CUALQUIER fecha. Es la misma búsqueda de Cambios y Devoluciones:
- *  Ventas ▸ Historial la reutiliza (ADR-0229) para que una clienta se encuentre igual en las tres pantallas. */
+ *  Ventas ▸ Historial la reutiliza (ADR-0230) para que una clienta se encuentre igual en las tres pantallas. */
 export async function idsDeVentasBuscadas(ubicacionId: string, texto: string, todasLasSedes: boolean): Promise<string[]> {
   const busqueda = clasificarBusqueda(texto);
   if (!busqueda) return [];

@@ -1,6 +1,6 @@
 import type { FilaHistorial } from "./ventas-historial-reglas";
 
-// Historial conectado (ADR-0229, spike docs/maquetas/historial-spike-2026-09/): lo que la pantalla ofrece para
+// Historial conectado (ADR-0230, spike docs/maquetas/historial-spike-2026-09/): lo que la pantalla ofrece para
 // ENCONTRAR una venta (los atajos) y para ACTUAR sobre ella (las acciones y su recorrido). Reglas puras: sin Supabase
 // ni React, las importan la página, los componentes cliente y las pruebas.
 //
