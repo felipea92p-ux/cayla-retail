@@ -7,6 +7,10 @@ import {
   enlaceWhatsapp,
   avisadaHoy,
   colaPorAvisar,
+  diasEsperaPorAbono,
+  encendida,
+  presetDe,
+  FUNCIONES_APARTADOS,
   mensajeWhatsapp,
   erroresDelApartado,
   estadoVisible,
@@ -44,7 +48,7 @@ const apartado = (extra: Partial<Apartado> = {}): Apartado => ({
   id: "s1", codigo: "APT-TRU-0007", estado: "abierta", nombres: "Ana", apellidos: "Lozano Vera", celular: "987111222", dni: "70124598",
   asesora: null, total: 179, adelanto: 90, saldo: 89, venceEl: "2026-09-29", extensiones: 0, creadaEn: "2026-09-22T15:00:00Z",
   devolucionMedio: "yape", devolucionNumero: "987111222", devolucionCciFinal: null, liberadaSola: false,
-  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], ...extra,
+  comprobanteAnticipo: "B004-000024", comprobanteFinal: null, notaCredito: null, prendas: [], pagos: [], estante: null, ...extra,
 });
 
 describe("estadoVisible (D3: 7 días, aviso a 2, 2 de gracia)", () => {
@@ -226,6 +230,28 @@ describe("recordar en lote", () => {
       "Hola Lucía, tu apartado APT-TRU-0003 en CAYLA Tienda TRU venció el 25/09/2026. Aún te lo guardamos hasta el 27/09/2026. Saldo por pagar: S/99.00.",
     );
     expect(mensajeWhatsapp(vencido, "Tienda TRU")).toMatch(/te espera .* hasta el 25\/09\/2026/);
+  });
+});
+
+describe("abonos y opciones", () => {
+  it("esperarla: 2 días, o 3 si el abono cubre la mitad o más de lo que faltaba", () => {
+    expect(diasEsperaPorAbono(10, 100)).toBe(2);
+    expect(diasEsperaPorAbono(50, 100)).toBe(3);
+    expect(diasEsperaPorAbono(100, 100)).toBe(3);
+  });
+  it("una tienda sin opciones guardadas está en Completo; apagar abonos ya es una mezcla propia", () => {
+    expect(presetDe([])).toBe("completo");
+    expect(encendida([], "abonos")).toBe(true);
+    expect(encendida(["abonos"], "abonos")).toBe(false);
+    expect(presetDe(["abonos"])).toBe(null);
+    expect(presetDe(["editar", "otra_sede"])).toBe("recomendado");
+    expect(presetDe(FUNCIONES_APARTADOS.map((f) => f.clave))).toBe("esencial");
+  });
+  it("una fila sin id ni estante (base vieja) se lee igual", () => {
+    const a = apartadoDeFila({ id: "x", codigo: "APT", estado: "abierta", items: [{ variante_id: "v" }], pagos: [{ metodo: "yape", monto: "10" }] });
+    expect(a.estante).toBe(null);
+    expect(a.prendas[0].itemId).toBe("");
+    expect(a.pagos[0]).toEqual({ metodo: "yape", monto: 10, fecha: null, abono: false });
   });
 });
 

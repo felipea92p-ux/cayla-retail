@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -20,6 +20,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
+import { buscarClienta } from "@/lib/clientas-acciones";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
@@ -30,6 +31,7 @@ import {
   apartadoDeFila,
   erroresDelApartado,
   moverActivo,
+  encendida,
   resultadosDelBuscador,
   pagosParaRpcApartado,
   pasoDelApartado,
@@ -40,8 +42,10 @@ import {
   type FormularioApartado,
   type MedioDevolucion,
   type PagoAdelanto,
+  type PedidoApartado,
 } from "@/lib/separaciones-reglas";
 import { BarraMovil, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { PedirOtraSedeModal } from "@/components/apartados/ModalesApartado";
 import { ApartadoRegistradoModal } from "@/components/apartados/ModalesApartado";
 
 type Linea = { varianteId: string; cantidad: number };
@@ -98,6 +102,10 @@ export function ApartarVista({
   cajaAbierta,
   prendas: prendasProp,
   lineasIniciales,
+  apagadas = [],
+  tiendas = [],
+  pedido = null,
+  onPedidoHecho,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -106,6 +114,13 @@ export function ApartarVista({
   prendas: PrendaApartable[];
   /** Las prendas que llegan del ticket del Punto de venta («Apartar»): arrancan en la lista, topadas por lo disponible. */
   lineasIniciales?: LineaApartar[];
+  /** Lo que la tienda apagó en «Opciones» (paso 5). */
+  apagadas?: string[];
+  /** Las otras tiendas (nombre corto), para pedirles una prenda que aquí no queda (20260927140000). */
+  tiendas?: { id: string; nombre: string }[];
+  /** Un pedido que ya llegó: su prenda y su clienta arrancan cargadas y se aparta con `separar_pedido_para_apartar`. */
+  pedido?: PedidoApartado | null;
+  onPedidoHecho?: () => void;
 }) {
   const router = useRouter();
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
@@ -136,7 +151,9 @@ export function ApartarVista({
     ),
   );
   const [mensaje, setMensaje] = useState<{ tono: "ok" | "error" | "info"; texto: string } | null>(() =>
-    desdeTicket.noEntraron.length > 0
+    pedido
+      ? { tono: "info", texto: `Llegó de ${pedido.otraSede} para ${pedido.nombres} y está guardada. Cobra su adelanto: al confirmar pasa al piso y queda apartada.` }
+      : desdeTicket.noEntraron.length > 0
       ? { tono: "error", texto: `No quedó disponible para apartar: ${desdeTicket.noEntraron.join(", ")}.` }
       : desdeTicket.lineas.length > 0
         ? { tono: "info", texto: "Las prendas del ticket ya están en la lista. Revisa y sigue con los datos de la clienta." }
@@ -145,20 +162,31 @@ export function ApartarVista({
   const [activo, setActivo] = useState(0);
   const [ultima, setUltima] = useState<string | null>(null);
   const [recientes, setRecientes] = useState<string[]>([]);
-  const [lineas, setLineas] = useState<Linea[]>(() => desdeTicket.lineas);
+  // La prenda de un pedido que llegó está reservada en el almacén: entra sin el tope de «disponible en el piso».
+  const [lineas, setLineas] = useState<Linea[]>(() => (pedido ? [{ varianteId: pedido.varianteId, cantidad: pedido.cantidad }] : desdeTicket.lineas));
   // Leídas una vez, se quitan de la dirección: recargar después de apartar no las debe volver a cargar.
   useEffect(() => {
     if (lineasIniciales?.length) router.replace("/vender/apartados", { scroll: false });
   }, [lineasIniciales, router]);
   const [nota, setNota] = useState("");
   const [paso, setPaso] = useState<Paso>("ticket");
-  const [f, setF] = useState(FORMULARIO_VACIO);
+  const [f, setF] = useState(() =>
+    pedido ? { ...FORMULARIO_VACIO, nombres: pedido.nombres, apellidos: pedido.apellidos, celular: pedido.celular } : FORMULARIO_VACIO,
+  );
+  const conOtraSede = encendida(apagadas, "otra_sede");
+  const [pedir, setPedir] = useState<{ prenda: PrendaApartable; tienda: { id: string; nombre: string } } | null>(null);
   const [intento, setIntento] = useState(false);
   const [tocados, setTocados] = useState<ReadonlySet<string>>(() => new Set());
   const apilado = useConsultaMedia(MQ_APILADO);
   // Teléfono: sin pistola, la etiqueta se lee con la cámara (el mismo escáner de Vender). El lector se baja ya, con red,
   // para que también funcione si después se corta la conexión (ADR-0210).
-  const esTelefono = useConsultaMedia(MQ_TELEFONO);
+  const esTelefono = useConsultaMedia(MQ_TELEFONO) && encendida(apagadas, "qr");
+  const conClienta = encendida(apagadas, "clienta");
+  // Clienta por DNI o celular (Apartados v2): si ya tiene ficha, sus datos se llenan solos y el apartado queda ligado a ella.
+  const [clientaQ, setClientaQ] = useState("");
+  const [clientaId, setClientaId] = useState<string | null>(null);
+  const [buscandoClienta, setBuscandoClienta] = useState(false);
+  const [sinFicha, setSinFicha] = useState(false);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
@@ -313,12 +341,39 @@ export function ApartarVista({
     setF((x) => ({ ...x, pagos: x.pagos.length ? [{ ...x.pagos[0], monto, recibido: undefined }] : [{ metodo: "yape", monto }] }));
   }
 
+  async function buscarFicha() {
+    const t = soloDigitos(clientaQ);
+    if (t.length !== 8 && t.length !== 9) return;
+    setBuscandoClienta(true);
+    const { clientas, error } = await buscarClienta(t);
+    setBuscandoClienta(false);
+    if (error) return avisar.error(traducirError(error, "buscar la clienta"));
+    const c = clientas[0];
+    if (!c) {
+      setClientaId(null);
+      setSinFicha(true);
+      setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
+      return;
+    }
+    // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
+    const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
+    setClientaId(c.id);
+    setSinFicha(false);
+    setF((x) => ({
+      ...x,
+      nombres: nombres || x.nombres,
+      apellidos: resto.join(" ") || x.apellidos,
+      celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
+      dni: c.dni ?? x.dni,
+    }));
+  }
+
   async function confirmar() {
     setIntento(true);
     if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
     setEnviando(true);
     const supabase = createClient();
-    const { data: id, error } = await firmar(supabase.rpc("separar_prendas", {
+    const args = {
       p_ubicacion_id: ubicacionId,
       p_items: lineas.map((l) => {
         const p = porId.get(l.varianteId)!;
@@ -336,9 +391,16 @@ export function ApartarVista({
       p_devolucion_numero: f.devolucionMedio === "transferencia" ? undefined : soloDigitos(f.devolucionNumero) || undefined,
       p_devolucion_cci: f.devolucionMedio === "transferencia" ? soloDigitos(f.devolucionCci) : undefined,
       p_asesora_id: responsable.elegidoId ?? undefined,
+      p_clienta_id: clientaId ?? undefined,
       p_nota: nota.trim() || undefined,
       p_token: token.current,
-    }), responsable.firma());
+    };
+    const { data: id, error } = await firmar(
+      pedido
+        ? supabase.rpc("separar_pedido_para_apartar", { p_pedido_id: pedido.id, p_datos: args })
+        : supabase.rpc("separar_prendas", args),
+      responsable.firma(),
+    );
     // Éxito → el combo vuelve a vacío; rechazo por el responsable (marcó salida) → vacía y relee la lista.
     responsable.despues(error);
     if (error || !id) {
@@ -363,13 +425,24 @@ export function ApartarVista({
     setF(FORMULARIO_VACIO);
     setIntento(false);
     setTocados(new Set());
+    setClientaId(null);
+    setClientaQ("");
+    setSinFicha(false);
     setPaso("ticket");
     setUltima(null);
     setMensaje(null);
     router.refresh();
+    if (pedido) onPedidoHecho?.();
   }
 
   const p = ultima ? porId.get(ultima) : null;
+  // «Pedir a otra sede»: solo las TIENDAS que tienen la prenda, por el nombre corto de «¿dónde más hay?».
+  const tiendasConPrenda = p && conOtraSede && p.stockAqui <= 0
+    ? (p.stockOtrasSedes ?? []).flatMap((o) => {
+        const t = tiendas.find((x) => x.nombre === o.sede);
+        return t ? [{ ...t, cantidad: o.cantidad }] : [];
+      })
+    : [];
   const hermanas = p ? prendas.filter((x) => x.referencia === p.referencia && x.color === p.color) : [];
 
   return (
@@ -462,9 +535,23 @@ export function ApartarVista({
                 </div>
                 <div className="flex justify-between py-2"><dt className="text-tinta/60">En {ubicacionEtiqueta}</dt><dd className="tabular-nums">{p.stockAqui} disponibles</dd></div>
               </dl>
-              <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Al apartarla, ninguna caja la podrá vender.
-              </p>
+              {tiendasConPrenda.length > 0 ? (
+                <div className="mt-3 space-y-2 rounded-xl bg-ambar/10 p-3 text-[12.5px] text-ambar-profundo">
+                  <p><b>No queda en {ubicacionEtiqueta}.</b> {tiendasConPrenda.map((t) => `${t.nombre} tiene ${t.cantidad}`).join(" · ")}.</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {tiendasConPrenda.map((t) => (
+                      <button key={t.id} type="button" onClick={() => setPedir({ prenda: p!, tienda: t })} className="label-cayla h-8 rounded-lg border border-ambar/40 bg-papel px-3 text-[10.5px] text-tinta hover:border-tinta/40">
+                        Pedir a {t.nombre} para apartar
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[11.5px] text-tinta/60">{tiendasConPrenda[0].nombre} la envía por traslado; al llegar queda guardada para la clienta y aquí se cobra su adelanto.</p>
+                </div>
+              ) : (
+                <p className="mt-auto flex items-center gap-1.5 pt-3 text-[12.5px] text-verde-profundo">
+                  <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Al apartarla, ninguna caja la podrá vender.
+                </p>
+              )}
             </div>
           </article>
         ) : (
@@ -553,7 +640,11 @@ export function ApartarVista({
                           <span className="text-sm font-semibold tabular-nums">{money(precioFinal(pr))}</span>
                           <span className="text-right text-sm font-semibold tabular-nums">{money(precioFinal(pr) * l.cantidad)}</span>
                         </div>
-                        <p className="mt-2 text-[11px] text-taupe-profundo">Quedan {pr.stockAqui - l.cantidad} disponibles en sede tras apartar</p>
+                        <p className="mt-2 text-[11px] text-taupe-profundo">
+                          {pedido && l.varianteId === pedido.varianteId
+                            ? `Llegó de ${pedido.otraSede}: guardada en el almacén para ${pedido.nombres}`
+                            : `Quedan ${pr.stockAqui - l.cantidad} disponibles en sede tras apartar`}
+                        </p>
                       </div>
                     );
                   })}
@@ -612,6 +703,35 @@ export function ApartarVista({
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
                   <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> La clienta</legend>
+                  {conClienta && (
+                    <div className="space-y-1.5">
+                      {clientaId ? (
+                        <p className="flex items-center justify-between gap-2 rounded-xl border border-verde/30 bg-verde/5 px-3 py-2 text-[12.5px] text-verde-profundo">
+                          <span>Ficha encontrada: el apartado queda ligado a su historial.</span>
+                          <button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }} className="label-cayla text-[10px] text-tinta/70">Cambiar</button>
+                        </p>
+                      ) : (
+                        <div className="flex gap-2">
+                          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-hueso px-3 focus-within:ring-1 focus-within:ring-taupe">
+                            <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
+                            <input
+                              value={clientaQ}
+                              onChange={(e) => { setClientaQ(e.target.value); setSinFicha(false); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                              inputMode="numeric"
+                              placeholder="DNI (8) o celular (9) de la clienta"
+                              aria-label="Buscar a la clienta por DNI o celular"
+                              className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
+                            />
+                          </label>
+                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="label-cayla h-11 shrink-0 rounded-xl border border-sand px-3 text-[10.5px] disabled:opacity-45">
+                            {buscandoClienta ? "Buscando…" : "Buscar"}
+                          </button>
+                        </div>
+                      )}
+                      {sinFicha && <p className="text-xs text-tinta/60">No tiene ficha todavía: completa sus datos abajo.</p>}
+                    </div>
+                  )}
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
                     <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
@@ -780,6 +900,15 @@ export function ApartarVista({
           icono={<Check className="h-4 w-4" aria-hidden />}
           deshabilitado={enviando || !cajaAbierta || !responsable.listo}
           onClick={confirmar}
+        />
+      )}
+
+      {pedir && (
+        <PedirOtraSedeModal
+          prenda={pedir.prenda}
+          tienda={pedir.tienda}
+          ubicacion={{ ubicacionId, etiqueta: ubicacionEtiqueta }}
+          onClose={() => setPedir(null)}
         />
       )}
 
