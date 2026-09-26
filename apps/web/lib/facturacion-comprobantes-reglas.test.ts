@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Comprobante } from "./comprobantes-reglas";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, totalesPorTipo, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesFaltantes, seriesPorTienda, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, enlaceWhatsAppA, numeroWhatsApp, totalesPorTipo, montosDelMes, motivoDelComprobante, nombreDelTipo, numerosUsados, seriesFaltantes, seriesPorTienda, textoDeSeriesFaltantes, errorDeSerie } from "./facturacion-comprobantes-reglas";
 
 const TRU = { id: "u-tru", nombre: "Tienda Trujillo", tipo: "tienda" as const };
 const AQP = { id: "u-aqp", nombre: "Tienda Arequipa", tipo: "tienda" as const };
@@ -336,5 +336,20 @@ describe("totalesPorTipo (pie de Emitidos)", () => {
 describe("enlaceWhatsApp", () => {
   it("codifica el texto (espacios, saltos y la URL del PDF)", () => {
     expect(enlaceWhatsApp("Hola\nhttps://x.pe/a?b=1&c=2")).toBe("https://wa.me/?text=Hola%0Ahttps%3A%2F%2Fx.pe%2Fa%3Fb%3D1%26c%3D2");
+  });
+});
+
+describe("WhatsApp a la clienta", () => {
+  it("un celular de 9 dígitos gana el 51; con espacios o guiones también", () => {
+    expect(numeroWhatsApp("987 654 321")).toBe("51987654321");
+    expect(numeroWhatsApp("+51 987-654-321")).toBe("51987654321");
+  });
+  it("lo que no parece un celular peruano no se adivina", () => {
+    expect(numeroWhatsApp("01 4445555")).toBeNull();
+    expect(numeroWhatsApp(null)).toBeNull();
+  });
+  it("sin número, el enlace se abre sin destinataria como antes", () => {
+    expect(enlaceWhatsAppA(null, "hola")).toBe("https://wa.me/?text=hola");
+    expect(enlaceWhatsAppA("987654321", "hola")).toBe("https://wa.me/51987654321?text=hola");
   });
 });
