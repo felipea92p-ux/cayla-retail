@@ -12,6 +12,7 @@ import {
   cuentasParaMedio,
   etiquetaCuenta,
   leerCuentaElegible,
+  opcionesDeCuenta,
   medioDeCuenta,
   mediosDeBanco,
   sigueSirviendo,
@@ -138,6 +139,19 @@ describe("cómo se dibuja", () => {
   it("un cajón con la caja cerrada lo dice", () => {
     expect(etiquetaCuenta(c("cajon", "cajon"))).toBe("CAJON (caja cerrada)");
     expect(etiquetaCuenta(c("cajon", "cajon", { cajaAbierta: true }))).toBe("CAJON");
+  });
+  it("las opciones del combo: agrupadas y con el cajón cerrado a la vista pero bloqueado", () => {
+    // Efectivo al pagar: cajas fuertes, lo del líder y los cajones (el de Lima, con la caja cerrada).
+    expect(opcionesDeCuenta(CUENTAS, "pago", "efectivo")).toEqual([
+      { valor: "fuerte_tru", texto: "FUERTE_TRU", grupo: "Cajas fuertes", deshabilitada: false },
+      { valor: "rendir", texto: "RENDIR", grupo: "Efectivo por rendir", deshabilitada: false },
+      { valor: "cajon_tru", texto: "CAJON_TRU", grupo: "Cajones (resta del cierre de esa caja)", deshabilitada: false },
+      { valor: "cajon_lim", texto: "CAJON_LIM (caja cerrada)", grupo: "Cajones (resta del cierre de esa caja)", deshabilitada: true },
+    ]);
+  });
+  it("sin medio, todas las de la clase; sin cuentas, ninguna (el combo lo dice con su marcador)", () => {
+    expect(new Set(opcionesDeCuenta(CUENTAS, "cobro").map((o) => o.valor))).toEqual(new Set(cuentasDeLaClase(CUENTAS, "cobro").map((x) => x.id)));
+    expect(opcionesDeCuenta([], "pago", "yape")).toEqual([]);
   });
   it("el medio que dice la cuenta sola", () => {
     expect(medioDeCuenta("caja_fuerte")).toBe("efectivo");

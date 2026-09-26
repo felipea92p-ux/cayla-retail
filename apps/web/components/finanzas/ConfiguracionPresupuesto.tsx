@@ -162,14 +162,13 @@ export function ConfiguracionPresupuesto({ datos, hoy }: { datos: ConfigPpto; ho
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <SelectFin value={mes} onChange={(e) => ir(e.target.value)} aria-label="Mes del presupuesto" className="fin-mes-chico">
-              {mesesParaPresupuestar(hoy).map((m) => (
-                <option key={m} value={m}>
-                  {mesTitulo(m)}
-                  {m === mesDe(hoy) ? " · este mes" : ""}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              etiqueta="Mes del presupuesto"
+              className="fin-mes-chico"
+              valor={mes}
+              onValor={ir}
+              opciones={mesesParaPresupuestar(hoy).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · este mes" : ""}` }))}
+            />
             <button
               type="button"
               className="btn-cayla btn-secundario btn-chico"

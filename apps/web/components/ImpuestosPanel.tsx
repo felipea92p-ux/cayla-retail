@@ -174,13 +174,13 @@ function Pantalla({ panel, falla }: { panel: PanelImpuestos; falla: string | nul
           <span className="text-[12.5px] text-taupe">{mesCorto(mesActual)} (*) va a la fecha y todavía puede cambiar. Toca un mes para verlo.</span>
           <label className="ml-auto flex items-center gap-2 whitespace-nowrap text-[12.5px] text-taupe">
             Otro mes
-            <SelectFin value={mes} onChange={(e) => irA(e.target.value)} aria-label="Mes que se mira" className="w-auto">
-              {mesesRecientes(`${mesActual}-01`, 24).map((m) => (
-                <option key={m} value={m}>
-                  {textoMes(m)}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              etiqueta="Mes que se mira"
+              className="w-fit"
+              valor={mes}
+              onValor={irA}
+              opciones={mesesRecientes(`${mesActual}-01`, 24).map((m) => ({ valor: m, texto: textoMes(m) }))}
+            />
           </label>
         </Herramientas>
         <div className="fin-tabla-wrap">
