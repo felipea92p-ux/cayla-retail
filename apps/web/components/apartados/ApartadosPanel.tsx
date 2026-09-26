@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Bookmark, Clock, ShoppingBag } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
-import { estadoVisible, TOPE_SEPARACIONES, type Apartado } from "@/lib/separaciones-reglas";
+import { estadoVisible, TOPE_SEPARACIONES, type Apartado, type AvisoApartado } from "@/lib/separaciones-reglas";
 import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
@@ -25,6 +25,8 @@ type Props = {
   liberadosAhora: number;
   /** La lista llegó al tope de `buscar_separaciones` (200): hay apartados ya cerrados que no se muestran. */
   hayMas?: boolean;
+  /** Los avisos por WhatsApp de cada apartado abierto (Recordar en lote); vacío si la migración aún no está. */
+  avisos?: Record<string, AvisoApartado>;
   /** Prendas que llegan del ticket del Punto de venta («Apartar», `lib/apartar-desde-ticket.ts`). */
   lineasDesdeTicket?: { varianteId: string; cantidad: number }[];
 };
@@ -103,7 +105,7 @@ export function ApartadosPanel(props: Props) {
         <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} />
       )}
       {vista === "todos" && (
-        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} irAEntregar={irAEntregar} />
+        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}} irAEntregar={irAEntregar} />
       )}
 
       {/* Las mismas pestañas, abajo y solo en el celular. No es un segundo menú: el ☰ sigue siendo el del ERP (ADR-0206). */}

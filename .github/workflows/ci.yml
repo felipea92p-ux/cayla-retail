@@ -445,6 +445,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-ledger-fuente-unica
 
+      # Ritmo reciente de Existencias (rediseño 2026-09-25): `fn_ritmo_reciente_json` reutiliza `fn_ledger_puntos`
+      # (ADR-0202) en vez de sumar una cuarta reconstrucción del ledger, sus eventos coinciden exactos con los de
+      # `fn_ledger_puntos` filtrado a 'piso', su permiso es el de todo el personal de tienda (nunca solo líder,
+      # a diferencia de `fn_resumen_comparacion`), y una variante sin movimiento en la ventana igual aparece con
+      # `[]` — nunca ausente. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-ritmo-reciente
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-ritmo-reciente
+
       # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
       # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
       # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.
@@ -681,6 +690,20 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles
 
+      # Coherencia módulo ↔ base (ADR-0150: «una prueba debe fallar si…»):
+      # Roles y accesos apaga módulos en la pantalla, pero lo que de verdad detiene a una cuenta es lo que la BASE exige. Todo
+      # módulo delegable tiene un guardián en `retail` —`fn_ve_modulo('x')` o `fn_capacidad_por_modulos(array['x'])` en una
+      # política RLS, una vista o una función que está en el camino de una operación (la pantalla la llama con `.rpc`, un
+      # disparador, otra función, política o vista)— o está en la lista SOLO_PANTALLA del guion, con su razón. Esa lista
+      # solo puede encogerse (un módulo que ya tiene guardián y sigue en ella falla) y un módulo delegable NUEVO sin guardián ni
+      # entrada falla diciendo qué hacer. La otra cara: toda función que exige SOLO LÍDER por un ayudante `fn_exigir_*` está
+      # declarada en SOLO_LIDER con lo que hace la pantalla con quien no es líder. Los controles crean módulos, funciones,
+      # políticas, vistas y disparadores falsos y terminan en ROLLBACK, para probar que la regla muerde. Qué cuenta como
+      # «guardián» y qué no: encabezado de `scripts/pruebas/roles_cobertura_modulos.mjs`.
+      - name: pruebas:roles-cobertura
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:roles-cobertura
+
       # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
       # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
       # y 29 con el de no-tienda; la migración se pega dos veces y aborta ante una función sin clasificar. Venta, caja, ajuste,
@@ -733,6 +756,14 @@ jobs:
       - name: pruebas:eliminar-marca
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-marca
+
+      # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
+      # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
+      # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
+      # entiende (otra venta, boleta, venta anulada, traslado, libro descuadrado). Cada caso termina en ROLLBACK.
+      - name: pruebas:purgar-producto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:purgar-producto
 
       # Productos ▸ Eliminar (20260926220000, solo Líder/Admin): un producto que nunca se movió se elimina completo (variantes,
       # códigos de barras, fotos), deja UNA fila de rastro y libera su nombre; con historia (movimientos, ventas, un pedido no

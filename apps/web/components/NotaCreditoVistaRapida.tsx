@@ -6,6 +6,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { ArrowUpRight, ChevronDown, ChevronUp, X } from "lucide-react";
 import { Chip } from "@/components/ui/Chip";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
 import { ETIQUETA_MOTIVO_NOTA, chipEstado, hace, pasosDeNota, siguientePaso, type FilaVista } from "@/lib/notas-credito-reglas";
@@ -58,6 +59,8 @@ export function NotaCreditoVistaRapida({
   }, [cerrando, onCerrar]);
   // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
   const alEscape = useEscapeLibre(pedirCierre);
+  // ↑ ↓ pasan de nota solo con teclas del cajón: no con las de un modal abierto desde aquí (useFlechasDelCajon.ts).
+  const alFlecha = useFlechasDelCajon(onNavegar);
 
   const chip = chipEstado(f);
   const sugerencia = siguientePaso(f);
@@ -85,10 +88,7 @@ export function NotaCreditoVistaRapida({
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
           onEscapeKeyDown={alEscape}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") { e.preventDefault(); onNavegar(1); }
-            if (e.key === "ArrowUp") { e.preventDefault(); onNavegar(-1); }
-          }}
+          onKeyDown={alFlecha}
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[28.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
         >
           {/* `key`: al pasar de una nota a otra el contenido se re-asienta; el cajón no se cierra. */}
