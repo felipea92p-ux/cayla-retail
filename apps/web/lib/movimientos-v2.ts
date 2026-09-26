@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { fotoPrincipal, sumarCantidades, type Cantidades, type FilaCantidadCruda } from "@/lib/inventario-reglas";
+import { leerSaldos } from "@/lib/movimientos-saldo";
+import type { ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import {
   leerCursorMovimientos,
   leerResumenTienda,
@@ -285,4 +287,59 @@ export async function getPrendasDeMovimientos(ubicacionId: string, filas: readon
       return [id, { productoId: v?.producto?.id ?? "", fotoUrl: fotoPrincipal(v?.producto?.producto_fotos), stockHoy: cantidades ? (cantidades.get(id) ?? SIN_STOCK) : null }];
     })
   );
+}
+
+/** Cuántas quedaron en la tienda al terminar la operación de cada movimiento de la página (ADR-0234, saldo). Lo calcula
+ *  la base desde el ledger único (`fn_movimientos_saldos` → `fn_ledger_puntos`); acá no se resta nada. Null si la base
+ *  todavía no tiene la función (web publicada antes que la migración 20260927173000) o no respondió: la lista sigue sin
+ *  el saldo (principio 9). */
+export async function getSaldosDeMovimientos(ubicacionId: string, filas: readonly Movimiento[]): Promise<Record<string, number> | null> {
+  if (filas.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_movimientos_saldos", { p_ubicacion_id: ubicacionId, p_movimiento_ids: filas.map((f) => f.id) });
+  if (error) {
+    console.error("Saldo de Movimientos:", error.message);
+    return null;
+  }
+  return leerSaldos(data);
+}
+
+/** El apartado de cada movimiento de apartar o liberar de la página (ADR-0241), para que la fila diga su código y el
+ *  detalle lleve a ESE apartado. Sin migración: `apartados` ya guarda qué movimiento lo creó (`movimiento_id`) y cuál
+ *  lo cerró (`movimiento_cierre_id`), y su `separacion_id` lleva al código y la clienta (ADR-0166). La RLS es la de
+ *  siempre (`fn_puede_operar_ubicacion`). Si falla, la lista sigue: el apartado sale sin código (principio 9). */
+export async function getApartadosDeMovimientos(filas: readonly Movimiento[]): Promise<Record<string, ApartadoDeMovimiento>> {
+  const ids = filas.filter((f) => f.categoria === "apartado" || f.categoria === "liberacion_apartado").map((f) => f.id);
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const lista = ids.join(",");
+  const { data, error } = await supabase
+    .from("apartados")
+    .select("movimiento_id, movimiento_cierre_id, separacion:separaciones ( id, codigo, clienta_nombres, clienta_apellidos, estado, vence_el )")
+    .or(`movimiento_id.in.(${lista}),movimiento_cierre_id.in.(${lista})`);
+  if (error) {
+    console.error("Apartados de Movimientos:", error.message);
+    return {};
+  }
+  type Leido = {
+    movimiento_id: string;
+    movimiento_cierre_id: string | null;
+    separacion: { id: string; codigo: string; clienta_nombres: string; clienta_apellidos: string; estado: string; vence_el: string | null } | null;
+  };
+  const porMovimiento: Record<string, ApartadoDeMovimiento> = {};
+  for (const a of (data ?? []) as unknown as Leido[]) {
+    const s = a.separacion;
+    if (!s) continue; // un apartado de antes de Apartados v2 (sin separación): sin código que mostrar
+    const inicial = s.clienta_apellidos?.trim().charAt(0);
+    const apartado: ApartadoDeMovimiento = {
+      separacionId: s.id,
+      codigo: s.codigo,
+      clienta: [s.clienta_nombres?.trim().split(/\s+/)[0], inicial ? `${inicial.toUpperCase()}.` : null].filter(Boolean).join(" "),
+      estado: s.estado,
+      venceEl: s.vence_el,
+    };
+    porMovimiento[a.movimiento_id] = apartado;
+    if (a.movimiento_cierre_id) porMovimiento[a.movimiento_cierre_id] = apartado;
+  }
+  return porMovimiento;
 }

@@ -76,6 +76,22 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] **Falta con sesión real:** subir la foto de una prenda tomada en tienda y comparar las dos luces.
 - Cómo verificas: Productos ▸ Nuevo producto (o Editar) ▸ Fotos ▸ «+» con una foto algo oscura → en «Revisa las fotos» aparece «Luz corregida» elegida; «Luz original» muestra la de antes, más apagada, con el mismo color. «Cómo tomar una buena foto» se despliega con los consejos.
 
+## 🔗 Movimientos conectado: atajos por proceso, apartado exacto y celular (2026-09-26, ADR-0241) — solo web, sin migración; rama `claude/movimientos-screen-analysis-8d874f` (encima del #512, ya fusionado)
+
+- [x] Atajos del detalle (Cambio/Devolución, Bajar al piso/Etiqueta, Contar/Corregir, Ver en Existencias) y de la operación
+      («Bajar estas N al piso», «Imprimir N etiquetas»), cada uno solo si se ve el módulo.
+- [x] Apartado exacto sin migración (`apartados.movimiento_id`): código y clienta en la fila, «Abrir» → `/vender/apartados?abrir=`;
+      la cifra dice «2 apartadas», no «0».
+- [x] Bajadas al piso plegadas por día en «Todos»; tarjetas que filtran; píldoras en 0 apagadas; sin «Filtrando» ni la ayuda
+      repetida; Exportar en «⋯» (computadora) y en la hoja de Filtros (celular).
+- [x] Celular: buscador fijo con cámara y «Filtros · n» en hoja; «Hoy» por defecto.
+- [x] Conteo acepta `?variantes=` («Contar esta prenda»); Existencias acepta `?variante=`.
+- [ ] Verlo con una cuenta real: Apartados con `?abrir=`, Existencias con `?variante=`, Conteo con `?variantes=`, y la
+      cámara en un teléfono. [pantalla:inventario-movimientos]
+- [ ] Píldora «Apartados»: `fn_movimientos` rechaza `p_categoria = 'apartado'` (migración de lectura). [pantalla:inventario-movimientos]
+- [ ] ¿Alcance «variantes» en `abrir_conteo`? Hoy «Contar esta prenda» abre un conteo «todo» con la lista acotada en
+      pantalla (seguro: `cerrar_conteo` ajusta solo lo contado). Decidir si ensucia la exactitud. [pantalla:inventario-movimientos]
+
 ## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web y migración de lectura `20260927153000` **en producción (2026-09-26)**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
@@ -91,6 +107,21 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
       piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
 - [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
       subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
+- [x] La lista entra en la primera pantalla (Exportar a la derecha, filtros y lista en una tarjeta, ayuda en la nota) y
+      «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
+- [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
+      `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
+- [x] `20260927173000` en producción (2026-09-26): ensayo revertido sobre Tienda TRU (138 movimientos con saldo; las 78
+      prendas terminan en su stock de hoy), aplicada y verificada por huella (`md5` `1e87255b…` = local).
+- [x] Volcado refrescado de nuevo (2026-09-26 21:55 UTC: 134 relaciones, 607 funciones; las 952 huellas iguales a
+      producción): entran `fn_movimientos_saldos` y lo de Traslados (`anular_traslado`, columnas de anulación en
+      `transferencias`). `datos:comparar` limpio.
+- [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
+      que «Todos 8»): decir por qué, o separar «Traslados».
+- [x] Traslado N, Conteo N y Bajar al piso usan la vuelta común `Volver` (pendiente que dejó la bitácora de «Toda pantalla
+      interna tiene cómo volver»): «← Movimientos» con sus filtros si se llegó desde ahí; si no, «← Traslados», «← Conteo»
+      (el nombre del menú; antes decía «Conteos») y «← Existencias».
+- [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
       Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o

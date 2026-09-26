@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Volver } from "@/components/ui/Volver";
 import { exigirModulo, veModulo } from "@/lib/persona-actual";
 import { encontrarPorTipo, getSububicaciones } from "@/lib/sububicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
@@ -29,14 +29,10 @@ export default async function BajarAlPisoPage({ searchParams }: { searchParams: 
         sede={sede}
         titulo="Bajar prendas al piso"
         subtitulo="Escanea cada prenda que vas a colgar. Al final confirmas y queda registrado de una vez."
-        // La vuelta es un botón de la cabecera, como «← Traslados» y «← Conteos» en sus detalles. Solo si puede entrar a
+        // La vuelta común (`Volver`), un botón de la cabecera como «← Traslados» y «← Conteo» en sus detalles. Solo si puede entrar a
         // Existencias: a quien no la ve, el enlace lo dejaría en «Sin acceso».
         pie={
-          veModulo(persona, "existencias") && (
-            <Link href="/inventario" className="btn-cayla btn-secundario">
-              ← Existencias
-            </Link>
-          )
+          veModulo(persona, "existencias") && <Volver forma="boton" href="/inventario" a="Existencias" />
         }
       />
 
