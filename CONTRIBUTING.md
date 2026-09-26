@@ -110,9 +110,11 @@ Nunca se elige a mano el "próximo número libre" — con 5 personas escribiendo
 eso es lo que ya chocó dos veces. El timestamp hace el choque imposible por diseño, no
 por disciplina. `0001`-`0010` (las migraciones del corte V2) no se tocan ni se renumeran.
 
-Las migraciones se escriben **sin** el prefijo `retail.` — corren así contra el Postgres
-local. El prefijo se agrega solo al pegar en el SQL Editor de producción (ver CLAUDE.md
-§"Cómo aplicar SQL a producción").
+Las migraciones se escriben **con** el prefijo `retail.` en cada tabla y función (o con
+`set search_path = retail, public, extensions;` al inicio): desde el corte V1→V2
+(2026-09-12) el Postgres local también vive en `retail`, así que el mismo archivo corre en
+local, en CI y en producción (ver CLAUDE.md §"Cómo aplicar SQL a producción"). Escribirlas
+sin prefijo ya rompió una migración (#345 → #346).
 
 ## 4. Antes de cada commit
 
