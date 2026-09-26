@@ -1,7 +1,8 @@
 import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getTrasladosPorAtender } from "@/lib/traslados";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
-import { codigosDeConteo, pendientesConCodigo, pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
+import { codigosDeConteo, pendientesConCodigo, pendientesDeLista, pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
+import { idsDeParam } from "@/lib/etiqueta-precio-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { getCatalogo, getCostosVariantes, getEjesPorCategoria } from "@/lib/catalogo-v2";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -13,8 +14,10 @@ import { ConteoVista } from "@/components/ConteoVista";
 // Conteos físicos (Felipe, 2026-09-14; rediseño 2026-09-22, ADR-0174). Esta página LEE; `ConteoVista` dibuja (ahí vive
 // el porqué de cada pieza). Lo único que se decide acá es qué viaja al navegador: `pendientes` va SIN la cifra del
 // sistema (`pendientesSinCifras`) y acotado al alcance del conteo — el conteo sigue a ciegas.
-export default async function ConteoPage() {
+export default async function ConteoPage({ searchParams }: { searchParams: Promise<{ variantes?: string | string[] }> }) {
   const persona = await requirePersonaActualV2();
+  // «Contar esta prenda» desde Movimientos (ADR-0241): `?variantes=<id>,<id>` acota la lista de lo que falta contar.
+  const soloVariantes = idsDeParam((await searchParams).variantes);
   const supabase = await createClient();
   // El costo va aparte del catálogo y solo a quien ve el dinero (20260923193700): sin permiso, null y el conteo va en unidades.
   const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas, costos, trasladosPorAtender] = await Promise.all([
@@ -43,10 +46,18 @@ export default async function ConteoPage() {
   const codigoDe = new Map(catalogo.map((v) => [v.varianteId, codigoDeEtiqueta(v)]));
   const pendientes = conteoAbierto
     ? pendientesConCodigo(
-        pendientesEnAlcance(pendientesSinCifras(previsualizacion), categoriaDe, conteoAbierto.alcance === "categoria" ? conteoAbierto.alcanceCategoriaNombre : null),
+        pendientesDeLista(
+          pendientesEnAlcance(pendientesSinCifras(previsualizacion), categoriaDe, conteoAbierto.alcance === "categoria" ? conteoAbierto.alcanceCategoriaNombre : null),
+          soloVariantes
+        ),
         codigoDe
       )
     : [];
+  // Cómo se llaman las prendas pedidas, para decir arriba qué se está contando.
+  const soloPrendas = soloVariantes.flatMap((id) => {
+    const v = catalogo.find((x) => x.varianteId === id);
+    return v ? [[v.referencia, v.talla, v.color].filter(Boolean).join(" · ")] : [];
+  });
   return (
     <ConteoVista
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
@@ -56,6 +67,7 @@ export default async function ConteoPage() {
       conteoAbierto={conteoAbierto}
       conteos={conteos}
       pendientes={pendientes}
+      soloPrendas={soloPrendas}
       sububicaciones={sububicaciones}
       categorias={categoriasOpciones}
       prioridad={prioridad}

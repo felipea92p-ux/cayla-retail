@@ -6,6 +6,7 @@ import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 // Primera columna con el mismo piso (13.5rem) que Existencias: la celda de la prenda es la misma
@@ -72,9 +73,8 @@ export function ConteoDetalleVista({
         // derecha, como las acciones de Existencias y Traslados (ADR-0220, actualización).
         pie={
           <>
-            <Link href={volverA ?? "/inventario/conteo"} className="btn-cayla btn-secundario">
-              {volverA ? "← Movimientos" : "← Conteos"}
-            </Link>
+            {/* La vuelta común (`Volver`), con el nombre del menú («Conteo»): a Movimientos si se llegó desde ahí. */}
+            {volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/conteo" a="Conteo" />}
             {!abierto &&
               (resultado === "vacio" ? (
                 <Chip tono="neutro">Vacío</Chip>

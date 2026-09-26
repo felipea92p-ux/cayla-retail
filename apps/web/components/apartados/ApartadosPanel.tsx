@@ -38,6 +38,9 @@ type Props = {
   pedidos?: PedidoApartado[];
   /** Las otras tiendas, con su nombre corto (AQP, LIM…), para pedirles una prenda. */
   tiendas?: { id: string; nombre: string }[];
+  /** `?abrir=<id>` (ADR-0241, desde un movimiento de Movimientos): abierto → «Entregar» con ese apartado elegido; ya
+   *  cerrado → «Todos» buscándolo por su código. Un id que no está en la lista no cambia nada. */
+  abrir?: string | null;
 };
 
 /**
@@ -46,8 +49,9 @@ type Props = {
  * apartado elegido al pasar de «Todos» a «Entregar».
  */
 export function ApartadosPanel(props: Props) {
-  const [vista, setVista] = useState<Vista>("apartar");
-  const [elegido, setElegido] = useState<string | null>(null);
+  const paraAbrir = props.abrir ? (props.apartados.find((a) => a.id === props.abrir) ?? null) : null;
+  const [vista, setVista] = useState<Vista>(paraAbrir ? (paraAbrir.estado === "abierta" ? "entregar" : "todos") : "apartar");
+  const [elegido, setElegido] = useState<string | null>(paraAbrir?.estado === "abierta" ? paraAbrir.id : null);
   const [opciones, setOpciones] = useState(false);
   // «Apartar con adelanto» de un pedido que llegó: Apartar se vuelve a montar con esa prenda y esa clienta.
   const [pedidoParaApartar, setPedidoParaApartar] = useState<PedidoApartado | null>(null);
@@ -154,6 +158,7 @@ export function ApartadosPanel(props: Props) {
       {vista === "todos" && (
         <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}}
           irAEntregar={irAEntregar}
+          buscarInicial={paraAbrir && paraAbrir.estado !== "abierta" ? paraAbrir.codigo : ""}
           apagadas={apagadas}
           pedidos={props.pedidos ?? []}
           onApartarPedido={(p) => {

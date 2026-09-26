@@ -1,5 +1,7 @@
-import { Download, Info } from "lucide-react";
-import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import Link from "next/link";
+import { headers } from "next/headers";
+import { userAgent } from "next/server";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
 import {
@@ -8,7 +10,9 @@ import {
   desgloseCifras,
   filtrosDesdeParams,
   getPrendasDeMovimientos,
+  getApartadosDeMovimientos,
   getResumenTienda,
+  getSaldosDeMovimientos,
   listarMovimientos,
   periodoCorto,
   serializarCursorMovimientos,
@@ -25,6 +29,7 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
 import { MovimientosVacio } from "@/components/MovimientosVacio";
+import { MenuMovimientos } from "@/components/MenuMovimientos";
 import { PaginacionCursor } from "@/components/Paginacion";
 
 // Movimientos (2026-09-15): «por qué cambió el stock», con búsqueda, filtros,
@@ -63,7 +68,12 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   const [ubicaciones, sububicaciones] = await Promise.all([getUbicaciones(), getSububicaciones(ubicacionActivaId)]);
   const ubicacionActiva = ubicaciones.find((u) => u.id === ubicacionActivaId);
   const sede = ubicacionActiva?.nombre ?? "esta sede";
-  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones });
+  // «Hoy» por defecto en el celular (ADR-0241): la pregunta de la tienda es «qué pasó hoy», y en el teléfono cada fila
+  // de más es un deslizamiento. Se decide en el servidor por el aparato que pide la página: sin una segunda carga ni
+  // un parpadeo de «30 días» a «Hoy». Una tableta o la computadora siguen en 30 días.
+  const esCelular = userAgent({ headers: await headers() }).device.type === "mobile";
+  const porDefecto = esCelular ? "hoy" : "30";
+  const { periodo, sub, ...filtros } = filtrosDesdeParams(params, { sububicaciones, porDefecto });
   const cursor = cursorDesdeParams(params);
 
   // Las cifras de las píldoras cuentan con los demás filtros, pero no con el proceso: con «Merma» elegida, «Ajustes 3»
@@ -73,13 +83,19 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     getResumenTienda(ubicacionActivaId, filtros),
     filtros.motivo ? getResumenTienda(ubicacionActivaId, { ...filtros, motivo: undefined }) : null,
   ]);
-  const prendas = await getPrendasDeMovimientos(ubicacionActivaId, filas);
+  // La foto y el stock de hoy de cada prenda, y cuántas quedaron después de cada movimiento: ayudas de la lista, a la vez.
+  // Y el apartado de cada movimiento de apartar o liberar (ADR-0241), para su código y su enlace.
+  const [prendas, saldos, apartados] = await Promise.all([
+    getPrendasDeMovimientos(ubicacionActivaId, filas),
+    getSaldosDeMovimientos(ubicacionActivaId, filas),
+    getApartadosDeMovimientos(filas),
+  ]);
   const operaciones = agruparPorOperacion(filas);
 
   // Vacío con un período corto: ¿hay algo si se mira más atrás? Se pregunta una sola vez y solo
   // cuando la lista salió vacía, para que el vacío ofrezca el siguiente paso con la cifra real.
   const vacio = filas.length === 0 && !cursor;
-  const periodoCortoElegido = periodo === "7" || periodo === "30";
+  const periodoCortoElegido = periodo === "hoy" || periodo === "7" || periodo === "30";
   const resumen90 = vacio && periodoCortoElegido ? await getResumenTienda(ubicacionActivaId, { ...filtros, desde: desdeDeUltimosDias(90), hasta: undefined }) : null;
   const en90 = resumen90 ? resumen90[filtros.categoria ?? "todos"].operaciones : 0;
 
@@ -88,57 +104,65 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
       <EncabezadoPagina
         sede={ubicacionActiva?.nombre ?? "—"}
         titulo="Movimientos"
-        subtitulo="Qué entró y qué salió del stock de esta sede, quién lo hizo y por qué. No se edita ni se borra nunca."
-        pie={
-          // Una descarga directa con los mismos filtros de la pantalla (sin la página ni el detalle abierto), como
-          // Exportar de Historial: el archivo es exactamente lo que se ve, completo.
-          <a href={`/inventario/movimientos/exportar${cadenaExportar(params)}`} download className="btn-cayla btn-secundario inline-flex items-center gap-2">
-            <Download aria-hidden strokeWidth={1.5} className="h-4 w-4" />
-            Exportar a Excel
-          </a>
+        // «No se edita ni se borra nunca» lo dice la nota del pie, completo (ADR-0241: una vez, no dos).
+        subtitulo="Qué entró y qué salió del stock de esta sede, quién lo hizo y por qué."
+        acciones={
+          // Exportar (la misma descarga directa de ADR-0234, con los filtros de la pantalla) y copiar esta vista viven en
+          // el «⋯» (ADR-0241): son de vez en cuando, y en el celular el botón suelto ocupaba una fila entera.
+          <MenuMovimientos hrefExportar={`/inventario/movimientos/exportar${cadenaExportar(params, periodo, porDefecto)}`} />
         }
       />
 
       {resumen ? (
-        <Cifras resumen={resumen} categoria={filtros.categoria ?? null} sede={sede} periodo={periodoCorto(periodo, filtros.desde, filtros.hasta)} />
+        <Cifras resumen={resumen} categoria={filtros.categoria ?? null} sede={sede} periodo={periodoCorto(periodo, filtros.desde, filtros.hasta)} params={params} />
       ) : (
         <p className="nota-cayla text-sm">Las cifras de arriba no se pudieron leer ahora; la lista de abajo está completa.</p>
       )}
 
-      <FiltrosMovimientos
-        sububicaciones={sububicaciones}
-        sub={sub}
-        periodo={periodo}
-        desde={filtros.desde ?? ""}
-        hasta={filtros.hasta ?? ""}
-        resumen={resumenSinProceso ?? resumen}
-      />
-
-      {vacio ? (
-        <MovimientosVacio
-          sede={sede}
-          periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : `los últimos ${periodo} días`}
-          conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
-          en90={en90}
-          params={params}
+      {/* Filtros y lista en UNA tarjeta (ADR-0169): lo que se filtra y lo filtrado se leen como una sola cosa, y la
+          lista sube a la primera pantalla. Separadas, entre las dos iban dos huecos y una línea de ayuda, y en 1366×768
+          se veía una sola fila. */}
+      <section aria-label="Movimientos de la sede" className="card-cayla overflow-hidden">
+        <FiltrosMovimientos
+          sububicaciones={sububicaciones}
+          sub={sub}
+          periodo={periodo}
+          periodoPorDefecto={porDefecto}
+          hrefExportar={`/inventario/movimientos/exportar${cadenaExportar(params, periodo, porDefecto)}`}
+          desde={filtros.desde ?? ""}
+          hasta={filtros.hasta ?? ""}
+          resumen={resumenSinProceso ?? resumen}
         />
-      ) : (
-        <>
-          {/* Una sola línea, sin caja: lo que se toca y adónde lleva. No promete lo que no hace (ADR-0234). */}
-          <p className="flex items-center gap-2 text-xs text-tinta/55">
-            <Info aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5 shrink-0" />
-            Toca un movimiento para ver qué prendas fueron y quién lo hizo. «Traslado N» y «Conteo N» abren su pantalla
-            {veModulo(persona, "historial") ? "; una boleta, su venta." : "."}
-          </p>
+        {vacio ? (
+          <MovimientosVacio
+            sede={sede}
+            periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : periodo === "hoy" ? "hoy" : `los últimos ${periodo} días`}
+            conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+            en90={en90}
+            params={params}
+          />
+        ) : (
           <MovimientosLista
             operaciones={operaciones}
             prendas={prendas}
+            saldos={saldos}
+            apartados={apartados}
+            // Los módulos a los que llevan los atajos, preguntados como en cualquier pantalla (`veModulo`, ADR-0161).
+            accesos={{
+              modulos: MODULOS_DE_ATAJOS.filter((clave) => veModulo(persona, clave)),
+              puedeAjustar: puede(persona, "ajustarInventario"),
+            }}
+            // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
+            // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.
+            plegar={!filtros.categoria && !filtros.motivo && !filtros.busqueda}
+            ubicacionId={ubicacionActivaId}
+            sububicaciones={sububicaciones}
             hoyLima={hoyEnLima()}
             enlaceCompras={esLider}
             enlaceVentas={veModulo(persona, "historial")}
           />
-        </>
-      )}
+        )}
+      </section>
 
       <PaginacionCursor
         mostradas={operaciones.length}
@@ -150,6 +174,10 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sustantivo={["movimiento", "movimientos"]}
       />
 
+      {/* La ayuda de uso va en la nota del pie, como en toda pantalla (ADR-0169): lo que se toca y adónde lleva, sin
+          prometer lo que no hace (ADR-0234). Las filas ya se ven tocables (flecha, referencia subrayada). */}
+      {/* ADR-0241: sin la instrucción de uso («Toca un movimiento…»): las filas ya se ven tocables (flecha, referencia
+          subrayada) y a la tercera visita era ruido. Queda la regla del negocio. */}
       <p className="nota-cayla">
         <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
@@ -158,12 +186,31 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
   );
 }
 
+/** Las pantallas a las que llevan los atajos de un movimiento (ADR-0241). Etiquetas de precio no es un módulo: la
+ *  protege la RLS de lo que muestra. */
+const MODULOS_DE_ATAJOS = ["cambios", "devoluciones", "bajada_piso", "conteos", "existencias", "apartados"] as const;
+
 // Tres tarjetas leídas desde la tienda (ADR-0234; mismo lenguaje visual que «Prioridades de hoy» de Existencias):
 // lo que ENTRÓ a la sede (del proveedor, del Taller, de una devolución…), lo que SALIÓ y los ajustes. Cada una nombra la
 // sede —comparar dos tiendas sin darse cuenta es fácil si la sede solo está arriba, en chico— y el período. Siguen al
 // filtro de tipo, como a los demás: con «Traslados» elegido, «Entró» dice solo lo que llegó por traslado.
-// Ninguna es clic: el filtro de tipo ya está debajo, y la misma acción en dos controles confunde más de lo que ayuda.
-function Cifras({ resumen, categoria, sede, periodo }: { resumen: ResumenTienda; categoria: CategoriaMovimiento | null; sede: string; periodo: string }) {
+// Cada una se toca (ADR-0241, Felipe eligió tarjetas tocables): «Salió» filtra las salidas, como la píldora; tocada
+// otra vez, vuelve a «Todos». Hasta el 2026-09-26 no eran clic («la misma acción en dos controles confunde»), pero en el
+// celular la franja es lo primero que el pulgar encuentra y la píldora queda dentro de la hoja de filtros.
+function Cifras({
+  resumen,
+  categoria,
+  sede,
+  periodo,
+  params,
+}: {
+  resumen: ResumenTienda;
+  categoria: CategoriaMovimiento | null;
+  sede: string;
+  periodo: string;
+  params: ParamsMovimientos;
+}) {
+  const hrefTipo = (cat: CategoriaMovimiento) => hrefConTipo(params, categoria === cat ? null : cat);
   const n = (v: number) => Math.abs(v).toLocaleString("es-PE");
   // Con un tipo elegido, las tres tarjetas miran lo que ese filtro muestra: con «Traslados», «Entró» es lo que llegó por
   // traslado y «Salió», lo que salió por traslado. Los ajustes van aparte (D1): solo cuentan en su tarjeta.
@@ -184,17 +231,17 @@ function Cifras({ resumen, categoria, sede, periodo }: { resumen: ResumenTienda;
           {sede} · {periodo}
         </p>
         <dl className="mt-1.5 grid grid-cols-3 gap-2">
-          <CifraCorta etiqueta="Entró" valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} tono={entro.entran > 0 ? "text-verde" : undefined} />
-          <CifraCorta etiqueta="Salió" valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} />
-          <CifraCorta etiqueta="Ajustes" valor={valorAjustes} tono={netoAjustes < 0 ? "text-rojo" : undefined} />
+          <CifraCorta etiqueta="Entró" valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} tono={entro.entran > 0 ? "text-verde" : undefined} href={hrefTipo("entrada")} activa={categoria === "entrada"} />
+          <CifraCorta etiqueta="Salió" valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} href={hrefTipo("salida")} activa={categoria === "salida"} />
+          <CifraCorta etiqueta="Ajustes" valor={valorAjustes} tono={netoAjustes < 0 ? "text-rojo" : undefined} href={hrefTipo("ajuste")} activa={categoria === "ajuste"} />
         </dl>
       </div>
     <div className="hidden gap-3 sm:grid sm:grid-cols-3">
-      <TarjetaCifra etiqueta={`Entró a ${sede} · ${periodo}`} valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} unidad={unidades(entro.entran)} tono={entro.entran > 0 ? "text-verde" : undefined}>
+      <TarjetaCifra etiqueta={`Entró a ${sede} · ${periodo}`} valor={entro.entran === 0 ? "—" : `+${n(entro.entran)}`} unidad={unidades(entro.entran)} tono={entro.entran > 0 ? "text-verde" : undefined} href={hrefTipo("entrada")} activa={categoria === "entrada"}>
         {entro.entran === 0 ? "No entró nada en el período" : desgloseCifras(entro, "entran")}
       </TarjetaCifra>
       {/* «Salió» no es alarma (una venta es lo esperado, no un problema): neutro, no coral. */}
-      <TarjetaCifra etiqueta={`Salió de ${sede} · ${periodo}`} valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} unidad={unidades(salio.salen)}>
+      <TarjetaCifra etiqueta={`Salió de ${sede} · ${periodo}`} valor={salio.salen === 0 ? "—" : `−${n(salio.salen)}`} unidad={unidades(salio.salen)} href={hrefTipo("salida")} activa={categoria === "salida"}>
         {salio.salen === 0 ? "No salió nada en el período" : desgloseCifras(salio, "salen")}
       </TarjetaCifra>
       <TarjetaCifra
@@ -202,6 +249,8 @@ function Cifras({ resumen, categoria, sede, periodo }: { resumen: ResumenTienda;
         valor={valorAjustes}
         unidad={unidades(netoAjustes)}
         tono={netoAjustes < 0 ? "text-rojo" : undefined}
+        href={hrefTipo("ajuste")}
+        activa={categoria === "ajuste"}
       >
         {ajustes.operaciones === 0 ? "Sin ajustes en el período" : desgloseCifras(ajustes, "neto") || "Se compensaron entre sí"}
         {movidas > 0 && <span className="block">Además, {n(movidas)} movidas entre piso y almacén (no cambian el total).</span>}
@@ -211,19 +260,37 @@ function Cifras({ resumen, categoria, sede, periodo }: { resumen: ResumenTienda;
   );
 }
 
-function CifraCorta({ etiqueta, valor, tono }: { etiqueta: string; valor: string; tono?: string }) {
+function CifraCorta({ etiqueta, valor, tono, href, activa }: { etiqueta: string; valor: string; tono?: string; href: string; activa: boolean }) {
   return (
     <div className="min-w-0">
-      <dt className="text-[11px] text-taupe">{etiqueta}</dt>
-      <dd className={`font-display text-2xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</dd>
+      <Link
+        href={href}
+        aria-current={activa ? "true" : undefined}
+        className={`-mx-1.5 block rounded-lg px-1.5 py-0.5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo ${activa ? "bg-hueso" : "hover:bg-hueso/60"}`}
+      >
+        <dt className="text-[11px] text-taupe">{etiqueta}</dt>
+        <dd className={`font-display text-2xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</dd>
+      </Link>
     </div>
   );
 }
 
-/** Los filtros de la URL para el archivo: todos menos la página (`cursor`) y el detalle abierto (`mov`). */
-function cadenaExportar(params: ParamsMovimientos): string {
+/** La misma pantalla con otro tipo (o sin tipo): sin el proceso, la página ni el detalle abierto — como la píldora. */
+function hrefConTipo(params: ParamsMovimientos, cat: CategoriaMovimiento | null): string {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (typeof v === "string" && v && !["cat", "proc", "cursor", "mov"].includes(k)) p.set(k, v);
+  if (cat) p.set("cat", cat);
+  const qs = p.toString();
+  return qs ? `/inventario/movimientos?${qs}` : "/inventario/movimientos";
+}
+
+/** Los filtros de la URL para el archivo: todos menos la página (`cursor`) y el detalle abierto (`mov`). Si rige «Hoy»
+ *  por defecto (el celular, sin nada en la URL), el archivo lo lleva escrito: la ruta no sabe qué aparato la pide y
+ *  bajaría 30 días. */
+function cadenaExportar(params: ParamsMovimientos, periodo: string, porDefecto: string): string {
   const p = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) if (typeof v === "string" && v && k !== "cursor" && k !== "mov") p.set(k, v);
+  if (!params.rango && !params.desde && !params.hasta && periodo === "hoy" && porDefecto === "hoy") p.set("rango", "hoy");
   const qs = p.toString();
   return qs ? `?${qs}` : "";
 }

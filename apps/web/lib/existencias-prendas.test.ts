@@ -6,11 +6,14 @@ import {
   lineasParaBajar,
   lineasParaTrasladar,
   MAX_VARIANTES_EN_URL,
+  ordenarPorUrgencia,
   sePuedeBajar,
+  tallaParaReponer,
   tallaPorCodigo,
   urlBajarAlPiso,
   urlEtiquetas,
   urlTrasladar,
+  urgenciaDePrenda,
   type FilaPrenda,
 } from "./existencias-prendas";
 
@@ -122,8 +125,8 @@ describe("enlaces con la lista cargada", () => {
     const taller = fila({ varianteId: "t", pisoDisponible: null, almacenDisponible: null, disponible: 3 });
     expect(urlTrasladar([taller])).toBe("/inventario/mover?lineas=t:1");
   });
-  it("Etiquetas: un producto va por ?producto=, varios por ?variantes=", () => {
-    expect(urlEtiquetas([bajable, normal])).toBe("/etiquetas-de-precio?producto=blusa");
+  it("Etiquetas: SIEMPRE las tallas exactas por ?variantes= — un producto por ?producto= imprimía todos sus colores (tarea #7)", () => {
+    expect(urlEtiquetas([bajable, normal])).toBe("/etiquetas-de-precio?variantes=v1,v2");
     expect(urlEtiquetas([bajable, fila({ varianteId: "p2", productoId: "polo" })])).toBe("/etiquetas-de-precio?variantes=v1,p2");
     expect(urlEtiquetas([])).toBeNull();
   });
@@ -148,5 +151,51 @@ describe("tallaPorCodigo", () => {
   it("nunca por un pedazo: «POL-0004-NEG» no abre ninguna talla", () => {
     expect(tallaPorCodigo(filas, "POL-0004-NEG")).toBeNull();
     expect(tallaPorCodigo(filas, "")).toBeNull();
+  });
+});
+
+describe("ordenarPorUrgencia (análisis de Existencias, tarea #5)", () => {
+  // Cuatro prendas en orden de llegada: una sin nada que hacer, una que pide reponer, una con 1 talla por colgar y una
+  // con 2 tallas por colgar.
+  const filas = [
+    fila({ varianteId: "tranquila", productoId: "tranquila" }),
+    fila({ varianteId: "reponer", productoId: "reponer", pisoDisponible: 1, almacenDisponible: 3, accionHoy: REPONER }),
+    fila({ varianteId: "colgar-1", productoId: "colgar-1", pisoDisponible: 0, almacenDisponible: 2, accionHoy: REPONER }),
+    fila({ varianteId: "colgar-2a", productoId: "colgar-2", talla: "S", pisoDisponible: 0, almacenDisponible: 2, accionHoy: REPONER }),
+    fila({ varianteId: "colgar-2b", productoId: "colgar-2", talla: "M", pisoDisponible: 0, almacenDisponible: 1, accionHoy: REPONER }),
+  ];
+  const prendas = agruparPorPrenda(filas);
+
+  it("primero lo que la clienta no ve (por colgar, la de más tallas antes), después lo que pide reponer, al final el resto", () => {
+    expect(ordenarPorUrgencia(prendas).map((p) => p.productoId)).toEqual(["colgar-2", "colgar-1", "reponer", "tranquila"]);
+  });
+  it("la urgencia de cada una", () => {
+    expect(prendas.map((p) => [p.productoId, urgenciaDePrenda(p)])).toEqual([
+      ["tranquila", 2],
+      ["reponer", 1],
+      ["colgar-1", 0],
+      ["colgar-2", 0],
+    ]);
+  });
+  it("a igual urgencia respeta el orden de llegada, y no toca la lista original", () => {
+    const dos = agruparPorPrenda([fila({ varianteId: "b", productoId: "b" }), fila({ varianteId: "a", productoId: "a" })]);
+    expect(ordenarPorUrgencia(dos).map((p) => p.productoId)).toEqual(["b", "a"]);
+    expect(prendas.map((p) => p.productoId)).toEqual(["tranquila", "reponer", "colgar-1", "colgar-2"]);
+  });
+});
+
+describe("tallaParaReponer (tarea #7): «Reponer N tallas» abre una talla que se pueda bajar", () => {
+  const sinAtras = fila({ varianteId: "sin-atras", talla: "S", accionHoy: REPONER, pisoDisponible: 1, almacenDisponible: 0 });
+  const reponer = fila({ varianteId: "reponer", talla: "M", accionHoy: REPONER, pisoDisponible: 2, almacenDisponible: 3 });
+  const porColgar = fila({ varianteId: "por-colgar", talla: "L", accionHoy: REPONER, pisoDisponible: 0, almacenDisponible: 2 });
+
+  it("primero una por colgar que se pueda bajar", () => {
+    expect(tallaParaReponer([sinAtras, reponer, porColgar])?.varianteId).toBe("por-colgar");
+  });
+  it("si no hay por colgar, la primera que se pueda bajar — nunca una que pide reponer sin nada atrás", () => {
+    expect(tallaParaReponer([sinAtras, reponer])?.varianteId).toBe("reponer");
+  });
+  it("sin ninguna que se pueda bajar, ninguna", () => {
+    expect(tallaParaReponer([sinAtras])).toBeNull();
   });
 });

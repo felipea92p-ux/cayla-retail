@@ -73,6 +73,8 @@ export function DetallePrendaExistencias({
   separa,
   mostrarMarca,
   puedeReponer,
+  enSedeActiva = true,
+  sinModuloBajada = false,
   puedeApartar,
   puedeAjustar,
   veTraslados,
@@ -88,6 +90,11 @@ export function DetallePrendaExistencias({
   separa: boolean;
   mostrarMarca: boolean;
   puedeReponer: boolean;
+  /** ¿Lo que se mira es la sede activa? Etiquetas e Historial trabajan SIEMPRE sobre la sede activa (sus pantallas no
+   *  reciben otra): mirando otra sede, imprimirían o mostrarían la equivocada (tarea #7). */
+  enSedeActiva?: boolean;
+  /** En su sede, pero su rol no tiene «Bajada al piso» (ADR-0240): la talla por colgar lo explica en vez de callar. */
+  sinModuloBajada?: boolean;
   puedeApartar: boolean;
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
@@ -104,7 +111,7 @@ export function DetallePrendaExistencias({
   const talla = prenda.tallas.find((f) => f.varianteId === varianteId) ?? null;
   const red = talla ? talla.enRed : [];
   const hrefTrasladar = veTraslados ? urlTrasladar(talla ? [talla] : prenda.tallas) : null;
-  const hrefEtiquetas = urlEtiquetas(prenda.tallas);
+  const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
 
   return (
     <Modal
@@ -195,6 +202,9 @@ export function DetallePrendaExistencias({
                 </button>
               )}
             </div>
+            {sinModuloBajada && sePuedeBajar(talla) && (
+              <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>
+            )}
           </section>
         )}
 
@@ -212,7 +222,11 @@ export function DetallePrendaExistencias({
             {hrefEtiquetas && <Accion icono={Tag} titulo="Imprimir etiquetas de precio" detalle="Todas sus tallas en esta tienda, con el precio de hoy" href={hrefEtiquetas} />}
             {/* D-13: ajustar es del líder o de quien tenga el permiso; el candado real vive en `registrar_movimiento`. */}
             {puedeAjustar && <Accion icono={SlidersHorizontal} titulo="Ajustar" detalle="Corregir lo que hay en piso o almacén, con motivo" onClick={() => onAjustar(talla ?? prenda.tallas[0])} />}
-            <Accion icono={History} titulo="Ver historial" detalle="Cada entrada, venta, traslado y ajuste de esta prenda" href={`/productos/${prenda.productoId}/historial`} />
+            {enSedeActiva ? (
+              <Accion icono={History} titulo="Ver historial" detalle="Cada entrada, venta, traslado y ajuste de esta prenda" href={`/productos/${prenda.productoId}/historial`} />
+            ) : (
+              <p className="text-xs text-taupe">Para imprimir sus etiquetas o ver su historial de esta sede, elígela arriba, en el selector de sede.</p>
+            )}
           </div>
         </section>
 

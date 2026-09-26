@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
+import { FilaBajadas, FilaMovimiento, FilaOperacion, type ContextoFila } from "@/components/FilaMovimiento";
 import { MovimientoDetalle } from "@/components/MovimientoDetalle";
 import { DetalleVentaModal } from "@/components/DetalleVentaModal";
-import { etiquetaDia, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
+import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import type { Sububicacion } from "@/lib/sububicaciones";
+import { atajosDeMovimiento, type AccesosAtajos, type ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
+import { etiquetaDia, plegarBajadas, type ItemLista, type Movimiento, type OperacionMovimiento, type PrendaDeMovimiento } from "@/lib/movimientos-reglas";
 
 // La lista del historial, agrupada por día y, dentro del día, por OPERACIÓN (ADR-0234): lo que se guardó de una sola
 // vez —un traslado de 16 variantes, una venta de dos prendas, una bajada al piso escaneada de una vez— es una fila que
@@ -28,12 +31,29 @@ import { etiquetaDia, type Movimiento, type OperacionMovimiento, type PrendaDeMo
 export function MovimientosLista({
   operaciones,
   prendas,
+  saldos,
+  apartados,
+  accesos,
+  plegar,
+  ubicacionId,
+  sububicaciones,
   hoyLima,
   enlaceCompras,
   enlaceVentas,
 }: {
   operaciones: OperacionMovimiento[];
   prendas: Record<string, PrendaDeMovimiento>;
+  /** Cuántas quedaron en la tienda después de cada movimiento, por id (ADR-0234, saldo). Null = la base no lo dijo. */
+  saldos: Record<string, number> | null;
+  /** El apartado de cada movimiento de apartar o liberar (ADR-0241). */
+  apartados: Record<string, ApartadoDeMovimiento>;
+  /** Qué módulos ve quien mira y si puede ajustar: decide los atajos (ADR-0241). */
+  accesos: AccesosAtajos;
+  /** ¿Se pliegan las bajadas al piso del día? Solo en «Todos» y sin búsqueda (lo decide la página). */
+  plegar: boolean;
+  /** La sede y sus zonas, para «Corregir con un ajuste» (el `AjustarInventarioModal` de Existencias). */
+  ubicacionId: string;
+  sububicaciones: Sububicacion[];
   hoyLima: string;
   enlaceCompras: boolean;
   enlaceVentas: boolean;
@@ -43,6 +63,8 @@ export function MovimientosLista({
   const [abiertoId, setAbiertoId] = useState<string | null>(() => params.get("mov"));
   const [desplegadas, setDesplegadas] = useState<ReadonlySet<string>>(() => new Set());
   const [venta, setVenta] = useState<Movimiento | null>(null);
+  // «Corregir con un ajuste» (ADR-0241): cierra el detalle y abre el modal de siempre, nunca uno encima de otro (ADR-0237).
+  const [ajustando, setAjustando] = useState<string | null>(null);
   const movimientos = operaciones.flatMap((op) => op.filas);
   const abierto = abiertoId ? (movimientos.find((m) => m.id === abiertoId) ?? null) : null;
 
@@ -76,12 +98,15 @@ export function MovimientosLista({
   const ctx: ContextoFila = {
     enlaceCompras,
     enlaceVentas,
+    saldos,
     volverA: vuelta.toString() ? `${pathname}?${vuelta.toString()}` : pathname,
     onAbrir: abrir,
     onAbrirVenta: (m) => {
       if (abiertoId) cerrar();
       setVenta(m);
     },
+    apartados,
+    accesos,
   };
 
   // Agrupar por día de Lima (`fecha` ya viene calculada en SQL): las operaciones llegan ordenadas por hora desc, así que
@@ -101,7 +126,7 @@ export function MovimientosLista({
           comentario de arriba); esto es solo avisar que no apareció, en vez
           de no decir nada. */}
       {abiertoId && !abierto && (
-        <div className="nota-cayla mb-4 flex items-center justify-between gap-3 text-sm">
+        <div className="nota-cayla mx-4 mt-3 flex items-center justify-between gap-3 text-sm sm:mx-5">
           <span>Ese movimiento no está en el rango o los filtros actuales — prueba ampliándolos.</span>
           <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-taupe underline underline-offset-2 hover:text-rojo">
             Entendido
@@ -109,7 +134,8 @@ export function MovimientosLista({
         </div>
       )}
 
-      <div className="card-cayla px-4 pb-2 sm:px-5">
+      {/* Sin caja propia: comparte la tarjeta con los filtros (la pone la página). */}
+      <div className="px-4 pb-2 sm:px-5">
         {dias.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
             <h3 className="flex items-baseline justify-between gap-3 border-b border-sand pb-2 pt-4">
@@ -119,11 +145,23 @@ export function MovimientosLista({
               </span>
             </h3>
             <ul className="divide-y divide-sand">
-              {dia.operaciones.map((op) =>
-                op.filas.length === 1 ? (
-                  <FilaMovimiento key={op.clave} m={op.filas[0]} prenda={prendas[op.filas[0].varianteId]} ctx={ctx} />
+              {(plegar ? plegarBajadas(dia.operaciones) : dia.operaciones.map((op): ItemLista => ({ tipo: "operacion", op }))).map((item) =>
+                item.tipo === "bajadas" ? (
+                  <FilaBajadas
+                    key={item.clave}
+                    clave={item.clave}
+                    operaciones={item.operaciones}
+                    prendas={prendas}
+                    ctx={ctx}
+                    abierta={desplegadas.has(item.clave)}
+                    onAlternar={() => alternar(item.clave)}
+                    desplegadas={desplegadas}
+                    onAlternarOperacion={alternar}
+                  />
+                ) : item.op.filas.length === 1 ? (
+                  <FilaMovimiento key={item.op.clave} m={item.op.filas[0]} prenda={prendas[item.op.filas[0].varianteId]} ctx={ctx} />
                 ) : (
-                  <FilaOperacion key={op.clave} op={op} prendas={prendas} ctx={ctx} abierta={desplegadas.has(op.clave)} onAlternar={() => alternar(op.clave)} />
+                  <FilaOperacion key={item.op.clave} op={item.op} prendas={prendas} ctx={ctx} abierta={desplegadas.has(item.op.clave)} onAlternar={() => alternar(item.op.clave)} />
                 )
               )}
             </ul>
@@ -135,6 +173,14 @@ export function MovimientosLista({
         <MovimientoDetalle
           movimiento={abierto}
           prenda={prendas[abierto.varianteId]}
+          quedan={saldos?.[abierto.id] ?? null}
+          apartado={apartados[abierto.id] ?? null}
+          atajos={atajosDeMovimiento(abierto, accesos, apartados[abierto.id] ?? null)}
+          onAjustar={() => {
+            const productoId = prendas[abierto.varianteId]?.productoId;
+            cerrar();
+            if (productoId) setAjustando(productoId);
+          }}
           onVerVenta={
             enlaceVentas
               ? () => {
@@ -144,6 +190,15 @@ export function MovimientosLista({
               : undefined
           }
           onClose={cerrar}
+        />
+      )}
+      {ajustando && (
+        <AjustarInventarioModal
+          productoId={ajustando}
+          ubicacionId={ubicacionId}
+          sububicaciones={sububicaciones}
+          puedeBajarAlPiso={accesos.modulos.includes("bajada_piso")}
+          onClose={() => setAjustando(null)}
         />
       )}
       {venta?.venta && (
