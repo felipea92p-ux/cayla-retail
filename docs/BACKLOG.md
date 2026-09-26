@@ -42,11 +42,12 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
 
-## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` POR PEGAR en producción, ANTES de desplegar la web
+## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
 Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
 - [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
 - [x] Web: `ProveedorModal` (botones que se prenden y apagan + «Otro rubro»), lista, filtro, vista rápida y ficha. Verificado en navegador y a 375 px.
-- [ ] **Felipe:** pegar `20260926110000_proveedores_varios_rubros.sql` en el SQL Editor y enseguida fusionar el PR. Cómo verificas: en «Editar proveedor» marca Polos y Casacas, guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion`.
+- [x] **Pegada en producción el 2026-09-26** (con el «sí» de Felipe, por el conector MCP; versión `20260926003322`). El PR #444 ya estaba fusionado sin ella, así que la web de `main` pedía una columna `rubros` que no existía. Primero hubo un ensayo revertido en producción: 0 rubros perdidos, y alta, edición, gasto y lista funcionando como las llama la pantalla, con el candado rechazando repetidos. Se guardó un respaldo id→rubro. Después de aplicar: la huella `rubro` → `rubros[1]` es idéntica en los 76 proveedores (73 con rubro), queda una sola firma por función con los permisos de antes, y la lista, vista como Admin, trae los 76.
+- [ ] **Felipe:** mirarlo en pantalla. En «Editar proveedor» marca Polos y Casacas y guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion` con el próximo volcado.
 - [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
 
 ---

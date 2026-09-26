@@ -3,7 +3,7 @@
 > Nació como ADR-0211. Renumerado a 0213 al subir: `main` ya tenía el 0211 de los desplegables (#442) y el 0212
 > estaba tomado en otro worktree.
 
-**Fecha:** 2026-09-25 · **Estado:** construido y verificado en local; **sin pegar en producción** · **Alcance:** Compras ▸ Proveedores
+**Fecha:** 2026-09-25 · **Estado:** **en producción desde el 2026-09-26** (versión `20260926003322`, tras ensayo revertido; huella rubro→rubros idéntica en los 76 proveedores) · **Alcance:** Compras ▸ Proveedores
 
 ## Problema
 

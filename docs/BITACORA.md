@@ -11,6 +11,7 @@ Felipe se lleva:
 3. **El doble clic tenía un caso que solo se ve con dos sesiones de verdad.** Dos llegadas simultáneas del mismo intento: la segunda mostraba un error aunque el producto sí se había guardado. Lo cerró el candado por token (ADR-0190), probado con COMMIT real.
 
 Más tarde el mismo día, con el «sí» de Felipe: SQL en producción (`20260926000932`) tras una revisión adversarial de 12 agentes (ningún bloqueo; un arreglo de pantalla: «Descartar» ya no se lee como «subió») y un ensayo revertido con un Admin real. Producción quedó con los mismos conteos después de ensayo y humo.
+Y con su «dale»: la migración de rubros del #444 (ADR-0213), fusionada a `main` sin pegar, quedó en producción (`20260926003322`). Mientras tanto la web de `main` pedía una columna que no existía y dejaba caídas Proveedores, Por pagar, Registrar factura y Notas de crédito. Antes de aplicar: se revisó que ninguna otra función use la columna vieja, un ensayo revertido (0 rubros perdidos) y un respaldo. Después: huella idéntica en los 76 proveedores.
 
 ## 2026-09-25 (Varios rubros por proveedor — ADR-0213)
 Felipe pidió elegir varias categorías por proveedor en «Editar proveedor». El rubro pasó de un texto a una lista (`rubros text[]`), con un candado en la base que impide vacíos y repetidos. La migración `20260926110000` está por pegar; la web muestra los rubros como botones que se prenden y apagan, más «Otro rubro».
