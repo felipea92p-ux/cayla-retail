@@ -1,7 +1,7 @@
 import type { ItemCarrito, VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { lineasDeLaProforma, numeroDeProforma, precioAlCobrarDeLaProforma, type LineaProforma, type Proforma } from "./proformas-reglas";
 import { conDescuentoDeCampana } from "./vender-reglas";
-import { DONDE_SE_BAJA, type AvisoStock } from "./vender-stock-local";
+import { DONDE_SE_BAJA, motivoNoCobrable, type AvisoStock } from "./vender-stock-local";
 
 /**
  * Las líneas de una proforma como carrito del Punto de Venta («Cobrar», ADR-0167). El precio es la etiqueta de
@@ -9,7 +9,9 @@ import { DONDE_SE_BAJA, type AvisoStock } from "./vender-stock-local";
  * del día deja la prenda más barata, gana la campaña (regla del carrito: un solo descuento, el mayor). La cantidad
  * se recorta al PISO de esta tienda (la venta descuenta el piso); lo que no hay (o no alcanza) vuelve en `faltan` para
  * avisarlo con nombre y su razón, y si está en el almacén de esta tienda lo dice con el número (D-40: se puede vender,
- * falta bajarlo) — `faltanEnAlmacen` avisa que hay algo que pedir que bajen.
+ * falta bajarlo) — `faltanEnAlmacen` avisa que hay algo que pedir que bajen. Si lo único que queda en el piso está
+ * APARTADO para otra clienta (y no hay nada libre en el almacén), lo dice —«apartada para una clienta»— y no «no hay»:
+ * la misma palabra que el buscador y el aviso de la caja (`motivoNoCobrable`).
  *
  * `prometidas`: TODAS las prendas de la proforma con el cobro prometido, hayan entrado o no. Una que no entró porque
  * estaba en el almacén, y que bajan después, se agrega escaneándola: sin esto entraba a precio de etiqueta y la venta
@@ -31,7 +33,8 @@ export function lineasDelCarritoDesdeProforma(
     if (v) prometidas.push(lineaAlPrecioDeLaProforma(l, v, numero, l.cantidad));
     if (!v || v.stockAqui <= 0) {
       // Cada una con su razón: si se mezclan una del almacén y una que no hay, el aviso no manda a buscar la segunda.
-      faltan.push(`${l.descripcion} (${enAlmacen > 0 ? `${enAlmacen} en el almacén` : "no hay en esta tienda"})`);
+      const razon = enAlmacen > 0 ? `${enAlmacen} en el almacén` : v && motivoNoCobrable(v) === "apartada" ? "apartada para una clienta" : "no hay en esta tienda";
+      faltan.push(`${l.descripcion} (${razon})`);
       faltanEnAlmacen ||= enAlmacen > 0;
       continue;
     }
@@ -40,7 +43,7 @@ export function lineasDelCarritoDesdeProforma(
       faltan.push(
         enAlmacen > 0
           ? `${l.descripcion} (en el piso hay ${v.stockAqui} de ${l.cantidad}; ${enAlmacen} más en el almacén)`
-          : `${l.descripcion} (solo hay ${v.stockAqui} de ${l.cantidad})`,
+          : `${l.descripcion} (solo hay ${v.stockAqui} de ${l.cantidad}${textoApartadas(v.apartadoAqui)})`,
       );
       faltanEnAlmacen ||= enAlmacen > 0;
     }
@@ -48,6 +51,13 @@ export function lineasDelCarritoDesdeProforma(
     lineas.push(lineaAlPrecioDeLaProforma(l, v, numero, cantidad));
   }
   return { lineas, faltan, faltanEnAlmacen, prometidas };
+}
+
+/** «; 1 apartada para una clienta» / «; 2 apartadas para una clienta»: lo que explica por qué faltan unidades cuando lo
+ *  que sobra en el piso está apartado. Con nada apartado, vacío (el aviso queda como siempre). */
+function textoApartadas(apartadoAqui: number | null | undefined): string {
+  const n = apartadoAqui ?? 0;
+  return n <= 0 ? "" : `; ${n} ${n === 1 ? "apartada" : "apartadas"} para una clienta`;
 }
 
 /** El aviso al abrir el cobro de una proforma que no entró entera. Cada prenda lleva su razón (`faltan`); si alguna está
