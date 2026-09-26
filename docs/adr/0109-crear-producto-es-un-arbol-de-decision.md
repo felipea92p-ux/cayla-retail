@@ -456,3 +456,37 @@ SE ROMPE SI: alguien crea la marca por otro camino que no pase por `NuevaMarcaFo
 
 Lo que sigue sin resolver: la base no sabe **fusionar** dos marcas ni **quitarle** una marca a un proveedor. «Cayla 2» se
 arregla a mano (editar Top Aurora a CAYLA · Jacard y desactivar «Cayla 2»); la unión Cayla 2 ↔ Jacard queda guardada.
+
+## Actualización 2026-09-25 (b) — «¿no será un proveedor que ya tienes?»
+
+El mismo hueco que «Cayla 2», con plata de por medio. `retail.proveedores` solo frena un nombre IGUAL
+(`proveedores_nombre_clave_unica` sobre `fn_clave_texto`, que no quita puntos: P-25 de `docs/datos/13-PROMESAS-INCUMPLIDAS.md`)
+y un RUC repetido (`proveedores_ruc_unico`), y el RUC es opcional. «Jacard Perú S.A.C.» o «Jacard Peru» entraban como
+proveedor nuevo junto a «Jacard Peru SAC», y sus facturas, su Por pagar y sus notas de crédito quedaban en dos fichas.
+
+La regla de las marcas salió de `lib/marcas.ts` a `lib/nombres-parecidos.ts` (`nombresParecidos`, sin cambiarle nada; acepta
+`quitar`: qué palabras no cuentan para la identidad), y cada dominio la llama con su nombre: `marcasParecidas` (todas las
+palabras cuentan) y `proveedoresParecidos` en `lib/proveedores-reglas.ts`. Se pregunta en las dos puertas de la web que
+registran con `registrar_proveedor`: el «+ Registrar … como proveedor nuevo» de `NuevaMarcaForm` y Compras ▸ Proveedores ▸
+Registrar (`ProveedorModal`; al editar no se pregunta). La caja es una sola pieza para marcas y proveedores:
+`components/ui/PreguntaParecido.tsx`.
+
+```
+DECIDÍ: la regla de las marcas con dos diferencias que salen de cómo funciona un proveedor: (1) la forma societaria del
+  final no cuenta (SA, SAA, SAC, SACS, SRL, SCRL, EIRL, con o sin puntos); (2) si los dos tienen RUC válido y distinto, no
+  se pregunta: para SUNAT son dos contribuyentes. «Sí» elige al que existe (Nueva marca) o abre su ficha (Compras);
+  «No, es otro» deja seguir; registrar sin contestar no registra. Con el nombre IGUAL no hay «No»: la base no dejaría.
+DESCARTÉ: (a) un candado en la base (índice sobre el nombre sin forma societaria): «Jacard Peru SAC» y «Jacard Peru EIRL»
+  pueden ser dos empresas con dos RUC, y la base no puede preguntar; (b) comparar en Postgres, como
+  `buscar_productos_parecidos`: los productos son miles, pero los proveedores son 76 y ya están en la pantalla — un viaje
+  a la base por tecla es más lento y, con la red caída, deja de preguntar; (c) copiar la regla de marcas en proveedores:
+  dos copias se separan con el tiempo.
+SE ROMPE SI: un proveedor entra por una puerta que no llama a `proveedoresParecidos`: hoy el proveedor rápido de Gastos
+  (`RegistrarGastoModal` → `registrar_proveedor_de_gasto`, en BACKLOG) o una carga por SQL. Y en Nueva marca la lista de
+  proveedores trae solo `id, nombre`: sin el RUC del existente, (2) no actúa y ahí se pregunta de más, nunca de menos.
+```
+
+Medida contra los 76 proveedores de producción (2026-09-25, solo lectura): ningún par igual, y la pregunta dispara en uno
+solo: Moda Mia ~ Valeria Mia Peru Moda EIRL (por nombre contenido; Moda Mia no tiene RUC). Hay que mirarlo a mano. Los casos
+del pedido la disparan todos: «Jacard Perú S.A.C.», «Jacard Peru», «Skopjer S.R.L.», «Corporacion Imperium S.C.R.L.».
+Pruebas: `lib/nombres-parecidos.test.ts` y `lib/proveedores-parecidos.test.ts`.
