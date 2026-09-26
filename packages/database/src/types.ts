@@ -4823,6 +4823,7 @@ export type Database = {
           devolucion_medio: string
           devolucion_numero: string | null
           estado: string
+          estante: string | null
           extensiones: number
           id: string
           items: Json
@@ -4853,6 +4854,22 @@ export type Database = {
       liberar_separacion: {
         Args: { p_motivo: string; p_separacion_id: string }
         Returns: undefined
+      }
+      abonar_separacion: {
+        Args: { p_esperar?: boolean; p_pagos: Json; p_separacion_id: string; p_token?: string }
+        Returns: Json
+      }
+      editar_separacion: {
+        Args: { p_agregar?: Json; p_quitar?: string[]; p_separacion_id: string; p_token?: string }
+        Returns: Json
+      }
+      fn_opciones_apartados: {
+        Args: { p_ubicacion_id: string }
+        Returns: string[]
+      }
+      guardar_opciones_apartados: {
+        Args: { p_apagadas: string[]; p_ubicacion_id: string }
+        Returns: string[]
       }
       registrar_aviso_separacion: {
         Args: { p_separacion_id: string }

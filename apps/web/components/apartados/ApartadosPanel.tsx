@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark, Clock, ShoppingBag } from "lucide-react";
+import { Bookmark, Clock, ShoppingBag, SlidersHorizontal } from "lucide-react";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import type { ResumenApartados } from "@/lib/separaciones";
 import { estadoVisible, TOPE_SEPARACIONES, type Apartado, type AvisoApartado } from "@/lib/separaciones-reglas";
@@ -9,6 +9,7 @@ import { ApartarVista } from "@/components/apartados/ApartarVista";
 import { EntregarVista } from "@/components/apartados/EntregarVista";
 import { TodosVista } from "@/components/apartados/TodosVista";
 import { ALTO_PESTANAS_MOVIL, EnCuerpo } from "@/components/apartados/piezas";
+import { OpcionesApartadosModal } from "@/components/apartados/ModalesApartado";
 
 export type Vista = "apartar" | "entregar" | "todos";
 
@@ -29,6 +30,10 @@ type Props = {
   avisos?: Record<string, AvisoApartado>;
   /** Prendas que llegan del ticket del Punto de venta («Apartar», `lib/apartar-desde-ticket.ts`). */
   lineasDesdeTicket?: { varianteId: string; cantidad: number }[];
+  /** Lo que la tienda apagó en «Opciones» (paso 5). Vacío = Completo, el de fábrica. */
+  apagadas?: string[];
+  /** Solo el líder cambia las opciones (`guardar_opciones_apartados`). */
+  esLider?: boolean;
 };
 
 /**
@@ -39,6 +44,8 @@ type Props = {
 export function ApartadosPanel(props: Props) {
   const [vista, setVista] = useState<Vista>("apartar");
   const [elegido, setElegido] = useState<string | null>(null);
+  const [opciones, setOpciones] = useState(false);
+  const apagadas = props.apagadas ?? [];
   const necesitanAlgo = props.apartados.filter((a) => ["porvencer", "vencida", "devolver"].includes(estadoVisible(a, props.hoy).clave)).length;
 
   const irA = (v: Vista) => {
@@ -63,6 +70,7 @@ export function ApartadosPanel(props: Props) {
     <section id="hoja-apartados" className="anim-sube flex min-h-[calc(100vh-9rem)] scroll-mt-20 flex-col overflow-hidden rounded-[22px] border border-sand bg-papel max-lg:mb-40">
       <header className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-b border-sand px-6 py-3 sm:h-16 sm:py-0">
         <p className="label-cayla text-[11px] text-tinta/80">Apartados · {props.ubicacionEtiqueta}</p>
+        <div className="flex items-center gap-4">
         <nav aria-label="Apartados" className="flex items-center gap-6 max-lg:hidden">
           {pestañas.map((p) => (
             <button
@@ -79,6 +87,17 @@ export function ApartadosPanel(props: Props) {
             </button>
           ))}
         </nav>
+        {props.esLider && (
+          <button
+            type="button"
+            onClick={() => setOpciones(true)}
+            title="Qué funciones usa Apartados en esta tienda"
+            className="label-cayla flex h-9 items-center gap-1.5 rounded-lg border border-sand bg-papel px-3 text-[10.5px] text-tinta/80 hover:border-taupe"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden /> Opciones
+          </button>
+        )}
+        </div>
       </header>
 
       {(props.liberadosAhora > 0 || !props.cajaAbierta || props.hayMas) && (
@@ -99,13 +118,17 @@ export function ApartadosPanel(props: Props) {
       )}
 
       {vista === "apartar" && (
-        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} lineasIniciales={props.lineasDesdeTicket} />
+        <ApartarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} prendas={props.prendas} lineasIniciales={props.lineasDesdeTicket} apagadas={apagadas} />
       )}
       {vista === "entregar" && (
-        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} />
+        <EntregarVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} cajaAbierta={props.cajaAbierta} apartados={props.apartados} prendas={props.prendas} elegido={elegido} onElegir={setElegido} apagadas={apagadas} />
       )}
       {vista === "todos" && (
-        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}} irAEntregar={irAEntregar} />
+        <TodosVista ubicacionId={props.ubicacionId} ubicacionEtiqueta={props.ubicacionEtiqueta} hoy={props.hoy} puedeGestionar={props.puedeGestionar} cajaAbierta={props.cajaAbierta} apartados={props.apartados} resumen={props.resumen} prendas={props.prendas} avisos={props.avisos ?? {}} irAEntregar={irAEntregar} apagadas={apagadas} />
+      )}
+
+      {opciones && (
+        <OpcionesApartadosModal ubicacion={{ ubicacionId: props.ubicacionId, etiqueta: props.ubicacionEtiqueta }} apagadas={apagadas} onClose={() => setOpciones(false)} />
       )}
 
       {/* Las mismas pestañas, abajo y solo en el celular. No es un segundo menú: el ☰ sigue siendo el del ERP (ADR-0206). */}

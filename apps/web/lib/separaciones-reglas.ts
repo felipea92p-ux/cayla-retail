@@ -18,7 +18,19 @@ export type EstadoBase = "abierta" | "entregada" | "liberada" | "devuelta";
 export type MedioDevolucion = "yape" | "plin" | "transferencia";
 export type MedioDevolucionReal = MedioDevolucion | "efectivo" | "tarjeta";
 
-export type PrendaApartada = { varianteId: string; sku: string; referencia: string; cantidad: number; precioUnitario: number; descuentoUnitario: number };
+export type PrendaApartada = {
+  /** La fila en `separacion_items`: «Editar prendas» la nombra para quitarla. Vacío si la base es anterior a 20260927110000. */
+  itemId: string;
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  cantidad: number;
+  precioUnitario: number;
+  descuentoUnitario: number;
+};
+
+/** Un pago del apartado: el adelanto (abono = false) o un abono a cuenta (20260927100000). */
+export type PagoApartado = { metodo: MetodoPago; monto: number; fecha: string | null; abono: boolean };
 
 /** Una fila de `buscar_separaciones`, ya con nombres de TypeScript. */
 export type Apartado = {
@@ -44,7 +56,9 @@ export type Apartado = {
   comprobanteFinal: string | null;
   notaCredito: string | null;
   prendas: PrendaApartada[];
-  pagos: { metodo: MetodoPago; monto: number }[];
+  pagos: PagoApartado[];
+  /** El lugar en el estante de Apartados (A-01…), solo mientras está abierto (20260927110000). */
+  estante: string | null;
 };
 
 /** Estado que VE la colaboradora: se calcula contra la fecha de hoy, nunca se guarda. */
@@ -322,6 +336,7 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
     comprobanteFinal: (f.comprobante_final as string | null) ?? null,
     notaCredito: (f.nota_credito as string | null) ?? null,
     prendas: items.map((i) => ({
+      itemId: String(i.id ?? ""),
       varianteId: String(i.variante_id),
       sku: String(i.sku ?? ""),
       referencia: String(i.referencia ?? ""),
@@ -329,7 +344,8 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
       precioUnitario: n(i.precio_unitario),
       descuentoUnitario: n(i.descuento_unitario),
     })),
-    pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto) })),
+    pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
+    estante: (f.estante as string | null) ?? null,
   };
 }
 
@@ -338,3 +354,49 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
  *  lo ya cerrado). No se pagina (ADR-0192): la lista es el trabajo del mostrador, no un archivo; el resumen de arriba
  *  sale de `resumen_separaciones`, que cuenta todo. Si llegan justo 200 la pantalla AVISA que hay más en vez de callarlo. */
 export const TOPE_SEPARACIONES = 200;
+
+// ---- Abonos (Apartados v2, paso 2 — 20260927100000) ----------------------------------------------------------------
+
+/**
+ * Cuántos días más se la espera si al abonar se elige «esperarla» (Felipe, 2026-09-26): 2, o 3 si el abono cubre la
+ * mitad o más de lo que le faltaba. Sin elegirlo, el plazo no cambia. La base hace la misma cuenta (`abonar_separacion`).
+ */
+export function diasEsperaPorAbono(monto: number, saldo: number): 2 | 3 {
+  return monto * 2 >= saldo ? 3 : 2;
+}
+
+/** Los abonos de un apartado, sin el adelanto con que se apartó. */
+export const abonosDe = (a: Pick<Apartado, "pagos">) => a.pagos.filter((p) => p.abono);
+
+// ---- Opciones de Apartados (paso 5 — 20260927130000) --------------------------------------------------------------
+
+/** Las funciones que una tienda puede apagar. La clave es la misma que guarda la base (`apartados_opciones.apagadas`). */
+export const FUNCIONES_APARTADOS = [
+  { clave: "clienta", grupo: "Apartar", titulo: "Clienta por DNI o celular", texto: "Busca a la clienta en la ficha y llena sus datos solos." },
+  { clave: "qr", grupo: "Apartar", titulo: "Cámara QR en el celular", texto: "El mismo escáner de Vender, para apartar sin pistola." },
+  { clave: "estante", grupo: "Apartar", titulo: "Estante «Apartados»", texto: "Cada apartado recibe su lugar (A-01, A-02…) para encontrarlo al entregar." },
+  { clave: "abonos", grupo: "Cobro", titulo: "Abonos a cuenta", texto: "Pagar una parte antes de recoger, las veces que quiera." },
+  { clave: "editar", grupo: "Cobro", titulo: "Editar un apartado abierto", texto: "Sumar, quitar o cambiar la talla sin liberar y volver a apartar." },
+  { clave: "lote", grupo: "Seguimiento", titulo: "Recordar en lote", texto: "Escribirles una por una a las que vencen pronto, con el mensaje listo." },
+] as const;
+export type FuncionApartados = (typeof FUNCIONES_APARTADOS)[number]["clave"];
+
+/** Puntos de partida. De fábrica, Completo (Felipe, 2026-09-26): una tienda sin opciones guardadas lo tiene todo. */
+export const PRESETS_APARTADOS: Record<"esencial" | "recomendado" | "completo", { titulo: string; texto: string; encendidas: readonly FuncionApartados[] }> = {
+  esencial: { titulo: "Esencial", texto: "Apartar, entregar y devolver; nada más.", encendidas: [] },
+  recomendado: { titulo: "Recomendado", texto: "Lo que más ahorra tiempo en el piso y reduce vencidos.", encendidas: ["clienta", "qr", "abonos", "lote", "estante"] },
+  completo: { titulo: "Completo", texto: "Todo encendido. Es el de fábrica.", encendidas: FUNCIONES_APARTADOS.map((f) => f.clave) },
+};
+
+/** ¿Está encendida? Lo que la base no conoce como apagado, está encendido: una función nueva nace a la vista. */
+export const encendida = (apagadas: readonly string[], clave: FuncionApartados) => !apagadas.includes(clave);
+
+/** Qué preset coincide exactamente con lo encendido, o null si es una mezcla propia. */
+export function presetDe(apagadas: readonly string[]): keyof typeof PRESETS_APARTADOS | null {
+  const on = new Set(FUNCIONES_APARTADOS.map((f) => f.clave).filter((c) => !apagadas.includes(c)));
+  for (const [k, p] of Object.entries(PRESETS_APARTADOS)) {
+    if (p.encendidas.length === on.size && p.encendidas.every((c) => on.has(c))) return k as keyof typeof PRESETS_APARTADOS;
+  }
+  return null;
+}
+

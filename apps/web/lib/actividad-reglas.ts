@@ -11,7 +11,7 @@ import { ARBOL, rutaActiva, type Nodo } from "./menu";
 import { MODULOS, type ClaveModulo } from "./modulos";
 
 /** Los módulos que ya anotan su actividad. Crece con cada migración que suma los disparadores de un módulo. */
-export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = ["vender", "historial", "caja", "cambios"];
+export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = ["vender", "historial", "caja", "cambios", "apartados"];
 
 export function anotaActividad(clave: ClaveModulo): boolean {
   return MODULOS_CON_ACTIVIDAD.includes(clave);

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Bell, Check, MessageCircle, Search } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { Archive, Bell, Check, MessageCircle, Search, SlidersHorizontal } from "lucide-react";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { ResumenApartados } from "@/lib/separaciones";
 import {
@@ -10,6 +10,7 @@ import {
   avisadaHoy,
   coincide,
   colaPorAvisar,
+  encendida,
   diaLima,
   estadoVisible,
   formatoCelular,
@@ -34,6 +35,32 @@ const GRUPOS: { titulo: string; claves: ClaveEstado[] }[] = [
   { titulo: "A tiempo", claves: ["vigente"] },
   { titulo: "Cerrados", claves: ["cerrada"] },
 ];
+type ColumnaTodos = "prendas" | "pagado" | "celular" | "estante" | "asesora";
+const COLUMNAS_TODOS: { id: ColumnaTodos; etiqueta: string }[] = [
+  { id: "prendas", etiqueta: "Prendas" },
+  { id: "pagado", etiqueta: "Pagado y saldo" },
+  { id: "celular", etiqueta: "Celular" },
+  { id: "estante", etiqueta: "Estante" },
+  { id: "asesora", etiqueta: "Quién atendió" },
+];
+const COLUMNAS_DE_FABRICA: Record<ColumnaTodos, boolean> = { prendas: true, pagado: true, celular: true, estante: true, asesora: false };
+const CLAVE_QUE_VER = "cayla:apartados:que-ver";
+const EVENTO_QUE_VER = "cayla:apartados:que-ver";
+function suscribirQueVer(avisar: () => void) {
+  window.addEventListener(EVENTO_QUE_VER, avisar);
+  window.addEventListener("storage", avisar);
+  return () => {
+    window.removeEventListener(EVENTO_QUE_VER, avisar);
+    window.removeEventListener("storage", avisar);
+  };
+}
+function leerQueVer(): string | null {
+  try {
+    return localStorage.getItem(CLAVE_QUE_VER);
+  } catch {
+    return null;
+  }
+}
 const BOTON_CHICO = "label-cayla h-8 whitespace-nowrap rounded-md border border-tinta/25 px-3 text-[10.5px] text-tinta transition-colors hover:border-rojo hover:text-rojo disabled:opacity-40 disabled:hover:border-tinta/25 disabled:hover:text-tinta";
 const BOTON_CHICO_NEGRO = "label-cayla h-8 whitespace-nowrap rounded-md bg-tinta px-3 text-[10.5px] text-crema transition-colors hover:bg-rojo";
 
@@ -48,6 +75,7 @@ export function TodosVista({
   prendas,
   avisos,
   irAEntregar,
+  apagadas = [],
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -59,6 +87,8 @@ export function TodosVista({
   prendas: VarianteBusqueda[];
   avisos: Record<string, AvisoApartado>;
   irAEntregar: (id: string) => void;
+  /** Lo que la tienda apagó en «Opciones» (paso 5). */
+  apagadas?: string[];
 }) {
   const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
   const [filtro, setFiltro] = useState<Filtro>("hoy");
@@ -74,6 +104,27 @@ export function TodosVista({
     avisadasAhora.has(id) ? { avisos: (avisos[id]?.avisos ?? 0) + 1, ultimoEn: new Date().toISOString(), ultimoPor: null } : avisos[id];
   const conAvisosAhora = Object.fromEntries(apartados.map((a) => [a.id, avisoDe(a.id)]).filter(([, v]) => v)) as Record<string, AvisoApartado>;
   const { porAvisar, avisadasHoy } = colaPorAvisar(apartados, conAvisosAhora, hoy);
+  const conLote = encendida(apagadas, "lote");
+  const conEstante = encendida(apagadas, "estante");
+  const conAbonos = encendida(apagadas, "abonos");
+  // «Qué ver» (spike Apartados v2): qué lleva cada fila. Es comodidad de quien mira, así que vive en SU navegador; si el
+  // navegador no deja guardar, queda lo de fábrica.
+  const crudo = useSyncExternalStore(suscribirQueVer, leerQueVer, () => null);
+  const ver = useMemo<Record<ColumnaTodos, boolean>>(() => {
+    try {
+      const guardado = JSON.parse(crudo ?? "null");
+      return guardado && typeof guardado === "object" ? { ...COLUMNAS_DE_FABRICA, ...guardado } : COLUMNAS_DE_FABRICA;
+    } catch {
+      return COLUMNAS_DE_FABRICA;
+    }
+  }, [crudo]);
+  const [verAbierto, setVerAbierto] = useState(false);
+  const cambiarVer = (siguiente: Record<ColumnaTodos, boolean>) => {
+    try {
+      localStorage.setItem(CLAVE_QUE_VER, JSON.stringify(siguiente));
+    } catch {}
+    window.dispatchEvent(new Event(EVENTO_QUE_VER));
+  };
   // Extender, liberar y devolver firman con el combo «Responsable» (ADR-0161) dentro de su modal, de esta tienda.
   const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
 
@@ -108,7 +159,7 @@ export function TodosVista({
         ))}
       </div>
 
-      {porAvisar.length + avisadasHoy.length > 0 && (
+      {conLote && porAvisar.length + avisadasHoy.length > 0 && (
         <div className={`anim-revelar flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl px-4 py-3.5 ${porAvisar.length ? "bg-ambar/10 text-ambar-profundo" : "bg-verde/10 text-verde-profundo"}`}>
           {porAvisar.length ? <Bell className="h-5 w-5 shrink-0" aria-hidden /> : <Check className="h-5 w-5 shrink-0" aria-hidden />}
           <div className="min-w-0 flex-1 text-[13px]">
@@ -134,10 +185,31 @@ export function TodosVista({
             {f.etiqueta}
           </button>
         ))}
-        <label className="flex h-10 w-full items-center gap-2.5 rounded-xl border border-sand bg-papel px-3.5 focus-within:border-taupe sm:ml-auto sm:w-80">
+        <div className="relative flex w-full items-center gap-2 sm:ml-auto sm:w-auto">
+        <label className="flex h-10 min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-sand bg-papel px-3.5 focus-within:border-taupe sm:w-80 sm:flex-none">
           <Search className="h-4 w-4 text-tinta/55" aria-hidden />
           <input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Nombre, DNI, celular, APT- o B004-" aria-label="Buscar en los apartados" className="min-w-0 flex-1 bg-transparent text-[13.5px] outline-none" />
         </label>
+        <button type="button" onClick={() => setVerAbierto((v) => !v)} aria-expanded={verAbierto} className={`${BOTON_CHICO} inline-flex h-10 items-center gap-1.5`}>
+          <SlidersHorizontal className="h-3.5 w-3.5" aria-hidden /> <span className="max-sm:hidden">Qué ver</span>
+        </button>
+        {verAbierto && (
+          <div className="anim-revelar absolute top-12 right-0 z-30 w-64 rounded-xl border border-sand bg-papel p-2 shadow-lg">
+            <p className="label-cayla px-2 pt-1 pb-1.5 text-[10px] text-tinta/55">Qué ver en cada apartado</p>
+            {COLUMNAS_TODOS.filter((c) => c.id !== "estante" || conEstante).map((c) => (
+              <label key={c.id} className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] hover:bg-crema">
+                <input type="checkbox" checked={ver[c.id]} onChange={(e) => cambiarVer({ ...ver, [c.id]: e.target.checked })} className="accent-tinta" />
+                <span className="flex-1">{c.etiqueta}</span>
+                {COLUMNAS_DE_FABRICA[c.id] && <span className="text-[10.5px] text-tinta/45">de fábrica</span>}
+              </label>
+            ))}
+            <div className="mt-1 flex items-center justify-between border-t border-sand px-2 pt-2">
+              <button type="button" onClick={() => cambiarVer(COLUMNAS_DE_FABRICA)} className="label-cayla text-[10px] text-tinta/60 hover:text-tinta">Lo de fábrica</button>
+              <button type="button" onClick={() => setVerAbierto(false)} className={BOTON_CHICO_NEGRO}>Listo</button>
+            </div>
+          </div>
+        )}
+        </div>
       </div>
 
       {lista.length === 0 ? (
@@ -161,10 +233,16 @@ export function TodosVista({
                       <span className="font-display grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sand/70 text-sm">{`${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase()}</span>
                       <div className="min-w-0">
                         <p className="truncate font-semibold text-tinta">{a.nombres} {a.apellidos}</p>
-                        <p className="text-xs text-tinta/60 tabular-nums">{formatoCelular(a.celular)} · <span className="font-mono">{a.codigo}</span></p>
+                        <p className="text-xs text-tinta/60 tabular-nums">
+                          {ver.celular && `${formatoCelular(a.celular)} · `}<span className="font-mono">{a.codigo}</span>
+                          {ver.estante && conEstante && a.estante && (
+                            <span className="ml-1.5 inline-flex items-center gap-0.5 rounded bg-hueso px-1.5 font-mono text-[10.5px] text-tinta/80"><Archive className="h-2.5 w-2.5" aria-hidden />{a.estante}</span>
+                          )}
+                        </p>
+                        {ver.asesora && a.asesora && <p className="text-[11.5px] text-tinta/55">atendió {a.asesora}</p>}
                       </div>
                     </div>
-                    <div className="flex min-w-0 items-center gap-2 max-md:hidden">
+                    <div className={`flex min-w-0 items-center gap-2 max-md:hidden ${ver.prendas ? "" : "invisible"}`}>
                       <span className="flex">
                         {a.prendas.slice(0, 3).map((pr, j) => (
                           <FotoPrenda key={pr.varianteId} fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={32} className={`w-8 border border-papel ${j ? "-ml-3.5" : ""}`} />
@@ -172,9 +250,14 @@ export function TodosVista({
                       </span>
                       <span className="truncate text-[12.5px] text-tinta/60">{a.prendas.map((pr) => pr.referencia.split(" ")[0]).join(", ")}</span>
                     </div>
-                    <div className="text-sm tabular-nums max-md:hidden">
+                    <div className={`text-sm tabular-nums max-md:hidden ${ver.pagado ? "" : "invisible"}`}>
                       <b className="font-semibold">{money(a.adelanto)}</b> <span className="text-xs text-tinta/55">de {money(a.total)}</span>
-                      <p className="text-xs text-tinta/60">{a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}</p>
+                      <p className="text-xs text-tinta/60">
+                        {a.estado === "liberada" ? `por ${textoDevolucion(a)}` : a.estado === "abierta" ? `saldo ${money(a.saldo)}` : "cerrado"}
+                        {conAbonos && a.pagos.some((p) => p.abono) && (
+                          <span className="text-verde-profundo"> · {a.pagos.filter((p) => p.abono).length} {a.pagos.filter((p) => p.abono).length === 1 ? "abono" : "abonos"}</span>
+                        )}
+                      </p>
                     </div>
                     <div className="space-y-1">
                       <EstadoChip {...e} />

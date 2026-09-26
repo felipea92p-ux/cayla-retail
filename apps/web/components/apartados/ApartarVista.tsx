@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
+import { ArrowRight, Bookmark, Camera, Check, FileText, Minus, Plus, Receipt, ScanBarcode, Search, ShieldCheck, StickyNote, Trash2, Undo2, User, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -20,6 +20,7 @@ import { firmar } from "@/lib/responsable-reglas";
 import { descuentoDeCampana } from "@/lib/vender-reglas";
 import { conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
+import { buscarClienta } from "@/lib/clientas-acciones";
 import { useConsultaMedia } from "@/lib/useConsultaMedia";
 import { MQ_TELEFONO, type EstadoEscaneo, type ResultadoEscaneo } from "@/lib/escaner-reglas";
 import { lineasApartables, type LineaApartar } from "@/lib/apartar-desde-ticket";
@@ -30,6 +31,7 @@ import {
   apartadoDeFila,
   erroresDelApartado,
   moverActivo,
+  encendida,
   resultadosDelBuscador,
   pagosParaRpcApartado,
   pasoDelApartado,
@@ -98,6 +100,7 @@ export function ApartarVista({
   cajaAbierta,
   prendas: prendasProp,
   lineasIniciales,
+  apagadas = [],
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
@@ -106,6 +109,8 @@ export function ApartarVista({
   prendas: PrendaApartable[];
   /** Las prendas que llegan del ticket del Punto de venta («Apartar»): arrancan en la lista, topadas por lo disponible. */
   lineasIniciales?: LineaApartar[];
+  /** Lo que la tienda apagó en «Opciones» (paso 5). */
+  apagadas?: string[];
 }) {
   const router = useRouter();
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `prendasProp` es la
@@ -158,7 +163,13 @@ export function ApartarVista({
   const apilado = useConsultaMedia(MQ_APILADO);
   // Teléfono: sin pistola, la etiqueta se lee con la cámara (el mismo escáner de Vender). El lector se baja ya, con red,
   // para que también funcione si después se corta la conexión (ADR-0210).
-  const esTelefono = useConsultaMedia(MQ_TELEFONO);
+  const esTelefono = useConsultaMedia(MQ_TELEFONO) && encendida(apagadas, "qr");
+  const conClienta = encendida(apagadas, "clienta");
+  // Clienta por DNI o celular (Apartados v2): si ya tiene ficha, sus datos se llenan solos y el apartado queda ligado a ella.
+  const [clientaQ, setClientaQ] = useState("");
+  const [clientaId, setClientaId] = useState<string | null>(null);
+  const [buscandoClienta, setBuscandoClienta] = useState(false);
+  const [sinFicha, setSinFicha] = useState(false);
   const [camaraAbierta, setCamaraAbierta] = useState(false);
   useEffect(() => {
     if (esTelefono) precargarLectorQR();
@@ -313,6 +324,33 @@ export function ApartarVista({
     setF((x) => ({ ...x, pagos: x.pagos.length ? [{ ...x.pagos[0], monto, recibido: undefined }] : [{ metodo: "yape", monto }] }));
   }
 
+  async function buscarFicha() {
+    const t = soloDigitos(clientaQ);
+    if (t.length !== 8 && t.length !== 9) return;
+    setBuscandoClienta(true);
+    const { clientas, error } = await buscarClienta(t);
+    setBuscandoClienta(false);
+    if (error) return avisar.error(traducirError(error, "buscar la clienta"));
+    const c = clientas[0];
+    if (!c) {
+      setClientaId(null);
+      setSinFicha(true);
+      setF((x) => ({ ...x, dni: t.length === 8 ? t : x.dni, celular: t.length === 9 ? t : x.celular }));
+      return;
+    }
+    // La ficha guarda el nombre en un solo campo: la primera palabra va a Nombres y el resto a Apellidos (se puede corregir).
+    const [nombres, ...resto] = (c.nombre ?? "").trim().split(/\s+/);
+    setClientaId(c.id);
+    setSinFicha(false);
+    setF((x) => ({
+      ...x,
+      nombres: nombres || x.nombres,
+      apellidos: resto.join(" ") || x.apellidos,
+      celular: soloDigitos(c.telefonoWhatsapp ?? "") || x.celular,
+      dni: c.dni ?? x.dni,
+    }));
+  }
+
   async function confirmar() {
     setIntento(true);
     if (Object.keys(errores).length > 0 || !cajaAbierta || !responsable.listo) return;
@@ -336,6 +374,7 @@ export function ApartarVista({
       p_devolucion_numero: f.devolucionMedio === "transferencia" ? undefined : soloDigitos(f.devolucionNumero) || undefined,
       p_devolucion_cci: f.devolucionMedio === "transferencia" ? soloDigitos(f.devolucionCci) : undefined,
       p_asesora_id: responsable.elegidoId ?? undefined,
+      p_clienta_id: clientaId ?? undefined,
       p_nota: nota.trim() || undefined,
       p_token: token.current,
     }), responsable.firma());
@@ -363,6 +402,9 @@ export function ApartarVista({
     setF(FORMULARIO_VACIO);
     setIntento(false);
     setTocados(new Set());
+    setClientaId(null);
+    setClientaQ("");
+    setSinFicha(false);
     setPaso("ticket");
     setUltima(null);
     setMensaje(null);
@@ -612,6 +654,35 @@ export function ApartarVista({
 
                 <fieldset className={`space-y-3.5 ${paso === "adelanto" ? "max-lg:hidden" : ""}`}>
                   <legend className="mb-2 flex items-center gap-1.5 text-[11px] text-tinta/50"><User className="h-3.5 w-3.5" aria-hidden /> La clienta</legend>
+                  {conClienta && (
+                    <div className="space-y-1.5">
+                      {clientaId ? (
+                        <p className="flex items-center justify-between gap-2 rounded-xl border border-verde/30 bg-verde/5 px-3 py-2 text-[12.5px] text-verde-profundo">
+                          <span>Ficha encontrada: el apartado queda ligado a su historial.</span>
+                          <button type="button" onClick={() => { setClientaId(null); setClientaQ(""); }} className="label-cayla text-[10px] text-tinta/70">Cambiar</button>
+                        </p>
+                      ) : (
+                        <div className="flex gap-2">
+                          <label className="flex h-11 min-w-0 flex-1 items-center gap-2 rounded-xl bg-hueso px-3 focus-within:ring-1 focus-within:ring-taupe">
+                            <Search className="h-4 w-4 shrink-0 text-tinta/50" aria-hidden />
+                            <input
+                              value={clientaQ}
+                              onChange={(e) => { setClientaQ(e.target.value); setSinFicha(false); }}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); buscarFicha(); } }}
+                              inputMode="numeric"
+                              placeholder="DNI (8) o celular (9) de la clienta"
+                              aria-label="Buscar a la clienta por DNI o celular"
+                              className="min-w-0 flex-1 bg-transparent font-mono text-sm outline-none"
+                            />
+                          </label>
+                          <button type="button" onClick={buscarFicha} disabled={buscandoClienta || ![8, 9].includes(soloDigitos(clientaQ).length)} className="label-cayla h-11 shrink-0 rounded-xl border border-sand px-3 text-[10.5px] disabled:opacity-45">
+                            {buscandoClienta ? "Buscando…" : "Buscar"}
+                          </button>
+                        </div>
+                      )}
+                      {sinFicha && <p className="text-xs text-tinta/60">No tiene ficha todavía: completa sus datos abajo.</p>}
+                    </div>
+                  )}
                   <div className="grid gap-3.5 sm:grid-cols-2">
                     <Campo etiqueta="Nombres" error={ver("nombres")} onBlur={tocar("nombres")}><input value={f.nombres} onChange={(e) => cambiar("nombres", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>
                     <Campo etiqueta="Apellidos" error={ver("apellidos")} onBlur={tocar("apellidos")}><input value={f.apellidos} onChange={(e) => cambiar("apellidos", e.target.value)} autoComplete="off" className={CAMPO} /></Campo>

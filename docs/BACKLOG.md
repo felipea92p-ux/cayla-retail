@@ -681,12 +681,21 @@ Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apart
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
 - [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
 
+## 🎯 Apartados v2, pasos 2 a 5 (2026-09-26, ADR-0232) — 4 migraciones NO están en producción; web en PR
+Abonos, estante, editar, actividad, opciones por tienda, clienta por DNI y «Qué ver». Orden de pegado: `20260927100000` → `110000` → `120000` → `130000` (cada una en una parte, sin políticas, idempotentes).
+- [x] Migraciones + `pnpm pruebas:separaciones` 71/71 en el Postgres local; web con tipos, lint y pruebas en verde; vista a 1440 y 375 px con datos de prueba.
+- [ ] **Pegar las 4 migraciones en producción, en orden, con el OK de Felipe** (abonos emite boletas de anticipo; hoy no se transmiten a SUNAT), y después fusionar la web.
+- [ ] Refrescar el diccionario tras pegarlas; probar con clics reales en TRU: abonar (con y sin espera), editar la talla, ver el estante, la Actividad y las Opciones.
+- [ ] **Decisión de Felipe — apartar de otra sede:** toca Traslados (otro módulo); hoy `iniciar_traslado` no despacha una prenda apartada en origen. Opciones en ADR-0232 «Lo que NO entró».
+- [ ] **Decisión de Felipe — editar a un total menor que lo pagado:** hoy se rechaza; ¿devolver la diferencia o saldo a favor?
+- [ ] Hueco previo (no de este cambio): en el Postgres local de esta máquina hay dos `registrar_movimiento_caja` (sobrecarga de otra sesión) y `pruebas:actividad`/`pruebas:actor-firma` fallan por ambigüedad; el CI arma la base desde cero.
+
 ## 🎯 Apartados: recordar en lote (2026-09-26, ADR-0227) — migración `20260926233000` EN PRODUCCIÓN (aplicada 2026-09-26 como `20260926174611`, verificada por efectos); web en PR #490
 Paso 1 de las funciones del spike Apartados v2 (orden acordado con Felipe: recordar en lote → abonos → estante real → actividad, editar y otra sede → «Opciones» y «Qué ver»).
 - [x] Tabla `separacion_avisos` (append-only), `registrar_aviso_separacion` y `fn_avisos_separaciones`; `pnpm pruebas:separaciones` 53/53 en el Postgres local.
 - [x] Web: aviso «N clientas por avisar hoy» en Todos, `RecordarModal` (lote o una sola clienta), mensaje de vencido con la fecha de gracia; reglas puras con prueba.
 - [x] **Pegada en producción** el 2026-09-26 con el OK de Felipe (por el MCP): tabla con RLS y 0 políticas, `authenticated` sin acceso directo, las dos funciones con `execute` solo para `authenticated`, 0 avisos, separaciones intactas (1).
-- [ ] **Paso 2 · Abonos** (decisiones de Felipe, 2026-09-26): sin monto mínimo; el PRIMER abono corre la fecha y, como opción al registrarlo, se le puede esperar 2 días más, o 3 si el abono es la mitad o más de lo que le faltaba. Cada abono = boleta de anticipo.
+- [x] **Paso 2 · Abonos**: hecho en ADR-0232 (reglas corregidas: el plazo NO cambia solo; «esperarla» da 2 días, o 3 si abona la mitad o más de lo que faltaba).
 - [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) y verlo con clics reales en TRU.
 
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
