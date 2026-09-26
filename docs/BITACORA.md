@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Historial: análisis, comparación con otros sistemas y spike en computador y celular)
+Felipe pasó 3 capturas de `/vender/historial` y pidió conectarlo con las pantallas nuevas y hacerlo usable en el teléfono; ante las preguntas pidió «una demo con todo». Quedaron 9 hallazgos y el spike `docs/maquetas/historial-spike-2026-09/`: buscador único que mira todas las fechas, acciones que llevan a Cambios/Devoluciones/Comprobantes/Clientas/Apartados, avisos de SUNAT de cualquier fecha, marcas de posventa y apartado, y tres formas de abrir una venta en el celular. Sin tocar código ni base.
+Felipe se lleva: (1) **Historial se lee pero no ayuda a resolver**: Shopify, Square, Lightspeed, Loyverse y Odoo permiten encontrar el pedido con un solo campo y actuar desde él. (2) **Casi todo sale sin base nueva**: Cambios y Devoluciones ya aceptan `?q=`, y `cambios`/`devolucion_items` ya apuntan a `venta_item_id`. (3) **Lo que sí pide base es buscar por nº de operación Yape**: `venta_pagos` no guarda esa referencia.
+
 ## 2026-09-26 (Punto de venta conectado: del spike a la interfaz — ADR-0221)
 Felipe aprobó el spike y pidió llevarlo al sistema. Sin migración: las cinco funciones de base que hacían falta (clienta, «no había», proforma, apartados, ventas del día) ya estaban en producción, verificado con `pg_proc` antes de escribir una línea. Apartar desde el ticket no duplica el cobro del adelanto: lleva las prendas a Apartados. La hoja del celular es una variante de `<Modal>`, no un overlay nuevo.
 Felipe se lleva: (1) **lo que ya existe en la base a veces solo falta sacarlo al mostrador**: la ficha de clienta y «no había» llevaban días sin una sola llamada. (2) **Una firma obligatoria alcanza también a lo pequeño**: «Anotar que no había» se rechazaba sin responsable; se firma con el mismo combo del ticket. (3) **La campaña no cabe en una proforma** con las reglas de hoy (tope 20 % y otros motivos): la caja lo avisa y la decisión queda para ti.
