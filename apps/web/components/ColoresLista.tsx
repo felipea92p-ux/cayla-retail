@@ -1,6 +1,7 @@
 "use client";
 
-import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { coloresParecidos } from "@/lib/color-parecido";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -73,8 +74,35 @@ function gruposPorFamilia(lista: Color[]) {
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
 // así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, className = "h-12 w-full" }: { hex: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ backgroundColor: hex ?? "#e8e0d0" }} aria-hidden />;
+function Muestra({ hex, familia, className = "h-12 w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0" }} aria-hidden />;
+}
+
+// Aviso, no candado: el color que se está creando o editando se ve casi igual que otro del vocabulario
+// (ΔE2000 < 8, `lib/color-parecido.ts`). Es el criterio con que se armó la paleta esencial (20260926100000):
+// dos colores que no se distinguen terminan partiendo el stock de una misma prenda en dos filas. Decide la
+// persona: Blanco y Crudo se parecen en pantalla y en textil son dos colores de verdad.
+function AvisoParecido({
+  hex,
+  familiaColor,
+  vocabulario,
+  excluir,
+}: {
+  hex: string | null;
+  familiaColor: string | null;
+  vocabulario: Color[];
+  excluir?: string;
+}) {
+  const parecidos = coloresParecidos(hex, familiaColor, vocabulario, { excluir }).slice(0, 3);
+  if (parecidos.length === 0) return null;
+  const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
+  const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+  return (
+    <p role="status" className="rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
+      Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
+      dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
+    </p>
+  );
 }
 
 // El color se elige de tres maneras que dan lo mismo: el selector del
@@ -336,7 +364,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {coloresDeLaFamilia.map((c) => (
               <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
-                <Muestra hex={c.hex} />
+                <Muestra hex={c.hex} familia={c.familiaColor} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{c.nombre}</p>
                   {c.estado === "pendiente" && (
@@ -421,6 +449,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
               </div>
               <SelectorColor hex={hex} onHex={setHex} />
+              <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={activos} />
 
               <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2 pt-3">
@@ -450,7 +479,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((c) => (
               <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 opacity-60">
-                <Muestra hex={c.hex} />
+                <Muestra hex={c.hex} familia={c.familiaColor} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{c.nombre}</p>
                   {c.estado === "rechazado" && (
@@ -506,6 +535,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       {editando && (
         <ColorEditarModal
           color={editando}
+          vocabulario={activos}
           responsable={responsable}
           onClose={() => setEditando(null)}
           onGuardado={(actualizado) => {
@@ -534,12 +564,15 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 // ---------------------------------------------------------------------------
 function ColorEditarModal({
   color,
+  vocabulario,
   responsable,
   onClose,
   onGuardado,
   onDesactivado,
 }: {
   color: Color;
+  /** Los colores activos, para avisar si el tono se ve casi igual que otro. */
+  vocabulario: Color[];
   /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
   responsable: ControlResponsable;
   onClose: () => void;
@@ -669,6 +702,7 @@ function ColorEditarModal({
             )}
             <p className="mt-1 text-xs text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
+          <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={vocabulario} excluir={color.codigo} />
 
           <ComboResponsable control={responsable} deshabilitado={ocupado} />
           <div className="flex gap-2 pt-3">

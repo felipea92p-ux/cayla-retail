@@ -66,8 +66,9 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  // orden=200: los 30 propios de CAYLA van del 10 al 92; un color agregado
-  // desde esta pantalla entra después de todos ellos.
+  // orden=200: los de CAYLA usan una decena por familia (neutro 10-19 …
+  // metálico 80-89, de claro a oscuro: 20260926100000); un color agregado
+  // desde esta pantalla entra al final de su familia.
   const { data, error } = await supabase
     .from("colores")
     .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, notas })
