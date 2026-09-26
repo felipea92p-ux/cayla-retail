@@ -1,6 +1,7 @@
 # Spike · Apartados: pestañas a la izquierda y el ticket a lo alto (2026-09-26)
 
-> **Estado: en revisión con Felipe.** Sin aplicar. Es el mismo ajuste que el spike de Punto de Venta
+> **Estado: implementado (2026-09-26), sin migración.** Lo que la implementación ajustó respecto del spike está
+> en «Qué cambió al implementarlo», al final. Es el mismo ajuste que el spike de Punto de Venta
 > (`docs/maquetas/punto-venta-ticket-alto-2026-09/`), aplicado a la hoja de Apartados publicada (ADR-0223, ADR-0236).
 
 `apartados-ticket-alto.html` es un solo archivo y se abre sin servidor. Con la barra negra se cambia entre computador y
@@ -47,3 +48,16 @@ En Entregar, esos mismos píxeles hacen que entren sin desplazar el cobro, el me
   arriba de la hoja. La cabecera del `<aside>` cambia `min-h-[84px] … py-5` por `h-16` (líneas 598 y 233).
 - En el celular (`max-lg`) todo sigue apilado como hoy. Solo cambia el orden de la etiqueta y «Opciones».
 - Se prueba a 375 px (PL-105) y se compara la captura con la de este spike.
+
+## Qué cambió al implementarlo (2026-09-26)
+
+- **Entre 1024 y 1280 px** la columna de trabajo mide ~290 px y la fila no entraba. En ese rango se oculta la etiqueta
+  «Apartados · sede» (la sede ya está en la barra de arriba y Apartados en el menú), «Opciones» queda solo con su ícono
+  y el ticket mide 380 px en vez de 420. Desde 1280 px se ve como en el spike. En Todos, a todo el ancho, siempre sale la
+  etiqueta.
+- **La cabecera del ticket mide 65 px**: los 64 de la fila más su raya. Así las dos rayas quedan en el mismo píxel
+  (medido: 162 y 162).
+- **En el celular** la fila lleva menos margen (20 px), para que «Apartados · Tienda Lima» y «Opciones» quepan en una
+  línea a 375 px.
+- Medido en `/vender/apartados` a 1440 px: el ticket arranca en el borde de arriba de la hoja (97 px contra los 96 de
+  la hoja: el borde).
