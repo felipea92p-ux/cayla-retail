@@ -428,6 +428,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:movimientos-desde-la-tienda
 
+      # El costo se corrige a mano solo hasta la primera compra (Felipe, 2026-09-26): con compras, la API no lo cambia; el
+      # camino oficial (recepción, Taller) sigue abierto; corregir un costo declarado no lo marca «alterado». ROLLBACK.
+      - name: pruebas:costo-hasta-primera-compra
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:costo-hasta-primera-compra
+
       # Un ajuste no es la primera carga (ADR-0235): la base rechaza un ajuste que sería el primer movimiento de una prenda
       # en la tienda (`ajuste_sin_historia`) y `cargar_stock_inicial` la carga como entrada, todas o ninguna, al almacén o
       # al piso con su bajada; después, un ajuste de verdad pasa como siempre. Cada caso en ROLLBACK.

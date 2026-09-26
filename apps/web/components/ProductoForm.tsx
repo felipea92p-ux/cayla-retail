@@ -72,6 +72,11 @@ type FilaVariante = {
   skuManual: boolean;
   precio: string;
   costo: string;
+  /** El costo con el que se abrió la ficha. Una variante existente con el campo vacío lo conserva (antes se guardaba 0). */
+  costoOriginal: string;
+  /** Costo de solo lectura: la variante ya entró por Compras o por el Taller y su costo es el promedio ponderado
+   *  (20260927190000; la base lo vuelve a exigir). Se corrige a mano solo hasta la primera compra (Felipe, 2026-09-26). */
+  costoFijo: boolean;
   activo: boolean;
   /** Etiquetas de catálogo aplicadas a esta variante — solo editable si `id` ya existe. */
   etiquetaIds: string[];
@@ -120,10 +125,12 @@ function sugerirSku(referencia: string, colorCodigo: string, talla: string): str
 
 /** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
  *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
- *  para lo que sale de dos que ya existen). */
+ *  para lo que sale de dos que ya existen). Sin costo no hay margen: antes
+ *  un campo vacío contaba como 0 y mostraba 100 %. */
 function margenPorcentaje(precio: string, costo: string): number | null {
+  if (costo.trim() === "") return null;
   const p = Number(precio);
-  const c = costo === "" ? 0 : Number(costo);
+  const c = Number(costo);
   if (!Number.isFinite(p) || p <= 0 || !Number.isFinite(c)) return null;
   return ((p - c) / p) * 100;
 }
@@ -137,8 +144,15 @@ function mismoConjunto(a: string[], b: string[]): boolean {
   return ordenA.every((id, i) => id === ordenB[i]);
 }
 
+/** El costo que se guarda y con el que se calcula el margen. Una variante existente con el campo vacío conserva el que
+ *  tenía (el vacío no es «cero»); una fila nueva vacía nace sin costo, como siempre. */
+function costoEfectivo(v: FilaVariante): string {
+  if (v.costoFijo) return v.costoOriginal;
+  return v.id && v.costo.trim() === "" ? v.costoOriginal : v.costo;
+}
+
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true, etiquetaIds: [], fija: null };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
 }
 
 export function ProductoForm({
@@ -208,6 +222,9 @@ export function ProductoForm({
           skuManual,
           precio: String(v.precio),
           costo: v.costo === null ? "" : String(v.costo),
+          costoOriginal: v.costo === null ? "" : String(v.costo),
+          // Sin saber si es oficial (la migración aún no está), se trata como oficial: es lo que no puede pisar nada.
+          costoFijo: v.costoOficial !== false,
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
           fija: { color: v.color ?? (colorCodigo || "Sin color"), talla: talla || "Sin talla", codigo: v.codigo ?? v.sku },
@@ -339,7 +356,7 @@ export function ProductoForm({
       talla_id: v.tallaId || null,
       sku: v.sku.trim(),
       precio: Number(v.precio),
-      costo: v.costo === "" ? 0 : Number(v.costo),
+      costo: costoEfectivo(v) === "" ? 0 : Number(costoEfectivo(v)),
       activo: v.activo,
     }));
 
@@ -628,7 +645,14 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { precio: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
-              {veCosto ? (
+              {veCosto && v.costoFijo ? (
+                <span
+                  className="py-2 text-right text-sm tabular-nums text-tinta/70"
+                  title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
+                >
+                  {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
+                </span>
+              ) : veCosto ? (
                 <input
                   type="number"
                   min={0}
@@ -645,7 +669,7 @@ export function ProductoForm({
               <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
                 {(() => {
                   if (!veCosto) return "—";
-                  const m = margenPorcentaje(v.precio, v.costo);
+                  const m = margenPorcentaje(v.precio, costoEfectivo(v));
                   return m === null ? "—" : `${m.toFixed(0)}%`;
                 })()}
               </span>
@@ -697,6 +721,13 @@ export function ProductoForm({
             <p className="text-xs text-tinta/55">
               Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
               Si está mal, desactívala y agrega la correcta.
+            </p>
+          )}
+          {veCosto && variantes.some((v) => v.costoFijo) && (
+            <p className="text-xs text-tinta/55">
+              {producto?.variantes.some((v) => v.costoOficial === null)
+                ? "No se pudo comprobar qué costos ya vienen de compras, así que por ahora no se corrigen aquí."
+                : "El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí."}
             </p>
           )}
           <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
