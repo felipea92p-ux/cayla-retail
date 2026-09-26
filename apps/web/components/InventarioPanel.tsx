@@ -400,6 +400,15 @@ export function InventarioPanel({
     const tarjeta = tarjetaTablaRef.current;
     if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
   }
+  // «Reponer a piso hoy» filtra una tabla que queda más abajo, fuera de la vista: sin llevarla hasta ahí, el clic
+  // parecía no hacer nada (solo cambiaba el fondo de la tarjeta). Se desplaza en el cuadro siguiente, cuando la tabla
+  // ya tiene su alto filtrado; suave para que se vea de dónde a dónde se fue, y de una vez con `prefers-reduced-motion`.
+  function mostrarTablaFiltrada() {
+    requestAnimationFrame(() => {
+      const reducido = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      tarjetaTablaRef.current?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
+    });
+  }
 
   const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || marcaEfectiva !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
   /** Quita búsqueda, categoría, marca, talla y color, pero deja el Estado puesto. Es el «Ver todas» de «Por colgar»:
@@ -559,7 +568,12 @@ export function InventarioPanel({
               unidad={resumen.requierenReposicion === 1 ? "variante" : "variantes"}
               urgente={resumen.requierenReposicion > 0}
               activa={estado === "reponer_piso"}
-              onClick={() => setEstado((e) => (e === "reponer_piso" ? TODAS : "reponer_piso"))}
+              onClick={() => {
+                const activar = estado !== "reponer_piso";
+                setEstado(activar ? "reponer_piso" : TODAS);
+                // Al ponerlo, la vista baja a la tabla para ver lo filtrado; al quitarlo, se queda en la tarjeta.
+                if (activar) mostrarTablaFiltrada();
+              }}
             >
               {/* La cifra es solo «Reponer piso» (decisión de Felipe, no se toca). Pero si da 0 y hay tallas sin
                   nada colgado, «nada pendiente de bajar» sería falso: remite a la lista que sí las tiene.
@@ -658,8 +672,10 @@ export function InventarioPanel({
       )}
 
       {/* Guía oficial (2026-09-22, ADR-0169): los filtros y la tabla viven en UNA tarjeta — lo que se filtra
-          y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible. */}
-      <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-4 overflow-hidden">
+          y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible.
+          `scroll-mt-24` compensa la cabecera fija: con menos, al llegar aquí (paginar, «Reponer a piso hoy») el
+          buscador quedaba debajo de ella. */}
+      <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-24 overflow-hidden">
       {stock.length > 0 && (
         <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${COLUMNAS_FILTROS[3 + (separa ? 1 : 0) + (mostrarMarca ? 1 : 0)]}`}>
           {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario, y el subrayado rojo
