@@ -56,34 +56,38 @@ export function periodoDelMes(mes: Mes, actual: Mes): string {
 
 /* ---------------------------- Las pestañas ---------------------------- */
 
-export type ClavePestana = "series" | "emitidos" | "cola" | "proformas";
+export type ClavePestana = "hoy" | "series" | "cola" | "proformas";
 
 export type PestanaFacturacion = { clave: ClavePestana; etiqueta: string; ruta: string; conMes: boolean };
 
 const RUTA = "/vender/comprobantes";
 
-/** Las cuatro vistas, en el orden en que se dibujan. `conMes`: solo Proformas y
- *  Emitidos viven en un mes; Series no tiene tiempo. Desde 2026-09-22 (D-60) la pantalla es
- *  «Comprobantes»: el envío a SUNAT es automático, así que la base es Series y ya no hay Resumen ni
- *  Códigos de descuento (el código se sigue usando al cobrar en Vender). */
+/** Las cuatro vistas, en el orden en que se dibujan (Felipe, 2026-09-26, spike
+ *  `docs/maquetas/comprobantes-conectado-2026-09/`). La base es **Hoy**: los comprobantes del día y, con «Este
+ *  mes», los del mes (la vieja «Emitidos», que sigue en `/emitidos` para no romper enlaces y cae en esta pestaña).
+ *  Series pasa a `/series` (la colaboradora la ve en solo lectura). «Por enviar» es la vieja «Por reintentar»: la
+ *  ruta no cambia y ahora cuenta también lo que nunca se intentó. Proformas, igual. */
 export const PESTANAS: readonly PestanaFacturacion[] = [
-  { clave: "series", etiqueta: "Series", ruta: RUTA, conMes: false },
-  { clave: "emitidos", etiqueta: "Emitidos", ruta: `${RUTA}/emitidos`, conMes: true },
-  { clave: "cola", etiqueta: "Por reintentar", ruta: `${RUTA}/por-reintentar`, conMes: false },
+  { clave: "hoy", etiqueta: "Hoy", ruta: RUTA, conMes: false },
+  { clave: "series", etiqueta: "Series", ruta: `${RUTA}/series`, conMes: false },
+  { clave: "cola", etiqueta: "Por enviar", ruta: `${RUTA}/por-reintentar`, conMes: false },
   { clave: "proformas", etiqueta: "Proformas", ruta: `${RUTA}/proformas`, conMes: true },
 ];
 
-/** La pestaña que le toca a una ruta. Una ruta desconocida cae en Series (la base). El
+/** Rutas que no son pestaña propia pero se dibujan bajo una: el mes de comprobantes vive bajo «Hoy». */
+const RUTAS_DE_PESTANA: { ruta: string; clave: ClavePestana }[] = [{ ruta: `${RUTA}/emitidos`, clave: "hoy" }];
+
+/** La pestaña que le toca a una ruta. Una ruta desconocida cae en Hoy (la base). El
  *  prefijo tiene que terminar en `/` o en el fin: `/proformas-viejas` no es Proformas. */
 export function pestanaDeRuta(pathname: string): ClavePestana {
   const limpia = pathname.replace(/\/+$/, "");
-  const hallada = PESTANAS.find((p) => p.clave !== "series" && (limpia === p.ruta || limpia.startsWith(`${p.ruta}/`)));
-  return hallada?.clave ?? "series";
+  const cae = (ruta: string) => limpia === ruta || limpia.startsWith(`${ruta}/`);
+  const hallada = PESTANAS.find((p) => p.clave !== "hoy" && cae(p.ruta)) ?? RUTAS_DE_PESTANA.find((r) => cae(r.ruta));
+  return hallada?.clave ?? "hoy";
 }
 
-/** El enlace de una pestaña. Solo las dos que viven en un mes llevan `?m=`, y solo si el
- *  de la URL actual es válido: así el mes se conserva entre Proformas y Comprobantes sin
- *  arrastrar basura. */
+/** El enlace de una pestaña. Solo Proformas vive en un mes y lleva `?m=`, y solo si el
+ *  de la URL actual es válido: así el mes se conserva sin arrastrar basura. */
 export function hrefPestana(pestana: PestanaFacturacion, m: string | null | undefined): string {
   return pestana.conMes && esMesValido(m) ? `${pestana.ruta}?m=${m}` : pestana.ruta;
 }
@@ -120,6 +124,14 @@ export function resumenProformas(filas: ProformaFila[], ahora: number = Date.now
   };
 }
 
+/** Cuánto del monto cotizado es de proformas que vencen pronto: el tramo ámbar del gráfico de «Monto cotizado». */
+export function montoPorVencer(filas: ProformaFila[], ahora: number = Date.now()): number {
+  const suma = marcarPorVencer(filas, ahora)
+    .filter((p) => p.estado === "vigente" && !p.vencida && p.porVencer)
+    .reduce((s, p) => s + Number(p.total), 0);
+  return Math.round(suma * 100) / 100;
+}
+
 /* ----------------------- La cola de reintento (D-60) ----------------------- */
 
 /** Pasadas estas horas en la cola sin llegar a SUNAT, el líder recibe el aviso: el reintento solo no
@@ -143,16 +155,12 @@ export type ConteosPestanas = Partial<Record<ClavePestana, ConteoPestana>>;
  *  cuenta. */
 export function conteosDePestanas(porEnviar: ResumenPorEnviar | null, proformas: ResumenProformas | null, cola: ResumenCola | null = null): ConteosPestanas {
   const conteos: ConteosPestanas = {};
-  if (cola && cola.total > 0) {
-    conteos.cola =
-      cola.masDeUnaHora > 0
-        ? { valor: cola.total, tono: "rojo", texto: "en cola, alguno hace más de 1 hora" }
-        : { valor: cola.total, tono: "ambar", texto: "en cola, se reintentan solos" };
-  }
+  // «Por enviar» cuenta TODO lo que no llegó a SUNAT (pendiente + en cola + rechazado), no solo la cola de
+  // reintento: hasta el 2026-09-26 una boleta que nunca se intentó no sumaba aquí y la pestaña decía «todo llegó».
   if (porEnviar && porEnviar.porEnviar > 0) {
-    conteos.emitidos =
-      porEnviar.rechazados > 0
-        ? { valor: porEnviar.porEnviar, tono: "rojo", texto: "por enviar a SUNAT, con rechazados" }
+    conteos.cola =
+      porEnviar.rechazados > 0 || (cola?.masDeUnaHora ?? 0) > 0
+        ? { valor: porEnviar.porEnviar, tono: "rojo", texto: porEnviar.rechazados > 0 ? "por enviar a SUNAT, con rechazados" : "por enviar, alguno hace más de 1 hora" }
         : { valor: porEnviar.porEnviar, tono: "ambar", texto: "por enviar a SUNAT" };
   }
   if (proformas && proformas.vigentes > 0) {

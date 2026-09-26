@@ -729,7 +729,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   es producción, aviso rojo si algo pasa 1 hora en cola, pestañas y buscador; ya no dibuja modales: «Emitir
   comprobante» se quitó el 2026-09-22). Monta `BarridoColaSunat`, que al abrir llama a
   `POST /api/lucode/reintentar`. Cada `page.tsx` pide `exigirPermiso("facturar")` primero (lo fija
-  `lib/facturacion-puerta.test.ts`). Vistas: Series (`page.tsx`) → `SeriesPanel` ← `getSeriesComprobantes`
+  `lib/facturacion-puerta.test.ts`). **Desde 2026-09-26 (ADR-0238) las pestañas son Hoy · Series · Por enviar ·
+  Proformas:** Hoy (`page.tsx`, el día; «Este mes» es `emitidos/`) → `PeriodoComprobantes` + `ComprobantesTarjetas`
+  (gráficos de `ComprobantesGraficos` ← `lib/comprobantes-graficos-reglas`) + `ComprobantesPanel` ← `getComprobantesMes`
+  + `getExtrasDeComprobantes` (WhatsApp de la clienta, NC ↔ devolución); cada fila abre `OpcionesComprobante` (Ver la
+  venta = `DetalleVentaModal`, Cambio/Devolución = `/cambios?q=`, `/devoluciones?q=`). En celular las pestañas van abajo
+  (`PestanasComprobantesMovil`). «Por enviar» (`por-reintentar/`) lee `getPorEnviar` = cola + `pendiente` + `rechazado`.
+  Series vive en `series/page.tsx` → `SeriesPanel` ← `getSeriesComprobantes`
   (solo activas) + `getSeriesArchivadas` → RPCs `registrar_serie_comprobante` (ya no reemplaza: exige
   archivar antes y no reusa nombres) y `archivar_serie_comprobante`; `emitidos/` → `ComprobantesTarjetas`
   + `ComprobantesPanel` ← `getComprobantesMes` (anular, liberar y «Reintentar»; reglas

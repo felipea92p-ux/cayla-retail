@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Comprobantes conectado, implementado — ADR-0238)
+Del spike aprobado a la pantalla real, sin migración: pestañas Hoy · Series · Por enviar · Proformas, gráficos con tokens CAYLA en cada tarjeta, «Opciones» por boleta (WhatsApp al número de la clienta, ver la venta, Cambio, Devolución, NC ↔ devolución), pestañas abajo en celular y «Apartar» en las proformas. «Por enviar» ya muestra las boletas que nunca se intentaron.
+Por qué así: se reusaron piezas probadas (el detalle de venta de Historial, la búsqueda por comprobante de Posventa, el `?prendas=` del POS a Apartados, la barra de Apartados) en vez de construir otras. Qué se rompería sin esto: la colaboradora seguiría copiando números a mano, y una boleta sin enviar seguiría invisible.
+Felipe se lleva: (1) **en CSS, `.caja i { fondo }` le gana a `.color`**: el selector con elemento pesa más y los puntos de color salían grises; (2) una ruta vieja (`/emitidos`) se puede conservar debajo de otra pestaña para no romper los enlaces de Historial.
+Sin resolver: la causa de las boletas tomadas y no intentadas; verla con cuenta real.
+
 ## 2026-09-26 (Comprobantes conectado: re-análisis, demo y spike)
 Re-análisis de `/vender/comprobantes` (`docs/pantallas/vender-comprobantes.md`): 6,3/10. Hay 3 boletas «pendiente» sin ningún intento de envío que «Por reintentar» no muestra, y la pantalla no lleva a la venta, a la clienta ni a Posventa. Después vinieron un demo con 3 decisiones y una investigación de 6 sistemas (Shopify, Square, Lightspeed, Nubefact, Alegra, Bsale), y Felipe eligió 1A «Hoy», 2B barra abajo y 3A Cobrar + Apartar. El spike (`docs/maquetas/comprobantes-conectado-2026-09/spike.html`) suma las cifras de cada pestaña (monto facturado, monto cotizado) y tres formas de mostrarlas en celular.
 Por qué así: cada pestaña trae sus propias cifras y sale el bloque de la cabecera, que repetía lo mismo y cambiaba de lugar. «Por enviar» queda como número en la pestaña y en la barra. Qué se rompería sin esto: la colaboradora copia el número de boleta a mano para un cambio, y una boleta sin enviar queda invisible el día de SUNAT real.

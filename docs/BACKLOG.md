@@ -28,6 +28,19 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧾 Comprobantes conectado: «Hoy», Opciones por boleta y pestañas abajo en celular (2026-09-26, ADR-0238) — solo web, sin migración; rama `claude/comprobantes-screen-analysis-78ca38`
+- [x] Pestañas Hoy · Series · Por enviar · Proformas (Emitidos pasa a «Este mes» de Hoy, misma ruta `/emitidos`; Series a `/series`).
+- [x] «Por enviar» lista también los `pendiente` y `rechazado` (antes decía «todo llegó» con 3 boletas sin intentar en producción).
+- [x] Gráficos en las tarjetas solo con tokens CAYLA (sin rojo); sin cifras duplicadas en la cabecera.
+- [x] «Opciones» por comprobante: WhatsApp al número de la clienta, Ver la venta, Imprimir, Cambio, Devolución, NC ↔ devolución.
+- [x] Celular: las 4 pestañas abajo (excepción anotada en ADR-0206). Proforma → «Apartar».
+- [ ] Ver con cuenta real (líder y colaboradora) en computadora y a 375 px, tras el despliegue.
+- [ ] **Causa raíz:** por qué el barrido toma las boletas `pendiente` y no las intenta (`intentos_transmision = 0`, `proximo_reintento_at` corriéndose), y qué flujo creó 2 boletas sin venta.
+- [ ] Tarjetas que filtran la lista al tocarlas (`?estado=`), como en el spike.
+- [ ] Buscar un comprobante fuera del mes cargado (por número, DNI o nombre).
+- [ ] «Apartar» desde proforma lleva solo las prendas: faltan la clienta y el precio cotizado.
+- [ ] Proformas vencidas siguen `vigente` en la base (la pantalla las separa por fecha).
+
 ## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web + migración de lectura `20260927153000` **SIN APLICAR en producción**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
