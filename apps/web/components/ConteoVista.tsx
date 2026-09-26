@@ -52,6 +52,7 @@ export function ConteoVista({
   tallasPorCategoria,
   marcas,
   catalogo,
+  trasladosPorAtender = null,
 }: {
   ubicacionEtiqueta: string;
   ubicacionId: string;
@@ -67,10 +68,15 @@ export function ConteoVista({
   tallasPorCategoria: Record<string, { id: string; texto: string }[]>;
   marcas: ComponentProps<typeof ConteoPanel>["marcas"];
   catalogo: ComponentProps<typeof ConteoPanel>["catalogo"];
+  /** Traslados hacia esta sede por atender: el aviso «antes de contar». null = no se sabe o no ve Traslados. */
+  trasladosPorAtender?: number | null;
 }) {
   const exactitud = exactitudConteos(conteos);
   const ultimo = ultimoConteoConPrendas(conteos);
-  const vacios = conteos.filter((c) => c.estado === "cerrado" && c.lineas === 0).length;
+  // Los conteos cerrados sin prendas no dicen nada del inventario: se pliegan en una línea bajo el historial.
+  const conteosVacios = conteos.filter((c) => c.estado === "cerrado" && c.lineas === 0);
+  const conteosConPrendas = conteos.filter((c) => !(c.estado === "cerrado" && c.lineas === 0));
+  const vacios = conteosVacios.length;
   const enRiesgo = prioridad.reduce((acc, p) => acc + p.valorEnRiesgo, 0);
   // Una línea por lugar (piso / almacén) para elegir dónde contar: su último conteo con prendas, o que el último
   // salió vacío. Sale de la misma lista del historial (viene del más reciente al más antiguo).
@@ -95,6 +101,10 @@ export function ConteoVista({
         subtitulo="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
       />
 
+      {/* Con un conteo abierto las tres cifras se van (Conteo conectado, 2026-09-26): «Conteo abierto · Seguir contando»
+          repetía la cabecera del conteo que está justo debajo, y en el celular empujaba el escáner tres pantallas abajo.
+          La exactitud y el último conteo vuelven al cerrar. */}
+      {!conteoAbierto && (
       <div className="grid gap-3 sm:grid-cols-3">
         <Tarjeta
           etiqueta="Exactitud del inventario"
@@ -107,25 +117,11 @@ export function ConteoVista({
               ? `Todavía ningún conteo con prendas: ${vacios === 1 ? "el cerrado salió vacío" : `los ${vacios} cerrados salieron vacíos`} y no cuentan.`
               : "Sin conteos cerrados todavía — el primero que se cierre estrena esta cifra"}
         </Tarjeta>
-        {conteoAbierto ? (
-          // Sin avance ni diferencia: el avance vive en vivo en el panel de abajo (esta tarjeta no se refresca en
-          // cada escaneo) y la diferencia no se muestra mientras se cuenta.
-          <Tarjeta
-            etiqueta="Conteo abierto"
-            valor={`Conteo ${conteoAbierto.numero}`}
-            accion={{ href: "#contar", texto: "Seguir contando" }}
-          >
-            {conteoAbierto.sububicacionNombre ?? "Toda la ubicación"}
-            {conteoAbierto.alcance === "categoria" && conteoAbierto.alcanceCategoriaNombre ? ` · solo ${conteoAbierto.alcanceCategoriaNombre}` : " · todo el catálogo"} · abrió{" "}
-            {conteoAbierto.abiertoPorNombre}
-          </Tarjeta>
-        ) : (
-          <Tarjeta etiqueta="Conviene contar primero" valor={prioridad.length > 0 ? soles(enRiesgo) : "—"} tono={prioridad.length > 0 ? undefined : "text-taupe"}>
-            {prioridad.length > 0
-              ? `A precio de venta, en las ${prioridad.length} prendas de la lista de abajo: las nunca contadas y las de más plata en la percha.`
-              : "Nada con stock pendiente de contar en esta tienda."}
-          </Tarjeta>
-        )}
+        <Tarjeta etiqueta="Conviene contar primero" valor={prioridad.length > 0 ? soles(enRiesgo) : "—"} tono={prioridad.length > 0 ? undefined : "text-taupe"}>
+          {prioridad.length > 0
+            ? `A precio de venta, en las ${prioridad.length} prendas de la lista de abajo: las nunca contadas y las de más plata en la percha.`
+            : "Nada con stock pendiente de contar en esta tienda."}
+        </Tarjeta>
         <Tarjeta
           etiqueta="Último conteo con prendas"
           valor={ultimo ? soles(ultimo.solesDiferencia) : "—"}
@@ -136,6 +132,7 @@ export function ConteoVista({
             : "Ningún conteo con prendas todavía."}
         </Tarjeta>
       </div>
+      )}
 
       <div id="contar" className="scroll-mt-6">
         <ConteoPanel
@@ -145,6 +142,7 @@ export function ConteoVista({
           conteoAbierto={conteoAbierto}
           pendientes={pendientes}
           ultimoPorLugar={ultimoPorLugar}
+          trasladosPorAtender={trasladosPorAtender}
           sububicaciones={sububicaciones}
           categorias={categorias}
           prioridad={prioridad}
@@ -161,7 +159,23 @@ export function ConteoVista({
             <h2 className="font-display text-lg text-tinta">Conteos de esta ubicación</h2>
             <p className="text-xs text-taupe">Un conteo está abierto o cerrado, nada más.</p>
           </div>
-          <ConteosLista conteos={conteos} />
+          {conteosConPrendas.length > 0 && <ConteosLista conteos={conteosConPrendas} />}
+          {vacios > 0 && (
+            // Plegados: sin JavaScript (<details> del navegador), abre y cierra solo.
+            <details className="group rounded-lg border border-sand">
+              <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-sm text-taupe [&::-webkit-details-marker]:hidden">
+                <span aria-hidden className="transition-transform duration-200 group-open:rotate-90">›</span>
+                <span>
+                  <b className="font-semibold text-tinta">{vacios === 1 ? "1 conteo vacío" : `${vacios} conteos vacíos`}</b> · cerraron sin prendas y no cuentan
+                  para la exactitud
+                </span>
+                <span className="ml-auto text-xs text-tinta underline underline-offset-2 group-open:hidden">Mostrar</span>
+              </summary>
+              <div className="border-t border-sand p-2">
+                <ConteosLista conteos={conteosVacios} />
+              </div>
+            </details>
+          )}
         </section>
       )}
 
@@ -176,30 +190,11 @@ export function ConteoVista({
   );
 }
 
-function Tarjeta({
-  etiqueta,
-  valor,
-  tono,
-  accion,
-  children,
-}: {
-  etiqueta: string;
-  valor: string;
-  tono?: string;
-  accion?: { href: string; texto: string };
-  children: React.ReactNode;
-}) {
-  // La tarjeta del sistema (`ui/TarjetaCifra`, guía oficial). El enlace de acción sigue siendo un <a>
-  // nativo: es un salto de ancla dentro de la misma página (#contar) — el <Link> de Next no siempre dispara
-  // el scroll nativo para un href de solo-hash en la misma ruta.
+function Tarjeta({ etiqueta, valor, tono, children }: { etiqueta: string; valor: string; tono?: string; children: React.ReactNode }) {
+  // La tarjeta del sistema (`ui/TarjetaCifra`, guía oficial).
   return (
     <TarjetaCifra etiqueta={etiqueta} valor={valor} tono={tono}>
       {children}
-      {accion && (
-        <a href={accion.href} className="label-cayla mt-3 block text-[11px] text-tinta underline underline-offset-2 hover:no-underline">
-          {accion.texto} →
-        </a>
-      )}
     </TarjetaCifra>
   );
 }

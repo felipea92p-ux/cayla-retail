@@ -236,7 +236,8 @@ export type LineaConteo = {
   soles: number | null;
 };
 
-export type ConteoDetalle = ConteoResumen & { lineasDetalle: LineaConteo[] };
+/** `ubicacionId`: la sede del conteo, para ofrecer lo que sigue solo a quien está parado en ella (Bajar al piso). */
+export type ConteoDetalle = ConteoResumen & { ubicacionId: string; lineasDetalle: LineaConteo[] };
 
 export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null> {
   const supabase = await createClient();
@@ -246,7 +247,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
   const res = await supabase
     .from("conteos")
     .select(
-      "id, numero, estado, created_at, cerrado_en, abierto_por, cerrado_por, alcance, sububicacion:sububicaciones ( nombre, tipo ), categoria:categorias ( nombre )"
+      "id, numero, estado, ubicacion_id, created_at, cerrado_en, abierto_por, cerrado_por, alcance, sububicacion:sububicaciones ( nombre, tipo ), categoria:categorias ( nombre )"
     )
     .eq("id", id)
     .maybeSingle();
@@ -296,6 +297,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
     id: cabecera.id,
     numero: cabecera.numero,
     estado: cabecera.estado,
+    ubicacionId: cabecera.ubicacion_id,
     creadoEn: cabecera.created_at,
     cerradoEn: cabecera.cerrado_en,
     sububicacionNombre: cabecera.sububicacion?.nombre ?? null,
@@ -312,4 +314,27 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
     solesDiferencia: costos ? Math.round(soles * 100) / 100 : null,
     lineasDetalle,
   };
+}
+
+/**
+ * Lo libre en el almacén de la tienda, por prenda, para ofrecer «Bajar al piso» después de contar el piso (Conteo
+ * conectado, 2026-09-26). Total: si falla, un mapa vacío y el acceso simplemente no aparece — es una ayuda, no el conteo.
+ */
+export async function getLibreEnAlmacen(ubicacionId: string, varianteIds: string[]): Promise<Map<string, number>> {
+  const libre = new Map<string, number>();
+  if (varianteIds.length === 0) return libre;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("stock")
+      .select("variante_id, cantidad, sububicacion:sububicaciones!inner ( tipo )")
+      .eq("ubicacion_id", ubicacionId)
+      .eq("sububicacion.tipo", "almacen_tienda")
+      .in("variante_id", varianteIds);
+    if (error || !data) return libre;
+    for (const f of data) libre.set(f.variante_id, (libre.get(f.variante_id) ?? 0) + Math.max(0, f.cantidad));
+  } catch {
+    // Sin la ayuda, el detalle se ve igual.
+  }
+  return libre;
 }

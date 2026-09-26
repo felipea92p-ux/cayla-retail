@@ -1,4 +1,5 @@
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
+import { getTrasladosPorAtender } from "@/lib/traslados";
 import { getConteoAbierto, getConteosResumen, getPrevisualizacionCierre, getPrioridadConteo } from "@/lib/conteos";
 import { codigosDeConteo, pendientesConCodigo, pendientesEnAlcance, pendientesSinCifras } from "@/lib/conteo-reglas";
 import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
@@ -16,7 +17,7 @@ export default async function ConteoPage() {
   const persona = await requirePersonaActualV2();
   const supabase = await createClient();
   // El costo va aparte del catálogo y solo a quien ve el dinero (20260923193700): sin permiso, null y el conteo va en unidades.
-  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas, costos] = await Promise.all([
+  const [conteoAbierto, conteos, catalogo, sububicaciones, categorias, prioridad, colores, ejes, catalogoMarcas, costos, trasladosPorAtender] = await Promise.all([
     getConteoAbierto(persona.ubicacionId),
     getConteosResumen(persona.ubicacionId),
     getCatalogo(),
@@ -27,6 +28,9 @@ export default async function ConteoPage() {
     getEjesPorCategoria(),
     getCatalogoMarcas(),
     getCostosVariantes(),
+    // El aviso «antes de contar» (Conteo conectado, 2026-09-26): el mismo número del menú (`cache`: el layout ya lo pidió,
+    // no es otra consulta). Solo a quien ve Traslados: el aviso lleva allá.
+    veModulo(persona, "traslados") ? getTrasladosPorAtender(persona.ubicacionId, puede(persona, "ajustarInventario")) : Promise.resolve(null),
   ]);
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ codigo: c.codigo, nombre: c.nombre }));
@@ -58,6 +62,7 @@ export default async function ConteoPage() {
       colores={coloresOpciones}
       tallasPorCategoria={ejes.tallas}
       marcas={catalogoMarcas}
+      trasladosPorAtender={trasladosPorAtender}
       catalogo={catalogo
         .filter((v) => v.activo)
         .map((v) => ({
