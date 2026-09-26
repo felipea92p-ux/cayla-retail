@@ -48,10 +48,10 @@ export type TrasladoResumen = {
   /** Cerrado, pero lo contado no coincidió con lo enviado: la lista dice «Cerrado con diferencia», no «Cerrado» en
    *  verde (hallazgo 15). Sale de comparar `transferencia_items` con `transferencia_recepciones` en la MISMA consulta. */
   cerradoConDiferencia: boolean;
-  /** Cuántas prendas enviadas ya tienen su conteo guardado (ADR-0238: se guarda casilla por casilla). > 0 = la
+  /** Cuántas prendas enviadas ya tienen su conteo guardado (ADR-0239: se guarda casilla por casilla). > 0 = la
    *  recepción empezó y ya no se puede anular. */
   lineasContadas: number;
-  /** Solo de un anulado (ADR-0238 D-132); `null` en los demás (y en las lecturas que no traen anulados). */
+  /** Solo de un anulado (ADR-0239 D-132); `null` en los demás (y en las lecturas que no traen anulados). */
   anuladoEn: string | null;
   motivoAnulacion: string | null;
 };
@@ -64,7 +64,7 @@ const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, e
   transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, color:colores ( hex ), producto:productos ( referencia ) ) ),
   transferencia_recepciones ( variante_id, cantidad_recibida )`;
 
-// Los anulados solo pueden estar entre los terminados: las columnas de anulación (ADR-0238) se piden solo ahí. Así
+// Los anulados solo pueden estar entre los terminados: las columnas de anulación (ADR-0239) se piden solo ahí. Así
 // Existencias (`getTrasladosEnCurso`) no depende de ellas.
 const SELECT_TERMINADOS = `${SELECT_RESUMEN}, anulado_en, motivo_anulacion`;
 
@@ -260,7 +260,7 @@ type FilaContador = {
  *
  * Solo mira lo que llega a la sede (las dos acciones que existen —recibir, cerrar una diferencia— se hacen
  * en el destino). Todo lo que viene en camino hacia acá cuenta, llegue cuando llegue: la hora estimada ya no
- * decide (ADR-0238), así que el número aparece desde que el traslado sale. Una lectura liviana: sin ítems ni joins. `cache()` la
+ * decide (ADR-0239), así que el número aparece desde que el traslado sale. Una lectura liviana: sin ítems ni joins. `cache()` la
  * comparte entre los dos layouts que la piden dentro del mismo request; los argumentos son
  * primitivos justamente para que la deduplicación funcione.
  *
@@ -301,13 +301,13 @@ export type LineaTraslado = {
   referencia: string;
   talla: string | null;
   color: string | null;
-  /** El código de barras de la etiqueta (ADR-0238): lo que se escanea y se lee colgado en la prenda. `null` si no tiene. */
+  /** El código de barras de la etiqueta (ADR-0239): lo que se escanea y se lee colgado en la prenda. `null` si no tiene. */
   codigo: string | null;
   cantidadEnviada: number | null;
   /** `null` = todavía nadie la contó (la casilla se ve vacía, no en 0). */
   cantidadRecibida: number | null;
   diferencia: number | null;
-  /** Esa prenda ya entró al stock (ADR-0238 D-129): no se vuelve a contar. */
+  /** Esa prenda ya entró al stock (ADR-0239 D-129): no se vuelve a contar. */
   ingresado: boolean;
   /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer): ver `ProductoVarianteCelda`. */
   colorHex: string | null | undefined;
@@ -324,7 +324,7 @@ export type TrasladoDetalle = {
   estado: string;
   fechaEstimadaLlegada: string | null;
   creadoEn: string;
-  /** Cuándo alguien apretó «Confirmar recepción» (desde ADR-0238, contar una casilla ya no lo marca) y cuándo se cerró. */
+  /** Cuándo alguien apretó «Confirmar recepción» (desde ADR-0239, contar una casilla ya no lo marca) y cuándo se cerró. */
   confirmadoEn: string | null;
   cerradoEn: string | null;
   nota: string | null;
@@ -333,9 +333,9 @@ export type TrasladoDetalle = {
   /** Quién confirmó la recepción y quién cerró (con diferencia): el recorrido del detalle dice los dos. */
   confirmadoPorNombre: string | null;
   cerradoPorNombre: string | null;
-  /** Dónde se dejó lo que llegó (piso de venta o almacén, ADR-0238 D-131); `null` antes de confirmar o en lo viejo. */
+  /** Dónde se dejó lo que llegó (piso de venta o almacén, ADR-0239 D-131); `null` antes de confirmar o en lo viejo. */
   sububicacionDestinoId: string | null;
-  /** Solo de un traslado anulado (ADR-0238 D-132): cuándo, quién y por qué. */
+  /** Solo de un traslado anulado (ADR-0239 D-132): cuándo, quién y por qué. */
   anuladoEn: string | null;
   anuladoPorNombre: string | null;
   motivoAnulacion: string | null;

@@ -49,7 +49,7 @@ type Ubicacion = { id: string; nombre: string };
 // mitad de tecla.
 type Linea = { varianteId: string; cantidad: string };
 
-// El formulario no decide por ti (ADR-0238, hallazgo 6): el destino y cada prenda empiezan VACÍOS, con su marcador,
+// El formulario no decide por ti (ADR-0239, hallazgo 6): el destino y cada prenda empiezan VACÍOS, con su marcador,
 // y «+ Agregar otra prenda» suma una línea vacía. Antes el destino venía puesto en el primero de la lista (el Taller)
 // y cada línea nueva traía la primera prenda del catálogo: si se te olvidaba cambiarla, esa prenda viajaba.
 // Enviar exige destino y prenda en cada línea; el error sale JUNTO al campo (no en una esquina) y el cursor va ahí.
@@ -328,7 +328,7 @@ export function MoverMercaderiaFormV2({
             <div key={i} className="space-y-1">
             <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[14rem] flex-1">
-                {/* Vacía hasta que se elige (ADR-0238): el marcador lo pide. El código va al final y solo si existe —
+                {/* Vacía hasta que se elige (ADR-0239): el marcador lo pide. El código va al final y solo si existe —
                     sirve para buscar escribiéndolo, pero no es lo que se lee primero. */}
                 <Desplegable
                   id={idLinea(i)}

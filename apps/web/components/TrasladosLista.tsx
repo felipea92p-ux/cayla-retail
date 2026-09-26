@@ -25,7 +25,7 @@ import type { TrasladoResumen } from "@/lib/traslados";
 //  · Llegada   fechas humanas; la frase depende de la situación real.
 //  · Estado    información: un chip suave, sin forma de botón.
 //  · Acción    un botón. El fuerte (tinta) solo si de verdad pide intervención: «Recibir» (viene hacia mi sede,
-//              llegue cuando llegue — ADR-0238) o «Revisar» (una diferencia que cierra el líder). El resto, «Ver detalle».
+//              llegue cuando llegue — ADR-0239) o «Revisar» (una diferencia que cierra el líder). El resto, «Ver detalle».
 // Toda la fila es clic — con un `onClick` que se aparta si el clic fue sobre un enlace/botón o si había
 // texto seleccionado — y NO con un enlace extendido (`after:absolute`): ese tapaba los `title` de las
 // notas y prendas recortadas y no dejaba seleccionar el texto de la fila. Para teclado y lectores de

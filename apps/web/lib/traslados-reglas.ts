@@ -17,7 +17,7 @@ export function estaAtrasado(fechaEstimadaLlegada: string, estado: string, ahora
 
 // ===========================================================================
 // Lectura operativa de la pantalla Traslados (rediseño 2026-09-18; «por recibir»
-// sin reloj desde ADR-0238, 2026-09-26)
+// sin reloj desde ADR-0239, 2026-09-26)
 //
 // La pantalla no lee un traslado por su estado interno («en_transito») sino por
 // lo que le TOCA HACER a quien mira. Todo sale de datos que la base ya guarda
@@ -38,13 +38,13 @@ export type TrasladoLeible = {
   ubicacionOrigenId: string;
   ubicacionDestinoId: string;
   fechaEstimadaLlegada: string | null;
-  /** Cuándo alguien apretó «Confirmar recepción» (desde ADR-0238 ya no se llena al contar una casilla). */
+  /** Cuándo alguien apretó «Confirmar recepción» (desde ADR-0239 ya no se llena al contar una casilla). */
   confirmadoEn: string | null;
   /** Cerrado, pero lo contado no coincidió con lo enviado (`conteoDelTraslado`). Sin el dato, `false`. */
   cerradoConDiferencia?: boolean;
   /** Cuántas prendas enviadas ya tienen su conteo guardado: la recepción empezó. Sin el dato, 0. */
   lineasContadas?: number;
-  /** Cuándo se anuló (estado `anulada`, ADR-0238 D-132). */
+  /** Cuándo se anuló (estado `anulada`, ADR-0239 D-132). */
   anuladoEn?: string | null;
 };
 
@@ -61,7 +61,7 @@ export type ContextoTraslados = {
 /**
  * Cómo se lee un traslado desde MI sede — lo que me toca hacer, no el nombre interno del estado:
  *  · requiere_recepcion      — viene hacia acá y no se ha recibido: hay que contarlo cuando llegue. No depende de la
- *                              hora estimada (ADR-0238): la caja puede llegar antes, y quien la tiene en la mano tiene
+ *                              hora estimada (ADR-0239): la caja puede llegar antes, y quien la tiene en la mano tiene
  *                              que ver que le toca.
  *  · requiere_revision       — quedó con diferencia y soy líder de la sede que lo recibió: me toca cerrarlo.
  *                              (Ojo: la RPC dejaría cerrarlo a CUALQUIER líder, no solo al de esa sede; el aviso se
@@ -73,7 +73,7 @@ export type ContextoTraslados = {
  *  · cerrado                 — terminó y todo coincidió (cerrada, o «completada» del modelo anterior).
  *  · cerrado_con_diferencia  — terminó, pero faltó o sobró algo: un líder lo cerró con nota. No se pinta de verde.
  *  · anulado                 — quien envió (o un líder) lo anuló antes de que se empezara a contar: el stock volvió
- *                              al origen (ADR-0238 D-132). Es historial, nunca «en tránsito» ni «por recibir».
+ *                              al origen (ADR-0239 D-132). Es historial, nunca «en tránsito» ni «por recibir».
  * Un estado que no sea ninguno de los conocidos se lee como cerrado. */
 export type SituacionTraslado =
   | "requiere_recepcion"
@@ -173,7 +173,7 @@ export type ResumenTraslados = {
   /** Recepciones + revisiones que me tocan: franja «Atención hoy», filtro «Acción hoy» y contador del menú. */
   requierenAccion: number;
   /** «Prendas en tránsito»: unidades de los traslados que siguen en camino (entrantes y salientes) — todavía no están
-   *  en el stock de ninguna sede. Un traslado con diferencia NO suma: desde ADR-0238 lo que coincidió ya entró al stock
+   *  en el stock de ninguna sede. Un traslado con diferencia NO suma: desde ADR-0239 lo que coincidió ya entró al stock
    *  del destino, y lo que no, espera al líder en el destino, no en el camino. */
   unidadesEnTransito: number;
   /** Cuántos traslados siguen en camino (los de `unidadesEnTransito`). */
@@ -436,7 +436,7 @@ export type TextoLlegada = {
 
 /** El texto de la columna «Llegada estimada». La frase depende de la situación real: un traslado que
  *  ya llegó y quedó con diferencia no debe decir «atrasado», sino desde cuándo espera revisión; uno que viene
- *  hacia acá dice cuándo llega o desde cuándo está atrasado, pero se puede recibir igual (ADR-0238). */
+ *  hacia acá dice cuándo llega o desde cuándo está atrasado, pero se puede recibir igual (ADR-0239). */
 export function textoLlegada(
   t: TrasladoLeible & { creadoEn: string; cerradoEn: string | null },
   s: SituacionTraslado,

@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260927160000_traslados_recibir_sin_perder_nada.sql — CAYLA V2 · ADR-0238 (Felipe, 2026-09-26: D-129 a D-132)
+-- 20260927160000_traslados_recibir_sin_perder_nada.sql — CAYLA V2 · ADR-0239 (Felipe, 2026-09-26: D-129 a D-132)
 -- Traslados: recibir sin perder nada (entra lo que coincide, conteo guardado, piso o almacén, anular).
 --
 -- EL PROBLEMA PRIMERO. El recorrido de Traslados como persona sin contexto (docs/pantallas/traslados.md) encontró que el
@@ -9,7 +9,7 @@
 --   · Un envío equivocado no se puede deshacer: la otra sede registra 0 y un líder lo da por perdido. Pérdida falsa.
 --   · Contar una casilla marcaba «confirmado»: con el conteo guardado línea por línea eso ya no es verdad.
 --
--- QUÉ HACE (el contrato de la web está en la tabla «Contrato» del ADR-0238):
+-- QUÉ HACE (el contrato de la web está en la tabla «Contrato» del ADR-0239):
 --   1. `transferencias`: `sububicacion_destino_id` (dónde terminó la caja), `anulado_por/_en`, `motivo_anulacion` y el
 --      estado `anulada`. Los CHECK hacen imposible un traslado anulado sin fecha o sin motivo, y un motivo de anulación
 --      en uno que no está anulado. La sububicación destino se ata a la sede destino con llave compuesta (como
@@ -90,9 +90,9 @@ alter table retail.transferencias add constraint transferencias_anulado_por_solo
   check (anulado_por is null or estado = 'anulada');
 
 comment on column retail.transferencias.sububicacion_destino_id is
-  'ADR-0238 (D-131): dónde entró la caja en la sede destino (piso o almacén), elegido al confirmar. `cerrar_traslado_con_diferencia` usa la misma. Null si la sede no separa piso/almacén (Taller) o si se confirmó antes de esta columna.';
+  'ADR-0239 (D-131): dónde entró la caja en la sede destino (piso o almacén), elegido al confirmar. `cerrar_traslado_con_diferencia` usa la misma. Null si la sede no separa piso/almacén (Taller) o si se confirmó antes de esta columna.';
 comment on column retail.transferencias.motivo_anulacion is
-  'ADR-0238 (D-132): por qué se anuló el envío. Obligatorio si estado = anulada (CHECK).';
+  'ADR-0239 (D-132): por qué se anuló el envío. Obligatorio si estado = anulada (CHECK).';
 
 -- ---------------------------------------------------------------------------
 -- 2. Pedido para apartar: se aparta cuando SU línea entra al stock (ADR-0233 + D-131)
@@ -440,7 +440,7 @@ end;
 $$;
 
 comment on function retail.anular_traslado(uuid, text, uuid) is
-  'ADR-0238 (D-132): anula un envío en camino que nadie empezó a contar. Quien opera la sede de origen o un líder; motivo obligatorio. Cada prenda vuelve a la sububicación de la que salió (entrada/traslado_anulado, enlazada a su línea). Con token, un segundo intento devuelve el mismo id sin mover nada.';
+  'ADR-0239 (D-132): anula un envío en camino que nadie empezó a contar. Quien opera la sede de origen o un líder; motivo obligatorio. Cada prenda vuelve a la sububicación de la que salió (entrada/traslado_anulado, enlazada a su línea). Con token, un segundo intento devuelve el mismo id sin mover nada.';
 
 -- ---------------------------------------------------------------------------
 -- 7. Las líneas del traslado: con el código de la etiqueta y si ya entró

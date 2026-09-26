@@ -17,7 +17,7 @@ migrar historia.
 | **D-131** | **Piso o almacén se pregunta al confirmar, con «Piso de venta» marcado.** | Lo que llega se puede vender apenas se confirma. | Una pregunta más al confirmar. |
 | **D-132** | **Anula un envío quien lo envió (su sede) o un líder, mientras nadie haya empezado a contar.** Anular devuelve el stock al origen con su movimiento. | Un error de envío ya no se convierte en una pérdida falsa. | Después de que la otra sede empieza a contar, ya no se puede anular: se resuelve contando. |
 
-El diseño, lo descartado y los escenarios que romperían cada decisión: `docs/adr/0238-traslados-recibir-sin-perder-nada.md`.
+El diseño, lo descartado y los escenarios que romperían cada decisión: `docs/adr/0239-traslados-recibir-sin-perder-nada.md`.
 
 ## Lo que queda abierto
 

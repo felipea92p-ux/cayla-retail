@@ -272,7 +272,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (color exacto o general, nunca de otro color) →
   `/inventario/traslados/[id]` → `getTrasladoDetalle` (líneas por `fn_traslado_lineas`; quién envió, contó y
   cerró por `fn_nombres_personas`; color y foto por `getAparienciaVariantes`) → `TrasladoRecorrido.tsx` (4 pasos,
-  `recorridoRecepcion` de `lib/traslados-recepcion-reglas.ts`) + `TrasladoDetallePanel.tsx` (ADR-0238: conteo a
+  `recorridoRecepcion` de `lib/traslados-recepcion-reglas.ts`) + `TrasladoDetallePanel.tsx` (ADR-0239: conteo a
   ciegas con `leerConteo`; cada casilla se guarda sola en `registrar_recepcion_traslado` con `x-espera: no`;
   «Terminé de contar» muestra lo enviado; `TrasladoConfirmarModal` → `confirmar_traslado(p_destino)` (piso o
   almacén; entra lo que coincide); `TrasladoCerrarModal` → `cerrar_traslado_con_diferencia`;

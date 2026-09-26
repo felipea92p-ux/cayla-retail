@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0238 «Traslados: recibir sin perder nada» (migración 20260927160000) contra el Postgres LOCAL.
+ * Prueba de ADR-0239 «Traslados: recibir sin perder nada» (migración 20260927160000) contra el Postgres LOCAL.
  *
  * QUÉ CUBRE
  *   1. D-129: entra lo que coincide. Si todas las líneas cuadran, el traslado se cierra; si una no cuadra, las otras

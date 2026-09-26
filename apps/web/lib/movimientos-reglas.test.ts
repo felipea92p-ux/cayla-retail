@@ -118,7 +118,7 @@ describe("etiquetaMovimiento", () => {
     expect(etiquetaMovimiento(movimiento({ tipo: "salida", categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Traslado enviado");
   });
 
-  it("la vuelta de un envío anulado suma, pero no es «recibido»: dice «Traslado anulado» (ADR-0238)", () => {
+  it("la vuelta de un envío anulado suma, pero no es «recibido»: dice «Traslado anulado» (ADR-0239)", () => {
     const anulado = movimiento({ tipo: "entrada", categoria: "transferencia", motivo: "traslado_anulado", delta: 2 });
     expect(etiquetaMovimiento(anulado)).toBe("Traslado anulado");
     expect(etiquetaConDireccion(anulado)).toBe("Entrada · Traslado anulado");
@@ -320,7 +320,7 @@ describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
     expect(PROCESOS_POR_CATEGORIA.entrada).toContain("traslado_entrada");
     expect(PROCESOS_POR_CATEGORIA.salida).toContain("traslado_salida");
     expect(PROCESOS_POR_CATEGORIA.transferencia).toEqual(["traslado_entrada", "traslado_salida", "traslado_anulado"]);
-    // ADR-0238: la vuelta de un envío anulado entra a la sede que lo envió y es parte de su traslado.
+    // ADR-0239: la vuelta de un envío anulado entra a la sede que lo envió y es parte de su traslado.
     expect(PROCESOS_POR_CATEGORIA.entrada).toContain("traslado_anulado");
   });
 

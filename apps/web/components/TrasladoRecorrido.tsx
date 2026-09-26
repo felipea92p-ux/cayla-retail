@@ -2,7 +2,7 @@ import { Check, X } from "lucide-react";
 import type { EstadoPaso, PasoRecorrido } from "@/lib/traslados-recepcion-reglas";
 
 // El recorrido de un traslado en el detalle (rediseño 2026-09-22): salió → en camino → recibido → cerrado, o
-// salió → anulado (ADR-0238 D-132: el anulado es un final, no un paso más de la caja en viaje).
+// salió → anulado (ADR-0239 D-132: el anulado es un final, no un paso más de la caja en viaje).
 // Los pasos SÍ son una secuencia, por eso llevan número; cada uno dice cuándo y quién. Qué dice y en qué estado
 // está cada paso lo decide `recorridoRecepcion` (traslados-recepcion-reglas.ts, con pruebas): acá solo se pinta.
 // El color sigue el mismo reparto que la lista: rojo solo si ya debió llegar, ámbar si hubo diferencia,

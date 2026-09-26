@@ -47,7 +47,7 @@ import { firmar } from "@/lib/responsable-reglas";
 
 type VarianteBusqueda = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null; codigosBarras: string[] };
 
-// El detalle de un traslado y su recepción (ADR-0238, sobre el rediseño ADR-0173). Lo que cambió y por qué:
+// El detalle de un traslado y su recepción (ADR-0239, sobre el rediseño ADR-0173). Lo que cambió y por qué:
 //  · D-130, se cuenta a ciegas: quien recibe ve prenda, código y «Contado». Lo enviado aparece recién con «Terminé de
 //    contar», que marca las que no cuadran («Vuelve a contarla») antes de confirmar. Ya no hay «Coincide»: copiaba lo
 //    enviado de un toque y se asumía en vez de contar.

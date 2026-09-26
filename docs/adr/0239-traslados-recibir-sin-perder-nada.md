@@ -1,4 +1,4 @@
-# ADR-0238 · Traslados: recibir sin perder nada (entra lo que coincide, conteo a ciegas y guardado, piso o almacén, anular)
+# ADR-0239 · Traslados: recibir sin perder nada (entra lo que coincide, conteo a ciegas y guardado, piso o almacén, anular)
 
 - **Fecha:** 2026-09-26 · **Estado:** Aprobado por Felipe («Tomo todas tus recomendaciones», sobre las cuatro decisiones de
   `docs/pantallas/traslados.md` §6). Acta: `docs/datos/DECISIONES-2026-09-26-traslados.md` (D-129 a D-132).

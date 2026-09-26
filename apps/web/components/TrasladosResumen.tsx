@@ -1,7 +1,7 @@
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import type { FiltroTraslado, ResumenTraslados } from "@/lib/traslados-reglas";
 
-// Los cuatro indicadores (desde ADR-0238: por recibir, enviados en camino, con diferencia y prendas en tránsito —
+// Los cuatro indicadores (desde ADR-0239: por recibir, enviados en camino, con diferencia y prendas en tránsito —
 // «Vienen en camino» se fue: todo lo que viene hacia mi sede es «por recibir», y la tarjeta quedaba siempre en 0
 // al lado de «Prendas en tránsito: 3», que se contradecían; hallazgo 17). Tres de ellos son ATAJOS: tocarlos filtra la lista
 // (y tocarlos de nuevo la devuelve a «Todos») y filtran EXACTAMENTE lo que
@@ -49,7 +49,7 @@ export function TrasladosResumen({
 
   return (
     <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
-      {/* Todo lo que viene hacia esta sede, llegue cuando llegue (ADR-0238): la hora estimada ya no esconde una caja
+      {/* Todo lo que viene hacia esta sede, llegue cuando llegue (ADR-0239): la hora estimada ya no esconde una caja
           que llegó antes. Lo atrasado se dice aparte, como dato. */}
       <TarjetaCifra
         compacta

@@ -102,7 +102,7 @@ describe("situacionTraslado", () => {
     expect(situacionTraslado(t2, comoEncargadoTru)).toBe("requiere_recepcion");
   });
 
-  it("viene hacia mí y todavía está a tiempo: TAMBIÉN hay que recibirlo — la hora estimada no esconde la caja (ADR-0238)", () => {
+  it("viene hacia mí y todavía está a tiempo: TAMBIÉN hay que recibirlo — la hora estimada no esconde la caja (ADR-0239)", () => {
     expect(situacionTraslado(t3, comoEncargadoTru)).toBe("requiere_recepcion");
     expect(situacionTraslado(t3, comoColaboradorTru)).toBe("requiere_recepcion");
     expect(debioLlegar(t3.fechaEstimadaLlegada, AHORA)).toBe(false); // sigue siendo un dato, no un candado
@@ -257,7 +257,7 @@ describe("contarRequierenAccion (el contador del menú)", () => {
     expect(contarRequierenAccion([t2, t3, t1], comoEncargadoTru)).toBe(2);
   });
 
-  it("un traslado que sale hoy hacia mi sede ya enciende el número, aunque llegue mañana (ADR-0238)", () => {
+  it("un traslado que sale hoy hacia mi sede ya enciende el número, aunque llegue mañana (ADR-0239)", () => {
     expect(contarRequierenAccion([t3], comoColaboradorTru)).toBe(1);
   });
 

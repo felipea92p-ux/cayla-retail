@@ -17,7 +17,7 @@ Felipe y una compañera, desde dos cuentas, tocaban «Seguir al precio» y el co
 Felipe se lleva: **una pantalla «en blanco» no siempre es una pantalla rota**: aquí el formulario seguía entero, 1 100 px más arriba. La barra de desplazamiento pegada abajo era la pista.
 Sin resolver: nada; el cambio de paso de 2→3 y 4→5 pasa por el mismo arreglo.
 
-## 2026-09-26 (Traslados: recibir sin perder nada — ADR-0238, D-129 a D-132)
+## 2026-09-26 (Traslados: recibir sin perder nada — ADR-0239, D-129 a D-132)
 Felipe tomó las cuatro recomendaciones del recorrido de Traslados y se construyeron en paralelo con tres agentes (base, recepción, lista y envío) sobre un contrato escrito primero en el ADR: entra lo que coincide y solo la línea con diferencia espera al líder; se cuenta a ciegas y cada casilla se guarda sola; se elige piso o almacén al confirmar; y un envío se anula mientras nadie haya contado. Migración `20260927160000` en local, no en producción; recorrido completo en el navegador local.
 Felipe se lleva: (1) **el contrato antes que el código** deja trabajar a tres manos a la vez: la web se escribió contra `types.ts` y el ADR mientras la migración todavía no existía, y encajaron al primer intento. (2) **Un «Coincide» es asumir, no contar**: esconder lo enviado hasta terminar es lo que convierte la recepción en un control. (3) **Anular no es borrar**: el stock vuelve con su propio movimiento (`traslado_anulado`) y el traslado queda con quién, cuándo y por qué.
 

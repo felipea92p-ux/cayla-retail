@@ -4,7 +4,7 @@ import type { ResumenTraslados } from "@/lib/traslados-reglas";
 
 // La franja de arriba: responde «¿tengo algo que atender ahora?». Solo se
 // pinta en coral cuando SÍ hay algo que le toca a quien mira (un traslado que
-// viene hacia su sede —desde ADR-0238, llegue cuando llegue: la caja puede
+// viene hacia su sede —desde ADR-0239, llegue cuando llegue: la caja puede
 // estar en la mano antes de la hora estimada— o una diferencia que un líder
 // debe cerrar). Lo que salió de su sede no la enciende. Sin nada pendiente, en vez de una alarma
 // vacía queda una línea tranquila que responde lo mismo, pero en negativo.

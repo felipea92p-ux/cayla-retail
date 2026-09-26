@@ -62,7 +62,7 @@ export default async function TrasladosPage() {
         vacios={puedeAjustar ? vacios : 0}
       />
 
-      {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa desde ADR-0238 (D-129): al confirmar entra
+      {/* Ayuda operativa, secundaria a propósito. Dice lo que de verdad pasa desde ADR-0239 (D-129): al confirmar entra
           cada prenda que coincide; solo la que no cuadra espera al líder (`confirmar_traslado` /
           `cerrar_traslado_con_diferencia`). */}
       <aside className="nota-cayla flex items-start gap-3">

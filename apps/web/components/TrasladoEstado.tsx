@@ -10,7 +10,7 @@ import { estadoTraslado, type SituacionTraslado } from "@/lib/traslados-reglas";
 // cerrado con diferencia; apagado y tachado para lo anulado (como toda anulación del ERP).
 // Las palabras y el tono salen de `estadoTraslado` (traslados-reglas.ts, con pruebas): la lista y el
 // detalle dicen lo mismo con las mismas palabras, y un estado tiene un solo nombre en toda la pantalla
-// («Por recibir», «Cerrado», «Cerrado con diferencia», «Anulado»; hallazgo 16, ADR-0238).
+// («Por recibir», «Cerrado», «Cerrado con diferencia», «Anulado»; hallazgo 16, ADR-0239).
 // `cerradoConDiferencia` sigue para quien pasa «cerrado» con el dato aparte (el título del detalle).
 export function TrasladoEstado({ situacion, cerradoConDiferencia = false }: { situacion: SituacionTraslado; cerradoConDiferencia?: boolean }) {
   const e = estadoTraslado(situacion, cerradoConDiferencia);

@@ -6,7 +6,7 @@ import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { textoObligatorioValido } from "@/lib/traslados-recepcion-reglas";
 
-// «Anular envío» (ADR-0238 D-132): quien envió (o un líder) deshace un traslado mientras nadie haya empezado a
+// «Anular envío» (ADR-0239 D-132): quien envió (o un líder) deshace un traslado mientras nadie haya empezado a
 // contarlo. Antes la única salida era que la otra sede registrara 0 y un líder lo diera por perdido: una pérdida falsa.
 // El modal escribe la consecuencia antes de apretar y pide el motivo; el combo «Responsable» va aquí adentro porque
 // quien anula está parada en la sede de ORIGEN, donde el detalle no tiene otra cosa que guardar.

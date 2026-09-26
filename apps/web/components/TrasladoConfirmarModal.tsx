@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { resumenAntesDeConfirmar, type DestinoRecepcion, type LecturaConteo } from "@/lib/traslados-recepcion-reglas";
 
-// Confirmar la recepción de un traslado (ADR-0238). Dos cosas antes de apretar:
+// Confirmar la recepción de un traslado (ADR-0239). Dos cosas antes de apretar:
 //  · D-131: si la sede tiene piso de venta, dónde se deja lo que llegó, con «Piso de venta» ya marcado. Sin la
 //    pregunta, lo recibido quedaba en el almacén y en la caja salía «está en el almacén» con la prenda en la mano.
 //  · D-129: qué entra ahora y qué espera a un líder, con el nombre de cada prenda que no cuadra.

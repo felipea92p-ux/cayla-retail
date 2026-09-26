@@ -1,4 +1,4 @@
-// Recibir un traslado (ADR-0238, D-129 a D-132): las reglas puras de la pantalla de detalle, sin React ni red.
+// Recibir un traslado (ADR-0239, D-129 a D-132): las reglas puras de la pantalla de detalle, sin React ni red.
 //
 // EL PROBLEMA. Antes, quien recibía veía lo enviado y un botón «Coincide» que lo copiaba de un toque (se asumía en
 // vez de contar), lo contado vivía solo en la pantalla (recargar lo borraba), si faltaba una prenda no entraba
@@ -445,7 +445,7 @@ export type TrasladoParaRecorrido = {
   ubicacionDestinoNombre: string;
   fechaEstimadaLlegada: string | null;
   creadoEn: string;
-  /** Desde ADR-0238 lo marca SOLO «Confirmar recepción» (contar una casilla ya no lo toca). */
+  /** Desde ADR-0239 lo marca SOLO «Confirmar recepción» (contar una casilla ya no lo toca). */
   confirmadoEn: string | null;
   cerradoEn: string | null;
   anuladoEn: string | null;

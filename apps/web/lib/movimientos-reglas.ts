@@ -86,7 +86,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   transferencia: "Traslado",
   traslado_salida: "Traslado enviado",
   traslado_entrada: "Traslado recibido",
-  // ADR-0238 (D-132): el envío se anuló antes de que la otra sede lo contara y la prenda volvió a la sede que lo envió.
+  // ADR-0239 (D-132): el envío se anuló antes de que la otra sede lo contara y la prenda volvió a la sede que lo envió.
   traslado_anulado: "Traslado anulado",
   // El filtro es por motivo y trae todo lo que escribe `mover_interno`, sea cual sea el par: no promete bajada ni retiro.
   // No es «Entre piso y almacén»: también mueve de la cuarentena o entre racks del Taller. Las bajadas y los retiros
@@ -145,7 +145,7 @@ export function etiquetaProceso(motivo: string | null): string {
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
 }
 
-/** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0238 suma la vuelta de un envío anulado). */
+/** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0239 suma la vuelta de un envío anulado). */
 const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
 
 /** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
