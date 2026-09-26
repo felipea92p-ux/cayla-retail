@@ -154,6 +154,13 @@ son respuestas a una acción dentro del contenido (barra que se llena, cifra que
 `prefers-reduced-motion`. Los números exactos y el porqué: `docs/adr/0136-regla-de-movimiento-de-modales.md` y la sección
 «REGLA DE MODALES» de `apps/web/app/globals.css`. Referencia visual: `docs/maquetas/comprobantes-animaciones-2026-09/`.
 
+**Escape dentro de una hoja (ADR-0136, «Actualización 2026-09-26»):** la hoja se cierra solo con un Escape que ningún
+control de adentro usó (`components/ui/useEscapeLibre.ts`): con la lista de un combo abierta, el primer Escape cierra la
+lista y el segundo, la hoja. **Un control que usa el Escape (cierra su lista, borra su búsqueda) llama a
+`e.stopPropagation()`; uno que no, lo deja pasar.** Radix escucha Escape en la captura del `document`, antes que el
+control, así que su `onEscapeKeyDown` no alcanza para saber si el Escape era del combo. Un cajón que arme su propio
+`Dialog.Content` pasa su `onEscapeKeyDown` por `useEscapeLibre` (lo vigila `lib/hojas-escape.test.ts`).
+
 **Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles
 props serializables; NUNCA llames desde el servidor a una función exportada por un archivo `"use client"` (Next lanza
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se

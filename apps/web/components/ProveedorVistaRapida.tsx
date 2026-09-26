@@ -12,6 +12,7 @@ import { BarrasMensuales } from "@/components/ui/BarrasMensuales";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -54,6 +55,8 @@ export function ProveedorVistaRapida({
     const t = setTimeout(onCerrar, reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [cerrando, onCerrar]);
+  // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
+  const alEscape = useEscapeLibre(pedirCierre);
 
   const paso = siguientePaso(estadoDeProveedor(p));
   const sinCompras90 = p.dias_desde_ultima_compra != null && p.dias_desde_ultima_compra > 90;
@@ -63,6 +66,7 @@ export function ProveedorVistaRapida({
       <Dialog.Portal>
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
+          onEscapeKeyDown={alEscape}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") { e.preventDefault(); onNavegar(1); }
             if (e.key === "ArrowUp") { e.preventDefault(); onNavegar(-1); }

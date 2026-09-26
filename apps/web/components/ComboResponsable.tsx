@@ -169,7 +169,17 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   function alTeclado(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Escape" && abierto) {
+      // Este Escape cerró la lista: que no siga y cierre también el modal (useEscapeLibre.ts). El foco vuelve al botón,
+      // como en `Desplegable`: si estaba en el buscador o en una persona, se desmontaron con la lista.
       e.stopPropagation();
+      setAbierto(false);
+      boton.current?.focus();
+      return;
+    }
+    // Tab desde el botón deja el combo (la lista cuelga al final de la hoja, no a continuación): se cierra, para que no
+    // quede a la vista con el foco en otro campo, donde un Escape ya no le llegaría. Dentro de la lista, Tab recorre
+    // las personas y la lista sigue abierta.
+    if (e.key === "Tab" && abierto && e.target === boton.current) {
       setAbierto(false);
       return;
     }
