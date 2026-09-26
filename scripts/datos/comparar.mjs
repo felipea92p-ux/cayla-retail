@@ -172,9 +172,12 @@ function llamadas() {
 
       // Recortamos el objeto de argumentos equilibrando llaves. Frágil a propósito:
       // si no cierra limpio, lo decimos en vez de adivinar.
+      // El objeto tiene que abrir justo después de la coma: `.rpc("x", armar({ … }))` trae la llave del ayudante, no la de
+      // los parámetros, y leerla daba por «rota» una llamada sana (ajustar_inventario, 2026-09-26).
       const desde = texto.indexOf("{", m.index + m[0].length - 1);
       const hastaParen = texto.indexOf(")", m.index + m[0].length - 1);
-      if (desde === -1 || (hastaParen !== -1 && hastaParen < desde)) {
+      const entreComaYLlave = desde === -1 ? "" : texto.slice(m.index + m[0].length, desde);
+      if (desde === -1 || (hastaParen !== -1 && hastaParen < desde) || entreComaYLlave.trim() !== "") {
         noAnalizadas.push({ ...contexto, porque: "los parámetros no van escritos ahí mismo" });
         continue;
       }
