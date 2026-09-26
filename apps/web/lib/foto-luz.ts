@@ -4,9 +4,12 @@
 //
 // La regla que ordena todo este archivo: MEJORAR LA FOTO SIN CAMBIAR LA PRENDA. La clienta compra por la foto, y un
 // celeste que sale gris —o al revés— es una devolución. Por eso:
-//   · La luz se corrige con UNA sola curva lineal, la misma para rojo, verde y azul. Así el tono (el «qué color es»)
-//     no se mueve: solo cambia qué tan clara y con cuánto contraste se ve. No se toca el balance de blancos, que es
-//     justamente lo que convierte un celeste en gris.
+//   · La luz se corrige sobre el BRILLO de cada píxel, y rojo, verde y azul se escalan en la misma proporción. Así ni
+//     el tono (el «qué color es») ni la intensidad del color se mueven: solo cambia qué tan clara se ve. No se toca el
+//     balance de blancos, que es justamente lo que convierte un celeste en gris.
+//     La primera versión aplicaba la curva a cada canal por separado: el tono quedaba igual, pero restar la sombra a
+//     los tres por igual AVIVABA los colores (un celeste 110·150·190 pasaba de 42 % a 50 % de saturación). Se vio en
+//     el navegador con una foto de tienda el 2026-09-26 y se cambió antes de publicar.
 //   · La curva tiene tope: nunca aclara más de `GANANCIA_MAXIMA`, y si la foto ya está bien, no hace nada.
 //   · Nada de IA generativa: todo es aritmética sobre los píxeles que ya estaban. Nada se inventa.
 
@@ -71,12 +74,20 @@ export function curvaDeLuz(h: Uint32Array): CurvaDeLuz | null {
   return { negro, ganancia };
 }
 
-/** Aplica la curva a rojo, verde y azul por igual (el tono no se mueve). Modifica `rgba` en el lugar; el alfa no se toca. */
+/**
+ * Aplica la curva al brillo de cada píxel y escala rojo, verde y azul en esa misma proporción: el píxel se aclara (u
+ * oscurece) sin cambiar de tono ni de intensidad de color. Modifica `rgba` en el lugar; el alfa no se toca. Un canal que
+ * ya estaba casi al máximo se recorta en 255, como en cualquier editor.
+ */
 export function aplicarCurva(rgba: Uint8ClampedArray, c: CurvaDeLuz): void {
   for (let i = 0; i < rgba.length; i += 4) {
-    rgba[i] = (rgba[i] - c.negro) * c.ganancia;
-    rgba[i + 1] = (rgba[i + 1] - c.negro) * c.ganancia;
-    rgba[i + 2] = (rgba[i + 2] - c.negro) * c.ganancia;
+    const l = luminancia(rgba[i], rgba[i + 1], rgba[i + 2]);
+    if (l === 0) continue; // negro puro: sigue negro
+    const destino = Math.min(255, Math.max(0, (l - c.negro) * c.ganancia));
+    const factor = destino / l;
+    rgba[i] = rgba[i] * factor;
+    rgba[i + 1] = rgba[i + 1] * factor;
+    rgba[i + 2] = rgba[i + 2] * factor;
   }
 }
 

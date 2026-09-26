@@ -60,7 +60,19 @@ describe("aplicarCurva", () => {
     const d = imagen([celeste], 1);
     aplicarCurva(d, { negro: 20, ganancia: 1.3 });
     expect(d[0]).toBeGreaterThan(celeste[0] - 20);
-    expect(matiz(d[0], d[1], d[2])).toBeCloseTo(matiz(...celeste), 5);
+    // Menos de 1° de matiz: lo único que lo mueve es redondear cada canal a un entero de 0 a 255 (medido: 0,34°).
+    expect(Math.abs(matiz(d[0], d[1], d[2]) - matiz(...celeste))).toBeLessThan(1);
+  });
+
+  it("tampoco aviva el color: la proporción entre rojo, verde y azul se conserva", () => {
+    // La primera versión restaba la sombra a cada canal y el celeste pasaba de 42 % a 50 % de saturación.
+    const celeste: [number, number, number] = [110, 150, 190];
+    const d = imagen([celeste], 1);
+    aplicarCurva(d, { negro: 20, ganancia: 1.3 });
+    expect(d[0] / d[2]).toBeCloseTo(celeste[0] / celeste[2], 1);
+    expect(d[1] / d[2]).toBeCloseTo(celeste[1] / celeste[2], 1);
+    const saturacion = (r: number, b: number) => (b - r) / b;
+    expect(saturacion(d[0], d[2])).toBeCloseTo(saturacion(celeste[0], celeste[2]), 1);
   });
 
   it("no toca el alfa", () => {
