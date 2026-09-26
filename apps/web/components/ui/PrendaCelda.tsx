@@ -65,6 +65,7 @@ export function ProductoVarianteCelda({
   colorHex,
   fotoUrl,
   senal,
+  marca,
 }: {
   referencia: string;
   sku: string;
@@ -74,6 +75,9 @@ export function ProductoVarianteCelda({
   fotoUrl: string | null;
   /** Una señal pegada al nombre (la «≈» de Análisis: cifras estimadas). */
   senal?: ReactNode;
+  /** La marca comercial, en pequeño tras el nombre. Quien busca «cayla» y ve Top Aurora tiene que ver por qué salió: «Cayla 2».
+   *  La pantalla la pasa solo cuando hay más de una marca (con una sola sería ruido en cada fila). */
+  marca?: string | null;
 }) {
   return (
     // `items-start`, no `items-center`: con dos líneas de texto la miniatura se ve mejor
@@ -81,10 +85,20 @@ export function ProductoVarianteCelda({
     <span className="flex min-w-0 items-start gap-2.5">
       <MiniaturaPrenda fotoUrl={fotoUrl} />
       <span className="min-w-0">
-        <span className="block truncate text-sm text-tinta" title={referencia}>
-          {referencia}
-          {senal}
-        </span>
+        {marca ? (
+          // Con marca, el NOMBRE es lo que se corta primero y la marca se lee entera (o con «…» y su título): quien busca «miramhe» y ve
+          // «Polo Básico M/corta · M…» no puede confirmar por qué salió la fila, que es el motivo de mostrarla.
+          <span className="flex min-w-0 items-baseline gap-1.5 text-sm text-tinta" title={`${referencia} · ${marca}`}>
+            <span className="min-w-0 truncate">{referencia}</span>
+            <span className="max-w-[45%] shrink-0 truncate text-xs text-taupe">· {marca}</span>
+            {senal}
+          </span>
+        ) : (
+          <span className="block truncate text-sm text-tinta" title={referencia}>
+            {referencia}
+            {senal}
+          </span>
+        )}
         {/* `overflow-visible`: la pastilla con el nombre del color flota fuera de la celda al
             pasar el mouse. `whitespace-nowrap`: sin él, con la columna en su piso (13.5rem) la
             línea queda unos px corta, el flex encoge cada texto a su mínimo y se parten por los

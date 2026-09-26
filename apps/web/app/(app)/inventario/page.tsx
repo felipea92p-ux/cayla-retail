@@ -8,6 +8,8 @@ import { getCoberturaPorVariante, getFilasRecientesDeSede, getFilasSemanaDeSede 
 import { deltaDisponibleSede, recortarFilaSemana } from "@/lib/existencias-categorias";
 import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
 import { getApartadosAbiertos } from "@/lib/apartados";
+import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
+import { conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
@@ -41,7 +43,7 @@ export default async function InventarioPage({
 
   // La cobertura («cuánto dura este stock al ritmo reciente») solo tiene sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana, filasRecientes] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, cobertura, apartados, filasSemana, filasRecientes, catalogo] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -59,9 +61,14 @@ export default async function InventarioPage({
     // «Ver recomendaciones»: el ritmo de `DIAS_RITMO_RECIENTE` (30 días, no 7) — la misma ventana que ya
     // usa `getCoberturaPorVariante` — es la que espera `planDeReposicion` (el motor de Producción).
     vende ? getFilasRecientesDeSede(ubicacionActivaId) : Promise.resolve([]),
+    // La marca de cada prenda y qué productos del catálogo esta sede no tiene (2026-09-26): para buscar y filtrar por marca y
+    // para decir «existe, pero aquí no lo han recibido» en vez de callar. Dato secundario: si falla, sin marca y con aviso.
+    getCatalogoParaExistencias(),
   ]);
   // Dato secundario: si su cálculo falló, cada fila queda en «N/D» y se avisa; el stock no se cae.
-  const stock = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
+  const conCobertura = cobertura?.datos ? stockBase.map((f) => ({ ...f, cobertura: cobertura.datos?.[f.varianteId] ?? null })) : stockBase;
+  const stock = conMarca(conCobertura, catalogo.productos);
+  const sinStock = productosSinStockEnSede(catalogo.productos, stockBase);
   const resumen = resumirExistencias(stock);
   const sububicacionPiso = encontrarPorTipo(sububicaciones, "piso_venta");
   const sububicacionAlmacen = encontrarPorTipo(sububicaciones, "almacen_tienda");
@@ -134,6 +141,10 @@ export default async function InventarioPage({
         esLider={persona.rol === "lider"}
         puedeAjustar={puede(persona, "ajustarInventario")}
         coberturaFallo={cobertura?.fallo ?? null}
+        sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
+        sinStock={sinStock}
+        marcaFallo={catalogo.fallo}
+        verProductos={veModulo(persona, "productos")}
         filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
         recomendaciones={recomendaciones}
