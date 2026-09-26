@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Traslados conectado: análisis y spike visual, computadora y celular)
+Felipe pidió conectar Traslados con las pantallas nuevas y hacerla rápida en el celular. El análisis encontró que el mismo «tienes que recibir» se decía cinco veces y empujaba el primer traslado bajo el borde del teléfono, y que cuatro conexiones ya existen fuera de la pantalla (pedidos para apartar de ADR-0233, Bajar al piso y Etiquetas con lista, sugeridos de Análisis). En vez de elegir a ciegas, Felipe pidió un spike con interruptores: `docs/maquetas/traslados-conectado-2026-09/`.
+Por qué así: tres de las cuatro conexiones no piden migración, y la guía con QR es solo web. Qué se rompería sin cuidado: una guía o un WhatsApp que dijera cuántas van rompería el conteo a ciegas (D-130); por eso dicen qué buscar, no cuántas.
+Felipe se lleva: **lo que acompaña a la caja también es parte del control.** Si el papel dice cuántas van, contar a ciegas en pantalla ya no sirve.
+Decidido el mismo día (ADR-0242): «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en Traslados al que lleva Existencias. Sin resolver: cómo se agrupa un pedido de reposición de varias prendas (tanda 4, antes de su migración).
+
 ## 2026-09-26 (Movimientos conectado — ADR-0241)
 Análisis de 8 capturas → spike con TODAS las opciones → Felipe eligió las recomendadas, los cuatro atajos y el apartado exacto (tras verlo en demo). Construido encima del PR #512 (otra sesión, mismos archivos) para no chocar: atajos por proceso en el detalle y la operación, código del apartado en la fila, bajadas plegadas por día, tarjetas que filtran, celular con buscador fijo, cámara y filtros en hoja, «Hoy» por defecto en el teléfono, Conteo con `?variantes=` y Existencias con `?variante=`.
 Por qué así: cada atajo lleva a la pantalla que ya hace el trabajo (Movimientos sigue sin escribir nada), y solo si se ve el módulo. Qué se rompería sin esto: la nota del pie prometía «se corrige con otro movimiento» sin camino, y un apartado de dos prendas decía «0».
