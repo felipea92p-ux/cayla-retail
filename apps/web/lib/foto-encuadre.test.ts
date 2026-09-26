@@ -3,6 +3,9 @@ import {
   cajaDeContenido,
   encuadrar,
   esFotoEncuadrada,
+  fraccionDeHuecos,
+  HUECOS_MAXIMOS,
+  recorteAgujereado,
   LIENZO_FOTO,
   MARGEN_PRENDA,
   recorteUtil,
@@ -104,5 +107,48 @@ describe("rutas de la foto y su original", () => {
     expect(esFotoEncuadrada(`${base}/fotos/abc.jpg`)).toBe(true);
     expect(esFotoEncuadrada(`${base}/0d9c-blusa.jpg`)).toBe(false);
     expect(esFotoEncuadrada(`${base}/originales/abc.jpg`)).toBe(false);
+  });
+});
+
+describe("fraccionDeHuecos", () => {
+  /** 100×100 transparente, con rectángulos de la opacidad dada (255 por defecto). */
+  function lienzo(rects: { x: number; y: number; ancho: number; alto: number; alfa?: number }[]) {
+    const d = new Uint8ClampedArray(100 * 100 * 4);
+    for (const r of rects)
+      for (let y = r.y; y < r.y + r.alto; y++) for (let x = r.x; x < r.x + r.ancho; x++) d[(y * 100 + x) * 4 + 3] = r.alfa ?? 255;
+    return d;
+  }
+  const caja = { x: 10, y: 10, ancho: 80, alto: 80 };
+
+  it("una prenda entera no tiene huecos", () => {
+    expect(fraccionDeHuecos(lienzo([{ ...caja }]), 100, caja)).toBe(0);
+  });
+
+  it("el espacio entre las piernas de un pantalón NO es un hueco: llega al borde", () => {
+    const pantalon = lienzo([
+      { x: 10, y: 10, ancho: 80, alto: 30 }, // cintura
+      { x: 10, y: 40, ancho: 30, alto: 50 }, // pierna izquierda
+      { x: 60, y: 40, ancho: 30, alto: 50 }, // pierna derecha
+    ]);
+    expect(fraccionDeHuecos(pantalon, 100, caja)).toBe(0);
+  });
+
+  it("un manchón en medio de la tela sí es un hueco", () => {
+    const d = lienzo([{ ...caja }, { x: 40, y: 40, ancho: 10, alto: 10, alfa: 0 }]);
+    expect(fraccionDeHuecos(d, 100, caja)).toBeCloseTo(100 / 6400, 5);
+  });
+
+  it("la tela medio borrada (lavada) cuenta como hueco", () => {
+    const d = lienzo([{ ...caja }, { x: 40, y: 40, ancho: 10, alto: 10, alfa: 60 }]);
+    expect(fraccionDeHuecos(d, 100, caja)).toBeGreaterThan(0);
+  });
+});
+
+describe("recorteAgujereado", () => {
+  it("sugiere con fondo solo por encima del umbral medido", () => {
+    expect(recorteAgujereado(0.0007)).toBe(false); // «Apple Bottom», limpia
+    expect(recorteAgujereado(0.0138)).toBe(true); // jean Levi's agujereado
+    expect(recorteAgujereado(HUECOS_MAXIMOS)).toBe(false);
+    expect(recorteAgujereado(null)).toBe(false);
   });
 });

@@ -118,6 +118,12 @@ describe("etiquetaMovimiento", () => {
     expect(etiquetaMovimiento(movimiento({ tipo: "salida", categoria: "transferencia", motivo: "traslado_salida", delta: -3 }))).toBe("Traslado enviado");
   });
 
+  it("la vuelta de un envío anulado suma, pero no es «recibido»: dice «Traslado anulado» (ADR-0239)", () => {
+    const anulado = movimiento({ tipo: "entrada", categoria: "transferencia", motivo: "traslado_anulado", delta: 2 });
+    expect(etiquetaMovimiento(anulado)).toBe("Traslado anulado");
+    expect(etiquetaConDireccion(anulado)).toBe("Entrada · Traslado anulado");
+  });
+
   it("una fila del modelo anterior (una sola pierna) también se lee según la sede que se mira", () => {
     const vieja = { tipo: "traslado" as const, categoria: "transferencia" as const, motivo: "transferencia" };
     expect(etiquetaMovimiento(movimiento({ ...vieja, delta: 2 }))).toBe("Traslado recibido");
@@ -313,7 +319,9 @@ describe("filtro de proceso en dos pasos (tipo → proceso)", () => {
   it("desde la tienda, el traslado recibido es una entrada y el enviado una salida, y los dos siguen en «Traslados»", () => {
     expect(PROCESOS_POR_CATEGORIA.entrada).toContain("traslado_entrada");
     expect(PROCESOS_POR_CATEGORIA.salida).toContain("traslado_salida");
-    expect(PROCESOS_POR_CATEGORIA.transferencia).toEqual(["traslado_entrada", "traslado_salida"]);
+    expect(PROCESOS_POR_CATEGORIA.transferencia).toEqual(["traslado_entrada", "traslado_salida", "traslado_anulado"]);
+    // ADR-0239: la vuelta de un envío anulado entra a la sede que lo envió y es parte de su traslado.
+    expect(PROCESOS_POR_CATEGORIA.entrada).toContain("traslado_anulado");
   });
 
   it("todo motivo que el modal de ajuste puede guardar tiene nombre propio y botón bajo «Ajustes»", () => {

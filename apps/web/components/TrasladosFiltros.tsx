@@ -51,7 +51,7 @@ export function TrasladosFiltros({
   onLimpiarMas: () => void;
 }) {
   const entrada = useRef<HTMLInputElement>(null);
-  // Un filtro que no es de la fila (el atajo de una tarjeta, «Por recibir hoy») se muestra como un
+  // Un filtro que no es de la fila (el atajo de una tarjeta, «Por recibir») se muestra como un
   // chip más, ya activo, para que se vea qué está filtrando y se pueda quitar.
   const extra = FILTROS_TRASLADO.includes(filtro) ? null : filtro;
 

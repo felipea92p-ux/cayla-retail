@@ -213,3 +213,19 @@ export function totalesPorTipo(comprobantes: Comprobante[]): TotalDelTipo[] {
 export function enlaceWhatsApp(texto: string): string {
   return `https://wa.me/?text=${encodeURIComponent(texto)}`;
 }
+
+/** El WhatsApp de la clienta como número de `wa.me` (2026-09-26): un celular peruano de 9 dígitos (empieza en 9)
+ *  gana el 51; uno que ya trae el 51 queda igual. Cualquier otra cosa no se adivina: `null`, y el enlace se abre
+ *  sin destinataria como antes. */
+export function numeroWhatsApp(telefono: string | null | undefined): string | null {
+  const d = (telefono ?? "").replace(/\D/g, "");
+  if (/^9\d{8}$/.test(d)) return `51${d}`;
+  if (/^519\d{8}$/.test(d)) return d;
+  return null;
+}
+
+/** Como `enlaceWhatsApp`, pero directo al chat de la clienta cuando su número se entiende. */
+export function enlaceWhatsAppA(telefono: string | null | undefined, texto: string): string {
+  const n = numeroWhatsApp(telefono);
+  return n ? `https://wa.me/${n}?text=${encodeURIComponent(texto)}` : enlaceWhatsApp(texto);
+}

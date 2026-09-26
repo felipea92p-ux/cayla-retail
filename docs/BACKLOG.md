@@ -28,6 +28,25 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🕳️ Fotos: el recorte agujereado ya no se sugiere (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-control-huecos`
+- [x] `fraccionDeHuecos` mide la tela agujereada (huecos encerrados; el hueco entre las piernas no cuenta) y, sobre 0,5 %, la foto nace en «Con fondo» con aviso. Umbral medido con seis fotos (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %). 5 pruebas nuevas.
+- [x] Verificado en la ventana real: jean Levi's agujereado → «Con fondo» con aviso; camisa de estudio → «Sin fondo». `next build` compila; 77 960 pruebas en verde.
+- [ ] Pendiente, decidido para después: recorte por color cuando el fondo es liso (evitaría el agujero en vez de detectarlo).
+- Cómo verificas: sube la foto de un jean con fondo liso de internet (como la «br582443…» de Felipe) → si el recorte sale con manchones, nace en «Con fondo» y debajo dice «El recorte dejó huecos en la prenda…».
+
+## 🧾 Comprobantes conectado: «Hoy», Opciones por boleta y pestañas abajo en celular (2026-09-26, ADR-0238) — solo web, sin migración; rama `claude/comprobantes-screen-analysis-78ca38`
+- [x] Pestañas Hoy · Series · Por enviar · Proformas (Emitidos pasa a «Este mes» de Hoy, misma ruta `/emitidos`; Series a `/series`).
+- [x] «Por enviar» lista también los `pendiente` y `rechazado` (antes decía «todo llegó» con 3 boletas sin intentar en producción).
+- [x] Gráficos en las tarjetas solo con tokens CAYLA (sin rojo); sin cifras duplicadas en la cabecera.
+- [x] «Opciones» por comprobante: WhatsApp al número de la clienta, Ver la venta, Imprimir, Cambio, Devolución, NC ↔ devolución.
+- [x] Celular: las 4 pestañas abajo (excepción anotada en ADR-0206). Proforma → «Apartar».
+- [ ] Ver con cuenta real (líder y colaboradora) en computadora y a 375 px, tras el despliegue.
+- [ ] **Causa raíz:** por qué el barrido toma las boletas `pendiente` y no las intenta (`intentos_transmision = 0`, `proximo_reintento_at` corriéndose), y qué flujo creó 2 boletas sin venta.
+- [ ] Tarjetas que filtran la lista al tocarlas (`?estado=`), como en el spike.
+- [ ] Buscar un comprobante fuera del mes cargado (por número, DNI o nombre).
+- [ ] «Apartar» desde proforma lleva solo las prendas: faltan la clienta y el precio cotizado.
+- [ ] Proformas vencidas siguen `vigente` en la base (la pantalla las separa por fecha).
+
 ## 📸 Fotos de prenda: mejor calidad sin cambiar la prenda (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-mejor-calidad`
 - [x] Del recorte se borran los pedazos sueltos, como la mancha rosada de la «Blusa V» (`soloLaPrenda`, 4 pruebas).
 - [x] «Luz corregida / Luz original» en la revisión: la luz de la prenda se estira con tope, sin tocar el tono ni la intensidad del color (`lib/foto-luz.ts`, 10 pruebas; medido: brillo 145 → 190, saturación igual).
@@ -82,8 +101,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ## 🔍 Traslados: recorrido de usabilidad como persona sin contexto (2026-09-26) — solo análisis, sin cambios de código; `docs/pantallas/traslados.md`; rama `claude/traslados-usability-review-9b0615`
 - [x] Recorrido en local con clics reales (líder; Trujillo envía, Lima recibe): enviar, contar con un faltante, cerrar con diferencia e intentar vender lo recibido. 17 hallazgos con archivo:línea en `docs/pantallas/traslados.md`.
-- [ ] Arreglables sin decisión de negocio: «por recibir» que no dependa de la hora estimada y botón «Recibir» en la fila (§2); conteo que sobreviva a una recarga (§4); formulario sin destino ni prendas elegidas de antemano (§6); buscador por palabras (§7); escáner que busque por nombre y muestre el código de etiqueta (§12); la lista dice «Cerrado con diferencia» (§15).
-- [ ] Decisiones de Felipe (`docs/pantallas/traslados.md` §6): todo-o-nada al recibir, conteo a ciegas o «Coincide», piso o almacén al recibir en tienda, quién anula un envío y hasta cuándo.
+- [x] Decisiones de Felipe (acta `docs/datos/DECISIONES-2026-09-26-traslados.md`, D-129 a D-132): entra lo que coincide, conteo a ciegas, piso o almacén al confirmar (piso marcado), anula quien envió o un líder mientras nadie haya contado.
+
+## 🚚 Traslados: recibir sin perder nada (2026-09-26, ADR-0239; nació como 0238, que ya tomaba el PR de Comprobantes) — rama `claude/analisis-modulo-traslados-1111c9`
+- [x] Migración `20260927160000_traslados_recibir_sin_perder_nada.sql` aplicada en local y **EN PRODUCCIÓN (2026-09-26, con el OK de Felipe)**: ensayo revertido antes; después, las 14 funciones que toca con el mismo md5 (sin comentarios ni espacios) que en local, una sola firma de `confirmar_traslado`, las 6 reglas de `transferencias` y permisos solo para `authenticated`. El historial de producción la registra como `20260926213804` (lo que pone `apply_migration`), no con la versión del archivo. Prueba `scripts/pruebas/traslados_recibir_sin_perder_nada.mjs` (58/58, en CI).
+- [x] Web: conteo a ciegas guardado por prenda (§4, §11), escáner por código de etiqueta o palabras (§12), «Terminé de contar», confirmar con piso/almacén, cerrar con diferencia con confirmación (§14), anular envío (§5), «por recibir» sin hora estimada y botón «Recibir» (§2), «Cerrado con diferencia» y «Anulado» en la lista (§15), formulario sin destino ni prendas elegidas (§6), anchos fijos (§13).
+- [x] Recorrido en el navegador local (líder): Lima→Trujillo con 1 blusa + 1 casaca; conteo a ciegas, recarga a mitad (lo contado siguió), casaca en 0, confirmar a piso (la blusa entró al piso al instante), cierre del líder; Trujillo→Lima anulado (stock 4→5 con movimiento `traslado_anulado`).
+- [ ] **Fusionar el PR #509** (la base de producción ya está lista; la web actual sigue funcionando hasta entonces) y regenerar el diccionario con el volcado nuevo (`pnpm datos:generar:produccion`, ver `docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] Buscador por palabras en el formulario de envío (§7: «blusa emma beige l» → «Nada coincide»), cantidad que se corrige sola (§8), fecha como «Hoy / Mañana» (§9), resumen imprimible antes de enviar (§10), «Nuevo traslado» marca Existencias en el menú (§16).
+- [ ] `fn_resumen_variantes.traslados_salida_ventana` sigue contando la salida de un traslado anulado (analítica de Existencias; no se parchó).
+- [ ] `scripts/pruebas/caja_cierre_traslado.mjs` falla 4 casos en local desde ANTES de este cambio (traslado de efectivo de caja, no de mercadería; no está en CI).
+- [ ] En `.github/workflows/ci.yml`, el paso `pruebas:fn-resumen-variantes` corre `pnpm pruebas:pago-por-lote-medios` (nombre y comando no coinciden).
+- [ ] Vaciar una casilla ya guardada no vuelve a «sin contar» (la base no tiene cómo): al recargar reaparece el último número. Dos tablets contando la misma caja se pisan entre sí.
 - [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
 
@@ -307,6 +336,11 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Apartados: pestañas a la izquierda y el ticket a lo alto (2026-09-26) — solo web
+Spike `docs/maquetas/apartados-ticket-alto-2026-09/` (igual que el de Punto de Venta) e implementación en el mismo PR.
+- [x] Pestañas, «Opciones» y avisos sobre la columna de trabajo; el ticket («Por apartar» / «Saldo») sube al borde de arriba de la hoja, con la cabecera en la misma raya. Verificado a 1440, 1024 y 375 px.
+- [ ] **Felipe:** verlo con prendas reales en el ticket (en la verificación el ticket estaba vacío: no se tocaron datos de producción).
 
 ## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
 Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
