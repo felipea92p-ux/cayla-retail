@@ -3,9 +3,14 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
+Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.
+Felipe se lleva: (1) **el Pantone que se llama igual no es el que se ve igual**: anclar por nombre creaba 4 casi-duplicados («Mandarin Orange» es nuestro Naranja), así que se ancló por lo que se ve. (2) **44 de 56 colores ya eran tonos Pantone reales**; los que no (Azul eléctrico, Violeta, Cobalto) no existían en tela. (3) **Azul noche no es un color más: es otro nombre de Azul marino**, y va como sinónimo.
+
 ## 2026-09-26 (Listas flotantes: se podían ver pero no elegir — arreglo de ADR-0211)
 Revisando la paleta de colores apareció que desde el #442 (portal a `document.body`) las listas de `CampoSelect`, las píldoras de filtro y el combo «Responsable» no se podían elegir con mouse ni con el dedo: el «¿tocaste afuera?» miraba solo la caja del control, y la lista ya no estaba adentro. Dentro de un modal era peor: tocar un responsable cerraba el modal entero. Arreglo: el «afuera» mira también la caja flotante, y dentro de un modal la lista se cuelga en la propia hoja (`useDestinoFlotante`). Verificado contra `main` (fallaba) y con el arreglo (funciona), con mouse, teclado y a 375 px.
 Felipe se lleva: (1) **un arreglo de «se ve bien» necesita la prueba de «se puede usar»:** el #442 se verificó mirando si la lista quedaba encima, no eligiendo una opción. (2) **Radix protege su modal de todo lo que está fuera de su hoja** (clics, foco, lectores): lo que flota sobre un modal tiene que vivir dentro de él.
+
 
 ## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
 Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.

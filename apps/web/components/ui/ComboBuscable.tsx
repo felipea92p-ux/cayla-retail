@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
+import { coincidenciaCombo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    ComboBuscable · elegir una opción entre muchas, tipeando (2026-09-14)
@@ -33,7 +34,9 @@ import { clave } from "@/lib/buscar-prenda-v2";
    ==================================================================== */
 
 /** `icono`: algo visual opcional antes del texto (una muestra de patrón, un color…). Solo se pinta en la lista desplegable. */
-export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode };
+/** `claves`: otras palabras que también encuentran la opción (sinónimos: «plomo» → Gris). No se muestran, salvo cuando
+ *  la opción aparece solo por una de ellas: entonces la lista dice cuál. */
+export type OpcionCombo<T extends string> = { valor: T; texto: string; detalle?: string; icono?: ReactNode; claves?: readonly string[] };
 
 export function ComboBuscable<T extends string>({
   valor,
@@ -94,9 +97,11 @@ export function ComboBuscable<T extends string>({
     const k = clave(texto);
     // Con el texto de la opción elegida sin tocar, se muestra todo: el
     // usuario abrió para cambiar, no para buscar lo que ya tiene.
-    return !k || (elegida && k === clave(elegida.texto)) ? opciones : opciones.filter((o) => clave(`${o.texto} ${o.detalle ?? ""}`).includes(k));
+    return !k || (elegida && k === clave(elegida.texto)) ? opciones : opciones.filter((o) => coincidenciaCombo(o, k, clave) !== null);
   }, [texto, opciones, elegida]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
+  // La clave (sinónimo) por la que una opción respondió a lo escrito, si fue solo por ella: la lista la muestra.
+  const porClave = (o: OpcionCombo<T>) => coincidenciaCombo(o, clave(texto), clave) || null;
   // `limite` explícito manda y NO pagina (spike Nuevo producto): es un techo fijo, no el de la regla global.
   const mostradas = filtradas.slice(0, limite ?? visibles);
   // La opción «crear» va al final y se alcanza con las flechas como cualquier otra (índice = mostradas.length).
@@ -232,6 +237,7 @@ export function ComboBuscable<T extends string>({
                 {o.icono && <span className="mr-2.5 inline-block align-middle">{o.icono}</span>}
                 <span className="align-middle">{o.texto}</span>
                 {o.detalle && <span className="ml-2 text-xs text-tinta/55">{o.detalle}</span>}
+                {porClave(o) && <span className="ml-2 text-xs text-tinta/55">«{porClave(o)}»</span>}
               </li>
             ))
           )}

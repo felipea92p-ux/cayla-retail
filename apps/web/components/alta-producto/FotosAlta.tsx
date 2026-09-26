@@ -31,7 +31,7 @@ export function FotosAlta({
   disabled = false,
 }: {
   /** Los colores elegidos, en su orden: una casilla por color. */
-  colores: { codigo: string; nombre: string; hex: string | null }[];
+  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null }[];
   fotos: FotoPendiente[];
   onFotos: (f: FotoPendiente[]) => void;
   disabled?: boolean;
@@ -58,7 +58,7 @@ export function FotosAlta({
   }
 
   // Sin colores, una sola casilla «General». Con colores, una por color y la general al final (fotos de detalle, etiqueta…).
-  const casillas: { codigo: string | null; nombre: string; hex: string | null }[] = [...colores, { codigo: null, nombre: colores.length ? "General" : "Fotos", hex: null }];
+  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null }[] = [...colores, { codigo: null, nombre: colores.length ? "General" : "Fotos", hex: null }];
 
   return (
     <div className="space-y-2">
@@ -68,7 +68,7 @@ export function FotosAlta({
           return (
             <div key={c.codigo ?? "general"} className="rounded-xl border border-sand bg-crema p-2">
               <p className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-tinta">
-                {c.codigo && <Punto hex={c.hex} />}
+                {c.codigo && <Punto hex={c.hex} familia={c.familiaColor} />}
                 <span className="min-w-0 truncate">{c.nombre}</span>
                 {suyas.length > 0 && <span className="ml-auto shrink-0 tabular-nums text-taupe">{suyas.length}</span>}
               </p>

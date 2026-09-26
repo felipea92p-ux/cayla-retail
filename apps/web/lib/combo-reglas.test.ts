@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { comboLlegoAlFinal, comboNecesitaBuscador, TAMANO_PAGINA_COMBO, UMBRAL_BUSCAR_COMBO } from "./combo-reglas";
+import { comboLlegoAlFinal, comboNecesitaBuscador, TAMANO_PAGINA_COMBO, UMBRAL_BUSCAR_COMBO, coincidenciaCombo } from "./combo-reglas";
 
 describe("comboNecesitaBuscador", () => {
   it("no busca con el umbral exacto", () => {
@@ -42,5 +42,27 @@ describe("umbrales", () => {
   it("8 y 50, los números que pidió Felipe", () => {
     expect(UMBRAL_BUSCAR_COMBO).toBe(8);
     expect(TAMANO_PAGINA_COMBO).toBe(50);
+  });
+});
+
+describe("coincidenciaCombo", () => {
+  const clave = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+  const gris = { texto: "Gris", claves: ["plomo"] };
+  const vino = { texto: "Vino", detalle: "Rojo", claves: ["guinda", "borgoña"] };
+
+  it("por el texto o el detalle: responde sin clave que mostrar", () => {
+    expect(coincidenciaCombo(gris, "gri", clave)).toBe("");
+    expect(coincidenciaCombo(vino, "rojo", clave)).toBe("");
+  });
+
+  it("por un sinónimo: devuelve cuál, para que la lista lo muestre", () => {
+    expect(coincidenciaCombo(gris, "plom", clave)).toBe("plomo");
+    expect(coincidenciaCombo(vino, "borgona", clave)).toBe("borgoña");
+  });
+
+  it("si no responde por nada, null; sin texto escrito, todas responden", () => {
+    expect(coincidenciaCombo(gris, "azul", clave)).toBeNull();
+    expect(coincidenciaCombo({ texto: "Azul" }, "plomo", clave)).toBeNull();
+    expect(coincidenciaCombo(gris, "", clave)).toBe("");
   });
 });
