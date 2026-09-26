@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: buscar por marca, y lo que la revisión atrapó antes de publicar)
+Felipe escribió «CAYLA» en Existencias y no vio nada. Al mirar los datos, la marca no era un texto más: «CAYLA» y «Cayla 2» son dos marcas, y los pantalones CAYLA no tienen ni una fila de stock en TRU. Se construyó el buscador por marca y categoría, el filtro «Marca» y un estado vacío que explica qué se buscó, qué quitar y qué productos existen en el catálogo pero no en esa sede. Una revisión adversarial con cuatro lentes, antes de commitear, encontró que la lectura nueva habría fallado en producción para toda cuenta.
+Felipe se lleva:
+1. **Un permiso de columnas se rompe donde nadie lo mira.** `variantes!inner(count)` parece inocente, pero PostgREST lo lee como «toda la fila» y `costo` no es legible para `authenticated`. Pasaban 77.585 pruebas y el tipado; la pantalla habría quedado sin marca, con un aviso genérico.
+2. **Probar con la llave pública (anon) no prueba permisos:** una consulta inválida y una válida contestaban igual. La prueba que sí sirve es la que usa el rol real, con la misma restricción de columnas, aunque sea en una base desechable.
+3. **Un color no es una marca.** «dorada» traía toda la blusa de la marca «Doradas Chic» en cualquier color, según el género con que se escribiera. El buscador compartido se cambió sin tocar el comportamiento de Análisis ni de Movimientos: se comparó contra el motor anterior en 40.330 casos.
+
 ## 2026-09-26 (Revisión de errores en Catálogo ▸ Productos y Existencias: el código de la prenda salía vacío)
 Felipe pasó tres capturas («esto está lleno de errores»). Se verificó cada síntoma contra el código y, en solo lectura, contra producción: 128 de 130 variantes tienen `sku` NULL (ADR-0058: nació opcional), pero 129 tienen `codigo`. Existencias leía solo `sku`, por eso la celda decía «· L ·» sin nada; ahora lee el código de la etiqueta (y con él buscan, ordenan y exportan Existencias, Ajustar y la tabla de Productos). También: «1 productos» → «1 producto», y la tarjeta «Reponer a piso hoy» ya no afirma «con demanda» (la regla nunca mira ventas).
 Felipe se lleva:
