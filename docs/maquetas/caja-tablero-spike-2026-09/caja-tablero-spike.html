@@ -179,6 +179,16 @@ a{color:inherit}
 .bar-et{display:flex;gap:10px;font-size:10px;color:var(--t50);margin-top:5px}
 .bar-et span{flex:1;text-align:center}
 
+.hist-cab{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.hist-cuerpo{animation:sube .35s var(--ease)}
+.hist-pie{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}
+.pred{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--rojo);margin-left:5px;vertical-align:middle}
+.enlace{font-size:11.5px;color:var(--taupe);text-decoration:underline;text-underline-offset:3px}
+.enlace:hover{color:var(--tinta)}
+.pildora.aviso{border-color:rgba(116,80,26,.45)}
+.pildora.aviso .cnt{opacity:1;color:var(--ambar);font-weight:700}
+.tel .accesos > :last-child:nth-child(odd){grid-column:span 2}
+.tel .segm button{padding:4px 8px}
 .nota-cayla{background:var(--hueso);border-radius:10px;padding:10px 14px;font-size:12px;color:var(--t80);margin-top:12px}
 
 /* ====================== CELULAR ====================== */
@@ -261,9 +271,6 @@ a{color:inherit}
 
 <div class="ctl" role="toolbar" aria-label="Controles del spike">
   <span><b>Pantalla</b><span class="seg" data-ctl="vista"><button data-v="ambos">Ambas</button><button data-v="escritorio">Computadora</button><button data-v="celular">Celular</button></span></span>
-  <span><b>Accesos</b><span class="seg" data-ctl="accesos"><button data-v="botones">A · Botones a la vista</button><button data-v="filtros">B · Filtros a elegir</button></span></span>
-  <span><b>Celular</b><span class="seg" data-ctl="cel"><button data-v="barra">Barra fija</button><button data-v="pestanas">Pestañas</button><button data-v="apilado">Apilado (hoy)</button></span></span>
-  <span><b>Historial</b><span class="seg" data-ctl="hist"><button data-v="ultimo">Último cierre</button><button data-v="semaforo">Semáforo</button><button data-v="tabla">Tabla de turnos</button><button data-v="grafico">Gráfico corregido</button></span></span>
   <span><b>Quién mira</b><span class="seg" data-ctl="rol"><button data-v="integrante">Colaboradora</button><button data-v="lider">Líder</button></span></span>
 </div>
 
@@ -329,7 +336,7 @@ const cajon = D.apertura + D.ventasEf + D.entradas - D.salidas;
 const cobrado = D.metodos.reduce((a, x) => a + x.m, 0);
 const totalVentas = cobrado + D.anticipo;
 
-const S = { vista: 'ambos', accesos: 'botones', cel: 'barra', hist: 'ultimo', rol: 'integrante', filtros: new Set(['pendientes', 'apartados']), filtroMov: 'todo', tabTel: 'hoy' };
+const S = { vista: 'ambos', rol: 'integrante', hist: {}, filtros: new Set(['pendientes', 'apartados']), filtroMov: 'todo' };
 
 const soles = (n, dec = 2) => (n < 0 ? '−' : '') + 'S/ ' + Math.abs(n).toLocaleString('es-PE', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 const signo = n => n > 0 ? '+' + soles(n) : n < 0 ? soles(n) : soles(0);
@@ -395,11 +402,6 @@ function ritmoCard() {
     <div class="lt-pie"><span>Abrió ${D.abrio}</span><span>Ahora ${D.ahora}</span></div>
   </div>`;
 }
-function pendientes(tel) {
-  const items = D.pendientes.map(p => `<a class="pend" href="#" onclick="return false"><b>${p.n}</b> ${p.t} <span class="fl">→</span></a>`).join('');
-  if (tel) return `<div class="pendientes" style="display:block"><div class="tit" style="margin-bottom:8px">${ic('alerta', 14)} Antes de cerrar · 3 pendientes</div><div class="scroll-x">${items}</div></div>`;
-  return `<div class="pendientes"><div class="tit">${ic('alerta', 15)} Antes de cerrar</div>${items}</div>`;
-}
 const ACCESOS = [
   { k: 'vender', ico: 'carrito', t: 'Cobrar', d: 'Abre el Punto de venta', principal: true },
   { k: 'gasto', ico: 'recibo', t: 'Registrar gasto', d: 'Sale del cajón y va a Finanzas', modal: 'gasto' },
@@ -407,20 +409,26 @@ const ACCESOS = [
   { k: 'posventa', ico: 'cambio', t: 'Cambio o devolución', d: 'Si devuelves plata, sale de aquí' },
   { k: 'apartados', ico: 'apartado', t: 'Apartados', d: 'Cobrar saldo o separar', n: '2 por cobrar' },
 ];
+/** En el celular la barra fija ya lleva Cobrar, Gasto y Movimiento (y Apartados si quien mira no cierra):
+ *  esos no se repiten como botones en la pantalla. */
+function enBarra() {
+  return S.rol === 'lider' ? ['vender', 'gasto', 'mov'] : ['vender', 'gasto', 'mov', 'apartados'];
+}
 function accesosBotones(tel) {
-  const lista = tel ? ACCESOS.filter(a => a.k !== 'vender') : ACCESOS;
+  const lista = tel ? ACCESOS.filter(a => !enBarra().includes(a.k)) : ACCESOS;
   return `<div class="accesos">${lista.map(a => `<button class="acceso${a.principal ? ' principal' : ''}" ${a.modal ? `data-modal="${a.modal}"` : ''}>
       <span class="ico">${ic(a.ico, 17)}</span>
       <span><span class="t">${a.t}</span><span class="d" style="display:block">${a.d}</span>${a.n ? `<span class="chip chip-ambar n">${a.n}</span>` : ''}</span>
     </button>`).join('')}</div>`;
 }
 const FILTROS = [
-  { k: 'pendientes', t: 'Pendientes', n: 3 },
-  { k: 'apartados', t: 'Apartados', n: 2 },
+  { k: 'pendientes', t: 'Pendientes', n: 3, aviso: true },
+  { k: 'apartados', t: 'Apartados', n: 2, aviso: true },
   { k: 'gastos', t: 'Gastos', n: 1 },
   { k: 'posventa', t: 'Cambios y devoluciones', n: 1 },
 ];
-function panel(k, tel) {
+const FILTROS_PRED = ['pendientes', 'apartados'];
+function panel(k) {
   if (k === 'pendientes') return `<div class="card"><div class="panel-h"><div><div class="card-t">Pendientes del turno</div><div class="card-b">Resuélvelos antes de cerrar</div></div><span class="chip chip-ambar">3</span></div>
     <div class="lista-mini">
       <div><span>${ic('documento', 14)} Boleta de la venta de 11:20 sin emitir<div class="s">Se transmite a SUNAT desde Comprobantes</div></span><button class="mini-btn">Emitir</button></div>
@@ -429,21 +437,27 @@ function panel(k, tel) {
     </div></div>`;
   if (k === 'apartados') return `<div class="card"><div class="panel-h"><div><div class="card-t">Apartados de la tienda</div><div class="card-b">Saldo por cobrar ${soles(135)}</div></div><button class="btn btn-sutil">Ver todos →</button></div>
     <div class="lista-mini">${D.apartados.map(a => `<div><span>${a.n}<div class="s">${a.p} · ${a.vence}</div></span>${a.ok ? '<span class="chip chip-verde">Recogida</span>' : `<button class="mini-btn">Cobrar ${soles(a.saldo, 0)}</button>`}</div>`).join('')}</div></div>`;
-  if (k === 'gastos') return `<div class="card"><div class="panel-h"><div><div class="card-t">Gastos del turno</div><div class="card-b">Salieron del cajón · ${soles(25)}</div></div><button class="mini-btn" data-modal="gasto">+ Registrar gasto</button></div>
-    <div class="lista-mini"><div><span>Agua y útiles de limpieza<div class="s">11:02 · con boleta · Ana Ríos</div></span><b class="neg tab">−${soles(25)}</b></div></div>
-    <p class="card-b" style="margin-top:8px">Se ve también en Finanzas ▸ Gastos, con su comprobante.</p></div>`;
-  if (k === 'posventa') return `<div class="card"><div class="panel-h"><div><div class="card-t">Cambios y devoluciones</div><div class="card-b">Hoy · efectivo devuelto ${soles(0)}</div></div><span class="fila" style="gap:6px"><button class="mini-btn">Cambio</button><button class="mini-btn">Devolución</button></span></div>
+  if (k === 'gastos') return `<div class="card"><div class="panel-h"><div><div class="card-t">Gastos del turno</div><div class="card-b">Salieron del cajón · ${soles(25)}</div></div><button class="btn btn-sutil">Ver en Finanzas →</button></div>
+    <div class="lista-mini"><div><span>Agua y útiles de limpieza<div class="s">11:02 · con boleta · Ana Ríos</div></span><b class="neg tab">−${soles(25)}</b></div></div></div>`;
+  if (k === 'posventa') return `<div class="card"><div class="panel-h"><div><div class="card-t">Cambios y devoluciones</div><div class="card-b">Hoy · efectivo devuelto ${soles(0)}</div></div><button class="btn btn-sutil">Ver posventa →</button></div>
     <div class="lista-mini"><div><span>Cambio · talla M por L<div class="s">10:48 · sin diferencia de precio</div></span><span class="chip chip-gris">Sin plata</span></div></div></div>`;
 }
 function accesosFiltros(tel) {
-  const pills = FILTROS.map(f => `<button class="pildora" data-filtro="${f.k}" aria-pressed="${S.filtros.has(f.k)}">${S.filtros.has(f.k) ? ic('check', 13) : ic('mas', 13)} ${f.t} <span class="cnt">${f.n}</span></button>`).join('');
+  const pills = FILTROS.map(f => {
+    const on = S.filtros.has(f.k);
+    return `<button class="pildora${!on && f.aviso ? ' aviso' : ''}" data-filtro="${f.k}" aria-pressed="${on}">${on ? ic('check', 13) : ic('mas', 13)} ${f.t} <span class="cnt">${f.n}</span></button>`;
+  }).join('');
   const activos = FILTROS.filter(f => S.filtros.has(f.k));
-  return `<div class="filtros">${tel ? `<div class="scroll-x" style="width:calc(100% + 32px)"><span class="lbl" style="align-self:center;flex:none">Mostrar</span>${pills}</div>` : `<span class="lbl">Tu caja muestra</span>${pills}<span class="recuerda">Se recuerda en este aparato</span>`}</div>
-    ${activos.length ? `<div class="paneles">${activos.map(f => panel(f.k, tel)).join('')}</div>` : `<p class="nota-cayla">Elige qué quieres tener a mano: cada píldora agrega una tarjeta con su acción.</p>`}`;
+  const esPred = activos.length === FILTROS_PRED.length && FILTROS_PRED.every(k => S.filtros.has(k));
+  const restaurar = esPred ? '<span class="recuerda">Predeterminado · se recuerda en este aparato</span>' : '<button class="recuerda enlace" data-filtros-reset>Volver a lo predeterminado</button>';
+  return `<div class="filtros">${tel
+      ? `<div class="scroll-x" style="width:calc(100% + 32px)"><span class="lbl" style="align-self:center;flex:none">Mostrar</span>${pills}</div><div style="width:100%">${restaurar}</div>`
+      : `<span class="lbl">Tu caja muestra</span>${pills}${restaurar}`}</div>
+    ${activos.length ? `<div class="paneles">${activos.map(f => panel(f.k)).join('')}</div>` : `<p class="nota-cayla">Elige qué quieres tener a mano: cada píldora agrega una tarjeta.</p>`}`;
 }
-function accionesTop(tel) {
-  if (S.accesos === 'botones') return (tel ? '' : '') + accesosBotones(tel);
-  return accesosFiltros(tel);
+/** Botones (para HACER) arriba; filtros (para VER) debajo, con sus tarjetas. */
+function accesos(tel) {
+  return `${tel ? '' : '<p class="lbl" style="color:var(--t65);margin-top:16px">Hacer</p>'}${accesosBotones(tel)}${accesosFiltros(tel)}`;
 }
 function movimientos(tel, limite) {
   const f = S.filtroMov;
@@ -452,7 +466,7 @@ function movimientos(tel, limite) {
   const icono = { venta: 'bolsa', salida: 'recibo', posventa: 'cambio' };
   return `<div class="card">
     <div class="fila entre" style="flex-wrap:wrap;gap:8px"><div><div class="card-t">Movimientos del turno</div><div class="card-b">Toca uno para ver el detalle</div></div>
-      <span class="segm" data-ctl-mov>${[['todo', 'Todo'], ['ventas', 'Ventas'], ['cajon', 'Mueve el cajón']].map(([k, t]) => `<button data-mov="${k}" aria-pressed="${f === k}">${t}</button>`).join('')}</span></div>
+      <span class="segm">${[['todo', 'Todo'], ['ventas', 'Ventas'], ['cajon', 'Mueve el cajón']].map(([k, t]) => `<button data-mov="${k}" aria-pressed="${f === k}">${t}</button>`).join('')}</span></div>
     <div class="movs" style="margin-top:8px">${l.map(m => `<div><span class="ic">${ic(icono[m.tipo], 15)}</span>
       <span><div class="t">${m.t}</div><div class="s">${m.h} · ${m.s}${m.extra ? ` · <span style="color:var(--taupe)">${m.extra}</span>` : ''}</div></span>
       <span class="m tab ${m.m > 0 ? 'pos' : m.m < 0 ? 'neg' : 'cero'}">${m.m === 0 ? '—' : signo(m.m)}</span></div>`).join('')}</div>
@@ -463,48 +477,67 @@ function estado(c) {
   if (c.esp === null) return { cl: 'sin', txt: 'Sin caja', chip: '<span class="chip chip-gris">Sin caja</span>', d: null };
   const d = +(c.cont - c.esp).toFixed(2);
   if (d === 0) return { cl: 'ok', txt: 'Cuadró', chip: '<span class="chip chip-verde">Cuadró</span>', d };
-  if (Math.abs(d) <= 5) return { cl: 'poco', txt: (d > 0 ? 'Sobró ' : 'Faltó ') + soles(Math.abs(d)), chip: `<span class="chip chip-ambar">${d > 0 ? 'Sobró' : 'Faltó'} ${soles(Math.abs(d))}</span>`, d };
-  return { cl: 'mal', txt: (d > 0 ? 'Sobró ' : 'Faltó ') + soles(Math.abs(d)), chip: `<span class="chip chip-rojo">${d > 0 ? 'Sobró' : 'Faltó'} ${soles(Math.abs(d))}</span>`, d };
+  const t = (d > 0 ? 'Sobró ' : 'Faltó ') + soles(Math.abs(d));
+  return { cl: Math.abs(d) <= 5 ? 'poco' : 'mal', txt: t, chip: `<span class="chip ${Math.abs(d) <= 5 ? 'chip-ambar' : 'chip-rojo'}">${t}</span>`, d };
 }
-function historial(tel) {
+
+/* ---------- Cierres anteriores: una tarjeta, cuatro formas de verla ----------
+   Predeterminada según quién mira: la colaboradora necesita saber cómo recibió la caja (último cierre); el líder
+   busca el patrón de descuadres (semáforo). La elección se recuerda en el aparato; «Volver a la predeterminada»
+   deshace. */
+const MODOS_HIST = [
+  { k: 'ultimo', l: 'Último cierre', c: 'Último', sub: 'Cómo quedó la caja que abriste hoy' },
+  { k: 'semaforo', l: 'Semáforo', c: 'Semáforo', sub: 'Un cuadro por turno · últimas 2 semanas' },
+  { k: 'tabla', l: 'Tabla de turnos', c: 'Tabla', sub: 'Los últimos 5 turnos, la diferencia primero' },
+  { k: 'grafico', l: 'Gráfico', c: 'Gráfico', sub: 'Una barra por día · el punto dice si cuadró' },
+];
+const HIST_PRED = { integrante: 'ultimo', lider: 'semaforo' };
+const modoHist = () => S.hist[S.rol] ?? HIST_PRED[S.rol];
+const LEYENDA = `<div class="leyenda" style="margin-top:10px"><span><i style="background:var(--verde)"></i>Cuadró</span><span><i style="background:var(--ambar)"></i>Hasta S/ 5</span><span><i style="background:var(--rojo)"></i>Más de S/ 5</span><span><i style="background:var(--g-neutro)"></i>No abrió</span></div>`;
+function cuerpoHist(modo, tel) {
   const ult = D.cierres[D.cierres.length - 1];
-  const pie = `<a href="#" onclick="return false" class="btn btn-sutil" style="margin-top:8px;padding-left:0">${ic('historial', 13)} Ver historial completo →</a>`;
-  if (S.hist === 'ultimo') return `<div class="card"><div class="card-t">Último cierre</div>
-    <div class="ult" style="margin-top:12px"><span class="sello">${ic('check', 18)}</span>
+  const conCaja = D.cierres.filter(c => c.esp !== null);
+  const buenos = conCaja.filter(c => estado(c).d === 0).length;
+  if (modo === 'ultimo') return `<div class="ult"><span class="sello">${ic('check', 18)}</span>
       <div><div style="font-weight:600">${ult.f} · 8:02 p. m. · ${ult.q}</div>
       <div class="card-b tab" style="font-size:12.5px">Contó ${soles(ult.cont)} · el sistema esperaba ${soles(ult.esp)} · dejó ${soles(300)} para hoy</div></div>
-      <span class="chip chip-verde" style="margin-left:auto">Cuadró</span></div>
-    <p class="card-b" style="margin-top:12px">Últimas 2 semanas: 8 de 11 turnos cuadraron.</p>${pie}</div>`;
-  if (S.hist === 'semaforo') {
-    const conCaja = D.cierres.filter(c => c.esp !== null);
-    const buenos = conCaja.filter(c => estado(c).d === 0).length;
-    return `<div class="card"><div class="fila entre"><div><div class="card-t">¿Cuadró la caja?</div><div class="card-b">Un cuadro por turno · últimas 2 semanas</div></div><span class="chip chip-verde">${buenos} de ${conCaja.length}</span></div>
-      <div class="sem tab">${D.cierres.map(c => { const e = estado(c); return `<div title="${c.f} · ${c.q} · ${e.txt}"><span class="${e.cl}">${e.d ? `<b>${e.d > 0 ? '+' : '−'}${Math.abs(e.d) >= 10 ? Math.round(Math.abs(e.d)) : Math.abs(e.d)}</b>` : ''}</span>${c.f}</div>`; }).join('')}</div>
-      <div class="leyenda" style="margin-top:12px"><span><i style="background:var(--verde)"></i>Cuadró</span><span><i style="background:var(--ambar)"></i>Hasta S/ 5</span><span><i style="background:var(--rojo)"></i>Más de S/ 5</span><span><i style="background:var(--g-neutro)"></i>No abrió</span></div>
-      <p class="card-b" style="margin-top:8px">El descuadre más grande: mar 22, faltaron ${soles(12)} (Ana Ríos).</p>${pie}</div>`;
+      ${tel ? '' : '<span class="chip chip-verde" style="margin-left:auto">Cuadró</span>'}</div>
+    <p class="card-b" style="margin-top:12px">Últimas 2 semanas: ${buenos} de ${conCaja.length} turnos cuadraron.</p>`;
+  if (modo === 'semaforo') return `<div class="sem tab">${D.cierres.map(c => { const e = estado(c); return `<div title="${c.f} · ${c.q} · ${e.txt}"><span class="${e.cl}">${e.d ? `<b>${e.d > 0 ? '+' : '−'}${Math.abs(e.d) >= 10 ? Math.round(Math.abs(e.d)) : Math.abs(e.d)}</b>` : ''}</span>${c.f}</div>`; }).join('')}</div>
+      ${LEYENDA}<p class="card-b" style="margin-top:8px"><b style="color:var(--tinta)">${buenos} de ${conCaja.length}</b> turnos cuadraron. El descuadre más grande: mar 22, faltaron ${soles(12)} (Ana Ríos).</p>`;
+  if (modo === 'tabla') {
+    const filas = conCaja.slice(-5).reverse();
+    if (tel) return `<div class="lista-mini">${filas.map(c => `<div><span>${c.f} · ${c.q}<div class="s tab">Esperado ${soles(c.esp, 0)} · contó ${soles(c.cont, c.cont % 1 ? 2 : 0)}</div></span>${estado(c).chip}</div>`).join('')}</div>`;
+    return `<table class="tabla tab"><thead><tr><th>Turno</th><th>Cerró</th><th class="num">Vendido</th><th class="num">Esperado</th><th class="num">Contó</th><th>Resultado</th></tr></thead>
+      <tbody>${filas.map(c => `<tr><td>${c.f}</td><td>${c.q}</td><td class="num">${soles(c.v, 0)}</td><td class="num">${soles(c.esp)}</td><td class="num">${soles(c.cont)}</td><td>${estado(c).chip}</td></tr>`).join('')}</tbody></table>`;
   }
-  if (S.hist === 'tabla') {
-    const filas = D.cierres.filter(c => c.esp !== null).slice(-5).reverse();
-    if (tel) return `<div class="card"><div class="card-t">Últimos turnos</div><div class="lista-mini" style="margin-top:6px">${filas.map(c => `<div><span>${c.f} · ${c.q}<div class="s tab">Esperado ${soles(c.esp, 0)} · contó ${soles(c.cont, c.cont % 1 ? 2 : 0)}</div></span>${estado(c).chip}</div>`).join('')}</div>${pie}</div>`;
-    return `<div class="card"><div class="fila entre"><div><div class="card-t">Últimos turnos</div><div class="card-b">Como un cuaderno de caja: una fila por turno, la diferencia primero</div></div></div>
-      <table class="tabla tab"><thead><tr><th>Turno</th><th>Cerró</th><th class="num">Vendido</th><th class="num">Esperado</th><th class="num">Contó</th><th>Resultado</th></tr></thead>
-      <tbody>${filas.map(c => `<tr><td>${c.f}</td><td>${c.q}</td><td class="num">${soles(c.v, 0)}</td><td class="num">${soles(c.esp)}</td><td class="num">${soles(c.cont)}</td><td>${estado(c).chip}</td></tr>`).join('')}</tbody></table>${pie}</div>`;
-  }
-  // gráfico corregido
-  const max = Math.max(...D.cierres.map(c => c.v));
   const lista = tel ? D.cierres.slice(-7) : D.cierres;
-  return `<div class="card"><div class="card-t">Ventas por día y si cuadró</div><div class="card-b">Una barra por día · el punto dice si la caja cuadró</div>
-    <div class="barras">${lista.map(c => { const e = estado(c); const col = { ok: 'var(--verde)', poco: 'var(--ambar)', mal: 'var(--rojo)', sin: 'var(--g-neutro)' }[e.cl]; return `<div title="${c.f} · ${soles(c.v, 0)} · ${e.txt}"><span class="p" style="background:${col}"></span><span class="b" style="height:${Math.max(2, c.v / max * 85)}%"></span></div>`; }).join('')}</div>
-    <div class="bar-et tab">${lista.map(c => `<span>${c.f.split(' ')[1]}</span>`).join('')}</div>
-    <div class="leyenda" style="margin-top:10px"><span><i style="background:var(--verde)"></i>Cuadró</span><span><i style="background:var(--ambar)"></i>Hasta S/ 5</span><span><i style="background:var(--rojo)"></i>Más de S/ 5</span></div>${pie}</div>`;
+  const max = Math.max(...lista.map(c => c.v));
+  return `<div class="barras">${lista.map(c => { const e = estado(c); const col = { ok: 'var(--verde)', poco: 'var(--ambar)', mal: 'var(--rojo)', sin: 'var(--g-neutro)' }[e.cl]; return `<div title="${c.f} · ${soles(c.v, 0)} · ${e.txt}"><span class="p" style="background:${col}"></span><span class="b" style="height:${Math.max(2, c.v / max * 85)}%"></span></div>`; }).join('')}</div>
+    <div class="bar-et tab">${lista.map(c => `<span>${c.f.split(' ')[1]}</span>`).join('')}</div>${LEYENDA}`;
 }
+function historial(tel) {
+  const modo = modoHist();
+  const pred = HIST_PRED[S.rol];
+  const m = MODOS_HIST.find(x => x.k === modo);
+  const selector = `<span class="segm" role="group" aria-label="Ver los cierres como">${MODOS_HIST.map(x => `<button data-hist="${x.k}" aria-pressed="${modo === x.k}">${tel ? x.c : x.l}${x.k === pred ? '<i class="pred" title="Predeterminada"></i>' : ''}</button>`).join('')}</span>`;
+  return `<div class="card">
+    <div class="hist-cab"><div><div class="card-t">Cierres anteriores</div><div class="card-b">${m.sub}</div></div>${selector}</div>
+    <div class="hist-cuerpo" key="${modo}">${cuerpoHist(modo, tel)}</div>
+    <div class="hist-pie">
+      <a href="#" onclick="return false" class="btn btn-sutil" style="padding-left:0">${ic('historial', 13)} Ver historial completo →</a>
+      <span class="card-b">${modo === pred ? '<i class="pred"></i> Vista predeterminada · se recuerda en este aparato' : '<button class="enlace" data-hist-reset>Volver a la predeterminada</button>'}</span>
+    </div>
+  </div>`;
+}
+
 
 /* ====================================================================
    COMPUTADORA
    ==================================================================== */
 function escritorio() {
   const lider = S.rol === 'lider';
-  const histAncho = S.hist === 'tabla' || S.hist === 'grafico';
+  const histAncho = ['tabla', 'grafico'].includes(modoHist());
   return `<div><p class="marco-titulo">Computadora · 1240 px (menú lateral plegado)</p>
   <div class="escritorio"><div class="esc-interior">
     <div class="topbar"><span style="color:var(--t50)">${ic('menu', 18)}</span><div class="der"><span class="lbl" style="color:var(--t65)">${ic('historial', 13)} Actividad</span><span class="selector lbl">Tienda TRU ▾</span></div></div>
@@ -518,22 +551,20 @@ function escritorio() {
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
           <div class="fila"><span class="chip chip-verde">Todo sincronizado</span><span class="reloj-mini">Abrió ${D.abrio} · lleva <b class="tab">${D.lleva}</b></span></div>
           <div class="acciones">
-            <button class="btn btn-s" data-modal="movimiento">Registrar movimiento</button>
             ${lider ? '<button class="btn btn-p">Cerrar caja</button>' : '<span class="card-b" style="max-width:190px;text-align:right">La caja la cierra un líder de equipo.</span>'}
           </div>
         </div>
       </div>
       <div class="fila-heroe" style="--k:1">${heroe(false)}${cobradoCard()}${ritmoCard()}</div>
-      ${S.accesos === 'botones' ? `<div style="--k:2">${pendientes(false)}</div><div style="--k:3">${accesosBotones(false)}</div>` : `<div style="--k:2">${accesosFiltros(false)}</div>`}
-      <div class="fila-baja" style="--k:4;${histAncho ? 'grid-template-columns:1fr' : ''}">${movimientos(false)}${histAncho ? '' : historial(false)}</div>
-      ${histAncho ? `<div style="--k:5;margin-top:12px">${historial(false)}</div>` : ''}
-      <p class="nota-cayla" style="--k:6">Lo que se fue: los cinco recuadros de igual peso (Apertura, Ventas efectivo, Ventas otro método, Entradas, Salidas) quedan dentro del desglose de «Efectivo en el cajón»; la dona pasa a una barra en «Cobrado en el turno».</p>
+      <div style="--k:2">${accesos(false)}</div>
+      <div class="fila-baja" style="--k:3;${histAncho ? 'grid-template-columns:1fr' : ''}">${movimientos(false)}${histAncho ? '' : historial(false)}</div>
+      ${histAncho ? `<div style="--k:4;margin-top:12px">${historial(false)}</div>` : ''}
     </div>
   </div></div></div>`;
 }
 
 /* ====================================================================
-   CELULAR
+   CELULAR (barra fija)
    ==================================================================== */
 function barraCaja() {
   const lider = S.rol === 'lider';
@@ -553,43 +584,21 @@ function cabTel() {
     <div class="fila entre" style="margin-top:4px"><span class="bajada">Abrió ${D.abrio} · ${D.lleva}</span><span class="chip chip-verde" style="font-size:9.5px">Al día</span></div></div>`;
 }
 function celular() {
-  let cuerpo = '';
-  if (S.cel === 'barra') {
-    cuerpo = `${cabTel()}<div class="tel-cuerpo cascada">
+  const cuerpo = `${cabTel()}<div class="tel-cuerpo cascada">
       <div class="tel-seccion" style="--k:1">${heroe(true)}</div>
-      ${S.accesos === 'botones' ? `<div class="tel-seccion" style="--k:2">${pendientes(true)}</div>` : ''}
-      <div class="tel-seccion" style="--k:3">${S.accesos === 'botones' ? accesosBotones(true) : accesosFiltros(true)}</div>
-      <div class="tel-seccion" style="--k:4">${cobradoCard()}</div>
-      <div class="tel-seccion" style="--k:5">${movimientos(true, 4)}</div>
-      <details class="card plegable tel-seccion" style="--k:6"><summary>Ritmo y cierres anteriores <span class="flecha">${ic('chevron', 16)}</span></summary><div style="margin-top:10px">${ritmoCard()}<div style="margin-top:10px">${historial(true)}</div></div></details>
+      <div class="tel-seccion" style="--k:2">${accesos(true)}</div>
+      <div class="tel-seccion" style="--k:3">${cobradoCard()}</div>
+      <div class="tel-seccion" style="--k:4">${movimientos(true, 4)}</div>
+      <div class="tel-seccion" style="--k:5">${historial(true)}</div>
+      <details class="card plegable tel-seccion" style="--k:6"><summary>Ritmo del turno <span class="flecha">${ic('chevron', 16)}</span></summary><div style="margin-top:10px">${ritmoCard()}</div></details>
     </div>${barraCaja()}`;
-  } else if (S.cel === 'pestanas') {
-    const t = S.tabTel;
-    const cont = t === 'hoy'
-      ? `${S.accesos === 'botones' ? `<div class="tel-seccion">${pendientes(true)}</div>` : ''}<div class="tel-seccion">${S.accesos === 'botones' ? accesosBotones(true) : accesosFiltros(true)}</div><div class="tel-seccion">${cobradoCard()}</div><div class="tel-seccion">${ritmoCard()}</div>`
-      : t === 'movs' ? `<div class="tel-seccion">${movimientos(true)}</div>` : `<div class="tel-seccion">${historial(true)}</div>`;
-    cuerpo = `${cabTel()}<div class="tel-cuerpo"><div class="tel-seccion">${heroe(true)}</div></div>
-      <div class="tabs-tel">${[['hoy', 'Hoy'], ['movs', 'Movimientos'], ['cierres', 'Cierres']].map(([k, l]) => `<button data-tabtel="${k}" aria-pressed="${t === k}">${l}</button>`).join('')}</div>
-      <div class="tel-cuerpo cascada" key="${t}">${cont}</div>${barraCaja()}`;
-  } else {
-    // Apilado: la pantalla de hoy en una columna, para comparar
-    const kpi = (e, v, c) => `<div class="card" style="border-left:3px solid ${c};padding:12px 14px"><div class="lbl" style="font-size:9.5px;color:var(--t65)">${e}</div><div class="disp tab" style="font-size:20px;margin-top:6px">${soles(v)}</div></div>`;
-    cuerpo = `${cabTel()}<div class="tel-cuerpo">
-      <div class="fila tel-seccion" style="gap:8px"><button class="btn btn-s" style="font-size:10px;padding:9px 10px">Registrar movimiento</button>${S.rol === 'lider' ? '<button class="btn btn-p" style="font-size:10px;padding:9px 10px">Cerrar caja</button>' : ''}</div>
-      <div class="card tel-seccion marca-hoy" data-marca="Ocupa media pantalla"><div class="reloj-grande tab">11:53<span style="font-size:22px;color:var(--rojo)">:08</span></div><div class="fila entre card-b" style="margin-top:8px"><span>Abrió 09:06 a. m.</span><span>Lleva 2 h 47 min</span></div></div>
-      <div class="tel-seccion marca-hoy" data-marca="5 cifras del mismo peso" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:26px">${kpi('Apertura', D.apertura, 'var(--taupe)')}${kpi('Ventas efectivo', D.ventasEf, 'var(--m-efectivo)')}${kpi('Otro método', 218, 'var(--taupe)')}${kpi('Entradas', 0, 'var(--verde)')}${kpi('Salidas', 25, 'var(--rojo)')}</div>
-      <div class="card tel-seccion marca-hoy" data-marca="Dona" style="height:260px"><div class="card-t">Métodos de pago</div><div style="width:150px;height:150px;border-radius:50%;margin:24px auto 0;background:conic-gradient(var(--m-efectivo) 0 43%,var(--m-tarjeta) 0 71%,var(--m-yape) 0 87%,var(--taupe) 0);-webkit-mask:radial-gradient(circle,transparent 52%,#000 53%);mask:radial-gradient(circle,transparent 52%,#000 53%)"></div></div>
-      <div class="tel-seccion">${ritmoCard()}</div>
-      <div class="tel-seccion">${historial(true)}</div>
-      <div class="tel-seccion">${movimientos(true)}</div>
-    </div>`;
-  }
-  return `<div><p class="marco-titulo">Celular · 375 px · ${{ barra: 'barra fija', pestanas: 'pestañas', apilado: 'apilado, como hoy' }[S.cel]}</p>
+  return `<div><p class="marco-titulo">Celular · 375 px · barra fija</p>
     <div class="telefono"><div class="pantalla-tel tel" id="tel">
       <div class="tel-scroll"><div class="tel-status"><span>11:53</span><span>●●● 5G ▮</span></div>${cuerpo}</div>
       ${navApp()}
     </div></div></div>`;
 }
+
 
 /* ====================================================================
    MODAL · «¿Qué pasó con la plata?» (ADR-0136, variante hoja)
@@ -635,26 +644,15 @@ function cerrarModal(inmediato) {
 /* ====================================================================
    NOTA de la guía según lo elegido
    ==================================================================== */
-const NOTAS = {
-  accesos: {
-    botones: '<strong>A · Botones a la vista.</strong> Cinco accesos fijos bajo las cifras: todas ven lo mismo y nada se esconde. Es lo que más rápido se aprende, pero siempre ocupa una fila aunque la tienda no use Apartados.',
-    filtros: '<strong>B · Filtros a elegir.</strong> Cada colaboradora prende las tarjetas que usa (Pendientes, Apartados, Gastos, Cambios y devoluciones) y cada una trae su acción. Se recuerda en el aparato, como las píldoras de filtro del ERP. Deja la pantalla más limpia, pero una tarjeta apagada se olvida.',
-  },
-  cel: {
-    barra: '<strong>Celular · barra fija.</strong> Arriba el efectivo en el cajón, debajo lo pendiente y los accesos. Cobrar / Gasto / Movimiento / Cerrar (o Apartados si no cierra) quedan siempre al pulgar, sobre el menú del ERP. Los gráficos se pliegan.',
-    pestanas: '<strong>Celular · pestañas.</strong> El efectivo en el cajón no se mueve; debajo, «Hoy», «Movimientos» y «Cierres» parten la pantalla en tres cortas. Ordena mejor, pero un pendiente en otra pestaña no se ve.',
-    apilado: '<strong>Celular · apilado (lo de hoy).</strong> Solo para comparar: el reloj y las cinco cifras llenan la primera pantalla y el primer dato útil para cuadrar (cuánto hay en el cajón) no existe.',
-  },
-  hist: {
-    ultimo: '<strong>Historial · último cierre.</strong> Una línea: quién cerró, si cuadró y cuánto dejó. Es lo que muestran Odoo y Loyverse en el tablero del punto de venta; la lista completa vive en su propia página.',
-    semaforo: '<strong>Historial · semáforo de cuadre.</strong> Un cuadro por turno, con la diferencia escrita en él. Lo que importa de un cierre es si cuadró, no cuánto se vendió: así lo ponen Square y Shopify POS en su reporte de caja.',
-    tabla: '<strong>Historial · tabla de turnos.</strong> Los últimos 5 turnos como un cuaderno de caja: esperado, contado y resultado. Es el formato de Square («Cash drawer report») y de las sesiones de caja de Shopify POS.',
-    grafico: '<strong>Historial · gráfico corregido.</strong> El de hoy, con una barra por día (sin tres «mar 22»), en color neutro, y el punto de arriba dice si cuadró, con leyenda.',
-  },
-};
 function pintarNota() {
-  document.getElementById('nota').innerHTML = `<div style="display:grid;gap:6px"><p>${NOTAS.accesos[S.accesos]}</p><p>${NOTAS.cel[S.cel]}</p><p>${NOTAS.hist[S.hist]}</p></div>`;
+  const pred = MODOS_HIST.find(x => x.k === HIST_PRED[S.rol]).l;
+  document.getElementById('nota').innerHTML = `<div style="display:grid;gap:6px">
+    <p><strong>Accesos: botones y filtros juntos.</strong> Los <em>botones</em> son para <em>hacer</em> (Cobrar, Registrar gasto, Depósito o retiro, Cambio o devolución, Apartados). Las <em>píldoras</em> son para <em>ver</em>: cada una prende una tarjeta (Pendientes, Apartados, Gastos, Cambios y devoluciones). Vienen prendidas Pendientes y Apartados. Una píldora apagada que tiene algo por atender se marca en ámbar para que no se olvide.</p>
+    <p><strong>Celular: barra fija.</strong> Cobrar, Gasto y Movimiento van siempre al pulgar, más Cerrar si quien mira es líder, o Apartados si no lo es. En la pantalla solo quedan los botones que no están en la barra.</p>
+    <p><strong>Cierres anteriores: una tarjeta con cuatro vistas.</strong> Se cambia en la misma tarjeta. La vista predeterminada depende de quién mira: <b>Último cierre</b> para la colaboradora (cómo recibió la caja) y <b>Semáforo</b> para el líder (el patrón de descuadres). Ahora está como <b>${S.rol === 'lider' ? 'líder' : 'colaboradora'}</b>, así que la predeterminada es <b>${pred}</b> (punto rojo). Tabla y Gráfico se abren a todo el ancho en la computadora.</p>
+  </div>`;
 }
+
 
 /* ====================================================================
    Pintar y eventos
@@ -675,8 +673,10 @@ document.addEventListener('click', ev => {
   if (f) { const k = f.dataset.filtro; S.filtros.has(k) ? S.filtros.delete(k) : S.filtros.add(k); pintar(); return; }
   const m = ev.target.closest('[data-mov]');
   if (m) { S.filtroMov = m.dataset.mov; pintar(); return; }
-  const t = ev.target.closest('[data-tabtel]');
-  if (t) { S.tabTel = t.dataset.tabtel; pintar(); return; }
+  const h = ev.target.closest('[data-hist]');
+  if (h) { S.hist[S.rol] = h.dataset.hist; pintar(); return; }
+  if (ev.target.closest('[data-hist-reset]')) { delete S.hist[S.rol]; pintar(); return; }
+  if (ev.target.closest('[data-filtros-reset]')) { S.filtros = new Set(FILTROS_PRED); pintar(); return; }
   const o = ev.target.closest('[data-opc]');
   if (o) { elegido = o.dataset.opc; pintarModal(); return; }
   if (ev.target.closest('[data-cerrar]') || ev.target.id === 'velo') { cerrarModal(); return; }

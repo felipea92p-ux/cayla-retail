@@ -13,7 +13,25 @@ en vivo y la nota bajo ella explica la que está elegida.
   por elegir **cómo se muestran**: variante A (botones a la vista) o B (filtros a elegir).
 - Celular e historial: pidió ver las variantes antes de decidir.
 
-## Qué cambia y por qué
+## Versión 2 (2026-09-26, lo que eligió Felipe)
+
+El spike ya no muestra variantes para comparar: dibuja lo elegido. En la barra negra solo quedan Pantalla y Quién mira.
+
+- **Accesos: botones y filtros juntos.** «Hacer»: Cobrar, Registrar gasto, Depósito o retiro, Cambio o devolución y
+  Apartados. «Tu caja muestra»: píldoras que prenden tarjetas (Pendientes, Apartados, Gastos, Cambios y devoluciones).
+  **Predeterminado: Pendientes y Apartados**, que es lo que pide acción. Una píldora apagada con algo por atender se
+  marca en ámbar, y «Volver a lo predeterminado» restaura la elección. Las tarjetas ya no repiten los botones de arriba:
+  solo traen «Ver en…».
+- **Celular: barra fija.** Cobrar / Gasto / Movimiento / Cerrar (o Apartados si quien mira no cierra). En la pantalla
+  solo quedan los botones que no están en la barra.
+- **Cierres anteriores: una tarjeta con cuatro vistas** (Último cierre, Semáforo, Tabla de turnos, Gráfico), que se
+  cambian en la misma tarjeta. **Predeterminada según quién mira: Último cierre para la colaboradora** (cómo recibió la
+  caja) **y Semáforo para el líder** (el patrón de descuadres). Se marca con un punto rojo. La elección se recuerda en el
+  aparato y «Volver a la predeterminada» la deshace. Tabla y Gráfico ocupan todo el ancho en la computadora.
+- «Registrar movimiento» sale de la cabecera: lo reemplazan los botones «Registrar gasto» y «Depósito o retiro», que
+  abren el mismo «¿Qué pasó con la plata?».
+
+## Qué cambia y por qué (versión 1)
 
 | Idea | Problema de hoy | Dónde se portaría |
 |---|---|---|
