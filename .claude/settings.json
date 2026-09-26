@@ -1,27 +1,5 @@
 {
   "enabledPlugins": {
     "agent-skills@addy-agent-skills": true
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash|Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "C:/Users/danyj/AppData/Local/Programs/Python/Python312/Scripts/graphify.EXE hook-guard search"
-          }
-        ]
-      },
-      {
-        "matcher": "Read|Glob",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "C:/Users/danyj/AppData/Local/Programs/Python/Python312/Scripts/graphify.EXE hook-guard read"
-          }
-        ]
-      }
-    ]
   }
 }

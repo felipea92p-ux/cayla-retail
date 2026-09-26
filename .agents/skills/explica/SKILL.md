@@ -3,7 +3,7 @@ name: explica
 description: Explicación profunda (Nivel 3 del protocolo de docencia) de un concepto, decisión o archivo del ERP CAYLA. Úsala cuando Felipe pida entender a fondo algo ya construido, o antes de cerrar un módulo.
 ---
 
-Aplica el Nivel 3 del protocolo de docencia de `AGENTS.md` sobre: $ARGUMENTS
+Aplica el Nivel 3 del protocolo de docencia de `CLAUDE.md` sobre: $ARGUMENTS
 
 Estructura fija:
 

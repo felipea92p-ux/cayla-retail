@@ -7,7 +7,7 @@ description: Audita el repo real de cayla-retail y reconstruye o actualiza /docs
    `apps/web/components`, `packages/*`. No asumas nada del backlog anterior sin
    confirmarlo contra el código.
 2. Compara contra lo que ya está commiteado (`git log`) y lo que sigue pendiente según
-   `AGENTS.md` (principios, gap de Fase 2 financiera, etc.).
+   `CLAUDE.md` (principios, gap de Fase 2 financiera, etc.).
 3. Reescribe `/docs/BACKLOG.md` respetando el máximo de 3 ítems por cubo (🔨 Construir,
    🩹 Arreglar, ✨ Mejorar). Si hay un décimo ítem real, no lo agregues — es señal de
    que no se está cerrando lo anterior.

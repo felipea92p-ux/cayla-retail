@@ -117,6 +117,11 @@ describe("armarVariantesAjuste — stock y datos de la fila", () => {
     expect(v.sku).toBe("");
     expect(v.color).toBeNull();
   });
+
+  it("sin sku pero con código de etiqueta, muestra el código (así están 128 de 130 variantes en producción)", () => {
+    const [v] = armarVariantesAjuste([fila("1", "L", { sku: null, codigo: "POL-0004-VIO-L" })], PISO, ALMACEN);
+    expect(v.sku).toBe("POL-0004-VIO-L");
+  });
 });
 
 describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", () => {
