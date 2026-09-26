@@ -335,9 +335,9 @@ SQL del repo escribe hoy, con tildes, mayúsculas y espacios: `venta`, `merma`,
 `devolución a almacén`, `produccion`, `traslado`, `ajuste`,
 `Producción del taller`. (V1; hoy: los motivos `bajada a piso`, `bajada de almacén`
 y `devolución a almacén` no existen. Bajar o retirar del piso escribe una sola fila
-`traslado` con motivo `movimiento_interno`, que Movimientos rotula por su destino: «Bajada al
-piso» (desde «Reponer» o «Bajar prendas al piso», ADR-0208) o «Retiro del piso» (desde «Retirar del
-piso», bloque 2).)
+`traslado` con motivo `movimiento_interno`, que Movimientos rotula por su par de sububicaciones:
+«Bajada al piso» (almacén → piso: «Reponer» o «Bajar prendas al piso», ADR-0208) o «Retiro del
+piso» (piso → almacén: «Retirar del piso», bloque 2); otro par, «Movimiento interno».)
 Una lista cerrada en la base es una migración corta y
 cierra el agujero entero. **Decidido en espíritu, no construido.**
 

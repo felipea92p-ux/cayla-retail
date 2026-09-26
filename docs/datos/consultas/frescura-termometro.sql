@@ -322,6 +322,11 @@ group by 1,2;
 -- no por si alguna vez hubo bajada; 2) una bajada es un traslado con DESTINO el piso (así, un retiro del piso, que va
 -- del piso al almacén, no cuenta como bajada); 3) sale por tienda. Reconoce la bajada por el
 -- motivo 'movimiento_interno' (ver SOBRE LA BAJADA).
+-- Ojo desde «Retirar del piso» (bloque 2 de ADR-0208, 25-09): «por colgar» incluye también lo que se retiró del piso
+-- A PROPÓSITO (fin de temporada, cambio de exhibición), porque ni esta consulta ni Existencias tienen cómo distinguirlo
+-- hasta que exista la marca de «retirada de la venta» (decisión de Felipe, bloque 3). Y `dias_max_esperando` cuenta
+-- desde la primera llegada al almacén, no desde el retiro. Leer el conteo de «por colgar» como «ropa que nadie bajó»
+-- exagera en cuanto haya retiros; Movimientos los muestra como «Retiro del piso».
 -- Cuándo: Cada lunes, y para verificar el filtro «Por colgar» de Existencias (sus conteos tienen que cuadrar con «por colgar: nada colgado»).
 -- Hoy: 25-09, 22:18 UTC, TRU, 45 u. en el almacén, ninguna apartada:
 -- Hoy: - por colgar: 3 variantes y 8 u. del conteo del 22-09 (3,0 días esperando), más 6 variantes y 12 u. del ajuste de reposición del 25-09 (0,3 días);
@@ -372,7 +377,7 @@ group by 1, 2, 3 order by 1, 2, 3;
 -- 06.
 -- Comprueba que el stock sale entero del libro. Si alguna fila se descuadra, hay algo que escribe stock sin pasar por movimientos, y Frescura leería mal.
 -- Origen: VERBATIM de fase 1 (registro-y-relojes #20).
--- Cuándo: Cada lunes, y después de pegar cualquier migración que escriba stock (tareas 5 y 7).
+-- Cuándo: Cada lunes, y después de pegar cualquier migración que escriba stock (por ejemplo, el candado de mover_interno o la bajada declarada en la caja; equivalencias con los bloques de ADR-0208 en docs/BACKLOG.md).
 -- Hoy: 25-09, 21:53 UTC, TRU: almacén 45 = 45 según el libro y piso 158 = 158. 0 filas descuadradas y 0 negativas.
 -- ======================================================================
 with libro as (
@@ -595,7 +600,7 @@ WHERE v.es_prueba = false AND v.estado = 'completada';
 -- Origen: AJUSTADA de fase 1 (registro-y-relojes #25). Se agregaron la huella md5, fn_puede_analizar() y prosecdef, y a la lista se sumaron fn_es_traslado_interno, fn_resumen_variantes y mover_interno.
 -- Revisión del 25-09: se agregó `delega_en_libro_unico`, porque `version_rama_paralela` no distingue el libro
 -- único de la versión 010700.
--- Cuándo: Antes y después de pegar las migraciones de las tareas 5, 8, 9 y 11, y una vez al mes.
+-- Cuándo: Antes y después de pegar una migración que toque mover_interno o las lecturas de Frescura (el candado de mover_interno, la fecha de arranque por sede, el bloque 3 de ADR-0208), y una vez al mes. Equivalencias entre las «tareas» del plan y los bloques: docs/BACKLOG.md.
 -- Hoy: 25-09, 21:55 UTC, y otra vez a las 22:19 UTC con la columna nueva (las cinco huellas que fase 1 anotó a las 16:1x UTC siguen iguales):
 -- Hoy: - fn_resumen_comparacion: md5 a126d7c8…; delega en el libro único (delega_en_libro_unico = true), usa fn_es_venta_de_stock y abre a Análisis (el #405 ya está pegado);
 -- Hoy: - fn_ledger_puntos: md5 64d71eea…; usa fn_es_venta_de_stock (es el libro único: no se llama a sí misma, así que su delega_en_libro_unico sale false);
