@@ -381,6 +381,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
+- `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
+  `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
+  `MarcasLista.tsx` (buscador por marca o proveedor, `lib/marcas.ts:filtrarMarcas`) + `EditarMarcaModal.tsx`
+  (RPC `editar_marca`, `20260926150000`: nombre + sumar/quitar proveedores + registrar uno nuevo, todo o nada;
+  reglas puras `problemaEdicionMarca`/`borradorCambia`). Crear: `NuevaMarcaForm` → `crear_marca`. Desactivar: UPDATE
+  directo a `marcas` (policy + trigger `fn_marcas_desactivar_candado`).
+
 - `/productos/nuevo` → `NuevoProductoForm.tsx` en 5 pasos (reglas puras en `lib/alta-producto.ts`, contexto en
   `lib/alta-producto-datos.ts`; la tienda del stock sale de la sede activa y `lib/sububicaciones.ts`). Guarda con UNA
   RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin

@@ -709,3 +709,11 @@ jobs:
       - name: pruebas:venta-contrato-ampliado
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:venta-contrato-ampliado
+
+      # Catálogo ▸ Marcas ▸ Editar (20260926150000): nombre y proveedores todo o nada; un proveedor con productos (también
+      # descontinuados) no se quita y el nombre del mismo guardado no cambia; una marca activa nunca queda sin proveedor;
+      # el proveedor nuevo se registra en el mismo paso y no queda huérfano si el guardado falla; dos ediciones de la
+      # misma marca no se pisan (sumar/quitar, no la lista final). Cada caso termina en ROLLBACK.
+      - name: pruebas:editar-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:editar-marca

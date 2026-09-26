@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  borradorCambia,
   buscarMarcaProveedor,
   contarParejasPorCategoria,
+  filtrarMarcas,
+  problemaEdicionMarca,
+  type BorradorMarca,
+  type ParejaDeMarca,
   contarProductosPorProveedor,
   marcaAutomatica,
   marcasParecidas,
@@ -124,6 +129,65 @@ describe("A quién pedirle: productos por reponer, por proveedor", () => {
   it("una fila sin proveedor (la base aún sin el SQL de proveedores) no tiene a quién pedirle: se salta, no rompe", () => {
     const sinProveedor = { producto_id: "p9" } as unknown as Parameters<typeof contarProductosPorProveedor>[0][number];
     expect(contarProductosPorProveedor([sinProveedor, f("p1", "a", "Ámbar")])).toEqual([{ proveedorId: "a", proveedor: "Ámbar", productos: 1 }]);
+  });
+});
+
+describe("Catálogo ▸ Marcas: buscar", () => {
+  const filas = [
+    { nombre: "Amuza", proveedores: [{ nombre: "Amuza Peru EIRL" }] },
+    { nombre: "3.20 Store", proveedores: [{ nombre: "M & J Saavedra Inversiones SAC" }] },
+    { nombre: "Ángelys", proveedores: [{ nombre: "Creaciones Angelys" }, { nombre: "Distribuidora Ámbar" }] },
+  ];
+  it("sin texto, todas", () => {
+    expect(filtrarMarcas(filas, "  ")).toHaveLength(3);
+  });
+  it("por la marca, sin tildes ni mayúsculas", () => {
+    expect(filtrarMarcas(filas, "ANGEL").map((f) => f.nombre)).toEqual(["Ángelys"]);
+  });
+  it("por quien la trae: «saavedra» encuentra 3.20 Store", () => {
+    expect(filtrarMarcas(filas, "saavedra").map((f) => f.nombre)).toEqual(["3.20 Store"]);
+  });
+  it("por cualquiera de sus proveedores, no solo el primero", () => {
+    expect(filtrarMarcas(filas, "ambar").map((f) => f.nombre)).toEqual(["Ángelys"]);
+  });
+  it("nada coincide, nada", () => {
+    expect(filtrarMarcas(filas, "zara")).toEqual([]);
+  });
+});
+
+describe("Catálogo ▸ Marcas: editar", () => {
+  const actuales: ParejaDeMarca[] = [
+    { id: "p-a", nombre: "Textiles Andina", productosTotal: 0 },
+    { id: "p-b", nombre: "Confecciones Beta", productosTotal: 3 },
+  ];
+  const b = (x: Partial<BorradorMarca>): BorradorMarca => ({ nombre: "Lirio", quitar: [], sumar: [], nuevos: [], ...x });
+
+  it("sin nombre no se guarda", () => {
+    expect(problemaEdicionMarca(actuales, b({ nombre: "   " }))).toBe("Escribe el nombre de la marca.");
+  });
+  it("un proveedor con productos no se quita, y lo nombra", () => {
+    expect(problemaEdicionMarca(actuales, b({ quitar: ["p-b"] }))).toMatch(/^«Confecciones Beta» tiene productos/);
+  });
+  it("uno sin productos sí", () => {
+    expect(problemaEdicionMarca(actuales, b({ quitar: ["p-a"] }))).toBeNull();
+  });
+  it("la marca no se queda sin proveedor, pero cambiarlo en el mismo guardado vale", () => {
+    const una: ParejaDeMarca[] = [actuales[0]];
+    expect(problemaEdicionMarca(una, b({ quitar: ["p-a"] }))).toMatch(/al menos un proveedor/);
+    expect(problemaEdicionMarca(una, b({ quitar: ["p-a"], sumar: ["p-c"] }))).toBeNull();
+    expect(problemaEdicionMarca(una, b({ quitar: ["p-a"], nuevos: [{ nombre: "Tejidos Norte", ruc: "" }] }))).toBeNull();
+  });
+  it("un proveedor nuevo necesita nombre", () => {
+    expect(problemaEdicionMarca(actuales, b({ nuevos: [{ nombre: " ", ruc: "" }] }))).toBe("Escribe el nombre del proveedor nuevo.");
+  });
+  it("el RUC de un proveedor nuevo: vacío u 11 dígitos", () => {
+    expect(problemaEdicionMarca(actuales, b({ nuevos: [{ nombre: "Tejidos Norte", ruc: "123" }] }))).toMatch(/^El RUC de «Tejidos Norte»/);
+    expect(problemaEdicionMarca(actuales, b({ nuevos: [{ nombre: "Tejidos Norte", ruc: "20123456789" }] }))).toBeNull();
+  });
+  it("sin cambios no hay nada que guardar; los espacios de más no son un cambio", () => {
+    expect(borradorCambia("Lirio Blanco", b({ nombre: " Lirio   Blanco " }))).toBe(false);
+    expect(borradorCambia("Lirio Blanco", b({ nombre: "Lirio Blanco", sumar: ["p-c"] }))).toBe(true);
+    expect(borradorCambia("Lirio Blanco", b({ nombre: "Lirio Rosa" }))).toBe(true);
   });
 });
 
