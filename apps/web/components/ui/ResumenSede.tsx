@@ -16,7 +16,16 @@ import { CifraAnimada } from "@/components/ui/CifraAnimada";
    cruzar a un componente de cliente; solo el número lo es.
    ==================================================================== */
 
-export type CifraResumen = { valor: number; formato?: "entero" | "soles"; etiqueta: string; icono: LucideIcon };
+export type CifraResumen = {
+  valor: number;
+  formato?: "entero" | "soles";
+  etiqueta: string;
+  icono: LucideIcon;
+  /** La cifra se puede tocar y lleva ahí (Devoluciones: «Por aprobar» → `#por-aprobar`). */
+  href?: string;
+  /** Pide atención (ámbar): hay algo esperando a alguien. Nunca rojo — el rojo es de lo urgente. */
+  alerta?: boolean;
+};
 
 export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly CifraResumen[] }) {
   return (
@@ -26,20 +35,39 @@ export function ResumenSede({ sede, cifras }: { sede: string; cifras: readonly C
       style={{ "--i": 1 } as CSSProperties}
     >
       <ul className="flex">
-        {cifras.map(({ valor, formato, etiqueta, icono: Icono }) => (
-          <li
-            key={etiqueta}
-            className="relative flex min-w-0 flex-1 flex-col items-center px-2 py-4 text-center before:absolute before:inset-y-5 before:left-0 before:w-px before:bg-gradient-to-b before:from-transparent before:via-tinta/20 before:to-transparent first:before:hidden sm:min-w-[9.5rem] sm:flex-none sm:px-7"
-          >
-            <span className="font-display lining-nums text-xl leading-none tabular-nums text-tinta sm:text-[42px]">
-              <CifraAnimada valor={valor} formato={formato} />
-            </span>
-            <span className="mt-2 flex items-center gap-1.5 text-xs text-tinta/70">
-              <Icono className="hidden h-3.5 w-3.5 shrink-0 text-taupe sm:block" aria-hidden />
-              {etiqueta}
-            </span>
-          </li>
-        ))}
+        {cifras.map(({ valor, formato, etiqueta, icono: Icono, href, alerta }) => {
+          const contenido = (
+            <>
+              {/* Con cuatro cifras, en el celular el número baja un punto y no se parte ("S/" arriba, el monto abajo). */}
+              <span
+                className={`font-display lining-nums whitespace-nowrap leading-none tabular-nums sm:text-[42px] ${cifras.length > 3 ? "text-[17px]" : "text-xl"} ${alerta ? "text-ambar-profundo" : "text-tinta"}`}
+              >
+                <CifraAnimada valor={valor} formato={formato} />
+              </span>
+              <span className={`mt-2 flex items-center gap-1.5 text-[11px] leading-tight sm:text-xs ${alerta ? "font-semibold text-ambar-profundo" : "text-tinta/70"}`}>
+                <Icono className={`hidden h-3.5 w-3.5 shrink-0 sm:block ${alerta ? "" : "text-taupe"}`} aria-hidden />
+                {etiqueta}
+              </span>
+            </>
+          );
+          return (
+            <li
+              key={etiqueta}
+              className={`relative flex min-w-0 flex-1 before:absolute before:inset-y-5 before:left-0 before:w-px before:bg-gradient-to-b before:from-transparent before:via-tinta/20 before:to-transparent first:before:hidden sm:flex-none ${cifras.length > 3 ? "sm:min-w-[7.5rem]" : "sm:min-w-[9.5rem]"}`}
+            >
+              {href ? (
+                <a
+                  href={href}
+                  className="m-1 flex flex-1 flex-col items-center rounded-2xl px-1 py-3 text-center transition-colors duration-200 hover:bg-hueso/70 focus-visible:bg-hueso/70 sm:px-4"
+                >
+                  {contenido}
+                </a>
+              ) : (
+                <span className={`flex flex-1 flex-col items-center px-2 py-4 text-center ${cifras.length > 3 ? "sm:px-4" : "sm:px-7"}`}>{contenido}</span>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

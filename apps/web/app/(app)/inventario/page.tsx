@@ -31,10 +31,11 @@ import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ubicacion?: string }>;
+  searchParams: Promise<{ ubicacion?: string; danados?: string }>;
 }) {
   const persona = await exigirModulo("existencias"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
-  const { ubicacion: ubicacionQuery } = await searchParams;
+  // `danados=1`: llegar desde el aviso de cuarentena de Devoluciones abre la cola de dañadas (ADR-0232).
+  const { ubicacion: ubicacionQuery, danados } = await searchParams;
   const ubicaciones = await getUbicaciones();
 
   const ubicacionActivaId =
@@ -147,7 +148,10 @@ export default async function InventarioPage({
         // cargó, y un reloj vivo encima haría creer que está al minuto.
         sinHora
         detalle={`vista de las ${horaCarga}`}
-        pie={
+        // A la derecha, donde la cabecera tenía espacio libre (Felipe, 2026-09-26): la fila de botones bajo la frase le
+        // sumaba 54 px de alto (medido a 1440) a una pantalla que se abre para mirar la tabla. «+ Nuevo traslado» va al
+        // final y queda en el borde aunque «Bajar al piso» no se muestre.
+        acciones={
           <>
             {puedeBajarAlPiso && (
               <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
@@ -174,6 +178,7 @@ export default async function InventarioPage({
         sububicacionPiso={sububicacionPiso}
         sububicacionAlmacen={sububicacionAlmacen}
         danadosPendientes={danadosPendientes}
+        abrirDanados={danados === "1"}
         apartados={apartados}
         esLider={persona.rol === "lider"}
         puedeAjustar={puede(persona, "ajustarInventario")}

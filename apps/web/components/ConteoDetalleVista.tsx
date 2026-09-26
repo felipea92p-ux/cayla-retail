@@ -64,23 +64,29 @@ export function ConteoDetalleVista({
           </>
         }
         subtitulo={`${alcance} · ${quien}`}
+        // La vuelta y el resultado se quedan bajo la frase; «Seguir contando» es lo que se hace desde aquí y va a la
+        // derecha, como las acciones de Existencias y Traslados (ADR-0220, actualización).
         pie={
           <>
             <Link href={volverA ?? "/inventario/conteo"} className="btn-cayla btn-secundario">
               {volverA ? "← Movimientos" : "← Conteos"}
             </Link>
-            {abierto ? (
-              <Link href="/inventario/conteo#contar" className="btn-cayla btn-primario">
-                Seguir contando
-              </Link>
-            ) : resultado === "vacio" ? (
-              <Chip tono="neutro">Vacío</Chip>
-            ) : (
-              <Chip tono={resultado === "sin_diferencias" ? "verde" : "rojo"}>
-                {resultado === "sin_diferencias" ? "Sin diferencias" : `${conDiferencia.length} con diferencia`}
-              </Chip>
-            )}
+            {!abierto &&
+              (resultado === "vacio" ? (
+                <Chip tono="neutro">Vacío</Chip>
+              ) : (
+                <Chip tono={resultado === "sin_diferencias" ? "verde" : "rojo"}>
+                  {resultado === "sin_diferencias" ? "Sin diferencias" : `${conDiferencia.length} con diferencia`}
+                </Chip>
+              ))}
           </>
+        }
+        acciones={
+          abierto && (
+            <Link href="/inventario/conteo#contar" className="btn-cayla btn-primario">
+              Seguir contando
+            </Link>
+          )
         }
       />
 

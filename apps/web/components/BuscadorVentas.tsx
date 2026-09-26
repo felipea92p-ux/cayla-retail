@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useState, type MutableRefObject, type ReactNode, type RefObject } from "react";
 import { ArrowRight, Loader2, ReceiptText, ScanLine, Search, X } from "lucide-react";
 import { Desplegable } from "@/components/ui/campos";
 
@@ -33,8 +33,10 @@ const CHIP_ACCION =
  * - Un solo campo entiende boleta ("B001-10"), DNI/RUC, nombre de la clienta, nombre de
  *   la prenda o su etiqueta — `clasificarBusqueda` decide cuál es cuál. El teléfono NO:
  *   ninguna tabla lo guarda, y el texto de ayuda no promete lo que no existe.
- * - "Escanear prenda" no abre una cámara: la pistola de CAYLA teclea el código y un
- *   Enter en el campo que tenga el foco. El botón deja el campo listo y lo dice.
+ * - "Escanear prenda": en la computadora la pistola de CAYLA teclea el código y un Enter en
+ *   el campo que tenga el foco, así que el botón deja el campo listo y lo dice. En el
+ *   teléfono (pantalla táctil), si la pantalla pasa `onCamara`, abre la cámara (Cambios,
+ *   spike 2026-09-26).
  * - "Buscar en" reemplaza al switch "Buscar en todas las sedes" y solo lo ve un líder:
  *   la RLS de ventas (`fn_puede_operar_ubicacion`) no deja a una integrante ver otras
  *   sedes — el switch le decía "no encontramos" aunque la boleta existiera.
@@ -49,6 +51,10 @@ export function BuscadorVentas({
   onBuscar,
   onLimpiar,
   onSinComprobante,
+  escanearRef,
+  escanearEnBarraMovil = false,
+  onCamara,
+  extra,
 }: {
   valorInicial: string;
   todasInicial: boolean;
@@ -59,6 +65,15 @@ export function BuscadorVentas({
   onBuscar: (texto: string, todas: boolean) => void;
   onLimpiar: () => void;
   onSinComprobante: () => void;
+  /** Deja «Escanear prenda» al alcance de otra pieza (la barra fija del celular en Devoluciones):
+   *  hace lo mismo que el chip, sin duplicar el estado del escaneo. */
+  escanearRef?: MutableRefObject<(() => void) | null>;
+  /** En el celular «Escanear prenda» ya está fijo abajo: el chip no se repite. */
+  escanearEnBarraMovil?: boolean;
+  /** Abre la cámara del teléfono. Sin esta prop (Devoluciones) el botón siempre prepara la pistola. */
+  onCamara?: () => void;
+  /** Un dato de contexto en la fila de los botones (Cambios: si la caja está abierta). */
+  extra?: ReactNode;
 }) {
   const [texto, setTexto] = useState(valorInicial);
   const [todas, setTodas] = useState(todasInicial);
@@ -73,10 +88,20 @@ export function BuscadorVentas({
   }
 
   function prepararEscaneo() {
+    // Un teléfono no tiene pistola: con pantalla táctil y cámara disponible, se lee con la cámara.
+    if (onCamara && window.matchMedia?.("(pointer: coarse)").matches) return onCamara();
     setEscaneando(true);
     setTexto("");
     campoRef.current?.focus();
   }
+
+  useEffect(() => {
+    if (!escanearRef) return;
+    escanearRef.current = prepararEscaneo;
+    return () => {
+      escanearRef.current = null;
+    };
+  });
 
   return (
     <form role="search" onSubmit={enviar} className="space-y-4">
@@ -137,7 +162,9 @@ export function BuscadorVentas({
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <button type="button" onClick={prepararEscaneo} className={CHIP_ACCION}>
+        {/* En el celular este chip repite un botón fijo de abajo (la cámara en Cambios, «Escanear prenda» en
+            Devoluciones): se esconde ahí. */}
+        <button type="button" onClick={prepararEscaneo} className={`${CHIP_ACCION} ${onCamara || escanearEnBarraMovil ? "max-sm:hidden" : ""}`}>
           <ScanLine className="h-4 w-4" aria-hidden />
           Escanear prenda
         </button>
@@ -146,6 +173,8 @@ export function BuscadorVentas({
           Sin comprobante
           <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </button>
+
+        {extra}
 
         {puedeVerTodas && (
           <div className="ml-auto flex items-center gap-2 text-sm text-tinta/70">

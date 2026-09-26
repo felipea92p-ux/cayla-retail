@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type RefObject } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Clock, Info, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -41,7 +41,6 @@ export function DevolucionesPendientes({
   esLider,
   cajaAbierta,
   ahora,
-  refTitulo,
   ubicacionId,
   sede,
 }: {
@@ -49,28 +48,26 @@ export function DevolucionesPendientes({
   esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
-  refTitulo: RefObject<HTMLHeadingElement | null>;
   /** La tienda de estas devoluciones: la lista de «De turno» del combo es la de aquí. */
   ubicacionId: string;
   sede: string;
 }) {
-  if (pendientes.length === 0) return null;
+  // El título y la bajada los pone la pestaña «Por aprobar» de DevolucionesPanel (2026-09-26): aquí
+  // solo la lista, o una nota si no hay ninguna (la pestaña se ve igual, vacía o no).
+  if (pendientes.length === 0) {
+    return (
+      <p className="nota-cayla flex items-start gap-2.5">
+        <Check className="mt-0.5 h-4 w-4 shrink-0 text-verde" aria-hidden />
+        <span>No hay devoluciones esperando. Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.</span>
+      </p>
+    );
+  }
   return (
-    <section aria-labelledby="por-aprobar" className="space-y-4">
-      <div>
-        <h2 id="por-aprobar" ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
-          Por aprobar <span className="text-tinta/70">({pendientes.length})</span>
-        </h2>
-        <p className="mt-0.5 text-sm text-tinta/70">
-          {esLider ? "Revisa cada una: al aprobarla se mueve el stock." : "Esperan que un líder las apruebe: hasta entonces el stock no cambia."}
-        </p>
-      </div>
-      <div className="space-y-3">
-        {pendientes.map((d) => (
-          <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
-        ))}
-      </div>
-    </section>
+    <div className="space-y-3">
+      {pendientes.map((d) => (
+        <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
+      ))}
+    </div>
   );
 }
 
