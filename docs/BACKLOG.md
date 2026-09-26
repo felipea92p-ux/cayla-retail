@@ -1000,6 +1000,14 @@ Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ve
 - [ ] **Regenerar `packages/database/src/types.ts` de verdad** con `supabase gen types --local` cuando el stack local (Docker) esté arriba — esta
       sesión lo editó a mano porque Docker no estaba disponible; conviene confirmar que calza exacto.
 
+## 🎯 Clientas: el club de CAYLA — decidido, sin construir (2026-09-26, D-92 a D-111)
+Acta: `docs/datos/DECISIONES-2026-09-26-clientas.md`. Rumbo: club con nombre y sin puntos; la clienta se identifica en caja con DNI o
+celular; avisos por el WhatsApp de la tienda con un botón; permiso con «responde SÍ»; éxito = % de identificadas que vuelven en 90 días.
+Punto de partida en producción (2026-09-26, solo lectura): 0 clientas, 0 de 7 ventas ligadas, 4 boletas con el DNI como texto suelto.
+- [ ] **Felipe:** confirmar las dos correcciones de la sección F del acta (ajuste de taller fuera; «clientas nuevas identificadas» fuera del top 3) y responder las propuestas de la sección G.
+- [ ] **Paso 1 · Caja:** «DNI o celular» + la pregunta del club + «es para regalo» en el Punto de venta; la venta queda ligada. Reemplaza el pendiente «La pantalla de captura del mostrador» de la ficha v1, arriba.
+- [ ] **Pasos 2 a 4** · ficha y lista (grupo propio del menú), permiso y avisos (con grupo testigo), medir — detalle en la sección H del acta.
+
 ## 🎯 Productos: las alertas de stock solo cuentan activas, «Stock total» y números que no mienten (2026-09-22, ADR-0151) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió la opción A y ordenó la #1 a la #4).
 - [x] **#1 Descontinuados fuera de «sin stock», «stock bajo», «para pedir» y «A quién pedirle»**, y marcados con un chip en la Grilla. Migración `20260922120000` (mismas firmas; el filtro y el contador cambian juntos, con o sin filtros: 18 combinaciones en la prueba). Además «stock bajo» y «sin stock» ya no se solapan, y pedir descontinuadas + alerta de stock explica por qué no hay nada.
