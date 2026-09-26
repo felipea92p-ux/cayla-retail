@@ -115,3 +115,29 @@ navegador, con la cuenta de líder en TRU:
 - al recargar, el borrador ofrece «1 prenda» y al continuar vuelven las dos.
 
 No se confirmó la bajada, para no dejar movimientos en la base local compartida.
+
+## Actualización 2026-09-26 (noche, 2) — la lista empieza por lo urgente, y el celular llega a la lista
+
+Tareas #5 y #6 del análisis `/pantalla` (`docs/pantallas/inventario.md`), ordenadas por Felipe.
+
+**#5 · Por dónde empezar.** Con el umbral de 4, en Lima local 33 de 33 tallas pedían reponer, y cada fila llevaba un
+botón negro: la señal no distinguía nada.
+- Sin texto en el buscador, la lista por prenda sale por urgencia: primero las prendas con tallas por colgar (la de más
+  tallas antes), después las que piden reponer, al final el resto. Es estable (`ordenarPorUrgencia`,
+  `urgenciaDePrenda` en `lib/existencias-prendas.ts`).
+- Con texto escrito, sigue mandando la relevancia de la búsqueda.
+- «Reponer N tallas» y el «Reponer» de «Por talla» pasan a **secundarios**. En la pantalla queda un solo botón negro,
+  «+ Nuevo traslado».
+- El umbral (4) no se tocó: sigue abierto en ADR-0231.
+
+**#6 · El celular llega a la lista.** A 375 px, la primera prenda empezaba a unos 1.900 px; ahora empieza a 764 px,
+medido con la cuenta de líder en TRU, local. Todo es solo por debajo de `sm`; la computadora no cambia.
+- Los cinco accesos de la cabecera van en UNA fila que se desliza de lado, sin barra visible. El ancho se topa al de la
+  pantalla, así que la página no se corre hacia los costados (medido: `scrollWidth` = 375).
+- Las cifras van de a dos por fila, compactas, sin la línea de detalle. Al tocarlas se abre lo mismo que antes.
+- Los combos de filtro se pliegan tras «Filtros · n» (n = cuántos están puestos). Se ven debajo de la fila de la
+  píldora (`order`), así que el botón no se mueve al abrirlos (ADR-0185). Medido: el botón queda en 682 px abierto o
+  cerrado.
+- Queda justo bajo el botón fijo «Escanear prenda», que tapa unos 90 px de abajo: se ve con un deslizamiento mínimo.
+  Lo que sigue ocupando la primera pantalla (la frase de la cabecera, el título «Prioridades de hoy» y sus dos enlaces)
+  se dejó a propósito.

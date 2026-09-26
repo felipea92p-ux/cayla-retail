@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: lo urgente primero y el celular llega a la lista — tareas #5 y #6)
+La lista por prenda empieza por lo que la clienta no ve (tallas por colgar), y los «Reponer» de fila dejan de ser botones negros. En el celular, la primera prenda subió de ~1.900 px a 764 px: accesos en una fila, cifras de a dos, filtros plegados. En computadora no cambió nada.
+Por qué así: con todas las tallas pidiendo reponer, diez botones iguales no dicen por dónde empezar; el orden sí. En el teléfono, la pantalla gastaba dos scrolls en botones y cifras antes de mostrar una sola prenda. Qué se rompería sin esto: en hora pico, la vendedora baja dos pantallas para encontrar lo que busca, o empieza a reponer por cualquier prenda.
+Felipe se lleva: **cuando todo es urgente, nada lo es.** La jerarquía (un solo primario, un orden) es lo que convierte una lista en una decisión.
+Sin resolver: el umbral de 4 (ADR-0231); la frase de la cabecera en el celular es común a Ventas e Inventario.
+
 ## 2026-09-26 (Existencias: una puerta, un candado; y «Ajustar» de una vez — ADR-0240)
 Felipe eligió la opción A: reponer, retirar y apartar piden su módulo, en la pantalla y en la base. Las funciones de siempre quedan internas porque otras las usan por dentro: recibir un traslado aparta sola la prenda de un pedido. «Ajustar» pasa a una sola transacción con marca: un corte ya no deja la mitad guardada y el reintento no duplica.
 Por qué así: con un candado dentro de `apartar_stock` se rompía recibir traslados para quien no tiene «Apartados»; la puerta nueva deja cada candado donde corresponde. Qué se rompería sin esto: cualquiera con Existencias movía y reservaba stock que su rol no le daba, y un ajuste cortado a mitad se podía duplicar.
