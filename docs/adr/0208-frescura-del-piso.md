@@ -922,8 +922,10 @@ fijas antes de empezar: no se toca la base de `mover_interno` (su token va apart
   a los 20 s sin respuesta la llamada se corta (`abortSignal`), se trata como corte de red y el modal se puede cerrar.
 - **«Reponer» y «Retirar del piso» salen solo en la sede activa.** Firman con el Responsable de la sede activa: si el
   líder miraba otra sede (`?ubicacion=`), el movimiento quedaba allá firmado por alguien de turno acá. Es la misma
-  condición que ya tenía «Bajar al piso». «Apartar» y «Ajustar», en la misma fila, tienen el mismo hueco y quedaron
-  fuera de esta revisión (cambian lo que ve el líder: PR aparte).
+  condición que ya tenía «Bajar al piso». La misma regla se extendió después (a pedido de Felipe, 2026-09-26) a todo
+  lo que escribe desde Existencias: «Apartar» y «Ajustar» en la fila, y «Liberar» (apartados) y resolver o liquidar
+  dañados en sus modales. Mirando otra sede, esas acciones no se ofrecen y una nota dice que se cambie la sede activa
+  en la cabecera. (Productos ya ajustaba siempre en la sede activa.)
 - **El aviso del retiro no promete de más.** Dice «libre» o «libres» (la cifra es neta de lo apartado, y la tabla
   muestra el piso físico) y termina en «Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve,
   solo al abrir el movimiento.», en vez de «dilo en la nota».

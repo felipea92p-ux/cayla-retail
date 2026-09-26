@@ -395,9 +395,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     burbuja del navegador), un corte de red da el mensaje honesto sin recargar la página, una respuesta que nunca llega
     deja el modal sin cerrar (Escape y «Cancelar» sin efecto) hasta el tope de 20 s y después se puede cerrar, el foco
     vuelve a quien abrió el modal, y a 375 px sale como hoja sin desplazamiento horizontal.
-  - [ ] Fuera del alcance de la revisión: «Apartar» y «Ajustar» tienen el mismo hueco de sede que tenía «Retirar»: un
-    líder que mira otra sede con `?ubicacion=` aparta o ajusta allá firmando con el Responsable de su sede activa. PR
-    aparte (cambia lo que ve el líder).
+  - [x] El mismo hueco de sede, cerrado en todo Existencias (Felipe, 2026-09-26): mirando otra sede con `?ubicacion=`,
+    «Apartar», «Ajustar», «Liberar» (apartados) y resolver o liquidar dañados ya no se ofrecen (firmaban con el
+    Responsable de la sede activa); una nota dice que se cambie la sede activa en la cabecera.
 - [ ] **Candado de `mover_interno` (entre el bloque 2 y el 3):** un token contra el doble envío, como el de
   `bajar_al_piso`, para «Reponer» y «Retirar del piso». Es la parte pendiente de la «tarea 5» del plan del termómetro.
   Va antes del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas filas, y un envío doble

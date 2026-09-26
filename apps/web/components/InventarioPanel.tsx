@@ -355,11 +355,14 @@ export function InventarioPanel({
   }
 
   const separaConSububicaciones = Boolean(resumen.separaPisoAlmacen && sububicacionPiso && sububicacionAlmacen);
-  // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
-  const puedeApartar = separaConSububicaciones;
-  // Firman con el Responsable de la sede ACTIVA: mirando otra (`?ubicacion=`) quedarían allá firmados por alguien de turno acá.
+  // Todo lo que escribe desde la fila firma con el Responsable de la sede ACTIVA: mirando otra (`?ubicacion=`) quedaría
+  // allá firmado por alguien de turno acá. Para operar otra sede, se cambia la sede activa en la cabecera.
   const sedeActiva = useSedeActiva();
-  const puedeReponer = separaConSububicaciones && sedeActiva?.ubicacionId === ubicacionId;
+  const enSedeActiva = sedeActiva?.ubicacionId === ubicacionId;
+  // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
+  const puedeApartar = separaConSububicaciones && enSedeActiva;
+  const puedeReponer = separaConSububicaciones && enSedeActiva;
+  const puedeAjustarAqui = puedeAjustar && enSedeActiva;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
   const porcentajePiso = resumen.total > 0 && resumen.piso !== null ? Math.round((resumen.piso / resumen.total) * 100) : null;
@@ -827,7 +830,7 @@ export function InventarioPanel({
                         </button>
                       )}
                       {/* D-13: ajustar stock fuera de una venta es del líder o de la terminal administrativa (candado real en `registrar_movimiento`, ADR-0160). */}
-                      {puedeAjustar && (
+                      {puedeAjustarAqui && (
                         <button
                           type="button"
                           onClick={() => setAjustando(f)}
@@ -929,7 +932,7 @@ export function InventarioPanel({
       )}
 
       {viendoDanados && (
-        <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} onClose={() => setViendoDanados(false)} />
+        <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} otraSede={!enSedeActiva} onClose={() => setViendoDanados(false)} />
       )}
 
       {apartando && sububicacionPiso && sububicacionAlmacen && (
@@ -942,7 +945,7 @@ export function InventarioPanel({
         />
       )}
 
-      {viendoApartados && <ApartadosModal apartados={apartados} onClose={() => setViendoApartados(false)} />}
+      {viendoApartados && <ApartadosModal apartados={apartados} otraSede={!enSedeActiva} onClose={() => setViendoApartados(false)} />}
 
       {viendoDisponible && <DisponibleTotalOverlay filas={filasSemana} esLider={esLider} onClose={() => setViendoDisponible(false)} />}
 
