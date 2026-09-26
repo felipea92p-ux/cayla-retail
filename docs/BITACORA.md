@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: pedir para una clienta, «tallas» y pruebas del panel — tareas #9, #10 y #11)
+«Dónde más hay» ahora deja pedir la talla a otra tienda para una clienta, con el mismo pedido de Apartados. La pantalla dice «tallas» en todas partes. Los permisos del detalle, las marcas y la bajada con borrador quedaron con prueba, y así aparecieron dos defectos que ya están arreglados.
+Por qué así: la #9 NO creó una tabla de solicitudes (lo que proponía el análisis), porque ADR-0242 D-7 ya había decidido una sola tabla de pedidos. Qué se rompería sin esto: la vendedora seguiría pidiendo por WhatsApp sin rastro, y un `&&` borrado podía volver a abrir «Reponer» a quien no tiene el módulo.
+Felipe se lleva: **escribir la prueba es la forma más barata de encontrar el defecto.** Las dos fallas de hoy no se vieron usando la pantalla; se vieron al escribir qué debía pasar.
+Sin resolver: la reposición sin clienta (Traslados, tanda 4).
+
 ## 2026-09-26 (Existencias: la letra chica cumple y las lecturas no tumban — tareas #7 y #8)
 Cinco promesas del detalle ahora se cumplen: etiquetas solo del color que se mira, «Reponer N tallas» abre una talla que se puede bajar, otra sede sin etiquetas ni historial equivocados, «Apartados» sin un número que no coincidía, y un aviso al pasar de 100 tallas. Además, la comparación de 7 días ya no tumba la pantalla, y lo que viene en camino no se corta en 1.000 filas.
 Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la cifra buena ya vive en su pantalla. El fallo de la comparación se probó forzándolo, no suponiéndolo. Qué se rompería sin esto: etiquetas de más en cada impresión, un botón que no lleva a la acción, y una tienda sin ver su stock porque falló un porcentaje.

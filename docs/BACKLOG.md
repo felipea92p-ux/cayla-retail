@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧵 Existencias: pedir para una clienta, «tallas» y pruebas del panel (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-9-10-11`
+Tareas #9, #10 y #11 del análisis `/pantalla` de Existencias.
+- [x] **#9.** «Pedir para una clienta» en «Dónde más hay». Usa el pedido para apartar de ADR-0233, el mismo modal de Apartados.
+- [x] **#10.** «Tallas» en vez de «variantes». La tarjeta distingue lo que pide reponer de lo que está por colgar.
+- [x] **#11.** Permisos del detalle, marcas, bajada con borrador y código repetido, con pruebas. Se arreglaron dos defectos: lo marcado se perdía con una bajada a medias, y un código repetido abría la primera prenda.
+- [ ] **Traslados, tanda 4 (ADR-0242 D-7):** pedir reposición SIN clienta. Necesita migración y la lista «Hoy te toca» (tanda 2). No se hizo aquí.
+- Cómo verificas: Existencias → una prenda → toca una talla que haya en otra tienda → «Pedir para una clienta» abre «Pedir a Tienda X para apartar».
+
 ## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
 Tareas #7 y #8 del análisis `/pantalla` de Existencias.
 - [x] **#7.**

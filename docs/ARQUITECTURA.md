@@ -255,7 +255,9 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   los dos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
   `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
   `AjustarInventarioModal.tsx` (RPC `ajustar_inventario` desde ADR-0240: todo el ajuste en una llamada, con marca, que por
-  dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»;
+  dentro usa `cargar_stock_inicial` y `registrar_movimiento`; «Apartar» va por `apartar_prenda`, que pide «Apartados»; «Pedir para una clienta» en «Dónde más hay» abre el
+  `PedirOtraSedeModal` de Apartados (RPC `pedir_prenda_para_apartar`, ADR-0233; tarea #9 del análisis); lo que decide cada
+  botón del detalle vive en `lib/existencias-permisos.ts`;
   desde 2026-09-25, ADR-0208, en una
   tienda que separa piso y almacén el Motivo no ofrece «Reposición» cuando la ubicación es Piso —`motivosAjusteDisponibles`
   y `NOTA_REPOSICION_CERRADA` de `lib/ajuste-reglas.ts`, con la nota que reserva su alto, ADR-0185— y la base lo
