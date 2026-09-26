@@ -2205,3 +2205,13 @@ body {
     .cascada-modal > form > :not([data-sin-cascada]) { animation: none; }
   }
 }
+
+/* Safari dibuja su botón de autollenado de CONTACTOS (una silueta de persona) dentro de los campos que le parecen de
+   nombre, aunque lleven `autoComplete="off"`: en «Prenda sin registrar» salía en Categoría y Color y se leía como un
+   ícono nuestro que no significaba nada (spike del Punto de venta, 2026-09-26). En un combo nunca se autollena un
+   contacto: se esconde solo ahí. */
+input[role="combobox"]::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  display: none !important;
+  pointer-events: none;
+}

@@ -110,3 +110,11 @@ export function sugerirDescripcion(categoria: string | null, color: string | nul
   if (!categoria || !color || !talla) return null;
   return `${categoria} · ${color} · Talla ${talla}`;
 }
+
+/** Deja solo un precio que se pueda escribir en «Precio cobrado»: dígitos y un punto (la coma del teclado del celular
+ *  cuenta como punto), con hasta dos decimales. Reemplaza al teclado de pantalla (spike del Punto de venta, 2026-09-26). */
+export function precioEscribible(texto: string): string {
+  const limpio = texto.replace(",", ".").replace(/[^0-9.]/g, "");
+  const [entero, ...resto] = limpio.split(".");
+  return resto.length === 0 ? entero : `${entero}.${resto.join("").slice(0, 2)}`;
+}

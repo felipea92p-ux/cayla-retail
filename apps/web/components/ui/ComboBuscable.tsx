@@ -155,6 +155,9 @@ export function ComboBuscable<T extends string>({
       else if (hayCrear && activo === mostradas.length) crearDesdeTexto();
     } else if (e.key === "Escape") {
       e.preventDefault();
+      // Este Escape cerró la lista: que no siga y cierre también el modal (useEscapeLibre.ts). Con la lista cerrada,
+      // el `return` de arriba lo deja pasar y el modal sí se cierra.
+      e.stopPropagation();
       cerrarSinElegir();
     } else if (e.key === "Tab") {
       // Tab elige lo resaltado si hay una sola coincidencia clara: es lo

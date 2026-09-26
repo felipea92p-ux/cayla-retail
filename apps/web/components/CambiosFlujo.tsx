@@ -23,17 +23,17 @@ import {
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
 } from "@/components/FlujoGuiado";
+import { CambioReemplazo } from "@/components/CambioReemplazo";
 import {
-  CambioReemplazo,
   agruparCatalogo,
   derivarReemplazo,
   opcionesDePrenda,
   seleccionInicial,
   type Seleccion,
   type VarianteCatalogo,
-} from "@/components/CambioReemplazo";
+} from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
-import { conStockAjustado } from "@/lib/vender-stock-local";
+import { conApartadoAjustado, conStockAjustado } from "@/lib/vender-stock-local";
 import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import {
   estadoPrendaVendida,
@@ -111,18 +111,29 @@ export function CambiosFlujo({
   // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `catalogoProp` es
   // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
   // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
+  // Lo apartado en el piso se corrige igual (`ajustesApartado`): con el stock al día pero lo apartado de la carga, una
+  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para una clienta».
   const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
   const [catalogoPropPrevio, setCatalogoPropPrevio] = useState(catalogoProp);
   if (catalogoProp !== catalogoPropPrevio) {
     setCatalogoPropPrevio(catalogoProp);
     setAjustesStock(new Map());
+    setAjustesApartado(new Map());
   }
-  const catalogo = useMemo(() => conStockAjustado(catalogoProp, ajustesStock), [catalogoProp, ajustesStock]);
+  const catalogo = useMemo(
+    () => conApartadoAjustado(conStockAjustado(catalogoProp, ajustesStock), ajustesApartado),
+    [catalogoProp, ajustesStock, ajustesApartado],
+  );
   useStockEnVivo(
     ubicacionId,
     useMemo(() => catalogoProp.map((v) => v.varianteId), [catalogoProp]),
     cajaAbierta,
-    (releido) => setAjustesStock((prev) => new Map([...prev, ...releido])),
+    // El almacén (2.º argumento) es de Vender: Cambios no ofrece lo del almacén, solo necesita lo apartado (3.º).
+    (releido, _almacen, apartado) => {
+      setAjustesStock((prev) => new Map([...prev, ...releido]));
+      setAjustesApartado((prev) => new Map([...prev, ...apartado]));
+    },
   );
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
@@ -159,7 +170,9 @@ export function CambiosFlujo({
           disponible: unidadesDisponibles(linea),
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
-          nueva: r.varianteNueva ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, otrasSedes: r.otrasSedes } : null,
+          nueva: r.varianteNueva
+            ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, apartadoAqui: r.varianteNueva.apartadoAqui, otrasSedes: r.otrasSedes }
+            : null,
           sede,
           diferencia: r.diferencia,
           metodo: seleccion.metodo,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { accesosInicio, colasInicio, mostrarHoy, nombreDiaLima, resumirHoy } from "./inicio-reglas";
+import { mostrarHoy, nombreDiaLima, resumirHoy } from "./inicio-reglas";
 
 describe("mostrarHoy", () => {
   it("solo las tiendas venden", () => {
@@ -9,7 +9,7 @@ describe("mostrarHoy", () => {
   });
 });
 
-describe("Inicio de una terminal que no vende (sin tipo: sus accesos salen de su ROL)", () => {
+describe("Inicio de una terminal que no vende (sin tipo: lo que ve sale de su ROL)", () => {
   const admin = {
     rol: "integrante",
     ubicacionTipo: "tienda",
@@ -22,21 +22,8 @@ describe("Inicio de una terminal que no vende (sin tipo: sus accesos salen de su
     expect(mostrarHoy({ ubicacionTipo: "tienda", terminal: false })).toBe(true);
   });
 
-  it("con el rol de la terminal administrativa: Inventario (principal), Recibir y Buscar — como antes", () => {
-    const a = accesosInicio(admin, null);
-    expect(a.map((x) => x.etiqueta)).toEqual(["Inventario", "Recibir", "Buscar"]);
-    expect(a.filter((x) => x.principal).map((x) => x.etiqueta)).toEqual(["Inventario"]);
-  });
 
-  it("nunca ofrece una puerta que su rol no ve: una terminal que solo ve Caja tiene Caja y Buscar", () => {
-    const a = accesosInicio({ rol: "integrante", ubicacionTipo: "tienda", terminal: true, modulos: ["caja"] }, null);
-    expect(a.map((x) => x.etiqueta)).toEqual(["Caja", "Buscar"]);
-    expect(a[0]!.principal).toBe(true);
-  });
 
-  it("una persona (`terminal: false`) conserva el Inicio de siempre", () => {
-    expect(accesosInicio({ rol: "integrante", ubicacionTipo: "tienda", terminal: false }, null).map((x) => x.etiqueta)).toEqual(["Vender", "Recibir", "Buscar"]);
-  });
 });
 
 describe("nombreDiaLima", () => {
@@ -74,72 +61,5 @@ describe("resumirHoy", () => {
   it("una meta en cero o ausente se trata como «sin meta»", () => {
     expect(resumirHoy([100], null, 0, "viernes").meta).toBeNull();
     expect(resumirHoy([100], null, null, "viernes").meta).toBeNull();
-  });
-});
-
-describe("colasInicio", () => {
-  it("una cola que no se pudo leer NO se dibuja como cero: lo dice", () => {
-    const c = colasInicio({ traslados: null })[0]!;
-    expect(c.cantidad).toBeNull();
-    expect(c.detalle).toMatch(/No se pudo leer/);
-  });
-  it("cero, uno y varios", () => {
-    expect(colasInicio({ traslados: 0 })[0]!.detalle).toBe("Nada pendiente.");
-    expect(colasInicio({ traslados: 1 })[0]!.detalle).toBe("1 espera tu confirmación.");
-    expect(colasInicio({ traslados: 2 })[0]!.detalle).toBe("2 esperan tu confirmación.");
-  });
-  it("prendas sin registrar vencidas (ADR-0179): solo aparece si se pasa (el líder), y dice el plazo", () => {
-    expect(colasInicio({ traslados: 0 }).map((c) => c.clave)).toEqual(["traslados"]);
-    const vencidas = (n: number | null) => colasInicio({ traslados: 0, prendasVencidas: n })[1]!;
-    expect(vencidas(0).detalle).toBe("Ninguna lleva más de 2 días sin regularizar.");
-    expect(vencidas(1).detalle).toBe("1 lleva más de 2 días sin regularizar.");
-    expect(vencidas(3).detalle).toBe("3 llevan más de 2 días sin regularizar.");
-    expect(vencidas(null).cantidad).toBeNull();
-    expect(vencidas(null).detalle).toMatch(/No se pudo leer/);
-    expect(vencidas(1).href).toBe("/recibir?vista=por-regularizar");
-  });
-  it("aperturas de caja con diferencia (ADR-0186): solo aparece si se pasa (el líder)", () => {
-    const aperturas = (n: number | null) => colasInicio({ traslados: 0, aperturas: n }).find((c) => c.clave === "aperturas")!;
-    expect(colasInicio({ traslados: 0 }).some((c) => c.clave === "aperturas")).toBe(false);
-    expect(aperturas(2).detalle).toBe("2 abrieron con un monto distinto del último cierre.");
-    expect(aperturas(null).cantidad).toBeNull();
-    expect(aperturas(1).href).toBe("/caja/historial");
-  });
-  it("comprobantes sin llegar a SUNAT (PL-114): solo si se pasa (el líder), y dice que ya no se reintenta solo", () => {
-    const atascados = (n: number | null) => colasInicio({ traslados: 0, comprobantesAtascados: n }).find((c) => c.clave === "comprobantes-atascados")!;
-    expect(colasInicio({ traslados: 0 }).some((c) => c.clave === "comprobantes-atascados")).toBe(false);
-    expect(atascados(0).detalle).toBe("Todos llegaron o se están reintentando solos.");
-    expect(atascados(2).detalle).toBe("2 llevan más de 4 horas sin llegar a SUNAT: ya no se reintenta solo.");
-    expect(atascados(null).cantidad).toBeNull();
-    expect(atascados(1).href).toBe("/vender/comprobantes/por-reintentar");
-  });
-});
-
-describe("accesosInicio", () => {
-  const nombres = (a: ReturnType<typeof accesosInicio>) => a.map((x) => x.etiqueta);
-  it("líder de tienda: Vender primero, Caja con su estado, Buscar", () => {
-    const a = accesosInicio({ rol: "lider", ubicacionTipo: "tienda" }, true);
-    expect(nombres(a)).toEqual(["Vender", "Caja", "Buscar"]);
-    expect(a[0]!.principal).toBe(true);
-    expect(a[1]!.detalle).toBe("Abierta");
-    expect(accesosInicio({ rol: "lider", ubicacionTipo: "tienda" }, false)[1]!.detalle).toMatch(/Cerrada/);
-    expect(accesosInicio({ rol: "lider", ubicacionTipo: "tienda" }, null)[1]!.detalle).toBe("Ver el estado de la caja");
-  });
-  it("colaboradora de tienda: Vender, Recibir, Buscar", () => {
-    expect(nombres(accesosInicio({ rol: "integrante", ubicacionTipo: "tienda" }, true))).toEqual(["Vender", "Recibir", "Buscar"]);
-  });
-  it("Taller: Producción primero y nada de Vender, aunque quien mire sea líder", () => {
-    const a = accesosInicio({ rol: "lider", ubicacionTipo: "taller" }, null);
-    expect(nombres(a)).toEqual(["Producción", "Recibir", "Buscar"]);
-    expect(nombres(a)).not.toContain("Vender");
-    expect(a[0]!.href).toBe("/produccion");
-  });
-  it("almacén: Recibir primero", () => {
-    expect(nombres(accesosInicio({ rol: "integrante", ubicacionTipo: "almacen" }, null))).toEqual(["Recibir", "Inventario", "Buscar"]);
-  });
-  it("siempre hay exactamente un acceso principal", () => {
-    for (const tipo of ["tienda", "almacen", "taller"] as const)
-      for (const rol of ["lider", "integrante"] as const)
-        expect(accesosInicio({ rol, ubicacionTipo: tipo }, null).filter((x) => x.principal)).toHaveLength(1);
   });
 });

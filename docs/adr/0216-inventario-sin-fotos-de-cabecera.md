@@ -49,3 +49,9 @@ Las 8 pantallas de Inventario usan `CabeceraPantalla`. Se borran el componente y
 - Alguien vuelve a poner una foto en una cabecera: el ADR-0169 y el comentario de `CabeceraPantalla` ya lo prohíben.
 - Se agrega una pantalla de Inventario con `sobretitulo` en JSX: `CabeceraPantalla` lo recibe como `string`; un
   migajero con enlaces se resuelve con una acción a la derecha, no ensanchando el tipo.
+
+## Actualización 2026-09-26 (tarde)
+
+La cabecera de Inventario ya no es `CabeceraPantalla`: pasó a `EncabezadoPagina`, la de Caja, Historial y Posventa
+(ADR-0220, pedido de Felipe). Lo que decidió este ADR sobre las fotos sigue en pie: ninguna cabecera lleva foto.
+«← Traslados» y «← Conteos» siguen siendo botones, ahora bajo la frase.

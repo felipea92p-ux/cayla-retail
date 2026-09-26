@@ -13,6 +13,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
 import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import {
   argsGuardarCuentas,
   avisoCuentasNoGuardadas,
@@ -243,6 +244,10 @@ export function ProveedorModal({
     const t = setTimeout(() => (alCerrar.current ?? onClose)(), reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [cerrando, onClose]);
+  // Escape cierra la hoja solo si ningún control de adentro lo usó (useEscapeLibre.ts); mientras guarda, no la cierra.
+  const alEscape = useEscapeLibre(() => {
+    if (fase !== "guardando") pedirCierre();
+  });
 
   // Los botones: los rubros del directorio y, al final, los elegidos que nadie más usa (el recién escrito).
   const opcionesRubro = opcionesDeRubro(rubros, rubrosElegidos);
@@ -340,6 +345,7 @@ export function ProveedorModal({
             en escritorio, como `<Modal>` (ADR-0185): centrada, cada cambio de alto movía el borde de arriba. */}
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]">
           <Dialog.Content
+            onEscapeKeyDown={alEscape}
             className={`pointer-events-auto flex max-h-[92dvh] w-full sm:max-h-[calc(100dvh-8vh-1.5rem)] max-w-[35rem] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel shadow-xl outline-none sm:rounded-2xl ${
               cerrando ? "anim-salida" : "anim-entrada"
             }`}
