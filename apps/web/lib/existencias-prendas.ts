@@ -169,7 +169,11 @@ function normalizarCodigo(c: string): string {
 export function tallaPorCodigo<F extends FilaPrenda>(filas: readonly F[], codigo: string): F | null {
   const buscado = normalizarCodigo(codigo);
   if (!buscado) return null;
-  return filas.find((f) => normalizarCodigo(f.sku) === buscado || f.codigosBarras.some((c) => normalizarCodigo(c) === buscado)) ?? null;
+  const coinciden = filas.filter((f) => normalizarCodigo(f.sku) === buscado || f.codigosBarras.some((c) => normalizarCodigo(c) === buscado));
+  // Un código repetido en dos tallas (un código de barras mal cargado) no abre NINGUNA (tarea #11): abrir la primera que
+  // aparece mostraba una prenda que quizá no es la de la etiqueta. Queda escrito en el buscador y la lista muestra las dos.
+  const distintas = new Set(coinciden.map((f) => f.varianteId));
+  return distintas.size === 1 ? coinciden[0] : null;
 }
 
 /** Cuán urgente es una prenda para el piso: 0 = tiene tallas por colgar (la clienta no las ve: piso libre en 0 y algo

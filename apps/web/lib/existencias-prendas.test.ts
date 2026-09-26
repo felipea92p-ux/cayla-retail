@@ -199,3 +199,16 @@ describe("tallaParaReponer (tarea #7): «Reponer N tallas» abre una talla que s
     expect(tallaParaReponer([sinAtras])).toBeNull();
   });
 });
+
+describe("tallaPorCodigo con un código repetido (tarea #11)", () => {
+  const a = fila({ varianteId: "a", codigosBarras: ["7750001"] });
+  const b = fila({ varianteId: "b", codigosBarras: ["7750001"] });
+  const c = fila({ varianteId: "c", codigosBarras: ["7750002"] });
+  it("un código que está en dos tallas no abre ninguna", () => {
+    expect(tallaPorCodigo([a, b, c], "7750001")).toBeNull();
+  });
+  it("un código único abre su talla, sin importar mayúsculas ni espacios", () => {
+    expect(tallaPorCodigo([a, b, c], " 7750002 ")?.varianteId).toBe("c");
+    expect(tallaPorCodigo([a, c], "CMS-a".toLowerCase())?.varianteId).toBe("a");
+  });
+});
