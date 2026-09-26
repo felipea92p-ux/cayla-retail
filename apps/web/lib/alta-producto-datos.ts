@@ -56,7 +56,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
-      supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("orden"),
+      supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden"),
       supabase
         .from("variantes")
         .select("id, color_codigo, created_at, producto:productos!inner ( categoria_id, referencia )")
@@ -132,6 +132,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       nombre: c.nombre,
       hex: c.hex,
       familiaColor: c.familia_color ?? "",
+      sinonimos: c.sinonimos ?? [],
     })),
     usoColores,
     costoSugerido,

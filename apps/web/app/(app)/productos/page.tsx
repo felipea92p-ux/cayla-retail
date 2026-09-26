@@ -220,7 +220,8 @@ function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProduc
   if (compacto) {
     return (
       <p className="mt-1 text-xs text-tinta/55">
-        {resumen.totalProductos.toLocaleString("es-PE")} productos · {resumen.totalVariantes.toLocaleString("es-PE")} variantes
+        {resumen.totalProductos.toLocaleString("es-PE")} {resumen.totalProductos === 1 ? "producto" : "productos"} ·{" "}
+        {resumen.totalVariantes.toLocaleString("es-PE")} {resumen.totalVariantes === 1 ? "variante" : "variantes"}
         {resumen.reponerDeProveedor > 0 && (
           <>
             {" · "}

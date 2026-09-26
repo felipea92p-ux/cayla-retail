@@ -751,7 +751,9 @@ export type Database = {
           nombre: string
           notas: string | null
           orden: number
+          pantone_tcx: string | null
           propuesto_por: string | null
+          sinonimos: string[]
           tipo: string
         }
         Insert: {
@@ -766,7 +768,9 @@ export type Database = {
           nombre: string
           notas?: string | null
           orden?: number
+          pantone_tcx?: string | null
           propuesto_por?: string | null
+          sinonimos?: string[]
           tipo?: string
         }
         Update: {
@@ -781,7 +785,9 @@ export type Database = {
           nombre?: string
           notas?: string | null
           orden?: number
+          pantone_tcx?: string | null
           propuesto_por?: string | null
+          sinonimos?: string[]
           tipo?: string
         }
         Relationships: []
@@ -6621,6 +6627,7 @@ export type Database = {
           p_nota?: string
           p_sububicacion_destino_id: string
           p_sububicacion_origen_id: string
+          p_token?: string
           p_ubicacion_id: string
           p_variante_id: string
         }

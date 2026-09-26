@@ -134,9 +134,10 @@ aprende es el circuito, no el cambio.**
 Agrega una columna a una tabla que no sea del núcleo — por ejemplo, un campo de
 notas en `proveedores` — y llévala de punta a punta:
 
-1. **Escribe la migración** en `supabase/migrations/`, con el número siguiente.
-   Sin el prefijo `retail.` (eso solo se agrega al pegar en producción, nunca en el
-   archivo del repo).
+1. **Escribe la migración** con `npx supabase migration new <nombre>`: nace con
+   timestamp, nunca con «el número siguiente» (ADR-0034). **Con el prefijo `retail.`** en
+   cada tabla, o `set search_path = retail, public, extensions;` al inicio: el Postgres
+   local vive en `retail` igual que producción, y ese mismo archivo es el que se pega.
 2. **Aplícala en local:** `npx supabase db reset`.
 3. **Regenera los tipos** y mira el diff. Si aparecen dos firmas de la misma función,
    algo salió mal — lee el paso 5 de la lista de `07-GOBIERNO.md`.

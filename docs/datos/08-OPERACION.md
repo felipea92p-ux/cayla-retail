@@ -170,14 +170,14 @@ mano — que es empezar la misma deuda otra vez con otro nombre.
 
 ```mermaid
 flowchart TD
-    A["1 · Escribo supabase/migrations/NNNN_nombre.sql<br/>SIN prefijo retail."] --> B["2 · npx supabase db reset<br/>contra el 54421"]
+    A["1 · Escribo supabase/migrations/timestamp_nombre.sql<br/>CON prefijo retail. o search_path"] --> B["2 · npx supabase db reset<br/>contra el 54421"]
     B --> C["3 · pnpm datos:comparar<br/>la pantalla contra la base real"]
-    C --> D["4 · Le antepongo<br/>set search_path to retail, public;"]
+    C --> D["4 · Confirmo que el archivo<br/>lleva retail. o search_path"]
     D --> E{{"5 · Felipe lo pega en el SQL Editor<br/>proyecto vovjyyiafkxteijimpuy<br/>SOLO Felipe · D-11"}}
     E --> F["6 · El archivo se registra solo<br/>insert into retail.migraciones_aplicadas"]
     F --> G["7 · La verificacion es un SELECT<br/>que devuelve una tabla, no un raise notice"]
     G --> H[("PRODUCCION")]
-    E -.->|"sin el paso 4"| X["ERROR 42P01<br/>relation ... does not exist<br/>la tabla SI existe:<br/>se esta mirando el cajon equivocado"]
+    E -.->|"sin el prefijo"| X["ERROR 42P01<br/>relation ... does not exist<br/>la tabla SI existe:<br/>se esta mirando el cajon equivocado"]
 ```
 
 ### Paso 4, el que más cuesta acordarse
@@ -198,11 +198,13 @@ Le pasó a la primera migración pegada después de la unificación (la `0030`, 
 2026-09-03) y costó un round-trip antes de corregirlo (`CLAUDE.md`, §"Cómo
 aplicar SQL a producción").
 
-La alternativa —escribir `retail.` delante de cada tabla— también funciona y es
-lo que hacen los 37 archivos de `supabase/unificacion/`. **El `search_path` es
-mejor para el camino que queda vivo** (§3): deja el archivo del repo intacto,
-sin prefijo, para que `npx supabase db reset` siga corriendo limpio en local.
-El prefijo se agrega **solo al pegar**, nunca en el archivo.
+La alternativa —escribir `retail.` delante de cada tabla— también funciona, y es
+lo que hace la mayoría de las migraciones. **Desde el corte V1→V2 (2026-09-12) el
+prefijo o el `search_path` va en el archivo del repo**, no se agrega al pegar: el
+Postgres local también vive en `retail`, así que el mismo archivo corre en local, en
+CI y en producción. *(Corregido el 2026-09-26: este párrafo decía lo contrario
+—«sin prefijo en el archivo, solo al pegar»—, que era el régimen anterior y ya rompió
+una migración, #345 → #346.)*
 
 **La segunda trampa del mismo prefijo, más barata pero igual de confusa:** si
 el `insert` de registro se pega sin `retail.`, no escribe en nuestra tabla —

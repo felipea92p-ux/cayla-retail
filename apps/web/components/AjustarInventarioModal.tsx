@@ -64,12 +64,13 @@ export function AjustarInventarioModal({
     // (20260917100500, ADR-0095), igual que en `getCatalogo`. El resultado se pasa SIN castear
     // a propósito: así `tsc` compara este select con `FilaAjuste` y avisa si vuelve a pedir
     // una columna que no existe (antes un `as unknown as` lo tapaba y solo fallaba en vivo).
-    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("sku")`
-    // solo fija el desempate para que la lista no baraje entre un refresco y otro.
+    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("codigo")`
+    // solo fija el desempate para que la lista no baraje entre un refresco y otro. Es el `codigo`, no
+    // el `sku`: el sku es NULL en casi todas las variantes (ADR-0058) y no desempataba nada.
     createClient()
       .from("variantes")
       .select(
-        `id, sku,
+        `id, sku, codigo,
          talla:tallas ( valor ),
          color:colores ( nombre ),
          producto:productos ( referencia ),
@@ -77,7 +78,7 @@ export function AjustarInventarioModal({
       )
       .eq("producto_id", productoId)
       .eq("stock.ubicacion_id", ubicacionId)
-      .order("sku")
+      .order("codigo")
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
@@ -134,7 +135,7 @@ export function AjustarInventarioModal({
     const fecha = new Date();
     descargarCsv(
       `ajuste-inventario_${referencia || "producto"}_${fecha.toISOString().slice(0, 10)}.csv`.replace(/\s+/g, "-"),
-      ["SKU", "Talla", "Color", "Stock actual", "Ajuste", "Stock resultante", "Motivo", "Observación"],
+      ["Código", "Talla", "Color", "Stock actual", "Ajuste", "Stock resultante", "Motivo", "Observación"],
       lineas.map((l) => [
         l.variante.sku,
         l.variante.talla ?? "—",
