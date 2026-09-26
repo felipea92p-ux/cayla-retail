@@ -28,6 +28,27 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
+Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
+- [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**
+  - Las migraciones del #496 ya están en producción, así que hoy una integrante que cargaba al piso una prenda nueva en su tienda recibía `bajada_sin_modulo` al confirmar.
+  - Ahora esas prendas entran al almacén y la fila lo dice antes de confirmar. Es la regla de ADR-0212, la misma de «Nuevo producto».
+  - Código: `cargaInicialAlPiso` y `textoPrendaNueva` en `lib/ajuste-reglas.ts`, y la prop `puedeBajarAlPiso` que le pasan Existencias y Productos (grilla y lista). La base no cambia.
+  - Prueba nueva: caso 7 en `scripts/pruebas/ajuste_no_es_primera_carga.mjs` (25/25).
+- [x] **#4 Lo marcado en Existencias llega a «Bajar al piso» «Por escanear», en 0.**
+  - Cada lectura lo llena, y confirmar sin escanear está apagado.
+  - Antes llegaba en 1 y se podía confirmar a ciegas: el piso del sistema dejaba de ser el piso real, del que descuenta la venta.
+  - El borrador conserva lo «por escanear».
+  - Código: `lineasIniciales` y `porEscanear` en `lib/bajada-reglas.ts`, y `BajarAlPisoForm.tsx`.
+- [ ] Ver las dos con la cuenta de **integrante** (con líder se vieron en el navegador; la integrante no pudo iniciar sesión en esta corrida).
+- [ ] Del análisis quedan abiertas, y las decide Felipe:
+  - #1 «Ajustar» todo-o-nada con token;
+  - #3 un solo candado por escritura (decidir A/B);
+  - #5 a #12.
+- Cómo verificas:
+  - **#2:** con la integrante en TRU, Existencias ▸ una prenda ▸ Ajustar ▸ «Piso de venta». En una talla nueva, la fila dice «entra al almacén: tu rol no baja prendas al piso», y al confirmar la prenda aparece en el almacén, sin error.
+  - **#4:** marca 2 prendas ▸ «Bajar al piso». Llegan «Por escanear» con el botón apagado; al escanear una, dice «Confirmar bajada · 1 prenda».
+
 ## 🕳️ Fotos: el recorte agujereado ya no se sugiere (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-control-huecos`
 - [x] `fraccionDeHuecos` mide la tela agujereada (huecos encerrados; el hueco entre las piernas no cuenta) y, sobre 0,5 %, la foto nace en «Con fondo» con aviso. Umbral medido con seis fotos (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %). 5 pruebas nuevas.
 - [x] Verificado en la ventana real: jean Levi's agujereado → «Con fondo» con aviso; camisa de estudio → «Sin fondo». `next build` compila; 77 960 pruebas en verde.
