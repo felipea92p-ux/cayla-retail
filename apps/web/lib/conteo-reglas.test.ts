@@ -1,12 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
   avanceEnVivo,
+  codigoDePrendaNueva,
+  codigosDeConteo,
+  coincidenciasPorCodigo,
   compararTallas,
   crearColaEnSerie,
+  pendientesConCodigo,
   pendientesEnAlcance,
   modoConteoValido,
   nuevaCantidad,
   pendientesSinCifras,
+  prioridadDesdeFila,
   resultadoConteo,
   tocar,
   ultimoConteoConPrendas,
@@ -206,5 +211,80 @@ describe("pendientesEnAlcance y avanceEnVivo", () => {
 
   it("sin nada que contar, 0 % y no NaN", () => {
     expect(avanceEnVivo(new Set(), [])).toMatchObject({ contadas: 0, total: 0, porcentaje: 0 });
+  });
+});
+
+// El código de la etiqueta (2026-09-26). En producción 128 de 130 variantes tienen `sku` NULL (ADR-0058) pero
+// `variantes.codigo` existe en 129: las pantallas del conteo que leían solo `sku` mostraban un hueco justo donde la
+// colaboradora busca qué talla y color es, y la caja de escanear no encontraba «POL-0004» aunque la prenda existiera.
+describe("prioridadDesdeFila", () => {
+  const fila = { variante_id: "v1", sku: null, referencia: "Polo Basic", talla: "L", color: "Violeta", sububicacion_id: "s1", dias_sin_contar: null, valor_en_riesgo: "120.5" };
+
+  it("una variante sin sku y con código en la etiqueta muestra el código", () => {
+    const p = prioridadDesdeFila(fila, { colorHex: "#6d3fa0", fotoUrl: null, codigo: "POL-0004-VIO-L" });
+    expect(p.sku).toBe("POL-0004-VIO-L");
+    expect(p.valorEnRiesgo).toBe(120.5);
+    expect(p.apariencia?.colorHex).toBe("#6d3fa0");
+  });
+
+  it("sin código pero con el sku legado que trajo la función, cae al sku", () => {
+    expect(prioridadDesdeFila({ ...fila, sku: "POL-BASIC-VIO-L" }, { colorHex: null, fotoUrl: null, codigo: "" }).sku).toBe("POL-BASIC-VIO-L");
+  });
+
+  it("si la lectura decorativa falló (sin apariencia), no inventa: sku de la función o vacío", () => {
+    expect(prioridadDesdeFila({ ...fila, sku: "POL-BASIC-VIO-L" }).sku).toBe("POL-BASIC-VIO-L");
+    expect(prioridadDesdeFila(fila).sku).toBe("");
+  });
+});
+
+describe("codigosDeConteo y coincidenciasPorCodigo", () => {
+  const sinSku = { varianteId: "v1", sku: "", codigo: "POL-0004-VIO-L", codigosBarras: ["POL-0004-VIO-L", "7750000000012"] };
+  const conSkuLegado = { varianteId: "v2", sku: "VES-SOFI-NEG-M", codigo: "VES-0002-NEG-M", codigosBarras: ["VES-0002-NEG-M"] };
+  const soloSku = { varianteId: "v3", sku: "LEGADO-1", codigo: null, codigosBarras: ["LEGADO-1"] };
+  const catalogo = [sinSku, conSkuLegado, soloSku].map((v) => ({ varianteId: v.varianteId, referencia: "x", ...codigosDeConteo(v) }));
+
+  it("una variante sin sku y con código: el campo `sku` es el código y se puede buscar por él", () => {
+    expect(catalogo[0].sku).toBe("POL-0004-VIO-L");
+    // Tecleado a medias: antes no encontraba nada y la pantalla ofrecía «Dar de alta esta prenda» para una que sí existía.
+    expect(coincidenciasPorCodigo("pol-0004", catalogo).map((v) => v.varianteId)).toEqual(["v1"]);
+  });
+
+  it("con sku y sin código cae al sku, y no lo duplica entre los códigos de barras", () => {
+    expect(catalogo[2].sku).toBe("LEGADO-1");
+    expect(catalogo[2].codigosBarras).toEqual(["LEGADO-1"]);
+  });
+
+  it("con código y con sku legado: se muestra el código, pero el sku de siempre sigue resolviendo al escanear", () => {
+    expect(catalogo[1].sku).toBe("VES-0002-NEG-M");
+    expect(catalogo[1].codigosBarras).toEqual(["VES-0002-NEG-M", "VES-SOFI-NEG-M"]);
+    expect(coincidenciasPorCodigo("ves-sofi-neg-m", catalogo).map((v) => v.varianteId)).toEqual(["v2"]);
+  });
+
+  it("el código de barras se acepta solo exacto; texto vacío no devuelve nada", () => {
+    expect(coincidenciasPorCodigo("7750000000012", catalogo).map((v) => v.varianteId)).toEqual(["v1"]);
+    expect(coincidenciasPorCodigo("775000", catalogo)).toEqual([]);
+    expect(coincidenciasPorCodigo("   ", catalogo)).toEqual([]);
+  });
+});
+
+describe("codigoDePrendaNueva y pendientesConCodigo", () => {
+  it("una prenda dada de alta al vuelo (nace sin sku) muestra el código de barras que se escaneó, no un hueco", () => {
+    expect(codigoDePrendaNueva({ sku: null, codigo_barras: "7750000000099" })).toBe("7750000000099");
+  });
+
+  it("si la base devuelve el código de la etiqueta, gana ese; el sku legado va detrás", () => {
+    expect(codigoDePrendaNueva({ sku: null, codigo: "POL-0009-NEG-M", codigo_barras: "7750000000099" })).toBe("POL-0009-NEG-M");
+    expect(codigoDePrendaNueva({ sku: "VIEJO-1", codigo: null, codigo_barras: "7750000000099" })).toBe("VIEJO-1");
+  });
+
+  it("«Faltan por contar» dice el código de la etiqueta del catálogo; sin él se queda el de la función", () => {
+    const pendientes = [
+      { varianteId: "a", sku: "7750000000001", referencia: "A", talla: "M", color: null },
+      { varianteId: "b", sku: "BLU-0002-NEG-S", referencia: "B", talla: "S", color: null },
+    ];
+    const r = pendientesConCodigo(pendientes, new Map([["a", "BLU-0001-NEG-M"]]));
+    expect(r.map((p) => p.sku)).toEqual(["BLU-0001-NEG-M", "BLU-0002-NEG-S"]);
+    // No toca el arreglo de entrada.
+    expect(pendientes[0].sku).toBe("7750000000001");
   });
 });

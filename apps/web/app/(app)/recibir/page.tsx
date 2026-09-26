@@ -23,6 +23,7 @@ import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { getPorRegularizar } from "@/lib/por-regularizar";
 import { PorRegularizarLista } from "@/components/PorRegularizarLista";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 
 // Recibir mercadería POR ENVÍO (ADR-0113). Es la puerta para todo lo que llega: un envío puede traer
 // comprobantes de varios proveedores, prendas fuera de comprobante (de un proveedor, con su regalo) y
@@ -263,7 +264,10 @@ export default async function RecibirPage({ searchParams }: { searchParams: Prom
             .filter((v) => v.activo)
             .map((v) => ({
               varianteId: v.varianteId,
-              sku: v.sku,
+              // El código de la etiqueta (`sku` es NULL en casi todas): es la llave con que el escáner y la sugerencia
+              // de texto de «Recibir» encuentran la prenda (`RecepcionEnvio`: `escanear(sugerencias[0].sku)`); con `""`
+              // escribir «blusa negra» + Enter no encontraba nada.
+              sku: codigoDeEtiqueta(v),
               talla: v.talla,
               color: v.color,
               productoId: v.productoId,

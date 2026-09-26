@@ -6,6 +6,7 @@ import { getResumenCompras } from "@/lib/compras";
 import { getMarcasPorProveedor, getProveedores } from "@/lib/proveedores";
 import { repartoDisponible } from "@/lib/compras-reparto";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { CompraFormV2 } from "@/components/CompraFormV2";
 
 // Registrar una factura de proveedor (ADR-0035). La página solo junta los
@@ -72,7 +73,9 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.varianteId,
-          sku: v.sku,
+          // El código de la etiqueta (`sku` es NULL en casi todas las variantes, ADR-0058): solo rotula la opción cuando la
+          // prenda no tiene talla ni color. Se elige por `varianteId`, nunca por esto.
+          sku: codigoDeEtiqueta(v),
           talla: v.talla,
           color: v.color,
           productoId: v.productoId,
