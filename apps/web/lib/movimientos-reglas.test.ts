@@ -743,8 +743,16 @@ describe("exportar a Excel", () => {
     expect(fila[13]).toBe("Sistema");
   });
 
-  it("el nombre del archivo lleva la sede y el día, sin tildes ni espacios", () => {
+  it("el nombre del archivo lleva la sede y el día, sin tildes ni espacios; si se recortó, lo dice", () => {
     expect(nombreArchivoMovimientos("Tienda Lima", "2026-09-26")).toBe("movimientos_tienda-lima_2026-09-26.csv");
     expect(nombreArchivoMovimientos("Tienda Pucallpa Ñaña", "2026-09-26")).toBe("movimientos_tienda-pucallpa-nana_2026-09-26.csv");
+    expect(nombreArchivoMovimientos("Tienda Lima", "2026-09-26", true)).toBe("movimientos_tienda-lima_2026-09-26_solo-los-mas-recientes.csv");
+  });
+
+  it("un texto que Excel leería como fórmula va con apóstrofo; las cifras quedan como números", () => {
+    const fila = filaCsvMovimiento(movimiento({ nota: "=HIPERVINCULO(\"x\")", referencia: "+Blusa", categoria: "ajuste", tipo: "ajuste", motivo: "merma", cantidad: -1, delta: -1 }));
+    expect(fila[3]).toBe("'+Blusa");
+    expect(fila[14]).toBe("'=HIPERVINCULO(\"x\")");
+    expect(fila[8]).toBe(-1);
   });
 });

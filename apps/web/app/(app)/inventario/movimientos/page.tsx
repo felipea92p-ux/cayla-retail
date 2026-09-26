@@ -1,4 +1,4 @@
-import { Info } from "lucide-react";
+import { Download, Info } from "lucide-react";
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -25,7 +25,6 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 import { FiltrosMovimientos } from "@/components/FiltrosMovimientos";
 import { MovimientosLista } from "@/components/MovimientosLista";
 import { MovimientosVacio } from "@/components/MovimientosVacio";
-import { ExportarMovimientos } from "@/components/ExportarMovimientos";
 import { PaginacionCursor } from "@/components/Paginacion";
 
 // Movimientos (2026-09-15): «por qué cambió el stock», con búsqueda, filtros,
@@ -90,7 +89,14 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sede={ubicacionActiva?.nombre ?? "—"}
         titulo="Movimientos"
         subtitulo="Qué entró y qué salió del stock de esta sede, quién lo hizo y por qué. No se edita ni se borra nunca."
-        pie={<ExportarMovimientos />}
+        pie={
+          // Una descarga directa con los mismos filtros de la pantalla (sin la página ni el detalle abierto), como
+          // Exportar de Historial: el archivo es exactamente lo que se ve, completo.
+          <a href={`/inventario/movimientos/exportar${cadenaExportar(params)}`} download className="btn-cayla btn-secundario inline-flex items-center gap-2">
+            <Download aria-hidden strokeWidth={1.5} className="h-4 w-4" />
+            Exportar a Excel
+          </a>
+        }
       />
 
       {resumen ? (
@@ -212,4 +218,12 @@ function CifraCorta({ etiqueta, valor, tono }: { etiqueta: string; valor: string
       <dd className={`font-display text-2xl leading-tight tabular-nums ${tono ?? "text-tinta"}`}>{valor}</dd>
     </div>
   );
+}
+
+/** Los filtros de la URL para el archivo: todos menos la página (`cursor`) y el detalle abierto (`mov`). */
+function cadenaExportar(params: ParamsMovimientos): string {
+  const p = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) if (typeof v === "string" && v && k !== "cursor" && k !== "mov") p.set(k, v);
+  const qs = p.toString();
+  return qs ? `?${qs}` : "";
 }

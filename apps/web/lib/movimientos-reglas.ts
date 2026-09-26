@@ -735,7 +735,13 @@ const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly strin
 
 /** Minúsculas, sin tildes y con un solo espacio entre palabras. */
 function normalizar(texto: string): string {
-  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+  return quitarTildes(texto).toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** «Devolución» → «Devolucion»: la forma descompuesta (NFD) sin sus marcas de acento (U+0300 a U+036F), como
+ *  `buscar-prenda-v2.ts`. */
+function quitarTildes(texto: string): string {
+  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "");
 }
 
 /** El filtro que nombra lo escrito, o null si lo escrito es una búsqueda de verdad (una prenda, «Traslado 24»). */
@@ -804,7 +810,8 @@ export function volverAMovimientos(valor: string | null | undefined): string | n
 // ---------------------------------------------------------------------------
 // Exportar a Excel (ADR-0234, decisión D3): el módulo promete «Consultar y exportar» en Roles y accesos. Un archivo CSV
 // (abre igual en Excel y en Sheets) con TODO lo filtrado, no solo la página: una fila por prenda, con el efecto sobre la
-// sede con signo, para que una suma en Excel dé lo que entró menos lo que salió.
+// sede con signo, para que una suma en Excel dé lo que entró menos lo que salió. Lo arma la ruta
+// `inventario/movimientos/exportar` (una descarga directa, como Exportar de Historial, ADR-0230).
 // ---------------------------------------------------------------------------
 
 export const ENCABEZADOS_CSV_MOVIMIENTOS = [
@@ -825,31 +832,40 @@ export const ENCABEZADOS_CSV_MOVIMIENTOS = [
   "Nota",
 ] as const;
 
+/** Un TEXTO que empieza con = + - @ Excel lo ejecuta como fórmula (una nota «=HIPERVINCULO(…)» sería un enlace armado
+ *  por cualquiera): se le antepone un apóstrofo, como hace Exportar de Historial. Las cifras van como números, sin tocar:
+ *  un «−1» tiene que poder sumarse. */
+function sinFormula(texto: string): string {
+  return /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
+}
+
 /** Una fila del archivo. «Efecto en la sede»: +5 entró, −1 salió, 0 se movió entre piso y almacén. */
 export function filaCsvMovimiento(m: Movimiento): (string | number)[] {
   const { origen, destino } = partesOrigenDestino(m);
   const efecto = m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado" ? 0 : m.delta;
+  const texto = (v: string | null | undefined) => sinFormula(v ?? "");
   return [
     fechaCorta(m.fecha),
     m.hora,
-    etiquetaConDireccion(m),
-    m.referencia,
-    m.sku,
-    m.talla ?? "",
-    m.color ?? "",
+    texto(etiquetaConDireccion(m)),
+    texto(m.referencia),
+    texto(m.sku),
+    texto(m.talla),
+    texto(m.color),
     Math.abs(m.cantidad),
     efecto,
-    origen,
-    destino ?? "",
-    m.sububicacion ? nombreCortoSububicacion(m.sububicacion) : "",
-    referenciaMovimiento(m)?.texto ?? "",
-    m.esSistema ? "Sistema" : (m.usuario ?? ""),
-    m.nota ?? "",
+    texto(origen),
+    texto(destino),
+    m.sububicacion ? texto(nombreCortoSububicacion(m.sububicacion)) : "",
+    texto(referenciaMovimiento(m)?.texto),
+    m.esSistema ? "Sistema" : texto(m.usuario),
+    texto(m.nota),
   ];
 }
 
-/** «movimientos_tienda-lima_2026-09-26.csv»: la sede y el día, sin tildes ni espacios (algunos celulares los rompen). */
-export function nombreArchivoMovimientos(sede: string, hoy: string): string {
-  const slug = sede.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  return `movimientos_${slug || "sede"}_${hoy}.csv`;
+/** «movimientos_tienda-lima_2026-09-26.csv»: la sede y el día, sin tildes ni espacios (algunos celulares los rompen). Si
+ *  el archivo no trae todo (pasó el tope), el nombre lo dice: nunca un archivo que parece completo y no lo es. */
+export function nombreArchivoMovimientos(sede: string, hoy: string, recortado = false): string {
+  const slug = quitarTildes(sede).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `movimientos_${slug || "sede"}_${hoy}${recortado ? "_solo-los-mas-recientes" : ""}.csv`;
 }
