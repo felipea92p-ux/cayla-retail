@@ -94,3 +94,17 @@ Verificación final de F1+F2: typecheck y `eslint` limpios en los ~39 archivos t
 (21 290 pruebas — la cifra bajó desde los 24 373 de F1 porque otra sesión, en paralelo en el mismo checkout,
 edita `lib/menu.ts`/`modulos.test.ts` para un feature de menú móvil no relacionado; nada de eso es de esta
 migración).
+
+## Actualización 2026-09-26 — lo que la migración no alcanzó
+
+**Actividad (ADR-0207), construida el mismo 2026-09-25 en otra rama, nació con `SelectNativo`**: en el panel de la
+cabecera se veía el hilo del campo dibujado DENTRO de la caja, otra flecha y la lista del sistema operativo. Sus cuatro
+combos pasan a `Desplegable forma="caja"`. Lo que eso destapó vale para cualquier combo: `Desplegable` muestra el
+marcador («Elegir») si su valor no está entre las opciones, así que **lo elegido tiene que estar siempre en la lista**
+(`opcionesDeModulo` y `opcionesDePersona` en `lib/actividad-reglas.ts`); el `<select>` nativo, en el mismo caso,
+mostraba la primera opción («Todas las personas») mientras filtraba por otra.
+
+Quedan `<select>` nativos que nacieron del 18 al 24 de setiembre y la migración no tocó: `DevolucionesPendientes.tsx`,
+`MediosDePago.tsx`, `apartados/ModalesApartado.tsx` y `finanzas/CampoCuenta.tsx` (además de las dos excepciones de
+arriba y de `SelectFin`, el control propio de Finanzas, ADR-0195). No hay prueba que vigile la regla; hasta que la haya,
+cada pantalla nueva puede volver a traer uno.
