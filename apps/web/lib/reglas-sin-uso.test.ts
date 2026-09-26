@@ -42,7 +42,6 @@ const SIN_USO_CONOCIDAS: ReadonlySet<string> = new Set([
   "lib/facturacion-resumen-reglas.ts: comparativoEnPorcentaje",
   "lib/facturacion-resumen-reglas.ts: comparativoEnCantidad",
   "lib/gastos-reglas.ts: nombreVer",
-  "lib/movimientos-reglas.ts: etiquetaConDireccion",
   "lib/por-pagar-consolidado-reglas.ts: ordenarPorVencimiento",
   "lib/recepciones-reglas.ts: resumenConteo",
   "lib/reparto-reglas.ts: textoTeToca",

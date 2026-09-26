@@ -7,6 +7,8 @@ import {
   etiquetaDelDia,
   inicioDelDiaLima,
   moduloDeRuta,
+  moduloInicialDelPanel,
+  MODULOS_SOLO_CONSULTA,
   opcionesDeModulo,
   opcionesDePersona,
   pieDeFila,
@@ -140,5 +142,19 @@ describe("la línea de debajo", () => {
       "10:00 · Tienda Lima → Tienda Trujillo",
     );
     expect(pieDeFila(fila({ detalle: { es_prueba: true } }), { conSede: false })).toBe("10:00 · prueba");
+  });
+});
+
+describe("desde una pantalla que solo consulta, el panel abre con todos los módulos (ADR-0232)", () => {
+  it("Movimientos no cambia nada: el panel no dice que «todavía no anota», muestra lo que pasó en la tienda", () => {
+    expect(moduloInicialDelPanel("movimientos")).toBeNull();
+  });
+  it("el resto abre en su propio módulo, anote o no todavía", () => {
+    expect(moduloInicialDelPanel("vender")).toBe("vender");
+    expect(moduloInicialDelPanel("traslados")).toBe("traslados");
+    expect(moduloInicialDelPanel(null)).toBeNull();
+  });
+  it("un módulo que solo consulta nunca está entre los que anotan", () => {
+    expect(MODULOS_SOLO_CONSULTA.filter((m) => MODULOS_CON_ACTIVIDAD.includes(m))).toEqual([]);
   });
 });

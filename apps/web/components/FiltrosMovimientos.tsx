@@ -13,8 +13,9 @@ import {
   PROCESOS_POR_CATEGORIA,
   categoriaDeProceso,
   etiquetaProceso,
-  type CategoriaMovimiento,
+  filtroDePalabra,
   type PeriodoMovimientos,
+  type ResumenTienda,
   type TokenSububicacion,
 } from "@/lib/movimientos-reglas";
 
@@ -22,6 +23,12 @@ import {
 // Compras: la página es un Server Component que filtra en Postgres, el enlace se puede
 // compartir («mirá lo que pasó con esta blusa»), y "atrás" vuelve al filtro anterior.
 // Cambiar un filtro borra el cursor de paginado.
+//
+// Las cifras de las píldoras son OPERACIONES (lo que se guardó de una sola vez, ADR-0232): lo mismo que se ve al tocar
+// cada una, porque la lista también agrupa por operación. Un traslado que llega cuenta en «Entradas» y en «Traslados».
+//
+// El buscador entiende el nombre de un proceso (ADR-0232): «venta», «traslado», «ajuste»… no buscan prendas —ninguna se
+// llama así—, así que se vuelven el filtro de ese tipo y el campo se vacía. «Traslado 24» sigue siendo una búsqueda.
 //
 // Orden (rediseño 2026-09-22, elegido por Felipe en la demo de
 // docs/maquetas/movimientos-rediseno-2026-09/): dos filas, como la guía oficial.
@@ -86,7 +93,7 @@ export function FiltrosMovimientos({
   periodo,
   desde,
   hasta,
-  conteos,
+  resumen,
 }: {
   /** Las de la ubicación que se mira. Si no tiene ninguna de las tres que se filtran (el Taller), el control no se muestra. */
   sububicaciones: Sububicacion[];
@@ -96,8 +103,9 @@ export function FiltrosMovimientos({
   /** Las fechas que rigen, para los campos de «Personalizado» (con un período rápido, el desde que aplicó la página). */
   desde: string;
   hasta: string;
-  /** Movimientos por tipo con los demás filtros puestos (no el tipo ni el proceso): la cifra de cada píldora. */
-  conteos: Record<CategoriaMovimiento, number>;
+  /** Las cifras con los demás filtros puestos (no el tipo ni el proceso): la de cada píldora de tipo y de proceso. Null si la
+   *  base no las pudo dar: las píldoras van sin cifra. */
+  resumen: ResumenTienda | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -127,13 +135,19 @@ export function FiltrosMovimientos({
   }
 
   // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
-  // sin una consulta por tecla.
+  // sin una consulta por tecla. Si lo escrito es el nombre de un proceso, se vuelve su filtro.
   useEffect(() => {
     if (primera.current) {
       primera.current = false;
       return;
     }
     const t = setTimeout(() => {
+      const filtro = filtroDePalabra(busqueda);
+      if (filtro) {
+        setBusqueda("");
+        aplicar({ q: "", cat: filtro.cat ?? "", proc: filtro.proc ?? "" });
+        return;
+      }
       if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() });
     }, 350);
     return () => clearTimeout(t);
@@ -142,7 +156,11 @@ export function FiltrosMovimientos({
 
   const subDisponibles = FILTROS_SUBUBICACION.filter((f) => sububicaciones.some((s) => s.tipo === f.tipo));
   const hayFiltros = !!(params.get("q") || cat || sub || proc || periodo !== String(DIAS_POR_DEFECTO));
-  const total = CATEGORIAS.reduce((acc, c) => acc + conteos[c], 0);
+  // Los procesos que se ofrecen bajo el tipo elegido: los que tuvieron algo en el período (en su orden), y el elegido
+  // aunque esté en cero. Sin cifras (la base no respondió), todos los del tipo.
+  const procesosDelTipo = cat
+    ? PROCESOS_POR_CATEGORIA[cat].filter((p) => !resumen || p === proc || resumen[cat].procesos.some((x) => x.proceso === p && x.operaciones > 0))
+    : [];
   // Un proceso que vive en dos tipos (cambio) llegado sin `?cat=`: no hay fila de procesos que
   // lo muestre, así que se dice en la línea de «Filtrando».
   const procesoSuelto = proc && !(cat && PROCESOS_POR_CATEGORIA[cat].includes(proc));
@@ -227,19 +245,25 @@ export function FiltrosMovimientos({
       {/* Fila 2: tipo (con su cifra) y, a la derecha, la sububicación. */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2.5">
         <div role="group" aria-label="Tipo" className={`${FILA_DESLIZA} min-w-0 sm:flex-1`}>
-          <Pastilla activa={cat === null} onClick={() => aplicar({ cat: "", proc: "" })} cuenta={total}>
+          <Pastilla activa={cat === null} onClick={() => aplicar({ cat: "", proc: "" })} cuenta={resumen?.todos.operaciones}>
             Todos
           </Pastilla>
           {FILTROS_TIPO.map((f) => (
-            <Pastilla key={f.valor} activa={cat === f.valor} onClick={() => aplicar({ cat: f.valor, proc: "" })} cuenta={conteos[f.valor]}>
+            <Pastilla key={f.valor} activa={cat === f.valor} onClick={() => aplicar({ cat: f.valor, proc: "" })} cuenta={resumen?.[f.valor].operaciones}>
               {f.etiqueta}
             </Pastilla>
           ))}
         </div>
 
         {subDisponibles.length > 0 && (
-          <div role="group" aria-label="Sububicación" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg bg-hueso p-[3px]">
-            {[{ token: null as TokenSububicacion | null, etiqueta: "Todo" }, ...subDisponibles].map((f) => {
+          // «Zona»: dónde está la prenda dentro de la tienda. Con rótulo: «Todo · Piso · Almacén · Cuarentena» solos no
+          // dicen qué se está eligiendo.
+          <div className="flex max-w-full shrink-0 items-center gap-2">
+            <span className="label-cayla text-[10px] font-bold text-taupe" aria-hidden>
+              Zona
+            </span>
+          <div role="group" aria-label="Zona de la tienda" className="inline-flex max-w-full shrink-0 gap-0.5 overflow-x-auto rounded-lg bg-hueso p-[3px]">
+            {[{ token: null as TokenSububicacion | null, etiqueta: "Todas" }, ...subDisponibles].map((f) => {
               const activa = sub === f.token;
               return (
                 <button
@@ -256,6 +280,7 @@ export function FiltrosMovimientos({
               );
             })}
           </div>
+          </div>
         )}
       </div>
 
@@ -269,7 +294,7 @@ export function FiltrosMovimientos({
             <Pastilla sutil activa={proc === null} onClick={() => aplicar({ proc: "" })}>
               Todos
             </Pastilla>
-            {PROCESOS_POR_CATEGORIA[cat].map((p) => (
+            {procesosDelTipo.map((p) => (
               <Pastilla key={p} sutil activa={proc === p} onClick={() => aplicar({ cat, proc: p })}>
                 {etiquetaProceso(p)}
               </Pastilla>
