@@ -246,9 +246,49 @@ export function textoDevolucion(a: Pick<Apartado, "devolucionMedio" | "devolucio
 export const formatoCelular = (c: string) => (c.length === 9 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6)}` : c);
 
 /** El mensaje de WhatsApp para recordarle a la clienta (se abre en wa.me: lo envía la persona, no el sistema). */
-export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceEl" | "saldo">, tienda: string): string {
-  const [y, m, d] = a.venceEl.split("-");
-  return `Hola ${a.nombres}, tu apartado ${a.codigo} te espera en CAYLA ${tienda} hasta el ${d}/${m}/${y}. Saldo por pagar: S/${a.saldo.toFixed(2)}.`;
+/** El recordatorio que se abre en WhatsApp. Con `hoy` y un apartado ya vencido, no le dice «te espera hasta» una fecha
+ *  pasada: le dice que venció y hasta cuándo se le sigue guardando (la gracia de D3, antes de liberarse solo). */
+export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceEl" | "saldo">, tienda: string, hoy?: string): string {
+  const ddmm = (iso: string) => {
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  };
+  const saldo = `Saldo por pagar: S/${a.saldo.toFixed(2)}.`;
+  if (hoy && a.venceEl < hoy) {
+    return `Hola ${a.nombres}, tu apartado ${a.codigo} en CAYLA ${tienda} venció el ${ddmm(a.venceEl)}. Aún te lo guardamos hasta el ${ddmm(sumarDiasIso(a.venceEl, GRACIA_DIAS))}. ${saldo}`;
+  }
+  return `Hola ${a.nombres}, tu apartado ${a.codigo} te espera en CAYLA ${tienda} hasta el ${ddmm(a.venceEl)}. ${saldo}`;
+}
+
+/** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
+export type AvisoApartado = { avisos: number; ultimoEn: string; ultimoPor: string | null };
+
+/** El día de Lima (`aaaa-mm-dd`) de un instante: «hoy» se cuenta en la hora de la tienda, no en la del servidor. */
+export function diaLima(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+}
+
+export function avisadaHoy(aviso: AvisoApartado | undefined, hoy: string): boolean {
+  return !!aviso && diaLima(aviso.ultimoEn) === hoy;
+}
+
+/**
+ * Recordar en lote (Apartados v2, paso 1): a quién hay que escribirle HOY. Entra todo apartado abierto que vence en 2
+ * días o menos, o que ya venció y sigue en su gracia; primero el que vence antes. Quien ya recibió un aviso hoy pasa a
+ * `avisadasHoy` (mañana vuelve a la cola si sigue abierto: un aviso por día, no uno para siempre).
+ */
+export function colaPorAvisar(
+  apartados: readonly Apartado[],
+  avisos: Readonly<Record<string, AvisoApartado>>,
+  hoy: string,
+): { porAvisar: Apartado[]; avisadasHoy: Apartado[] } {
+  const toca = apartados
+    .filter((a) => a.estado === "abierta" && ["porvencer", "vencida"].includes(estadoVisible(a, hoy).clave))
+    .sort((x, y) => x.venceEl.localeCompare(y.venceEl) || x.codigo.localeCompare(y.codigo));
+  return {
+    porAvisar: toca.filter((a) => !avisadaHoy(avisos[a.id], hoy)),
+    avisadasHoy: toca.filter((a) => avisadaHoy(avisos[a.id], hoy)),
+  };
 }
 export function enlaceWhatsapp(celular: string, mensaje: string): string {
   return `https://wa.me/51${soloDigitos(celular)}?text=${encodeURIComponent(mensaje)}`;
