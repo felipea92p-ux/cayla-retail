@@ -28,6 +28,12 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧭 Inventario con la cabecera de Ventas (2026-09-26, ADR-0220) — hecho, solo web, sin migración; rama `claude/inventory-module-headers-2683ef`
+Pedido de Felipe: «que el header de todos los módulos de inventario tome como referencia los de Caja, Historial, Postventa».
+- [x] Las 9 pantallas de Inventario usan `EncabezadoPagina`: sede y fecha arriba, título = palabra del menú (Existencias, Movimientos, Traslados, Conteo, Análisis), acciones bajo la frase; Existencias con «vista de las HH:MM» en vez de reloj vivo. Las cifras no se movieron. CLAUDE.md dice ahora que la cabecera es la de su módulo.
+- [ ] **Verlo con sesión real** (líder e integrante) en las 9 pantallas: se verificó sin sesión, con una ruta temporal y los componentes reales de Conteo con datos de muestra.
+- [ ] **Decisión de Felipe:** Recibir mercadería e Ingreso sin comprobante (tercera cabecera, escrita a mano; `/recibir` la comparte Compras) y cuál cabecera manda en Catálogo, Compras, Producción, Colaboradores, Clientas e Inicio.
+
 ## 🔎 Existencias: buscar y filtrar por marca, y un vacío que explica (2026-09-26) — solo web, sin migración; rama `claude/existencias-busqueda-marca`
 Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtros tampoco figura marca»). Análisis `/pantalla` completo en [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple su finalidad 5/10, relevancia 7,4/10). Lo que descubrió: **«CAYLA» y «Cayla 2» son dos marcas** (80 en la tabla, 8 con productos, 5 en TRU) y los productos de marca CAYLA (41 variantes) **no tienen ni una fila de stock en TRU**, así que indexar la marca no bastaba.
 - [x] Buscador con marca y categoría (por inicio de palabra, también tras «/» y «-», y la marca escrita sin puntos: «yjj», «cayla2»); un color escrito NO busca en la marca («dorada» ya no trae toda «Doradas Chic»); orden por relevancia solo con texto. `lib/filtro-busqueda-especial.ts` (campos opcionales: Análisis y Movimientos no cambian; 40.330 comparaciones contra el motor anterior, 0 diferencias). Prueba nueva `filtro-busqueda-especial-marca.test.ts`.
@@ -888,7 +894,7 @@ Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://clau
 - [ ] Movimientos: verlo con clics reales contra la base (filtros, `?proc=conteo` desde Conteo, vacío con 90 días, detalle).
 - [ ] Movimientos: cantidades por proceso en el drill-down — pide agrupar `fn_movimientos_resumen` por motivo (cambio de RPC en producción). Solo si el equipo lo pide.
 - [ ] **Verlo con clics reales** contra la base local o de producción (líder e integrante): filtros en caja, píldoras, zebra, chips y los modales que abren desde Existencias.
-- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas).
+- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas). **La cabecera ya no entra en esto (2026-09-26, ADR-0220):** Felipe eligió la de Ventas (`EncabezadoPagina`) y fue Inventario el que pasó a ella; Ventas conserva la suya.
 - [ ] Decisiones abiertas de la guía (ADR-0169, «Lo que NO se hizo»): modo oscuro, pasar la caja hueso a todos los formularios, botones de modal sin versalitas y la curva `ease-salida` frente a `--ease-cayla`.
 
 ## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — EN PRODUCCIÓN (base y web)
