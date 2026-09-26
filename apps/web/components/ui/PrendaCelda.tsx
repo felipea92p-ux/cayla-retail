@@ -64,7 +64,7 @@ export function ProductoVarianteCelda({
   color,
   colorHex,
   fotoUrl,
-  marca,
+  senal,
 }: {
   referencia: string;
   sku: string;
@@ -73,7 +73,7 @@ export function ProductoVarianteCelda({
   colorHex?: string | null;
   fotoUrl: string | null;
   /** Una señal pegada al nombre (la «≈» de Análisis: cifras estimadas). */
-  marca?: ReactNode;
+  senal?: ReactNode;
 }) {
   return (
     // `items-start`, no `items-center`: con dos líneas de texto la miniatura se ve mejor
@@ -83,7 +83,7 @@ export function ProductoVarianteCelda({
       <span className="min-w-0">
         <span className="block truncate text-sm text-tinta" title={referencia}>
           {referencia}
-          {marca}
+          {senal}
         </span>
         {/* `overflow-visible`: la pastilla con el nombre del color flota fuera de la celda al
             pasar el mouse. `whitespace-nowrap`: sin él, con la columna en su piso (13.5rem) la
