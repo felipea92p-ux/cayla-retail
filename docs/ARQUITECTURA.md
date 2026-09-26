@@ -535,7 +535,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `CambioResumen.tsx`) → RPC `registrar_cambio` (motivo + condición de la prenda que vuelve:
   vendible al piso, no vendible a cuarentena con fila en `prendas_danadas.cambio_id`; rechaza
   ventas anuladas; migración 20260919000100).
-- `/devoluciones` (ADR-0122, ADR-0229) → `getVentasRecientes` + `lib/devoluciones.ts`
+- `/devoluciones` (ADR-0122, ADR-0230) → `getVentasRecientes` + `lib/devoluciones.ts`
   (`getDevolucionesPendientes`, `getDevolucionesResueltas`, `getEstadisticasDevoluciones`,
   `contarPrendasEnCuarentena`) + `getCajaAbierta` → `DevolucionesPanel.tsx` (avisos de cuarentena →
   `/inventario?danados=1` y de caja cerrada → `/caja`; "Iniciar una devolución"; pestañas Compras /

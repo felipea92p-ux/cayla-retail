@@ -2,7 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { ScanLine } from "lucide-react";
 import { BuscadorVentas, useAtajoBusqueda } from "@/components/BuscadorVentas";
+import { EscanerBusqueda } from "@/components/EscanerBusqueda";
+import { Chip } from "@/components/ui/Chip";
 import { CambiosVentas } from "@/components/CambiosVentas";
 import { CambiosFlujo } from "@/components/CambiosFlujo";
 import {
@@ -15,6 +18,7 @@ import {
 import type { VarianteCatalogo } from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { estadoPrendaVendida, type TallaQueNoCalza } from "@/lib/cambios-reglas";
+import { busquedaDesdeLectura, type SedeConId } from "@/lib/cambios-atajos-reglas";
 
 type Filtro = "todas" | "con_cambio" | "sin_comprobante";
 
@@ -61,6 +65,7 @@ export function CambiosPanel({
   catalogo,
   tallasQueNoCalzan,
   abrirItemId,
+  sedes,
 }: {
   lineas: LineaVentaReciente[];
   busqueda: string;
@@ -73,6 +78,8 @@ export function CambiosPanel({
   catalogo: VarianteCatalogo[];
   tallasQueNoCalzan: TallaQueNoCalza[];
   abrirItemId?: string;
+  /** Todas las sedes, para prellenar un traslado cuando la talla está en otra (`sedesDeOrigen`). */
+  sedes: SedeConId[];
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -86,6 +93,7 @@ export function CambiosPanel({
     return { venta: lineas.filter((x) => x.ventaId === l.ventaId), lineaId: estadoPrendaVendida(l, ahora).cambiable ? l.ventaItemId : null };
   });
   const [filtro, setFiltro] = useState<Filtro>("todas");
+  const [camara, setCamara] = useState(false);
   const campoBusqueda = useRef<HTMLInputElement>(null);
   const tituloActividad = useRef<HTMLHeadingElement>(null);
   // "Sin comprobante" con una búsqueda puesta: primero se limpia la búsqueda y, recién
@@ -144,6 +152,8 @@ export function CambiosPanel({
         sede={sede}
         colaboradora={colaboradora}
         cajaAbierta={cajaAbierta}
+        esLider={puedeVerTodas}
+        sedes={sedes}
         catalogo={catalogo}
         ahora={ahora}
         onCerrar={cerrarFlujo}
@@ -160,8 +170,15 @@ export function CambiosPanel({
   const lineasVisibles = lineas.filter((l) => ventasVisibles.has(l.ventaId));
   const comprasEncontradas = new Set(lineas.map((l) => l.ventaId)).size;
 
+  /** Lo leído con la cámara se busca como si se hubiera escrito: la etiqueta tal cual, la boleta por su QR de SUNAT. */
+  function alLeerCodigo(codigo: string) {
+    setCamara(false);
+    buscar(busquedaDesdeLectura(codigo), todasLasSedes);
+  }
+
   return (
-    <div className="space-y-12">
+    // `pb-28` en el celular: la barra fija de abajo («Escanear prenda o boleta») no tapa la última compra.
+    <div className="space-y-12 pb-28 sm:pb-0">
       <section aria-labelledby="iniciar-cambio" className="space-y-4">
         <h2 id="iniciar-cambio" className="text-[15px] font-semibold text-tinta">
           Iniciar un cambio
@@ -177,6 +194,14 @@ export function CambiosPanel({
           onBuscar={buscar}
           onLimpiar={() => navegar(null)}
           onSinComprobante={sinComprobante}
+          onCamara={() => setCamara(true)}
+          extra={
+            // Antes de empezar, no en el paso 3: si la caja está cerrada, una diferencia en efectivo no se puede cobrar.
+            <span className="flex items-center gap-2 text-sm text-tinta/70">
+              <Chip tono={cajaAbierta ? "verde" : "ambar"}>{cajaAbierta ? "Caja abierta" : "Caja cerrada"}</Chip>
+              <span className="hidden lg:inline">{cajaAbierta ? "una diferencia en efectivo entra a la caja de hoy" : "solo cambios sin diferencia en efectivo"}</span>
+            </span>
+          }
         />
 
         {busqueda &&
@@ -242,6 +267,30 @@ export function CambiosPanel({
 
           {tallasQueNoCalzan.length > 0 && <TallasQueNoCalzan tallas={tallasQueNoCalzan} />}
         </section>
+      )}
+
+      {/* Celular (spike 2026-09-26, opción A): lo primero que hace la colaboradora es escanear, así que va fijo abajo, al
+          alcance del pulgar. Es una acción de esta pantalla, no navegación (ADR-0206). */}
+      <div className="fixed inset-x-0 bottom-0 z-30 bg-gradient-to-t from-crema from-70% to-crema/0 px-4 pt-3 pb-[calc(0.875rem+env(safe-area-inset-bottom))] sm:hidden">
+        <button
+          type="button"
+          onClick={() => setCamara(true)}
+          className="flex h-14 w-full items-center justify-center gap-2.5 rounded-2xl bg-tinta text-[15px] font-semibold text-crema active:scale-[0.99]"
+        >
+          <ScanLine size={19} aria-hidden />
+          Escanear prenda o boleta
+        </button>
+      </div>
+
+      {camara && (
+        <EscanerBusqueda
+          onCodigo={alLeerCodigo}
+          onEscribir={() => {
+            setCamara(false);
+            requestAnimationFrame(() => campoBusqueda.current?.focus());
+          }}
+          onClose={() => setCamara(false)}
+        />
       )}
     </div>
   );

@@ -28,7 +28,7 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0229) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
+## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0230) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 
 - [x] Tarjeta compacta con «Devolver», «Cambiar» (→ Cambios) y «Ver venta»; chip «Quedan N días» (ámbar los últimos 3).
 - [x] Celular: «Escanear prenda» y lupa fijos abajo.
@@ -37,6 +37,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Verificar con clic real: el aviso de caja cerrada y «Cambiar» hasta el flujo de Cambios; con una cuenta sin Cambios/Caja.
 - [ ] Ficha de la clienta desde la tarjeta: espera la ficha real (`/clientas` es de verificación y la venta no guarda `clienta_id`).
 - [ ] Decidir: «Sin comprobante» solo con saldo a favor, y la nota de crédito como pago en Vender (R-37).
+
+## 🔁 Cambios conectado con las pantallas vecinas (2026-09-26, ADR-0229) — solo web, sin migración; rama `claude/pantalla-cambios-mejoras-511805`
+Demo e investigación en `docs/maquetas/cambios-mejoras-2026-09/`; Felipe eligió tarjeta C, fijo abajo A y ticket A.
+- [x] Salidas cuando la talla no está: pedirla a otra sede (líder), apartarla cuando llegue, anotar que no había, devolver.
+- [x] Celular: botón fijo «Escanear prenda o boleta» con la cámara (etiqueta o QR de SUNAT).
+- [x] Hoja con el ticket del cambio: WhatsApp, térmica, «Seguir vendiendo».
+- [x] «Quedan N días» (ámbar los últimos 3) y chip de caja junto al buscador.
+- [ ] Verlo con una integrante (sin enlace de traslado) y con la cámara de un teléfono real (el panel no tiene cámara).
+- [ ] Imprimir el ticket en la térmica de verdad y ajustar el largo si sale largo.
+- [ ] Ficha de la clienta desde el cambio: hoy la venta guarda la clienta como texto y `/clientas` no recibe búsqueda por URL.
+- [ ] Sigue abierto (no es de esta tarea): la diferencia de precio sin comprobante ni líder (`docs/pantallas/cambios.md` §2).
 
 ## 🎯 Fotos de prenda sin fondo y del mismo tamaño (2026-09-26, ADR-0228) — solo web, sin migración; rama `claude/fotos-fondo-blanco`
 - [x] Toda foto de prenda sale en 1200×1500 (el 4:5 de la grilla), JPEG sobre blanco, centrada y del mismo tamaño que las demás (`lib/foto-encuadre.ts`, 14 pruebas).

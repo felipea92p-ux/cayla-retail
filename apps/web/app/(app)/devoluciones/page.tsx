@@ -11,7 +11,7 @@ import { ResumenSede } from "@/components/ui/ResumenSede";
 // tiene dos tiempos: una colaboradora la registra (`crear_devolucion`) y un líder la aprueba
 // (`aprobar_devolucion`); la pantalla, en DevolucionesPanel.
 //
-// 2026-09-26 (spike `docs/maquetas/devoluciones-2026-09`, ADR-0229): la cifra «Por aprobar» abre su
+// 2026-09-26 (spike `docs/maquetas/devoluciones-2026-09`, ADR-0230): la cifra «Por aprobar» abre su
 // pestaña, hay una pestaña «Resueltas» y avisos que llevan a las pantallas vecinas (Inventario por la
 // cuarentena, Caja si está cerrada). Cada acceso solo aparece si la cuenta ve ese módulo (ADR-0161):
 // un enlace nunca lleva a «Sin acceso».
