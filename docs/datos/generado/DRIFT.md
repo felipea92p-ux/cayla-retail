@@ -1,7 +1,7 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 313 llamadas `.rpc` de `apps/web` contra 544 funciones del schema `retail` en producción: 265 con los parámetros leídos (se comparan uno por uno), 42 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
+> Comparadas 313 llamadas `.rpc` de `apps/web` contra 544 funciones del schema `retail` en producción: 266 con los parámetros leídos (se comparan uno por uno), 41 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
 > **Foto de producción: 2026-09-25 16:09 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
@@ -15,7 +15,7 @@
 
 ---
 
-## Llamadas sin respaldo en la foto de producción — 9
+## Llamadas sin respaldo en la foto de producción — 10
 
 Cada entrada es una llamada que **la foto no respalda**: la función no aparece, o la app manda un parámetro que la foto no
 tiene. **No es lo mismo que «pantalla rota»**: una función creada o cambiada después de la foto sale aquí aunque en
@@ -33,6 +33,14 @@ migración define la función: se pegó en producción después de la foto, o to
 - **Dónde:** `apps/web/components/EditarMarcaModal.tsx:84`
 - **Qué pasa:** la función `editar_marca` no está en la foto de producción (2026-09-25 16:09 UTC)
 - **Migración que la crea:** `supabase/migrations/20260926150000_editar_marca.sql` (se pegó después de la foto, o todavía no)
+- **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
+
+### `mover_interno` — parámetro de más
+
+- **Dónde:** `apps/web/components/ReponerPisoModal.tsx:120`
+- **Qué pasa:** manda `p_token` y la foto de producción no lo acepta
+- **La app manda:** `p_ubicacion_id`, `p_variante_id`, `p_cantidad`, `p_sububicacion_origen_id`, `p_sububicacion_destino_id`, `p_nota`, `p_token`
+- **La foto acepta:** `p_ubicacion_id`, `p_variante_id`, `p_cantidad`, `p_sububicacion_origen_id`, `p_sububicacion_destino_id`, `p_nota`
 - **Solo si producción sigue así,** esa pantalla fallaría siempre en las tiendas (no es intermitente): confírmalo con la consulta de arriba.
 
 ### `fn_actividad` — no está en la foto
@@ -122,9 +130,9 @@ Ninguna. Cada función tiene una sola firma en producción.
 - `buscar_separaciones` · `apps/web/lib/separaciones.ts:37` — no manda `p_texto`, `p_estados` (normal si tienen valor por defecto)
 - `fn_totales_historial_ventas` · `apps/web/lib/ventas-historial.ts:166` — no manda `p_ids` (normal si tienen valor por defecto)
 
-## No analizadas — 60
+## No analizadas — 59
 
-Estas 60 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
+Estas 59 entradas son **entradas, no llamadas** (un ternario da dos; una función mencionada da una aunque no haya llamada):
 arman sus parámetros fuera de la propia llamada, o la pantalla nombra la función sin un `.rpc("…")` directo (un ternario, un
 ayudante, una constante), o usan `.rpc` como valor (`.bind`, `const { rpc } = x`). No se pueden revisar leyendo el texto.
 **No están aprobadas: están sin revisar.** Una llamada directa o de un ternario a una función que la foto no tiene también está arriba,
@@ -137,7 +145,7 @@ foto ni ninguna migración del repo conocen.
 - `(alias de rpc)` · `apps/web/app/api/lucode/emitir/route.ts:34` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
 - `reactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `desactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
-- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:179` — el objeto se arma con «...», no se puede leer entero
+- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:180` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:376` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:65` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:278` — el objeto se arma con «...», no se puede leer entero
@@ -163,7 +171,6 @@ foto ni ninguna migración del repo conocen.
 - `registrar_activo` · `apps/web/components/RegistrarGastoModal.tsx:200` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `registrar_gasto` · `apps/web/components/RegistrarGastoModal.tsx:200` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `registrar_nota_credito_compra` · `apps/web/components/RegistrarNotaCreditoModal.tsx:204` — el objeto se arma con «...», no se puede leer entero
-- `mover_interno` · `apps/web/components/ReponerPisoModal.tsx:114` — el objeto se arma con «...», no se puede leer entero
 - `registrar_reembolso_proveedor` · `apps/web/components/SaldoFavorAcciones.tsx:61` — el objeto se arma con «...», no se puede leer entero
 - `(nombre calculado)` · `apps/web/components/finanzas/CierreMes.tsx:253` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `registrar_movimiento_dinero` · `apps/web/components/finanzas/CuentasDinero.tsx:859` — el objeto se arma con «...», no se puede leer entero
