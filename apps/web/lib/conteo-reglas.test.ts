@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   avanceEnVivo,
+  pendientesDeLista,
   codigoDePrendaNueva,
   codigosDeConteo,
   coincidenciasPorCodigo,
@@ -286,5 +287,15 @@ describe("codigoDePrendaNueva y pendientesConCodigo", () => {
     expect(r.map((p) => p.sku)).toEqual(["BLU-0001-NEG-M", "BLU-0002-NEG-S"]);
     // No toca el arreglo de entrada.
     expect(pendientes[0].sku).toBe("7750000000001");
+  });
+});
+
+describe("pendientesDeLista (ADR-0241: «Contar esta prenda» desde Movimientos)", () => {
+  const p = (varianteId: string) => ({ varianteId }) as Parameters<typeof pendientesDeLista>[0][number];
+  it("acota a las prendas pedidas y, sin lista, deja todo", () => {
+    const todos = [p("a"), p("b"), p("c")];
+    expect(pendientesDeLista(todos, ["b"]).map((x) => x.varianteId)).toEqual(["b"]);
+    expect(pendientesDeLista(todos, [])).toHaveLength(3);
+    expect(pendientesDeLista(todos, ["z"])).toEqual([]);
   });
 });

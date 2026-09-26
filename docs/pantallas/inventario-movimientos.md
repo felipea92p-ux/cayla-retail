@@ -137,3 +137,4 @@ por colaborador (ADR-0127; ver tarea #11).
 | Fecha | SHA | Modo | Nota |
 |---|---|---|---|
 | 2026-09-26 | `9f0d2f3b` | rápido + spike | Primer análisis tras ADR-0234; spike en `docs/maquetas/movimientos-conectado-2026-09/` |
+| 2026-09-26 | encima del #512 | ejecución | Felipe eligió las 4 recomendadas + los 4 atajos + apartado exacto + Conteo con lista; «Lo que hice yo» no. Construidas #1 a #10 (ADR-0241). **Corrección al análisis:** la #1 NO pedía columna nueva: `apartados.movimiento_id` ya existe. La nota «Registro transparente» se quedó (la pide ADR-0169); se quitó la frase repetida del subtítulo. |

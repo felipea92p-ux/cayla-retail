@@ -17,17 +17,18 @@ import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
  * devuelve el adelanto. Vive en Ventas junto al Punto de venta y usa su misma forma (hoja, panel de cobro, modales).
  * Solo tiendas: el adelanto entra a una caja y la prenda se guarda en el piso de una tienda.
  */
-export default async function ApartadosPage({ searchParams }: { searchParams: Promise<{ prendas?: string }> }) {
+export default async function ApartadosPage({ searchParams }: { searchParams: Promise<{ prendas?: string; abrir?: string }> }) {
   // «Apartar» desde el ticket del Punto de venta: las prendas ya elegidas llegan en la dirección (`lib/apartar-desde-ticket.ts`).
-  const { prendas } = await searchParams;
+  // `abrir=<id>`: un apartado concreto, desde su movimiento en Movimientos (ADR-0241).
+  const { prendas, abrir } = await searchParams;
   return (
     <Suspense fallback={null}>
-      <Apartados desdeTicket={prendas ?? null} />
+      <Apartados desdeTicket={prendas ?? null} abrir={abrir ?? null} />
     </Suspense>
   );
 }
 
-async function Apartados({ desdeTicket }: { desdeTicket: string | null }) {
+async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; abrir: string | null }) {
   const persona = await requirePersonaActualV2();
   if (persona.ubicacionTipo !== "tienda") {
     return (
@@ -90,6 +91,7 @@ async function Apartados({ desdeTicket }: { desdeTicket: string | null }) {
     <ApartadosPanel
       ubicacionId={persona.ubicacionId}
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
+      abrir={abrir}
       hoy={hoyLima()}
       cajaAbierta={caja !== null}
       puedeGestionar={puede(persona, "gestionarCaja")}

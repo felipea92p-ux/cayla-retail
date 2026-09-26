@@ -76,6 +76,22 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] **Falta con sesión real:** subir la foto de una prenda tomada en tienda y comparar las dos luces.
 - Cómo verificas: Productos ▸ Nuevo producto (o Editar) ▸ Fotos ▸ «+» con una foto algo oscura → en «Revisa las fotos» aparece «Luz corregida» elegida; «Luz original» muestra la de antes, más apagada, con el mismo color. «Cómo tomar una buena foto» se despliega con los consejos.
 
+## 🔗 Movimientos conectado: atajos por proceso, apartado exacto y celular (2026-09-26, ADR-0241) — solo web, sin migración; rama `claude/movimientos-screen-analysis-8d874f`, **va después del PR #512**
+
+- [x] Atajos del detalle (Cambio/Devolución, Bajar al piso/Etiqueta, Contar/Corregir, Ver en Existencias) y de la operación
+      («Bajar estas N al piso», «Imprimir N etiquetas»), cada uno solo si se ve el módulo.
+- [x] Apartado exacto sin migración (`apartados.movimiento_id`): código y clienta en la fila, «Abrir» → `/vender/apartados?abrir=`;
+      la cifra dice «2 apartadas», no «0».
+- [x] Bajadas al piso plegadas por día en «Todos»; tarjetas que filtran; píldoras en 0 apagadas; sin «Filtrando» ni la ayuda
+      repetida; Exportar en «⋯» (computadora) y en la hoja de Filtros (celular).
+- [x] Celular: buscador fijo con cámara y «Filtros · n» en hoja; «Hoy» por defecto.
+- [x] Conteo acepta `?variantes=` («Contar esta prenda»); Existencias acepta `?variante=`.
+- [ ] Verlo con una cuenta real: Apartados con `?abrir=`, Existencias con `?variante=`, Conteo con `?variantes=`, y la
+      cámara en un teléfono. [pantalla:inventario-movimientos]
+- [ ] Píldora «Apartados»: `fn_movimientos` rechaza `p_categoria = 'apartado'` (migración de lectura). [pantalla:inventario-movimientos]
+- [ ] ¿Alcance «variantes» en `abrir_conteo`? Hoy «Contar esta prenda» abre un conteo «todo» con la lista acotada en
+      pantalla (seguro: `cerrar_conteo` ajusta solo lo contado). Decidir si ensucia la exactitud. [pantalla:inventario-movimientos]
+
 ## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web y migración de lectura `20260927153000` **en producción (2026-09-26)**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
 
 - [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros

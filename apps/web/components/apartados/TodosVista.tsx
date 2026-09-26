@@ -78,6 +78,7 @@ export function TodosVista({
   prendas,
   avisos,
   irAEntregar,
+  buscarInicial = "",
   apagadas = [],
   pedidos = [],
   onApartarPedido,
@@ -92,6 +93,9 @@ export function TodosVista({
   prendas: VarianteBusqueda[];
   avisos: Record<string, AvisoApartado>;
   irAEntregar: (id: string) => void;
+  /** Llegar buscando un apartado (`?abrir=` de uno ya cerrado, desde Movimientos: ADR-0241): su código escrito y el
+   *  filtro en «Todos», para que aparezca aunque ya no necesite nada. */
+  buscarInicial?: string;
   /** Lo que la tienda apagó en «Opciones» (paso 5). */
   apagadas?: string[];
   /** Pedidos a otras tiendas para apartar (20260927140000). */
@@ -99,8 +103,8 @@ export function TodosVista({
   onApartarPedido?: (p: PedidoApartado) => void;
 }) {
   const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
-  const [filtro, setFiltro] = useState<Filtro>("hoy");
-  const [texto, setTexto] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>(buscarInicial ? "todos" : "hoy");
+  const [texto, setTexto] = useState(buscarInicial);
   const [liberar, setLiberar] = useState<Apartado | null>(null);
   const [devolver, setDevolver] = useState<Apartado | null>(null);
   const [extender, setExtender] = useState<Apartado | null>(null);
