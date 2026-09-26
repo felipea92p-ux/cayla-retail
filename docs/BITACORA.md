@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Una foto por prenda: la de «Todos los colores» se ve en cada color)
+Felipe decidió cómo se fotografía: una foto por prenda y luego se eligen los colores, sin fotografiar cada color. Hasta hoy una foto sin color no se veía en la tarjeta (`fn_productos` solo trae la del color exacto; así quedó «Blusa V» con el gancho vacío). Ahora `listarProductos` completa cada color sin foto con la General de la prenda (una consulta más, solo si falta alguna) y `getCatalogo` usa `fotoDeVariante` (color → General → nada, nunca la de otro color: la misma regla que Traslados). En el alta, la casilla sin color va primero, se llama «Todos los colores» y su foto es la principal. Sin SQL.
+Felipe se lleva: **una foto guardada no es una foto que se ve**: la de Blusa V estaba en la base, subida y registrada, y la tarjeta la ignoraba por una regla de color.
+Sin resolver: la copia del catálogo de Vender (`getCatalogo`) se refresca cada hora; una foto nueva puede tardar hasta eso en verse ahí.
+
 ## 2026-09-26 (Fotos de prenda: mejor calidad sin cambiar la prenda — ADR-0228 act.)
 Felipe comparó una foto editada con ChatGPT con una tomada en tienda y pidió mejor calidad sin cambiar la prenda. Casi toda la diferencia estaba en la toma (arrugas, gancho, etiqueta, luz lateral), así que se agregó lo que sí se arregla sin inventar: se borran los pedazos sueltos del recorte, la luz de la prenda se corrige con tope y una nitidez leve. En la revisión aparecen «Luz corregida / Luz original» y cuatro consejos para tomar la foto.
 Por qué así: la clienta compra por la foto; un celeste que sale gris o más vivo es una devolución. Por eso la luz se corrige sobre el brillo y los tres colores se escalan en la misma proporción. Qué se rompería sin esto: la primera versión, canal por canal, avivaba los colores (celeste de 42 % a 47-50 % de saturación). Se vio midiendo en el navegador y se corrigió antes de publicar.

@@ -4,6 +4,7 @@ import { createClient as crearClienteSupabase, type SupabaseClient } from "@supa
 import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
+import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -102,7 +103,7 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
         .select(
           `id, sku, codigo, color_codigo, precio, activo,
            talla:tallas ( valor ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo ) ),
+           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, color_codigo, orden, es_principal ) ),
            color:colores ( nombre, hex ),
            codigos_barras ( codigo )`
         )
@@ -130,10 +131,10 @@ async function leerCatalogo(supabase: SupabaseClient<Database, "retail">): Promi
     talla: v.talla?.valor ?? null,
     color: v.color?.nombre ?? null,
     colorHex: v.color?.hex ?? null,
-    // Misma variante-color-solo-si-calza que `fn_productos` (LEFT JOIN LATERAL +
-    // `IS NOT DISTINCT FROM`) — acá en JS porque `producto_fotos` llega anidada
-    // bajo `producto`, no como relación directa de `variantes`.
-    fotoUrl: v.producto?.producto_fotos.find((f) => f.color_codigo === v.color_codigo)?.url ?? null,
+    // La foto de su color y, si ese color no tiene, la GENERAL de la prenda (sin color). Nunca la de otro color. Una
+    // foto General alcanza para todos los colores: así se decidió con Felipe el 2026-09-26 («una foto por prenda y
+    // luego elegir la gama de colores»). Misma regla que Traslados (`fotoDeVariante`) y que `listarProductos`.
+    fotoUrl: fotoDeVariante(v.producto?.producto_fotos ?? [], v.color_codigo),
     precio: Number(v.precio),
     activo: v.activo,
     productoId: v.producto?.id ?? "",
@@ -331,6 +332,27 @@ export async function listarProductos(filtros: FiltrosProductos, pagina: number)
       categoria: f.categoria_nombre,
       codigosBarras: f.codigos_barras ?? [],
     });
+  }
+
+  // `fn_productos` trae solo la foto del color EXACTO. Una prenda fotografiada una sola vez lleva su foto en General
+  // (sin color) y sus colores sin foto propia: sin esto, cada color salía con el gancho vacío aunque la prenda sí
+  // tuviera foto (pasó con «Blusa V», 2026-09-26). Se completa con la General de la prenda, nunca con la de otro color
+  // — la misma regla de `fotoDeVariante`. Una consulta más, solo si en la página falta alguna foto.
+  const sinFoto = [...porProducto.values()].filter((p) => p.variantes.some((v) => v.fotoUrl === null)).map((p) => p.productoId);
+  if (sinFoto.length > 0) {
+    const { data: generales } = await supabase
+      .from("producto_fotos")
+      .select("producto_id, url, orden, es_principal, color_codigo")
+      .in("producto_id", sinFoto)
+      .is("color_codigo", null);
+    // Si esta consulta falla, la página se dibuja igual con lo que trajo `fn_productos`: la foto es un extra.
+    const porId = new Map<string, FotoCruda[]>();
+    for (const f of generales ?? []) porId.set(f.producto_id, [...(porId.get(f.producto_id) ?? []), f]);
+    for (const id of sinFoto) {
+      const general = fotoDeVariante(porId.get(id) ?? [], null);
+      if (!general) continue;
+      for (const v of porProducto.get(id)!.variantes) if (v.fotoUrl === null) v.fotoUrl = general;
+    }
   }
 
   return {
