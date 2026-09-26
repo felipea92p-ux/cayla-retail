@@ -28,6 +28,25 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📐 Rendimiento: las ventas de cada persona, para la encargada y el Admin (2026-09-26, ADR-0219) — PROPUESTA, nada construido; acta, ADR y spike en el PR #476 (rama `claude/performance-module-ranking-2c657d`)
+Pedido de Felipe: un módulo al final del menú para ver quién vende más, con otros parámetros además de la venta. Se decidió en
+20 preguntas (tabla completa en el ADR). Lo ven **solo las encargadas (su tienda) y los 5 Admin (todas)**; las colaboradoras
+no, por ahora, a pedido del gerente. Período: mes calendario con la muestra a la vista. Dos rankings: soles por hora trabajada
+y número de ventas. La encargada corrige quién atendió una venta, con motivo. Cambia D-64, D-66 y D-68 (con nota en DECISIONES).
+- [x] Acta de la ronda: [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](datos/DECISIONES-2026-09-26-rendimiento.md)
+  (D-112 a D-128). Spike visual: [`docs/maquetas/rendimiento-spike-2026-09/`](maquetas/rendimiento-spike-2026-09/)
+  (5 cuentas en «Ver como», rankings, tabla, ficha, corrección, 375 px). Verificado en el navegador, sin errores en consola.
+- [ ] **Espera el ok de Felipe** al diseño técnico del ADR-0219 y a la objeción: la encargada no se da ventas a sí misma ni
+  se quita las suyas; esas las corrige el Admin. Sin respuesta, se construye con ese candado.
+- [ ] Paso 1, base: módulo `rendimiento` (orden 310, sin `rol_modulos`), `fn_rendimiento_ubicaciones`,
+  `fn_rendimiento_equipo` y `fn_rendimiento_persona`, con prueba SQL de alcance.
+- [ ] Paso 2, web: catálogo, nodo después de Finanzas, `/rendimiento` con los dos rankings y la tabla, y
+  `lib/rendimiento-reglas.ts` con su prueba.
+- [ ] Paso 3: ficha de cada persona (qué vende, 6 meses, sus ventas, comparada con su tienda).
+- [ ] Paso 4: `venta_reasignaciones` + `reasignar_asesora`, con el combo Responsable.
+- [ ] Paso 5, producción: con el ok puntual de Felipe. Después, Felipe crea en Roles y accesos el rol «Encargada de
+  tienda» con el módulo.
+
 ## 🎯 Un solo combo en todo el ERP: sin `<select>` del navegador y una prueba que lo vigila (2026-09-26, ADR-0209 act. b) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
 Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prueba que avise si aparece uno nuevo y que el diseño del sistema sea el de siempre. Eligió incluir Finanzas.
 - [x] `Desplegable` aprendió grupos (`Opcion.grupo`), opciones que se ven y no se eligen (`Opcion.deshabilitada`), `id`, `ref` y las formas `fin`/`finEnLinea` de Finanzas (reglas en `lib/combo-reglas.ts`, con pruebas).
