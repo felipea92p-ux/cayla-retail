@@ -286,6 +286,11 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
 
+## 🎯 Apartados: pestañas a la izquierda y el ticket a lo alto (2026-09-26) — solo web
+Spike `docs/maquetas/apartados-ticket-alto-2026-09/` (igual que el de Punto de Venta) e implementación en el mismo PR.
+- [x] Pestañas, «Opciones» y avisos sobre la columna de trabajo; el ticket («Por apartar» / «Saldo») sube al borde de arriba de la hoja, con la cabecera en la misma raya. Verificado a 1440, 1024 y 375 px.
+- [ ] **Felipe:** verlo con prendas reales en el ticket (en la verificación el ticket estaba vacío: no se tocaron datos de producción).
+
 ## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
 Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
 - [ ] **Felipe:** elegir la forma de celular (recomendada: Pasos + barra fija), el preset de fábrica y responder las 5 preguntas del README (abonos extienden plazo, saldo a favor al editar, plazo del traslado).
