@@ -6,7 +6,7 @@ import { Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
-import { estadoTalla, type EstadoTalla, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, tallaParaReponer, type EstadoTalla, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /* ====================================================================
@@ -157,7 +157,7 @@ export function ExistenciasPorPrenda({
       <Encabezado plantilla={plantilla} columnas={columnas} />
       {prendas.map((p) => {
         const marcada = p.tallas.some((f) => seleccion.has(f.varianteId));
-        const primeraABajar = p.tallas.find((f) => estadoTalla(f) === "por_colgar" || estadoTalla(f) === "reponer");
+        const primeraABajar = tallaParaReponer(p.tallas);
         return (
           <div
             key={p.clave}
