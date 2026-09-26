@@ -3987,6 +3987,8 @@ export type Database = {
       }
       transferencias: {
         Row: {
+          anulado_en: string | null
+          anulado_por: string | null
           cerrado_en: string | null
           cerrado_por: string | null
           confirmado_en: string | null
@@ -3996,13 +3998,17 @@ export type Database = {
           estado: string
           fecha_estimada_llegada: string | null
           id: string
+          motivo_anulacion: string | null
           nota: string | null
           nota_cierre: string | null
           numero: number
+          sububicacion_destino_id: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Insert: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           confirmado_en?: string | null
@@ -4012,13 +4018,17 @@ export type Database = {
           estado?: string
           fecha_estimada_llegada?: string | null
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           nota_cierre?: string | null
           numero?: number
+          sububicacion_destino_id?: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Update: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           confirmado_en?: string | null
@@ -4028,9 +4038,11 @@ export type Database = {
           estado?: string
           fecha_estimada_llegada?: string | null
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           nota_cierre?: string | null
           numero?: number
+          sububicacion_destino_id?: string | null
           ubicacion_destino_id?: string
           ubicacion_origen_id?: string
         }
@@ -4789,6 +4801,10 @@ export type Database = {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
       }
+      anular_traslado: {
+        Args: { p_motivo: string; p_token?: string; p_transferencia_id: string }
+        Returns: string
+      }
       anular_venta: {
         Args: { p_items: Json; p_motivo: string; p_venta_id: string }
         Returns: undefined
@@ -5147,11 +5163,12 @@ export type Database = {
         }[]
       }
       confirmar_traslado: {
-        Args: { p_transferencia_id: string }
+        Args: { p_destino?: string; p_transferencia_id: string }
         Returns: {
           lineas_con_diferencia: number
           lineas_ok: number
           resultado: string
+          unidades_ingresadas: number
         }[]
       }
       conteo_contar: {
@@ -6472,8 +6489,10 @@ export type Database = {
         Returns: {
           cantidad_enviada: number
           cantidad_recibida: number
+          codigo: string
           color: string
           diferencia: number
+          ingresado: boolean
           referencia: string
           sku: string
           talla: string

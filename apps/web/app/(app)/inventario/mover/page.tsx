@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getStockPorUbicacion } from "@/lib/inventario-v2";
@@ -72,15 +73,22 @@ export default async function MoverMercaderiaPage({
 
   return (
     <div className="space-y-6">
+      {/* «Nuevo traslado», como el botón que trae hasta acá y como «Traslado 12» en el detalle (hallazgo 16): antes
+          decía «Mover mercadería» y una frase de programador. La vuelta a Traslados va bajo la frase (ADR-0220). */}
       <EncabezadoPagina
         sede={origen.nombre}
-        titulo="Mover mercadería"
-        subtitulo="Cada traslado queda registrado como movimiento — no se edita el stock a mano."
+        titulo="Nuevo traslado"
+        subtitulo="Las prendas salen de tu almacén al enviar y entran a la otra sede cuando las cuentan al recibirlas."
+        pie={
+          <Link href="/inventario/traslados" className="btn-cayla btn-secundario">
+            ← Traslados
+          </Link>
+        }
       />
 
       {destinos.length === 0 ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">
-          No hay otra ubicación registrada todavía — un traslado necesita al menos dos.
+          No hay otra sede registrada todavía: un traslado necesita al menos dos.
         </p>
       ) : (
         <MoverMercaderiaFormV2
