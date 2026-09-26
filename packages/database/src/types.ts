@@ -4857,6 +4857,19 @@ export type Database = {
         Args: { p_motivo: string; p_separacion_id: string }
         Returns: undefined
       }
+      registrar_aviso_separacion: {
+        Args: { p_separacion_id: string }
+        Returns: string
+      }
+      fn_avisos_separaciones: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          avisos: number
+          separacion_id: string
+          ultimo_aviso_en: string
+          ultimo_por: string | null
+        }[]
+      }
       registrar_devolucion_separacion: {
         Args: { p_cci?: string; p_medio: string; p_operacion?: string; p_separacion_id: string }
         Returns: Json
@@ -6200,6 +6213,14 @@ export type Database = {
           p_desde?: string
           p_hasta?: string
           p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      fn_ritmo_reciente_json: {
+        Args: {
+          p_desde: string
+          p_ubicacion_id: string
+          p_variante_ids: string[]
         }
         Returns: Json
       }
