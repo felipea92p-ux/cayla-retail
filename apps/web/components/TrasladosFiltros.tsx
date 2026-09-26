@@ -2,7 +2,6 @@
 
 import { useRef } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
-import { CampoSelectNativo } from "@/components/ui/campos";
 import { ETIQUETA_FILTRO_TRASLADO, FILTROS_TRASLADO, type FiltroDireccion, type FiltroTraslado } from "@/lib/traslados-reglas";
 
 // La «vista rápida»: chips con contador que filtran de verdad la lista, el
@@ -11,10 +10,12 @@ import { ETIQUETA_FILTRO_TRASLADO, FILTROS_TRASLADO, type FiltroDireccion, type 
 // sola sede — no por completar la fila. Todo se filtra en memoria sobre lo que
 // la página ya trajo (los en curso completos, los últimos 30 cerrados): sin
 // consulta por clic.
+// Rediseño 2026-09-22: la sede se elige con píldoras, no con un <select> nativo (que el sistema operativo
+// pintaba con su propio azul, fuera de la marca). Son pocas sedes; una píldora por sede se lee de un vistazo.
 const DIRECCIONES: { valor: FiltroDireccion; texto: string }[] = [
-  { valor: "todas", texto: "Todos" },
-  { valor: "entrante", texto: "Entrantes" },
-  { valor: "saliente", texto: "Salientes" },
+  { valor: "todas", texto: "Todas" },
+  { valor: "entrante", texto: "Entran a tu sede" },
+  { valor: "saliente", texto: "Salen de tu sede" },
 ];
 
 export function TrasladosFiltros({
@@ -57,7 +58,7 @@ export function TrasladosFiltros({
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
-        <div role="group" aria-label="Vista rápida" className="flex flex-wrap items-center gap-2">
+        <div role="group" aria-label="Vista rápida" className="order-2 flex w-full flex-wrap items-center gap-2">
           {FILTROS_TRASLADO.map((f) => {
             const n = conteos[f];
             const activo = filtro === f;
@@ -69,12 +70,10 @@ export function TrasladosFiltros({
                 aria-pressed={activo}
                 // Un filtro vacío no se puede elegir (no llevaría a nada), salvo «Todos» y el que ya está activo.
                 disabled={n === 0 && f !== "todos" && !activo}
-                className={`label-cayla inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
-                  activo ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
-                }`}
+                className="pildora-cayla disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {ETIQUETA_FILTRO_TRASLADO[f]}
-                <span className={`tabular-nums ${activo ? "text-crema/70" : "text-tinta/60"}`}>{n}</span>
+                <span className={`tabular-nums ${activo ? "text-crema/70" : "text-taupe"}`}>· {n}</span>
               </button>
             );
           })}
@@ -83,19 +82,19 @@ export function TrasladosFiltros({
               type="button"
               onClick={() => onFiltro("todos")}
               aria-label={`Quitar el filtro ${ETIQUETA_FILTRO_TRASLADO[extra]}`}
-              className="label-cayla inline-flex items-center gap-2 rounded-full border border-tinta bg-tinta px-3.5 py-1.5 text-[10px] text-crema transition-colors hover:border-rojo hover:bg-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
+              aria-pressed className="pildora-cayla focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo"
             >
               {ETIQUETA_FILTRO_TRASLADO[extra]}
-              <span className="tabular-nums text-crema/70">{conteos[extra]}</span>
+              <span className="tabular-nums text-crema/70">· {conteos[extra]}</span>
               <X aria-hidden strokeWidth={1.5} className="h-3 w-3" />
             </button>
           )}
         </div>
 
-        <div className="flex min-w-0 flex-1 basis-72 items-center gap-2 sm:justify-end">
+        <div className="order-1 flex min-w-0 flex-1 basis-full flex-wrap items-center gap-2 sm:basis-72">
           {/* El botón de limpiar va AL LADO del campo, no dentro de un <label>: un <label> con un botón adentro
               mezcla dos controles en uno y, al desaparecer la X, el foco se perdía. Ahora vuelve al campo. */}
-          <div className="relative flex h-10 min-w-[13rem] flex-1 items-center sm:max-w-sm">
+          <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_14rem] items-center">
             <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-tinta/50" />
             <input
               ref={entrada}
@@ -105,7 +104,7 @@ export function TrasladosFiltros({
               placeholder="Buscar traslado, sede o prenda…"
               aria-label="Buscar traslado, sede o prenda"
               autoComplete="off"
-              className="h-10 w-full rounded-lg border border-tinta/20 bg-transparent pl-9 pr-9 text-sm text-tinta outline-none placeholder:text-tinta/50 focus:border-rojo"
+              className="h-full w-full rounded-lg bg-transparent pl-9 pr-9 text-sm text-tinta outline-none placeholder:text-taupe"
             />
             {busqueda && (
               <button
@@ -115,20 +114,39 @@ export function TrasladosFiltros({
                   entrada.current?.focus();
                 }}
                 aria-label="Limpiar búsqueda"
-                className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-md text-tinta/60 hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
+                className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-md text-taupe hover:text-rojo focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo"
               >
                 <X aria-hidden strokeWidth={1.5} className="h-4 w-4" />
               </button>
             )}
+          </div>
+          {/* Entrantes / Salientes a la vista (rediseño 2026-09-22, ADR-0175): es el filtro que más se usa
+              después de la búsqueda, y abrir un panel para él era un toque de más. Mismo control segmentado
+              que la sububicación de Movimientos. «Otra sede» sigue en «Más filtros». */}
+          <div role="group" aria-label="Dirección" className="inline-flex h-10 shrink-0 items-center gap-0.5 rounded-lg bg-hueso p-[3px]">
+            {DIRECCIONES.map((d) => {
+              const activa = direccion === d.valor;
+              return (
+                <button
+                  key={d.valor}
+                  type="button"
+                  onClick={() => onDireccion(d.valor)}
+                  aria-pressed={activa}
+                  className={`h-full whitespace-nowrap rounded-md px-2.5 text-[12.5px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-rojo sm:px-3 ${
+                    activa ? "bg-papel text-tinta shadow-[inset_0_0_0_1px_var(--color-sand)]" : "text-taupe hover:text-tinta"
+                  }`}
+                >
+                  {d.texto}
+                </button>
+              );
+            })}
           </div>
           <button
             type="button"
             onClick={onToggleMas}
             aria-expanded={masAbierto}
             aria-controls="traslados-mas-filtros"
-            className={`label-cayla inline-flex h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border px-3.5 text-[11px] transition-colors ${
-              masAbierto || masActivos > 0 ? "border-tinta/30 bg-tinta/[0.04] text-tinta" : "border-tinta/20 text-tinta/70 hover:border-tinta/35 hover:text-tinta"
-            }`}
+            className={`btn-cayla btn-secundario h-10 shrink-0 ${masAbierto || masActivos > 0 ? "bg-sand/50" : ""}`}
           >
             <SlidersHorizontal aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5" />
             Más filtros{masActivos > 0 ? ` · ${masActivos}` : ""}
@@ -137,38 +155,23 @@ export function TrasladosFiltros({
       </div>
 
       {masAbierto && (
-        <div id="traslados-mas-filtros" className="anim-revelar flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl bg-sand/50 px-4 py-3">
+        <div id="traslados-mas-filtros" className="anim-revelar flex flex-wrap items-end gap-x-6 gap-y-3 rounded-xl bg-hueso/70 px-4 py-3">
           <div>
-            <p className="label-cayla mb-1.5 text-[11px] text-tinta/65">Dirección</p>
-            <div role="group" aria-label="Dirección" className="flex gap-1.5">
-              {DIRECCIONES.map((d) => (
-                <button
-                  key={d.valor}
-                  type="button"
-                  onClick={() => onDireccion(d.valor)}
-                  aria-pressed={direccion === d.valor}
-                  className={`label-cayla rounded-full border px-3 py-1.5 text-[10px] transition-colors ${
-                    direccion === d.valor ? "border-tinta bg-tinta text-crema" : "border-tinta/20 text-tinta/75 hover:border-rojo hover:text-rojo"
-                  }`}
-                >
-                  {d.texto}
+            <p className="mb-1.5 text-xs text-taupe">Otra sede</p>
+            <div role="group" aria-label="Otra sede" className="flex flex-wrap gap-1.5">
+              <button type="button" onClick={() => onSede("")} aria-pressed={sede === ""} className="pildora-cayla aria-[pressed=false]:bg-papel">
+                Todas
+              </button>
+              {sedes.map((x) => (
+                <button key={x.id} type="button" onClick={() => onSede(x.id)} aria-pressed={sede === x.id} className="pildora-cayla aria-[pressed=false]:bg-papel">
+                  {x.nombre}
                 </button>
               ))}
             </div>
           </div>
-          <div className="w-52">
-            <CampoSelectNativo etiqueta="Otra sede" value={sede} onChange={(e) => onSede(e.target.value)}>
-              <option value="">Todas</option>
-              {sedes.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.nombre}
-                </option>
-              ))}
-            </CampoSelectNativo>
-          </div>
           {masActivos > 0 && (
-            <button type="button" onClick={onLimpiarMas} className="label-cayla pb-2 text-[11px] text-tinta/65 underline-offset-2 hover:text-rojo hover:underline">
-              Quitar estos filtros
+            <button type="button" onClick={onLimpiarMas} className="btn-enlace pb-1.5 text-[13px]">
+              Limpiar filtros
             </button>
           )}
         </div>

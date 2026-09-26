@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { CompraDetalle, FichaCompra, cargarDetalleCompra, tipoCompra } from "@/components/CompraDetalle";
+import { exigirPermiso } from "@/lib/persona-actual";
+import { CompraDetalle, DatosComprobante, TituloComprobante, cargarDetalleCompra } from "@/components/CompraDetalle";
 
 // Página completa del detalle de una factura. Es lo que se ve al entrar por
 // enlace directo o al recargar; viniendo desde una lista de Compras, el
 // mismo detalle se abre como modal encima de la lista
 // (`../../@modal/(.)factura/[compraId]/page.tsx`). El cuerpo es el mismo componente;
-// acá solo cambia el marco: miga de pan y título grande.
+// acá solo cambia el marco: enlace «← Comprobantes» en lugar de la X y el mismo título/bajada que el modal.
 export default async function CompraDetallePage({
   params,
   searchParams,
@@ -15,7 +15,8 @@ export default async function CompraDetallePage({
   params: Promise<{ compraId: string }>;
   searchParams: Promise<{ adjuntos_fallidos?: string }>;
 }) {
-  await requirePersonaActualV2();
+  // ADR-0161 P3: el layout de /compras también deja entrar a quien solo tiene Proveedores; un comprobante es dinero.
+  await exigirPermiso("verDineroCompras");
   const { compraId } = await params;
   // Nombres de archivos que no se pudieron subir al registrar (los manda
   // CompraFormV2 por la URL, separados por "|").
@@ -24,23 +25,19 @@ export default async function CompraDetallePage({
   const detalle = await cargarDetalleCompra(compraId);
   if (!detalle) notFound();
   const { compra } = detalle;
-  const anulada = compra.estado === "anulada";
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-3xl space-y-6">
+      <Link href="/compras" className="label-cayla inline-block text-[11px] text-tinta/65 transition-colors hover:text-rojo">
+        ← Comprobantes
+      </Link>
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">
-          <Link href="/compras" className="hover:text-rojo">
-            Compras
-          </Link>{" "}
-          · {tipoCompra(compra)}
-        </p>
-        <h1 className={`font-display mt-1 text-2xl ${anulada ? "text-tinta/50 line-through" : "text-tinta"}`}>
-          {compra.documento} · {compra.proveedorNombre}
+        <h1 className="font-display text-tinta">
+          <TituloComprobante compra={compra} />
         </h1>
-        <div className="mt-3">
-          <FichaCompra compra={compra} destino={detalle.destino} />
-        </div>
+        <p className="mt-1 text-xs text-tinta/70">
+          <DatosComprobante compra={compra} destino={detalle.destino} />
+        </p>
       </div>
 
       <CompraDetalle detalle={detalle} adjuntosFallidos={adjuntosFallidos} />

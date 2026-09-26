@@ -3,9 +3,16 @@
   "configurations": [
     {
       "name": "cayla-retail-dev",
+      "runtimeExecutable": "env",
+      "runtimeArgs": ["PORT=3010", "pnpm", "--filter", "web", "dev"],
+      "port": 3010,
+      "autoPort": true
+    },
+    {
+      "name": "cayla-retail-dev-windows",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "web", "dev"],
-      "port": 3000,
+      "runtimeArgs": ["--filter", "web", "dev", "-p", "3010"],
+      "port": 3010,
       "autoPort": true
     }
   ]

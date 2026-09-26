@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional } from "@/lib/resultado";
+import { hoyLima } from "@/lib/fechas-lima";
+import { marcasPorProveedor, serie12Meses, type MarcasDeProveedor } from "@/lib/proveedores-reglas";
 
 // Lectura pura (principio del repo: lib/ nunca escribe). Alta, edición y archivo
 // pasan por las RPC directo desde el componente cliente (registrar_proveedor /
@@ -10,10 +12,19 @@ export type Proveedor = {
   nombre: string;
   ruc: string | null;
   contacto: string | null;
-  /** El WhatsApp por el que se pacta el fardo — y, en el modal de pago, el número al que se yapea/plinea. */
+  /** El WhatsApp por el que se pacta el fardo. Desde ADR-0134 ya NO es el Yape: ese es `celular_billetera`. */
   telefono: string | null;
   banco: string | null;
+  /** Número de cuenta del banco (texto libre). El interbancario vive en `cci` (ADR-0134). */
   cuenta_bancaria: string | null;
+  /** Código de Cuenta Interbancario: 20 dígitos, solo números (ADR-0134). */
+  cci: string | null;
+  /** El celular al que se yapea/plinea (9 dígitos, sin +51). NO es `telefono`, que es el WhatsApp. */
+  celular_billetera: string | null;
+  /** Qué app tiene ese celular: `yape`, `plin` o ambas. `null` si no hay billetera. */
+  billeteras: string[] | null;
+  /** El nombre que muestra el banco/Yape al pagar; quien paga lo compara antes de confirmar. */
+  titular_cuenta: string | null;
   activo: boolean;
   /**
    * Lo financiero (facturas, total_facturado, saldo, ultima_compra,
@@ -23,7 +34,7 @@ export type Proveedor = {
    * llega `null` si quien pregunta no es líder — corrección de D-27, 2026-09-17
    * (20260917240000_proveedores_lista_indicadores_y_candado_sede.sql). No es
    * "todavía no se cargó": es que a esta persona no le corresponde verlo. El
-   * directorio (nombre/ruc/contacto/telefono/banco/cuenta/rubro/plazo/forma
+   * directorio (nombre/ruc/contacto/telefono/banco/cuenta/rubros/plazo/forma
    * de pago) sí es para cualquiera con cuenta.
    */
   facturas: number | null;
@@ -34,8 +45,8 @@ export type Proveedor = {
   facturas_recibidas_completas: number | null;
   facturas_con_recepcion_pendiente: number | null;
   facturas_atrasadas: number | null;
-  /** Rubro (tela, avíos, prenda terminada, servicios...), texto libre. */
-  rubro: string | null;
+  /** Todo lo que vende (Polos, Casacas…), texto libre; `[]` = sin rubro, nunca null (ADR-0213). */
+  rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
   /** Facturado en los últimos 12 meses (la lista dejó de mostrar «desde siempre»). */
@@ -66,6 +77,56 @@ export async function getProveedores(): Promise<Proveedor[]> {
     entregas_por_recibir: num(p.entregas_por_recibir),
     saldo_favor: num(p.saldo_favor),
   }));
+}
+
+// Lo facturado por proveedor y mes, últimos 12 meses (fn_proveedores_serie_12m, ADR-0128): la forma
+// detrás de «Facturado 12 m». Devuelve, por id de proveedor, doce montos del mes más antiguo al actual;
+// un proveedor sin compras en la ventana no aparece (quien la pinta lo trata como doce ceros).
+//
+// Es un ADORNO de la lista, no un dato del que dependa nada: si la función todavía no existe en la base
+// (la migración 20260919150000 se pega en producción aparte del despliegue) o falla, devuelve `null` y
+// la lista se pinta igual, sin tendencias — principio 9: una lectura secundaria nunca tumba la pantalla.
+// A quien no es líder la base no le devuelve filas.
+export async function getProveedoresSerie(): Promise<Record<string, number[]> | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_proveedores_serie_12m");
+  if (error) {
+    console.error("[proveedores] no se pudo leer la serie mensual; la lista se muestra sin tendencias:", error.message);
+    return null;
+  }
+  const porProveedor = new Map<string, { mes: string; monto: number }[]>();
+  for (const f of data ?? []) {
+    const filas = porProveedor.get(f.proveedor_id) ?? [];
+    filas.push({ mes: f.mes, monto: Number(f.monto) });
+    porProveedor.set(f.proveedor_id, filas);
+  }
+  const hoy = hoyLima();
+  return Object.fromEntries([...porProveedor].map(([id, filas]) => [id, serie12Meses(filas, hoy)]));
+}
+
+// Las marcas con que se conoce a cada proveedor (ADR-0140): el nombre es la razón social, pero el equipo busca
+// por «Kero», no por «Textil Ejemplo SAC». Devuelve, por id de proveedor, sus marcas activas. Lee las mismas dos
+// tablas que el catálogo (`marcas` y `marca_proveedores`, abiertas a cualquiera con cuenta), sin RPC ni migración.
+//
+// Es un ADORNO de la lista, no un dato del que dependa nada: si la lectura falla devuelve `null` y la pantalla se
+// pinta igual, sin marcas ni búsqueda por marca — principio 9: una lectura secundaria nunca tumba la pantalla.
+// El tope por defecto de PostgREST (`max_rows` en supabase/config.toml).
+const TOPE_FILAS = 1000;
+
+export async function getMarcasPorProveedor(): Promise<MarcasDeProveedor | null> {
+  const supabase = await createClient();
+  const [resMarcas, resVinculos] = await Promise.all([supabase.from("marcas").select("id, nombre, activo"), supabase.from("marca_proveedores").select("marca_id, proveedor_id")]);
+  if (resMarcas.error || resVinculos.error) {
+    console.error("[proveedores] no se pudieron leer las marcas; la lista se muestra sin ellas:", (resMarcas.error ?? resVinculos.error)?.message);
+    return null;
+  }
+  // PostgREST corta en silencio a TOPE_FILAS (200 OK, sin error): un mapa recortado se vería igual que uno completo y
+  // algunos proveedores aparecerían «sin marcas». Es preferible degradar a `null` (que se nota) que mostrar a medias.
+  if ((resMarcas.data?.length ?? 0) >= TOPE_FILAS || (resVinculos.data?.length ?? 0) >= TOPE_FILAS) {
+    console.error(`[proveedores] las marcas llegaron al tope de ${TOPE_FILAS} filas; se muestra la lista sin ellas hasta paginar la lectura.`);
+    return null;
+  }
+  return marcasPorProveedor(resMarcas.data ?? [], resVinculos.data ?? []);
 }
 
 // Las cifras de la cabecera de la lista (ADR-0111): activos, deuda total con proveedores,
@@ -122,8 +183,12 @@ export type ProveedorFicha = {
   telefono: string | null;
   banco: string | null;
   cuenta_bancaria: string | null;
+  cci: string | null;
+  celular_billetera: string | null;
+  billeteras: string[] | null;
+  titular_cuenta: string | null;
   activo: boolean;
-  rubro: string | null;
+  rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
 };
@@ -133,7 +198,7 @@ export async function getProveedor(id: string): Promise<ProveedorFicha | null> {
   return exigirOpcional(
     await supabase
       .from("proveedores")
-      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, activo, rubro, plazo_credito_dias, forma_pago_preferida")
+      .select("id, nombre, ruc, contacto, telefono, banco, cuenta_bancaria, cci, celular_billetera, billeteras, titular_cuenta, activo, rubros, plazo_credito_dias, forma_pago_preferida")
       .eq("id", id)
       .maybeSingle(),
     "la ficha del proveedor"

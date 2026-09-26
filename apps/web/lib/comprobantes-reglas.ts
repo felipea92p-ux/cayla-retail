@@ -8,11 +8,16 @@
 // rechaza el build entero (se encontró exactamente así, 2026-09-12, al
 // conectar Vender con Facturación).
 
-export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito";
+// "nota_venta" (ADR-0164): documento INTERNO de la tienda, con serie propia (NV01…), sin IGV
+// desglosado y que NUNCA se transmite a SUNAT — por eso nace en su propio estado, "interna".
+export type TipoComprobante = "boleta" | "factura" | "nota_credito" | "nota_debito" | "nota_venta";
 // "no_emitido" (ADR-0093): un líder liberó un comprobante `pendiente` que nunca se
 // transmitió a SUNAT — su número queda sin usar para siempre, nunca se reutiliza. Distinto
 // de "anulado": eso es una baja real ANTE SUNAT de algo que sí llegó a transmitirse.
-export type EstadoComprobante = "pendiente" | "enviado" | "aceptado" | "rechazado" | "anulado" | "no_emitido";
+/** `pendiente_reintento`: Lucode/SUNAT no respondió al enviarlo y espera en la cola, que se reintenta
+ *  sola (D-60) — nunca un rechazo de SUNAT, que es `rechazado`. `interna`: la nota de venta, que nunca
+ *  va a SUNAT. */
+export type EstadoComprobante = "pendiente" | "pendiente_reintento" | "enviado" | "aceptado" | "rechazado" | "anulado" | "no_emitido" | "interna";
 /** `null` = todavía no se transmitió. `sandbox` = se transmitió, pero a la
  *  plataforma de pruebas: SUNAT no lo vio y el comprobante NO es válido. */
 export type EntornoTransmision = "sandbox" | "produccion" | null;
@@ -82,10 +87,12 @@ export const ETIQUETA_TIPO: Record<TipoComprobante, string> = {
   factura: "Factura",
   nota_credito: "Nota de crédito",
   nota_debito: "Nota de débito",
+  nota_venta: "Nota de venta",
 };
 
 export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
   pendiente: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
+  pendiente_reintento: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
   enviado: "border-ambar/30 bg-ambar/10 text-ambar-profundo",
   aceptado: "border-verde/45 bg-verde/10 text-verde-profundo",
   rechazado: "border-rojo/30 bg-rojo/10 text-rojo-profundo",
@@ -94,15 +101,19 @@ export const ESTADO_ESTILO: Record<EstadoComprobante, string> = {
   // acción — pero es un color, no una palabra: la etiqueta de abajo es la que dice
   // la diferencia real (nunca se transmitió, nada que ver con SUNAT).
   no_emitido: "border-tinta/20 bg-tinta/5 text-tinta/65",
+  // La nota de venta: cerrada desde que nace, no pide ninguna acción ante SUNAT.
+  interna: "border-tinta/20 bg-tinta/5 text-tinta/65",
 };
 
 export const ESTADO_ETIQUETA: Record<EstadoComprobante, string> = {
   pendiente: "Pendiente de enviar",
+  pendiente_reintento: "En cola: se reintenta solo",
   enviado: "Enviado a SUNAT",
   aceptado: "Aceptado",
   rechazado: "Rechazado",
   anulado: "Anulado",
   no_emitido: "No emitido",
+  interna: "Interna — no va a SUNAT",
 };
 
 /** El tipo de documento (DNI/RUC/sin documento) no es una decisión aparte

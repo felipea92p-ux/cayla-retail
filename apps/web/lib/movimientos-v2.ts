@@ -2,11 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import {
   CATEGORIAS,
-  diasAtrasEnLima,
   leerCursorMovimientos,
+  type CategoriaFila,
   type CategoriaMovimiento,
   type CursorMovimientos,
+  type FiltrosMovimientos,
   type Movimiento,
+  type ParamsMovimientos,
   type TipoMovimiento,
 } from "@/lib/movimientos-reglas";
 import type { EstadoComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
@@ -24,17 +26,6 @@ export * from "@/lib/movimientos-reglas";
 // sin poder juntar el nombre de la persona (vive en otro schema). Este
 // archivo solo LEE; no existe ninguna escritura de Movimientos desde la UI.
 
-export type FiltrosMovimientos = {
-  busqueda?: string;
-  /** `aaaa-mm-dd` inclusivos, en día de Lima. */
-  desde?: string;
-  hasta?: string;
-  categoria?: CategoriaMovimiento;
-  motivo?: string;
-  usuarioId?: string;
-  sububicacionId?: string;
-};
-
 export type PaginaMovimientos = {
   filas: Movimiento[];
   /** Cursor para pedir la página siguiente; null si esta es la última. */
@@ -44,48 +35,6 @@ export type PaginaMovimientos = {
 export type ResumenMovimientos = Record<CategoriaMovimiento, { movimientos: number; unidades: number; delta: number }>;
 
 export const TAMANO_PAGINA = 50;
-/** Sin fechas en la URL, la pantalla muestra los últimos 30 días — y lo dice. */
-export const DIAS_POR_DEFECTO = 30;
-
-/** Parámetros de URL de la pantalla (ver `FiltrosMovimientos.tsx`).
- *  `rango=todo` apaga el recorte por defecto de 30 días. */
-export type ParamsMovimientos = {
-  q?: string;
-  desde?: string;
-  hasta?: string;
-  rango?: string;
-  cat?: string;
-  proc?: string;
-  sub?: string;
-  usuario?: string;
-  cursor?: string;
-  ubicacion?: string;
-  /** Id del movimiento abierto en el detalle (lo escribe `MovimientosLista`). */
-  mov?: string;
-};
-
-const esFecha = (v?: string) => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
-const esUuid = (v?: string) => !!v && /^[0-9a-f-]{36}$/i.test(v);
-// Un motivo es texto libre en la base, pero lo que llega por URL se acota a
-// lo que un motivo puede ser: minúsculas, dígitos y guion bajo.
-const esMotivo = (v?: string) => !!v && /^[a-z0-9_]{1,40}$/.test(v);
-
-/** Traduce la URL a filtros, descartando cualquier valor que no sea válido. */
-export function filtrosDesdeParams(p: ParamsMovimientos): FiltrosMovimientos & { rangoPorDefecto: boolean } {
-  const desde = esFecha(p.desde) ? p.desde : undefined;
-  const hasta = esFecha(p.hasta) ? p.hasta : undefined;
-  const rangoPorDefecto = !desde && !hasta && p.rango !== "todo";
-  return {
-    busqueda: p.q?.trim() || undefined,
-    desde: rangoPorDefecto ? diasAtrasEnLima(DIAS_POR_DEFECTO) : desde,
-    hasta,
-    categoria: CATEGORIAS.find((c) => c === p.cat),
-    motivo: esMotivo(p.proc) ? p.proc : undefined,
-    usuarioId: esUuid(p.usuario) ? p.usuario : undefined,
-    sububicacionId: esUuid(p.sub) ? p.sub : undefined,
-    rangoPorDefecto,
-  };
-}
 
 export function cursorDesdeParams(p: ParamsMovimientos): CursorMovimientos | null {
   return leerCursorMovimientos(p.cursor);
@@ -142,6 +91,10 @@ type FilaRpc = {
   devolucion_estado: string | null;
   cambio_id: string | null;
   cambio_diferencia: number | null;
+  // 20260919155000. Opcionales a propósito: si el código sale antes que la migración, la pantalla
+  // sigue andando y solo dice «Traslado» / «Conteo» sin el número.
+  transferencia_numero?: number | null;
+  conteo_numero?: number | null;
 };
 
 function aMovimiento(f: FilaRpc): Movimiento {
@@ -151,7 +104,7 @@ function aMovimiento(f: FilaRpc): Movimiento {
     fecha: f.fecha_lima,
     hora: f.hora,
     tipo: f.tipo as TipoMovimiento,
-    categoria: f.categoria as CategoriaMovimiento,
+    categoria: f.categoria as CategoriaFila,
     motivo: f.motivo,
     cantidad: f.cantidad,
     delta: f.delta,
@@ -184,8 +137,12 @@ function aMovimiento(f: FilaRpc): Movimiento {
       : null,
     lote: f.lote_id ? { id: f.lote_id, guia: f.lote_guia, nota: f.lote_nota, proveedor: f.proveedor_nombre } : null,
     compra: f.compra_id ? { id: f.compra_id, documento: f.compra_documento } : null,
-    transferencia: f.transferencia_id ? { id: f.transferencia_id, estado: f.transferencia_estado, nota: f.transferencia_nota } : null,
-    conteo: f.conteo_id ? { id: f.conteo_id, sistema: f.conteo_cantidad_sistema, contado: f.conteo_cantidad_contada } : null,
+    transferencia: f.transferencia_id
+      ? { id: f.transferencia_id, estado: f.transferencia_estado, nota: f.transferencia_nota, numero: f.transferencia_numero ?? null }
+      : null,
+    conteo: f.conteo_id
+      ? { id: f.conteo_id, sistema: f.conteo_cantidad_sistema, contado: f.conteo_cantidad_contada, numero: f.conteo_numero ?? null }
+      : null,
     devolucion: f.devolucion_id ? { id: f.devolucion_id, motivo: f.devolucion_motivo, estado: f.devolucion_estado } : null,
     // `cambio_diferencia` es `numeric` en Postgres — PostgREST lo manda como
     // string ("0.00"), nunca como number, para no perder precisión decimal.
@@ -206,7 +163,6 @@ function paramsRpc(ubicacionId: string, filtros: FiltrosMovimientos) {
     ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
     ...(filtros.motivo ? { p_motivo: filtros.motivo } : {}),
     ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
-    ...(filtros.usuarioId ? { p_usuario_id: filtros.usuarioId } : {}),
     ...(filtros.sububicacionId ? { p_sububicacion_id: filtros.sububicacionId } : {}),
   };
 }

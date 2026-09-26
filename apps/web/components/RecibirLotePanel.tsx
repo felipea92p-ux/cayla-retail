@@ -7,6 +7,8 @@ import { Modal } from "@/components/ui/Modal";
 import { RecepcionFormV2 } from "@/components/RecepcionFormV2";
 import { RecepcionesRecientes, type CostoRecepcion } from "@/components/RecepcionesRecientes";
 import type { RecepcionReciente } from "@/lib/compras-reglas";
+import { useColaRecibir } from "@/lib/useColaRecibir";
+import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 
 type Variante = { varianteId: string; sku: string; referencia: string; talla: string | null; color: string | null };
 type Proveedor = { id: string; nombre: string };
@@ -42,12 +44,14 @@ export function RecibirLotePanel({
   variantes: Variante[];
   proveedores: Proveedor[];
   recepciones: RecepcionReciente[];
-  costos: Record<string, CostoRecepcion>;
+  /** Costo promedio por lote. Solo para el líder (ADR-0126): sin esto la lista no muestra la columna de costo. */
+  costos?: Record<string, CostoRecepcion>;
   indicadores?: ReactNode;
   /** Si falta algo para poder recibir (sin proveedores o sin catálogo), el motivo — en lugar del botón. */
   aviso?: string;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const colaOffline = useColaRecibir();
 
   return (
     <div className="space-y-6">
@@ -61,7 +65,7 @@ export function RecibirLotePanel({
           {esLider && (
             <p className="mt-1 text-xs text-tinta/55">
               ¿Tienes el comprobante?{" "}
-              <Link href="/compras/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+              <Link href="/recibir" className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
                 Recibir contra comprobante
               </Link>
             </p>
@@ -77,6 +81,9 @@ export function RecibirLotePanel({
           </button>
         )}
       </div>
+
+      {/* Lo que se recibió sin red y espera subir (ADR-0210): a la vista aunque el formulario esté cerrado. */}
+      <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="recepción" varias="recepciones" />
 
       {aviso ? (
         <p className="card-cayla p-5 text-sm text-tinta/75">{aviso}</p>

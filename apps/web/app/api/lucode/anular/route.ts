@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/lucode";
+import { firmaDeEncabezados, mensajeErrorResponsable } from "@/lib/responsable-reglas";
+import { capturarError } from "@/lib/errores";
 
 // POST /api/lucode/anular  { comprobante_id: string, motivo: string }
 //
@@ -9,7 +11,8 @@ import { anularBoletaLucode, anularDocumentoLucode, entornoLucode } from "@/lib/
 //            baja para facturas y notas) y guarda el resultado real —
 //            distinguiendo "confirmada" de "en trámite".
 //   ASUME:   sesión válida y persona líder (la RPC lo vuelve a exigir; una
-//            pantalla no es un permiso).
+//            pantalla no es un permiso), y el responsable del combo en los
+//            encabezados `x-responsable`/`x-ubicacion` (ADR-0161).
 //   NO HACE: no decide el plazo. La documentación de Lucode se contradice
 //            (3 vs 5 días) y SUNAT habla de 7: bloquear por una fecha
 //            inventada acá negaría anulaciones legítimas. Se intenta, y si el
@@ -33,11 +36,24 @@ export async function POST(request: Request) {
     return Response.json({ error: "La anulación necesita un motivo — queda registrado en el comprobante." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  // La firma del combo «Responsable» (ADR-0161) que mandó la pantalla viaja en cada consulta de este cliente, así
+  // `anular_comprobante` queda firmada por quien eligió el combo (mismo patrón que /api/lucode/emitir).
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autorizado" }, { status: 401 });
+
+  // El responsable se valida ANTES de pedirle la baja a Lucode: lo que llega a SUNAT no se deshace, y si la base
+  // rechazara al responsable recién al guardar, la baja quedaría pedida sin registrarse aquí. Es la misma función
+  // de las escrituras; si todavía no existe en esta base, no frena nada (el candado se degrada al de antes).
+  const rpcLibre = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{ error: { code?: string; hint?: string; message: string } | null }>;
+  const { error: errResponsable } = await rpcLibre("fn_actor_persona_id", { p_de_tienda: true });
+  const porResponsable = mensajeErrorResponsable(errResponsable);
+  if (porResponsable) return Response.json({ error: porResponsable, hint: errResponsable?.hint ?? null }, { status: 403 });
 
   const { data: comprobante, error: errComprobante } = await supabase
     .from("comprobantes")
@@ -48,6 +64,7 @@ export async function POST(request: Request) {
   // Un fallo de consulta NO es "no encontrado": si se confunden, quien anula concluye que
   // el comprobante no existe y lo vuelve a emitir. 503 dice "reintenta", 404 dice "no está".
   if (errComprobante) {
+    capturarError("lucode/anular: no se pudo leer el comprobante", errComprobante, { comprobante_id: comprobanteId });
     return Response.json({ error: "No se pudo leer el comprobante. Reintenta en un momento." }, { status: 503 });
   }
   if (!comprobante) {
@@ -94,6 +111,7 @@ export async function POST(request: Request) {
     );
   }
 
+  // Firmada con el responsable de los encabezados (el cliente de arriba se creó con esa firma).
   const { error: errGuardar } = await supabase.rpc("anular_comprobante", {
     p_comprobante_id: comprobante.id,
     p_motivo: motivo,
@@ -101,6 +119,12 @@ export async function POST(request: Request) {
     p_respuesta: resultado,
   });
   if (errGuardar) {
+    // La baja ya está pedida ante SUNAT: si esto se pierde con el aviso de la pantalla, nadie sabe que hay que revisarla.
+    capturarError("lucode/anular: baja pedida pero sin guardar", errGuardar, {
+      comprobante_id: comprobante.id,
+      comprobante: `${comprobante.serie}-${comprobante.numero}`,
+      estado_sunat: resultado.estado,
+    });
     return Response.json(
       {
         error: `La baja se pidió (${resultado.estado}) pero no se pudo guardar: ${errGuardar.message}. No la vuelvas a pedir sin revisar el panel de Lucode.`,

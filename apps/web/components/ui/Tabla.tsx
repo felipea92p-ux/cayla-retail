@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 /* ====================================================================
    Tabla · listados con encabezado (2026-09-12, módulo de Compras)
@@ -26,9 +26,34 @@ export type Columna = {
   /** Solo desde lg: para una columna prescindible cuando la plantilla `sm:` no
    *  la incluye (la fila debe ocultar esa celda con `hidden lg:block` también). */
   desdeLg?: boolean;
+  /** Solo desde xl (1280): la columna que a menos ancho se apila dentro de otra celda (la fila
+   *  debe ocultar su celda propia con `hidden xl:block` y mostrar el contenido en la otra con
+   *  `xl:hidden`). */
+  desdeXl?: boolean;
+  /** Segunda línea del encabezado, en minúscula y más tenue («en 30 d», «A → B»): la unidad o el
+   *  contexto de la cifra. Es contenido, no adorno. */
+  subtitulo?: string;
+  /** Texto que explica la columna al pasar el mouse (`title`). */
+  ayuda?: string;
 };
 
 const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right", centro: "text-center" };
+
+/** Las clases de toda tabla de Inventario (2026-09-21; la referencia de estilo es Existencias). Una sola
+ *  fuente: `Tabla`, `Encabezado` y `fila` las usan, y las tablas que arman su propia rejilla (Traslados, las
+ *  de Análisis) las importan en vez de copiarlas — así un cambio de padding o de tono llega a todas a la vez. */
+// Guía oficial (2026-09-22, ADR-0169): cabecera en sand con los títulos en taupe, peso normal y SIN
+// versalitas (una tabla se lee, no se grita); divisiones en sand; zebra en hueso (`fila-cayla`, globals.css).
+export const TABLA = {
+  contenedor: "card-cayla divide-y divide-sand overflow-x-auto",
+  encabezado: "encabezado-tabla-cayla gap-x-4 px-5 py-2",
+  titulo: "text-xs font-normal text-taupe",
+  fila: "fila-cayla gap-x-4 gap-y-1 px-5 py-3",
+  /** El renglón de pie (cuántas se muestran, exportar, paginar). */
+  pie: "px-5 py-2.5 text-xs text-taupe",
+  /** Sin resultados: una tarjeta aparte, o dentro de la tarjeta de la sección con `border-t`. */
+  vacio: "p-5 text-sm text-tinta/75",
+} as const;
 
 // `overflow-x-auto`: encontrado el 2026-09-15 al centrar Inventario — con
 // columnas fijas angostas (rem) + una sola `1fr`, una ventana más angosta
@@ -36,17 +61,30 @@ const ALINEAR: Record<Alineacion, string> = { izq: "text-left", der: "text-right
 // en vez de desbordar. Con `overflow-x-auto` acá (una vez, para las tres
 // tablas que usan este componente) la fila se desborda hacia un scroll
 // horizontal de la tarjeta — nunca una columna que desaparece sin avisar.
-export function Tabla({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`card-cayla divide-y divide-tinta/10 overflow-x-auto ${className}`}>{children}</div>;
+export function Tabla({ children, className = "", style }: { children: ReactNode; className?: string; style?: CSSProperties }) {
+  return (
+    <div className={`${TABLA.contenedor} ${className}`} style={style}>
+      {children}
+    </div>
+  );
 }
 
-/** La fila de títulos. `plantilla` debe ser la misma que reciben las filas. */
-export function Encabezado({ columnas, plantilla }: { columnas: Columna[]; plantilla: string }) {
+/** La fila de títulos. `plantilla` debe ser la misma que reciben las filas.
+ *  `siempre`: para las tablas anchas que se desplazan dentro de su tarjeta en vez de apilarse en celular
+ *  (las de Análisis): el encabezado no se esconde bajo `sm` y los títulos de una y de dos líneas se
+ *  alinean por abajo. */
+export function Encabezado({ columnas, plantilla, siempre = false }: { columnas: Columna[]; plantilla: string; siempre?: boolean }) {
   return (
-    <div className={`hidden gap-x-4 px-5 py-2 sm:grid ${plantilla}`} role="row">
+    <div className={`${siempre ? "grid items-end" : "hidden sm:grid"} ${TABLA.encabezado} ${plantilla}`} role="row">
       {columnas.map((c, i) => (
-        <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""}`} role="columnheader">
+        <span
+          key={i}
+          title={c.ayuda}
+          className={`${TABLA.titulo} ${siempre ? "block min-w-0" : ""} ${ALINEAR[c.alinear ?? "izq"]} ${c.desdeLg ? "hidden lg:block" : ""} ${c.desdeXl ? "hidden xl:block" : ""}`}
+          role="columnheader"
+        >
           {c.titulo}
+          {c.subtitulo && <span className="block truncate text-[10px] text-taupe">{c.subtitulo}</span>}
         </span>
       ))}
     </div>
@@ -55,7 +93,7 @@ export function Encabezado({ columnas, plantilla }: { columnas: Columna[]; plant
 
 /** Clases para una fila de datos con la misma plantilla que el encabezado. */
 export function fila(plantilla: string, extra = ""): string {
-  return `grid gap-x-4 gap-y-1 px-5 py-3 sm:items-baseline ${plantilla} ${extra}`;
+  return `grid ${TABLA.fila} sm:items-baseline ${plantilla} ${extra}`;
 }
 
 /** Clases para una celda: alineación en escritorio; en celular todo va a la izquierda.

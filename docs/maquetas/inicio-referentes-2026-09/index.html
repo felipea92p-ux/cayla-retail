@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inicio · tres referentes</title>
+<style>
+  :root{
+    --crema:#f5f0e8; --papel:#fbf6ec; --tinta:#1a1a18; --tinta-65:rgba(26,26,24,.65);
+    --linea:rgba(26,26,24,.12); --verde:#44583a; --ambar:#8c631f; --hueso:#ece5d6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--crema);color:var(--tinta);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 16px 64px}
+  h1,h2,h3,.serif{font-family:Georgia,"Times New Roman",serif;font-weight:400;margin:0}
+  .eyebrow{font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--tinta-65)}
+  .nota{font-size:13px;color:var(--tinta-65)}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 20px}
+  .tab{border:1px solid var(--linea);background:var(--papel);color:var(--tinta);padding:10px 14px;border-radius:12px;cursor:pointer;font:inherit;text-align:left}
+  .tab b{display:block;font-weight:600;font-size:14px}
+  .tab span{font-size:12px;color:var(--tinta-65)}
+  .tab[aria-selected=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .tab[aria-selected=true] span{color:rgba(245,240,232,.75)}
+  .panel{display:none}.panel.on{display:block}
+  .origen{background:var(--papel);border:1px solid var(--linea);border-radius:12px;padding:12px 16px;margin-bottom:16px;font-size:13px}
+  .origen b{font-weight:600}
+  /* ventana simulada */
+  .ventana{border:1px solid var(--linea);border-radius:16px;background:var(--crema);overflow:hidden;box-shadow:0 6px 24px rgba(26,26,24,.06)}
+  .barra{display:flex;justify-content:space-between;align-items:center;padding:10px 18px;border-bottom:1px solid var(--linea);background:var(--papel)}
+  .chip{font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;border:1px solid var(--linea);border-radius:8px;padding:5px 10px;background:var(--crema)}
+  .cuerpo{padding:26px 24px 30px;display:grid;gap:26px}
+  .card{background:var(--papel);border:1px solid var(--linea);border-radius:12px}
+  .grid{display:grid;gap:12px}
+  .g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  @media(max-width:760px){.g3,.g4{grid-template-columns:repeat(2,1fr)}.cuerpo{padding:20px 14px}}
+  @media(max-width:460px){.g2,.g3,.g4{grid-template-columns:1fr}}
+  .num{font-family:Georgia,serif;font-size:32px;line-height:1.1}
+  .up{color:var(--verde);font-weight:600}
+  .badge{display:inline-block;min-width:22px;text-align:center;font-size:12px;font-weight:600;border-radius:99px;padding:1px 8px;background:var(--ambar);color:var(--crema)}
+  .badge.ok{background:var(--verde)}
+  /* A: malla */
+  .tile{padding:18px;min-height:112px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;transition:background .2s;text-decoration:none;color:inherit}
+  .tile:hover{background:var(--hueso)}
+  .tile .t{display:flex;justify-content:space-between;align-items:start;gap:8px;font-weight:600}
+  .tile .s{font-size:13px;color:var(--tinta-65);margin-top:10px}
+  .tile.primario{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+  .tile.primario .s{color:rgba(245,240,232,.75)}
+  .tile.primario:hover{background:#2c2c29}
+  /* B: tablero */
+  .seg{display:inline-flex;border:1px solid var(--linea);border-radius:10px;overflow:hidden;background:var(--papel)}
+  .seg button{border:0;background:transparent;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;color:var(--tinta-65)}
+  .seg button[aria-pressed=true]{background:var(--tinta);color:var(--crema)}
+  .barra-meta{height:8px;border-radius:99px;background:var(--hueso);overflow:hidden;margin-top:10px}
+  .barra-meta i{display:block;height:100%;background:var(--verde);border-radius:99px;transition:width .45s cubic-bezier(.2,.7,.2,1)}
+  ol.top{margin:10px 0 0;padding:0;list-style:none}
+  ol.top li{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--linea);font-size:14px}
+  /* C: colas */
+  .cola{padding:18px;display:grid;gap:10px}
+  .cola .fila{display:flex;justify-content:space-between;align-items:center}
+  .btn{border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);border-radius:10px;padding:8px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+  .btn.claro{background:transparent;color:var(--tinta);border-color:var(--linea)}
+  .btn.claro:hover{background:var(--hueso)}
+  .vacio{color:var(--tinta-65);font-size:13px}
+  /* comparación */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:10px 12px;border-top:1px solid var(--linea);text-align:left;vertical-align:top}
+  th{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--tinta-65);border-top:0}
+  td.n{text-align:center;font-variant-numeric:tabular-nums;font-weight:600}
+  tr.total td{background:var(--hueso);font-weight:700}
+  .reco{border-left:3px solid var(--verde);padding:14px 18px;background:var(--papel);border-radius:0 12px 12px 0}
+  footer{margin-top:28px}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">Auditoría de Inicio · demostración</p>
+  <h1 style="font-size:30px;margin-top:6px">Tres formas de resolver el Inicio de CAYLA</h1>
+  <p class="nota" style="max-width:72ch">Mismos datos de demostración y misma identidad visual CAYLA en las tres. Lo que cambia es <b>la estructura</b> que cada referente usa para su pantalla de aterrizaje. Cifras ficticias (Tienda TRU, «Ana Demo», líder).</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-t="m"><b>★ Mezcla propuesta</b><span>Lo mejor de A + B + C, por rol</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-t="a"><b>A · Malla de accesos con insignias</b><span>Patrón de Shopify POS</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-t="b"><b>B · Tablero del día</b><span>Patrón de Lightspeed Retail (X-Series)</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-t="c"><b>C · Colas por procesar</b><span>Patrón de Odoo (Inventario / PdV)</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-t="d"><b>Comparación</b><span>Cuál conviene a CAYLA</span></button>
+  </div>
+
+  <!-- ============ Mezcla ============ -->
+  <section class="panel on" id="m">
+    <div class="origen"><b>Cómo se combina:</b> <b>«Hoy»</b> de B (ventas contra el periodo anterior y meta) → <b>«Por atender»</b> de C (colas con número, que avisan si no se pueden leer) → <b>3 accesos</b> de A (mosaicos por rol, sin repetir el menú lateral) → la <b>actividad reciente</b> que Inicio ya tiene, ahora con el motivo real. Cambia el rol para ver cómo se adapta.</div>
+    <div style="margin-bottom:14px" class="seg" id="segRol">
+      <button aria-pressed="true" data-r="lider">Líder · Tienda TRU</button>
+      <button aria-pressed="false" data-r="integrante">Colaboradora · Tienda TRU</button>
+      <button aria-pressed="false" data-r="taller">Taller · Lima</button>
+    </div>
+    <div class="ventana">
+      <div class="barra"><span class="eyebrow">CAYLA</span><span class="chip" id="m-sede">Tienda TRU ▾</span></div>
+      <div class="cuerpo" id="m-cuerpo"></div>
+    </div>
+  </section>
+
+  <!-- ============ A ============ -->
+  <section class="panel" id="a">
+    <div class="origen"><b>Qué toma del referente:</b> la pantalla de inicio es una <i>malla de mosaicos configurables</i> (accesos a flujos), y cada mosaico puede mostrar un dato contextual y una insignia; se edita por ubicación. <b>Qué no tiene:</b> cifras de gestión; es un lanzador de acciones.</div>
+    <div class="ventana">
+      <div class="barra"><span class="eyebrow">CAYLA</span><span class="chip">Tienda TRU ▾</span></div>
+      <div class="cuerpo">
+        <div><h2 style="font-size:26px">Hola, Ana</h2><p class="nota" style="margin:4px 0 0">Vie 21 sep · Caja abierta desde las 09:12</p></div>
+        <div class="grid g4">
+          <a class="card tile primario"><div class="t"><span>Vender</span><span>→</span></div><div class="s">Punto de venta</div></a>
+          <a class="card tile"><div class="t"><span>Caja</span><span class="badge ok">Abierta</span></div><div class="s">S/ 1.240 cobrados hoy</div></a>
+          <a class="card tile"><div class="t"><span>Recibir</span><span class="badge">2</span></div><div class="s">Traslados en camino a TRU</div></a>
+          <a class="card tile"><div class="t"><span>Buscar</span><span></span></div><div class="s">SKU, talla o color</div></a>
+          <a class="card tile"><div class="t"><span>Inventario</span></div><div class="s">315 unidades en la sede</div></a>
+          <a class="card tile"><div class="t"><span>Movimientos</span><span class="badge ok">6 hoy</span></div><div class="s">Por qué cambió el stock</div></a>
+          <a class="card tile"><div class="t"><span>Cambios</span></div><div class="s">Talla o color</div></a>
+          <a class="card tile"><div class="t"><span>Devoluciones</span><span class="badge">1</span></div><div class="s">1 por aprobar</div></a>
+        </div>
+        <p class="nota">Cada mosaico se ordena y oculta según el rol y la sede: una colaboradora ve «Vender» primero; el Taller ve «Producción».</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ B ============ -->
+  <section class="panel" id="b">
+    <div class="origen"><b>Qué toma del referente:</b> un tablero de aterrizaje con las ventas del período (hoy, semana, mes) <i>comparadas con el período anterior</i>, valor medio de venta y prendas por venta, la meta de ventas y los más vendidos. <b>Qué no tiene:</b> no te dice qué hay que atender ni te lleva a hacerlo.</div>
+    <div class="ventana">
+      <div class="barra"><span class="eyebrow">CAYLA</span><span class="chip">Tienda TRU ▾</span></div>
+      <div class="cuerpo">
+        <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap">
+          <div><h2 style="font-size:26px">Hola, Ana</h2><p class="nota" style="margin:4px 0 0">Así va Tienda TRU</p></div>
+          <div class="seg" id="seg"><button aria-pressed="true" data-p="hoy">Hoy</button><button aria-pressed="false" data-p="sem">Esta semana</button><button aria-pressed="false" data-p="mes">Este mes</button></div>
+        </div>
+        <div class="grid g3">
+          <div class="card" style="padding:18px"><div class="eyebrow">Ventas</div><div class="num" id="b-ventas">S/ 1.240</div><div class="nota"><span class="up" id="b-delta">▲ 26 %</span> <span id="b-comp">vs. mismo día y hora de la semana pasada</span></div></div>
+          <div class="card" style="padding:18px"><div class="eyebrow">Valor medio de venta</div><div class="num" id="b-ticket">S/ 155</div><div class="nota"><span id="b-ntk">8 ventas</span></div></div>
+          <div class="card" style="padding:18px"><div class="eyebrow">Prendas por venta</div><div class="num" id="b-items">1,6</div><div class="nota">13 prendas vendidas</div></div>
+        </div>
+        <div class="grid g2">
+          <div class="card" style="padding:18px"><div class="eyebrow">Meta del día · <span id="b-metatxt">83 %</span></div><div class="barra-meta"><i id="b-meta" style="width:83%"></i></div><p class="nota" style="margin:10px 0 0">Faltan S/ 260 para la meta de S/ 1.500 de Tienda TRU.</p></div>
+          <div class="card" style="padding:18px"><div class="eyebrow">Más vendidos hoy</div>
+            <ol class="top"><li><span>Casaca Emilia</span><b>3 uds</b></li><li><span>Pantalón Milagros</span><b>2 uds</b></li><li><span>Blusa Ximena</span><b>2 uds</b></li></ol></div>
+        </div>
+        <p class="nota">Con «Caja abierta» ausente, el tablero muestra «Caja cerrada» y un botón para abrirla, en vez de un cero mudo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ C ============ -->
+  <section class="panel" id="c">
+    <div class="origen"><b>Qué toma del referente:</b> tarjetas por tipo de operación, cada una con su botón «N por procesar» que abre la cola; y un acceso directo «Continuar vendiendo» / «Abrir caja» según el estado de la sesión de caja. <b>Qué no tiene:</b> no responde «cuánto vendí»; es una cola de trabajo.</div>
+    <div class="ventana">
+      <div class="barra"><span class="eyebrow">CAYLA</span><span class="chip">Tienda TRU ▾</span></div>
+      <div class="cuerpo">
+        <div><h2 style="font-size:26px">Hola, Ana</h2><p class="nota" style="margin:4px 0 0">Lo que espera a Tienda TRU hoy</p></div>
+        <div class="card" style="padding:18px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <div><div style="font-weight:600">Caja abierta desde las 09:12</div><div class="nota">S/ 1.240 cobrados · 8 ventas</div></div>
+          <button class="btn">Continuar vendiendo</button>
+        </div>
+        <div class="grid g3">
+          <div class="card cola"><div class="fila"><b>Traslados por recibir</b><span class="badge">2</span></div><p class="nota" style="margin:0">Uno llega hoy, otro con retraso de 1 día.</p><button class="btn claro">2 por procesar</button></div>
+          <div class="card cola"><div class="fila"><b>Comprobantes SUNAT</b><span class="badge">1</span></div><p class="nota" style="margin:0">1 pendiente de emitir desde ayer.</p><button class="btn claro">1 por procesar</button></div>
+          <div class="card cola"><div class="fila"><b>Devoluciones</b><span class="badge">1</span></div><p class="nota" style="margin:0">1 por aprobar (solo líder).</p><button class="btn claro">1 por procesar</button></div>
+          <div class="card cola"><div class="fila"><b>Compras por pagar</b><span class="badge">2</span></div><p class="nota" style="margin:0">2 vencen esta semana (solo líder).</p><button class="btn claro">2 por procesar</button></div>
+          <div class="card cola"><div class="fila"><b>Conteo de inventario</b><span class="badge ok">0</span></div><p class="vacio" style="margin:0">Nada pendiente.</p></div>
+          <div class="card cola"><div class="fila"><b>Apartados</b><span class="badge ok">0</span></div><p class="vacio" style="margin:0">Nada por vencer.</p></div>
+        </div>
+        <p class="nota">Si una cola no se puede leer, su tarjeta dice «No pude leer esto», nunca «0». El silencio no puede parecer «todo al día».</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Comparación ============ -->
+  <section class="panel" id="d">
+    <div class="card" style="padding:6px 8px;overflow-x:auto">
+      <table>
+        <thead><tr><th>Criterio (de 0 a 10) para CAYLA</th><th class="n">A · Malla</th><th class="n">B · Tablero</th><th class="n">C · Colas</th><th>Por qué</th></tr></thead>
+        <tbody>
+          <tr><td>Responde «¿cómo voy hoy?»</td><td class="n">2</td><td class="n">9</td><td class="n">3</td><td>Solo B pone ventas contra el periodo anterior y la meta (<code>meta_venta_diaria</code> ya existe en <code>ubicaciones</code>).</td></tr>
+          <tr><td>Responde «¿qué me toca hacer?»</td><td class="n">4</td><td class="n">3</td><td class="n">9</td><td>C convierte los pendientes (traslados, SUNAT, por pagar) en una cola con número.</td></tr>
+          <tr><td>Lleva a vender en un clic</td><td class="n">9</td><td class="n">3</td><td class="n">7</td><td>A tiene «Vender» como mosaico principal; C tiene «Continuar vendiendo».</td></tr>
+          <tr><td>Cabe en 3 tiendas + 1 taller</td><td class="n">9</td><td class="n">6</td><td class="n">8</td><td>Los mosaicos se filtran por rol y sede; B pide números que el Taller no tiene.</td></tr>
+          <tr><td>Se construye con lo que ya existe</td><td class="n">9</td><td class="n">7</td><td class="n">6</td><td>A es solo enlaces. B usa <code>fn_ventas_del_dia</code>. C usa <code>getTrasladosPorAtender</code>, SUNAT y por pagar, que hoy están dispersos.</td></tr>
+          <tr><td>Riesgo de «mentir» (dato mudo o duplicado)</td><td class="n">8</td><td class="n">5</td><td class="n">5</td><td>B puede duplicar la definición de «hoy» de Caja; C puede mostrar 0 si falla una consulta (se resuelve con aviso).</td></tr>
+          <tr class="total"><td>Total</td><td class="n">41</td><td class="n">33</td><td class="n">38</td><td>Ninguno gana solo: cada uno resuelve una de las tres preguntas.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="reco" style="margin-top:18px">
+      <p style="margin:0 0 8px"><b>Recomendación:</b> no elegir uno, sino usar el mejor de cada uno con un orden fijo, distinto según rol.</p>
+      <ol style="margin:0;padding-left:20px">
+        <li><b>Arriba, una fila de «Hoy» (de B)</b>: ventas contra el mismo día de la semana pasada y meta. Solo con <code>fn_ventas_del_dia</code>; sin gráficos. Al Taller le sale su equivalente (órdenes).</li>
+        <li><b>En medio, «Por atender» (de C)</b>: traslados, SUNAT, por pagar. Cada cola dice «no pude leer esto» si falla.</li>
+        <li><b>Abajo, 3 mosaicos por rol (de A)</b>: Vender, Caja y Buscar para tienda; Producción para el Taller. Sin repetir lo que ya está en el menú lateral.</li>
+      </ol>
+      <p class="nota" style="margin:10px 0 0">Esto corresponde a la opción B de la sección 8 de <code>docs/pantallas/inicio.md</code> y a las tareas #2, #3, #5 y #6. La decisión es de Felipe.</p>
+    </div>
+  </section>
+
+  <footer class="nota">
+    <p>Los patrones se verificaron en documentación pública el 2026-09-21; <b>no vi las pantallas reales de esos productos</b>, solo lo que sus manuales describen. Fuentes: <a href="https://help.shopify.com/en/manual/sell-in-person/getting-started/smart-grid">Shopify · smart grid</a> · <a href="https://x-series-support.lightspeedhq.com/hc/en-us/articles/25534030080795-Using-the-home-dashboard">Lightspeed X-Series · home dashboard</a> · <a href="https://www.odoo.com/documentation/16.0/applications/inventory_and_mrp/inventory/management/shipments_deliveries/receipts_three_steps.html">Odoo · Inventory Overview</a>. Los puntajes de la tabla son míos, no de los referentes.</p>
+  </footer>
+</div>
+
+<script>
+  // Pestañas
+  const tabs=[...document.querySelectorAll('.tab')], paneles=[...document.querySelectorAll('.panel')];
+  tabs.forEach(t=>t.addEventListener('click',()=>{
+    tabs.forEach(x=>x.setAttribute('aria-selected',String(x===t)));
+    paneles.forEach(p=>p.classList.toggle('on',p.id===t.dataset.t));
+  }));
+  // Mezcla: un mismo Inicio que cambia según el rol (datos de demostración)
+  const ROLES={
+    lider:{sede:'Tienda TRU ▾',sub:'Así va Tienda TRU · caja abierta desde las 09:12',
+      hoyTitulo:'Hoy',
+      hoy:[['Ventas','S/ 1.240','▲ 26 % vs. mismo día y hora de la semana pasada'],['Valor medio de venta','S/ 155','8 ventas · 1,6 prendas por venta'],['Meta del día','83 %','Faltan S/ 260 de S/ 1.500']],
+      meta:83,
+      colas:[['Traslados por recibir',2,'Uno llega hoy, otro con 1 día de retraso'],['Comprobantes SUNAT',1,'1 pendiente de emitir desde ayer'],['Devoluciones por aprobar',1,'Solo líder'],['Compras por pagar',2,'2 vencen esta semana · solo líder']],
+      accesos:[['Vender','Punto de venta',1],['Caja','Abierta · S/ 1.240',0],['Buscar','SKU, talla o color',0]]},
+    integrante:{sede:'Tienda TRU',sub:'Tu turno en Tienda TRU · caja abierta desde las 09:12',
+      hoyTitulo:'Tu día',
+      hoy:[['Tus ventas','S/ 410','3 ventas'],['Caja','Abierta','Tienda TRU · desde las 09:12']],
+      meta:null,
+      colas:[['Traslados por recibir',2,'Uno llega hoy']],
+      accesos:[['Vender','Punto de venta',1],['Recibir','Traslados y compras',0],['Buscar','SKU, talla o color',0]]},
+    taller:{sede:'Taller Lima ▾',sub:'Así va el Taller',
+      hoyTitulo:'Hoy en el Taller',
+      hoy:[['Órdenes en curso','7','3 en corte · 2 en costura · 2 en acabado'],['Terminadas esta semana','12','▲ 3 vs. la semana anterior'],['Muestras por aprobar','2','Solo líder']],
+      meta:null,
+      colas:[['Recepción de insumos',1,'1 comprobante de proveedor por recibir'],['Comprobantes por pagar',2,'Producción · vencen esta semana']],
+      accesos:[['Producción','Órdenes por etapa',1],['Recibir','Insumos del proveedor',0],['Buscar','Insumo o prenda',0]]}
+  };
+  const ACT=[['21/09','VENTA','Pantalón Milagros','−1'],['21/09','VENTA','Casaca Emilia','−1'],['21/09','AJUSTE · MERMA','Blusa Ximena','−1'],['20/09','RECEPCIÓN','Casaca Emilia','+12']];
+  function pintaMezcla(r){
+    const d=ROLES[r];
+    document.getElementById('m-sede').textContent=d.sede;
+    const hoy=d.hoy.map(x=>`<div class="card" style="padding:18px"><div class="eyebrow">${x[0]}</div><div class="num">${x[1]}</div><div class="nota">${x[2]}</div></div>`).join('');
+    const meta=d.meta?`<div class="barra-meta" style="margin-top:0"><i style="width:${d.meta}%"></i></div>`:'';
+    const colas=d.colas.map(c=>`<div class="card cola"><div class="fila"><b>${c[0]}</b><span class="badge">${c[1]}</span></div><p class="nota" style="margin:0">${c[2]}</p><button class="btn claro">${c[1]} por procesar</button></div>`).join('');
+    const acc=d.accesos.map(a=>`<a class="card tile${a[2]?' primario':''}"><div class="t"><span>${a[0]}</span><span>→</span></div><div class="s">${a[1]}</div></a>`).join('');
+    const act=ACT.map(a=>`<div style="display:flex;gap:12px;padding:9px 16px;border-top:1px solid var(--linea);font-size:14px"><span class="nota" style="width:44px">${a[0]}</span><span style="flex:1"><span class="eyebrow">${a[1]}</span> ${a[2]}</span><span>${a[3]}</span></div>`).join('');
+    document.getElementById('m-cuerpo').innerHTML=`
+      <div><h2 style="font-size:26px">Hola, Ana</h2><p class="nota" style="margin:4px 0 0">${d.sub}</p></div>
+      <div><p class="eyebrow" style="margin:0 0 10px">${d.hoyTitulo}</p><div class="grid g3">${hoy}</div>${d.meta?'<div style="margin-top:12px">'+meta+'</div>':''}</div>
+      <div><p class="eyebrow" style="margin:0 0 10px">Por atender</p><div class="grid g2">${colas}</div><p class="nota" style="margin:8px 0 0">Si una cola no se puede leer, dice «No pude leer esto», nunca «0».</p></div>
+      <div><p class="eyebrow" style="margin:0 0 10px">Ir a</p><div class="grid g3">${acc}</div></div>
+      <div><p class="eyebrow" style="margin:0 0 10px">Actividad reciente</p><div class="card" style="overflow:hidden">${act.slice(1)}</div></div>`;
+  }
+  document.querySelectorAll('#segRol button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#segRol button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    pintaMezcla(b.dataset.r);
+  }));
+  pintaMezcla('lider');
+
+  // B: período (datos de demostración)
+  const D={
+    hoy:{v:'S/ 1.240',d:'▲ 26 %',c:'vs. mismo día y hora de la semana pasada',t:'S/ 155',n:'8 ventas',i:'1,6',m:83,mt:'83 %'},
+    sem:{v:'S/ 6.870',d:'▲ 9 %',c:'vs. la semana anterior a la misma hora',t:'S/ 149',n:'46 ventas',i:'1,5',m:76,mt:'76 %'},
+    mes:{v:'S/ 21.430',d:'▼ 4 %',c:'vs. el mismo tramo del mes anterior',t:'S/ 152',n:'141 ventas',i:'1,6',m:68,mt:'68 %'}
+  };
+  document.querySelectorAll('#seg button').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#seg button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    const p=D[b.dataset.p];
+    document.getElementById('b-ventas').textContent=p.v;
+    const dl=document.getElementById('b-delta');dl.textContent=p.d;dl.className=p.d.startsWith('▼')?'':'up';dl.style.color=p.d.startsWith('▼')?'#8c631f':'';
+    document.getElementById('b-comp').textContent=p.c;
+    document.getElementById('b-ticket').textContent=p.t;document.getElementById('b-ntk').textContent=p.n;
+    document.getElementById('b-items').textContent=p.i;
+    document.getElementById('b-meta').style.width=p.m+'%';document.getElementById('b-metatxt').textContent=p.mt;
+  }));
+</script>
+</body>
+</html>

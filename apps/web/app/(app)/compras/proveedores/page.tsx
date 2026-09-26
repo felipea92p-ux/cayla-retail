@@ -1,8 +1,6 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getProveedores, getProveedoresResumen } from "@/lib/proveedores";
-import { soles } from "@/lib/compras-reglas";
+import { exigirModulo, puede } from "@/lib/persona-actual";
+import { getMarcasPorProveedor, getProveedores, getProveedoresResumen, getProveedoresSerie } from "@/lib/proveedores";
 import { ProveedoresPanel } from "@/components/ProveedoresPanel";
-import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 // Directorio de proveedores (20260914150000_proveedores_administrables.sql).
 // Cualquiera con acceso ve el directorio (a quién se le compra); lo
@@ -15,58 +13,27 @@ import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 // ADR-0111: las cuatro cifras de arriba (a quién se le debe, cuánta deuda concentra un solo
 // proveedor, quiénes llevan más de 90 días sin comprar) salen de `fn_proveedores_resumen()`, que
 // se calcula sobre la misma lectura que la tabla: una sola fuente de verdad.
+//
+// ADR-0128: las cifras ahora las dibuja `ProveedoresIndicadores` (componente cliente: cuentan al cambiar
+// y la barra de concentración conversa con la tabla). La serie mensual (`fn_proveedores_serie_12m`) es
+// opcional: si la función no está en la base, `getProveedoresSerie()` devuelve `null` y la lista se pinta
+// sin tendencias.
+//
+// ADR-0140: el nombre es la razón social, pero se le conoce por su marca. `getMarcasPorProveedor()` trae las marcas
+// (tablas `marcas` y `marca_proveedores`, sin migración) para buscar por ellas y verlas en cada fila; es opcional
+// igual que la serie: si falla, la lista se pinta sin marcas.
 export default async function ProveedoresPage() {
-  const persona = await requirePersonaActualV2();
-  const esLider = persona.rol === "lider";
-  const [proveedores, resumen] = await Promise.all([getProveedores(), esLider ? getProveedoresResumen() : null]);
+  // La puerta del módulo Proveedores. ADR-0161 P3 (20260923140000): con el módulo se da de alta, se edita y se archiva
+  // (`fn_puede_gestionar_proveedores` en la base); lo financiero, con los montos de Compras (`verDineroCompras`).
+  const persona = await exigirModulo("proveedores");
+  const verMontos = puede(persona, "verDineroCompras");
+  const puedeEditar = puede(persona, "editarCuentasProveedor");
+  const [proveedores, resumen, series, marcas] = await Promise.all([
+    getProveedores(),
+    verMontos ? getProveedoresResumen() : null,
+    verMontos ? getProveedoresSerie() : null,
+    getMarcasPorProveedor(),
+  ]);
 
-  // La quinta cifra (saldo a favor) solo aparece cuando algún proveedor le debe algo a CAYLA: sin nada a favor
-  // no hay qué mostrar, y la banda queda como siempre.
-  const conFavor = (resumen?.saldoFavorTotal ?? 0) > 0;
-  const indicadores =
-    esLider && resumen ? (
-      <div className={`grid grid-cols-2 gap-3 ${conFavor ? "sm:grid-cols-5" : "sm:grid-cols-4"}`}>
-        <TarjetaCifra compacta punto="neutro" etiqueta="Proveedores activos" valor={resumen.activos.toLocaleString("es-PE")}>
-          {resumen.desactivados === 0 ? "Ninguno desactivado" : `${resumen.desactivados.toLocaleString("es-PE")} ${resumen.desactivados === 1 ? "desactivado" : "desactivados"}`}
-        </TarjetaCifra>
-        <TarjetaCifra
-          compacta
-          punto={(resumen.deudaTotal ?? 0) > 0 ? "ambar" : "verde"}
-          detalleTono={(resumen.conVencidas ?? 0) > 0 ? "text-rojo" : undefined}
-          etiqueta="Deuda con proveedores"
-          valor={soles(resumen.deudaTotal ?? 0)}
-        >
-          {(resumen.deudaTotal ?? 0) > 0
-            ? `${resumen.conSaldo} con saldo${(resumen.conVencidas ?? 0) > 0 ? ` · ${resumen.conVencidas} con comprobantes vencidos` : ""}`
-            : "Nada por pagar"}
-        </TarjetaCifra>
-        {resumen.topProveedorNombre && resumen.topPct != null ? (
-          <TarjetaCifra compacta punto="neutro" etiqueta="Concentración" valor={`${Math.round(resumen.topPct)} %`} href={`/compras/por-pagar?prov=${resumen.topProveedorId}`}>
-            {(resumen.conSaldo ?? 0) > 3 && resumen.top3Pct != null
-              ? `${resumen.topProveedorNombre} · los 3 mayores suman el ${Math.round(resumen.top3Pct)} %`
-              : `${resumen.topProveedorNombre} concentra la deuda`}
-          </TarjetaCifra>
-        ) : (
-          <TarjetaCifra compacta vacia etiqueta="Concentración" valor="—">
-            Aparece cuando haya deuda
-          </TarjetaCifra>
-        )}
-        <TarjetaCifra
-          compacta
-          punto={(resumen.sinCompras90d ?? 0) > 0 ? "ambar" : "verde"}
-          detalleTono={(resumen.sinCompras90d ?? 0) > 0 ? "text-ambar-profundo" : "text-verde-profundo"}
-          etiqueta="Sin compras en 90 días"
-          valor={(resumen.sinCompras90d ?? 0).toLocaleString("es-PE")}
-        >
-          {(resumen.sinCompras90d ?? 0) > 0 ? "Revisa si siguen siendo proveedores" : "Nadie inactivo por revisar"}
-        </TarjetaCifra>
-        {conFavor && (
-          <TarjetaCifra compacta punto="verde" tono="text-verde-profundo" detalleTono="text-verde-profundo" etiqueta="A favor con proveedores" valor={soles(resumen.saldoFavorTotal ?? 0)}>
-            {resumen.conSaldoFavor === 1 ? "1 proveedor te debe" : `${resumen.conSaldoFavor} proveedores te deben`} · se descuenta al pagar
-          </TarjetaCifra>
-        )}
-      </div>
-    ) : undefined;
-
-  return <ProveedoresPanel proveedores={proveedores} esLider={esLider} indicadores={indicadores} />;
+  return <ProveedoresPanel proveedores={proveedores} verMontos={verMontos} puedeEditar={puedeEditar} resumen={resumen} series={series} marcas={marcas} />;
 }

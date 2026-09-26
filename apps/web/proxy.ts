@@ -19,6 +19,14 @@ import { NextResponse, type NextRequest } from "next/server";
 // archivo la haya cubierto. Toda escritura real de stock pasa además por RPC con
 // fn_puede_operar_sede (0012), que es la barrera que de verdad protege los datos.
 export async function proxy(request: NextRequest) {
+  // El trabajo programado de Vercel (PL-113) no trae sesión: trae `Bearer $CRON_SECRET`. Pasa sin tocar cookies y
+  // la ruta vuelve a comprobar la clave (esta barrera puede dejar de cubrirla si alguien cambia el matcher). Solo
+  // para SU ruta: la clave no abre ninguna otra pantalla ni API.
+  const cron = process.env.CRON_SECRET;
+  if (cron && request.nextUrl.pathname === "/api/lucode/reintentar" && request.headers.get("authorization") === `Bearer ${cron}`) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -85,5 +93,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
+  // `sw.js` y `sin-conexion.html` (ADR-0210) tampoco pasan por la sesión: el navegador pide el service worker sin
+  // cookies de la app a veces, y un redirect a /login lo rompería; la página sin conexión no tiene nada privado.
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|sw\\.js|sin-conexion\\.html|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
 import {
   BadgePercent,
   Banknote,
@@ -24,18 +24,25 @@ import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
 import {
   descuentoResultante,
-  descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
   desgloseIgv,
   esDescuentoDeCampana,
   hayDescuentoManual,
   necesitaArgumentoEscrito,
+  pasoDelCobro,
+  pasoDelDescuento,
   porcentajeDeLinea,
   RAZONES_DESCUENTO,
   type MomentoTicket,
+  type PasoDescuento,
 } from "@/lib/vender-reglas";
 import { Ayuda } from "@/components/Ayuda";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
+import { CampoMonto } from "@/components/ui/CampoMonto";
+import { BilleteRapido } from "@/components/BilleteRapido";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import type { ControlResponsable } from "@/lib/useResponsable";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
@@ -44,11 +51,8 @@ import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type Pa
 const TASA_IGV = 0.18;
 
 /** Atajos de % del apartado de descuento — los que se dan de palabra en el mostrador. */
-const ATAJOS_DESCUENTO = [5, 10, 15, 20, 25, 50] as const;
+const ATAJOS_DESCUENTO = [5, 10, 15] as const;
 
-/** Atajos de S/ del apartado de descuento — la otra entrada, para cuando lo que se
- *  acordó con la clienta es un monto, no un %. */
-const ATAJOS_DESCUENTO_MONTO = [5, 10, 20, 50] as const;
 
 /** Billetes de sol que se reciben en el mostrador — las teclas de «Recibido» los suman. */
 const BILLETES = [10, 20, 50, 100, 200] as const;
@@ -81,6 +85,24 @@ const ID_MOTIVO = "ticket-motivo-bloqueo";
 /** El campo numérico sin las flechitas del navegador: «−» y «+» ya son eso. */
 const SIN_FLECHAS = "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
 
+/** La luz de «este es el campo que sigue» en el apartado Descuento (Felipe, 2026-09-25):
+ *  la misma que da el foco al escribir —borde terracota y halo—, sin texto. Un campo con
+ *  caja la toma en el borde; una pista de botones, como halo alrededor. */
+const LUZ_CAMPO = "border-rojo ring-2 ring-rojo/20";
+const LUZ_PISTA = "ring-2 ring-rojo/25";
+
+/** Lleva la vista (y el foco, si es un campo de texto) al paso del descuento que sigue.
+ *  Cada paso se marca con `data-paso-descuento` dentro del formulario del ticket. */
+function irAlPasoDescuento(formId: string | undefined, paso: PasoDescuento) {
+  if (!formId) return;
+  const destino = document.getElementById(formId)?.querySelector<HTMLElement>(`[data-paso-descuento="${paso}"]`);
+  if (!destino) return;
+  const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  destino.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" });
+  const campo = destino.matches("input, textarea") ? destino : destino.querySelector<HTMLElement>("input, textarea");
+  campo?.focus({ preventScroll: true });
+}
+
 /** Íconos de cada apartado y método (pedido de Felipe, 2026-09-14): `lucide` para lo
  *  genérico y, para Yape y Plin, sus marcas dibujadas a mano en MONOCROMO — heredan
  *  `currentColor` (tinta / tinta-60 según el estado del botón), nunca el morado ni el
@@ -112,7 +134,7 @@ function IconoPlin({ className }: { className?: string }) {
   );
 }
 
-const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
+export const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   efectivo: <Banknote className={ICONO} aria-hidden />,
   tarjeta: <CreditCard className={ICONO} aria-hidden />,
   yape: <IconoYape className={ICONO} />,
@@ -120,17 +142,19 @@ const ICONO_METODO: Record<MetodoPago, React.ReactNode> = {
   transferencia: <Landmark className={ICONO} aria-hidden />,
 };
 
-/** Un color por método, los mismos tokens que usa la dona de "Métodos de pago" de Caja
- *  (`globals.css`) — para que una colaboradora reconozca el mismo método con el mismo
- *  color en las dos pantallas. Decidido con Felipe el 2026-09-18: efectivo cobrizo,
- *  tarjeta plomo, yape morado, plin verde, transferencia hazel. */
-const COLOR_METODO: Record<MetodoPago, string> = {
-  efectivo: "var(--color-metodo-efectivo)",
-  tarjeta: "var(--color-metodo-tarjeta)",
-  yape: "var(--color-metodo-yape)",
-  plin: "var(--color-metodo-plin)",
-  transferencia: "var(--color-metodo-transferencia)",
-};
+// Los colores de cada método viven en `globals.css` (`.metodo-efectivo`, …): los mismos tokens
+// que usa la dona de «Métodos de pago» de Caja, para que un método se reconozca con el mismo color
+// en las dos pantallas. Lo que se pinta con ellos usa `--c` (relleno/borde), `--ct` (fondo suave) y
+// `--cd` (texto legible: el dorado de efectivo no llega a AA como texto y usa una tinta oscura).
+
+/** La etiquetita dorada que dice «este es el paso que toca» (o «Opcional»). */
+function PastillaPaso({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="rounded-full bg-rojo/10 px-2 py-px text-[10px] font-medium text-rojo-profundo">
+      {children}
+    </span>
+  );
+}
 
 /** Marca de «elegida» en la lista del apartado de descuento. */
 function IconoCheck() {
@@ -178,6 +202,8 @@ type Props = {
   /** Derivado en el padre, una sola vez: por qué el botón principal está apagado
    *  (o null). Apaga el botón y se muestra debajo de él, tal cual. */
   motivoBloqueo: string | null;
+  /** El combo «Responsable» (ADR-0161), justo encima de Cobrar. Su estado vive en el padre (`useResponsable`). */
+  responsable: ControlResponsable;
   // Pago mixto — una fila por medio; `restante` y `vuelto` ya derivados en el padre
   pagos: PagoAplicado[];
   restante: number;
@@ -188,8 +214,8 @@ type Props = {
   /** Lo entregado en efectivo (null = borrar). Solo de pantalla, para el vuelto. */
   onRecibido: (monto: number | null) => void;
   // Comprobante + documento de la clienta
-  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura">;
-  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura">) => void;
+  tipoComprobante: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">;
+  onTipoComprobante: (t: Extract<TipoComprobante, "boleta" | "factura" | "nota_venta">) => void;
   clienteNumDoc: string;
   onClienteNumDoc: (v: string) => void;
   clienteNombre: string;
@@ -243,6 +269,7 @@ export function PuntoDeVentaTicket({
   onIrACobrar,
   onVolverATicket,
   motivoBloqueo,
+  responsable,
   pagos,
   restante,
   vuelto,
@@ -286,6 +313,23 @@ export function PuntoDeVentaTicket({
     return () => clearTimeout(temporizador);
   }, [saliendo, momento]);
 
+  // Apilado (celular/tablet), cambiar de momento cambia el alto del ticket de golpe: con 4
+  // prendas «armar» mide ~560 px más que «Cobro», la página se acorta y la vista quedaba
+  // en el pie, con la cabecera arriba fuera de la pantalla y aire vacío abajo (Felipe,
+  // 2026-09-25). Es un cambio de vista, no un bloque que se encogió: se suelta la
+  // reserva de <PaginaEstable> y la vista sube al inicio del ticket, antes de pintar.
+  // En escritorio el ticket es una columna fija con su propio scroll: no se toca.
+  const asideRef = useRef<HTMLElement>(null);
+  const momentoPrevio = useRef(momentoMostrado);
+  useLayoutEffect(() => {
+    if (momentoPrevio.current === momentoMostrado) return;
+    momentoPrevio.current = momentoMostrado;
+    if (!window.matchMedia("(max-width: 1023.98px)").matches) return;
+    soltarPaginaEstable();
+    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    asideRef.current?.scrollIntoView({ block: "start", behavior: reducido ? "auto" : "smooth" });
+  }, [momentoMostrado]);
+
   const cobrando = momentoMostrado === "cobrar";
   const descontando = momentoMostrado === "descuento";
   const enLaEspera = momentoMostrado === "espera";
@@ -298,6 +342,9 @@ export function PuntoDeVentaTicket({
   const etiquetaPrendas = `${prendas} ${prendas === 1 ? "prenda" : "prendas"}`;
   const desglose = desgloseIgv(total, TASA_IGV);
   const apagado = bloqueado || motivoBloqueo !== null;
+  // El paso que la pantalla resalta (solo guía) y si «Confirmar cobro» ya se puede: se enciende.
+  const paso = pasoDelCobro(pagos, total);
+  const listoParaConfirmar = cobrando && paso === "comprobante" && !apagado;
 
   // Qué falta del pago, para el (!) de la leyenda: nada elegido, no cubre, o se pasa.
   const faltaPago = !cobrando
@@ -314,41 +361,34 @@ export function PuntoDeVentaTicket({
   const totalDescuento = carrito.reduce((acc, it) => acc + it.cantidad * it.descuentoUnitario, 0);
 
   // ---- Apartado de descuento: todo derivado de props, sin estado propio ----------
-  const porMonto = descuento.modo === "monto";
   const pct = Number(descuento.pct);
   const pctValido = Number.isFinite(pct) && pct > 0 && pct <= 100;
-  const monto = Number(descuento.monto);
-  const montoValido = Number.isFinite(monto) && monto > 0;
-  const valorValido = porMonto ? montoValido : pctValido;
+  const valorValido = pctValido;
   const elegidas = descuento.elegidas;
   const todoElTicket = elegidas === null;
   const alcanza = (claveLinea: string) => elegidas === null || elegidas.includes(claveLinea);
   const elegidasCuenta = elegidas === null ? carrito.length : elegidas.length;
   // El descuento por unidad que va a quedar en cada línea si se aplica ahora — en % es
   // el mismo para todas; en S/ cambia según el precio de cada una.
+  const montoPedido = (it: ItemCarrito) => descuentoUnitarioPorPorcentaje(it.precioUnitario, pct);
   const descuentoUnitarioAplicando = (it: ItemCarrito) =>
-    !alcanza(it.claveLinea)
-      ? it.descuentoUnitario
-      : descuentoResultante(
-          it,
-          porMonto ? descuentoUnitarioPorMonto(it.precioUnitario, monto) : descuentoUnitarioPorPorcentaje(it.precioUnitario, pct),
-        ).monto;
+    !alcanza(it.claveLinea) ? it.descuentoUnitario : descuentoResultante(it, montoPedido(it)).monto;
   // Adelanto del total con el valor puesto: lo que va a quedar si se aplica ahora.
   const totalConDescuento = carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - descuentoUnitarioAplicando(it)), 0);
   // «Quitar descuento» solo tiene sentido para lo puesto a mano: el de campaña no se quita.
   const hayDescuentoEnAlcance = hayDescuentoManual(carrito.filter((it) => alcanza(it.claveLinea)));
-  // El % más alto que va a terminar en alguna línea alcanzada — en S/ cada línea sale
-  // distinto según su precio; en % es el mismo puesto. Decide si el apartado MUESTRA el
-  // argumento (el candado real vive en `registrar_venta`, esto es progresividad).
-  const pctMasAltoAplicando = Math.max(
-    0,
-    ...carrito.filter((it) => alcanza(it.claveLinea) && it.precioUnitario > 0).map((it) => (descuentoUnitarioAplicando(it) / it.precioUnitario) * 100),
-  );
-  const mostrarArgumento = necesitaArgumentoEscrito(esLider, pctMasAltoAplicando);
+  // Si alguna prenda alcanzada va a quedar pasada del 15 %: ahí el apartado MUESTRA el
+  // argumento. Donde la campaña gana no
+  // cuenta — ese descuento no es manual. El candado real vive en `registrar_venta`.
+  const mostrarArgumento =
+    valorValido &&
+    carrito.some((it) => {
+      if (!alcanza(it.claveLinea)) return false;
+      const r = descuentoResultante(it, montoPedido(it));
+      return !r.prevaleceCampana && necesitaArgumentoEscrito(it.precioUnitario, r.monto);
+    });
   const motivoDescuento = !valorValido
-    ? porMonto
-      ? "Escribe un monto mayor a 0."
-      : "Elige un porcentaje entre 1 y 100."
+    ? "Elige un porcentaje entre 1 y 100."
     : elegidasCuenta === 0
       ? "Elige al menos una prenda."
       : descuento.razon === ""
@@ -356,8 +396,36 @@ export function PuntoDeVentaTicket({
         : descuento.razon === "otro" && descuento.razonOtro.trim() === ""
           ? 'Cuenta en una línea por qué es "Otro".'
           : mostrarArgumento && descuento.argumento.trim() === ""
-            ? "Este descuento pasa el 20 %: escribe el argumento."
+            ? "Este descuento pasa el 15 %: escribe el argumento."
             : null;
+  // El campo que toca llenar se ilumina; al completar uno, el foco salta al siguiente
+  // (Felipe, 2026-09-25) para que el flujo no se corte buscando qué falta. Nunca se le
+  // quita el foco a quien está escribiendo: un % «Otro» o un detalle se dan por listos
+  // con Enter. Solo guía — lo que impide aplicar sigue siendo `motivoDescuento`.
+  const pasoDescuento = pasoDelDescuento({
+    valorValido,
+    razon: descuento.razon,
+    razonOtro: descuento.razonOtro,
+    pideArgumento: mostrarArgumento,
+    argumento: descuento.argumento,
+    pideCodigo: !esLider,
+    codigo: codigoDescuento,
+    prendas: elegidasCuenta,
+  });
+  const luz = (p: PasoDescuento) => descontando && pasoDescuento === p;
+  const pasoAnterior = useRef<PasoDescuento | null>(null);
+  useEffect(() => {
+    const previo = pasoAnterior.current;
+    pasoAnterior.current = descontando ? pasoDescuento : null;
+    if (!descontando || previo === null || previo === pasoDescuento) return;
+    const activo = document.activeElement;
+    if (activo instanceof HTMLInputElement || activo instanceof HTMLTextAreaElement) return;
+    irAlPasoDescuento(id, pasoDescuento);
+  }, [descontando, pasoDescuento, id]);
+  const siguienteConEnter = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") irAlPasoDescuento(id, pasoDescuento);
+  };
+
   function alternarPrenda(claveLinea: string) {
     // Desde «todo el ticket», desmarcar una prenda deja marcadas todas las demás.
     if (elegidas === null) return onDescuento({ elegidas: carrito.filter((it) => it.claveLinea !== claveLinea).map((it) => it.claveLinea) });
@@ -367,7 +435,7 @@ export function PuntoDeVentaTicket({
   return (
     // En escritorio el aside llena toda la fila del POS (la raíz fija la altura al
     // viewport): cabecera y pie quedan fijos y solo el medio scrollea.
-    <aside className="flex min-h-[45vh] flex-col bg-papel lg:min-h-0">
+    <aside className="flex min-h-[45vh] min-w-0 flex-col bg-papel lg:min-h-0">
       {/* Un solo título grande por momento: la sede ya está en la barra de arriba
           («Venta en tienda · sede»), repetirla acá no decía nada. Fuera de «armar», la
           cabecera ofrece la vuelta al ticket y el conteo vivo. */}
@@ -489,95 +557,46 @@ export function PuntoDeVentaTicket({
             </div>
           ) : descontando ? (
             <div className={saliendo ? "anim-revelar-salida space-y-5 px-5 py-4" : "anim-revelar space-y-5 px-5 py-4"}>
-              {/* 1 · Cuánto: % o S/ por unidad — la misma línea `descuentoUnitario` de
-                  siempre, solo cambia cómo se lo dice la colaboradora al apartado. */}
+              {/* 1 · Cuánto: solo en % (Felipe, 2026-09-25: el S/ salió del apartado). Los
+                  atajos son los habituales; «Otro» es para cualquier otro %. */}
               <fieldset className="space-y-2">
                 <legend className="text-[11px] text-tinta/50">
                   <span className="flex items-center gap-1.5">
-                    {porMonto ? <Banknote className={ICONO_CHICO} aria-hidden /> : <Percent className={ICONO_CHICO} aria-hidden />}
-                    {porMonto ? "Monto" : "Porcentaje"}
+                    <Percent className={ICONO_CHICO} aria-hidden />
+                    Porcentaje
                   </span>
                 </legend>
-                <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
-                  {(["porcentaje", "monto"] as const).map((m) => (
+                <div data-paso-descuento="valor" className={`grid grid-cols-3 gap-1 rounded-xl bg-sand/50 p-1 transition-shadow ${luz("valor") ? LUZ_PISTA : ""}`}>
+                  {ATAJOS_DESCUENTO.map((p) => (
                     <button
-                      key={m}
+                      key={p}
                       type="button"
-                      onClick={() => onDescuento({ modo: m })}
+                      onClick={() => onDescuento({ pct: String(p) })}
                       disabled={bloqueado}
-                      aria-pressed={descuento.modo === m}
-                      className={`${OPCION} h-9 text-xs font-semibold ${descuento.modo === m ? OPCION_ACTIVA : OPCION_INACTIVA}`}
+                      aria-pressed={descuento.pct === String(p)}
+                      className={`${OPCION} h-11 text-sm font-semibold ${descuento.pct === String(p) ? OPCION_ACTIVA : OPCION_INACTIVA}`}
                     >
-                      {m === "porcentaje" ? "%" : "S/"}
+                      {p}%
                     </button>
                   ))}
                 </div>
-                {porMonto ? (
-                  <>
-                    <div className="grid grid-cols-4 gap-1 rounded-xl bg-sand/50 p-1">
-                      {ATAJOS_DESCUENTO_MONTO.map((m) => (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => onDescuento({ monto: String(m) })}
-                          disabled={bloqueado}
-                          aria-pressed={descuento.monto === String(m)}
-                          className={`${OPCION} h-11 text-sm font-semibold ${descuento.monto === String(m) ? OPCION_ACTIVA : OPCION_INACTIVA}`}
-                        >
-                          S/{m}
-                        </button>
-                      ))}
-                    </div>
-                    <label className="flex h-11 items-center gap-2 rounded-lg border border-sand bg-crema px-3 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-                      <span className="text-sm text-tinta/60">S/</span>
-                      <input
-                        aria-label="Monto de descuento por prenda"
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        step="0.10"
-                        value={descuento.monto}
-                        onChange={(e) => onDescuento({ monto: e.target.value })}
-                        placeholder="0.00"
-                        disabled={bloqueado}
-                        className={`min-w-0 flex-1 bg-transparent text-right text-lg font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
-                      />
-                    </label>
-                  </>
-                ) : (
-                  <>
-                    <div className="grid grid-cols-6 gap-1 rounded-xl bg-sand/50 p-1">
-                      {ATAJOS_DESCUENTO.map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => onDescuento({ pct: String(p) })}
-                          disabled={bloqueado}
-                          aria-pressed={descuento.pct === String(p)}
-                          className={`${OPCION} h-11 text-sm font-semibold ${descuento.pct === String(p) ? OPCION_ACTIVA : OPCION_INACTIVA}`}
-                        >
-                          {p}%
-                        </button>
-                      ))}
-                    </div>
-                    <label className="flex h-11 items-center gap-2 rounded-lg border border-sand bg-crema px-3 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
-                      <span className="text-[11px] text-tinta/50">Otro</span>
-                      <input
-                        aria-label="Porcentaje de descuento"
-                        type="number"
-                        inputMode="numeric"
-                        min={1}
-                        max={100}
-                        value={descuento.pct}
-                        onChange={(e) => onDescuento({ pct: e.target.value })}
-                        placeholder="0"
-                        disabled={bloqueado}
-                        className={`min-w-0 flex-1 bg-transparent text-right text-lg font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
-                      />
-                      <span className="text-sm text-tinta/60">%</span>
-                    </label>
-                  </>
-                )}
+                <label className={`flex h-11 items-center gap-2 rounded-lg border bg-crema px-3 transition-[border-color,box-shadow] focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("valor") ? LUZ_CAMPO : "border-sand"}`}>
+                  <span className="text-[11px] text-tinta/50">Otro</span>
+                  <input
+                    aria-label="Porcentaje de descuento"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={100}
+                    value={descuento.pct}
+                    onChange={(e) => onDescuento({ pct: e.target.value })}
+                    onKeyDown={siguienteConEnter}
+                    placeholder="0"
+                    disabled={bloqueado}
+                    className={`min-w-0 flex-1 bg-transparent text-right text-lg font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
+                  />
+                  <span className="text-sm text-tinta/60">%</span>
+                </label>
               </fieldset>
 
               {/* Motivo (R-45): de una lista cerrada, no texto libre — «un texto libre
@@ -590,7 +609,7 @@ export function PuntoDeVentaTicket({
                     Motivo
                   </span>
                 </legend>
-                <div className="grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1">
+                <div data-paso-descuento="motivo" className={`grid grid-cols-2 gap-1 rounded-xl bg-sand/50 p-1 transition-shadow ${luz("motivo") ? LUZ_PISTA : ""}`}>
                   {RAZONES_DESCUENTO.map((r) => (
                     <button
                       key={r.valor}
@@ -607,12 +626,14 @@ export function PuntoDeVentaTicket({
                 {descuento.razon === "otro" && (
                   <input
                     aria-label="Detalle del motivo"
+                    data-paso-descuento="motivoOtro"
                     type="text"
                     value={descuento.razonOtro}
                     onChange={(e) => onDescuento({ razonOtro: e.target.value })}
+                    onKeyDown={siguienteConEnter}
                     placeholder="¿Por qué se descuenta?"
                     disabled={bloqueado}
-                    className="anim-revelar h-11 w-full rounded-lg border border-sand bg-crema px-3 text-sm text-tinta outline-none placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20"
+                    className={`anim-revelar h-11 w-full rounded-lg border bg-crema px-3 text-sm text-tinta outline-none transition-[border-color,box-shadow] placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("motivoOtro") ? LUZ_CAMPO : "border-sand"}`}
                   />
                 )}
               </fieldset>
@@ -625,17 +646,18 @@ export function PuntoDeVentaTicket({
                   <legend className="text-[11px] text-tinta/50">
                     <span className="flex items-center gap-1.5">
                       <MessageSquareText className={ICONO_CHICO} aria-hidden />
-                      Argumento — pasa el 20 %
+                      Argumento — pasa el 15 %
                     </span>
                   </legend>
                   <textarea
                     aria-label="Argumento del descuento"
+                    data-paso-descuento="argumento"
                     value={descuento.argumento}
                     onChange={(e) => onDescuento({ argumento: e.target.value })}
                     placeholder="Por qué se autoriza este descuento"
                     disabled={bloqueado}
                     rows={2}
-                    className="w-full resize-none rounded-lg border border-sand bg-crema px-3 py-2 text-sm text-tinta outline-none placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20"
+                    className={`w-full resize-none rounded-lg border bg-crema px-3 py-2 text-sm text-tinta outline-none transition-[border-color,box-shadow] placeholder:text-tinta/40 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("argumento") ? LUZ_CAMPO : "border-sand"}`}
                   />
                 </fieldset>
               )}
@@ -651,9 +673,13 @@ export function PuntoDeVentaTicket({
                       Código de descuento
                     </span>
                   </legend>
-                  <label className="flex h-11 items-center gap-2 rounded-lg border border-sand bg-crema px-3 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                  <label
+                    data-paso-descuento="codigo"
+                    className={`flex h-11 items-center gap-2 rounded-lg border bg-crema px-3 transition-[border-color,box-shadow] focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${luz("codigo") ? LUZ_CAMPO : "border-sand"}`}
+                  >
                     <input
                       aria-label="Código de descuento"
+                      onKeyDown={siguienteConEnter}
                       type="text"
                       autoComplete="off"
                       autoCapitalize="characters"
@@ -678,11 +704,12 @@ export function PuntoDeVentaTicket({
                 </legend>
                 <button
                   type="button"
-                  onClick={() => onDescuento({ elegidas: null })}
+                  // Interruptor: tocarlo marcado lo desmarca y no deja ninguna prenda elegida.
+                  onClick={() => onDescuento({ elegidas: todoElTicket ? [] : null })}
                   disabled={bloqueado}
                   aria-pressed={todoElTicket}
                   className={`flex h-10 w-full items-center gap-2 rounded-lg border px-3 text-sm transition-colors ${
-                    todoElTicket ? "border-tinta bg-tinta text-crema" : "border-sand bg-crema text-tinta hover:bg-sand/40"
+                    todoElTicket ? "border-tinta bg-tinta text-crema" : `bg-crema text-tinta hover:bg-sand/40 ${luz("prendas") ? LUZ_CAMPO : "border-sand"}`
                   }`}
                 >
                   <span className={`flex h-5 w-5 items-center justify-center rounded-full border ${todoElTicket ? "border-crema/60" : "border-tinta/30"}`}>
@@ -690,7 +717,10 @@ export function PuntoDeVentaTicket({
                   </span>
                   Todo el ticket
                 </button>
-                <div className="divide-y divide-sand rounded-lg border border-sand bg-crema">
+                <div
+                  data-paso-descuento="prendas"
+                  className={`divide-y divide-sand rounded-lg border bg-crema transition-[border-color,box-shadow] ${luz("prendas") ? LUZ_CAMPO : "border-sand"}`}
+                >
                   {carrito.map((it) => {
                     const marcada = alcanza(it.claveLinea);
                     return (
@@ -744,9 +774,12 @@ export function PuntoDeVentaTicket({
                     )}
                     <Wallet className={ICONO_CHICO} aria-hidden />
                     Cómo pagó la clienta
+                    {paso === "medio" && <PastillaPaso>Siguiente paso</PastillaPaso>}
                   </span>
                 </legend>
-                <div className="grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1">
+                {/* Mientras no haya ningún medio la luz recorre los cinco (`ola-activa`, en globals.css):
+                    enseña dónde tocar. En cuanto se elige uno se detiene. */}
+                <div className={`grid grid-cols-5 gap-1 rounded-xl bg-sand/50 p-1 ${pagos.length === 0 ? "ola-activa" : ""}`}>
                   {METODOS_PAGO.map((m, iAtajo) => {
                     // Interruptor: tocar uno elegido lo quita (su monto pasa al siguiente,
                     // `quitarPagoTraspasando`). Antes quedaba deshabilitado y tocarlo de nuevo
@@ -762,9 +795,9 @@ export function PuntoDeVentaTicket({
                         aria-pressed={puesto}
                         title={puesto ? `Quitar ${m} (F${iAtajo + 1})` : `${m} (F${iAtajo + 1})`}
                         aria-keyshortcuts={`F${iAtajo + 1}`}
-                        style={puesto ? { backgroundColor: `color-mix(in srgb, ${COLOR_METODO[m]} 16%, var(--color-papel))`, color: COLOR_METODO[m] } : undefined}
-                        className={`${OPCION} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
-                          puesto ? "shadow-sm" : OPCION_INACTIVA
+                        style={puesto ? { backgroundColor: "var(--ct)", color: "var(--cd)" } : undefined}
+                        className={`${OPCION} metodo-${m} relative flex h-14 flex-col items-center justify-center gap-1 px-1 text-center text-[10px] leading-tight capitalize ${
+                          puesto ? "anim-pop shadow-sm" : OPCION_INACTIVA
                         }`}
                       >
                         {/* La tecla del atajo, chiquita en la esquina: enseña F1–F5 sin ocupar sitio. */}
@@ -787,20 +820,16 @@ export function PuntoDeVentaTicket({
                       // ni hay forma de mutarlo) — animar la fila cubre el bloque entero.
                       <div key={p.metodo} className="anim-revelar space-y-2 px-3 py-2.5">
                         <div className="flex items-center gap-2">
-                          <span style={{ color: COLOR_METODO[p.metodo] }}>{ICONO_METODO[p.metodo]}</span>
+                          <span className={`metodo-${p.metodo}`} style={{ color: "var(--cd)" }}>{ICONO_METODO[p.metodo]}</span>
                           <span className="min-w-0 flex-1 truncate text-sm capitalize text-tinta">{p.metodo}</span>
                           <label className="flex h-9 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
                             <span className="text-xs text-tinta/60">S/</span>
-                            <input
+                            <CampoMonto
                               aria-label={`Monto en ${p.metodo}`}
-                              type="number"
-                              inputMode="decimal"
-                              min={0}
-                              step="0.01"
-                              value={p.monto}
-                              onChange={(e) => onMontoPago(i, Number(e.target.value))}
+                              valor={p.monto}
+                              onCambio={(monto) => onMontoPago(i, monto)}
                               disabled={bloqueado}
-                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none ${SIN_FLECHAS}`}
+                              className={`w-20 bg-transparent text-right text-sm font-semibold text-tinta outline-none placeholder:text-tinta/30 ${SIN_FLECHAS}`}
                             />
                           </label>
                           <button
@@ -820,9 +849,12 @@ export function PuntoDeVentaTicket({
                         {p.metodo === "efectivo" && (
                           <div className="space-y-2 rounded-md bg-sand/40 p-2">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-[11px] text-tinta/50">Recibido</span>
+                              <span className="flex items-center gap-1.5 text-[11px] text-tinta/50">
+                                Recibido
+                                {paso === "recibido" && <PastillaPaso>Siguiente paso</PastillaPaso>}
+                              </span>
                               <span className="flex items-center gap-1">
-                                <label className="flex h-8 items-center gap-1 rounded-md border border-sand bg-papel px-2 focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20">
+                                <label className={`flex h-8 items-center gap-1 rounded-md border bg-papel px-2 transition-colors focus-within:border-rojo focus-within:ring-2 focus-within:ring-rojo/20 ${paso === "recibido" ? "border-rojo/70" : "border-sand"}`}>
                                   <span className="text-xs text-tinta/60">S/</span>
                                   <input
                                     aria-label="Efectivo recibido"
@@ -850,27 +882,19 @@ export function PuntoDeVentaTicket({
                                 )}
                               </span>
                             </div>
-                            <div className="grid grid-cols-6 gap-1">
+                            <div className="grid grid-cols-5 gap-1.5">
                               {BILLETES.map((b) => (
-                                <button
-                                  key={b}
-                                  type="button"
-                                  onClick={() => onRecibido((p.recibido ?? 0) + b)}
-                                  disabled={bloqueado}
-                                  className="h-8 rounded-md border border-sand bg-papel text-xs font-semibold text-tinta transition-colors hover:bg-sand/40"
-                                >
-                                  +{b}
-                                </button>
+                                <BilleteRapido key={b} valor={b} onSumar={() => onRecibido((p.recibido ?? 0) + b)} disabled={bloqueado} />
                               ))}
-                              <button
-                                type="button"
-                                onClick={() => onRecibido(p.monto)}
-                                disabled={bloqueado}
-                                className="label-cayla h-8 rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
-                              >
-                                Exacto
-                              </button>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => onRecibido(p.monto)}
+                              disabled={bloqueado}
+                              className="label-cayla h-8 w-full rounded-md border border-tinta/25 bg-papel text-[10px] text-tinta transition-colors hover:bg-sand/40"
+                            >
+                              Exacto
+                            </button>
                             {vuelto > 0 && (
                               <p key={vuelto} className="anim-asentar flex items-baseline justify-between pt-1">
                                 <span className="label-cayla text-[11px] text-tinta/60">Vuelto</span>
@@ -899,7 +923,9 @@ export function PuntoDeVentaTicket({
 
               {/* 2 · Comprobante, con el documento de la clienta ADENTRO: el DNI o el RUC
                   solo tienen sentido para la boleta o la factura que se va a emitir. */}
-              <div className="border-t border-sand pt-4">
+              {/* Al tocar este paso solo se tiñen de terracota las líneas de los campos de texto
+                  (DNI y nombre): `--hilo` es la variable que lee el hilo de cada campo (`Hilo`). */}
+              <div className={`border-t border-sand pt-4 ${paso === "comprobante" ? "[--hilo:color-mix(in_srgb,var(--color-rojo)_65%,transparent)]" : ""}`}>
                 <fieldset className="space-y-2">
                   <legend className="text-[11px] text-tinta/50">
                     <span className="flex items-center gap-1">
@@ -911,10 +937,11 @@ export function PuntoDeVentaTicket({
                       )}
                       <Receipt className={ICONO_CHICO} aria-hidden />
                       Comprobante
+                      {paso === "comprobante" && <PastillaPaso>Opcional</PastillaPaso>}
                     </span>
                   </legend>
-                  <div className="grid grid-cols-2 gap-1 rounded-lg bg-sand/50 p-1">
-                    {(["boleta", "factura"] as const).map((t) => (
+                  <div className="grid grid-cols-3 gap-1 rounded-lg bg-sand/50 p-1">
+                    {(["boleta", "factura", "nota_venta"] as const).map((t) => (
                       <button
                         key={t}
                         type="button"
@@ -925,7 +952,7 @@ export function PuntoDeVentaTicket({
                           tipoComprobante === t ? OPCION_ACTIVA : OPCION_INACTIVA
                         }`}
                       >
-                        {t === "boleta" ? <Receipt className={ICONO_CHICO} aria-hidden /> : <FileText className={ICONO_CHICO} aria-hidden />}
+                        {t === "factura" ? <FileText className={ICONO_CHICO} aria-hidden /> : <Receipt className={ICONO_CHICO} aria-hidden />}
                         {ETIQUETA_TIPO[t]}
                       </button>
                     ))}
@@ -940,11 +967,14 @@ export function PuntoDeVentaTicket({
                       onNombre={onClienteNombre}
                     />
                   </fieldset>
+                  {tipoComprobante === "nota_venta" && (
+                    <p className="text-[11px] text-tinta/60">Documento interno de la tienda: no se envía a SUNAT y no desglosa IGV.</p>
+                  )}
                 </fieldset>
               </div>
             </div>
           ) : !carrito.length ? (
-            <div className="flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
+            <div className="anim-sube flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
               <p className="font-medium text-tinta">El ticket está vacío</p>
               <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
             </div>
@@ -955,7 +985,9 @@ export function PuntoDeVentaTicket({
                   líneas tienen que seguir siendo sus hijas directas. */}
               <div ref={listaRef} className="divide-y divide-sand">
                 {carrito.map((it) => {
-                  const pctLinea = porcentajeDeLinea(it);
+                  // Con campaña se muestra SU % (ADR-0182): el precio baja al .90, así que la cuenta monto ÷ precio se corre
+                  // (24.90 de 95.80 es 26 % y la campaña es de 25 %).
+                  const pctLinea = esDescuentoDeCampana(it) && it.campana ? it.campana.pct : porcentajeDeLinea(it);
                   const precioNeto = it.precioUnitario - it.descuentoUnitario;
                   return (
                     <article key={it.claveLinea} className="px-5 py-4">
@@ -991,7 +1023,7 @@ export function PuntoDeVentaTicket({
                           </button>
                         </div>
                       </div>
-                      <div className="mt-3 flex items-end justify-between gap-3">
+                      <div className="mt-3 flex flex-wrap items-end justify-between gap-x-3 gap-y-2">
                         <label className="text-[10px] text-tinta/50 uppercase">
                           Cantidad
                           <div className="mt-1 flex h-9 items-center rounded-lg border border-sand bg-crema">
@@ -1051,7 +1083,7 @@ export function PuntoDeVentaTicket({
                         </div>
                       </div>
                       <p className="mt-2 text-[11px] text-tinta/50">
-                        {it.varianteId === ID_CARGO_ESPECIAL ? "Cargo sin control de stock." : `Máximo disponible en sede: ${it.stockAqui}`}
+                        {it.varianteId === ID_CARGO_ESPECIAL ? "Prenda sin registrar: almacén la regulariza después." : `Máximo disponible en sede: ${it.stockAqui}`}
                       </p>
                     </article>
                   );
@@ -1101,7 +1133,7 @@ export function PuntoDeVentaTicket({
           {/* Fila «Descuento», solo mientras se arma la venta: el descuento cambia cuánto
               se cobra, así que se decide antes de cobrar (decisión 3-A). */}
           {momentoMostrado === "armar" && (
-            <div className="mb-3 flex items-center justify-between gap-2 text-xs">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 text-xs">
               {totalDescuento > 0 ? (
                 <>
                   <span className="text-tinta/60">Descuento</span>
@@ -1145,20 +1177,27 @@ export function PuntoDeVentaTicket({
             </div>
           )}
 
-          <div className="mb-4 flex items-end justify-between">
+          <div className="mb-4 flex flex-wrap items-end justify-between gap-y-1">
             {/* Subtotal e IGV en la columna que ya existía, en el mismo tamaño de letra: el
                 bloque pasa de 2 a 3 líneas (~48 px) y sigue más bajo que el Total (~64 px),
-                así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total. */}
+                así que el pie no crece. El precio ya trae el IGV: subtotal + IGV = total.
+                `flex-wrap` + `ml-auto` en el Total (abajo): en el ancho normal se ve igual que
+                antes (el margen automático llega al mismo lugar que dejaba `justify-between`);
+                solo en un aside muy angosto el Total —que no puede encogerse, es un número sin
+                espacios— baja a su propia línea en vez de recortarse contra el borde derecho. */}
             <div className="text-xs text-tinta/60">
               <p>{etiquetaPrendas}</p>
-              <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
-                <dt>Subtotal</dt>
-                <dd className="text-right">{money(desglose.subtotal)}</dd>
-                <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
-                <dd className="text-right">{money(desglose.igv)}</dd>
-              </dl>
+              {/* La nota de venta no desglosa IGV (ADR-0164): el pie muestra solo el total. */}
+              {tipoComprobante !== "nota_venta" && (
+                <dl className="grid grid-cols-[auto_auto] justify-start gap-x-3 tabular-nums">
+                  <dt>Subtotal</dt>
+                  <dd className="text-right">{money(desglose.subtotal)}</dd>
+                  <dt>IGV ({(TASA_IGV * 100).toFixed(0)}%)</dt>
+                  <dd className="text-right">{money(desglose.igv)}</dd>
+                </dl>
+              )}
             </div>
-            <div className="text-right">
+            <div className="ml-auto text-right">
               <p className="label-cayla text-[11px] text-tinta/60">Total</p>
               {/* `key={total}`: al cambiar el monto el número se vuelve a montar y se
                   asienta (responde a la prenda que entró, no se anima solo). */}
@@ -1168,6 +1207,13 @@ export function PuntoDeVentaTicket({
             </div>
           </div>
 
+
+          {/* El combo «Responsable» (ADR-0161; spike, pantalla 2): justo encima de Cobrar, vacío en cada venta. Al armar
+              y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
+              envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
+          {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
+            <ComboResponsable control={responsable} deshabilitado={loading} className="mb-3" />
+          )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.
               Truco de `grid-template-rows` (0fr↔1fr): el párrafo queda siempre montado y
@@ -1192,13 +1238,13 @@ export function PuntoDeVentaTicket({
                 onClick={onAplicarDescuento}
                 disabled={bloqueado || motivoDescuento !== null}
                 aria-describedby={motivoDescuento !== null ? ID_MOTIVO : undefined}
-                className={BOTON_PRINCIPAL}
+                className={`${BOTON_PRINCIPAL} ${luz("listo") ? "cobrar-listo" : ""}`}
               >
                 <span className="label-cayla flex items-center gap-2 text-[11px]">
                   <BadgePercent className={ICONO} aria-hidden />
                   Aplicar descuento
                 </span>
-                <strong className="font-display text-lg">{valorValido ? (porMonto ? `−${money(monto)}` : `−${pct}%`) : "—"}</strong>
+                <strong className="font-display text-lg">{valorValido ? `−${pct}%` : "—"}</strong>
               </button>
               {hayDescuentoEnAlcance && (
                 <button
@@ -1216,7 +1262,7 @@ export function PuntoDeVentaTicket({
               type="submit"
               disabled={apagado || loading}
               aria-describedby={motivoBloqueo !== null ? ID_MOTIVO : undefined}
-              className={BOTON_PRINCIPAL}
+              className={`${BOTON_PRINCIPAL} ${listoParaConfirmar ? "cobrar-listo" : ""}`}
             >
               <span className="label-cayla flex items-center gap-2 text-[11px]">
                 <Check className={ICONO} aria-hidden />

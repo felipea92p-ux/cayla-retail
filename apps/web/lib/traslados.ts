@@ -2,7 +2,8 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, exigirOpcional, tolerar } from "@/lib/resultado";
 import { fotosDelTraslado, type FotoCruda, type FotoTraslado } from "@/lib/producto-fotos-reglas";
-import { contarRequierenAccion } from "@/lib/traslados-reglas";
+import { contarRequierenAccion, separarVacios } from "@/lib/traslados-reglas";
+import { getAparienciaVariantes } from "@/lib/apariencia-variantes";
 
 // Traslados en dos fases (20260916150000): envío → en tránsito →
 // confirmación en destino. Las RPC de escritura (iniciar_traslado,
@@ -40,6 +41,10 @@ export type TrasladoResumen = {
    *  pidieron (`getTrasladosDeLaSede` es la única que las trae) o la lectura de fotos falló:
    *  la pantalla dibuja el marcador «sin foto», nunca una imagen rota. */
   fotos: FotoTraslado[];
+  /** Hasta 3 colores (`#rrggbb`) de lo que va, sin repetir: la muestra que se dibuja cuando ninguna
+   *  prenda tiene foto todavía (rediseño 2026-09-22). Los colores que no son un color (Estampado,
+   *  Multicolor) no traen hex y no entran. */
+  colores: string[];
 };
 
 export type { FotoTraslado };
@@ -47,7 +52,7 @@ export type { FotoTraslado };
 const SELECT_RESUMEN = `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota,
   origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
   destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre ),
-  transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, producto:productos ( referencia ) ) )`;
+  transferencia_items ( cantidad, variante_id, variante:variantes ( sku, color_codigo, producto_id, color:colores ( hex ), producto:productos ( referencia ) ) )`;
 
 type FilaResumen = {
   id: string;
@@ -66,7 +71,13 @@ type FilaResumen = {
     | {
         cantidad: number;
         variante_id: string;
-        variante: { sku: string | null; color_codigo: string | null; producto_id: string; producto: { referencia: string } | null } | null;
+        variante: {
+          sku: string | null;
+          color_codigo: string | null;
+          producto_id: string;
+          color: { hex: string | null } | null;
+          producto: { referencia: string } | null;
+        } | null;
       }[]
     | null;
 };
@@ -78,6 +89,7 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
   // Un producto con tres tallas en el mismo traslado se nombra una vez.
   const referencias = Array.from(new Set(items.map((i) => i.variante?.producto?.referencia).filter((r): r is string => !!r)));
   const skus = Array.from(new Set(items.map((i) => i.variante?.sku).filter((c): c is string => !!c)));
+  const colores = Array.from(new Set(items.map((i) => i.variante?.color?.hex).filter((c): c is string => !!c))).slice(0, 3);
   return {
     id: f.id,
     numero: f.numero,
@@ -104,6 +116,7 @@ function aResumen(f: FilaResumen, fotosPorProducto: Map<string, FotoCruda[]> = n
       })),
       fotosPorProducto
     ),
+    colores,
   };
 }
 
@@ -140,7 +153,7 @@ async function filasCerradas(supabase: Cliente, ubicacionId: string, limite: num
  *  necesitan conteos y fechas (para las miniaturas, `getTrasladosDeLaSede`). */
 export async function getTrasladosEnCurso(ubicacionId: string): Promise<TrasladoResumen[]> {
   const supabase = await createClient();
-  return (await filasEnCurso(supabase, ubicacionId)).map((f) => aResumen(f));
+  return separarVacios((await filasEnCurso(supabase, ubicacionId)).map((f) => aResumen(f))).conPrendas;
 }
 
 /** Los últimos traslados que YA terminaron (cerrados, o «completada» del
@@ -149,7 +162,7 @@ export async function getTrasladosEnCurso(ubicacionId: string): Promise<Traslado
  *  verlos todos); el historial se acota. */
 export async function getTrasladosCerrados(ubicacionId: string, limite = 30): Promise<TrasladoResumen[]> {
   const supabase = await createClient();
-  return (await filasCerradas(supabase, ubicacionId, limite)).map((f) => aResumen(f));
+  return separarVacios((await filasCerradas(supabase, ubicacionId, limite)).map((f) => aResumen(f))).conPrendas;
 }
 
 /** Las fotos de los productos que van en estos traslados, en UNA consulta por lote de 100
@@ -184,16 +197,21 @@ async function leerFotosPorProducto(supabase: Cliente, productoIds: string[]): P
 }
 
 /** Todo lo que la pantalla Traslados necesita, en un solo viaje: los en curso (todos), los últimos
- *  cerrados (`limiteCerrados`) y las miniaturas de ambos con UNA sola consulta de fotos. */
+ *  cerrados (`limiteCerrados`) y las miniaturas de ambos con UNA sola consulta de fotos.
+ *  Los traslados sin prendas (`esTrasladoVacio`) salen de las dos listas; `vacios` dice cuántos se
+ *  apartaron, para avisarlo en la pantalla en vez de esconderlos en silencio. */
 export async function getTrasladosDeLaSede(
   ubicacionId: string,
   limiteCerrados = 30
-): Promise<{ enCurso: TrasladoResumen[]; cerrados: TrasladoResumen[] }> {
+): Promise<{ enCurso: TrasladoResumen[]; cerrados: TrasladoResumen[]; vacios: number; cerradosLeidos: number }> {
   const supabase = await createClient();
   const [abiertas, cerradas] = await Promise.all([filasEnCurso(supabase, ubicacionId), filasCerradas(supabase, ubicacionId, limiteCerrados)]);
   const productoIds = [...abiertas, ...cerradas].flatMap((f) => (f.transferencia_items ?? []).map((i) => i.variante?.producto_id).filter((id): id is string => !!id));
   const fotos = await leerFotosPorProducto(supabase, productoIds);
-  return { enCurso: abiertas.map((f) => aResumen(f, fotos)), cerrados: cerradas.map((f) => aResumen(f, fotos)) };
+  const enCurso = separarVacios(abiertas.map((f) => aResumen(f, fotos)));
+  const cerrados = separarVacios(cerradas.map((f) => aResumen(f, fotos)));
+  // `cerradosLeidos` cuenta también los vacíos: es lo que dice si la consulta llegó al tope de `limiteCerrados`.
+  return { enCurso: enCurso.conPrendas, cerrados: cerrados.conPrendas, vacios: enCurso.vacios + cerrados.vacios, cerradosLeidos: cerradas.length };
 }
 
 type FilaContador = {
@@ -218,13 +236,16 @@ type FilaContador = {
  * una diferencia— se hacen en el destino). Una lectura liviana: sin ítems ni joins. `cache()` la
  * comparte entre los dos layouts que la piden dentro del mismo request; los argumentos son
  * primitivos justamente para que la deduplicación funcione.
+ *
+ * `transferencia_items!inner`: un traslado sin prendas (las cabeceras vacías de la limpieza de datos,
+ * ver `esTrasladoVacio`) no cuenta — si no, la sede destino tendría un «por recibir» de nada.
  */
-export const getTrasladosPorAtender = cache(async (ubicacionId: string, esLider: boolean): Promise<number | null> => {
+export const getTrasladosPorAtender = cache(async (ubicacionId: string, puedeCerrarDiferencia: boolean): Promise<number | null> => {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("transferencias")
-      .select("estado, ubicacion_origen_id, ubicacion_destino_id, fecha_estimada_llegada, confirmado_en")
+      .select("estado, ubicacion_origen_id, ubicacion_destino_id, fecha_estimada_llegada, confirmado_en, transferencia_items!inner ( variante_id )")
       .eq("ubicacion_destino_id", ubicacionId)
       .in("estado", ["en_transito", "recibido_con_diferencia"]);
     if (error || !data) {
@@ -239,7 +260,7 @@ export const getTrasladosPorAtender = cache(async (ubicacionId: string, esLider:
         fechaEstimadaLlegada: f.fecha_estimada_llegada,
         confirmadoEn: f.confirmado_en,
       })),
-      { miUbicacionId: ubicacionId, esLider, ahoraIso: new Date().toISOString() }
+      { miUbicacionId: ubicacionId, puedeCerrarDiferencia, ahoraIso: new Date().toISOString() }
     );
   } catch (e) {
     console.error("Contador de traslados:", e);
@@ -256,6 +277,9 @@ export type LineaTraslado = {
   cantidadEnviada: number | null;
   cantidadRecibida: number | null;
   diferencia: number | null;
+  /** `#rrggbb`, `null` (no es un color: Estampado…) o `undefined` (no se pudo leer): ver `ProductoVarianteCelda`. */
+  colorHex: string | null | undefined;
+  fotoUrl: string | null;
 };
 
 export type TrasladoDetalle = {
@@ -274,6 +298,9 @@ export type TrasladoDetalle = {
   nota: string | null;
   notaCierre: string | null;
   creadoPorNombre: string;
+  /** Quién registró la recepción y quién cerró (con diferencia): el recorrido del detalle dice los dos. */
+  confirmadoPorNombre: string | null;
+  cerradoPorNombre: string | null;
   lineas: LineaTraslado[];
 };
 
@@ -282,7 +309,7 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   const res = await supabase
     .from("transferencias")
     .select(
-      `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota, nota_cierre, creado_por,
+      `id, numero, ubicacion_origen_id, ubicacion_destino_id, estado, fecha_estimada_llegada, created_at, confirmado_en, cerrado_en, nota, nota_cierre, creado_por, confirmado_por, cerrado_por,
        origen:ubicaciones!transferencias_ubicacion_origen_id_fkey ( nombre ),
        destino:ubicaciones!transferencias_ubicacion_destino_id_fkey ( nombre )`
     )
@@ -291,12 +318,17 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
   const t = exigirOpcional(res, "el traslado");
   if (!t) return null;
 
+  const ids = Array.from(new Set([t.creado_por, t.confirmado_por, t.cerrado_por].filter((x): x is string => !!x)));
   const [lineasRes, nombreRes] = await Promise.all([
     supabase.rpc("fn_traslado_lineas", { p_transferencia_id: id }),
-    t.creado_por ? supabase.rpc("fn_nombres_personas", { p_ids: [t.creado_por] }) : Promise.resolve({ data: [], error: null }),
+    ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
   ]);
   const lineas = exigir(lineasRes, "las líneas del traslado");
-  const nombres = exigir(nombreRes, "el nombre de quien envió");
+  const nombres = exigir(nombreRes, "los nombres de quienes enviaron y recibieron");
+  const nombre = (pid: string | null) => (pid ? (nombres.find((n) => n.id === pid)?.nombre ?? null) : null);
+  // Color y foto de cada prenda. Decorativos: `getAparienciaVariantes` tolera el fallo y la celda cae al
+  // nombre del color en texto, nunca tumba la pantalla donde se confirma una recepción.
+  const apariencia = await getAparienciaVariantes(supabase, lineas.map((l) => l.variante_id));
 
   return {
     id: t.id,
@@ -312,7 +344,9 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
     cerradoEn: t.cerrado_en,
     nota: t.nota,
     notaCierre: t.nota_cierre,
-    creadoPorNombre: nombres[0]?.nombre ?? "—",
+    creadoPorNombre: nombre(t.creado_por) ?? "—",
+    confirmadoPorNombre: nombre(t.confirmado_por),
+    cerradoPorNombre: nombre(t.cerrado_por),
     lineas: lineas.map((l) => ({
       varianteId: l.variante_id,
       sku: l.sku,
@@ -322,6 +356,8 @@ export async function getTrasladoDetalle(id: string): Promise<TrasladoDetalle | 
       cantidadEnviada: l.cantidad_enviada,
       cantidadRecibida: l.cantidad_recibida,
       diferencia: l.diferencia,
+      colorHex: apariencia.has(l.variante_id) ? apariencia.get(l.variante_id)!.colorHex : undefined,
+      fotoUrl: apariencia.get(l.variante_id)?.fotoUrl ?? null,
     })),
   };
 }

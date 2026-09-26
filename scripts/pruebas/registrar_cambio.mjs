@@ -103,6 +103,10 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
   select :'ubic', 'Almacén de tienda', 'almacen_tienda'
   where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'almacen_tienda');
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'ubic', 'Cuarentena', 'cuarentena'
+  where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena');
+select id as sub_cuarentena from retail.sububicaciones where ubicacion_id = :'ubic' and tipo = 'cuarentena' \\gset
 
 -- Caja limpia y propia: cierra cualquiera abierta con la RPC real (nunca un UPDATE
 -- crudo a estado) y abre una nueva — así ninguna aserción de caja de este archivo
@@ -110,7 +114,7 @@ insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
 select (select count(*) from (
   select retail.cerrar_caja(id, 0) from retail.cajas where ubicacion_id = :'ubic' and estado = 'abierta'
 ) x) as _cerro_previa \\gset
-select retail.abrir_caja(:'ubic', 100.00) as caja_id \\gset
+select retail.abrir_caja(:'ubic', 100.00, 'prueba automatizada') as caja_id \\gset
 
 select id as v_old from retail.variantes where sku = 'BLU-EMMA-NEG-M' \\gset
 select id as v_new, precio as v_new_precio from retail.variantes where sku = 'VES-SOFI-NEG-M' \\gset
@@ -347,6 +351,140 @@ select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, 'efectivo', 
 `
   ),
   "No hay una caja abierta en esta ubicación"
+);
+
+// ---------------------------------------------------------------------------
+// 14-18: 20260919000100 — motivo, estado de la prenda que vuelve (R-39) y venta
+// anulada. Los 13 de arriba siguen llamando con los 6 parámetros de antes: son la
+// prueba de que la pantalla vieja no se rompe contra la firma nueva.
+// ---------------------------------------------------------------------------
+
+exito(
+  "con motivo, la prenda vendible vuelve al piso y el motivo queda guardado",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible') as cambio_id \\gset
+select
+  c.motivo,
+  c.condicion,
+  (select m.sububicacion_id = :'sub_piso'::uuid from retail.movimientos m where m.cambio_id = c.id and m.tipo = 'entrada'),
+  (select count(*) from retail.prendas_danadas where cambio_id = c.id)
+from retail.cambios c where c.id = :'cambio_id';
+rollback;
+`
+  ),
+  ([motivo, condicion, entradaEnPiso, danadas]) =>
+    motivo === "talla_chica" && condicion === "vendible" && entradaEnPiso === "t" && Number(danadas) === 0
+);
+
+exito(
+  "por defecto: la fallada entra a cuarentena y sale una igual del piso",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_piso'),0) as piso_antes \\gset
+select coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_cuarentena'),0) as cuarentena_antes \\gset
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_old', 1, null, gen_random_uuid(), 'defecto', 'no_vendible') as cambio_id \\gset
+select
+  (coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_piso'),0) - :'piso_antes'),
+  (coalesce((select sum(cantidad) from retail.stock where variante_id = :'v_old' and sububicacion_id = :'sub_cuarentena'),0) - :'cuarentena_antes'),
+  (select count(*) from retail.prendas_danadas where cambio_id = :'cambio_id' and estado = 'en_cuarentena' and cantidad = 1);
+rollback;
+`
+  ),
+  ([deltaPiso, deltaCuarentena, danadas]) => Number(deltaPiso) === -1 && Number(deltaCuarentena) === 1 && Number(danadas) === 1
+);
+
+error(
+  "una prenda cambiada por defecto no puede volver al piso",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_old', 1, null, gen_random_uuid(), 'defecto', 'vendible');
+`
+  ),
+  "no puede volver al piso"
+);
+
+error(
+  "una prenda de una venta anulada no se puede cambiar (la anulación ya la devolvió al stock)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+update retail.ventas set estado = 'anulada', anulado_en = now(), motivo_anulacion = 'prueba' where id = :'venta_id';
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible');
+`
+  ),
+  "está anulada"
+);
+
+error(
+  "un motivo fuera de la lista se rechaza",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'no_le_gusto', 'vendible');
+`
+  ),
+  "Motivo de cambio desconocido"
+);
+
+// ---------------------------------------------------------------------------
+// ADR-0189: cambios y devoluciones se descuentan entre sí EN LA BASE (antes solo en
+// pantalla). Las dos terminales a la vez están en `concurrencia_linea_de_venta.mjs`.
+// ---------------------------------------------------------------------------
+
+error(
+  "una prenda con devolución pendiente ya no se puede cambiar (ADR-0189)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.crear_devolucion(:'venta_id', :'ubic',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'cantidad', 1, 'condicion', 'vendible')),
+  'prueba', 'talla') as _dev \\gset
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible');
+`
+  ),
+  "quedan 0, no puedes cambiar 1"
+);
+
+exito(
+  "una devolución rechazada libera la prenda: el cambio pasa (ADR-0189)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 1, diferenciaUnitaria: 0 })}
+select retail.crear_devolucion(:'venta_id', :'ubic',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'cantidad', 1, 'condicion', 'vendible')),
+  'prueba', 'talla') as dev_id \\gset
+update retail.devoluciones set estado = 'rechazada', aprobado_en = now() where id = :'dev_id';
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible') as cambio_id \\gset
+select count(*) from retail.cambios where id = :'cambio_id';
+rollback;
+`
+  ),
+  ([n]) => Number(n) === 1
+);
+
+exito(
+  "con 2 vendidas y 1 devuelta: la otra se cambia y una tercera se rechaza con las cuentas (ADR-0189)",
+  comoPersona(
+    FELIPE,
+    `${fixture({ cantidad: 2, diferenciaUnitaria: 0 })}
+select retail.crear_devolucion(:'venta_id', :'ubic',
+  jsonb_build_array(jsonb_build_object('venta_item_id', :'venta_item', 'cantidad', 1, 'condicion', 'vendible')),
+  'prueba', 'talla') as _dev \\gset
+select retail.registrar_cambio(:'venta_item', :'ubic', :'v_new', 1, null, gen_random_uuid(), 'talla_chica', 'vendible') as _c1 \\gset
+create function pg_temp.intento(p_sql text) returns text language plpgsql as $f$
+begin execute p_sql; return 'SIN_ERROR';
+exception when others then return sqlerrm; end $f$;
+select pg_temp.intento(format(
+  'select retail.registrar_cambio(%L, %L, %L, 1, null, gen_random_uuid(), %L, %L)',
+  :'venta_item', :'ubic', :'v_new', 'talla_chica', 'vendible'));
+rollback;
+`
+  ),
+  ([msg]) => msg.includes("se vendieron 2: ya se cambiaron 1 y se devolvieron 1") && msg.includes("quedan 0, no puedes cambiar 1")
 );
 
 // ---------------------------------------------------------------------------

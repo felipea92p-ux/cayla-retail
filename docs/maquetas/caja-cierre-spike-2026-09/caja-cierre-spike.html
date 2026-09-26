@@ -1,0 +1,563 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cierre y apertura de caja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Cierre, traslado y apertura de caja (2026-09-23)
+   Tokens = los reales de globals.css. Modales = ADR-0136 (velo con
+   desenfoque → hoja que sube 18 px → cascada de 55 ms → salida corta).
+   Datos inventados: Trujillo, apertura S/ 200.00.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf6ec;--taupe:#a47865;--taupe-p:#805c4c;
+  --verde:#556e49;--verde-p:#44583a;--ambar:#8c631f;--ambar-p:#734f15;--efectivo:#d19a12;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t10:rgba(26,26,24,.10);--t07:rgba(26,26,24,.07);--t04:rgba(26,26,24,.04);
+  --ease:cubic-bezier(.32,.72,.24,1);--ease-out:cubic-bezier(.4,0,1,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:var(--crema);-webkit-font-smoothing:antialiased;font-size:15px;line-height:1.5;min-height:100vh}
+button,input,select{font:inherit;color:inherit}
+button{background:none;border:0;cursor:pointer}
+.disp{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+.tab{font-variant-numeric:tabular-nums lining-nums}
+:focus-visible{outline:2px solid var(--rojo);outline-offset:2px}
+[hidden]{display:none!important}
+
+/* ---------- panel de control del spike (no es parte del ERP) ---------- */
+.ctl{max-width:1040px;margin:0 auto;padding:20px 24px 0;display:flex;flex-wrap:wrap;gap:12px 28px;align-items:center;font-size:13px;color:var(--t65)}
+.ctl b{font-weight:600;color:var(--tinta);margin-right:8px}
+.seg{display:inline-flex;background:var(--t04);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{padding:6px 12px;border-radius:6px;font-size:13px;color:var(--t65);transition:background .2s var(--ease),color .2s}
+.seg button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 0 0 1px var(--t07)}
+.nota{max-width:1040px;margin:10px auto 0;padding:0 24px;font-size:13px;color:var(--t65)}
+.nota strong{color:var(--tinta);font-weight:600}
+
+/* ---------- pantalla ---------- */
+.pantalla{max-width:1040px;margin:18px auto 60px;padding:0 24px}
+.cab{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+.cab .sede{color:var(--taupe-p);margin-bottom:4px}
+.cab h1{font-size:42px;line-height:1.05;letter-spacing:-.01em}
+.cab .sub{margin-top:6px;color:var(--t65);font-size:14px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:20px 22px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi .lbl{color:var(--t65)}
+.kpi .v{font-size:26px;margin-top:4px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;padding:10px 16px;font-weight:600;font-size:14px;transition:background .2s var(--ease),opacity .2s,border-color .2s}
+.btn-p{background:var(--tinta);color:var(--crema)}
+.btn-p:hover{background:#000}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-r{background:var(--rojo);color:var(--crema)}
+.btn-r:hover:not(:disabled){background:var(--rojo-p)}
+.btn-c{border:1px solid var(--sand);background:var(--papel)}
+.btn-c:hover{border-color:var(--taupe)}
+.btn-link{color:var(--t65);font-size:13px;text-decoration:underline;text-underline-offset:3px}
+.fila{display:flex;align-items:center;gap:10px}
+.entre{justify-content:space-between}
+
+/* anim de entrada de pantalla */
+@keyframes sube{from{opacity:0;transform:translate3d(0,10px,0)}}
+.cascada > *{animation:sube .5s var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms)}
+
+/* ---------- modal (ADR-0136) ---------- */
+.velo{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px 24px;overflow-y:auto;background:rgba(245,240,232,.62);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);animation:velo .22s var(--ease) both}
+.velo.sale{animation:velo-sale .2s var(--ease-out) both}
+.hoja{width:min(520px,100%);background:var(--papel);border-radius:20px;padding:26px 28px 24px;box-shadow:0 22px 44px -22px rgba(80,50,20,.5);outline:1px solid var(--t07);animation:hoja .42s var(--ease) both}
+.velo.sale .hoja{animation:hoja-sale .2s var(--ease-out) both}
+.hoja > .paso > *{animation:sube .45s var(--ease) backwards;animation-delay:calc(var(--k,0)*55ms)}
+@keyframes velo{from{opacity:0}}
+@keyframes velo-sale{to{opacity:0}}
+@keyframes hoja{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+@keyframes hoja-sale{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+.hoja h2{font-size:30px;line-height:1.1}
+.hoja .bajada{color:var(--t65);font-size:14px;margin-top:4px}
+.pasos{display:flex;gap:6px;margin-bottom:14px}
+.pasos i{flex:1;height:3px;border-radius:2px;background:var(--t10);overflow:hidden;position:relative}
+.pasos i::after{content:"";position:absolute;inset:0;background:var(--tinta);transform:scaleX(0);transform-origin:left;transition:transform .45s var(--ease)}
+.pasos i.hecho::after{transform:none}
+.pasos-lbl{color:var(--taupe-p);margin-bottom:6px}
+
+/* campo */
+.campo label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
+.inp{width:100%;border:1px solid var(--sand);background:#fff;border-radius:8px;padding:10px 12px;font-size:15px;transition:border-color .2s}
+.inp:focus{outline:none;border-color:var(--rojo)}
+.monto-grande{font-family:'EB Garamond',Georgia,serif;font-size:34px;padding:6px 12px 6px 44px}
+.con-prefijo{position:relative}
+.con-prefijo span{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-family:'EB Garamond',Georgia,serif;font-size:22px;color:var(--t50)}
+
+/* comparación sistema vs real */
+.cuadre{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.col{border:1px solid var(--sand);border-radius:12px;padding:14px 14px 12px;background:var(--crema);position:relative;overflow:hidden}
+.col .lbl{color:var(--t65)}
+.col .v{font-size:34px;line-height:1.1;margin-top:6px}
+.col.real{background:#fff}
+.col .tapa{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;text-align:center;padding:10px;background:repeating-linear-gradient(135deg,var(--sand) 0 6px,#efe8da 6px 12px);transition:opacity .35s var(--ease),transform .45s var(--ease)}
+.col .tapa b{font-size:13px}
+.col .tapa small{font-size:12px;color:var(--t65)}
+.col.revelada .tapa{opacity:0;transform:translate3d(0,-8px,0);pointer-events:none}
+.desglose{margin-top:10px;font-size:12.5px;color:var(--t65)}
+.desglose div{display:flex;justify-content:space-between;padding:2px 0}
+.desglose div.tot{border-top:1px solid var(--sand);margin-top:4px;padding-top:6px;color:var(--tinta);font-weight:600}
+
+.veredicto{margin-top:12px;border-radius:10px;padding:10px 12px;font-size:14px;display:flex;gap:10px;align-items:flex-start;transition:background .3s var(--ease),color .3s}
+.veredicto.ok{background:rgba(85,110,73,.12);color:var(--verde-p)}
+.veredicto.mal{background:rgba(184,65,45,.09);color:var(--rojo-p)}
+.veredicto.neutro{background:var(--t04);color:var(--t65)}
+.veredicto svg{flex:none;margin-top:2px}
+
+/* contar por billetes */
+details.billetes{margin-top:10px;border:1px dashed var(--sand);border-radius:10px;padding:8px 12px}
+details.billetes summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--t80);list-style:none}
+details.billetes summary::before{content:"＋ ";color:var(--taupe-p)}
+details.billetes[open] summary::before{content:"－ "}
+.den{display:grid;grid-template-columns:repeat(3,1fr);gap:6px 12px;margin-top:10px}
+.den label{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--t65)}
+.den label b{min-width:44px;color:var(--tinta);font-weight:600}
+.den input{width:100%;min-width:0;border:1px solid var(--sand);border-radius:6px;padding:4px 6px;background:#fff;text-align:right}
+
+/* traslados */
+.bolsa{display:flex;align-items:baseline;justify-content:space-between;margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--crema);border:1px solid var(--sand)}
+.bolsa .v{font-size:28px}
+.barra-bolsa{height:10px;border-radius:6px;background:var(--t07);margin-top:10px;display:flex;overflow:hidden}
+.barra-bolsa i{height:100%;transition:flex-grow .45s var(--ease)}
+.leyenda{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12px;color:var(--t65)}
+.leyenda span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;background:var(--c)}
+.traslado{display:grid;grid-template-columns:1.4fr 1fr auto;gap:8px;align-items:start;margin-top:10px}
+.traslado .extra{grid-column:1 / -1;margin-top:-2px}
+.quitar{width:36px;height:40px;border-radius:8px;color:var(--t50)}
+.quitar:hover{background:var(--t04);color:var(--rojo)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.chip{border:1px solid var(--sand);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;transition:border-color .2s}
+.chip:hover{border-color:var(--taupe)}
+.aviso{margin-top:10px;border-radius:10px;padding:9px 12px;font-size:12.5px;background:rgba(140,99,31,.1);color:var(--ambar-p)}
+.aviso.rojo{background:rgba(184,65,45,.09);color:var(--rojo-p)}
+
+.acciones{display:flex;gap:8px;margin-top:20px}
+.acciones .btn-p,.acciones .btn-r{flex:1}
+
+/* resumen final */
+.recibo{margin-top:14px;border-top:1px solid var(--sand)}
+.recibo div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--t07);font-size:14px}
+.recibo div span:first-child{color:var(--t65)}
+.recibo .fuerte{font-weight:600}
+.recibo div span:last-child,.linea-tiempo div > span:last-child{white-space:nowrap;padding-left:12px}
+@media (max-width:440px){.grid{grid-template-columns:1fr!important}.ultimo .quedo .v{font-size:42px}}
+.visto{display:block;margin:0 auto 6px;width:44px;height:44px}
+.visto circle{stroke:var(--verde);stroke-width:2;fill:none;stroke-dasharray:130;stroke-dashoffset:130;animation:trazo .5s var(--ease) .1s forwards}
+.visto path{stroke:var(--verde);stroke-width:2.5;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:30;stroke-dashoffset:30;animation:trazo .35s var(--ease) .45s forwards}
+@keyframes trazo{to{stroke-dashoffset:0}}
+
+/* ---------- caja cerrada ---------- */
+.cerrada{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start}
+.ultimo .lbl{color:var(--taupe-p)}
+.ultimo .quedo{display:flex;align-items:baseline;gap:10px;margin-top:10px}
+.ultimo .quedo .v{font-size:54px;line-height:1}
+.ultimo .meta{font-size:13px;color:var(--t65);margin-top:6px}
+.linea-tiempo{margin-top:16px;display:grid;gap:0}
+.linea-tiempo div{display:grid;grid-template-columns:1fr auto;padding:8px 0;border-top:1px solid var(--t07);font-size:13.5px}
+.linea-tiempo div span:first-child{color:var(--t65)}
+.linea-tiempo small{display:block;color:var(--t50);font-size:12px}
+.pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:600}
+.pill.ok{background:rgba(85,110,73,.14);color:var(--verde-p)}
+.pill.mal{background:rgba(184,65,45,.1);color:var(--rojo-p)}
+.pill.amb{background:rgba(140,99,31,.12);color:var(--ambar-p)}
+
+.apertura h3{font-size:26px;line-height:1.15}
+.revisa{margin-top:14px;border-radius:12px;background:rgba(209,154,18,.1);border:1px solid rgba(209,154,18,.35);padding:14px 16px;display:flex;gap:12px}
+.revisa svg{flex:none;color:var(--ambar-p);margin-top:2px}
+.revisa p{font-size:14px;color:var(--ambar-p)}
+.revisa p b{color:var(--tinta)}
+.opciones{display:grid;gap:8px;margin-top:14px}
+.opcion{display:flex;gap:12px;align-items:center;text-align:left;border:1px solid var(--sand);background:#fff;border-radius:12px;padding:12px 14px;transition:border-color .2s var(--ease),background .2s}
+.opcion:hover{border-color:var(--taupe)}
+.opcion[aria-pressed=true]{border-color:var(--tinta);background:var(--crema)}
+.opcion .radio{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--t50);position:relative}
+.opcion[aria-pressed=true] .radio{border-color:var(--tinta)}
+.opcion[aria-pressed=true] .radio::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--tinta)}
+.opcion small{display:block;font-size:12.5px;color:var(--t65)}
+
+.abierta-ok{text-align:center;padding:28px 10px}
+
+@media (max-width:760px){
+  .grid{grid-template-columns:1fr 1fr}.cerrada{grid-template-columns:1fr}
+  .cab h1{font-size:32px}.cuadre{grid-template-columns:1fr}
+  .traslado{grid-template-columns:1fr 1fr auto}.den{grid-template-columns:repeat(2,1fr)}
+  .hoja{padding:22px 18px 20px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}}
+body.reducido *,body.reducido *::before,body.reducido *::after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important}
+</style>
+</head>
+<body>
+
+<div class="ctl" role="group" aria-label="Controles del spike">
+  <div><b>Pantalla</b>
+    <span class="seg" id="seg-pantalla">
+      <button data-p="abierta" aria-pressed="true">1 · Caja abierta → cerrar</button>
+      <button data-p="cerrada" aria-pressed="false">2 · Caja cerrada → abrir</button>
+    </span>
+  </div>
+  <div><b>Sistema al contar</b>
+    <span class="seg" id="seg-ciego">
+      <button data-v="ciego" aria-pressed="true">Se revela al escribir (recomendado)</button>
+      <button data-v="visible" aria-pressed="false">Visible desde el inicio</button>
+    </span>
+  </div>
+  <div><b>Cierre anterior</b>
+    <span class="seg" id="seg-cuadro">
+      <button data-v="cuadro" aria-pressed="true">Cuadró</button>
+      <button data-v="falto" aria-pressed="false">Faltó S/ 5.50</button>
+    </span>
+  </div>
+  <button class="btn-link" id="reducido">Movimiento reducido: no</button>
+</div>
+<p class="nota"><strong>Recorrido:</strong> «Cerrar caja» → escribe lo contado (prueba 1,950 o usa «contar por billetes») → deja el fondo y traslada el resto → mira el resumen → «Ver caja cerrada» → revisa el cajón antes de abrir.</p>
+
+<main class="pantalla" id="pantalla"></main>
+<div id="modal"></div>
+
+<script>
+/* ===================== datos de la maqueta ===================== */
+const SEDE = "Trujillo";
+const CAJA = { apertura: 200, abiertaPor: "Rosa Quispe", abiertaEn: "09:02",
+  ventasEfectivo: 1845.50, ventasOtros: 2310.00, ingresos: 0, egresos: 60, reembolsos: 40, cambios: 10 };
+const ESPERADO = CAJA.apertura + CAJA.ventasEfectivo + CAJA.ingresos - CAJA.egresos - CAJA.reembolsos + CAJA.cambios; // 1,955.50
+const FONDO_SUGERIDO = 200; // fondo fijo de la sede (sería configuración de `ubicaciones`)
+const DESTINOS = [
+  { id: "fuerte",   nombre: "Caja fuerte de la sede",      color: "#805c4c", pide: null },
+  { id: "banco",    nombre: "Depósito bancario (BCP)",     color: "#2f6aa3", pide: "N.º de operación del voucher" },
+  { id: "lider",    nombre: "Entregado al líder de equipo", color: "#6d3fa3", pide: "¿A quién? (líder que recibe)" },
+  { id: "arequipa", nombre: "Otra sede · Arequipa",        color: "#1c6b56", pide: "¿Quién lo lleva?" },
+  { id: "lima",     nombre: "Otra sede · Lima",            color: "#1c6b56", pide: "¿Quién lo lleva?" },
+  { id: "taller",   nombre: "Taller Lima",                 color: "#525a64", pide: "¿Quién lo lleva?" },
+];
+const DEN = [200,100,50,20,10,5,2,1,0.5,0.2,0.1];
+
+let estado = { pantalla: "abierta", ciego: true, cuadroAnterior: true, reducido: false,
+  ultimoCierre: null, abierta: false };
+
+const $ = (s, r = document) => r.querySelector(s);
+const soles = n => "S/ " + (Math.round(n * 100) / 100).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num = v => { const n = parseFloat(String(v).replace(",", ".")); return isFinite(n) ? n : 0; };
+const reducido = () => estado.reducido || matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* cifra que cuenta (respuesta a una acción, 400 ms, --ease-cayla aproximado) */
+function contar(el, hasta, desde = 0) {
+  if (reducido()) { el.textContent = soles(hasta); return; }
+  const t0 = performance.now(), d = 420;
+  const f = t => { const p = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = soles(desde + (hasta - desde) * e); if (p < 1) requestAnimationFrame(f); };
+  requestAnimationFrame(f);
+}
+
+/* ===================== cierre anterior (para la pantalla 2) ===================== */
+function cierrePorDefecto() {
+  const contado = estado.cuadroAnterior ? 1955.50 : 1950.00;
+  return { cuando: "Ayer, 21:14", quien: "Rosa Quispe", esperado: 1955.50, contado,
+    traslados: [{ destino: DESTINOS[0], monto: contado - 200, extra: "" }], fondo: 200 };
+}
+
+/* ===================== pantallas ===================== */
+function render() {
+  document.querySelectorAll("#seg-pantalla button").forEach(b => b.setAttribute("aria-pressed", b.dataset.p === estado.pantalla));
+  const p = $("#pantalla");
+  p.innerHTML = estado.pantalla === "abierta" ? htmlAbierta() : htmlCerrada();
+  p.classList.remove("cascada"); void p.offsetWidth; p.classList.add("cascada");
+  [...p.children].forEach((c, i) => c.style.setProperty("--k", i));
+  enlazarPantalla();
+}
+
+function htmlAbierta() {
+  return `
+  <div class="cab">
+    <div><p class="lbl sede">${SEDE}</p><h1 class="disp">Caja</h1>
+      <p class="sub">Abierta a las ${CAJA.abiertaEn} por ${CAJA.abiertaPor} · apertura ${soles(CAJA.apertura)}</p></div>
+    <div class="fila"><button class="btn btn-c">Registrar movimiento</button><button class="btn btn-r" id="abrir-cierre">Cerrar caja</button></div>
+  </div>
+  <div class="grid">
+    <div class="card kpi"><p class="lbl">Ventas en efectivo</p><p class="v disp tab">${soles(CAJA.ventasEfectivo)}</p></div>
+    <div class="card kpi"><p class="lbl">Tarjeta, Yape, Plin</p><p class="v disp tab">${soles(CAJA.ventasOtros)}</p></div>
+    <div class="card kpi"><p class="lbl">Egresos</p><p class="v disp tab">${soles(CAJA.egresos)}</p></div>
+    <div class="card kpi"><p class="lbl">Reembolsos y cambios</p><p class="v disp tab">${soles(CAJA.reembolsos - CAJA.cambios)}</p></div>
+  </div>
+  <div class="card" style="margin-top:12px;color:var(--t65);font-size:14px">… el resto del tablero de Caja (ventas del día, gráficos, movimientos) no cambia en este spike.</div>`;
+}
+
+function htmlCerrada() {
+  const c = estado.ultimoCierre || cierrePorDefecto();
+  const dif = c.contado - c.esperado;
+  const cuadra = Math.abs(dif) < 0.01;
+  if (estado.abierta) return `
+    <div class="cab"><div><p class="lbl sede">${SEDE}</p><h1 class="disp">Caja</h1></div></div>
+    <div class="card abierta-ok">
+      <svg class="visto" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20"/><path d="M13 22.5l6 6 12-13"/></svg>
+      <h3 class="disp" style="font-size:28px">Caja abierta con ${soles(estado.montoAbierto)}</h3>
+      <p style="color:var(--t65);font-size:14px;margin-top:4px">${estado.difApertura ? `Quedó registrada una diferencia de apertura de <b>${soles(estado.difApertura)}</b> y se avisó al líder de equipo.` : "Coincide con lo que quedó en el último cierre."}</p>
+      <button class="btn btn-c" style="margin-top:16px" id="reiniciar">Volver a probar</button>
+    </div>`;
+  return `
+  <div class="cab">
+    <div><p class="lbl sede">${SEDE}</p><h1 class="disp">Caja</h1><p class="sub">La caja está cerrada. Ábrela para empezar a vender.</p></div>
+    <a class="lbl btn-link" style="text-decoration:none;padding:8px">Historial de cierres →</a>
+  </div>
+  <div class="cerrada">
+    <section class="card ultimo" aria-labelledby="t-ultimo">
+      <p class="lbl" id="t-ultimo">Último cierre</p>
+      <div class="quedo"><span class="v disp tab">${soles(c.fondo)}</span></div>
+      <p class="meta">quedaron en el cajón · ${c.cuando} · cerró ${c.quien}</p>
+      <div class="linea-tiempo">
+        <div><span>El sistema esperaba</span><span class="tab">${soles(c.esperado)}</span></div>
+        <div><span>Se contó en físico<small><span class="pill ${cuadra ? "ok" : "mal"}">${cuadra ? "Cuadró" : (dif > 0 ? "Sobró " : "Faltó ") + soles(Math.abs(dif))}</span></small></span><span class="tab">${soles(c.contado)}</span></div>
+        ${c.traslados.map(t => `<div><span>Trasladado a ${t.destino.nombre.charAt(0).toLowerCase() + t.destino.nombre.slice(1)}${t.extra ? `<small>${t.extra}</small>` : ""}${/^(arequipa|lima|taller)$/.test(t.destino.id) ? `<small><span class="pill amb">En camino</span> hasta que ${t.destino.nombre.replace("Otra sede · ", "")} confirme que lo recibió</small>` : ""}</span><span class="tab">− ${soles(t.monto)}</span></div>`).join("")}
+        <div style="font-weight:600"><span style="color:var(--tinta)">Quedó en el cajón (fondo)</span><span class="tab">${soles(c.fondo)}</span></div>
+      </div>
+    </section>
+
+    <section class="card apertura" aria-labelledby="t-abrir">
+      <p class="lbl" style="color:var(--taupe-p)">Abrir caja</p>
+      <h3 class="disp" id="t-abrir">Antes de abrir, cuenta el cajón</h3>
+      <div class="revisa">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+        <p>Según el último cierre, en el cajón deberían estar <b>${soles(c.fondo)}</b>. Cuéntalo ahora: si abres con un monto que no está, cualquier faltante de hoy va a parecer tuyo.</p>
+      </div>
+      <div class="opciones" role="radiogroup" aria-label="¿Cuánto hay en el cajón?">
+        <button class="opcion" data-op="igual" aria-pressed="false"><span class="radio"></span><span>Conté y hay <b class="tab">${soles(c.fondo)}</b><small>Abre con el mismo monto del cierre.</small></span></button>
+        <button class="opcion" data-op="otro" aria-pressed="false"><span class="radio"></span><span>Hay otro monto<small>Se abre con lo que cuentes y la diferencia queda registrada.</small></span></button>
+      </div>
+      <div id="otro-monto" hidden style="margin-top:12px">
+        <div class="campo"><label for="ap-monto">¿Cuánto hay en el cajón?</label>
+          <div class="con-prefijo"><span>S/</span><input class="inp monto-grande tab" id="ap-monto" inputmode="decimal" placeholder="0.00"></div></div>
+        <div id="ap-dif"></div>
+        <div class="campo" style="margin-top:10px"><label for="ap-motivo">¿Qué pasó? <span style="font-weight:400;color:var(--t65)">(obligatorio si no coincide)</span></label>
+          <input class="inp" id="ap-motivo" placeholder="Ej.: se usó para vuelto antes de abrir"></div>
+      </div>
+      <div class="acciones"><button class="btn btn-p" id="abrir" disabled>Abrir caja</button></div>
+    </section>
+  </div>`;
+}
+
+function enlazarPantalla() {
+  const b = $("#abrir-cierre"); if (b) b.onclick = abrirModalCierre;
+  const r = $("#reiniciar"); if (r) r.onclick = () => { estado.abierta = false; render(); };
+  if (!$("#abrir")) return;
+  const c = estado.ultimoCierre || cierrePorDefecto();
+  let op = null;
+  const validar = () => {
+    const btn = $("#abrir");
+    if (op === "igual") { btn.disabled = false; btn.textContent = `Abrir caja con ${soles(c.fondo)}`; return; }
+    if (op !== "otro") { btn.disabled = true; btn.textContent = "Abrir caja"; return; }
+    const v = $("#ap-monto").value, m = num(v), dif = m - c.fondo, hay = v.trim() !== "";
+    const cuadra = hay && Math.abs(dif) < 0.01;
+    $("#ap-dif").innerHTML = !hay ? "" : cuadra
+      ? `<div class="veredicto ok" style="margin-top:8px">Coincide con el cierre anterior.</div>`
+      : `<div class="aviso ${dif < 0 ? "rojo" : ""}">${dif < 0 ? "Faltan" : "Sobran"} <b>${soles(Math.abs(dif))}</b> respecto al último cierre. Se abrirá con ${soles(m)} y el líder de equipo recibirá el aviso.</div>`;
+    const motivoOk = cuadra || $("#ap-motivo").value.trim().length >= 3;
+    btn.disabled = !hay || !motivoOk;
+    btn.textContent = hay ? `Abrir caja con ${soles(m)}` : "Abrir caja";
+  };
+  document.querySelectorAll(".opcion").forEach(o => o.onclick = () => {
+    op = o.dataset.op;
+    document.querySelectorAll(".opcion").forEach(x => x.setAttribute("aria-pressed", x === o));
+    $("#otro-monto").hidden = op !== "otro";
+    if (op === "otro") $("#ap-monto").focus();
+    validar();
+  });
+  $("#ap-monto").oninput = validar; $("#ap-motivo").oninput = validar;
+  $("#abrir").onclick = () => {
+    const m = op === "igual" ? c.fondo : num($("#ap-monto").value);
+    estado.abierta = true; estado.montoAbierto = m;
+    estado.difApertura = Math.abs(m - c.fondo) < 0.01 ? 0 : m - c.fondo;
+    render();
+  };
+}
+
+/* ===================== modal de cierre (3 pasos) ===================== */
+let cierre;
+function abrirModalCierre() {
+  cierre = { paso: 1, contado: "", billetes: {}, traslados: [], t: { monto: "", destino: "fuerte", extra: "" }, revelado: !estado.ciego };
+  $("#modal").innerHTML = `<div class="velo" role="dialog" aria-modal="true" aria-labelledby="m-titulo"><div class="hoja"></div></div>`;
+  $("#modal .velo").onclick = e => { if (e.target.classList.contains("velo")) cerrarModal(); };
+  document.onkeydown = e => { if (e.key === "Escape") cerrarModal(); };
+  pintarPaso();
+}
+function cerrarModal(despues) {
+  const v = $("#modal .velo"); if (!v) return;
+  v.classList.add("sale"); document.onkeydown = null;
+  setTimeout(() => { $("#modal").innerHTML = ""; despues && despues(); }, reducido() ? 0 : 200);
+}
+function barraPasos(n) {
+  const nombres = ["Contar", "Trasladar", "Listo"];
+  return `<p class="lbl pasos-lbl">Paso ${n} de 3 · ${nombres[n - 1]}</p><div class="pasos" aria-hidden="true">${[1,2,3].map(i => `<i class="${i <= n ? "hecho" : ""}"></i>`).join("")}</div>`;
+}
+function pintarPaso() {
+  const h = $("#modal .hoja");
+  h.innerHTML = `<div class="paso">${cierre.paso === 1 ? paso1() : cierre.paso === 2 ? paso2() : paso3()}</div>`;
+  [...h.querySelector(".paso").children].forEach((c, i) => c.style.setProperty("--k", i));
+  requestAnimationFrame(() => h.querySelectorAll(".pasos i.hecho").forEach(i => i.classList.add("hecho")));
+  (cierre.paso === 1 ? enlazar1 : cierre.paso === 2 ? enlazar2 : enlazar3)();
+}
+
+/* ---- paso 1: contar ---- */
+function paso1() {
+  return `${barraPasos(1)}
+  <h2 class="disp" id="m-titulo">Cerrar caja</h2>
+  <p class="bajada">Cuenta el efectivo del cajón y escribe cuánto hay. Solo efectivo: tarjeta, Yape y Plin no se cuentan.</p>
+  <div class="cuadre">
+    <div class="col ${cierre.revelado ? "revelada" : ""}" id="col-sis">
+      <p class="lbl">Según el sistema</p>
+      <p class="v disp tab" id="v-sis">${soles(ESPERADO)}</p>
+      <div class="desglose">
+        <div><span>Apertura</span><span class="tab">${soles(CAJA.apertura)}</span></div>
+        <div><span>+ Ventas en efectivo</span><span class="tab">${soles(CAJA.ventasEfectivo)}</span></div>
+        <div><span>− Egresos</span><span class="tab">${soles(CAJA.egresos)}</span></div>
+        <div><span>− Reembolsos</span><span class="tab">${soles(CAJA.reembolsos)}</span></div>
+        <div><span>+ Diferencia de cambios</span><span class="tab">${soles(CAJA.cambios)}</span></div>
+        <div class="tot"><span>Debería haber</span><span class="tab">${soles(ESPERADO)}</span></div>
+      </div>
+      <div class="tapa" aria-hidden="${cierre.revelado}"><b>Se muestra cuando escribas lo contado</b><small>Así cuentas lo que hay, no lo que esperas ver.</small></div>
+    </div>
+    <div class="col real">
+      <p class="lbl">Contado en físico</p>
+      <div class="con-prefijo" style="margin-top:6px"><span>S/</span><input class="inp monto-grande tab" id="contado" inputmode="decimal" placeholder="0.00" value="${cierre.contado}" aria-label="Efectivo contado en físico"></div>
+      <details class="billetes"><summary>Contar por billetes y monedas</summary>
+        <div class="den">${DEN.map(d => `<label><b>${d >= 1 ? "S/ " + d : (d * 100) + " cts"}</b>×<input data-d="${d}" inputmode="numeric" value="${cierre.billetes[d] || ""}" aria-label="Cantidad de ${d >= 1 ? d + " soles" : d * 100 + " céntimos"}"></label>`).join("")}</div>
+      </details>
+    </div>
+  </div>
+  <div id="veredicto"></div>
+  <div class="acciones"><button class="btn btn-c" id="cancelar">Cancelar</button><button class="btn btn-p" id="sig1" disabled>Continuar</button></div>`;
+}
+function enlazar1() {
+  const inp = $("#contado");
+  const actualizar = () => {
+    cierre.contado = inp.value;
+    const hay = inp.value.trim() !== "";
+    if (hay && !cierre.revelado) {
+      cierre.revelado = true; $("#col-sis").classList.add("revelada");
+      contar($("#v-sis"), ESPERADO);
+    }
+    const dif = num(inp.value) - ESPERADO, cuadra = Math.abs(dif) < 0.01;
+    $("#veredicto").innerHTML = !hay ? "" : cuadra
+      ? `<div class="veredicto ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><span><b>Cuadra exacto.</b> Lo contado coincide con el sistema.</span></div>`
+      : `<div class="veredicto mal"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8v5M12 16.5h.01"/></svg><span><b>${dif > 0 ? "Sobran" : "Faltan"} ${soles(Math.abs(dif))}.</b> Vuelve a contar antes de seguir; si se confirma, queda registrado así.</span></div>`;
+    $("#sig1").disabled = !hay || num(inp.value) < 0;
+  };
+  inp.oninput = actualizar;
+  document.querySelectorAll(".den input").forEach(i => i.oninput = () => {
+    cierre.billetes[i.dataset.d] = i.value;
+    const total = DEN.reduce((s, d) => s + d * (parseInt(cierre.billetes[d]) || 0), 0);
+    inp.value = total ? total.toFixed(2) : ""; actualizar();
+  });
+  $("#cancelar").onclick = () => cerrarModal();
+  $("#sig1").onclick = () => { cierre.paso = 2; pintarPaso(); };
+  if (cierre.contado) actualizar();
+  setTimeout(() => inp.focus(), reducido() ? 0 : 200);
+}
+
+/* ---- paso 2: trasladar ----
+   Un solo campo: cuánto sale. Lo que queda en el cajón se calcula, nunca se escribe
+   (contado − trasladado), así no hay dos números que puedan contradecirse. */
+function paso2() {
+  const t = cierre.t;
+  return `${barraPasos(2)}
+  <h2 class="disp" id="m-titulo">¿Qué haces con el efectivo?</h2>
+  <p class="bajada">Escribe cuánto vas a trasladar. Lo que no traslades se queda en el cajón para el próximo turno.</p>
+  <div class="bolsa"><span class="lbl" style="color:var(--t65)">Contaste</span><span class="v disp tab">${soles(num(cierre.contado))}</span></div>
+  <div class="campo" style="margin-top:14px"><label for="tr-monto">¿Cuánto vas a trasladar?</label>
+    <div class="con-prefijo"><span>S/</span><input class="inp monto-grande tab" id="tr-monto" inputmode="decimal" placeholder="0.00" value="${t.monto}"></div></div>
+  <div id="tr-destino" ${num(t.monto) > 0 ? "" : "hidden"} style="margin-top:10px">
+    <div class="campo"><label for="tr-a">¿A dónde va?</label>
+      <select class="inp" id="tr-a">${DESTINOS.map(x => `<option value="${x.id}" ${x.id === t.destino ? "selected" : ""}>${x.nombre}</option>`).join("")}</select></div>
+    <input class="inp" id="tr-extra" style="margin-top:8px" value="${t.extra}">
+  </div>
+  <div class="bolsa" style="background:rgba(209,154,18,.1);border-color:rgba(209,154,18,.35)">
+    <span class="lbl" style="color:var(--ambar-p)">Queda en el cajón<br>para el próximo turno</span><span class="v disp tab" id="v-queda">${soles(num(cierre.contado) - num(t.monto))}</span></div>
+  <div class="barra-bolsa" id="barra"></div>
+  <div id="aviso-traslado"></div>
+  <div class="acciones"><button class="btn btn-c" id="atras">Atrás</button><button class="btn btn-r" id="confirmar">Cerrar caja</button></div>`;
+}
+function resumir2(animar) {
+  const contado = num(cierre.contado), t = cierre.t, monto = num(t.monto), d = DESTINOS.find(x => x.id === t.destino);
+  const fondo = contado - monto, antes = cierre.fondoPintado ?? contado;
+  cierre.traslados = monto > 0 ? [{ ...t }] : [];
+  $("#tr-destino").hidden = !(monto > 0);
+  const extra = $("#tr-extra"); extra.hidden = !d.pide; extra.placeholder = d.pide || "";
+  const v = $("#v-queda");
+  if (animar && fondo >= 0) contar(v, fondo, antes); else v.textContent = soles(fondo);
+  v.style.color = fondo < -0.001 ? "var(--rojo-p)" : "";
+  cierre.fondoPintado = fondo;
+  $("#barra").innerHTML = `<i style="background:${d.color};flex-grow:${Math.max(0, Math.min(monto, contado))}"></i><i style="background:var(--efectivo);flex-grow:${Math.max(0, fondo)}"></i>`;
+  const faltaDato = monto > 0 && d.pide && t.extra.trim().length < 2;
+  let aviso = "";
+  if (fondo < -0.001) aviso = `<div class="aviso rojo">No puedes trasladar más de lo que contaste (${soles(contado)}).</div>`;
+  else if (faltaDato) aviso = `<div class="aviso">Completa «${d.pide.toLowerCase()}»: es lo que permite rastrear el dinero después.</div>`;
+  else if (fondo > FONDO_SUGERIDO + 0.001) aviso = `<div class="aviso">Quedarían <b>${soles(fondo)}</b> en el cajón, más que el fondo habitual de ${soles(FONDO_SUGERIDO)}. Es válido, pero es efectivo expuesto hasta el próximo turno.</div>`;
+  $("#aviso-traslado").innerHTML = aviso;
+  $("#confirmar").disabled = fondo < -0.001 || !!faltaDato;
+  $("#confirmar").textContent = monto > 0 ? `Cerrar caja · trasladar ${soles(monto)}` : "Cerrar caja sin trasladar";
+}
+function enlazar2() {
+  cierre.fondoPintado = null;
+  $("#tr-monto").oninput = e => { cierre.t.monto = e.target.value; resumir2(false); };
+  $("#tr-a").onchange = e => { cierre.t.destino = e.target.value; cierre.t.extra = ""; $("#tr-extra").value = ""; resumir2(false); };
+  $("#tr-extra").oninput = e => { cierre.t.extra = e.target.value; resumir2(false); };
+  resumir2(false);
+  $("#atras").onclick = () => { cierre.paso = 1; pintarPaso(); };
+  $("#confirmar").onclick = () => {
+    const b = $("#confirmar"); b.disabled = true; b.textContent = "Cerrando…";
+    setTimeout(() => { cierre.paso = 3; pintarPaso(); }, reducido() ? 0 : 650);
+  };
+  setTimeout(() => $("#tr-monto").focus(), reducido() ? 0 : 200);
+}
+
+/* ---- paso 3: listo ---- */
+function paso3() {
+  const contado = num(cierre.contado), dif = contado - ESPERADO, cuadra = Math.abs(dif) < 0.01;
+  const tras = cierre.traslados.map(t => ({ ...t, d: DESTINOS.find(x => x.id === t.destino) }));
+  const fondo = contado - tras.reduce((s, t) => s + num(t.monto), 0);
+  return `${barraPasos(3)}
+  <svg class="visto" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20"/><path d="M13 22.5l6 6 12-13"/></svg>
+  <h2 class="disp" id="m-titulo" style="text-align:center">Caja cerrada</h2>
+  <p class="bajada" style="text-align:center">${cuadra ? "Cuadró exacto." : `${dif > 0 ? "Sobraron" : "Faltaron"} ${soles(Math.abs(dif))} contra el sistema.`}</p>
+  <div class="recibo">
+    <div><span>El sistema esperaba</span><span class="tab">${soles(ESPERADO)}</span></div>
+    <div><span>Contaste</span><span class="tab">${soles(contado)}</span></div>
+    ${tras.map(t => `<div><span>→ ${t.d.nombre}${t.extra ? ` · ${t.extra}` : ""}</span><span class="tab">− ${soles(num(t.monto))}</span></div>`).join("")}
+    <div class="fuerte"><span style="color:var(--tinta)">Queda en el cajón para el próximo turno</span><span class="tab" id="v-fondo">${soles(fondo)}</span></div>
+  </div>
+  ${tras.some(t => /^(arequipa|lima|taller)$/.test(t.destino)) ? `<p class="aviso" style="margin-top:12px">El traslado a otra sede queda <b>en camino</b> hasta que allá confirmen que lo recibieron.</p>` : ""}
+  <div class="acciones"><button class="btn btn-c" id="listo">Listo</button><button class="btn btn-p" id="ver-cerrada">Ver caja cerrada</button></div>`;
+}
+function enlazar3() {
+  const contado = num(cierre.contado);
+  estado.ultimoCierre = { cuando: "Hoy, " + new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }), quien: "Rosa Quispe",
+    esperado: ESPERADO, contado,
+    traslados: cierre.traslados.map(t => ({ destino: DESTINOS.find(d => d.id === t.destino), monto: num(t.monto), extra: t.extra })),
+    fondo: contado - cierre.traslados.reduce((s, t) => s + num(t.monto), 0) };
+  estado.abierta = false;
+  const ir = () => cerrarModal(() => { estado.pantalla = "cerrada"; render(); });
+  $("#listo").onclick = ir; $("#ver-cerrada").onclick = ir;
+  $("#ver-cerrada").focus();
+}
+
+/* ===================== controles del spike ===================== */
+document.querySelectorAll("#seg-pantalla button").forEach(b => b.onclick = () => { estado.pantalla = b.dataset.p; estado.abierta = false; render(); });
+document.querySelectorAll("#seg-ciego button").forEach(b => b.onclick = () => {
+  estado.ciego = b.dataset.v === "ciego";
+  document.querySelectorAll("#seg-ciego button").forEach(x => x.setAttribute("aria-pressed", x === b));
+});
+document.querySelectorAll("#seg-cuadro button").forEach(b => b.onclick = () => {
+  estado.cuadroAnterior = b.dataset.v === "cuadro"; estado.ultimoCierre = null; estado.abierta = false;
+  document.querySelectorAll("#seg-cuadro button").forEach(x => x.setAttribute("aria-pressed", x === b));
+  if (estado.pantalla === "cerrada") render();
+});
+$("#reducido").onclick = () => { estado.reducido = !estado.reducido; document.body.classList.toggle("reducido", estado.reducido); $("#reducido").textContent = "Movimiento reducido: " + (estado.reducido ? "sí" : "no"); };
+render();
+</script>
+</body>
+</html>

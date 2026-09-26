@@ -3,11 +3,16 @@
 import { useState } from "react";
 import Link from "next/link";
 import { avisar } from "@/components/ui/Avisos";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { ConfirmarConResponsable } from "@/components/ConfirmarConResponsable";
+import { confirmacionCatalogo, type Confirmacion } from "@/lib/confirmar-catalogo";
+import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { Boton, Campo, CampoSelect, CampoTexto, SelectorMultiple } from "@/components/ui/campos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 import type { Familia } from "@cayla-retail/shared";
+import { IconoFamilia } from "@/components/IconoFamilia";
 
 /**
  * Las familias del negocio (Indumentaria, Calzado...), cada una con sus
@@ -82,81 +87,9 @@ const borradorVacio = (familias: FamiliaOpcion[]): Borrador => ({
   categoriaPadreId: null,
 });
 
-/**
- * Un solo trazo por familia, mismo lenguaje que `IconoPercha` en
- * `ProductosGrilla.tsx` (stroke, sin relleno, esquinas redondas) — nunca
- * color por familia: el brandbook reserva el color para estado (verde/ámbar/
- * rojo), no para categorizar, así que las 6 familias se distinguen por
- * forma, no por una paleta arcoíris.
- */
-function IconoFamilia({ familia, className = "h-6 w-6" }: { familia: Familia | null; className?: string }) {
-  const props = {
-    viewBox: "0 0 24 24",
-    fill: "none" as const,
-    stroke: "currentColor",
-    strokeWidth: 1.5,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    className,
-    "aria-hidden": true as const,
-  };
-  switch (familia) {
-    case "indumentaria":
-      return (
-        <svg {...props}>
-          <path d="M12 3.5a1.75 1.75 0 1 1 1.75 1.75" />
-          <path d="M12 5.25V7" />
-          <path d="M4 12.5 12 7l8 5.5" />
-          <path d="M4 12.5 2.5 18a1 1 0 0 0 1.3 1.25L7 18v2.5h10V18l3.2 1.25A1 1 0 0 0 21.5 18L20 12.5" />
-        </svg>
-      );
-    case "calzado":
-      return (
-        <svg {...props}>
-          <path d="M3 15.5c0-2 1.3-3 2.6-3.8C7.5 10.5 8.5 9 9 7c.3 1.4 1.3 2.3 2.6 2.7 2 .6 3.2 1.3 4.4 2.6.9 1 2.3 1.4 3.5 1.4.9 0 1.5.7 1.5 1.5v1.3c0 .8-.7 1.5-1.5 1.5H4.5C3.7 18 3 17.3 3 16.5z" />
-          <path d="M9 7c-.6 1.6-.4 3 .6 4" />
-        </svg>
-      );
-    case "accesorios":
-      return (
-        <svg {...props}>
-          <path d="M8 8V6.5a4 4 0 0 1 8 0V8" />
-          <path d="M5.5 8h13l.9 11a1.5 1.5 0 0 1-1.5 1.6H6.1A1.5 1.5 0 0 1 4.6 19z" />
-        </svg>
-      );
-    case "bisuteria":
-      return (
-        <svg {...props}>
-          <path d="M8.5 4h7L19 8l-7 12L5 8z" />
-          <path d="M5 8h14M8.5 4 7 8l5 12M15.5 4 17 8l-5 12" />
-        </svg>
-      );
-    case "belleza":
-      return (
-        <svg {...props}>
-          <path d="M12 3v3.2M12 17.8V21M3 12h3.2M17.8 12H21" />
-          <path d="M6.5 6.5l2.2 2.2M15.3 15.3l2.2 2.2M17.5 6.5l-2.2 2.2M8.7 15.3l-2.2 2.2" />
-        </svg>
-      );
-    case "papeleria":
-      return (
-        <svg {...props}>
-          <path d="M6 3.5h9l3 3V20a.5.5 0 0 1-.5.5h-11A.5.5 0 0 1 6 20z" />
-          <path d="M15 3.5V6a.5.5 0 0 0 .5.5H18" />
-          <path d="M9 12h6M9 15.5h6" />
-        </svg>
-      );
-    default:
-      return (
-        <svg {...props}>
-          <circle cx="12" cy="12" r="8.5" />
-        </svg>
-      );
-  }
-}
-
-type EjesDraft = { tallaIds: string[]; tejidoIds: string[]; patronIds: string[] };
-const EJES_VACIO: EjesDraft = { tallaIds: [], tejidoIds: [], patronIds: [] };
+/** `tallaHabitualIds`: la curva habitual (20260918230100) — las tallas que vienen MARCADAS al crear un producto. Siempre un subconjunto de `tallaIds`. */
+type EjesDraft = { tallaIds: string[]; tallaHabitualIds: string[]; tejidoIds: string[]; patronIds: string[] };
+const EJES_VACIO: EjesDraft = { tallaIds: [], tallaHabitualIds: [], tejidoIds: [], patronIds: [] };
 
 export function CategoriasLista({
   categoriasIniciales,
@@ -175,6 +108,11 @@ export function CategoriasLista({
 }) {
   const etiquetaFamilia = (codigo: Familia) => familias.find((f) => f.codigo === codigo)?.nombre ?? codigo;
   const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
+  // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
+  // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
+  // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
+  const responsable = useResponsable();
+  const [confirmando, setConfirmando] = useState<Confirmacion | null>(null);
   const [categorias, setCategorias] = useState(categoriasIniciales);
   const [borrador, setBorrador] = useState<Borrador | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -206,6 +144,7 @@ export function CategoriasLista({
       b?.id
         ? {
             tallaIds: (ejesPorCategoria.tallas[b.id] ?? []).map((v) => v.id),
+            tallaHabitualIds: ejesPorCategoria.habituales[b.id] ?? [],
             tejidoIds: (ejesPorCategoria.tejidos[b.id] ?? []).map((v) => v.id),
             patronIds: (ejesPorCategoria.patrones[b.id] ?? []).map((v) => v.id),
           }
@@ -234,7 +173,7 @@ export function CategoriasLista({
     try {
       const res = await fetch("/api/productos/categorias", {
         method: editando ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({
           id: borrador.id ?? undefined,
           nombre: borrador.nombre,
@@ -274,21 +213,27 @@ export function CategoriasLista({
       if (editando) {
         const resEjes = await fetch("/api/productos/categorias/ejes", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...responsable.encabezados() },
           body: JSON.stringify({ categoriaId: guardada.id, ...ejesDraft }),
         });
         if (!resEjes.ok) {
           const datosEjes = await resEjes.json().catch(() => null);
           avisar.error(datosEjes?.error ?? "La categoría se guardó, pero no se pudieron guardar las tallas/tejidos/patrones. Reintenta editándola de nuevo.");
+          // La categoría sí quedó guardada (y el modal se cierra): reintentar es otra operación, con combo vacío.
+          responsable.despues(null);
           abrirBorrador(null);
           return;
         }
         setEjesPorCategoria((actual) => ({
           tallas: { ...actual.tallas, [guardada.id]: universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)) },
+          // La curva habitual que se acaba de guardar (actualizar_categoria_ejes).
+          habituales: { ...actual.habituales, [guardada.id]: ejesDraft.tallaHabitualIds },
           tejidos: { ...actual.tejidos, [guardada.id]: universo.tejidos.filter((v) => ejesDraft.tejidoIds.includes(v.id)) },
           patrones: { ...actual.patrones, [guardada.id]: universo.patrones.filter((v) => ejesDraft.patronIds.includes(v.id)) },
         }));
       }
+
+      responsable.despues(null);
 
       avisar.exito(editando ? `Categoría ${guardada.nombre} actualizada` : `Categoría ${guardada.nombre} agregada`);
       abrirBorrador(null);
@@ -305,7 +250,7 @@ export function CategoriasLista({
     try {
       const res = await fetch("/api/productos/categorias", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({
           nombre: subDraft.nombre,
           familia: padre.familia,
@@ -328,6 +273,7 @@ export function CategoriasLista({
         notas: null,
       };
       setCategorias((actual) => [...actual, nueva]);
+      responsable.despues(null);
       avisar.exito(`Subcategoría ${nueva.nombre} agregada`);
       setSubDraft({ nombre: "", prefijo: "" });
     } catch {
@@ -342,7 +288,7 @@ export function CategoriasLista({
     try {
       const res = await fetch("/api/productos/categorias", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...responsable.encabezados() },
         body: JSON.stringify({ id: c.id, activo: !c.activo }),
       });
       const datos = await res.json();
@@ -351,6 +297,7 @@ export function CategoriasLista({
         return;
       }
       setCategorias((actual) => actual.map((x) => (x.id === c.id ? { ...x, activo: !c.activo } : x)));
+      responsable.despues(null);
       avisar.exito(c.activo ? `${c.nombre} desactivada` : `${c.nombre} reactivada`, {
         detalle: c.activo ? "Deja de aparecer al crear productos; el historial se conserva." : "Vuelve a estar disponible para productos nuevos.",
       });
@@ -367,7 +314,8 @@ export function CategoriasLista({
   return (
     <div className="space-y-3">
       {puedeEditar && (
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <span />
           <button
             type="button"
             onClick={() => abrirBorrador(borradorVacio(familias))}
@@ -419,6 +367,7 @@ export function CategoriasLista({
           hijas={hijasDe(viendo.id)}
           padre={viendo.categoriaPadreId ? categorias.find((c) => c.id === viendo.categoriaPadreId) ?? null : null}
           tallas={ejesPorCategoria.tallas[viendo.id] ?? []}
+          tallasHabituales={ejesPorCategoria.habituales[viendo.id] ?? []}
           tejidos={ejesPorCategoria.tejidos[viendo.id] ?? []}
           patrones={ejesPorCategoria.patrones[viendo.id] ?? []}
           puedeEditar={puedeEditar}
@@ -564,7 +513,8 @@ export function CategoriasLista({
                   <Boton
                     peso="fantasma"
                     cargando={subGuardando}
-                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !borrador.id}
+                    disabled={!subDraft.nombre.trim() || subDraft.prefijo.length !== 3 || !borrador.id || !responsable.listo}
+                    title={responsable.motivo ?? undefined}
                     onClick={() => guardarSubcategoria({ id: borrador.id!, familia: borrador.familia })}
                   >
                     + Agregar
@@ -593,11 +543,25 @@ export function CategoriasLista({
                     <SelectorMultiple
                       opciones={universo.tallas.map((v) => ({ valor: v.id, texto: v.texto }))}
                       seleccionadas={ejesDraft.tallaIds}
-                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v })}
+                      // Quitar una talla también la saca de la curva: la habitual es siempre un subconjunto de las que ofrece.
+                      onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaIds: v, tallaHabitualIds: ejesDraft.tallaHabitualIds.filter((id) => v.includes(id)) })}
                     />
                   </div>
                 ) : (
                   <p className="mt-1.5 text-xs italic text-tinta/65">Todavía no hay tallas aprobadas.</p>
+                )}
+                {ejesDraft.tallaIds.length > 0 && (
+                  <div className="mt-3">
+                    <p className="label-cayla text-[11px] text-tinta/65">Curva habitual</p>
+                    <p className="mt-0.5 text-xs text-tinta/60">Las que vienen marcadas de antemano al crear un producto de esta categoría.</p>
+                    <div className="mt-1.5">
+                      <SelectorMultiple
+                        opciones={universo.tallas.filter((v) => ejesDraft.tallaIds.includes(v.id)).map((v) => ({ valor: v.id, texto: v.texto }))}
+                        seleccionadas={ejesDraft.tallaHabitualIds}
+                        onCambio={(v) => setEjesDraft({ ...ejesDraft, tallaHabitualIds: v })}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
               <div>
@@ -632,6 +596,7 @@ export function CategoriasLista({
             </div>
           )}
 
+          <ComboResponsable control={responsable} deshabilitado={guardando || subGuardando || cambiandoId !== null} className="mt-5" />
           <div className="mt-5 flex items-center justify-between gap-2">
             {editando ? (
               <button
@@ -640,8 +605,9 @@ export function CategoriasLista({
                   const c = categorias.find((x) => x.id === borrador.id);
                   if (c) cambiarEstado(c);
                 }}
-                disabled={cambiandoId === borrador.id}
-                className="text-xs text-rojo hover:underline"
+                disabled={cambiandoId === borrador.id || !responsable.listo}
+                title={responsable.motivo ?? undefined}
+                className="text-xs text-rojo hover:underline disabled:opacity-50 disabled:no-underline"
               >
                 {cambiandoId === borrador.id ? "Desactivando…" : "Desactivar categoría"}
               </button>
@@ -652,7 +618,7 @@ export function CategoriasLista({
               <Boton peso="fantasma" onClick={cerrar} disabled={guardando}>
                 Cancelar
               </Boton>
-              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3}>
+              <Boton peso="primario" onClick={guardar} cargando={guardando} disabled={!borrador.nombre.trim() || borrador.prefijo.length !== 3 || !responsable.listo} title={responsable.motivo ?? undefined}>
                 {editando ? "Guardar cambios" : "Guardar categoría"}
               </Boton>
             </div>
@@ -678,7 +644,7 @@ export function CategoriasLista({
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
                     cargando={cambiandoId === c.id}
-                    onClick={() => cambiarEstado(c)}
+                    onClick={() => setConfirmando(confirmacionCatalogo("reactivar", c.nombre, () => cambiarEstado(c)))}
                   >
                     Reactivar
                   </Boton>
@@ -688,6 +654,8 @@ export function CategoriasLista({
           </div>
         </section>
       )}
+
+      {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}
     </div>
   );
 }
@@ -720,7 +688,7 @@ function TarjetaCategoria({
       </div>
       <div>
         <p className="font-display text-[15px] leading-tight text-tinta">{c.nombre}</p>
-        <p className="label-cayla mt-1 text-[9px] text-tinta/50">
+        <p className="label-cayla mt-1 text-[11px] text-tinta/65">
           {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
           {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
         </p>
@@ -741,6 +709,7 @@ function VistaRapidaCategoria({
   hijas,
   padre,
   tallas,
+  tallasHabituales,
   tejidos,
   patrones,
   puedeEditar,
@@ -756,6 +725,7 @@ function VistaRapidaCategoria({
   hijas: Categoria[];
   padre: Categoria | null;
   tallas: ValorVocabulario[];
+  tallasHabituales: string[];
   tejidos: ValorVocabulario[];
   patrones: ValorVocabulario[];
   puedeEditar: boolean;
@@ -809,7 +779,7 @@ function VistaRapidaCategoria({
             </div>
           )}
 
-          <GrupoEjes titulo="Tallas" valores={tallas} />
+          <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
           <GrupoEjes titulo="Tejidos" valores={tejidos} />
           <GrupoEjes titulo="Patrones" valores={patrones} />
 
@@ -836,14 +806,16 @@ function VistaRapidaCategoria({
   );
 }
 
-function GrupoEjes({ titulo, valores }: { titulo: string; valores: ValorVocabulario[] }) {
+function GrupoEjes({ titulo, valores, marcados }: { titulo: string; valores: ValorVocabulario[]; /** Los que vienen marcados de antemano (la curva habitual). */ marcados?: string[] }) {
   if (valores.length === 0) return null;
+  const hayMarcados = !!marcados && marcados.length > 0;
   return (
     <div>
-      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}</p>
+      <p className="label-cayla text-[10.5px] text-tinta/55">{titulo}{hayMarcados && " · ✓ = curva habitual"}</p>
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {valores.map((v) => (
           <Chip key={v.id} tono="neutro">
+            {marcados?.includes(v.id) && "✓ "}
             {v.texto}
           </Chip>
         ))}

@@ -15,20 +15,22 @@
 # migraciones están aplicadas" ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
 #
-# PILOTO DESDE 2026-09-17 (Felipe pidió revisitar ADR-0026/ADR-0066 al crecer a 4 scripts
-# de RPC sin cubrir por este job). `pruebas-postgres`, abajo, SÍ levanta Postgres real
+# OBLIGATORIO DESDE 2026-09-25: si falla, el PR sale en rojo. Para que además impida
+# fusionar, el ruleset `main-protegida` tiene que exigir este check (CONTRIBUTING.md §2).
+# `pruebas-postgres`, abajo, SÍ levanta Postgres real
 # (`npx supabase start`) y corre `caja:verificar` + `scripts/pruebas/*.mjs` contra él.
-# ADR-0066 los había dejado fuera de CI a propósito ("cada PR futuro saldría rojo por
-# Docker, no por el código") sin haberse visto correr nunca en un runner real — por eso
-# el job entero lleva `continue-on-error: true`: no bloquea ningún push mientras se
-# confirma que la mecánica funciona igual que en el Postgres local de cada quien (y
-# `main` hoy no exige ningún check para mergear de todos modos — CONTRIBUTING.md §2). Se
-# saca esa línea cuando haya 2-3 corridas verdes reales.
+# Nació el 2026-09-17 como piloto con `continue-on-error: true`: ADR-0066 temía que "cada
+# PR futuro saldría rojo por Docker, no por el código". Se midió antes de quitarlo: de 79
+# corridas, 20 fallaron y 19 fueron fallas reales del código (una sola de infraestructura,
+# el límite de descargas de Docker Hub). Una de ellas, en `pruebas:roles`, salió en rojo
+# dos veces en su propio PR (#397, 2026-09-25) y aun así se fusionó porque el job no
+# bloqueaba; 7 PR más la heredaron hasta que se arregló a mano. Si falla SOLO por infraestructura
+# («toomanyrequests», «failed to pull»), se vuelve a correr el job; no se apaga la prueba.
 
 name: CI
 
-# Felipe trabaja directo sobre main, así que el push es el disparo que importa. El de PR
-# queda armado para el día que haya ramas — no cuesta nada hoy.
+# El equipo trabaja con ramas y PR (CONTRIBUTING.md §2): el PR corre todo antes de
+# fusionar, y el push a main lo vuelve a correr sobre el resultado ya fusionado.
 on:
   push:
     branches: [main]
@@ -102,11 +104,21 @@ jobs:
         if: ${{ always() }}
         run: node scripts/migraciones/versiones.mjs
 
+      # Números de ADR únicos: cada sesión numera su ADR como "el siguiente" de su `main` y,
+      # con ramas paralelas, dos eligen el mismo (0074 y 0105 siguen repetidos en
+      # `main`; el 2026-09-17 hubo seis choques). Solo lee nombres de archivo; no necesita
+      # node_modules. Corre también en `pull_request`: el choque entre dos ramas se ve en la
+      # segunda. Las pruebas del detector van primero, para que un candado roto no diga "todo bien".
+      - name: Números de ADR
+        if: ${{ always() }}
+        run: |
+          node --test scripts/adr/numeros.test.mjs
+          node scripts/adr/numeros.mjs
+
   pruebas-postgres:
-    name: Pruebas de RPC contra Postgres (piloto, no bloquea)
+    name: Pruebas de RPC contra Postgres
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -130,16 +142,101 @@ jobs:
         if: ${{ always() && steps.instalar.outcome == 'success' }}
         run: npx supabase start
 
-      # Los cuatro corren siempre que Postgres haya levantado, aunque uno falle — mismo
+      # Todos corren siempre que Postgres haya levantado, aunque uno falle — mismo
       # criterio que tipos/lint/pruebas arriba: un push malo trae el diagnóstico completo
       # en una vuelta, no uno por uno.
       - name: caja:verificar
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm caja:verificar
 
+      # Meta del día y fondo de caja unidos a las campañas (ADR-0195 F1): si dos campañas se cruzan gana la mayor, la
+      # meta del mes es la suma de los días, solo el líder guarda y el cierre anota el fondo que regía. ROLLBACK.
+      - name: pruebas:configuracion-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:configuracion-caja
+
+      - name: pruebas:gastos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:gastos
+
+      - name: pruebas:activos-y-fijos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:activos-y-fijos
+
+      # Cuentas y dinero (ADR-0195 F3): cada movimiento, que se anula y no se borra, los saldos sumados, un egreso respalda
+      # una sola cosa, con el módulo solo su tienda y la conciliación. ROLLBACK.
+      - name: pruebas:cuentas-dinero
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuentas-dinero
+
+      # Editar y eliminar cuentas (ADR-0195 F3, 2026-09-25): sin uso se corrige todo y se borra de verdad; usada, el tipo
+      # queda y se archiva; el saldo inicial no se toca conciliado ni con su mes cerrado; solo el líder. ROLLBACK.
+      - name: pruebas:editar-cuentas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:editar-cuentas
+
+      # La cuenta sellada (ADR-0195 F3b): cada cobro y pago guarda de qué cuenta salió o a cuál entró; del cajón, con su
+      # salida de caja y restando del cierre; un egreso respalda una sola cosa; los saldos usan lo sellado. ROLLBACK.
+      - name: pruebas:cuenta-sellada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuenta-sellada
+
+      - name: pruebas:por-pagar-consolidado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-consolidado
+
+      # Flujo de caja (ADR-0195 F6): saldo inicial + entró − salió ± ajustes = saldo final, cada cosa en su categoría, lo
+      # «sin cuenta» aparte; la proyección con metas y campañas, vencimientos, fijos y planilla, el mínimo de caja, los días
+      # de caja; solo el líder y nada se guarda. ROLLBACK.
+      - name: pruebas:flujo-caja
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:flujo-caja
+
+      # Impuestos (ADR-0195 F8): débito y crédito del mes, las boletas no dan crédito, anulados fuera, el saldo a favor que
+      # se arrastra, el límite del régimen, parámetros con vigencia, solo el líder y los registros para el contador. ROLLBACK.
+      - name: pruebas:impuestos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:impuestos
+
+      # Estado de resultados (ADR-0195 F5): el diario cuadra, cada regla de posteo, unidades y consolidado, planilla de
+      # Dynamic, permisos, campañas y un año de volumen. ROLLBACK.
+      - name: pruebas:estado-resultados
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:estado-resultados
+
+      # Presupuesto (ADR-0195, capa para decidir): guardar y leer con historial, una sola meta (la de las metas del día),
+      # contra lo real del Estado de resultados, la proyección al cierre, proponer sin guardar y permisos. ROLLBACK.
+      - name: pruebas:presupuesto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:presupuesto
+
+      # Cierre de mes (ADR-0195 F9): el diario congelado con su huella, el candado por fecha en cada tabla (registrar,
+      # cambiar y anular), hoy libre, consolidado, reabrir con motivo, chequeos y solo el líder. ROLLBACK.
+      - name: pruebas:cierre-mes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cierre-mes
+
+      # Balance (ADR-0195 F7): saldos de arranque que se corrigen y no se editan, el Balance cuadra con operaciones de cada
+      # tipo, cada cuenta por dos caminos (si no, no se dibuja y dice por qué), lo que es de la tienda y permisos. ROLLBACK.
+      - name: pruebas:balance
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:balance
+
+      # Resumen de Finanzas (ADR-0195 F10): cada número es el de su fase (F2–F9 y Presupuesto) mirando CAYLA entera, una
+      # tienda, el Taller y la empresa; cada aviso aparece cuando corresponde; el gasto fuera de lo normal; permisos. ROLLBACK.
+      - name: pruebas:resumen-finanzas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:resumen-finanzas
+
       - name: pruebas:registrar-cambio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-cambio
+
+      # Actividad de cada módulo (ADR-0207): cada venta, anulación, caja y cambio deja su línea; la tabla es de solo
+      # agregar; si anotar falla la venta se guarda igual; el alcance por sede (líder, líder de tienda, terminal). ROLLBACK.
+      - name: pruebas:actividad
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actividad
 
       - name: pruebas:aprobar-devolucion-caja
         if: ${{ always() && steps.supabase.outcome == 'success' }}
@@ -148,3 +245,458 @@ jobs:
       - name: pruebas:registrar-venta
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:registrar-venta
+
+      # Precio de campaña bajado al .90 (ADR-0182): la base da lo mismo que la caja, registrar_venta y separar_prendas
+      # aceptan el descuento redondeado y rechazan el de antes, y la migración se puede pegar dos veces. ROLLBACK.
+      - name: pruebas:campana-redondeo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:campana-redondeo
+
+      # «Quién vendió» (ADR-0163): la venta guarda a quien atendió (asesora_id) Y a la sesión, «Ventas de hoy»
+      # la firma con quien atendió y queda una sola registrar_venta. Cada caso termina en ROLLBACK.
+      - name: pruebas:vendedora-en-venta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:vendedora-en-venta
+
+      # La lista de lo vendido hoy (Caja, Vender, Facturación): una fila por venta aunque tenga dos
+      # comprobantes y sin las anuladas (20260921103000). Cada caso termina en ROLLBACK.
+      - name: pruebas:ventas-del-dia
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ventas-del-dia
+
+      # Anular una venta libera su comprobante pendiente (20260921121500): no queda uno en la cola de
+      # SUNAT con su botón «Transmitir» de una venta que ya se devolvió. Cada caso termina en ROLLBACK.
+      - name: pruebas:anular-venta-comprobante
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:anular-venta-comprobante
+
+      # Un comprobante no nace sobre una venta anulada (20260921161500): ni por `emitir_comprobante`, ni por
+      # un insert directo, ni convirtiendo una proforma. Cada caso termina en ROLLBACK.
+      - name: pruebas:comprobante-venta-anulada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobante-venta-anulada
+
+      # Apartar stock (ADR-0141): una venta, un traslado o un ajuste no se llevan lo apartado; quién puede apartar y
+      # liberar; RLS y privilegios; y el contador de cada fila siempre cuadra con la suma de sus apartados abiertos.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:apartar-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:apartar-stock
+
+      # Bajada al piso (ADR-0208, paso 1): bajar_al_piso es todo o nada, pide el módulo «Bajada al piso» (Existencias no lo
+      # da), firma el responsable, un reintento con la misma marca no baja dos veces y con otra lista no repite nada, y sus
+      # filas del libro son las mismas que las de «Reponer». Cada caso termina en ROLLBACK (la de concurrencia commitea y
+      # no corre aquí: solo contra un Postgres desechable).
+      - name: pruebas:bajada-al-piso
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:bajada-al-piso
+
+      # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
+      # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
+      # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
+      - name: pruebas:frescura-bajadas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-bajadas
+
+      # «Reposición» no toca el piso (ADR-0208, paso 1): un ajuste «Reposición» en el piso se rechaza, suba o baje, con
+      # cualquier escritura del motivo; el almacén, «Conteo físico», el Taller y «Reponer» siguen igual; quien no puede
+      # ajustar sigue viendo el mensaje de permiso; y la migración se pega dos veces sin borrar los parches en vivo de
+      # registrar_movimiento. Cada caso termina en ROLLBACK.
+      - name: pruebas:reposicion-piso-cerrada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:reposicion-piso-cerrada
+
+      # Separaciones (ADR-0166): separar con adelanto en custodia, entregar cobrando el saldo con el precio
+      # congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
+      - name: pruebas:separaciones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:separaciones
+
+      # Conteo vacío (ADR-0174): cerrar_conteo rechaza un conteo sin prendas (hint conteo_vacio) y lo deja abierto para
+      # contar o cancelar; con prendas cierra como siempre; la migración se puede pegar dos veces. Cada caso: ROLLBACK.
+      - name: pruebas:conteo-vacio
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:conteo-vacio
+
+      # Candado solo-RPC (ADR-0119): authenticated y anon no escriben directo en ventas, venta_items,
+      # venta_anulacion_items, clientas, conteos ni lotes; las RPC siguen escribiendo. Cada caso: ROLLBACK.
+      - name: pruebas:candado-ventas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-ventas
+
+      # Anular solo el mismo día (PL-29): anular_venta rechaza una venta de un día anterior en hora de Lima
+      # (incluida la de ayer 23:59, que ya es «hoy» en UTC) y acepta la de hoy. Cada caso: ROLLBACK.
+      - name: pruebas:anular-venta-mismo-dia
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:anular-venta-mismo-dia
+
+      # Cuarentena no sale hacia la clienta (PL-78): un disparador en movimientos rechaza venta, cambio y apartado
+      # desde una sububicación Cuarentena; liquidar sigue. Control con el disparador deshecho. Cada caso: ROLLBACK.
+      - name: pruebas:cuarentena-no-se-vende
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cuarentena-no-se-vende
+
+      # Cron de SUNAT (PL-113): la llave de servicio toma la cola solo de las últimas 4 horas, sin claims el candado
+      # sigue cerrado y las tres funciones de la cola la dejan pasar. Control sin la migración. Cada caso: ROLLBACK.
+      - name: pruebas:sunat-reintento-por-cron
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:sunat-reintento-por-cron
+
+      # Devolver insumos (ADR-0133, F3b): lo devuelto vuelve al último lote del que salió la orden, el costo de
+      # tela/avíos de la orden queda neto, anular devuelve todo al estante y quien no opera el Taller no puede.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:insumos-devolucion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:insumos-devolucion
+
+      # Directorio de proveedores de Producción (ADR-0133, F4a; D-H): solo el líder lo ve y lo escribe (por RPC),
+      # RUC/CCI/celular se normalizan y se rechazan con mensaje claro, nombre y RUC no se repiten, se archiva sin
+      # borrar, la lista suma lotes y total comprado, y un lote no acepta un proveedor del directorio de Compras.
+      - name: pruebas:proveedores-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-produccion
+
+      # Comprobantes de Producción (ADR-0133, F4b; D-H): las reglas de la factura de Compras (ADR-0035) sobre su propio libro —
+      # contado exige pago por el total exacto, crédito exige vencimiento, idempotente por token, el total impreso se cuadra
+      # con tolerancia, anular exige motivo y no se puede con pagos; solo el líder lee y escribe; líneas y pagos son inmutables.
+      - name: pruebas:comprobantes-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:comprobantes-produccion
+
+      # Por pagar de Producción y consolidado D-I (ADR-0133, F4c): un pago parcial o con varios medios baja el saldo, nunca lo supera ni
+      # se repite con el mismo token; solo el líder paga; la deuda consolidada suma Compras y Producción por proveedor y el IGV del mes
+      # suma los dos libros menos las notas de crédito. Cada caso termina en ROLLBACK.
+      - name: pruebas:por-pagar-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-produccion
+
+      # Recibir insumos contra un comprobante de Producción (ADR-0133, F4d): un lote por línea con el costo de la línea, nunca más de lo
+      # facturado, lo que no llegará se cierra con motivo, idempotente por token, lo recibe quien opera el Taller SIN ver montos, y con
+      # mercadería recibida el comprobante no se puede anular. Cada caso termina en ROLLBACK.
+      - name: pruebas:recibir-comprobante-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:recibir-comprobante-produccion
+
+      # Candado del dinero de Producción (ADR-0133, F4e; D-G): un colaborador del Taller no lee los costos de lotes, movimientos ni órdenes por la
+      # API directa (privilegio por columna) pero sigue recibiendo, descontando y cerrando órdenes; el líder los lee solo por fn_costos_*; la vista
+      # v_insumo_saldos está cerrada; y una guardia avisa si una columna nueva queda sin SELECT. Cada caso termina en ROLLBACK.
+      - name: pruebas:candado-dinero-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-dinero-produccion
+
+      # Vista puente de la planilla de Dynamic (ADR-0133, F7; D-33): agrega la planilla YA PAGADA por sede y período (personas, pagado, provisiones, costo total),
+      # solo períodos pagados y sin el grupo «prueba», oculta grupos de menos de 3 personas, no expone a nadie identificable, es security_invoker (sin permiso en
+      # Dynamic sale vacía) y sin Dynamic en la base la migración no falla. Arma el stub de Dynamic dentro de cada transacción y hace ROLLBACK.
+      - name: pruebas:planilla-por-sede
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:planilla-por-sede
+
+      # Recorrido de PUNTA A PUNTA de Producción por el ERP (ADR-0133): proveedor → comprobante (Por pagar, Deuda consolidada, IGV) → recepción por un colaborador del Taller sin ver montos →
+      # pago → orden con insumos → cierre (stock, movimientos, costo de la variante) → traslado a la tienda → lo que ven Inventario y el líder. Una transacción con ROLLBACK; corta en el primer paso que falle.
+      - name: pruebas:produccion-punta-a-punta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:produccion-punta-a-punta
+
+      # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
+      # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
+      # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-movimientos-referencias
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-movimientos-referencias
+
+      # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
+      # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-resumen-variantes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-resumen-variantes
+
+      # Resumen: comparar dos períodos (ADR-0129): stock al inicio y al cierre reconstruido del ledger,
+      # importe y costo de lo vendido, solo líder. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-resumen-comparacion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-resumen-comparacion
+
+      # Ledger de piso/almacén con UNA sola fuente (ADR-0202): `fn_resumen_comparacion` y `fn_ledger_timeline` delegan de verdad en
+      # `fn_ledger_puntos` (se lee su código, no se confía en que «den el mismo número»), reconstruyen el mismo stock y los mismos días
+      # con stock para la misma ventana, la suma de `fn_movimientos` (Inventario ▸ Movimientos) cuadra con el ledger, y el stock de
+      # piso/almacén de hoy es NULL —nunca un 0 inventado— en una sede que no los separa. Elige sus actores por rol (una tienda, un
+      # admin, una colaboradora de otra sede), no por UUID, así que sobrevive a un reseed. Medido el 2026-09-25 en un Postgres 17
+      # desechable con todas las migraciones y el seed: 48/48 dos veces seguidas, con la misma salida, en cuatro zonas horarias de
+      # sesión, con un rol sin superusuario y en su lugar de este job (los 74 pasos en este orden, 74/74), sin dejar una sola
+      # fila. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-ledger-fuente-unica
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-ledger-fuente-unica
+
+      # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
+      # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
+      # «N variantes» cuenta variantes, no filas de stock. Cada caso termina en ROLLBACK.
+      - name: pruebas:productos-alertas-de-stock
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-alertas-de-stock
+
+      # El dinero de Compras es solo del líder (ADR-0126): que un integrante no lea ni un monto —por
+      # función, por tabla ni por el bucket de escaneos—, que recibir siga funcionando y que ninguna
+      # migración le quite el candado a las cinco funciones de dinero (el riesgo residual del ADR).
+      # Corre sobre una base NUEVA con todas las migraciones aplicadas en orden, así que además prueba
+      # que las dos migraciones del cierre aplican limpias. Cada caso termina en ROLLBACK.
+      - name: pruebas:dinero-compras
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:dinero-compras
+
+      # CCI, Yape/Plin y titular del proveedor (ADR-0134): normaliza («+51 987 654 321», CCI con guiones),
+      # rechaza lo inválido con mensaje claro, solo el líder escribe, los CHECK rechazan por su cuenta,
+      # fn_proveedores() trae las 4 columnas con UNA sola firma, y la migración se puede pegar dos veces
+      # sin perder nada. Cada caso termina en ROLLBACK.
+      - name: pruebas:proveedores-cuentas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-cuentas
+
+      # Varios rubros por proveedor (ADR-0213): registrar/editar limpian la lista (espacios, vacíos, repetidos sin
+      # tildes ni mayúsculas), «sin rubro» es {} y nunca NULL, el CHECK y NOT NULL rechazan por su cuenta, fn_proveedores()
+      # devuelve la lista, UNA sola firma de cada función, Gastos sigue naciendo con {Gastos} y la migración se puede
+      # pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:proveedores-rubros
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-rubros
+
+      # Pagos de Compras endurecidos (ADR-0135): el total del papel con IGV incluido cuadra sin abrir el candado
+      # (5 u × 10.00 … 100 u × 1.00; un +S/ 5 sigue rechazado), el pago desde el detalle es idempotente por token, el
+      # reintento de un lote con saldo a favor devuelve el éxito original, las tres rutas rechazan fechas futuras o
+      # anteriores a la emisión y montos de más de 2 decimales, el integrante sigue sin poder pagar, UNA sola firma
+      # de cada función y la migración se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:pagos-compras-endurecimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pagos-compras-endurecimiento
+
+      # El reparto de un comprobante entre tiendas (ADR-0139) y su filtro «Destino»: 24 unidades repartidas 12/12, una suma distinta
+      # de lo facturado se rechaza (por la RPC y por la base misma), una tienda no recibe más de lo suyo ni se «come» la de otra,
+      # reasignar solo lo pendiente y solo un líder, el faltante es de una tienda concreta, un integrante no ve la parte de otra
+      # tienda (RPC y RLS), el candado de dinero sigue en pie, `listar_compras` y `por_pagar_tramos` filtran por tienda de destino
+      # con los subtotales cuadrando contra la lista y UNA sola firma de cada función. Usa el mismo seed que `dinero-compras`
+      # (Felipe, Micaela, Textiles Andina, Tienda Lima/Trujillo, el Taller). Cada caso termina en ROLLBACK.
+      - name: pruebas:compras-reparto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-reparto
+
+      # Compras POR TIENDA (ADR-0184 sobre los roles por módulo de ADR-0161): sin módulo no se llega a ninguna tienda (ni con fila en
+      # compradores_de_tienda); con módulo, a la suya y a las extra; una factura que gestiona otra tienda no se ve (ni cabecera, ni
+      # líneas, ni pagos) y su parte sale por fn_mis_partes_de_compras / fn_mi_parte_de_compra sin el total de la factura; cada tienda
+      # paga desde su tienda y hasta su parte (RPC y candado de esquema); anular/registrar solo sobre la gestora propia; una sola
+      # firma y nada abierto a anon. Cada caso termina en ROLLBACK. Mismo seed que `dinero-compras`.
+      - name: pruebas:compras-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-por-tienda
+
+      # El dinero de una factura partido por tienda (ADR-0184, F2): 24 unidades 12/12 = 708.00 y 708.00; costos de 3 decimales, 3 tiendas,
+      # IGV del papel, boletas y regalos de costo 0 suman la CABECERA al centavo (aunque las líneas sumen distinto); dos lecturas dan lo
+      # mismo; la vista respeta los permisos de quien la lee. Carga las tres migraciones DENTRO de cada caso, que termina en ROLLBACK.
+      - name: pruebas:compras-parte-por-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-parte-por-tienda
+
+      # Módulo Notas de crédito: el tablero trae notas y pendientes con sus montos (incluido el
+      # monto_esperado del faltante cerrado y el a_favor de la nota que superó la deuda), registrar con
+      # destino «a_favor» deja el mismo estado que la RPC de antes, con «reembolso» nacen nota y
+      # devolución en UNA transacción (y si no sobra nada no nace ninguna de las dos), el buscador
+      # encuentra por documento, proveedor y monto, el integrante no ve ni escribe nada, una sola firma
+      # de cada función y la migración se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:notas-credito
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:notas-credito
+
+      # ── Pruebas que ya existían y pasaban pero no corrían en ningún sitio (cableadas el 2026-09-25) ────────────────────
+      # Un script en `scripts/pruebas/` que nadie corre es una intención, no un candado (mismo problema que `deriva-produccion`,
+      # abajo). Este bloque va en el MEDIO del job, junto a los de Compras, a propósito: cada fase de Finanzas anexa su paso al
+      # FINAL, y un bloque nuevo también al final chocaría con ellas en cada merge.
+      #
+      # QUÉ SIGUE FUERA, y por qué: las pruebas que hoy están rojas (o que necesitan una base que este job no crea) no se
+      # cablean —cablear una roja enseña a ignorar el rojo: el día que el job se ponga rojo por una de estas, nadie sabrá si es
+      # un bug nuevo o el de siempre—. La lista, con el motivo de cada una, vive en `apps/web/lib/ci-paridad.test.ts`
+      # (EXCLUIDAS), que corre en el job `verificar` y falla si un `pnpm pruebas:*` de package.json no corre acá NI está en esa
+      # lista, o si un paso de este archivo llama a un nombre que package.json no declara. Cada una entra el día que se arregle.
+
+      # Compras — faltantes con nota de crédito y pago por lote (ADR-0111): «estas N no van a llegar» con o sin nota, el pago de
+      # varios comprobantes de un proveedor es todo o nada e idempotente por token, la nota suelta baja el saldo exactamente su
+      # monto, el tope de recibir descuenta lo cerrado y las tablas append-only sostienen su RLS. Cada caso termina en ROLLBACK.
+      - name: pruebas:compras-faltantes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-faltantes
+
+      # Pago por lote con VARIOS medios (ADR-0132): los medios se gastan en orden entre los comprobantes, Σ medios = total − saldo
+      # a favor al centavo, todo o nada, un solo proveedor, tope por saldo, idempotente por token, y con UN solo medio escribe
+      # exactamente lo mismo que `registrar_pago_compras`. Cada caso termina en ROLLBACK.
+      - name: pruebas:pago-por-lote-medios
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pago-por-lote-medios
+
+      # Recibir un ENVÍO (ADR-0113): una guía con varios proveedores se registra entera o no se registra (un lote por proveedor,
+      # atomicidad, un intento que falla no consume el token), lo fuera de comprobante lleva su origen, el envío interno confirma
+      # un traslado sin crear stock de la nada, y la lectura es por sede sin escritura directa. Cada caso termina en ROLLBACK.
+      - name: pruebas:recibir-envio
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:recibir-envio
+
+      # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
+      # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y
+      # el borde del día en Lima. Compara contra una línea base, no contra valores absolutos. Cada caso termina en ROLLBACK.
+      - name: pruebas:compras-indicadores
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:compras-indicadores
+
+      # «Por pagar» muestra la parte de MI tienda (ADR-0187): una factura repartida 12/12 la ve cada tienda por su mitad gestione
+      # quien gestione, el líder la ve entera, pagar la propia parte la saca de la deuda de esa tienda y no de la del líder, y las
+      # cifras suben exactamente lo de mi parte. Una sola firma por función y nada abierto a anon. Cada caso termina en ROLLBACK.
+      - name: pruebas:por-pagar-parte-de-mi-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:por-pagar-parte-de-mi-tienda
+
+      # El motor del stock (`fn_aplicar_movimiento`, principio 4): entrada/salida/ajuste/traslado aplicados a `stock` por su cuenta,
+      # sin pasar por las RPC de negocio — no-negativo en salida, atomicidad del traslado, orden fijo de bloqueo contra deadlocks y
+      # el signo del ajuste (ADR-0020/0023). Es la función que sostiene TODO el inventario. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-aplicar-movimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-aplicar-movimiento
+
+      # Totales de Caja y del Historial de ventas en la base (ADR-0191): `fn_totales_historial_ventas` y `fn_resumen_caja` dan
+      # exactamente lo de sumar fila por fila lo que la RLS deja ver (líder y colaboradora), sin cortarse a las 1.000 ventas; el
+      # sello de la caja cambia al anular una venta; anon no ejecuta ninguna. Siembra 3.000 ventas y hace ROLLBACK.
+      - name: pruebas:totales-caja-historial
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:totales-caja-historial
+
+      # Dos terminales a la vez sobre la misma prenda vendida (ADR-0189): cambio o devolución de la misma línea de venta ya no pasan
+      # las dos; la segunda ESPERA a la primera (55P03 en `venta_items`) y la migración se pega dos veces sin duplicar parches. Si el
+      # local no tiene una línea vendida con unidades libres, la parte de dos sesiones avisa que no corrió (no falla). ROLLBACK.
+      - name: pruebas:concurrencia-linea-venta
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:concurrencia-linea-venta
+
+      # Candados en orden y doble clic (ADR-0190): dos operaciones que piden las mismas prendas en orden contrario ya no se cancelan
+      # por deadlock (la segunda espera), el mismo token dos veces devuelve el MISMO id y mueve stock o dinero una sola vez, y las 5
+      # funciones con parámetro nuevo quedan sin sobrecarga y sin abrirse a anon. Cada caso termina en ROLLBACK.
+      - name: pruebas:concurrencia-orden-doble-clic
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:concurrencia-orden-doble-clic
+
+      # Edición simultánea con versión (ADR-0193): dos personas abren la misma prenda o el mismo rol; la primera guarda y la segunda
+      # recibe PT409 en vez de pisarla en silencio, la versión sube con cualquier escritura y no se fija a mano, guardar sin cambios
+      # no la sube. Cada caso termina en ROLLBACK.
+      - name: pruebas:edicion-simultanea
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:edicion-simultanea
+
+      # Ficha de clienta v1 (D-76/D-77): el consentimiento de WhatsApp es un dato aparte del teléfono (Ley 29733) y guardar de nuevo
+      # sin volver a preguntarlo NUNCA revoca uno ya dado; buscar y registrar clienta por DNI. Cada caso termina en ROLLBACK.
+      - name: pruebas:clientas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:clientas
+
+      # Alta de colaborador con aprobación (D-70, ADR-0157): `agregar_colaborador` deja a la persona en `pendiente_aprobacion` y no
+      # puede operar ninguna ubicación hasta que un líder (o quien tiene el módulo Colaboradores) la apruebe; no se suspende a quien
+      # nunca se aprobó. Cada caso termina en ROLLBACK.
+      - name: pruebas:colaboradores-alta-aprobacion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:colaboradores-alta-aprobacion
+
+      # Devoluciones con motivo estructurado (D-79, ADR-0158): `crear_devolucion` rechaza motivo nulo o fuera de la lista cerrada de
+      # seis códigos, guarda el código tal cual, y lo devuelto se descuenta de lo ya cambiado y de otras devoluciones (ADR-0189).
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:crear-devolucion-motivo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:crear-devolucion-motivo
+
+      # Pedido no atendido en 1 toque (D-79, ADR-0152): se anota con un producto del catálogo o con descripción libre, uno sin
+      # ninguno de los dos se rechaza (en la RPC y en el CHECK), el candado de ubicación es real y un pedido no se resuelve dos
+      # veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:pedidos-no-atendidos
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pedidos-no-atendidos
+
+      # Prenda sin registrar (ADR-0179): la venta de una prenda que llegó al piso sin pasar por almacén deja una fila pendiente en
+      # `prendas_por_regularizar` y `regularizar_prenda` la une con su prenda real; en cada camino el stock cuadra. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:prendas-por-regularizar
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:prendas-por-regularizar
+
+      # Una sola firma por función, contra la base REAL (ADR-0009): ningún nombre de `retail` con más de una firma en `pg_proc`
+      # tras aplicar todas las migraciones y el seed. Un `create or replace function` con OTROS parámetros no reemplaza, crea una
+      # sobrecarga y la vieja sigue viva (PostgREST ya no sabe a cuál llamar). Solo `retail`: `public` es de Dynamic. Lleva un
+      # caso de control que crea una sobrecarga a propósito (ROLLBACK) para probar que la consulta muerde.
+      - name: pruebas:una-sola-firma
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:una-sola-firma
+
+      # Solo el líder de equipo cierra la caja y ajusta stock fuera de una venta (D-13, decidido el 2026-09-21): que el
+      # candado esté en la base y no solo en el menú — una colaboradora no cierra ni la caja de su propia tienda ni
+      # registra una entrada, salida o ajuste suelto (42501, y el stock y la caja quedan intactos), sin sesión tampoco;
+      # el líder hace exactamente lo mismo que antes (mismo arqueo, mismo stock, mismos rechazos), UNA sola firma por
+      # función, permiso de ejecución de authenticated intacto y la migración se puede pegar dos veces.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:candado-lider
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-lider
+
+      # Cuentas TERMINAL por tienda (poderes del ADR-0160, identidad del ADR-0162): la de ventas cierra caja y mueve caja; la
+      # administrativa ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de
+      # proveedores; y NADA más se abrió (etiquetas con descuento, anulaciones, devoluciones y series siguen siendo solo del
+      # líder). La terminal es un aparato SIN persona: cada operación la firma el responsable presente (`x-responsable`) y
+      # queda su `terminal_id`; sin responsable, 42501. `agregar_terminal` y `colaboradores.terminal` quedaron retiradas. Un
+      # escenario por actor. Cada caso termina en ROLLBACK.
+      - name: pruebas:terminales
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:terminales
+
+      # Terminales SIN persona (ADR-0162): el aparato nunca firma solo — `fn_actor_persona_id()` exige un responsable
+      # PRESENTE en la tienda de la terminal (en pausa, con salida, sin marcas u otra tienda → rechazado); los permisos
+      # son de la cuenta (con una líder como responsable, la terminal sigue sin ser líder); `terminal_id` se sella al
+      # insertar; la pantalla es solo del líder. Asistencia de Dynamic simulada dentro de cada caso. ROLLBACK siempre.
+      - name: pruebas:terminales-sin-persona
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:terminales-sin-persona
+
+      # Roles por módulo (ADR-0150 retomado por el ADR-0161 B): siembra de los 4 roles con lo que cada cuenta ve hoy; Líder
+      # fijo; Integrante editable y no archivable; solo el líder escribe; historial inmutable; `fn_ve_modulo` para persona y
+      # terminal; y el PUNTO DE ENCHUFE: todas las `fn_puede_*()` dan lo mismo que con las definiciones fijas del ADR-0160
+      # para líder, integrante y las dos terminales (ninguna capacidad nueva). ROLLBACK siempre.
+      - name: pruebas:roles
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:roles
+
+      # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
+      # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
+      # y 29 con el de no-tienda; la migración se pega dos veces y aborta ante una función sin clasificar. Venta, caja, ajuste,
+      # traslado, Catálogo: terminal + responsable presente → firma el responsable y queda `terminal_id`; sin responsable →
+      # 42501; persona sin encabezado → firma ella. Desde 20260923230000 Compras también firma con el responsable.
+      # El tope de descuento y liberar apartados siguen siendo permisos de la CUENTA. ROLLBACK siempre.
+      - name: pruebas:actor-firma
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:actor-firma
+
+      # ADR-0161 act. d: las acciones que guardaban sin firmar anotan al responsable del combo (anular compra y
+      # comprobante de producción, etapas, proveedores de producción, alta de insumo, terminales). ROLLBACK siempre.
+      - name: pruebas:quien-pendientes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:quien-pendientes
+
+      # Deriva de producción (las migraciones que producción tenía y el repo no): una sola firma de
+      # registrar_movimiento, catalogo_actualizar_producto y registrar_compra (con p_token, idempotente por
+      # token), el historial de «estado» no se pisa, el TRUNCATE del libro de movimientos se frena, y las
+      # columnas/índices de tejidos y patrones existen. Se agrega el 2026-09-21: llevaba semanas sin correr en
+      # ningún sitio y un caso quedó roto sin que nadie lo notara cuando el reparto (ADR-0139) retiró
+      # `compras.ubicacion_destino_id`. Cada caso termina en ROLLBACK.
+      - name: pruebas:deriva-produccion
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:deriva-produccion
+
+      # Contrato de venta ampliado — asesora, emisor y descuento con tope de líder (D-56/57/62/67/85/86/87,
+      # ADR-0152): la llamada de hoy sin los 5 parámetros nuevos se comporta exactamente igual (mismo stock,
+      # mismo comprobante reservado); fn_asesoras_de_turno nunca falla, ni sin sede_dynamic_id ni sin las
+      # tablas de Dynamic; un descuento de venta sobre el tope del rol sin autorización de líder falla con
+      # SQLSTATE 42501 exacto, y el mismo descuento con un líder real autorizando pasa y queda auditado;
+      # p_emisor = 'alegra' no reserva comprobante; anular_venta libera también un comprobante que ya estaba
+      # en la cola de reintento de SUNAT (pendiente_reintento, D-60). Cada caso termina en ROLLBACK.
+      - name: pruebas:venta-contrato-ampliado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:venta-contrato-ampliado

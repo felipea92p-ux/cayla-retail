@@ -80,6 +80,9 @@ export function AtributosHub({
   prendasConCosto,
   variantesManuales,
   puedeEditar,
+  puedeEditarEtiquetas,
+  puedeDarDescuento,
+  tipos,
 }: {
   tipo: Tipo;
   colores: ComponentProps<typeof ColoresLista>["coloresIniciales"];
@@ -90,7 +93,15 @@ export function AtributosHub({
   categorias: ComponentProps<typeof EtiquetasLista>["categorias"];
   prendasConCosto: ComponentProps<typeof EtiquetasLista>["prendasConCosto"];
   variantesManuales: ComponentProps<typeof EtiquetasLista>["variantesManuales"];
+  /** Colores, tallas, tejidos y patrones: el líder o la terminal administrativa (ADR-0160). */
   puedeEditar: boolean;
+  /** Etiquetas SIN descuento: el líder o un rol con el módulo Etiquetas (20260923130000). */
+  puedeEditarEtiquetas: boolean;
+  /** Poner, cambiar o quitar el descuento de una etiqueta, y tocar las que lo llevan: SOLO el líder (poder de precios,
+   *  `fn_puede_dar_descuento_por_etiqueta`). */
+  puedeDarDescuento: boolean;
+  /** Las pestañas que ve esta cuenta. Un rol con Etiquetas y sin Categorías/atributos entra solo a la suya. Ausente = todas. */
+  tipos?: readonly Tipo[];
 }) {
   // La pestaña activa vive en la URL (`?tipo=`), no en estado de React —
   // mismo patrón que Grilla/Tabla en `/productos`. Con estado local
@@ -103,7 +114,7 @@ export function AtributosHub({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-0.5 rounded-lg bg-sand p-0.5">
-        {TABS.map((t) => (
+        {TABS.filter((t) => !tipos || tipos.includes(t.tipo)).map((t) => (
           <Link
             key={t.tipo}
             href={`/productos/atributos?tipo=${t.tipo}`}
@@ -129,7 +140,8 @@ export function AtributosHub({
           categorias={categorias}
           prendasConCosto={prendasConCosto}
           variantesManuales={variantesManuales}
-          puedeEditar={puedeEditar}
+          puedeEditar={puedeEditarEtiquetas}
+          puedeDarDescuento={puedeDarDescuento}
         />}
     </div>
   );

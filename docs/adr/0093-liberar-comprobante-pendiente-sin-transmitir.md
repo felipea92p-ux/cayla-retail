@@ -200,3 +200,7 @@ en un worktree/branch que todavía no tenía esas 10 migraciones en su propio
    explícito que ya tomó ADR-0092 el mismo día.
 3. Si algún día se decide que `'rechazado'` también debería ser liberable, es una decisión
    de producto nueva — ver "Se rompe si".
+
+## Ampliación 2026-09-21 — anular una venta también libera su comprobante pendiente
+
+`anular_venta` no tocaba el comprobante de la venta que anulaba: uno `pendiente` seguía en la cola de SUNAT con su botón *Transmitir*, y nada en la ruta de transmisión miraba que la venta estuviera anulada — se podía declarar a SUNAT una venta ya devuelta. Felipe pidió arreglarlo en el acto (migración `20260921121500`): con la venta anulada, su comprobante `pendiente` pasa a `no_emitido` en la MISMA transacción, con «Venta anulada: <motivo>», quién y cuándo — la misma liberación de esta decisión, sin un botón que alguien pueda olvidar apretar (principio 2). Un `enviado` o `aceptado` sigue frenando la anulación (usa Cambio o Devolución). Un `rechazado` NO se libera, por la misma razón de arriba (ya llegó a SUNAT); lo que sí hace la ruta de transmisión es negarse a mandar el comprobante de una venta anulada (`lib/transmision-reglas.ts`), así que ese caso queda a salvo pero sin salida. Felipe decidió el 2026-09-21 dejarlo así (liberarlo también dejaría un hueco en la numeración de un comprobante que sí llegó a SUNAT): si aparece uno, se resuelve a mano con su contador. La migración se pegó en producción el 2026-09-21 (huella `338b8590…` → `bf62399b…`; antes había 0 ventas anuladas y 0 comprobantes por reparar).

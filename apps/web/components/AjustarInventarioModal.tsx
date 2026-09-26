@@ -7,8 +7,20 @@ import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import {
+  MOTIVOS_AJUSTE,
+  NOTA_REPOSICION_CERRADA,
+  armarVariantesAjuste,
+  motivosAjusteDisponibles,
+  reposicionCerrada,
+  type MotivoAjuste,
+  type VarianteAjuste,
+} from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
+import { ComboResponsable } from "@/components/ComboResponsable";
+import { useResponsable } from "@/lib/useResponsable";
+import { firmar } from "@/lib/responsable-reglas";
 
 // Reusa `retail.registrar_movimiento` (20260914230000_inventario_piso_almacen.sql,
 // tipo='ajuste') — la misma RPC que ya escribe ajustes sueltos en el repo. No existe
@@ -17,34 +29,6 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 // Este modal valida en pantalla con el stock ya cargado para dar feedback instantáneo
 // (principio 10) — la RPC queda como red real si el stock cambió mientras el modal
 // estaba abierto.
-
-const MOTIVOS_AJUSTE = [
-  { valor: "reposicion", texto: "Reposición" },
-  { valor: "merma", texto: "Merma" },
-  { valor: "conteo_fisico", texto: "Conteo físico" },
-  { valor: "otro", texto: "Otro" },
-] as const;
-
-type MotivoAjuste = (typeof MOTIVOS_AJUSTE)[number]["valor"];
-
-type VarianteAjuste = {
-  varianteId: string;
-  sku: string;
-  talla: string | null;
-  color: string | null;
-  stockPiso: number;
-  stockAlmacen: number;
-  stockSinDividir: number;
-};
-
-type FilaCargada = {
-  id: string;
-  sku: string;
-  talla: string | null;
-  color: { nombre: string | null } | null;
-  producto: { referencia: string } | null;
-  stock: { cantidad: number; sububicacion_id: string | null }[] | null;
-};
 
 export function AjustarInventarioModal({
   productoId,
@@ -71,20 +55,29 @@ export function AjustarInventarioModal({
   const [nota, setNota] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Un ajuste de stock guarda en la tienda: pide Responsable (ADR-0161).
+  const responsable = useResponsable();
 
   useEffect(() => {
     let vigente = true;
+    // La talla ya no es una columna de texto de `variantes`: es `talla_id` → `tallas.valor`
+    // (20260917100500, ADR-0095), igual que en `getCatalogo`. El resultado se pasa SIN castear
+    // a propósito: así `tsc` compara este select con `FilaAjuste` y avisa si vuelve a pedir
+    // una columna que no existe (antes un `as unknown as` lo tapaba y solo fallaba en vivo).
+    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("sku")`
+    // solo fija el desempate para que la lista no baraje entre un refresco y otro.
     createClient()
       .from("variantes")
       .select(
-        `id, sku, talla,
+        `id, sku,
+         talla:tallas ( valor ),
          color:colores ( nombre ),
          producto:productos ( referencia ),
          stock ( cantidad, sububicacion_id )`
       )
       .eq("producto_id", productoId)
       .eq("stock.ubicacion_id", ubicacionId)
-      .order("talla")
+      .order("sku")
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
@@ -92,24 +85,9 @@ export function AjustarInventarioModal({
           setCargando(false);
           return;
         }
-        const filas = (data ?? []) as unknown as FilaCargada[];
+        const filas = data ?? [];
         setReferencia(filas[0]?.producto?.referencia ?? "");
-        setVariantes(
-          filas.map((v) => {
-            const porSub = v.stock ?? [];
-            const piso = porSub.find((s) => s.sububicacion_id === sububicacionPiso?.id)?.cantidad ?? 0;
-            const almacen = porSub.find((s) => s.sububicacion_id === sububicacionAlmacen?.id)?.cantidad ?? 0;
-            return {
-              varianteId: v.id,
-              sku: v.sku,
-              talla: v.talla,
-              color: v.color?.nombre ?? null,
-              stockPiso: piso,
-              stockAlmacen: almacen,
-              stockSinDividir: porSub.reduce((acc, s) => acc + s.cantidad, 0),
-            };
-          })
-        );
+        setVariantes(armarVariantesAjuste(filas, sububicacionPiso?.id, sububicacionAlmacen?.id));
         setCargando(false);
       });
     return () => {
@@ -138,6 +116,16 @@ export function AjustarInventarioModal({
 
   const negativas = lineas.filter((l) => l.resultado < 0);
 
+  // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
+  const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
+  const cerrada = reposicionCerrada(ubicado, separaPisoAlmacen);
+
+  function cambiarUbicado(siguiente: "piso" | "almacen") {
+    setUbicado(siguiente);
+    // Si «Reposición» estaba elegida y ya no se ofrece, no se queda escondida en el formulario.
+    if (reposicionCerrada(siguiente, separaPisoAlmacen) && motivo === "reposicion") setMotivo("");
+  }
+
   // Reporte de lo tipeado en el formulario, no de lo ya confirmado — sirve tanto
   // de respaldo antes de enviar como para revisar después de un envío exitoso
   // (el modal se cierra solo al confirmar, no queda pantalla de "ya se aplicó").
@@ -162,6 +150,10 @@ export function AjustarInventarioModal({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!responsable.listo) {
+      if (responsable.motivo) setError(responsable.motivo);
+      return;
+    }
     if (!motivo) {
       setError("Elige un motivo para el ajuste.");
       return;
@@ -181,8 +173,10 @@ export function AjustarInventarioModal({
     setError(null);
     const supabase = createClient();
     const pendientes = [...lineas];
+    // Una sola firma para todo el ajuste: cada línea es una llamada, pero la operación es una y la hace una persona.
+    const firma = responsable.firma();
     for (const linea of pendientes) {
-      const { error: errorRpc } = await supabase.rpc("registrar_movimiento", {
+      const { error: errorRpc } = await firmar(supabase.rpc("registrar_movimiento", {
         p_variante_id: linea.variante.varianteId,
         p_ubicacion_id: ubicacionId,
         p_tipo: "ajuste",
@@ -192,9 +186,10 @@ export function AjustarInventarioModal({
         ...(separaPisoAlmacen
           ? { p_sububicacion_id: ubicado === "piso" ? sububicacionPiso!.id : sububicacionAlmacen!.id }
           : {}),
-      });
+      }), firma);
       if (errorRpc) {
         setEnviando(false);
+        responsable.despues(errorRpc);
         setError(traducirError(errorRpc, "ajustar el inventario"));
         // Las líneas ya aplicadas se quitan del formulario para no reenviarlas
         // dos veces si Felipe corrige y reintenta.
@@ -209,6 +204,7 @@ export function AjustarInventarioModal({
       }
     }
     setEnviando(false);
+    responsable.despues(null);
     avisar.exito(`${lineas.length} ${lineas.length === 1 ? "variante ajustada" : "variantes ajustadas"}`, {
       detalle: referencia,
     });
@@ -230,7 +226,7 @@ export function AjustarInventarioModal({
                 <Segmentado
                   etiqueta="Dónde se ajusta"
                   valor={ubicado}
-                  onValor={setUbicado}
+                  onValor={cambiarUbicado}
                   opciones={[
                     { valor: "piso", texto: "Piso de venta" },
                     { valor: "almacen", texto: "Almacén de tienda" },
@@ -273,9 +269,17 @@ export function AjustarInventarioModal({
                 etiqueta="Motivo"
                 valor={motivo}
                 onValor={setMotivo}
-                opciones={MOTIVOS_AJUSTE}
+                opciones={motivos}
                 marcador="Elegir motivo"
               />
+
+              {/* Bajo el motivo, y SIEMPRE ocupando su lugar en una tienda que separa piso y almacén: invisible en Almacén,
+                  a la vista en Piso. Así cambiar Piso/Almacén no mueve el botón que está bajo el mouse (ADR-0185). */}
+              {separaPisoAlmacen && (
+                <p className={`nota-cayla ${cerrada ? "" : "invisible"}`} role="status" aria-hidden={!cerrada || undefined}>
+                  {NOTA_REPOSICION_CERRADA}
+                </p>
+              )}
 
               <CampoTexto
                 etiqueta="Observación (opcional)"
@@ -299,6 +303,8 @@ export function AjustarInventarioModal({
             </button>
           )}
 
+          <ComboResponsable control={responsable} deshabilitado={enviando} />
+
           <div className="flex gap-2 pt-1">
             <Boton type="button" onClick={cerrar} className="flex-1">
               Cancelar
@@ -307,7 +313,8 @@ export function AjustarInventarioModal({
               type="submit"
               peso="primario"
               cargando={enviando}
-              disabled={cargando || variantes.length === 0}
+              disabled={cargando || variantes.length === 0 || !responsable.listo}
+              title={responsable.motivo ?? undefined}
               className="flex-1"
             >
               Confirmar

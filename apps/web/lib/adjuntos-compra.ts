@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/client";
 import { ADJUNTOS_BUCKET, ADJUNTOS_MAX_BYTES, ADJUNTOS_TIPOS, tamanoLegible } from "@/lib/compras-reglas";
+import { firmar, type Firma } from "@/lib/responsable-reglas";
 
 // Subida de adjuntos de factura desde el NAVEGADOR (20260914180000_compras_adjuntos.sql).
 // No pasa por Next: el archivo va directo del navegador al bucket, y recién
@@ -17,6 +18,8 @@ export type ResultadoSubida = {
   subidos: string[];
   /** Nombre del archivo y por qué falló, en lenguaje de mostrador. */
   fallidos: { nombre: string; motivo: string }[];
+  /** El primer rechazo de la base al registrar una fila (para `responsable.despues`), o `null` si no hubo. */
+  errorRegistro: { code?: string | null; hint?: string | null; message?: string | null } | null;
 };
 
 /** Qué tiene de malo un archivo antes de intentar subirlo — o null si va bien. */
@@ -53,8 +56,17 @@ function rutaPara(compraId: string, f: File): string {
   return `${compraId}/${crypto.randomUUID()}-${limpio || "archivo"}`;
 }
 
-export async function subirAdjuntosCompra(supabase: Cliente, compraId: string, archivos: File[]): Promise<ResultadoSubida> {
-  const resultado: ResultadoSubida = { subidos: [], fallidos: [] };
+/**
+ * `firma`: quién hace la operación (combo «Responsable», ADR-0161/0162). `registrar_adjunto_compra` firma con esa
+ * persona y, como el responsable es obligatorio, sin firma la base rechaza el registro de la fila.
+ */
+export async function subirAdjuntosCompra(
+  supabase: Cliente,
+  compraId: string,
+  archivos: File[],
+  firma: Firma | null,
+): Promise<ResultadoSubida> {
+  const resultado: ResultadoSubida = { subidos: [], fallidos: [], errorRegistro: null };
   for (const f of archivos) {
     const objecion = objecionArchivo(f);
     if (objecion) {
@@ -68,15 +80,19 @@ export async function subirAdjuntosCompra(supabase: Cliente, compraId: string, a
       resultado.fallidos.push({ nombre: f.name, motivo: leerErrorStorage(subida.error.message) });
       continue;
     }
-    const registro = await supabase.rpc("registrar_adjunto_compra", {
-      p_compra_id: compraId,
-      p_ruta: ruta,
-      p_nombre: f.name,
-      p_tipo: tipo,
-      p_bytes: f.size,
-    });
+    const registro = await firmar(
+      supabase.rpc("registrar_adjunto_compra", {
+        p_compra_id: compraId,
+        p_ruta: ruta,
+        p_nombre: f.name,
+        p_tipo: tipo,
+        p_bytes: f.size,
+      }),
+      firma,
+    );
     if (registro.error) {
       // El objeto quedó en el bucket sin fila: invisible para el sistema.
+      resultado.errorRegistro ??= registro.error;
       resultado.fallidos.push({ nombre: f.name, motivo: registro.error.message });
       continue;
     }

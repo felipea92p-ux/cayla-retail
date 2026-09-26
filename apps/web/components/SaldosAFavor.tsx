@@ -9,11 +9,11 @@ import { soles } from "@/lib/compras-reglas";
 
 export type SaldoAFavor = { proveedorId: string; nombre: string; saldoFavor: number; deuda: number };
 
-export function SaldosAFavor({ saldos }: { saldos: SaldoAFavor[] }) {
+export function SaldosAFavor({ saldos, indice = 0 }: { saldos: SaldoAFavor[]; /** Posición en la entrada escalonada de la pantalla. */ indice?: number }) {
   if (saldos.length === 0) return null;
   const total = Math.round(saldos.reduce((a, s) => a + s.saldoFavor, 0) * 100) / 100;
   return (
-    <section aria-labelledby="a-favor-titulo" className="card-cayla overflow-hidden">
+    <section aria-labelledby="a-favor-titulo" className="card-cayla anim-entra overflow-hidden" style={{ ["--i" as string]: indice }}>
       <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-2 pt-4">
         <p id="a-favor-titulo" className="label-cayla flex items-center gap-2 text-[11px] text-tinta/65">
           <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full bg-verde" />
@@ -37,12 +37,19 @@ export function SaldosAFavor({ saldos }: { saldos: SaldoAFavor[] }) {
                     ? `Le debes ${soles(s.deuda)} · con tu saldo a favor solo transferirías ${soles(Math.max(0, Math.round((s.deuda - cubre) * 100) / 100))}`
                     : "Sin deuda pendiente: queda a tu favor para su próxima compra, o pídele el reembolso."}
                 </p>
+                {/* Cuánto de la deuda cubre el saldo a favor: la proporción se ve sin leer las cifras. Se llena una vez al llegar. */}
+                {s.deuda > 0 && (
+                  <div aria-hidden className="mt-2 h-[5px] max-w-[21rem] overflow-hidden rounded-full bg-sand">
+                    <div className="anim-crece-x h-full origin-left rounded-full bg-verde" style={{ width: `${Math.min(100, Math.round((cubre / s.deuda) * 100))}%` }} />
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-4">
                 <span className="text-sm font-semibold tabular-nums text-verde-profundo">{soles(s.saldoFavor)}</span>
+                {/* `marcar=1`: llega con los comprobantes de este proveedor ya marcados y la barra de «Pagar juntos» abierta. */}
                 {s.deuda > 0 ? (
-                  <Link href={`/compras/por-pagar?prov=${s.proveedorId}`} className="label-cayla text-[11px] text-rojo hover:underline">
-                    Pagar con este saldo →
+                  <Link href={`/compras/por-pagar?prov=${s.proveedorId}&marcar=1`} className="label-cayla group text-[11px] text-rojo hover:underline">
+                    Pagar con este saldo <span aria-hidden className="inline-block transition-transform duration-300 ease-cayla group-hover:translate-x-1">→</span>
                   </Link>
                 ) : (
                   <Link href={`/compras/proveedores/${s.proveedorId}#saldo-a-favor`} className="label-cayla text-[11px] text-rojo hover:underline">

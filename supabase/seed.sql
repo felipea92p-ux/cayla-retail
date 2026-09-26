@@ -144,14 +144,56 @@ on conflict (auth_user_id) do nothing;
 -- probar ("que RLS de verdad acota por ubicación y no solo funciona porque
 -- todo el mundo es líder"), y que "control total temporal" (0012) había
 -- vuelto imposible de probar hasta ahora.
-insert into retail.colaboradores (persona_id, rol)
-select id, 'lider' from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000001'
+-- `tope_descuento_pct = null` a mano (D-67, 20260922150000_venta_asesora_emisor_descuento_lider.sql):
+-- ese INSERT toma el DEFAULT de la columna (10) porque este seed corre DESPUÉS de todas las
+-- migraciones — el `update ... where rol = 'lider'` de esa migración ya pasó y no ve una fila que
+-- todavía no existe. Sin este null, Felipe (líder) queda con el mismo tope que un colaborador.
+insert into retail.colaboradores (persona_id, rol, tope_descuento_pct)
+select id, 'lider', null from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000001'
 on conflict (persona_id) do nothing;
 
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id)
 select p.id, 'colaborador', u.id
 from public.personas p, retail.ubicaciones u
 where p.auth_user_id = '22222222-2222-4222-8222-000000000003' and u.nombre = 'Tienda Trujillo'
+on conflict (persona_id) do nothing;
+
+-- Segunda líder (D-79 / 20260922235000_candado_dinero_caja_cambios_devoluciones.sql): con
+-- solo Felipe de líder, el seed no podía aprobar su propia devolución (candado nuevo:
+-- quien la registra no puede aprobarla) — sandra@cayla.local / cayla-local existe solo
+-- para eso, mismo patrón de credenciales obvias.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+  created_at, updated_at, raw_app_meta_data, raw_user_meta_data,
+  confirmation_token, recovery_token, email_change_token_new, email_change,
+  email_change_token_current, phone_change, phone_change_token, reauthentication_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  '22222222-2222-4222-8222-000000000005',
+  'authenticated', 'authenticated', 'sandra@cayla.local',
+  extensions.crypt('cayla-local', extensions.gen_salt('bf')),
+  now(), now(), now(),
+  '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb,
+  '', '', '', '', '', '', '', ''
+) on conflict (id) do nothing;
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at
+) values (
+  '22222222-2222-4222-8222-000000000006',
+  '22222222-2222-4222-8222-000000000005',
+  '22222222-2222-4222-8222-000000000005',
+  '{"sub":"22222222-2222-4222-8222-000000000005","email":"sandra@cayla.local","email_verified":true}'::jsonb,
+  'email', now(), now(), now()
+) on conflict (id) do nothing;
+
+insert into public.personas (auth_user_id, nombres, apellidos, rol, sede_base_id)
+select '22222222-2222-4222-8222-000000000005', 'Sandra', 'Quispe', 'admin', id
+from public.sedes where codigo = 'LIM'
+on conflict (auth_user_id) do nothing;
+
+insert into retail.colaboradores (persona_id, rol, tope_descuento_pct)
+select id, 'lider', null from public.personas where auth_user_id = '22222222-2222-4222-8222-000000000005'
 on conflict (persona_id) do nothing;
 
 insert into retail.proveedores (nombre, ruc, contacto) values
@@ -176,17 +218,21 @@ insert into retail.colores (codigo, nombre, hex) values
   ('ROS', 'Rosa', '#e8a5b0')
   on conflict (codigo) do nothing;
 
-insert into retail.clientes (tipo_doc, num_doc, nombre, telefono) values
-  ('dni', '45612378', 'Valeria Chávez', '987111222'),
-  ('dni', '41278965', 'Camila Torres', '987222333'),
-  ('dni', '47891234', 'Daniela Ríos', '987333444'),
-  ('dni', '40123987', 'Fernanda Quispe', '987444555'),
-  ('dni', '48765123', 'Gabriela Salas', '987555666'),
-  ('dni', '42987654', 'Andrea Cárdenas', '987666777'),
-  ('dni', '46123789', 'Paola Mendoza', '987777888'),
-  ('dni', '43219876', 'Rosa Delgado', '987888999'),
-  ('ruc', '20601234567', 'Boutique Mía SAC', '014567890'),
-  ('sin_documento', null, 'Cliente de mostrador', null);
+-- `retail.clientas` (ficha de clienta v1, D-76/D-77, 20260922140000): un solo
+-- campo de documento, sin distinguir dni/ruc/sin_documento (la tabla vieja
+-- `retail.clientes` que esto reemplazaba sí lo hacía; la nueva no, a
+-- propósito — decisión de Felipe de no ser invasivos). Sin consentimiento de
+-- WhatsApp sembrado: sería inventar un permiso que nadie dio.
+insert into retail.clientas (dni, nombre, telefono_whatsapp) values
+  ('45612378', 'Valeria Chávez', '987111222'),
+  ('41278965', 'Camila Torres', '987222333'),
+  ('47891234', 'Daniela Ríos', '987333444'),
+  ('40123987', 'Fernanda Quispe', '987444555'),
+  ('48765123', 'Gabriela Salas', '987555666'),
+  ('42987654', 'Andrea Cárdenas', '987666777'),
+  ('46123789', 'Paola Mendoza', '987777888'),
+  ('43219876', 'Rosa Delgado', '987888999'),
+  ('20601234567', 'Boutique Mía SAC', '014567890');
 
 -- ---------- tallas (vocabulario cerrado desde 20260917100000/100500) ----------
 -- Nacen 'aprobado' directo, igual que los 30 colores de 20260912235500: son
@@ -197,71 +243,71 @@ insert into retail.tallas (valor, estado) values
 on conflict do nothing;
 
 -- ---------- productos + variantes (10 productos, ~48 variantes) ----------
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo' from retail.categorias where nombre = 'Camisas y Blusas';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Blusa Emma', 'Blusa manga larga, cuello redondo', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Camisas y Blusas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'BLU-EMMA-' || c.codigo || '-' || t.valor, 79.90, 32.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Blusa Emma' and c.codigo in ('NEG', 'BEI') and t.valor in ('S', 'M', 'L');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Blusa Valentina', 'Blusa cropped manga corta' from retail.categorias where nombre = 'Camisas y Blusas';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Blusa Valentina', 'Blusa cropped manga corta', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Camisas y Blusas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'BLU-VALE-' || c.codigo || '-' || t.valor, 69.90, 28.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Blusa Valentina' and c.codigo in ('BLA', 'ROS') and t.valor in ('S', 'M', 'L');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Vestido Sofía', 'Vestido midi con cinturón' from retail.categorias where nombre = 'Vestidos';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Vestido Sofía', 'Vestido midi con cinturón', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Vestidos';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'VES-SOFI-' || c.codigo || '-' || t.valor, 149.90, 58.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Vestido Sofía' and c.codigo in ('NEG', 'AZM') and t.valor in ('S', 'M', 'L');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Vestido Antonella', 'Vestido corto de tiras' from retail.categorias where nombre = 'Vestidos';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Vestido Antonella', 'Vestido corto de tiras', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Vestidos';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'VES-ANTO-' || c.codigo || '-' || t.valor, 129.90, 50.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Vestido Antonella' and c.codigo = 'ROS' and t.valor in ('S', 'M', 'L');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Pantalón Carla', 'Pantalón recto tiro alto' from retail.categorias where nombre = 'Pantalones';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Pantalón Carla', 'Pantalón recto tiro alto', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Pantalones';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'PAN-CARL-' || c.codigo || '-' || t.valor, 99.90, 40.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Pantalón Carla' and c.codigo in ('NEG', 'BEI') and t.valor in ('28', '30', '32', '34');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Pantalón Mía', 'Pantalón wide leg' from retail.categorias where nombre = 'Pantalones';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Pantalón Mía', 'Pantalón wide leg', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Pantalones';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'PAN-MIA-' || c.codigo || '-' || t.valor, 109.90, 44.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Pantalón Mía' and c.codigo = 'AZM' and t.valor in ('28', '30', '32');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Falda Renata', 'Falda midi plisada' from retail.categorias where nombre = 'Faldas';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Falda Renata', 'Falda midi plisada', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Faldas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'FAL-RENA-' || c.codigo || '-' || t.valor, 74.90, 30.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Falda Renata' and c.codigo in ('NEG', 'BEI') and t.valor in ('S', 'M', 'L');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Falda Ariana', 'Falda corta acampanada' from retail.categorias where nombre = 'Faldas';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Falda Ariana', 'Falda corta acampanada', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Faldas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'FAL-ARIA-' || c.codigo || '-' || t.valor, 64.90, 26.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Falda Ariana' and c.codigo = 'ROS' and t.valor in ('S', 'M');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Casaca Ximena', 'Casaca acolchada' from retail.categorias where nombre = 'Casacas';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Casaca Ximena', 'Casaca acolchada', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Casacas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'CAS-XIME-' || c.codigo || '-' || t.valor, 179.90, 72.00
 from retail.productos p, retail.colores c, retail.tallas t
 where p.referencia = 'Casaca Ximena' and c.codigo in ('NEG', 'AZM') and t.valor in ('S', 'M', 'L');
 
-insert into retail.productos (categoria_id, referencia, descripcion)
-select id, 'Casaca Luciana', 'Casaca de jean oversize' from retail.categorias where nombre = 'Casacas';
+insert into retail.productos (categoria_id, referencia, descripcion, marca_id, proveedor_id)
+select id, 'Casaca Luciana', 'Casaca de jean oversize', (select id from retail.marcas where nombre = 'CAYLA'), (select id from retail.proveedores where nombre = 'CAYLA SAC') from retail.categorias where nombre = 'Casacas';
 insert into retail.variantes (producto_id, color_codigo, talla_id, sku, precio, costo)
 select p.id, c.codigo, t.id, 'CAS-LUCI-' || c.codigo || '-' || t.valor, 159.90, 64.00
 from retail.productos p, retail.colores c, retail.tallas t
@@ -420,8 +466,8 @@ begin
   caja_trujillo := retail.abrir_caja(ubic_trujillo, 80.00);
 
   -- ---------- ventas (los sku_* ya se resolvieron arriba, para la reposición) ----------
-  select id into cli_valeria from retail.clientes where nombre = 'Valeria Chávez';
-  select id into cli_camila from retail.clientes where nombre = 'Camila Torres';
+  select id into cli_valeria from retail.clientas where nombre = 'Valeria Chávez';
+  select id into cli_camila from retail.clientas where nombre = 'Camila Torres';
 
   -- Con boleta a propósito (las series se sembraron arriba): así el historial de
   -- Movimientos tiene una venta con comprobante que mostrar, no solo «Sin comprobante».
@@ -449,8 +495,12 @@ begin
     null, gen_random_uuid());
 
   -- ---------- caja: un ingreso, un egreso (retiro), y el cierre de Trujillo ----------
-  perform retail.registrar_movimiento_caja(caja_lima, 'ingreso', 50.00, 'Vuelto adicional traído de casa');
-  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Retiro: compra de bolsas para empaque');
+  -- Motivos ajustados al vocabulario cerrado de 20260922235000 (antes texto libre, nunca
+  -- validado en la base — el mismo hueco que esa migración cierra): "ingreso" solo admite
+  -- Ajuste de caja (sobrante)/Otro, así que el vuelto de casa entra como "Otro" con nota; el
+  -- retiro para insumos ya tenía un motivo cerrado real ("Compra de insumos").
+  perform retail.registrar_movimiento_caja(caja_lima, 'ingreso', 50.00, 'Otro', 'Vuelto adicional traído de casa');
+  perform retail.registrar_movimiento_caja(caja_lima, 'egreso', 20.00, 'Compra de insumos', 'Bolsas para empaque');
   perform retail.cerrar_caja(caja_trujillo, 219.90);
   -- 80 apertura + 149.90 tarjeta (no suma al efectivo) = 80.00 esperado en
   -- efectivo; se cuenta 219.90 a propósito para dejar una diferencia real
@@ -468,8 +518,14 @@ begin
     jsonb_build_array(
       jsonb_build_object('venta_item_id', vi_vestido, 'cantidad', 1, 'condicion', 'vendible'),
       jsonb_build_object('venta_item_id', vi_pantalon, 'cantidad', 1, 'condicion', 'danada_reparacion')
-    ), 'Clienta indicó talla incorrecta; el pantalón llegó con una costura suelta');
+    ), 'Clienta indicó talla incorrecta; el pantalón llegó con una costura suelta', 'talla');
+  -- Nuevo (20260922235000): quien registra una devolución ya no puede aprobarla ella misma —
+  -- Felipe la registró, así que la aprueba Sandra (la segunda líder de este seed). Se vuelve a
+  -- Felipe justo después: todo lo que sigue en este bloque (conteo, cambios, cajas) sigue
+  -- siendo "su" sesión, como antes de este candado.
+  perform set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000005', true);
   perform retail.aprobar_devolucion(devolucion1_id, 149.90 - 15.00, 'yape');
+  perform set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-000000000001', true);
 
   -- ---------- conteo con diferencia real, acotado al piso (Lima separa
   -- piso/almacén desde 20260914210000_inventario_piso_almacen.sql — un

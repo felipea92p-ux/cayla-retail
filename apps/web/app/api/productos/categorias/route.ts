@@ -1,5 +1,8 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
+// ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
+// viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
+import { firmaDeEncabezados } from "@/lib/responsable-reglas";
 import { traducirError } from "@/lib/error-escritura";
 
 // POST /api/productos/categorias → agrega una categoría dentro de una de
@@ -22,7 +25,7 @@ import { traducirError } from "@/lib/error-escritura";
 //   familia — dos familias no pueden compartir un nombre de categoría.
 export async function POST(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede agregar una categoría." }, { status: 403 });
   }
 
@@ -46,7 +49,7 @@ export async function POST(request: Request) {
   // No revalida `familia` contra una lista acá: `categorias_familia_fk`
   // (20260918010000) ya rechaza un código que no exista en retail.familias,
   // con mensaje traducido por error-escritura.ts — una sola fuente de verdad.
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { data, error } = await supabase
     .from("categorias")
     .insert({ nombre, familia, prefijo, categoria_padre_id: categoriaPadreId, notas: notas || null })
@@ -72,7 +75,7 @@ export async function POST(request: Request) {
 // desincronizada.
 export async function PUT(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede editar una categoría." }, { status: 403 });
   }
 
@@ -96,7 +99,7 @@ export async function PUT(request: Request) {
     return Response.json({ error: "El prefijo tiene que ser exactamente 3 letras (ej. BLU)." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { error: errorRpc } = await supabase.rpc("actualizar_categoria", {
     p_categoria_id: id,
     p_nombre: nombre,
@@ -127,7 +130,7 @@ export async function PUT(request: Request) {
 // avisa cuántos en el mensaje de error en vez de dejar seguir.
 export async function PATCH(request: Request) {
   const persona = await requirePersonaActualV2();
-  if (persona.rol !== "lider") {
+  if (!puede(persona, "editarCatalogo")) {
     return Response.json({ error: "Solo un Líder puede desactivar o reactivar una categoría." }, { status: 403 });
   }
 
@@ -142,7 +145,7 @@ export async function PATCH(request: Request) {
     return Response.json({ error: "Falta indicar si se activa o desactiva." }, { status: 400 });
   }
 
-  const supabase = await createClient();
+  const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
   const { error } = await supabase.rpc(activo ? "reactivar_categoria" : "desactivar_categoria", {
     p_categoria_id: id,
   });

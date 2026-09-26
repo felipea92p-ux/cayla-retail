@@ -3,7 +3,7 @@ import { TarjetaIndicador } from "@/components/TarjetaIndicador";
 import type { PanelCalidad } from "@/lib/calidad";
 import { MUESTRA_MINIMA, FACTOR_ATENCION, DEVUELTAS_MINIMAS_ATENCION, textoLectura, type FilaEvaluada } from "@/lib/calidad-reglas";
 
-// Vista del panel de calidad (ADR-0113). Solo PINTA: cada número ya viene contado por el SQL y cada criterio
+// Vista del panel de calidad (ADR-0214). Solo PINTA: cada número ya viene contado por el SQL y cada criterio
 // ("requiere atención", "muestra chica") ya viene decidido por `calidad-reglas.ts`.
 //
 // Norman: la pantalla no puede llevar a una conclusión falsa. Por eso una fila con pocas ventas dice "muestra

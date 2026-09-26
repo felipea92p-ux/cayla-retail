@@ -233,11 +233,11 @@ segunda como realidad.
 |---|---|---|---|---|---|
 | Vender / abrir caja | sí | sí | sí — `puede_operar_sede` | **sí** | no debería |
 | **Cerrar la caja del día** | sí | sí | sí | **sí** — `cerrar_caja` valida sede, no rol (`07_funciones_operacion.sql:117`) | no |
-| **Ajustar stock sin venta** | sí | sí | sí | **sí** — `registrar_movimiento` valida sede, no rol (`07_funciones_operacion.sql:65`) | no |
+| **Ajustar stock sin venta** | sí | sí | sí | **sí** — `registrar_movimiento` valida sede, no rol (`07_funciones_operacion.sql:65`) (además, desde `20260926000400`, sin pegar en producción: un ajuste «Reposición» sobre el piso se rechaza para cualquiera, líder incluido, hint `reposicion_piso_cerrada`, ADR-0208) | no |
 | **Registrar depósito** | sí | sí | sí | **sí** — `registrar_deposito` valida sede (`08_funciones_finanzas.sql:77`) | no |
 | **Registrar gasto** | sí | sí | **no** (`es_lider` = admin) · y además la pantalla está rota | no | no |
 | Trasladar a otra sede | sí | sí | sí | **sí, a cualquier sede** — el destino no se valida (sección 8) | no |
-| Recibir mercadería / mover piso ↔ almacén de su sede | sí | sí | sí | **sí** — `bajar_a_piso` y `devolver_a_almacen` validan sede (`12_almacen_interno.sql:260,301`) | no |
+| Recibir mercadería / mover piso ↔ almacén de su sede | sí | sí | sí | **sí** — `bajar_a_piso` y `devolver_a_almacen` validan sede (`12_almacen_interno.sql:260,301`) (V1; hoy: las dos son `mover_interno`, que solo valida la tienda con `fn_puede_operar_ubicacion`, sin módulo ni token; y `bajar_al_piso`, que además exige el módulo «Bajada al piso» dentro de la función, ADR-0208) | no |
 | Contar (conteo físico) | sí | sí | sí | **sí** — `conteo_contar` valida sede | no |
 | **Cerrar un conteo** (la aprobación) | sí | sí | **no** — `cerrar_conteo` exige `es_lider()` = admin (`30_conteos.sql:400`) | no | no |
 | **Ver costo y margen** | sí | sí (D-13) | **sí** | **sí** — decisión consciente, D-27 (sección 9) | sí |
@@ -280,7 +280,8 @@ repartidas en **44 tablas**. Las reglas caen en tres patrones y dos excepciones.
 cinco `taxonomia_*`, `configuracion_empresa`, `sede_datos_fiscales`. Son catálogos
 compartidos: para vender hay que ver todo lo que existe, no solo lo de tu tienda.
 **Acá vive la transparencia de la sección 9:** `variantes` (con `costo`), `productos`
-(con `costo_mano_obra`) y `proveedores` (con `ruc`, `banco`, `cuenta_bancaria`) están
+(con `costo_mano_obra`) y `proveedores` (con `ruc`, `banco`, `cuenta_bancaria` y, desde
+2026-09-19, `cci`, `celular_billetera`, `billeteras` y `titular_cuenta` — ADR-0134) están
 los tres en este grupo.
 
 **Patrón C — "libro contable, solo Admin".** `retail.es_lider()` para leer y
@@ -399,8 +400,8 @@ pantalla para llamarlas.
 > 23"* porque se generó apuntando al contenedor local, no a producción. **Producción
 > tiene 56** (`generado/DRIFT.md` y `generado/funciones-produccion.txt`, leídos de la
 > base real). Quien concluya de RPCS.md que a producción "nunca le llegaron" las
-> funciones de almacén o de conteo se equivoca: `bajar_a_piso`,
-> `devolver_a_almacen`, `abrir_conteo`, `cerrar_conteo`, `conteo_contar`,
+> funciones de almacén o de conteo se equivoca: `bajar_a_piso` (V1; hoy: `mover_interno`),
+> `devolver_a_almacen` (V1; hoy: `mover_interno` al revés), `abrir_conteo`, `cerrar_conteo`, `conteo_contar`,
 > `conteo_crear_variante` y `anular_conteo` **están las siete allá**. Eso cierra
 > D-26 por el lado que importa: en producción un Integrante ya opera el almacén de su
 > propia sede. Lo que local tiene de más es la rama de la sede hermana
@@ -434,7 +435,8 @@ día que se escribió. Nunca hubo un candado de costos en la base:
   `costo` es `numeric(12,2) not null default 0`. Cualquiera con sesión la lee por API,
   desde siempre.
 - `productos_select`, igual, con `costo_mano_obra` adentro.
-- `proveedores_select`, igual, con `ruc`, `banco` y `cuenta_bancaria` adentro.
+- `proveedores_select`, igual, con `ruc`, `banco` y `cuenta_bancaria` adentro (y desde 2026-09-19 también
+  `cci`, `celular_billetera`, `billeteras` y `titular_cuenta`: ver la nota de abajo).
 - Lo único que filtraba era la pantalla:
   `apps/web/app/api/export/inventario/route.ts:56,63` saca la columna "Costo" del CSV
   cuando no eres Líder, y
@@ -451,6 +453,14 @@ y lo repitieron como hecho.
 `proveedores.cuenta_bancaria` es el número de cuenta de un **tercero**, no de CAYLA.
 Es dato personal de otro, y su tratamiento está en
 [`06-DATOS-PERSONALES.md`](06-DATOS-PERSONALES.md).
+
+**Actualización 2026-09-19 (ADR-0134, `docs/adr/0134-proveedores-cci-yape-plin-y-titular.md`):** `proveedores` suma
+`cci`, `celular_billetera`, `billeteras` y `titular_cuenta`, **con la misma lectura que `banco` y `cuenta_bancaria`**
+(`proveedores_select` a cualquier sesión). La escritura de esas cuatro pasa por `guardar_cuentas_proveedor`, solo líder
+(`security definer`, sin EXECUTE para `anon`). Felipe decidió dejar la restricción por rol de datos de pago para el final del
+proyecto; queda escrita la regla de que las **cinco columnas de pago** (`banco`, `cuenta_bancaria`, `cci`,
+`celular_billetera`, `titular_cuenta`) **se cierran juntas o ninguna**. Riesgo de integridad abierto: no hay bitácora de
+cambios de cuenta (quién cambió un CCI y cuándo); recomendada `proveedor_cuentas_historial`, append-only.
 
 **Un matiz que la transparencia no cubre:** `gastos` tiene una sola regla,
 `gastos_all_lider`, que cubre también el SELECT. Un Líder de equipo no puede ver los
@@ -509,8 +519,22 @@ nombra el schema completo. Bajo riesgo con seis personas de confianza; es la cla
 cosa que se corrige de una vez y no cuando ya pasó algo. También pendiente de
 re-verificar.
 
-**4 · Una colaboradora dada de baja sigue pudiendo vender.** Este no es un "no
-sabemos": está verificado y es el hueco más humano de todos.
+**4 · ~~Una colaboradora dada de baja sigue pudiendo vender.~~ CERRADO (verificado
+2026-09-23, PL-92).** Los dos candados de los que cuelga vender ya exigen
+`public.personas.estado = 'activo'` **y** `retail.colaboradores.estado = 'activo'`:
+`fn_es_lider()` (`supabase/migrations/20260922170000_alta_colaborador_requiere_aprobacion.sql:137`)
+y `fn_ubicacion_actual_persona()` (`supabase/migrations/20260923120100_ubicacion_de_lideres.sql:109`).
+`fn_puede_operar_ubicacion` es exactamente `fn_es_lider() or p_ubicacion_id =
+fn_ubicacion_actual_persona()` (`0006_colaboradores.sql:55`), y `registrar_venta` la
+pregunta antes que nada (`20260922150000_venta_asesora_emisor_descuento_lider.sql:362`):
+quien está de baja recibe «No tienes permiso para vender en esa ubicación». En una
+terminal, el responsable elegido también tiene que estar activo
+(`20260923010000_terminales_sin_persona.sql:207`). Comparado contra la base: la
+definición de las dos funciones es idéntica en local y en producción (md5 de `prosrc`
+`0321a061…` y `a1ea6265…`). Lo que sigue es la foto del 2026-09-12, se deja como
+historia.
+
+~~Este no es un "no sabemos": está verificado y es el hueco más humano de todos.~~
 
 > `public.personas` en Dynamic tiene `estado` (`activo` \| `inactivo`, con el CHECK
 > `personas_cese_coherente` que exige `fecha_cese` al pasar a inactivo), y la tabla
@@ -541,7 +565,7 @@ sabemos": está verificado y es el hueco más humano de todos.
 | # | Qué falta | Dónde se toca | Tamaño |
 |---|---|---|---|
 | 1 | Cerrar el hueco del NULL en local | `migrations/0012_rpc_valida_sede.sql:15` — `coalesce(..., false)` | Una línea |
-| 2 | Que `estado`/`activo` corte el acceso de quien ya no trabaja acá | `puede_operar_sede` + `lib/persona.ts:74` | Chico |
+| 2 | ~~Que `estado`/`activo` corte el acceso de quien ya no trabaja acá~~ **CERRADO 2026-09-23 (PL-92):** `fn_es_lider()` y `fn_ubicacion_actual_persona()` filtran `estado = 'activo'` (ver punto 4 arriba) | — | — |
 | 3 | Candado de sede en `fn_reservar_numero_serie` (quema correlativos de SUNAT) | `unificacion/17_facturacion_completa.sql:97` | Una línea |
 | 4 | Candado en `previsualizar_cierre_conteo` (lee el conteo de otra sede) | `unificacion/30_conteos.sql:338` | Una línea |
 | 5 | Candado en `registrar_codigo_barras` y en `fn_siguiente_correlativo` | `unificacion/29_codigos.sql:146,188` | Chico |

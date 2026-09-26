@@ -15,6 +15,7 @@ export function SaldoFavorProveedor({
   saldo,
   movimientos,
   tieneDeuda,
+  puedeReembolsar = true,
 }: {
   proveedorId: string;
   proveedorNombre: string;
@@ -22,6 +23,8 @@ export function SaldoFavorProveedor({
   movimientos: MovimientoCredito[];
   /** ¿Hay comprobantes por pagar de este proveedor? Solo entonces «Usar en un pago» lleva a algún lado. */
   tieneDeuda: boolean;
+  /** Registrar un reembolso es de Por pagar (ADR-0161 P1, `fn_puede_pagar_compras`). */
+  puedeReembolsar?: boolean;
 }) {
   const hay = saldo > 0;
   return (
@@ -46,7 +49,7 @@ export function SaldoFavorProveedor({
                 Usar en un pago →
               </Link>
             )}
-            <BotonReembolso proveedorId={proveedorId} proveedorNombre={proveedorNombre} saldoFavor={saldo} />
+            {puedeReembolsar && <BotonReembolso proveedorId={proveedorId} proveedorNombre={proveedorNombre} saldoFavor={saldo} />}
           </div>
         )}
       </div>

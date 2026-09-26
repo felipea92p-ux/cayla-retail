@@ -1,5 +1,10 @@
 # ADR-0111 — Compras: indicadores para decidir, pago por lote y cierre de faltantes con nota de crédito
 
+> **Nota (2026-09-23, PL-50):** en Compras esto hoy se llama «Facturas de proveedor» (antes «Comprobantes») y «Notas de
+> crédito de proveedor»; en el Taller, «Facturas de insumos». «Comprobante» y «Nota de crédito» quedaron solo para Ventas.
+> Cambió el texto que se ve, no las rutas (`/compras`, `/compras/notas-credito`) ni las tablas. El resto del documento
+> conserva los nombres de su fecha.
+
 - **Fecha:** 2026-09-18
 - **Estado:** Aceptado. **Solo local**: nada de esto está en producción; las migraciones se pegan
   con el prefijo `retail.` y ok explícito de Felipe (CLAUDE.md, «Cómo aplicar SQL a producción»).
@@ -79,8 +84,19 @@ como SALDO A FAVOR del proveedor.** Felipe probó la guía de recepción y de ah
   (`registrar_reembolso_proveedor`) que baja el saldo; no mueve caja. El saldo a favor no es plata que salga de caja.
   Se ve en la lista de Proveedores (columna «Saldo a favor»), en su ficha (saldo + historial), en Por pagar y en el
   modal de pago, donde viene ofrecido y activado. Migraciones: `20260918215000` a `20260918218000`.
-- *Límites declarados:* el saldo es por proveedor (no por factura) y en soles; el reembolso no integra caja; la
-  etiqueta «esperando nota de crédito» existe en el detalle del comprobante, no en las listas.
+- *«Esperando nota» también en las listas (2026-09-18).* El detalle de un comprobante ya decía «Esperando nota de
+  crédito · S/ X», pero en Por pagar el líder veía el saldo completo y podía pagar de más lo que el proveedor va a
+  acreditar. Ahora la lista de Comprobantes (celda Pago) y Por pagar (bajo el proveedor, con «Ya puedes registrarla»
+  cuando el comprobante ya está resuelto) muestran un chip ámbar «Esperando nota S/ X». Lo calcula
+  `compras_nota_pendiente(uuid[])` (migración `20260918220000`), una **función de lectura nueva**: `listar_compras` y
+  `compras_resumen` no cambian ni de firma ni de retorno (un overload o un retorno distinto ya rompió producción,
+  ADR-0009). «Esperando nota» = el comprobante vigente tiene cierres y todavía no tiene nota con motivo `faltante`;
+  monto = Σ(cierre × costo) × (1 + IGV/subtotal), la misma cuenta que el tope de `fn_insertar_nota_credito_compra` y
+  que `montoDeCierres`. Solo líder (un integrante recibe vacío). La pantalla pregunta por los ids de la página y solo
+  si alguno tiene algo cerrado (`cerradoCantidad > 0`); si la consulta falla, la lista se dibuja igual sin el chip
+  (es un aviso, no un número) y el error queda en el log. Texto y tono en `lib/nota-pendiente-reglas.ts`.
+- *Límites declarados:* el saldo es por proveedor (no por factura) y en soles; el reembolso no integra caja; el chip
+  «esperando nota» vive en el detalle y en las dos listas de Compras, pero no en Proveedores ni en el Inicio.
 
 **D3 — Pago por lote.** Un solo pago (una transferencia) que se aplica a varios comprobantes **del
 mismo proveedor**. Cada aplicación es una fila de `compra_pagos` (el historial por comprobante
@@ -143,6 +159,7 @@ seguir correctos cuando aterrice D2.
 - `por_pagar_tramos(p_proveedor_id uuid default null, p_condicion text default null, p_solo_vencidas boolean default false, p_busqueda text default null) returns table(tramo text, comprobantes int, saldo numeric)` — `vencidas` | `semana` | `despues`; mismos filtros que `listar_compras`.
 - `resumen_recepciones(p_desde date default null) returns table(unidades_recibidas bigint, recepciones int, dias_entrega_promedio numeric, comprobantes_recibidos int, entregas_completas int, faltante_unidades bigint, faltante_comprobantes int)` — una fila; `p_desde` null = 90 días atrás.
 - `listar_recepciones_compras(p_proveedor_id uuid default null, p_desde date default null, p_hasta date default null, p_busqueda text default null, p_limite int default 30) returns table(lote_id uuid, fecha_recepcion timestamptz, ubicacion_nombre text, proveedor_id uuid, proveedor_nombre text, numero_guia text, recibido_por uuid, compra_id uuid, documento text, unidades_llegaron int, unidades_facturadas int, faltante int, dias_demora int)` — una fila por (lote, comprobante).
+- `compras_nota_pendiente(p_compra_ids uuid[]) returns table(compra_id uuid, unidades_cerradas integer, monto_esperado numeric, resuelto boolean)` — (`20260918220000`, añadida después) comprobantes vigentes con cierres y sin nota por faltante; solo líder; `resuelto` = recibido + cerrado ≥ facturado.
 - `resumen_sin_comprobante(p_ubicacion_id uuid default null) returns table(unidades_mes bigint, recepciones_mes int, unidades_sin_costo_mes bigint, ultima_recepcion timestamptz, ultima_ubicacion text)`.
 - `recepciones_sin_comprobante(p_ubicacion_id uuid default null, p_limite int default 20) returns table(lote_id uuid, fecha_recepcion timestamptz, ubicacion_nombre text, proveedor_nombre text, numero_guia text, nota text, recibido_por uuid, unidades int, costo_unitario_promedio numeric, sin_costo boolean)`.
 - Proveedores (financiero = solo líder, `NULL` si no lo es, igual que hoy):
@@ -158,7 +175,7 @@ Ver `docs/maquetas/compras-2026-09/README.md` (correcciones que mandan sobre las
 
 ## Consecuencias / pendiente
 
-- **Producción:** las migraciones `20260918200000`–`20260918219999` se pegan con `retail.` y ok de Felipe;
+- **Producción:** las migraciones `20260918200000`–`20260918220000` se pegan con `retail.` y ok de Felipe;
   D2 toca el saldo (dinero): probar antes con datos reales de un comprobante de prueba.
 - Los indicadores dependientes de historial (días de pago, % entregado completo, tendencia de costo)
   aparecen con muestra mínima; con menos, la pantalla lo dice.

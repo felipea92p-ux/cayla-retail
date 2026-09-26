@@ -42,8 +42,9 @@ export type TrasladoLeible = {
 
 export type ContextoTraslados = {
   miUbicacionId: string;
-  /** Solo un líder puede cerrar un traslado con diferencia (`cerrar_traslado_con_diferencia`). */
-  esLider: boolean;
+  /** Quién puede cerrar un traslado con diferencia (`cerrar_traslado_con_diferencia`): un líder o la terminal administrativa
+   *  (ADR-0160, `fn_puede_ajustar_inventario`). Antes se llamaba `esLider`. */
+  puedeCerrarDiferencia: boolean;
   /** El «ahora» con el que se calcula todo. Lo fija el servidor y se pasa hacia abajo para
    *  que el HTML del servidor y el del navegador digan exactamente lo mismo («hace 1 h»). */
   ahoraIso: string;
@@ -81,7 +82,7 @@ export function debioLlegar(fechaEstimadaLlegada: string | null, ahoraIso: strin
 
 export function situacionTraslado(t: TrasladoLeible, ctx: ContextoTraslados): SituacionTraslado {
   const soyDestino = t.ubicacionDestinoId === ctx.miUbicacionId;
-  if (t.estado === "recibido_con_diferencia") return soyDestino && ctx.esLider ? "requiere_revision" : "con_diferencia";
+  if (t.estado === "recibido_con_diferencia") return soyDestino && ctx.puedeCerrarDiferencia ? "requiere_revision" : "con_diferencia";
   if (t.estado !== "en_transito") return "cerrado";
   if (!soyDestino) return "en_camino_saliente";
   // Que alguien ya haya registrado líneas (`confirmadoEn`) significa que el bulto llegó,
@@ -103,13 +104,18 @@ export function esAbierto(s: SituacionTraslado): boolean {
  *  `por_recibir` NO es un chip de la «Vista rápida»: es el atajo de la tarjeta «Por recibir hoy»,
  *  que cuenta solo recepciones y por eso tiene que filtrar solo recepciones — si filtrara «Acción
  *  hoy», un líder con una diferencia pendiente vería «0» en la tarjeta y una fila al tocarla. */
-export type FiltroTraslado = "todos" | "accion" | "en_camino" | "con_diferencia" | "cerrados" | "por_recibir";
+export type FiltroTraslado = "todos" | "abiertos" | "accion" | "en_camino" | "con_diferencia" | "cerrados" | "por_recibir";
 
-/** Los cinco chips de la fila «Vista rápida», en su orden. */
-export const FILTROS_TRASLADO: FiltroTraslado[] = ["todos", "accion", "en_camino", "con_diferencia", "cerrados"];
+/** Los chips de la fila «Vista rápida», en su orden. Rediseño 2026-09-22 (Felipe, demo
+ *  `docs/maquetas/traslados-cifras-filtros-2026-09/`, ADR-0175): las cifras que ya tienen tarjeta
+ *  —por recibir, en camino, con diferencia— se filtran tocando su TARJETA; los chips solo separan
+ *  lo abierto de lo cerrado, así cada número se dice una vez. «Acción hoy» sigue siendo un filtro
+ *  válido (lo usa la franja) aunque ya no tenga chip. */
+export const FILTROS_TRASLADO: FiltroTraslado[] = ["abiertos", "cerrados", "todos"];
 
 export const ETIQUETA_FILTRO_TRASLADO: Record<FiltroTraslado, string> = {
   todos: "Todos",
+  abiertos: "Abiertos",
   accion: "Acción hoy",
   en_camino: "En camino",
   con_diferencia: "Con diferencia",
@@ -129,6 +135,8 @@ export function coincideFiltro(s: SituacionTraslado, filtro: FiltroTraslado): bo
       return s === "con_diferencia" || s === "requiere_revision";
     case "cerrados":
       return s === "cerrado";
+    case "abiertos":
+      return s !== "cerrado";
     case "por_recibir":
       return s === "requiere_recepcion";
   }
@@ -166,7 +174,7 @@ export function resumirTraslados(ts: (TrasladoLeible & { unidadesEnviadas: numbe
     requierenAccion: 0,
     unidadesEnTransito: 0,
     abiertos: 0,
-    porFiltro: { todos: ts.length, accion: 0, en_camino: 0, con_diferencia: 0, cerrados: 0, por_recibir: 0 },
+    porFiltro: { todos: ts.length, abiertos: 0, accion: 0, en_camino: 0, con_diferencia: 0, cerrados: 0, por_recibir: 0 },
   };
   for (const t of ts) {
     const s = situacionTraslado(t, ctx);
@@ -439,19 +447,240 @@ function normalizar(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+// Palabras que acompañan a un número sin ser parte de lo que se busca: «traslado 24»,
+// «traslado n° 24», «nro. 24». Son las mismas que entiende la búsqueda de Movimientos
+// (`fn_movimientos_busqueda`), para que lo que se escribe allí para llegar a un traslado
+// valga también acá.
+const PALABRAS_DE_RELLENO = new Set(["traslado", "traslados", "#", "n°", "nº", "nro", "nro.", "num", "num.", "numero"]);
+
 /** «Buscar traslado, sede o prenda…»: cada palabra escrita tiene que aparecer en alguna parte del
  *  traslado (sede, nombre de prenda, código, nota). Sin distinguir mayúsculas ni tildes.
- *  Un número corto («2», «#2», «traslado 2») es el NÚMERO del traslado y solo ese — si no, «2»
- *  traería también el 12 y todo código que lleve un 2. Desde 3 cifras («001») se busca también
- *  dentro de los códigos de prenda. */
+ *  Un número corto («2», «#2», «traslado 2», «traslado#2», «n° 2») es el NÚMERO del traslado y solo
+ *  ese — si no, «2» traería también el 12 y todo código que lleve un 2. Desde 3 cifras («001») se
+ *  busca también dentro de los códigos de prenda. */
 export function coincideBusqueda(t: TrasladoBuscable, consulta: string): boolean {
-  const palabras = normalizar(consulta).split(/\s+/).filter(Boolean);
+  const palabras = normalizar(consulta)
+    // «traslado24», «traslado#24», «n°24», «nro.24» → la palabra y el número por separado.
+    .replace(/\b(traslados?|n[°º]|nro\.?|num\.?|numero)(?=[#°º]?\d)/g, "$1 ")
+    .split(/\s+/)
+    .filter(Boolean);
   if (palabras.length === 0) return true;
   const pajar = normalizar([t.ubicacionOrigenNombre, t.ubicacionDestinoNombre, t.nota ?? "", ...t.referencias, ...t.skus].join(" \n "));
   return palabras.every((p) => {
-    if (p === "traslado" || p === "traslados" || p === "#") return true;
+    if (PALABRAS_DE_RELLENO.has(p)) return true;
     const num = /^#?(\d+)$/.exec(p);
     if (num) return Number(num[1]) === t.numero || (num[1].length >= 3 && pajar.includes(num[1]));
     return pajar.includes(p.replace(/^#/, ""));
   });
+}
+
+// ===========================================================================
+// Rediseño 2026-09-22 (ADR-0173): traslados vacíos, la insignia de estado, el
+// recorrido del detalle y la lectura del conteo. Nada de esto cambia una regla
+// de stock: quién confirma, cuándo entra el stock y quién cierra siguen en las
+// RPC. Esto solo decide qué se dibuja.
+// ===========================================================================
+
+/** Un traslado sin ninguna prenda. La base ya no deja crearlos (`iniciar_traslado` rechaza un traslado
+ *  sin ítems), pero en producción quedaron cabeceras vacías de la limpieza de datos de prueba (los
+ *  Traslados 1 al 4, 2026-09-22). No se muestran ni se cuentan —nadie tiene que «confirmar» una recepción
+ *  de nada—, y tampoco se borran: siguen en la base. */
+export function esTrasladoVacio(t: { lineas: number }): boolean {
+  return t.lineas === 0;
+}
+
+/** Aparta los traslados vacíos y dice cuántos eran, para avisarlo en vez de esconderlos en silencio. */
+export function separarVacios<T extends { lineas: number }>(ts: T[]): { conPrendas: T[]; vacios: number } {
+  const conPrendas = ts.filter((t) => !esTrasladoVacio(t));
+  return { conPrendas, vacios: ts.length - conPrendas.length };
+}
+
+export type TonoEstadoTraslado = "rojo" | "ambar" | "pizarra" | "verde" | "neutro";
+
+/** La insignia de estado, en las palabras de quien mira: lo que le TOCA, no el nombre interno.
+ *  Rojo solo para lo que ya debió llegar; ámbar para lo que no cuadra; pizarra para lo que viaja
+ *  bien; verde para lo terminado. Un cerrado que tuvo diferencia no se pinta de verde: se dice. */
+export function estadoTraslado(s: SituacionTraslado, cerradoConDiferencia = false): { texto: string; tono: TonoEstadoTraslado } {
+  switch (s) {
+    case "requiere_recepcion":
+      return { texto: "Por confirmar", tono: "rojo" };
+    case "requiere_revision":
+      return { texto: "Por revisar", tono: "ambar" };
+    case "con_diferencia":
+      return { texto: "Con diferencia", tono: "ambar" };
+    case "en_camino_entrante":
+    case "en_camino_saliente":
+      return { texto: "En camino", tono: "pizarra" };
+    case "cerrado":
+      return cerradoConDiferencia ? { texto: "Cerrado con diferencia", tono: "neutro" } : { texto: "Completado", tono: "verde" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// La lectura del conteo en el detalle
+//
+// Quien recibe cuenta línea por línea. Lo que escribe queda como BORRADOR en la
+// pantalla hasta que confirma (o cierra, o guarda el recuento): recién ahí se
+// llama `registrar_recepcion_traslado` por cada línea cambiada y después la
+// RPC final. Antes cada casilla guardaba al salir de ella y el botón de
+// confirmar seguía apagado hasta que la persona había pasado por TODAS —
+// aunque ya vinieran llenas con lo enviado—; ahora las casillas empiezan
+// vacías (se cuenta, no se asume) y un «Coincide» por línea las llena.
+// ---------------------------------------------------------------------------
+
+export type LineaConteo = { varianteId: string; cantidadEnviada: number | null; cantidadRecibida: number | null };
+
+/** Lo que la persona escribió y todavía no se guardó, por variante. */
+export type Borradores = Record<string, number | undefined>;
+
+export type LecturaLinea = {
+  varianteId: string;
+  /** Lo que vale la casilla: el borrador si lo hay, si no lo guardado. `null` = sin contar. */
+  valor: number | null;
+  /** Recibido − enviado (una prenda que no estaba en el envío cuenta desde 0). `null` si no se contó. */
+  diferencia: number | null;
+};
+
+export type LecturaRecepcion = {
+  lineas: Map<string, LecturaLinea>;
+  enviado: number;
+  recibido: number;
+  /** Líneas ENVIADAS que ya tienen cantidad. Las prendas de más no cuentan acá: no hay nada que contarles. */
+  contadas: number;
+  enviadas: number;
+  /** Suma de las diferencias de lo contado: negativo = faltan, positivo = llegó de más. */
+  diferencia: number;
+  /** Lo que hay que mandar a `registrar_recepcion_traslado` antes de confirmar o cerrar. */
+  porGuardar: { varianteId: string; cantidad: number }[];
+  /** Toda línea enviada tiene cantidad: se puede confirmar. */
+  completa: boolean;
+  /** Completa y sin ninguna diferencia: al confirmar, el traslado se cierra solo. */
+  coincideTodo: boolean;
+};
+
+export function leerRecepcion(lineas: LineaConteo[], borradores: Borradores): LecturaRecepcion {
+  const porId = new Map<string, LecturaLinea>();
+  const porGuardar: { varianteId: string; cantidad: number }[] = [];
+  let enviado = 0;
+  let recibido = 0;
+  let contadas = 0;
+  let enviadas = 0;
+  let diferencia = 0;
+  let todasCero = true;
+  for (const l of lineas) {
+    const borrador = borradores[l.varianteId];
+    const valor = borrador !== undefined ? borrador : l.cantidadRecibida;
+    const dif = valor === null ? null : valor - (l.cantidadEnviada ?? 0);
+    porId.set(l.varianteId, { varianteId: l.varianteId, valor, diferencia: dif });
+    if (borrador !== undefined && borrador !== l.cantidadRecibida) porGuardar.push({ varianteId: l.varianteId, cantidad: borrador });
+    if (l.cantidadEnviada !== null) {
+      enviadas++;
+      enviado += l.cantidadEnviada;
+      if (valor !== null) contadas++;
+    }
+    if (valor !== null) recibido += valor;
+    if (dif !== null) {
+      diferencia += dif;
+      if (dif !== 0) todasCero = false;
+    }
+  }
+  const completa = contadas === enviadas;
+  return { lineas: porId, enviado, recibido, contadas, enviadas, diferencia, porGuardar, completa, coincideTodo: completa && todasCero };
+}
+
+/** Una casilla nunca baja de 0: el botón «−» sobre una línea sin contar la deja en 0, no en −1. */
+export function ajustarCantidad(actual: number | null, delta: number): number {
+  return Math.max(0, (actual ?? 0) + delta);
+}
+
+/** Cerrar con diferencia pide decir qué pasó: es lo único que queda para entender, meses después, por qué
+ *  faltaron prendas. La RPC acepta la nota vacía; la pantalla no (ver BACKLOG para endurecerlo en la base). */
+export const NOTA_CIERRE_MINIMA = 5;
+export function notaCierreValida(nota: string): boolean {
+  return nota.trim().length >= NOTA_CIERRE_MINIMA;
+}
+
+// ---------------------------------------------------------------------------
+// El recorrido del detalle: cuatro pasos que SÍ son una secuencia
+// (salió → en camino → recibido → cerrado). Cada uno dice cuándo y quién.
+// ---------------------------------------------------------------------------
+
+export type EstadoPaso = "hecho" | "actual" | "urgente" | "alerta" | "pendiente";
+
+export type PasoRecorrido = {
+  clave: "salio" | "camino" | "recibido" | "cerrado";
+  titulo: string;
+  lineas: string[];
+  estado: EstadoPaso;
+};
+
+export type TrasladoConRecorrido = TrasladoLeible & {
+  ubicacionOrigenNombre: string;
+  ubicacionDestinoNombre: string;
+  creadoEn: string;
+  cerradoEn: string | null;
+  creadoPorNombre: string;
+  confirmadoPorNombre: string | null;
+  cerradoPorNombre: string | null;
+};
+
+export function recorridoTraslado(
+  t: TrasladoConRecorrido,
+  s: SituacionTraslado,
+  conteo: { contadas: number; enviadas: number; huboDiferencia: boolean },
+  ahoraIso: string
+): PasoRecorrido[] {
+  const eta = t.fechaEstimadaLlegada;
+  const enTransito = t.estado === "en_transito";
+  // «completada» es el modelo anterior (antes del 16-sep): el traslado entraba al instante, sin tramo en camino.
+  const instantaneo = t.estado === "completada";
+  const conDiferencia = t.estado === "recibido_con_diferencia" || conteo.huboDiferencia;
+
+  const salio: PasoRecorrido = {
+    clave: "salio",
+    titulo: `Salió de ${t.ubicacionOrigenNombre}`,
+    lineas: [diaHora(t.creadoEn, ahoraIso), `Envió ${t.creadoPorNombre}`],
+    estado: "hecho",
+  };
+
+  let camino: PasoRecorrido;
+  if (enTransito && s === "requiere_recepcion") {
+    camino = eta
+      ? { clave: "camino", titulo: "En camino", lineas: [`Debió llegar ${diaHora(eta, ahoraIso)}`, haceTexto(eta, ahoraIso)], estado: "urgente" }
+      : { clave: "camino", titulo: "En camino", lineas: ["Sin hora estimada"], estado: "urgente" };
+  } else if (enTransito) {
+    camino = eta
+      ? { clave: "camino", titulo: "En camino", lineas: [`Llega ${diaHora(eta, ahoraIso)}`, enTexto(eta, ahoraIso)], estado: "actual" }
+      : { clave: "camino", titulo: "En camino", lineas: ["Sin hora estimada"], estado: "actual" };
+  } else {
+    camino = { clave: "camino", titulo: "En camino", lineas: [instantaneo ? "Traslado al instante (modelo anterior)" : eta ? `Estimado ${diaHora(eta, ahoraIso)}` : "Sin hora estimada"], estado: "hecho" };
+  }
+
+  const tituloRecibido = `Recibido en ${t.ubicacionDestinoNombre}`;
+  let recibido: PasoRecorrido;
+  if (enTransito) {
+    recibido =
+      conteo.contadas > 0
+        ? { clave: "recibido", titulo: tituloRecibido, lineas: [`Contando: ${conteo.contadas} de ${conteo.enviadas} variantes`], estado: "actual" }
+        : { clave: "recibido", titulo: tituloRecibido, lineas: [s === "en_camino_saliente" ? `Lo confirma ${t.ubicacionDestinoNombre}` : "Falta confirmar"], estado: "pendiente" };
+  } else {
+    const cuando = t.confirmadoEn ?? t.cerradoEn ?? t.creadoEn;
+    const lineas = [diaHora(cuando, ahoraIso)];
+    if (t.confirmadoPorNombre) lineas.push(`Contó ${t.confirmadoPorNombre}`);
+    if (conDiferencia) lineas.push("Con diferencia");
+    recibido = { clave: "recibido", titulo: tituloRecibido, lineas, estado: conDiferencia ? "alerta" : "hecho" };
+  }
+
+  let cerrado: PasoRecorrido;
+  if (t.estado === "recibido_con_diferencia") {
+    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas: [s === "requiere_revision" ? "Te toca cerrarlo" : "Espera a un líder"], estado: "actual" };
+  } else if (enTransito) {
+    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas: ["Se cierra solo si todo coincide"], estado: "pendiente" };
+  } else {
+    const lineas = [diaHora(t.cerradoEn ?? t.confirmadoEn ?? t.creadoEn, ahoraIso)];
+    lineas.push(t.cerradoPorNombre ? `Cerró ${t.cerradoPorNombre}` : "Stock actualizado");
+    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas, estado: "hecho" };
+  }
+
+  return [salio, camino, recibido, cerrado];
 }

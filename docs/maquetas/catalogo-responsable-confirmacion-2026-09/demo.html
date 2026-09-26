@@ -1,0 +1,315 @@
+<title>Responsable en Catálogo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@500;600&display=swap">
+<style>
+  /* Paleta oficial «CAYLA Dynamic» (apps/web/app/globals.css, ADR-0169). El ERP no tiene modo oscuro: una sola vista. */
+  :root {
+    color-scheme: light;
+    --crema: #f5f0e8; --papel: #fbf8f2; --hueso: #eae1d2; --sand: #e8e0d0;
+    --tinta: #1a1a18; --taupe: #805c4c; --rojo: #b8412d; --rojo-profundo: #8b2a1f;
+    --verde: #48603f; --ambar: #74501a; --pizarra: #4c5d6e;
+    --ease: cubic-bezier(.22,.61,.36,1);
+    --sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+    --serif: "EB Garamond", ui-serif, Georgia, serif;
+  }
+  * { box-sizing: border-box; }
+  body { background: var(--crema); color: var(--tinta); font: 14px/1.5 var(--sans); padding-inline: 16px; padding-block: 24px 64px; }
+  .envoltura { max-width: 1040px; margin: 0 auto; display: grid; gap: 20px; }
+  .label { font: 600 10.5px/1.2 var(--sans); letter-spacing: .12em; text-transform: uppercase; }
+
+  /* Barra de la maqueta (no es parte del ERP) */
+  .mando { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 14px 16px; border: 1px dashed var(--taupe); border-radius: 12px; }
+  .mando .label { color: var(--taupe); }
+  .seg { display: inline-flex; border: 1px solid var(--sand); border-radius: 999px; background: var(--papel); padding: 3px; gap: 2px; }
+  .seg button { border: 0; background: transparent; font: 500 12.5px var(--sans); color: var(--taupe); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--tinta); color: var(--crema); }
+  .seg button:focus-visible, .btn:focus-visible, .combo:focus-visible { outline: 2px solid var(--rojo); outline-offset: 2px; }
+
+  /* Cabecera de pantalla (CabeceraPantalla) */
+  .cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+  .cab .label { color: var(--rojo); }
+  .cab h1 { font: 500 34px/1.1 var(--serif); margin: 4px 0 2px; text-wrap: balance; }
+  .cab p { margin: 0; color: var(--taupe); max-width: 60ch; }
+  .pestanas { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pestanas span { font-size: 12.5px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--sand); color: var(--taupe); background: var(--papel); }
+  .pestanas span.act { background: var(--tinta); color: var(--crema); border-color: var(--tinta); }
+
+  .fila-sup { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; min-height: 44px; }
+
+  /* Botones btn-cayla */
+  .btn { font: 500 12px var(--sans); border-radius: 8px; padding: 8px 12px; cursor: pointer; border: 1px solid transparent; transition: background .2s var(--ease), color .2s var(--ease); }
+  .btn-primario { background: var(--tinta); color: var(--crema); }
+  .btn-primario:hover:not(:disabled) { background: var(--rojo); }
+  .btn-secundario { background: var(--papel); color: var(--tinta); border-color: var(--taupe); }
+  .btn-sutil { background: transparent; color: var(--tinta); border-color: var(--sand); }
+  .btn-sutil:hover:not(:disabled) { background: var(--hueso); }
+  .btn-peligro { background: var(--rojo); color: var(--crema); }
+  .btn-peligro:hover:not(:disabled) { background: var(--rojo-profundo); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-agregar { font: 600 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; padding: 12px 16px; }
+
+  /* Combo Responsable */
+  .combo-caja { width: 100%; max-width: 320px; }
+  .combo-caja .label { color: var(--taupe); display: block; margin-bottom: 6px; }
+  .combo { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 10px; background: var(--papel); border: 1.5px dashed var(--rojo); font: 14px var(--sans); color: var(--tinta); cursor: pointer; text-align: left; }
+  .combo.elegido { border: 1px solid var(--taupe); }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font: 600 11px var(--sans); background: var(--hueso); color: var(--taupe); flex: none; }
+  .combo.elegido .avatar { background: var(--verde); color: var(--papel); }
+  .combo .txt { flex: 1; min-width: 0; }
+  .combo .vacio { color: var(--taupe); }
+  .combo-ayuda { margin: 6px 0 0; font-size: 12px; color: color-mix(in srgb, var(--tinta) 60%, transparent); }
+  .lista { margin-top: 6px; border: 1px solid var(--sand); border-radius: 10px; background: var(--papel); padding: 6px; display: grid; gap: 2px; }
+  .lista .label { color: var(--taupe); padding: 6px 8px 4px; }
+  .lista button { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; padding: 8px; border-radius: 8px; font: 14px var(--sans); color: var(--tinta); cursor: pointer; text-align: left; }
+  .lista button:hover { background: var(--hueso); }
+  .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--verde); flex: none; }
+
+  /* Tarjetas de tejidos */
+  .grilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .card { background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .muestra { height: 64px; border-radius: 8px; background: var(--hueso); }
+  .card .nom { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 500; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; font: 600 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: color-mix(in srgb, var(--rojo) 10%, transparent); color: var(--rojo); }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .card .acc { display: flex; gap: 8px; }
+  .card .acc .btn { flex: 1; }
+  .desact { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px; background: var(--papel); border: 1px solid var(--sand); border-radius: 12px; }
+  .desact span.item { display: inline-flex; align-items: center; gap: 8px; padding: 6px 6px 6px 12px; border: 1px solid var(--sand); border-radius: 8px; color: color-mix(in srgb, var(--tinta) 60%, transparent); }
+  .sub { color: color-mix(in srgb, var(--tinta) 65%, transparent); margin: 0 0 8px; }
+
+  /* Nota en hueso */
+  .nota { background: var(--hueso); border-radius: 12px; padding: 16px 18px; display: grid; gap: 8px; }
+  .nota h2 { font: 500 20px/1.2 var(--serif); margin: 0; }
+  .nota ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+  .nota p { margin: 0; }
+  .tabla-caja { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sand); vertical-align: top; }
+  th { font: 600 10.5px var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--taupe); }
+
+  /* Modal (regla ADR-0136: velo con desenfoque → hoja que sube 18 px → cascada) */
+  .velo { position: fixed; inset: 0; background: color-mix(in srgb, var(--tinta) 35%, transparent); backdrop-filter: blur(4px); display: grid; place-items: center; padding: 16px; animation: velo .25s var(--ease) both; z-index: 10; }
+  .hoja { background: var(--papel); border-radius: 16px; width: 100%; max-width: 400px; padding: 22px; display: grid; gap: 16px; animation: hoja .32s var(--ease) both; }
+  .hoja > * { animation: cascada .3s var(--ease) both; }
+  .hoja > *:nth-child(2) { animation-delay: 55ms; } .hoja > *:nth-child(3) { animation-delay: 110ms; } .hoja > *:nth-child(4) { animation-delay: 165ms; }
+  .hoja h3 { font: 500 24px/1.15 var(--serif); margin: 0; }
+  .hoja .bajada { margin: 4px 0 0; color: var(--taupe); }
+  .hoja .pie { display: flex; gap: 8px; }
+  .hoja .pie .btn { flex: 1; padding: 11px 12px; }
+  .campo label { display: block; margin-bottom: 6px; }
+  .campo input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 0; background: var(--hueso); font: 14px var(--sans); color: var(--tinta); }
+  .motivo { font-size: 12px; color: var(--taupe); margin: -6px 0 0; }
+  @keyframes velo { from { opacity: 0; } }
+  @keyframes hoja { from { opacity: 0; transform: translateY(18px) scale(.98); } }
+  @keyframes cascada { from { opacity: 0; transform: translateY(6px); } }
+  @media (prefers-reduced-motion: reduce) { .velo, .hoja, .hoja > * { animation: none; } }
+
+  .aviso { position: fixed; top: 16px; right: 16px; background: var(--papel); border: 1px solid var(--sand); border-left: 3px solid var(--verde); padding: 10px 14px; border-radius: 10px; font-size: 13px; z-index: 20; animation: hoja .3s var(--ease) both; }
+</style>
+
+<div class="envoltura">
+  <div class="mando" role="group" aria-label="Controles de la maqueta">
+    <span class="label">Maqueta</span>
+    <div class="seg" id="seg-version">
+      <button type="button" data-v="antes" aria-pressed="false">Hoy</button>
+      <button type="button" data-v="despues" aria-pressed="true">Propuesta (opción 1)</button>
+    </div>
+    <div class="seg" id="seg-cuenta">
+      <button type="button" data-c="persona" aria-pressed="true">Con tu cuenta</button>
+      <button type="button" data-c="terminal" aria-pressed="false">Con una terminal</button>
+    </div>
+    <span style="font-size:12.5px;color:var(--taupe)">Toca Aprobar, Desactivar, Reactivar o Agregar.</span>
+  </div>
+
+  <header class="cab">
+    <div>
+      <span class="label">Catálogo · Atributos</span>
+      <h1>Tejidos</h1>
+      <p>Los tejidos que se pueden elegir al crear una prenda. Los que propone una tienda quedan pendientes hasta aprobarlos.</p>
+    </div>
+    <div class="pestanas" aria-hidden="true">
+      <span>Categorías</span><span>Colores</span><span>Tallas</span><span class="act">Tejidos</span><span>Patrones</span><span>Etiquetas</span><span>Marcas</span>
+    </div>
+  </header>
+
+  <div class="fila-sup" id="fila-sup"></div>
+  <div class="grilla" id="grilla"></div>
+
+  <div>
+    <p class="label sub">Desactivados — no aparecen al crear productos nuevos</p>
+    <div class="desact" id="desact"></div>
+  </div>
+
+  <section class="nota">
+    <h2>Qué cambia con la propuesta</h2>
+    <ul>
+      <li><b>Arriba de la lista ya no hay combo.</b> La pantalla principal queda solo con las prendas y sus botones.</li>
+      <li><b>Cada botón que guarda con un clic abre una confirmación corta</b> con el combo adentro. Con tu cuenta ya viene tu nombre: es un clic más, pero además evita desactivar algo sin querer.</li>
+      <li><b>Agregar y Editar no cambian:</b> el combo sigue dentro de su ventana, una sola vez.</li>
+      <li><b>Rechazar ya abría ventana</b> (pide el motivo): solo pierde el combo de arriba.</li>
+    </ul>
+    <div class="tabla-caja">
+      <table>
+        <thead><tr><th>Pantalla</th><th>Botones de un clic que pasan a pedir confirmación</th></tr></thead>
+        <tbody>
+          <tr><td>Categorías</td><td>Reactivar</td></tr>
+          <tr><td>Familias</td><td>Desactivar</td></tr>
+          <tr><td>Colores</td><td>Aprobar, Reactivar</td></tr>
+          <tr><td>Tallas</td><td>Desactivar</td></tr>
+          <tr><td>Tejidos</td><td>Aprobar, Desactivar, Reactivar</td></tr>
+          <tr><td>Patrones</td><td>Aprobar, Desactivar, Reactivar</td></tr>
+          <tr><td>Etiquetas</td><td>Aprobar, Desactivar, Reactivar</td></tr>
+          <tr><td>Marcas</td><td>Desactivar, Reactivar</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div id="capa"></div>
+
+<script>
+  const PERSONAS = [{ id: "fe", nombre: "Felipe" }, { id: "ro", nombre: "Rosa" }, { id: "lu", nombre: "Lucía" }];
+  const estado = {
+    version: "despues",
+    cuenta: "persona",
+    elegidoArriba: undefined, // «Hoy»: el combo de arriba, compartido con las ventanas
+    tejidos: [
+      { id: 1, nombre: "Lino", est: "activo" },
+      { id: 2, nombre: "Algodón pima", est: "activo" },
+      { id: 3, nombre: "Seda fría", est: "pendiente" },
+      { id: 4, nombre: "Gasa", est: "activo" },
+      { id: 5, nombre: "Crepé", est: "desactivado" },
+      { id: 6, nombre: "Denim", est: "desactivado" },
+    ],
+  };
+  const propuesto = () => (estado.cuenta === "persona" ? "fe" : null);
+  const elegidoHoy = () => (estado.elegidoArriba === undefined ? propuesto() : estado.elegidoArriba);
+  const nombre = (id) => PERSONAS.find((p) => p.id === id)?.nombre;
+  const $ = (s) => document.querySelector(s);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+  // El combo: pinta y devuelve un nodo; onElegir recibe el id.
+  function combo(elegido, onElegir, conEtiqueta = true) {
+    const caja = document.createElement("div");
+    caja.className = "combo-caja";
+    let abierto = false;
+    const pintar = () => {
+      caja.innerHTML = `
+        ${conEtiqueta ? '<span class="label">Responsable</span>' : ""}
+        <button type="button" class="combo ${elegido ? "elegido" : ""}" aria-expanded="${abierto}">
+          <span class="avatar">${elegido ? esc(nombre(elegido)[0]) : "?"}</span>
+          <span class="txt ${elegido ? "" : "vacio"}">${elegido ? esc(nombre(elegido)) : "¿Quién hace esta operación?"}</span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        ${abierto ? `<div class="lista"><span class="label">De turno ahora · Tienda TRU</span>${PERSONAS.map((p) => `<button type="button" data-p="${p.id}"><span class="punto"></span>${esc(p.nombre)}</button>`).join("")}</div>` : ""}
+        ${elegido ? "" : '<p class="combo-ayuda">Obligatorio para guardar.</p>'}`;
+      caja.querySelector(".combo").onclick = () => { abierto = !abierto; pintar(); };
+      caja.querySelectorAll("[data-p]").forEach((b) => (b.onclick = () => { elegido = b.dataset.p; abierto = false; pintar(); onElegir(elegido); }));
+    };
+    pintar();
+    return caja;
+  }
+
+  function avisar(texto) {
+    const a = document.createElement("div");
+    a.className = "aviso"; a.setAttribute("role", "status"); a.textContent = texto;
+    document.body.appendChild(a);
+    setTimeout(() => a.remove(), 2200);
+  }
+
+  function cerrarModal() { $("#capa").innerHTML = ""; }
+
+  // Ventana: título, bajada, campos opcionales, combo y pie.
+  function modal({ titulo, bajada, campo, verbo, peligro, alConfirmar }) {
+    let elegido = estado.version === "antes" ? elegidoHoy() : propuesto();
+    const capa = $("#capa");
+    capa.innerHTML = `<div class="velo"><div class="hoja" role="dialog" aria-modal="true" aria-labelledby="t-modal">
+      <div><h3 id="t-modal">${esc(titulo)}</h3><p class="bajada">${esc(bajada)}</p></div>
+      ${campo ? `<div class="campo"><label class="label" for="campo-nombre" style="color:var(--taupe)">Nombre</label><input id="campo-nombre" value="${esc(campo)}"></div>` : ""}
+      <div id="hueco-combo"></div>
+      <div><div class="pie"><button type="button" class="btn btn-sutil" id="m-cancelar">Cancelar</button><button type="button" class="btn ${peligro ? "btn-peligro" : "btn-primario"}" id="m-ok">${esc(verbo)}</button></div><p class="motivo" id="m-motivo" style="margin-top:6px"></p></div>
+    </div></div>`;
+    const ok = $("#m-ok");
+    const refrescar = () => { ok.disabled = !elegido; $("#m-motivo").textContent = elegido ? "" : "Elige quién hace esta operación."; };
+    $("#hueco-combo").appendChild(combo(elegido, (id) => { elegido = id; if (estado.version === "antes") { estado.elegidoArriba = id; pintarArriba(); } refrescar(); }));
+    refrescar();
+    $("#m-cancelar").onclick = cerrarModal;
+    capa.querySelector(".velo").onclick = (e) => { if (e.target.classList.contains("velo")) cerrarModal(); };
+    ok.onclick = () => { alConfirmar(elegido); cerrarModal(); };
+    ok.focus();
+  }
+
+  // Un botón de un clic: hoy guarda directo con el combo de arriba; en la propuesta abre la confirmación.
+  function accion(t, verbo) {
+    const hecho = { Aprobar: "aprobado", Desactivar: "desactivado", Reactivar: "reactivado" }[verbo];
+    const aplicar = (quien) => {
+      t.est = verbo === "Desactivar" ? "desactivado" : "activo";
+      pintar();
+      avisar(`«${t.nombre}» ${hecho} · firmado por ${nombre(quien)}`);
+    };
+    if (estado.version === "antes") return aplicar(elegidoHoy());
+    const bajadas = {
+      Aprobar: "Queda disponible para cualquier prenda nueva.",
+      Desactivar: "Deja de aparecer al crear prendas nuevas. Las prendas que ya lo usan no cambian.",
+      Reactivar: "Vuelve a aparecer al crear prendas nuevas.",
+    };
+    modal({ titulo: `¿${verbo} «${t.nombre}»?`, bajada: bajadas[verbo], verbo, peligro: verbo === "Desactivar", alConfirmar: aplicar });
+  }
+
+  function pintarArriba() {
+    const fila = $("#fila-sup");
+    fila.innerHTML = "";
+    if (estado.version === "antes") fila.appendChild(combo(elegidoHoy(), (id) => { estado.elegidoArriba = id; pintar(); }));
+    else fila.appendChild(document.createElement("span"));
+    const agregar = document.createElement("button");
+    agregar.type = "button"; agregar.className = "btn btn-primario btn-agregar"; agregar.textContent = "+ Agregar tejido";
+    agregar.onclick = () => modal({
+      titulo: "Nuevo tejido", bajada: "Queda disponible de inmediato para cualquier producto nuevo.", campo: "Tocuyo", verbo: "Guardar",
+      alConfirmar: (quien) => { estado.tejidos.push({ id: Date.now(), nombre: $("#campo-nombre")?.value || "Tocuyo", est: "activo" }); pintar(); avisar(`Tejido guardado · firmado por ${nombre(quien)}`); },
+    });
+    fila.appendChild(agregar);
+  }
+
+  function pintar() {
+    pintarArriba();
+    const bloqueado = estado.version === "antes" && !elegidoHoy();
+    const dis = bloqueado ? 'disabled title="Elige quién hace esta operación."' : "";
+    const g = $("#grilla");
+    g.innerHTML = "";
+    estado.tejidos.filter((t) => t.est !== "desactivado").forEach((t) => {
+      const c = document.createElement("div");
+      c.className = "card";
+      c.innerHTML = `<div class="muestra"></div><div class="nom"><span>${esc(t.nombre)}</span>${t.est === "pendiente" ? '<span class="chip">Pendiente</span>' : ""}</div>
+        <div class="acc">${t.est === "pendiente"
+          ? `<button type="button" class="btn btn-primario" data-a="Aprobar" ${dis}>Aprobar</button><button type="button" class="btn btn-sutil" style="color:var(--rojo)" data-a="Rechazar">Rechazar</button>`
+          : `<button type="button" class="btn btn-sutil" data-a="Desactivar" ${dis}>Desactivar</button>`}</div>`;
+      c.querySelectorAll("[data-a]").forEach((b) => (b.onclick = () => b.dataset.a === "Rechazar"
+        ? modal({ titulo: `Rechazar «${t.nombre}»`, bajada: "Se le avisa a la tienda que lo propuso.", campo: "Ya existe como «Seda»", verbo: "Confirmar rechazo", peligro: true, alConfirmar: (q) => { estado.tejidos = estado.tejidos.filter((x) => x !== t); pintar(); avisar(`Rechazado · firmado por ${nombre(q)}`); } })
+        : accion(t, b.dataset.a)));
+      g.appendChild(c);
+    });
+    const d = $("#desact");
+    d.innerHTML = "";
+    estado.tejidos.filter((t) => t.est === "desactivado").forEach((t) => {
+      const s = document.createElement("span");
+      s.className = "item";
+      s.innerHTML = `${esc(t.nombre)} <button type="button" class="btn btn-sutil" style="padding:4px 10px;font-size:11px" ${dis}>Reactivar</button>`;
+      s.querySelector("button").onclick = () => accion(t, "Reactivar");
+      d.appendChild(s);
+    });
+    if (!d.children.length) d.innerHTML = '<span style="color:var(--taupe)">Ninguno.</span>';
+  }
+
+  function seg(id, clave, attr) {
+    document.querySelectorAll(`#${id} button`).forEach((b) => (b.onclick = () => {
+      estado[clave] = b.dataset[attr];
+      estado.elegidoArriba = undefined;
+      document.querySelectorAll(`#${id} button`).forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      cerrarModal(); pintar();
+    }));
+  }
+  seg("seg-version", "version", "v");
+  seg("seg-cuenta", "cuenta", "c");
+  pintar();
+</script>

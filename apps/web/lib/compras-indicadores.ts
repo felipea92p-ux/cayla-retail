@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { esFuncionAusente, MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE } from "./compras-reglas";
+import type { NotaPendiente } from "./nota-pendiente-reglas";
 
 // Indicadores de Compras para decidir (ADR-0111). Solo LEE. Cada función es una llamada
 // a una función SQL del contrato de `docs/adr/0111-…md` (sección «Lectura»); las cifras
@@ -96,18 +98,28 @@ export type ClaveTramoPorPagar = "vencidas" | "semana" | "despues";
 export type TotalTramoPorPagar = { comprobantes: number; saldo: number };
 export type TotalesTramosPorPagar = Record<ClaveTramoPorPagar, TotalTramoPorPagar>;
 
-/** Totales REALES por tramo (sobre toda la deuda que cumple los filtros, no sobre la página). */
-export async function getPorPagarTramos(filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string } = {}): Promise<TotalesTramosPorPagar> {
+/**
+ * Totales REALES por tramo (sobre toda la deuda que cumple los filtros, no sobre la página). Acepta los
+ * mismos filtros que la lista (`listar_compras`), tipo de documento y rango de emisión incluidos: si un
+ * filtro llega a la lista y no acá, los subtotales dejan de cuadrar con las filas (H3, ADR-0111).
+ */
+export async function getPorPagarTramos(
+  filtros: { proveedorId?: string; condicion?: string; soloVencidas?: boolean; busqueda?: string; tipo?: string; desde?: string; hasta?: string; destinoId?: string } = {}
+): Promise<TotalesTramosPorPagar> {
   const supabase = await createClient();
-  const filas = exigir(
-    await supabase.rpc("por_pagar_tramos", {
-      ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
-      ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
-      ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
-      ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
-    }),
-    "los totales por tramo de la deuda"
-  );
+  const res = await supabase.rpc("por_pagar_tramos", {
+    ...(filtros.proveedorId ? { p_proveedor_id: filtros.proveedorId } : {}),
+    ...(filtros.condicion ? { p_condicion: filtros.condicion } : {}),
+    ...(filtros.soloVencidas ? { p_solo_vencidas: true } : {}),
+    ...(filtros.busqueda ? { p_busqueda: filtros.busqueda } : {}),
+    ...(filtros.tipo ? { p_tipo: filtros.tipo } : {}),
+    ...(filtros.desde ? { p_desde: filtros.desde } : {}),
+    ...(filtros.hasta ? { p_hasta: filtros.hasta } : {}),
+    ...(filtros.destinoId ? { p_ubicacion_id: filtros.destinoId } : {}),
+  });
+  // Misma regla que la lista (`listarCompras`): sin la migración de «Destino» la base no conoce `p_ubicacion_id`.
+  if (filtros.destinoId && esFuncionAusente(res.error)) throw new Error(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE);
+  const filas = exigir(res, "los totales por tramo de la deuda");
   const vacio = (): TotalTramoPorPagar => ({ comprobantes: 0, saldo: 0 });
   const totales: TotalesTramosPorPagar = { vencidas: vacio(), semana: vacio(), despues: vacio() };
   for (const f of filas) {
@@ -115,6 +127,37 @@ export async function getPorPagarTramos(filtros: { proveedorId?: string; condici
     if (k in totales) totales[k] = { comprobantes: n(f.comprobantes), saldo: n(f.saldo) };
   }
   return totales;
+}
+
+// ---------------------------------------------------------------- «esperando nota» en las listas
+// El tipo vive en el módulo puro (`nota-pendiente-reglas`) para que un componente cliente lo importe sin
+// arrastrar `supabase/server`. Se re-exporta acá para quien ya importa de este archivo.
+export type { NotaPendiente } from "./nota-pendiente-reglas";
+
+/**
+ * De los comprobantes que la página tiene en pantalla, cuáles esperan su nota de crédito por faltante
+ * (cierres sin la nota registrada) y por cuánto: `compras_nota_pendiente`. Devuelve un objeto por id de
+ * comprobante; el que no está, no espera nada. Solo un líder recibe datos (un integrante recibe vacío,
+ * como el resto de las cifras de dinero).
+ *
+ * NO lanza si la consulta falla: es un AVISO junto al saldo, no un número. Si no llega (la base todavía
+ * sin la migración `20260918220000`, o una caída), la lista se dibuja igual con su saldo, que es correcto;
+ * el error queda en el log del servidor. Sin ids no pregunta nada.
+ */
+export async function getNotasPendientes(compraIds: string[]): Promise<Record<string, NotaPendiente>> {
+  const ids = [...new Set(compraIds)];
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("compras_nota_pendiente", { p_compra_ids: ids });
+  if (error || !data) {
+    console.error("Notas de crédito pendientes de las listas:", error?.message ?? "la consulta no devolvió datos");
+    return {};
+  }
+  const porCompra: Record<string, NotaPendiente> = {};
+  for (const f of data) {
+    porCompra[String(f.compra_id)] = { unidadesCerradas: n(f.unidades_cerradas), montoEsperado: n(f.monto_esperado), resuelto: Boolean(f.resuelto) };
+  }
+  return porCompra;
 }
 
 // ---------------------------------------------------------------- recepciones
