@@ -43,7 +43,7 @@ function FilaCategoria({ c, onClick }: { c: CategoriaResumen; onClick: () => voi
       <span className="min-w-0">
         <span className="block text-sm text-tinta">{c.nombre}</span>
         <span className="text-xs text-tinta/55">
-          {c.variantes} {c.variantes === 1 ? "variante" : "variantes"} · {c.disponible.toLocaleString("es-PE")} uds disponibles
+          {c.variantes} {c.variantes === 1 ? "talla" : "tallas"} · {c.disponible.toLocaleString("es-PE")} uds disponibles
         </span>
       </span>
       <span className="flex shrink-0 items-center gap-3">
@@ -110,7 +110,7 @@ export function DisponibleTotalOverlay({ filas, esLider, onClose }: { filas: Fil
           <p className="text-xs text-tinta/55">
             {esLider
               ? categoria.variantesSinCosto > 0
-                ? `${categoria.variantesSinCosto} ${categoria.variantesSinCosto === 1 ? "variante" : "variantes"} sin costo registrado, no incluida${categoria.variantesSinCosto === 1 ? "" : "s"} en el total. `
+                ? `${categoria.variantesSinCosto} ${categoria.variantesSinCosto === 1 ? "talla" : "tallas"} sin costo registrado, no incluida${categoria.variantesSinCosto === 1 ? "" : "s"} en el total. `
                 : ""
               : "El costo y el margen solo los ve un líder de equipo. "}
             Sin causa registrada para el cambio de esta semana — el sistema no liga hoy un stock que sube o baja a una promoción o temporada concreta.

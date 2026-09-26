@@ -14,6 +14,8 @@ import { useSedeActiva } from "@/components/SedeActiva";
 import { paginar, paginarSinPartirGrupos } from "@/lib/paginacion";
 import { ReponerPisoModal } from "@/components/ReponerPisoModal";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { PedirOtraSedeModal } from "@/components/apartados/ModalesApartado";
+import { alternarMarcasDePrenda, permisosDelDetalle } from "@/lib/existencias-permisos";
 import { ResolverDanadosModal } from "@/components/ResolverDanadosModal";
 import { ApartarModal } from "@/components/ApartarModal";
 import { ApartadosModal } from "@/components/ApartadosModal";
@@ -267,6 +269,8 @@ export function InventarioPanel({
   veTraslados = false,
   puedeBajarAlPiso = false,
   veApartados = false,
+  esTienda = false,
+  tiendasParaPedir = [],
 }: {
   ubicacionId: string;
   stock: FilaExistencias[];
@@ -323,6 +327,10 @@ export function InventarioPanel({
   puedeBajarAlPiso?: boolean;
   /** ¿Su rol ve «Apartados»? «Apartar» desde Existencias es de ese módulo (ADR-0240). */
   veApartados?: boolean;
+  /** Es una tienda: entre tiendas se pide una prenda para una clienta (ADR-0233). */
+  esTienda?: boolean;
+  /** Las OTRAS tiendas, con su nombre corto (el de «Dónde más hay»): a quién se le puede pedir (tarea #9). */
+  tiendasParaPedir?: { id: string; nombre: string; corto: string }[];
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -351,6 +359,8 @@ export function InventarioPanel({
   const [ajustando, setAjustando] = useState<FilaExistencias | null>(null);
   const [viendoDanados, setViendoDanados] = useState(abrirDanados);
   const [apartando, setApartando] = useState<FilaExistencias | null>(null);
+  // «Pedir para una clienta» desde «Dónde más hay» (tarea #9): la talla y la tienda que la tiene.
+  const [pidiendo, setPidiendo] = useState<{ fila: FilaExistencias; tienda: { id: string; nombre: string } } | null>(null);
   const [viendoApartados, setViendoApartados] = useState(false);
   const [viendoDisponible, setViendoDisponible] = useState(false);
   const [viendoCobertura, setViendoCobertura] = useState(false);
@@ -497,9 +507,20 @@ export function InventarioPanel({
   // Apartar necesita saber DE DÓNDE (piso o almacén): solo donde la ubicación separa las dos.
   // ADR-0240 (opción A de Felipe): cada escritura es del módulo que la nombra, y la base pide lo mismo
   // (`mover_entre_piso_y_almacen` → «Bajada al piso», `apartar_prenda` → «Apartados»): el botón solo aparece si va a pasar.
-  const puedeApartar = separaConSububicaciones && enSedeActiva && veApartados;
-  const puedeReponer = separaConSububicaciones && enSedeActiva && puedeBajarAlPiso;
-  const puedeAjustarAqui = puedeAjustar && enSedeActiva;
+  // Una sola función, con su prueba (tarea #11, `lib/existencias-permisos.ts`): un `&&` quitado aquí volvía a abrir
+  // «Reponer» a quien no tiene el módulo sin que nada avisara.
+  const permisos = permisosDelDetalle({
+    separaPisoAlmacen: separaConSububicaciones,
+    enSedeActiva,
+    puedeBajarAlPiso,
+    veApartados,
+    puedeAjustar,
+    veTraslados,
+    esTienda,
+  });
+  const puedeApartar = permisos.apartar;
+  const puedeReponer = permisos.reponerYRetirar;
+  const puedeAjustarAqui = permisos.ajustar;
   const resumenApartados = useMemo(() => resumirApartados(apartados, hoyLima()), [apartados]);
   const separa = resumen.separaPisoAlmacen;
 
@@ -514,15 +535,7 @@ export function InventarioPanel({
     setAbierta({ clave: p.clave, varianteId });
   }
   function alternarPrenda(p: PrendaAgrupada<FilaExistencias>) {
-    setMarcadas((previas) => {
-      const siguientes = new Set(previas);
-      const todas = p.tallas.every((f) => previas.has(f.varianteId));
-      for (const f of p.tallas) {
-        if (todas) siguientes.delete(f.varianteId);
-        else siguientes.add(f.varianteId);
-      }
-      return siguientes;
-    });
+    setMarcadas((previas) => alternarMarcasDePrenda(previas, p.tallas.map((f) => f.varianteId)));
   }
   /** Un código leído (pistola con Enter, o la cámara): abre la prenda parada en esa talla. Si no es de ninguna prenda de
    *  esta sede, queda escrito en el buscador y el estado vacío explica por qué no aparece. */
@@ -696,7 +709,8 @@ export function InventarioPanel({
               icono={PackagePlus}
               etiqueta="Reponer a piso hoy"
               valor={resumen.requierenReposicion}
-              unidad={resumen.requierenReposicion === 1 ? "variante" : "variantes"}
+              // «talla», no «variante» (tarea #10): es la palabra de la tienda, la de la píldora y la de cada fila.
+              unidad={resumen.requierenReposicion === 1 ? "talla" : "tallas"}
               urgente={resumen.requierenReposicion > 0}
               activa={accion === "reponer_a_piso"}
               onClick={() => {
@@ -712,7 +726,9 @@ export function InventarioPanel({
                   (2026-09-26): «Acción hoy» solo mira cuánto queda en el piso, nunca las ventas. */}
               {resumen.requierenReposicion === 0
                 ? "Nada pendiente de bajar al piso"
-                : `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén para bajar al piso`}
+                : // Dice en qué se distingue de la píldora «Por colgar» (tarea #10): esta cuenta TODO lo que pide reponer
+                  // (poco en el piso); la píldora, solo lo que tiene el piso en cero.
+                  `${cuentaPorColgar.tallas} sin nada en el piso (por colgar) · ${unidadesReponer.toLocaleString("es-PE")} uds en almacén para bajar`}
             </TarjetaPrioridad>
           )}
           <TarjetaPrioridad
@@ -1043,7 +1059,7 @@ export function InventarioPanel({
             columnas={
               separa
                 ? [
-                    { titulo: "Producto / variante" },
+                    { titulo: "Prenda / talla" },
                     { titulo: "Stock actual", subtitulo: "Piso / Almacén", alinear: "centro", ayuda: "Lo utilizable de hoy en esta sede — nunca cuarentena, nunca lo apartado para clientas" },
                     { titulo: "Cobertura piso", alinear: "centro", ayuda: "Cuánto dura el piso de hoy al Ritmo reciente" },
                     { titulo: "Ritmo reciente", subtitulo: "últimos 7 días", alinear: "centro", ayuda: "Ventas comerciales ÷ días de exposición en piso — toca para ver el detalle" },
@@ -1053,7 +1069,7 @@ export function InventarioPanel({
                     { titulo: "", alinear: "centro" },
                   ]
                 : [
-                    { titulo: "Producto / variante" },
+                    { titulo: "Prenda / talla" },
                     { titulo: "Stock actual", alinear: "centro" },
                     { titulo: "En camino", alinear: "centro" },
                     { titulo: "En la red", alinear: "centro" },
@@ -1347,6 +1363,22 @@ export function InventarioPanel({
         <ResolverDanadosModal pendientes={danadosPendientes} esLider={esLider} otraSede={!enSedeActiva} onClose={() => setViendoDanados(false)} />
       )}
 
+      {pidiendo && sedeActiva && (
+        <PedirOtraSedeModal
+          prenda={{
+            varianteId: pidiendo.fila.varianteId,
+            referencia: pidiendo.fila.referencia,
+            color: pidiendo.fila.color,
+            talla: pidiendo.fila.talla,
+            codigo: pidiendo.fila.sku,
+            sku: pidiendo.fila.sku,
+          }}
+          tienda={pidiendo.tienda}
+          ubicacion={{ ubicacionId: sedeActiva.ubicacionId, etiqueta: sedeActiva.etiqueta }}
+          onClose={() => setPidiendo(null)}
+        />
+      )}
+
       {apartando && sububicacionPiso && sububicacionAlmacen && (
         <ApartarModal
           fila={apartando}
@@ -1375,11 +1407,16 @@ export function InventarioPanel({
           separa={separa}
           mostrarMarca={mostrarMarca}
           puedeReponer={puedeReponer}
-          enSedeActiva={enSedeActiva}
-          sinModuloBajada={separaConSububicaciones && enSedeActiva && !puedeBajarAlPiso}
+          enSedeActiva={permisos.etiquetasEHistorial}
+          sinModuloBajada={permisos.explicarSinModuloBajada}
           puedeApartar={puedeApartar}
           puedeAjustar={puedeAjustarAqui}
-          veTraslados={veTraslados && enSedeActiva}
+          veTraslados={permisos.trasladar}
+          tiendasParaPedir={permisos.pedirAOtraSede ? tiendasParaPedir : []}
+          onPedir={(f, tienda) => {
+            setAbierta(null);
+            setPidiendo({ fila: f, tienda });
+          }}
           onReponer={(f) => {
             setAbierta(null);
             abrirMovimiento(f.varianteId, "bajar", null);

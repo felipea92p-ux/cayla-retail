@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   lineasIniciales,
   porEscanear,
+  unirConIniciales,
   BOTON_COMPROBAR,
   BOTON_CONFIRMAR_DE_NUEVO,
   BUFER_VACIO,
@@ -1007,5 +1008,24 @@ describe("el borrador en el navegador", () => {
     expect(textoDeEnvioIncierto(enviadoEn)).toBe(
       "Enviaste esta bajada a las 10:40 y no llegó la respuesta. Pulsa «Comprobar»: si ya se guardó, no se repite."
     );
+  });
+});
+
+describe("unirConIniciales (tarea #11): lo marcado en Existencias no se pierde con una bajada a medias", () => {
+  const escaneada = { varianteId: id(1), cantidad: 2 };
+  it("al continuar el borrador, lo marcado se suma al final «por escanear», sin tocar lo ya escaneado", () => {
+    expect(unirConIniciales([escaneada], [{ varianteId: id(1), cantidad: 0 }, { varianteId: id(2), cantidad: 0 }])).toEqual([
+      { varianteId: id(1), cantidad: 2 },
+      { varianteId: id(2), cantidad: 0 },
+    ]);
+  });
+  it("sin borrador (empezar de nuevo) la lista es lo marcado, en 0", () => {
+    expect(unirConIniciales([], [{ varianteId: id(3), cantidad: 1 }])).toEqual([{ varianteId: id(3), cantidad: 0 }]);
+  });
+  it("el tope solo corta lo que se suma: nunca quita una línea ya escaneada", () => {
+    const llenas = Array.from({ length: MAX_LINEAS_BAJADA }, (_, i) => ({ varianteId: id(i + 1), cantidad: 1 }));
+    const r = unirConIniciales(llenas, [{ varianteId: id(9999), cantidad: 0 }]);
+    expect(r).toHaveLength(MAX_LINEAS_BAJADA);
+    expect(r.every((l) => l.cantidad === 1)).toBe(true);
   });
 });

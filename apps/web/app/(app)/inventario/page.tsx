@@ -15,6 +15,7 @@ import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
 import { conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
+import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -244,6 +245,12 @@ export default async function InventarioPage({
         veTraslados={veModulo(persona, "traslados")}
         puedeBajarAlPiso={puedeBajarAlPiso}
         veApartados={veModulo(persona, "apartados")}
+        esTienda={vende}
+        // Las otras tiendas, por su nombre corto (el que muestra «Dónde más hay»): a quién se le pide una talla para una
+        // clienta (tarea #9, ADR-0233). El Taller no aparta.
+        tiendasParaPedir={ubicaciones
+          .filter((u) => u.tipo === "tienda" && u.id !== ubicacionActivaId)
+          .map((u) => ({ id: u.id, nombre: u.nombre, corto: nombreCortoSede(u.nombre) }))}
       />
     </div>
   );
