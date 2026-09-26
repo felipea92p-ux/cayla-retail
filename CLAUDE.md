@@ -161,6 +161,12 @@ lista y el segundo, la hoja. **Un control que usa el Escape (cierra su lista, bo
 control, así que su `onEscapeKeyDown` no alcanza para saber si el Escape era del combo. Un cajón que arme su propio
 `Dialog.Content` pasa su `onEscapeKeyDown` por `useEscapeLibre` (lo vigila `lib/hojas-escape.test.ts`).
 
+**Teclas que suben desde un modal (ADR-0128, «Actualización 2026-09-26»):** React hace subir los eventos de un portal
+por sus ancestros de React: un `<Modal>` abierto desde un cajón le entrega sus teclas al `onKeyDown` del cajón aunque
+en la página viva fuera. Un cajón que pasa de registro con ↑ ↓ lo hace con `useFlechasDelCajon` (ignora la flecha que
+no nació en su DOM, que otro control ya usó o que viene de un campo; lo vigila `lib/vista-rapida-reglas.test.ts`),
+nunca con un `e.key === "ArrowDown"` propio.
+
 **Server Components y archivos `"use client"`:** un Server Component solo puede *renderizar* componentes cliente o pasarles
 props serializables; NUNCA llames desde el servidor a una función exportada por un archivo `"use client"` (Next lanza
 «Attempted to call X() from the server but X is on the client» y la pantalla se cae). La lógica pura va en `lib/*.ts` y se
