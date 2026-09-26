@@ -216,7 +216,9 @@ export function ComboBuscable<T extends string>({
             role="listbox"
             aria-label={etiquetaAccesible}
             onScroll={limite == null ? alHacerScroll : undefined}
-            className="card-cayla z-50 overflow-y-auto shadow-lg"
+            // `anim-revelar`: la misma entrada que el resto de los combos y que el selector de sede (240 ms, sin espera).
+            // Era el único que aparecía de golpe; la lista se monta una vez por apertura, así que tipear no la repite.
+            className="anim-revelar card-cayla z-50 overflow-y-auto shadow-lg"
           >
           {mostradas.length === 0 && hayCrear && texto.trim() === "" ? null : mostradas.length === 0 ? (
             <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{texto.trim()}».</li>
