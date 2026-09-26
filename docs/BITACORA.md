@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Fotos de prenda: mejor calidad sin cambiar la prenda — ADR-0228 act.)
+Felipe comparó una foto editada con ChatGPT con una tomada en tienda y pidió mejor calidad sin cambiar la prenda. Casi toda la diferencia estaba en la toma (arrugas, gancho, etiqueta, luz lateral), así que se agregó lo que sí se arregla sin inventar: se borran los pedazos sueltos del recorte, la luz de la prenda se corrige con tope y una nitidez leve. En la revisión aparecen «Luz corregida / Luz original» y cuatro consejos para tomar la foto.
+Por qué así: la clienta compra por la foto; un celeste que sale gris o más vivo es una devolución. Por eso la luz se corrige sobre el brillo y los tres colores se escalan en la misma proporción. Qué se rompería sin esto: la primera versión, canal por canal, avivaba los colores (celeste de 42 % a 47-50 % de saturación). Se vio midiendo en el navegador y se corrigió antes de publicar.
+Felipe se lleva: **«mejorar» una foto tiene dos caminos: ajustar los píxeles que ya están, o redibujarla.** El primero no puede quitar una arruga; el segundo sí, pero ya no es la prenda. La mejor foto se consigue al tomarla.
+Sin resolver: probar con una foto real de tienda y sesión real.
+
 ## 2026-09-26 (Punto de venta: spike «el ticket a lo alto»)
 Sobre la pantalla ya publicada (ADR-0221), Felipe pidió más aire para el ticket: sin la franja de arriba, sin «Apartar»/«Proforma» en el pie, todo en «Más» sobre el catálogo, y «Apartados» a la vista llevándose las prendas del ticket. Spike en `docs/maquetas/punto-venta-ticket-alto-2026-09/`, sin código.
 Felipe se lleva: (1) **una franja de ancho completo le quita alto a la columna que más lo necesita**: el ticket gana ~62 px, una prenda más a la vista. (2) **Un botón que se lleva el ticket vale más que dos**: «Apartados» hace de puerta y de «Apartar». (3) La tira de espera mostraba «3216 min»: se corrige a «hace 2 días».
