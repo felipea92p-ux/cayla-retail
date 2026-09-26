@@ -1569,7 +1569,21 @@ Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `re
 sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0139 (antes 0107, 0132 y 0138; `modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
 
+---
 
+## 🎯 Calidad de las ventas (2026-09-18, ADR-0214)
+
+- [x] **`/comercial/calidad` construido y verificado en lo que no depende de la base real:** 2 funciones SQL
+      (`20260918192000_panel_calidad.sql`), reglas puras con 26 pruebas, pantalla vista en escritorio y celular, prueba
+      aislada de 26 verificaciones con 5 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial/calidad` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo que la prueba aislada no cubre: RLS, `fn_es_lider` verdadera, `getUbicaciones` real.
+- [ ] **Aplicar en producción `20260918191500_fn_origen_producto.sql` y DESPUÉS `20260918192000_panel_calidad.sql`** (después del panel comercial). Depende de
+      `variantes.talla_id`, `compras.estado` y `producciones.es_muestra`. Solo lectura; se deshace con 2 `drop function`.
+- [ ] **La vista por proveedor no dirá nada hasta que haya compras reales:** hoy el catálogo casi no está cargado y
+      casi todo saldría como "Sin origen registrado". Es un dato, no un defecto.
+- [ ] **Cambios de una talla a otra** (M→L dice más sobre las medidas que un cambio suelto) y **motivo de devolución con
+      vocabulario cerrado** (`devoluciones.motivo` es texto libre). Umbrales 10 / 2× / 3 provisionales: calibrar con meses reales.
 
 ---
 

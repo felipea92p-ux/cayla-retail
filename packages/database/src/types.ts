@@ -5249,6 +5249,32 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_calidad: {
+        Args: { p_dia?: string; p_dias?: number; p_plazo_dias?: number }
+        Returns: {
+          clave: string
+          cohorte_desde: string
+          cohorte_hasta: string
+          devueltas_a_proveedor: number
+          devueltas_danadas: number
+          devueltas_vendibles: number
+          etiqueta: string
+          nivel: string
+          unidades_cambiadas: number
+          unidades_devueltas: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_calidad_danadas: {
+        Args: { p_dia?: string; p_meses?: number }
+        Returns: {
+          condicion: string
+          mes: string
+          origen: string
+          ubicacion_id: string
+          unidades: number
+        }[]
+      }
       fn_clave_referencia: { Args: { p: string }; Returns: string }
       fn_clave_texto: { Args: { p: string }; Returns: string }
       fn_colaboradores: {
