@@ -704,6 +704,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-cobertura
 
+      # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
+      # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
+      # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra
+      # al alta de producto ni a «Prendas» hasta aprobarse, y quién puede aprobar (líder o rol con Etiquetas). ROLLBACK siempre.
+      - name: pruebas:etiquetas-aprobar
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:etiquetas-aprobar
+
       # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
       # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
       # y 29 con el de no-tienda; la migración se pega dos veces y aborta ante una función sin clasificar. Venta, caja, ajuste,
