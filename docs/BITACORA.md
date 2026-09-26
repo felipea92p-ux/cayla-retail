@@ -38,6 +38,18 @@ Por qué así: con un candado dentro de `apartar_stock` se rompía recibir trasl
 Felipe se lleva: **un candado solo en la pantalla es un letrero, no un candado.** Si la base no pregunta, cualquiera que llame a la función directamente se lo salta. Y antes de publicar hay que encender «Bajada al piso» en las terminales que hoy reponen, o pierden el botón.
 Sin resolver: revisar los roles de producción; pegar las tres migraciones en orden; verlo con una cuenta sin los módulos.
 
+## 2026-09-26 (Conteo conectado, parte 1: cámara en ráfaga, no encontradas y recontar — ADR-0244)
+Después del spike, Felipe eligió la opción A de diferencias (recontar opcional) y construir en dos partes. La parte 1, sin migración, suma la cámara en ráfaga del celular con bip y vibración, «Faltan» por modelo y color, etiquetas de lo anotado a mano, el aviso de traslados antes de abrir, «No se encontraron» con decisión obligatoria, «Recontar las N» y «Lo que sigue» con Bajar al piso.
+Por qué así: con la cámara, una pila de 12 blusas iguales tiene 12 veces el mismo código. El mismo código suma solo si la etiqueta salió del cuadro, porque la etiqueta quieta sumando sola es el error más caro de un conteo. Qué se rompería sin esto: 12 blusas contadas como 1, o como 40.
+Felipe se lleva: **lo que el sistema tiene y nadie encontró es una decisión, no un aviso.** Dejarlo en un párrafo ámbar escondía la merma; ahora quien cierra dice «no está» o «dejar».
+Sin resolver: probar la cámara con un teléfono real; la parte 2 (tandas por persona, con migración).
+
+## 2026-09-26 (Conteo conectado: análisis y spike, sin código)
+Felipe pasó 4 capturas de Conteo y pidió conectarlo con las pantallas nuevas y hacerlo rápido en el celular. El análisis encontró que en el celular no hay cámara y que dos personas contando a la vez se pisan: `conteo_contar` guarda el total, así que gana la última escritura. En dos tandas de preguntas se decidieron las tandas por persona, «Contando ahora», los avisos entre compañeras, las no encontradas al revisar y los cuatro accesos. Spike en `docs/maquetas/conteo-conectado-2026-09/`.
+Por qué así: cada persona cuenta a su nombre y el total suma, porque dos que cuentan la misma prenda en racks distintos deben sumar. El riesgo real es contar dos veces la misma pila, y eso se pregunta. Qué se rompería sin esto: con dos celulares, el conteo guardaba cifras menores que la realidad y el cierre ajustaba el stock a la baja.
+Felipe se lleva: **«varias a la vez» es una pregunta de la base, no de la pantalla.** Una función que guarda el total no puede recibir dos celulares, por más avisos que ponga la pantalla.
+Sin resolver: elegir A, B o C para las diferencias; construir (tabla de tandas, función que suma y migración con OK).
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.

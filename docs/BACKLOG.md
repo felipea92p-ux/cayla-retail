@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 📷 Conteo conectado: cámara en ráfaga, «no se encontraron» y recontar (2026-09-26, ADR-0244) — parte 1 solo web, sin migración; rama `claude/conteo-screen-analysis-56c54a`
+- [x] Spike y análisis (`docs/maquetas/conteo-conectado-2026-09/`): computadora y celular, cruces entre compañeras, A/B/C de diferencias.
+- [x] Cámara en ráfaga en el celular (`EscanerConteo`, `debeContarLectura`: el mismo código suma solo si la etiqueta salió del cuadro) y bip + vibración por lectura (`sonido-conteo.ts`).
+- [x] Con un conteo abierto se van las tres cifras; «Faltan» por modelo y color en pestañas con «Contadas»; tocar una talla la anota a mano.
+- [x] «Imprimir etiquetas · N» de lo anotado a mano en este aparato (`?variantes=`).
+- [x] Revisar: «No se encontraron» con decisión obligatoria (no está → 0 / dejar) y «Recontar las N» (opción A de Felipe).
+- [x] Aviso de traslados por atender antes de abrir; «Lo que sigue» en el detalle (Bajar al piso tras contar el piso, Movimientos); conteos vacíos plegados.
+- [ ] **Probar la cámara con un teléfono real y etiquetas reales** (solo se vio con una cámara falsa): ¿la pila de 12 iguales suma 12 pasando las etiquetas de a una?
+- [ ] Verlo con cuenta real (líder e integrante) y un conteo de verdad; el «No está → 0» baja el stock de verdad.
+- [ ] **Parte 2 (necesita migración, pedir OK antes de pegar):** tandas por persona y prenda, función que **suma** (hoy `conteo_contar` guarda el total y dos celulares se pisan), «Contando ahora» cada 4 s, confirmar al pasar con Deshacer, avisos «otras unidades / misma pila», «otra talla» y «ya contada». Con eso, «a mano» y «recontar» pasan del aparato a la base.
+
 ## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
 Tareas #7 y #8 del análisis `/pantalla` de Existencias.
 - [x] **#7.**
