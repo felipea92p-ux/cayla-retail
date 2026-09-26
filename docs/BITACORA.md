@@ -3,6 +3,10 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Punto de venta: spike «el ticket a lo alto»)
+Sobre la pantalla ya publicada (ADR-0221), Felipe pidió más aire para el ticket: sin la franja de arriba, sin «Apartar»/«Proforma» en el pie, todo en «Más» sobre el catálogo, y «Apartados» a la vista llevándose las prendas del ticket. Spike en `docs/maquetas/punto-venta-ticket-alto-2026-09/`, sin código.
+Felipe se lleva: (1) **una franja de ancho completo le quita alto a la columna que más lo necesita**: el ticket gana ~62 px, una prenda más a la vista. (2) **Un botón que se lleva el ticket vale más que dos**: «Apartados» hace de puerta y de «Apartar». (3) La tira de espera mostraba «3216 min»: se corrige a «hace 2 días».
+
 ## 2026-09-26 (Movimientos leído desde la tienda — ADR-0234; un ajuste no es la primera carga — ADR-0235)
 Revisión de Movimientos como una integrante sin contexto y los arreglos, con las cuatro decisiones de Felipe: «Entró» cuenta el traslado recibido (Lima pasó de «+3» a «+197»), una fila por operación (46 filas → 8 movimientos), vocabulario de tienda («Traslado», «Zona»), el buscador entiende «venta», detalle con cuánto queda hoy y «Ver la venta», exportar por ruta (como Historial), «← Movimientos» desde un traslado, y la base rechaza un ajuste que sería la primera carga de una prenda (Ajustar stock la guarda como stock inicial). Tres migraciones SIN aplicar en producción; candado nuevo en CI para funciones de reglas que solo usa su prueba.
 Felipe se lleva: (1) **una prueba en verde no garantiza que la tienda lo vea**: la etiqueta «Entrada · Traslado recibido» llevaba 4 días escrita y probada sin pantalla; ahora el CI falla si pasa otra vez. (2) **contar filas no es contar lo que pasó**: la tienda piensa en operaciones («llegó el traslado»), no en líneas de la base. (3) **dos maneras de hacer lo mismo se notan**: Exportar se rehizo el mismo día para seguir el camino de Historial, y ADR-0232 y la migración `20260927100000` los tomaron otras sesiones en paralelo (se renumeró a 0234/0235 y `…153000`).
