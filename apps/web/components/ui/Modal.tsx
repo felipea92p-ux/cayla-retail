@@ -3,6 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode, type RefObject } from "react";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 
 /** Debe coincidir con `.anim-salida` en globals.css. */
 const MS_SALIDA = 220;
@@ -64,6 +65,13 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
     return () => clearTimeout(temporizador);
   }, [cerrando, onClose]);
 
+  // Escape cierra la hoja solo si ningún control de adentro lo usó: con la lista de un combo abierta, el primer Escape
+  // cierra la lista y lo escrito sigue ahí; el segundo cierra la hoja (useEscapeLibre.ts explica por qué Radix solo no
+  // alcanza). El clic en el velo sigue por `onOpenChange`.
+  const alEscape = useEscapeLibre(() => {
+    if (!bloqueado) pedirCierre();
+  });
+
   return (
     <Dialog.Root open onOpenChange={(abierto) => !abierto && !bloqueado && pedirCierre()}>
       <Dialog.Portal>
@@ -90,6 +98,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             } ${
               cerrando ? "anim-modal-sale" : "anim-modal-entra"
             } cascada-modal`}
+            onEscapeKeyDown={alEscape}
             // Radix dispara esto al desmontar el diálogo; `preventDefault` evita que
             // su default (enfocar el trigger) pise el foco que se pone acá.
             onCloseAutoFocus={

@@ -69,6 +69,8 @@ export function MenuAcciones({ etiqueta, items, deshabilitado = false }: { etiqu
   function alTeclear(e: React.KeyboardEvent) {
     if (e.key === "Escape") {
       e.preventDefault();
+      // Este Escape cerró el menú: que no siga hasta un modal o un atajo de la pantalla (useEscapeLibre.ts).
+      e.stopPropagation();
       cerrar(true);
     } else if (e.key === "Tab") {
       cerrar(false);
