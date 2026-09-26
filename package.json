@@ -112,6 +112,7 @@
     "datos:generar:produccion": "node scripts/datos/generar.mjs --volcado",
     "datos:comparar": "node scripts/datos/comparar.mjs --md",
     "datos:aviario": "node scripts/datos/aviario.mjs",
+    "datos:refrescar": "node scripts/datos/refrescar.mjs",
     "local:donde": "node scripts/local/donde-estoy.mjs",
     "terminales:crear": "node scripts/terminales/crear.mjs",
     "terminales:probar": "node --test scripts/terminales/",
