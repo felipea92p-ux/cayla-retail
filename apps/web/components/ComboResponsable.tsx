@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Clock, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
@@ -198,11 +199,16 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         </p>
       )}
 
-      {abierto && posLista && (
-        <div
-          style={{ position: "fixed", ...posLista }}
-          className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
-        >
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
+          medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
+          `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
+      {abierto &&
+        posLista &&
+        createPortal(
+          <div
+            style={{ position: "fixed", ...posLista }}
+            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
+          >
           {mostrarBuscador && (
             <input
               ref={buscador}
@@ -250,8 +256,9 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
               </p>
             )}
           </div>
-        </div>
-      )}
+        </div>,
+          document.body
+        )}
 
       {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
     </div>

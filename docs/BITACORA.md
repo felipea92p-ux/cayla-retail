@@ -1038,6 +1038,22 @@ Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
+
+
+## 2026-09-18 (Panel comercial — el semáforo no puede mirar lo vendido hoy)
+Tarea 11 del plan de finanzas y gestión comercial: `/comercial` (solo líder) con ventas de hoy, semana y mes por
+tienda, ticket promedio, unidades por ticket, ventas por hora y por colaboradora, contra la meta diaria de cada
+tienda. Tres funciones SQL de solo lectura hacen todas las sumas y la pantalla solo pinta, así dos pantallas no
+pueden decir cifras distintas de lo vendido. La decisión que más pesa: el semáforo compara el ritmo del mes hasta
+el CIERRE DE AYER, no lo de hoy — a las 11 am toda tienda lleva una fracción de su meta y una alerta que salta
+siempre se deja de mirar. Todo se mide en hora de Lima: una venta de las 7:30 pm es 00:30 UTC del día siguiente.
+
+Probado sin Docker (caído): un Postgres desechable con datos que cruzan medianoche, una semana que empieza en el mes
+anterior, una anulada, el Taller y una tienda inactiva — 22 verificaciones, y tres mutaciones del SQL (zona UTC,
+contar líneas como tickets, contar anuladas) hacen fallar la prueba, así que sabe detectar lo que dice detectar. No
+se probó contra el esquema real (RLS, `fn_es_lider` verdadera): hay que abrirla como líder contra el stack local. Al
+armar el panel salió a la luz que `getSeriesVentasCaja` agrupa por hora con `getHours()`, que en Vercel (UTC) daría las
+barras de Caja desplazadas cinco horas — sin verificar en producción. ADR-0110.
 ## 2026-09-18 (Vender imprime su comprobante — la boleta existía en la base, pero la clienta no se la podía llevar)
 
 El modal de «Venta registrada» solo decía el total. La boleta ya se emitía dentro de la misma transacción
@@ -9463,3 +9479,12 @@ Tres revisores adversariales encontraron fallas en el bloque 1 y, en paralelo, l
 Por qué así: si la lista seguía editable después de un corte, cualquier prenda sumada cambiaba la huella y la pantalla borraba todo, incluso lo que nunca se guardó; y una lectura que reconstruye el libro por su cuenta ya daba piso 4 donde el libro daba 2. Qué se rompería sin esto: la colaboradora perdería el registro de lo último que colgó sin saber cuáles eran, o bajaría dos veces el mismo fardo al «empezar de nuevo»; y la misma prenda tendría dos pisos distintos según la pantalla.
 Felipe se lleva: (1) **una rama que no se fusiona con main se desactualiza en horas**: dos hallazgos bloqueantes (la entrada por «+ Nuevo» y el cálculo propio del libro) existían solo porque main había cambiado esa misma mañana; (2) **reintentar es seguro solo si lo que se reintenta no cambió**: el token protege una lista, no una lista que sigue creciendo, y por eso tras un corte la lista se congela; (3) **reutilizar el libro común costó velocidad** (de unos 126 a unos 560 ms a 120 días con carga sintética, todavía bajo 1 s): la causa está en `fn_ledger_puntos` y se arregla ahí, una vez, para todas las pantallas que lo leen.
 Sin resolver: pegar las 5 migraciones en orden (0000 → 0100 → 0200 → 0300 → publicar la web → 0400); encender «Bajada al piso» en los roles de quien cuelga; «Reposición» en el almacén (sigue abierta); si «Reponer» se ofrece en toda fila con almacén; que traslados y anulaciones pre-bloqueen (un choque hoy da 40P01 y se reintenta); si la exclusión de las prendas por regularizar vale también para Análisis; acelerar `fn_ledger_puntos`; la D-40 contra la caja antes del bloque 3; si hay pistola en el almacén; y la primera bajada real con la pistola.
+
+## 2026-09-25 (Desplegables sin portal se escondían detrás de la fila de abajo — ADR-0211)
+Felipe pasó capturas de celular: en Historial y Comprobantes, el filtro «Vendedor»/«Tipo» abría su lista y la fila de venta/comprobante de abajo se la tapaba a medio camino. Causa: `usePosicionLista`/`usePosicionAnclada` (2026-09-22) miden el control y dibujan la lista en `position: fixed`, pero cuatro de sus consumidores (`Desplegable` en `campos.tsx`, `ComboBuscable`, `DesplegablePildora`, `ComboResponsable`) la dejaban colgando dentro del árbol normal en vez de en portal a `document.body` — como sí hacían `MenuAcciones` y `ResumenControles` desde el principio. Atrapada dentro de una tarjeta `@container` (containment = nuevo containing block para `fixed`), el `z-50` de la lista solo competía adentro de esa tarjeta, no contra toda la página. De paso, `PanelPildoras` pasa a una sola fila con scroll horizontal en celular (antes `flex-wrap` apilaba las píldoras de texto largo una sobre otra).
+Felipe se lleva: **`position: fixed` con `z-index` alto no garantiza pintar encima de todo** — si un ancestro tiene `transform`, `filter` o `contain`/`container-type` (la `@container` de Tailwind, en particular), ese elemento pasa a posicionarse Y a apilarse DENTRO de ese ancestro. El portal a `document.body` es lo que de verdad lo saca de ahí; el `useAnclaje.ts` que generalizó el mecanismo en 2026-09-22 calculaba la posición pero se olvidó la mitad portal en 4 de sus 6 consumidores.
+Verificado en el navegador (celular 375px y escritorio) en Historial y Comprobantes; `tsc --noEmit` y `eslint` en verde sobre los 4 archivos. Sin resolver: nada pendiente de este cambio — alcance acotado a los 4 consumidores sin portal.
+
+## 2026-09-25 (Segunda vuelta del arreglo anterior: texto envuelto, scroll doble y línea negra en el panel de píldoras)
+Felipe probó el arreglo de ADR-0211 en el celular real y encontró tres cosas más en el mismo panel: el texto de cada píldora se envolvía en 2-3 líneas dentro de su caja de 36px (faltaba `whitespace-nowrap` — `flex-shrink:0` no evita que el texto envuelva), lo que además disparaba scroll vertical (con `overflow-x:auto` puesto, el spec fuerza `overflow-y` a `auto` si hay overflow vertical), y una línea gris de reposo por píldora (`Hilo`, pensada para un campo suelto) se leía como una barra negra continua al quedar varias píldoras borde a borde. Arreglado: `whitespace-nowrap` en la píldora, y un nuevo prop `reposo={false}` en `Hilo` para apagar solo esa línea en `DesplegablePildora` y `PildoraFechas` (Compras). Verificado con JS en el navegador (`scrollHeight === clientHeight`, cero overflow vertical) y por captura en Historial y Comprobantes, celular y escritorio.
+Felipe se lleva: verificar en el navegador emulado no basta cuando el bug depende de comportamientos de layout finos (wrap de texto, la regla `overflow-x`/`overflow-y` del CSS spec) — hace falta probar en el dispositivo real, que es donde esto se notó.
