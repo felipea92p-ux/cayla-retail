@@ -2,6 +2,7 @@
 
 import { FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
 import { coloresParecidos } from "@/lib/color-parecido";
+import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -41,7 +42,24 @@ type Color = {
   activo: boolean;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
+  /** Código Pantone TCX («19-1557 TCX»): la referencia para pedir la tela. Null = sin anclar (los metálicos). */
+  pantoneTcx: string | null;
+  /** Cómo le dicen en tienda («plomo» → Gris): el buscador los entiende. */
+  sinonimos: string[];
 };
+
+// El código Pantone se escribe como sea («19-1557», «19 1557 tcx») y se guarda como «19-1557 TCX». Dos colores no
+// pueden tener el mismo (índice único en la base): la pantalla lo dice antes de que la base lo rechace.
+function pantoneInvalido(texto: string, ocupados: Map<string, string>): boolean {
+  const p = normalizarPantone(texto);
+  return p === "invalido" || (p !== null && ocupados.has(p));
+}
+function pieDePantone(texto: string, ocupados: Map<string, string>): string {
+  const p = normalizarPantone(texto);
+  if (p === "invalido") return "Tiene la forma 19-1557 TCX (o solo 19-1557).";
+  if (p !== null && ocupados.has(p)) return `Ya lo tiene «${ocupados.get(p)}».`;
+  return p ? `Se guarda como ${p}` : "Opcional: el código para pedir la tela al taller o al proveedor.";
+}
 
 function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
@@ -198,8 +216,11 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
   const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
+  const [pantone, setPantone] = useState("");
+  const [sinonimos, setSinonimos] = useState("");
 
   const activos = colores.filter((c) => c.activo);
+  const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
   // Incluye los desactivados: el código es la clave primaria y sigue ocupado
   // aunque el color ya no se elija (cada SKU apunta a él).
@@ -215,6 +236,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setFamiliaColor("neutro");
     setHex(null);
     setNotas("");
+    setPantone("");
+    setSinonimos("");
   }
 
   async function guardar() {
@@ -223,7 +246,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas }),
+        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -242,6 +265,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             activo: true,
             notas: datos.color.notas,
             estado: datos.color.estado,
+            pantoneTcx: datos.color.pantone_tcx ?? null,
+            sinonimos: datos.color.sinonimos ?? [],
           },
         ])
       );
@@ -371,8 +396,9 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                     <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
                   )}
                 </div>
-                <div className="flex justify-between text-[11px] text-tinta/65">
+                <div className="flex justify-between gap-2 text-[11px] text-tinta/65">
                   <span className="font-mono">{c.codigo}</span>
+                  {c.pantoneTcx && <span className="font-mono" title="Código Pantone para pedir la tela">{c.pantoneTcx}</span>}
                 </div>
                 {puedeEditar && (
                   <div className="flex gap-2">
@@ -447,6 +473,23 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 </div>
                 <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
                 <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+                <CampoTexto
+                  etiqueta="Pantone (TCX)"
+                  mono
+                  pie={pieDePantone(pantone, vocabularioPantone)}
+                  tono={pantoneInvalido(pantone, vocabularioPantone) ? "error" : undefined}
+                  value={pantone}
+                  onChange={(e) => setPantone(e.target.value)}
+                  placeholder="19-1557 TCX"
+                  autoComplete="off"
+                />
+                <CampoTexto
+                  etiqueta="Sinónimos"
+                  pie="Opcional: cómo le dicen en tienda, separados por coma. El buscador los entiende."
+                  value={sinonimos}
+                  onChange={(e) => setSinonimos(e.target.value)}
+                  placeholder="plomo, gris medio"
+                />
               </div>
               <SelectorColor hex={hex} onHex={setHex} />
               <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={activos} />
@@ -462,7 +505,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || !responsable.listo}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || !responsable.listo}
                   title={responsable.motivo ?? undefined}
                 >
                   Guardar color
@@ -587,6 +630,10 @@ function ColorEditarModal({
   const [hex, setHex] = useState(color.hex ?? "#c9b79c");
   const [hexAbierto, setHexAbierto] = useState(false);
   const [notas, setNotas] = useState(color.notas ?? "");
+  const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
+  const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
+  // Los códigos Pantone de los OTROS colores: el propio no cuenta como ocupado.
+  const vocabularioPantone = new Map(vocabulario.filter((c) => c.codigo !== color.codigo && c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const [guardando, setGuardando] = useState(false);
   const [desactivando, setDesactivando] = useState(false);
   // Desactivar pide un segundo clic: el primero arma el botón, y si nadie
@@ -608,7 +655,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -626,6 +673,8 @@ function ColorEditarModal({
         activo: datos.color.activo,
         notas: datos.color.notas,
         estado: datos.color.estado,
+        pantoneTcx: datos.color.pantone_tcx ?? null,
+        sinonimos: datos.color.sinonimos ?? [],
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -683,6 +732,23 @@ function ColorEditarModal({
             </div>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+            <CampoTexto
+              etiqueta="Pantone (TCX)"
+              mono
+              pie={pieDePantone(pantone, vocabularioPantone)}
+              tono={pantoneInvalido(pantone, vocabularioPantone) ? "error" : undefined}
+              value={pantone}
+              onChange={(e) => setPantone(e.target.value)}
+              placeholder="19-1557 TCX"
+              autoComplete="off"
+            />
+            <CampoTexto
+              etiqueta="Sinónimos"
+              pie="Opcional: cómo le dicen en tienda, separados por coma. El buscador los entiende."
+              value={sinonimos}
+              onChange={(e) => setSinonimos(e.target.value)}
+              placeholder="plomo, gris medio"
+            />
           </div>
 
           <div>
@@ -715,7 +781,7 @@ function ColorEditarModal({
               className="flex-1"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || ocupado || !responsable.listo}
+              disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
               Guardar

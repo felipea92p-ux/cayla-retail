@@ -73,6 +73,7 @@ export function ElegirColores({
             valor: c.codigo,
             texto: c.nombre,
             detalle: elegidos.includes(c.codigo) ? "✓ elegido" : undefined,
+            claves: c.sinonimos,
             icono: <Punto hex={c.hex} familia={c.familiaColor} />,
           }))}
         />

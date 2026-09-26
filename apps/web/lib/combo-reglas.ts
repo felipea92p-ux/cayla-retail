@@ -27,3 +27,21 @@ export function comboNecesitaBuscador(totalOpciones: number): boolean {
 export function comboLlegoAlFinal(medida: { scrollTop: number; clientHeight: number; scrollHeight: number }, margen = 32): boolean {
   return medida.scrollTop + medida.clientHeight >= medida.scrollHeight - margen;
 }
+
+/**
+ * ¿Una opción de combo responde a lo que se escribió? Por su texto, su detalle o una de sus `claves` (sinónimos:
+ * «plomo» encuentra Gris, «guinda» encuentra Vino — revisión de la paleta, 2026-09-26). `k` ya viene como `clave()`
+ * (sin tildes ni mayúsculas); las claves se comparan igual.
+ *
+ * Devuelve `null` si no responde; `""` si responde por su texto o su detalle; o la clave por la que respondió,
+ * para que la lista diga «Gris · «plomo»» y quien escribió «plomo» entienda por qué le sale Gris.
+ */
+export function coincidenciaCombo(
+  o: { texto: string; detalle?: string; claves?: readonly string[] },
+  k: string,
+  normalizar: (s: string) => string
+): string | null {
+  if (!k) return "";
+  if (normalizar(`${o.texto} ${o.detalle ?? ""}`).includes(k)) return "";
+  return o.claves?.find((c) => normalizar(c).includes(k)) ?? null;
+}

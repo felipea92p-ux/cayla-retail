@@ -96,7 +96,8 @@ export function codigoVariantePrevisto(base: string, colorCodigo: string | null,
   return base + (colorCodigo ? `-${colorCodigo}` : "") + `-${tokenTalla(tallaValor)}`;
 }
 
-export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string };
+/** `sinonimos`: otras palabras con que se busca el color («plomo» → Gris). Vacío si no tiene. */
+export type ColorAlta = { codigo: string; nombre: string; hex: string | null; familiaColor: string; sinonimos?: readonly string[] };
 
 /** Los `max` colores más usados en la categoría (solo los que tienen uso) al frente; el resto agrupado por familia de color, en el orden de `familias`. */
 export function ordenarColores(
