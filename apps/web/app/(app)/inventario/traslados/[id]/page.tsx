@@ -4,7 +4,7 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladoDetalle } from "@/lib/traslados";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { TrasladoDetallePanel } from "@/components/TrasladoDetallePanel";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TrasladoEstado } from "@/components/TrasladoEstado";
 import { situacionTraslado } from "@/lib/traslados-reglas";
 
@@ -28,29 +28,31 @@ export default async function TrasladoDetallePage({ params }: { params: Promise<
 
   return (
     <div className="space-y-6">
-      <InventarioHero
-        eyebrow={
-          <>
-            <Link href="/inventario/traslados" className="btn-enlace text-[13px]">
-              ← Traslados
-            </Link>{" "}
-            · {persona.ubicacionEtiqueta}
-          </>
-        }
+      <EncabezadoPagina
+        sede={persona.ubicacionEtiqueta}
         titulo={
           <>
             Traslado {traslado.numero}
-            {traslado.lineas.length > 0 && <TrasladoEstado situacion={situacion} cerradoConDiferencia={cerradoConDiferencia} />}
+            {/* Suelta, la insignia se apoya en la línea base y en la serif de 46 px cuelga por debajo del título;
+                `inline-flex` mide solo la insignia y `align-middle` la centra en las minúsculas. */}
+            {traslado.lineas.length > 0 && (
+              <span className="ml-3 inline-flex align-middle">
+                <TrasladoEstado situacion={situacion} cerradoConDiferencia={cerradoConDiferencia} />
+              </span>
+            )}
           </>
         }
-        descripcion={
+        subtitulo={
           <>
             {traslado.ubicacionOrigenNombre} <span className="text-taupe">→</span> {traslado.ubicacionDestinoNombre}
             <span className="text-taupe"> · {esDestino ? "entra a tu sede" : persona.ubicacionId === traslado.ubicacionOrigenId ? "sale de tu sede" : "entre otras sedes"}</span>
           </>
         }
-        foto={fotoHeroPorPantalla("traslados")}
-        variante="integrado"
+        pie={
+          <Link href="/inventario/traslados" className="btn-cayla btn-secundario">
+            ← Traslados
+          </Link>
+        }
       />
       <TrasladoDetallePanel
         traslado={traslado}

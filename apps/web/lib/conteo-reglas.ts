@@ -9,9 +9,17 @@
  *     dice el sistema: el conteo sigue siendo a ciegas (variante A de la demo).
  *  3. La cantidad se anota de dos formas: «Suma por escaneo» (cada lectura +1) o «Escribir cantidad». La base
  *     (`conteo_contar`) siempre recibe la cantidad TOTAL de esa prenda: la suma se resuelve acá, con lo ya anotado.
+ *
+ * Y una convención de nombres (2026-09-26): en los tipos del conteo el campo `sku` guarda el CÓDIGO DE LA ETIQUETA
+ * (`variantes.codigo`, con el `sku` legado solo de respaldo — `codigoDeEtiqueta`). El nombre quedó del legado: en
+ * producción 128 de 130 variantes tienen `sku` NULL (ADR-0058) y las que se dan de alta al vuelo nacen sin él. Ese
+ * campo solo se MUESTRA y se busca; para saber de qué prenda se habla se compara `varianteId`, nunca el código.
  */
 
 import type { FilaPrevisualizacion } from "@/lib/conteo-varianza";
+import type { Apariencia } from "@/lib/apariencia-variantes";
+import type { PrioridadConteo } from "@/lib/conteos";
+import { codigoDeEtiqueta } from "./prenda-reglas";
 
 // ---------------------------------------------------------------------------------------------------------------
 // 1. El resultado de un conteo, leído de un vistazo
@@ -185,4 +193,86 @@ export function avanceEnVivo(
   const siguen = pendientes.filter((p) => !contadas.has(p.varianteId));
   const total = contadas.size + siguen.length;
   return { contadas: contadas.size, total, porcentaje: total === 0 ? 0 : Math.round((contadas.size / total) * 100), pendientes: siguen };
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// 5. El código de la etiqueta: qué se muestra y contra qué se busca
+// ---------------------------------------------------------------------------------------------------------------
+
+/** Una fila de `fn_prioridad_conteo` (la de «Conviene contar primero»). Su `sku` es `variantes.sku` a secas. */
+export type FilaPrioridad = {
+  variante_id: string;
+  sku: string | null;
+  referencia: string;
+  talla: string | null;
+  color: string | null;
+  sububicacion_id: string | null;
+  dias_sin_contar: number | null;
+  valor_en_riesgo: number | string;
+};
+
+/**
+ * De la fila de la base a la fila de la pantalla. La comparten el servidor (la lista que llega ya pintada) y el
+ * navegador (al filtrar por categoría): dos copias del mismo mapeo es como una de las dos se queda sin el código.
+ * `fn_prioridad_conteo` devuelve solo `variantes.sku`; el código de la etiqueta viene de `apariencia` (se lee de
+ * `variantes` por id en la misma consulta que la foto). Sin `apariencia` —falló la lectura decorativa— se cae al
+ * `sku` que trajo la función: vacío antes que inventado.
+ */
+export function prioridadDesdeFila(f: FilaPrioridad, apariencia?: Apariencia): PrioridadConteo {
+  return {
+    varianteId: f.variante_id,
+    sku: codigoDeEtiqueta({ codigo: apariencia?.codigo, sku: f.sku }),
+    referencia: f.referencia,
+    talla: f.talla,
+    color: f.color,
+    sububicacionId: f.sububicacion_id,
+    diasSinContar: f.dias_sin_contar,
+    valorEnRiesgo: Number(f.valor_en_riesgo),
+    apariencia,
+  };
+}
+
+/**
+ * Lo que el buscador del conteo lee de cada variante del catálogo. `sku` pasa a ser el código de la etiqueta (es lo
+ * que se muestra y contra lo que se teclea a medias) y `codigosBarras` conserva los códigos de barras y suma el `sku`
+ * legado cuando existe y no es el mismo texto: antes se buscaba por ese sku, y una prenda vieja no debe dejar de
+ * resolverse al escanear su código de siempre. Solo agrega opciones de emparejamiento; no inventa ni escribe nada.
+ */
+export function codigosDeConteo(v: { sku: string; codigo: string | null; codigosBarras: readonly string[] }): { sku: string; codigosBarras: string[] } {
+  const codigo = codigoDeEtiqueta(v);
+  const yaEsta = (c: string) => c.toLowerCase() === codigo.toLowerCase() || v.codigosBarras.some((b) => b.toLowerCase() === c.toLowerCase());
+  return { sku: codigo, codigosBarras: [...v.codigosBarras, ...(v.sku && !yaEsta(v.sku) ? [v.sku] : [])] };
+}
+
+/**
+ * `previsualizar_cierre_conteo` no devuelve `variantes.codigo`: devuelve «el primer código de barras» (por fecha de
+ * alta), y una prenda con varios códigos dados de alta en la misma transacción (etiqueta + fábrica, como en el alta al
+ * vuelo) empata en esa fecha: puede salir cualquiera de los dos. Con el código de la etiqueta que ya conoce el
+ * catálogo la lista dice siempre lo mismo que el resto de la pantalla; sin él (prenda que el catálogo no trae) se
+ * queda el de la función. `codigoDe` es varianteId → `codigoDeEtiqueta`.
+ */
+export function pendientesConCodigo(pendientes: readonly PrendaPendiente[], codigoDe: ReadonlyMap<string, string>): PrendaPendiente[] {
+  return pendientes.map((p) => ({ ...p, sku: codigoDe.get(p.varianteId) || p.sku }));
+}
+
+/**
+ * La lista que se despliega bajo la caja de escanear: lo tecleado a medias contra el código de la etiqueta, o exacto
+ * contra cualquier código de barras (el que lee la pistola). Es la misma regla de antes; lo que cambia es contra qué
+ * `sku` se prueba (ver `codigosDeConteo`): con el `sku` legado, «POL-0004» no encontraba nada y la pantalla ofrecía
+ * «Dar de alta esta prenda» para una que sí existía.
+ */
+export function coincidenciasPorCodigo<T extends { sku: string | null; codigosBarras: readonly string[] }>(texto: string, catalogo: readonly T[], max = 8): T[] {
+  const q = texto.trim().toLowerCase();
+  if (!q) return [];
+  return catalogo.filter((v) => (v.sku ?? "").toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q)).slice(0, max);
+}
+
+/**
+ * El código con el que se dibuja una prenda recién dada de alta al vuelo. `censo_crear_variante` devuelve `v.sku`,
+ * que en una prenda nueva es NULL (nace sin sku y el disparador solo acuña el `codigo`): sin esto la prenda entraba a
+ * «Contadas» con la línea vacía. Si la función un día devuelve el `codigo`, se usa; mientras tanto se muestra el
+ * código de barras que la colaboradora acaba de escanear —el que tiene en la mano—, que es un dato real y no se guarda.
+ */
+export function codigoDePrendaNueva(fila: { sku: string | null; codigo?: string | null; codigo_barras: string }): string {
+  return codigoDeEtiqueta(fila) || fila.codigo_barras;
 }

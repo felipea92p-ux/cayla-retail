@@ -10,7 +10,7 @@
  *   1. ESTRUCTURAL: el código fuente de `fn_ritmo_reciente_json` contiene una llamada real a
  *      `fn_ledger_puntos` (no coincidencia numérica); NO contiene `fn_es_lider()`; NO menciona
  *      `costo` en ningún punto (a diferencia de `fn_resumen_comparacion`, que sí lo devuelve).
- *   2. PERMISO: una colaboradora de OTRA sede no ve nada (`{}`); sin sesión (`anon`), tampoco.
+ *   2. PERMISO: una colaboradora que pide la sede de OTRA no ve nada (`{}`); sin sesión (`anon`), tampoco.
  *   3. REUTILIZA EL LEDGER (no lo reconstruye aparte): para una variante con una reposición
  *      interna y una venta, los eventos que devuelve coinciden EXACTOS (mismos ts/delta/
  *      esVenta/esMovimientoInterno) con los que devuelve `fn_ledger_puntos` filtrado al bucket
@@ -41,21 +41,25 @@ function psql(sql) {
   );
 }
 
+// La tienda es la de una colaboradora activa, no la primera por nombre (2026-09-26, al resolver los conflictos del PR
+// #445 con main): la siembra estándar —la del CI— tiene una sola persona sin rol de líder (la integrante de Trujillo),
+// y por nombre la prueba caía en Tienda Lima, donde solo hay admins: 3 de 6 verificaciones fallaban antes de probar
+// nada. \`rol <> 'lider'\` y no \`= 'colaborador'\`: sobrevive al cambio a «integrante» (CLAUDE.md, Vocabulario).
 const RESOLVER = `
-select id as ubic from retail.ubicaciones where tipo = 'tienda' and activo order by nombre limit 1 \\gset
+select u.id as ubic
+  from retail.ubicaciones u
+  join public.personas p on u.sede_dynamic_id = p.sede_base_id
+  join retail.colaboradores c on c.persona_id = p.id
+  where u.tipo = 'tienda' and u.activo and c.rol <> 'lider' and c.estado = 'activo' and p.estado = 'activo'
+  order by u.nombre, p.created_at limit 1 \\gset
 select p.auth_user_id as persona_admin from public.personas p where p.rol = 'admin' order by p.created_at limit 1 \\gset
 select p.auth_user_id as persona_colaboradora
   from public.personas p
   join retail.colaboradores c on c.persona_id = p.id
   join retail.ubicaciones u2 on u2.sede_dynamic_id = p.sede_base_id
-  where c.rol = 'colaborador' and c.estado = 'activo' and p.estado = 'activo' and u2.id = :'ubic'
+  where c.rol <> 'lider' and c.estado = 'activo' and p.estado = 'activo' and u2.id = :'ubic'
   order by p.created_at limit 1 \\gset
-select p.auth_user_id as persona_otra_sede
-  from public.personas p
-  join retail.colaboradores c on c.persona_id = p.id
-  join retail.ubicaciones u2 on u2.sede_dynamic_id = p.sede_base_id
-  where p.rol not in ('admin', 'supervisor_sede') and u2.id <> :'ubic' and u2.activo
-  order by p.created_at limit 1 \\gset
+select id as otra_ubic from retail.ubicaciones where tipo = 'tienda' and activo and id <> :'ubic' order by nombre limit 1 \\gset
 `;
 
 function prelude() {
@@ -154,14 +158,16 @@ select 'COSTO|' || (pg_get_functiondef('retail.fn_ritmo_reciente_json'::regproc)
 // 2. PERMISO
 // ---------------------------------------------------------------------------
 correr(
-  "2. Una colaboradora de OTRA sede no ve nada; sin sesión tampoco",
+  "2. Una colaboradora que pide la sede de OTRA no ve nada; sin sesión tampoco",
   `${prelude()}
 select pg_temp.variante('ZZ-RR-PERM') as va \\gset
 select pg_temp.saldo(:'va'::uuid, :'sp'::uuid, 5);
 
+-- Es el mismo candado que «una de otra sede pide esta», al revés: así basta con UNA persona sin rol de líder. Con permiso,
+-- la respuesta sería {"<va>": []} (la variante siempre aparece); sin él, {} a secas.
 set local role authenticated;
-set local request.jwt.claim.sub = :'persona_otra_sede';
-select 'OTRA_SEDE|' || retail.fn_ritmo_reciente_json(:'ubic'::uuid, :'t0'::timestamptz, array[:'va'::uuid])::text;
+set local request.jwt.claim.sub = :'persona_colaboradora';
+select 'OTRA_SEDE|' || retail.fn_ritmo_reciente_json(:'otra_ubic'::uuid, :'t0'::timestamptz, array[:'va'::uuid])::text;
 
 reset role;
 select 'ANON|' || has_function_privilege('anon', p.oid, 'EXECUTE')
@@ -169,7 +175,7 @@ select 'ANON|' || has_function_privilege('anon', p.oid, 'EXECUTE')
   where n.nspname = 'retail' and p.proname = 'fn_ritmo_reciente_json';
 rollback;`,
   (salida) => {
-    afirmar("colaboradora de otra sede: {}", salida.includes("OTRA_SEDE|{}"));
+    afirmar("colaboradora pidiendo otra sede: {}", salida.includes("OTRA_SEDE|{}"));
     afirmar("anon no puede ejecutarla", salida.includes("ANON|f"));
   },
 );

@@ -57,7 +57,8 @@ export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip
  *  operación los escriben las RPC; los de «sistema» son cargas hechas por
  *  script, sin persona (`usuario_id` null): existen en producción y se
  *  muestran con nombre propio, no se inventan. `reposicion`/`merma`/
- *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` — un ajuste
+ *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` (la lista vive en
+ *  `ajuste-reglas.ts`) — un ajuste
  *  suelto vía `registrar_movimiento`, tipo='ajuste' — y se distinguen a
  *  propósito de `conteo` (ADR-0023): ese lo escribe SOLO `cerrar_conteo`, con
  *  `conteo_item_id` enlazado al conteo formal; `conteo_fisico` es el mismo
@@ -77,7 +78,8 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   transferencia: "Transferencia",
   traslado_salida: "Transferencia · salida",
   traslado_entrada: "Transferencia · llegada",
-  movimiento_interno: "Reposición interna",
+  // El filtro es por motivo y trae todo lo que escribe `mover_interno`, sea cual sea el par: no promete bajada ni retiro.
+  movimiento_interno: "Movimiento interno",
   devolucion: "Devolución",
   cambio: "Cambio",
   anulacion_venta: "Anulación de venta",
@@ -86,7 +88,7 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
-  // «Reposición interna» (bajar del almacén al piso), que es otra cosa.
+  // la bajada del almacén al piso, que es otra cosa.
   reposicion: "Ajuste · reposición",
   merma: "Ajuste · merma",
   conteo_fisico: "Ajuste · conteo físico",
@@ -151,12 +153,24 @@ export function etiquetaProceso(motivo: string | null): string {
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
 }
 
+/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
+const INTERNO_POR_PAR: Record<string, string> = {
+  "almacen_tienda→piso_venta": "Bajada al piso",
+  "piso_venta→almacen_tienda": "Retiro del piso",
+};
+
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
  *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
  *  MIRA («llegada» si suma, «salida» si resta): lo dice el signo, no el motivo — así
- *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas. */
-export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
+ *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas.
+ *  «Interno» sale de la categoría (estructura, `fn_es_traslado_interno`), nunca del motivo (ADR-0203); un par que no es
+ *  bajada ni retiro conserva el nombre de su proceso («Movimiento interno», «Activación piso/almacén»). */
+export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
   if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+  if (m.categoria === "interno") {
+    const porPar = INTERNO_POR_PAR[`${m.sububicacion?.tipo ?? ""}→${m.sububicacionDestino?.tipo ?? ""}`];
+    if (porPar) return porPar;
+  }
   return etiquetaProceso(m.motivo);
 }
 
@@ -420,7 +434,7 @@ export function etiquetaEstadoComprobante(estado: EstadoComprobante): string {
 //
 // Quedan a la vista cuatro controles: la búsqueda, el tipo (`cat`), la sububicación
 // (`sub`) y el período (`rango`, o `desde`/`hasta` cuando es personalizado). Todo lo
-// demás (el proceso específico, `proc`) va dentro de «Más filtros». Ya no se filtra
+// demás (el proceso específico, `proc`) sale debajo del tipo elegido («Internos» ▸ «Movimiento interno»). Ya no se filtra
 // por persona: la autoría sigue guardada en `movimientos.usuario_id` y en el detalle
 // de cada movimiento, pero un `?usuario=` viejo se ignora sin romper nada.
 // ---------------------------------------------------------------------------

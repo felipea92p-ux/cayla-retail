@@ -39,6 +39,8 @@ export function NuevaProformaModal({
   ubicacionActualId,
   esLider,
   inicial = null,
+  desdeTicket = null,
+  onCreada,
 }: {
   onCerrar: () => void;
   prendas: PrendaParaProforma[];
@@ -46,6 +48,11 @@ export function NuevaProformaModal({
   ubicacionActualId: string;
   esLider: boolean;
   inicial?: Proforma | null;
+  /** «Proforma» desde el ticket del Punto de venta (spike 2026-09-26): arranca con sus prendas y su clienta. Los
+   *  descuentos del ticket no viajan: la proforma tiene su propio tope y motivo (TOPE_DESCUENTO_PROFORMA). */
+  desdeTicket?: { lineas: { varianteId: string; cantidad: number }[]; clienteNombre?: string; clienteDoc?: string } | null;
+  /** Se creó bien: el Punto de venta vacía su ticket. */
+  onCreada?: () => void;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -54,7 +61,12 @@ export function NuevaProformaModal({
   const [ubicacionId, setUbicacionId] = useState(inicial?.ubicacion_id ?? ubicacionActualId);
   const lineasIniciales = lineasDeLaProforma(inicial?.items) ?? [];
   const [filas, setFilas] = useState<Fila[]>(() =>
-    lineasIniciales.flatMap((l) => {
+    desdeTicket
+      ? desdeTicket.lineas.flatMap((l) => {
+          const prenda = prendas.find((p) => p.varianteId === l.varianteId);
+          return prenda ? [{ prenda, cantidad: l.cantidad, pct: 0, motivo: "", detalle: "" }] : [];
+        })
+      : lineasIniciales.flatMap((l) => {
       const prenda = prendas.find((p) => p.varianteId === l.variante_id);
       if (!prenda) return [];
       // El descuento se copia solo si la prenda sigue al mismo precio: sobre otro precio ya no es lo que se prometió.
@@ -66,9 +78,10 @@ export function NuevaProformaModal({
   // Las que ya no están en el catálogo no se copian: se dice cuáles, en vez de perderlas en silencio.
   const noCopiadas = lineasIniciales.filter((l) => !prendas.some((p) => p.varianteId === l.variante_id)).map((l) => l.descripcion);
   const [q, setQ] = useState("");
-  const [tipoDoc, setTipoDoc] = useState<"dni" | "ruc">(inicial?.cliente_num_doc?.length === 11 ? "ruc" : "dni");
-  const [clienteNombre, setClienteNombre] = useState(inicial?.cliente_nombre ?? "");
-  const [clienteDoc, setClienteDoc] = useState(inicial?.cliente_num_doc ?? "");
+  const docInicial = desdeTicket?.clienteDoc ?? inicial?.cliente_num_doc ?? "";
+  const [tipoDoc, setTipoDoc] = useState<"dni" | "ruc">(docInicial.length === 11 ? "ruc" : "dni");
+  const [clienteNombre, setClienteNombre] = useState(desdeTicket?.clienteNombre ?? inicial?.cliente_nombre ?? "");
+  const [clienteDoc, setClienteDoc] = useState(docInicial);
   const [dias, setDias] = useState("7");
   const [nota, setNota] = useState(inicial?.nota ?? "");
 
@@ -122,10 +135,11 @@ export function NuevaProformaModal({
       detalle: `${totales.prendas} ${totales.prendas === 1 ? "prenda" : "prendas"} · vale ${diasValidos} ${diasValidos === 1 ? "día" : "días"}.`,
     });
     onCerrar();
-    router.refresh();
+    if (onCreada) onCreada();
+    else router.refresh();
   }
 
-  const titulo = !inicial ? "Nueva proforma" : inicial.vencida ? `Renovar ${numeroDeProforma(inicial.numero)}` : `Copia de ${numeroDeProforma(inicial.numero)}`;
+  const titulo = desdeTicket ? "Proforma del ticket" : !inicial ? "Nueva proforma" : inicial.vencida ? `Renovar ${numeroDeProforma(inicial.numero)}` : `Copia de ${numeroDeProforma(inicial.numero)}`;
 
   return (
     <Modal titulo={titulo} subtitulo={inicial ? "Con los precios de hoy. Revisa y guarda como una proforma nueva." : undefined} ancho="max-w-3xl" onClose={onCerrar}>

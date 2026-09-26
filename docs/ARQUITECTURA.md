@@ -234,12 +234,16 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `lib/filtro-busqueda-especial.ts`: términos en cualquier orden sobre nombre/SKU/código/color/talla—, semáforo de 4 estados con
   `calcularEstado` en `lib/inventario-reglas.ts`, leyenda; primera columna «Producto / variante» =
   `ProductoVarianteCelda` de `ui/PrendaCelda.tsx`, la misma que dibuja Conteo) → `ReponerPisoModal.tsx` (RPC
-  `mover_interno`) y `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`; desde 2026-09-25, ADR-0208, en una
+  `mover_interno`, en los dos sentidos: «Reponer» y, desde el bloque 2 de ADR-0208, «Retirar del piso» en el menú «⋯»;
+  los dos solo si la sede que se mira es la activa, porque firman con su Responsable; tras un corte de red,
+  `mensajeErrorMovimientoPiso` no dice «no se guardó nada», y `<Modal bloqueado>` no deja cerrar mientras guarda) y
+  `AjustarInventarioModal.tsx` (RPC `registrar_movimiento`; desde 2026-09-25, ADR-0208, en una
   tienda que separa piso y almacén el Motivo no ofrece «Reposición» cuando la ubicación es Piso —`motivosAjusteDisponibles`
   y `NOTA_REPOSICION_CERRADA` de `lib/ajuste-reglas.ts`, con la nota que reserva su alto, ADR-0185— y la base lo
-  rechaza igual con el hint `reposicion_piso_cerrada`, migración `20260926000400`). La cabecera de Existencias muestra
-  además el botón «Bajar al piso» (→ `/inventario/bajar`, única entrada a esa pantalla, **sin pegar en producción**)
-  solo si el rol ve `bajada_piso` (`veModulo`), la sede que se mira es la activa y esa sede tiene piso y almacén.
+  rechaza igual con el hint `reposicion_piso_cerrada`, migración `20260926000400`, pegada en producción según Felipe).
+  La cabecera de Existencias muestra además el botón «Bajar al piso» (→ `/inventario/bajar`, única entrada a esa
+  pantalla; web publicada, y en producción su función, `0200`, pegada y su módulo, `0000`, sin confirmar) solo si el rol
+  ve `bajada_piso` (`veModulo`), la sede que se mira es la activa y esa sede tiene piso y almacén.
 - `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
   cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
   para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
@@ -325,7 +329,8 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   → RPC `iniciar_traslado`; acepta prellenado por URL desde Resumen, validado en la
   página) siguen vivas como rutas, sin pestaña propia: se llega por
   «+ Nuevo traslado» / «+ Nuevo».
-- `/inventario/bajar` (**Bajar prendas al piso**, 2026-09-25, ADR-0208 bloque 1; **sin pegar en producción**; sin
+- `/inventario/bajar` (**Bajar prendas al piso**, 2026-09-25, ADR-0208 bloque 1; **web publicada; en producción,
+  `bajar_al_piso` pegada y el módulo `bajada_piso` sin confirmar**; sin
   pestaña ni hoja en el lateral, que no cambia: se llega solo por el botón «Bajar al piso» de la cabecera de
   Existencias, porque «+ Nuevo» ya no existe, ADR-0204; quien tiene el módulo sin Existencias solo llega por la URL) →
   `layout.tsx` y `page.tsx` con `exigirModulo("bajada_piso")` (el layout de `/inventario` no protege nada; «← Volver a
@@ -377,10 +382,30 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   sobre `productos`/`variantes` — ADR-0059, ampliado en
   `20260915223000_historial_producto_estado.sql` para no perder los cambios
   de `estado`).
+- Eliminar un producto (solo Admin y Líder, ADR-0218): la opción vive en la vista rápida de `ProductosGrilla.tsx` y en el menú «···»
+  de `ProductosAgrupados.tsx` (`page.tsx` la enciende con `persona.rol === "lider"`, un Admin es un Líder) y abre
+  `EliminarProductoModal.tsx`, que PRIMERO pregunta a la RPC `fn_producto_se_puede_eliminar` (`20260926220000`) y solo
+  entonces ofrece borrar (`eliminar_producto`, con el combo «Responsable»). La regla de qué es «historia» vive UNA vez, en la
+  base; `lib/eliminar-producto-reglas.ts` solo redacta los textos. Se puede si el producto nunca se movió; con historia se
+  rechaza y la salida es descontinuarlo desde Editar. La pieza «Monto manual» del POS no se elimina nunca.
 - Acciones masivas (activar/desactivar sobre la selección): UPDATE directo
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
+- `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
+  `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
+  `MarcasLista.tsx` (buscador por marca o proveedor, `lib/marcas.ts:filtrarMarcas`) + `EditarMarcaModal.tsx`
+  (RPC `editar_marca`, `20260926150000`: nombre + sumar/quitar proveedores + registrar uno nuevo, todo o nada;
+  reglas puras `problemaEdicionMarca`/`borradorCambia`). Crear: `NuevaMarcaForm` → `crear_marca`. Desactivar: UPDATE
+  directo a `marcas` (policy + trigger `fn_marcas_desactivar_candado`). Eliminar: RPC `eliminar_marca`
+  (`20260926213000`, ADR-0217; solo si ningún producto, de cualquier estado, la tiene; regla pura
+  `sePuedeEliminarMarca` decide si `MarcasLista.tsx` ofrece el botón).
+
+- `/productos/nuevo` → `NuevoProductoForm.tsx` en 5 pasos (reglas puras en `lib/alta-producto.ts`, contexto en
+  `lib/alta-producto-datos.ts`; la tienda del stock sale de la sede activa y `lib/sububicaciones.ts`). Guarda con UNA
+  RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
+  copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
+  a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
 
 **Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
 - Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4
@@ -466,6 +491,12 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `prendas_por_regularizar` (estado `pendiente`). El comprobante electrónico la nombra con `descripcion_libre`
   (`itemsParaLucode`). `anular_venta` salta la línea pendiente; un trigger en `ventas` pasa la fila a `anulada`, y
   otro en `cambios`/`devolucion_items` rechaza una prenda aún pendiente (`prenda_sin_regularizar`).
+  Cabecera y pantallas vecinas (ADR-0221): `lib/vender-accesos.ts` (accesos por rol, «Más») → `punto-de-venta/AccesosVenta`;
+  píldora «Hoy» → `punto-de-venta/ResumenDeHoy` con `useVentasDeHoy` (`fn_ventas_del_dia`, leída en el `Promise.all` de la
+  página); clienta → `punto-de-venta/ClientaDelTicket` (RPC `buscar_clienta`); «no había» → `punto-de-venta/AnotarNoHabia`
+  (RPC `registrar_pedido_no_atendido`, firmada con el responsable); Apartar → `/vender/apartados?prendas=` (`lib/apartar-desde-ticket.ts`);
+  Proforma → `NuevaProformaModal desdeTicket` (RPC `crear_proforma`); buscador → `lib/vender-buscador-reglas.ts`. Bajo `lg` el
+  ticket vive en `<Modal variante="ticket">` y se abre con la barra fija de cobro.
   El ticket en espera (Park/Resume, ADR-0049) no toca la base: `lib/almacen-local.ts`
   → `localStorage` `cayla:vender:<ubicacionId>:en-espera`, cargado tras montar, vaciado
   al cerrar caja; la cola offline usará el mismo módulo con otro `nombre`. `lib/vender-reglas.ts`:
@@ -550,6 +581,13 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   (`/compras/proveedores/[id]`, «Datos para pagar»), `PagoJuntosModal` y el pago individual; `ProveedorModal` («Cómo
   pagarle»), la lista (chip/filtro «Sin datos de pago»), `LineasPago` y `CompraFormV2` (avisos de destino). Reglas puras en
   `lib/proveedores-reglas.ts` (normalizar/enmascarar/validar, `bancoDeCci`, `sinDatosDePago`, `cuentaLocalVisible`).
+  **Varios rubros por proveedor (ADR-0213, 2026-09-25; sin pegar en producción):** `proveedores.rubro text` pasa a
+  `rubros text[] not null default '{}'` con el CHECK `proveedores_rubros_limpios` (= `fn_rubros_limpios(rubros)`: sin vacíos,
+  recortado, uno por `fn_clave_texto`). `registrar_proveedor`/`actualizar_proveedor` cambian `p_rubro text` por
+  `p_rubros text[]` (mismo lugar, una sola firma) y `fn_proveedores()` devuelve `rubros text[]`; `registrar_proveedor_de_gasto`
+  escribe `{Gastos}`. Migración `20260926110000_proveedores_varios_rubros.sql` (parche sobre la definición viva). Reglas puras
+  en `lib/proveedores-reglas.ts` (`limpiarRubros`, `alternarRubro`, `agregarRubro`, `opcionesDeRubro`, `tieneRubro`,
+  `rubrosConConteo`); pruebas SQL en `scripts/pruebas/proveedores_rubros.mjs`.
   **Marcas del proveedor (ADR-0142):** `lib/proveedores.ts:getMarcasPorProveedor` lee las tablas `marcas` y `marca_proveedores`
   (sin RPC ni migración) para que la lista, el detalle rápido, la ficha y el combo de `/compras/nueva` busquen y muestren al
   proveedor por su marca; es una lectura **opcional** (si falla llega `null` y todo se pinta sin marcas). Reglas puras:
@@ -584,7 +622,7 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `regularizar_prenda(p_id, p_variante_id, p_forma)`: `ya_registrada` = salida 1 (piso, si no almacén);
   `llego_nueva` = entrada `ingreso_regularizado` + salida; la salida lleva motivo `venta` y el `venta_item_id`, la
   línea pasa a la variante real y a su costo, y guarda `diferencia` = cobrado − oficial. `contarVencidas` alimenta la
-  cola «Prendas por regularizar» del inicio del líder (`colasInicio`). Tablas `envios` (una guía; agrupa un lote por proveedor vía
+  cola «Prendas por regularizar» del inicio del líder (`avisosInicio`, ADR-0225). Tablas `envios` (una guía; agrupa un lote por proveedor vía
   `lotes.envio_id`), `envio_extras` (fuera de comprobante: proveedor + regalo) y `envio_traslados`. Cuenta
   cualquier colaborador de la sede. **Quien no es líder no recibe montos, y eso lo hace cumplir la base** (ADR-0126):
   `lib/compras.ts` le pide los comprobantes y las líneas a `listar_compras_operativo` / `lineas_compra_operativo`
@@ -794,7 +832,8 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
   separada del piso de venta pero dentro de la misma sede). (V1; hoy: no hay `contenedores` ni `stock_almacen`;
   piso, almacén y cuarentena son `sububicaciones` de cada ubicación, con `tipo` `piso_venta`/`almacen_tienda`/
   `cuarentena`, y `stock` es una fila por variante, ubicación y sububicación.)
-- **Bajadas al piso** (2026-09-25, ADR-0208 bloque 1; **sin pegar en producción**): `bajadas_piso` (el documento de
+- **Bajadas al piso** (2026-09-25, ADR-0208 bloque 1; su migración, `0100`, no se confirmó aparte en producción, pero
+  las tablas existen si `fn_verificar_bajadas()` respondió 0 filas, como dijo Felipe el 2026-09-25): `bajadas_piso` (el documento de
   una sesión de escaneo: `token_cliente` único, tienda, `persona_id` del responsable, `huella` md5 de la lista) y
   `bajada_piso_items` (una fila por prenda; su llave es el `movimiento_id` que escribió `mover_interno`, así que un
   movimiento pertenece a una sola bajada; única por bajada y prenda; nunca la «Prenda sin registrar»). No guardan
@@ -850,7 +889,7 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 
 | Función | Qué resuelve |
 |---|---|
-| `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado (y, desde 2026-09-20, `apartado`/`liberacion_apartado`, que solo entran por las RPC de apartar — ADR-0141), con `for update` (lock de fila) contra condición de carrera; valida sede. `salida`/`traslado`/`ajuste` validan contra lo **disponible** (`cantidad - cantidad_apartada`). Desde `20260926000400` (ADR-0208, **sin pegar en producción**; se pega después de publicar la web) un `ajuste` con motivo «reposicion» sobre una sububicación `piso_venta` se rechaza, suba o baje (P0001, hint `reposicion_piso_cerrada`), después de los candados de permiso y de ubicación; el bloque se inserta en la definición viva, así que volver a pegar `20260921120000` lo borraría. En el almacén sigue permitido |
+| `registrar_movimiento` → `fn_aplicar_movimiento` | Motor de stock: entrada/salida/ajuste/traslado (y, desde 2026-09-20, `apartado`/`liberacion_apartado`, que solo entran por las RPC de apartar — ADR-0141), con `for update` (lock de fila) contra condición de carrera; valida sede. `salida`/`traslado`/`ajuste` validan contra lo **disponible** (`cantidad - cantidad_apartada`). Desde `20260926000400` (ADR-0208, **pegada en producción** según Felipe, 2026-09-25) un `ajuste` con motivo «reposicion» sobre una sububicación `piso_venta` se rechaza, suba o baje (P0001, hint `reposicion_piso_cerrada`), después de los candados de permiso y de ubicación; el bloque se inserta en la definición viva, así que volver a pegar `20260921120000` lo borraría. En el almacén sigue permitido |
 | `apartar_stock` / `liberar_apartado` / `listar_apartados` / `fn_verificar_apartados` (2026-09-20, ADR-0141; **sin pegar en producción**) | Apartar una prenda para una clienta sin restarla del conteo físico: `apartar_stock` crea la reserva (clienta, contacto, fecha límite) y sube `stock.cantidad_apartada` en una transacción; `liberar_apartado` la cierra (solo quien apartó o una líder); `listar_apartados` es la lectura de la pantalla, con `puede_liberar` ya calculado; `fn_verificar_apartados` (solo SQL Editor) devuelve las filas donde el contador no cuadra con la suma de sus apartados abiertos — debe dar 0 filas |
 | `separar_prendas` / `entregar_separacion` / `extender_separacion` / `liberar_separacion` / `registrar_devolucion_separacion` / `fn_vencer_separaciones` / `buscar_separaciones` / `resumen_separaciones` / `fn_verificar_separaciones` (2026-09-23, ADR-0166; **sin pegar en producción**) | Separar con adelanto: `separar_prendas` aparta cada prenda (reusa `apartar_stock`), registra el adelanto (efectivo → ingreso de caja) y emite la boleta/factura de ANTICIPO; `entregar_separacion` cierra los apartados, crea la venta por el total con el precio congelado (pago `anticipo` + saldo) y emite el comprobante que DEDUCE el anticipo, todo en una transacción; `extender_separacion` (+7, una vez) y `liberar_separacion` solo líder/terminal de ventas; `fn_vencer_separaciones` libera sola lo vencido hace más de 2 días (se llama al abrir la pantalla, sin pg_cron); `registrar_devolucion_separacion` cierra devolviendo el 100% (efectivo → egreso) e intenta la nota de crédito; `fn_verificar_separaciones` (solo SQL Editor) debe dar 0 filas |
 | `recibir_lote` | Recepción de mercadería: crea lote + producto/variante si faltan + N movimientos. Ver §6, es la función con historial de drift |
@@ -872,11 +911,11 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
 | `emitir_comprobante` / `emitir_nota` / `registrar_serie_comprobante` | Reserva boleta/factura/nota con su correlativo oficial (`for update` por serie); factura sin RUC es imposible por constraint. No transmite a SUNAT: eso es `/api/lucode/emitir` — ADR-0005, ADR-0009 |
 | `actualizar_transmision_comprobante` | Único camino para escribir el resultado real de SUNAT (`enviado`/`aceptado`/`rechazado` + respuesta cruda); nunca se edita `estado` a mano |
 | `abrir_produccion`, `set_etapa_produccion`, `cerrar_produccion`, `anular_produccion`, `revertir_produccion` | Ciclo de una corrida del Taller (ADR-0052): abrir solo en `tipo='taller'`; cerrar mete la entrada (`motivo='produccion'`) y pega el costo real a `variantes.costo`; revertir registra la salida (`reversion_produccion`) — nunca se borra un hecho que ya movió stock |
-| `mover_interno(p_ubicacion_id, p_variante_id, p_cantidad, p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota)` (V1: `bajar_a_piso` / `devolver_a_almacen`, que ya no existen) | Mueve UNA prenda entre dos sububicaciones de la misma ubicación, en los dos sentidos (bajar = almacén → piso; retirar = al revés). Escribe una fila `traslado` con motivo `movimiento_interno` («Reposición interna» en Movimientos) y `fn_aplicar_movimiento` mueve el saldo. Firma con `fn_actor_persona_id(true)`; solo pregunta `fn_puede_operar_ubicacion`, sin módulo ni token. La usan «Reponer» (`ReponerPisoModal.tsx`) y `bajar_al_piso` |
-| `bajar_al_piso(p_ubicacion_id, p_items jsonb, p_token uuid) → jsonb` (2026-09-25, ADR-0208 bloque 1; **sin pegar en producción**) | La pantalla `/inventario/bajar`: baja del almacén al piso de ESA tienda una lista de 1 a 300 prendas, todo o nada. Token obligatorio + huella md5 de la lista (mismo token y misma lista = `ya_registrada`, sin mover; otra lista = error `bajada_token_reusado`, «Esa bajada ya se guardó a las HH:MM con N prendas…», con `detail` = arreglo JSON `[{cantidad, variante_id}]` de lo ya guardado, que la pantalla resta). Candado de módulo dentro (`fn_ve_modulo('bajada_piso')`, sin que Existencias lo implique), `fn_bloquear_en_orden`, valida todo con las prendas bloqueadas y llama a `mover_interno` por prenda (la misma fila que «Reponer»). Si una prenda no alcanza, no baja ninguna y las nombra todas (`hint` `bajada_sin_alcance`, `detail` JSON). Errores P0001 con `hint` estable. Escribe `bajadas_piso` y `bajada_piso_items` |
-| `fn_bajadas_del_piso(p_ubicacion_id, p_desde, p_hasta, p_minutos = 10)` (2026-09-25, ADR-0208; **sin pegar en producción**; sin pantalla) | Solo líder, solo lectura. Una fila por movimiento de bajada (almacén → piso de la tienda según `fn_es_traslado_interno`, venga de `bajar_al_piso` o de «Reponer»). Descansa en UNA llamada a `fn_ledger_puntos` (ADR-0202) con las prendas de las bajadas: `piso_antes` = nivel − delta del punto de la bajada; `vendidas_en_ventana` = puntos de piso con `es_venta` (`fn_es_venta_de_stock`) y delta negativo, sin `prendas_por_regularizar`, a la hora de la venta; `unidades_tardias = min(cantidad, max(0, vendidas − piso_antes))`, `cerrada` y `estado` (`normal`/`tardia`/`en_curso`/`dudosa`). Rango máximo 120 días; Taller y tienda inactiva, 0 filas. Depende de `20260924030000`. Unos 560 ms a 120 días con carga sintética. El bloque 3 (confianza por sede) la leerá |
-| `fn_verificar_bajadas()` (2026-09-25, ADR-0208; solo SQL Editor) | Bajadas sin ítems y ítems cuyo movimiento no sea almacén → piso de la misma tienda, misma prenda y cantidad. Debe dar 0 filas |
-| `fn_prenda_corta(p_variante_id)` (2026-09-25, ADR-0208; **sin pegar en producción**) | El nombre legible de una prenda en los mensajes de `bajar_al_piso` («referencia · talla · color», omitiendo las partes vacías). Solo la usan otras funciones: `revoke` a `public`, `anon` y `authenticated` |
+| `mover_interno(p_ubicacion_id, p_variante_id, p_cantidad, p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota, p_token)` (`p_token` desde 2026-09-26, en producción; V1: `bajar_a_piso` / `devolver_a_almacen`, que ya no existen) | Mueve UNA prenda entre dos sububicaciones de la misma ubicación, en los dos sentidos (bajar = almacén → piso; retirar = al revés). Escribe una fila `traslado` con motivo `movimiento_interno` y `fn_aplicar_movimiento` mueve el saldo. Movimientos la nombra por el par de sububicaciones: «Bajada al piso» (almacén → piso) o «Retiro del piso» (piso → almacén); otro par, «Movimiento interno», que es también el nombre del filtro (`etiquetaMovimiento`, decidido por la categoría `interno`, no por el motivo; ADR-0208). Firma con `fn_actor_persona_id(true)`; solo pregunta `fn_puede_operar_ubicacion`, sin módulo. `p_token` opcional (ADR-0208, «la marca de `mover_interno`»): la misma marca con los mismos datos devuelve el mismo movimiento sin mover; con otros datos, `hint` `mover_interno_token_reusado`; se mira antes del responsable y se anota en `movimientos_internos_intentos`. La usan «Reponer» y «Retirar del piso» (`ReponerPisoModal.tsx`, con `sentido` y una marca por modal) y `bajar_al_piso` (sin marca: tiene la suya por bajada) |
+| `bajar_al_piso(p_ubicacion_id, p_items jsonb, p_token uuid) → jsonb` (2026-09-25, ADR-0208 bloque 1; **`0200` pegada en producción** según Felipe, 2026-09-25) | La pantalla `/inventario/bajar`: baja del almacén al piso de ESA tienda una lista de 1 a 300 prendas, todo o nada. Token obligatorio + huella md5 de la lista (mismo token y misma lista = `ya_registrada`, sin mover; otra lista = error `bajada_token_reusado`, «Esa bajada ya se guardó a las HH:MM con N prendas…», con `detail` = arreglo JSON `[{cantidad, variante_id}]` de lo ya guardado, que la pantalla resta). Candado de módulo dentro (`fn_ve_modulo('bajada_piso')`, sin que Existencias lo implique), `fn_bloquear_en_orden`, valida todo con las prendas bloqueadas y llama a `mover_interno` por prenda (la misma fila que «Reponer»). Si una prenda no alcanza, no baja ninguna y las nombra todas (`hint` `bajada_sin_alcance`, `detail` JSON). Errores P0001 con `hint` estable. Escribe `bajadas_piso` y `bajada_piso_items` |
+| `fn_bajadas_del_piso(p_ubicacion_id, p_desde, p_hasta, p_minutos = 10)` (2026-09-25, ADR-0208; **`0300` sin confirmar en producción**; sin pantalla) | Solo líder, solo lectura. Una fila por movimiento de bajada (almacén → piso de la tienda según `fn_es_traslado_interno`, venga de `bajar_al_piso` o de «Reponer»). Descansa en UNA llamada a `fn_ledger_puntos` (ADR-0202) con las prendas de las bajadas: `piso_antes` = nivel − delta del punto de la bajada; `vendidas_en_ventana` = puntos de piso con `es_venta` (`fn_es_venta_de_stock`) y delta negativo, sin `prendas_por_regularizar`, a la hora de la venta; `unidades_tardias = min(cantidad, max(0, vendidas − piso_antes))`, `cerrada` y `estado` (`normal`/`tardia`/`en_curso`/`dudosa`). Rango máximo 120 días; Taller y tienda inactiva, 0 filas. Depende de `20260924030000`. Unos 560 ms a 120 días con carga sintética. El bloque 3 (confianza por sede) la leerá |
+| `fn_verificar_bajadas()` (2026-09-25, ADR-0208; `0200`, en producción: 0 filas según Felipe, 2026-09-25; solo SQL Editor) | Bajadas sin ítems y ítems cuyo movimiento no sea almacén → piso de la misma tienda, misma prenda y cantidad. Debe dar 0 filas |
+| `fn_prenda_corta(p_variante_id)` (2026-09-25, ADR-0208; `0200`, **pegada en producción** según Felipe) | El nombre legible de una prenda en los mensajes de `bajar_al_piso` («referencia · talla · color», omitiendo las partes vacías). Solo la usan otras funciones: `revoke` a `public`, `anon` y `authenticated` |
 | `fn_conteos_resumen` (2026-09-16) | Lista de conteos de una ubicación con líneas, sistema/contado/diferencia y soles ya sumados en Postgres; `security invoker` (RLS de conteos decide). Alimenta la pestaña Conteo. ADR-0071 |
 | `fn_resumen_variantes` (2026-09-17 en producción; **v2 aplicada en producción el 2026-09-19**, firma `(p_ubicacion_id, p_ventana_dias, p_desde, p_hasta, p_cmp_desde, p_cmp_hasta)`, la `(uuid, integer)` se elimina) | Agregados por variante para UNA ubicación: stock por sububicación **siempre actual** (cuarentena excluida), primer ingreso, **días con stock del período** (reconstruidos del ledger: saldo(t) = stock hoy − Σ movimientos posteriores, con las reglas de `fn_aplicar_movimiento`; `ledger_consistente = false` si el saldo da negativo), stock al inicio, demanda neta del período **y del período comparado** clasificada por FK (venta completada + cambio salida − devolución vendible − cambio entrada, atribuida a la sede de la venta; las salidas `venta` sin `venta_item_id` también cuentan), entradas/mermas, en camino hacia esa sede (enviado, `en_transito`/`recibido_con_diferencia`, atrasado, próxima llegada y su traslado), origen de abastecimiento, códigos de barras, categoría, precio, y `costo` + `estado_costo` (`oficial`/`declarado`/`alterado`/`sin_costo`) **solo si `fn_es_lider()`**; jsonb `en_red` con lo mismo (utilizable, piso, días con stock) de las otras sedes activas. `security definer` con baranda `fn_puede_operar_ubicacion` (0 filas si no puede), `revoke … from public, anon` y `grant execute … to authenticated`. NO decide nada: las reglas viven en `lib/resumen-reglas.ts`. ADR-0101, ADR-0113 |
 | `fn_resumen_comparacion(p_ubicacion_id, p_a_desde, p_a_hasta, p_b_desde, p_b_hasta)` (2026-09-19, **solo local: no aplicada en producción**; la usan Desempeño —con el período partido en dos mitades— y Comparar períodos) | Por variante de UNA sede y para cada período A/B: unidades vendidas y devueltas (misma clasificación por FK que `fn_resumen_variantes`), importe cobrado, costo de lo vendido y de lo devuelto EN COMPONENTES (COGS: `venta_items.costo_unitario`, el costo de ese día) y unidades sin costo, entradas (lo que llegó de afuera), stock utilizable al inicio y al cierre reconstruido del ledger (saldo(t) = saldo de hoy − Σ movimientos posteriores) y días con stock; `ledger_consistente`. Solo `fn_es_lider()` con `fn_puede_operar_ubicacion` (0 filas para un colaborador). `security definer`, `revoke … from public, anon`. NO decide nada: las reglas viven en `lib/resumen-comparacion.ts`. ADR-0138 |

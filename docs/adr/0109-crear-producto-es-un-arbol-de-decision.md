@@ -428,3 +428,96 @@ ya existían (mismos `hint`, `tejido_obligatorio` / `patron_obligatorio`); `Prod
 desechable, con **control negativo**: contra la versión anterior de la función la prueba de «cambiar el precio sin tejido»
 falla con «En Indumentaria el tejido es obligatorio».
 
+
+## Actualización 2026-09-25 — «¿no será una marca que ya existe?»
+
+El 24-sep se creó la marca «Cayla 2» (con Jacard Peru SAC) para dar de alta **Top Aurora** (TOP-0011, 65 prendas en
+stock): CAYLA ya existía, pero traída solo por CAYLA SAC. Consultado en producción (solo lectura). Dos huecos del
+selector, no un error de quien lo usó:
+
+1. **La pareja elegida sola no tenía salida.** Con un solo proveedor, la marca se elige sola con él (paso 3), y ese estado
+   solo ofrecía «Cambiar», que vuelve a lo mismo. «+ Otro proveedor para X» existía solo cuando la marca ya tenía dos.
+   Ahora la pareja elegida ofrece «+ Otro proveedor para {marca}» y «+ Otra marca de {proveedor}».
+2. **El formulario de nueva marca callaba.** Ahora, mientras se escribe, dice si el nombre es IGUAL a una marca (no se crea
+   otra: `crear_marca` le suma el proveedor) y pregunta si se PARECE (`marcasParecidas` en `lib/marcas.ts`). Guardar sin
+   responder no guarda.
+
+```
+DECIDÍ: preguntar en el formulario, sin bloquear: «Sí, es CAYLA» pone el nombre real; «No, es otra marca» deja seguir.
+  Parecida = misma raíz salvo números o signos («Cayla 2»), 1 letra de diferencia desde 5 letras o 2 desde 8
+  («Kristell»), o un nombre que cabe entero en otro, palabra por palabra («Divas» en «Divas Now»).
+DESCARTÉ: (a) un candado en la base (índice por raíz sin números): «La Femme» y «La Femme 21» pueden ser dos marcas de
+  verdad, y la base no puede preguntar; (b) avisar solo con el nombre igual: es justo el caso que ya funcionaba y no
+  habría atrapado «Cayla 2».
+SE ROMPE SI: alguien crea la marca por otro camino que no pase por `NuevaMarcaForm` (SQL directo, una carga masiva
+  como la del ADR-0140): la pregunta vive en la pantalla. Medida contra las 80 marcas de producción, entre ellas solo
+  dispara CAYLA ~ Cayla 2 y Divas ~ Divas Now.
+```
+
+Lo que sigue sin resolver: la base no sabe **fusionar** dos marcas ni **quitarle** una marca a un proveedor. «Cayla 2» se
+arregla a mano (editar Top Aurora a CAYLA · Jacard y desactivar «Cayla 2»); la unión Cayla 2 ↔ Jacard queda guardada.
+
+## Actualización 2026-09-25 (b) — «¿no será un proveedor que ya tienes?»
+
+El mismo hueco que «Cayla 2», con plata de por medio. `retail.proveedores` solo frena un nombre IGUAL
+(`proveedores_nombre_clave_unica` sobre `fn_clave_texto`, que no quita puntos: P-25 de `docs/datos/13-PROMESAS-INCUMPLIDAS.md`)
+y un RUC repetido (`proveedores_ruc_unico`), y el RUC es opcional. «Jacard Perú S.A.C.» o «Jacard Peru» entraban como
+proveedor nuevo junto a «Jacard Peru SAC», y sus facturas, su Por pagar y sus notas de crédito quedaban en dos fichas.
+
+La regla de las marcas salió de `lib/marcas.ts` a `lib/nombres-parecidos.ts` (`nombresParecidos`, sin cambiarle nada; acepta
+`quitar`: qué palabras no cuentan para la identidad), y cada dominio la llama con su nombre: `marcasParecidas` (todas las
+palabras cuentan) y `proveedoresParecidos` en `lib/proveedores-reglas.ts`. Se pregunta en las dos puertas de la web que
+registran con `registrar_proveedor`: el «+ Registrar … como proveedor nuevo» de `NuevaMarcaForm` y Compras ▸ Proveedores ▸
+Registrar (`ProveedorModal`; al editar no se pregunta). La caja es una sola pieza para marcas y proveedores:
+`components/ui/PreguntaParecido.tsx`.
+
+```
+DECIDÍ: la regla de las marcas con dos diferencias que salen de cómo funciona un proveedor: (1) la forma societaria del
+  final no cuenta (SA, SAA, SAC, SACS, SRL, SCRL, EIRL, con o sin puntos); (2) si los dos tienen RUC válido y distinto, no
+  se pregunta: para SUNAT son dos contribuyentes. «Sí» elige al que existe (Nueva marca) o abre su ficha (Compras);
+  «No, es otro» deja seguir; registrar sin contestar no registra. Con el nombre IGUAL no hay «No»: la base no dejaría.
+DESCARTÉ: (a) un candado en la base (índice sobre el nombre sin forma societaria): «Jacard Peru SAC» y «Jacard Peru EIRL»
+  pueden ser dos empresas con dos RUC, y la base no puede preguntar; (b) comparar en Postgres, como
+  `buscar_productos_parecidos`: los productos son miles, pero los proveedores son 76 y ya están en la pantalla — un viaje
+  a la base por tecla es más lento y, con la red caída, deja de preguntar; (c) copiar la regla de marcas en proveedores:
+  dos copias se separan con el tiempo.
+SE ROMPE SI: un proveedor entra por una puerta que no llama a `proveedoresParecidos`: hoy el proveedor rápido de Gastos
+  (`RegistrarGastoModal` → `registrar_proveedor_de_gasto`, en BACKLOG) o una carga por SQL. Y en Nueva marca la lista de
+  proveedores trae solo `id, nombre`: sin el RUC del existente, (2) no actúa y ahí se pregunta de más, nunca de menos.
+```
+
+Medida contra los 76 proveedores de producción (2026-09-25, solo lectura): ningún par igual, y la pregunta dispara en uno
+solo: Moda Mia ~ Valeria Mia Peru Moda EIRL (por nombre contenido; Moda Mia no tiene RUC). Hay que mirarlo a mano. Los casos
+del pedido la disparan todos: «Jacard Perú S.A.C.», «Jacard Peru», «Skopjer S.R.L.», «Corporacion Imperium S.C.R.L.».
+Pruebas: `lib/nombres-parecidos.test.ts` y `lib/proveedores-parecidos.test.ts`.
+
+## Actualización 2026-09-25 (c) — la tercera puerta: el proveedor rápido de Gastos
+
+Finanzas ▸ Gastos ▸ Registrar gasto ▸ «¿No está? Súmalo» registra con `registrar_proveedor_de_gasto`
+(`20260924235100`), que ya reutiliza el proveedor si el RUC coincide o si el nombre es IGUAL (`fn_clave_texto`), pero
+dejaba pasar «Hidrandina S.A.A.» junto a «Hidrandina SA». Ahora pregunta como las otras dos puertas, con la misma pieza
+(`PreguntaParecido`) y la misma regla (`proveedoresParecidos`). Sin migración.
+
+La diferencia con las otras puertas sale de la RPC: `registrar_proveedor` crea siempre; `registrar_proveedor_de_gasto`
+«suma o reutiliza». Por eso la regla de esta puerta, `sumarProveedorDeGasto` (`lib/gastos-reglas.ts`), dice ANTES lo que la
+base haría: mismo RUC → es ese (aunque el nombre diga otra cosa, o todavía no haya nombre); mismo nombre → es ese; si no,
+pregunta por los parecidos que nadie contestó; si no queda pregunta, suma.
+
+```
+DECIDÍ: «Sí» elige al que existe en el combo de proveedor, aquí mismo; «No, «X» es otro proveedor» deja sumar; «Sumar
+  proveedor» sin contestar no suma (aviso que lleva a la pregunta). Con el mismo RUC o el mismo nombre no hay «No»: la caja
+  dice «ya es de…» y «Sumar» elige ese, sin viaje a la base y con el aviso «ya estaba en el directorio: no se creó otro».
+DESCARTÉ: (a) preguntar solo por nombre, como Nueva marca: con un RUC igual y un nombre parecido, «No, es otro» habría
+  mandado a la base un proveedor que la base igual devuelve —la pantalla diría «otro» y el gasto quedaría en el mismo—;
+  (b) traer también los proveedores desactivados para comparar: es 1 de 76 (2026-09-25) y la base igual lo reutiliza si es
+  el mismo RUC o nombre; cambiaría `getProveedoresParaGasto`, que usan dos pantallas, por un caso que hoy no existe.
+SE ROMPE SI: dos personas suman a la vez, desde dos pantallas abiertas antes, «Hidrandina SA» y «Hidrandina S.A.A.» sin
+  RUC: ninguna ve a la otra en su lista, y la base (candado por nombre IGUAL) deja entrar las dos. La pregunta es un aviso,
+  no un candado (ver el DESCARTÉ (a) de la actualización (b)).
+```
+
+Pruebas: `lib/gastos-proveedor-parecido.test.ts` (9 casos: el de Hidrandina, «No» que deja seguir, igual con tildes y
+mayúsculas, RUC antes que nombre, RUC válido distinto, RUC a medio escribir, mismo nombre con otro RUC, vacío, y el tope que
+se aplica después de «es otro»). Verificado con un andamio (sin base local) a 800 y 375 px: la pregunta, «Sumar» sin
+contestar (no sale ninguna petición), «Sí» (queda elegido), «No» (sale `registrar_proveedor_de_gasto`), mismo RUC con otro
+nombre (elige sin petición ni opción duplicada) y mismo nombre escrito distinto.

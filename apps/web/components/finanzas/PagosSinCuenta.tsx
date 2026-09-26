@@ -8,7 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { GuiaVacia, SelectFin } from "@/components/finanzas/kit";
-import { OpcionesCuenta, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { soles } from "@/lib/compras-reglas";
@@ -19,6 +19,7 @@ import {
   hayCuentasPara,
   leerPagoSinCuenta,
   medioDePagoSinCuenta,
+  opcionesDeCuenta,
   type PagoSinCuenta,
 } from "@/lib/cuenta-sellada-reglas";
 
@@ -96,13 +97,13 @@ export function PagosSinCuentaModal({ onClose, filasIniciales }: { onClose: () =
                 </div>
                 <span className="fin-sin-cuenta-monto">{soles(Math.abs(p.monto))}</span>
                 <SelectFin
-                  aria-label={`De qué cuenta fue: ${p.detalle}`}
-                  value={elegidas[p.clave] ?? ""}
-                  disabled={!hay}
-                  onChange={(e) => setElegidas((x) => ({ ...x, [p.clave]: e.target.value }))}
-                >
-                  {hay ? <OpcionesCuenta cuentas={cuentas.cuentas} clase={clase} medio={medio} vacio="Elige…" /> : <option value="">{cuentas.listo ? "Sin cuentas para este medio" : "…"}</option>}
-                </SelectFin>
+                  etiqueta={`De qué cuenta fue: ${p.detalle}`}
+                  valor={elegidas[p.clave] ?? ""}
+                  deshabilitado={!hay}
+                  onValor={(v) => setElegidas((x) => ({ ...x, [p.clave]: v }))}
+                  opciones={hay ? opcionesDeCuenta(cuentas.cuentas, clase, medio) : []}
+                  marcador={!cuentas.listo ? "…" : hay ? "Elige…" : "Sin cuentas para este medio"}
+                />
                 <button type="button" className="btn-cayla btn-secundario btn-chico" disabled={!elegidas[p.clave] || guardando !== null || !responsable.listo} onClick={() => guardar(p)}>
                   {guardando === p.clave ? "Guardando…" : "Guardar"}
                 </button>

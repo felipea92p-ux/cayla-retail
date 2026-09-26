@@ -30,10 +30,10 @@ import {
        ticket»);
      · al leer: el visor se contrae con un destello, aparece la tarjeta de la prenda (foto o iniciales, color · talla,
        precio) y VUELA en arco hasta la bolsa. Recién cuando entra, la bolsa late, el número sube y el total cuenta —
-       el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, en el almacén, no es de la
-       tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo del almacén dice «No
-       entró · en almacén» (`estadoCorto`): aquí no sale el aviso largo de arriba, que lo dice UNA vez al cerrar la
-       cámara (`cerrarCamara` en `PuntoDeVenta`).
+       el ticket cambia cuando la prenda «llega», no antes. Lo que no entra (agotada, en el almacén, apartada para una
+       clienta, no es de la tienda) aparece en ámbar y se apaga en su lugar: no viaja al ticket porque no entró. Lo
+       del almacén dice «No entró · en almacén» y lo apartado «No entró · apartada» (`estadoCorto`): aquí no sale el
+       aviso largo de arriba, que lo dice UNA vez al cerrar la cámara (`cerrarCamara` en `PuntoDeVenta`).
    Es una hoja de `<Modal variante="camara">`: hereda el velo, la entrada, la cascada y el foco atrapado (ADR-0136).
 
    Cómo lee: con el `BarcodeDetector` del navegador cuando existe (Chrome en Android: rápido, y lee también el Code 128
@@ -49,6 +49,20 @@ type Lector = (video: HTMLVideoElement, lienzo: HTMLCanvasElement) => Promise<st
 /** Lo mínimo del `BarcodeDetector` nativo que se usa (no está en los tipos de TypeScript). */
 type DetectorNativo = { detect: (fuente: HTMLVideoElement) => Promise<{ rawValue: string }[]> };
 type ClaseDetector = { new (opciones: { formats: string[] }): DetectorNativo; getSupportedFormats: () => Promise<string[]> };
+
+/**
+ * Baja jsQR por adelantado, mientras hay red (ADR-0210, «huecos»). Es lo único de Vender que se carga recién al usarlo:
+ * sin esto, un iPhone que abre Vender sin internet (copia del service worker) tendría la cámara pero no el lector.
+ * Bajarlo una vez con red lo deja en la copia (`/_next/static`, primero-la-copia). Donde el teléfono trae su propio
+ * lector (`BarcodeDetector`, Android) no hace falta.
+ */
+export function precargarLectorQR(): void {
+  if (typeof window === "undefined" || !navigator.onLine) return;
+  if ((window as unknown as { BarcodeDetector?: unknown }).BarcodeDetector) return;
+  void import("jsqr").catch(() => {
+    // Sin red a mitad: se intentará la próxima vez que se abra Vender.
+  });
+}
 
 async function crearLector(): Promise<Lector> {
   const Nativo = (window as unknown as { BarcodeDetector?: ClaseDetector }).BarcodeDetector;

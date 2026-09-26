@@ -8,6 +8,7 @@ import { diaMes, diasEntreFechas, hoyLima } from "@/lib/fechas-lima";
 import { nombreDelMes } from "@/lib/comprobantes-lista-reglas";
 import { RecibirLotePanel } from "@/components/RecibirLotePanel";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 
 // Ingreso sin comprobante (ADR-0111, maqueta 07). Fase UI 1 (2026-09-11): rediseño completo — ver
 // `RecepcionFormV2.tsx` para el porqué no es una adaptación de la pantalla V1. 2026-09-17: lista de
@@ -76,7 +77,7 @@ export default async function RecibirLotePage() {
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.varianteId,
-          sku: v.sku,
+          sku: codigoDeEtiqueta(v), // el código de la etiqueta; el `sku` es NULL en casi todas las variantes (ADR-0058)
           referencia: v.referencia,
           talla: v.talla,
           color: v.color,

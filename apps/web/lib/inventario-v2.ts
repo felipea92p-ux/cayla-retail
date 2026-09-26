@@ -3,6 +3,7 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
 import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
 import type { AccionHoy } from "@/lib/existencias-recomendaciones";
 
@@ -21,6 +22,9 @@ export type FilaStock = {
   varianteId: string;
   /** Para abrir `AjustarInventarioModal` desde la fila (es por producto). */
   productoId: string;
+  /** Lo que se MUESTRA, se busca y se exporta como código de la prenda: `variantes.codigo` (el de la
+   *  etiqueta) y, solo si falta, el `sku` legado (`codigoDeEtiqueta`). El nombre quedó del legado: el `sku`
+   *  real es NULL en casi todas las variantes (ADR-0058). */
   sku: string;
   talla: string | null;
   color: string | null;
@@ -83,7 +87,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       `variante_id, cantidad, cantidad_apartada,
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
-         sku, talla:tallas ( valor ),
+         sku, codigo, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
          producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
@@ -114,7 +118,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
               `variante_id, cantidad,
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
-                 sku, talla:tallas ( valor ),
+                 sku, codigo, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
                  producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
@@ -137,7 +141,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
     porVariante.set(f.variante_id, {
       varianteId: f.variante_id,
       productoId: f.variante?.producto?.id ?? "",
-      sku: f.variante?.sku ?? "",
+      sku: f.variante ? codigoDeEtiqueta(f.variante) : "",
       talla: f.variante?.talla?.valor ?? null,
       color: f.variante?.color?.nombre ?? null,
       colorHex: f.variante?.color?.hex ?? null,
@@ -221,6 +225,10 @@ export type FilaExistencias = FilaStock & {
   accionHoy?: AccionHoy | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
+  /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la
+   *  página con `conMarca` (`existencias-catalogo-reglas.ts`) desde una lectura aparte y tolerante. Ausente o null = no se
+   *  pudo leer. */
+  marca?: string | null;
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -252,7 +260,7 @@ export async function getExistencias(
         `variante_id, cantidad,
          transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
          variante:variantes (
-           sku, talla:tallas ( valor ),
+           sku, codigo, talla:tallas ( valor ),
            color:colores ( nombre, hex ),
            producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
            codigos_barras ( codigo )
@@ -301,7 +309,7 @@ export async function getExistencias(
     filas.push({
       varianteId: item.variante_id,
       productoId: item.variante?.producto?.id ?? "",
-      sku: item.variante?.sku ?? "",
+      sku: item.variante ? codigoDeEtiqueta(item.variante) : "",
       talla: item.variante?.talla?.valor ?? null,
       color: item.variante?.color?.nombre ?? null,
       colorHex: item.variante?.color?.hex ?? null,
@@ -374,7 +382,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
       .from("prendas_danadas")
       .select(
         `id, cantidad, created_at,
-         variante:variantes ( id, sku, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("ubicacion_id", ubicacionId)
       .eq("estado", "en_cuarentena")
@@ -384,7 +392,7 @@ export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
-    sku: f.variante?.sku ?? "",
+    sku: f.variante ? codigoDeEtiqueta(f.variante) : "",
     talla: f.variante?.talla?.valor ?? null,
     color: f.variante?.color?.nombre ?? null,
     referencia: f.variante?.producto?.referencia ?? "",

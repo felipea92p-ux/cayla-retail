@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
@@ -15,6 +15,8 @@ type Props = {
   onAgregar: (v: VarianteBusqueda) => void;
   onClose: () => void;
   alCerrarEnfocar: RefObject<HTMLElement | null>;
+  /** Debajo de las tallas: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
+  pie?: ReactNode;
 };
 
 /**
@@ -30,7 +32,7 @@ type Props = {
  * y prendas en el almacén de esta sede no está agotada (D-40): dice cuántas hay ahí y
  * que la bajen, sin tacharla — todavía no entra al ticket (la venta descuenta el piso).
  */
-export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar }: Props) {
+export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie }: Props) {
   const nombre = [grupo.referencia, grupo.color].filter(Boolean).join(" ");
   return (
     <Modal titulo={grupo.referencia} subtitulo={`${grupo.color ?? "Sin color"} · ${ubicacionEtiqueta}`} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
@@ -54,6 +56,8 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
               const motivo = motivoNoCobrable(t.variante);
               const agotada = motivo === "agotada";
               const enAlmacen = motivo === "en_almacen";
+              // Lo único que queda en el piso es de una clienta: no se vende desde aquí, pero no es «no hay» (puede venir por ella).
+              const apartada = motivo === "apartada";
               // Ya se llevó todo lo que hay: agregar otra no haría nada, y un botón que no
               // hace nada es justo lo que esta pantalla vino a quitar.
               const tope = motivo === "cobrable" && enTicket >= t.stockAqui;
@@ -71,7 +75,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                   className={`rounded-xl border p-3 text-left transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] ${
                     enAlmacen
                       ? "cursor-not-allowed border-dashed border-ambar/60 bg-crema text-tinta/70"
-                      : agotada || tope
+                      : agotada || apartada || tope
                         ? "cursor-not-allowed border-dashed border-sand bg-crema text-tinta/45"
                         : "border-sand bg-papel text-tinta hover:border-tinta/50 hover:bg-sand/40 active:translate-y-px"
                   }`}
@@ -83,17 +87,19 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
                   <span className={`mt-0.5 block text-xs ${enAlmacen ? "text-ambar-profundo" : ""}`}>
                     {agotada
                       ? "Sin stock aquí"
-                      : enAlmacen
-                        ? `${t.almacenAqui} en el almacén`
-                        : tope
-                          ? t.almacenAqui > 0
-                            ? t.stockAqui === 1
-                              ? "Ya tienes la del piso"
-                              : "Ya tienes las del piso"
-                            : "Ya tienes todas"
-                          : `${t.stockAqui} aquí`}
+                      : apartada
+                        ? "Apartada para una clienta"
+                        : enAlmacen
+                          ? `${t.almacenAqui} en el almacén`
+                          : tope
+                            ? t.almacenAqui > 0
+                              ? t.stockAqui === 1
+                                ? "Ya tienes la del piso"
+                                : "Ya tienes las del piso"
+                              : "Ya tienes todas"
+                            : `${t.stockAqui} aquí`}
                   </span>
-                  {agotada && otras && <span className="mt-0.5 block text-[11px]">{otras}</span>}
+                  {(agotada || apartada) && otras && <span className="mt-0.5 block text-[11px]">{otras}</span>}
                   {/* Dónde se REGISTRA el paso al piso: «que la bajen» a secas se leía como traerla, y con la prenda ya
                       en la mano no alcanza (`DONDE_SE_BAJA`). */}
                   {enAlmacen && <span className="mt-0.5 block text-[11px]">Que la bajen en {DONDE_SE_BAJA}</span>}
@@ -103,6 +109,7 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
               );
             })}
           </div>
+          {pie}
         </div>
       )}
     </Modal>

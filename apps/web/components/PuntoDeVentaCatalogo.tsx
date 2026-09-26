@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, type CSSProperties, type ReactNode, type RefObject } from "react";
+import { useState, type CSSProperties, type RefObject } from "react";
 import Image from "next/image";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
+import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -64,9 +64,6 @@ type Props = {
   /** Solo para el globito "N" de cada tarjeta. */
   carrito: ItemCarrito[];
   // Ventas de hoy (vive dentro del <section>, bajo la grilla)
-  mostrarVentasHoy: boolean;
-  onAlternarVentasHoy: () => void;
-  ventasHoyNode: ReactNode;
 };
 
 /** Mismo chip para las categorías y para el filtro de stock: uno "prendido" se ve igual
@@ -146,9 +143,6 @@ export function PuntoDeVentaCatalogo({
   topeTarjeta,
   grupos,
   carrito,
-  mostrarVentasHoy,
-  onAlternarVentasHoy,
-  ventasHoyNode,
 }: Props) {
   // Colapsado por defecto SOLO en celular (la vendedora escanea; explorar el catálogo a mano
   // es el plan B). Desde `sm:` (640px) el bloque de abajo ignora este estado — siempre visible,
@@ -249,7 +243,7 @@ export function PuntoDeVentaCatalogo({
                         onClick={() => onAgregar(v)}
                         className={`flex w-full items-center justify-between px-4 py-3 text-left text-sm transition-colors duration-200 ${
                           i === activo ? "bg-sand/60" : ""
-                        } ${motivo === "agotada" ? "opacity-55" : ""}`}
+                        } ${motivo === "agotada" || motivo === "apartada" ? "opacity-55" : ""}`}
                       >
                         <span>
                           <span className="block font-semibold text-tinta">{v.referencia}</span>
@@ -260,9 +254,9 @@ export function PuntoDeVentaCatalogo({
                         <span className="shrink-0 text-right">
                           <span className="block text-sm font-semibold text-tinta">{money(v.precio)}</span>
                           <span
-                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
+                            className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "apartada" ? "text-pizarra" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
                           >
-                            {motivo === "agotada" ? "sin stock aquí" : motivo === "en_almacen" ? `${v.almacenAqui} en el almacén` : `${v.stockAqui} aquí`}
+                            {textoStockDeFila(v)}
                           </span>
                           {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                           {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
@@ -399,11 +393,13 @@ export function PuntoDeVentaCatalogo({
       </div>
 
       <div className="scroll-cayla min-h-0 flex-1 overflow-y-auto px-4 pb-5 sm:px-6">
-        {/* Solo la grilla se colapsa con el botón de arriba — «Ventas de hoy», más abajo, tiene
-            su propio control y no es parte de lo que pediste ocultar; sigue igual que siempre. */}
-        <div id="venta-catalogo-grilla" className={catalogoAbierto ? "" : "hidden sm:block"}>
+        {/* Solo la grilla se colapsa con el botón de arriba. «Ventas de hoy» ya no vive aquí abajo: es la píldora
+            «Hoy» de la cabecera (spike 2026-09-26). `@container`: las columnas dependen del ancho del catálogo, no de
+            la pantalla — con el lateral abierto o cerrado, cada tarjeta mide lo mismo. */}
+        <div id="venta-catalogo-grilla" className={`@container ${catalogoAbierto ? "" : "hidden sm:block"}`}>
         <TooltipProvider delayDuration={250}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          {/* Más prendas por pantalla (spike 2026-09-26, hallazgo 10): foto cuadrada y hasta 5 columnas. */}
+          <div className="grid grid-cols-2 gap-2.5 @md:grid-cols-3 @2xl:grid-cols-4 @4xl:grid-cols-5">
             {grupos.length === 0 && (
               <p className="col-span-full py-10 text-center text-sm text-tinta/60">
                 {soloConStock ? `Nada con stock en ${ubicacionEtiqueta}` : "No hay prendas"}
@@ -456,12 +452,18 @@ export function PuntoDeVentaCatalogo({
                   {/* `pointer-events-none` en la foto: su div es `relative`, se pinta ENCIMA del botón superpuesto
                       de la tarjeta y se comía el clic. */}
                   {g.fotoUrl ? (
-                                        <div className={`pointer-events-none relative mb-3 aspect-[4/5] overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
+                    <div className={`pointer-events-none relative mb-2.5 aspect-square overflow-hidden rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
                       <Image src={g.fotoUrl} alt={nombre} fill sizes="(min-width: 1280px) 20vw, 33vw" className="object-cover transition-transform duration-500 ease-[var(--ease-cayla)] group-hover:scale-[1.04]" unoptimized />
                     </div>
                   ) : (
-                    <div aria-hidden className={`mb-3 flex aspect-[4/5] items-center justify-center rounded-lg bg-sand/40 ${soloEnAlmacen ? "opacity-55" : ""}`}>
-                      <span className="font-display text-2xl text-tinta/30">{iniciales(g.referencia)}</span>
+                    // Sin foto: iniciales discretas y la categoría abajo, en vez de iniciales gigantes que no decían qué era.
+                    <div aria-hidden className={`relative mb-2.5 flex aspect-square items-center justify-center rounded-lg bg-gradient-to-b from-sand/30 to-hueso ${soloEnAlmacen ? "opacity-55" : ""}`}>
+                      <span className="font-display text-xl text-tinta/25">{iniciales(g.referencia)}</span>
+                      {g.tallas[0]?.variante.categoria && (
+                        <span className="label-cayla absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate rounded bg-papel/80 px-1.5 py-0.5 text-[9.5px] text-tinta/60">
+                          {g.tallas[0].variante.categoria}
+                        </span>
+                      )}
                     </div>
                   )}
                   <p className="line-clamp-1 text-sm font-semibold text-tinta">{g.referencia}</p>
@@ -519,16 +521,18 @@ export function PuntoDeVentaCatalogo({
                           <TooltipTrigger asChild>
                             <span
                               tabIndex={0}
-                              aria-label={`Talla ${t.talla} sin stock aquí`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through outline-none focus-visible:border-rojo/60"
+                              aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para una clienta" : "sin stock aquí"}`}
+                              className={`label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed px-1.5 text-[11px] outline-none focus-visible:border-rojo/60 ${
+                                // Agotada: tachada. Apartada para una clienta: SIN tachar y en el token informativo — la
+                                // diferencia se ve de un vistazo, no solo en el tooltip (que el celular no muestra).
+                                motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
+                              }`}
                             >
                               {t.talla}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent sideOffset={4}>
-                            {textoOtrasSedes(t.variante.stockOtrasSedes ?? [])
-                              ? `Sin stock aquí · ${textoOtrasSedes(t.variante.stockOtrasSedes ?? [])}`
-                              : "Sin stock en ninguna sede"}
+                            {tooltipTallaSinPiso(t.variante, textoOtrasSedes(t.variante.stockOtrasSedes ?? []))}
                           </TooltipContent>
                         </Tooltip>
                       )
@@ -581,23 +585,6 @@ export function PuntoDeVentaCatalogo({
         </TooltipProvider>
         </div>
 
-        <div className="mt-7 border-t border-sand pt-5">
-          <button
-            type="button"
-            onClick={() => onAlternarVentasHoy()}
-            className="label-cayla flex w-full items-center justify-between py-2 text-[11px] text-tinta"
-          >
-            <span>Ventas de hoy</span>
-            <span className={`inline-block transition-transform duration-300 ease-[var(--ease-cayla)] ${mostrarVentasHoy ? "rotate-180" : ""}`}>⌄</span>
-          </button>
-          {/* Antes `hidden` (display:none): ni con CSS se puede animar un despliegue así
-              — truco de `grid-template-rows` (0fr↔1fr) en su lugar. `ventasHoyNode` no
-              trae ningún control enfocable (solo filas de texto), así que a diferencia
-              del swap de MovimientoCajaModal no hace falta `disabled` acá adentro. */}
-          <div className={`grid overflow-hidden transition-[grid-template-rows,margin] duration-300 ease-[var(--ease-cayla)] ${mostrarVentasHoy ? "mt-2 grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
-            <div className="min-h-0 overflow-hidden">{ventasHoyNode}</div>
-          </div>
-        </div>
       </div>
     </section>
   );

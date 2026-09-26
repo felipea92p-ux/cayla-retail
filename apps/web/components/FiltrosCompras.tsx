@@ -383,13 +383,13 @@ function PildoraFechas({ desde, hasta, onCambiar }: { desde: string; hasta: stri
       <Popover.Trigger asChild>
         <button
           type="button"
-          className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-[11px] outline-none transition-colors ${
+          className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
             activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
           }`}
         >
           <CalendarRange aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
           {texto}
-          <Hilo activo={abierto} />
+          <Hilo activo={abierto} reposo={false} />
         </button>
       </Popover.Trigger>
       <Popover.Portal>

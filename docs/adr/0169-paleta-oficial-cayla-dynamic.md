@@ -73,3 +73,14 @@ Typecheck, lint y las 7,868 pruebas unitarias en verde. En esta sesión no habí
 - Alguien reintroduce un tono a mano (`#a47865`, `#556e49`…) en lugar del token.
 - Una tabla arma sus filas sin `fila()` ni `fila-cayla`: pierde la zebra.
 - Un rojo nuevo se suma a la cabecera: el sobretítulo ya gasta uno de los dos rojos por pantalla.
+
+## Actualización 2026-09-26
+
+Inventario, que conservaba una foto en la cabecera (`InventarioHero`, 2026-09-22), pasó también a `CabeceraPantalla`: ver ADR-0216.
+
+## Actualización 2026-09-26 (b)
+
+La convivencia de las dos cabeceras se resolvió al revés de lo que decía «Consecuencias»: Ventas no pasó a
+`CabeceraPantalla`; Felipe eligió la de Ventas (`EncabezadoPagina`) y **Inventario pasó a ella** (ADR-0220). El punto 4
+(«el orden oficial de una pantalla» empieza con `CabeceraPantalla`) queda para Finanzas, que la usa como su spike
+aprobado (ADR-0195). Lo demás de esta guía (tokens, botones, chips, tablas, notas) sigue igual.

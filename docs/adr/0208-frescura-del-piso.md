@@ -2,15 +2,19 @@
 
 **Fecha:** 2026-09-24
 **Estado:** Diseño aprobado por Felipe el 2026-09-24, en cinco tandas de preguntas. Desde el 2026-09-25 se construye
-**por bloques** (ver «Orden de construcción»). **El bloque 1 está construido y probado en local** (bajar al piso
-escaneando, «Reposición» cerrada en el piso y la lectura de qué bajadas fueron tardías; ver «Construcción — bloque 1»).
-**No está en producción:** faltan pegar cinco migraciones, con la web publicada entre la cuarta y la quinta, y encender
-el módulo en los roles. **Probada en el navegador** sin base de datos (respuestas de la base simuladas; escritorio y
-375 px): ver «Verificación en local». Del bloque 2 en adelante no hay nada construido.
+**por bloques** (ver «Orden de construcción»). **Los bloques 1 y 2 están construidos y fusionados en `main`** desde el
+2026-09-25: el 1 (bajar al piso escaneando, «Reposición» cerrada en el piso y la lectura de qué bajadas fueron tardías;
+#434, ver «Construcción — bloque 1») y el 2 («Retirar del piso»; #440, `60d5aa4d`, ver «Actualización 2026-09-25 —
+bloque 2» y «Actualización 2026-09-25 — revisión del bloque 2»). **La web de los dos ya está publicada** (Vercel
+publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la `0200` y la `0400` están pegadas y
+`fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
+separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
+terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
-**Módulo:** Inteligencia y reportes (Águila). El bloque 1 vive en Inventario (Halcón).
+**Módulo:** Inteligencia y reportes (Águila). Los bloques 1 y 2 viven en Inventario (Halcón).
 **Documento para el equipo:** `docs/maquetas/frescura-del-piso-2026-09/frescura-del-piso.html`, publicado como artifact
 privado. Todos sus datos son simulados.
 **Afectará cuando se construya:** una lectura SQL nueva sobre `movimientos` y `stock`; `productos` (columna nueva
@@ -20,6 +24,10 @@ funciones `bajar_al_piso`, `fn_bajadas_del_piso`, `fn_verificar_bajadas` y `fn_p
 `registrar_movimiento` («Reposición» ya no toca el piso), la pantalla `/inventario/bajar` con su botón «Bajar al piso»
 en Existencias, y Existencias ▸ Ajustar stock, que deja de ofrecer «Reposición» en el piso. `movimientos` y `stock` no
 cambian.
+**Afecta desde el bloque 2:** el menú «⋯» de cada talla en Existencias («Retirar del piso»), `ReponerPisoModal` con dos
+sentidos, y cómo Movimientos nombra un movimiento interno (la columna «Movimiento», el filtro y el detalle), que también
+se ve en Inicio y en el historial del producto. Con su revisión, además: el texto del módulo Existencias en Roles y
+accesos (`20260926170000`) y la opción `bloqueado` de `<Modal>`.
 
 ## El problema
 
@@ -144,18 +152,35 @@ agrupados en siete bloques (entre paréntesis, el número de paso original). Las
 conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1, su «paso 2» es el bloque 2, y sus «paso
 3» y «paso 4» (el indicador y el FIFO) son el bloque 3.
 
+**La regla se rompió dos veces, y solo una con decisión (2026-09-25).**
+- *Excepción aprobada (opción A):* el bloque 2 se construyó antes de pegar el 1. Salió de la tarea 3 del plan paralelo
+  «del termómetro», que ya estaba construida, y Felipe eligió rescatar solo el retiro, rebasado sobre el bloque 1
+  (según la sesión que lo construyó, BITÁCORA del 2026-09-25). Las razones que dio esa sesión: sin retiro, una prenda
+  guardada sigue envejeciendo como si estuviera colgada, y el retiro no necesitaba migración (es `mover_interno` al
+  revés).
+- *Sin decisión explícita:* la web del bloque 1 salió con la fusión del #434 (Vercel publica cada push a `main`) antes
+  de pegar la `0000`, contra lo que pedía (f). No lo aprobó nadie: simplemente pasó, y dejó el botón y el módulo a la
+  vista antes que su base. La equivalencia entre las tareas de ese plan y estos bloques está en BACKLOG
+(«Frescura del piso — plan del termómetro»).
+
 1. **Bloque 1 — Bajada al piso, «Reposición» cerrada en el piso y marca de bajada tardía** (paso 1). Registro de la
    bajada con escaneo por fardo; permiso para bajar sin darle a la persona todo Existencias; la marca tardía como
-   lectura. **Construido y probado en local el 2026-09-25, por pegar** (ver «Construcción — bloque 1»). El indicador
-   de «confianza del registro» por sede pasó al bloque 3.
+   lectura. **Construido el 2026-09-25 y fusionado (#434); en producción completo desde el 2026-09-26** (ver (f)).
+   El indicador de «confianza del registro» por sede pasó al bloque 3.
 2. **Bloque 2 — «Retirar del piso»** (paso 2): no hace falta una función nueva, falta la pantalla. Es `mover_interno`
    con origen (piso) y destino (almacén) invertidos. *Corregido el 2026-09-25: este punto decía «la función existe»
    pensando en `devolver_a_almacen`, que era del modelo V1 y ya no existe; `bajar_a_piso` tampoco.*
+   **Construido y fusionado el 2026-09-25** (#440, `60d5aa4d`; ver «Actualización 2026-09-25 — bloque 2»). Su web ya
+   está publicada; la revisión sumó la migración `20260926170000`, pegada el 2026-09-26.
+   - **Entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
+     `bajar_al_piso`). Va ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas
+     filas: un envío doble infla las dos cosas. **Construido y en producción el 2026-09-26** (migraciones `20260926200000`
+     y `20260926200100`, web #458; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
 3. **Bloque 3 — La pantalla de Frescura** (pasos 3, 4, 5 y 7): reloj de novedad por modelo+color, reloj de piso por
    unidad con emparejamiento FIFO, curva de Kaplan-Meier con P50, P75 y P90 por categoría y sede, tramos e índice de
    rapidez, el indicador de «confianza del registro» por sede (contrato en (d)) y atributos y marcas en la lectura. Se
    construye encima del dominio de Inventario de main, no al lado (regla en (d)). Nace como módulo nuevo, solo para el
-   líder (ADR-0161).
+   líder (ADR-0161). Si Felipe la aprueba, entra aquí la marca de «retirada de la venta» (ver «Lo que falta decidir»).
 4. **Bloque 4 — Clásicos y tallas clave** (paso 6): `productos.linea` («moda» o «clásico») y tallas clave por
    categoría. Es un cambio de esquema.
 5. **Bloque 5 — Traslado por novedad y alerta al Taller** (pasos 8 y 9): llevar a otra sede lo que allá nunca se
@@ -199,6 +224,9 @@ Fuera de los bloques: zonas de exhibición (paso 12), más adelante.
 - Lo que abrió el bloque 1 (a quién se le enciende la bajada, la D-40 frente a la caja, «Reposición» en el almacén, la
   exclusión de las prendas por regularizar, el mínimo de muestra del indicador): ver «Construcción — bloque 1», punto
   (g).
+- Lo que abrió el bloque 2: una marca de «retirada de la venta» por talla y sede, con un motivo cerrado del retiro. Sin
+  ella, Existencias («Reponer», «Por colgar»), Análisis y la consulta 05 del termómetro leen un retiro a propósito como
+  falta de reposición. Ver «Actualización 2026-09-25 — revisión del bloque 2», «Lo que hereda el bloque 3».
 
 ## Construcción — bloque 1 (2026-09-25): bajar al piso escaneando, cerrar «Reposición» en el piso y saber qué bajadas fueron tardías
 
@@ -206,7 +234,8 @@ Felipe pidió construir el primer paso, que hoy es el bloque 1. Antes de escribi
 repo y producción (solo lectura). Con eso compitieron tres diseños y se armó un plan, y siete paquetes se construyeron
 en paralelo. Después, tres revisores adversariales (base y concurrencia; web y contrato; negocio y documentos)
 encontraron fallas; se fusionó `origin/main`, que traía el retiro de «+ Nuevo» (ADR-0204) y el libro único de piso y
-almacén (ADR-0202); y cuatro paquetes más corrigieron todo. **Nada se pegó en producción.**
+almacén (ADR-0202); y cuatro paquetes más corrigieron todo. **Al cerrar el bloque no se había pegado nada en
+producción** (lo que se pegó después está en la cabecera y en (f)).
 
 Qué queda, en una frase: la colaboradora entra por el botón «Bajar al piso» de Existencias, escanea con la pistola cada
 prenda que cuelga y confirma una vez; la base baja todo o nada y no repite si ella vuelve a confirmar; «Reposición» ya
@@ -219,9 +248,10 @@ Seis supuestos del diseño no calzaban con el código ni con la base:
 1. **`bajar_a_piso` y `devolver_a_almacen` no existen.** Eran del modelo V1 (`stock_almacen`). Hoy bajar y retirar del
    piso es la MISMA función: `retail.mover_interno(p_ubicacion_id, p_variante_id, p_cantidad,
    p_sububicacion_origen_id, p_sububicacion_destino_id, p_nota)`. Mueve una prenda por llamada; retirar es invertir
-   origen y destino. Escribe una fila de tipo `traslado` con motivo `movimiento_interno`, que Movimientos rotula
-   «Reposición interna». No tiene token ni candado de módulo: solo pregunta si la cuenta opera esa tienda. En la web la
-   usa solo el botón «Reponer» de Existencias, una prenda por vez, en un modal.
+   origen y destino. Escribe una fila de tipo `traslado` con motivo `movimiento_interno`, que Movimientos rotulaba
+   entonces «Reposición interna» (desde el bloque 2, «Bajada al piso» o «Retiro del piso»; ver «Movimientos nombra la
+   bajada y el retiro por su par»). No tiene token ni candado de módulo: solo pregunta si la cuenta opera esa tienda.
+   En la web la usaba solo el botón «Reponer» de Existencias, una prenda por vez, en un modal.
 2. **El «fardo» no se puede escanear.** Un `lote` es una recepción de un proveedor y no tiene código legible. Los
    códigos de barras identifican una prenda (modelo, talla y color), no una unidad ni un fardo. Y `stock` no guarda de
    qué lote viene cada unidad: se sabe cuánto ENTRÓ de un lote, no cuánto sigue en el almacén. `movimientos.lote_id` no
@@ -399,20 +429,46 @@ En esta entrega esos documentos quedaron con notas «(V1; hoy: …)».
   126 ms), y casi todo es el libro: lo primero es el semi-join por hash en `fn_ledger_puntos` (unos 330 ms, las mismas
   filas), no un índice.
 
-**Movimientos no cambia de nombre**
-- **DECIDÍ:** la bajada sigue rotulada «Reposición interna» y «unidades repuestas», que es verdad.
-- **DESCARTÉ:** un motivo nuevo `bajada_piso`, o renombrar a «Bajada al piso»: el bloque 2 usará el mismo movimiento
-  en sentido contrario y quedaría rotulado como bajada.
-- **SE ROMPE SI:** alguien usa `mover_interno` para retirar antes del bloque 2: se distingue por el tipo de la
-  sububicación de origen y de destino, no por el motivo.
+**Movimientos nombra la bajada y el retiro por su par de sububicaciones** (reescrita en la revisión del bloque 2; la
+decisión anterior está en «Historia», al final)
+- **DECIDÍ:** una fila es «interna» por su ESTRUCTURA y no por su motivo: la categoría `interno` que devuelve
+  `fn_movimientos`, la misma que decide `fn_es_traslado_interno` (ADR-0203). Y se nombra por el PAR exacto de
+  sububicaciones, el mismo que usa `fn_bajadas_del_piso`: almacén de tienda → piso de venta = «Bajada al piso»; piso de
+  venta → almacén de tienda = «Retiro del piso». Cualquier otro par (cuarentena, sin origen, racks del Taller) conserva
+  el nombre de su proceso: «Movimiento interno» si lo escribió `mover_interno`, «Activación piso/almacén» si es la
+  activación. El filtro del motivo `movimiento_interno` se llama «Movimiento interno», porque trae todo lo que escribe
+  `mover_interno`, sea cual sea el par. El detalle dice «unidades movidas». El motivo en la base no cambia
+  (`apps/web/lib/movimientos-reglas.ts`: `etiquetaMovimiento` e `INTERNO_POR_PAR`).
+- **DESCARTÉ:**
+  - Nombrar solo por el destino, como hizo el bloque 2: una salida de cuarentena al piso se llamaba «Bajada al piso»
+    aunque `fn_bajadas_del_piso` no la cuenta como bajada, y una fila sin origen que llega al almacén se llamaba «Retiro
+    del piso» sin haber estado nunca en el piso.
+  - Decidir «interno» por el motivo (`motivo = 'movimiento_interno'`): ADR-0203 lo prohíbe en código nuevo, y un
+    traslado interno escrito con otro motivo quedaría con otro nombre.
+  - Mantener el filtro como «Bajada o retiro del piso»: prometería algo que no entrega, porque trae también los otros
+    pares.
+  - Mantener «Reposición interna» para los dos sentidos (la decisión del bloque 1): con el retiro, un mismo nombre no
+    dice hacia dónde fue la prenda.
+- **SE ROMPE SI:** una pantalla nueva mueve entre almacén y piso con otro motivo y alguien espera verla bajo el filtro
+  «Movimiento interno» (el filtro va por motivo; el nombre, por estructura). O `fn_movimientos` deja de devolver el tipo
+  de la sububicación de origen o de destino: todo cae en «Movimiento interno». O una activación futura se escribe de
+  almacén a piso: se nombraría «Bajada al piso», y `fn_bajadas_del_piso` también la contaría como bajada.
+- **Historia:** el bloque 1 decidió no cambiar el nombre (la bajada seguía como «Reposición interna» y «unidades
+  repuestas») y dejó escrito que, cuando existiera el retiro, se distinguiría por el tipo de las sububicaciones de
+  origen y de destino, no por el motivo. El bloque 2 lo resolvió a medias: nombraba solo por el destino y filtraba
+  antes por el motivo. La revisión lo dejó como dice el DECIDÍ.
 
 **«Reposición» cerrada en el piso**
 - **DECIDÍ (Felipe, 2026-09-25):** un ajuste con motivo «Reposición» sobre el piso de una tienda se rechaza en la base,
   suba o baje (`20260926000400`: un candado dentro de `registrar_movimiento`, hint `reposicion_piso_cerrada`).
   Existencias ▸ Ajustar stock ya no ofrece «Reposición» cuando la ubicación es Piso, y en su lugar muestra la nota
-  «Para subir prendas del almacén al piso usa «Bajar al piso» o «Reponer», en Existencias: así salen del almacén. Si al
-  contar encontraste prendas de más en el piso, elige «Conteo físico».». Lo que sube del almacén se baja; lo que
-  aparece de más al contar va por «Conteo físico». El Taller (que no separa piso y almacén) y el almacén no cambian.
+  «Para subir prendas del almacén al piso usa «Bajar al piso» o «Reponer», en Existencias: así salen del almacén. Si
+  ninguno te aparece para esta prenda, pídele al líder que active «Bajada al piso» en tu rol. Para guardar prendas del
+  piso en el almacén usa «Retirar del piso», en el menú «⋯» de la talla en Existencias. Si al contar encontraste
+  prendas de más en el piso, elige «Conteo físico».» (la oración de «Retirar del piso» la sumó la revisión del bloque
+  2; el mensaje de la base no la tiene, ver «`registrar_movimiento`: candado nuevo»). Lo que sube del almacén se baja;
+  lo que baja al almacén se retira; lo que aparece de más al contar va por «Conteo físico». El Taller (que no separa
+  piso y almacén) y el almacén no cambian.
 - **DESCARTÉ:** solo avisar, que es lo que se había construido primero: una nota no cambia el hábito (92 de las 146
   unidades del piso de producción entraron por ahí el 2026-09-24), y además decía «esto suma prendas al piso» justo
   cuando la base lo iba a rechazar. Cerrar solo el ajuste que suma: el par «−N en el almacén, +N en el piso» hecho a
@@ -510,6 +566,20 @@ null, p_minutos integer default 10)`**
   vuelve en un cambio) puede marcar tardía una bajada correcta: la fórmula mira el piso de antes, no lo que llegó
   después (la prueba T18 fija ese comportamiento). Cambiar la fórmula es decisión del contrato del bloque 3.
 - Una transferencia que llega de otra tienda directo al piso sí entra al cálculo, porque la cuenta el libro (T19).
+- **Desde el bloque 2:** un retiro equivocado que se corrige volviendo a bajar la prenda deja una bajada con el piso de
+  antes ya rebajado por el retiro. Si hay una venta en la ventana de 10 minutos, se le atribuye como tardía (a quien
+  hizo la re-bajada), y la re-bajada infla Σ `cantidad` (el denominador del indicador de confianza del bloque 3).
+  Ejemplo: piso 2; 10:00 se retiran 2 por error; 10:01 se corrigen con «Reponer» 2; 10:05 se vende 1 → `tardia`.
+  Pendiente: una prueba en `scripts/pruebas/frescura_bajadas.mjs` que fije el caso, y en el contrato del bloque 3
+  descontar de la bajada los retiros de la misma prenda en [t − ventana, t] (o tomar como piso de antes el nivel más
+  alto de esa ventana).
+- **Desde el bloque 2 (hallado en su revisión): un retiro DESPUÉS de una bajada no la corrige.** Si se escanearon 10
+  y solo se colgaron 6, y a los 5 minutos se retiran 4 con «Retirar del piso», la bajada sigue con cantidad 10:
+  `bajada_piso_items` guarda la cantidad original, ninguna función la corrige, y `fn_bajadas_del_piso` la lee entera
+  (`20260926000300`). El denominador del indicador (Σ `cantidad`) cuenta 4 prendas que nunca se colgaron. La ventana
+  del punto anterior mira ANTES de la bajada y no ve este retiro. Por eso el contrato del bloque 3 tiene que netear
+  también los retiros de la misma prenda en [t, t + ventana]. Hasta entonces, «Retirar del piso» devuelve la prenda al
+  almacén, pero no deshace la bajada.
 
 **Límite de la escritura: el orden de candados no es global todavía.** `bajar_al_piso` toma el stock en orden de prenda
 (`fn_bloquear_en_orden`, ADR-0190), como ventas, `iniciar_traslado`, recepciones y `cerrar_conteo`. Pero
@@ -528,6 +598,9 @@ migración y un caso de concurrencia: queda en el BACKLOG.
   prendas de más, elige «Conteo físico».`
 - Va después de los candados de permiso y de ubicación: a quien no puede ajustar le sigue saliendo el de permiso.
 - Se inserta en la definición viva de la función (no se reescribe desde un archivo) y se puede pegar dos veces.
+- **No nombra «Retirar del piso»:** se escribió antes del bloque 2 y ya está pegada en producción, así que su archivo
+  no se edita. La nota de la pantalla (Ajustar stock ▸ Piso) sí lo nombra desde la revisión del bloque 2. Si algún día
+  se vuelve a tocar este candado, se le suma la misma oración en una migración nueva.
 
 **La pantalla** (`apps/web/lib/bajada-reglas.ts`, lógica pura y probada; `components/BajarAlPisoForm.tsx`)
 - Entrada: el botón «Bajar al piso» de Existencias (`app/(app)/inventario/page.tsx`), con las tres condiciones de (b).
@@ -609,12 +682,32 @@ Verificado en local el 2026-09-25, sobre un Postgres desechable con las cinco mi
 
 ### (f) Cómo se pega en producción
 
-Cinco archivos, una ejecución por archivo, con la web publicada entre el cuarto y el quinto. Ya traen `retail.` y se
-pueden repegar (en local, cada uno se aplicó dos veces seguidas sin error). Sus cabeceras dicen «PARTE n de 5» y
-repiten este mismo orden.
+**Actualización 2026-09-26: está todo en producción.** Una consulta por efectos (solo lectura; una fila por migración)
+dio «sí» a la `0000`, `0100`, `0200`, `0300` y `0400`; Felipe pegó después la `20260926170000` y se leyó el texto nuevo
+de Existencias en la base. Roles: «Integrante» ve Productos, Vender, Existencias y Bajada al piso; las 3 «Terminal
+Almacén» ven Existencias y Productos, sin «Bajada al piso» (si la pistola va en esa terminal, falta marcarlo en su rol,
+sin SQL). Lo de abajo queda como registro de cómo se llegó.
+
+**Estado al 2026-09-25 (lo dijo Felipe; corregido en la revisión del bloque 2).** El orden de abajo ya no se cumplió:
+la web de los bloques 1 y 2 salió con la fusión del #434 y del #440 (Vercel publica cada push a `main`), antes de
+confirmar la `0000`. Hoy: `0200` y `0400` **pegadas** (`fn_verificar_bajadas()` = 0 filas); `0100` no confirmada por
+separado, pero sus tablas existen si esa función respondió; `0000` y `0300` **sin confirmar**. Lo que queda:
+1. Confirmar la `0000` y la `0300` con consultas de solo lectura en el SQL Editor: `select count(*) from retail.modulos
+   where clave = 'bajada_piso';` (1) y `select to_regprocedure('retail.fn_bajadas_del_piso(uuid, timestamptz,
+   timestamptz, integer)') is not null;` (`true`). La que falte se pega **cuanto antes**: mientras falte la `0000`,
+   Roles y accesos muestra «Bajada al piso» y encenderlo falla, y el mensaje de la `0400` le dice a la colaboradora que
+   pida al líder ese mismo módulo. Las dos se pueden repegar.
+2. Pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` **después de la `0000`**: el upsert de la `0000`
+   escribe el texto viejo de Existencias; si la `0000` se pega (o se repega) después, hay que repegar la `170000`.
+3. Encender «Bajada al piso» en los roles (ver abajo) y refrescar el diccionario (paso 7).
+
+El orden original, que sigue valiendo como referencia de qué hace cada archivo: cinco archivos, una ejecución por
+archivo, con la web publicada entre el cuarto y el quinto. Ya traen `retail.` y se pueden repegar (en local, cada uno
+se aplicó dos veces seguidas sin error). Sus cabeceras dicen «PARTE n de 5» y repiten este mismo orden.
 1. `20260926000000_bajada_piso_modulo.sql`: solo el módulo «Bajada al piso» y el texto corregido de Existencias
-   («Consultar stock, reponer el piso, ajustar stock, apartar prendas»). **Antes de publicar la web:** si la web sale
-   primero, Roles y accesos pinta un módulo que la base no conoce y encenderlo falla.
+   («Consultar stock, reponer el piso, ajustar stock, apartar prendas»; la `20260926170000` de la revisión del bloque 2
+   lo cambia por «Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas»). **Antes de publicar
+   la web:** si la web sale primero, Roles y accesos pinta un módulo que la base no conoce y encenderlo falla.
 2. `20260926000100_bajada_piso_tablas.sql`: las dos tablas y sus cuatro disparadores (no editar, no borrar, no vaciar),
    con `lock_timeout = '3s'`. **Fuera de hora pico:** las llaves hacia `movimientos`, `variantes`, `ubicaciones` y
    `public.personas` toman un candado breve sobre tablas en uso; si no lo consigue en 3 s, falla sin daño y se repega.
@@ -633,16 +726,21 @@ repiten este mismo orden.
    (dos `true`). `pnpm datos:generar:produccion` no sirve para esto: arma el diccionario desde el volcado guardado, no
    pregunta a producción. Va aparte porque el bloque 3 le cambiará las entrañas sin tocar el camino que
    guarda stock.
-5. **Publicar la web.**
-6. `20260926000400_reposicion_no_toca_el_piso.sql`: el candado de «Reposición» en el piso. **Después de la web:** su
-   mensaje manda al botón «Bajar al piso» de Existencias, y pegada antes cierra la puerta y manda a un botón que
-   todavía no está. Solo reemplaza `registrar_movimiento` insertando el bloque en su definición viva: no toma candados
-   de tablas.
+5. **Publicar la web.** *Ya ocurrió: salió con la fusión del #434 (y la del bloque 2, con el #440).*
+6. `20260926000400_reposicion_no_toca_el_piso.sql`: el candado de «Reposición» en el piso. *Ya pegada (Felipe,
+   2026-09-25).* **Después de la web:** su mensaje manda al botón «Bajar al piso» de Existencias, y pegada antes
+   cierra la puerta y manda a un botón que todavía no está. Solo reemplaza `registrar_movimiento` insertando el bloque
+   en su definición viva: no toma candados de tablas.
 7. Después: comprobar en el SQL Editor que quedó, con `select to_regprocedure('retail.bajar_al_piso(uuid, jsonb,
    uuid)') is not null;`, y refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) antes de
    `pnpm datos:generar:produccion` (nunca `pnpm datos:generar` a secas). `datos:comparar` NO ve esta llamada: la pantalla
    la hace con la constante `RPC_BAJADA` y el comparador solo reconoce el nombre escrito entre comillas. El nombre y
    los parámetros los cruza `bajada-reglas.test.ts` contra la migración (no contra producción).
+8. *(Revisión del bloque 2)* `20260926170000_existencias_incluye_retirar_del_piso.sql`, **después de la `0000`**: un
+   solo `update` del texto `incluye` de Existencias. Sin políticas ni `alter`: no aplica el bloqueo mutuo de ADR-0195.
+   Se puede repegar. Comprobar: `select incluye from retail.modulos where clave = 'existencias';` dice «Consultar
+   stock, reponer y retirar del piso, ajustar stock, apartar prendas». Entra al diccionario recién cuando esté pegada
+   (mismo refresco del paso 7).
 
 El día 1 el módulo solo lo ve el líder. **Felipe decide en qué roles encender «Bajada al piso»** (Colaboradores ▸
 Roles y accesos), en los de quien cuelga prendas; nunca desde el código (ADR-0161). En producción (2026-09-25) el rol
@@ -725,9 +823,9 @@ guiones se corren con `PATH=<pg>/bin:$PATH CAYLA_PGDATABASE=<base> LC_ALL=en_US.
 
 **Cómo lo verifica Felipe con la pistola real, ya pegado:**
 1. Como líder, Existencias en una tienda que separa piso y almacén ▸ «Bajar al piso». Escanea **5 prendas DISTINTAS**
-   (cada una de otra talla o de otro color) y confirma. En Movimientos salen **5 filas** «Reposición interna» con la
-   misma hora; en Existencias, el piso de cada una subió y el almacén bajó lo mismo. Cinco unidades de la misma talla
-   y color dan UNA fila, con cantidad 5.
+   (cada una de otra talla o de otro color) y confirma. En Movimientos salen **5 filas** «Bajada al piso» con la misma
+   hora (hasta el bloque 2 esta receta decía «Reposición interna»: ese nombre ya no existe); en Existencias, el piso de
+   cada una subió y el almacén bajó lo mismo. Cinco unidades de la misma talla y color dan UNA fila, con cantidad 5.
 2. Que no se repite: arma otra bajada, pulsa «Confirmar» y, justo después, pon la red en «Sin conexión» (herramientas
    del navegador ▸ Red). Vuelve a conectar y pulsa «Confirmar de nuevo». Si la base alcanzó a guardar, dice «Esta
    bajada ya estaba registrada a las HH:mm. No se repitió.»; si el corte llegó antes, guarda normal. En los dos casos,
@@ -740,10 +838,12 @@ guiones se corren con `PATH=<pg>/bin:$PATH CAYLA_PGDATABASE=<base> LC_ALL=en_US.
 ### (g) Lo que quedó para después
 
 - **1b:** una guía de solo lectura por recepción (llegaron / ya bajadas / faltan) y «Bajadas de hoy».
-- **Deshacer:** no hay. Hasta el bloque 2 («Retirar del piso»), una bajada mal escaneada se corrige con un ajuste del
-  líder. La lista en pantalla es la revisión previa.
-- `mover_interno` (el botón «Reponer») sigue sin token ni candado de módulo (D-26): un doble clic duplica, y la lectura
-  de tardías cuenta esas filas.
+- **Deshacer:** no hay. Desde el bloque 2, lo que se escaneó de más vuelve al almacén con «Retirar del piso», pero eso
+  no corrige la bajada: sigue contando con su cantidad original (ver «Límites conocidos de la marca»). La lista en
+  pantalla es la revisión previa.
+- `mover_interno` («Reponer» y, desde el bloque 2, «Retirar del piso») sigue sin token ni candado de módulo (D-26): un
+  envío repetido mueve dos veces, y la lectura de tardías cuenta esas filas. Es el «candado de `mover_interno`», con
+  su lugar entre el bloque 2 y el 3 (ver «Orden de construcción»).
 - Un hook de escaneo compartido: Vender, Recibir y Bajar tienen copia del mismo efecto (refactor aparte). Bajar tiene
   además el búfer de la pistola.
 - Una entrada para quien tenga «Bajada al piso» sin Existencias (el Inicio de las terminales, filtrado por módulo, o una
@@ -777,3 +877,204 @@ agrega solo al pegar en producción (`CLAUDE.md` decía lo mismo hasta que main 
 hay al 2026-09-25, contando las cinco de este bloque (`ls supabase/migrations | grep -E '^[0-9]{14}_.*\.sql$' | wc -l`),
 contienen `retail.`, y `apps/web/lib/modulos.test.ts` exige `insert into retail.modulos`. Las cinco migraciones nuevas
 siguen la realidad. `CONTRIBUTING.md` y ADR-0010 **no se editan** sin la decisión de Felipe.
+
+## Actualización 2026-09-25 — bloque 2: «Retirar del piso»
+
+Felipe eligió rescatar solo el retiro del plan paralelo «del termómetro» (tarea 3), sin sus motivos nuevos de ajuste
+(`carga_existente` y un valor propio para «Encontré de más»): cargaban prendas al piso sin pasar por el candado de
+«Reposición» de este ADR (`20260926000400`), así que se descartaron.
+
+- **Qué hace:** en Existencias, cada talla con piso DISPONIBLE mayor que 0 (en una tienda que separa piso y almacén)
+  tiene «Retirar del piso» en el menú «⋯» de su fila, con Responsable. Es `retail.mover_interno` con origen piso y destino
+  almacén; el mismo modal que «Reponer» (`ReponerPisoModal`, ahora con `sentido: 'bajar' | 'retirar'`). El bloque 2
+  no trajo migración; su revisión sumó una chica, solo de texto (`20260926170000`).
+- **Lo apartado no se retira:** el tope es el piso disponible y la base lo impide igual.
+- **Nombres:** el modal de la fila sigue llamándose «Reponer piso» (como su botón «Reponer»); «Bajar al piso» es el
+  botón de la pantalla de escaneo de este ADR. En Movimientos, las dos formas de subir quedan como «Bajada al piso»
+  (y el retiro, «Retiro del piso»), y el aviso de éxito de «Reponer» dice «unidades bajadas al piso» para que la
+  palabra lleve a su fila. Cómo se decide cada nombre: «Movimientos nombra la bajada y el retiro por su par».
+- **El semáforo contradice al retiro (hallado en la revisión, decisión de Felipe en el bloque 3):** «Reponer»
+  (`necesitaReponerPiso`) y «Por colgar» (`porColgar`) solo miran cifras. Después de retirar, la talla vuelve a pedir
+  que la bajen, y el turno siguiente deshace la decisión de la encargada. Mientras no exista una marca de «retirada
+  de la venta» por talla y sede que apague esa alarma, el modal avisa ANTES de confirmar (`avisoTrasRetiro`) y
+  ofrece una **nota opcional** del motivo, que viaja como `p_nota` a `mover_interno`. **Ninguna de las dos cosas
+  protege la decisión:** el aviso solo informa a quien retira, y la nota solo se lee en el detalle de un movimiento
+  (Movimientos, o el historial del producto), nunca en la fila de Existencias donde el turno siguiente vuelve a bajar
+  la prenda. Esa marca, junto con un motivo cerrado del retiro (fin de temporada, cambio de exhibición…), es lo que
+  Frescura necesita para distinguir un retiro que pausa el reloj de uno que saca la prenda de la venta.
+- **Riesgo que sigue abierto:** `mover_interno` no tiene token (ver (g)): un envío repetido de «Retirar» retira dos
+  veces. La pantalla frena el doble clic y, desde la revisión, no deja cerrar mientras guarda y no dice «no se guardó
+  nada» tras un corte de red; el candado en la base es trabajo pendiente, igual que para «Reponer».
+- **Límite nuevo de la marca de tardías:** retiro equivocado → re-bajada → venta en la ventana (ver «Límites conocidos
+  de la marca»).
+
+## Actualización 2026-09-25 — revisión del bloque 2
+
+Una revisión adversarial del #440 (tres lentes: integridad con el bloque 1 y la base; pantalla y colaboradora;
+documentos) encontró hallazgos menores, ninguno bloqueante. Felipe pidió un PR de corrección. Tres decisiones quedaron
+fijas antes de empezar: no se toca la base de `mover_interno` (su token va aparte), no se toca la lógica de Análisis
+(va al bloque 3) y no se edita la `0400`, que ya está pegada.
+
+**Qué se corrigió**
+- **Corte de red, con respuesta honesta.** Si la conexión se cae, el modal ya no dice «No se guardó nada — vuelve a
+  intentar»: dice «Se cortó la conexión mientras se intentaba retirar del piso (o reponer el piso): no podemos
+  confirmar si llegó a guardarse. Antes de volver a intentarlo, revisa si ya aparece registrado.»
+  (`mensajeErrorMovimientoPiso` en `lib/inventario-reglas.ts`, con `confirmarAntesDeRepetir`). Si la base SÍ respondió
+  con un error, refresca las cifras; con la red caída no refresca, porque un refresh sin red se vuelve navegación
+  completa y borraba el mensaje. Mientras guarda no se puede cerrar: «Cancelar» apagado, y Escape, el velo y la ✕ sin
+  efecto (opción nueva `bloqueado` de `<Modal>`, falsa por defecto: ningún otro modal cambia). Ese bloqueo tiene tope:
+  a los 20 s sin respuesta la llamada se corta (`abortSignal`), se trata como corte de red y el modal se puede cerrar.
+- **«Reponer» y «Retirar del piso» salen solo en la sede activa.** Firman con el Responsable de la sede activa: si el
+  líder miraba otra sede (`?ubicacion=`), el movimiento quedaba allá firmado por alguien de turno acá. Es la misma
+  condición que ya tenía «Bajar al piso». La misma regla se extendió después (a pedido de Felipe, 2026-09-26) a todo
+  lo que escribe desde Existencias: «Apartar» y «Ajustar» en la fila, y «Liberar» (apartados) y resolver o liquidar
+  dañados en sus modales. Mirando otra sede, esas acciones no se ofrecen y una nota dice que se cambie la sede activa
+  en la cabecera. (Productos ya ajustaba siempre en la sede activa.)
+- **El aviso del retiro no promete de más.** Dice «libre» o «libres» (la cifra es neta de lo apartado, y la tabla
+  muestra el piso físico) y termina en «Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve,
+  solo al abrir el movimiento.», en vez de «dilo en la nota».
+- **El modal no salta y dice qué es retirar.** El recorrido («Piso de venta → Almacén de tienda») pasó a la bajada
+  del título; el aviso tiene su propio bloque con el alto reservado (ADR-0185), que sin aviso aclara «Pasan al almacén
+  de la tienda: siguen siendo stock de la tienda (no es una baja), pero la caja no las cobra hasta que vuelvan al
+  piso.» (una primera versión decía «siguen disponibles para vender», y era falso: la venta descuenta del piso). Salen
+  los textos propios de «no alcanza» (`noValidate`), un error viejo se borra al cambiar la cantidad, y al cerrar el
+  foco vuelve al «⋯» de la fila, que no depende del semáforo (tras reponer, el refresh suele quitar el botón
+  «Reponer»); el «⋯» se anuncia con talla y color.
+- **Movimientos nombra por el par exacto** (reescrita la decisión: «Movimientos nombra la bajada y el retiro por su
+  par»). El filtro pasó a llamarse «Movimiento interno».
+- **Ajustar stock ▸ Piso nombra «Retirar del piso»** en su nota. El mensaje de la `0400` en la base no (ver
+  «`registrar_movimiento`: candado nuevo»).
+- **Roles y accesos dice qué da Existencias:** «Consultar stock, reponer y retirar del piso, ajustar stock, apartar
+  prendas». La pantalla lo lee de `lib/modulos.ts`, y la `20260926170000` deja la base con el mismo texto (ninguna
+  prueba compara los dos: `lib/modulos.test.ts` no lee `incluye`, y `bajada_al_piso.mjs` P1 fija el de la base). Por ADR-0161, quien ve un módulo hace todo lo que hay en él, y las
+  terminales de ventas ven Existencias: el líder tiene que poder leerlo.
+- **Probado en el navegador** (sin base, respuestas simuladas; escritorio y 375 px): el formulario no cambia de alto
+  al escribir, «no alcanza» sale con su texto propio, un corte de red da el mensaje honesto sin recargar la página, una
+  respuesta que nunca llega bloquea el cierre hasta el tope de 20 s y después se puede cerrar, y el foco vuelve a quien
+  abrió el modal.
+- **Documentos:** estados falsos corregidos (el bloque 2 ya estaba fusionado; la web ya estaba publicada), las recetas
+  dicen «Bajada al piso», el bloque 2 tiene su receta, y se borró la copia duplicada del documento del equipo que el
+  #440 había sumado en `docs/diseno/` (la vigente es `docs/maquetas/frescura-del-piso-2026-09/`).
+
+**El texto de la migración nueva**
+- **DECIDÍ:** un `update` del texto `incluye` de 'existencias', y nada más.
+- **DESCARTÉ:** un upsert como el de la `0000`: pisaría el orden, `solo_lider` y `delegable` si alguien los cambió
+  después y vuelve a pegarla. No nombrarlo: el retiro entró al módulo sin que el texto lo dijera. Y cambiar solo la web
+  (`lib/modulos.ts`): la pantalla quedaba bien, pero la base y el diccionario seguían sin nombrar el retiro.
+- **SE ROMPE SI:** alguien pega (o repega) la `0000` después de esta: su upsert repone «reponer el piso» en la base
+  (Roles y accesos no cambia, porque lee `lib/modulos.ts`; se desalinean la base y el diccionario). Se arregla
+  repegando la `150000`.
+
+**Lo que hereda el bloque 3** (ninguno se resolvió aquí)
+- **La marca de «retirada de la venta» apaga más que el semáforo de Existencias.** Análisis también lee mal un retiro:
+  si la tanda llevaba menos de 7 días en el piso, la lectura «reposición reciente» (`reposicion_reciente`,
+  `lib/resumen-lectura.ts`) dice que las unidades «entraron al piso hace poco» y la ficha las cuenta como «nuevas
+  pendientes», aunque están pausadas en el almacén; si se retira la talla entera, la regla `problema_reposicion` lo
+  lee como falta de reposición («cada quiebre es venta que no se hizo»). Y la consulta 05 del termómetro cuenta lo
+  retirado a propósito como «por colgar», con los días desde que llegó al almacén. La marca del bloque 3 tiene que
+  apagar las tres lecturas, no solo `necesitaReponerPiso` y `porColgar`. Antes del #440 ninguna pantalla devolvía
+  prendas del piso al almacén: estos casos recién empiezan a tener datos reales.
+- **Un retiro correctivo DESPUÉS de una bajada no la netea** en `fn_bajadas_del_piso`. El contrato del bloque 3 tiene
+  que mirar también [t, t + ventana], no solo [t − ventana, t] (ver «Límites conocidos de la marca»).
+
+**El candado de `mover_interno`** (pendiente, entre el bloque 2 y el 3)
+- Qué es: un token contra el doble envío en `mover_interno`, como el de `bajar_al_piso`, para que un reintento
+  devuelva «ya estaba registrado» en vez de mover otra vez. Hoy la pantalla frena el doble clic y el cierre durante el
+  guardado, y tras un corte de red pide revisar antes de repetir; nada impide que alguien repita igual.
+- Por qué va antes del bloque 3: el indicador de confianza (Σ `cantidad`) y los relojes de piso leen esas filas, y un
+  envío doble las infla.
+- Por qué va aparte: toca una función en producción que usan «Reponer», «Retirar del piso» y `bajar_al_piso`. Si el
+  token entra como parámetro, cambia su firma: la `0200` la busca con 6 argumentos, y `pruebas:una-sola-firma` no deja
+  dos versiones. Cómo se agrega (parámetro nuevo o función aparte) se decide en ese paso, con su migración, su ensayo y
+  un caso de concurrencia.
+
+**Cómo lo verifica Felipe (bloque 2 y su revisión, con la web de la revisión ya publicada)**
+1. Como líder, en Existencias de una tienda que separa piso y almacén, con la sede activa en la cabecera: «⋯» de una
+   talla con piso libre ▸ «Retirar del piso». Bajo el título se lee «Piso de venta → Almacén de tienda». Retira **2**
+   con una nota (por ejemplo, «cambio de exhibición») y confirma. En Existencias, el piso de esa talla bajó 2 y el
+   almacén subió 2. En Movimientos sale una fila «Retiro del piso»; al abrirla, el detalle dice «unidades movidas» y
+   muestra la nota.
+2. Mirando otra sede (desde un enlace con `?ubicacion=`), ni «Reponer» ni «Retirar del piso» aparecen.
+3. En Movimientos, tipo «Internos»: debajo sale el proceso «Movimiento interno» (junto a «Activación piso/almacén»), y
+   trae la bajada y el retiro.
+4. Ajustar stock ▸ ubicación Piso: la nota nombra «Retirar del piso».
+5. En Colaboradores ▸ Roles y accesos, Existencias dice «Consultar stock, reponer y retirar del piso, ajustar stock,
+   apartar prendas» (la pantalla lo lee de `lib/modulos.ts`). La base se comprueba
+   aparte, ya pegada la `20260926170000`: `select incluye from retail.modulos where clave = 'existencias';` da el
+   mismo texto.
+
+**La lección.** El bloque 1 y el bloque 2 los trabajaron dos sesiones distintas el mismo día, sobre el mismo módulo y
+con dos planes. La revisión cruzada encontró sobre todo textos que prometían lo que la pantalla no hacía: un «no se
+guardó nada» que podía ser falso, un «dilo en la nota» que nadie iba a leer, un filtro que decía «bajada o retiro» y
+traía más, un PR que el documento daba por pendiente cuando ya estaba en `main`. Un texto de pantalla o de documento
+es parte del contrato: se revisa como el código.
+
+## Actualización 2026-09-26 — la marca de `mover_interno`
+
+**El problema.** «Reponer» y «Retirar del piso» llaman a `mover_interno`, que no tenía marca contra el doble envío. Si
+la conexión se corta DESPUÉS de que la base guardó, la colaboradora no sabe si se guardó; si vuelve a confirmar, la
+prenda se mueve dos veces: el piso queda con otra cifra que la que está colgada, la caja deja de cobrar una prenda que
+sí está a la vista, y el bloque 3 contaría una bajada o un retiro que no pasó. La pantalla ya frenaba el doble clic y
+el cierre durante el guardado; nada frenaba el reintento después de un corte.
+
+**La analogía.** Es la guía de traslado numerada del Taller: si la guía 0412 ya está archivada, una segunda hoja con
+el mismo número no mueve otro fardo, solo confirma que el primero salió. Y si alguien trae la 0412 con otra cantidad,
+no se acepta: esa guía ya dice otra cosa.
+
+**DECIDÍ:** `mover_interno` suma un séptimo parámetro opcional, `p_token uuid default null`, y una tabla
+`retail.movimientos_internos_intentos` (la marca, el movimiento que produjo y una huella md5 de tienda, prenda,
+cantidad, origen, destino y nota). Con marca: candado de transacción sobre ella, y si ya se usó con la misma huella
+devuelve el MISMO movimiento sin mover nada; con otra huella rechaza (`mover_interno_token_reusado`). Sin marca, igual
+que antes: así la sigue llamando `bajar_al_piso`, que ya tiene su marca por bajada. La marca se mira ANTES de pedir
+responsable (la lección del bloque 1): comprobar algo ya guardado no escribe nada. La tabla solo la escribe la función
+(RLS sin políticas, sin privilegios de afuera) y sus filas no se editan, no se borran ni se vacían.
+**DESCARTÉ:** una función aparte con token (`mover_interno_con_marca`): dos funciones que hacen lo mismo, y la próxima
+corrección se aplicaría a una sola. Y hacer la marca obligatoria: rompería `bajar_al_piso`, el seed y las pruebas que
+la llaman con seis argumentos, a cambio de nada (ellas no se reintentan solas).
+**SE ROMPE SI** alguien vuelve a pegar `20260914230000` (recrearía la versión de seis parámetros al lado: dos firmas,
+y `pruebas:una-sola-firma` lo detecta), o si la web con `p_token` sale antes de pegar las dos migraciones («Reponer» y
+«Retirar» fallarían con «función no encontrada» hasta pegarlas; `pnpm datos:comparar` ya lo avisa:
+«manda `p_token` y producción no lo acepta»).
+
+**Cómo se ve mal hecho.** Guardar la marca en el navegador y confiar en ella (se pierde al recargar); poner la marca
+DESPUÉS del responsable (un reintento con la responsable ya fuera de turno diría «no está de turno» aunque el
+movimiento ya estaba guardado); o dejar que la pantalla cambie la cifra y reenvíe con la misma marca.
+
+**La pantalla** (`apps/web/components/ReponerPisoModal.tsx`): una marca por modal abierto. Tras una respuesta incierta
+(`esRespuestaIncierta`, que pasó de `bajada-reglas.ts` a `error-escritura.ts` para que la usen las dos pantallas) la
+cantidad y la nota quedan fijas y el botón dice «Confirmar de nuevo»: la única salida es reenviar lo mismo o cerrar.
+No se descongela con un rechazo posterior (un corte de tiempo mientras el primer envío seguía en curso no prueba nada);
+el texto suma «Aún no sabemos si el envío anterior se guardó…» y ofrece cerrar y revisar Existencias (la base ya
+respondió, así que las cifras se refrescaron). Congelado, el tope de la pantalla no frena el reenvío: puede que ya
+descuente ese mismo envío, y la pregunta es para la base. La nota se manda escrita en el objeto (sin `...`) para que
+`datos:comparar` pueda leer la llamada entera.
+
+**La guarda de la `0200`.** Buscaba `mover_interno` por su firma de seis parámetros; ahora la busca por nombre, para
+que la `0200` se pueda volver a pegar después de la `200100` (las pruebas del CI lo hacen). Solo cambia la guarda, no
+lo que crea: en producción no hay que volver a pegarla.
+
+**Estado:** en producción desde el 2026-09-26. Felipe pegó las dos partes en orden y la base respondió con UNA sola
+firma de `mover_interno`, terminada en `p_token uuid` (la guarda de la segunda parte exige la tabla, así que la tabla
+también está); después fusionó la web (#458, `306a30f9`).
+
+**Cómo se pega (en este orden, fuera de hora pico):**
+1. `20260926200000_mover_interno_intentos_tabla.sql` (la tabla; su FK toma un candado breve sobre `movimientos`, con
+   `lock_timeout` de 3 s: si no lo consigue, falla sin daño y se vuelve a pegar).
+2. `20260926200100_mover_interno_con_marca.sql` (la función). Si el cuerpo vivo de `mover_interno` no mide
+   `ab13725880e28cabc97d3261d4db8396` (medido en producción el 2026-09-25), aborta sin tocar nada: alguien lo parchó en
+   vivo y hay que reescribir la migración desde la definición real.
+3. Recién entonces fusionar la web.
+
+**Cómo lo verifica Felipe:**
+1. Después de pegar: `select pg_get_function_identity_arguments(oid) from pg_proc where proname = 'mover_interno' and
+   pronamespace = 'retail'::regnamespace;` da UNA fila que termina en `p_token uuid`.
+2. Con la web publicada, en Existencias, «Reponer» 1 prenda: el piso sube 1 y en Movimientos sale UNA «Bajada al piso».
+   Luego `select count(*) from retail.movimientos_internos_intentos;` da 1 (o una más que antes).
+3. Una bajada por «Bajar al piso» sigue funcionando igual (no usa esta marca: esa tabla no crece).
+
+**Qué cubren las pruebas.** `pnpm pruebas:mover-interno-marca` (12 casos, en el CI): una sola firma, sin marca igual
+que antes, reintento = mismo movimiento, otra cifra/nota/sentido rechazado, intento fallido deja la marca libre, la
+marca antes del responsable, la tabla inmutable, la guarda md5 aborta, pegada dos veces, y `bajar_al_piso` sin cambios.
+Aparte, contra un Postgres desechable y con COMMIT: dos envíos simultáneos con la misma marca dan UN movimiento (el
+segundo espera el candado y responde el mismo). En el navegador, con la red cortada a propósito: corte → congelado →
+rechazo → éxito, tres envíos con la misma marca, la misma cifra y la misma nota; un modal nuevo estrena marca.

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, SlidersHorizontal, type LucideIcon } from "lucide-react";
 import { ALTO_CONTROL, Hilo } from "@/components/ui/campos";
 import { type OpcionCombo } from "@/components/ui/ComboBuscable";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { comboNecesitaBuscador } from "@/lib/combo-reglas";
@@ -46,10 +47,17 @@ export function BotonFiltros({ abierto, activos, onClick }: { abierto: boolean; 
 }
 
 /** El panel que agrupa las píldoras — una sola superficie (`divide-x` entre
- *  cada una), no una caja por campo. */
+ *  cada una), no una caja por campo. Angosto (celular), las píldoras NO se apilan una arriba de otra
+ *  (`flex-wrap` con 4-5 píldoras de texto largo — «Todos los vendedores» — partía el panel en varias
+ *  filas desparejas, la mitad del ancho desperdiciada a los costados de cada una): se quedan en una sola
+ *  fila que se desliza en horizontal, como el riel de períodos que ya usan Vender e Historial. Desde
+ *  `sm` (640px) hay aire de sobra y vuelve a `flex-wrap`, que se ve mejor con todas a la vista de una. */
 export function PanelPildoras({ children }: { children: ReactNode }) {
   return (
-    <div id="filtros-panel" className="anim-revelar flex flex-wrap items-center divide-x divide-tinta/10 rounded-xl bg-sand/50 p-1 shadow-sm">
+    <div
+      id="filtros-panel"
+      className="anim-revelar scroll-cayla flex flex-nowrap items-center divide-x divide-tinta/10 overflow-x-auto rounded-xl bg-sand/50 p-1 shadow-sm sm:flex-wrap"
+    >
       {children}
     </div>
   );
@@ -60,7 +68,7 @@ export function PanelPildoras({ children }: { children: ReactNode }) {
  *  sentinel `TODOS`, este componente no sabe de URLs.
  *
  *  Sin caja propia (2026-09-17, pedido de Felipe: "no me gusta que estén encapsulados en esos rectángulos
- *  blancos") — nada de borde ni fondo en reposo: el mismo hilo vivo de `CampoTexto`/`SelectNativo` marca dónde
+ *  blancos") — nada de borde ni fondo en reposo: el mismo hilo vivo de `CampoTexto`/`CampoSelect` marca dónde
  *  está parado, la tipografía marca si hay un valor elegido (`activa`, no `elegida`: "Todos" es una opción real
  *  y SIEMPRE hay una elegida — lo que importa es si es distinta de "Todos"). El panel que los agrupa
  *  (`divide-x`) es la única superficie; cada campo adentro es texto, no una caja más.
@@ -103,6 +111,9 @@ export function DesplegablePildora({
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
 
   const posLista = usePosicionLista(contenedor, abierto, 288);
+  const destino = useDestinoFlotante(contenedor, abierto);
+  // La caja flotante entera (buscador + lista): vive en un portal, fuera de `contenedor`.
+  const capa = useRef<HTMLDivElement>(null);
   const listaVisible = abierto && !!posLista;
   const elegida = opciones.find((o) => o.valor === valor) ?? null;
 
@@ -129,7 +140,12 @@ export function DesplegablePildora({
     if (mostrarBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
-      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
+      // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
+      // mirar las dos cajas. Mirando solo `contenedor`, tocar una opción contaba como «afuera», la lista se cerraba
+      // en el mousedown y el click de la opción ya no llegaba: no se podía elegir con mouse ni con el dedo.
+      const t = e.target as Node;
+      if (contenedor.current?.contains(t) || capa.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -188,21 +204,27 @@ export function DesplegablePildora({
         aria-controls={`${id}-lista`}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 px-3 text-[11px] outline-none transition-colors ${
+        className={`label-cayla group relative flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap px-3 text-[11px] outline-none transition-colors ${
           activa ? "text-tinta" : "text-tinta/60 hover:text-tinta"
         }`}
       >
         <Icono aria-hidden className={`h-3.5 w-3.5 shrink-0 transition-colors ${activa ? "text-tinta/70" : "text-tinta/40 group-hover:text-tinta/60"}`} />
         <span>{elegida?.texto ?? etiqueta}</span>
         <ChevronDown aria-hidden className="h-3 w-3 shrink-0 text-tinta/35" />
-        <Hilo activo={abierto} />
+        <Hilo activo={abierto} reposo={false} />
       </button>
 
-      {listaVisible && (
-        <div
-          style={{ position: "fixed", ...posLista }}
-          className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
-        >
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
+          medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
+          `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
+      {listaVisible &&
+        destino &&
+        createPortal(
+          <div
+            ref={capa}
+            style={{ position: "fixed", ...posLista }}
+            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md"
+          >
           {mostrarBuscador && (
             <input
               ref={buscador}
@@ -251,8 +273,9 @@ export function DesplegablePildora({
               ))
             )}
           </ul>
-        </div>
-      )}
+        </div>,
+          destino
+        )}
     </div>
   );
 }

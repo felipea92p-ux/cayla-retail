@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import {
   BadgePercent,
   Banknote,
@@ -19,6 +19,7 @@ import {
   Tag,
   Trash2,
   Wallet,
+  X,
 } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { ETIQUETA_TIPO, type TipoComprobante } from "@/lib/comprobantes-reglas";
@@ -44,6 +45,7 @@ import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import { codigoPrenda } from "@/lib/prenda-reglas";
+import { nombreDeEspera } from "@/lib/vender-hoy-reglas";
 import { ID_CARGO_ESPECIAL, money, type DescuentoForm, type ItemCarrito, type PagoAplicado, type TicketEnEspera } from "@/components/PuntoDeVenta";
 
 /** 18% — IGV de Perú. Solo para el desglose que se ve en pantalla: el que de
@@ -228,6 +230,13 @@ type Props = {
   /** Apilado (celular/tablet, bajo `lg`) el ticket queda debajo de todo el catálogo —
    *  la barra-resumen fija del padre lo usa para saltar acá con `scrollIntoView`. */
   id?: string;
+  /** Arriba de las líneas mientras se arma (spike 2026-09-26): la tira de tickets en espera y la fila «Clienta». */
+  arriba?: ReactNode;
+  /** Junto a «Descuento» y «Dejar en espera»: «Apartar» y «Proforma» (spike 2026-09-26). */
+  accionesArmar?: ReactNode;
+  /** Dentro de la hoja del celular (`<Modal variante="ticket">`): llena la hoja y ofrece volver al catálogo. */
+  enHoja?: boolean;
+  onCerrarHoja?: () => void;
 };
 
 /**
@@ -286,6 +295,10 @@ export function PuntoDeVentaTicket({
   facturaSinRuc,
   loading,
   onCobrar,
+  arriba,
+  accionesArmar,
+  enHoja = false,
+  onCerrarHoja,
 }: Props) {
   // Única excepción a "sin estado, sin hooks" del componente (ver el comentario de la
   // función, abajo): es un búfer de ANIMACIÓN, no de negocio. `momento` sigue siendo la
@@ -446,8 +459,20 @@ export function PuntoDeVentaTicket({
               <ShoppingBag className="h-6 w-6 text-tinta/70" aria-hidden />
               Ticket actual
             </h2>
-            {/* Solo cuando hay algo esperando: el chip es la única puerta a esa lista. */}
-            {enEspera.length > 0 && (
+            {/* En la hoja del celular, la salida al catálogo (además del velo): la clienta pide otra prenda. */}
+            {enHoja && onCerrarHoja && (
+              <button
+                type="button"
+                onClick={onCerrarHoja}
+                aria-label="Volver al catálogo"
+                className="order-last ml-2 grid h-9 w-9 shrink-0 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-sand/40 hover:text-tinta"
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </button>
+            )}
+            {/* Solo cuando hay algo esperando: el chip abre la lista completa. En la hoja del celular no hace falta: la
+                tira de arriba ya los muestra y la cabecera no tiene ancho para los dos. */}
+            {enEspera.length > 0 && !enHoja && (
               <button
                 type="button"
                 onClick={onIrAEspera}
@@ -521,11 +546,12 @@ export function PuntoDeVentaTicket({
                 <p className="py-6 text-center text-sm text-tinta/60">No hay tickets en espera.</p>
               ) : (
                 <div className="divide-y divide-sand rounded-lg border border-sand bg-crema">
-                  {enEspera.map((t) => {
+                  {enEspera.map((t, i) => {
                     const r = resumenEspera(t);
                     return (
                       <div key={t.id} className="flex items-center gap-3 px-3 py-3">
                         <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-tinta">{nombreDeEspera(t.nombre, i)}</p>
                           <p className="text-sm text-tinta">
                             <span className="font-mono text-xs text-tinta/60">{r.hora}</span>
                             <span className="mx-1.5 text-tinta/30">·</span>
@@ -974,12 +1000,16 @@ export function PuntoDeVentaTicket({
               </div>
             </div>
           ) : !carrito.length ? (
-            <div className="anim-sube flex h-full min-h-48 flex-col items-center justify-center px-8 text-center">
-              <p className="font-medium text-tinta">El ticket está vacío</p>
-              <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
-            </div>
+            <>
+              {arriba}
+              <div className="anim-sube flex min-h-48 flex-col items-center justify-center px-8 text-center">
+                <p className="font-medium text-tinta">El ticket está vacío</p>
+                <p className="mt-1 max-w-64 text-sm text-tinta/60">Escanea una etiqueta o elige una prenda del catálogo.</p>
+              </div>
+            </>
           ) : (
             <>
+              {arriba}
               {/* La entrada y el reflujo de cada línea los anima el padre con `Flip`
                   (responde al escaneo que la creó); acá solo va el ref de la lista — las
                   líneas tienen que seguir siendo sus hijas directas. */}
@@ -1174,6 +1204,7 @@ export function PuntoDeVentaTicket({
                   Dejar en espera
                 </button>
               )}
+              {carrito.length > 0 && accionesArmar}
             </div>
           )}
 
@@ -1212,7 +1243,7 @@ export function PuntoDeVentaTicket({
               y al cobrar — la elección puede hacerse en cualquiera de los dos —; sus botones son `type="button"` y no
               envían el formulario. La lista se abre hacia arriba: debajo solo está el botón. */}
           {(momentoMostrado === "armar" || cobrando) && !bloqueado && (
-            <ComboResponsable control={responsable} deshabilitado={loading} className="mb-3" />
+            <ComboResponsable control={responsable} deshabilitado={loading} compacto className="mb-3" />
           )}
 
           {/* El botón apagado dice por qué: el mismo motivo que lo apaga, debajo de él.

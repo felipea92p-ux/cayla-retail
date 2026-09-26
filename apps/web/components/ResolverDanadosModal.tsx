@@ -43,12 +43,16 @@ const ETIQUETA_METODO: Record<MetodoPago, string> = {
 export function ResolverDanadosModal({
   pendientes,
   esLider,
+  otraSede = false,
   onClose,
 }: {
   pendientes: PrendaDanada[];
   esLider: boolean;
+  /** Mirando otra sede (`?ubicacion=`): resolver firmaría con el Responsable de la sede activa, así que no se ofrece. */
+  otraSede?: boolean;
   onClose: () => void;
 }) {
+  const puedeResolver = esLider && !otraSede;
   const router = useRouter();
   const [notas, setNotas] = useState<Record<string, string>>({});
   const [resolviendo, setResolviendo] = useState<string | null>(null);
@@ -125,7 +129,8 @@ export function ResolverDanadosModal({
             </p>
           )}
           {/* Los botones van por prenda: el combo queda arriba de la lista, antes de cualquiera de ellos. */}
-          {esLider && pendientes.length > 0 && <ComboResponsable control={responsable} deshabilitado={resolviendo !== null} />}
+          {puedeResolver && pendientes.length > 0 && <ComboResponsable control={responsable} deshabilitado={resolviendo !== null} />}
+          {esLider && otraSede && pendientes.length > 0 && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
           {pendientes.length === 0 ? (
             <p className="text-sm text-tinta/65">No hay prendas dañadas pendientes en esta ubicación.</p>
           ) : (
@@ -140,7 +145,7 @@ export function ResolverDanadosModal({
                       {new Date(p.creadoEn).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })}
                     </p>
                   </div>
-                  {esLider && liquidando !== p.id && (
+                  {puedeResolver && liquidando !== p.id && (
                     <>
                       <CampoTexto
                         etiqueta="Nota (opcional)"
@@ -178,7 +183,7 @@ export function ResolverDanadosModal({
                       </div>
                     </>
                   )}
-                  {esLider && liquidando === p.id && (
+                  {puedeResolver && liquidando === p.id && (
                     <div className="space-y-3 rounded-md bg-sand/30 p-3">
                       <p className="text-xs text-tinta/65">
                         Liquidar registra una venta real — {p.cantidad > 1 ? `${p.cantidad} unidades juntas, ` : ""}

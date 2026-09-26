@@ -174,6 +174,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
@@ -183,6 +184,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           sububicaciones={sububicaciones}
           puedeEditar={puede(persona, "editarCatalogo")}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
@@ -220,7 +222,8 @@ function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProduc
   if (compacto) {
     return (
       <p className="mt-1 text-xs text-tinta/55">
-        {resumen.totalProductos.toLocaleString("es-PE")} productos · {resumen.totalVariantes.toLocaleString("es-PE")} variantes
+        {resumen.totalProductos.toLocaleString("es-PE")} {resumen.totalProductos === 1 ? "producto" : "productos"} ·{" "}
+        {resumen.totalVariantes.toLocaleString("es-PE")} {resumen.totalVariantes === 1 ? "variante" : "variantes"}
         {resumen.reponerDeProveedor > 0 && (
           <>
             {" · "}

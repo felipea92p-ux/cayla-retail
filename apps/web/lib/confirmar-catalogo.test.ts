@@ -16,6 +16,13 @@ describe("confirmacionCatalogo — la ventana de los botones de un clic del Cat�
     expect(confirmacionCatalogo("aprobar", "Seda", async () => {}).titulo).toBe("¿Aprobar «Seda»?");
     expect(confirmacionCatalogo("reactivar", "Denim", async () => {}).verbo).toBe("Reactivar");
   });
+  it("eliminar avisa que no se deshace y ofrece desactivar como salida", () => {
+    const c = confirmacionCatalogo("eliminar", "Cayla 2", async () => {});
+    expect(c.titulo).toBe("¿Eliminar «Cayla 2»?");
+    expect(c.verbo).toBe("Eliminar");
+    expect(c.bajada).toMatch(/no se puede deshacer/);
+    expect(c.bajada).toMatch(/desactívala/);
+  });
   it("una bajada propia reemplaza a la de siempre", () => {
     expect(confirmacionCatalogo("reactivar", "X", async () => {}, "Otra cosa.").bajada).toBe("Otra cosa.");
   });

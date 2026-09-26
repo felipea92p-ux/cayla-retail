@@ -10,9 +10,11 @@ import { deltaDisponibleSede, recortarFilaSemana } from "@/lib/existencias-categ
 import { recomendacionesDeSede, accionHoyPorVariante } from "@/lib/existencias-recomendaciones";
 import { politicaDe } from "@/lib/politica-operativa-inventario";
 import { getApartadosAbiertos } from "@/lib/apartados";
+import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
+import { conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -43,7 +45,7 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, filasSemana] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, filasSemana, catalogo] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -62,6 +64,9 @@ export default async function InventarioPage({
     // para Existencias — el motor nuevo de «Acción hoy» (`calcularAccionHoy`) decide con lo que
     // Existencias ya trae en `stock` (piso, almacén, en tránsito), sin una cuarta reconstrucción
     // del ledger. Esa función sigue viva para Producción («Nueva orden», ADR-0133 F5).
+    // La marca de cada prenda y qué productos del catálogo esta sede no tiene (2026-09-26): para buscar y filtrar por marca y
+    // para decir «existe, pero aquí no lo han recibido» en vez de callar. Dato secundario: si falla, sin marca y con aviso.
+    getCatalogoParaExistencias(),
   ]);
 
   // Política operativa de Inventario (Felipe, 2026-09-25): una sola casa para los umbrales que
@@ -84,13 +89,18 @@ export default async function InventarioPage({
 
   // Ritmo reciente/Cobertura piso son dato SECUNDARIO de sus propias columnas — ya no alimentan
   // Acción hoy: si su cálculo falla, esas dos columnas quedan en «N/D» y se avisa, pero la
-  // decisión de reponer (que no depende de la RPC) sigue firme.
-  const stock = stockBase.map((f) => ({
-    ...f,
-    ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
-    coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
-    accionHoy: accionHoy.get(f.varianteId) ?? null,
-  }));
+  // decisión de reponer (que no depende de la RPC) sigue firme. La marca (2026-09-26) se suma
+  // encima: si el catálogo no respondió, cada fila queda sin marca y el panel lo avisa.
+  const stock = conMarca(
+    stockBase.map((f) => ({
+      ...f,
+      ritmoReciente: ritmoReciente.datos?.ritmo.get(f.varianteId) ?? null,
+      coberturaPiso: ritmoReciente.datos?.cobertura.get(f.varianteId) ?? null,
+      accionHoy: accionHoy.get(f.varianteId) ?? null,
+    })),
+    catalogo.productos
+  );
+  const sinStock = productosSinStockEnSede(catalogo.productos, stockBase);
   // «Reponer a piso hoy» (tarjeta y filtro) cuenta por «Acción hoy» — MISMA fuente que la columna
   // de la tabla y el botón inline «Reponer»: una tarjeta que contara distinto de lo que la fila
   // muestra sería exactamente la incoherencia que Felipe pidió cerrar (sección 15/16, 2026-09-25).
@@ -129,18 +139,18 @@ export default async function InventarioPage({
           2026-09-22): el selector global de la barra superior ya cambia toda la app, y uno
           segundo acá desacomodaba el layout al abrirse; el de «datos de prueba» se quitó del
           todo (render, estado y lectura de `?prueba=`), no solo se ocultó. */}
-      <InventarioHero
-        eyebrow="Inventario · Existencias"
-        titulo={ubicacionActiva?.nombre ?? "—"}
-        descripcion="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
-        auxiliar={<p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>}
-        foto={fotoHeroPorPantalla("existencias")}
-        variante="integrado"
-        accion={
+      <EncabezadoPagina
+        sede={ubicacionActiva?.nombre ?? "—"}
+        titulo="Existencias"
+        subtitulo="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        // La única hora de la cabecera es la de la foto (ADR-0220): el stock de abajo es el del momento en que se
+        // cargó, y un reloj vivo encima haría creer que está al minuto.
+        sinHora
+        detalle={`vista de las ${horaCarga}`}
+        pie={
           <>
-            {/* Sobre la foto de la cabecera, el secundario transparente no se lee: lleva fondo de papel. */}
             {puedeBajarAlPiso && (
-              <Link href="/inventario/bajar" className="btn-cayla btn-secundario bg-papel">
+              <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
                 Bajar al piso
               </Link>
             )}
@@ -168,6 +178,10 @@ export default async function InventarioPage({
         esLider={persona.rol === "lider"}
         puedeAjustar={puede(persona, "ajustarInventario")}
         coberturaFallo={ritmoReciente.fallo}
+        sedeNombre={ubicacionActiva?.nombre ?? "esta sede"}
+        sinStock={sinStock}
+        marcaFallo={catalogo.fallo}
+        verProductos={veModulo(persona, "productos")}
         filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
         recomendaciones={recomendaciones}

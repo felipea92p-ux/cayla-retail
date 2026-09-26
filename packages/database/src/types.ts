@@ -751,7 +751,9 @@ export type Database = {
           nombre: string
           notas: string | null
           orden: number
+          pantone_tcx: string | null
           propuesto_por: string | null
+          sinonimos: string[]
           tipo: string
         }
         Insert: {
@@ -766,7 +768,9 @@ export type Database = {
           nombre: string
           notas?: string | null
           orden?: number
+          pantone_tcx?: string | null
           propuesto_por?: string | null
+          sinonimos?: string[]
           tipo?: string
         }
         Update: {
@@ -781,7 +785,9 @@ export type Database = {
           nombre?: string
           notas?: string | null
           orden?: number
+          pantone_tcx?: string | null
           propuesto_por?: string | null
+          sinonimos?: string[]
           tipo?: string
         }
         Relationships: []
@@ -3248,7 +3254,7 @@ export type Database = {
           id: string
           nombre: string
           plazo_credito_dias: number | null
-          rubro: string | null
+          rubros: string[]
           ruc: string | null
           telefono: string | null
           titular_cuenta: string | null
@@ -3266,7 +3272,7 @@ export type Database = {
           id?: string
           nombre: string
           plazo_credito_dias?: number | null
-          rubro?: string | null
+          rubros?: string[]
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -3284,7 +3290,7 @@ export type Database = {
           id?: string
           nombre?: string
           plazo_credito_dias?: number | null
-          rubro?: string | null
+          rubros?: string[]
           ruc?: string | null
           telefono?: string | null
           titular_cuenta?: string | null
@@ -4721,7 +4727,7 @@ export type Database = {
           p_nombre: string
           p_plazo_credito_dias?: number
           p_proveedor_id: string
-          p_rubro?: string
+          p_rubros?: string[]
           p_ruc?: string
           p_telefono?: string
         }
@@ -5102,6 +5108,24 @@ export type Database = {
         Args: { p_nombre: string; p_proveedor_id: string }
         Returns: string
       }
+      crear_producto_con_stock_inicial: {
+        Args: {
+          p_al_piso?: boolean
+          p_categoria_id: string
+          p_confirmo_distinto?: boolean
+          p_descripcion?: string
+          p_etiqueta_ids?: string[]
+          p_marca_id?: string
+          p_patron_id?: string
+          p_proveedor_id?: string
+          p_referencia: string
+          p_tejido_id?: string
+          p_token?: string
+          p_ubicacion_id?: string
+          p_variantes: Json
+        }
+        Returns: string
+      }
       crear_producto_con_variantes: {
         Args: {
           p_categoria_id: string
@@ -5162,6 +5186,24 @@ export type Database = {
           monto: number
           tramo: string
         }[]
+      }
+      editar_marca: {
+        Args: {
+          p_marca_id: string
+          p_nombre: string
+          p_quitar?: string[]
+          p_sumar?: string[]
+          p_sumar_nuevos?: Json
+        }
+        Returns: Json
+      }
+      eliminar_marca: {
+        Args: { p_marca_id: string }
+        Returns: string
+      }
+      eliminar_producto: {
+        Args: { p_producto_id: string }
+        Returns: string
       }
       emitir_comprobante: {
         Args: {
@@ -5229,6 +5271,32 @@ export type Database = {
           etiqueta_id: string
           etiqueta_nombre: string
           variante_id: string
+        }[]
+      }
+      fn_calidad: {
+        Args: { p_dia?: string; p_dias?: number; p_plazo_dias?: number }
+        Returns: {
+          clave: string
+          cohorte_desde: string
+          cohorte_hasta: string
+          devueltas_a_proveedor: number
+          devueltas_danadas: number
+          devueltas_vendibles: number
+          etiqueta: string
+          nivel: string
+          unidades_cambiadas: number
+          unidades_devueltas: number
+          unidades_vendidas: number
+        }[]
+      }
+      fn_calidad_danadas: {
+        Args: { p_dia?: string; p_meses?: number }
+        Returns: {
+          condicion: string
+          mes: string
+          origen: string
+          ubicacion_id: string
+          unidades: number
         }[]
       }
       fn_clave_referencia: { Args: { p: string }; Returns: string }
@@ -5299,6 +5367,49 @@ export type Database = {
           suspendido_en: string
           suspendido_por_nombre: string
           ubicacion_asignada: string
+        }[]
+      }
+      fn_comercial_colaboradoras: {
+        Args: { p_dia?: string }
+        Returns: {
+          bruto_mes: number
+          descuento_mes: number
+          persona_id: string | null
+          tickets_hoy: number
+          tickets_mes: number
+          ubicacion_id: string
+          unidades_mes: number
+          ventas_hoy: number
+          ventas_mes: number
+        }[]
+      }
+      fn_comercial_horas: {
+        Args: { p_dia?: string }
+        Returns: {
+          hora: number
+          tickets: number
+          ubicacion_id: string
+          ventas: number
+        }[]
+      }
+      fn_comercial_sedes: {
+        Args: { p_dia?: string }
+        Returns: {
+          devuelto_hoy: number
+          devuelto_mes: number
+          devuelto_semana: number
+          meta_venta_diaria: number | null
+          nombre: string
+          tickets_hoy: number
+          tickets_mes: number
+          tickets_semana: number
+          ubicacion_id: string
+          unidades_hoy: number
+          unidades_mes: number
+          unidades_semana: number
+          ventas_hoy: number
+          ventas_mes: number
+          ventas_semana: number
         }[]
       }
       fn_consumir_saldo_favor: {
@@ -5630,6 +5741,13 @@ export type Database = {
           variante_id: string
         }[]
       }
+      fn_producto_se_puede_eliminar: {
+        Args: { p_producto_id: string }
+        Returns: {
+          puede: boolean
+          razon: string
+        }[]
+      }
       fn_productos: {
         Args: {
           p_busqueda?: string
@@ -5896,7 +6014,7 @@ export type Database = {
           id: string
           nombre: string
           plazo_credito_dias: number
-          rubro: string
+          rubros: string[]
           ruc: string
           saldo: number
           saldo_favor: number
@@ -6091,6 +6209,7 @@ export type Database = {
         Returns: Json
       }
       fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
+      fn_rubros_limpios: { Args: { p_rubros: string[] }; Returns: string[] }
       fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }
       fn_totales_historial_ventas: {
         Args: {
@@ -6531,6 +6650,7 @@ export type Database = {
           p_nota?: string
           p_sububicacion_destino_id: string
           p_sububicacion_origen_id: string
+          p_token?: string
           p_ubicacion_id: string
           p_variante_id: string
         }
@@ -6899,7 +7019,7 @@ export type Database = {
           p_forma_pago_preferida?: string
           p_nombre: string
           p_plazo_credito_dias?: number
-          p_rubro?: string
+          p_rubros?: string[]
           p_ruc?: string
           p_telefono?: string
         }

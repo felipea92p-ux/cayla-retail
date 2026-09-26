@@ -3,6 +3,10 @@
 // `inventario-v2.ts` (mismo reparto que compras-reglas / compras).
 
 import { compararTallas } from "./tallas";
+import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
+import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
+import { calcularAccionHoy } from "./existencias-recomendaciones";
+import type { PoliticaOperativaInventario } from "./politica-operativa-inventario";
 
 /** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
  *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
@@ -91,6 +95,75 @@ export function ordenarPorModeloColorTalla<T extends { referencia: string; produ
  *  (`paginarSinPartirGrupos`). */
 export function clavePercha(f: { productoId: string; color: string | null }): string {
   return JSON.stringify([f.productoId, f.color]);
+}
+
+// --- Mover entre piso y almacén, en los dos sentidos -------------------------
+// Bajar al piso (reponer) y retirar del piso (D-41: «pasa de verdad, falta la
+// pantalla») son LA MISMA operación con origen y destino invertidos: las dos van
+// por `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql), que
+// acepta cualquier par de sububicaciones de la misma sede y no cambia el total
+// de la tienda. Por eso el sentido es un dato, no un segundo modal: de él salen
+// de dónde sale la prenda, a dónde va, cuánto se puede mover y cómo se dice.
+
+export type SentidoPiso = "bajar" | "retirar";
+export type LugarTienda = "piso" | "almacen";
+
+export type ReglaSentidoPiso = {
+  origen: LugarTienda;
+  destino: LugarTienda;
+  /** El título del modal. Bajar desde la fila se sigue llamando «Reponer piso», como su botón «Reponer»:
+   *  «Bajar al piso» es el botón de la pantalla de escaneo de ADR-0208 (/inventario/bajar), y dos cosas
+   *  distintas con el mismo nombre confunden. En Movimientos las dos quedan como «Bajada al piso». */
+  titulo: string;
+  etiquetaCantidad: string;
+  /** El recorrido, en palabras de tienda: va en la bajada del título para que ni un error ni el aviso lo tapen. */
+  recorrido: string;
+  /** Lo que se le dice a la persona cuando pide más de lo que hay en el origen. */
+  noAlcanza: (pedido: number, hay: number) => string;
+  exito: (n: number) => string;
+  /** Qué se estaba intentando, para `traducirError` («No se pudo …»). */
+  accion: string;
+};
+
+export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
+  bajar: {
+    origen: "almacen",
+    destino: "piso",
+    titulo: "Reponer piso",
+    etiquetaCantidad: "Cantidad a reponer",
+    recorrido: "Almacén de tienda → Piso de venta",
+    noAlcanza: (pedido, hay) => `No hay ${pedido} unidades en el almacén — hay ${hay}.`,
+    // «bajada», no «repuesta»: es la palabra con la que la fila queda en Movimientos («Bajada al piso»).
+    exito: (n) => `${n} ${n === 1 ? "unidad bajada" : "unidades bajadas"} al piso`,
+    accion: "reponer el piso",
+  },
+  retirar: {
+    origen: "piso",
+    destino: "almacen",
+    titulo: "Retirar del piso",
+    etiquetaCantidad: "Cantidad a retirar",
+    recorrido: "Piso de venta → Almacén de tienda",
+    // Lo apartado para una clienta sigue colgado pero no se retira: la cifra ya viene neta.
+    noAlcanza: (pedido, hay) => `No hay ${pedido} unidades libres en el piso — hay ${hay} (lo apartado para clientas no se retira).`,
+    exito: (n) => `${n} ${n === 1 ? "unidad retirada" : "unidades retiradas"} del piso`,
+    accion: "retirar del piso",
+  },
+};
+
+/** Si una talla ofrece «Retirar del piso»: basta con que quede algo LIBRE colgado (neto de lo
+ *  apartado para clientas). Sin umbral a propósito — «Reponer a piso» avisa desde
+ *  `umbralStockPisoReposicion` (`politica-operativa-inventario.ts`) porque es una alarma (la clienta se va sin su talla); retirar no es
+ *  alarma sino una decisión de la tienda (guardar lo de otra temporada, una talla que sobra en
+ *  la percha) y tiene sentido con 1 unidad o con 30. `null` = la sede no separa piso y almacén
+ *  (Taller): no hay piso del que retirar. */
+export function puedeRetirarPiso(pisoDisponible: number | null): boolean {
+  return pisoDisponible !== null && pisoDisponible > 0;
+}
+
+/** Cuántas unidades se pueden mover en ese sentido: lo DISPONIBLE del origen (neto de lo
+ *  apartado — la base igual rechaza mover una prenda apartada, ADR-0141). Nunca negativo. */
+export function topeMovimientoPiso(sentido: SentidoPiso, disponible: { piso: number | null; almacen: number | null }): number {
+  return Math.max(0, disponible[SENTIDO_PISO[sentido].origen] ?? 0);
 }
 
 // ============================================================================
@@ -308,4 +381,59 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
     });
   }
   return cantidades;
+}
+
+// La nota no llega a Existencias (solo al detalle de Movimientos): el aviso no la vende como remedio, pide avisar al equipo.
+const NOTA_SOLO_EN_MOVIMIENTOS = "Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento.";
+// «libre»: la cifra es neta de lo apartado; con apartadas colgadas, «Piso · Almacén» de la tabla mostrará más.
+const AVISO_RETIRO_POR_COLGAR = `Quedará 0 libre en el piso: Existencias la mostrará «Por colgar» y pedirá bajarla. ${NOTA_SOLO_EN_MOVIMIENTOS}`;
+const avisoRetiroReponer = (quedan: number) =>
+  `${quedan === 1 ? "Quedará 1 libre" : `Quedarán ${quedan} libres`} en el piso: Existencias sugerirá «Reponer». ${NOTA_SOLO_EN_MOVIMIENTOS}`;
+
+/** El bloque del retiro cuando la fila no va a pedir nada: «retirar» se lee fácil como «dar de baja», y no lo es. */
+// Lo del almacén no se cobra (la venta descuenta del piso): «siguen disponibles para vender» sería falso.
+export const RETIRO_NO_ES_BAJA = "Pasan al almacén de la tienda: siguen siendo stock de la tienda (no es una baja), pero la caja no las cobra hasta que vuelvan al piso.";
+
+/** Todo lo que puede mostrar ese bloque, para que el modal reserve el alto del más largo (ADR-0185). El de «Reponer» más
+ *  largo es el de la cifra más alta que todavía pide reponer: el umbral de la sede (al menos 2, para reservar el plural). */
+export function textosBloqueRetiro(politica: PoliticaOperativaInventario): readonly string[] {
+  return [RETIRO_NO_ES_BAJA, AVISO_RETIRO_POR_COLGAR, avisoRetiroReponer(Math.max(2, politica.umbralStockPisoReposicion))];
+}
+
+/** Qué va a decir Existencias de la talla DESPUÉS de retirar `n` del piso, si eso contradice el retiro.
+ *  «Acción hoy» solo mira cifras (`calcularAccionHoy`, `porColgar`): no sabe que la encargada guardó la
+ *  talla a propósito (fin de temporada), así que al turno siguiente le pide bajarla de nuevo. Hasta que
+ *  exista una marca de «retirada de la venta» (decisión de Felipe, bloque 3 de ADR-0208), el modal lo avisa
+ *  ANTES de confirmar y dice dónde queda la nota. `null`: la fila no va a pedir nada, o la cantidad no vale
+ *  (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como el modal y «Acción hoy».
+ *
+ *  Pregunta a `calcularAccionHoy` con la política de la sede, no a un umbral propio: el aviso tiene que decir lo
+ *  mismo que después va a pintar la fila (hasta el 2026-09-25 lo decidía `necesitaReponerPiso`, retirado). */
+export function avisoTrasRetiro(disponible: { piso: number | null; almacen: number | null }, n: number, politica: PoliticaOperativaInventario): string | null {
+  if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return null;
+  const piso = disponible.piso - n;
+  const almacen = disponible.almacen + n;
+  if (piso < 0) return null;
+  if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) return AVISO_RETIRO_POR_COLGAR;
+  const despues = calcularAccionHoy({ varianteId: "", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, politica);
+  if (despues.tipo === "reponer_a_piso") return avisoRetiroReponer(piso);
+  return null;
+}
+
+/**
+ * El error de «Reponer» o «Retirar del piso», dicho para quien está junto a la percha. El modal manda una marca por
+ * intento (ADR-0208, `mover_interno` con `p_token`): tras una respuesta incierta la cantidad queda fija y reenviar
+ * con la misma marca no mueve dos veces; por eso aquí nunca se dice «no se guardó nada» ni «revisa antes de repetir».
+ * `conDuda`: antes de este rechazo ya había un envío sin respuesta, y el rechazo no dice qué pasó con él.
+ */
+export function mensajeErrorMovimientoPiso(sentido: SentidoPiso, error: ErrorEscritura, conDuda = false): string {
+  const { accion } = SENTIDO_PISO[sentido];
+  if (esRespuestaIncierta(error)) {
+    return `Se cortó la conexión mientras se intentaba ${accion}: no sabemos si llegó a guardarse. La cantidad queda fija: pulsa «${BOTON_CONFIRMAR_DE_NUEVO}» sin cambiar nada; si ya se había guardado, no se repite.`;
+  }
+  const mensaje = traducirError(error, accion);
+  // La marca ya se había usado con otros datos: la base lo dice entero («Cierra y revisa Existencias…»).
+  if (!conDuda || error?.hint === "mover_interno_token_reusado") return mensaje;
+  // Los textos de la base no siempre cierran con punto («…se pide trasladar 2»): sin él, las dos frases se pegan.
+  return `${/[.!?…»]$/.test(mensaje.trim()) ? mensaje.trim() : `${mensaje.trim()}.`} Aún no sabemos si el envío anterior se guardó: cuando se resuelva, pulsa «${BOTON_CONFIRMAR_DE_NUEVO}» (no se repite), o cierra y revisa Existencias.`;
 }

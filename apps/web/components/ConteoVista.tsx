@@ -6,7 +6,7 @@ import type { ConteoAbierto, ConteoResumen, PrioridadConteo } from "@/lib/conteo
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { ConteoPanel } from "@/components/ConteoPanel";
 import { ConteosLista } from "@/components/ConteosLista";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 function fecha(iso: string) {
@@ -89,12 +89,10 @@ export function ConteoVista({
 
   return (
     <div className="space-y-6">
-      <InventarioHero
-        eyebrow={`Inventario · Conteo · ${ubicacionEtiqueta}`}
-        titulo="Conteo físico"
-        descripcion="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
-        foto={fotoHeroPorPantalla("conteo")}
-        variante="integrado"
+      <EncabezadoPagina
+        sede={ubicacionEtiqueta}
+        titulo="Conteo"
+        subtitulo="Compara lo que dice el sistema contra lo que hay de verdad en la tienda. Se cuenta a ciegas: el sistema no muestra su cifra hasta revisar."
       />
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -168,7 +166,7 @@ export function ConteoVista({
       )}
 
       <p className="nota-cayla">
-        <b>Cómo se cuenta:</b> se escanea o se escribe el SKU y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
+        <b>Cómo se cuenta:</b> se escanea o se escribe el código de la etiqueta y se anota lo que hay físicamente, sin ver la cifra del sistema. Al
         revisar, se ve la diferencia en unidades y en soles; al cerrar, el stock queda ajustado a lo contado y cada ajuste queda como movimiento.{" "}
         <Link href="/inventario/movimientos?proc=conteo" className="text-tinta underline underline-offset-2 hover:text-taupe">
           Ver ajustes por conteo →

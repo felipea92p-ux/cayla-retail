@@ -219,7 +219,9 @@ delete from etiquetas where id::text like '5eed%';
 
 set constraints all immediate;  -- el reparto de compras es un candado diferido: que se revise aquí, no en el COMMIT
 
-alter table movimientos enable trigger movimientos_inmutables;
+-- ALWAYS, no `enable trigger` a secas: ese lo deja en modo normal y el candado deja de valer en modo réplica (D-22,
+-- 20260926160000). Así se perdió el 2026-09-24.
+alter table movimientos enable always trigger movimientos_inmutables;
 alter table compra_item_cierres enable trigger compra_item_cierres_inmutables;
 alter table compra_notas_credito enable trigger compra_notas_credito_inmutables;
 alter table proveedor_creditos enable trigger proveedor_creditos_inmutables;  -- lo apaga el 1b
@@ -273,6 +275,12 @@ begin
                     'proveedor_creditos_inmutables')
      and tgenabled = 'D';
   if v_n > 0 then raise exception '[deshacer] % candados de historial quedaron apagados', v_n; end if;
+  -- Los dos candados de movimientos van en ALWAYS (D-22): encendidos en modo normal no bastan.
+  select count(*) into v_n from pg_trigger
+   where tgrelid = 'retail.movimientos'::regclass
+     and tgname in ('movimientos_inmutables', 'movimientos_sin_truncate')
+     and tgenabled <> 'A';
+  if v_n > 0 then raise exception '[deshacer] % candados de movimientos no quedaron en ALWAYS', v_n; end if;
   raise notice '[deshacer] OK — no queda nada sembrado; candados de historial encendidos';
 end $$;
 

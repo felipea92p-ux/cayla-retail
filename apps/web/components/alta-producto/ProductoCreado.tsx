@@ -2,7 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { CloudOff } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { fraseStockCreado, type SubidaSinConexion } from "@/lib/alta-producto";
+
+export type { SubidaSinConexion };
 
 // La pantalla de éxito de "Nuevo producto" (ADR-0109, paso 4). Crear un
 // producto casi nunca es la última tarea: falta la foto de cada color, y una
@@ -17,20 +21,31 @@ import { createClient } from "@/lib/supabase/client";
 // galería de la edición (`/productos/{id}/editar#fotos`), que ya asigna cada foto a su color.
 
 export type ResumenCreado = {
-  id: string;
+  /** `null` = guardado SIN CONEXIÓN (ADR-0210): todavía no existe en la base, así que no hay código ni ficha. */
+  id: string | null;
   nombre: string;
   categoria: string;
   variantes: number;
   colores: { codigo: string; nombre: string; hex: string | null }[];
   /** Resultado de subir las fotos elegidas en el alta. */
   fotos: { subidas: number; fallidas: string[]; coloresConFoto: string[] };
+  /** La carga inicial que entró con el producto (ADR-0212), o null si se creó sin stock. Sin conexión, entra al subir. */
+  stock: { unidades: number; donde: string } | null;
+  /** Sin conexión: cuántas fotos quedaron guardadas en este navegador para subir después del producto. */
+  fotosEnEspera?: number;
+  /** Sin conexión: el token de la operación en la cola, para seguirla hasta que suba. */
+  token?: string;
+  /** Sin conexión: la persona la descartó a mano tras un rechazo. Salió de la cola, pero NO subió. */
+  descartado?: boolean;
 };
 
-export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCreado; onOtroParecido: () => void }) {
+export function ProductoCreado({ creado, onOtroParecido, subida = "esperando" }: { creado: ResumenCreado; onOtroParecido: () => void; subida?: SubidaSinConexion }) {
   const titulo = useRef<HTMLHeadingElement>(null);
   const faltanColores = creado.colores.filter((c) => !creado.fotos.coloresConFoto.includes(c.codigo));
   const completas = creado.fotos.fallidas.length === 0 && creado.fotos.subidas > 0 && faltanColores.length === 0;
   const [codigo, setCodigo] = useState<string | null>(null);
+  const sinConexion = creado.id === null;
+  const enEspera = creado.fotosEnEspera ?? 0;
 
   // Lleva el foco al mensaje: quien usa lector de pantalla o teclado se entera de que se guardó.
   useEffect(() => {
@@ -40,6 +55,7 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
 
   // El código real lo asigna la base al guardar. Si esta lectura falla no pasa nada: el producto ya existe.
   useEffect(() => {
+    if (!creado.id) return; // sin conexión: el código lo pone la base al subir
     let vivo = true;
     createClient()
       .from("productos")
@@ -57,13 +73,33 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
   return (
     <div className="space-y-5">
       <div role="status" className="card-cayla flex items-start gap-4 p-5">
-        <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-verde text-crema">
-          ✓
-        </span>
+        {sinConexion ? (
+          <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-ambar text-ambar-profundo">
+            <CloudOff className="h-4 w-4" />
+          </span>
+        ) : (
+          <span aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-verde text-crema">
+            ✓
+          </span>
+        )}
         <div>
           <h2 ref={titulo} tabIndex={-1} className="font-display text-xl text-tinta outline-none">
-            Se creó {creado.nombre}
+            {!sinConexion ? `Se creó ${creado.nombre}` : subida === "descartada" ? `${creado.nombre} se descartó` : `${creado.nombre} quedó guardado sin conexión`}
           </h2>
+          {sinConexion && subida === "esperando" && (
+            <p className="mt-1 text-sm text-ambar-profundo">
+              Pendiente de código: lo recibe cuando vuelva el internet y sube solo. Hasta entonces no se puede etiquetar ni vender. No cierres esta pestaña.
+            </p>
+          )}
+          {sinConexion && subida === "subio" && (
+            <p className="mt-1 text-sm text-verde-profundo">Ya subió y tiene su código: búscalo en Productos o abre su ficha desde el aviso.</p>
+          )}
+          {sinConexion && subida === "rechazada" && (
+            <p className="mt-1 text-sm text-rojo-profundo">La base no lo aceptó al subir: el motivo está arriba, en el aviso rojo de este formulario.</p>
+          )}
+          {sinConexion && subida === "descartada" && (
+            <p className="mt-1 text-sm text-rojo-profundo">No se creó el producto ni su stock. Si todavía lo necesitas, créalo de nuevo.</p>
+          )}
           <p className="mt-1 text-sm text-tinta/70">
             {creado.categoria} · {creado.variantes} variante{creado.variantes === 1 ? "" : "s"}
             {codigo && (
@@ -73,44 +109,62 @@ export function ProductoCreado({ creado, onOtroParecido }: { creado: ResumenCrea
               </>
             )}
           </p>
+          <p className="mt-1 text-sm text-tinta/70">
+            {creado.stock ? (
+              fraseStockCreado(creado.stock, sinConexion, subida)
+            ) : (
+              "Sin stock todavía: cuando llegue, regístralo al recibirlo."
+            )}
+          </p>
         </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {/* La salida principal: las fotos (lo que falte de ellas) */}
-        <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">
-          <div className="space-y-2">
-            <p className="label-cayla text-[11px] text-tinta/70">{completas ? "Listo" : "Falta"}</p>
-            <h3 className="text-base font-medium text-tinta">
-              {creado.fotos.subidas > 0 ? `${creado.fotos.subidas} foto${creado.fotos.subidas === 1 ? "" : "s"} guardada${creado.fotos.subidas === 1 ? "" : "s"}` : "Las fotos"}
-            </h3>
-            {creado.fotos.fallidas.length > 0 && (
-              <p role="alert" className="text-sm text-rojo-profundo">
-                {creado.fotos.fallidas.length === 1 ? "Una foto no se guardó" : `${creado.fotos.fallidas.length} fotos no se guardaron`}: {creado.fotos.fallidas.join(" · ")}. El producto sí se creó; agrégala desde el producto.
+        {/* La salida principal: las fotos (lo que falte de ellas). Un alta descartada no tiene ficha ni fotos que agregar. */}
+        {subida !== "descartada" && (
+          <div className="card-cayla flex flex-col justify-between gap-4 border-tinta/40 p-5">
+            <div className="space-y-2">
+              <p className="label-cayla text-[11px] text-tinta/70">{completas ? "Listo" : "Falta"}</p>
+              {enEspera > 0 && (
+                <p className="text-sm text-ambar-profundo">
+                  {enEspera === 1 ? "1 foto espera" : `${enEspera} fotos esperan`} en este equipo: suben solas después del producto.
+                </p>
+              )}
+              <h3 className="text-base font-medium text-tinta">
+                {creado.fotos.subidas > 0 ? `${creado.fotos.subidas} foto${creado.fotos.subidas === 1 ? "" : "s"} guardada${creado.fotos.subidas === 1 ? "" : "s"}` : "Las fotos"}
+              </h3>
+              {creado.fotos.fallidas.length > 0 && (
+                <p role="alert" className="text-sm text-rojo-profundo">
+                  {creado.fotos.fallidas.length === 1 ? "Una foto no se guardó" : `${creado.fotos.fallidas.length} fotos no se guardaron`}: {creado.fotos.fallidas.join(" · ")}. El producto sí se creó; agrégala desde el producto.
+                </p>
+              )}
+              <p className="text-sm text-tinta/70">
+                {completas
+                  ? "Cada color tiene su foto. Puedes cambiarlas o agregar más desde el producto."
+                  : faltanColores.length > 0
+                    ? "Estos colores todavía no tienen foto. Mientras no haya, la grilla de Productos muestra solo el tono."
+                    : "Sube las fotos del producto. Mientras no haya, la grilla de Productos muestra solo un recuadro."}
               </p>
-            )}
-            <p className="text-sm text-tinta/70">
-              {completas
-                ? "Cada color tiene su foto. Puedes cambiarlas o agregar más desde el producto."
-                : faltanColores.length > 0
-                  ? "Estos colores todavía no tienen foto. Mientras no haya, la grilla de Productos muestra solo el tono."
-                  : "Sube las fotos del producto. Mientras no haya, la grilla de Productos muestra solo un recuadro."}
-            </p>
-            {faltanColores.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5 pt-1">
-                {faltanColores.map((c) => (
-                  <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
-                    {c.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/20" style={{ background: c.hex }} />}
-                    {c.nombre}
-                  </li>
-                ))}
-              </ul>
+              {faltanColores.length > 0 && (
+                <ul className="flex flex-wrap gap-1.5 pt-1">
+                  {faltanColores.map((c) => (
+                    <li key={c.codigo} className="flex items-center gap-1.5 rounded-md border border-tinta/15 px-2 py-1 text-xs text-tinta/80">
+                      {c.hex && <span aria-hidden className="h-2.5 w-2.5 rounded-full border border-tinta/20" style={{ background: c.hex }} />}
+                      {c.nombre}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {creado.id ? (
+              <Link href={`/productos/${creado.id}/editar#fotos`} className={`btn-cayla ${completas ? "btn-secundario" : "btn-primario"}`}>
+                {completas ? "Ver las fotos" : "Agregar fotos"}
+              </Link>
+            ) : (
+              <p className="text-xs text-taupe">La ficha existe cuando el producto sube: ahí se agregan o cambian fotos.</p>
             )}
           </div>
-          <Link href={`/productos/${creado.id}/editar#fotos`} className={`btn-cayla ${completas ? "btn-secundario" : "btn-primario"}`}>
-            {completas ? "Ver las fotos" : "Agregar fotos"}
-          </Link>
-        </div>
+        )}
 
         <div className="card-cayla flex flex-col justify-between gap-4 p-5">
           <div className="space-y-2">

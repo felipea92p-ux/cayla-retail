@@ -2,10 +2,12 @@
 // Sin I/O: se prueban sin base.
 
 import { soles } from "./compras-reglas";
+import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
 
 // ---------------------------------------------------------------------------
-// Rubro: texto libre a propósito (ADR-0094) — sin vocabulario cerrado. Para que «Tela», «tela » y
-// «Telas» no se partan en tres filtros se agrupa por una clave normalizada; se muestra la
+// Rubros: texto libre a propósito (ADR-0094) — sin vocabulario cerrado —, varios por proveedor desde
+// ADR-0213 (el que vende polos y casacas aparece al filtrar por cualquiera de los dos). Para que «Tela»,
+// «tela » y «Telas» no se partan en tres filtros se agrupa por una clave normalizada; se muestra la
 // escritura más común de cada grupo.
 // ---------------------------------------------------------------------------
 
@@ -18,19 +20,66 @@ export function claveRubro(rubro: string | null | undefined): string {
     .toLowerCase();
 }
 
+const escrituraRubro = (rubro: string) => rubro.trim().replace(/\s+/g, " ");
+
+/**
+ * La misma regla que `retail.fn_rubros_limpios` (y que el CHECK de la tabla): sin vacíos, sin espacios sobrantes y
+ * uno solo por clave, conservando el primero en el orden en que se eligieron. Se aplica antes de mandar la lista:
+ * la base lo haría igual, pero así lo que se ve en pantalla es exactamente lo que queda guardado.
+ */
+export function limpiarRubros(rubros: readonly string[]): string[] {
+  const vistos = new Set<string>();
+  const limpios: string[] = [];
+  for (const r of rubros) {
+    const k = claveRubro(r);
+    if (!k || vistos.has(k)) continue;
+    vistos.add(k);
+    limpios.push(escrituraRubro(r));
+  }
+  return limpios;
+}
+
+/** Tocar un rubro: si ya estaba (con cualquier escritura) se quita; si no, se suma al final. */
+export function alternarRubro(elegidos: readonly string[], rubro: string): string[] {
+  const k = claveRubro(rubro);
+  if (!k) return [...elegidos];
+  return elegidos.some((r) => claveRubro(r) === k) ? elegidos.filter((r) => claveRubro(r) !== k) : limpiarRubros([...elegidos, rubro]);
+}
+
+/**
+ * Un rubro escrito a mano («Otro rubro»): queda elegido. Si ya existe con otra escritura («polos» y en la lista está
+ * «Polos») se usa la de la lista, para no abrir un filtro nuevo por una mayúscula. Vacío o ya elegido: no cambia nada.
+ */
+export function agregarRubro(elegidos: readonly string[], escrito: string, sugeridos: readonly string[]): string[] {
+  const k = claveRubro(escrito);
+  if (!k) return [...elegidos];
+  return limpiarRubros([...elegidos, sugeridos.find((s) => claveRubro(s) === k) ?? escrito]);
+}
+
+/** Los botones del formulario: los rubros ya usados en el directorio y, al final, los elegidos que todavía nadie usa. */
+export function opcionesDeRubro(sugeridos: readonly string[], elegidos: readonly string[]): string[] {
+  return limpiarRubros([...sugeridos, ...elegidos]);
+}
+
+export function tieneRubro(p: { rubros: readonly string[] }, clave: string): boolean {
+  return p.rubros.some((r) => claveRubro(r) === clave);
+}
+
 export type RubroConConteo = { clave: string; etiqueta: string; conteo: number };
 
-/** Rubros distintos con su conteo, del más numeroso al menos; los proveedores sin rubro no cuentan. */
-export function rubrosConConteo(proveedores: { rubro: string | null }[]): RubroConConteo[] {
+/** Rubros distintos con cuántos proveedores venden cada uno, del más numeroso al menos. Un proveedor cuenta en cada uno de sus rubros. */
+export function rubrosConConteo(proveedores: { rubros: readonly string[] }[]): RubroConConteo[] {
   const grupos = new Map<string, { escrituras: Map<string, number>; conteo: number }>();
   for (const p of proveedores) {
-    const k = claveRubro(p.rubro);
-    if (!k) continue;
-    const g = grupos.get(k) ?? { escrituras: new Map(), conteo: 0 };
-    const escrita = (p.rubro ?? "").trim().replace(/\s+/g, " ");
-    g.escrituras.set(escrita, (g.escrituras.get(escrita) ?? 0) + 1);
-    g.conteo += 1;
-    grupos.set(k, g);
+    for (const rubro of p.rubros) {
+      const k = claveRubro(rubro);
+      if (!k) continue;
+      const g = grupos.get(k) ?? { escrituras: new Map(), conteo: 0 };
+      const escrita = escrituraRubro(rubro);
+      g.escrituras.set(escrita, (g.escrituras.get(escrita) ?? 0) + 1);
+      g.conteo += 1;
+      grupos.set(k, g);
+    }
   }
   return [...grupos.entries()]
     .map(([clave, g]) => ({ clave, etiqueta: [...g.escrituras.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0][0], conteo: g.conteo }))
@@ -332,6 +381,61 @@ export function marcasParaMostrar(marcas: readonly string[], busqueda: string, m
 export function proveedorConRuc<T extends { id: string; ruc: string | null }>(ruc: string, existentes: T[], idActual: string | null): T | null {
   if (!/^\d{11}$/.test(ruc)) return null;
   return existentes.find((p) => p.ruc === ruc && p.id !== idActual) ?? null;
+}
+
+// ---------------------------------------------------------------------------
+// «¿No será un proveedor que ya tienes?» (2026-09-25). El caso «Cayla 2» de las marcas, pero con plata: la base solo
+// frena un nombre IGUAL (`proveedores_nombre_clave_unica`, sobre `fn_clave_texto`, que no quita puntos) o un RUC
+// repetido, y el RUC es opcional. «Jacard Perú S.A.C.» o «Jacard Peru» entraban como proveedor nuevo junto a
+// «Jacard Peru SAC», y sus facturas, su Por pagar y sus notas de crédito quedaban repartidos en dos fichas.
+//
+// La regla es la de las marcas (`nombres-parecidos.ts`), con dos diferencias que salen de cómo funciona un proveedor:
+//   · la forma societaria no cuenta: «SAC», «S.A.C.», «EIRL», «SCRL»… dicen cómo está constituida la empresa, no
+//     quién es;
+//   · dos RUC válidos y distintos son dos contribuyentes distintos para SUNAT («Jacard Peru SAC» y «Jacard Peru EIRL»
+//     facturan por separado): ahí no se pregunta. Basta con que a uno le falte el RUC para que sí se pregunte.
+//
+// Medido contra los 76 proveedores de producción (2026-09-25, SELECT de solo lectura): ver `proveedores-reglas.test.ts`
+// y la BITACORA del mismo día.
+// ---------------------------------------------------------------------------
+
+// Las que se usan en Perú: S.A., S.A.A., S.A.C., S.A.C.S. (la BIC/simplificada), S.R.L., S.C.R.L. y E.I.R.L.
+const FORMAS_SOCIETARIAS = ["sa", "saa", "sac", "sacs", "srl", "scrl", "eirl"];
+
+/** Las palabras de una razón social sin la forma societaria del final: «SAC», o «S.A.C.», que llega partida en letras
+ *  sueltas (s, a, c). Solo la del final, y nunca deja el nombre vacío. */
+export function sinFormaSocietaria(palabras: readonly string[]): readonly string[] {
+  const fin = palabras.length;
+  if (fin > 1 && FORMAS_SOCIETARIAS.includes(palabras[fin - 1])) return palabras.slice(0, -1);
+  for (const forma of FORMAS_SOCIETARIAS) {
+    if (fin <= forma.length) continue;
+    const cola = palabras.slice(fin - forma.length);
+    if (cola.every((w) => w.length === 1) && cola.join("") === forma) return palabras.slice(0, fin - forma.length);
+  }
+  return palabras;
+}
+
+const esRuc = (ruc: string | null | undefined): ruc is string => !!ruc && /^\d{11}$/.test(ruc);
+
+/**
+ * Contra los proveedores que ya existen, el IGUAL (el que la base rechazaría por nombre) y hasta `max` PARECIDOS.
+ * Aviso, no candado: quien registra responde «sí, es este» o «no, es otro», y la base sigue siendo la que frena el igual.
+ */
+export function proveedoresParecidos<P extends { nombre: string; ruc?: string | null }>(
+  nuevo: { nombre: string; ruc?: string | null },
+  existentes: readonly P[],
+  max = 3
+): { igual: P | null; parecidos: { proveedor: P; por: MotivoParecido }[] } {
+  // Sin tope primero: el tope se aplica después de sacar a los que SUNAT ya distingue por RUC.
+  const { igual, parecidos } = nombresParecidos(nuevo.nombre, existentes, { max: existentes.length, quitar: sinFormaSocietaria });
+  const ruc = nuevo.ruc?.trim();
+  return {
+    igual,
+    parecidos: parecidos
+      .filter(({ item }) => !(esRuc(ruc) && esRuc(item.ruc) && item.ruc !== ruc))
+      .slice(0, max)
+      .map(({ item, por }) => ({ proveedor: item, por })),
+  };
 }
 
 // ---------------------------------------------------------------------------

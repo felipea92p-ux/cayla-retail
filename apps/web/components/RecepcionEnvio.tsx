@@ -6,7 +6,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Check, ChevronRight, Info, ScanBarcode, Shirt, Truck, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { debeEncolarse, traducirError } from "@/lib/error-escritura";
+import { nuevaOperacion, porSubir, subidasEntre, type OperacionEncolada } from "@/lib/cola-offline";
+import { useColaRecibir } from "@/lib/useColaRecibir";
+import { ColaOfflineAviso } from "@/components/ColaOfflineAviso";
 import { avisar } from "@/components/ui/Avisos";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { teclaSueltaVaAlEscaner } from "@/lib/escaner-tecla-suelta";
@@ -52,6 +55,7 @@ import {
   inicialesProveedor,
   llegoLinea,
   movimientosDelEnvio,
+  pendienteEnCola,
   proveedoresDelEnvio,
   resolverEscaneo,
   restarUnidad,
@@ -171,7 +175,34 @@ export function RecepcionEnvio({
   const panel = useRef<HTMLDivElement>(null);
   const escaneoRef = useRef<HTMLInputElement>(null);
   const ahora = useMemo(() => new Date(), []);
-  const comprasOrdenadas = useMemo(() => ordenarPorUrgencia(compras, ahora), [compras, ahora]);
+  // Envíos guardados sin conexión que todavía no suben (ADR-0210): lo que ya contaron sale de «pendientes» mientras
+  // espera, para que nadie vuelva a contar el mismo comprobante o traslado y al volver la red suban dos recepciones.
+  const colaOffline = useColaRecibir();
+  // Lo que ya subió sigue oculto hasta que llega la lista nueva del servidor (`router.refresh`): en ese rato la lista
+  // vieja lo mostraría otra vez como pendiente. Estado ajustado en el render (patrón «previo + comparación» de React).
+  const [colaPrevia, setColaPrevia] = useState(colaOffline.cola);
+  const [subidasSinReleer, setSubidasSinReleer] = useState<OperacionEncolada[]>([]);
+  if (colaOffline.cola !== colaPrevia) {
+    setColaPrevia(colaOffline.cola);
+    const subidas = subidasEntre(colaPrevia, colaOffline.cola);
+    if (subidas.length > 0) setSubidasSinReleer((s) => [...s, ...subidas]);
+  }
+  const [lineasPrevias, setLineasPrevias] = useState(lineas);
+  if (lineas !== lineasPrevias) {
+    setLineasPrevias(lineas);
+    setSubidasSinReleer([]);
+  }
+  const enCola = useMemo(
+    () =>
+      pendienteEnCola(
+        [...porSubir(colaOffline.cola), ...subidasSinReleer].filter((op) => op.rpc === "recibir_envio").map((op) => op.params as PedidoEnvio),
+      ),
+    [colaOffline.cola, subidasSinReleer],
+  );
+  const comprasOrdenadas = useMemo(
+    () => ordenarPorUrgencia(compras.filter((c) => !lineas.some((l) => l.compraId === c.id && enCola.lineas.has(l.id))), ahora),
+    [compras, lineas, enCola, ahora],
+  );
 
   const inicial = compraInicialId && compras.some((c) => c.id === compraInicialId) ? [compraInicialId] : [];
   const [seleccionadas, setSeleccionadas] = useState<string[]>(inicial);
@@ -245,7 +276,7 @@ export function RecepcionEnvio({
   const proveedoresEnvio = useMemo(() => proveedoresDelEnvio(bloques), [bloques]);
   const hayEnvio = seleccionadas.length > 0;
 
-  const trasladosDeAca = trasladosPorUbicacion[ubicacionId] ?? [];
+  const trasladosDeAca = (trasladosPorUbicacion[ubicacionId] ?? []).filter((t) => !enCola.traslados.has(t.id));
   const trasladosMarcados = trasladosDeAca.filter((t) => trasladosElegidos.includes(t.id));
   const totales = totalesEnvio(
     bloques,
@@ -352,7 +383,8 @@ export function RecepcionEnvio({
 
   // Los indicadores (`KpisRecibir`) viven en el servidor y no conocen este estado: «La más atrasada» les avisa por evento.
   const alAvisarMarcar = useEffectEvent((id: string) => {
-    const c = compras.find((x) => x.id === id);
+    // De `comprasOrdenadas`, no de `compras`: un comprobante que espera en la cola sin conexión no se vuelve a marcar.
+    const c = comprasOrdenadas.find((x) => x.id === id);
     if (c && !seleccionadas.includes(c.id)) alternar(c);
   });
   useEffect(() => {
@@ -639,9 +671,43 @@ export function RecepcionEnvio({
     const supabase = createClient();
     // UNA sola llamada, UNA transacción: todos los proveedores, lo fuera de comprobante, lo de otra sede y los
     // cierres se registran juntos o no se registra nada. Con el mismo token, reintentar no duplica.
-    const { data, error } = await firmar(supabase.rpc("recibir_envio", pedido), responsable.firma());
+    const firma = responsable.firma();
+    const { data, error, status } = await firmar(supabase.rpc("recibir_envio", pedido), firma);
     cerrarProceso();
     setLoading(false);
+    // Sin red (ADR-0210): el conteo no se pierde. El pedido entero —mismo token, hora de ahora— queda en este
+    // navegador y sube solo; mientras tanto sus comprobantes y traslados salen de «pendientes».
+    if (error && debeEncolarse(error, status)) {
+      const documentos = bloques.map((b) => b.compra.documento).join(", ");
+      const que = unidadesRecibiendo > 0 ? `${unidadesRecibiendo} ${unidadesRecibiendo === 1 ? "unidad" : "unidades"}` : `${cierres.length} ${cierres.length === 1 ? "faltante cerrado" : "faltantes cerrados"}`;
+      const op = nuevaOperacion({
+        token,
+        rpc: "recibir_envio",
+        params: pedido,
+        firma,
+        resumen: [`Envío de ${que}`, documentos, ubicacionNombre].filter(Boolean).join(" · "),
+      });
+      setPedidoListo(null);
+      if (!colaOffline.encolar(op)) {
+        avisar.error("Se cortó el internet y este navegador no pudo guardar el envío.", { detalle: "Tu conteo sigue aquí: vuelve a confirmar cuando regrese la conexión." });
+        return;
+      }
+      avisar.aviso("Envío guardado sin conexión", { detalle: "Sube solo cuando vuelva el internet." });
+      setOk({
+        unidades: unidadesRecibiendo,
+        proveedores: proveedoresEnvio.length,
+        lotes: [],
+        extras: pedido.p_extras.length,
+        deOtraSede: totales.deOtraSede,
+        traslados: [],
+        cierres: cierres.length,
+        porReclamar: 0,
+        yaRegistrado: false,
+        sinConexion: true,
+        movimientos,
+      });
+      return;
+    }
     responsable.despues(error);
     if (error) {
       setPedidoListo(null);
@@ -848,6 +914,7 @@ export function RecepcionEnvio({
 
   return (
     <>
+      <ColaOfflineAviso cola={colaOffline.cola} onDescartar={colaOffline.descartar} uno="recepción" varias="recepciones" className="mb-6" />
       <form onSubmit={onSubmit} className={`grid gap-6 lg:grid-cols-[minmax(19rem,23rem)_1fr] lg:items-start ${hayEnvio ? "pb-32 sm:pb-28" : ""}`}>
         {/* ================= izquierda: lo que falta llegar ================= */}
         <aside className="card-cayla anim-entra overflow-hidden lg:sticky lg:top-24" style={{ "--i": 3 } as CSSProperties}>
@@ -1139,7 +1206,7 @@ export function RecepcionEnvio({
                             const exacto = variantes.some((v) => clave(v.sku) === kEsc || v.codigosBarras.some((c) => clave(c) === kEsc));
                             escanear(!exacto && sugerencias[0]?.sku ? sugerencias[0].sku : escaneo);
                           }}
-                          placeholder="Escanea la etiqueta o busca por SKU…"
+                          placeholder="Escanea la etiqueta o busca por código…"
                           aria-label="Escanear una prenda: suma 1 al comprobante que la trae"
                           autoComplete="off"
                           className={`${CASILLA_TEXTO} pl-10`}
@@ -1203,7 +1270,7 @@ export function RecepcionEnvio({
                     </div>
 
                     <div className={`hidden gap-x-3 border-b border-tinta/10 px-5 py-2 @[46rem]:grid ${PLANTILLA_LINEA}`}>
-                      {["Prenda", "SKU", "Pendiente", "Llegó", "Dif.", "Estado"].map((t, i) => (
+                      {["Prenda", "Código", "Pendiente", "Llegó", "Dif.", "Estado"].map((t, i) => (
                         <span key={t} className={`label-cayla text-[11px] text-tinta/55 ${i === 1 ? "hidden @[60rem]:block" : ""} ${i === 2 || i === 3 || i === 4 ? "text-center" : ""}`}>
                           {t}
                         </span>

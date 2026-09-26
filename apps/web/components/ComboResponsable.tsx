@@ -1,21 +1,26 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Clock, RefreshCw, ShieldCheck, UserRound } from "lucide-react";
 import { nombresCortos } from "@/lib/nombre-integrante";
 import type { ControlResponsable } from "@/lib/useResponsable";
 import type { PersonaDeTurno } from "@/lib/responsable-reglas";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
 import { comboNecesitaBuscador } from "@/lib/combo-reglas";
 import { AvatarPersona } from "@/components/ui/AvatarPersona";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 
 type Props = {
   control: ControlResponsable;
   /** Mientras se guarda, no se cambia de responsable. */
   deshabilitado?: boolean;
   className?: string;
+  /** El aviso del Admin como chip de una línea (Punto de venta, spike 2026-09-26): el recuadro de siempre ocupaba
+   *  ~60 px del pie del ticket, justo donde el espacio más cuesta, y no cambia nada de lo que se hace. */
+  compacto?: boolean;
 };
 
 /**
@@ -32,17 +37,20 @@ type Props = {
  *    y «Actualizar lista». Igual para un líder, incluso trabajando desde casa (A9).
  *  · El Admin (ADR-0178) no pasa por nada de esto: firma él y solo ve un aviso de que no necesita autorización.
  */
-export function ComboResponsable({ control, deshabilitado = false, className = "" }: Props) {
+export function ComboResponsable({ control, deshabilitado = false, className = "", compacto = false }: Props) {
   const [abierto, setAbierto] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
   const boton = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
+  // La caja flotante entera (buscador + opciones): vive en un portal, fuera de `raiz`.
+  const capa = useRef<HTMLDivElement>(null);
   // La lista FLOTA (`fixed`, medida contra el botón; abre hacia abajo o, si no cabe, hacia arriba), igual que
   // ComboBuscable. Antes se abría dentro del contenido y empujaba todo 150–250 px; al elegir se cerraba de golpe y,
   // como el combo suele ser lo penúltimo de un formulario o de una ventana, la vista saltaba (2026-09-23, ADR-0185).
   // `fixed` tampoco queda recortada por el scroll propio de un `<Modal>`, que era la razón de abrirla en línea.
   const posLista = usePosicionLista(boton, abierto, 320);
+  const destino = useDestinoFlotante(boton, abierto);
   const idLista = useId();
   const { estado, lista, sede, elegidoId } = control;
 
@@ -50,7 +58,12 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   useEffect(() => {
     if (!abierto) return;
     const fuera = (e: PointerEvent) => {
-      if (raiz.current && !raiz.current.contains(e.target as Node)) setAbierto(false);
+      // La lista cuelga de un portal (ADR-0211), FUERA de `raiz` en el DOM: el «¿tocó afuera?» tiene que
+      // mirar las dos cajas. Mirando solo `raiz`, tocar una opción contaba como «afuera», la lista se cerraba
+      // en el mousedown y el click de la opción ya no llegaba: no se podía elegir con mouse ni con el dedo.
+      const t = e.target as Node;
+      if (raiz.current?.contains(t) || capa.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("pointerdown", fuera);
     return () => document.removeEventListener("pointerdown", fuera);
@@ -77,6 +90,17 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
   useEffect(() => {
     if (abierto && posLista && mostrarBuscador) buscador.current?.focus();
   }, [abierto, posLista, mostrarBuscador]);
+
+  if (estado === "admin" && compacto) {
+    return (
+      <p role="status" className={`flex ${className}`}>
+        <span className="inline-flex h-6 items-center gap-1.5 rounded-full bg-pizarra/[0.1] px-2.5 text-[11px] font-medium text-pizarra" title="Eres admin: no necesitas autorización. Lo que guardes queda a tu nombre.">
+          <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          Admin · queda a tu nombre
+        </span>
+      </p>
+    );
+  }
 
   if (estado === "admin") {
     return (
@@ -145,12 +169,23 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
 
   function alTeclado(e: React.KeyboardEvent<HTMLDivElement>) {
     if (e.key === "Escape" && abierto) {
+      // Este Escape cerró la lista: que no siga y cierre también el modal (useEscapeLibre.ts). El foco vuelve al botón,
+      // como en `Desplegable`: si estaba en el buscador o en una persona, se desmontaron con la lista.
       e.stopPropagation();
+      setAbierto(false);
+      boton.current?.focus();
+      return;
+    }
+    // Tab desde el botón deja el combo (la lista cuelga al final de la hoja, no a continuación): se cierra, para que no
+    // quede a la vista con el foco en otro campo, donde un Escape ya no le llegaría. Dentro de la lista, Tab recorre
+    // las personas y la lista sigue abierta.
+    if (e.key === "Tab" && abierto && e.target === boton.current) {
       setAbierto(false);
       return;
     }
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
-    const botones = Array.from(raiz.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
+    // Las opciones viven en el portal (`capa`), no dentro de `raiz`: buscándolas en `raiz`, las flechas no encontraban ninguna.
+    const botones = Array.from(capa.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not([disabled])') ?? []);
     if (botones.length === 0) return;
     e.preventDefault();
     if (!abierto) {
@@ -190,12 +225,25 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
         </span>
         <ChevronDown className={`h-4 w-4 flex-none transition-transform duration-200 ${abierto ? "rotate-180" : ""}`} aria-hidden />
       </button>
+      {/* Pantalla abierta sin red (ADR-0210): la lista es la última que se leyó aquí. La base confirma al subir. */}
+      {control.deMemoria && (
+        <p className="mt-1.5 text-xs text-ambar-profundo">
+          Sin conexión: lista de turno de las {diaYHoraLima(control.deMemoria).hora}. Al subir, el sistema confirma que esa persona estaba de turno.
+        </p>
+      )}
 
-      {abierto && posLista && (
-        <div
-          style={{ position: "fixed", ...posLista }}
-          className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
-        >
+      {/* Portal a `document.body` (como `MenuAcciones`/`ResumenControles`, ADR-0211): esta lista va en `fixed`
+          medida contra el control, y sin portal cualquier ancestro con stacking context propio (una tarjeta
+          `@container`, un modal) la atrapa y la pinta detrás de contenido posterior en el DOM aunque tenga `z-50`. */}
+      {abierto &&
+        posLista &&
+        destino &&
+        createPortal(
+          <div
+            ref={capa}
+            style={{ position: "fixed", ...posLista }}
+            className="anim-revelar z-50 flex flex-col overflow-hidden rounded-xl border border-sand bg-papel shadow-[0_18px_44px_-14px_rgb(26_26_24/0.22)]"
+          >
           {mostrarBuscador && (
             <input
               ref={buscador}
@@ -243,8 +291,9 @@ export function ComboResponsable({ control, deshabilitado = false, className = "
               </p>
             )}
           </div>
-        </div>
-      )}
+        </div>,
+          destino
+        )}
 
       {!elegido && !cargando && <p className="mt-1.5 text-xs text-tinta/60">Obligatorio para guardar.</p>}
     </div>

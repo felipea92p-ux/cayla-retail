@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { esVersionCambiada, traducirError } from "./error-escritura";
+import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -331,5 +331,52 @@ describe("otra persona cambió la ficha mientras se editaba (ADR-0193)", () => {
   it("un P0001 cualquiera no es un conflicto de versión", () => {
     expect(esVersionCambiada({ code: "P0001", message: "Falta la referencia del producto." })).toBe(false);
     expect(esVersionCambiada(null)).toBe(false);
+  });
+});
+
+describe("esErrorPasajero / debeEncolarse — qué se reintenta solo (ADR-0210)", () => {
+  it("un 5xx, un 429 o un 408 se reintentan", () => {
+    expect(esErrorPasajero({ message: "Internal Server Error" }, 500)).toBe(true);
+    expect(esErrorPasajero({ message: "Service Unavailable" }, 503)).toBe(true);
+    expect(esErrorPasajero({ message: "Too Many Requests" }, 429)).toBe(true);
+    expect(esErrorPasajero({ message: "Request Timeout" }, 408)).toBe(true);
+  });
+
+  it("un choque de transacciones, un bloqueo o un tiempo agotado de la base se reintentan", () => {
+    for (const code of ["40001", "40P01", "55P03", "57014", "PGRST002"]) expect(esErrorPasajero({ message: "x", code }, 400)).toBe(true);
+  });
+
+  it("un rechazo de negocio NO: reintentarlo repetiría el mismo rechazo", () => {
+    expect(esErrorPasajero({ message: "No hay una caja abierta", code: "P0001" }, 400)).toBe(false);
+    expect(esErrorPasajero({ message: "duplicate key", code: "23505" }, 409)).toBe(false);
+    expect(esErrorPasajero({ message: "permission denied", code: "42501" }, 403)).toBe(false);
+    expect(esErrorPasajero(null)).toBe(false);
+  });
+
+  it("se encola si no hay red o si el servidor está momentáneamente mal", () => {
+    expect(debeEncolarse({ message: "TypeError: Failed to fetch" })).toBe(true);
+    expect(debeEncolarse({ message: "Bad Gateway" }, 502)).toBe(true);
+    expect(debeEncolarse({ message: "No hay una caja abierta", code: "P0001" }, 400)).toBe(false);
+  });
+});
+
+// Con marca, reenviar es seguro SOLO si no se cambió nada; por eso la pantalla congela lo enviado mientras no sabe qué
+// pasó. Confundir un rechazo de la base con una respuesta perdida dejaría la pantalla congelada sin motivo, y al revés
+// soltaría la cifra cuando la base quizá ya guardó.
+describe("esRespuestaIncierta — ¿se sabe si la base guardó?", () => {
+  it("un corte de red o un envío cortado por tiempo: no se sabe", () => {
+    for (const message of ["TypeError: Failed to fetch", "TypeError: Load failed", "AbortError: signal is aborted without reason"]) {
+      expect(esRespuestaIncierta({ message, code: "" })).toBe(true);
+    }
+  });
+  it("un error sin código de Postgres (un 502 del camino): no se sabe", () => {
+    expect(esRespuestaIncierta({ message: "Bad Gateway", code: "" })).toBe(true);
+  });
+  it("un rechazo con código de la base: se sabe (la transacción se deshizo)", () => {
+    expect(esRespuestaIncierta({ message: "Stock insuficiente", code: "P0001" })).toBe(false);
+    expect(esRespuestaIncierta({ message: "responsable", code: "42501", hint: "responsable_no_presente" })).toBe(false);
+  });
+  it("sin error: nada que dudar", () => {
+    expect(esRespuestaIncierta(null)).toBe(false);
   });
 });

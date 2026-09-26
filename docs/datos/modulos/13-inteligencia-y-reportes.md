@@ -15,11 +15,19 @@
 > - **«Estancada» (45 días) no existe en V2.** `UMBRAL_ESTANCADO_DIAS` (`packages/shared/src/enums.ts:41`) no la importa
 >   nadie. La señal viva de «esto se quedó» es `posible_sobrestock`, en `resumen-reglas.ts:842-850`.
 > - **«Frescura del piso»** (ADR-0208): diseño aprobado. Mide cuánto lleva cada modelo+color en el piso frente a su
->   categoría en la sede. Se construye por bloques. **Solo el bloque 1 está construido, y todavía no está en
->   producción** (2026-09-25): registrar la bajada al piso escaneando (`bajar_al_piso`), cerrar «Reposición» en el piso
->   y leer qué bajadas fueron tardías (`fn_bajadas_del_piso`, solo líder, sin pantalla, encima de `fn_ledger_puntos`,
->   ADR-0202). El resto, incluido «Retirar del piso» (bloque 2), no existe todavía: no hay una función de retirar
->   aparte, se hará con `mover_interno` en sentido contrario.
+>   categoría en la sede. Se construye por bloques. **Los bloques 1 y 2 están construidos y fusionados, y su web está
+>   publicada** (2026-09-25). Bloque 1: registrar la bajada al piso escaneando (`bajar_al_piso`), cerrar «Reposición»
+>   en el piso y leer qué bajadas fueron tardías (`fn_bajadas_del_piso`, solo líder, sin pantalla, encima de
+>   `fn_ledger_puntos`, ADR-0202). En producción, según Felipe: `bajar_al_piso` (`0200`) y el candado de «Reposición»
+>   (`0400`) pegados; `fn_bajadas_del_piso` (`0300`) y el módulo (`0000`) sin confirmar. Bloque 2: «Retirar del piso»,
+>   sin función nueva: `mover_interno` en sentido contrario, desde el menú «⋯» de Existencias. Del bloque 3 en adelante
+>   no existe nada todavía.
+> - **Análisis lee mal un retiro (hallado en la revisión del bloque 2, se arregla en el bloque 3).** Un retiro pausa la
+>   tanda FIFO en el almacén (ADR-0200). Si la tanda llevaba menos de 7 días en el piso, la lectura `reposicion_reciente`
+>   (`apps/web/lib/resumen-lectura.ts`) dice que esas unidades «entraron al piso hace poco» y la ficha las cuenta como
+>   «nuevas pendientes»; si se retira la talla entera, `problema_reposicion` lo lee como falta de reposición. La marca de
+>   «retirada de la venta» que Felipe decidirá en el bloque 3 tiene que apagar también estas lecturas (ADR-0208,
+>   «Actualización 2026-09-25 — revisión del bloque 2»). Por decisión de ese PR, la lógica de Análisis no se tocó.
 > - **Regla para la pantalla de Frescura (bloque 3):** se construye encima del dominio de Inventario que ya existe
 >   —el libro de `fn_ledger_puntos`, la venta de `fn_es_venta_de_stock` y las cohortes FIFO de
 >   `apps/web/lib/inventario-exposicion.ts` (ADR-0199 de main, 0200 y 0202)—, no con una reconstrucción propia del
@@ -331,7 +339,7 @@ el comparativo empieza en el mes en que arrancó el ERP y ya no hay con qué com
    repo escribe hoy son diez y algunos llevan tilde: `venta`, `merma`, `conteo`,
    `ingreso`, `ingreso de lote`, `bajada a piso`, `bajada de almacén`, `devolución a
    almacén`, `produccion`, `traslado`, `ajuste`. (V1; hoy: bajar y retirar del piso escriben
-   una sola fila `traslado` con motivo `movimiento_interno`, «Reposición interna».) Quien escriba una RPC nueva con
+   una sola fila `traslado` con motivo `movimiento_interno`: «Bajada al piso» (almacén → piso) o «Retiro del piso» (piso → almacén) en Movimientos, según el par de sububicaciones; otro par sale como «Movimiento interno», que es también el nombre del filtro.) Quien escriba una RPC nueva con
    `'Venta'` o `'venta online'` no rompe nada visible: simplemente esa venta deja de
    contar para la rotación (`inteligencia.ts:77`), para el COGS
    (`finanzas-nucleo.ts:57`) y para el sello de `ultima_venta`

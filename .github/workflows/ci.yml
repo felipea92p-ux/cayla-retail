@@ -15,8 +15,8 @@
 # migraciones están aplicadas" ni "la pantalla se ve bien".
 # Misma disciplina que ADR-0026: un verificador vale por lo que declara que NO revisó.
 #
-# OBLIGATORIO DESDE 2026-09-25: si falla, el PR sale en rojo. Para que además impida
-# fusionar, el ruleset `main-protegida` tiene que exigir este check (CONTRIBUTING.md §2).
+# OBLIGATORIO DESDE 2026-09-25: si falla, el PR sale en rojo y el ruleset `main-protegida`
+# no deja fusionarlo (CONTRIBUTING.md §2).
 # `pruebas-postgres`, abajo, SÍ levanta Postgres real
 # (`npx supabase start`) y corre `caja:verificar` + `scripts/pruebas/*.mjs` contra él.
 # Nació el 2026-09-17 como piloto con `continue-on-error: true`: ADR-0066 temía que "cada
@@ -291,6 +291,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:bajada-al-piso
 
+      # Nuevo producto con su stock de hoy (ADR-0212): el producto y la carga inicial son todo o nada (sin tienda, otra tienda,
+      # un Taller «al piso» o un rol sin «Bajada al piso» no dejan ni el producto), las cantidades entran como «carga_inicial»
+      # al almacén (o al piso con UNA bajada), firma el responsable, el mismo token no carga dos veces, la carga es solo para
+      # prendas sin movimientos en esa tienda, y la firma de la RPC sigue a la de crear_producto_con_variantes. Cada caso
+      # termina en ROLLBACK.
+      - name: pruebas:alta-con-stock-inicial
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:alta-con-stock-inicial
+
       # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
       # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
       # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
@@ -305,6 +314,14 @@ jobs:
       - name: pruebas:reposicion-piso-cerrada
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:reposicion-piso-cerrada
+
+      # Marca de mover_interno (ADR-0208): «Reponer» y «Retirar del piso» mandan una marca por intento; el reintento con
+      # los mismos datos devuelve el mismo movimiento sin mover nada, con otros datos se rechaza, la marca se mira antes
+      # de pedir responsable, la tabla de marcas no se edita ni se borra, la migración aborta si el cuerpo vivo cambió y
+      # bajar_al_piso (sin marca) sigue igual. Cada caso termina en ROLLBACK.
+      - name: pruebas:mover-interno-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:mover-interno-marca
 
       # Separaciones (ADR-0166): separar con adelanto en custodia, entregar cobrando el saldo con el precio
       # congelado, vencer con 2 días de gracia, devolver el 100% y que el arqueo de caja cuadre al céntimo.
@@ -460,6 +477,14 @@ jobs:
       - name: pruebas:proveedores-cuentas
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:proveedores-cuentas
+
+      # Varios rubros por proveedor (ADR-0213): registrar/editar limpian la lista (espacios, vacíos, repetidos sin
+      # tildes ni mayúsculas), «sin rubro» es {} y nunca NULL, el CHECK y NOT NULL rechazan por su cuenta, fn_proveedores()
+      # devuelve la lista, UNA sola firma de cada función, Gastos sigue naciendo con {Gastos} y la migración se puede
+      # pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:proveedores-rubros
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:proveedores-rubros
 
       # Pagos de Compras endurecidos (ADR-0135): el total del papel con IGV incluido cuadra sin abrir el candado
       # (5 u × 10.00 … 100 u × 1.00; un +S/ 5 sigue rechazado), el pago desde el detalle es idempotente por token, el
@@ -665,6 +690,20 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles
 
+      # Coherencia módulo ↔ base (ADR-0150: «una prueba debe fallar si…»):
+      # Roles y accesos apaga módulos en la pantalla, pero lo que de verdad detiene a una cuenta es lo que la BASE exige. Todo
+      # módulo delegable tiene un guardián en `retail` —`fn_ve_modulo('x')` o `fn_capacidad_por_modulos(array['x'])` en una
+      # política RLS, una vista o una función que está en el camino de una operación (la pantalla la llama con `.rpc`, un
+      # disparador, otra función, política o vista)— o está en la lista SOLO_PANTALLA del guion, con su razón. Esa lista
+      # solo puede encogerse (un módulo que ya tiene guardián y sigue en ella falla) y un módulo delegable NUEVO sin guardián ni
+      # entrada falla diciendo qué hacer. La otra cara: toda función que exige SOLO LÍDER por un ayudante `fn_exigir_*` está
+      # declarada en SOLO_LIDER con lo que hace la pantalla con quien no es líder. Los controles crean módulos, funciones,
+      # políticas, vistas y disparadores falsos y terminan en ROLLBACK, para probar que la regla muerde. Qué cuenta como
+      # «guardián» y qué no: encabezado de `scripts/pruebas/roles_cobertura_modulos.mjs`.
+      - name: pruebas:roles-cobertura
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:roles-cobertura
+
       # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
       # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
       # y 29 con el de no-tienda; la migración se pega dos veces y aborta ante una función sin clasificar. Venta, caja, ajuste,
@@ -701,3 +740,36 @@ jobs:
       - name: pruebas:venta-contrato-ampliado
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:venta-contrato-ampliado
+
+      # Catálogo ▸ Marcas ▸ Editar (20260926150000): nombre y proveedores todo o nada; un proveedor con productos (también
+      # descontinuados) no se quita y el nombre del mismo guardado no cambia; una marca activa nunca queda sin proveedor;
+      # el proveedor nuevo se registra en el mismo paso y no queda huérfano si el guardado falla; dos ediciones de la
+      # misma marca no se pisan (sumar/quitar, no la lista final). Cada caso termina en ROLLBACK.
+      - name: pruebas:editar-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:editar-marca
+
+      # Catálogo ▸ Marcas ▸ Eliminar (20260926213000): una marca sin ningún producto se elimina con todos sus vínculos y los
+      # proveedores quedan; con productos (activos o descontinuados) se rechaza sin llevarse nada; corregida la marca del
+      # producto («Cayla 2») se elimina; la llave de `productos` frena un DELETE directo; el nombre queda libre.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:eliminar-marca
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:eliminar-marca
+
+      # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
+      # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
+      # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
+      # entiende (otra venta, boleta, venta anulada, traslado, libro descuadrado). Cada caso termina en ROLLBACK.
+      - name: pruebas:purgar-producto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:purgar-producto
+
+      # Productos ▸ Eliminar (20260926220000, solo Líder/Admin): un producto que nunca se movió se elimina completo (variantes,
+      # códigos de barras, fotos), deja UNA fila de rastro y libera su nombre; con historia (movimientos, ventas, un pedido no
+      # atendido…) se rechaza diciendo cuál y sin llevarse nada; la pieza «Monto manual» del punto de venta nunca se elimina, ni
+      # sin historia; una integrante que edita el catálogo tampoco elimina; y una prueba de deriva falla si nace una tabla nueva
+      # que cita productos/variantes sin clasificar. Cada caso termina en ROLLBACK.
+      - name: pruebas:eliminar-producto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:eliminar-producto

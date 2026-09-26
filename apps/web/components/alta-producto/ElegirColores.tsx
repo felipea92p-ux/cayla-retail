@@ -4,14 +4,16 @@ import { useState } from "react";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import type { ColorAlta } from "@/lib/alta-producto";
+import { fondoDeMuestra, textoDeFamilia } from "@/lib/colores-familias";
 
-// Elegir los colores de un producto sin ver los ~40 colores de golpe (spike Nuevo producto, 2026-09-24).
+// Elegir los colores de un producto sin ver los ~65 colores de golpe (spike Nuevo producto, 2026-09-24).
 //
 // Antes cada familia de colores salía como una fila de chips con nombre: con el catálogo real eran media pantalla
 // (captura de Felipe). Ahora, en orden de lo que más se usa:
 //   1. los más usados en la categoría, como chips (casi siempre el color está ahí);
 //   2. un buscador («petróleo», «coral»): el color aparece tipeando;
-//   3. «Ver los N colores»: una paleta de círculos, un renglón por familia, con el nombre al pasar el mouse.
+//   3. «Ver los N colores»: una paleta de círculos, un renglón por familia. El nombre sale al instante bajo la paleta
+//      al pasar el mouse, al llegar con Tab o al tocarlo (el `title` del navegador tardaba ~1 s y en tablet no salía).
 // Lo que se elija fuera de los frecuentes queda a la vista en «También elegiste», con su × para quitarlo:
 // en la paleta el nombre no se lee, y nadie tiene que buscar dónde marcó un color para desmarcarlo.
 
@@ -33,6 +35,8 @@ export function ElegirColores({
   const [paleta, setPaleta] = useState(false);
   // El buscador vuelve a vacío después de cada elección: se remonta con otra `key`.
   const [vuelta, setVuelta] = useState(0);
+  // El color bajo el mouse o con el foco: su nombre se lee al pie de la paleta.
+  const [senalado, setSenalado] = useState<ColorAlta | null>(null);
   const codigosFrecuentes = new Set(frecuentes.map((c) => c.codigo));
   const otrosElegidos = elegidos.map((cod) => colores.find((c) => c.codigo === cod)).filter((c): c is ColorAlta => Boolean(c) && !codigosFrecuentes.has(c!.codigo));
 
@@ -44,7 +48,7 @@ export function ElegirColores({
           <div className="flex flex-wrap gap-1.5">
             {frecuentes.map((c) => (
               <ChipOpcion key={c.codigo} elegido={elegidos.includes(c.codigo)} onClick={() => onAlternar(c.codigo)}>
-                <Punto hex={c.hex} />
+                <Punto hex={c.hex} familia={c.familiaColor} />
                 {c.nombre}
               </ChipOpcion>
             ))}
@@ -69,7 +73,8 @@ export function ElegirColores({
             valor: c.codigo,
             texto: c.nombre,
             detalle: elegidos.includes(c.codigo) ? "✓ elegido" : undefined,
-            icono: <Punto hex={c.hex} />,
+            claves: c.sinonimos,
+            icono: <Punto hex={c.hex} familia={c.familiaColor} />,
           }))}
         />
         <button type="button" onClick={() => setPaleta((v) => !v)} aria-expanded={paleta} className="btn-cayla btn-secundario">
@@ -78,14 +83,17 @@ export function ElegirColores({
       </div>
 
       {paleta && (
-        // Dos columnas de familias cuando el BLOQUE es ancho (`@container`, no la ventana: con el menú lateral abierto y la
-        // ficha a la derecha, a este bloque le quedan ~450 px y dos columnas partían cada familia en renglones de 2).
+        // Una carta de color: cada familia es un renglón, de claro a oscuro (`colores.orden`, una centena por familia:
+        // 20260926210000). Todos los renglones tienen las MISMAS columnas —tantas de 26 px como quepan en el ancho
+        // (`auto-fill`)—, así que el tono se lee también de arriba abajo, y una familia más corta deja su hueco al final
+        // en vez de correr los círculos. Con 9 fijas (hasta el 2026-09-26), Neutro con 11 colores (Gris piedra y Nude, del
+        // estudio de marcas de lujo) partía su renglón aunque sobrara ancho. Si el BLOQUE es angosto (`@container`, no la
+        // ventana), el nombre de la familia va arriba de sus círculos.
         <div className="@container anim-revelar rounded-xl border border-sand bg-crema px-3 py-2">
-          <div className="grid gap-x-6 @xl:grid-cols-2">
           {grupos.map((g) => (
-            <div key={g.familia} className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-2.5 py-1">
+            <div key={g.familia} className="grid gap-1 py-1 @md:grid-cols-[5rem_minmax(0,1fr)] @md:items-center @md:gap-2.5">
               <p className="text-[11.5px] text-taupe">{g.texto}</p>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-[repeat(auto-fill,26px)] gap-1.5">
                 {g.colores.map((c) => {
                   const elegido = elegidos.includes(c.codigo);
                   return (
@@ -95,8 +103,11 @@ export function ElegirColores({
                       onClick={() => onAlternar(c.codigo)}
                       aria-pressed={elegido}
                       aria-label={c.nombre}
-                      title={c.nombre}
-                      style={{ background: c.hex ?? "transparent" }}
+                      onMouseEnter={() => setSenalado(c)}
+                      onMouseLeave={() => setSenalado(null)}
+                      onFocus={() => setSenalado(c)}
+                      onBlur={() => setSenalado(null)}
+                      style={{ background: fondoDeMuestra(c.hex, c.familiaColor) ?? "transparent" }}
                       className={`grid h-[26px] w-[26px] place-items-center rounded-full border border-tinta/25 text-[11px] font-bold transition-transform duration-150 hover:scale-110 ${
                         elegido ? "ring-2 ring-tinta ring-offset-2 ring-offset-crema" : ""
                       } ${esClaro(c.hex) ? "text-tinta" : "text-crema"}`}
@@ -109,7 +120,22 @@ export function ElegirColores({
               </div>
             </div>
           ))}
-          </div>
+          {/* Alto fijo: el pie no empuja la paleta al aparecer o cambiar de nombre. `aria-hidden` porque cada círculo ya
+              se anuncia con su `aria-label`; leerlo dos veces sería ruido para un lector de pantalla. */}
+          <p aria-hidden className="mt-1 flex h-6 items-center gap-1.5 border-t border-sand pt-1 text-[12px]">
+            {senalado ? (
+              <>
+                <Punto hex={senalado.hex} familia={senalado.familiaColor} />
+                <span className="text-tinta">{senalado.nombre}</span>
+                <span className="text-taupe">
+                  · {textoDeFamilia(senalado.familiaColor)}
+                  {elegidos.includes(senalado.codigo) ? " · elegido" : ""}
+                </span>
+              </>
+            ) : (
+              <span className="text-taupe">Pasa el mouse o toca un color para ver su nombre.</span>
+            )}
+          </p>
         </div>
       )}
 
@@ -118,7 +144,7 @@ export function ElegirColores({
           <span className="text-xs text-taupe">También elegiste:</span>
           {otrosElegidos.map((c) => (
             <span key={c.codigo} className="inline-flex items-center gap-1.5 rounded-full border border-tinta bg-tinta/[0.07] py-0.5 pl-2.5 pr-1 text-[12.5px] text-tinta">
-              <Punto hex={c.hex} />
+              <Punto hex={c.hex} familia={c.familiaColor} />
               {c.nombre}
               <button
                 type="button"
@@ -136,8 +162,14 @@ export function ElegirColores({
   );
 }
 
-export function Punto({ hex }: { hex: string | null }) {
-  return <span aria-hidden className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/20" style={{ background: hex ?? "transparent" }} />;
+export function Punto({ hex, familia }: { hex: string | null; familia?: string | null }) {
+  return (
+    <span
+      aria-hidden
+      className="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/20"
+      style={{ background: fondoDeMuestra(hex, familia) ?? "transparent" }}
+    />
+  );
 }
 
 /** Para decidir si el ✓ va en tinta o en crema encima del color. Sin hex, se trata como claro. */

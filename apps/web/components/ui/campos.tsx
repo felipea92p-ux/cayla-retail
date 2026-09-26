@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
-import { usePosicionLista } from "@/components/ui/useAnclaje";
+import { Fragment, useEffect, useId, useImperativeHandle, useMemo, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { createPortal } from "react-dom";
+import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
 import { clave } from "@/lib/buscar-prenda-v2";
-import { comboNecesitaBuscador } from "@/lib/combo-reglas";
+import { comboNecesitaBuscador, primeraElegible, siguienteElegible, tramosPorGrupo } from "@/lib/combo-reglas";
 
 /* ====================================================================
    Campos del sistema CAYLA · v3.1 (2026-09-08)
 
    Por qué existe este archivo: hasta ahora cada modal armaba sus campos
-   pegando strings de clases (`campoTexto`, `campoSelect` en ui/Modal.tsx).
+   pegando strings de clases (`campoTexto` en ui/Modal.tsx; el `campoSelect` de
+   entonces ya no existe).
    Eso alcanza para un input suelto, pero no puede expresar comportamiento
    — un desplegable que se abre, una línea que se dibuja, una cifra que se
    re-asienta. Un string de clases no tiene estado.
@@ -30,13 +32,30 @@ import { comboNecesitaBuscador } from "@/lib/combo-reglas";
 /** El hilo vivo. Se dibuja desde el centro cuando el campo está activo.
     Exportado el 2026-09-09: el buscador global del AppShell usa el mismo
     dispositivo, y tenerlo definido dos veces era garantía de que un día
-    se movieran por separado. */
-export function Hilo({ activo, trabajando = false, valido = false }: { activo: boolean; trabajando?: boolean; /** El dato ya está bien: el hilo se queda en verde (ProveedorModal, 2026-09-19). */ valido?: boolean }) {
+    se movieran por separado.
+    `reposo` (2026-09-25, ADR-0211): la línea gris de "acá hay un campo" tiene sentido en un campo suelto
+    sobre el fondo de la página — dentro del panel de píldoras (`divide-x`, fondo propio) varias píldoras
+    seguidas la pintaban borde a borde y se leía como una sola barra negra de punta a punta del panel, no
+    como el borde de cada una. `reposo={false}` la apaga y deja solo el trazo rojo/verde de la interacción. */
+export function Hilo({
+  activo,
+  trabajando = false,
+  valido = false,
+  reposo = true,
+}: {
+  activo: boolean;
+  trabajando?: boolean;
+  /** El dato ya está bien: el hilo se queda en verde (ProveedorModal, 2026-09-19). */
+  valido?: boolean;
+  reposo?: boolean;
+}) {
   return (
     <>
       {/* `--hilo` deja que una pantalla tiña la línea de reposo (el cobro guiado la pone terracota en
           el paso del comprobante); sin definirla es el mismo gris de siempre. */}
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+      {reposo && (
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-px rounded-full bg-[var(--hilo,rgb(26_26_24/0.25))] transition-colors duration-500" />
+      )}
       <span
         aria-hidden
         className={`pointer-events-none absolute inset-x-0 bottom-0 h-[2px] origin-center rounded-full bg-rojo transition-transform duration-300 ease-cayla ${
@@ -168,75 +187,6 @@ export function CampoTexto({ etiqueta, ayuda, pie, tono, mono, trabajando, valid
 }
 
 /* ------------------------------------------------------------------
-   SelectNativo / CampoSelectNativo — el <select> del navegador, vestido
-   igual que CampoTexto: mismo padding (py-2), mismo tamaño de letra,
-   sin caja, y el mismo hilo vivo al enfocar. Agregado el 2026-09-12
-   para el módulo de Compras: un combo con la caja de `campoSelect`
-   (borde + px-3) al lado de un input sobre el hilo medía distinto y se
-   veía como de otro sistema. Se usa donde la lista es larga (292
-   proveedores, todo el catálogo) o donde hace falta un <select> real
-   dentro de una fila de líneas; para 2-6 opciones que cambian el
-   formulario sigue siendo `Segmentado`, y `Desplegable` para listas
-   cortas con estilo propio.
-   ------------------------------------------------------------------ */
-type SelectNativoProps = SelectHTMLAttributes<HTMLSelectElement> & { mono?: boolean };
-
-export function SelectNativo({ mono, className = "", children, ...props }: SelectNativoProps) {
-  const [enfocado, setEnfocado] = useState(false);
-  return (
-    <div className="relative">
-      <select
-        {...props}
-        onFocus={(e) => {
-          setEnfocado(true);
-          props.onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setEnfocado(false);
-          props.onBlur?.(e);
-        }}
-        // `appearance-none` saca la flecha y el fondo del sistema operativo,
-        // que es lo que hacía que midiera distinto; la flecha se dibuja abajo.
-        className={`w-full cursor-pointer appearance-none [-webkit-appearance:none] bg-transparent py-2 pl-0.5 pr-6 text-sm text-tinta outline-none disabled:cursor-not-allowed disabled:text-tinta/40 ${ALTO_CONTROL} ${
-          mono ? "font-mono tabular-nums tracking-wider" : ""
-        } ${className}`}
-      >
-        {children}
-      </select>
-      <svg
-        aria-hidden
-        viewBox="0 0 16 16"
-        className={`pointer-events-none absolute right-0.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 transition-colors ${enfocado ? "text-rojo" : "text-tinta/55"}`}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M4 6l4 4 4-4" />
-      </svg>
-      <Hilo activo={enfocado} />
-    </div>
-  );
-}
-
-export function CampoSelectNativo({
-  etiqueta,
-  ayuda,
-  pie,
-  tono,
-  ...props
-}: SelectNativoProps & { etiqueta: ReactNode; ayuda?: ReactNode; pie?: ReactNode; tono?: CampoProps["tono"] }) {
-  const idPropio = useId();
-  const id = props.id ?? idPropio;
-  return (
-    <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} htmlFor={id}>
-      <SelectNativo id={id} {...props} />
-    </Campo>
-  );
-}
-
-/* ------------------------------------------------------------------
    CampoMonto — la cifra es lo más importante de la pantalla, así que
    se lee como la pantalla de un instrumento, no como un input más:
    serif grande, dígitos de ancho fijo, y el "S/" fijo a la izquierda
@@ -317,7 +267,15 @@ export function Interruptor({ activo, onActivo, etiqueta, pie, disabled = false 
   );
 }
 
-export type Opcion<T extends string> = { valor: T; texto: string };
+export type Opcion<T extends string> = {
+  valor: T;
+  texto: string;
+  /** Título del grupo (el <optgroup> del navegador): las opciones seguidas del mismo grupo se listan bajo ese título —las
+   *  cuentas en bancos, cajas fuertes y cajones—. Solo lo dibuja `Desplegable`/`CampoSelect`. */
+  grupo?: string;
+  /** Se ve pero no se elige (un cajón con la caja cerrada): ni con el mouse ni con el teclado. Solo `Desplegable`/`CampoSelect`. */
+  deshabilitada?: boolean;
+};
 
 /* ------------------------------------------------------------------
    SelectorMultiple — chips que se prenden y apagan, cero o varios a la
@@ -464,18 +422,52 @@ export function Segmentado<T extends string>({
    scroll. Con 8 opciones o menos no cambia nada: `mostradas` es
    literalmente `opciones`, el mismo control de siempre. La regla vive en
    lib/combo-reglas.ts (puro, con pruebas); acá solo se usa.
+
+   Desde el 2026-09-26 es el ÚNICO combo del ERP: el <select> del
+   navegador ya no existe en la web y `lib/sin-select-nativo.test.ts` lo
+   vigila. Para eso aprendió lo que el nativo resolvía solo: grupos
+   (`Opcion.grupo`, el <optgroup>), opciones que se ven pero no se eligen
+   (`Opcion.deshabilitada`), un `id` y un `ref` para que la pantalla lo
+   enfoque al avisar un error, y las dos formas de Finanzas.
    ------------------------------------------------------------------ */
 
-// Dos formas, no dos modos: es dónde vive el control, no cómo se porta.
-// `campo` se para sobre el hilo vivo (dentro de un formulario); `pastilla`
-// se defiende sola con un borde (en la cabecera, sin campo alrededor).
+// Formas, no modos: es dónde vive el control, no cómo se porta.
+type FormaDesplegable = {
+  /** Las clases del disparador. */
+  boton: string;
+  /** La flecha propia, que gira al abrir. Las de Finanzas usan la de su spike, dibujada por CSS. */
+  flecha: boolean;
+  /** Se para sobre el hilo vivo. */
+  hilo: boolean;
+  /** Como el <select> del navegador, que es lo que dibuja el spike de Finanzas: mide lo que su opción MÁS LARGA (no
+   *  baila al elegir otra) y su lista puede ser más ancha que el control. */
+  comoNativo: boolean;
+};
+
 const FORMA_DESPLEGABLE = {
-  campo: "w-full justify-between rounded-t-md px-0.5 py-2 text-sm hover:bg-tinta/[0.03]",
-  pastilla:
-    "gap-2 rounded-md border bg-papel px-2.5 py-1.5 label-cayla text-[11px] hover:border-rojo",
-  /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso, para las barras de filtros. */
-  caja: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm",
-} as const;
+  /** Dentro de un formulario, sobre el hilo vivo. */
+  campo: {
+    boton: "w-full justify-between rounded-t-md bg-transparent px-0.5 py-2 text-sm text-tinta hover:bg-tinta/[0.03] disabled:hover:bg-transparent",
+    flecha: true,
+    hilo: true,
+    comoNativo: false,
+  },
+  /** Sola con su borde, en la cabecera (la sede). */
+  pastilla: { boton: "gap-2 rounded-md border bg-transparent px-2.5 py-1.5 label-cayla text-[11px] text-tinta hover:border-rojo", flecha: true, hilo: false, comoNativo: false },
+  /** Guía oficial (2026-09-22, ADR-0169): la caja hundida en hueso de las barras de filtros, la misma de `CampoTexto caja`.
+   *  Hasta el 2026-09-26 salía transparente: un `bg-transparent` de todas las formas le ganaba a `.caja-cayla`. */
+  caja: { boton: "caja-cayla h-10 w-full justify-between gap-3 px-3 text-sm text-tinta", flecha: true, hilo: false, comoNativo: false },
+  /** Finanzas (ADR-0195): cerrado, el control en caja de su spike (`fin-control`, app/estilos/finanzas.css). */
+  fin: { boton: "fin-control fin-desplegable", flecha: false, hilo: false, comoNativo: true },
+  /** Finanzas, dentro de un sobretítulo («Lo que ya pasó · SETIEMBRE DE 2026»): sin caja, hereda la letra. El contorno de
+   *  foco va acá y no en el CSS: el `outline-none` de todas las formas le ganaría. */
+  finEnLinea: {
+    boton: "fin-etq-select focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo",
+    flecha: false,
+    hilo: false,
+    comoNativo: true,
+  },
+} satisfies Record<string, FormaDesplegable>;
 
 export function Desplegable<T extends string>({
   valor,
@@ -492,6 +484,9 @@ export function Desplegable<T extends string>({
   idEtiqueta,
   etiquetaAccesible,
   deshabilitado = false,
+  id: idPropio,
+  ref,
+  className = "",
 }: {
   valor: T;
   onValor: (v: T) => void;
@@ -506,8 +501,16 @@ export function Desplegable<T extends string>({
   etiquetaAccesible?: string;
   /** No se puede abrir todavía (p. ej. el motivo de caja antes de elegir entrada o salida): el marcador dice por qué. */
   deshabilitado?: boolean;
+  /** El id del disparador: para un `<label htmlFor>` y para `avisar.error(…, { enfocar: id })`. */
+  id?: string;
+  /** El disparador, para que la pantalla lo enfoque ella misma (el foco-en-error de Cambios). */
+  ref?: Ref<HTMLButtonElement>;
+  /** Clases de la caja de afuera: su lugar en la fila (ancho, `inline-block`), nunca su aspecto — eso lo decide `forma`. */
+  className?: string;
 }) {
-  const id = useId();
+  const idGenerado = useId();
+  const id = idPropio ?? idGenerado;
+  const f = FORMA_DESPLEGABLE[forma];
   const [abierto, setAbierto] = useState(false);
   const [activo, setActivo] = useState(0);
   const [busqueda, setBusqueda] = useState("");
@@ -515,15 +518,20 @@ export function Desplegable<T extends string>({
   const disparador = useRef<HTMLButtonElement>(null);
   const buscador = useRef<HTMLInputElement>(null);
   const lista = useRef<HTMLUListElement>(null);
+  // La caja flotante entera (buscador + lista): vive en un portal, fuera de `contenedor`.
+  const capa = useRef<HTMLDivElement>(null);
   const tipeo = useRef({ texto: "", reloj: 0 });
+  // React 19: `ref` llega como una prop más; la pantalla recibe el disparador (lo que se enfoca y se clickea).
+  useImperativeHandle(ref, () => disparador.current as HTMLButtonElement, []);
 
   // Regla global de combos (ADR-0209): con 8 opciones o menos, `mostradas` es literalmente `opciones` — cero
-  // cambio para los cientos de Desplegable de 2 a 6 opciones que ya funcionaban.
+  // cambio para los cientos de Desplegable de 2 a 6 opciones que ya funcionaban. El grupo también se busca: «banco»
+  // trae todas las cuentas de «Bancos y billeteras».
   const mostrarBuscador = comboNecesitaBuscador(opciones.length);
   const filtradas = useMemo(() => {
     if (!mostrarBuscador || !busqueda) return opciones;
     const k = clave(busqueda);
-    return opciones.filter((o) => clave(o.texto).includes(k));
+    return opciones.filter((o) => clave(`${o.texto} ${o.grupo ?? ""}`).includes(k));
   }, [opciones, busqueda, mostrarBuscador]);
   const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
   const mostradas = mostrarBuscador ? filtradas.slice(0, visibles) : opciones;
@@ -532,6 +540,7 @@ export function Desplegable<T extends string>({
   // el scroll de la hoja. `derecha` (cabecera) sigue en `absolute`: allí nada la recorta y crece con su contenido.
   const flotante = alineacion === "campo";
   const posLista = usePosicionLista(contenedor, abierto && flotante, 224);
+  const destino = useDestinoFlotante(contenedor, abierto && flotante);
   // La lista en `fixed` se pinta recién cuando tiene posición (un render después de abrir).
   const listaVisible = abierto && (!flotante || !!posLista);
 
@@ -540,7 +549,8 @@ export function Desplegable<T extends string>({
 
   function abrir() {
     setBusqueda("");
-    const i = Math.max(0, indiceActual);
+    // Se abre parado en la elegida; sin elegida, en la primera que se puede elegir (no en un cajón cerrado).
+    const i = indiceActual >= 0 ? indiceActual : Math.max(0, primeraElegible(opciones));
     setActivo(i);
     mostrarDesde(i);
     setAbierto(true);
@@ -553,7 +563,9 @@ export function Desplegable<T extends string>({
     if (devolverFoco) disparador.current?.focus();
   }
 
-  function elegir(o: Opcion<T>) {
+  function elegir(o: Opcion<T> | undefined) {
+    // Una opción bloqueada se ve, pero ni el clic ni Enter la eligen (el <option disabled> del navegador).
+    if (!o || o.deshabilitada) return;
     onValor(o.valor);
     cerrar();
   }
@@ -565,7 +577,12 @@ export function Desplegable<T extends string>({
     if (mostrarBuscador) buscador.current?.focus();
     else lista.current?.focus();
     const afuera = (e: MouseEvent) => {
-      if (contenedor.current && !contenedor.current.contains(e.target as Node)) setAbierto(false);
+      // La lista cuelga de un portal (ADR-0211), FUERA de `contenedor` en el DOM: el «¿tocó afuera?» tiene que
+      // mirar las dos cajas. Mirando solo `contenedor`, tocar una opción contaba como «afuera», la lista se cerraba
+      // en el mousedown y el click de la opción ya no llegaba: no se podía elegir con mouse ni con el dedo.
+      const t = e.target as Node;
+      if (contenedor.current?.contains(t) || capa.current?.contains(t)) return;
+      setAbierto(false);
     };
     document.addEventListener("mousedown", afuera);
     return () => document.removeEventListener("mousedown", afuera);
@@ -598,49 +615,81 @@ export function Desplegable<T extends string>({
       case "Tab":
         setAbierto(false);
         break;
+      // Las flechas, Inicio y Fin saltan las opciones bloqueadas (lib/combo-reglas.ts): nunca aterrizan en una que no se elige.
       case "ArrowDown":
         e.preventDefault();
-        setActivo((i) => Math.min(mostradas.length - 1, i + 1));
+        setActivo((i) => siguienteElegible(mostradas, i, 1));
         break;
       case "ArrowUp":
         e.preventDefault();
-        setActivo((i) => Math.max(0, i - 1));
+        setActivo((i) => siguienteElegible(mostradas, i, -1));
         break;
       case "Home":
         e.preventDefault();
-        setActivo(0);
+        setActivo(Math.max(0, primeraElegible(mostradas)));
         break;
       case "End":
         e.preventDefault();
-        setActivo(mostradas.length - 1);
+        setActivo(Math.max(0, primeraElegible(mostradas, true)));
         break;
       case " ":
         // Con buscador, el espacio es texto de búsqueda ("San Isidro"), no una elección.
         if (mostrarBuscador) break;
         e.preventDefault();
-        if (mostradas[activo]) elegir(mostradas[activo]);
+        elegir(mostradas[activo]);
         break;
       case "Enter":
         e.preventDefault();
-        if (mostradas[activo]) elegir(mostradas[activo]);
+        elegir(mostradas[activo]);
         break;
       default:
         // Tipear salta a la opción que empieza así (medio segundo de memoria). Con buscador propio, tipear ya
         // filtra por su cuenta — este atajo es solo para el desplegable corto, sin buscador.
         if (mostrarBuscador || e.key.length !== 1) return;
-        if (Date.now() - tipeo.current.reloj > 500) tipeo.current.texto = "";
-        tipeo.current.reloj = Date.now();
+        // La hora de la propia tecla (`timeStamp`), no la del reloj: es la que mide el medio segundo entre dos teclas, y
+        // el compilador de React no la confunde con algo que cambie entre dos dibujos.
+        if (e.timeStamp - tipeo.current.reloj > 500) tipeo.current.texto = "";
+        tipeo.current.reloj = e.timeStamp;
         tipeo.current.texto += e.key.toLowerCase();
-        const i = opciones.findIndex((o) => o.texto.toLowerCase().startsWith(tipeo.current.texto));
+        const i = opciones.findIndex((o) => !o.deshabilitada && o.texto.toLowerCase().startsWith(tipeo.current.texto));
         if (i >= 0) setActivo(i);
     }
   }
 
   const esPastilla = forma === "pastilla";
-  const esCaja = forma === "caja";
+
+  /** Una fila de la lista. Bloqueada: se lee apagada, no se resalta ni se elige. */
+  const opcion = (o: Opcion<T>, i: number) => (
+    <li
+      key={o.valor}
+      id={`${id}-op-${i}`}
+      data-i={i}
+      role="option"
+      aria-selected={o.valor === valor}
+      aria-disabled={o.deshabilitada || undefined}
+      onMouseEnter={() => !o.deshabilitada && setActivo(i)}
+      onClick={() => elegir(o)}
+      // El escalonado corto (30ms por fila) hace que la lista se lea como que se despliega, no
+      // como que aparece entera de golpe — pero con buscador la lista puede tener decenas de filas,
+      // y esperar 30ms×i dejaría la fila 96 invisible casi 3 segundos: ahí no hay escalonado.
+      style={mostrarBuscador ? undefined : { animationDelay: `${i * 30}ms` }}
+      className={`relative mx-1.5 flex items-center rounded-md px-2.5 py-2 text-sm transition-colors ${mostrarBuscador ? "" : "anim-revelar"} ${
+        o.deshabilitada ? "cursor-not-allowed text-tinta/40" : i === activo ? "cursor-pointer bg-rojo/10 text-tinta" : "cursor-pointer text-tinta/80"
+      }`}
+    >
+      {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
+      <span
+        aria-hidden
+        className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
+          o.valor === valor ? "scale-y-100" : "scale-y-0"
+        }`}
+      />
+      {o.texto}
+    </li>
+  );
 
   return (
-    <div className="relative" ref={contenedor}>
+    <div className={`relative ${className}`} ref={contenedor}>
       <button
         ref={disparador}
         id={id}
@@ -654,18 +703,34 @@ export function Desplegable<T extends string>({
         disabled={deshabilitado}
         onClick={() => (abierto ? cerrar(false) : abrir())}
         onKeyDown={alTeclado}
-        className={`flex items-center bg-transparent text-left outline-none transition-colors disabled:cursor-not-allowed disabled:hover:bg-transparent ${
-          FORMA_DESPLEGABLE[forma]
-        } ${esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""}`}
+        className={`flex items-center text-left outline-none transition-colors disabled:cursor-not-allowed ${f.boton} ${
+          esPastilla ? (abierto ? "border-rojo" : "border-sand") : ""
+        }`}
       >
-        <span className={elegida ? "text-tinta" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
-        <svg
-          aria-hidden
-          viewBox="0 0 10 6"
-          className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
-        >
-          <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
-        </svg>
+        {f.comoNativo ? (
+          // Como el <select> del navegador: todas las opciones, invisibles y apiladas en la misma celda, le dan al
+          // control el ancho de la más larga —cerrado mide igual que el del spike y no baila al elegir otra—; en una
+          // columna angosta, lo elegido se corta con «…» y lo invisible no desborda (`overflow-hidden`).
+          <span className="grid min-w-0 overflow-hidden">
+            <span className={`col-start-1 row-start-1 truncate ${elegida ? "" : "text-tinta/65"}`}>{elegida?.texto ?? marcador}</span>
+            {[marcador, ...opciones.map((o) => o.texto)].map((t, k) => (
+              <span key={k} aria-hidden className="invisible col-start-1 row-start-1 h-0 whitespace-nowrap">
+                {t}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className={elegida ? "" : "text-tinta/65"}>{elegida?.texto ?? marcador}</span>
+        )}
+        {f.flecha && (
+          <svg
+            aria-hidden
+            viewBox="0 0 10 6"
+            className={`h-1.5 w-2.5 shrink-0 transition-transform duration-300 ease-cayla ${abierto ? "-rotate-180 text-rojo" : "text-tinta/65"}`}
+          >
+            <path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="square" />
+          </svg>
+        )}
         {/* La pastilla no se para sobre el hilo, así que el "estoy trabajando"
             se dibuja adentro, igual que en `Boton cargando`. Es lo que le dice
             a quien está en el mostrador que el sistema no se colgó. */}
@@ -675,15 +740,35 @@ export function Desplegable<T extends string>({
           </span>
         )}
       </button>
-      {!esPastilla && !esCaja && <Hilo activo={abierto} trabajando={trabajando} />}
+      {f.hilo && <Hilo activo={abierto} trabajando={trabajando} />}
 
       {listaVisible && (
-        <div
-          style={flotante ? { position: "fixed", ...posLista } : undefined}
-          className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
-            flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
-          }`}
-        >
+        // `flotante` va en `fixed` medido contra el control (`usePosicionLista`) — y por eso, igual que
+        // `MenuAcciones` y `ResumenControles`, en un portal a `document.body`: sin portal, cualquier ancestro con
+        // stacking context propio (una tarjeta `@container`, un modal, un futuro `transform`) atrapa el `fixed` y
+        // lo pinta DEBAJO de contenido posterior en el DOM aunque su `z-50` diga lo contrario — el bug de
+        // «el desplegable se esconde detrás de la fila de abajo» (ADR-0211). `derecha` (cabecera) sigue `absolute`
+        // e inline: crece con su contenido y nada lo recorta ahí.
+        maybePortal(
+          flotante,
+          destino,
+          <div
+            ref={capa}
+            style={
+              flotante && posLista
+                ? {
+                    position: "fixed",
+                    ...posLista,
+                    // Como la del navegador: al menos el ancho del control, y más si una opción lo pide (el mes «setiembre
+                    // de 2026 · a la fecha» en un control de 184 px), sin salirse de la ventana.
+                    ...(f.comoNativo ? { width: "max-content", minWidth: posLista.width, maxWidth: window.innerWidth - posLista.left - 8 } : {}),
+                  }
+                : undefined
+            }
+            className={`anim-revelar z-50 flex flex-col overflow-hidden rounded-lg border border-sand bg-papel shadow-md ${
+              flotante ? "" : "absolute right-0 top-full mt-1.5 max-h-56 w-max min-w-full"
+            }`}
+          >
           {mostrarBuscador && (
             <input
               ref={buscador}
@@ -717,39 +802,37 @@ export function Desplegable<T extends string>({
             {mostradas.length === 0 ? (
               <li className="px-3 py-3 text-sm text-tinta/65">Nada coincide con «{busqueda.trim()}».</li>
             ) : (
-              mostradas.map((o, i) => (
-                <li
-                  key={o.valor}
-                  id={`${id}-op-${i}`}
-                  data-i={i}
-                  role="option"
-                  aria-selected={o.valor === valor}
-                  onMouseEnter={() => setActivo(i)}
-                  onClick={() => elegir(o)}
-                  // El escalonado corto (30ms por fila) hace que la lista se lea como que se despliega, no
-                  // como que aparece entera de golpe — pero con buscador la lista puede tener decenas de filas,
-                  // y esperar 30ms×i dejaría la fila 96 invisible casi 3 segundos: ahí no hay escalonado.
-                  style={mostrarBuscador ? undefined : { animationDelay: `${i * 30}ms` }}
-                  className={`relative mx-1.5 flex cursor-pointer items-center rounded-md px-2.5 py-2 text-sm transition-colors ${
-                    mostrarBuscador ? "" : "anim-revelar"
-                  } ${i === activo ? "bg-rojo/10 text-tinta" : "text-tinta/80"}`}
-                >
-                  {/* La marca de "esta es la elegida" es el mismo hilo rojo, de canto. */}
-                  <span
-                    aria-hidden
-                    className={`absolute left-0 top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-full bg-rojo transition-transform duration-200 ease-cayla ${
-                      o.valor === valor ? "scale-y-100" : "scale-y-0"
-                    }`}
-                  />
-                  {o.texto}
-                </li>
-              ))
+              // Los grupos (lib/combo-reglas.ts): un título y sus opciones en un `role="group"`; sin grupo, las filas sueltas
+              // de siempre. El índice de cada fila es el de la lista plana, así las flechas no saben que hay grupos.
+              tramosPorGrupo(mostradas).map((t, k) =>
+                t.grupo === undefined ? (
+                  <Fragment key={`t${k}`}>{t.items.map(({ o, i }) => opcion(o, i))}</Fragment>
+                ) : (
+                  <li key={`t${k}`} role="presentation">
+                    <p id={`${id}-g${k}`} aria-hidden className="label-cayla px-4 pb-1 pt-2.5 text-[10px] text-tinta/55">
+                      {t.grupo}
+                    </p>
+                    <ul role="group" aria-labelledby={`${id}-g${k}`}>
+                      {t.items.map(({ o, i }) => opcion(o, i))}
+                    </ul>
+                  </li>
+                )
+              )
             )}
           </ul>
-        </div>
+          </div>
+        )
       )}
     </div>
   );
+}
+
+/** Con destino: portal ahí (`document.body`, o la hoja del modal: `useDestinoFlotante`), para `position: fixed`
+ *  medido contra un control. `false`: el nodo se queda donde está en el árbol (para `position: absolute`, que sí
+ *  debe crecer con su padre). */
+function maybePortal(fijo: boolean, destino: HTMLElement | null, nodo: ReactNode) {
+  if (!fijo) return nodo;
+  return destino ? createPortal(nodo, destino) : null;
 }
 
 /* ------------------------------------------------------------------
@@ -766,6 +849,8 @@ export function CampoSelect<T extends string>({
   opciones,
   marcador = "Elegir",
   caja = false,
+  id,
+  deshabilitado,
 }: {
   etiqueta: ReactNode;
   ayuda?: ReactNode;
@@ -777,11 +862,24 @@ export function CampoSelect<T extends string>({
   marcador?: string;
   /** Guía oficial: caja hundida en hueso y la etiqueta solo para lectores de pantalla (barras de filtros). */
   caja?: boolean;
+  /** El id del combo, para `avisar.error(…, { enfocar: id })`. */
+  id?: string;
+  /** No se puede abrir (p. ej. «Sale de» sin cuentas para ese medio): el marcador dice por qué. */
+  deshabilitado?: boolean;
 }) {
   const idEtiqueta = useId();
   return (
     <Campo etiqueta={etiqueta} ayuda={ayuda} pie={pie} tono={tono} idEtiqueta={idEtiqueta} etiquetaOculta={caja}>
-      <Desplegable valor={valor} onValor={onValor} opciones={opciones} marcador={marcador} idEtiqueta={idEtiqueta} forma={caja ? "caja" : "campo"} />
+      <Desplegable
+        valor={valor}
+        onValor={onValor}
+        opciones={opciones}
+        marcador={marcador}
+        idEtiqueta={idEtiqueta}
+        forma={caja ? "caja" : "campo"}
+        id={id}
+        deshabilitado={deshabilitado}
+      />
     </Campo>
   );
 }

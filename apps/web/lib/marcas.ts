@@ -9,7 +9,11 @@
 //            ahorra clics y evita ofrecer lo imposible.
 //   NO HACE: no crea nada ni habla con la base.
 
+import { nombresParecidos, type MotivoParecido } from "./nombres-parecidos";
+
 export type MarcaOpcion = { id: string; nombre: string };
+/** Una marca con los nombres de quienes la traen: lo que el formulario de nueva marca muestra al preguntar «¿no es esta?». */
+export type MarcaConProveedores = MarcaOpcion & { proveedores: readonly string[] };
 export type ProveedorOpcion = { id: string; nombre: string };
 export type Vinculo = { marcaId: string; proveedorId: string };
 /** Cuántas veces se usó una pareja en productos recientes de una categoría. */
@@ -21,6 +25,31 @@ export function sinTildes(t: string): string {
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .trim();
+}
+
+// ---------- «¿no será la misma marca?» (2026-09-25) ----------
+//
+// El 24-sep alguien creó «Cayla 2» para un top que confecciona Jacard: CAYLA ya existía, pero traída por CAYLA SAC, y el
+// formulario de nueva marca no dijo nada. Desde entonces CAYLA vive partida en dos y todo lo que se filtra o agrupa por marca
+// la cuenta a medias. Esta función le da al formulario con qué preguntar ANTES de crear. La regla es la general de
+// `nombres-parecidos.ts` (la misma que usan los proveedores); en una marca todas las palabras cuentan.
+//
+// CONTRATO
+//   PROMETE: dado el nombre que se va a crear y las marcas que existen, devuelve la marca IGUAL (la que la base
+//            considera la misma: `marcas_nombre_unico` sobre `fn_clave_texto`) y hasta `max` PARECIDAS, de más a
+//            menos parecida.
+//   ASUME:   que la base sigue mandando: con un nombre igual, `crear_marca` no crea otra, le suma el proveedor.
+//   NO HACE: no bloquea. «Parecida» es una pregunta; «La Femme» y «La Femme 21» pueden ser dos marcas de verdad.
+//
+// Medido contra las 80 marcas de producción (2026-09-25): entre ellas solo se parecen CAYLA ~ Cayla 2 y
+// Divas ~ Divas Now. Ningún otro par dispara la pregunta, así que no molesta en el censo.
+export function marcasParecidas<M extends MarcaOpcion>(
+  nombre: string,
+  marcas: readonly M[],
+  max = 3
+): { igual: M | null; parecidas: { marca: M; por: MotivoParecido }[] } {
+  const { igual, parecidos } = nombresParecidos(nombre, marcas, { max });
+  return { igual, parecidas: parecidos.map(({ item, por }) => ({ marca: item, por })) };
 }
 
 export function proveedoresDeMarca(vinculos: Vinculo[], marcaId: string): string[] {
@@ -143,4 +172,71 @@ export function contarProductosPorProveedor(filas: FilaReposicion[]): Reposicion
     porProveedor.set(f.proveedor_id, actual);
   }
   return [...porProveedor.values()].sort((a, b) => b.productos - a.productos || a.proveedor.localeCompare(b.proveedor, "es"));
+}
+
+// ---------- Catálogo ▸ Marcas: buscar y editar ----------
+
+/** Lo mínimo que la búsqueda de Catálogo ▸ Marcas necesita de cada fila. */
+type FilaBuscable = { nombre: string; proveedores: { nombre: string }[] };
+
+/** Busca por el nombre de la marca O de quien la trae, sin tildes ni mayúsculas: «¿qué marcas me trae Saavedra?» también se
+ *  contesta aquí. Sin texto, todas. */
+export function filtrarMarcas<T extends FilaBuscable>(filas: T[], consulta: string): T[] {
+  const q = sinTildes(consulta);
+  if (!q) return filas;
+  return filas.filter((f) => sinTildes(f.nombre).includes(q) || f.proveedores.some((p) => sinTildes(p.nombre).includes(q)));
+}
+
+/** Un proveedor que la marca ya tiene. `productosTotal` cuenta TODOS sus productos (también descontinuados): la llave de
+ *  `productos` los sigue citando, así que mientras haya uno la pareja no se puede quitar. */
+export type ParejaDeMarca = { id: string; nombre: string; productosTotal: number };
+
+/** Lo que la ventana «Editar marca» va a guardar. Se manda como sumar/quitar, no como la lista final: si otra persona sumó
+ *  un proveedor mientras tanto, este guardado no se lo borra (`editar_marca`, 20260926150000). */
+export type BorradorMarca = {
+  nombre: string;
+  /** Proveedores que la marca ya tenía y se quitan. */
+  quitar: string[];
+  /** Proveedores de la lista que se suman. */
+  sumar: string[];
+  /** Proveedores que todavía no existen: se registran en el mismo guardado. */
+  nuevos: { nombre: string; ruc: string }[];
+};
+
+export function sePuedeQuitar(p: ParejaDeMarca): boolean {
+  return p.productosTotal === 0;
+}
+
+/** La línea de la tarjeta bajo el nombre. Si no hay productos activos pero sí descontinuados lo dice: es lo que explica por
+ *  qué esa marca no ofrece «Eliminar» (un descontinuado sigue citándola). `total` cuenta también los descontinuados. */
+export function textoProductosMarca(activos: number, total: number): string {
+  if (activos > 0) return `${activos} producto${activos === 1 ? "" : "s"} activo${activos === 1 ? "" : "s"}`;
+  if (total > 0) return `Sin productos activos · ${total} descontinuado${total === 1 ? "" : "s"}`;
+  return "Sin productos todavía";
+}
+
+/** ¿Se ofrece «Eliminar»? Solo si ningún producto tiene la marca — activo, descontinuado o archivado como prueba: todos
+ *  siguen citándola en su ficha y en las ventas ya hechas. Una marca sin proveedores tampoco tiene productos (la llave de
+ *  `productos` pide la pareja). Avisa antes de ir a la base, pero la que manda es `eliminar_marca` (20260926213000). */
+export function sePuedeEliminarMarca(proveedores: readonly Pick<ParejaDeMarca, "productosTotal">[]): boolean {
+  return proveedores.every((p) => p.productosTotal === 0);
+}
+
+/** Qué impide guardar el borrador, en palabras de la pantalla; null = se puede. Espeja a `editar_marca` para avisar antes
+ *  de ir a la base, pero la que manda es la base. */
+export function problemaEdicionMarca(actuales: ParejaDeMarca[], b: BorradorMarca): string | null {
+  if (!b.nombre.trim()) return "Escribe el nombre de la marca.";
+  const enUso = actuales.find((p) => b.quitar.includes(p.id) && !sePuedeQuitar(p));
+  if (enUso) return `«${enUso.nombre}» tiene productos: cámbiales el proveedor en Productos antes de quitarlo.`;
+  const quedan = actuales.filter((p) => !b.quitar.includes(p.id)).length + b.sumar.length + b.nuevos.length;
+  if (quedan === 0) return "La marca necesita al menos un proveedor. Si ya nadie la trae, desactívala.";
+  if (b.nuevos.some((n) => !n.nombre.trim())) return "Escribe el nombre del proveedor nuevo.";
+  const rucMalo = b.nuevos.find((n) => n.ruc.trim() !== "" && !/^\d{11}$/.test(n.ruc.trim()));
+  if (rucMalo) return `El RUC de «${rucMalo.nombre}» tiene que ser de 11 dígitos. Si no lo sabes, déjalo en blanco.`;
+  return null;
+}
+
+/** ¿Hay algo que guardar? Sin cambios, «Guardar» solo cierra: no se le pide a nadie que firme algo que no pasó. */
+export function borradorCambia(nombreActual: string, b: BorradorMarca): boolean {
+  return b.nombre.trim().replace(/\s+/g, " ") !== nombreActual || b.quitar.length > 0 || b.sumar.length > 0 || b.nuevos.length > 0;
 }

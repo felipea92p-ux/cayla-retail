@@ -100,7 +100,7 @@ function Fila({ x, filtro, diasB }: { x: AnalisisComparacion; filtro: FiltroCamb
           color={f.color}
           colorHex={f.colorHex}
           fotoUrl={null}
-          marca={
+          senal={
             !f.ledgerConsistente && (
               <span className="ml-1 text-ambar-profundo" title="El historial de movimientos no cuadra con el stock de hoy: cifras estimadas">
                 ≈

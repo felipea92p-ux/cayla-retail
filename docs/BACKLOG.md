@@ -28,16 +28,252 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧹 Purga de Top Aurora y su venta de prueba (2026-09-26, ADR-0224) — **HECHA en producción el 2026-09-26 10:06 (Lima)**; scripts en el repo, sin web ni migración
+- [x] `scripts/purga/purgar-producto-de-prueba.sql` (parametrizado, ensayo por defecto) y `scripts/purga/restaurar-purga.sql`: deshacen por completo `TOP-0011` y la nota `NV01-000007` (S/ 2,007.10, sin SUNAT), devuelven a stock las 13 prendas de otros productos que esa venta sacó, devuelven la serie NV01 a 7, respaldan cada fila en `respaldo_purgas.filas` y demuestran antes de cerrar que el libro de movimientos cuadra con el stock en toda la base.
+- [x] Probado: `pnpm pruebas:purgar-producto` **36/36** (sumada al CI), 6 mutaciones detectadas, respaldo restaurado idéntico fila por fila. La prueba encontró que `venta_items.subtotal` es columna generada: por eso existe `restaurar-purga.sql`.
+- [x] Ensayo revertido (03:13) y **corrida real (10:06) con el «dale» de Felipe**. Verificado por consulta aparte: ventas 7 → 6, movimientos 112 → 85, stock 363 → 311, NV01 siguiente 8 → 7, libro 0 descuadres, candados en ALWAYS, respaldo de 87 filas.
+- [x] **«Cayla 2» eliminada** por Felipe desde Productos ▸ Marcas, después de la purga (botón «Eliminar», ADR-0217). Verificado en producción, solo lectura: 79 marcas / 79 vínculos, 0 vínculos huérfanos, 0 productos sin marca.
+- [ ] Cuando Felipe confirme que no hace falta volver atrás: borrar a mano `respaldo_purgas.filas` (o dejarlo; es un respaldo, no historia).
+- [ ] Cerrar o contar la caja abierta de TRU **después** de la purga: su «esperado» bajó S/ 2,007.10 (la venta ya no existe).
+
+## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0225; fusionado en #484) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
+
+- [x] «Te toca» (9 avisos por módulo, urgente → por hacer → info, «Al día»), filtro «Ajustar» con urgentes que no se
+      ocultan, accesos del rol, «Vender» fijo en celular y «Equipo de hoy». 25 pruebas nuevas; probado en local por Felipe.
+- [ ] **Confirmar la cabecera del Inicio** (`CabeceraPantalla`): ADR-0220 la deja sin decidir fuera de Ventas, Inventario y
+      Finanzas.
+- [ ] **Paso 2 del filtro:** guardar la elección en la base (hoy es una cookie por cuenta en cada aparato).
+- [ ] **Avisos que piden lectura nueva:** mercadería por recibir, efectivo sin depositar, cierre de mes, impuestos, órdenes
+      del taller atrasadas, insumos bajo mínimo. Y las cifras «Hoy» de Almacén y Taller.
+- [ ] **Base local atrasada:** le faltan 26 migraciones del repo (solo se aplicó la de actividad, `20260926090000`).
+      Sincronizarla con `migration repair` y `migration up`, nunca con `db reset`.
+
+
+## 🎯 Punto de venta conectado y ticket en hoja en el celular (2026-09-26, ADR-0221) — solo web, sin migración
+Spike aprobado (#472) llevado a la interfaz: accesos por rol con «Más», píldora «Hoy» con la meta, clienta en el
+ticket, espera con nombre, Apartar y Proforma desde el ticket, «Anotar que no había» en la talla, buscador con lo
+vendible arriba, hoja del ticket en el celular (`Modal variante="ticket"`), Admin como chip, «Prenda sin registrar»
+sin teclado de pantalla y catálogo de hasta 5 columnas.
+- [ ] Clic real con sesión y datos de producción (Felipe), a 1440 y a 375 px. Verificado solo con una página de prueba sin sesión.
+- [ ] **Decidir:** ¿la proforma acepta el descuento de campaña? Hoy `crear_proforma` no lo acepta y la caja lo avisa.
+- [ ] La pregunta del club y «es para regalo» en la fila «Clienta» (paso 1 del acta de clientas): esperan el historial de permisos (G.2).
+- [ ] Contadores en los accesos (apartados por vencer, devoluciones por aprobar): consultas nuevas, decidir si valen.
+- [ ] «Pedir al almacén / traslado» desde la talla agotada: hoy los traslados los inicia Inventario.
+- [ ] Coordinar con el PR #433 (apartada en Vender): toca `PuntoDeVenta.tsx`, `PuntoDeVentaCatalogo.tsx` y `ElegirTallaModal.tsx`.
+## 🧭 Inventario con la cabecera de Ventas (2026-09-26, ADR-0220) — hecho, solo web, sin migración; rama `claude/inventory-module-headers-2683ef`
+Pedido de Felipe: «que el header de todos los módulos de inventario tome como referencia los de Caja, Historial, Postventa».
+- [x] Las 9 pantallas de Inventario usan `EncabezadoPagina`: sede y fecha arriba, título = palabra del menú (Existencias, Movimientos, Traslados, Conteo, Análisis), acciones bajo la frase; Existencias con «vista de las HH:MM» en vez de reloj vivo. Las cifras no se movieron. CLAUDE.md dice ahora que la cabecera es la de su módulo.
+- [ ] **Verlo con sesión real** (líder e integrante) en las 9 pantallas: se verificó sin sesión, con una ruta temporal y los componentes reales de Conteo con datos de muestra.
+- [ ] **Decisión de Felipe:** Recibir mercadería e Ingreso sin comprobante (tercera cabecera, escrita a mano; `/recibir` la comparte Compras) y cuál cabecera manda en Catálogo, Compras, Producción, Colaboradores, Clientas e Inicio.
+
+## 🧭 Existencias: «Reponer a piso hoy» lleva la vista a la tabla filtrada (2026-09-26) — solo web, sin migración; rama `claude/inventory-stock-smooth-scroll-e41caf`
+- [x] Al poner el filtro desde la tarjeta, la vista baja suave hasta la tarjeta de filtros y tabla (`mostrarTablaFiltrada`, `InventarioPanel.tsx`); al quitarlo no se mueve; con `prefers-reduced-motion`, salta de una vez. La tarjeta de la tabla pasó de `scroll-mt-4` a `scroll-mt-24`: con 16 px, al paginar, 23 de los 40 px del buscador quedaban bajo la cabecera fija (61 px, medido). Verificado en un banco temporal sin sesión (borrado) a 1.280 y 375 px; falta mirarlo con sesión real en `/inventario`.
+- [ ] Con «0 variantes» la tarjeta sigue aplicando un filtro vacío (tarea #12 (c) de `docs/pantallas/inventario.md`): ahora la vista baja a ese vacío, que al menos deja a la vista la píldora «Por colgar» que el texto recomienda.
+
+## 📐 Rendimiento: las ventas de cada persona, para la encargada y el Admin (2026-09-26, ADR-0219) — PROPUESTA, nada construido; acta, ADR y spike en el PR #476 (rama `claude/performance-module-ranking-2c657d`)
+Pedido de Felipe: un módulo al final del menú para ver quién vende más, con otros parámetros además de la venta. Se decidió en
+20 preguntas (tabla completa en el ADR). Lo ven **solo las encargadas (su tienda) y los 5 Admin (todas)**; las colaboradoras
+no, por ahora, a pedido del gerente. Período: mes calendario con la muestra a la vista. Dos rankings: soles por hora trabajada
+y número de ventas. La encargada corrige quién atendió una venta, con motivo. Cambia D-64, D-66 y D-68 (con nota en DECISIONES).
+- [x] Acta de la ronda: [`docs/datos/DECISIONES-2026-09-26-rendimiento.md`](datos/DECISIONES-2026-09-26-rendimiento.md)
+  (D-112 a D-128). Spike visual: [`docs/maquetas/rendimiento-spike-2026-09/`](maquetas/rendimiento-spike-2026-09/)
+  (5 cuentas en «Ver como», rankings, tabla, ficha, corrección, 375 px). Verificado en el navegador, sin errores en consola.
+- [ ] **Espera el ok de Felipe** al diseño técnico del ADR-0219 y a la objeción: la encargada no se da ventas a sí misma ni
+  se quita las suyas; esas las corrige el Admin. Sin respuesta, se construye con ese candado.
+- [ ] Paso 1, base: módulo `rendimiento` (orden 310, sin `rol_modulos`), `fn_rendimiento_ubicaciones`,
+  `fn_rendimiento_equipo` y `fn_rendimiento_persona`, con prueba SQL de alcance.
+- [ ] Paso 2, web: catálogo, nodo después de Finanzas, `/rendimiento` con los dos rankings y la tabla, y
+  `lib/rendimiento-reglas.ts` con su prueba.
+- [ ] Paso 3: ficha de cada persona (qué vende, 6 meses, sus ventas, comparada con su tienda).
+- [ ] Paso 4: `venta_reasignaciones` + `reasignar_asesora`, con el combo Responsable.
+- [ ] Paso 5, producción: con el ok puntual de Felipe. Después, Felipe crea en Roles y accesos el rol «Encargada de
+  tienda» con el módulo.
+
+## 🎯 Un solo combo en todo el ERP: sin `<select>` del navegador y una prueba que lo vigila (2026-09-26, ADR-0209 act. b) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
+Pedido de Felipe: migrar los `<select>` que quedaban en otros módulos, una prueba que avise si aparece uno nuevo y que el diseño del sistema sea el de siempre. Eligió incluir Finanzas.
+- [x] `Desplegable` aprendió grupos (`Opcion.grupo`), opciones que se ven y no se eligen (`Opcion.deshabilitada`), `id`, `ref` y las formas `fin`/`finEnLinea` de Finanzas (reglas en `lib/combo-reglas.ts`, con pruebas).
+- [x] Migrados: Devoluciones pendientes, Medios de pago, Apartados, los combos de cuentas (`opcionesDeCuenta`), «Decidir todas» de Recibir, el medio de la diferencia en Cambios y los 44 combos de Finanzas (18 archivos). Borrados `SelectNativo`, `CampoSelectNativo`, `campoSelect`, `OpcionesCuenta` y `OpcionesDecision`.
+- [x] `lib/sin-select-nativo.test.ts`: falla si aparece un `<select>` (con el código de antes habría marcado los 8 lugares). Probada en rojo con un archivo temporal.
+- [x] Cambio visible a propósito: la forma `caja` pasa de transparente a hueso (la guía, ADR-0169): Existencias, Actividad, Por regularizar, Comprobantes de Producción.
+- [x] Verificado en un banco sin sesión: Finanzas cerrado mide igual que antes (1280 y 375 px); buscador, grupos, cajón cerrado bloqueado, `ref`, lista dentro de un modal. `tsc`, `eslint`, 77.631 pruebas y `next build` en verde.
+- [ ] **Con sesión (falta):** recorrer Gastos, Cuentas y dinero, Reportes, Impuestos y Cierre contra el spike al mismo ancho (regla del ADR-0195), y `/cambios` y `/devoluciones` a 375 px con captura (PL-105).
+- Cómo verificas: en Finanzas ▸ Gastos, «+ Registrar gasto» → «Proveedor»: cerrado se ve como siempre; abierto trae buscador (escribe parte del nombre). En cualquier «Sale de» con efectivo: los cajones van bajo su título y uno con la caja cerrada se ve gris y no se puede elegir.
+
+## 🩹 El combo de Actividad no era el del sistema (2026-09-26, ADR-0209 act.) — solo web, sin migración; [PR #475](https://github.com/felipea92p-ux/cayla-retail/pull/475)
+- [x] Panel «Actividad» de la cabecera y `/actividad`: sus combos (Módulo; en la pantalla también Sede y Persona) eran el `<select>` del navegador dentro de una caja, con el hilo dibujado adentro, otra flecha y la lista del sistema operativo. Ahora son `Desplegable` en caja, medidos iguales al de «Quién vendió» (Por regularizar). Lo elegido siempre está en la lista (`opcionesDeModulo`, `opcionesDePersona`, 3 pruebas). Verificado con un banco de pruebas sin sesión (escritorio y 375 px); falta el clic con sesión real.
+- [x] ~~**Encontrado, sin arreglar (toca `Modal.tsx`: todos los módulos):** Escape con la lista de un combo abierta cierra el MODAL entero, y en un formulario se pierde lo escrito.~~ Arreglado el 2026-09-26 con `useEscapeLibre` (y no con la propuesta de mirar el combo desplegado, que trababa «Registrar nota de crédito»): ver «Escape con un combo abierto cerraba el modal entero», más abajo.
+- [x] ~~Quedan `<select>` nativos que la migración del ADR-0209 no alcanzó~~ — migrados todos, Finanzas incluida, y vigilados por una prueba: ver «Un solo combo en todo el ERP», arriba.
+- Cómo verificas: con sesión de líder, en cualquier pantalla, «Actividad» (arriba, junto a la sede) → el combo «Módulo» se ve como los demás filtros y su lista es la del sistema (fondo papel, marca roja en la elegida). Igual en «Ver todo el historial →».
+
+
+## 🔎 Existencias: buscar y filtrar por marca, y un vacío que explica (2026-09-26) — solo web, sin migración; rama `claude/existencias-busqueda-marca`
+Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtros tampoco figura marca»). Análisis `/pantalla` completo en [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple su finalidad 5/10, relevancia 7,4/10). Lo que descubrió: **«CAYLA» y «Cayla 2» son dos marcas** (80 en la tabla, 8 con productos, 5 en TRU) y los productos de marca CAYLA (41 variantes) **no tienen ni una fila de stock en TRU**, así que indexar la marca no bastaba.
+- [x] Buscador con marca y categoría (por inicio de palabra, también tras «/» y «-», y la marca escrita sin puntos: «yjj», «cayla2»); un color escrito NO busca en la marca («dorada» ya no trae toda «Doradas Chic»); orden por relevancia solo con texto. `lib/filtro-busqueda-especial.ts` (campos opcionales: Análisis y Movimientos no cambian; 40.330 comparaciones contra el motor anterior, 0 diferencias). Prueba nueva `filtro-busqueda-especial-marca.test.ts`.
+- [x] Filtro «Marca» (con 2 o más marcas en la sede), marca en la fila (el nombre se recorta antes que la marca) y columna «Marca» en el CSV; buscador en su propia fila. `lib/existencias-catalogo.ts` lee la marca aparte y con tolerancia: si falla, aviso ámbar y el error queda en el log.
+- [x] Estado vacío que explica: qué se buscó, qué quitar (con cuántas prendas se verían), «¿quisiste decir…?», y **«En el catálogo, pero sin stock en {sede}»** (los pantalones CAYLA); el mismo aviso bajo los filtros cuando hay resultados. `lib/existencias-vacio.ts`, `components/ExistenciasVacio.tsx`.
+- [x] **Aprendido:** `variantes!inner ( count )` **falla en producción para toda cuenta** (`42501 permission denied for table variantes`): PostgREST lo traduce a un agregado de fila completa y `authenticated` no puede leer `variantes.costo` (migración 20260923193700). Lo encontró la revisión, no las pruebas. Se pide solo `variantes ( id )` con el filtro de activas y `limit 1`. La comprobación con la llave pública (anon) **no prueba nada** (una sintaxis inválida también responde 42501): se comprobó con el cliente real de supabase-js contra un PostgREST y una base desechables con la misma restricción de columnas.
+- [x] **PR #445: conflictos con `main` resueltos** (2026-09-26, merge de `main` en su rama; rama de trabajo `claude/445-trae-main`). Se conservaron `pasaFiltros` (ahora con los dos ejes del PR, Acción y Estado), `marcaEfectiva`, `sinRastroAqui`, `ExistenciasVacio` (su `ClaveFiltro` suma `accion`), `mostrarTablaFiltrada()` en «Reponer a piso hoy» (ahora con `setAccion`) y el `scroll-mt-24`; la tarjeta del celular de `main` con las columnas del PR; «Retirar del piso» con su aviso reconectado a `calcularAccionHoy` (el semáforo que usaba ya no existe: avisaba con 7 o menos, ahora con el umbral de la política, 4). Además: `scripts/pruebas/fn_ritmo_reciente.mjs` fallaba 3/6 con la siembra estándar (pedía dos personas no-admin en sedes distintas y hay una); corregida, 9/9. Verificado: tipos, 77.762 pruebas, lint, pruebas SQL (9/9 y 48/48) y la pantalla con sesión de líder, con y sin la función nueva en la base.
+- [ ] **PR #445: decidir si se fusiona** (Tarea #2 del análisis). Cambia reglas de negocio de Existencias (la lista está en BITACORA, «Conflictos del PR #445», 2026-09-26) y **no tiene ADR**. La más delicada: baja el umbral de «Reponer» de 7 a **4**, justo el valor que ADR-0071 descartó el 2026-09-16 («con 4 el aviso llegaba tarde»); el PR lo atribuye a «Felipe, tercera ronda 2026-09-25», pero esa ronda no está escrita en ningún documento, solo en un comentario de `politica-operativa-inventario.ts`. Confirmar con Felipe antes de fusionar. Su migración `20260925170551` **ya está en producción**: consultado en vivo el 2026-09-26, `retail.fn_ritmo_reciente_json` existe con el mismo cuerpo que el archivo (md5 de `prosrc` igual al de la base local recién aplicada: `3cf1dc7e…`), `security definer`, y solo `authenticated` la ejecuta. Fusionar no pide ningún paso en la base (el volcado de `docs/datos/generado/` todavía dice que no existe: está atrasado).
+- [ ] **SQL espejo:** `fn_movimientos_variantes` (Movimientos) todavía no busca por marca ni categoría: hoy «cayla» funciona en Existencias y no en Movimientos. Migración propuesta `…_movimientos_busqueda_marca_categoria.sql` + escenario en `filtro-busqueda-especial.casos.json` + `scripts/pruebas/fn_movimientos_busqueda_especial.mjs` (tarea #3 del análisis, «segundo corte»).
+- [ ] Prueba de datos real: nada del camino de datos de Existencias se prueba contra un PostgREST con el rol `authenticated`. Una prueba en `scripts/pruebas/` con `postgrest` (Homebrew) y la restricción de columnas de `variantes` habría atrapado el fallo de arriba.
+- [ ] Sin ejecutar del análisis (Felipe decide): #1 «Ajustar inventario» sin token ni transacción única, #8 el semáforo marca «Stock bajo» en 41 de 45 prendas, #9 «Disponible total» y recomendaciones no excluyen `es_prueba`, #10 candado de módulo en `mover_interno` y `apartar_stock`, #6 la estrategia alternativa (stock vs catálogo × sede).
+
+## 🩹 Escape con un combo abierto cerraba el modal entero (2026-09-26, ADR-0136 act.) — solo web, sin migración; [PR #481](https://github.com/felipea92p-ux/cayla-retail/pull/481)
+Cierra el pendiente «Encontrado, sin arreglar» de la entrada «El combo de Actividad no era el del sistema» (#475, ya en `main`), marcado [x] al fusionar.
+- [x] Toda hoja de Radix cierra solo con un Escape que ningún control de adentro usó (`components/ui/useEscapeLibre.ts`): `<Modal>` (respeta `bloqueado`) y los seis cajones con `Dialog.Content` propio (vistas rápidas de Proveedor, Recepción, Nota de crédito y Por pagar; `OrdenPanel`, que tenía el mismo bug con su «Responsable»; `ProveedorModal`). Regla: un control que usa el Escape corta su propagación. Prueba nueva `lib/hojas-escape.test.ts` (un `Dialog.Content` sin la regla rompe el CI).
+- [x] Ajustados: `ComboBuscable`, `CampoFecha` (devuelve el foco a la fecha) y `MenuAcciones` cortan la propagación de su Escape; `ComboResponsable` devuelve el foco a su botón y cierra la lista con `Tab` desde el botón. El buscador de «Registrar nota de crédito» ya tenía su Escape escalonado (borra, cancela el cambio, recién cierra) y ahora funciona como dice su comentario.
+- [x] Verificado en el navegador: banco temporal con todos los combos (≤8 y >8 opciones, buscable, responsable con 3 y 10 personas, píldoras, fecha), acordeón, buscador escalonado, cajón propio, `bloqueado` y dos modales apilados, en escritorio y a 375 px; y en Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color» con sesión real (escritorio y 375 px). 77.623 pruebas, `tsc` y `eslint` en verde.
+- [ ] **Encontrado, sin arreglar — Por pagar:** las flechas ↑/↓ del cajón (pasar al comprobante siguiente) escuchan en todo su `Dialog.Content`, y React hace subir los eventos de un portal hasta sus ancestros: con «Registrar pago» abierto desde el cajón, **↓ en un combo del pago cambia el cajón al comprobante siguiente y el modal de pago desaparece con lo escrito** (reproducido en un banco). Igual en las otras tres vistas rápidas si algún día abren un modal. Arreglo propuesto: el `onKeyDown` del cajón ignora teclas que no nacieron en su propio DOM (`!e.currentTarget.contains(e.target as Node)`), que ya usó otro control (`e.defaultPrevented`) o que vienen de un campo editable.
+- [ ] `MenuAcciones` dentro de un modal no serviría: su menú cuelga de `document.body`, donde Radix deja sin clics y sin foco todo lo que está fuera de la hoja. Hoy ningún modal lo usa; si alguno lo necesita, que use `useDestinoFlotante` como los combos.
+- [ ] Deuda con ADR-0136: los seis cajones con `Dialog.Content` propio reimplementan velo y entrada en vez de usar `<Modal>`. Ya comparten la regla de Escape; unificar el resto es decisión aparte (cambia su aspecto).
+
+## 🎨 Colores del lujo: Gris piedra, Índigo y Nude (2026-09-26, ADR-0215 act. b) — migración `20260926210000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR
+- [x] Ralph Lauren, LVMH y Hermès, investigados en vivo: CAYLA cubría 53 de 62 colores recurrentes. Entraron Gris piedra (14-0105), Índigo (19-3928) y Nude (12-0911); latte, capuchino, tabaco, crema, azul hielo, amaranto, greige y castaño son sinónimos. 71 activos.
+- [x] Orden en centenas por familia; un color creado desde Atributos entra en 2000. La paleta usa tantas columnas como quepan (alineadas), verificada en escritorio y a 375 px.
+- [ ] Caoba (18-1425 Mahogany, 5 marcas) cabe sin duplicar; Felipe decidió no sumarla por ahora.
+
+---
+
+## 🩹 El código de la prenda salía vacío en Existencias y Productos (2026-09-26) — solo web, sin migración
+Causa: `variantes.sku` es NULL en 128 de 130 variantes (ADR-0058) y esas pantallas leían solo `sku`; el que casi todas tienen es `variantes.codigo` (129 de 130, consultado en vivo). Regla nueva y única: `codigoDeEtiqueta` en `lib/prenda-reglas.ts` (código → sku legado → `""`; `codigoPrenda` la usa y agrega «sin código»).
+- [x] Existencias y todo lo que sale de `getStockPorUbicacion`/`getExistencias` (análisis de cobertura, recomendaciones, Reponer, Apartar, Bajar al piso, CSV, buscador), Ajustar inventario (`ajuste-reglas.ts`) y la tabla de Productos (`ProductosAgrupados.tsx`, encabezado «Código»). Pruebas: `prenda-reglas.test.ts`, `ajuste-reglas.test.ts`.
+- [x] «1 productos · 12 variantes» → plural correcto (`/productos`); la tarjeta «Reponer a piso hoy» ya no dice «con demanda» (la regla `necesitaReponerPiso` solo mira piso y almacén) y «Sin base de hace 7 días» pasó a «Sin datos de hace 7 días».
+- [x] **«Producto de Prueba» (`POL-0004`) marcado `es_prueba = true` EN PRODUCCIÓN (2026-09-26, con el «sí» de Felipe).** Tenía 160 de las 363 unidades de TRU (todas en almacén) e inflaba Existencias. Ensayo revertido antes (1 fila; solo cambian `es_prueba`, `version` 2→3 y `catalogo_version` 385→386) y `update` con candado por id + nombre; verificado: stock intacto (160), TRU sin prueba = 158 piso + 45 almacén = 203. **Sigue visible** en Catálogo ▸ Productos, Vender, Cambios y Traslados (ADR-0159: solo Existencias, Historial de ventas, Caja y Conteos lo excluyen); si Felipe quiere que también desaparezca de ahí, es decisión aparte. Para deshacer: `update retail.productos set es_prueba = false where id = 'd432c60e-c77e-4e59-9794-88ddead44939';`.
+- [ ] **Siguen leyendo `variantes.sku` directo y mostrarán el hueco** (verificado en el código, no en pantalla): Conteo (`lib/conteos.ts` ×3, `ConteoDetalleVista`), Compras (`lib/compras.ts` ×2), Producción (`lib/produccion.ts` ×2), Traslados y Recepción (`TrasladoDetallePanel`, `RecepcionEnvio`), `getCatalogo` y `VarianteDetalle` (`catalogo-v2.ts`), y **Movimientos** (la RPC `fn_movimientos` devuelve solo `sku`: pide migración). Cada una: agregar `codigo` al select y pasar por `codigoDeEtiqueta`. **No** rellenar `variantes.sku` con el código en producción (ADR-0058: sería un dato inventado para tapar un NOT NULL que ya no existe).
+- [ ] Sin tocar, por decisión de Felipe: buscar «CAYLA» (la marca) en Existencias no encuentra nada porque el buscador solo mira nombre, código, color y talla. (La foto de cabecera con letreros en inglés que se vio en la captura ya no existe: `main` quitó las fotos de cabecera de Inventario en `07c2ae66`.)
+
+
+
+## 🎨 Colores: Pantone TCX, sinónimos y 4 colores nuevos (2026-09-26, ADR-0215) — migración `20260926180000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR #456
+- [x] `colores.pantone_tcx` (único, con formato) y `colores.sinonimos`. 60 colores con su TCX (los metálicos, sin código); 23 con sinónimos. Cereza, Moka, Durazno y Mora: 68 activos.
+- [x] El buscador de colores (Nuevo producto, prenda sin registrar de Vender) entiende sinónimos; Atributos ▸ Colores edita el código y los sinónimos, y avisa si el código ya lo tiene otro color.
+- [x] Aviso de color parecido (ΔE2000), nombre al instante en la paleta y brillo en los metálicos.
+- [ ] **Fusionar #456 DESPUÉS de la migración**: ya está en producción, así que se puede fusionar.
+- [ ] Refrescar `docs/datos/generado/` con las dos columnas nuevas (`pnpm datos:generar:produccion` tras refrescar el volcado: `generado/COMO-REFRESCAR.md`).
+- [ ] Editar producto (`productos/[id]/editar`) y el filtro de color de Productos todavía no usan sinónimos: usan `Desplegable`/píldoras, no `ComboBuscable`.
+- [ ] Investigación de colores de Ralph Lauren, LVMH y Hermès: en curso; lo que falte se propone aparte.
+
+## 🩹 Listas flotantes que no se podían elegir (2026-09-26, act. ADR-0211) — solo web, sin migración
+- [x] `CampoSelect`, píldoras de filtro y combo «Responsable»: el clic en una opción cerraba la lista sin elegir (desde #442). Dentro de un modal, tocar un responsable cerraba el modal. Arreglado y verificado en navegador (mouse, teclado, 375 px).
+- [ ] **Tras publicar:** en producción, abrir un modal con «Responsable» (p. ej. Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color») y elegir a alguien con el mouse; y un filtro de Ventas ▸ Historial.
+
+
+---
+
+## 🔒 Auditoría «¿algún SQL por pegar?» y candado de movimientos (2026-09-26)
+Se revisaron por EFECTOS en producción (solo lectura, 144 consultas) las 89 migraciones de `main` posteriores a la auditoría del 22-sep y las 6 de PR abiertos. 86 aplicadas, 1 superada (#58), el resto abajo.
+- [x] **Aplicadas con el «sí» de Felipe (ensayo revertido + huella md5 idéntica al repo + humo):** `20260918191000_panel_comercial`, `20260918191500_fn_origen_producto`, `20260918192000_panel_calidad` (entraron a `main` el 25-sep con fecha vieja; `/comercial` y `/comercial/calidad` se caían) y `20260924000000_colaborador_a_integrante_paso1_codigo` (paso 1 de 3; las 25 filas intactas, colaborador=17 y lider=8; los pasos 2 y 3 siguen pendientes y van aparte).
+- [x] **Candado de movimientos en ALWAYS (D-22), PEGADO por Felipe el 2026-09-26** (verificado: `movimientos_inmutables` y `movimientos_sin_truncate` en 'A'): `20260926160000_movimientos_candado_siempre.sql`. Producción tenía `movimientos_inmutables` en 'O' (lo dejó así `scripts/demo/deshacer-90-dias.sql` el 24-sep) y `main` nunca lo escribió. En este PR también: el script de la demo reenciende con `enable always` y su verificación exige 'A', y `frescura_bajadas.mjs` apaga el candado a la vista en vez de usar el modo réplica.
+- [ ] **SQL de PR abiertos, recién al fusionarlos:** ~~#445 `20260925170551_existencias_ritmo_reciente`~~ (ya aplicada en producción, verificado por md5 el 2026-09-26); #409 `20260925220000_inicio_modulo_y_pantalla_principal` (justo antes de su web y sin guardar roles entre medio; su `20260925211500` ya está en producción); #168 `20260918194000_panel_rentabilidad` (después de `fn_origen_producto`, que ya está). #58: NO pegar (superada). #56: no volver a pegar (su parte vigente ya está; lo que faltaba es este candado).
+
+
+## 📦 Nuevo producto con su stock de hoy — la carga inicial (2026-09-26, ADR-0212)
+Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, es la que ya está; 0 papeleo por ahora».
+- [x] **Paso 5 «Cuántas tienes hoy»** en `/productos/nuevo`: cantidades por talla × color y «¿Dónde están?» (piso o almacén), en la misma transacción que el producto (`crear_producto_con_stock_inicial`). 28 pruebas SQL + carrera real con COMMIT + navegador a 1440 y 375 px.
+- [x] **SQL en producción (2026-09-26, versión `20260926000932`):** ensayo revertido, `apply_migration`, huellas md5 idénticas a las de local y prueba de humo revertida. Antes de pegar pasó una revisión adversarial de 12 agentes: ningún hallazgo bloqueaba; se corrigió uno de pantalla (tras «Descartar» un alta sin conexión decía «ya subió»). Ver ADR-0212, «Antes de pegar».
+- [ ] **Publicar la web** (fusionar el PR) y **recargar las tablets** después: una pestaña abierta antes del despliegue puede borrar de la cola un alta con stock guardada sin conexión por otra pestaña (ADR-0212, «Límites conocidos»).
+- [ ] Refrescar `docs/datos/generado/` con el próximo volcado de producción: hasta entonces `pnpm datos:comparar` sigue marcando `crear_producto_con_stock_inicial` como «no existe en producción» (el volcado es del 09-23).
+- [ ] **Decidir cuándo se cierra la carga inicial.** Terminado el paso al sistema, la mercadería nueva entra por Compras o «Recibir sin comprobante»; esta puerta la deja entrar sin papeles. Opciones: fecha de cierre en Configuración o un módulo «Carga inicial» que el líder apaga.
+- [ ] **Productos ya creados sin stock** (antes de esto): `fn_cargar_stock_inicial` ya los acepta (solo prendas sin movimientos en esa tienda); falta la pantalla. Mientras tanto siguen por Ajustar stock.
+- [x] **Con la cola sin conexión (ADR-0210):** el alta encola `crear_producto_con_stock_inicial` (la lista blanca `RPCS_PRODUCTOS` conserva la vieja para altas ya encoladas) y, con stock, firma con la hora del alta (`x-momento`): al subir, la base revisa el turno de ese momento. Las unidades se cargan al subir, con esa fecha.
+- [ ] **Hueco previo, no de este cambio: `recibir_lote` no pide el módulo Recibir** (solo «es líder o es su tienda»). Una cuenta sin ese módulo puede subir el stock de una prenda que ya existe llamando la RPC directo, con firma pero sin ser líder (lo que ADR-0143 quiere impedir). Misma familia que «hoy solo la pantalla revisa el módulo» de Vender/Apartados: sumarle `fn_ve_modulo('recibir')` en su propia migración (revisión adversarial del 2026-09-26).
+- [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
+- [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
+- [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
+Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
+- [ ] **Felipe:** elegir la forma de celular (recomendada: Pasos + barra fija), el preset de fábrica y responder las 5 preguntas del README (abonos extienden plazo, saldo a favor al editar, plazo del traslado).
+- [ ] **PR solo web:** arreglos 1–6 (ticket y Entregar con color · talla · código, código vacío, modal con pie fijo, DNI de 8 y celular de 9, texto de En custodia) + cámara QR (`EscanerCamara`) + forma de celular elegida. Captura a 375 px (PL-105).
+- [ ] Después, una migración por función: clienta ligada (`clienta_id`, espera el Paso 1 del club), abonos, estante real (ADR-0199), aviso en lote, actividad (ADR-0207), editar, apartar de otra sede (toca Traslados).
+
+## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
+Felipe: «tiene que dejarme seleccionar varias categorías por proveedor». `proveedores.rubro text` pasa a `rubros text[]` (CHECK: sin vacíos ni repetidos; «sin rubro» = `{}`).
+- [x] Base: migración que parcha las 4 funciones vivas (`fn_proveedores`, `registrar_proveedor`, `actualizar_proveedor`, `registrar_proveedor_de_gasto`); md5 local = producción. `pruebas:proveedores-rubros` 15/15, sumada al CI.
+- [x] Web: `ProveedorModal` (botones que se prenden y apagan + «Otro rubro»), lista, filtro, vista rápida y ficha. Verificado en navegador y a 375 px.
+- [x] **Pegada en producción el 2026-09-26** (con el «sí» de Felipe, por el conector MCP; versión `20260926003322`). El PR #444 ya estaba fusionado sin ella, así que la web de `main` pedía una columna `rubros` que no existía. Primero hubo un ensayo revertido en producción: 0 rubros perdidos, y alta, edición, gasto y lista funcionando como las llama la pantalla, con el candado rechazando repetidos. Se guardó un respaldo id→rubro. Después de aplicar: la huella `rubro` → `rubros[1]` es idéntica en los 76 proveedores (73 con rubro), queda una sola firma por función con los permisos de antes, y la lista, vista como Admin, trae los 76.
+- [ ] **Felipe:** mirarlo en pantalla. En «Editar proveedor» marca Polos y Casacas y guarda; en la lista, el filtro «Casacas» muestra a ese proveedor. Después, `pnpm datos:generar:produccion` con el próximo volcado.
+- [ ] **Decisión de Felipe:** ¿los rubros de Compras deberían ser las categorías del catálogo (Polos, Casacas… ya existen allí)? Hoy se escriben dos veces y pueden separarse (ADR-0213, «Pendiente»).
+
+## 🎯 «¿No será un proveedor que ya tienes?» (2026-09-25, ADR-0109 act. (b) y (c)) — solo web, sin migración; (b) en `main` con el #450, (c) en el PR #452
+- [x] **Una sola regla:** `lib/nombres-parecidos.ts` (salió de `marcas.ts` sin cambiar nada) y `proveedoresParecidos` en `lib/proveedores-reglas.ts`: sin forma societaria (SA, SAA, SAC, SACS, SRL, SCRL, EIRL, con o sin puntos) y sin preguntar entre dos RUC válidos distintos. Medida contra los 76 proveedores de producción: 0 iguales, 1 par que pregunta.
+- [x] **La pregunta en las dos puertas** de `registrar_proveedor`: Nueva marca (`NuevaMarcaForm`) y Compras ▸ Proveedores (`ProveedorModal`, solo al registrar). Pieza compartida `components/ui/PreguntaParecido.tsx`. Verificado con andamio a 800 y 375 px.
+- [x] **Tercera puerta: el proveedor rápido de Gastos** (`RegistrarGastoModal.tsx` → `registrar_proveedor_de_gasto`) ya pregunta (2026-09-25, ADR-0109 act. (c), PR #452): `sumarProveedorDeGasto` en `lib/gastos-reglas.ts` dice antes lo que haría la base (mismo RUC o mismo nombre → elige ese; parecido → pregunta; «No, es otro» → suma). Pruebas en `lib/gastos-proveedor-parecido.test.ts`; verificado con andamio a 800 y 375 px. Sin migración. F2b y F3b ya estaban en `main`: no había sesión de Finanzas abierta sobre el archivo.
+- [ ] **Mirar a mano Moda Mia ~ Valeria Mia Peru Moda EIRL**, el único par que pregunta en producción (Moda Mia no tiene RUC). Si son el mismo, unir las fichas es a mano: la base no sabe fusionar proveedores.
+- [ ] **P-25:** corregir el comentario del índice `proveedores_nombre_clave_unica` en la próxima migración de proveedores (promete juntar «SAC» y «s.a.c.», y no lo hace).
+
+---
+
+## 🎨 Paleta esencial de moda: de 32 a 63 colores (2026-09-25) — migración `20260926100000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR
+- [x] **32 colores nuevos**, de claro a oscuro, con tope de 9 por familia: `supabase/migrations/20260926100000_colores_paleta_esencial.sql`. Cada tono se midió con ΔE2000 contra todos los demás: todo par que no es metálico queda en ≥ 8,8. Probada en un Postgres desechable, dos pasadas, idempotente.
+- [x] **Nuevo producto: la paleta es una carta de 9 columnas alineadas** (`ElegirColores.tsx`). Verificada en navegador a 800 y 375 px.
+- [x] **Migración aplicada en producción** con el ok de Felipe (2026-09-25). Primero se ensayó con una excepción a propósito (68 filas, 64 activas) y se confirmó que la base quedaba intacta. Se aplicó con `apply_migration`: queda en `schema_migrations` como `20260925233411 20260926100000_colores_paleta_esencial`. Verificado después: 68 filas, 64 activas, 0 activas sin aprobar.
+- [x] **«Marrón chocolate» (MAC) se llama «Coñac»** (decisión de Felipe). Cambió solo el nombre; el código sigue siendo MAC y el color va en el lugar 75 de Tierra. Queda en la misma migración. Su nota interna todavía dice «Marrón más oscuro»: quien la escribió puede corregirla en Atributos ▸ Colores.
+- [ ] **Sinónimos peruanos en el buscador de colores** (plomo → Gris, café → Marrón, guinda → Vino, jaspeado → Gris melange). Hoy quien escribe «plomo» no encuentra nada, y lo natural es proponer un color nuevo (un duplicado de Gris que el candado de nombre no frena, como pasó con MAC al lado de Chocolate). `ComboBuscable` ya busca también en `detalle`; falta decidir si los sinónimos van en una columna `colores.sinonimos` o en una lista en `lib/`.
+
+## 🎯 Productos ▸ «Eliminar» (2026-09-26, ADR-0218) — migración `20260926220000` **EN PRODUCCIÓN** (aplicada 2026-09-26 como `20260926075140`, con ensayo revertido y verificada por efectos); web sin fusionar
+- [x] `retail.fn_producto_se_puede_eliminar` (la única definición de «historia») y `retail.eliminar_producto`: borra un producto que nunca se movió, con sus variantes, códigos de barras y fotos, todo o nada; deja una fila de rastro. **Solo Líder/Admin** (`fn_es_lider()`; un Admin es un Líder), más estricto que editar el catálogo.
+- [x] Ventana `EliminarProductoModal` en la vista rápida de la grilla y en el menú «···» de la tabla: pregunta a la base ANTES de ofrecer; con historia dice cuál y ofrece descontinuar desde Editar. Verificada en navegador a escritorio y 375 px.
+- [x] Probado: `pnpm pruebas:eliminar-producto` **35/35** (sumada al CI), 4 de 5 mutaciones detectadas (la quinta, el bloqueo de filas, la cubre la carrera real), carrera con `COMMIT` en los dos órdenes, y una prueba de deriva contra tablas nuevas que citen productos/variantes.
+- [x] **Protege la pieza «Monto manual»** del punto de venta (`11111111-…`, hoy «Prenda sin Registrar»): en producción no tiene movimientos, así que «sin historia» la habría dejado borrar y roto el cobro manual de todas las tiendas.
+- [x] **Aplicada en producción** (2026-09-26, con el «dale» de Felipe): ensayo revertido con sesión de Admin Líder y de colaboradora, luego `apply_migration`. md5 del cuerpo = el del archivo. **Falta fusionar el PR de la web** para que aparezca el botón.
+- [ ] **Top Aurora (`TOP-0011`): Felipe prefiere ELIMINARLO DEL TODO (2026-09-26), no archivarlo. Sin ejecutar: falta que confirme el impacto.** El botón no puede (65 u., historia inmutable) y no debe cambiar: la regla «solo lo que nunca se movió» se queda. Es una **limpieza única**, no una función. Impacto medido en solo lectura: 1 producto, 8 variantes, 8 filas de stock, 15 movimientos (8 reposiciones + 7 salidas por venta) y **UNA venta** —`269a926c…`, 2026-09-25, `completada`, no marcada como prueba— con 19 líneas de 5 productos (Top Aurora 7 líneas / S/ 975; Blusa Carlita 7; Jean Baggy 3; Blusa Xd 1; Polo Básico 1), pagada **en efectivo S/ 2 007,10** (nota de venta interna `NV01-7`, sin SUNAT), en una **caja que sigue ABIERTA** desde el 25-sep con 3 ventas. Borrarla arrastra la venta entera, su pago y su nota, devuelve stock a otros 4 productos y baja lo esperado de esa caja. Nada en compras, traslados, conteos ni fotos. Requiere desactivar el candado de `movimientos` dentro de la transacción (como `scripts/demo/deshacer-90-dias.sql`), con respaldo previo de las filas fuera del repo (es público).
+- [ ] El «Archivar» del menú «···» de la vista tabla sigue siendo un adorno («todavía no está conectado»); convive con «Eliminar».
+- [ ] Los archivos de las fotos de un producto eliminado quedan en Storage (quitar una foto desde la ficha tampoco los borra hoy). Decidir una sola regla para ambos casos.
+
+## 🎯 Catálogo ▸ Marcas: «Eliminar» (2026-09-26, ADR-0217) — migración `20260926213000` EN PRODUCCIÓN (aplicada 2026-09-26, verificada por efectos); web fusionada (#464) y **cerrado el caso «Cayla 2»**
+- [x] `retail.eliminar_marca(p_marca_id)`: borra la marca y sus vínculos, todo o nada, solo si ningún producto (de cualquier estado) la tiene. Botón «Eliminar» en la tarjeta y en «Desactivadas», visible solo cuando se puede (`sePuedeEliminarMarca`).
+- [x] Probado: `pnpm pruebas:eliminar-marca` 21/21 (sumada al CI), 3 mutaciones detectadas, carrera con COMMIT en los dos órdenes, `pruebas:editar-marca` sigue 23/23.
+- [x] **Aplicada en producción** (2026-09-26, con el «dale» de Felipe): ensayo revertido en la base real y luego `apply_migration`. Verificada por efectos: `eliminar_marca(uuid) → text`, `security definer`, `search_path` fijo, `authenticated` sí / `anon` no, una sola versión, md5 del cuerpo = el del archivo (`29675633…`).
+- [x] **«Cayla 2» eliminada** (Felipe, 2026-09-26, desde la pantalla). Verificado en producción, solo lectura: 79 marcas / 79 vínculos (eran 80/80), 0 vínculos huérfanos, 0 productos sin marca. Su único producto, `TOP-0011 Top Aurora`, ya no existía: se purgó antes (ADR-0224), así que no hizo falta moverlo a Krisstell. Es la primera corrida real del botón.
+- [x] Decidido: `TOP-0011` y la nota de venta `NV01-000007` eran de prueba y se **purgaron** de producción (ADR-0224, con el «dale» de Felipe), no se archivaron.
+- [ ] Ninguna pantalla resuelve el `marca_id` del historial de un producto a un nombre (ver ADR-0217, «Lo que no deja rastro»): si Felipe quiere ver «cambió de marca X a Y» en la ficha, es una tarea aparte.
+
+## 🎯 Catálogo ▸ Marcas: buscador y «Editar» (2026-09-25) — migración `20260926150000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base); web en PR
+- [x] **Buscador** por marca o por proveedor, sin tildes («saavedra» encuentra 3.20 Store); «N de 80» y aviso con «Quitar búsqueda» si nada coincide.
+- [x] **«Editar»** reemplaza a «Renombrar» y a «+ Otro proveedor para…»: una ventana con el nombre y quién la trae (Felipe eligió «nombre y proveedor»). Suma de la lista o registra uno nuevo; quita solo si ningún producto (activo o descontinuado) usa la pareja; una marca activa nunca queda sin proveedor. Base: `editar_marca`, todo o nada, sumar/quitar (dos ediciones a la vez no se pisan).
+- [x] Probado: `pnpm pruebas:editar-marca` 23/23 en Postgres desechable (sumada al CI), 3 mutaciones detectadas, carrera real con COMMIT 20/20; `marcas.test.ts` 29; en navegador con andamio (sin Docker) a escritorio y 375 px.
+- [x] **Pegada en producción** por Felipe (2026-09-25). Verificada por efectos: firma, `jsonb`, `security definer`, `search_path`, `authenticated` sí / `anon` no, una sola versión, y la huella md5 del cuerpo igual a la del archivo.
+- [ ] Entra al diccionario (`docs/datos/generado/`) con el próximo refresco completo de la foto: producción ya va en 126 relaciones y 572 funciones contra 123/544 de la foto actual (tablas y funciones de otras ramas), así que el refresco no es de esta rama.
+- [ ] Verificar con sesión real de Líder: renombrar una marca y cambiarle el proveedor a una de las 80 cargadas.
+
+## 🎯 Modo sin conexión para agregar productos (2026-09-25, ADR-0210) — solo web, sin migración
+- [x] **Paso 1 — Recibir mercadería.** Cola genérica (`lib/cola-offline.ts` + `useColaOffline`), sincronizador único en el layout (`ColasSinConexion`), `/recibir` (`recibir_envio`) y `/inventario/recibir` (`recibir_lote`). Lo contado sale de «pendientes» mientras espera. Probado en local cortando la red: encola, sube al volver, no duplica con el mismo token, un rechazo queda con «Descartar», una RPC fuera de la lista blanca no corre.
+- [x] **Paso 2 — Alta de producto** sin red: «pendiente de código» hasta subir (Felipe 2A), fotos en IndexedDB que suben después del producto, freno a dos altas con el mismo nombre en la cola. Probado: `CIN-0001` con sus 3 variantes al volver la red.
+- [x] **Combo «Responsable» sin red:** recuerda la última lista de turno por sede (máx. 12 h) y lo dice.
+- [x] **Paso 3 — Abrir pantallas sin red** (service worker `public/sw.js`): Vender (solo copia de hoy, Felipe «Copia de hoy»), Recibir, Ingreso sin comprobante y Nuevo producto; el resto muestra «Sin conexión». Aviso de copia con su hora; copias borradas al salir o al cambiar de cuenta (las colas no). Probado con el servidor apagado.
+- [ ] **Probar en producción** tras publicar: abrir las 4 pantallas con red y luego sin wifi, en un equipo real de tienda (el SW solo se registra en producción).
+- [~] **Conteo sin conexión — EN PAUSA (Felipe, 2026-09-25: «por ahora no»).** No se construye. Si se retoma: guarda escaneo por escaneo (`conteo_contar`) y el alta al vuelo (`censo_crear_variante`) necesita `p_token` (migración).
+- [x] **Huecos cerrados (ADR-0210 «(c)»):** error pasajero del servidor se reintenta (tope 10), contador global de pendientes, pregunta al salir con algo pendiente, el alta avisa qué necesita internet, lector QR precargado (era lo único que se cargaba al usarse).
+- [ ] Datos de prueba locales: se creó el comprobante `F001-000299` (copia de `F001-000198`) en el Postgres LOCAL para probar; ya quedó recibido. No toca producción.
+
+---
+
 ## 🌡️ Frescura del piso — plan del termómetro, tareas 1-4 (2026-09-25)
 El plan que manda Frescura es el de **bloques** del ADR-0208 (PR #434). Estas cuatro tareas vienen de otro plan de la misma fecha y se reconciliaron con él antes de abrir los PR.
 - [x] **Termómetro semanal** (tarea 1): `docs/datos/consultas/frescura-termometro.sql` — 12 consultas SELECT con su rutina de los lunes. PR de docs.
 - [x] **La caja dice «está en el almacén»** (tarea 2): #437. Fusionar fuera de la hora punta de TRU; trae además un arreglo de precio de proforma (revisar con ese foco).
 - [x] **«Por colgar» en Existencias** (tarea 4): #438. Choca con #434 solo en `inventario/page.tsx` (una línea cada uno).
-- [ ] **Tarea 3 (Retirar del piso + motivos del ajuste): decisión de Felipe.** Rama `claude/frescura-t3-retiro-y-ajuste`, sin PR. Tiene dos partes:
-  - **Retirar del piso:** coincide con el bloque 2 del ADR-0208 (`mover_interno` invertido) y podría salir sobre #434.
-  - **Motivos nuevos** (`carga_existente` y el valor propio de «Encontré de más»): se descartan, porque cargan al piso sin pasar por el candado de «Reposición» (`20260926000400`).
+- [x] **Tarea 3 (Retirar del piso + motivos del ajuste): Felipe eligió la opción A (2026-09-25).** Solo el retiro salió, como bloque 2 del ADR-0208 (#440). Los motivos nuevos (`carga_existente` y el valor propio de «Encontré de más») se descartaron: cargaban al piso sin pasar por el candado de «Reposición» (`20260926000400`). La rama `claude/frescura-t3-retiro-y-ajuste` queda obsoleta.
 - [ ] **La caja no manda `p_emisor`** (`PuntoDeVenta.tsx:926-958`). Toda venta queda como «emite retail», contra D-56 («La emite Alegra» por defecto). Tarea aparte.
 - [ ] **Felipe:** cada lunes, boletas de Alegra por sede y día contra la consulta 01. Esta semana, pedir a Alegra el export de una semana (¿trae precio de lista y descuento por línea?) para la línea base de «% a precio completo».
+
+**Equivalencias entre las tareas de ese plan y los bloques de ADR-0208** (revisión del bloque 2, 2026-09-25). El plan de 12 tareas no quedó escrito en el repo: se reconstruye del plan que la sesión del termómetro le presentó a Felipe el 2026-09-25, de los PR #437 a #440 y de las notas del termómetro antes de `e1a961dc`. Manda el número de bloque; el de tarea solo sobrevive en mensajes de commit («el candado llega con la tarea 5») y en esta tabla.
+
+| Tarea | Qué era | Dónde quedó |
+|---|---|---|
+| 1 | Termómetro semanal: cuánto de cada tienda pasa por el ERP | Fuera de los bloques. Hecha (#439). |
+| 2 | La caja dice «está en el almacén: hay N» | Fuera de los bloques; roza la D-40, que se decide antes del bloque 3. Hecha (#437). |
+| 3 | «Retirar del piso», y el ajuste pregunta dónde está la ropa | Bloque 2, solo el retiro (#440, opción A); los motivos nuevos se descartaron. Lo del ajuste no salió: sigue arrancando en «Piso» (`AjustarInventarioModal.tsx:53`), aunque con la `0400` «Reposición» ya no suma ahí. |
+| 4 | «Por colgar» en Existencias | Fuera de los bloques. Hecha (#438). |
+| 5 | Cada bajada y cada retiro como documento: todo o nada, sin duplicarse, con su contexto (fardo, reponer, caja) | Partida. La bajada escaneada ya tiene documento y token (bloque 1, `bajadas_piso`). «Reponer» y «Retirar del piso», con la marca de `mover_interno` (en producción desde el 2026-09-26; ver la sección de Frescura, más abajo). El contexto no se construyó. La copia única del documento de diseño se hizo en la revisión del bloque 2. |
+| 6 | Bajar un fardo entero escaneando | Bloque 1 (`/inventario/bajar`). |
+| 7 | «Traer y vender» desde la caja: la bajada de último minuto se declara | Sin bloque. Depende de la D-40 (ADR-0208, (g)): el bloque 1 eligió deducir la bajada tardía al leer, no declararla. Se concilia antes del bloque 3. |
+| 8 | Una fecha de arranque por sede, más la cobertura del registro | No se puede mapear entera: la cobertura se parece al indicador de «confianza del registro» del bloque 3, pero la fecha de arranque no está en ningún bloque. |
+| 9 | La edad del piso y el % vendido a precio completo | Bloque 3 (la «Edad del piso» es su cifra de cabecera); la línea base del % a precio completo es el pendiente «Antes de lanzar». |
+| 10 | Una tienda simulada en local que comete los errores reales | No se puede mapear: ningún bloque la incluye. |
+| 11 | Un solo reloj de piso para Análisis y Frescura, sobre `fn_ledger_puntos` | Bloque 3, regla (d) del ADR. |
+| 12 | La carrera de cada categoría (Nueva, Vigente, Envejecida, Crítica) | Bloque 3 (tramos por percentiles). |
 
 ---
 
@@ -56,9 +292,6 @@ Lo hicieron 11 agentes (uno por trozo de este archivo) más un escéptico por tr
 - **Ramas de esta sesión, cada una en su propio PR** (revisadas por dos revisores independientes; abiertas el 2026-09-25 tras el OK de Felipe): `claude/avance-boton-reintentar`, `claude/avance-prueba-arquitectura`, `claude/avance-apartada-en-vender`, `claude/avance-ficha-sin-tarjetas-todo`, `claude/avance-ci-y-candado-de-firmas`, `claude/avance-diccionario-de-datos`. Al fusionarlas cierran, por contenido: «Reintentar» que no vuelve a pedir datos, la prueba de arquitectura cliente/servidor, «apartada» vs «agotada» en Vender (buscador, modal de talla, aviso del ticket y la cámara del celular) y en Cambios (falta la captura a 375 px, PL-105), las tarjetas `TODO(Sesión A2/A3)` de la ficha, 15 pruebas de Postgres sin cablear al CI (más un candado de «una sola firma por función» contra la base real, en vez de un analizador de texto) y el refresco del diccionario. **Ojo con el diccionario:** trae una regla nueva que cambia cómo se escribe a mano `glosario.json` — una glosa dice para qué sirve la columna, **no quién la usa hoy** (nada de «nadie/ninguna/hoy/todavía»; lo vigilan 4 reglas de `apps/web/lib/diccionario-datos.test.ts`). Auditó las 170 glosas vivas: 33 contradecían a producción y 59 afirmaban un estado de uso; se reescribieron 94. Es una decisión de convención que tomó el agente corrector, no Felipe: revísala al fusionar.
 - [ ] **`DRIFT.md` puede llevar a retirar una función viva.** `pnpm datos:comparar` lo titula «Funciones que nadie llama» y dice «una función que sobra y habría que retirar», pero su expresión regular no ve las llamadas por ternario o por helper: `registrar_activo`, `cerrar_periodo`, `reabrir_periodo`, `desactivar_proveedor` y `reactivar_proveedor` están en uso y salen en la lista. Ya estaba así en `main` (47 funciones; la rama del diccionario la baja a 30). Arreglo: en `scripts/datos/comparar.mjs` contar como llamado todo nombre entre comillas en código que no sea de prueba, o retitular la lista «sin llamada directa detectada».
 - **Lo que este triaje deja sin hacer, a propósito:** reescribir este archivo (lo hace `/backlog` con Felipe, no un parche desde la punta), Caja ▸ Historial de cierres con filtro por sede y paginación (M, necesita ver la pantalla con datos), las 6 pruebas de Postgres rojas o viejas que el CI no cablea (`archivar-datos-prueba`, `caja-cierre-traslado`, `colaboradores-endurecimiento`, `cotizaciones-maquila`, `fn-movimientos-busqueda-especial`, `lecturas-rapidas-y-cambio`) y decidir si `pruebas-postgres` deja de ser `continue-on-error` (mientras lo sea, ningún candado de la base bloquea un merge).
-
-## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — FUSIONADO (#422); la prueba de Postgres deja de ser opcional (rama `claude/puertas-ci-y-agents`)
-- [ ] **Exigir los dos checks del CI para fusionar (Felipe, con permiso de administrador):** agregar `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` al ruleset `main-protegida`, con el comando de `CONTRIBUTING.md` §2, **después** de fusionar el PR que quita el «(piloto, no bloquea)» del nombre. Hasta entonces, un PR en rojo se sigue fusionando igual: pasó con el #397.
 
 ## 🎯 Buscador y paginado: la regla global de combos (2026-09-25, ADR-0209) — F1 y F2 construidos y verificados en navegador
 Pedido de Felipe: todo combo con más de 8 opciones debe poder buscarse escribiendo, y con más de 50 (ya filtradas) paginar solo al bajar el scroll — y estandarizar los combos (había 4 maneras distintas de resolver "elegir uno de varios": `<select>` nativo a mano, `SelectNativo`, `Desplegable` y `ComboBuscable`, más `DesplegablePildora`/`ComboResponsable` aparte). Tras ver F1 funcionando, Felipe pidió migrar TODO de una.
@@ -80,7 +313,7 @@ Pedido de Felipe: todo combo con más de 8 opciones debe poder buscarse escribie
 ## 📖 CLAUDE.md y 15-COMO-OPERA corregidos contra producción viva (2026-09-25) — FUSIONADO (#422 y #423); `main` exige los dos checks del CI
 - [x] **`main` exige los dos checks del CI para fusionar (2026-09-25):** `Tipos, lint y pruebas` y `Pruebas de RPC contra Postgres` en el ruleset `main-protegida`, aplicado con OK de Felipe tras fusionar #422 y #423. Los PR abiertos antes de ese momento reportan el check con el nombre viejo y quedan trabados hasta traer `main`.
 - [ ] **Construir lo que Felipe decidió el 2026-09-25:** (1) R-38 — dentro de 15 días la devolución la aplica cualquiera en caja, sin líder; afloja el candado de ADR-0177 (quien registra no aprueba), así que lleva ADR y migración propios; (2) antes de cerrar caja, la pantalla de Caja resalta los descuentos de más de 15%; (3) R-20 — revisar el umbral por categoría cuando haya 8 semanas de ventas reales (hoy 14 días para todas).
-- [ ] **Sin decidir o fuera de este cambio:** si importar el consumo de Audaces se descartó o solo no se hizo (Felipe); el protocolo de pregunta y docencia depende de `~/.claude/CLAUDE.md`, que no está en el repo; `.claude/settings.json` llama a graphify con una ruta de Windows de una sola máquina; `supabase/config.toml:13-15` todavía dice que `seed.sql` renombra el schema.
+- [ ] **Sin decidir o fuera de este cambio:** si importar el consumo de Audaces se descartó o solo no se hizo (Felipe); el protocolo de pregunta y docencia depende de `~/.claude/CLAUDE.md`, que no está en el repo. (El hook de graphify pasó a ser de cada máquina y `config.toml` ya describe el schema real: 2026-09-26.)
 
 ## 🎯 Descuento: argumento pasado el 15 % y guía de paso (2026-09-25) — migración `20260925230000` EN PRODUCCIÓN (aplicada y verificada 2026-09-25); web en PR #412
 - [x] Pantalla: argumento visible pasado el 15 % (`necesitaArgumentoEscrito`), el paso que falta se ilumina y el foco salta al siguiente (`pasoDelDescuento`), y «Todo el ticket» se puede desmarcar.
@@ -185,21 +418,27 @@ las dos superficies a la vez, se confirmó el alcance con Felipe antes de borrar
 - Cómo verificas: cualquier pantalla en escritorio — no hay botón "+ Nuevo" en el lateral. En celular (375 px), la
   barra de abajo tiene 4 columnas parejas (Inicio, Punto de Venta, Inventario, Caja) y ningún hueco al centro.
 
-## 📐 Frescura del piso (2026-09-24, ADR-0208): diseño aprobado; se construye por bloques — bloque 1 construido y probado en local (2026-09-25), 5 migraciones `20260926000000`–`0400` POR PEGAR (la `0400` después de la web); módulo por encender
+## 📐 Frescura del piso (2026-09-24, ADR-0208): bloques 1 y 2 fusionados (#434, #440) y su web publicada; TODO en producción (verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`); «Bajada al piso» encendido en el rol Integrante, no en las terminales
 Es el antes llamado «mapa de calor»: mide cuánto lleva cada modelo+color en el piso frente a su categoría en la sede, y
 propone qué hacer antes de rebajar. El documento para el equipo, con datos simulados, está en
-`docs/maquetas/frescura-del-piso-2026-09/` (artifact privado: Felipe tiene que compartirlo).
+`docs/maquetas/frescura-del-piso-2026-09/` (artifact privado: Felipe tiene que compartirlo). Es la única copia: la
+que el #440 sumó en `docs/diseno/` se borró en la revisión del bloque 2.
 **Por bloques (Felipe, 2026-09-25):** uno a la vez, cada uno verificable y pegado antes del siguiente. 1 · bajada al
-piso, «Reposición» cerrada en el piso y marca tardía → 2 · «Retirar del piso» → 3 · pantalla de Frescura (relojes,
-percentiles, tramos) → 4 · clásicos y tallas clave → 5 · traslado por novedad y alerta al Taller → 6 · capacidad por
-temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle en ADR-0208, «Orden de construcción».
+piso, «Reposición» cerrada en el piso y marca tardía → 2 · «Retirar del piso» → (candado de `mover_interno`) → 3 ·
+pantalla de Frescura (relojes, percentiles, tramos) → 4 · clásicos y tallas clave → 5 · traslado por novedad y alerta
+al Taller → 6 · capacidad por temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle en
+ADR-0208, «Orden de construcción». **Se rompió dos veces:** con el OK de Felipe (opción A), el bloque 2 se construyó
+antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con la fusión del #434 antes de la `0000`. La equivalencia con las
+«tareas» del plan del termómetro está en su sección, más arriba.
 - [x] Diseño, investigación verificada y documento (2026-09-24). Las 12 decisiones están en el ADR-0208.
 - [x] Hallazgos del benchmark cerrados:
   - Dos motores de «ventas por día»: se quedan separados a propósito, documentado.
   - «El traslado ignora el almacén del destino»: era V1, ya está cerrado en V2. `13-inteligencia-y-reportes.md` quedó
     corregido con un aviso.
-- [x] **Bloque 1 · Bajada al piso por escaneo — CONSTRUIDO Y PROBADO EN LOCAL (2026-09-25), NO está en producción.**
-  Detalle, decisiones y contrato: ADR-0208, «Construcción — bloque 1».
+- [x] **Bloque 1 · Bajada al piso por escaneo — CONSTRUIDO Y FUSIONADO (#434, 2026-09-25), web publicada; en producción
+  EN PARTE** (Felipe, 2026-09-25: `0200` y `0400` pegadas, `fn_verificar_bajadas()` = 0 filas; `0000` y `0300` sin
+  confirmar; la `0100` no se confirmó aparte, pero sus tablas existen si esa función respondió). Detalle, decisiones y
+  contrato: ADR-0208, «Construcción — bloque 1».
   - Botón «Bajar al piso» en la cabecera de Existencias → `/inventario/bajar`. Aparece si el rol ve «Bajada al piso»,
     en la sede activa y si esa sede separa piso y almacén. «+ Nuevo» ya no existe (ADR-0204) y el lateral no cambia. Se
     escanea con la pistola cada prenda que se cuelga y se confirma una vez.
@@ -225,30 +464,45 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   - Probado en el navegador (sin base, respuestas simuladas; escritorio y 375 px): botón en Existencias (se le dio
     fondo sobre la foto), escaneo y sus cuatro avisos, corte de red, «Comprobar» tras recargar, marca reusada con lo
     guardado, prendas que no alcanzan. Detalle en el ADR. Falta la llamada real a través de Supabase.
-- [ ] **Felipe: pegar las 5 migraciones en el SQL Editor de cayla-dynamic**, una por ejecución y en este orden:
-  `20260926000000_bajada_piso_modulo` → `…0100_bajada_piso_tablas` → `…0200_bajada_piso_funciones` →
-  `…0300_frescura_lectura_bajadas` → **publicar la web** → `…0400_reposicion_no_toca_el_piso`. Ya traen `retail.` y se
-  pueden repegar. La `0100`, fuera de hora pico: si no consigue el candado en 3 s, falla sin daño y se repega. La `0300`
-  necesita `20260924030000` (`fn_ledger_puntos`). **Verificado en producción el 2026-09-25 (consulta de solo lectura de
-  Felipe):** existen `fn_ledger_puntos`, `fn_es_traslado_interno`, `fn_es_venta_de_stock`, `fn_historial_sin_truncate`,
-  `fn_bloquear_en_orden` (4 parámetros), `fn_ids_de_items`, `fn_ve_modulo`, `fn_actor_persona_id` y `mover_interno`:
-  no hay que pegar nada de main antes.
-- [ ] **Publicar la web DESPUÉS de la `0300` y ANTES de la `0400`.** Si sale antes de la `0000`, Roles y accesos pinta un
-  módulo que la base no conoce; si la `0400` va antes que la web, su mensaje manda a un botón que todavía no está.
-- [ ] **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos.** Lo que hay en producción (consulta del
+- [x] **Confirmadas en producción el 2026-09-26 la `0000` y la `0300`** (y la `0100`), por efectos. Lo que decía antes:
+  **Felipe: confirmar (o pegar) la `0000` y la `0300` CUANTO ANTES**, en el SQL Editor de cayla-dynamic. Estado
+  que dijo Felipe el 2026-09-25: `0200` y `0400` pegadas (`fn_verificar_bajadas()` = 0 filas); `0000` y `0300` sin
+  confirmar; la `0100` no se confirmó aparte, pero sus dos tablas existen si esa función respondió. Comprobar con
+  solo lectura: `select count(*) from retail.modulos where clave = 'bajada_piso';` (1) y
+  `select to_regprocedure('retail.fn_bajadas_del_piso(uuid, timestamptz, timestamptz, integer)') is not null;`
+  (`true`). Mientras falte la `0000`, Roles y accesos muestra «Bajada al piso» y encenderlo falla, y el mensaje de la
+  `0400` manda a pedir ese mismo módulo. Ya traen `retail.` y se pueden repegar. La `0300` necesita `20260924030000`
+  (`fn_ledger_puntos`), que ya está: **verificado en producción el 2026-09-25 (consulta de solo lectura de Felipe):**
+  existen `fn_ledger_puntos`, `fn_es_traslado_interno`, `fn_es_venta_de_stock`, `fn_historial_sin_truncate`,
+  `fn_bloquear_en_orden` (4 parámetros), `fn_ids_de_items`, `fn_ve_modulo`, `fn_actor_persona_id` y `mover_interno`.
+- [x] ~~Publicar la web DESPUÉS de la `0300` y ANTES de la `0400`~~: la web de los bloques 1 y 2 ya salió con la fusión
+  del #434 y del #440 (Vercel publica cada push a `main`), antes de confirmar la `0000`. Por eso conviene confirmar o
+  pegar la `0000` y la `0300` cuanto antes: la web ya ofrece el botón y el módulo.
+- [x] **Pegada por Felipe el 2026-09-26** (después de la `0000`, como tocaba) y verificada: el texto de Existencias en la
+  base ya es el nuevo. Lo que decía antes: **Felipe: pegar `20260926170000_existencias_incluye_retirar_del_piso.sql` DESPUÉS de la `0000`** (revisión del
+  bloque 2). Un solo `update` del texto de Existencias, sin políticas ni `alter`; se puede repegar. Si la `0000` se pega
+  o se repega después, hay que repegar esta: el upsert de la `0000` repone el texto viejo. Entra al diccionario con el
+  próximo refresco del volcado (`pnpm datos:generar:produccion`). Comprobar:
+  `select incluye from retail.modulos where clave = 'existencias';` → «Consultar stock, reponer y retirar del piso,
+  ajustar stock, apartar prendas».
+- [x] **«Bajada al piso» encendido por Felipe en el rol «Integrante»** (visto en producción el 2026-09-26). Hoy Integrante
+  ve Productos, Vender, Existencias y Bajada al piso, así que cada integrante llega al botón desde su cuenta. Las 3
+  «Terminal Almacén» ven Existencias y Productos, NO «Bajada al piso»: desde la computadora del almacén no se puede
+  bajar escaneando. Si la pistola va en esa terminal, falta marcarlo en su rol (decisión de Felipe, sin SQL).
+  Lo que decía antes: **Felipe: encender «Bajada al piso» en Colaboradores ▸ Roles y accesos.** Lo que hay en producción (consulta del
   2026-09-25): «Integrante» (17 personas) solo ve Productos y Vender, SIN Existencias, así que con cuenta propia no llega
   al botón; las 3 «Terminal Almacén» y las 3 «Terminal de ventas» sí ven Existencias; los 8 líderes lo ven todo.
   **Recomendado: encenderlo solo en «Terminal Almacén»** (la colaboradora baja desde la terminal eligiéndose como
   Responsable). La Terminal de ventas, no hasta decidir la D-40: facilita justo la bajada al cobrar. Nunca desde el
   código (ADR-0161). Hasta entonces solo lo ve el líder. **Ojo:** quien reciba «Bajada al piso» sin Existencias no ve el
   botón y solo llega escribiendo `/inventario/bajar`; Felipe aceptó esa consecuencia el 2026-09-25.
-- [ ] **Felipe verifica con la pistola real** (receta completa en el ADR, «Verificación en local»): 5 prendas DISTINTAS
-  (otra talla u otro color) → 5 filas «Reposición interna» con la misma hora en Movimientos; que no se repite: red en
+- [ ] **Felipe verifica con la pistola real** (receta completa en el ADR, «Cómo lo verifica Felipe»): 5 prendas DISTINTAS
+  (otra talla u otro color) → 5 filas «Bajada al piso» con la misma hora en Movimientos; que no se repite: red en
   «Sin conexión» justo después de pulsar «Confirmar», reconectar y «Confirmar de nuevo» (dice «ya estaba registrada»
   o guarda normal, y Movimientos la muestra una sola vez); Ajustar stock en Piso ya no ofrece «Reposición»; y la
   consulta de `fn_bajadas_del_piso` (ADR-0208, punto (e)).
-- [ ] Después de pegar: `select to_regprocedure('retail.bajar_al_piso(uuid, jsonb, uuid)') is not null;` en el SQL
-  Editor, refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y recién ahí `pnpm datos:generar:produccion`
+- [ ] ~~Después de pegar: `select to_regprocedure('retail.bajar_al_piso(uuid, jsonb, uuid)') is not null;` en el SQL
+  Editor~~ (hecho el 2026-09-26). Falta: refrescar el volcado (`docs/datos/generado/COMO-REFRESCAR.md`) y recién ahí `pnpm datos:generar:produccion`
   (nunca `pnpm datos:generar` a secas). `datos:comparar` NO ve esta llamada (la pantalla usa la constante `RPC_BAJADA`).
 - [x] ~~OK de Felipe al cambio del menú~~: ya no hace falta. El lateral no cambia (`menu.ts` y `menu-hoy.golden.json`
   quedan idénticos a main).
@@ -262,12 +516,12 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
 - [ ] **Felipe: ¿«Reponer» en toda fila con almacén?** Hoy solo aparece con 7 o menos en el piso. Quien tiene
   Existencias sin «Bajada al piso» no tiene camino con rastro para subir una prenda con 8 o más en el piso (la nota de
   Ajustar stock le dice que pida el módulo al líder).
-- [ ] **Decidir la D-40 antes del bloque 3.** La caja con piso 0 dice «está agotada» aunque haya en el almacén
-  (`PuntoDeVenta.tsx:561-563`), y la D-40 dice que la caja nunca se frena. O manda V2 (la caja dice «hay N en el
-  almacén: tráela al piso» y la D-40 se retira por escrito) o manda la D-40 (la caja baja sola y toda bajada nace
-  tardía). Sin decidirlo, el indicador mide el diseño de la caja y no a las colaboradoras.
-- [ ] Mensaje de la caja «tráela al piso» y releer el stock antes de decir «agotada». Toca Vender: PL-105, 375 px, PR
-  aparte. Depende de la D-40.
+- [ ] **Decidir la D-40 antes del bloque 3.** Desde el #437 la caja con piso 0 dice «está en el almacén: hay N» y no
+  cobra. Falta decidir cuál manda: V2 (se registra la bajada antes de cobrar, y la D-40 se retira por escrito) o la
+  D-40 (la caja baja sola y toda bajada nace tardía). Sin decidirlo, el indicador mide el diseño de la caja y no a las
+  colaboradoras.
+- [x] ~~Mensaje de la caja «tráela al piso» y releer el stock antes de decir «agotada»~~: hecho por el #437 (la caja
+  dice «está en el almacén: hay N» y el stock en vivo ya no se corta en 1.000 filas).
 - [ ] **1b:** guía de solo lectura por recepción (llegaron / ya bajadas / faltan) y «Bajadas de hoy».
 - [ ] Antes del bloque 3: comparar en producción, prenda por prenda, el stock con el libro (SELECT de solo lectura).
   Si no cuadran, las bajadas salen «dudosas» y el indicador no tiene con qué medir.
@@ -288,15 +542,50 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   - Extraer un hook de escaneo compartido: Vender, Recibir y Bajar tienen copia del mismo efecto (refactor aparte).
   - Una entrada para quien tenga «Bajada al piso» sin Existencias (el Inicio de las terminales filtrado por módulo
     —hoy `accesosInicio` no se filtra— o una hoja propia regrupando Inventario): solo si Felipe da el módulo así.
-  - `mover_interno` («Reponer») sigue sin token: un doble clic duplica (D-26).
+  - `mover_interno` sin token: pasó a su propio ítem, «Candado de `mover_interno`», entre el bloque 2 y el 3 (más
+    abajo).
   - Borrar o conectar `apps/web/lib/resumen-acciones.ts`: su vía `'bajar_al_piso'` no tiene consumidor y ahora se llama
     igual que la función nueva.
-  - `ReponerPisoModal.tsx:25` cita `20260914210000_inventario_piso_almacen.sql`, que no existe (es `20260914230000`).
+  - ~~`ReponerPisoModal.tsx:25` cita `20260914210000_inventario_piso_almacen.sql`, que no existe~~: el #440 ya lo
+    corrigió (cita `20260914230000`).
   - `scripts/migraciones/verificar.mjs` marca la `0400` con «falta: función insertar_antes». Es un falso positivo (un
     ayudante `pg_temp` que no persiste), el mismo de `20260922200000` y `20260925230000`.
-- [ ] **Bloque 2 · «Retirar del piso»:** no hace falta una función nueva, falta la pantalla: es `mover_interno` con
-  origen (piso) y destino (almacén) invertidos. (`bajar_a_piso` y `devolver_a_almacen` eran de V1 y no existen.) Al
-  hacerlo, distinguir en Movimientos la bajada del retiro por el tipo de sububicación, no por el motivo.
+- [x] **Bloque 2 · «Retirar del piso»:** construido y fusionado el 2026-09-25 (#440, `60d5aa4d`); su web ya está
+  publicada. Menú «⋯» de cada talla en Existencias, `mover_interno` con origen piso y destino almacén, aviso si la fila
+  va a volver a pedir «Reponer» y nota opcional del motivo. Movimientos nombra por el par exacto de sububicaciones
+  («Bajada al piso» / «Retiro del piso»; otro par, «Movimiento interno»), decidido por la categoría y no por el motivo.
+  - [x] **Revisión del bloque 2 (PR de corrección, 2026-09-25):** mensaje honesto ante un corte de red y el modal no se
+    cierra mientras guarda; «Reponer» y «Retirar» solo en la sede activa; el aviso dice «libre/libres» y dónde queda la
+    nota; el modal no salta (bloque con alto reservado) y aclara que retirar no es dar de baja; foco de vuelta al «⋯»;
+    Movimientos por par y filtro «Movimiento interno»; la nota de Ajustar stock ▸ Piso nombra «Retirar del piso»; el
+    texto de Existencias en Roles y accesos (`20260926170000`); documentos al día y borrada la copia de `docs/diseno/`.
+    Detalle: ADR-0208, «Actualización 2026-09-25 — revisión del bloque 2».
+  - [ ] **Decisión de Felipe (bloque 3):** una marca de «retirada de la venta» por talla y sede, con un motivo cerrado
+    del retiro. Tiene que apagar TODO lo que lee un retiro a propósito como falta: «Reponer» y «Por colgar» en
+    Existencias, las lecturas de Análisis `reposicion_reciente` («entraron al piso hace poco», «nuevas pendientes») y
+    `problema_reposicion` («revisar reposición»), y la consulta 05 del termómetro. Hasta entonces el semáforo le pide al
+    turno siguiente volver a bajar lo que se guardó: el aviso solo lo ve quien retira, y la nota solo se lee en el
+    detalle de un movimiento.
+  - [ ] Contrato del bloque 3: un retiro correctivo DESPUÉS de una bajada no la netea en `fn_bajadas_del_piso` (se
+    escanearon 10, se colgaron 6, se retiran 4: la bajada sigue en 10). Netear también los retiros de la misma prenda en
+    [t, t + ventana], además de [t − ventana, t].
+  - [ ] Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
+    minutos sale «tardía» (límite anotado en ADR-0208).
+  - [x] Probado en el navegador (2026-09-25, ruta temporal ya borrada, sin base): el formulario no cambia de alto al
+    escribir (536 px con y sin aviso), el recorrido va bajo el título, «no alcanza» sale con su texto propio (no la
+    burbuja del navegador), un corte de red da el mensaje honesto sin recargar la página, una respuesta que nunca llega
+    deja el modal sin cerrar (Escape y «Cancelar» sin efecto) hasta el tope de 20 s y después se puede cerrar, el foco
+    vuelve a quien abrió el modal, y a 375 px sale como hoja sin desplazamiento horizontal.
+  - [x] El mismo hueco de sede, cerrado en todo Existencias (Felipe, 2026-09-26): mirando otra sede con `?ubicacion=`,
+    «Apartar», «Ajustar», «Liberar» (apartados) y resolver o liquidar dañados ya no se ofrecen (firmaban con el
+    Responsable de la sede activa); una nota dice que se cambie la sede activa en la cabecera.
+- [x] **Candado de `mover_interno` (entre el bloque 2 y el 3)** — en producción desde el 2026-09-26 (Felipe pegó `20260926200000` y `20260926200100`; `mover_interno` quedó con UNA firma, terminada en `p_token uuid`; web fusionada en #458). Falta que entre al diccionario (`docs/datos/generado/`) con el próximo volcado de producción:
+  `mover_interno` suma `p_token` opcional (una sola firma) y la tabla `movimientos_internos_intentos`; el reintento con
+  la misma marca devuelve el mismo movimiento, con otros datos se rechaza, y la marca se mira antes del responsable.
+  «Reponer» y «Retirar del piso» mandan una marca por modal y, tras un corte, dejan la cantidad fija con «Confirmar de
+  nuevo». Se pegó en el orden previsto (200000 → 200100) antes de fusionar la web. Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
+  ADR-0208, «Actualización 2026-09-26 — la marca de `mover_interno`». Cierra la «tarea 5» del plan del termómetro en lo
+  que toca a Reponer y Retirar (el contexto por documento sigue sin construir).
 - [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
   - Reloj de novedad por modelo+color.
@@ -328,17 +617,33 @@ temporada → 7 · rebaja por sede (toca la caja: al final, con ensayo). Detalle
   perchero y en el tablero, mueve la barra de días en «La carrera» y toca los puntos de la matriz de Trujillo.
 - Cómo verificas el bloque 1, ya pegado: como líder, en Existencias de una tienda que separa piso y almacén, pulsa
   «Bajar al piso». Escanea 5 prendas DISTINTAS (cada una de otra talla o de otro color) y confirma. En Movimientos
-  salen 5 filas «Reposición interna» con la misma hora; en Existencias, el piso subió y el almacén bajó lo mismo (5
+  salen 5 filas «Bajada al piso» con la misma hora; en Existencias, el piso subió y el almacén bajó lo mismo (5
   unidades de la misma talla y color darían UNA fila). Para ver que no se repite: arma otra bajada, pon la red en «Sin
   conexión» justo después de pulsar «Confirmar», reconecta y pulsa «Confirmar de nuevo»: dice «ya estaba registrada» o
   guarda normal, y en Movimientos aparece una sola vez. Pulsar dos veces rápido no lo prueba: el segundo clic no llega
   a la base.
+- Cómo verificas el bloque 2 y su revisión (la web del bloque 2 ya está publicada; la de la revisión sale cuando se
+  fusione su PR): como líder, con la sede activa en la cabecera,
+  Existencias ▸ «⋯» de una talla con piso libre ▸ «Retirar del piso». Retira 2 con una nota y confirma. En Existencias,
+  el piso de esa talla bajó 2 y el almacén subió 2; en Movimientos sale «Retiro del piso» y, al abrirlo, el detalle
+  muestra la nota. Mirando otra sede (`?ubicacion=`), ni «Reponer» ni «Retirar del piso» aparecen. El filtro de
+  Movimientos se llama «Movimiento interno». Receta completa: ADR-0208, «Actualización 2026-09-25 — revisión del
+  bloque 2».
+- Cómo verificas la `20260926170000`, ya pegada: `select incluye from retail.modulos where clave = 'existencias';` dice
+  «Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas» (Roles y accesos muestra ese texto
+  desde que sale la web de la revisión, porque lo lee de `lib/modulos.ts`).
 
 ## 🎯 Nuevo producto en 4 pasos, y fotos al crear (2026-09-24, ADR-0197) — web en PR #395, SIN migración
 Tiene 4 pasos en acordeón, proveedor y color con buscador (sin listas enteras de botones), tabla talla × color, la ficha de la prenda a la derecha y fotos por color que se suben después de crear.
 - [ ] Probar en producción un alta con fotos: la subida exitosa no se pudo ver en local, porque no existe el contenedor `supabase_storage_cayla-retail`.
 - [ ] Probarlo con clics con una cuenta de tienda (no Admin), a 375 px.
 - [ ] Borrar el producto de prueba «Blusa Prueba Spike 3673» (`CAR-0001`) del Postgres LOCAL, si molesta.
+
+## 🎯 Apartados en el celular + arreglos (2026-09-26, ADR-0223) — solo web, sin migración; PR abierto
+Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apartar en tres pasos con barra fija, cámara QR, y los arreglos de las capturas de Felipe (color · talla · código en ticket y Entregar, celular que empieza en 9, avisos al salir del campo, pie fijo en los modales, sin «Buscar apartado», texto de En custodia).
+- [x] Web + `esCelularPeru` con prueba; verificado a 375 px y en computador con una página de prueba sin base (capturas en `docs/maquetas/apartados-v2-2026-09/implementacion-375px/`).
+- [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
+- [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
 
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
 Encender «Punto de venta» ya no trae Apartados: son dos interruptores. Apartados nace sin rol (solo lo ve el líder).
@@ -407,7 +712,7 @@ Auditoría completa (343 funciones, 229 consultas web, estadísticas de producci
 - [x] Pegadas 1→5 y fusionados los 6 PRs (2026-09-23). Verificado en producción: 7/7 funciones de caja con `for share`, costo con `for no key update`, 14/14 índices, `fn_exigir_linea_venta_disponible` en cambio y devolución, `fn_bloquear_en_orden` en 8/8 funciones, `p_token` en 5/5 y `token_cliente` en 5/5 tablas (legible en `insumo_lotes`), 0 sobrecargas, 3/3 funciones de totales sin acceso `anon`, `version` en `productos` y `roles`.
 - [ ] Verlo con clics tras publicar: cobrar mientras se cierra caja (debe decir «No hay una caja abierta»), historial de 60 días con totales, Vender sin recarga, dos pestañas editando la misma prenda.
 - [ ] Regenerar tipos y diccionario (`pnpm datos:generar:produccion`) tras pegar: las funciones nuevas se agregaron a mano en `packages/database/src/types.ts`.
-- [ ] Pendientes que dejó cada etapa: ~~`registrar_cambio`/`crear_devolucion`/conteo aún sin `fn_bloquear_en_orden`~~ (hecho en ADR-0194: `registrar_cambio` parchada; `crear_devolucion` no mueve stock y `cerrar_conteo` ya bloqueaba en orden); token en Ajustar inventario (`registrar_movimiento`) y `mover_interno`; `recibir_lote` y `registrar_movimiento_caja` siguen ejecutables por `PUBLIC`; el costo que recalcula una recepción puede pisarse desde una ficha abierta (la ficha debe mandar el costo solo si cambió); versión en etiquetas, marcas, categorías y clientas.
+- [ ] Pendientes que dejó cada etapa: ~~`registrar_cambio`/`crear_devolucion`/conteo aún sin `fn_bloquear_en_orden`~~ (hecho en ADR-0194: `registrar_cambio` parchada; `crear_devolucion` no mueve stock y `cerrar_conteo` ya bloqueaba en orden); token en Ajustar inventario (`registrar_movimiento`) (el de `mover_interno` se construyó el 2026-09-26, ADR-0208); `recibir_lote` y `registrar_movimiento_caja` siguen ejecutables por `PUBLIC`; el costo que recalcula una recepción puede pisarse desde una ficha abierta (la ficha debe mandar el costo solo si cambió); versión en etiquetas, marcas, categorías y clientas.
 - [ ] **Decisión de Felipe:** la base ya no deja devolver una prenda que se cambió (la pantalla ya lo impedía). Si CAYLA quiere aceptarlo, necesita su propio flujo.
 - [ ] Previo, ajeno: `pruebas:aprobar-devolucion-caja` 2/5 y `candado_dinero_caja_cambios_devoluciones` 7/21 en local (cuenta de prueba sin líder); `archivar-datos-prueba` busca tablas sin esquema `retail`.
 - [ ] Siguen abiertos de la auditoría (sin etapa aún): ~~36 políticas con `auth.role()` evaluado por fila~~ (ADR-0194), 192 FK sin índice (las de más uso ya van en la 110000; ADR-0194 sumó ventas por prenda y por clienta; las demás no se usan en búsquedas y las tablas padre no se borran), ~~`fn_vencer_separaciones` escribe al abrir la pantalla~~ (medido en ADR-0194: usa `skip locked`, no traba a nadie), `fn_traslado_lineas` una vez por traslado.
@@ -557,7 +862,7 @@ Del plano maestro (lista «Tus pendientes, en orden», `D:\Cayla Data\dany-venta
 - Preguntas para Felipe: ¿de dónde nace un saldo (devolución sin reembolso, diferencia a favor en un cambio, vale vendido o regalado)? ¿vence? ¿exige clienta identificada con DNI? ¿quién lo crea (cualquiera o solo el líder)? ¿se usa en cualquier sede? ¿qué comprobante sale al canjearlo (la venta se emite completa y el saldo es un medio de pago, o se trata como anticipo ante SUNAT; consultar con el contador)? ¿cómo entra en el arqueo de caja (no es efectivo)?
 - Trampas: `registrar_venta` y `anular_venta` se parchan EN VIVO en producción (cambiarlas con anclas sobre la definición viva, nunca copiando el archivo: ver `20260923235300_anular_venta_mismo_dia.sql`). Si tiene pantalla propia es un módulo nuevo (ADR-0161: migración en `retail.modulos`, solo líder al nacer, `exigirModulo`). Las funciones que guardan firman con `retail.fn_actor_persona_id(true)` y la pantalla lleva `ComboResponsable`.
 
-**#6 · PL-40 — Abrir y cerrar caja sin internet**, extendiendo el mecanismo que ya protege la venta. OJO: el plano dice «ADR-0036», pero ese es de Compras; el de la venta sin conexión es el **ADR-0063** (cola offline) y el **ADR-0092** (cerrar caja avisa si hay ventas sin subir).
+**#6 · PL-40 — Abrir y cerrar caja sin internet — EN PAUSA (Felipe, 2026-09-25: «por ahora no»; no se construye hasta que lo pida)**, extendiendo el mecanismo que ya protege la venta. OJO: el plano dice «ADR-0036», pero ese es de Compras; el de la venta sin conexión es el **ADR-0063** (cola offline) y el **ADR-0092** (cerrar caja avisa si hay ventas sin subir).
 - Qué hay: `lib/ventas-offline.ts`, `lib/almacen-local.ts` (IndexedDB), `components/PuntoDeVentaColaOffline.tsx`; aviso al cerrar en `CerrarCajaModalV2.tsx` / `caja-panel-reglas.ts`; RPC `abrir_caja` y `cerrar_caja` (el cierre con traslado y apertura verificada es de ADR-0186, 2026-09-23). Límites actuales de la cola (medidos por el carril C, 2026-09-23): solo actúa ante un corte de red, no emite comprobante en el momento, no vende la última prenda del piso, y la página NO se puede abrir ni recargar sin internet (no hay service worker). Plan B en papel: `docs/manual/plan-b-venta-sin-sistema.md`.
 - Preguntas para Felipe: ¿abrir sin internet con el monto contado y reconciliar al volver? ¿cerrar sin internet cuando el «esperado» lo calcula la base (ventas, pagos, movimientos de caja)? ¿qué pasa si otro equipo abre la misma caja mientras tanto? ¿se acepta instalar la app como PWA (service worker) para que cargue sin red? Es la pieza más grande de todo esto.
 - Trampas: hay sesiones rediseñando Caja (ver `SESIONES-ACTIVAS.md`); coordinar antes de tocar `CajaAbiertaPanel.tsx` y `CerrarCajaModalV2.tsx`.
@@ -683,7 +988,7 @@ Demo: `docs/maquetas/conteo-rediseno-2026-09/conteo.html` (artifact https://clau
 - [ ] Movimientos: verlo con clics reales contra la base (filtros, `?proc=conteo` desde Conteo, vacío con 90 días, detalle).
 - [ ] Movimientos: cantidades por proceso en el drill-down — pide agrupar `fn_movimientos_resumen` por motivo (cambio de RPC en producción). Solo si el equipo lo pide.
 - [ ] **Verlo con clics reales** contra la base local o de producción (líder e integrante): filtros en caja, píldoras, zebra, chips y los modales que abren desde Existencias.
-- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas).
+- [ ] **Ventas a la guía oficial** cuando se fusionen sus ramas en curso (Caja/Punto de Venta/Cambios, Devoluciones, Facturación, Historial #275/#278). Después: Catálogo e Inicio (la guía trae sus maquetas). **La cabecera ya no entra en esto (2026-09-26, ADR-0220):** Felipe eligió la de Ventas (`EncabezadoPagina`) y fue Inventario el que pasó a ella; Ventas conserva la suya.
 - [ ] Decisiones abiertas de la guía (ADR-0169, «Lo que NO se hizo»): modo oscuro, pasar la caja hueso a todos los formularios, botones de modal sin versalitas y la curva `ease-salida` frente a `--ease-cayla`.
 
 ## 🎯 Proformas con prendas, hoja A4 con fotos y cobro en el Punto de Venta (2026-09-22, ADR-0167) — EN PRODUCCIÓN (base y web)
@@ -778,6 +1083,14 @@ Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ve
       pantalla mínima de verificación (lista + buscador + alta), sin engancharse a `lib/menu.ts` (otra tarea de la misma tanda lo toca).
 - [ ] **Regenerar `packages/database/src/types.ts` de verdad** con `supabase gen types --local` cuando el stack local (Docker) esté arriba — esta
       sesión lo editó a mano porque Docker no estaba disponible; conviene confirmar que calza exacto.
+
+## 🎯 Clientas: el club de CAYLA — decidido, sin construir (2026-09-26, D-92 a D-111)
+Acta: `docs/datos/DECISIONES-2026-09-26-clientas.md`. Rumbo: club con nombre y sin puntos; la clienta se identifica en caja con DNI o
+celular; avisos por el WhatsApp de la tienda con un botón; permiso con «responde SÍ»; éxito = % de identificadas que vuelven en 90 días.
+Punto de partida en producción (2026-09-26, solo lectura): 0 clientas, 0 de 7 ventas ligadas, 4 boletas con el DNI como texto suelto.
+- [ ] **Felipe:** confirmar las dos correcciones de la sección F del acta (ajuste de taller fuera; «clientas nuevas identificadas» fuera del top 3) y responder las propuestas de la sección G.
+- [ ] **Paso 1 · Caja:** «DNI o celular» + la pregunta del club + «es para regalo» en el Punto de venta; la venta queda ligada. Reemplaza el pendiente «La pantalla de captura del mostrador» de la ficha v1, arriba.
+- [ ] **Pasos 2 a 4** · ficha y lista (grupo propio del menú), permiso y avisos (con grupo testigo), medir — detalle en la sección H del acta.
 
 ## 🎯 Productos: las alertas de stock solo cuentan activas, «Stock total» y números que no mienten (2026-09-22, ADR-0151) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió la opción A y ordenó la #1 a la #4).
@@ -1523,6 +1836,47 @@ Siguiente, sin urgencia: borrador local del conteo; miniaturas de prenda; ni `re
 sueltos tienen token de idempotencia (solo `recibir_envio`). **Cruce:** ADR-0139 (antes 0107, 0132 y 0138; `modulos-por-tienda`, un comprobante
 repartido entre tiendas) reescribe las mismas funciones; el tope por tienda va dentro de `recibir_compras`.
 
+---
+
+## 🎯 Calidad de las ventas (2026-09-18, ADR-0214)
+
+- [x] **`/comercial/calidad` construido y verificado en lo que no depende de la base real:** 2 funciones SQL
+      (`20260918192000_panel_calidad.sql`), reglas puras con 26 pruebas, pantalla vista en escritorio y celular, prueba
+      aislada de 26 verificaciones con 5 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial/calidad` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo que la prueba aislada no cubre: RLS, `fn_es_lider` verdadera, `getUbicaciones` real.
+- [ ] **Aplicar en producción `20260918191500_fn_origen_producto.sql` y DESPUÉS `20260918192000_panel_calidad.sql`** (después del panel comercial). Depende de
+      `variantes.talla_id`, `compras.estado` y `producciones.es_muestra`. Solo lectura; se deshace con 2 `drop function`.
+- [ ] **La vista por proveedor no dirá nada hasta que haya compras reales:** hoy el catálogo casi no está cargado y
+      casi todo saldría como "Sin origen registrado". Es un dato, no un defecto.
+- [ ] **Cambios de una talla a otra** (M→L dice más sobre las medidas que un cambio suelto) y **motivo de devolución con
+      vocabulario cerrado** (`devoluciones.motivo` es texto libre). Umbrales 10 / 2× / 3 provisionales: calibrar con meses reales.
+
+---
+
+## 🎯 Panel comercial (2026-09-18, ADR-0110)
+
+- [x] **`/comercial` construido y verificado en lo que no depende de la base real:** 3 funciones SQL
+      (`20260918191000_panel_comercial.sql`), reglas puras con 30 pruebas, pantalla vista en escritorio y
+      celular, prueba aislada de 22 verificaciones con 3 mutaciones que la hacen fallar.
+- [ ] **Abrir `/comercial` como líder contra el stack local con Docker arriba** (y como colaboradora: debe
+      redirigir). Es lo único que la prueba aislada no cubre: RLS, la `fn_es_lider` verdadera, `fn_nombres_personas`.
+- [ ] **Aplicar en producción, en orden:** `20260916172645_anular_venta` (da `ventas.estado`) y
+      `20260918100000_meta_venta_diaria_por_ubicacion` si faltan — ninguna da error al crear la función, la
+      pantalla falla al abrir —, y después `20260918191000_panel_comercial`. Solo lectura; se deshace con 3 `drop function`.
+- [ ] **Sospecha, sin verificar en producción: las barras de "ventas por hora" de Caja están desplazadas 5 horas.**
+      `getSeriesVentasCaja` (`lib/caja.ts`) agrupa con `new Date(created_at).getHours()` = zona del servidor; Vercel
+      corre en UTC, Lima es UTC−5. En tu Mac (zona Lima) no se nota. Corrección: agrupar en SQL con
+      `at time zone 'America/Lima'` como hace `fn_comercial_horas`.
+- [ ] **Metas por día de la semana** (hoy es una cifra plana: un sábado vale como un martes) y comparativo contra
+      el mismo día de la semana anterior. Umbrales 85% / 100% provisionales: calibrar con Felipe con meses reales.
+- [ ] **DECISIÓN PENDIENTE (Felipe): `/comercial` no tiene entrada en el menú.** Al fusionar con `main` (2026-09-25) el menú
+      pasó a ser el árbol gobernado de `lib/menu.ts`, donde toda pantalla viva debe declarar un **módulo del sistema de
+      roles** (`CLAVES_MODULO`, `retail.modulos` y su migración) y `menu.test.ts` lo exige. `main` ya deja «Comercial» como fila
+      *futura* (pájaro 13 Águila). La pantalla existe y está protegida (líder en pantalla, RPC y RLS), solo se llega por
+      la URL. Para activarla: decidir qué roles ven «Comercial» (¿solo líder? ¿o un módulo delegable?), alta del módulo con su
+      migración, pasar la fila a «viva» (`ruta: "/comercial"`, `icono: "comercial"`, trazo `M4 20h16M7 20v-7m5 7V6m5 14v-10`) y
+      actualizar `menu-hoy.golden.json`.
 ## 🎯 Vender: comprobante impreso en térmica + ajustes del POS (2026-09-18, ADR-0114)
 
 Worktree `buscar-entry-point-7aa994`, **sin commitear**. Sin migración. 414 pruebas, `tsc` y `eslint` en verde;
