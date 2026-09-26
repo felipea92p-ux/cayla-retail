@@ -4930,6 +4930,35 @@ export type Database = {
         Args: { p_datos: Json; p_pedido_id: string }
         Returns: string
       }
+      pedir_a_otra_sede: {
+        Args: { p_lineas: Json; p_nota?: string; p_origen_id: string; p_token?: string; p_ubicacion_id: string }
+        Returns: string
+      }
+      enviar_pedido_a_otra_sede: {
+        Args: { p_fecha_estimada_llegada: string; p_grupo_id: string; p_token?: string }
+        Returns: string
+      }
+      cancelar_pedido_a_otra_sede: {
+        Args: { p_grupo_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      fn_pedidos_entre_sedes: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cancelado_motivo: string | null
+          created_at: string
+          creado_por_nombre: string | null
+          direccion: string
+          estado: string
+          grupo_id: string
+          lineas: Json
+          nota: string | null
+          otra_sede: string
+          otra_sede_id: string
+          traslado_id: string | null
+          traslado_numero: number | null
+        }[]
+      }
       fn_pedidos_para_apartar: {
         Args: { p_ubicacion_id: string }
         Returns: {
