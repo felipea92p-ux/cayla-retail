@@ -182,6 +182,8 @@ button.fila:hover{background:rgb(245 240 232/.7)}
 .cel-tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;padding:6px 0;color:rgb(26 26 24/.5);position:relative}
 .cel-tabs button[aria-current=page]{color:var(--tinta)}
 .cel-tabs .insignia{position:absolute;top:0;right:30%}
+.contabs .cel-barra{bottom:var(--alto-tabs,78px);padding-bottom:12px;margin-top:auto}
+.contabs .cel-tabs{margin-top:0}
 .telefono .velo{position:absolute;padding:0;align-items:flex-end}
 .telefono .modal{max-width:none;border-radius:24px 24px 0 0;max-height:92%;animation:sube .42s var(--ease) both}
 .telefono .m-pie{border-radius:0;padding-bottom:28px}
@@ -306,15 +308,15 @@ const FUNCIONES = [
 const PRESETS = {
   esencial: { t: 'Esencial', d: 'Solo los arreglos. Lo de hoy, sin nada nuevo.', on: [] },
   recomendado: { t: 'Recomendado', d: 'Lo que más ahorra tiempo en el piso y reduce vencidos.', on: ['clienta', 'qr', 'abonos', 'lote', 'estante'] },
-  completo: { t: 'Completo', d: 'Todo encendido, para verlo junto.', on: FUNCIONES.map((f) => f.k) },
+  completo: { t: 'Completo', d: 'Todo encendido. Elegido por Felipe como punto de partida (2026-09-26).', on: FUNCIONES.map((f) => f.k) },
 };
 /* Columnas y datos que «Qué ver» muestra en Todos, con sus valores de fábrica. */
 const COLS_DEF = { prendas: true, pagado: true, vence: true, estante: true, asesora: false, contacto: true };
 const COLS_T = { prendas: 'Prendas', pagado: 'Pagado y saldo', vence: 'Vence', estante: 'Estante', asesora: 'Quién atendió', contacto: 'Celular' };
 
 const S = {
-  device: 'pc', forma: 'pasos', tab: 'apartar', preset: 'recomendado',
-  f: Object.fromEntries(FUNCIONES.map((x) => [x.k, PRESETS.recomendado.on.includes(x.k)])),
+  device: 'pc', forma: 'pasostabs', tab: 'apartar', preset: 'completo',
+  f: Object.fromEntries(FUNCIONES.map((x) => [x.k, PRESETS.completo.on.includes(x.k)])),
   marcar: true,
   q: '', ticket: [{ id: 'v1', n: 1 }, { id: 'v2', n: 1 }], recien: 'v2', paso: 0, pasoCel: 0,
   clientaQ: '', clientaModo: 'buscar', manual: { nombres: '', apellidos: '', cel: '', dni: '' },
@@ -341,7 +343,7 @@ function buscador() {
   <div style="position:relative;z-index:20" class="row gap8">
     <label class="buscador grow">${ic('scan', 'l')}<input data-in="q" value="${esc(S.q)}" placeholder="${cel() ? 'Escanea o busca la prenda' : 'Escanea la etiqueta o busca la prenda por nombre'}" autocomplete="off">
       ${S.q ? `<button data-a="limpiarQ" class="t50">${ic('x', 's')}</button>` : ''}</label>
-    ${on('qr') && cel() && !(S.forma === 'pasos' && S.tab === 'apartar' && S.pasoCel === 0 && !S.q) ? `<button class="icono-b" style="height:54px;width:54px;background:var(--tinta);color:var(--crema);border-color:var(--tinta)" data-a="camara" aria-label="Escanear con la cámara">${ic('camara', 'l')}</button>` : ''}
+    ${on('qr') && cel() && !((S.forma === 'pasos' || S.forma === 'pasostabs') && S.tab === 'apartar' && S.pasoCel === 0 && !S.q) ? `<button class="icono-b" style="height:54px;width:54px;background:var(--tinta);color:var(--crema);border-color:var(--tinta)" data-a="camara" aria-label="Escanear con la cámara">${ic('camara', 'l')}</button>` : ''}
     ${res.length ? `<div class="popover entra" style="top:60px;left:0;right:0;padding:0;overflow:hidden">${res.slice(0, 6).map((p) => {
       const agot = p.aqui === 0;
       return `<button class="fila" data-a="agregar" data-id="${p.id}" style="${agot && !on('otraSede') ? 'opacity:.55' : ''}">${foto(p)}<span class="grow"><b class="trunc" style="display:block;font-weight:600">${esc(p.ref)}</b><span class="t60" style="font-size:12.5px">${p.color} · ${p.talla} · <span class="mono">${p.cod}</span></span></span>
@@ -758,7 +760,7 @@ function modal() {
     return `<div class="velo lado" data-a="velo"><div class="modal" style="position:relative" data-stop>
       <div class="m-cab">${cerrar}<p class="label rojo" style="margin:0">Opciones</p><h3 class="disp" style="margin:2px 0 0;font-size:24px">Personaliza Apartados</h3><p class="t60" style="margin:2px 0 0;font-size:13px">Elige un punto de partida y ajusta función por función.</p></div>
       <div class="m-cuerpo cascada">
-        <div class="col gap8">${Object.entries(PRESETS).map(([k, p]) => `<button class="tarjeta row gap12" style="padding:12px 14px;text-align:left;${S.preset === k ? 'border-color:var(--tinta)' : ''}" data-a="preset" data-k="${k}"><span style="width:16px;height:16px;border-radius:99px;border:1.5px solid var(--tinta);display:grid;place-items:center;flex:none">${S.preset === k ? '<i style="width:8px;height:8px;border-radius:99px;background:var(--tinta)"></i>' : ''}</span><span class="grow"><b>${p.t}</b>${k === 'recomendado' ? ' <span class="chip piz sinpunto">de fábrica</span>' : ''}<br><span class="t60" style="font-size:12.5px">${p.d}</span></span></button>`).join('')}</div>
+        <div class="col gap8">${Object.entries(PRESETS).map(([k, p]) => `<button class="tarjeta row gap12" style="padding:12px 14px;text-align:left;${S.preset === k ? 'border-color:var(--tinta)' : ''}" data-a="preset" data-k="${k}"><span style="width:16px;height:16px;border-radius:99px;border:1.5px solid var(--tinta);display:grid;place-items:center;flex:none">${S.preset === k ? '<i style="width:8px;height:8px;border-radius:99px;background:var(--tinta)"></i>' : ''}</span><span class="grow"><b>${p.t}</b>${k === 'completo' ? ' <span class="chip piz sinpunto">de fábrica</span>' : ''}<br><span class="t60" style="font-size:12.5px">${p.d}</span></span></button>`).join('')}</div>
         ${grupos.map((g) => `<div><p class="label t60" style="margin:6px 0 4px">${g}</p>${FUNCIONES.filter((f) => f.g === g).map((f) => `<div class="row gap12" style="padding:10px 0;border-bottom:1px solid var(--sand)"><div class="grow"><p style="margin:0;font-weight:500">${f.t}</p><p class="t60" style="margin:2px 0 0;font-size:12.5px">${f.d}</p></div><button class="interruptor" role="switch" aria-checked="${on(f.k)}" data-a="func" data-k="${f.k}"></button></div>`).join('')}</div>`).join('')}
         <div class="nota">En el producto, esto lo decide el líder por tienda (Configuración ▸ Tiendas y caja) y cada rol ve lo que su módulo permite. En el spike sirve para comparar.</div>
       </div>
@@ -815,7 +817,7 @@ function escritorio() {
 /* ——— Celular: tres formas para comparar ——— */
 function celApartar() {
   const total = totalTicket(); const n = prendasTicket(); const ad = Math.min(S.adelanto, total);
-  const pasos = S.forma === 'pasos';
+  const pasos = S.forma === 'pasos' || S.forma === 'pasostabs';
   if (!pasos) {
     // Apilado: todo en una columna, como hoy, con barra «Ver ticket» (o sin barra si hay pestañas abajo).
     return `<div class="cel-cuerpo">${buscador()}${S.q ? '' : recienEscaneada()}
@@ -867,16 +869,18 @@ function telefono() {
   const necesitan = APT.filter((a) => ['porvencer', 'vencida', 'devolver'].includes(a.estado)).length;
   const tabs = [['apartar', 'Apartar', 'marca'], ['entregar', 'Entregar', 'bolsa'], ['todos', 'Todos', 'reloj', necesitan]];
   const cuerpo = S.tab === 'apartar' ? celApartar() : S.tab === 'entregar' ? celEntregar() : `<div class="cel-cuerpo">${vistaTodos()}</div>`;
-  return `<div class="telefono"><div class="muesca"></div><div class="pantalla" id="pantalla">
+  const conTabs = S.forma === 'tabs' || S.forma === 'pasostabs';
+  return `<div class="telefono"><div class="muesca"></div><div class="pantalla ${S.forma === 'pasostabs' ? 'contabs' : ''}" id="pantalla">
     <div class="estado-os"><span>9:41</span><span>●●● 5G ▮</span></div>
     <div class="cel-cab"><span class="row gap10">${ic('menu', 'l')}<span class="label" style="font-size:11px">Apartados · TRU</span></span><span class="row gap12">${on('actividad') ? `<button data-a="actividad">${ic('historia', 'l')}</button>` : ''}<button data-a="opciones">${ic('ajustes', 'l')}</button></span></div>
-    ${S.forma !== 'tabs' ? `<nav class="cel-pestanas">${tabs.map(([k, t, , n]) => `<button class="pestana" data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>` : ''}
+    ${!conTabs ? `<nav class="cel-pestanas">${tabs.map(([k, t, , n]) => `<button class="pestana" data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>` : ''}
     ${cuerpo}
-    ${S.forma === 'tabs' ? `<nav class="cel-tabs">${tabs.map(([k, t, i, n]) => `<button data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${ic(i, 'l')}${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>` : ''}
+    ${conTabs ? `<nav class="cel-tabs">${tabs.map(([k, t, i, n]) => `<button data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${ic(i, 'l')}${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>` : ''}
   </div>${modal()}${camara()}</div>`;
 }
 
 const FORMAS = {
+  pasostabs: ['Pasos + pestañas abajo', ['Elegida por Felipe (2026-09-26).', 'Apartar / Entregar / Todos quedan abajo, a la altura del pulgar; el ☰ de arriba sigue siendo el menú del ERP.', 'Apartar va en pasos: prendas → clienta → adelanto, uno por pantalla.', 'Encima de las pestañas, la barra negra dice el total (o el saldo) y el botón que sigue.', 'Todos se abre con el punto de partida Completo: las 8 funciones encendidas.']],
   pasos: ['Pasos + barra fija', ['Cada paso ocupa la pantalla: prendas → clienta → adelanto.', 'La barra negra de abajo siempre dice el total y el botón que sigue: nada queda enterrado.', 'Con la cámara encendida, el escáner es la primera tarjeta del paso 1.', 'Entregar: la barra dice el saldo y «Cobrar».']],
   apilado: ['Apilado + «Ver ticket»', ['El orden de hoy, en una sola columna.', 'La barra «Ver ticket» (la de Vender) baja al ticket.', 'Es el cambio más chico, pero el formulario del adelanto sigue siendo largo.']],
   tabs: ['Pestañas abajo', ['Apartar / Entregar / Todos quedan a la altura del pulgar.', 'Se siente como una app, pero choca con el cajón lateral ☰ (ADR-0206): hay dos menús.', 'El botón que guarda vuelve a quedar al final del contenido.']],
@@ -892,7 +896,7 @@ function barraDemo() {
   const seg = (k, ops) => `<span class="seg">${ops.map(([v, t]) => `<button data-a="demo" data-k="${k}" data-v="${v}" aria-pressed="${S[k] === v}">${t}</button>`).join('')}</span>`;
   return `<div class="demo"><span class="grupo"><b>Spike · Apartados v2</b></span>
     <span class="grupo"><span class="etq">Ver en</span>${seg('device', [['pc', 'Computador'], ['cel', 'Celular']])}</span>
-    ${cel() ? `<span class="grupo"><span class="etq">Forma</span>${seg('forma', [['pasos', 'Pasos + barra'], ['apilado', 'Apilado'], ['tabs', 'Pestañas abajo']])}</span>` : ''}
+    ${cel() ? `<span class="grupo"><span class="etq">Forma</span>${seg('forma', [['pasostabs', 'Pasos + pestañas ✓'], ['pasos', 'Pasos + barra'], ['apilado', 'Apilado'], ['tabs', 'Pestañas abajo']])}</span>` : ''}
     <span class="grupo"><span class="etq">Punto de partida</span>${seg('preset', Object.entries(PRESETS).map(([k, p]) => [k, p.t]))}</span>
     <label class="chk"><input type="checkbox" data-a="marcar" ${S.marcar ? 'checked' : ''}> Marcar arreglos y lo nuevo</label>
     <button class="chk" data-a="opciones" style="margin-left:auto">${ic('ajustes', 's')} Opciones una por una</button></div>`;

@@ -1,8 +1,18 @@
 # Apartados v2 — spike visual (2026-09-26)
 
 Spike interactivo: `apartados-v2-spike.html` (abrir en el navegador, sin servidor). No toca código ni base.
-Capturas en `capturas/`. Estado por URL para abrir una vista concreta, por ejemplo
+Capturas en `capturas/` (`08`–`10` son la forma elegida). Estado por URL para abrir una vista concreta, por ejemplo
 `apartados-v2-spike.html#device=cel&forma=pasos&paso=2&clienta=1` o `#tab=todos&preset=completo`.
+
+## Decidido por Felipe (2026-09-26)
+
+- **Celular: Pasos + pestañas abajo.** Una combinación de dos de las formas propuestas. Apartar va en pasos (prendas →
+  clienta → adelanto); Apartar / Entregar / Todos quedan abajo, a la altura del pulgar; y encima de las pestañas va la
+  barra negra con el total (o el saldo) y el botón que sigue. El ☰ de arriba sigue siendo el menú del ERP (ADR-0206):
+  las pestañas de abajo son de la pantalla, no un segundo menú de navegación. En computador no cambia nada: las
+  pestañas siguen arriba. Es la forma con que abre la demo. Capturas `08`–`10`.
+- **Punto de partida de fábrica: Completo** (las 8 funciones encendidas). Cada tienda puede apagar lo que no use en
+  «Opciones».
 
 ## Cómo se usa la demo
 
@@ -78,9 +88,8 @@ vuelve crédito, con su cobranza).
 
 ## Lo que falta decidir (Felipe)
 
-1. Qué forma de celular se implementa (el spike recomienda **Pasos + barra fija**).
-2. Qué preset queda de fábrica (el spike propone **Recomendado**) y si «Opciones» vive en la pantalla o en
-   Configuración ▸ Tiendas y caja, solo para el líder.
+1. ~~Forma de celular~~ y ~~preset de fábrica~~: decididos (arriba).
+2. Si «Opciones» vive en la pantalla o en Configuración ▸ Tiendas y caja, solo para el líder.
 3. Abonos: ¿abonar extiende el plazo 7 días, o el plazo queda fijo? (la demo trae la casilla marcada).
 4. Editar: si el nuevo total queda por debajo de lo pagado, ¿se devuelve la diferencia o queda como saldo a favor para
    su próxima compra? (hoy no existe el saldo de clienta: `venta_pagos.metodo` es un CHECK cerrado).
@@ -88,7 +97,7 @@ vuelve crédito, con su cobranza).
 
 ## Orden sugerido para construir
 
-1. **PR solo web, sin migración:** los arreglos 1–6, la cámara QR y la forma de celular elegida. Se prueba a 375 px (PL-105).
+1. **PR solo web, sin migración:** los arreglos 1–6, la cámara QR y la forma de celular elegida (Pasos + pestañas abajo). Se prueba a 375 px (PL-105).
 2. Clienta por DNI o celular: espera el Paso 1 del club (Caja) para usar la misma búsqueda.
 3. Abonos + estante real: una migración cada uno, con sus pruebas de Postgres (`scripts/pruebas/separaciones.mjs`).
 4. Recordar en lote, actividad, editar y otra sede, en ese orden.

@@ -95,8 +95,9 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 
 ## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
 Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
-- [ ] **Felipe:** elegir la forma de celular (recomendada: Pasos + barra fija), el preset de fábrica y responder las 5 preguntas del README (abonos extienden plazo, saldo a favor al editar, plazo del traslado).
-- [ ] **PR solo web:** arreglos 1–6 (ticket y Entregar con color · talla · código, código vacío, modal con pie fijo, DNI de 8 y celular de 9, texto de En custodia) + cámara QR (`EscanerCamara`) + forma de celular elegida. Captura a 375 px (PL-105).
+- [x] **Felipe (2026-09-26):** celular con **Pasos + pestañas abajo** y punto de partida **Completo** (8 funciones encendidas).
+- [ ] **Felipe:** las 4 preguntas que quedan en el README (dónde vive «Opciones», si abonar extiende el plazo, saldo a favor al editar, plazo del traslado).
+- [ ] **PR solo web:** arreglos 1–6 (ticket y Entregar con color · talla · código, código vacío, modal con pie fijo, DNI de 8 y celular de 9, texto de En custodia) + cámara QR (`EscanerCamara`) + celular en Pasos + pestañas abajo (en computador las pestañas siguen arriba). Captura a 375 px (PL-105).
 - [ ] Después, una migración por función: clienta ligada (`clienta_id`, espera el Paso 1 del club), abonos, estante real (ADR-0199), aviso en lote, actividad (ADR-0207), editar, apartar de otra sede (toca Traslados).
 
 ## 🎯 Varios rubros por proveedor (2026-09-25, ADR-0213) — migración `20260926110000` EN PRODUCCIÓN (2026-09-26, versión `20260926003322`)
