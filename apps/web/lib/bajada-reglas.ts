@@ -205,6 +205,25 @@ export function quitarLinea(lineas: readonly LineaBajada[], varianteId: string):
 }
 
 /**
+ * La lista con la que arranca la pantalla cuando llega marcada desde Existencias (`?lineas=`, ADR-0237): solo prendas de
+ * ESTA tienda con algo libre en el almacén, la cantidad topada a eso (como `fijarCantidad`) y como mucho
+ * `MAX_LINEAS_BAJADA` líneas. Lo que no se puede bajar se descarta en silencio: la lista es un punto de partida, no una
+ * orden (ADR-0231: CAYLA no sugiere cuánto reponer).
+ */
+export function lineasIniciales(pedidas: readonly LineaBajada[], prendas: readonly PrendaBajable[]): LineaBajada[] {
+  const porId = new Map(prendas.map((p) => [p.varianteId, p]));
+  const lineas: LineaBajada[] = [];
+  for (const l of pedidas) {
+    const p = porId.get(l.varianteId);
+    if (!p || p.almacenDisponible <= 0 || !Number.isInteger(l.cantidad) || l.cantidad <= 0) continue;
+    if (lineas.some((x) => x.varianteId === l.varianteId)) continue;
+    lineas.push({ varianteId: l.varianteId, cantidad: Math.min(l.cantidad, p.almacenDisponible) });
+    if (lineas.length === MAX_LINEAS_BAJADA) break;
+  }
+  return lineas;
+}
+
+/**
  * Lo que queda en `actuales` después de descontar lo que ya viajó (`guardadas`): por prenda, la diferencia si es
  * positiva, en el orden de `actuales`. Es lo que sigue colgado sin registrar cuando la base avisa que ese token ya se
  * usó, y lo que queda en la lista si algo cambió mientras se guardaba.
