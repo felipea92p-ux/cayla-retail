@@ -45,8 +45,6 @@ se pudo verificar.
 
 ## Decisiones de Felipe
 
-_Pendiente: se completa cuando Felipe elija. Con eso se arma el spike final en esta misma carpeta._
-
 **2026-09-26, tras el demo:** Felipe eligió **1A «Hoy» · 2B barra abajo · 3A Cobrar + Apartar**, y pidió sumar las cifras
 de cada pestaña (monto facturado, monto cotizado…). Eso es `spike.html`:
 
