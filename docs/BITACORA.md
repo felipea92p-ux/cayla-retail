@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Revisión de errores en Catálogo ▸ Productos y Existencias: el código de la prenda salía vacío)
+Felipe pasó tres capturas («esto está lleno de errores»). Se verificó cada síntoma contra el código y, en solo lectura, contra producción: 128 de 130 variantes tienen `sku` NULL (ADR-0058: nació opcional), pero 129 tienen `codigo`. Existencias leía solo `sku`, por eso la celda decía «· L ·» sin nada; ahora lee el código de la etiqueta (y con él buscan, ordenan y exportan Existencias, Ajustar y la tabla de Productos). También: «1 productos» → «1 producto», y la tarjeta «Reponer a piso hoy» ya no afirma «con demanda» (la regla nunca mira ventas).
+Felipe se lleva:
+1. **Un campo que nació opcional tiene que tener un lector que lo sepa.** Ventas ya se había arreglado (`codigoPrenda`, 2026-09-16); Inventario nunca adoptó la regla, y el mismo hueco seguía en otras pantallas (lista en BACKLOG).
+2. **Una frase de la pantalla es una afirmación.** «Con demanda» decía algo que ni la regla ni la tabla (Ritmo «N/D») sabían; se quitó en vez de mantenerla por costumbre.
+3. **Para confirmar un dato no hay que adivinar en pantalla:** una consulta de solo lectura a producción separó «el dato no existe» de «la pantalla no lo lee» en un minuto.
+
 ## 2026-09-26 (¿Algún SQL por pegar? Auditoría por efectos y candado de movimientos)
 Auditoría con 26 agentes, solo lectura: de 95 migraciones, faltaban 3 de `main` (Comercial y Calidad, que entraron con fecha del 18-sep y se colaron fuera de la auditoría del 22-sep) y el paso 1 de «integrante». Se aplicaron con ensayo revertido y verificación por huella. El candado de `movimientos` había perdido su modo ALWAYS por un script de mantenimiento: migración nueva para que `main` y producción digan lo mismo.
 Felipe se lleva:

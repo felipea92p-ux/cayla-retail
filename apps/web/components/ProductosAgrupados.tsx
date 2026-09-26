@@ -243,7 +243,7 @@ export function ProductosAgrupados({
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-tinta/10 text-left">
-                      <th className="label-cayla px-5 py-2.5 text-[11px] text-tinta/65">SKU</th>
+                      <th className="label-cayla px-5 py-2.5 text-[11px] text-tinta/65">Código</th>
                       <th className="label-cayla px-3 py-2.5 text-[11px] text-tinta/65">Talla</th>
                       <th className="label-cayla px-3 py-2.5 text-[11px] text-tinta/65">Color</th>
                       <th className="label-cayla px-3 py-2.5 text-right text-[11px] text-tinta/65">Precio</th>
@@ -254,7 +254,7 @@ export function ProductosAgrupados({
                   <tbody className="divide-y divide-tinta/10">
                     {p.variantes.map((v) => (
                       <tr key={v.varianteId} className={v.activo ? "" : "opacity-50"}>
-                        <td className="px-5 py-2.5 font-mono text-xs text-tinta/75">{v.sku}</td>
+                        <td className="px-5 py-2.5 font-mono text-xs text-tinta/75">{v.codigo ?? v.sku ?? "—"}</td>
                         <td className="px-3 py-2.5 text-tinta/75">{v.talla ?? "—"}</td>
                         <td className="px-3 py-2.5 text-tinta/75">
                           {v.color ? (

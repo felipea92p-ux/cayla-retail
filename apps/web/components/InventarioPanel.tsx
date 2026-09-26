@@ -385,7 +385,7 @@ export function InventarioPanel({
   // (`separa`) — en Taller siempre son `null` y mostrar tres columnas vacías
   // en cada fila sería ruido, no dato (mismo criterio que ya usa la tabla).
   function exportarCsv() {
-    const encabezados = ["Prenda", "SKU", "Talla", "Color", "Categoría"];
+    const encabezados = ["Prenda", "Código", "Talla", "Color", "Categoría"];
     if (separa) encabezados.push("Piso", "Almacén");
     encabezados.push("Disponible");
     if (separa) encabezados.push("Apartadas", "Estado");
@@ -450,9 +450,12 @@ export function InventarioPanel({
               onClick={() => setEstado((e) => (e === "reponer_piso" ? TODAS : "reponer_piso"))}
             >
               {/* La cifra es solo «Reponer piso» (decisión de Felipe, no se toca). Pero si da 0 y hay tallas sin
-                  nada colgado, «nada pendiente de bajar» sería falso: remite a la lista que sí las tiene. */}
+                  nada colgado, «nada pendiente de bajar» sería falso: remite a la lista que sí las tiene.
+                  Ya NO dice «con demanda» (2026-09-26): la regla (`necesitaReponerPiso`) solo mira cuánto queda en
+                  el piso y en el almacén, nunca las ventas; en una sede sin historial (Ritmo «N/D» en cada fila) esa
+                  frase afirmaba un dato que la pantalla no tiene. */}
               {resumen.requierenReposicion > 0
-                ? `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén — con demanda`
+                ? `${unidadesReponer.toLocaleString("es-PE")} uds disponibles en almacén para bajar al piso`
                 : cuentaPorColgar.tallas > 0
                   ? `Revisa «Por colgar» en la tabla: ${cuentaPorColgar.tallas} ${cuentaPorColgar.tallas === 1 ? "talla" : "tallas"} que la clienta no ve`
                   : "Nada pendiente de bajar al piso"}
@@ -466,7 +469,7 @@ export function InventarioPanel({
             activa={viendoDisponible}
             onClick={() => setViendoDisponible(true)}
           >
-            {deltaSede.pct === null ? "Sin base de hace 7 días para comparar" : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
+            {deltaSede.pct === null ? "Sin datos de hace 7 días para comparar" :`${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
           </TarjetaPrioridad>
           <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
             {enCamino.traslados === 0
@@ -547,7 +550,7 @@ export function InventarioPanel({
       <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-4 overflow-hidden">
       {stock.length > 0 && (
         <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
-          <CampoTexto caja etiqueta="Buscar" placeholder="Producto, SKU, color, talla…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+          <CampoTexto caja etiqueta="Buscar" placeholder="Producto, código, color, talla…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
           <CampoSelect
             caja
             etiqueta="Categoría"

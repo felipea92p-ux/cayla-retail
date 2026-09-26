@@ -28,6 +28,13 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🩹 El código de la prenda salía vacío en Existencias y Productos (2026-09-26) — solo web, sin migración
+Causa: `variantes.sku` es NULL en 128 de 130 variantes (ADR-0058) y esas pantallas leían solo `sku`; el que casi todas tienen es `variantes.codigo` (129 de 130, consultado en vivo). Regla nueva y única: `codigoDeEtiqueta` en `lib/prenda-reglas.ts` (código → sku legado → `""`; `codigoPrenda` la usa y agrega «sin código»).
+- [x] Existencias y todo lo que sale de `getStockPorUbicacion`/`getExistencias` (análisis de cobertura, recomendaciones, Reponer, Apartar, Bajar al piso, CSV, buscador), Ajustar inventario (`ajuste-reglas.ts`) y la tabla de Productos (`ProductosAgrupados.tsx`, encabezado «Código»). Pruebas: `prenda-reglas.test.ts`, `ajuste-reglas.test.ts`.
+- [x] «1 productos · 12 variantes» → plural correcto (`/productos`); la tarjeta «Reponer a piso hoy» ya no dice «con demanda» (la regla `necesitaReponerPiso` solo mira piso y almacén) y «Sin base de hace 7 días» pasó a «Sin datos de hace 7 días».
+- [ ] **Siguen leyendo `variantes.sku` directo y mostrarán el hueco** (verificado en el código, no en pantalla): Conteo (`lib/conteos.ts` ×3, `ConteoDetalleVista`), Compras (`lib/compras.ts` ×2), Producción (`lib/produccion.ts` ×2), Traslados y Recepción (`TrasladoDetallePanel`, `RecepcionEnvio`), `getCatalogo` y `VarianteDetalle` (`catalogo-v2.ts`), y **Movimientos** (la RPC `fn_movimientos` devuelve solo `sku`: pide migración). Cada una: agregar `codigo` al select y pasar por `codigoDeEtiqueta`. **No** rellenar `variantes.sku` con el código en producción (ADR-0058: sería un dato inventado para tapar un NOT NULL que ya no existe).
+- [ ] Sin tocar, por decisión de Felipe: buscar «CAYLA» (la marca) en Existencias no encuentra nada porque el buscador solo mira nombre, código, color y talla; y la foto de cabecera de Existencias trae letreros en inglés («MOVE THE WORLD», «PACKING»).
+
 ## 🔒 Auditoría «¿algún SQL por pegar?» y candado de movimientos (2026-09-26)
 Se revisaron por EFECTOS en producción (solo lectura, 144 consultas) las 89 migraciones de `main` posteriores a la auditoría del 22-sep y las 6 de PR abiertos. 86 aplicadas, 1 superada (#58), el resto abajo.
 - [x] **Aplicadas con el «sí» de Felipe (ensayo revertido + huella md5 idéntica al repo + humo):** `20260918191000_panel_comercial`, `20260918191500_fn_origen_producto`, `20260918192000_panel_calidad` (entraron a `main` el 25-sep con fecha vieja; `/comercial` y `/comercial/calidad` se caían) y `20260924000000_colaborador_a_integrante_paso1_codigo` (paso 1 de 3; las 25 filas intactas, colaborador=17 y lider=8; los pasos 2 y 3 siguen pendientes y van aparte).
