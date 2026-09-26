@@ -391,6 +391,51 @@ set local role authenticated;
 select retail.fn_cerrar_apartado_de_separacion(gen_random_uuid(), 'otro', null);`, "permission denied");
 
 // ---------------------------------------------------------------------------
+// Recordar en lote (20260926233000_separacion_avisos.sql): cada aviso es una fila que no se edita
+// ---------------------------------------------------------------------------
+const FELIPE_PERSONA = `(select id from public.personas where auth_user_id = '${FELIPE}')`;
+const conApartados = `do $m$ begin
+  if to_regclass('retail.rol_modulos') is not null then
+    insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000003', 'apartados');
+  end if;
+end $m$;
+`;
+exito("aviso: la líder deja constancia, firma ella y la lectura lo cuenta",
+  `${preparar(FELIPE)}${separar()}
+select retail.registrar_aviso_separacion(:'sep') is not null as _r \\gset
+select (select count(*) from retail.separacion_avisos where separacion_id = :'sep' and avisado_por = ${FELIPE_PERSONA}),
+       (select avisos || ':' || (ultimo_aviso_en is not null) || ':' || (ultimo_por is not null) from retail.fn_avisos_separaciones(:'ubic') where separacion_id = :'sep');`,
+  (s) => s === "1|1:true:true");
+exito("aviso: dos avisos quedan los dos (append-only), la lectura dice 2",
+  `${preparar(FELIPE)}${separar()}
+select retail.registrar_aviso_separacion(:'sep') as _a \\gset
+select retail.registrar_aviso_separacion(:'sep') as _b \\gset
+select avisos from retail.fn_avisos_separaciones(:'ubic') where separacion_id = :'sep';`,
+  (s) => s === "2");
+error("aviso: sin el módulo Apartados en su rol, no se registra",
+  `${preparar(FELIPE)}${separar()}
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.registrar_aviso_separacion(:'sep');`, "no tiene el módulo Apartados");
+exito("aviso: con el módulo Apartados en su rol, la colaboradora sí lo registra",
+  `${preparar(FELIPE)}${separar()}${conApartados}
+set local request.jwt.claim.sub = '${MICAELA}';
+select retail.registrar_aviso_separacion(:'sep') is not null;`,
+  (s) => s === "t");
+error("aviso: un apartado liberado ya no se avisa",
+  `${preparar(FELIPE)}${separar()}
+select retail.liberar_separacion(:'sep', 'clienta_desistio') as _l \\gset
+select retail.registrar_aviso_separacion(:'sep');`, "Solo se avisa un apartado abierto");
+exito("aviso: un liberado sale de la lectura (solo cuenta lo abierto)",
+  `${preparar(FELIPE)}${separar()}
+select retail.registrar_aviso_separacion(:'sep') as _a \\gset
+select retail.liberar_separacion(:'sep', 'clienta_desistio') as _l \\gset
+select count(*) from retail.fn_avisos_separaciones(:'ubic') where separacion_id = :'sep';`,
+  (s) => s === "0");
+error("aviso: authenticated no lee ni escribe la tabla directo", `${preparar()}
+set local role authenticated;
+select count(*) from retail.separacion_avisos;`, "permission denied");
+
+// ---------------------------------------------------------------------------
 let ok = 0;
 const fallos = [];
 try { execFileSync("docker", ["exec", CONTENEDOR_LOCAL, "true"]); } catch {

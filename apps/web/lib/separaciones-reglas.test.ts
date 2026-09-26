@@ -5,6 +5,9 @@ import {
   cobroDelSaldo,
   coincide,
   enlaceWhatsapp,
+  avisadaHoy,
+  colaPorAvisar,
+  mensajeWhatsapp,
   erroresDelApartado,
   estadoVisible,
   moverActivo,
@@ -195,3 +198,34 @@ describe("moverActivo", () => {
     expect(moverActivo(5, -1, 0)).toBe(0);
   });
 });
+
+describe("recordar en lote", () => {
+  const hoy = "2026-09-26";
+  const a = (id: string, venceEl: string, estado: Apartado["estado"] = "abierta") => apartado({ id, codigo: `APT-TRU-${id}`, venceEl, estado });
+  const lista = [a("1", "2026-10-03"), a("2", "2026-09-28"), a("3", "2026-09-25"), a("4", "2026-09-27"), a("5", "2026-09-27", "entregada"), a("6", "2026-09-20", "liberada")];
+
+  it("entran los que vencen en 2 días o menos y los vencidos en gracia; el que vence antes, primero", () => {
+    const { porAvisar, avisadasHoy } = colaPorAvisar(lista, {}, hoy);
+    expect(porAvisar.map((x) => x.id)).toEqual(["3", "4", "2"]);
+    expect(avisadasHoy).toEqual([]);
+  });
+  it("quien ya recibió un aviso HOY (en hora de Lima) sale de la cola; uno de ayer vuelve a entrar", () => {
+    const avisos = {
+      "4": { avisos: 1, ultimoEn: "2026-09-26T14:00:00Z", ultimoPor: "Rosa" },
+      // 22:00 del 25 en Lima = 03:00 UTC del 26: es de AYER para la tienda
+      "2": { avisos: 1, ultimoEn: "2026-09-26T03:00:00Z", ultimoPor: "Rosa" },
+    };
+    const { porAvisar, avisadasHoy } = colaPorAvisar(lista, avisos, hoy);
+    expect(porAvisar.map((x) => x.id)).toEqual(["3", "2"]);
+    expect(avisadasHoy.map((x) => x.id)).toEqual(["4"]);
+    expect(avisadaHoy(avisos["2"], hoy)).toBe(false);
+  });
+  it("el mensaje de un vencido no promete una fecha pasada: dice hasta cuándo se guarda", () => {
+    const vencido = apartado({ nombres: "Lucía", codigo: "APT-TRU-0003", venceEl: "2026-09-25", saldo: 99 });
+    expect(mensajeWhatsapp(vencido, "Tienda TRU", hoy)).toBe(
+      "Hola Lucía, tu apartado APT-TRU-0003 en CAYLA Tienda TRU venció el 25/09/2026. Aún te lo guardamos hasta el 27/09/2026. Saldo por pagar: S/99.00.",
+    );
+    expect(mensajeWhatsapp(vencido, "Tienda TRU")).toMatch(/te espera .* hasta el 25\/09\/2026/);
+  });
+});
+

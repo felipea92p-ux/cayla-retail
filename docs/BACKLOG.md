@@ -36,6 +36,23 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] Cuando Felipe confirme que no hace falta volver atrás: borrar a mano `respaldo_purgas.filas` (o dejarlo; es un respaldo, no historia).
 - [ ] Cerrar o contar la caja abierta de TRU **después** de la purga: su «esperado» bajó S/ 2,007.10 (la venta ya no existe).
 
+## 💵 Caja como pantalla de trabajo (2026-09-26, ADR-0226) — solo web, sin migración; rama `claude/caja-screen-analysis-improvements-1af2d2`
+Spike en `docs/maquetas/caja-tablero-spike-2026-09/`, aprobado por Felipe. Hecho y verificado en navegador (1440 px y
+375 px con datos de prueba; tipos, lint y pruebas en verde):
+- [x] «Efectivo en el cajón ahora» como cifra principal, con sus piezas (total de `fn_resumen_caja`).
+- [x] «Cobrado en el turno» sin el `anticipo`.
+- [x] Botones (Cobrar, Registrar gasto con el formulario de Finanzas, Depósito o retiro, Cambio o devolución, Apartados)
+  y píldoras «Tu caja muestra» (Pendientes, Apartados, Gastos, Cambios y devoluciones), según los módulos de la cuenta.
+- [x] «Cierres anteriores» con cuatro vistas y la predeterminada por rol; movimientos con filtro.
+- [x] Celular: barra fija como la del Inicio, sin pestañas de menú (ADR-0206).
+Pendiente:
+- [ ] **Verlo con una cuenta real en producción** (colaboradora y líder): la verificación fue con una página de prueba
+  y datos inventados, sin sesión.
+- [ ] **Decidir el «¿Qué pasó con la plata?»** del spike: convertir `MovimientoCajaModal` en depósito → Cuentas y
+  dinero / entrega al líder / sencillo. Mueve dinero entre módulos, por eso no entró aquí.
+- [ ] Umbral del ámbar del semáforo (S/ 5, `TOLERANCIA_CUADRE`): confirmar con Felipe.
+- [ ] `DonaMetodos` y `TendenciaCierres` ya no los usa Caja: revisar si alguien más los usa y archivarlos.
+
 ## 🏠 Inicio por rol en computadora y celular (2026-09-26, ADR-0225; fusionado en #484) — solo web, sin migración; rama `claude/home-screen-responsive-features-e19345`
 
 - [x] «Te toca» (9 avisos por módulo, urgente → por hacer → info, «Al día»), filtro «Ajustar» con urgentes que no se
@@ -116,6 +133,13 @@ Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtr
 - [ ] **SQL espejo:** `fn_movimientos_variantes` (Movimientos) todavía no busca por marca ni categoría: hoy «cayla» funciona en Existencias y no en Movimientos. Migración propuesta `…_movimientos_busqueda_marca_categoria.sql` + escenario en `filtro-busqueda-especial.casos.json` + `scripts/pruebas/fn_movimientos_busqueda_especial.mjs` (tarea #3 del análisis, «segundo corte»).
 - [ ] Prueba de datos real: nada del camino de datos de Existencias se prueba contra un PostgREST con el rol `authenticated`. Una prueba en `scripts/pruebas/` con `postgrest` (Homebrew) y la restricción de columnas de `variantes` habría atrapado el fallo de arriba.
 - [ ] Sin ejecutar del análisis (Felipe decide): #1 «Ajustar inventario» sin token ni transacción única, #8 el semáforo marca «Stock bajo» en 41 de 45 prendas, #9 «Disponible total» y recomendaciones no excluyen `es_prueba`, #10 candado de módulo en `mover_interno` y `apartar_stock`, #6 la estrategia alternativa (stock vs catálogo × sede).
+
+## 🩹 Los combos dentro de un modal tardaban hasta 1 s en abrirse (2026-09-26, ADR-0211 act. b) — solo web, sin migración; [PR #487](https://github.com/felipea92p-ux/cayla-retail/pull/487)
+- [x] La lista de todo combo dentro de un `<Modal>` cuelga ahora de la capa de la hoja (`[data-capa-flotante]`, fuera de la cascada). Se tocó `ui/Modal.tsx` y `useDestinoFlotante`. `ComboBuscable` entra con `anim-revelar` como los demás. Prueba nueva: `lib/combos-fuera-de-la-cascada.test.ts`.
+- [x] Medido antes y después, en un banco con los cinco tipos (dentro y fuera de un modal, y el ticket a 375 px) y en «Registrar gasto» real. Antes: invisible 508 ms, entera a 1.008 ms. Después: se ve en 3–18 ms, entera en 243–347 ms (la sede: 334 ms). 77.741 pruebas, `tsc` y `eslint` en verde.
+- [ ] **Propuesta (decide Felipe; toca ADR-0136): que la cascada anime solo la entrada de la hoja.** Hoy también anima lo que aparece después de abrir: un bloque que se revela al elegir una opción espera hasta ~0,6 s y entra en 500 ms. Se esquiva a mano con `data-sin-cascada` en 14 bloques. Arreglo propuesto: `<Modal>` marca la hoja con `data-entrando` mientras dura la entrada (~1,2 s) y la regla se escribe `.cascada-modal[data-entrando] > …`. Lo que llegue después entra con su propio movimiento, y los 14 parches sobran.
+- [ ] Deuda: cada combo repite su caja flotante (portal, posición, destino, «¿tocó afuera?» y clases). Unificarlas en una sola pieza haría imposible que un combo se desvíe en velocidad o aspecto. `FiltrosRecibidas` tiene además su propia copia de `DesplegablePildora` (la pastilla de proveedor, sin portal).
+- Cómo verificas: en `/finanzas/gastos`, «+ Registrar gasto», toca «Categoría». La lista aparece al instante, con el mismo fundido corto que el selector de sede (arriba a la derecha), no medio segundo después.
 
 ## 🩹 Escape con un combo abierto cerraba el modal entero (2026-09-26, ADR-0136 act.) — solo web, sin migración; [PR #481](https://github.com/felipea92p-ux/cayla-retail/pull/481)
 Cierra el pendiente «Encontrado, sin arreglar» de la entrada «El combo de Actividad no era el del sistema» (#475, ya en `main`), marcado [x] al fusionar.
@@ -643,6 +667,14 @@ Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apart
 - [x] Web + `esCelularPeru` con prueba; verificado a 375 px y en computador con una página de prueba sin base (capturas en `docs/maquetas/apartados-v2-2026-09/implementacion-375px/`).
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
 - [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
+
+## 🎯 Apartados: recordar en lote (2026-09-26, ADR-0227) — migración `20260926233000` EN PRODUCCIÓN (aplicada 2026-09-26 como `20260926174611`, verificada por efectos); web en PR #490
+Paso 1 de las funciones del spike Apartados v2 (orden acordado con Felipe: recordar en lote → abonos → estante real → actividad, editar y otra sede → «Opciones» y «Qué ver»).
+- [x] Tabla `separacion_avisos` (append-only), `registrar_aviso_separacion` y `fn_avisos_separaciones`; `pnpm pruebas:separaciones` 53/53 en el Postgres local.
+- [x] Web: aviso «N clientas por avisar hoy» en Todos, `RecordarModal` (lote o una sola clienta), mensaje de vencido con la fecha de gracia; reglas puras con prueba.
+- [x] **Pegada en producción** el 2026-09-26 con el OK de Felipe (por el MCP): tabla con RLS y 0 políticas, `authenticated` sin acceso directo, las dos funciones con `execute` solo para `authenticated`, 0 avisos, separaciones intactas (1).
+- [ ] **Paso 2 · Abonos** (decisiones de Felipe, 2026-09-26): sin monto mínimo; el PRIMER abono corre la fecha y, como opción al registrarlo, se le puede esperar 2 días más, o 3 si el abono es la mitad o más de lo que le faltaba. Cada abono = boleta de anticipo.
+- [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) y verlo con clics reales en TRU.
 
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
 Encender «Punto de venta» ya no trae Apartados: son dos interruptores. Apartados nace sin rol (solo lo ve el líder).
