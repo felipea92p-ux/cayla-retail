@@ -219,7 +219,7 @@ cliente. Y **directo, sin RPC**: `app/api/taxonomia/anclar/route.ts:130` escribe
 | `familia_color` | text | no | — | Uno de nueve: `neutro`, `azul`, `rojo`, `amarillo`, `verde`, `morado`, `tierra`, `metalico`, `estampado`. Sirve para agrupar y para derivar la familia de un color importado. |
 | `hex` | text | sí | — | El chip de color de la pantalla. Para Estampado, Multicolor y Animal print no significa nada y queda null. |
 | `activo` | boolean | no | `true` | Si aparece o no en el selector (`lib/conteo.ts:253-257`). |
-| `orden` | integer | no | `100` | Orden del selector. Los 30 de CAYLA van del 10 al 92; los importados entran en 200. |
+| `orden` | integer | no | `100` | Orden del selector. Una decena por familia (neutro 10-19, azul 20-29, rojo 30-39, amarillo 40-49, verde 50-59, morado 60-69, tierra 70-79, metálico 80-89, estampado 90-99), de claro a oscuro dentro de cada una (`20260926100000`, 2026-09-25). Los creados desde Atributos y los importados entran en 200: al final de su familia. |
 | `taxonomia_valor_id` | text | sí | — | De qué color del estándar universal cuelga: Arena → Beige. Null = sin anclar. |
 | `created_at` | timestamptz | no | `now()` | Cuándo entró al vocabulario. |
 

@@ -3,7 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 // ADR-0161: cambiar el catálogo es operación de tienda; la firma del combo «Responsable» que manda la pantalla
 // viaja a la base en cada consulta de este cliente (sin firma, igual que antes).
 import { firmaDeEncabezados } from "@/lib/responsable-reglas";
-import { traducirError } from "@/lib/error-escritura";
+import { traducirError, type ErrorEscritura } from "@/lib/error-escritura";
+import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
+
+// Un código Pantone no puede estar en dos colores (índice único `colores_pantone_tcx_unico`, 20260926180000).
+function mensajeDeError(error: ErrorEscritura, accion: string) {
+  if (error?.code === "23505" && (error.message ?? "").includes("pantone")) return "Ese código Pantone ya lo tiene otro color.";
+  return traducirError(error, accion);
+}
+
+const ERROR_PANTONE = "El código Pantone tiene la forma 19-1557 TCX (o solo 19-1557).";
 
 // POST /api/productos/colores → agrega un color al vocabulario cerrado.
 //
@@ -49,6 +58,8 @@ export async function POST(request: Request) {
   const familiaColor = typeof cuerpo?.familiaColor === "string" ? cuerpo.familiaColor : "";
   const hex = typeof cuerpo?.hex === "string" && cuerpo.hex.trim() ? cuerpo.hex.trim() : null;
   const notas = typeof cuerpo?.notas === "string" && cuerpo.notas.trim() ? cuerpo.notas.trim() : null;
+  const pantoneTcx = normalizarPantone(typeof cuerpo?.pantoneTcx === "string" ? cuerpo.pantoneTcx : null);
+  const sinonimos = normalizarSinonimos(Array.isArray(cuerpo?.sinonimos) || typeof cuerpo?.sinonimos === "string" ? cuerpo.sinonimos : null, nombre);
 
   if (!nombre) {
     return Response.json({ error: "Falta el nombre del color." }, { status: 400 });
@@ -64,18 +75,22 @@ export async function POST(request: Request) {
   if (!hex || !/^#[0-9A-Fa-f]{6}$/.test(hex)) {
     return Response.json({ error: "Elige el color (hex válido, #RRGGBB)." }, { status: 400 });
   }
+  if (pantoneTcx === "invalido") {
+    return Response.json({ error: ERROR_PANTONE }, { status: 400 });
+  }
 
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
-  // orden=200: los 30 propios de CAYLA van del 10 al 92; un color agregado
-  // desde esta pantalla entra después de todos ellos.
+  // orden=200: los de CAYLA usan una decena por familia (neutro 10-19 …
+  // metálico 80-89, de claro a oscuro: 20260926100000); un color agregado
+  // desde esta pantalla entra al final de su familia.
   const { data, error } = await supabase
     .from("colores")
-    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, notas })
-    .select("codigo, nombre, familia_color, hex, notas, estado")
+    .insert({ codigo, nombre, familia_color: familiaColor, hex, orden: 200, notas, pantone_tcx: pantoneTcx, sinonimos })
+    .select("codigo, nombre, familia_color, hex, notas, estado, pantone_tcx, sinonimos")
     .single();
 
   if (error) {
-    return Response.json({ error: traducirError(error, "agregar el color") }, { status: 400 });
+    return Response.json({ error: mensajeDeError(error, "agregar el color") }, { status: 400 });
   }
 
   return Response.json({ color: data });
@@ -110,6 +125,8 @@ export async function PATCH(request: Request) {
     activo?: boolean;
     notas?: string | null;
     estado?: string;
+    pantone_tcx?: string | null;
+    sinonimos?: string[];
   } = {};
 
   // Aprobar (pendiente→aprobado, o rechazado→aprobado = "reactivar retira
@@ -159,6 +176,22 @@ export async function PATCH(request: Request) {
     patch.notas = typeof cuerpoObj.notas === "string" && cuerpoObj.notas.trim() ? cuerpoObj.notas.trim() : null;
   }
 
+  if ("pantoneTcx" in cuerpoObj) {
+    const pantone = normalizarPantone(typeof cuerpoObj.pantoneTcx === "string" ? cuerpoObj.pantoneTcx : null);
+    if (pantone === "invalido") {
+      return Response.json({ error: ERROR_PANTONE }, { status: 400 });
+    }
+    patch.pantone_tcx = pantone;
+  }
+
+  if ("sinonimos" in cuerpoObj) {
+    const crudo = cuerpoObj.sinonimos;
+    patch.sinonimos = normalizarSinonimos(
+      Array.isArray(crudo) || typeof crudo === "string" ? (crudo as string | string[]) : null,
+      typeof patch.nombre === "string" ? patch.nombre : ""
+    );
+  }
+
   const supabase = await createClient({ firma: firmaDeEncabezados(request.headers) });
 
   if ("activo" in cuerpoObj) {
@@ -193,14 +226,14 @@ export async function PATCH(request: Request) {
     .from("colores")
     .update(patch)
     .eq("codigo", codigo)
-    .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado")
+    .select("codigo, nombre, familia_color, hex, orden, activo, notas, estado, pantone_tcx, sinonimos")
     .single();
 
   if (error) {
     if (error.code === "PGRST116") {
       return Response.json({ error: `No existe un color con código ${codigo}.` }, { status: 404 });
     }
-    return Response.json({ error: traducirError(error, "guardar el color") }, { status: 400 });
+    return Response.json({ error: mensajeDeError(error, "guardar el color") }, { status: 400 });
   }
 
   return Response.json({ color: data });

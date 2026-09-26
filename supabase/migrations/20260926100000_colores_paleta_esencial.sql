@@ -22,7 +22,11 @@
 --   distancia de color que usa la industria textil para aprobar un lote):
 --   por debajo de ~8 dos colores se confunden a simple vista y el stock de
 --   una misma prenda terminaría partido en dos filas. Todo par no metálico
---   de esta paleta queda en ΔE ≥ 8,8.
+--   en el que entra un color NUEVO queda en ΔE ≥ 8,8.
+--   Corrección (revisión del 2026-09-25): la medición solo comparaba pares
+--   con un color nuevo. Midiendo toda la paleta de producción, dos pares que
+--   ya existían quedan debajo y esta migración no los toca: Beige–Arena
+--   (ΔE 4,3) y Blanco–Crudo (ΔE 4,6). Están en BACKLOG.
 --
 -- LO QUE SE QUEDÓ FUERA A PROPÓSITO (por eso 63 y no 72)
 --   · Índigo — ΔE 7,9 con Cobalto: en jeans, «Azul denim» y «Azul marino»

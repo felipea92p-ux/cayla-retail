@@ -159,6 +159,7 @@ export function PrendaSinRegistrarModal({
                 valor: c.valor,
                 texto: c.texto,
                 detalle: c.detalle,
+                claves: c.claves,
                 // El color de la prenda es un dato, no la paleta de la interfaz: va tal cual lo guarda el vocabulario.
                 icono: <span aria-hidden className="inline-block h-3 w-3 rounded-full border border-tinta/20" style={{ backgroundColor: c.hex ?? undefined }} />,
               }))}

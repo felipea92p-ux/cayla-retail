@@ -751,7 +751,9 @@ export type Database = {
           nombre: string
           notas: string | null
           orden: number
+          pantone_tcx: string | null
           propuesto_por: string | null
+          sinonimos: string[]
           tipo: string
         }
         Insert: {
@@ -766,7 +768,9 @@ export type Database = {
           nombre: string
           notas?: string | null
           orden?: number
+          pantone_tcx?: string | null
           propuesto_por?: string | null
+          sinonimos?: string[]
           tipo?: string
         }
         Update: {
@@ -781,7 +785,9 @@ export type Database = {
           nombre?: string
           notas?: string | null
           orden?: number
+          pantone_tcx?: string | null
           propuesto_por?: string | null
+          sinonimos?: string[]
           tipo?: string
         }
         Relationships: []

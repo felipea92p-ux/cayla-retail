@@ -28,9 +28,19 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎨 Colores: Pantone TCX, sinónimos y 4 colores nuevos (2026-09-26, ADR-0215) — migración `20260926180000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR #456
+- [x] `colores.pantone_tcx` (único, con formato) y `colores.sinonimos`. 60 colores con su TCX (los metálicos, sin código); 23 con sinónimos. Cereza, Moka, Durazno y Mora: 68 activos.
+- [x] El buscador de colores (Nuevo producto, prenda sin registrar de Vender) entiende sinónimos; Atributos ▸ Colores edita el código y los sinónimos, y avisa si el código ya lo tiene otro color.
+- [x] Aviso de color parecido (ΔE2000), nombre al instante en la paleta y brillo en los metálicos.
+- [ ] **Fusionar #456 DESPUÉS de la migración**: ya está en producción, así que se puede fusionar.
+- [ ] Refrescar `docs/datos/generado/` con las dos columnas nuevas (`pnpm datos:generar:produccion` tras refrescar el volcado: `generado/COMO-REFRESCAR.md`).
+- [ ] Editar producto (`productos/[id]/editar`) y el filtro de color de Productos todavía no usan sinónimos: usan `Desplegable`/píldoras, no `ComboBuscable`.
+- [ ] Investigación de colores de Ralph Lauren, LVMH y Hermès: en curso; lo que falte se propone aparte.
+
 ## 🩹 Listas flotantes que no se podían elegir (2026-09-26, act. ADR-0211) — solo web, sin migración
 - [x] `CampoSelect`, píldoras de filtro y combo «Responsable»: el clic en una opción cerraba la lista sin elegir (desde #442). Dentro de un modal, tocar un responsable cerraba el modal. Arreglado y verificado en navegador (mouse, teclado, 375 px).
 - [ ] **Tras publicar:** en producción, abrir un modal con «Responsable» (p. ej. Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color») y elegir a alguien con el mouse; y un filtro de Ventas ▸ Historial.
+
 
 ---
 
