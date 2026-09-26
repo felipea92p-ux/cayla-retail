@@ -75,3 +75,32 @@ mirándola.
 - Alguien sube una foto al bucket sin pasar por `subirFotoProducto`: queda sin encuadre y sin original.
 - Se cambia `LIENZO_FOTO` sin cambiar el `aspect-[4/5]` de las tarjetas: la grilla vuelve a recortar.
 - Sin conexión y sin el modelo descargado, la revisión solo ofrece «Con fondo» y lo dice. La foto se encuadra igual.
+
+## Actualización 2026-09-26 (tarde): mejor calidad sin cambiar la prenda
+
+Felipe comparó una foto editada por un compañero con ChatGPT (Y.j.j, perfecta) con una tomada en tienda y recortada
+por el sistema (Blusa V: colgada en gancho, con etiqueta, luz lateral, y una mancha rosada que dejó el recorte). Pidió
+mejor calidad **sin cambiar la prenda**. Casi toda la diferencia venía de la toma, no del proceso; lo que sí se puede
+arreglar sin inventar píxeles se agregó:
+
+1. **Pedazos sueltos fuera** (`soloLaPrenda`, `lib/foto-encuadre.ts`): del recorte se borran las piezas que no tocan a
+   la prenda y miden menos del 15 % de la mayor. Un conjunto de dos prendas se conserva. Se aplica **después** de
+   decidir si el recorte encontró una prenda: al revés, en una foto de tienda llena de ropa el pedazo más grande
+   quedaría solo y pasaría por prenda.
+2. **Luz corregida, sin tocar el color** (`lib/foto-luz.ts`): se mide la luz de la prenda (sin el fondo), se estira
+   entre su sombra y su luz con tope (ganancia máxima 1,35; el negro no pasa de 30) y, si la foto ya estaba bien, no se
+   hace nada. La curva va sobre el **brillo** y rojo, verde y azul se escalan en la misma proporción: ni el tono ni la
+   intensidad del color cambian. La primera versión la aplicaba canal por canal y avivaba los colores (un celeste pasaba
+   de 42 % a 47-50 % de saturación). Se vio en el navegador y se corrigió antes de publicar. Medido en las fotos
+   finales: brillo 145 → 190 y saturación 0,253 → 0,255 en la camisa de prueba.
+3. **Nitidez leve** (`enfocar`, máscara 3×3 con cantidad 0,35) sobre el 1200×1500 final: compensa el achicado; una
+   zona pareja no cambia.
+4. **En la revisión**: «Luz corregida / Luz original» por foto, que nace en corregida solo si hubo corrección, y un
+   desplegable **«Cómo tomar una buena foto»** con cuatro consejos (vaporizar, sin etiqueta ni gancho, maniquí o
+   extendida sobre blanco, luz de ventana de frente sin flash).
+
+**Descartado:** un «mejorador» con IA generativa. Deja la foto más bonita justamente redibujando la prenda, que es lo
+que Felipe pidió evitar. Tampoco se corrige el balance de blancos: es lo que puede volver gris un celeste.
+
+**No se arregla con código:** arrugas, gancho, etiqueta y cómo cae la prenda. Eso se decide al tomar la foto, y por eso
+los consejos viven en la misma ventana donde se revisa.
