@@ -29,6 +29,14 @@ export function almacenDeLaSede(c: Cantidades | undefined): number | null {
   return c?.almacenDisponible ?? null;
 }
 
+/** Lo APARTADO para clientas en el mismo lugar de donde cobra la caja: el piso (o, sin piso/almacén, el total). Es la
+ *  otra mitad de `cantidadCobrable`: cobrable + apartado = lo que hay físicamente ahí. Lo apartado que está en el
+ *  almacén NO cuenta: no explica por qué el piso no tiene nada que vender (`motivoNoCobrable`, «apartada»). */
+export function apartadoEnPiso(c: Cantidades | undefined): number {
+  if (!c) return 0;
+  return c.piso !== null && c.pisoDisponible !== null ? c.piso - c.pisoDisponible : c.apartado;
+}
+
 // --- «Agotada» o «está en el almacén» (D-40) ---------------------------------------------------------------------
 // La caja solo cobra del PISO, pero con el piso en 0 y la prenda guardada en el almacén de la MISMA tienda, decir
 // «agotada» hacía que la colaboradora le dijera «no hay» a una clienta con la prenda a unos metros. D-40: lo del
@@ -36,17 +44,55 @@ export function almacenDeLaSede(c: Cantidades | undefined): number | null {
 // caja no cobra del almacén (registrar_venta descuenta el piso): lo dice, y dice qué hacer.
 
 /** Qué puede hacer la caja con una prenda AHORA: cobrarla (hay en el piso), pedir que la bajen (el piso está en 0 y
- *  hay en el almacén de esta sede) o nada (no hay ni en el piso ni en el almacén). Sin `almacenAqui` (Taller, o quien
- *  arme variantes sin ese dato) se comporta como antes: con el piso en 0, agotada. */
-export type MotivoCaja = "cobrable" | "en_almacen" | "agotada";
+ *  hay en el almacén de esta sede), decir que es de una clienta (lo único que queda en el piso está APARTADO) o nada
+ *  (no hay ni en el piso ni en el almacén). Sin `almacenAqui` ni `apartadoAqui` (Taller, o quien arme variantes sin
+ *  esos datos) se comporta como antes: con el piso en 0, agotada.
+ *
+ *  El ORDEN importa: si hay en el almacén, «está en el almacén» gana a «apartada», porque ahí HAY un camino de venta
+ *  (bajarla) y «apartada» a secas se leería «no hay ninguna». «Apartada» solo sale cuando de verdad no hay nada libre
+ *  en toda la tienda y lo que existe es de otra clienta. */
+export type MotivoCaja = "cobrable" | "en_almacen" | "apartada" | "agotada";
 
-export function motivoNoCobrable({ stockAqui, almacenAqui }: { stockAqui: number; almacenAqui?: number | null }): MotivoCaja {
+export function motivoNoCobrable({ stockAqui, almacenAqui, apartadoAqui }: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }): MotivoCaja {
   if (stockAqui > 0) return "cobrable";
-  return (almacenAqui ?? 0) > 0 ? "en_almacen" : "agotada";
+  if ((almacenAqui ?? 0) > 0) return "en_almacen";
+  return (apartadoAqui ?? 0) > 0 ? "apartada" : "agotada";
+}
+
+/** Lo que dice la fila de una prenda en el buscador de Vender según por qué se puede o no cobrar: «sin stock aquí»,
+ *  «apartada para una clienta», «N en el almacén» o «N aquí». Es una función pura (y no una cadena de ternarios dentro
+ *  del componente) para que una prueba la pueda romper: una rama de un ternario que queda inalcanzable no la ve ninguna
+ *  regex. */
+export function textoStockDeFila(v: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }): string {
+  switch (motivoNoCobrable(v)) {
+    case "agotada":
+      return "sin stock aquí";
+    case "apartada":
+      return "apartada para una clienta";
+    case "en_almacen":
+      return `${v.almacenAqui} en el almacén`;
+    case "cobrable":
+      return `${v.stockAqui} aquí`;
+  }
+}
+
+/** ¿Esta lectura de la cámara dejó la prenda «en el almacén»? (Para el único aviso que sale al cerrarla.) Solo si NO
+ *  entró porque el sistema la tiene en el almacén: motivo `en_almacen`, o el tope de las del piso con más en el almacén.
+ *  Cualquier otro resultado —entró, apartada, agotada— NO cuenta: una prenda que la apartó otra caja entre dos lecturas
+ *  no debe seguir apareciendo como «que la bajen». */
+export function quedoEnAlmacen(estado: string, almacenAqui?: number | null): boolean {
+  return estado === "en_almacen" || (estado === "tope" && (almacenAqui ?? 0) > 0);
+}
+
+/** El tooltip de una talla que no se puede cobrar ni bajar (agotada o apartada): dice el motivo y, si la hay, dónde más
+ *  hay (`otrasSedes` ya viene armado: «2 en Trujillo»). Con «agotada» conserva sus textos de siempre. */
+export function tooltipTallaSinPiso(v: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }, otrasSedes: string | null): string {
+  if (motivoNoCobrable(v) === "apartada") return otrasSedes ? `Apartada para una clienta · ${otrasSedes}` : "Apartada para una clienta";
+  return otrasSedes ? `Sin stock aquí · ${otrasSedes}` : "Sin stock en ninguna sede";
 }
 
 /** Lo que el aviso necesita saber: el nombre que se lee («Blusa Paracas · M»), la sede y lo que hay en cada lado. */
-export type DatosAvisoStock = { nombre: string; sede: string; stockAqui: number; almacenAqui?: number | null };
+export type DatosAvisoStock = { nombre: string; sede: string; stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null };
 export type AvisoStock = { titulo: string; detalle: string };
 
 /** Dónde se REGISTRA que una prenda pasó del almacén al piso: el botón «Reponer» de su fila en Existencias
@@ -59,11 +105,19 @@ export const DONDE_SE_BAJA = "Inventario ▸ Existencias ▸ Reponer";
  *  de una colaboradora que no conoce el sistema. Sirve igual si la buscó por nombre (la prenda está atrás) o si la
  *  escaneó (la tiene en la mano): en los dos casos falta registrar el paso al piso. En el Taller (sin almacén) se
  *  queda como siempre. */
-export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui }: DatosAvisoStock): AvisoStock {
-  if (motivoNoCobrable({ stockAqui, almacenAqui }) === "en_almacen") {
+export function avisoSinPiso({ nombre, sede, stockAqui, almacenAqui, apartadoAqui }: DatosAvisoStock): AvisoStock {
+  const motivo = motivoNoCobrable({ stockAqui, almacenAqui, apartadoAqui });
+  if (motivo === "en_almacen") {
     return {
       titulo: `${nombre} está en el almacén`,
       detalle: `En el sistema hay 0 en el piso y ${almacenAqui} en el almacén de ${sede}. Para cobrarla, que la bajen en ${DONDE_SE_BAJA} (aunque ya la tengas en la mano, hay que registrarlo).`,
+    };
+  }
+  if (motivo === "apartada") {
+    // Lo que queda es de una clienta que la apartó: no es «no hay» (puede venir por ella) ni hay nada que bajar.
+    return {
+      titulo: `${nombre} está apartada para una clienta`,
+      detalle: `No se vende desde aquí: es de la clienta que la apartó en ${sede}.`,
     };
   }
   return {
@@ -161,6 +215,14 @@ export function conAlmacenAjustado<V extends { varianteId: string; almacenAqui?:
   return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, almacenAqui: ajustes.get(v.varianteId) ?? null } : v));
 }
 
+/** Lo apartado en el piso corregido con lo que se RELEYÓ de la base. Igual que el almacén, va aparte del stock: una
+ *  venta descuenta lo cobrable y nunca lo apartado. Sin él, tras el primer sondeo una prenda que otra caja apartó
+ *  diría «agotada» y no «apartada para una clienta». Mismo contrato: sin ajustes, el MISMO arreglo. */
+export function conApartadoAjustado<V extends { varianteId: string; apartadoAqui?: number | null }>(variantes: V[], ajustes: ReadonlyMap<string, number>): V[] {
+  if (ajustes.size === 0) return variantes;
+  return variantes.map((v) => (ajustes.has(v.varianteId) ? { ...v, apartadoAqui: ajustes.get(v.varianteId)! } : v));
+}
+
 /** Descuenta lo vendido del stock que la pantalla muestra, sin bajar de 0. Parte de `stockActual` (lo que se ve
  *  ahora, sin la cola sin conexión) y devuelve los ajustes nuevos, mezclados con los que ya había. */
 export function descontarVendido(
@@ -189,4 +251,9 @@ export function conStockReleido(ajustes: ReadonlyMap<string, number>, pedidas: s
  *  que no volvió no tiene fila en esta sede: queda en `null` («no hay almacén que ofrecer»), igual que al cargar. */
 export function almacenReleido(pedidas: string[], releido: ReadonlyMap<string, Cantidades>): Map<string, number | null> {
   return new Map(pedidas.map((id) => [id, almacenDeLaSede(releido.get(id))]));
+}
+
+/** Lo apartado en el piso de las prendas releídas, de las MISMAS filas (sin otra consulta): sin fila en esta sede, 0. */
+export function apartadoReleido(pedidas: string[], releido: ReadonlyMap<string, Cantidades>): Map<string, number> {
+  return new Map(pedidas.map((id) => [id, apartadoEnPiso(releido.get(id))]));
 }
