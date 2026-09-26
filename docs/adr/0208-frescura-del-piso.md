@@ -173,11 +173,10 @@ conservan la numeración vieja en sus comentarios: su «paso 1» es el bloque 1,
    pensando en `devolver_a_almacen`, que era del modelo V1 y ya no existe; `bajar_a_piso` tampoco.*
    **Construido y fusionado el 2026-09-25** (#440, `60d5aa4d`; ver «Actualización 2026-09-25 — bloque 2»). Su web ya
    está publicada; la revisión suma la migración `20260926170000`, por pegar.
-   - **Pendiente entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
-     `bajar_al_piso`). Hoy «Reponer» y «Retirar del piso» pueden mover dos veces si se reenvía el mismo pedido. Va
-     ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas filas: un envío doble
-     infla las dos cosas. Es un cambio de la base, con su migración y su ensayo (detalle en «Actualización 2026-09-25
-     — revisión del bloque 2»).
+   - **Entre el bloque 2 y el 3: el candado de `mover_interno`** (un token contra el doble envío, como el de
+     `bajar_al_piso`). Va ANTES del bloque 3 porque el indicador de confianza (Σ `cantidad`) y los relojes leen esas
+     filas: un envío doble infla las dos cosas. **Construido el 2026-09-26, por pegar** (migraciones `20260926200000` y
+     `20260926200100`; ver «Actualización 2026-09-26 — la marca de `mover_interno`»).
 3. **Bloque 3 — La pantalla de Frescura** (pasos 3, 4, 5 y 7): reloj de novedad por modelo+color, reloj de piso por
    unidad con emparejamiento FIFO, curva de Kaplan-Meier con P50, P75 y P90 por categoría y sede, tramos e índice de
    rapidez, el indicador de «confianza del registro» por sede (contrato en (d)) y atributos y marcas en la lectura. Se
@@ -1004,3 +1003,69 @@ con dos planes. La revisión cruzada encontró sobre todo textos que prometían 
 guardó nada» que podía ser falso, un «dilo en la nota» que nadie iba a leer, un filtro que decía «bajada o retiro» y
 traía más, un PR que el documento daba por pendiente cuando ya estaba en `main`. Un texto de pantalla o de documento
 es parte del contrato: se revisa como el código.
+
+## Actualización 2026-09-26 — la marca de `mover_interno`
+
+**El problema.** «Reponer» y «Retirar del piso» llaman a `mover_interno`, que no tenía marca contra el doble envío. Si
+la conexión se corta DESPUÉS de que la base guardó, la colaboradora no sabe si se guardó; si vuelve a confirmar, la
+prenda se mueve dos veces: el piso queda con otra cifra que la que está colgada, la caja deja de cobrar una prenda que
+sí está a la vista, y el bloque 3 contaría una bajada o un retiro que no pasó. La pantalla ya frenaba el doble clic y
+el cierre durante el guardado; nada frenaba el reintento después de un corte.
+
+**La analogía.** Es la guía de traslado numerada del Taller: si la guía 0412 ya está archivada, una segunda hoja con
+el mismo número no mueve otro fardo, solo confirma que el primero salió. Y si alguien trae la 0412 con otra cantidad,
+no se acepta: esa guía ya dice otra cosa.
+
+**DECIDÍ:** `mover_interno` suma un séptimo parámetro opcional, `p_token uuid default null`, y una tabla
+`retail.movimientos_internos_intentos` (la marca, el movimiento que produjo y una huella md5 de tienda, prenda,
+cantidad, origen, destino y nota). Con marca: candado de transacción sobre ella, y si ya se usó con la misma huella
+devuelve el MISMO movimiento sin mover nada; con otra huella rechaza (`mover_interno_token_reusado`). Sin marca, igual
+que antes: así la sigue llamando `bajar_al_piso`, que ya tiene su marca por bajada. La marca se mira ANTES de pedir
+responsable (la lección del bloque 1): comprobar algo ya guardado no escribe nada. La tabla solo la escribe la función
+(RLS sin políticas, sin privilegios de afuera) y sus filas no se editan, no se borran ni se vacían.
+**DESCARTÉ:** una función aparte con token (`mover_interno_con_marca`): dos funciones que hacen lo mismo, y la próxima
+corrección se aplicaría a una sola. Y hacer la marca obligatoria: rompería `bajar_al_piso`, el seed y las pruebas que
+la llaman con seis argumentos, a cambio de nada (ellas no se reintentan solas).
+**SE ROMPE SI** alguien vuelve a pegar `20260914230000` (recrearía la versión de seis parámetros al lado: dos firmas,
+y `pruebas:una-sola-firma` lo detecta), o si la web con `p_token` sale antes de pegar las dos migraciones («Reponer» y
+«Retirar» fallarían con «función no encontrada» hasta pegarlas; `pnpm datos:comparar` ya lo avisa:
+«manda `p_token` y producción no lo acepta»).
+
+**Cómo se ve mal hecho.** Guardar la marca en el navegador y confiar en ella (se pierde al recargar); poner la marca
+DESPUÉS del responsable (un reintento con la responsable ya fuera de turno diría «no está de turno» aunque el
+movimiento ya estaba guardado); o dejar que la pantalla cambie la cifra y reenvíe con la misma marca.
+
+**La pantalla** (`apps/web/components/ReponerPisoModal.tsx`): una marca por modal abierto. Tras una respuesta incierta
+(`esRespuestaIncierta`, que pasó de `bajada-reglas.ts` a `error-escritura.ts` para que la usen las dos pantallas) la
+cantidad y la nota quedan fijas y el botón dice «Confirmar de nuevo»: la única salida es reenviar lo mismo o cerrar.
+No se descongela con un rechazo posterior (un corte de tiempo mientras el primer envío seguía en curso no prueba nada);
+el texto suma «Aún no sabemos si el envío anterior se guardó…» y ofrece cerrar y revisar Existencias (la base ya
+respondió, así que las cifras se refrescaron). Congelado, el tope de la pantalla no frena el reenvío: puede que ya
+descuente ese mismo envío, y la pregunta es para la base. La nota se manda escrita en el objeto (sin `...`) para que
+`datos:comparar` pueda leer la llamada entera.
+
+**La guarda de la `0200`.** Buscaba `mover_interno` por su firma de seis parámetros; ahora la busca por nombre, para
+que la `0200` se pueda volver a pegar después de la `200100` (las pruebas del CI lo hacen). Solo cambia la guarda, no
+lo que crea: en producción no hay que volver a pegarla.
+
+**Cómo se pega (en este orden, fuera de hora pico):**
+1. `20260926200000_mover_interno_intentos_tabla.sql` (la tabla; su FK toma un candado breve sobre `movimientos`, con
+   `lock_timeout` de 3 s: si no lo consigue, falla sin daño y se vuelve a pegar).
+2. `20260926200100_mover_interno_con_marca.sql` (la función). Si el cuerpo vivo de `mover_interno` no mide
+   `ab13725880e28cabc97d3261d4db8396` (medido en producción el 2026-09-25), aborta sin tocar nada: alguien lo parchó en
+   vivo y hay que reescribir la migración desde la definición real.
+3. Recién entonces fusionar la web.
+
+**Cómo lo verifica Felipe:**
+1. Después de pegar: `select pg_get_function_identity_arguments(oid) from pg_proc where proname = 'mover_interno' and
+   pronamespace = 'retail'::regnamespace;` da UNA fila que termina en `p_token uuid`.
+2. Con la web publicada, en Existencias, «Reponer» 1 prenda: el piso sube 1 y en Movimientos sale UNA «Bajada al piso».
+   Luego `select count(*) from retail.movimientos_internos_intentos;` da 1 (o una más que antes).
+3. Una bajada por «Bajar al piso» sigue funcionando igual (no usa esta marca: esa tabla no crece).
+
+**Qué cubren las pruebas.** `pnpm pruebas:mover-interno-marca` (12 casos, en el CI): una sola firma, sin marca igual
+que antes, reintento = mismo movimiento, otra cifra/nota/sentido rechazado, intento fallido deja la marca libre, la
+marca antes del responsable, la tabla inmutable, la guarda md5 aborta, pegada dos veces, y `bajar_al_piso` sin cambios.
+Aparte, contra un Postgres desechable y con COMMIT: dos envíos simultáneos con la misma marca dan UN movimiento (el
+segundo espera el candado y responde el mismo). En el navegador, con la red cortada a propósito: corte → congelado →
+rechazo → éxito, tres envíos con la misma marca, la misma cifra y la misma nota; un modal nuevo estrena marca.

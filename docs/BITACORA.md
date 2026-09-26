@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)
+«Reponer» y «Retirar del piso» ya no pueden mover dos veces tras un corte de red: cada intento lleva una marca, y la base devuelve el mismo movimiento si llega repetida. `mover_interno` sigue siendo UNA función (séptimo parámetro opcional); `bajar_al_piso`, que ya tenía su marca, no cambia. Sin pegar: `20260926200000` → `20260926200100` y recién entonces la web. Probado con 12 casos SQL, dos envíos simultáneos con COMMIT y en el navegador con la red cortada.
+Felipe se lleva:
+1. **Tras un corte, la pantalla no sabe si se guardó; la base sí.** Por eso el reintento es una pregunta a la base con la misma marca, no un segundo movimiento. Y mientras no se sabe, la cantidad queda fija: cambiarla sería otro pedido y movería de nuevo lo que quizá ya se movió.
+2. **La marca se mira antes que el responsable.** Comprobar algo ya guardado no escribe nada: si la colaboradora marcó salida en el medio, el reintento igual responde «ya estaba».
+3. **Una web que llama a la base con un dato nuevo tiene orden de salida.** Si la web sale primero, «Reponer» se cae hasta que se pegue el SQL. `pnpm datos:comparar` ahora lo detecta porque la llamada se escribe entera.
+
 ## 2026-09-26 (Colores: código Pantone, sinónimos y 4 colores nuevos — ADR-0215)
 Revisando la paleta con Felipe: cada color lleva ahora su código Pantone TCX (el que se usa para pedir la tela) y el hex que Pantone publica. Hay sinónimos que el buscador entiende («plomo» → Gris, «guinda» → Vino, «azul noche» → Azul marino) y 4 colores con respaldo en los reportes de Pantone: Cereza, Moka, Durazno y Mora (68 activos). La migración `20260926180000` está en producción (ensayada, aplicada y verificada). Queda además un aviso cuando un color nuevo se ve casi igual a otro.
 Felipe se lleva: (1) **el Pantone que se llama igual no es el que se ve igual**: anclar por nombre creaba 4 casi-duplicados («Mandarin Orange» es nuestro Naranja), así que se ancló por lo que se ve. (2) **44 de 56 colores ya eran tonos Pantone reales**; los que no (Azul eléctrico, Violeta, Cobalto) no existían en tela. (3) **Azul noche no es un color más: es otro nombre de Azul marino**, y va como sinónimo.
@@ -18,7 +25,6 @@ Felipe se lleva:
 1. **El registro de migraciones de Supabase no sirve para saber qué está pegado:** reconoce 17 de 103 por nombre. Solo los efectos dicen la verdad.
 2. **Una migración con fecha vieja que se fusiona tarde se esconde de cualquier revisión por fecha:** hay que mirar qué ENTRÓ a `main`, no qué fecha dice el archivo.
 3. **Un «encender» a secas puede debilitar un candado sin apagarlo:** la verificación tiene que mirar el modo, no solo si está prendido.
-
 
 ## 2026-09-26 (Nuevo producto con su stock de hoy — ADR-0212)
 Nuevo producto tiene un paso 5, «Cuántas tienes hoy». Las cantidades por talla y color entran como «Carga inicial» al almacén de la sede activa, o al piso con una bajada, en la MISMA transacción que el producto. Sin pegar en producción: el SQL va antes que la web. Evidencia del porqué: el 24 y 25-sep entraron 152 unidades por «Ajuste · reposición», contra 50 por recepción, porque el alta no pedía cantidades.

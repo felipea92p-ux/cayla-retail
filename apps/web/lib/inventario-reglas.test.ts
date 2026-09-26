@@ -381,22 +381,49 @@ describe("avisoTrasRetiro", () => {
   });
 });
 
-// `mover_interno` no tiene token (revisión del bloque 2, B2-1): si la conexión se corta después de que la base guardó,
-// decir «no se guardó nada, vuelve a intentar» haría mover la prenda dos veces.
+// «Reponer» y «Retirar del piso» mandan una marca por intento (ADR-0208): si la conexión se corta después de que la base
+// guardó, reenviar lo MISMO con la misma marca no mueve dos veces. El texto tiene que llevar a eso, no a «vuelve a
+// intentar» con otra cifra ni a un «no se guardó nada» que podría ser falso.
 describe("mensajeErrorMovimientoPiso", () => {
-  it("un corte de red, en los dos sentidos, dice que no se sabe si guardó y pide mirar antes de repetir", () => {
+  it("un corte de red, en los dos sentidos, dice que no se sabe, que la cantidad queda fija y qué botón pulsar", () => {
     for (const sentido of ["bajar", "retirar"] as const) {
-      for (const message of ["TypeError: Failed to fetch", "TypeError: Load failed"]) {
+      for (const message of ["TypeError: Failed to fetch", "TypeError: Load failed", "AbortError: signal is aborted without reason"]) {
         const texto = mensajeErrorMovimientoPiso(sentido, { message, code: "" });
         expect(texto).toContain(`mientras se intentaba ${SENTIDO_PISO[sentido].accion}`);
-        expect(texto).toContain("no podemos confirmar si llegó a guardarse");
+        expect(texto).toContain("no sabemos si llegó a guardarse");
+        expect(texto).toContain("La cantidad queda fija");
+        expect(texto).toContain("«Confirmar de nuevo»");
+        expect(texto).toContain("no se repite");
         expect(texto).not.toContain("No se guardó nada");
       }
     }
+  });
+  it("un error sin código de la base (un 502 del camino) también es incierto", () => {
+    expect(mensajeErrorMovimientoPiso("bajar", { message: "Bad Gateway", code: "" })).toContain("no sabemos si llegó a guardarse");
   });
   it("un rechazo de negocio de la base (P0001) pasa tal cual", () => {
     expect(mensajeErrorMovimientoPiso("retirar", { message: "No hay suficiente stock libre en el piso.", code: "P0001" })).toBe(
       "No hay suficiente stock libre en el piso."
     );
+  });
+  it("con un envío anterior sin respuesta, el rechazo recuerda que aún no se sabe y cómo salir", () => {
+    const texto = mensajeErrorMovimientoPiso("bajar", { message: "Stock insuficiente en origen: hay 0 y se pide trasladar 3", code: "P0001" }, true);
+    // El texto de la base no cierra con punto: se le pone uno para que las dos frases no se peguen.
+    expect(texto.startsWith("Stock insuficiente en origen: hay 0 y se pide trasladar 3. Aún no sabemos")).toBe(true);
+    expect(texto).toContain("Aún no sabemos si el envío anterior se guardó");
+    expect(texto).toContain("o cierra y revisa Existencias");
+  });
+  it("si el texto de la base ya cierra con punto, no se le duplica", () => {
+    const texto = mensajeErrorMovimientoPiso("retirar", { message: "No hay suficiente stock libre en el piso.", code: "P0001" }, true);
+    expect(texto).toContain("piso. Aún no sabemos");
+    expect(texto).not.toContain("..");
+  });
+  it("la marca usada con otros datos: el texto de la base, sin agregarle la duda", () => {
+    const error = {
+      message: "Ese intento ya se guardó con otros datos: no se repitió. Cierra y revisa Existencias antes de volver a intentarlo.",
+      code: "P0001",
+      hint: "mover_interno_token_reusado",
+    };
+    expect(mensajeErrorMovimientoPiso("retirar", error, true)).toBe(error.message);
   });
 });
