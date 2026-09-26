@@ -12,9 +12,12 @@ import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { resumirVarianza, type FilaPrevisualizacion, type Varianza } from "@/lib/conteo-varianza";
 import {
   avanceEnVivo,
+  coincidenciasPorCodigo,
+  codigoDePrendaNueva,
   crearColaEnSerie,
   modoConteoValido,
   nuevaCantidad,
+  prioridadDesdeFila,
   tocar,
   type ModoConteo,
   type PrendaPendiente,
@@ -34,6 +37,7 @@ import { guardar as guardarLocal, leer as leerLocal } from "@/lib/almacen-local"
 
 type VarianteConteo = {
   varianteId: string;
+  /** El código de la etiqueta (`codigosDeConteo`), no `variantes.sku`: casi ninguna prenda lo tiene (ADR-0058). */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -65,7 +69,7 @@ function detalle(p: { talla: string | null; color: string | null }) {
   return [p.talla, p.color].filter(Boolean).join(" · ");
 }
 
-/** Una prenda en las listas del conteo: sin foto (las listas son de trabajo, se leen rápido), SKU + talla + color. */
+/** Una prenda en las listas del conteo: sin foto (las listas son de trabajo, se leen rápido), código + talla + color. */
 function PrendaLinea({ prenda }: { prenda: PrendaVista }) {
   return (
     <span className="min-w-0">
@@ -73,7 +77,7 @@ function PrendaLinea({ prenda }: { prenda: PrendaVista }) {
         {prenda.referencia}
       </span>
       <span className="block truncate text-xs text-taupe">
-        <span className="font-mono text-[11px]">{prenda.sku}</span>
+        <span className="font-mono text-[11px]">{prenda.sku || "sin código"}</span>
         {detalle(prenda) && ` · ${detalle(prenda)}`}
       </span>
     </span>
@@ -206,19 +210,8 @@ function AbrirConteo({
           data.map((f) => f.variante_id)
         );
         if (cancelado) return;
-        setSugerenciasPorCategoria(
-          data.map((f) => ({
-            varianteId: f.variante_id,
-            sku: f.sku,
-            referencia: f.referencia,
-            talla: f.talla,
-            color: f.color,
-            sububicacionId: f.sububicacion_id,
-            diasSinContar: f.dias_sin_contar,
-            valorEnRiesgo: Number(f.valor_en_riesgo),
-            apariencia: apariencia.get(f.variante_id),
-          }))
-        );
+        // El mismo mapeo que hace el servidor (`getPrioridadConteo`), en un solo lugar: incluye el código de la etiqueta.
+        setSugerenciasPorCategoria(data.map((f) => prioridadDesdeFila(f, apariencia.get(f.variante_id))));
       });
     return () => {
       cancelado = true;
@@ -386,7 +379,7 @@ function AbrirConteo({
                 <div key={`${s.varianteId}-${s.sububicacionId ?? "sin"}`} className={fila(PLANTILLA_SUGERENCIAS)}>
                   <ProductoVarianteCelda
                     referencia={s.referencia}
-                    sku={s.sku}
+                    sku={s.sku || "sin código"}
                     talla={s.talla}
                     color={s.color}
                     colorHex={s.apariencia?.colorHex}
@@ -661,16 +654,10 @@ function ConteoEnCurso({
     setRevisando(true);
   }
 
-  const coincidencias = useMemo(() => {
-    const q = busqueda.trim().toLowerCase();
-    if (!q) return [];
-    return catalogoCompleto
-      .filter((v) => (v.sku ?? "").toLowerCase().includes(q) || v.codigosBarras.some((c) => c.toLowerCase() === q))
-      .slice(0, 8);
-  }, [busqueda, catalogoCompleto]);
+  const coincidencias = useMemo(() => coincidenciasPorCodigo(busqueda, catalogoCompleto), [busqueda, catalogoCompleto]);
 
   // Nada coincide y hay algo escrito: puede ser una prenda de verdad que el catálogo no tiene. `>= 6` filtra el ruido
-  // de las primeras letras de un SKU que sí existe (un código de barras real nunca es tan corto).
+  // de las primeras letras de un código que sí existe (un código de barras real nunca es tan corto).
   const sinCoincidencias = busqueda.trim().length >= 6 && coincidencias.length === 0;
 
   function alEscribir(texto: string) {
@@ -758,8 +745,8 @@ function ConteoEnCurso({
                     alEnter();
                   }
                 }}
-                aria-label="Código de barras o SKU"
-                placeholder={modo === "suma" ? "Escanea: cada lectura suma 1 · o escribe el SKU y Enter" : "Escanea el código de barras o escribe el SKU…"}
+                aria-label="Código de barras o código de la etiqueta"
+                placeholder={modo === "suma" ? "Escanea: cada lectura suma 1 · o escribe el código y Enter" : "Escanea el código de barras o escribe el código…"}
                 className="caja-cayla h-12 w-full pl-11 pr-3 text-base text-tinta outline-none placeholder:text-taupe"
               />
             </div>
@@ -776,7 +763,7 @@ function ConteoEnCurso({
                       {v.referencia} <span className="text-taupe">{detalle(v)}</span>
                     </span>
                     <span className="shrink-0 font-mono text-[11px] text-taupe">
-                      {v.sku}
+                      {v.sku || "sin código"}
                       {contadas.has(v.varianteId) && " · ya contada"}
                     </span>
                   </button>
@@ -1105,6 +1092,8 @@ function RevisarCierre({
   }
 
   const conDiferencia = varianza ? varianza.lineas.filter((l) => l.diferencia !== 0) : [];
+  // El código que se lee en la etiqueta, el mismo de toda la pantalla; la función solo da «el primer código de barras».
+  const codigoDe = new Map(catalogo.map((v) => [v.varianteId, v.sku]));
   // Quien no ve el dinero recibe el catálogo sin costos (todos null): revisa el cierre en unidades.
   const veCosto = catalogo.some((v) => v.costo !== null);
   const unidadesNeto = varianza ? varianza.unidadesSobrantes - varianza.unidadesFaltantes : 0;
@@ -1157,7 +1146,7 @@ function RevisarCierre({
                   <li key={l.varianteId} className="flex items-center justify-between gap-3 px-4 py-2.5">
                     <span className="min-w-0">
                       <span className="block truncate text-sm text-tinta">{l.referencia}</span>
-                      <span className="block truncate text-xs text-taupe">{[l.codigo, l.talla, l.color].filter(Boolean).join(" · ")}</span>
+                      <span className="block truncate text-xs text-taupe">{[codigoDe.get(l.varianteId) || l.codigo, l.talla, l.color].filter(Boolean).join(" · ")}</span>
                     </span>
                     <span className="shrink-0 text-sm tabular-nums">
                       {l.sistema} → {l.contada}{" "}
@@ -1295,7 +1284,8 @@ function AltaAlVuelo({
     }
     onCreada({
       varianteId: fila.variante_id,
-      sku: fila.sku ?? "",
+      // `censo_crear_variante` devuelve el `sku`, y una prenda nueva nace sin él: se muestra el código que se escaneó.
+      sku: codigoDePrendaNueva(fila),
       referencia: fila.referencia,
       talla: fila.talla,
       color: fila.color,

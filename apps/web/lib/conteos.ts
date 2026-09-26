@@ -4,6 +4,8 @@ import type { FilaPrevisualizacion } from "@/lib/conteo-varianza";
 import { getAparienciaVariantes, type Apariencia } from "@/lib/apariencia-variantes";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { prioridadDesdeFila } from "@/lib/conteo-reglas";
 
 // Conteos físicos (Felipe, 2026-09-14): abrir_conteo/conteo_contar/cerrar_conteo
 // ya existían y siguen probados intactos — este archivo solo trae lecturas.
@@ -14,6 +16,7 @@ import { getCostosVariantes } from "@/lib/catalogo-v2";
 export type ItemConteoAbierto = {
   id: string;
   varianteId: string;
+  /** El código de la etiqueta (`codigoDeEtiqueta`), no `variantes.sku`: 128 de 130 lo tienen NULL (ADR-0058). Solo se muestra. */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -58,7 +61,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
       .from("conteo_items")
       .select(
         `id, variante_id, cantidad_contada,
-         variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("conteo_id", conteo.id)
       .order("id"),
@@ -82,7 +85,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
     items: items.map((i) => ({
       id: i.id,
       varianteId: i.variante_id,
-      sku: i.variante?.sku ?? "",
+      sku: i.variante ? codigoDeEtiqueta(i.variante) : "",
       referencia: i.variante?.producto?.referencia ?? "",
       talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
@@ -171,6 +174,7 @@ export async function getPrevisualizacionCierre(conteoId: string): Promise<FilaP
 
 export type PrioridadConteo = {
   varianteId: string;
+  /** El código de la etiqueta (`codigoDeEtiqueta`); la función de Postgres solo trae `variantes.sku`, casi siempre NULL. */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -203,17 +207,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     supabase,
     filas.map((f) => f.variante_id)
   );
-  return filas.map((f) => ({
-    varianteId: f.variante_id,
-    sku: f.sku,
-    referencia: f.referencia,
-    talla: f.talla,
-    color: f.color,
-    sububicacionId: f.sububicacion_id,
-    diasSinContar: f.dias_sin_contar,
-    valorEnRiesgo: Number(f.valor_en_riesgo),
-    apariencia: apariencia.get(f.variante_id),
-  }));
+  return filas.map((f) => prioridadDesdeFila(f, apariencia.get(f.variante_id)));
 }
 
 // ============================================================================
@@ -225,6 +219,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
 
 export type LineaConteo = {
   varianteId: string;
+  /** El código de la etiqueta (`codigoDeEtiqueta`). Se muestra y desempata el orden; la prenda se identifica por `varianteId`. */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -264,7 +259,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       .from("conteo_items")
       .select(
         `variante_id, cantidad_sistema, cantidad_contada,
-         variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
+         variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
       )
       .eq("conteo_id", id),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
@@ -278,7 +273,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
   const lineasDetalle: LineaConteo[] = items
     .map((i) => ({
       varianteId: i.variante_id,
-      sku: i.variante?.sku ?? "",
+      sku: i.variante ? codigoDeEtiqueta(i.variante) : "",
       referencia: i.variante?.producto?.referencia ?? "",
       talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,

@@ -22,6 +22,9 @@ import { AnalisisCoberturaOverlay } from "@/components/AnalisisCoberturaOverlay"
 import { RecomendacionesOverlay } from "@/components/RecomendacionesOverlay";
 import { hoyLima, resumirApartados, type Apartado } from "@/lib/apartados-reglas";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
+import { ExistenciasVacio } from "@/components/ExistenciasVacio";
+import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
+import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Recomendacion } from "@/lib/existencias-recomendaciones";
@@ -62,6 +65,11 @@ const PUNTO_ESTADO: Record<EstadoStock, string> = {
 };
 
 const TODAS = "__todas__";
+/** El buscador, para devolverle el foco cuando un botón del estado vacío (que se desmonta al volver las filas) lo tenía. */
+const ID_BUSCADOR = "existencias-buscar";
+function enfocarBuscador() {
+  requestAnimationFrame(() => document.getElementById(ID_BUSCADOR)?.focus());
+}
 /** Filas por página de la tabla (Felipe, 2026-09-22: «que solo se vean 15»). Pintar TODAS las variantes
  *  de una tienda —cada una con foto, chips, botones y menú— era lo que hacía lenta la pantalla. */
 const FILAS_POR_PAGINA = 15;
@@ -92,6 +100,28 @@ const DANADO = "__danado__";
  *  tallas por colgar, su texto remite a esta lista en vez de decir «nada pendiente». */
 const POR_COLGAR = "__por_colgar__";
 const ESTADOS: EstadoStock[] = ["normal", "reponer_piso", "stock_bajo", "sin_stock"];
+
+/** Los filtros visuales que NO son texto, en UN solo lugar: la tabla los aplica y el estado vacío los «relaja» de a uno para
+ *  decir cuál está dejando la pantalla en blanco. `omitir` = los que se ignoran en esa cuenta. */
+function pasaFiltros(f: FilaExistencias, filtros: { categoria: string; marca: string; estado: string }, omitir?: ReadonlySet<ClaveFiltro>): boolean {
+  if (!omitir?.has("categoria") && filtros.categoria !== TODAS && f.categoria !== filtros.categoria) return false;
+  if (!omitir?.has("marca") && filtros.marca !== TODAS && f.marca !== filtros.marca) return false;
+  if (omitir?.has("estado") || filtros.estado === TODAS) return true;
+  if (filtros.estado === DANADO) return (f.danado ?? 0) > 0;
+  if (filtros.estado === POR_COLGAR) return porColgar(f);
+  return f.estado === filtros.estado;
+}
+
+/** El buscador ocupa su propia fila y debajo van de 3 a 5 combos (Marca solo con 2 o más marcas; Estado solo donde se separa piso y almacén). Con
+ *  el buscador y los 5 combos en UNA fila, a 1440-1490 px con el lateral abierto los combos partían su texto en dos líneas y el placeholder se cortaba
+ *  (medido en la revisión, 2026-09-26): la herramienta que más se usa merece el ancho completo, y los combos, uno igual a otro. */
+const COLUMNAS_FILTROS: Record<number, string> = {
+  3: "sm:grid-cols-3",
+  4: "sm:grid-cols-2 xl:grid-cols-4",
+  5: "sm:grid-cols-3 xl:grid-cols-5",
+};
+// Los cortes salen de la cuenta, no del gusto: «Categoría: todas» necesita ~152 px, así que 5 combos piden ~850 px de tarjeta. Con el lateral
+// abierto (17 rem + márgenes) eso ocurre desde 1280 px de ventana (`xl`); a 1024 px quedan ~640 px y caben tres por fila.
 
 function fechaHora(iso: string) {
   return new Date(iso).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
@@ -212,6 +242,10 @@ export function InventarioPanel({
   esLider,
   puedeAjustar,
   coberturaFallo = null,
+  sedeNombre,
+  sinStock,
+  marcaFallo = null,
+  verProductos = false,
   filasSemana,
   deltaSede,
   recomendaciones,
@@ -237,6 +271,15 @@ export function InventarioPanel({
   puedeAjustar: boolean;
   /** Si la cobertura no se pudo calcular: el aviso (las filas quedan en «N/D»); null = todo bien. */
   coberturaFallo?: string | null;
+  /** El nombre de la sede que se mira, para decir «Tienda TRU no lo ha recibido» en el estado vacío. */
+  sedeNombre: string;
+  /** Los productos ACTIVOS del catálogo que esta sede no tiene (ni una fila de stock): la pantalla nace de `stock`, así que
+   *  sin esto una marca cuyos productos la sede nunca recibió («CAYLA» en TRU) no dejaba rastro. */
+  sinStock: ProductoSinStock[];
+  /** Si la marca de los productos no se pudo leer: el aviso (sin Marca en el buscador ni en los filtros); null = todo bien. */
+  marcaFallo?: string | null;
+  /** ¿Su rol ve el módulo Productos (ADR-0161)? Sin él, «Ver en Productos» llevaría a «Sin acceso»: los nombres se muestran, sin enlace. */
+  verProductos?: boolean;
   /** Los últimos 7 días de la sede (`getFilasSemanaDeSede`): ritmo de venta, costo/precio/categoría y
    *  el delta vs. hace 7 días — alimenta la columna «Ritmo de venta (7D)» y el overlay de «Disponible total». */
   filasSemana: FilaSemana[];
@@ -249,6 +292,7 @@ export function InventarioPanel({
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
   const [categoria, setCategoria] = useState(TODAS);
+  const [marca, setMarca] = useState(TODAS);
   const [talla, setTalla] = useState(TODAS);
   const [color, setColor] = useState(TODAS);
   const [estado, setEstado] = useState(TODAS);
@@ -277,6 +321,13 @@ export function InventarioPanel({
     () => Array.from(new Set(stock.map((f) => f.categoria).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
     [stock]
   );
+  // Las marcas de ESTA sede (no las 80 de la tabla `marcas`): un combo con marcas que aquí no tienen ni una prenda solo estorbaría.
+  // Con una sola marca el filtro (y la marca en cada fila) sería ruido: aparece desde 2.
+  const marcas = useMemo(() => marcasDeLaSede(stock), [stock]);
+  const mostrarMarca = marcas.length >= 2;
+  // Un filtro que no se ve no puede seguir filtrando: si la lectura de marcas falla tras un `router.refresh` (Reponer, Ajustar) el combo desaparece;
+  // sin esto la marca elegida antes seguía activa, invisible, y dejaba la tabla en blanco.
+  const marcaEfectiva = mostrarMarca && marcas.includes(marca) ? marca : TODAS;
   const tallas = useMemo(() => Array.from(new Set(stock.map((f) => f.talla).filter((t): t is string => !!t))).sort(), [stock]);
   const colores = useMemo(
     () => Array.from(new Set(stock.map((f) => f.color).filter((c): c is string => !!c))).sort((a, b) => a.localeCompare(b, "es")),
@@ -291,28 +342,38 @@ export function InventarioPanel({
   }, [filasSemana]);
 
   // Filtro de búsqueda especial (`lib/filtro-busqueda-especial.ts`): lo escrito se parte en términos —nombre,
-  // SKU, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
-  // color, manda sobre el filtro visual de esa dimensión; Categoría y Estado siempre aplican.
+  // marca, categoría, código, color y talla, en cualquier orden— y todos deben cumplirse. Si el texto dice una talla o un
+  // color, manda sobre el filtro visual de esa dimensión; Categoría, Marca y Estado siempre aplican (el texto no los pisa).
   const indiceBusqueda = useMemo(
-    () => crearIndiceBusquedaEspecial(stock, (f) => ({ nombre: f.referencia, sku: f.sku, codigosBarras: f.codigosBarras, color: f.color, talla: f.talla })),
+    () =>
+      crearIndiceBusquedaEspecial(stock, (f) => ({
+        nombre: f.referencia,
+        sku: f.sku,
+        codigosBarras: f.codigosBarras,
+        color: f.color,
+        talla: f.talla,
+        marca: f.marca,
+        categoria: f.categoria,
+      })),
     [stock]
   );
   const { filas: filtradas, dimensiones: dichoEnLaBusqueda } = useMemo(() => {
-    const resultado = filtrarConBusquedaEspecial(indiceBusqueda, busqueda, {
-      talla: talla === TODAS ? null : talla,
-      color: color === TODAS ? null : color,
-      otros: (f) => {
-        if (categoria !== TODAS && f.categoria !== categoria) return false;
-        if (estado === DANADO) return (f.danado ?? 0) > 0;
-        if (estado === POR_COLGAR) return porColgar(f);
-        if (estado !== TODAS && f.estado !== estado) return false;
-        return true;
+    const resultado = filtrarConBusquedaEspecial(
+      indiceBusqueda,
+      busqueda,
+      {
+        talla: talla === TODAS ? null : talla,
+        color: color === TODAS ? null : color,
+        otros: (f) => pasaFiltros(f, { categoria, marca: marcaEfectiva, estado }),
       },
-    });
+      // Con texto escrito, lo que mejor coincide va primero (una marca entera antes que un trozo perdido en un código), y las
+      // tallas de un producto no se separan. «Por colgar» trae su propio orden (por percha) y no se toca.
+      estado === POR_COLGAR ? {} : { ordenar: "relevancia", grupo: (f) => f.productoId }
+    );
     // «Por colgar» se trabaja por percha (un modelo en un color), no por SKU: sus tallas salen juntas y
     // en su curva, para que la encargada baje la M y la L de la misma casaca en un solo viaje.
     return estado === POR_COLGAR ? { ...resultado, filas: ordenarPorModeloColorTalla(resultado.filas) } : resultado;
-  }, [indiceBusqueda, busqueda, talla, color, categoria, estado]);
+  }, [indiceBusqueda, busqueda, talla, color, categoria, marcaEfectiva, estado]);
 
   // El contador de la píldora mira TODA la sede, no lo filtrado: es la cifra del problema («22 tallas
   // que la clienta no ve»), igual que las tarjetas de arriba. Baja sola después de cada «Reponer».
@@ -322,7 +383,7 @@ export function InventarioPanel({
   // Cambiar cualquier filtro vuelve a la página 1 (ajuste durante el render, sin efecto: la firma de
   // los filtros cambió → se reinicia). `paginar` acota: si un guardado achicó la lista, cae en la última.
   const [pagina, setPagina] = useState(1);
-  const firmaFiltros = [busqueda, categoria, talla, color, estado].join("\u0000");
+  const firmaFiltros = [busqueda, categoria, marcaEfectiva, talla, color, estado].join("\u0000");
   const [firmaPrevia, setFirmaPrevia] = useState(firmaFiltros);
   if (firmaFiltros !== firmaPrevia) {
     setFirmaPrevia(firmaFiltros);
@@ -340,12 +401,13 @@ export function InventarioPanel({
     if (tarjeta && tarjeta.getBoundingClientRect().top < 0) tarjeta.scrollIntoView({ block: "start" });
   }
 
-  const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
-  /** Quita búsqueda, categoría, talla y color, pero deja el Estado puesto. Es el «Ver todas» de «Por colgar»:
+  const hayFiltrosActivos = busqueda !== "" || categoria !== TODAS || marcaEfectiva !== TODAS || talla !== TODAS || color !== TODAS || estado !== TODAS;
+  /** Quita búsqueda, categoría, marca, talla y color, pero deja el Estado puesto. Es el «Ver todas» de «Por colgar»:
    *  que la lista vuelva a ser lo que cuenta la píldora. */
   function quitarFiltrosMenosEstado() {
     setBusqueda("");
     setCategoria(TODAS);
+    setMarca(TODAS);
     setTalla(TODAS);
     setColor(TODAS);
   }
@@ -385,14 +447,18 @@ export function InventarioPanel({
   // (`separa`) — en Taller siempre son `null` y mostrar tres columnas vacías
   // en cada fila sería ruido, no dato (mismo criterio que ya usa la tabla).
   function exportarCsv() {
-    const encabezados = ["Prenda", "Código", "Talla", "Color", "Categoría"];
+    // La columna «Marca» solo si la sede tiene alguna leída: con la lectura caída, una columna de «—» sería ruido.
+    const conMarcaEnCsv = marcas.length > 0;
+    const encabezados = conMarcaEnCsv ? ["Prenda", "Marca", "Código", "Talla", "Color", "Categoría"] : ["Prenda", "Código", "Talla", "Color", "Categoría"];
     if (separa) encabezados.push("Piso", "Almacén");
     encabezados.push("Disponible");
     if (separa) encabezados.push("Apartadas", "Estado");
     encabezados.push("En camino", "En la red");
 
     const filas = filtradas.map((f) => {
-      const fila: (string | number)[] = [f.referencia, f.sku, f.talla ?? "—", f.color ?? "—", f.categoria ?? "—"];
+      const fila: (string | number)[] = conMarcaEnCsv
+        ? [f.referencia, f.marca ?? "—", f.sku, f.talla ?? "—", f.color ?? "—", f.categoria ?? "—"]
+        : [f.referencia, f.sku, f.talla ?? "—", f.color ?? "—", f.categoria ?? "—"];
       if (separa) fila.push(f.piso ?? "—", f.almacen ?? "—");
       fila.push(f.disponible);
       if (separa) fila.push(f.apartado, f.estado ? ETIQUETA_ESTADO_STOCK[f.estado] : "—");
@@ -411,6 +477,52 @@ export function InventarioPanel({
   const plantilla = separa
     ? "sm:grid-cols-[minmax(13.5rem,1.3fr)_6.5rem_4.5rem_6rem_7rem_11rem_5rem_minmax(9rem,1fr)_6rem]"
     : "sm:grid-cols-[minmax(13.5rem,1.4fr)_5rem_6rem_5rem_minmax(9rem,1fr)_4.5rem]";
+
+  // Lo que la persona ve en los filtros, para nombrarlo si dejan la tabla en blanco (y para que el estado vacío los quite de a uno).
+  const filtroMarcaElegida = marcaEfectiva === TODAS ? null : marcaEfectiva;
+  const filtroCategoriaElegida = categoria === TODAS ? null : categoria;
+  const filtrosActivos: FiltroActivo[] = [];
+  if (categoria !== TODAS) filtrosActivos.push({ clave: "categoria", etiqueta: "Categoría", valor: categoria });
+  if (marcaEfectiva !== TODAS) filtrosActivos.push({ clave: "marca", etiqueta: "Marca", valor: marcaEfectiva });
+  if (talla !== TODAS) filtrosActivos.push({ clave: "talla", etiqueta: "Talla", valor: talla });
+  if (color !== TODAS) filtrosActivos.push({ clave: "color", etiqueta: "Color", valor: color });
+  if (estado !== TODAS) {
+    filtrosActivos.push({ clave: "estado", etiqueta: "Estado", valor: estado === DANADO ? "Dañado" : estado === POR_COLGAR ? "Por colgar" : ETIQUETA_ESTADO_STOCK[estado as EstadoStock] });
+  }
+  // Productos que el catálogo tiene pero esta sede NO (ni una fila de stock) y que coinciden con lo escrito. Se avisa aunque haya
+  // resultados: quien busca «cayla» y ve Top Aurora («Cayla 2») debe saber que los pantalones de la marca CAYLA existen y aquí no llegaron.
+  const sinRastroAqui = useMemo(
+    () => (busqueda.trim() ? sinStockQueCoincide(busqueda, indiceBusqueda.vocabulario, sinStock, { filtroMarca: filtroMarcaElegida, filtroCategoria: filtroCategoriaElegida }) : { productos: [], total: 0 }),
+    [busqueda, indiceBusqueda, sinStock, filtroMarcaElegida, filtroCategoriaElegida]
+  );
+  const sinNadaPorColgar = estado === POR_COLGAR && cuentaPorColgar.tallas === 0;
+  const explicacionVacio =
+    filtradas.length === 0 && stock.length > 0 && !sinNadaPorColgar
+      ? explicarVacio({
+          consulta: busqueda,
+          sede: sedeNombre,
+          filtros: filtrosActivos,
+          vocabulario: indiceBusqueda.vocabulario,
+          palabras: palabrasBuscables(stock),
+          // «¿Cuántas prendas se verían si esto no estuviera?»: el mismo filtro de la tabla, sin el texto o sin un filtro visual.
+          contar: (consulta, omitir) =>
+            filtrarConBusquedaEspecial(indiceBusqueda, consulta, {
+              talla: omitir.has("talla") || talla === TODAS ? null : talla,
+              color: omitir.has("color") || color === TODAS ? null : color,
+              otros: (f) => pasaFiltros(f, { categoria, marca: marcaEfectiva, estado }, omitir),
+            }).filas.length,
+          sinStock,
+          filtroMarca: filtroMarcaElegida,
+          filtroCategoria: filtroCategoriaElegida,
+        })
+      : null;
+  function quitarFiltro(clave: ClaveFiltro) {
+    if (clave === "categoria") setCategoria(TODAS);
+    else if (clave === "marca") setMarca(TODAS);
+    else if (clave === "talla") setTalla(TODAS);
+    else if (clave === "color") setColor(TODAS);
+    else setEstado(TODAS);
+  }
 
   return (
     <div className="space-y-6">
@@ -549,8 +661,32 @@ export function InventarioPanel({
           y lo filtrado se leen como una sola cosa. Los filtros son cajas hundidas en hueso, sin etiqueta visible. */}
       <div ref={tarjetaTablaRef} className="card-cayla scroll-mt-4 overflow-hidden">
       {stock.length > 0 && (
-        <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${separa ? "sm:grid-cols-[1.4fr_1fr_1fr_1fr_1fr]" : "sm:grid-cols-[1.4fr_1fr_1fr_1fr]"}`}>
-          <CampoTexto caja etiqueta="Buscar" placeholder="Producto, código, color, talla…" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} />
+        <div className={`grid gap-x-3 gap-y-1 px-4 pt-4 sm:px-5 sm:pt-5 ${COLUMNAS_FILTROS[3 + (separa ? 1 : 0) + (mostrarMarca ? 1 : 0)]}`}>
+          {/* Sin corrector del navegador: «CAYLA», «miramhe» o «pol-0004» no son palabras de diccionario, y el subrayado rojo
+              sugería que estaba mal escrito lo que era una marca. */}
+          <div className="sm:col-span-full">
+            <CampoTexto
+              id={ID_BUSCADOR}
+              caja
+              etiqueta="Buscar"
+              placeholder={mostrarMarca ? "Prenda, marca, código, color, talla…" : "Prenda, código, color, talla…"}
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              spellCheck={false}
+              autoComplete="off"
+            />
+          </div>
+          {/* La marca, junto al buscador: es lo primero que se sabe de una prenda y la forma más rápida de encontrarla. */}
+          {mostrarMarca && (
+            <CampoSelect
+              caja
+              etiqueta="Marca"
+              valor={marca}
+              onValor={setMarca}
+              marcador="Todas"
+              opciones={[{ valor: TODAS, texto: "Marca: todas" }, ...marcas.map((m) => ({ valor: m, texto: m }))]}
+            />
+          )}
           <CampoSelect
             caja
             etiqueta="Categoría"
@@ -648,15 +784,57 @@ export function InventarioPanel({
       )}
 
       {separa && coberturaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{coberturaFallo}</p>}
+      {/* Si la marca no se pudo leer, se dice: sin el aviso, quien escribe una marca y no ve nada creería que no hay prendas. */}
+      {marcaFallo && stock.length > 0 && <p className="px-4 pb-2 text-xs text-ambar sm:px-5">{marcaFallo} Mientras tanto no se puede buscar ni filtrar por marca.</p>}
+      {/* Hay resultados, pero también productos del catálogo que esta sede no recibió (con el vacío, los cuenta el propio estado vacío). */}
+      {/* Desde 3 letras: con una sola («b») casi todo el catálogo «coincide» y la línea aparecía y desaparecía en cada tecla, moviendo la tabla. */}
+      {sinRastroAqui.total > 0 && filtradas.length > 0 && busqueda.trim().length >= 3 && (
+        <p className="nota-cayla mx-4 mb-3 sm:mx-5">
+          {textoSinStock(sedeNombre)}{" "}
+          {sinRastroAqui.productos.map((p, i) => (
+            <span key={p.id}>
+              {i > 0 && ", "}
+              {verProductos ? (
+                <Link href={`/productos?q=${encodeURIComponent(p.referencia)}`} className="underline decoration-tinta/30 underline-offset-2 hover:text-rojo">
+                  {p.referencia}
+                </Link>
+              ) : (
+                p.referencia
+              )}
+              {p.marca ? ` (${p.marca})` : ""}
+            </span>
+          ))}
+          {sinRastroAqui.total > sinRastroAqui.productos.length && ` y ${sinRastroAqui.total - sinRastroAqui.productos.length} más`}.
+        </p>
+      )}
       {stock.length === 0 ? (
         <p className="p-5 text-sm text-taupe">Esta ubicación no tiene stock todavía.</p>
       ) : filtradas.length === 0 ? (
         // «para vender», no «colgada»: la regla mira lo disponible, y lo colgado pero apartado no cuenta.
-        <p className="border-t border-sand p-5 text-sm text-taupe">
-          {estado === POR_COLGAR && cuentaPorColgar.tallas === 0
-            ? "Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso."
-            : "Ningún producto coincide con la búsqueda."}
-        </p>
+        sinNadaPorColgar || !explicacionVacio ? (
+          <p className="border-t border-sand p-5 text-sm text-taupe">Nada por colgar: toda talla con algo para bajar del almacén tiene al menos una para vender en el piso.</p>
+        ) : (
+          <ExistenciasVacio
+            explicacion={explicacionVacio}
+            sede={sedeNombre}
+            hayTexto={busqueda.trim() !== ""}
+            // Al usar un botón del vacío, el bloque se desmonta (vuelven las filas) y el foco caía al <body>: quien navega con teclado o lector
+            // de pantalla perdía su lugar. El buscador es el sitio natural para seguir.
+            onQuitarTermino={(consulta) => {
+              setBusqueda(consulta);
+              enfocarBuscador();
+            }}
+            onQuitarFiltro={(clave) => {
+              quitarFiltro(clave);
+              enfocarBuscador();
+            }}
+            onLimpiarTodo={() => {
+              limpiarFiltros();
+              enfocarBuscador();
+            }}
+            hrefCatalogo={verProductos ? (referencia) => `/productos?q=${encodeURIComponent(referencia)}` : undefined}
+          />
+        )
       ) : (
         <Tabla className="rounded-none border-0 border-t border-sand bg-transparent">
           {/* Toda la tabla centrada (Felipe, 2026-09-15) salvo la prenda, que
@@ -694,7 +872,15 @@ export function InventarioPanel({
             return (
               <div key={f.varianteId} className={fila(plantilla)}>
                 {/* La misma celda que dibuja Conteo (`ui/PrendaCelda.tsx`). */}
-                <ProductoVarianteCelda referencia={f.referencia} sku={f.sku} talla={f.talla} color={f.color} colorHex={f.colorHex} fotoUrl={f.fotoUrl} />
+                <ProductoVarianteCelda
+                  referencia={f.referencia}
+                  sku={f.sku}
+                  talla={f.talla}
+                  color={f.color}
+                  colorHex={f.colorHex}
+                  fotoUrl={f.fotoUrl}
+                  marca={mostrarMarca ? f.marca : null}
+                />
                 {/* Las 4 cifras (Piso·Almacén, Disponible, Cobertura, Ritmo) amontonadas y pegadas a la
                     izquierda era ilegible en celular (Felipe, 2026-09-25): acá se agrupan en una grilla de
                     2×2 con cada una en su propia tarjetita, para que se lean como datos separados, no como

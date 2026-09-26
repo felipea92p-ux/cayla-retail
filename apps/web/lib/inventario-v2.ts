@@ -220,6 +220,10 @@ export type FilaExistencias = FilaStock & {
   cobertura?: Cobertura | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
+  /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la
+   *  página con `conMarca` (`existencias-catalogo-reglas.ts`) desde una lectura aparte y tolerante. Ausente o null = no se
+   *  pudo leer. */
+  marca?: string | null;
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía

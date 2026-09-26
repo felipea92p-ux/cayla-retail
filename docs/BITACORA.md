@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: buscar por marca, y lo que la revisión atrapó antes de publicar)
+Felipe escribió «CAYLA» en Existencias y no vio nada. Al mirar los datos, la marca no era un texto más: «CAYLA» y «Cayla 2» son dos marcas, y los pantalones CAYLA no tienen ni una fila de stock en TRU. Se construyó el buscador por marca y categoría, el filtro «Marca» y un estado vacío que explica qué se buscó, qué quitar y qué productos existen en el catálogo pero no en esa sede. Una revisión adversarial con cuatro lentes, antes de commitear, encontró que la lectura nueva habría fallado en producción para toda cuenta.
+Felipe se lleva:
+1. **Un permiso de columnas se rompe donde nadie lo mira.** `variantes!inner(count)` parece inocente, pero PostgREST lo lee como «toda la fila» y `costo` no es legible para `authenticated`. Pasaban 77.585 pruebas y el tipado; la pantalla habría quedado sin marca, con un aviso genérico.
+2. **Probar con la llave pública (anon) no prueba permisos:** una consulta inválida y una válida contestaban igual. La prueba que sí sirve es la que usa el rol real, con la misma restricción de columnas, aunque sea en una base desechable.
+3. **Un color no es una marca.** «dorada» traía toda la blusa de la marca «Doradas Chic» en cualquier color, según el género con que se escribiera. El buscador compartido se cambió sin tocar el comportamiento de Análisis ni de Movimientos: se comparó contra el motor anterior en 40.330 casos.
+
 ## 2026-09-26 (Catálogo ▸ Marcas: «Eliminar» para una marca puesta por error — ADR-0217)
 «Cayla 2» se creó por error al dar de alta un producto y solo se podía desactivar: quedaba en «Desactivadas» para siempre y ocupaba su nombre. Ahora hay «Eliminar», pero solo cuando ningún producto tiene la marca —ni descontinuado ni archivado como prueba—. La migración `20260926213000` (una función, `eliminar_marca`) está probada 21/21 en un Postgres desechable, con 3 mutaciones detectadas y una carrera real con COMMIT en los dos órdenes; **ya está en producción** (aplicada el mismo día con tu «dale», con ensayo previo revertido y verificada por efectos), antes que la web.
 Felipe se lleva: (1) **el producto que «solo era una prueba» tenía una venta completada**, así que no se puede borrar: se re-marca (Top Aurora → Krisstell, que Jacard ya trae) y recién entonces la marca se elimina. (2) **Descontinuar o archivar como prueba no libera la marca**: el producto sigue apuntándole. (3) **Borrar solo es seguro donde no hay historia**: por eso Eliminar existe para marcas sin productos y no para las demás.
@@ -19,6 +26,7 @@ Felipe se lleva:
 3. **Para confirmar un dato no hay que adivinar en pantalla:** una consulta de solo lectura a producción separó «el dato no existe» de «la pantalla no lo lee» en un minuto.
 
 Con el «sí» de Felipe, «Producto de Prueba» quedó marcado `es_prueba` en producción: tenía 160 de las 363 unidades de TRU y falseaba «Disponible total», la barra piso/almacén y «Por colgar». Existencias de TRU pasa de 363 a 203 (158 piso · 45 almacén). Un producto de prueba sin marcar no es inocente: contamina cada cifra que suma stock.
+
 
 
 ## 2026-09-26 (La marca de `mover_interno` — ADR-0208, entre el bloque 2 y el 3)

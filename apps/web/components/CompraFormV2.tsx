@@ -36,6 +36,7 @@ import { destinosParaRpc, repartirEnPartesIguales, repartoSoloDe, tiendaGestora,
 // Líneas: cada proveedor factura distinto. Si detalla talla/color, se elige
 // la variante; si agrupa ("Blusa Lino x 24"), se deja "Sin desglose" y el
 // reparto por talla/color se hace al recibir.
+// `sku` trae el código de etiqueta (con respaldo al sku legado, «» si no tiene ninguno): solo rotula la opción sin talla ni color.
 type Variante = { varianteId: string; sku: string; talla: string | null; color: string | null; productoId: string; referencia: string; costo: number };
 // Lo que se sabe de un proveedor al elegirlo (ADR-0111): su plazo y forma de pago preferidos, y lo que ya se le
 // debe. Con eso el vencimiento se sugiere solo y se decide la compra sabiendo la deuda que ya hay con él.
@@ -686,7 +687,7 @@ export function CompraFormV2({
                     onValor={(id) => elegirVariante(i, id)}
                     opciones={[
                       { valor: "", texto: "Sin desglose (se reparte al recibir)" },
-                      ...(producto?.variantes.map((v) => ({ valor: v.varianteId, texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku })) ?? []),
+                      ...(producto?.variantes.map((v) => ({ valor: v.varianteId, texto: [v.talla, v.color].filter(Boolean).join(" / ") || v.sku || "Sin talla ni color" })) ?? []),
                     ]}
                     etiquetaAccesible="Talla y color"
                     deshabilitado={!l.productoId}

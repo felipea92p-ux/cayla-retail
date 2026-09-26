@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@cayla-retail/database";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { tolerar } from "@/lib/resultado";
 
 /* ====================================================================
@@ -20,6 +21,12 @@ import { tolerar } from "@/lib/resultado";
    lados — el servidor (la lista que llega ya pintada) y el navegador (al
    filtrar por categoría) — cada uno con el suyo.
 
+   El código de etiqueta viaja aquí por la misma razón (2026-09-26): `fn_prioridad_conteo` devuelve
+   solo `variantes.sku`, y en producción 128 de 130 variantes lo tienen NULL (ADR-0058) — la fila
+   salía sin código justo donde la colaboradora busca qué talla y color es. La consulta ya iba a
+   `variantes` por id: pedir `codigo` de paso no suma un viaje. Cuando esa función devuelva el
+   código, esto sobra sin romper a nadie (`conteo-reglas.ts › prioridadDesdeFila`).
+
    Si falla: es un dato secundario (`lib/resultado.ts`, `tolerar`). Nadie
    decide plata mirando una miniatura, así que la pantalla NO se cae; el
    mapa vuelve vacío y la celda se dibuja sin foto y con el color en texto
@@ -31,6 +38,9 @@ export type Apariencia = {
   colorHex: string | null;
   /** La foto principal del producto; null si todavía no tiene fotos. */
   fotoUrl: string | null;
+  /** El código que se lee en la etiqueta (`codigoDeEtiqueta`: código → sku legado); "" si no tiene ninguno.
+   *  Solo se MUESTRA y se busca: para identificar la prenda se compara `varianteId`. */
+  codigo: string;
 };
 
 type Cliente = SupabaseClient<Database, "retail">;
@@ -45,11 +55,11 @@ export async function getAparienciaVariantes(supabase: Cliente, ids: string[]): 
   const { datos, fallo } = tolerar(
     await supabase
       .from("variantes")
-      .select("id, color:colores ( hex ), producto:productos ( producto_fotos ( url, orden, es_principal ) )")
+      .select("id, sku, codigo, color:colores ( hex ), producto:productos ( producto_fotos ( url, orden, es_principal ) )")
       .in("id", unicos),
     "las miniaturas y los colores"
   );
   if (fallo) console.error(fallo);
 
-  return new Map((datos ?? []).map((v) => [v.id, { colorHex: v.color?.hex ?? null, fotoUrl: fotoPrincipal(v.producto?.producto_fotos) }]));
+  return new Map((datos ?? []).map((v) => [v.id, { colorHex: v.color?.hex ?? null, fotoUrl: fotoPrincipal(v.producto?.producto_fotos), codigo: codigoDeEtiqueta(v) }]));
 }
