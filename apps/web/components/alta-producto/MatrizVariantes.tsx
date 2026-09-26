@@ -26,7 +26,7 @@ export function MatrizVariantes({
   celdas: CeldaAlta[];
   /** Las tallas elegidas, ya ordenadas. Vacío = el producto no tiene talla (una sola columna). */
   tallas: { id: string; texto: string }[];
-  colores: { codigo: string; nombre: string; hex: string | null }[];
+  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null }[];
   excluidas: Set<string>;
   onExcluidas: (s: Set<string>) => void;
   precioBase: string;
@@ -81,7 +81,7 @@ export function MatrizVariantes({
                   <button type="button" onClick={() => alternar(clavesDeFila(color))} title="Quitar o poner todo el color" className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left hover:bg-tinta/[0.04]">
                     {c ? (
                       <>
-                        <Punto hex={c.hex} />
+                        <Punto hex={c.hex} familia={c.familiaColor} />
                         {c.nombre}
                       </>
                     ) : (

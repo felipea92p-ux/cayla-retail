@@ -6,7 +6,7 @@ import { pideComparacion } from "@/lib/resumen-comparacion";
 import { ResumenBanner } from "@/components/ResumenBanner";
 import { ResumenComparacionPanel } from "@/components/ResumenComparacionPanel";
 import { ResumenDesempenoPanel } from "@/components/ResumenDesempenoPanel";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 
 // Análisis de inventario (ADR-0121 → ADR-0138): la capa histórica del inventario de UNA sede. Tres
 // responsabilidades, cada una en su pantalla:
@@ -47,16 +47,10 @@ export default async function ResumenInventarioPage({
 
   return (
     <div className="space-y-5">
-      <InventarioHero
-        eyebrow={
-          <>
-            Inventario <span aria-hidden>›</span> Análisis <span aria-hidden>›</span> <span className="text-ambar-profundo">{ubicacionActiva.nombre}</span>
-          </>
-        }
+      <CabeceraPantalla
+        sobretitulo={`Inventario · Análisis · ${ubicacionActiva.nombre}`}
         titulo="Análisis de inventario"
-        descripcion="Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo."
-        foto={fotoHeroPorPantalla("analisis")}
-        variante="integrado"
+        bajada="Analiza cómo se mueve y rinde tu inventario a lo largo del tiempo."
       />
       {/* El aviso de exactitud es una franja bajo el título (2026-09-22), no una tarjeta que compite con él. */}
       <ResumenBanner exactitud={exactitud} ubicacionId={ubicacionActiva.id} />

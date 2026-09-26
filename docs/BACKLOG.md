@@ -34,11 +34,21 @@ Causa: `variantes.sku` es NULL en 128 de 130 variantes (ADR-0058) y esas pantall
 - [x] «1 productos · 12 variantes» → plural correcto (`/productos`); la tarjeta «Reponer a piso hoy» ya no dice «con demanda» (la regla `necesitaReponerPiso` solo mira piso y almacén) y «Sin base de hace 7 días» pasó a «Sin datos de hace 7 días».
 - [x] **«Producto de Prueba» (`POL-0004`) marcado `es_prueba = true` EN PRODUCCIÓN (2026-09-26, con el «sí» de Felipe).** Tenía 160 de las 363 unidades de TRU (todas en almacén) e inflaba Existencias. Ensayo revertido antes (1 fila; solo cambian `es_prueba`, `version` 2→3 y `catalogo_version` 385→386) y `update` con candado por id + nombre; verificado: stock intacto (160), TRU sin prueba = 158 piso + 45 almacén = 203. **Sigue visible** en Catálogo ▸ Productos, Vender, Cambios y Traslados (ADR-0159: solo Existencias, Historial de ventas, Caja y Conteos lo excluyen); si Felipe quiere que también desaparezca de ahí, es decisión aparte. Para deshacer: `update retail.productos set es_prueba = false where id = 'd432c60e-c77e-4e59-9794-88ddead44939';`.
 - [ ] **Siguen leyendo `variantes.sku` directo y mostrarán el hueco** (verificado en el código, no en pantalla): Conteo (`lib/conteos.ts` ×3, `ConteoDetalleVista`), Compras (`lib/compras.ts` ×2), Producción (`lib/produccion.ts` ×2), Traslados y Recepción (`TrasladoDetallePanel`, `RecepcionEnvio`), `getCatalogo` y `VarianteDetalle` (`catalogo-v2.ts`), y **Movimientos** (la RPC `fn_movimientos` devuelve solo `sku`: pide migración). Cada una: agregar `codigo` al select y pasar por `codigoDeEtiqueta`. **No** rellenar `variantes.sku` con el código en producción (ADR-0058: sería un dato inventado para tapar un NOT NULL que ya no existe).
-- [ ] Sin tocar, por decisión de Felipe: buscar «CAYLA» (la marca) en Existencias no encuentra nada porque el buscador solo mira nombre, código, color y talla; y la foto de cabecera de Existencias trae letreros en inglés («MOVE THE WORLD», «PACKING»).
+- [ ] Sin tocar, por decisión de Felipe: buscar «CAYLA» (la marca) en Existencias no encuentra nada porque el buscador solo mira nombre, código, color y talla. (La foto de cabecera con letreros en inglés que se vio en la captura ya no existe: `main` quitó las fotos de cabecera de Inventario en `07c2ae66`.)
+
+## 🎨 Colores: Pantone TCX, sinónimos y 4 colores nuevos (2026-09-26, ADR-0215) — migración `20260926180000` EN PRODUCCIÓN (ensayada, aplicada y verificada); web en PR #456
+- [x] `colores.pantone_tcx` (único, con formato) y `colores.sinonimos`. 60 colores con su TCX (los metálicos, sin código); 23 con sinónimos. Cereza, Moka, Durazno y Mora: 68 activos.
+- [x] El buscador de colores (Nuevo producto, prenda sin registrar de Vender) entiende sinónimos; Atributos ▸ Colores edita el código y los sinónimos, y avisa si el código ya lo tiene otro color.
+- [x] Aviso de color parecido (ΔE2000), nombre al instante en la paleta y brillo en los metálicos.
+- [ ] **Fusionar #456 DESPUÉS de la migración**: ya está en producción, así que se puede fusionar.
+- [ ] Refrescar `docs/datos/generado/` con las dos columnas nuevas (`pnpm datos:generar:produccion` tras refrescar el volcado: `generado/COMO-REFRESCAR.md`).
+- [ ] Editar producto (`productos/[id]/editar`) y el filtro de color de Productos todavía no usan sinónimos: usan `Desplegable`/píldoras, no `ComboBuscable`.
+- [ ] Investigación de colores de Ralph Lauren, LVMH y Hermès: en curso; lo que falte se propone aparte.
 
 ## 🩹 Listas flotantes que no se podían elegir (2026-09-26, act. ADR-0211) — solo web, sin migración
 - [x] `CampoSelect`, píldoras de filtro y combo «Responsable»: el clic en una opción cerraba la lista sin elegir (desde #442). Dentro de un modal, tocar un responsable cerraba el modal. Arreglado y verificado en navegador (mouse, teclado, 375 px).
 - [ ] **Tras publicar:** en producción, abrir un modal con «Responsable» (p. ej. Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color») y elegir a alguien con el mouse; y un filtro de Ventas ▸ Historial.
+
 
 ---
 

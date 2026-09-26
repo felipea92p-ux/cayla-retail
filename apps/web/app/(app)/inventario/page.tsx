@@ -10,7 +10,7 @@ import { recomendacionesDeSede } from "@/lib/existencias-recomendaciones";
 import { getApartadosAbiertos } from "@/lib/apartados";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
-import { InventarioHero, fotoHeroPorPantalla } from "@/components/InventarioHero";
+import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
 // (20260914210000_inventario_piso_almacen.sql). Sigue siendo UNA tabla
@@ -97,18 +97,14 @@ export default async function InventarioPage({
           2026-09-22): el selector global de la barra superior ya cambia toda la app, y uno
           segundo acá desacomodaba el layout al abrirse; el de «datos de prueba» se quitó del
           todo (render, estado y lectura de `?prueba=`), no solo se ocultó. */}
-      <InventarioHero
-        eyebrow="Inventario · Existencias"
+      <CabeceraPantalla
+        sobretitulo="Inventario · Existencias"
         titulo={ubicacionActiva?.nombre ?? "—"}
-        descripcion="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
-        auxiliar={<p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>}
-        foto={fotoHeroPorPantalla("existencias")}
-        variante="integrado"
-        accion={
+        bajada="Qué hay en piso y almacén, qué viene en camino y qué deberías reponer hoy."
+        acciones={
           <>
-            {/* Sobre la foto de la cabecera, el secundario transparente no se lee: lleva fondo de papel. */}
             {puedeBajarAlPiso && (
-              <Link href="/inventario/bajar" className="btn-cayla btn-secundario bg-papel">
+              <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
                 Bajar al piso
               </Link>
             )}
@@ -117,7 +113,9 @@ export default async function InventarioPage({
             </Link>
           </>
         }
-      />
+      >
+        <p className="mt-1 text-xs text-taupe">Vista cargada a las {horaCarga} — recarga para ver lo último.</p>
+      </CabeceraPantalla>
 
       {/* `key` por sede: cambiar de sede (selector de arriba o `?ubicacion=`) es un `router.refresh`, no una
           pantalla nueva, y sin la llave el panel conservaba sus filtros. Un filtro de TRU («Por colgar»,
