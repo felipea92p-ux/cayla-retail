@@ -59,6 +59,31 @@ export function motivoNoCobrable({ stockAqui, almacenAqui, apartadoAqui }: { sto
   return (apartadoAqui ?? 0) > 0 ? "apartada" : "agotada";
 }
 
+/** Lo que dice la fila de una prenda en el buscador de Vender según por qué se puede o no cobrar: «sin stock aquí»,
+ *  «apartada para una clienta», «N en el almacén» o «N aquí». Es una función pura (y no una cadena de ternarios dentro
+ *  del componente) para que una prueba la pueda romper: una rama de un ternario que queda inalcanzable no la ve ninguna
+ *  regex. */
+export function textoStockDeFila(v: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }): string {
+  switch (motivoNoCobrable(v)) {
+    case "agotada":
+      return "sin stock aquí";
+    case "apartada":
+      return "apartada para una clienta";
+    case "en_almacen":
+      return `${v.almacenAqui} en el almacén`;
+    case "cobrable":
+      return `${v.stockAqui} aquí`;
+  }
+}
+
+/** ¿Esta lectura de la cámara dejó la prenda «en el almacén»? (Para el único aviso que sale al cerrarla.) Solo si NO
+ *  entró porque el sistema la tiene en el almacén: motivo `en_almacen`, o el tope de las del piso con más en el almacén.
+ *  Cualquier otro resultado —entró, apartada, agotada— NO cuenta: una prenda que la apartó otra caja entre dos lecturas
+ *  no debe seguir apareciendo como «que la bajen». */
+export function quedoEnAlmacen(estado: string, almacenAqui?: number | null): boolean {
+  return estado === "en_almacen" || (estado === "tope" && (almacenAqui ?? 0) > 0);
+}
+
 /** El tooltip de una talla que no se puede cobrar ni bajar (agotada o apartada): dice el motivo y, si la hay, dónde más
  *  hay (`otrasSedes` ya viene armado: «2 en Trujillo»). Con «agotada» conserva sus textos de siempre. */
 export function tooltipTallaSinPiso(v: { stockAqui: number; almacenAqui?: number | null; apartadoAqui?: number | null }, otrasSedes: string | null): string {

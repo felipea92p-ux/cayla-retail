@@ -68,6 +68,7 @@ import {
   conStockAjustado,
   descontarVendido,
   motivoNoCobrable,
+  quedoEnAlmacen,
 } from "@/lib/vender-stock-local";
 import { leerStockDeSede, useStockEnVivo, type StockReleido } from "@/lib/useStockEnVivo";
 import { avisoFaltanDeProforma } from "@/lib/proforma-al-carrito";
@@ -719,7 +720,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // Solo queda «en el almacén» lo que en ESTA lectura sigue estando ahí. Cualquier otro resultado (entró, o ahora está
     // apartada o agotada) la saca: si no, al cerrar la cámara diría «está en el almacén, que la bajen» de una prenda que
     // ya no está en el almacén (la apartó otra caja entre dos lecturas).
-    if (estado === "en_almacen" || (estado === "tope" && (v.almacenAqui ?? 0) > 0)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
+    if (quedoEnAlmacen(estado, v.almacenAqui)) quedaronEnAlmacen.current.set(v.varianteId, nombre);
     else quedaronEnAlmacen.current.delete(v.varianteId);
     return { estado, codigo, nombre, prenda, almacen: v.almacenAqui };
   }

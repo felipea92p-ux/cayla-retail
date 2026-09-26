@@ -742,6 +742,15 @@ describe("textoSinStock — «agotada» o «apartada para una clienta»", () => 
     expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para una clienta");
   });
 
+  it("con stock libre en el almacén gana «en el almacén» (motivoNoCobrable): esto NO es «apartada»", () => {
+    // El contrato que dice el docstring y que solo se cumple si el llamador pasa el almacén (Vender lo pasa; Cambios no).
+    expect(sinStockPorApartado({ stockAqui: 0, almacenAqui: 3, apartadoAqui: 1 })).toBe(false);
+    expect(textoSinStock({ stockAqui: 0, almacenAqui: 3, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
+    // Sin nada libre en el almacén sí es «apartada», y sin el dato del almacén (Cambios) también.
+    expect(sinStockPorApartado({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe(true);
+    expect(sinStockPorApartado({ stockAqui: 0, apartadoAqui: 1 })).toBe(true);
+  });
+
   it("con piso libre no hay nada que explicar, aunque otra unidad esté apartada", () => {
     expect(sinStockPorApartado({ stockAqui: 2, apartadoAqui: 1 })).toBe(false);
     expect(textoSinStock({ stockAqui: 2, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");

@@ -16,6 +16,8 @@ import {
   conStockReleido,
   descontarVendido,
   motivoNoCobrable,
+  quedoEnAlmacen,
+  textoStockDeFila,
   tooltipTallaSinPiso,
 } from "./vender-stock-local";
 import { sumarCantidades } from "./inventario-reglas";
@@ -148,10 +150,45 @@ describe("lo apartado en el piso (apartadoEnPiso, apartadoReleido, conApartadoAj
     expect([...apartadoReleido(["a", "b"], tres())]).toEqual([["a", 1], ["b", 0]]);
   });
 
+  it("un apartado que PASA A 0 se refleja (un 0 releído pisa al valor viejo; no se confunde con «sin dato»)", () => {
+    // La clienta retiró la última unidad apartada: el sondeo trae 0 y la caja debe dejar de decir «apartada».
+    expect(conApartadoAjustado([{ varianteId: "a", apartadoAqui: 2 }], new Map([["a", 0]]))).toEqual([{ varianteId: "a", apartadoAqui: 0 }]);
+  });
+
   it("se aplica a las variantes y devuelve el mismo arreglo si no hay ajustes", () => {
     const variantes = [{ varianteId: "a", apartadoAqui: 0 }, { varianteId: "b" }];
     expect(conApartadoAjustado(variantes, new Map())).toBe(variantes);
     expect(conApartadoAjustado(variantes, new Map([["b", 2]]))).toEqual([{ varianteId: "a", apartadoAqui: 0 }, { varianteId: "b", apartadoAqui: 2 }]);
+  });
+});
+
+describe("el texto de la fila del buscador (textoStockDeFila)", () => {
+  it("dice una cosa distinta por motivo: cobrable, en el almacén, apartada y agotada", () => {
+    expect(textoStockDeFila({ stockAqui: 3, almacenAqui: 5 })).toBe("3 aquí");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 2 })).toBe("2 en el almacén");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 0 })).toBe("sin stock aquí");
+  });
+
+  it("con stock libre en el almacén gana «en el almacén» aunque el piso tenga apartadas (el mismo orden que el aviso)", () => {
+    expect(textoStockDeFila({ stockAqui: 0, almacenAqui: 2, apartadoAqui: 1 })).toBe("2 en el almacén");
+  });
+});
+
+describe("lo que la cámara deja «en el almacén» para el aviso al cerrarla (quedoEnAlmacen)", () => {
+  it("cuenta lo que no entró por estar en el almacén, y el tope de las del piso si hay más allá", () => {
+    expect(quedoEnAlmacen("en_almacen")).toBe(true);
+    expect(quedoEnAlmacen("tope", 3)).toBe(true);
+    expect(quedoEnAlmacen("tope", 0)).toBe(false);
+    expect(quedoEnAlmacen("tope", null)).toBe(false);
+    expect(quedoEnAlmacen("tope")).toBe(false);
+  });
+
+  it("NO cuenta lo apartado (ni lo agotado ni lo que entró): una prenda que otra caja apartó ya no es «que la bajen»", () => {
+    expect(quedoEnAlmacen("apartada")).toBe(false);
+    expect(quedoEnAlmacen("apartada", 3)).toBe(false);
+    expect(quedoEnAlmacen("agotada")).toBe(false);
+    expect(quedoEnAlmacen("agregada", 3)).toBe(false);
   });
 });
 

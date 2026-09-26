@@ -85,6 +85,24 @@ describe("sinStockTexto — lo que dice una talla o un color sin nada libre", ()
   });
 });
 
+describe("hayAqui y sinStockAqui — la frontera entre «hay» y «no hay»", () => {
+  it("una prenda con 1 en el piso ya se puede entregar; con 0 no (ni con apartadas)", () => {
+    const r = derivar();
+    expect(r.hayAqui("L", "Negro")).toBe(true); // l-negro tiene 2
+    expect(r.hayAqui("M", "Negro")).toBe(false); // agotada: 0 libres
+    expect(r.hayAqui("S", "Negro")).toBe(false); // solo apartada: 0 libres
+    expect(derivar({ talla: "L", color: "Negro" }).sinStockAqui).toBe(false);
+    expect(derivar({ talla: "M", color: "Negro" }).sinStockAqui).toBe(true);
+    expect(derivar({ talla: "S", color: "Negro" }).sinStockAqui).toBe(true);
+  });
+
+  it("con exactamente 1 libre en el piso, está disponible (no es «sin stock»)", () => {
+    const unaLibre = agruparCatalogo([variante("uno", "polera", { talla: "S", color: "Negro", stockAqui: 1 })]);
+    expect(derivar({ talla: "S", color: "Negro" }, unaLibre).sinStockAqui).toBe(false);
+    expect(derivar({ talla: "S", color: "Negro" }, unaLibre).hayAqui("S", "Negro")).toBe(true);
+  });
+});
+
 describe("avisoSinStock — el aviso bajo la elección", () => {
   it("prenda apartada: dice que es de una clienta, que no se entrega desde aquí y dónde más hay", () => {
     const r = derivar({ talla: "S", color: "Negro" });

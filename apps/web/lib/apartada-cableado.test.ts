@@ -75,13 +75,23 @@ const CABLES: { archivo: string; cable: string; patron: RegExp }[] = [
   },
   {
     archivo: "components/PuntoDeVenta.tsx",
-    cable: "la cámara solo deja «en el almacén» lo que en esta lectura sigue estando ahí (cualquier otro resultado lo saca)",
-    patron: /\)\s*quedaronEnAlmacen\.current\.set\(v\.varianteId,\s*nombre\);\s*else quedaronEnAlmacen\.current\.delete\(v\.varianteId\);/,
+    cable: "la cámara decide qué queda «en el almacén» con `quedoEnAlmacen` (probada) y cualquier otro resultado saca la prenda",
+    patron: /if \(quedoEnAlmacen\(estado,\s*v\.almacenAqui\)\)\s*quedaronEnAlmacen\.current\.set\(v\.varianteId,\s*nombre\);\s*else quedaronEnAlmacen\.current\.delete\(v\.varianteId\);/,
   },
   {
     archivo: "components/PuntoDeVentaCatalogo.tsx",
-    cable: "la fila del buscador dice «apartada para una clienta» cuando el motivo es `apartada`",
-    patron: /motivo === "apartada"\s*\?\s*"apartada para una clienta"/,
+    cable: "el texto de la fila del buscador sale de `textoStockDeFila(v)` (probada), no de una cadena de ternarios en el componente",
+    patron: /\{textoStockDeFila\(v\)\}/,
+  },
+  {
+    archivo: "components/PuntoDeVenta.tsx",
+    cable: "`agregar()` calcula el motivo con la VARIANTE entera (con su `apartadoAqui`), no con un objeto recortado",
+    patron: /const motivo = motivoNoCobrable\(v\);/,
+  },
+  {
+    archivo: "components/PuntoDeVentaCatalogo.tsx",
+    cable: "la casilla de talla apartada NO se tacha y usa el token informativo (agotada sí: `line-through`)",
+    patron: /motivoNoCobrable\(t\.variante\) === "apartada" \? "border-pizarra\/50 text-pizarra" : "border-sand text-tinta\/35 line-through"/,
   },
   {
     archivo: "components/PuntoDeVentaCatalogo.tsx",

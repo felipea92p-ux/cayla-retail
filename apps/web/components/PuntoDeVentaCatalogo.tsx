@@ -6,7 +6,7 @@ import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/Pun
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
 import { codigoPrenda } from "@/lib/prenda-reglas";
-import { DONDE_SE_BAJA, motivoNoCobrable, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
+import { DONDE_SE_BAJA, motivoNoCobrable, textoStockDeFila, tooltipTallaSinPiso } from "@/lib/vender-stock-local";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -262,13 +262,7 @@ export function PuntoDeVentaCatalogo({
                           <span
                             className={`block text-xs ${motivo === "agotada" ? "text-rojo-profundo" : motivo === "apartada" ? "text-pizarra" : motivo === "en_almacen" ? "text-ambar-profundo" : "text-tinta/60"}`}
                           >
-                            {motivo === "agotada"
-                              ? "sin stock aquí"
-                              : motivo === "apartada"
-                                ? "apartada para una clienta"
-                                : motivo === "en_almacen"
-                                  ? `${v.almacenAqui} en el almacén`
-                                  : `${v.stockAqui} aquí`}
+                            {textoStockDeFila(v)}
                           </span>
                           {/* Dónde más hay: la venta que se perdía cuando solo decía «sin stock». */}
                           {textoOtrasSedes(v.stockOtrasSedes ?? []) && (
@@ -526,7 +520,11 @@ export function PuntoDeVentaCatalogo({
                             <span
                               tabIndex={0}
                               aria-label={`Talla ${t.talla} ${motivoNoCobrable(t.variante) === "apartada" ? "apartada para una clienta" : "sin stock aquí"}`}
-                              className="label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed border-sand px-1.5 text-[11px] text-tinta/35 line-through outline-none focus-visible:border-rojo/60"
+                              className={`label-cayla flex h-7 min-w-7 items-center justify-center rounded-md border border-dashed px-1.5 text-[11px] outline-none focus-visible:border-rojo/60 ${
+                                // Agotada: tachada. Apartada para una clienta: SIN tachar y en el token informativo — la
+                                // diferencia se ve de un vistazo, no solo en el tooltip (que el celular no muestra).
+                                motivoNoCobrable(t.variante) === "apartada" ? "border-pizarra/50 text-pizarra" : "border-sand text-tinta/35 line-through"
+                              }`}
                             >
                               {t.talla}
                             </span>
