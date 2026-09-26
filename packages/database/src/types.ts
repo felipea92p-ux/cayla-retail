@@ -6056,6 +6056,25 @@ export type Database = {
         }
         Returns: number
       }
+      fn_rentabilidad: {
+        Args: { p_dia?: string; p_dias?: number; p_igv?: number }
+        Returns: {
+          clave: string
+          costo: number
+          descuento: number
+          desde: string
+          dias_ventana: number
+          etiqueta: string
+          hasta: string
+          nivel: string
+          stock: number | null
+          unidades: number
+          unidades_devueltas: number
+          unidades_sin_costo: number
+          venta_neta: number
+          venta_neta_con_costo: number
+        }[]
+      }
       fn_reservar_numero_serie: {
         Args: { p_tipo: string; p_ubicacion_id: string }
         Returns: {

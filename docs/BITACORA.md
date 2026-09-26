@@ -1121,6 +1121,22 @@ Paso 4: al guardar aparece una pantalla con tres salidas (fotos por color, crear
 
 Pendiente: que Felipe pegue los 4 SQL en orden y recién ahí se despliegue; y verificarlo con sesión de Líder real contra la base.
 
+## 2026-09-18 (Rentabilidad — tres formas de mostrar una ganancia que no existe, sin que nada dé error)
+Tarea 12 del plan: `/comercial/rentabilidad` responde "¿qué vendo mucho pero deja poco, y qué deja mucho pero rota lento?".
+La suma es lo fácil; lo difícil es que hay tres maneras de mostrar una ganancia inexistente sin ningún error. (1) El precio de
+venta lleva el IGV adentro y el costo se guarda sin IGV: restarlos tal cual infla el margen un 18% (una blusa de S/118 que costó
+S/60 deja S/40, no S/58), así que todo va sobre venta sin IGV, con la tasa como parámetro. (2) `venta_items.costo_unitario`
+acepta 0: una prenda sin costo cargado saldría con 100% de margen y encabezaría cualquier ranking, así que el margen sale solo de
+líneas con costo y la pantalla dice "—" y cuántas unidades quedaron fuera. (3) Una fila con menos de 10 unidades no dice nada:
+es "muestra chica". "Mucho" y "poco" se miden contra la mediana de las demás filas, no contra un número fijo.
+
+Probado sin Docker con un Postgres desechable: 29 verificaciones y siete mutaciones del SQL (sin IGV, con cuarentena, con
+anuladas, sin límite de fecha, costo cero como válido, función auxiliar abierta, stock multiplicado) la hacen fallar. Se probó
+además que la función de origen NO es ejecutable por `authenticated` simulando los permisos por defecto de `0005_grants.sql`, la
+trampa que dejó abierto el hueco de ventas y devoluciones. Sale a la luz que `fn_productos.stock_total` suma la cuarentena
+(rentabilidad no) y que Calidad tiene su propia copia de la lógica de origen. **Hoy casi no hay costos cargados: la pantalla
+existe, pero decidir precios con ella espera a que el catálogo los tenga.** No se probó contra el esquema real. ADR-0118.
+
 ## 2026-09-18 (Calidad — la regla de "de quién es esta prenda" vive una sola vez)
 Al construir Rentabilidad quedó una copia de la lógica de origen dentro de `fn_calidad`. Dos copias de la misma regla son dos
 pantallas que tarde o temprano dan números distintos de la misma prenda. Se extrajo a `fn_origen_producto` en su propia
