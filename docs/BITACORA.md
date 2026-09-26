@@ -3,6 +3,12 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Existencias: una puerta, un candado; y «Ajustar» de una vez — ADR-0240)
+Felipe eligió la opción A: reponer, retirar y apartar piden su módulo, en la pantalla y en la base. Las funciones de siempre quedan internas porque otras las usan por dentro: recibir un traslado aparta sola la prenda de un pedido. «Ajustar» pasa a una sola transacción con marca: un corte ya no deja la mitad guardada y el reintento no duplica.
+Por qué así: con un candado dentro de `apartar_stock` se rompía recibir traslados para quien no tiene «Apartados»; la puerta nueva deja cada candado donde corresponde. Qué se rompería sin esto: cualquiera con Existencias movía y reservaba stock que su rol no le daba, y un ajuste cortado a mitad se podía duplicar.
+Felipe se lleva: **un candado solo en la pantalla es un letrero, no un candado.** Si la base no pregunta, cualquiera que llame a la función directamente se lo salta. Y antes de publicar hay que encender «Bajada al piso» en las terminales que hoy reponen, o pierden el botón.
+Sin resolver: revisar los roles de producción; pegar las tres migraciones en orden; verlo con una cuenta sin los módulos.
+
 ## 2026-09-26 (Existencias: análisis del #500, Ajustar sin «Bajada al piso» y bajada por escanear)
 El `/pantalla` se hizo sobre el PR #500, no sobre `main`, porque el #500 reemplazaba la pantalla. De sus 12 tareas, Felipe ordenó dos. **#2:** en «Ajustar», quien no tiene «Bajada al piso» carga sus prendas nuevas al almacén en vez de recibir un error al confirmar. **#4:** lo marcado llega a «Bajar al piso» en 0 y se llena escaneando, porque confirmar a ciegas descuadraba el piso del que vende la caja.
 Por qué así: la #2 aplica una regla que ya existía (ADR-0212, «Nuevo producto») en vez de inventar otra. Qué se rompería sin esto: la integrante no podía cargar al piso, y una bajada sin escanear dejaba prendas «en el piso» que no estaban colgadas.
