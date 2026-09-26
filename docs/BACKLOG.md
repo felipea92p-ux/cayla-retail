@@ -28,6 +28,33 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
+Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
+- [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**
+  - Las migraciones del #496 ya están en producción, así que hoy una integrante que cargaba al piso una prenda nueva en su tienda recibía `bajada_sin_modulo` al confirmar.
+  - Ahora esas prendas entran al almacén y la fila lo dice antes de confirmar. Es la regla de ADR-0212, la misma de «Nuevo producto».
+  - Código: `cargaInicialAlPiso` y `textoPrendaNueva` en `lib/ajuste-reglas.ts`, y la prop `puedeBajarAlPiso` que le pasan Existencias y Productos (grilla y lista). La base no cambia.
+  - Prueba nueva: caso 7 en `scripts/pruebas/ajuste_no_es_primera_carga.mjs` (25/25).
+- [x] **#4 Lo marcado en Existencias llega a «Bajar al piso» «Por escanear», en 0.**
+  - Cada lectura lo llena, y confirmar sin escanear está apagado.
+  - Antes llegaba en 1 y se podía confirmar a ciegas: el piso del sistema dejaba de ser el piso real, del que descuenta la venta.
+  - El borrador conserva lo «por escanear».
+  - Código: `lineasIniciales` y `porEscanear` en `lib/bajada-reglas.ts`, y `BajarAlPisoForm.tsx`.
+- [ ] Ver las dos con la cuenta de **integrante** (con líder se vieron en el navegador; la integrante no pudo iniciar sesión en esta corrida).
+- [ ] Del análisis quedan abiertas, y las decide Felipe:
+  - #1 «Ajustar» todo-o-nada con token;
+  - #3 un solo candado por escritura (decidir A/B);
+  - #5 a #12.
+- Cómo verificas:
+  - **#2:** con la integrante en TRU, Existencias ▸ una prenda ▸ Ajustar ▸ «Piso de venta». En una talla nueva, la fila dice «entra al almacén: tu rol no baja prendas al piso», y al confirmar la prenda aparece en el almacén, sin error.
+  - **#4:** marca 2 prendas ▸ «Bajar al piso». Llegan «Por escanear» con el botón apagado; al escanear una, dice «Confirmar bajada · 1 prenda».
+
+## 🕳️ Fotos: el recorte agujereado ya no se sugiere (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-control-huecos`
+- [x] `fraccionDeHuecos` mide la tela agujereada (huecos encerrados; el hueco entre las piernas no cuenta) y, sobre 0,5 %, la foto nace en «Con fondo» con aviso. Umbral medido con seis fotos (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %). 5 pruebas nuevas.
+- [x] Verificado en la ventana real: jean Levi's agujereado → «Con fondo» con aviso; camisa de estudio → «Sin fondo». `next build` compila; 77 960 pruebas en verde.
+- [ ] Pendiente, decidido para después: recorte por color cuando el fondo es liso (evitaría el agujero en vez de detectarlo).
+- Cómo verificas: sube la foto de un jean con fondo liso de internet (como la «br582443…» de Felipe) → si el recorte sale con manchones, nace en «Con fondo» y debajo dice «El recorte dejó huecos en la prenda…».
+
 ## 🧾 Comprobantes conectado: «Hoy», Opciones por boleta y pestañas abajo en celular (2026-09-26, ADR-0238) — solo web, sin migración; rama `claude/comprobantes-screen-analysis-78ca38`
 - [x] Pestañas Hoy · Series · Por enviar · Proformas (Emitidos pasa a «Este mes» de Hoy, misma ruta `/emitidos`; Series a `/series`).
 - [x] «Por enviar» lista también los `pendiente` y `rechazado` (antes decía «todo llegó» con 3 boletas sin intentar en producción).
@@ -64,6 +91,21 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
       piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
 - [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
       subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
+- [x] La lista entra en la primera pantalla (Exportar a la derecha, filtros y lista en una tarjeta, ayuda en la nota) y
+      «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
+- [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
+      `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
+- [x] `20260927173000` en producción (2026-09-26): ensayo revertido sobre Tienda TRU (138 movimientos con saldo; las 78
+      prendas terminan en su stock de hoy), aplicada y verificada por huella (`md5` `1e87255b…` = local).
+- [x] Volcado refrescado de nuevo (2026-09-26 21:55 UTC: 134 relaciones, 607 funciones; las 952 huellas iguales a
+      producción): entran `fn_movimientos_saldos` y lo de Traslados (`anular_traslado`, columnas de anulación en
+      `transferencias`). `datos:comparar` limpio.
+- [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
+      que «Todos 8»): decir por qué, o separar «Traslados».
+- [x] Traslado N, Conteo N y Bajar al piso usan la vuelta común `Volver` (pendiente que dejó la bitácora de «Toda pantalla
+      interna tiene cómo volver»): «← Movimientos» con sus filtros si se llegó desde ahí; si no, «← Traslados», «← Conteo»
+      (el nombre del menú; antes decía «Conteos») y «← Existencias».
+- [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
 - [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
 - [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
       Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o
@@ -86,8 +128,18 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ## 🔍 Traslados: recorrido de usabilidad como persona sin contexto (2026-09-26) — solo análisis, sin cambios de código; `docs/pantallas/traslados.md`; rama `claude/traslados-usability-review-9b0615`
 - [x] Recorrido en local con clics reales (líder; Trujillo envía, Lima recibe): enviar, contar con un faltante, cerrar con diferencia e intentar vender lo recibido. 17 hallazgos con archivo:línea en `docs/pantallas/traslados.md`.
-- [ ] Arreglables sin decisión de negocio: «por recibir» que no dependa de la hora estimada y botón «Recibir» en la fila (§2); conteo que sobreviva a una recarga (§4); formulario sin destino ni prendas elegidas de antemano (§6); buscador por palabras (§7); escáner que busque por nombre y muestre el código de etiqueta (§12); la lista dice «Cerrado con diferencia» (§15).
-- [ ] Decisiones de Felipe (`docs/pantallas/traslados.md` §6): todo-o-nada al recibir, conteo a ciegas o «Coincide», piso o almacén al recibir en tienda, quién anula un envío y hasta cuándo.
+- [x] Decisiones de Felipe (acta `docs/datos/DECISIONES-2026-09-26-traslados.md`, D-129 a D-132): entra lo que coincide, conteo a ciegas, piso o almacén al confirmar (piso marcado), anula quien envió o un líder mientras nadie haya contado.
+
+## 🚚 Traslados: recibir sin perder nada (2026-09-26, ADR-0239; nació como 0238, que ya tomaba el PR de Comprobantes) — rama `claude/analisis-modulo-traslados-1111c9`
+- [x] Migración `20260927160000_traslados_recibir_sin_perder_nada.sql` aplicada en local y **EN PRODUCCIÓN (2026-09-26, con el OK de Felipe)**: ensayo revertido antes; después, las 14 funciones que toca con el mismo md5 (sin comentarios ni espacios) que en local, una sola firma de `confirmar_traslado`, las 6 reglas de `transferencias` y permisos solo para `authenticated`. El historial de producción la registra como `20260926213804` (lo que pone `apply_migration`), no con la versión del archivo. Prueba `scripts/pruebas/traslados_recibir_sin_perder_nada.mjs` (58/58, en CI).
+- [x] Web: conteo a ciegas guardado por prenda (§4, §11), escáner por código de etiqueta o palabras (§12), «Terminé de contar», confirmar con piso/almacén, cerrar con diferencia con confirmación (§14), anular envío (§5), «por recibir» sin hora estimada y botón «Recibir» (§2), «Cerrado con diferencia» y «Anulado» en la lista (§15), formulario sin destino ni prendas elegidas (§6), anchos fijos (§13).
+- [x] Recorrido en el navegador local (líder): Lima→Trujillo con 1 blusa + 1 casaca; conteo a ciegas, recarga a mitad (lo contado siguió), casaca en 0, confirmar a piso (la blusa entró al piso al instante), cierre del líder; Trujillo→Lima anulado (stock 4→5 con movimiento `traslado_anulado`).
+- [ ] **Fusionar el PR #509** (la base de producción ya está lista; la web actual sigue funcionando hasta entonces) y regenerar el diccionario con el volcado nuevo (`pnpm datos:generar:produccion`, ver `docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] Buscador por palabras en el formulario de envío (§7: «blusa emma beige l» → «Nada coincide»), cantidad que se corrige sola (§8), fecha como «Hoy / Mañana» (§9), resumen imprimible antes de enviar (§10), «Nuevo traslado» marca Existencias en el menú (§16).
+- [ ] `fn_resumen_variantes.traslados_salida_ventana` sigue contando la salida de un traslado anulado (analítica de Existencias; no se parchó).
+- [ ] `scripts/pruebas/caja_cierre_traslado.mjs` falla 4 casos en local desde ANTES de este cambio (traslado de efectivo de caja, no de mercadería; no está en CI).
+- [ ] En `.github/workflows/ci.yml`, el paso `pruebas:fn-resumen-variantes` corre `pnpm pruebas:pago-por-lote-medios` (nombre y comando no coinciden).
+- [ ] Vaciar una casilla ya guardada no vuelve a «sin contar» (la base no tiene cómo): al recargar reaparece el último número. Dos tablets contando la misma caja se pisan entre sí.
 - [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
 

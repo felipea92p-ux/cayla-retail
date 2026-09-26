@@ -6,6 +6,7 @@ import {
   ENCABEZADOS_CSV_MOVIMIENTOS,
   filaCsvMovimiento,
   filtrosDesdeParams,
+  getSaldosDeMovimientos,
   hoyEnLima,
   listarMovimientos,
   nombreArchivoMovimientos,
@@ -21,7 +22,8 @@ import {
 // opere la sede (`fn_puede_operar_ubicacion`).
 //
 // Números: TRU hizo 127 movimientos en sus primeros 5 días; 90 días así son ~2.300 filas. El tope de 10.000 son ~50
-// llamadas de 200 (1–3 s) y ~1,5 MB. Si hay más, el nombre del archivo lo dice.
+// llamadas de 200 (1–3 s) y ~1,5 MB; con el saldo, una llamada más por página (~100 en total). Si hay más, el nombre del
+// archivo lo dice.
 const TOPE_EXPORTAR = 10_000;
 
 export async function GET(req: Request) {
@@ -36,7 +38,10 @@ export async function GET(req: Request) {
   let cursor: CursorMovimientos | null = null;
   do {
     const pagina = await listarMovimientos(persona.ubicacionId, filtros, { cursor, limite: 200 });
-    for (const m of pagina.filas) filas.push(filaCsvMovimiento(m));
+    // El saldo de cada movimiento, de la misma función que la pantalla (ADR-0234, saldo). Si no responde, el archivo sale
+    // igual, con esa columna vacía.
+    const saldos = await getSaldosDeMovimientos(persona.ubicacionId, pagina.filas);
+    for (const m of pagina.filas) filas.push(filaCsvMovimiento(m, saldos?.[m.id] ?? null));
     cursor = pagina.siguiente;
   } while (cursor && filas.length < TOPE_EXPORTAR);
 

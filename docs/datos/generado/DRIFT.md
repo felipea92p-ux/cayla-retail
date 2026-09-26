@@ -1,17 +1,17 @@
 # Diferencias — lo que la pantalla llama vs. lo que producción acepta
 
 > ⚠️ **ARCHIVO GENERADO.** Se reescribe con `pnpm datos:comparar --md`.
-> Comparadas 335 llamadas `.rpc` de `apps/web` contra 604 funciones del schema `retail` en producción: 287 con los parámetros leídos (se comparan uno por uno), 42 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
-> **Foto de producción: 2026-09-26 20:45 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
+> Comparadas 338 llamadas `.rpc` de `apps/web` contra 607 funciones del schema `retail` en producción: 290 con los parámetros leídos (se comparan uno por uno), 42 directas cuyos parámetros no se pudieron leer (solo se comprueba que la función exista), 6 con el nombre en un ternario o una variable.
+> **Foto de producción: 2026-09-26 21:55 UTC.** Todo lo de este archivo es tan fresco como esa foto: una función
 > creada o cambiada DESPUÉS sale como «no existe», con parámetros de más o con un aviso de un parámetro que ya no existe, aunque en
 > producción ya esté bien. Antes de dar una pantalla por rota, confirmarlo en producción; para refrescar la foto,
 > `docs/datos/generado/COMO-REFRESCAR.md`.
 
 > **Palabras de este informe.** *Foto*: la lista de funciones de producción que está en `funciones-produccion.txt`, tomada en la fecha
 > de arriba. *Aviso*: la pantalla no manda un parámetro que la función acepta (normal si tiene valor por defecto). *Sobrecarga*: dos
-> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (409 en la
+> funciones con el mismo nombre y distinta lista de parámetros: una llamada por nombre queda ambigua. Las `fn_*` (411 en la
 > foto: en su mayoría disparadores, candados de dinero y ayudantes que llaman otras funciones) se dejan fuera de «sin llamada» a
-> propósito; 129 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 280 no las nombra ninguna pantalla y aquí no se listan.
+> propósito; 130 sí las nombra una pantalla y salen en las secciones de arriba, y a las otras 281 no las nombra ninguna pantalla y aquí no se listan.
 
 ---
 
@@ -25,7 +25,7 @@ Ninguna. Cada función tiene una sola firma en producción.
 
 ## Avisos — 28
 
-- `cargar_stock_inicial` · `apps/web/components/AjustarInventarioModal.tsx:190` — no manda `p_token` (normal si tienen valor por defecto)
+- `cargar_stock_inicial` · `apps/web/components/AjustarInventarioModal.tsx:197` — no manda `p_token` (normal si tienen valor por defecto)
 - `registrar_comprobante_produccion` · `apps/web/components/ComprobanteProduccionForm.tsx:120` — no manda `p_igv_porcentaje` (normal si tienen valor por defecto)
 - `registrar_movimiento_dinero` · `apps/web/components/GastosPanel.tsx:595` — no manda `p_cuenta_origen_id`, `p_fecha`, `p_comision`, `p_caja_id` (normal si tienen valor por defecto)
 - `recibir_insumo` · `apps/web/components/InsumoModales.tsx:151` — no manda `p_proveedor_id` (normal si tienen valor por defecto)
@@ -69,8 +69,8 @@ foto ni ninguna migración del repo conocen.
 - `(alias de rpc)` · `apps/web/app/api/lucode/emitir/route.ts:34` — `.rpc` se usa como valor (.rpc.bind(…)): la función que se llama por ahí no se ve
 - `reactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
 - `desactivar_categoria` · `apps/web/app/api/productos/categorias/route.ts:149` — el nombre va dentro de una expresión (un ternario…), no como un texto solo: no se leen sus parámetros
-- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:214` — el objeto se arma con «...», no se puede leer entero
-- `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:396` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
+- `registrar_movimiento` · `apps/web/components/AjustarInventarioModal.tsx:221` — el objeto se arma con «...», no se puede leer entero
+- `(nombre calculado)` · `apps/web/components/BajarAlPisoForm.tsx:401` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama
 - `cerrar_linea_compra` · `apps/web/components/CerrarFaltanteModal.tsx:65` — el objeto se arma con «...», no se puede leer entero
 - `registrar_pagos_compra` · `apps/web/components/CompraDetallePanel.tsx:278` — el objeto se arma con «...», no se puede leer entero
 - `registrar_compra` · `apps/web/components/CompraFormV2.tsx:365` — el objeto se arma con «...», no se puede leer entero
@@ -112,9 +112,9 @@ foto ni ninguna migración del repo conocen.
 - `listar_compras` · `apps/web/lib/compras.ts:219` — el objeto se arma con «...», no se puede leer entero
 - `lineas_compra_operativo` · `apps/web/lib/compras.ts:392` — el objeto se arma con «...», no se puede leer entero
 - `fn_prioridad_conteo` · `apps/web/lib/conteos.ts:200` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:182` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:234` — el objeto se arma con «...», no se puede leer entero
-- `fn_movimientos_resumen_procesos` · `apps/web/lib/movimientos-v2.ts:254` — los parámetros no van escritos ahí mismo
+- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:183` — el objeto se arma con «...», no se puede leer entero
+- `fn_movimientos` · `apps/web/lib/movimientos-v2.ts:235` — el objeto se arma con «...», no se puede leer entero
+- `fn_movimientos_resumen_procesos` · `apps/web/lib/movimientos-v2.ts:255` — los parámetros no van escritos ahí mismo
 - `fn_facturas_para_nota_credito` · `apps/web/lib/notas-credito.ts:148` — el objeto se arma con «...», no se puede leer entero
 - `asignar_rol` · `apps/web/lib/roles-acciones.ts:50` — los parámetros no van escritos ahí mismo
 - `(nombre calculado)` · `apps/web/lib/useColaOffline.ts:106` — el nombre de la función no va escrito ahí mismo (una variable, una constante o una plantilla): no se sabe cuál llama

@@ -444,6 +444,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
 
+      # Saldo por prenda de Movimientos (ADR-0234, saldo): cada movimiento dice cuántas quedaron en la tienda al terminar
+      # su operación, leído de `fn_ledger_puntos` (la bajada no lo cambia, la cuarentena lo baja, el último es el stock
+      # de hoy); otra sede no vuelve y sin sesión no responde. En ROLLBACK.
+      - name: pruebas:movimientos-saldo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-saldo
+
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes
@@ -585,6 +592,15 @@ jobs:
       - name: pruebas:recibir-envio
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:recibir-envio
+
+      # Traslados: recibir sin perder nada (ADR-0239): entra ya lo que coincide y solo la línea con diferencia espera al
+      # líder (que la hace entrar en el mismo lugar), piso o almacén al confirmar (el Taller usa el de siempre), una línea
+      # que ya entró no se recuenta, anular devuelve cada prenda a su sububicación de origen (y se rechaza con conteo
+      # empezado, sin motivo o desde otra sede; el mismo token no duplica), y el pedido para apartar se aparta cuando su
+      # línea entra y vuelve a «pedido» al anular. Cada caso termina en ROLLBACK.
+      - name: pruebas:traslados-recibir-sin-perder-nada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:traslados-recibir-sin-perder-nada
 
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y

@@ -110,3 +110,19 @@ export function repartirLineasAjuste<L extends { variante: Pick<VarianteAjuste, 
     cargaInicial: lineas.filter((l) => l.variante.sinHistoria && l.delta > 0),
   };
 }
+
+/** ¿El stock inicial de las prendas nuevas queda colgado en el piso? Una prenda «colgada» entra al almacén y se BAJA en
+ *  la misma operación (`cargar_stock_inicial` → `bajar_al_piso`), y bajar pide el módulo «Bajada al piso» (ADR-0212,
+ *  decidido para el alta de producto). Quien no lo tiene no queda trabado con un error al confirmar: sus prendas nuevas
+ *  entran al almacén, igual que en «Nuevo producto», y la fila lo dice antes (`textoPrendaNueva`). */
+export function cargaInicialAlPiso(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): boolean {
+  return separaPisoAlmacen && ubicado === "piso" && puedeBajarAlPiso;
+}
+
+/** La línea bajo una prenda nueva en la tienda: dónde va a quedar su stock inicial. */
+export function textoPrendaNueva(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean, puedeBajarAlPiso: boolean): string {
+  if (separaPisoAlmacen && ubicado === "piso" && !puedeBajarAlPiso) {
+    return "Nueva en esta tienda · entra al almacén: tu rol no baja prendas al piso";
+  }
+  return "Nueva en esta tienda · entra como stock inicial";
+}

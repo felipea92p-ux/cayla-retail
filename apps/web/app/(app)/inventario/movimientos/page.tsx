@@ -1,4 +1,4 @@
-import { Download, Info } from "lucide-react";
+import { Download } from "lucide-react";
 import { requirePersonaActualV2, veModulo } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -9,6 +9,7 @@ import {
   filtrosDesdeParams,
   getPrendasDeMovimientos,
   getResumenTienda,
+  getSaldosDeMovimientos,
   listarMovimientos,
   periodoCorto,
   serializarCursorMovimientos,
@@ -73,7 +74,8 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
     getResumenTienda(ubicacionActivaId, filtros),
     filtros.motivo ? getResumenTienda(ubicacionActivaId, { ...filtros, motivo: undefined }) : null,
   ]);
-  const prendas = await getPrendasDeMovimientos(ubicacionActivaId, filas);
+  // La foto y el stock de hoy de cada prenda, y cuántas quedaron después de cada movimiento: ayudas de la lista, a la vez.
+  const [prendas, saldos] = await Promise.all([getPrendasDeMovimientos(ubicacionActivaId, filas), getSaldosDeMovimientos(ubicacionActivaId, filas)]);
   const operaciones = agruparPorOperacion(filas);
 
   // Vacío con un período corto: ¿hay algo si se mira más atrás? Se pregunta una sola vez y solo
@@ -89,9 +91,11 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sede={ubicacionActiva?.nombre ?? "—"}
         titulo="Movimientos"
         subtitulo="Qué entró y qué salió del stock de esta sede, quién lo hizo y por qué. No se edita ni se borra nunca."
-        pie={
+        acciones={
           // Una descarga directa con los mismos filtros de la pantalla (sin la página ni el detalle abierto), como
-          // Exportar de Historial: el archivo es exactamente lo que se ve, completo.
+          // Exportar de Historial: el archivo es exactamente lo que se ve, completo. Va en `acciones` (a la derecha,
+          // que aquí está libre: las cifras van en su fila), no en `pie`: bajo la frase ocupaba una fila entera y
+          // empujaba la lista fuera de la primera pantalla (ADR-0220).
           <a href={`/inventario/movimientos/exportar${cadenaExportar(params)}`} download className="btn-cayla btn-secundario inline-flex items-center gap-2">
             <Download aria-hidden strokeWidth={1.5} className="h-4 w-4" />
             Exportar a Excel
@@ -105,40 +109,37 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         <p className="nota-cayla text-sm">Las cifras de arriba no se pudieron leer ahora; la lista de abajo está completa.</p>
       )}
 
-      <FiltrosMovimientos
-        sububicaciones={sububicaciones}
-        sub={sub}
-        periodo={periodo}
-        desde={filtros.desde ?? ""}
-        hasta={filtros.hasta ?? ""}
-        resumen={resumenSinProceso ?? resumen}
-      />
-
-      {vacio ? (
-        <MovimientosVacio
-          sede={sede}
-          periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : `los últimos ${periodo} días`}
-          conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
-          en90={en90}
-          params={params}
+      {/* Filtros y lista en UNA tarjeta (ADR-0169): lo que se filtra y lo filtrado se leen como una sola cosa, y la
+          lista sube a la primera pantalla. Separadas, entre las dos iban dos huecos y una línea de ayuda, y en 1366×768
+          se veía una sola fila. */}
+      <section aria-label="Movimientos de la sede" className="card-cayla overflow-hidden">
+        <FiltrosMovimientos
+          sububicaciones={sububicaciones}
+          sub={sub}
+          periodo={periodo}
+          desde={filtros.desde ?? ""}
+          hasta={filtros.hasta ?? ""}
+          resumen={resumenSinProceso ?? resumen}
         />
-      ) : (
-        <>
-          {/* Una sola línea, sin caja: lo que se toca y adónde lleva. No promete lo que no hace (ADR-0234). */}
-          <p className="flex items-center gap-2 text-xs text-tinta/55">
-            <Info aria-hidden strokeWidth={1.5} className="h-3.5 w-3.5 shrink-0" />
-            Toca un movimiento para ver qué prendas fueron y quién lo hizo. «Traslado N» y «Conteo N» abren su pantalla
-            {veModulo(persona, "historial") ? "; una boleta, su venta." : "."}
-          </p>
+        {vacio ? (
+          <MovimientosVacio
+            sede={sede}
+            periodo={periodo === "todo" ? "todo el historial" : periodo === "personalizado" ? "el período elegido" : `los últimos ${periodo} días`}
+            conFiltros={!!(filtros.busqueda || filtros.categoria || filtros.motivo || filtros.sububicacionId)}
+            en90={en90}
+            params={params}
+          />
+        ) : (
           <MovimientosLista
             operaciones={operaciones}
             prendas={prendas}
+            saldos={saldos}
             hoyLima={hoyEnLima()}
             enlaceCompras={esLider}
             enlaceVentas={veModulo(persona, "historial")}
           />
-        </>
-      )}
+        )}
+      </section>
 
       <PaginacionCursor
         mostradas={operaciones.length}
@@ -150,7 +151,11 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
         sustantivo={["movimiento", "movimientos"]}
       />
 
+      {/* La ayuda de uso va en la nota del pie, como en toda pantalla (ADR-0169): lo que se toca y adónde lleva, sin
+          prometer lo que no hace (ADR-0234). Las filas ya se ven tocables (flecha, referencia subrayada). */}
       <p className="nota-cayla">
+        Toca un movimiento para ver qué prendas fueron y quién lo hizo. «Traslado N» y «Conteo N» abren su pantalla
+        {veModulo(persona, "historial") ? "; una boleta, su venta." : "."}{" "}
         <b>Registro transparente:</b> cada movimiento queda con quién lo hizo, a qué hora y contra qué documento (boleta, factura
         del proveedor, traslado, conteo). No se edita ni se borra nunca — se corrige con otro movimiento, y los dos quedan.
       </p>

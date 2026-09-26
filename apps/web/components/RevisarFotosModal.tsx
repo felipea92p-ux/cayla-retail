@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { escucharDescargaModelo, prepararFotoPrenda, type FotoPreparada } from "@/lib/preparar-foto";
+import { recorteAgujereado } from "@/lib/foto-encuadre";
 
 /* ====================================================================
    RevisarFotosModal · antes de que una foto entre al catálogo (ADR-0228)
@@ -116,9 +117,13 @@ export function RevisarFotosModal({
                     estado: "listo",
                     preparada: p,
                     vistas: { ...it.vistas, sinFondo, conFondo, sinFondoLuz, conFondoLuz },
-                    eleccion: p.sinFondo ? "sinFondo" : "conFondo",
+                    // Sin fondo solo si el recorte salió entero: uno agujereado (ADR-0228, «control de huecos») nace en
+                    // «Con fondo» y lo dice. Quien sube puede elegir «Sin fondo» igual.
+                    eleccion: p.sinFondo && !recorteAgujereado(p.huecos) ? "sinFondo" : "conFondo",
                     luz: p.conLuz !== null,
-                    error: p.motivoSinRecorte,
+                    error:
+                      p.motivoSinRecorte ??
+                      (p.sinFondo && recorteAgujereado(p.huecos) ? "El recorte dejó huecos en la prenda; por eso va con fondo. Revisa «Sin fondo» si igual la quieres así." : null),
                   }
                 : it,
             ),

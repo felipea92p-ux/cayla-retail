@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
-import { exigirModulo, puede } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -174,6 +174,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
           puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
@@ -184,6 +185,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           sububicaciones={sububicaciones}
           puedeEditar={puede(persona, "editarCatalogo")}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
           puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />

@@ -1,6 +1,6 @@
 import { requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getEtiquetasDePrecio, type OrigenEtiquetas } from "@/lib/etiquetas-precio";
-import { encabezadoDeEtiquetas, fechaEtiqueta, idsDeParam, type OrigenDeTexto } from "@/lib/etiqueta-precio-reglas";
+import { encabezadoDeEtiquetas, fechaEtiqueta, idsDeParam, volverDeEtiquetas, type OrigenDeTexto } from "@/lib/etiqueta-precio-reglas";
 import { hoyLima } from "@/lib/fechas-lima";
 import { ImprimirEtiquetasPrecio } from "@/components/ImprimirEtiquetasPrecio";
 
@@ -59,6 +59,7 @@ export default async function EtiquetasDePrecioPage({ searchParams }: { searchPa
       etiquetas={datos.etiquetas}
       sinCodigo={datos.sinCodigo}
       impreso={fechaEtiqueta(hoy)}
+      volver={volverDeEtiquetas(origen)}
     />
   );
 }

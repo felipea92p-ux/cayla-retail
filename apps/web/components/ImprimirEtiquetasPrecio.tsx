@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { Volver } from "@/components/ui/Volver";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
@@ -39,11 +40,14 @@ export function ImprimirEtiquetasPrecio({
   etiquetas,
   sinCodigo,
   impreso,
+  volver,
 }: {
   encabezado: TextosPantalla;
   etiquetas: DatosEtiqueta[];
   sinCodigo: string[];
   impreso: string;
+  /** La pantalla que abrió las etiquetas (`volverDeEtiquetas`): no es del menú, así que sin esto no hay salida. */
+  volver: { href: string; a: string };
 }) {
   const [cantidades, setCantidades] = useState<Record<string, string>>(() => Object.fromEntries(etiquetas.map((e) => [e.varianteId, String(e.cantidad)])));
   // El portal necesita `document`: en el servidor (y al hidratar) no hay hoja; en el navegador, sí. Queda montada siempre,
@@ -74,7 +78,10 @@ export function ImprimirEtiquetasPrecio({
   if (etiquetas.length === 0) {
     return (
       <div className="space-y-6">
-        <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.vacio} />
+        <div>
+          <Volver {...volver} className="mb-4" />
+          <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.vacio} />
+        </div>
         {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
       </div>
     );
@@ -82,7 +89,10 @@ export function ImprimirEtiquetasPrecio({
 
   return (
     <div className="space-y-6">
-      <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.bajada} acciones={imprimir} />
+      <div>
+        <Volver {...volver} className="mb-4" />
+        <CabeceraPantalla sobretitulo={encabezado.sobretitulo} titulo={encabezado.titulo} bajada={encabezado.bajada} acciones={imprimir} />
+      </div>
 
       {sinCodigo.length > 0 && <AvisoSinCodigo prendas={sinCodigo} />}
 

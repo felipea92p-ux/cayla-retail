@@ -76,3 +76,42 @@ M?») obligaba a escribir el código.
   prenda, detalle, Reponer desde el detalle, barra de varias con sus enlaces, pistola con Enter, cámara (en el panel el
   navegador la bloquea: la lectura real se prueba en un teléfono) y «Por talla». Falta verlo con una cuenta real y
   datos de producción.
+
+## Actualización 2026-09-26 (noche) — lo marcado llega a «Bajar al piso» por escanear, no en 1
+
+**Problema.** La decisión 4 mandaba a «Bajar al piso» una unidad por talla. Esa lista se podía confirmar sin escanear
+nada: «Confirmar bajada · 4 prendas» quedaba activo apenas llegaba. La pantalla de bajada está hecha para lo contrario:
+«Cada lectura suma 1», y lo que queda registrado es lo que se leyó al colgar. Si el sistema baja lo que se marcó y no lo
+que se colgó, su piso deja de ser el piso real. Como la venta descuenta del piso, el error aparece después en la caja.
+Lo encontró el análisis `/pantalla` (`docs/pantallas/inventario.md`, tarea #4), y Felipe lo pidió.
+
+**Decidí.**
+- Cada talla marcada llega **en 0, «Por escanear»** (`lineasIniciales`, `porEscanear` en `lib/bajada-reglas.ts`).
+- Cada lectura la sube a 1 y la lleva arriba, como con cualquier prenda. Lo «por escanear»:
+  - no viaja a la base (`itemsParaRpc` ya descartaba los ceros);
+  - no cuenta en el resumen ni en el botón;
+  - no dispara el aviso al salir de la página.
+- Con solo prendas por escanear, «Confirmar bajada» queda apagado y dice: «Escanea cada prenda de la lista al colgarla:
+  solo se baja lo escaneado».
+- El borrador del aparato conserva lo «por escanear» junto a lo escaneado. Sin nada escaneado no hay borrador que
+  ofrecer: la lista se rearma desde Existencias.
+- El enlace (`?lineas=id:1`) no cambia: el 1 es solo su formato. La pantalla no lo usa.
+
+**Descarté.** Dejar el 1 y avisar «revisa las cantidades». Un aviso no impide confirmar a ciegas, y ese error lo paga
+la caja, no Existencias. También descarté marcar la lista como «sugerida» con otro color: sigue siendo algo que se
+confirma sin tocar.
+
+**Se rompe si** la vendedora, en vez de escanear, toca «+» en cada talla. Queda permitido a propósito: es el mismo
+arreglo a mano que ya existía («si tienes 12 iguales, escanea una y cambia el número»), pero exige un toque por talla.
+No es un confirmar a ciegas.
+
+**Trasladar no cambia:** «Mover mercadería» sigue recibiendo una unidad por talla, porque quien envía un traslado arma
+el pedido y lo confirma el que recibe.
+
+**Verificación.** `lib/bajada-reglas.test.ts` (95 casos, 3 nuevos en `lineasIniciales` y el del borrador). En el
+navegador, con la cuenta de líder en TRU:
+- dos tallas llegan «Por escanear», con «0 prendas · 0 modelos» y el botón apagado;
+- la pistola lee una: queda en 1, arriba, y el botón dice «Confirmar bajada · 1 prenda»;
+- al recargar, el borrador ofrece «1 prenda» y al continuar vuelven las dos.
+
+No se confirmó la bajada, para no dejar movimientos en la base local compartida.

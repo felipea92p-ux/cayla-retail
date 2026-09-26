@@ -4630,6 +4630,26 @@
   "tabla": "retail.transferencia_recepciones"
  },
  {
+  "conname": "transferencias_anulada_con_fecha",
+  "definicion": "CHECK (((estado = 'anulada'::text) = (anulado_en IS NOT NULL)))",
+  "tabla": "retail.transferencias"
+ },
+ {
+  "conname": "transferencias_anulada_con_motivo",
+  "definicion": "CHECK (((estado = 'anulada'::text) = (NULLIF(btrim(motivo_anulacion), ''::text) IS NOT NULL)))",
+  "tabla": "retail.transferencias"
+ },
+ {
+  "conname": "transferencias_anulado_por_fkey",
+  "definicion": "FOREIGN KEY (anulado_por) REFERENCES personas(id)",
+  "tabla": "retail.transferencias"
+ },
+ {
+  "conname": "transferencias_anulado_por_solo_si_anulada",
+  "definicion": "CHECK (((anulado_por IS NULL) OR (estado = 'anulada'::text)))",
+  "tabla": "retail.transferencias"
+ },
+ {
   "conname": "transferencias_cerrado_por_fkey",
   "definicion": "FOREIGN KEY (cerrado_por) REFERENCES personas(id)",
   "tabla": "retail.transferencias"
@@ -4646,7 +4666,7 @@
  },
  {
   "conname": "transferencias_estado_check",
-  "definicion": "CHECK ((estado = ANY (ARRAY['completada'::text, 'en_transito'::text, 'recibido_con_diferencia'::text, 'cerrada'::text])))",
+  "definicion": "CHECK ((estado = ANY (ARRAY['completada'::text, 'en_transito'::text, 'recibido_con_diferencia'::text, 'cerrada'::text, 'anulada'::text])))",
   "tabla": "retail.transferencias"
  },
  {
@@ -4662,6 +4682,11 @@
  {
   "conname": "transferencias_pkey",
   "definicion": "PRIMARY KEY (id)",
+  "tabla": "retail.transferencias"
+ },
+ {
+  "conname": "transferencias_sububicacion_destino_pertenece_fk",
+  "definicion": "FOREIGN KEY (sububicacion_destino_id, ubicacion_destino_id) REFERENCES retail.sububicaciones(id, ubicacion_id)",
   "tabla": "retail.transferencias"
  },
  {
