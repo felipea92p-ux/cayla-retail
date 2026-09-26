@@ -235,8 +235,6 @@ type Props = {
   id?: string;
   /** Arriba de las líneas mientras se arma (spike 2026-09-26): la tira de tickets en espera y la fila «Clienta». */
   arriba?: ReactNode;
-  /** Junto a «Descuento» y «Dejar en espera»: «Apartar» y «Proforma» (spike 2026-09-26). */
-  accionesArmar?: ReactNode;
   /** Dentro de la hoja del celular (`<Modal variante="ticket">`): llena la hoja y ofrece volver al catálogo. */
   enHoja?: boolean;
   onCerrarHoja?: () => void;
@@ -300,7 +298,6 @@ export function PuntoDeVentaTicket({
   loading,
   onCobrar,
   arriba,
-  accionesArmar,
   enHoja = false,
   onCerrarHoja,
 }: Props) {
@@ -1226,7 +1223,6 @@ export function PuntoDeVentaTicket({
                   Dejar en espera
                 </button>
               )}
-              {carrito.length > 0 && accionesArmar}
             </div>
           )}
 

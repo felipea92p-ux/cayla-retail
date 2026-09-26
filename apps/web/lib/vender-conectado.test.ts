@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ACCESOS_VENTA, accesosVisibles, repartirAccesos } from "./vender-accesos";
+import { ACCESOS_VENTA, accesosDeMas, accesosVisibles } from "./vender-accesos";
 import { buscarVendiblePrimero, grupoDeResultado } from "./vender-buscador-reglas";
 import { hrefApartarDesdeTicket, leerPrendasDeUrl, lineasApartables } from "./apartar-desde-ticket";
 import { dniEnmascarado, lineaDeClienta, terminoBuscable } from "./clienta-ticket-reglas";
 import { precioEscribible } from "./prenda-sin-registrar-reglas";
-import { anchoBarraMeta, nombreDeEspera, resumenDeHoy } from "./vender-hoy-reglas";
+import { anchoBarraMeta, haceCuanto, nombreDeEspera, resumenDeHoy } from "./vender-hoy-reglas";
 
 const prenda = (id: string, referencia: string, stockAqui: number, almacenAqui: number | null = 0) => ({
   varianteId: id,
@@ -24,16 +24,14 @@ describe("accesos del Punto de venta", () => {
     expect(visibles.map((a) => a.texto)).toEqual(["Caja", "Cambios"]);
   });
 
-  it("con todos los módulos: cuatro a la vista y dos en «Más»", () => {
-    const { aLaVista, enMas } = repartirAccesos(accesosVisibles(ACCESOS_VENTA.map((a) => a.modulo)));
-    expect(aLaVista.map((a) => a.texto)).toEqual(["Caja", "Apartados", "Cambios", "Devoluciones"]);
-    expect(enMas.map((a) => a.texto)).toEqual(["Historial", "Proformas"]);
-  });
-
-  it("un «Más» de una sola opción no existe: esa opción va a la vista", () => {
-    const { aLaVista, enMas } = repartirAccesos(accesosVisibles(["caja", "historial"]));
-    expect(aLaVista.map((a) => a.texto)).toEqual(["Caja", "Historial"]);
-    expect(enMas).toEqual([]);
+  it("«Más» lleva todo menos Apartados, que se queda a la vista", () => {
+    expect(accesosDeMas(accesosVisibles(ACCESOS_VENTA.map((a) => a.modulo))).map((a) => a.texto)).toEqual([
+      "Caja",
+      "Cambios",
+      "Devoluciones",
+      "Historial",
+      "Proformas",
+    ]);
   });
 
   it("sin ningún módulo de ventas, nada", () => {
@@ -151,5 +149,16 @@ describe("precio de la prenda sin registrar", () => {
     expect(precioEscribible("4.5.6")).toBe("4.56");
     expect(precioEscribible("S/ 39")).toBe("39");
     expect(precioEscribible("")).toBe("");
+  });
+});
+
+describe("hace cuánto quedó en espera", () => {
+  const ahora = new Date("2026-09-28T12:00:00Z").getTime();
+  it("minutos, horas y días en vez de «3216 min»", () => {
+    expect(haceCuanto("2026-09-28T11:59:40Z", ahora)).toBe("recién");
+    expect(haceCuanto("2026-09-28T11:48:00Z", ahora)).toBe("hace 12 min");
+    expect(haceCuanto("2026-09-28T07:00:00Z", ahora)).toBe("hace 5 h");
+    expect(haceCuanto("2026-09-27T10:00:00Z", ahora)).toBe("hace 1 día");
+    expect(haceCuanto("2026-09-26T02:24:00Z", ahora)).toBe("hace 2 días");
   });
 });

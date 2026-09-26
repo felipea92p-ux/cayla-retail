@@ -154,7 +154,7 @@ export function SeriesPanel({
                     </p>
                     <div className="flex items-center justify-between gap-2 border-t border-tinta/10 pt-2">
                       <p className="text-xs tabular-nums text-tinta/60">
-                        {usados === 0 ? "Todavía no emitió ninguno" : `${usados} ${usados === 1 ? "número usado" : "números usados"}`}
+                        {usados === 0 ? "Todavía no emitió ninguno" : `Sigue el ${s.siguiente_numero} · ${usados} ${usados === 1 ? "reservado" : "reservados"}`}
                         {ultimoPorSerie[s.id] && <span className="block">Último: {antiguedad(ultimoPorSerie[s.id], ahora)}</span>}
                       </p>
                       {esLider && (

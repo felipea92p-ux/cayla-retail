@@ -50,6 +50,9 @@ export type Comprobante = {
   pdfUrl: string | null;
   xmlUrl: string | null;
   cdrUrl: string | null;
+  /** Qué venta documenta (vacío en uno emitido a mano) y, en una nota de crédito, qué comprobante corrige. */
+  venta_id?: string | null;
+  comprobante_original_id?: string | null;
 };
 
 export type SerieComprobante = {

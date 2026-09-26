@@ -91,9 +91,9 @@ export function ColaSunatPanel({
       )}
       <div className="flex flex-wrap items-end justify-between gap-3 px-5 pt-[18px] pb-3.5">
         <div className="min-w-0">
-          <h2 className="font-display text-xl leading-tight text-tinta">Por reintentar</h2>
+          <h2 className="font-display text-xl leading-tight text-tinta">Por enviar a SUNAT</h2>
           <p className="mt-0.5 text-xs text-tinta/65">
-            SUNAT no los recibió al cobrar. No pierden su número y se reintentan solos; si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.
+            Todo lo que todavía no llegó: lo que nunca se intentó, lo que falló y lo que SUNAT rechazó. No pierden su número; si uno pasa de {HORAS_AVISO_COLA} hora, mira el error.
           </p>
         </div>
         {filas.length > 1 && (
@@ -104,7 +104,7 @@ export function ColaSunatPanel({
       </div>
 
       {filas.length === 0 ? (
-        <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Nada en espera: todo llegó a SUNAT.</p>
+        <p className="font-display border-t border-tinta/10 px-5 py-8 text-center text-base italic text-tinta/65">Nada por enviar: todo llegó a SUNAT.</p>
       ) : visibles.length === 0 ? (
         <SinCoincidencias />
       ) : (
@@ -125,9 +125,17 @@ export function ColaSunatPanel({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap gap-1.5">
-                  <Chip tono={atrasado ? "rojo" : "ambar"}>
-                    {atrasado ? `Hace ${espera} sin llegar` : `En cola hace ${espera}`}
-                  </Chip>
+                  {f.estado === "rechazado" ? (
+                    <Chip tono="rojo">SUNAT lo rechazó</Chip>
+                  ) : (
+                    <Chip tono={atrasado ? "rojo" : "ambar"}>
+                      {f.estado === "pendiente" && f.intentos_transmision === 0
+                        ? `Sin intento todavía · hace ${espera}`
+                        : atrasado
+                          ? `Hace ${espera} sin llegar`
+                          : `En cola hace ${espera}`}
+                    </Chip>
+                  )}
                   {plazo && <Chip tono={plazo.tono}>{plazo.texto}</Chip>}
                 </div>
                 <p className="mt-1 text-[13px] leading-snug text-tinta/70">
@@ -137,7 +145,7 @@ export function ColaSunatPanel({
                 {queHacer && <p className="mt-0.5 text-[13px] leading-snug text-tinta">Qué hacer: {queHacer}</p>}
               </div>
               <BotonCompacto variante="fila-alerta" cargando={enVuelo} disabled={reintentandoTodos} aria-label={`Reintentar ahora ${numero(f)}`} onClick={() => transmitir(f.comprobante_id)}>
-                {enVuelo ? "Enviando…" : "Reintentar ahora"}
+                {enVuelo ? "Enviando…" : f.estado === "pendiente" && f.intentos_transmision === 0 ? "Enviar ahora" : "Reintentar ahora"}
               </BotonCompacto>
             </div>
           );

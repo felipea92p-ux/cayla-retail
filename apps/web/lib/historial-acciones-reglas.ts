@@ -126,7 +126,7 @@ export function accionesDeVenta(v: VentaParaAcciones, ctx: ContextoAcciones): Ac
     acciones.push({
       clave: "reintentar",
       etiqueta: v.comprobante!.estado === "rechazado" ? "Corregir y reenviar" : "Enviar a SUNAT",
-      detalle: "Comprobantes ▸ Por reintentar",
+      detalle: "Comprobantes ▸ Por enviar",
       href: "/vender/comprobantes/por-reintentar",
       destacada: true,
     });
@@ -143,7 +143,7 @@ export function accionesDeVenta(v: VentaParaAcciones, ctx: ContextoAcciones): Ac
   }
   if (ve("vender")) acciones.push({ clave: "volver", etiqueta: "Volver a vender", detalle: "Mismas prendas en el Punto de Venta", href: `/vender?${qs({ repetir: v.id })}` });
   if (v.comprobante && ctx.puedeFacturar) {
-    acciones.push({ clave: "comprobante", etiqueta: "Ver comprobante", detalle: `Comprobantes ▸ Emitidos`, href: `/vender/comprobantes/emitidos?${qs({ m: mesDeFecha(v.fecha) })}` });
+    acciones.push({ clave: "comprobante", etiqueta: "Ver comprobante", detalle: `Comprobantes ▸ Este mes`, href: `/vender/comprobantes/emitidos?${qs({ m: mesDeFecha(v.fecha) })}` });
   }
   if (ctx.esLider && !v.anulada && v.fecha === ctx.hoy && ve("devoluciones")) {
     acciones.push({ clave: "anular", etiqueta: "Anular venta", detalle: "Solo hoy · en Devoluciones", href: `/devoluciones?${paramsDePosventa(v, ctx)}`, peligro: true });

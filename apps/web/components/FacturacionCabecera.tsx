@@ -16,8 +16,8 @@ import { useUltimaCarga } from "@/lib/ultima-carga-facturacion";
 // (`CajaDeBusqueda`, en el shell), como la barra de filtros de Historial.
 
 const PISTA_DE_BUSQUEDA: Record<ClavePestana, string> = {
+  hoy: "Buscar número, clienta, DNI o RUC…",
   series: "Buscar serie o tienda…",
-  emitidos: "Buscar número, cliente o RUC…",
   cola: "Buscar número o error…",
   proformas: "Buscar cliente…",
 };
@@ -100,7 +100,7 @@ export function FacturacionCabecera({ sede, cifras, entorno }: { sede: string; c
     <EncabezadoPagina
       sede={sede}
       titulo="Comprobantes"
-      subtitulo="Tus series y en qué número va cada una. Cada venta se declara sola a SUNAT al cobrar."
+      subtitulo="Tus boletas y facturas: búscalas, reenvíalas a la clienta o empieza un cambio. Cada venta se declara sola a SUNAT al cobrar."
       detalle={
         <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
           <EstadoDeFrescura />

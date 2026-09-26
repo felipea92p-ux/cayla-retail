@@ -103,6 +103,7 @@ export function ApartarVista({
   prendas: prendasProp,
   lineasIniciales,
   apagadas = [],
+  cabecera,
   tiendas = [],
   pedido = null,
   onPedidoHecho,
@@ -116,6 +117,8 @@ export function ApartarVista({
   lineasIniciales?: LineaApartar[];
   /** Lo que la tienda apagó en «Opciones» (paso 5). */
   apagadas?: string[];
+  /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
+  cabecera?: React.ReactNode;
   /** Las otras tiendas (nombre corto), para pedirles una prenda que aquí no queda (20260927140000). */
   tiendas?: { id: string; nombre: string }[];
   /** Un pedido que ya llegó: su prenda y su clienta arrancan cargadas y se aparta con `separar_pedido_para_apartar`. */
@@ -446,9 +449,12 @@ export function ApartarVista({
   const hermanas = p ? prendas.filter((x) => x.referencia === p.referencia && x.color === p.color) : [];
 
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
-      {/* Izquierda: solo lo escaneado, nunca el catálogo entero. */}
-      <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-r lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
+    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      {/* Izquierda: la cabecera de la hoja y, debajo, solo lo escaneado, nunca el catálogo entero. En el celular, en los
+          pasos de la clienta y el adelanto se esconde lo escaneado, no la cabecera. */}
+      <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
+      {cabecera}
+      <div className={`flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0 ${paso === "ticket" ? "" : "max-lg:hidden"}`}>
         <div className="flex gap-2.5">
           <div className="relative z-20 min-w-0 flex-1">
             <label className="flex h-14 w-full items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
@@ -590,12 +596,14 @@ export function ApartarVista({
           </div>
         )}
       </div>
+      </div>
 
-      {/* Derecha: el ticket y, al tocar «Apartar», el formulario — como el cobro del Punto de venta. */}
+      {/* Derecha: el ticket y, al tocar «Apartar», el formulario — como el cobro del Punto de venta. Va de arriba abajo
+          de la hoja; su cabecera mide lo mismo que la fila de pestañas (64 px más su raya: 65) y queda en la misma raya. */}
       <aside className="flex min-h-0 flex-col">
         {paso === "ticket" ? (
           <>
-            <div className="flex min-h-[84px] items-center justify-between gap-3 border-b border-sand px-5 py-5">
+            <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
               <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
                 <Bookmark className="h-6 w-6 text-tinta/70" aria-hidden /> Por apartar
               </h2>
@@ -677,7 +685,7 @@ export function ApartarVista({
           </>
         ) : (
           <>
-            <div className="flex min-h-[84px] items-center justify-between gap-3 border-b border-sand px-5 py-5">
+            <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
               <button type="button" onClick={() => irAPaso(apilado && paso === "adelanto" ? "clienta" : "ticket")} className="label-cayla -ml-2 h-8 shrink-0 rounded-md px-2 text-[11px] whitespace-nowrap text-tinta/70 hover:bg-sand/40 hover:text-tinta">
                 ← {apilado ? "Atrás" : "Ticket"}
               </button>
