@@ -48,7 +48,7 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, filasSemana, catalogo] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -62,7 +62,15 @@ export default async function InventarioPage({
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total» y el
     // overlay de categorías — sin cambios (2026-09-25): sigue siendo un dato de 7 días aparte del
     // Ritmo reciente, que ahora vive en `existencias-ritmo.ts`.
-    getFilasSemanaDeSede(ubicacionActivaId),
+    // Dato SECUNDARIO (tarea #8 del análisis): solo alimenta el «% vs. semana anterior» y el desglose de «Disponible
+    // total». Si su función no responde, Existencias sigue en pie y la tarjeta lo dice; antes se caía la pantalla entera.
+    getFilasSemanaDeSede(ubicacionActivaId).then(
+      (filas) => ({ filas, fallo: false }),
+      (error: unknown) => {
+        console.error("Existencias: no se pudo leer la comparación de 7 días", error);
+        return { filas: [] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>, fallo: true };
+      }
+    ),
     // REHECHO 2026-09-25: ya NO se pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días)
     // para Existencias — el motor nuevo de «Acción hoy» (`calcularAccionHoy`) decide con lo que
     // Existencias ya trae en `stock` (piso, almacén, en tránsito), sin una cuarta reconstrucción
@@ -133,6 +141,7 @@ export default async function InventarioPage({
   // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
+  const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
   const recomendaciones = vende ? recomendacionesDeSede(stockBase, politica) : [];
 
@@ -193,7 +202,9 @@ export default async function InventarioPage({
                   <Link href="/vender/apartados" className="btn-cayla btn-sutil btn-chico">
                     <ShoppingBag aria-hidden className="h-4 w-4" />
                     Apartados
-                    {apartados.length > 0 && <span className="rounded-full bg-hueso px-1.5 text-[11px] tabular-nums text-tinta/80">{apartados.length}</span>}
+                    {/* Sin número (tarea #7): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva lista
+                        separaciones (una por ticket): «3» aquí y 1 ticket al entrar. La cifra buena vive en Apartados; dentro de
+                        Existencias queda «N apartadas para clientas», que cuenta prendas y abre su lista. */}
                   </Link>
                 )}
               </nav>
@@ -227,6 +238,7 @@ export default async function InventarioPage({
         verProductos={veModulo(persona, "productos")}
         filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
+        comparacionFallo={semana.fallo}
         recomendaciones={recomendaciones}
         politica={politica}
         veTraslados={veModulo(persona, "traslados")}

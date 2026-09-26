@@ -8,6 +8,7 @@ import {
   MAX_VARIANTES_EN_URL,
   ordenarPorUrgencia,
   sePuedeBajar,
+  tallaParaReponer,
   tallaPorCodigo,
   urlBajarAlPiso,
   urlEtiquetas,
@@ -124,8 +125,8 @@ describe("enlaces con la lista cargada", () => {
     const taller = fila({ varianteId: "t", pisoDisponible: null, almacenDisponible: null, disponible: 3 });
     expect(urlTrasladar([taller])).toBe("/inventario/mover?lineas=t:1");
   });
-  it("Etiquetas: un producto va por ?producto=, varios por ?variantes=", () => {
-    expect(urlEtiquetas([bajable, normal])).toBe("/etiquetas-de-precio?producto=blusa");
+  it("Etiquetas: SIEMPRE las tallas exactas por ?variantes= — un producto por ?producto= imprimía todos sus colores (tarea #7)", () => {
+    expect(urlEtiquetas([bajable, normal])).toBe("/etiquetas-de-precio?variantes=v1,v2");
     expect(urlEtiquetas([bajable, fila({ varianteId: "p2", productoId: "polo" })])).toBe("/etiquetas-de-precio?variantes=v1,p2");
     expect(urlEtiquetas([])).toBeNull();
   });
@@ -180,5 +181,21 @@ describe("ordenarPorUrgencia (análisis de Existencias, tarea #5)", () => {
     const dos = agruparPorPrenda([fila({ varianteId: "b", productoId: "b" }), fila({ varianteId: "a", productoId: "a" })]);
     expect(ordenarPorUrgencia(dos).map((p) => p.productoId)).toEqual(["b", "a"]);
     expect(prendas.map((p) => p.productoId)).toEqual(["tranquila", "reponer", "colgar-1", "colgar-2"]);
+  });
+});
+
+describe("tallaParaReponer (tarea #7): «Reponer N tallas» abre una talla que se pueda bajar", () => {
+  const sinAtras = fila({ varianteId: "sin-atras", talla: "S", accionHoy: REPONER, pisoDisponible: 1, almacenDisponible: 0 });
+  const reponer = fila({ varianteId: "reponer", talla: "M", accionHoy: REPONER, pisoDisponible: 2, almacenDisponible: 3 });
+  const porColgar = fila({ varianteId: "por-colgar", talla: "L", accionHoy: REPONER, pisoDisponible: 0, almacenDisponible: 2 });
+
+  it("primero una por colgar que se pueda bajar", () => {
+    expect(tallaParaReponer([sinAtras, reponer, porColgar])?.varianteId).toBe("por-colgar");
+  });
+  it("si no hay por colgar, la primera que se pueda bajar — nunca una que pide reponer sin nada atrás", () => {
+    expect(tallaParaReponer([sinAtras, reponer])?.varianteId).toBe("reponer");
+  });
+  it("sin ninguna que se pueda bajar, ninguna", () => {
+    expect(tallaParaReponer([sinAtras])).toBeNull();
   });
 });

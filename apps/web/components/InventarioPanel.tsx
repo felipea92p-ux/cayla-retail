@@ -27,7 +27,7 @@ import { ExistenciasVacio } from "@/components/ExistenciasVacio";
 import { ExistenciasPorPrenda } from "@/components/ExistenciasPorPrenda";
 import { DetallePrendaExistencias } from "@/components/DetallePrendaExistencias";
 import { EscanerBusqueda } from "@/components/EscanerBusqueda";
-import { agruparPorPrenda, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { agruparPorPrenda, MAX_VARIANTES_EN_URL, ordenarPorUrgencia, tallaPorCodigo, urlBajarAlPiso, urlEtiquetas, urlTrasladar, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import { explicarVacio, palabrasBuscables, sinStockQueCoincide, textoSinStock, type ClaveFiltro, type FiltroActivo, type ProductoSinStock } from "@/lib/existencias-vacio";
 import { marcasDeLaSede } from "@/lib/existencias-catalogo-reglas";
 import { resumenRed } from "@/lib/stock-por-sede";
@@ -261,6 +261,7 @@ export function InventarioPanel({
   verProductos = false,
   filasSemana,
   deltaSede,
+  comparacionFallo = false,
   recomendaciones,
   politica,
   veTraslados = false,
@@ -307,6 +308,8 @@ export function InventarioPanel({
   filasSemana: FilaSemana[];
   /** El delta de disponible de TODA la sede en los últimos 7 días, para la tarjeta «Disponible total». */
   deltaSede: { hoy: number; hace7d: number; pct: number | null };
+  /** La lectura de 7 días no respondió (tarea #8): la tarjeta lo dice, en vez de «sin datos», que sería falso. */
+  comparacionFallo?: boolean;
   /** «Ver recomendaciones» (2026-09-22, motor propio desde 2026-09-25): `calcularAccionHoy` corrido
    *  por cada variante de la sede — ya ordenada por urgencia, vacía en Taller. */
   recomendaciones: Recomendacion[];
@@ -720,7 +723,11 @@ export function InventarioPanel({
             activa={viendoDisponible}
             onClick={() => setViendoDisponible(true)}
           >
-            {deltaSede.pct === null ? "Sin datos de hace 7 días para comparar" :`${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
+            {comparacionFallo
+              ? "No se pudo calcular la comparación ahora"
+              : deltaSede.pct === null
+                ? "Sin datos de hace 7 días para comparar"
+                : `${deltaSede.pct >= 0 ? "+" : ""}${Math.round(deltaSede.pct)}% vs. semana anterior`}
           </TarjetaPrioridad>
           <TarjetaPrioridad icono={Truck} etiqueta="En camino hacia acá" valor={resumen.enTransito} unidad="unidades" href="/inventario/traslados">
             {enCamino.traslados === 0
@@ -1368,6 +1375,7 @@ export function InventarioPanel({
           separa={separa}
           mostrarMarca={mostrarMarca}
           puedeReponer={puedeReponer}
+          enSedeActiva={enSedeActiva}
           sinModuloBajada={separaConSububicaciones && enSedeActiva && !puedeBajarAlPiso}
           puedeApartar={puedeApartar}
           puedeAjustar={puedeAjustarAqui}
@@ -1422,6 +1430,12 @@ export function InventarioPanel({
               <b className="font-semibold tabular-nums">{prendasMarcadas}</b> {prendasMarcadas === 1 ? "prenda" : "prendas"}
               <span className="text-crema/60"> · {filasMarcadas.length} {filasMarcadas.length === 1 ? "talla" : "tallas"}</span>
             </span>
+            {/* Más de las que caben en un enlace (tarea #7): se dice, en vez de hacer desaparecer los botones sin explicación. */}
+            {filasMarcadas.length > MAX_VARIANTES_EN_URL && (
+              <span role="status" className="order-last w-full px-3 pb-1 text-xs text-crema/80 sm:order-none sm:w-auto">
+                Marcaste {filasMarcadas.length} tallas: se llevan hasta {MAX_VARIANTES_EN_URL} de una vez. Desmarca algunas.
+              </span>
+            )}
             <span className="order-last grid w-full grid-cols-3 gap-1 sm:order-none sm:flex sm:w-auto">
               {hrefBajarMarcadas && (
                 <Link href={hrefBajarMarcadas} className="flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs hover:bg-crema/10 sm:flex-row sm:text-sm">
