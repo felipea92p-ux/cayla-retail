@@ -5829,6 +5829,13 @@ export type Database = {
           salen: number
         }[]
       }
+      fn_movimientos_saldos: {
+        Args: { p_movimiento_ids: string[]; p_ubicacion_id: string }
+        Returns: {
+          movimiento_id: string
+          quedan: number
+        }[]
+      }
       fn_movimientos_variantes: {
         Args: { p_busqueda: string }
         Returns: string[]

@@ -738,9 +738,9 @@ describe("exportar a Excel", () => {
       sububicacion: { id: "sa", nombre: "Almacén de tienda", tipo: "almacen_tienda" },
       transferencia: { id: "t1", estado: "cerrada", nota: null, numero: 1 },
     });
-    const fila = filaCsvMovimiento(llegada);
+    const fila = filaCsvMovimiento(llegada, 12);
     expect(fila.length).toBe(ENCABEZADOS_CSV_MOVIMIENTOS.length);
-    expect(fila).toEqual(["15/09/2026", "09:03", "Entrada · Traslado recibido", "Blusa Emma", "BLU-EMMA-NEG-M", "M", "Negro", 5, 5, "Taller", "Tienda Lima", "Almacén", "Traslado 1", "Felipe Alvarez", ""]);
+    expect(fila).toEqual(["15/09/2026", "09:03", "Entrada · Traslado recibido", "Blusa Emma", "BLU-EMMA-NEG-M", "M", "Negro", 5, 5, 12, "Taller", "Tienda Lima", "Almacén", "Traslado 1", "Felipe Alvarez", ""]);
   });
 
   it("una bajada al piso mueve unidades pero su efecto en la sede es 0; una carga de sistema dice «Sistema»", () => {
@@ -748,7 +748,9 @@ describe("exportar a Excel", () => {
     const fila = filaCsvMovimiento(bajada);
     expect(fila[7]).toBe(3);
     expect(fila[8]).toBe(0);
-    expect(fila[13]).toBe("Sistema");
+    expect(fila[14]).toBe("Sistema");
+    // Sin el saldo de la base, «Quedan en la sede» va vacía: nunca un 0 que parezca dato.
+    expect(fila[9]).toBe("");
   });
 
   it("el nombre del archivo lleva la sede y el día, sin tildes ni espacios; si se recortó, lo dice", () => {
@@ -760,7 +762,7 @@ describe("exportar a Excel", () => {
   it("un texto que Excel leería como fórmula va con apóstrofo; las cifras quedan como números", () => {
     const fila = filaCsvMovimiento(movimiento({ nota: "=HIPERVINCULO(\"x\")", referencia: "+Blusa", categoria: "ajuste", tipo: "ajuste", motivo: "merma", cantidad: -1, delta: -1 }));
     expect(fila[3]).toBe("'+Blusa");
-    expect(fila[14]).toBe("'=HIPERVINCULO(\"x\")");
+    expect(fila[15]).toBe("'=HIPERVINCULO(\"x\")");
     expect(fila[8]).toBe(-1);
   });
 });

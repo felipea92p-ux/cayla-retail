@@ -435,6 +435,13 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
 
+      # Saldo por prenda de Movimientos (ADR-0234, saldo): cada movimiento dice cuántas quedaron en la tienda al terminar
+      # su operación, leído de `fn_ledger_puntos` (la bajada no lo cambia, la cuarentena lo baja, el último es el stock
+      # de hoy); otra sede no vuelve y sin sesión no responde. En ROLLBACK.
+      - name: pruebas:movimientos-saldo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-saldo
+
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-resumen-variantes

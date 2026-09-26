@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { fotoPrincipal, sumarCantidades, type Cantidades, type FilaCantidadCruda } from "@/lib/inventario-reglas";
+import { leerSaldos } from "@/lib/movimientos-saldo";
 import {
   leerCursorMovimientos,
   leerResumenTienda,
@@ -285,4 +286,19 @@ export async function getPrendasDeMovimientos(ubicacionId: string, filas: readon
       return [id, { productoId: v?.producto?.id ?? "", fotoUrl: fotoPrincipal(v?.producto?.producto_fotos), stockHoy: cantidades ? (cantidades.get(id) ?? SIN_STOCK) : null }];
     })
   );
+}
+
+/** Cuántas quedaron en la tienda al terminar la operación de cada movimiento de la página (ADR-0234, saldo). Lo calcula
+ *  la base desde el ledger único (`fn_movimientos_saldos` → `fn_ledger_puntos`); acá no se resta nada. Null si la base
+ *  todavía no tiene la función (web publicada antes que la migración 20260927173000) o no respondió: la lista sigue sin
+ *  el saldo (principio 9). */
+export async function getSaldosDeMovimientos(ubicacionId: string, filas: readonly Movimiento[]): Promise<Record<string, number> | null> {
+  if (filas.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_movimientos_saldos", { p_ubicacion_id: ubicacionId, p_movimiento_ids: filas.map((f) => f.id) });
+  if (error) {
+    console.error("Saldo de Movimientos:", error.message);
+    return null;
+  }
+  return leerSaldos(data);
 }

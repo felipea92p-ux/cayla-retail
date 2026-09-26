@@ -28,12 +28,15 @@ import { etiquetaDia, type Movimiento, type OperacionMovimiento, type PrendaDeMo
 export function MovimientosLista({
   operaciones,
   prendas,
+  saldos,
   hoyLima,
   enlaceCompras,
   enlaceVentas,
 }: {
   operaciones: OperacionMovimiento[];
   prendas: Record<string, PrendaDeMovimiento>;
+  /** Cuántas quedaron en la tienda después de cada movimiento, por id (ADR-0234, saldo). Null = la base no lo dijo. */
+  saldos: Record<string, number> | null;
   hoyLima: string;
   enlaceCompras: boolean;
   enlaceVentas: boolean;
@@ -76,6 +79,7 @@ export function MovimientosLista({
   const ctx: ContextoFila = {
     enlaceCompras,
     enlaceVentas,
+    saldos,
     volverA: vuelta.toString() ? `${pathname}?${vuelta.toString()}` : pathname,
     onAbrir: abrir,
     onAbrirVenta: (m) => {
@@ -101,7 +105,7 @@ export function MovimientosLista({
           comentario de arriba); esto es solo avisar que no apareció, en vez
           de no decir nada. */}
       {abiertoId && !abierto && (
-        <div className="nota-cayla mb-4 flex items-center justify-between gap-3 text-sm">
+        <div className="nota-cayla mx-4 mt-3 flex items-center justify-between gap-3 text-sm sm:mx-5">
           <span>Ese movimiento no está en el rango o los filtros actuales — prueba ampliándolos.</span>
           <button type="button" onClick={cerrar} className="label-cayla shrink-0 text-[11px] text-taupe underline underline-offset-2 hover:text-rojo">
             Entendido
@@ -109,7 +113,8 @@ export function MovimientosLista({
         </div>
       )}
 
-      <div className="card-cayla px-4 pb-2 sm:px-5">
+      {/* Sin caja propia: comparte la tarjeta con los filtros (la pone la página). */}
+      <div className="px-4 pb-2 sm:px-5">
         {dias.map((dia) => (
           <section key={dia.fecha} aria-label={etiquetaDia(dia.fecha, hoyLima)}>
             <h3 className="flex items-baseline justify-between gap-3 border-b border-sand pb-2 pt-4">
@@ -135,6 +140,7 @@ export function MovimientosLista({
         <MovimientoDetalle
           movimiento={abierto}
           prenda={prendas[abierto.varianteId]}
+          quedan={saldos?.[abierto.id] ?? null}
           onVerVenta={
             enlaceVentas
               ? () => {
