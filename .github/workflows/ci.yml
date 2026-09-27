@@ -904,6 +904,16 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-marca
 
+      # El costo se corrige a mano solo hasta la primera compra (20260927190000, Felipe 2026-09-26): sin compras
+      # (costo declarado) un líder lo corrige y el historial lo anota como 'costo_declarado', no 'costo' (Resumen no
+      # la lee como «alterada»); con compras (costo oficial) ni la API ni un update directo lo pisan; el camino
+      # oficial (recibir_compras, recibir_lote, cerrar_produccion) sigue anotando 'costo'; `fn_variantes_con_costo_oficial`
+      # distingue las dos y `anon` no la ejecuta; sin el disparador el update directo sí pisa (el hueco existía); el
+      # parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:costo-hasta-primera-compra
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:costo-hasta-primera-compra
+
       # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
       # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
       # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no

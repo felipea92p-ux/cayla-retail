@@ -86,6 +86,16 @@ export async function getCostosVariantes(ids?: string[]): Promise<Map<string, nu
   return new Map(Object.entries(data as Record<string, number | string>).map(([id, costo]) => [id, Number(costo)]));
 }
 
+/** De estas variantes, las que ya tienen costo de Compras o del Taller (20260927190000): su costo ya no se corrige a mano.
+ *  `null` si no se pudo preguntar (la migración aún no está en esta base). */
+async function getVariantesConCostoOficial(ids: string[]): Promise<Set<string> | null> {
+  if (ids.length === 0) return new Set();
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_variantes_con_costo_oficial", { p_ids: ids });
+  if (error || !Array.isArray(data)) return null;
+  return new Set(data as string[]);
+}
+
 /** Un cliente sin cookies para usar dentro de la copia guardada, con la sesión de quien la llena. */
 function clienteConToken(token: string) {
   return crearClienteSupabase<Database, "retail">(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, {
@@ -433,6 +443,10 @@ export type VarianteDetalle = {
   precio: number;
   /** null = quien mira no tiene permiso de ver el dinero (20260923193700): la ficha no muestra ni toca el costo. */
   costo: number | null;
+  /** true = ya entró por Compras o por el Taller: su costo es el promedio ponderado y no se corrige a mano. false =
+   *  costo declarado (alta o carga inicial), se puede corregir. null = no se pudo saber (la migración 20260927190000
+   *  aún no está): la ficha lo trata como oficial, que es lo seguro. */
+  costoOficial: boolean | null;
   activo: boolean;
   codigo: string | null;
   codigosBarras: string[];
@@ -513,7 +527,12 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
 
   if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
   if (!data) return null;
-  const [costos, temporadas] = await Promise.all([getCostosVariantes((data.variantes ?? []).map((v) => v.id)), getFichaTemporadas(id)]);
+  const ids = (data.variantes ?? []).map((v) => v.id);
+  const [costos, conCostoOficial, temporadas] = await Promise.all([
+    getCostosVariantes(ids),
+    getVariantesConCostoOficial(ids),
+    getFichaTemporadas(id),
+  ]);
 
   return {
     id: data.id,
@@ -547,6 +566,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
       sku: v.sku ?? "",
       precio: Number(v.precio),
       costo: costos ? (costos.get(v.id) ?? 0) : null,
+      costoOficial: conCostoOficial ? conCostoOficial.has(v.id) : null,
       activo: v.activo,
       codigo: v.codigo,
       codigosBarras: (v.codigos_barras ?? []).map((c) => c.codigo),

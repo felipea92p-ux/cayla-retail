@@ -109,10 +109,10 @@ export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly Cla
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
-  | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
-  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
+  | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
+  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "dinero" | "reportes" | "impuestos" | "cierre";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -224,7 +224,7 @@ export const ARBOL: readonly Nodo[] = [
       // Va PRIMERA. Su ruta es la `raiz` del grupo: el riel resuelve la fila activa por coincidencia exacta y luego por el
       // prefijo más largo, así que en `/produccion/ordenes` sigue marcando Órdenes y no Resumen.
       { id: "produccion.resumenProduccion", modulo: "produccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "verDinero" },
-      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
+      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "ordenes", pajaro: "10 Gallito" },
       { id: "produccion.insumos", modulo: "produccion", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
       // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
       // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
@@ -275,7 +275,7 @@ export const ARBOL: readonly Nodo[] = [
       // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
       // `raiz` reutiliza la de su primera hija, como Abastecimiento.
       {
-        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "cambios", raiz: "/cambios", pajaro: "07 Colibrí",
+        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "posventa", raiz: "/cambios", pajaro: "07 Colibrí",
         hijos: [
           { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
           { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
@@ -289,13 +289,13 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "inventario", etiqueta: "Inventario", estado: "viva", icono: "inventario", raiz: "/inventario", pajaro: "05 Halcón",
     hijos: [
-      { id: "inventario.existencias", modulo: "existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "inventario", pajaro: "05 Halcón" },
+      { id: "inventario.existencias", modulo: "existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "existencias", pajaro: "05 Halcón" },
       { id: "inventario.movimientos", modulo: "movimientos", etiqueta: "Movimientos", estado: "viva", ruta: "/inventario/movimientos", icono: "movimientos", pajaro: "05 Halcón" },
       // El único con insignia hoy: los traslados que esperan a quien mira (rediseño de Traslados, 2026-09-18).
       { id: "inventario.traslados", modulo: "traslados", etiqueta: "Traslados", estado: "viva", ruta: "/inventario/traslados", icono: "traslados", contador: "trasladosPorAtender", pajaro: "05 Halcón" },
       { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
       // Quinta pantalla (ADR-0101): decisión a nivel sede.
-      { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "resumen", pajaro: "13 Águila", exige: "analizar" },
+      { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "analisis", pajaro: "13 Águila", exige: "analizar" },
       // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
       { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras" },
     ],
@@ -350,11 +350,11 @@ export const ARBOL: readonly Nodo[] = [
   // suyo, y Gastos es de quien tenga el módulo (su tienda) o del líder (todas). Vive en todas las ubicaciones: el Taller
   // también paga luz y alquiler. Con el Resumen (F10) las seis hijas están vivas; `/finanzas` lleva al Resumen a quien lo ve.
   {
-    id: "finanzas", etiqueta: "Finanzas", estado: "viva", icono: "gastos", raiz: "/finanzas", pajaro: "11 Garza",
+    id: "finanzas", etiqueta: "Finanzas", estado: "viva", icono: "finanzas", raiz: "/finanzas", pajaro: "11 Garza",
     hijos: [
       // Las 6 hijas del spike (docs/maquetas/finanzas-2026-09/, PLAN-FINANZAS §6); las 11 piezas son pestañas dentro de ellas.
       // Cada fase pasa la suya a «viva» con su ruta, ícono y permiso (ADR-0195 F3–F10).
-      { id: "finanzas.resumen", modulo: "reportes_financieros", etiqueta: "Resumen", estado: "viva", ruta: "/finanzas/resumen", icono: "resumen", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
+      { id: "finanzas.resumen", modulo: "reportes_financieros", etiqueta: "Resumen", estado: "viva", ruta: "/finanzas/resumen", icono: "panorama", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
       { id: "finanzas.gastos", modulo: "gastos", etiqueta: "Gastos", estado: "viva", ruta: "/finanzas/gastos", icono: "gastos", pajaro: "11 Garza", exige: "registrarGastos" },
       { id: "finanzas.dinero", modulo: "cuentas_dinero", etiqueta: "Cuentas y dinero", estado: "viva", ruta: "/finanzas/dinero", icono: "dinero", pajaro: "12 Urraca", exige: "verCuentasDinero" },
       { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Reportes", estado: "viva", ruta: "/finanzas/reportes", icono: "reportes", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
