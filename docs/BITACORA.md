@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Frescura del piso: decisiones del bloque 3 y temporadas — ADR-0208 y ADR-0246)
+Rondas de preguntas con Felipe para destrabar el bloque 3, más dos investigaciones con fuentes verificadas sobre cómo manejan las temporadas Zara, H&M, Mango, Ralph Lauren, LVMH, Hermès, Chanel y las marcas del hemisferio sur (`docs/investigacion/2026-09-26-temporadas-de-moda.md`). Decidido: la caja pregunta «La traje del almacén» o «Ya estaba colgada»; «Es para una clienta» al bajar; retiro con motivo y «retirada de la venta»; cifras desde el primer día con su nivel de confianza; semáforo contra la propia sede con CAYLA de referencia; indicador para el líder y las Terminal de ventas; «Ajustar stock» a módulo propio; y la temporada como atributo (9 valores, fechas de SENAMHI, sin año en el nombre). Nada construido todavía: sigue el paso 3a.
+Felipe se lleva:
+1. **Atributos = lo que la prenda ES; etiquetas = cómo la VENDEMOS.** La temporada es de la prenda y admite un solo valor, por eso va con el tejido y el patrón, no con «Oferta» ni «Día de la Madre».
+2. **El año existe aunque no se escriba.** Sale de la fecha de llegada a la sede; sin él, la blusa que sobró del verano pasado se ve igual que la nueva.
+3. **Con pocos datos, mostrar igual pero decir cuántos.** La cifra se construye de a poco; lo que mueve plata (rebaja, traslado) espera a que sea «Sólido».
+
 ## 2026-09-26 (Existencias: pedir para una clienta, «tallas» y pruebas del panel — tareas #9, #10 y #11)
 «Dónde más hay» ahora deja pedir la talla a otra tienda para una clienta, con el mismo pedido de Apartados. La pantalla dice «tallas» en todas partes. Los permisos del detalle, las marcas y la bajada con borrador quedaron con prueba, y así aparecieron dos defectos que ya están arreglados.
 Por qué así: la #9 NO creó una tabla de solicitudes (lo que proponía el análisis), porque ADR-0242 D-7 ya había decidido una sola tabla de pedidos. Qué se rompería sin esto: la vendedora seguiría pidiendo por WhatsApp sin rastro, y un `&&` borrado podía volver a abrir «Reponer» a quien no tiene el módulo.
