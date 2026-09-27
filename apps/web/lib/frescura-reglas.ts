@@ -105,6 +105,10 @@ export type Curva = {
   supervivencia: number[];
   /** Ventas esperadas por unidad hasta cada instante: Σ vendidas ÷ en riesgo. Es lo que usa la rapidez. */
   riesgoAcumulado: number[];
+  /** Unidades vendidas en cada instante de `tiempos` (con su peso). */
+  vendidasEn: number[];
+  /** Unidades en riesgo (todavía colgadas) justo antes de cada instante de `tiempos`. */
+  enRiesgo: number[];
   /** La observación más larga (vendida o no). Un corte que la curva no alcanza queda después de esto. */
   tMax: number;
   vendidas: number;
@@ -126,7 +130,8 @@ export type Vara = {
 export type RelojNovedad = {
   segundos: number;
   /** «Al menos N días»: la primera exhibición es anterior a la ventana, o su edad es desconocida (carga inicial, saldo,
-   *  ajuste, o la primera bajada fue tardía). Puede subir de tramo; nunca es «Nueva». */
+   *  ajuste: ADR-0248, decisión 3). Puede subir de tramo; nunca es «Nueva». Una bajada tardía NO la pone: sus unidades
+   *  salen de la vara, pero la prenda sigue pudiendo ser «Nueva» (revisión 3). */
   alMenos: boolean;
 };
 
@@ -388,7 +393,16 @@ export function observacionesDe(eventos: readonly EventoPiso[], ahora: string): 
 export function kaplanMeier(observaciones: readonly Observacion[]): Curva {
   const obs = observaciones.filter((o) => o.peso > 0 && Number.isFinite(o.segundos)).sort((a, b) => a.segundos - b.segundos);
   const unidades = obs.reduce((s, o) => s + o.peso, 0);
-  const curva: Curva = { tiempos: [], supervivencia: [], riesgoAcumulado: [], tMax: obs.length ? obs[obs.length - 1].segundos : 0, vendidas: 0, unidades };
+  const curva: Curva = {
+    tiempos: [],
+    supervivencia: [],
+    riesgoAcumulado: [],
+    vendidasEn: [],
+    enRiesgo: [],
+    tMax: obs.length ? obs[obs.length - 1].segundos : 0,
+    vendidas: 0,
+    unidades,
+  };
   let enRiesgo = unidades;
   let s = 1;
   let h = 0;
@@ -407,6 +421,8 @@ export function kaplanMeier(observaciones: readonly Observacion[]): Curva {
       curva.tiempos.push(t);
       curva.supervivencia.push(s);
       curva.riesgoAcumulado.push(h);
+      curva.vendidasEn.push(vendidas);
+      curva.enRiesgo.push(enRiesgo);
       curva.vendidas += vendidas;
     }
     enRiesgo -= salen;
@@ -414,8 +430,11 @@ export function kaplanMeier(observaciones: readonly Observacion[]): Curva {
   return curva;
 }
 
+/** Lo que la rapidez lee de una curva: cuándo se vendió y el riesgo acumulado hasta ahí. */
+export type RiesgoCurva = Pick<Curva, "tiempos" | "riesgoAcumulado">;
+
 /** El último índice de `tiempos` que es ≤ `segundos`, o −1. */
-function indiceHasta(curva: Curva, segundos: number): number {
+function indiceHasta(curva: Pick<Curva, "tiempos">, segundos: number): number {
   let lo = 0;
   let hi = curva.tiempos.length - 1;
   let r = -1;
@@ -436,7 +455,7 @@ export function supervivenciaEn(curva: Curva, segundos: number): number {
 }
 
 /** Ventas esperadas por unidad hasta `segundos` colgada (Nelson-Aalen). */
-export function riesgoAcumuladoEn(curva: Curva, segundos: number): number {
+export function riesgoAcumuladoEn(curva: RiesgoCurva, segundos: number): number {
   const i = indiceHasta(curva, segundos);
   return i < 0 ? 0 : curva.riesgoAcumulado[i];
 }
@@ -493,11 +512,16 @@ export function varaPorVentanas(unidadesEn: (dias: number) => readonly Observaci
 }
 
 /**
- * El tramo de una prenda con `segundos` en el piso, por los cortes de su categoría en su sede. Un corte que la curva no
- * alcanza está MÁS ALLÁ de su observación más larga (`tMax`): si la prenda está antes de eso, igual se sabe que no lo
- * pasó. Null: la prenda ya pasó todo lo que la curva vio y no hay corte con qué seguir («aún sin referencia»).
+ * El tramo de una prenda con `segundos` en el piso, por los cortes de su categoría en su sede. Null = «aún sin
+ * referencia» (la pantalla muestra el % vendido a N días, ADR-0208 decisión 6):
+ *   · sin P50 (su categoría no vendió ni la mitad): nadie tiene tramo. Sin esta regla, toda prenda con edad conocida
+ *     salía «Nueva» (su propio reloj está en la curva, así que casi siempre queda antes de `tMax`), aunque llevara 60
+ *     días sin vender una (revisión 3).
+ *   · con P50 pero sin P75 o P90: un corte que la curva no alcanza está MÁS ALLÁ de su observación más larga (`tMax`):
+ *     si la prenda está antes de eso, igual se sabe que no lo pasó; si ya pasó todo lo que la curva vio, null.
  */
 export function tramoDe(segundos: number, c: Cortes, tMax: number): Tramo | null {
+  if (c.p50 === null) return null;
   const pasos: [Tramo, number | null][] = [
     ["nueva", c.p50],
     ["vigente", c.p75],
@@ -522,16 +546,18 @@ export function tramoDe(segundos: number, c: Cortes, tMax: number): Tramo | null
  * desde su primera exhibición. Agotada o guardada en el almacén no corre; repuesta sigue desde donde iba (nunca vuelve a
  * «Nueva», ADR-0208 decisión 9). Se mide en tiempo continuo, no por días calendario (plan 3c, corrección 3).
  *
- * `alMenos` cuando no se sabe desde cuándo está: la primera exhibición es anterior a la ventana (`desde`), o lo primero
- * que entró al piso tiene edad desconocida (saldo, carga inicial, ajuste) o fue una bajada tardía (ya estaba colgada).
- * Los eventos van SIN quitar las tardías: el reloj mide lo que el piso registró.
+ * `alMenos` cuando no se sabe desde cuándo está: la primera exhibición del modelo+color es anterior a la ventana
+ * (`desde`), o lo primero que entró al piso tiene edad desconocida (saldo, carga inicial, ajuste: ADR-0248, decisión 3).
+ * Una bajada tardía NO cuenta como edad desconocida: sus unidades salen de la vara (`excluirTardias`), pero la prenda sigue
+ * pudiendo ser «Nueva». Antes del 3b una tardía también es «la clienta pidió otra talla y se la trajeron» o el fardo
+ * nuevo que se vende a los 3 minutos: marcarla «al menos» dejaba sin «Nueva» para siempre justo a lo que mejor se vende
+ * (revisión 3). Los eventos van SIN quitar las tardías: el reloj mide lo que el piso registró.
  */
 export function relojNovedad(p: {
   eventosPorTalla: readonly (readonly EventoPiso[])[];
   primeraExhibicion: string | null;
   desde: string;
   ahora: string;
-  oidsTardios?: ReadonlySet<string>;
 }): RelojNovedad {
   // La hora de cada evento se lee UNA vez (ordenar comparando textos de fecha la leía en cada comparación).
   const todos = p.eventosPorTalla
@@ -557,18 +583,50 @@ export function relojNovedad(p: {
   if (ms(p.primeraExhibicion) < desdeMs) return { segundos, alMenos: true };
   const primera = entradas[0];
   const deLaPrimera = primera ? entradas.filter((x) => x.t === primera.t).map((x) => x.e) : [];
-  const desconocida = deLaPrimera.some((e) => e.edadDesconocida === true || (e.oid !== undefined && p.oidsTardios?.has(e.oid) === true));
+  const desconocida = deLaPrimera.some((e) => e.edadDesconocida === true);
   return { segundos, alMenos: desconocida };
+}
+
+/**
+ * La curva de la categoría SIN las unidades de una prenda: contra qué se mide su rapidez. Con la prenda adentro, la
+ * rapidez se compara contra sí misma: sumar el riesgo acumulado de cada unidad en su tiempo de salida da exactamente
+ * lo vendido (Nelson-Aalen), así que la única prenda de su categoría tenía índice 100 siempre y nunca quedaba «quieta»,
+ * aunque fuera Crítica (revisión 3). `curva` es la de la categoría CON la prenda (como la arma la vara) y `propias`,
+ * las unidades de la prenda que están en ella; se resta instante por instante, sin volver a ordenar la categoría.
+ */
+export function curvaSin(curva: Curva, propias: readonly Observacion[]): RiesgoCurva {
+  const mias = propias.filter((o) => o.peso > 0 && Number.isFinite(o.segundos)).sort((a, b) => a.segundos - b.segundos);
+  let misEnRiesgo = mias.reduce((s, o) => s + o.peso, 0);
+  const r: RiesgoCurva = { tiempos: [], riesgoAcumulado: [] };
+  let h = 0;
+  let j = 0;
+  for (let i = 0; i < curva.tiempos.length; i++) {
+    const t = curva.tiempos[i];
+    // Las unidades propias que salieron antes de este instante ya no están en riesgo.
+    while (j < mias.length && mias[j].segundos < t) misEnRiesgo -= mias[j++].peso;
+    let misVendidas = 0;
+    for (let k = j; k < mias.length && mias[k].segundos === t; k++) if (mias[k].vendida) misVendidas += mias[k].peso;
+    const vendidas = curva.vendidasEn[i] - misVendidas;
+    const enRiesgo = curva.enRiesgo[i] - misEnRiesgo;
+    if (vendidas > EPS && enRiesgo > EPS) {
+      h += vendidas / enRiesgo;
+      r.tiempos.push(t);
+      r.riesgoAcumulado.push(h);
+    }
+  }
+  return r;
 }
 
 /**
  * La rapidez de una prenda contra su categoría A LA MISMA EDAD: cuántas vendió contra cuántas habría vendido una prenda
  * típica de su categoría con los mismos segundos colgada (Σ del riesgo acumulado de la curva en los segundos de cada una
  * de sus unidades). 100 = igual; 200 = el doble de rápido. Solo unidades con edad conocida (son las de la curva).
- * Null («sin dato») con menos de `RAPIDEZ_MIN_EVIDENCIA` entre vendidas y esperadas: una prenda recién colgada que no
- * vendió todavía no es «lenta», es «sin dato» (plan 3c, corrección 4).
+ * `curva` es la de su categoría SIN ella (`curvaSin`): con ella adentro se compararía contra sí misma.
+ * Null («sin dato») con menos de `RAPIDEZ_MIN_EVIDENCIA` entre vendidas y esperadas, o si el resto de su categoría no
+ * vendió nada a esas edades (no hay contra qué medirla): una prenda recién colgada que no vendió todavía no es «lenta»,
+ * es «sin dato» (plan 3c, corrección 4), y la única de su categoría tampoco es «pilar».
  */
-export function rapidez(observaciones: readonly Observacion[], curva: Curva): Rapidez | null {
+export function rapidez(observaciones: readonly Observacion[], curva: RiesgoCurva): Rapidez | null {
   let vendidas = 0;
   let esperadas = 0;
   for (const o of observaciones) {
@@ -576,8 +634,7 @@ export function rapidez(observaciones: readonly Observacion[], curva: Curva): Ra
     if (o.vendida) vendidas += o.peso;
     esperadas += o.peso * riesgoAcumuladoEn(curva, o.segundos);
   }
-  // Si la prenda vendió, esa venta está en la curva de su categoría (sus unidades son parte de ella), así que el riesgo
-  // acumulado en ese instante ya es > 0: `esperadas` solo es 0 cuando tampoco vendió.
+  // Sin esperadas no hay contra qué medirla: el resto de su categoría no vendió nada a esas edades.
   if (vendidas + esperadas < RAPIDEZ_MIN_EVIDENCIA || esperadas <= EPS) return null;
   return { indice: Math.round((vendidas / esperadas) * 100), vendidas, esperadas: Math.round(esperadas * 100) / 100 };
 }
@@ -595,6 +652,8 @@ export function esPilar(r: Rapidez | null): boolean {
  * «Por decidir»: la prenda está en el piso y es (Envejecida o Crítica) Y más lenta que su categoría, o su temporada ya
  * pasó. Un pilar de venta nunca (ADR-0208, plan 3c: «vieja y lenta», no solo «vieja»). Sin dato de rapidez no es
  * «lenta»: una prenda de la carga inicial que se vende bien no va al perchero por falta de dato.
+ * PENDIENTE DE FELIPE: si un pilar de temporada pasada cuenta en «Por decidir» (hoy no; igual recibe «retirar», ver
+ * `sugerenciasDe`). El plan dice las dos cosas: «o de temporada pasada» y «un pilar nunca va al perchero».
  */
 export function estaQuieta(p: { tramo: Tramo | null; temporadaPasada: boolean; rapidez: Rapidez | null; pisoHoy: number }): boolean {
   if (p.pisoHoy <= 0 || esPilar(p.rapidez)) return false;
@@ -610,8 +669,9 @@ export function puedeTrasladar(p: { nivel: NivelConfianza | null; almacenHoy: nu
 
 /**
  * Lo que se sugiere, en el orden de la escalera de ADR-0208 (decisión 11) sin su último escalón: primero mirar, después
- * cambiarla de lugar 7 días, después trasladarla; con la temporada pasada, además retirarla (ADR-0246, decisión 10). La
- * rebaja no se sugiere nunca aquí.
+ * cambiarla de lugar 7 días, después trasladarla; con la temporada pasada y algo en el piso, además retirarla (ADR-0246,
+ * decisión 10: «al terminar su estación, Frescura avisa y sugiere»), AUNQUE sea un pilar de venta: el bikini que se vende
+ * bien hasta el 20 de marzo es justo el ejemplo que motivó el aviso (revisión 3). La rebaja no se sugiere nunca aquí.
  */
 export function sugerenciasDe(p: {
   quieta: boolean;
@@ -630,8 +690,8 @@ export function sugerenciasDe(p: {
   if (p.quieta) {
     s.push("cambiar_lugar");
     if (puedeTrasladar(p)) s.push("trasladar");
-    if (p.temporadaPasada) s.push("retirar");
   }
+  if (p.temporadaPasada && p.pisoHoy > 0) s.push("retirar");
   return s;
 }
 
@@ -793,7 +853,6 @@ function porVentana<T>(f: (dias: number) => T): (dias: number) => T {
 export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; observaciones: ObservacionesSede } {
   const tardiasPorOid = new Map<string, number>();
   for (const t of l.tardias) tardiasPorOid.set(t.oid, (tardiasPorOid.get(t.oid) ?? 0) + t.unidadesTardias);
-  const oidsTardios = new Set(tardiasPorOid.keys());
   const dudosas = new Set(l.dudosas);
   const desdeMs = ms(l.desde);
   const ahoraMs = ms(l.ahora);
@@ -858,15 +917,10 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       primeraExhibicion: primeras[0] ?? null,
       desde: l.desde,
       ahora: l.ahora,
-      oidsTardios,
     });
-    const r =
-      esClasico || dudosa
-        ? null
-        : rapidez(
-            tallas.flatMap((t) => unidadesDeTalla.get(t.varianteId)?.(vara.ventanaDias) ?? []),
-            vara.curva,
-          );
+    // La rapidez se mide contra el RESTO de su categoría, con las unidades de la misma ventana que la vara.
+    const propias = esClasico || dudosa ? [] : tallas.flatMap((t) => unidadesDeTalla.get(t.varianteId)?.(vara.ventanaDias) ?? []);
+    const r = esClasico || dudosa ? null : rapidez(propias, curvaSin(vara.curva, propias));
     const estado = estadoFrescura({
       dudosa,
       esClasico,

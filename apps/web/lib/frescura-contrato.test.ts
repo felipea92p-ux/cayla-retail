@@ -227,10 +227,13 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     expect(p.estado.tipo).toBe("sin_edad_conocida");
   });
 
-  it("la tardía se reconoce por su oid: su prenda dice «al menos» (ya estaba colgada) y no es Nueva", async () => {
-    const p = prendaCon(await laSede(), "ZZ-FX-TARDIA-M");
-    expect(p.reloj.alMenos).toBe(true);
-    expect(p.estado.tipo).not.toBe("semaforo");
+  it("la tardía se reconoce por su oid y sale de la vara, pero su prenda NO pasa a «edad desconocida» (ADR-0248): sigue Nueva", async () => {
+    const sede = await laSede();
+    const p = prendaCon(sede, "ZZ-FX-TARDIA-M");
+    expect(p.reloj.alMenos).toBe(false);
+    expect(p.estado).toMatchObject({ tipo: "semaforo", tramo: "nueva", alMenos: false });
+    // Su venta de los 3 minutos no está en la vara: las blusas vendieron 24 (la vara) + 1 (el retiro), no 26.
+    expect(sede.categorias.find((c) => c.categoriaNombre === "Camisas y Blusas")!.vendidas).toBe(25);
   });
 
   it("la dudosa no se juzga; la chompa de invierno avisa «Temporada pasada»; el clásico no; la sin temporada lleva su chip", async () => {
@@ -239,7 +242,11 @@ describe("la salida real por armarFrescuraLider: lo que la pantalla dirá de cad
     const chompa = prendaCon(sede, "ZZ-FX-CHOMPA-S");
     expect(chompa.tallas).toHaveLength(2);
     expect(chompa.temporada).toBe("invierno");
-    expect(chompa.estado.temporadaPasada).toBe(true);
+    // Su categoría vendió 1 de 6 (sin P50): «aún sin referencia», no «Nueva»; y como su temporada pasó, se sugiere retirarla.
+    expect(chompa.estado).toMatchObject({ tipo: "sin_vara", temporadaPasada: true, quieta: true });
+    expect(chompa.estado.sugerencias).toContain("retirar");
+    // La única otra prenda de Chompas que entra a la vara no vendió: no hay contra qué medir su rapidez.
+    expect(chompa.rapidez).toBeNull();
     const clasico = prendaCon(sede, "ZZ-FX-CLASICO-M");
     expect(clasico.estado).toMatchObject({ tipo: "clasico", temporadaPasada: false, sinTemporada: false });
     expect(prendaCon(sede, "ZZ-FX-SINTEMP-M").estado).toMatchObject({ sinTemporada: true, temporadaPasada: false });

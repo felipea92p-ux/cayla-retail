@@ -1558,17 +1558,19 @@ llegada, bajada de la carga inicial: la carga por la puerta real llega con 6).
   después de su observación más larga, y toda prenda antes de ese punto tiene tramo: en la salida real, la chompa de
   invierno lleva 39 días colgada y sale «Nueva» (su categoría vendió 1 de 6, `pocos_datos`). Es honesto (menos de la
   mitad se vendió en 39 días), pero en la pantalla se lee como «recién llegada»; con 7 ventas en producción va a ser lo
-  común al principio. La maqueta tiene que decidir si «Nueva» con `pocos_datos` se dice distinto.
+  común al principio. La maqueta tiene que decidir si «Nueva» con `pocos_datos` se dice distinto. *Corregido en la
+  revisión 3 (abajo): sin P50 no hay tramo, «aún sin referencia», como dice la decisión 6.*
 - **La rapidez con pocos datos se compara contra sí misma.** La misma chompa tiene índice 100 porque es casi toda la curva
   de su categoría: queda como «pilar», no va a «por decidir» aunque su temporada pasó, y el aviso «Temporada pasada» sale
-  sin sugerencias.
+  sin sugerencias. *Corregido en la revisión 3: la rapidez se mide contra el resto de su categoría, y la temporada
+  pasada sugiere «retirar» aunque sea un pilar.*
 - **Lo que solo está en el almacén** viaja sin eventos y sale con estado «Nueva» y 0 segundos (no pesa en las cifras del
   piso). La pantalla la filtra o la nombra aparte; el tipo cerrado no tiene un estado «nunca colgada».
 - Los clásicos solo traen «fuera de su estación» y «guardar hasta su estación»: todavía no se comparan contra su propia
   historia.
 - `en_estacion_ahora` es «hoy cae en alguna aparición de su temporada», no en la de su última llegada. Una variante
   inactiva con stock, sin ninguna activa en su modelo+color, sale sin temporada (`fn_temporada_efectiva` solo mira
-  activas).
+  activas). *Lo de la variante inactiva, corregido en la revisión 3 (`fn_temporada_efectiva_nucleo`).*
 - Hoy un líder opera todas las sedes, así que «líder de otra sede» no se puede armar con datos: la prueba reemplaza
   `fn_puede_operar_ubicacion` dentro de su transacción para vigilar que el candado la pregunte.
 
@@ -1579,3 +1581,69 @@ pocos datos», «nunca colgada» y la temporada pasada de un pilar); el módulo 
 (`persona_id` solo para el líder); el menú (directo en Inventario, 6.ª fila, con `EXCEPCIONES_TOPE_HIJAS`); la ruta
 `/inventario/frescura` con `exigirModulo("frescura")`, `loading.tsx` con `<EsperaPantalla/>`; y verificar en TRU como
 líder, en escritorio y a 375 px.
+
+### Revisión 3 del paso 3 (2026-09-27): lo que se corrigió y lo que queda para Felipe
+
+Tres revisores (SQL, reglas, pruebas) encontraron 16 problemas, todos confirmados ejecutando. Se arreglaron con una
+prueba que falla con el código de antes (o con el cambio a propósito que la dejaba pasar) y pasa con el de ahora. Nada
+de esto está en producción: la migración sigue sin pegar y se corrigió en su lugar (sus md5 cambiaron en la guarda).
+
+**Qué cambió en la base (`20260928120300_frescura_lectura.sql`):**
+- `fn_confianza_registro` ya no cuenta las bajadas de productos `es_prueba` (fn_frescura_sede ya los sacaba). Una
+  bajada de práctica tardía ponía la confianza del mes en 0 (T10b).
+- **`primera_exhibicion` es del modelo+color, no de la talla** (cambia lo que significa el campo, no su forma): la
+  primera vez que CUALQUIER talla de ese modelo+color entró al piso de la tienda, esté o no en la lista. Antes, si la
+  talla S se colgó hace 149 días y se agotó antes de la ventana, y la M se colgó hace 10, la S no llegaba (sin stock ni
+  movimiento en la ventana) y la prenda volvía a ser «Nueva»; repuesta en la MISMA talla, no. La novedad es del
+  modelo+color (decisiones 4 y 9), así que el dato también (T2d).
+- **La temporada incluye lo descontinuado.** `fn_temporada_efectiva` solo mira variantes activas (es la lista de lo que
+  se puede completar); una talla desactivada con stock perdía su temporada, nunca avisaba «Temporada pasada» y pedía
+  completar una temporada que ya tenía. La regla (color → producto → categoría) pasó a `fn_temporada_efectiva_nucleo(p,
+  p_con_inactivas)`, y `fn_temporada_efectiva(p)` la envuelve con `false`: misma firma, mismas filas (la prueba lo
+  compara en todo el catálogo), mismos permisos, y la regla sigue en UNA función (ADR-0246). Frescura llama al núcleo con
+  `true` (T4d). La guarda exige que `fn_temporada_efectiva` tenga su cuerpo de `20260928100000` (1cc652ba…, el mismo que
+  producción el 2026-09-27) o el nuevo.
+- Costo con la carga sintética: 754 ms a 120 días (antes 733), 233 ms a 30; la confianza, 128-140 ms.
+
+**Qué cambió en la web (`lib/frescura-reglas.ts`):**
+- **Una bajada tardía ya no deja a la prenda sin «Nueva».** Sus unidades siguen saliendo de la vara (`excluirTardias`),
+  pero la tardía no es «edad desconocida»: ADR-0248 (decisión 3) enumera qué lo es (saldo inicial, entrada al piso que no
+  es interna ni llegada, bajada de la carga inicial) y la tardía no está. Marcarla «al menos» dejaba sin «Nueva» para
+  siempre al fardo nuevo que se vende a los 3 minutos y, antes del 3b, a lo traído a pedido; en TRU, la única tardía es
+  justo la primera bajada de su modelo+color. `relojNovedad` ya no recibe las tardías.
+- **Sin P50 no hay tramo** («aún sin referencia», con el % vendido que ya trae `VaraCategoria.vendidoAlFinal`, como dice la
+  decisión 6). Antes toda prenda con edad conocida de una categoría que no vendió la mitad salía «Nueva», aunque llevara
+  60 días sin vender una, y con nivel «Sólido». La regla «antes de `tMax`» queda solo para P75 y P90 cuando hay P50.
+- **La rapidez se mide contra el RESTO de su categoría** (`curvaSin`, restando instante por instante, sin reordenar).
+  Con la prenda adentro, la identidad de Nelson-Aalen daba 100 exacto a la única prenda de su categoría: «pilar» siempre,
+  nunca «quieta», aunque fuera Crítica. Si el resto no vendió a esas edades, la rapidez es «sin dato» → «revisa sus
+  ventas», nunca «pilar».
+- **La temporada pasada sugiere «retirar» aunque la prenda sea un pilar** (con algo en el piso): ADR-0246, decisión 10,
+  y el ejemplo del bikini que se vende bien hasta el 20 de marzo.
+- Pruebas nuevas que vigilan lo que ningún caso vigilaba: la repuesta a través del borde de la ventana (T2b y su gemela en
+  la web), piso + almacén + cuarentena (T2c), la última llegada en una aparición ANTERIOR de su temporada (T4c), el mes de
+  Lima con la sesión en UTC como producción (el preludio de la prueba ahora corre en UTC; T10c y la lectura del texto en
+  T0), las dos tallas con llegadas de estaciones distintas, la talla dudosa en una prenda de dos tallas, la ventana de la
+  rapidez igual a la de la vara, y una respuesta sin `separa_piso` que nunca se lee como «el Taller».
+- Cifras: `frescura_lectura.mjs` 132 (antes 109); `frescura-reglas.test.ts` 80 y `frescura-contrato.test.ts` 18; vitest
+  completo 205 archivos, 78.396 pruebas; vecinas sin cambios (`temporadas` 25, `frescura_bajadas` 166, `roles_por_modulo`
+  70, `roles_cobertura_modulos` 31, `una_sola_firma` 2, `fn_ledger_fuente_unica` 48, `bajada_al_piso` 51,
+  `alta_con_stock_inicial` 28, `actor_firma_las_operaciones` 30, `reposicion_piso_cerrada` 10, `mover_interno_marca` 12,
+  `fn_resumen_comparacion` 25). Mutación: 9 cambios a propósito en el SQL y 11 en la web; todos hacen fallar la prueba (y el código de antes falla 3 casos SQL y 11 de la web).
+  El archivo de la web (`__fixtures__/frescura-sede.json`) se rehízo con la salida nueva.
+
+**Decisiones pendientes para Felipe** (no se tocaron: son reglas del negocio, no del código):
+1. **¿Un traslado entre tiendas es «llegada» para la temporada?** Hoy `fin_estacion` sale de la última llegada a la
+   TIENDA, y la recepción de un traslado cuenta (el predicado es el de Análisis, donde «entradas» es lo que recibió la
+   sede). La chompa que llegó del proveedor en julio de 2025 y se trasladó en abril de 2026 queda con el fin del invierno
+   2026: la tienda que la recibe no ve «Temporada pasada» hasta setiembre, justo cuando se trasladó para liquidarla.
+   Recomendación del revisor: para la temporada, la última llegada a CAYLA (lote, producción o carga inicial, en
+   cualquier tienda), con un segundo predicado de nombre propio; `fn_es_llegada` no se toca.
+2. **¿Un pilar de venta de temporada pasada entra en «Por decidir»?** Hoy no (un pilar nunca va al perchero), pero ya
+   recibe «retirar». El plan dice las dos cosas.
+3. **«Colgada 100 días sin vender en una categoría que rota en días»**: hoy dice «revisa sus ventas» (en la ventana de 30
+   días de la vara su edad es desconocida, así que su rapidez es «sin dato») y no «por decidir». Lo decide la ventana de
+   la vara y no estaba escrito.
+4. **Una prenda sin tramo (categoría sin P50) no recibe sugerencias** aunque lleve 60 días sin vender una: la maqueta
+   del paso 4 decide cómo se dice «aún sin referencia» y si esa prenda merece un «revisa sus ventas».
+

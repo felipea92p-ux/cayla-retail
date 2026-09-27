@@ -1,6 +1,7 @@
 -- ============================================================================
 -- 20260928120300_frescura_lectura.sql — CAYLA V2 · ADR-0208 «Frescura del piso» · paso 3 de Frescura 3c
--- («Lectura y reglas», la parte SQL). Tres funciones nuevas de SOLO LECTURA; no crea tablas ni módulos.
+-- («Lectura y reglas», la parte SQL). Cuatro funciones nuevas de SOLO LECTURA (y `fn_temporada_efectiva` pasa a envolver
+-- una de ellas, con las mismas filas); no crea tablas ni módulos.
 --
 -- EL PROBLEMA PRIMERO. Frescura tiene que decir, por cada prenda colgada en una tienda, cuántos días lleva a la vista y
 -- si es más lenta que las de su categoría en esa tienda (la «vara», Kaplan-Meier en la web), y avisar cuando su
@@ -42,10 +43,15 @@
 --      · tardias: las bajadas del núcleo (`fn_bajadas_del_piso_nucleo`, paso 2) cerradas, ni «dudosa» ni «corregida», con
 --        alguna unidad tardía; la web resta esas unidades antes de armar la vara. dudosas: prendas con alguna bajada
 --        «dudosa» (el stock y el libro no cuadran).
---      · primera_exhibicion: la primera vez que la prenda entró al piso de ESTA tienda, en toda su historia (no solo la
---        ventana). ultima_llegada: la última llegada (`fn_es_llegada`) a la tienda, en toda su historia. Por talla: la web
---        junta el modelo+color.
---      · temporada y temporada_origen: `fn_temporada_efectiva` (color → producto → categoría; ADR-0246). es_clasico:
+--      · primera_exhibicion: la primera vez que el MODELO+COLOR (cualquiera de sus tallas, esté o no en la lista) entró al
+--        piso de ESTA tienda, en toda su historia (no solo la ventana): la unidad de la novedad es el modelo+color
+--        (ADR-0208, decisiones 4 y 9). Por talla habría dejado fuera la talla agotada antes de la ventana (no está en la
+--        lista) y la prenda repuesta en OTRA talla habría vuelto a ser «Nueva» (revisión 3, caso X9). Todas las tallas
+--        de un modelo+color traen el mismo valor. ultima_llegada: la última llegada (`fn_es_llegada`) de esa talla a la
+--        tienda, en toda su historia. La web junta el modelo+color.
+--      · temporada y temporada_origen: `fn_temporada_efectiva_nucleo(null, true)` (color → producto → categoría;
+--        ADR-0246), que incluye las variantes INACTIVAS: una talla descontinuada que sigue colgada conserva su
+--        temporada (con `fn_temporada_efectiva`, que solo mira activas, perdía la temporada y el aviso). es_clasico:
 --        `fn_temporadas`. fin_estacion: el fin de la aparición de su temporada que corresponde a su ÚLTIMA llegada
 --        (`fn_ocurrencia_temporada`; decidido el 2026-09-27: la última llegada, no la cohorte más vieja). Si fin_estacion
 --        ya pasó y no es clásico, la web dice «Temporada pasada». en_estacion_ahora: si HOY cae dentro de su estación
@@ -57,11 +63,18 @@
 --      Lima (el actual y los anteriores; de 1 a 3, porque el núcleo lee hasta 120 días), las bajadas del núcleo que
 --      cuentan (filas), sus unidades (Σ cantidad_efectiva), sus unidades tardías, confianza = 1 − tardías ÷ unidades
 --      (nula sin unidades) y el nivel por filas: 'pocos_datos' 1-9, 'aceptable' 10-19, 'solido' 20 o más (nulo con 0).
---      Una fila por tienda y mes aunque no haya bajadas. Fuera: las no cerradas, «dudosa», «corregida», las de la carga
+--      Una fila por tienda y mes aunque no haya bajadas. Fuera: las no cerradas, «dudosa», «corregida», las de productos
+--      `es_prueba` (como en fn_frescura_sede: una bajada de práctica no es el hábito del equipo), las de la carga
 --      inicial (no dicen nada del hábito del equipo; en TRU eran 95 de 199 unidades) y las de hace menos de 2W (20
 --      minutos): una fila cerrada todavía puede cambiar hasta 2W después de la bajada (ADR-0208, T33), y la cifra no
 --      debe moverse después de mostrarse. SIN persona_id: el indicador es del equipo, nunca de una persona. Candado:
 --      `fn_es_lider()`; con una tienda, además `fn_puede_operar_ubicacion`. El Taller no sale (no tiene piso).
+--   4. `retail.fn_temporada_efectiva_nucleo(p_producto_id, p_con_inactivas)`: la regla de la temporada efectiva de
+--      ADR-0246 (color → producto → categoría), que vivía dentro de `fn_temporada_efectiva`, con la opción de incluir
+--      las variantes inactivas. `fn_temporada_efectiva(p)` pasa a envolverla con `false`: misma firma, mismas filas
+--      (la prueba lo compara en todo el catálogo), y la regla sigue en UNA función. Sin EXECUTE para nadie de afuera.
+--      Si alguien vuelve a pegar 20260928100000, `fn_temporada_efectiva` vuelve a su cuerpo original (mismas filas) y
+--      Frescura no se entera: llama al núcleo.
 --
 -- CÓMO SE ARMA (lo aprendido en el paso 2): ningún paso cruza dos conjuntos CALCULADOS entre sí. Postgres no sabe
 -- cuántas filas devuelve una función y, con una estimación de 1 fila, cruza fila por fila. Aquí lo calculado se junta
@@ -75,6 +88,9 @@
 --   · fn_frescura_sede a 120 días: 733 ms (722-757). De eso, el núcleo de bajadas ~330 ms y el libro ~180 ms; el jsonb
 --     sale de 3,9 MB (2.016 prendas, 30.002 eventos) y viaja solo entre la base y el servidor. A 30 días: 205 ms.
 --   · fn_confianza_registro de una tienda (2 meses): 126 ms; de todas: 127 ms.
+--   · Tras la revisión 3 (primera exhibición por modelo+color, temporada con lo inactivo, sin productos de prueba en el
+--     indicador), la misma carga: fn_frescura_sede 754 ms (751-799) a 120 días y 233 ms a 30; fn_confianza_registro
+--     128 ms de una tienda y 140 ms de todas.
 -- EN PRODUCCIÓN (ensayo de solo lectura del 2026-09-27: este cuerpo como un `select` sobre Tienda TRU, sin crear nada):
 -- 89 prendas (45 en el piso, 50 con almacén; 44 modelo+color); 21 prendas con edad desconocida, todas en el piso: 107 de
 -- las 211 unidades que entraron al piso (95 de las 15 bajadas de la carga inicial, marca 6, y 12 de los ajustes
@@ -83,9 +99,10 @@
 -- setiembre: 25 bajadas, 104 unidades, 1 tardía (0,9904, «solido»); con la carga inicial habrían sido 40 y 199.
 --
 -- LA GUARDA. Pide lo que usa (el libro, el núcleo del paso 2 con `es_carga_inicial`, las funciones de temporadas de
--- ADR-0246) y, si alguna de las tres funciones de este archivo ya existe con otro cuerpo, aborta sin tocar nada: alguien
+-- ADR-0246) y, si alguna de las cuatro funciones de este archivo ya existe con otro cuerpo, aborta sin tocar nada: alguien
 -- la parchó en vivo y pegar esto borraría el parche (lo que rompió Análisis con el PR 397). Con el cuerpo de este mismo
--- archivo sigue: se puede pegar dos veces.
+-- archivo sigue: se puede pegar dos veces. `fn_temporada_efectiva`, que SÍ se reescribe (pasa a envolver al núcleo),
+-- tiene que tener su cuerpo de 20260928100000 (md5 1cc652ba…, el mismo que producción el 2026-09-27) o el de este archivo.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, en el SQL Editor, tal cual (ya trae `retail.`), a cualquier hora, DESPUÉS de
 -- 20260928120200 (ya pegada el 2026-09-27). Solo `create or replace function`, comentarios, `revoke` y `grant`: sin
@@ -93,14 +110,21 @@
 -- se publica después.
 -- Cómo se verifica después (solo lectura):
 --   select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace
---    and proname in ('fn_es_llegada', 'fn_frescura_sede', 'fn_confianza_registro');
--- da los tres md5 de la guarda de abajo.
+--    and proname in ('fn_es_llegada', 'fn_frescura_sede', 'fn_confianza_registro', 'fn_temporada_efectiva_nucleo',
+--                    'fn_temporada_efectiva');
+-- da los cinco md5 de la guarda de abajo (el de fn_temporada_efectiva, el de su versión NUEVA).
 --
 -- SE ROMPE SI la carga inicial vuelve a entrar sin su bajada en la misma transacción (su bajada pierde la marca 4 y la
 -- prenda sale «Nueva»), si alguien agrega otra forma de «llegada» en `fn_resumen_comparacion` sin cambiar
 -- `fn_es_llegada` (la prueba lo avisa: compara el texto del original), si un traslado entre tiendas vuelve a escribirse
 -- como `traslado` directo al piso (llega con edad desconocida y no es «Nueva» en la tienda nueva), o si alguien escribe un
 -- cruce entre dos pasos calculados (se ve solo con carga: medir antes de publicar).
+-- PENDIENTE DE FELIPE (revisión 3): `fin_estacion` sale de la última llegada a la TIENDA, y la recepción de un traslado
+-- cuenta como llegada (`fn_es_llegada`, el mismo predicado de Análisis). La chompa de invierno que llegó del proveedor en
+-- julio de 2025 y se trasladó en abril de 2026 queda con el fin del invierno 2026: la tienda que la recibe no ve
+-- «Temporada pasada» hasta setiembre. Si Felipe decide que para la temporada manda la última llegada a CAYLA (lote,
+-- producción o carga inicial, en cualquier tienda), va como un segundo predicado con nombre propio; `fn_es_llegada` no
+-- se toca.
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -129,13 +153,24 @@ begin
   end if;
   select md5(p.prosrc) into v_md5 from pg_proc p
    where p.oid = to_regprocedure('retail.fn_frescura_sede(uuid, integer)');
-  if v_md5 is not null and v_md5 <> '644e10126796adc1111702290c14f2bb' then
+  if v_md5 is not null and v_md5 <> '618e465d586cf3193e7e8197059f4071' then
     raise exception 'fn_frescura_sede ya existe con otro cuerpo (md5 %): alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
   end if;
   select md5(p.prosrc) into v_md5 from pg_proc p
    where p.oid = to_regprocedure('retail.fn_confianza_registro(uuid, integer)');
-  if v_md5 is not null and v_md5 <> '9c714f98dd2776eebb505846eb24c33a' then
+  if v_md5 is not null and v_md5 <> '8c6f5e6c27916b99be10020b772bd6e0' then
     raise exception 'fn_confianza_registro ya existe con otro cuerpo (md5 %): alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
+  end if;
+  select md5(p.prosrc) into v_md5 from pg_proc p
+   where p.oid = to_regprocedure('retail.fn_temporada_efectiva_nucleo(uuid, boolean)');
+  if v_md5 is not null and v_md5 <> '2bf80eb239248cce88cf8062238f4dfc' then
+    raise exception 'fn_temporada_efectiva_nucleo ya existe con otro cuerpo (md5 %): alguien la cambió en vivo. Reescribe desde su definición real antes de pegar.', v_md5;
+  end if;
+  -- fn_temporada_efectiva SÍ se reescribe: su cuerpo tiene que ser el de 20260928100000 (1cc652ba…) o el de este archivo.
+  select md5(p.prosrc) into v_md5 from pg_proc p
+   where p.oid = to_regprocedure('retail.fn_temporada_efectiva(uuid)');
+  if v_md5 not in ('1cc652ba0bef3e9783a014b840cb870f', 'e96b3c6c51fd12ca712e76d63efd6448') then
+    raise exception 'fn_temporada_efectiva cambió desde 20260928100000 (md5 %): alguien la parchó en vivo. Reescribe el núcleo desde su definición real antes de pegar.', v_md5;
   end if;
 end $$;
 
@@ -164,6 +199,55 @@ comment on function retail.fn_es_llegada(text, text, uuid, uuid, uuid) is
   'ADR-0208 (paso 3 de Frescura 3c): ¿este movimiento es una LLEGADA de mercadería a la tienda? Una entrada con lote, con producción, con recepción de un traslado, o de carga inicial. Es el predicado de la CTE entradas de fn_resumen_comparacion (20260924030000), con nombre propio y la misma lógica; nunca devuelve nulo. Interna: la usan funciones security definer.';
 
 revoke all on function retail.fn_es_llegada(text, text, uuid, uuid, uuid) from public, anon, authenticated;
+
+-- ----------------------------------------------------------------------------
+-- 1b. La temporada efectiva, también de lo descontinuado
+-- ----------------------------------------------------------------------------
+
+-- La regla de ADR-0246 (color → producto → categoría), tal cual vivía en fn_temporada_efectiva (20260928100000), con
+-- una sola diferencia: `p_con_inactivas`. La pantalla de Temporadas lista lo que se puede completar (solo activas);
+-- Frescura mira lo que está colgado, y una talla descontinuada con stock sigue colgada: sin su temporada no avisaría
+-- «Temporada pasada» y pediría completar una temporada que ya tiene (revisión 3).
+create or replace function retail.fn_temporada_efectiva_nucleo(p_producto_id uuid, p_con_inactivas boolean)
+returns table (producto_id uuid, color_codigo text, estado text, temporada text, origen text)
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select pc.producto_id,
+         pc.color_codigo,
+         p.estado,
+         coalesce(pct.temporada, p.temporada, c.temporada) as temporada,
+         case when pct.temporada is not null then 'color'
+              when p.temporada is not null then 'producto'
+              when c.temporada is not null then 'categoria' end as origen
+    from (select distinct v.producto_id, v.color_codigo
+            from retail.variantes v
+           where (v.activo or coalesce(p_con_inactivas, false))
+             and (p_producto_id is null or v.producto_id = p_producto_id)) pc
+    join retail.productos p on p.id = pc.producto_id
+    left join retail.categorias c on c.id = p.categoria_id
+    left join retail.producto_color_temporadas pct
+           on pct.producto_id = pc.producto_id and pct.color_codigo = pc.color_codigo
+   where p.id <> '11111111-1111-4111-8111-111111111111'::uuid;
+$$;
+
+comment on function retail.fn_temporada_efectiva_nucleo(uuid, boolean) is
+  'ADR-0246 y ADR-0208 (paso 3 de Frescura 3c): la temporada efectiva de cada modelo+color (color → producto → categoría), la regla que antes vivía dentro de fn_temporada_efectiva; con p_con_inactivas también lo descontinuado (lo usa fn_frescura_sede). fn_temporada_efectiva(p) = este núcleo con false. Interna: la usan funciones security definer.';
+
+revoke all on function retail.fn_temporada_efectiva_nucleo(uuid, boolean) from public, anon, authenticated;
+
+-- Misma firma, mismas filas, mismos permisos (create or replace los conserva): solo pasa a envolver al núcleo.
+create or replace function retail.fn_temporada_efectiva(p_producto_id uuid default null)
+returns table (producto_id uuid, color_codigo text, estado text, temporada text, origen text)
+language sql
+stable
+security definer
+set search_path = retail, public, extensions
+as $$
+  select * from retail.fn_temporada_efectiva_nucleo(p_producto_id, false);
+$$;
 
 -- ----------------------------------------------------------------------------
 -- 2. La lectura de una tienda
@@ -283,7 +367,7 @@ begin
     -- La temporada de cada modelo+color (ADR-0246: color → producto → categoría), por clave.
     select coalesce(jsonb_object_agg(t.producto_id::text || '|' || coalesce(t.color_codigo, ''),
                                      jsonb_build_array(t.temporada, t.origen)), '{}'::jsonb) as m
-      from fn_temporada_efectiva(null) t
+      from fn_temporada_efectiva_nucleo(null, true) t
      where t.temporada is not null
   ),
   catalogo as (
@@ -295,8 +379,31 @@ begin
       from fn_temporadas() t
       cross join lateral fn_ocurrencia_temporada(t.clave, v_ahora) oc
   ),
+  primera_de as (
+    -- La primera exhibición es del MODELO+COLOR (ADR-0208, decisiones 4 y 9: la novedad es del modelo+color y es una
+    -- sola vez por tienda): la primera vez que CUALQUIERA de sus tallas entró al piso de esta tienda, esté o no en la
+    -- lista (una talla agotada antes de la ventana no está, y su exhibición sí cuenta). Una búsqueda por modelo+color
+    -- distinto (variantes por producto, movimientos por variante), que después se lee por clave.
+    select coalesce(jsonb_object_agg(x.clave, pe.primera), '{}'::jsonb) as m
+      from (select distinct u.producto_id, u.color_codigo, u.producto_id::text || '|' || coalesce(u.color_codigo, '') as clave
+              from u) x
+      cross join lateral (
+        select min(m.created_at) as primera
+          from variantes v2
+          join movimientos m on m.variante_id = v2.id
+         where v2.producto_id = x.producto_id
+           and v2.color_codigo is not distinct from x.color_codigo
+           and ((m.ubicacion_id = p_ubicacion_id and m.sububicacion_id = v_piso
+                 and (m.tipo = 'entrada' or (m.tipo = 'ajuste' and m.cantidad > 0)))
+                or (m.tipo = 'traslado' and m.ubicacion_destino_id = p_ubicacion_id and m.sububicacion_destino_id = v_piso))
+      ) pe
+     where pe.primera is not null
+  ),
   base as materialized (
-    select u.*, st.piso, st.total - st.piso as almacen, h.primera_exhibicion, h.ultima_llegada,
+    select u.*, st.piso, st.total - st.piso as almacen,
+           ((select pd.m from primera_de pd) ->> (u.producto_id::text || '|' || coalesce(u.color_codigo, '')))::timestamptz
+             as primera_exhibicion,
+           h.ultima_llegada,
            tp.par ->> 0 as temporada, tp.par ->> 1 as temporada_origen
       from u
       left join lateral (
@@ -307,17 +414,12 @@ begin
          where s.variante_id = u.variante_id and s.ubicacion_id = p_ubicacion_id
       ) st on true
       left join lateral (
-        -- Toda la historia de la prenda en ESTA tienda: la primera vez que entró a su piso y su última llegada.
-        select min(m.created_at) filter (where (m.ubicacion_id = p_ubicacion_id and m.sububicacion_id = v_piso
-                                                 and (m.tipo = 'entrada' or (m.tipo = 'ajuste' and m.cantidad > 0)))
-                                             or (m.tipo = 'traslado' and m.ubicacion_destino_id = p_ubicacion_id
-                                                 and m.sububicacion_destino_id = v_piso)) as primera_exhibicion,
-               max(m.created_at) filter (where m.ubicacion_id = p_ubicacion_id
-                                           and fn_es_llegada(m.tipo, m.motivo, m.lote_id, m.produccion_id, m.transferencia_recepcion_id))
-                 as ultima_llegada
+        -- Toda la historia de esta talla en ESTA tienda: su última llegada.
+        select max(m.created_at) as ultima_llegada
           from movimientos m
          where m.variante_id = u.variante_id
-           and (m.ubicacion_id = p_ubicacion_id or m.ubicacion_destino_id = p_ubicacion_id)
+           and m.ubicacion_id = p_ubicacion_id
+           and fn_es_llegada(m.tipo, m.motivo, m.lote_id, m.produccion_id, m.transferencia_recepcion_id)
       ) h on true
       cross join lateral (
         select (select td.m from temporada_de td) -> (u.producto_id::text || '|' || coalesce(u.color_codigo, '')) as par
@@ -367,7 +469,7 @@ end
 $fn$;
 
 comment on function retail.fn_frescura_sede(uuid, integer) is
-  'ADR-0208 (paso 3 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva), si es clásica, el fin de la estación de su última llegada, si hoy es su estación, su primera exhibición y su última llegada en esa tienda, y su piso y almacén de hoy; eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida) para el FIFO de historiaDeCohortes; tardias y dudosas del núcleo de bajadas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo. Candado: líder y opera la tienda (el módulo frescura nace con la pantalla).';
+  'ADR-0208 (paso 3 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de su última llegada, si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla) y su última llegada en esa tienda, y su piso y almacén de hoy; eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida) para el FIFO de historiaDeCohortes; tardias y dudosas del núcleo de bajadas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo. Candado: líder y opera la tienda (el módulo frescura nace con la pantalla).';
 
 revoke all on function retail.fn_frescura_sede(uuid, integer) from public, anon;
 grant execute on function retail.fn_frescura_sede(uuid, integer) to authenticated;
@@ -434,7 +536,12 @@ begin
            n.cantidad_efectiva, n.unidades_tardias
       from sedes s
       cross join lateral fn_bajadas_del_piso_nucleo(s.id, v_desde, null) n
+      -- Sin productos de prueba, como fn_frescura_sede: una bajada de práctica no es el hábito del equipo (revisión 3).
+      -- La prenda se busca por llave (variante → producto), sin cruzar dos conjuntos calculados.
+      join variantes v on v.id = n.variante_id
+      join productos p on p.id = v.producto_id
      where n.cerrada
+       and not p.es_prueba
        and n.estado not in ('dudosa', 'corregida')
        and not n.es_carga_inicial
        and n.bajada_en + 2 * c_ventana <= v_ahora
@@ -461,7 +568,7 @@ end
 $fn$;
 
 comment on function retail.fn_confianza_registro(uuid, integer) is
-  'ADR-0208 (paso 3 de Frescura 3c): la confianza del registro de las bajadas al piso, por tienda y mes calendario de Lima (p_meses de 1 a 3, el actual y los anteriores). filas = bajadas que cuentan (cerradas, ni dudosa ni corregida, sin la carga inicial, de hace 20 minutos o más para que la cifra no se mueva); unidades = suma de cantidad_efectiva; tardias = unidades registradas al cobrar; confianza = 1 - tardias / unidades (nula sin unidades); nivel por filas: pocos_datos 1-9, aceptable 10-19, solido 20 o más. Una fila por tienda y mes aunque no haya bajadas. Sin personas: el indicador es del equipo. Candado: líder (con una tienda, además que la opere).';
+  'ADR-0208 (paso 3 de Frescura 3c): la confianza del registro de las bajadas al piso, por tienda y mes calendario de Lima (p_meses de 1 a 3, el actual y los anteriores). filas = bajadas que cuentan (cerradas, ni dudosa ni corregida, sin productos es_prueba ni la carga inicial, de hace 20 minutos o más para que la cifra no se mueva); unidades = suma de cantidad_efectiva; tardias = unidades registradas al cobrar; confianza = 1 - tardias / unidades (nula sin unidades); nivel por filas: pocos_datos 1-9, aceptable 10-19, solido 20 o más. Una fila por tienda y mes aunque no haya bajadas. Sin personas: el indicador es del equipo. Candado: líder (con una tienda, además que la opere).';
 
 revoke all on function retail.fn_confianza_registro(uuid, integer) from public, anon;
 grant execute on function retail.fn_confianza_registro(uuid, integer) to authenticated;

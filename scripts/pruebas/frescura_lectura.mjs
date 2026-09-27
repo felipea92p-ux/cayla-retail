@@ -15,7 +15,8 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración nombra los md5 vivos.
+ *       de la migración nombra los md5 vivos (de las cinco: también fn_temporada_efectiva_nucleo, sin EXECUTE para nadie
+ *       de afuera, y fn_temporada_efectiva, que conserva sus permisos); fn_confianza_registro lee el mes en hora de Lima.
  *   T1  permisos: el líder sí; una integrante (sin líder) no, con la pista frescura_sin_permiso, en las dos (también
  *       fn_confianza_registro sin tienda); anon no (42501); si fn_puede_operar_ubicacion dice que no a esa tienda, el
  *       líder tampoco (hoy un líder opera todas: la prueba la reemplaza dentro de su transacción para vigilar que el
@@ -24,6 +25,9 @@
  *       exhibición de hace 149 días; la que solo está en el almacén aparece sin eventos; la que solo está en cuarentena
  *       no; la que se vendió entera en la ventana sí (sin ella no hay vara); la que se vendió antes de la ventana no; la
  *       ventana (desde = ahora − p_dias) y sus bordes.
+ *   T2b repuesta a través del borde de la ventana: la primera exhibición es la PRIMERA entrada de toda la historia.
+ *   T2c piso, almacén y cuarentena a la vez: almacen_hoy sin la cuarentena.
+ *   T2d la primera exhibición es del MODELO+COLOR: la talla agotada antes de la ventana (fuera de la lista) cuenta.
  *   T3  las marcas de cada evento: bajada 2, venta 1, retiro 2; carga inicial por la puerta real y a mano 6 (2 + 4);
  *       carga de otra hora 2; ajuste al piso 4 y su ajuste negativo 0; devolución 4; llegada directo al piso 0; carga
  *       directo al piso 4; cuarentena → piso 2; lo que llega de otra tienda como traslado directo 4; saldo inicial 4 con
@@ -33,6 +37,9 @@
  *       clásico de todo el año sin fin ni estación; la temporada por categoría y por color (origen); sin temporada, todo
  *       nulo; sin llegada, sin fin; en_estacion_ahora = ¿hoy es su estación?; con dos llegadas, manda la ÚLTIMA (con el
  *       calendario 2025 sembrado dentro de la prueba).
+ *   T4c una sola llegada en el invierno 2025, todavía colgada: el fin es el de SU llegada, no el de hoy.
+ *   T4d una variante inactiva que sigue colgada conserva su temporada (del producto y del color); fn_temporada_efectiva
+ *       ≡ fn_temporada_efectiva_nucleo(…, false) en todo el catálogo y la pantalla de Temporadas no cambia.
  *   T5  color nulo: la prenda sale con color nulo y su temporada del producto.
  *   T6  productos es_prueba y la «Prenda sin registrar» fuera; una tienda donde solo se movió un producto de prueba da
  *       prendas [], eventos {} y tardías [] — con la lista nula el libro SÍ los habría devuelto (se muestra).
@@ -45,16 +52,18 @@
  *   T10 fn_confianza_registro: cuenta la normal, la tardía y la del retiro parcial (unidades = Σ efectiva); deja fuera
  *       la carga inicial, la corregida, la dudosa, la abierta y la de hace menos de 20 minutos; mes de Lima; una fila
  *       por tienda y mes aunque no haya bajadas; p_meses de 1 a 3; sin tienda, todas las tiendas y nunca el Taller.
+ *   T10b sin las bajadas de productos es_prueba (como fn_frescura_sede).
+ *   T10c mes de Lima con la sesión en UTC (como producción): la bajada del último día del mes a las 21:00 de Lima.
  *   T11 niveles: 9 filas «pocos_datos», 10 y 19 «aceptable», 20 «solido».
- *   T12 la guarda: pegada otra vez deja lo mismo; con cualquiera de las tres funciones parchada en vivo aborta sin
+ *   T12 la guarda: pegada otra vez deja lo mismo; con cualquiera de las cinco funciones parchada en vivo aborta sin
  *       tocarla.
  *   T13 el contrato con la web: siembra una tienda con de todo (la vara de las blusas, nueva, vieja, carga inicial,
  *       tardía, retiro, dudosa, solo almacén, chompa de invierno, clásico, sin temporada) y exige que la salida de las
  *       dos lecturas tenga la MISMA forma (claves y tipos) que `apps/web/lib/__fixtures__/frescura-sede.json`, la salida
  *       real con la que `frescura-contrato.test.ts` prueba la web. Con FRESCURA_FIXTURE_ESCRIBIR=1 reescribe ese archivo.
  *
- * CÓMO. Como `frescura_bajadas.mjs`: cada caso en su transacción con ROLLBACK, en una TIENDA NUEVA (así lo sembrado no
- * se mezcla), movimientos insertados como `postgres` con `created_at` fijado (t0 = ahora − 3 h) en orden cronológico y
+ * CÓMO. Como `frescura_bajadas.mjs`: cada caso en su transacción con ROLLBACK y la zona horaria de producción (UTC), en
+ * una TIENDA NUEVA (así lo sembrado no se mezcla), movimientos insertados como `postgres` con `created_at` fijado (t0 = ahora − 3 h) en orden cronológico y
  * aplicados con `fn_aplicar_movimiento`, sesión del líder con `request.jwt.claim.sub`.
  *
  * USO
@@ -87,6 +96,9 @@ function psql(sql) {
 /** Todo caso empieza igual: una tienda nueva con piso, almacén y cuarentena, el líder en sesión y el reloj t0. */
 const PRELUDIO = `
 begin;
+-- Producción corre con TimeZone = 'UTC' (consultado el 2026-09-27) y el Postgres de pruebas puede traer otra zona (el
+-- desechable trae America/Lima): sin esto, un «mes de Lima» mal escrito pasaría la prueba (revisión 3, caso X4).
+set local timezone = 'UTC';
 set local request.jwt.claim.sub = '${FELIPE}';
 -- fn_actor_persona_id consulta la asistencia de Dynamic: en un Postgres sin Dynamic esas tablas no existen.
 create table if not exists public.marcajes (persona_id uuid, sede_id uuid, tipo text, timestamp_marca timestamptz,
@@ -296,6 +308,10 @@ function correr(titulo, sql, verificar) {
 const FIRMA_SEDE = "retail.fn_frescura_sede(uuid, integer)";
 const FIRMA_CONF = "retail.fn_confianza_registro(uuid, integer)";
 const FIRMA_LLEG = "retail.fn_es_llegada(text, text, uuid, uuid, uuid)";
+const FIRMA_NUCLEO_TEMP = "retail.fn_temporada_efectiva_nucleo(uuid, boolean)";
+const FIRMA_TEMP = "retail.fn_temporada_efectiva(uuid)";
+const FUNCIONES = ["fn_es_llegada", "fn_frescura_sede", "fn_confianza_registro", "fn_temporada_efectiva_nucleo", "fn_temporada_efectiva"];
+const EN_FUNCIONES = FUNCIONES.map((f) => `'${f}'`).join(", ");
 /** ¿`public` (grantee 0) tiene EXECUTE? Un proacl nulo es el valor por defecto: sí. */
 const aPublic = (firma) =>
   `(select p.proacl is null or exists (select 1 from aclexplode(p.proacl) a where a.grantee = 0 and a.privilege_type = 'EXECUTE')
@@ -306,10 +322,15 @@ const veces = (firma, texto) =>
 // ---------------------------------------------------------------------------
 correr(
   "T0 · forma: una versión de cada una, security definer y plan a medida, quién la ejecuta, una llamada al libro y al núcleo",
-  `${k("N", "(select string_agg(proname || '=' || n, ',' order by proname) from (select proname, count(*) as n from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('fn_es_llegada', 'fn_frescura_sede', 'fn_confianza_registro') group by proname) x)")}
+  `${k("N", `(select string_agg(proname || '=' || n, ',' order by proname) from (select proname, count(*) as n from pg_proc where pronamespace = 'retail'::regnamespace and proname in (${EN_FUNCIONES}) group by proname) x)`)}
 ${k("F_SEDE", `(select p.prosecdef || ',' || p.provolatile::text || ',' || array_to_string(p.proconfig, ';') from pg_proc p where p.oid = '${FIRMA_SEDE}'::regprocedure)`)}
 ${k("F_CONF", `(select p.prosecdef || ',' || p.provolatile::text || ',' || array_to_string(p.proconfig, ';') from pg_proc p where p.oid = '${FIRMA_CONF}'::regprocedure)`)}
 ${k("F_LLEG", `(select p.prosecdef || ',' || p.provolatile::text from pg_proc p where p.oid = '${FIRMA_LLEG}'::regprocedure)`)}
+${k("F_NUCLEO_TEMP", `(select p.prosecdef || ',' || p.provolatile::text || ',' || array_to_string(p.proconfig, ';') from pg_proc p where p.oid = '${FIRMA_NUCLEO_TEMP}'::regprocedure)`)}
+${k("P_NUCLEO_TEMP", `has_function_privilege('authenticated', '${FIRMA_NUCLEO_TEMP}', 'execute') || ',' || has_function_privilege('anon', '${FIRMA_NUCLEO_TEMP}', 'execute') || ',' || ${aPublic(FIRMA_NUCLEO_TEMP)}`)}
+${k("P_TEMP", `has_function_privilege('authenticated', '${FIRMA_TEMP}', 'execute') || ',' || has_function_privilege('anon', '${FIRMA_TEMP}', 'execute') || ',' || ${aPublic(FIRMA_TEMP)}`)}
+${k("MES_LIMA", `(select d ~ 'date_trunc\\(''month'', v_ahora at time zone ''America/Lima''\\)' and d ~ 'date_trunc\\(''month'', n\\.bajada_en at time zone ''America/Lima''\\)'
+  from (select pg_get_functiondef('${FIRMA_CONF}'::regprocedure) as d) x)`)}
 ${k("P_SEDE", `has_function_privilege('authenticated', '${FIRMA_SEDE}', 'execute') || ',' || has_function_privilege('anon', '${FIRMA_SEDE}', 'execute') || ',' || ${aPublic(FIRMA_SEDE)}`)}
 ${k("P_CONF", `has_function_privilege('authenticated', '${FIRMA_CONF}', 'execute') || ',' || has_function_privilege('anon', '${FIRMA_CONF}', 'execute') || ',' || ${aPublic(FIRMA_CONF)}`)}
 ${k("P_LLEG", `has_function_privilege('authenticated', '${FIRMA_LLEG}', 'execute') || ',' || has_function_privilege('anon', '${FIRMA_LLEG}', 'execute') || ',' || ${aPublic(FIRMA_LLEG)}`)}
@@ -320,9 +341,13 @@ ${k("LIBRO_CON_LISTA", `(select d ~ 'fn_ledger_puntos\\(p_ubicacion_id, v_desde,
     and d !~ 'v_ids\\s*:='
   from (select pg_get_functiondef('${FIRMA_SEDE}'::regprocedure) as d) x)`)}
 ${k("COLUMNAS_CONF", `(select array_to_string(p.proargnames, ',') from pg_proc p where p.oid = '${FIRMA_CONF}'::regprocedure)`)}
-${k("MD5", "(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc where pronamespace = 'retail'::regnamespace and proname in ('fn_es_llegada', 'fn_frescura_sede', 'fn_confianza_registro'))")}`,
+${k("MD5", `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc where pronamespace = 'retail'::regnamespace and proname in (${EN_FUNCIONES}))`)}`,
   (o) => {
-    afirmar("una sola versión de cada una", o.N === "fn_confianza_registro=1,fn_es_llegada=1,fn_frescura_sede=1", `N=${o.N}`);
+    afirmar(
+      "una sola versión de cada una",
+      o.N === "fn_confianza_registro=1,fn_es_llegada=1,fn_frescura_sede=1,fn_temporada_efectiva=1,fn_temporada_efectiva_nucleo=1",
+      `N=${o.N}`,
+    );
     const conf = "true,s,search_path=retail, public, extensions;plan_cache_mode=force_custom_plan";
     afirmar("fn_frescura_sede: security definer, stable, search_path y plan a medida", o.F_SEDE === conf, `F_SEDE=${o.F_SEDE}`);
     afirmar("fn_confianza_registro: security definer, stable, search_path y plan a medida", o.F_CONF === conf, `F_CONF=${o.F_CONF}`);
@@ -330,6 +355,17 @@ ${k("MD5", "(select string_agg(proname || '=' || md5(prosrc), ',' order by prona
     afirmar("fn_frescura_sede: authenticated sí, anon no, public no", o.P_SEDE === "true,false,false", `P_SEDE=${o.P_SEDE}`);
     afirmar("fn_confianza_registro: authenticated sí, anon no, public no", o.P_CONF === "true,false,false", `P_CONF=${o.P_CONF}`);
     afirmar("fn_es_llegada: nadie de afuera (ni authenticated, ni anon, ni public)", o.P_LLEG === "false,false,false", `P_LLEG=${o.P_LLEG}`);
+    afirmar(
+      "fn_temporada_efectiva_nucleo: security definer, stable, search_path; nadie de afuera la ejecuta",
+      o.F_NUCLEO_TEMP === "true,s,search_path=retail, public, extensions" && o.P_NUCLEO_TEMP === "false,false,false",
+      `F_NUCLEO_TEMP=${o.F_NUCLEO_TEMP} P_NUCLEO_TEMP=${o.P_NUCLEO_TEMP}`,
+    );
+    afirmar("fn_temporada_efectiva conserva sus permisos (authenticated sí, anon no, public no)", o.P_TEMP === "true,false,false", `P_TEMP=${o.P_TEMP}`);
+    afirmar(
+      "fn_confianza_registro: el mes actual y el de cada bajada, en hora de Lima (el mes actual depende de now(): solo se puede vigilar el texto)",
+      o.MES_LIMA === "true",
+      `MES_LIMA=${o.MES_LIMA}`,
+    );
     afirmar("el cuerpo llama UNA vez a fn_ledger_puntos( y UNA a fn_bajadas_del_piso_nucleo(", o.LLAMADAS === "1,1", `LLAMADAS=${o.LLAMADAS}`);
     afirmar("el libro recibe v_ids, que nace con coalesce(array_agg(...), '{}') y no se reasigna (nunca nulo)", o.LIBRO_CON_LISTA === "true", `LIBRO_CON_LISTA=${o.LIBRO_CON_LISTA}`);
     afirmar(
@@ -340,7 +376,7 @@ ${k("MD5", "(select string_agg(proname || '=' || md5(prosrc), ',' order by prona
     const md5 = Object.fromEntries((o.MD5 ?? "").split(",").map((x) => x.split("=")));
     afirmar(
       "la guarda de la migración nombra el md5 vivo de cada función (quien cambie un cuerpo tiene que cambiar la guarda)",
-      ["fn_es_llegada", "fn_frescura_sede", "fn_confianza_registro"].every((f) => md5[f] && MIGRACION.includes(`'${md5[f]}'`)),
+      FUNCIONES.every((f) => md5[f] && MIGRACION.includes(`'${md5[f]}'`)),
       `MD5=${o.MD5}`,
     );
   },
@@ -432,6 +468,56 @@ ${k("DIAS_1", "pg_temp.intento(format('select retail.fn_frescura_sede(%L, 1)', :
     afirmar("con p_dias = 30, desde = ahora − 30 días", o.DESDE_30 === "true", `DESDE_30=${o.DESDE_30}`);
     afirmar("cada prenda una sola vez", o.UNICAS === "true", `UNICAS=${o.UNICAS}`);
     afirmar("p_dias 0, 121 o nulo → error; 1 → ok", error(o.DIAS_0, "P0001") && error(o.DIAS_121, "P0001") && error(o.DIAS_NULO, "P0001") && json(o.DIAS_1)?.ok === true, `${o.DIAS_0} ${o.DIAS_121} ${o.DIAS_NULO} ${o.DIAS_1}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T2b · repuesta a través del borde de la ventana: colgada hace 149 días, agotada hace 140, vuelta a colgar hace 10 → primera exhibición 149",
+  `select pg_temp.variante('ZZ-FL-T2B-REPUESTA') as va \\gset
+select pg_temp.llega(:'va', 2, now() - interval '150 days') as _1 \\gset
+select pg_temp.bajada(:'va', 2, now() - interval '149 days') as _2 \\gset
+select pg_temp.vende(:'va', 2, now() - interval '140 days') as _3 \\gset
+select pg_temp.llega(:'va', 2, now() - interval '11 days') as _4 \\gset
+select pg_temp.bajada(:'va', 2, now() - interval '10 days') as _5 \\gset
+select pg_temp.lectura() as j \\gset
+${k("REPUESTA", "pg_temp.resumen(:'j', 'ZZ-FL-T2B-REPUESTA')")}`,
+  (o) => afirmar("primera = 149 (toda la historia, la PRIMERA entrada; no la de hace 10), llegada = 11", o.REPUESTA === "piso=2,alm=0,primera=149,llegada=11", `REPUESTA=${o.REPUESTA}`),
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T2c · piso, almacén Y cuarentena a la vez: almacen_hoy no cuenta la cuarentena (si la contara, la web sugeriría «Trasladar» lo defectuoso)",
+  `select pg_temp.variante('ZZ-FL-T2C') as v \\gset
+select pg_temp.llega(:'v', 3, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
+select pg_temp.bajada(:'v', 2, :'t0'::timestamptz - interval '50 minutes') as _2 \\gset
+select pg_temp.llega(:'v', 1, :'t0'::timestamptz - interval '40 minutes', :'sc') as _3 \\gset
+select pg_temp.lectura() as j \\gset
+${k("TRES", "pg_temp.resumen(:'j', 'ZZ-FL-T2C')")}`,
+  (o) => afirmar("piso = 2, almacén = 1 (la unidad en cuarentena no es almacén)", (o.TRES ?? "").startsWith("piso=2,alm=1,"), `TRES=${o.TRES}`),
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T2d · modelo+color repuesto en OTRA talla: S colgada hace 149 días y agotada hace 140 (no está en la lista); M colgada hace 10 → primera exhibición 149",
+  `select pg_temp.producto('T2d Blusa', null, null) as px \\gset
+select pg_temp.variante('ZZ-FL-T2D-S', :'px', :'c1') as vs \\gset
+select pg_temp.variante('ZZ-FL-T2D-M', :'px', :'c1') as vm \\gset
+select pg_temp.variante('ZZ-FL-T2D-OTRO-COLOR', :'px', :'c2') as vo \\gset
+select pg_temp.llega(:'vs', 1, now() - interval '150 days') as _1 \\gset
+select pg_temp.bajada(:'vs', 1, now() - interval '149 days') as _2 \\gset
+select pg_temp.vende(:'vs', 1, now() - interval '140 days') as _3 \\gset
+select pg_temp.llega(:'vm', 1, now() - interval '11 days') as _4 \\gset
+select pg_temp.bajada(:'vm', 1, now() - interval '10 days') as _5 \\gset
+select pg_temp.llega(:'vo', 1, now() - interval '6 days') as _6 \\gset
+select pg_temp.bajada(:'vo', 1, now() - interval '5 days') as _7 \\gset
+select pg_temp.lectura() as j \\gset
+${k("TALLAS", "pg_temp.resumen(:'j', 'ZZ-FL-T2D-S') || ' | ' || pg_temp.resumen(:'j', 'ZZ-FL-T2D-M') || ' | ' || pg_temp.resumen(:'j', 'ZZ-FL-T2D-OTRO-COLOR')")}`,
+  (o) => {
+    const [s, m, otro] = (o.TALLAS ?? "").split(" | ");
+    afirmar("S (agotada antes de la ventana) no está en la lista", s === "ausente", `TALLAS=${o.TALLAS}`);
+    afirmar("M lleva la primera exhibición del MODELO+COLOR: 149, no la suya de hace 10 (no vuelve a ser «Nueva»)", m === "piso=1,alm=0,primera=149,llegada=11", `TALLAS=${o.TALLAS}`);
+    afirmar("otro color del mismo modelo es otra prenda: su primera exhibición es la suya (5)", otro === "piso=1,alm=0,primera=5,llegada=6", `TALLAS=${o.TALLAS}`);
   },
 );
 
@@ -617,6 +703,54 @@ ${k("FIN_SI_FUERA_LA_PRIMERA", "((select hasta from retail.fn_ocurrencia_tempora
     afirmar("primera exhibición = la bajada de 2025 (toda la historia)", o.PRIMERA === "true", `PRIMERA=${o.PRIMERA}`);
     afirmar("fin_estacion = inicio de la primavera 2026 (el invierno de la última llegada)", o.FIN === "true", `FIN=${o.FIN}`);
     afirmar("(con la primera llegada habría sido la primavera 2025: el caso distingue)", o.FIN_SI_FUERA_LA_PRIMERA === "true", `FIN_SI_FUERA_LA_PRIMERA=${o.FIN_SI_FUERA_LA_PRIMERA}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T4c · una sola llegada, en el invierno 2025, y todavía colgada: fin = primavera 2025 (la de su llegada, no la de hoy) → «Temporada pasada»",
+  `alter table retail.temporada_fechas disable trigger user;
+insert into retail.temporada_fechas (anio, estacion, inicio, fuente) values
+  (2025, 'otono', '2025-03-20 04:01-05', 'usno'), (2025, 'invierno', '2025-06-20 21:42-05', 'usno'),
+  (2025, 'primavera', '2025-09-22 13:19-05', 'usno'), (2025, 'verano', '2025-12-21 10:03-05', 'usno')
+on conflict do nothing;
+alter table retail.temporada_fechas enable trigger user;
+select pg_temp.producto('T4c Chompa', 'invierno') as pch \\gset
+select pg_temp.variante('ZZ-FL-T4C-CHOMPA', :'pch') as vch \\gset
+select pg_temp.llega(:'vch', 3, '2025-07-15 12:00-05') as _1 \\gset
+select pg_temp.bajada(:'vch', 2, '2025-07-16 12:00-05') as _2 \\gset
+select pg_temp.lectura() as j \\gset
+${k("FIN", "((pg_temp.prenda(:'j', 'ZZ-FL-T4C-CHOMPA') ->> 'fin_estacion')::timestamptz = (select inicio from retail.temporada_fechas where anio = 2025 and estacion = 'primavera'))")}`,
+  (o) => afirmar("fin_estacion = inicio de la primavera 2025", o.FIN === "true", `FIN=${o.FIN}`),
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T4d · una talla descontinuada (variante inactiva) que sigue colgada conserva su temporada (del producto y del color); la pantalla de Temporadas no cambia",
+  `select pg_temp.producto('T4d Chompa', 'invierno') as pa \\gset
+select pg_temp.variante('ZZ-FL-T4D-INACTIVA', :'pa', :'c1') as vi \\gset
+select pg_temp.variante('ZZ-FL-T4D-ACTIVA', :'pa', :'c2') as va \\gset
+select pg_temp.producto('T4d Blusa') as pb \\gset
+select pg_temp.variante('ZZ-FL-T4D-COLOR-INACTIVO', :'pb', :'c1') as vc \\gset
+insert into retail.producto_color_temporadas (producto_id, color_codigo, temporada) values (:'pb', :'c1', 'otono');
+select count(pg_temp.llega(v, 3, '2026-07-15 12:00-05')) as _l from unnest(array[:'vi', :'va', :'vc']::uuid[]) v \\gset
+select count(pg_temp.bajada(v, 2, '2026-07-16 12:00-05')) as _b from unnest(array[:'vi', :'va', :'vc']::uuid[]) v \\gset
+update retail.variantes set activo = false where id in (:'vi', :'vc');
+select pg_temp.lectura() as j \\gset
+${k("INACTIVA", "pg_temp.temporada(:'j', 'ZZ-FL-T4D-INACTIVA') || '|' || coalesce((pg_temp.prenda(:'j', 'ZZ-FL-T4D-INACTIVA') ->> 'fin_estacion')::timestamptz = (pg_temp.prenda(:'j', 'ZZ-FL-T4D-ACTIVA') ->> 'fin_estacion')::timestamptz, false)")}
+${k("ACTIVA", "pg_temp.temporada(:'j', 'ZZ-FL-T4D-ACTIVA')")}
+${k("COLOR_INACTIVO", "pg_temp.temporada(:'j', 'ZZ-FL-T4D-COLOR-INACTIVO') || '|' || ((pg_temp.prenda(:'j', 'ZZ-FL-T4D-COLOR-INACTIVO') ->> 'fin_estacion') is not null)")}
+${k("PANTALLA", "(select coalesce(string_agg(coalesce(color_codigo, 'null'), ',' order by color_codigo), '-') from retail.fn_temporada_efectiva(:'pa')) = :'c2' and not exists (select 1 from retail.fn_temporada_efectiva(:'pb'))")}
+${k("NUCLEO_CON", "(select string_agg(color_codigo || '=' || temporada || ':' || origen, ',' order by color_codigo) from retail.fn_temporada_efectiva_nucleo(:'pa', true))")}
+-- El envoltorio da EXACTAMENTE lo que el núcleo sin inactivas, en todo el catálogo (en los dos sentidos).
+${k("IGUALES", "(select count(*) from ((select * from retail.fn_temporada_efectiva(null) except all select * from retail.fn_temporada_efectiva_nucleo(null, false)) union all (select * from retail.fn_temporada_efectiva_nucleo(null, false) except all select * from retail.fn_temporada_efectiva(null))) x) || ',' || (select count(*) > 0 from retail.fn_temporada_efectiva(null))")}`,
+  (o) => {
+    afirmar("inactiva: invierno del producto, con el mismo fin de estación que la talla activa", o.INACTIVA === "invierno|producto|false|true", `INACTIVA=${o.INACTIVA}`);
+    afirmar("…la activa, igual que siempre", o.ACTIVA === "invierno|producto|false", `ACTIVA=${o.ACTIVA}`);
+    afirmar("color inactivo con excepción de color: otoño, origen color, con fin", o.COLOR_INACTIVO === "otono|color|false|true", `COLOR_INACTIVO=${o.COLOR_INACTIVO}`);
+    afirmar("la pantalla de Temporadas (fn_temporada_efectiva) sigue sin mostrar lo inactivo", o.PANTALLA === "true", `PANTALLA=${o.PANTALLA}`);
+    afirmar("el núcleo con inactivas sí las ve", o.NUCLEO_CON?.split(",").length === 2 && o.NUCLEO_CON.includes("=invierno:producto"), `NUCLEO_CON=${o.NUCLEO_CON}`);
+    afirmar("fn_temporada_efectiva(null) ≡ fn_temporada_efectiva_nucleo(null, false): 0 filas distintas, con filas", o.IGUALES === "0,true", `IGUALES=${o.IGUALES}`);
   },
 );
 
@@ -854,6 +988,42 @@ ${k("TALLER", "(select count(*) from retail.fn_confianza_registro(:'taller'))")}
 
 // ---------------------------------------------------------------------------
 correr(
+  "T10b · fn_confianza_registro no cuenta las bajadas de productos de prueba (como fn_frescura_sede)",
+  `${TB}
+select pg_temp.producto('T10b Prueba', null, null, true) as pp \\gset
+select pg_temp.variante('ZZ-FL-T10B-PRUEBA', :'pp') as vp \\gset
+select pg_temp.variante('ZZ-FL-T10B-REAL') as vr \\gset
+select count(pg_temp.llega(v, 5, :'tb'::timestamptz - interval '30 minutes')) as _l from unnest(array[:'vp', :'vr']::uuid[]) v \\gset
+-- La de prueba: tardía (piso 0, se bajan 2 y se venden 2 a los 3 segundos). La real: normal.
+select pg_temp.bajada(:'vp', 2, :'tb'::timestamptz) as _1 \\gset
+select pg_temp.vende(:'vp', 2, :'tb'::timestamptz + interval '3 seconds') as _2 \\gset
+select pg_temp.bajada(:'vr', 3, :'tb'::timestamptz + interval '1 second') as _3 \\gset
+${FILA("TIENDA", ":'ubic'")}
+${k("NUCLEO", "(select count(*) from retail.fn_bajadas_del_piso_nucleo(:'ubic', now() - interval '1 day', null))")}`,
+  (o) => {
+    afirmar("(el núcleo ve las dos bajadas)", o.NUCLEO === "2", `NUCLEO=${o.NUCLEO}`);
+    afirmar("solo cuenta la real: 1 fila, 3 unidades, 0 tardías, confianza 1", o.TIENDA === "1,3,0,1.0000,pocos_datos", `TIENDA=${o.TIENDA}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T10c · mes de LIMA con la sesión en UTC (como producción): una bajada del último día del mes pasado a las 21:00 de Lima cuenta en el mes pasado",
+  `select pg_temp.variante('ZZ-FL-T10C') as v \\gset
+select (date_trunc('month', now() at time zone 'America/Lima') at time zone 'America/Lima') - interval '3 hours' as tfm \\gset
+select pg_temp.llega(:'v', 2, :'tfm'::timestamptz - interval '1 hour') as _1 \\gset
+select pg_temp.bajada(:'v', 1, :'tfm'::timestamptz) as _2 \\gset
+${k("ZONA", "current_setting('TimeZone')")}
+${k("MESES", "(select string_agg(mes::text || ':' || filas, ',' order by mes) from retail.fn_confianza_registro(:'ubic', 2))")}
+${k("ESPERADO", "(select (date_trunc('month', now() at time zone 'America/Lima') - interval '1 month')::date || ':1,' || date_trunc('month', now() at time zone 'America/Lima')::date || ':0')")}`,
+  (o) => {
+    afirmar("(la prueba corre en UTC)", o.ZONA === "UTC", `ZONA=${o.ZONA}`);
+    afirmar("la bajada cuenta en el mes pasado de Lima, no en el actual", o.MESES === o.ESPERADO, `MESES=${o.MESES} esperado ${o.ESPERADO}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
   "T11 · niveles por filas: 9 «pocos_datos», 10 y 19 «aceptable», 20 «solido»",
   `${TB}
 create function pg_temp.bajadas_normales(p_tienda uuid, n int, tb timestamptz) returns void language plpgsql as $f$
@@ -888,15 +1058,24 @@ ${FILA("N20", ":'u20'")}`,
 
 // ---------------------------------------------------------------------------
 const MD5S = `(select string_agg(proname || '=' || md5(prosrc), ',' order by proname) from pg_proc
-  where pronamespace = 'retail'::regnamespace and proname in ('fn_es_llegada', 'fn_frescura_sede', 'fn_confianza_registro'))`;
+  where pronamespace = 'retail'::regnamespace and proname in (${EN_FUNCIONES}))`;
+const FIRMAS = {
+  fn_es_llegada: FIRMA_LLEG,
+  fn_frescura_sede: FIRMA_SEDE,
+  fn_confianza_registro: FIRMA_CONF,
+  fn_temporada_efectiva_nucleo: FIRMA_NUCLEO_TEMP,
+  fn_temporada_efectiva: FIRMA_TEMP,
+};
+/** Lo que dice la guarda al abortar por cada una (fn_temporada_efectiva se reescribe: su aviso es otro). */
+const AVISO_GUARDA = (f) => (f === "fn_temporada_efectiva" ? "fn_temporada_efectiva cambió desde 20260928100000" : `${f} ya existe con otro cuerpo`);
 correr(
   "T12 · la guarda: pegada otra vez deja lo mismo; con una función parchada en vivo aborta y no la pisa",
   `select ${MD5S} as antes \\gset
 ${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
 ${k("MISMOS", `${MD5S} = :'antes'`)}
-${["fn_es_llegada", "fn_frescura_sede", "fn_confianza_registro"]
+${FUNCIONES
   .map((f, i) => {
-    const firma = { fn_es_llegada: FIRMA_LLEG, fn_frescura_sede: FIRMA_SEDE, fn_confianza_registro: FIRMA_CONF }[f];
+    const firma = FIRMAS[f];
     // Un parche en vivo: el mismo cuerpo con un comentario más (cambia el md5, no la conducta).
     return `savepoint s${i};
 select md5(prosrc) as parche${i} from pg_proc where oid = '${firma}'::regprocedure \\gset
@@ -912,9 +1091,9 @@ rollback to savepoint s${i};`;
   (o) => {
     afirmar("pegada otra vez: ok", json(o.OTRA_VEZ)?.ok === true, `OTRA_VEZ=${o.OTRA_VEZ}`);
     afirmar("…y los tres md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
-    ["fn_es_llegada", "fn_frescura_sede", "fn_confianza_registro"].forEach((f, i) => {
+    FUNCIONES.forEach((f, i) => {
       const e = json(o[`PARCHE_${i}`]);
-      afirmar(`${f} parchada en vivo: la migración aborta nombrándola`, e?.ok === false && (e?.msg ?? "").includes(`${f} ya existe con otro cuerpo`), o[`PARCHE_${i}`]);
+      afirmar(`${f} parchada en vivo: la migración aborta nombrándola`, e?.ok === false && (e?.msg ?? "").includes(AVISO_GUARDA(f)), o[`PARCHE_${i}`]);
       afirmar(`…y el parche de ${f} sigue ahí`, o[`SIGUE_${i}`] === "true", `SIGUE_${i}=${o[`SIGUE_${i}`]}`);
     });
   },
