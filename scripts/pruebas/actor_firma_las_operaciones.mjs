@@ -86,6 +86,10 @@ insert into auth.users (id, aud, role, email) values
   ('${T_ADMIN}', 'authenticated', 'authenticated', 'terminal-admin-tru@prueba.local');
 insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) values (:'tru', 'Terminal Ventas TRU', 'ventas', '${T_VENTAS}') returning id as t_ventas \\gset
 insert into retail.terminales (ubicacion_id, nombre, tipo, auth_user_id) values (:'tru', 'Terminal Administrativa TRU', 'administrativa', '${T_ADMIN}') returning id as t_admin \\gset
+-- ADR-0249 (2026-09-27): «Ajustar» dejó de venir de Existencias/Conteos/Traslados — pide su propio módulo, que la
+-- siembra de 20260923030000 no le da a ningún rol de terminal (el módulo no existía todavía). Los casos de abajo
+-- siguen probando el candado de responsable (D-13/ADR-0162) sobre registrar_movimiento, no el módulo.
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_administrativa'), 'ajustar_stock');
 insert into public.personas (id, nombres, apellidos, estado, sede_base_id) values ('${ROSA}', 'Rosa', 'Prueba', 'activo', :'sede_tru');
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) values ('${ROSA}', 'colaborador', :'tru');
 -- Rosa y Felipe marcaron entrada en Trujillo hace un segundo (fecha de la jornada explícita: sin carrera de medianoche).

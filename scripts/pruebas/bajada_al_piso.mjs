@@ -269,12 +269,13 @@ select pg_temp.intento('select count(*) from retail.bajada_piso_items');`,
 );
 caso(
   // «Nace sin rol» lo vigila `lib/modulos.test.ts` sobre las migraciones: aquí la base local puede tenerlo encendido a mano.
-  // El texto de Existencias es el de 20260926170000 (nombra el retiro del bloque 2), que corre después de la 0000.
+  // El texto de Existencias es el de 20260928130000 (ADR-0249 le quitó «ajustar stock»: ya es su propio módulo), que
+  // corre después de la 20260926170000 (que a su vez nombra el retiro del bloque 2, después de la 0000).
   "P1 · el módulo: Inventario, orden 85, delegable, no siempre-del-líder; Existencias dice «reponer y retirar del piso»",
   `select concat_ws('|', m.grupo, m.nombre, m.orden, m.solo_lider::int, m.delegable::int,
      (select incluye from retail.modulos where clave = 'existencias'))
      from retail.modulos m where m.clave = 'bajada_piso';`,
-  "Inventario|Bajada al piso|85|0|1|Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas"
+  "Inventario|Bajada al piso|85|0|1|Consultar stock, reponer y retirar del piso, apartar prendas"
 );
 caso(
   "P1 · firma con el responsable UNA vez (fn_actor_persona_id(true)) y sin el patrón viejo de auth.uid()",
@@ -326,9 +327,11 @@ select id as conteo from retail.conteos where ubicacion_id = :'tru' and estado =
 ${soloModulos("integrante", ["bajada_piso"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 2]), ":'tok1'")};
 select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''conteo_fisico'', null, %L)', :'va', :'tru', :'piso_t'));
 select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`,
+  // El mensaje de «ajustar» cambió el 2026-09-27 (ADR-0249): «Bajada al piso» ya no implica «Ajustar stock», que
+  // ahora es su propio módulo — ni «Existencias/Conteos/Traslados» (fn_puede_ajustar_inventario, sin tocar) alcanza.
   (l) =>
     json(l.at(-3)).ok &&
-    json(l.at(-2)).msg.startsWith("Solo un líder de equipo puede ajustar stock") &&
+    json(l.at(-2)).msg.startsWith("Tu rol no tiene el módulo «Ajustar stock»") &&
     json(l.at(-1)).msg.startsWith("Solo un líder puede cerrar un conteo")
 );
 caso(
