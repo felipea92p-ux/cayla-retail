@@ -17,6 +17,7 @@ import { ProveedorAcciones } from "@/components/ProveedorAcciones";
 import { ProveedorCostoEvolucion } from "@/components/ProveedorCostoEvolucion";
 import { ProveedorCuentasFicha } from "@/components/ProveedorCuentasFicha";
 import { SaldoFavorProveedor } from "@/components/SaldoFavorProveedor";
+import { Volver } from "@/components/ui/Volver";
 
 // Ficha de un proveedor (maqueta 09, ADR-0111): prenda terminada (vía Compras) e insumos del Taller
 // (vía insumo_lotes), en secciones separadas — nunca sumadas en un solo total, son negocios distintos
@@ -79,9 +80,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-6">
       <div className="anim-entra">
-        <Link href="/compras/proveedores" className="text-xs text-tinta/65 hover:text-rojo hover:underline">
-          ← Volver a Proveedores
-        </Link>
+        <Volver href="/compras/proveedores" a="Proveedores" />
         <div className="mt-2 flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
           <div className="flex min-w-0 items-start gap-4">
             <span aria-hidden className="font-display grid h-14 w-14 shrink-0 place-items-center rounded-full bg-sand text-2xl text-tinta">
@@ -91,7 +90,7 @@ export default async function ProveedorPage({ params }: { params: Promise<{ id: 
             <h1 className="font-display text-2xl text-tinta">{proveedor.nombre}</h1>
             <p className="mt-1 text-sm text-tinta/65">
               {proveedor.ruc ?? "Sin RUC"} · {proveedor.contacto ?? "Sin contacto"}
-              {proveedor.rubro && <> · {proveedor.rubro}</>}
+              {proveedor.rubros.length > 0 && <> · {proveedor.rubros.join(", ")}</>}
               {!proveedor.activo && <> · Desactivado</>}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">

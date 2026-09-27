@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowDown, ArrowUp, Banknote, CircleCheck, PackageSearch, Palette, Shirt, Tag, Truck } from "lucide-react";
 import { Slider } from "radix-ui";
-import { CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
-import { BotonFiltros, DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { CampoSelect, CampoTexto } from "@/components/ui/campos";
+import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
@@ -183,57 +183,69 @@ export function FiltrosProductos({
           <PanelPildoras>
             <BotonesOrdenPrecio orden={orden} onOrden={(v) => aplicar({ orden: v })} />
 
-            <DesplegablePildora icono={Shirt} etiqueta="Categoría" valor={cat ?? TODOS} onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
-              {categorias.map((c) => (
-                <ItemDesplegable key={c.id} value={c.id}>
-                  {c.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Shirt}
+              etiqueta="Categoría"
+              valor={cat ?? TODOS}
+              onValor={(v) => aplicar({ cat: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
+            />
 
-            <DesplegablePildora icono={Tag} etiqueta="Marca" valor={marca ?? TODOS} onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todas</ItemDesplegable>
-              {marcas.map((m) => (
-                <ItemDesplegable key={m.id} value={m.id}>
-                  {m.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Tag}
+              etiqueta="Marca"
+              valor={marca ?? TODOS}
+              onValor={(v) => aplicar({ marca: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todas" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+            />
 
-            <DesplegablePildora icono={Truck} etiqueta="Proveedor" valor={proveedor ?? TODOS} onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              {proveedores.map((p) => (
-                <ItemDesplegable key={p.id} value={p.id}>
-                  {p.nombre}
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Truck}
+              etiqueta="Proveedor"
+              valor={proveedor ?? TODOS}
+              onValor={(v) => aplicar({ proveedor: v === TODOS ? "" : v })}
+              opciones={[{ valor: TODOS, texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+            />
 
-            <DesplegablePildora icono={Palette} etiqueta="Color" valor={color ?? TODOS} onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              {colores.map((c) => (
-                <ItemDesplegable key={c.id} value={c.id}>
-                  <span className="inline-flex items-center gap-2">
-                    <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />
-                    {c.nombre}
-                  </span>
-                </ItemDesplegable>
-              ))}
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={Palette}
+              etiqueta="Color"
+              valor={color ?? TODOS}
+              onValor={(v) => aplicar({ color: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                ...colores.map((c) => ({
+                  valor: c.id,
+                  texto: c.nombre,
+                  icono: <span aria-hidden className="h-2.5 w-2.5 shrink-0 rounded-full border border-tinta/15" style={{ background: c.hex ?? "#d8d3c7" }} />,
+                })),
+              ]}
+            />
 
-            <DesplegablePildora icono={CircleCheck} etiqueta="Estado" valor={estado ?? TODOS} onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              <ItemDesplegable value="activo">Activo</ItemDesplegable>
-              <ItemDesplegable value="descontinuado">Descontinuado</ItemDesplegable>
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={CircleCheck}
+              etiqueta="Estado"
+              valor={estado ?? TODOS}
+              onValor={(v) => aplicar({ estado: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                { valor: "activo", texto: "Activo" },
+                { valor: "descontinuado", texto: "Descontinuado" },
+              ]}
+            />
 
-            <DesplegablePildora icono={PackageSearch} etiqueta="Stock" valor={stock ?? TODOS} onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}>
-              <ItemDesplegable value={TODOS}>Todos</ItemDesplegable>
-              <ItemDesplegable value="sin_stock">Sin stock</ItemDesplegable>
-              <ItemDesplegable value="bajo">Stock bajo</ItemDesplegable>
-              <ItemDesplegable value="reponer">Pedir a proveedor</ItemDesplegable>
-            </DesplegablePildora>
+            <DesplegablePildora
+              icono={PackageSearch}
+              etiqueta="Stock"
+              valor={stock ?? TODOS}
+              onValor={(v) => aplicar({ stock: v === TODOS ? "" : v })}
+              opciones={[
+                { valor: TODOS, texto: "Todos" },
+                { valor: "sin_stock", texto: "Sin stock" },
+                { valor: "bajo", texto: "Stock bajo" },
+                { valor: "reponer", texto: "Pedir a proveedor" },
+              ]}
+            />
 
             <PildoraPrecio
               precioMin={precioMin}
@@ -262,43 +274,40 @@ export function FiltrosProductos({
           autoComplete="off"
           type="search"
         />
-        <CampoSelectNativo etiqueta="Categoría" value={cat ?? ""} onChange={(e) => aplicar({ cat: e.target.value })}>
-          <option value="">Todas</option>
-          {categorias.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </CampoSelectNativo>
-        <CampoSelectNativo etiqueta="Marca" value={marca ?? ""} onChange={(e) => aplicar({ marca: e.target.value })}>
-          <option value="">Todas</option>
-          {marcas.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.nombre}
-            </option>
-          ))}
-        </CampoSelectNativo>
-        <CampoSelectNativo etiqueta="Proveedor" value={proveedor ?? ""} onChange={(e) => aplicar({ proveedor: e.target.value })}>
-          <option value="">Todos</option>
-          {proveedores.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.nombre}
-            </option>
-          ))}
-        </CampoSelectNativo>
-        <CampoSelectNativo etiqueta="Color" value={color ?? ""} onChange={(e) => aplicar({ color: e.target.value })}>
-          <option value="">Todos</option>
-          {colores.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.nombre}
-            </option>
-          ))}
-        </CampoSelectNativo>
-        <CampoSelectNativo etiqueta="Estado" value={estado ?? ""} onChange={(e) => aplicar({ estado: e.target.value })}>
-          <option value="">Todos</option>
-          <option value="activo">Activo</option>
-          <option value="descontinuado">Descontinuado</option>
-        </CampoSelectNativo>
+        <CampoSelect
+          etiqueta="Categoría"
+          valor={cat ?? ""}
+          onValor={(v) => aplicar({ cat: v })}
+          opciones={[{ valor: "", texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: c.nombre }))]}
+        />
+        <CampoSelect
+          etiqueta="Marca"
+          valor={marca ?? ""}
+          onValor={(v) => aplicar({ marca: v })}
+          opciones={[{ valor: "", texto: "Todas" }, ...marcas.map((m) => ({ valor: m.id, texto: m.nombre }))]}
+        />
+        <CampoSelect
+          etiqueta="Proveedor"
+          valor={proveedor ?? ""}
+          onValor={(v) => aplicar({ proveedor: v })}
+          opciones={[{ valor: "", texto: "Todos" }, ...proveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+        />
+        <CampoSelect
+          etiqueta="Color"
+          valor={color ?? ""}
+          onValor={(v) => aplicar({ color: v })}
+          opciones={[{ valor: "", texto: "Todos" }, ...colores.map((c) => ({ valor: c.id, texto: c.nombre }))]}
+        />
+        <CampoSelect
+          etiqueta="Estado"
+          valor={estado ?? ""}
+          onValor={(v) => aplicar({ estado: v })}
+          opciones={[
+            { valor: "", texto: "Todos" },
+            { valor: "activo", texto: "Activo" },
+            { valor: "descontinuado", texto: "Descontinuado" },
+          ]}
+        />
         <CampoTexto
           etiqueta="Precio desde"
           value={precioMin}
@@ -313,12 +322,17 @@ export function FiltrosProductos({
           inputMode="decimal"
           placeholder="S/ 999"
         />
-        <CampoSelectNativo etiqueta="Stock" value={stock ?? ""} onChange={(e) => aplicar({ stock: e.target.value })}>
-          <option value="">Todos</option>
-          <option value="sin_stock">Sin stock</option>
-          <option value="bajo">Stock bajo</option>
-          <option value="reponer">Pedir a proveedor</option>
-        </CampoSelectNativo>
+        <CampoSelect
+          etiqueta="Stock"
+          valor={stock ?? ""}
+          onValor={(v) => aplicar({ stock: v })}
+          opciones={[
+            { valor: "", texto: "Todos" },
+            { valor: "sin_stock", texto: "Sin stock" },
+            { valor: "bajo", texto: "Stock bajo" },
+            { valor: "reponer", texto: "Pedir a proveedor" },
+          ]}
+        />
       </div>
 
       {bloqueChips && <div className="mt-2">{bloqueChips}</div>}

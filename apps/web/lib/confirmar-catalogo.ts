@@ -8,7 +8,7 @@
  *
  * Neutros en género a propósito: sirven igual para «la talla», «el color» o «la marca».
  */
-export type AccionCatalogo = "aprobar" | "desactivar" | "reactivar";
+export type AccionCatalogo = "aprobar" | "desactivar" | "reactivar" | "eliminar";
 
 export type Confirmacion = {
   titulo: string;
@@ -19,12 +19,14 @@ export type Confirmacion = {
   accion: () => Promise<unknown>;
 };
 
-const VERBO: Record<AccionCatalogo, string> = { aprobar: "Aprobar", desactivar: "Desactivar", reactivar: "Reactivar" };
+const VERBO: Record<AccionCatalogo, string> = { aprobar: "Aprobar", desactivar: "Desactivar", reactivar: "Reactivar", eliminar: "Eliminar" };
 
 const BAJADA: Record<AccionCatalogo, string> = {
   aprobar: "Queda disponible para cualquier prenda nueva.",
   desactivar: "Deja de aparecer al crear prendas nuevas. Las prendas que ya existen no cambian.",
   reactivar: "Vuelve a aparecer al crear prendas nuevas.",
+  // Solo se ofrece cuando ninguna prenda la tiene (`sePuedeEliminarMarca`); con prendas, lo que corresponde es desactivar.
+  eliminar: "Se borra para siempre y no se puede deshacer. Si solo quieres que no aparezca al crear prendas nuevas, desactívala.",
 };
 
 export function confirmacionCatalogo(que: AccionCatalogo, nombre: string, accion: () => Promise<unknown>, bajada?: string): Confirmacion {

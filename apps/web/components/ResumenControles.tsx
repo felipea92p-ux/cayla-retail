@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { CalendarDays } from "lucide-react";
 import { BuscadorDebounced } from "@/components/ui/BuscadorDebounced";
 import { CampoFecha } from "@/components/ui/CampoFecha";
-import { ALTO_CONTROL, SelectNativo } from "@/components/ui/campos";
+import { ALTO_CONTROL, Desplegable } from "@/components/ui/campos";
 import { usePosicionAnclada } from "@/components/ui/useAnclaje";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import type { ModoResumen } from "@/lib/resumen-comparacion";
@@ -260,14 +260,12 @@ export function ResumenControles({
 
   const selectorCategoria = (
     <Filtro etiqueta="Categoría">
-      <SelectNativo value={alcance.categoriaId ?? ""} onChange={(e) => actualizar({ cat: e.target.value || null })}>
-        <option value="">Todas</option>
-        {categorias.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.nombre} ({c.variantes})
-          </option>
-        ))}
-      </SelectNativo>
+      <Desplegable
+        valor={alcance.categoriaId ?? ""}
+        onValor={(v) => actualizar({ cat: v || null })}
+        opciones={[{ valor: "", texto: "Todas" }, ...categorias.map((c) => ({ valor: c.id, texto: `${c.nombre} (${c.variantes})` }))]}
+        etiquetaAccesible="Categoría"
+      />
     </Filtro>
   );
 

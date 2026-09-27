@@ -1,13 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
   aplicarDescuento,
-  aplicarDescuentoMonto,
   atendioCorto,
   conCampanas,
   conCodigoDelCatalogo,
   descuentoDeCampana,
   descuentoResultante,
-  descuentoUnitarioPorMonto,
   descuentoUnitarioPorPorcentaje,
   desgloseIgv,
   metodoDeAtajo,
@@ -16,6 +14,7 @@ import {
   hayDescuentoManual,
   motivoBloqueoCobro,
   necesitaArgumentoEscrito,
+  pasoDelDescuento,
   pagosParaRpc,
   pagosTrasEditarMonto,
   pasoDelCobro,
@@ -23,6 +22,8 @@ import {
   quitarPagoTraspasando,
   restanteDePagos,
   SIN_DETALLE_DESCUENTO,
+  sinStockPorApartado,
+  textoSinStock,
   vueltoDe,
   type CampanaLinea,
   type DetalleDescuento,
@@ -132,21 +133,6 @@ describe("descuentoUnitarioPorPorcentaje — un % se vuelve monto por unidad", (
   });
 });
 
-describe("descuentoUnitarioPorMonto — un S/ por unidad, la otra entrada del apartado", () => {
-  it("un monto menor al precio se aplica tal cual, a 2 decimales", () => {
-    expect(descuentoUnitarioPorMonto(79.9, 15)).toBe(15);
-    expect(descuentoUnitarioPorMonto(79.9, 15.005)).toBe(15.01);
-  });
-  it("nunca supera el precio — el candado de venta_items lo rechazaría igual", () => {
-    expect(descuentoUnitarioPorMonto(50, 80)).toBe(50);
-  });
-  it("un monto inválido (0, negativo, NaN) no descuenta nada", () => {
-    expect(descuentoUnitarioPorMonto(79.9, 0)).toBe(0);
-    expect(descuentoUnitarioPorMonto(79.9, -5)).toBe(0);
-    expect(descuentoUnitarioPorMonto(79.9, Number.NaN)).toBe(0);
-  });
-});
-
 describe("aplicarDescuento — a todo el ticket o solo a las prendas elegidas", () => {
   const carrito = [linea("a", 79.9), linea("b", 179.9), linea("c", 50, 5)];
 
@@ -181,17 +167,6 @@ describe("aplicarDescuento — a todo el ticket o solo a las prendas elegidas", 
     const conDescuento = aplicarDescuento(carrito, 25, ["a"], { razon: "cerrar_venta", razonOtro: "", argumento: "Cierre de caja" });
     const sinDescuento = aplicarDescuento(conDescuento, 0, ["a"], SIN_DETALLE_DESCUENTO);
     expect(sinDescuento[0]).toMatchObject({ descuentoUnitario: 0, razonDescuento: "", argumentoDescuento: "" });
-  });
-});
-
-describe("aplicarDescuentoMonto — lo mismo que aplicarDescuento, pero en S/", () => {
-  const carrito = [linea("a", 79.9), linea("b", 50)];
-
-  it("aplica el mismo monto por unidad a las líneas alcanzadas, recortado al precio", () => {
-    expect(aplicarDescuentoMonto(carrito, 60, [], cumpleanos).map((l) => l.descuentoUnitario)).toEqual([60, 50]);
-  });
-  it("guarda el motivo igual que la versión por %", () => {
-    expect(aplicarDescuentoMonto(carrito, 10, ["a"], cumpleanos)[0].razonDescuento).toBe("cumpleanos_clienta_top");
   });
 });
 
@@ -369,21 +344,56 @@ describe("conCodigoDelCatalogo — un ticket en espera viejo recupera el código
   });
 });
 
-// R-45: el escalonado (20-35 % con argumento escrito, más de 35 % nadie) es solo del
-// Líder — la Colaboradora sigue con su propio tope, el código. El candado real vive en
-// `registrar_venta`; esto solo decide cuándo el apartado MUESTRA el campo.
-describe("necesitaArgumentoEscrito — la banda 20-35 % es solo del Líder", () => {
-  it("a un Líder por debajo de 20 % no le pide nada", () => {
-    expect(necesitaArgumentoEscrito(true, 20)).toBe(false);
-    expect(necesitaArgumentoEscrito(true, 15)).toBe(false);
+// Felipe, 2026-09-25: todo descuento manual que pase el 15 % pide argumento escrito, sea
+// quien sea (antes: solo un Líder pasado el 20 %). El candado real vive en `registrar_venta`;
+// esto solo decide cuándo el apartado MUESTRA el campo — con la misma cuenta al céntimo.
+describe("necesitaArgumentoEscrito — pasado el 15 % se escribe el porqué", () => {
+  it("hasta el 15 % no pide nada", () => {
+    expect(necesitaArgumentoEscrito(100, 10)).toBe(false);
+    expect(necesitaArgumentoEscrito(100, 15)).toBe(false);
+    // 15 % de 89.90 = 13.485 → el redondeo al céntimo no lo convierte en «pasa el 15 %».
+    expect(necesitaArgumentoEscrito(89.9, 13.49)).toBe(false);
   });
-  it("a un Líder pasado el 20 % le pide argumento", () => {
-    expect(necesitaArgumentoEscrito(true, 21)).toBe(true);
-    expect(necesitaArgumentoEscrito(true, 35)).toBe(true);
+  it("pasado el 15 % lo pide", () => {
+    expect(necesitaArgumentoEscrito(100, 16)).toBe(true);
+    expect(necesitaArgumentoEscrito(100, 15.02)).toBe(true);
+    expect(necesitaArgumentoEscrito(89.9, 18.88)).toBe(true); // 21 %
   });
-  it("a una Colaboradora nunca — su tope es el código, no el escalonado", () => {
-    expect(necesitaArgumentoEscrito(false, 30)).toBe(false);
-    expect(necesitaArgumentoEscrito(false, 90)).toBe(false);
+  it("sin precio o sin descuento no pide nada", () => {
+    expect(necesitaArgumentoEscrito(0, 5)).toBe(false);
+    expect(necesitaArgumentoEscrito(100, 0)).toBe(false);
+  });
+});
+
+describe("pasoDelDescuento — el primer campo que falta, de arriba abajo", () => {
+  const completo = {
+    valorValido: true,
+    razon: "cerrar_venta",
+    razonOtro: "",
+    pideArgumento: false,
+    argumento: "",
+    pideCodigo: false,
+    codigo: "",
+    prendas: 2,
+  };
+  it("sin % falta el valor, aunque lo demás esté puesto", () => {
+    expect(pasoDelDescuento({ ...completo, valorValido: false })).toBe("valor");
+  });
+  it("después el motivo, y si es «Otro», su detalle", () => {
+    expect(pasoDelDescuento({ ...completo, razon: "" })).toBe("motivo");
+    expect(pasoDelDescuento({ ...completo, razon: "otro", razonOtro: "  " })).toBe("motivoOtro");
+    expect(pasoDelDescuento({ ...completo, razon: "otro", razonOtro: "clienta frecuente" })).toBe("listo");
+  });
+  it("el argumento solo cuando se pide", () => {
+    expect(pasoDelDescuento({ ...completo, pideArgumento: true })).toBe("argumento");
+    expect(pasoDelDescuento({ ...completo, pideArgumento: true, argumento: "Se lleva 4 prendas" })).toBe("listo");
+  });
+  it("el código solo para quien lo necesita, y luego las prendas", () => {
+    expect(pasoDelDescuento({ ...completo, pideCodigo: true })).toBe("codigo");
+    expect(pasoDelDescuento({ ...completo, prendas: 0 })).toBe("prendas");
+  });
+  it("con todo puesto, listo para aplicar", () => {
+    expect(pasoDelDescuento(completo)).toBe("listo");
   });
 });
 
@@ -577,6 +587,13 @@ describe("pagosParaRpc — lo que viaja a registrar_venta", () => {
     expect(p).not.toHaveProperty("recibido");
   });
 
+  it("el nº de operación viaja limpio en Yape, Plin y transferencia (ADR-0230); vacío no inventa la clave", () => {
+    expect(pagosParaRpc([{ metodo: "yape", monto: 50, referencia: " 0123 4567 " }])).toEqual([{ metodo: "yape", monto: 50, referencia: "01234567" }]);
+    expect(pagosParaRpc([{ metodo: "plin", monto: 50, referencia: "" }])[0]).not.toHaveProperty("referencia");
+    expect(pagosParaRpc([{ metodo: "tarjeta", monto: 50, referencia: "999" }])[0]).not.toHaveProperty("referencia");
+    expect(pagosParaRpc([{ metodo: "efectivo", monto: 50, recibido: 50, referencia: "999" }])[0]).toEqual({ metodo: "efectivo", monto: 50, recibido: 50 });
+  });
+
   it("descarta los pagos en 0 (venta_pagos exige monto > 0)", () => {
     expect(pagosParaRpc([{ metodo: "efectivo", monto: 0, recibido: 10 }, { metodo: "yape", monto: 30 }])).toEqual([
       { metodo: "yape", monto: 30 },
@@ -707,5 +724,42 @@ describe("motivoBloqueoCobro — el responsable (ADR-0161)", () => {
   it("con responsable elegido (o sin la regla) no bloquea", () => {
     expect(motivoBloqueoCobro({ ...listo, motivoResponsable: null })).toBeNull();
     expect(motivoBloqueoCobro(listo)).toBeNull();
+  });
+});
+
+describe("textoSinStock — «agotada» o «apartada para una clienta»", () => {
+  it("sin nada apartado, agotada es agotada", () => {
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 0 })).toBe("agotada");
+    // Quien no trae `apartadoAqui` (una pantalla sin esta lectura) dice lo de siempre.
+    expect(textoSinStock({ stockAqui: 0 })).toBe("agotada");
+    expect(sinStockPorApartado({ stockAqui: 0 })).toBe(false);
+  });
+
+  it("piso en 0 con 1 apartada para una clienta: no está agotada, está apartada", () => {
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 1 })).toBe("apartada para una clienta");
+    expect(sinStockPorApartado({ stockAqui: 0, apartadoAqui: 1 })).toBe(true);
+    // Varias apartadas dicen lo mismo: la frase habla de la prenda, no de cuántas.
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 3 })).toBe("apartada para una clienta");
+  });
+
+  it("cada pantalla conserva su texto de siempre para agotada, y la frase abre igual que él", () => {
+    expect(textoSinStock({ stockAqui: 0 }, "sin stock aquí")).toBe("sin stock aquí");
+    expect(textoSinStock({ stockAqui: 0 }, "Sin stock aquí")).toBe("Sin stock aquí");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "sin stock aquí")).toBe("apartada para una clienta");
+    expect(textoSinStock({ stockAqui: 0, apartadoAqui: 2 }, "Sin stock aquí")).toBe("Apartada para una clienta");
+  });
+
+  it("con stock libre en el almacén gana «en el almacén» (motivoNoCobrable): esto NO es «apartada»", () => {
+    // El contrato que dice el docstring y que solo se cumple si el llamador pasa el almacén (Vender lo pasa; Cambios no).
+    expect(sinStockPorApartado({ stockAqui: 0, almacenAqui: 3, apartadoAqui: 1 })).toBe(false);
+    expect(textoSinStock({ stockAqui: 0, almacenAqui: 3, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
+    // Sin nada libre en el almacén sí es «apartada», y sin el dato del almacén (Cambios) también.
+    expect(sinStockPorApartado({ stockAqui: 0, almacenAqui: 0, apartadoAqui: 1 })).toBe(true);
+    expect(sinStockPorApartado({ stockAqui: 0, apartadoAqui: 1 })).toBe(true);
+  });
+
+  it("con piso libre no hay nada que explicar, aunque otra unidad esté apartada", () => {
+    expect(sinStockPorApartado({ stockAqui: 2, apartadoAqui: 1 })).toBe(false);
+    expect(textoSinStock({ stockAqui: 2, apartadoAqui: 1 }, "sin stock aquí")).toBe("sin stock aquí");
   });
 });

@@ -181,9 +181,9 @@ const HUELLAS: Huella[] = [
     frase: (prenda) => `Ese descuento en ${prenda} deja el precio por debajo de lo que cuesta. Bájalo un poco.`,
   },
   {
-    // Misma migración — banda 20-35 % de un Líder (R-45): pide un argumento escrito.
+    // Pasado el 15 % (Felipe, 2026-09-25; antes 20-35 % de un Líder, R-45): pide un argumento escrito.
     marca: "venta_descuento_requiere_argumento",
-    frase: (prenda) => `El descuento en ${prenda} pasa el 20 %: escribe el argumento antes de cobrar.`,
+    frase: (prenda) => `El descuento en ${prenda} pasa el 15 %: escribe el argumento antes de cobrar.`,
   },
   {
     // Misma migración — más de 35 % nadie, ni un Líder (decisión de Felipe, 2026-09-15):
@@ -321,6 +321,25 @@ const HUELLAS: Huella[] = [
     marca: "categorias_familia_fk",
     frase: "Esa familia ya no existe o fue desactivada. Recarga la lista y elige otra.",
   },
+  // 20260928100000_temporadas_como_atributo.sql (ADR-0246) — la temporada es una clave de la lista cerrada, no texto:
+  // la llave foránea rechaza «Verano 26» en el producto, la categoría o el color. Antes del genérico, por lo mismo que
+  // la de familias. La del color no tiene nombre propio en la migración (`references` en línea): Postgres la llama
+  // `producto_color_temporadas_temporada_fkey`, y la marca de abajo la contiene.
+  ...["productos_temporada_fk", "categorias_temporada_fk", "producto_color_temporadas_temporada_fk"].map((marca) => ({
+    marca,
+    frase: "Esa temporada no está en la lista. Elige una del desplegable.",
+  })),
+  {
+    // Misma migración: las dos redes del calendario que Postgres escribe por su cuenta (sin `hint`). El check guarda la
+    // holgura en días; la frase no repite el número para no quedar vieja si la base lo cambia.
+    marca: "temporada_fechas_cerca_de_su_estacion",
+    frase:
+      "Esa fecha queda demasiado lejos del inicio normal de su estación (el 21 de marzo, junio, setiembre o diciembre). Acércala y vuelve a guardar.",
+  },
+  {
+    marca: "temporada_fechas_inicio_unico",
+    frase: "Otra estación ya empieza en ese mismo instante. Elige otra hora.",
+  },
   {
     marca: "violates foreign key constraint",
     frase:
@@ -353,6 +372,14 @@ const HUELLAS: Huella[] = [
       "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
   },
   {
+    // 20260917100200_etiquetas_catalogo.sql — «Nueva colección» y «nueva coleccion» son la misma etiqueta para
+    // fn_clave_texto. El índice cuenta TAMBIÉN las pendientes, las rechazadas y las desactivadas: puede saltar aunque la
+    // lista de la pantalla (solo aprobadas y activas) no muestre ninguna igual — por eso la frase lo dice.
+    marca: "etiquetas_clave_unica",
+    frase:
+      "Ya existe una etiqueta con ese nombre (aunque esté escrito distinto, esté pendiente de aprobar o desactivada). Búscala en Catálogo → Atributos → Etiquetas en vez de crearla otra vez.",
+  },
+  {
     // 20260915160000_categorias_editar_desactivar.sql — el candado real:
     // "Blusas" y "BLUSAS"/"blusas" son la misma categoría para
     // fn_clave_texto, aunque el texto no calce byte a byte. Reemplaza al
@@ -381,6 +408,13 @@ const HUELLAS: Huella[] = [
   },
 ];
 
+/**
+ * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
+ * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
+ * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».
+ */
+const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
+
 /** Textos que delatan que ni siquiera se llegó al servidor. */
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
 
@@ -395,6 +429,41 @@ export function esFalloDeRed(error: ErrorEscritura): boolean {
   if (!error) return false;
   const crudo = [error.message, error.details, error.hint].filter(Boolean).join(" · ").toLowerCase();
   return SIN_RED.some((t) => crudo.includes(t));
+}
+
+/**
+ * ¿La respuesta NO trae el veredicto de la base? Un corte de red, o un error sin código de Postgres (un 502/504 del
+ * camino, una excepción del cliente, un envío cortado por tiempo): en esos casos la transacción pudo confirmarse
+ * igual. Un error CON código es la base diciendo que no: la transacción se deshizo. Lo usan las pantallas que envían
+ * con marca (la bajada al piso, «Reponer» y «Retirar del piso»): mientras la respuesta es incierta, solo se puede
+ * reenviar lo mismo con la misma marca.
+ */
+export function esRespuestaIncierta(error: ErrorEscritura): boolean {
+  return !!error && (esFalloDeRed(error) || !error.code);
+}
+
+/**
+ * SQLSTATE que dicen «ahora no, intenta de nuevo» y no «esto está mal»: choque de transacciones, bloqueo que no se
+ * soltó a tiempo (`lock_timeout`), consulta cortada por tiempo, base reiniciando o sin conexiones libres. Y los de
+ * PostgREST cuando no alcanza a la base (PGRST000–003).
+ */
+const CODIGOS_PASAJEROS = ["40001", "40P01", "55P03", "57014", "53300", "57P01", "57P03", "08000", "08003", "08006", "PGRST000", "PGRST001", "PGRST002", "PGRST003"];
+
+/**
+ * ¿El servidor SÍ respondió, pero con un error que se arregla solo al reintentar? (ADR-0210, «huecos»). Un 5xx, un
+ * 429 (demasiadas peticiones), un 408, o uno de los SQLSTATE de arriba. Hasta hoy la cola trataba todo lo que no era
+ * corte de red como rechazo definitivo y lo dejaba esperando un «Descartar» que no hacía falta (hueco anotado en
+ * ADR-0063). Como las operaciones encoladas son idempotentes por token, reintentarlas no duplica nada.
+ */
+export function esErrorPasajero(error: ErrorEscritura, status?: number | null): boolean {
+  if (!error) return false;
+  if (error.code && CODIGOS_PASAJEROS.includes(error.code)) return true;
+  return typeof status === "number" && (status >= 500 || status === 429 || status === 408);
+}
+
+/** ¿Guardar esto en la cola en vez de mostrar el error? Sin red, o con el servidor momentáneamente mal. */
+export function debeEncolarse(error: ErrorEscritura, status?: number | null): boolean {
+  return esFalloDeRed(error) || esErrorPasajero(error, status);
 }
 
 /** SQLSTATE propio de «otra persona cambió esto mientras lo editabas» (ADR-0193). PostgREST lo devuelve como 409. */
@@ -441,8 +510,10 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   const huella = HUELLAS.find((h) => enMinusculas.includes(h.marca.toLowerCase()));
   if (huella) return typeof huella.frase === "function" ? huella.frase(error.details ?? "") : huella.frase;
 
-  // `P0001` es un `raise exception` de nuestras propias RPC: ya viene en idioma CAYLA.
+  // `P0001` es un `raise exception` de nuestras propias RPC: ya viene en idioma CAYLA. Igual los de temporadas con otro
+  // código (el permiso, `42501`), que se reconocen por su `hint`.
   if (error.code === "P0001" && error.message) return error.message;
+  if (error.hint && HINT_EN_CASTELLANO.test(error.hint) && error.message) return error.message;
 
   return `No se pudo ${contexto}. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: ${crudo}`;
 }

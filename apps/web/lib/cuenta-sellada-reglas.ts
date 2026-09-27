@@ -132,6 +132,18 @@ export function etiquetaCuenta(c: CuentaElegible): string {
   return c.tipo === "cajon" && !c.cajaAbierta ? `${c.nombre} (caja cerrada)` : c.nombre;
 }
 
+/** Las opciones del combo de cuentas («Sale de», «Entra a», «Salió de»), agrupadas como el spike: con `medio`, solo las
+ *  que sirven para ese medio; sin él, todas las de la clase. Un cajón con la caja cerrada se ve, pero no se elige. Es el
+ *  combo del sistema (ADR-0209): el mismo en Compras y en Gastos. Sin cuenta elegida, lo dice el marcador del combo. */
+export function opcionesDeCuenta(
+  cuentas: readonly CuentaElegible[],
+  clase: ClaseMovimiento,
+  medio?: string,
+): { valor: string; texto: string; grupo: string; deshabilitada: boolean }[] {
+  const lista = medio ? cuentasParaMedio(cuentas, clase, medio) : cuentasDeLaClase(cuentas, clase);
+  return agruparCuentas(lista).flatMap((g) => g.cuentas.map((c) => ({ valor: c.id, texto: etiquetaCuenta(c), grupo: g.titulo, deshabilitada: !usable(c) })));
+}
+
 /** La frase bajo el combo: qué pasa con la plata según la cuenta elegida. */
 export function ayudaCuenta(c: CuentaElegible | null, sentido: "sale" | "entra", clase: ClaseMovimiento = "pago"): string {
   if (!c) return sentido === "sale" ? "Di de qué cuenta sale: queda sellada en el pago." : "Di a qué cuenta entra: queda sellada.";

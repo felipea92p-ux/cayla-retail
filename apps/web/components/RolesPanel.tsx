@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Lock, Search } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { BarraFija } from "@/components/ui/BarraFija";
-import { Boton, Interruptor } from "@/components/ui/campos";
+import { Boton, Desplegable, Interruptor } from "@/components/ui/campos";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Modal } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -448,24 +448,22 @@ export function RolesPanel({
 
           {editable && (
             <div className="flex flex-wrap items-center gap-2 px-5 pt-4">
-              <label htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
+              <label id={`pantalla-principal-${rol.id}-etiqueta`} htmlFor={`pantalla-principal-${rol.id}`} className="label-cayla shrink-0 text-[11px] text-tinta/65">
                 Pantalla principal
               </label>
-              <select
+              {/* Combo del sistema (ADR-0209), no el <select> del navegador: misma caja y misma lista que el resto del ERP. */}
+              <Desplegable
                 id={`pantalla-principal-${rol.id}`}
-                value={pantallaPrincipalBorrador ?? ""}
-                onChange={(e) =>
-                  setPantallaPrincipalBorradores((b) => ({ ...b, [rol.id]: e.target.value ? (e.target.value as ClaveModulo) : null }))
-                }
-                className="h-9 min-w-[180px] rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
-              >
-                <option value="">Automática (la primera que vea)</option>
-                {pantallasElegibles(borrador).map((m) => (
-                  <option key={m.clave} value={m.clave}>
-                    {m.nombre}
-                  </option>
-                ))}
-              </select>
+                idEtiqueta={`pantalla-principal-${rol.id}-etiqueta`}
+                forma="caja"
+                className="min-w-[200px]"
+                valor={pantallaPrincipalBorrador ?? ""}
+                onValor={(v) => setPantallaPrincipalBorradores((b) => ({ ...b, [rol.id]: v ? (v as ClaveModulo) : null }))}
+                opciones={[
+                  { valor: "", texto: "Automática (la primera que vea)" },
+                  ...pantallasElegibles(borrador).map((m) => ({ valor: m.clave, texto: m.nombre })),
+                ]}
+              />
               <span className="text-xs text-tinta/60">a dónde aterriza esta cuenta al iniciar sesión</span>
             </div>
           )}

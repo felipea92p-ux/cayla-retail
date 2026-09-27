@@ -1,6 +1,8 @@
 "use client";
 
-import { FAMILIAS_COLOR } from "@/lib/colores-familias";
+import { FAMILIAS_COLOR, fondoDeMuestra } from "@/lib/colores-familias";
+import { coloresParecidos } from "@/lib/color-parecido";
+import { normalizarPantone, normalizarSinonimos } from "@/lib/color-referencias";
 import { useEffect, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -40,7 +42,24 @@ type Color = {
   activo: boolean;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
+  /** Código Pantone TCX («19-1557 TCX»): la referencia para pedir la tela. Null = sin anclar (los metálicos). */
+  pantoneTcx: string | null;
+  /** Cómo le dicen en tienda («plomo» → Gris): el buscador los entiende. */
+  sinonimos: string[];
 };
+
+// El código Pantone se escribe como sea («19-1557», «19 1557 tcx») y se guarda como «19-1557 TCX». Dos colores no
+// pueden tener el mismo (índice único en la base): la pantalla lo dice antes de que la base lo rechace.
+function pantoneInvalido(texto: string, ocupados: Map<string, string>): boolean {
+  const p = normalizarPantone(texto);
+  return p === "invalido" || (p !== null && ocupados.has(p));
+}
+function pieDePantone(texto: string, ocupados: Map<string, string>): string {
+  const p = normalizarPantone(texto);
+  if (p === "invalido") return "Tiene la forma 19-1557 TCX (o solo 19-1557).";
+  if (p !== null && ocupados.has(p)) return `Ya lo tiene «${ocupados.get(p)}».`;
+  return p ? `Se guarda como ${p}` : "Opcional: el código para pedir la tela al taller o al proveedor.";
+}
 
 function ordenar(lista: Color[]) {
   return [...lista].sort((a, b) => a.orden - b.orden || a.nombre.localeCompare(b.nombre));
@@ -73,8 +92,35 @@ function gruposPorFamilia(lista: Color[]) {
 // El cuadradito de la grilla: el color tal cual está en el vocabulario. Las
 // texturas de tela viven en Tejidos y los estampados en Patrones (ADR-0106),
 // así que un color es solo eso: nombre, familia y hex.
-function Muestra({ hex, className = "h-12 w-full" }: { hex: string | null; className?: string }) {
-  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ backgroundColor: hex ?? "#e8e0d0" }} aria-hidden />;
+function Muestra({ hex, familia, className = "h-12 w-full" }: { hex: string | null; familia?: string | null; className?: string }) {
+  return <div className={`${className} rounded-lg border border-tinta/10`} style={{ background: fondoDeMuestra(hex, familia) ?? "#e8e0d0" }} aria-hidden />;
+}
+
+// Aviso, no candado: el color que se está creando o editando se ve casi igual que otro del vocabulario
+// (ΔE2000 < 8, `lib/color-parecido.ts`). Es el criterio con que se armó la paleta esencial (20260926100000):
+// dos colores que no se distinguen terminan partiendo el stock de una misma prenda en dos filas. Decide la
+// persona: Blanco y Crudo se parecen en pantalla y en textil son dos colores de verdad.
+function AvisoParecido({
+  hex,
+  familiaColor,
+  vocabulario,
+  excluir,
+}: {
+  hex: string | null;
+  familiaColor: string | null;
+  vocabulario: Color[];
+  excluir?: string;
+}) {
+  const parecidos = coloresParecidos(hex, familiaColor, vocabulario, { excluir }).slice(0, 3);
+  if (parecidos.length === 0) return null;
+  const nombres = parecidos.map((p) => `«${p.color.nombre}»`);
+  const lista = nombres.length === 1 ? nombres[0] : `${nombres.slice(0, -1).join(", ")} y ${nombres[nombres.length - 1]}`;
+  return (
+    <p role="status" className="rounded-md bg-ambar/10 px-3 py-2 text-xs leading-relaxed text-ambar-profundo">
+      Se ve casi igual que {lista}. Si es el mismo color, usa ese: con dos nombres, la misma prenda termina registrada de
+      dos formas. Si es otro, prueba un tono más distinto o guárdalo igual.
+    </p>
+  );
 }
 
 // El color se elige de tres maneras que dan lo mismo: el selector del
@@ -170,8 +216,11 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
   const [familiaColor, setFamiliaColor] = useState<(typeof FAMILIAS_COLOR)[number]["valor"]>("neutro");
   const [hex, setHex] = useState<string | null>(null);
   const [notas, setNotas] = useState("");
+  const [pantone, setPantone] = useState("");
+  const [sinonimos, setSinonimos] = useState("");
 
   const activos = colores.filter((c) => c.activo);
+  const vocabularioPantone = new Map(colores.filter((c) => c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const desactivados = colores.filter((c) => !c.activo);
   // Incluye los desactivados: el código es la clave primaria y sigue ocupado
   // aunque el color ya no se elija (cada SKU apunta a él).
@@ -187,6 +236,8 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
     setFamiliaColor("neutro");
     setHex(null);
     setNotas("");
+    setPantone("");
+    setSinonimos("");
   }
 
   async function guardar() {
@@ -195,7 +246,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       const res = await fetch("/api/productos/colores", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas }),
+        body: JSON.stringify({ nombre, codigo, familiaColor, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -210,10 +261,12 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
             nombre: datos.color.nombre,
             familiaColor: datos.color.familia_color,
             hex: datos.color.hex,
-            orden: 200,
+            orden: 2000,
             activo: true,
             notas: datos.color.notas,
             estado: datos.color.estado,
+            pantoneTcx: datos.color.pantone_tcx ?? null,
+            sinonimos: datos.color.sinonimos ?? [],
           },
         ])
       );
@@ -336,15 +389,16 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {coloresDeLaFamilia.map((c) => (
               <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
-                <Muestra hex={c.hex} />
+                <Muestra hex={c.hex} familia={c.familiaColor} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{c.nombre}</p>
                   {c.estado === "pendiente" && (
                     <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
                   )}
                 </div>
-                <div className="flex justify-between text-[11px] text-tinta/65">
+                <div className="flex justify-between gap-2 text-[11px] text-tinta/65">
                   <span className="font-mono">{c.codigo}</span>
+                  {c.pantoneTcx && <span className="font-mono" title="Código Pantone para pedir la tela">{c.pantoneTcx}</span>}
                 </div>
                 {puedeEditar && (
                   <div className="flex gap-2">
@@ -419,8 +473,26 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                 </div>
                 <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
                 <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+                <CampoTexto
+                  etiqueta="Pantone (TCX)"
+                  mono
+                  pie={pieDePantone(pantone, vocabularioPantone)}
+                  tono={pantoneInvalido(pantone, vocabularioPantone) ? "error" : undefined}
+                  value={pantone}
+                  onChange={(e) => setPantone(e.target.value)}
+                  placeholder="19-1557 TCX"
+                  autoComplete="off"
+                />
+                <CampoTexto
+                  etiqueta="Sinónimos"
+                  pie="Opcional: cómo le dicen en tienda, separados por coma. El buscador los entiende."
+                  value={sinonimos}
+                  onChange={(e) => setSinonimos(e.target.value)}
+                  placeholder="plomo, gris medio"
+                />
               </div>
               <SelectorColor hex={hex} onHex={setHex} />
+              <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={activos} />
 
               <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2 pt-3">
@@ -433,7 +505,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
                   className="flex-1"
                   onClick={guardar}
                   cargando={guardando}
-                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || !responsable.listo}
+                  disabled={!nombre.trim() || codigo.length !== 3 || !!dueñoDelCodigo || !hex || pantoneInvalido(pantone, vocabularioPantone) || !responsable.listo}
                   title={responsable.motivo ?? undefined}
                 >
                   Guardar color
@@ -450,7 +522,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((c) => (
               <div key={c.codigo} className="card-cayla flex flex-col gap-2.5 p-4 opacity-60">
-                <Muestra hex={c.hex} />
+                <Muestra hex={c.hex} familia={c.familiaColor} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-tinta">{c.nombre}</p>
                   {c.estado === "rechazado" && (
@@ -506,6 +578,7 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
       {editando && (
         <ColorEditarModal
           color={editando}
+          vocabulario={activos}
           responsable={responsable}
           onClose={() => setEditando(null)}
           onGuardado={(actualizado) => {
@@ -534,12 +607,15 @@ export function ColoresLista({ coloresIniciales, puedeEditar }: { coloresInicial
 // ---------------------------------------------------------------------------
 function ColorEditarModal({
   color,
+  vocabulario,
   responsable,
   onClose,
   onGuardado,
   onDesactivado,
 }: {
   color: Color;
+  /** Los colores activos, para avisar si el tono se ve casi igual que otro. */
+  vocabulario: Color[];
   /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
   responsable: ControlResponsable;
   onClose: () => void;
@@ -554,6 +630,10 @@ function ColorEditarModal({
   const [hex, setHex] = useState(color.hex ?? "#c9b79c");
   const [hexAbierto, setHexAbierto] = useState(false);
   const [notas, setNotas] = useState(color.notas ?? "");
+  const [pantone, setPantone] = useState(color.pantoneTcx ?? "");
+  const [sinonimos, setSinonimos] = useState(color.sinonimos.join(", "));
+  // Los códigos Pantone de los OTROS colores: el propio no cuenta como ocupado.
+  const vocabularioPantone = new Map(vocabulario.filter((c) => c.codigo !== color.codigo && c.pantoneTcx).map((c) => [c.pantoneTcx!, c.nombre]));
   const [guardando, setGuardando] = useState(false);
   const [desactivando, setDesactivando] = useState(false);
   // Desactivar pide un segundo clic: el primero arma el botón, y si nadie
@@ -575,7 +655,7 @@ function ColorEditarModal({
       const res = await fetch("/api/productos/colores", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas }),
+        body: JSON.stringify({ codigo: color.codigo, nombre, familiaColor, orden: ordenNumero, hex, notas, pantoneTcx: pantone, sinonimos: normalizarSinonimos(sinonimos, nombre) }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -593,6 +673,8 @@ function ColorEditarModal({
         activo: datos.color.activo,
         notas: datos.color.notas,
         estado: datos.color.estado,
+        pantoneTcx: datos.color.pantone_tcx ?? null,
+        sinonimos: datos.color.sinonimos ?? [],
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -650,6 +732,23 @@ function ColorEditarModal({
             </div>
             <CampoSelect etiqueta="Familia" valor={familiaColor} onValor={setFamiliaColor} opciones={FAMILIAS_COLOR} />
             <CampoTexto etiqueta="Notas" pie="Opcional, uso interno" value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Proveedor de la tela, advertencias…" />
+            <CampoTexto
+              etiqueta="Pantone (TCX)"
+              mono
+              pie={pieDePantone(pantone, vocabularioPantone)}
+              tono={pantoneInvalido(pantone, vocabularioPantone) ? "error" : undefined}
+              value={pantone}
+              onChange={(e) => setPantone(e.target.value)}
+              placeholder="19-1557 TCX"
+              autoComplete="off"
+            />
+            <CampoTexto
+              etiqueta="Sinónimos"
+              pie="Opcional: cómo le dicen en tienda, separados por coma. El buscador los entiende."
+              value={sinonimos}
+              onChange={(e) => setSinonimos(e.target.value)}
+              placeholder="plomo, gris medio"
+            />
           </div>
 
           <div>
@@ -669,6 +768,7 @@ function ColorEditarModal({
             )}
             <p className="mt-1 text-xs text-tinta/55">Cambia el color en todas las pantallas al instante; no reescribe ventas pasadas.</p>
           </div>
+          <AvisoParecido hex={hex} familiaColor={familiaColor} vocabulario={vocabulario} excluir={color.codigo} />
 
           <ComboResponsable control={responsable} deshabilitado={ocupado} />
           <div className="flex gap-2 pt-3">
@@ -681,7 +781,7 @@ function ColorEditarModal({
               className="flex-1"
               onClick={guardar}
               cargando={guardando}
-              disabled={!nombre.trim() || !ordenValido || ocupado || !responsable.listo}
+              disabled={!nombre.trim() || !ordenValido || pantoneInvalido(pantone, vocabularioPantone) || ocupado || !responsable.listo}
               title={responsable.motivo ?? undefined}
             >
               Guardar

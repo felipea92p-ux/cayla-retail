@@ -2,7 +2,7 @@
  {
   "cmd": "SELECT",
   "policyname": "activos_fijos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "activos_fijos",
@@ -65,7 +65,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categoria_patrones_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_patrones",
@@ -83,7 +83,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categoria_tallas_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_tallas",
@@ -101,7 +101,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categoria_tejidos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categoria_tejidos",
@@ -119,7 +119,7 @@
  {
   "cmd": "SELECT",
   "policyname": "categorias_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "categorias",
@@ -137,7 +137,7 @@
  {
   "cmd": "SELECT",
   "policyname": "clientas_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "clientas",
@@ -146,7 +146,7 @@
  {
   "cmd": "SELECT",
   "policyname": "codigos_barras_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_barras",
@@ -164,7 +164,7 @@
  {
   "cmd": "SELECT",
   "policyname": "codigos_correlativos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_correlativos",
@@ -182,7 +182,7 @@
  {
   "cmd": "SELECT",
   "policyname": "codigos_descuento_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "codigos_descuento",
@@ -231,12 +231,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "colores",
-  "with_check": "(auth.role() = 'authenticated'::text)"
+  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
  },
  {
   "cmd": "SELECT",
   "policyname": "colores_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "colores",
@@ -389,7 +389,7 @@
  {
   "cmd": "SELECT",
   "policyname": "configuracion_empresa_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "configuracion_empresa",
@@ -443,7 +443,7 @@
  {
   "cmd": "SELECT",
   "policyname": "cotizaciones_maquila_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "cotizaciones_maquila",
@@ -524,7 +524,7 @@
  {
   "cmd": "SELECT",
   "policyname": "etiqueta_categorias_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiqueta_categorias",
@@ -546,12 +546,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
-  "with_check": "((auth.role() = 'authenticated'::text) AND ((descuento_pct IS NULL) OR ( SELECT retail.fn_es_lider() AS fn_es_lider)))"
+  "with_check": "((( SELECT auth.role() AS role) = 'authenticated'::text) AND ((descuento_pct IS NULL) OR ( SELECT retail.fn_es_lider() AS fn_es_lider)))"
  },
  {
   "cmd": "SELECT",
   "policyname": "etiquetas_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "etiquetas",
@@ -569,7 +569,7 @@
  {
   "cmd": "SELECT",
   "policyname": "familias_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "familias",
@@ -587,10 +587,10 @@
  {
   "cmd": "SELECT",
   "policyname": "gastos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
-  "tablename": "gastos",
+  "tablename": "gastos_legado_2026_09",
   "with_check": null
  },
  {
@@ -614,7 +614,7 @@
  {
   "cmd": "SELECT",
   "policyname": "insumos_select_autenticado",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "insumos",
@@ -650,7 +650,7 @@
  {
   "cmd": "SELECT",
   "policyname": "marca_proveedores_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "marca_proveedores",
@@ -668,7 +668,7 @@
  {
   "cmd": "SELECT",
   "policyname": "marcas_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "marcas",
@@ -726,12 +726,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "patrones",
-  "with_check": "(auth.role() = 'authenticated'::text)"
+  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
  },
  {
   "cmd": "SELECT",
   "policyname": "patrones_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "patrones",
@@ -775,6 +775,15 @@
  },
  {
   "cmd": "SELECT",
+  "policyname": "produccion_etapas_historial_select",
+  "qual": "(EXISTS ( SELECT 1\n   FROM retail.producciones p\n  WHERE (p.id = produccion_etapas_historial.produccion_id)))",
+  "roles": "{authenticated}",
+  "schemaname": "retail",
+  "tablename": "produccion_etapas_historial",
+  "with_check": null
+ },
+ {
+  "cmd": "SELECT",
   "policyname": "produccion_lineas_select",
   "qual": "(EXISTS ( SELECT 1\n   FROM retail.producciones p\n  WHERE ((p.id = produccion_lineas.produccion_id) AND COALESCE((( SELECT retail.fn_es_lider() AS fn_es_lider) OR (p.ubicacion_id = ( SELECT retail.fn_ubicacion_actual_persona() AS fn_ubicacion_actual_persona))), false))))",
   "roles": "{public}",
@@ -794,7 +803,7 @@
  {
   "cmd": "SELECT",
   "policyname": "producto_fotos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "producto_fotos",
@@ -812,7 +821,7 @@
  {
   "cmd": "SELECT",
   "policyname": "productos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "productos",
@@ -848,7 +857,7 @@
  {
   "cmd": "SELECT",
   "policyname": "proveedores_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "proveedores",
@@ -947,7 +956,7 @@
  {
   "cmd": "SELECT",
   "policyname": "sububicaciones_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "sububicaciones",
@@ -969,12 +978,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tallas",
-  "with_check": "(auth.role() = 'authenticated'::text)"
+  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
  },
  {
   "cmd": "SELECT",
   "policyname": "tallas_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tallas",
@@ -996,12 +1005,12 @@
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tejidos",
-  "with_check": "(auth.role() = 'authenticated'::text)"
+  "with_check": "(( SELECT auth.role() AS role) = 'authenticated'::text)"
  },
  {
   "cmd": "SELECT",
   "policyname": "tejidos_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "tejidos",
@@ -1019,7 +1028,7 @@
  {
   "cmd": "SELECT",
   "policyname": "terminales_select",
-  "qual": "(( SELECT retail.fn_puede_gestionar_colaboradores() AS fn_puede_gestionar_colaboradores) OR (auth_user_id = auth.uid()))",
+  "qual": "(( SELECT retail.fn_puede_gestionar_colaboradores() AS fn_puede_gestionar_colaboradores) OR (auth_user_id = ( SELECT auth.uid() AS uid)))",
   "roles": "{authenticated}",
   "schemaname": "retail",
   "tablename": "terminales",
@@ -1082,7 +1091,7 @@
  {
   "cmd": "SELECT",
   "policyname": "ubicacion_datos_fiscales_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ubicacion_datos_fiscales",
@@ -1091,7 +1100,7 @@
  {
   "cmd": "SELECT",
   "policyname": "ubicaciones_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "ubicaciones",
@@ -1109,7 +1118,7 @@
  {
   "cmd": "SELECT",
   "policyname": "variante_etiquetas_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "variante_etiquetas",
@@ -1127,7 +1136,7 @@
  {
   "cmd": "SELECT",
   "policyname": "variantes_select",
-  "qual": "(auth.role() = 'authenticated'::text)",
+  "qual": "(( SELECT auth.role() AS role) = 'authenticated'::text)",
   "roles": "{public}",
   "schemaname": "retail",
   "tablename": "variantes",

@@ -596,6 +596,13 @@ las responde, y **no se escribe tabla antes**:
   y eso cambia quién puede canjear y cómo se reparte el descuento en el estado de
   resultados por sede (D-30).
 
+> **Actualización 2026-09-26:** la mecánica ya no está abierta. D-77
+> (`DECISIONES-2026-09-21-menu-comercial.md`) fijó una versión 1 sin puntos, y la ronda
+> del 2026-09-26 (`DECISIONES-2026-09-26-clientas.md`, D-92 a D-111) la afinó: sin
+> puntos, sin saldo y sin niveles, con un solo beneficio con costo (el de cumpleaños,
+> dentro de un 2%). El punto 5 de abajo no se construye en esta versión. *El texto de
+> arriba se conserva como quedó el 2026-09-12.*
+
 **5 · Recién con eso decidido: `clienta_puntos_movimientos`.**
 
 ```
@@ -805,10 +812,18 @@ vender, ajustar stock y cerrar caja, y cada cosa que haga queda firmada con el
 
 ## La pantalla de devolver al almacén · D-41 · DECIDIDA
 
-`devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` **ya existe en
-producción** y está en la lista de funciones que nadie llama
-(`generado/DRIFT.md`). El camino de ida tiene pantalla —`BajarATiendaModal.tsx` llama
-a `bajar_a_piso`— y el de vuelta no.
+> **(V1; hoy: 2026-09-25)** `devolver_a_almacen` y `bajar_a_piso` ya no existen. Retirar
+> del piso es `mover_interno` con origen piso y destino almacén, y desde el 2026-09-25 tiene
+> pantalla: «Retirar del piso», en el menú «⋯» de cada talla en Existencias (bloque 2 de ADR-0208). La ida es «Reponer» de Existencias
+> (`mover_interno`) y, desde el 2026-09-25 (sin pegar en producción), la pantalla «Bajar
+> prendas al piso» (`bajar_al_piso`), a la que se entra por el botón «Bajar al piso» de
+> Existencias.
+> El párrafo que sigue es el de V1.
+
+`devolver_a_almacen(p_sede_id, p_variante_id, p_cantidad, p_nota)` (V1) **existía en
+producción** cuando se escribió esto y no tenía pantalla (consulta del 2026-09-26: ya no
+existe, por eso tampoco sale en `generado/DRIFT.md`). El camino de ida tiene pantalla —`BajarATiendaModal.tsx` llama
+a `bajar_a_piso` (V1)— y el de vuelta no.
 
 **Qué se rompe sin ella.** Fin de temporada: la ropa que sale de vitrina y vuelve a
 cajas se registra como ajuste negativo en piso, o no se registra. En el primer caso

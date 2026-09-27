@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, type RefObject } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, Clock, Info, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Chip } from "@/components/ui/Chip";
+import { CampoSelect } from "@/components/ui/campos";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { formatearHora } from "@/components/ComprasAgrupadas";
 import { BotonPrincipal, BotonRojo, BotonSecundario } from "@/components/FlujoGuiado";
@@ -18,8 +19,8 @@ import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { OpcionesCuenta, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
-import { ayudaCuenta, cuentaEfectiva, hayCuentasPara } from "@/lib/cuenta-sellada-reglas";
+import { useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
+import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta } from "@/lib/cuenta-sellada-reglas";
 
 /**
  * «Por aprobar» (2026-09-18): las devoluciones que una colaboradora registró y un líder
@@ -40,7 +41,6 @@ export function DevolucionesPendientes({
   esLider,
   cajaAbierta,
   ahora,
-  refTitulo,
   ubicacionId,
   sede,
 }: {
@@ -48,28 +48,26 @@ export function DevolucionesPendientes({
   esLider: boolean;
   cajaAbierta: boolean;
   ahora: Date;
-  refTitulo: RefObject<HTMLHeadingElement | null>;
   /** La tienda de estas devoluciones: la lista de «De turno» del combo es la de aquí. */
   ubicacionId: string;
   sede: string;
 }) {
-  if (pendientes.length === 0) return null;
+  // El título y la bajada los pone la pestaña «Por aprobar» de DevolucionesPanel (2026-09-26): aquí
+  // solo la lista, o una nota si no hay ninguna (la pestaña se ve igual, vacía o no).
+  if (pendientes.length === 0) {
+    return (
+      <p className="nota-cayla flex items-start gap-2.5">
+        <Check className="mt-0.5 h-4 w-4 shrink-0 text-verde" aria-hidden />
+        <span>No hay devoluciones esperando. Las que se registren aparecen aquí hasta que un líder las apruebe o las rechace.</span>
+      </p>
+    );
+  }
   return (
-    <section aria-labelledby="por-aprobar" className="space-y-4">
-      <div>
-        <h2 id="por-aprobar" ref={refTitulo} tabIndex={-1} className="font-display scroll-mt-28 text-[30px] leading-none text-tinta outline-none">
-          Por aprobar <span className="text-tinta/70">({pendientes.length})</span>
-        </h2>
-        <p className="mt-0.5 text-sm text-tinta/70">
-          {esLider ? "Revisa cada una: al aprobarla se mueve el stock." : "Esperan que un líder las apruebe: hasta entonces el stock no cambia."}
-        </p>
-      </div>
-      <div className="space-y-3">
-        {pendientes.map((d) => (
-          <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
-        ))}
-      </div>
-    </section>
+    <div className="space-y-3">
+      {pendientes.map((d) => (
+        <TarjetaPendiente key={d.id} devolucion={d} esLider={esLider} cajaAbierta={cajaAbierta} ahora={ahora} ubicacion={{ ubicacionId, etiqueta: sede }} />
+      ))}
+    </div>
   );
 }
 
@@ -313,43 +311,26 @@ function PanelResolver({
             </div>
             {montoNumero !== null && montoNumero > 0 && (
               <div className="anim-revelar">
-                <label htmlFor={`metodo-${d.id}`} className="text-xs font-semibold text-tinta/70">
-                  ¿Cómo se le devuelve?
-                </label>
-                <select
-                  id={`metodo-${d.id}`}
-                  value={metodo}
-                  onChange={(e) => setMetodo(e.target.value as typeof metodo)}
-                  className="mt-1 h-10 rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta"
-                >
-                  {METODOS_DIFERENCIA.map((m) => (
-                    <option key={m.valor} value={m.valor}>
-                      {m.etiqueta}
-                    </option>
-                  ))}
-                </select>
+                <CampoSelect
+                  etiqueta="¿Cómo se le devuelve?"
+                  valor={metodo}
+                  onValor={setMetodo}
+                  opciones={METODOS_DIFERENCIA.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                />
               </div>
             )}
             {hayReembolso && (
               <div className="anim-revelar min-w-0 max-w-full flex-1 basis-[14rem]">
-                <label htmlFor={`cuenta-${d.id}`} className="text-xs font-semibold text-tinta/70">
-                  Sale de
-                </label>
-                <select
+                {/* El combo del sistema, como su vecino «¿Cómo se le devuelve?»: bloqueado, su marcador dice de dónde sale. */}
+                <CampoSelect
+                  etiqueta="Sale de"
                   id={`cuenta-${d.id}`}
-                  value={cuentaSale ?? ""}
-                  disabled={!conCuenta || !hayCuentas}
-                  onChange={(e) => setCuentaElegida(e.target.value)}
-                  className="mt-1 h-10 w-full rounded-lg border border-tinta/15 bg-papel px-3 text-sm text-tinta outline-none transition-colors duration-200 focus:border-tinta disabled:text-tinta/55"
-                >
-                  {!conCuenta ? (
-                    <option value="">El cajón de la tienda</option>
-                  ) : hayCuentas ? (
-                    <OpcionesCuenta cuentas={cuentas.cuentas} clase="cobro" medio={metodo} />
-                  ) : (
-                    <option value="">{cuentas.listo ? "Sin cuenta configurada para este medio" : "…"}</option>
-                  )}
-                </select>
+                  valor={cuentaSale ?? ""}
+                  onValor={setCuentaElegida}
+                  opciones={conCuenta && hayCuentas ? opcionesDeCuenta(cuentas.cuentas, "cobro", metodo) : []}
+                  marcador={!conCuenta ? "El cajón de la tienda" : !cuentas.listo ? "…" : hayCuentas ? undefined : "Sin cuenta configurada para este medio"}
+                  deshabilitado={!conCuenta || !hayCuentas}
+                />
               </div>
             )}
           </div>

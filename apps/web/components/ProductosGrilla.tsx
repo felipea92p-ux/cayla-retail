@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Modal, botonCancelar, botonPrimario } from "@/components/ui/Modal";
 import { Chip } from "@/components/ui/Chip";
 import { AjustarInventarioModal } from "@/components/AjustarInventarioModal";
+import { EliminarProductoModal } from "@/components/EliminarProductoModal";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado, VarianteCatalogo } from "@/lib/catalogo-v2";
 import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
@@ -138,12 +139,18 @@ export function ProductosGrilla({
   ubicacionId,
   sububicaciones,
   puedeAjustar,
+  puedeBajarAlPiso,
+  puedeEliminar,
   mensajeVacio = MENSAJE_SIN_RESULTADOS,
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
+  /** ¿Su rol ve «Bajada al piso»? Decide si «Ajustar» puede dejar colgadas en el piso las prendas nuevas en la tienda (ADR-0212). */
+  puedeBajarAlPiso: boolean;
+  /** Solo Admin y Líder (`fn_es_lider()`): borrar un producto que nunca se movió. La ventana pregunta a la base antes de ofrecerlo. */
+  puedeEliminar: boolean;
   mensajeVacio?: string;
 }) {
   if (productos.length === 0) {
@@ -153,7 +160,7 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} />
+        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
       ))}
     </div>
   );
@@ -164,17 +171,22 @@ function TarjetaProducto({
   ubicacionId,
   sububicaciones,
   puedeAjustar,
+  puedeBajarAlPiso,
+  puedeEliminar,
 }: {
   producto: ProductoListado;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   puedeAjustar: boolean;
+  puedeBajarAlPiso: boolean;
+  puedeEliminar: boolean;
 }) {
   const colores = coloresDe(producto.variantes);
   const [colorFijo, setColorFijo] = useState<string | null>(null);
   const [colorHover, setColorHover] = useState<string | null>(null);
   const [vistaRapida, setVistaRapida] = useState(false);
   const [ajustando, setAjustando] = useState(false);
+  const [eliminando, setEliminando] = useState(false);
 
   const nombreActivo = colorHover ?? colorFijo ?? colores[0]?.nombre ?? null;
   const activo = colores.find((c) => c.nombre === nombreActivo) ?? null;
@@ -264,6 +276,11 @@ function TarjetaProducto({
             setVistaRapida(false);
             setAjustando(true);
           }}
+          puedeEliminar={puedeEliminar}
+          onEliminar={() => {
+            setVistaRapida(false);
+            setEliminando(true);
+          }}
         />
       )}
       {ajustando && (
@@ -271,7 +288,14 @@ function TarjetaProducto({
           productoId={producto.productoId}
           ubicacionId={ubicacionId}
           sububicaciones={sububicaciones}
+          puedeBajarAlPiso={puedeBajarAlPiso}
           onClose={() => setAjustando(false)}
+        />
+      )}
+      {eliminando && (
+        <EliminarProductoModal
+          producto={{ productoId: producto.productoId, referencia: producto.referencia, estado: producto.estado, numVariantes: producto.variantes.length }}
+          onClose={() => setEliminando(false)}
         />
       )}
     </div>
@@ -285,6 +309,8 @@ function VistaRapidaModal({
   onClose,
   onAjustarInventario,
   puedeAjustar,
+  onEliminar,
+  puedeEliminar,
 }: {
   producto: ProductoListado;
   colores: ColorDisponible[];
@@ -292,6 +318,8 @@ function VistaRapidaModal({
   onClose: () => void;
   onAjustarInventario: () => void;
   puedeAjustar: boolean;
+  onEliminar: () => void;
+  puedeEliminar: boolean;
 }) {
   const [colorFijo, setColorFijo] = useState<string | null>(colorInicial);
   const [colorHover, setColorHover] = useState<string | null>(null);
@@ -358,6 +386,12 @@ function VistaRapidaModal({
             {puedeAjustar && (
               <button type="button" onClick={onAjustarInventario} className={botonPrimario}>
                 Ajustar inventario
+              </button>
+            )}
+            {/* Solo Admin y Líder. Abre una ventana que pregunta a la base si nunca se movió; con historia explica por qué no. */}
+            {puedeEliminar && (
+              <button type="button" onClick={onEliminar} className={botonCancelar}>
+                Eliminar
               </button>
             )}
           </div>

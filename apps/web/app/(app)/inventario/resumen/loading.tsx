@@ -9,10 +9,11 @@ export default function LoadingResumen() {
     <>
       <EsperaPantalla />
       <div className="animate-pulse space-y-5" aria-busy="true" aria-label="Cargando análisis de inventario">
-        <div className="space-y-2">
-          <div className="h-3 w-44 rounded bg-sand" />
-          <div className="h-8 w-80 max-w-full rounded bg-sand" />
-          <div className="h-3 w-[26rem] max-w-full rounded bg-sand/70" />
+        {/* La silueta de `EncabezadoPagina` (ADR-0220): línea de sede y fecha, título de 46 px y la frase. */}
+        <div>
+          <div className="h-3 w-64 max-w-full rounded bg-sand" />
+          <div className="mt-3 h-9 w-48 max-w-full rounded bg-sand sm:h-[46px]" />
+          <div className="mt-2.5 h-3 w-[26rem] max-w-full rounded bg-sand/70" />
         </div>
         <div className="flex items-center justify-between gap-4">
           <div className="h-9 w-64 max-w-full rounded-md bg-sand/70" />

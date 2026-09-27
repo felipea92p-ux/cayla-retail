@@ -426,3 +426,15 @@ agregaban y se archivaban, y un error de tipeo en el nombre, el tipo o el saldo 
 tipo reescribiría el sentido de cada cobro que ya se selló contra ella.
 **SE ROMPE SI:** la web nueva se publica antes que la migración, porque llamaría a funciones que no existen. Pruebas: `pnpm pruebas:editar-cuentas`
 (39 casos en la base) y `lib/cuenta-editar-reglas.test.ts`.
+
+## Actualización 2026-09-26 — el combo de Finanzas es el del sistema (ADR-0209)
+
+Felipe eligió que Finanzas no quede como excepción de la regla de combos. `SelectFin` (kit) ya no es un `<select>` del
+navegador: es el `Desplegable` del sistema con `forma="fin"`. **Cerrado, sigue siendo el control del spike** —su caja
+hueso, su flecha, su relleno y el ancho de su opción más larga, comparados número contra número con la versión anterior
+a 1280 y 375 px—. **Abierto, se aparta del spike a propósito:** la lista ya no la dibuja el sistema operativo sino el
+ERP (la misma de todas las pantallas), con buscador pasadas 8 opciones, grupos (las cuentas) y opciones bloqueadas (un
+cajón con la caja cerrada). El spike no podía definir esa lista: en él la pintaba el navegador. Flujo de caja usa
+`SelectEnLineaFin` (el combo dentro del sobretítulo). Las reglas de ancho de `finanzas.css` que apuntaban a
+`select.fin-control` ahora apuntan a `.fin-desplegable-caja` (la caja que ocupa lugar en la fila) y `.fin-desplegable`
+(el botón); `className` ubica el combo (`w-fit`, `fin-mes-chico`, `fin-compacto`), no lo pinta.

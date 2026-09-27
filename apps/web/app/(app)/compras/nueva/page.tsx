@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { exigirModulo } from "@/lib/persona-actual";
 import { getCatalogo, getCostosVariantes } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -6,7 +5,9 @@ import { getResumenCompras } from "@/lib/compras";
 import { getMarcasPorProveedor, getProveedores } from "@/lib/proveedores";
 import { repartoDisponible } from "@/lib/compras-reparto";
 import { datosPagoDe } from "@/lib/proveedores-reglas";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
 import { CompraFormV2 } from "@/components/CompraFormV2";
+import { Volver } from "@/components/ui/Volver";
 
 // Registrar una factura de proveedor (ADR-0035). La página solo junta los
 // tres catálogos que el formulario necesita; las reglas (contado exige pago,
@@ -31,9 +32,7 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
   // Cabecera del diseño: «← Comprobantes», título y bajada. La entrega el formulario junto al avance «Listo N de 4».
   const cabecera = (
     <div>
-      <Link href="/compras" className="label-cayla mb-4 inline-flex items-center gap-1.5 text-[11px] text-tinta/65 transition-[color,transform] duration-300 hover:-translate-x-0.5 hover:text-rojo">
-        <span aria-hidden>←</span> Facturas de proveedor
-      </Link>
+      <Volver href="/compras" a="Facturas de proveedor" className="mb-4" />
       <p className="label-cayla text-[11px] text-tinta/65">Compras</p>
       <h1 className="font-display mt-1 text-2xl text-tinta">Registrar factura de proveedor</h1>
       <p className="mt-1 text-sm text-tinta/65">
@@ -72,7 +71,9 @@ export default async function NuevaCompraPage({ searchParams }: { searchParams: 
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.varianteId,
-          sku: v.sku,
+          // El código de la etiqueta (`sku` es NULL en casi todas las variantes, ADR-0058): solo rotula la opción cuando la
+          // prenda no tiene talla ni color. Se elige por `varianteId`, nunca por esto.
+          sku: codigoDeEtiqueta(v),
           talla: v.talla,
           color: v.color,
           productoId: v.productoId,

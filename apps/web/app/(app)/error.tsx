@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { startTransition, useEffect } from "react";
 
 // Barrera de error de todo el mundo (app). Antes no existía ninguna: si una pantalla
 // reventaba, salía la página de error por defecto de Next —en inglés, con jerga de
@@ -18,6 +19,8 @@ export default function ErrorDeSeccion({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const router = useRouter();
+
   useEffect(() => {
     // El detalle va a la consola del servidor/navegador para poder diagnosticarlo; en
     // producción Next reemplaza el mensaje por un digest, así que no se filtra el error
@@ -39,8 +42,19 @@ export default function ErrorDeSeccion({
         </p>
 
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          {/* `reset` a secas no basta: en Next 16 solo vuelve a pintar esta barrera con la respuesta que
+              ya llegó, y esa trae el mismo error — la tarjeta reaparece aunque la causa (un corte de red)
+              ya se haya ido, y la persona en el mostrador ve que «Reintentar» no hace nada.
+              `router.refresh()` vuelve a pedir los datos al servidor; van juntos en `startTransition`
+              (lo mismo que hace `unstable_retry`, sin depender de una API inestable). Mismo patrón que
+              `vender/comprobantes/error.tsx`. */}
           <button
-            onClick={reset}
+            onClick={() =>
+              startTransition(() => {
+                router.refresh();
+                reset();
+              })
+            }
             className="label-cayla alza-cayla rounded-md bg-tinta px-5 py-2.5 text-[11px] text-crema hover:bg-rojo"
           >
             Reintentar

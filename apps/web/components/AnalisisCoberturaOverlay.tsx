@@ -2,53 +2,75 @@
 
 import { Modal } from "@/components/ui/Modal";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
-import { necesitaReponerPiso } from "@/lib/inventario-reglas";
-import { textoCobertura } from "@/lib/resumen-formato";
-import { BANDAS_COBERTURA, bandaDeCobertura, ETIQUETA_BANDA, type BandaCobertura } from "@/lib/resumen-reglas";
+import { textoCoberturaPiso } from "@/lib/resumen-formato";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /* ====================================================================
-   AnalisisCoberturaOverlay · «Ver análisis de cobertura» (2026-09-22)
+   AnalisisCoberturaOverlay · «Ver análisis de cobertura» (2026-09-22, REHECHO 2026-09-25 ×2)
 
-   Todo desde `stock: FilaExistencias[]` que Existencias ya cargó (cada fila
-   trae `.cobertura` de `getCoberturaPorVariante`) — sin pedir nada más a la
-   base. Agrupa por la MISMA banda que usa Análisis (`bandaDeCobertura`,
-   `resumen-reglas.ts`), para que «crítica» signifique lo mismo en las dos
-   pantallas. */
+   Todo desde `stock: FilaExistencias[]` que Existencias ya cargó (cada fila trae
+   `.coberturaPiso`/`.ritmoReciente`/`.accionHoy`) — sin pedir nada más a la base.
 
-const COLOR_BANDA: Record<BandaCobertura, string> = {
-  agotado: "bg-tinta/30",
-  critica: "bg-rojo",
-  atencion: "bg-ambar",
-  saludable: "bg-verde",
-  alta: "bg-verde/50",
-  sin_historial: "bg-tinta/15",
+   REHECHO (tercera ronda, Felipe 2026-09-25): Cobertura piso YA NO decide reposición — solo
+   informa cuánto dura aproximadamente el piso de hoy. Por eso las bandas de acá abajo son
+   puramente descriptivas (sin ningún corte de días: ese número ya no existe en este dominio) y
+   «Enfoca la reposición acá primero» YA NO se arma agrupando por banda de cobertura — se arma
+   filtrando por `f.accionHoy?.tipo === "reponer_a_piso"` (la regla física de piso,
+   `politica.umbralStockPisoReposicion`), la MISMA fuente que la tarjeta y la tabla. Dos listas
+   con criterios distintos para "qué reponer primero" habría sido exactamente el «dos motores»
+   que Felipe pidió no tener. */
+
+type BandaCoberturaPiso = "agotado" | "con_cobertura" | "sin_salida" | "no_estimable";
+
+const BANDAS: readonly BandaCoberturaPiso[] = ["agotado", "con_cobertura", "sin_salida", "no_estimable"];
+const ETIQUETA_BANDA: Record<BandaCoberturaPiso, string> = {
+  agotado: "Agotado",
+  con_cobertura: "Con cobertura estimada",
+  sin_salida: "Sin salida reciente",
+  no_estimable: "No estimable",
 };
+const COLOR_BANDA: Record<BandaCoberturaPiso, string> = {
+  agotado: "bg-tinta/30",
+  con_cobertura: "bg-verde",
+  sin_salida: "bg-tinta/20",
+  no_estimable: "bg-tinta/15",
+};
+
+function bandaDe(f: FilaExistencias): BandaCoberturaPiso {
+  const c = f.coberturaPiso;
+  if (!c) return "no_estimable";
+  if (c.tipo === "agotado") return "agotado";
+  if (c.tipo === "no_estimable") return c.razon === "sin_salida" ? "sin_salida" : "no_estimable";
+  return "con_cobertura";
+}
 
 export function AnalisisCoberturaOverlay({ stock, onClose }: { stock: FilaExistencias[]; onClose: () => void }) {
   const conCobertura = stock.filter((f) => f.disponible > 0);
-  const porBanda = new Map<BandaCobertura, FilaExistencias[]>();
+  const porBanda = new Map<BandaCoberturaPiso, FilaExistencias[]>();
   for (const f of conCobertura) {
-    const b = f.cobertura ? bandaDeCobertura(f.cobertura) : "sin_historial";
+    const b = bandaDe(f);
     porBanda.set(b, [...(porBanda.get(b) ?? []), f]);
   }
   const total = conCobertura.length || 1;
 
-  // Lo más urgente primero: agotado y crítica, luego atención — hasta 6, ordenado por menos días primero.
-  const urgentes = [...(porBanda.get("agotado") ?? []), ...(porBanda.get("critica") ?? []), ...(porBanda.get("atencion") ?? [])]
-    .sort((a, b) => (a.cobertura?.dias ?? -1) - (b.cobertura?.dias ?? -1))
+  // «Enfoca la reposición acá primero»: MISMA fuente que la tarjeta «Reponer a piso hoy» y la
+  // columna de la tabla — nunca una agrupación propia por cobertura. Menos piso primero (lo más
+  // físicamente urgente); hasta 6.
+  const urgentes = stock
+    .filter((f) => f.accionHoy?.tipo === "reponer_a_piso")
+    .sort((a, b) => (a.piso ?? 0) - (b.piso ?? 0))
     .slice(0, 6);
 
   return (
-    <Modal titulo="Análisis de cobertura" subtitulo="Cuánto dura el stock de hoy al ritmo de venta reciente, por banda." onClose={onClose} ancho="max-w-xl" variante="papel">
+    <Modal titulo="Análisis de cobertura" subtitulo="Cuánto dura aproximadamente el piso de hoy al Ritmo reciente (7 días), por banda." onClose={onClose} ancho="max-w-xl" variante="papel">
       <div className="space-y-1.5">
-        {BANDAS_COBERTURA.map((b) => {
+        {BANDAS.map((b) => {
           const n = porBanda.get(b)?.length ?? 0;
           if (n === 0) return null;
           const pct = Math.round((n / total) * 100);
           return (
             <div key={b} className="flex items-center gap-3">
-              <span className="w-24 shrink-0 text-xs text-tinta/70">{ETIQUETA_BANDA[b]}</span>
+              <span className="w-32 shrink-0 text-xs text-tinta/70">{ETIQUETA_BANDA[b]}</span>
               <span className="h-2 flex-1 overflow-hidden rounded-full bg-sand/60">
                 <span className={`block h-full rounded-full transition-all ${COLOR_BANDA[b]}`} style={{ width: `${pct}%` }} />
               </span>
@@ -75,10 +97,8 @@ export function AnalisisCoberturaOverlay({ stock, onClose }: { stock: FilaExiste
                   </span>
                 </span>
                 <span className="shrink-0 text-right text-xs">
-                  <span className={`block font-medium ${f.cobertura?.tipo === "agotado" ? "text-tinta/45" : "text-rojo-profundo"}`}>
-                    {f.cobertura ? textoCobertura(f.cobertura) : "N/D"}
-                  </span>
-                  {f.piso !== null && f.almacen !== null && necesitaReponerPiso(f.piso, f.almacen) && <span className="text-tinta/55">Hay en almacén</span>}
+                  <span className="block font-medium text-rojo-profundo">Piso: {f.piso ?? 0}</span>
+                  <span className="text-tinta/55">{f.accionHoy?.contexto ?? (f.coberturaPiso ? textoCoberturaPiso(f.coberturaPiso) : "N/D")}</span>
                 </span>
               </div>
             ))}

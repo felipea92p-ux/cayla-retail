@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getProductoResumen, getCambiosProducto } from "@/lib/historial-producto";
 import {
@@ -11,6 +10,7 @@ import {
   type ParamsMovimientos,
 } from "@/lib/movimientos-v2";
 import { HistorialProductoPanel } from "@/components/HistorialProductoPanel";
+import { Volver } from "@/components/ui/Volver";
 
 // Página completa del historial de un producto. Es lo que se ve al entrar
 // por enlace directo o al recargar; viniendo desde la lista de Productos, el
@@ -39,18 +39,14 @@ export default async function HistorialProductoPage({
 
   const [{ filas: movimientos, siguiente }, cambios] = await Promise.all([
     listarMovimientosProducto(productoId, ubicacionActivaId, { cursor }),
-    getCambiosProducto(productoId),
+    // El costo, solo a quien ve el dinero de compras (20260923193700): el historial no es otra puerta para verlo.
+    getCambiosProducto(productoId, { verCosto: puede(persona, "verDineroCompras") }),
   ]);
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">
-          <Link href="/productos" className="hover:text-rojo">
-            Productos
-          </Link>{" "}
-          · Historial
-        </p>
+        <Volver href="/productos" a="Productos" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">{producto.referencia}</h1>
         <p className="mt-1 text-sm text-tinta/65">{producto.categoria ?? "Sin categoría"}</p>
       </div>

@@ -1,6 +1,6 @@
 # ADR-0205 · "Más", avatar y lupa en la barra del celular
 
-- **Fecha:** 2026-09-25 · **Estado:** Aceptado y construido. **Producción:** ninguna migración ni RPC; es solo pantalla.
+- **Fecha:** 2026-09-25 · **Estado:** Aceptado y construido; **superado en parte por ADR-0206** el mismo día (la barra y «Más» se retiran por el cajón lateral; la lupa se queda). **Producción:** ninguna migración ni RPC; es solo pantalla.
 - **Alcance:** `apps/web/components/AppShell.tsx` (celular), `apps/web/components/MasMovil.tsx` (nuevo).
 - **Decide:** Felipe (pidió el spike visual, lo corrigió dos veces en vivo, luego «Bien ahora implementemos»).
   **Diseño:** `docs/maquetas/menu-movil-spike-2026-09/` (spike interactivo; queda como referencia).

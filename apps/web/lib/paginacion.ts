@@ -43,3 +43,33 @@ export function paginar<T>(filas: T[], pagina: number, porPagina: number): Pagin
     hasta: inicio + corte.length,
   };
 }
+
+/** Como `paginar`, pero una página nunca parte un grupo: si el corte de `porPagina` cae en medio de uno,
+ *  la página se estira hasta que el grupo termina. Existe por la lista «Por colgar» de Existencias, que se
+ *  trabaja por percha (un modelo en un color): si la S y la M de una casaca quedan en la página 1 y la L en
+ *  la 2, la encargada baja dos y se olvida de la tercera. Las páginas quedan de `porPagina` filas o un poco
+ *  más, nunca menos (salvo la última).
+ *
+ *  Asume que `filas` ya viene ordenada con cada grupo contiguo (quien pagina es quien ordena); si un grupo
+ *  aparece en dos tramos separados, cada tramo se trata como un grupo aparte. */
+export function paginarSinPartirGrupos<T>(filas: T[], pagina: number, porPagina: number, grupo: (fila: T) => string): Pagina<T> {
+  const tamano = Math.max(1, Math.floor(porPagina));
+  const inicios: number[] = [];
+  for (let i = 0; i < filas.length; ) {
+    inicios.push(i);
+    let fin = Math.min(filas.length, i + tamano);
+    while (fin < filas.length && grupo(filas[fin]) === grupo(filas[fin - 1])) fin++;
+    i = fin;
+  }
+  const totalPaginas = Math.max(1, inicios.length);
+  const actual = Math.min(totalPaginas, Math.max(1, Math.floor(pagina) || 1));
+  const inicio = inicios[actual - 1] ?? 0;
+  const corte = filas.slice(inicio, inicios[actual] ?? filas.length);
+  return {
+    filas: corte,
+    pagina: actual,
+    totalPaginas,
+    desde: corte.length ? inicio + 1 : 0,
+    hasta: inicio + corte.length,
+  };
+}

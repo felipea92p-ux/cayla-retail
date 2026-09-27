@@ -104,14 +104,23 @@ export type EstadoPrendaDevolucion = EstadoVisual & { devolvible: boolean };
  *  boleta, no de la línea (`docs/pantallas/devoluciones.md` tarea #8). */
 export function estadoPlazoDevolucion(creadoEn: string, ahora: Date): EstadoVisual {
   const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
-  // Igual que en Cambios: verde dentro del plazo (también los últimos días), rojo al vencer.
-  // Rojo aquí NO bloquea: solo dice que un líder tiene que decidir.
+  // Rojo al vencer, y NO bloquea: solo dice que un líder tiene que decidir. Dentro del plazo el chip
+  // dice cuántos días quedan (spike 2026-09-26, docs/maquetas/devoluciones-2026-09): es lo que la
+  // colaboradora le contesta a la clienta, sin sacar la cuenta. Ámbar los últimos 3 días.
   if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
   if (estado === "por_vencer") {
-    const texto = diasRestantes === 0 ? "Último día del plazo" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj" };
+    const texto = diasRestantes === 0 ? "Último día del plazo" : `Quedan ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
+    return { clave: "por_vencer", texto, tono: "ambar", icono: "reloj" };
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj" };
+  return { clave: "dentro_del_plazo", texto: `Quedan ${diasRestantes} días`, tono: "verde", icono: "reloj" };
+}
+
+/** Adónde fue una prenda de una devolución ya resuelta (pestaña «Resueltas»). Aprobada: la impecable
+ *  vuelve al piso y toda la que no, a cuarentena (`aprobar_devolucion` la manda a `prendas_danadas`,
+ *  también la de «devolver al proveedor»). Rechazada: no se movió nada, sigue con la clienta. */
+export function destinoPrendaResuelta(estado: "aprobada" | "rechazada", condicion: string): { texto: string; tono: EstadoVisual["tono"] } {
+  if (estado === "rechazada") return { texto: "Se queda con la clienta", tono: "neutro" };
+  return condicion === "vendible" ? { texto: "Al piso", tono: "verde" } : { texto: "En cuarentena", tono: "ambar" };
 }
 
 export function estadoPrendaDevolucion(

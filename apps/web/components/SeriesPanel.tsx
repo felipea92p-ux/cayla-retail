@@ -146,7 +146,7 @@ export function SeriesPanel({
                   <article key={s.id} className="card-cayla flex flex-col gap-2 px-4 py-3.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="label-cayla text-[11px] text-tinta/65">{nombreDelTipo(s.tipo)}</span>
-                      {usados > 0 ? <Chip tono="verde">en uso</Chip> : <Chip tono="neutro">sin estrenar</Chip>}
+                      {usados > 0 ? <Chip tono="verde">en uso</Chip> : <Chip tono="neutro">sin emitir</Chip>}
                     </div>
                     <p className="font-display text-[28px] leading-none tracking-wide text-tinta">{s.serie}</p>
                     <p className="text-[13px] text-tinta/70">
@@ -154,7 +154,7 @@ export function SeriesPanel({
                     </p>
                     <div className="flex items-center justify-between gap-2 border-t border-tinta/10 pt-2">
                       <p className="text-xs tabular-nums text-tinta/60">
-                        {usados === 0 ? "Todavía no emitió ninguno" : `${usados} ${usados === 1 ? "número usado" : "números usados"}`}
+                        {usados === 0 ? "Todavía no emitió ninguno" : `Sigue el ${s.siguiente_numero} · ${usados} ${usados === 1 ? "reservado" : "reservados"}`}
                         {ultimoPorSerie[s.id] && <span className="block">Último: {antiguedad(ultimoPorSerie[s.id], ahora)}</span>}
                       </p>
                       {esLider && (

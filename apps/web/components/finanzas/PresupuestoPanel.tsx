@@ -99,14 +99,12 @@ export function PresupuestoPanel({
             {esLider ? (
               <label className="fin-ver">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin value={ver} onChange={(e) => ir({ ver: e.target.value })} aria-label="Qué mirar">
-                  <option value="todas">Todas las tiendas</option>
-                  {unidades.map((u) => (
-                    <option key={u.clave} value={u.clave}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                </SelectFin>
+                <SelectFin
+                  etiqueta="Qué mirar"
+                  valor={ver}
+                  onValor={(v) => ir({ ver: v })}
+                  opciones={[{ valor: "todas", texto: "Todas las tiendas" }, ...unidades.map((u) => ({ valor: u.clave, texto: u.nombre }))]}
+                />
               </label>
             ) : (
               <Chip versalitas={false}>{tiendaNombre ?? bloques[0]?.nombre ?? "Tu tienda"}</Chip>
@@ -132,14 +130,13 @@ export function PresupuestoPanel({
               <p>{bajadaAvance(filas[0]?.momento)}</p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <SelectFin value={mes} onChange={(e) => ir({ mes: e.target.value })} aria-label="Mes" className="fin-mes-chico">
-                {meses.map((m) => (
-                  <option key={m} value={m}>
-                    {mesTitulo(m)}
-                    {m === mesDe(hoy) ? " · a la fecha" : ""}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin
+                etiqueta="Mes"
+                className="fin-mes-chico"
+                valor={mes}
+                onValor={(v) => ir({ mes: v })}
+                opciones={meses.map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · a la fecha" : ""}` }))}
+              />
               {esLider && (
                 <Link href={`/configuracion?tab=presupuesto&mes=${mes}`} className="btn-cayla btn-secundario btn-chico">
                   Cambiar metas y topes

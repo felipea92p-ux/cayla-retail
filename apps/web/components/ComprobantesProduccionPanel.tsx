@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Search } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
 import { diaMes } from "@/lib/fechas-lima";
-import { Boton } from "@/components/ui/campos";
+import { Boton, Desplegable } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
@@ -120,19 +120,13 @@ export function ComprobantesProduccionPanel({
                 { clave: "anulados", etiqueta: "Anulados", conteo: conteo("anulados") },
               ]}
             />
-            <select
-              aria-label="Filtrar por proveedor"
-              value={proveedorId}
-              onChange={(e) => setProveedorId(e.target.value)}
-              className="card-cayla h-9 px-3 text-sm text-tinta outline-none focus:border-rojo"
-            >
-              <option value="">Todos los proveedores</option>
-              {todosLosProveedores.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nombre}
-                </option>
-              ))}
-            </select>
+            <Desplegable
+              valor={proveedorId}
+              onValor={(v) => setProveedorId(v)}
+              opciones={[{ valor: "", texto: "Todos los proveedores" }, ...todosLosProveedores.map((p) => ({ valor: p.id, texto: p.nombre }))]}
+              etiquetaAccesible="Filtrar por proveedor"
+              forma="caja"
+            />
             <label className="card-cayla ml-auto flex min-w-52 items-center gap-2 px-3 py-1.5">
               <Search size={15} aria-hidden className="text-tinta/45" />
               <span className="sr-only">Buscar factura</span>

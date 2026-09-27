@@ -233,11 +233,11 @@ segunda como realidad.
 |---|---|---|---|---|---|
 | Vender / abrir caja | sí | sí | sí — `puede_operar_sede` | **sí** | no debería |
 | **Cerrar la caja del día** | sí | sí | sí | **sí** — `cerrar_caja` valida sede, no rol (`07_funciones_operacion.sql:117`) | no |
-| **Ajustar stock sin venta** | sí | sí | sí | **sí** — `registrar_movimiento` valida sede, no rol (`07_funciones_operacion.sql:65`) | no |
+| **Ajustar stock sin venta** | sí | sí | sí | **sí** — `registrar_movimiento` valida sede, no rol (`07_funciones_operacion.sql:65`) (además, desde `20260926000400`, sin pegar en producción: un ajuste «Reposición» sobre el piso se rechaza para cualquiera, líder incluido, hint `reposicion_piso_cerrada`, ADR-0208) | no |
 | **Registrar depósito** | sí | sí | sí | **sí** — `registrar_deposito` valida sede (`08_funciones_finanzas.sql:77`) | no |
 | **Registrar gasto** | sí | sí | **no** (`es_lider` = admin) · y además la pantalla está rota | no | no |
 | Trasladar a otra sede | sí | sí | sí | **sí, a cualquier sede** — el destino no se valida (sección 8) | no |
-| Recibir mercadería / mover piso ↔ almacén de su sede | sí | sí | sí | **sí** — `bajar_a_piso` y `devolver_a_almacen` validan sede (`12_almacen_interno.sql:260,301`) | no |
+| Recibir mercadería / mover piso ↔ almacén de su sede | sí | sí | sí | **sí** — `bajar_a_piso` y `devolver_a_almacen` validan sede (`12_almacen_interno.sql:260,301`) (V1; hoy: las dos son `mover_interno`, que solo valida la tienda con `fn_puede_operar_ubicacion`, sin módulo ni token; y `bajar_al_piso`, que además exige el módulo «Bajada al piso» dentro de la función, ADR-0208) | no |
 | Contar (conteo físico) | sí | sí | sí | **sí** — `conteo_contar` valida sede | no |
 | **Cerrar un conteo** (la aprobación) | sí | sí | **no** — `cerrar_conteo` exige `es_lider()` = admin (`30_conteos.sql:400`) | no | no |
 | **Ver costo y margen** | sí | sí (D-13) | **sí** | **sí** — decisión consciente, D-27 (sección 9) | sí |
@@ -400,8 +400,8 @@ pantalla para llamarlas.
 > 23"* porque se generó apuntando al contenedor local, no a producción. **Producción
 > tiene 56** (`generado/DRIFT.md` y `generado/funciones-produccion.txt`, leídos de la
 > base real). Quien concluya de RPCS.md que a producción "nunca le llegaron" las
-> funciones de almacén o de conteo se equivoca: `bajar_a_piso`,
-> `devolver_a_almacen`, `abrir_conteo`, `cerrar_conteo`, `conteo_contar`,
+> funciones de almacén o de conteo se equivoca: `bajar_a_piso` (V1; hoy: `mover_interno`),
+> `devolver_a_almacen` (V1; hoy: `mover_interno` al revés), `abrir_conteo`, `cerrar_conteo`, `conteo_contar`,
 > `conteo_crear_variante` y `anular_conteo` **están las siete allá**. Eso cierra
 > D-26 por el lado que importa: en producción un Integrante ya opera el almacén de su
 > propia sede. Lo que local tiene de más es la rama de la sede hermana

@@ -18,7 +18,19 @@ export type EstadoBase = "abierta" | "entregada" | "liberada" | "devuelta";
 export type MedioDevolucion = "yape" | "plin" | "transferencia";
 export type MedioDevolucionReal = MedioDevolucion | "efectivo" | "tarjeta";
 
-export type PrendaApartada = { varianteId: string; sku: string; referencia: string; cantidad: number; precioUnitario: number; descuentoUnitario: number };
+export type PrendaApartada = {
+  /** La fila en `separacion_items`: «Editar prendas» la nombra para quitarla. Vacío si la base es anterior a 20260927110000. */
+  itemId: string;
+  varianteId: string;
+  sku: string;
+  referencia: string;
+  cantidad: number;
+  precioUnitario: number;
+  descuentoUnitario: number;
+};
+
+/** Un pago del apartado: el adelanto (abono = false) o un abono a cuenta (20260927100000). */
+export type PagoApartado = { metodo: MetodoPago; monto: number; fecha: string | null; abono: boolean };
 
 /** Una fila de `buscar_separaciones`, ya con nombres de TypeScript. */
 export type Apartado = {
@@ -44,7 +56,9 @@ export type Apartado = {
   comprobanteFinal: string | null;
   notaCredito: string | null;
   prendas: PrendaApartada[];
-  pagos: { metodo: MetodoPago; monto: number }[];
+  pagos: PagoApartado[];
+  /** El lugar en el estante de Apartados (A-01…), solo mientras está abierto (20260927110000). */
+  estante: string | null;
 };
 
 /** Estado que VE la colaboradora: se calcula contra la fecha de hoy, nunca se guarda. */
@@ -169,11 +183,17 @@ export function vueltoDelAdelanto(pagos: readonly PagoAdelanto[]): number {
 }
 
 /** Por qué no se puede confirmar todavía, campo por campo. Vacío = listo. */
+/** Celular de Perú: 9 dígitos que empiezan en 9 (espacios y guiones no cuentan). Yape y Plin usan el mismo número. */
+export function esCelularPeru(texto: string): boolean {
+  return /^9\d{8}$/.test(soloDigitos(texto));
+}
+
 export function erroresDelApartado(f: FormularioApartado, total: number): Partial<Record<CampoApartado, string>> {
   const e: Partial<Record<CampoApartado, string>> = {};
   if (!f.nombres.trim()) e.nombres = "Escribe los nombres.";
   if (!f.apellidos.trim()) e.apellidos = "Escribe los apellidos.";
-  if (soloDigitos(f.celular).length !== 9) e.celular = "9 dígitos: por aquí se le avisa y se le devuelve.";
+  // Un celular peruano tiene 9 dígitos y empieza en 9: un fijo o un número a medias no recibe el aviso ni el Yape.
+  if (!esCelularPeru(f.celular)) e.celular = "9 dígitos y empieza en 9: por aquí se le avisa y se le devuelve.";
   const dni = soloDigitos(f.dni);
   if (dni && dni.length !== 8) e.dni = "El DNI tiene 8 dígitos.";
   if (!dni && f.comprobante === "boleta" && total > TOPE_BOLETA_SIN_DNI) e.dni = `Pasa de S/${TOPE_BOLETA_SIN_DNI}: la boleta lleva DNI.`;
@@ -191,7 +211,7 @@ export function erroresDelApartado(f: FormularioApartado, total: number): Partia
     if (soloDigitos(f.devolucionCci).length !== 20) e.devolucion = "El CCI tiene 20 dígitos.";
   } else {
     const num = soloDigitos(f.devolucionNumero);
-    if (num && num.length !== 9) e.devolucion = "El número tiene 9 dígitos (vacío = su celular).";
+    if (num && !esCelularPeru(num)) e.devolucion = "El número tiene 9 dígitos y empieza en 9 (vacío = su celular).";
   }
   if (!f.acepta) e.acepta = "Falta que la clienta acepte las condiciones.";
   return e;
@@ -240,9 +260,49 @@ export function textoDevolucion(a: Pick<Apartado, "devolucionMedio" | "devolucio
 export const formatoCelular = (c: string) => (c.length === 9 ? `${c.slice(0, 3)} ${c.slice(3, 6)} ${c.slice(6)}` : c);
 
 /** El mensaje de WhatsApp para recordarle a la clienta (se abre en wa.me: lo envía la persona, no el sistema). */
-export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceEl" | "saldo">, tienda: string): string {
-  const [y, m, d] = a.venceEl.split("-");
-  return `Hola ${a.nombres}, tu apartado ${a.codigo} te espera en CAYLA ${tienda} hasta el ${d}/${m}/${y}. Saldo por pagar: S/${a.saldo.toFixed(2)}.`;
+/** El recordatorio que se abre en WhatsApp. Con `hoy` y un apartado ya vencido, no le dice «te espera hasta» una fecha
+ *  pasada: le dice que venció y hasta cuándo se le sigue guardando (la gracia de D3, antes de liberarse solo). */
+export function mensajeWhatsapp(a: Pick<Apartado, "nombres" | "codigo" | "venceEl" | "saldo">, tienda: string, hoy?: string): string {
+  const ddmm = (iso: string) => {
+    const [y, m, d] = iso.split("-");
+    return `${d}/${m}/${y}`;
+  };
+  const saldo = `Saldo por pagar: S/${a.saldo.toFixed(2)}.`;
+  if (hoy && a.venceEl < hoy) {
+    return `Hola ${a.nombres}, tu apartado ${a.codigo} en CAYLA ${tienda} venció el ${ddmm(a.venceEl)}. Aún te lo guardamos hasta el ${ddmm(sumarDiasIso(a.venceEl, GRACIA_DIAS))}. ${saldo}`;
+  }
+  return `Hola ${a.nombres}, tu apartado ${a.codigo} te espera en CAYLA ${tienda} hasta el ${ddmm(a.venceEl)}. ${saldo}`;
+}
+
+/** Lo que la base sabe de los avisos de un apartado (`fn_avisos_separaciones`, 20260926233000). */
+export type AvisoApartado = { avisos: number; ultimoEn: string; ultimoPor: string | null };
+
+/** El día de Lima (`aaaa-mm-dd`) de un instante: «hoy» se cuenta en la hora de la tienda, no en la del servidor. */
+export function diaLima(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Lima" });
+}
+
+export function avisadaHoy(aviso: AvisoApartado | undefined, hoy: string): boolean {
+  return !!aviso && diaLima(aviso.ultimoEn) === hoy;
+}
+
+/**
+ * Recordar en lote (Apartados v2, paso 1): a quién hay que escribirle HOY. Entra todo apartado abierto que vence en 2
+ * días o menos, o que ya venció y sigue en su gracia; primero el que vence antes. Quien ya recibió un aviso hoy pasa a
+ * `avisadasHoy` (mañana vuelve a la cola si sigue abierto: un aviso por día, no uno para siempre).
+ */
+export function colaPorAvisar(
+  apartados: readonly Apartado[],
+  avisos: Readonly<Record<string, AvisoApartado>>,
+  hoy: string,
+): { porAvisar: Apartado[]; avisadasHoy: Apartado[] } {
+  const toca = apartados
+    .filter((a) => a.estado === "abierta" && ["porvencer", "vencida"].includes(estadoVisible(a, hoy).clave))
+    .sort((x, y) => x.venceEl.localeCompare(y.venceEl) || x.codigo.localeCompare(y.codigo));
+  return {
+    porAvisar: toca.filter((a) => !avisadaHoy(avisos[a.id], hoy)),
+    avisadasHoy: toca.filter((a) => avisadaHoy(avisos[a.id], hoy)),
+  };
 }
 export function enlaceWhatsapp(celular: string, mensaje: string): string {
   return `https://wa.me/51${soloDigitos(celular)}?text=${encodeURIComponent(mensaje)}`;
@@ -276,6 +336,7 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
     comprobanteFinal: (f.comprobante_final as string | null) ?? null,
     notaCredito: (f.nota_credito as string | null) ?? null,
     prendas: items.map((i) => ({
+      itemId: String(i.id ?? ""),
       varianteId: String(i.variante_id),
       sku: String(i.sku ?? ""),
       referencia: String(i.referencia ?? ""),
@@ -283,7 +344,8 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
       precioUnitario: n(i.precio_unitario),
       descuentoUnitario: n(i.descuento_unitario),
     })),
-    pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto) })),
+    pagos: pagos.map((p) => ({ metodo: p.metodo as MetodoPago, monto: n(p.monto), fecha: (p.fecha as string | null) ?? null, abono: Boolean(p.abono) })),
+    estante: (f.estante as string | null) ?? null,
   };
 }
 
@@ -292,3 +354,99 @@ export function apartadoDeFila(f: Record<string, unknown>): Apartado {
  *  lo ya cerrado). No se pagina (ADR-0192): la lista es el trabajo del mostrador, no un archivo; el resumen de arriba
  *  sale de `resumen_separaciones`, que cuenta todo. Si llegan justo 200 la pantalla AVISA que hay más en vez de callarlo. */
 export const TOPE_SEPARACIONES = 200;
+
+// ---- Abonos (Apartados v2, paso 2 — 20260927100000) ----------------------------------------------------------------
+
+/**
+ * Cuántos días más se la espera si al abonar se elige «esperarla» (Felipe, 2026-09-26): 2, o 3 si el abono cubre la
+ * mitad o más de lo que le faltaba. Sin elegirlo, el plazo no cambia. La base hace la misma cuenta (`abonar_separacion`).
+ */
+export function diasEsperaPorAbono(monto: number, saldo: number): 2 | 3 {
+  return monto * 2 >= saldo ? 3 : 2;
+}
+
+/** Los abonos de un apartado, sin el adelanto con que se apartó. */
+export const abonosDe = (a: Pick<Apartado, "pagos">) => a.pagos.filter((p) => p.abono);
+
+// ---- Opciones de Apartados (paso 5 — 20260927130000) --------------------------------------------------------------
+
+/** Las funciones que una tienda puede apagar. La clave es la misma que guarda la base (`apartados_opciones.apagadas`). */
+export const FUNCIONES_APARTADOS = [
+  { clave: "clienta", grupo: "Apartar", titulo: "Clienta por DNI o celular", texto: "Busca a la clienta en la ficha y llena sus datos solos." },
+  { clave: "qr", grupo: "Apartar", titulo: "Cámara QR en el celular", texto: "El mismo escáner de Vender, para apartar sin pistola." },
+  { clave: "estante", grupo: "Apartar", titulo: "Estante «Apartados»", texto: "Cada apartado recibe su lugar (A-01, A-02…) para encontrarlo al entregar." },
+  { clave: "otra_sede", grupo: "Apartar", titulo: "Pedir a otra sede", texto: "Si aquí no queda, se pide a la tienda que la tiene y al llegar se guarda sola." },
+  { clave: "abonos", grupo: "Cobro", titulo: "Abonos a cuenta", texto: "Pagar una parte antes de recoger, las veces que quiera." },
+  { clave: "editar", grupo: "Cobro", titulo: "Editar un apartado abierto", texto: "Sumar, quitar o cambiar la talla sin liberar y volver a apartar." },
+  { clave: "lote", grupo: "Seguimiento", titulo: "Recordar en lote", texto: "Escribirles una por una a las que vencen pronto, con el mensaje listo." },
+] as const;
+export type FuncionApartados = (typeof FUNCIONES_APARTADOS)[number]["clave"];
+
+/** Puntos de partida. De fábrica, Completo (Felipe, 2026-09-26): una tienda sin opciones guardadas lo tiene todo. */
+export const PRESETS_APARTADOS: Record<"esencial" | "recomendado" | "completo", { titulo: string; texto: string; encendidas: readonly FuncionApartados[] }> = {
+  esencial: { titulo: "Esencial", texto: "Apartar, entregar y devolver; nada más.", encendidas: [] },
+  recomendado: { titulo: "Recomendado", texto: "Lo que más ahorra tiempo en el piso y reduce vencidos.", encendidas: ["clienta", "qr", "abonos", "lote", "estante"] },
+  completo: { titulo: "Completo", texto: "Todo encendido. Es el de fábrica.", encendidas: FUNCIONES_APARTADOS.map((f) => f.clave) },
+};
+
+/** ¿Está encendida? Lo que la base no conoce como apagado, está encendido: una función nueva nace a la vista. */
+export const encendida = (apagadas: readonly string[], clave: FuncionApartados) => !apagadas.includes(clave);
+
+/** Qué preset coincide exactamente con lo encendido, o null si es una mezcla propia. */
+export function presetDe(apagadas: readonly string[]): keyof typeof PRESETS_APARTADOS | null {
+  const on = new Set(FUNCIONES_APARTADOS.map((f) => f.clave).filter((c) => !apagadas.includes(c)));
+  for (const [k, p] of Object.entries(PRESETS_APARTADOS)) {
+    if (p.encendidas.length === on.size && p.encendidas.every((c) => on.has(c))) return k as keyof typeof PRESETS_APARTADOS;
+  }
+  return null;
+}
+
+// ---- Pedir a otra sede para apartar (20260927140000) -------------------------------------------------------------
+
+export type EstadoPedido = "pedido" | "en_camino" | "llego" | "apartado" | "cancelado";
+/** Un pedido entre tiendas: `pedi` = esta tienda lo pidió para su clienta; `me_piden` = otra tienda se lo pide a esta. */
+export type PedidoApartado = {
+  id: string;
+  direccion: "pedi" | "me_piden";
+  otraSede: string;
+  varianteId: string;
+  cantidad: number;
+  nombres: string;
+  apellidos: string;
+  celular: string;
+  nota: string | null;
+  estado: EstadoPedido;
+  creadoEn: string;
+  guardadaHasta: string | null;
+  trasladoNumero: number | null;
+  canceladoMotivo: string | null;
+};
+
+export function pedidoDeFila(f: Record<string, unknown>): PedidoApartado {
+  return {
+    id: String(f.id),
+    direccion: f.direccion === "me_piden" ? "me_piden" : "pedi",
+    otraSede: String(f.otra_sede ?? ""),
+    varianteId: String(f.variante_id),
+    cantidad: Number(f.cantidad ?? 1),
+    nombres: String(f.clienta_nombres ?? ""),
+    apellidos: String(f.clienta_apellidos ?? ""),
+    celular: String(f.clienta_celular ?? ""),
+    nota: (f.nota as string | null) ?? null,
+    estado: f.estado as EstadoPedido,
+    creadoEn: String(f.created_at),
+    guardadaHasta: (f.guardada_hasta as string | null) ?? null,
+    trasladoNumero: f.traslado_numero == null ? null : Number(f.traslado_numero),
+    canceladoMotivo: (f.cancelado_motivo as string | null) ?? null,
+  };
+}
+
+/** Lo que dice el chip de un pedido, según de qué lado se mira. */
+export function textoEstadoPedido(p: Pick<PedidoApartado, "estado" | "direccion" | "otraSede">): string {
+  if (p.estado === "pedido") return p.direccion === "pedi" ? `Pedido a ${p.otraSede}` : `${p.otraSede} lo pide`;
+  if (p.estado === "en_camino") return p.direccion === "pedi" ? `En camino desde ${p.otraSede}` : `Enviado a ${p.otraSede}`;
+  if (p.estado === "llego") return p.direccion === "pedi" ? "Llegó · guardada" : `Llegó a ${p.otraSede}`;
+  if (p.estado === "apartado") return "Apartado con adelanto";
+  return "Cancelado";
+}
+

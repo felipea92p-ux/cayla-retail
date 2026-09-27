@@ -4,6 +4,8 @@ import type { FilaPrevisualizacion } from "@/lib/conteo-varianza";
 import { getAparienciaVariantes, type Apariencia } from "@/lib/apariencia-variantes";
 import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import { prioridadDesdeFila } from "@/lib/conteo-reglas";
 
 // Conteos físicos (Felipe, 2026-09-14): abrir_conteo/conteo_contar/cerrar_conteo
 // ya existían y siguen probados intactos — este archivo solo trae lecturas.
@@ -14,6 +16,7 @@ import { getCostosVariantes } from "@/lib/catalogo-v2";
 export type ItemConteoAbierto = {
   id: string;
   varianteId: string;
+  /** El código de la etiqueta (`codigoDeEtiqueta`), no `variantes.sku`: 128 de 130 lo tienen NULL (ADR-0058). Solo se muestra. */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -58,7 +61,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
       .from("conteo_items")
       .select(
         `id, variante_id, cantidad_contada,
-         variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
+         variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) )`
       )
       .eq("conteo_id", conteo.id)
       .order("id"),
@@ -82,7 +85,7 @@ export async function getConteoAbierto(ubicacionId: string): Promise<ConteoAbier
     items: items.map((i) => ({
       id: i.id,
       varianteId: i.variante_id,
-      sku: i.variante?.sku ?? "",
+      sku: i.variante ? codigoDeEtiqueta(i.variante) : "",
       referencia: i.variante?.producto?.referencia ?? "",
       talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
@@ -171,6 +174,7 @@ export async function getPrevisualizacionCierre(conteoId: string): Promise<FilaP
 
 export type PrioridadConteo = {
   varianteId: string;
+  /** El código de la etiqueta (`codigoDeEtiqueta`); la función de Postgres solo trae `variantes.sku`, casi siempre NULL. */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -203,17 +207,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
     supabase,
     filas.map((f) => f.variante_id)
   );
-  return filas.map((f) => ({
-    varianteId: f.variante_id,
-    sku: f.sku,
-    referencia: f.referencia,
-    talla: f.talla,
-    color: f.color,
-    sububicacionId: f.sububicacion_id,
-    diasSinContar: f.dias_sin_contar,
-    valorEnRiesgo: Number(f.valor_en_riesgo),
-    apariencia: apariencia.get(f.variante_id),
-  }));
+  return filas.map((f) => prioridadDesdeFila(f, apariencia.get(f.variante_id)));
 }
 
 // ============================================================================
@@ -225,6 +219,7 @@ export async function getPrioridadConteo(ubicacionId: string, categoriaId?: stri
 
 export type LineaConteo = {
   varianteId: string;
+  /** El código de la etiqueta (`codigoDeEtiqueta`). Se muestra y desempata el orden; la prenda se identifica por `varianteId`. */
   sku: string;
   referencia: string;
   talla: string | null;
@@ -241,7 +236,8 @@ export type LineaConteo = {
   soles: number | null;
 };
 
-export type ConteoDetalle = ConteoResumen & { lineasDetalle: LineaConteo[] };
+/** `ubicacionId`: la sede del conteo, para ofrecer lo que sigue solo a quien está parado en ella (Bajar al piso). */
+export type ConteoDetalle = ConteoResumen & { ubicacionId: string; lineasDetalle: LineaConteo[] };
 
 export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null> {
   const supabase = await createClient();
@@ -251,7 +247,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
   const res = await supabase
     .from("conteos")
     .select(
-      "id, numero, estado, created_at, cerrado_en, abierto_por, cerrado_por, alcance, sububicacion:sububicaciones ( nombre, tipo ), categoria:categorias ( nombre )"
+      "id, numero, estado, ubicacion_id, created_at, cerrado_en, abierto_por, cerrado_por, alcance, sububicacion:sububicaciones ( nombre, tipo ), categoria:categorias ( nombre )"
     )
     .eq("id", id)
     .maybeSingle();
@@ -264,7 +260,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
       .from("conteo_items")
       .select(
         `variante_id, cantidad_sistema, cantidad_contada,
-         variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
+         variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ), producto:productos ( referencia, producto_fotos ( url, orden, es_principal ) ) )`
       )
       .eq("conteo_id", id),
     ids.length > 0 ? supabase.rpc("fn_nombres_personas", { p_ids: ids }) : Promise.resolve({ data: [], error: null }),
@@ -278,7 +274,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
   const lineasDetalle: LineaConteo[] = items
     .map((i) => ({
       varianteId: i.variante_id,
-      sku: i.variante?.sku ?? "",
+      sku: i.variante ? codigoDeEtiqueta(i.variante) : "",
       referencia: i.variante?.producto?.referencia ?? "",
       talla: i.variante?.talla?.valor ?? null,
       color: i.variante?.color?.nombre ?? null,
@@ -301,6 +297,7 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
     id: cabecera.id,
     numero: cabecera.numero,
     estado: cabecera.estado,
+    ubicacionId: cabecera.ubicacion_id,
     creadoEn: cabecera.created_at,
     cerradoEn: cabecera.cerrado_en,
     sububicacionNombre: cabecera.sububicacion?.nombre ?? null,
@@ -317,4 +314,27 @@ export async function getConteoDetalle(id: string): Promise<ConteoDetalle | null
     solesDiferencia: costos ? Math.round(soles * 100) / 100 : null,
     lineasDetalle,
   };
+}
+
+/**
+ * Lo libre en el almacén de la tienda, por prenda, para ofrecer «Bajar al piso» después de contar el piso (Conteo
+ * conectado, 2026-09-26). Total: si falla, un mapa vacío y el acceso simplemente no aparece — es una ayuda, no el conteo.
+ */
+export async function getLibreEnAlmacen(ubicacionId: string, varianteIds: string[]): Promise<Map<string, number>> {
+  const libre = new Map<string, number>();
+  if (varianteIds.length === 0) return libre;
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("stock")
+      .select("variante_id, cantidad, sububicacion:sububicaciones!inner ( tipo )")
+      .eq("ubicacion_id", ubicacionId)
+      .eq("sububicacion.tipo", "almacen_tienda")
+      .in("variante_id", varianteIds);
+    if (error || !data) return libre;
+    for (const f of data) libre.set(f.variante_id, (libre.get(f.variante_id) ?? 0) + Math.max(0, f.cantidad));
+  } catch {
+    // Sin la ayuda, el detalle se ve igual.
+  }
+  return libre;
 }

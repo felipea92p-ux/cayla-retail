@@ -251,26 +251,15 @@ function FilaAnio({
         <b>{anio}</b>
       </td>
       <td data-l="Régimen">
+        {/* Sin régimen propio para ese año, el marcador dice cuál rige («Como antes: …»), como decía la opción vacía. */}
         <SelectFin
-          value={regimen?.texto ?? ""}
-          aria-label={`Régimen de renta de ${anio}`}
-          className="min-h-8 w-auto min-w-[15rem] py-[5px]"
-          onChange={(e) => {
-            const v = e.target.value as Regimen;
-            if (v) void guardar("regimen", desde, null, v, `Régimen de ${anio}: ${TEXTO_REGIMEN[v]}.`);
-          }}
-        >
-          {!regimen && (
-            <option value="" disabled={!regimenVigente}>
-              {regimenVigente ? `Como antes: ${TEXTO_REGIMEN[regimenVigente.texto as Regimen] ?? regimenVigente.texto}` : "Elige…"}
-            </option>
-          )}
-          {REGIMENES.map((r) => (
-            <option key={r} value={r}>
-              {TEXTO_REGIMEN[r]}
-            </option>
-          ))}
-        </SelectFin>
+          etiqueta={`Régimen de renta de ${anio}`}
+          className="w-fit min-w-[15rem] fin-compacto"
+          valor={regimen?.texto ?? ""}
+          onValor={(v) => void guardar("regimen", desde, null, v as Regimen, `Régimen de ${anio}: ${TEXTO_REGIMEN[v as Regimen]}.`)}
+          marcador={regimenVigente ? `Como antes: ${TEXTO_REGIMEN[regimenVigente.texto as Regimen] ?? regimenVigente.texto}` : "Elige…"}
+          opciones={REGIMENES.map((r) => ({ valor: r, texto: TEXTO_REGIMEN[r] }))}
+        />
       </td>
       <td className="fin-num" data-l="Límite (UIT)">
         <Casilla

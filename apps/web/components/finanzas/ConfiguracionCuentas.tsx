@@ -205,26 +205,19 @@ function CasillaMedio({
     setValor(actual);
   }
   const tipos = tiposParaMedio(medio);
-  const opciones = cuentas.filter((c) => tipos.includes(c.tipo));
+  const sirven = cuentas.filter((c) => tipos.includes(c.tipo));
   return (
     <SelectFin
-      aria-label={`A qué cuenta entra ${TEXTO_MEDIO_COBRO[medio]} de ${tienda}`}
-      value={valor}
-      disabled={deshabilitada}
-      onChange={async (e) => {
-        const nuevo = e.target.value;
+      etiqueta={`A qué cuenta entra ${TEXTO_MEDIO_COBRO[medio]} de ${tienda}`}
+      valor={valor}
+      deshabilitado={deshabilitada}
+      onValor={async (nuevo) => {
         setValor(nuevo);
         const ok = await alCambiar(nuevo);
         if (!ok) setValor(actual);
       }}
-    >
-      <option value="">Sin cuenta</option>
-      {opciones.map((c) => (
-        <option key={c.id} value={c.id}>
-          {nombreCorto(c.nombre)}
-        </option>
-      ))}
-    </SelectFin>
+      opciones={[{ valor: "", texto: "Sin cuenta" }, ...sirven.map((c) => ({ valor: c.id, texto: nombreCorto(c.nombre) }))]}
+    />
   );
 }
 
@@ -273,13 +266,7 @@ function AgregarCuentaModal({ hoy, onCerrar }: { hoy: string; onCerrar: () => vo
       </CampoFin>
       <div className="fin-dos-campos">
         <CampoFin etiqueta="Tipo" htmlFor="cta-tipo">
-          <SelectFin id="cta-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoCuenta)}>
-            {TIPOS_QUE_SE_AGREGAN.map((t) => (
-              <option key={t.tipo} value={t.tipo}>
-                {t.texto}
-              </option>
-            ))}
-          </SelectFin>
+          <SelectFin<TipoCuenta> id="cta-tipo" valor={tipo} onValor={setTipo} opciones={TIPOS_QUE_SE_AGREGAN.map((t) => ({ valor: t.tipo, texto: t.texto }))} />
         </CampoFin>
         <CampoFin etiqueta="Número (opcional)" htmlFor="cta-numero">
           <InputFin id="cta-numero" value={numero} onChange={(e) => setNumero(e.target.value)} placeholder="•••• 1942" />

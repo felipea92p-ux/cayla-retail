@@ -81,13 +81,13 @@ function Pantalla({ panel, unidadPedida }: { panel: PanelCierre; unidadPedida: s
         acciones={
           <>
             <Chip versalitas={false}>CAYLA entera</Chip>
-            <SelectFin value={mes} onChange={(e) => irMes(e.target.value)} aria-label="Mes que se cierra" className="w-auto min-w-[150px]">
-              {panel.meses.map((m) => (
-                <option key={m.mes} value={m.mes}>
-                  {textoOpcionMes(m)}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              etiqueta="Mes que se cierra"
+              className="w-fit min-w-[150px]"
+              valor={mes}
+              onValor={irMes}
+              opciones={panel.meses.map((m) => ({ valor: m.mes, texto: textoOpcionMes(m) }))}
+            />
           </>
         }
       />

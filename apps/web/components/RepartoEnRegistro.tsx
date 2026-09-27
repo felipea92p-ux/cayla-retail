@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react";
 import { Chip, type TonoChip } from "@/components/ui/Chip";
-import { CampoSelectNativo } from "@/components/ui/campos";
+import { CampoSelect, Desplegable } from "@/components/ui/campos";
 import { campoEtiqueta } from "@/components/ui/Modal";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { puedeQuitarseDelReparto, repartirEnPartesIguales, textoDelReparto, type RepartoLinea } from "@/lib/reparto-reglas";
@@ -69,13 +69,12 @@ export function DestinoDeLaMercaderia({
   // Sin reparto en la base: exactamente el selector de antes.
   if (!puedeRepartir) {
     return (
-      <CampoSelectNativo etiqueta="Mercadería destinada a" value={ubicacionId} onChange={(e) => onUbicacionId(e.target.value)}>
-        {opcionesUna.map((u) => (
-          <option key={u.id} value={u.id}>
-            {u.nombre}
-          </option>
-        ))}
-      </CampoSelectNativo>
+      <CampoSelect
+        etiqueta="Mercadería destinada a"
+        valor={ubicacionId}
+        onValor={(v) => onUbicacionId(v)}
+        opciones={opcionesUna.map((u) => ({ valor: u.id, texto: u.nombre }))}
+      />
     );
   }
 
@@ -123,13 +122,12 @@ export function DestinoDeLaMercaderia({
         </div>
       ) : (
         <div className="mt-3">
-          <CampoSelectNativo etiqueta={<span className="sr-only">Tienda que recibe la mercadería</span>} value={ubicacionId} onChange={(e) => onUbicacionId(e.target.value)}>
-            {opcionesUna.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.nombre}
-              </option>
-            ))}
-          </CampoSelectNativo>
+          <Desplegable
+            valor={ubicacionId}
+            onValor={(v) => onUbicacionId(v)}
+            opciones={opcionesUna.map((u) => ({ valor: u.id, texto: u.nombre }))}
+            etiquetaAccesible="Tienda que recibe la mercadería"
+          />
         </div>
       )}
     </div>
