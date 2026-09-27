@@ -577,9 +577,11 @@ descuentos, `puedeAprobarEtiquetas` para el texto). **Declarado, no corregido:**
   existente cambiaría también «Nueva etiqueta» de Atributos, que hoy trata un duplicado como error.
 - **Etiqueta desactivada entre que carga la página y se envía el alta**: el alta se rechaza con «Recarga la pantalla» y se pierde
   lo llenado. Ya pasaba; este cambio no lo empeora.
-- **Una propuesta de un no-líder no se puede aprobar desde Atributos ▸ Etiquetas**: `aprobar()` manda `{estado: 'aprobado'}` sin
-  comentario y `fn_etiquetas_estado_trigger` exige uno (20260917230000). Es anterior a este cambio y vive en otra pantalla; el
-  panel de crear sigue diciendo «un líder tiene que aprobarla», que es la regla, pero hoy esa aprobación falla hasta que se arregle.
+- **Una propuesta de un no-líder no se podía aprobar desde Atributos ▸ Etiquetas** (`aprobar()` mandaba `{estado: 'aprobado'}` sin
+  comentario y `fn_etiquetas_estado_trigger` exige uno, 20260917230000). Lo encontró la revisión de este cambio y **ya lo arregló
+  `main`** (rama `claude/youthful-gagarin-97a394`, ADR-0095 act.: «Aprobar» pide el comentario). Ojo con lo que esa misma sesión
+  anotó: desde `20260923130000` quien no ve el módulo Etiquetas no ve esa pestaña, así que el campo del alta es hoy la única puerta
+  por pantalla para que un rol SIN ese módulo proponga una etiqueta; queda pendiente hasta que un líder la apruebe.
 - **La lista sigue midiéndose contra `window.innerHeight`** (`usePosicionLista`, compartido): en un teclado virtual que no achica
   la ventana (iOS) puede quedar tapada. No verificado.
 
