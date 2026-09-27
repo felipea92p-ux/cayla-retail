@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas).
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c».
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -1149,3 +1149,40 @@ ADR-0240 ya hizo que el ajuste se guarde de una vez y con marca contra el doble 
   fin de estación con sus sugerencias y el indicador (líder y Terminal de ventas). Encima de `fn_ledger_puntos` y de
   `inventario-exposicion.ts`, como exige (d).
 - Aparte, sin depender de Frescura: el módulo «Ajustar stock».
+
+## Actualización 2026-09-27 — diseño 3c
+
+**Dónde vive.** En Inventario ▸ **Diagnóstico** ▸ Frescura del piso, ruta `/inventario/frescura`. «Diagnóstico» es un
+subgrupo nuevo que junta Análisis y Frescura: suelta, Frescura sería la séptima hija de Inventario y `menu.test.ts` pone
+un tope de 6 por grupo. El molde es Posventa: si un rol ve solo Análisis, el subgrupo se deshace y la ve con su nombre de
+siempre. **Módulo propio `frescura`**, sin permiso nuevo aparte del módulo, que **nace solo para el líder** (ADR-0161);
+el líder decide después a qué rol se lo da.
+
+**El dato que manda sobre el diseño: la mitad del piso no tiene edad.** De las 211 unidades que entraron al piso de TRU
+(consulta de solo lectura del 2026-09-27), 104 llegaron por bajadas normales, 95 por bajadas de la **carga inicial** (15
+filas del 26-sep) y 12 por ajustes de «Reposición» del 24-sep. El **51 %** ya estaba colgado antes de que existiera el
+sistema: su reloj diría el día de la carga, no el día en que se colgó. Por eso esas unidades llevan una marca de **edad
+desconocida**: dicen «al menos N días», pueden subir de tramo, pero nunca son «Nueva» ni entran a la vara (ADR-0248). El
+color del semáforo va a llenar el piso en semanas, no en días.
+
+**Seis pasos, terreno primero** (cada uno con su PR y su prueba; la numeración de migraciones la fija cada PR):
+1. **Terreno del dominio** (ADR-0248): el FIFO consume por antigüedad y no por el orden del arreglo;
+   `historiaDeCohortes` da, además de las cohortes, cada venta y pérdida con lo que llevaba expuesta; la marca de edad
+   desconocida viaja con la unidad; y `fn_ledger_puntos` pasa de `= any(…)` a un semi-join (ADR-0202, sin cambiar
+   resultados).
+2. **Núcleo de bajadas:** primero un refactor que da exactamente lo mismo (`fn_bajadas_del_piso` pasa a envolver un
+   núcleo); después el cambio de conducta que pedía (c): netear los retiros de la misma talla alrededor de la bajada,
+   el estado `corregida` y la marca de carga inicial, que sale del indicador de confianza.
+3. **Lectura y reglas:** el módulo `frescura`; una lectura por sede (`fn_frescura_sede`, una sola llamada al libro) y el
+   indicador (`fn_confianza_registro`, por sede y mes de Lima, sin nombres de personas); y en la web, lógica pura
+   (Kaplan-Meier con P50, P75 y P90, la ventana de 30 a 120 días, los niveles de confianza y el estado de cada prenda).
+4. **La pantalla:** maqueta primero, para que Felipe elija colores y frase de acción; luego el menú y la ruta.
+5. **Análisis usa la regla de Frescura:** «Estancadas» deja el corte fijo de 14 días y pasa a «vieja y lenta» (la misma
+   definición de Frescura), con un enlace.
+6. **El indicador en la Terminal de ventas** (módulo aparte, `registro_piso`), después de que Felipe decida dónde va.
+
+**Lo que ya se sabe que limita el 3c:** hasta 3b, «la clienta pidió otra talla y se la trajeron del almacén» cuenta
+como bajada tardía; y las 56 prendas de producción (modelo y color, de 17 productos) siguen sin temporada, ni propia
+ni de su categoría (consulta del 2026-09-27). Cómo se comparan
+mientras tanto está abierto para Felipe (propuesta: con toda su categoría en la sede, sin partir por mitad del año y
+con el aviso «Sin temporada · complétala»), igual que dónde va el indicador de la Terminal de ventas (paso 6).
