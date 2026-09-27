@@ -6,6 +6,7 @@ import { Volver } from "@/components/ui/Volver";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Encabezado, Tabla, TABLA, celda, fila, type Columna } from "@/components/ui/Tabla";
 import { EtiquetaPrecio } from "@/components/EtiquetaPrecio";
+import { BotonGuiaImpresion } from "@/components/GuiaImpresion";
 import { soles } from "@/lib/compras-reglas";
 import { cantidadDeTexto, expandir, MAX_POR_PRENDA, type Encabezado as TextosPantalla, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
@@ -69,10 +70,14 @@ export function ImprimirEtiquetasPrecio({
   const total = hoja.length;
   const visibles = etiquetas.filter((e) => (numeros[e.varianteId] ?? 0) > 0);
 
+  // La guía va al lado del botón que imprime: quien se traba lo hace justo ahí, con el diálogo de impresión recién visto.
   const imprimir = (
-    <button type="button" className="btn-cayla btn-primario" disabled={total === 0} onClick={() => window.print()}>
-      {total === 0 ? "Nada que imprimir" : `Imprimir ${plural(total, "etiqueta", "etiquetas")}`}
-    </button>
+    <div className="flex flex-wrap items-center gap-2">
+      <BotonGuiaImpresion />
+      <button type="button" className="btn-cayla btn-primario" disabled={total === 0} onClick={() => window.print()}>
+        {total === 0 ? "Nada que imprimir" : `Imprimir ${plural(total, "etiqueta", "etiquetas")}`}
+      </button>
+    </div>
   );
 
   if (etiquetas.length === 0) {
@@ -165,15 +170,20 @@ export function ImprimirEtiquetasPrecio({
         ))}
       </div>
 
+      {/* La impresora y el precio van en notas separadas (2026-09-26): juntas, nadie de tienda leía la nota entera y la parte
+          de la Brother —la que traba a un equipo nuevo— quedaba al final. La configuración paso a paso vive en la guía. */}
+      <div className="nota-cayla flex flex-wrap items-center justify-between gap-3">
+        <span>
+          <b>¿Primera vez imprimiendo en esta computadora, o sale chica, larga o girada?</b> La Brother se configura una sola vez por
+          computadora: la guía lo muestra paso a paso, con fotos, para Windows y para Mac.
+        </span>
+        <BotonGuiaImpresion className="btn-cayla btn-secundario shrink-0" />
+      </div>
+
       <p className="nota-cayla">
-        <b>La primera vez en esta computadora:</b> en la <b>Brother QL-1110NWB</b> el papel tiene que medir <b>62 × 40,1 mm</b>, como la
-        plantilla de la P-touch. En la Mac, el «62 mm» de la lista corta cada 100 mm: sobra papel y la etiqueta sale a lo largo. Imprime con{" "}
-        <b>⌥⌘P</b> (el diálogo del sistema; el de Chrome no muestra tamaños propios): la primera vez, en Tamaño del papel elige «Gestionar
-        tamaños personalizados…», crea 62 × 40,1 mm con márgenes en 0 y guárdalo como preajuste. En Windows, créalo en las Preferencias de
-        impresión de la Brother. Márgenes «Ninguno», escala 100 % y sin encabezados. Si sale a lo largo, prueba la otra forma (A o B) de
-        arriba. La vista previa dice «Impreso» con la fecha de hoy; si dice otra, recarga la página antes de imprimir. La etiqueta dice lo
-        que la caja cobra hoy: con una campaña vigente sale el precio rebajado y hasta cuándo vale; cuando termine, reimprímelas desde la
-        campaña con «Volver al precio normal».
+        La etiqueta dice lo que la caja cobra hoy: con una campaña vigente sale el precio rebajado y hasta cuándo vale; cuando termine,
+        reimprímelas desde la campaña con «Volver al precio normal». La vista previa dice «Impreso» con la fecha de hoy; si dice otra,
+        recarga la página antes de imprimir.
       </p>
 
       {montado &&

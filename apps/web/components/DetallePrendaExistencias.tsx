@@ -73,6 +73,10 @@ export function DetallePrendaExistencias({
   separa,
   mostrarMarca,
   puedeReponer,
+  enSedeActiva = true,
+  tiendasParaPedir = [],
+  onPedir,
+  sinModuloBajada = false,
   puedeApartar,
   puedeAjustar,
   veTraslados,
@@ -88,6 +92,15 @@ export function DetallePrendaExistencias({
   separa: boolean;
   mostrarMarca: boolean;
   puedeReponer: boolean;
+  /** ¿Lo que se mira es la sede activa? Etiquetas e Historial trabajan SIEMPRE sobre la sede activa (sus pantallas no
+   *  reciben otra): mirando otra sede, imprimirían o mostrarían la equivocada (tarea #7). */
+  enSedeActiva?: boolean;
+  /** Tiendas a las que se puede pedir la talla para una clienta (ADR-0233; tarea #9). Vacío = no se ofrece: su rol no ve
+   *  «Apartados», no es su tienda, o no es una tienda. La reposición SIN clienta es la D-7 de ADR-0242 (Traslados). */
+  tiendasParaPedir?: { id: string; nombre: string; corto: string }[];
+  onPedir?: (f: FilaExistencias, tienda: { id: string; nombre: string }) => void;
+  /** En su sede, pero su rol no tiene «Bajada al piso» (ADR-0240): la talla por colgar lo explica en vez de callar. */
+  sinModuloBajada?: boolean;
   puedeApartar: boolean;
   puedeAjustar: boolean;
   /** ¿Su rol ve Traslados? Sin él, «Mover mercadería» lo dejaría en «Sin acceso». */
@@ -104,7 +117,7 @@ export function DetallePrendaExistencias({
   const talla = prenda.tallas.find((f) => f.varianteId === varianteId) ?? null;
   const red = talla ? talla.enRed : [];
   const hrefTrasladar = veTraslados ? urlTrasladar(talla ? [talla] : prenda.tallas) : null;
-  const hrefEtiquetas = urlEtiquetas(prenda.tallas);
+  const hrefEtiquetas = enSedeActiva ? urlEtiquetas(prenda.tallas) : null;
 
   return (
     <Modal
@@ -195,6 +208,9 @@ export function DetallePrendaExistencias({
                 </button>
               )}
             </div>
+            {sinModuloBajada && sePuedeBajar(talla) && (
+              <p className="mt-2 text-xs text-taupe">Para colgarla, pídesela a quien tenga el módulo «Bajada al piso».</p>
+            )}
           </section>
         )}
 
@@ -212,7 +228,11 @@ export function DetallePrendaExistencias({
             {hrefEtiquetas && <Accion icono={Tag} titulo="Imprimir etiquetas de precio" detalle="Todas sus tallas en esta tienda, con el precio de hoy" href={hrefEtiquetas} />}
             {/* D-13: ajustar es del líder o de quien tenga el permiso; el candado real vive en `registrar_movimiento`. */}
             {puedeAjustar && <Accion icono={SlidersHorizontal} titulo="Ajustar" detalle="Corregir lo que hay en piso o almacén, con motivo" onClick={() => onAjustar(talla ?? prenda.tallas[0])} />}
-            <Accion icono={History} titulo="Ver historial" detalle="Cada entrada, venta, traslado y ajuste de esta prenda" href={`/productos/${prenda.productoId}/historial`} />
+            {enSedeActiva ? (
+              <Accion icono={History} titulo="Ver historial" detalle="Cada entrada, venta, traslado y ajuste de esta prenda" href={`/productos/${prenda.productoId}/historial`} />
+            ) : (
+              <p className="text-xs text-taupe">Para imprimir sus etiquetas o ver su historial de esta sede, elígela arriba, en el selector de sede.</p>
+            )}
           </div>
         </section>
 
@@ -226,14 +246,26 @@ export function DetallePrendaExistencias({
               <p className="text-xs text-taupe">En ninguna otra sede.</p>
             ) : (
               <ul className="grid gap-1 text-sm">
-                {red.map((s) => (
-                  <li key={s.sede} className="flex justify-between rounded-lg bg-hueso px-3 py-1.5">
-                    <span>{s.sede}</span>
-                    <span className="tabular-nums">
-                      {s.cantidad} {s.cantidad === 1 ? "ud" : "uds"}
-                    </span>
-                  </li>
-                ))}
+                {red.map((s) => {
+                  const tienda = tiendasParaPedir.find((t) => t.corto === s.sede);
+                  return (
+                    <li key={s.sede} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg bg-hueso px-3 py-1.5">
+                      <span>{s.sede}</span>
+                      <span className="flex items-center gap-3">
+                        <span className="tabular-nums">
+                          {s.cantidad} {s.cantidad === 1 ? "ud" : "uds"}
+                        </span>
+                        {/* Para la clienta que está aquí y la quiere: la otra tienda la envía y, al llegar, queda apartada
+                            sola (ADR-0233). Es el mismo pedido de Apartados, no uno nuevo. */}
+                        {tienda && onPedir && (
+                          <button type="button" onClick={() => onPedir(talla, tienda)} className="btn-cayla btn-enlace text-xs">
+                            Pedir para una clienta
+                          </button>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

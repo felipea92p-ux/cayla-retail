@@ -216,7 +216,7 @@ caso(
      || '#' ||
           (select count(*) || '|' || string_agg(pg_get_function_identity_arguments(oid), ';') from pg_proc
             where pronamespace = 'retail'::regnamespace and proname = 'fn_cargar_stock_inicial');`,
-  `1|${FIRMA_ALTA}, p_ubicacion_id uuid, p_al_piso boolean#1|p_ubicacion_id uuid, p_items jsonb, p_nota text`
+  `1|${FIRMA_ALTA}, p_ubicacion_id uuid, p_al_piso boolean, p_temporada text#1|p_ubicacion_id uuid, p_items jsonb, p_nota text`
 );
 caso(
   "F1 · las 11 primeras de la firma son exactamente las de crear_producto_con_variantes (si esa cambia, esto avisa)",
@@ -226,8 +226,8 @@ caso(
 caso(
   "F1 · permisos: authenticated llama la RPC y anon no; la carga interna no la llama nadie de afuera",
   `select concat_ws(',',
-     has_function_privilege('authenticated', 'retail.crear_producto_con_stock_inicial(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid, uuid, boolean)', 'execute'),
-     has_function_privilege('anon', 'retail.crear_producto_con_stock_inicial(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid, uuid, boolean)', 'execute'),
+     has_function_privilege('authenticated', 'retail.crear_producto_con_stock_inicial(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid, uuid, boolean, text)', 'execute'),
+     has_function_privilege('anon', 'retail.crear_producto_con_stock_inicial(text, uuid, jsonb, text, uuid, uuid, uuid, boolean, uuid[], uuid, uuid, uuid, boolean, text)', 'execute'),
      has_function_privilege('authenticated', 'retail.fn_cargar_stock_inicial(uuid, jsonb, text)', 'execute'),
      has_function_privilege('anon', 'retail.fn_cargar_stock_inicial(uuid, jsonb, text)', 'execute'));`,
   "t,f,f,f"

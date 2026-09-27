@@ -6,7 +6,7 @@ import { Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { MuestraColor } from "@/components/ui/MuestraColor";
-import { estadoTalla, type EstadoTalla, type PrendaAgrupada } from "@/lib/existencias-prendas";
+import { estadoTalla, tallaParaReponer, type EstadoTalla, type PrendaAgrupada } from "@/lib/existencias-prendas";
 import type { FilaExistencias } from "@/lib/inventario-v2";
 
 /* ====================================================================
@@ -104,7 +104,9 @@ function AccionPrenda({
             e.stopPropagation();
             onReponer();
           }}
-          className="btn-cayla btn-primario px-2.5 py-0.5 text-xs"
+          // Secundario, no primario (tarea #5): una fila no compite con la acción de la pantalla; con todas pidiendo
+          // reponer, diez botones negros no decían por dónde empezar. Eso lo dice el orden (`ordenarPorUrgencia`).
+          className="btn-cayla btn-secundario px-2.5 py-0.5 text-xs"
         >
           Reponer {prenda.tallasParaBajar} {prenda.tallasParaBajar === 1 ? "talla" : "tallas"}
         </button>
@@ -155,7 +157,7 @@ export function ExistenciasPorPrenda({
       <Encabezado plantilla={plantilla} columnas={columnas} />
       {prendas.map((p) => {
         const marcada = p.tallas.some((f) => seleccion.has(f.varianteId));
-        const primeraABajar = p.tallas.find((f) => estadoTalla(f) === "por_colgar" || estadoTalla(f) === "reponer");
+        const primeraABajar = tallaParaReponer(p.tallas);
         return (
           <div
             key={p.clave}

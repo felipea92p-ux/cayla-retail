@@ -537,6 +537,7 @@ export type Database = {
           nombre: string
           notas: string | null
           prefijo: string | null
+          temporada: string | null
         }
         Insert: {
           activo?: boolean
@@ -546,6 +547,7 @@ export type Database = {
           nombre: string
           notas?: string | null
           prefijo?: string | null
+          temporada?: string | null
         }
         Update: {
           activo?: boolean
@@ -555,6 +557,7 @@ export type Database = {
           nombre?: string
           notas?: string | null
           prefijo?: string | null
+          temporada?: string | null
         }
         Relationships: [
           {
@@ -4809,6 +4812,36 @@ export type Database = {
         Args: { p_items: Json; p_motivo: string; p_venta_id: string }
         Returns: undefined
       }
+      // ADR-0240 (20260927180100): «Ajustar inventario» de una vez, con marca. Escrito a mano con la forma que da
+      // `supabase gen types`: regenerar al pegar la migración en producción.
+      ajustar_inventario: {
+        Args: {
+          p_ajustes: Json
+          p_al_piso: boolean
+          p_cargas: Json
+          p_motivo: string | null
+          p_nota: string | null
+          p_sububicacion_id: string | null
+          p_token: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      // ADR-0240 (20260927180000): la puerta de «Apartar» de Existencias (apartar_stock + el módulo «Apartados»).
+      apartar_prenda: {
+        Args: {
+          p_cantidad: number
+          p_clienta_contacto: string
+          p_clienta_nombre: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+          p_vence_el: string
+        }
+        Returns: string
+      }
       apartar_stock: {
         Args: {
           p_cantidad: number
@@ -5215,6 +5248,56 @@ export type Database = {
         }
         Returns: number
       }
+      asignar_temporada_categoria: {
+        Args: { p_categoria_id: string; p_temporada: string | null }
+        Returns: undefined
+      }
+      asignar_temporadas: {
+        Args: { p_items: Json; p_solo_sin_temporada?: boolean }
+        Returns: number
+      }
+      fijar_fechas_temporada: {
+        Args: { p_fechas: Json }
+        Returns: number
+      }
+      fn_calendario_estaciones: {
+        Args: never
+        Returns: {
+          anio: number
+          editable: boolean
+          en_curso: boolean
+          estacion: string
+          fuente: string
+          hasta: string | null
+          inicio: string
+        }[]
+      }
+      fn_ocurrencia_temporada: {
+        Args: { p_fecha: string; p_temporada: string }
+        Returns: { desde: string; hasta: string | null }[]
+      }
+      fn_temporada_efectiva: {
+        Args: { p_producto_id?: string }
+        Returns: {
+          color_codigo: string | null
+          estado: string
+          origen: string | null
+          producto_id: string
+          temporada: string | null
+        }[]
+      }
+      fn_temporadas: {
+        Args: never
+        Returns: {
+          clave: string
+          es_clasico: boolean
+          estacion_desde: string | null
+          estacion_hasta: string | null
+          mitad: string | null
+          nombre: string
+          orden: number
+        }[]
+      }
       crear_producto_con_stock_inicial: {
         Args: {
           p_al_piso?: boolean
@@ -5227,6 +5310,7 @@ export type Database = {
           p_proveedor_id?: string
           p_referencia: string
           p_tejido_id?: string
+          p_temporada?: string
           p_token?: string
           p_ubicacion_id?: string
           p_variantes: Json
@@ -6779,6 +6863,19 @@ export type Database = {
       marcar_pedido_no_atendido_resuelto: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      // ADR-0240 (20260927180000): la puerta de «Reponer» y «Retirar del piso» (mover_interno + «Bajada al piso»).
+      mover_entre_piso_y_almacen: {
+        Args: {
+          p_cantidad: number
+          p_nota?: string
+          p_sububicacion_destino_id: string
+          p_sububicacion_origen_id: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
       }
       mover_interno: {
         Args: {

@@ -7,10 +7,11 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
+import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
 import { ConfigurarCategoria } from "@/components/alta-producto/ConfigurarCategoria";
 import { ProductoCreado, type ResumenCreado } from "@/components/alta-producto/ProductoCreado";
@@ -23,6 +24,9 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
+import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
+import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
+import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 import { compararTallas } from "@/lib/tallas";
@@ -55,13 +59,15 @@ import {
   type EstadoAlta,
   type PasoAlta as NumeroPaso,
 } from "@/lib/alta-producto";
-import type { ContextoAlta } from "@/lib/alta-producto-datos";
+import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
 // "Nuevo producto" en 5 PASOS (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; antes 7 bloques, ADR-0109):
-//   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas,
-//   tejido, patrón, colores, fotos) · 4 Precio y variantes (precio, costo, tabla talla × color, etiquetas) · 5 Cuántas
-//   tienes hoy (ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto).
+//   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor, etiquetas) ·
+//   3 Cómo se hace (tallas, tejido, patrón, colores, fotos) · 4 Precio y variantes (precio, costo, tabla talla × color) ·
+//   5 Cuántas tienes hoy (ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto).
+// Las ETIQUETAS viven en el paso 2 y a la vista, como el campo de Shopify (2026-09-26, ADR-0109 «Actualización»): antes
+// estaban tras un enlace «+ Etiquetas» al final del paso 4 y nadie las encontraba.
 // Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
 // punteada. A la derecha, la prenda tal como va a quedar y UNA frase: el siguiente paso (no la lista entera de lo
 // que falta). En celular esa ficha baja a una barra pegada abajo con «Crear».
@@ -80,8 +86,9 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 // `producto_fotos_write_lider` (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
 //
 // Al guardar NO se vuelve a la lista: aparece una pantalla de éxito con tres salidas — fotos, crear otro parecido,
-// ir a productos. «Otro parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y
-// etiquetas y limpia nombre, descripción, colores y fotos: una colección son 10 prendas casi iguales.
+// ir a productos. «Otro parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, temporada, precio, costo
+// y etiquetas y limpia nombre, descripción, colores y fotos: una colección son 10 prendas casi iguales (y de la misma
+// temporada, ADR-0246).
 //
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
@@ -95,7 +102,19 @@ const TITULOS: Record<NumeroPaso, string> = {
 };
 const CORTOS: Record<NumeroPaso, string> = { 1: "Qué es", 2: "Nombre y marca", 3: "Cómo se hace", 4: "Precio", 5: "Stock" };
 
-export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlta; destino: DestinoStock }) {
+export function NuevoProductoForm({
+  contexto,
+  destino,
+  esLider,
+  puedeAprobarEtiquetas,
+}: {
+  contexto: ContextoAlta;
+  destino: DestinoStock;
+  /** Un líder: puede dar etiquetas con descuento (a los demás no se les ofrecen). */
+  esLider: boolean;
+  /** Quien crea una etiqueta y la deja aprobada de una: líder o un rol con el módulo Etiquetas (`fn_puede_editar_etiquetas`). */
+  puedeAprobarEtiquetas: boolean;
+}) {
   const router = useRouter();
   const token = useRef<string>(crypto.randomUUID());
 
@@ -117,6 +136,8 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
   const [patronId, setPatronId] = useState("");
+  // ADR-0246: opcional. Vacío (SIN_PROPIA) = sigue a su categoría; solo una elegida viaja como `p_temporada`.
+  const [temporada, setTemporada] = useState(SIN_PROPIA);
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
   const [precioBase, setPrecioBase] = useState("");
@@ -126,7 +147,13 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
   const [overridePrecio, setOverridePrecio] = useState<Record<string, string>>({});
   const [editandoPrecios, setEditandoPrecios] = useState(false);
   const [etiquetasElegidas, setEtiquetasElegidas] = useState<string[]>([]);
-  const [verEtiquetas, setVerEtiquetas] = useState(false);
+  // Las etiquetas creadas AQUÍ (campo «Etiquetas» del paso 2) se suman a las que trajo la página; si la página se relee
+  // (`router.refresh()` al «crear otro parecido») y ya las trae, `unirEtiquetas` no las duplica.
+  const [etiquetasNuevas, setEtiquetasNuevas] = useState<EtiquetaAlta[]>([]);
+  const vocabEtiquetas = useMemo(() => unirEtiquetas(contexto.etiquetas, etiquetasNuevas), [contexto.etiquetas, etiquetasNuevas]);
+  // Lo que alguien sin permiso de aprobar propuso desde el campo y espera a un líder: vive aquí (no en el campo) para que
+  // sobreviva a plegar y abrir el paso 2 y no se ofrezca «Crear» otra vez algo que ya está propuesto.
+  const [etiquetasPropuestas, setEtiquetasPropuestas] = useState<string[]>([]);
   // Paso 5 (ADR-0212): lo que ya hay en tienda. `cantidades` por clave de celda («talla|color»), como lo tipeó la persona.
   const [cantidades, setCantidades] = useState<Record<string, string>>({});
   const [sinStock, setSinStock] = useState(false);
@@ -157,6 +184,10 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
   const patronesCategoria = ejes.patrones[categoriaId] ?? [];
   const habituales = ejes.habituales[categoriaId] ?? [];
   const tallaTexto = (id: string) => tallasCategoria.find((t) => t.id === id)?.texto ?? "";
+  // La temporada de la categoría ELEGIDA: es lo que hereda la prenda si no se elige otra (ADR-0246).
+  const listaTemporadas = contexto.temporadas?.lista ?? [];
+  const temporadaCategoria = nombreTemporada(listaTemporadas, contexto.temporadas?.porCategoria[categoriaId]);
+  const opcionesTemporadaAlta = opcionesTemporada(listaTemporadas, { nombre: temporadaCategoria, de: "categoría" });
   // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
@@ -320,12 +351,13 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
 
   // Las etiquetas de campaña que ya rigen sobre esta categoría se aplican solas: elegirlas a mano sería redundante y las
   // dejaría duplicadas en cada variante. Si la persona eligió una y DESPUÉS cambió a una categoría que la cubre, no se manda.
-  const cubiertaPorCampana = (et: ContextoAlta["etiquetas"][number]) => Boolean(categoriaId) && et.categoriaIds.includes(categoriaId);
+  const { cubiertas: campanasQueAplican } = repartirEtiquetas(vocabEtiquetas, { categoriaId, daDescuentos: esLider });
   const etiquetasAManda = etiquetasElegidas.filter((id) => {
-    const et = contexto.etiquetas.find((x) => x.id === id);
-    return et ? !cubiertaPorCampana(et) : false;
+    const et = vocabEtiquetas.find((x) => x.id === id);
+    return et ? !campanasQueAplican.some((c) => c.id === et.id) : false;
   });
-  const campanasQueAplican = contexto.etiquetas.filter(cubiertaPorCampana);
+
+  const nombresEtiquetas = etiquetasAManda.map((id) => vocabEtiquetas.find((e) => e.id === id)?.nombre).filter((n): n is string => Boolean(n));
 
   const fotosOrdenadas = ordenarFotosAlta(fotos, coloresElegidos);
 
@@ -372,6 +404,8 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
       p_tejido_id: tejidoId || undefined,
       p_patron_id: patronId || undefined,
       p_confirmo_distinto: confirmo,
+      // Solo si se eligió una: sin la clave, la base (aun la que todavía no tiene el SQL de temporadas) crea igual.
+      p_temporada: temporadaParaAlta(temporada),
       p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
@@ -526,11 +560,12 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
   // ---------- la línea de cada paso plegado ----------
   const resumen: Record<NumeroPaso, string> = {
     1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
-    2: [nombreFinal, marcaNombre && `${marcaNombre}${proveedorNombre ? ` (${proveedorNombre})` : ""}`].filter(Boolean).join(" · "),
+    2: [nombreFinal, marcaNombre && `${marcaNombre}${proveedorNombre ? ` (${proveedorNombre})` : ""}`, nombresEtiquetas.join(", ")].filter(Boolean).join(" · "),
     3: [
       tallasOrdenadas.map((t) => t.texto).join(" "),
       tejidosCategoria.find((t) => t.id === tejidoId)?.texto,
       patronesCategoria.find((t) => t.id === patronId)?.texto,
+      temporada !== SIN_PROPIA ? nombreTemporada(listaTemporadas, temporada) : temporadaCategoria ? `${temporadaCategoria} (de su categoría)` : null,
       coloresElegidos.length ? `${coloresElegidos.length} color${coloresElegidos.length === 1 ? "" : "es"}` : "sin color",
       fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : null,
     ]
@@ -606,6 +641,20 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
                 setProveedorNombre("");
               }}
               puedeCrear
+            />
+          </FilaAlta>
+          <FilaAlta etiqueta="Etiquetas" ayuda="Opcional · para buscar y agrupar">
+            <ElegirEtiquetas
+              etiquetas={vocabEtiquetas}
+              categoriaId={categoriaId}
+              elegidas={etiquetasElegidas}
+              onElegidas={setEtiquetasElegidas}
+              esLider={esLider}
+              puedeAprobar={puedeAprobarEtiquetas}
+              enLinea={enLinea}
+              onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
+              propuestas={etiquetasPropuestas}
+              onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
             />
           </FilaAlta>
         </div>
@@ -710,6 +759,22 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
               )}
             </FilaAlta>
           )}
+
+          <FilaAlta etiqueta="Temporada" ayuda="Opcional">
+            {contexto.temporadas ? (
+              <div className="max-w-sm space-y-1">
+                <CampoSelect etiqueta="Temporada" caja id="temporada-producto" valor={temporada} onValor={setTemporada} opciones={opcionesTemporadaAlta} />
+                <p className="text-xs text-taupe">
+                  Sin año: el sistema lo sabe por la fecha en que llega a la tienda. Si un color es de otra temporada, se ajusta después en la ficha.
+                </p>
+              </div>
+            ) : (
+              <p className="pt-2 text-xs text-taupe">
+                La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del
+                producto.
+              </p>
+            )}
+          </FilaAlta>
 
           <FilaAlta
             etiqueta="Colores"
@@ -853,55 +918,6 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
             editandoPrecios={editandoPrecios}
           />
         </div>
-
-        <div className="border-t border-sand pt-4">
-          {verEtiquetas || etiquetasElegidas.length > 0 ? (
-            <div className="space-y-2">
-              <p className="text-[12.5px] font-semibold text-tinta">
-                Etiquetas <span className="font-normal text-taupe">· opcional, para todas las variantes</span>
-              </p>
-              {contexto.etiquetas.length === 0 ? (
-                <p className="text-sm text-taupe">Todavía no hay etiquetas aprobadas.</p>
-              ) : (
-                <div className="flex flex-wrap gap-1.5">
-                  {contexto.etiquetas.map((et) =>
-                    cubiertaPorCampana(et) ? (
-                      <span
-                        key={et.id}
-                        title="Esta campaña ya rige sobre todas las prendas de esta categoría: se aplica sola, no hace falta elegirla."
-                        className="flex min-h-9 items-center gap-1.5 rounded-md border border-dashed border-tinta/30 bg-tinta/[0.03] px-2.5 py-1.5 text-sm text-tinta/70"
-                      >
-                        <span aria-hidden className="text-[11px]">
-                          ✓
-                        </span>
-                        {et.nombre}
-                        {et.descuentoPct !== null && <span className="tabular-nums">· {et.descuentoPct.toFixed(0)} % dto</span>}
-                        <span className="text-[11px] text-tinta/50">· ya aplica por campaña</span>
-                      </span>
-                    ) : (
-                      <ChipOpcion
-                        key={et.id}
-                        elegido={etiquetasElegidas.includes(et.id)}
-                        onClick={() => setEtiquetasElegidas((prev) => (prev.includes(et.id) ? prev.filter((x) => x !== et.id) : [...prev, et.id]))}
-                      >
-                        {et.nombre}
-                      </ChipOpcion>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <p className="text-xs text-taupe">
-              <button type="button" onClick={() => setVerEtiquetas(true)} className="btn-cayla btn-enlace text-[12.5px]">
-                + Etiquetas (opcional)
-              </button>
-              {campanasQueAplican.length > 0 &&
-                ` · ${campanasQueAplican.map((c) => `«${c.nombre}»`).join(", ")} ya se aplica${campanasQueAplican.length === 1 ? "" : "n"} sola${campanasQueAplican.length === 1 ? "" : "s"} a ${categoria?.nombre}`}
-            </p>
-          )}
-        </div>
-
       </div>
     );
   }
@@ -947,13 +963,13 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
           {!enLinea && (
             <AvisoInline tono="ambar">
               <strong>Sin conexión.</strong> Puedes crear el producto: queda en este equipo y recibe su código al subir. Lo que necesita internet: crear una
-              marca, un proveedor, una talla, un tejido o un patrón nuevos, y comprobar si el nombre ya existe (la base lo vuelve a revisar al subir).
+              marca, un proveedor, una talla, un tejido, un patrón o una etiqueta nuevos, y comprobar si el nombre ya existe (la base lo vuelve a revisar al subir).
             </AvisoInline>
           )}
           {copiadoDe && (
             <AvisoInline tono="neutro">
-              Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el
-              costo y las etiquetas. Cambia lo que sea distinto.
+              Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
+              temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
             </AvisoInline>
           )}
           {PASOS_ALTA.map((n) => (
@@ -981,6 +997,7 @@ export function NuevoProductoForm({ contexto, destino }: { contexto: ContextoAlt
             categoria: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : null,
             marca: marcaId ? marcaNombre || null : null,
             tallas: tallasOrdenadas.map((t) => t.texto).join(" · "),
+            etiquetas: nombresEtiquetas,
             tejidoPatron: [tejidosCategoria.find((t) => t.id === tejidoId)?.texto, patronesCategoria.find((t) => t.id === patronId)?.texto].filter(Boolean).join(" · "),
             variantes: categoria && tallasElegidas.length > 0 ? celdasIncluidas.length : null,
             precio: precioNum > 0 ? precioNum : null,

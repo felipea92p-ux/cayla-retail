@@ -15,6 +15,7 @@ import { getCatalogoParaExistencias } from "@/lib/existencias-catalogo";
 import { conMarca, productosSinStockEnSede } from "@/lib/existencias-catalogo-reglas";
 import { estaAtrasado } from "@/lib/traslados-reglas";
 import { InventarioPanel } from "@/components/InventarioPanel";
+import { nombreCortoSede } from "@/lib/stock-por-sede";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Fase UI 2 (2026-09-14): piso de venta vs. almacén de tienda
@@ -48,7 +49,7 @@ export default async function InventarioPage({
 
   // «Acción hoy»/Cobertura piso solo tienen sentido donde se vende: una tienda.
   const vende = ubicacionActiva?.tipo === "tienda";
-  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, filasSemana, catalogo] = await Promise.all([
+  const [stockBase, sububicaciones, traslados, danadosPendientes, apartados, semana, catalogo] = await Promise.all([
     // D-54 (ADR-0159): sin el toggle «Con datos de prueba» que sí tienen Caja/Ventas, Existencias
     // pide siempre el default de la función (apagado) — los productos archivados como dato de
     // prueba, nunca borrados, quedan afuera.
@@ -62,7 +63,15 @@ export default async function InventarioPage({
     // Rediseño 2026-09-22: costo/precio/categoría y el delta de 7 días para «Disponible total» y el
     // overlay de categorías — sin cambios (2026-09-25): sigue siendo un dato de 7 días aparte del
     // Ritmo reciente, que ahora vive en `existencias-ritmo.ts`.
-    getFilasSemanaDeSede(ubicacionActivaId),
+    // Dato SECUNDARIO (tarea #8 del análisis): solo alimenta el «% vs. semana anterior» y el desglose de «Disponible
+    // total». Si su función no responde, Existencias sigue en pie y la tarjeta lo dice; antes se caía la pantalla entera.
+    getFilasSemanaDeSede(ubicacionActivaId).then(
+      (filas) => ({ filas, fallo: false }),
+      (error: unknown) => {
+        console.error("Existencias: no se pudo leer la comparación de 7 días", error);
+        return { filas: [] as Awaited<ReturnType<typeof getFilasSemanaDeSede>>, fallo: true };
+      }
+    ),
     // REHECHO 2026-09-25: ya NO se pide `getFilasRecientesDeSede` (`fn_resumen_variantes`, 30 días)
     // para Existencias — el motor nuevo de «Acción hoy» (`calcularAccionHoy`) decide con lo que
     // Existencias ya trae en `stock` (piso, almacén, en tránsito), sin una cuarta reconstrucción
@@ -133,6 +142,7 @@ export default async function InventarioPage({
   // plano, y decir «actualizado hace 2 min» prometería algo que no pasa.
   const horaCarga = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "America/Lima" });
 
+  const filasSemana = semana.filas;
   const deltaSede = deltaDisponibleSede(filasSemana);
   const recomendaciones = vende ? recomendacionesDeSede(stockBase, politica) : [];
 
@@ -159,8 +169,11 @@ export default async function InventarioPage({
         // fila no caben junto al título a 1440 y la cabecera volvía a partirse. Cada acceso solo si su rol ve esa pantalla
         // (ADR-0161) y mirando la sede propia: esas pantallas trabajan siempre sobre la sede de quien entra.
         acciones={
-          <div className="flex flex-col items-start gap-2.5 sm:items-end">
-            <div className="flex flex-wrap items-center gap-3">
+          // En el celular (tarea #6 del análisis): los cinco accesos en UNA fila que se desliza de lado, en vez de tres
+          // filas apiladas que empujaban la lista una pantalla más abajo. El ancho se topa al de la pantalla menos el
+          // margen, así la página nunca se corre a los costados. En computadora, las dos filas de siempre.
+          <div className="flex flex-col items-start gap-2.5 sm:items-end max-sm:max-w-[calc(100vw-2rem)] max-sm:flex-row max-sm:items-center max-sm:overflow-x-auto max-sm:[scrollbar-width:none] max-sm:[&::-webkit-scrollbar]:hidden">
+            <div className="flex flex-wrap items-center gap-3 max-sm:shrink-0 max-sm:flex-nowrap max-sm:gap-2">
               {puedeBajarAlPiso && (
                 <Link href="/inventario/bajar" className="btn-cayla btn-secundario">
                   Bajar al piso
@@ -173,7 +186,7 @@ export default async function InventarioPage({
               )}
             </div>
             {enSuSede && (
-              <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end">
+              <nav aria-label="Pantallas relacionadas" className="flex flex-wrap items-center gap-1.5 sm:justify-end max-sm:shrink-0 max-sm:flex-nowrap">
                 {veModulo(persona, "recibir") && (
                   <Link href="/recibir" className="btn-cayla btn-sutil btn-chico">
                     <PackageOpen aria-hidden className="h-4 w-4" />
@@ -190,7 +203,9 @@ export default async function InventarioPage({
                   <Link href="/vender/apartados" className="btn-cayla btn-sutil btn-chico">
                     <ShoppingBag aria-hidden className="h-4 w-4" />
                     Apartados
-                    {apartados.length > 0 && <span className="rounded-full bg-hueso px-1.5 text-[11px] tabular-nums text-tinta/80">{apartados.length}</span>}
+                    {/* Sin número (tarea #7): contaba filas de `apartados` (una por prenda) y la pantalla a la que lleva lista
+                        separaciones (una por ticket): «3» aquí y 1 ticket al entrar. La cifra buena vive en Apartados; dentro de
+                        Existencias queda «N apartadas para clientas», que cuenta prendas y abre su lista. */}
                   </Link>
                 )}
               </nav>
@@ -224,10 +239,18 @@ export default async function InventarioPage({
         verProductos={veModulo(persona, "productos")}
         filasSemana={filasSemana.map(recortarFilaSemana)}
         deltaSede={deltaSede}
+        comparacionFallo={semana.fallo}
         recomendaciones={recomendaciones}
         politica={politica}
         veTraslados={veModulo(persona, "traslados")}
         puedeBajarAlPiso={puedeBajarAlPiso}
+        veApartados={veModulo(persona, "apartados")}
+        esTienda={vende}
+        // Las otras tiendas, por su nombre corto (el que muestra «Dónde más hay»): a quién se le pide una talla para una
+        // clienta (tarea #9, ADR-0233). El Taller no aparta.
+        tiendasParaPedir={ubicaciones
+          .filter((u) => u.tipo === "tienda" && u.id !== ubicacionActivaId)
+          .map((u) => ({ id: u.id, nombre: u.nombre, corto: nombreCortoSede(u.nombre) }))}
       />
     </div>
   );

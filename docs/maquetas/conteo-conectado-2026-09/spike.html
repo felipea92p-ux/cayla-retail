@@ -1,0 +1,820 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conteo conectado · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Conteo conectado, computadora y celular (2026-09-26)
+   Felipe pasó 4 capturas de Conteo y pidió conectarlo con las pantallas
+   nuevas, hacerlo rápido en el celular y comparar en demo cómo tratar las
+   diferencias. Decidido en dos tandas de preguntas:
+    · Varias personas en el mismo conteo: cada una cuenta «su tanda» y el
+      total suma; «Contando ahora» muestra quién cuenta qué (sin la cifra
+      del sistema: sigue a ciegas).
+    · Una prenda se confirma sola al pasar a otra (con Deshacer) o con
+      «Terminé esta prenda».
+    · Misma prenda y talla que otra compañera: se pregunta «otras unidades
+      o la misma pila». Otra talla del mismo modelo: solo aviso.
+      Ya confirmada por otra: se pregunta «encontré más o la recuento».
+    · No encontradas al cerrar: se decide al revisar.
+    · Accesos: Etiquetas, aviso de pendientes, pasos después de cerrar y
+      Bajar al piso.
+    · Diferencias: A/B/C en la barra (Felipe pidió verlas para elegir).
+   Tokens = apps/web/app/globals.css (ADR-0169). Cabecera = EncabezadoPagina
+   (ADR-0220). Hojas = efecto de <Modal> (ADR-0136). Celular sin barra de
+   navegación inferior (ADR-0206): el botón fijo es acción de ESTA pantalla.
+   Datos inventados. Los enlaces no navegan: muestran a dónde irían.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t35:rgba(26,26,24,.35);--t10:rgba(26,26,24,.10);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px;color:var(--t65)}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:6px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g.off{display:none}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:24px;align-items:start}
+@media (max-width:1180px){.escena{grid-template-columns:1fr}.col-tel{justify-self:center}}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+
+/* ── marcos ── */
+.marco{position:relative;background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 30px 64px -22px rgba(26,26,24,.28);border:1px solid rgba(26,26,24,.08)}
+.marco-pc{height:940px}
+.marco-tel{width:395px;height:820px;border-radius:44px;border:10px solid var(--tinta);background:var(--crema)}
+.scroll{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+.marco-tel .scroll{padding-bottom:104px}
+
+/* ── app de computadora ── */
+.app{display:grid;grid-template-columns:196px minmax(0,1fr);min-height:100%}
+.lat{background:var(--crema);border-right:1px solid var(--sand);padding:20px 12px;position:sticky;top:0;height:940px}
+.lat .logo{display:flex;align-items:center;gap:8px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.sub{padding-left:26px;font-size:13px}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 22px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.main{padding:24px 28px 60px}
+
+/* ── cabecera (EncabezadoPagina) ── */
+.cab-fila{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+h1.tit{font-family:'EB Garamond',serif;font-weight:400;font-size:46px;line-height:1.05;margin:10px 0 6px;letter-spacing:-.01em}
+h1.tit .sepp{color:var(--taupe)}
+.frase{color:var(--t65);max-width:520px}
+.acciones{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:flex-end}
+.pie-cab{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:500;border:1px solid var(--sand);background:var(--papel);white-space:nowrap;transition:background .2s var(--ease),border-color .2s}
+.btn:hover{border-color:var(--taupe)}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn.pri[disabled]{background:#8d8a84;border-color:#8d8a84;cursor:not-allowed}
+.btn.sut{background:transparent;border-color:transparent;color:var(--t80)}
+.btn.pel{background:var(--rojo);color:var(--crema);border-color:var(--rojo)}
+.btn.ch{padding:5px 10px;font-size:12.5px}
+.btn .cnt{font-size:11px;background:var(--hueso);border-radius:99px;padding:0 7px;color:var(--t80)}
+.btn.pri .cnt{background:rgba(245,240,232,.18);color:var(--crema)}
+.enl{font-weight:600;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+
+/* ── avisos ── */
+.aviso{display:flex;align-items:center;gap:10px;background:var(--hueso);border-radius:12px;padding:10px 12px;font-size:13px;flex-wrap:wrap}
+.aviso .ic{color:var(--pizarra)}
+.aviso.amb{background:#f2e7d2}
+.aviso.amb .ic{color:var(--ambar)}
+.aviso.roj{background:#f4e1db}
+.aviso.roj .ic{color:var(--rojo-p)}
+.aviso b{font-weight:600}
+.aviso .der{margin-left:auto;display:flex;gap:12px;align-items:center}
+
+/* ── cifras ── */
+.cifras{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:18px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px}
+.cifra .v{font-family:'EB Garamond',serif;font-size:30px;line-height:1.1;margin-top:6px}
+.cifra .v.ver{color:var(--verde)}.cifra .v.roj{color:var(--rojo-p)}
+.cifra p{font-size:12px;color:var(--t65);margin-top:2px}
+
+/* ── tarjeta ── */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.tarjeta .th{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:14px 16px 10px}
+.tarjeta .th h3{font-family:'EB Garamond',serif;font-weight:400;font-size:20px}
+.tarjeta .th .s{font-size:12px;color:var(--t65)}
+.pad{padding:16px}
+
+/* ── franja del conteo abierto ── */
+.franja{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) auto;gap:22px;align-items:center;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:14px 18px;margin-top:18px}
+.franja h2{font-family:'EB Garamond',serif;font-weight:400;font-size:24px;line-height:1.1;margin-top:2px}
+.franja .s{font-size:12.5px;color:var(--t65)}
+.av{display:grid;gap:5px;font-size:12px;color:var(--t65)}
+.av .l{display:flex;justify-content:space-between}
+.av .l b{color:var(--tinta);font-weight:600}
+.barra-av{height:6px;border-radius:9px;background:var(--sand);overflow:hidden}
+.barra-av i{display:block;height:100%;background:var(--tinta);border-radius:9px}
+
+/* ── contar ── */
+.dos{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.quien{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.resp{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--sand);background:var(--papel);border-radius:10px;padding:6px 11px 6px 7px;font-size:13px}
+.resp small{color:var(--t65)}
+.seg2{display:inline-flex;background:var(--hueso);border-radius:10px;padding:3px}
+.seg2 button{padding:6px 12px;border-radius:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--t65)}
+.seg2 button.on{background:var(--tinta);color:var(--crema)}
+.esc{display:flex;align-items:center;gap:10px;background:var(--hueso);border-radius:12px;height:50px;padding:0 6px 0 14px;margin-top:14px}
+.esc input{flex:1;border:0;background:transparent;outline:none;font-size:15px;min-width:0}
+.esc input::placeholder{color:var(--t50)}
+.esc .cam{display:inline-flex;align-items:center;gap:6px;background:var(--papel);border:1px solid var(--sand);border-radius:9px;padding:6px 10px;font-size:12.5px;font-weight:500}
+.av-otra{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12.5px;color:var(--pizarra);background:#e6e9ed;border-radius:10px;padding:7px 11px}
+.ult{border:1px solid var(--sand);background:#f3ede3;border-radius:16px;padding:14px;margin-top:12px}
+.ult .arr{display:flex;align-items:center;gap:12px}
+.foto{width:46px;height:56px;border-radius:8px;flex:none;position:relative;overflow:hidden;background:var(--hueso)}
+.foto i{position:absolute;inset:7px 9px 0;border-radius:40% 40% 4px 4px}
+.ult .n{font-weight:500;font-size:15px}
+.ult .m{font-size:12px;color:var(--t65);display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.sw{width:10px;height:10px;border-radius:50%;border:1px solid rgba(26,26,24,.2);display:inline-block}
+.talla-g{display:inline-grid;place-items:center;min-width:30px;height:24px;padding:0 6px;border-radius:7px;background:var(--tinta);color:var(--crema);font-weight:600;font-size:12px}
+.stp{display:flex;align-items:center;gap:8px;margin-left:auto}
+.stp button{width:44px;height:44px;border-radius:11px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center;font-size:20px}
+.stp .q{font-family:'EB Garamond',serif;font-size:40px;min-width:56px;text-align:center;line-height:1}
+.ult .pie{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.ok{color:var(--verde);font-size:12.5px;display:inline-flex;gap:6px;align-items:center}
+.pie-contar{display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--sand);margin-top:16px;padding-top:14px;gap:10px;flex-wrap:wrap}
+
+/* confirmación al pasar (efecto de avisar.* con Deshacer) */
+.conf{display:flex;align-items:center;gap:10px;background:var(--tinta);color:var(--crema);border-radius:12px;padding:9px 10px 9px 13px;font-size:13px;margin-top:10px;position:relative;overflow:hidden;animation:sube .4s var(--ease) both}
+.conf .ic{color:#b9cfae}
+.conf button{margin-left:auto;font-weight:600;text-decoration:underline;text-underline-offset:3px;color:var(--crema);font-size:12.5px}
+.conf:after{content:"";position:absolute;left:0;bottom:0;height:2px;background:rgba(245,240,232,.5);width:100%;animation:vacia 5s linear both}
+@keyframes vacia{to{width:0}}
+@keyframes sube{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* contando ahora */
+.vivo{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--t65)}
+.vivo:before{content:"";width:7px;height:7px;border-radius:50%;background:var(--verde)}
+.persona{display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--sand)}
+.persona.yo{background:#f3ede3}
+.ava{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--crema);flex:none}
+.persona .t{min-width:0;flex:1}
+.persona .t b{font-weight:500;font-size:13px}
+.persona .t .sw{margin-right:2px;vertical-align:-1px}
+.persona .t>span{display:block;font-size:12px;color:var(--t65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.persona .q{font-family:'EB Garamond',serif;font-size:22px;line-height:1}
+.persona .q small{font-family:'DM Sans';font-size:11px;color:var(--t65);display:block;text-align:right}
+
+/* pestañas + listas */
+.tabs{display:flex;gap:4px;padding:0 12px;border-bottom:1px solid var(--sand)}
+.tabs button{padding:10px 8px;font-size:13px;color:var(--t65);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--tinta);border-color:var(--tinta);font-weight:500}
+.tabs button .c{font-size:11px;background:var(--hueso);border-radius:99px;padding:0 7px;margin-left:4px}
+.lst{max-height:360px;overflow:auto}
+.gr{padding:10px 16px;border-top:1px solid var(--sand)}
+.gr:first-child{border-top:0}
+.gr .a{display:flex;align-items:center;gap:8px}
+.gr .a b{font-weight:500;font-size:13px}
+.gr .a .mono{color:var(--t65)}
+.tlls{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.tll{min-width:34px;height:28px;border-radius:8px;padding:0 7px;display:inline-grid;place-items:center;font-size:12px;border:1px solid var(--sand);background:var(--papel)}
+.tll.hecha{background:var(--hueso);color:var(--t35);text-decoration:line-through;border-color:transparent}
+.tll.otra{border-color:var(--pizarra);color:var(--pizarra)}
+.fila-c{display:flex;align-items:center;gap:10px;padding:9px 16px;border-top:1px solid var(--sand);font-size:13px}
+.fila-c .t{flex:1;min-width:0}
+.fila-c .t span{display:block;font-size:11.5px;color:var(--t65)}
+.fila-c .q{font-family:'EB Garamond',serif;font-size:20px}
+.firma{display:inline-flex;gap:2px}
+.firma i{width:18px;height:18px;border-radius:50%;font-style:normal;font-size:9px;display:grid;place-items:center;color:var(--crema);font-weight:600}
+
+/* chips */
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:99px;padding:2px 9px;font-size:11.5px;white-space:nowrap}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.amb{background:#f0e4cc;color:var(--ambar)}
+.chip.ver{background:#e3e8dc;color:var(--verde)}
+.chip.piz{background:#e1e5ea;color:var(--pizarra)}
+.chip.roj{background:#f4e1db;color:var(--rojo-p)}
+.chip.gri{background:var(--hueso);color:var(--t65)}
+
+/* tabla */
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;font-weight:500;color:var(--t65);text-align:left;padding:9px 10px;background:var(--hueso);white-space:nowrap}
+td{padding:10px;border-top:1px solid var(--sand);vertical-align:middle;font-size:13px}
+.c{text-align:center}.d{text-align:right}
+.prenda{display:flex;align-items:center;gap:10px;min-width:0}
+.prenda .foto{width:34px;height:42px}
+.prenda .n{font-weight:500;white-space:nowrap}
+.prenda .m{font-size:11.5px;color:var(--t65);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.pleg{display:flex;align-items:center;gap:8px;padding:10px 12px;font-size:12.5px;color:var(--t65);border-top:1px solid var(--sand)}
+
+/* pasos (abrir) */
+.pasos{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:22px}
+.paso .h{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.paso .h i{width:20px;height:20px;border-radius:50%;border:1px solid var(--tinta);background:var(--tinta);color:var(--crema);font-size:11px;display:grid;place-items:center;font-style:normal}
+.op{display:block;width:100%;text-align:left;border:1px solid var(--sand);background:var(--papel);border-radius:10px;padding:10px 13px;margin-bottom:8px}
+.op.on{border-color:var(--tinta);box-shadow:0 0 0 1px var(--tinta);background:#f3ede3}
+.op b{font-weight:500;display:block}
+.op small{font-size:12px;color:var(--t65)}
+
+/* lo que sigue */
+.sigue{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:0 16px 16px}
+.sg{border:1px solid var(--sand);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;background:var(--papel);text-align:left;transition:border-color .2s}
+.sg:hover{border-color:var(--taupe)}
+.sg .ic{color:var(--taupe)}
+.sg b{font-weight:600;font-size:13.5px}
+.sg span{font-size:12px;color:var(--t65);line-height:1.4}
+.sg .ir{margin-top:auto;font-size:10.5px;color:var(--t50);font-family:ui-monospace,monospace;padding-top:4px}
+.sg.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.sg.pri .ic,.sg.pri span,.sg.pri .ir{color:rgba(245,240,232,.72)}
+
+/* hoja / modal (efecto Modal) */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.32);backdrop-filter:blur(3px);z-index:40;animation:fade .28s var(--ease) both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{position:absolute;left:50%;top:70px;transform:translateX(-50%);width:min(860px,calc(100% - 60px));max-height:calc(100% - 100px);background:var(--papel);border-radius:18px;z-index:41;display:flex;flex-direction:column;box-shadow:0 30px 70px -20px rgba(26,26,24,.45);animation:hoja .34s var(--ease) both}
+.modal.ch{width:min(520px,calc(100% - 60px));top:180px}
+@keyframes hoja{from{opacity:0;transform:translate(-50%,18px) scale(.98)}to{opacity:1;transform:translate(-50%,0)}}
+.hoja{position:absolute;left:0;right:0;bottom:0;max-height:92%;background:var(--papel);z-index:41;border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:hojam .34s var(--ease) both}
+@keyframes hojam{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+.hoja .asa{width:38px;height:4px;border-radius:9px;background:var(--sand);margin:8px auto 0}
+.mz{padding:18px 20px 12px;border-bottom:1px solid var(--sand)}
+.mz h3{font-family:'EB Garamond',serif;font-weight:400;font-size:26px;line-height:1.1}
+.mz p{font-size:12.5px;color:var(--t65);margin-top:3px}
+.mc{overflow:auto;padding:14px 20px 18px;display:grid;gap:14px;grid-auto-rows:max-content;align-content:start;min-height:0}
+.mp{padding:12px 20px;border-top:1px solid var(--sand);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cascada>*{animation:cas .42s var(--ease) both}
+.cascada>*:nth-child(2){animation-delay:.055s}.cascada>*:nth-child(3){animation-delay:.11s}.cascada>*:nth-child(4){animation-delay:.165s}.cascada>*:nth-child(5){animation-delay:.22s}.cascada>*:nth-child(6){animation-delay:.275s}
+@keyframes cas{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.elec{display:grid;gap:8px}
+.elec button{display:flex;gap:12px;align-items:flex-start;text-align:left;border:1px solid var(--sand);border-radius:12px;padding:12px 14px;background:var(--papel);transition:border-color .2s}
+.elec button:hover{border-color:var(--taupe)}
+.elec button.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.elec button b{font-weight:600;display:block;font-size:14px}
+.elec button span{font-size:12.5px;color:var(--t65)}
+.elec button.pri span{color:rgba(245,240,232,.7)}
+.mini-seg{display:inline-flex;border:1px solid var(--sand);border-radius:9px;overflow:hidden;font-size:12px}
+.mini-seg button{padding:5px 10px;white-space:nowrap}
+.mini-seg button+button{border-left:1px solid var(--sand)}
+.mini-seg button.on{background:var(--tinta);color:var(--crema)}
+.mini-seg button.on.cero{background:var(--rojo-p)}
+
+/* ── celular ── */
+.m .barra{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;border-bottom:1px solid var(--sand);position:sticky;top:0;background:var(--crema);z-index:10}
+.m .barra .hb{display:flex;gap:10px;align-items:center;font-weight:600;letter-spacing:.28em;font-size:12px}
+.m .barra .sede{border:1px solid var(--sand);border-radius:8px;padding:3px 8px;font-size:10px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.m .cab{padding:14px 16px 0}
+.m h1.tit{font-size:36px;margin:8px 0 4px}
+.m .frase{font-size:13px}
+.m .bloque{padding:0 12px;margin-top:12px}
+.m .cifras{display:flex;overflow-x:auto;gap:8px;padding:0 16px;scrollbar-width:none;margin-top:12px}
+.m .cifra{min-width:160px;padding:11px 12px}
+.m .cifra .v{font-size:26px}
+.m .aviso{font-size:12.5px}
+/* modo contar */
+.mc-top{position:sticky;top:0;z-index:12;background:var(--crema);border-bottom:1px solid var(--sand);padding:10px 14px 10px}
+.mc-top .r1{display:flex;align-items:center;gap:10px}
+.mc-top .r1 .t{flex:1;min-width:0}
+.mc-top .r1 .t b{font-family:'EB Garamond',serif;font-weight:400;font-size:21px;line-height:1.1;display:block}
+.mc-top .r1 .t span{font-size:11.5px;color:var(--t65)}
+.mc-top .av{margin-top:8px}
+.vuelta{width:34px;height:34px;border-radius:50%;border:1px solid var(--sand);display:grid;place-items:center;background:var(--papel);flex:none}
+.chips-vivo{display:flex;gap:6px;overflow-x:auto;padding:10px 12px 2px;scrollbar-width:none}
+.cv{display:flex;align-items:center;gap:7px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:4px 10px 4px 4px;font-size:12px;white-space:nowrap}
+.cv .ava{width:24px;height:24px;font-size:10px}
+.cv.yo{background:#f3ede3;border-color:var(--taupe)}
+.m .ult{margin:10px 12px 0}
+.m .ult .stp{margin:12px 0 0;justify-content:space-between;width:100%}
+.m .ult .stp button{width:64px;height:56px;border-radius:14px;font-size:26px}
+.m .ult .stp .q{font-size:52px}
+.m .conf{margin:10px 12px 0}
+.m .av-otra{margin:10px 12px 0}
+.m .tarjeta{margin:12px 12px 0}
+.fab{position:absolute;left:12px;right:12px;bottom:14px;z-index:20;display:flex;gap:8px}
+.fab button{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;height:56px;border-radius:16px;background:var(--tinta);color:var(--crema);font-weight:600;font-size:15.5px;box-shadow:0 18px 44px -14px rgba(26,26,24,.5)}
+.fab button.sec{flex:0 0 56px;background:var(--papel);color:var(--tinta);border:1px solid var(--sand)}
+.fab button[disabled]{background:#8d8a84}
+/* cámara */
+.camara{position:absolute;inset:0;background:#141412;z-index:50;display:flex;flex-direction:column;color:var(--crema);animation:fade .25s var(--ease) both}
+.camara .ct{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-size:13px}
+.camara .ct b{font-weight:600}
+.camara .vis{flex:1;display:grid;place-items:center;position:relative}
+.mira{width:250px;height:130px;position:relative}
+.mira:before{content:"";position:absolute;inset:0;border:2px solid var(--crema);border-radius:12px;clip-path:polygon(0 0,22% 0,22% 3%,3% 3%,3% 30%,0 30%,0 70%,3% 70%,3% 97%,22% 97%,22% 100%,78% 100%,78% 97%,97% 97%,97% 70%,100% 70%,100% 30%,97% 30%,97% 3%,78% 3%,78% 0,100% 0,100% 100%,0 100%)}
+.laser{position:absolute;left:8%;right:8%;top:50%;height:2px;background:var(--rojo);animation:laser 1.6s ease-in-out infinite alternate}
+@keyframes laser{from{transform:translateY(-40px)}to{transform:translateY(40px)}}
+.camara .pista{position:absolute;bottom:18px;left:0;right:0;text-align:center;font-size:12px;color:rgba(245,240,232,.7)}
+.lectura{background:var(--papel);color:var(--tinta);border-radius:20px 20px 0 0;padding:14px 16px 18px}
+.lectura .arr{display:flex;gap:10px;align-items:center}
+.lectura .stp{margin-left:auto}
+.lectura .stp button{width:46px;height:46px}
+.lectura .stp .q{font-size:38px;min-width:48px}
+.lectura .bip{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--verde);margin-top:8px}
+.lectura .fin{display:flex;gap:8px;margin-top:12px}
+.lectura .fin button{flex:1;height:48px;border-radius:13px;font-weight:600}
+
+/* aviso de a dónde iría (solo demo) */
+.toast{position:fixed;right:22px;top:70px;z-index:99;background:var(--tinta);color:var(--crema);border-radius:12px;padding:10px 14px;font-size:12.5px;max-width:440px;opacity:0;transform:translateY(-8px);transition:all .3s var(--ease);pointer-events:none}
+.toast.on{opacity:1;transform:none}
+.toast code{font-family:ui-monospace,monospace;font-size:11.5px;color:#f0d9b5;word-break:break-all}
+
+/* notas del spike */
+.notas{padding:0 24px 40px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.nota{background:var(--papel);border:1px dashed var(--taupe);border-radius:14px;padding:16px 18px;font-size:13px}
+.nota h4{font-family:'EB Garamond',serif;font-weight:400;font-size:20px;margin-bottom:6px}
+.nota ul{padding-left:18px;display:grid;gap:4px}
+.nota .gp{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:8px}
+.nota .gp b{font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="spk">
+  <span class="tit">Conteo conectado · spike</span>
+  <div class="g"><span>Pantalla</span><div class="seg" data-grupo="p">
+    <button data-v="abrir">1 · Abrir</button><button data-v="contando">2 · Contando</button><button data-v="revisar">3 · Revisar</button><button data-v="cerrado">4 · Cerrado</button></div></div>
+  <div class="g" data-solo="contando"><span>Cruce con una compañera</span><div class="seg" data-grupo="c">
+    <button data-v="nada">Nada</button><button data-v="pasar">Confirmada al pasar</button><button data-v="otra">Otra talla</button><button data-v="misma">Misma prenda</button><button data-v="ya">Ya contada</button></div></div>
+  <div class="g" data-solo="contando"><span>Celular</span><div class="seg" data-grupo="cam">
+    <button data-v="no">Lista</button><button data-v="si">Cámara abierta</button></div></div>
+  <div class="g" data-solo="revisar"><span>Diferencias · elige</span><div class="seg" data-grupo="d">
+    <button data-v="A">A · Recontar opcional</button><button data-v="B">B · Cerrar directo (hoy)</button><button data-v="C">C · Obligatorio sobre S/ 150</button></div></div>
+</div>
+
+<div class="escena">
+  <div><p class="rot">Computadora · 1.440 px</p><div class="marco marco-pc" id="pc"></div></div>
+  <div class="col-tel"><p class="rot">Celular · 375 px</p><div class="marco marco-tel m" id="tel"></div></div>
+</div>
+
+<div class="notas" id="notas"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ───────── datos inventados ───────── */
+const GENTE={
+  rosa:{n:'Rosa Quispe',ini:'RQ',col:'#805c4c'},
+  ana:{n:'Ana Flores',ini:'AF',col:'#4c5d6e'},
+  luz:{n:'Luz Mamani',ini:'LM',col:'#48603f'},
+};
+const YO='rosa';
+// Quién cuenta qué ahora mismo (lo que vería el panel «Contando ahora»).
+const VIVO=[
+  {p:'rosa',n:'Blusa Carlita',c:'Negro',hex:'#222220',t:'M',cod:'CMS-0001-NEG-M',q:12},
+  {p:'ana',n:'Blusa Carlita',c:'Negro',hex:'#222220',t:'S',cod:'CMS-0001-NEG-S',q:4},
+  {p:'luz',n:'Top Aurora',c:'Beige',hex:'#c9ad8a',t:'L',cod:'POL-0002-BEI-L',q:7},
+];
+// Faltan: por modelo + color (la «percha» de Existencias), con sus tallas.
+const FALTAN=[
+  {n:'Blusa Carlita',c:'Gris',hex:'#6f6f6c',cod:'CMS-0001-GRI',t:[['XS',0],['S',1],['M',0],['L',0],['XL',0]]},
+  {n:'Blusa Carlita',c:'Negro',hex:'#222220',cod:'CMS-0001-NEG',t:[['XS',0],['S','ana'],['M','rosa'],['L',1],['XL',0]]},
+  {n:'Top Aurora',c:'Beige',hex:'#c9ad8a',cod:'POL-0002-BEI',t:[['S',1],['M',1],['L','luz']]},
+  {n:'Pantalón Wayi',c:'Azul marino',hex:'#2d3a55',cod:'PAN-0003-AZU',t:[['28',0],['30',0],['32',0]]},
+  {n:'Blazer Artemisa',c:'Terracota',hex:'#a4553b',cod:'BLZ-0005-TER',t:[['S',0],['M',0],['L',0]]},
+  {n:'Jean Miramhe',c:'Celeste',hex:'#9db6cf',cod:'JEA-0006-CEL',t:[['28',1],['30',0],['32',0]]},
+];
+const CONTADAS=[
+  {n:'Blusa Carlita',c:'Negro',t:'L',cod:'CMS-0001-NEG-L',q:7,f:['rosa']},
+  {n:'Top Aurora',c:'Beige',t:'M',cod:'POL-0002-BEI-M',q:9,f:['luz','ana']},
+  {n:'Top Aurora',c:'Beige',t:'S',cod:'POL-0002-BEI-S',q:6,f:['luz']},
+  {n:'Blusa Carlita',c:'Gris',t:'S',cod:'CMS-0001-GRI-S',q:3,f:['ana']},
+  {n:'Jean Miramhe',c:'Celeste',t:'28',cod:'JEA-0006-CEL-28',q:2,f:['rosa']},
+];
+const DIF=[
+  {n:'Blusa Carlita',c:'Negro',hex:'#222220',t:'M',cod:'CMS-0001-NEG-M',s:14,f:12,pr:32.5,q:['rosa']},
+  {n:'Top Aurora',c:'Beige',hex:'#c9ad8a',t:'M',cod:'POL-0002-BEI-M',s:11,f:9,pr:21,q:['luz','ana']},
+  {n:'Jean Miramhe',c:'Celeste',hex:'#9db6cf',t:'28',cod:'JEA-0006-CEL-28',s:1,f:2,pr:48,q:['rosa']},
+  {n:'Blazer Artemisa',c:'Terracota',hex:'#a4553b',t:'S',cod:'BLZ-0005-TER-S',s:2,f:0,pr:66,q:['ana']},
+];
+const NOENC=[
+  {n:'Pantalón Wayi',c:'Azul marino',hex:'#2d3a55',t:'30',cod:'PAN-0003-AZU-30',s:2,pr:45},
+  {n:'Blusa Carlita',c:'Gris',hex:'#6f6f6c',t:'XL',cod:'CMS-0001-GRI-XL',s:1,pr:32.5},
+  {n:'Blazer Artemisa',c:'Terracota',hex:'#a4553b',t:'M',cod:'BLZ-0005-TER-M',s:1,pr:66},
+];
+
+/* ───────── estado ───────── */
+const S={p:'contando',c:'nada',cam:'no',d:'A',tab:'faltan',noenc:{}};
+const qs=new URLSearchParams(location.search);
+for(const k of ['p','c','cam','d','tab'])if(qs.get(k))S[k]=qs.get(k);
+try{const g=JSON.parse(localStorage.getItem('spk-conteo')||'{}');if(!qs.get('p'))Object.assign(S,{p:g.p||S.p,c:g.c||S.c,d:g.d||S.d})}catch(e){}
+const guardar=()=>{try{localStorage.setItem('spk-conteo',JSON.stringify({p:S.p,c:S.c,d:S.d}))}catch(e){}};
+
+/* ───────── íconos ───────── */
+const I={
+ scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 9v6M10 9v6M13 9v6M17 9v6"/>',
+ cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+ kb:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+ check:'<path d="m5 12 5 5 9-10"/>',
+ x:'<path d="M6 6l12 12M18 6 6 18"/>',
+ back:'<path d="m15 6-6 6 6 6"/>',
+ arr:'<path d="m9 6 6 6-6 6"/>',
+ info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+ warn:'<path d="M12 4 2 20h20z"/><path d="M12 10v4M12 17h.01"/>',
+ tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+ down:'<path d="M12 4v12m-5-5 5 5 5-5M5 20h14"/>',
+ truck:'<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+ recibir:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+ hist:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 8v4l3 2"/>',
+ redo:'<path d="M20 12a8 8 0 1 1-2.3-5.6L20 9"/><path d="M20 4v5h-5"/>',
+ box:'<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
+ users:'<circle cx="9" cy="8" r="3.2"/><path d="M3 20a6 6 0 0 1 12 0M16 5.5a3 3 0 0 1 0 5.8M17.5 14.5A5.5 5.5 0 0 1 21 20"/>',
+ menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+ dots:'<circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/>',
+ clip:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12l2 2 4-4"/>',
+ bell:'<path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+ chev:'<path d="m6 9 6 6 6-6"/>',
+};
+const ic=(k,s='')=>`<svg class="ic" ${s} viewBox="0 0 24 24">${I[k]}</svg>`;
+const ava=(k,s='')=>`<span class="ava" style="background:${GENTE[k].col};${s}">${GENTE[k].ini}</span>`;
+const firma=f=>`<span class="firma">${f.map(k=>`<i style="background:${GENTE[k].col}" title="${GENTE[k].n}">${GENTE[k].ini}</i>`).join('')}</span>`;
+const foto=(hex,cls='foto')=>`<span class="${cls}"><i style="background:${hex}"></i></span>`;
+const sol=n=>`${n<0?'−':n>0?'+':''}S/ ${Math.abs(n).toLocaleString('es-PE',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+const ir=(dest,que)=>`data-ir="${dest}" data-que="${que||''}"`;
+
+/* ───────── piezas compartidas ───────── */
+const lateral=()=>`<nav class="lat">
+  <div class="logo"><i></i>CAYLA</div>
+  <a>Inicio</a><a>Ventas</a><a>Inventario</a>
+  <a class="sub">Existencias</a><a class="sub">Movimientos</a><a class="sub">Traslados</a><a class="sub on">Conteo</a><a class="sub">Análisis</a>
+  <a>Catálogo</a><a>Compras</a><a>Finanzas</a></nav>`;
+const barraSup=()=>`<div class="top"><span class="lbl" style="display:flex;gap:6px;align-items:center">${ic('hist')}Actividad</span><span class="sede">TIENDA TRU ▾</span></div>`;
+const barraTel=()=>`<div class="barra"><span class="hb">${ic('menu')}CAYLA</span><span class="sede">TIENDA TRU</span></div>`;
+
+const avance=(m)=>`<div class="av">
+  <div class="l"><span>18 de 39 prendas</span><b>46 %</b></div>
+  <div class="barra-av"><i style="width:46%"></i></div>
+  ${m?'':`<div class="l"><span>112 unidades anotadas</span><span>21 pendientes</span></div>`}
+</div>`;
+
+function ultimaPrenda(m){
+  const pasar=S.c==='pasar';
+  return `<div class="ult">
+    <p class="lbl" style="margin-bottom:8px">Estás contando</p>
+    <div class="arr">${foto('#222220')}
+      <div style="min-width:0"><div class="n">Blusa Carlita <span class="talla-g">M</span></div>
+      <div class="m"><span class="sw" style="background:#222220"></span>Negro · <span class="mono">CMS-0001-NEG-M</span></div></div>
+      ${m?'':`<div class="stp"><button aria-label="Una menos">−</button><span class="q num">12</span><button aria-label="Una más">+</button></div>`}
+    </div>
+    ${m?`<div class="stp"><button>−</button><span class="q num">12</span><button>+</button></div>`:''}
+    <div class="pie">
+      <span class="ok">${ic('check')}Guardado · escanea la siguiente y esta se confirma sola</span>
+      <button class="btn ch" ${ir('confirmar','Confirma «Blusa Carlita · Negro · M × 12» sin esperar a escanear otra. Suena el bip de confirmada.')}>${ic('check')}Terminé esta prenda</button>
+    </div>
+  </div>
+  ${pasar?`<div class="conf">${ic('check')}<span><b>Blusa Carlita · Negro · L × 7</b> confirmada</span><button ${ir('deshacer','Deshacer: la prenda vuelve a «Estás contando» con 7 y se puede seguir sumando. El aviso dura 5 s.')}>Deshacer</button></div>`:''}
+  ${S.c==='otra'?`<div class="av-otra">${ic('users')}<span><b>Ana</b> está en esta misma prenda: talla <b>S</b>. Tú en M: no se cruzan.</span></div>`:''}`;
+}
+
+function contandoAhora(m){
+  if(m) return `<div class="chips-vivo">${VIVO.map(v=>`<span class="cv ${v.p===YO?'yo':''}">${ava(v.p)}<span>${v.p===YO?'Tú':GENTE[v.p].n.split(' ')[0]} · ${v.n.split(' ')[0]} ${v.c.toLowerCase()} <b>${v.t}</b> · ${v.q}</span></span>`).join('')}</div>`;
+  return `<section class="tarjeta">
+    <div class="th"><h3>Contando ahora</h3><span class="vivo">3 personas · se actualiza sola</span></div>
+    ${VIVO.map(v=>`<div class="persona ${v.p===YO?'yo':''}">${ava(v.p)}
+      <div class="t"><b>${v.p===YO?'Tú · ':''}${GENTE[v.p].n}</b><span><span class="sw" style="background:${v.hex}"></span> ${v.n} · ${v.c} · <b>${v.t}</b> · <span class="mono">${v.cod}</span></span></div>
+      <div class="q num">${v.q}<small>lleva</small></div></div>`).join('')}
+  </section>`;
+}
+
+function listas(m){
+  const tabs=`<div class="tabs">
+    <button class="${S.tab==='faltan'?'on':''}" data-tab="faltan">Faltan<span class="c">21</span></button>
+    <button class="${S.tab==='contadas'?'on':''}" data-tab="contadas">Contadas<span class="c">18</span></button>
+    <button class="${S.tab==='fuera'?'on':''}" data-tab="fuera">${m?'Fuera':'Fuera del alcance'}<span class="c">1</span></button></div>`;
+  let cuerpo='';
+  if(S.tab==='faltan'){
+    cuerpo=`<p style="padding:10px 16px 4px;font-size:12px;color:var(--t65)">Qué buscar en el rack, sin cuántas dice el sistema. Toca una talla para anotarla a mano.</p>`+
+    FALTAN.map(g=>`<div class="gr"><div class="a"><span class="sw" style="background:${g.hex}"></span><b>${g.n}</b><span style="color:var(--t65);font-size:12.5px">${g.c}</span><span class="mono" style="margin-left:auto">${g.cod}</span></div>
+      <div class="tlls">${g.t.map(([t,e])=>e===1?`<span class="tll hecha">${t}</span>`:typeof e==='string'?`<span class="tll otra" title="La está contando ${GENTE[e].n}">${t} · ${GENTE[e].ini}</span>`:`<button class="tll" ${ir('escribir',`Anotar a mano «${g.n} · ${g.c} · ${t}»: abre la cantidad con − / +. Sirve sin etiqueta o sin pistola; esa prenda se marca para imprimir etiqueta.`)}>${t}</button>`).join('')}</div></div>`).join('');
+  } else if(S.tab==='contadas'){
+    cuerpo=CONTADAS.map(c=>`<div class="fila-c"><div class="t">${c.n} · ${c.c} · <b>${c.t}</b><span class="mono">${c.cod}</span></div>${firma(c.f)}<span class="q num">× ${c.q}</span><button class="enl" style="font-weight:500" ${ir('corregir','Corregir: vuelve a «Estás contando» con su cifra. Si la contó otra persona, pregunta «encontré más o la recuento».')}>Corregir</button></div>`).join('');
+  } else {
+    cuerpo=`<p style="padding:10px 16px 4px;font-size:12px;color:var(--t65)">Se leyó pero no es del alcance del conteo. Igual se ajusta al cerrar.</p>
+    <div class="fila-c"><div class="t">Vestido Nube · Blanco · <b>M</b><span class="mono">VES-0009-BLA-M · leyó Ana</span></div><span class="q num">× 1</span></div>`;
+  }
+  return `<section class="tarjeta">${m?'':`<div class="th" style="padding-bottom:6px"><h3>Lo del conteo</h3><span class="s">Faltan agrupadas por modelo y color</span></div>`}${tabs}<div class="lst">${cuerpo}</div></section>`;
+}
+
+/* ───────── pantallas de computadora ───────── */
+function pcAbrir(){
+  return `<div class="main">
+  <div class="hilo">Tienda TRU · sábado, 26 de setiembre · 17:19</div>
+  <h1 class="tit">Conteo</h1>
+  <p class="frase">Compara lo que dice el sistema contra lo que hay de verdad. Se cuenta a ciegas: la cifra del sistema sale al revisar.</p>
+  <div class="aviso amb" style="margin-top:18px">${ic('warn')}<span><b>Antes de contar:</b> hay <b>2 traslados</b> y <b>1 envío de proveedor</b> por recibir en esta sede. Si no los recibes primero, esas prendas saldrán como diferencia.</span>
+    <span class="der"><a class="enl" ${ir('/inventario/traslados?estado=por_recibir','Traslados, filtrado en «Por recibir» de Tienda TRU.')}>Ver traslados</a><a class="enl" ${ir('/recibir','Recibir mercadería de esta sede.')}>Recibir mercadería</a></span></div>
+  <div class="cifras">
+    <div class="cifra"><span class="lbl">Exactitud del inventario</span><div class="v ver">100 %</div><p>7 de 7 prendas coincidieron · 1 conteo con prendas</p></div>
+    <div class="cifra"><span class="lbl">Conviene contar primero</span><div class="v">S/ 4,280.00</div><p>A precio de venta, en 8 prendas nunca contadas o de más plata en la percha</p></div>
+    <div class="cifra"><span class="lbl">Último conteo con prendas</span><div class="v">S/ 0.00</div><p>Conteo 5 · todo coincidió · ya ajustado</p></div>
+  </div>
+  <section class="tarjeta pad" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px"><h3 class="serif" style="font-size:22px">Abrir un conteo</h3><span style="font-size:12px;color:var(--t65)">No hay ningún conteo abierto en esta sede.</span></div>
+    <div class="pasos">
+      <div class="paso"><div class="h"><i>1</i><span class="lbl">Dónde</span></div>
+        <button class="op on"><b>Piso de venta</b><small>Último conteo: 5 · 24/09</small></button>
+        <button class="op"><b>Almacén de tienda</b><small>Aún sin conteo con prendas</small></button></div>
+      <div class="paso"><div class="h"><i>2</i><span class="lbl">Qué</span></div>
+        <div class="seg2"><button class="on">Todo el catálogo</button><button>Una categoría</button></div>
+        <p style="font-size:12px;color:var(--t65);margin-top:8px">Todo lo que tiene stock en el piso. Por categoría se termina antes.</p></div>
+      <div class="paso"><div class="h"><i>3</i><span class="lbl">Quién cuenta</span></div>
+        <span class="resp">${ava('rosa','width:26px;height:26px;font-size:10px')}<span>Rosa Quispe <small>· marcó entrada 09:02</small></span></span>
+        <p style="font-size:12px;color:var(--t65);margin-top:8px">Otras compañeras se suman desde su celular: entran a Conteo y eligen quién son.</p></div>
+    </div>
+    <div class="pie-contar"><span>Se abre un conteo del <b>piso de venta</b>, <b>todo el catálogo</b>.</span><button class="btn pri">Abrir y empezar a contar</button></div>
+  </section>
+  <section class="tarjeta" style="margin-top:16px">
+    <div class="th"><h3>Conteos de esta sede</h3><span class="s">Abierto o cerrado, nada más</span></div>
+    <table><thead><tr><th>Conteo</th><th class="c">Qué se contó</th><th class="c">Resultado</th><th class="c">Sistema → físico</th><th class="c">Contaron</th><th></th></tr></thead><tbody>
+      <tr><td>Conteo 5<br><small style="color:var(--t65)">Cerrado 24/9</small></td><td class="c">Piso de venta<br><small style="color:var(--t65)">Todo · 7 prendas</small></td><td class="c"><span class="chip ver">Sin diferencias</span></td><td class="c num">51 → 51</td><td class="c">${firma(['ana'])}</td><td class="d"><button class="btn ch">Ver detalle</button></td></tr>
+    </tbody></table>
+    <div class="pleg">${ic('chev')}<span><b>4 conteos vacíos</b> (1 al 4) · cerraron sin prendas y no cuentan para la exactitud</span><a class="enl" style="margin-left:auto">Mostrar</a></div>
+  </section>
+  </div>`;
+}
+
+function pcContando(){
+  return `<div class="main">
+  <div class="cab-fila"><div>
+    <div class="hilo">Tienda TRU · sábado, 26 de setiembre · 17:19</div>
+    <h1 class="tit">Conteo</h1>
+  </div>
+  <div class="acciones" style="margin-top:22px">
+    <button class="btn ch" ${ir('/etiquetas-de-precio?variantes=…','Etiquetas de precio con las 3 prendas que se anotaron a mano (sin etiqueta o ilegible) ya cargadas.')}>${ic('tag')}Imprimir etiquetas <span class="cnt">3</span></button>
+    <button class="btn sut ch" ${ir('/inventario/conteo#historial','Historial de conteos, plegado bajo el conteo abierto.')}>${ic('hist')}Conteos anteriores</button>
+  </div></div>
+  <div class="franja">
+    <div><span class="lbl">En curso · abierto 26/9, 12:22</span><h2>Conteo 6 · Piso de venta</h2><span class="s">Todo el catálogo · abrió Rosa Quispe</span></div>
+    ${avance(false)}
+    <div style="display:flex;gap:8px"><button class="btn sut ch">Cancelar</button><button class="btn pri" ${ir('revisar','Revisar y cerrar: primero termina de guardar lo que está en fila (de todas las personas).')}>Revisar y cerrar →</button></div>
+  </div>
+  <div class="dos">
+    <section class="tarjeta pad">
+      <div class="quien">
+        <span class="resp">${ava('rosa','width:26px;height:26px;font-size:10px')}<span>Cuentas como <b>Rosa Quispe</b></span>${ic('chev','style="width:14px;height:14px;color:var(--t65)"')}</span>
+        <div class="seg2"><button class="on">Suma por escaneo</button><button>Escribir cantidad</button></div>
+      </div>
+      <div class="esc">${ic('scan','style="color:var(--t65)"')}<input placeholder="Escanea: cada lectura suma 1 · o escribe el código y Enter"><span class="cam">${ic('cam','style="width:15px;height:15px"')}Cámara</span></div>
+      ${ultimaPrenda(false)}
+      <div class="pie-contar" style="border-top:0;margin-top:6px;padding-top:0"><span style="font-size:12px;color:var(--t65)">♪ Bip corto = sumó · bip doble = prenda nueva · tono grave = código que no existe</span></div>
+    </section>
+    <div style="display:grid;gap:14px">${contandoAhora(false)}${listas(false)}</div>
+  </div>
+  ${S.c==='misma'?modalMisma(false):''}${S.c==='ya'?modalYa(false):''}
+  </div>`;
+}
+
+function modalMisma(m){
+  const cuerpo=`<div class="${m?'':'mz'}" style="${m?'padding:14px 18px 10px;border-bottom:1px solid var(--sand)':''}"><h3 class="serif" style="font-size:24px">Ana ya está contando esta prenda</h3><p style="font-size:12.5px;color:var(--t65)">Lleva 4 desde las 17:12. ¿Qué tienes tú en la mano?</p></div>
+  <div class="mc cascada">
+    <div class="prenda" style="background:var(--hueso);border-radius:12px;padding:10px">${foto('#222220')}<div><div class="n">Blusa Carlita <span class="talla-g">S</span></div><div class="m"><span class="sw" style="background:#222220"></span>Negro · <span class="mono">CMS-0001-NEG-S</span></div></div><span style="margin-left:auto;display:flex;gap:6px;align-items:center">${ava('ana','width:26px;height:26px;font-size:10px')}<b class="serif num" style="font-size:24px">4</b></span></div>
+    <div class="elec">
+      <button class="pri" ${ir('suma','Tu lectura suma 1 en TU tanda: Ana 4 + Rosa 1 = 5. Cada una firma lo suyo; la pregunta no vuelve para esta prenda.')}>${ic('users')}<span><b>Son otras unidades · se suman</b><span>Las encontré en otro lugar. Ana sigue con las suyas y cada una firma lo que contó.</span></span></button>
+      <button ${ir('descartar','Tu lectura no cuenta. Ana sigue sola con esta prenda.')}>${ic('x')}<span><b>Es la misma pila · la dejo a Ana</b><span>Mi lectura no cuenta y sigo con otra prenda.</span></span></button>
+    </div>
+  </div>`;
+  return m?`<div class="velo"></div><div class="hoja"><div class="asa"></div>${cuerpo}</div>`:`<div class="velo"></div><div class="modal ch">${cuerpo}</div>`;
+}
+function modalYa(m){
+  const cuerpo=`<div style="padding:${m?'14px 18px 10px':'18px 20px 12px'};border-bottom:1px solid var(--sand)"><h3 class="serif" style="font-size:24px">Esta prenda ya está contada</h3><p style="font-size:12.5px;color:var(--t65)">Ana la confirmó con <b>× 6</b> a las 16:48.</p></div>
+  <div class="mc cascada">
+    <div class="prenda" style="background:var(--hueso);border-radius:12px;padding:10px">${foto('#6f6f6c')}<div><div class="n">Blusa Carlita <span class="talla-g">S</span></div><div class="m"><span class="sw" style="background:#6f6f6c"></span>Gris · <span class="mono">CMS-0001-GRI-S</span></div></div><span style="margin-left:auto;display:flex;gap:6px;align-items:center">${ava('ana','width:26px;height:26px;font-size:10px')}<b class="serif num" style="font-size:24px">6</b></span></div>
+    <div class="elec">
+      <button class="pri" ${ir('suma','Se suman: 6 de Ana + lo tuyo. Útil cuando la prenda estaba también en otro rack o en la vitrina.')}>${ic('users')}<span><b>Encontré más · se suman</b><span>Estaban en otro lugar: 6 de Ana + las que cuente yo.</span></span></button>
+      <button ${ir('recontar','Recuento: lo de Ana se reemplaza por lo que cuentes tú desde 0. Queda escrito que recontaste tú (y la cifra de Ana, en el historial del conteo).')}>${ic('redo')}<span><b>La recuento · reemplaza lo de Ana</b><span>Empiezo desde 0. Queda escrito que recontaste tú.</span></span></button>
+      <button ${ir('nada','No cuenta la lectura.')}>${ic('x')}<span><b>Me equivoqué · no cuenta</b><span>La lectura se descarta.</span></span></button>
+    </div>
+  </div>`;
+  return m?`<div class="velo"></div><div class="hoja"><div class="asa"></div>${cuerpo}</div>`:`<div class="velo"></div><div class="modal ch" style="top:150px">${cuerpo}</div>`;
+}
+
+function revisarCuerpo(m){
+  const total=DIF.reduce((s,x)=>s+(x.f-x.s)*x.pr,0);
+  const bloqueD = S.d==='A'
+    ? `<div class="aviso">${ic('redo')}<span><b>¿Algún error al escanear?</b> Recuenta solo las 4 con diferencia. Vuelven a «Faltan» sin cifras; mejor si las cuenta otra persona.</span><span class="der"><button class="btn ch" ${ir('recontar4','Las 4 vuelven a «Faltan» del mismo conteo, sin la cifra del sistema ni lo contado antes. Al terminarlas se vuelve a esta revisión. Sin migración: conteo_contar ya renueva la foto.')}>Recontar las 4</button></span></div>`
+    : S.d==='C'
+    ? `<div class="aviso roj">${ic('warn')}<span><b>La diferencia (${sol(total)}) pasa de S/ 150.</b> Antes de cerrar hay que recontar las 4 con diferencia; si otra persona las cuenta, mejor.</span><span class="der"><button class="btn pri ch" ${ir('recontar4','Recuento obligatorio: las 4 vuelven a «Faltan». «Cerrar» se habilita cuando estén recontadas.')}>Recontar las 4</button></span></div>`
+    : '';
+  const falta=NOENC.filter((_,i)=>!S.noenc[i]).length;
+  const bloqueado = S.d==='C' || falta>0;
+  const filasDif = DIF.map(x=>`<tr><td><div class="prenda">${foto(x.hex)}<div><div class="n">${x.n} · ${x.t}</div><div class="m"><span class="sw" style="background:${x.hex}"></span>${x.c} · <span class="mono">${x.cod}</span></div></div></div></td><td class="c num">${x.s}</td><td class="c num"><b>${x.f}</b></td><td class="c num" style="color:${x.f<x.s?'var(--rojo-p)':'var(--verde)'}">${x.f-x.s>0?'+':''}${x.f-x.s}</td><td class="d num">${sol((x.f-x.s)*x.pr)}</td><td class="c">${firma(x.q)}</td></tr>`).join('');
+  const filasDifM = DIF.map(x=>`<div class="fila-c"><div class="t">${x.n} · ${x.c} · <b>${x.t}</b><span>Sistema ${x.s} → contado <b>${x.f}</b> · ${sol((x.f-x.s)*x.pr)}</span></div>${firma(x.q)}<span class="q num" style="color:${x.f<x.s?'var(--rojo-p)':'var(--verde)'}">${x.f-x.s>0?'+':''}${x.f-x.s}</span></div>`).join('');
+  const filasNo = NOENC.map((x,i)=>`<div class="fila-c" style="flex-wrap:${m?'wrap':'nowrap'}"><div class="t">${x.n} · ${x.c} · <b>${x.t}</b><span>El sistema dice ${x.s} aquí · <span class="mono">${x.cod}</span></span></div>
+    <span class="mini-seg" style="${m?'width:100%;display:flex':''}"><button class="${S.noenc[i]==='cero'?'on cero':''}" style="${m?'flex:1':''}" data-noenc="${i}" data-v="cero">No está → 0</button><button class="${S.noenc[i]==='dejar'?'on':''}" style="${m?'flex:1':''}" data-noenc="${i}" data-v="dejar">Dejar como está</button></span></div>`).join('');
+  return {bloqueado,falta,html:`
+    <div class="cifras" style="margin-top:0;${m?'display:flex;overflow-x:auto;gap:8px':''}">
+      <div class="cifra" style="${m?'min-width:140px':''}"><span class="lbl">Contadas</span><div class="v">36</div><p>3 personas · 121 unidades</p></div>
+      <div class="cifra" style="${m?'min-width:140px':''}"><span class="lbl">Sistema → físico</span><div class="v">124 → 121</div><p>4 prendas con diferencia</p></div>
+      <div class="cifra" style="${m?'min-width:140px':''}"><span class="lbl">Diferencia</span><div class="v roj">${sol(total)}</div><p>Al costo · sin las no encontradas</p></div>
+    </div>
+    ${bloqueD}
+    <section class="tarjeta"><div class="th"><h3>Con diferencia</h3>${m?'':'<span class="s">Quién la contó, por si hay que preguntar</span>'}</div>
+      ${m?filasDifM:`<table><thead><tr><th>Prenda</th><th class="c">Sistema</th><th class="c">Físico</th><th class="c">Dif.</th><th class="d">En soles</th><th class="c">Contó</th></tr></thead><tbody>${filasDif}</tbody></table>`}</section>
+    <section class="tarjeta"><div class="th"><h3>No se encontraron · 3</h3><span class="s">${m?'':'El sistema las tiene aquí y nadie las contó'}</span></div>
+      <div style="display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap;align-items:center"><span style="font-size:12px;color:var(--t65)">Las 3:</span><button class="btn ch" data-noenc="todas" data-v="cero">No están → 0</button><button class="btn ch" data-noenc="todas" data-v="dejar">Dejar como están</button></div>
+      ${filasNo}</section>`};
+}
+
+function pcRevisar(){
+  const r=revisarCuerpo(false);
+  return pcContando().replace(/<div class="velo">[\s\S]*$/,'')+`<div class="velo"></div><div class="modal">
+    <div class="mz"><h3>Revisar antes de cerrar</h3><p>Conteo 6 · Piso de venta · todo el catálogo · contaron Rosa, Ana y Luz</p></div>
+    <div class="mc cascada">${r.html}</div>
+    <div class="mp"><button class="btn">← Volver a contar</button>
+      <span style="display:flex;gap:10px;align-items:center">${r.falta>0?`<span style="font-size:12.5px;color:var(--rojo-p)">Falta decidir ${r.falta} no encontrada${r.falta>1?'s':''}</span>`:''}<button class="btn pri" ${r.bloqueado?'disabled':''}>Cerrar y ajustar el stock</button></span></div>
+  </div>`;
+}
+
+function pcCerrado(){
+  return `<div class="main">
+  <div class="cab-fila"><div>
+    <div class="hilo">Tienda TRU · sábado, 26 de setiembre · 18:05</div>
+    <h1 class="tit">Conteo 6 <span class="sepp">·</span> Piso de venta</h1>
+    <p class="frase">Todo el catálogo · abrió Rosa Quispe el 26/9, 12:22 · cerró Rosa Quispe el 26/9, 18:02 · contaron Rosa, Ana y Luz</p>
+    <div class="pie-cab"><button class="btn">← Conteos</button><span class="chip roj">7 con diferencia</span></div>
+  </div>
+  <div class="acciones" style="margin-top:22px"><button class="btn ch" ${ir('/inventario/movimientos?proc=conteo&ref=6','Movimientos filtrado en los ajustes del Conteo 6.')}>${ic('hist')}Ver ajustes en Movimientos</button></div></div>
+  <div class="cifras">
+    <div class="cifra"><span class="lbl">Prendas contadas</span><div class="v">36</div><p>32 coincidieron · 3 personas</p></div>
+    <div class="cifra"><span class="lbl">Sistema → físico</span><div class="v">124 → 118</div><p>Incluye 3 no encontradas que pasaron a 0</p></div>
+    <div class="cifra"><span class="lbl">Diferencia en soles</span><div class="v roj">−S/ 280.50</div><p>Al costo · ya ajustado en el stock</p></div>
+  </div>
+  <section class="tarjeta" style="margin-top:16px">
+    <div class="th"><h3>Lo que sigue</h3><span class="s">Cada botón lleva a la pantalla que hace el trabajo, con la lista ya cargada</span></div>
+    <div class="sigue">
+      <button class="sg pri" ${ir('/inventario/conteo?recontar=6','Abre un conteo nuevo del piso con SOLO las 7 prendas con diferencia en «Faltan» (a ciegas). Útil si el cierre se hizo con apuro.')}>${ic('redo')}<b>Recontar las 7 con diferencia</b><span>Un conteo nuevo solo con esas, a ciegas.</span><span class="ir">/inventario/conteo?recontar=6</span></button>
+      <button class="sg" ${ir('/inventario/bajar?lineas=…','Bajar al piso con 5 prendas «por escanear» (en 0): quedaron en 0 en el piso y hay en el almacén. La cantidad la pone quien baja, al leerlas (ADR-0231/0237).')}>${ic('down')}<b>Bajar al piso · 5</b><span>Quedaron en 0 en el piso y hay en el almacén. Llegan por escanear.</span><span class="ir">/inventario/bajar?lineas=</span></button>
+      <button class="sg" ${ir('/etiquetas-de-precio?variantes=…','Etiquetas de precio con las 3 prendas que se anotaron a mano (sin etiqueta o ilegible).')}>${ic('tag')}<b>Imprimir etiquetas · 3</b><span>Se anotaron a mano: sin etiqueta o ilegible.</span><span class="ir">/etiquetas-de-precio?variantes=</span></button>
+      <button class="sg" ${ir('/inventario?q=…','Existencias con las 7 prendas con diferencia: dónde más hay, historial, ajustar.')}>${ic('box')}<b>Ver en Existencias</b><span>Las 7 con diferencia: dónde más hay y su historial.</span><span class="ir">/inventario?q=</span></button>
+    </div>
+  </section>
+  <section class="tarjeta" style="margin-top:16px">
+    <div style="display:flex;gap:6px;padding:14px 16px 10px"><button class="btn ch pri">Con diferencia · 7</button><button class="btn ch">Todas · 39</button></div>
+    <table><thead><tr><th>Prenda</th><th class="c">Sistema</th><th class="c">Físico</th><th class="c">Dif.</th><th class="d">En soles</th><th class="c">Contó</th><th></th></tr></thead><tbody>
+      ${DIF.map(x=>`<tr><td><div class="prenda">${foto(x.hex)}<div><div class="n">${x.n} · ${x.t}</div><div class="m"><span class="sw" style="background:${x.hex}"></span>${x.c} · <span class="mono">${x.cod}</span></div></div></div></td><td class="c num">${x.s}</td><td class="c num"><b>${x.f}</b></td><td class="c num" style="color:${x.f<x.s?'var(--rojo-p)':'var(--verde)'}">${x.f-x.s>0?'+':''}${x.f-x.s}</td><td class="d num">${sol((x.f-x.s)*x.pr)}</td><td class="c">${firma(x.q)}</td><td class="d"><a class="enl" style="font-weight:500" ${ir('/inventario?prenda=…','Abre el detalle de la prenda en Existencias, parado en esa talla.')}>Existencias ↗</a></td></tr>`).join('')}
+      ${NOENC.map(x=>`<tr><td><div class="prenda">${foto(x.hex)}<div><div class="n">${x.n} · ${x.t}</div><div class="m"><span class="sw" style="background:${x.hex}"></span>${x.c} · <span class="mono">${x.cod}</span></div></div></div></td><td class="c num">${x.s}</td><td class="c num"><b>0</b></td><td class="c num" style="color:var(--rojo-p)">−${x.s}</td><td class="d num">${sol(-x.s*x.pr)}</td><td class="c"><span class="chip gri">No se encontró</span></td><td class="d"><a class="enl" style="font-weight:500">Existencias ↗</a></td></tr>`).join('')}
+    </tbody></table>
+  </section>
+  </div>`;
+}
+
+/* ───────── pantallas de celular ───────── */
+function telAbrir(){
+  return `<div class="scroll">${barraTel()}
+  <div class="cab"><div class="hilo">Tienda TRU · sáb 26/9 · 17:19</div><h1 class="tit">Conteo</h1><p class="frase">Se cuenta a ciegas: la cifra del sistema sale al revisar.</p></div>
+  <div class="bloque"><div class="aviso amb">${ic('warn')}<span><b>Antes de contar:</b> 2 traslados y 1 envío por recibir aquí. Si no, saldrán como diferencia.</span><span class="der" style="margin-left:26px"><a class="enl" ${ir('/inventario/traslados?estado=por_recibir','Traslados por recibir.')}>Traslados</a><a class="enl" ${ir('/recibir','Recibir mercadería.')}>Recibir</a></span></div></div>
+  <div class="cifras">
+    <div class="cifra"><span class="lbl">Exactitud</span><div class="v ver">100 %</div><p>7 de 7 coincidieron</p></div>
+    <div class="cifra"><span class="lbl">Conviene contar</span><div class="v">S/ 4,280</div><p>8 prendas</p></div>
+    <div class="cifra"><span class="lbl">Último conteo</span><div class="v">S/ 0.00</div><p>Conteo 5 · coincidió</p></div>
+  </div>
+  <div class="bloque"><section class="tarjeta pad" style="display:grid;gap:14px">
+    <h3 class="serif" style="font-size:21px">Abrir un conteo</h3>
+    <div class="paso"><div class="h"><i>1</i><span class="lbl">Dónde</span></div><button class="op on"><b>Piso de venta</b><small>Último: 5 · 24/09</small></button><button class="op"><b>Almacén de tienda</b><small>Aún sin conteo con prendas</small></button></div>
+    <div class="paso"><div class="h"><i>2</i><span class="lbl">Qué</span></div><div class="seg2" style="display:flex"><button class="on" style="flex:1">Todo</button><button style="flex:1">Una categoría</button></div></div>
+    <div class="paso"><div class="h"><i>3</i><span class="lbl">Quién cuenta</span></div><span class="resp" style="width:100%">${ava('rosa','width:26px;height:26px;font-size:10px')}<span>Rosa Quispe</span></span></div>
+  </section></div>
+  <div class="bloque"><section class="tarjeta"><div class="th"><h3>Conteos</h3></div>
+    <div class="fila-c"><div class="t">Conteo 5 · Piso<span>24/9 · 51 → 51</span></div><span class="chip ver">Sin dif.</span></div>
+    <div class="pleg">${ic('chev')}<span>4 vacíos, plegados</span></div></section></div>
+  </div>
+  <div class="fab"><button>Abrir y empezar a contar</button></div>`;
+}
+
+function telContando(){
+  if(S.cam==='si') return telCamara();
+  return `<div class="scroll">
+  <div class="mc-top"><div class="r1"><span class="vuelta">${ic('back')}</span><div class="t"><b>Conteo 6 · Piso</b><span>Todo el catálogo · cuentas como Rosa</span></div><button class="btn ch" ${ir('revisar','Revisar y cerrar.')}>Revisar</button></div>${avance(true)}</div>
+  ${contandoAhora(true)}
+  ${ultimaPrenda(true)}
+  ${listas(true)}
+  <div style="padding:14px 16px 0;display:flex;justify-content:space-between;align-items:center"><button class="btn sut ch">Cancelar conteo</button><button class="btn ch" ${ir('/etiquetas-de-precio?variantes=…','Etiquetas de las 3 anotadas a mano.')}>${ic('tag')}Etiquetas <span class="cnt">3</span></button></div>
+  </div>
+  <div class="fab"><button ${ir('camara','Abre la cámara en ráfaga: cada código que entra en el cuadro suma 1, suena y vibra. Se cierra con «Listo».')}>${ic('cam')}Escanear con la cámara</button><button class="sec" aria-label="Escribir el código" ${ir('teclado','Escribir el código o buscar la prenda (sirve con la pistola Bluetooth).')}>${ic('kb')}</button></div>
+  ${S.c==='misma'?modalMisma(true):''}${S.c==='ya'?modalYa(true):''}`;
+}
+
+function telCamara(){
+  return `<div class="camara">
+    <div class="ct"><span><b>Conteo 6</b> · cada lectura suma 1</span><span class="num">18 / 39</span></div>
+    <div class="vis"><div class="mira"><div class="laser"></div></div><p class="pista">Pasa las etiquetas una tras otra · suena y vibra en cada una</p></div>
+    <div class="lectura">
+      <div class="arr">${foto('#222220')}<div style="min-width:0"><div class="n" style="font-weight:500">Blusa Carlita <span class="talla-g">M</span></div><div class="m" style="font-size:12px;color:var(--t65);white-space:nowrap">Negro · <span class="mono">…NEG-M</span></div></div>
+        <div class="stp"><button>−</button><span class="q num">12</span><button>+</button></div></div>
+      <div class="bip">${ic('check','style="width:15px;height:15px"')}Sumó 1 · ♪ bip + vibración corta${S.c==='otra'?' · <span style="color:var(--pizarra)">Ana está en la talla S</span>':''}</div>
+      <div class="fin"><button style="background:var(--hueso)">Terminé esta prenda</button><button style="background:var(--tinta);color:var(--crema)">Listo</button></div>
+    </div>
+  </div>`;
+}
+
+function telRevisar(){
+  const r=revisarCuerpo(true);
+  return telContando().replace(/<div class="velo">[\s\S]*$/,'')+`<div class="velo"></div><div class="hoja" style="max-height:94%"><div class="asa"></div>
+    <div style="padding:10px 16px 10px;border-bottom:1px solid var(--sand)"><h3 class="serif" style="font-size:24px">Revisar antes de cerrar</h3><p style="font-size:12px;color:var(--t65)">Conteo 6 · Piso · Rosa, Ana y Luz</p></div>
+    <div class="mc cascada" style="padding:12px 12px 16px">${r.html}</div>
+    <div class="mp" style="padding:10px 12px"><button class="btn ch">← Volver</button><button class="btn pri" ${r.bloqueado?'disabled':''}>${r.falta>0?`Falta decidir ${r.falta}`:'Cerrar y ajustar'}</button></div>
+  </div>`;
+}
+
+function telCerrado(){
+  return `<div class="scroll">${barraTel()}
+  <div class="cab"><div class="hilo">Tienda TRU · 26/9 · 18:05</div><h1 class="tit" style="font-size:32px">Conteo 6 <span class="sepp">·</span> Piso</h1><p class="frase">Cerró Rosa Quispe · contaron Rosa, Ana y Luz</p>
+  <div class="pie-cab"><button class="btn ch">← Conteos</button><span class="chip roj">7 con diferencia</span></div></div>
+  <div class="cifras">
+    <div class="cifra"><span class="lbl">Contadas</span><div class="v">36</div><p>32 coincidieron</p></div>
+    <div class="cifra"><span class="lbl">Sistema → físico</span><div class="v">124 → 118</div><p>3 no encontradas a 0</p></div>
+    <div class="cifra"><span class="lbl">Diferencia</span><div class="v roj">−S/ 280.50</div><p>Ya ajustado</p></div>
+  </div>
+  <div class="bloque"><section class="tarjeta"><div class="th"><h3>Lo que sigue</h3></div>
+    <div style="display:grid;gap:8px;padding:0 12px 12px">
+      <button class="sg pri" style="flex-direction:row;align-items:center" ${ir('/inventario/conteo?recontar=6','Conteo nuevo solo con las 7.')}>${ic('redo')}<span style="display:block"><b style="display:block">Recontar las 7 con diferencia</b><span>A ciegas, solo esas</span></span></button>
+      <button class="sg" style="flex-direction:row;align-items:center" ${ir('/inventario/bajar?lineas=…','Bajar al piso, 5 por escanear.')}>${ic('down')}<span style="display:block"><b style="display:block">Bajar al piso · 5</b><span>En 0 en el piso, hay en almacén</span></span></button>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button class="sg" ${ir('/etiquetas-de-precio?variantes=…','Etiquetas de las 3.')}>${ic('tag')}<b>Etiquetas · 3</b></button>
+        <button class="sg" ${ir('/inventario/movimientos?proc=conteo&ref=6','Ajustes del Conteo 6.')}>${ic('hist')}<b>Ver ajustes</b></button>
+      </div></div></section></div>
+  <div class="bloque"><section class="tarjeta"><div class="th"><h3>Con diferencia · 7</h3><a class="enl">Todas</a></div>
+    ${DIF.map(x=>`<div class="fila-c"><div class="t">${x.n} · ${x.c} · <b>${x.t}</b><span>${x.s} → <b>${x.f}</b> · ${sol((x.f-x.s)*x.pr)}</span></div>${firma(x.q)}<span class="q num" style="color:${x.f<x.s?'var(--rojo-p)':'var(--verde)'}">${x.f-x.s>0?'+':''}${x.f-x.s}</span></div>`).join('')}
+  </section></div></div>`;
+}
+
+/* ───────── notas del spike ───────── */
+function notas(){
+  const comun=`<div class="nota"><h4>Qué cambia y por qué</h4><ul>
+    <li><b>Abierto un conteo, las 3 tarjetas se vuelven una franja</b> con el avance y los botones de cerrar. La tarjeta «Conteo abierto · Seguir contando» repetía lo de abajo.</li>
+    <li><b>En el celular, «modo contar»:</b> arriba el avance y la vuelta, al medio la prenda en la mano con − / + de 56 px y abajo, fijo, <b>Escanear con la cámara</b> en ráfaga (mismo lector de Vender).</li>
+    <li><b>Faltan, por modelo y color:</b> 39 filas pasan a 6, con sus tallas. Una talla con iniciales la está contando otra persona; tocar una libre la anota a mano.</li>
+    <li><b>Suena y vibra</b> cada lectura, con tres tonos distintos. Con la pistola se mira el rack, no la pantalla.</li>
+    <li><b>Historial:</b> los conteos vacíos se pliegan en una línea y «Responsables» pasa a iniciales (la terminal ya no rompe la columna).</li></ul></div>`;
+  const varias=`<div class="nota"><h4>Varias personas, un conteo</h4><ul>
+    <li>Cada celular elige <b>quién cuenta</b> (el combo Responsable de siempre, con el mismo candado de asistencia).</li>
+    <li>Cada lectura va a la <b>tanda</b> de esa persona para esa prenda; el total suma las tandas. Hoy <code>conteo_contar</code> guarda el total y el último celular pisa al otro.</li>
+    <li><b>Contando ahora</b> se refresca cada 4 s. Muestra lo contado, nunca la cifra del sistema.</li>
+    <li>Misma prenda y talla → pregunta. Otra talla → aviso. Ya confirmada → «encontré más / la recuento / no cuenta».</li>
+    <li>Se confirma sola al pasar a otra prenda (5 s para Deshacer) o con «Terminé esta prenda».</li></ul>
+    <div class="gp"><b>Pagas</b><span>Una tabla nueva (tandas por persona) y una función que suma. Migración para pegar en producción con tu OK.</span></div></div>`;
+  const dif=`<div class="nota"><h4>Diferencias: A, B o C</h4>
+    <div class="gp"><b>A</b><span><b>Recontar opcional.</b> Un botón en la revisión. Ganas: atrapa un error de escaneo sin frenar a quien no lo necesita. Pagas: se puede saltar. <i>Recomendado: sin migración.</i></span>
+    <b>B</b><span><b>Cerrar directo</b> (hoy). Ganas: lo más rápido. Pagas: un error de escaneo pasa a ser un ajuste de stock.</span>
+    <b>C</b><span><b>Obligatorio sobre S/ 150.</b> Ganas: ninguna diferencia grande pasa sin un segundo conteo. Pagas: hay que fijar el monto y en temporada alta frena el cierre.</span></div>
+    <p style="margin-top:8px">En los tres casos, <b>«Recontar las que tuvieron diferencia»</b> queda también en el detalle después de cerrar.</p></div>`;
+  const acc=`<div class="nota"><h4>Accesos: dónde va cada uno</h4><ul>
+    <li><b>Aviso de pendientes</b>: solo al abrir, porque ahí evita la diferencia falsa. Durante el conteo ya no sirve.</li>
+    <li><b>Imprimir etiquetas</b>: arriba mientras se cuenta (lo anotado a mano) y en «Lo que sigue».</li>
+    <li><b>Bajar al piso</b>: solo después de cerrar un conteo del <b>piso</b>. Durante el conteo movería prendas antes de contarlas.</li>
+    <li><b>Existencias y Movimientos</b>: en el detalle, por prenda y para los ajustes.</li>
+    <li>Descarté <b>Traslados</b> y <b>Apartados</b> durante el conteo: no ayudan a contar.</li></ul></div>`;
+  document.getElementById('notas').innerHTML=comun+varias+dif+acc;
+}
+
+/* ───────── dibujar ───────── */
+function dibujar(){
+  const pc={abrir:pcAbrir,contando:pcContando,revisar:pcRevisar,cerrado:pcCerrado}[S.p]();
+  const tel={abrir:telAbrir,contando:telContando,revisar:telRevisar,cerrado:telCerrado}[S.p]();
+  document.getElementById('pc').innerHTML=`<div class="scroll"><div class="app">${lateral()}<div>${barraSup()}${pc}</div></div></div>`;
+  document.getElementById('tel').innerHTML=tel;
+  document.querySelectorAll('.seg').forEach(s=>{const g=s.dataset.grupo;s.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',String(S[g]===b.dataset.v)))});
+  document.querySelectorAll('[data-solo]').forEach(g=>g.classList.toggle('off',g.dataset.solo!==S.p));
+  const solo=qs.get('solo');
+  if(solo==='pc')document.querySelector('.col-tel').style.display='none';
+  if(solo==='tel')document.querySelector('.escena>div').style.display='none';
+}
+let tt;
+function avisar(dest,que){
+  const t=document.getElementById('toast');
+  t.innerHTML=(dest.startsWith('/')?`Iría a <code>${dest}</code><br>`:'')+(que||'');
+  t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),4200);
+}
+document.addEventListener('click',e=>{
+  const s=e.target.closest('.seg button');
+  if(s){const g=s.parentElement.dataset.grupo;S[g]=s.dataset.v;if(g==='p'){S.c='nada';S.cam='no';S.noenc={}}guardar();dibujar();return}
+  const tb=e.target.closest('[data-tab]');
+  if(tb){S.tab=tb.dataset.tab;dibujar();return}
+  const ne=e.target.closest('[data-noenc]');
+  if(ne){const i=ne.dataset.noenc,v=ne.dataset.v;if(i==='todas')NOENC.forEach((_,k)=>S.noenc[k]=v);else S.noenc[i]=v;const sc=[...document.querySelectorAll('.mc')].map(x=>x.scrollTop);dibujar();document.querySelectorAll('.mc').forEach((x,k)=>{x.scrollTop=sc[k]||0;x.classList.remove('cascada')});return}
+  const d=e.target.closest('[data-ir]');
+  if(d){const dest=d.dataset.ir;
+    if(dest==='revisar'){S.p='revisar';guardar();dibujar();return}
+    if(dest==='camara'){S.cam='si';dibujar();return}
+    avisar(dest,d.dataset.que);return}
+  if(e.target.closest('.camara .fin button:last-child')){S.cam='no';dibujar();return}
+  if(e.target.closest('.velo')&&S.p==='contando'){S.c='nada';dibujar();return}
+});
+notas();dibujar();
+</script>
+</body>
+</html>

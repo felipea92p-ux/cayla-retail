@@ -226,6 +226,20 @@ export function lineasIniciales(pedidas: readonly LineaBajada[], prendas: readon
   return lineas;
 }
 
+/** Lo marcado en Existencias NO se pierde cuando hay una bajada a medias en el aparato (tarea #11): al «Continuar» se
+ *  suma al final de ese borrador, y al «Empezar de nuevo» es la lista de arranque. Solo agrega lo que falta, siempre
+ *  «por escanear» (en 0): no baja nada que no se lea, y no pisa ninguna cantidad ya escaneada. */
+export function unirConIniciales(lineas: readonly LineaBajada[], iniciales: readonly LineaBajada[]): LineaBajada[] {
+  const ya = new Set(lineas.map((l) => l.varianteId));
+  // El tope solo corta lo que se SUMA: una línea ya escaneada nunca se quita.
+  const cupo = Math.max(MAX_LINEAS_BAJADA - lineas.length, 0);
+  const faltan = iniciales
+    .filter((l) => !ya.has(l.varianteId))
+    .slice(0, cupo)
+    .map((l) => ({ varianteId: l.varianteId, cantidad: 0 }));
+  return [...lineas, ...faltan];
+}
+
 /** Una línea «por escanear»: llegó marcada desde Existencias y todavía no se leyó ninguna (no viaja a la base). */
 export function porEscanear(l: LineaBajada): boolean {
   return l.cantidad === 0;

@@ -7,7 +7,7 @@ import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Volver } from "@/components/ui/Volver";
 
 // Nuevo producto como árbol de decisión (ADR-0109): familia → categoría →
-// nombre → talla/tejido/patrón → colores → precio → etiquetas → cuántas hay
+// nombre → etiquetas → talla/tejido/patrón → colores → precio → cuántas hay
 // hoy (ADR-0212), en una sola transacción (`crear_producto_con_stock_inicial`),
 // en 5 pasos (spike 2026-09-24). Página propia y no modal: la
 // matriz puede crecer a 15-20 celdas — mismo criterio que `/compras/nueva`.
@@ -41,7 +41,7 @@ export default async function NuevoProductoPage() {
         <p className="card-cayla p-5 text-sm text-tinta/75">Todavía no hay categorías activas en el catálogo.</p>
       ) : (
         // `key`: si se cambia de sede en la cabecera, el stock de hoy es de OTRA tienda: el formulario empieza de nuevo.
-        <NuevoProductoForm key={persona.ubicacionId} contexto={contexto} destino={destino} />
+        <NuevoProductoForm key={persona.ubicacionId} contexto={contexto} destino={destino} esLider={persona.rol === "lider"} puedeAprobarEtiquetas={puede(persona, "editarEtiquetas")} />
       )}
     </div>
   );

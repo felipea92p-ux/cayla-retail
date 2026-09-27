@@ -254,20 +254,26 @@ export async function getExistencias(
     // se descontó del stock al enviarse y no es «en camino» para esta pantalla.
     // RLS (transferencia_items_select) es bilateral, así que una integrante
     // de la sede destino ve estas filas sin ser líder.
-    supabase
-      .from("transferencia_items")
-      .select(
-        `variante_id, cantidad,
-         transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
-         variante:variantes (
-           sku, codigo, talla:tallas ( valor ),
-           color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
-           codigos_barras ( codigo )
-         )`
-      )
-      .eq("transferencia.ubicacion_destino_id", ubicacionId)
-      .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"]),
+    // Por páginas (análisis de Existencias, tarea #8): PostgREST corta en 1.000 filas sin avisar, y en semana de campaña
+    // lo que viene en camino (unos 40 ítems por traslado, varios a la vez) se acerca a eso. Cortado, «En camino» mentía.
+    leerTodas((desde, hasta) =>
+      supabase
+        .from("transferencia_items")
+        .select(
+          `id, variante_id, cantidad,
+           transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
+           variante:variantes (
+             sku, codigo, talla:tallas ( valor ),
+             color:colores ( nombre, hex ),
+             producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+             codigos_barras ( codigo )
+           )`
+        )
+        .eq("transferencia.ubicacion_destino_id", ubicacionId)
+        .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"])
+        .order("id")
+        .range(desde, hasta)
+    ),
     // D-54 (ADR-0159): qué productos están marcados `es_prueba`, para sacarlos de la lista por
     // defecto (Existencias no llama `getStockPorUbicacion` con un filtro propio — Vender, Cambios
     // y Traslados comparten esa misma función y NO estaban en el alcance de D-54, así que se
@@ -377,16 +383,21 @@ export type PrendaDanada = {
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
+  // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
   const filas = exigir(
-    await supabase
-      .from("prendas_danadas")
-      .select(
-        `id, cantidad, created_at,
-         variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
-      )
-      .eq("ubicacion_id", ubicacionId)
-      .eq("estado", "en_cuarentena")
-      .order("created_at"),
+    await leerTodas((desde, hasta) =>
+      supabase
+        .from("prendas_danadas")
+        .select(
+          `id, cantidad, created_at,
+           variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+        )
+        .eq("ubicacion_id", ubicacionId)
+        .eq("estado", "en_cuarentena")
+        .order("created_at")
+        .order("id")
+        .range(desde, hasta)
+    ),
     "las prendas dañadas pendientes"
   );
   return filas.map((f) => ({
