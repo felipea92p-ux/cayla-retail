@@ -3987,6 +3987,8 @@ export type Database = {
       }
       transferencias: {
         Row: {
+          anulado_en: string | null
+          anulado_por: string | null
           cerrado_en: string | null
           cerrado_por: string | null
           confirmado_en: string | null
@@ -3996,13 +3998,17 @@ export type Database = {
           estado: string
           fecha_estimada_llegada: string | null
           id: string
+          motivo_anulacion: string | null
           nota: string | null
           nota_cierre: string | null
           numero: number
+          sububicacion_destino_id: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Insert: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           confirmado_en?: string | null
@@ -4012,13 +4018,17 @@ export type Database = {
           estado?: string
           fecha_estimada_llegada?: string | null
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           nota_cierre?: string | null
           numero?: number
+          sububicacion_destino_id?: string | null
           ubicacion_destino_id: string
           ubicacion_origen_id: string
         }
         Update: {
+          anulado_en?: string | null
+          anulado_por?: string | null
           cerrado_en?: string | null
           cerrado_por?: string | null
           confirmado_en?: string | null
@@ -4028,9 +4038,11 @@ export type Database = {
           estado?: string
           fecha_estimada_llegada?: string | null
           id?: string
+          motivo_anulacion?: string | null
           nota?: string | null
           nota_cierre?: string | null
           numero?: number
+          sububicacion_destino_id?: string | null
           ubicacion_destino_id?: string
           ubicacion_origen_id?: string
         }
@@ -4789,9 +4801,43 @@ export type Database = {
         Args: { p_motivo?: string; p_produccion_id: string }
         Returns: undefined
       }
+      anular_traslado: {
+        Args: { p_motivo: string; p_token?: string; p_transferencia_id: string }
+        Returns: string
+      }
       anular_venta: {
         Args: { p_items: Json; p_motivo: string; p_venta_id: string }
         Returns: undefined
+      }
+      // ADR-0240 (20260927180100): «Ajustar inventario» de una vez, con marca. Escrito a mano con la forma que da
+      // `supabase gen types`: regenerar al pegar la migración en producción.
+      ajustar_inventario: {
+        Args: {
+          p_ajustes: Json
+          p_al_piso: boolean
+          p_cargas: Json
+          p_motivo: string | null
+          p_nota: string | null
+          p_sububicacion_id: string | null
+          p_token: string
+          p_ubicacion_id: string
+        }
+        Returns: Json
+      }
+      // ADR-0240 (20260927180000): la puerta de «Apartar» de Existencias (apartar_stock + el módulo «Apartados»).
+      apartar_prenda: {
+        Args: {
+          p_cantidad: number
+          p_clienta_contacto: string
+          p_clienta_nombre: string
+          p_nota?: string
+          p_sububicacion_id?: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+          p_vence_el: string
+        }
+        Returns: string
       }
       apartar_stock: {
         Args: {
@@ -4826,6 +4872,7 @@ export type Database = {
           devolucion_medio: string
           devolucion_numero: string | null
           estado: string
+          estante: string | null
           extensiones: number
           id: string
           items: Json
@@ -4856,6 +4903,68 @@ export type Database = {
       liberar_separacion: {
         Args: { p_motivo: string; p_separacion_id: string }
         Returns: undefined
+      }
+      pedir_prenda_para_apartar: {
+        Args: {
+          p_cantidad: number
+          p_clienta_apellidos: string
+          p_clienta_celular: string
+          p_clienta_nombres: string
+          p_nota?: string
+          p_origen_id: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
+      }
+      enviar_pedido_para_apartar: {
+        Args: { p_fecha_estimada_llegada: string; p_pedido_id: string; p_token?: string }
+        Returns: string
+      }
+      cancelar_pedido_para_apartar: {
+        Args: { p_motivo?: string; p_pedido_id: string }
+        Returns: undefined
+      }
+      separar_pedido_para_apartar: {
+        Args: { p_datos: Json; p_pedido_id: string }
+        Returns: string
+      }
+      fn_pedidos_para_apartar: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cancelado_motivo: string | null
+          cantidad: number
+          clienta_apellidos: string
+          clienta_celular: string
+          clienta_nombres: string
+          created_at: string
+          direccion: string
+          estado: string
+          guardada_hasta: string | null
+          id: string
+          llego_en: string | null
+          nota: string | null
+          otra_sede: string
+          traslado_numero: number | null
+          variante_id: string
+        }[]
+      }
+      abonar_separacion: {
+        Args: { p_esperar?: boolean; p_pagos: Json; p_separacion_id: string; p_token?: string }
+        Returns: Json
+      }
+      editar_separacion: {
+        Args: { p_agregar?: Json; p_quitar?: string[]; p_separacion_id: string; p_token?: string }
+        Returns: Json
+      }
+      fn_opciones_apartados: {
+        Args: { p_ubicacion_id: string }
+        Returns: string[]
+      }
+      guardar_opciones_apartados: {
+        Args: { p_apagadas: string[]; p_ubicacion_id: string }
+        Returns: string[]
       }
       registrar_aviso_separacion: {
         Args: { p_separacion_id: string }
@@ -5084,11 +5193,12 @@ export type Database = {
         }[]
       }
       confirmar_traslado: {
-        Args: { p_transferencia_id: string }
+        Args: { p_destino?: string; p_transferencia_id: string }
         Returns: {
           lineas_con_diferencia: number
           lineas_ok: number
           resultado: string
+          unidades_ingresadas: number
         }[]
       }
       conteo_contar: {
@@ -5123,6 +5233,16 @@ export type Database = {
       crear_marca: {
         Args: { p_nombre: string; p_proveedor_id: string }
         Returns: string
+      }
+      cargar_stock_inicial: {
+        Args: {
+          p_al_piso?: boolean
+          p_items: Json
+          p_nota?: string
+          p_token?: string
+          p_ubicacion_id: string
+        }
+        Returns: number
       }
       crear_producto_con_stock_inicial: {
         Args: {
@@ -5717,6 +5837,33 @@ export type Database = {
           delta: number
           movimientos: number
           unidades: number
+        }[]
+      }
+      fn_movimientos_resumen_procesos: {
+        Args: {
+          p_busqueda?: string
+          p_desde?: string
+          p_hasta?: string
+          p_motivo?: string
+          p_sububicacion_id?: string
+          p_ubicacion_id: string
+          p_usuario_id?: string
+        }
+        Returns: {
+          entran: number
+          filas: number
+          grupo: string
+          movidas: number
+          operaciones: number
+          proceso: string
+          salen: number
+        }[]
+      }
+      fn_movimientos_saldos: {
+        Args: { p_movimiento_ids: string[]; p_ubicacion_id: string }
+        Returns: {
+          movimiento_id: string
+          quedan: number
         }[]
       }
       fn_movimientos_variantes: {
@@ -6379,8 +6526,10 @@ export type Database = {
         Returns: {
           cantidad_enviada: number
           cantidad_recibida: number
+          codigo: string
           color: string
           diferencia: number
+          ingresado: boolean
           referencia: string
           sku: string
           talla: string
@@ -6659,6 +6808,19 @@ export type Database = {
       marcar_pedido_no_atendido_resuelto: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      // ADR-0240 (20260927180000): la puerta de «Reponer» y «Retirar del piso» (mover_interno + «Bajada al piso»).
+      mover_entre_piso_y_almacen: {
+        Args: {
+          p_cantidad: number
+          p_nota?: string
+          p_sububicacion_destino_id: string
+          p_sububicacion_origen_id: string
+          p_token?: string
+          p_ubicacion_id: string
+          p_variante_id: string
+        }
+        Returns: string
       }
       mover_interno: {
         Args: {

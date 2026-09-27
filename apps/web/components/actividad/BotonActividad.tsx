@@ -11,6 +11,7 @@ import {
   PERIODOS,
   anotaActividad,
   moduloDeRuta,
+  moduloInicialDelPanel,
   nombreDeModulo,
   opcionesDeModulo,
   type Periodo,
@@ -44,7 +45,7 @@ export function BotonActividad({ ubicacionId, ubicacionEtiqueta, esLider }: { ub
       </button>
       {abierto ? (
         <PanelActividad
-          moduloInicial={modulo}
+          moduloInicial={moduloInicialDelPanel(modulo)}
           ubicacionId={ubicacionId}
           ubicacionEtiqueta={ubicacionEtiqueta}
           esLider={esLider}

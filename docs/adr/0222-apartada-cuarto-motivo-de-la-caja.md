@@ -1,4 +1,6 @@
-# ADR-0215 — «Apartada para una clienta» es el cuarto motivo de la caja, y va después del almacén
+# ADR-0222 — «Apartada para una clienta» es el cuarto motivo de la caja, y va después del almacén
+
+> Renumerado de 0215 a 0222 el 2026-09-26: al fusionarse (#433) chocó con `0215-colores-anclados-a-pantone-tcx-y-sinonimos.md`, que llegó antes a `main`.
 
 **Fecha:** 2026-09-25
 **Estado:** Aprobado por Felipe el 2026-09-25 («la precedencia queda como está»).

@@ -38,6 +38,222 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 - [ ] **Decide Felipe:** la migración `20260917230000` decía «exigir motivo siempre» para cualquier propuesta pero solo lo puso en Etiquetas (Tallas ya lo tenía; Colores, Tejidos y Patrones siguen de un clic, como dice el ADR-0095). ¿Se completa o se corrige el texto de esa migración? La base no se toca sin su ok.
 - Cómo verificas: en Catálogo ▸ Atributos ▸ Etiquetas, con una etiqueta «Pendiente», «Aprobar» → escribe el comentario → «Confirmar aprobación». La etiqueta sale de Pendiente y el comentario aparece en el ícono (i) junto al nombre. Con el campo vacío, el botón queda apagado.
 
+## 📷 Conteo conectado: cámara en ráfaga, «no se encontraron» y recontar (2026-09-26, ADR-0244) — parte 1 solo web, sin migración; rama `claude/conteo-screen-analysis-56c54a`
+- [x] Spike y análisis (`docs/maquetas/conteo-conectado-2026-09/`): computadora y celular, cruces entre compañeras, A/B/C de diferencias.
+- [x] Cámara en ráfaga en el celular (`EscanerConteo`, `debeContarLectura`: el mismo código suma solo si la etiqueta salió del cuadro) y bip + vibración por lectura (`sonido-conteo.ts`).
+- [x] Con un conteo abierto se van las tres cifras; «Faltan» por modelo y color en pestañas con «Contadas»; tocar una talla la anota a mano.
+- [x] «Imprimir etiquetas · N» de lo anotado a mano en este aparato (`?variantes=`).
+- [x] Revisar: «No se encontraron» con decisión obligatoria (no está → 0 / dejar) y «Recontar las N» (opción A de Felipe).
+- [x] Aviso de traslados por atender antes de abrir; «Lo que sigue» en el detalle (Bajar al piso tras contar el piso, Movimientos); conteos vacíos plegados.
+- [ ] **Probar la cámara con un teléfono real y etiquetas reales** (solo se vio con una cámara falsa): ¿la pila de 12 iguales suma 12 pasando las etiquetas de a una?
+- [ ] Verlo con cuenta real (líder e integrante) y un conteo de verdad; el «No está → 0» baja el stock de verdad.
+- [ ] **Parte 2 (necesita migración, pedir OK antes de pegar):** tandas por persona y prenda, función que **suma** (hoy `conteo_contar` guarda el total y dos celulares se pisan), «Contando ahora» cada 4 s, confirmar al pasar con Deshacer, avisos «otras unidades / misma pila», «otra talla» y «ya contada». Con eso, «a mano» y «recontar» pasan del aparato a la base.
+
+## 🧵 Existencias: pedir para una clienta, «tallas» y pruebas del panel (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-9-10-11`
+Tareas #9, #10 y #11 del análisis `/pantalla` de Existencias.
+- [x] **#9.** «Pedir para una clienta» en «Dónde más hay». Usa el pedido para apartar de ADR-0233, el mismo modal de Apartados.
+- [x] **#10.** «Tallas» en vez de «variantes». La tarjeta distingue lo que pide reponer de lo que está por colgar.
+- [x] **#11.** Permisos del detalle, marcas, bajada con borrador y código repetido, con pruebas. Se arreglaron dos defectos: lo marcado se perdía con una bajada a medias, y un código repetido abría la primera prenda.
+- [ ] **Traslados, tanda 4 (ADR-0242 D-7):** pedir reposición SIN clienta. Necesita migración y la lista «Hoy te toca» (tanda 2). No se hizo aquí.
+- Cómo verificas: Existencias → una prenda → toca una talla que haya en otra tienda → «Pedir para una clienta» abre «Pedir a Tienda X para apartar».
+
+## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
+Tareas #7 y #8 del análisis `/pantalla` de Existencias.
+- [x] **#7.**
+  - Etiquetas por tallas exactas (`?variantes=`).
+  - «Reponer N tallas» abre una talla que se puede bajar.
+  - Mirando otra sede, sin Etiquetas ni Historial (y lo explica).
+  - «Apartados» de la cabecera sin número engañoso.
+  - Aviso al pasar de 100 tallas marcadas.
+- [x] **#8.**
+  - La comparación de 7 días ya no tumba la pantalla («No se pudo calcular la comparación ahora»).
+  - En tránsito y dañadas se leen por páginas.
+- [ ] **Encontrado, decide Felipe:** hay dos «apartados» distintos.
+  - El «Apartar» de Existencias crea una reserva simple (tabla `apartados`, ADR-0141) que NO aparece en `/vender/apartados`: esa pantalla lista separaciones con adelanto.
+  - Una vendedora que aparta desde Existencias y después busca en Apartados no la encuentra.
+- [ ] Sin tocar: las etiquetas cuentan lo físico (`cantidad > 0`, incluye apartadas y en cuarentena, `etiquetas-precio.ts`).
+- [ ] Sin tocar, a propósito: `getTrasladosEnCurso` sin paginar. Son decenas y es archivo de Traslados, donde trabaja otra sesión.
+- Cómo verificas:
+  - Desde la Casaca Ximena azul, «Imprimir etiquetas» muestra solo las azules.
+  - Con `?ubicacion=` de otra sede, el detalle no ofrece Etiquetas ni Historial.
+  - «Apartados» arriba va sin número.
+
+## 📱 Existencias: lo urgente primero y el celular llega a la lista (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-urgencia-y-celular` (sobre la del #514)
+Tareas #5 y #6 del análisis `/pantalla` de Existencias.
+- [x] **#5.** Sin texto en el buscador, la lista por prenda sale por urgencia: por colgar, después las que piden reponer, al final el resto (`ordenarPorUrgencia`). Los «Reponer» de fila son secundarios: queda un solo botón negro en la pantalla.
+- [x] **#6.** A 375 px, la primera prenda pasó de ~1.900 px a 764 px:
+  - accesos de la cabecera en una fila que se desliza de lado;
+  - cifras de a dos por fila y compactas;
+  - filtros plegados tras «Filtros · n».
+  - La computadora no cambia.
+- [ ] Sigue abierto (decide Felipe): confirmar el umbral de «Reponer a piso» (4) en las tiendas (ADR-0231). El orden por urgencia ayuda a leerlo, pero no lo reemplaza.
+- [ ] Si se quiere la primera prenda del todo a la vista sobre el botón «Escanear», lo que queda por recortar en el celular es la frase de la cabecera y «Prioridades de hoy». Eso toca `EncabezadoPagina` (común a Ventas e Inventario), así que es decisión aparte.
+- Cómo verificas:
+  - **Computadora:** en Existencias, las primeras filas son las de «tallas por colgar», y el único botón negro es «+ Nuevo traslado».
+  - **Celular (375 px):** al entrar se ve el buscador; la primera prenda asoma bajo «Escanear prenda»; «Filtros» abre los combos debajo sin moverse.
+
+## 🔐 Existencias: una puerta, un candado; y «Ajustar» de una vez (2026-09-26, ADR-0240) — web + 3 migraciones **sin pegar en producción**; rama `claude/existencias-candados-y-ajuste-atomico`
+Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
+- [x] **#3.** «Reponer al piso» y «Retirar del piso» piden «Bajada al piso», y «Apartar» pide «Apartados». Se cumple en la pantalla y en la base (`mover_entre_piso_y_almacen`, `apartar_prenda`). `mover_interno` y `apartar_stock` quedan internas: la parte 2 les quita el permiso de ejecución desde el navegador. Recibir traslados, separaciones y `bajar_al_piso` no pierden nada.
+- [x] **#1.** «Ajustar inventario» guarda todo en una sola llamada (`ajustar_inventario`): todo o nada, con marca de reintento. Si se corta la red, los campos quedan fijos y el reintento no duplica.
+- [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** qué roles necesitan «Bajada al piso» y «Apartados». Al 2026-09-25, las Terminal Almacén y de ventas reponían con «Reponer» (ADR-0208) y, sin el módulo, lo pierden.
+- [x] **`20260927180000` y `20260927180100` aplicadas en producción** (2026-09-26). La web ya estaba publicada: el #514 se fusionó antes de pegarlas, y durante unos minutos las cuatro acciones fallaron. Huellas idénticas a local (ADR-0240, «Aplicación en producción»).
+- [ ] Pegar `20260927180200` (los `revoke`): ya es seguro, la web usa las puertas nuevas.
+- [ ] **Terminal Almacén y Terminal de ventas** ven Existencias sin «Bajada al piso» ni «Apartados»: hoy no ven «Reponer», «Retirar» ni «Apartar». Felipe decide si se los enciende.
+- [ ] Refrescar el volcado (`pnpm datos:refrescar`).
+- [ ] Verlo con una cuenta sin los módulos.
+- [ ] Encontrado, sin tocar: `scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs` da 14/21 en local porque su preparación falla con `venta_descuento_requiere_argumento`. Es de ventas, no de este cambio.
+- [ ] Encontrado, sin tocar: `registrar_movimiento` tiene EXECUTE para PUBLIC, incluido `anon`. Adentro frena por permisos, pero el grant sobra.
+- **Base local:** la parte 2 está marcada como aplicada, pero **el permiso de ejecución de `mover_interno` y `apartar_stock` se devolvió a mano**, para no romper «Reponer» y «Apartar» a las sesiones que corren `main` sobre la base compartida. Para probar el cierre, se vuelve a pegar `20260927180200`.
+- Cómo verificas:
+  - `pnpm pruebas:existencias-candados-y-ajuste` (33/33).
+  - Con una cuenta sin «Bajada al piso», en una prenda por colgar no aparece «Reponer al piso» y la talla dice «pídesela a quien tenga el módulo».
+  - En «Ajustar», con la red cortada al confirmar: aparece «no sabemos si llegó a guardarse» y los campos quedan fijos.
+
+## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
+Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
+- [x] **#2 «Ajustar» ya no falla para quien no tiene «Bajada al piso».**
+  - Las migraciones del #496 ya están en producción, así que hoy una integrante que cargaba al piso una prenda nueva en su tienda recibía `bajada_sin_modulo` al confirmar.
+  - Ahora esas prendas entran al almacén y la fila lo dice antes de confirmar. Es la regla de ADR-0212, la misma de «Nuevo producto».
+  - Código: `cargaInicialAlPiso` y `textoPrendaNueva` en `lib/ajuste-reglas.ts`, y la prop `puedeBajarAlPiso` que le pasan Existencias y Productos (grilla y lista). La base no cambia.
+  - Prueba nueva: caso 7 en `scripts/pruebas/ajuste_no_es_primera_carga.mjs` (25/25).
+- [x] **#4 Lo marcado en Existencias llega a «Bajar al piso» «Por escanear», en 0.**
+  - Cada lectura lo llena, y confirmar sin escanear está apagado.
+  - Antes llegaba en 1 y se podía confirmar a ciegas: el piso del sistema dejaba de ser el piso real, del que descuenta la venta.
+  - El borrador conserva lo «por escanear».
+  - Código: `lineasIniciales` y `porEscanear` en `lib/bajada-reglas.ts`, y `BajarAlPisoForm.tsx`.
+- [ ] Ver las dos con la cuenta de **integrante** (con líder se vieron en el navegador; la integrante no pudo iniciar sesión en esta corrida).
+- [ ] Del análisis quedan abiertas, y las decide Felipe:
+  - #1 «Ajustar» todo-o-nada con token;
+  - #3 un solo candado por escritura (decidir A/B);
+  - #5 a #12.
+- Cómo verificas:
+  - **#2:** con la integrante en TRU, Existencias ▸ una prenda ▸ Ajustar ▸ «Piso de venta». En una talla nueva, la fila dice «entra al almacén: tu rol no baja prendas al piso», y al confirmar la prenda aparece en el almacén, sin error.
+  - **#4:** marca 2 prendas ▸ «Bajar al piso». Llegan «Por escanear» con el botón apagado; al escanear una, dice «Confirmar bajada · 1 prenda».
+
+## 🕳️ Fotos: el recorte agujereado ya no se sugiere (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-control-huecos`
+- [x] `fraccionDeHuecos` mide la tela agujereada (huecos encerrados; el hueco entre las piernas no cuenta) y, sobre 0,5 %, la foto nace en «Con fondo» con aviso. Umbral medido con seis fotos (limpias ≤ 0,07 %, agujereadas ≥ 1,38 %). 5 pruebas nuevas.
+- [x] Verificado en la ventana real: jean Levi's agujereado → «Con fondo» con aviso; camisa de estudio → «Sin fondo». `next build` compila; 77 960 pruebas en verde.
+- [ ] Pendiente, decidido para después: recorte por color cuando el fondo es liso (evitaría el agujero en vez de detectarlo).
+- Cómo verificas: sube la foto de un jean con fondo liso de internet (como la «br582443…» de Felipe) → si el recorte sale con manchones, nace en «Con fondo» y debajo dice «El recorte dejó huecos en la prenda…».
+
+## 🧾 Comprobantes conectado: «Hoy», Opciones por boleta y pestañas abajo en celular (2026-09-26, ADR-0238) — solo web, sin migración; rama `claude/comprobantes-screen-analysis-78ca38`
+- [x] Pestañas Hoy · Series · Por enviar · Proformas (Emitidos pasa a «Este mes» de Hoy, misma ruta `/emitidos`; Series a `/series`).
+- [x] «Por enviar» lista también los `pendiente` y `rechazado` (antes decía «todo llegó» con 3 boletas sin intentar en producción).
+- [x] Gráficos en las tarjetas solo con tokens CAYLA (sin rojo); sin cifras duplicadas en la cabecera.
+- [x] «Opciones» por comprobante: WhatsApp al número de la clienta, Ver la venta, Imprimir, Cambio, Devolución, NC ↔ devolución.
+- [x] Celular: las 4 pestañas abajo (excepción anotada en ADR-0206). Proforma → «Apartar».
+- [ ] Ver con cuenta real (líder y colaboradora) en computadora y a 375 px, tras el despliegue.
+- [ ] **Causa raíz:** por qué el barrido toma las boletas `pendiente` y no las intenta (`intentos_transmision = 0`, `proximo_reintento_at` corriéndose), y qué flujo creó 2 boletas sin venta.
+- [ ] Tarjetas que filtran la lista al tocarlas (`?estado=`), como en el spike.
+- [ ] Buscar un comprobante fuera del mes cargado (por número, DNI o nombre).
+- [ ] «Apartar» desde proforma lleva solo las prendas: faltan la clienta y el precio cotizado.
+- [ ] Proformas vencidas siguen `vigente` en la base (la pantalla las separa por fecha).
+
+## 📸 Fotos de prenda: mejor calidad sin cambiar la prenda (2026-09-26, ADR-0228 act.) — solo web, sin migración; rama `claude/fotos-mejor-calidad`
+- [x] Del recorte se borran los pedazos sueltos, como la mancha rosada de la «Blusa V» (`soloLaPrenda`, 4 pruebas).
+- [x] «Luz corregida / Luz original» en la revisión: la luz de la prenda se estira con tope, sin tocar el tono ni la intensidad del color (`lib/foto-luz.ts`, 10 pruebas; medido: brillo 145 → 190, saturación igual).
+- [x] Nitidez leve en la foto final, y desplegable «Cómo tomar una buena foto» con cuatro consejos.
+- [x] Verificado en el navegador (escritorio y 375 px) con dos fotos reales; `next build` compila; 77 941 pruebas en verde.
+- [ ] **Falta con sesión real:** subir la foto de una prenda tomada en tienda y comparar las dos luces.
+- Cómo verificas: Productos ▸ Nuevo producto (o Editar) ▸ Fotos ▸ «+» con una foto algo oscura → en «Revisa las fotos» aparece «Luz corregida» elegida; «Luz original» muestra la de antes, más apagada, con el mismo color. «Cómo tomar una buena foto» se despliega con los consejos.
+
+## 🔗 Movimientos conectado: atajos por proceso, apartado exacto y celular (2026-09-26, ADR-0241) — solo web, sin migración; rama `claude/movimientos-screen-analysis-8d874f` (encima del #512, ya fusionado)
+
+- [x] Atajos del detalle (Cambio/Devolución, Bajar al piso/Etiqueta, Contar/Corregir, Ver en Existencias) y de la operación
+      («Bajar estas N al piso», «Imprimir N etiquetas»), cada uno solo si se ve el módulo.
+- [x] Apartado exacto sin migración (`apartados.movimiento_id`): código y clienta en la fila, «Abrir» → `/vender/apartados?abrir=`;
+      la cifra dice «2 apartadas», no «0».
+- [x] Bajadas al piso plegadas por día en «Todos»; tarjetas que filtran; píldoras en 0 apagadas; sin «Filtrando» ni la ayuda
+      repetida; Exportar en «⋯» (computadora) y en la hoja de Filtros (celular).
+- [x] Celular: buscador fijo con cámara y «Filtros · n» en hoja; «Hoy» por defecto.
+- [x] Conteo acepta `?variantes=` («Contar esta prenda»); Existencias acepta `?variante=`.
+- [ ] Verlo con una cuenta real: Apartados con `?abrir=`, Existencias con `?variante=`, Conteo con `?variantes=`, y la
+      cámara en un teléfono. [pantalla:inventario-movimientos]
+- [ ] Píldora «Apartados»: `fn_movimientos` rechaza `p_categoria = 'apartado'` (migración de lectura). [pantalla:inventario-movimientos]
+- [ ] ¿Alcance «variantes» en `abrir_conteo`? Hoy «Contar esta prenda» abre un conteo «todo» con la lista acotada en
+      pantalla (seguro: `cerrar_conteo` ajusta solo lo contado). Decidir si ensucia la exactitud. [pantalla:inventario-movimientos]
+
+## 🧾 Movimientos leído desde la tienda (2026-09-26, ADR-0234) — web y migración de lectura `20260927153000` **en producción (2026-09-26)**; [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+
+- [x] Cifras «Entró a / Salió de / Ajustes en <sede> · <período>»: el traslado recibido es entrada (D1); los filtros
+      «Entradas»/«Salidas» traen también el traslado que llegó/salió; las píldoras cuentan operaciones.
+- [x] Una fila por operación que se despliega (D2); la página no corta una operación; foto de cada prenda.
+- [x] Vocabulario de tienda, buscador que entiende «venta»/«traslado», detalle con verbo, stock de hoy, «Ver la venta» y
+      «Copiar enlace»; «← Movimientos» desde Traslado y Conteo; Actividad abre con todos los módulos en Movimientos.
+- [x] Exportar a Excel por ruta (`/inventario/movimientos/exportar`), igual que Historial (D3).
+- [x] Candado de CI `lib/reglas-sin-uso.test.ts` («probado = en pantalla»).
+- [x] Aplicar `20260927153000` en producción (2026-09-26, ensayo revertido + verificación).
+- [x] Refrescar `docs/datos/generado/` desde producción (2026-09-26 20:45 UTC: 134 relaciones, 604 funciones; las 950
+      huellas por grupo iguales a producción). Trajo 11 tablas nuevas de otras sesiones (Apartados, Actividad, bajadas al
+      piso), que ya tienen pájaro; `datos:comparar` sin pantallas rotas ni firmas dobles.
+- [ ] Avisar al equipo de TRU y de Lima: desde el 2026-09-26 «Entradas» incluye lo que llega por traslado y sus cifras
+      subieron de golpe (Trujillo pasó de «Nada entró» a ~80 prendas).
+- [x] La lista entra en la primera pantalla (Exportar a la derecha, filtros y lista en una tarjeta, ayuda en la nota) y
+      «prendas distintas» en vez de «variantes» (ADR-0234, act. «saldo y primera pantalla»).
+- [x] Saldo por prenda: «quedan N» en cada prenda y «Después quedaron» en el detalle (opción A de Felipe), desde
+      `fn_movimientos_saldos` → `fn_ledger_puntos`. Prueba `pnpm pruebas:movimientos-saldo` (11) en CI.
+- [x] `20260927173000` en producción (2026-09-26): ensayo revertido sobre Tienda TRU (138 movimientos con saldo; las 78
+      prendas terminan en su stock de hoy), aplicada y verificada por huella (`md5` `1e87255b…` = local).
+- [x] Volcado refrescado de nuevo (2026-09-26 21:55 UTC: 134 relaciones, 607 funciones; las 952 huellas iguales a
+      producción): entran `fn_movimientos_saldos` y lo de Traslados (`anular_traslado`, columnas de anulación en
+      `transferencias`). `datos:comparar` limpio.
+- [ ] Las cifras de las píldoras se solapan («Entradas 3» y «Traslados 5» cuentan el mismo traslado recibido y suman más
+      que «Todos 8»): decir por qué, o separar «Traslados».
+- [x] Traslado N, Conteo N y Bajar al piso usan la vuelta común `Volver` (pendiente que dejó la bitácora de «Toda pantalla
+      interna tiene cómo volver»): «← Movimientos» con sus filtros si se llegó desde ahí; si no, «← Traslados», «← Conteo»
+      (el nombre del menú; antes decía «Conteos») y «← Existencias».
+- [x] Exportar a Excel con la columna «Quedan en la sede» (la misma función que la pantalla; vacía si la base no responde).
+- [ ] Borrar `fn_movimientos_resumen` (la vieja) en su propia migración cuando ninguna web publicada la llame.
+- [ ] Las 26 funciones de reglas que solo usa su prueba (lista en `lib/reglas-sin-uso.test.ts`, de Caja, Facturación,
+      Configuración, Gastos, Por pagar, Recepciones, Reparto, Sin conexión y Terminales): cada dueño decide conectarla o
+      borrarla; la lista solo puede achicarse.
+- [ ] Aparte (tarea propuesta en la sesión): el primer clic tras renovarse la sesión puede mandar a `/login` con «tu
+      cuenta no puede entrar»; `lib/persona-actual.ts:109` convierte cualquier error en «sin acceso».
+
+## 🔒 Un ajuste no es la primera carga de una prenda (2026-09-26, ADR-0235) — dos migraciones **en producción (2026-09-26)**; mismo [PR #496](https://github.com/felipea92p-ux/cayla-retail/pull/496)
+
+- [x] `cargar_stock_inicial` (prendas que ya existen, en una tienda donde no tienen historia) y candado
+      `ajuste_sin_historia` en `registrar_movimiento`; Ajustar stock guarda las prendas nuevas en la tienda como stock
+      inicial. Prueba `pnpm pruebas:ajuste-no-es-primera-carga` (20). El candado va después de saber quién firma (el CI
+      lo pidió: `terminales` y `candado-lider` fallaban con la primera versión; sus casos de ajuste ahora le dan historia
+      a la prenda).
+- [x] Orden en producción: `20260927153100` → publicar la web (PR #496, 20:22 UTC) → `20260927153200`. Las dos con ensayo
+      revertido y verificadas por huella (2026-09-26).
+- [ ] Decidir si un conteo formal (`cerrar_conteo`) también debe escribir como «carga_inicial» la primera cantidad de una
+      prenda que la tienda nunca tuvo (hoy queda como «Ajuste · Conteo»).
+- [ ] Cerrar la carga inicial cuando termine el paso de las tiendas al sistema (heredado de ADR-0212).
+
+## 🔍 Traslados: recorrido de usabilidad como persona sin contexto (2026-09-26) — solo análisis, sin cambios de código; `docs/pantallas/traslados.md`; rama `claude/traslados-usability-review-9b0615`
+- [x] Recorrido en local con clics reales (líder; Trujillo envía, Lima recibe): enviar, contar con un faltante, cerrar con diferencia e intentar vender lo recibido. 17 hallazgos con archivo:línea en `docs/pantallas/traslados.md`.
+- [x] Decisiones de Felipe (acta `docs/datos/DECISIONES-2026-09-26-traslados.md`, D-129 a D-132): entra lo que coincide, conteo a ciegas, piso o almacén al confirmar (piso marcado), anula quien envió o un líder mientras nadie haya contado.
+
+## 🚚 Traslados: recibir sin perder nada (2026-09-26, ADR-0239; nació como 0238, que ya tomaba el PR de Comprobantes) — rama `claude/analisis-modulo-traslados-1111c9`
+- [x] Migración `20260927160000_traslados_recibir_sin_perder_nada.sql` aplicada en local y **EN PRODUCCIÓN (2026-09-26, con el OK de Felipe)**: ensayo revertido antes; después, las 14 funciones que toca con el mismo md5 (sin comentarios ni espacios) que en local, una sola firma de `confirmar_traslado`, las 6 reglas de `transferencias` y permisos solo para `authenticated`. El historial de producción la registra como `20260926213804` (lo que pone `apply_migration`), no con la versión del archivo. Prueba `scripts/pruebas/traslados_recibir_sin_perder_nada.mjs` (58/58, en CI).
+- [x] Web: conteo a ciegas guardado por prenda (§4, §11), escáner por código de etiqueta o palabras (§12), «Terminé de contar», confirmar con piso/almacén, cerrar con diferencia con confirmación (§14), anular envío (§5), «por recibir» sin hora estimada y botón «Recibir» (§2), «Cerrado con diferencia» y «Anulado» en la lista (§15), formulario sin destino ni prendas elegidas (§6), anchos fijos (§13).
+- [x] Recorrido en el navegador local (líder): Lima→Trujillo con 1 blusa + 1 casaca; conteo a ciegas, recarga a mitad (lo contado siguió), casaca en 0, confirmar a piso (la blusa entró al piso al instante), cierre del líder; Trujillo→Lima anulado (stock 4→5 con movimiento `traslado_anulado`).
+- [ ] **Fusionar el PR #509** (la base de producción ya está lista; la web actual sigue funcionando hasta entonces) y regenerar el diccionario con el volcado nuevo (`pnpm datos:generar:produccion`, ver `docs/datos/generado/COMO-REFRESCAR.md`).
+- [ ] Buscador por palabras en el formulario de envío (§7: «blusa emma beige l» → «Nada coincide»), cantidad que se corrige sola (§8), fecha como «Hoy / Mañana» (§9), resumen imprimible antes de enviar (§10), «Nuevo traslado» marca Existencias en el menú (§16).
+- [ ] `fn_resumen_variantes.traslados_salida_ventana` sigue contando la salida de un traslado anulado (analítica de Existencias; no se parchó).
+- [ ] `scripts/pruebas/caja_cierre_traslado.mjs` falla 4 casos en local desde ANTES de este cambio (traslado de efectivo de caja, no de mercadería; no está en CI).
+- [ ] En `.github/workflows/ci.yml`, el paso `pruebas:fn-resumen-variantes` corre `pnpm pruebas:pago-por-lote-medios` (nombre y comando no coinciden).
+- [ ] Vaciar una casilla ya guardada no vuelve a «sin contar» (la base no tiene cómo): al recargar reaparece el último número. Dos tablets contando la misma caja se pisan entre sí.
+- [ ] Dos puertas para recibir el mismo traslado (este detalle y `/recibir`), contra ADR-0113: decidir cuál queda.
+- [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
+- [x] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, PR #515): Felipe eligió «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en `/inventario/traslados/nuevo` (ADR-0242).
+- [ ] ADR-0242 tanda 1: Nuevo traslado (ruta nueva + redirección de `/inventario/mover`, escaneo y búsqueda con foto, destino en botones, llegada por día, «Volver» según el origen). Sin migración.
+- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: «Pedir a otra sede» (extiende `separacion_pedidos`, clienta opcional; **migración con OK de Felipe**, diseñar el agrupado antes). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
+
+## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
+
+- [x] Tarjeta compacta con «Devolver», «Cambiar» (→ Cambios) y «Ver venta»; chip «Quedan N días» (ámbar los últimos 3).
+- [x] Celular: «Escanear prenda» y lupa fijos abajo.
+- [x] Cifra «Por aprobar» tocable y pestañas Compras / Por aprobar / Resueltas (NC, reembolso y destino de cada prenda).
+- [x] Avisos de cuarentena (→ `/inventario?danados=1`) y de caja cerrada (líder y colaboradora), según los módulos de la cuenta.
+- [ ] Verificar con clic real: el aviso de caja cerrada y «Cambiar» hasta el flujo de Cambios; con una cuenta sin Cambios/Caja.
+- [ ] Ficha de la clienta desde la tarjeta: espera la ficha real (`/clientas` es de verificación y la venta no guarda `clienta_id`).
+- [ ] Decidir: «Sin comprobante» solo con saldo a favor, y la nota de crédito como pago en Vender (R-37).
+
 ## 🔁 Cambios conectado con las pantallas vecinas (2026-09-26, ADR-0229) — solo web, sin migración; rama `claude/pantalla-cambios-mejoras-511805`
 Demo e investigación en `docs/maquetas/cambios-mejoras-2026-09/`; Felipe eligió tarjeta C, fijo abajo A y ticket A.
 - [x] Salidas cuando la talla no está: pedirla a otra sede (líder), apartarla cuando llegue, anotar que no había, devolver.
@@ -111,7 +327,9 @@ sin teclado de pantalla y catálogo de hasta 5 columnas.
 ## 🧭 Inventario con la cabecera de Ventas (2026-09-26, ADR-0220) — hecho, solo web, sin migración; rama `claude/inventory-module-headers-2683ef`
 Pedido de Felipe: «que el header de todos los módulos de inventario tome como referencia los de Caja, Historial, Postventa».
 - [x] Las 9 pantallas de Inventario usan `EncabezadoPagina`: sede y fecha arriba, título = palabra del menú (Existencias, Movimientos, Traslados, Conteo, Análisis), acciones bajo la frase; Existencias con «vista de las HH:MM» en vez de reloj vivo. Las cifras no se movieron. CLAUDE.md dice ahora que la cabecera es la de su módulo.
-- [ ] **Verlo con sesión real** (líder e integrante) en las 9 pantallas: se verificó sin sesión, con una ruta temporal y los componentes reales de Conteo con datos de muestra.
+- [x] **Acciones a la derecha cuando está libre** (misma tarde, pedido de Felipe mirando Existencias; rama `claude/existencias-botones-derecha-711053`): ranura `acciones` en `EncabezadoPagina`, que baja sola bajo la frase si la derecha tiene cifras o reloj. Existencias («Bajar al piso», «+ Nuevo traslado»), Traslados y «Seguir contando» del detalle de conteo pasan a la derecha; Caja las pasa por la ranura sin cambio visible. A 1440 px la cabecera de Existencias baja de 184 a 130 px; por debajo de ~1180 px de ventana vuelve sola a la de antes. Ver la actualización en ADR-0220.
+- [ ] **Verlo con sesión real** (líder e integrante) en las 9 pantallas: se verificó sin sesión, con una ruta temporal y los componentes reales de Conteo con datos de muestra. *2026-09-26 (tarde): las cabeceras de Existencias, Traslados y el detalle de un conteo cerrado se vieron con sesión de líder a 1920, 1440, 1280, 1180, 1024 y 375 px; falta el integrante y las otras seis.*
+- [ ] **El detalle de un conteo dice la sede de quien mira, no la del conteo** (`app/(app)/inventario/conteo/[id]/page.tsx:19` pasa `persona.ubicacionEtiqueta`): el Conteo 1 de Tienda Lima, abierto con Trujillo activa, dice «Tienda Trujillo» arriba, y nada en la página dice Lima. Visto el 2026-09-26 en local.
 - [ ] **Decisión de Felipe:** Recibir mercadería e Ingreso sin comprobante (tercera cabecera, escrita a mano; `/recibir` la comparte Compras) y cuál cabecera manda en Catálogo, Compras, Producción, Colaboradores, Clientas e Inicio.
 
 ## 🧭 Existencias: «Reponer a piso hoy» lleva la vista a la tabla filtrada (2026-09-26) — solo web, sin migración; rama `claude/inventory-stock-smooth-scroll-e41caf`
@@ -161,7 +379,16 @@ Pedido de Felipe («escribo la marca y no me muestra los productos; en los filtr
 - [x] Estado vacío que explica: qué se buscó, qué quitar (con cuántas prendas se verían), «¿quisiste decir…?», y **«En el catálogo, pero sin stock en {sede}»** (los pantalones CAYLA); el mismo aviso bajo los filtros cuando hay resultados. `lib/existencias-vacio.ts`, `components/ExistenciasVacio.tsx`.
 - [x] **Aprendido:** `variantes!inner ( count )` **falla en producción para toda cuenta** (`42501 permission denied for table variantes`): PostgREST lo traduce a un agregado de fila completa y `authenticated` no puede leer `variantes.costo` (migración 20260923193700). Lo encontró la revisión, no las pruebas. Se pide solo `variantes ( id )` con el filtro de activas y `limit 1`. La comprobación con la llave pública (anon) **no prueba nada** (una sintaxis inválida también responde 42501): se comprobó con el cliente real de supabase-js contra un PostgREST y una base desechables con la misma restricción de columnas.
 - [x] **PR #445: conflictos con `main` resueltos** (2026-09-26, merge de `main` en su rama; rama de trabajo `claude/445-trae-main`). Se conservaron `pasaFiltros` (ahora con los dos ejes del PR, Acción y Estado), `marcaEfectiva`, `sinRastroAqui`, `ExistenciasVacio` (su `ClaveFiltro` suma `accion`), `mostrarTablaFiltrada()` en «Reponer a piso hoy» (ahora con `setAccion`) y el `scroll-mt-24`; la tarjeta del celular de `main` con las columnas del PR; «Retirar del piso» con su aviso reconectado a `calcularAccionHoy` (el semáforo que usaba ya no existe: avisaba con 7 o menos, ahora con el umbral de la política, 4). Además: `scripts/pruebas/fn_ritmo_reciente.mjs` fallaba 3/6 con la siembra estándar (pedía dos personas no-admin en sedes distintas y hay una); corregida, 9/9. Verificado: tipos, 77.762 pruebas, lint, pruebas SQL (9/9 y 48/48) y la pantalla con sesión de líder, con y sin la función nueva en la base.
-- [ ] **PR #445: decidir si se fusiona** (Tarea #2 del análisis). Cambia reglas de negocio de Existencias (la lista está en BITACORA, «Conflictos del PR #445», 2026-09-26) y **no tiene ADR**. La más delicada: baja el umbral de «Reponer» de 7 a **4**, justo el valor que ADR-0071 descartó el 2026-09-16 («con 4 el aviso llegaba tarde»); el PR lo atribuye a «Felipe, tercera ronda 2026-09-25», pero esa ronda no está escrita en ningún documento, solo en un comentario de `politica-operativa-inventario.ts`. Confirmar con Felipe antes de fusionar. Su migración `20260925170551` **ya está en producción**: consultado en vivo el 2026-09-26, `retail.fn_ritmo_reciente_json` existe con el mismo cuerpo que el archivo (md5 de `prosrc` igual al de la base local recién aplicada: `3cf1dc7e…`), `security definer`, y solo `authenticated` la ejecuta. Fusionar no pide ningún paso en la base (el volcado de `docs/datos/generado/` todavía dice que no existe: está atrasado).
+- [x] **PR #445 fusionado** por Felipe el 2026-09-26 (merge `3b7dac06`, desplegado; su migración ya estaba en producción). Su decisión quedó escrita después del merge en **ADR-0231** (el PR no traía ADR); ADR-0071 y ADR-0208 dicen que los reemplaza en parte.
+- [ ] **¿Dónde ve la tienda que tiene que pedir un traslado?** (ADR-0231, queda abierto; decisión de Felipe). Con el PR #445 se fue el estado «Stock bajo · pedir traslado» de Existencias: hoy esa pregunta solo la responde Análisis (`planDeReposicion`).
+- [ ] **Confirmar el umbral de «Reponer a piso» (4) después de usarlo en las tiendas** (ADR-0231). El 16-09 se había subido de 4 a 7 porque «con 4 el aviso llegaba tarde» (ADR-0071); si vuelve a pasar, es una línea en `politica-operativa-inventario.ts` (default o por sede).
+- [ ] **Existencias conectada (ADR-0237): verla con una cuenta real** (líder e integrante, a 1440 y en un teléfono con cámara) antes de avisar a las tiendas. Se verificó con datos de ejemplo, sin sesión.
+- [ ] **Existencias (ADR-0237), lo que quedó del spike esperando decisión de Felipe:** cambiar las cifras «Dañado» y «En camino» (casi siempre en 0) por «Por recibir» y «Apartadas», y la fila de avisos de hoy (envío que llega, apartado que vence).
+- [ ] **Conteo que arranca con una lista** (`?variantes=`), para «Contar esta prenda» y «Contar lo marcado» desde Existencias (ADR-0237, descartado por ahora).
+- [ ] **Refrescar el volcado de producción** (`docs/datos/generado/COMO-REFRESCAR.md`): el 2026-09-26 `datos:comparar` decía que `fn_ritmo_reciente_json` no existe en producción, y existe (consultado en vivo). Con el volcado atrasado, su alarma de «pantallas rotas» no es confiable.
+- [ ] **Analizar la Existencias nueva con `/pantalla`** (siguiente paso de la sesión que fusionó el #445 y el #494, 2026-09-26). `docs/pantallas/inventario.md` describe la pantalla de antes del #445: sus 12 tareas ya no sirven tal cual. «¿Dónde se pide un traslado?» (arriba) debería salir como una de las nuevas, en contexto.
+- [ ] **Avisar al equipo de las tiendas que Existencias cambió** (el #445 está en producción desde el 2026-09-26, 13:03): columnas nuevas (Stock actual, Cobertura piso, Ritmo reciente, Acción hoy), sin «Stock bajo · pedir traslado», y la tarjeta «Reponer a piso hoy» con otra cifra (Lima local: 33). Sin un aviso corto, lo esperable es que alguien crea que el sistema se rompió. Tarea de Felipe, no de código.
+- [ ] **Rescatar o descartar el trabajo sin guardar de Análisis en el worktree `sync-branch-from-main-f8397c`**: ~170 líneas en `ResumenControles.tsx` (fila de período y búsqueda de las dos pestañas, 2026-09-23), `ui/Graficos.tsx` y `globals.css`, más `scripts/rollback/20260925_pr397_rollback.sql` sin seguimiento. No están en `main` (comparado el 2026-09-26). Su rama (la del #445) ya se fusionó: es la candidata natural a limpiarse, y con ella se pierde ese trabajo.
 - [ ] **SQL espejo:** `fn_movimientos_variantes` (Movimientos) todavía no busca por marca ni categoría: hoy «cayla» funciona en Existencias y no en Movimientos. Migración propuesta `…_movimientos_busqueda_marca_categoria.sql` + escenario en `filtro-busqueda-especial.casos.json` + `scripts/pruebas/fn_movimientos_busqueda_especial.mjs` (tarea #3 del análisis, «segundo corte»).
 - [ ] Prueba de datos real: nada del camino de datos de Existencias se prueba contra un PostgREST con el rol `authenticated`. Una prueba en `scripts/pruebas/` con `postgrest` (Homebrew) y la restricción de columnas de `variantes` habría atrapado el fallo de arriba.
 - [ ] Sin ejecutar del análisis (Felipe decide): #1 «Ajustar inventario» sin token ni transacción única, #8 el semáforo marca «Stock bajo» en 41 de 45 prendas, #9 «Disponible total» y recomendaciones no excluyen `es_prueba`, #10 candado de módulo en `mover_interno` y `apartar_stock`, #6 la estrategia alternativa (stock vs catálogo × sede).
@@ -237,6 +464,11 @@ Felipe: «estoy pasando mi sistema desde 0 y no es una llegada de mercadería, e
 - [ ] **La cola sin conexión borra lo que no reconoce** (`colaValida` en `lib/cola-offline.ts`): al escribir, una pestaña con una lista de RPC vieja descarta en silencio operaciones nuevas. Conviene filtrar solo lo que se EJECUTA y conservar lo desconocido al reescribir la cola; afecta a cualquier cambio futuro de nombre de RPC.
 - [ ] **`x-momento` con el reloj del equipo:** una tablet con el reloj más de 5 min adelantado (o más de 7 días sin red) hace que la base rechace el alta con stock (22007), como ya pasa con la venta sin conexión. Opción: reintentar una vez sin `x-momento` o compensar con la hora del servidor.
 - [ ] **La copia sin conexión de `/productos/nuevo` trae la sede de cuando se guardó** (`sw.js`, `soloDeHoy: false`): un líder que cambió de sede cargaría en la de la copia. Evaluar `soloDeHoy: true`, como Vender.
+
+## 🎯 Apartados: pestañas a la izquierda y el ticket a lo alto (2026-09-26) — solo web
+Spike `docs/maquetas/apartados-ticket-alto-2026-09/` (igual que el de Punto de Venta) e implementación en el mismo PR.
+- [x] Pestañas, «Opciones» y avisos sobre la columna de trabajo; el ticket («Por apartar» / «Saldo») sube al borde de arriba de la hoja, con la cabecera en la misma raya. Verificado a 1440, 1024 y 375 px.
+- [ ] **Felipe:** verlo con prendas reales en el ticket (en la verificación el ticket estaba vacío: no se tocaron datos de producción).
 
 ## 🎯 Apartados v2 (2026-09-26) — spike visual, sin código ni migraciones
 Spike: `docs/maquetas/apartados-v2-2026-09/apartados-v2-spike.html` (computador y celular, «Opciones» con presets, 7 capturas). Análisis, investigación de referentes y lo pendiente de decidir en su `README.md`.
@@ -702,12 +934,23 @@ Primer paso del spike Apartados v2 (PR #477). Celular con pestañas abajo, Apart
 - [ ] **Felipe:** probarlo con clics reales en TRU desde el teléfono (cámara incluida: la página de prueba no tiene cámara ni base).
 - [ ] Siguiente: una migración por función del spike, empezando por la que Felipe elija (clienta ligada, abonos, estante real…).
 
+## 🎯 Apartados v2, pasos 2 a 5 (2026-09-26, ADR-0236) — 4 migraciones EN PRODUCCIÓN (2026-09-26, versiones `20260926194…`, verificadas); web en PR #495
+Abonos, estante, editar, actividad, opciones por tienda, clienta por DNI y «Qué ver». Orden de pegado: `20260927100000` → `110000` → `120000` → `130000` (cada una en una parte, sin políticas, idempotentes).
+- [x] Migraciones + `pnpm pruebas:separaciones` 71/71 en el Postgres local; web con tipos, lint y pruebas en verde; vista a 1440 y 375 px con datos de prueba.
+- [x] **Pegadas en producción** el 2026-09-26 con el OK de Felipe (por el MCP, en orden; antes se verificó que `entregar_separacion`, `registrar_devolucion_separacion` y `buscar_separaciones` seguían idénticas a las leídas): 5 tablas con RLS y 0 políticas, 5 funciones solo para `authenticated`, 7 disparadores, APT-TRU-0005 con estante A-01, `fn_verificar_separaciones` 0 problemas; lectura como líder (en transacción revertida) trae estante, id de prenda y fecha de pago.
+- [ ] Refrescar el diccionario tras pegarlas; probar con clics reales en TRU: abonar (con y sin espera), editar la talla, ver el estante, la Actividad y las Opciones.
+- [x] **Apartar de otra sede (ADR-0233)** — «pedir traslado y apartar al llegar»: migración `20260927140000` **EN PRODUCCIÓN** (2026-09-26, versión `20260926200612`, verificada: RLS sin políticas, disparador puesto, 5 funciones solo para `authenticated`, los 4 traslados existentes intactos); `pruebas:separaciones` 77/77. En el mismo PR #495.
+- [x] Un producto con un pedido a otra sede ya tiene historia: `fn_producto_se_puede_eliminar` suma el renglón 16 (migración `20260927150000`, **en producción** 2026-09-26, verificada: 16 productos evaluados, 6 eliminables como antes); `separacion_items_retirados` la cuenta su apartado. Lo pedía `pruebas:eliminar-producto`.
+- [ ] Pedidos entre tiendas: la tienda que envía necesita el módulo Apartados para ver «Enviar» en su «Todos» (o Traslados, que la base también acepta, pero sin pantalla propia todavía).
+- [x] **Editar a un total menor que lo pagado — decidido por Felipe (2026-09-26): no se permite** (como ya hace `editar_separacion`).
+- [ ] Hueco previo (no de este cambio): en el Postgres local de esta máquina hay dos `registrar_movimiento_caja` (sobrecarga de otra sesión) y `pruebas:actividad`/`pruebas:actor-firma` fallan por ambigüedad; el CI arma la base desde cero.
+
 ## 🎯 Apartados: recordar en lote (2026-09-26, ADR-0227) — migración `20260926233000` EN PRODUCCIÓN (aplicada 2026-09-26 como `20260926174611`, verificada por efectos); web en PR #490
 Paso 1 de las funciones del spike Apartados v2 (orden acordado con Felipe: recordar en lote → abonos → estante real → actividad, editar y otra sede → «Opciones» y «Qué ver»).
 - [x] Tabla `separacion_avisos` (append-only), `registrar_aviso_separacion` y `fn_avisos_separaciones`; `pnpm pruebas:separaciones` 53/53 en el Postgres local.
 - [x] Web: aviso «N clientas por avisar hoy» en Todos, `RecordarModal` (lote o una sola clienta), mensaje de vencido con la fecha de gracia; reglas puras con prueba.
 - [x] **Pegada en producción** el 2026-09-26 con el OK de Felipe (por el MCP): tabla con RLS y 0 políticas, `authenticated` sin acceso directo, las dos funciones con `execute` solo para `authenticated`, 0 avisos, separaciones intactas (1).
-- [ ] **Paso 2 · Abonos** (decisiones de Felipe, 2026-09-26): sin monto mínimo; el PRIMER abono corre la fecha y, como opción al registrarlo, se le puede esperar 2 días más, o 3 si el abono es la mitad o más de lo que le faltaba. Cada abono = boleta de anticipo.
+- [x] **Paso 2 · Abonos**: hecho en ADR-0236 (reglas corregidas: el plazo NO cambia solo; «esperarla» da 2 días, o 3 si abona la mitad o más de lo que faltaba).
 - [ ] Refrescar el diccionario (`docs/datos/generado/COMO-REFRESCAR.md`) y verlo con clics reales en TRU.
 
 ## 🎯 Apartados, módulo propio en Roles y accesos (2026-09-24, ADR-0196) — migración `20260924220000` POR PEGAR en producción; web en PR
@@ -814,6 +1057,8 @@ Barrido de todo el ERP: ventanas ancladas arriba, lista del Responsable flotando
 Felipe pidió dejar P-touch Editor: la etiqueta sale del ERP al ingresar mercadería, y con campaña se reimprime con el precio rebajado y el porqué. Diseño elegido en 3 rondas de maquetas: «D · Editorial, corregida» (`docs/maquetas/etiqueta-precio-2026-09/`).
 - [x] **Paso 1:** `/etiquetas-de-precio`, una etiqueta por prenda que entró (Recibir, Ingreso sin comprobante, orden del Taller cerrada). Lee `movimientos` por lote o producción, no hay RPC nuevo. PDF real revisado y los 6 QR decodificados a 300 dpi. Producción verificada en solo lectura: las columnas y funciones que usa existen, y las 1.295 variantes activas tienen código.
 - [x] **Medida del cartón (Felipe, 2026-09-23): 5 × 8 cm** → la etiqueta pasa a **44 × 62 mm**, impresa de lado (papel del driver: 62 × 44 mm). Arreglo «QR abajo» con el QR lo más grande que entra: 22 mm (20 con campaña). Verificado en PDF real y con los QR decodificados (ADR-0180, «El cartón de 5 × 8 cm»).
+- [x] **Windows de la tienda imprime bien (2026-09-26):** Longitud 40.1, Vertical, cortar cada 1, reiniciar Chrome y diálogo de Chrome con márgenes Ninguno y escala 100. Queda paso a paso en la **Guía de impresión** de la pantalla (`components/GuiaImpresion.tsx`, fotos en `public/guia-impresion/`).
+- [ ] **Probar la guía de Mac contra la Brother real** (sus pasos no se probaron): si algo difiere, corregir `GuiaImpresion.tsx` y, si se puede, reemplazar sus maquetas por fotos reales como las de Windows.
 - [ ] **Felipe:** en la Mac de la tienda, crear el papel **62 × 40,1 mm** con ⌥⌘P → Tamaño del papel → «Gestionar tamaños personalizados…» (márgenes 0) y guardarlo como preajuste; el «62 mm» del diálogo de Chrome corta 100 mm. Recargar la pantalla (que «Impreso» diga la fecha de hoy), imprimir 1 etiqueta y escanear su QR de 19 mm en Vender (ADR-0180 «Configurar la Brother»). Mirar que salga completa, a lo ancho del rollo y en un corte de 40,1 mm.
 - [x] **Legibilidad en la térmica (2026-09-25, ADR-0180):** trazo mínimo 0,2 mm (textos chicos en 600–700), QR de 19 mm con el código de 16 caracteres entero (con 22 mm salía «CMS-0011-NAR…») y la píldora de la forma A/B otra vez legible. Verificado en banco de 6 variantes a 300 dpi y en la app local con `@media print` emulado.
 - [x] **Paso 3 (ADR-0182):** el precio de campaña baja al .90. Una sola regla: `retail.fn_descuento_campana` en la base y `descuentoDeCampana` en la caja, iguales al céntimo en 29.187 combinaciones. Parchea `registrar_venta` y `separar_prendas` (las únicas que calculan campaña en producción). `pnpm pruebas:campana-redondeo` 7/7 y 24.265 pruebas web en verde.
@@ -1028,7 +1273,7 @@ Con el sembrado de 90 días (7.001 ventas), `/vender/historial` pasaba los 8 s d
 ## 🎯 Traslados: rediseño de lista y detalle, conteo por borradores y vacíos ocultos (2026-09-22, ADR-0173) — construido y verificado con datos de muestra; SIN migración
 - [x] Demo aprobada por Felipe (`docs/maquetas/traslados-rediseno-2026-09/`). En producción, los 4 traslados tienen 0 líneas y 0 movimientos (quedaron de la limpieza de datos): se **ocultan** en la lista, en las lecturas de `lib/traslados.ts` y en el contador del menú. No se borran.
 - [x] Lista: estados «Por confirmar / Por revisar / En camino / Completado», los colores de lo que va cuando no hay fotos, «Salió» con hora, píldoras en lugar del `<select>` nativo y el aviso de vacíos para el líder. Detalle: recorrido en 4 pasos (quién envió, quién contó, quién cerró), 3 cifras, conteo con −/+/«Coincide» guardado al confirmar, un solo campo para escanear, `<Modal>` para confirmar, nota obligatoria al cerrar con diferencia y tarjetas en celular. Cierra el pendiente «Traslados › detalle sigue con la celda de texto».
-- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió.
+- [ ] **Verlo con una sesión real** (TRU y AQP): contar y confirmar un traslado de prueba, abrir el modal y cerrar uno con diferencia como líder. En la ruta de muestra el combo Responsable no tenía base y el modal no se abrió. **Avance 2026-09-26:** hecho en local como líder (Traslado 3, Trujillo → Lima: modal, registro y cierre con diferencia); falta con integrante o terminal. Lo que se encontró: `docs/pantallas/traslados.md`.
 - [ ] Endurecer en la base la nota de cierre: hoy solo la pantalla la exige; `cerrar_traslado_con_diferencia` acepta `p_nota` vacía.
 - [x] (ADR-0175) Las tarjetas son el filtro (los chips repetidos pasan a Abiertos · Cerrados · Todos), dirección Entran/Salen a la vista y tabla en dos acomodos (6 columnas desde 1280 px, tarjeta debajo). Capturas a 1280/1440/390 px con el `TrasladosPanel` real y datos de muestra. Falta verlo con clics reales.
 - [ ] Decidir qué hacer con las 4 cabeceras vacías de producción (Traslados 1 al 4): siguen en la base; el 4 está «en tránsito».

@@ -288,11 +288,12 @@ select pg_temp.huella(:'va');`);
   const HISTORIA = [
     "venta_items", "movimientos", "compra_items", "producciones", "transferencia_items", "apartados", "separacion_items",
     "conteo_items", "cambios", "prendas_danadas", "prendas_por_regularizar", "bajada_piso_items", "costo_historial",
-    "pedidos_no_atendidos",
+    "pedidos_no_atendidos", "separacion_pedidos",
   ];
   // Las cuenta su tabla madre: una línea de producción cuelga de una orden del MISMO producto; una recepción de traslado, de
   // una línea de traslado de la misma prenda.
-  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones"];
+  // Y una prenda quitada de un apartado (`separacion_items_retirados`), del apartado de la misma prenda (renglón 7).
+  const POR_SU_MADRE = ["produccion_lineas", "transferencia_recepciones", "separacion_items_retirados"];
   const conocidas = [...SUYAS, ...HISTORIA, ...POR_SU_MADRE].map((t) => `'retail.${t}'`).join(", ");
   const r = correr(`select coalesce(string_agg(distinct c.conrelid::regclass::text, ', '), 'NINGUNA')
     from pg_constraint c

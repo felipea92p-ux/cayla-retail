@@ -1,5 +1,10 @@
 [
  {
+  "indexdef": "CREATE UNIQUE INDEX actividad_pkey ON retail.actividad USING btree (id)",
+  "indexname": "actividad_pkey",
+  "tablename": "actividad"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX activos_fijos_compra_uq ON retail.activos_fijos USING btree (compra_id) WHERE ((compra_id IS NOT NULL) AND (estado <> 'anulado'::text))",
   "indexname": "activos_fijos_compra_uq",
   "tablename": "activos_fijos"
@@ -28,6 +33,31 @@
   "indexdef": "CREATE UNIQUE INDEX apartados_token_cliente_key ON retail.apartados USING btree (token_cliente) WHERE (token_cliente IS NOT NULL)",
   "indexname": "apartados_token_cliente_key",
   "tablename": "apartados"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX apartados_opciones_pkey ON retail.apartados_opciones USING btree (ubicacion_id)",
+  "indexname": "apartados_opciones_pkey",
+  "tablename": "apartados_opciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX bajada_piso_items_pkey ON retail.bajada_piso_items USING btree (movimiento_id)",
+  "indexname": "bajada_piso_items_pkey",
+  "tablename": "bajada_piso_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX bajada_piso_items_una_por_prenda ON retail.bajada_piso_items USING btree (bajada_id, variante_id)",
+  "indexname": "bajada_piso_items_una_por_prenda",
+  "tablename": "bajada_piso_items"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX bajadas_piso_pkey ON retail.bajadas_piso USING btree (id)",
+  "indexname": "bajadas_piso_pkey",
+  "tablename": "bajadas_piso"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX bajadas_piso_token_key ON retail.bajadas_piso USING btree (token_cliente)",
+  "indexname": "bajadas_piso_token_key",
+  "tablename": "bajadas_piso"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX caja_movimientos_pkey ON retail.caja_movimientos USING btree (id)",
@@ -165,6 +195,11 @@
   "tablename": "colores"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX colores_pantone_tcx_unico ON retail.colores USING btree (pantone_tcx) WHERE (pantone_tcx IS NOT NULL)",
+  "indexname": "colores_pantone_tcx_unico",
+  "tablename": "colores"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX colores_pkey ON retail.colores USING btree (codigo)",
   "indexname": "colores_pkey",
   "tablename": "colores"
@@ -248,6 +283,11 @@
   "indexdef": "CREATE UNIQUE INDEX compras_token_cliente_key ON retail.compras USING btree (token_cliente)",
   "indexname": "compras_token_cliente_key",
   "tablename": "compras"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX comprobante_anticipos_pkey ON retail.comprobante_anticipos USING btree (comprobante_id, anticipo_comprobante_id)",
+  "indexname": "comprobante_anticipos_pkey",
+  "tablename": "comprobante_anticipos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX comprobantes_pkey ON retail.comprobantes USING btree (id)",
@@ -630,6 +670,16 @@
   "tablename": "movimientos_insumo"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX movimientos_internos_intentos_movimiento_id_key ON retail.movimientos_internos_intentos USING btree (movimiento_id)",
+  "indexname": "movimientos_internos_intentos_movimiento_id_key",
+  "tablename": "movimientos_internos_intentos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX movimientos_internos_intentos_pkey ON retail.movimientos_internos_intentos USING btree (token_cliente)",
+  "indexname": "movimientos_internos_intentos_pkey",
+  "tablename": "movimientos_internos_intentos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX parametros_finanzas_pkey ON retail.parametros_finanzas USING btree (id)",
   "indexname": "parametros_finanzas_pkey",
   "tablename": "parametros_finanzas"
@@ -845,9 +895,34 @@
   "tablename": "saldos_iniciales"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX separacion_abonos_pkey ON retail.separacion_abonos USING btree (id)",
+  "indexname": "separacion_abonos_pkey",
+  "tablename": "separacion_abonos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_abonos_token_cliente_key ON retail.separacion_abonos USING btree (token_cliente)",
+  "indexname": "separacion_abonos_token_cliente_key",
+  "tablename": "separacion_abonos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_avisos_pkey ON retail.separacion_avisos USING btree (id)",
+  "indexname": "separacion_avisos_pkey",
+  "tablename": "separacion_avisos"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX separacion_correlativos_pkey ON retail.separacion_correlativos USING btree (ubicacion_id)",
   "indexname": "separacion_correlativos_pkey",
   "tablename": "separacion_correlativos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_ediciones_pkey ON retail.separacion_ediciones USING btree (id)",
+  "indexname": "separacion_ediciones_pkey",
+  "tablename": "separacion_ediciones"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_ediciones_token_cliente_key ON retail.separacion_ediciones USING btree (token_cliente)",
+  "indexname": "separacion_ediciones_token_cliente_key",
+  "tablename": "separacion_ediciones"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX separacion_items_apartado_id_key ON retail.separacion_items USING btree (apartado_id)",
@@ -860,9 +935,24 @@
   "tablename": "separacion_items"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX separacion_items_retirados_pkey ON retail.separacion_items_retirados USING btree (id)",
+  "indexname": "separacion_items_retirados_pkey",
+  "tablename": "separacion_items_retirados"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX separacion_pagos_pkey ON retail.separacion_pagos USING btree (id)",
   "indexname": "separacion_pagos_pkey",
   "tablename": "separacion_pagos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_pedidos_pkey ON retail.separacion_pedidos USING btree (id)",
+  "indexname": "separacion_pedidos_pkey",
+  "tablename": "separacion_pedidos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX separacion_pedidos_token_cliente_key ON retail.separacion_pedidos USING btree (token_cliente)",
+  "indexname": "separacion_pedidos_token_cliente_key",
+  "tablename": "separacion_pedidos"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX separaciones_codigo_key ON retail.separaciones USING btree (codigo)",

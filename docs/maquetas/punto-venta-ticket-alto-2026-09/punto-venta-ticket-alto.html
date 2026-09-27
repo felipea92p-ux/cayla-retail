@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ticket a lo alto · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Punto de Venta: el ticket a lo alto (2026-09-26)
+   Pedido de Felipe sobre la pantalla ya publicada (ADR-0221):
+   1. Fuera «Apartar» y «Proforma» de debajo del descuento.
+   2. La franja de arriba (Hoy, Caja, Cambios, Devoluciones…) entra en «Más»,
+      que se corre a la izquierda, sobre el catálogo.
+   3. El ticket sube y ocupa la columna derecha de arriba abajo.
+   4. «Apartados» se queda a la vista y lleva las prendas del ticket.
+   Tokens = apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{--rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;--taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+--t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t30:rgba(26,26,24,.3);--t10:rgba(26,26,24,.1);--ease:cubic-bezier(.32,.72,.24,1)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}svg.s{width:14px;height:14px}svg.l{width:22px;height:22px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}@keyframes velo{from{opacity:0}}@keyframes hoja{from{transform:translateY(100%)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.spk{position:sticky;top:0;z-index:100;background:var(--tinta);color:var(--crema);font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:8px 16px}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7)}.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk label{display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.75)}
+.escena{padding:22px 16px 60px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.ley{max-width:1320px;width:100%;background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--t80)}.ley b{font-weight:600}
+.ley ol{margin:6px 0 0 18px}.ley li{margin:2px 0}
+.sx{width:100%;overflow-x:auto;display:flex}.sx>.desk{margin:0 auto}
+/* escritorio */
+.desk{width:1320px;height:820px;flex:none;position:relative;overflow:hidden;border-radius:14px;background:var(--crema);border:1px solid var(--t30);box-shadow:0 30px 60px -30px rgba(26,26,24,.45)}
+.top{height:54px;border-bottom:1px solid var(--t10);display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:0 22px;font-size:11px;letter-spacing:.12em;color:var(--t65)}
+.top .sede{height:30px;display:flex;align-items:center;padding:0 12px;border:1px solid var(--sand);border-radius:8px;background:var(--papel);color:var(--tinta);font-weight:600}
+.pos{position:absolute;inset:72px 22px 18px;display:flex;flex-direction:column;border:1px solid var(--sand);border-radius:18px;background:var(--crema);overflow:hidden}
+.franja{display:flex;align-items:center;gap:6px;height:62px;padding:0 18px;background:var(--papel);border-bottom:1px solid var(--sand);flex:none}
+.lugar{color:var(--taupe);font-size:11px;white-space:nowrap;margin-right:auto}
+.b{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 10px;border-radius:8px;border:1px solid var(--sand);background:var(--crema);font-size:12.5px;color:var(--t80);white-space:nowrap}
+.b.n{position:relative}.b .n{min-width:18px;height:18px;border-radius:9px;background:var(--rojo);color:var(--crema);font-size:10.5px;font-weight:700;display:inline-grid;place-items:center;padding:0 5px}
+.b.fuerte{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.b.fuerte .n{background:var(--crema);color:var(--tinta)}
+.pill{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:999px;background:var(--hueso);font-size:12.5px}.pill b{font-weight:600}
+.cerrar{height:34px;padding:0 12px;border-radius:8px;border:1px solid rgba(26,26,24,.28);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.cuerpo{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 400px}
+.cat{min-height:0;overflow:hidden;padding:14px 18px;display:flex;flex-direction:column}
+.fila-cat{display:flex;align-items:center;gap:6px;margin-bottom:12px}
+.busca-f{display:flex;gap:8px}.busca{flex:1;display:flex;align-items:center;gap:10px;height:50px;padding:0 16px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);color:var(--t50);font-size:15px}
+.sinreg{height:50px;padding:0 14px;border:1px solid var(--sand);border-radius:14px;background:var(--papel);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.filt{display:flex;align-items:center;gap:10px;margin:12px 0 8px;font-size:11.5px;color:var(--t65)}.sw{width:34px;height:19px;border-radius:10px;background:var(--tinta);position:relative}.sw::after{content:"";position:absolute;right:3px;top:3px;width:13px;height:13px;border-radius:50%;background:var(--crema)}
+.pills{display:flex;gap:6px;margin-bottom:12px}.pl{height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--sand);background:var(--papel);font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center}.pl.on{background:var(--tinta);color:var(--crema)}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.card{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:9px;position:relative}
+.foto{aspect-ratio:1;border-radius:9px;background:linear-gradient(var(--sand),var(--hueso));display:grid;place-items:center;font-family:'EB Garamond',serif;font-size:20px;color:var(--t30);position:relative}
+.foto .c{position:absolute;left:6px;bottom:6px;font:600 9px 'DM Sans';letter-spacing:.12em;color:var(--t65);background:rgba(251,248,242,.8);padding:2px 5px;border-radius:4px}
+.foto .k{position:absolute;right:6px;top:6px;width:21px;height:21px;border-radius:50%;background:var(--tinta);color:var(--crema);font:600 11px 'DM Sans';display:grid;place-items:center}
+.card h4{font-weight:500;font-size:13.5px;margin-top:7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.card .co{font-size:11.5px;color:var(--t65)}
+.tl{display:flex;gap:4px;margin:6px 0}.t{min-width:22px;height:21px;padding:0 5px;border-radius:5px;border:1px solid var(--sand);background:var(--hueso);font-size:10px;font-weight:600;display:grid;place-items:center}
+.pie{display:flex;justify-content:space-between;font-size:13px}.pie b{font-weight:600}.pie span{font-size:10.5px;color:var(--t65)}
+/* ticket */
+.tk{min-height:0;display:flex;flex-direction:column;background:var(--papel);border-left:1px solid var(--sand)}
+.tk-cab{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--sand);flex:none}
+.tk-cab h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px}
+.chip{margin-left:auto;display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border-radius:999px;border:1px solid rgba(26,26,24,.25);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.tira{display:flex;gap:6px;padding:8px 18px;border-bottom:1px solid var(--sand);background:var(--crema);flex:none}
+.esp{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 11px;border:1px dashed var(--t30);border-radius:999px;background:var(--papel);font-size:12px}.esp b{font-weight:600}.esp span{color:var(--t65)}.esp u{font-weight:600}
+.esp .malo{color:var(--rojo-p);font-weight:600}
+.cli{margin:10px 18px 0;display:flex;align-items:center;gap:8px;padding:9px 12px;border:1px dashed var(--t30);border-radius:12px;font-size:13px;color:var(--t65);flex:none}.cli span{margin-left:auto;font-size:11px;color:var(--t50)}
+.items{flex:1;min-height:0;overflow:auto}
+.it{padding:12px 18px;border-bottom:1px solid var(--sand)}.it .r1{display:flex;align-items:flex-start}.it h5{font-size:14.5px;font-weight:600}.it .sku{font:11.5px ui-monospace,Menlo,monospace;color:var(--t65)}
+.it .acts{margin-left:auto;display:flex;gap:12px;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--rojo-p)}
+.it .r2{display:flex;align-items:center;gap:14px;margin-top:7px;font-size:13px}.qty{display:inline-flex;gap:10px;align-items:center;height:30px;padding:0 10px;border:1px solid var(--sand);border-radius:8px;background:var(--hueso)}.it .imp{margin-left:auto;font-weight:600}
+.cuantas{padding:8px 18px;font-size:11.5px;color:var(--t65);background:var(--crema);border-bottom:1px solid var(--sand)}
+.acc{display:flex;flex-wrap:wrap;gap:6px 14px;padding:10px 18px;border-top:1px solid var(--sand);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--t65);flex:none}
+.acc .x{border:1px solid var(--sand);border-radius:7px;padding:5px 9px;position:relative}
+.acc .x.tachado{opacity:.4}.acc .x.tachado::after{content:"";position:absolute;left:4px;right:4px;top:50%;height:2px;background:var(--rojo);transform:rotate(-5deg)}
+.tpie{padding:10px 18px 16px;border-top:1px solid var(--sand);flex:none}
+.tot{display:flex;align-items:flex-end}.tot .d{font-size:12px;color:var(--t65);line-height:1.6}.tot .g{margin-left:auto;text-align:right}.tot .g .v{font-family:'EB Garamond',serif;font-size:42px;line-height:1;font-weight:500}
+.adm{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 9px;border-radius:999px;background:rgba(76,93,110,.12);color:var(--pizarra);font-size:10.5px;font-weight:600;margin-top:6px}
+.cobrar{margin-top:10px;width:100%;height:54px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:10px;padding:0 18px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}.cobrar b{margin-left:auto;font-family:'EB Garamond',serif;font-size:21px;letter-spacing:0;font-weight:500}
+.medida{position:absolute;right:6px;width:42px;border-right:2px solid var(--rojo);display:flex;align-items:center;justify-content:flex-end;padding-right:5px;font-size:10px;font-weight:700;color:var(--rojo);pointer-events:none}
+/* overlays */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.3);backdrop-filter:blur(3px);z-index:50;display:flex;justify-content:center;align-items:flex-start;padding-top:60px;animation:velo .2s both}
+.velo.abajo{align-items:flex-end;padding:0}
+.hj{width:460px;background:var(--papel);border-radius:22px;padding:22px 24px;animation:sube .38s var(--ease) both;position:relative;max-height:calc(100% - 80px);overflow:auto}
+.velo.abajo .hj{width:100%;border-radius:22px 22px 0 0;animation:hoja .34s var(--ease) both;max-height:92%}
+.hj h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px}.hj .baj{font-size:12.5px;color:var(--taupe);margin-top:2px}
+.hoy{margin-top:14px;padding:12px 14px;border-radius:14px;background:var(--hueso);display:flex;align-items:center;gap:12px}
+.hoy .v{font-family:'EB Garamond',serif;font-size:28px;line-height:1}.hoy .bar{flex:1;height:6px;border-radius:9px;background:var(--t10);overflow:hidden}.hoy .bar i{display:block;height:100%;width:62%;background:var(--verde)}
+.hoy .p{font-size:12px;font-weight:600;color:var(--verde)}
+.gr{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.gr a{display:flex;flex-direction:column;align-items:center;gap:7px;padding:14px 4px;border:1px solid var(--sand);border-radius:14px;background:var(--crema);font-size:12.5px;color:var(--tinta);text-decoration:none;position:relative}
+.gr a .n{position:absolute;right:7px;top:7px;min-width:18px;height:18px;border-radius:9px;background:var(--tinta);color:var(--crema);font-size:10px;display:grid;place-items:center;font-weight:600}
+.sep{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:16px 0 6px}
+.bcc{margin-top:14px;width:100%;height:44px;border-radius:9px;border:1px solid rgba(26,26,24,.25);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.lm{border:1px solid var(--sand);border-radius:12px;background:var(--crema);overflow:hidden;margin-top:12px}
+.lm div{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--sand);font-size:13px}.lm div:last-child{border:0}.lm b{font-weight:600}.lm span{margin-left:auto;color:var(--t65);font-size:12px}
+.prim{margin-top:14px;width:100%;height:46px;border-radius:9px;background:var(--tinta);color:var(--crema);font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
+.nota{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--hueso);font-size:12px;color:var(--t80)}
+/* celular */
+.tels{display:flex;gap:30px;flex-wrap:wrap;justify-content:center}
+.tc{display:flex;flex-direction:column;align-items:center;gap:8px}.tc .tt{font-size:12.5px;font-weight:600}
+.tel{width:391px;height:812px;border-radius:46px;background:#1b1a18;padding:8px;box-shadow:0 30px 60px -30px rgba(26,26,24,.55)}
+.pn{width:375px;height:796px;border-radius:39px;overflow:hidden;position:relative;background:var(--crema)}
+.pn .sc{position:absolute;inset:0;overflow:auto;scrollbar-width:none}
+.mtop{height:50px;padding:14px 16px 0;display:flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.22em;font-weight:600}.mtop .sd{margin-left:auto;font-size:10.5px;letter-spacing:.1em;border:1px solid var(--sand);border-radius:8px;padding:5px 9px;background:var(--papel)}
+.mcab{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 12px 4px}
+.mcab .lugar{width:100%;margin:0 0 4px 2px}
+.mbusca{display:flex;gap:6px;padding:6px 12px}.mqr{flex:1;height:48px;border-radius:12px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;justify-content:center;gap:8px;font-size:11px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}.mi{width:48px;height:48px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:grid;place-items:center}
+.mver{margin:6px 12px;height:44px;border-radius:12px;border:1px solid var(--sand);background:var(--papel);display:flex;align-items:center;justify-content:center;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600}
+.mbar{position:absolute;left:10px;right:10px;bottom:12px;height:62px;border-radius:16px;background:var(--tinta);color:var(--crema);display:flex;align-items:center;gap:12px;padding:0 10px 0 14px;z-index:5}
+.mbar .tx{flex:1;min-width:0;font-size:11px;color:rgba(245,240,232,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mbar .tx b{display:block;font-family:'EB Garamond',serif;font-size:21px;color:var(--crema);font-weight:500}
+.mbar .ir{height:42px;padding:0 13px;border-radius:10px;background:var(--crema);color:var(--tinta);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:700;display:flex;align-items:center}
+.pn .velo{padding:0;align-items:flex-end}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></symbol>
+<symbol id="i-swap" viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="i-hist" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol>
+<symbol id="i-bar" viewBox="0 0 24 24"><path d="M3 5v14"/><path d="M8 5v14"/><path d="M12 5v14"/><path d="M17 5v14"/><path d="M21 5v14"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+<symbol id="i-pct" viewBox="0 0 24 24"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+</svg>
+<div class="spk" id="spk"></div>
+<div class="escena" id="esc"></div>
+<script>
+const S={vista:'escritorio',version:'propuesta',abrir:'ninguno',conPrendas:true};
+const ic=(n,c='')=>`<svg class="ic ${c}"><use href="#i-${n}"/></svg>`;
+const P=()=>S.version==='propuesta';
+const ITEMS=[['Test de Produto 2','POL-0005-CEL-M',49],['Test de Produto 2','POL-0005-ESM-S',49],['Blusa Carlita','CMS-0001-BLA-XS',49]];
+const CARDS=[['PB','Polo Básico M/corta','Arena','Polos','S/39.90','1 en piso',0],['TD','Test de Produto 2','Gris','Polos','S/49.00','8 en piso',0],['BC','Blusa Carlita','Blanco','Camisas','S/90.00','8 en piso',1],['TD','Test de Produto 2','Celeste','Polos','S/49.00','12 en piso',1],['TD','Test de Produto 2','Esmeralda','Polos','S/49.00','45 en piso',1],['JB','Jean Baggy','Azul claro','Jeans','S/99.00','3 en piso',0],['TD','Test de Produto 2','Gris perla','Polos','S/49.00','6 en piso',0],['PB','Polo Básico M/corta','Blanco','Polos','S/39.90','2 en piso',0],['F','Fhfh','Coral','Bailarinas','S/79.00','4 en piso',0],['BC','Blusa Carlita','Beige','Camisas','S/90.00','2 en piso',0]];
+const pr=()=>S.conPrendas?ITEMS.length:0;
+
+function barra(){
+  const seg=(k,o)=>`<div class="seg">${o.map(([v,t])=>`<button class="${S[k]===v?'on':''}" onclick="S.${k}='${v}';S.abrir='ninguno';pinta()">${t}</button>`).join('')}</div>`;
+  document.getElementById('spk').innerHTML=`<span class="tag">Spike · Ticket a lo alto</span>${seg('vista',[['escritorio','Escritorio'],['celular','Celular']])}
+  <label>Versión ${seg('version',[['hoy','Hoy (publicado)'],['propuesta','Propuesta']])}</label>
+  <label>Abrir <select onchange="S.abrir=this.value;pinta()" style="height:30px;border-radius:8px;background:rgba(245,240,232,.06);color:var(--crema);border:1px dashed rgba(245,240,232,.4);padding:0 8px">${[['ninguno','— Nada —'],['mas','«Más»'],['apartados','«Apartados» con el ticket']].map(([v,t])=>`<option value="${v}" style="color:#1a1a18" ${S.abrir===v?'selected':''}>${t}</option>`).join('')}</select></label>
+  <label><input type="checkbox" ${S.conPrendas?'checked':''} onchange="S.conPrendas=this.checked;pinta()" style="accent-color:var(--rojo)"> Ticket con prendas</label>`;
+}
+
+/* Apartados: el botón dice qué va a hacer */
+function btnApartados(movil){
+  const n=pr();
+  if(!P()) return `<a class="b">${ic('book','s')}Apartados</a>`;
+  return n>0
+    ? `<button class="b fuerte" onclick="S.abrir='apartados';pinta()" title="Lleva las ${n} prendas del ticket a Apartados">${ic('book','s')}${movil?'Apartar':'Apartar'} <span class="n">${n}</span></button>`
+    : `<button class="b" onclick="S.abrir='apartados';pinta()">${ic('book','s')}Apartados</button>`;
+}
+
+function tarjeta(c){return `<div class="card"><div class="foto">${c[0]}<span class="c">${c[3].toUpperCase()}</span>${c[6]?`<span class="k">${c[6]}</span>`:''}</div><h4>${c[1]}</h4><div class="co">${c[2]}</div><div class="tl"><span class="t">S</span><span class="t">M</span><span class="t">L</span></div><div class="pie"><b>${c[4]}</b><span>${c[5]}</span></div></div>`}
+
+function ticket(){
+  const n=pr(), tot=n*49;
+  const items=S.conPrendas?ITEMS.map(i=>`<div class="it"><div class="r1"><div><h5>${i[0]}</h5><div class="sku">${i[1]}</div></div><div class="acts"><span>${ic('pct','s')} desc.</span><span>${ic('trash','s')} Quitar</span></div></div><div class="r2"><span class="qty">${ic('trash','s')} 1 <span style="color:var(--t30)">+</span></span><b>S/${i[2].toFixed(2)}</b><span class="imp">S/${i[2].toFixed(2)}</span></div></div>`).join(''):`<div style="padding:60px 30px;text-align:center"><b style="font-weight:500">El ticket está vacío</b><div style="color:var(--t65);font-size:13px;margin-top:4px">Escanea una etiqueta o elige una prenda del catálogo.</div></div>`;
+  return `<aside class="tk">
+    <div class="tk-cab">${ic('bag','l')}<h3>Ticket actual</h3><span class="chip">${ic('pause','s')} En espera · 1</span></div>
+    <div class="tira"><span class="esp">${ic('pause','s')}<b>Ticket 1</b><span>S/109.90 · ${P()?'hace 2 días':'<span class="malo">3216 min</span>'}</span><u>Retomar</u></span></div>
+    <div class="cli">${ic('user','s')} Agregar clienta<span>DNI, celular o nombre · opcional</span></div>
+    ${P()&&S.conPrendas?`<div class="cuantas" style="margin-top:10px">${n} prendas en el ticket</div>`:''}
+    <div class="items">${items}</div>
+    <div class="acc"><span>${ic('pct','s')} Aplicar descuento</span><span style="margin-left:auto">${ic('pause','s')} Dejar en espera</span>
+      ${P()?'':`<div style="width:100%;display:flex;gap:6px"><span class="x">${ic('book','s')} Apartar</span><span class="x">${ic('file','s')} Proforma</span></div>`}</div>
+    <div class="tpie"><div class="tot"><div class="d">${n} prendas<br>Subtotal S/${(tot/1.18).toFixed(2)}<br>IGV (18%) S/${(tot-tot/1.18).toFixed(2)}<br><span class="adm">${ic('shield','s')} Admin · queda a tu nombre</span></div><div class="g"><div class="lbl" style="font-size:10px;color:var(--t65)">Total</div><div class="v">S/${tot.toFixed(2)}</div></div></div>
+    <button class="cobrar">${ic('wallet','s')} Cobrar <b>S/${tot.toFixed(2)}</b></button></div></aside>`;
+}
+
+function hojaMas(movil){
+  return `<h3>Más de la tienda</h3><div class="baj">Todo lo que antes estaba en la franja de arriba.</div>
+  <div class="hoy">${ic('clock')}<div><div class="v">S/98.00</div><div style="font-size:11.5px;color:var(--t65)">Hoy · 1 venta · meta S/160</div></div><div class="bar"><i></i></div><span class="p">62%</span></div>
+  <div class="sep">Ir a</div>
+  <div class="gr">
+    <a>${ic('wallet','l')}Caja</a><a>${ic('swap','l')}Cambios</a><a>${ic('undo','l')}Devoluciones<span class="n">1</span></a>
+    <a>${ic('hist','l')}Historial</a><a>${ic('file','l')}Proformas</a><a>${ic('clock','l')}Ventas de hoy</a>
+  </div>
+  <div class="nota">«Apartados» no está aquí: se queda a la vista porque es el único que se lleva el ticket.</div>
+  <button class="bcc">Cerrar caja</button>`;
+}
+function hojaApartados(){
+  const n=pr();
+  if(!n) return `<h3>Apartados</h3><div class="baj">Con el ticket vacío, el botón abre Apartados tal cual: buscar, entregar o ver todos.</div><button class="prim">Ir a Apartados ${ic('arrow','s')}</button>`;
+  return `<h3>Apartar para la clienta</h3><div class="baj">Las ${n} prendas del ticket pasan a Apartados. Ahí se pone la clienta, el adelanto y el plazo.</div>
+  <div class="lm">${ITEMS.map(i=>`<div><b>${i[0]}</b> ${i[1].split('-').slice(-1)}<span>S/${i[2].toFixed(2)}</span></div>`).join('')}</div>
+  <div class="nota">No es un paso nuevo: en la pantalla real el toque lleva directo a Apartados con las prendas ya cargadas (como hoy «Apartar» del ticket). Este recuadro solo muestra qué viaja. El ticket se libera para la siguiente clienta.</div>
+  <button class="prim">${ic('book','s')} Ir a Apartados con ${n} prendas</button>`;
+}
+
+function escritorio(){
+  const franja = P()?'':`<div class="franja"><span class="lbl lugar">Venta en tienda · Tienda TRU</span><span class="pill">${ic('clock','s')}Hoy <b>S/98.00</b> <span style="color:var(--t65)">1 venta</span></span><a class="b">${ic('wallet','s')}Caja</a>${btnApartados()}<a class="b">${ic('swap','s')}Cambios</a><a class="b">${ic('undo','s')}Devoluciones</a><a class="b">${ic('grid','s')}Más</a><button class="cerrar">Cerrar caja</button></div>`;
+  const filaCat = P()?`<div class="fila-cat"><span class="lbl lugar" style="margin-right:12px">Venta en tienda · Tienda TRU</span>${btnApartados()}<button class="b" onclick="S.abrir='mas';pinta()">${ic('grid','s')}Más</button><span style="margin-left:auto;font-size:12px;color:var(--t65)">${ic('clock','s')} Hoy S/98.00 · 62%</span></div>`:'';
+  let ov='';
+  if(S.abrir==='mas') ov=`<div class="velo" onclick="if(event.target===this){S.abrir='ninguno';pinta()}"><div class="hj">${hojaMas()}</div></div>`;
+  if(S.abrir==='apartados') ov=`<div class="velo" onclick="if(event.target===this){S.abrir='ninguno';pinta()}"><div class="hj">${hojaApartados()}</div></div>`;
+  const ley = P()
+    ? `<b>Propuesta.</b> Sin franja de arriba: el ticket arranca en el borde superior de la tarjeta y gana ~62 px de alto (una prenda más a la vista). «Apartar» y «Proforma» salen del pie del ticket. Sobre el catálogo, a la izquierda: la sede, <b>Apartados</b> (con prendas en el ticket se vuelve «Apartar ${pr()}» y se las lleva) y <b>Más</b> (Hoy, Caja, Cambios, Devoluciones, Historial, Proformas y Cerrar caja). La cifra de hoy queda como texto chico a la derecha: se ve sin ocupar un botón.`
+    : `<b>Hoy (publicado, captura de Felipe).</b> La franja de ancho completo empuja el ticket hacia abajo, y «Apartar» y «Proforma» se suman bajo el descuento. En el pie del ticket, 3 prendas apenas caben.`;
+  return `<div class="ley">${ley}</div><div class="sx"><div class="desk">
+    <div class="top">${ic('clock','s')} ACTIVIDAD <span class="sede">TIENDA TRU</span></div>
+    <div class="pos">${franja}
+      <div class="cuerpo"><section class="cat">${filaCat}
+        <div class="busca-f"><div class="busca">${ic('bar')} Escanea la etiqueta o busca la prenda</div><button class="sinreg">Prenda sin registrar</button></div>
+        <div class="filt"><span class="sw"></span><span class="lbl" style="font-size:10.5px;color:var(--tinta)">Solo con stock</span><span style="margin-left:auto">35 prendas ocultas (10 con stock en el almacén)</span></div>
+        <div class="pills">${['Todo','Bailarinas','Blazers','Camisas y blusas','Jeans','Pantalones','Polos','Vestidos'].map((c,i)=>`<span class="pl ${i?'':'on'}">${c}</span>`).join('')}</div>
+        <div class="grid">${CARDS.map(tarjeta).join('')}</div></section>
+        ${ticket()}</div>
+    </div>${ov}</div></div>`;
+}
+
+function telefono(){
+  const n=pr();
+  const cab = P()
+    ? `<div class="mcab"><span class="lbl lugar">Venta · Tienda TRU</span>${btnApartados(true)}<button class="b" onclick="S.abrir='mas';pinta()">${ic('grid','s')}Más</button><span style="margin-left:auto;font-size:11.5px;color:var(--t65)">Hoy S/98 · 62%</span></div>`
+    : `<div class="mcab"><span class="lbl lugar">Venta en tienda · Tienda TRU</span><span class="pill" style="height:30px;font-size:11.5px">Hoy <b>S/98.00</b></span><a class="b">${ic('grid','s')}Más</a></div>`;
+  let ov='';
+  if(S.abrir==='mas') ov=`<div class="velo abajo" onclick="if(event.target===this){S.abrir='ninguno';pinta()}"><div class="hj">${hojaMas(true)}</div></div>`;
+  if(S.abrir==='apartados') ov=`<div class="velo abajo" onclick="if(event.target===this){S.abrir='ninguno';pinta()}"><div class="hj">${hojaApartados()}</div></div>`;
+  return `<div class="ley">${P()?'<b>Propuesta · celular.</b> Una sola fila: Apartados (que se lleva el ticket) y Más. El resto no cambia: la barra de cobro de abajo sigue abriendo el ticket en su hoja, que ya no lleva «Apartar» ni «Proforma».':'<b>Hoy · celular.</b> La píldora «Hoy» y «Más» en una fila; Apartados solo dentro de «Más».'}</div>
+  <div class="tels"><div class="tc"><div class="tel"><div class="pn"><div class="sc">
+    <div class="mtop">≡ CAYLA<span class="sd">TIENDA TRU ⌄</span></div>${cab}
+    <div class="mbusca"><div class="mqr">${ic('scan','s')} Escanear QR</div><div class="mi">${ic('search','s')}</div><div class="mi">${ic('plus','s')}</div></div>
+    <div class="mver">Ver catálogo ⌄</div>
+  </div>
+  ${n?`<div class="mbar"><span style="width:34px;height:34px;border-radius:10px;background:rgba(245,240,232,.12);display:grid;place-items:center">${ic('bag','s')}</span><span class="tx">${n} prendas · Test de Produto 2, Blusa Carlita<b>S/${(n*49).toFixed(2)}</b></span><span class="ir">Ver ticket ${ic('up','s')}</span></div>`:''}
+  ${ov}</div></div></div></div>`;
+}
+function pinta(){barra();document.getElementById('esc').innerHTML=S.vista==='escritorio'?escritorio():telefono();}
+pinta();
+</script>
+</body>
+</html>

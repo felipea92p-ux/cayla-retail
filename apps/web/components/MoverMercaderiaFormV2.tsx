@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { avisar } from "@/components/ui/Avisos";
+import { avisar, enfocar } from "@/components/ui/Avisos";
 import { campoEtiqueta, campoTexto, botonPrimario } from "@/components/ui/Modal";
 import { CampoSelect, Desplegable } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -49,6 +49,15 @@ type Ubicacion = { id: string; nombre: string };
 // mitad de tecla.
 type Linea = { varianteId: string; cantidad: string };
 
+// El formulario no decide por ti (ADR-0239, hallazgo 6): el destino y cada prenda empiezan VACÍOS, con su marcador,
+// y «+ Agregar otra prenda» suma una línea vacía. Antes el destino venía puesto en el primero de la lista (el Taller)
+// y cada línea nueva traía la primera prenda del catálogo: si se te olvidaba cambiarla, esa prenda viajaba.
+// Enviar exige destino y prenda en cada línea; el error sale JUNTO al campo (no en una esquina) y el cursor va ahí.
+const LINEA_VACIA: Linea = { varianteId: "", cantidad: "1" };
+type Errores = { destino?: string; eta?: string; lineas: Record<number, string> };
+const SIN_ERRORES: Errores = { lineas: {} };
+const idLinea = (i: number) => `mover-linea-${i}`;
+
 export function MoverMercaderiaFormV2({
   origenId,
   origenEtiqueta,
@@ -72,7 +81,7 @@ export function MoverMercaderiaFormV2({
   lineasIniciales?: { varianteId: string; cantidad: number }[];
 }) {
   const router = useRouter();
-  const [destinoId, setDestinoId] = useState(destinoInicialId ?? destinos[0]?.id ?? "");
+  const [destinoId, setDestinoId] = useState(destinoInicialId ?? "");
   const [nota, setNota] = useState("");
   const [etaLocal, setEtaLocal] = useState("");
   const [lineas, setLineas] = useState<Linea[]>(
@@ -81,8 +90,9 @@ export function MoverMercaderiaFormV2({
       : [
     lineaInicial
       ? { varianteId: lineaInicial.varianteId, cantidad: String(Math.max(1, Math.min(lineaInicial.cantidad, variantes.find((v) => v.varianteId === lineaInicial.varianteId)?.cantidad ?? 1))) }
-      : { varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" },
+      : LINEA_VACIA,
   ]);
+  const [errores, setErrores] = useState<Errores>(SIN_ERRORES);
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState<{ unidades: number; destino: string } | null>(null);
   // Doble clic (ADR-0190): un token por intento. Si el mismo intento llega dos veces (dos clics, un reintento tras
@@ -97,11 +107,23 @@ export function MoverMercaderiaFormV2({
   }
 
   function agregarLinea() {
-    setLineas((actual) => [...actual, { varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" }]);
+    setLineas((actual) => [...actual, LINEA_VACIA]);
+    // La línea nueva recibe el cursor: se agregó para elegir una prenda.
+    enfocar(idLinea(lineas.length));
   }
 
   function quitarLinea(i: number) {
     setLineas((actual) => actual.filter((_, n) => n !== i));
+    // Los errores de línea van por posición: al quitar una, los de abajo suben un lugar.
+    setErrores((e) => {
+      const lineasErr: Record<number, string> = {};
+      for (const [k, v] of Object.entries(e.lineas)) {
+        const n = Number(k);
+        if (n < i) lineasErr[n] = v;
+        else if (n > i) lineasErr[n - 1] = v;
+      }
+      return { ...e, lineas: lineasErr };
+    });
   }
 
   // El tope de una línea no es el stock total de la variante: hay que restar
@@ -118,6 +140,13 @@ export function MoverMercaderiaFormV2({
   }
 
   function actualizarLinea(i: number, cambio: Partial<Linea>) {
+    if (errores.lineas[i]) {
+      setErrores((e) => {
+        const resto = { ...e.lineas };
+        delete resto[i];
+        return { ...e, lineas: resto };
+      });
+    }
     setLineas((actual) =>
       actual.map((l, n) => {
         if (n !== i) return l;
@@ -151,21 +180,23 @@ export function MoverMercaderiaFormV2({
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!responsable.listo) return;
-    if (!destinoId) {
-      avisar.error("Elige a qué ubicación se mueve la mercadería.", { enfocar: "mover-destino" });
+    // Todo lo que falta se dice de una vez, cada cosa junto a su campo; el cursor va a la primera.
+    const nuevos: Errores = { lineas: {} };
+    if (!destinoId) nuevos.destino = "Elige a qué sede va el traslado.";
+    if (!etaLocal) nuevos.eta = "Indica cuándo esperas que llegue.";
+    const conCantidad = lineas.map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) }));
+    conCantidad.forEach((l, i) => {
+      if (!l.varianteId) nuevos.lineas[i] = "Elige la prenda, o quita esta línea.";
+      else if (!(l.cantidadNum > 0)) nuevos.lineas[i] = "Escribe cuántas envías.";
+    });
+    const primeraLineaMala = Object.keys(nuevos.lineas).map(Number).sort((a, b) => a - b)[0];
+    const primerError = nuevos.destino ? "mover-destino" : nuevos.eta ? "mover-eta" : primeraLineaMala !== undefined ? idLinea(primeraLineaMala) : null;
+    setErrores(nuevos);
+    if (primerError) {
+      enfocar(primerError);
       return;
     }
-    if (!etaLocal) {
-      avisar.error("Indica cuándo esperas que llegue el traslado.", { enfocar: "mover-eta" });
-      return;
-    }
-    const validas = lineas
-      .map((l) => ({ ...l, cantidadNum: Math.trunc(Number(l.cantidad)) }))
-      .filter((l) => l.varianteId && l.cantidadNum > 0);
-    if (validas.length === 0) {
-      avisar.error("Agrega al menos una línea con una prenda y una cantidad mayor que cero.", { enfocar: "mover-linea-0" });
-      return;
-    }
+    const validas = conCantidad;
     setLoading(true);
 
     const supabase = createClient();
@@ -187,8 +218,8 @@ export function MoverMercaderiaFormV2({
     token.current = crypto.randomUUID();
     const unidades = validas.reduce((acc, l) => acc + l.cantidadNum, 0);
     const destino = destinos.find((d) => d.id === destinoId)?.nombre ?? "";
-    avisar.exito(`${unidades} ${unidades === 1 ? "unidad enviada" : "unidades enviadas"} a ${destino}`, {
-      detalle: "Salió de tu almacén ahora. La otra sede confirma cuando llegue de verdad.",
+    avisar.exito(`${unidades} ${unidades === 1 ? "prenda enviada" : "prendas enviadas"} a ${destino}`, {
+      detalle: "Salió de tu almacén ahora. Entra a la otra sede cuando la cuenten al recibirla.",
     });
     setOk({ unidades, destino });
     router.refresh();
@@ -198,9 +229,11 @@ export function MoverMercaderiaFormV2({
     return (
       <div className="card-cayla space-y-3 p-5 text-center">
         <p className="label-cayla text-[11px] text-tinta/65">Traslado enviado</p>
-        <p className="font-display text-3xl text-tinta">{ok.unidades} unidades</p>
+        <p className="font-display text-3xl text-tinta">
+          {ok.unidades} {ok.unidades === 1 ? "prenda" : "prendas"}
+        </p>
         <p className="text-sm text-tinta/70">
-          De {origenEtiqueta} hacia {ok.destino} — en tránsito hasta que {ok.destino} confirme lo recibido.
+          De {origenEtiqueta} hacia {ok.destino}: en camino hasta que {ok.destino} las cuente al recibirlas.
         </p>
         <Link href="/inventario/traslados" className="text-xs text-rojo hover:underline">
           Ver traslados en curso
@@ -208,14 +241,17 @@ export function MoverMercaderiaFormV2({
         <button
           type="button"
           onClick={() => {
+            // El siguiente envío también empieza vacío: el destino de este no se arrastra al otro.
             setOk(null);
-            setLineas([{ varianteId: variantes[0]?.varianteId ?? "", cantidad: "1" }]);
+            setDestinoId("");
+            setLineas([LINEA_VACIA]);
             setNota("");
             setEtaLocal("");
+            setErrores(SIN_ERRORES);
           }}
           className={`${botonPrimario} w-full`}
         >
-          Mover otro lote
+          Enviar otro traslado
         </button>
       </div>
     );
@@ -228,23 +264,28 @@ export function MoverMercaderiaFormV2({
   }
 
   return (
-    <form onSubmit={onSubmit} className="card-cayla space-y-5 p-5">
+    // `noValidate`: los avisos del navegador salen en su propio globo y su idioma; los de este formulario, junto al campo.
+    <form onSubmit={onSubmit} noValidate className="card-cayla space-y-5 p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
           <span className={campoEtiqueta}>Desde</span>
           <p className="w-full border-b border-tinta/10 px-1 py-2 text-sm text-tinta/75">{origenEtiqueta}</p>
         </div>
-        {/* El id vive en este contenedor, no en CampoSelect (que no expone uno propio): `avisar.error(...,
-            { enfocar: "mover-destino" })` de abajo hace document.getElementById + querySelector("button, ...")
-            y encuentra el <button> disparador de Desplegable adentro. */}
-        <div id="mover-destino">
-          <CampoSelect
-            etiqueta="Hacia"
-            valor={destinoId}
-            onValor={(v) => setDestinoId(v)}
-            opciones={destinos.map((d) => ({ valor: d.id, texto: d.nombre }))}
-          />
-        </div>
+        {/* Vacío hasta que la persona elige (marcador, no una opción): ADR-0209. El id es el del disparador, para
+            llevar el cursor ahí si falta. */}
+        <CampoSelect
+          etiqueta="Hacia"
+          id="mover-destino"
+          valor={destinoId}
+          onValor={(v) => {
+            setDestinoId(v);
+            if (errores.destino) setErrores((e) => ({ ...e, destino: undefined }));
+          }}
+          opciones={destinos.map((d) => ({ valor: d.id, texto: d.nombre }))}
+          marcador="Elige a qué sede"
+          pie={errores.destino}
+          tono={errores.destino ? "error" : "neutro"}
+        />
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -256,9 +297,19 @@ export function MoverMercaderiaFormV2({
             id="mover-eta"
             type="datetime-local"
             value={etaLocal}
-            onChange={(e) => setEtaLocal(e.target.value)}
+            onChange={(e) => {
+              setEtaLocal(e.target.value);
+              if (errores.eta) setErrores((x) => ({ ...x, eta: undefined }));
+            }}
+            aria-invalid={errores.eta ? true : undefined}
+            aria-describedby={errores.eta ? "mover-eta-error" : undefined}
             className={campoTexto}
           />
+          {errores.eta && (
+            <p id="mover-eta-error" className="anim-revelar text-xs text-rojo">
+              {errores.eta}
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
           <label className={campoEtiqueta} htmlFor="mover-nota">
@@ -269,49 +320,57 @@ export function MoverMercaderiaFormV2({
       </div>
 
       <div className="space-y-3">
-        <p className={campoEtiqueta}>Prendas a mover</p>
+        <p className={campoEtiqueta}>Prendas que envías</p>
         {lineas.map((l, i) => {
           const tope = stockDe(l.varianteId);
+          const error = errores.lineas[i];
           return (
-            <div key={i} id={`mover-linea-${i}`} className="flex flex-wrap items-end gap-2">
+            <div key={i} className="space-y-1">
+            <div className="flex flex-wrap items-end gap-2">
               <div className="min-w-[14rem] flex-1">
+                {/* Vacía hasta que se elige (ADR-0239): el marcador lo pide. El código va al final y solo si existe —
+                    sirve para buscar escribiéndolo, pero no es lo que se lee primero. */}
                 <Desplegable
+                  id={idLinea(i)}
                   valor={l.varianteId}
                   onValor={(v) => actualizarLinea(i, { varianteId: v })}
                   opciones={variantes.map((v) => ({
                     valor: v.varianteId,
-                    texto: `${v.referencia} · ${v.sku} ${[v.talla, v.color].filter(Boolean).join("/")} — stock ${v.cantidad}`,
+                    texto: `${[v.referencia, v.talla, v.color].filter(Boolean).join(" · ")} — hay ${v.cantidad}${v.sku ? ` · ${v.sku}` : ""}`,
                   }))}
-                  etiquetaAccesible="Prenda"
+                  marcador="Elige la prenda"
+                  etiquetaAccesible={`Prenda ${i + 1}`}
                 />
               </div>
               <input
                 type="number"
                 min={1}
-                max={tope}
+                max={l.varianteId ? tope : undefined}
                 aria-label="Cantidad"
                 value={l.cantidad}
                 onChange={(e) => actualizarLinea(i, { cantidad: e.target.value })}
                 onBlur={() => normalizarCantidad(i)}
                 className="w-20 border-b border-tinta/20 bg-transparent px-1 py-2 text-center text-sm text-tinta outline-none focus:border-rojo"
               />
-              <span className="text-xs text-tinta/55">de {tope}</span>
+              {l.varianteId && <span className="text-xs text-tinta/65">de {tope}</span>}
               {lineas.length > 1 && (
                 <button type="button" onClick={() => quitarLinea(i)} className="text-xs text-rojo">
                   Quitar
                 </button>
               )}
             </div>
+            {error && <p className="anim-revelar text-xs text-rojo">{error}</p>}
+            </div>
           );
         })}
         <button type="button" onClick={agregarLinea} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
-          + Agregar línea
+          + Agregar otra prenda
         </button>
       </div>
 
       <ComboResponsable control={responsable} deshabilitado={loading} />
       <button type="submit" disabled={loading || !responsable.listo} title={responsable.motivo ?? undefined} className={botonPrimario}>
-        {loading ? "Moviendo…" : `Mover hacia ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}`}
+        {loading ? "Enviando…" : destinoId ? `Enviar a ${destinos.find((d) => d.id === destinoId)?.nombre ?? "…"}` : "Enviar traslado"}
       </button>
     </form>
   );

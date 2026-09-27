@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { escucharDescargaModelo, prepararFotoPrenda, type FotoPreparada } from "@/lib/preparar-foto";
+import { recorteAgujereado } from "@/lib/foto-encuadre";
 
 /* ====================================================================
    RevisarFotosModal · antes de que una foto entre al catálogo (ADR-0228)
@@ -17,10 +18,30 @@ import { escucharDescargaModelo, prepararFotoPrenda, type FotoPreparada } from "
 
    La elección nace en «sin fondo» cuando el recorte encontró la prenda y en
    «con fondo» cuando no. Una foto que no se pudo leer no se usa.
+
+   Actualización del 2026-09-26 (tarde): si la foto salió apagada, cada
+   versión trae además la LUZ CORREGIDA (`foto-luz.ts`: el tono no cambia) y
+   nace elegida; «Luz original» la deja como llegó. Y un desplegable con
+   cuatro consejos para tomar la foto, porque la mayor parte de la calidad
+   —arrugas, gancho, etiqueta, cómo cae la prenda— se decide al tomarla, y
+   eso ningún programa lo arregla sin inventar.
    ==================================================================== */
 
 export type Fuente = { clave: string; etiqueta: string; blob: Blob };
 export type Eleccion = "sinFondo" | "conFondo";
+
+/** Qué foto sube según lo elegido: fondo y luz. */
+function fotoElegida(p: FotoPreparada, eleccion: Eleccion, luz: boolean): Blob {
+  const juego = luz && p.conLuz ? p.conLuz : p;
+  return eleccion === "sinFondo" && juego.sinFondo ? juego.sinFondo : juego.conFondo;
+}
+
+const CONSEJOS_FOTO = [
+  "Plancha o vaporiza la prenda: las arrugas no se pueden quitar después.",
+  "Sin etiqueta de precio ni gancho a la vista.",
+  "En maniquí, o extendida sobre algo blanco y liso, con las mangas acomodadas.",
+  "Luz de ventana de frente, de día y sin flash. Evita las sombras de costado.",
+];
 export type FotoElegida = { clave: string; foto: Blob; original: Blob };
 
 type Item = {
@@ -29,9 +50,11 @@ type Item = {
   preparada: FotoPreparada | null;
   /** Vistas previas (blob:). Se crean y se liberan en el mismo efecto: creadas en el estado inicial, el doble montaje
    *  de React las liberaba y la miniatura «Antes» salía rota. */
-  vistas: { antes: string | null; sinFondo: string | null; conFondo: string | null };
+  vistas: { antes: string | null; sinFondo: string | null; conFondo: string | null; sinFondoLuz: string | null; conFondoLuz: string | null };
   /** `null` = todavía no hay versiones para elegir, o la imagen no se pudo leer (no se usa). */
   eleccion: Eleccion | null;
+  /** ¿Va con la luz corregida? Nace en `true` cuando hay corrección (la foto estaba apagada). */
+  luz: boolean;
   error: string | null;
 };
 
@@ -58,8 +81,9 @@ export function RevisarFotosModal({
       fuente,
       estado: "esperando",
       preparada: null,
-      vistas: { antes: null, sinFondo: null, conFondo: null },
+      vistas: { antes: null, sinFondo: null, conFondo: null, sinFondoLuz: null, conFondoLuz: null },
       eleccion: null,
+      luz: false,
       error: null,
     })),
   );
@@ -83,6 +107,8 @@ export function RevisarFotosModal({
           if (!vivo) return;
           const sinFondo = p.sinFondo ? vista(p.sinFondo) : null;
           const conFondo = vista(p.conFondo);
+          const sinFondoLuz = p.conLuz?.sinFondo ? vista(p.conLuz.sinFondo) : null;
+          const conFondoLuz = p.conLuz ? vista(p.conLuz.conFondo) : null;
           setItems((prev) =>
             prev.map((it, n) =>
               n === i
@@ -90,9 +116,14 @@ export function RevisarFotosModal({
                     ...it,
                     estado: "listo",
                     preparada: p,
-                    vistas: { ...it.vistas, sinFondo, conFondo },
-                    eleccion: p.sinFondo ? "sinFondo" : "conFondo",
-                    error: p.motivoSinRecorte,
+                    vistas: { ...it.vistas, sinFondo, conFondo, sinFondoLuz, conFondoLuz },
+                    // Sin fondo solo si el recorte salió entero: uno agujereado (ADR-0228, «control de huecos») nace en
+                    // «Con fondo» y lo dice. Quien sube puede elegir «Sin fondo» igual.
+                    eleccion: p.sinFondo && !recorteAgujereado(p.huecos) ? "sinFondo" : "conFondo",
+                    luz: p.conLuz !== null,
+                    error:
+                      p.motivoSinRecorte ??
+                      (p.sinFondo && recorteAgujereado(p.huecos) ? "El recorte dejó huecos en la prenda; por eso va con fondo. Revisa «Sin fondo» si igual la quieres así." : null),
                   }
                 : it,
             ),
@@ -124,6 +155,10 @@ export function RevisarFotosModal({
     setItems((prev) => prev.map((it) => (it.fuente.clave === clave ? { ...it, eleccion } : it)));
   }
 
+  function elegirLuz(clave: string, luz: boolean) {
+    setItems((prev) => prev.map((it) => (it.fuente.clave === clave ? { ...it, luz } : it)));
+  }
+
   function elegirTodas(eleccion: "sinFondo" | "conFondo") {
     // «Todas sin fondo» solo cambia las que tienen recorte: a una sin recorte no se le inventa uno.
     setItems((prev) => prev.map((it) => (it.estado !== "listo" || (eleccion === "sinFondo" && !it.preparada?.sinFondo) ? it : { ...it, eleccion })));
@@ -132,7 +167,7 @@ export function RevisarFotosModal({
   function confirmar(cerrar: () => void) {
     const elegidas: FotoElegida[] = usadas.map((it) => ({
       clave: it.fuente.clave,
-      foto: it.eleccion === "sinFondo" && it.preparada!.sinFondo ? it.preparada!.sinFondo : it.preparada!.conFondo,
+      foto: fotoElegida(it.preparada!, it.eleccion!, it.luz),
       original: it.preparada!.original,
     }));
     onListo(elegidas, cerrar);
@@ -143,7 +178,7 @@ export function RevisarFotosModal({
   return (
     <Modal
       titulo={titulo}
-      subtitulo="Todas quedan del mismo tamaño, sobre blanco. Elige en cada una si va sin fondo o con su fondo."
+      subtitulo="Todas quedan del mismo tamaño, sobre blanco. Elige en cada una si va sin fondo o con su fondo, y si la luz va corregida."
       ancho="max-w-5xl"
       bloqueado={guardando}
       onClose={onClose}
@@ -170,9 +205,24 @@ export function RevisarFotosModal({
             )}
           </div>
 
+          <details className="nota-cayla text-[13px]">
+            <summary className="cursor-pointer font-medium text-tinta">Cómo tomar una buena foto</summary>
+            <ul className="mt-2 list-disc space-y-1 pl-5">
+              {CONSEJOS_FOTO.map((c) => (
+                <li key={c}>{c}</li>
+              ))}
+            </ul>
+          </details>
+
           <ul className="grid max-h-[62vh] grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3 lg:grid-cols-4" data-sin-cascada>
             {items.map((it) => (
-              <TarjetaRevision key={it.fuente.clave} item={it} deshabilitado={guardando} onElegir={(e) => elegir(it.fuente.clave, e)} />
+              <TarjetaRevision
+                key={it.fuente.clave}
+                item={it}
+                deshabilitado={guardando}
+                onElegir={(e) => elegir(it.fuente.clave, e)}
+                onLuz={(l) => elegirLuz(it.fuente.clave, l)}
+              />
             ))}
           </ul>
 
@@ -194,13 +244,17 @@ function TarjetaRevision({
   item,
   deshabilitado,
   onElegir,
+  onLuz,
 }: {
   item: Item;
   deshabilitado: boolean;
   onElegir: (e: Eleccion) => void;
+  onLuz: (luz: boolean) => void;
 }) {
-  const { vistas, eleccion, estado, preparada } = item;
-  const grande = eleccion === "sinFondo" ? vistas.sinFondo : vistas.conFondo;
+  const { vistas, eleccion, estado, preparada, luz } = item;
+  const conLuz = luz && preparada?.conLuz;
+  const grande =
+    eleccion === "sinFondo" ? (conLuz ? vistas.sinFondoLuz : vistas.sinFondo) : conLuz ? vistas.conFondoLuz : vistas.conFondo;
   const opciones: Eleccion[] = preparada?.sinFondo ? ["sinFondo", "conFondo"] : ["conFondo"];
 
   return (
@@ -240,6 +294,24 @@ function TarjetaRevision({
               className="pildora-cayla !px-2.5 !py-1 !text-[11.5px]"
             >
               {TEXTO_ELECCION[o]}
+            </button>
+          ))}
+        </div>
+      )}
+      {estado === "listo" && preparada?.conLuz && (
+        <div className="flex flex-wrap gap-1" role="radiogroup" aria-label={`Luz de ${item.fuente.etiqueta}`}>
+          {[true, false].map((l) => (
+            <button
+              key={String(l)}
+              type="button"
+              role="radio"
+              aria-checked={luz === l}
+              data-activa={luz === l}
+              disabled={deshabilitado}
+              onClick={() => onLuz(l)}
+              className="pildora-cayla !px-2.5 !py-1 !text-[11.5px]"
+            >
+              {l ? "Luz corregida" : "Luz original"}
             </button>
           ))}
         </div>

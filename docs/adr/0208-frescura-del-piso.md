@@ -859,7 +859,8 @@ guiones se corren con `PATH=<pg>/bin:$PATH CAYLA_PGDATABASE=<base> LC_ALL=en_US.
   - **D-40 contra la caja, antes del bloque 3:** o manda V2 (la caja dice «hay N en el almacén: tráela al piso» y la
     D-40 se retira por escrito), o manda la D-40 (la caja baja sola, toda bajada nace tardía y la marca se redefine).
     Sin eso, el indicador mide el diseño de la caja y no a las colaboradoras.
-  - «Reponer» solo aparece en las filas con 7 o menos en el piso (`UMBRAL_REPOSICION_PISO`). Quien tiene Existencias sin
+  - «Reponer» solo aparece en las filas con 7 o menos en el piso (`UMBRAL_REPOSICION_PISO`). *Desde ADR-0231 (2026-09-26):
+    con 4 o menos libres en el piso y algo en el almacén; la pregunta de abajo sigue igual con ese número.* Quien tiene Existencias sin
     «Bajada al piso» no tiene camino con rastro para subir una prenda que ya tiene 8 o más en el piso: ¿«Reponer» se
     ofrece en toda fila con almacén disponible, o basta con encender «Bajada al piso»?
   - «Reposición» en el ALMACÉN queda abierta por ahora (Felipe, 2026-09-25): decidir más adelante si se cierra. Se usa:
@@ -1078,3 +1079,11 @@ marca antes del responsable, la tabla inmutable, la guarda md5 aborta, pegada do
 Aparte, contra un Postgres desechable y con COMMIT: dos envíos simultáneos con la misma marca dan UN movimiento (el
 segundo espera el candado y responde el mismo). En el navegador, con la red cortada a propósito: corte → congelado →
 rechazo → éxito, tres envíos con la misma marca, la misma cifra y la misma nota; un modal nuevo estrena marca.
+
+## Nota 2026-09-26 — ADR-0240 revierte «Reponer le sigue funcionando con solo Existencias»
+
+Felipe eligió la opción A del análisis de Existencias: mover piso↔almacén es de «Bajada al piso» por CUALQUIER puerta.
+«Reponer» y «Retirar del piso» pasan por `mover_entre_piso_y_almacen`, que pide el módulo, y `mover_interno` queda
+interno. La prueba `bajada_al_piso.mjs` (P2) ahora afirma lo contrario de lo que decía. Antes de publicarlo hay que
+encender «Bajada al piso» en los roles que hoy reponen desde Existencias (aquí se anotaron las Terminal Almacén y de
+ventas): ver ADR-0240, «Se rompe si».

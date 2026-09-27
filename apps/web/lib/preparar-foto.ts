@@ -1,10 +1,15 @@
 "use client";
 
-import { cajaDeContenido, encuadrar, LADO_MAX_ORIGINAL, LIENZO_FOTO, MARGEN_PRENDA, recorteUtil, reducirA } from "@/lib/foto-encuadre";
+import { cajaDeContenido, encuadrar, fraccionDeHuecos, LADO_MAX_ORIGINAL, LIENZO_FOTO, MARGEN_PRENDA, recorteUtil, reducirA, soloLaPrenda, type Caja } from "@/lib/foto-encuadre";
+import { aplicarCurva, curvaDeLuz, enfocar, histogramaDeLuz, type CurvaDeLuz } from "@/lib/foto-luz";
 
 // Prepara una foto de prenda para el catálogo, en el NAVEGADOR (ADR-0228): el original reducido a un tamaño que se
 // pueda guardar, y dos versiones encuadradas en 1200×1500 sobre blanco —sin fondo y con su fondo— para que quien la
 // sube elija. Nada sale de este archivo hacia el almacén: subir es de `producto-fotos.ts`.
+//
+// Desde la actualización del ADR-0228 (2026-09-26, tarde) cada versión viene además con la LUZ CORREGIDA
+// (`foto-luz.ts`: una sola curva para los tres colores, así el tono no cambia) y todas llevan una nitidez leve. Del
+// recorte se borran los pedazos sueltos (`soloLaPrenda`). Nada de esto inventa píxeles: la prenda es la de la foto.
 
 export type FotoPreparada = {
   /** La foto tal cual, reducida a 2400 px como máximo (lo que se guarda para poder reprocesarla). */
@@ -13,8 +18,12 @@ export type FotoPreparada = {
   conFondo: Blob;
   /** La prenda recortada, centrada y del mismo tamaño que todas. `null` si no se pudo o no se encontró la prenda. */
   sinFondo: Blob | null;
+  /** Las mismas dos versiones con la luz corregida. `null` si la foto ya tenía buena luz: entonces no se ofrece. */
+  conLuz: { conFondo: Blob; sinFondo: Blob | null } | null;
   /** Por qué no hay versión sin fondo, dicho para la pantalla. */
   motivoSinRecorte: string | null;
+  /** Qué parte de la prenda recortada quedó agujereada (0 a 1; `fraccionDeHuecos`). `null` si no hubo recorte. */
+  huecos: number | null;
 };
 
 const CALIDAD_JPEG = 0.9;
@@ -38,8 +47,9 @@ function aBlob(c: HTMLCanvasElement, calidad = CALIDAD_JPEG): Promise<Blob> {
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("El navegador no pudo generar la imagen."))), "image/jpeg", calidad));
 }
 
-/** Pinta `fuente` (o su `recorte`) en un lienzo 4:5 blanco, en la posición que dice `encuadrar`. */
-function sobreBlanco(fuente: CanvasImageSource, recorte: { x: number; y: number; ancho: number; alto: number }, margen: number): HTMLCanvasElement {
+/** Pinta `fuente` (o su `recorte`) en un lienzo 4:5 blanco, en la posición que dice `encuadrar`, y le da la nitidez
+ *  leve del final (`enfocar`): se aplica sobre el 1200×1500 porque es lo que compensa el achicado. */
+function sobreBlanco(fuente: CanvasImageSource, recorte: Caja, margen: number): HTMLCanvasElement {
   const c = lienzo(LIENZO_FOTO.ancho, LIENZO_FOTO.alto);
   const g = c.getContext("2d")!;
   g.fillStyle = "#ffffff"; // el blanco del papel de la foto, no un color de la pantalla: por eso no es un token
@@ -47,6 +57,18 @@ function sobreBlanco(fuente: CanvasImageSource, recorte: { x: number; y: number;
   g.imageSmoothingQuality = "high";
   const d = encuadrar(recorte, LIENZO_FOTO, margen);
   g.drawImage(fuente, recorte.x, recorte.y, recorte.ancho, recorte.alto, d.x, d.y, d.ancho, d.alto);
+  const pixeles = g.getImageData(0, 0, c.width, c.height);
+  pixeles.data.set(enfocar(pixeles.data, c.width, c.height));
+  g.putImageData(pixeles, 0, 0);
+  return c;
+}
+
+/** Un lienzo con estos píxeles (y, si se pasa, la curva de luz aplicada a una COPIA: los originales no se tocan). */
+function lienzoCon(rgba: Uint8ClampedArray, ancho: number, alto: number, curva: CurvaDeLuz | null = null): HTMLCanvasElement {
+  const datos = new Uint8ClampedArray(rgba);
+  if (curva) aplicarCurva(datos, curva);
+  const c = lienzo(ancho, alto);
+  c.getContext("2d")!.putImageData(new ImageData(datos as Uint8ClampedArray<ArrayBuffer>, ancho, alto), 0, 0);
   return c;
 }
 
@@ -101,8 +123,9 @@ export function escucharDescargaModelo(f: (porcentaje: number) => void): () => v
   return () => oyentesProgreso.delete(f);
 }
 
-/** Prepara una foto: original, con fondo y —si el modelo encuentra la prenda— sin fondo. Solo lanza si la imagen no se
- *  puede leer; si falla el recorte, devuelve igual la versión con fondo y el motivo. */
+/** Prepara una foto: original, con fondo y —si el modelo encuentra la prenda— sin fondo, cada una también con la luz
+ *  corregida si hace falta. Solo lanza si la imagen no se puede leer; si falla el recorte, devuelve igual la versión con
+ *  fondo y el motivo. */
 export async function prepararFotoPrenda(archivo: Blob): Promise<FotoPreparada> {
   // `from-image`: respeta la orientación de la foto del celular (EXIF); sin esto, algunas salen acostadas.
   const bitmap = await createImageBitmap(archivo, { imageOrientation: "from-image" });
@@ -113,17 +136,18 @@ export async function prepararFotoPrenda(archivo: Blob): Promise<FotoPreparada> 
     g.imageSmoothingQuality = "high";
     g.drawImage(bitmap, 0, 0, tam.ancho, tam.alto);
     const original = await aBlob(base, 0.92);
-    const conFondo = await aBlob(sobreBlanco(base, { x: 0, y: 0, ancho: tam.ancho, alto: tam.alto }, 0));
+    const fotoEntera: Caja = { x: 0, y: 0, ancho: tam.ancho, alto: tam.alto };
 
-    let sinFondo: Blob | null = null;
+    let recorte: { rgba: Uint8ClampedArray; ancho: number; alto: number; caja: Caja } | null = null;
     let motivoSinRecorte: string | null = null;
     try {
       const r = await recortar(original);
-      const caja = cajaDeContenido(r.rgba, r.ancho, r.alto);
-      if (recorteUtil(caja, r.ancho, r.alto)) {
-        const capa = lienzo(r.ancho, r.alto);
-        capa.getContext("2d")!.putImageData(new ImageData(r.rgba as Uint8ClampedArray<ArrayBuffer>, r.ancho, r.alto), 0, 0);
-        sinFondo = await aBlob(sobreBlanco(capa, caja, MARGEN_PRENDA));
+      // Primero se decide si encontró UNA prenda, con el recorte tal como salió; recién después se limpian los pedazos.
+      // Al revés, en una foto de tienda llena de ropa el pedazo más grande quedaría solo y pasaría por prenda.
+      if (recorteUtil(cajaDeContenido(r.rgba, r.ancho, r.alto), r.ancho, r.alto)) {
+        soloLaPrenda(r.rgba, r.ancho, r.alto);
+        const caja = cajaDeContenido(r.rgba, r.ancho, r.alto);
+        if (caja) recorte = { ...r, caja };
       } else {
         motivoSinRecorte = "No se reconoció la prenda en esta foto.";
       }
@@ -131,7 +155,21 @@ export async function prepararFotoPrenda(archivo: Blob): Promise<FotoPreparada> 
       console.warn("[preparar-foto] no se pudo quitar el fondo", err);
       motivoSinRecorte = navigator.onLine ? "No se pudo quitar el fondo en este equipo." : "Sin conexión: el recortador se descarga la primera vez.";
     }
-    return { original, conFondo, sinFondo, motivoSinRecorte };
+
+    // La luz se mide en la PRENDA cuando hay recorte (el fondo de la tienda no decide), y en la foto entera si no.
+    const pixelesBase = g.getImageData(0, 0, tam.ancho, tam.alto).data;
+    const curva = curvaDeLuz(histogramaDeLuz(recorte ? recorte.rgba : pixelesBase));
+
+    const conFondo = await aBlob(sobreBlanco(base, fotoEntera, 0));
+    const sinFondo = recorte ? await aBlob(sobreBlanco(lienzoCon(recorte.rgba, recorte.ancho, recorte.alto), recorte.caja, MARGEN_PRENDA)) : null;
+    const conLuz = curva
+      ? {
+          conFondo: await aBlob(sobreBlanco(lienzoCon(pixelesBase, tam.ancho, tam.alto, curva), fotoEntera, 0)),
+          sinFondo: recorte ? await aBlob(sobreBlanco(lienzoCon(recorte.rgba, recorte.ancho, recorte.alto, curva), recorte.caja, MARGEN_PRENDA)) : null,
+        }
+      : null;
+    const huecos = recorte ? fraccionDeHuecos(recorte.rgba, recorte.ancho, recorte.caja) : null;
+    return { original, conFondo, sinFondo, conLuz, motivoSinRecorte, huecos };
   } finally {
     bitmap.close();
   }

@@ -13,6 +13,7 @@ import {
   sumarEntradas,
   tallasDelModelo,
   urlEtiquetasDePrecio,
+  volverDeEtiquetas,
   type HermanaEtiqueta,
   type VarianteEtiqueta,
 } from "./etiqueta-precio-reglas";
@@ -241,9 +242,30 @@ describe("encabezadoDeEtiquetas — lo que dice la pantalla según el origen", (
   it("una etiqueta sin descuento no es una campaña", () => {
     expect(encabezadoDeEtiquetas({ tipo: "campana", campana: null }, n, "Tienda Lima").vacio).toContain("no tiene descuento");
   });
+  it("tallas marcadas en Existencias: dice cuántas hay entre las marcadas", () => {
+    const e = encabezadoDeEtiquetas({ tipo: "variantes" }, { unidades: 5, modelos: 2 }, "Tienda Trujillo");
+    expect(e.sobretitulo).toBe("Existencias · Prendas marcadas");
+    expect(e.bajada).toContain("5 prendas de 2 modelos");
+    expect(e.vacio).toContain("Tienda Trujillo");
+  });
   it("un producto habla de lo que hay en la tienda", () => {
     const e = encabezadoDeEtiquetas({ tipo: "producto", nombre: "Blusa Emma" }, { unidades: 1, modelos: 1 }, "Tienda Trujillo");
     expect(e.sobretitulo).toBe("Productos · Blusa Emma");
     expect(e.bajada).toContain("En Tienda Trujillo hay 1 prenda de este modelo");
+  });
+});
+
+describe("volverDeEtiquetas — la vuelta a la pantalla que abrió las etiquetas", () => {
+  it("cada origen vuelve a su pantalla, con el nombre del menú", () => {
+    expect(volverDeEtiquetas({ tipo: "lotes" })).toEqual({ href: "/recibir", a: "Recibir mercadería" });
+    expect(volverDeEtiquetas({ tipo: "campana" })).toEqual({ href: "/productos/atributos?tipo=etiquetas", a: "Atributos" });
+    expect(volverDeEtiquetas({ tipo: "producto" })).toEqual({ href: "/productos", a: "Productos" });
+    expect(volverDeEtiquetas({ tipo: "variantes" })).toEqual({ href: "/inventario", a: "Existencias" });
+  });
+  it("desde una orden cerrada vuelve a ESA orden abierta, no al tablero vacío", () => {
+    expect(volverDeEtiquetas({ tipo: "produccion", id: "abc" })).toEqual({ href: "/produccion/ordenes?orden=abc", a: "Órdenes" });
+  });
+  it("con la URL a secas (sin origen) vuelve a Inicio", () => {
+    expect(volverDeEtiquetas(null)).toEqual({ href: "/", a: "Inicio" });
   });
 });

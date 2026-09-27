@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CirclePause, Play } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { NOMBRE_ESPERA_MAX, nombreDeEspera } from "@/lib/vender-hoy-reglas";
+import { haceCuanto, NOMBRE_ESPERA_MAX, nombreDeEspera } from "@/lib/vender-hoy-reglas";
 
 type Espera = { id: string; nombre?: string; creadoEn: string; carrito: { cantidad: number; precioUnitario: number; descuentoUnitario: number }[] };
 
 const totalDe = (t: Espera) => t.carrito.reduce((acc, it) => acc + it.cantidad * (it.precioUnitario - it.descuentoUnitario), 0);
-const minutosDesde = (iso: string) => Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60_000));
 
 /**
  * La tira de tickets en espera arriba del ticket (spike 2026-09-26, hallazgo 6; referentes: los «tickets abiertos» de
@@ -16,6 +15,13 @@ const minutosDesde = (iso: string) => Math.max(0, Math.round((Date.now() - new D
  * decía cuál era cuál; aquí cada una tiene nombre, monto y hace cuánto, y se retoma de un toque.
  */
 export function TiraDeEsperas({ enEspera, onRetomar, bloqueado }: { enEspera: readonly Espera[]; onRetomar: (id: string) => void; bloqueado: boolean }) {
+  // La hora de referencia vive en estado y se refresca cada minuto: «hace 12 min» sigue al día sin recargar, y el render
+  // no llama al reloj (debe dar lo mismo cada vez que React lo repite).
+  const [ahora, setAhora] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setAhora(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, []);
   if (enEspera.length === 0) return null;
   return (
     <div className="scroll-cayla flex gap-1.5 overflow-x-auto border-b border-sand bg-crema px-5 py-2" role="group" aria-label="Tickets en espera">
@@ -31,7 +37,7 @@ export function TiraDeEsperas({ enEspera, onRetomar, bloqueado }: { enEspera: re
           <CirclePause className="h-3.5 w-3.5 text-tinta/60" aria-hidden />
           <b className="font-semibold">{nombreDeEspera(t.nombre, i)}</b>
           <span className="text-tinta/60 tabular-nums">
-            S/{totalDe(t).toFixed(2)} · {minutosDesde(t.creadoEn)} min
+            S/{totalDe(t).toFixed(2)} · {haceCuanto(t.creadoEn, ahora)}
           </span>
           <span className="flex items-center gap-0.5 font-semibold underline underline-offset-2">
             <Play className="h-3 w-3" aria-hidden />

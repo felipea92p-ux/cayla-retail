@@ -77,13 +77,12 @@ import { buscarVendiblePrimero } from "@/lib/vender-buscador-reglas";
 import type { AccesoVenta } from "@/lib/vender-accesos";
 import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import type { ClientaDelTicket as Clienta } from "@/lib/clienta-ticket-reglas";
-import { AccesosVenta } from "@/components/punto-de-venta/AccesosVenta";
+import { BotonApartados, MasDeLaTienda } from "@/components/punto-de-venta/AccesosVenta";
 import { ResumenDeHoy } from "@/components/punto-de-venta/ResumenDeHoy";
 import { ClientaDelTicket } from "@/components/punto-de-venta/ClientaDelTicket";
 import { DejarEnEsperaModal, TiraDeEsperas } from "@/components/punto-de-venta/Esperas";
 import { AnotarNoHabia } from "@/components/punto-de-venta/AnotarNoHabia";
-import { NuevaProformaModal } from "@/components/NuevaProformaModal";
-import { Bookmark, ChevronUp, FileText, ShoppingBag } from "lucide-react";
+import { ChevronUp, ShoppingBag } from "lucide-react";
 
 /**
  * Variante centinela de la «Prenda sin registrar» (ADR-0179; antes «Monto manual»): una
@@ -210,10 +209,6 @@ const DESCUENTO_VACIO: DescuentoForm = { pct: "", elegidas: null, razon: "", raz
 
 export const money = (n: number) => `S/${n.toFixed(2)}`;
 
-/** «Apartar» y «Proforma» en la fila de acciones del ticket: mismo peso que «Dejar en espera», con borde porque llevan
- *  a otra pantalla (spike 2026-09-26). */
-const ACCION_TICKET =
-  "label-cayla flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-sand px-2 text-[11px] text-tinta/75 transition-colors hover:border-taupe hover:text-tinta disabled:opacity-40";
 
 type Props = {
   ubicacionId: string;
@@ -242,8 +237,6 @@ type Props = {
   accesos: readonly AccesoVenta[];
   /** «Apartar» desde el ticket: su rol ve Apartados y la sede es una tienda. */
   puedeApartar: boolean;
-  /** «Proforma» desde el ticket: su rol puede facturar (Proformas vive en Facturación). */
-  puedeProforma: boolean;
   /** «Cobrar» desde Proformas (`/vender?proforma=<id>`, ADR-0167): el carrito arranca con sus prendas. */
   proforma?: ProformaEnCobro | null;
   /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
@@ -270,7 +263,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeProforma, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -311,7 +304,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   // La clienta del ticket (spike 2026-09-26): elegida, llena el documento y el nombre del comprobante.
   const [clienta, setClienta] = useState<Clienta | null>(null);
   const [esperaAbierta, setEsperaAbierta] = useState(false);
-  const [proformaAbierta, setProformaAbierta] = useState(false);
   // Pago mixto (decidido con Felipe el 2026-09-14): una fila por medio, sin preselección
   // — un «efectivo» que nadie eligió es un dato fantasma en el cuadre de caja. `cobrar()`
   // no sale hasta que las filas cubran el total al centavo: lo frena `motivoBloqueo`.
@@ -439,7 +431,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
   const modalCerrarVisible = modalCaja === "cerrar" && cajaId !== null;
   // Los dos efectos de foco de abajo se apagan con un modal abierto: el modal es dueño
   // del foco mientras vive, y al cerrarse lo devuelve él mismo (`alCerrarEnfocar`).
-  const hayModal = manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta || proformaAbierta;
+  const hayModal = manualAbierto || camaraAbierta || modalAbrirVisible || modalCerrarVisible || ok !== null || hojaTicket || esperaAbierta;
 
   // El escáner es la ruta principal de la caja, así que el foco vuelve a él solo.
   // `autoFocus` del campo solo actúa al montar — y si la pantalla cargó con la caja
@@ -1069,8 +1061,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setClienta(null);
   }
 
-  // Lo que viaja a Apartados o a una proforma: las prendas del catálogo. Una «Prenda sin registrar» no se aparta ni se
-  // cotiza (no tiene variante propia): se dice, en vez de perderla en silencio.
+  // Lo que viaja a Apartados: las prendas del catálogo. Una «Prenda sin registrar» no se aparta (no tiene variante
+  // propia): se dice, en vez de perderla en silencio.
   function lineasParaLlevar(accion: string) {
     const sinRegistrar = carrito.filter((it) => it.varianteId === ID_CARGO_ESPECIAL).length;
     if (sinRegistrar > 0) avisar.aviso(`La prenda sin registrar no se puede ${accion}: sigue en el ticket.`);
@@ -1082,19 +1074,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     setHojaTicket(false);
     router.push(hrefApartarDesdeTicket(lineas));
   }
-  function abrirProformaDesdeTicket() {
-    if (lineasParaLlevar("cotizar").length === 0) return;
-    // `crear_proforma` no acepta el descuento de campaña (sus motivos y su tope de 20 % son otros): la proforma cotiza a
-    // precio de etiqueta. Se dice antes, para que el total distinto no sorprenda con la clienta delante.
-    const enCampana = carrito.filter((it) => it.razonDescuento === RAZON_CAMPANA);
-    if (enCampana.length > 0) {
-      avisar.aviso("La campaña no pasa a la proforma", {
-        detalle: `${enCampana.map((it) => it.referencia).join(", ")}: la proforma cotiza a precio de etiqueta. Si la clienta quiere el precio de campaña, cóbrala ahora.`,
-      });
-    }
-    setHojaTicket(false);
-    setProformaAbierta(true);
-  }
+
 
   async function cobrar(e: React.FormEvent) {
     e.preventDefault();
@@ -1342,24 +1322,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
               <ClientaDelTicket clienta={clienta} onElegir={elegirClienta} onQuitar={quitarClienta} bloqueado={bloqueado} />
             </>
           }
-          accionesArmar={
-            (puedeApartar || puedeProforma) && (
-              <span className="flex w-full flex-wrap gap-1.5 sm:w-auto">
-                {puedeApartar && (
-                  <button type="button" onClick={apartarDesdeTicket} disabled={bloqueado} className={ACCION_TICKET}>
-                    <Bookmark className="h-3.5 w-3.5" aria-hidden />
-                    Apartar
-                  </button>
-                )}
-                {puedeProforma && (
-                  <button type="button" onClick={abrirProformaDesdeTicket} disabled={bloqueado} className={ACCION_TICKET}>
-                    <FileText className="h-3.5 w-3.5" aria-hidden />
-                    Proforma
-                  </button>
-                )}
-              </span>
-            )
-          }
         />
   );
 
@@ -1370,101 +1332,104 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
     // `<main>` (9rem). En celular/tablet (apilado) se mantiene el scroll de página:
     // dos scrolls internos uno debajo del otro serían peores que uno solo.
     <div className="flex flex-col overflow-hidden rounded-2xl border border-sand bg-crema text-tinta lg:h-[calc(100dvh-9rem)]">
-      <div className="anim-revelar flex min-h-16 flex-wrap items-center gap-3 border-b border-sand bg-papel px-4 py-2 sm:px-6">
-        <p className="label-cayla mr-auto text-[11px] text-taupe-profundo">Venta en tienda · {ubicacionEtiqueta}</p>
-        {/* Spike 2026-09-26 (hallazgos 1 y 2): «Hoy» —cuánto se vendió y cuánto de la meta— y las pantallas que
-            trabajan de la mano con la caja, con ícono y solo las que el rol abre. Siguen vivos con la caja cerrada
-            (cerrarla es justo lo que se hace en /caja). En el celular, los accesos van en «Más». Todo en un solo ítem
-            del flex: si la fila se parte, el grupo cae entero a la segunda línea. */}
-        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
-          <ResumenDeHoy
-            ventas={ventasDeHoy.ventas}
-            fallo={ventasDeHoy.fallo}
-            meta={metaVentaDiaria}
-            ubicacionEtiqueta={ubicacionEtiqueta}
-            verCaja={accesos.some((a) => a.modulo === "caja")}
-            verHistorial={accesos.some((a) => a.modulo === "historial")}
-          />
-          <AccesosVenta
-            accesos={accesos}
-            // En el celular «Cerrar caja» vive en «Más» (spike): en la cabecera ocupaba una fila entera.
-            extraMas={
-              !bloqueado && puedeCerrarCaja
-                ? (cerrar) => (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        cerrar();
-                        setModalCaja("cerrar");
-                      }}
-                      className="label-cayla mt-3 flex h-11 w-full items-center justify-center rounded-md border border-tinta/25 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo sm:hidden"
-                    >
-                      Cerrar caja
-                    </button>
-                  )
-                : undefined
-            }
-          />
-          {/* D-13: abrir la caja lo puede cualquiera; CERRARLA solo el líder (candado real en
-              `cerrar_caja`, 20260921110000). Con la caja abierta, un colaborador común no ve el botón; la terminal de
-              ventas sí (ADR-0160: `fn_puede_gestionar_caja`). */}
-          {(bloqueado || puedeCerrarCaja) && (
-            <button
-              type="button"
-              onClick={() => setModalCaja(bloqueado ? "abrir" : "cerrar")}
-              className={
-                bloqueado
-                  ? "label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo"
-                  : "label-cayla hidden h-9 rounded-md border border-tinta/25 px-3 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo sm:block"
-              }
-            >
-              {bloqueado ? "Abrir caja" : "Cerrar caja"}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Arriba de la bifurcación "caja abierta / caja cerrada" a propósito (ADR-0036,
-          addendum "por sede"): una venta guardada sin conexión, o rechazada de verdad al
-          subir, se tiene que ver tanto si la caja sigue abierta como si ya cerró. */}
-      <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
-
-      {/* Cobrando una proforma (ADR-0167): de quién es, y la confirmación si venció. */}
-      {proformaActiva && (
-        <div role="status" className="anim-revelar flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-sand bg-ambar/[0.07] px-4 py-2.5 text-sm sm:px-6">
-          <p className="mr-auto">
-            Cobrando la proforma <b className="font-semibold">{proformaActiva.numero}</b>
-            {proformaActiva.cliente && <> de {proformaActiva.cliente}</>}. Puedes quitar o cambiar prendas antes de cobrar.
-          </p>
-          {proformaActiva.confirmacion && (
-            <label className="flex cursor-pointer items-start gap-2 text-ambar-profundo">
-              <input type="checkbox" checked={confirmoVencida} onChange={(e) => setConfirmoVencida(e.target.checked)} className="mt-0.5 accent-tinta" />
-              <span>
-                <b className="font-semibold">{proformaActiva.confirmacion.titulo}</b> {proformaActiva.confirmacion.casilla}
-              </span>
-            </label>
-          )}
-          <button
-            type="button"
-            onClick={soltarProforma}
-            className="label-cayla rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta"
-          >
-            Soltar
-          </button>
-        </div>
-      )}
-
-      {/* Con la caja cerrada, el catálogo y el ticket se ven igual — pero apagados y
-          fuera de alcance del mouse. `disabled` real en cada control de abajo, no
-          solo esto: `pointer-events-none` no le dice nada al teclado ni a un lector
-          de pantalla. */}
-      {/* `grid-rows-[minmax(0,1fr)]`: con la fila implícita (`auto`) los dos paneles
-          nunca encogen por debajo de su contenido y el scroll interno de cada uno no
-          se activa — la fila crece y la raíz lo recorta en silencio. */}
+      {/* Sin la franja de arriba (spike «el ticket a lo alto», Felipe 2026-09-26): le quitaba alto al ticket. La columna
+          izquierda arranca con la sede, «Apartados» (que se lleva el ticket), «Más» (todo lo demás, con «Hoy» arriba y
+          «Cerrar caja» al pie) y la cifra de hoy en chico; el ticket ocupa la columna derecha de arriba abajo.
+          Con la caja cerrada se apagan el catálogo y el ticket, NO esta fila: «Abrir caja» tiene que poder tocarse.
+          `grid-rows-[minmax(0,1fr)]`: con la fila implícita (`auto`) los dos paneles nunca encogen por debajo de su
+          contenido y el scroll interno de cada uno no se activa. */}
       <div
-        aria-disabled={bloqueado}
-        className={`grid transition-opacity lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] ${bloqueado ? "pointer-events-none opacity-50" : ""}`}
+        // `max-lg:[&>aside]:hidden`: bajo `lg` el ticket vive en su hoja; en el primer pintado (servidor, sin saber el
+        // ancho) `apilado` todavía es false y el ticket se dibujaba un instante debajo del catálogo en el celular.
+        className={`grid lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,1fr)_420px] lg:grid-rows-[minmax(0,1fr)] max-lg:[&>aside]:hidden ${bloqueado ? "[&>aside]:pointer-events-none [&>aside]:opacity-50" : ""}`}
       >
+        <div className="flex min-w-0 flex-col lg:min-h-0 lg:border-r lg:border-sand">
+          <div className="anim-revelar flex flex-wrap items-center gap-2 px-4 pt-3 sm:px-6 sm:pt-4">
+            <p className="label-cayla mr-2 w-full text-[11px] text-taupe-profundo sm:w-auto">Venta en tienda · {ubicacionEtiqueta}</p>
+            {puedeApartar && <BotonApartados prendas={prendas} onApartar={apartarDesdeTicket} deshabilitado={bloqueado} />}
+            <MasDeLaTienda
+              accesos={accesos}
+              arriba={
+                <ResumenDeHoy
+                  forma="bloque"
+                  ventas={ventasDeHoy.ventas}
+                  fallo={ventasDeHoy.fallo}
+                  meta={metaVentaDiaria}
+                  ubicacionEtiqueta={ubicacionEtiqueta}
+                  verCaja={accesos.some((a) => a.modulo === "caja")}
+                  verHistorial={accesos.some((a) => a.modulo === "historial")}
+                />
+              }
+              pie={
+                // D-13: CERRAR la caja solo el líder (candado real en `cerrar_caja`) o la terminal de ventas (ADR-0160).
+                !bloqueado && puedeCerrarCaja
+                  ? (cerrar) => (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          cerrar();
+                          setModalCaja("cerrar");
+                        }}
+                        className="label-cayla mt-4 flex h-11 w-full items-center justify-center rounded-md border border-tinta/25 text-[11px] text-tinta transition-colors hover:border-rojo hover:text-rojo"
+                      >
+                        Cerrar caja
+                      </button>
+                    )
+                  : undefined
+              }
+            />
+            {/* Abrir la caja lo puede cualquiera (D-13) y es lo primero que se hace: a la vista, nunca dentro de «Más». */}
+            {bloqueado && (
+              <button type="button" onClick={() => setModalCaja("abrir")} className="label-cayla h-9 rounded-md bg-tinta px-3 text-[11px] text-crema transition-colors hover:bg-rojo">
+                Abrir caja
+              </button>
+            )}
+            <span className="ml-auto">
+              <ResumenDeHoy
+                forma="texto"
+                ventas={ventasDeHoy.ventas}
+                fallo={ventasDeHoy.fallo}
+                meta={metaVentaDiaria}
+                ubicacionEtiqueta={ubicacionEtiqueta}
+                verCaja={accesos.some((a) => a.modulo === "caja")}
+                verHistorial={accesos.some((a) => a.modulo === "historial")}
+              />
+            </span>
+          </div>
+
+          {/* Arriba de la bifurcación "caja abierta / caja cerrada" a propósito (ADR-0036,
+              addendum "por sede"): una venta guardada sin conexión, o rechazada de verdad al
+              subir, se tiene que ver tanto si la caja sigue abierta como si ya cerró. */}
+          <PuntoDeVentaColaOffline cola={cola} onDescartar={descartarRechazada} />
+
+          {/* Cobrando una proforma (ADR-0167): de quién es, y la confirmación si venció. */}
+          {proformaActiva && (
+            <div role="status" className="anim-revelar flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-sand bg-ambar/[0.07] px-4 py-2.5 text-sm sm:px-6">
+              <p className="mr-auto">
+                Cobrando la proforma <b className="font-semibold">{proformaActiva.numero}</b>
+                {proformaActiva.cliente && <> de {proformaActiva.cliente}</>}. Puedes quitar o cambiar prendas antes de cobrar.
+              </p>
+              {proformaActiva.confirmacion && (
+                <label className="flex cursor-pointer items-start gap-2 text-ambar-profundo">
+                  <input type="checkbox" checked={confirmoVencida} onChange={(e) => setConfirmoVencida(e.target.checked)} className="mt-0.5 accent-tinta" />
+                  <span>
+                    <b className="font-semibold">{proformaActiva.confirmacion.titulo}</b> {proformaActiva.confirmacion.casilla}
+                  </span>
+                </label>
+              )}
+              <button
+                type="button"
+                onClick={soltarProforma}
+                className="label-cayla rounded-md px-2 py-1 text-[11px] text-tinta/65 transition-colors hover:bg-sand/40 hover:text-tinta"
+              >
+                Soltar
+              </button>
+            </div>
+          )}
+
+          {/* Con la caja cerrada, el catálogo se ve igual — pero apagado y fuera de alcance del mouse. `disabled` real
+              en cada control de adentro, no solo esto: `pointer-events-none` no le dice nada al teclado. */}
+          <div aria-disabled={bloqueado} className={`flex min-h-0 flex-1 flex-col transition-opacity ${bloqueado ? "pointer-events-none opacity-50" : ""}`}>
         <PuntoDeVentaCatalogo
           ubicacionEtiqueta={ubicacionEtiqueta}
           bloqueado={bloqueado}
@@ -1523,6 +1488,8 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           grupos={grupos}
           carrito={carrito}
         />
+          </div>
+        </div>
 
         {!apilado && ticketNodo(false)}
       </div>
@@ -1570,27 +1537,6 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           ocupados={enEspera.map((t) => t.nombre ?? "")}
           onDejar={dejarEnEspera}
           onClose={() => setEsperaAbierta(false)}
-        />
-      )}
-
-      {proformaAbierta && (
-        <NuevaProformaModal
-          prendas={variantesVisibles.map((v) => ({ ...v, colorHex: null }))}
-          ubicaciones={[{ id: ubicacionId, nombre: ubicacionEtiqueta }]}
-          ubicacionActualId={ubicacionId}
-          esLider={esLider}
-          desdeTicket={{
-            lineas: carrito.filter((it) => it.varianteId !== ID_CARGO_ESPECIAL).map((it) => ({ varianteId: it.varianteId, cantidad: it.cantidad })),
-            clienteNombre: clienteNombre.trim() || undefined,
-            clienteDoc: clienteNumDoc.trim() || undefined,
-          }}
-          onCreada={() => {
-            // La proforma quedó en Comprobantes ▸ Proformas; el ticket se libera para la siguiente clienta.
-            capturarFlip();
-            limpiarTicket();
-            limpiarComprobante();
-          }}
-          onCerrar={() => setProformaAbierta(false)}
         />
       )}
 
