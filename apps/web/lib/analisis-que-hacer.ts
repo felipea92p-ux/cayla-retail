@@ -1,5 +1,6 @@
 import { lineasEnUrl, MAX_VARIANTES_EN_URL } from "./existencias-prendas";
 import { TENDENCIA_MIN_UNIDADES, TENDENCIA_UMBRAL_PCT } from "./inventario-reglas";
+import { clavePrendaDe } from "./prenda-clave";
 import { variacionPct } from "./resumen-comparacion";
 import type { AnalisisDesempeno, DireccionTendencia } from "./resumen-desempeno";
 import { lecturaDesempeno, type Lectura } from "./resumen-lectura";
@@ -116,8 +117,9 @@ export type PrendaAnalisis = {
 
 export type MitadesPrenda = { dividido: boolean; diasPrimera: number; diasSegunda: number };
 
+/** La prenda (modelo+color) de una talla: la misma clave que usa Frescura (`prenda-clave.ts`). */
 export function clavePrenda(x: AnalisisDesempeno): string {
-  return `${x.fila.productoId}|${x.fila.colorCodigo ?? x.fila.color ?? ""}`;
+  return clavePrendaDe(x.fila.productoId, x.fila.colorCodigo, x.fila.color);
 }
 
 const netas = (d: { ventas: number; devoluciones: number }) => d.ventas - d.devoluciones;
