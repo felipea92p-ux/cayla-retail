@@ -11,6 +11,11 @@
  * QUÉ CUBRE (valores esperados escritos a mano; ventana de 10 minutos salvo que se diga otra cosa)
  *   T0  forma: una sola versión, security definer, plan a medida, anon sin EXECUTE y authenticated con EXECUTE; y la
  *       prueba ESTRUCTURAL de ADR-0202: su código llama a `fn_ledger_puntos(` una sola vez y no lee `stock` por su cuenta.
+ *       Desde el paso 2 de Frescura 3c (20260928120100) el cálculo vive en `fn_bajadas_del_piso_nucleo` (interno: nadie
+ *       de afuera lo ejecuta) y `fn_bajadas_del_piso` es su puerta con el candado de líder: la prueba estructural mira
+ *       el núcleo, y la puerta llama al núcleo UNA vez y al libro ninguna.
+ *   T22 la guarda de 20260928120100: con un cuerpo vivo desconocido (un parche en vivo) aborta sin tocar nada; pegada dos
+ *       veces, deja lo mismo.
  *   T1  piso 0, baja 3, vende 1 a los 3 min → 1 tardía.            T2  piso 5, baja 3, vende 2 a los 2 min → 0.
  *   T3a venta a los 10:00 exactos → cuenta.   T3b a los 10:01 → no. Con ventana de 5 minutos, la de 10:00 no cuenta.
  *   T4  bajadas de 2 y 3 y una venta de 5 que necesita las dos → 2 y 3.
@@ -41,7 +46,14 @@
  */
 
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
+const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
+const MIGRACION_NUCLEO = readFileSync(join(RAIZ, "supabase", "migrations", "20260928120100_bajadas_nucleo.sql"), "utf8");
+/** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
+const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
@@ -155,8 +167,18 @@ begin
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
   return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg);
+end $$;
+-- Cualquier SQL (una migración entera, una llamada al núcleo): «ok» o el error, sin cortar el caso.
+create function pg_temp.intento(p_sql text) returns jsonb language plpgsql as $$
+declare v_estado text; v_msg text;
+begin
+  execute p_sql;
+  return jsonb_build_object('ok', true);
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text;
+  return jsonb_build_object('ok', false, 'estado', v_estado, 'msg', v_msg);
 end $$;`;
-const probar = (nombre, args) => `select 'E|${nombre}|' || pg_temp.probar(${args})::text;`;
+const probar =(nombre, args) => `select 'E|${nombre}|' || pg_temp.probar(${args})::text;`;
 
 function parsear(salida) {
   const filas = {};
@@ -219,20 +241,38 @@ select 'C|' || array_to_string(p.proargnames, ',')
   from pg_proc p where p.oid = 'retail.fn_bajadas_del_piso(uuid, timestamptz, timestamptz, integer)'::regprocedure;
 select 'P|' || has_function_privilege('authenticated', 'retail.fn_bajadas_del_piso(uuid, timestamptz, timestamptz, integer)', 'execute')
        || ',' || has_function_privilege('anon', 'retail.fn_bajadas_del_piso(uuid, timestamptz, timestamptz, integer)', 'execute');
--- ADR-0202: cuántas veces llama al libro único y si vuelve a leer el stock por su cuenta (el saldo de partida es del libro).
+-- ADR-0202: cuántas veces llama el NÚCLEO al libro único y si vuelve a leer el stock por su cuenta (el saldo de partida
+-- es del libro). La puerta no toca el libro: le pide todo al núcleo, una vez.
 select 'LEDGER|' || (length(d) - length(replace(d, 'fn_ledger_puntos(', ''))) / length('fn_ledger_puntos(')
        || ',' || (d ~* '\\m(from|join)\\s+(retail\\.)?stock\\M')
+  from (select pg_get_functiondef('retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)'::regprocedure) as d) x;
+select 'PUERTA|' || (length(d) - length(replace(d, 'fn_bajadas_del_piso_nucleo(', ''))) / length('fn_bajadas_del_piso_nucleo(')
+       || ',' || (length(d) - length(replace(d, 'fn_ledger_puntos(', ''))) / length('fn_ledger_puntos(')
   from (select pg_get_functiondef('retail.fn_bajadas_del_piso(uuid, timestamptz, timestamptz, integer)'::regprocedure) as d) x;
+-- El núcleo: uno solo, security definer, y nadie de afuera lo ejecuta (ni authenticated, ni anon, ni public).
+select 'NN|' || count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'fn_bajadas_del_piso_nucleo';
+select 'NF|' || p.prosecdef || ',' || p.provolatile::text
+  from pg_proc p where p.oid = 'retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)'::regprocedure;
+select 'NP|' || has_function_privilege('authenticated', 'retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)', 'execute')
+       || ',' || has_function_privilege('anon', 'retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)', 'execute')
+       || ',' || coalesce((select bool_or(a.grantee = 0) from pg_proc p, aclexplode(p.proacl) a
+                            where p.oid = 'retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)'::regprocedure), false);
 set local role authenticated;
 select 'A|' || count(*) from retail.fn_bajadas_del_piso(:'ubic');
+select 'NA|' || pg_temp.intento(format('select count(*) from retail.fn_bajadas_del_piso_nucleo(%L)', :'ubic'))::text;
 reset role;
 set local role anon;
 ${probar("anon", ":'ubic'")}
 reset role;`,
   ({ errores, otras }) => {
     const [llamadas, leeStock] = (otras.LEDGER ?? "").split(",");
-    afirmar("las entrañas descansan en el libro único: llama a fn_ledger_puntos( UNA sola vez (sin N+1)", llamadas === "1", `LEDGER=${otras.LEDGER}`);
-    afirmar("no lee stock por su cuenta (el saldo de partida sale de fn_ledger_puntos)", leeStock === "false", `LEDGER=${otras.LEDGER}`);
+    afirmar("las entrañas descansan en el libro único: el núcleo llama a fn_ledger_puntos( UNA sola vez (sin N+1)", llamadas === "1", `LEDGER=${otras.LEDGER}`);
+    afirmar("el núcleo no lee stock por su cuenta (el saldo de partida sale de fn_ledger_puntos)", leeStock === "false", `LEDGER=${otras.LEDGER}`);
+    afirmar("la puerta llama al núcleo UNA vez y al libro ninguna (un solo cálculo)", otras.PUERTA === "1,0", `PUERTA=${otras.PUERTA}`);
+    afirmar("hay UN solo núcleo, security definer y stable", otras.NN === "1" && otras.NF === "true,s", `NN=${otras.NN} NF=${otras.NF}`);
+    afirmar("nadie de afuera ejecuta el núcleo: ni authenticated, ni anon, ni public", otras.NP === "false,false,false", `NP=${otras.NP}`);
+    const na = otras.NA ? JSON.parse(otras.NA) : null;
+    afirmar("authenticated llamando al núcleo directo → permission denied (42501)", na?.ok === false && na?.estado === "42501", otras.NA);
     afirmar("hay UNA sola función fn_bajadas_del_piso", otras.N === "1", `N=${otras.N}`);
     const [secdef, volatil, ...resto] = (otras.F ?? "").split(",");
     const config = resto.join(",");
@@ -686,6 +726,32 @@ select pg_temp.mov(:'v', 'salida', 1, :'sp', 'venta', :'t0'::timestamptz + inter
 ${FILAS()}`,
   ({ filas }) => {
     afirmar("cuenta por la hora de la venta: vendidas 1 → 1 tardía", es(filas["ZZ-FRE-T21"]?.[0], { pisoAntes: 0, vendidas: 1, tardias: 1, estado: "tardia" }), ver(filas["ZZ-FRE-T21"]));
+  },
+);
+
+// ---------------------------------------------------------------------------
+const MD5 = (fn) => `(select md5(prosrc) from pg_proc where oid = to_regprocedure('retail.${fn}(uuid, timestamptz, timestamptz, integer)'))`;
+correr(
+  "T22 · la guarda de 20260928120100: un parche en vivo la hace abortar sin tocar nada; pegada dos veces, deja lo mismo",
+  `select ${MD5("fn_bajadas_del_piso")} as puerta_antes, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_antes \\gset
+select pg_temp.intento(${comoLiteral(MIGRACION_NUCLEO)}) ->> 'ok' as p1 \\gset
+select pg_temp.intento(${comoLiteral(MIGRACION_NUCLEO)}) ->> 'ok' as p2 \\gset
+select 'DOS|' || :'p1' || ',' || :'p2' || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_antes') || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo_antes')
+       || ',' || (select count(*) from pg_proc where pronamespace = 'retail'::regnamespace and proname like 'fn_bajadas_del_piso%');
+-- Alguien parcha la puerta en vivo (el mismo contrato, otro cuerpo): la migración tiene que negarse a pisarlo.
+create or replace function retail.fn_bajadas_del_piso(p_ubicacion_id uuid, p_desde timestamptz default null,
+  p_hasta timestamptz default null, p_minutos integer default 10)
+returns table (movimiento_id uuid, bajada_id uuid, variante_id uuid, persona_id uuid, bajada_en timestamptz, cantidad integer,
+  piso_antes integer, vendidas_en_ventana integer, unidades_tardias integer, cerrada boolean, estado text)
+language plpgsql stable security definer set search_path = retail, public, extensions as $f$
+begin /* parche en vivo desconocido */ return; end $f$;
+select ${MD5("fn_bajadas_del_piso")} as parche \\gset
+select pg_temp.intento(${comoLiteral(MIGRACION_NUCLEO)}) as r \\gset
+select 'PARCHE|' || ((:'r')::jsonb ->> 'ok') || ',' || (position('cambió desde que se escribió' in (:'r')::jsonb ->> 'msg') > 0)
+       || ',' || (${MD5("fn_bajadas_del_piso")} = :'parche') || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo_antes');`,
+  ({ otras }) => {
+    afirmar("pegada dos veces: las dos pasan y la puerta y el núcleo quedan iguales (2 funciones)", otras.DOS === "true,true,true,true,2", `DOS=${otras.DOS}`);
+    afirmar("con un parche en vivo aborta («cambió desde que se escribió») y no pisa el parche ni el núcleo", otras.PARCHE === "false,true,true,true", `PARCHE=${otras.PARCHE}`);
   },
 );
 
