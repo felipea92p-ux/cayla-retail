@@ -572,8 +572,9 @@ null, p_minutos integer default 10)`**
   Ejemplo: piso 2; 10:00 se retiran 2 por error; 10:01 se corrigen con «Reponer» 2; 10:05 se vende 1 → `tardia`.
   Pendiente: una prueba en `scripts/pruebas/frescura_bajadas.mjs` que fije el caso, y en el contrato del bloque 3
   descontar de la bajada los retiros de la misma prenda en [t − ventana, t] (o tomar como piso de antes el nivel más
-  alto de esa ventana). *Resuelto (con las dos cosas) en el paso 2 de 3c, `20260928120200`, sin pegar: ver «Paso 2
-  construido (2026-09-27)» al final.*
+  alto de esa ventana). *Resuelto en el paso 2 de 3c, `20260928120200`, sin pegar, con la primera opción (cada retiro
+  se descuenta de una sola bajada y el piso de antes suma lo retirado en [t − ventana, t)); el nivel más alto se
+  descartó porque absorbe las ventas de los minutos previos: ver «Paso 2 construido (2026-09-27)» al final.*
 - **Desde el bloque 2 (hallado en su revisión): un retiro DESPUÉS de una bajada no la corrige.** Si se escanearon 10
   y solo se colgaron 6, y a los 5 minutos se retiran 4 con «Retirar del piso», la bajada sigue con cantidad 10:
   `bajada_piso_items` guarda la cantidad original, ninguna función la corrige, y `fn_bajadas_del_piso` la lee entera
@@ -1228,67 +1229,97 @@ de solo lectura del 2026-09-27; a diferencia del libro en el paso 1, aquí no hu
 migración posterior a la `0300` recrea ni parcha la función. Verificado: los 64 casos de `frescura_bajadas.mjs` iguales
 y, con carga sintética, 0 filas distintas en 20.001 bajadas.
 
-**Parte 2, `20260928120200_bajadas_netear_retiros.sql` (cambio de conducta, lo que pedía (c)).**
-- `piso_antes` = el nivel **más alto** del piso de esa prenda en [t − ventana, t], en el orden del libro (hora, id). Si
-  el nivel justo antes es negativo, `piso_antes` es ese nivel y la fila sigue «dudosa», como antes.
-- `retiradas_en_ventana` (nueva) = lo que pasó del piso al almacén de la misma tienda (el par inverso de la bajada) en
-  [t − ventana, t + ventana], extremos incluidos. `cantidad_efectiva` (nueva) = máx(0, cantidad − retiradas).
+**Parte 2, `20260928120200_bajadas_netear_retiros.sql` (cambio de conducta, lo que pedía (c)).** Para cada bajada (tienda,
+prenda, hora t, cantidad c), con la ventana W (10 minutos por defecto). Un **retiro** es lo que pasó del piso al almacén
+de la misma tienda (el par inverso de la bajada, por estructura); piso → cuarentena no es retiro.
+- `piso_antes` = el nivel del piso **justo antes** de la bajada (como en la `0300`) **+ todo lo retirado** de esa prenda en
+  [t − W, t), aunque ese retiro se descuente de otra bajada: describe lo que estaba colgado antes de que alguien lo
+  retirara. Una venta de los minutos previos no se suma (esa prenda ya no estaba), ni un retiro de la misma hora exacta
+  (en la tienda no pasa: retiro y bajada de la misma prenda nunca van en una transacción). Si el nivel justo antes es
+  negativo, `piso_antes` es ese nivel, sin sumar retiros, y la fila sigue «dudosa».
+- **Cada retiro se descuenta de UNA sola bajada** de la misma prenda: la más cercana en el tiempo, antes o después, a W o
+  menos; si dos quedan a la misma distancia, la de antes del retiro; si aún empatan (dos bajadas en el mismo instante), la
+  de menor id. Un retiro sin bajada a W o menos no se descuenta de ninguna.
+- `retiradas_en_ventana` (nueva) = lo de los retiros que le tocaron. `cantidad_efectiva` (nueva) = máx(0, c − retiradas):
+  lo que sobra de un retiro más grande que su bajada no pasa a otra.
 - `unidades_tardias` se topa por la **efectiva**, no por la cantidad.
 - Estado nuevo **`corregida`** cuando la efectiva es 0. Orden: dudosa → corregida → tardia → en_curso → normal.
 - `es_carga_inicial` (nueva) = una entrada `carga_inicial` de la misma prenda y tienda en el mismo instante: las dos
   puertas de la carga (alta de producto, ADR-0212; Ajustar stock, ADR-0235) escriben la entrada y la bajada en la misma
   transacción, y `created_at` es la hora de inicio de la transacción.
-- El libro se lee desde una ventana antes de `p_desde`, para que la bajada de los primeros minutos del rango vea su piso
-  de antes y el retiro previo.
+- Las bajadas y los retiros se leen desde dos ventanas antes de `p_desde` hasta dos después de `p_hasta` (el libro sigue
+  leyéndose desde `p_desde`): la bajada de los primeros minutos del rango ve sus retiros de antes, y la bajada de fuera del
+  rango que le disputa un retiro también está. La misma bajada da la misma fila con cualquier rango que la incluya (T27).
 - Las tres columnas nuevas van al final. Las dos funciones se recrean con `drop` + `create` (cambia el tipo de fila).
 
-**Casos que cambian** (pruebas de `scripts/pruebas/frescura_bajadas.mjs`; los demás dan lo mismo):
-- **T6** (baja 10, vende 1 a los 2 minutos, baja 3 a los 5): la segunda pasa de `piso_antes` 9 a **10**; tardías igual (0).
+**La regla del piso de antes y de los retiros (corregida el 2026-09-27, antes de pegar)**
+- **DECIDÍ:** piso de antes = nivel justo antes + los retiros de [t − W, t), y cada retiro a una sola bajada (la más
+  cercana; empate, la de antes del retiro).
+- **DESCARTÉ:** la primera versión de la `120200` (nunca pegada): piso de antes = el **nivel más alto de la ventana** y
+  cada retiro descontado de **toda** bajada a W o menos. El nivel más alto absorbe las **ventas** de los minutos previos
+  (T6: la segunda bajada veía un piso de 10 porque 3 minutos antes se había vendido una; en la tienda era 9), así que
+  escondía justo el registro tardío que la marca busca. Y descontar de todas contaba dos veces el mismo retiro: con
+  bajadas de 2 y 3 y un retiro de 2 entre ellas, las efectivas sumaban 1 cuando quedaron 3 colgadas, y el denominador del
+  indicador de confianza (Σ efectiva) salía corto.
+- **SE ROMPE SI** hay varios retiros y re-bajadas de la misma talla dentro de 10 minutos: la más cercana no siempre es la
+  que se corrigió, y la corrección puede quedar en la bajada equivocada (una sale «corregida» y la que de verdad se deshizo,
+  no), aunque el total de cantidades efectivas cuadra. El motivo del retiro del 3b es lo que lo desambigua.
+
+**Casos que cambian respecto de la `0300`** (pruebas de `scripts/pruebas/frescura_bajadas.mjs`; los demás dan lo mismo):
 - **T9** (piso→almacén de 1 a los 10:00 exactos antes de bajar 1): de «normal» con `piso_antes` 1 a **«corregida»**
   (retiradas 1, efectiva 0, `piso_antes` 2).
-- **T14** (historia mezclada): `piso_antes` de 4, 5, 7 a **4, 7, 8**; el retiro de −50 minutos cae a 10 minutos justos
-  de la primera y de la segunda bajada, y se descuenta de las dos (efectivas **2, 1, 1**).
+- **T14** (historia mezclada): `piso_antes` de 4, 5, 7 a **4, 6, 7** (el retiro de −50 minutos cae en [t − 10, t) de la
+  segunda); ese retiro queda a 10 minutos justos de la primera y de la segunda: empate → la de antes del retiro
+  (efectivas **2, 2, 1**).
 - **El ejemplo de (c)** (piso 2; se retiran 2; al minuto se reponen 2; a los 5 se vende 1): de «tardia» con 1 tardía a
   **«corregida»** sin tardías (T24).
-- Casos nuevos: T24 (el ejemplo), T25 (10 escaneadas y 4 retiradas → efectiva 6; el tope por la efectiva; el doble
-  descuento), T26 (carga inicial), T27 (borde del rango), T28 (la misma hora exacta), T22 y T23 (las dos guardas).
 
-**En producción hoy** (ensayo de solo lectura del 2026-09-27: el cuerpo de la parte 2 como un `select`, sin crear
-nada): Tienda TRU tiene 40 bajadas y **ningún retiro**, así que ninguna fila cambia de `piso_antes`, estado ni tardías;
-**15 de las 15 bajadas de la carga inicial del 26-sep (95 unidades) salen con `es_carga_inicial`**, y ninguna otra.
-AQP, LIM y el Taller no tienen bajadas.
+**Casos que la regla corregida cambió respecto de la primera `120200`:** T6 (`piso_antes` vuelve a 9, como en la `0300`;
+tardías igual), T14 (`piso_antes` 4, 7, 8 → 4, 6, 7; efectivas 2, 1, 1 → 2, 2, 1), T25 «doble» (bajadas de 2 y 3, retiro
+de 2 a 3 y 1 minuto: efectivas 0 y 1 → **2 y 1**; la primera pasa de «corregida» a «tardia» con 2 tardías, porque se
+vendieron 3 con el piso vacío) y T28 (la venta de la misma hora ANTES de la bajada ya no sube el piso de antes: 2 → 0,
+«normal» → «tardia», como en la `0300`). Casos nuevos de la regla: T24 ampliado (una bajada 5 minutos antes del retiro
+conserva sus 2 y el retiro va a la re-bajada, a 1 minuto: Σ efectivas 2), T29 (empate a 4 y 4 minutos → la de antes, Σ 3;
+retiro de 5 sobre una bajada de 2 → efectiva 0 y la siguiente conserva sus 3; retiros a 11 minutos → ni se descuentan ni
+suman; «dudosa» con un retiro en la ventana → −2, no −1; dos bajadas en el mismo instante → el retiro va a la de menor
+id), T26 (dos entradas de carga en el mismo instante no duplican la bajada), T27 (la disputa con una bajada de fuera del
+rango) y T28 (un retiro de la misma hora no suma al piso de antes pero se descuenta). 104 verificaciones.
+
+**En producción hoy** (ensayo de solo lectura del 2026-09-27: el cuerpo final como un `select` sobre Tienda TRU, sin
+crear nada): 40 bajadas (199 unidades) y **ningún retiro**, así que ninguna fila cambia de `piso_antes`, estado ni
+tardías; **15 de las 15 bajadas de la carga inicial del 26-sep (95 unidades) salen con `es_carga_inicial`**, y ninguna
+otra. AQP, LIM y el Taller no tienen bajadas.
 
 **Límites** (fijados en las pruebas):
 - Un retiro legítimo de la misma prenda dentro de la ventana también se descuenta: no se distingue hasta el motivo del
   retiro del 3b.
-- Un retiro que cae en la ventana de **dos** bajadas de la misma prenda se descuenta de las dos (T25): con 2 + 3
-  bajadas y 2 retiradas, las efectivas suman 1 y no 3.
-- Tomar el nivel más alto también absorbe una **venta** de los 10 minutos anteriores (T6): si se vendió la última a las
-  9:58 y se bajó otra a las 10:00, una venta a las 10:03 ya no marca tardía. En la tienda eso suele ser «la traje del
-  almacén» (a pedido), que el 3b separa; el costo es no ver el registro tardío de una prenda que ya estaba colgada
-  cuando justo antes se vendió otra igual.
+- Con varios retiros y re-bajadas de la misma talla en 10 minutos, la corrección puede ir a la bajada equivocada (el
+  «SE ROMPE SI» de arriba).
 - La carga inicial se reconoce por el instante exacto: registrada en dos transacciones (carga y, aparte, su bajada), no
   se marca.
 
-**La decisión estructural: cómo se calcula el nivel más alto y los retiros**
-- **DECIDÍ:** funciones de ventana sobre los puntos del libro (`fn_ledger_puntos`), ordenados una sola vez por prenda y
-  hora: el máximo de [t − ventana, t) más los puntos de la misma hora hasta la bajada por id, y la suma de retiros en
-  [t − ventana, t + ventana]. La carga inicial, con un `in` contra las entradas acotadas al rango.
-- **DESCARTÉ:** los joins por rango de tiempo (la bajada contra los puntos de su ventana, y contra los retiros), que era
-  la forma directa de escribirlo: el planificador no sabe cuántas filas trae el libro y cruza todo con todo. Medido con
-  20.001 bajadas: 48 s el autojoin del piso y 6 s el join con 4.000 retiros, contra 0,36-0,39 s así.
-- **SE ROMPE SI** el libro deja de dar un punto de piso por movimiento con su `oid` (la bajada y el retiro dejan de
-  verse), o si «Retirar del piso» empieza a devolver a otra sububicación que no sea el almacén de la tienda (el retiro
-  dejaría de descontarse sin aviso).
+**La decisión estructural: cómo se calcula**
+- **DECIDÍ:** cruzar los retiros con las bajadas de su prenda a W o menos (un cruce por igualdad de prenda con filtro de
+  hora: los retiros son pocos), elegir la bajada de cada retiro con un `distinct on`, sumar lo retirado antes de cada
+  bajada, y juntar todo eso con las bajadas **antes** de cruzarlas con el libro. La carga inicial, con un cruce por prenda
+  e instante contra las entradas `carga_inicial` agrupadas.
+- **DESCARTÉ:** funciones de ventana sobre todos los traslados o todos los puntos del libro (una primera versión de la
+  regla corregida): mismas filas, pero 420-450 ms con 4.000 retiros, porque cada ventana recorre las 24.000 filas. Y los
+  cruces hechos DESPUÉS de juntar las bajadas con el libro: el planificador estima los puntos del libro en UNA fila, y un
+  cruce posterior con un conjunto grande se fue fila por fila (22 s en una prueba).
+- **SE ROMPE SI** el libro deja de dar un punto de piso por movimiento con su `oid` (la bajada deja de verse), si «Retirar
+  del piso» empieza a devolver a otra sububicación que no sea el almacén de la tienda (el retiro dejaría de descontarse
+  sin aviso), o si una prenda llega a tener miles de retiros y miles de bajadas en el mismo rango (el cruce por prenda
+  compara cada retiro con todas sus bajadas del rango antes de filtrar por hora).
 
 **Cuánto cuesta** (Postgres 17 desechable, con el libro del paso 1; una tienda, 2.000 prendas, 20.001 bajadas y 10.001
-ventas, a 120 días; mediana de 11 corridas intercaladas): de 304 ms (parte 1) a 358 ms (+18 %); con 4.000 retiros, de
-328 a 392 ms (+19 %).
+ventas, a 120 días; mediana de 9 corridas intercaladas): de 301 ms (parte 1) a **315 ms (+5 %)**; con 4.001 retiros, de
+327 a **355 ms (+9 %)**. La primera versión (el nivel más alto) costaba 365 y 393 ms.
 
 **Cómo se verifica después de pegar** (solo lectura):
 `select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and proname like 'fn_bajadas_del_piso%';`
 da dos filas: la puerta `34a7e0cc5f421333761e8bda92a582eb` (mide lo mismo tras la parte 1 y tras la 2: solo cambian
-sus columnas) y el núcleo `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la parte 1 y `20cc705b39b5015bff03e42d93d82b09` tras
+sus columnas) y el núcleo `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la parte 1 y `94d587570d8db50cf69c9b6bd982a01e` tras
 la 2. Y la consulta de (e) devuelve las columnas `retiradas_en_ventana`, `cantidad_efectiva` y `es_carga_inicial`.
 
 **Lo que hereda el paso 3:** el indicador de confianza (`fn_confianza_registro`) divide por Σ `cantidad_efectiva`, no por

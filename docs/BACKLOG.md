@@ -972,12 +972,15 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     - [x] **Paso 2 · Núcleo de bajadas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
       `claude/frescura-3c-bajadas`). `fn_bajadas_del_piso` pasa a envolver un núcleo interno
       (`fn_bajadas_del_piso_nucleo`, mismo candado de líder) y el núcleo descuenta los retiros de la misma talla
-      (`retiradas_en_ventana`, `cantidad_efectiva`, estado `corregida`), toma como piso de antes el nivel más alto de
-      la ventana y marca la carga inicial (`es_carga_inicial`). Casos que cambian: T6, T9, T14 y el ejemplo de ADR-0208
-      (c). Prueba: `pnpm pruebas:frescura-bajadas` (90). Detalle: ADR-0208, «Paso 2 construido (2026-09-27)».
+      (`retiradas_en_ventana`, `cantidad_efectiva`, estado `corregida`): cada retiro va a UNA sola bajada (la más
+      cercana a 10 minutos o menos; empate, la de antes del retiro), el piso de antes es el nivel justo antes más lo
+      retirado en los 10 minutos previos, y marca la carga inicial (`es_carga_inicial`). Regla corregida el 2026-09-27
+      antes de pegar: la primera versión tomaba el nivel más alto de la ventana (absorbía ventas) y descontaba un retiro
+      de dos bajadas. Casos que cambian respecto de producción: T9, T14 y el ejemplo de ADR-0208 (c). Prueba:
+      `pnpm pruebas:frescura-bajadas` (104). Detalle: ADR-0208, «Paso 2 construido (2026-09-27)».
       - [ ] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (cada una sola; a cualquier hora;
         solo funciones). Después, `md5(prosrc)`: puerta `34a7e0cc5f421333761e8bda92a582eb`; núcleo
-        `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `20cc705b39b5015bff03e42d93d82b09` tras la segunda. Si el
+        `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `94d587570d8db50cf69c9b6bd982a01e` tras la segunda. Si el
         cuerpo vivo cambió, la guarda aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
         (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
   - [ ] **Aparte:** módulo «Ajustar stock» separado de Existencias (PR de roles; nace solo para el líder).
