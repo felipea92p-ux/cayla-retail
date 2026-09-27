@@ -306,24 +306,12 @@ export function ElegirMarcaProveedor({
     );
   }
 
-  // ---------- nada elegido: sugerencias + búsqueda ----------
+  // ---------- nada elegido: búsqueda + sugerencias ----------
+  // La caja de búsqueda va primero (es lo que se usa siempre) y las sugeridas debajo,
+  // como atajo — no al revés (pedido de Felipe, 2026-09-27: la caja competía por atención
+  // con los chips aunque fuera la acción más usada).
   return (
     <div className="space-y-4">
-      {sugeridas.length > 0 && (
-        <div className="space-y-1.5">
-          <p className="label-cayla text-[11px] text-tinta/60">{categoriaNombre ? `Lo más usado en ${categoriaNombre}` : "Lo más usado"}</p>
-          <div className="flex flex-wrap gap-1.5">
-            {sugeridas.map((s) => (
-              <ChipOpcion key={`${s.marca.id}|${s.proveedor.id}`} elegido={false} onClick={() => onElegir(s.marca.id, s.proveedor.id)}>
-                {s.marca.nombre}
-                <span className="text-tinta/45">·</span>
-                <span className="text-tinta/70">{s.proveedor.nombre}</span>
-              </ChipOpcion>
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center gap-2">
         <ComboBuscable
           id="buscar-marca"
@@ -343,6 +331,21 @@ export function ElegirMarcaProveedor({
           </button>
         )}
       </div>
+
+      {sugeridas.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="label-cayla text-[11px] text-tinta/60">{categoriaNombre ? `Lo más usado en ${categoriaNombre}` : "Lo más usado"}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {sugeridas.map((s) => (
+              <ChipOpcion key={`${s.marca.id}|${s.proveedor.id}`} elegido={false} onClick={() => onElegir(s.marca.id, s.proveedor.id)}>
+                {s.marca.nombre}
+                <span className="text-tinta/45">·</span>
+                <span className="text-tinta/70">{s.proveedor.nombre}</span>
+              </ChipOpcion>
+            ))}
+          </div>
+        </div>
+      )}
 
       {puedeCrear ? (
         <a href="/productos/marcas" target="_blank" rel="noreferrer" className="label-cayla inline-block text-[11px] text-tinta/50 underline underline-offset-4 hover:text-rojo">
