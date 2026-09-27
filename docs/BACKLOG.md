@@ -75,6 +75,20 @@ Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-cat
   - **#5:** Editar «Tops» → tallas «XS S M L XL XXL … Estándar».
   - **#6:** Editar «Camisas y Blusas» → el prefijo sale gris, con «Fijo: N productos lo usan» (N ≥ 5: cuenta también los descontinuados).
 
+## 🧭 Análisis conectado: «Qué hacer», por prenda y celular (2026-09-26, ADR-0245) + Pedir a otra sede (ADR-0242 tanda 4) — web + migración `20260927210000` **SIN PEGAR en producción (pide OK de Felipe)**; rama `claude/analysis-screen-redesign-8ce079`
+Spike `docs/maquetas/analisis-conectado-2026-09/` (lo elegido marcado ✓).
+- [x] Cifras en palabras de tienda (2 × 2 en celular); «Qué hacer» con 4 grupos + «Pidieron y no había»; gráficos plegados.
+- [x] Tabla por prenda con «Por talla» a un toque (`?ver=talla`); cada fila con su botón (`accionPrincipal`, `lib/analisis-que-hacer.ts`).
+- [x] Detalle de la prenda, marcar varias (Bajar / Trasladar / Etiquetas), «Escanear prenda» en el celular.
+- [x] Defectos: barra de scroll de las pestañas, columnas montadas en «Por talla», aviso de Comparar cuando A es anterior al historial.
+- [x] «Pedir a otra sede» para todas (ADR-0242 D-7): migración + `PedidosEntreSedes` («Te piden / Pediste») en Traslados + `PedirAOtraSedeModal`.
+- [ ] **Pegar `20260927210000_pedir_a_otra_sede.sql` en producción** (una parte; sin políticas ni `drop trigger`) → fusionar → publicar → refrescar volcado y `pnpm datos:comparar`.
+- [ ] Verlo con una cuenta real (líder e integrante) y datos de TRU; la cámara en un teléfono.
+- [ ] «Reponer» con la lista cargada: `/compras/nueva` y `/produccion/ordenes` no leen `?variantes=` (hoy el botón abre la pantalla vacía).
+- [ ] «Pedir a otra sede» con la migración sin pegar muestra el error crudo de la base: un mensaje amable si falta la función.
+- [ ] `lib/resumen-acciones.ts` (`resolverAccion`) sigue sin uso: lo reemplazó `analisis-que-hacer.ts`. Borrarlo con sus pruebas en un PR aparte.
+- Cómo verificas: en `/inventario/resumen` de TRU, toca «Se agotaron» → la tabla muestra solo esas prendas y cada una trae Bajar al piso / Pedir a… / Reponer; marca dos → la barra lleva a `/inventario/bajar?lineas=…:1`; a 375 px, «Escanear prenda» abajo y tarjetas sin scroll lateral.
+
 ## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
 Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
 - [x] Campo «Etiquetas» en el paso 2 (`ElegirEtiquetas.tsx`): buscar, elegir varias con chips y ✕, Retroceso quita la última, «+ Crear «X»» con el combo Responsable. Fila «Etiquetas» en la ficha de la derecha y en la línea del paso 2 plegado. Quita el enlace escondido del paso 4.
@@ -109,7 +123,7 @@ Tareas #9, #10 y #11 del análisis `/pantalla` de Existencias.
 - [x] **#9.** «Pedir para una clienta» en «Dónde más hay». Usa el pedido para apartar de ADR-0233, el mismo modal de Apartados.
 - [x] **#10.** «Tallas» en vez de «variantes». La tarjeta distingue lo que pide reponer de lo que está por colgar.
 - [x] **#11.** Permisos del detalle, marcas, bajada con borrador y código repetido, con pruebas. Se arreglaron dos defectos: lo marcado se perdía con una bajada a medias, y un código repetido abría la primera prenda.
-- [ ] **Traslados, tanda 4 (ADR-0242 D-7):** pedir reposición SIN clienta. Necesita migración y la lista «Hoy te toca» (tanda 2). No se hizo aquí.
+- [x] **Traslados, tanda 4 (ADR-0242 D-7):** pedir reposición SIN clienta — construida en `claude/analysis-screen-redesign-8ce079` (ver «Análisis conectado» arriba; migración `20260927210000` sin pegar).
 - Cómo verificas: Existencias → una prenda → toca una talla que haya en otra tienda → «Pedir para una clienta» abre «Pedir a Tienda X para apartar».
 
 ## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
@@ -297,7 +311,7 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
 - [x] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, PR #515): Felipe eligió «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en `/inventario/traslados/nuevo` (ADR-0242).
 - [ ] ADR-0242 tanda 1: Nuevo traslado (ruta nueva + redirección de `/inventario/mover`, escaneo y búsqueda con foto, destino en botones, llegada por día, «Volver» según el origen). Sin migración.
-- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: «Pedir a otra sede» (extiende `separacion_pedidos`, clienta opcional; **migración con OK de Felipe**, diseñar el agrupado antes). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
+- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: **construida** en `claude/analysis-screen-redesign-8ce079` (ADR-0242 «Tanda 4 construida»; migración `20260927210000` sin pegar). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
 
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 

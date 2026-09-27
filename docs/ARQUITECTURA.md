@@ -270,7 +270,10 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `DetallePrendaExistencias.tsx`, y lo marcado se lleva con la lista cargada a `/inventario/bajar?lineas=`,
   `/inventario/mover?lineas=` y `/etiquetas-de-precio?producto=|?variantes=`. Cabecera: accesos a `/recibir`,
   `/inventario/conteo` y `/vender/apartados` según módulo. Celular: «Escanear prenda» (`EscanerBusqueda`).
-- `/inventario/traslados` → `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
+- `/inventario/traslados` → además (ADR-0242 tanda 4) `lib/pedidos-entre-sedes.ts` (`getPedidosEntreSedes` = RPC
+  `fn_pedidos_entre_sedes`, tolerante a que no exista) → `PedidosEntreSedes.tsx` («Te piden»: RPC
+  `enviar_pedido_a_otra_sede` / `cancelar_pedido_a_otra_sede`; «Pediste»), reglas en `lib/pedidos-entre-sedes-reglas.ts`.
+  Lo de siempre: `lib/traslados.ts` (`getTrasladosDeLaSede`: en curso + últimos 30
   cerrados + miniaturas con UNA consulta de fotos, tolerante a fallo; `numero`; `colores` de `colores.hex`
   para la muestra sin foto; los traslados SIN prendas se apartan con `separarVacios` y se cuentan en
   `vacios`, ADR-0172) →
@@ -319,9 +322,15 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   `metricasDePeriodo`, `calcularSellThrough` y `calcularTendencia`; desde el 2026-09-22 también las cifras y los
   gráficos del período: `calcularKpisDesempeno`, `contarTendencias`, `rankingRotacionDesempeno`,
   `distribucionDesempeno`, sobre el alcance) → `ResumenDesempenoPanel` con `ResumenControles` (una barra: período ·
-  categoría, búsqueda debajo), `ResumenDesempenoGeneral` (4 cifras + dona de tendencia + top rotación + distribución
-  de sell-through) y `ResumenComportamiento` (tabla «Comportamiento del inventario» con la banda de sell-through en
-  su cabecera y la columna «Lectura del período», orden por defecto «Más vendidos», 15 filas). ADR-0171.
+  categoría, búsqueda debajo) y, desde ADR-0245 (Análisis conectado, 2026-09-26): `AnalisisCifras` (Vendido · Vendió
+  de lo colgado · Piden algo hoy · Quieto sin vender), `AnalisisGrupos` («Qué hacer»: `?grupo=agotada|duerme|estancada|
+  top|sinbase` + tarjeta a `/pedidos-no-atendidos`), `AnalisisGraficos` (plegados) y la tabla: `AnalisisPrendas` (por
+  prenda, lo inicial; detalle `DetallePrendaAnalisis`, marcar varias, «Escanear prenda») o, con `?ver=talla`,
+  `ResumenComportamiento` (la tabla por talla de siempre, con su botón bajo la lectura). Grupos, prendas y acciones:
+  `lib/analisis-que-hacer.ts` (puro; `armarDesempeno` lo llama). La red por variante (otras tiendas, abastecimiento)
+  sale de `fn_resumen_variantes_json` vía `getFilasRecientesDeSede`, tolerante a fallo. Los botones llevan a
+  `/inventario/bajar?lineas=`, `/inventario/mover?lineas=`, `/etiquetas-de-precio?variantes=`, `/produccion/ordenes`,
+  `/compras/nueva`, o abren `PedirAOtraSedeModal` → RPC `pedir_a_otra_sede` (ADR-0242 D-7). ADR-0171, ADR-0245.
   · **Comparar períodos** (rediseño visual 2026-09-19) → `getComparacionInventario` = la misma RPC con A y B
   elegidos → `lib/resumen-comparacion.ts:armarComparacion` → `ResumenComparacionPanel`: contexto en dos
   píldoras «Período A: desde … hasta …» y «Período B: …» (`ResumenControles`, diseño de Figma 2026-09-21; cada una

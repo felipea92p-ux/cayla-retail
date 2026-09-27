@@ -5,6 +5,10 @@ import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { Encabezado, fila, TABLA } from "@/components/ui/Tabla";
 import type { CambiosUrl } from "@/components/useResumenUrl";
 import { LecturaCelda } from "@/components/ResumenCifras";
+import { BarraTablaAnalisis } from "@/components/AnalisisPrendas";
+import { BotonAccion, type PedidoAbierto } from "@/components/AnalisisAcciones";
+import { ID_TABLA_ANALISIS } from "@/components/AnalisisQueHacer";
+import { accionPrincipal, agruparPrendas, type AccesoAnalisis, type GrupoQueHacer, type RedVariante } from "@/lib/analisis-que-hacer";
 import { FILAS_POR_PAGINA, OPCIONES_SELL_THROUGH } from "@/lib/resumen-filtros";
 import { lecturaDesempeno } from "@/lib/resumen-lectura";
 import { formatoRotacion, formatoSellThroughExposicion, formatoVariacion, formatoVelocidad, textoCalidad, textoExposicionDias, textoPendienteMadurez, textoSinVenta, textoStockPisoAlmacen, tooltipStockPisoAlmacen } from "@/lib/resumen-formato";
@@ -48,8 +52,11 @@ const NO_DATO = <span className="text-tinta/45">N/D</span>;
 /** Un cero no es información nueva: se apaga para que lo que sí se movió destaque al leer hacia abajo. */
 const tonoCifra = (esCero: boolean) => (esCero ? "text-tinta/40" : "text-tinta");
 
-function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
+function Fila({ x, dias, grupo, red, acceso, onPedir }: { x: AnalisisDesempeno; dias: number; grupo: GrupoQueHacer; red: Readonly<Record<string, RedVariante>>; acceso: AccesoAnalisis; onPedir: (a: PedidoAbierto) => void }) {
   const f = x.fila;
+  const lectura = lecturaDesempeno(x, dias);
+  // La acción de la talla es la misma regla que la de su prenda (`accionPrincipal`), sobre una prenda de una sola talla.
+  const accion = accionPrincipal(agruparPrendas([{ x, lectura, grupo }], { dividido: false, diasPrimera: 0, diasSegunda: 0 })[0]!, grupo, red, acceso);
   const t = x.tendencia;
   const st = x.sellThroughExposicion;
   const rotPiso = x.periodo.rotacionPisoUnidades;
@@ -57,7 +64,8 @@ function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
   const pendiente = textoPendienteMadurez(st.pendienteMadurez);
   return (
     <div role="row" className={fila(PLANTILLA)}>
-      <span role="cell" className="min-w-0">
+      {/* `overflow-hidden` (2026-09-26): un SKU largo se montaba sobre «Stock actual». */}
+      <span role="cell" className="min-w-0 overflow-hidden">
         {/* La fila de Análisis no trae foto: la miniatura es el marcador de perchero, como antes. */}
         <ProductoVarianteCelda
           referencia={f.referencia}
@@ -131,7 +139,8 @@ function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
         {rotTotal.calculable ? formatoRotacion(rotTotal.veces) : NO_DATO}
       </span>
 
-      <span role="cell" className="min-w-0 whitespace-nowrap text-center text-sm text-tinta" title="Tiempo EXPUESTO en piso sin una venta (no días de calendario): el tiempo en almacén no cuenta">
+      {/* Sin `whitespace-nowrap` (2026-09-26): «Nunca vendió (1 día expuesto)» se montaba sobre Tendencia. */}
+      <span role="cell" className="min-w-0 text-center text-sm leading-tight text-tinta" title="Tiempo EXPUESTO en piso sin una venta (no días de calendario): el tiempo en almacén no cuenta">
         {textoSinVenta({ ultimaVentaEn: f.ultimaVentaEn, pisoExpuestoDesdeUltimaVentaDias: f.pisoExpuestoDesdeUltimaVentaDias })}
       </span>
 
@@ -146,31 +155,44 @@ function Fila({ x, dias }: { x: AnalisisDesempeno; dias: number }) {
         )}
       </span>
 
-      <LecturaCelda lectura={lecturaDesempeno(x, dias)} />
+      <span role="cell" className="flex min-w-0 flex-col items-start gap-1.5">
+        <LecturaCelda lectura={lectura} />
+        {accion && <BotonAccion accion={accion} onPedir={onPedir} />}
+      </span>
     </div>
   );
 }
 
-export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoParaPantalla; actualizar: (cambios: CambiosUrl, opciones?: { conservarPagina?: boolean }) => void }) {
+export function ResumenComportamiento({
+  datos,
+  acceso,
+  actualizar,
+  onPedir,
+}: {
+  datos: DesempenoParaPantalla;
+  acceso: AccesoAnalisis;
+  actualizar: (cambios: CambiosUrl, opciones?: { conservarPagina?: boolean }) => void;
+  onPedir: (a: PedidoAbierto) => void;
+}) {
   const { tabla, periodo, orden, alcance, sellThrough, tendenciaDisponible } = datos;
-  const hayFiltros = alcance.q !== "" || alcance.categoriaId !== null || sellThrough !== "todos";
+  const hayFiltros = alcance.q !== "" || alcance.categoriaId !== null || sellThrough !== "todos" || datos.grupo !== null;
   // El paginador está al pie: la página nueva se lee desde arriba de la tabla (como Inventario). Sin esto, ir a la
   // última página —más corta— acortaba la pantalla justo bajo el mouse y la vista «se subía sola» (ADR-0185).
   const irA = (pag: number) => {
     actualizar({ pag: pag <= 1 ? null : String(pag) }, { conservarPagina: true });
-    const tabla = document.getElementById("comportamiento-titulo")?.closest("section");
+    const tabla = document.getElementById(ID_TABLA_ANALISIS);
     if (tabla && tabla.getBoundingClientRect().top < 0) tabla.scrollIntoView({ block: "start" });
   };
-  const limpiar = () => actualizar({ q: null, cat: null, st: null });
+  const limpiar = () => actualizar({ q: null, cat: null, st: null, grupo: null });
 
   return (
-    <section className="card-cayla overflow-x-auto" aria-labelledby="comportamiento-titulo">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 px-5 pb-4 pt-5">
+    <section id={ID_TABLA_ANALISIS} className="card-cayla scroll-mt-24" aria-labelledby="comportamiento-titulo">
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3 px-4 pb-3 pt-4 sm:px-5 sm:pt-5">
         <div className="min-w-0">
           <h2 id="comportamiento-titulo" className="scroll-mt-24 font-display text-[1.35rem] leading-tight text-tinta">
             Comportamiento del inventario
           </h2>
-          <p className="mt-0.5 max-w-3xl text-xs text-tinta/65">Productos y variantes según su desempeño durante el período seleccionado.</p>
+          <p className="mt-0.5 max-w-3xl text-xs text-tinta/65">Cada talla con todas sus cifras del período. Para decidir rápido, «Por prenda».</p>
         </div>
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <label className="flex items-center gap-2">
@@ -199,6 +221,7 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
         </label>
         </div>
       </div>
+      <BarraTablaAnalisis datos={datos} actualizar={actualizar} />
 
       {tabla.total === 0 ? (
         <div className={`border-t border-tinta/10 ${TABLA.vacio}`}>
@@ -210,6 +233,8 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
           )}
         </div>
       ) : (
+        // La tabla se desplaza dentro de su tarjeta; la cabecera y los filtros de arriba, no.
+        <div className="overflow-x-auto">
         <div role="table" aria-label="Comportamiento del inventario" className="min-w-[81rem] divide-y divide-tinta/10 border-t border-tinta/10">
           <Encabezado
             siempre
@@ -225,16 +250,17 @@ export function ResumenComportamiento({ datos, actualizar }: { datos: DesempenoP
               { titulo: "Sin venta", subtitulo: "expuesta en piso", alinear: "centro", ayuda: "Tiempo EXPUESTO en piso sin una venta, no días de calendario: el tiempo en almacén no cuenta como «sin venta»" },
               { titulo: "Tendencia", subtitulo: "2.ª vs 1.ª mitad", alinear: "centro", ayuda: "El ritmo OBSERVADO (piso) de la segunda mitad del período contra el de la primera" },
               {
-                titulo: "Lectura del período",
+                titulo: "Lectura y qué hacer",
                 ayuda: "Qué hacer con estas cifras: una frase por reglas fijas, en orden (estimadas, reposición reciente, agotamiento, estancamiento, problema de reposición, cambió el ritmo, sobrestock, saludable, rota lento)",
               },
             ]}
           />
           <div role="rowgroup" className="divide-y divide-tinta/10">
             {tabla.filas.map((x) => (
-              <Fila key={x.fila.varianteId} x={x} dias={periodo.dias} />
+              <Fila key={x.fila.varianteId} x={x} dias={periodo.dias} grupo={datos.gruposTalla[x.fila.varianteId] ?? "otras"} red={datos.red} acceso={acceso} onPedir={onPedir} />
             ))}
           </div>
+        </div>
         </div>
       )}
 

@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { ItemAyuda } from "@/components/ResumenActualizado";
+import type { PedidoAbierto } from "@/components/AnalisisAcciones";
+import { AnalisisPrendas } from "@/components/AnalisisPrendas";
+import { AnalisisCifras, AnalisisGraficos, AnalisisGrupos } from "@/components/AnalisisQueHacer";
+import { PedirAOtraSedeModal } from "@/components/PedirAOtraSedeModal";
 import { ResumenCabecera } from "@/components/ResumenCabecera";
 import { ResumenComportamiento } from "@/components/ResumenComportamiento";
 import { ResumenControles } from "@/components/ResumenControles";
-import { ResumenDesempenoGeneral } from "@/components/ResumenDesempenoGeneral";
 import { ResumenVacio, type SedeParaVer } from "@/components/ResumenVacio";
 import { useResumenUrl } from "@/components/useResumenUrl";
 import { TENDENCIA_MIN_UNIDADES, TENDENCIA_UMBRAL_PCT } from "@/lib/inventario-reglas";
@@ -12,6 +16,7 @@ import { pluralizar } from "@/lib/resumen-formato";
 import { etiquetaRango } from "@/lib/resumen-periodo";
 import { AYUDA_ROTACION, ETIQUETA_ROTACION_VALORIZADA, TEXTO_VALORACION_ROTACION } from "@/lib/rotacion";
 import type { DesempenoParaPantalla } from "@/lib/resumen-desempeno";
+import type { AccesoAnalisis } from "@/lib/analisis-que-hacer";
 
 // Análisis de inventario › Desempeño (ADR-0138): «¿cómo se comportó mi inventario durante el período
 // seleccionado?». Es la mirada HISTÓRICA: no mezcla el stock de hoy —qué hay ahora y cuánto dura, con
@@ -20,10 +25,28 @@ import type { DesempenoParaPantalla } from "@/lib/resumen-desempeno";
 //
 // Rediseño 2026-09-22 (opción A de Felipe): la misma anatomía que Comparar — cuatro cifras, tres gráficos y la
 // tabla —, y si la sede no tiene nada que analizar, un vacío con salidas en vez de una línea de texto.
+//
+// Análisis conectado (ADR-0245, 2026-09-26, lo que Felipe eligió sobre el spike): cuatro cifras en palabras de tienda →
+// «Qué hacer» (grupos de trabajo que filtran la tabla) → los gráficos, plegados → la tabla por PRENDA con «Por talla» a un
+// toque (la de siempre, con su botón). Cada botón lleva a la pantalla que hace el trabajo con la lista cargada, o abre
+// «Pedir a otra sede» (ADR-0242 D-7), que la otra sede envía.
 
-export function ResumenDesempenoPanel({ datos, otrasTiendas }: { datos: DesempenoParaPantalla; otrasTiendas: SedeParaVer[] }) {
+export function ResumenDesempenoPanel({
+  datos,
+  otrasTiendas,
+  acceso,
+  esLider,
+  pedidosNoAtendidos,
+}: {
+  datos: DesempenoParaPantalla;
+  otrasTiendas: SedeParaVer[];
+  acceso: AccesoAnalisis;
+  esLider: boolean;
+  pedidosNoAtendidos: number | null;
+}) {
   const { actualizar, pendiente } = useResumenUrl();
   const { periodo, ubicacion } = datos;
+  const [pidiendo, setPidiendo] = useState<PedidoAbierto | null>(null);
 
   return (
     <div className={`space-y-4 transition-opacity duration-200 ${pendiente ? "opacity-60" : ""}`} aria-busy={pendiente}>
@@ -58,9 +81,21 @@ export function ResumenDesempenoPanel({ datos, otrasTiendas }: { datos: Desempen
           <ResumenControles modo="desempeno" periodo={periodo} alcance={datos.alcance} categorias={datos.categorias} actualizar={actualizar} />
           {/* La entrada (cifras, dona, barras) se reproduce cuando cambia QUÉ se mira —período o alcance—, nunca al
               tocar la banda de sell-through o el orden de la tabla, que no mueven estos números. */}
-          <ResumenDesempenoGeneral key={`${periodo.desde}_${periodo.hasta}_${datos.alcance.categoriaId ?? ""}_${datos.alcance.q}`} datos={datos} actualizar={actualizar} />
-          <ResumenComportamiento datos={datos} actualizar={actualizar} />
+          <div key={`${periodo.desde}_${periodo.hasta}_${datos.alcance.categoriaId ?? ""}_${datos.alcance.q}`} className="space-y-4">
+            <AnalisisCifras datos={datos} esLider={esLider} actualizar={actualizar} />
+            <AnalisisGrupos datos={datos} pedidosNoAtendidos={pedidosNoAtendidos} actualizar={actualizar} />
+            <AnalisisGraficos datos={datos} />
+          </div>
+          {datos.ver === "talla" ? (
+            <ResumenComportamiento datos={datos} acceso={acceso} actualizar={actualizar} onPedir={setPidiendo} />
+          ) : (
+            <AnalisisPrendas datos={datos} acceso={acceso} actualizar={actualizar} onPedir={setPidiendo} />
+          )}
         </>
+      )}
+
+      {pidiendo && (
+        <PedirAOtraSedeModal ubicacionId={ubicacion.id} origen={pidiendo.origen} lineas={pidiendo.lineas} abierto onCerrar={() => setPidiendo(null)} />
       )}
     </div>
   );

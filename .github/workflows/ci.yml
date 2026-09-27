@@ -640,6 +640,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:traslados-recibir-sin-perder-nada
 
+      # Pedir a otra sede (ADR-0242 D-7): la reposición entre tiendas va en la tabla de pedidos de Apartados con la clienta
+      # opcional. Pedir arma un grupo (las prendas repetidas se suman, el token no duplica) y no deja pedir más de lo
+      # disponible, a la misma sede ni sin módulo; enviar arma UN traslado con todo el grupo (el reintento devuelve el
+      # mismo); al llegar queda «recibido» sin apartar nada (parcial: lo que no llegó se cancela); cancelar; y Apartados no
+      # ve la reposición mientras un pedido CON clienta se sigue apartando al llegar. Cada caso termina en ROLLBACK.
+      - name: pruebas:pedir-a-otra-sede
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pedir-a-otra-sede
+
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y
       # el borde del día en Lima. Compara contra una línea base, no contra valores absolutos. Cada caso termina en ROLLBACK.

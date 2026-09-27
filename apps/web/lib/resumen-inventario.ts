@@ -10,6 +10,7 @@ import { hoyEnLima, sumarDias, type Rango } from "@/lib/resumen-periodo";
 import type { ParametrosResumen } from "@/lib/resumen-armado";
 import { armarComparacion, mapearFilaComparacion, rangosDeLaComparacion, type ComparacionParaPantalla, type FilaComparacion, type FilaCrudaComparacion } from "@/lib/resumen-comparacion";
 import { armarDesempeno, mitadesDelDesempeno, type DesempenoParaPantalla } from "@/lib/resumen-desempeno";
+import type { RedVariante } from "@/lib/analisis-que-hacer";
 import { calcularCobertura, velocidadDeFila, type Cobertura, type FilaResumen } from "@/lib/resumen-reglas";
 
 // Análisis de inventario: la parte que LEE de Postgres (ADR-0101, ADR-0121, ADR-0138). Todo lo que
@@ -132,7 +133,30 @@ export async function getComparacionInventario(ubicacion: UbicacionApp, params: 
 export async function getDesempenoInventario(ubicacion: UbicacionApp, params: ParametrosResumen, ahora: Date = new Date()): Promise<DesempenoParaPantalla> {
   const { mitades } = mitadesDelDesempeno(params, ahora);
 
-  const [filas, conteos] = await Promise.all([getFilasComparacion(ubicacion.id, mitades.primera, mitades.segunda), getExactitud(ubicacion.id)]);
+  const [filas, conteos, red] = await Promise.all([
+    getFilasComparacion(ubicacion.id, mitades.primera, mitades.segunda),
+    getExactitud(ubicacion.id),
+    getRedPorVariante(ubicacion.id, ahora),
+  ]);
 
-  return armarDesempeno({ filas, ubicacion: { id: ubicacion.id, nombre: ubicacion.nombre, tipo: ubicacion.tipo }, params, ahora, conteos });
+  return armarDesempeno({ filas, ubicacion: { id: ubicacion.id, nombre: ubicacion.nombre, tipo: ubicacion.tipo }, params, ahora, conteos, red });
+}
+
+/** Qué otras TIENDAS tienen cada variante y cómo se abastece (ADR-0245: «Pedir a otra sede» y «Reponer»). Sale de la
+ *  misma lectura que Existencias (`fn_resumen_variantes_json`, en caché por pedido). Es un dato SECUNDARIO: si falla,
+ *  Análisis sigue entero y solo se pierden esos dos botones (principio 9). */
+async function getRedPorVariante(ubicacionId: string, ahora: Date): Promise<Record<string, RedVariante>> {
+  try {
+    const filas = await getFilasRecientesDeSede(ubicacionId, ahora);
+    const red: Record<string, RedVariante> = {};
+    for (const f of filas) {
+      red[f.varianteId] = {
+        tiendas: f.enRed.filter((o) => o.tipo === "tienda" && o.utilizable > 0).map((o) => ({ id: o.ubicacionId, nombre: o.nombre, libre: o.utilizable })),
+        origen: f.origenAbastecimiento,
+      };
+    }
+    return red;
+  } catch {
+    return {};
+  }
 }

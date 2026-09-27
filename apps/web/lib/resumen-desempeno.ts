@@ -7,6 +7,21 @@ import { costoEsVerificable, rotacionAgregada, type RotacionAgregada } from "./r
 import { diasDelRango, sumarDias, type PeriodoResuelto, type Rango } from "./resumen-periodo";
 import { rangosDelResumen, type ParametrosResumen } from "./resumen-armado";
 import {
+  agruparPrendas,
+  analizarTallas,
+  calcularCifrasAccion,
+  esGrupo,
+  leerOrdenPrendas,
+  ordenarPrendas,
+  prendaEnGrupo,
+  ventasPorTalla,
+  type CifrasAccion,
+  type GrupoQueHacer,
+  type OrdenPrendas,
+  type PrendaAnalisis,
+  type RedVariante,
+} from "./analisis-que-hacer";
+import {
   calidadDeExposicion,
   calidadDeRotacionUnidades,
   calidadDeSellThroughExposicion,
@@ -393,7 +408,28 @@ export type DesempenoParaPantalla = {
   exactitud: EstadoExactitud;
   /** Variantes cuyo historial no cuadra con el stock de hoy (cifras estimadas). */
   estimadas: number;
+  // --- Análisis conectado (ADR-0245) ---
+  /** Cómo se lista la tabla (`?ver=talla`; por prenda es lo inicial). */
+  ver: VistaTabla;
+  /** El grupo de «Qué hacer» elegido (`?grupo=`), que filtra las dos vistas de la tabla. */
+  grupo: GrupoQueHacer | null;
+  ordenPrendas: OrdenPrendas;
+  cifrasAccion: CifrasAccion;
+  /** Una página de prendas (modelo + color), del alcance y del grupo elegido. */
+  prendas: { filas: PrendaAnalisis[]; pagina: number; paginas: number; total: number; totalAlcance: number };
+  /** El grupo de cada variante de la página de la tabla por talla (para su botón y su chip). */
+  gruposTalla: Record<string, GrupoQueHacer>;
+  /** Unidades por talla del alcance (gráfico «Qué tallas salen»). */
+  tallasVendidas: { talla: string; unidades: number }[];
+  /** Las 5 prendas que más vendieron (gráfico «Las que más venden»). */
+  topPrendas: { clave: string; etiqueta: string; unidades: number }[];
+  /** La red de las variantes que se ven en pantalla (qué otras tiendas tienen y cómo se abastece), para «Pedir» y «Reponer». */
+  red: Record<string, RedVariante>;
 };
+
+export type VistaTabla = "prenda" | "talla";
+/** Prendas por página en la vista por prenda (una prenda son varias tallas: menos filas que la vista por talla). */
+export const PRENDAS_POR_PAGINA = 12;
 
 /** Qué dos rangos hay que pedirle a `fn_resumen_comparacion` para el período de la URL. */
 export function mitadesDelDesempeno(params: ParametrosResumen, ahora: Date): { periodo: PeriodoResuelto; mitades: Mitades } {
@@ -407,14 +443,34 @@ export function armarDesempeno(e: {
   params: ParametrosResumen;
   ahora: Date;
   conteos: { exactitud: { porcentaje: number; lineas: number; conteos: number } | null; ultimoCerradoEn: string | null };
+  /** La red por variante (`fn_resumen_variantes_json`); vacía si esa lectura falló: se pierden «Pedir» y «Reponer», nada más. */
+  red?: Readonly<Record<string, RedVariante>>;
 }): DesempenoParaPantalla {
   const { periodo, mitades } = mitadesDelDesempeno(e.params, e.ahora);
   const { alcance, sellThrough, orden, pagina } = leerVistaDesempeno(e.params);
+  const ver: VistaTabla = primero(e.params.ver) === "talla" ? "talla" : "prenda";
+  const grupoUrl = primero(e.params.grupo);
+  const grupo = esGrupo(grupoUrl) ? grupoUrl : null;
+  const ordenPrendas = leerOrdenPrendas(primero(e.params.orden));
 
   const todas = e.filas.map((f) => analizarDesempeno(f, mitades));
   const enAlcance = aplicarAlcance(todas, alcance);
-  const enVista = ordenarDesempeno(filtrarPorSellThrough(enAlcance, sellThrough), orden);
+
+  // «Qué hacer»: la lectura de cada talla decide su grupo; las prendas juntan sus tallas (ADR-0245).
+  const tallas = analizarTallas(enAlcance, periodo.dias);
+  const grupoDe = new Map(tallas.map((t) => [t.x.fila.varianteId, t.grupo]));
+  const prendasTodas = agruparPrendas(tallas, mitades);
+  const prendasEnVista = ordenarPrendas(grupo ? prendasTodas.filter((pr) => prendaEnGrupo(pr, grupo)) : prendasTodas, ordenPrendas, grupo);
+  const pp = paginar(prendasEnVista, pagina, PRENDAS_POR_PAGINA);
+
+  const enGrupo = grupo ? enAlcance.filter((x) => grupoDe.get(x.fila.varianteId) === grupo) : enAlcance;
+  const enVista = ordenarDesempeno(filtrarPorSellThrough(enGrupo, sellThrough), orden);
   const p = paginar(enVista, pagina, FILAS_POR_PAGINA);
+
+  // Solo viaja la red de lo que se ve en la página: la de toda la sede serían miles de filas por nada.
+  const visibles = ver === "prenda" ? pp.items.flatMap((pr) => pr.tallas.map((t) => t.x.fila.varianteId)) : p.items.map((x) => x.fila.varianteId);
+  const red: Record<string, RedVariante> = {};
+  for (const id of visibles) if (e.red?.[id]) red[id] = e.red[id]!;
 
   return {
     ubicacion: e.ubicacion,
@@ -432,5 +488,18 @@ export function armarDesempeno(e: {
     tabla: { filas: p.items, pagina: p.pagina, paginas: p.paginas, total: p.total, totalAlcance: enAlcance.length, totalSede: todas.length },
     exactitud: evaluarExactitud(e.conteos, e.ahora),
     estimadas: enAlcance.filter((x) => !x.fila.ledgerConsistente).length,
+    ver,
+    grupo,
+    ordenPrendas,
+    cifrasAccion: calcularCifrasAccion(tallas, prendasTodas),
+    prendas: { filas: pp.items, pagina: pp.pagina, paginas: pp.paginas, total: pp.total, totalAlcance: prendasTodas.length },
+    gruposTalla: Object.fromEntries(p.items.map((x) => [x.fila.varianteId, grupoDe.get(x.fila.varianteId) ?? "otras"])),
+    tallasVendidas: ventasPorTalla(tallas),
+    topPrendas: [...prendasTodas]
+      .filter((pr) => pr.vendidas > 0)
+      .sort((a, b) => b.vendidas - a.vendidas)
+      .slice(0, 5)
+      .map((pr) => ({ clave: pr.clave, etiqueta: [pr.referencia, pr.color].filter(Boolean).join(" · "), unidades: pr.vendidas })),
+    red,
   };
 }
