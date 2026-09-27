@@ -431,12 +431,35 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:produccion-punta-a-punta
 
+      # Cotización de maquila externa (D-82/D-31, ADR-0156): cargarla es solo del líder (RLS), la vigente es la más
+      # reciente que no venció (nunca la primera), una vencida o sin ninguna da null (nunca un precio inventado),
+      # cualquier sesión la lee (D-80: la tienda ve el mismo costo de referencia que el Taller) y los dos estados
+      # imposibles del esquema (vence antes de empezar, precio negativo) no llegan a existir. Cada caso: ROLLBACK.
+      # Estaba en EXCLUIDAS de `ci-paridad.test.ts` a la espera de confirmarse en un Postgres real (medida en rojo,
+      # 10/11, en el stack donde se escribió): 11/11 en un Postgres 17 desechable con las migraciones y el seed —
+      # cableada el 2026-09-27.
+      - name: pruebas:cotizaciones-maquila
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cotizaciones-maquila
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-movimientos-referencias
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-movimientos-referencias
+
+      # Filtro de búsqueda especial de Movimientos (ADR-0127, migración 20260921153700): nombre + color + talla en
+      # cualquier orden y con plurales, sinónimos de color y singulares, comparado contra los MISMOS casos que la
+      # versión TypeScript (filtro-busqueda-especial.casos.json); texto raro/vacío no revienta y no busca nada;
+      # RLS + permisos de `fn_movimientos_variantes`/sus ayudas; y `fn_movimientos`/`fn_movimientos_resumen` usan
+      # esta misma búsqueda. Complementa a `fn-movimientos-referencias` (esa prueba el número de proceso; esta, la
+      # prenda) — no son la misma prueba. Cada caso: ROLLBACK. Estaba en EXCLUIDAS a la espera de confirmarse en un
+      # Postgres real (medida en rojo, 134/146, en el stack donde se escribió): 146/146 en un Postgres 17 desechable
+      # con las migraciones y el seed — cableada el 2026-09-27.
+      - name: pruebas:fn-movimientos-busqueda-especial
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-movimientos-busqueda-especial
 
       # Movimientos leído desde la tienda (ADR-0234): el traslado que llega cuenta en «Entradas» y en «Traslados», una
       # operación es lo guardado de una sola vez sobre un mismo documento (el cambio cuenta una vez; dos ventas en una
