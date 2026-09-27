@@ -150,7 +150,7 @@ export default async function MovimientosPage({ searchParams }: { searchParams: 
             // Los módulos a los que llevan los atajos, preguntados como en cualquier pantalla (`veModulo`, ADR-0161).
             accesos={{
               modulos: MODULOS_DE_ATAJOS.filter((clave) => veModulo(persona, clave)),
-              puedeAjustar: puede(persona, "ajustarInventario"),
+              puedeAjustar: puede(persona, "ajustarStock"),
             }}
             // Las bajadas al piso del día se pliegan solo en «Todos» sin búsqueda (ADR-0241): con la píldora
             // «Piso ↔ almacén» o buscando una prenda, cada una es su fila.

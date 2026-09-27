@@ -12,7 +12,7 @@ import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
-  "existencias", "bajada_piso", "conteos", "traslados", "movimientos",
+  "existencias", "bajada_piso", "ajustar_stock", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
   "facturas_compra", "recibir", "por_pagar", "proveedores", "notas_credito",
   "produccion",
@@ -50,10 +50,17 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
-  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer y retirar del piso, ajustar stock, apartar prendas" },
+  // «Ajustar stock» SALIÓ de este texto el 2026-09-27 (ADR-0247): ahora es su propio módulo, ver más abajo.
+  { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer y retirar del piso, apartar prendas" },
   // Bajada al piso (ADR-0208, 20260926000000): bajar lo del almacén sin darle a nadie todo Existencias. Nace sin rol: solo
   // lo ve el líder. Delegable: `bajar_al_piso` pregunta por este módulo, no por el líder.
   { clave: "bajada_piso", grupo: "Inventario", nombre: "Bajada al piso", incluye: "Bajar al piso las prendas del almacén de su tienda, escaneándolas y confirmando de una vez" },
+  // Ajustar stock (ADR-0247, 20260928110000): SALIÓ de Existencias — antes lo hacía cualquiera con Existencias, Conteos o
+  // Traslados (`fn_puede_ajustar_inventario`), sin que el líder lo hubiera decidido módulo por módulo. Nace sin rol: solo
+  // lo ve el líder. Delegable: `registrar_movimiento` pregunta por este módulo (`fn_puede_ajustar_stock`), no por el líder.
+  // No es una pantalla del lateral (como «Actividad»): se abre desde el botón «Ajustar» de Existencias, Productos y
+  // Movimientos — Roles y accesos lo lista igual, porque lee `MODULOS`, no el menú.
+  { clave: "ajustar_stock", grupo: "Inventario", nombre: "Ajustar stock", incluye: "Corregir la cantidad de una prenda cuando no cuadra con lo que hay en la tienda, sin que sea una venta, un traslado, una recepción ni un conteo" },
   { clave: "conteos", grupo: "Inventario", nombre: "Conteos", incluye: "Iniciar, registrar y cerrar conteos" },
   { clave: "traslados", grupo: "Inventario", nombre: "Traslados", incluye: "Enviar, recibir, cancelar y cerrar con diferencia" },
   { clave: "movimientos", grupo: "Inventario", nombre: "Movimientos", incluye: "Consultar y exportar" },
@@ -161,7 +168,11 @@ export function modulosDeHoy(
  * capacidades de la base (`fn_puede_*()` = líder o `fn_capacidad_por_modulos`), así pantalla y candado dicen lo mismo:
  *  - facturar               ← ve Facturación
  *  - gestionarCaja          ← ve Caja, completo
- *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo
+ *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo (cerrar conteo/traslado con diferencia;
+ *                             sigue así desde antes de ADR-0247, a propósito: no es el botón «Ajustar»)
+ *  - ajustarStock           ← ve Ajustar stock, completo (`fn_puede_ajustar_stock`, ADR-0247): el botón «Ajustar» de
+ *                             Existencias, Productos y Movimientos. Deliberadamente NO se deriva de Existencias,
+ *                             Conteos ni Traslados — es lo que este ADR separó de `ajustarInventario`.
  *  - editarCatalogo         ← ve Productos o Categorías/atributos, completo
  *  - editarCuentasProveedor ← ve Proveedores, completo (`fn_puede_editar_cuentas_proveedor`; desde 20260923140000, P3,
  *                             también dar de alta, editar y archivar proveedores y abrir su ficha: `fn_puede_gestionar_proveedores`)
@@ -186,6 +197,7 @@ export function permisosDeModulos(rol: "lider" | "integrante", modulos: readonly
   if (ve("facturacion")) permisos.push("facturar");
   if (completo("caja")) permisos.push("gestionarCaja");
   if (completo("existencias", "conteos", "traslados")) permisos.push("ajustarInventario");
+  if (completo("ajustar_stock")) permisos.push("ajustarStock");
   if (completo("productos", "atributos")) permisos.push("editarCatalogo");
   if (completo("proveedores")) permisos.push("editarCuentasProveedor");
   if (completo("facturas_compra", "por_pagar", "notas_credito")) permisos.push("verDineroCompras");

@@ -9,9 +9,9 @@
  *   · `cerrar_caja`: Micaela NO cierra ni la caja de su propia tienda (42501 «Solo un líder de equipo puede
  *     cerrar la caja»), ni siquiera averigua si una caja existe; sin sesión tampoco; el líder sí, y el arqueo
  *     (monto_sistema, monto_real, diferencia) da lo mismo que antes;
- *   · `registrar_movimiento`: Micaela NO registra ni una entrada, ni una salida, ni un ajuste en su tienda
- *     (42501 «Solo un líder de equipo puede ajustar stock fuera de una venta») aunque los argumentos sean
- *     válidos y aunque haya stock de sobra — el stock no se mueve ni queda un movimiento suelto; el líder sí,
+ *   · `registrar_movimiento`: Micaela NO registra ni una entrada, ni una salida, ni un ajuste en su tienda (42501;
+ *     el mensaje cambió el 2026-09-27, ADR-0247: «Tu rol no tiene el módulo «Ajustar stock»…») aunque los argumentos
+ *     sean válidos y aunque haya stock de sobra — el stock no se mueve ni queda un movimiento suelto; el líder sí,
  *     y el stock y los movimientos quedan como antes;
  *   · lo demás de las funciones sigue igual: los rechazos de siempre, la firma única, SECURITY DEFINER, el
  *     `search_path` y el permiso de ejecución del rol `authenticated`;
@@ -49,7 +49,9 @@ const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder — opera cualq
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // colaboradora — fija a Tienda Trujillo
 
 const MSG_CAJA = "Solo un líder de equipo puede cerrar la caja";
-const MSG_AJUSTE = "Solo un líder de equipo puede ajustar stock fuera de una venta";
+// Cambió el 2026-09-27 (ADR-0247): el candado de `registrar_movimiento` ya no es «solo el líder o Existencias/Conteos/
+// Traslados» — es «solo el líder o el módulo «Ajustar stock»», con un mensaje que dice a quién pedírselo.
+const MSG_AJUSTE = "Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste";
 
 const EN_SECO = process.argv.includes("--en-seco");
 const SQL_MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260921120000_candado_de_lider_caja_y_ajuste.sql"), "utf8");
@@ -74,10 +76,12 @@ function correr(sql) {
 
 /**
  * Desde los roles por módulo (ADR-0161 B2, decisión B2d de Felipe 2026-09-22) el candado ya no es «solo el líder»: es
- * «el líder O una cuenta cuyo ROL ve Caja / Existencias». Para que esta suite siga probando el CANDADO (que una
- * colaboradora sin ese permiso no consigue nada), cada escenario le da a Micaela, dentro de su transacción, un rol de
- * prueba que solo ve Punto de venta. Los dos casos del final le devuelven el rol Integrante y verifican que AHORA sí
- * puede. En una base sin roles (antes de 20260923030000) este bloque no hace nada y la suite prueba lo de antes.
+ * «el líder O una cuenta cuyo ROL ve Caja» (para cerrar caja) «/ Ajustar stock» (para el ajuste — desde el 2026-09-27,
+ * ADR-0247: ver Existencias, Conteos o Traslados YA NO alcanza; hace falta el módulo «Ajustar stock» aparte). Para que
+ * esta suite siga probando el CANDADO (que una colaboradora sin ese permiso no consigue nada), cada escenario le da a
+ * Micaela, dentro de su transacción, un rol de prueba que solo ve Punto de venta. Los dos casos del final le devuelven
+ * el rol Integrante y verifican que AHORA sí puede. En una base sin roles (antes de 20260923030000) este bloque no
+ * hace nada y la suite prueba lo de antes.
  */
 const ROL_SIN_CAJA_NI_STOCK = `
 do $r$
@@ -90,10 +94,13 @@ begin
   end if;
 end $r$;
 `;
-// Un rol de prueba que VE Caja y Existencias (sin límite): no depende de cómo esté configurado «Integrante» en la base
-// local, que se edita desde la pantalla (así se detectó: un líder le había apagado todos los módulos probando).
-const MICAELA_INTEGRANTE = `insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000002', 'Ve Caja y Existencias (prueba del candado)', 'temporal');
-insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000002', 'caja'), ('44444444-4444-4444-8444-000000000002', 'existencias');
+// Un rol de prueba que VE Caja, Existencias y Ajustar stock (sin límite): no depende de cómo esté configurado
+// «Integrante» en la base local, que se edita desde la pantalla (así se detectó: un líder le había apagado todos los
+// módulos probando). «Ajustar stock» se sumó el 2026-09-27 (ADR-0247): desde entonces, Existencias sola ya no basta
+// para registrar un ajuste — ver el bloque de abajo.
+const MICAELA_INTEGRANTE = `insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000002', 'Ve Caja, Existencias y Ajustar stock (prueba del candado)', 'temporal');
+insert into retail.rol_modulos (rol_id, modulo)
+  values ('44444444-4444-4444-8444-000000000002', 'caja'), ('44444444-4444-4444-8444-000000000002', 'existencias'), ('44444444-4444-4444-8444-000000000002', 'ajustar_stock');
 update retail.colaboradores set rol_id = '44444444-4444-4444-8444-000000000002'
   where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');\n`;
 
@@ -304,7 +311,7 @@ for (const [tipo, cantidad] of [
   ["salida", 2],
 ]) {
   exito(
-    `colaboradora: NO puede registrar un(a) ${tipo} en su tienda — 42501 «Solo un líder de equipo puede ajustar stock fuera de una venta», aunque haya stock y los argumentos sean válidos`,
+    `colaboradora: NO puede registrar un(a) ${tipo} en su tienda — 42501 «${MSG_AJUSTE}», aunque haya stock y los argumentos sean válidos`,
     comoPersona(
       FELIPE,
       `${INTENTO}${BASE}${MOVER("entrada", 10)} as _prep \\gset
@@ -415,14 +422,15 @@ exito(
   comoPersona(
     FELIPE,
     // La puerta de líder es `fn_es_lider()` o, desde ADR-0160 (terminales), su capacidad —«líder o terminal»—:
-    // `fn_puede_gestionar_caja()` en cerrar_caja y `fn_puede_ajustar_inventario()` en registrar_movimiento. Lo que se
-    // prueba es la POSICIÓN de la puerta, no su nombre.
+    // `fn_puede_gestionar_caja()` en cerrar_caja y, desde el 2026-09-27 (ADR-0247), `fn_puede_ajustar_stock()` en
+    // registrar_movimiento (antes `fn_puede_ajustar_inventario()`). Lo que se prueba es la POSICIÓN de la puerta, no
+    // su nombre.
     `select
   g1 > 0 and g1 < strpos(d1, 'select * into v_caja') and g1 < strpos(d1, 'fn_puede_operar_ubicacion'),
   g2 > 0 and g2 < strpos(d2, 'fn_puede_operar_ubicacion') and strpos(d2, 'fn_puede_operar_ubicacion') > 0
 from (select d1, d2,
   coalesce(nullif(strpos(d1, 'fn_es_lider()'), 0), strpos(d1, 'fn_puede_gestionar_caja()')) as g1,
-  coalesce(nullif(strpos(d2, 'fn_es_lider()'), 0), strpos(d2, 'fn_puede_ajustar_inventario()')) as g2
+  coalesce(nullif(strpos(d2, 'fn_es_lider()'), 0), strpos(d2, 'fn_puede_ajustar_stock()')) as g2
 from (select
   (select pg_get_functiondef(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'cerrar_caja') as d1,
   (select pg_get_functiondef(p.oid) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_movimiento') as d2) y) x;
@@ -479,9 +487,23 @@ exito(
   ["t"]
 );
 exito(
-  "colaboradora con un rol que ve Existencias: AHORA registra un ajuste en su tienda (B2d)",
+  "colaboradora con un rol que ve Ajustar stock: AHORA registra un ajuste en su tienda (B2d; ADR-0247 desde 2026-09-27)",
   comoPersona(FELIPE, `${BASE}${CON_HISTORIA}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}${MOVER("ajuste", 1)} is not null as ok;\n`),
   ["t"]
+);
+exito(
+  "colaboradora con un rol que ve SOLO Existencias (sin «Ajustar stock»): NO registra un ajuste (ADR-0247)",
+  comoPersona(
+    FELIPE,
+    `${INTENTO}${BASE}${CON_HISTORIA}insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-000000000003', 'Ve solo Existencias (prueba ADR-0247)', 'temporal');
+insert into retail.rol_modulos (rol_id, modulo) values ('44444444-4444-4444-8444-000000000003', 'existencias');
+update retail.colaboradores set rol_id = '44444444-4444-4444-8444-000000000003' where persona_id = (select id from public.personas where auth_user_id = '${MICAELA}');
+${cambiaA(MICAELA)}select pg_temp.intento(${MOVER_TEXTO("ajuste", 1)}) as r \\gset
+${cambiaA(FELIPE)}select split_part(:'r', '|', 1), split_part(:'r', '|', 2) = '${MSG_AJUSTE}';
+rollback;
+`,
+  ),
+  ["42501", "t"],
 );
 
 function main() {
