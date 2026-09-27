@@ -33,6 +33,11 @@ Por qué así: la #9 NO creó una tabla de solicitudes (lo que proponía el aná
 Felipe se lleva: **escribir la prueba es la forma más barata de encontrar el defecto.** Las dos fallas de hoy no se vieron usando la pantalla; se vieron al escribir qué debía pasar.
 Sin resolver: la reposición sin clienta (Traslados, tanda 4).
 
+## 2026-09-26 (Categorías: los candados pasan a la tabla)
+Revisión de Categorías con Felipe sobre el análisis del 21-09: ninguna de sus 12 tareas se había hecho. Se hizo el lote #2, #4, #5, #6 y parte de #10. Un disparador en `retail.categorias` cumple las tres reglas (prefijo fijo con productos, no desactivar con activos, no activar incompleta o con la familia apagada). Las tallas salen en orden de tienda, el prefijo se ve bloqueado antes de guardar, la huérfana de V1 ya no ofrece «Reactivar» y el ícono de Accesorios dejó de parecer un candado.
+Por qué así: las RPC ya validaban, pero la RLS `for all` y cualquier migración escriben sin pasar por ellas, y así quedó «Blusas». Qué se rompería sin esto: la próxima fusión de categorías repite Blusas, o un clic deja una categoría activa sin código.
+Felipe se lleva: **un candado que vive en la función protege solo a quien entra por esa puerta**; el de la tabla protege a todos, incluida la próxima migración. Sin resolver: pegar la migración en producción antes de fusionar; que un producto no pueda apuntar a una categoría inactiva (toca `productos`).
+
 ## 2026-09-26 (Existencias: la letra chica cumple y las lecturas no tumban — tareas #7 y #8)
 Cinco promesas del detalle ahora se cumplen: etiquetas solo del color que se mira, «Reponer N tallas» abre una talla que se puede bajar, otra sede sin etiquetas ni historial equivocados, «Apartados» sin un número que no coincidía, y un aviso al pasar de 100 tallas. Además, la comparación de 7 días ya no tumba la pantalla, y lo que viene en camino no se corta en 1.000 filas.
 Por qué así: el número de Apartados se quitó en vez de corregirlo, porque la cifra buena ya vive en su pantalla. El fallo de la comparación se probó forzándolo, no suponiéndolo. Qué se rompería sin esto: etiquetas de más en cada impresión, un botón que no lleva a la acción, y una tienda sin ver su stock porque falló un porcentaje.

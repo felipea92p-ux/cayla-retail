@@ -64,6 +64,9 @@ export const AVIARIO = [
       // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
       // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
       "movimientos_internos_intentos",
+      // La marca de reintento de `ajustar_inventario` (ADR-0240): un ajuste reenviado tras un corte no se aplica dos veces.
+      // Misma razón que la de arriba: es parte del movimiento. Asignada en el refresco del 2026-09-26 (noche).
+      "ajustes_inventario_intentos",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },

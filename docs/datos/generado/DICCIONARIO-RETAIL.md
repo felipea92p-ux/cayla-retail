@@ -5,9 +5,9 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-09-26 21:55:14 UTC
-> **Tablas y vistas encontradas:** 134
-> **Funciones en `retail`:** 607 (las firmas, en `funciones-produccion.txt`)
+> **Leído el:** 2026-09-26 23:17:29 UTC
+> **Tablas y vistas encontradas:** 135
+> **Funciones en `retail`:** 612 (las firmas, en `funciones-produccion.txt`)
 >
 > El orden sigue los 14 pájaros de `scripts/datos/aviario.mjs`, la única lista de qué
 > pájaro es cada tabla (el índice está en `AVIARIO.md`). Para entender **por qué**
@@ -429,7 +429,7 @@
 
 ### `producto_fotos`
 
-*7 columnas · ~10 filas · permisos por fila **activos***
+*7 columnas · ~11 filas · permisos por fila **activos***
 
 | Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
 |---|---|---|---|---|
@@ -4263,6 +4263,35 @@
 - `actividad_origen_check` — `CHECK ((origen = ANY (ARRAY['vivo'::text, 'carga_inicial'::text])))`
 
 **De qué depende:** `(modulo) REFERENCES retail.modulos(clave)` · `(persona_id) REFERENCES personas(id)` · `(terminal_id) REFERENCES retail.terminales(id)` · `(ubicacion_destino_id) REFERENCES retail.ubicaciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+
+## Sin módulo asignado
+
+> Estas tablas existen en la base y **no tienen pájaro** en `scripts/datos/aviario.mjs`,
+> y `pnpm datos:aviario` falla mientras sigan acá.
+> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una
+> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.
+
+### `ajustes_inventario_intentos`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `token_cliente` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `huella` | text | **no** | — | — |
+| `resultado` | jsonb | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `ajustes_inventario_intentos_huella_check` — `CHECK ((length(huella) = 32))`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 

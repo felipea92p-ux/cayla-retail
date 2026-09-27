@@ -36,10 +36,15 @@ export function IconoFamilia({ familia, className = "h-6 w-6" }: { familia: Fami
         </svg>
       );
     case "accesorios":
+      // Un bolso con solapa y broche. El anterior (asa alta y angosta sobre un cuerpo casi rectangular) a 16 px se
+      // leía como un CANDADO — en una pantalla que bloquea y desactiva, eso dice «bloqueada». Lo que lo aleja del
+      // candado: cuerpo más ancho abajo que arriba, asa baja y ancha, y la solapa en V con su broche.
       return (
         <svg {...props}>
-          <path d="M8 8V6.5a4 4 0 0 1 8 0V8" />
-          <path d="M5.5 8h13l.9 11a1.5 1.5 0 0 1-1.5 1.6H6.1A1.5 1.5 0 0 1 4.6 19z" />
+          <path d="M8.5 9.5C8.5 6.5 10 5 12 5s3.5 1.5 3.5 4.5" />
+          <path d="M6 9.5h12l2 9.5a1 1 0 0 1-1 1.2H5a1 1 0 0 1-1-1.2z" />
+          <path d="M6 9.5l6 4.5 6-4.5" />
+          <circle cx="12" cy="15.3" r="0.9" />
         </svg>
       );
     case "bisuteria":

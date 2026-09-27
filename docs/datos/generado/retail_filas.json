@@ -1,6 +1,7 @@
 {
  "actividad": 45,
  "activos_fijos": 0,
+ "ajustes_inventario_intentos": 0,
  "apartados": 3,
  "apartados_opciones": 0,
  "bajada_piso_items": 15,
@@ -89,7 +90,7 @@
  "produccion_etapas_historial": 0,
  "produccion_lineas": 0,
  "producciones": 0,
- "producto_fotos": 10,
+ "producto_fotos": 11,
  "productos": 17,
  "proformas": 3,
  "proveedor_creditos": 0,

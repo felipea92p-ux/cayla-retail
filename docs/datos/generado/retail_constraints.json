@@ -115,6 +115,21 @@
   "tabla": "retail.activos_fijos"
  },
  {
+  "conname": "ajustes_inventario_intentos_huella_check",
+  "definicion": "CHECK ((length(huella) = 32))",
+  "tabla": "retail.ajustes_inventario_intentos"
+ },
+ {
+  "conname": "ajustes_inventario_intentos_pkey",
+  "definicion": "PRIMARY KEY (token_cliente)",
+  "tabla": "retail.ajustes_inventario_intentos"
+ },
+ {
+  "conname": "ajustes_inventario_intentos_ubicacion_id_fkey",
+  "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)",
+  "tabla": "retail.ajustes_inventario_intentos"
+ },
+ {
   "conname": "apartados_adelanto_monto_check",
   "definicion": "CHECK (((adelanto_monto IS NULL) OR (adelanto_monto > (0)::numeric)))",
   "tabla": "retail.apartados"

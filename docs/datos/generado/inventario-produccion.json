@@ -1,6 +1,6 @@
 {
-  "leido_en": "2026-09-26T21:55:14.388986+00:00",
-  "funciones_en_produccion": 607,
+  "leido_en": "2026-09-26T23:17:29.750642+00:00",
+  "funciones_en_produccion": 612,
   "tablas": [
     {
       "esquema": "retail",
@@ -560,6 +560,87 @@
           "condicion_escritura": "( SELECT retail.fn_es_lider() AS fn_es_lider)"
         }
       ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "ajustes_inventario_intentos",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "token_cliente",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "ubicacion_id",
+          "orden": 2,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "huella",
+          "orden": 3,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "resultado",
+          "orden": 4,
+          "tipo": "jsonb",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "created_at",
+          "orden": 5,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "ajustes_inventario_intentos_huella_check",
+          "clase": "regla",
+          "definicion": "CHECK ((length(huella) = 32))"
+        },
+        {
+          "nombre": "ajustes_inventario_intentos_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (token_cliente)"
+        },
+        {
+          "nombre": "ajustes_inventario_intentos_ubicacion_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (ubicacion_id) REFERENCES retail.ubicaciones(id)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "ajustes_inventario_intentos_pkey",
+          "definicion": "CREATE UNIQUE INDEX ajustes_inventario_intentos_pkey ON retail.ajustes_inventario_intentos USING btree (token_cliente)"
+        }
+      ],
+      "politicas": [],
       "definicion_vista": null
     },
     {
@@ -15085,7 +15166,7 @@
       "tabla": "producto_fotos",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 10,
+      "filas_estimadas": 11,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
