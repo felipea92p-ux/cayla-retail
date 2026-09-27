@@ -255,7 +255,11 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **Cómo lo verificas tú:** renombra temporalmente `fn_resumen_variantes_json` en la base local. Existencias carga, y la tarjeta dice «sin comparación».
 - **Esfuerzo / dependencias:** S · ninguna.
 
-### #9 · Replantear — ¿Dónde y cómo pide la tienda un traslado? (sección 8)
+### #9 · Replantear — ¿Dónde y cómo pide la tienda un traslado? (sección 8) — ✅ resuelta (2026-09-26)
+- **La decisión ya existía y manda sobre la sección 8:** ADR-0242 D-7 (Traslados conectado). Hay **una sola** tabla de pedidos entre sedes (`separacion_pedidos`, ADR-0233), con la clienta opcional. La «tabla propia de solicitudes» que proponía este análisis quedó **descartada** allí, porque habría dos listas de pedidos.
+- **Hecho aquí, sin migración:** «Dónde más hay» ofrece **«Pedir para una clienta»** junto a cada tienda con stock. Abre el mismo `PedirOtraSedeModal` de Apartados (`pedir_prenda_para_apartar`): la otra tienda la envía y, al llegar, queda apartada sola.
+  - Aparece solo con el módulo «Apartados», en su tienda y entre tiendas (`permisosDelDetalle.pedirAOtraSede`).
+- **Sigue en Traslados (tanda 4 de ADR-0242):** la reposición SIN clienta. Necesita migración y antes la lista «Hoy te toca» de la tienda que envía (tanda 2).
 - **Dónde:** «Dónde más hay la S» del detalle (`DetallePrendaExistencias.tsx:219-240`, sin botón) · `/inventario/mover` (solo el líder elige el origen).
 - **Por qué en este puesto:**
   - Con el #445 se fue «Stock bajo · pedir traslado», y el #500 muestra dónde hay sin dejar pedirlo.
@@ -266,13 +270,20 @@ Relevancia = (2·8 + 8 + 9 + 6) / 5 = **7.8** — Soporte, en el borde de Núcle
 - **SE ROMPE SI:** dos tiendas piden la misma última unidad de AQP en la misma hora. La solicitud no reserva, y la segunda recibe «ya no hay» recién cuando AQP intenta enviar. Por eso la solicitud no debe prometer stock, solo pedirlo.
 - **Esfuerzo / dependencias:** L (tabla nueva + pantalla en Traslados) · decisión de Felipe.
 
-### #10 · Mejorar — Un solo vocabulario y un solo conteo para «lo que falta en el piso»
+### #10 · Mejorar — Un solo vocabulario y un solo conteo para «lo que falta en el piso» — ✅ hecha (2026-09-26)
 - **Dónde:** tarjeta «Reponer a piso hoy · 33 **variantes**» (`InventarioPanel.tsx:664-718`) · chip «Por colgar · 28 **tallas**» · filas «3 tallas por colgar» + «Reponer 3 tallas».
 - **Por qué en este puesto:** «variante» es palabra de sistema; la tienda dice «talla». Y dos cifras vecinas (33 y 28) para casi lo mismo obligan a adivinar cuál manda.
 - **Cómo lo verificas tú:** en toda la pantalla solo aparece «tallas», y la tarjeta y el chip o dicen lo mismo o dicen en una línea en qué se diferencian.
 - **Esfuerzo / dependencias:** S · junto con la #5.
 
-### #11 · Mejorar — Pruebas de lo que el #500 no probó
+### #11 · Mejorar — Pruebas de lo que el #500 no probó — ✅ hecha (2026-09-26)
+- Pruebas nuevas:
+  - `lib/existencias-permisos.ts` (+ prueba): permisos del detalle por módulo y sede, y marcar una prenda.
+  - `unirConIniciales` (bajada con un borrador guardado).
+  - `tallaPorCodigo` con un código repetido.
+- Dos defectos que las pruebas destaparon, arreglados:
+  - Lo marcado se perdía al «Continuar» o «Empezar de nuevo» una bajada a medias.
+  - Un código repetido abría la primera prenda que encontraba.
 - **Dónde:** falta una prueba del panel para:
   - los permisos del detalle por módulo y sede (vigila la #3);
   - la selección con filtros;
@@ -317,9 +328,9 @@ Decide Felipe (tarea #9).
 - [x] `[pantalla:inventario]` #6 Celular: primera prenda en la primera pantalla (ADR-0237 act.) — M
 - [x] `[pantalla:inventario]` #7 Letra chica del detalle (etiquetas por color, otra sede, apartados, >100, «Reponer N») — S
 - [x] `[pantalla:inventario]` #8 Lecturas tolerantes y sin tope silencioso — S
-- [ ] `[pantalla:inventario]` #9 Decidir la solicitud de traslado (sección 8) — L
-- [ ] `[pantalla:inventario]` #10 Un vocabulario («tallas») y un conteo — S
-- [ ] `[pantalla:inventario]` #11 Pruebas del panel (permisos, selección, borrador) — M
+- [x] `[pantalla:inventario]` #9 Pedir para una clienta desde «Dónde más hay»; la reposición sin clienta es ADR-0242 D-7 — S
+- [x] `[pantalla:inventario]` #10 Un vocabulario («tallas») y un conteo — S
+- [x] `[pantalla:inventario]` #11 Pruebas del panel (permisos, selección, borrador) — M
 - [ ] `[pantalla:inventario]` #12 Pendientes chicos (leyenda, Conteo con lista, SQL espejo, prueba PostgREST) — S c/u
 
 ## Inventario de elementos

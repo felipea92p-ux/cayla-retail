@@ -967,7 +967,8 @@ export function PedirOtraSedeModal({
   ubicacion,
   onClose,
 }: {
-  prenda: PrendaApartable;
+  /** Solo lo que el modal usa: así lo abre también Existencias («Dónde más hay», tarea #9), que no tiene la prenda del catálogo. */
+  prenda: Pick<PrendaApartable, "varianteId" | "referencia" | "color" | "talla" | "codigo" | "sku">;
   tienda: { id: string; nombre: string };
   ubicacion: UbicacionApartado;
   onClose: () => void;

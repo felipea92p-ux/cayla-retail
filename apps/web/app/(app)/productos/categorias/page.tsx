@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { CategoriasLista } from "@/components/CategoriasLista";
-import { getEjesPorCategoria } from "@/lib/catalogo-v2";
+import { getEjesPorCategoria, getTemporadasCatalogo } from "@/lib/catalogo-v2";
 import { compararTallas } from "@/lib/tallas";
+import { nombreTemporada } from "@/lib/temporada-reglas";
 import type { Familia } from "@cayla-retail/shared";
 
 // Portado de `trix/catalogo-vocabulario` (V1) tras ADR-0095: familia+prefijo
@@ -19,7 +20,7 @@ export default async function CategoriasPage() {
   // ProveedoresPanel), pero tienen que llegar a la pantalla para poder
   // reactivarlas. Antes de esta pantalla de edición solo se leían las
   // activas porque no había forma de volver de un desactivado.
-  const [res, resFamilias, resTallas, resTejidos, resPatrones, ejesPorCategoria, resProductos] = await Promise.all([
+  const [res, resFamilias, resTallas, resTejidos, resPatrones, ejesPorCategoria, resProductos, temporadas] = await Promise.all([
     supabase
       .from("categorias")
       .select("id, familia, nombre, prefijo, activo, categoria_padre_id, notas")
@@ -43,6 +44,9 @@ export default async function CategoriasPage() {
     // `n_total` (productos de cualquier estado) llega con 20260927200000; antes de pegarla no viene y la pantalla
     // simplemente no bloquea el prefijo por adelantado (la base lo sigue rechazando al guardar).
     (supabase.rpc as unknown as (fn: string) => PromiseLike<{ data: { categoria_id: string; n: number; n_total?: number }[] | null; error: unknown }>)("fn_productos_por_categoria"),
+    // ADR-0246: la temporada por defecto de cada categoría, solo para mostrarla (se elige en Atributos ▸ Temporadas).
+    // Tolerante: sin el SQL de temporadas, la pantalla sigue igual que antes, sin esa línea.
+    getTemporadasCatalogo(),
   ]);
   const filas = exigir(res, "las categorías del catálogo");
   const familias = exigir(resFamilias, "las familias del catálogo");
@@ -107,6 +111,10 @@ export default async function CategoriasPage() {
   const totalCategorias = activas.length;
   const totalSubcategorias = activas.filter((c) => c.categoriaPadreId && idsActivas.has(c.categoriaPadreId)).length;
   const totalProductos = Object.values(productosPorCategoria).reduce((a, b) => a + b, 0);
+  // categoriaId → nombre de su temporada por defecto (ya resuelto: la lista no viaja al navegador). `null` = sin lista.
+  const temporadaPorCategoria = temporadas
+    ? Object.fromEntries(Object.entries(temporadas.porCategoria).map(([id, clave]) => [id, nombreTemporada(temporadas.lista, clave) ?? clave]))
+    : null;
 
   return (
     <div className="space-y-6">
@@ -141,6 +149,7 @@ export default async function CategoriasPage() {
         ejesPorCategoria={ejesPorCategoria}
         productosPorCategoria={productosPorCategoria}
         productosTotalesPorCategoria={productosTotalesPorCategoria}
+        temporadaPorCategoria={temporadaPorCategoria}
       />
     </div>
   );

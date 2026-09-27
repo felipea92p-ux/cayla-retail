@@ -34,8 +34,8 @@ aquí, literalmente cierto y literalmente insuficiente — y "lo reconstruyo des
 te da una base distinta a la real.
 
 Antes de asumir que algo está roto, corre `pnpm datos:comparar` y mira
-`generado/DRIFT.md`: te dice si esa pantalla está rota en las tiendas o solo en tu
-cabeza.
+`generado/DRIFT.md`: te dice si esa llamada tiene respaldo en la foto de producción o solo en tu
+cabeza (mira la fecha de la foto: una función posterior sale como «no está» aunque ya exista).
 
 ---
 

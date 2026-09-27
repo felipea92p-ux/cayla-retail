@@ -97,7 +97,7 @@ declare
   r record; v_n bigint; v_pedidas int; v_malas text := ''; v_patron text;
   -- Lo que este script borra o restaura en el mismo acto, y lo inerte (sin llave) que solo se reporta.
   v_conocidas text[] := array['movimientos', 'venta_items', 'venta_pagos', 'comprobantes', 'ventas', 'productos', 'variantes',
-                              'stock', 'codigos_barras', 'variante_etiquetas', 'producto_fotos', 'actividad',
+                              'stock', 'codigos_barras', 'variante_etiquetas', 'producto_fotos', 'producto_color_temporadas', 'actividad',
                               'historial_producto_cambios'];
 begin
   if (select count(*) from zz_prod) <> 1 then
@@ -128,7 +128,7 @@ begin
       join pg_attribute a on a.attrelid = c.conrelid and a.attnum = c.conkey[1]
      where c.contype = 'f' and n.nspname = 'retail' and array_length(c.conkey, 1) = 1
        and c.confrelid in ('retail.productos'::regclass, 'retail.variantes'::regclass)
-       and cl.relname <> all (array['variantes', 'stock', 'codigos_barras', 'variante_etiquetas', 'producto_fotos', 'movimientos', 'venta_items'])
+       and cl.relname <> all (array['variantes', 'stock', 'codigos_barras', 'variante_etiquetas', 'producto_fotos', 'producto_color_temporadas', 'movimientos', 'venta_items'])
   loop
     execute format('select count(*) from retail.%I where %I in (select id from %s)', r.tabla, r.col,
                    case when r.por_producto then 'zz_prod' else 'zz_var' end) into v_n;
@@ -241,6 +241,7 @@ insert into respaldo_purgas.filas (purga, tabla, fila)
   union all select (select nombre from zz_purga), 'codigos_barras', to_jsonb(t) from codigos_barras t where variante_id in (select id from zz_var)
   union all select (select nombre from zz_purga), 'variante_etiquetas', to_jsonb(t) from variante_etiquetas t where variante_id in (select id from zz_var)
   union all select (select nombre from zz_purga), 'producto_fotos', to_jsonb(t) from producto_fotos t where producto_id in (select id from zz_prod)
+  union all select (select nombre from zz_purga), 'producto_color_temporadas', to_jsonb(t) from producto_color_temporadas t where producto_id in (select id from zz_prod)
   union all select (select nombre from zz_purga), 'stock', to_jsonb(t) from stock t where variante_id in (select id from zz_var)
   union all select (select nombre from zz_purga), 'stock_antes', to_jsonb(t) from zz_restaura t
   union all select (select nombre from zz_purga), 'movimientos', to_jsonb(t) from zz_mov t
@@ -270,6 +271,7 @@ delete from stock where variante_id in (select id from zz_var);
 delete from codigos_barras where variante_id in (select id from zz_var);
 delete from variante_etiquetas where variante_id in (select id from zz_var);
 delete from producto_fotos where producto_id in (select id from zz_prod);
+delete from producto_color_temporadas where producto_id in (select id from zz_prod);
 delete from variantes where id in (select id from zz_var);
 delete from productos where id in (select id from zz_prod);
 

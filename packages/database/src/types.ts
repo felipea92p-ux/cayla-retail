@@ -537,6 +537,7 @@ export type Database = {
           nombre: string
           notas: string | null
           prefijo: string | null
+          temporada: string | null
         }
         Insert: {
           activo?: boolean
@@ -546,6 +547,7 @@ export type Database = {
           nombre: string
           notas?: string | null
           prefijo?: string | null
+          temporada?: string | null
         }
         Update: {
           activo?: boolean
@@ -555,6 +557,7 @@ export type Database = {
           nombre?: string
           notas?: string | null
           prefijo?: string | null
+          temporada?: string | null
         }
         Relationships: [
           {
@@ -5244,6 +5247,56 @@ export type Database = {
         }
         Returns: number
       }
+      asignar_temporada_categoria: {
+        Args: { p_categoria_id: string; p_temporada: string | null }
+        Returns: undefined
+      }
+      asignar_temporadas: {
+        Args: { p_items: Json; p_solo_sin_temporada?: boolean }
+        Returns: number
+      }
+      fijar_fechas_temporada: {
+        Args: { p_fechas: Json }
+        Returns: number
+      }
+      fn_calendario_estaciones: {
+        Args: never
+        Returns: {
+          anio: number
+          editable: boolean
+          en_curso: boolean
+          estacion: string
+          fuente: string
+          hasta: string | null
+          inicio: string
+        }[]
+      }
+      fn_ocurrencia_temporada: {
+        Args: { p_fecha: string; p_temporada: string }
+        Returns: { desde: string; hasta: string | null }[]
+      }
+      fn_temporada_efectiva: {
+        Args: { p_producto_id?: string }
+        Returns: {
+          color_codigo: string | null
+          estado: string
+          origen: string | null
+          producto_id: string
+          temporada: string | null
+        }[]
+      }
+      fn_temporadas: {
+        Args: never
+        Returns: {
+          clave: string
+          es_clasico: boolean
+          estacion_desde: string | null
+          estacion_hasta: string | null
+          mitad: string | null
+          nombre: string
+          orden: number
+        }[]
+      }
       crear_producto_con_stock_inicial: {
         Args: {
           p_al_piso?: boolean
@@ -5256,6 +5309,7 @@ export type Database = {
           p_proveedor_id?: string
           p_referencia: string
           p_tejido_id?: string
+          p_temporada?: string
           p_token?: string
           p_ubicacion_id?: string
           p_variantes: Json

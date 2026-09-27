@@ -167,3 +167,18 @@ propia todavía. Mapear qué categorías ofrecen qué talla/tejido/patrón
 (`categoria_tallas` etc.) tampoco tiene UI — hoy solo lo backfillado desde
 `tallas_sugeridas` existe; agregar una talla nueva a una categoría exige
 SQL directo hasta que exista esa pantalla.
+
+---
+
+## Actualización 2026-09-26 — Etiquetas también exige comentario al aprobar (lo de arriba quedó viejo) y la pantalla lo pide
+
+**Lo que dejó de ser cierto.** Arriba dice que solo Talla exige comentario y que Etiquetas sigue «de un clic». El 2026-09-17 Felipe pidió «exigir motivo siempre» y la migración `20260917230000` puso la exigencia en `fn_etiquetas_estado_trigger` (y solo ahí: Colores, Tejidos y Patrones siguen de un clic; Tallas ya la tenía). La pantalla (`EtiquetasLista.tsx`) nunca se enteró: mandaba `{ id, estado: "aprobado" }` y la base contestaba «Aprobar una etiqueta exige un comentario breve…». **Ninguna propuesta pendiente se podía aprobar desde la pantalla**, y reactivar una rechazada fallaba igual (o «pasaba» heredando el motivo del rechazo como descripción de una etiqueta ya aprobada). Reproducido el 2026-09-26 con las cuentas del seed (Micaela propone, Felipe aprueba) en un Postgres desechable.
+
+**DECIDÍ:** la pantalla pide el comentario —ventana «Aprobar» o «Reactivar», con «Comentario (obligatorio)» y el combo Responsable, igual que Tallas— y lo manda como `notas`. El cuerpo que aprueba lo arma `cuerpoAprobarEtiqueta` (`lib/etiqueta-aprobacion-reglas.ts`): sin comentario no existe. La base no se toca.
+**DESCARTÉ:** que el servidor ponga un comentario por defecto («Aprobada por Felipe») para que aprobar siga siendo de un clic. Ganas: cero fricción. Pagas: el comentario deja de decir para qué sirve la etiqueta y en qué se distingue de las que ya existen —que es lo único que justifica exigirlo— y esa frase se muestra como ayuda junto al nombre. Tampoco quité la exigencia del trigger: es decisión de Felipe y no se cambia sin proponérsela.
+**SE ROMPE SI:** alguien agrega otra pantalla o ruta que pase una etiqueta a `aprobado` sin `notas` (por ejemplo, un «Aprobar todas» en lote): la base la rechaza entera. `pnpm pruebas:etiquetas-aprobar` fija ese contrato (10 casos; con mutación, quitar la exigencia del trigger pone en rojo 3).
+
+**Lo que también quedó dicho con precisión.**
+- **Una etiqueta pendiente no se puede usar.** `crear_producto_con_variantes` solo acepta etiquetas aprobadas y activas, «Prendas» (`etiquetar_variantes`) también, y las listas de la web (alta y editar) solo ofrecen aprobadas. El aviso al proponer decía «ya la puedes usar… no te frena»: era falso; ahora dice que un Líder tiene que aprobarla antes de ponerla en una prenda.
+- **Quién aprueba.** El líder, o un rol con el módulo Etiquetas (solo etiquetas sin descuento: `etiquetas_update`, `fn_puede_tocar_etiqueta`). Sin el módulo, ni con comentario se actualiza la fila.
+- **Quién propone hoy.** Desde `20260923130000`, la etiqueta que crea quien puede editar etiquetas nace aprobada; nace pendiente la de una cuenta sin el módulo, que no llega a esa pestaña. Por pantalla nadie propone ya una etiqueta pendiente; queda la API directa (`POST /api/productos/etiquetas`, abierta a cualquier sesión) y las de antes del 23-sep. **Decisión abierta de Felipe:** si la colaboradora debe poder proponer una etiqueta que falta (por ejemplo desde Nuevo producto, como con tallas, tejidos y patrones), es una pantalla nueva; hoy no existe.
