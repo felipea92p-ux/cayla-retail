@@ -152,3 +152,34 @@ migraciones ya se habían pegado en producción, allí pasó lo mismo hasta que 
 - **Regla que queda:** antes de recrear una función existente copiando un cuerpo, buscar
   `grep -n "reemplazar_vivo('retail.<función>" supabase/migrations/*.sql` y comparar con `pg_get_functiondef` de
   producción. Y si una prueba de `scripts/pruebas` falla con una base limpia (el CI), no es el seed de nadie.
+
+## Actualización 2026-09-27 — el libro filtra la lista de prendas con un semi-join (`20260928120010`)
+
+**El problema.** Con una lista de prendas, `fn_ledger_puntos` filtraba con `variante_id = any(p_variante_ids)` en tres
+lugares (el stock de hoy y las dos mitades de los movimientos). Dentro de la función, Postgres no conoce la lista al
+planear y compara cada fila contra la lista entera: con 2.000 prendas, hasta 2.000 comparaciones por movimiento. Lo midió
+el bloque 1 de Frescura (ADR-0208) y quedó en el BACKLOG.
+
+- **DECIDÍ:** `variante_id in (select unnest(p_variante_ids))` en los tres lugares, con la misma firma y las mismas
+  filas: Postgres arma la lista una vez en una tabla hash («hashed SubPlan» en el plan anidado). Migración
+  `20260928120010_ledger_semijoin.sql`, con guarda md5 del cuerpo vivo.
+- **DESCARTÉ:** un índice nuevo (el costo no estaba en encontrar las filas sino en compararlas con la lista) y pasar la
+  lista a una tabla temporal (una escritura dentro de una lectura, para el mismo resultado).
+- **SE ROMPE SI** alguien vuelve a pegar `20260924030000` (vuelve el `= any`: mismo resultado, más lento) o si Postgres
+  deja de planear ese `in` dentro de un `or` como búsqueda por hash.
+
+**Números** (Postgres 17 desechable, producción es 17.6; una tienda, 2.000 prendas, 20.000 bajadas y 10.000 ventas en 120
+días): `fn_bajadas_del_piso` de 489-506 a 295-307 ms; `fn_ledger_puntos` con las 2.000 prendas de 395-426 a 204-243 ms;
+0 filas distintas en 20.001 bajadas y 44.000 puntos del libro. Pruebas: `pruebas:fn-ledger-fuente-unica` 48/48,
+`pruebas:frescura-bajadas` 64/64, y `fn_resumen_comparacion`, `fn_resumen_variantes`, `fn_ritmo_reciente` y
+`movimientos_saldo` en verde.
+
+**Hallazgo al escribir la guarda: el cuerpo de producción no es letra por letra el del archivo.** El md5 de producción
+(`6e46fe4f…`, consulta de solo lectura del 2026-09-27) y el de una base armada desde el repo (`96dcc45e…`) difieren solo en
+un comentario de 6 líneas, en la columna 0, antes de `ids_piso`: quitándolo, el md5 del repo da exactamente el de
+producción. El código es el mismo. La guarda acepta los dos (y el nuevo, `a3d9fb69…`, para poder pegarla dos veces), y el
+cuerpo nuevo no lleva ese comentario, para que quede igual en todas partes.
+
+**Estado:** en la rama `claude/frescura-3c-terreno`; **falta pegarla en producción** (sola, a cualquier hora). Después:
+`select md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and proname = 'fn_ledger_puntos';` debe dar
+`a3d9fb69f32e0df2bb7f082e4b14215b`.

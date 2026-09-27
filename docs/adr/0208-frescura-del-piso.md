@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas).
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c».
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -852,7 +852,7 @@ guiones se corren con `PATH=<pg>/bin:$PATH CAYLA_PGDATABASE=<base> LC_ALL=en_US.
   (ver «Límite de la escritura»), con un caso C6 de concurrencia.
 - Enseñarle a `scripts/datos/comparar.mjs` a resolver las constantes `RPC_*`, para que vea `bajar_al_piso`.
 - `fn_ledger_puntos` más rápido: el semi-join por hash (de unos 560 a unos 330 ms a 120 días), con una migración nueva y
-  una nota en ADR-0202, porque `20260924030000` ya está en producción.
+  una nota en ADR-0202, porque `20260924030000` ya está en producción. *Hecho el 2026-09-27: `20260928120010` (ADR-0202, «Actualización 2026-09-27»); falta pegarla.*
 - **Preguntas abiertas para Felipe:**
   - ¿Se enciende en la Terminal de ventas? Resuelve el «Stock insuficiente» de la cajera, pero facilita justo la
     bajada al cobrar. Por defecto: Terminal Almacén y quien cuelga; la de ventas, después de decidir la D-40.
@@ -1149,3 +1149,63 @@ ADR-0240 ya hizo que el ajuste se guarde de una vez y con marca contra el doble 
   fin de estación con sus sugerencias y el indicador (líder y Terminal de ventas). Encima de `fn_ledger_puntos` y de
   `inventario-exposicion.ts`, como exige (d).
 - Aparte, sin depender de Frescura: el módulo «Ajustar stock».
+
+## Actualización 2026-09-27 — diseño 3c
+
+**Dónde vive (Felipe, 2026-09-27): directo en Inventario**, como sexta fila: Existencias, Movimientos, Traslados,
+Conteo, Análisis y **Frescura del piso**, ruta `/inventario/frescura`. **Módulo propio `frescura`**, sin permiso nuevo
+aparte del módulo, que **nace solo para el líder** (ADR-0161); el líder decide después a qué rol se lo da.
+- *Descarté* el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba el tope de 6 hijas de `menu.test.ts`:
+  escondía un clic más adentro la pantalla que se debería mirar cada semana.
+- *El tope:* el líder ve 6 filas («Recibir mercadería» solo sale a quien NO ve Compras). Llegaría a 7 únicamente un rol
+  que vea Análisis y Frescura y reciba mercadería sin ver Compras; hoy no existe. Para ese caso, Inventario queda con
+  una excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`, 7) en vez de esconder Frescura.
+- *Se rompe si* un rol con esa combinación aparece y además Inventario suma otra pantalla: entonces sí hay que regrupar.
+
+**El dato que manda sobre el diseño: la mitad del piso no tiene edad.** De las 211 unidades que entraron al piso de TRU
+(consulta de solo lectura del 2026-09-27), 104 llegaron por bajadas normales, 95 por bajadas de la **carga inicial** (15
+filas del 26-sep) y 12 por ajustes de «Reposición» del 24-sep. El **51 %** ya estaba colgado antes de que existiera el
+sistema: su reloj diría el día de la carga, no el día en que se colgó. Por eso esas unidades llevan una marca de **edad
+desconocida**: dicen «al menos N días», pueden subir de tramo, pero nunca son «Nueva» ni entran a la vara (ADR-0248). El
+color del semáforo va a llenar el piso en semanas, no en días.
+
+**Seis pasos, terreno primero** (cada uno con su PR y su prueba; la numeración de migraciones la fija cada PR):
+1. **Terreno del dominio** (ADR-0248): el FIFO consume por antigüedad y no por el orden del arreglo;
+   `historiaDeCohortes` da, además de las cohortes, cada venta y pérdida con lo que llevaba expuesta; la marca de edad
+   desconocida viaja con la unidad; y `fn_ledger_puntos` pasa de `= any(…)` a un semi-join (ADR-0202, sin cambiar
+   resultados).
+2. **Núcleo de bajadas:** primero un refactor que da exactamente lo mismo (`fn_bajadas_del_piso` pasa a envolver un
+   núcleo); después el cambio de conducta que pedía (c): netear los retiros de la misma talla alrededor de la bajada,
+   el estado `corregida` y la marca de carga inicial, que sale del indicador de confianza.
+3. **Lectura y reglas:** el módulo `frescura`; una lectura por sede (`fn_frescura_sede`, una sola llamada al libro) y el
+   indicador (`fn_confianza_registro`, por sede y mes de Lima, sin nombres de personas); y en la web, lógica pura
+   (Kaplan-Meier con P50, P75 y P90, la ventana de 30 a 120 días, los niveles de confianza y el estado de cada prenda).
+4. **La pantalla:** maqueta primero, para que Felipe elija colores y frase de acción; luego el menú y la ruta.
+5. **Análisis usa la regla de Frescura:** «Estancadas» deja el corte fijo de 14 días y pasa a «vieja y lenta» (la misma
+   definición de Frescura), con un enlace.
+6. ~~El indicador en la Terminal de ventas~~ **pasa al 3b** (ver abajo).
+
+**Decisiones de Felipe del 2026-09-27 (cierran las preguntas del diseño):**
+
+1. **«Envejecida» no depende de la temporada.** Una prenda envejece cuando es **más lenta que su categoría en su sede**:
+   los tramos (Nueva, Vigente, Envejecida, Crítica) salen de la curva de **categoría × sede**, sin partirla por mitad del
+   año. La temporada da **otro aviso, aparte: «Temporada pasada»**, cuando termina su estación (con sugerencias, sin
+   rebaja automática). Los clásicos se siguen midiendo contra su propia historia, y es la temporada la que dice que una
+   prenda es clásica. Reemplaza la decisión 8 de ADR-0246 («en la misma mitad del año»).
+   - *Descarté* partir la vara por mitad del año: mezclaba dos preguntas (¿se vende más lento que sus hermanas? / ¿ya
+     pasó su estación?) y, con 7 ventas en producción, dejaba cada mitad sin datos.
+   - *Descarté* no dar aviso de temporada: el bikini que se vende bien hasta el 20 de marzo se vería recién semanas
+     después, cuando ya se hubiera puesto lento.
+   - *Lo que se paga:* en una categoría que mezcla verano e invierno, fuera de estación las prendas lentas estiran la
+     vara de toda la categoría y las demás parecen «Nuevas» unos días más. El aviso «Temporada pasada» marca a las de
+     la estación que terminó; si una categoría lo sufre de verdad, se parte la categoría, no la vara.
+   - *Sin temporada* (56 prendas de producción, modelo y color de 17 productos, al 2026-09-27): se miden igual que las
+     demás; no reciben el aviso de fin de estación y llevan el chip «Sin temporada · complétala» (un clásico sin temporada
+     se mediría como moda).
+2. **El indicador de registro de la Terminal de ventas va en Caja y sale con los dos botones del 3b** («La traje del
+   almacén» / «Ya estaba colgada»). Antes de esos botones, «la clienta pidió otra talla y se la trajeron» cuenta como
+   bajada tardía y la cifra castigaría al equipo por atender bien. En el 3c, el indicador lo ve solo el líder, en Frescura.
+   El módulo `registro_piso` nace con la tarjeta, no antes (Roles y accesos no ofrece un módulo que no muestra nada).
+   - *Descarté* Inicio: una terminal de ventas nunca ve Inicio (al entrar va a Vender, regla del 2026-09-21, y el menú
+     se lo esconde).
+3. **Menú:** directo en Inventario (arriba, «Dónde vive»).
