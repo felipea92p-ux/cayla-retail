@@ -497,8 +497,9 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   }
 
   // El combo «Responsable» (ADR-0161/0162): la base rechaza con 42501 y un `hint` estable. Va antes de las huellas:
-  // su frase dice qué hacer (volver a elegir, marcar entrada) y es la misma en todas las pantallas.
-  const porResponsable = mensajeErrorResponsable(error);
+  // su frase dice qué hacer (volver a elegir, marcar entrada) y es la misma en todas las pantallas. Lleva `contexto`
+  // (2026-09-27): es un aviso global que puede quedar flotando sobre una acción distinta a la que lo causó.
+  const porResponsable = mensajeErrorResponsable(error, contexto);
   if (porResponsable) return porResponsable;
 
   // ADR-0193: la base ya lo dice en castellano («Otra persona cambió esta prenda… Recarga para ver sus cambios.»).

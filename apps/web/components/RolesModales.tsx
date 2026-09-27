@@ -6,7 +6,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, Campo, CampoSelect } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import type { ControlResponsable } from "@/lib/useResponsable";
-import { pideUbicacion, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
+import { debeAvisarPerdidaAdmin, pideUbicacion, rolesAsignables, type CuentaConRol, type RolVista } from "@/lib/roles-reglas";
 import type { Ubicacion } from "@/lib/ubicaciones";
 
 // Los modales de «Roles y accesos» (ADR-0161 B). Todos con `<Modal>` (ADR-0136): heredan el velo, la hoja que sube y la
@@ -176,6 +176,7 @@ export function AsignarRolModal({
   ubicaciones,
   cuentaFija,
   rolFijo,
+  admins = [],
   onConfirmar,
   onClose,
   responsable,
@@ -187,6 +188,9 @@ export function AsignarRolModal({
   ubicaciones: Pick<Ubicacion, "id" | "nombre">[];
   cuentaFija?: CuentaConRol;
   rolFijo?: RolVista;
+  /** ADR-0178: los `persona_id` que hoy son Admin (admin en Dynamic + líder activo aquí). Para avisar si esta cuenta
+   *  pierde el escalón al dejar de ser líder — `fn_es_admin()` exige las dos cosas a la vez. */
+  admins?: readonly string[];
   onConfirmar: (rolId: string, cuenta: CuentaConRol, ubicacionId?: string) => Promise<boolean>;
   onClose: () => void;
   responsable: ControlResponsable;
@@ -199,6 +203,7 @@ export function AsignarRolModal({
   const rolActual = cuenta ? roles.find((r) => r.id === cuenta.rolId) : undefined;
   const destino = roles.find((r) => r.id === rolId);
   const conSede = !!cuenta && pideUbicacion(cuenta, destino);
+  const pierdeAdmin = !!cuenta && debeAvisarPerdidaAdmin(admins.includes(cuenta.id), destino);
   const opcionesRol = useMemo(() => rolesAsignables(roles, cuenta).map((r) => ({ valor: r.id, texto: r.nombre })), [roles, cuenta]);
   const opcionesCuenta = useMemo(
     () =>
@@ -265,6 +270,12 @@ export function AsignarRolModal({
           {cuenta && destino && cuenta.esLider && !destino.fijo && (
             <p className="rounded-md border border-ambar/30 bg-ambar/10 px-3.5 py-2.5 text-[13px] leading-relaxed text-ambar-profundo">
               Deja de ser líder: solo verá los módulos de «{destino.nombre}»{conSede ? ", en la sede que elijas" : ""}.
+              {pierdeAdmin && (
+                <>
+                  {" "}
+                  <strong className="font-semibold">También deja de ser Admin:</strong> no podrá administrar líderes hasta que otro Admin se lo devuelva.
+                </>
+              )}
             </p>
           )}
           <ComboResponsable control={responsable} deshabilitado={enviando} />
