@@ -372,6 +372,14 @@ const HUELLAS: Huella[] = [
       "Ya existe un color muy parecido en el vocabulario (mayúsculas, tildes o espacios de más no cuentan como distinto). Revisa la lista antes de crear uno nuevo.",
   },
   {
+    // 20260917100200_etiquetas_catalogo.sql — «Nueva colección» y «nueva coleccion» son la misma etiqueta para
+    // fn_clave_texto. El índice cuenta TAMBIÉN las pendientes, las rechazadas y las desactivadas: puede saltar aunque la
+    // lista de la pantalla (solo aprobadas y activas) no muestre ninguna igual — por eso la frase lo dice.
+    marca: "etiquetas_clave_unica",
+    frase:
+      "Ya existe una etiqueta con ese nombre (aunque esté escrito distinto, esté pendiente de aprobar o desactivada). Búscala en Catálogo → Atributos → Etiquetas en vez de crearla otra vez.",
+  },
+  {
     // 20260915160000_categorias_editar_desactivar.sql — el candado real:
     // "Blusas" y "BLUSAS"/"blusas" son la misma categoría para
     // fn_clave_texto, aunque el texto no calce byte a byte. Reemplaza al

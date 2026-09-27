@@ -45,6 +45,13 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     expect(salida).toContain("Ya existe un producto con ese nombre");
   });
 
+  it("una etiqueta repetida (aunque esté pendiente o desactivada) dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError({ message: 'duplicate key value violates unique constraint "etiquetas_clave_unica"', code: "23505" }, "agregar la etiqueta");
+    expect(salida).not.toContain("etiquetas_clave_unica");
+    expect(salida).toContain("Ya existe una etiqueta con ese nombre");
+    expect(salida).toContain("Catálogo → Atributos → Etiquetas");
+  });
+
   it("una talla y color repetidos en un producto se explican, no se citan", () => {
     const salida = traducirError(
       {
