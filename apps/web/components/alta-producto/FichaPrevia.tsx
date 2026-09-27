@@ -16,6 +16,8 @@ export type DatosFicha = {
   categoria: string | null;
   marca: string | null;
   tallas: string;
+  /** Las etiquetas que se van a aplicar a todas las variantes (las que la campaña aplica sola no van: no se eligen). */
+  etiquetas: string[];
   tejidoPatron: string;
   variantes: number | null;
   precio: number | null;
@@ -64,6 +66,8 @@ function Tarjeta({ d }: { d: DatosFicha }) {
           <dd className="text-right font-medium tabular-nums">{d.tallas || <Vacio />}</dd>
           <dt className="text-taupe">Tejido y patrón</dt>
           <dd className="text-right font-medium">{d.tejidoPatron || <Vacio />}</dd>
+          <dt className="text-taupe">Etiquetas</dt>
+          <dd className="text-right font-medium">{d.etiquetas.length > 0 ? d.etiquetas.join(" · ") : <Vacio />}</dd>
           <dt className="text-taupe">Variantes</dt>
           <dd className="text-right font-medium tabular-nums">{d.variantes ?? <Vacio />}</dd>
           <dt className="text-taupe">Stock de hoy</dt>

@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido.
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas).
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -1087,3 +1087,65 @@ Felipe eligió la opción A del análisis de Existencias: mover piso↔almacén 
 interno. La prueba `bajada_al_piso.mjs` (P2) ahora afirma lo contrario de lo que decía. Antes de publicarlo hay que
 encender «Bajada al piso» en los roles que hoy reponen desde Existencias (aquí se anotaron las Terminal Almacén y de
 ventas): ver ADR-0240, «Se rompe si».
+
+## Actualización 2026-09-26 — decisiones del bloque 3 (Felipe, en rondas de preguntas)
+
+Cierra «Lo que falta decidir» del bloque 1 (punto (g)) y lo que abrió el bloque 2. Las temporadas tienen su propio ADR
+(ADR-0246). Nada de esto está construido todavía.
+
+**1. La caja no se frena (D-40), pero pregunta de dónde vino la prenda.** Si la caja encuentra una prenda que el sistema
+cree en el almacén, ofrece dos botones:
+- **«La traje del almacén»** = **a pedido**: no cuenta para el piso ni para la rotación, y suma a «tallas que faltaban en
+  el piso».
+- **«Ya estaba colgada»** = **error de registro**: la prenda sale del cálculo de edad y baja la confianza de la sede.
+- Como «a pedido» puede esconder prendas colgadas sin registrar, el indicador muestra también el **% de ventas «a
+  pedido»** por sede.
+
+**2. «Es para una clienta» al bajar o reponer.** Idea de Felipe: un interruptor (apagado por defecto) en «Bajar al piso»
+y en «Reponer» marca la bajada como «a pedido». Hoy «Reponer» pasa por `mover_entre_piso_y_almacen` (ADR-0240): el
+interruptor va en esa puerta y en `bajar_al_piso`.
+
+**3. Bajada tardía.** En las tiendas se cuelga por fardo **y** suelto durante el día, así que el tamaño de la bajada no
+alcanza para detectarla. Queda así: una bajada **sin** marca «para una clienta» cuya prenda se vende en 10 minutos o menos
+es «probable registro tardío» (sale del cálculo de edad y se cuenta aparte). Con los dos botones de la caja y el
+interruptor, casi no debería pasar.
+
+**4. Retirar del piso con motivo.** Motivo cerrado: fin de temporada, cambio de exhibición, dañada, otro. «Fin de
+temporada» marca esa talla en esa sede como **«retirada de la venta»**: deja de pedir «Reponer» y «Por colgar» hasta que
+se vuelva a bajar. Las tallas marcadas se listan para que no se olviden.
+
+**5. Confianza de cada cifra.** Se muestran cifras **desde el primer día**, con tres niveles y el bueno en silencio:
+«Pocos datos» (ámbar), «Aceptable» (gris) y «Sólido» (sin etiqueta). Lo que mueve plata espera el «Sólido»: el traslado
+sugerido (bloque 5) y la rebaja (bloque 7).
+
+**6. El semáforo de cada prenda se mide contra su propia sede**, siempre, y la vara se construye de a poco; el promedio
+de la categoría en las 3 sedes (CAYLA) queda a la vista como referencia. Con 0 ventas de esa categoría en esa sede no hay
+semáforo: solo los días colgada y la referencia de CAYLA. Umbrales del aviso: 1-9 ventas «Pocos datos», 10-19
+«Aceptable», 20 o más «Sólido».
+
+**7. Diferencias entre sedes.** Según Felipe, pesan sobre todo la clienta de cada ciudad y el local (puerta a la calle,
+tránsito); también el equipo y el surtido. Por eso la comparación entre sedes es del líder, y a los equipos se les
+muestra su propia evolución.
+
+**8. El indicador de confianza del registro** lo ven:
+- el **líder**, todas las sedes;
+- las **3 Terminal de ventas**, solo su sede y como equipo (no por persona): en grande, su sede contra su propio mes
+  anterior; con un enlace discreto en gris, «Ver ranking y promedio de CAYLA». Va como módulo propio que Felipe le da a
+  ese rol (ADR-0161: nace solo para el líder).
+
+**9. La bajada escaneada se hace desde la Terminal Almacén.** Felipe marca «Bajada al piso» en ese rol (Roles y accesos,
+sin SQL). **Urgente desde ADR-0240:** sin ese módulo, esas terminales ya no pueden «Reponer» ni «Retirar del piso».
+
+**10. «Ajustar stock» sale de Existencias a un módulo propio.** Hoy «Integrante» (17 personas) ajusta porque ve
+Existencias, Conteos y Traslados (`fn_puede_ajustar_inventario`). Va en un PR de roles aparte; nace solo para el líder.
+ADR-0240 ya hizo que el ajuste se guarde de una vez y con marca contra el doble envío.
+
+**Orden de construcción del bloque 3** (decisión técnica; cada paso con su PR y su prueba):
+- **3a · Temporadas** (ADR-0246): la lista, el calendario de SENAMHI, las columnas y la pestaña en Atributos, el campo en
+  el alta y la lista «Sin temporada». Va primero porque el resto la usa para comparar.
+- **3b · Marcas de origen:** los dos botones de la caja, el interruptor «Es para una clienta» y el motivo del retiro con
+  «retirada de la venta». Toca Vender: se prueba a 375 px.
+- **3c · La pantalla de Frescura:** el semáforo contra la sede con la referencia de CAYLA, los niveles de confianza, el
+  fin de estación con sus sugerencias y el indicador (líder y Terminal de ventas). Encima de `fn_ledger_puntos` y de
+  `inventario-exposicion.ts`, como exige (d).
+- Aparte, sin depender de Frescura: el módulo «Ajustar stock».

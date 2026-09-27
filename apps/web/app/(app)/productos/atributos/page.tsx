@@ -4,6 +4,75 @@ import { exigir, leerTodas } from "@/lib/resultado";
 import { getCostosVariantes } from "@/lib/catalogo-v2";
 import { Ayuda } from "@/components/Ayuda";
 import { AtributosHub } from "@/components/AtributosHub";
+import type { EventoCalendario, Temporada, TemporadaEfectiva } from "@/lib/temporada-reglas";
+import {
+  anioHoyLima,
+  armarCategorias,
+  armarSinTemporada,
+  motivoSinTemporadas,
+  nombresDeCategorias,
+  prendasPorTemporada,
+  type DatosPestanaTemporadas,
+  type ProductoParaTemporadas,
+} from "@/lib/temporadas-pantalla";
+
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * La pestaña «Temporadas» (ADR-0246): se lee SOLO al abrirla, y todo por funciones de la base (las tablas nuevas no se
+ * leen directo: RLS sin privilegios). La web puede llegar a producción antes que su SQL (20260928100000): si falta algo,
+ * la pestaña muestra una nota en vez de caerse, y las otras pestañas ni se enteran.
+ */
+async function cargarTemporadas(supabase: Supabase): Promise<{ datos: DatosPestanaTemporadas } | { nota: string }> {
+  try {
+    return await leerTemporadas(supabase);
+  } catch (e) {
+    // Ni una excepción inesperada tumba Atributos: la pestaña lo dice y las demás siguen.
+    console.error("Temporadas (Atributos):", e);
+    return { nota: motivoSinTemporadas(null) };
+  }
+}
+
+async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestanaTemporadas } | { nota: string }> {
+  const [resTemporadas, resCalendario, resEfectiva, resCategorias, resProductos, resColores] = await Promise.all([
+    supabase.rpc("fn_temporadas"),
+    supabase.rpc("fn_calendario_estaciones"),
+    // Una fila por modelo+color: pasa de 1.000 con el catálogo completo, así que se pide por páginas (`leerTodas`), en
+    // serie porque cada página recalcula la función entera.
+    leerTodas((desde, hasta) => supabase.rpc("fn_temporada_efectiva", {}).order("producto_id").order("color_codigo").range(desde, hasta), { enParalelo: 1 }),
+    // Todas (no solo las activas): el nombre de la categoría de una prenda de «Sin temporada» puede ser de una desactivada.
+    supabase.from("categorias").select("id, nombre, temporada, categoria_padre_id, activo").order("nombre"),
+    leerTodas((desde, hasta) =>
+      supabase.from("productos").select("id, referencia, codigo, categoria_id").eq("estado", "activo").order("id").range(desde, hasta)
+    ),
+    // Los nombres de color de la lista «Sin temporada» (con los desactivados: una prenda vieja puede tener uno).
+    supabase.from("colores").select("codigo, nombre"),
+  ]);
+  const error = resTemporadas.error ?? resCalendario.error ?? resEfectiva.error ?? resCategorias.error ?? resProductos.error ?? resColores.error;
+  if (error || !resTemporadas.data || !resCalendario.data || !resEfectiva.data || !resCategorias.data || !resProductos.data || !resColores.data) {
+    if (error) console.error("Temporadas (Atributos):", error.message);
+    return { nota: motivoSinTemporadas(error) };
+  }
+
+  const filas = resEfectiva.data as TemporadaEfectiva[];
+  const categorias = resCategorias.data.map((c) => ({ id: c.id, nombre: c.nombre, temporada: c.temporada, padreId: c.categoria_padre_id, activo: c.activo }));
+  const productos: ProductoParaTemporadas[] = resProductos.data.map((p) => ({ id: p.id, nombre: p.referencia, codigo: p.codigo, categoriaId: p.categoria_id }));
+  return {
+    datos: {
+      temporadas: resTemporadas.data as Temporada[],
+      calendario: resCalendario.data as EventoCalendario[],
+      categorias: armarCategorias(categorias.filter((c) => c.activo), productos, filas),
+      sinTemporada: armarSinTemporada(
+        filas,
+        new Map(productos.map((p) => [p.id, p])),
+        new Map(resColores.data.map((c) => [c.codigo, c.nombre])),
+        nombresDeCategorias(categorias),
+      ),
+      porTemporada: prendasPorTemporada(filas),
+      anioHoy: anioHoyLima(new Date()),
+    },
+  };
+}
 
 // Consolidación de Catálogo (2026-09-17, pedido de Felipe): reemplaza a
 // `/productos/{colores,tallas,tejidos,patrones,etiquetas}` — 5 pantallas
@@ -16,15 +85,17 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
   const supabase = await createClient();
   const { tipo: tipoParam } = await searchParams;
   // Mismo orden que las pestañas de `AtributosHub`; la primera es la que abre por defecto.
-  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones"] as const;
+  const TIPOS = ["etiquetas", "colores", "tallas", "tejidos", "patrones", "temporadas"] as const;
   // Un rol con Etiquetas y sin Categorías/atributos (20260923130000) ve SOLO la pestaña de etiquetas; uno con Categorías/
-  // atributos y sin Etiquetas, las otras cuatro. El líder, todas.
+  // atributos y sin Etiquetas, las otras cinco (Temporadas incluida, ADR-0246). El líder, todas.
   const veEtiquetas = veModulo(persona, "etiquetas");
   const veAtributos = veModulo(persona, "atributos");
   const tipos = TIPOS.filter((t) => (t === "etiquetas" ? veEtiquetas : veAtributos));
   const tipo = tipos.find((t) => t === tipoParam) ?? tipos[0] ?? TIPOS[0];
   const puedeEditarEtiquetas = puede(persona, "editarEtiquetas");
   const puedeDarDescuento = persona.rol === "lider"; // fn_puede_dar_descuento_por_etiqueta: solo el líder
+  // Se lanza ya, en paralelo con el resto de la carga; se espera abajo.
+  const cargaTemporadas = tipo === "temporadas" ? cargarTemporadas(supabase) : Promise.resolve(null);
 
   const [resColores, resTallas, resTejidos, resPatrones, resEtiquetas, resCategorias, resEtiquetaCategorias, resFamilias, resPrendas, resManuales] = await Promise.all([
     supabase
@@ -129,6 +200,7 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
     (variantesManuales[f.etiqueta_id] ??= []).push(f.variante_id);
   }
   const nombreFamilia = new Map(exigir(resFamilias, "las familias").map((f) => [f.codigo, f.nombre]));
+  const temporadas = await cargaTemporadas;
   const categorias = exigir(resCategorias, "las categorías").map((c) => ({
     id: c.id,
     nombre: c.nombre,
@@ -142,9 +214,11 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Atributos
           <Ayuda titulo="Atributos">
-            Los 5 vocabularios cerrados que describen una prenda además de su categoría: color,
-            talla, tejido, patrón y etiqueta libre. Cualquiera con sesión propone un valor nuevo
-            y lo puede usar de inmediato; un Líder lo aprueba o lo rechaza después.
+            Los vocabularios cerrados que describen una prenda además de su categoría: color,
+            talla, tejido, patrón, etiqueta libre y temporada. En los cinco primeros, cualquiera
+            con sesión propone un valor nuevo y lo puede usar de inmediato; un Líder lo aprueba o
+            lo rechaza después. La temporada es una lista fija de nueve: en su pestaña se ve el
+            calendario y se completan las prendas que todavía no la tienen.
           </Ayuda>
         </h1>
       </div>
@@ -162,6 +236,9 @@ export default async function AtributosPage({ searchParams }: { searchParams: Pr
         puedeEditar={puede(persona, "editarCatalogo")}
         puedeEditarEtiquetas={puedeEditarEtiquetas}
         puedeDarDescuento={puedeDarDescuento}
+        temporadas={temporadas}
+        esLider={persona.rol === "lider"}
+        veProductos={veModulo(persona, "productos")}
         tipos={tipos}
       />
     </div>

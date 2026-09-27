@@ -104,7 +104,8 @@ Y dos pantallas mandan de más. No fallan a veces: fallan siempre.
 
 La misma historia dos veces: el riel local avanzó (`0014_gasto_metodo_pago.sql`,
 `0018_produccion.sql`), la pantalla se escribió contra local, y producción nunca recibió
-el cambio. `generado/DRIFT.md` las tiene listadas como *"Roto en producción — 2"*.
+el cambio. El `generado/DRIFT.md` de ese día las tenía listadas como *"Roto en producción — 2"* (hoy el informe
+habla de llamadas «sin respaldo en la foto» y ya no las lista: se corrigieron).
 
 **Qué cuesta.** Una tienda no puede registrar un gasto: la luz, el taxi, la costurera
 externa. Y no puede recibir la mercadería que el Taller acaba de mandar. Eso es el
@@ -118,7 +119,7 @@ mercadería física en la percha que el sistema no sabe que llegó.
 2. **Texto:** `unificacion/31:43-47` y `unificacion/12:56-66`, con la firma real y la
    fecha de verificación.
 
-`pnpm datos:comparar` sale con error cuando encuentra una pantalla rota (D-19). Debería
+`pnpm datos:comparar` sale con error cuando encuentra una llamada que la foto de producción no respalda (D-19). Debería
 correr en cada subida, no cuando alguien se acuerda.
 
 ---
@@ -363,8 +364,8 @@ equipo** cerrar caja, ajustar stock sin venta, registrar gastos y depósitos (D-
 O sea que el candado pregunta por **`admin`**, no por `lider`. Existe
 `retail.es_supervisor()` — `fn_rol_actual() = 'supervisor_sede'` — y **ninguna política la
 usa**: de las 70 políticas de producción, **26 llaman a `es_lider()` y 0 a
-`es_supervisor()`** (`generado/retail_policies.json`). `es_supervisor` aparece en la lista
-*"Funciones que nadie llama"* de `generado/DRIFT.md`.
+`es_supervisor()`** (`generado/retail_policies.json`). (Consulta del 2026-09-26: `es_supervisor`
+ya no existe en producción, así que tampoco figura en `generado/DRIFT.md`.)
 
 Y el sistema tampoco conoce cuatro niveles: hoy conoce dos por el lado de retail
 (`personas.rol` = `lider`/`integrante` en local) y resuelve la identidad real contra
@@ -402,15 +403,15 @@ comprobantes (`apps/web/components/ComprobantesPanel.tsx:240-249`) llama a
 `emitir_comprobante` **sin** `p_venta_id`. Como el parámetro tiene valor por defecto nulo
 (`0032:74`), la columna queda en `null` en todas las filas.
 
-`generado/DRIFT.md` lo ve y lo deja pasar como aviso: *"no manda `p_venta_id`, `p_items`
+`generado/DRIFT.md` lo veía (en su versión del 2026-09-12) y lo dejaba pasar como aviso: *"no manda `p_venta_id`, `p_items`
 (normal si tienen valor por defecto)"*. Tiene razón en que no rompe nada. Lo que ninguna
 herramienta puede ver es que ese parámetro opcional es justo el que amarra la boleta con
 la venta.
 
 Y hay un segundo tramo, peor: **`emitir_nota` no tiene ninguna pantalla.** Existe en
 producción con 7 argumentos y no la llama nadie en `apps/web` — solo la mencionan
-comentarios (`lucode.ts:3`, `api/lucode/emitir/route.ts:8,135`). Está en la lista
-*"Funciones que nadie llama"* de `DRIFT.md`.
+comentarios (`lucode.ts:3`, `transmitir-comprobante.ts:12,139`). Está en la lista
+*"Funciones sin llamada detectada desde `apps/web`"* de `DRIFT.md`.
 
 **Qué cuesta.** Tres cosas, encadenadas:
 - No se puede responder *"¿qué boleta corresponde a esta venta?"*, ni al revés.
@@ -853,9 +854,9 @@ pistola:
 
 O sea: escanear la etiqueta que CAYLA misma imprimió devuelve **"Sin coincidencias"**.
 
-Y las dos funciones que existían para este camino no las llama nadie:
-`registrar_codigo_barras` y `conteo_contar_por_codigo` están en la lista *"Funciones que
-nadie llama"* de `generado/DRIFT.md`.
+Y las dos funciones que existían para este camino no las llamaba nadie:
+`registrar_codigo_barras` y `conteo_contar_por_codigo` (consulta del 2026-09-26: ya no existen en producción, así que
+tampoco figuran en `generado/DRIFT.md`).
 
 **Qué cuesta.** Es la pantalla que Felipe nombró como el dolor número uno del negocio —el
 comentario de `buscar/page.tsx:11-13` lo cita: *"no saber si se tiene stock e ir a almacén

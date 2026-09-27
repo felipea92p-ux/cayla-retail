@@ -69,18 +69,9 @@ export function HistorialProductoPanel({
   );
 }
 
-const ETIQUETA_CAMPO: Record<CambioProducto["campo"], string> = { categoria_id: "Categoría", precio: "Precio", estado: "Estado" };
-const ETIQUETA_ESTADO: Record<string, string> = { activo: "Activo", descontinuado: "Descontinuado" };
-
-function textoValorCambio(c: CambioProducto, cual: "anterior" | "nuevo"): string {
-  if (c.campo === "categoria_id") {
-    return (cual === "anterior" ? c.categoriaAnteriorNombre : c.categoriaNuevaNombre) ?? "Sin categoría";
-  }
-  const valor = cual === "anterior" ? c.valorAnterior : c.valorNuevo;
-  if (c.campo === "estado") return valor ? (ETIQUETA_ESTADO[valor] ?? valor) : "—";
-  return valor ? `S/${Number(valor).toFixed(2)}` : "—";
-}
-
+// Cada fila llega ya dicha del servidor (`etiqueta`, `textoAnterior`, `textoNuevo`: `historial-producto-reglas.ts`). Antes
+// el panel conocía solo precio, categoría y estado, y pintaba cualquier otro campo como precio («— → S/NaN» para una
+// temporada, ADR-0246).
 function fechaHoraLima(iso: string): string {
   return new Date(iso).toLocaleString("es-PE", {
     timeZone: "America/Lima",
@@ -95,7 +86,7 @@ function fechaHoraLima(iso: string): string {
 function SeccionCambios({ cambios }: { cambios: CambioProducto[] }) {
   return (
     <div className="card-cayla p-5">
-      <p className="label-cayla text-[11px] text-tinta/65">Precio y categoría</p>
+      <p className="label-cayla text-[11px] text-tinta/65">Cambios en la ficha</p>
       {cambios.length === 0 ? (
         <p className="mt-2 text-sm text-tinta/65">Sin cambios registrados desde que existe este historial.</p>
       ) : (
@@ -103,7 +94,7 @@ function SeccionCambios({ cambios }: { cambios: CambioProducto[] }) {
           {cambios.map((c) => (
             <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
               <span className="min-w-0">
-                <span className="text-tinta">{ETIQUETA_CAMPO[c.campo]}</span>
+                <span className="text-tinta">{c.etiqueta}</span>
                 {c.entidad === "variante" && (
                   <span className="ml-2 font-mono text-xs text-tinta/65">
                     {c.varianteSku}
@@ -111,7 +102,7 @@ function SeccionCambios({ cambios }: { cambios: CambioProducto[] }) {
                   </span>
                 )}
                 <span className="ml-2 text-tinta/75">
-                  {textoValorCambio(c, "anterior")} <span className="text-tinta/40">→</span> {textoValorCambio(c, "nuevo")}
+                  {c.textoAnterior} <span className="text-tinta/40">→</span> {c.textoNuevo}
                 </span>
               </span>
               <span className="shrink-0 text-xs text-tinta/55">

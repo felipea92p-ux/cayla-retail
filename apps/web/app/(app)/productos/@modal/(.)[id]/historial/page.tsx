@@ -1,4 +1,4 @@
-import { requirePersonaActualV2 } from "@/lib/persona-actual";
+import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getProductoResumen, getCambiosProducto } from "@/lib/historial-producto";
 import {
@@ -48,7 +48,8 @@ export default async function HistorialProductoModal({
 
   const [{ filas: movimientos, siguiente }, cambios] = await Promise.all([
     listarMovimientosProducto(productoId, ubicacionActivaId, { cursor }),
-    getCambiosProducto(productoId),
+    // El costo, solo a quien ve el dinero de compras (20260923193700): el historial no es otra puerta para verlo.
+    getCambiosProducto(productoId, { verCosto: puede(persona, "verDineroCompras") }),
   ]);
 
   return (
