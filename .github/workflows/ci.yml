@@ -679,6 +679,18 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:colaboradores-alta-aprobacion
 
+      # Endurecimiento de colaboradores (ADR-0145): `authenticated`/`anon` ya no escriben `retail.colaboradores`
+      # directo (solo las RPC, security definer); el CHECK rechaza un colaborador sin ubicación y deja pasar a un
+      # líder sin ella; `agregar_colaborador`/`quitar_colaborador` avisan la segunda vez en vez de callar, y
+      # quitarse a uno mismo nombra a «otro líder». Cada caso termina en ROLLBACK. Estaba en EXCLUIDAS de
+      # `ci-paridad.test.ts` («nunca pudo pasar»): la prueba dependía de una persona «sobrante» del seed sin
+      # colaboradores, que no existe (Felipe/Micaela/Sandra ya son las tres colaboradoras) — se corrigió para crear
+      # su propia candidata, como el resto de las pruebas de este directorio. 7/7 en un Postgres 17 desechable,
+      # también en `--en-seco` — cableada el 2026-09-27.
+      - name: pruebas:colaboradores-endurecimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:colaboradores-endurecimiento
+
       # Devoluciones con motivo estructurado (D-79, ADR-0158): `crear_devolucion` rechaza motivo nulo o fuera de la lista cerrada de
       # seis códigos, guarda el código tal cual, y lo devuelto se descuenta de lo ya cambiado y de otras devoluciones (ADR-0189).
       # Cada caso termina en ROLLBACK.
@@ -717,6 +729,22 @@ jobs:
       - name: pruebas:candado-lider
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
+
+      # Archivar datos de prueba de producción sin borrar nada (D-54, ADR-0159): las cuatro funciones
+      # (`archivar_venta_prueba`, `archivar_caja_prueba`, `archivar_conteo_prueba`, `archivar_producto_prueba`)
+      # exigen líder primero; archivar una caja ABIERTA la cierra con el mismo cálculo que `cerrar_caja` y libera el
+      # índice único de la sede; archivar un conteo `abierto` se rechaza (22023); el trigger de `conteos` bloquea
+      # `es_prueba` por UPDATE directo aunque la colaboradora pueda editar su propio conteo; y el mismo candado
+      # ahora también en `productos` (20260928110000: `productos_write_lider` dejó de exigir líder para TODA
+      # escritura cuando ADR-0161 sumó el módulo Productos/Atributos, reabriendo la puerta que esta migración creía
+      # cerrada). Cada caso termina en ROLLBACK. Estaba en EXCLUIDAS («no pasa: 1 de 16»): el script llamaba a
+      # `ventas`/`cajas`/`archivar_venta_prueba()` sin el prefijo `retail.` — `search_path` por defecto de una
+      # conexión nueva es `"$user", public` (ni `supabase start` lo cambia para `-U postgres`: `extra_search_path`
+      # de `config.toml` solo lo aplica PostgREST a los roles de la API). 16/16 en un Postgres 17 desechable, en
+      # modo normal y en `--en-seco` — cableada el 2026-09-27.
+      - name: pruebas:archivar-datos-prueba
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:archivar-datos-prueba
 
       # Cuentas TERMINAL por tienda (poderes del ADR-0160, identidad del ADR-0162): la de ventas cierra caja y mueve caja; la
       # administrativa ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de
