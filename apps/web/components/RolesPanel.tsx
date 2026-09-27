@@ -102,6 +102,7 @@ export function RolesPanel({
   soyAdmin = true,
   misModulos = null,
   fueraDeAlcance = [],
+  admins = [],
   acciones = accionesRolesSupabase,
   responsable,
 }: {
@@ -120,6 +121,9 @@ export function RolesPanel({
   misModulos?: readonly ClaveModulo[] | null;
   /** ADR-0178 «solo alcanzas a quien está por debajo de ti»: a esas personas no se les ofrece cambiar el rol. */
   fueraDeAlcance?: readonly string[];
+  /** ADR-0178: los `persona_id` que hoy son Admin. Para avisar en «Asignar rol» si la cuenta pierde el escalón al
+   *  dejar de ser líder. */
+  admins?: readonly string[];
   acciones?: AccionesRoles;
   /** El combo «Responsable» de Colaboradores (ADR-0161/0162, Felipe 2026-09-23: TODA acción que guarda lo pide).
    *  Uno solo para la pantalla: lo comparten la cabecera de esta sección, sus modales y la barra de guardar. */
@@ -696,6 +700,7 @@ export function RolesPanel({
           cuentas={cuentasAsignables(cuentas, modal.rol, yoId, soyAdmin, misModulos, fueraDeAlcance)}
           ubicaciones={ubicaciones}
           rolFijo={modal.rol}
+          admins={admins}
           onClose={() => setModal(null)}
           onConfirmar={async (rolId, cuenta, ubicacionId) =>
             !!(await ejecutar("asignar el rol", (f) => acciones.asignar(rolId, cuenta, ubicacionId, f), `${cuenta.nombre} ahora tiene «${modal.rol.nombre}»`))

@@ -104,6 +104,26 @@
  *       antes que se le asignó a ESA bajada) daba vuelta estas filas: por eso se descartó (ADR-0208, 2026-09-27).
  *   T33 «cerrada» no es final: una bajada cerrada y «corregida» pasa a «tardia» cuando después otra bajada de la misma
  *       talla queda más cerca de su retiro. Límite escrito en ADR-0208; fija el valor de hoy.
+ *   T34 (revisión 4, 2026-09-27) la marca de carga: una segunda carga de la misma prenda a 5 minutos no apaga la
+ *       primera (mutante 1: max en vez de min); un AJUSTE con motivo «carga_inicial» no es carga (mutante 24).
+ *   T35 dos bajadas del mismo instante salen por id (mutante 20: id descendente; en producción hay 69 pares así).
+ *   T36 solo un traslado interno es bajada o retiro: una salida o una entrada con sububicación de destino suelta (la
+ *       base la acepta) ni se descuenta ni se lleva un retiro (mutante 8: sin fn_es_traslado_interno).
+ *
+ * MUTANTES EQUIVALENTES (revisión 4): de los 38 cambios de la revisión 3, 9 no cambian ninguna fila posible, y ningún
+ * caso puede matarlos. Diferencial aleatorio (8 historias densas: empates de minuto, retiros, cargas, la centinela,
+ * filas sueltas; 100 combinaciones de p_desde, p_hasta y p_minutos cada una): 0 lecturas distintas de 800, y los 4 de
+ * arriba sí se ven. Por qué:
+ *   4  «después» desde el mismo instante: solo suma una bajada de la MISMA hora del retiro, y esa ya es su t_antes
+ *      (distancia 0, gana el empate).   15 la bajada va a su t_antes: el de una bajada es su propia hora.
+ *   33 la carga en [t − W, t] con max: «la más tardía hasta t es t» y «la más temprana desde t es t» dicen lo mismo, «hay
+ *      una carga en t».   39 la rama por prenda: sin retiros de la prenda, las dos ramas dan 0 y 0.
+ *   34 `< v_hasta + 2W`: una bajada del rango es < v_hasta, su retiro está a W o menos y quien se lo dispute, a W o menos
+ *      de él: todo cae antes de v_hasta + 2W (el borde exacto solo importa abajo, donde el empate favorece a la de antes).
+ *   7  la centinela: el libro no la reconstruye (sin punto ord 1), así que su bajada no pasa el `having` de juntas.
+ *   27 sin `ord = 1`: el saldo inicial tiene oid nulo, no se junta con ninguna bajada ni es venta.
+ *   22 y 28: toda bajada tiene su punto del libro con delta +cantidad (CHECK cantidad > 0) y un retiro nunca sube el piso;
+ *      el `having` y el `es_bajada` se cubren entre sí.
  *
  * CÓMO. `now()` es constante dentro de una transacción y `movimientos` es inmutable: como `postgres`, cada caso inserta
  * sus movimientos con `created_at` explícito (colgados de t0 = ahora − 3 h) EN ORDEN CRONOLÓGICO y los aplica con
@@ -2018,6 +2038,124 @@ select 'N|' || count(*) from retail.fn_bajadas_del_piso(:'ubic') r where r.varia
       `DESPUES=${otras.DESPUES}`,
     );
     afirmar("la bajada de ahora no sale en la lectura (una sola fila de esta prenda)", otras.N === "1", `N=${otras.N}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
+// T34 a T36: los mutantes de la revisión 3 que seguían pasando (revisión 4, 2026-09-27). Cada caso mata uno que sí cambia
+// una fila posible; los que no pueden cambiar ninguna están explicados en la cabecera («MUTANTES EQUIVALENTES»).
+correr(
+  "T34 · la marca de carga inicial: una segunda carga de la misma prenda a 5 minutos no apaga la primera; un ajuste con motivo «carga_inicial» no es carga (la carga es una ENTRADA)",
+  `-- DOS-CARGAS: 10:00 entra la carga inicial de 3 y se baja en el mismo instante; 10:05 entra otra carga de 2 de la misma
+-- prenda y también se baja. Las dos bajadas son de carga. La marca mira «¿hay una carga en MI instante?»: tomar la carga
+-- más TARDÍA de [t, t + W] (max en vez de min, mutante 1) veía la de 10:05 y apagaba la de 10:00. Solo se arma a mano: la
+-- puerta (cargar_stock_inicial) rechaza la segunda carga de una prenda que ya tiene historia en la tienda.
+select pg_temp.variante('ZZ-FRE-T34-DOS-CARGAS') as dc \\gset
+select pg_temp.mov(:'dc', 'entrada', 3, :'sa', 'carga_inicial', :'t0'::timestamptz) as _1 \\gset
+select pg_temp.bajada(:'dc', 3, :'t0'::timestamptz) as _2 \\gset
+select pg_temp.mov(:'dc', 'entrada', 2, :'sa', 'carga_inicial', :'t0'::timestamptz + interval '5 minutes') as _3 \\gset
+select pg_temp.bajada(:'dc', 2, :'t0'::timestamptz + interval '5 minutes') as _4 \\gset
+-- AJUSTE: el motivo de registrar_movimiento es texto libre: un ajuste de +1 en el almacén con motivo «carga_inicial», en el
+-- mismo instante que una bajada. No es la carga inicial (esa es una ENTRADA, ADR-0212/0235): sin exigir tipo = 'entrada'
+-- (mutante 24) la bajada salía marcada. En producción hoy las 64 filas «carga_inicial» son entradas (2026-09-27).
+select pg_temp.variante('ZZ-FRE-T34-AJUSTE') as aj \\gset
+select pg_temp.llega(:'aj', 5, :'t0'::timestamptz - interval '60 minutes') as _5 \\gset
+select pg_temp.mov(:'aj', 'ajuste', 1, :'sa', 'carga_inicial', :'t0'::timestamptz) as _6 \\gset
+select pg_temp.bajada(:'aj', 2, :'t0'::timestamptz) as _7 \\gset
+${FILAS()}`,
+  ({ filas }) => {
+    const dc = filas["ZZ-FRE-T34-DOS-CARGAS"] ?? [];
+    afirmar(
+      "dos cargas de la misma prenda a 5 minutos, cada una con su bajada → las DOS bajadas salen con es_carga_inicial",
+      dc.length === 2 && es(dc[0], { min: 0, cantidad: 3, carga: true }) && es(dc[1], { min: 5, cantidad: 2, carga: true }),
+      ver(dc),
+    );
+    const aj = filas["ZZ-FRE-T34-AJUSTE"] ?? [];
+    afirmar(
+      "un AJUSTE con motivo «carga_inicial» en el mismo instante no marca la bajada (es_carga_inicial false)",
+      aj.length === 1 && es(aj[0], { min: 0, cantidad: 2, carga: false }),
+      ver(aj),
+    );
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T35 · dos bajadas del mismo instante salen en orden de id (el desempate de «de la más nueva a la más vieja»)",
+  `-- Una bajada con varias prendas (bajar_al_piso) escribe todas sus filas en el mismo instante: en producción hay 69
+-- pares de traslados internos que comparten la hora (2026-09-27). La función las entrega de la más nueva a la más vieja
+-- y, en la misma hora, por id: la pantalla no cambia de orden entre dos lecturas. Se insertan en otro orden que el de sus
+-- ids para que el orden del libro no lo tape (con «id desc», mutante 20, salían al revés).
+select pg_temp.variante('ZZ-FRE-T35-A') as a \\gset
+select pg_temp.variante('ZZ-FRE-T35-B') as b \\gset
+select pg_temp.variante('ZZ-FRE-T35-C') as c \\gset
+select pg_temp.llega(:'a', 5, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
+select pg_temp.llega(:'b', 5, :'t0'::timestamptz - interval '60 minutes') as _2 \\gset
+select pg_temp.llega(:'c', 5, :'t0'::timestamptz - interval '60 minutes') as _3 \\gset
+insert into retail.movimientos (id, variante_id, ubicacion_id, sububicacion_id, ubicacion_destino_id, sububicacion_destino_id,
+                                tipo, cantidad, motivo, created_at)
+  values ('ffffffff-ffff-4fff-bfff-00000000f353', :'c', :'ubic', :'sa', :'ubic', :'sp', 'traslado', 1, 'movimiento_interno', :'t0');
+select retail.fn_aplicar_movimiento('ffffffff-ffff-4fff-bfff-00000000f353') as _4 \\gset
+insert into retail.movimientos (id, variante_id, ubicacion_id, sububicacion_id, ubicacion_destino_id, sububicacion_destino_id,
+                                tipo, cantidad, motivo, created_at)
+  values ('00000000-0000-4000-8000-00000000f351', :'a', :'ubic', :'sa', :'ubic', :'sp', 'traslado', 1, 'movimiento_interno', :'t0');
+select retail.fn_aplicar_movimiento('00000000-0000-4000-8000-00000000f351') as _5 \\gset
+insert into retail.movimientos (id, variante_id, ubicacion_id, sububicacion_id, ubicacion_destino_id, sububicacion_destino_id,
+                                tipo, cantidad, motivo, created_at)
+  values ('80000000-0000-4000-8000-00000000f352', :'b', :'ubic', :'sa', :'ubic', :'sp', 'traslado', 1, 'movimiento_interno', :'t0');
+select retail.fn_aplicar_movimiento('80000000-0000-4000-8000-00000000f352') as _6 \\gset
+-- Una bajada de un minuto después, para que el orden por hora también se vea en la misma lectura.
+select pg_temp.bajada(:'a', 1, :'t0'::timestamptz + interval '1 minute') as _7 \\gset
+select 'ORDEN35|' || string_agg(round(extract(epoch from (r.bajada_en - :'t0'::timestamptz)) / 60.0)::text || ':' || right(r.movimiento_id::text, 4), ',' order by r.ordinality)
+  from retail.fn_bajadas_del_piso(:'ubic') with ordinality r join retail.variantes v on v.id = r.variante_id where v.sku like 'ZZ-FRE-T35-%';`,
+  ({ otras }) => {
+    afirmar(
+      "la de 10:01 primero; las tres de 10:00 después, por id (f351, f352, f353) aunque se escribieron en otro orden",
+      otras.ORDEN35?.startsWith("1:") && otras.ORDEN35?.endsWith(",0:f351,0:f352,0:f353") && otras.ORDEN35.split(",").length === 4,
+      `ORDEN35=${otras.ORDEN35}`,
+    );
+  },
+);
+
+// ---------------------------------------------------------------------------
+// T36 va en su propia transacción: el retiro de ENTRADA decide la rama con retiros y nada de otro caso la toca.
+correr(
+  "T36 · solo un traslado interno es bajada o retiro: una fila que no es traslado, aunque traiga una sububicación de destino suelta, ni se descuenta ni se lleva un retiro",
+  `-- La base acepta sububicacion_destino_id en una fila que no es traslado (el CHECK solo exige ubicacion_destino_id nulo
+-- fuera de un traslado, y la FK compuesta no mira una fila con destino nulo), y ni el stock (fn_aplicar_movimiento) ni el
+-- libro (fn_ledger_puntos) la leen. La bajada y el retiro se reconocen como Movimientos y el libro: traslado de la MISMA
+-- tienda (fn_es_traslado_interno) y su par exacto. Sin ese filtro (mutante 8), el par de sububicaciones solo alcanzaba.
+-- En producción hoy no hay ninguna fila así (2026-09-27): solo se arma a mano.
+-- SALIDA: 10:00 se bajan 2; 10:03 sale 1 del piso por merma y la fila trae almacén como destino suelto. No es retiro.
+select pg_temp.variante('ZZ-FRE-T36-SALIDA') as s \\gset
+select pg_temp.llega(:'s', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
+select pg_temp.bajada(:'s', 2, :'t0'::timestamptz) as _2 \\gset
+select pg_temp.mov(:'s', 'salida', 1, :'sp', 'merma', :'t0'::timestamptz + interval '3 minutes', :'sa') as _3 \\gset
+-- ENTRADA: 10:00 se bajan 2; 10:03 se retira 1 de verdad (piso → almacén); 10:04 entra 1 al almacén (recepción) con el
+-- piso como destino suelto. No es bajada: el retiro es de la de 10:00 (a 3 minutos), no de esa fila (a 1).
+select pg_temp.variante('ZZ-FRE-T36-ENTRADA') as e \\gset
+select pg_temp.llega(:'e', 10, :'t0'::timestamptz - interval '60 minutes') as _4 \\gset
+select pg_temp.bajada(:'e', 2, :'t0'::timestamptz) as _5 \\gset
+select pg_temp.mov(:'e', 'traslado', 1, :'sp', 'movimiento_interno', :'t0'::timestamptz + interval '3 minutes', :'sa') as _6 \\gset
+select pg_temp.mov(:'e', 'entrada', 1, :'sa', 'recepcion', :'t0'::timestamptz + interval '4 minutes', :'sp') as _7 \\gset
+-- Que las dos filas sueltas de verdad quedaron escritas así (y que no son traslado).
+select 'SUELTAS|' || count(*) from retail.movimientos
+ where variante_id in (:'s', :'e') and tipo <> 'traslado' and ubicacion_destino_id is null and sububicacion_destino_id is not null;
+${FILAS()}`,
+  ({ filas, otras }) => {
+    afirmar("las dos filas sueltas existen (una salida y una entrada con sububicación de destino)", otras.SUELTAS === "2", `SUELTAS=${otras.SUELTAS}`);
+    const s = filas["ZZ-FRE-T36-SALIDA"] ?? [];
+    afirmar(
+      "SALIDA: la merma del piso con destino suelto no es retiro: retiradas 0, efectiva 2, piso_antes 0, «normal»",
+      s.length === 1 && es(s[0], { min: 0, cantidad: 2, pisoAntes: 0, vendidas: 0, retiradas: 0, efectiva: 2, tardias: 0, estado: "normal" }),
+      ver(s),
+    );
+    const e = filas["ZZ-FRE-T36-ENTRADA"] ?? [];
+    afirmar(
+      "ENTRADA: la recepción con destino suelto no es bajada (una sola fila) ni se lleva el retiro: la de 10:00 retiradas 1, efectiva 1",
+      e.length === 1 && es(e[0], { min: 0, cantidad: 2, pisoAntes: 0, retiradas: 1, efectiva: 1, estado: "normal" }),
+      ver(e),
+    );
   },
 );
 

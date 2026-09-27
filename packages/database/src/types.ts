@@ -6643,6 +6643,25 @@ export type Database = {
         }
         Returns: Json
       }
+      // Frescura del piso (ADR-0208, paso 3 del 3c): la lectura de una sede y el indicador de registro al colgar.
+      // Escritos a mano con la forma que da `supabase gen types`: regenerar al pegar la migración en producción.
+      fn_frescura_sede: {
+        Args: { p_dias?: number; p_ubicacion_id: string }
+        Returns: Json
+      }
+      fn_confianza_registro: {
+        Args: { p_meses?: number; p_ubicacion_id?: string }
+        Returns: {
+          confianza: number | null
+          filas: number
+          mes: string
+          nivel: string | null
+          sede: string
+          tardias: number
+          ubicacion_id: string
+          unidades: number
+        }[]
+      }
       fn_resumen_caja: { Args: { p_caja_id: string }; Returns: Json }
       fn_rubros_limpios: { Args: { p_rubros: string[] }; Returns: string[] }
       fn_sello_caja: { Args: { p_caja_id: string }; Returns: string }

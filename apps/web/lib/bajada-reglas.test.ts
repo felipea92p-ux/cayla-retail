@@ -744,11 +744,12 @@ describe("interpretarErrorDeBajada: el rechazo al confirmar", () => {
     }
   });
 
-  it("el responsable que no está de turno usa la frase de siempre del combo", () => {
+  it("el responsable que no está de turno usa la frase de siempre del combo, con la acción por delante (2026-09-27)", () => {
     const r = interpretarErrorDeBajada({ message: "responsable no presente", code: "42501", hint: "responsable_no_presente" }, SEDE);
     expect(r).toEqual({
       tipo: "otro",
-      mensaje: "Esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.",
+      mensaje:
+        "No se pudo bajar las prendas al piso de Tienda TRU: esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.",
     });
   });
 
