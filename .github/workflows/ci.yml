@@ -115,6 +115,15 @@ jobs:
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
 
+      # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
+      # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
+      # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de
+      # mes). Lee el código con el parser de TypeScript (dependencia de la raíz), así que necesita la instalación: solo
+      # corre si salió bien (no hay base de datos).
+      - name: Lectura de código de datos:comparar
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/datos/comparar-lectura.test.mjs scripts/datos/comparar.test.mjs
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres
     runs-on: ubuntu-latest
@@ -740,6 +749,14 @@ jobs:
       - name: pruebas:roles-cobertura
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-cobertura
+
+      # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
+      # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
+      # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra
+      # al alta de producto ni a «Prendas» hasta aprobarse, y quién puede aprobar (líder o rol con Etiquetas). ROLLBACK siempre.
+      - name: pruebas:etiquetas-aprobar
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:etiquetas-aprobar
 
       # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
       # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
