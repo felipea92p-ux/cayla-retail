@@ -892,10 +892,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   piden ese módulo, así que sin él esas 3 terminales ya no los tienen.
 - [ ] **Bloque 3, decisiones tomadas el 2026-09-26** (ADR-0208, «Actualización 2026-09-26 — decisiones del bloque 3», y
   ADR-0246). Se construye en tres pasos, cada uno con su PR:
-  - [x] **3a · Temporadas: CONSTRUIDO el 2026-09-26, NO está en producción** (rama `claude/frescura-3a-temporadas`).
-    Pegar `20260928100000` (partes 1 a 5, cada una sola, y la 6 para verificar: 9 temporadas, 12 fechas, 3 llaves, 1
-    alta) **ANTES de fusionar su web**: la ficha de hoy tiene la temporada como texto libre y, con la llave foránea
-    puesta, un texto a mano no se guardaría. Prueba: `pnpm pruebas:temporadas` (25). Detalle: ADR-0246, «Construcción».
+  - [x] **3a · Temporadas: CONSTRUIDO (PR #529) y SQL EN PRODUCCIÓN:** `20260928100000` **pegada en producción por Felipe el 2026-09-27** y verificada (9 temporadas, 12 fechas, 3 llaves, 1 sola alta; huella md5 de las 13 funciones idéntica a la de local; orden diferido y RLS puestos). Falta
+    publicar la web (fusionar #529): hasta entonces la ficha vieja guarda la temporada como texto libre y, con la llave
+    foránea ya puesta, un texto escrito a mano ahí no se guardaría. Prueba: `pnpm pruebas:temporadas` (25). Detalle: ADR-0246, «Construcción».
     Pendiente: confirmar las fechas desde el verano 2026-27 cuando SENAMHI las publique; agregar 2029 antes de fin de
     2028. Lo que decía el plan: **3a · Temporadas (ADR-0246):** pestaña «Temporadas» en Productos ▸ Atributos con 9 valores (Primavera-Verano,
     Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI

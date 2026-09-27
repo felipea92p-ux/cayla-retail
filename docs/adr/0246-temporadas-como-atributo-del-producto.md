@@ -1,7 +1,7 @@
 # ADR-0246 · Temporadas como atributo del producto
 
-- **Fecha:** 2026-09-26 · **Estado:** decidido con Felipe; **construido** en la rama `claude/frescura-3a-temporadas`, sin
-  pegar en producción (ver «Construcción»). Es el paso 3a del bloque 3 de ADR-0208.
+- **Fecha:** 2026-09-26 · **Estado:** decidido con Felipe y construido (PR #529). La migración `20260928100000` está
+  **pegada en producción por Felipe el 2026-09-27** y verificada (9 temporadas, 12 fechas, 3 llaves, 1 sola alta; huella md5 de las 13 funciones idéntica a la de local; orden diferido y RLS puestos). Es el paso 3a del bloque 3 de ADR-0208.
 - **Pedido:** Frescura del piso (ADR-0208) compara cuánto lleva cada prenda colgada contra lo normal de su categoría en
   su sede. Sin saber de qué temporada es la prenda, mezcla la blusa de verano con la chompa de invierno.
 - **Investigación:** `docs/investigacion/2026-09-26-temporadas-de-moda.md` (dos investigaciones con fuentes verificadas).
@@ -111,7 +111,7 @@
 
 ## Qué falta
 
-- Pegar la migración en producción (ver «Construcción», al final) y, después, publicar la web.
+- ~~Pegar la migración en producción~~ (hecho el 2026-09-27) y publicar la web (fusionar el PR #529).
 - Fechas desde el verano 2026-27: confirmarlas con SENAMHI cuando las publique (hoy vienen del Observatorio Naval de
   EE. UU.; la diferencia posible es de un minuto). Se corrigen en la pestaña (fuente «SENAMHI»), o con
   `fijar_fechas_temporada('[{"anio": …, "estacion": …, "inicio": …, "fuente": "senamhi"}]')`.
