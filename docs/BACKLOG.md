@@ -742,19 +742,14 @@ en `docs/adr/0018-local-first-sin-motor-de-sincronizacion.md`.
 - Cómo verificas: en `/vender`, `/vender/apartados` o `/cambios`, busca una prenda sin stock; repón su stock
   desde otra sesión/pestaña sin tocar esta pantalla; en ≤10 s (o al volver a la pestaña) ya se puede agregar.
 
-## 🩹 Ficha de clienta: no hay candado que agregar todavía — la edición ni existe (2026-09-25)
-Al revisar el pedido de Felipe de blindar la ficha de clienta contra dos ediciones a la vez (hallazgo de la
-auditoría de arriba): hoy `clientas` solo tiene `registrar_clienta` (alta) y `buscar_clienta` (búsqueda) en
-`lib/clientas-acciones.ts` — **no existe ninguna función para EDITAR una clienta ya creada**. El propio
-`app/(app)/clientas/page.tsx` lo dice: es solo para probar `buscar_clienta`/`registrar_clienta` a mano; "la
-captura real en el mostrador... la construye otra tanda de agentes después". La política RLS `clientas_update`
-de la migración `20260922140000` está provisionada pero nada la usa hoy, y la tabla tampoco tiene `updated_at`
-(verificado contra el Postgres local, `\d retail.clientas`). **No se tocó código: no hay nada que candar.**
-- [ ] Cuando se construya esa pantalla: un `for update` NO es la herramienta correcta acá (ese patrón sirve para
-      un read-modify-write numérico, como stock; el riesgo real es que dos personas editen la MISMA ficha con
-      formularios distintos y la segunda pise en silencio los campos que puso la primera). Necesita concurrencia
-      optimista: columna `updated_at` + trigger, y que la función de editar reciba el `updated_at` que el
-      formulario leyó y rechace si ya cambió ("alguien más editó esta ficha, vuelve a cargarla").
+## ✅ Ficha de clienta: el candado ya existe — `editar_clienta` con versión (2026-09-27, ADR-0249)
+El hallazgo del 2026-09-25 (abajo, tachado) queda resuelto en el paso 2 del acta de Clientas: ver esa sección
+más abajo para el detalle completo (editar, archivar/anonimizar, unir fichas).
+<!-- Hallazgo original (2026-09-25), por si hace falta el historial: hoy `clientas` solo tenía `registrar_clienta`
+(alta) y `buscar_clienta` (búsqueda) — no existía ninguna función para EDITAR una clienta ya creada. La política RLS
+`clientas_update` de la migración `20260922140000` estaba provisionada pero nada la usaba, y la tabla tampoco tenía
+`updated_at`. Nota de entonces: «un `for update` no es la herramienta correcta acá — necesita concurrencia
+optimista». Se usó `version` (ADR-0193 reusado), no `updated_at` — ver ADR-0249, «Decisión 1». -->
 
 ## 🩹 Análisis vuelve a abrirse al rol con el módulo (2026-09-25, regresión de #397) — migración `20260925223000` EN PRODUCCIÓN (Felipe la pegó el 2026-09-25; verificada en la base)
 El PR #397 recreó `fn_resumen_comparacion` copiando el cuerpo de un archivo viejo (`20260919220000`), y con él volvió
@@ -1554,13 +1549,28 @@ Tabla `retail.clientas` + RPC `buscar_clienta`/`registrar_clienta`. La FK de `ve
 - [ ] **Regenerar `packages/database/src/types.ts` de verdad** con `supabase gen types --local` cuando el stack local (Docker) esté arriba — esta
       sesión lo editó a mano porque Docker no estaba disponible; conviene confirmar que calza exacto.
 
-## 🎯 Clientas: el club de CAYLA — decidido, sin construir (2026-09-26, D-92 a D-111)
+## 🎯 Clientas: el club de CAYLA — paso 2 CONSTRUIDO (2026-09-27, ADR-0249), pasos 1/3/4 sin empezar
 Acta: `docs/datos/DECISIONES-2026-09-26-clientas.md`. Rumbo: club con nombre y sin puntos; la clienta se identifica en caja con DNI o
 celular; avisos por el WhatsApp de la tienda con un botón; permiso con «responde SÍ»; éxito = % de identificadas que vuelven en 90 días.
 Punto de partida en producción (2026-09-26, solo lectura): 0 clientas, 0 de 7 ventas ligadas, 4 boletas con el DNI como texto suelto.
 - [ ] **Felipe:** confirmar las dos correcciones de la sección F del acta (ajuste de taller fuera; «clientas nuevas identificadas» fuera del top 3) y responder las propuestas de la sección G.
-- [ ] **Paso 1 · Caja:** «DNI o celular» + la pregunta del club + «es para regalo» en el Punto de venta; la venta queda ligada. Reemplaza el pendiente «La pantalla de captura del mostrador» de la ficha v1, arriba.
-- [ ] **Pasos 2 a 4** · ficha y lista (grupo propio del menú), permiso y avisos (con grupo testigo), medir — detalle en la sección H del acta.
+- [ ] **Paso 1 · Caja** (sin empezar, ninguna rama lo tiene fusionado): «DNI o celular» + la pregunta del club + «es para regalo» en el Punto de venta; la venta queda ligada. Reemplaza el pendiente «La pantalla de captura del mostrador» de la ficha v1, arriba. El paso 2 (abajo) ya funciona sin él — con ventas de prueba — y funcionará igual con ventas reales apenas este paso aterrice.
+- [x] **Paso 2 · Ficha y lista — CONSTRUIDO (rama `claude/clientas-ficha-y-lista`, ADR-0249, sin fusionar).**
+      `/clientas` de verdad: buscar por DNI/celular, ficha con talla deducida (D-101), «te falta N para
+      frecuente» (D-103), compras/cambios/devoluciones/apartados LEÍDOS de sus tablas (cruzando sedes a
+      propósito — D-109), editar con candado optimista (`version`, ADR-0193 reusado, no `updated_at` nuevo),
+      archivar/anonimizar (Ley 29733, nunca `delete`), unir fichas (D-99, una transacción, rastro en
+      `retail.clientas_fusiones`) y exportar solo-Admin con rastro en `retail.actividad` (D-109/G.4). Menú:
+      nodo `clientas` de `futura` a `viva`, hoja de primer nivel (no grupo: un grupo de una sola hija repetía
+      su ícono, ver ADR-0249). Migraciones `20260928140000` a `180000` (5 partes, **sin pegar en producción**).
+      Verificado: Postgres desechable con las 341 migraciones + 15 escenarios de integración (incluida una
+      carrera real de concurrencia con dos conexiones) + `pnpm pruebas:clientas` (30/30) + `tsc`/`eslint`/
+      `vitest` (78 305 pruebas) + navegador con sesión real (Felipe admin, Micaela colaboradora) a 1440 px y
+      375 px contra un stack de Supabase aislado (nunca el Docker compartido). **Cómo lo verifica Felipe:**
+      busca por DNI y por celular, une dos fichas de prueba, y con una segunda sesión edita la misma ficha a
+      la vez para ver el aviso de «alguien más editó esto».
+- [ ] **Paso 3 · Permiso y avisos** (bienvenida «responde SÍ», bandeja «Avisar», grupo testigo) — sin empezar.
+- [ ] **Paso 4 · Medir** (% identificadas, vuelven en 90 días contra el testigo) — sin empezar.
 
 ## 🎯 Productos: las alertas de stock solo cuentan activas, «Stock total» y números que no mienten (2026-09-22, ADR-0151) — hecho en local, FALTA PEGAR 1 MIGRACIÓN EN PRODUCCIÓN
 Análisis completo en `docs/pantallas/productos.md` (12 tareas; Felipe eligió la opción A y ordenó la #1 a la #4).

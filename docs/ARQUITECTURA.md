@@ -600,12 +600,20 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   la Nota de Crédito si el comprobante está aceptado —ADR-0100— y el reembolso opcional; lo
   dañado entra a cuarentena) y `rechazar_devolucion`. Reglas puras en
   `lib/devoluciones-reglas.ts`. `?item=` abre el flujo sobre una prenda (desde y hacia Cambios).
-- `/clientas` (2026-09-22, ADR-0154, D-76/D-77; **pantalla mínima de verificación, sin
-  engancharse a `lib/menu.ts`** — la captura real en el mostrador es de otra tanda de
-  agentes) → `lib/clientas.ts:getClientas` (lectura server) → `ClientasPanel.tsx` (lista +
-  buscador + alta) → `lib/clientas-acciones.ts` → RPC `buscar_clienta` / `registrar_clienta`.
-  Reglas puras (tipo + mapeo de fila) en `lib/clientas-reglas.ts`, mismo criterio de
-  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`.
+- `/clientas` (2026-09-22, ADR-0154, D-76/D-77; paso 2 del acta CONSTRUIDO 2026-09-27,
+  ADR-0249, **migraciones `20260928140000` a `180000` sin pegar en producción** — el nodo
+  `clientas` del menú pasó de `futura` a `viva`) → `lib/clientas.ts:getClientas`/
+  `getFichaClienta` (lectura server) → `ClientasPanel.tsx` (lista + buscador + alta) +
+  `ClientaFichaModal.tsx` (ver/editar/archivar/unir, `<Modal variante="hoja">`) +
+  `NuevaClientaModal.tsx` → `lib/clientas-acciones.ts` → RPC `buscar_clienta`,
+  `registrar_clienta`, `editar_clienta` (candado optimista `version`, ADR-0193 reusado),
+  `archivar_clienta`/`reactivar_clienta`, `unir_clientas` (D-99), `exportar_clientas`
+  (solo Admin, D-109/G.4), `fn_clienta_compras/cambios/devoluciones/separaciones`
+  (`security definer`, cruzan sede a propósito). Talla deducida (D-101) y «te falta N
+  para frecuente» (D-103) calculadas al leer en `lib/clienta-actividad-reglas.ts`
+  (nunca guardadas). Reglas puras en `lib/clientas-reglas.ts`, mismo criterio de
+  separación server/cliente que `ventas-historial.ts`/`ventas-historial-reglas.ts`. El
+  paso 1 del acta (Caja liga la venta a la ficha) sigue sin fusionar.
 
 **Compras (V2, ADR-0035 — la factura del proveedor es el eje)**
 - `/compras/proveedores` → `lib/proveedores.ts:getProveedores` (RPC
@@ -936,6 +944,14 @@ venta sin conexión, `x-momento` en el `fetch`; la ruta los reenvía a Supabase 
   hallazgo»). `ventas.cliente_id` (ya existía) ahora referencia `clientas` vía
   `ventas_clienta_fk`. RLS: cualquier colaborador con sesión, sin noción de «mi
   clienta»; sin política de DELETE.
+  **Paso 2 del acta (2026-09-27, ADR-0249, migraciones `20260928140000` a `180000`,
+  sin pegar):** `version` (candado optimista, reusa `fn_subir_version()` de
+  ADR-0193 — no un `updated_at` nuevo), `archivada_en`/`archivada_por`/
+  `motivo_archivo`/`anonimizada`/`fusionada_en_id` (archivar/anonimizar/fusionar,
+  nunca `delete`), tabla nueva `clientas_fusiones` (append-only, snapshot completo
+  de la ficha perdedora antes de anonimizarla). FK real
+  `pedidos_no_atendidos.clienta_id → clientas.id` (la migración `20260922190000`
+  ya había dejado el SQL exacto escrito, `not valid` + `validate`).
 - **Compras**: `proveedores`, `ordenes_compra` / `ordenes_compra_items`.
 - **Producción** (V2 desde 2026-09-15, ADR-0052): `producciones` (por
   `ubicacion_id` del Taller —`ubicaciones.tipo = 'taller'`—; `cantidad_plan` vs
