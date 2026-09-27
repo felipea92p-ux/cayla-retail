@@ -21,10 +21,13 @@ export type RolVista = {
   /** ADR-0193: versión del rol al leerlo (sube con cada cambio del rol o de sus módulos). Se manda al guardar: si otra
    *  persona lo cambió entre medio, la base rechaza en vez de pisar sus módulos. */
   version: number;
+  /** A qué módulo aterriza esta cuenta al iniciar sesión (20260925220000), o `null` sin preferencia explícita: la web
+   *  calcula sola la primera pantalla que el rol ve (`aterrizajeDe`, `lib/menu.ts`). */
+  pantallaPrincipal: ClaveModulo | null;
 };
 
-/** Lo que esta pantalla guardó de un rol y la versión que devolvió la base (ADR-0193). */
-export type GuardadoLocal = { version: number; modulos: ClaveModulo[] };
+/** Lo que esta pantalla guardó de un rol y la versión que devolvió la base (ADR-0193; `pantallaPrincipal` desde 20260925220000). */
+export type GuardadoLocal = { version: number; modulos: ClaveModulo[]; pantallaPrincipal: ClaveModulo | null };
 
 /**
  * Los roles del servidor con lo que esta pantalla acaba de guardar encima, mientras el `router.refresh()` no trae la
@@ -35,7 +38,7 @@ export type GuardadoLocal = { version: number; modulos: ClaveModulo[] };
 export function conGuardadosLocales(roles: RolVista[], guardados: Readonly<Record<string, GuardadoLocal>>): RolVista[] {
   return roles.map((r) => {
     const g = guardados[r.id];
-    return g && g.version > r.version ? { ...r, version: g.version, modulos: g.modulos } : r;
+    return g && g.version > r.version ? { ...r, version: g.version, modulos: g.modulos, pantallaPrincipal: g.pantallaPrincipal } : r;
   });
 }
 
@@ -204,9 +207,10 @@ export function cuentasDelRol(cuentas: readonly CuentaConRol[], rolId: string): 
   return cuentas.filter((c) => c.rolId === rolId);
 }
 
-/** Las cuentas a las que se les puede dar este rol: todas menos uno mismo (nadie se cambia su propio rol: así nunca se
- *  queda la tienda sin líder), las que ya lo tienen y, si es el Líder o incluye Colaboradores o Roles y accesos (P6), las
- *  terminales. Misma regla que `asignar_rol` y el disparador de `retail.terminales`. */
+/** Las cuentas a las que se les puede dar este rol: todas menos uno mismo (nadie se cambia su propio rol sin ser Admin:
+ *  así nunca se queda la tienda sin líder — un Admin sí, 20260925210000: ya puede tocar a cualquier líder, incluido él
+ *  mismo), las que ya lo tienen y, si es el Líder o incluye Colaboradores o Roles y accesos (P6), las terminales. Misma
+ *  regla que `asignar_rol` y el disparador de `retail.terminales`. */
 export function cuentasAsignables(
   cuentas: readonly CuentaConRol[],
   rol: Pick<RolVista, "id" | "fijo" | "modulos">,
@@ -222,7 +226,7 @@ export function cuentasAsignables(
   // «Solo alcanzas a quien está por debajo de ti» (20260923174500): a esas personas no se les cambia el rol.
   return cuentas.filter(
     (c) =>
-      c.id !== yoId &&
+      (c.id !== yoId || soyAdmin) &&
       c.rolId !== rol.id &&
       !(sinTerminales && c.tipo === "terminal") &&
       (soyAdmin || !c.esLider) &&
@@ -241,6 +245,18 @@ export function pideUbicacion(cuenta: Pick<CuentaConRol, "esLider" | "ubicacion"
   return !!destino && cuenta.esLider && !destino.fijo && !cuenta.ubicacion;
 }
 
+/** Los módulos entre los que se puede elegir «pantalla principal» para un rol: los del borrador, en el orden del
+ *  catálogo (Inicio primero si lo tiene). El Líder no elige: siempre ve todo, aterriza en Inicio. */
+export function pantallasElegibles(borrador: readonly ClaveModulo[]): Modulo[] {
+  return MODULOS.filter((m) => borrador.includes(m.clave));
+}
+
+/** La pantalla principal elegida si el borrador todavía la tiene; si no (se apagó ese módulo), `null` — vuelve a «sin
+ *  preferencia», nunca se guarda una elección que ya no es válida. Misma regla que la base (`guardar_modulos_rol`). */
+export function pantallaPrincipalValida(elegida: ClaveModulo | null, borrador: readonly ClaveModulo[]): ClaveModulo | null {
+  return elegida && borrador.includes(elegida) ? elegida : null;
+}
+
 /* ------------------------------------------------------------------------------------------------------------------
  * Editor de roles rediseñado (spike `docs/maquetas/colaboradores-ux-spike-2026-09/`, aprobado por Felipe 2026-09-22).
  * ------------------------------------------------------------------------------------------------------------------ */
@@ -254,10 +270,11 @@ export function familiaDeRol(rol: Pick<RolVista, "clave" | "fijo" | "esSistema">
   return "a_medida";
 }
 
-/** El aviso de la lista de roles: «Solo Inicio» si deja cuentas sin ningún módulo, «Sin uso» si nadie lo tiene. */
-export function avisoDelRol(rol: Pick<RolVista, "fijo" | "archivado" | "modulos">, cuentas: number): "solo_inicio" | "sin_uso" | null {
+/** El aviso de la lista de roles: «Sin módulos» si deja cuentas sin ver nada (ni Inicio, desde 20260925220000), «Sin
+ *  uso» si nadie lo tiene. */
+export function avisoDelRol(rol: Pick<RolVista, "fijo" | "archivado" | "modulos">, cuentas: number): "sin_modulos" | "sin_uso" | null {
   if (rol.fijo || rol.archivado) return null;
-  if (cuentas > 0 && rol.modulos.length === 0) return "solo_inicio";
+  if (cuentas > 0 && rol.modulos.length === 0) return "sin_modulos";
   if (cuentas === 0) return "sin_uso";
   return null;
 }

@@ -56,7 +56,16 @@ import { IconoFamilia } from "@/components/IconoFamilia";
  * abre una vista de solo lectura (cualquier rol) con el conteo de
  * productos, subcategorías y los 3 ejes; "Editar" (solo Líder) recién ahí
  * entra al formulario de siempre, sin tocar ninguna de sus mutaciones.
+ *
+ * TEMPORADA POR DEFECTO (2026-09-26, ADR-0246). Cada categoría puede tener
+ * una («Ropa de baño» → Verano) que heredan sus prendas sin temporada propia.
+ * Aquí solo se MUESTRA: se elige en Atributos ▸ Temporadas, junto a la lista
+ * y a cuántas prendas la heredan (cambiarla las reclasifica todas a la vez, y
+ * esa cifra vive allá). Un solo lugar para cambiarla.
  */
+
+/** Dónde se elige la temporada de una categoría: la sección «por categoría» de la pestaña Temporadas (ADR-0246). */
+const HREF_TEMPORADAS = "/productos/atributos?tipo=temporadas#temporadas-por-categoria";
 
 type Categoria = {
   id: string;
@@ -98,6 +107,8 @@ export function CategoriasLista({
   ejesPorCategoria: ejesPorCategoriaInicial,
   familias,
   productosPorCategoria,
+  productosTotalesPorCategoria,
+  temporadaPorCategoria = null,
 }: {
   categoriasIniciales: Categoria[];
   puedeEditar: boolean;
@@ -105,6 +116,12 @@ export function CategoriasLista({
   ejesPorCategoria: EjesPorCategoria;
   familias: FamiliaOpcion[];
   productosPorCategoria: Record<string, number>;
+  /** Productos de cualquier estado por categoría (`n_total`): con uno solo el prefijo ya no cambia. Vacío si la base
+   *  todavía no lo devuelve — entonces el campo no se bloquea de antemano y el rechazo llega al guardar, como antes. */
+  productosTotalesPorCategoria: Record<string, number>;
+  /** categoriaId → nombre de su temporada por defecto (ADR-0246). `null` = la base todavía no tiene la lista: no se
+   *  dice nada de temporadas. Una categoría sin temporada no está en el mapa. */
+  temporadaPorCategoria?: Record<string, string> | null;
 }) {
   const etiquetaFamilia = (codigo: Familia) => familias.find((f) => f.codigo === codigo)?.nombre ?? codigo;
   const opcionesFamilia = familias.map((f) => ({ valor: f.codigo, texto: f.nombre }));
@@ -310,6 +327,11 @@ export function CategoriasLista({
   }
 
   const hijasDeEditada = editando && borrador ? hijasDe(borrador.id!) : [];
+  // El prefijo es la letra del código de cada prenda (BLU-0042-AZM-M): con un producto creado, de cualquier estado,
+  // ya no cambia. Se bloquea ANTES de escribir, con el mismo conteo que usa el candado de la base
+  // (`fn_categorias_vigencia_candados`), en vez de dejar tipearlo y rechazarlo al guardar.
+  const productosConEstePrefijo = editando && borrador ? productosTotalesPorCategoria[borrador.id!] ?? 0 : 0;
+  const prefijoFijo = productosConEstePrefijo > 0;
 
   return (
     <div className="space-y-3">
@@ -347,6 +369,7 @@ export function CategoriasLista({
                     c={c}
                     productos={productosPorCategoria[c.id] ?? 0}
                     subcategorias={hijasDe(c.id).length}
+                    temporada={temporadaPorCategoria?.[c.id] ?? null}
                     onClick={() => setViendoId(c.id)}
                   />
                 ))}
@@ -370,6 +393,7 @@ export function CategoriasLista({
           tallasHabituales={ejesPorCategoria.habituales[viendo.id] ?? []}
           tejidos={ejesPorCategoria.tejidos[viendo.id] ?? []}
           patrones={ejesPorCategoria.patrones[viendo.id] ?? []}
+          temporada={temporadaPorCategoria ? { nombre: temporadaPorCategoria[viendo.id] ?? null } : null}
           puedeEditar={puedeEditar}
           onClose={() => setViendoId(null)}
           onVerHija={(id) => setViendoId(id)}
@@ -391,7 +415,9 @@ export function CategoriasLista({
           titulo={editando ? "Editar categoría" : "Nueva categoría"}
           subtitulo={
             editando
-              ? "El prefijo ya no se puede cambiar si hay productos con esta categoría."
+              ? prefijoFijo
+                ? "El prefijo queda fijo: ya hay productos creados con este código."
+                : "El prefijo ya no se puede cambiar si hay productos con esta categoría."
               : "Queda disponible de inmediato en Productos."
           }
           ancho="max-w-xl"
@@ -437,7 +463,7 @@ export function CategoriasLista({
                 etiqueta="Nombre"
                 value={borrador.nombre}
                 onChange={(e) => setBorrador({ ...borrador, nombre: e.target.value })}
-                placeholder="Ej. Chalecos"
+                placeholder="Ej. Kimonos"
               />
               <CampoTexto
                 etiqueta="Prefijo (3 letras)"
@@ -445,7 +471,11 @@ export function CategoriasLista({
                 value={borrador.prefijo}
                 maxLength={3}
                 onChange={(e) => setBorrador({ ...borrador, prefijo: e.target.value.toUpperCase() })}
-                placeholder="CHA"
+                placeholder="KIM"
+                disabled={prefijoFijo}
+                title={prefijoFijo ? "Es la letra del código de cada prenda: ya está impreso en sus etiquetas." : undefined}
+                className={prefijoFijo ? "cursor-not-allowed text-tinta/65" : ""}
+                pie={prefijoFijo ? `Fijo: ${productosConEstePrefijo === 1 ? "1 producto lo usa" : `${productosConEstePrefijo.toLocaleString("es-PE")} productos lo usan`}` : undefined}
               />
             </div>
 
@@ -459,6 +489,17 @@ export function CategoriasLista({
                 className="w-full resize-none rounded-md border border-tinta/15 bg-papel px-2.5 py-2 text-sm text-tinta outline-none placeholder:text-tinta/45 focus:border-rojo/50"
               />
             </Campo>
+
+            {editando && temporadaPorCategoria && borrador.id && (
+              <p className="text-xs text-tinta/65">
+                Temporada por defecto: <span className="font-medium text-tinta">{temporadaPorCategoria[borrador.id] ?? "sin temporada"}</span>.{" "}
+                Se elige en{" "}
+                <Link href={HREF_TEMPORADAS} className="underline underline-offset-2 hover:text-rojo">
+                  Atributos ▸ Temporadas
+                </Link>
+                .
+              </p>
+            )}
           </div>
 
           {editando && !borrador.categoriaPadreId && (
@@ -639,7 +680,14 @@ export function CategoriasLista({
               >
                 <span className="rounded bg-sand px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-tinta/50">{c.prefijo ?? "—"}</span>
                 {c.nombre}
-                {puedeEditar && (
+                {/* Sin familia o sin prefijo no hay nada que reactivar: quedaría activa, sin código y fuera de toda
+                    sección. La base lo rechaza igual (`fn_categorias_vigencia_candados`); acá no se ofrece el botón. */}
+                {puedeEditar && (!c.familia || !c.prefijo) && (
+                  <span className="text-[11px] text-tinta/65" title="Le falta la familia o el prefijo. Para usarla, crea una categoría nueva.">
+                    No se reactiva
+                  </span>
+                )}
+                {puedeEditar && c.familia && c.prefijo && (
                   <Boton
                     peso="discreto"
                     className="px-2 py-1 text-[10.5px]"
@@ -669,11 +717,14 @@ function TarjetaCategoria({
   c,
   productos,
   subcategorias,
+  temporada,
   onClick,
 }: {
   c: Categoria;
   productos: number;
   subcategorias: number;
+  /** Nombre de su temporada por defecto (ADR-0246), o null si no tiene. */
+  temporada: string | null;
   onClick: () => void;
 }) {
   return (
@@ -692,6 +743,7 @@ function TarjetaCategoria({
           {subcategorias > 0 ? `${subcategorias} sub · ` : ""}
           {productos === 0 ? "sin productos" : `${productos} ${productos === 1 ? "producto" : "productos"}`}
         </p>
+        {temporada && <p className="mt-0.5 text-[11px] text-taupe">{temporada}</p>}
       </div>
     </button>
   );
@@ -712,6 +764,7 @@ function VistaRapidaCategoria({
   tallasHabituales,
   tejidos,
   patrones,
+  temporada,
   puedeEditar,
   onClose,
   onVerHija,
@@ -728,6 +781,8 @@ function VistaRapidaCategoria({
   tallasHabituales: string[];
   tejidos: ValorVocabulario[];
   patrones: ValorVocabulario[];
+  /** Su temporada por defecto (`nombre` null = no tiene). `null` = la base todavía no tiene la lista: no se muestra. */
+  temporada: { nombre: string | null } | null;
   puedeEditar: boolean;
   onClose: () => void;
   onVerHija: (id: string) => void;
@@ -782,6 +837,24 @@ function VistaRapidaCategoria({
           <GrupoEjes titulo="Tallas" valores={tallas} marcados={tallasHabituales} />
           <GrupoEjes titulo="Tejidos" valores={tejidos} />
           <GrupoEjes titulo="Patrones" valores={patrones} />
+
+          {temporada && (
+            <div>
+              <p className="label-cayla text-[10.5px] text-tinta/55">Temporada por defecto</p>
+              <p className="mt-1 text-sm text-tinta">{temporada.nombre ?? "Sin temporada"}</p>
+              <p className="mt-0.5 text-xs text-tinta/60">
+                La heredan sus prendas que no tienen la suya.
+                {puedeEditar && (
+                  <>
+                    {" "}
+                    <Link href={HREF_TEMPORADAS} className="underline underline-offset-2 hover:text-rojo">
+                      {temporada.nombre ? "Cambiarla" : "Elegirla"} en Atributos ▸ Temporadas
+                    </Link>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
 
           {categoria.notas && (
             <div>

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
-import { CampoMonto, CampoTexto } from "@/components/ui/campos";
+import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
@@ -25,6 +25,8 @@ import { MatrizCantidades } from "@/components/alta-producto/MatrizCantidades";
 import { FichaPrevia } from "@/components/alta-producto/FichaPrevia";
 import { FAMILIAS_COLOR } from "@/lib/colores-familias";
 import { useParecidos } from "@/lib/use-parecidos";
+import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
+import { temporadaParaAlta } from "@/lib/temporada-ficha-reglas";
 import { repartirEtiquetas, unirEtiquetas } from "@/lib/etiquetas-alta-reglas";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -89,8 +91,9 @@ import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 // `producto_fotos_write_lider` (fn_puede_editar_catalogo) es la misma que exige esta pantalla.
 //
 // Al guardar NO se vuelve a la lista: aparece una pantalla de éxito con tres salidas — fotos, crear otro parecido,
-// ir a productos. «Otro parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, precio, costo y
-// etiquetas y limpia nombre, descripción, colores y fotos: una colección son 10 prendas casi iguales.
+// ir a productos. «Otro parecido» conserva categoría, marca, proveedor, tallas, tejido, patrón, temporada, precio, costo
+// y etiquetas y limpia nombre, descripción, colores y fotos: una colección son 10 prendas casi iguales (y de la misma
+// temporada, ADR-0246).
 //
 // El token de idempotencia nace con el formulario (useRef): si la red falla a
 // mitad y se reintenta, la base devuelve el mismo producto y no crea un segundo.
@@ -138,6 +141,8 @@ export function NuevoProductoForm({
   const [tallasElegidas, setTallasElegidas] = useState<string[]>([]);
   const [tejidoId, setTejidoId] = useState("");
   const [patronId, setPatronId] = useState("");
+  // ADR-0246: opcional. Vacío (SIN_PROPIA) = sigue a su categoría; solo una elegida viaja como `p_temporada`.
+  const [temporada, setTemporada] = useState(SIN_PROPIA);
   const [coloresElegidos, setColoresElegidos] = useState<string[]>([]);
   const [fotos, setFotos] = useState<FotoPendiente[]>([]);
   const [precioBase, setPrecioBase] = useState("");
@@ -184,6 +189,10 @@ export function NuevoProductoForm({
   const patronesCategoria = ejes.patrones[categoriaId] ?? [];
   const habituales = ejes.habituales[categoriaId] ?? [];
   const tallaTexto = (id: string) => tallasCategoria.find((t) => t.id === id)?.texto ?? "";
+  // La temporada de la categoría ELEGIDA: es lo que hereda la prenda si no se elige otra (ADR-0246).
+  const listaTemporadas = contexto.temporadas?.lista ?? [];
+  const temporadaCategoria = nombreTemporada(listaTemporadas, contexto.temporadas?.porCategoria[categoriaId]);
+  const opcionesTemporadaAlta = opcionesTemporada(listaTemporadas, { nombre: temporadaCategoria, de: "categoría" });
   // Las elegidas en el orden de la curva (S, M, L), no en el orden en que se tocaron.
   const tallasOrdenadas = tallasCategoria.filter((t) => tallasElegidas.includes(t.id));
 
@@ -400,6 +409,8 @@ export function NuevoProductoForm({
       p_tejido_id: tejidoId || undefined,
       p_patron_id: patronId || undefined,
       p_confirmo_distinto: confirmo,
+      // Solo si se eligió una: sin la clave, la base (aun la que todavía no tiene el SQL de temporadas) crea igual.
+      p_temporada: temporadaParaAlta(temporada),
       p_etiqueta_ids: etiquetasAManda.length > 0 ? etiquetasAManda : undefined,
       p_marca_id: marcaId,
       p_proveedor_id: proveedorId,
@@ -559,6 +570,7 @@ export function NuevoProductoForm({
       tallasOrdenadas.map((t) => t.texto).join(" "),
       tejidosCategoria.find((t) => t.id === tejidoId)?.texto,
       patronesCategoria.find((t) => t.id === patronId)?.texto,
+      temporada !== SIN_PROPIA ? nombreTemporada(listaTemporadas, temporada) : temporadaCategoria ? `${temporadaCategoria} (de su categoría)` : null,
       coloresElegidos.length ? `${coloresElegidos.length} color${coloresElegidos.length === 1 ? "" : "es"}` : "sin color",
       nombresEtiquetas.join(", "),
       fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : null,
@@ -751,6 +763,22 @@ export function NuevoProductoForm({
               )}
             </FilaAlta>
           )}
+
+          <FilaAlta etiqueta="Temporada" ayuda="Opcional">
+            {contexto.temporadas ? (
+              <div className="max-w-sm space-y-1">
+                <CampoSelect etiqueta="Temporada" caja id="temporada-producto" valor={temporada} onValor={setTemporada} opciones={opcionesTemporadaAlta} />
+                <p className="text-xs text-taupe">
+                  Sin año: el sistema lo sabe por la fecha en que llega a la tienda. Si un color es de otra temporada, se ajusta después en la ficha.
+                </p>
+              </div>
+            ) : (
+              <p className="pt-2 text-xs text-taupe">
+                La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Podrás ponerla después, desde la ficha del
+                producto.
+              </p>
+            )}
+          </FilaAlta>
 
           <FilaAlta
             etiqueta="Colores"
@@ -959,8 +987,8 @@ export function NuevoProductoForm({
           )}
           {copiadoDe && (
             <AvisoInline tono="neutro">
-              Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, el precio, el
-              costo y las etiquetas. Cambia lo que sea distinto.
+              Empiezas desde <strong>{copiadoDe}</strong>: mantuve la categoría, la marca y el proveedor, las tallas, el tejido, el patrón, la
+              temporada, el precio, el costo y las etiquetas. Cambia lo que sea distinto.
             </AvisoInline>
           )}
           {PASOS_ALTA.map((n) => (

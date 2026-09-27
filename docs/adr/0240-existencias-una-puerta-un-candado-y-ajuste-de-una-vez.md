@@ -2,7 +2,8 @@
 
 - **Fecha:** 2026-09-26 · **Estado:** fusionado (PR #514) y publicado. **Producción:** `20260927180000` y
   `20260927180100` **aplicadas el 2026-09-26** (ver «Aplicación en producción», al final); `20260927180200` (los
-  `revoke`) **todavía no**.
+  `revoke`) **pegada por Felipe el 2026-09-26** y verificada (`has_function_privilege` de `authenticated` sobre
+  `mover_interno` y `apartar_stock` = `false`).
 - **Pedido:** análisis `/pantalla` de Existencias (`docs/pantallas/inventario.md`). Felipe ordenó la tarea **#3 con la
   opción A** y la **#1**.
 - **Migraciones:**
@@ -154,8 +155,8 @@
    - `ajustar_inventario` sin marca responde `ajuste_sin_token` y no guarda nada.
 
 **Sigue pendiente:**
-- `20260927180200` (quitarles el permiso de ejecución desde el navegador a `mover_interno` y `apartar_stock`). No
-  rompe nada si se pega: la web ya usa las puertas nuevas.
+- ~~`20260927180200`~~: pegada por Felipe el 2026-09-26 y verificada (las dos piezas internas ya no se ejecutan desde
+  el navegador). Antes se comprobó que ninguna pantalla de `main` las llamaba directo.
 - **Roles, consultado en vivo el 2026-09-26:**
   - «Integrante» (17 cuentas) tiene Existencias, «Bajada al piso» y «Apartados»: no pierde nada.
   - «Terminal Almacén» y «Terminal de ventas» ven Existencias **sin** «Bajada al piso» ni «Apartados». Con la web

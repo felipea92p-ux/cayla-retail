@@ -5,6 +5,8 @@ import type { Database } from "@cayla-retail/database";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { fotoDeVariante, type FotoCruda } from "@/lib/producto-fotos-reglas";
+import { agruparSinTemporada, type Temporada, type TemporadaEfectiva } from "@/lib/temporada-reglas";
+import { temporadasPropiasPorColor } from "@/lib/temporada-ficha-reglas";
 
 // Catálogo V2: `productos` + `variantes` + `categorias` + `colores` +
 // `codigos_barras`. No es una edición de `catalogo.ts` (V1) — ese archivo
@@ -463,8 +465,12 @@ export type ProductoDetalle = {
   estadoAlta: "pendiente" | "aprobado" | "rechazado";
   /** Umbral de "stock bajo" en /productos (20260915160000). Null = sin umbral. */
   stockMinimo: number | null;
-  /** Texto libre ("Verano 26"). Null = sin temporada (20260915224500). */
+  /** Clave de la lista cerrada (`verano`, `otono_invierno`…, ADR-0246). Null = sin temporada propia: hereda la de su
+   *  categoría (y si tampoco tiene, la prenda queda «Sin temporada»). Antes del 2026-09-26 era texto libre. */
   temporada: string | null;
+  /** Lo que la ficha necesita para elegir la temporada (ADR-0246). `null` = la base todavía no tiene la lista (el SQL
+   *  de temporadas sin pegar): la ficha lo dice en una nota y no toca la temporada. */
+  temporadas: FichaTemporadas | null;
   /** Si es true, el producto puede venderse aunque el stock marque 0 (20260915224500). */
   permitirVentaSinStock: boolean;
   /** Atributo del producto, no de la variante — no cambia entre tallas (20260917100100). */
@@ -507,7 +513,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
 
   if (error) throw new Error(`No se pudo cargar el producto: ${error.message}`);
   if (!data) return null;
-  const costos = await getCostosVariantes((data.variantes ?? []).map((v) => v.id));
+  const [costos, temporadas] = await Promise.all([getCostosVariantes((data.variantes ?? []).map((v) => v.id)), getFichaTemporadas(id)]);
 
   return {
     id: data.id,
@@ -519,6 +525,7 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     codigo: data.codigo,
     stockMinimo: data.stock_minimo,
     temporada: data.temporada,
+    temporadas,
     permitirVentaSinStock: data.permitir_venta_sin_stock,
     tejidoId: data.tejido_id,
     tejido: data.tejido?.nombre ?? null,
@@ -547,6 +554,76 @@ export async function getProducto(id: string): Promise<ProductoDetalle | null> {
     })),
     version: data.version,
   };
+}
+
+// ============================================================================
+// Temporadas (ADR-0246). Todo se lee por RPC `security definer` (las tablas nuevas no tienen privilegios para la web)
+// y TODO es tolerante: la web puede publicarse antes que el SQL, y una lectura de temporadas que falla deja la pantalla
+// sin temporadas —con una nota—, nunca la tumba. La regla de cuál es la temporada de una prenda (color → producto →
+// categoría) NO se calcula aquí: la resuelve `fn_temporada_efectiva` y aquí solo se lee.
+// ============================================================================
+
+/** La lista cerrada y la temporada por defecto de cada categoría: lo que necesita cualquier desplegable de temporada. */
+export type TemporadasCatalogo = {
+  /** Las 9 temporadas, en su orden (`fn_temporadas`). */
+  lista: Temporada[];
+  /** categoriaId → clave de su temporada por defecto. Solo las categorías que tienen una. */
+  porCategoria: Record<string, string>;
+};
+
+/** Lo de temporadas que la ficha de UNA prenda necesita, además de la lista. */
+export type FichaTemporadas = TemporadasCatalogo & {
+  /** color → clave de su temporada propia (la excepción ya guardada). Un color que sigue a su prenda no está.
+   *  `null` = no se pudo leer (`fn_temporada_efectiva` falló): la ficha no ofrece la temporada por color, porque sin
+   *  saber lo guardado mostraría «Igual que su prenda» sobre una excepción que sí existe. */
+  porColor: Record<string, string> | null;
+};
+
+/**
+ * `null` si la base todavía no tiene la lista (SQL de temporadas sin pegar) o CUALQUIERA de las dos lecturas falló.
+ * Las dos o ninguna: sin la temporada de las categorías, la ficha y el alta ofrecerían «Sin temporada» en vez de «Igual
+ * que su categoría (Verano)», y quien lo viera le pondría una a mano a una prenda que ya heredaba la suya.
+ */
+export async function getTemporadasCatalogo(): Promise<TemporadasCatalogo | null> {
+  const supabase = await createClient();
+  const [resLista, resCategorias] = await Promise.all([
+    supabase.rpc("fn_temporadas"),
+    // Aparte de la consulta de categorías de cada pantalla: si esta columna aún no existe, falla SOLO esta lectura.
+    supabase.from("categorias").select("id, temporada").not("temporada", "is", null),
+  ]);
+  if (resLista.error || !resLista.data || resLista.data.length === 0) return null;
+  if (resCategorias.error || !resCategorias.data) return null;
+  const porCategoria: Record<string, string> = {};
+  for (const c of resCategorias.data) if (c.temporada) porCategoria[c.id] = c.temporada;
+  return { lista: resLista.data as Temporada[], porCategoria };
+}
+
+async function getFichaTemporadas(productoId: string): Promise<FichaTemporadas | null> {
+  const supabase = await createClient();
+  const [catalogo, resEfectiva] = await Promise.all([getTemporadasCatalogo(), supabase.rpc("fn_temporada_efectiva", { p_producto_id: productoId })]);
+  if (!catalogo) return null;
+  return {
+    ...catalogo,
+    porColor: resEfectiva.error || !resEfectiva.data ? null : temporadasPropiasPorColor(resEfectiva.data as TemporadaEfectiva[]),
+  };
+}
+
+/**
+ * Cuántas prendas activas no tienen temporada (ni propia, ni en algún color, ni por su categoría): el aviso plegado de
+ * /productos para quien edita el catálogo. `null` si no se pudo saber (SQL sin pegar, o la lectura falló): entonces el
+ * aviso no se muestra, en vez de decir «0» sin saberlo.
+ *
+ * Números: una fila por modelo+color activo — hoy unas 400 (1.295 variantes / ~3 tallas), en 3 años unas 3.000. Pasa
+ * de las 1.000 que entrega PostgREST por página: se lee paginado, en serie (casi siempre cabe en una).
+ */
+export async function getSinTemporadaResumen(): Promise<{ prendas: number } | null> {
+  const supabase = await createClient();
+  const res = await leerTodas(
+    (desde, hasta) => supabase.rpc("fn_temporada_efectiva").order("producto_id").order("color_codigo").range(desde, hasta),
+    { enParalelo: 1 },
+  );
+  if (res.error || !res.data) return null;
+  return { prendas: agruparSinTemporada(res.data as TemporadaEfectiva[]).length };
 }
 
 export type ValorVocabulario = { id: string; texto: string };
