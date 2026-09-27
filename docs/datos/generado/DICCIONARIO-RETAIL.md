@@ -5,7 +5,7 @@
 > «Para qué sirve», que vive en `glosario.json` y este generador respeta.
 >
 > **Origen:** `volcado de producción (retail_*.json)`
-> **Leído el:** 2026-09-27 12:50:08 UTC
+> **Leído el:** 2026-09-27 13:09:00 UTC
 > **Tablas y vistas encontradas:** 138
 > **Funciones en `retail`:** 624 (las firmas, en `funciones-produccion.txt`)
 >
@@ -871,6 +871,78 @@
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
 
+### `temporada_fechas`
+
+*6 columnas · ~12 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `anio` | smallint | **no** | — | — |
+| `estacion` | text | **no** | — | — |
+| `inicio` | timestamp with time zone | **no** | — | — |
+| `fuente` | text | **no** | — | — |
+| `actualizado_por` | uuid | sí | — | — |
+| `actualizado_en` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `temporada_fechas_anio_check` — `CHECK (((anio >= 2024) AND (anio <= 2100)))`
+- `temporada_fechas_cerca_de_su_estacion` — `CHECK ((abs((((inicio AT TIME ZONE 'America/Lima'::text))::date - make_date((anio)::integer, CASE estacion     WHEN 'otono'::text THEN 3     WHEN 'invierno'::text THEN 6     WHEN 'primavera'::text THEN 9     ELSE 12 END, 21))) <= 60))`
+- `temporada_fechas_estacion_check` — `CHECK ((estacion = ANY (ARRAY['otono'::text, 'invierno'::text, 'primavera'::text, 'verano'::text])))`
+- `temporada_fechas_fuente_check` — `CHECK ((fuente = ANY (ARRAY['senamhi'::text, 'usno'::text, 'ajustada'::text])))`
+- `temporada_fechas_inicio_unico` — `UNIQUE (inicio)`
+
+**De qué depende:** `(actualizado_por) REFERENCES personas(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `temporadas`
+
+*7 columnas · ~9 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `clave` | text | **no** | — | — |
+| `nombre` | text | **no** | — | — |
+| `orden` | smallint | **no** | — | — |
+| `es_clasico` | boolean | **no** | `false` | — |
+| `estacion_desde` | text | sí | — | — |
+| `estacion_hasta` | text | sí | — | — |
+| `mitad` | text | sí | — | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `temporadas_clave_check` — `CHECK ((clave ~ '^[a-z][a-z_]*$'::text))`
+- `temporadas_estacion_desde_check` — `CHECK ((estacion_desde = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))`
+- `temporadas_estacion_hasta_check` — `CHECK ((estacion_hasta = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))`
+- `temporadas_moda_con_ventana` — `CHECK ((es_clasico OR (estacion_desde IS NOT NULL)))`
+- `temporadas_nombre_check` — `CHECK (((length(btrim(nombre)) >= 1) AND (length(btrim(nombre)) <= 40)))`
+- `temporadas_nombre_key` — `UNIQUE (nombre)`
+- `temporadas_orden_key` — `UNIQUE (orden)`
+- `temporadas_ventana_completa` — `CHECK (((estacion_desde IS NULL) = (estacion_hasta IS NULL)))`
+- `temporadas_ventana_en_su_mitad` — `CHECK (((estacion_desde IS NULL) OR (((((((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'verano'::text)) OR ((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'verano'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'invierno'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'primavera'::text))) OR ((estacion_desde = 'invierno'::text) AND (estacion_hasta = 'primavera'::text)))))`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `producto_color_temporadas`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `producto_id` | uuid | **no** | — | — |
+| `color_codigo` | text | **no** | — | — |
+| `temporada` | text | **no** | — | — |
+| `asignado_por` | uuid | sí | — | — |
+| `asignado_en` | timestamp with time zone | **no** | `now()` | — |
+
+**De qué depende:** `(asignado_por) REFERENCES personas(id)` · `(color_codigo) REFERENCES retail.colores(codigo)` · `(producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE` · `(temporada) REFERENCES retail.temporadas(clave)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
 
 ## 05 · Halcón — Inventario y movimientos
 
@@ -1315,6 +1387,27 @@
 - `movimientos_internos_intentos_movimiento_id_key` — `UNIQUE (movimiento_id)`
 
 **De qué depende:** `(movimiento_id) REFERENCES retail.movimientos(id)`
+
+**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
+
+
+### `ajustes_inventario_intentos`
+
+*5 columnas · ~0 filas · permisos por fila **activos***
+
+| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
+|---|---|---|---|---|
+| `token_cliente` | uuid | **no** | — | — |
+| `ubicacion_id` | uuid | **no** | — | — |
+| `huella` | text | **no** | — | — |
+| `resultado` | jsonb | **no** | — | — |
+| `created_at` | timestamp with time zone | **no** | `now()` | — |
+
+**Candados** — lo que esta tabla hace imposible:
+
+- `ajustes_inventario_intentos_huella_check` — `CHECK ((length(huella) = 32))`
+
+**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
@@ -4264,107 +4357,6 @@
 - `actividad_origen_check` — `CHECK ((origen = ANY (ARRAY['vivo'::text, 'carga_inicial'::text])))`
 
 **De qué depende:** `(modulo) REFERENCES retail.modulos(clave)` · `(persona_id) REFERENCES personas(id)` · `(terminal_id) REFERENCES retail.terminales(id)` · `(ubicacion_destino_id) REFERENCES retail.ubicaciones(id)` · `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
-
-
-
-## Sin módulo asignado
-
-> Estas tablas existen en la base y **no tienen pájaro** en `scripts/datos/aviario.mjs`,
-> y `pnpm datos:aviario` falla mientras sigan acá.
-> Eso siempre significa una de dos cosas: el mapa se quedó viejo, o alguien creó una
-> tabla sin decidir de quién es. Las dos hay que resolverlas, no ignorarlas.
-
-### `ajustes_inventario_intentos`
-
-*5 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `token_cliente` | uuid | **no** | — | — |
-| `ubicacion_id` | uuid | **no** | — | — |
-| `huella` | text | **no** | — | — |
-| `resultado` | jsonb | **no** | — | — |
-| `created_at` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `ajustes_inventario_intentos_huella_check` — `CHECK ((length(huella) = 32))`
-
-**De qué depende:** `(ubicacion_id) REFERENCES retail.ubicaciones(id)`
-
-**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
-
-
-### `producto_color_temporadas`
-
-*5 columnas · ~0 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `producto_id` | uuid | **no** | — | — |
-| `color_codigo` | text | **no** | — | — |
-| `temporada` | text | **no** | — | — |
-| `asignado_por` | uuid | sí | — | — |
-| `asignado_en` | timestamp with time zone | **no** | `now()` | — |
-
-**De qué depende:** `(asignado_por) REFERENCES personas(id)` · `(color_codigo) REFERENCES retail.colores(codigo)` · `(producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE` · `(temporada) REFERENCES retail.temporadas(clave)`
-
-**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
-
-
-### `temporada_fechas`
-
-*6 columnas · ~12 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `anio` | smallint | **no** | — | — |
-| `estacion` | text | **no** | — | — |
-| `inicio` | timestamp with time zone | **no** | — | — |
-| `fuente` | text | **no** | — | — |
-| `actualizado_por` | uuid | sí | — | — |
-| `actualizado_en` | timestamp with time zone | **no** | `now()` | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `temporada_fechas_anio_check` — `CHECK (((anio >= 2024) AND (anio <= 2100)))`
-- `temporada_fechas_cerca_de_su_estacion` — `CHECK ((abs((((inicio AT TIME ZONE 'America/Lima'::text))::date - make_date((anio)::integer, CASE estacion     WHEN 'otono'::text THEN 3     WHEN 'invierno'::text THEN 6     WHEN 'primavera'::text THEN 9     ELSE 12 END, 21))) <= 60))`
-- `temporada_fechas_estacion_check` — `CHECK ((estacion = ANY (ARRAY['otono'::text, 'invierno'::text, 'primavera'::text, 'verano'::text])))`
-- `temporada_fechas_fuente_check` — `CHECK ((fuente = ANY (ARRAY['senamhi'::text, 'usno'::text, 'ajustada'::text])))`
-- `temporada_fechas_inicio_unico` — `UNIQUE (inicio)`
-
-**De qué depende:** `(actualizado_por) REFERENCES personas(id)`
-
-**Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
-
-
-### `temporadas`
-
-*7 columnas · ~9 filas · permisos por fila **activos***
-
-| Columna | Tipo | Acepta vacío | Por defecto | Para qué sirve |
-|---|---|---|---|---|
-| `clave` | text | **no** | — | — |
-| `nombre` | text | **no** | — | — |
-| `orden` | smallint | **no** | — | — |
-| `es_clasico` | boolean | **no** | `false` | — |
-| `estacion_desde` | text | sí | — | — |
-| `estacion_hasta` | text | sí | — | — |
-| `mitad` | text | sí | — | — |
-
-**Candados** — lo que esta tabla hace imposible:
-
-- `temporadas_clave_check` — `CHECK ((clave ~ '^[a-z][a-z_]*$'::text))`
-- `temporadas_estacion_desde_check` — `CHECK ((estacion_desde = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))`
-- `temporadas_estacion_hasta_check` — `CHECK ((estacion_hasta = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))`
-- `temporadas_moda_con_ventana` — `CHECK ((es_clasico OR (estacion_desde IS NOT NULL)))`
-- `temporadas_nombre_check` — `CHECK (((length(btrim(nombre)) >= 1) AND (length(btrim(nombre)) <= 40)))`
-- `temporadas_nombre_key` — `UNIQUE (nombre)`
-- `temporadas_orden_key` — `UNIQUE (orden)`
-- `temporadas_ventana_completa` — `CHECK (((estacion_desde IS NULL) = (estacion_hasta IS NULL)))`
-- `temporadas_ventana_en_su_mitad` — `CHECK (((estacion_desde IS NULL) OR (((((((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'verano'::text)) OR ((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'verano'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'invierno'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'primavera'::text))) OR ((estacion_desde = 'invierno'::text) AND (estacion_hasta = 'primavera'::text)))))`
 
 **Quién puede qué:** ninguna política. Con permisos por fila activos y sin política, **los clientes no pueden leer ni escribir esta tabla**: el único camino es una función `security definer`. Si eso es a propósito, es un candado fuerte; si no, es una tabla inaccesible.
 
