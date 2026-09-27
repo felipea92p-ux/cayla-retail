@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
+Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
+- [x] Campo «Etiquetas» en el paso 2 (`ElegirEtiquetas.tsx`): buscar, elegir varias con chips y ✕, Retroceso quita la última, «+ Crear «X»» con el combo Responsable. Fila «Etiquetas» en la ficha de la derecha y en la línea del paso 2 plegado. Quita el enlace escondido del paso 4.
+- [x] Reglas puras y probadas en `lib/etiquetas-alta-reglas.ts` (26 casos); frase nueva para `etiquetas_clave_unica` en `lib/error-escritura.ts`.
+- [x] Quien no es líder no ve las etiquetas con descuento (la base las rechazaba con «Solo un líder puede asignar una etiqueta con descuento»: antes el alta chocaba al final).
+- [ ] **Felipe, en producción tras el despliegue:** crear una prenda con 2 etiquetas y comprobar en Productos ▸ Editar que quedaron en todas las variantes; probar «+ Crear» con tu cuenta (queda aprobada) y con una de colaboradora (queda pendiente en Atributos ▸ Etiquetas).
+- [ ] Pendiente sin decidir: si una etiqueta se desactiva mientras alguien llena el formulario, el alta se rechaza con «Recarga la pantalla» y se pierde lo llenado (ya pasaba; este cambio no lo empeora).
+
 ## 🩹 Aprobar una etiqueta propuesta fallaba: la pantalla no pedía el comentario que la base exige (2026-09-26, ADR-0095 act.) — solo web + prueba, sin migración; rama `claude/youthful-gagarin-97a394`
 - [x] `EtiquetasLista.tsx`: «Aprobar» (pendiente) y «Reactivar» (rechazada) abren una ventana con «Comentario (obligatorio)» y el combo Responsable, y mandan `{ id, estado: "aprobado", notas }`. Reactivar una etiqueta solo desactivada no cambia (confirmación corta, sin comentario: no cambia de estado). Piezas puras y textos: `lib/etiqueta-aprobacion-reglas.ts` (+ su prueba).
 - [x] Aviso al proponer corregido: ya no dice «ya la puedes usar… no te frena»; dice que un Líder tiene que aprobarla antes de ponerla en una prenda (el alta y «Prendas» solo aceptan aprobadas y activas; lo prueba la base).
