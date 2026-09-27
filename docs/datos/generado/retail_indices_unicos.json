@@ -790,6 +790,11 @@
   "tablename": "producciones"
  },
  {
+  "indexdef": "CREATE UNIQUE INDEX producto_color_temporadas_pkey ON retail.producto_color_temporadas USING btree (producto_id, color_codigo)",
+  "indexname": "producto_color_temporadas_pkey",
+  "tablename": "producto_color_temporadas"
+ },
+ {
   "indexdef": "CREATE UNIQUE INDEX producto_fotos_pkey ON retail.producto_fotos USING btree (id)",
   "indexname": "producto_fotos_pkey",
   "tablename": "producto_fotos"
@@ -1028,6 +1033,31 @@
   "indexdef": "CREATE UNIQUE INDEX tejidos_pkey ON retail.tejidos USING btree (id)",
   "indexname": "tejidos_pkey",
   "tablename": "tejidos"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX temporada_fechas_inicio_unico ON retail.temporada_fechas USING btree (inicio)",
+  "indexname": "temporada_fechas_inicio_unico",
+  "tablename": "temporada_fechas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX temporada_fechas_pkey ON retail.temporada_fechas USING btree (anio, estacion)",
+  "indexname": "temporada_fechas_pkey",
+  "tablename": "temporada_fechas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX temporadas_nombre_key ON retail.temporadas USING btree (nombre)",
+  "indexname": "temporadas_nombre_key",
+  "tablename": "temporadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX temporadas_orden_key ON retail.temporadas USING btree (orden)",
+  "indexname": "temporadas_orden_key",
+  "tablename": "temporadas"
+ },
+ {
+  "indexdef": "CREATE UNIQUE INDEX temporadas_pkey ON retail.temporadas USING btree (clave)",
+  "indexname": "temporadas_pkey",
+  "tablename": "temporadas"
  },
  {
   "indexdef": "CREATE UNIQUE INDEX terminales_auth_user_id_key ON retail.terminales USING btree (auth_user_id)",

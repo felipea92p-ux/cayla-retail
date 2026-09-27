@@ -53,10 +53,13 @@ del archivo — ni siquiera a la parte que sigue siendo cierta.
 
 Todo esto vive en [`generado/`](generado/) y **nadie lo edita a mano**.
 
-> **De dónde salió la foto de hoy.** El diccionario describe **la producción real**:
-> 45 tablas y 2 vistas en `retail`, leídas el 2026-09-12. Cada archivo generado dice en
-> su cabecera de qué base salió y cuándo. Para refrescarlo ver
-> [`generado/COMO-REFRESCAR.md`](generado/COMO-REFRESCAR.md).
+> **De dónde salió la foto.** El diccionario describe **la producción real**. Cuántas
+> tablas y vistas tiene hoy envejece cada vez que se refresca (fue 45 el 2026-09-12,
+> 117 el 2026-09-25, 138 el 2026-09-27) — no lo repitas de memoria: mira
+> `generado/retail_foto.json` (`relaciones`, con `leido_en`) o corre `select count(*)
+> from information_schema.tables where table_schema = 'retail'` contra producción.
+> Cada archivo generado dice en su cabecera de qué base salió y cuándo. Para
+> refrescarlo ver [`generado/COMO-REFRESCAR.md`](generado/COMO-REFRESCAR.md).
 
 | Archivo | Qué responde |
 |---|---|

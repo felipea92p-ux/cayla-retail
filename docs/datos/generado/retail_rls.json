@@ -479,6 +479,11 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_color_temporadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_fotos": {
   "forzado": false,
   "relkind": "r",
@@ -595,6 +600,16 @@
   "rls": true
  },
  "tejidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "temporada_fechas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "temporadas": {
   "forzado": false,
   "relkind": "r",
   "rls": true

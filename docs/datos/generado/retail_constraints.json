@@ -570,6 +570,11 @@
   "tabla": "retail.categorias"
  },
  {
+  "conname": "categorias_temporada_fk",
+  "definicion": "FOREIGN KEY (temporada) REFERENCES retail.temporadas(clave)",
+  "tabla": "retail.categorias"
+ },
+ {
   "conname": "categorias_gasto_codigo_check",
   "definicion": "CHECK ((codigo ~ '^[a-z_]+$'::text))",
   "tabla": "retail.categorias_gasto"
@@ -3435,6 +3440,31 @@
   "tabla": "retail.producciones"
  },
  {
+  "conname": "producto_color_temporadas_asignado_por_fkey",
+  "definicion": "FOREIGN KEY (asignado_por) REFERENCES personas(id)",
+  "tabla": "retail.producto_color_temporadas"
+ },
+ {
+  "conname": "producto_color_temporadas_color_codigo_fkey",
+  "definicion": "FOREIGN KEY (color_codigo) REFERENCES retail.colores(codigo)",
+  "tabla": "retail.producto_color_temporadas"
+ },
+ {
+  "conname": "producto_color_temporadas_pkey",
+  "definicion": "PRIMARY KEY (producto_id, color_codigo)",
+  "tabla": "retail.producto_color_temporadas"
+ },
+ {
+  "conname": "producto_color_temporadas_producto_id_fkey",
+  "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE",
+  "tabla": "retail.producto_color_temporadas"
+ },
+ {
+  "conname": "producto_color_temporadas_temporada_fkey",
+  "definicion": "FOREIGN KEY (temporada) REFERENCES retail.temporadas(clave)",
+  "tabla": "retail.producto_color_temporadas"
+ },
+ {
   "conname": "producto_fotos_color_codigo_fkey",
   "definicion": "FOREIGN KEY (color_codigo) REFERENCES retail.colores(codigo)",
   "tabla": "retail.producto_fotos"
@@ -3512,6 +3542,11 @@
  {
   "conname": "productos_tejido_id_fkey",
   "definicion": "FOREIGN KEY (tejido_id) REFERENCES retail.tejidos(id)",
+  "tabla": "retail.productos"
+ },
+ {
+  "conname": "productos_temporada_fk",
+  "definicion": "FOREIGN KEY (temporada) REFERENCES retail.temporadas(clave)",
   "tabla": "retail.productos"
  },
  {
@@ -4488,6 +4523,96 @@
   "conname": "tejidos_rechazado_no_activo",
   "definicion": "CHECK (((estado <> 'rechazado'::text) OR (activo = false)))",
   "tabla": "retail.tejidos"
+ },
+ {
+  "conname": "temporada_fechas_actualizado_por_fkey",
+  "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_anio_check",
+  "definicion": "CHECK (((anio >= 2024) AND (anio <= 2100)))",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_cerca_de_su_estacion",
+  "definicion": "CHECK ((abs((((inicio AT TIME ZONE 'America/Lima'::text))::date - make_date((anio)::integer,\nCASE estacion\n    WHEN 'otono'::text THEN 3\n    WHEN 'invierno'::text THEN 6\n    WHEN 'primavera'::text THEN 9\n    ELSE 12\nEND, 21))) <= 60))",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_estacion_check",
+  "definicion": "CHECK ((estacion = ANY (ARRAY['otono'::text, 'invierno'::text, 'primavera'::text, 'verano'::text])))",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_fuente_check",
+  "definicion": "CHECK ((fuente = ANY (ARRAY['senamhi'::text, 'usno'::text, 'ajustada'::text])))",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_inicio_unico",
+  "definicion": "UNIQUE (inicio)",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_orden",
+  "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporada_fechas_pkey",
+  "definicion": "PRIMARY KEY (anio, estacion)",
+  "tabla": "retail.temporada_fechas"
+ },
+ {
+  "conname": "temporadas_clave_check",
+  "definicion": "CHECK ((clave ~ '^[a-z][a-z_]*$'::text))",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_estacion_desde_check",
+  "definicion": "CHECK ((estacion_desde = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_estacion_hasta_check",
+  "definicion": "CHECK ((estacion_hasta = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_moda_con_ventana",
+  "definicion": "CHECK ((es_clasico OR (estacion_desde IS NOT NULL)))",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_nombre_check",
+  "definicion": "CHECK (((length(btrim(nombre)) >= 1) AND (length(btrim(nombre)) <= 40)))",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_nombre_key",
+  "definicion": "UNIQUE (nombre)",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_orden_key",
+  "definicion": "UNIQUE (orden)",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_pkey",
+  "definicion": "PRIMARY KEY (clave)",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_ventana_completa",
+  "definicion": "CHECK (((estacion_desde IS NULL) = (estacion_hasta IS NULL)))",
+  "tabla": "retail.temporadas"
+ },
+ {
+  "conname": "temporadas_ventana_en_su_mitad",
+  "definicion": "CHECK (((estacion_desde IS NULL) OR (((((((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'verano'::text)) OR ((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'verano'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'invierno'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'primavera'::text))) OR ((estacion_desde = 'invierno'::text) AND (estacion_hasta = 'primavera'::text)))))",
+  "tabla": "retail.temporadas"
  },
  {
   "conname": "terminales_activa_con_cuenta",

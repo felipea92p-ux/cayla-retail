@@ -1,13 +1,13 @@
 {
-  "leido_en": "2026-09-26T23:17:29.750642+00:00",
-  "funciones_en_produccion": 612,
+  "leido_en": "2026-09-27T13:09:00.181841+00:00",
+  "funciones_en_produccion": 624,
   "tablas": [
     {
       "esquema": "retail",
       "tabla": "actividad",
       "tipo": "tabla",
       "comentario": null,
-      "filas_estimadas": 45,
+      "filas_estimadas": 46,
       "rls_activo": true,
       "rls_forzado": false,
       "columnas": [
@@ -2504,6 +2504,15 @@
           "por_defecto": null,
           "generada": false,
           "comentario": null
+        },
+        {
+          "nombre": "temporada",
+          "orden": 9,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
         }
       ],
       "candados": [
@@ -2526,6 +2535,11 @@
           "nombre": "categorias_prefijo_formato",
           "clase": "regla",
           "definicion": "CHECK ((prefijo ~ '^[A-Z]{3}$'::text))"
+        },
+        {
+          "nombre": "categorias_temporada_fk",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (temporada) REFERENCES retail.temporadas(clave)"
         }
       ],
       "indices": [
@@ -15163,6 +15177,97 @@
     },
     {
       "esquema": "retail",
+      "tabla": "producto_color_temporadas",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 0,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "producto_id",
+          "orden": 1,
+          "tipo": "uuid",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "color_codigo",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "temporada",
+          "orden": 3,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "asignado_por",
+          "orden": 4,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "asignado_en",
+          "orden": 5,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "producto_color_temporadas_asignado_por_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (asignado_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "producto_color_temporadas_color_codigo_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (color_codigo) REFERENCES retail.colores(codigo)"
+        },
+        {
+          "nombre": "producto_color_temporadas_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (producto_id, color_codigo)"
+        },
+        {
+          "nombre": "producto_color_temporadas_producto_id_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (producto_id) REFERENCES retail.productos(id) ON DELETE CASCADE"
+        },
+        {
+          "nombre": "producto_color_temporadas_temporada_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (temporada) REFERENCES retail.temporadas(clave)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "producto_color_temporadas_pkey",
+          "definicion": "CREATE UNIQUE INDEX producto_color_temporadas_pkey ON retail.producto_color_temporadas USING btree (producto_id, color_codigo)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
       "tabla": "producto_fotos",
       "tipo": "tabla",
       "comentario": null,
@@ -15541,6 +15646,11 @@
           "nombre": "productos_tejido_id_fkey",
           "clase": "llave foránea",
           "definicion": "FOREIGN KEY (tejido_id) REFERENCES retail.tejidos(id)"
+        },
+        {
+          "nombre": "productos_temporada_fk",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (temporada) REFERENCES retail.temporadas(clave)"
         },
         {
           "nombre": "productos_token_cliente_key",
@@ -19474,6 +19584,267 @@
           "condicion_escritura": "( SELECT retail.fn_puede_editar_catalogo() AS fn_puede_editar_catalogo)"
         }
       ],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "temporada_fechas",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 12,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "anio",
+          "orden": 1,
+          "tipo": "smallint",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "estacion",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "inicio",
+          "orden": 3,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "fuente",
+          "orden": 4,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "actualizado_por",
+          "orden": 5,
+          "tipo": "uuid",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "actualizado_en",
+          "orden": 6,
+          "tipo": "timestamp with time zone",
+          "acepta_vacio": false,
+          "por_defecto": "now()",
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "temporada_fechas_actualizado_por_fkey",
+          "clase": "llave foránea",
+          "definicion": "FOREIGN KEY (actualizado_por) REFERENCES personas(id)"
+        },
+        {
+          "nombre": "temporada_fechas_anio_check",
+          "clase": "regla",
+          "definicion": "CHECK (((anio >= 2024) AND (anio <= 2100)))"
+        },
+        {
+          "nombre": "temporada_fechas_cerca_de_su_estacion",
+          "clase": "regla",
+          "definicion": "CHECK ((abs((((inicio AT TIME ZONE 'America/Lima'::text))::date - make_date((anio)::integer,\nCASE estacion\n    WHEN 'otono'::text THEN 3\n    WHEN 'invierno'::text THEN 6\n    WHEN 'primavera'::text THEN 9\n    ELSE 12\nEND, 21))) <= 60))"
+        },
+        {
+          "nombre": "temporada_fechas_estacion_check",
+          "clase": "regla",
+          "definicion": "CHECK ((estacion = ANY (ARRAY['otono'::text, 'invierno'::text, 'primavera'::text, 'verano'::text])))"
+        },
+        {
+          "nombre": "temporada_fechas_fuente_check",
+          "clase": "regla",
+          "definicion": "CHECK ((fuente = ANY (ARRAY['senamhi'::text, 'usno'::text, 'ajustada'::text])))"
+        },
+        {
+          "nombre": "temporada_fechas_inicio_unico",
+          "clase": "único",
+          "definicion": "UNIQUE (inicio)"
+        },
+        {
+          "nombre": "temporada_fechas_orden",
+          "clase": "otro",
+          "definicion": "TRIGGER DEFERRABLE INITIALLY DEFERRED"
+        },
+        {
+          "nombre": "temporada_fechas_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (anio, estacion)"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "temporada_fechas_inicio_unico",
+          "definicion": "CREATE UNIQUE INDEX temporada_fechas_inicio_unico ON retail.temporada_fechas USING btree (inicio)"
+        },
+        {
+          "nombre": "temporada_fechas_pkey",
+          "definicion": "CREATE UNIQUE INDEX temporada_fechas_pkey ON retail.temporada_fechas USING btree (anio, estacion)"
+        }
+      ],
+      "politicas": [],
+      "definicion_vista": null
+    },
+    {
+      "esquema": "retail",
+      "tabla": "temporadas",
+      "tipo": "tabla",
+      "comentario": null,
+      "filas_estimadas": 9,
+      "rls_activo": true,
+      "rls_forzado": false,
+      "columnas": [
+        {
+          "nombre": "clave",
+          "orden": 1,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "nombre",
+          "orden": 2,
+          "tipo": "text",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "orden",
+          "orden": 3,
+          "tipo": "smallint",
+          "acepta_vacio": false,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "es_clasico",
+          "orden": 4,
+          "tipo": "boolean",
+          "acepta_vacio": false,
+          "por_defecto": "false",
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "estacion_desde",
+          "orden": 5,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "estacion_hasta",
+          "orden": 6,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        },
+        {
+          "nombre": "mitad",
+          "orden": 7,
+          "tipo": "text",
+          "acepta_vacio": true,
+          "por_defecto": null,
+          "generada": false,
+          "comentario": null
+        }
+      ],
+      "candados": [
+        {
+          "nombre": "temporadas_clave_check",
+          "clase": "regla",
+          "definicion": "CHECK ((clave ~ '^[a-z][a-z_]*$'::text))"
+        },
+        {
+          "nombre": "temporadas_estacion_desde_check",
+          "clase": "regla",
+          "definicion": "CHECK ((estacion_desde = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))"
+        },
+        {
+          "nombre": "temporadas_estacion_hasta_check",
+          "clase": "regla",
+          "definicion": "CHECK ((estacion_hasta = ANY (ARRAY['primavera'::text, 'verano'::text, 'otono'::text, 'invierno'::text])))"
+        },
+        {
+          "nombre": "temporadas_moda_con_ventana",
+          "clase": "regla",
+          "definicion": "CHECK ((es_clasico OR (estacion_desde IS NOT NULL)))"
+        },
+        {
+          "nombre": "temporadas_nombre_check",
+          "clase": "regla",
+          "definicion": "CHECK (((length(btrim(nombre)) >= 1) AND (length(btrim(nombre)) <= 40)))"
+        },
+        {
+          "nombre": "temporadas_nombre_key",
+          "clase": "único",
+          "definicion": "UNIQUE (nombre)"
+        },
+        {
+          "nombre": "temporadas_orden_key",
+          "clase": "único",
+          "definicion": "UNIQUE (orden)"
+        },
+        {
+          "nombre": "temporadas_pkey",
+          "clase": "llave primaria",
+          "definicion": "PRIMARY KEY (clave)"
+        },
+        {
+          "nombre": "temporadas_ventana_completa",
+          "clase": "regla",
+          "definicion": "CHECK (((estacion_desde IS NULL) = (estacion_hasta IS NULL)))"
+        },
+        {
+          "nombre": "temporadas_ventana_en_su_mitad",
+          "clase": "regla",
+          "definicion": "CHECK (((estacion_desde IS NULL) OR (((((((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'verano'::text)) OR ((estacion_desde = 'primavera'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'verano'::text) AND (estacion_hasta = 'otono'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'invierno'::text))) OR ((estacion_desde = 'otono'::text) AND (estacion_hasta = 'primavera'::text))) OR ((estacion_desde = 'invierno'::text) AND (estacion_hasta = 'primavera'::text)))))"
+        }
+      ],
+      "indices": [
+        {
+          "nombre": "temporadas_nombre_key",
+          "definicion": "CREATE UNIQUE INDEX temporadas_nombre_key ON retail.temporadas USING btree (nombre)"
+        },
+        {
+          "nombre": "temporadas_orden_key",
+          "definicion": "CREATE UNIQUE INDEX temporadas_orden_key ON retail.temporadas USING btree (orden)"
+        },
+        {
+          "nombre": "temporadas_pkey",
+          "definicion": "CREATE UNIQUE INDEX temporadas_pkey ON retail.temporadas USING btree (clave)"
+        }
+      ],
+      "politicas": [],
       "definicion_vista": null
     },
     {

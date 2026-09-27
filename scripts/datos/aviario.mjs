@@ -48,6 +48,11 @@ export const AVIARIO = [
       "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
       // ADR-0181: la versión del catálogo que suben los disparadores de las tablas de arriba. Refresco del 2026-09-23.
       "catalogo_version",
+      // ADR-0246 (Frescura, paso 3a): la temporada como atributo del producto — el calendario de fechas por año/estación,
+      // la lista cerrada de temporadas y a qué temporada quedó cada color de cada producto. La cambia quien puede editar
+      // el catálogo (ADR-0246 §"quién decide"), igual que colores/tallas/tejidos arriba. Asignadas en el refresco del
+      // volcado del 2026-09-27.
+      "temporada_fechas", "temporadas", "producto_color_temporadas",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },

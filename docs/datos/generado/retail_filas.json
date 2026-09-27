@@ -1,5 +1,5 @@
 {
- "actividad": 45,
+ "actividad": 46,
  "activos_fijos": 0,
  "ajustes_inventario_intentos": 0,
  "apartados": 3,
@@ -90,6 +90,7 @@
  "produccion_etapas_historial": 0,
  "produccion_lineas": 0,
  "producciones": 0,
+ "producto_color_temporadas": 0,
  "producto_fotos": 11,
  "productos": 17,
  "proformas": 3,
@@ -114,6 +115,8 @@
  "sububicaciones": 9,
  "tallas": 25,
  "tejidos": 19,
+ "temporada_fechas": 12,
+ "temporadas": 9,
  "terminales": 6,
  "tipos_activo": 6,
  "transferencia_items": 0,
