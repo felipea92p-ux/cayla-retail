@@ -166,17 +166,35 @@ rollback;
   ([enTrujillo]) => enTrujillo === "t"
 );
 
+// FK real desde 20260928150000_pedidos_no_atendidos_clienta_fk.sql (Clientas, paso 2 del acta,
+// ADR-0249): la migración original (20260922190000) dejaba `clienta_id` suelta a propósito, porque
+// `retail.clientas` todavía no existía cuando se escribió — el comentario de esa migración ya
+// avisaba exactamente qué agregar «cuando clientas aterrice en origin/main». Antes de la FK, un
+// `gen_random_uuid()` cualquiera se guardaba tal cual (el caso de abajo lo probaba); ahora ESE es
+// justo el estado imposible que la FK cierra.
 exito(
-  "el `clienta_id` se guarda tal cual (columna sin FK todavía — retail.clientas no existe, ver la migración)",
+  "el `clienta_id` apunta a una clienta real (FK real, pedidos_no_atendidos_clienta_id_fkey)",
   comoPersona(
     FELIPE,
     `${RESOLVER}
-${registrar({ clienta: "gen_random_uuid()" })}
-select (select clienta_id from retail.pedidos_no_atendidos where id = :'pedido') is not null;
+select retail.registrar_clienta('90999500', 'Prueba Pedido No Atendido', null, false, null, null) as clienta_real \\gset
+${registrar({ clienta: ":'clienta_real'" })}
+select (select clienta_id from retail.pedidos_no_atendidos where id = :'pedido') = :'clienta_real'::uuid;
 rollback;
 `
   ),
   ([conClienta]) => conClienta === "t"
+);
+
+error(
+  "un `clienta_id` que no existe se rechaza (candado pedidos_no_atendidos_clienta_id_fkey)",
+  comoPersona(
+    FELIPE,
+    `${RESOLVER}
+${registrar({ clienta: "gen_random_uuid()" })}
+`
+  ),
+  "pedidos_no_atendidos_clienta_id_fkey"
 );
 
 // ===========================================================================
