@@ -40,7 +40,8 @@
 --   · Las bajadas y los retiros se leen desde DOS ventanas antes de `p_desde` hasta dos después de `p_hasta` (el libro
 --     sigue leyéndose desde `p_desde`, como hoy): una ventana para que la bajada de los primeros minutos del rango vea
 --     sus retiros de antes, y otra para que también esté la bajada de fuera del rango que puede disputarle un retiro.
---     Así la misma bajada da la misma fila con cualquier rango que la incluya (prueba T27).
+--     Así la misma bajada da la misma fila con cualquier rango que la incluya (prueba T27, por los dos bordes: p_desde y
+--     p_hasta).
 -- Las columnas nuevas van AL FINAL: quien lea las de antes por nombre o por posición no cambia.
 --
 -- LA REGLA QUE SE DESCARTÓ. La primera versión de este archivo (nunca pegada) tomaba como piso de antes el nivel MÁS
@@ -57,9 +58,12 @@
 --   · T24 (el ejemplo de ADR-0208 (c), retiro por error y re-bajada): de «tardia» a «corregida», 0 tardías.
 -- Casos nuevos: T24 ampliado (una bajada 5 minutos antes del retiro no se lo lleva: va a la re-bajada, a 1), T25
 -- («colgaron menos» y el retiro entre dos bajadas, que va solo a la más cercana), T29 (el empate, el retiro más grande
--- que la bajada, el retiro a 11 minutos, la «dudosa» con retiro, dos bajadas en el mismo instante), T26 (carga inicial,
--- también con dos entradas en el mismo instante), T27 (bordes del rango, con la disputa de una bajada de fuera), T28
--- (la misma hora exacta, también con un retiro), T22-T23 (las dos guardas).
+-- que la bajada, el retiro a 11 minutos, la «dudosa» con retiro y la que un retiro dejaría en >= 0, dos bajadas en el
+-- mismo instante, dos retiros que se suman, el retiro previo que evita una tardía), T26 (carga inicial, también con dos
+-- entradas en el mismo instante), T27 (bordes del rango por p_desde y por p_hasta, con la disputa de una bajada de
+-- fuera), T28 (la misma hora exacta, también con un retiro), T30 (el límite de abajo que queda por decidir), T31
+-- (piso→cuarentena no es retiro, la ventana y el margen siguen a p_minutos, el orden de los estados, el desempate por
+-- hora antes que por id, la carga inicial de otro instante o de otra tienda), T22-T23 (las dos guardas).
 -- En PRODUCCIÓN (ensayo de solo lectura del 2026-09-27: este cuerpo como un `select` sobre Tienda TRU, sin crear nada):
 -- 40 bajadas (199 unidades) y ningún retiro en el rango; 0 filas cambian de piso_antes, de estado o de tardías
 -- respecto de la 0300; 15 salen con es_carga_inicial (95 unidades, todas del 26-sep) y ninguna otra.
@@ -78,6 +82,10 @@
 --     hasta el motivo del retiro de 3b).
 --   · Con varios retiros y re-bajadas de la misma talla en 10 minutos, la corrección puede ir a la bajada equivocada (la
 --     más cercana no siempre es la que se corrigió), aunque el total de cantidades efectivas cuadra.
+--   · DECISIÓN PENDIENTE (Felipe; prueba T30): el piso de antes suma TODO lo retirado en [t − W, t), también lo que una
+--     re-bajada ya volvió a colgar, y el nivel justo antes ya incluye esa re-bajada: el retiro cuenta dos veces. Piso 2;
+--     10:00 se retiran 2 por error; 10:01 se reponen 2; 10:03 se baja 1 de verdad; 10:05 se venden 3 → la de 10:03 sale
+--     con piso_antes 4 (el libro nunca pasó de 3) y 0 tardías; sin el error, 1 tardía. Hoy en TRU no hay retiros.
 --   · La carga inicial se reconoce por el instante exacto: si alguien la registra en dos transacciones (carga y, aparte,
 --     su bajada), no se marca.
 --

@@ -977,7 +977,14 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       retirado en los 10 minutos previos, y marca la carga inicial (`es_carga_inicial`). Regla corregida el 2026-09-27
       antes de pegar: la primera versión tomaba el nivel más alto de la ventana (absorbía ventas) y descontaba un retiro
       de dos bajadas. Casos que cambian respecto de producción: T9, T14 y el ejemplo de ADR-0208 (c). Prueba:
-      `pnpm pruebas:frescura-bajadas` (104). Detalle: ADR-0208, «Paso 2 construido (2026-09-27)».
+      `pnpm pruebas:frescura-bajadas` (124: la revisión por mutantes del 2026-09-27 sumó el borde de `p_hasta`, dos
+      retiros que se suman, la «dudosa» que un retiro no tapa, el retiro previo que evita una tardía y los bordes de T31).
+      Detalle: ADR-0208, «Paso 2 construido (2026-09-27)».
+      - [ ] **Decisión de Felipe, ANTES de construir el indicador del paso 3 (no bloquea pegar):** el piso de antes suma
+        todo lo retirado en los 10 minutos previos, también lo que una re-bajada ya volvió a colgar, y así un retiro por
+        error tapa la tardía real de otra colaboradora (T30: `piso_antes` 4 cuando el libro nunca pasó de 3). La salida
+        probada (sumar solo lo retirado que no se volvió a colgar) va junto con otra: que lo que sobra de un retiro pase a
+        la siguiente re-bajada. Hoy TRU no tiene retiros. Detalle: ADR-0208, «Límites» del paso 2.
       - [ ] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (cada una sola; a cualquier hora;
         solo funciones). Después, `md5(prosrc)`: puerta `34a7e0cc5f421333761e8bda92a582eb`; núcleo
         `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `94d587570d8db50cf69c9b6bd982a01e` tras la segunda. Si el

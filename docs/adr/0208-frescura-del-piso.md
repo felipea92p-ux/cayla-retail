@@ -1285,6 +1285,30 @@ suman; «dudosa» con un retiro en la ventana → −2, no −1; dos bajadas en 
 id), T26 (dos entradas de carga en el mismo instante no duplican la bajada), T27 (la disputa con una bajada de fuera del
 rango) y T28 (un retiro de la misma hora no suma al piso de antes pero se descuenta). 104 verificaciones.
 
+**Revisión del 2026-09-27 (pruebas de mutación, antes de pegar).** Se le hicieron 47 cambios chicos a propósito al
+cuerpo del núcleo (un `sum` por un `max`, un borde que se corre, un estado antes que otro) y se corrió la prueba contra
+cada uno: 16 pasaban sin que nada fallara, y uno más (quitar el desempate por hora) pasaba 1 de cada 10 veces, según
+el azar de los ids. La regla estaba bien escrita, pero nada la vigilaba en esos puntos. Se agregaron los casos que los
+hacen fallar; el cuerpo de la función no cambió (núcleo `94d587570d8db50cf69c9b6bd982a01e`, mismo costo: re-medido,
+304 → 317 ms sin retiros y 329 → 357 ms con 4.001):
+- **T27, el borde de `p_hasta`** (el espejo del de `p_desde`): la bajada del último minuto del rango ve su retiro de 5
+  minutos después, y un retiro que le disputa una bajada 12 minutos después de ella (a más de una ventana de `p_hasta`) va
+  a esa, igual que con el rango de 30 días. Sin esto, leer los retiros solo hasta `p_hasta` o hasta `p_hasta + W` pasaba.
+- **T29, dos retiros para la misma bajada** (1 y 2 en la ventana previa de una bajada de 5): se suman en `piso_antes`
+  (0 + 1 + 2 = 3) y en `retiradas` (3). Sin esto, tomar el mayor pasaba.
+- **T29, el retiro previo pesa en las tardías cuando la efectiva es > 0** (piso 2; se retiran 2; se bajan 5; se venden
+  2): 0 tardías, «normal». Con el nivel justo antes (0) saldrían 2 tardías: se volvería a acusar a quien repuso.
+- **T29, la «dudosa» no se tapa con un retiro** (nivel justo antes −1 y un retiro de 2 en la ventana): sigue «dudosa»
+  con `piso_antes` −1. Decidirla después de sumar los retiros la daba por «normal».
+- **T31, bordes que ninguna prueba miraba:** piso → cuarentena no es retiro; la ventana de los retiros y el margen de
+  lectura siguen a `p_minutos` (con 5 y con 30), no a 10 ni a 20 minutos fijos; «dudosa» manda sobre «corregida» y
+  «corregida» sobre «en_curso»; en el empate de distancia manda la hora (la de antes) y no el id; una carga inicial 30
+  segundos antes o de otra tienda no marca la bajada.
+- **T30, el límite de abajo** fijado tal cual es hoy, para que cambiarlo sea una decisión y no un accidente.
+124 verificaciones. De los 47 cambios, 45 hacen fallar la prueba (el del desempate, 10 de 10 veces); los otros dos no
+cambian ninguna fila posible, porque el libro ya hace ese trabajo: quitar el filtro de la «Prenda sin registrar» (el libro
+no la lee) y el límite inferior de las bajadas (el libro empieza en `p_desde`, y una bajada sin su punto no sale).
+
 **En producción hoy** (ensayo de solo lectura del 2026-09-27: el cuerpo final como un `select` sobre Tienda TRU, sin
 crear nada): 40 bajadas (199 unidades) y **ningún retiro**, así que ninguna fila cambia de `piso_antes`, estado ni
 tardías; **15 de las 15 bajadas de la carga inicial del 26-sep (95 unidades) salen con `es_carga_inicial`**, y ninguna
@@ -1297,6 +1321,21 @@ otra. AQP, LIM y el Taller no tienen bajadas.
   «SE ROMPE SI» de arriba).
 - La carga inicial se reconoce por el instante exacto: registrada en dos transacciones (carga y, aparte, su bajada), no
   se marca.
+- **DECISIÓN PENDIENTE (Felipe; T30): el piso de antes vuelve a sumar un retiro que una re-bajada ya repuso.** La regla
+  suma TODO lo retirado en [t − W, t), pero el nivel justo antes que da el libro ya incluye las re-bajadas hechas entre
+  el retiro y la bajada: el retiro cuenta dos veces. Piso 2; 10:00 se retiran 2 por error; 10:01 se reponen 2 (la
+  corrección); 10:03 otra colaboradora baja 1 de verdad; 10:05 se venden 3. Antes de la de 10:03 había 2 colgadas en
+  cualquier lectura del retiro, y el libro nunca pasó de 3; la regla le da `piso_antes` 4 y 0 tardías. La misma tienda sin
+  el error ni su corrección da 1 tardía: un error ajeno tapa una tardía real. Hoy TRU no tiene retiros, así que en
+  producción no cambia nada; sí pesará en el indicador del paso 3.
+  - *La salida que se probó:* sumar solo lo retirado que todavía no se volvió a colgar (se recorren en orden los traslados
+    internos de la prenda en [t − W, t): cada retiro suma, cada bajada resta, y lo acumulado nunca baja de 0). Da 2 y 1
+    tardía en el caso de arriba, y los demás casos quedan iguales.
+  - *Pero no va sola:* con la corrección hecha en DOS re-bajadas de 1 (retiro de 2; reponen 1 y 1), el retiro entero se
+    le asigna a la primera (efectiva 0) y lo que sobra no pasa a la segunda (regla de hoy, T29 «sobra»); con la salida de
+    arriba, esa segunda re-bajada saldría «tardia» sin serlo. Las dos cosas (qué suma al piso de antes, y si lo que sobra
+    de un retiro pasa a la siguiente re-bajada) se deciden juntas. Se escribió la regla de hoy a propósito, así que
+    cambiarla es de Felipe, no de quien la programa.
 
 **La decisión estructural: cómo se calcula**
 - **DECIDÍ:** cruzar los retiros con las bajadas de su prenda a W o menos (un cruce por igualdad de prenda con filtro de
