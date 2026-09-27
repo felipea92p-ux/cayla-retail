@@ -326,6 +326,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:frescura-bajadas
 
+      # La lectura de Frescura del piso (paso 3 de Frescura 3c, ADR-0208, ADR-0246, ADR-0248): fn_frescura_sede (qué
+      # prendas entran, las marcas de venta, interno y edad desconocida de cada evento del piso, la temporada con el fin de
+      # la estación de su última llegada, tardías y dudosas), fn_confianza_registro (por tienda y mes de Lima, sin la carga
+      # inicial ni lo corregido, solo bajadas de hace 20 minutos o más) y fn_es_llegada, comparada con el predicado vivo de
+      # fn_resumen_comparacion. Candado de líder, una llamada al libro y al núcleo, y la guarda md5. Cada caso en ROLLBACK.
+      - name: pruebas:frescura-lectura
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:frescura-lectura
+
       # «Reposición» no toca el piso (ADR-0208, paso 1): un ajuste «Reposición» en el piso se rechaza, suba o baje, con
       # cualquier escritura del motivo; el almacén, «Conteo físico», el Taller y «Reponer» siguen igual; quien no puede
       # ajustar sigue viendo el mensaje de permiso; y la migración se pega dos veces sin borrar los parches en vivo de

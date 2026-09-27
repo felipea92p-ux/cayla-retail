@@ -1013,8 +1013,8 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
     referencia de CAYLA, niveles «Pocos datos / Aceptable / Sólido», fin de estación con sugerencias, indicador de
     confianza (líder; y las Terminal de ventas con su propio pasado y un enlace discreto al ranking, como módulo aparte).
-    - [x] **Paso 2 · Núcleo de bajadas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
-      `claude/frescura-3c-bajadas`). `fn_bajadas_del_piso` pasa a envolver un núcleo interno
+    - [x] **Paso 2 · Núcleo de bajadas: CONSTRUIDO y PEGADO EN PRODUCCIÓN el 2026-09-27** (#537; md5 verificados:
+      puerta `34a7e0cc…`, núcleo `fcfd2c4b…`; el paso 1, libro `a3d9fb69…`, también). `fn_bajadas_del_piso` pasa a envolver un núcleo interno
       (`fn_bajadas_del_piso_nucleo`, mismo candado de líder) y el núcleo descuenta los retiros de la misma talla
       (`retiradas_en_ventana`, `cantidad_efectiva`, estado `corregida`): cada retiro va a UNA sola bajada (la más
       cercana a 10 minutos o menos; empate, la de antes del retiro), el piso de antes es el nivel justo antes más lo
@@ -1038,19 +1038,47 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         baja la misma talla y se vende: esa tardía no se ve. Lo que los distingue es el motivo del retiro del 3b. Con esta
         regla, que lo que sobra de un retiro no pase a la bajada siguiente ya no deja una tardía falsa (no hace falta
         decidirlo aparte). Detalle: ADR-0208, «Límites» del paso 2.
-      - [ ] **Para el indicador del paso 3:** una fila «cerrada» todavía puede cambiar hasta 20 minutos (2W) después de
+      - [x] **Para el indicador del paso 3** (resuelto en el paso 3: `fn_confianza_registro` cuenta solo bajadas de hace
+        20 minutos o más): una fila «cerrada» todavía puede cambiar hasta 20 minutos (2W) después de
         la bajada (T33: una bajada posterior se lleva su retiro y la «corregida» pasa a «tardia»). Si la cifra no debe
         moverse, contar solo las bajadas de hace más de 2W. Detalle: ADR-0208, «Límites».
-      - [ ] **Revisión 3, fuera de este arreglo:** 13 de los 38 cambios de la revisión por mutantes siguen pasando la
+      - [x] **Revisión 3, fuera de este arreglo — CERRADO el 2026-09-27 (revisión 4):** 4 de los 13 ya hacen fallar la
+        prueba (T34 la marca de carga, T35 el orden de salida, T36 `fn_es_traslado_interno`; 166 verificaciones) y los 9
+        restantes son equivalentes (razón en la cabecera de `frescura_bajadas.mjs` y en ADR-0208, «Revisión 4»). Decía: 13 de los 38 cambios de la revisión por mutantes siguen pasando la
         prueba (la marca de carga con dos cargas de la misma prenda en 10 minutos, el orden de salida de dos bajadas del
         mismo instante, el borde exacto de `p_hasta + 2W` y seis filtros de `internos`/`juntas`/el libro; dos son
         equivalentes). Revisarlos uno por uno antes del paso 3. Lista: ADR-0208, «Revisión 3».
-      - [ ] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (cada una sola; a cualquier hora;
+      - [x] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (hecho el 2026-09-27) (cada una sola; a cualquier hora;
         solo funciones). Después, `md5(prosrc)`: puerta `34a7e0cc5f421333761e8bda92a582eb`; núcleo
         `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `fcfd2c4b2c4f24dd2184eb2cd7a12678` tras la segunda (desde
         la revisión 3; `08bfa7b8…` era el de la revisión 2 y nunca se pegó). Si el cuerpo vivo cambió (la puerta o el
         núcleo, en las dos guardas), aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
         (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
+    - [x] **Paso 3 · Lectura y reglas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
+      `claude/frescura-3c-lectura`). `20260928120300_frescura_lectura.sql`: `fn_es_llegada` (el predicado de llegada de
+      `fn_resumen_comparacion` con nombre propio), `fn_frescura_sede` (una lectura por sede, candado de líder + operar la
+      sede, pista `frescura_sin_permiso`) y `fn_confianza_registro` (por sede y mes de Lima, sin persona, sin carga
+      inicial ni lo corregido, solo bajadas de hace 20 minutos o más). Web: `lib/frescura-reglas.ts` (Kaplan-Meier,
+      ventana, niveles, reloj, rapidez, estado de cada prenda, `armarFrescuraLider`), `lib/frescura.ts`,
+      `lib/prenda-clave.ts`. El contrato SQL ↔ web se vigila con la salida real guardada en
+      `apps/web/lib/__fixtures__/frescura-sede.json` (`frescura-contrato.test.ts` + T13). Pruebas:
+      `pnpm pruebas:frescura-lectura` (109). Detalle: ADR-0208, «Paso 3 construido (2026-09-27)».
+      - [ ] **Pegar `20260928120300` en producción** (sola, en el SQL Editor, a cualquier hora: solo funciones). Después,
+        `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
+        `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`. Si alguna ya
+        existe con otro cuerpo, aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y
+        `pnpm datos:comparar`; regenerar los tipos a mano de `packages/database` con `supabase gen types`.
+      - [ ] **Para la maqueta del paso 4 (decide Felipe):** cómo se dice «Nueva» con `pocos_datos` (con la curva sin
+        P50, la chompa de 39 días de la salida real sale «Nueva»); qué muestra una prenda que solo está en el almacén
+        (hoy «Nueva» con 0 segundos); el aviso «Temporada pasada» de un «pilar» que lo es contra sí mismo (sale sin
+        sugerencias); y si se agrega `llegada_estimada` para las 34 prendas de TRU que no tienen ninguna llegada (sin eso
+        nunca serán «Temporada pasada»). ADR-0208, «Límites» del paso 3.
+      - [ ] **Decisión de esquema (Felipe):** un CHECK `tipo = 'traslado' or sububicacion_destino_id is null` en
+        `movimientos` (hoy la base acepta un destino suelto en una fila que no es traslado; nadie lo lee; en producción,
+        0 filas así). ADR-0208, «Revisión 4».
+    - [ ] **Paso 4 · Pantalla:** maqueta primero; módulo `frescura` (orden 215, sin rol); candado de las lecturas a «ve
+      Frescura y opera la sede» (y el de `fn_bajadas_del_piso`); menú directo en Inventario; ruta
+      `/inventario/frescura`. Plan: `docs/PLAN-FRESCURA-3C.md`, «PASO 4».
   - [ ] **Aparte:** módulo «Ajustar stock» separado de Existencias (PR de roles; nace solo para el líder).
 - [ ] **Bloque 3 · La pantalla de Frescura (diseño original)** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
