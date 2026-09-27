@@ -38,6 +38,59 @@ describe("armarCohortes", () => {
   });
 });
 
+// FIFO POR ANTIGÜEDAD (ADR-0248): el orden de consumo lo da la fecha de la cohorte (`ts`), no el lugar en que quedó en el
+// arreglo. Antes, el pedazo de una cohorte partida se agregaba AL FINAL y una venta se llevaba una cohorte más nueva.
+describe("armarCohortes — FIFO por antigüedad cuando una cohorte se parte (ADR-0248)", () => {
+  it("una cohorte pausada del día 1 que vuelve en parte se vende antes que la del día 5 que ya estaba colgada", () => {
+    const cohortes = armarCohortes([
+      evento({ ts: "2026-09-01T00:00:00Z", delta: 10 }), // A: llega el 1
+      evento({ ts: "2026-09-02T00:00:00Z", delta: -10, esMovimientoInterno: true }), // A entera al almacén
+      evento({ ts: "2026-09-05T00:00:00Z", delta: 5 }), // B: llega el 5 y se cuelga
+      evento({ ts: "2026-09-06T00:00:00Z", delta: 4, esMovimientoInterno: true }), // vuelven 4 de A
+      evento({ ts: "2026-09-07T00:00:00Z", delta: -3, esVenta: true }), // la venta sale de A, la más vieja
+    ]);
+    const del1Colgada = cohortes.filter((c) => c.ts === "2026-09-01T00:00:00Z" && c.abiertaDesde !== null);
+    const del5 = cohortes.filter((c) => c.ts === "2026-09-05T00:00:00Z");
+    expect(del1Colgada).toHaveLength(1);
+    expect(del1Colgada[0]).toMatchObject({ cantidadInicial: 4, cantidadRestante: 1 });
+    expect(del5).toEqual([expect.objectContaining({ cantidadInicial: 5, cantidadRestante: 5 })]);
+  });
+
+  it("al reanudar, vuelve primero el pedazo pausado más viejo aunque se haya partido después", () => {
+    const cohortes = armarCohortes([
+      evento({ ts: "2026-09-01T00:00:00Z", delta: 10 }), // A
+      evento({ ts: "2026-09-03T00:00:00Z", delta: 5 }), // C
+      evento({ ts: "2026-09-04T00:00:00Z", delta: -12, esMovimientoInterno: true }), // A entera y 2 de C al almacén
+      evento({ ts: "2026-09-05T00:00:00Z", delta: 10, esMovimientoInterno: true }), // vuelve A
+      evento({ ts: "2026-09-06T00:00:00Z", delta: -1, esMovimientoInterno: true }), // 1 de A al almacén: A se parte
+      evento({ ts: "2026-09-07T00:00:00Z", delta: 1, esMovimientoInterno: true }), // vuelve 1: el de A, no el de C
+    ]);
+    const pausadas = cohortes.filter((c) => c.abiertaDesde === null && c.cantidadRestante > 0);
+    expect(pausadas).toEqual([expect.objectContaining({ ts: "2026-09-03T00:00:00Z", cantidadRestante: 2 })]);
+  });
+
+  it("el arreglo que devuelve queda ordenado por fecha de la cohorte", () => {
+    const cohortes = armarCohortes([
+      evento({ ts: "2026-09-01T00:00:00Z", delta: 10 }),
+      evento({ ts: "2026-09-02T00:00:00Z", delta: -4, esMovimientoInterno: true }),
+      evento({ ts: "2026-09-03T00:00:00Z", delta: 6 }),
+      evento({ ts: "2026-09-04T00:00:00Z", delta: 2, esMovimientoInterno: true }),
+    ]);
+    const fechas = cohortes.map((c) => c.ts);
+    expect(fechas).toEqual([...fechas].sort());
+  });
+
+  it("dos eventos del mismo segundo se ordenan por el reloj, no por el texto: «10:00:00+00:00» va antes que «10:00:00.5+00:00»", () => {
+    // Postgres escribe la hora sin fracción cuando cae justo en el segundo. Comparado como texto con `localeCompare`,
+    // el «+» queda después del «.», y la venta pasaba a ir ANTES de la entrada que la explica.
+    const [c] = armarCohortes([
+      evento({ ts: "2026-09-01T10:00:00+00:00", delta: 5 }),
+      evento({ ts: "2026-09-01T10:00:00.5+00:00", delta: -2, esVenta: true }),
+    ]);
+    expect(c).toMatchObject({ cantidadInicial: 5, cantidadRestante: 3 });
+  });
+});
+
 describe("sellThroughExposicion — caso E: agotamiento (venta total antes de que madure la ventana)", () => {
   it("una cohorte vendida por completo madura de inmediato, sin esperar los 7 días — el % no se penaliza por poca antigüedad", () => {
     const eventos = [evento({ ts: "2026-09-01T00:00:00Z", delta: 10 }), evento({ ts: "2026-09-02T00:00:00Z", delta: -10, esVenta: true })];

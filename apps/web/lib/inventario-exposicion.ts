@@ -60,12 +60,27 @@ export type Cohorte = {
 
 const MS_POR_SEGUNDO = 1000;
 
+/** Orden de dos instantes por el RELOJ, no por el texto (ADR-0248). Postgres escribe «10:00:00+00:00» cuando la hora cae
+ *  justo en el segundo y «10:00:00.5+00:00» cuando no; `localeCompare` pone el «+» después del «.» y los invertía. Un
+ *  texto que no es fecha se ordena como texto, para no romper el orden de los demás. Empate (mismo milisegundo): 0, y
+ *  el orden estable de `sort` respeta el que trajo el libro. */
+export function compararInstantes(a: string, b: string): number {
+  const d = Date.parse(a) - Date.parse(b);
+  return Number.isNaN(d) ? a.localeCompare(b) : d;
+}
+
 /** Congela el tramo abierto de una cohorte al instante `ts`: suma lo transcurrido a `segundosAcumulados`
  *  y la deja pausada. No hace nada si ya estaba pausada (evita sumar dos veces). */
 function congelar(c: Cohorte, ts: string): void {
   if (c.abiertaDesde === null) return;
   c.segundosAcumulados += Math.max(0, new Date(ts).getTime() - new Date(c.abiertaDesde).getTime()) / MS_POR_SEGUNDO;
   c.abiertaDesde = null;
+}
+
+/** Pone el pedazo de la cohorte `i` justo después de ella: comparte su `ts`, así que el arreglo sigue ordenado
+ *  por antigüedad. Al final quedaría detrás de cohortes más nuevas y el FIFO lo tomaría tarde (ADR-0248). */
+function partir(cohortes: Cohorte[], i: number, pedazo: Cohorte): void {
+  cohortes.splice(i + 1, 0, pedazo);
 }
 
 /**
@@ -92,21 +107,28 @@ function congelar(c: Cohorte, ts: string): void {
  * de cuáles se pausaron). Una cohorte PAUSADA nunca tiene ventas parciales previas a su propia pausa entre
  * `cantidadInicial`/`cantidadRestante` de esa pausa — solo se puede vender desde el piso — así que reanudar
  * una porción de una cohorte pausada NUNCA necesita la proporción, solo restar cantidades enteras.
+ *
+ * FIFO POR ANTIGÜEDAD (ADR-0248): «la más vieja» es la de `ts` más antiguo, no la que quedó primero en el
+ * arreglo. El arreglo se mantiene ORDENADO por `ts` para que recorrerlo en orden sea recorrerlo por
+ * antigüedad: cada cohorte nueva nace con el `ts` del evento, que nunca es anterior a ninguna de las que ya
+ * existen (los eventos se procesan en orden), y el pedazo de una cohorte partida se inserta JUNTO a su
+ * madre (mismo `ts`), nunca al final. Hasta el 2026-09-27 el pedazo iba al final: una cohorte del día 1
+ * que volvía en parte del almacén quedaba detrás de una del día 5, y la venta se llevaba la del día 5.
  */
 export function armarCohortes(eventos: readonly EventoPiso[]): Cohorte[] {
-  const ordenados = [...eventos].sort((a, b) => a.ts.localeCompare(b.ts));
+  const ordenados = [...eventos].sort((a, b) => compararInstantes(a.ts, b.ts));
   const cohortes: Cohorte[] = [];
 
   for (const e of ordenados) {
     if (e.delta > 0) {
       if (e.esMovimientoInterno) {
         let porReanudar = e.delta;
-        for (const c of cohortes) {
-          if (porReanudar <= 0) break;
+        for (let i = 0; i < cohortes.length && porReanudar > 0; i++) {
+          const c = cohortes[i];
           if (c.cantidadRestante <= 0 || c.abiertaDesde !== null) continue; // ya activa, o agotada
           const cantidad = Math.min(c.cantidadRestante, porReanudar);
           if (cantidad < c.cantidadRestante) {
-            cohortes.push({ ts: c.ts, cantidadInicial: cantidad, cantidadRestante: cantidad, segundosAcumulados: c.segundosAcumulados, abiertaDesde: e.ts });
+            partir(cohortes, i, { ts: c.ts, cantidadInicial: cantidad, cantidadRestante: cantidad, segundosAcumulados: c.segundosAcumulados, abiertaDesde: e.ts });
             c.cantidadInicial -= cantidad;
             c.cantidadRestante -= cantidad;
           } else {
@@ -122,8 +144,8 @@ export function armarCohortes(eventos: readonly EventoPiso[]): Cohorte[] {
     }
 
     let porQuitar = -e.delta;
-    for (const c of cohortes) {
-      if (porQuitar <= 0) break;
+    for (let i = 0; i < cohortes.length && porQuitar > 0; i++) {
+      const c = cohortes[i];
       if (c.cantidadRestante <= 0 || c.abiertaDesde === null) continue; // pausada: no se puede vender ni volver a pausar
       const quitado = Math.min(c.cantidadRestante, porQuitar);
       if (e.esVenta) {
@@ -133,7 +155,7 @@ export function armarCohortes(eventos: readonly EventoPiso[]): Cohorte[] {
         if (quitado < c.cantidadRestante) {
           const restanteActivo = c.cantidadRestante - quitado;
           const inicialActivo = (c.cantidadInicial * restanteActivo) / c.cantidadRestante;
-          cohortes.push({ ts: c.ts, cantidadInicial: c.cantidadInicial - inicialActivo, cantidadRestante: quitado, segundosAcumulados: c.segundosAcumulados, abiertaDesde: null });
+          partir(cohortes, i, { ts: c.ts, cantidadInicial: c.cantidadInicial - inicialActivo, cantidadRestante: quitado, segundosAcumulados: c.segundosAcumulados, abiertaDesde: null });
           c.cantidadInicial = inicialActivo;
           c.cantidadRestante = restanteActivo;
           c.abiertaDesde = e.ts;
@@ -250,7 +272,7 @@ export function esSobrestockTotal(vecesPiso: number | null, vecesTotal: number |
  * no hace falta reconstruir cohortes para esto, solo el nivel.
  */
 export function tuvoQuiebreEnPiso(eventos: readonly EventoPiso[]): boolean {
-  const ordenados = [...eventos].sort((a, b) => a.ts.localeCompare(b.ts));
+  const ordenados = [...eventos].sort((a, b) => compararInstantes(a.ts, b.ts));
   let nivel = 0;
   let tocoCero = false;
   for (const e of ordenados) {
