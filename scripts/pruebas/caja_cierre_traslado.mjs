@@ -5,7 +5,9 @@
  *
  * QUÉ CUBRE
  *   · `fn_esperado_caja` devuelve lo mismo que después congela `cerrar_caja`, y una colaboradora no lo puede leer;
- *   · `cerrar_caja` rechaza trasladar más de lo contado, un destino inválido o un depósito sin n.º de operación;
+ *   · `cerrar_caja` rechaza trasladar más de lo contado, un destino inválido o "entregado al líder" sin decir a
+ *     quién — el depósito bancario SIN n.º de operación ya NO se rechaza desde el 2026-09-23
+ *     (`20260923233000_caja_deposito_sin_numero_de_operacion.sql`, en producción): se guarda igual, sin referencia;
  *   · un cierre con traslado deja la fila en `caja_traslados` y `monto_fondo` = contado − trasladado;
  *   · `abrir_caja` con el mismo fondo abre sin motivo; con otro monto exige motivo y lo guarda;
  *   · `revisar_apertura_caja` solo la usa un líder, y una sola vez.
@@ -109,20 +111,35 @@ select pg_temp.intento(format('select * from retail.fn_esperado_caja(%L)', :'caj
   esperar("una colaboradora no lee fn_esperado_caja", r.ok && r.salida.includes("Solo quien puede cerrar"), r);
 }
 
-// 3. Candados del traslado.
+// 3. Candados del traslado. El n.º de operación del depósito bancario DEJÓ de ser obligatorio el 2026-09-23
+// (`20260923233000_caja_deposito_sin_numero_de_operacion.sql`, ya en producción, decisión de Felipe: "quien
+// deposita no siempre tiene el voucher a mano al cerrar"). Hoy "Entregado al líder de equipo" es el único
+// destino que sigue exigiendo a quién se le entregó el efectivo.
 {
   const r = correr(`${ESCENA}
 select pg_temp.intento(format('select * from retail.cerrar_caja(%L, 90, 100, %L)', :'caja', 'caja_fuerte'));
 select pg_temp.intento(format('select * from retail.cerrar_caja(%L, 90, 50, %L)', :'caja', 'otra_sede'));
-select pg_temp.intento(format('select * from retail.cerrar_caja(%L, 90, 50, %L, %L)', :'caja', 'banco', ' '));
 select pg_temp.intento(format('select * from retail.cerrar_caja(%L, 90, 50, %L)', :'caja', 'lider'));
 select estado from retail.cajas where id = :'caja';`);
-  const [mas, destino, voucher, lider, estado] = r.ok ? r.salida.split("\n") : [];
+  const [mas, destino, lider, estado] = r.ok ? r.salida.split("\n") : [];
   esperar("no se traslada más de lo contado", r.ok && mas.startsWith("No puedes trasladar más"), r);
   esperar("destino fuera de la lista se rechaza", r.ok && destino.startsWith("Elige a dónde"), r);
-  esperar("depósito sin n.º de operación se rechaza", r.ok && voucher.startsWith("Escribe el número de operación"), r);
   esperar("entregado al líder sin nombre se rechaza", r.ok && lider.startsWith("Escribe a quién"), r);
   esperar("tras los rechazos la caja sigue abierta", r.ok && estado === "abierta", r);
+}
+
+// 3b. El depósito bancario SIN n.º de operación ya no se rechaza: se guarda igual, con la referencia en
+// null (no en blanco) — `nullif(btrim(...), '')` en `cerrar_caja`.
+{
+  const r = correr(`${ESCENA}
+select monto_trasladado from retail.cerrar_caja(:'caja', 90, 50, 'banco', ' ');
+select destino, monto, referencia is null as sin_referencia from retail.caja_traslados where caja_id = :'caja';`);
+  const [trasladado, fila] = r.ok ? r.salida.split("\n") : [];
+  esperar(
+    "depósito bancario sin n.º de operación se acepta y queda sin referencia (opcional desde 2026-09-23)",
+    r.ok && Number(trasladado) === 50 && fila === "banco|50.00|t",
+    r
+  );
 }
 
 // 4. Cierre con traslado: fila en caja_traslados y fondo calculado.
@@ -173,10 +190,13 @@ select pg_temp.intento(format('select retail.revisar_apertura_caja(%L)', :'dif')
   esperar("no se revisa dos veces", r.ok && segunda.startsWith("Esa apertura no tiene"), r);
 }
 
-// 7. El candado de la tabla: aunque alguien escriba directo, una diferencia sin motivo no entra.
+// 7. El candado de la tabla: aunque alguien escriba directo, una diferencia sin motivo no entra. Hay que borrar
+// el motivo en el mismo update: `abrir_caja` en ESCENA ya deja uno propio (el fondo del último cierre de la
+// sede, que trae el seed, casi nunca calza con los S/ 100 con que ESCENA abre) — si el update solo tocara
+// `monto_apertura_esperado`, el motivo viejo seguiría "explicando" la diferencia y el candado no se probaría.
 {
   const r = correr(`${ESCENA}
-select pg_temp.intento(format('update retail.cajas set monto_apertura_esperado = 5 where id = %L', :'caja'));`);
+select pg_temp.intento(format('update retail.cajas set monto_apertura_esperado = 5, motivo_diferencia_apertura = null where id = %L', :'caja'));`);
   esperar("check caja_apertura_explica_diferencia frena la escritura directa", r.ok && r.salida.includes("caja_apertura_explica_diferencia"), r);
 }
 
