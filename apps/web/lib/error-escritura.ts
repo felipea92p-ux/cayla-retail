@@ -321,6 +321,25 @@ const HUELLAS: Huella[] = [
     marca: "categorias_familia_fk",
     frase: "Esa familia ya no existe o fue desactivada. Recarga la lista y elige otra.",
   },
+  // 20260928100000_temporadas_como_atributo.sql (ADR-0246) — la temporada es una clave de la lista cerrada, no texto:
+  // la llave foránea rechaza «Verano 26» en el producto, la categoría o el color. Antes del genérico, por lo mismo que
+  // la de familias. La del color no tiene nombre propio en la migración (`references` en línea): Postgres la llama
+  // `producto_color_temporadas_temporada_fkey`, y la marca de abajo la contiene.
+  ...["productos_temporada_fk", "categorias_temporada_fk", "producto_color_temporadas_temporada_fk"].map((marca) => ({
+    marca,
+    frase: "Esa temporada no está en la lista. Elige una del desplegable.",
+  })),
+  {
+    // Misma migración: las dos redes del calendario que Postgres escribe por su cuenta (sin `hint`). El check guarda la
+    // holgura en días; la frase no repite el número para no quedar vieja si la base lo cambia.
+    marca: "temporada_fechas_cerca_de_su_estacion",
+    frase:
+      "Esa fecha queda demasiado lejos del inicio normal de su estación (el 21 de marzo, junio, setiembre o diciembre). Acércala y vuelve a guardar.",
+  },
+  {
+    marca: "temporada_fechas_inicio_unico",
+    frase: "Otra estación ya empieza en ese mismo instante. Elige otra hora.",
+  },
   {
     marca: "violates foreign key constraint",
     frase:
@@ -380,6 +399,13 @@ const HUELLAS: Huella[] = [
     frase: "Ya existe una familia muy parecida (mayúsculas, tildes o espacios de más no cuentan como distinto).",
   },
 ];
+
+/**
+ * `hint` de las RPC de temporadas (ADR-0246) cuyo mensaje ya viene en castellano de CAYLA. Casi todos llegan como
+ * `P0001` y pasarían igual; los de PERMISO (`temporada_sin_permiso`, `calendario_sin_permiso`) llevan `42501`, y sin
+ * esto caían al genérico «No se pudo… Código: …» en vez de decir «Solo el líder puede cambiar el calendario».
+ */
+const HINT_EN_CASTELLANO = /^(temporada|calendario)_[a-z_]+$/;
 
 /** Textos que delatan que ni siquiera se llegó al servidor. */
 const SIN_RED = ["failed to fetch", "networkerror", "load failed", "fetch failed", "aborted"];
@@ -476,8 +502,10 @@ export function traducirError(error: ErrorEscritura, contexto: string, opciones:
   const huella = HUELLAS.find((h) => enMinusculas.includes(h.marca.toLowerCase()));
   if (huella) return typeof huella.frase === "function" ? huella.frase(error.details ?? "") : huella.frase;
 
-  // `P0001` es un `raise exception` de nuestras propias RPC: ya viene en idioma CAYLA.
+  // `P0001` es un `raise exception` de nuestras propias RPC: ya viene en idioma CAYLA. Igual los de temporadas con otro
+  // código (el permiso, `42501`), que se reconocen por su `hint`.
   if (error.code === "P0001" && error.message) return error.message;
+  if (error.hint && HINT_EN_CASTELLANO.test(error.hint) && error.message) return error.message;
 
   return `No se pudo ${contexto}. Vuelve a intentar; si sigue igual, avisa a Felipe. Código: ${crudo}`;
 }
