@@ -1,4 +1,4 @@
-# ADR-0249 · «Ajustar stock» se separa de Existencias, como módulo propio
+# ADR-0250 · «Ajustar stock» se separa de Existencias, como módulo propio
 
 - **Fecha:** 2026-09-27 · **Estado:** propuesto, sin pegar en producción.
 - **Pedido:** Felipe, 2026-09-26: sacar «Ajustar stock» de Existencias y darle su propio módulo en Roles y accesos,

@@ -32,7 +32,7 @@ const MIGRACION = readFileSync(join(RAIZ, "supabase", "migrations", "20260926000
 const PRELUDIO = process.argv.includes("--en-seco") ? MIGRACION : "";
 const HINT = "reposicion_piso_cerrada";
 // Mensaje del candado de permiso (registrar_movimiento), que va ANTES de este candado de negocio. Cambió el
-// 2026-09-27 (ADR-0249: «Ajustar stock» se separa de Existencias/Conteos/Traslados como módulo propio).
+// 2026-09-27 (ADR-0250: «Ajustar stock» se separa de Existencias/Conteos/Traslados como módulo propio).
 const PERMISO = "Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste";
 
 function psql(sql) {
@@ -146,7 +146,7 @@ rollback;`,
   ["42501|t"]
 );
 caso(
-  // Desde ADR-0249 (2026-09-27) Existencias sola ya no basta para ajustar (ver `existencias_candados_y_ajuste.mjs`,
+  // Desde ADR-0250 (2026-09-27) Existencias sola ya no basta para ajustar (ver `existencias_candados_y_ajuste.mjs`,
   // casos 10a/10b): el rol de esta prueba necesita el módulo «Ajustar stock» para llegar hasta este candado de negocio.
   "colaboradora con «Ajustar stock»: se topa con el candado nuevo, con su mismo texto",
   `${ESCENA(FELIPE)}insert into retail.roles (id, nombre, descripcion) values ('44444444-4444-4444-8444-0000000000a2', 'Ve Ajustar stock (prueba reposición)', 'temporal');
@@ -163,7 +163,7 @@ caso(
 ${MIGRACION}
 ${MIGRACION}
 select (length(d) - length(replace(d, 'ADR-0208: «Reposición» no sube', ''))) / length('ADR-0208: «Reposición» no sube'),
-  -- El candado por capacidad pasó de fn_puede_ajustar_inventario() a fn_puede_ajustar_stock() el 2026-09-27 (ADR-0249).
+  -- El candado por capacidad pasó de fn_puede_ajustar_inventario() a fn_puede_ajustar_stock() el 2026-09-27 (ADR-0250).
   position('fn_actor_persona_id(true)' in d) > 0, position('fn_puede_ajustar_stock()' in d) > 0,
   (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'registrar_movimiento')
 from (select pg_get_functiondef('retail.registrar_movimiento(uuid, uuid, text, integer, text, text, uuid)'::regprocedure) d) x;

@@ -578,42 +578,119 @@ export type Database = {
       }
       clientas: {
         Row: {
+          anonimizada: boolean
+          archivada_en: string | null
+          archivada_por: string | null
           created_at: string
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
           dni: string | null
+          fusionada_en_id: string | null
           id: string
+          motivo_archivo: string | null
           nombre: string | null
           tallas: Json | null
           telefono_whatsapp: string | null
+          version: number
           whatsapp_consentimiento_en: string | null
         }
         Insert: {
+          anonimizada?: boolean
+          archivada_en?: string | null
+          archivada_por?: string | null
           created_at?: string
           created_por?: string | null
           cumple_dia?: number | null
           cumple_mes?: number | null
           dni?: string | null
+          fusionada_en_id?: string | null
           id?: string
+          motivo_archivo?: string | null
           nombre?: string | null
           tallas?: Json | null
           telefono_whatsapp?: string | null
+          version?: number
           whatsapp_consentimiento_en?: string | null
         }
         Update: {
+          anonimizada?: boolean
+          archivada_en?: string | null
+          archivada_por?: string | null
           created_at?: string
           created_por?: string | null
           cumple_dia?: number | null
           cumple_mes?: number | null
           dni?: string | null
+          fusionada_en_id?: string | null
           id?: string
+          motivo_archivo?: string | null
           nombre?: string | null
           tallas?: Json | null
           telefono_whatsapp?: string | null
+          version?: number
           whatsapp_consentimiento_en?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clientas_fusionada_en_id_fkey"
+            columns: ["fusionada_en_id"]
+            isOneToOne: false
+            referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clientas_fusiones: {
+        Row: {
+          clienta_fusionada_id: string
+          clienta_mantiene_id: string
+          ficha_fusionada: Json
+          fusionada_en: string
+          fusionada_por: string | null
+          id: string
+          pedidos_movidos: number
+          separaciones_movidas: number
+          ventas_movidas: number
+        }
+        Insert: {
+          clienta_fusionada_id: string
+          clienta_mantiene_id: string
+          ficha_fusionada: Json
+          fusionada_en?: string
+          fusionada_por?: string | null
+          id?: string
+          pedidos_movidos?: number
+          separaciones_movidas?: number
+          ventas_movidas?: number
+        }
+        Update: {
+          clienta_fusionada_id?: string
+          clienta_mantiene_id?: string
+          ficha_fusionada?: Json
+          fusionada_en?: string
+          fusionada_por?: string | null
+          id?: string
+          pedidos_movidos?: number
+          separaciones_movidas?: number
+          ventas_movidas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clientas_fusiones_clienta_fusionada_id_fkey"
+            columns: ["clienta_fusionada_id"]
+            isOneToOne: false
+            referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clientas_fusiones_clienta_mantiene_id_fkey"
+            columns: ["clienta_mantiene_id"]
+            isOneToOne: false
+            referencedRelation: "clientas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       codigos_barras: {
         Row: {
@@ -5083,19 +5160,119 @@ export type Database = {
         Returns: undefined
       }
       buscar_clienta: {
-        Args: { p_termino: string }
+        Args: { p_termino: string; p_incluir_archivadas?: boolean }
         Returns: {
+          anonimizada: boolean
+          archivada_en: string | null
+          archivada_por: string | null
           created_at: string
           created_por: string | null
           cumple_dia: number | null
           cumple_mes: number | null
           dni: string | null
+          fusionada_en_id: string | null
           id: string
+          motivo_archivo: string | null
           nombre: string | null
           tallas: Json | null
           telefono_whatsapp: string | null
+          version: number
           whatsapp_consentimiento_en: string | null
         }[]
+      }
+      editar_clienta: {
+        Args: {
+          p_id: string
+          p_dni?: string
+          p_nombre?: string
+          p_telefono_whatsapp?: string
+          p_acepta_whatsapp?: boolean
+          p_revoca_whatsapp?: boolean
+          p_cumple_dia?: number
+          p_cumple_mes?: number
+          p_tallas?: Json
+          p_version_esperada?: number
+        }
+        Returns: number
+      }
+      archivar_clienta: {
+        Args: { p_id: string; p_motivo: string; p_anonimizar?: boolean; p_version_esperada?: number }
+        Returns: number
+      }
+      reactivar_clienta: {
+        Args: { p_id: string; p_version_esperada?: number }
+        Returns: number
+      }
+      unir_clientas: {
+        Args: {
+          p_mantener_id: string
+          p_fusionar_id: string
+          p_version_mantener_esperada?: number
+          p_version_fusionar_esperada?: number
+        }
+        Returns: {
+          anonimizada: boolean
+          archivada_en: string | null
+          archivada_por: string | null
+          created_at: string
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
+          fusionada_en_id: string | null
+          id: string
+          motivo_archivo: string | null
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          version: number
+          whatsapp_consentimiento_en: string | null
+        }
+      }
+      exportar_clientas: {
+        Args: never
+        Returns: {
+          anonimizada: boolean
+          archivada_en: string | null
+          archivada_por: string | null
+          created_at: string
+          created_por: string | null
+          cumple_dia: number | null
+          cumple_mes: number | null
+          dni: string | null
+          fusionada_en_id: string | null
+          id: string
+          motivo_archivo: string | null
+          nombre: string | null
+          tallas: Json | null
+          telefono_whatsapp: string | null
+          version: number
+          whatsapp_consentimiento_en: string | null
+        }[]
+      }
+      fn_clienta_compras: {
+        Args: { p_id: string }
+        Returns: {
+          venta_id: string
+          fecha: string
+          ubicacion: string
+          categoria: string | null
+          talla: string | null
+          cantidad: number
+          subtotal: number
+        }[]
+      }
+      fn_clienta_cambios: {
+        Args: { p_id: string }
+        Returns: { cambio_id: string; fecha: string; ubicacion: string; motivo: string | null; diferencia: number }[]
+      }
+      fn_clienta_devoluciones: {
+        Args: { p_id: string }
+        Returns: { devolucion_id: string; fecha: string; estado: string; motivo: string | null; reembolso_monto: number | null }[]
+      }
+      fn_clienta_separaciones: {
+        Args: { p_id: string }
+        Returns: { separacion_id: string; codigo: string; fecha: string; estado: string; total: number; vence_el: string }[]
       }
       buscar_productos_parecidos: {
         Args: { p_excluir_id?: string; p_referencia: string }

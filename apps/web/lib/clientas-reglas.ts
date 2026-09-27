@@ -2,6 +2,11 @@
 // tanto la lectura del servidor (`clientas.ts`) como las escrituras del navegador
 // (`clientas-acciones.ts`) y el panel cliente, sin arrastrar el lado equivocado de Supabase
 // al otro (mismo criterio que separa `ventas-historial.ts` de `ventas-historial-reglas.ts`).
+//
+// Clientas, paso 2 del acta (docs/datos/DECISIONES-2026-09-26-clientas.md, sección H): además del
+// alta (D-76/D-77), la ficha ahora se edita, se archiva/anonimiza y se une con otra (D-99). Las
+// columnas nuevas de `retail.clientas` — `version` (ADR-0193 reusado), `archivada_en`,
+// `archivada_por`, `motivo_archivo`, `anonimizada`, `fusionada_en_id` — entran acá.
 export type Clienta = {
   id: string;
   dni: string | null;
@@ -11,9 +16,21 @@ export type Clienta = {
   tienePermisoWhatsapp: boolean;
   cumpleDia: number | null;
   cumpleMes: number | null;
+  tallas: Record<string, string> | null;
   createdAt: string;
+  /** ADR-0193 reusado: candado optimista. Toda edición manda la que se leyó al abrir. */
+  version: number;
+  archivadaEn: string | null;
+  motivoArchivo: string | null;
+  /** true = además de archivada, sin ningún dato personal (Ley 29733 o fusión, D-99). */
+  anonimizada: boolean;
+  /** Si esta ficha perdió una fusión, la ficha que quedó (retail.clientas_fusiones tiene el detalle). */
+  fusionadaEnId: string | null;
 };
 
+// `tallas` es jsonb libre sin forma fija (comentario de la columna en la migración): se acepta
+// como `unknown` en la fila cruda (así calza con el `Json` que genera Supabase para cualquier
+// columna jsonb, sin acoplar este archivo a ese tipo) y se valida al mapear a `Clienta`.
 export type FilaClienta = {
   id: string;
   dni: string | null;
@@ -22,8 +39,19 @@ export type FilaClienta = {
   whatsapp_consentimiento_en: string | null;
   cumple_dia: number | null;
   cumple_mes: number | null;
+  tallas: unknown;
   created_at: string;
+  version: number;
+  archivada_en: string | null;
+  motivo_archivo: string | null;
+  anonimizada: boolean;
+  fusionada_en_id: string | null;
 };
+
+function comoTallas(valor: unknown): Record<string, string> | null {
+  if (!valor || typeof valor !== "object" || Array.isArray(valor)) return null;
+  return valor as Record<string, string>;
+}
 
 export function aClienta(fila: FilaClienta): Clienta {
   return {
@@ -34,6 +62,94 @@ export function aClienta(fila: FilaClienta): Clienta {
     tienePermisoWhatsapp: fila.whatsapp_consentimiento_en !== null,
     cumpleDia: fila.cumple_dia,
     cumpleMes: fila.cumple_mes,
+    tallas: comoTallas(fila.tallas),
     createdAt: fila.created_at,
+    version: fila.version,
+    archivadaEn: fila.archivada_en,
+    motivoArchivo: fila.motivo_archivo,
+    anonimizada: fila.anonimizada,
+    fusionadaEnId: fila.fusionada_en_id,
   };
 }
+
+export function estaActiva(c: Pick<Clienta, "archivadaEn">): boolean {
+  return c.archivadaEn === null;
+}
+
+/* ------------------------------------------------------------------
+   Su actividad — leída de ventas/cambios/devoluciones/separaciones (fn_clienta_*, nunca una
+   tabla copia): la ficha muestra hechos, no un resumen guardado a mano.
+   ------------------------------------------------------------------ */
+
+export type FilaCompra = {
+  venta_id: string;
+  fecha: string;
+  ubicacion: string;
+  categoria: string | null;
+  talla: string | null;
+  cantidad: number;
+  subtotal: number;
+};
+
+export type Compra = {
+  ventaId: string;
+  fecha: string;
+  ubicacion: string;
+  total: number;
+  items: { categoria: string | null; talla: string | null; cantidad: number }[];
+};
+
+export type Cambio = { id: string; fecha: string; ubicacion: string; motivo: string | null; diferencia: number };
+export type FilaCambio = { cambio_id: string; fecha: string; ubicacion: string; motivo: string | null; diferencia: number };
+
+export type Devolucion = { id: string; fecha: string; estado: string; motivo: string | null; reembolsoMonto: number | null };
+export type FilaDevolucion = {
+  devolucion_id: string;
+  fecha: string;
+  estado: string;
+  motivo: string | null;
+  reembolso_monto: number | null;
+};
+
+export type Separacion = { id: string; codigo: string; fecha: string; estado: string; total: number; venceEl: string };
+export type FilaSeparacion = {
+  separacion_id: string;
+  codigo: string;
+  fecha: string;
+  estado: string;
+  total: number;
+  vence_el: string;
+};
+
+/** Agrupa las filas planas de `fn_clienta_compras` (una por prenda) en una compra por venta —
+ *  las filas llegan ordenadas por fecha desc, así que las de una misma venta quedan juntas. */
+export function agruparCompras(filas: readonly FilaCompra[]): Compra[] {
+  const porVenta = new Map<string, Compra>();
+  for (const f of filas) {
+    let c = porVenta.get(f.venta_id);
+    if (!c) {
+      c = { ventaId: f.venta_id, fecha: f.fecha, ubicacion: f.ubicacion, total: 0, items: [] };
+      porVenta.set(f.venta_id, c);
+    }
+    c.total += f.subtotal;
+    c.items.push({ categoria: f.categoria, talla: f.talla, cantidad: f.cantidad });
+  }
+  return [...porVenta.values()];
+}
+
+export function aCambio(f: FilaCambio): Cambio {
+  return { id: f.cambio_id, fecha: f.fecha, ubicacion: f.ubicacion, motivo: f.motivo, diferencia: f.diferencia };
+}
+
+export function aDevolucion(f: FilaDevolucion): Devolucion {
+  return { id: f.devolucion_id, fecha: f.fecha, estado: f.estado, motivo: f.motivo, reembolsoMonto: f.reembolso_monto };
+}
+
+export function aSeparacion(f: FilaSeparacion): Separacion {
+  return { id: f.separacion_id, codigo: f.codigo, fecha: f.fecha, estado: f.estado, total: f.total, venceEl: f.vence_el };
+}
+
+/** La ficha completa: la clienta más su actividad. Vive acá (no en `clientas.ts`) porque tanto la
+ *  carga inicial (server, `getFichaClienta`) como el refresco tras editar (cliente,
+ *  `cargarFichaClienta` en `clientas-acciones.ts`) arman la misma forma. */
+export type FichaClienta = { clienta: Clienta; compras: Compra[]; cambios: Cambio[]; devoluciones: Devolucion[]; separaciones: Separacion[] };

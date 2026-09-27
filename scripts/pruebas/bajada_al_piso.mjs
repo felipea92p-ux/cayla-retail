@@ -269,7 +269,7 @@ select pg_temp.intento('select count(*) from retail.bajada_piso_items');`,
 );
 caso(
   // «Nace sin rol» lo vigila `lib/modulos.test.ts` sobre las migraciones: aquí la base local puede tenerlo encendido a mano.
-  // El texto de Existencias es el de 20260928130000 (ADR-0249 le quitó «ajustar stock»: ya es su propio módulo), que
+  // El texto de Existencias es el de 20260928130000 (ADR-0250 le quitó «ajustar stock»: ya es su propio módulo), que
   // corre después de la 20260926170000 (que a su vez nombra el retiro del bloque 2, después de la 0000).
   "P1 · el módulo: Inventario, orden 85, delegable, no siempre-del-líder; Existencias dice «reponer y retirar del piso»",
   `select concat_ws('|', m.grupo, m.nombre, m.orden, m.solo_lider::int, m.delegable::int,
@@ -327,7 +327,7 @@ select id as conteo from retail.conteos where ubicacion_id = :'tru' and estado =
 ${soloModulos("integrante", ["bajada_piso"])}${sesion(MICAELA)}${COMO_API}select ${bajar("tru", lista(["va", 2]), ":'tok1'")};
 select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1, ''conteo_fisico'', null, %L)', :'va', :'tru', :'piso_t'));
 select pg_temp.intento(format('select retail.cerrar_conteo(%L)', :'conteo'));`,
-  // El mensaje de «ajustar» cambió el 2026-09-27 (ADR-0249): «Bajada al piso» ya no implica «Ajustar stock», que
+  // El mensaje de «ajustar» cambió el 2026-09-27 (ADR-0250): «Bajada al piso» ya no implica «Ajustar stock», que
   // ahora es su propio módulo — ni «Existencias/Conteos/Traslados» (fn_puede_ajustar_inventario, sin tocar) alcanza.
   (l) =>
     json(l.at(-3)).ok &&

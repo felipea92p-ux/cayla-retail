@@ -219,6 +219,9 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
   // "Resumen" de Producción, una pantalla de otro módulo.
   panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
+  // Corazón: el club de CAYLA (Clientas, 2026-09-27) — nunca "colaboradores" (esa es la persona
+  // dueña de un acceso), esta es la clienta que vuelve.
+  clientas: "M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 000-7.8z",
   chevron: "M9 6l6 6-6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   cerrar: "M6 6l12 12M18 6L6 18",

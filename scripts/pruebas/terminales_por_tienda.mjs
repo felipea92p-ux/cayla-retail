@@ -137,7 +137,7 @@ rollback;
 
 /**
  * La escena de inventario (misma que la del candado de líder): una variante y el piso de venta de Trujillo.
- * ADR-0249 (2026-09-27): «Ajustar» dejó de venir de Existencias/Conteos/Traslados — pide su propio módulo, que la
+ * ADR-0250 (2026-09-27): «Ajustar» dejó de venir de Existencias/Conteos/Traslados — pide su propio módulo, que la
  * siembra de 20260923030000 no le da a ningún rol de terminal (ese módulo no existía todavía). Estos casos SIGUEN
  * probando el candado de responsable (D-13/ADR-0162) sobre `registrar_movimiento`, no el módulo: se le da el módulo
  * nuevo a la terminal administrativa aquí, igual que ya se le daba «Bajada al piso» o «Apartados» en otros arneses.

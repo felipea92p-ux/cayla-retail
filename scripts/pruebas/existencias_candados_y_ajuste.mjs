@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0240 y ADR-0249 contra el Postgres LOCAL:
+ * Prueba de ADR-0240 y ADR-0250 contra el Postgres LOCAL:
  *   · «Una puerta, un candado» (20260927180000 y 20260927180200): `mover_entre_piso_y_almacen` pide «Bajada al piso» y
  *     `apartar_prenda` pide «Apartados»; `mover_interno` y `apartar_stock` ya no se llaman desde el navegador, pero las
  *     funciones que las usan por dentro (`bajar_al_piso`) siguen funcionando.
  *   · «Ajustar de una vez» (20260927180100): `ajustar_inventario` es todo o nada y con marca de reintento.
- *   · «Ajustar stock, módulo propio» (20260928110000, ADR-0249): Existencias/Conteos/Traslados YA NO alcanza para
+ *   · «Ajustar stock, módulo propio» (20260928110000, ADR-0250): Existencias/Conteos/Traslados YA NO alcanza para
  *     ajustar — hace falta el módulo «Ajustar stock» — y el módulo solo, sin los otros tres, alcanza.
  *
  * CÓMO. Como `ajuste_no_es_primera_carga.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
@@ -272,7 +272,7 @@ ${K("repetida", ajustar({ ajustes: items(["v1", 1]), cargas: items(["v1", 1]) })
 );
 
 correr(
-  "9. Quien no puede ajustar, no ajusta (el candado de registrar_movimiento, hoy ADR-0249)",
+  "9. Quien no puede ajustar, no ajusta (el candado de registrar_movimiento, hoy ADR-0250)",
   `select gen_random_uuid() as tok \\gset
 ${soloModulos("integrante", ["vender"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
 ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
@@ -283,11 +283,11 @@ ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
 );
 
 // ---------------------------------------------------------------------------------------------------------------------
-// ADR-0249: «Ajustar stock» se separa de Existencias/Conteos/Traslados
+// ADR-0250: «Ajustar stock» se separa de Existencias/Conteos/Traslados
 // ---------------------------------------------------------------------------------------------------------------------
 
 correr(
-  "10a. Existencias + Conteos + Traslados YA NO alcanza para ajustar (antes sí; ADR-0249)",
+  "10a. Existencias + Conteos + Traslados YA NO alcanza para ajustar (antes sí; ADR-0250)",
   `select gen_random_uuid() as tok \\gset
 ${soloModulos("integrante", ["existencias", "conteos", "traslados"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
 ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,

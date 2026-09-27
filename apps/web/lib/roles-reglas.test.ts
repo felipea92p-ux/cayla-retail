@@ -105,6 +105,9 @@ describe("«Así queda su menú»", () => {
       { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Posventa"] }, // Apartados: módulo propio sin rol (ADR-0196)
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
       { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Marcas", "Atributos"] },
+      // Clientas (2026-09-27, paso 2 del acta): ya estaba en MODULOS_DE_HOY.integrante desde antes (D-76/D-77), solo
+      // no se veía porque el nodo del menú era "futura" — ver `menu.ts`.
+      { etiqueta: "Clientas", hijas: [] },
     ]);
   });
 

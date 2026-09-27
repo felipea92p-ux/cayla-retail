@@ -205,7 +205,7 @@ ${K("interna", "not has_function_privilege('authenticated', 'retail.fn_cargar_st
 );
 
 // La integrante de la siembra (TRU) ve Existencias, Conteos y Traslados, así que `fn_puede_ajustar_inventario()` le da
-// `true` — la carga inicial (`cargar_stock_inicial`) acepta esa capacidad O «editarCatalogo», SIN CAMBIO por ADR-0249
+// `true` — la carga inicial (`cargar_stock_inicial`) acepta esa capacidad O «editarCatalogo», SIN CAMBIO por ADR-0250
 // (2026-09-27: «Ajustar stock» es otro módulo, pero cargar una prenda nueva no es ajustar, ADR-0235). Su rol NO tiene
 // «Bajada al piso». «Colgadas en el piso» es una bajada y la pide (ADR-0212): la base la frena, y por eso «Ajustar» le
 // manda sus prendas nuevas al almacén (`cargaInicialAlPiso`, ajuste-reglas.ts) en vez de dejarla con este error al
