@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
+Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
+- [x] Campo «Etiquetas» en el paso 2 (`ElegirEtiquetas.tsx`): buscar, elegir varias con chips y ✕, Retroceso quita la última, «+ Crear «X»» con el combo Responsable. Fila «Etiquetas» en la ficha de la derecha y en la línea del paso 2 plegado. Quita el enlace escondido del paso 4.
+- [x] Reglas puras y probadas en `lib/etiquetas-alta-reglas.ts` (20 casos); frase nueva para `etiquetas_clave_unica` en `lib/error-escritura.ts`.
+- [x] Quien no es líder no ve las etiquetas con descuento (la base las rechazaba con «Solo un líder puede asignar una etiqueta con descuento»: antes el alta chocaba al final).
+- [ ] **Felipe, en producción tras el despliegue:** crear una prenda con 2 etiquetas y comprobar en Productos ▸ Editar que quedaron en todas las variantes; probar «+ Crear» con tu cuenta (queda aprobada) y con una de colaboradora (queda pendiente en Atributos ▸ Etiquetas).
+- [ ] Pendiente sin decidir: si una etiqueta se desactiva mientras alguien llena el formulario, el alta se rechaza con «Recarga la pantalla» y se pierde lo llenado (ya pasaba; este cambio no lo empeora).
+
 ## 🧹 Purga de Top Aurora y su venta de prueba (2026-09-26, ADR-0224) — **HECHA en producción el 2026-09-26 10:06 (Lima)**; scripts en el repo, sin web ni migración
 - [x] `scripts/purga/purgar-producto-de-prueba.sql` (parametrizado, ensayo por defecto) y `scripts/purga/restaurar-purga.sql`: deshacen por completo `TOP-0011` y la nota `NV01-000007` (S/ 2,007.10, sin SUNAT), devuelven a stock las 13 prendas de otros productos que esa venta sacó, devuelven la serie NV01 a 7, respaldan cada fila en `respaldo_purgas.filas` y demuestran antes de cerrar que el libro de movimientos cuadra con el stock en toda la base.
 - [x] Probado: `pnpm pruebas:purgar-producto` **36/36** (sumada al CI), 6 mutaciones detectadas, respaldo restaurado idéntico fila por fila. La prueba encontró que `venta_items.subtotal` es columna generada: por eso existe `restaurar-purga.sql`.

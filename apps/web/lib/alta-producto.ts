@@ -277,9 +277,10 @@ export function desbloqueos(e: EstadoAlta): Desbloqueos {
 // ---------------------------------------------------------------------------
 //
 // Los 7 bloques de antes se agrupan en pasos. Solo uno está abierto a la vez, y el terminado se pliega en una línea:
-//   1 Qué es · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas, tejido, patrón,
-//   colores, fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color, etiquetas) · 5 Cuántas tienes hoy
-//   (la carga inicial: lo que ya está en tienda, ADR-0212).
+//   1 Qué es · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor, etiquetas: a la vista desde el
+//   2026-09-26, antes tras un enlace en el paso 4, ADR-0109 act.) · 3 Cómo se hace (tallas, tejido, patrón, colores,
+//   fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color) · 5 Cuántas tienes hoy (la carga inicial: lo
+//   que ya está en tienda, ADR-0212).
 // Cada problema de `problemasAlta` cae en un paso, así el paso dice qué le falta sin repetir las reglas.
 //
 // El 5 va aparte del 4 a propósito: el 4 dice qué ES el producto (catálogo) y el 5 cuánto HAY (inventario). En la misma

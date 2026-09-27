@@ -28,7 +28,7 @@ muestra la pantalla a 375 px.
 
 | Hoy | Propuesta |
 |---|---|
-| 7 bloques: Qué es · Marca · Nombre · Talla/tejido/patrón · Colores · Precio · Etiquetas | **4 pasos**: Qué es · Quién es y cómo se llama · Cómo se hace · Precio y variantes (las etiquetas quedan dentro, plegadas) |
+| 7 bloques: Qué es · Marca · Nombre · Talla/tejido/patrón · Colores · Precio · Etiquetas | **4 pasos**: Qué es · Quién es y cómo se llama · Cómo se hace · Precio y variantes (las etiquetas quedan dentro, plegadas — **hoy, no**: desde el 2026-09-26 son una fila a la vista del paso 2, ADR-0109 «Actualización 2026-09-26») |
 | Todos los bloques a la vista, los cerrados en gris | **Acordeón**: se abre un paso a la vez. El terminado se pliega a una línea con «Cambiar». El que viene es una línea punteada |
 | Se avanza al llenar | El paso 1 avanza solo al elegir la categoría. Los demás tienen un botón **«Seguir →»** y, al lado, qué falta |
 | Fila de casillas con precio | **Tabla talla × color.** Clic en una celda la quita. Clic en el color o la talla quita la fila o la columna. «Poner un precio distinto» cambia las celdas a campos |
