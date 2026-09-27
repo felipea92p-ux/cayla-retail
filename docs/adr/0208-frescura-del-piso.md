@@ -1152,11 +1152,15 @@ ADR-0240 ya hizo que el ajuste se guarde de una vez y con marca contra el doble 
 
 ## Actualización 2026-09-27 — diseño 3c
 
-**Dónde vive.** En Inventario ▸ **Diagnóstico** ▸ Frescura del piso, ruta `/inventario/frescura`. «Diagnóstico» es un
-subgrupo nuevo que junta Análisis y Frescura: suelta, Frescura sería la séptima hija de Inventario y `menu.test.ts` pone
-un tope de 6 por grupo. El molde es Posventa: si un rol ve solo Análisis, el subgrupo se deshace y la ve con su nombre de
-siempre. **Módulo propio `frescura`**, sin permiso nuevo aparte del módulo, que **nace solo para el líder** (ADR-0161);
-el líder decide después a qué rol se lo da.
+**Dónde vive (Felipe, 2026-09-27): directo en Inventario**, como sexta fila: Existencias, Movimientos, Traslados,
+Conteo, Análisis y **Frescura del piso**, ruta `/inventario/frescura`. **Módulo propio `frescura`**, sin permiso nuevo
+aparte del módulo, que **nace solo para el líder** (ADR-0161); el líder decide después a qué rol se lo da.
+- *Descarté* el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba el tope de 6 hijas de `menu.test.ts`:
+  escondía un clic más adentro la pantalla que se debería mirar cada semana.
+- *El tope:* el líder ve 6 filas («Recibir mercadería» solo sale a quien NO ve Compras). Llegaría a 7 únicamente un rol
+  que vea Análisis y Frescura y reciba mercadería sin ver Compras; hoy no existe. Para ese caso, Inventario queda con
+  una excepción escrita al tope (`EXCEPCIONES_TOPE_HIJAS`, 7) en vez de esconder Frescura.
+- *Se rompe si* un rol con esa combinación aparece y además Inventario suma otra pantalla: entonces sí hay que regrupar.
 
 **El dato que manda sobre el diseño: la mitad del piso no tiene edad.** De las 211 unidades que entraron al piso de TRU
 (consulta de solo lectura del 2026-09-27), 104 llegaron por bajadas normales, 95 por bajadas de la **carga inicial** (15
@@ -1179,10 +1183,29 @@ color del semáforo va a llenar el piso en semanas, no en días.
 4. **La pantalla:** maqueta primero, para que Felipe elija colores y frase de acción; luego el menú y la ruta.
 5. **Análisis usa la regla de Frescura:** «Estancadas» deja el corte fijo de 14 días y pasa a «vieja y lenta» (la misma
    definición de Frescura), con un enlace.
-6. **El indicador en la Terminal de ventas** (módulo aparte, `registro_piso`), después de que Felipe decida dónde va.
+6. ~~El indicador en la Terminal de ventas~~ **pasa al 3b** (ver abajo).
 
-**Lo que ya se sabe que limita el 3c:** hasta 3b, «la clienta pidió otra talla y se la trajeron del almacén» cuenta
-como bajada tardía; y las 56 prendas de producción (modelo y color, de 17 productos) siguen sin temporada, ni propia
-ni de su categoría (consulta del 2026-09-27). Cómo se comparan
-mientras tanto está abierto para Felipe (propuesta: con toda su categoría en la sede, sin partir por mitad del año y
-con el aviso «Sin temporada · complétala»), igual que dónde va el indicador de la Terminal de ventas (paso 6).
+**Decisiones de Felipe del 2026-09-27 (cierran las preguntas del diseño):**
+
+1. **«Envejecida» no depende de la temporada.** Una prenda envejece cuando es **más lenta que su categoría en su sede**:
+   los tramos (Nueva, Vigente, Envejecida, Crítica) salen de la curva de **categoría × sede**, sin partirla por mitad del
+   año. La temporada da **otro aviso, aparte: «Temporada pasada»**, cuando termina su estación (con sugerencias, sin
+   rebaja automática). Los clásicos se siguen midiendo contra su propia historia, y es la temporada la que dice que una
+   prenda es clásica. Reemplaza la decisión 8 de ADR-0246 («en la misma mitad del año»).
+   - *Descarté* partir la vara por mitad del año: mezclaba dos preguntas (¿se vende más lento que sus hermanas? / ¿ya
+     pasó su estación?) y, con 7 ventas en producción, dejaba cada mitad sin datos.
+   - *Descarté* no dar aviso de temporada: el bikini que se vende bien hasta el 20 de marzo se vería recién semanas
+     después, cuando ya se hubiera puesto lento.
+   - *Lo que se paga:* en una categoría que mezcla verano e invierno, fuera de estación las prendas lentas estiran la
+     vara de toda la categoría y las demás parecen «Nuevas» unos días más. El aviso «Temporada pasada» marca a las de
+     la estación que terminó; si una categoría lo sufre de verdad, se parte la categoría, no la vara.
+   - *Sin temporada* (56 prendas de producción, modelo y color de 17 productos, al 2026-09-27): se miden igual que las
+     demás; no reciben el aviso de fin de estación y llevan el chip «Sin temporada · complétala» (un clásico sin temporada
+     se mediría como moda).
+2. **El indicador de registro de la Terminal de ventas va en Caja y sale con los dos botones del 3b** («La traje del
+   almacén» / «Ya estaba colgada»). Antes de esos botones, «la clienta pidió otra talla y se la trajeron» cuenta como
+   bajada tardía y la cifra castigaría al equipo por atender bien. En el 3c, el indicador lo ve solo el líder, en Frescura.
+   El módulo `registro_piso` nace con la tarjeta, no antes (Roles y accesos no ofrece un módulo que no muestra nada).
+   - *Descarté* Inicio: una terminal de ventas nunca ve Inicio (al entrar va a Vender, regla del 2026-09-21, y el menú
+     se lo esconde).
+3. **Menú:** directo en Inventario (arriba, «Dónde vive»).
