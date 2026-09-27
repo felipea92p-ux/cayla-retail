@@ -3,6 +3,25 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-27 (Roles y accesos: candado de coherencia módulo ↔ base, y un análisis a medio cerrar)
+Felipe invocó `/pantalla` sobre Colaboradores ▸ Roles y accesos. El hallazgo central: la pantalla apaga un módulo, pero 10
+de los 29 módulos delegables no los exige ninguna función de `retail` — el candado solo cubre «se abre y falla al guardar»,
+no «se apaga y la base sigue dejando pasar» (ADR-0150 lo prometía y nadie lo probaba). `pnpm pruebas:roles-cobertura`
+([PR #485](https://github.com/felipea92p-ux/cayla-retail/pull/485), fusionado) lo cierra: falla si un módulo delegable
+nuevo no tiene guardián ni entrada en `SOLO_PANTALLA`, y esa lista solo puede encogerse. Un workflow de 12 agentes la
+construyó y tres revisores por tarea la objetaron; dos objeciones me corrigieron a mí: mi primera versión decía que quien
+baja de Líder queda «con 40 % de descuento sin aprobación» (exagerado: el mostrador nunca manda ese descuento) y que
+Cuentas y dinero «abre y falla al guardar» (falso: está tapado por la pantalla, nunca decidido por escrito). El análisis
+completo y la propuesta de un rol elegido al aprobar un alta quedan **sin publicar**: el repo es público y describen con
+cuentas y cifras un hueco de Compras (Integrante y Terminal Almacén juntan «crear proveedor» + «pagar») que Felipe todavía
+no cerró desde la pantalla.
+Felipe se lleva: **una prueba que dice «cubierto» por texto puede mentir de dos formas a la vez** — un ayudante que nadie
+llama parecía guardián, y una política de lectura escrita directo no contaba como guardián aunque protegiera de verdad; la
+prueba final distingue puerta de ayudante huérfano y lee políticas y vistas, no solo funciones.
+Sin resolver: los clics de Compras (Integrante/Terminal Almacén/rol «Compras»); qué hacer con `tope_descuento_pct` (dos
+archivos SQL listos, sin pegar); la propuesta de rol-al-aprobar, sin aprobar; y separar «nivel» (Dynamic) de «rol»
+(retail) para un techo de descuento por nivel — decisión de Felipe, sin construir.
+
 ## 2026-09-27 (Etiquetas con dibujo real, en el paso 3; Tejido corrige el mismo error — ADR-0109 act. c)
 Felipe, con capturas: Etiquetas seguía sin dibujo (el de (b) era solo texto) y Tejido, al lado de Patrón en el mismo paso, también era texto plano aunque `MuestraTejido` ya existía y ya se usaba en Atributos. 12 preguntas y un bosquejo (Artifact) antes de tocar código. Etiquetas se mudó al paso 3 (después de Colores, antes de Fotos) y su tarjeta reusa `MuestraEtiqueta`; Tejido gana `MuestraTejido`. Colores no se tocó. Sin migración.
 Felipe se lleva: (1) **el mismo error se repite si nadie lo nombra**: Tejido llevaba el mismo defecto que acababa de corregir en Etiquetas, en el mismo paso, y nadie lo había visto porque cada campo se mira solo. (2) **«¿es el lugar correcto?» es una pregunta de arquitectura, no de gusto**: Etiquetas no encajaba en el paso 2 (puro texto) — encaja al lado de sus pares visuales (Tejido, Patrón, Colores) en el paso 3. (3) **Un dibujo por CONCEPTO ya resuelve lo que parecía pedir un dibujo por etiqueta**: `MuestraEtiqueta` (ya existía en Atributos) reconoce el nombre y cae en un genérico cuando no lo conoce, sin código nuevo.

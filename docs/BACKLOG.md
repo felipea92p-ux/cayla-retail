@@ -28,6 +28,28 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔒 Colaboradores ▸ Roles y accesos: candado de coherencia módulo ↔ base (2026-09-26/27) — [PR #485](https://github.com/felipea92p-ux/cayla-retail/pull/485) fusionado; análisis `/pantalla` sin publicar aún; rama `claude/permisos-niveles-roles-d7bab1`
+
+`docs/pantallas/colaboradores-roles.md` (completo, sin publicar) auditó Roles y accesos: ADR-0150 prometía «una prueba debe fallar
+si…» y ninguna cruzaba módulo con función. `pnpm pruebas:roles-cobertura` ya está en `main` y en CI, justo después de
+`pruebas:roles`: 29 módulos delegables, 19 con guardián en la base (5 solo por una capacidad compartida) y 10 declarados
+`SOLO_PANTALLA` con su razón (la lista solo puede encogerse); 23 funciones que exigen solo líder por un ayudante quedan
+declaradas en `SOLO_LIDER`. Desde que se fusionó, otra sesión ya la usó de verdad: cerró la rebanada de Apartados y declaró
+`inicio`.
+- [ ] **Felipe: en Roles y accesos, sacar Facturas de compra/Por pagar/Proveedores/Notas de crédito de Integrante (17 cuentas) y
+  de Terminal Almacén (3 aparatos sin PIN), y crear un rol «Compras» aparte.** Hoy ambos juntan «crear proveedor» + «pagar»,
+  el par que R-10 (`docs/datos/15-COMO-OPERA-CAYLA.md`) dice que merece decisión explícita. Verificado en vivo el 27-sep:
+  sigue sin hacerse. El análisis de la pantalla no se publica hasta que esto se cierre (repo público, describe el hueco con
+  cuentas y cifras).
+- [ ] **Decidir qué hacer con `retail.colaboradores.tope_descuento_pct`** (retirarlo, activarlo o solo corregir el dato):
+  hoy no lo evalúa el mostrador (0 de 6 ventas), lo real es Líder hasta 35 % o un código. Dos archivos listos en el
+  worktree, sin pegar (`supabase/migrations/20260926230000_asignar_rol_reinicia_tope_al_bajar_de_lider.sql` y
+  `pegar-en-produccion-tope-integrante-sin-tope-2026-09.sql`), con `pruebas:roles` en 81/81 sobre un Postgres desechable.
+- [ ] **Propuesta lista, sin construir:** que el rol se elija al aprobar un alta pendiente, sin valor de partida
+  (`docs/pantallas/colaboradores-roles-propuesta-3.md`). Hoy toda alta nace con el rol Integrante que haya ese día.
+
+---
+
 ## 🏷️ Etiquetas: con dibujo real, en el paso 3, y Tejido corrige el mismo error (2026-09-27, ADR-0109 act. c) — solo web, sin migración; rama `claude/etiquetas-alta-siempre-visibles`
 Felipe, tres capturas más: «mira dónde sale Etiquetas y analiza si es el lugar correcto… me pregunto por qué no lo muestras como
 la parte de textura, el mismo error en Tejido». 12 preguntas (`AskUserQuestion`) y un bosquejo (Artifact) aprobado antes de tocar código.
