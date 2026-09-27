@@ -75,6 +75,9 @@ create table if not exists retail.temporadas (
   constraint temporadas_moda_con_ventana check (es_clasico or estacion_desde is not null)
 );
 
+alter table retail.temporadas enable row level security;
+revoke all on table retail.temporadas from public, anon, authenticated;
+
 comment on table retail.temporadas is
   'ADR-0246: la lista cerrada de temporadas. Una prenda de moda termina su estación al empezar `estacion_hasta`; la mitad del año (PV/OI) se calcula de `estacion_desde`. Los clásicos no pasan a «temporada pasada»; los de verano o invierno usan su ventana para sugerir guardarlos fuera de ella.';
 
@@ -107,6 +110,12 @@ create table if not exists retail.temporada_fechas (
     <= 60
   )
 );
+
+-- RLS y privilegios apenas nace la tabla, ANTES de sembrar: con avisos pendientes del disparador diferido (abajo),
+-- Postgres no deja un ALTER TABLE sobre ella en la misma transacción (55006, lo encontró el CI: Supabase corre cada
+-- migración en una transacción, igual que el SQL Editor).
+alter table retail.temporada_fechas enable row level security;
+revoke all on table retail.temporada_fechas from public, anon, authenticated;
 
 comment on table retail.temporada_fechas is
   'ADR-0246: el instante en que empieza cada estación, por año (hora de Perú). El fin de una estación es el inicio de la siguiente. Nace de SENAMHI (o del USNO mientras SENAMHI no publique); el líder la corre con `fijar_fechas_temporada` solo si todavía no empezó.';
@@ -220,10 +229,8 @@ insert into retail.temporada_fechas (anio, estacion, inicio, fuente) values
   (2028, 'verano',    '2028-12-21 03:19-05', 'usno')
 on conflict (anio, estacion) do nothing;
 
-alter table retail.temporadas enable row level security;
-alter table retail.temporada_fechas enable row level security;
-revoke all on table retail.temporadas from public, anon, authenticated;
-revoke all on table retail.temporada_fechas from public, anon, authenticated;
+-- Que el orden de lo sembrado se revise ya (y no al confirmar): si algo de arriba quedó fuera de orden, falla aquí.
+set constraints retail.temporada_fechas_orden immediate;
 
 
 -- ============================================================================
