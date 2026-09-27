@@ -192,7 +192,9 @@ caso(
   "firman con el actor: al menos 60 con el responsable (true); con (false) solo las de PERMISO (20260923230000)",
   `select concat_ws(',',
      count(*) filter (where d ~ 'fn_actor_persona_id\\(true\\)'),
-     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador)\\('),
+     -- fn_mi_pantalla_principal (20260925220000): «mi» preferencia de aterrizaje, mismo patrón que fn_mi_terminal/fn_es_admin —
+     -- mira la cuenta (false), nunca un responsable delegado (una terminal no tiene pantalla principal propia que otro le fije).
+     count(*) filter (where d ~ 'fn_actor_persona_id\\(false\\)' and d !~ 'FUNCTION retail\\.(fn_alcanzo_a|quitar_colaborador|suspender_colaborador|fn_mi_pantalla_principal)\\('),
      count(*) filter (where (length(d) - length(replace(d, 'fn_actor_persona_id(', ''))) / length('fn_actor_persona_id(') > 1
                         -- suspender: permiso (cuenta) + firma (responsable). guardar_proveedor_produccion (20260923240000): una
                         -- firma en el alta y otra en la edición, caminos excluyentes.
