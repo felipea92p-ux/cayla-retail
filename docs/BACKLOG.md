@@ -813,7 +813,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 - [ ] **Felipe: ¿«Reponer» en toda fila con almacén?** Hoy solo aparece con 7 o menos en el piso. Quien tiene
   Existencias sin «Bajada al piso» no tiene camino con rastro para subir una prenda con 8 o más en el piso (la nota de
   Ajustar stock le dice que pida el módulo al líder).
-- [ ] **Decidir la D-40 antes del bloque 3.** Desde el #437 la caja con piso 0 dice «está en el almacén: hay N» y no
+- [x] **D-40 decidida (Felipe, 2026-09-26):** la caja no se frena y pregunta «La traje del almacén» (a pedido) o «Ya
+  estaba colgada» (error de registro); más el interruptor «Es para una clienta» al bajar o reponer. Se construye en el
+  paso 3b (ADR-0208, «Actualización 2026-09-26 — decisiones del bloque 3»). Lo que decía antes: Desde el #437 la caja con piso 0 dice «está en el almacén: hay N» y no
   cobra. Falta decidir cuál manda: V2 (se registra la bajada antes de cobrar, y la D-40 se retira por escrito) o la
   D-40 (la caja baja sola y toda bajada nace tardía). Sin decidirlo, el indicador mide el diseño de la caja y no a las
   colaboradoras.
@@ -857,7 +859,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     Movimientos por par y filtro «Movimiento interno»; la nota de Ajustar stock ▸ Piso nombra «Retirar del piso»; el
     texto de Existencias en Roles y accesos (`20260926170000`); documentos al día y borrada la copia de `docs/diseno/`.
     Detalle: ADR-0208, «Actualización 2026-09-25 — revisión del bloque 2».
-  - [ ] **Decisión de Felipe (bloque 3):** una marca de «retirada de la venta» por talla y sede, con un motivo cerrado
+  - [x] **Decidido (Felipe, 2026-09-26): motivo cerrado al retirar** (fin de temporada, cambio de exhibición, dañada,
+    otro); «fin de temporada» marca la talla×sede como «retirada de la venta» y calla «Reponer» y «Por colgar» hasta que
+    se vuelva a bajar; las marcadas se listan. Se construye en el paso 3b. Lo que decía antes: una marca de «retirada de la venta» por talla y sede, con un motivo cerrado
     del retiro. Tiene que apagar TODO lo que lee un retiro a propósito como falta: «Reponer» y «Por colgar» en
     Existencias, las lecturas de Análisis `reposicion_reciente` («entraron al piso hace poco», «nuevas pendientes») y
     `problema_reposicion` («revisar reposición»), y la consulta 05 del termómetro. Hasta entonces el semáforo le pide al
@@ -883,7 +887,22 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   nuevo». Se pegó en el orden previsto (200000 → 200100) antes de fusionar la web. Prueba: `pnpm pruebas:mover-interno-marca`. Detalle y verificación:
   ADR-0208, «Actualización 2026-09-26 — la marca de `mover_interno`». Cierra la «tarea 5» del plan del termómetro en lo
   que toca a Reponer y Retirar (el contexto por documento sigue sin construir).
-- [ ] **Bloque 3 · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
+- [ ] **Felipe: marcar «Bajada al piso» en el rol «Terminal Almacén»** (Roles y accesos, sin SQL). Decidido el
+  2026-09-26: la bajada escaneada se hace desde esa terminal. **Urgente:** desde ADR-0240 «Reponer» y «Retirar del piso»
+  piden ese módulo, así que sin él esas 3 terminales ya no los tienen.
+- [ ] **Bloque 3, decisiones tomadas el 2026-09-26** (ADR-0208, «Actualización 2026-09-26 — decisiones del bloque 3», y
+  ADR-0246). Se construye en tres pasos, cada uno con su PR:
+  - [ ] **3a · Temporadas (ADR-0246):** pestaña «Temporadas» en Productos ▸ Atributos con 9 valores (Primavera-Verano,
+    Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI
+    (ajustable solo el año en curso), una por prenda (color → producto → categoría), opcional en el alta, lista «Sin
+    temporada». Retira el texto libre `productos.temporada` (vacío en producción).
+  - [ ] **3b · Marcas de origen:** dos botones en la caja, interruptor «Es para una clienta» en `mover_entre_piso_y_almacen`
+    y `bajar_al_piso`, motivo del retiro con «retirada de la venta». Toca Vender: prueba a 375 px.
+  - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
+    referencia de CAYLA, niveles «Pocos datos / Aceptable / Sólido», fin de estación con sugerencias, indicador de
+    confianza (líder; y las Terminal de ventas con su propio pasado y un enlace discreto al ranking, como módulo aparte).
+  - [ ] **Aparte:** módulo «Ajustar stock» separado de Existencias (PR de roles; nace solo para el líder).
+- [ ] **Bloque 3 · La pantalla de Frescura (diseño original)** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
   - Reloj de novedad por modelo+color.
   - Reloj de piso por unidad (FIFO).
@@ -893,7 +912,8 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - **Regla (ADR-0208, (d)):** se construye encima del dominio de Inventario de main, no al lado. Los puntos salen de
     `fn_ledger_puntos`, la venta de `fn_es_venta_de_stock` y las cohortes FIFO de `lib/inventario-exposicion.ts`
     (ADR-0199 de main, 0200 y 0202). Nada de una reconstrucción propia del libro ni de un segundo FIFO.
-- [ ] **Bloque 4 · Clásicos y tallas clave:** `productos.linea` («moda» o «clásico») y tallas clave por categoría.
+- [ ] **Bloque 4 · Clásicos y tallas clave:** ~~`productos.linea` («moda» o «clásico»)~~ — lo clásico pasa a ser un valor
+  de la temporada (ADR-0246, paso 3a); queda: tallas clave por categoría.
   Cada una con su migración y su ADR.
 - [ ] **Bloque 5 · Traslado por novedad y alerta de poca novedad** hacia Producción y Compras.
 - [ ] **Bloque 6 · Capacidad por categoría, sede y temporada**, en ganchos y frentes. Cambio de esquema.

@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Frescura del piso: decisiones del bloque 3 y temporadas — ADR-0208 y ADR-0246)
+Rondas de preguntas con Felipe para destrabar el bloque 3, más dos investigaciones con fuentes verificadas sobre cómo manejan las temporadas Zara, H&M, Mango, Ralph Lauren, LVMH, Hermès, Chanel y las marcas del hemisferio sur (`docs/investigacion/2026-09-26-temporadas-de-moda.md`). Decidido: la caja pregunta «La traje del almacén» o «Ya estaba colgada»; «Es para una clienta» al bajar; retiro con motivo y «retirada de la venta»; cifras desde el primer día con su nivel de confianza; semáforo contra la propia sede con CAYLA de referencia; indicador para el líder y las Terminal de ventas; «Ajustar stock» a módulo propio; y la temporada como atributo (9 valores, fechas de SENAMHI, sin año en el nombre). Nada construido todavía: sigue el paso 3a.
+Felipe se lleva:
+1. **Atributos = lo que la prenda ES; etiquetas = cómo la VENDEMOS.** La temporada es de la prenda y admite un solo valor, por eso va con el tejido y el patrón, no con «Oferta» ni «Día de la Madre».
+2. **El año existe aunque no se escriba.** Sale de la fecha de llegada a la sede; sin él, la blusa que sobró del verano pasado se ve igual que la nueva.
+3. **Con pocos datos, mostrar igual pero decir cuántos.** La cifra se construye de a poco; lo que mueve plata (rebaja, traslado) espera a que sea «Sólido».
+
 ## 2026-09-26 (Etiquetas a la vista en Nuevo producto, con selección múltiple — ADR-0109 act.)
 Felipe no encontraba dónde poner etiquetas al crear un producto: existían, pero tras un enlace chico al final del paso de precios, y solo las ya aprobadas. Ahora son un campo a la vista en el paso 2, como el de Shopify: escribes, eliges varias (chips con ✕), y si no existe la creas ahí mismo (un líder la deja aprobada; otro rol la propone y espera aprobación). Sin migración; verificado en navegador a 1440 y 375 px, con el envío completo (`p_etiqueta_ids`) capturado.
 Felipe se lleva: (1) **«no lo veo» suele ser un problema de lugar, no de función**: la etiqueta ya funcionaba y nadie la usaba; por eso ahora también sale en la ficha de la derecha y en la línea del paso plegado. (2) **En CAYLA una etiqueta puede llevar descuento**: por eso el campo se parece al de Shopify pero no es texto libre: crear una pasa por el mismo vocabulario cerrado y, si no eres líder, queda pendiente. (3) **Un nombre repetido chocaba con un índice y salía como «Código: …»**: ahora dice a dónde ir.
