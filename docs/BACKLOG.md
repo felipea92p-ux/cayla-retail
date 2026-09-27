@@ -28,6 +28,53 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Etiquetas: con dibujo real, en el paso 3, y Tejido corrige el mismo error (2026-09-27, ADR-0109 act. c) — solo web, sin migración; rama `claude/etiquetas-alta-siempre-visibles`
+Felipe, tres capturas más: «mira dónde sale Etiquetas y analiza si es el lugar correcto… me pregunto por qué no lo muestras como
+la parte de textura, el mismo error en Tejido». 12 preguntas (`AskUserQuestion`) y un bosquejo (Artifact) aprobado antes de tocar código.
+- [x] `TarjetaEtiqueta` (antes `ChipEtiqueta`) reusa `MuestraEtiqueta` — el mismo ícono por concepto de Atributos ▸ Etiquetas —, tarjeta de 96 px como `MuestraPatron`, con la insignia de descuento sobre el dibujo. El genérico para un nombre sin concepto conocido no pide código: ya lo resuelve `MuestraEtiqueta`.
+- [x] Etiquetas se muda del paso 2 al paso 3 «Cómo se hace» (después de Colores, antes de Fotos): junto a sus pares visuales, no entre campos de texto. Colores NO se toca (pedido explícito de Felipe).
+- [x] **Tejido gana `MuestraTejido`** (ya existía, ya se usaba en Atributos ▸ Tejidos, nadie lo había conectado al alta): mismo error que tenía Etiquetas, en el mismo paso.
+- [x] Se mantiene todo lo de (b): cuadrícula siempre visible por grupo, buscador/crear arriba, globo de ayuda, línea táctil.
+- [ ] **Decide Felipe:** ¿una columna `descripcion` en `retail.etiquetas` escrita en lenguaje de tienda al aprobar (lo durable) en vez de las frases en código?
+- [ ] **Decide Felipe:** Editar producto (`ProductoForm`) sigue con las etiquetas por variante tras «Etiquetas (N)», en texto plano: ¿se le da el mismo selector visual (por variante) para que no haya dos formas de lo mismo?
+- [ ] Verificar con una colaboradora en una tablet de la tienda (ayuda táctil) y con un lector de pantalla.
+
+## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
+Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
+- [x] Campo «Etiquetas» en el paso 2 (`ElegirEtiquetas.tsx`): buscar, elegir varias con chips y ✕, Retroceso quita la última, «+ Crear «X»» con el combo Responsable. Fila «Etiquetas» en la ficha de la derecha y en la línea del paso 2 plegado. Quita el enlace escondido del paso 4.
+- [x] Reglas puras y probadas en `lib/etiquetas-alta-reglas.ts` (26 casos); frase nueva para `etiquetas_clave_unica` en `lib/error-escritura.ts`.
+- [x] Quien no es líder no ve las etiquetas con descuento (la base las rechazaba con «Solo un líder puede asignar una etiqueta con descuento»: antes el alta chocaba al final).
+- [ ] **Felipe, en producción tras el despliegue:** crear una prenda con 2 etiquetas y comprobar en Productos ▸ Editar que quedaron en todas las variantes; probar «+ Crear» con tu cuenta (queda aprobada) y con una de colaboradora (queda pendiente en Atributos ▸ Etiquetas).
+- [ ] Pendiente sin decidir: si una etiqueta se desactiva mientras alguien llena el formulario, el alta se rechaza con «Recarga la pantalla» y se pierde lo llenado (ya pasaba; este cambio no lo empeora).
+
+## 🩹 Aprobar una etiqueta propuesta fallaba: la pantalla no pedía el comentario que la base exige (2026-09-26, ADR-0095 act.) — solo web + prueba, sin migración; rama `claude/youthful-gagarin-97a394`
+- [x] `EtiquetasLista.tsx`: «Aprobar» (pendiente) y «Reactivar» (rechazada) abren una ventana con «Comentario (obligatorio)» y el combo Responsable, y mandan `{ id, estado: "aprobado", notas }`. Reactivar una etiqueta solo desactivada no cambia (confirmación corta, sin comentario: no cambia de estado). Piezas puras y textos: `lib/etiqueta-aprobacion-reglas.ts` (+ su prueba).
+- [x] Aviso al proponer corregido: ya no dice «ya la puedes usar… no te frena»; dice que un Líder tiene que aprobarla antes de ponerla en una prenda (el alta y «Prendas» solo aceptan aprobadas y activas; lo prueba la base).
+- [x] Botones «Aprobar/Rechazar» cortados en la tarjeta angosta (medido a 1024 px: texto de 93 y 101 px en cajas de 71 y 73): `flex-wrap` + ancho mínimo, la solución de Tallas.
+- [x] Prueba `pnpm pruebas:etiquetas-aprobar` (10 casos, ROLLBACK, paso en `ci.yml`): pendiente → aprobar sin comentario falla, con comentario pasa; reactivar rechazada pide comentario nuevo; líder y rol con Etiquetas aprueban, sin el módulo no; una pendiente no entra al alta ni a «Prendas». Mutación hecha: quitar la exigencia del trigger pone en rojo 3 casos; aceptar pendientes en el alta, 1.
+- [ ] **Decide Felipe:** desde `20260923130000` quien puede editar etiquetas crea etiquetas ya aprobadas y quien no, no ve la pestaña: por pantalla nadie propone ya una etiqueta pendiente (solo la API directa, `POST /api/productos/etiquetas`, abierta a cualquier sesión, o las de antes del 23-sep). Si la colaboradora debe poder proponer una etiqueta que falta (desde Nuevo producto, como con tallas, tejidos y patrones), es una pantalla nueva y una decisión de negocio; hoy no existe en `main`.
+- [ ] Verificar en producción cuántas etiquetas `pendiente` hay (consulta de solo lectura): si hay, se aprueban con esta pantalla, con comentario.
+- [ ] **Decide Felipe:** la migración `20260917230000` decía «exigir motivo siempre» para cualquier propuesta pero solo lo puso en Etiquetas (Tallas ya lo tenía; Colores, Tejidos y Patrones siguen de un clic, como dice el ADR-0095). ¿Se completa o se corrige el texto de esa migración? La base no se toca sin su ok.
+- Cómo verificas: en Catálogo ▸ Atributos ▸ Etiquetas, con una etiqueta «Pendiente», «Aprobar» → escribe el comentario → «Confirmar aprobación». La etiqueta sale de Pendiente y el comentario aparece en el ícono (i) junto al nombre. Con el campo vacío, el botón queda apagado.
+
+## 🏷️ Categorías: los candados pasan a la tabla, tallas en orden y prefijo a la vista (2026-09-26) — migración `20260927200000` **YA en producción** (2026-09-26); rama `claude/categorias-mejoras`
+Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-categorias.md) (2026-09-21), Felipe ordenó el lote #2, #4, #5, #6 y parte de #10.
+- [x] **#2 Candados en la tabla.** El disparador `categorias_vigencia_candados` (`fn_categorias_vigencia_candados`) cumple, sea quien sea el que escriba: prefijo fijo con productos de cualquier estado; no desactivar con productos activos; no activar sin familia, sin prefijo o con la familia apagada. Antes vivía solo en las RPC, y así quedó «Blusas» desactivada con un producto activo.
+- [x] **#4 Reactivar valida.** Lo cubre el mismo disparador (sin reescribir `reactivar_categoria`). La «Polos» huérfana pasa a llamarse «Polos (V1, retirada)», con la nota en `notas`; la pantalla ya no le ofrece «Reactivar».
+- [x] **#5 Tallas en orden de tienda** (`compararTallas`) en Editar y en la Vista rápida.
+- [x] **#6 El prefijo se ve bloqueado** antes de guardar: «Fijo: N productos lo usan». `fn_productos_por_categoria` devuelve `n_total`.
+- [x] **#10 (parte)** Ícono de Accesorios (ya no parece candado) y el ejemplo «Kimonos / KIM».
+- [x] **`20260927200000` aplicada en producción (2026-09-26)**, tras un ensayo revertido contra los datos reales (los tres candados frenaron; renombrar pasó; dos pasadas). Las 5 consultas del pie dan lo esperado; `md5(prosrc)` de las dos funciones = el del archivo (`bec1a61e…`, `1e3afe55…`); permisos solo `authenticated`.
+- [x] Diccionario refrescado desde producción (foto 2026-09-26 23:17 UTC: 135 relaciones, 612 funciones; las 957 huellas coinciden). `datos:comparar` sin pantallas rotas tras corregir su lectura de `.rpc("x", ayudante({…}))`; `ajustes_inventario_intentos` recibió pájaro (Halcón).
+- [ ] Hueco hermano, fuera de este lote: un producto todavía puede apuntar a una categoría **inactiva** por UPDATE directo en `productos` (el alta y la edición lo impiden en la RPC). Toca el núcleo (`productos`): decide Felipe.
+- [ ] Del análisis quedan: #3 cabecera (hoy cuadra), #7 Editar en pasos, #8 una sola RPC, #9 más pruebas de pantalla, resto de #10, #11 (decide Felipe), #12.
+- Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`). **No corre en CI todavía:** la sesión no podía tocar `.github/workflows/`. Falta el paso junto a `pruebas:editar-marca` y sacarla de `EXCLUIDAS` en `lib/ci-paridad.test.ts`; su primera corrida real será esa.
+- Cómo verificas:
+  - **#2:** en el SQL Editor, `update retail.categorias set activo = false where nombre = 'Camisas y Blusas';` falla diciendo cuántos productos activos tiene.
+  - **#4:** en «Desactivadas», «Polos (V1, retirada)» dice «No se reactiva» en vez del botón.
+  - **#5:** Editar «Tops» → tallas «XS S M L XL XXL … Estándar».
+  - **#6:** Editar «Camisas y Blusas» → el prefijo sale gris, con «Fijo: N productos lo usan» (N ≥ 5: cuenta también los descontinuados).
+
 ## 🧭 Análisis conectado: «Qué hacer», por prenda y celular (2026-09-26, ADR-0245) + Pedir a otra sede (ADR-0242 tanda 4) — web + migración `20260927210000` **SIN PEGAR en producción (pide OK de Felipe)**; rama `claude/analysis-screen-redesign-8ce079`
 Spike `docs/maquetas/analisis-conectado-2026-09/` (lo elegido marcado ✓).
 - [x] Cifras en palabras de tienda (2 × 2 en celular); «Qué hacer» con 4 grupos + «Pidieron y no había»; gráficos plegados.

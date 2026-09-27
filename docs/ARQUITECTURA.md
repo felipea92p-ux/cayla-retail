@@ -447,12 +447,16 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   RPC, `crear_producto_con_stock_inicial` (ADR-0212, `20260926130000`), que llama a `crear_producto_con_variantes` sin
   copiar su cuerpo y, si el paso 5 trae cantidades, a `fn_cargar_stock_inicial` (entradas `carga_inicial` al almacén) y
   a `bajar_al_piso` («colgadas en el piso»). El paso 5 es `components/alta-producto/MatrizCantidades.tsx`.
-  Las **etiquetas** (ADR-0109, act. 2026-09-26) son una fila del paso 2: `components/alta-producto/ElegirEtiquetas.tsx`
-  (chips + lista flotante, selección múltiple; reglas puras en `lib/etiquetas-alta-reglas.ts`). Elegir va en
-  `p_etiqueta_ids` de esa misma RPC; **crear** una nueva es una escritura aparte, `POST /api/productos/etiquetas` vía
-  `proponerEtiqueta` (`lib/alta-producto-ejes.ts`), con su combo «Responsable»: un líder (o un rol con el módulo
-  Etiquetas) la deja aprobada, otro rol la deja pendiente. La página pasa `esLider` (qué etiquetas con descuento se
-  ofrecen) y `puedeAprobarEtiquetas` (qué dice el panel de crear).
+  Las **etiquetas** (ADR-0109, act. 2026-09-27 c) son una fila del paso 3 «Cómo se hace» (después de Colores, antes de
+  Fotos — no del paso 2, que es puro texto): `components/alta-producto/ElegirEtiquetas.tsx` (todas a la vista por grupo,
+  cada una una tarjeta de 96 px con su dibujo real —`MuestraEtiqueta`, el mismo ícono por concepto de Atributos ▸
+  Etiquetas—, globo de ayuda —`lib/etiqueta-ayuda.ts`— y buscador/crear arriba; grupos compartidos con Atributos en
+  `lib/etiqueta-grupos.ts`; reglas puras en `lib/etiquetas-alta-reglas.ts`). **Tejido**, en el mismo paso, usa la misma
+  tarjeta con `MuestraTejido` (ya existía, ya se usaba en Atributos ▸ Tejidos; antes solo texto, el mismo error que tenía
+  Etiquetas). Elegir etiquetas va en `p_etiqueta_ids` de la RPC del alta; **crear** una nueva es una escritura aparte,
+  `POST /api/productos/etiquetas` vía `proponerEtiqueta` (`lib/alta-producto-ejes.ts`), con su combo «Responsable»: un
+  líder (o un rol con el módulo Etiquetas) la deja aprobada, otro rol la deja pendiente. La página pasa `esLider` (qué
+  etiquetas con descuento se ofrecen) y `puedeAprobarEtiquetas` (qué dice el panel de crear).
 
 **Producción (módulo propio, ADR-0133 — F1 aplicada 2026-09-19)**
 - Producción y Compras son **dos módulos distintos** con su propio grupo en el lateral (Compras: sus 4

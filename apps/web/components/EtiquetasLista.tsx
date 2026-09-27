@@ -17,7 +17,8 @@ import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
 import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
-import { hoyLima, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { hoyLima, textoRango, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
+import { GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "@/lib/etiqueta-grupos";
 import { normalizarNombre } from "@/lib/patron-visual";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 
@@ -53,26 +54,10 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
  * 20260918060000_etiquetas_estilo_visual.sql.
  */
 
-type Estilo = "neutral" | "urgencia" | "positivo" | "campana";
-
-const ESTILOS: Record<Estilo, { grupo: string; dot: string }> = {
-  urgencia: { grupo: "Rotación", dot: "bg-ambar" },
-  positivo: { grupo: "Artesanal", dot: "bg-verde" },
-  campana: { grupo: "Campaña y festividad", dot: "bg-taupe-profundo" },
-  neutral: { grupo: "General", dot: "bg-tinta/25" },
-};
-
-const ORDEN_GRUPOS: Estilo[] = ["urgencia", "positivo", "campana", "neutral"];
-
-const formatoFecha = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" });
-const fecha = (f: string) => formatoFecha.format(new Date(f + "T00:00:00"));
-
-function textoRango(desde: string | null, hasta: string | null) {
-  if (desde && hasta) return `${fecha(desde)} – ${fecha(hasta)}`;
-  if (desde) return `Desde ${fecha(desde)}`;
-  if (hasta) return `Hasta ${fecha(hasta)}`;
-  return null;
-}
+// Los grupos (nombre, color del punto y orden) los comparte el campo «Etiquetas» de Nuevo producto: `lib/etiqueta-grupos.ts`.
+type Estilo = EstiloEtiqueta;
+const ESTILOS = GRUPOS_ETIQUETA;
+const ORDEN_GRUPOS = ORDEN_GRUPOS_ETIQUETA;
 
 type Etiqueta = {
   id: string;

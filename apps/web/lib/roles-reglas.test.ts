@@ -42,10 +42,20 @@ const rol = (extra: Partial<RolVista> = {}): RolVista => ({
   archivado: false,
   modulos: [],
   version: 1,
+  pantallaPrincipal: null,
   ...extra,
 });
 const LIDER = rol({ id: "l", clave: "lider", nombre: "Líder de equipo", esSistema: true, fijo: true });
-const INTEGRANTE = rol({ id: "i", clave: "integrante", nombre: "Integrante", esSistema: true, limitadoComoHoy: true, modulos: MODULOS_DE_HOY.integrante.map((m) => m.clave) });
+// «inicio» sumado a mano (20260925220000): `MODULOS_DE_HOY` quedó congelada a propósito en lo que ya había cuando se
+// escribió (es la foto de la siembra vieja), y no se actualiza con cada módulo nuevo — igual que «apartados» (ADR-0196).
+const INTEGRANTE = rol({
+  id: "i",
+  clave: "integrante",
+  nombre: "Integrante",
+  esSistema: true,
+  limitadoComoHoy: true,
+  modulos: ["inicio", ...MODULOS_DE_HOY.integrante.map((m) => m.clave)],
+});
 
 describe("controles del editor", () => {
   it("el Líder ve todo, con interruptores que no se mueven", () => {
@@ -81,8 +91,9 @@ describe("controles del editor", () => {
   });
 
   it("los módulos se agrupan como en el spike", () => {
-    // Finanzas nació el 2026-09-24 con Gastos (ADR-0195 F2): va al final, por su `orden` (250).
-    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
+    // General nació el 2026-09-25 con Inicio (20260925220000): va primero, por su `orden` (5). Finanzas nació el
+    // 2026-09-24 con Gastos (ADR-0195 F2): va al final, por su `orden` (250).
+    expect(modulosPorGrupo().map((g) => g.grupo)).toEqual(["General", "Ventas", "Inventario", "Catálogo", "Compras", "Producción", "Gestión", "Finanzas"]);
   });
 });
 
@@ -131,16 +142,17 @@ describe("archivar, duplicar y asignar", () => {
     expect(rolesAsignables([LIDER, INTEGRANTE, archivado], { tipo: "terminal" }).map((r) => r.id)).toEqual(["i"]);
   });
 
-  it("entre líderes se cambia el rol, pero nadie se cambia el suyo", () => {
+  it("entre líderes se cambia el rol; un Admin también el suyo, sin serlo no (20260925210000)", () => {
     const cuentas = [
       { tipo: "persona" as const, id: "yo", nombre: "Felipe", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
       { tipo: "persona" as const, id: "1", nombre: "Otra líder", ubicacion: null, rolId: "l", esLider: true, estado: "activo" },
       { tipo: "persona" as const, id: "2", nombre: "Ana", ubicacion: "Tienda Trujillo", rolId: "i", esLider: false, estado: "activo" },
       { tipo: "terminal" as const, id: "3", nombre: "Terminal Ventas TRU", ubicacion: "Tienda Trujillo", rolId: "tv", esLider: false, estado: "activo" },
     ];
-    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["1", "3"]);
+    // soyAdmin por defecto true: la sesión (Felipe, Admin) se ofrece a sí misma — antes, el candado de «propio rol» la excluía siempre.
+    expect(cuentasAsignables(cuentas, INTEGRANTE, "yo").map((c) => c.id)).toEqual(["yo", "1", "3"]);
     expect(cuentasAsignables(cuentas, LIDER, "yo").map((c) => c.id)).toEqual(["2"]);
-    // Quien administra roles SIN ser líder (20260923131000): no toca a los líderes ni da el rol Líder.
+    // Quien administra roles SIN ser líder ni Admin (20260923131000): no toca a los líderes, no da el rol Líder, y sigue sin poder cambiarse el suyo.
     expect(cuentasAsignables(cuentas, INTEGRANTE, "yo", false).map((c) => c.id)).toEqual(["3"]);
     expect(cuentasAsignables(cuentas, LIDER, "yo", false)).toEqual([]);
     expect(rolesAsignables([LIDER, INTEGRANTE], { tipo: "persona" }, false).map((r) => r.id)).toEqual(["i"]);
@@ -204,8 +216,8 @@ describe("editor rediseñado (spike colaboradores-ux 2026-09-22)", () => {
     expect(familiaDeRol(rol({ clave: "terminal_ventas", esSistema: true }))).toBe("terminal");
     expect(familiaDeRol(rol())).toBe("a_medida");
   });
-  it("avisa «Solo Inicio» y «Sin uso», nunca del Líder ni de un archivado", () => {
-    expect(avisoDelRol(rol(), 16)).toBe("solo_inicio");
+  it("avisa «Sin módulos» y «Sin uso», nunca del Líder ni de un archivado", () => {
+    expect(avisoDelRol(rol(), 16)).toBe("sin_modulos");
     expect(avisoDelRol(rol(), 0)).toBe("sin_uso");
     expect(avisoDelRol(rol({ modulos: ["vender"] }), 3)).toBeNull();
     expect(avisoDelRol(LIDER, 0)).toBeNull();
@@ -294,15 +306,19 @@ describe("ADR-0178: el escalón Admin y «solo das lo que tienes»", () => {
 });
 
 describe("lo recién guardado manda hasta que el servidor lo alcance (ADR-0193)", () => {
-  it("con una versión local más nueva, el rol usa sus módulos y su versión", () => {
-    const [r] = conGuardadosLocales([rol({ id: "a", modulos: ["vender"], version: 3 })], { a: { version: 5, modulos: ["vender", "caja"] } });
+  it("con una versión local más nueva, el rol usa sus módulos, su pantalla principal y su versión", () => {
+    const [r] = conGuardadosLocales(
+      [rol({ id: "a", modulos: ["vender"], version: 3 })],
+      { a: { version: 5, modulos: ["vender", "caja"], pantallaPrincipal: "caja" } },
+    );
     expect(r.version).toBe(5);
     expect(r.modulos).toEqual(["vender", "caja"]);
+    expect(r.pantallaPrincipal).toBe("caja");
   });
 
   it("cuando el servidor trae la misma versión o una mayor, lo local deja de contar", () => {
     const servidor = rol({ id: "a", modulos: ["existencias"], version: 7 });
-    expect(conGuardadosLocales([servidor], { a: { version: 5, modulos: ["vender"] } })[0]).toBe(servidor);
-    expect(conGuardadosLocales([servidor], { a: { version: 7, modulos: ["vender"] } })[0]).toBe(servidor);
+    expect(conGuardadosLocales([servidor], { a: { version: 5, modulos: ["vender"], pantallaPrincipal: null } })[0]).toBe(servidor);
+    expect(conGuardadosLocales([servidor], { a: { version: 7, modulos: ["vender"], pantallaPrincipal: null } })[0]).toBe(servidor);
   });
 });

@@ -586,7 +586,7 @@ descuentos, `puedeAprobarEtiquetas` para el texto). **Declarado, no corregido:**
   la ventana (iOS) puede quedar tapada. No verificado.
 
 Sin migración: reutiliza `POST /api/productos/etiquetas`, `crear_producto_con_stock_inicial` (`p_etiqueta_ids`) y las políticas de hoy.
-Piezas: `components/alta-producto/ElegirEtiquetas.tsx` (chips + lista flotante por portal, teclado como `ComboBuscable`, Escape
+Piezas (**superadas en parte por la actualización (b)**: el componente ya no es un buscador con lista flotante): `components/alta-producto/ElegirEtiquetas.tsx` (chips + lista flotante por portal, teclado como `ComboBuscable`, Escape
 que cierra la lista y después borra lo escrito), `lib/etiquetas-alta-reglas.ts` (qué se ofrece, qué ya aplica, qué significa lo
 escrito; puro y probado), `proponerEtiqueta` en `lib/alta-producto-ejes.ts` (comparte el POST con `proponerValorVocabulario`) y la
 página `/productos/nuevo`, que ahora pasa `esLider`. «Crear otro parecido» aterriza en el paso 2, así que las etiquetas que
@@ -598,3 +598,64 @@ como no líder (aviso, sin chip, sin descuento en la lista y con la nota «las q
 conexión (no ofrece crear y dice por qué), cambio de categoría (la elegida se conserva; la de campaña deja de estar «ya aplica») y
 el alta completa, que envía `p_etiqueta_ids: [e1, e5]` y no manda la campaña que ya aplica sola. **No verificado:** contra la base
 real (la local no tiene API), el mismo camino en producción, y un teclado virtual de iOS.
+
+## Actualización 2026-09-26 (b) — las etiquetas, siempre a la vista, chicas y con ayuda al pasar el mouse
+
+Felipe, con dos capturas (el muro de chips viejo del paso 4 y las tarjetas de Atributos ▸ Etiquetas): «son opcionales, pero no
+deberían estar semi ocultas: mejor siempre visibles, chicas y ordenadas, y que al pasar el mouse te ayude a entender qué
+significa». La primera versión de esta actualización (buscador con lista flotante que solo aparecía al enfocarlo) seguía siendo
+«semi oculta», así que **se reemplaza** el componente por una cuadrícula siempre visible, agrupada como Atributos, con globo de
+ayuda. Superada a su vez por la actualización (c), que le agrega el dibujo — ver ahí el porqué.
+
+## Actualización 2026-09-27 (c) — con dibujo real, en el paso 3, y Tejido corrige el mismo error
+
+Felipe, con tres capturas más (el buscador sin dibujo de (b), Tejido en texto plano al lado de Patrón con textura, y las
+tarjetas con textura de Atributos ▸ Tejidos): «mira dónde sale Etiquetas y analiza si es el lugar correcto y la forma de
+mostrarlo… me pregunto por qué no lo muestras como la parte de textura, el mismo error en Tejido». Antes de tocar código, 12
+preguntas tipo `AskUserQuestion` (protocolo de pregunta, `~/.claude/CLAUDE.md`) y un bosquejo (Artifact, canvas de diseño) con
+los tokens y los íconos reales del sistema, aprobado por Felipe.
+
+**El hallazgo que disparó todo:** `Patrón` ya usaba `MuestraPatron` (una tarjeta de 96 px con dibujo real); `Tejido`, al lado,
+en el mismo paso, seguía en `ChipOpcion` de puro texto — aunque `MuestraTejido.tsx` ya existía y ya se usaba en Catálogo ▸
+Atributos ▸ Tejidos. Es exactamente el error que yo mismo acababa de repetir con Etiquetas en la actualización (b): reinventar
+en texto algo para lo que el sistema ya tiene un dibujo.
+
+```
+DECIDÍ: Etiquetas se muda al paso 3 «Cómo se hace» (después de Colores, antes de Fotos) y su tarjeta reusa `MuestraEtiqueta`
+  —el mismo ícono por concepto de Atributos ▸ Etiquetas (chispa, reloj de arena, podio…)—, en el mismo molde de 96 px que ya
+  usan `MuestraPatron` y (desde este cambio) `MuestraTejido`: dibujo arriba, nombre abajo, ✓ + borde tinta al marcar. El % de
+  descuento va como insignia sobre el dibujo (en el tono del propio grupo, nunca rojo: es el acento de marca). Tejido gana la
+  misma tarjeta con `MuestraTejido`, en vez de sus chips de texto. Colores NO se toca — pedido explícito de Felipe, ya está
+  bien con muchos elegidos. Se mantienen de (b): la cuadrícula siempre visible por grupo, el buscador/crear arriba, el globo
+  de ayuda y la línea táctil.
+DESCARTÉ: (a) dejar Etiquetas en el paso 2 — ese paso es puro texto (nombre, descripción, marca); una cuadrícula de tarjetas
+  con dibujo se ve fuera de lugar entre campos de texto, y al lado de Colores (multiselección + swatch, ya en el paso 3) se ve
+  como su par natural; (b) inventar una etiqueta con su propio dibujo por atributo en Etiquetas también — se evaluó y se
+  descartó: el ícono por CONCEPTO (`MuestraEtiqueta`) ya resuelve «reconocer de un vistazo» sin inventar nada nuevo, y el
+  fallback genérico ya existe; (c) arreglar Etiquetas y dejar Tejido para después — es el mismo defecto en el mismo paso: uno
+  sin el otro se habría notado enseguida.
+SE ROMPE SI: alguien busca «clasificar la prenda» en el paso 2 por costumbre de un día viendo Etiquetas ahí (cambio de hábito,
+  no solo visual); si las etiquetas pasan de ~60 (la cuadrícula deja de caber de un vistazo, igual que antes); o si se
+  construye la rotación automática («Top ventas»/«Últimas unidades» se marcan a mano y el globo lo dice — hay que cambiar esas
+  dos frases cuando eso exista).
+```
+
+**Revisado con 12 preguntas antes de construir**, no después: alcance (Etiquetas y Tejido juntos), estilo del dibujo (ícono como
+Atributos, no textura inventada), tamaño (96 px como Patrón), estado marcado (borde + fondo tinta, igual que siempre), ubicación
+(paso 3, con sus pares visuales — Felipe pidió que yo lo analizara y recomendara, no que eligiera a ciegas), buscador (se
+mantiene arriba), agrupación (se mantienen los 4 grupos con título), descuento (insignia, no texto), ayuda (se mantiene el
+globo), ícono para una etiqueta sin concepto conocido (el genérico que ya existe), y bosquejo antes de código.
+
+Piezas: `ElegirEtiquetas.tsx` (la tarjeta reemplaza al chip: `TarjetaEtiqueta`, con `MuestraEtiqueta`/`TONOS` de
+`components/MuestraEtiqueta.tsx` y `estiloConocido` de `lib/etiqueta-grupos.ts`), `NuevoProductoForm.tsx` (el bloque se mueve
+de paso 2 a paso 3; Tejido gana `MuestraTejido`; `resumen[2]`/`resumen[3]` se actualizan). Sin cambios en
+`lib/etiquetas-alta-reglas.ts`, `lib/etiqueta-ayuda.ts` ni `lib/etiqueta-grupos.ts` (la lógica de (b) seguía siendo correcta;
+solo cambió lo visual y la ubicación).
+
+Verificado con un andamio (sin base local; se borró) a 1440 y 375 px: los 19 íconos de la siembra se ven con su dibujo real
+(cake para Aniversario, reloj de arena para Últimas unidades…), el genérico sale solo para «Día del Niño» (sin código nuevo:
+lo resuelve `MuestraEtiqueta` por su cuenta), Tejido con textura real (Algodón/Denim/Licra), Colores intacto, Etiquetas entre
+Colores y Fotos, marcar/desmarcar, la insignia «20 %»/«10 %» sobre el dibujo, la campaña «se aplica sola» con borde punteado
+sin poder marcarse, crear una etiqueta nueva (queda marcada, cae sola en «General»), el globo con el mismo texto que ya tenía,
+y el rol sin permisos de líder sin ver «Para liquidar» (con la frase de por qué). **No verificado:** contra la base real, con
+un lector de pantalla, ni en una tablet de la tienda.

@@ -88,6 +88,16 @@ export function opcionesTemporada(
   ];
 }
 
+/**
+ * Contra qué prendas mide Frescura si una envejeció, dicho con palabras y no con siglas («PV»/«OI» no le dicen nada a
+ * nadie): la mitad del año de su temporada. Los clásicos, aunque sean de verano o de invierno, van aparte: se miden
+ * contra su propia historia, no contra la moda de la temporada.
+ */
+export function grupoDeComparacion(t: Pick<Temporada, "es_clasico" | "mitad">): string {
+  if (t.es_clasico) return "Aparte (clásico)";
+  return t.mitad === "OI" ? "Otoño-Invierno" : "Primavera-Verano";
+}
+
 /** Cuándo termina la estación de una temporada, dicho para la tienda. Los clásicos de todo el año no terminan. */
 export function textoFinDeEstacion(t: Pick<Temporada, "es_clasico" | "estacion_hasta">): string {
   if (!t.estacion_hasta) return "Todo el año: no pasa a temporada pasada";

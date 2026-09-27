@@ -15,15 +15,22 @@ import { describe, expect, it } from "vitest";
  * 2026-09-25 contra una base con todas las migraciones y el seed. Cada una entra al CI el día que se arregle (y sale de aquí).
  */
 const EXCLUIDAS: Record<string, string> = {
-  "pruebas:archivar-datos-prueba": "no pasa: 1 de 16 verificaciones en verde",
-  "pruebas:caja-cierre-traslado": "quedó vieja tras 20260923233000 (depósito sin número de operación): 4 casos fallan",
-  "pruebas:colaboradores-endurecimiento": "nunca pudo pasar: 6 casos fallan",
-  // Estas dos se midieron en rojo (10 de 11; 134 de 146) en el stack de quien las excluyó, el 2026-09-25. En un Postgres 17
-  // desechable recién armado, con las 277 migraciones y el seed, dan 11/11 y 146/146: la diferencia es del entorno. Se quedan
-  // fuera hasta confirmarlas en un `supabase start` real (o en el primer CI verde) y entonces se cablean.
-  "pruebas:cotizaciones-maquila": "en rojo (10 de 11) en el stack donde se midió; verde en un Postgres 17 desechable: confirmar en `supabase start` antes de cablearla",
-  "pruebas:fn-movimientos-busqueda-especial": "en rojo (134 de 146) en el stack donde se midió; verde en un Postgres 17 desechable: confirmar en `supabase start` antes de cablearla",
+  // No PUEDE correr en el job `pruebas-postgres` tal como está armado hoy: ese job solo levanta `supabase start` +
+  // migraciones + `seed.sql`, nunca `pnpm carga:preparar` (copia la base a `cayla_carga`, ~2 min, y le carga un año
+  // sintético de ventas/asistencia). Sin esa base, el propio script se niega a correr (guarda: `_carga_actores`
+  // debe tener 60 filas). Y aunque se armara esa base en CI, la sección 4 (cambio × venta a la vez, ADR-0194) mide
+  // milisegundos de verdad entre dos sesiones concurrentes — el propio script documenta que esos tiempos "varían
+  // mucho" según la carga de la máquina y que comparar antes/después solo vale corriendo las dos bases intercaladas
+  // en la misma sesión: exactamente lo que un runner compartido de CI no garantiza. Es una herramienta de regresión
+  // de carga para correr a mano antes de un cambio grande a `fn_ventas_del_dia`/`fn_productos`/`registrar_cambio`
+  // (ya dio 17/17 contra una copia de producción con la migración, docs/BACKLOG.md), no un candado de PR. Revisado
+  // 2026-09-27: sigue siendo así — no se cablea.
   "pruebas:lecturas-rapidas-y-cambio": "no PUEDE correr en el job: necesita la base `cayla_carga` (volumen + asistencia, la arma `pnpm carga:preparar`) y el job no la crea",
+  // El disparador se probó en local con 12 casos equivalentes, pero ESTE script todavía no corrió nunca (la base local de
+  // quien lo escribió estaba en el 15-09). No está en ci.yml solo porque el token de la sesión que la escribió no podía
+  // tocar `.github/workflows/` (GitHub pide el permiso `workflow`). Se cablea con un paso junto a `pruebas:editar-marca`
+  // y sale de aquí.
+  "pruebas:categorias-candados": "falta cablearla en ci.yml: la sesión que la escribió no podía tocar workflows (2026-09-26)",
   "pruebas:bajada-al-piso-concurrencia": "hace COMMIT de verdad (dos sesiones a la vez) y `movimientos` no se puede borrar: sus filas quedarían para los pasos siguientes del job. Aborta sin `BASE_DESECHABLE=1`; se corre contra un Postgres desechable propio (ADR-0208)",
 };
 
