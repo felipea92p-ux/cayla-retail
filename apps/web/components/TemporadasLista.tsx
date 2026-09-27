@@ -16,6 +16,7 @@ import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import {
   calendarioPorAnio,
   faltaAnioSiguiente,
+  grupoDeComparacion,
   NOMBRE_ESTACION,
   NOMBRE_FUENTE,
   nombreTemporada,
@@ -137,10 +138,13 @@ function TituloSeccion({ id, sobre, titulo, bajada }: { id: string; sobre: strin
 
 // ---- 1. Las temporadas ------------------------------------------------------------------------------------------------
 
-const PLANTILLA_LISTA = "sm:grid-cols-[minmax(0,14rem)_7rem_minmax(0,1fr)_6rem]";
+const PLANTILLA_LISTA = "sm:grid-cols-[minmax(0,14rem)_10.5rem_minmax(0,1fr)_6rem]";
 const COLUMNAS_LISTA: Columna[] = [
   { titulo: "Temporada" },
-  { titulo: "Mitad del año", ayuda: "Frescura compara cada prenda con las de su misma mitad del año: Primavera-Verano u Otoño-Invierno." },
+  {
+    titulo: "Se compara con",
+    ayuda: "Frescura mide si una prenda envejeció contra las de su misma mitad del año (y de su categoría y su sede): así una chompa nunca se compara con un bikini. Los clásicos van aparte: se miden contra su propia historia.",
+  },
   { titulo: "Cuándo termina" },
   { titulo: "Prendas", alinear: "der", ayuda: "Prendas activas que hoy tienen esta temporada (propia, de un color o de su categoría)." },
 ];
@@ -152,7 +156,7 @@ function SeccionLista({ temporadas, porTemporada }: { temporadas: Temporada[]; p
         id="temporadas-la-lista"
         sobre="La lista"
         titulo="Las temporadas"
-        bajada="Nueve, fijas y sin año: el año de cada prenda sale de la fecha en que llegó a la sede. Una prenda versátil lleva «Primavera-Verano»; un bikini, «Verano»."
+        bajada="Nueve, fijas y sin año: el año de cada prenda sale de la fecha en que llegó a la sede. Una prenda versátil lleva «Primavera-Verano»; un bikini, «Verano». «Se compara con» dice contra qué prendas mide Frescura si una envejeció."
       />
       <Tabla>
         <Encabezado columnas={COLUMNAS_LISTA} plantilla={PLANTILLA_LISTA} />
@@ -162,7 +166,7 @@ function SeccionLista({ temporadas, porTemporada }: { temporadas: Temporada[]; p
             <div key={t.clave} className={fila(PLANTILLA_LISTA)} role="row">
               <span className={celda("izq", "text-tinta")}>{t.nombre}</span>
               <span className={celda()}>
-                <Chip tono="neutro">{t.mitad === "PV" ? "PV" : t.mitad === "OI" ? "OI" : "Todo el año"}</Chip>
+                <Chip tono="neutro">{grupoDeComparacion(t)}</Chip>
               </span>
               {/* Sin `truncate`: la frase de los clásicos es larga y cortada no se entiende. */}
               <span className="min-w-0 text-tinta/75">{textoFinDeEstacion(t)}</span>

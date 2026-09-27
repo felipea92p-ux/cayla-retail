@@ -400,6 +400,11 @@
   "src_table": "producciones"
  },
  {
+  "conname": "producto_color_temporadas_asignado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "producto_color_temporadas"
+ },
+ {
   "conname": "productos_aprobado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "productos"
@@ -533,6 +538,11 @@
   "conname": "tejidos_propuesto_por_fkey",
   "ref_table": "public.personas",
   "src_table": "tejidos"
+ },
+ {
+  "conname": "temporada_fechas_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "temporada_fechas"
  },
  {
   "conname": "terminales_auth_user_id_fkey",

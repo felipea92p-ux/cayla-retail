@@ -43,6 +43,20 @@
  * `20260922235000_candado_dinero_caja_cambios_devoluciones.sql`, así se prueba SIN haberla
  * aplicado a la base compartida. Sin el flag asume que ya está aplicada.
  *
+ * NOTA (2026-09-27, cierre de pruebas rojas): esta prueba estaba huérfana (sin entrada en
+ * `package.json` ni en el CI) y su preparación fallaba entera con `venta_descuento_requiere_argumento`
+ * — `fixtureDevolucion` arma una venta con descuento pero no mandaba `argumento_descuento`, que
+ * `20260925230000_argumento_descuento_desde_15.sql` (posterior a esta migración) empezó a exigir
+ * desde el 15 % de descuento para CUALQUIERA, no solo para un líder desde el 20 %. Se corrigió el
+ * fixture, no la función: el candado del 15 % es la decisión vigente de Felipe, la prueba tenía el
+ * dato viejo. De paso se borró un caso que ya no se podía sostener ("la migración se puede pegar
+ * dos veces" con el texto literal de 2026-09-22): dos migraciones posteriores y legítimas
+ * (`20260924130000`, `p_token` en `registrar_movimiento_caja`; `20260925150000`,
+ * `p_reembolso_cuenta_id` en `aprobar_devolucion`) le cambiaron la firma a 2 de las 3 funciones con
+ * `drop`+`create`, así que pegar HOY la firma vieja de este archivo crea una sobrecarga ambigua
+ * (42725) — no es un bug de esta migración, es que ya no es momento de re-pegar ese archivo tal
+ * cual. Detalle en el comentario de la sección 5, más abajo.
+ *
  * USO
  *   node scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs             → migración ya aplicada
  *   node scripts/pruebas/candado_dinero_caja_cambios_devoluciones.mjs --en-seco  → la carga en cada escenario
@@ -212,7 +226,7 @@ insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo
 select retail.fn_aplicar_movimiento(:'mov_old') as _d1 \\gset
 
 select retail.registrar_venta(:'ubic',
-  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', 1, 'precio_unitario', :'precio_viejo', 'descuento_unitario', ${descuento}.00, 'motivo_descuento', 'liquidacion_temporada')),
+  jsonb_build_array(jsonb_build_object('variante_id', :'v_old', 'cantidad', 1, 'precio_unitario', :'precio_viejo', 'descuento_unitario', ${descuento}.00, 'motivo_descuento', 'liquidacion_temporada', 'argumento_descuento', 'prueba automatizada')),
   jsonb_build_array(jsonb_build_object('metodo', 'tarjeta', 'monto', (:'precio_viejo')::numeric - ${descuento}.00)),
   null, gen_random_uuid()) as venta_id \\gset
 
@@ -487,11 +501,38 @@ rollback;
 );
 
 // ===========================================================================
-// 5. Lo que NO cambia: una sola firma por función, SECURITY DEFINER, y la migración se puede pegar dos veces
+// 5. Lo que NO cambia: una sola firma por función, SECURITY DEFINER
+// ===========================================================================
+//
+// NOTA (2026-09-27): esta sección tenía un segundo caso, "la migración se puede pegar DOS
+// veces", que pegaba el TEXTO LITERAL de esta migración (`SQL_MIGRACION`, de 2026-09-22) otra
+// vez sobre una base ya migrada por completo. Se borró: dejó de ser cierto, y no por un bug de
+// esta migración. Dos migraciones POSTERIORES y legítimas le cambiaron la firma a 2 de las 3
+// funciones con `drop function` + `create function` (no `create or replace`, porque agregan un
+// parámetro): `20260924130000_concurrencia_orden_y_doble_clic.sql` le agregó `p_token uuid` a
+// `registrar_movimiento_caja`, y `20260925150000_finanzas_cuenta_sellada.sql` le agregó
+// `p_reembolso_cuenta_id uuid` a `aprobar_devolucion`. Pegar HOY el `create or replace function`
+// con la firma vieja de 2026-09-22 ya no reemplaza la función viva (firma distinta): crea una
+// SEGUNDA sobrecarga al lado, y la siguiente llamada sale "function ... is not unique" (42725) —
+// confirmado a mano: `select proname, pg_get_function_identity_arguments(oid) from pg_proc ...`
+// muestra 2 filas para `registrar_movimiento_caja` y 2 para `aprobar_devolucion` apenas se pega
+// una vez. Esto seguiría fallando sin importar cómo se reescriba el caso: no es que la prueba
+// esté mal escrita, es que "pegar este archivo de hace 5 días en la base de hoy" ya no es una
+// operación segura, y nunca lo será de nuevo salvo que alguien reviva ex profeso la firma vieja.
+// El candado real que importa — "ahora mismo no hay una segunda sobrecarga" — lo sigue cubriendo
+// el caso de abajo, corriendo contra la base TAL COMO ESTÁ, sin volver a pegar SQL histórico.
+//
+// Punto aparte para Felipe: el encabezado de `20260922235000` todavía dice "Todo `create or
+// replace` (misma firma en los tres casos): no hace falta `drop function`" — ese comentario ya
+// no es cierto para 2 de las 3 funciones. Si alguna vez alguien vuelve a pegar ESE archivo en el
+// SQL Editor de producción (pensando que es inofensivo porque el propio comentario lo promete),
+// va a duplicar la sobrecarga de `registrar_movimiento_caja` y `aprobar_devolucion` y romperlas
+// ahí mismo. No lo toco en esta tarea (reescribir una migración ya aplicada en producción es una
+// decisión de esquema, no de pruebas) pero queda dicho para que alguien lo revise.
 // ===========================================================================
 
 exito(
-  "las tres funciones tienen UNA sola firma (create or replace, no drop+create: no debió quedar una segunda sobrecarga), siguen SECURITY DEFINER con su search_path, y authenticated las ejecuta",
+  "las tres funciones tienen UNA sola firma (no quedó una segunda sobrecarga de una migración anterior), siguen SECURITY DEFINER con su search_path, y authenticated las ejecuta",
   comoPersona(
     FELIPE,
     `select count(*), bool_and(p.prosecdef), bool_and(p.proconfig::text = '{"search_path=retail, public, extensions"}'),
@@ -502,22 +543,6 @@ rollback;
 `
   ),
   ["3", "t", "t", "t"]
-);
-
-exito(
-  "la migración se puede pegar DOS veces (el SQL Editor no avisa si ya estaba): la segunda no rompe nada y los candados siguen funcionando",
-  comoPersona(
-    FELIPE,
-    `${INTENTO}${SQL_MIGRACION}
-${SQL_MIGRACION}
-${CAJA_TRUJILLO_MICAELA}select pg_temp.intento(format('select retail.registrar_movimiento_caja(%L, ''egreso'', 5, ''Ajuste de caja (faltante)'')', :'caja')) as r \\gset
-select split_part(:'r', '|', 1),
-  (select count(*) from pg_proc p where p.pronamespace = 'retail'::regnamespace
-     and p.proname in ('registrar_movimiento_caja', 'registrar_cambio', 'aprobar_devolucion'));
-rollback;
-`
-  ),
-  ["P0001", "3"]
 );
 
 // ===========================================================================

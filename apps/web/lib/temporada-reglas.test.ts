@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   agruparSinTemporada,
+  grupoDeComparacion,
   calendarioPorAnio,
   cuantasHeredan,
   faltaAnioSiguiente,
@@ -49,6 +50,17 @@ describe("nombreTemporada", () => {
     expect(nombreTemporada(LISTA, "clasico")).toBe("Clásico · todo el año");
     expect(nombreTemporada(LISTA, null)).toBeNull();
     expect(nombreTemporada(LISTA, "")).toBeNull();
+  });
+});
+
+describe("grupoDeComparacion — contra qué se mide una prenda, con palabras y no con siglas", () => {
+  it("la moda se compara con su mitad del año: Verano con Primavera-Verano, Invierno con Otoño-Invierno", () => {
+    expect(grupoDeComparacion(LISTA[1])).toBe("Primavera-Verano");
+    expect(grupoDeComparacion(LISTA[3])).toBe("Otoño-Invierno");
+  });
+  it("los clásicos van aparte, aunque sean de verano o de invierno", () => {
+    expect(grupoDeComparacion(LISTA[4])).toBe("Aparte (clásico)");
+    expect(grupoDeComparacion(LISTA[5])).toBe("Aparte (clásico)");
   });
 });
 
