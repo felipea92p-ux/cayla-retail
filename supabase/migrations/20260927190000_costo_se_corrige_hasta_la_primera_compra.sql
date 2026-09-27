@@ -104,8 +104,10 @@ begin
 end;
 $$;
 
-drop trigger if exists variantes_costo_hasta_la_primera_compra on retail.variantes;
-create trigger variantes_costo_hasta_la_primera_compra
+-- `create or replace trigger`, nunca `drop trigger` + `create trigger`: en el SQL Editor de producción un `drop trigger`
+-- (aunque el disparador no exista) toma en exclusiva las tablas de auth y storage hasta el final de la transacción y
+-- puede chocar con el Asesor de seguridad del panel (40P01; CLAUDE.md, «Políticas y deadlocks», ADR-0195).
+create or replace trigger variantes_costo_hasta_la_primera_compra
   before update of costo on retail.variantes
   for each row execute function retail.fn_costo_hasta_la_primera_compra();
 
