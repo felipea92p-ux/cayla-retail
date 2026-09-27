@@ -25,7 +25,7 @@ export type ApartadoDeMovimiento = {
 export type AccesosAtajos = {
   /** Las claves de módulo que la cuenta ve (`persona.modulos`). */
   modulos: readonly string[];
-  /** `puede(persona, "ajustarInventario")`: el mismo candado que el botón «Ajustar» de Existencias. */
+  /** `puede(persona, "ajustarStock")`: el mismo candado que el botón «Ajustar» de Existencias (ADR-0250). */
   puedeAjustar: boolean;
 };
 

@@ -28,6 +28,24 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
+Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
+Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
+- [x] Módulo nuevo `ajustar_stock` (grupo Inventario, orden 86), nace SIN ROL — solo lo ve el líder (migración `20260928130000`).
+- [x] `retail.fn_puede_ajustar_stock()` y el candado real en `registrar_movimiento` (antes `fn_puede_ajustar_inventario()`); `ajustar_inventario` lo repite antes de tomar locks. `cerrar_conteo`, `cerrar_traslado_con_diferencia` y `cargar_stock_inicial` NO cambian (decisión de Felipe, 2026-09-26): siguen con `fn_puede_ajustar_inventario()`.
+- [x] Permiso nuevo `ajustarStock` (antes el botón usaba `ajustarInventario`, que sigue existiendo para cerrar conteo/traslado). El botón «Ajustar» de Existencias, Productos (grilla y agrupada) y el atajo «Corregir» de Movimientos piden `ajustarStock`.
+- [x] Sin pantalla nueva para pedir un ajuste (decisión de Felipe): quien no tiene el módulo ve el mensaje «pídele a una líder de tu sede que lo ajuste», sin botón.
+- [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** si algún rol necesita «Ajustar stock» de entrada (recomendado por default: ninguno — se delega después). Hoy en producción, «Integrante» (17 cuentas) pierde el botón «Ajustar» el día que se pega la migración.
+- [ ] Pegar `20260928130000` (sola; sin políticas ni `alter` de tablas en uso).
+- [ ] Refrescar el volcado (`pnpm datos:refrescar`) y correr `pnpm datos:comparar`.
+- [ ] Verlo con sesión real de integrante y de líder en el navegador (no se hizo en esta sesión: la base compartida de desarrollo la están usando en paralelo 3+ sesiones sobre Existencias/Conteos/Traslados — ver `docs/SESIONES-ACTIVAS.md` — y pegar la migración ahí las afectaría a todas. Verificado con Postgres desechable propio, sin tocar la base compartida).
+- [ ] Sigue abierto (decisión de Felipe, aplazada a propósito): cerrar conteo y cerrar traslado con diferencia también dejan el stock en otra cifra con la misma capacidad amplia (Existencias/Conteos/Traslados); una integrante con Conteos puede seguir contando mal a propósito y cerrando ella misma.
+- Cómo verificas:
+  - `pnpm pruebas:existencias-candados-y-ajuste` (39/39, con los 6 casos nuevos de ADR-0250).
+  - `pnpm pruebas:candado-lider` (23/23), `pnpm pruebas:reposicion-piso-cerrada` (10/10), `pnpm pruebas:ajuste-no-es-primera-carga` (25/25) — actualizadas: el mensaje de permiso de `registrar_movimiento` cambió.
+  - `pnpm --filter web exec vitest run` (196 archivos, 151850 pruebas) y `pnpm --filter web exec tsc --noEmit`, ambos en verde.
+  - Con una cuenta con Existencias/Conteos/Traslados pero SIN «Ajustar stock»: «Ajustar» no aparece en Existencias, Productos ni Movimientos; llamando a la base directo, `ajustar_inventario`/`registrar_movimiento` responden `ajuste_sin_modulo`.
+
 ## 🏷️ Etiquetas: con dibujo real, en el paso 3, y Tejido corrige el mismo error (2026-09-27, ADR-0109 act. c) — solo web, sin migración; rama `claude/etiquetas-alta-siempre-visibles`
 Felipe, tres capturas más: «mira dónde sale Etiquetas y analiza si es el lugar correcto… me pregunto por qué no lo muestras como
 la parte de textura, el mismo error en Tejido». 12 preguntas (`AskUserQuestion`) y un bosquejo (Artifact) aprobado antes de tocar código.

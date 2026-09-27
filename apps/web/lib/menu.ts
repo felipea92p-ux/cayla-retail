@@ -52,7 +52,11 @@ export type Pajaro = (typeof PAJAROS)[number];
  * pantalla y el candado dicen lo mismo:
  *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
- *  - ajustarInventario:      ajustar stock, cerrar conteo, cerrar traslado con diferencia (fn_puede_ajustar_inventario)
+ *  - ajustarInventario:      cerrar conteo, cerrar traslado con diferencia       (fn_puede_ajustar_inventario). Hasta el
+ *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque
+ *                            Existencias/Conteos/Traslados no es «el líder decidió dar el módulo de ajustar».
+ *  - ajustarStock:           el botón «Ajustar» de Existencias, Productos y Movimientos (fn_puede_ajustar_stock,
+ *                            ADR-0250): SOLO el módulo «Ajustar stock», nace sin rol.
  *  - editarCatalogo:         escribir en el Catálogo                            (fn_puede_editar_catalogo)
  *  - editarCuentasProveedor: cuentas bancarias de proveedores                   (fn_puede_editar_cuentas_proveedor)
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
@@ -68,7 +72,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  */
 export const PERMISOS = [
   "administrar", "verDinero", "analizar",
-  "facturar", "gestionarCaja", "ajustarInventario", "editarCatalogo", "editarCuentasProveedor",
+  "facturar", "gestionarCaja", "ajustarInventario", "ajustarStock", "editarCatalogo", "editarCuentasProveedor",
   "verDineroCompras", "editarEtiquetas", "registrarGastos",
   "verCuentasDinero", "verReportesFinancieros", "verImpuestos", "cerrarMes",
 ] as const;

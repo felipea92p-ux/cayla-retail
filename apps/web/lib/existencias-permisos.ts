@@ -7,8 +7,9 @@
 // Las tres reglas que se cruzan:
 //   · Sede ACTIVA: todo lo que escribe firma con el Responsable de la sede activa (ADR-0162). Mirando otra sede con
 //     `?ubicacion=`, nada que escriba ni nada que trabaje sobre la sede activa (etiquetas, historial) se ofrece.
-//   · Módulo: cada escritura es del módulo que la nombra (ADR-0240, opción A): reponer y retirar → «Bajada al piso»,
-//     apartar y pedir a otra sede → «Apartados», trasladar → «Traslados». La base pide lo mismo.
+//   · Módulo: cada escritura es del módulo que la nombra (ADR-0240, opción A; ADR-0250 sumó el último): reponer y
+//     retirar → «Bajada al piso», apartar y pedir a otra sede → «Apartados», trasladar → «Traslados», ajustar →
+//     «Ajustar stock». La base pide lo mismo.
 //   · Piso y almacén: reponer, retirar y apartar necesitan saber de dónde; solo donde la ubicación los separa.
 
 export type EntradaPermisos = {
@@ -20,7 +21,7 @@ export type EntradaPermisos = {
   puedeBajarAlPiso: boolean;
   /** Su rol ve «Apartados». */
   veApartados: boolean;
-  /** Puede ajustar stock (`puede(persona, "ajustarInventario")`). */
+  /** Puede ajustar stock (`puede(persona, "ajustarStock")`; ADR-0250: módulo propio, ya no ve Existencias/Conteos/Traslados). */
   puedeAjustar: boolean;
   /** Su rol ve «Traslados». */
   veTraslados: boolean;
