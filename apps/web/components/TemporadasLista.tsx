@@ -691,7 +691,12 @@ function SeccionSinTemporada({
         // La ruta salta las que alguien completó mientras la lista estaba abierta (no las pisa): se dice cuántas.
         const asignadas = typeof r.datos.asignadas === "number" ? r.datos.asignadas : ids.length;
         const saltadas = typeof r.datos.saltadas === "number" ? r.datos.saltadas : 0;
-        const detalle = saltadas > 0 ? `${saltadas} ya tenían temporada (alguien la puso mientras tanto) y no se tocaron.` : undefined;
+        const detalle =
+          saltadas === 1
+            ? "1 ya tenía temporada (alguien la puso mientras tanto) y no se tocó."
+            : saltadas > 1
+              ? `${saltadas} ya tenían temporada (alguien la puso mientras tanto) y no se tocaron.`
+              : undefined;
         if (asignadas === 0) avisar.aviso("No se asignó ninguna: todas ya tenían temporada.", { detalle });
         else avisar.exito(`«${nombre}» asignada a ${asignadas} ${asignadas === 1 ? "prenda" : "prendas"}`, { detalle });
         router.refresh();

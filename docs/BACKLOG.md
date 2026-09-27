@@ -106,7 +106,7 @@ Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
 - [x] **#1.** «Ajustar inventario» guarda todo en una sola llamada (`ajustar_inventario`): todo o nada, con marca de reintento. Si se corta la red, los campos quedan fijos y el reintento no duplica.
 - [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** qué roles necesitan «Bajada al piso» y «Apartados». Al 2026-09-25, las Terminal Almacén y de ventas reponían con «Reponer» (ADR-0208) y, sin el módulo, lo pierden.
 - [x] **`20260927180000` y `20260927180100` aplicadas en producción** (2026-09-26). La web ya estaba publicada: el #514 se fusionó antes de pegarlas, y durante unos minutos las cuatro acciones fallaron. Huellas idénticas a local (ADR-0240, «Aplicación en producción»).
-- [ ] Pegar `20260927180200` (los `revoke`): ya es seguro, la web usa las puertas nuevas.
+- [x] **`20260927180200` (los `revoke`) pegada por Felipe el 2026-09-26** y verificada: `authenticated` ya no ejecuta `mover_interno` ni `apartar_stock`.
 - [ ] **Terminal Almacén y Terminal de ventas** ven Existencias sin «Bajada al piso» ni «Apartados»: hoy no ven «Reponer», «Retirar» ni «Apartar». Felipe decide si se los enciende.
 - [ ] Refrescar el volcado (`pnpm datos:refrescar`).
 - [ ] Verlo con una cuenta sin los módulos.
@@ -892,7 +892,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   piden ese módulo, así que sin él esas 3 terminales ya no los tienen.
 - [ ] **Bloque 3, decisiones tomadas el 2026-09-26** (ADR-0208, «Actualización 2026-09-26 — decisiones del bloque 3», y
   ADR-0246). Se construye en tres pasos, cada uno con su PR:
-  - [ ] **3a · Temporadas (ADR-0246):** pestaña «Temporadas» en Productos ▸ Atributos con 9 valores (Primavera-Verano,
+  - [x] **3a · Temporadas: CONSTRUIDO el 2026-09-26, NO está en producción** (rama `claude/frescura-3a-temporadas`).
+    Pegar `20260928100000` (partes 1 a 5, cada una sola, y la 6 para verificar: 9 temporadas, 12 fechas, 3 llaves, 1
+    alta) **ANTES de fusionar su web**: la ficha de hoy tiene la temporada como texto libre y, con la llave foránea
+    puesta, un texto a mano no se guardaría. Prueba: `pnpm pruebas:temporadas` (25). Detalle: ADR-0246, «Construcción».
+    Pendiente: confirmar las fechas desde el verano 2026-27 cuando SENAMHI las publique; agregar 2029 antes de fin de
+    2028. Lo que decía el plan: **3a · Temporadas (ADR-0246):** pestaña «Temporadas» en Productos ▸ Atributos con 9 valores (Primavera-Verano,
     Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI
     (ajustable solo el año en curso), una por prenda (color → producto → categoría), opcional en el alta, lista «Sin
     temporada». Retira el texto libre `productos.temporada` (vacío en producción).

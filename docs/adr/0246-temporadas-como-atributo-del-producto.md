@@ -113,7 +113,8 @@
 
 - Pegar la migración en producción (ver «Construcción», al final) y, después, publicar la web.
 - Fechas desde el verano 2026-27: confirmarlas con SENAMHI cuando las publique (hoy vienen del Observatorio Naval de
-  EE. UU.; la diferencia posible es de un minuto). Se corrigen con `fijar_fecha_temporada(..., 'senamhi')`.
+  EE. UU.; la diferencia posible es de un minuto). Se corrigen en la pestaña (fuente «SENAMHI»), o con
+  `fijar_fechas_temporada('[{"anio": …, "estacion": …, "inicio": …, "fuente": "senamhi"}]')`.
 - Agregar al calendario el año 2029 antes de que termine 2028 (la pestaña avisa cuando falta el año siguiente).
 - Frescura (paso 3c) lee la temporada con `fn_temporada_efectiva` y el año con `fn_ocurrencia_temporada`.
 
@@ -135,7 +136,8 @@ Lo que cambió respecto de lo escrito arriba, con el porqué:
   (`fn_calendario_estaciones`). Con desde y hasta guardados podrían quedar huecos o solapes entre dos filas, y ningún
   `check` lo impide.
 - **Las fechas se pueden correr hasta 60 días de su fecha astronómica** (el ejemplo de Felipe: el invierno el 25 de mayo),
-  nunca fuera de orden ni cuando la estación ya empezó (disparador `fn_temporada_fechas_candado`, también para el SQL
+  nunca cuando la estación ya empezó (disparador `fn_temporada_fechas_candado`) ni fuera de orden (disparador diferido
+  `temporada_fechas_orden`, que revisa con todas las fechas ya escritas; los dos valen también para el SQL
   Editor).
 - **Sin políticas de RLS.** Las tres tablas tienen RLS encendido y ningún privilegio de afuera: se leen por funciones
   `security definer` de solo lectura (`fn_temporadas`, `fn_calendario_estaciones`, `fn_temporada_efectiva`,
@@ -149,6 +151,18 @@ Lo que cambió respecto de lo escrito arriba, con el porqué:
   guarda md5 del cuerpo vivo (`5eb22cb78bc5574e6a28d3c60879d93f`, igual en local y en producción el 2026-09-26).
 - **Fechas sembradas:** 2026 de SENAMHI (el verano, del USNO); 2027 y 2028 del USNO. No se sembró 2025: sus horas no se
   verificaron, y la regla de la aparición más cercana no las necesita para lo que se carga desde hoy.
+
+- **«Agregar año» y correr fechas, todo o nada:** `fijar_fechas_temporada(p_fechas jsonb)` recibe de 1 a 8 fechas y
+  las guarda en una transacción; el orden se revisa al final (`set constraints … immediate`), así que correr dos
+  estaciones juntas no choca a mitad de camino. Reemplaza a la de una fecha, que dejaba el año a medias si una fallaba.
+- **El lote de «Sin temporada» no pisa:** `asignar_temporadas(p_items, p_solo_sin_temporada => true)` salta, con la fila
+  ya bloqueada, la prenda que desde que se cargó la lista recibió temporada (propia o de su categoría). La pantalla dice
+  cuántas saltó.
+- **La web** (revisada por tres revisores y un corrector; probada en el navegador con datos de ejemplo): la pestaña
+  «Temporadas» en Productos ▸ Atributos (`components/TemporadasLista.tsx`, ruta `app/api/productos/temporadas`), la
+  temporada en la ficha con su sección por color (`ProductoForm`), en el alta (`NuevoProductoForm`), en Categorías (solo
+  lectura) y un aviso «N prendas sin temporada · Completar» en Productos para quien edita el catálogo y ve Atributos. El
+  historial de la ficha nombra los cambios de temporada (`lib/historial-producto-reglas.ts`).
 
 **Cómo se pega en producción:** la sonda de solo lectura primero (que `productos.temporada` siga vacía, que el md5 del
 alta siga igual y que la lista no exista); después las partes 1 a 5, cada una sola; la parte 6 es una consulta de
