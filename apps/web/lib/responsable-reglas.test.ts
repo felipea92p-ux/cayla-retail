@@ -171,6 +171,17 @@ describe("errores de la base — qué se le dice a la persona", () => {
   it("traducirError usa estas frases en todas las pantallas", () => {
     expect(traducirError(e42501("responsable_no_presente"), "cerrar la caja")).toMatch(/ya no figura de turno/);
   });
+
+  // 2026-09-27 (análisis /pantalla de Roles y accesos): el aviso es un toast global (Avisos.tsx) que puede quedar
+  // flotando sobre una acción distinta a la que lo produjo — p. ej. «guardar los módulos del rol» falla en la barra
+  // de fondo mientras se tiene abierto el modal «Asignar rol», y sin nombrar la acción no hay forma de distinguirlos.
+  it("con contexto, nombra la acción a la que pertenece el error", () => {
+    expect(mensajeErrorResponsable(e42501("responsable_no_presente"), "guardar los módulos del rol")).toBe(
+      "No se pudo guardar los módulos del rol: esa persona ya no figura de turno en esta tienda (marcó su salida o salió a una pausa). Actualiza la lista y elige a quien está presente.",
+    );
+    // Sin contexto (las llamadas directas fuera de `traducirError`, como las rutas de Lucode) sigue sin prefijo.
+    expect(mensajeErrorResponsable(e42501("responsable_no_presente"))).toMatch(/^Esa persona ya no figura de turno/);
+  });
 });
 
 describe("dos modos: atender a la clienta u otra operación (Felipe, 2026-09-23)", () => {

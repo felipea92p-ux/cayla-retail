@@ -245,6 +245,13 @@ export function pideUbicacion(cuenta: Pick<CuentaConRol, "esLider" | "ubicacion"
   return !!destino && cuenta.esLider && !destino.fijo && !cuenta.ubicacion;
 }
 
+/** ¿Hay que avisar que además se pierde el escalón Admin? `fn_es_admin()` exige ser admin en Dynamic Y líder activo en
+ *  retail a la vez (ADR-0178): bajar a un Admin del rol Líder le apaga el escalón en el acto, aunque el sistema siga
+ *  teniendo otros Admin. Sin este aviso, quien confirma no tiene forma de saberlo antes de hacerlo. */
+export function debeAvisarPerdidaAdmin(cuentaEsAdmin: boolean, destino: Pick<RolVista, "fijo"> | undefined): boolean {
+  return !!destino && cuentaEsAdmin && !destino.fijo;
+}
+
 /** Los módulos entre los que se puede elegir «pantalla principal» para un rol: los del borrador, en el orden del
  *  catálogo (Inicio primero si lo tiene). El Líder no elige: siempre ve todo, aterriza en Inicio. */
 export function pantallasElegibles(borrador: readonly ClaveModulo[]): Modulo[] {

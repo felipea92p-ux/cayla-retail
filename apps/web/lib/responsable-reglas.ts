@@ -222,11 +222,7 @@ export function esErrorDeResponsable(error: ErrorBase): boolean {
   return mensajeErrorResponsable(error) !== null;
 }
 
-/**
- * El rechazo de la base, dicho para quien está en el mostrador: qué pasó y qué hacer. `null` si el error no es del
- * responsable (entonces lo traduce el resto de `traducirError`).
- */
-export function mensajeErrorResponsable(error: ErrorBase): string | null {
+function mensajeBaseResponsable(error: ErrorBase): string | null {
   switch (hintDe(error)) {
     case "responsable_requerido":
       // Viene de la base, que no sabe en qué pantalla se está: dicho sin la pregunta de ningún modo.
@@ -249,4 +245,19 @@ export function mensajeErrorResponsable(error: ErrorBase): string | null {
     return "El responsable elegido no es válido. Vuelve a elegirlo y guarda otra vez.";
   }
   return null;
+}
+
+/**
+ * El rechazo de la base, dicho para quien está en el mostrador: qué pasó y qué hacer. `null` si el error no es del
+ * responsable (entonces lo traduce el resto de `traducirError`).
+ *
+ * `contexto` (2026-09-27, análisis /pantalla de Roles y accesos): el aviso es un toast global que puede quedar
+ * flotando sobre una pantalla o un modal donde se abrió una acción DISTINTA a la que lo produjo — nombrar la acción
+ * evita que alguien confunda un error viejo con la que tiene abierta ahora. `traducirError` ya recibe ese texto
+ * («asignar el rol», «cerrar la caja») de cada pantalla; aquí solo se antepone.
+ */
+export function mensajeErrorResponsable(error: ErrorBase, contexto?: string): string | null {
+  const mensaje = mensajeBaseResponsable(error);
+  if (!mensaje || !contexto) return mensaje;
+  return `No se pudo ${contexto}: ${mensaje.charAt(0).toLowerCase()}${mensaje.slice(1)}`;
 }
