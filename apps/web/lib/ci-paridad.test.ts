@@ -15,7 +15,6 @@ import { describe, expect, it } from "vitest";
  * 2026-09-25 contra una base con todas las migraciones y el seed. Cada una entra al CI el día que se arregle (y sale de aquí).
  */
 const EXCLUIDAS: Record<string, string> = {
-  "pruebas:caja-cierre-traslado": "quedó vieja tras 20260923233000 (depósito sin número de operación): 4 casos fallan",
   // No PUEDE correr en el job `pruebas-postgres` tal como está armado hoy: ese job solo levanta `supabase start` +
   // migraciones + `seed.sql`, nunca `pnpm carga:preparar` (copia la base a `cayla_carga`, ~2 min, y le carga un año
   // sintético de ventas/asistencia). Sin esa base, el propio script se niega a correr (guarda: `_carga_actores`
