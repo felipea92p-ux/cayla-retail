@@ -12,13 +12,13 @@
  *   · la migración se puede pegar dos veces.
  *
  * CÓMO. Mismo patrón que `candado_lider_caja_y_ajuste.mjs`: cada escenario en su transacción con ROLLBACK,
- * nunca se commitea nada. Simula al líder con `set local request.jwt.claim.sub`. Elige por sí mismo una
- * persona activa que todavía no tiene acceso; si no hay ninguna en el local, lo dice y sale sin fallar.
+ * nunca se commitea nada. Simula al líder con `set local request.jwt.claim.sub`. Crea su propia persona
+ * candidata (nunca reutiliza Felipe/Micaela/Sandra del seed compartido: las tres ya son colaboradoras).
  *
  * `--en-seco`: carga la migración dentro de cada escenario (sin aplicarla a la base compartida).
  *
- * ESTADO: escrita sin poder correrla (la sesión que la creó no tenía Docker/Postgres local). Correrla antes de
- * fusionar: `pnpm pruebas:colaboradores-endurecimiento --en-seco`.
+ * Cableada a `pruebas-postgres` en `.github/workflows/ci.yml` (2026-09-27): corrida contra un Postgres
+ * desechable, 7/7 verificaciones en verde, en el modo normal y en `--en-seco`.
  */
 
 import { execFileSync } from "node:child_process";
@@ -64,9 +64,14 @@ const escena = (cuerpo) => `
 begin;
 ${PRELUDIO}
 ${INTENTO}
-select p.id as candidata from public.personas p
-  where p.estado = 'activo' and p.auth_user_id is not null
-    and not exists (select 1 from retail.colaboradores c where c.persona_id = p.id) limit 1 \\gset
+-- Antes se buscaba una persona "sobrante" del seed compartido sin colaboradores — nunca hay
+-- ninguna (el seed local solo trae Felipe/Micaela/Sandra, y las tres ya son colaboradoras), así
+-- que el \\gset fallaba con "no rows returned" en vez de correr la prueba. Se crea la propia,
+-- igual que CATEGORIA_DE_PRUEBA/PRODUCTO_DE_PRUEBA en otras pruebas de este directorio.
+insert into public.personas (nombres, apellidos, sede_base_id, estado)
+  select 'Zeta', 'Candidata de prueba (colaboradores_endurecimiento.mjs)', id, 'activo'
+  from public.sedes limit 1
+  returning id as candidata \\gset
 select id as ubi from retail.ubicaciones where activo limit 1 \\gset
 set local request.jwt.claim.sub = '${FELIPE}';
 ${cuerpo}

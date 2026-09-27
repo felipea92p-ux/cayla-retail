@@ -71,8 +71,18 @@ function correr(sql) {
   }
 }
 
+// El script vivió sus primeras sesiones (D-54) antes de que TODO el esquema pasara a vivir en el
+// schema `retail` — llamaba a `ventas`, `cajas`, `archivar_venta_prueba()`… a secas, apoyado en que
+// `psql` los resolviera solo. `search_path` por defecto de una conexión nueva es `"$user", public`
+// (ni siquiera en el Postgres local de verdad: `extra_search_path` de `supabase/config.toml` solo
+// lo aplica PostgREST a los roles de la API, no a `-U postgres` por `psql`), así que cada escenario
+// fallaba con «relation "ventas" does not exist» / «function archivar_venta_prueba(unknown) does not
+// exist» — no un bug de lógica, un nombre sin resolver. Mismo criterio que toda migración del repo
+// desde el corte V1→V2 (CLAUDE.md, «Cómo aplicar SQL a producción»): domicilio explícito, acá con
+// `search_path` en vez de repetir `retail.` en cada línea de las ~15 verificaciones de abajo.
 const comoPersona = (authUserId, sql) => `
 begin;
+set local search_path = retail, public, extensions;
 ${PRELUDIO}
 set local request.jwt.claim.sub = '${authUserId}';
 ${sql}
@@ -323,15 +333,22 @@ rollback;
 );
 
 exito(
-  "colaboradora con el rol real de la API (authenticated): tampoco archiva un producto con un UPDATE directo — `productos_write_lider` (RLS) ya exige líder para CUALQUIER escritura en `productos`, antes de que la fila llegue a la función",
+  // Hasta el 2026-09-22, `productos_write_lider` (RLS) exigía líder para CUALQUIER escritura en `productos`, así que
+  // esta fila no necesitaba candado propio (D-54 lo decía explícitamente). `20260923030000_roles_por_modulo.sql`
+  // (ADR-0161) amplió esa política a `fn_puede_editar_catalogo()` — líder O cualquiera con el módulo Productos/
+  // Atributos — para el catálogo real, y de paso reabrió la puerta para `es_prueba`: Micaela (rol `integrante`, ve
+  // Productos) ya podía marcarlo con un UPDATE directo. `20260928110000_productos_es_prueba_solo_lider.sql` cierra
+  // ese hueco con el mismo trigger que `conteos` ya tenía — por eso ahora el intento termina en 42501, no en un
+  // UPDATE silenciosamente filtrado por RLS.
+  "colaboradora con el rol real de la API (authenticated): tampoco archiva un producto con un UPDATE directo — el trigger `productos_es_prueba_solo_lider` (20260928110000) lo rechaza aunque tenga el módulo Productos",
   comoPersona(
     FELIPE,
-    `${PRODUCTO_DE_PRUEBA}${COMO_AUTENTICADO}${cambiaA(MICAELA)}update productos set es_prueba = true where id = :'producto';
-select (select es_prueba from productos where id = :'producto');
+    `${INTENTO}${PRODUCTO_DE_PRUEBA}${COMO_AUTENTICADO}${cambiaA(MICAELA)}select pg_temp.intento(format('update productos set es_prueba = true where id = %L', :'producto')) as r \\gset
+${cambiaA(FELIPE)}select split_part(:'r', '|', 1), split_part(:'r', '|', 2), (select es_prueba from productos where id = :'producto');
 rollback;
 `
   ),
-  ["f"]
+  ["42501", "Solo un líder de equipo puede marcar un producto como dato de prueba", "f"]
 );
 
 // ===========================================================================
