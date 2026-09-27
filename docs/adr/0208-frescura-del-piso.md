@@ -852,7 +852,7 @@ guiones se corren con `PATH=<pg>/bin:$PATH CAYLA_PGDATABASE=<base> LC_ALL=en_US.
   (ver «Límite de la escritura»), con un caso C6 de concurrencia.
 - Enseñarle a `scripts/datos/comparar.mjs` a resolver las constantes `RPC_*`, para que vea `bajar_al_piso`.
 - `fn_ledger_puntos` más rápido: el semi-join por hash (de unos 560 a unos 330 ms a 120 días), con una migración nueva y
-  una nota en ADR-0202, porque `20260924030000` ya está en producción.
+  una nota en ADR-0202, porque `20260924030000` ya está en producción. *Hecho el 2026-09-27: `20260928120010` (ADR-0202, «Actualización 2026-09-27»); falta pegarla.*
 - **Preguntas abiertas para Felipe:**
   - ¿Se enciende en la Terminal de ventas? Resuelve el «Stock insuficiente» de la cajera, pero facilita justo la
     bajada al cobrar. Por defecto: Terminal Almacén y quien cuelga; la de ventas, después de decidir la D-40.

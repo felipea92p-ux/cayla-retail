@@ -885,10 +885,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 - [ ] **1b:** guía de solo lectura por recepción (llegaron / ya bajadas / faltan) y «Bajadas de hoy».
 - [ ] Antes del bloque 3: comparar en producción, prenda por prenda, el stock con el libro (SELECT de solo lectura).
   Si no cuadran, las bajadas salen «dudosas» y el indicador no tiene con qué medir.
-- [ ] **`fn_ledger_puntos` más rápido** (lo midió el bloque 1): cambiar `variante_id = any(p_variante_ids)` por un
-  semi-join (`in (select unnest(…))`) en sus tres lugares baja `fn_bajadas_del_piso` de unos 560 a unos 330 ms a 120
-  días, con las mismas filas. Va en una migración nueva (la `20260924030000` ya está en producción), con la regla de
-  ADR-0195 y una nota en ADR-0202. Hoy igual queda bajo 1 s por tienda.
+- [x] ~~**`fn_ledger_puntos` más rápido** (lo midió el bloque 1): cambiar `variante_id = any(p_variante_ids)` por un
+  semi-join (`in (select unnest(…))`) en sus tres lugares~~: hecho en `20260928120010_ledger_semijoin.sql` (paso 1 de
+  Frescura 3c, rama `claude/frescura-3c-terreno`; nota en ADR-0202). Con carga sintética, `fn_bajadas_del_piso` a 120
+  días pasa de 489-506 a 295-307 ms, con 0 filas distintas.
+  - [ ] **Pegar `20260928120010` en producción** (sola, a cualquier hora; si el cuerpo vivo cambió, la guarda md5 aborta
+    sin tocar nada). Después, el md5 de `fn_ledger_puntos` debe dar `a3d9fb69f32e0df2bb7f082e4b14215b`.
 - [ ] Preguntas abiertas del bloque 1 (ADR-0208, punto (g)): ¿La exclusión de `prendas_por_regularizar` debe valer
   también en Análisis (`fn_es_venta_de_stock`)? ¿20 bajadas cerradas y 10 minutos para el indicador? ¿Hay pistola en
   el almacén donde se abre el fardo y etiqueta legible en cada prenda? ¿Se corrigen `CONTRIBUTING.md` §1 y ADR-0010,
