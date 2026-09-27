@@ -30,13 +30,17 @@
 --   · 34a7e0cc5f421333761e8bda92a582eb — esta misma migración ya pegada (el envoltorio de abajo): se puede volver a pegar.
 -- Con cualquier otro, aborta sin tocar nada. Buscado antes de escribir: ninguna migración posterior a la 000300 la
 -- recrea ni la parcha con `reemplazar_vivo`.
+-- Y mira también el NÚCLEO (revisión 3, 2026-09-27): solo sigue si no existe (primera vez) o si es el de esta misma
+-- migración, 8d38d6dd6c657ab06b2e8a7c0b66a53b (ya pegada). Sin esto, volver a pegarla con un núcleo parchado en vivo lo
+-- pisaría con `create or replace` sin avisar (T22 (el núcleo) lo prueba).
 -- Si ya se pegó la PARTE 2, esta aborta con un aviso: la PARTE 2 ya trae el núcleo, y volver a esta la desharía.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, en el SQL Editor, tal cual (ya trae `retail.`), a cualquier hora, ANTES de la
 -- 20260928120200. Solo `create or replace function` con la misma firma, comentarios, `revoke` y `grant`: no toma
 -- candados de tablas en uso, no lleva políticas ni `drop trigger` (ADR-0195). Re-ejecutable.
 -- Cómo se verifica después: `select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and
--- proname like 'fn_bajadas_del_piso%';` da dos filas, y la del envoltorio mide 34a7e0cc5f421333761e8bda92a582eb.
+-- proname like 'fn_bajadas_del_piso%';` da dos filas: el envoltorio mide 34a7e0cc5f421333761e8bda92a582eb y el núcleo
+-- 8d38d6dd6c657ab06b2e8a7c0b66a53b.
 --
 -- SE ROMPE SI alguien le da EXECUTE del núcleo a `authenticated` (cualquier cuenta leería las bajadas de cualquier
 -- sede, con quién las hizo), o si una lectura nueva llama al núcleo sin decidir antes su propio candado.
@@ -48,6 +52,7 @@ set lock_timeout = '3s';
 do $$
 declare
   v_md5 text;
+  v_nucleo text;
 begin
   if to_regprocedure('retail.fn_ledger_puntos(uuid, timestamptz, uuid[])') is null
      or to_regprocedure('retail.fn_es_traslado_interno(text, uuid, uuid)') is null then
@@ -62,6 +67,14 @@ begin
        and 'cantidad_efectiva' = any(p.proargnames)
   ) then
     raise exception 'Ya está pegada la 20260928120200 (el núcleo ya netea retiros): esta parte no hace falta, y volver a pegarla la desharía.';
+  end if;
+  -- El núcleo: no existe (primera vez) o es el de esta misma migración (ya pegada). Con otro cuerpo, alguien lo parchó
+  -- en vivo, y el `create or replace` de abajo lo borraría en silencio.
+  select md5(p.prosrc) into v_nucleo
+    from pg_proc p
+   where p.oid = to_regprocedure('retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer)');
+  if v_nucleo is not null and v_nucleo <> '8d38d6dd6c657ab06b2e8a7c0b66a53b' then
+    raise exception 'fn_bajadas_del_piso_nucleo cambió desde que se escribió esta migración (md5 del cuerpo: %, se esperaba 8d38d6dd6c657ab06b2e8a7c0b66a53b). Alguien lo parchó en vivo: reescribe el núcleo desde su definición real antes de pegar.', v_nucleo;
   end if;
   select md5(p.prosrc) into v_md5
     from pg_proc p

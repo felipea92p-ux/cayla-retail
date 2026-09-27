@@ -977,25 +977,35 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       retirado en los 10 minutos previos, y marca la carga inicial (`es_carga_inicial`). Regla corregida el 2026-09-27
       antes de pegar: la primera versión tomaba el nivel más alto de la ventana (absorbía ventas) y descontaba un retiro
       de dos bajadas. Casos que cambian respecto de producción: T9, T14 y el ejemplo de ADR-0208 (c). Prueba:
-      `pnpm pruebas:frescura-bajadas` (141: la revisión por mutantes del 2026-09-27 sumó el borde de `p_hasta`, dos
+      `pnpm pruebas:frescura-bajadas` (160: la revisión por mutantes del 2026-09-27 sumó el borde de `p_hasta`, dos
       retiros que se suman, la «dudosa» que un retiro no tapa, el retiro previo que evita una tardía y los bordes de T31;
-      la revisión 2, la guarda con la PUERTA parchada, cuarentena ↔ almacén, dos retiros y dos ventas iguales y T32).
+      la revisión 2, la guarda con la PUERTA parchada, cuarentena ↔ almacén, dos retiros y dos ventas iguales y T32; la
+      revisión 3, los gemelos de T32, el único retiro de la tienda fuera del rango, el borde de `p_hasta` con retiros,
+      «cerrada» no es final y la guarda de la `120100` con el núcleo parchado).
       **Revisión 2 (2026-09-27): el cálculo se rehízo sin cruces entre pasos calculados** — con historia de otra tienda,
       el anterior (y el de producción) se iba fila por fila: 60 días de 0,13 a 2,97 s. Mismas filas; +6 % sin retiros.
-      Detalle: ADR-0208, «Paso 2 construido (2026-09-27)» y su «Revisión 2».
-      - [ ] **Decisión de Felipe, ANTES de construir el indicador del paso 3 (no bloquea pegar):** el piso de antes suma
-        todo lo retirado en los 10 minutos previos, también lo que una re-bajada ya volvió a colgar (T30: `piso_antes` 4
-        cuando el libro nunca pasó de 3) y lo que la regla ya le descontó a la bajada ANTERIOR («colgaron de más», T32:
-        `piso_antes` 3 cuando el libro dice 1; con la carga inicial, 10 cuando dice 6). Así un error ajeno tapa la tardía
-        real de otra colaboradora. «Sumar solo lo retirado que no se volvió a colgar» arregla T30 y no T32; **la salida
-        que arregla las dos es sumar solo lo retirado ANTES de la bajada que la regla le asignó a ESA bajada** (probada:
-        mismo costo; cambia 14 de las 141 verificaciones). Va junto con otra: que lo que sobra de un retiro pase a la
-        siguiente bajada a 10 minutos o menos (si no, una corrección hecha en dos re-bajadas deja una tardía falsa). Hoy
-        TRU no tiene retiros. Detalle: ADR-0208, «Límites» del paso 2.
+      Detalle: ADR-0208, «Paso 2 construido (2026-09-27)», su «Revisión 2» y su «Revisión 3».
+      - [x] **Decisión del piso de antes (2026-09-27): se queda la regla vigente.** El piso de antes suma todo lo
+        retirado en los 10 minutos previos, aunque la regla le haya dado ese retiro a otra bajada. El libro no distingue
+        «colgaron de más» (A, T32) de «retiro por error» (B, los gemelos de T32): la regla vigente nunca culpa a quien
+        corrige (B: 0 tardías) y a cambio puede esconder una tardía en A (T30, T32). Se descartó la «variante C» (sumar
+        solo lo retirado antes que se le asignó a ESA bajada): atrapa A pero culpa a quien corrige en B (2 tardías a la
+        re-bajada). Se rompe si una colaboradora cuelga menos de lo escaneado, retira el sobrante y en 10 minutos otra
+        baja la misma talla y se vende: esa tardía no se ve. Lo que los distingue es el motivo del retiro del 3b. Con esta
+        regla, que lo que sobra de un retiro no pase a la bajada siguiente ya no deja una tardía falsa (no hace falta
+        decidirlo aparte). Detalle: ADR-0208, «Límites» del paso 2.
+      - [ ] **Para el indicador del paso 3:** una fila «cerrada» todavía puede cambiar hasta 20 minutos (2W) después de
+        la bajada (T33: una bajada posterior se lleva su retiro y la «corregida» pasa a «tardia»). Si la cifra no debe
+        moverse, contar solo las bajadas de hace más de 2W. Detalle: ADR-0208, «Límites».
+      - [ ] **Revisión 3, fuera de este arreglo:** 13 de los 38 cambios de la revisión por mutantes siguen pasando la
+        prueba (la marca de carga con dos cargas de la misma prenda en 10 minutos, el orden de salida de dos bajadas del
+        mismo instante, el borde exacto de `p_hasta + 2W` y seis filtros de `internos`/`juntas`/el libro; dos son
+        equivalentes). Revisarlos uno por uno antes del paso 3. Lista: ADR-0208, «Revisión 3».
       - [ ] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (cada una sola; a cualquier hora;
         solo funciones). Después, `md5(prosrc)`: puerta `34a7e0cc5f421333761e8bda92a582eb`; núcleo
-        `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `08bfa7b8d2c90eaed85a5c4366a21db4` tras la segunda. Si el
-        cuerpo vivo cambió, la guarda aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
+        `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `fcfd2c4b2c4f24dd2184eb2cd7a12678` tras la segunda (desde
+        la revisión 3; `08bfa7b8…` era el de la revisión 2 y nunca se pegó). Si el cuerpo vivo cambió (la puerta o el
+        núcleo, en las dos guardas), aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
         (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
   - [ ] **Aparte:** módulo «Ajustar stock» separado de Existencias (PR de roles; nace solo para el líder).
 - [ ] **Bloque 3 · La pantalla de Frescura (diseño original)** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del

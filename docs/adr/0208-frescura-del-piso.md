@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda).
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados).
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -1324,8 +1324,9 @@ Seis hallazgos confirmados ejecutando:
 - **Dos retiros IGUALES**: T29 usaba 1 y 2, y «sumar sin repetidos» daba lo mismo. Caso nuevo T29 IGUALES (1 y 1, con
   una venta: la tardía falsa aparece si se suman sin repetidos). En el mismo espíritu, dos ventas iguales del mismo
   instante (un `union` en vez de `union all` las juntaba).
-- **El piso de antes suma un retiro que la regla le dio a la bajada anterior**: pide otra regla de negocio, así que queda
-  como decisión de Felipe (ver «Límites», abajo) y la prueba T32 fija lo de hoy.
+- **El piso de antes suma un retiro que la regla le dio a la bajada anterior**: pide otra regla de negocio, así que quedó
+  como decisión de Felipe y la prueba T32 fijó lo de ese día. **Decidida el mismo 2026-09-27: se queda la regla vigente**
+  (ver «Límites», abajo, y la «Revisión 3»).
 Además, como el cuerpo es nuevo, la prueba suma los bordes que ese cuerpo tiene (el borde exacto de `p_desde − 2W`, la
 carga de 1 segundo antes o 30 segundos después, el retiro con la bajada de después a medio segundo, el orden de salida y
 el rango por defecto de 30 días). **141 verificaciones.** Pruebas de mutación sobre el cuerpo nuevo: 37 cambios chicos a
@@ -1334,6 +1335,37 @@ y los 2 que quedan no cambian ninguna fila posible (sin la condición «no hay r
 agruparse por id, y la agrupación la vuelve una; una carga fuera del rango no comparte instante con una bajada del
 rango). Los mutantes de la revisión sobre el cuerpo anterior (`sum(distinct)`, retiro por destino, bajada por origen, la
 guarda sin la puerta) también fallan con la prueba de ahora.
+
+**Revisión 3 del 2026-09-27 (antes de pegar): la decisión del piso de antes, cuatro huecos más vigilados y la guarda de
+la parte 1 mira el núcleo.** El cálculo no cambió; el cuerpo del núcleo, solo en dos comentarios que mentían (decían «si
+no hay ningún retiro en el rango», y la condición real es la tienda entera entre `p_desde − 2W` y `p_hasta + 2W`): como
+el md5 mide también los comentarios, el núcleo pasa a `fcfd2c4b2c4f24dd2184eb2cd7a12678` y la guarda de la `120200` acepta
+ese para volver a pegarla.
+- **La regla del piso de antes, decidida:** se queda la vigente (ver «Límites»). Los gemelos de T32 (B, «retiro por
+  error») la fijan: con la «variante C» (sumar al piso de antes solo lo retirado antes que se le asignó a ESA bajada)
+  darían vuelta, y la prueba lo dice en su comentario.
+- **La rama con retiros se elige por la tienda entera, y ninguna prueba lo vigilaba:** pedir «un retiro en el rango»
+  (desde `p_desde`, en `[p_desde, p_hasta)` o hasta `p_hasta`) pasaba, porque en T27 los cuatro sub-casos comparten una
+  transacción y siempre había un retiro de OTRO sub-caso dentro del rango. Nuevo T27 (único retiro), dos casos, cada uno
+  en su propia transacción: el único retiro de la tienda cae fuera del rango y dentro de la ventana ampliada.
+- **El borde de `p_hasta` en la rama con retiros** (`r.t <= v_hasta` pasaba: T17 no tiene retiros). Nuevo T17 (con
+  retiros), también con el borde de `p_desde`.
+- **«cerrada» no es final:** ver «Límites». T33 fija el valor de hoy.
+- **La guarda de la `120100` miraba solo la puerta:** volver a pegarla con su núcleo parchado en vivo lo pisaba con
+  `create or replace` sin avisar (lo que rompió Análisis con el PR 397). Ahora exige que el núcleo no exista o sea el suyo
+  (`8d38d6dd…`). Nuevo T22 (el núcleo). Esa guarda vive fuera del cuerpo de las funciones: sus md5 no cambian.
+**160 verificaciones.** Pruebas de mutación sobre el núcleo (los 38 cambios de la revisión 3 y la variante C): el del
+borde de `p_hasta` en la rama con retiros y los tres de la rama («desde p_desde», «en el rango», «hasta p_hasta») ahora
+fallan; la variante C hace fallar 17 afirmaciones de conducta (más las 2 de la guarda que falla cualquier cambio del
+cuerpo), entre ellas las 3 de los gemelos. Quitar la mitad nueva de la guarda de la `120100` también falla. Siguen pasando
+13 de los 38, los mismos que la revisión dejó vivos también con los casos que proponía, y quedan fuera de este arreglo:
+dos equivalentes (la bajada que va a su propio instante por otro camino; la rama elegida por prenda), tres de la marca de
+carga (`max` en vez de `min`, sin exigir `tipo = 'entrada'`, la ventana hacia atrás: hacen falta dos cargas de la misma
+prenda a W o menos), el orden de salida de dos bajadas del mismo instante, el borde exacto de `p_hasta + 2W`, y seis
+filtros de `internos`, `juntas` y la lectura del libro (la centinela, `fn_es_traslado_interno`, el punto del libro, `ord
+= 1`, `es_bajada` en la rama con retiros, el «después» desde el mismo instante) que esta ronda no revisó uno por uno.
+Cada migración pegada dos veces con `psql -1 -f` (`0300` → `120100` ×2 → `120200` ×2) deja los mismos md5, y
+la `120100` después de la `120200` aborta con su aviso.
 
 **En producción hoy** (ensayo de solo lectura del 2026-09-27: el cuerpo final como un `select` sobre Tienda TRU, sin
 crear nada): 40 bajadas (199 unidades) y **ningún retiro**, así que ninguna fila cambia de `piso_antes`, estado ni
@@ -1349,28 +1381,40 @@ nada; 161 movimientos en toda la base): las mismas 40 filas, y 0 filas distintas
   «SE ROMPE SI» de arriba).
 - La carga inicial se reconoce por el instante exacto: registrada en dos transacciones (carga y, aparte, su bajada), no
   se marca.
-- **DECISIÓN PENDIENTE (Felipe; T30 y T32): el piso de antes suma TODO lo retirado en [t − W, t), también un retiro
-  que no estuvo colgado antes de esta bajada.** Pasa de dos formas, y las dos esconden tardías reales:
-  - *Una re-bajada ya repuso el retiro* (T30) y el nivel justo antes que da el libro ya la incluye: el retiro cuenta dos
-    veces. Piso 2; 10:00 se retiran 2 por error; 10:01 se reponen 2 (la corrección); 10:03 otra colaboradora baja 1 de
-    verdad; 10:05 se venden 3. El libro nunca pasó de 3; la regla le da `piso_antes` 4 y 0 tardías. Sin el error, 1 tardía.
-  - *El retiro se le descontó a la bajada ANTERIOR* («colgaron de más»: esas prendas nunca quedaron en el piso), y la
-    siguiente igual lo suma (T32, hallado en la revisión 2 del 2026-09-27). Se bajan 3 y solo cabe 1; a los 2 minutos se
-    retiran 2; a los 8, otra baja 1; se venden 2. La de los 8 minutos sale con `piso_antes` 3 (el libro dice 1) y 0
-    tardías; sin el error, 1. Con la carga inicial es justo cuando la cuenta sale mal (carga de 10, se retiran 4, se baja
-    1, se venden 7: `piso_antes` 10, el libro dice 6). Y el empate de T29 con 3 vendidas deja 1 tardía donde hubo 3.
-  - *Las salidas:* la escrita antes («sumar solo lo retirado que todavía no se volvió a colgar») arregla la primera forma
-    y **no** la segunda (medido por la revisión: da lo mismo que hoy en los tres casos de T32). La que arregla las dos:
-    **sumar al piso de antes solo lo retirado ANTES de la bajada que la regla le asignó a ESA misma bajada.** Probada en
-    este mismo cálculo (una suma más en el mismo recorrido, mismo costo: 331 y 402 ms contra 329 y 403): T30, T32, T14,
-    T27, T29 «sobra»/«empate» y T31 «margen»/«borde» cambian (14 de las 141 verificaciones, todas las que dicen «suma aunque
-    se descontó de otra»); T14 vuelve a los 4, 5, 7 de la `0300`.
-  - *Pero no va sola:* con la corrección hecha en DOS re-bajadas de 1 (retiro de 2; reponen 1 y 1), el retiro entero se
-    le asigna a la primera (efectiva 0) y lo que sobra no pasa a la segunda (regla de hoy, T29 «sobra»); con cualquiera de
-    las dos salidas, esa segunda re-bajada saldría «tardia» sin serlo. Las dos cosas (qué suma al piso de antes, y si lo
-    que sobra de un retiro pasa a la siguiente bajada a W o menos) se deciden juntas. Se escribió la regla de hoy a
-    propósito, así que cambiarla es de Felipe, no de quien la programa. Hoy TRU no tiene retiros: en producción no cambia
-    nada; sí pesará en el indicador del paso 3.
+- **El piso de antes suma TODO lo retirado en [t − W, t), también un retiro que la regla le descontó a OTRA bajada
+  (DECIDIDO el 2026-09-27; T30, T32 y T32 (gemelos)).** Era la «decisión pendiente» de la revisión 2. El libro solo ve
+  «bajada, retiro, bajada, ventas» y no sabe cuál de estas dos historias pasó:
+  - **A, «colgaron de más»** (T32): se bajan 3 y solo cabe 1; a los 2 minutos se retiran 2 (esas prendas nunca quedaron
+    en el piso); a los 8, otra colaboradora baja 1; se venden 2. La de los 8 minutos tuvo 1 tardía real.
+  - **B, «retiro por error»** (T32 (gemelos), hallados en la revisión 3): a las 9:57 se bajan 2 de verdad; a las 10:00 se
+    retiran 2 por error; a las 10:08 otra colaboradora las vuelve a colgar; a las 10:12 se venden 4. Sin el error nadie
+    tiene tardías: la de 10:08 solo corrigió.
+  Las dos tienen la misma forma en el libro, así que toda regla del piso de antes acierta en una y falla en la otra.
+  - **DECIDÍ:** se queda la regla vigente. En B nunca culpa a quien corrige: la re-bajada sale con 0 tardías y
+    «normal» (FALSA2 y EMPATE), también cuando la corrección se hace en dos re-bajadas de 1 (la segunda suma el retiro a
+    su piso de antes: 0 tardías; con esta regla, que lo que sobra de un retiro no pase a la bajada siguiente ya no deja
+    una tardía falsa). ADR-0208 pone primero no castigar al equipo por corregir ni por atender bien.
+  - **DESCARTÉ:** la «variante C», sumar al piso de antes solo lo retirado ANTES de la bajada que la regla le asignó a
+    ESA misma bajada (probada en este mismo cálculo: una suma más en el mismo recorrido, mismo costo, 331 y 402 ms contra
+    329 y 403). Atrapa las tardías de A (T30, T32), pero en los gemelos de T32 (B) **culpa a quien corrige**: la re-bajada
+    de FALSA2 sale «tardia» con 2 tardías (`piso_antes` 2), la de EMPATE con 2 (`piso_antes` 1) y la segunda de dos
+    re-bajadas con 1. No es «C arregla las dos»: C cambia qué caso falla. Descarté también «sumar solo lo retirado que
+    todavía no se volvió a colgar»: arregla T30 y no T32 (da lo mismo que la regla vigente en los tres casos de T32).
+  - **SE ROMPE SI** una colaboradora cuelga menos de lo escaneado, retira el sobrante y en los 10 minutos siguientes otra
+    baja la misma talla y se vende: esa tardía no se ve (T32: `piso_antes` 3 cuando el libro dice 1; con la carga inicial,
+    10 cuando dice 6; en el empate de T29 con 3 vendidas, 1 tardía donde hubo 3). Y su otra forma (T30): un retiro por
+    error ya repuesto y una bajada real 2 minutos después; el retiro cuenta dos veces (`piso_antes` 4, el libro nunca
+    pasó de 3) y la tardía no se ve. Lo que distingue A de B es el motivo del retiro del 3b («no cabía» / «por error»):
+    con él, la regla puede elegir por caso. Hoy TRU no tiene retiros (en producción no cambia nada); sí pesa en el
+    indicador del paso 3, que así puede esconder alguna tardía y nunca inventa una por corregir.
+- **«cerrada» no es final (T33, hallado en la revisión 3).** Una bajada se cierra a los W minutos, pero su fila puede
+  cambiar hasta 2W después de la bajada: si un retiro de su ventana queda más cerca de una bajada de la misma talla que
+  llega DESPUÉS, el retiro pasa a esa (la regla de los retiros mira las dos direcciones). La fila solo puede PERDER
+  retiros: su efectiva y sus tardías suben, nunca bajan. Ejemplo: piso 0; se baja 1 y a los 2 minutos se vende; una
+  clienta devuelve 1 al piso; a los 9 se retira 1 → «corregida», y cerrada al minuto 10. Al minuto 10 otra baja 1 de la
+  misma talla: el retiro queda a 1 minuto de esa y a 9 de la primera, que pasa a «tardia» con 1 tardía. Lo hereda el
+  paso 3: una fila «cerrada» puede entrar al indicador (deja de ser «corregida») o sumarle una tardía hasta 2W después;
+  si el indicador necesita una cifra que no se mueva, cuenta solo las bajadas de hace más de 2W.
 
 **La decisión estructural: cómo se calcula (rehecha en la revisión 2 del 2026-09-27, antes de pegar)**
 - **DECIDÍ:** ningún paso cruza dos conjuntos CALCULADOS entre sí. Los retiros y las bajadas se ordenan por prenda y hora
@@ -1379,8 +1423,10 @@ nada; 161 movimientos en toda la base): las mismas 40 filas, y 0 filas distintas
   prenda e instante). Los puntos del libro que suben el piso, las ventas desde el piso y las entradas de carga inicial
   van a UNA línea de tiempo por prenda (lo vendido en [t, t + W] y la carga del mismo instante salen de un solo
   recorrido), y cada bajada se junta con su punto del libro agrupando por id, no cruzando. Los únicos cruces que quedan
-  son búsquedas por índice en tablas (`movimientos`, `venta_items`, `ventas`, `bajada_piso_items`). Si en el rango no hay
-  ningún retiro (lo normal hoy), los pasos de los retiros ni se recorren.
+  son búsquedas por índice en tablas (`movimientos`, `venta_items`, `ventas`, `bajada_piso_items`). Si la tienda no tiene
+  ningún retiro entre `p_desde − 2W` y `p_hasta + 2W` (lo normal hoy), los pasos de los retiros ni se recorren. Es esa
+  ventana ampliada, no el rango pedido: un retiro de fuera del rango puede tocarle a una bajada del rango (T27 (único
+  retiro)).
 - **DESCARTÉ (1)** el cálculo anterior de la misma `120200` (nunca pegado, núcleo `94d587570d8db50cf69c9b6bd982a01e`):
   cruzaba los retiros con sus bajadas y las bajadas con el libro y con las ventas. Con una sola tienda en `movimientos`
   iba bien (se midió así), pero Postgres estima esos pasos con la fracción de la tabla que es de ESA tienda, y con
@@ -1409,8 +1455,12 @@ La primera versión (el nivel más alto) costaba 365 y 393 ms sin historia.
 **Cómo se verifica después de pegar** (solo lectura):
 `select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and proname like 'fn_bajadas_del_piso%';`
 da dos filas: la puerta `34a7e0cc5f421333761e8bda92a582eb` (mide lo mismo tras la parte 1 y tras la 2: solo cambian
-sus columnas) y el núcleo `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la parte 1 y `08bfa7b8d2c90eaed85a5c4366a21db4` tras
-la 2 (desde la revisión 2; antes era `94d587570d8db50cf69c9b6bd982a01e`, que nunca se pegó). Y la consulta de (e) devuelve las columnas `retiradas_en_ventana`, `cantidad_efectiva` y `es_carga_inicial`.
+sus columnas) y el núcleo `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la parte 1 y `fcfd2c4b2c4f24dd2184eb2cd7a12678` tras
+la 2 (desde la revisión 3, que solo corrigió dos comentarios del cuerpo; antes eran `08bfa7b8d2c90eaed85a5c4366a21db4`
+en la revisión 2 y `94d587570d8db50cf69c9b6bd982a01e`, y ninguno de los dos se pegó). Y la consulta de (e) devuelve las columnas `retiradas_en_ventana`, `cantidad_efectiva` y `es_carga_inicial`.
 
 **Lo que hereda el paso 3:** el indicador de confianza (`fn_confianza_registro`) divide por Σ `cantidad_efectiva`, no por
 Σ `cantidad`, y deja fuera las filas `dudosa`, `corregida` y `es_carga_inicial`, además de las que no están cerradas.
+Hereda también dos límites de «Límites»: con la regla decidida del piso de antes, el indicador puede esconder alguna
+tardía (T30, T32) y nunca inventa una por corregir; y una fila «cerrada» todavía puede cambiar hasta 2W después de la
+bajada (T33): si la cifra no debe moverse, que cuente solo las bajadas de hace más de 2W.
