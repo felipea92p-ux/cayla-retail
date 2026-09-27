@@ -136,33 +136,50 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   apartados: "M6 3h12v18l-6-4-6 4V3zm3.5 6.5L11 11l3.5-3.5",
   caja: "M12 3v18m4-15H10a2.5 2.5 0 000 5h4a2.5 2.5 0 010 5H8",
   historial: "M3 12a9 9 0 109-9 9.75 9.75 0 00-6.74 2.74L3 8M3 3v5h5M12 7v5l4 2",
-  productos: "M20.5 7.3L12 12m0 0L3.5 7.3M12 12v9m8.5-13.7v9.4a1 1 0 01-.5.87l-7.5 4.3a1 1 0 01-1 0l-7.5-4.3a1 1 0 01-.5-.87V7.3a1 1 0 01.5-.87l7.5-4.3a1 1 0 011 0l7.5 4.3a1 1 0 01.5.87z",
+  // Polera: lo que ES una prenda en el catálogo (2026-09-27) — antes compartía
+  // la caja de "inventario" y a simple vista eran el mismo ícono. Un producto
+  // es la prenda; el inventario es la caja donde vive.
+  productos: "M20.38 3.46 16 2a4 4 0 01-8 0L3.62 3.46a2 2 0 00-1.34 2.23l.58 3.47a1 1 0 00.99.84H6v10a2 2 0 002 2h8a2 2 0 002-2V10h2.15a1 1 0 00.99-.84l.58-3.47a2 2 0 00-1.34-2.23z",
   inventario: "M4 7l8-4 8 4v10l-8 4-8-4V7zm8 4L4 7m8 4l8-4m-8 4v10",
+  // Percha: lo que hay AHORA colgado en la sede, contado (2026-09-27) — ya no
+  // la caja de "inventario", que es el módulo entero, no una pantalla.
+  existencias: "M11.3 3a1.3 1.3 0 102 1c0 .5-.3.9-.7 1.1v1.3L4 13.5a1.5 1.5 0 00-.7 1.3V16h17.4v-1.2a1.5 1.5 0 00-.7-1.3l-7.7-6.1V5.4",
   movimientos: "M3 7h13m0 0l-4-4m4 4l-4 4M21 17H8m0 0l4 4m-4-4l4-4",
   traslados: "M4 12h13M13 5l7 7-7 7",
   colaboradores: "M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75",
-  // Planilla con un visto: contar lo que hay y dejarlo asentado. La cabecera
-  // "Inventario" se queda con la caja de siempre (IC.inventario), que
-  // "Existencias" comparte — es la raíz del módulo, la misma cosa.
   conteo: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4",
-  // Cuatro recuadros: la foto completa de una sede de un vistazo (Resumen).
+  // Cuatro recuadros: la foto completa de una sede de un vistazo — solo del
+  // Resumen de Producción desde 2026-09-27; Análisis y el Resumen de Finanzas
+  // tienen cada uno el suyo, para no leerse como la misma pantalla.
   resumen: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",
   facturacion: "M9 12h6m-6 4h6M9 8h1m3.5-5H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8.5L13.5 3z",
-  compras: "M3 4h2l2.2 11.2a1 1 0 001 .8h9.6a1 1 0 001-.8L20 8H6.5M9 20a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2zM12 8v4m-2-2h4",
+  // Bolsa con un "+": comprar, no vender — el carrito ya es de "Punto de
+  // Venta" (IC.vender); antes "Compras" también era un carrito y a simple
+  // vista se confundían (2026-09-27). Mismo trazo para "Abastecimiento"
+  // (Producción): es el mismo concepto de comprarle a un proveedor, aplicado
+  // al Taller en vez de a la tienda — nunca salen a la vez (D-84).
+  compras: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2M12 12v4m-2-2h4",
   // Carrete de hilo: la materia prima del Taller (tela y avíos) — Insumos, hija de Producción.
   insumos: "M7 4h10M7 20h10M8 4v16M16 4v16M8 9h8M8 12h8M8 15h8",
   produccion: "M6 9a3 3 0 100-6 3 3 0 000 6zm0 12a3 3 0 100-6 3 3 0 000 6zM20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12",
+  // Lista con viñetas: la cola de órdenes de fabricación (2026-09-27) — antes
+  // compartía el trazo de "Producción" (la cabecera) con su propia hija.
+  ordenes: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
   // Flechas verticales (no las horizontales de "movimientos", para no leerse
   // como el mismo ícono con otro nombre): cambiar una talla por otra.
   cambios: "M7 3v14m0 0l-4-4m4 4l4-4M17 21V7m0 0l4 4m-4-4l-4 4",
+  // Bolsa con una flecha que vuelve: lo que pasa DESPUÉS de la venta en
+  // conjunto (cambio o devolución), 2026-09-27 — antes "Posventa" (la
+  // cabecera) tomaba prestado el trazo de "Cambios", su propia hija.
+  posventa: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2M10 12.3l-1.4 1.4 1.4 1.4M8.6 13.7h3.2a1.7 1.7 0 010 3.4h-1.3",
   // Flecha en U: la prenda vuelve.
   devoluciones: "M9 14l-4-4 4-4M5 10h11a4 4 0 010 8h-4",
   // Bolsa, no carrito: el carrito ya es de "Punto de Venta" (IC.vender) — la
   // cabecera "Venta" necesita un trazo propio para no verse igual a su hija.
   venta: "M6 8h12l-1 12H7L6 8zM9 8V6a3 3 0 016 0v2",
-  // Cuatro cuadros: "Catálogo" agrupa a Productos (una sola caja, IC.productos)
-  // — la cabecera necesita su propio trazo por el mismo motivo que "Venta".
-  catalogo: "M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z",
+  // Capas apiladas: el vocabulario que clasifica una prenda, agrupado
+  // (2026-09-27) — antes eran cuatro cuadros, casi el mismo trazo que "Resumen".
+  catalogo: "M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5",
   // Etiqueta colgante: el vocabulario que clasifica una prenda.
   categorias: "M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3zM6 6h.008v.008H6V6z",
   // Etiqueta tejida con sus puntadas: la de la marca, la que va cosida en el cuello de la prenda (no la colgante de
@@ -186,10 +203,22 @@ const IC: Record<ClaveIcono | "chevron" | "menu" | "cerrar" | "buscar", string> 
   notasCredito: "M4 3h13a1 1 0 011 1v15.5a1.5 1.5 0 01-2.4 1.2L14 19l-2.2 1.7a1 1 0 01-1.2 0L8.4 19l-2.2 1.7A1.5 1.5 0 014 19.5V4a1 1 0 011-1z M8 8h6 M8 12h4",
   // Billetera: la plata que sale para que el negocio funcione (Finanzas ▸ Gastos, ADR-0195 F2).
   gastos: "M3 7a2 2 0 012-2h13a1 1 0 011 1v2 M3 7v11a2 2 0 002 2h14a1 1 0 001-1v-3 M3 7h16a1 1 0 011 1v3 M20 11h-4a2 2 0 000 4h4v-4z",
+  // Panel de tablero: la cabecera "Finanzas" agrupa Resumen/Gastos/Cuentas y
+  // dinero/Reportes/Impuestos/Cierre (2026-09-27) — antes se quedaba con la
+  // billetera de "Gastos", su propia hija.
+  finanzas: "M4 4h9v7H4zM15 4h5v4h-5zM15 10h5v10h-5zM4 13h9v7H4z",
   dinero: "M3 6h18v12H3z M7 12h.01 M17 12h.01 M12 9.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z",
   reportes: "M4 20V10 M10 20V4 M16 20v-7 M3 20h18",
   impuestos: "M7 3h7l5 5v13H7z M14 3v5h5 M10 17l5-6 M10.5 11.5h.01 M14.5 16.5h.01",
   cierre: "M6 11h12v10H6z M9 11V7a3 3 0 016 0v4",
+  // Línea en subida: la decisión de inventario (rotación, alertas, ADR-0245),
+  // 2026-09-27 — antes tomaba prestados los cuadros de "Resumen", que es otra
+  // pantalla con otro nombre.
+  analisis: "M3 17l6-6 4 4 8-8M15 6h6v6",
+  // Aguja de velocímetro: el panorama que mezcla ventas de la red y dinero
+  // (Finanzas ▸ Resumen), 2026-09-27 — antes compartía los cuadros de
+  // "Resumen" de Producción, una pantalla de otro módulo.
+  panorama: "M4 15a8 8 0 1116 0M12 15l3.5-5M4 15h1m14 0h1",
   chevron: "M9 6l6 6-6 6",
   menu: "M4 7h16M4 12h16M4 17h16",
   cerrar: "M6 6l12 12M18 6L6 18",
