@@ -381,6 +381,53 @@
    "table_schema": "retail"
   }
  ],
+ "ajustes_inventario_intentos": [
+  {
+   "column_default": null,
+   "column_name": "token_cliente",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "ajustes_inventario_intentos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "ubicacion_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "ajustes_inventario_intentos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "huella",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "ajustes_inventario_intentos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "resultado",
+   "data_type": "jsonb",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "ajustes_inventario_intentos",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "created_at",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "ajustes_inventario_intentos",
+   "table_schema": "retail"
+  }
+ ],
  "apartados": [
   {
    "column_default": "gen_random_uuid()",
@@ -1467,6 +1514,15 @@
    "data_type": "text",
    "is_nullable": "YES",
    "ordinal_position": 8,
+   "table_name": "categorias",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "temporada",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 9,
    "table_name": "categorias",
    "table_schema": "retail"
   }
@@ -9018,6 +9074,53 @@
    "table_schema": "retail"
   }
  ],
+ "producto_color_temporadas": [
+  {
+   "column_default": null,
+   "column_name": "producto_id",
+   "data_type": "uuid",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "producto_color_temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "color_codigo",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "producto_color_temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "temporada",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "producto_color_temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "asignado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 4,
+   "table_name": "producto_color_temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "asignado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 5,
+   "table_name": "producto_color_temporadas",
+   "table_schema": "retail"
+  }
+ ],
  "producto_fotos": [
   {
    "column_default": "gen_random_uuid()",
@@ -11556,6 +11659,127 @@
    "is_nullable": "YES",
    "ordinal_position": 10,
    "table_name": "tejidos",
+   "table_schema": "retail"
+  }
+ ],
+ "temporada_fechas": [
+  {
+   "column_default": null,
+   "column_name": "anio",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "temporada_fechas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "estacion",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "temporada_fechas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "inicio",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "temporada_fechas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "fuente",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "temporada_fechas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "actualizado_por",
+   "data_type": "uuid",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "temporada_fechas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "now()",
+   "column_name": "actualizado_en",
+   "data_type": "timestamp with time zone",
+   "is_nullable": "NO",
+   "ordinal_position": 6,
+   "table_name": "temporada_fechas",
+   "table_schema": "retail"
+  }
+ ],
+ "temporadas": [
+  {
+   "column_default": null,
+   "column_name": "clave",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 1,
+   "table_name": "temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "nombre",
+   "data_type": "text",
+   "is_nullable": "NO",
+   "ordinal_position": 2,
+   "table_name": "temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "orden",
+   "data_type": "smallint",
+   "is_nullable": "NO",
+   "ordinal_position": 3,
+   "table_name": "temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": "false",
+   "column_name": "es_clasico",
+   "data_type": "boolean",
+   "is_nullable": "NO",
+   "ordinal_position": 4,
+   "table_name": "temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "estacion_desde",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 5,
+   "table_name": "temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "estacion_hasta",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 6,
+   "table_name": "temporadas",
+   "table_schema": "retail"
+  },
+  {
+   "column_default": null,
+   "column_name": "mitad",
+   "data_type": "text",
+   "is_nullable": "YES",
+   "ordinal_position": 7,
+   "table_name": "temporadas",
    "table_schema": "retail"
   }
  ],
