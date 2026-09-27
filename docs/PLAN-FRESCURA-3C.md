@@ -2,7 +2,9 @@
 
 > **Estado al 2026-09-27 (tarde).** Pasos 1 y 2 fusionados (#534, #537) y **pegados en producción** (verificado:
 > `fn_ledger_puntos` = `a3d9fb69…`, `fn_bajadas_del_piso` = `34a7e0cc…`, `fn_bajadas_del_piso_nucleo` = `fcfd2c4b…`).
-> **Sigue el paso 3** (rama `claude/frescura-3c-lectura`). Este archivo es el plan escrito el 27-sep; donde choque con
+> **El paso 3 está construido y sin pegar** (rama `claude/frescura-3c-lectura`; la migración es
+> `20260928120300_frescura_lectura.sql`, sin el módulo: decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». **Sigue
+> el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
 > las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización 2026-09-27 — diseño 3c»).
 
 ## Decisiones de Felipe y técnicas que corrigen el plan (2026-09-27)

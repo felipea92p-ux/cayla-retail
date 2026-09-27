@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados).
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -1215,7 +1215,8 @@ color del semáforo va a llenar el piso en semanas, no en días.
 
 ### Paso 2 construido (2026-09-27): el núcleo de las bajadas
 
-**Estado:** construido en la rama `claude/frescura-3c-bajadas`, **sin pegar en producción**. Se pega `20260928120100` y
+**Estado:** construido en la rama `claude/frescura-3c-bajadas` (#537) y **pegado en producción el 2026-09-27** (md5 verificados
+ese día: puerta `34a7e0cc…`, núcleo `fcfd2c4b…`). Se pegó `20260928120100` y
 después `20260928120200`, cada una sola en el SQL Editor, a cualquier hora (solo funciones: sin políticas, sin
 `drop trigger`, sin `alter` de tablas). Ninguna pantalla llama hoy a `fn_bajadas_del_piso`, así que no hay web que
 esperar: el primer consumidor es el paso 3.
@@ -1464,3 +1465,117 @@ en la revisión 2 y `94d587570d8db50cf69c9b6bd982a01e`, y ninguno de los dos se 
 Hereda también dos límites de «Límites»: con la regla decidida del piso de antes, el indicador puede esconder alguna
 tardía (T30, T32) y nunca inventa una por corregir; y una fila «cerrada» todavía puede cambiar hasta 2W después de la
 bajada (T33): si la cifra no debe moverse, que cuente solo las bajadas de hace más de 2W.
+
+**Revisión 4 del 2026-09-27 (mutantes, después de pegar; la prueba, no la función).** De los 13 cambios que seguían
+pasando en la revisión 3, **4 ya hacen fallar la prueba y 9 son equivalentes** (no cambian ninguna fila posible). Casos
+nuevos en `frescura_bajadas.mjs` (**166 verificaciones**): **T34** (dos cargas de la misma prenda a 5 minutos, cada una con
+su bajada, salen las dos marcadas: mata el `max` en vez de `min`; un ajuste «carga_inicial» del mismo instante no marca:
+mata «sin exigir `tipo = 'entrada'`»), **T35** (tres bajadas del mismo instante salen por id: mata `id desc`) y **T36**
+(una merma del piso con el almacén como destino suelto no es retiro, y una recepción al almacén con el piso como destino
+suelto no se lleva un retiro: mata «sin `fn_es_traslado_interno`»; la base acepta esas filas). Los 9 equivalentes, con su
+razón en la cabecera del script: el «después» desde el mismo instante, la bajada que va a su `t_antes`, la carga contada
+con `max` en `[t − W, t]` (la revisión 3 creía que hacían falta dos cargas: no alcanza), la rama con retiros elegida por
+prenda, `< v_hasta + 2W` en vez de `<=`, sin excluir la centinela (el libro no la reconstruye), sin `ord = 1`, y sin el
+punto del libro en `juntas` o sin `es_bajada` (se cubren entre sí por el CHECK `cantidad > 0`). Además de los argumentos,
+un diferencial al azar (8 historias densas × 100 rangos) da 0 lecturas distintas de 800 para cada equivalente, y ve a los
+4 que ahora mueren (80 a 680 de 800). En producción (solo lectura): 69 pares de traslados internos en el mismo instante
+(el orden de T35 pasa de verdad), las 64 filas `carga_inicial` son entradas, ninguna carga repetida a 10 minutos, ninguna
+fila con destino suelto. T34 y T36 describen estados que hoy solo se arman a mano.
+- **Lo que no se hizo (es de Felipe):** la base acepta un `sububicacion_destino_id` en una fila que no es traslado, y
+  nadie lo lee. Un CHECK (`tipo = 'traslado' or sububicacion_destino_id is null`) haría imposible ese estado; es un
+  cambio de esquema de producción.
+
+### Paso 3 construido (2026-09-27): la lectura de una sede y el indicador de registro
+
+**Estado:** construido en la rama `claude/frescura-3c-lectura`, **sin pegar en producción** (las tres funciones no existen
+allá; consulta de solo lectura del 2026-09-27). Se pega `20260928120300_frescura_lectura.sql` sola en el SQL Editor, a
+cualquier hora (solo `create or replace function`, `revoke` y `grant`: sin políticas, sin `drop trigger`, sin `alter`).
+Ninguna pantalla la llama todavía: la web que la usa es la del paso 4.
+
+**Qué hay.**
+- `retail.fn_es_llegada(tipo, motivo, lote, producción, recepción)`, `immutable`, sin EXECUTE para nadie de afuera: el
+  predicado de «llegada» que vivía dentro de `fn_resumen_comparacion` (`20260924030000`), con nombre propio. La prueba lo
+  LEE del cuerpo vivo de esa función y lo compara: 0 diferencias en las 160 filas del seed y en 560 combinaciones.
+- `retail.fn_frescura_sede(p_ubicacion_id, p_dias default 120) → jsonb`, `security definer`, `stable`, plan a medida.
+  Candado: `fn_es_lider() and fn_puede_operar_ubicacion(p)`; si no, `P0001` con la pista `frescura_sin_permiso` (el
+  módulo `frescura` nace con la pantalla, decisión 4 del plan). Una llamada a `fn_ledger_puntos` (la lista nunca nula) y
+  una a `fn_bajadas_del_piso_nucleo`. El Taller, una tienda inactiva, sin almacén, nula o inexistente → `{"separa_piso":
+  false}`.
+- `retail.fn_confianza_registro(p_ubicacion_id default null, p_meses default 2)`: por tienda y mes de Lima, `filas`,
+  `unidades` (Σ `cantidad_efectiva`), `tardias`, `confianza = 1 − tardías ÷ unidades` (4 decimales; nula sin unidades) y
+  `nivel` por filas (1-9 `pocos_datos`, 10-19 `aceptable`, 20+ `solido`). Fuera: no cerradas, `dudosa`, `corregida`, carga
+  inicial y las de hace menos de 2W (T33: la cifra no se mueve después de mostrarse). **Sin `persona_id`.** Candado:
+  `fn_es_lider()`; con tienda, además operarla. `p_meses` de 1 a 3.
+- Web: `lib/frescura-reglas.ts` (puro: Kaplan-Meier con P50/P75/P90, ventana de 30 a 120 días, niveles, reloj de
+  novedad, rapidez, `estaQuieta`, estado cerrado de cada prenda, cifras de la sede, referencia de CAYLA y la vuelta del
+  líder `armarFrescuraLider`, con la RPC inyectada); `lib/frescura.ts` (solo dice a quién preguntar: tiendas activas y
+  `supabase.rpc`); `lib/prenda-clave.ts` (la clave modelo+color en un solo lugar, que Análisis ahora usa); tipos a mano en
+  `packages/database`. El FIFO sigue siendo uno solo: `historiaDeCohortes`.
+
+**El contrato** (el jsonb): `{separa_piso, desde, ahora, prendas[], eventos{variante: [[ts, delta, marcas, oid]]},
+tardias[{oid, variante_id, bajada_en, unidades_tardias}], dudosas[]}`. Cada prenda: `variante_id, producto_id,
+producto_nombre, codigo, color_codigo, color_nombre, talla, categoria_id, categoria_nombre, temporada, temporada_origen,
+es_clasico, fin_estacion, en_estacion_ahora, primera_exhibicion, ultima_llegada, piso_hoy, almacen_hoy`. Marcas: 1 venta,
+2 interno (piso ↔ almacén o cuarentena), 4 edad desconocida (saldo inicial positivo, entrada al piso que no es interna ni
+llegada, bajada de la carga inicial: la carga por la puerta real llega con 6).
+- **Cómo se vigila que las dos mitades hablen lo mismo:** `apps/web/lib/__fixtures__/frescura-sede.json` es la salida
+  REAL de las dos funciones sobre una tienda sembrada (caso T13 de `frescura_lectura.mjs`: 12 modelos que hacen la vara
+  de las blusas, una nueva en tres tallas, una vieja de 40 días, la carga inicial, una tardía, un retiro, una dudosa, una
+  solo en almacén, una chompa de invierno, un clásico y una sin temporada). `frescura-contrato.test.ts` (18 pruebas)
+  exige que la web la lea ENTERA (ninguna prenda, evento, tardía ni fila perdida; cada marca en su bit) y que diga de cada
+  prenda lo que su historia dice; T13, en el CI de SQL, exige que la salida de hoy tenga la misma forma (claves y tipos)
+  que ese archivo. Cambiar el contrato de un lado sin el otro rompe una de las dos. Se rehace con
+  `FRESCURA_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-lectura`. Probado a propósito: renombrar `talla`, `oid` o `mes`, o
+  leer la marca 4 en otro bit, hace fallar la prueba de la web.
+- **Un cambio de la integración:** la vuelta del líder (una lectura por tienda en paralelo + una confianza, cada bloque
+  con su aviso, la referencia de CAYLA que no se arma a medias) pasó de `frescura.ts` a `armarFrescuraLider` en
+  `frescura-reglas.ts`, con la RPC como parámetro: `frescura.ts` importa Supabase por el alias `@/`, que vitest no
+  resuelve, así que esa lógica no se podía probar con la salida real. Ahora se prueba con ella, también sus caídas (sin
+  permiso, respuesta con otra forma, la base que no responde, el Taller).
+
+**Cifras.**
+- Pruebas: `frescura_lectura.mjs` **109** (T0 a T13); `frescura_bajadas.mjs` 166; vecinas sin cambios (`bajada_al_piso`
+  51, `fn_ledger_fuente_unica` 48, `una_sola_firma` 2, `temporadas` 25, `roles_por_modulo` 70, `roles_cobertura_modulos`
+  31, `actor_firma_las_operaciones` 30, `reposicion_piso_cerrada` 10, `mover_interno_marca` 12, `alta_con_stock_inicial`
+  28), cada una sobre una base nueva con todas las migraciones. Web: `frescura-reglas.test.ts` 68 y
+  `frescura-contrato.test.ts` 18; vitest completo 205 archivos, 78.384 pruebas.
+- Mutación sobre el SQL: 22 cambios a propósito, los 22 hacen fallar la prueba.
+- Costo (Postgres 17 desechable; una tienda, 2.000 prendas en 200 modelos con temporada, 20.000 bajadas, 10.000 ventas):
+  `fn_frescura_sede` a 120 días **733 ms** (722-757; el núcleo ~330 y el libro ~180), 3,9 MB de jsonb entre la base y el
+  servidor; a 30 días 205 ms. `fn_confianza_registro` 126 ms (una tienda) y 127 ms (todas). La lógica en TypeScript, 110
+  a 150 ms por sede con esa carga (el plan estimaba 30): no quiebra el límite de 1 s por sede.
+- **En producción (ensayo de solo lectura, el cuerpo como `select` sobre Tienda TRU, sin crear nada):** 89 prendas (45
+  en el piso, 50 con almacén; 44 modelo+color); 21 con edad desconocida, todas en el piso (107 de 211 unidades: 95 de la
+  carga inicial, 12 de ajustes); **89 de 89 sin temporada**, 0 con temporada pasada; 1 tardía, 0 dudosas. Confianza de
+  septiembre: 25 bajadas, 104 unidades, 1 tardía (0,9904, `solido`); con la carga inicial habrían sido 40 y 199.
+
+**Límites** (fijados en las pruebas o vistos en la salida real; se deciden en la maqueta del paso 4):
+- **Sin «llegada», nunca «Temporada pasada».** En TRU, 34 de las 89 prendas entraron por ajustes «reposicion» y
+  «conteo_fisico» al almacén: aunque les pongan temporada, `fin_estacion` queda nulo. El plan hablaba de una «llegada
+  estimada» (la primera entrada); no se hizo, y si se quiere va como campo aparte (`llegada_estimada`), no cambiando en
+  silencio lo que significa `ultima_llegada`.
+- **Con la curva sin P50, lo más viejo de una categoría lenta sale «Nueva».** Un corte que la curva no alcanza queda
+  después de su observación más larga, y toda prenda antes de ese punto tiene tramo: en la salida real, la chompa de
+  invierno lleva 39 días colgada y sale «Nueva» (su categoría vendió 1 de 6, `pocos_datos`). Es honesto (menos de la
+  mitad se vendió en 39 días), pero en la pantalla se lee como «recién llegada»; con 7 ventas en producción va a ser lo
+  común al principio. La maqueta tiene que decidir si «Nueva» con `pocos_datos` se dice distinto.
+- **La rapidez con pocos datos se compara contra sí misma.** La misma chompa tiene índice 100 porque es casi toda la curva
+  de su categoría: queda como «pilar», no va a «por decidir» aunque su temporada pasó, y el aviso «Temporada pasada» sale
+  sin sugerencias.
+- **Lo que solo está en el almacén** viaja sin eventos y sale con estado «Nueva» y 0 segundos (no pesa en las cifras del
+  piso). La pantalla la filtra o la nombra aparte; el tipo cerrado no tiene un estado «nunca colgada».
+- Los clásicos solo traen «fuera de su estación» y «guardar hasta su estación»: todavía no se comparan contra su propia
+  historia.
+- `en_estacion_ahora` es «hoy cae en alguna aparición de su temporada», no en la de su última llegada. Una variante
+  inactiva con stock, sin ninguna activa en su modelo+color, sale sin temporada (`fn_temporada_efectiva` solo mira
+  activas).
+- Hoy un líder opera todas las sedes, así que «líder de otra sede» no se puede armar con datos: la prueba reemplaza
+  `fn_puede_operar_ubicacion` dentro de su transacción para vigilar que el candado la pregunte.
+
+**Lo que queda para el paso 4 (la pantalla):** la maqueta primero (colores, frase de acción, cómo se dicen «Nueva con
+pocos datos», «nunca colgada» y la temporada pasada de un pilar); el módulo `frescura` (migración propia con
+`insert into retail.modulos`, orden 215, sin `rol_modulos`, ADR-0161) y su fila en `lib/modulos.ts`; el candado de
+`fn_frescura_sede`, `fn_confianza_registro` y `fn_bajadas_del_piso` pasa de «líder» a «ve Frescura y opera la sede»
+(`persona_id` solo para el líder); el menú (directo en Inventario, 6.ª fila, con `EXCEPCIONES_TOPE_HIJAS`); la ruta
+`/inventario/frescura` con `exigirModulo("frescura")`, `loading.tsx` con `<EsperaPantalla/>`; y verificar en TRU como
+líder, en escritorio y a 375 px.
