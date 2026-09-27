@@ -64,6 +64,11 @@
 8. **Comparación en Frescura:** una prenda se compara con las de **su categoría, en su sede, en la misma mitad del año**
    (PV u OI). La estación fina (Verano, Primavera…) solo decide **cuándo termina su estación**. Así los pocos datos de
    hoy no se parten en seis grupos.
+   **Reemplazada el 2026-09-27 (Felipe):** «envejecida» se mide contra **su categoría en su sede, sin partir por mitad
+   del año**; la temporada solo da el aviso aparte «Temporada pasada» y dice qué prendas son clásicas. Partir la vara
+   mezclaba dos preguntas (¿se vende más lento que sus hermanas? / ¿ya pasó su estación?) y, con 7 ventas en producción,
+   dejaba cada mitad sin datos. La columna `mitad` de `retail.temporadas` queda en la base, pero Frescura no la usa; la
+   pestaña Temporadas deja de mostrar «Se compara con». Detalle: ADR-0208, «Actualización 2026-09-27 — diseño 3c».
 
 9. **Un modelo que el Taller repite es el mismo producto**: conserva su código, suma la temporada nueva y **nunca vuelve
    a ser «Nueva»** en una sede donde ya estuvo (lo que ya decía ADR-0208).

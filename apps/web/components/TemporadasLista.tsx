@@ -16,7 +16,6 @@ import { useResponsable, type ControlResponsable } from "@/lib/useResponsable";
 import {
   calendarioPorAnio,
   faltaAnioSiguiente,
-  grupoDeComparacion,
   NOMBRE_ESTACION,
   NOMBRE_FUENTE,
   nombreTemporada,
@@ -138,14 +137,13 @@ function TituloSeccion({ id, sobre, titulo, bajada }: { id: string; sobre: strin
 
 // ---- 1. Las temporadas ------------------------------------------------------------------------------------------------
 
-const PLANTILLA_LISTA = "sm:grid-cols-[minmax(0,14rem)_10.5rem_minmax(0,1fr)_6rem]";
+const PLANTILLA_LISTA = "sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_6rem]";
 const COLUMNAS_LISTA: Columna[] = [
   { titulo: "Temporada" },
   {
-    titulo: "Se compara con",
-    ayuda: "Frescura mide si una prenda envejeció contra las de su misma mitad del año (y de su categoría y su sede): así una chompa nunca se compara con un bikini. Los clásicos van aparte: se miden contra su propia historia.",
+    titulo: "Cuándo termina",
+    ayuda: "Al empezar esa estación, Frescura del piso avisa «Temporada pasada» y sugiere qué hacer (nunca rebaja sola). La temporada no cambia contra qué se mide si una prenda envejeció: siempre contra su categoría en su sede.",
   },
-  { titulo: "Cuándo termina" },
   { titulo: "Prendas", alinear: "der", ayuda: "Prendas activas que hoy tienen esta temporada (propia, de un color o de su categoría)." },
 ];
 
@@ -156,7 +154,7 @@ function SeccionLista({ temporadas, porTemporada }: { temporadas: Temporada[]; p
         id="temporadas-la-lista"
         sobre="La lista"
         titulo="Las temporadas"
-        bajada="Nueve, fijas y sin año: el año de cada prenda sale de la fecha en que llegó a la sede. Una prenda versátil lleva «Primavera-Verano»; un bikini, «Verano». «Se compara con» dice contra qué prendas mide Frescura si una envejeció."
+        bajada="Nueve, fijas y sin año: el año de cada prenda sale de la fecha en que llegó a la sede. Una prenda versátil lleva «Primavera-Verano»; un bikini, «Verano». La temporada solo dice cuándo termina su estación: «envejecida» se mide siempre contra su categoría en su sede."
       />
       <Tabla>
         <Encabezado columnas={COLUMNAS_LISTA} plantilla={PLANTILLA_LISTA} />
@@ -165,9 +163,6 @@ function SeccionLista({ temporadas, porTemporada }: { temporadas: Temporada[]; p
           .map((t) => (
             <div key={t.clave} className={fila(PLANTILLA_LISTA)} role="row">
               <span className={celda("izq", "text-tinta")}>{t.nombre}</span>
-              <span className={celda()}>
-                <Chip tono="neutro">{grupoDeComparacion(t)}</Chip>
-              </span>
               {/* Sin `truncate`: la frase de los clásicos es larga y cortada no se entiende. */}
               <span className="min-w-0 text-tinta/75">{textoFinDeEstacion(t)}</span>
               <span className={celda("der", "text-tinta/75")}>{porTemporada[t.clave] ?? 0}</span>
@@ -714,7 +709,7 @@ function SeccionSinTemporada({
         id="temporadas-sin-temporada"
         sobre={`Sin temporada · ${lista.length}`}
         titulo="Prendas sin temporada"
-        bajada="Prendas activas sin temporada propia, de un color ni de su categoría. Frescura las muestra aparte y no puede avisar cuándo termina su estación."
+        bajada="Prendas activas sin temporada propia, de un color ni de su categoría. Frescura del piso las mide igual que al resto, pero no puede avisarles cuándo termina su estación."
       />
 
       {lista.length === 0 ? (
