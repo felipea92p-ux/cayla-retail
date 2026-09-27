@@ -319,7 +319,9 @@ jobs:
 
       # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
       # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
-      # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
+      # stock no cuadra con el libro la fila sale «dudosa». Desde el paso 2 de Frescura 3c: el cálculo vive en un núcleo
+      # interno, los retiros del piso se descuentan («corregida»), la carga inicial se marca y las dos guardas md5
+      # abortan ante un parche en vivo. Cada caso termina en ROLLBACK.
       - name: pruebas:frescura-bajadas
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:frescura-bajadas
