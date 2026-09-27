@@ -16,6 +16,7 @@ import { Chip } from "@/components/ui/Chip";
 import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { Boton } from "@/components/ui/campos";
 import { IconoAparato } from "@/components/ui/IconoAparato";
+import { AvatarPersona } from "@/components/ui/AvatarPersona";
 
 // Las tres tablas y el registro de actividad de /colaboradores. Solo dibujan lo que reciben y avisan qué se
 // eligió: las decisiones (modales, llamadas a la base) viven en `ColaboradoresPanel`.
@@ -37,14 +38,18 @@ function ChipRol({ rol }: { rol: RolColaborador }) {
   return <Chip tono="neutro">{ETIQUETA_ROL[rol]}</Chip>;
 }
 
-function Persona({ nombre, correo, tu = false, apagada = false }: { nombre: string; correo: string; tu?: boolean; apagada?: boolean }) {
+/** Su foto de Dynamic (o sus iniciales), nombre y correo: a quién se le abre o cierra la puerta se reconoce por la cara. */
+function Persona({ personaId, nombre, correo, tu = false, apagada = false }: { personaId: string; nombre: string; correo: string; tu?: boolean; apagada?: boolean }) {
   return (
-    <div className={apagada ? "opacity-80" : ""}>
-      <div className="flex items-center gap-2">
-        <span className="font-medium text-tinta">{nombre}</span>
-        {tu && <Chip tono="verde">Tú</Chip>}
+    <div className={`flex items-center gap-3 ${apagada ? "opacity-80" : ""}`}>
+      <AvatarPersona personaId={personaId} nombre={nombre} className="h-8 w-8 text-xs" />
+      <div className="min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-tinta">{nombre}</span>
+          {tu && <Chip tono="verde">Tú</Chip>}
+        </div>
+        <div className="text-xs text-tinta/65">{correo}</div>
       </div>
-      <div className="text-xs text-tinta/65">{correo}</div>
     </div>
   );
 }
@@ -116,7 +121,7 @@ export function TablaActivos({
           return (
             <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
               <td className={CELDA}>
-                <Persona nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
+                <Persona personaId={c.persona_id} nombre={c.nombre} correo={c.correo} tu={c.es_yo} />
               </td>
               <td className={CELDA}>
                 <span className="inline-flex flex-wrap items-center gap-1.5">
@@ -267,7 +272,7 @@ export function TablaPendientes({
         {filas.map((c) => (
           <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
             <td className={CELDA}>
-              <Persona nombre={c.nombre} correo={c.correo} />
+              <Persona personaId={c.persona_id} nombre={c.nombre} correo={c.correo} />
             </td>
             <td className={`${CELDA} whitespace-nowrap text-tinta/85`}>{c.ubicacion_asignada ?? "—"}</td>
             <td className={`${CELDA} whitespace-nowrap text-tinta/75`}>{c.propuesto_por ?? "—"}</td>
@@ -321,7 +326,7 @@ export function TablaSuspendidos({
         {filas.map((c) => (
           <tr key={c.persona_id} className={`transition-colors duration-150 hover:bg-tinta/[0.025] ${ocupadoId === c.persona_id ? "opacity-50" : ""}`}>
             <td className={CELDA}>
-              <Persona nombre={c.nombre} correo={c.correo} apagada />
+              <Persona personaId={c.persona_id} nombre={c.nombre} correo={c.correo} apagada />
             </td>
             <td className={CELDA}>
               <ChipRol rol={c.rol} />
@@ -370,7 +375,7 @@ export function TablaInactivas({ filas }: { filas: ColaboradorInactivo[] }) {
         {filas.map((c) => (
           <tr key={c.persona_id} className="transition-colors duration-150 hover:bg-tinta/[0.025]">
             <td className={CELDA}>
-              <Persona nombre={c.nombre} correo={c.correo} apagada />
+              <Persona personaId={c.persona_id} nombre={c.nombre} correo={c.correo} apagada />
             </td>
             <td className={CELDA}>
               <div className="flex items-center gap-2">

@@ -9,7 +9,9 @@ import type { Comprobante } from "@/lib/comprobantes-reglas";
 import { ETIQUETA_TIPO } from "@/lib/comprobantes-reglas";
 import { soles } from "@/lib/compras-reglas";
 import { chipDelComprobante } from "@/lib/facturacion-actividad";
-import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsApp, motivoDelComprobante, totalesPorTipo } from "@/lib/facturacion-comprobantes-reglas";
+import { accionesDelComprobante, camposDeBusquedaDelComprobante, enlaceWhatsAppA, motivoDelComprobante, totalesPorTipo } from "@/lib/facturacion-comprobantes-reglas";
+import type { ExtraComprobante } from "@/lib/comprobantes";
+import { OpcionesComprobante } from "@/components/OpcionesComprobante";
 import { coincide } from "@/lib/facturacion-busqueda";
 import { diaYHoraLima } from "@/lib/fechas-lima";
 import { useFacturacionBusqueda } from "@/lib/useFacturacionBusqueda";
@@ -17,8 +19,8 @@ import { Ayuda } from "@/components/Ayuda";
 import { SinCoincidencias } from "@/components/SinCoincidencias";
 import { BotonCompacto } from "@/components/ui/BotonCompacto";
 import { Chip } from "@/components/ui/Chip";
-import { DesplegablePildora, ItemDesplegable, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
-import { CircleCheck, FileText, Store } from "lucide-react";
+import { DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
+import { CircleCheck, FileText, Link2, MoreHorizontal, Store } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
@@ -90,10 +92,11 @@ function accionComprobante(
 // podía verlo ni descargarlo. `pdfUrl` es el que de verdad importa (se le
 // manda a la clienta); XML/CDR quedan como enlaces chicos al lado para
 // cuando hace falta el respaldo técnico (una reclamación, una auditoría).
-function DocumentosSunat({ c }: { c: Comprobante }) {
+function DocumentosSunat({ c, telefono }: { c: Comprobante; telefono: string | null }) {
   if (!c.pdfUrl && !c.xmlUrl && !c.cdrUrl) return null;
   return (
-    <div className="mt-0.5 flex flex-wrap gap-x-3 text-[12.5px]">
+    // En una tarjeta angosta (celular) no se dibujan: viven en «Opciones», con botones del tamaño de un dedo.
+    <div className="mt-0.5 hidden flex-wrap gap-x-3 text-[12.5px] @min-[640px]:flex">
       {c.pdfUrl && (
         <a href={c.pdfUrl} target="_blank" rel="noreferrer" className="font-medium text-rojo-profundo hover:underline">
           Ver PDF
@@ -101,7 +104,7 @@ function DocumentosSunat({ c }: { c: Comprobante }) {
       )}
       {c.pdfUrl && (
         <a
-          href={enlaceWhatsApp(`Hola${c.cliente_nombre ? ` ${c.cliente_nombre}` : ""}, aquí está tu ${ETIQUETA_TIPO[c.tipo].toLowerCase()} ${c.serie}-${String(c.numero).padStart(6, "0")} de CAYLA: ${c.pdfUrl}`)}
+          href={enlaceWhatsAppA(telefono, `Hola${c.cliente_nombre ? ` ${c.cliente_nombre}` : ""}, aquí está tu ${ETIQUETA_TIPO[c.tipo].toLowerCase()} ${c.serie}-${String(c.numero).padStart(6, "0")} de CAYLA: ${c.pdfUrl}`)}
           target="_blank"
           rel="noreferrer"
           aria-label={`Enviar por WhatsApp ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`}
@@ -146,8 +149,11 @@ export function ComprobantesPanel({
   periodo,
   esLider,
   tiendas,
+  extras = {},
 }: {
   comprobantes: Comprobante[];
+  /** Venta, WhatsApp de la clienta y nota de crédito ↔ devolución de cada comprobante (`getExtrasDeComprobantes`). */
+  extras?: Record<string, ExtraComprobante>;
   /** Para el filtro de tienda y su nombre; solo se ofrece si en el mes hay comprobantes de más de una. */
   tiendas: { id: string; nombre: string }[];
   /** «este mes» o «en agosto»: cómo se dice el mes que se mira (`periodoDelMes`). */
@@ -166,6 +172,9 @@ export function ComprobantesPanel({
   // «Responsable» (ADR-0161). Solo líder — la pantalla entera ya lo es, y la base lo vuelve a exigir a la cuenta.
   const [anulando, setAnulando] = useState<Comprobante | null>(null);
   const [liberando, setLiberando] = useState<Comprobante | null>(null);
+  // Las opciones de un comprobante (ver la venta, WhatsApp, cambio, devolución): la hoja de `OpcionesComprobante`.
+  const [conOpciones, setConOpciones] = useState<Comprobante | null>(null);
+  const nombreDeTienda = (id: string) => tiendas.find((t) => t.id === id)?.nombre ?? "";
 
   function onAnularClick(c: Comprobante) {
     setAnulando(c);
@@ -297,32 +306,29 @@ export function ComprobantesPanel({
           {comprobantes.length > 0 && (
             <div className="mt-3 flex">
               <PanelPildoras>
-                <DesplegablePildora icono={FileText} etiqueta="Tipo" valor={filtroTipo} onValor={setFiltroTipo}>
-                  <ItemDesplegable value={TODOS}>Todos los tipos</ItemDesplegable>
-                  {tiposDelMes.map((t) => (
-                    <ItemDesplegable key={t} value={t}>
-                      {ETIQUETA_TIPO[t]}
-                    </ItemDesplegable>
-                  ))}
-                </DesplegablePildora>
+                <DesplegablePildora
+                  icono={FileText}
+                  etiqueta="Tipo"
+                  valor={filtroTipo}
+                  onValor={setFiltroTipo}
+                  opciones={[{ valor: TODOS, texto: "Todos los tipos" }, ...tiposDelMes.map((t) => ({ valor: t, texto: ETIQUETA_TIPO[t] }))]}
+                />
                 {tiendasDelMes.length > 1 && (
-                  <DesplegablePildora icono={Store} etiqueta="Tienda" valor={filtroTienda} onValor={setFiltroTienda}>
-                    <ItemDesplegable value={TODOS}>Todas las tiendas</ItemDesplegable>
-                    {tiendasDelMes.map((t) => (
-                      <ItemDesplegable key={t.id} value={t.id}>
-                        {t.nombre}
-                      </ItemDesplegable>
-                    ))}
-                  </DesplegablePildora>
+                  <DesplegablePildora
+                    icono={Store}
+                    etiqueta="Tienda"
+                    valor={filtroTienda}
+                    onValor={setFiltroTienda}
+                    opciones={[{ valor: TODOS, texto: "Todas las tiendas" }, ...tiendasDelMes.map((t) => ({ valor: t.id, texto: t.nombre }))]}
+                  />
                 )}
-                <DesplegablePildora icono={CircleCheck} etiqueta="Estado" valor={filtroEstado} onValor={setFiltroEstado}>
-                  <ItemDesplegable value={TODOS}>Todos los estados</ItemDesplegable>
-                  {estadosDelMes.map((e) => (
-                    <ItemDesplegable key={e} value={e}>
-                      {e}
-                    </ItemDesplegable>
-                  ))}
-                </DesplegablePildora>
+                <DesplegablePildora
+                  icono={CircleCheck}
+                  etiqueta="Estado"
+                  valor={filtroEstado}
+                  onValor={setFiltroEstado}
+                  opciones={[{ valor: TODOS, texto: "Todos los estados" }, ...estadosDelMes.map((e) => ({ valor: e, texto: e }))]}
+                />
               </PanelPildoras>
             </div>
           )}
@@ -365,7 +371,19 @@ export function ComprobantesPanel({
                       </b>
                     </p>
                     <p className="mt-0.5 truncate text-[13px] text-tinta/65 @min-[900px]:hidden">{cliente}</p>
-                    <DocumentosSunat c={c} />
+                    {extras[c.id]?.notaDeCredito && (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
+                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        Tiene {extras[c.id]!.notaDeCredito!.numero}
+                      </p>
+                    )}
+                    {extras[c.id]?.corrige && (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-pizarra/[0.08] px-1.5 py-0.5 text-[11.5px] text-pizarra">
+                        <Link2 aria-hidden size={12} strokeWidth={1.75} />
+                        Corrige {extras[c.id]!.corrige!.numero}
+                      </p>
+                    )}
+                    <DocumentosSunat c={c} telefono={extras[c.id]?.telefono ?? null} />
                   </div>
 
                   <p className="hidden min-w-0 truncate text-[13px] text-tinta/75 @min-[900px]:block">{cliente}</p>
@@ -379,7 +397,13 @@ export function ComprobantesPanel({
                       </Chip>
                       {motivo && <p className={`mt-1.5 text-[13px] leading-snug ${esRechazo ? "text-rojo-profundo" : "text-tinta/65"}`}>{motivo}</p>}
                     </div>
-                    {botones}
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      {botones}
+                      <BotonCompacto variante="fila" className="max-sm:min-h-11 max-sm:px-4" aria-label={`Opciones de ${ETIQUETA_TIPO[c.tipo]} ${c.serie}-${c.numero}`} onClick={() => setConOpciones(c)}>
+                        <MoreHorizontal aria-hidden size={15} strokeWidth={1.75} />
+                        <span>Opciones</span>
+                      </BotonCompacto>
+                    </div>
                   </div>
                 </div>
               );
@@ -406,6 +430,16 @@ export function ComprobantesPanel({
           </>
         )}
       </div>
+
+      {conOpciones && (
+        <OpcionesComprobante
+          comprobante={conOpciones}
+          extra={extras[conOpciones.id]}
+          sede={nombreDeTienda(conOpciones.ubicacion_id)}
+          esLider={esLider}
+          onClose={() => setConOpciones(null)}
+        />
+      )}
 
       {/* ==================== Modal: anular ==================== */}
       {modal === "anular" && anulando && <ModalAnular comprobante={anulando} onClose={cerrarModal} />}

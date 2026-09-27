@@ -5,12 +5,25 @@
 // los ponga. Es la única pantalla del sistema que no puede apoyarse en globals.css
 // (no llega a cargarse), así que los colores del brandbook van a mano:
 // crema #f5f0e8 de fondo, tinta #1a1a18 de texto, rojo #b8412d de acento.
+//
+// «Reintentar» usa `unstable_retry` (Next 16.2, el camino que su documentación da para global-error),
+// no `reset`: `reset` a secas solo vuelve a pintar con la respuesta que ya llegó —y esa trae el mismo
+// error—, así que el botón parecería no hacer nada aunque el corte ya haya pasado. `unstable_retry` =
+// `router.refresh()` + `reset()` dentro de una transición: vuelve a pedir los datos, y Next ya lo
+// entrega hecho.
+//
+// Por qué no el patrón de `(app)/error.tsx` (`useRouter` + `startTransition`): SÍ funcionaría aquí —en la
+// 16.2.10 Next monta esta barrera dentro del contexto del router, así que `useRouter()` responde— y es lo que
+// hacen las barreras de la app. Se prefiere `unstable_retry` porque es el camino documentado para esta
+// pantalla, la que casi nadie ve ni prueba a mano, y deja que Next mantenga el reintento en vez de copiarlo
+// aquí. El precio es que es API inestable: `errores-reintentar.test.ts` falla si una versión nueva de Next
+// la quita, y entonces la salida es el patrón de `(app)/error.tsx` (o una recarga completa).
 export default function ErrorGlobal({
   error,
-  reset,
+  unstable_retry,
 }: {
   error: Error & { digest?: string };
-  reset: () => void;
+  unstable_retry: () => void;
 }) {
   return (
     <html lang="es">
@@ -47,7 +60,7 @@ export default function ErrorGlobal({
             Esto no es un problema de tu computadora. Reintenta; si sigue igual, avisa a Felipe.
           </p>
           <button
-            onClick={reset}
+            onClick={() => unstable_retry()}
             style={{
               marginTop: "24px",
               background: "#1a1a18",

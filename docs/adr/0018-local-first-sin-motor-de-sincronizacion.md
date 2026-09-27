@@ -111,3 +111,18 @@ en vez de adelantar el DDL de esta Fase 2 usa `useCajaEnVivo` (sondeo cada 5 s c
 `router.refresh()` solo si cambian; ver ADR-0116, sexta parte). Es un puente, no un sustituto: cuando Felipe
 autorice `alter publication supabase_realtime add table retail.ventas, retail.caja_movimientos`, ese hook se
 cambia por una suscripción (Realtime aplica el mismo RLS) y quien consume los datos no cambia.
+
+**Actualización 2026-09-25 — el mismo puente, ahora en Vender.** Felipe reportó el caso real: escaneando con
+la cámara del teléfono leyó una prenda «agotada»; la repusieron en otra máquina con la cámara todavía
+abierta, y no se sumó hasta reiniciar el navegador. Causa: ADR-0192 (23-09) ya había resuelto que la caja
+descuenta y relee sola lo que ELLA MISMA vendió (`releerStock`, `ajustesStock`), pero dejó anotado el hueco
+sin cerrar: *"Otra caja vende la misma prenda: esta pantalla no se entera hasta la próxima carga."* Eso
+incluye una reposición, un ajuste o un traslado recibido en cualquier otra sede/terminal — no es un problema
+de la cámara, el lector físico tiene el mismo hueco.
+
+Realtime sigue en 0 tablas (sin cambios desde el 09-09; no se volvió a medir la publicación esta vez, pero
+nada en el repo la tocó). Mismo puente que Caja: `releerStock` de `PuntoDeVenta.tsx` gana un modo sin `ids`
+(relee TODA la sede, sin `.in`, para no armar una URL con cientos de ids) y un efecto nuevo lo sondea cada
+10 s — más al volver a la pestaña o a la red — mientras la caja esté abierta. Cuando se autorice
+`alter publication supabase_realtime add table retail.stock`, este sondeo se cambia por una suscripción y
+`ajustesStock` sigue siendo el mismo lugar donde aterriza el dato, sin tocar a quien lo consume.

@@ -5,6 +5,7 @@
 import { diaLima, inicioDeDiaLima } from "./panel-serie";
 import { parsearComprobante } from "./comprobantes-reglas";
 import { soles } from "./compras-reglas";
+import { sinStockPorApartado, textoSinStock } from "./vender-reglas";
 //
 // Identidad de una prenda (2026-09-16): el formulario identificaba "la prenda que se
 // vendió" buscando en el catálogo la primera variante con el mismo `sku`. Las prendas
@@ -120,15 +121,17 @@ export function unidadesDisponibles(l: { cantidad: number; yaCambiado: number; y
  *  tarjeta. El plazo es de la boleta, no de la línea (mismo criterio que Devoluciones,
  *  `docs/pantallas/devoluciones.md` tarea #8). */
 export function estadoPlazoVenta(creadoEn: string, ahora: Date): EstadoVisual {
-  // El plazo se lee de un vistazo por su color (2026-09-18, pedido de Felipe): VERDE mientras
-  // está dentro —también los últimos días, que se dicen en el texto— y ROJO cuando venció.
+  // El plazo se lee de un vistazo (spike 2026-09-26, docs/maquetas/cambios-mejoras-2026-09/): cuántos días
+  // QUEDAN, siempre —«Dentro del plazo» no distinguía una compra de hoy de una de hace 14 días—; VERDE
+  // mientras falta, ÁMBAR los últimos `DIAS_UMBRAL_POR_VENCER` días (antes seguía verde: 2026-09-18) y ROJO
+  // cuando venció.
   const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
   if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
   if (estado === "por_vencer") {
-    const texto = diasRestantes === 0 ? "Último día para cambiar" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj" };
+    const texto = diasRestantes === 0 ? "Último día para cambiar" : diasRestantes === 1 ? "Queda 1 día" : `Quedan ${diasRestantes} días`;
+    return { clave: "por_vencer", texto, tono: "ambar", icono: "reloj" };
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj" };
+  return { clave: "dentro_del_plazo", texto: `Quedan ${diasRestantes} días`, tono: "verde", icono: "reloj" };
 }
 
 /** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice
@@ -239,7 +242,9 @@ export function validarCambio(e: {
   motivo: MotivoCambio | null;
   /** Talla y color ya elegidos (los que la prenda tenga). */
   eligioPrenda: boolean;
-  nueva: { descripcion: string; stockAqui: number; otrasSedes: string | null } | null;
+  /** `apartadoAqui`: lo apartado en ese piso — con `stockAqui` en 0 separa «apartada para una clienta» de «no queda».
+   *  Obligatorio a propósito: opcional, quien armara `nueva` sin él compilaría y el aviso volvería a decir «no queda». */
+  nueva: { descripcion: string; stockAqui: number; apartadoAqui: number; otrasSedes: string | null } | null;
   sede: string;
   diferencia: number;
   metodo: MetodoDiferencia;
@@ -295,14 +300,16 @@ export function validarCambio(e: {
 
   if (!e.eligioPrenda) lista.push({ clave: "stock", estado: "pendiente", titulo: "Falta elegir la talla y el color que se lleva" });
   else if (!e.nueva) lista.push({ clave: "stock", estado: "alerta", titulo: "Esa talla y color no existen en el catálogo" });
-  else if (e.nueva.stockAqui <= 0)
+  else if (e.nueva.stockAqui <= 0) {
+    // Apartada para otra clienta no es «no queda»: la prenda está en el piso y no se puede entregar (`textoSinStock`).
+    const apartada = sinStockPorApartado(e.nueva);
     lista.push({
       clave: "stock",
       estado: "alerta",
-      titulo: `No queda ${e.nueva.descripcion} en ${e.sede}`,
-      detalle: e.nueva.otrasSedes ? `Hay ${e.nueva.otrasSedes}.` : "Tampoco hay en otra sede.",
+      titulo: apartada ? `${e.nueva.descripcion} está ${textoSinStock(e.nueva)} en ${e.sede}` : `No queda ${e.nueva.descripcion} en ${e.sede}`,
+      detalle: e.nueva.otrasSedes ? `Hay ${e.nueva.otrasSedes}.` : apartada ? "No hay en otra sede." : "Tampoco hay en otra sede.",
     });
-  else lista.push({ clave: "stock", estado: "ok", titulo: "Stock disponible", detalle: `${e.nueva.stockAqui} en el piso de ${e.sede}.` });
+  } else lista.push({ clave: "stock", estado: "ok", titulo: "Stock disponible", detalle: `${e.nueva.stockAqui} en el piso de ${e.sede}.` });
 
   // `registrar_cambio` rechaza el efectivo sin caja abierta (20260916180000): mejor
   // decirlo acá que dejar que la base lo diga con la clienta esperando.

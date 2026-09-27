@@ -10,10 +10,11 @@ import { compararTallas } from "@/lib/tallas";
 // se muestra es stock que nadie sabe que existe.
 
 export type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
-import type { EtapaClave, EstadoEtapa, EstadoOrden } from "@/lib/produccion-reglas";
+import { datosDeVariante, type EtapaClave, type EstadoEtapa, type EstadoOrden } from "@/lib/produccion-reglas";
 
 export type LineaOrden = {
   varianteId: string;
+  /** El código de la etiqueta de la prenda (con respaldo al sku legado): `variantes.sku` es NULL en casi todas (ADR-0058). */
   sku: string;
   talla: string | null;
   color: string | null;
@@ -83,7 +84,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
          producto:productos ( referencia, categoria:categorias ( nombre ), variantes ( precio ) ),
          lineas:produccion_lineas (
            variante_id, cantidad_plan, cantidad_buenas,
-           variante:variantes ( sku, talla:tallas ( valor ), color:colores ( nombre, hex ) )
+           variante:variantes ( sku, codigo, talla:tallas ( valor ), color:colores ( nombre, hex ) )
          )`
       )
       .eq("ubicacion_id", tallerId)
@@ -114,10 +115,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
     lineas: (p.lineas ?? [])
       .map((l) => ({
         varianteId: l.variante_id,
-        sku: l.variante?.sku ?? "",
-        talla: l.variante?.talla?.valor ?? null,
-        color: l.variante?.color?.nombre ?? null,
-        colorHex: l.variante?.color?.hex ?? null,
+        ...datosDeVariante(l.variante),
         cantidadPlan: l.cantidad_plan,
         cantidadBuenas: l.cantidad_buenas,
       }))
@@ -127,6 +125,7 @@ export async function getOrdenesProduccion(tallerId: string, opciones: { conCost
 
 export type VarianteDeModelo = {
   varianteId: string;
+  /** El código de la etiqueta de la prenda (con respaldo al sku legado), no la columna `sku` a secas. */
   sku: string;
   talla: string | null;
   color: string | null;
@@ -154,7 +153,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
         .from("productos")
         .select(
           `id, referencia, categoria:categorias ( nombre ),
-           variantes ( id, sku, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
+           variantes ( id, sku, codigo, talla:tallas ( valor ), precio, activo, color:colores ( nombre, hex ) )`
         )
         .order("referencia")
         .order("id")
@@ -172,10 +171,7 @@ export async function getModelosProducibles(): Promise<ModeloProducible[]> {
         .filter((v) => v.activo)
         .map((v) => ({
           varianteId: v.id,
-          sku: v.sku ?? "",
-          talla: v.talla?.valor ?? null,
-          color: v.color?.nombre ?? null,
-          colorHex: v.color?.hex ?? null,
+          ...datosDeVariante(v),
           precio: Number(v.precio),
         }))
         .sort(compararLineas),

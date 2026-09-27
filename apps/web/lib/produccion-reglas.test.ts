@@ -41,6 +41,7 @@ import {
   COLUMNAS_TABLERO,
   DIAS_ENTREGA_PRONTO,
   claveCelda,
+  datosDeVariante,
   desgloseCosto,
   estadoEntrega,
   etapaActual,
@@ -126,6 +127,33 @@ describe("matrizDeLineas", () => {
     const u = matrizDeLineas([lin(null, null, 5)]);
     expect(u.colores[0].nombre).toBe("Sin color");
     expect(u.tallas).toEqual(["Única"]);
+  });
+});
+
+describe("datosDeVariante: cómo se nombra una prenda de la orden", () => {
+  const talla = { valor: "L" };
+  const color = { nombre: "Violeta", hex: "#7a5" };
+
+  it("una variante sin sku y con código (el caso de casi todo el catálogo) muestra el código de la etiqueta", () => {
+    const d = datosDeVariante({ sku: null, codigo: "POL-0004-VIO-L", talla, color });
+    expect(d.sku).toBe("POL-0004-VIO-L");
+    expect(d).toMatchObject({ talla: "L", color: "Violeta", colorHex: "#7a5" });
+  });
+  it("una variante vieja con sku y sin código cae al sku", () => {
+    expect(datosDeVariante({ sku: "VES-SOFI-NEG-M", codigo: null }).sku).toBe("VES-SOFI-NEG-M");
+  });
+  it("si trae los dos, manda el código de la etiqueta", () => {
+    expect(datosDeVariante({ sku: "VES-SOFI-NEG-M", codigo: "VES-0002-NEG-M" }).sku).toBe("VES-0002-NEG-M");
+  });
+  it("sin código ni sku queda vacío, no un aviso: el texto se usa en tooltips y búsquedas", () => {
+    expect(datosDeVariante({ sku: null, codigo: null }).sku).toBe("");
+  });
+  it("una variante que no llegó no rompe la orden: todo vacío", () => {
+    expect(datosDeVariante(null)).toEqual({ sku: "", talla: null, color: null, colorHex: null });
+    expect(datosDeVariante(undefined).sku).toBe("");
+  });
+  it("sin talla o sin color deja null, para que la matriz pinte «Única» / «Sin color»", () => {
+    expect(datosDeVariante({ codigo: "X-1", talla: null, color: null })).toEqual({ sku: "X-1", talla: null, color: null, colorHex: null });
   });
 });
 

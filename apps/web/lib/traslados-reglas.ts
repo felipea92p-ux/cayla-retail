@@ -16,18 +16,20 @@ export function estaAtrasado(fechaEstimadaLlegada: string, estado: string, ahora
 }
 
 // ===========================================================================
-// Lectura operativa de la pantalla Traslados (rediseño 2026-09-18)
+// Lectura operativa de la pantalla Traslados (rediseño 2026-09-18; «por recibir»
+// sin reloj desde ADR-0239, 2026-09-26)
 //
-// La pantalla dejó de leer un traslado por su estado interno («en_transito») y
-// pasó a leerlo por lo que le TOCA HACER a quien mira. Todo sale de datos que
-// la base ya guarda —estado, las dos sedes, la hora estimada de llegada y
-// cuándo empezó a registrarse la recepción—; no hay estado nuevo ni cambia
-// ninguna regla de stock, recepción o cierre (esas viven en las RPC).
+// La pantalla no lee un traslado por su estado interno («en_transito») sino por
+// lo que le TOCA HACER a quien mira. Todo sale de datos que la base ya guarda
+// —estado, las dos sedes, la hora estimada, lo contado—; ninguna regla de stock,
+// recepción, cierre o anulación vive acá (esas viven en las RPC).
 //
-// El motivo: «En tránsito» mezclaba dos cosas con acciones distintas — el
-// bulto que ya debería estar en la tienda (hay que contarlo) y el que todavía
-// viaja en el bus (no hay nada que hacer salvo esperar). Un contador que las
-// suma no le dice al encargado qué hacer distinto según su valor.
+// Hasta el 2026-09-26 un traslado que venía hacia mi sede recién «pedía
+// recibirse» cuando pasaba la hora que ESTIMÓ quien lo envió. Con la caja en la
+// mano, la tienda leía «Nada requiere tu acción» (docs/pantallas/traslados.md,
+// hallazgo 2). Ahora todo lo que viene hacia mí es «por recibir», desde que sale:
+// la hora estimada queda como dato de la fila («llega mañana 16:15», «atrasado
+// desde ayer»), nunca como candado de lo que se puede hacer.
 // ===========================================================================
 
 /** Lo mínimo que estas reglas necesitan de un traslado (`TrasladoResumen` lo cumple de sobra). */
@@ -36,8 +38,14 @@ export type TrasladoLeible = {
   ubicacionOrigenId: string;
   ubicacionDestinoId: string;
   fechaEstimadaLlegada: string | null;
-  /** Se llena cuando alguien registra la primera línea recibida: la recepción ya empezó. */
+  /** Cuándo alguien apretó «Confirmar recepción» (desde ADR-0239 ya no se llena al contar una casilla). */
   confirmadoEn: string | null;
+  /** Cerrado, pero lo contado no coincidió con lo enviado (`conteoDelTraslado`). Sin el dato, `false`. */
+  cerradoConDiferencia?: boolean;
+  /** Cuántas prendas enviadas ya tienen su conteo guardado: la recepción empezó. Sin el dato, 0. */
+  lineasContadas?: number;
+  /** Cuándo se anuló (estado `anulada`, ADR-0239 D-132). */
+  anuladoEn?: string | null;
 };
 
 export type ContextoTraslados = {
@@ -52,28 +60,32 @@ export type ContextoTraslados = {
 
 /**
  * Cómo se lee un traslado desde MI sede — lo que me toca hacer, no el nombre interno del estado:
- *  · requiere_recepcion — viene hacia acá y ya debería estar (pasó la hora estimada, o alguien
- *                         ya empezó a contarlo): hay que confirmarlo.
- *  · requiere_revision  — quedó con diferencia y soy líder de la sede que lo recibió: me toca cerrarlo.
- *                         (Ojo: la RPC dejaría cerrarlo a CUALQUIER líder, no solo al de esa sede; el aviso se
- *                         dirige al líder de la sede que recibió porque es a quien le concierne el stock.
- *                         Si se decide que cualquier líder debe recibir el aviso, se cambia acá y en
- *                         `getTrasladosPorAtender` — no es un cambio de cableado.)
- *  · en_camino_entrante — viene hacia acá y todavía está dentro del tiempo estimado: solo esperar.
- *  · en_camino_saliente — salió de acá y la otra sede aún no lo confirma: no me toca, pero se sigue.
- *  · con_diferencia     — quedó con diferencia y espera a otra persona (no soy líder de esa sede).
- *  · cerrado            — terminó (cerrada, o «completada» del modelo anterior).
- * Un estado que no sea ninguno de los dos abiertos (en_transito, recibido_con_diferencia) se lee como cerrado. */
+ *  · requiere_recepcion      — viene hacia acá y no se ha recibido: hay que contarlo cuando llegue. No depende de la
+ *                              hora estimada (ADR-0239): la caja puede llegar antes, y quien la tiene en la mano tiene
+ *                              que ver que le toca.
+ *  · requiere_revision       — quedó con diferencia y soy líder de la sede que lo recibió: me toca cerrarlo.
+ *                              (Ojo: la RPC dejaría cerrarlo a CUALQUIER líder, no solo al de esa sede; el aviso se
+ *                              dirige al líder de la sede que recibió porque es a quien le concierne el stock.
+ *                              Si se decide que cualquier líder debe recibir el aviso, se cambia acá y en
+ *                              `getTrasladosPorAtender` — no es un cambio de cableado.)
+ *  · en_camino_saliente      — salió de acá y la otra sede aún no lo recibe: no me toca, pero se sigue.
+ *  · con_diferencia          — quedó con diferencia y espera a otra persona (no soy líder de esa sede).
+ *  · cerrado                 — terminó y todo coincidió (cerrada, o «completada» del modelo anterior).
+ *  · cerrado_con_diferencia  — terminó, pero faltó o sobró algo: un líder lo cerró con nota. No se pinta de verde.
+ *  · anulado                 — quien envió (o un líder) lo anuló antes de que se empezara a contar: el stock volvió
+ *                              al origen (ADR-0239 D-132). Es historial, nunca «en tránsito» ni «por recibir».
+ * Un estado que no sea ninguno de los conocidos se lee como cerrado. */
 export type SituacionTraslado =
   | "requiere_recepcion"
   | "requiere_revision"
-  | "en_camino_entrante"
   | "en_camino_saliente"
   | "con_diferencia"
-  | "cerrado";
+  | "cerrado"
+  | "cerrado_con_diferencia"
+  | "anulado";
 
-/** ¿Ya pasó la hora estimada? Sin hora estimada no se puede prometer que «viene normal»:
- *  se lee como «ya debería estar» (es el caso seguro — se ve en vez de esconderse).
+/** ¿Ya pasó la hora estimada? Es un DATO de la fila («atrasado desde ayer»), no decide si algo se puede recibir.
+ *  Sin hora estimada no se puede prometer que «viene a tiempo»: se lee como «ya debería estar».
  *  `iniciar_traslado` exige la hora, así que un traslado abierto sin ella no debería existir. */
 export function debioLlegar(fechaEstimadaLlegada: string | null, ahoraIso: string): boolean {
   if (!fechaEstimadaLlegada) return true;
@@ -82,12 +94,10 @@ export function debioLlegar(fechaEstimadaLlegada: string | null, ahoraIso: strin
 
 export function situacionTraslado(t: TrasladoLeible, ctx: ContextoTraslados): SituacionTraslado {
   const soyDestino = t.ubicacionDestinoId === ctx.miUbicacionId;
+  if (t.estado === "anulada") return "anulado";
   if (t.estado === "recibido_con_diferencia") return soyDestino && ctx.puedeCerrarDiferencia ? "requiere_revision" : "con_diferencia";
-  if (t.estado !== "en_transito") return "cerrado";
-  if (!soyDestino) return "en_camino_saliente";
-  // Que alguien ya haya registrado líneas (`confirmadoEn`) significa que el bulto llegó,
-  // aunque la hora estimada diga lo contrario: hay que terminar de confirmarlo.
-  return debioLlegar(t.fechaEstimadaLlegada, ctx.ahoraIso) || t.confirmadoEn ? "requiere_recepcion" : "en_camino_entrante";
+  if (t.estado !== "en_transito") return t.cerradoConDiferencia ? "cerrado_con_diferencia" : "cerrado";
+  return soyDestino ? "requiere_recepcion" : "en_camino_saliente";
 }
 
 /** Lo que exige una acción de quien mira, ahora. Alimenta la franja, el filtro «Acción hoy» y el contador del menú. */
@@ -95,32 +105,35 @@ export function requiereAccion(s: SituacionTraslado): boolean {
   return s === "requiere_recepcion" || s === "requiere_revision";
 }
 
-export function esAbierto(s: SituacionTraslado): boolean {
-  return s !== "cerrado";
+/** Historial: ya no le pide nada a nadie ni tiene prendas en camino (cerrado, con o sin diferencia, o anulado). */
+export function esTerminado(s: SituacionTraslado): boolean {
+  return s === "cerrado" || s === "cerrado_con_diferencia" || s === "anulado";
 }
 
 /** Los filtros de la lista. Son predicados: un traslado puede caer en varios (uno con diferencia que
  *  me toca revisar cuenta en «Acción hoy» y en «Con diferencia»).
- *  `por_recibir` NO es un chip de la «Vista rápida»: es el atajo de la tarjeta «Por recibir hoy»,
+ *  `por_recibir` NO es un chip de la «Vista rápida»: es el atajo de la tarjeta «Por recibir»,
  *  que cuenta solo recepciones y por eso tiene que filtrar solo recepciones — si filtrara «Acción
  *  hoy», un líder con una diferencia pendiente vería «0» en la tarjeta y una fila al tocarla. */
 export type FiltroTraslado = "todos" | "abiertos" | "accion" | "en_camino" | "con_diferencia" | "cerrados" | "por_recibir";
 
 /** Los chips de la fila «Vista rápida», en su orden. Rediseño 2026-09-22 (Felipe, demo
  *  `docs/maquetas/traslados-cifras-filtros-2026-09/`, ADR-0175): las cifras que ya tienen tarjeta
- *  —por recibir, en camino, con diferencia— se filtran tocando su TARJETA; los chips solo separan
+ *  —por recibir, enviados en camino, con diferencia— se filtran tocando su TARJETA; los chips solo separan
  *  lo abierto de lo cerrado, así cada número se dice una vez. «Acción hoy» sigue siendo un filtro
  *  válido (lo usa la franja) aunque ya no tenga chip. */
 export const FILTROS_TRASLADO: FiltroTraslado[] = ["abiertos", "cerrados", "todos"];
 
+/** Un estado, un nombre en toda la pantalla (hallazgo 16): «Cerrados» junta Cerrado, Cerrado con diferencia y Anulado;
+ *  «Por recibir» es la tarjeta, el chip y el botón «Recibir». */
 export const ETIQUETA_FILTRO_TRASLADO: Record<FiltroTraslado, string> = {
   todos: "Todos",
   abiertos: "Abiertos",
   accion: "Acción hoy",
-  en_camino: "En camino",
+  en_camino: "Enviados en camino",
   con_diferencia: "Con diferencia",
   cerrados: "Cerrados",
-  por_recibir: "Por recibir hoy",
+  por_recibir: "Por recibir",
 };
 
 export function coincideFiltro(s: SituacionTraslado, filtro: FiltroTraslado): boolean {
@@ -130,36 +143,42 @@ export function coincideFiltro(s: SituacionTraslado, filtro: FiltroTraslado): bo
     case "accion":
       return requiereAccion(s);
     case "en_camino":
-      return s === "en_camino_entrante" || s === "en_camino_saliente";
+      // Lo entrante ya no está «en camino» a secas: es «por recibir» (tiene su tarjeta y su filtro).
+      return s === "en_camino_saliente";
     case "con_diferencia":
-      return s === "con_diferencia" || s === "requiere_revision";
+      // También los ya cerrados con diferencia: si no, al cerrarse la pérdida desaparecía de la pantalla (hallazgo 15).
+      return s === "con_diferencia" || s === "requiere_revision" || s === "cerrado_con_diferencia";
     case "cerrados":
-      return s === "cerrado";
+      return esTerminado(s);
     case "abiertos":
-      return s !== "cerrado";
+      return !esTerminado(s);
     case "por_recibir":
       return s === "requiere_recepcion";
   }
 }
 
 export type ResumenTraslados = {
-  /** «Por recibir hoy»: vienen hacia acá y ya deberían estar (o ya empezaron a contarse). */
+  /** «Por recibir»: vienen hacia acá y nadie los ha recibido todavía, lleguen cuando lleguen. */
   porRecibir: number;
-  /** «Vienen en camino»: vienen hacia acá y todavía están dentro del tiempo estimado. */
-  vienenEnCamino: number;
-  /** Salieron de acá y la otra sede aún no los confirma. No los cuenta ninguna tarjeta de «me toca»,
-   *  pero sí el filtro «En camino» — por eso se guarda aparte: para poder explicar la diferencia. */
+  /** De esos, los que ya pasaron su hora estimada (o no tenían): el dato «atrasado», no una condición para recibir. */
+  porRecibirAtrasados: number;
+  /** «Enviados en camino»: salieron de acá y la otra sede aún no los recibe. */
   salientesEnCamino: number;
-  /** «Con diferencia»: pendientes de resolver, los que me tocan y los que esperan a otra persona. */
+  /** «Con diferencia»: todo caso donde lo contado no coincidió — pendiente o ya cerrado. */
   conDiferencia: number;
   /** De esos, los que me tocan a mí (soy líder de la sede que los recibió). */
   porRevisar: number;
+  /** De esos, los que ya se cerraron (la pérdida o el sobrante quedó registrado con nota). */
+  diferenciasCerradas: number;
   /** Recepciones + revisiones que me tocan: franja «Atención hoy», filtro «Acción hoy» y contador del menú. */
   requierenAccion: number;
-  /** «Prendas en tránsito»: unidades enviadas de los traslados abiertos — todavía no están en el
-   *  stock de ninguna sede (salieron del origen y no han entrado al destino). */
+  /** «Prendas en tránsito»: unidades de los traslados que siguen en camino (entrantes y salientes) — todavía no están
+   *  en el stock de ninguna sede. Un traslado con diferencia NO suma: desde ADR-0239 lo que coincidió ya entró al stock
+   *  del destino, y lo que no, espera al líder en el destino, no en el camino. */
   unidadesEnTransito: number;
-  /** Cuántos traslados abiertos hay (en camino o con diferencia). */
+  /** Cuántos traslados siguen en camino (los de `unidadesEnTransito`). */
+  enCamino: number;
+  /** Cuántos traslados abiertos hay (en camino o con diferencia pendiente). */
   abiertos: number;
   porFiltro: Record<FiltroTraslado, number>;
 };
@@ -167,29 +186,36 @@ export type ResumenTraslados = {
 export function resumirTraslados(ts: (TrasladoLeible & { unidadesEnviadas: number })[], ctx: ContextoTraslados): ResumenTraslados {
   const r: ResumenTraslados = {
     porRecibir: 0,
-    vienenEnCamino: 0,
+    porRecibirAtrasados: 0,
     salientesEnCamino: 0,
     conDiferencia: 0,
     porRevisar: 0,
+    diferenciasCerradas: 0,
     requierenAccion: 0,
     unidadesEnTransito: 0,
+    enCamino: 0,
     abiertos: 0,
     porFiltro: { todos: ts.length, abiertos: 0, accion: 0, en_camino: 0, con_diferencia: 0, cerrados: 0, por_recibir: 0 },
   };
   for (const t of ts) {
     const s = situacionTraslado(t, ctx);
-    if (s === "requiere_recepcion") r.porRecibir++;
-    if (s === "en_camino_entrante") r.vienenEnCamino++;
+    if (s === "requiere_recepcion") {
+      r.porRecibir++;
+      if (debioLlegar(t.fechaEstimadaLlegada, ctx.ahoraIso)) r.porRecibirAtrasados++;
+    }
     if (s === "en_camino_saliente") r.salientesEnCamino++;
-    if (s === "con_diferencia" || s === "requiere_revision") r.conDiferencia++;
-    if (s === "requiere_revision") r.porRevisar++;
-    if (esAbierto(s)) {
-      r.abiertos++;
+    if (s === "requiere_recepcion" || s === "en_camino_saliente") {
+      r.enCamino++;
       r.unidadesEnTransito += t.unidadesEnviadas;
     }
+    if (s === "requiere_revision") r.porRevisar++;
+    if (s === "cerrado_con_diferencia") r.diferenciasCerradas++;
+    if (!esTerminado(s)) r.abiertos++;
     // Todos los filtros, no solo los chips: `por_recibir` (el atajo de la tarjeta) también se cuenta.
     for (const f of Object.keys(r.porFiltro) as FiltroTraslado[]) if (f !== "todos" && coincideFiltro(s, f)) r.porFiltro[f]++;
   }
+  // La tarjeta «Con diferencia» cuenta EXACTAMENTE lo que filtra (si dice 2, la lista muestra 2).
+  r.conDiferencia = r.porFiltro.con_diferencia;
   r.requierenAccion = r.porRecibir + r.porRevisar;
   return r;
 }
@@ -211,16 +237,14 @@ function primeraFecha(...isos: (string | null)[]): number {
 }
 
 /** Desde cuándo lleva pendiente lo que me toca hacer (ms) — «lo más viejo primero».
- *  Cuenta el tiempo de ESPERA, no la antigüedad del envío: un traslado que salió hace 10 días con hora
- *  estimada de hoy lleva menos esperando que uno que salió ayer y debió llegar hace 36 h. Por eso la
- *  fecha de salida (`creadoEn`) es solo el último recurso, nunca un candidato a «el menor». */
-function pendienteDesdeMs(t: TrasladoLeible & { creadoEn: string }, s: SituacionTraslado, ahoraIso: string): number {
-  // Diferencia: espera desde que se recibió (se registró la primera línea).
+ *  Una recepción se ordena por su hora estimada: la que debió llegar antes va primero, y una que todavía viaja
+ *  queda detrás de todas las atrasadas (su hora está en el futuro). La fecha de salida (`creadoEn`) es solo el
+ *  último recurso: un traslado que salió hace 10 días con hora estimada de hoy lleva menos esperando que uno que
+ *  salió ayer y debió llegar hace 36 h. */
+function pendienteDesdeMs(t: TrasladoLeible & { creadoEn: string }, s: SituacionTraslado): number {
+  // Diferencia: espera desde que se recibió.
   if (s === "requiere_revision" || s === "con_diferencia") return primeraFecha(t.confirmadoEn, t.fechaEstimadaLlegada, t.creadoEn);
-  // Recepción: desde la hora estimada (si ya pasó) o desde que empezó a registrarse, lo que ocurrió antes.
-  const vencida = t.fechaEstimadaLlegada && debioLlegar(t.fechaEstimadaLlegada, ahoraIso) ? t.fechaEstimadaLlegada : null;
-  const desde = Math.min(primeraFecha(vencida), primeraFecha(t.confirmadoEn));
-  return Number.isFinite(desde) ? desde : primeraFecha(t.creadoEn);
+  return primeraFecha(t.fechaEstimadaLlegada, t.creadoEn);
 }
 
 /** El traslado al que lleva «Revisar ahora»: entre los que me tocan, el que lleva más tiempo esperando. */
@@ -230,7 +254,7 @@ export function masUrgente<T extends TrasladoLeible & { creadoEn: string; numero
   for (const t of ts) {
     const s = situacionTraslado(t, ctx);
     if (!requiereAccion(s)) continue;
-    const clave = pendienteDesdeMs(t, s, ctx.ahoraIso);
+    const clave = pendienteDesdeMs(t, s);
     if (mejor === null || clave < mejorClave || (clave === mejorClave && t.numero < mejor.numero)) {
       mejor = t;
       mejorClave = clave;
@@ -240,15 +264,15 @@ export function masUrgente<T extends TrasladoLeible & { creadoEn: string; numero
 }
 
 /** El orden con el que se lee la lista: primero lo que me toca (lo que lleva más tiempo esperando
- *  arriba), luego las diferencias que esperan a otra persona, luego lo que viaja (lo que llega
+ *  arriba), luego las diferencias que esperan a otra persona, luego lo que salió de acá (lo que llega
  *  antes, primero) y al final el historial, lo más reciente primero. A igual tiempo, por número. */
 export function ordenarTraslados<T extends TrasladoLeible & { creadoEn: string; numero: number }>(ts: T[], ctx: ContextoTraslados): T[] {
   const ms = (iso: string | null) => (iso ? new Date(iso).getTime() : Infinity);
   const clave = (t: T): [number, number, number] => {
     const s = situacionTraslado(t, ctx);
-    if (requiereAccion(s)) return [0, pendienteDesdeMs(t, s, ctx.ahoraIso), t.numero];
-    if (s === "con_diferencia") return [1, pendienteDesdeMs(t, s, ctx.ahoraIso), t.numero];
-    if (s === "cerrado") return [3, -ms(t.creadoEn), -t.numero];
+    if (requiereAccion(s)) return [0, pendienteDesdeMs(t, s), t.numero];
+    if (s === "con_diferencia") return [1, pendienteDesdeMs(t, s), t.numero];
+    if (esTerminado(s)) return [3, -ms(t.creadoEn), -t.numero];
     return [2, ms(t.fechaEstimadaLlegada), t.numero];
   };
   return [...ts].sort((a, b) => {
@@ -259,10 +283,11 @@ export function ordenarTraslados<T extends TrasladoLeible & { creadoEn: string; 
   });
 }
 
-/** Qué botón lleva la fila. El fuerte es solo para lo que de verdad pide una intervención. */
+/** Qué botón lleva la fila. El fuerte es solo para lo que de verdad pide una intervención; los dos llevan al detalle,
+ *  que es donde se cuenta y donde se cierra. */
 export function accionDeTraslado(s: SituacionTraslado): { texto: string; principal: boolean } {
-  if (s === "requiere_recepcion") return { texto: "Confirmar recepción", principal: true };
-  if (s === "requiere_revision") return { texto: "Revisar diferencia", principal: true };
+  if (s === "requiere_recepcion") return { texto: "Recibir", principal: true };
+  if (s === "requiere_revision") return { texto: "Revisar", principal: true };
   return { texto: "Ver detalle", principal: false };
 }
 
@@ -288,6 +313,25 @@ export function otraSedeDe(
   return t.ubicacionDestinoId === miUbicacionId
     ? { id: t.ubicacionOrigenId, nombre: t.ubicacionOrigenNombre }
     : { id: t.ubicacionDestinoId, nombre: t.ubicacionDestinoNombre };
+}
+
+/** Lo que la lista sabe del conteo de un traslado sin abrirlo: cuántas prendas enviadas ya tienen su conteo guardado
+ *  y si alguna no coincide con lo enviado. Una prenda que llegó sin estar en el envío cuenta como diferencia (se
+ *  compara contra 0), igual que en el detalle. Sale de la MISMA consulta de la lista (`transferencia_recepciones`
+ *  embebida): sin una consulta por fila. */
+export function conteoDelTraslado(
+  enviados: { varianteId: string; cantidad: number }[],
+  recibidos: { varianteId: string; cantidadRecibida: number }[]
+): { contadas: number; huboDiferencia: boolean } {
+  const enviado = new Map<string, number>();
+  for (const e of enviados) enviado.set(e.varianteId, (enviado.get(e.varianteId) ?? 0) + e.cantidad);
+  let contadas = 0;
+  let huboDiferencia = false;
+  for (const r of recibidos) {
+    if (enviado.has(r.varianteId)) contadas++;
+    if (r.cantidadRecibida !== (enviado.get(r.varianteId) ?? 0)) huboDiferencia = true;
+  }
+  return { contadas, huboDiferencia };
 }
 
 /** «Blusa Camila + 2 más» — la primera prenda por nombre y cuántas más van. */
@@ -391,7 +435,8 @@ export type TextoLlegada = {
 };
 
 /** El texto de la columna «Llegada estimada». La frase depende de la situación real: un traslado que
- *  ya llegó y quedó con diferencia no debe decir «debía llegar», sino desde cuándo espera revisión. */
+ *  ya llegó y quedó con diferencia no debe decir «atrasado», sino desde cuándo espera revisión; uno que viene
+ *  hacia acá dice cuándo llega o desde cuándo está atrasado, pero se puede recibir igual (ADR-0239). */
 export function textoLlegada(
   t: TrasladoLeible & { creadoEn: string; cerradoEn: string | null },
   s: SituacionTraslado,
@@ -399,8 +444,12 @@ export function textoLlegada(
 ): TextoLlegada {
   const eta = t.fechaEstimadaLlegada;
 
-  if (s === "cerrado") {
-    return { principal: `Completado ${diaMes(t.cerradoEn ?? t.confirmadoEn ?? t.creadoEn)}`, secundario: null, tono: "hecho" };
+  if (s === "anulado") {
+    return { principal: `Anulado ${diaMes(t.anuladoEn ?? t.cerradoEn ?? t.creadoEn)}`, secundario: null, tono: "normal" };
+  }
+  if (s === "cerrado" || s === "cerrado_con_diferencia") {
+    // Con diferencia no lleva el visto verde: la insignia ya dice qué pasó y un «✓» lo contradiría.
+    return { principal: `Cerrado ${diaMes(t.cerradoEn ?? t.confirmadoEn ?? t.creadoEn)}`, secundario: null, tono: s === "cerrado" ? "hecho" : "normal" };
   }
 
   if (s === "con_diferencia" || s === "requiere_revision") {
@@ -408,23 +457,25 @@ export function textoLlegada(
     return { principal: `Recibido ${diaHora(desde, ahoraIso)}`, secundario: haceTexto(desde, ahoraIso), tono: "aviso" };
   }
 
-  if (!eta) {
+  const atrasado = debioLlegar(eta, ahoraIso);
+  // Me toca y ya pasó la hora: rojo. De otra sede: solo se sigue de cerca (ámbar). A tiempo: sin drama.
+  const tonoAtrasado: TonoTiempo = s === "requiere_recepcion" ? "urgente" : "aviso";
+
+  if (s === "requiere_recepcion" && (t.lineasContadas ?? 0) > 0) {
+    // Alguien ya guardó conteos: la caja llegó, aunque la hora estimada diga otra cosa. Falta terminar.
     return {
-      principal: "Sin hora estimada",
-      secundario: `Enviado ${diaHora(t.creadoEn, ahoraIso)}`,
-      tono: s === "requiere_recepcion" ? "urgente" : "normal",
+      principal: "Conteo empezado",
+      secundario: !eta ? null : atrasado ? `Atrasado desde ${diaHora(eta, ahoraIso)}` : `Llegaba ${diaHora(eta, ahoraIso)}`,
+      tono: "urgente",
     };
   }
 
-  if (debioLlegar(eta, ahoraIso)) {
-    // Si me toca, es un pendiente mío (rojo); si es de otra sede, solo se sigue de cerca (ámbar).
-    return { principal: `Debió llegar ${diaHora(eta, ahoraIso)}`, secundario: haceTexto(eta, ahoraIso), tono: s === "requiere_recepcion" ? "urgente" : "aviso" };
+  if (!eta) {
+    return { principal: "Sin hora estimada", secundario: `Enviado ${diaHora(t.creadoEn, ahoraIso)}`, tono: tonoAtrasado };
   }
 
-  if (s === "requiere_recepcion") {
-    // Todavía no pasa la hora estimada, pero alguien ya empezó a registrar lo que llegó.
-    const desde = t.confirmadoEn ?? t.creadoEn;
-    return { principal: `Recepción iniciada ${diaHora(desde, ahoraIso)}`, secundario: haceTexto(desde, ahoraIso), tono: "urgente" };
+  if (atrasado) {
+    return { principal: `Atrasado desde ${diaHora(eta, ahoraIso)}`, secundario: haceTexto(eta, ahoraIso), tono: tonoAtrasado };
   }
 
   const dias = diasDeDiferencia(eta, ahoraIso) ?? 0;
@@ -495,192 +546,31 @@ export function separarVacios<T extends { lineas: number }>(ts: T[]): { conPrend
   return { conPrendas, vacios: ts.length - conPrendas.length };
 }
 
-export type TonoEstadoTraslado = "rojo" | "ambar" | "pizarra" | "verde" | "neutro";
+export type TonoEstadoTraslado = "rojo" | "ambar" | "pizarra" | "verde" | "neutro" | "apagado";
 
 /** La insignia de estado, en las palabras de quien mira: lo que le TOCA, no el nombre interno.
- *  Rojo solo para lo que ya debió llegar; ámbar para lo que no cuadra; pizarra para lo que viaja
- *  bien; verde para lo terminado. Un cerrado que tuvo diferencia no se pinta de verde: se dice. */
+ *  Rojo para lo que tengo que recibir; ámbar para lo que no cuadra; pizarra para lo que viaja hacia otra sede;
+ *  verde para lo terminado sin problemas. Un cerrado que tuvo diferencia no se pinta de verde: se dice. Y un anulado va
+ *  «apagado» y tachado, como toda anulación del ERP (`Chip`, Comprobantes).
+ *  Un estado, un nombre en toda la pantalla (hallazgo 16): «Por recibir» (tarjeta, chip, botón «Recibir»), «Cerrado»
+ *  (nunca «Completado») y «Anulado»; el filtro «Cerrados» junta los tres terminados.
+ *  `cerradoConDiferencia` se mantiene para quien todavía pase «cerrado» con el dato aparte (el título del detalle);
+ *  lo nuevo pasa la situación `cerrado_con_diferencia` y dice lo mismo. */
 export function estadoTraslado(s: SituacionTraslado, cerradoConDiferencia = false): { texto: string; tono: TonoEstadoTraslado } {
   switch (s) {
     case "requiere_recepcion":
-      return { texto: "Por confirmar", tono: "rojo" };
+      return { texto: "Por recibir", tono: "rojo" };
     case "requiere_revision":
       return { texto: "Por revisar", tono: "ambar" };
     case "con_diferencia":
       return { texto: "Con diferencia", tono: "ambar" };
-    case "en_camino_entrante":
     case "en_camino_saliente":
       return { texto: "En camino", tono: "pizarra" };
+    case "anulado":
+      return { texto: "Anulado", tono: "apagado" };
+    case "cerrado_con_diferencia":
+      return { texto: "Cerrado con diferencia", tono: "neutro" };
     case "cerrado":
-      return cerradoConDiferencia ? { texto: "Cerrado con diferencia", tono: "neutro" } : { texto: "Completado", tono: "verde" };
+      return cerradoConDiferencia ? { texto: "Cerrado con diferencia", tono: "neutro" } : { texto: "Cerrado", tono: "verde" };
   }
-}
-
-// ---------------------------------------------------------------------------
-// La lectura del conteo en el detalle
-//
-// Quien recibe cuenta línea por línea. Lo que escribe queda como BORRADOR en la
-// pantalla hasta que confirma (o cierra, o guarda el recuento): recién ahí se
-// llama `registrar_recepcion_traslado` por cada línea cambiada y después la
-// RPC final. Antes cada casilla guardaba al salir de ella y el botón de
-// confirmar seguía apagado hasta que la persona había pasado por TODAS —
-// aunque ya vinieran llenas con lo enviado—; ahora las casillas empiezan
-// vacías (se cuenta, no se asume) y un «Coincide» por línea las llena.
-// ---------------------------------------------------------------------------
-
-export type LineaConteo = { varianteId: string; cantidadEnviada: number | null; cantidadRecibida: number | null };
-
-/** Lo que la persona escribió y todavía no se guardó, por variante. */
-export type Borradores = Record<string, number | undefined>;
-
-export type LecturaLinea = {
-  varianteId: string;
-  /** Lo que vale la casilla: el borrador si lo hay, si no lo guardado. `null` = sin contar. */
-  valor: number | null;
-  /** Recibido − enviado (una prenda que no estaba en el envío cuenta desde 0). `null` si no se contó. */
-  diferencia: number | null;
-};
-
-export type LecturaRecepcion = {
-  lineas: Map<string, LecturaLinea>;
-  enviado: number;
-  recibido: number;
-  /** Líneas ENVIADAS que ya tienen cantidad. Las prendas de más no cuentan acá: no hay nada que contarles. */
-  contadas: number;
-  enviadas: number;
-  /** Suma de las diferencias de lo contado: negativo = faltan, positivo = llegó de más. */
-  diferencia: number;
-  /** Lo que hay que mandar a `registrar_recepcion_traslado` antes de confirmar o cerrar. */
-  porGuardar: { varianteId: string; cantidad: number }[];
-  /** Toda línea enviada tiene cantidad: se puede confirmar. */
-  completa: boolean;
-  /** Completa y sin ninguna diferencia: al confirmar, el traslado se cierra solo. */
-  coincideTodo: boolean;
-};
-
-export function leerRecepcion(lineas: LineaConteo[], borradores: Borradores): LecturaRecepcion {
-  const porId = new Map<string, LecturaLinea>();
-  const porGuardar: { varianteId: string; cantidad: number }[] = [];
-  let enviado = 0;
-  let recibido = 0;
-  let contadas = 0;
-  let enviadas = 0;
-  let diferencia = 0;
-  let todasCero = true;
-  for (const l of lineas) {
-    const borrador = borradores[l.varianteId];
-    const valor = borrador !== undefined ? borrador : l.cantidadRecibida;
-    const dif = valor === null ? null : valor - (l.cantidadEnviada ?? 0);
-    porId.set(l.varianteId, { varianteId: l.varianteId, valor, diferencia: dif });
-    if (borrador !== undefined && borrador !== l.cantidadRecibida) porGuardar.push({ varianteId: l.varianteId, cantidad: borrador });
-    if (l.cantidadEnviada !== null) {
-      enviadas++;
-      enviado += l.cantidadEnviada;
-      if (valor !== null) contadas++;
-    }
-    if (valor !== null) recibido += valor;
-    if (dif !== null) {
-      diferencia += dif;
-      if (dif !== 0) todasCero = false;
-    }
-  }
-  const completa = contadas === enviadas;
-  return { lineas: porId, enviado, recibido, contadas, enviadas, diferencia, porGuardar, completa, coincideTodo: completa && todasCero };
-}
-
-/** Una casilla nunca baja de 0: el botón «−» sobre una línea sin contar la deja en 0, no en −1. */
-export function ajustarCantidad(actual: number | null, delta: number): number {
-  return Math.max(0, (actual ?? 0) + delta);
-}
-
-/** Cerrar con diferencia pide decir qué pasó: es lo único que queda para entender, meses después, por qué
- *  faltaron prendas. La RPC acepta la nota vacía; la pantalla no (ver BACKLOG para endurecerlo en la base). */
-export const NOTA_CIERRE_MINIMA = 5;
-export function notaCierreValida(nota: string): boolean {
-  return nota.trim().length >= NOTA_CIERRE_MINIMA;
-}
-
-// ---------------------------------------------------------------------------
-// El recorrido del detalle: cuatro pasos que SÍ son una secuencia
-// (salió → en camino → recibido → cerrado). Cada uno dice cuándo y quién.
-// ---------------------------------------------------------------------------
-
-export type EstadoPaso = "hecho" | "actual" | "urgente" | "alerta" | "pendiente";
-
-export type PasoRecorrido = {
-  clave: "salio" | "camino" | "recibido" | "cerrado";
-  titulo: string;
-  lineas: string[];
-  estado: EstadoPaso;
-};
-
-export type TrasladoConRecorrido = TrasladoLeible & {
-  ubicacionOrigenNombre: string;
-  ubicacionDestinoNombre: string;
-  creadoEn: string;
-  cerradoEn: string | null;
-  creadoPorNombre: string;
-  confirmadoPorNombre: string | null;
-  cerradoPorNombre: string | null;
-};
-
-export function recorridoTraslado(
-  t: TrasladoConRecorrido,
-  s: SituacionTraslado,
-  conteo: { contadas: number; enviadas: number; huboDiferencia: boolean },
-  ahoraIso: string
-): PasoRecorrido[] {
-  const eta = t.fechaEstimadaLlegada;
-  const enTransito = t.estado === "en_transito";
-  // «completada» es el modelo anterior (antes del 16-sep): el traslado entraba al instante, sin tramo en camino.
-  const instantaneo = t.estado === "completada";
-  const conDiferencia = t.estado === "recibido_con_diferencia" || conteo.huboDiferencia;
-
-  const salio: PasoRecorrido = {
-    clave: "salio",
-    titulo: `Salió de ${t.ubicacionOrigenNombre}`,
-    lineas: [diaHora(t.creadoEn, ahoraIso), `Envió ${t.creadoPorNombre}`],
-    estado: "hecho",
-  };
-
-  let camino: PasoRecorrido;
-  if (enTransito && s === "requiere_recepcion") {
-    camino = eta
-      ? { clave: "camino", titulo: "En camino", lineas: [`Debió llegar ${diaHora(eta, ahoraIso)}`, haceTexto(eta, ahoraIso)], estado: "urgente" }
-      : { clave: "camino", titulo: "En camino", lineas: ["Sin hora estimada"], estado: "urgente" };
-  } else if (enTransito) {
-    camino = eta
-      ? { clave: "camino", titulo: "En camino", lineas: [`Llega ${diaHora(eta, ahoraIso)}`, enTexto(eta, ahoraIso)], estado: "actual" }
-      : { clave: "camino", titulo: "En camino", lineas: ["Sin hora estimada"], estado: "actual" };
-  } else {
-    camino = { clave: "camino", titulo: "En camino", lineas: [instantaneo ? "Traslado al instante (modelo anterior)" : eta ? `Estimado ${diaHora(eta, ahoraIso)}` : "Sin hora estimada"], estado: "hecho" };
-  }
-
-  const tituloRecibido = `Recibido en ${t.ubicacionDestinoNombre}`;
-  let recibido: PasoRecorrido;
-  if (enTransito) {
-    recibido =
-      conteo.contadas > 0
-        ? { clave: "recibido", titulo: tituloRecibido, lineas: [`Contando: ${conteo.contadas} de ${conteo.enviadas} variantes`], estado: "actual" }
-        : { clave: "recibido", titulo: tituloRecibido, lineas: [s === "en_camino_saliente" ? `Lo confirma ${t.ubicacionDestinoNombre}` : "Falta confirmar"], estado: "pendiente" };
-  } else {
-    const cuando = t.confirmadoEn ?? t.cerradoEn ?? t.creadoEn;
-    const lineas = [diaHora(cuando, ahoraIso)];
-    if (t.confirmadoPorNombre) lineas.push(`Contó ${t.confirmadoPorNombre}`);
-    if (conDiferencia) lineas.push("Con diferencia");
-    recibido = { clave: "recibido", titulo: tituloRecibido, lineas, estado: conDiferencia ? "alerta" : "hecho" };
-  }
-
-  let cerrado: PasoRecorrido;
-  if (t.estado === "recibido_con_diferencia") {
-    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas: [s === "requiere_revision" ? "Te toca cerrarlo" : "Espera a un líder"], estado: "actual" };
-  } else if (enTransito) {
-    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas: ["Se cierra solo si todo coincide"], estado: "pendiente" };
-  } else {
-    const lineas = [diaHora(t.cerradoEn ?? t.confirmadoEn ?? t.creadoEn, ahoraIso)];
-    lineas.push(t.cerradoPorNombre ? `Cerró ${t.cerradoPorNombre}` : "Stock actualizado");
-    cerrado = { clave: "cerrado", titulo: "Cerrado", lineas, estado: "hecho" };
-  }
-
-  return [salio, camino, recibido, cerrado];
 }

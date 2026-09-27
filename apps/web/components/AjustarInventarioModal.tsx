@@ -1,45 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { traducirError } from "@/lib/error-escritura";
+import { esFalloDeRed, esRespuestaIncierta, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
-import { armarVariantesAjuste, type VarianteAjuste } from "@/lib/ajuste-reglas";
+import {
+  MOTIVOS_AJUSTE,
+  NOTA_REPOSICION_CERRADA,
+  argumentosDeAjuste,
+  armarVariantesAjuste,
+  cargaInicialAlPiso,
+  leerResultadoAjuste,
+  motivosAjusteDisponibles,
+  repartirLineasAjuste,
+  reposicionCerrada,
+  TEXTO_AJUSTE_INCIERTO,
+  textoExitoAjuste,
+  textoPrendaNueva,
+  type MotivoAjuste,
+  type VarianteAjuste,
+} from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
 import type { Sububicacion } from "@/lib/sububicaciones";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
 
-// Reusa `retail.registrar_movimiento` (20260914230000_inventario_piso_almacen.sql,
-// tipo='ajuste') — la misma RPC que ya escribe ajustes sueltos en el repo. No existe
-// una segunda vía: `stock` sigue siendo un snapshot derivado de `movimientos`
-// (principio 4), y la guarda de negativos vive en `fn_aplicar_movimiento` (ADR-0023).
-// Este modal valida en pantalla con el stock ya cargado para dar feedback instantáneo
-// (principio 10) — la RPC queda como red real si el stock cambió mientras el modal
-// estaba abierto.
+// Guarda con `retail.ajustar_inventario` (ADR-0240): UNA llamada, todo o nada y con la marca del intento. Por dentro usa
+// las funciones de siempre (`registrar_movimiento` para cada ajuste, `cargar_stock_inicial` para lo nuevo): no existe una
+// segunda vía, `stock` sigue siendo un snapshot derivado de `movimientos` (principio 4), y la guarda de negativos vive en
+// `fn_aplicar_movimiento` (ADR-0023). Este modal valida en pantalla con el stock ya cargado para dar feedback instantáneo
+// (principio 10) — la base queda como red real si el stock cambió mientras el modal estaba abierto.
+//
+// ADR-0235: una prenda que nunca tuvo un movimiento en esta tienda no se «ajusta» —la base ya no lo deja
+// (`ajuste_sin_historia`)—: su primera cantidad entra como STOCK INICIAL (`cargar_stock_inicial`, una entrada), así
+// Movimientos no la muestra para siempre como un sobrante. El modal lo hace solo al confirmar, y lo dice en la fila.
+// «En el piso» esa carga es además una bajada, que pide el módulo «Bajada al piso» (ADR-0212): sin él, lo nuevo entra al
+// almacén —como en «Nuevo producto»— y la fila lo avisa, en vez de fallar al confirmar.
 
-const MOTIVOS_AJUSTE = [
-  { valor: "reposicion", texto: "Reposición" },
-  { valor: "merma", texto: "Merma" },
-  { valor: "conteo_fisico", texto: "Conteo físico" },
-  { valor: "otro", texto: "Otro" },
-] as const;
-
-type MotivoAjuste = (typeof MOTIVOS_AJUSTE)[number]["valor"];
+// Sin respuesta en 20 s, se corta y se trata como respuesta incierta (igual que «Reponer», `ReponerPisoModal`).
+const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
   productoId,
   ubicacionId,
   sububicaciones,
+  puedeBajarAlPiso,
   onClose,
 }: {
   productoId: string;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
+  /** ¿El rol de la cuenta ve «Bajada al piso»? Lo decide la página, en el servidor (`veModulo`), como en Nuevo producto. */
+  puedeBajarAlPiso: boolean;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -58,6 +74,15 @@ export function AjustarInventarioModal({
   const [error, setError] = useState<string | null>(null);
   // Un ajuste de stock guarda en la tienda: pide Responsable (ADR-0161).
   const responsable = useResponsable();
+  // La marca de este intento (ADR-0240): la base la anota con el ajuste, y el mismo intento enviado otra vez (un reintento
+  // tras un corte) devuelve lo ya guardado sin ajustar de nuevo. Una por modal abierto: un éxito lo cierra, y un rechazo
+  // de la base deja la marca libre (la transacción se deshizo).
+  const token = useRef<string>(crypto.randomUUID());
+  // Tras una respuesta incierta solo se puede reenviar LO MISMO o cerrar: cambiar una cifra sería otro ajuste y podría
+  // sumarse al que quizá ya se guardó. Los campos quedan fijos.
+  const [congelado, setCongelado] = useState(false);
+  // Candado contra el doble clic en el mismo instante: `enviando` apaga el botón recién en el render siguiente.
+  const enVuelo = useRef(false);
 
   useEffect(() => {
     let vigente = true;
@@ -65,12 +90,13 @@ export function AjustarInventarioModal({
     // (20260917100500, ADR-0095), igual que en `getCatalogo`. El resultado se pasa SIN castear
     // a propósito: así `tsc` compara este select con `FilaAjuste` y avisa si vuelve a pedir
     // una columna que no existe (antes un `as unknown as` lo tapaba y solo fallaba en vivo).
-    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("sku")`
-    // solo fija el desempate para que la lista no baraje entre un refresco y otro.
+    // El orden por talla se hace al armar las filas (S · M · L, no alfabético); el `order("codigo")`
+    // solo fija el desempate para que la lista no baraje entre un refresco y otro. Es el `codigo`, no
+    // el `sku`: el sku es NULL en casi todas las variantes (ADR-0058) y no desempataba nada.
     createClient()
       .from("variantes")
       .select(
-        `id, sku,
+        `id, sku, codigo,
          talla:tallas ( valor ),
          color:colores ( nombre ),
          producto:productos ( referencia ),
@@ -78,7 +104,7 @@ export function AjustarInventarioModal({
       )
       .eq("producto_id", productoId)
       .eq("stock.ubicacion_id", ubicacionId)
-      .order("sku")
+      .order("codigo")
       .then(({ data, error: errCarga }) => {
         if (!vigente) return;
         if (errCarga) {
@@ -116,6 +142,18 @@ export function AjustarInventarioModal({
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
   const negativas = lineas.filter((l) => l.resultado < 0);
+  // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
+  const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
+
+  // «Reposición» no toca el piso de una tienda que separa piso y almacén (ADR-0208, 20260926000400): no se ofrece ahí.
+  const motivos = motivosAjusteDisponibles(ubicado, separaPisoAlmacen);
+  const cerrada = reposicionCerrada(ubicado, separaPisoAlmacen);
+
+  function cambiarUbicado(siguiente: "piso" | "almacen") {
+    setUbicado(siguiente);
+    // Si «Reposición» estaba elegida y ya no se ofrece, no se queda escondida en el formulario.
+    if (reposicionCerrada(siguiente, separaPisoAlmacen) && motivo === "reposicion") setMotivo("");
+  }
 
   // Reporte de lo tipeado en el formulario, no de lo ya confirmado — sirve tanto
   // de respaldo antes de enviar como para revisar después de un envío exitoso
@@ -125,7 +163,7 @@ export function AjustarInventarioModal({
     const fecha = new Date();
     descargarCsv(
       `ajuste-inventario_${referencia || "producto"}_${fecha.toISOString().slice(0, 10)}.csv`.replace(/\s+/g, "-"),
-      ["SKU", "Talla", "Color", "Stock actual", "Ajuste", "Stock resultante", "Motivo", "Observación"],
+      ["Código", "Talla", "Color", "Stock actual", "Ajuste", "Stock resultante", "Motivo", "Observación"],
       lineas.map((l) => [
         l.variante.sku,
         l.variante.talla ?? "—",
@@ -141,11 +179,13 @@ export function AjustarInventarioModal({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (enVuelo.current) return;
     if (!responsable.listo) {
       if (responsable.motivo) setError(responsable.motivo);
       return;
     }
-    if (!motivo) {
+    // El motivo es del ajuste: las prendas nuevas en la tienda entran como stock inicial y no lo necesitan.
+    if (ajustes.length > 0 && !motivo) {
       setError("Elige un motivo para el ajuste.");
       return;
     }
@@ -153,58 +193,66 @@ export function AjustarInventarioModal({
       setError("Ingresa al menos un ajuste distinto de cero.");
       return;
     }
-    if (negativas.length > 0) {
+    // Reenviar lo congelado no es un ajuste nuevo sino la pregunta «¿se guardó?»: el stock de la pantalla puede ya
+    // incluir ese mismo envío, así que responde la base (con la misma marca devuelve lo guardado).
+    if (!congelado && negativas.length > 0) {
       setError(
         `${negativas.map((l) => l.variante.sku).join(", ")}: el ajuste dejaría el stock en negativo — hay ${negativas[0].actual} y se pide ${negativas[0].delta}.`
       );
       return;
     }
 
+    enVuelo.current = true;
     setEnviando(true);
     setError(null);
-    const supabase = createClient();
-    const pendientes = [...lineas];
-    // Una sola firma para todo el ajuste: cada línea es una llamada, pero la operación es una y la hace una persona.
-    const firma = responsable.firma();
-    for (const linea of pendientes) {
-      const { error: errorRpc } = await firmar(supabase.rpc("registrar_movimiento", {
-        p_variante_id: linea.variante.varianteId,
-        p_ubicacion_id: ubicacionId,
-        p_tipo: "ajuste",
-        p_cantidad: linea.delta,
-        p_motivo: motivo,
-        p_nota: nota.trim() || undefined,
-        ...(separaPisoAlmacen
-          ? { p_sububicacion_id: ubicado === "piso" ? sububicacionPiso!.id : sububicacionAlmacen!.id }
-          : {}),
-      }), firma);
-      if (errorRpc) {
-        setEnviando(false);
-        responsable.despues(errorRpc);
-        setError(traducirError(errorRpc, "ajustar el inventario"));
-        // Las líneas ya aplicadas se quitan del formulario para no reenviarlas
-        // dos veces si Felipe corrige y reintenta.
-        setDeltas((prev) => {
-          const siguiente = { ...prev };
-          for (const aplicada of pendientes.slice(0, pendientes.indexOf(linea))) {
-            delete siguiente[aplicada.variante.varianteId];
-          }
-          return siguiente;
-        });
-        return;
-      }
-    }
+    // ADR-0240: TODO el ajuste en una llamada (las prendas nuevas como stock inicial y los ajustes), todo o nada, con la
+    // marca de este intento. Antes iba línea por línea: un corte a mitad dejaba la mitad guardada, y reintentar la duplicaba.
+    // Sin tope, una conexión colgada dejaría el modal bloqueado: a los 20 s se corta y se trata como respuesta incierta.
+    const control = new AbortController();
+    const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
+    const { data, error: errorRpc } = await firmar(
+      createClient()
+        .rpc(
+          "ajustar_inventario",
+          argumentosDeAjuste({
+            ubicacionId,
+            sububicacionId: separaPisoAlmacen ? (ubicado === "piso" ? sububicacionPiso!.id : sububicacionAlmacen!.id) : null,
+            ajustes,
+            cargaInicial,
+            motivo,
+            alPiso: cargaInicialAlPiso(ubicado, separaPisoAlmacen, puedeBajarAlPiso),
+            nota,
+            token: token.current,
+          })
+        )
+        .abortSignal(control.signal),
+      responsable.firma()
+    );
+    window.clearTimeout(tope);
     setEnviando(false);
-    responsable.despues(null);
-    avisar.exito(`${lineas.length} ${lineas.length === 1 ? "variante ajustada" : "variantes ajustadas"}`, {
-      detalle: referencia,
-    });
+    responsable.despues(errorRpc);
+    if (errorRpc) {
+      enVuelo.current = false;
+      if (esRespuestaIncierta(errorRpc)) {
+        // Pudo haberse guardado: desde aquí solo se reenvía LO MISMO (los campos quedan fijos), o se cierra.
+        setCongelado(true);
+        setError(TEXTO_AJUSTE_INCIERTO);
+      } else {
+        // La base dijo que no: la transacción se deshizo entera y la marca quedó libre. Se puede corregir y reintentar.
+        setError(traducirError(errorRpc, "ajustar el inventario"));
+      }
+      // Con la red caída no se refresca: un refresh sin red se vuelve navegación completa y borra el mensaje honesto.
+      if (!esFalloDeRed(errorRpc)) router.refresh();
+      return;
+    }
+    const r = leerResultadoAjuste(data) ?? { ajustes: ajustes.length, cargas: cargaInicial.length, ya_registrado: false };
+    avisar.exito(textoExitoAjuste(r), { detalle: referencia });
     router.refresh();
     onClose();
   }
 
   return (
-    <Modal titulo="Ajustar inventario" subtitulo={referencia} onClose={onClose} ancho="max-w-md">
+    <Modal titulo="Ajustar inventario" subtitulo={referencia} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
       {(cerrar) => (
         <form onSubmit={onSubmit} className="mt-2 space-y-4">
           {cargando ? (
@@ -217,7 +265,7 @@ export function AjustarInventarioModal({
                 <Segmentado
                   etiqueta="Dónde se ajusta"
                   valor={ubicado}
-                  onValor={setUbicado}
+                  onValor={(v) => !congelado && cambiarUbicado(v)}
                   opciones={[
                     { valor: "piso", texto: "Piso de venta" },
                     { valor: "almacen", texto: "Almacén de tienda" },
@@ -241,6 +289,7 @@ export function AjustarInventarioModal({
                           {v.sku} · stock {actual}
                           {conAjuste ? ` → ${actual + delta}` : ""}
                         </p>
+                        {v.sinHistoria && <p className="text-[11px] text-taupe">{textoPrendaNueva(ubicado, separaPisoAlmacen, puedeBajarAlPiso)}</p>}
                       </div>
                       <input
                         type="number"
@@ -248,6 +297,7 @@ export function AjustarInventarioModal({
                         step={1}
                         placeholder="0"
                         value={texto}
+                        disabled={congelado}
                         onChange={(e) => setDeltas((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
                         className="w-20 border-b border-tinta/20 bg-transparent px-1 py-1.5 text-right text-sm text-tinta outline-none focus:border-rojo"
                       />
@@ -259,14 +309,23 @@ export function AjustarInventarioModal({
               <CampoSelect
                 etiqueta="Motivo"
                 valor={motivo}
-                onValor={setMotivo}
-                opciones={MOTIVOS_AJUSTE}
+                onValor={(m) => !congelado && setMotivo(m)}
+                opciones={motivos}
                 marcador="Elegir motivo"
               />
+
+              {/* Bajo el motivo, y SIEMPRE ocupando su lugar en una tienda que separa piso y almacén: invisible en Almacén,
+                  a la vista en Piso. Así cambiar Piso/Almacén no mueve el botón que está bajo el mouse (ADR-0185). */}
+              {separaPisoAlmacen && (
+                <p className={`nota-cayla ${cerrada ? "" : "invisible"}`} role="status" aria-hidden={!cerrada || undefined}>
+                  {NOTA_REPOSICION_CERRADA}
+                </p>
+              )}
 
               <CampoTexto
                 etiqueta="Observación (opcional)"
                 value={nota}
+                disabled={congelado}
                 onChange={(e) => setNota(e.target.value)}
                 maxLength={200}
                 placeholder="Detalle libre del ajuste"

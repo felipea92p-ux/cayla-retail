@@ -1,7 +1,10 @@
 import type { CSSProperties } from "react";
 import Link from "next/link";
-import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
-import { getCajaAbierta, getEsperadoCaja, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
+import { puede, requirePersonaActualV2, veModulo, type PersonaActualV2 } from "@/lib/persona-actual";
+import { getCajaAbierta, getTableroCaja, getMovimientosCaja, getHistorialCierres, getUltimoCierre } from "@/lib/caja";
+import { getContextoTableroCaja } from "@/lib/caja-tablero";
+import { getCategoriasGasto, getContextoGastos, getProveedoresParaGasto } from "@/lib/gastos";
+import { diaYHoraLima } from "@/lib/fechas-lima";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { getParametrosCaja } from "@/lib/configuracion";
 import { hoyLima } from "@/lib/etiqueta-vigencia";
@@ -54,33 +57,18 @@ export default async function CajaPage() {
           />
         </div>
       ) : (
-        <CajaConDatos
-          caja={caja}
-          ubicacionNombre={persona.ubicacionEtiqueta}
-          personaNombre={persona.nombre}
-          personaRol={persona.rol}
-          puedeCerrar={puede(persona, "gestionarCaja")}
-        />
+        <CajaConDatos caja={caja} persona={persona} />
       )}
     </div>
   );
 }
 
-async function CajaConDatos({
-  caja,
-  ubicacionNombre,
-  personaNombre,
-  personaRol,
-  puedeCerrar,
-}: {
-  caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>;
-  ubicacionNombre: string;
-  personaNombre: string;
-  personaRol: "lider" | "integrante";
-  puedeCerrar: boolean;
-}) {
+async function CajaConDatos({ caja, persona }: { caja: NonNullable<Awaited<ReturnType<typeof getCajaAbierta>>>; persona: PersonaActualV2 }) {
   const supabase = await createClient();
-  const [{ resumen, series }, movimientos, ubicaciones, historial, resVentasHoy, parametros, esperadoCajon] = await Promise.all([
+  const puedeCerrar = puede(persona, "gestionarCaja");
+  const registraGastos = puede(persona, "registrarGastos");
+  const hoy = hoyLima();
+  const [{ resumen, series, esperado }, movimientos, ubicaciones, historial, resVentasHoy, parametros, datosGasto] = await Promise.all([
     getTableroCaja(caja.id),
     getMovimientosCaja(caja.id),
     getUbicaciones(),
@@ -88,30 +76,50 @@ async function CajaConDatos({
     supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: caja.ubicacionId }),
     // La meta de hoy y el fondo que rigen (ADR-0195 F1): lo normal de la tienda + las campañas. `null` si la base
     // todavía no tiene fn_parametros_caja: se usa la meta de antes y el cierre no pide fondo.
-    getParametrosCaja(caja.ubicacionId, hoyLima()),
-    // «Al cerrar»: cuánto debería haber en el cajón. Solo a quien puede cerrar (fn_esperado_caja lo exige).
-    puedeCerrar ? getEsperadoCaja(caja.id) : Promise.resolve(null),
+    getParametrosCaja(caja.ubicacionId, hoy),
+    // «Registrar gasto» abre desde aquí el mismo formulario de Finanzas ▸ Gastos (solo a quien ve Gastos).
+    registraGastos
+      ? Promise.all([getCategoriasGasto(), getContextoGastos(), getProveedoresParaGasto()]).then(([categorias, contexto, proveedores]) => ({ categorias, ...contexto, proveedores }))
+      : Promise.resolve(null),
   ]);
 
   const { datos: filasVentas, fallo } = tolerar(resVentasHoy, "las ventas de hoy");
-  const ventasHoy: VentaDelDia[] = fallo
-    ? []
-    : (filasVentas ?? []).map((v) => ({
-        ventaId: v.venta_id,
-        hora: v.hora,
-        vendedor: v.vendedor ?? null,
-        metodosPago: v.metodos_pago ?? null,
-        total: Number(v.total),
-      }));
+  const filas = fallo ? [] : (filasVentas ?? []);
+  const ventasHoy: VentaDelDia[] = filas.map((v) => ({
+    ventaId: v.venta_id,
+    hora: v.hora,
+    vendedor: v.vendedor ?? null,
+    metodosPago: v.metodos_pago ?? null,
+    total: Number(v.total),
+  }));
+  // Pendiente antes de cerrar: comprobantes de hoy que todavía no llegaron a SUNAT.
+  const comprobantesPorEnviar = filas.filter((v) => ["pendiente", "pendiente_reintento", "rechazado"].includes(String(v.comprobante_estado ?? ""))).length;
+
+  const contexto = await getContextoTableroCaja({
+    cajaId: caja.id,
+    ubicacionId: caja.ubicacionId,
+    hoy,
+    movimientos: movimientos.map((m) => ({ id: m.id, hora: diaYHoraLima(m.creadoEn).hora })),
+    comprobantesPorEnviar,
+    permisos: {
+      apartados: veModulo(persona, "apartados"),
+      gastos: registraGastos,
+      cambios: veModulo(persona, "cambios"),
+      devoluciones: veModulo(persona, "devoluciones"),
+      traslados: veModulo(persona, "traslados"),
+      facturar: puede(persona, "facturar"),
+      ajustarInventario: puede(persona, "ajustarInventario"),
+    },
+  });
 
   const metaVentaDiaria = parametros ? parametros.meta : (ubicaciones.find((u) => u.id === caja.ubicacionId)?.metaVentaDiaria ?? null);
   const horaCierre = ubicaciones.find((u) => u.id === caja.ubicacionId)?.horaCierre ?? null;
 
   return (
     <CajaAbiertaPanel
-      ubicacionNombre={ubicacionNombre}
-      personaNombre={personaNombre}
-      personaRol={personaRol}
+      ubicacionNombre={persona.ubicacionEtiqueta}
+      personaNombre={persona.nombre}
+      personaRol={persona.rol}
       puedeCerrar={puedeCerrar}
       caja={caja}
       resumen={resumen}
@@ -120,9 +128,17 @@ async function CajaConDatos({
       ventasHoy={ventasHoy}
       metaVentaDiaria={metaVentaDiaria}
       parametros={parametros}
-      esperadoCajon={esperadoCajon}
+      esperadoCajon={esperado}
       horaCierre={horaCierre}
       cierresRecientes={historial}
+      contexto={contexto}
+      accesos={{
+        vender: veModulo(persona, "vender"),
+        cambios: veModulo(persona, "cambios"),
+        devoluciones: veModulo(persona, "devoluciones"),
+        apartados: veModulo(persona, "apartados"),
+      }}
+      gasto={datosGasto ? { ...datosGasto, esLider: persona.rol === "lider", hoy } : null}
     />
   );
 }

@@ -1,5 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { armarVariantesAjuste, type FilaAjuste } from "./ajuste-reglas";
+import {
+  argumentosDeAjuste,
+  armarVariantesAjuste,
+  cargaInicialAlPiso,
+  leerResultadoAjuste,
+  TEXTO_AJUSTE_INCIERTO,
+  textoExitoAjuste,
+  MOTIVOS_AJUSTE,
+  motivosAjusteDisponibles,
+  NOTA_REPOSICION_CERRADA,
+  reposicionCerrada,
+  repartirLineasAjuste,
+  textoPrendaNueva,
+  type FilaAjuste,
+} from "./ajuste-reglas";
 
 const PISO = "sub-piso";
 const ALMACEN = "sub-almacen";
@@ -109,5 +123,130 @@ describe("armarVariantesAjuste — stock y datos de la fila", () => {
     const [v] = armarVariantesAjuste([fila("1", "M", { sku: null, color: null })], PISO, ALMACEN);
     expect(v.sku).toBe("");
     expect(v.color).toBeNull();
+  });
+
+  it("sin sku pero con código de etiqueta, muestra el código (así están 128 de 130 variantes en producción)", () => {
+    const [v] = armarVariantesAjuste([fila("1", "L", { sku: null, codigo: "POL-0004-VIO-L" })], PISO, ALMACEN);
+    expect(v.sku).toBe("POL-0004-VIO-L");
+  });
+});
+
+describe("motivos del ajuste — «Reposición» no toca el piso (ADR-0208)", () => {
+  const valores = (xs: readonly { valor: string }[]) => xs.map((m) => m.valor);
+
+  it("en el piso de una tienda que separa piso y almacén, «Reposición» no se ofrece", () => {
+    expect(valores(motivosAjusteDisponibles("piso", true))).toEqual(["merma", "conteo_fisico", "otro"]);
+    expect(reposicionCerrada("piso", true)).toBe(true);
+  });
+
+  it("en el almacén sigue disponible", () => {
+    expect(valores(motivosAjusteDisponibles("almacen", true))).toContain("reposicion");
+    expect(reposicionCerrada("almacen", true)).toBe(false);
+  });
+
+  it("en una sede que no separa piso y almacén (el Taller) no cambia nada", () => {
+    expect(valores(motivosAjusteDisponibles("piso", false))).toEqual(valores(MOTIVOS_AJUSTE));
+    expect(reposicionCerrada("piso", false)).toBe(false);
+  });
+
+  it("la nota nombra los dos caminos que sí sacan del almacén y el motivo para lo encontrado de más", () => {
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Bajar al piso»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Reponer»");
+    expect(NOTA_REPOSICION_CERRADA).toContain("«Conteo físico»");
+  });
+
+  it("y el camino de vuelta: guardar prendas del piso en el almacén es «Retirar del piso», y dice dónde está", () => {
+    // Sin esta frase, quien quiere guardar entra a Ajustar y arma a mano «Otro» −N en el piso y «Reposición» +N en el
+    // almacén: un retiro sin rastro ni nota (revisión del bloque 2 de ADR-0208).
+    expect(NOTA_REPOSICION_CERRADA).toContain("Guardar en el almacén: «⋯» ▸ «Retirar del piso».");
+    expect(NOTA_REPOSICION_CERRADA).toContain("Todo en Existencias");
+    // Corta a propósito: la nota ocupa su lugar aunque esté invisible en «Almacén» (ADR-0185).
+    expect(NOTA_REPOSICION_CERRADA.length).toBeLessThan(260);
+  });
+});
+
+describe("una prenda sin historia en la tienda no se ajusta: entra como stock inicial (ADR-0235)", () => {
+  it("sin ninguna fila de stock en la sede es «sin historia»; con una fila (aunque esté en 0), no", () => {
+    const filas = armarVariantesAjuste(
+      [fila("1", "S", { stock: [] }), fila("2", "M", { stock: null }), fila("3", "L", { stock: [{ cantidad: 0, sububicacion_id: PISO }] })],
+      PISO,
+      ALMACEN
+    );
+    expect(filas.map((v) => [v.varianteId, v.sinHistoria])).toEqual([
+      ["1", true],
+      ["2", true],
+      ["3", false],
+    ]);
+  });
+
+  it("reparte las líneas: las nuevas con cantidad positiva van a stock inicial, el resto se ajusta", () => {
+    const nueva = { sinHistoria: true };
+    const conHistoria = { sinHistoria: false };
+    const { ajustes, cargaInicial } = repartirLineasAjuste([
+      { variante: nueva, delta: 3 },
+      { variante: conHistoria, delta: -1 },
+      { variante: conHistoria, delta: 2 },
+      { variante: nueva, delta: -2 },
+    ]);
+    expect(cargaInicial.map((l) => l.delta)).toEqual([3]);
+    expect(ajustes.map((l) => l.delta)).toEqual([-1, 2]);
+  });
+});
+
+describe("la carga inicial «en el piso» es una bajada: pide el módulo «Bajada al piso» (ADR-0212, ADR-0235)", () => {
+  it("con el módulo, lo nuevo elegido en Piso queda en el piso", () => {
+    expect(cargaInicialAlPiso("piso", true, true)).toBe(true);
+    expect(textoPrendaNueva("piso", true, true)).toBe("Nueva en esta tienda · entra como stock inicial");
+  });
+
+  it("sin el módulo, lo nuevo elegido en Piso entra al almacén, y la fila lo dice antes de confirmar", () => {
+    expect(cargaInicialAlPiso("piso", true, false)).toBe(false);
+    expect(textoPrendaNueva("piso", true, false)).toMatch(/entra al almacén/);
+  });
+
+  it("en Almacén, o en una sede que no separa piso y almacén, nunca se baja nada y el módulo no importa", () => {
+    for (const puede of [true, false]) {
+      expect(cargaInicialAlPiso("almacen", true, puede)).toBe(false);
+      expect(cargaInicialAlPiso("piso", false, puede)).toBe(false);
+      expect(textoPrendaNueva("almacen", true, puede)).toBe("Nueva en esta tienda · entra como stock inicial");
+      expect(textoPrendaNueva("piso", false, puede)).toBe("Nueva en esta tienda · entra como stock inicial");
+    }
+  });
+});
+
+describe("«Ajustar» de una vez, con marca (ADR-0240)", () => {
+  const nueva = { variante: { varianteId: "v-nueva" }, delta: 3 };
+  const conHistoria = { variante: { varianteId: "v-vieja" }, delta: -1 };
+  const base = { ubicacionId: "tru", sububicacionId: "alm", alPiso: false, token: "tok" };
+
+  it("arma UNA llamada con las dos listas, el motivo solo si hay ajustes y la nota vacía como null", () => {
+    expect(argumentosDeAjuste({ ...base, ajustes: [conHistoria], cargaInicial: [nueva], motivo: "conteo_fisico", nota: "  " })).toEqual({
+      p_ubicacion_id: "tru",
+      p_sububicacion_id: "alm",
+      p_ajustes: [{ variante_id: "v-vieja", cantidad: -1 }],
+      p_motivo: "conteo_fisico",
+      p_cargas: [{ variante_id: "v-nueva", cantidad: 3 }],
+      p_al_piso: false,
+      p_nota: null,
+      p_token: "tok",
+    });
+    const soloCarga = argumentosDeAjuste({ ...base, ajustes: [], cargaInicial: [nueva], motivo: "conteo_fisico", nota: "caja 3" });
+    expect(soloCarga.p_motivo).toBeNull();
+    expect(soloCarga.p_nota).toBe("caja 3");
+  });
+
+  it("el éxito dice qué se hizo, y si era un reintento de algo ya guardado", () => {
+    expect(textoExitoAjuste({ ajustes: 2, cargas: 1 })).toBe("2 variantes ajustadas · 1 cargada como stock inicial");
+    expect(textoExitoAjuste({ ajustes: 1, cargas: 0, ya_registrado: true })).toBe("Ya estaba guardado: 1 variante ajustada");
+  });
+
+  it("lee la respuesta de la base, y no inventa nada si no calza", () => {
+    expect(leerResultadoAjuste({ ajustes: 2, cargas: 0, unidades_cargadas: 0, ya_registrado: false })).toEqual({ ajustes: 2, cargas: 0, ya_registrado: false });
+    expect(leerResultadoAjuste({ ajustes: "2" })).toBeNull();
+    expect(leerResultadoAjuste(null)).toBeNull();
+  });
+
+  it("el mensaje de respuesta incierta manda a reenviar lo mismo, no a rehacer", () => {
+    expect(TEXTO_AJUSTE_INCIERTO).toMatch(/no se repite/);
   });
 });

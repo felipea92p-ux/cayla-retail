@@ -1,6 +1,7 @@
 # ADR-0200 — Dominio de Inventario: comportamiento comercial reconstruido sobre la definición canónica de Felipe
 
-**Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
+**Fecha:** 2026-09-24 · **Estado:** aplicado (fusionado en el PR #397; sus 2 migraciones, `20260924010700` y `20260924030000`, están en
+producción — verificado por efectos en la base el 2026-09-25; la línea anterior decía «nada aplicado a producción») ·
 **Sucede a:** [ADR-0199](0199-comportamiento-comercial-piso-vs-almacen.md) — no lo reemplaza en la bitácora, lo **corrige**:
 0179 fue la primera versión, escrita ANTES de recibir la definición canónica de Felipe. Una auditoría de 8 hallazgos
 independientes (2026-09-24, self-encargada) encontró que esa primera versión contradecía el modelo en sus dos puntos

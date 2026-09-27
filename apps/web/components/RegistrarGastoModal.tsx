@@ -8,6 +8,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { CampoFin, InputFin, RadiosFin, SalidaFin, SelectFin } from "@/components/finanzas/kit";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
 import { CampoCuentaFin, useCuentasParaElegir } from "@/components/finanzas/CampoCuenta";
 import { cuentaDeSalida, medioDeCuenta, mediosDeBanco } from "@/lib/cuenta-sellada-reglas";
 import { useResponsable } from "@/lib/useResponsable";
@@ -23,6 +24,7 @@ import {
   mediosPara,
   parsearMonto,
   partirSerieNumero,
+  sumarProveedorDeGasto,
   textoVidaUtil,
   validarActivo,
   validarGasto,
@@ -42,6 +44,9 @@ import {
 //  · F2b: un gasto que nace de un gasto fijo (viene lleno), o un ACTIVO (un mueble, una laptop): el mismo comprobante y
 //    pago, pero dice qué tipo de activo es y su vida útil, y la base lo deprecia.
 // La pantalla solo arma y explica; la base vuelve a validar todo (`registrar_gasto`, `registrar_activo`).
+// «¿No está? Súmalo» pregunta antes «¿no será un proveedor que ya tienes?» (`sumarProveedorDeGasto`, 2026-09-25): «Sí» lo
+// elige aquí mismo; «No, es otro» deja sumar; sumar sin contestar no suma. Si es el mismo RUC o el mismo nombre, se elige
+// el que ya está: es lo que haría la base (`registrar_proveedor_de_gasto`), dicho antes y sin viaje.
 
 export type ProveedorGasto = { id: string; nombre: string; ruc: string | null };
 
@@ -80,6 +85,8 @@ export function RegistrarGastoModal({
   const [guardando, setGuardando] = useState(false);
   const [proveedores, setProveedores] = useState(proveedoresIniciales);
   const [nuevoProveedor, setNuevoProveedor] = useState<{ nombre: string; ruc: string } | null>(null);
+  const [descartados, setDescartados] = useState<ReadonlySet<string>>(() => new Set());
+  const alSumar = nuevoProveedor ? sumarProveedorDeGasto(nuevoProveedor, proveedores, descartados) : null;
   const [token] = useState(() => crypto.randomUUID());
   const [documento, setDocumento] = useState("");
   const esActivo = clase === "activo";
@@ -146,14 +153,31 @@ export function RegistrarGastoModal({
     });
   }
 
+  function elegirProveedor(id: string) {
+    poner("proveedorId", id);
+    setNuevoProveedor(null);
+  }
+
   async function sumarProveedor() {
-    if (!nuevoProveedor?.nombre.trim()) return avisar.error("Escribe el nombre del proveedor.");
+    if (!nuevoProveedor || !alSumar) return;
+    if (alSumar.paso === "es") {
+      elegirProveedor(alSumar.proveedor.id);
+      return avisar.exito(`Quedó elegido ${alSumar.proveedor.nombre}`, { detalle: "Ya estaba en el directorio: no se creó otro." });
+    }
+    if (alSumar.paso === "incompleto") return avisar.error("Escribe el nombre del proveedor.", { enfocar: "nuevo-prov-nombre" });
+    if (alSumar.paso === "preguntar") {
+      return avisar.error(
+        alSumar.parecidos.length === 1
+          ? `Antes de sumar, dinos si «${nuevoProveedor.nombre.trim()}» es el mismo proveedor que «${alSumar.parecidos[0].proveedor.nombre}».`
+          : `Antes de sumar, dinos si «${nuevoProveedor.nombre.trim()}» es alguno de los proveedores de arriba.`,
+        { enfocar: "gasto-proveedor-parecido" },
+      );
+    }
     const { data, error } = await createClient().rpc("registrar_proveedor_de_gasto" as never, { p_nombre: nuevoProveedor.nombre, p_ruc: nuevoProveedor.ruc || null } as never);
     if (error) return avisar.error(traducirError(error, "sumar el proveedor"));
     const id = String(data);
     if (!proveedores.some((p) => p.id === id)) setProveedores((ps) => [...ps, { id, nombre: nuevoProveedor.nombre.trim(), ruc: nuevoProveedor.ruc || null }].sort((x, y) => x.nombre.localeCompare(y.nombre)));
-    poner("proveedorId", id);
-    setNuevoProveedor(null);
+    elegirProveedor(id);
   }
 
   async function guardar() {
@@ -216,21 +240,26 @@ export function RegistrarGastoModal({
                 htmlFor="gasto-proveedor"
                 ayuda={
                   nuevoProveedor ? undefined : (
-                    <button type="button" className="btn-enlace text-[11.5px]" onClick={() => setNuevoProveedor({ nombre: "", ruc: "" })}>
+                    <button
+                      type="button"
+                      className="btn-enlace text-[11.5px]"
+                      onClick={() => {
+                        setNuevoProveedor({ nombre: "", ruc: "" });
+                        setDescartados(new Set());
+                      }}
+                    >
                       ¿No está? Súmalo
                     </button>
                   )
                 }
               >
-                <SelectFin id="gasto-proveedor" value={b.proveedorId} onChange={(e) => poner("proveedorId", e.target.value)}>
-                  <option value="">Elige…</option>
-                  {proveedores.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.nombre}
-                      {p.ruc ? ` · ${p.ruc}` : ""}
-                    </option>
-                  ))}
-                </SelectFin>
+                <SelectFin
+                  id="gasto-proveedor"
+                  valor={b.proveedorId}
+                  onValor={(v) => poner("proveedorId", v)}
+                  marcador="Elige…"
+                  opciones={proveedores.map((p) => ({ valor: p.id, texto: `${p.nombre}${p.ruc ? ` · ${p.ruc}` : ""}` }))}
+                />
               </CampoFin>
               <CampoFin etiqueta="Serie y número" htmlFor="gasto-documento" tono={documento && !b.numero ? "aviso" : undefined} ayuda={documento && !b.numero ? "Como está en el comprobante: serie, guion y número (F001-00140)." : undefined}>
                 <InputFin
@@ -256,6 +285,32 @@ export function RegistrarGastoModal({
                     <InputFin id="nuevo-prov-ruc" inputMode="numeric" value={nuevoProveedor.ruc} onChange={(e) => setNuevoProveedor((n) => n && { ...n, ruc: e.target.value.replace(/\D/g, "").slice(0, 11) })} />
                   </CampoFin>
                 </div>
+                {alSumar?.paso === "es" && (
+                  <div className="mt-3">
+                    <PreguntaParecido
+                      id="gasto-proveedor-parecido"
+                      titulo={alSumar.por === "ruc" ? `El RUC ${alSumar.proveedor.ruc} ya es de «${alSumar.proveedor.nombre}»` : `«${alSumar.proveedor.nombre}» ya está en la lista`}
+                      bajada="Es el mismo proveedor: elígelo y el gasto queda en su ficha. No se crea otro."
+                      opciones={[{ id: alSumar.proveedor.id, nombre: alSumar.proveedor.nombre, detalle: alSumar.proveedor.ruc ? `RUC ${alSumar.proveedor.ruc}` : "sin RUC" }]}
+                      si={(o) => ({ texto: `Usar ${o.nombre}`, onClick: () => elegirProveedor(o.id) })}
+                    />
+                  </div>
+                )}
+                {alSumar?.paso === "preguntar" && (
+                  <div className="mt-3">
+                    <PreguntaParecido
+                      id="gasto-proveedor-parecido"
+                      titulo="¿No será un proveedor que ya tienes?"
+                      bajada="Si es el mismo, elígelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
+                      opciones={alSumar.parecidos.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: proveedor.ruc ? `RUC ${proveedor.ruc}` : "sin RUC" }))}
+                      si={(o) => ({ texto: `Sí, es ${o.nombre}`, onClick: () => elegirProveedor(o.id) })}
+                      no={{
+                        texto: `No, «${nuevoProveedor.nombre.trim()}» es otro proveedor`,
+                        onClick: () => setDescartados((prev) => new Set([...prev, ...alSumar.parecidos.map((p) => p.proveedor.id)])),
+                      }}
+                    />
+                  </div>
+                )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <button type="button" className="btn-cayla btn-secundario btn-chico" onClick={sumarProveedor}>
                     Sumar proveedor
@@ -294,13 +349,13 @@ export function RegistrarGastoModal({
       {esActivo ? (
         <div className="fin-dos-campos">
           <CampoFin etiqueta="Dónde está" htmlFor="gasto-ubicacion">
-            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-              {opcionesUbicacion.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="gasto-ubicacion"
+              valor={b.ubicacion}
+              deshabilitado={!!egreso || opcionesUbicacion.length < 2}
+              onValor={(v) => poner("ubicacion", v)}
+              opciones={opcionesUbicacion}
+            />
           </CampoFin>
           <CampoFin
             etiqueta="Vida útil"
@@ -311,36 +366,34 @@ export function RegistrarGastoModal({
                 : "La sugiere el tipo de bien; el contador la confirma."
             }
           >
-            <SelectFin id="activo-tipo" value={activo.tipo} onChange={(e) => setActivo({ tipo: e.target.value })}>
-              <option value="">Elige qué tipo de bien es…</option>
-              {tiposActivo.map((t) => (
-                <option key={t.codigo} value={t.codigo}>
-                  {textoVidaUtil(t.vidaUtilMeses)} · {t.nombre.toLowerCase()}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="activo-tipo"
+              valor={activo.tipo}
+              onValor={(tipo) => setActivo({ tipo })}
+              marcador="Elige qué tipo de bien es…"
+              opciones={tiposActivo.map((t) => ({ valor: t.codigo, texto: `${textoVidaUtil(t.vidaUtilMeses)} · ${t.nombre.toLowerCase()}` }))}
+            />
           </CampoFin>
         </div>
       ) : (
         <div className="fin-dos-campos">
           <CampoFin etiqueta="Categoría" htmlFor="gasto-categoria" ayuda={categoria ? `Va a la cuenta ${categoria.cuenta}. Nadie la elige: viene con la categoría.` : "Sin «Otros»: si no calza en ninguna, avisa al líder."}>
-            <SelectFin id="gasto-categoria" value={b.categoria} onChange={(e) => poner("categoria", e.target.value)}>
-              <option value="">Elige…</option>
-              {categorias.map((c) => (
-                <option key={c.codigo} value={c.codigo}>
-                  {c.nombre} — {c.ejemplos}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="gasto-categoria"
+              valor={b.categoria}
+              onValor={(v) => poner("categoria", v)}
+              marcador="Elige…"
+              opciones={categorias.map((c) => ({ valor: c.codigo, texto: `${c.nombre} — ${c.ejemplos}` }))}
+            />
           </CampoFin>
           <CampoFin etiqueta="A quién se le carga" htmlFor="gasto-ubicacion">
-            <SelectFin id="gasto-ubicacion" value={b.ubicacion} disabled={!!egreso || !!fijo || opcionesUbicacion.length < 2} onChange={(e) => poner("ubicacion", e.target.value)}>
-              {opcionesUbicacion.map((o) => (
-                <option key={o.valor} value={o.valor}>
-                  {o.texto}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              id="gasto-ubicacion"
+              valor={b.ubicacion}
+              deshabilitado={!!egreso || !!fijo || opcionesUbicacion.length < 2}
+              onValor={(v) => poner("ubicacion", v)}
+              opciones={opcionesUbicacion}
+            />
           </CampoFin>
         </div>
       )}
@@ -402,25 +455,23 @@ export function RegistrarGastoModal({
                   : "Si sale de un cajón, se crea su egreso de caja en la misma operación."
               }
             >
-              <SelectFin id="gasto-medio" value={b.medio} onChange={(e) => poner("medio", e.target.value as BorradorGasto["medio"])}>
-                <option value="">Elige…</option>
-                {mediosPara(b.comprobante).map((m) => (
-                  <option key={m} value={m}>
-                    {m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m]}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin<BorradorGasto["medio"]>
+                id="gasto-medio"
+                valor={b.medio}
+                onValor={(m) => poner("medio", m)}
+                marcador="Elige…"
+                opciones={mediosPara(b.comprobante).map((m) => ({ valor: m, texto: m === "efectivo" ? "Efectivo del cajón" : TEXTO_MEDIO[m] }))}
+              />
             </CampoFin>
           )}
           {!aCredito && conCuentas && bancoConMedio && (
             <CampoFin etiqueta="Cómo" htmlFor="gasto-medio-banco" ayuda="Del banco, por qué camino salió.">
-              <SelectFin id="gasto-medio-banco" value={bancoConMedio} onChange={(e) => setMedioBanco(e.target.value as typeof medioBanco)}>
-                {mediosDeBanco(conComprobante).map((m) => (
-                  <option key={m} value={m}>
-                    {TEXTO_MEDIO[m]}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin
+                id="gasto-medio-banco"
+                valor={bancoConMedio}
+                onValor={(m) => setMedioBanco(m)}
+                opciones={mediosDeBanco(conComprobante).map((m) => ({ valor: m, texto: TEXTO_MEDIO[m] }))}
+              />
             </CampoFin>
           )}
           {!aCredito && (conCuentas ? !bancoConMedio && medioSalida && medioSalida !== "efectivo" : b.medio && b.medio !== "efectivo") && (

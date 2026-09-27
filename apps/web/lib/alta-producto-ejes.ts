@@ -40,29 +40,45 @@ export async function guardarEjesCategoria(
   }
 }
 
-const CLAVE_RESPUESTA: Record<TipoVocabulario, string> = { tallas: "talla", tejidos: "tejido", patrones: "patron" };
+type RutaVocabulario = TipoVocabulario | "etiquetas";
+
+const CLAVE_RESPUESTA: Record<RutaVocabulario, string> = { tallas: "talla", tejidos: "tejido", patrones: "patron", etiquetas: "etiqueta" };
 
 export type ValorCreado = { id: string; texto: string; aprobado: boolean };
 
-/** Propone un valor nuevo (POST /api/productos/{tipo}). Un Líder lo deja aprobado de una; cualquier otro rol lo deja pendiente. */
-export async function proponerValorVocabulario(
-  tipo: TipoVocabulario,
+async function proponerEnVocabulario(
+  ruta: RutaVocabulario,
   texto: string,
   encabezados: Record<string, string>,
 ): Promise<{ valor: ValorCreado | null; error: string | null }> {
   try {
-    const res = await fetch(`/api/productos/${tipo}`, {
+    const res = await fetch(`/api/productos/${ruta}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...encabezados },
-      // Tallas guarda el texto en `valor`; tejidos y patrones en `nombre` (así están sus rutas).
-      body: JSON.stringify(tipo === "tallas" ? { valor: texto } : { nombre: texto }),
+      // Tallas guarda el texto en `valor`; tejidos, patrones y etiquetas en `nombre` (así están sus rutas).
+      body: JSON.stringify(ruta === "tallas" ? { valor: texto } : { nombre: texto }),
     });
     const datos = await res.json().catch(() => null);
     if (!res.ok) return { valor: null, error: datos?.error ?? "No se pudo agregar." };
-    const fila = datos?.[CLAVE_RESPUESTA[tipo]];
+    const fila = datos?.[CLAVE_RESPUESTA[ruta]];
     if (!fila?.id) return { valor: null, error: "La respuesta no trajo el valor creado. Recarga la pantalla." };
     return { valor: { id: fila.id, texto: fila.valor ?? fila.nombre ?? texto, aprobado: fila.estado === "aprobado" }, error: null };
   } catch {
     return { valor: null, error: "No se pudo hablar con el servidor. Reintenta en un momento." };
   }
+}
+
+/** Propone un valor nuevo (POST /api/productos/{tipo}). Un Líder lo deja aprobado de una; cualquier otro rol lo deja pendiente. */
+export function proponerValorVocabulario(tipo: TipoVocabulario, texto: string, encabezados: Record<string, string>) {
+  return proponerEnVocabulario(tipo, texto, encabezados);
+}
+
+/**
+ * Crea una etiqueta nueva desde el alta (POST /api/productos/etiquetas): el mismo mecanismo que un tejido o un patrón nuevo
+ * (vocabulario cerrado, ADR-0095). Un Líder la deja aprobada de una y se puede aplicar ya; cualquier otro rol la deja
+ * PENDIENTE y no se puede aplicar a la prenda hasta que un Líder la apruebe (`valor.aprobado === false`).
+ * Con internet caído devuelve la frase «No se pudo hablar con el servidor», sin crear nada.
+ */
+export function proponerEtiqueta(texto: string, encabezados: Record<string, string>) {
+  return proponerEnVocabulario("etiquetas", texto, encabezados);
 }

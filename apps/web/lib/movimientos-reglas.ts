@@ -1,6 +1,7 @@
 import type { TonoChip } from "@/components/ui/Chip";
 // Relativo, no `@/`: vitest no resuelve el alias y este archivo tiene pruebas.
 import { ESTADO_ETIQUETA, ETIQUETA_TIPO, type EstadoComprobante, type TipoComprobante } from "./comprobantes-reglas";
+import type { Cantidades } from "./inventario-reglas";
 
 // Reglas de lectura de Movimientos, sin nada de servidor: las importan los
 // componentes cliente (lista, filtros, detalle). Las lecturas contra Postgres
@@ -23,31 +24,38 @@ export type CategoriaFila = CategoriaMovimiento | "apartado" | "liberacion_apart
 
 export const CATEGORIAS: CategoriaMovimiento[] = ["entrada", "salida", "interno", "ajuste", "transferencia"];
 
+// Vocabulario de tienda (ADR-0234): «Traslado» como en el menú —nunca «Transferencia», que en el Perú suena a Yape o al
+// banco— y «Dentro de la sede» en vez de «Interno», que no dice nada a quien no conoce el sistema.
 export const ETIQUETA_CATEGORIA: Record<CategoriaFila, string> = {
   entrada: "Entrada",
   salida: "Salida",
-  interno: "Interno",
+  interno: "Dentro de la sede",
   ajuste: "Ajuste",
-  transferencia: "Transferencia",
+  transferencia: "Traslado",
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
 };
 
 /** Los filtros rápidos por tipo, en el orden en que se leen en la pantalla
- *  («Todos» es no elegir ninguno). Plural: son grupos de movimientos. */
+ *  («Todos» es no elegir ninguno). Plural: son grupos de movimientos.
+ *
+ *  Se leen DESDE LA TIENDA (ADR-0234): «Entradas» es todo lo que sumó stock a la sede —también el traslado que llegó—,
+ *  y «Salidas» todo lo que lo restó —también el que salió—; «Traslados» trae las dos piernas. Un traslado que llega está
+ *  en «Entradas» y en «Traslados» a la vez: las cifras de las píldoras no suman el total, y está bien (son filtros, no
+ *  cajones). El valor en la URL no cambia (`?cat=transferencia`): los enlaces ya compartidos siguen funcionando. */
 export const FILTROS_TIPO: { valor: CategoriaMovimiento; etiqueta: string }[] = [
   { valor: "entrada", etiqueta: "Entradas" },
   { valor: "salida", etiqueta: "Salidas" },
-  { valor: "interno", etiqueta: "Internos" },
-  { valor: "transferencia", etiqueta: "Transferencias" },
+  { valor: "transferencia", etiqueta: "Traslados" },
+  { valor: "interno", etiqueta: "Piso ↔ almacén" },
   { valor: "ajuste", etiqueta: "Ajustes" },
 ];
 
-// Sobrio a propósito: verde = llegó mercadería, ámbar = se movió dentro de la
-// tienda (piso ↔ almacén), rojo = un ajuste que RESTA (hay que mirarlo), el
-// resto neutro. Un ajuste que suma no es alarma.
+// Sobrio a propósito: verde = llegó mercadería (del proveedor o de otra sede: para la tienda es lo mismo), ámbar = se
+// movió dentro de la tienda (piso ↔ almacén), rojo = un ajuste que RESTA (hay que mirarlo), el resto neutro. Un ajuste
+// que suma no es alarma.
 export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip {
-  if (categoria === "entrada") return "verde";
+  if (categoria === "entrada" || (categoria === "transferencia" && delta > 0)) return "verde";
   if (categoria === "interno" || categoria === "apartado" || categoria === "liberacion_apartado") return "ambar";
   if (categoria === "ajuste" && delta < 0) return "rojo";
   return "neutro";
@@ -57,7 +65,8 @@ export function tonoCategoria(categoria: CategoriaFila, delta: number): TonoChip
  *  operación los escriben las RPC; los de «sistema» son cargas hechas por
  *  script, sin persona (`usuario_id` null): existen en producción y se
  *  muestran con nombre propio, no se inventan. `reposicion`/`merma`/
- *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` — un ajuste
+ *  `conteo_fisico`/`otro` son de `AjustarInventarioModal.tsx` (la lista vive en
+ *  `ajuste-reglas.ts`) — un ajuste
  *  suelto vía `registrar_movimiento`, tipo='ajuste' — y se distinguen a
  *  propósito de `conteo` (ADR-0023): ese lo escribe SOLO `cerrar_conteo`, con
  *  `conteo_item_id` enlazado al conteo formal; `conteo_fisico` es el mismo
@@ -74,25 +83,32 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   venta: "Venta",
   // Modelo anterior (una sola fila que sale de una sede y entra a otra): la dirección la
   // dice `etiquetaMovimiento`, que mira hacia dónde va el stock de la sede que se mira.
-  transferencia: "Transferencia",
-  traslado_salida: "Transferencia · salida",
-  traslado_entrada: "Transferencia · llegada",
-  movimiento_interno: "Reposición interna",
+  transferencia: "Traslado",
+  traslado_salida: "Traslado enviado",
+  traslado_entrada: "Traslado recibido",
+  // ADR-0239 (D-132): el envío se anuló antes de que la otra sede lo contara y la prenda volvió a la sede que lo envió.
+  traslado_anulado: "Traslado anulado",
+  // El filtro es por motivo y trae todo lo que escribe `mover_interno`, sea cual sea el par: no promete bajada ni retiro.
+  // No es «Entre piso y almacén»: también mueve de la cuarentena o entre racks del Taller. Las bajadas y los retiros
+  // tienen nombre propio por su par (`INTERNO_POR_PAR`); este es el de cualquier otro.
+  movimiento_interno: "Movido dentro de la sede",
   devolucion: "Devolución",
   cambio: "Cambio",
-  anulacion_venta: "Anulación de venta",
+  anulacion_venta: "Venta anulada",
   produccion: "Producción",
   conteo: "Conteo",
   apartado: "Apartado",
   liberacion_apartado: "Apartado liberado",
   // Los ajustes sueltos llevan «Ajuste ·» delante: «Reposición» a secas se confundía con
-  // «Reposición interna» (bajar del almacén al piso), que es otra cosa.
+  // la bajada del almacén al piso, que es otra cosa.
   reposicion: "Ajuste · reposición",
   merma: "Ajuste · merma",
   conteo_fisico: "Ajuste · conteo físico",
   otro: "Ajuste · otro",
-  carga_inicial: "Carga inicial",
-  activacion_piso_almacen: "Activación piso/almacén",
+  // ADR-0212: lo que ya estaba en la tienda al pasarla al sistema. «Stock inicial», como lo dice Nuevo producto.
+  carga_inicial: "Stock inicial",
+  // La carga de sistema que repartió el stock cuando la tienda empezó a separar piso y almacén.
+  activacion_piso_almacen: "Separación de piso y almacén",
   siembra_cargo_especial: "Cargo especial",
   // ADR-0179: prenda vendida antes de registrarse que llegó en un lote contado sin ella.
   ingreso_regularizado: "Prenda sin registrar · ingreso",
@@ -101,40 +117,18 @@ export const ETIQUETA_PROCESO: Record<string, string> = {
   cuarentena_donada: "Dañado · donada",
 };
 
-/** Los procesos que ofrece el filtro, en el orden en que se leen. */
-export const PROCESOS_FILTRO: { valor: string; etiqueta: string }[] = [
-  "recepcion",
-  "venta",
-  "traslado_salida",
-  "traslado_entrada",
-  "movimiento_interno",
-  "devolucion",
-  "cambio",
-  "anulacion_venta",
-  "produccion",
-  "conteo",
-  "reposicion",
-  "merma",
-  "conteo_fisico",
-  "otro",
-  "carga_inicial",
-  "activacion_piso_almacen",
-  "cuarentena_liquidada",
-  "cuarentena_se_boto",
-  "cuarentena_donada",
-].map((valor) => ({ valor, etiqueta: ETIQUETA_PROCESO[valor] }));
-
 /** Qué procesos caben en cada tipo, para el filtro en dos pasos de Movimientos (2026-09-22,
  *  demo de rediseño): se elige el tipo y DEBAJO aparecen solo sus procesos, en vez de una lista
  *  de 19. Sale de con qué `tipo` escribe cada RPC cada motivo: «Cambio» vive en dos (la prenda
  *  devuelta entra, la nueva sale) y por eso está en Entradas y en Salidas. Un proceso que no esté
  *  acá se sigue filtrando por URL (`?proc=`); solo no tiene botón. */
 export const PROCESOS_POR_CATEGORIA: Record<CategoriaMovimiento, string[]> = {
-  entrada: ["recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial"],
-  salida: ["venta", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
+  // Desde la tienda (ADR-0234): el traslado recibido es una entrada y el enviado, una salida — y los dos siguen en «Traslados».
+  entrada: ["traslado_entrada", "traslado_anulado", "recepcion", "devolucion", "cambio", "anulacion_venta", "produccion", "carga_inicial", "ingreso_regularizado"],
+  salida: ["venta", "traslado_salida", "cambio", "cuarentena_liquidada", "cuarentena_se_boto", "cuarentena_donada"],
   interno: ["movimiento_interno", "activacion_piso_almacen"],
-  transferencia: ["traslado_salida", "traslado_entrada"],
-  ajuste: ["conteo", "reposicion", "merma", "conteo_fisico", "otro"],
+  transferencia: ["traslado_entrada", "traslado_salida", "traslado_anulado"],
+  ajuste: ["conteo", "conteo_fisico", "merma", "reposicion", "otro"],
 };
 
 /** El tipo al que pertenece un proceso, si es uno solo. Sirve para que un enlace con solo
@@ -151,12 +145,32 @@ export function etiquetaProceso(motivo: string | null): string {
   return ETIQUETA_PROCESO[motivo] ?? motivo.replace(/_/g, " ");
 }
 
+/** Los motivos con que las RPC escriben cada pierna de un traslado (ADR-0239 suma la vuelta de un envío anulado). */
+const PIERNAS_DE_TRASLADO: readonly string[] = ["traslado_entrada", "traslado_salida", "traslado_anulado"];
+
+/** Por el PAR exacto, como `fn_bajadas_del_piso`: solo el destino llamaba «Bajada» a lo que sale de cuarentena. */
+const INTERNO_POR_PAR: Record<string, string> = {
+  "almacen_tienda→piso_venta": "Bajada al piso",
+  "piso_venta→almacen_tienda": "Retiro del piso",
+};
+
 /** Lo que dice la columna «Movimiento»: el proceso en lenguaje claro. En una
  *  transferencia la palabra que importa es hacia dónde va el stock DE LA SEDE QUE SE
  *  MIRA («llegada» si suma, «salida» si resta): lo dice el signo, no el motivo — así
- *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas. */
-export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
-  if (m.categoria === "transferencia") return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+ *  también se lee bien una fila del modelo anterior, que no distingue las dos piernas.
+ *  «Interno» sale de la categoría (estructura, `fn_es_traslado_interno`), nunca del motivo (ADR-0203); un par que no es
+ *  bajada ni retiro conserva el nombre de su proceso («Movimiento interno», «Activación piso/almacén»). */
+export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
+  if (m.categoria === "transferencia") {
+    // Las piernas del traslado en dos fases dicen su propio nombre: el signo no distingue «recibido» de «anulado»
+    // (los dos suman). Solo la fila del modelo anterior, sin pierna, se lee por el signo.
+    if (m.motivo && PIERNAS_DE_TRASLADO.includes(m.motivo)) return ETIQUETA_PROCESO[m.motivo];
+    return m.delta > 0 ? ETIQUETA_PROCESO.traslado_entrada : ETIQUETA_PROCESO.traslado_salida;
+  }
+  if (m.categoria === "interno") {
+    const porPar = INTERNO_POR_PAR[`${m.sububicacion?.tipo ?? ""}→${m.sububicacionDestino?.tipo ?? ""}`];
+    if (porPar) return porPar;
+  }
   return etiquetaProceso(m.motivo);
 }
 
@@ -168,8 +182,9 @@ export function etiquetaMovimiento(m: Pick<Movimiento, "categoria" | "motivo" | 
  *  signo que ya usa `etiquetaMovimiento`). Si el texto del proceso ya empieza con esa palabra (los
  *  ajustes sueltos ya traen «Ajuste ·» en `ETIQUETA_PROCESO`), no se duplica. */
 export function etiquetaConDireccion(m: Pick<Movimiento, "categoria" | "motivo" | "delta" | "sububicacion" | "sububicacionDestino">): string {
-  if (m.categoria === "transferencia") return m.delta > 0 ? "Entrada · Traslado recibido" : "Salida · Traslado enviado";
-  if (m.categoria === "interno") return `Interno · a ${nombreCortoSububicacion(m.sububicacionDestino).toLowerCase()}`;
+  if (m.categoria === "transferencia") return `${m.delta > 0 ? "Entrada" : "Salida"} · ${etiquetaMovimiento(m)}`;
+  // Dentro de la tienda no entra ni sale nada: «Bajada al piso» / «Retiro del piso» ya dicen hacia dónde (ADR-0234).
+  if (m.categoria === "interno") return etiquetaMovimiento(m);
   const detalle = etiquetaMovimiento(m);
   const direccion = ETIQUETA_CATEGORIA[m.categoria];
   return detalle.startsWith(direccion) ? detalle : `${direccion} · ${detalle}`;
@@ -180,22 +195,6 @@ export const ETIQUETA_ESTADO_DEVOLUCION: Record<string, string> = {
   aprobada: "Aprobada",
   rechazada: "Rechazada",
 };
-
-/** `transferencias.estado` (20260916150000): "completada" son filas del
- *  modelo atómico anterior a esta migración — no vuelven a escribirse, pero
- *  siguen existiendo en el historial y hay que poder mostrarlas. */
-export const ETIQUETA_ESTADO_TRASLADO: Record<string, string> = {
-  completada: "Completada",
-  en_transito: "En tránsito",
-  recibido_con_diferencia: "Con diferencia — pendiente de líder",
-  cerrada: "Cerrada",
-};
-
-export function tonoEstadoTraslado(estado: string): TonoChip {
-  if (estado === "recibido_con_diferencia") return "ambar";
-  if (estado === "en_transito") return "neutro";
-  return "verde";
-}
 
 // ---------------------------------------------------------------------------
 // La fila que devuelve `fn_movimientos`, ya en castellano de pantalla. Cada
@@ -284,19 +283,6 @@ export function nombreCortoSububicacion(s: Movimiento["sububicacion"]): string {
   return s.nombre;
 }
 
-/** De dónde a dónde, según lo que importa en cada categoría: sububicaciones
- *  en un interno, sedes en una transferencia, la sububicación tocada en el
- *  resto (o nada, en una ubicación sin piso/almacén). */
-export function textoOrigenDestino(m: Movimiento): string | null {
-  if (m.categoria === "interno") {
-    return `${nombreCortoSububicacion(m.sububicacion)} → ${nombreCortoSububicacion(m.sububicacionDestino)}`;
-  }
-  if (m.categoria === "transferencia") {
-    return `${m.ubicacion} → ${m.ubicacionDestino ?? "—"}`;
-  }
-  return m.sububicacion?.nombre ?? null;
-}
-
 /** De dónde a dónde, para la columna «Origen → Destino» de la lista (diseño
  *  de Felipe, 2026-09-16): cada proceso nombra sus dos puntas en el
  *  vocabulario de la tienda, no en el de la base. Una venta sale del piso
@@ -365,8 +351,9 @@ export function referenciaMovimiento(m: Movimiento, opciones: { enlaceCompras?: 
     case "devolucion":
     case "cambio":
     case "cuarentena_liquidada":
-      // La venta de origen: la de la línea vendida, la que se devolvió o la que se cambió.
-      return m.venta ? { texto: textoComprobante(m.venta.comprobante), detalle: null, href: null } : null;
+      // La venta de origen: la de la línea vendida, la que se devolvió o la que se cambió. Sin boleta, «Venta sin
+      // comprobante» — «Sin comprobante» a secas, suelto en la lista, no decía de qué.
+      return m.venta ? { texto: m.venta.comprobante ? textoComprobante(m.venta.comprobante) : "Venta sin comprobante", detalle: null, href: null } : null;
     case "recepcion": {
       const factura = m.compra?.documento ?? null;
       const guia = m.lote?.guia ?? null;
@@ -420,7 +407,7 @@ export function etiquetaEstadoComprobante(estado: EstadoComprobante): string {
 //
 // Quedan a la vista cuatro controles: la búsqueda, el tipo (`cat`), la sububicación
 // (`sub`) y el período (`rango`, o `desde`/`hasta` cuando es personalizado). Todo lo
-// demás (el proceso específico, `proc`) va dentro de «Más filtros». Ya no se filtra
+// demás (el proceso específico, `proc`) sale debajo del tipo elegido («Internos» ▸ «Movimiento interno»). Ya no se filtra
 // por persona: la autoría sigue guardada en `movimientos.usuario_id` y en el detalle
 // de cada movimiento, pero un `?usuario=` viejo se ignora sin romper nada.
 // ---------------------------------------------------------------------------
@@ -431,7 +418,9 @@ export const DIAS_POR_DEFECTO = 30;
 /** Los períodos que se eligen con un toque. «Todo el historial» (`rango=todo`) sigue
  *  existiendo, dentro de «Personalizado», para quien de verdad necesita ir más atrás. */
 export const PERIODOS_RAPIDOS = [7, 30, 90] as const;
-export type PeriodoMovimientos = "7" | "30" | "90" | "todo" | "personalizado";
+/** «Hoy» (ADR-0241): la pregunta de la tienda es «qué pasó hoy». En el celular es lo que se ve sin tocar nada; en la
+ *  computadora, un botón más antes de «7 días». */
+export type PeriodoMovimientos = "hoy" | "7" | "30" | "90" | "todo" | "personalizado";
 
 /** Las sububicaciones que se pueden filtrar, por su TIPO (una tienda tiene una de cada
  *  una). En la URL viaja el nombre corto (`?sub=piso`), no un uuid: así el enlace sigue
@@ -495,7 +484,12 @@ export function desdeDeUltimosDias(dias: number, hoy: string = hoyEnLima()): str
  *  `sububicaciones`: las de la ubicación que se mira (para pasar «piso» a su id). */
 export function filtrosDesdeParams(
   p: ParamsMovimientos,
-  contexto: { hoy?: string; sububicaciones?: { id: string; tipo: string | null }[] } = {}
+  contexto: {
+    hoy?: string;
+    sububicaciones?: { id: string; tipo: string | null }[];
+    /** Qué período rige sin nada en la URL: «hoy» en el celular, 30 días en lo demás (ADR-0241). */
+    porDefecto?: "hoy" | "30";
+  } = {}
 ): FiltrosResueltos {
   const hoy = contexto.hoy ?? hoyEnLima();
   const desdeUrl = esFecha(p.desde) ? p.desde : undefined;
@@ -510,6 +504,9 @@ export function filtrosDesdeParams(
     hasta = hastaUrl;
   } else if (p.rango === "todo") {
     periodo = "todo";
+  } else if (p.rango === "hoy" || (!p.rango && contexto.porDefecto === "hoy")) {
+    periodo = "hoy";
+    desde = hoy;
   } else {
     const dias = PERIODOS_RAPIDOS.find((n) => String(n) === p.rango) ?? DIAS_POR_DEFECTO;
     periodo = String(dias) as PeriodoMovimientos;
@@ -537,10 +534,445 @@ export function filtrosDesdeParams(
 
 /** El período en palabras, para el título de la primera tarjeta. */
 export function textoPeriodo(periodo: PeriodoMovimientos, desde?: string, hasta?: string): string {
+  if (periodo === "hoy") return "Hoy";
   if (periodo === "7" || periodo === "30" || periodo === "90") return `Últimos ${periodo} días`;
   if (periodo === "todo") return "Todo el historial";
   if (desde && hasta) return `${fechaCorta(desde)} – ${fechaCorta(hasta)}`;
   if (desde) return `Desde ${fechaCorta(desde)}`;
   if (hasta) return `Hasta ${fechaCorta(hasta)}`;
   return "Todo el historial";
+}
+
+// ---------------------------------------------------------------------------
+// Operaciones (ADR-0234): lo que se guardó de una sola vez. Una recepción de 16 variantes, una venta de dos prendas o
+// una bajada al piso escaneada de una vez son UNA operación; la lista las muestra como una fila que se despliega.
+// ---------------------------------------------------------------------------
+
+/** El documento del que cuelga un movimiento: el traslado, el conteo, la devolución, el cambio, el lote o la venta —en
+ *  ese orden, el mismo del `coalesce` de `fn_movimientos_resumen_procesos`—; vacío si el proceso no tiene (una bajada, un
+ *  ajuste suelto, una carga inicial). */
+export function documentoDeOperacion(
+  m: Pick<Movimiento, "transferencia" | "conteo" | "devolucion" | "cambio" | "lote" | "venta">
+): string {
+  return m.transferencia?.id ?? m.conteo?.id ?? m.devolucion?.id ?? m.cambio?.id ?? m.lote?.id ?? m.venta?.id ?? "";
+}
+
+/** La clave de una operación: misma hora exacta (`created_at` es la hora de la TRANSACCIÓN, `now()`), misma persona,
+ *  mismo proceso y mismo documento. Con el documento, dos ventas guardadas en una misma transacción (un script, la
+ *  siembra) no se leen como una sola con la boleta de la primera. Es la misma cuenta que hace
+ *  `fn_movimientos_resumen_procesos` (`count(distinct (created_at, usuario_id, motivo, documento))`): si se cambia una,
+ *  se cambia la otra. */
+export function claveOperacion(
+  m: Pick<Movimiento, "creadoEn" | "usuarioId" | "motivo" | "transferencia" | "conteo" | "devolucion" | "cambio" | "lote" | "venta">
+): string {
+  return `${m.creadoEn}|${m.usuarioId ?? ""}|${m.motivo ?? ""}|${documentoDeOperacion(m)}`;
+}
+
+export type OperacionMovimiento = { clave: string; fecha: string; hora: string; filas: Movimiento[] };
+
+/** Agrupa las filas (ya ordenadas de la más nueva a la más vieja) en operaciones sin cambiar el orden: cada operación
+ *  aparece donde aparece su primera fila. Una operación de una sola fila es una operación como cualquier otra. */
+export function agruparPorOperacion(filas: readonly Movimiento[]): OperacionMovimiento[] {
+  const porClave = new Map<string, OperacionMovimiento>();
+  const operaciones: OperacionMovimiento[] = [];
+  for (const m of filas) {
+    const clave = claveOperacion(m);
+    let op = porClave.get(clave);
+    if (!op) {
+      op = { clave, fecha: m.fecha, hora: m.hora, filas: [] };
+      porClave.set(clave, op);
+      operaciones.push(op);
+    }
+    op.filas.push(m);
+  }
+  return operaciones;
+}
+
+export type ResumenOperacion = {
+  /** Lo que la operación sumó a la sede, lo que restó (en positivo) y lo que movió entre piso y almacén. */
+  entran: number;
+  salen: number;
+  movidas: number;
+  /** Unidades que se apartaron para una clienta o que volvieron a estar libres (ADR-0141): no cambian el stock, pero
+   *  la fila tiene que decir cuántas — hasta el 2026-09-26 una operación de dos apartados decía «0». */
+  apartadas: number;
+  liberadas: number;
+  /** Cuántas variantes distintas (talla y color) y de qué productos, en el orden en que aparecen. */
+  variantes: number;
+  productos: string[];
+  /** Qué pasó, en palabras de tienda. Un cambio (entra lo devuelto, sale lo nuevo) se llama «Cambio». */
+  etiqueta: string;
+  origen: string;
+  destino: string | null;
+  referencia: ReferenciaMovimiento | null;
+};
+
+export function resumirOperacion(op: OperacionMovimiento, opciones: { enlaceCompras?: boolean } = {}): ResumenOperacion {
+  const primera = op.filas[0];
+  let entran = 0;
+  let salen = 0;
+  let movidas = 0;
+  let apartadas = 0;
+  let liberadas = 0;
+  const variantes = new Set<string>();
+  const productos: string[] = [];
+  const etiquetas = new Set<string>();
+  let referencia: ReferenciaMovimiento | null = null;
+  for (const m of op.filas) {
+    if (m.categoria === "interno") movidas += Math.abs(m.cantidad);
+    else if (m.categoria === "apartado") apartadas += Math.abs(m.cantidad);
+    else if (m.categoria === "liberacion_apartado") liberadas += Math.abs(m.cantidad);
+    else if (m.delta > 0) entran += m.delta;
+    else if (m.delta < 0) salen -= m.delta;
+    variantes.add(m.varianteId);
+    if (!productos.includes(m.referencia)) productos.push(m.referencia);
+    etiquetas.add(etiquetaConDireccion(m));
+    referencia ??= referenciaMovimiento(m, opciones);
+  }
+  // Todas las filas dicen lo mismo (lo normal): esa es la etiqueta y esas son sus puntas. Si no (un cambio), el nombre
+  // del proceso y solo el lugar de la sede: «Clienta → Piso» sería verdad para una fila y mentira para la otra.
+  const mixta = etiquetas.size > 1;
+  const partes = partesOrigenDestino(primera);
+  return {
+    entran,
+    salen,
+    movidas,
+    apartadas,
+    liberadas,
+    variantes: variantes.size,
+    productos,
+    etiqueta: mixta ? etiquetaProceso(primera.motivo) : etiquetaConDireccion(primera),
+    origen: mixta ? (primera.sububicacion ? nombreCortoSububicacion(primera.sububicacion) : primera.ubicacion) : partes.origen,
+    destino: mixta ? null : partes.destino,
+    referencia,
+  };
+}
+
+/** La cantidad de una operación, como la de una fila: «+80», «−3», «+1 / −1» (un cambio), «⇄ 54» (piso ↔ almacén),
+ *  «2 apartadas» o «1 libre». */
+export function textoCantidadOperacion(
+  r: Pick<ResumenOperacion, "entran" | "salen" | "movidas"> & Partial<Pick<ResumenOperacion, "apartadas" | "liberadas">>
+): string {
+  const partes = [r.entran > 0 && `+${r.entran}`, r.salen > 0 && `−${r.salen}`].filter(Boolean);
+  if (partes.length > 0) return partes.join(" / ");
+  if (r.movidas > 0) return `⇄ ${r.movidas}`;
+  if (r.apartadas) return textoApartado(r.apartadas, "apartado");
+  if (r.liberadas) return textoApartado(r.liberadas, "liberacion_apartado");
+  return "0";
+}
+
+/** «1 apartada», «3 apartadas», «1 libre», «2 libres»: lo que un apartado hizo con las unidades, sin signo (no entran
+ *  ni salen de la sede: quedan reservadas para una clienta o vuelven a estar a la venta). */
+export function textoApartado(unidades: number, categoria: "apartado" | "liberacion_apartado"): string {
+  const n = Math.abs(unidades);
+  if (categoria === "apartado") return `${n} ${n === 1 ? "apartada" : "apartadas"}`;
+  return `${n} ${n === 1 ? "libre" : "libres"}`;
+}
+
+// ---------------------------------------------------------------------------
+// Bajadas plegadas (ADR-0241): en «Todos», las operaciones de piso ↔ almacén del día —no cambian el total— van en UNA
+// fila que se despliega. En TRU eran 27 de 84 operaciones en 30 días: un tercio de la lista no movía el stock.
+// ---------------------------------------------------------------------------
+
+export type ItemLista =
+  | { tipo: "operacion"; op: OperacionMovimiento }
+  | { tipo: "bajadas"; clave: string; operaciones: OperacionMovimiento[] };
+
+/** Una operación es «de piso ↔ almacén» si todas sus filas lo son (una bajada escaneada de 12 tallas, un retiro). */
+export function esOperacionInterna(op: Pick<OperacionMovimiento, "filas">): boolean {
+  return op.filas.length > 0 && op.filas.every((m) => m.categoria === "interno");
+}
+
+/** Las operaciones de UN día, con las de piso ↔ almacén juntas en un solo ítem puesto donde estaba la más reciente.
+ *  Con una sola no se pliega nada: una fila que se despliega para mostrar una fila no ahorra nada. */
+export function plegarBajadas(operaciones: readonly OperacionMovimiento[]): ItemLista[] {
+  const internas = operaciones.filter(esOperacionInterna);
+  if (internas.length < 2) return operaciones.map((op) => ({ tipo: "operacion", op }));
+  const items: ItemLista[] = [];
+  let puesto = false;
+  for (const op of operaciones) {
+    if (!esOperacionInterna(op)) items.push({ tipo: "operacion", op });
+    else if (!puesto) {
+      items.push({ tipo: "bajadas", clave: `bajadas-${op.fecha}`, operaciones: internas });
+      puesto = true;
+    }
+  }
+  return items;
+}
+
+/** Lo que dice la fila plegada: «Bajadas al piso» si todas lo fueron (lo normal), si no «Movido dentro de la sede»;
+ *  cuántas veces, cuántas tallas, cuántas unidades y entre qué horas (las operaciones llegan de la más nueva a la más
+ *  vieja). */
+export function resumirBajadas(operaciones: readonly OperacionMovimiento[]): {
+  etiqueta: string;
+  veces: number;
+  tallas: number;
+  unidades: number;
+  desde: string;
+  hasta: string;
+} {
+  const filas = operaciones.flatMap((op) => op.filas);
+  const etiquetas = new Set(filas.map((m) => etiquetaConDireccion(m)));
+  const soloBajadas = etiquetas.size === 1 && etiquetas.has("Bajada al piso");
+  return {
+    etiqueta: soloBajadas ? "Bajadas al piso" : "Movido dentro de la sede",
+    veces: operaciones.length,
+    tallas: new Set(filas.map((m) => m.varianteId)).size,
+    unidades: filas.reduce((s, m) => s + Math.abs(m.cantidad), 0),
+    desde: operaciones[operaciones.length - 1]?.hora ?? "",
+    hasta: operaciones[0]?.hora ?? "",
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Las cifras de la pantalla (ADR-0234), de `fn_movimientos_resumen_procesos`.
+// ---------------------------------------------------------------------------
+
+/** Un grupo por cada filtro de tipo, más «todos». Una fila cuenta en todos los grupos donde la pantalla la muestra. */
+export type GrupoResumen = "todos" | CategoriaMovimiento;
+export const GRUPOS_RESUMEN: readonly GrupoResumen[] = ["todos", ...CATEGORIAS];
+
+export type ProcesoResumen = { proceso: string; operaciones: number; filas: number; entran: number; salen: number; movidas: number };
+export type CifrasGrupo = { operaciones: number; entran: number; salen: number; movidas: number; procesos: ProcesoResumen[] };
+export type ResumenTienda = Record<GrupoResumen, CifrasGrupo>;
+
+/** Lo que devuelve la RPC (los `bigint` pueden llegar como texto), a cifras por grupo. Siempre trae los seis grupos. Dentro
+ *  de un grupo, una operación tiene un solo proceso: sumar las operaciones de sus procesos no cuenta nada dos veces. */
+export function leerResumenTienda(
+  filas: readonly { grupo: string; proceso: string; operaciones: number | string; filas: number | string; entran: number | string; salen: number | string; movidas: number | string }[]
+): ResumenTienda {
+  const resumen = Object.fromEntries(GRUPOS_RESUMEN.map((g) => [g, { operaciones: 0, entran: 0, salen: 0, movidas: 0, procesos: [] }])) as unknown as ResumenTienda;
+  for (const f of filas) {
+    const grupo = GRUPOS_RESUMEN.find((g) => g === f.grupo);
+    if (!grupo) continue;
+    const p: ProcesoResumen = {
+      proceso: f.proceso,
+      operaciones: Number(f.operaciones ?? 0),
+      filas: Number(f.filas ?? 0),
+      entran: Number(f.entran ?? 0),
+      salen: Number(f.salen ?? 0),
+      movidas: Number(f.movidas ?? 0),
+    };
+    const g = resumen[grupo];
+    g.operaciones += p.operaciones;
+    g.entran += p.entran;
+    g.salen += p.salen;
+    g.movidas += p.movidas;
+    g.procesos.push(p);
+  }
+  return resumen;
+}
+
+/** Cómo se nombra cada proceso en el desglose de una tarjeta, detrás de la cifra: «80 por traslado», «4 vendidas». Una
+ *  pareja [singular, plural] cuando la palabra concuerda con la cifra. */
+const FRASE_PROCESO: Record<string, string | readonly [string, string]> = {
+  traslado_entrada: "por traslado",
+  traslado_salida: "por traslado",
+  traslado_anulado: "por traslado anulado",
+  recepcion: "de proveedor",
+  devolucion: "por devolución",
+  cambio: "por cambio",
+  anulacion_venta: "por venta anulada",
+  produccion: "de producción",
+  carga_inicial: "de stock inicial",
+  ingreso_regularizado: ["sin registrar, regularizada", "sin registrar, regularizadas"],
+  venta: ["vendida", "vendidas"],
+  cuarentena_liquidada: ["dañada, liquidada", "dañadas, liquidadas"],
+  cuarentena_se_boto: ["dañada, botada", "dañadas, botadas"],
+  cuarentena_donada: ["dañada, donada", "dañadas, donadas"],
+  conteo: "por conteo",
+  conteo_fisico: "por conteo físico",
+  merma: "por merma",
+  reposicion: "por reposición",
+  otro: "por otro motivo",
+};
+
+function frase(proceso: string, cifra: number): string {
+  const f = FRASE_PROCESO[proceso];
+  if (!f) return `por ${etiquetaProceso(proceso).toLowerCase()}`;
+  return typeof f === "string" ? f : Math.abs(cifra) === 1 ? f[0] : f[1];
+}
+
+/** El desglose de una tarjeta: de mayor a menor, cada proceso con su cifra. `entran` para «Entró», `salen` para «Salió»,
+ *  `neto` (con signo) para los ajustes. Los procesos en cero no se nombran. */
+export function desgloseCifras(g: CifrasGrupo, forma: "entran" | "salen" | "neto"): string {
+  const n = (v: number) => Math.abs(v).toLocaleString("es-PE");
+  return g.procesos
+    .map((p) => ({ p, v: forma === "entran" ? p.entran : forma === "salen" ? p.salen : p.entran - p.salen }))
+    .filter(({ v }) => v !== 0)
+    .sort((a, b) => Math.abs(b.v) - Math.abs(a.v))
+    .map(({ p, v }) => `${forma === "neto" ? (v > 0 ? "+" : "−") : ""}${n(v)} ${frase(p.proceso, v)}`)
+    .join(" · ");
+}
+
+/** «unidad» o «unidades», según la cifra. */
+export function unidades(cifra: number): string {
+  return Math.abs(cifra) === 1 ? "unidad" : "unidades";
+}
+
+// ---------------------------------------------------------------------------
+// El buscador entiende los nombres de los procesos (ADR-0234): quien escribe «venta» o «traslado» quiere ver ventas o
+// traslados, y la búsqueda solo busca prendas y referencias («Traslado 24»). Una palabra sola (o dos, como «stock
+// inicial») que nombra un proceso se vuelve el filtro de ese tipo; con un número detrás sigue siendo una referencia.
+// ---------------------------------------------------------------------------
+
+type FiltroDePalabra = { cat: CategoriaMovimiento | null; proc: string | null; etiqueta: string };
+
+const PALABRAS_DE_FILTRO: readonly (FiltroDePalabra & { palabras: readonly string[] })[] = [
+  { palabras: ["venta", "ventas", "vendida", "vendidas", "vendido", "vendidos"], cat: "salida", proc: "venta", etiqueta: "Ventas" },
+  { palabras: ["traslado", "traslados", "transferencia", "transferencias"], cat: "transferencia", proc: null, etiqueta: "Traslados" },
+  { palabras: ["ajuste", "ajustes"], cat: "ajuste", proc: null, etiqueta: "Ajustes" },
+  { palabras: ["conteo", "conteos"], cat: "ajuste", proc: "conteo", etiqueta: "Conteos" },
+  { palabras: ["merma", "mermas"], cat: "ajuste", proc: "merma", etiqueta: "Mermas" },
+  { palabras: ["devolucion", "devoluciones"], cat: "entrada", proc: "devolucion", etiqueta: "Devoluciones" },
+  // «Cambio» vive en Entradas y en Salidas: el filtro va solo por proceso, sin tipo.
+  { palabras: ["cambio", "cambios"], cat: null, proc: "cambio", etiqueta: "Cambios" },
+  { palabras: ["recepcion", "recepciones", "compra", "compras"], cat: "entrada", proc: "recepcion", etiqueta: "Recepciones" },
+  { palabras: ["stock inicial", "carga inicial"], cat: "entrada", proc: "carga_inicial", etiqueta: "Stock inicial" },
+  { palabras: ["bajada", "bajadas", "retiro", "retiros"], cat: "interno", proc: null, etiqueta: "Piso ↔ almacén" },
+  { palabras: ["entrada", "entradas", "llegada", "llegadas"], cat: "entrada", proc: null, etiqueta: "Entradas" },
+  { palabras: ["salida", "salidas"], cat: "salida", proc: null, etiqueta: "Salidas" },
+];
+
+/** Minúsculas, sin tildes y con un solo espacio entre palabras. */
+function normalizar(texto: string): string {
+  return quitarTildes(texto).toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/** «Devolución» → «Devolucion»: la forma descompuesta (NFD) sin sus marcas de acento (U+0300 a U+036F), como
+ *  `buscar-prenda-v2.ts`. */
+function quitarTildes(texto: string): string {
+  return texto.normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+/** El filtro que nombra lo escrito, o null si lo escrito es una búsqueda de verdad (una prenda, «Traslado 24»). */
+export function filtroDePalabra(texto: string): FiltroDePalabra | null {
+  const t = normalizar(texto);
+  if (!t) return null;
+  const hallado = PALABRAS_DE_FILTRO.find((f) => f.palabras.includes(t));
+  return hallado ? { cat: hallado.cat, proc: hallado.proc, etiqueta: hallado.etiqueta } : null;
+}
+
+// ---------------------------------------------------------------------------
+// Quién lo hizo, con verbo (ADR-0234): «Felipe Alvarez» solo no dice si vendió, recibió o ajustó.
+// ---------------------------------------------------------------------------
+
+export function verboDelResponsable(m: Pick<Movimiento, "categoria" | "motivo" | "delta">): string {
+  if (m.categoria === "transferencia") return m.delta > 0 ? "Recibió" : "Envió";
+  if (m.categoria === "interno") return "Movió";
+  switch (m.motivo) {
+    case "venta":
+      return "Vendió";
+    case "anulacion_venta":
+      return "Anuló la venta";
+    case "devolucion":
+      return "Recibió la devolución";
+    case "cambio":
+      return "Hizo el cambio";
+    case "recepcion":
+      return "Recibió";
+    case "conteo":
+      return "Cerró el conteo";
+    case "carga_inicial":
+      return "Cargó";
+    case "apartado":
+      return "Apartó";
+    case "liberacion_apartado":
+      return "Liberó";
+  }
+  return m.categoria === "ajuste" ? "Ajustó" : "Registró";
+}
+
+/** El período para la etiqueta de una tarjeta, corto: «30 días», «todo el historial», «1/9 – 26/9». */
+export function periodoCorto(periodo: PeriodoMovimientos, desde?: string, hasta?: string): string {
+  if (periodo === "hoy") return "hoy";
+  if (periodo === "7" || periodo === "30" || periodo === "90") return `${periodo} días`;
+  const corta = (iso: string) => {
+    const [, m, d] = iso.split("-");
+    return `${Number(d)}/${Number(m)}`;
+  };
+  if (periodo === "todo" || (!desde && !hasta)) return "todo el historial";
+  if (desde && hasta) return `${corta(desde)} – ${corta(hasta)}`;
+  return desde ? `desde el ${corta(desde)}` : `hasta el ${corta(hasta!)}`;
+}
+
+/** Lo que la lista muestra de cada prenda además de su fila (ADR-0234): el producto (para ir a su historial), su foto
+ *  principal y cuánto hay HOY en la sede. `stockHoy` null = no se pudo leer (la lista sigue sin él). La lee
+ *  `getPrendasDeMovimientos` (servidor); el tipo vive acá para que los componentes cliente no importen el servidor. */
+export type PrendaDeMovimiento = { productoId: string; fotoUrl: string | null; stockHoy: Cantidades | null };
+
+/** A dónde vuelve «←» en un traslado o un conteo abierto desde Movimientos (ADR-0234): a la misma lista, con sus
+ *  filtros. Solo una ruta de Movimientos: cualquier otra cosa que venga en la URL se ignora (un enlace armado a mano no
+ *  puede sacar a nadie de la app). */
+export function volverAMovimientos(valor: string | null | undefined): string | null {
+  if (!valor) return null;
+  return /^\/inventario\/movimientos(\?[^#\s]*)?$/.test(valor) ? valor : null;
+}
+
+// ---------------------------------------------------------------------------
+// Exportar a Excel (ADR-0234, decisión D3): el módulo promete «Consultar y exportar» en Roles y accesos. Un archivo CSV
+// (abre igual en Excel y en Sheets) con TODO lo filtrado, no solo la página: una fila por prenda, con el efecto sobre la
+// sede con signo, para que una suma en Excel dé lo que entró menos lo que salió. Lo arma la ruta
+// `inventario/movimientos/exportar` (una descarga directa, como Exportar de Historial, ADR-0230).
+// ---------------------------------------------------------------------------
+
+export const ENCABEZADOS_CSV_MOVIMIENTOS = [
+  "Fecha",
+  "Hora",
+  "Qué pasó",
+  "Prenda",
+  "Código",
+  "Talla",
+  "Color",
+  "Unidades",
+  "Efecto en la sede",
+  // Cuántas quedaron en la sede al terminar ese movimiento (ADR-0234, saldo): lo mismo que dice la pantalla («quedan 4»).
+  // Vacía si la base no lo pudo decir.
+  "Quedan en la sede",
+  "De dónde",
+  "A dónde",
+  "Zona",
+  "Referencia",
+  "Quién",
+  "Nota",
+] as const;
+
+/** Un TEXTO que empieza con = + - @ Excel lo ejecuta como fórmula (una nota «=HIPERVINCULO(…)» sería un enlace armado
+ *  por cualquiera): se le antepone un apóstrofo, como hace Exportar de Historial. Las cifras van como números, sin tocar:
+ *  un «−1» tiene que poder sumarse. */
+function sinFormula(texto: string): string {
+  return /^[=+\-@]/.test(texto) ? `'${texto}` : texto;
+}
+
+/** Una fila del archivo. «Efecto en la sede»: +5 entró, −1 salió, 0 se movió entre piso y almacén. `quedan`: el saldo
+ *  de `fn_movimientos_saldos` para ese movimiento; sin él, la celda va vacía (nunca un 0 que parezca dato). */
+export function filaCsvMovimiento(m: Movimiento, quedan: number | null = null): (string | number)[] {
+  const { origen, destino } = partesOrigenDestino(m);
+  const efecto = m.categoria === "interno" || m.categoria === "apartado" || m.categoria === "liberacion_apartado" ? 0 : m.delta;
+  const texto = (v: string | null | undefined) => sinFormula(v ?? "");
+  return [
+    fechaCorta(m.fecha),
+    m.hora,
+    texto(etiquetaConDireccion(m)),
+    texto(m.referencia),
+    texto(m.sku),
+    texto(m.talla),
+    texto(m.color),
+    Math.abs(m.cantidad),
+    efecto,
+    quedan ?? "",
+    texto(origen),
+    texto(destino),
+    m.sububicacion ? texto(nombreCortoSububicacion(m.sububicacion)) : "",
+    texto(referenciaMovimiento(m)?.texto),
+    m.esSistema ? "Sistema" : texto(m.usuario),
+    texto(m.nota),
+  ];
+}
+
+/** «movimientos_tienda-lima_2026-09-26.csv»: la sede y el día, sin tildes ni espacios (algunos celulares los rompen). Si
+ *  el archivo no trae todo (pasó el tope), el nombre lo dice: nunca un archivo que parece completo y no lo es. */
+export function nombreArchivoMovimientos(sede: string, hoy: string, recortado = false): string {
+  const slug = quitarTildes(sede).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return `movimientos_${slug || "sede"}_${hoy}${recortado ? "_solo-los-mas-recientes" : ""}.csv`;
 }

@@ -140,6 +140,7 @@ export function CampoFecha({
   const [cursor, setCursor] = useState<Dia>(elegido ?? hoy());
   const raiz = useRef<HTMLDivElement>(null);
   const grilla = useRef<HTMLDivElement>(null);
+  const entrada = useRef<HTMLInputElement>(null);
 
   // Si el valor cambia desde afuera (se limpió el filtro, cambió la
   // condición de pago), el texto acompaña — ajustado en el render, como en
@@ -208,7 +209,11 @@ export function CampoFecha({
       e.preventDefault();
       abrir();
     }
-    if (e.key === "Escape" && abierto) setAbierto(false);
+    if (e.key === "Escape" && abierto) {
+      // Este Escape cerró el calendario: que no siga y cierre también el modal (useEscapeLibre.ts).
+      e.stopPropagation();
+      setAbierto(false);
+    }
   }
 
   function tecladoGrilla(e: React.KeyboardEvent<HTMLDivElement>) {
@@ -230,7 +235,10 @@ export function CampoFecha({
       elegir(cursor);
     } else if (e.key === "Escape") {
       e.preventDefault();
+      e.stopPropagation();
       setAbierto(false);
+      // La grilla se desmonta: el foco vuelve a la fecha (si no, cae en la hoja y hay que buscar el campo de nuevo).
+      entrada.current?.focus();
     }
   }
 
@@ -252,6 +260,7 @@ export function CampoFecha({
     >
       <div ref={raiz} className="relative">
         <input
+          ref={entrada}
           id={id}
           type="text"
           inputMode="numeric"

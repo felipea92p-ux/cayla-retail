@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { esVersionCambiada, traducirError } from "./error-escritura";
+import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -43,6 +43,13 @@ describe("traduce lo que escribe Postgres por su cuenta", () => {
     );
     expect(salida).not.toContain("productos_referencia_clave_unica");
     expect(salida).toContain("Ya existe un producto con ese nombre");
+  });
+
+  it("una etiqueta repetida (aunque esté pendiente o desactivada) dice a dónde ir, sin nombrar el índice", () => {
+    const salida = traducirError({ message: 'duplicate key value violates unique constraint "etiquetas_clave_unica"', code: "23505" }, "agregar la etiqueta");
+    expect(salida).not.toContain("etiquetas_clave_unica");
+    expect(salida).toContain("Ya existe una etiqueta con ese nombre");
+    expect(salida).toContain("Catálogo → Atributos → Etiquetas");
   });
 
   it("una talla y color repetidos en un producto se explican, no se citan", () => {
@@ -270,7 +277,7 @@ describe("traduce los candados de la venta con el dato que trae el detalle", () 
     expect(salida).not.toMatch(/\d/);
   });
 
-  it("descuento entre 20 % y 35 % sin argumento: pide escribirlo", () => {
+  it("descuento pasado el 15 % sin argumento: pide escribirlo", () => {
     const salida = traducirError(
       { message: "venta_descuento_requiere_argumento", details: "Blusa Emma (BLU-EMMA-BEI-S)", code: "P0001" },
       "registrar la venta"
@@ -331,5 +338,122 @@ describe("otra persona cambió la ficha mientras se editaba (ADR-0193)", () => {
   it("un P0001 cualquiera no es un conflicto de versión", () => {
     expect(esVersionCambiada({ code: "P0001", message: "Falta la referencia del producto." })).toBe(false);
     expect(esVersionCambiada(null)).toBe(false);
+  });
+});
+
+describe("esErrorPasajero / debeEncolarse — qué se reintenta solo (ADR-0210)", () => {
+  it("un 5xx, un 429 o un 408 se reintentan", () => {
+    expect(esErrorPasajero({ message: "Internal Server Error" }, 500)).toBe(true);
+    expect(esErrorPasajero({ message: "Service Unavailable" }, 503)).toBe(true);
+    expect(esErrorPasajero({ message: "Too Many Requests" }, 429)).toBe(true);
+    expect(esErrorPasajero({ message: "Request Timeout" }, 408)).toBe(true);
+  });
+
+  it("un choque de transacciones, un bloqueo o un tiempo agotado de la base se reintentan", () => {
+    for (const code of ["40001", "40P01", "55P03", "57014", "PGRST002"]) expect(esErrorPasajero({ message: "x", code }, 400)).toBe(true);
+  });
+
+  it("un rechazo de negocio NO: reintentarlo repetiría el mismo rechazo", () => {
+    expect(esErrorPasajero({ message: "No hay una caja abierta", code: "P0001" }, 400)).toBe(false);
+    expect(esErrorPasajero({ message: "duplicate key", code: "23505" }, 409)).toBe(false);
+    expect(esErrorPasajero({ message: "permission denied", code: "42501" }, 403)).toBe(false);
+    expect(esErrorPasajero(null)).toBe(false);
+  });
+
+  it("se encola si no hay red o si el servidor está momentáneamente mal", () => {
+    expect(debeEncolarse({ message: "TypeError: Failed to fetch" })).toBe(true);
+    expect(debeEncolarse({ message: "Bad Gateway" }, 502)).toBe(true);
+    expect(debeEncolarse({ message: "No hay una caja abierta", code: "P0001" }, 400)).toBe(false);
+  });
+});
+
+// Con marca, reenviar es seguro SOLO si no se cambió nada; por eso la pantalla congela lo enviado mientras no sabe qué
+// pasó. Confundir un rechazo de la base con una respuesta perdida dejaría la pantalla congelada sin motivo, y al revés
+// soltaría la cifra cuando la base quizá ya guardó.
+describe("esRespuestaIncierta — ¿se sabe si la base guardó?", () => {
+  it("un corte de red o un envío cortado por tiempo: no se sabe", () => {
+    for (const message of ["TypeError: Failed to fetch", "TypeError: Load failed", "AbortError: signal is aborted without reason"]) {
+      expect(esRespuestaIncierta({ message, code: "" })).toBe(true);
+    }
+  });
+  it("un error sin código de Postgres (un 502 del camino): no se sabe", () => {
+    expect(esRespuestaIncierta({ message: "Bad Gateway", code: "" })).toBe(true);
+  });
+  it("un rechazo con código de la base: se sabe (la transacción se deshizo)", () => {
+    expect(esRespuestaIncierta({ message: "Stock insuficiente", code: "P0001" })).toBe(false);
+    expect(esRespuestaIncierta({ message: "responsable", code: "42501", hint: "responsable_no_presente" })).toBe(false);
+  });
+  it("sin error: nada que dudar", () => {
+    expect(esRespuestaIncierta(null)).toBe(false);
+  });
+});
+
+describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
+  const FRASE = "Esa temporada no está en la lista. Elige una del desplegable.";
+
+  it("las tres llaves foráneas hacia la lista dicen qué hacer, no «recarga la pantalla»", () => {
+    const errores = [
+      { tabla: "productos", llave: "productos_temporada_fk" },
+      { tabla: "categorias", llave: "categorias_temporada_fk" },
+      // La del color se declaró en línea (`references`): Postgres le pone `_fkey`.
+      { tabla: "producto_color_temporadas", llave: "producto_color_temporadas_temporada_fkey" },
+    ];
+    for (const { tabla, llave } of errores) {
+      const salida = traducirError(
+        {
+          message: `insert or update on table "${tabla}" violates foreign key constraint "${llave}"`,
+          details: 'Key (temporada)=(Verano 26) is not present in table "temporadas".',
+          code: "23503",
+        },
+        "guardar el producto",
+      );
+      expect(salida).toBe(FRASE);
+    }
+  });
+
+  it("otra llave foránea del color (el producto o el color que ya no existe) sigue en el genérico", () => {
+    const salida = traducirError(
+      { message: 'insert or update on table "producto_color_temporadas" violates foreign key constraint "producto_color_temporadas_color_codigo_fkey"', code: "23503" },
+      "guardar la temporada de los colores",
+    );
+    expect(salida).not.toBe(FRASE);
+    expect(salida).toContain("Falta un dato");
+  });
+
+  it("los rechazos de las RPC (P0001) pasan tal cual", () => {
+    const casos = [
+      { message: "La nueva fecha tiene que ser futura: lo que ya empezó queda fijo.", hint: "calendario_pasado" },
+      { message: "Solo se ajusta el calendario de este año o del siguiente.", hint: "calendario_fuera_de_rango" },
+      { message: "Esa fecha deja la estación fuera de orden: tiene que quedar entre el inicio de la anterior y el de la siguiente.", hint: "calendario_orden" },
+      { message: "Una de las prendas ya no existe. No se cambió nada.", hint: "temporada_producto_inexistente" },
+      { message: "Ese color no es de esta prenda.", hint: "color_no_es_de_la_prenda" },
+    ];
+    for (const c of casos) expect(traducirError({ ...c, code: "P0001" }, "guardar la temporada")).toBe(c.message);
+  });
+
+  it("los de permiso llegan con 42501 y también pasan tal cual (antes caían al genérico con «Código:»)", () => {
+    const calendario = { message: "Solo el líder puede cambiar el calendario de temporadas.", code: "42501", hint: "calendario_sin_permiso" };
+    const prendas = { message: "No tienes permiso para cambiar la temporada de las prendas.", code: "42501", hint: "temporada_sin_permiso" };
+    expect(traducirError(calendario, "cambiar la fecha")).toBe(calendario.message);
+    expect(traducirError(prendas, "guardar la temporada")).toBe(prendas.message);
+  });
+
+  it("un 42501 de otro origen no se cuela por la regla de temporadas", () => {
+    const salida = traducirError({ message: "permission denied for table temporadas", code: "42501", hint: null }, "guardar la temporada");
+    expect(salida).toContain("Código:");
+  });
+
+  it("las dos redes del calendario (sin hint) se dicen en palabras de tienda, no con «Código:»", () => {
+    const lejos = traducirError(
+      { code: "23514", message: 'new row for relation "temporada_fechas" violates check constraint "temporada_fechas_cerca_de_su_estacion"' },
+      "guardar la fecha de la estación",
+    );
+    expect(lejos).toMatch(/demasiado lejos del inicio normal de su estación/);
+    expect(lejos).not.toMatch(/\d+ días/); // sin el número: si la base cambia la holgura, la frase no miente
+    const repetida = traducirError(
+      { code: "23505", message: 'duplicate key value violates unique constraint "temporada_fechas_inicio_unico"' },
+      "guardar la fecha de la estación",
+    );
+    expect(repetida).toBe("Otra estación ya empieza en ese mismo instante. Elige otra hora.");
   });
 });

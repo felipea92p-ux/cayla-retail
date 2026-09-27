@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
-import { exigirModulo, puede } from "@/lib/persona-actual";
+import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { getSububicaciones } from "@/lib/sububicaciones";
@@ -11,6 +11,7 @@ import {
   getResumenProductos,
   getProductosPendientesAlta,
   getReposicionPorProveedor,
+  getSinTemporadaResumen,
   type ParamsProductosListado,
   type ResumenProductos,
 } from "@/lib/catalogo-v2";
@@ -68,7 +69,12 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     return qs ? `/productos?${qs}` : "/productos";
   }
 
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta] = await Promise.all([
+  const editaCatalogo = puede(persona, "editarCatalogo");
+  // ADR-0246 + ADR-0161: el aviso «N prendas sin temporada · Completar» lleva a Atributos ▸ Temporadas, que se abre con el
+  // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
+  // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
+  const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta, sinTemporada] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -77,7 +83,9 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
-    puede(persona, "editarCatalogo") ? getProductosPendientesAlta() : Promise.resolve([]),
+    editaCatalogo ? getProductosPendientesAlta() : Promise.resolve([]),
+    // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
+    completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
   ]);
 
   // «A quién pedirle»: solo se calcula si hay algo por pedir (una consulta menos en el caso normal).
@@ -151,6 +159,28 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         </details>
       )}
 
+      {sinTemporada && sinTemporada.prendas > 0 && (
+        // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
+        // plegado; «Completar» queda fuera del <summary> para no anidar un enlace dentro de un botón.
+        <div className="nota-cayla flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+          <details className="group min-w-0 flex-1">
+            <summary className="flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+              <strong>
+                {sinTemporada.prendas.toLocaleString("es-PE")} {sinTemporada.prendas === 1 ? "prenda sin temporada" : "prendas sin temporada"}
+              </strong>
+              <ChevronDown aria-hidden className="h-4 w-4 shrink-0 transition-transform group-open:rotate-180" />
+            </summary>
+            <p className="mt-1">
+              Sin temporada, Frescura no las compara con las de su misma estación ni avisa cuando pasan a temporada pasada. En Atributos ▸
+              Temporadas se completan de a varias; y si le pones temporada a su categoría, la heredan todas las que no tienen la suya.
+            </p>
+          </details>
+          <Link href="/productos/atributos?tipo=temporadas#sin-temporada" className="btn-cayla btn-enlace text-[13px]">
+            Completar
+          </Link>
+        </div>
+      )}
+
       {vista === "tabla" && <Resumen resumen={resumen} params={params} />}
 
       {reposicion.length > 0 && (
@@ -174,6 +204,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           ubicacionId={persona.ubicacionId}
           sububicaciones={sububicaciones}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+          puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       ) : (
@@ -183,6 +215,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
           sububicaciones={sububicaciones}
           puedeEditar={puede(persona, "editarCatalogo")}
           puedeAjustar={puede(persona, "ajustarInventario")}
+          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+          puedeEliminar={persona.rol === "lider"}
           mensajeVacio={mensajeSinResultados(filtros)}
         />
       )}
@@ -220,7 +254,8 @@ function Resumen({ resumen, params, compacto = false }: { resumen: ResumenProduc
   if (compacto) {
     return (
       <p className="mt-1 text-xs text-tinta/55">
-        {resumen.totalProductos.toLocaleString("es-PE")} productos · {resumen.totalVariantes.toLocaleString("es-PE")} variantes
+        {resumen.totalProductos.toLocaleString("es-PE")} {resumen.totalProductos === 1 ? "producto" : "productos"} ·{" "}
+        {resumen.totalVariantes.toLocaleString("es-PE")} {resumen.totalVariantes === 1 ? "variante" : "variantes"}
         {resumen.reponerDeProveedor > 0 && (
           <>
             {" · "}

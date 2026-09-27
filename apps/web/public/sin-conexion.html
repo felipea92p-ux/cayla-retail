@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sin conexión — CAYLA</title>
+    <!--
+      La sirve el service worker (public/sw.js, ADR-0210) cuando se abre una pantalla sin internet que no quedó guardada.
+      Es HTML estático: no puede cargar globals.css (su nombre cambia en cada build), así que los colores repiten a mano
+      los tokens de la guía CAYLA Dynamic (ADR-0169): crema, papel, tinta, taupe, sand, rojo, ámbar.
+    -->
+    <style>
+      :root { --crema: #f5f0e8; --papel: #fbf8f2; --tinta: #1a1a18; --taupe: #805c4c; --sand: #e8e0d0; --rojo: #b8412d; --ambar: #74501a; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; background: var(--crema); color: var(--tinta); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; display: grid; place-items: center; padding: 16px; }
+      main { max-width: 30rem; width: 100%; background: var(--papel); border: 1px solid var(--sand); border-radius: 16px; padding: 28px 24px; }
+      .sobre { color: var(--rojo); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 6px; }
+      h1 { font-family: Georgia, "EB Garamond", serif; font-weight: 400; font-size: 28px; margin: 0 0 8px; }
+      p { margin: 0 0 12px; color: color-mix(in srgb, var(--tinta) 78%, transparent); }
+      ul { margin: 0 0 18px; padding-left: 18px; color: var(--taupe); }
+      .nota { border-left: 3px solid var(--ambar); padding: 8px 12px; background: color-mix(in srgb, var(--ambar) 8%, transparent); color: var(--ambar); font-size: 13px; border-radius: 6px; }
+      .botones { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+      button { font: inherit; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; border-radius: 8px; padding: 12px 16px; cursor: pointer; }
+      .primario { background: var(--tinta); color: var(--crema); border: 0; }
+      .secundario { background: transparent; color: var(--tinta); border: 1px solid color-mix(in srgb, var(--tinta) 30%, transparent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="sobre">Sin conexión</p>
+      <h1>Esta pantalla no se puede abrir sin internet</h1>
+      <p>No hay una copia guardada en este equipo para usarla sin red. Las pantallas que sí funcionan sin internet, si se abrieron una vez con conexión:</p>
+      <ul>
+        <li>Vender (con la copia de hoy)</li>
+        <li>Recibir mercadería</li>
+        <li>Ingreso sin comprobante</li>
+        <li>Nuevo producto</li>
+      </ul>
+      <p class="nota">Lo que ya guardaste sin conexión no se pierde: sigue en este equipo y sube solo cuando vuelva el internet.</p>
+      <div class="botones">
+        <button class="primario" type="button" onclick="location.reload()">Reintentar</button>
+        <button class="secundario" type="button" onclick="history.back()">Volver</button>
+      </div>
+    </main>
+  </body>
+</html>

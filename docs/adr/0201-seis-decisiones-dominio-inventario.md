@@ -1,6 +1,7 @@
 # ADR-0201 — Seis decisiones de negocio sobre el dominio de Inventario (Felipe, 2026-09-24)
 
-**Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
+**Fecha:** 2026-09-24 · **Estado:** aplicado (fusionado en el PR #397; sus 2 migraciones, `20260924010700` y `20260924030000`, están en
+producción — verificado por efectos en la base el 2026-09-25; la línea anterior decía «nada aplicado a producción») ·
 **Amplía:** [ADR-0200](0200-dominio-inventario-comportamiento-comercial.md) — responde las 4 preguntas de negocio que
 ese ADR dejó explícitamente abiertas, más dos piezas de fundación que Felipe pidió completar ahora (contrato de
 calidad, primitiva de timeline).

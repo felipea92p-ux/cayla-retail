@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Chip } from "@/components/ui/Chip";
 import { CabeceraReportes } from "@/components/finanzas/CabeceraReportes";
-import { Superficie } from "@/components/finanzas/kit";
+import { SelectEnLineaFin, Superficie } from "@/components/finanzas/kit";
 import { GraficoSemanas } from "@/components/finanzas/GraficoSemanas";
 import { descargarBlob } from "@/lib/exportar-csv";
 import { sumarDias } from "@/lib/fechas-lima";
@@ -92,35 +92,34 @@ export function FlujoCajaPanel({
       <section className="fin-dos-col fin-der">
         <div {...entra(1)}>
           <Superficie pad>
-            <p className="fin-etq">
+            {/* Un <div> y no un <p>: el combo es una caja, y una caja dentro de un <p> rompe el HTML del servidor. */}
+            <div className="fin-etq">
               Lo que ya pasó ·{" "}
-              <select className="fin-etq-select" aria-label="Qué mes mirar" value={mes} onChange={(e) => ir(e.target.value, semanas)}>
-                {meses.map((m) => {
+              <SelectEnLineaFin
+                etiqueta="Qué mes mirar"
+                valor={mes}
+                onValor={(m) => ir(m, semanas)}
+                opciones={meses.map((m) => {
                   const r = rangoDelMes(m, hoy);
-                  return (
-                    <option key={m} value={m}>
-                      {textoPeriodo(r.desde, r.hasta, hoy)}
-                    </option>
-                  );
+                  return { valor: m, texto: textoPeriodo(r.desde, r.hasta, hoy) };
                 })}
-              </select>
-            </p>
+              />
+            </div>
             {real ? <LoQuePaso real={real} /> : <p className="text-sm text-taupe">Sin datos de este mes.</p>}
           </Superficie>
         </div>
 
         <div {...entra(2)}>
           <Superficie pad>
-            <p className="fin-etq">
+            <div className="fin-etq">
               Lo que viene · próximas{" "}
-              <select className="fin-etq-select" aria-label="Cuántas semanas mirar" value={String(semanas)} onChange={(e) => ir(mes, Number(e.target.value))}>
-                {SEMANAS_POSIBLES.map((n) => (
-                  <option key={n} value={n}>
-                    {n} semanas
-                  </option>
-                ))}
-              </select>
-            </p>
+              <SelectEnLineaFin
+                etiqueta="Cuántas semanas mirar"
+                valor={String(semanas)}
+                onValor={(n) => ir(mes, Number(n))}
+                opciones={SEMANAS_POSIBLES.map((n) => ({ valor: String(n), texto: `${n} semanas` }))}
+              />
+            </div>
             {proyeccion ? <LoQueViene p={proyeccion} /> : <p className="text-sm text-taupe">Sin datos de lo que viene.</p>}
           </Superficie>
         </div>

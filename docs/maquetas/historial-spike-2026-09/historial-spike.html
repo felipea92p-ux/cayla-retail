@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Historial · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Ventas ▸ Historial (2026-09-26)
+   Pregunta: ¿cómo se ve /vender/historial si (1) ayuda a ENCONTRAR una venta
+   y a ACTUAR sobre ella llevando a las pantallas que trabajan de la mano con
+   él (Cambios, Devoluciones, Comprobantes, Apartados, Clientas, Punto de Venta)
+   y (2) el celular deja de ser «el escritorio apilado»?
+   Todo se conmuta desde la barra negra (no existe en el ERP): «Hoy» reproduce
+   la pantalla actual (capturas del 2026-09-26); «Propuesta» enciende lo marcado.
+   Tokens = los de apps/web/app/globals.css (ADR-0169). Datos inventados.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;--t60:#5b544c;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t55:rgba(26,26,24,.55);--t40:rgba(26,26,24,.4);--t10:rgba(26,26,24,.10);--t07:rgba(26,26,24,.07);
+  --m-efectivo:#d19a12;--m-tarjeta:#525a64;--m-yape:#6d3fa3;--m-plin:#1c6b56;--m-transf:#2f6aa3;--m-anticipo:#805c4c;
+  --ease:cubic-bezier(.32,.72,.24,1);--bar:48px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#ddd5c6}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button,input{font:inherit;color:inherit}button{background:none;border:0;cursor:pointer;text-align:inherit}
+input{outline:none}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.14em;font-weight:600;font-size:11px}
+.num{font-variant-numeric:tabular-nums}
+svg.ic{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.ic.s{width:15px;height:15px}svg.ic.xs{width:13px;height:13px}svg.ic.l{width:22px;height:22px}
+@keyframes sube{from{opacity:0;transform:translate3d(0,18px,0) scale(.985)}to{opacity:1;transform:none}}
+@keyframes velo{from{opacity:0}to{opacity:1}}
+@keyframes hoja{from{transform:translate3d(0,100%,0)}to{transform:none}}
+@keyframes lado{from{transform:translate3d(100%,0,0)}to{transform:none}}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ---------- barra del spike (no existe en el ERP) ---------- */
+.spk{position:sticky;top:0;z-index:100;background:var(--tinta);color:var(--crema);font-size:13px}
+.spk-f{display:flex;align-items:center;gap:14px;padding:8px 16px;overflow-x:auto;white-space:nowrap;min-height:var(--bar)}
+.spk .tag{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:inline-flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden;flex:none}
+.seg button{height:30px;padding:0 12px;font-size:12.5px;color:rgba(245,240,232,.7)}
+.seg button.on{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk-op{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 16px 10px;border-top:1px solid rgba(245,240,232,.12);font-size:12.5px}
+.spk-op label{cursor:pointer;display:flex;align-items:center;gap:6px;color:rgba(245,240,232,.8)}.spk-op input{accent-color:var(--rojo)}
+.spk-op .pide{font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:1px 6px;border-radius:99px;border:1px solid rgba(245,240,232,.3);color:rgba(245,240,232,.6)}
+.spk-op.off{display:none}
+.spk .sep{width:1px;height:22px;background:rgba(245,240,232,.18);flex:none}
+
+.escena{padding:24px 20px 60px;display:flex;flex-direction:column;align-items:center;gap:16px}
+.leyenda{max-width:1360px;width:100%;font-size:13px;color:var(--t80);background:var(--papel);border:1px solid var(--sand);border-radius:10px;padding:10px 14px}
+.leyenda b{font-weight:600}
+
+/* ---------- marco de escritorio ---------- */
+.escritorio{width:1360px;max-width:100%;height:900px;background:var(--crema);border-radius:14px;overflow:hidden;display:grid;grid-template-columns:248px 1fr;box-shadow:0 30px 60px -30px rgba(26,26,24,.35);position:relative}
+.lat{border-right:1px solid var(--sand);padding:22px 12px;display:flex;flex-direction:column;gap:2px;font-size:15px}
+.lat .logo{display:flex;align-items:center;gap:10px;padding:0 12px 26px;color:var(--rojo);letter-spacing:.3em;font-weight:600;font-size:15px}
+.lat a{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:12px;color:var(--t80);text-decoration:none}
+.lat a.sub{padding-left:34px;font-size:14.5px}
+.lat a.on{background:var(--sand);color:var(--tinta);font-weight:500}
+.lat a .flecha{margin-left:auto;opacity:.45}
+.main{overflow-y:auto;position:relative}
+.top{height:66px;display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 30px;border-bottom:1px solid var(--sand);position:sticky;top:0;background:rgba(245,240,232,.92);backdrop-filter:blur(8px);z-index:5}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:6px 12px;font-size:11.5px;letter-spacing:.14em;font-weight:600;background:var(--papel);display:flex;gap:8px;align-items:center}
+.pag{padding:34px 40px 60px}
+
+/* ---------- cabecera (EncabezadoPagina, ADR-0220) ---------- */
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;margin-bottom:26px}
+.cab .ruta{display:flex;align-items:center;gap:12px;color:var(--taupe);font-size:11.5px;letter-spacing:.16em;font-weight:600;text-transform:uppercase}
+.cab .ruta:before{content:"";width:32px;height:1.5px;background:var(--taupe)}
+.cab h1{font-family:'EB Garamond',serif;font-weight:500;font-size:46px;line-height:1.1;margin-top:8px}
+.cab p{color:var(--t65);margin-top:4px;font-size:15px}
+.cifras{display:flex;background:var(--papel);border-radius:20px;box-shadow:0 8px 24px -14px rgba(26,26,24,.25);padding:16px 26px;gap:28px}
+.cifras div{text-align:center}.cifras div+div{border-left:1px solid var(--sand);padding-left:28px}
+.cifras b{display:block;font-family:'EB Garamond',serif;font-weight:500;font-size:38px;line-height:1.1}
+.cifras span{font-size:12.5px;color:var(--t65)}
+.cifras .ayer{display:block;font-size:11px;color:var(--verde);margin-top:1px}
+
+/* ---------- herramientas ---------- */
+.rejilla{display:grid;grid-template-columns:minmax(0,1fr) 19rem;gap:28px;align-items:start}
+.buscador{display:flex;align-items:center;gap:10px;background:var(--hueso);border-radius:14px;padding:0 14px;height:48px;border:1.5px solid transparent;transition:border-color .2s}
+.buscador:focus-within{border-color:var(--taupe);background:var(--papel)}
+.buscador input{flex:1;background:none;border:0;font-size:15px;min-width:0}
+.buscador input::placeholder{color:var(--t55)}
+.buscador kbd{font:500 11px 'DM Sans';border:1px solid var(--sand);border-radius:5px;padding:1px 6px;color:var(--t55);background:var(--papel)}
+.buscador .x{color:var(--t55);display:flex}
+.fila-chips{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:14px}
+.pill{height:30px;padding:0 13px;border-radius:99px;border:1px solid var(--t40);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;flex:none;background:transparent}
+.pill.on{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+.pill .cnt{font-size:10px;background:var(--ambar);color:var(--crema);border-radius:99px;padding:0 6px;letter-spacing:0;line-height:16px}
+.pill.on .cnt{background:var(--crema);color:var(--tinta)}
+.pill.mas{border-style:dashed;color:var(--t65)}
+.sep-v{width:1px;height:20px;background:var(--sand);flex:none}
+.btn{height:38px;padding:0 14px;border-radius:10px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;display:inline-flex;align-items:center;gap:8px;border:1px solid var(--t40);white-space:nowrap}
+.btn.prim{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn.sutil{border-color:var(--sand);background:var(--papel)}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.pop{position:absolute;z-index:20;background:var(--papel);border-radius:14px;box-shadow:0 20px 40px -18px rgba(26,26,24,.4);border:1px solid var(--sand);padding:12px;width:290px;animation:sube .25s var(--ease)}
+.pop h4{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);margin:4px 6px 8px}
+.pop label{display:flex;align-items:center;gap:10px;padding:8px 8px;border-radius:8px;cursor:pointer;font-size:14px}
+.pop label:hover{background:var(--hueso)}
+.pop input{accent-color:var(--tinta);width:16px;height:16px}
+.pop .fijo{margin-left:auto;font-size:10.5px;color:var(--t55)}
+.pop small{display:block;color:var(--t55);font-size:12px;margin:6px 8px 2px}
+
+/* ---------- avisos ---------- */
+.avisos{display:grid;gap:8px;margin-top:16px}
+.aviso{display:flex;align-items:center;gap:12px;background:var(--hueso);border-radius:12px;padding:10px 14px;font-size:13.5px}
+.aviso .punto{width:8px;height:8px;border-radius:99px;flex:none}
+.aviso a{margin-left:auto;font-weight:600;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--tinta);text-decoration:none;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.aviso .cerrar{color:var(--t55);display:flex}
+
+.resultado{margin-top:18px;font-size:13px;color:var(--t65);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.resultado b{color:var(--tinta)}
+.resultado button{text-decoration:underline;text-underline-offset:3px;color:var(--tinta);font-weight:500}
+
+/* ---------- lista (hilo + días) ---------- */
+.lista{position:relative;padding-left:44px;margin-top:22px}
+.lista:before{content:"";position:absolute;left:11px;top:6px;bottom:0;width:1.5px;background:linear-gradient(var(--taupe),rgba(128,92,76,.15))}
+.dia{margin-bottom:30px;animation:sube .45s var(--ease) both}
+.dia h3{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;position:relative}
+.dia h3 .et{font-size:11.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--taupe)}
+.dia h3 .et:before{content:"";position:absolute;left:-40px;top:1px;width:14px;height:14px;border-radius:99px;background:var(--crema);box-shadow:0 0 0 1.5px var(--taupe) inset, 0 0 0 4px var(--crema) inset;}
+.dia h3 .et:after{content:"";position:absolute;left:-35px;top:6px;width:4px;height:4px;border-radius:99px;background:var(--taupe)}
+.dia h3 .tot{font-size:12px;color:var(--t60)}.dia h3 .tot b{font-family:'EB Garamond',serif;font-size:18px;font-weight:500;color:var(--tinta)}
+.hoja-dia{background:var(--papel);border-radius:20px;box-shadow:0 0 0 1px var(--t07);padding:6px}
+.venta{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:6px 16px;padding:14px 20px;border-radius:16px;cursor:pointer;transition:background .2s}
+.venta:hover{background:rgba(26,26,24,.025)}
+.venta+.venta{border-top:1px dashed var(--t10)}
+.venta.sel{background:rgba(128,92,76,.08)}
+.racimo{display:flex;align-items:flex-start;grid-row:span 2}
+.mini{width:40px;height:40px;border-radius:8px;box-shadow:0 0 0 2px var(--papel),inset 0 0 0 1px rgba(26,26,24,.12);flex:none;position:relative;background-size:cover}
+.mini+.mini{margin-left:-14px}
+.mini .x2{position:absolute;right:-6px;bottom:-6px;background:var(--tinta);color:var(--crema);font-size:10px;font-weight:600;border-radius:99px;padding:0 5px;line-height:16px;box-shadow:0 0 0 2px var(--papel)}
+.venta .tit{font-family:'EB Garamond',serif;font-size:19px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venta .sub{font-size:14px;color:var(--t65);margin-top:1px}
+.venta .meta{font-size:12px;color:var(--t55);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.venta .der{text-align:right}
+.venta .der b{font-family:'EB Garamond',serif;font-weight:500;font-size:22px;line-height:1}
+.venta .der span{display:block;font-size:12px;color:var(--t55);margin-top:5px}
+.venta .comp{grid-column:2/4;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;font-weight:500}
+.venta.anulada .tit,.venta.anulada .der b{color:var(--t40)}.venta.anulada .der b{text-decoration:line-through}
+.venta .ir{position:absolute;right:8px;top:50%;transform:translateY(-50%);opacity:0;transition:opacity .2s;color:var(--t40)}
+mark{background:rgba(209,154,18,.28);color:inherit;border-radius:3px;padding:0 1px}
+
+.chip{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:99px;font-size:12px;font-weight:500;white-space:nowrap;background:var(--hueso);color:var(--t80)}
+.chip:before{content:"";width:6px;height:6px;border-radius:99px;background:currentColor;opacity:.9}
+.chip.verde{background:rgba(72,96,63,.12);color:var(--verde)}
+.chip.ambar{background:rgba(116,80,26,.12);color:var(--ambar)}
+.chip.rojo{background:rgba(184,65,45,.1);color:var(--rojo-p)}
+.chip.pizarra{background:rgba(76,93,110,.12);color:var(--pizarra)}
+.chip.apagado{background:transparent;box-shadow:inset 0 0 0 1px var(--sand);color:var(--t55)}
+.chip.apagado.tach{text-decoration:line-through}
+.chip.sinpunto:before{display:none}
+.chip.link{cursor:pointer;position:relative;z-index:2}
+.chip.link:hover{box-shadow:inset 0 0 0 1px currentColor}
+
+/* ---------- pulso ---------- */
+.pulso{background:var(--papel);border-radius:20px;box-shadow:0 0 0 1px var(--t07);padding:20px;position:sticky;top:90px}
+.pulso h4{font-size:15px;font-weight:600}.pulso .p-sub{font-size:13px;color:var(--t60)}
+.pulso .mejor{margin-top:14px;font-size:12.5px;color:var(--t60)}
+.pulso .mejor b{display:block;font-family:'EB Garamond',serif;font-size:26px;font-weight:500;color:var(--tinta)}
+.pulso .kpis{display:grid;grid-template-columns:1fr 1fr;gap:14px;border-top:1px dashed var(--sand);border-bottom:1px dashed var(--sand);padding:14px 0;margin:14px 0}
+.pulso .kpis span{font-size:12.5px;color:var(--t60)}.pulso .kpis b{display:block;font-family:'EB Garamond',serif;font-size:19px;font-weight:500}
+.barra-pago{display:flex;height:5px;border-radius:99px;overflow:hidden;background:var(--sand);margin:10px 0 12px}
+.leyp{display:grid;grid-template-columns:auto 1fr auto auto;gap:5px 10px;font-size:12.5px;align-items:center}
+.leyp i{width:7px;height:7px;border-radius:99px;display:block}
+.leyp .pc{color:var(--t55);text-align:right}.leyp .mt{text-align:right}
+.enlaces-pulso{display:grid;gap:4px;margin-top:14px;border-top:1px dashed var(--sand);padding-top:12px}
+.enlaces-pulso a{display:grid;grid-template-columns:1fr auto;align-items:center;font-size:13px;padding:6px 6px;color:var(--tinta);text-decoration:none;border-radius:8px;font-weight:500}
+.enlaces-pulso a:hover{background:var(--hueso)}
+.enlaces-pulso a span{grid-column:1;color:var(--t55);font-size:12px;font-weight:400}
+.enlaces-pulso a svg{grid-row:1/3;grid-column:2}
+
+.nota{margin-top:24px;font-size:12px;color:var(--t60);max-width:640px;line-height:1.6}.nota b{color:var(--tinta);font-weight:500}
+
+/* ---------- detalle (Modal variante hoja, ADR-0136) ---------- */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);z-index:30;animation:velo .25s var(--ease);display:flex;justify-content:center;align-items:flex-start;padding-top:70px}
+.modal{width:540px;max-height:calc(100% - 100px);overflow:auto;background:var(--papel);border-radius:22px;box-shadow:0 30px 60px -20px rgba(26,26,24,.45);animation:sube .42s var(--ease)}
+.modal>*{animation:cascada .4s var(--ease) both}
+.modal>*:nth-child(2){animation-delay:55ms}.modal>*:nth-child(3){animation-delay:110ms}.modal>*:nth-child(4){animation-delay:165ms}.modal>*:nth-child(5){animation-delay:220ms}.modal>*:nth-child(6){animation-delay:275ms}
+.m-cab{padding:22px 24px 14px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.m-cab h2{font-family:'EB Garamond',serif;font-weight:500;font-size:26px;line-height:1.15}
+.m-cab p{font-size:13px;color:var(--t60);margin-top:2px}
+.m-cab .cerrar{width:34px;height:34px;border-radius:99px;display:flex;align-items:center;justify-content:center;background:var(--hueso);flex:none}
+.m-sec{padding:6px 24px 14px}
+.m-sec h5{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:8px}
+.linea{display:flex;align-items:center;gap:12px;padding:8px 0}
+.linea+.linea{border-top:1px dashed var(--t10)}
+.linea .n{flex:1;min-width:0}.linea .n b{font-weight:500;display:block;font-size:14px}.linea .n span{font-size:12.5px;color:var(--t55)}
+.linea .p{font-variant-numeric:tabular-nums;font-size:14px}
+.linea .pv{font-size:11.5px;color:var(--pizarra);display:block}
+.tot-m{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--sand);padding-top:10px;margin-top:4px}
+.tot-m b{font-family:'EB Garamond',serif;font-size:26px;font-weight:500}
+.pagos-m{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.datos{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;font-size:13px}
+.datos span{display:block;color:var(--t55);font-size:11.5px}
+.datos a{color:var(--tinta);text-underline-offset:3px}
+.datos .chip{width:fit-content}
+.traza{position:relative;padding-left:20px}
+.traza:before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:1.5px;background:var(--sand)}
+.traza div{position:relative;font-size:13px;padding:3px 0}
+.traza div:before{content:"";position:absolute;left:-19px;top:9px;width:9px;height:9px;border-radius:99px;background:var(--papel);box-shadow:inset 0 0 0 1.5px var(--taupe)}
+.traza div.ok:before{background:var(--verde);box-shadow:none}.traza div.aviso-t:before{background:var(--ambar);box-shadow:none}.traza div.pv:before{background:var(--pizarra);box-shadow:none}
+.traza span{color:var(--t55);font-size:12px;margin-left:6px}
+.acciones{padding:14px 24px 22px;background:var(--hueso);border-radius:0 0 22px 22px}
+.acciones h5{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--taupe);font-weight:600;margin-bottom:10px}
+.acc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.acc{background:var(--papel);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;align-items:flex-start;font-size:13px;font-weight:500;min-height:74px;position:relative;box-shadow:0 0 0 1px var(--t07);transition:box-shadow .2s}
+.acc:hover{box-shadow:0 0 0 1.5px var(--taupe)}
+.acc small{font-weight:400;font-size:11.5px;color:var(--t55);line-height:1.3}
+.acc.dest{background:var(--tinta);color:var(--crema)}.acc.dest small{color:rgba(245,240,232,.65)}
+.acc.peligro{color:var(--rojo-p)}
+.acc[disabled]{opacity:.45;cursor:not-allowed}
+.acc .pide{position:absolute;top:8px;right:8px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;border:1px dashed var(--t40);border-radius:99px;padding:0 5px;color:var(--t55);font-weight:600}
+.acc.dest .pide{border-color:rgba(245,240,232,.4);color:rgba(245,240,232,.7)}
+.imprimir-hoy{display:flex;gap:10px;padding:16px 24px 22px}
+
+/* toast de destino (demo) */
+.destino{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--tinta);color:var(--crema);padding:12px 18px;border-radius:14px;font-size:13.5px;z-index:200;box-shadow:0 20px 40px -18px rgba(0,0,0,.5);animation:sube .3s var(--ease);max-width:min(620px,92vw)}
+.destino code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;color:#f3d9a6}
+
+/* ---------- celular ---------- */
+.telefonos{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;width:100%}
+.tel-col{display:flex;flex-direction:column;align-items:center;gap:10px}
+.tel-col .rotulo{font-size:12.5px;color:var(--t80);text-align:center;max-width:375px}
+.tel-col .rotulo b{display:block;font-size:13.5px;color:var(--tinta)}
+.telefono{width:375px;height:780px;border-radius:38px;background:var(--crema);box-shadow:0 0 0 10px var(--tinta),0 30px 60px -20px rgba(26,26,24,.5);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.t-barra{height:30px;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:600;flex:none}
+.t-app{height:52px;display:flex;align-items:center;gap:12px;padding:0 16px;border-bottom:1px solid var(--sand);flex:none}
+.t-app .logo{color:var(--rojo);letter-spacing:.3em;font-weight:600;font-size:13px}
+.t-app .sede{margin-left:auto;border:1px solid var(--sand);border-radius:8px;padding:4px 9px;font-size:10.5px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.t-scroll{flex:1;overflow-y:auto;position:relative}
+.t-pag{padding:16px 16px 90px}
+.t-cab .ruta{font-size:10.5px;letter-spacing:.14em;font-weight:600;color:var(--taupe);text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.t-cab .ruta:before{content:"";width:20px;height:1.5px;background:var(--taupe)}
+.t-cab h1{font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.1;margin-top:4px}
+.t-cab p{font-size:13.5px;color:var(--t65)}
+.t-resumen{margin-top:12px;background:var(--papel);border-radius:16px;box-shadow:0 0 0 1px var(--t07);padding:12px 14px}
+.t-resumen .fila{display:flex;align-items:baseline;gap:10px}
+.t-resumen .fila b{font-family:'EB Garamond',serif;font-weight:500;font-size:26px}
+.t-resumen .fila span{font-size:12.5px;color:var(--t60)}
+.t-resumen .fila button{margin-left:auto;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--taupe);display:flex;align-items:center;gap:4px}
+.t-resumen .det{margin-top:10px;border-top:1px dashed var(--sand);padding-top:10px}
+.t-pega{position:sticky;top:0;z-index:6;background:rgba(245,240,232,.95);backdrop-filter:blur(8px);margin:12px -16px 0;padding:10px 16px 10px}
+.t-pega .buscador{height:46px}
+.t-chips{display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:2px;scrollbar-width:none}
+.t-chips::-webkit-scrollbar{display:none}
+.t-chips .pill{height:32px}
+.t-dia{margin-top:14px}
+.t-dia h3{display:flex;justify-content:space-between;align-items:baseline;padding:4px 2px 8px}
+.t-dia h3 .et{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.t-dia h3 .tot{font-size:12px;color:var(--t60)}.t-dia h3 .tot b{font-family:'EB Garamond',serif;font-size:16px;font-weight:500;color:var(--tinta)}
+.t-venta{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:4px 12px;padding:12px;border-radius:14px;cursor:pointer;align-items:start}
+.t-venta+.t-venta{border-top:1px dashed var(--t10)}
+.t-venta .tit{font-family:'EB Garamond',serif;font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-venta .meta{font-size:12px;color:var(--t55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-venta .der{text-align:right}
+.t-venta .der b{font-family:'EB Garamond',serif;font-weight:500;font-size:19px;line-height:1.1;display:block}
+.t-venta .der span{font-size:11.5px;color:var(--t55)}
+.t-venta .comp{grid-column:2/4;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
+.t-venta .comp .chip{height:22px;font-size:11.5px}
+.t-venta.anulada .tit,.t-venta.anulada .der b{color:var(--t40)}.t-venta.anulada .der b{text-decoration:line-through}
+.t-venta .mini{width:38px;height:38px}
+.t-inline{grid-column:1/4;display:flex;gap:6px;margin-top:6px}
+.t-inline button{flex:1;height:40px;border-radius:10px;background:var(--hueso);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px}
+.t-inline button.prim{background:var(--tinta);color:var(--crema)}
+.t-pulso-link{margin-top:18px;display:flex;align-items:center;justify-content:space-between;background:var(--hueso);border-radius:14px;padding:12px 14px;font-size:13.5px}
+/* hoja desde abajo */
+.t-velo{position:absolute;inset:0;background:rgba(26,26,24,.3);backdrop-filter:blur(2px);z-index:30;animation:velo .25s var(--ease);display:flex;align-items:flex-end}
+.t-hoja{width:100%;max-height:88%;background:var(--papel);border-radius:24px 24px 0 0;overflow:auto;animation:hoja .4s var(--ease);padding-bottom:10px}
+.t-hoja .asa{width:40px;height:4.5px;border-radius:99px;background:var(--sand);margin:10px auto 2px}
+.t-hoja>*{animation:cascada .4s var(--ease) both}
+.t-hoja>*:nth-child(3){animation-delay:55ms}.t-hoja>*:nth-child(4){animation-delay:110ms}.t-hoja>*:nth-child(5){animation-delay:165ms}
+.t-hoja .m-cab{padding:12px 18px 8px}.t-hoja .m-sec{padding:4px 18px 12px}
+.t-acc{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 18px 16px;background:var(--hueso)}
+.t-acc .acc{min-height:66px}
+/* página completa */
+.t-pagina{position:absolute;inset:0;background:var(--crema);z-index:30;animation:lado .35s var(--ease);display:flex;flex-direction:column}
+.t-pagina .t-app{background:var(--crema)}
+.t-pagina .cuerpo{flex:1;overflow:auto;padding:4px 0 20px}
+.t-pagina .pie{flex:none;display:flex;gap:8px;padding:10px 14px 22px;border-top:1px solid var(--sand);background:var(--papel)}
+.t-pagina .pie button{flex:1;height:48px;border-radius:12px;font-weight:600;font-size:13.5px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--hueso)}
+.t-pagina .pie button.prim{background:var(--tinta);color:var(--crema)}
+.t-pagina .mas{padding:6px 18px}
+.t-pagina .mas a{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;border-bottom:1px dashed var(--t10);color:var(--tinta);text-decoration:none;font-size:14px}
+.t-pagina .mas a span{font-size:12px;color:var(--t55)}
+
+/* ---------- otros sistemas / hallazgos ---------- */
+.doc{width:1180px;max-width:100%;background:var(--papel);border-radius:18px;padding:34px 38px;box-shadow:0 20px 40px -24px rgba(26,26,24,.35)}
+.doc h2{font-family:'EB Garamond',serif;font-weight:500;font-size:34px;line-height:1.15}
+.doc h3{font-family:'EB Garamond',serif;font-weight:500;font-size:23px;margin:26px 0 8px}
+.doc p{color:var(--t80);max-width:880px;margin-top:8px}
+.doc .aviso-doc{background:var(--hueso);border-radius:12px;padding:10px 14px;font-size:13px;margin-top:14px;color:var(--t80)}
+table.cmp{width:100%;border-collapse:separate;border-spacing:0;margin-top:14px;font-size:13.5px}
+table.cmp th{font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--taupe);font-weight:600;text-align:center;padding:10px 8px;border-bottom:1px solid var(--sand);vertical-align:bottom}
+table.cmp th:first-child{text-align:left}
+table.cmp td{padding:9px 8px;border-bottom:1px dashed var(--t10);text-align:center}
+table.cmp td:first-child{text-align:left}
+table.cmp td small{display:block;color:var(--t55);font-size:12px}
+table.cmp tr:nth-child(even) td{background:rgba(234,225,210,.35)}
+table.cmp .col-cayla{background:rgba(26,26,24,.04)}
+.si{color:var(--verde);font-weight:700}.parcial{color:var(--ambar);font-weight:700}.no{color:var(--t40)}
+.prop{color:var(--rojo-p);font-weight:700}
+.hall{display:grid;gap:10px;margin-top:14px}
+.hall div{display:grid;grid-template-columns:34px 1fr;gap:12px;padding:12px 14px;border-radius:12px;background:var(--crema)}
+.hall b.n{font-family:'EB Garamond',serif;font-size:24px;color:var(--taupe);line-height:1}
+.hall h4{font-weight:600;font-size:14.5px}.hall p{margin-top:2px;font-size:13.5px}
+.hall code,.doc code{font-family:ui-monospace,Menlo,monospace;font-size:12px;background:var(--hueso);padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+
+<div class="spk" id="spk">
+  <div class="spk-f">
+    <span class="tag">Spike · Historial</span>
+    <div class="seg" id="seg-vista">
+      <button data-v="escritorio" class="on">Escritorio</button><button data-v="celular">Celular</button><button data-v="otros">Otros sistemas</button><button data-v="hallazgos">Hallazgos</button>
+    </div>
+    <span class="sep"></span>
+    <div class="seg" id="seg-modo"><button data-m="hoy">Hoy</button><button data-m="propuesta" class="on">Propuesta</button></div>
+    <span class="sep"></span>
+    <span class="tag">Quién mira</span>
+    <div class="seg" id="seg-rol"><button data-r="lider" class="on">Líder</button><button data-r="colab">Colaboradora</button></div>
+    <span class="sep cel-only"></span>
+    <span class="tag cel-only">Abrir una venta</span>
+    <div class="seg cel-only" id="seg-cel"><button data-c="hoja" class="on">A · Hoja</button><button data-c="pagina">B · Página</button><button data-c="fila">C · En la fila</button><button data-c="tres">Las tres</button></div>
+  </div>
+  <div class="spk-op" id="spk-op">
+    <span class="tag">Encendido de fábrica</span>
+    <label><input type="checkbox" data-o="buscador" checked> Buscador único</label>
+    <label><input type="checkbox" data-o="rapidas" checked> Hoy · Mis ventas · Por enviar (+ atajos elegibles)</label>
+    <label><input type="checkbox" data-o="avisos" checked> Avisos arriba</label>
+    <label><input type="checkbox" data-o="acciones" checked> Acciones en el detalle</label>
+    <label><input type="checkbox" data-o="marcas" checked> Marcas de posventa y apartado</label>
+    <label><input type="checkbox" data-o="traza" checked> Recorrido de la venta</label>
+    <span class="sep"></span>
+    <span class="tag">Por elegir</span>
+    <label><input type="checkbox" data-o="whatsapp"> Enviar por WhatsApp <span class="pide">decisión</span></label>
+    <label><input type="checkbox" data-o="volver"> Volver a vender <span class="pide">pantalla</span></label>
+    <label><input type="checkbox" data-o="exportar"> Exportar (líder)</label>
+    <label><input type="checkbox" data-o="operacion"> Buscar por nº de operación Yape <span class="pide">base</span></label>
+    <label><input type="checkbox" data-o="nota"> Nota interna en la venta <span class="pide">base</span></label>
+  </div>
+</div>
+
+<div class="escena" id="escena"></div>
+<div id="toast"></div>
+
+<script>
+/* =====================================================================
+   DATOS (inventados; las 7 primeras reproducen las capturas del 26-set)
+   ===================================================================== */
+const HOY = "2026-09-26";
+const COLAB = "Angie Chavez";           // la colaboradora que mira en modo «Colaboradora»
+const P = (nombre, talla, color, hex, precio, extra = {}) => ({ nombre, talla, color, hex, precio, ...extra });
+const VENTAS = [
+  { id: "v31", fecha: "2026-09-26", hora: "10:29", sede: "TRU", vendedor: "Felipe Alvarez",
+    clienta: { nombre: "Rosa Mendoza", doc: "DNI 45129877" },
+    prendas: [P("Test de Produto 2", "Única", "Celeste", "#9cc0d6", 49), P("Test de Produto 2", "Única", "Celeste", "#9cc0d6", 49)],
+    pagos: [["anticipo", 30], ["yape", 68]], comp: { tipo: "Boleta", num: "B004-000031", estado: "pendiente" },
+    apartado: { cod: "AP-0012", desde: "19 set" } },
+  { id: "v29", fecha: "2026-09-25", hora: "13:22", sede: "TRU", vendedor: "Chiara Flores",
+    clienta: { nombre: "Lucía Paredes", doc: "DNI 70452318" },
+    prendas: [P("Polo Básico M/corta", "Estándar", "Arena", "#c79a74", 39.9, { sku: "PBM-EST-ARE" })],
+    pagos: [["tarjeta", 39.9]], comp: { tipo: "Boleta", num: "B004-000029", estado: "aceptado" },
+    posventa: [{ tipo: "cambio", texto: "Cambio de talla", cuando: "26 set" }] },
+  { id: "n06", fecha: "2026-09-25", hora: "13:22", sede: "TRU", vendedor: "Angie Chavez", clienta: null,
+    prendas: [P("Blusa Carlita", "L", "Blanco", "foto", 71.9, { sku: "BCA-L-BLA" })],
+    pagos: [["yape", 71.9]], comp: { tipo: "Nota de venta", num: "NV01-000006", estado: "interna" } },
+  { id: "n05", fecha: "2026-09-25", hora: "10:15", sede: "TRU", vendedor: "Angie Chavez", clienta: null,
+    prendas: [P("Polo Básico M/corta", "Estándar", "Gris antracita", "#3c3a3f", 39.9, { sku: "PBM-EST-GRA" })],
+    pagos: [["yape", 39.9]], comp: { tipo: "Nota de venta", num: "NV01-000005", estado: "interna" } },
+  { id: "n04", fecha: "2026-09-25", hora: "10:15", sede: "TRU", vendedor: "Nicole Blas", clienta: null,
+    prendas: [P("Polo Básico M/corta", "Estándar", "Gris antracita", "#3c3a3f", 39.9, { sku: "PBM-EST-GRA" })],
+    pagos: [["yape", 39.9]], comp: { tipo: "Nota de venta", num: "NV01-000004", estado: "interna" },
+    posventa: [{ tipo: "devolucion", texto: "Devuelta · vuelve al stock", cuando: "25 set" }] },
+  { id: "n03", fecha: "2026-09-25", hora: "10:08", sede: "TRU", vendedor: "Angie Chavez", clienta: null,
+    prendas: [P("Blusa Carlita", "M", "Blanco", "foto", 71.9, { sku: "BCA-M-BLA" })],
+    pagos: [["yape", 71.9]], comp: { tipo: "Nota de venta", num: "NV01-000003", estado: "interna" } },
+  { id: "b28", fecha: "2026-09-24", hora: "11:10", sede: "TRU", vendedor: "Danixa Valverde", clienta: null,
+    prendas: [P("Polo Básico M/corta", "Estándar", "Arena", "#c79a74", 39.9, { sku: "PBM-EST-ARE" })],
+    pagos: [["efectivo", 39.9]], comp: { tipo: "Boleta", num: "B004-000028", estado: "aceptado" } },
+  // Fuera de los 30 días: solo aparecen buscando (el buscador mira TODAS las fechas).
+  { id: "f11", fecha: "2026-08-15", hora: "16:40", sede: "LIM", vendedor: "Chiara Flores",
+    clienta: { nombre: "Estudio Rivas S.A.C.", doc: "RUC 20601234567" },
+    prendas: [P("Falda Midi Plisada", "M", "Negro", "#1d1c1f", 119.9, { sku: "FMP-M-NEG" }), P("Blusa Carlita", "M", "Blanco", "foto", 71.9, { sku: "BCA-M-BLA" })],
+    pagos: [["tarjeta", 150], ["efectivo", 41.8]], comp: { tipo: "Factura", num: "F004-000011", estado: "rechazado" } },
+  { id: "b12", fecha: "2026-08-02", hora: "12:05", sede: "AQP", vendedor: "Nicole Blas",
+    clienta: { nombre: "María Quispe", doc: "DNI 41877620" },
+    prendas: [P("Vestido Lino", "S", "Terracota", "#b4623f", 149.9, { sku: "VLI-S-TER" })],
+    pagos: [["plin", 149.9]], comp: { tipo: "Boleta", num: "B002-000012", estado: "aceptado" } },
+];
+const total = v => v.prendas.reduce((s, p) => s + p.precio, 0);
+const METODO = { efectivo: ["Efectivo", "--m-efectivo"], tarjeta: ["Tarjeta", "--m-tarjeta"], yape: ["Yape", "--m-yape"], plin: ["Plin", "--m-plin"], transferencia: ["Transferencia", "--m-transf"], anticipo: ["Anticipo", "--m-anticipo"] };
+const ESTADO = { aceptado: ["Aceptado", "verde"], pendiente: ["Pendiente de enviar", "ambar"], rechazado: ["Rechazado", "rojo"], interna: ["Interna — no va a SUNAT", "apagado tach"] };
+
+/* =====================================================================
+   ESTADO DEL SPIKE
+   ===================================================================== */
+const S = {
+  vista: "escritorio", modo: "propuesta", rol: "lider", cel: "hoja",
+  o: { buscador: true, rapidas: true, avisos: true, acciones: true, marcas: true, traza: true, whatsapp: false, volver: false, exportar: false, operacion: false, nota: false },
+  q: "", periodo: "30", atajos: new Set(), fijados: ["mias", "porEnviar"], pop: false, filtros: false,
+  abierta: null, celAbierta: {}, avisosCerrados: new Set(), resumenAbierto: false,
+};
+const prop = k => S.modo === "propuesta" && S.o[k];
+// Atajos: tres de fábrica (fijos) y el resto a elección de cada colaboradora (en el ERP, recordado por persona).
+const ATAJOS = {
+  mias:       { et: "Mis ventas", fijo: true, f: v => v.vendedor === (S.rol === "colab" ? COLAB : "Felipe Alvarez") },
+  porEnviar:  { et: "Por enviar", fijo: true, cuenta: true, f: v => ["pendiente", "rechazado"].includes(v.comp?.estado) },
+  sinComp:    { et: "Sin comprobante", f: v => !v.comp },
+  posventa:   { et: "Con cambio o devolución", f: v => !!v.posventa },
+  apartado:   { et: "Desde apartado", f: v => !!v.apartado },
+  facturas:   { et: "Facturas", f: v => v.comp?.tipo === "Factura" },
+  clienta:    { et: "Con clienta", f: v => !!v.clienta },
+  anuladas:   { et: "Anuladas", f: v => !!v.anulada },
+  yape:       { et: "Pagó con Yape", f: v => v.pagos.some(p => p[0] === "yape") },
+};
+
+/* =====================================================================
+   FILTRADO Y BÚSQUEDA
+   ===================================================================== */
+const sinTilde = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const diasAtras = f => Math.round((new Date(HOY) - new Date(f)) / 864e5);
+function enPeriodo(v) {
+  if (S.periodo === "hoy") return v.fecha === HOY;
+  return diasAtras(v.fecha) < Number(S.periodo);
+}
+function coincide(v, q) {
+  const t = sinTilde(q.trim()); if (!t) return true;
+  const campos = [v.comp?.num, v.comp?.num?.replace(/-0+/, "-"), v.clienta?.nombre, v.clienta?.doc, v.vendedor, ...v.prendas.flatMap(p => [p.nombre, p.sku, p.color])];
+  return campos.some(c => c && sinTilde(c).includes(t));
+}
+function ventasVisibles() {
+  const buscando = prop("buscador") && S.q.trim();
+  let l = VENTAS.filter(v => (buscando ? coincide(v, S.q) : enPeriodo(v)));
+  if (S.rol === "colab") l = l.filter(v => v.sede === "TRU");
+  if (prop("rapidas")) for (const a of S.atajos) l = l.filter(ATAJOS[a].f);
+  return l;
+}
+const fueraDePeriodo = () => (prop("buscador") && S.q.trim()) ? ventasVisibles().filter(v => !enPeriodo(v)).length : 0;
+function resaltar(texto) {
+  const q = prop("buscador") ? S.q.trim() : ""; if (!q) return esc(texto);
+  const i = sinTilde(texto).indexOf(sinTilde(q)); if (i < 0) return esc(texto);
+  return esc(texto.slice(0, i)) + "<mark>" + esc(texto.slice(i, i + q.length)) + "</mark>" + esc(texto.slice(i + q.length));
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const soles = n => "S/ " + n.toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"], MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "setiembre", "octubre", "noviembre", "diciembre"];
+function etiquetaDia(f) {
+  const d = diasAtras(f); if (d === 0) return "Hoy"; if (d === 1) return "Ayer";
+  const x = new Date(f + "T12:00:00"); return `${DIAS[x.getDay()]}, ${x.getDate()} de ${MESES[x.getMonth()]}`;
+}
+function agrupar(l) { const m = new Map(); for (const v of l) { if (!m.has(v.fecha)) m.set(v.fecha, []); m.get(v.fecha).push(v); } return [...m]; }
+
+/* Título de la venta: «Test de Produto 2 ×2», no «Test de Produto 2, Test de Produto 2» (hallazgo 8). */
+function titulo(v) {
+  if (S.modo === "hoy") return v.prendas.map(p => p.nombre).join(", ");
+  const c = new Map(); for (const p of v.prendas) c.set(p.nombre, (c.get(p.nombre) || 0) + 1);
+  return [...c].map(([n, k]) => k > 1 ? `${n} ×${k}` : n).join(", ");
+}
+function subtitulo(v) {
+  if (v.prendas.length > 1 && new Set(v.prendas.map(p => p.nombre)).size > 1) return `${v.prendas.length} prendas`;
+  if (v.prendas.length > 1) return S.modo === "hoy" ? `${v.prendas.length} prendas` : `${v.prendas[0].talla} · ${v.prendas[0].color}`;
+  return `${v.prendas[0].talla} · ${v.prendas[0].color}`;
+}
+const pagosTexto = v => v.pagos.map(p => METODO[p[0]][0].toLowerCase()).map((t, i) => i === 0 ? t[0].toUpperCase() + t.slice(1) : t).join(" + ");
+
+/* =====================================================================
+   PIEZAS
+   ===================================================================== */
+const I = {
+  buscar: '<path d="M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm10 2-4.35-4.35"/>',
+  x: '<path d="M18 6 6 18M6 6l12 12"/>', flecha: '<path d="M5 12h14m-6-6 6 6-6 6"/>', der: '<path d="m9 18 6-6-6-6"/>', izq: '<path d="m15 18-6-6 6-6"/>',
+  abajo: '<path d="m6 9 6 6 6-6"/>', filtro: '<path d="M4 6h16M7 12h10M10 18h4"/>', mas: '<path d="M12 5v14M5 12h14"/>',
+  cambio: '<path d="M7 7h11l-3-3m3 13H7l3 3"/>', devolver: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  recibo: '<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2Z"/><path d="M9 8h6m-6 4h6"/>', impr: '<path d="M6 9V3h12v6M6 18H4v-6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v6h-2"/><path d="M6 14h12v7H6z"/>',
+  wsp: '<path d="M3 21l1.7-5A8.5 8.5 0 1 1 8 19.3Z"/><path d="M9 10c.5 2 2 3.5 4 4l1.3-1.3 2 1-.6 1.7c-3.5.3-7.4-3.6-7.1-7.1l1.7-.6 1 2Z"/>',
+  clienta: '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm-7 9a7 7 0 0 1 14 0"/>', sunat: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  bolsa: '<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/>', anular: '<path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM5.6 5.6l12.8 12.8"/>',
+  nota: '<path d="M4 4h16v12l-4 4H4Z"/><path d="M16 20v-4h4"/>', bajar: '<path d="M12 3v12m-5-5 5 5 5-5M5 21h14"/>', menu: '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  apartado: '<path d="M6 3h12v18l-6-4-6 4Z"/>', reloj: '<path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0-13v4l3 2"/>',
+};
+const ic = (k, c = "") => `<svg class="ic ${c}" viewBox="0 0 24 24">${I[k]}</svg>`;
+
+function miniaturas(v) {
+  const vis = []; const vistos = new Map();
+  for (const p of v.prendas) { const k = p.nombre + p.color; vistos.set(k, (vistos.get(k) || 0) + 1); if (vistos.get(k) === 1) vis.push(p); }
+  return `<div class="racimo">${vis.slice(0, 3).map(p => {
+    const k = vistos.get(p.nombre + p.color); const x2 = S.modo === "propuesta" && k > 1 ? `<span class="x2">×${k}</span>` : "";
+    const bg = p.hex === "foto" ? "background:linear-gradient(135deg,#c93a32 0 30%,#eee 30% 60%,#3b3b3b 60%)" : `background:${p.hex}`;
+    // «Hoy» dibuja un mosaico por prenda (dos celestes encimados); la propuesta junta iguales con ×N.
+    if (S.modo === "hoy" && k > 1) return `<span class="mini" style="${bg}"></span>`.repeat(k);
+    return `<span class="mini" style="${bg}">${x2}</span>`;
+  }).join("")}</div>`;
+}
+function chipComp(v, enlazar) {
+  if (!v.comp) return `<span class="chip ambar">Sin comprobante</span>`;
+  const [t, tono] = ESTADO[v.comp.estado];
+  const accionable = enlazar && ["pendiente", "rechazado"].includes(v.comp.estado);
+  return `<span>${v.comp.tipo} ${resaltar(v.comp.num)}</span><span class="chip ${tono}${accionable ? " link" : ""}" ${accionable ? `data-ir="reintentar" data-id="${v.id}" title="Ir a Comprobantes ▸ Por reintentar"` : ""}>${t}${accionable ? " →" : ""}</span>`;
+}
+function chipsMarcas(v) {
+  if (!prop("marcas")) return "";
+  let h = "";
+  if (v.apartado) h += `<span class="chip pizarra link" data-ir="apartado" data-id="${v.id}">Desde apartado ${v.apartado.cod}</span>`;
+  for (const pv of v.posventa || []) h += `<span class="chip pizarra link" data-ir="${pv.tipo === "cambio" ? "cambios" : "devoluciones"}" data-id="${v.id}">${pv.tipo === "cambio" ? "Tuvo cambio" : "Devuelta"} · ${pv.cuando}</span>`;
+  return h;
+}
+function metaTexto(v) {
+  const cl = v.clienta ? resaltar(v.clienta.nombre) : "Cliente varios";
+  return `${v.hora} · ${v.sede} · ${cl} · Vendido por ${resaltar(v.vendedor)}`;
+}
+
+/* ---------- herramientas (buscador + atajos + filtros) ---------- */
+function herramientas(movil) {
+  let h = "";
+  if (prop("buscador")) {
+    const ph = S.o.operacion ? "Comprobante, clienta, DNI, prenda o nº de operación" : movil ? "Boleta, clienta, DNI o prenda" : "Buscar por comprobante (B004-31), clienta, DNI o RUC, prenda o código";
+    h += `<label class="buscador">${ic("buscar", "s")}<input data-q value="${esc(S.q)}" placeholder="${ph}">${S.q ? `<button class="x" data-limpiar>${ic("x", "s")}</button>` : movil ? "" : "<kbd>/</kbd>"}</label>`;
+  }
+  const periodos = S.modo === "hoy" ? [["7", "7 días"], ["30", "30 días"], ["90", "90 días"], ["p", "Personalizado"]] : [["hoy", "Hoy"], ["7", "7 días"], ["30", "30 días"], ["90", "90 días"], ["p", "Personalizado"]];
+  const chipsPeriodo = periodos.map(([k, t]) => `<button class="pill ${S.periodo === k ? "on" : ""}" data-periodo="${k}">${t}</button>`).join("");
+  let atajos = "";
+  if (prop("rapidas")) {
+    atajos = S.fijados.map(k => {
+      const a = ATAJOS[k]; const n = a.cuenta ? VENTAS.filter(a.f).length : 0;
+      return `<button class="pill ${S.atajos.has(k) ? "on" : ""}" data-atajo="${k}">${a.et}${n ? `<span class="cnt">${n}</span>` : ""}</button>`;
+    }).join("") + `<button class="pill mas" data-pop>${ic("mas", "xs")} Atajo</button>`;
+  }
+  const prueba = S.rol === "lider" && !movil && S.modo === "hoy" ? `<button class="pill">Con datos de prueba</button>` : "";
+  if (movil) {
+    // En el celular el período cabe en una píldora-combo y los atajos corren en una sola fila deslizable.
+    const perTxt = periodos.find(p => p[0] === S.periodo)?.[1] ?? "30 días";
+    h += `<div class="t-chips">${S.modo === "hoy" ? chipsPeriodo + prueba : `<button class="pill on" data-ciclo title="Toca para cambiar el período">${perTxt} ${ic("abajo", "xs")}</button>${atajos}<button class="pill">${ic("filtro", "xs")} Filtros</button>`}</div>`;
+  } else {
+    h += `<div class="fila-chips">${S.modo === "hoy" ? chipsPeriodo + prueba : chipsPeriodo + (atajos ? `<span class="sep-v"></span>${atajos}` : "") + prueba}
+      <span style="margin-left:auto;display:flex;gap:8px">${prop("exportar") && S.rol === "lider" ? `<button class="btn sutil" data-ir="exportar">${ic("bajar", "s")} Exportar</button>` : ""}<button class="btn sutil" data-filtros>${ic("filtro", "s")} Filtros</button></span></div>`;
+    if (S.filtros) h += `<div class="fila-chips" style="background:var(--hueso);padding:10px 12px;border-radius:14px">${(S.rol === "lider" ? ["Todas las tiendas", "Todos los vendedores"] : []).concat(["Todos los pagos", "Todas las ventas", "Con o sin comprobante"], S.rol === "lider" ? ["Con datos de prueba"] : []).map(t => `<button class="pill" style="border-color:transparent">${t} ${ic("abajo", "xs")}</button>`).join("")}</div>`;
+  }
+  if (S.pop && prop("rapidas")) {
+    h += `<div class="pop" style="${movil ? "left:16px;top:120px" : "left:auto;margin-top:6px"}"><h4>Atajos de Historial</h4>
+      ${Object.entries(ATAJOS).map(([k, a]) => `<label><input type="checkbox" data-fijar="${k}" ${S.fijados.includes(k) ? "checked" : ""} ${a.fijo ? "disabled" : ""}> ${a.et}${a.fijo ? '<span class="fijo">de fábrica</span>' : ""}</label>`).join("")}
+      <small>Los de fábrica siempre están. Los demás los elige cada una y quedan guardados para su cuenta.</small></div>`;
+  }
+  return h;
+}
+
+/* ---------- avisos: lo que pide acción, de CUALQUIER fecha ---------- */
+function avisos(movil) {
+  if (!prop("avisos")) return "";
+  const pend = VENTAS.filter(v => v.comp?.estado === "pendiente").length, rech = VENTAS.filter(v => v.comp?.estado === "rechazado").length;
+  const lista = [
+    { k: "sunat", color: "var(--ambar)", txt: `<b>${pend} boleta pendiente de enviar</b> y <b>${rech} factura rechazada</b> por SUNAT`, ir: "reintentar", cta: movil ? "Resolver" : "Por reintentar" },
+    { k: "apart", color: "var(--pizarra)", txt: movil ? `<b>Apartado AP-0015</b> de Carmen vence hoy` : `<b>Apartado AP-0015</b> de Carmen Soto vence hoy — faltan S/ 60.00`, ir: "apartado", cta: "Ver" },
+  ].filter(a => !S.avisosCerrados.has(a.k));
+  if (!lista.length) return "";
+  return `<div class="avisos">${lista.map(a => `<div class="aviso"><span class="punto" style="background:${a.color}"></span><span>${a.txt}</span><a href="#" data-ir="${a.ir}">${a.cta} ${ic("der", "xs")}</a>${movil ? "" : `<button class="cerrar" data-cerrar-aviso="${a.k}" aria-label="Ocultar">${ic("x", "xs")}</button>`}</div>`).join("")}</div>`;
+}
+
+function resultadoBusqueda() {
+  if (!prop("buscador") || !S.q.trim()) return "";
+  const n = ventasVisibles().length, fuera = fueraDePeriodo();
+  if (!n) return `<div class="resultado">Ninguna venta con «<b>${esc(S.q)}</b>» en ninguna fecha. Prueba con el número sin ceros (B004-31), el DNI o el nombre de la prenda.</div>`;
+  return `<div class="resultado"><b>${n} ${n === 1 ? "venta" : "ventas"}</b> con «${esc(S.q)}» — el buscador mira <b>todas las fechas</b>${fuera ? `, ${fuera} fuera de los últimos 30 días` : ""}. <button data-limpiar>Volver al período</button></div>`;
+}
+
+/* =====================================================================
+   ESCRITORIO
+   ===================================================================== */
+function escritorio() {
+  const vis = ventasVisibles(), enPer = VENTAS.filter(enPeriodo).filter(v => S.rol === "lider" || v.sede === "TRU");
+  const tot = enPer.reduce((s, v) => s + total(v), 0);
+  const alcance = S.rol === "lider" ? (S.modo === "hoy" ? "Todas las tiendas" : "Tienda TRU") : "Tienda TRU";
+  return `<div class="escritorio">
+    <aside class="lat">
+      <div class="logo">🕊 CAYLA</div>
+      <a>Inicio</a><a>Ventas <span class="flecha">▾</span></a>
+      <a class="sub">Punto de Venta</a><a class="sub">Apartados</a><a class="sub">Caja</a><a class="sub on">Historial</a><a class="sub">Posventa <span class="flecha">›</span></a><a class="sub">Comprobantes</a>
+      <a>Inventario <span class="flecha">›</span></a><a>Catálogo <span class="flecha">›</span></a><a>Compras <span class="flecha">›</span></a><a>Finanzas <span class="flecha">›</span></a>
+    </aside>
+    <div class="main" id="main-esc">
+      <div class="top"><span style="font-size:11.5px;letter-spacing:.14em;font-weight:600;color:var(--t65)">ACTIVIDAD</span><span class="sede">TIENDA TRU ${ic("abajo", "xs")}</span></div>
+      <div class="pag">
+        <div class="cab">
+          <div><div class="ruta">${alcance} · sábado, 26 de setiembre · 12:05</div><h1>Historial</h1><p>Todas las ventas registradas, de cualquier fecha.</p></div>
+          <div class="cifras"><div><b>${soles(tot)}</b><span>vendido</span></div><div><b>${enPer.length}</b><span>ventas</span></div></div>
+        </div>
+        <div class="rejilla">
+          <div style="min-width:0;position:relative">
+            ${herramientas(false)}
+            ${avisos(false)}
+            ${resultadoBusqueda()}
+            ${listaEscritorio(vis)}
+            <p class="nota"><b>Registro transparente:</b> una venta no se edita ni se borra. Si se anula, sigue en el historial —tachada— y deja de sumar a lo vendido; si la clienta cambia o devuelve una prenda, queda anotado en Cambios o Devoluciones${prop("marcas") ? " y se ve aquí como una marca en la venta" : ""}.</p>
+          </div>
+          ${pulso(enPer)}
+        </div>
+      </div>
+      ${S.abierta ? `<div class="velo" data-cerrar>${detalle(VENTAS.find(v => v.id === S.abierta), false)}</div>` : ""}
+    </div>
+  </div>`;
+}
+function listaEscritorio(l) {
+  if (!l.length) return `<div class="hoja-dia" style="padding:30px;text-align:center;margin-top:22px;color:var(--t60)">Ninguna venta coincide.</div>`;
+  return `<div class="lista">${agrupar(l).map(([f, vs]) => {
+    const t = vs.reduce((s, v) => s + total(v), 0);
+    return `<section class="dia"><h3><span class="et">${etiquetaDia(f)}</span><span class="tot"><b>${soles(t)}</b> · ${vs.length} ${vs.length === 1 ? "venta" : "ventas"}</span></h3>
+      <div class="hoja-dia">${vs.map(v => `<div class="venta ${v.anulada ? "anulada" : ""} ${S.abierta === v.id ? "sel" : ""}" data-abrir="${v.id}">
+        ${miniaturas(v)}
+        <div style="min-width:0"><div class="tit">${resaltar(titulo(v))}</div><div class="sub">${subtitulo(v)}</div><div class="meta">${metaTexto(v)}</div></div>
+        <div class="der"><b class="num">${soles(total(v))}</b><span>${pagosTexto(v)}</span></div>
+        <div class="comp">${chipComp(v, S.modo === "propuesta")}${chipsMarcas(v)}</div>
+      </div>`).join("")}</div></section>`;
+  }).join("")}</div>`;
+}
+function pulso(l) {
+  const porMetodo = {}; for (const v of l) for (const [m, x] of v.pagos) porMetodo[m] = (porMetodo[m] || 0) + x;
+  const tot = Object.values(porMetodo).reduce((a, b) => a + b, 0) || 1;
+  const orden = Object.entries(porMetodo).sort((a, b) => b[1] - a[1]);
+  const barras = Array.from({ length: 30 }, (_, i) => { const f = new Date(new Date(HOY) - (29 - i) * 864e5).toISOString().slice(0, 10); return l.filter(v => v.fecha === f).reduce((s, v) => s + total(v), 0); });
+  const max = Math.max(...barras, 1);
+  const svg = `<svg viewBox="0 0 250 80" style="width:100%;height:80px;margin-top:8px">${barras.map((b, i) => `<rect x="${i * 8.3 + 1}" y="${76 - (b / max) * 66}" width="3" height="${Math.max(1, (b / max) * 66)}" rx="1.5" fill="${b === max ? "var(--taupe)" : "#d3c8b4"}"/>`).join("")}<line x1="0" y1="77" x2="250" y2="77" stroke="#d3c8b4" stroke-dasharray="3 3"/></svg>`;
+  const enl = S.modo === "propuesta" ? `<div class="enlaces-pulso">
+      <a href="#" data-ir="caja">Caja de hoy<span>abierta · S/ 98.00</span>${ic("der", "xs")}</a>
+      <a href="#" data-ir="cambios">Posventa del período<span>1 cambio · 1 devolución</span>${ic("der", "xs")}</a>
+      <a href="#" data-ir="comprobantes">Comprobantes<span>2 por resolver</span>${ic("der", "xs")}</a></div>` : "";
+  return `<aside class="pulso">
+    <h4>Ventas por día</h4><div class="p-sub">Últimos 30 días</div>
+    <div class="mejor">Mejor día · vie, 25 set<b>S/ 263.50 <span style="font-family:'DM Sans';font-size:12.5px;color:var(--t60)">5 ventas</span></b></div>
+    ${svg}<div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--t55)"><span>28 ago</span><span>26 set</span></div>
+    <div class="kpis"><div><span>Ticket promedio</span><b>${soles(l.length ? l.reduce((s, v) => s + total(v), 0) / l.length : 0)}</b></div><div><span>Por día</span><b>S/ 13.38</b></div><div><span>Prendas</span><b>${l.reduce((s, v) => s + v.prendas.length, 0)}</b></div><div><span>Anuladas</span><b>0</b></div></div>
+    <h4 style="font-size:13.5px">Cómo se pagó</h4>
+    <div class="barra-pago">${orden.map(([m, x]) => `<span style="width:${x / tot * 100}%;background:var(${METODO[m][1]})"></span>`).join("")}</div>
+    <div class="leyp">${orden.map(([m, x]) => `<i style="background:${S.modo === "hoy" && m === "anticipo" ? "transparent" : `var(${METODO[m][1]})`}"></i><span>${S.modo === "hoy" && m === "anticipo" ? "anticipo" : METODO[m][0]}${m === "anticipo" && S.modo === "propuesta" ? ' <small style="color:var(--t55)">(de apartados)</small>' : ""}</span><span class="pc">${Math.round(x / tot * 100)} %</span><span class="mt num">${soles(x)}</span>`).join("")}</div>
+    ${enl}
+  </aside>`;
+}
+
+/* ---------- detalle ---------- */
+function detalle(v, movil) {
+  const cab = `<div class="m-cab"><div><h2>${titulo(v)}</h2><p>${etiquetaDia(v.fecha)} · ${v.hora} · Tienda ${v.sede} · ${v.vendedor}</p></div><button class="cerrar" data-cerrar-btn>${ic("x", "s")}</button></div>`;
+  const lineas = `<div class="m-sec"><h5>Prendas</h5>${v.prendas.map((p, i) => {
+      const pv = prop("marcas") && v.posventa && i === 0 ? `<span class="pv">${v.posventa[0].texto} · ${v.posventa[0].cuando}</span>` : "";
+      return `<div class="linea"><span class="mini" style="${p.hex === "foto" ? "background:linear-gradient(135deg,#c93a32 0 30%,#eee 30% 60%,#3b3b3b 60%)" : `background:${p.hex}`}"></span><div class="n"><b>${p.nombre}</b><span>${p.talla} · ${p.color}${p.sku ? " · " + p.sku : ""}</span>${pv}</div><span class="p num">${soles(p.precio)}</span></div>`;
+    }).join("")}
+    <div class="tot-m"><span style="font-size:13px;color:var(--t60)">Total</span><b class="num">${soles(total(v))}</b></div>
+    <div class="pagos-m">${v.pagos.map(([m, x]) => `<span class="chip sinpunto" style="box-shadow:inset 3px 0 0 var(${METODO[m][1]})">${METODO[m][0]} ${soles(x)}</span>`).join("")}</div></div>`;
+  const datos = `<div class="m-sec"><div class="datos">
+      <div><span>Comprobante</span>${v.comp ? `${v.comp.tipo} ${v.comp.num}<br><span class="chip ${ESTADO[v.comp.estado][1]}" style="margin-top:4px">${ESTADO[v.comp.estado][0]}</span>` : "Sin comprobante"}</div>
+      <div><span>Clienta</span>${v.clienta ? `${S.modo === "propuesta" && S.o.acciones ? `<a href="#" data-ir="clienta">${v.clienta.nombre}</a>` : v.clienta.nombre}<br><small style="color:var(--t55)">${v.clienta.doc}</small>` : "Cliente varios"}</div>
+    </div></div>`;
+  const traza = prop("traza") ? `<div class="m-sec"><h5>Recorrido</h5><div class="traza">
+      ${v.apartado ? `<div class="pv">Apartada como ${v.apartado.cod}<span>${v.apartado.desde} · anticipo S/ 30.00</span></div>` : ""}
+      <div class="ok">Vendida<span>${etiquetaDia(v.fecha).toLowerCase()} ${v.hora} · ${v.vendedor}</span></div>
+      ${v.comp && v.comp.estado !== "interna" ? `<div class="${v.comp.estado === "aceptado" ? "ok" : "aviso-t"}">${v.comp.estado === "aceptado" ? "SUNAT aceptó la " + v.comp.tipo.toLowerCase() : v.comp.estado === "rechazado" ? "SUNAT rechazó la factura" : "Boleta en cola para SUNAT"}<span>${v.comp.estado === "aceptado" ? v.hora : "sin respuesta todavía"}</span></div>` : ""}
+      ${(v.posventa || []).map(pv => `<div class="pv">${pv.texto}<span>${pv.cuando}</span></div>`).join("")}
+      ${S.o.nota ? `<div>Nota: «Clienta pidió factura después; se le explicó que va con nota de crédito»<span>Chiara · 25 set</span></div>` : ""}
+    </div></div>` : "";
+  const acciones = prop("acciones") ? accionesVenta(v, movil) : `<div class="imprimir-hoy"><button class="btn sutil">${ic("impr", "s")} Imprimir ticket</button><button class="btn sutil">${ic("impr", "s")} Imprimir ${v.comp?.tipo === "Factura" ? "factura" : "boleta"} A4</button></div>`;
+  if (movil) return { cab, lineas, datos, traza, acciones };
+  return `<div class="modal" role="dialog">${cab}${lineas}${datos}${traza}${acciones}</div>`;
+}
+function listaAcciones(v) {
+  const pendiente = ["pendiente", "rechazado"].includes(v.comp?.estado);
+  const a = [];
+  a.push({ k: "cambios", icon: "cambio", t: "Cambiar prenda", s: "Posventa ▸ Cambios con esta venta", dest: !pendiente });
+  a.push({ k: "devoluciones", icon: "devolver", t: "Devolver", s: "Posventa ▸ Devoluciones" });
+  if (pendiente) a.push({ k: "reintentar", icon: "sunat", t: v.comp.estado === "rechazado" ? "Corregir y reenviar" : "Enviar a SUNAT", s: "Comprobantes ▸ Por reintentar", dest: true });
+  a.push({ k: "imprimir", icon: "impr", t: "Imprimir", s: "Ticket o A4" });
+  if (S.o.whatsapp) a.push({ k: "whatsapp", icon: "wsp", t: "Enviar por WhatsApp", s: v.clienta ? "Al número de la clienta" : "Pide el número", pide: "decisión" });
+  a.push(v.clienta ? { k: "clienta", icon: "clienta", t: "Ficha de la clienta", s: "Sus compras y talla" } : { k: "clienta", icon: "clienta", t: "Anotar clienta", s: "Para su ficha; el comprobante no cambia" });
+  if (v.apartado) a.push({ k: "apartado", icon: "apartado", t: "Ver el apartado", s: v.apartado.cod });
+  if (S.o.volver) a.push({ k: "volver", icon: "bolsa", t: "Volver a vender", s: "Mismas prendas en el POS", pide: "pantalla" });
+  if (S.o.nota) a.push({ k: "nota", icon: "nota", t: "Nota interna", s: "Queda en el recorrido", pide: "base" });
+  a.push({ k: "comprobantes", icon: "recibo", t: "Ver comprobante", s: "En Comprobantes" });
+  if (S.rol === "lider") a.push({ k: "anular", icon: "anular", t: "Anular venta", s: "Solo líder · en Devoluciones", peligro: true });
+  return a;
+}
+function accionesVenta(v, movil) {
+  const a = listaAcciones(v);
+  const html = a.map(x => `<button class="acc ${x.dest ? "dest" : ""} ${x.peligro ? "peligro" : ""}" data-ir="${x.k}" data-id="${v.id}">${ic(x.icon, "s")}${x.t}<small>${x.s}</small>${x.pide ? `<span class="pide">${x.pide}</span>` : ""}</button>`).join("");
+  return movil ? `<div class="t-acc">${html}</div>` : `<div class="acciones"><h5>Qué hacer con esta venta</h5><div class="acc-grid">${html}</div></div>`;
+}
+
+/* =====================================================================
+   CELULAR
+   ===================================================================== */
+function telefono(variante) {
+  const vis = ventasVisibles(), enPer = VENTAS.filter(enPeriodo).filter(v => S.rol === "lider" || v.sede === "TRU");
+  const tot = enPer.reduce((s, v) => s + total(v), 0);
+  const abierta = S.celAbierta[variante] ? VENTAS.find(v => v.id === S.celAbierta[variante]) : null;
+  const hoy = S.modo === "hoy";
+  const cab = hoy
+    ? `<div class="t-cab"><div class="ruta">Todas las tiendas · 26 set</div><h1>Historial</h1><p>Todas las ventas registradas, de cualquier fecha.</p></div>
+       <div class="cifras" style="margin-top:14px;padding:12px 16px;gap:16px;justify-content:center"><div><b style="font-size:28px">${soles(tot)}</b><span>vendido</span></div><div><b style="font-size:28px">${enPer.length}</b><span>ventas</span></div></div>`
+    : `<div class="t-cab"><div class="ruta">Tienda TRU · sáb 26 set</div><h1>Historial</h1></div>
+       <div class="t-resumen"><div class="fila"><b class="num">${soles(tot)}</b><span>${enPer.length} ventas · 30 días</span><button data-resumen>${S.resumenAbierto ? "Ocultar" : "Pulso"} ${ic("abajo", "xs")}</button></div>
+       ${S.resumenAbierto ? `<div class="det">${pulsoMovil(enPer)}</div>` : ""}</div>`;
+  const lista = vis.length ? agrupar(vis).map(([f, vs]) => {
+    const t = vs.reduce((s, v) => s + total(v), 0);
+    return `<section class="t-dia"><h3><span class="et">${etiquetaDia(f)}</span><span class="tot"><b>${soles(t)}</b> · ${vs.length}</span></h3>
+      <div class="hoja-dia" style="border-radius:18px;padding:4px">${vs.map(v => filaMovil(v, variante)).join("")}</div></section>`;
+  }).join("") : `<div class="hoja-dia" style="padding:24px;text-align:center;margin-top:14px;color:var(--t60)">Ninguna venta coincide.</div>`;
+  let capa = "";
+  if (abierta) {
+    const d = detalle(abierta, true);
+    if (variante === "pagina") {
+      const acc = listaAcciones(abierta);
+      const prim = acc.slice(0, 2);
+      capa = `<div class="t-pagina"><div class="t-app"><button data-cel-cerrar="${variante}" style="display:flex;align-items:center;gap:4px;font-weight:500">${ic("izq", "s")} Historial</button></div>
+        <div class="cuerpo">${d.cab.replace('<button class="cerrar" data-cerrar-btn>' + ic("x", "s") + "</button>", "")}${d.lineas}${d.datos}${d.traza}
+        ${prop("acciones") ? `<div class="mas">${acc.slice(2).map(x => `<a href="#" data-ir="${x.k}">${x.t}<span>${x.s} ›</span></a>`).join("")}</div>` : ""}</div>
+        ${prop("acciones") ? `<div class="pie">${prim.map((x, i) => `<button class="${i === 0 ? "prim" : ""}" data-ir="${x.k}">${ic(x.icon, "s")} ${x.t}</button>`).join("")}</div>` : `<div class="pie"><button>${ic("impr", "s")} Ticket</button><button>${ic("impr", "s")} A4</button></div>`}
+      </div>`;
+    } else {
+      capa = `<div class="t-velo" data-cel-cerrar="${variante}"><div class="t-hoja"><div class="asa"></div>${d.cab.replace("data-cerrar-btn", `data-cel-cerrar="${variante}"`)}${d.lineas}${d.datos}${d.traza}${prop("acciones") ? d.acciones : `<div class="imprimir-hoy" style="padding:10px 18px 20px"><button class="btn sutil">Imprimir ticket</button><button class="btn sutil">A4</button></div>`}</div></div>`;
+    }
+  }
+  return `<div class="telefono"><div class="t-barra"><span>12:05</span><span>●●● 5G ▮</span></div>
+    <div class="t-app">${ic("menu")}<span class="logo">CAYLA</span><span class="sede">TIENDA TRU ▾</span></div>
+    <div class="t-scroll"><div class="t-pag">${cab}
+      <div class="${hoy ? "" : "t-pega"}" style="${hoy ? "margin-top:14px" : ""}">${herramientas(true)}</div>
+      ${avisos(true)}${resultadoBusqueda()}${lista}
+      ${hoy ? `<div style="margin-top:18px">${pulso(enPer).replace('class="pulso"', 'class="pulso" style="position:static"')}</div>` : ""}
+    </div></div>${capa}</div>`;
+}
+function filaMovil(v, variante) {
+  const inline = variante === "fila" && prop("acciones") && !v.anulada;
+  const pend = ["pendiente", "rechazado"].includes(v.comp?.estado);
+  return `<div class="t-venta ${v.anulada ? "anulada" : ""}" data-cel-abrir="${v.id}" data-variante="${variante}">
+    ${miniaturas(v).replace('class="racimo"', 'class="racimo" style="grid-row:span 2"')}
+    <div style="min-width:0"><div class="tit">${resaltar(titulo(v))}</div><div class="meta">${v.hora} · ${v.clienta ? resaltar(v.clienta.nombre) : "Cliente varios"}</div><div class="meta">${resaltar(v.vendedor)}</div></div>
+    <div class="der"><b class="num">${soles(total(v))}</b><span>${pagosTexto(v)}</span></div>
+    <div class="comp">${chipComp(v, S.modo === "propuesta")}${chipsMarcas(v)}</div>
+    ${inline ? `<div class="t-inline"><button data-ir="cambios">${ic("cambio", "xs")} Cambiar</button><button data-ir="devoluciones">${ic("devolver", "xs")} Devolver</button>${pend ? `<button class="prim" data-ir="reintentar">${ic("sunat", "xs")} SUNAT</button>` : `<button data-ir="${S.o.whatsapp ? "whatsapp" : "imprimir"}">${ic(S.o.whatsapp ? "wsp" : "impr", "xs")} ${S.o.whatsapp ? "Enviar" : "Imprimir"}</button>`}</div>` : ""}
+  </div>`;
+}
+function pulsoMovil(l) {
+  const porMetodo = {}; for (const v of l) for (const [m, x] of v.pagos) porMetodo[m] = (porMetodo[m] || 0) + x;
+  const tot = Object.values(porMetodo).reduce((a, b) => a + b, 0) || 1; const orden = Object.entries(porMetodo).sort((a, b) => b[1] - a[1]);
+  return `<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--t60)"><span>Ticket promedio <b class="serif" style="font-size:16px;color:var(--tinta)">S/ 57.34</b></span><span>Mejor día <b class="serif" style="font-size:16px;color:var(--tinta)">vie 25</b></span></div>
+    <div class="barra-pago">${orden.map(([m, x]) => `<span style="width:${x / tot * 100}%;background:var(${METODO[m][1]})"></span>`).join("")}</div>
+    <div class="leyp">${orden.map(([m, x]) => `<i style="background:var(${METODO[m][1]})"></i><span>${METODO[m][0]}</span><span class="pc">${Math.round(x / tot * 100)} %</span><span class="mt num">${soles(x)}</span>`).join("")}</div>`;
+}
+function celular() {
+  const vars = S.cel === "tres" ? ["hoja", "pagina", "fila"] : [S.cel];
+  const rot = { hoja: ["A · Hoja desde abajo", "Tocas la venta y sube una hoja con el detalle y las acciones al alcance del pulgar. No pierdes tu lugar en la lista."], pagina: ["B · Página propia", "La venta ocupa toda la pantalla, con las dos acciones principales fijas abajo. Tiene más espacio, pero para volver hay que tocar «‹ Historial»."], fila: ["C · Acciones en la fila", "Cambiar, Devolver y SUNAT ya están en cada venta, sin abrir nada. Es lo más rápido, pero la lista queda más larga y cargada."] };
+  return `<div class="telefonos">${vars.map(k => `<div class="tel-col"><div class="rotulo"><b>${S.modo === "hoy" ? "Hoy (375 px)" : rot[k][0]}</b>${S.modo === "hoy" ? "La pantalla actual apilada: cifras, 5 píldoras y la primera venta recién a media pantalla. El pulso queda al final." : rot[k][1]}</div>${telefono(k)}</div>`).join("")}</div>`;
+}
+
+/* =====================================================================
+   OTROS SISTEMAS y HALLAZGOS
+   ===================================================================== */
+function otros() {
+  const s = '<span class="si">●</span>', p = '<span class="parcial">◐</span>', n = '<span class="no">—</span>', pr = '<span class="prop">✚</span>';
+  const filas = [
+    ["Buscar por nº de comprobante / pedido", s, s, s, s, s, n, pr],
+    ["Buscar por clienta (nombre, DNI, correo)", s, s, s, p, s, n, pr],
+    ["Buscar por producto o código", s, p, s, n, p, n, pr],
+    ["Buscar por últimos 4 de la tarjeta / nº de operación", n, s, p, n, n, n, pr + "<small>pide base</small>"],
+    ["El buscador ignora el período (mira todas las fechas)", s, s, s, s, s, n, pr],
+    ["Devolver / cambiar desde la venta", s, s, s, s, s, n, pr + "<small>lleva a Posventa</small>"],
+    ["Marca «tuvo devolución / cambio» en la lista", s, s, s, s, p, n, pr],
+    ["Reenviar comprobante (correo / SMS / WhatsApp)", s, s, s, s, p, n, pr + "<small>WhatsApp, por elegir</small>"],
+    ["Reimprimir ticket y A4", s, s, s, s, s, s, s],
+    ["Ir a la ficha del cliente", s, s, s, p, s, n, pr],
+    ["Recorrido de la venta (línea de tiempo)", s, p, p, n, s, n, pr],
+    ["Nota interna en la venta", s, s, s, n, s, n, pr + "<small>pide base</small>"],
+    ["Estado fiscal visible (SUNAT) y reintento", n, n, n, n, p, p, pr],
+    ["Venta nacida de apartado / separado identificable", n, n, s, n, n, n, pr],
+    ["Filtros guardados / atajos propios", s, p, s, n, s, n, pr],
+    ["Filtrar por vendedor, tienda, pago", s, s, s, s, s, s, s],
+    ["Exportar CSV / Excel", s, s, s, s, s, n, pr + "<small>por elegir</small>"],
+    ["Usable en el teléfono", s, s, p, s, p, p, pr],
+  ];
+  return `<div class="doc">
+    <h2>Qué tienen otros sistemas en su «historial de ventas»</h2>
+    <p>Se comparan cinco sistemas de punto de venta que usan tiendas de ropa del tamaño de CAYLA. Lo que tienen en común: <b>su historial no es solo para leer, es para actuar.</b> Encuentras el pedido con un solo campo (número, cliente o producto, <i>en cualquier fecha</i>) y desde el mismo pedido devuelves, cambias, reenvías el recibo o vas al cliente.</p>
+    <div class="aviso-doc">Fuente: lo que conozco de la documentación pública y las demos de cada producto (Shopify POS «Orders», Square «Transactions», Lightspeed Retail «Sales history», Loyverse «Receipts», Odoo «Point of Sale ▸ Orders»). <b>Hoy no se verificó en vivo</b> ninguna versión, y cada plan puede variar. ● tiene · ◐ en parte o solo en algún plan · — no tiene · <span class="prop">✚</span> lo agrega este spike.</div>
+    <table class="cmp"><thead><tr><th>Función</th><th>Shopify POS</th><th>Square</th><th>Lightspeed</th><th>Loyverse</th><th>Odoo POS</th><th class="col-cayla">CAYLA hoy</th><th class="col-cayla">Propuesta</th></tr></thead>
+    <tbody>${filas.map(f => `<tr><td>${f[0]}</td>${f.slice(1).map((c, i) => `<td class="${i >= 5 ? "col-cayla" : ""}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table>
+    <h3>Lo que nos falta y ellos no resuelven (ventaja propia)</h3>
+    <p><b>SUNAT en la misma fila.</b> Ninguno de los cinco maneja un comprobante electrónico peruano: CAYLA ya muestra «Pendiente de enviar» o «Rechazado» en cada venta. La propuesta lo vuelve accionable (se toca y lleva a Por reintentar) y lo resume arriba, sin importar la fecha.</p>
+    <p><b>El apartado que terminó en venta.</b> Lightspeed tiene <i>layaways</i>; los demás no. En CAYLA el «anticipo» ya aparece como forma de pago, pero sin decir de qué apartado vino.</p>
+    <h3>Lo que tienen ellos y vale la pena copiar</h3>
+    <p>1) <b>Un solo buscador que ignora el período</b> (todos). 2) <b>Devolver o cambiar desde el pedido</b>, con el pedido ya cargado (todos). 3) <b>La marca de devolución en la lista</b> (Shopify: «Returned / Partially returned»). 4) <b>Buscar por los últimos 4 dígitos de la tarjeta</b> (Square), que en Perú sería <b>el número de operación de Yape o Plin</b>: la clienta casi siempre tiene la captura del pago aunque haya perdido la boleta. 5) <b>La línea de tiempo del pedido con notas</b> (Shopify, Odoo).</p>
+  </div>`;
+}
+function hallazgos() {
+  const h = [
+    ["No hay buscador", "Para encontrar la venta de una clienta que vuelve a cambiar hay que bajar día por día. <code>FiltrosHistorialVentas.tsx</code> no tiene campo de texto, y <code>buscarVentas</code> (<code>lib/ventas-v2.ts</code>) existe pero esta pantalla no la usa.", "Buscador único, que mira todas las fechas."],
+    ["El detalle solo imprime", "<code>DetalleVentaModal.tsx:182-197</code> tiene solo «Imprimir ticket / A4». Cambios y Devoluciones ya aceptan <code>?q=</code>, así que se puede llegar con la venta cargada <b>sin tocar la base</b>.", "«Qué hacer con esta venta»: Cambiar, Devolver, SUNAT, Clienta, Anular (líder)."],
+    ["«Pendiente de enviar» no lleva a ninguna parte", "El chip avisa del problema, pero no ofrece arreglarlo, y un comprobante rechazado de hace 40 días no aparece si el período es de 30.", "El chip lleva a Comprobantes ▸ Por reintentar, y un aviso arriba cuenta los pendientes de <b>cualquier</b> fecha."],
+    ["La venta que viene de un apartado no se distingue", "«anticipo + Yape» parece una forma de pago más, y en «Cómo se pagó» el anticipo sale <b>sin color</b>.", "Chip «Desde apartado AP-0012», color taupe para el anticipo y el apartado en el recorrido. Se lee con <code>apartados</code> y <code>venta_pagos.metodo = 'anticipo'</code>."],
+    ["No hay marca de posventa", "Una venta que ya tuvo un cambio se ve intacta, y podría volver a cambiarse sin que nadie lo note.", "Chips «Tuvo cambio» y «Devuelta». Se leen sin migración: <code>cambios.venta_item_id</code> y <code>devolucion_items.venta_item_id</code> ya existen."],
+    ["No hay «Hoy» ni «Mis ventas»", "Lo más usado por la colaboradora es lo de hoy y lo suyo, y el menor período que tiene es 7 días.", "Hoy, Mis ventas y Por enviar vienen de fábrica; el resto de atajos los elige cada una."],
+    ["La sede no coincide", "La cabecera dice «Todas las tiendas» mientras arriba está elegida «Tienda TRU».", "La cabecera sigue a la sede elegida; «Todas» solo si el líder elige esa opción."],
+    ["El título repite el nombre", "Sale «Test de Produto 2, Test de Produto 2» y dos mosaicos iguales.", "«Test de Produto 2 ×2» y un solo mosaico con ×2."],
+    ["En el celular, las ventas empiezan a media pantalla", "Las cifras de 38 px, las 5 píldoras en dos líneas y el hilo de 44 px empujan la primera venta hacia abajo, y el pulso queda al fondo, donde nadie llega.", "Resumen en una línea (el pulso se despliega), buscador fijo arriba, atajos en una fila deslizable y sin hilo."],
+  ];
+  return `<div class="doc"><h2>Hallazgos</h2><p>Revisados sobre las capturas del 26-set y el código de <code>main</code>: <code>vender/historial/page.tsx</code>, <code>HistorialVentasLista.tsx</code>, <code>DetalleVentaModal.tsx</code> y <code>FiltrosHistorialVentas.tsx</code>.</p>
+    <div class="hall">${h.map((x, i) => `<div><b class="n">${i + 1}</b><div><h4>${x[0]}</h4><p>${x[1]}</p><p style="color:var(--verde)"><b>Propuesta:</b> ${x[2]}</p></div></div>`).join("")}</div>
+    <h3>Qué pide cada opción</h3>
+    <table class="cmp"><thead><tr><th>Opción</th><th>Solo pantalla</th><th>Lee algo que ya existe</th><th>Pide decisión o base</th></tr></thead><tbody>
+      <tr><td>Buscador único (comprobante, clienta, DNI/RUC, prenda, código)</td><td></td><td>●<small>ventas + comprobantes + clientas + variantes</small></td><td></td></tr>
+      <tr><td>Atajos (Hoy, Mis ventas, Por enviar + elegibles)</td><td>●</td><td></td><td>◐<small>recordar los elegidos por persona: navegador o base</small></td></tr>
+      <tr><td>Avisos arriba (SUNAT, apartado que vence)</td><td></td><td>●<small>comprobantes, apartados.vence_el</small></td><td></td></tr>
+      <tr><td>Acciones que llevan a Cambios, Devoluciones, Comprobantes, Clientas y Apartados</td><td>●<small>?q= ya existe</small></td><td></td><td></td></tr>
+      <tr><td>Marcas de posventa y apartado</td><td></td><td>●<small>cambios / devolucion_items.venta_item_id</small></td><td></td></tr>
+      <tr><td>Recorrido de la venta</td><td></td><td>●</td><td></td></tr>
+      <tr><td>Celular A · B · C</td><td>●</td><td></td><td></td></tr>
+      <tr><td>Enviar por WhatsApp</td><td></td><td></td><td>●<small>¿enlace público del comprobante? ¿número de la clienta?</small></td></tr>
+      <tr><td>Volver a vender</td><td></td><td></td><td>●<small>el POS tiene que aceptar prendas por URL</small></td></tr>
+      <tr><td>Buscar por nº de operación Yape/Plin</td><td></td><td></td><td>●<small>venta_pagos no tiene columna de referencia</small></td></tr>
+      <tr><td>Nota interna</td><td></td><td></td><td>●<small>columna o tabla nueva</small></td></tr>
+      <tr><td>Exportar (líder)</td><td>●</td><td></td><td></td></tr>
+    </tbody></table></div>`;
+}
+
+/* =====================================================================
+   PINTAR Y EVENTOS
+   ===================================================================== */
+const DESTINOS = {
+  cambios: v => `/cambios?q=${v?.comp?.num ?? ""}`, devoluciones: v => `/devoluciones?q=${v?.comp?.num ?? ""}`,
+  reintentar: () => "/vender/comprobantes/por-reintentar", comprobantes: v => `/vender/comprobantes/emitidos?q=${v?.comp?.num ?? ""}`,
+  clienta: () => "/clientas (ficha)", apartado: () => "/vender/apartados", caja: () => "/caja",
+  anular: v => `/devoluciones?q=${v?.comp?.num ?? ""} ▸ Anular (solo líder)`, volver: () => "/vender?prendas=… (pide pantalla)",
+  whatsapp: () => "wa.me/51… con el enlace del comprobante (pide decisión)", imprimir: () => "Imprimir ticket / A4 (como hoy)",
+  exportar: () => "Descarga historial-30-dias.xlsx", nota: () => "Guardar nota (pide base)",
+};
+function aviso(k, id) {
+  const v = VENTAS.find(x => x.id === id) || VENTAS.find(x => x.id === S.abierta) || null;
+  const t = document.getElementById("toast");
+  t.innerHTML = `<div class="destino">Iría a <code>${esc((DESTINOS[k] || (() => k))(v))}</code></div>`;
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => (t.innerHTML = ""), 2600);
+}
+function pintar() {
+  document.querySelectorAll(".cel-only").forEach(e => (e.style.display = S.vista === "celular" ? "" : "none"));
+  document.getElementById("spk-op").classList.toggle("off", S.modo === "hoy" || S.vista === "otros" || S.vista === "hallazgos");
+  const leyendas = {
+    escritorio: S.modo === "hoy" ? "<b>Hoy:</b> la pantalla actual (capturas del 26-set). Toca una venta: el detalle solo imprime." : "<b>Propuesta:</b> prueba a escribir <b>B004-31</b>, <b>Rivas</b>, <b>7045</b> o <b>carlita</b> en el buscador: mira todas las fechas. Toca una venta para ver las acciones. Los chips con → llevan a su pantalla.",
+    celular: S.modo === "hoy" ? "<b>Hoy a 375 px.</b>" : "<b>375 px.</b> Toca una venta para comparar las tres formas de abrirla. El buscador y los atajos se quedan fijos al hacer scroll.",
+  };
+  const e = document.getElementById("escena");
+  const pos = document.getElementById("main-esc")?.scrollTop ?? 0;
+  const foco = document.activeElement?.matches?.("[data-q]") ? document.activeElement.selectionStart : null;
+  e.innerHTML = (leyendas[S.vista] ? `<div class="leyenda">${leyendas[S.vista]}</div>` : "") + ({ escritorio, celular, otros, hallazgos }[S.vista])();
+  const m = document.getElementById("main-esc"); if (m) m.scrollTop = pos;
+  if (foco !== null) { const i = e.querySelector("[data-q]"); if (i) { i.focus(); i.setSelectionRange(foco, foco); } }
+}
+document.getElementById("spk").addEventListener("click", ev => {
+  const b = ev.target.closest("button"); if (!b) return;
+  if (b.dataset.v) S.vista = b.dataset.v; if (b.dataset.m) S.modo = b.dataset.m; if (b.dataset.r) S.rol = b.dataset.r; if (b.dataset.c) { S.cel = b.dataset.c; S.celAbierta = {}; }
+  if (S.modo === "hoy") { S.atajos.clear(); S.q = ""; if (S.periodo === "hoy") S.periodo = "30"; }
+  for (const seg of b.parentElement.children) seg.classList.toggle("on", seg === b);
+  S.abierta = null; pintar();
+});
+document.getElementById("spk-op").addEventListener("change", ev => { const k = ev.target.dataset.o; if (k) { S.o[k] = ev.target.checked; pintar(); } });
+document.getElementById("escena").addEventListener("input", ev => { if (ev.target.matches("[data-q]")) { S.q = ev.target.value; pintar(); } });
+document.getElementById("escena").addEventListener("change", ev => {
+  const k = ev.target.dataset.fijar; if (!k) return;
+  S.fijados = ev.target.checked ? [...S.fijados, k] : S.fijados.filter(x => x !== k); if (!ev.target.checked) S.atajos.delete(k); pintar();
+});
+document.getElementById("escena").addEventListener("click", ev => {
+  const t = ev.target;
+  if (t.closest(".pop")) return;
+  const ir = t.closest("[data-ir]"); if (ir) { ev.preventDefault(); ev.stopPropagation(); aviso(ir.dataset.ir, ir.dataset.id); return; }
+  if (t.closest("[data-limpiar]")) { S.q = ""; return pintar(); }
+  const per = t.closest("[data-periodo]"); if (per) { S.periodo = per.dataset.periodo === "p" ? S.periodo : per.dataset.periodo; return pintar(); }
+  const at = t.closest("[data-atajo]"); if (at) { const k = at.dataset.atajo; S.atajos.has(k) ? S.atajos.delete(k) : S.atajos.add(k); return pintar(); }
+  if (t.closest("[data-ciclo]")) { const o = ["hoy", "7", "30", "90"]; S.periodo = o[(o.indexOf(S.periodo) + 1) % o.length]; return pintar(); }
+  if (t.closest("[data-pop]")) { S.pop = !S.pop; return pintar(); }
+  if (t.closest("[data-filtros]")) { S.filtros = !S.filtros; return pintar(); }
+  const ca = t.closest("[data-cerrar-aviso]"); if (ca) { S.avisosCerrados.add(ca.dataset.cerrarAviso); return pintar(); }
+  if (t.closest("[data-resumen]")) { S.resumenAbierto = !S.resumenAbierto; return pintar(); }
+  const cc = t.closest("[data-cel-cerrar]"); if (cc && (t === cc || t.closest("button[data-cel-cerrar]"))) { delete S.celAbierta[cc.dataset.celCerrar]; return pintar(); }
+  const ca2 = t.closest("[data-cel-abrir]"); if (ca2 && !t.closest(".t-velo,.t-pagina")) { S.celAbierta[ca2.dataset.variante] = ca2.dataset.celAbrir; return pintar(); }
+  if (t.closest("[data-cerrar-btn]") || t.matches("[data-cerrar]")) { S.abierta = null; return pintar(); }
+  const ab = t.closest("[data-abrir]"); if (ab) { S.abierta = ab.dataset.abrir; return pintar(); }
+  if (S.pop) { S.pop = false; pintar(); }
+});
+document.addEventListener("keydown", ev => {
+  if (ev.key === "Escape") { if (S.pop) S.pop = false; else if (S.abierta) S.abierta = null; else S.celAbierta = {}; pintar(); }
+  if (ev.key === "/" && !ev.target.matches("input") && S.vista === "escritorio") { ev.preventDefault(); document.querySelector("[data-q]")?.focus(); }
+});
+pintar();
+</script>
+</body>
+</html>

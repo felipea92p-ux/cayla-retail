@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
-import { Modal, campoEtiqueta, campoTexto, campoSelect, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Modal, campoEtiqueta, campoTexto, botonCancelar, botonPrimario } from "@/components/ui/Modal";
+import { Desplegable } from "@/components/ui/campos";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { codigoPrenda } from "@/lib/prenda-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -155,17 +156,12 @@ export function AnularVentaForm({
                   <p className="font-mono text-[11px] text-tinta/65">
                     {codigoPrenda(i)} × {i.cantidad}
                   </p>
-                  <select
-                    value={condiciones[i.ventaItemId] ?? "vendible"}
-                    onChange={(e) => setCondiciones((c) => ({ ...c, [i.ventaItemId]: e.target.value as Condicion }))}
-                    className={campoSelect}
-                  >
-                    {CONDICIONES.map((c) => (
-                      <option key={c.valor} value={c.valor}>
-                        {c.etiqueta}
-                      </option>
-                    ))}
-                  </select>
+                  <Desplegable
+                    valor={condiciones[i.ventaItemId] ?? "vendible"}
+                    onValor={(v) => setCondiciones((c) => ({ ...c, [i.ventaItemId]: v }))}
+                    opciones={CONDICIONES.map((c) => ({ valor: c.valor, texto: c.etiqueta }))}
+                    etiquetaAccesible={`Condición de ${i.referencia}`}
+                  />
                 </div>
               ))}
             </div>

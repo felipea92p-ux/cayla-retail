@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { nombresCortos } from "@/lib/nombre-integrante";
 
@@ -15,18 +15,14 @@ export type VentaDeHoy = {
   total: number;
 };
 
-/**
- * Cuántas veces cambió «Ventas de hoy» desde que se abrió la caja (ADR-0192). `PuntoDeVenta` lo sube tras cada venta
- * (o cuando sube la cola sin conexión) y la lista se relee SOLA — antes lo hacía un `router.refresh()` que recargaba
- * la pantalla entera. Un contexto y no una prop porque la lista la arma el servidor y llega a la caja como `ReactNode`.
- */
-export const VersionVentasDeHoy = createContext(0);
-
 const MENSAJE_FALLO = "No se pudo cargar las ventas de hoy. Lo demás de esta pantalla sí está al día.";
 
-/** La lista de ventas de hoy de ESTA sede: arranca con lo que leyó el servidor y se relee cuando sube la versión. */
-export function VentasDeHoyLista({ ubicacionId, ubicacionEtiqueta, inicial, fallo: falloInicial }: { ubicacionId: string; ubicacionEtiqueta: string; inicial: VentaDeHoy[]; fallo: string | null }) {
-  const version = useContext(VersionVentasDeHoy);
+/**
+ * Las ventas de hoy de ESTA sede: arranca con lo que leyó el servidor y se relee cada vez que sube `version` (tras cada
+ * venta, o cuando sube la cola sin conexión — ADR-0192). La usa el Punto de venta para la píldora «Hoy» de su cabecera
+ * y para la lista que esa píldora abre (spike 2026-09-26): los dos leen lo MISMO, una sola vez.
+ */
+export function useVentasDeHoy(ubicacionId: string, inicial: VentaDeHoy[], falloInicial: string | null, version: number) {
   const [ventas, setVentas] = useState(inicial);
   const [fallo, setFallo] = useState(falloInicial);
 
@@ -50,6 +46,11 @@ export function VentasDeHoyLista({ ubicacionId, ubicacionEtiqueta, inicial, fall
     };
   }, [version, ubicacionId]);
 
+  return { ventas, fallo };
+}
+
+/** La lista de ventas de hoy (solo pinta: los datos salen de `useVentasDeHoy`). */
+export function VentasDeHoyLista({ ventas, fallo, ubicacionEtiqueta }: { ventas: VentaDeHoy[]; fallo: string | null; ubicacionEtiqueta: string }) {
   if (fallo && ventas.length === 0) {
     return <p className="card-cayla border-rojo/30 px-4 py-4 text-center text-xs text-rojo-profundo">{fallo}</p>;
   }

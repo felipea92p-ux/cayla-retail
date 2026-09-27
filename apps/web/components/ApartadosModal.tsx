@@ -25,7 +25,16 @@ import { firmar } from "@/lib/responsable-reglas";
 // lo vencido va en rojo: NO se libera solo (la clienta pudo dejar adelanto), decide quien lo ve. El
 // botón «Liberar» solo aparece donde la base lo permite (`puedeLiberar`, calculado en `listar_apartados`:
 // quien apartó, o una líder) — nadie ve un botón que la base le va a rechazar.
-export function ApartadosModal({ apartados, onClose }: { apartados: Apartado[]; onClose: () => void }) {
+export function ApartadosModal({
+  apartados,
+  otraSede = false,
+  onClose,
+}: {
+  apartados: Apartado[];
+  /** Mirando otra sede (`?ubicacion=`): liberar firmaría con el Responsable de la sede activa, así que no se ofrece. */
+  otraSede?: boolean;
+  onClose: () => void;
+}) {
   const router = useRouter();
   const hoy = hoyLima();
   const resumen = resumirApartados(apartados, hoy);
@@ -144,7 +153,7 @@ export function ApartadosModal({ apartados, onClose }: { apartados: Apartado[]; 
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <Chip tono={estado === "vencido" ? "rojo" : estado === "hoy" ? "ambar" : "neutro"}>{textoVencimiento(a.venceEl, hoy)}</Chip>
-                      {a.puedeLiberar && (
+                      {a.puedeLiberar && !otraSede && (
                         <button
                           type="button"
                           onClick={() => setLiberando(a)}
@@ -158,6 +167,7 @@ export function ApartadosModal({ apartados, onClose }: { apartados: Apartado[]; 
                 );
               })}
             </ul>
+            {otraSede && <p className="nota-cayla">Estás mirando otra sede: para operarla, cambia la sede activa en la cabecera. Así lo que guardes queda firmado por alguien de turno allá.</p>}
             <Boton type="button" onClick={cerrar} className="w-full">
               Cerrar
             </Boton>

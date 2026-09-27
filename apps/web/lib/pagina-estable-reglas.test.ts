@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { puedeSoltar, reservaNecesaria } from "./pagina-estable-reglas";
+import { esChangeInmediatoAlClic, esContinuacionDeTecleo, puedeSoltar, reservaNecesaria } from "./pagina-estable-reglas";
 
 // Página de 2000 px, se ven 800: abajo del todo el scroll vale 1200.
 const alFondo = { arriba: 1200, alto: 2000, visible: 800 };
@@ -41,5 +41,46 @@ describe("puedeSoltar", () => {
   it("suelta cuando la persona subió lo suficiente para que el aire quede fuera de la vista", () => {
     expect(puedeSoltar({ arriba: 1050, alto: 2000, visible: 800 }, 150)).toBe(true);
     expect(puedeSoltar({ arriba: 400, alto: 2000, visible: 800 }, 150)).toBe(true);
+  });
+});
+
+// 2026-09-25 — cobertura del buscador con filtrado en vivo (evento `input`, antes fuera del radar de
+// PaginaEstable) y del microtask que se adelanta al ResizeObserver: ver PaginaEstable.tsx.
+describe("esChangeInmediatoAlClic", () => {
+  it("ignora un change pegado a un clic muy reciente (<300ms): ese clic ya abrió la vigilancia", () => {
+    expect(esChangeInmediatoAlClic("change", 50)).toBe(true);
+    expect(esChangeInmediatoAlClic("change", 299)).toBe(true);
+  });
+
+  it("un change que llega 300ms o más después del clic sí abre su propia vigilancia (select con teclado)", () => {
+    expect(esChangeInmediatoAlClic("change", 300)).toBe(false);
+    expect(esChangeInmediatoAlClic("change", 5000)).toBe(false);
+  });
+
+  it("nunca ignora un click, sin importar el tiempo", () => {
+    expect(esChangeInmediatoAlClic("click", 10)).toBe(false);
+  });
+
+  it("sin vigilancia previa (null), no hay clic reciente que lo cubra", () => {
+    expect(esChangeInmediatoAlClic("change", null)).toBe(false);
+  });
+});
+
+describe("esContinuacionDeTecleo", () => {
+  it("una tecla mientras ya hay vigilancia abierta sobre el MISMO contenedor continúa esa vigilancia", () => {
+    expect(esContinuacionDeTecleo("input", true, true)).toBe(true);
+  });
+
+  it("la primera tecla (sin vigilancia previa) abre una vigilancia nueva, no la continúa", () => {
+    expect(esContinuacionDeTecleo("input", false, true)).toBe(false);
+  });
+
+  it("una tecla sobre OTRO contenedor (cambió de buscador) abre una vigilancia nueva", () => {
+    expect(esContinuacionDeTecleo("input", true, false)).toBe(false);
+  });
+
+  it("no aplica a click ni a change, aunque haya vigilancia sobre el mismo contenedor", () => {
+    expect(esContinuacionDeTecleo("click", true, true)).toBe(false);
+    expect(esContinuacionDeTecleo("change", true, true)).toBe(false);
   });
 });

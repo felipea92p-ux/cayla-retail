@@ -11,9 +11,11 @@ import type { ReactNode } from "react";
    Va directo sobre el crema: sin tarjeta alrededor, sin ilustración. La
    cabecera no compite con las cifras que vienen debajo.
 
-   Es la hermana sobria de `EncabezadoPagina` (Caja, Cambios, Devoluciones:
-   con reloj vivo y título de 46 px). Las dos conviven hasta que Ventas
-   pase a la guía oficial.
+   Es la hermana sobria de `EncabezadoPagina` (con reloj vivo y título de
+   46 px), que es la que manda en Ventas y, desde el 2026-09-26, también en
+   Inventario (ADR-0220). Esta queda en Finanzas (su spike aprobado,
+   ADR-0195) y en Actividad, Parte de compra, Nuevo producto y Etiquetas.
+   Cuál manda en el resto del ERP está sin decidir.
    ==================================================================== */
 export function CabeceraPantalla({
   sobretitulo,

@@ -3,6 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { hrefApartarDesdeTicket } from "@/lib/apartar-desde-ticket";
 import { ChevronDown, Plus, Printer } from "lucide-react";
 import type { FotoDePrenda, Proforma } from "@/lib/proformas";
 import { lineasDeLaProforma, numeroDeProforma } from "@/lib/proformas-reglas";
@@ -200,6 +201,18 @@ export function ProformasPanel({
                             <BotonCompacto variante="fila" aria-label={`${p.vencida ? "Renovar" : "Duplicar"} ${numeroDeProforma(p.numero)}`} onClick={() => setNueva(p)}>
                               {p.vencida ? "Renovar" : "Duplicar"}
                             </BotonCompacto>
+                          )}
+                          {/* «Apartar» (Felipe, 2026-09-26, opción 3A): la clienta que cotizó separa con un adelanto. Las
+                              prendas viajan a Apartados como desde el ticket del POS (`?prendas=`); Apartados vuelve a leer
+                              precio y stock de hoy y cobra el adelanto (ADR-0166). */}
+                          {p.estado === "vigente" && !p.vencida && (
+                            <Link
+                              href={hrefApartarDesdeTicket(lineas.map((l) => ({ varianteId: l.variante_id, cantidad: l.cantidad })))}
+                              aria-label={`Apartar ${numeroDeProforma(p.numero)} con un adelanto`}
+                              className="inline-flex h-7 items-center rounded-md border border-sand bg-papel px-2.5 text-xs font-semibold text-tinta outline-none transition-colors duration-200 hover:bg-hueso focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rojo/60"
+                            >
+                              Apartar
+                            </Link>
                           )}
                           {p.estado === "vigente" && (
                             <Link

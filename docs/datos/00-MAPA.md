@@ -316,7 +316,7 @@ Verificados el 2026-09-12 **preguntándole a la base de producción**, no a la d
 
 Las dos rotas: `RegistrarGastoModal.tsx:57` manda `p_metodo_pago` y allá
 `registrar_gasto` acepta 6 parámetros; `RecibirLoteForm.tsx:431` manda
-`p_orden_produccion_id` y allá `recibir_lote` acepta 7. Fallan siempre (`generado/DRIFT.md`).
+`p_orden_produccion_id` y allá `recibir_lote` acepta 7. Fallaban siempre (`generado/DRIFT.md` del 2026-09-12; ya corregido).
 
 **La brecha entre las dos bases es el riesgo estructural número uno** — y va al revés
 de lo que se suponía. No es que tu máquina vaya adelante: **producción tiene tablas y

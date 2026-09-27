@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
 import { Ayuda } from "@/components/Ayuda";
 import { FamiliasLista, type Familia } from "@/components/FamiliasLista";
+import { Volver } from "@/components/ui/Volver";
 
 // Familias del negocio (Indumentaria, Calzado, Accesorios y Complementos...).
 // Nace 2026-09-18 (20260918010000_familias_tabla_propia.sql) porque hasta
@@ -36,7 +37,8 @@ export default async function FamiliasPage() {
   return (
     <div className="space-y-6">
       <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Productos · Catálogo</p>
+        {/* Se llega desde Categorías (cada categoría cuelga de una familia): la vuelta es allá. */}
+        <Volver href="/productos/categorias" a="Categorías" className="mb-2" />
         <h1 className="font-display mt-1 text-2xl text-tinta">
           Familias
           <Ayuda titulo="Familias">
