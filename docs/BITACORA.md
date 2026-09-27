@@ -3,6 +3,13 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-26 (Temporadas como atributo del producto — ADR-0246, paso 3a de Frescura)
+La temporada deja de ser texto libre: una lista cerrada de 9 (Primavera-Verano, Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), con el calendario de SENAMHI por año, una por prenda (color → producto → categoría) y una pestaña propia en Productos ▸ Atributos con la lista «Sin temporada». Base con 25 pruebas; web armada por dos constructores en paralelo, revisada por tres revisores (20 hallazgos: 17 arreglados por el corrector, 3 de SQL resueltos aquí) y probada en el navegador. Sin pegar en producción: el SQL va antes que la web.
+Felipe se lleva:
+1. **Lo que se guarda junto se guarda todo o nada.** «Agregar el año» eran cuatro llamadas: si fallaba la tercera, el calendario quedaba a medias. Ahora es una sola, y el orden se revisa con las cuatro ya escritas.
+2. **Mirar y escribir en dos pasos deja una ventana.** Revisar primero «qué sigue sin temporada» y asignar después podía pisar lo que otra persona completó entre medio; la base ahora decide con la fila ya bloqueada.
+3. **El año sale de la fecha, no de quien da de alta**: la chompa de invierno cargada hoy cae en el invierno que acaba de terminar y sale «Temporada pasada», que es justo el sobrante que hay que mover.
+
 ## 2026-09-26 (Frescura del piso: decisiones del bloque 3 y temporadas — ADR-0208 y ADR-0246)
 Rondas de preguntas con Felipe para destrabar el bloque 3, más dos investigaciones con fuentes verificadas sobre cómo manejan las temporadas Zara, H&M, Mango, Ralph Lauren, LVMH, Hermès, Chanel y las marcas del hemisferio sur (`docs/investigacion/2026-09-26-temporadas-de-moda.md`). Decidido: la caja pregunta «La traje del almacén» o «Ya estaba colgada»; «Es para una clienta» al bajar; retiro con motivo y «retirada de la venta»; cifras desde el primer día con su nivel de confianza; semáforo contra la propia sede con CAYLA de referencia; indicador para el líder y las Terminal de ventas; «Ajustar stock» a módulo propio; y la temporada como atributo (9 valores, fechas de SENAMHI, sin año en el nombre). Nada construido todavía: sigue el paso 3a.
 Felipe se lleva:

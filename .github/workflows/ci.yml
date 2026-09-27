@@ -309,6 +309,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:alta-con-stock-inicial
 
+      # Temporadas como atributo (ADR-0246): la lista cerrada de 9, el calendario de SENAMHI (lo que ya empezó no se mueve;
+      # solo el líder corre una fecha futura), una temporada por prenda (color → producto → categoría), asignar todo o
+      # nada con firma y rastro, el alta con p_temporada, el año por fecha de llegada y la guarda de la migración.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:temporadas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:temporadas
+
       # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
       # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
       # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
