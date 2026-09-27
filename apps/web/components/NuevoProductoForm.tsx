@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
+import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
@@ -190,9 +191,25 @@ export function NuevoProductoForm({
 
   function irAPaso(n: NumeroPaso) {
     setPaso(n);
-    // El paso que se abre queda a la vista: el anterior se acaba de plegar y la página se acortó.
-    requestAnimationFrame(() => document.getElementById(`paso-${n}`)?.closest("section")?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }
+
+  // El paso que se abre queda a la vista: el anterior se acaba de plegar y la página se acortó.
+  //
+  // Cambiar de paso es un cambio de VISTA, no un bloque que se encogió, así que primero se suelta <PaginaEstable>
+  // (ADR-0185) —antes de pintar, igual que el ticket del Punto de Venta—. Sin esto, el 2026-09-26 «Seguir al precio»
+  // dejaba la pantalla en blanco: el paso 3 (con sus fotos) se plegaba, PaginaEstable veía la página acortarse
+  // mientras la persona estaba abajo, reservaba ese alto como aire y devolvía la vista al fondo de golpe, cortando el
+  // desplazamiento hacia el paso 4. El formulario seguía ahí arriba, pero en pantalla solo se veía el aire.
+  const pasoPrevio = useRef(paso);
+  useLayoutEffect(() => {
+    if (pasoPrevio.current === paso) return;
+    pasoPrevio.current = paso;
+    soltarPaginaEstable();
+    const reducido = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() =>
+      document.getElementById(`paso-${paso}`)?.closest("section")?.scrollIntoView({ block: "nearest", behavior: reducido ? "auto" : "smooth" }),
+    );
+  }, [paso]);
 
   // ---------- elegir / cambiar categoría ----------
   function elegirCategoria(id: string) {
@@ -410,7 +427,7 @@ export function NuevoProductoForm({
       const fotosGuardadas = await guardarFotos(
         token.current,
         nombreFinal,
-        fotosOrdenadas.map((f) => ({ archivo: f.archivo, colorCodigo: f.colorCodigo })),
+        fotosOrdenadas.map((f) => ({ archivo: f.archivo, original: f.original, colorCodigo: f.colorCodigo })),
       );
       fotos.forEach((f) => URL.revokeObjectURL(f.vista));
       setFotos([]);
@@ -453,7 +470,7 @@ export function NuevoProductoForm({
     if (fotosOrdenadas.length > 0) {
       const filas: { producto_id: string; url: string; orden: number; es_principal: boolean; color_codigo: string | null }[] = [];
       for (const f of fotosOrdenadas) {
-        const r = await subirFotoProducto(supabase, f.archivo);
+        const r = await subirFotoProducto(supabase, f.archivo, f.original);
         if ("error" in r) {
           fallidas.push(`${f.archivo.name}: ${r.error}`);
           continue;

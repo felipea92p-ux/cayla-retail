@@ -177,6 +177,27 @@ export function urlEtiquetasDePrecio(origen: { lotes: string[] } | { produccion:
   return `/etiquetas-de-precio?producto=${origen.producto}`;
 }
 
+/** Adónde vuelve la pantalla de etiquetas: a la que la abrió, que se deduce de lo que trae la URL. `lotes` sale tanto de
+ *  Recibir como de su excepción (Ingreso sin comprobante): vuelve a Recibir, que lleva a las dos. Sin origen (la URL a
+ *  secas), a Inicio. */
+export function volverDeEtiquetas(
+  origen: { tipo: "lotes" } | { tipo: "produccion"; id: string } | { tipo: "campana" } | { tipo: "producto" } | { tipo: "variantes" } | null
+): { href: string; a: string } {
+  if (!origen) return { href: "/", a: "Inicio" };
+  switch (origen.tipo) {
+    case "lotes":
+      return { href: "/recibir", a: "Recibir mercadería" };
+    case "produccion":
+      return { href: `/produccion/ordenes?orden=${origen.id}`, a: "Órdenes" };
+    case "campana":
+      return { href: "/productos/atributos?tipo=etiquetas", a: "Atributos" };
+    case "producto":
+      return { href: "/productos", a: "Productos" };
+    case "variantes":
+      return { href: "/inventario", a: "Existencias" };
+  }
+}
+
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Los ids que llegan por la URL (`?lotes=a,b`): cualquiera puede escribirla, así que solo pasan ids bien formados. */
@@ -191,6 +212,7 @@ export type OrigenDeTexto =
   | { tipo: "produccion" }
   | { tipo: "campana"; campana: { nombre: string; pct: number; vigencia: Vigencia | null } | null }
   | { tipo: "producto"; nombre: string | null }
+  | { tipo: "variantes" }
   | { tipo: "ninguno" };
 
 export type Encabezado = { sobretitulo: string; titulo: string; bajada: string; columnaCantidad: string; vacio: string };
@@ -228,6 +250,13 @@ export function encabezadoDeEtiquetas(o: OrigenDeTexto, n: { unidades: number; m
         sobretitulo: `Productos · ${o.nombre ?? "Modelo"}`,
         bajada: `En ${sede} hay ${prendas} de este modelo. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
         vacio: `En ${sede} no hay prendas de este modelo.`,
+      };
+    case "variantes":
+      return {
+        ...base,
+        sobretitulo: "Existencias · Prendas marcadas",
+        bajada: `En ${sede} hay ${prendas} de ${modelos} entre las que marcaste. Sale una etiqueta por prenda; si alguna ya la tiene, baja su número.`,
+        vacio: `En ${sede} no hay unidades de las prendas que marcaste.`,
       };
     case "campana": {
       const c = o.campana;

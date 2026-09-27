@@ -4,8 +4,11 @@
  * `20260926200100_mover_interno_con_marca.sql`).
  *
  * QUÉ CUBRE
- *   M1 forma: UNA sola firma, con `p_token` opcional al final; authenticated la ejecuta y anon no; la tabla de marcas con
+ *   M1 forma: UNA sola firma, con `p_token` opcional al final; desde ADR-0240 NADIE de afuera la ejecuta (es pieza
+ *      interna) y el navegador entra por `mover_entre_piso_y_almacen`, que pasa la marca tal cual; la tabla de marcas con
  *      RLS, sin políticas y sin privilegios de afuera.
+ *   Desde ADR-0240 los casos M2 a M7 llaman a la puerta `mover_entre_piso_y_almacen` (lo que usa la pantalla), con la
+ *   terminal de prueba en un rol con el módulo «Bajada al piso».
  *   M2 sin marca: igual que antes (dos llamadas mueven dos veces), que es como la llama `bajar_al_piso`.
  *   M3 con marca: el reintento con los mismos datos devuelve el MISMO movimiento y no mueve nada más.
  *   M4 la misma marca con otra cantidad, otra nota u otro sentido: rechazo con hint `mover_interno_token_reusado`, sin mover.
@@ -51,7 +54,8 @@ create function pg_temp.mover(p_u uuid, p_v uuid, p_n integer, p_o uuid, p_d uui
 language plpgsql as $f$
 declare v_estado text; v_msg text; v_hint text;
 begin
-  return jsonb_build_object('ok', true, 'id', retail.mover_interno(p_u, p_v, p_n, p_o, p_d, p_nota, p_token));
+  -- La puerta de la pantalla (ADR-0240): mover_interno + el módulo; la marca pasa tal cual.
+  return jsonb_build_object('ok', true, 'id', retail.mover_entre_piso_y_almacen(p_u, p_v, p_n, p_o, p_d, p_nota, p_token));
 exception when others then
   get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint;
   return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg);
@@ -101,6 +105,9 @@ insert into public.personas (id, nombres, apellidos, estado, sede_base_id) value
 insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id) values ('${ROSA}', 'colaborador', :'tru'), ('${LUZ}', 'colaborador', :'tru');
 insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca, fecha_jornada)
   values ('${ROSA}', :'sede_tru', 'entrada', now() - interval '1 second', (now() at time zone 'America/Lima')::date);
+insert into retail.rol_modulos (rol_id, modulo)
+  select retail.fn_rol_por_clave('terminal_administrativa'), 'bajada_piso'
+  where not exists (select 1 from retail.rol_modulos where rol_id = retail.fn_rol_por_clave('terminal_administrativa') and modulo = 'bajada_piso');
 \\set rosa '${ROSA}'
 \\set luz '${LUZ}'
 select gen_random_uuid() as tok1 \\gset
@@ -145,15 +152,16 @@ function caso(nombre, sql, verificar) {
 const json = (l) => JSON.parse(l);
 
 caso(
-  "M1 · una sola firma, con p_token opcional al final; authenticated la ejecuta y anon no",
+  "M1 · una sola firma, con p_token opcional al final; nadie de afuera la ejecuta (ADR-0240), la puerta sí",
   `select count(*) || '|' || string_agg(pg_get_function_arguments(oid), ';') from pg_proc
      where pronamespace = 'retail'::regnamespace and proname = 'mover_interno';
 select concat_ws(',', has_function_privilege('authenticated', 'retail.mover_interno(uuid, uuid, integer, uuid, uuid, text, uuid)', 'execute'),
-  has_function_privilege('anon', 'retail.mover_interno(uuid, uuid, integer, uuid, uuid, text, uuid)', 'execute'));`,
+  has_function_privilege('anon', 'retail.mover_interno(uuid, uuid, integer, uuid, uuid, text, uuid)', 'execute'),
+  has_function_privilege('authenticated', 'retail.mover_entre_piso_y_almacen(uuid, uuid, integer, uuid, uuid, text, uuid)', 'execute'));`,
   (l) =>
     l.at(-2) ===
       "1|p_ubicacion_id uuid, p_variante_id uuid, p_cantidad integer, p_sububicacion_origen_id uuid, p_sububicacion_destino_id uuid, p_nota text DEFAULT NULL::text, p_token uuid DEFAULT NULL::uuid" &&
-    l.at(-1) === "t,f"
+    l.at(-1) === "f,f,t"
 );
 caso(
   "M1 · la tabla de marcas: RLS encendido, sin políticas y sin privilegios para anon ni authenticated",

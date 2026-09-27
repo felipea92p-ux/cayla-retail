@@ -64,7 +64,7 @@ export type ItemRegistrarVenta = {
 export type ParamsRegistrarVenta = {
   p_ubicacion_id: string;
   p_items: ItemRegistrarVenta[];
-  p_pagos: { metodo: MetodoPago; monto: number; recibido?: number }[];
+  p_pagos: { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[];
   p_token: string;
   p_tipo_comprobante: "boleta" | "factura" | "nota_venta";
   p_cliente_tipo_doc: "dni" | "ruc" | "sin_documento";

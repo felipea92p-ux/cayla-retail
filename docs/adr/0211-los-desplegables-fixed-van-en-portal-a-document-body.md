@@ -135,3 +135,58 @@ fallaba: la familia no cambiaba y el modal del responsable se cerraba.
 **Descartado:** dejar la lista en `body` y darle `pointer-events: auto` y un `z-index` por encima del modal.
 Arregla el clic, pero no el foco (FocusScope sigue robándoselo al buscador de la lista) ni el «clic fuera» de
 Radix, que se decide por DOM y cerraría el modal.
+
+## Actualización 2026-09-26 (b) — dentro de la hoja, en su CAPA: la cascada del modal retrasaba cada combo hasta 1 s
+
+**Pedido de Felipe:** «hay combos que demoran en desplegarse y mostrar la información; que todos abran como el selector de
+sede de la cabecera».
+
+**Medido en el navegador**, leyendo de cada lista sus animaciones (`getAnimations()`: retraso y duración reales). Contar
+cuadros no sirve en el navegador integrado: con el panel detrás dibuja a 1 cuadro por segundo, y hasta el de sede parecía lento.
+
+| Combo | Se empieza a ver | Entero |
+|---|---|---|
+| Selector de sede (cabecera) | 5 ms | 334 ms |
+| Cualquier combo en una página (fuera de un modal) | 5–16 ms | 250–340 ms |
+| Cualquier combo dentro de un `<Modal>` (banco de prueba) | 285–345 ms | 790–850 ms |
+| «Registrar gasto», Finanzas, con sesión real | 508 ms | 1.008 ms |
+
+**Causa.** La actualización anterior colgó la lista como hija DIRECTA de la hoja (`[role="dialog"]`). La hoja es
+`.cascada-modal`, y la cascada de entrada (ADR-0136) anima `.cascada-modal > :not(form):not([data-sin-cascada])`: toda
+hija directa, también la que llega después de abrir. Con más especificidad que `.anim-revelar`, la cascada le ganaba: la
+lista quedaba invisible `120 + k × 55 ms` (k según su lugar entre las hijas; en «Registrar gasto» era la número 12, k = 7:
+505 ms) y entraba en 500 ms. Fuera de un modal cuelga de `body` y no pasaba; por eso el de sede y los filtros de página se
+sentían rápidos. Les pasaba a los cinco tipos: `CampoSelect`/`Desplegable`/`SelectFin`, `ComboBuscable`,
+`DesplegablePildora` y `ComboResponsable`.
+
+**Decisión.** `<Modal>` monta, como última hija de la hoja, una capa vacía: `<div data-capa-flotante data-sin-cascada />`.
+`useDestinoFlotante` cuelga la lista en esa capa (`:scope > [data-capa-flotante]`). Si la hoja no tiene capa, la cuelga en
+la hoja misma: pasa en los seis cajones con `Dialog.Content` propio, que tampoco tienen cascada. Fuera de un modal, en
+`body`. La capa sale de la cascada con el mecanismo que ya existía, y lo que cuelga de ella no es hija directa: la lista
+entra con su `anim-revelar`, la de la sede. Sigue dentro de la hoja, así que conserva lo que ganó la actualización anterior:
+clics, foco y lector de pantalla. Va al final para no correr el turno de ninguna pieza, y vacía no ocupa lugar: medida en
+0 px, también en la variante `ticket` a 375 px. De paso, `ComboBuscable`, el único que aparecía de golpe, entra ahora con
+`anim-revelar` como los demás.
+
+**Descartado:**
+- **`data-sin-cascada` en la caja flotante de cada combo.** Arregla los cinco de hoy, pero cada combo nuevo tendría que
+  acordarse, y el bug volvería en silencio con el primero que se olvide. Con la capa, toda lista que pase por
+  `useDestinoFlotante` queda bien sin saberlo.
+- **Sacar las listas por su rol en el selector de la cascada (`:not([role="listbox"])`).** La raíz flotante no siempre es el
+  `listbox`: en `Desplegable` y en `ComboResponsable` es la caja que también lleva el buscador. Sería otra regla que recordar.
+- **Que el hook cree la capa (`appendChild` en la hoja).** Mete un nodo que React no conoce dentro de un árbol que React
+  maneja. Declarada en `<Modal>`, la capa es explícita y se ve en el código.
+
+**Verificado en el navegador:**
+- Banco temporal con los cinco tipos dentro y fuera de un `<Modal>`, más la variante `ticket` a 375 px. Borrado antes del commit.
+- «Registrar gasto» con sesión real.
+- Después del arreglo, todos se ven en 3–18 ms y están enteros en 243–347 ms, dentro y fuera de un modal.
+- Probado con clic real, con teclado (buscar y Enter), con toque a 375 px, y con Escape: cierra solo la lista y el modal sigue abierto.
+
+Prueba nueva: `lib/combos-fuera-de-la-cascada.test.ts`. Revisa que la capa exista, fuera de la cascada y al final de la
+hoja; que el hook la use; y que los cuatro archivos de combo cuelguen su lista con el hook y entren con `anim-revelar`.
+
+**Queda abierto (decisión de Felipe, toca ADR-0136).** La cascada también anima lo que aparece DESPUÉS de abrir un modal.
+Un bloque que se revela al elegir una opción espera hasta ~0,6 s y entra en 500 ms. Hoy se esquiva a mano con
+`data-sin-cascada` en 14 bloques (Gastos, Cuentas y dinero, Registrar gasto, Nueva proforma, Cerrar caja, la cámara de
+Vender). Ver el BACKLOG.

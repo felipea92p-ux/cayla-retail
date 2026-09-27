@@ -1,10 +1,12 @@
 import Link from "next/link";
+import { ArrowDownToLine, History } from "lucide-react";
 import type { ConteoDetalle } from "@/lib/conteos";
 import { resultadoConteo } from "@/lib/conteo-reglas";
 import { Tabla, Encabezado, fila, celda } from "@/components/ui/Tabla";
 import { Chip } from "@/components/ui/Chip";
 import { ProductoVarianteCelda } from "@/components/ui/PrendaCelda";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { Volver } from "@/components/ui/Volver";
 import { TarjetaCifra } from "@/components/ui/TarjetaCifra";
 
 // Primera columna con el mismo piso (13.5rem) que Existencias: la celda de la prenda es la misma
@@ -31,7 +33,21 @@ function soles(n: number | null) {
 //
 // Server Component sin datos propios: la página lee (`getConteoDetalle`) y esto dibuja. Separado para poder mirarlo con
 // datos de muestra sin base (principio 7) y porque la vista no necesita saber de dónde vino el conteo.
-export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo: ConteoDetalle; ver?: string; ubicacionEtiqueta: string }) {
+export function ConteoDetalleVista({
+  conteo,
+  ver,
+  ubicacionEtiqueta,
+  volverA = null,
+  bajar = null,
+}: {
+  conteo: ConteoDetalle;
+  ver?: string;
+  ubicacionEtiqueta: string;
+  /** Abierto desde Movimientos: «←» vuelve a esa lista (ya validada con `volverAMovimientos`). */
+  volverA?: string | null;
+  /** «Bajar al piso» con lo que quedó en 0 en el piso y hay en el almacén (la página decide si se ofrece). */
+  bajar?: { url: string; cuantas: number } | null;
+}) {
   const abierto = conteo.estado === "abierto";
   const resultado = resultadoConteo(conteo);
   const alcance = conteo.alcance === "categoria" && conteo.alcanceCategoriaNombre ? `Solo ${conteo.alcanceCategoriaNombre}` : "Todo el catálogo";
@@ -53,23 +69,28 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
           </>
         }
         subtitulo={`${alcance} · ${quien}`}
+        // La vuelta y el resultado se quedan bajo la frase; «Seguir contando» es lo que se hace desde aquí y va a la
+        // derecha, como las acciones de Existencias y Traslados (ADR-0220, actualización).
         pie={
           <>
-            <Link href="/inventario/conteo" className="btn-cayla btn-secundario">
-              ← Conteos
-            </Link>
-            {abierto ? (
-              <Link href="/inventario/conteo#contar" className="btn-cayla btn-primario">
-                Seguir contando
-              </Link>
-            ) : resultado === "vacio" ? (
-              <Chip tono="neutro">Vacío</Chip>
-            ) : (
-              <Chip tono={resultado === "sin_diferencias" ? "verde" : "rojo"}>
-                {resultado === "sin_diferencias" ? "Sin diferencias" : `${conDiferencia.length} con diferencia`}
-              </Chip>
-            )}
+            {/* La vuelta común (`Volver`), con el nombre del menú («Conteo»): a Movimientos si se llegó desde ahí. */}
+            {volverA ? <Volver forma="boton" href={volverA} a="Movimientos" /> : <Volver forma="boton" href="/inventario/conteo" a="Conteo" />}
+            {!abierto &&
+              (resultado === "vacio" ? (
+                <Chip tono="neutro">Vacío</Chip>
+              ) : (
+                <Chip tono={resultado === "sin_diferencias" ? "verde" : "rojo"}>
+                  {resultado === "sin_diferencias" ? "Sin diferencias" : `${conDiferencia.length} con diferencia`}
+                </Chip>
+              ))}
           </>
+        }
+        acciones={
+          abierto && (
+            <Link href="/inventario/conteo#contar" className="btn-cayla btn-primario">
+              Seguir contando
+            </Link>
+          )
         }
       />
 
@@ -107,6 +128,40 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
             </TarjetaCifra>
           </div>
 
+          {(bajar || conDiferencia.length > 0) && (
+            // Lo que sigue (Conteo conectado, 2026-09-26): cada botón lleva a la pantalla que hace el trabajo, con la lista
+            // ya cargada — aquí no se hace nada, porque el conteo cerrado ya no se toca.
+            <section className="card-cayla space-y-3 p-4 sm:p-5" aria-labelledby="lo-que-sigue">
+              <h2 id="lo-que-sigue" className="font-display text-lg text-tinta">
+                Lo que sigue
+              </h2>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {bajar && (
+                  <Link href={bajar.url} className="flex items-start gap-3 rounded-xl border border-sand bg-papel p-3.5 transition-colors hover:border-taupe/50">
+                    <ArrowDownToLine aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-tinta">
+                        Bajar al piso · {bajar.cuantas} {bajar.cuantas === 1 ? "prenda" : "prendas"}
+                      </span>
+                      <span className="block text-xs text-taupe">Quedaron en 0 en el piso y hay en el almacén. Llegan para escanear al colgarlas.</span>
+                    </span>
+                  </Link>
+                )}
+                {conDiferencia.length > 0 && (
+                  <Link href="/inventario/movimientos?proc=conteo" className="flex items-start gap-3 rounded-xl border border-sand bg-papel p-3.5 transition-colors hover:border-taupe/50">
+                    <History aria-hidden className="mt-0.5 h-4 w-4 shrink-0 text-taupe" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-medium text-tinta">Ver los ajustes en Movimientos</span>
+                      <span className="block text-xs text-taupe">
+                        {conDiferencia.length} {conDiferencia.length === 1 ? "ajuste" : "ajustes"} de este conteo, con quién y cuándo.
+                      </span>
+                    </span>
+                  </Link>
+                )}
+              </div>
+            </section>
+          )}
+
           <section className="card-cayla space-y-3 p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap gap-1.5" role="group" aria-label="Qué prendas ver">
@@ -124,11 +179,6 @@ export function ConteoDetalleVista({ conteo, ver, ubicacionEtiqueta }: { conteo:
                   Todas · {conteo.lineas}
                 </Link>
               </div>
-              {conDiferencia.length > 0 && (
-                <Link href="/inventario/movimientos?proc=conteo" className="btn-cayla btn-enlace text-sm">
-                  Ver los ajustes en Movimientos →
-                </Link>
-              )}
             </div>
             <Tabla className="rounded-lg border-0 bg-transparent">
               <Encabezado

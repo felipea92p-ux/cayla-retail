@@ -191,6 +191,22 @@ Si `datos:aviario` falla, la tabla nueva necesita pájaro antes de commitear el 
 se agrega a su lista en `scripts/datos/aviario.mjs` y se vuelve a correr. El CI corre
 la misma revisión en cada push, así que un volcado commiteado sin eso sale en rojo.
 
+## Refresco por diferencia: `pnpm datos:refrescar` (lo normal)
+
+Traer las 9 consultas enteras son unos 600 KB aunque solo hayan cambiado dos funciones. `pnpm datos:refrescar` lo hace
+en dos pasos y trae solo lo que cambió:
+
+1. `pnpm datos:refrescar` — la base local (Docker) calcula una huella de cada grupo de la foto actual (por tabla; en
+   funciones, por los primeros 8 caracteres de la firma) y escribe UNA consulta con esas huellas adentro. Pégala entera
+   en el SQL Editor de producción: devuelve una sola celda, `refresco`, con los grupos nuevos o distintos, los quitados,
+   las huellas de todo, las filas y la foto (las consultas 1 a 9 de arriba, en una sola sentencia).
+2. Guarda esa celda en un archivo y corre `pnpm datos:refrescar <archivo>`: reemplaza esos grupos en los archivos, con el
+   mismo formato, y vuelve a calcular las huellas. Si alguna no coincide con producción, lo dice y termina en error: no
+   commitees (`git checkout -- docs/datos/generado/`).
+
+Después, lo de siempre (abajo). Se probó el 2026-09-26 de punta a punta contra la base local (11 grupos nuevos o
+cambiados, 9 quitados: las 943 huellas coincidieron) y, a mano con el mismo método, contra producción dos veces.
+
 ## Cuándo hace falta hacer todo esto
 
 Casi nunca, y esa es la idea. Solo cuando **el esquema de producción** cambia: una

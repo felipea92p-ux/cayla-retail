@@ -1,5 +1,10 @@
 [
  {
+  "conname": "actividad_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "actividad"
+ },
+ {
   "conname": "activos_fijos_anulado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "activos_fijos"
@@ -18,6 +23,16 @@
   "conname": "apartados_creado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "apartados"
+ },
+ {
+  "conname": "apartados_opciones_actualizado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "apartados_opciones"
+ },
+ {
+  "conname": "bajadas_piso_persona_id_fkey",
+  "ref_table": "public.personas",
+  "src_table": "bajadas_piso"
  },
  {
   "conname": "caja_movimientos_usuario_id_fkey",
@@ -435,6 +450,41 @@
   "src_table": "saldos_iniciales"
  },
  {
+  "conname": "separacion_abonos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_abonos"
+ },
+ {
+  "conname": "separacion_avisos_avisado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_avisos"
+ },
+ {
+  "conname": "separacion_ediciones_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_ediciones"
+ },
+ {
+  "conname": "separacion_items_retirados_retirado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_items_retirados"
+ },
+ {
+  "conname": "separacion_pedidos_cancelado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_creado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
+  "conname": "separacion_pedidos_enviado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "separacion_pedidos"
+ },
+ {
   "conname": "separaciones_asesora_id_fkey",
   "ref_table": "public.personas",
   "src_table": "separaciones"
@@ -513,6 +563,11 @@
   "conname": "transferencia_recepciones_registrado_por_fkey",
   "ref_table": "public.personas",
   "src_table": "transferencia_recepciones"
+ },
+ {
+  "conname": "transferencias_anulado_por_fkey",
+  "ref_table": "public.personas",
+  "src_table": "transferencias"
  },
  {
   "conname": "transferencias_cerrado_por_fkey",

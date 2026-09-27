@@ -121,15 +121,17 @@ export function unidadesDisponibles(l: { cantidad: number; yaCambiado: number; y
  *  tarjeta. El plazo es de la boleta, no de la línea (mismo criterio que Devoluciones,
  *  `docs/pantallas/devoluciones.md` tarea #8). */
 export function estadoPlazoVenta(creadoEn: string, ahora: Date): EstadoVisual {
-  // El plazo se lee de un vistazo por su color (2026-09-18, pedido de Felipe): VERDE mientras
-  // está dentro —también los últimos días, que se dicen en el texto— y ROJO cuando venció.
+  // El plazo se lee de un vistazo (spike 2026-09-26, docs/maquetas/cambios-mejoras-2026-09/): cuántos días
+  // QUEDAN, siempre —«Dentro del plazo» no distinguía una compra de hoy de una de hace 14 días—; VERDE
+  // mientras falta, ÁMBAR los últimos `DIAS_UMBRAL_POR_VENCER` días (antes seguía verde: 2026-09-18) y ROJO
+  // cuando venció.
   const { estado, diasRestantes } = estadoPlazoCambio(creadoEn, ahora);
   if (estado === "fuera_de_plazo") return { clave: "fuera_de_plazo", texto: "Fuera del plazo", tono: "rojo", icono: "alerta" };
   if (estado === "por_vencer") {
-    const texto = diasRestantes === 0 ? "Último día para cambiar" : `Vence en ${diasRestantes} día${diasRestantes === 1 ? "" : "s"}`;
-    return { clave: "por_vencer", texto, tono: "verde", icono: "reloj" };
+    const texto = diasRestantes === 0 ? "Último día para cambiar" : diasRestantes === 1 ? "Queda 1 día" : `Quedan ${diasRestantes} días`;
+    return { clave: "por_vencer", texto, tono: "ambar", icono: "reloj" };
   }
-  return { clave: "dentro_del_plazo", texto: "Dentro del plazo", tono: "verde", icono: "reloj" };
+  return { clave: "dentro_del_plazo", texto: `Quedan ${diasRestantes} días`, tono: "verde", icono: "reloj" };
 }
 
 /** En este orden: una venta anulada no cuenta; una prenda ya cambiada o devuelta dice

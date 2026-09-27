@@ -5,18 +5,8 @@
 import { compararTallas } from "./tallas";
 import { BOTON_CONFIRMAR_DE_NUEVO } from "./bajada-reglas";
 import { esRespuestaIncierta, traducirError, type ErrorEscritura } from "./error-escritura";
-
-export type EstadoStock = "normal" | "reponer_piso" | "stock_bajo" | "sin_stock";
-
-/** Con cuántas unidades en el piso de venta la tienda ya tiene que reponer.
- *  Decisión de Felipe: «Reponer piso» aparece cuando en el piso quedan 7
- *  unidades o menos, no recién cuando llega a 0 — a esa altura la clienta ya
- *  se fue sin su talla. Subido de 4 a 7 el 2026-09-16, probando la pantalla
- *  con datos reales: con 4 el aviso llegaba demasiado tarde para alcanzar a
- *  reponer antes de que se notara en el piso. Una sola constante, para que
- *  el número no viva repartido entre la etiqueta, el filtro y la tarjeta de
- *  resumen. */
-export const UMBRAL_REPOSICION_PISO = 7;
+import { calcularAccionHoy } from "./existencias-recomendaciones";
+import type { PoliticaOperativaInventario } from "./politica-operativa-inventario";
 
 /** Con cuántas unidades en el ALMACÉN de la tienda (no el total) la prenda
  *  pasa a «Stock bajo». Decisión de Felipe: 10 o menos — mira solo la
@@ -34,49 +24,34 @@ export const UMBRAL_REPOSICION_PISO = 7;
  *  distintas, dos números. */
 export const UMBRAL_STOCK_BAJO_ALMACEN = 10;
 
-/** El estado de una prenda en una tienda que separa piso de almacén, del
- *  más grave al más leve — el primero que calza gana (los ifs están en
- *  orden de severidad a propósito, no es un `switch` sin orden):
- *  · sin_stock    — no hay nada, ni en el piso ni atrás.
- *  · stock_bajo   — el ALMACÉN (la reserva) llega al umbral o menos, tenga
- *                   el piso lo que tenga. Gana sobre reponer_piso como
- *                   ETIQUETA (es la alarma más seria: hay que pedir a otra
- *                   sede) — pero NO apaga la acción local: ver
- *                   `necesitaReponerPiso` más abajo, que sigue ofreciendo
- *                   "Reponer" mientras quede algo en el almacén, aunque sea
- *                   poco. Las dos cosas son ciertas a la vez: "pide
- *                   traslado" y "mientras tanto, baja lo que quede".
- *  · reponer_piso — el piso está en el umbral o por debajo, Y el almacén
- *                   TODAVÍA tiene una reserva sana (por encima del umbral
- *                   de stock bajo) para cubrirlo. Acción local, sin pedir
- *                   nada a nadie.
- *  · normal       — todo lo demás: piso y almacén cubiertos. */
-export function calcularEstado(piso: number, almacen: number): EstadoStock {
-  if (piso <= 0 && almacen <= 0) return "sin_stock";
-  if (almacen <= UMBRAL_STOCK_BAJO_ALMACEN) return "stock_bajo";
-  if (piso <= UMBRAL_REPOSICION_PISO) return "reponer_piso";
-  return "normal";
-}
+/** SOLO para el motor de Análisis (`resumen-reglas.ts`, `planDeReposicion`, rama «bajar al piso»
+ *  sin ritmo medible) — ritmo de 30 días. Existencias YA NO lo usa (2026-09-25): tenía su propio
+ *  semáforo (`EstadoStock`/`calcularEstado`/`necesitaReponerPiso`), retirado por redundante con
+ *  el motor único de «Acción hoy» (`calcularAccionHoy`, `existencias-recomendaciones.ts`) — no
+ *  hay dos motores paralelos decidiendo lo mismo con números distintos (sección 9/12 del pedido
+ *  de Felipe). El umbral equivalente de Existencias vive, consciente y aparte, en
+ *  `politica-operativa-inventario.ts` (`umbralStockPisoReposicion` = 4 unidades de PISO, una
+ *  regla física — NO este número, y no es un umbral de días). */
+export const UMBRAL_REPOSICION_PISO = 7;
 
-/** Si conviene ofrecer el botón «Reponer» (bajar del almacén al piso) —
- *  independiente de qué CHIP de estado se esté mostrando. Corregido
- *  2026-09-17: hasta ahora el botón solo aparecía en el estado
- *  "reponer_piso" — pero en "Stock bajo" con algo de reserva (por poca que
- *  sea) la acción sigue teniendo sentido: pides el traslado Y bajas lo que
- *  queda, no una cosa en vez de la otra. */
-export function necesitaReponerPiso(piso: number, almacen: number): boolean {
-  return piso <= UMBRAL_REPOSICION_PISO && almacen > 0;
-}
+// `EstadoStock`/`calcularEstado`/`necesitaReponerPiso` (semáforo de Existencias, piso ≤ 7) se
+// retiraron el 2026-09-25 y NO se restauran al integrar main (decisión explícita de Felipe, cuarta
+// ronda del cierre): eran consumidos SOLO por Existencias — auditado de nuevo tras encontrar que
+// `porColgar`/su test suite (abajo, mergeados desde main, ADR-0208) también los mencionaban. Esa
+// mención era ilustrativa (contrastar «Por colgar» con la vieja «Reponer»), no una dependencia
+// funcional real: `porColgar` nunca llamó a `necesitaReponerPiso`. El test que sí la invocaba
+// («toda talla por colgar conserva su botón Reponer») se reescribió contra `calcularAccionHoy`
+// (`inventario-reglas.test.ts`, «toda talla por colgar tiene Acción hoy…») — misma garantía, fuente canónica nueva.
 
 /** «Por colgar» (Frescura del piso, 2026-09-25): la talla tiene unidades DISPONIBLES en el almacén de
  *  la tienda y NINGUNA disponible colgada en el piso. Es ropa que la clienta no ve ni puede comprar:
  *  al 25-09 TRU tenía 66 u. de 22 tallas así, guardadas sin que nadie las bajara.
  *
- *  No usa `UMBRAL_REPOSICION_PISO` a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
+ *  No usa el umbral de «Reponer a piso» (`umbralStockPisoReposicion`) a propósito: esa pregunta es «¿queda POCO colgado?» (reponer antes
  *  de que se note); esta es «¿no hay NADA colgado?» — la talla ya desapareció del piso. Por eso toda
  *  talla por colgar también ofrece «Reponer» (piso 0 está bajo cualquier umbral), pero no al revés.
  *
- *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que el semáforo y el modal de
+ *  Se mira lo DISPONIBLE (neto de apartados), no lo físico, igual que «Acción hoy» y el modal de
  *  Reponer: si las dos del piso están apartadas para una clienta, en el piso no queda nada que vender
  *  y la talla está por colgar; si lo del almacén está todo apartado, no hay nada que bajar y no lo está.
  *  Donde la sede no separa piso de almacén (Taller: `null`) la pregunta no existe → nunca. */
@@ -176,8 +151,8 @@ export const SENTIDO_PISO: Record<SentidoPiso, ReglaSentidoPiso> = {
 };
 
 /** Si una talla ofrece «Retirar del piso»: basta con que quede algo LIBRE colgado (neto de lo
- *  apartado para clientas). Sin umbral a propósito — «Reponer» avisa desde
- *  `UMBRAL_REPOSICION_PISO` porque es una alarma (la clienta se va sin su talla); retirar no es
+ *  apartado para clientas). Sin umbral a propósito — «Reponer a piso» avisa desde
+ *  `umbralStockPisoReposicion` (`politica-operativa-inventario.ts`) porque es una alarma (la clienta se va sin su talla); retirar no es
  *  alarma sino una decisión de la tienda (guardar lo de otra temporada, una talla que sobra en
  *  la percha) y tiene sentido con 1 unidad o con 30. `null` = la sede no separa piso y almacén
  *  (Taller): no hay piso del que retirar. */
@@ -190,31 +165,6 @@ export function puedeRetirarPiso(pisoDisponible: number | null): boolean {
 export function topeMovimientoPiso(sentido: SentidoPiso, disponible: { piso: number | null; almacen: number | null }): number {
   return Math.max(0, disponible[SENTIDO_PISO[sentido].origen] ?? 0);
 }
-
-export const ETIQUETA_ESTADO_STOCK: Record<EstadoStock, string> = {
-  normal: "Normal",
-  reponer_piso: "Reponer piso",
-  stock_bajo: "Stock bajo",
-  sin_stock: "Sin stock",
-};
-
-/** Qué hacer con cada estado, en una línea — la leyenda de la tabla y el
- *  `title` del chip (y del propio «Normal», que no lleva chip pero sí
- *  tooltip). */
-export const ACCION_ESTADO_STOCK: Record<EstadoStock, string> = {
-  normal: "Cubre piso y almacén, todo correcto",
-  reponer_piso: "Bajar del almacén al piso",
-  stock_bajo: "Pedir traslado de otra sede",
-  sin_stock: "Nada en esta tienda — ver dónde hay",
-};
-
-/** Orden de urgencia para ordenar la tabla: lo que pide acción primero. */
-export const ORDEN_ESTADO_STOCK: Record<EstadoStock, number> = {
-  sin_stock: 0,
-  stock_bajo: 1,
-  reponer_piso: 2,
-  normal: 3,
-};
 
 // ============================================================================
 // Umbrales del Resumen (ADR-0101; rehechos en ADR-0121) — los usa
@@ -372,7 +322,6 @@ export type Cantidades = {
   total: number;
   piso: number | null;
   almacen: number | null;
-  estado: EstadoStock | null;
   danado: number | null;
   apartado: number;
   disponible: number;
@@ -429,9 +378,6 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
       disponible: a.total - a.apartado,
       pisoDisponible: separaPisoAlmacen ? a.piso - a.apartadoPiso : null,
       almacenDisponible: separaPisoAlmacen ? a.almacen - a.apartadoAlmacen : null,
-      // El semáforo mira lo que se puede VENDER: una prenda con todo el piso apartado no tiene piso
-      // que ofrecer aunque físicamente esté ahí (el chip «Apartado» de la fila lo explica).
-      estado: separaPisoAlmacen ? calcularEstado(a.piso - a.apartadoPiso, a.almacen - a.apartadoAlmacen) : null,
     });
   }
   return cantidades;
@@ -439,7 +385,7 @@ export function sumarCantidades(filas: FilaCantidadCruda[]): Map<string, Cantida
 
 // La nota no llega a Existencias (solo al detalle de Movimientos): el aviso no la vende como remedio, pide avisar al equipo.
 const NOTA_SOLO_EN_MOVIMIENTOS = "Si la guardas a propósito, avisa a tu equipo: en Existencias la nota no se ve, solo al abrir el movimiento.";
-// «libre»: la cifra es neta de lo apartado; con apartadas colgadas, «Piso · Almacén» de la tabla mostrará más.
+// «libre»: la cifra es neta de lo apartado, la misma que muestra «Stock actual» en la tabla (lo apartado va debajo).
 const AVISO_RETIRO_POR_COLGAR = `Quedará 0 libre en el piso: Existencias la mostrará «Por colgar» y pedirá bajarla. ${NOTA_SOLO_EN_MOVIMIENTOS}`;
 const avisoRetiroReponer = (quedan: number) =>
   `${quedan === 1 ? "Quedará 1 libre" : `Quedarán ${quedan} libres`} en el piso: Existencias sugerirá «Reponer». ${NOTA_SOLO_EN_MOVIMIENTOS}`;
@@ -448,22 +394,29 @@ const avisoRetiroReponer = (quedan: number) =>
 // Lo del almacén no se cobra (la venta descuenta del piso): «siguen disponibles para vender» sería falso.
 export const RETIRO_NO_ES_BAJA = "Pasan al almacén de la tienda: siguen siendo stock de la tienda (no es una baja), pero la caja no las cobra hasta que vuelvan al piso.";
 
-/** Todo lo que puede mostrar ese bloque, para que el modal reserve el alto del más largo (ADR-0185); «Reponer», con el umbral. */
-export const TEXTOS_BLOQUE_RETIRO: readonly string[] = [RETIRO_NO_ES_BAJA, AVISO_RETIRO_POR_COLGAR, avisoRetiroReponer(UMBRAL_REPOSICION_PISO)];
+/** Todo lo que puede mostrar ese bloque, para que el modal reserve el alto del más largo (ADR-0185). El de «Reponer» más
+ *  largo es el de la cifra más alta que todavía pide reponer: el umbral de la sede (al menos 2, para reservar el plural). */
+export function textosBloqueRetiro(politica: PoliticaOperativaInventario): readonly string[] {
+  return [RETIRO_NO_ES_BAJA, AVISO_RETIRO_POR_COLGAR, avisoRetiroReponer(Math.max(2, politica.umbralStockPisoReposicion))];
+}
 
 /** Qué va a decir Existencias de la talla DESPUÉS de retirar `n` del piso, si eso contradice el retiro.
- *  El semáforo solo mira cifras (`necesitaReponerPiso`, `porColgar`): no sabe que la encargada guardó la
+ *  «Acción hoy» solo mira cifras (`calcularAccionHoy`, `porColgar`): no sabe que la encargada guardó la
  *  talla a propósito (fin de temporada), así que al turno siguiente le pide bajarla de nuevo. Hasta que
  *  exista una marca de «retirada de la venta» (decisión de Felipe, bloque 3 de ADR-0208), el modal lo avisa
  *  ANTES de confirmar y dice dónde queda la nota. `null`: la fila no va a pedir nada, o la cantidad no vale
- *  (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como el modal y el semáforo. */
-export function avisoTrasRetiro(disponible: { piso: number | null; almacen: number | null }, n: number): string | null {
+ *  (de eso se encargan los otros mensajes). Recibe lo DISPONIBLE, como el modal y «Acción hoy».
+ *
+ *  Pregunta a `calcularAccionHoy` con la política de la sede, no a un umbral propio: el aviso tiene que decir lo
+ *  mismo que después va a pintar la fila (hasta el 2026-09-25 lo decidía `necesitaReponerPiso`, retirado). */
+export function avisoTrasRetiro(disponible: { piso: number | null; almacen: number | null }, n: number, politica: PoliticaOperativaInventario): string | null {
   if (!Number.isInteger(n) || n <= 0 || disponible.piso === null || disponible.almacen === null) return null;
   const piso = disponible.piso - n;
   const almacen = disponible.almacen + n;
   if (piso < 0) return null;
   if (porColgar({ pisoDisponible: piso, almacenDisponible: almacen })) return AVISO_RETIRO_POR_COLGAR;
-  if (necesitaReponerPiso(piso, almacen)) return avisoRetiroReponer(piso);
+  const despues = calcularAccionHoy({ varianteId: "", pisoDisponible: piso, almacenDisponible: almacen, enTransito: 0 }, politica);
+  if (despues.tipo === "reponer_a_piso") return avisoRetiroReponer(piso);
   return null;
 }
 

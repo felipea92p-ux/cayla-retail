@@ -4,7 +4,7 @@ import { lineasDeLaProforma } from "@/lib/proformas-reglas";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
 import { mesActualLima, mesLimaUTC } from "@/lib/fecha-lima";
-import { mesDeParametro, periodoDelMes, resumenProformas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
+import { mesDeParametro, montoPorVencer, periodoDelMes, resumenProformas, tiendasOperativas, ubicacionActualDe } from "@/lib/facturacion-reglas";
 import { conversionDelMes } from "@/lib/facturacion-proformas-reglas";
 import { ProformasPanel } from "@/components/ProformasPanel";
 import { MarcaDeCarga } from "@/components/MarcaDeCarga";
@@ -54,7 +54,7 @@ export default async function ProformasPage({ searchParams }: { searchParams: Pr
     <div className="space-y-6">
       <MarcaDeCarga en={ahora.getTime()} />
       <SelectorMesFacturacion ruta="/vender/comprobantes/proformas" mes={mes} actual={actual} />
-      <ProformasTarjetas resumen={resumenProformas(proformas, ahora.getTime())} />
+      <ProformasTarjetas resumen={resumenProformas(proformas, ahora.getTime())} montoPorVencer={montoPorVencer(proformas, ahora.getTime())} />
       <ProformasPanel
         proformas={proformas}
         periodo={periodoDelMes(mes, actual)}

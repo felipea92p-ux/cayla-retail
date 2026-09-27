@@ -168,3 +168,112 @@ export async function getEstadisticasDevoluciones(ubicacionId: string, ahora = n
     valorMes: Math.round(suma * 100) / 100,
   };
 }
+
+export type PrendaResuelta = { referencia: string; talla: string | null; color: string | null; cantidad: number; condicion: string };
+
+export type DevolucionResuelta = {
+  id: string;
+  ventaId: string;
+  estado: "aprobada" | "rechazada";
+  /** Cuándo se aprobó o rechazó (`aprobado_en` guarda las dos: ver `devoluciones_aprobacion_coherente`). */
+  resueltaEn: string;
+  resueltaPorNombre: string;
+  comprobante: string | null;
+  /** «Nota de crédito BC04-000012» si la aprobación la emitió (ADR-0100); null si no hubo. */
+  notaCredito: string | null;
+  reembolsoMonto: number | null;
+  reembolsoMetodo: string | null;
+  valorPagado: number;
+  prendas: PrendaResuelta[];
+};
+
+/** Días que mira la pestaña «Resueltas»: los mismos 15 del plazo, para que la colaboradora vea qué pasó
+ *  con lo que registró en ese tiempo. */
+const DIAS_RESUELTAS = 15;
+
+/** Las devoluciones aprobadas o rechazadas de los últimos 15 días en ESTA sede, la más nueva primero
+ *  (spike 2026-09-26, pestaña «Resueltas»): con su nota de crédito, el reembolso y adónde fue cada prenda.
+ *  Solo lectura, con la misma RLS que las pendientes. */
+export async function getDevolucionesResueltas(ubicacionId: string, ahora = new Date()): Promise<DevolucionResuelta[]> {
+  const supabase = await createClient();
+  const desde = new Date(ahora.getTime() - DIAS_RESUELTAS * 86_400_000).toISOString();
+  const devoluciones = exigir(
+    await supabase
+      .from("devoluciones")
+      .select(
+        `id, venta_id, estado, aprobado_en, aprobado_por, reembolso_monto, reembolso_metodo,
+         nota_credito:comprobantes!devoluciones_nota_credito_id_fkey ( tipo, serie, numero ),
+         items:devolucion_items ( cantidad, condicion,
+           venta_item:venta_items ( precio_unitario, descuento_unitario,
+             variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ) )`
+      )
+      .eq("ubicacion_id", ubicacionId)
+      .in("estado", ["aprobada", "rechazada"])
+      .gte("aprobado_en", desde)
+      .order("aprobado_en", { ascending: false }),
+    "las devoluciones resueltas"
+  );
+  if (devoluciones.length === 0) return [];
+
+  const ventaIds = [...new Set(devoluciones.map((d) => d.venta_id))];
+  const [comprobantesRes, nombresRes] = await Promise.all([
+    supabase
+      .from("comprobantes")
+      .select("venta_id, tipo, serie, numero, created_at")
+      .in("venta_id", ventaIds)
+      .in("tipo", ["boleta", "factura", "nota_venta"])
+      .order("created_at"),
+    supabase.rpc("fn_nombres_personas", {
+      p_ids: [...new Set(devoluciones.map((d) => d.aprobado_por).filter((id): id is string => !!id))],
+    }),
+  ]);
+  const nombrePorId = new Map(exigir(nombresRes, "los nombres de quienes resolvieron").map((n) => [n.id, n.nombre]));
+  const comprobantePorVenta = new Map<string, string>();
+  for (const c of exigir(comprobantesRes, "las boletas de esas ventas")) {
+    if (c.venta_id) comprobantePorVenta.set(c.venta_id, textoComprobante(c));
+  }
+
+  return devoluciones.map((d) => {
+    const nc = Array.isArray(d.nota_credito) ? d.nota_credito[0] : d.nota_credito;
+    return {
+      id: d.id,
+      ventaId: d.venta_id,
+      estado: d.estado as "aprobada" | "rechazada",
+      resueltaEn: d.aprobado_en ?? "",
+      resueltaPorNombre: (d.aprobado_por && nombrePorId.get(d.aprobado_por)) || "—",
+      comprobante: comprobantePorVenta.get(d.venta_id) ?? null,
+      notaCredito: nc ? textoComprobante(nc) : null,
+      reembolsoMonto: d.reembolso_monto === null ? null : Number(d.reembolso_monto),
+      reembolsoMetodo: d.reembolso_metodo,
+      valorPagado:
+        Math.round(
+          d.items.reduce(
+            (t, i) => t + valorPagado({ precioUnitario: Number(i.venta_item?.precio_unitario ?? 0), descuentoUnitario: Number(i.venta_item?.descuento_unitario ?? 0) }, i.cantidad),
+            0
+          ) * 100
+        ) / 100,
+      prendas: d.items.map((i) => ({
+        referencia: i.venta_item?.variante?.producto?.referencia ?? "",
+        talla: i.venta_item?.variante?.talla?.valor ?? null,
+        color: i.venta_item?.variante?.color?.nombre ?? null,
+        cantidad: i.cantidad,
+        condicion: i.condicion,
+      })),
+    };
+  });
+}
+
+function textoComprobante(c: { tipo: string; serie: string; numero: number }): string {
+  return `${ETIQUETA_TIPO[c.tipo as TipoComprobante] ?? c.tipo} ${c.serie}-${String(c.numero).padStart(6, "0")}`;
+}
+
+/** Cuántas prendas esperan en cuarentena en ESTA sede (de devoluciones o de cambios): el aviso de
+ *  Devoluciones que lleva a Inventario. Solo cuenta, no trae detalle. */
+export async function contarPrendasEnCuarentena(ubicacionId: string): Promise<number> {
+  const supabase = await createClient();
+  const filas = exigir(
+    await supabase.from("prendas_danadas").select("cantidad").eq("ubicacion_id", ubicacionId).eq("estado", "en_cuarentena"),
+    "las prendas en cuarentena"
+  );
+  return filas.reduce((t, f) => t + f.cantidad, 0);
+}

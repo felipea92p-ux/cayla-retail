@@ -93,6 +93,9 @@
   --color-metodo-yape: #6d3fa3;
   --color-metodo-plin: #1c6b56;
   --color-metodo-transferencia: #2f6aa3;
+  /* El anticipo de un apartado entregado (ADR-0196) no es un medio del mostrador: ya se cobró antes. Va en taupe, el color
+     de lo guardado para una clienta, para que en «Cómo se pagó» no salga sin punto (Historial, ADR-0230). */
+  --color-metodo-anticipo: var(--color-taupe);
 
   /* Escala tipográfica — se sube el PISO, no el techo (2026-09-08). La queja
      de Felipe era sobre el texto chico, no sobre los títulos: xs pasa de 12 a
@@ -1512,6 +1515,9 @@ body {
 @keyframes kpi-crece {
   from { transform: scaleY(0); }
 }
+@keyframes kpi-crece-x {
+  from { transform: scaleX(0); }
+}
 @keyframes kpi-llena {
   from { width: 0; }
 }
@@ -1662,6 +1668,108 @@ body {
     border-radius: inherit;
     background: var(--color-verde);
     transition: width 700ms var(--ease-cayla);
+  }
+  /* Gráficos de las tarjetas de Comprobantes (2026-09-26, spike `docs/maquetas/comprobantes-conectado-2026-09/`).
+     SOLO tokens CAYLA: tinta = lo principal, taupe = lo secundario, grafico-neutro = lo que no suma,
+     grafico-alza (verde) = hecho o vale, grafico-baja (ámbar) = falta o está al filo, sand = el fondo vacío.
+     El rojo no entra en ningún gráfico: es el acento sagrado (máx. 2 por pantalla, ADR-0169). */
+  .kpi-apilada {
+    display: flex;
+    gap: 2px;
+    height: 8px;
+    margin-top: 12px;
+    overflow: hidden;
+    border-radius: 99px;
+    background: var(--color-sand);
+  }
+  .kpi-apilada i {
+    display: block;
+    min-width: 0;
+    transform-origin: left;
+  }
+  .kpi-leyenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: rgb(26 26 24 / 0.65);
+  }
+  .kpi-leyenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .kpi-leyenda b {
+    font-weight: 600;
+    color: var(--color-tinta);
+    font-variant-numeric: tabular-nums;
+  }
+  .kpi-leyenda i {
+    width: 7px;
+    height: 7px;
+    border-radius: 2px;
+  }
+  .kpi-tramos {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 34px;
+    margin-top: 12px;
+  }
+  .kpi-tramos > span {
+    flex: 1;
+    display: flex;
+    flex-direction: column-reverse;
+    min-width: 0;
+    height: 100%;
+    border-radius: 2px 2px 0 0;
+    overflow: hidden;
+  }
+  .kpi-tramos > span::before {
+    /* el piso de cada tramo, para que un día sin ventas se lea como «cero» y no como hueco */
+    content: "";
+    height: 2px;
+    background: var(--color-sand);
+    flex: none;
+  }
+  .kpi-tramos i {
+    display: block;
+    flex: none;
+    transform-origin: bottom;
+  }
+  .kpi-tramos .es-facturado { background: var(--color-tinta); }
+  .kpi-tramos .es-resto { background: var(--color-grafico-neutro); }
+  .kpi-tramos-eje {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3px;
+    font-size: 10px;
+    color: rgb(26 26 24 / 0.5);
+  }
+  .kpi-puntos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .kpi-puntos i {
+    width: 14px;
+    height: 8px;
+    border-radius: 3px;
+  }
+  /* Solo el punto apagado va en sand: con `.kpi-puntos i { background }` el color `g-*` del encendido perdía. */
+  .kpi-puntos i:not([class]) {
+    background: var(--color-sand);
+  }
+  .g-tinta { background: var(--color-tinta); }
+  .g-taupe { background: var(--color-taupe); }
+  .g-neutro { background: var(--color-grafico-neutro); }
+  .g-alza { background: var(--color-grafico-alza); }
+  .g-baja { background: var(--color-grafico-baja); }
+  @media (prefers-reduced-motion: no-preference) {
+    .kpi-apilada i { animation: kpi-crece-x 600ms var(--ease-cayla) 200ms backwards; }
+    .kpi-tramos i { animation: kpi-crece 500ms var(--ease-cayla) 200ms backwards; }
   }
   .kpi-progreso__texto {
     margin-top: 6px;

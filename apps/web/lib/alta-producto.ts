@@ -318,12 +318,13 @@ export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
 // ---------------------------------------------------------------------------
 
 /**
- * El orden y la principal de las fotos del alta, igual que la galería de la edición: van primero las de color en el
- * orden de los colores, al final las generales (sin color), y la principal es la primera. Así la foto de la grilla es
- * la del primer color elegido, no la última que se agregó.
+ * El orden y la principal de las fotos del alta: primero las de «Todos los colores» (sin color), después las de cada
+ * color en el orden de los colores, y la principal es la primera. Desde el 2026-09-26 (Felipe: «una foto general y
+ * luego escoger la gama de colores») la foto sin color ES la foto de la prenda: se ve en cada color que no tenga la
+ * suya, así que también es la miniatura. Si solo hay fotos por color, la principal sigue siendo la del primer color.
  */
 export function ordenarFotosAlta<T extends { colorCodigo: string | null }>(fotos: T[], ordenColores: string[]): (T & { orden: number; esPrincipal: boolean })[] {
-  const rango = (c: string | null) => (c === null ? ordenColores.length : Math.max(0, ordenColores.indexOf(c)));
+  const rango = (c: string | null) => (c === null ? -1 : Math.max(0, ordenColores.indexOf(c)));
   return fotos
     .map((f, i) => ({ f, i }))
     .sort((a, b) => rango(a.f.colorCodigo) - rango(b.f.colorCodigo) || a.i - b.i)

@@ -26,6 +26,8 @@ import {
   claveDeBorrador,
   conTopeDeLaBase,
   fijarCantidad,
+  porEscanear,
+  unirConIniciales,
   interpretarErrorDeBajada,
   leerBorrador,
   leerCodigo,
@@ -97,7 +99,19 @@ function borrarTexto(clave: string): void {
   }
 }
 
-export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: string; sede: string; prendas: PrendaBajable[] }) {
+export function BajarAlPisoForm({
+  ubicacionId,
+  sede,
+  prendas,
+  iniciales = [],
+}: {
+  ubicacionId: string;
+  sede: string;
+  prendas: PrendaBajable[];
+  /** Lo que llega marcado desde Existencias (`?lineas=`, ADR-0237), ya validado contra esta tienda. Si había una bajada
+   *  a medias guardada en el aparato, manda esa: la lista de Existencias no pisa lo que se escaneó y no se confirmó. */
+  iniciales?: LineaBajada[];
+}) {
   const router = useRouter();
   const responsable = useResponsable({ ubicacionId, etiqueta: sede });
   const clave = claveDeBorrador(ubicacionId);
@@ -148,10 +162,13 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
   const prendasConTope = useMemo(() => prendas.map((p) => conTopeDeLaBase(p, problemas[p.varianteId])), [prendas, problemas]);
   const porIdConTope = useMemo(() => new Map(prendasConTope.map((p) => [p.varianteId, p] as const)), [prendasConTope]);
   const resumen = resumenDeBajada(lineas, prendas);
-  const motivo =
-    lineas.length === 0
-      ? "Escanea al menos una prenda."
-      : lineas.length > MAX_LINEAS_BAJADA
+  // Lo marcado en Existencias llega «por escanear» (en 0): no se baja hasta leerlo al colgarlo (ADR-0237, act. 2026-09-26).
+  const hayEscaneadas = resumen.prendas > 0;
+  const motivo = !hayEscaneadas
+    ? lineas.length > 0
+      ? "Escanea cada prenda de la lista al colgarla: solo se baja lo escaneado."
+      : "Escanea al menos una prenda."
+    : lineas.length > MAX_LINEAS_BAJADA
         ? `Una bajada admite hasta ${MAX_LINEAS_BAJADA} prendas distintas y esta lista tiene ${lineas.length}: quita ${lineas.length - MAX_LINEAS_BAJADA} y bájalas en otra.`
         : responsable.motivo;
   const puedeConfirmar = !enviando && motivo === null;
@@ -162,7 +179,15 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
     if (borradorLeido.current) return;
     borradorLeido.current = true;
     const b = leerBorrador(leerTexto(clave), new Date(), prendas);
-    if (!b) return;
+    if (!b) {
+      // Solo se carga: el borrador se escribe con el primer cambio (escanear, fijar o quitar). Si se va sin tocarla, la
+      // lista no se perdió — se rearma desde Existencias.
+      if (iniciales.length > 0) {
+        lineasRef.current = iniciales;
+        setLineas(iniciales);
+      }
+      return;
+    }
     if (!b.enviadoEn) {
       borradorPendiente.current = b;
       return setBorrador(b);
@@ -220,17 +245,18 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
     return () => window.removeEventListener("keydown", alTeclear);
   }, [bloqueada, congelada]);
 
-  // Cerrar o recargar con prendas escaneadas y sin confirmar: el aviso nativo del navegador.
+  // Cerrar o recargar con prendas escaneadas y sin confirmar: el aviso nativo del navegador. Lo «por escanear» no cuenta:
+  // si se va sin leer nada, no pierde nada (la lista se rearma desde Existencias).
   const hayLineas = lineas.length > 0;
   useEffect(() => {
-    if (!hayLineas) return;
+    if (!hayEscaneadas) return;
     const alSalir = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", alSalir);
     return () => window.removeEventListener("beforeunload", alSalir);
-  }, [hayLineas]);
+  }, [hayEscaneadas]);
 
   function volverAlEscaner() {
     escaner.current?.focus({ preventScroll: true });
@@ -272,15 +298,17 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
   }
 
   // Seguir con el borrador: su lista y SU token, para que un reintento de algo que sí se guardó no baje dos veces.
+  // Lo marcado en Existencias (si vino con `?lineas=`) se suma al final, «por escanear» (tarea #11): antes se perdía.
   function seguirConBorrador(b: BorradorDeBajada): LineaBajada[] {
+    const lineasDelBorrador = unirConIniciales(b.lineas, iniciales);
     borradorPendiente.current = null;
     token.current = b.token;
     creadoEn.current = b.creadoEn;
-    lineasRef.current = b.lineas;
-    setLineas(b.lineas);
+    lineasRef.current = lineasDelBorrador;
+    setLineas(lineasDelBorrador);
     setBorrador(null);
     setDescartarBorrador(false);
-    return b.lineas;
+    return lineasDelBorrador;
   }
 
   function leerEscaneo(texto: string, { conservarExito = false }: { conservarExito?: boolean } = {}) {
@@ -481,6 +509,10 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
     borrarTexto(clave);
     setBorrador(null);
     setDescartarBorrador(false);
+    // Empezar de nuevo es empezar con lo marcado en Existencias, si vino algo (tarea #11), no con la lista vacía.
+    const deExistencias = unirConIniciales([], iniciales);
+    lineasRef.current = deExistencias;
+    setLineas(deExistencias);
     volverAlEscaner();
   }
 
@@ -627,6 +659,7 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
                               ) : (
                                 <span className="tabular-nums">En almacén: {tope}</span>
                               )}
+                              {porEscanear(l) && <Chip tono="pizarra">Por escanear</Chip>}
                             </p>
                           </div>
                         </div>
@@ -634,7 +667,7 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
                           <button
                             type="button"
                             aria-label={`Una menos de ${nombre}`}
-                            disabled={listaQuieta}
+                            disabled={listaQuieta || porEscanear(l)}
                             onClick={() => cambiarCantidad(l.varianteId, l.cantidad - 1)}
                             className="btn-cayla btn-secundario h-11 w-11 p-0"
                           >
@@ -681,7 +714,7 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
           )}
 
           {hayLineas && <p className="nota-cayla">{textoNotaDelPie(congelada)}</p>}
-          {sinGuardado && hayLineas && (
+          {sinGuardado && hayEscaneadas && (
             <p role="status" className="rounded-xl border border-ambar/35 bg-ambar/[0.07] px-4 py-3 text-sm text-ambar-profundo">
               Este navegador no puede guardar tu lista: confirma antes de salir de la pantalla.
             </p>
@@ -714,7 +747,7 @@ export function BajarAlPisoForm({ ubicacionId, sede, prendas }: { ubicacionId: s
                     </>
                   ) : congelada ? (
                     botonIncierto
-                  ) : hayLineas ? (
+                  ) : hayEscaneadas ? (
                     textoDeConfirmar(resumen.prendas)
                   ) : (
                     "Confirmar bajada"

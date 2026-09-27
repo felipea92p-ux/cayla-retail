@@ -172,12 +172,13 @@ describe("estadoPrendaVendida", () => {
     expect(estadoPrendaVendida({ ...base, cantidad: 2, yaCambiado: 1 }, ahora).cambiable).toBe(true);
   });
 
-  it("a punto de vencer: sigue VERDE (está dentro) y dice los días que quedan", () => {
+  it("a punto de vencer: pasa a ÁMBAR y dice los días que quedan", () => {
     expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({
       clave: "por_vencer",
-      texto: "Vence en 2 días",
-      tono: "verde",
+      texto: "Quedan 2 días",
+      tono: "ambar",
     });
+    expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 4).toISOString() }, ahora).texto).toBe("Queda 1 día");
     expect(estadoPrendaVendida({ ...base, creadoEn: lima(2026, 9, 3).toISOString() }, ahora).texto).toBe("Último día para cambiar");
   });
 
@@ -196,7 +197,8 @@ describe("estadoPlazoVenta (el chip de plazo de la VENTA, sin mirar cada línea)
   const ahora = lima(2026, 9, 18);
 
   it("mismo resultado que el tramo de plazo de estadoPrendaVendida — es la misma cuenta, extraída", () => {
-    expect(estadoPlazoVenta(lima(2026, 9, 18).toISOString(), ahora)).toMatchObject({ clave: "dentro_del_plazo", tono: "verde" });
+    expect(estadoPlazoVenta(lima(2026, 9, 18).toISOString(), ahora)).toMatchObject({ clave: "dentro_del_plazo", tono: "verde", texto: "Quedan 15 días" });
+    expect(estadoPlazoVenta(lima(2026, 9, 10).toISOString(), ahora).texto).toBe("Quedan 7 días");
     expect(estadoPlazoVenta(lima(2026, 9, 1).toISOString(), ahora)).toMatchObject({ clave: "fuera_de_plazo", tono: "rojo", icono: "alerta" });
     expect(estadoPlazoVenta(lima(2026, 9, 3).toISOString(), ahora).texto).toBe("Último día para cambiar");
   });
