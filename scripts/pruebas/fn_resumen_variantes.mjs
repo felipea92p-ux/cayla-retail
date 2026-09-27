@@ -340,31 +340,39 @@ correr(
   "6. Costo: declarado, oficial, alterado y sin costo — y solo un líder lo ve",
   `${prelude()}
 -- F1 declarado (costo de alta, nunca tocado); F2 oficial (coincide con el ledger de promedio ponderado);
--- F3 alterado (el ledger dice 40 y alguien lo dejó en 55); F4 alterado (cambio manual sin ledger oficial); F5 sin costo.
+-- F3 alterado (el ledger dice 40 y alguien lo dejó en 55); F4 declarado (corrección a mano ANTES de la primera compra,
+-- 20260927190000: se anota como 'costo_declarado'); F4b alterado (una corrección de antes de esa migración, anotada como
+-- 'costo', que el historial no deja reescribir); F5 sin costo.
 select pg_temp.variante('ZZ-RES-F1', 40) as vf1 \\gset
 select pg_temp.variante('ZZ-RES-F2', 40) as vf2 \\gset
 select pg_temp.variante('ZZ-RES-F3', 40) as vf3 \\gset
 select pg_temp.variante('ZZ-RES-F4', 40) as vf4 \\gset
+select pg_temp.variante('ZZ-RES-F4B', 40) as vf4b \\gset
 select pg_temp.variante('ZZ-RES-F5', 0) as vf5 \\gset
-select count(pg_temp.saldo(v, :'sp', 3)) as _n from unnest(array[:'vf1', :'vf2', :'vf3', :'vf4', :'vf5']::uuid[]) v \\gset
+select count(pg_temp.saldo(v, :'sp', 3)) as _n from unnest(array[:'vf1', :'vf2', :'vf3', :'vf4', :'vf4b', :'vf5']::uuid[]) v \\gset
 select pg_temp.mov(:'vf2', 'entrada', 3, :'sp', 'carga_inicial', now() - interval '3 days') as mov2 \\gset
 select pg_temp.mov(:'vf3', 'entrada', 3, :'sp', 'carga_inicial', now() - interval '3 days') as mov3 \\gset
 insert into retail.costo_historial (variante_id, stock_previo, costo_anterior, cantidad_nueva, costo_unitario_nuevo, costo_resultante, origen, movimiento_id)
   values (:'vf2', 0, 0, 3, 40, 40, 'compra', :'mov2'), (:'vf3', 0, 0, 3, 40, 40, 'compra', :'mov3');
--- Por fuera del cálculo oficial (F3), y por fuera y sin ledger oficial (F4):
+-- Por fuera del cálculo oficial (F3), y por fuera y sin ledger oficial (F4 y F4b):
 update retail.variantes set costo = 55 where id = :'vf3';
 update retail.variantes set costo = 47 where id = :'vf4';
+insert into retail.historial_producto_cambios (entidad, entidad_id, campo, valor_anterior, valor_nuevo)
+  values ('variante', :'vf4b', 'costo', '40', '47');
+update retail.variantes set costo = 47 where id = :'vf4b';
 ${FILA("ZZ-RES-F1")}
 ${FILA("ZZ-RES-F2")}
 ${FILA("ZZ-RES-F3")}
 ${FILA("ZZ-RES-F4")}
+${FILA("ZZ-RES-F4B")}
 ${FILA("ZZ-RES-F5")}
 rollback;`,
   (f) => {
     afirmar("F1 sin historial oficial ni cambios: «declarado»", f["ZZ-RES-F1"]?.estadoCosto === "declarado", f["ZZ-RES-F1"]?.estadoCosto);
     afirmar("F2 coincide con el promedio ponderado: «oficial»", f["ZZ-RES-F2"]?.estadoCosto === "oficial", f["ZZ-RES-F2"]?.estadoCosto);
     afirmar("F3 movido a mano después del ledger oficial: «alterado»", f["ZZ-RES-F3"]?.estadoCosto === "alterado", f["ZZ-RES-F3"]?.estadoCosto);
-    afirmar("F4 cambio manual registrado sin ledger oficial: «alterado»", f["ZZ-RES-F4"]?.estadoCosto === "alterado", f["ZZ-RES-F4"]?.estadoCosto);
+    afirmar("F4 corrección a mano antes de la primera compra: sigue «declarado»", f["ZZ-RES-F4"]?.estadoCosto === "declarado", f["ZZ-RES-F4"]?.estadoCosto);
+    afirmar("F4b corrección anotada como 'costo' (antes de 20260927190000), sin ledger oficial: «alterado»", f["ZZ-RES-F4B"]?.estadoCosto === "alterado", f["ZZ-RES-F4B"]?.estadoCosto);
     afirmar("F5 costo en cero: «sin_costo»", f["ZZ-RES-F5"]?.estadoCosto === "sin_costo", f["ZZ-RES-F5"]?.estadoCosto);
     afirmar("un líder ve el costo", f["ZZ-RES-F1"]?.costo === "40.00" || f["ZZ-RES-F1"]?.costo === "40", f["ZZ-RES-F1"]?.costo);
   },

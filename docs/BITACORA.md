@@ -80,6 +80,12 @@ Por qué así: tres de las cuatro conexiones no piden migración, y la guía con
 Felipe se lleva: **lo que acompaña a la caja también es parte del control.** Si el papel dice cuántas van, contar a ciegas en pantalla ya no sirve.
 Decidido el mismo día (ADR-0242): «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en Traslados al que lleva Existencias. Sin resolver: cómo se agrupa un pedido de reposición de varias prendas (tanda 4, antes de su migración).
 
+## 2026-09-26 (Ficha de producto: lo que no se edita no lo parece; costo a mano solo hasta la primera compra — ADR-0243)
+La revisión de Productos encontró dos formas de perder un dato sin aviso en la ficha. Cambiar la talla de una variante existente se descartaba y el aviso decía «guardado». Y el costo promedio de las compras se podía pisar a mano, o con un 0 si el campo quedaba vacío. Felipe decidió que el costo se corrige solo hasta la primera compra; la base lo exige con un disparador, y corregir un costo declarado ya no deja la prenda «alterada» en Resumen.
+Por qué así: el candado vive en la tabla porque por ahí pasan los dos caminos (la ficha y el update directo). Qué se rompería sin esto: el «Capital en inventario» y el margen salen del costo, y bastaba un campo vacío para que una prenda dijera margen 100 %.
+Felipe se lleva: **una pantalla que deja escribir promete que se va a guardar.** Si la regla dice que no se cambia, el campo tiene que dejar de parecer editable. Un aviso de «guardado» que miente es peor que un error.
+Sin resolver: pegar `20260927190000` en producción antes de fusionar; contar las prendas que ya quedaron «alteradas» por correcciones anteriores.
+
 ## 2026-09-26 (Movimientos conectado — ADR-0241)
 Análisis de 8 capturas → spike con TODAS las opciones → Felipe eligió las recomendadas, los cuatro atajos y el apartado exacto (tras verlo en demo). Construido encima del PR #512 (otra sesión, mismos archivos) para no chocar: atajos por proceso en el detalle y la operación, código del apartado en la fila, bajadas plegadas por día, tarjetas que filtran, celular con buscador fijo, cámara y filtros en hoja, «Hoy» por defecto en el teléfono, Conteo con `?variantes=` y Existencias con `?variante=`.
 Por qué así: cada atajo lleva a la pantalla que ya hace el trabajo (Movimientos sigue sin escribir nada), y solo si se ve el módulo. Qué se rompería sin esto: la nota del pie prometía «se corrige con otro movimiento» sin camino, y un apartado de dos prendas decía «0».
