@@ -2,41 +2,65 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { Clienta } from "@/lib/clientas-reglas";
-import { buscarClienta, registrarClienta, type DatosAlta } from "@/lib/clientas-acciones";
+import { buscarClienta, exportarClientas } from "@/lib/clientas-acciones";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { CampoTexto, Boton, Interruptor } from "@/components/ui/campos";
-import { ComboResponsable } from "@/components/ComboResponsable";
-import { useResponsable } from "@/lib/useResponsable";
+import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
+import { NuevaClientaModal } from "@/components/NuevaClientaModal";
+import { ClientaFichaModal } from "@/components/ClientaFichaModal";
+import { descargarCsv } from "@/lib/exportar-csv";
 
-// Pantalla MÍNIMA de verificación de la ficha de clienta (D-76/D-77) — para poder probar
-// `buscar_clienta`/`registrar_clienta` a mano en el navegador. NO es la pantalla de captura
-// del mostrador (Punto de Venta): esa la construye otra tanda de agentes después, y por eso
-// esto no está enganchado a `lib/menu.ts`.
-const ALTA_VACIA: DatosAlta = { dni: "", nombre: "", telefonoWhatsapp: "", aceptaWhatsapp: false, cumpleDia: "", cumpleMes: "" };
-
+// Clientas, paso 2 del acta (D-92 a D-111, docs/datos/DECISIONES-2026-09-26-clientas.md sección
+// H): de la pantalla mínima de verificación (D-76/D-77) a la de verdad — buscar por DNI o
+// celular, abrir la ficha (compras, cambios, devoluciones y apartados LEÍDOS de sus tablas,
+// nunca copiados), editar con candado optimista, archivar/anonimizar y unir dos fichas (D-99).
+// D-109: cualquier cuenta con el módulo ve a TODAS las clientas, sin distinguir sede — por eso
+// la cabecera dice «Todas las sedes» en vez de mostrar la sede activa (Felipe, 2026-09-27).
 export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { clientasIniciales: Clienta[]; busquedaInicial?: string }) {
   const [termino, setTermino] = useState(busquedaInicial);
+  const [incluirArchivadas, setIncluirArchivadas] = useState(false);
   const [resultados, setResultados] = useState<Clienta[] | null>(null);
   const [buscando, setBuscando] = useState(false);
-  const [alta, setAlta] = useState<DatosAlta>(ALTA_VACIA);
-  const [guardando, setGuardando] = useState(false);
   const [recientes, setRecientes] = useState(clientasIniciales);
-  // Quién registra a la clienta (ADR-0161): la base firma el alta con el responsable del combo.
-  const responsable = useResponsable();
+  const [abriendoAlta, setAbriendoAlta] = useState(false);
+  const [fichaAbiertaId, setFichaAbiertaId] = useState<string | null>(null);
+  const [exportando, setExportando] = useState(false);
 
-  async function onBuscar(e: React.FormEvent) {
-    e.preventDefault();
-    await buscar(termino);
+  // D-109/G.4: exportar la lista completa es solo de Admin — la base lo exige de nuevo y deja
+  // rastro en `retail.actividad` de quién exportó y cuándo. El botón lo intenta cualquier cuenta;
+  // quien no es Admin recibe el mensaje de la base, sin necesidad de ocultarlo a medias en la UI.
+  async function onExportar() {
+    setExportando(true);
+    const { clientas, error } = await exportarClientas();
+    setExportando(false);
+    if (error) {
+      avisar.error(traducirError(error, "exportar la lista de clientas"));
+      return;
+    }
+    descargarCsv(
+      `clientas-${new Date().toISOString().slice(0, 10)}.csv`,
+      ["DNI", "Nombre", "WhatsApp", "Permiso WhatsApp", "Cumpleaños", "Registrada", "Estado"],
+      clientas.map((c) => [
+        c.dni ?? "",
+        c.nombre ?? "",
+        c.telefonoWhatsapp ?? "",
+        c.tienePermisoWhatsapp ? "sí" : "no",
+        c.cumpleDia && c.cumpleMes ? `${c.cumpleDia}/${c.cumpleMes}` : "",
+        c.createdAt.slice(0, 10),
+        c.archivadaEn ? (c.anonimizada ? "anonimizada" : c.fusionadaEnId ? "unida a otra" : "archivada") : "activa",
+      ]),
+    );
+    avisar.exito("Lista exportada", { detalle: `${clientas.length} clienta${clientas.length === 1 ? "" : "s"}` });
   }
 
-  async function buscar(termino: string) {
+  async function buscar(termino: string, incluirArchivadas: boolean) {
     if (termino.trim() === "") {
       setResultados(null);
       return;
     }
     setBuscando(true);
-    const { clientas, error } = await buscarClienta(termino);
+    const { clientas, error } = await buscarClienta(termino, incluirArchivadas);
     setBuscando(false);
     if (error) {
       avisar.error(traducirError(error, "buscar la clienta"));
@@ -45,162 +69,123 @@ export function ClientasPanel({ clientasIniciales, busquedaInicial = "" }: { cli
     setResultados(clientas);
   }
 
+  async function onBuscar(e: React.FormEvent) {
+    e.preventDefault();
+    await buscar(termino, incluirArchivadas);
+  }
+
   // «Ficha de la clienta» desde Ventas ▸ Historial (ADR-0230) llega con `?q=<nombre>`: se busca una vez al abrir.
   const yaBuscoInicial = useRef(false);
   useEffect(() => {
     if (!busquedaInicial.trim() || yaBuscoInicial.current) return;
     yaBuscoInicial.current = true;
-    void buscar(busquedaInicial);
+    void buscar(busquedaInicial, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al montar
   }, []);
-
-  async function onRegistrar(e: React.FormEvent) {
-    e.preventDefault();
-    if (alta.dni.trim() === "" && alta.nombre.trim() === "" && alta.telefonoWhatsapp.trim() === "") {
-      avisar.error("Escribe al menos un dato — DNI, nombre o WhatsApp — antes de registrar.");
-      return;
-    }
-    if (!responsable.listo) {
-      if (responsable.motivo) avisar.error(responsable.motivo);
-      return;
-    }
-    setGuardando(true);
-    const { id, error } = await registrarClienta(alta, responsable.firma());
-    setGuardando(false);
-    responsable.despues(error);
-    if (error || !id) {
-      avisar.error(traducirError(error, "registrar la clienta"));
-      return;
-    }
-    avisar.exito("Clienta registrada", { detalle: alta.nombre.trim() || alta.dni.trim() || "sin nombre" });
-    setAlta(ALTA_VACIA);
-    setRecientes((prev) => [
-      {
-        id,
-        dni: alta.dni.trim() || null,
-        nombre: alta.nombre.trim() || null,
-        telefonoWhatsapp: alta.telefonoWhatsapp.trim() || null,
-        tienePermisoWhatsapp: alta.aceptaWhatsapp,
-        cumpleDia: alta.cumpleDia.trim() === "" ? null : Number(alta.cumpleDia),
-        cumpleMes: alta.cumpleMes.trim() === "" ? null : Number(alta.cumpleMes),
-        createdAt: new Date().toISOString(),
-      },
-      ...prev.filter((c) => c.id !== id),
-    ]);
-  }
 
   const lista = resultados ?? recientes;
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="label-cayla text-[11px] text-tinta/65">Clientas — verificación de backend</p>
-        <h1 className="font-display mt-1 text-2xl text-tinta">Clientas</h1>
-        <p className="mt-1 text-sm text-tinta/65">
-          Ficha mínima (D-76/D-77): identificación no invasiva, WhatsApp con permiso aparte del teléfono. Esta
-          pantalla es solo para probar el backend a mano — el mostrador tendrá su propia captura.
-        </p>
-      </div>
+      <EncabezadoPagina
+        sede="Todas las sedes"
+        titulo="Clientas"
+        subtitulo="El club de CAYLA: identifícala por DNI o celular y la tienda la recuerda."
+        acciones={
+          <>
+            <Boton onClick={onExportar} cargando={exportando} title="Solo un Admin puede exportar la lista completa">
+              Exportar
+            </Boton>
+            <Boton peso="primario" onClick={() => setAbriendoAlta(true)}>
+              + Nueva clienta
+            </Boton>
+          </>
+        }
+      />
 
-      <form onSubmit={onBuscar} className="flex items-end gap-3">
-        <div className="max-w-sm flex-1">
-          <CampoTexto
-            etiqueta="Buscar"
-            value={termino}
-            onChange={(e) => setTermino(e.target.value)}
-            placeholder="DNI, WhatsApp o nombre…"
-          />
-        </div>
-        <Boton type="submit" peso="primario" cargando={buscando}>
-          Buscar
-        </Boton>
-        {resultados !== null && (
-          <Boton
-            type="button"
-            onClick={() => {
-              setTermino("");
-              setResultados(null);
-            }}
-          >
-            Limpiar
-          </Boton>
-        )}
-      </form>
-
-      <div className="space-y-3">
-        <p className="label-cayla text-[11px] text-tinta/65">
-          {resultados !== null ? `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}` : "Últimas registradas"}
-        </p>
-        {lista.length === 0 ? (
-          <p className="text-sm text-tinta/65">
-            {resultados !== null ? "Sin coincidencias." : "Todavía no hay clientas registradas."}
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {lista.map((c) => (
-              <div key={c.id} className="card-cayla flex items-center justify-between gap-4 p-4">
-                <div>
-                  <p className="text-sm font-medium text-tinta">{c.nombre ?? "Sin nombre"}</p>
-                  <p className="mt-0.5 text-xs text-tinta/65">
-                    {[c.dni ? `DNI ${c.dni}` : null, c.telefonoWhatsapp].filter(Boolean).join(" · ") || "Sin DNI ni WhatsApp"}
-                    {c.cumpleDia && c.cumpleMes ? ` · cumple ${c.cumpleDia}/${c.cumpleMes}` : ""}
-                  </p>
-                </div>
-                <span className={`label-cayla text-[10px] ${c.tienePermisoWhatsapp ? "text-verde" : "text-tinta/40"}`}>
-                  {c.tienePermisoWhatsapp ? "WhatsApp permitido" : "Sin permiso WhatsApp"}
-                </span>
-              </div>
-            ))}
+      <div className="card-cayla space-y-4 p-5">
+        <form onSubmit={onBuscar} className="flex flex-wrap items-end gap-3">
+          <div className="max-w-sm flex-1">
+            <CampoTexto etiqueta="Buscar" value={termino} onChange={(e) => setTermino(e.target.value)} placeholder="DNI, WhatsApp o nombre…" caja />
           </div>
-        )}
+          <Boton type="submit" peso="primario" cargando={buscando}>
+            Buscar
+          </Boton>
+          {resultados !== null && (
+            <Boton
+              type="button"
+              onClick={() => {
+                setTermino("");
+                setResultados(null);
+              }}
+            >
+              Limpiar
+            </Boton>
+          )}
+          <div className="ml-auto">
+            <Interruptor
+              activo={incluirArchivadas}
+              onActivo={(v) => {
+                setIncluirArchivadas(v);
+                if (resultados !== null) void buscar(termino, v);
+              }}
+              etiqueta="Incluir archivadas"
+            />
+          </div>
+        </form>
+
+        <div className="space-y-3">
+          <p className="label-cayla text-[11px] text-tinta/65">
+            {resultados !== null ? `${resultados.length} resultado${resultados.length === 1 ? "" : "s"}` : "Últimas registradas"}
+          </p>
+          {lista.length === 0 ? (
+            <p className="text-sm text-tinta/65">{resultados !== null ? "Sin coincidencias." : "Todavía no hay clientas registradas."}</p>
+          ) : (
+            <div className="space-y-2">
+              {lista.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setFichaAbiertaId(c.id)}
+                  className={`card-cayla flex w-full items-center justify-between gap-4 p-4 text-left ${c.archivadaEn ? "opacity-60" : ""}`}
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-tinta">{c.nombre ?? "Sin nombre"}</p>
+                    <p className="mt-0.5 truncate text-xs text-tinta/65">
+                      {[c.dni ? `DNI ${c.dni}` : null, c.telefonoWhatsapp].filter(Boolean).join(" · ") || "Sin DNI ni WhatsApp"}
+                      {c.cumpleDia && c.cumpleMes ? ` · cumple ${c.cumpleDia}/${c.cumpleMes}` : ""}
+                    </p>
+                  </div>
+                  <span className={`label-cayla shrink-0 text-[10px] ${c.archivadaEn ? "text-tinta/40" : c.tienePermisoWhatsapp ? "text-verde" : "text-tinta/40"}`}>
+                    {c.archivadaEn ? (c.anonimizada ? "Anonimizada" : c.fusionadaEnId ? "Unida a otra" : "Archivada") : c.tienePermisoWhatsapp ? "WhatsApp permitido" : "Sin permiso WhatsApp"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
-      <form onSubmit={onRegistrar} className="card-cayla max-w-lg space-y-4 p-5">
-        <p className="label-cayla text-[11px] text-tinta/65">Registrar clienta</p>
-        <CampoTexto
-          etiqueta="DNI (opcional)"
-          value={alta.dni}
-          onChange={(e) => setAlta((a) => ({ ...a, dni: e.target.value }))}
-          mono
-          inputMode="numeric"
+      {abriendoAlta && (
+        <NuevaClientaModal
+          onClose={() => setAbriendoAlta(false)}
+          onCreada={(clienta) => {
+            setAbriendoAlta(false);
+            setRecientes((prev) => [clienta, ...prev.filter((c) => c.id !== clienta.id)]);
+          }}
         />
-        <CampoTexto etiqueta="Nombre" value={alta.nombre} onChange={(e) => setAlta((a) => ({ ...a, nombre: e.target.value }))} />
-        <CampoTexto
-          etiqueta="WhatsApp"
-          value={alta.telefonoWhatsapp}
-          onChange={(e) => setAlta((a) => ({ ...a, telefonoWhatsapp: e.target.value }))}
-          mono
-          inputMode="tel"
+      )}
+
+      {fichaAbiertaId && (
+        <ClientaFichaModal
+          id={fichaAbiertaId}
+          onClose={() => setFichaAbiertaId(null)}
+          onCambiada={() => {
+            // Tras editar/archivar/unir: refresca lo que la lista tenga cargado, sin perder la búsqueda activa.
+            if (resultados !== null) void buscar(termino, incluirArchivadas);
+          }}
         />
-        <Interruptor
-          activo={alta.aceptaWhatsapp}
-          onActivo={(v) => setAlta((a) => ({ ...a, aceptaWhatsapp: v }))}
-          etiqueta="Acepta que la contactemos por WhatsApp"
-          pie="Permiso APARTE de dejar el número — nunca se asume (Ley 29733)."
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <CampoTexto
-            etiqueta="Día de cumpleaños"
-            value={alta.cumpleDia}
-            onChange={(e) => setAlta((a) => ({ ...a, cumpleDia: e.target.value }))}
-            mono
-            inputMode="numeric"
-            placeholder="1-31"
-          />
-          <CampoTexto
-            etiqueta="Mes de cumpleaños"
-            value={alta.cumpleMes}
-            onChange={(e) => setAlta((a) => ({ ...a, cumpleMes: e.target.value }))}
-            mono
-            inputMode="numeric"
-            placeholder="1-12"
-          />
-        </div>
-        <ComboResponsable control={responsable} deshabilitado={guardando} />
-        <Boton type="submit" peso="primario" cargando={guardando} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
-          Registrar
-        </Boton>
-      </form>
+      )}
     </div>
   );
 }

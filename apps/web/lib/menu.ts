@@ -112,7 +112,7 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -362,7 +362,15 @@ export const ARBOL: readonly Nodo[] = [
       { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "viva", ruta: "/finanzas/cierre", icono: "cierre", pajaro: "12 Urraca", exige: "cerrarMes" },
     ],
   },
-  { id: "clientas", etiqueta: "Clientas", estado: "futura", pajaro: "07 Colibrí", nota: "`clientes`: la libreta de clientas." },
+  // Clientas, paso 2 del acta (D-92, docs/datos/DECISIONES-2026-09-26-clientas.md): «crecer
+  // Clientas... como grupo propio del menú», no anidada bajo Ventas — aunque en Roles y accesos
+  // (`modulos.ts`) su grupo sigue siendo «Ventas» (D-92 pidió un grupo propio del MENÚ, no
+  // recategorizar el módulo). HOJA de primer nivel, no un Grupo de una sola hija: un grupo con
+  // una única hija que comparte su ícono choca con la prueba «una cabecera nunca repite el ícono
+  // de su hija» — y hoy no hay una segunda pantalla que lo justifique. Cuando los pasos 3/4 del
+  // acta (Avisos, Análisis) le sumen hermanas, ESE cambio hace el refactor a Grupo (Kent Beck:
+  // primero el terreno, después el cambio), no antes.
+  { id: "clientas", modulo: "clientas", etiqueta: "Clientas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
   {
     id: "configuracion", etiqueta: "Configuración", estado: "futura", pajaro: "01 Ganso", exige: "administrar",
     nota: "Módulo nuevo. Los nombres de las hijas son provisionales.",
