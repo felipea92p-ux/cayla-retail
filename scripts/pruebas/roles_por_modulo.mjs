@@ -14,6 +14,8 @@
  *     y edita el catálogo porque su rol ve esos módulos; no gana cuentas de proveedor ni etiquetas con descuento.
  *   · Terminales sin tipo (20260923040000): se crean con tienda + nombre + rol; el tipo es legado.
  *   · Suspender y reactivar conservan el rol.
+ *   · El tope de descuento al bajar de Líder (20260926230000): quien deja de ser líder no conserva el «sin tope» de las
+ *     líderes; queda con su tope o, si no tenía, con el 10 de un integrante. A quien no era líder no se le toca.
  *
  * CÓMO. Mismo patrón que `terminales_sin_persona.mjs`: cada escenario en su transacción con ROLLBACK; las terminales y las
  * personas extra se crean dentro y desaparecen. La sesión se simula con `set local request.jwt.claims`.
@@ -34,6 +36,9 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const i = process.argv.indexOf("--base");
 const BASE = i > 0 ? process.argv[i + 1] : "postgres";
 const EN_SECO = process.argv.includes("--en-seco");
+// La migración del tope al bajar de Líder se lee aparte además: sus casos la pegan otra vez dentro del escenario.
+const ARCHIVO_TOPE = "20260926230000_asignar_rol_reinicia_tope_al_bajar_de_lider.sql";
+const MIGRACION_TOPE = readFileSync(join(RAIZ, "supabase", "migrations", ARCHIVO_TOPE), "utf8");
 // En seco: la migración de roles y las que la ajustan después (B2d, terminales sin tipo, los 5 módulos abiertos), en orden.
 const MIGRACION = [
   "20260923030000_roles_por_modulo.sql",
@@ -46,6 +51,7 @@ const MIGRACION = [
   "20260923163000_escalon_admin_desde_dynamic.sql",
   "20260923174500_alcanzas_solo_a_quien_esta_debajo.sql",
   "20260924000000_colaborador_a_integrante_paso1_codigo.sql",
+  ARCHIVO_TOPE,
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -1061,6 +1067,144 @@ caso(
   "nadie se cambia su propio rol (así nunca falta un líder)",
   como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
   (s) => s.startsWith("42501|")
+);
+
+// ---------------- Quien baja de Líder no queda sin tope (20260926230000, análisis de Roles y accesos 2026-09-26, #2) ----------------
+// El tope de descuento vive en `colaboradores.tope_descuento_pct` (D-67): vacío = «sin tope», igual que una líder. Las
+// líderes de producción lo tienen vacío (backfill de 20260922150000, línea 170); el seed local no, así que cada caso lo
+// deja vacío a mano al subir a la persona, como está una líder de verdad. Micaela hace de la líder que baja.
+const TOPE = `select coalesce(c.rol || '|' || coalesce(c.tope_descuento_pct::text, 'NULL'), 'sin fila') from ids i left join retail.colaboradores c on c.persona_id = i.micaela;\n`;
+const MICAELA_LIDER_SIN_TOPE =
+  `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+  `update retail.colaboradores set tope_descuento_pct = null where persona_id = (select micaela from ids);\n`;
+caso(
+  "tope al bajar de Líder: una líder sin tope que un Admin baja a Integrante queda con el tope de un integrante (10), no sin tope",
+  como(FELIPE_AUTH) +
+    MICAELA_LIDER_SIN_TOPE +
+    TOPE +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n` +
+    TOPE,
+  "lider|NULL\nSIN_ERROR\nintegrante|10.00"
+);
+caso(
+  "tope al bajar de Líder: a un rol a medida (no solo Integrante) también; quien ya tenía un tope definido lo conserva (5 sigue en 5, no sube a 10)",
+  como(FELIPE_AUTH) +
+    // Una líder a la que Felipe le puso 5 con un update directo (ADR-0153).
+    `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+    `update retail.colaboradores set tope_descuento_pct = 5 where persona_id = (select micaela from ids);\n` +
+    `select asignar_rol(crear_rol('Almacén'), micaela) from ids \\g /dev/null\n` +
+    TOPE +
+    // Y una sin tope, bajada a ese mismo rol a medida.
+    `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+    `update retail.colaboradores set tope_descuento_pct = null where persona_id = (select micaela from ids);\n` +
+    `select asignar_rol((select id from retail.roles where nombre = 'Almacén'), micaela) from ids \\g /dev/null\n` +
+    TOPE,
+  "integrante|5.00\nintegrante|10.00"
+);
+caso(
+  "tope: un integrante que ya tenía 5 y cambia de rol sigue en 5 (asignar_rol no le toca el tope a quien no era líder)",
+  como(FELIPE_AUTH) +
+    `update retail.colaboradores set tope_descuento_pct = 5 where persona_id = (select micaela from ids);\n` +
+    `select asignar_rol(crear_rol('Almacén'), micaela) from ids \\g /dev/null\n` +
+    TOPE +
+    `select asignar_rol(r_integ, micaela) from ids \\g /dev/null\n` +
+    TOPE,
+  "integrante|5.00\nintegrante|5.00"
+);
+caso(
+  "tope: subir a un integrante a Líder y volver a bajarlo termina con tope (no vacío), en cada vuelta",
+  como(FELIPE_AUTH) +
+    // Vuelta 1, sin tocar nada a mano: subir no borra el tope, bajar no lo pierde.
+    `select asignar_rol(r_lider, micaela) from ids \\g /dev/null\n` +
+    `select asignar_rol(r_integ, micaela, p_ubicacion_id => tru) from ids \\g /dev/null\n` +
+    TOPE +
+    // Vuelta 2, con el estado que tiene una líder de producción (sin tope).
+    MICAELA_LIDER_SIN_TOPE +
+    `select asignar_rol(r_integ, micaela, p_ubicacion_id => tru) from ids \\g /dev/null\n` +
+    TOPE,
+  "integrante|10.00\nintegrante|10.00"
+);
+caso(
+  "tope: bajar de Líder solo cambia el tope — rol, rol_id y sede quedan como antes y el historial dice de qué rol venía y a qué sede",
+  como(FELIPE_AUTH) +
+    MICAELA_LIDER_SIN_TOPE +
+    `create temp table fila_antes as select to_jsonb(c) - 'rol' - 'rol_id' - 'tope_descuento_pct' as resto from retail.colaboradores c where c.persona_id = (select micaela from ids);\n` +
+    `select asignar_rol(r_integ, micaela, p_ubicacion_id => tru) from ids \\g /dev/null\n` +
+    `select (select resto from fila_antes) = (to_jsonb(c) - 'rol' - 'rol_id' - 'tope_descuento_pct'), c.rol, c.rol_id = i.r_integ, c.ubicacion_asignada_id = i.tru
+       from retail.colaboradores c, ids i where c.persona_id = i.micaela;\n` +
+    `select h.accion, h.detalle->>'rol_antes', (h.detalle->>'ubicacion_id')::uuid = i.tru, h.hecho_por = i.felipe
+       from retail.roles_historial h, ids i order by h.id desc limit 1;`,
+  "t|integrante|t|t\nasignacion|Líder de equipo|t|t"
+);
+caso(
+  "tope: la función solo corrige a quien baja de Líder — un integrante que ya estaba sin tope (herencia de antes) sigue igual; eso lo arregla el update de datos, no asignar_rol",
+  como(FELIPE_AUTH) +
+    `update retail.colaboradores set tope_descuento_pct = null where persona_id = (select micaela from ids);\n` +
+    `select asignar_rol(crear_rol('Almacén'), micaela) from ids \\g /dev/null\n` +
+    TOPE,
+  "integrante|NULL"
+);
+caso(
+  "tope: una líder suspendida a la que se le cambia el rol vuelve, al reactivarla, con el tope de un integrante (la tabla de suspendidas no guarda tope: la fila nueva nace con el 10 de la columna)",
+  como(FELIPE_AUTH) +
+    MICAELA_LIDER_SIN_TOPE +
+    `select suspender_colaborador(micaela, 'prueba') from ids \\g /dev/null\n` +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n` +
+    `select reactivar_colaborador(micaela) from ids \\g /dev/null\n` +
+    TOPE,
+  "SIN_ERROR\nintegrante|10.00"
+);
+
+// Re-pegar la migración (20260926230000). Su promesa es «re-ejecutable»: la guardia es «asignar_rol ya asigna el tope», no
+// el texto exacto de la primera corrida, y exige UNA sola asignación. Dos asignaciones a la misma columna en un `update`
+// no las rechaza Postgres al crear la función sino al ejecutarla, así que sin esa exigencia la migración terminaría
+// «bien» y cada cambio de rol a un rol no líder fallaría. La salida de la migración (una fila vacía por su `select`) se
+// manda a /dev/null para no mezclarla con lo que mira cada caso.
+const PEGAR_TOPE = `\\o /dev/null\n${MIGRACION_TOPE}\n\\o\n`;
+const ASIGNACIONES_AL_TOPE = `select count(*) from regexp_matches(pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid, uuid)'::regprocedure), 'tope_descuento_pct\\s*=', 'g');\n`;
+// Deja la función como si alguien la hubiera tocado a mano: `viejo` se cambia por `nuevo` (y debe haber exactamente uno).
+const TOCAR_ASIGNAR_ROL = (viejo, nuevo) =>
+  `do $do$ declare v text := pg_get_functiondef('retail.asignar_rol(uuid, uuid, uuid, uuid)'::regprocedure);
+  begin
+    if (length(v) - length(replace(v, $v$${viejo}$v$, ''))) / length($v$${viejo}$v$) <> 1 then raise exception 'la prueba ya no encuentra su ancla en asignar_rol'; end if;
+    execute replace(v, $v$${viejo}$v$, $v$${nuevo}$v$);
+  end $do$;\n`;
+caso(
+  "tope: pegar la migración otra vez no duplica la asignación (queda UNA) y bajar de Líder sigue dejando 10",
+  como(FELIPE_AUTH) +
+    PEGAR_TOPE +
+    PEGAR_TOPE +
+    ASIGNACIONES_AL_TOPE +
+    MICAELA_LIDER_SIN_TOPE +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n` +
+    TOPE,
+  "1\nSIN_ERROR\nintegrante|10.00"
+);
+caso(
+  "tope: si alguien le cambió el 10 por otro número, volver a pegar la migración no la duplica ni pisa el cambio (baja a 8, no a 10)",
+  como(FELIPE_AUTH) +
+    TOCAR_ASIGNAR_ROL("coalesce(tope_descuento_pct, 10)", "coalesce(tope_descuento_pct, 8)") +
+    PEGAR_TOPE +
+    ASIGNACIONES_AL_TOPE +
+    MICAELA_LIDER_SIN_TOPE +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n` +
+    TOPE,
+  "1\nSIN_ERROR\nintegrante|8.00"
+);
+caso(
+  "tope: premisa de la exigencia de UNA asignación — con la asignación repetida, la función se crea pero falla al bajar a alguien de Líder",
+  como(FELIPE_AUTH) +
+    TOCAR_ASIGNAR_ROL("tope_descuento_pct = case when", "tope_descuento_pct = 7, tope_descuento_pct = case when") +
+    MICAELA_LIDER_SIN_TOPE +
+    `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, micaela, tru)) from ids;\n`,
+  (s) => s.startsWith("42601|") && s.includes("multiple assignments")
+);
+caso(
+  "tope: si la función ya trae la asignación repetida, la migración ABORTA con un mensaje en vez de dar por buena una función rota",
+  como(FELIPE_AUTH) +
+    TOCAR_ASIGNAR_ROL("tope_descuento_pct = case when", "tope_descuento_pct = 7, tope_descuento_pct = case when") +
+    PEGAR_TOPE,
+  (s) => s.startsWith("ERROR_DE_SCRIPT") && s.includes("asigna tope_descuento_pct 2 veces")
 );
 
 // ---------------- Quién firma (convención del ADR-0162 F3, vigilada también en actor_firma_las_operaciones.mjs) ----------------
