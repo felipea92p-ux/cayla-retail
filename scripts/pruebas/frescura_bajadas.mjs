@@ -50,7 +50,9 @@
  *   T21 la venta se mide a la hora de la VENTA, no a la de su salida del libro, cuando las dos no coinciden.
  *   T22 la guarda de 20260928120100: con un parche en vivo aborta sin tocar nada; pegada DESPUÉS de la 120200, aborta
  *       con su aviso y no deshace nada.
- *   T23 la guarda de 20260928120200: pegada dos veces deja lo mismo; con un parche en vivo del núcleo aborta sin tocar.
+ *   T23 la guarda de 20260928120200: pegada dos veces deja lo mismo; con un parche en vivo del núcleo aborta sin tocar;
+ *       con la PUERTA parchada en vivo (con la 120200 ya pegada, o justo después de la 120100) también aborta y no pisa
+ *       el parche (revisión 2 del 2026-09-27: quitar la mitad de la guarda que mira la puerta pasaba sin que nada fallara).
  *   T24 el ejemplo de ADR-0208 (c): piso 2, se retiran 2 por error, se reponen 2 al minuto y se vende 1 → «corregida»,
  *       0 tardías (antes de 120200: «tardia»); con otra bajada 5 minutos antes del retiro, el retiro va a la re-bajada
  *       (a 1 minuto) y no a esa (a 5): Σ efectivas 2.
@@ -72,7 +74,8 @@
  *       descuenta ni suma al piso de antes; «dudosa» con un retiro en la ventana → el nivel negativo sin sumarlo, también
  *       cuando el retiro lo dejaría en >= 0 (−1 + 2); dos bajadas de la prenda en el mismo instante → el retiro va solo a
  *       la de menor id; dos retiros para la misma bajada se SUMAN (en piso_antes y en retiradas); un retiro previo con
- *       efectiva > 0 y ventas evita la tardía (con el nivel justo antes saldrían 2).
+ *       efectiva > 0 y ventas evita la tardía (con el nivel justo antes saldrían 2); dos retiros IGUALES (1 y 1) también
+ *       se suman y evitan la tardía (con cantidades distintas, «sumar sin repetidos» pasaba).
  *   T30 LÍMITE CONOCIDO, decisión pendiente de Felipe (ADR-0208, «Límites» del paso 2): retiro por error, re-bajada que lo
  *       corrige y, 2 minutos después, una bajada real → la real sale con piso_antes 4 (el retiro cuenta dos veces: en el
  *       nivel, a través de la re-bajada, y en la suma) y 0 tardías; sin el error, 1 tardía. Fija la regla de hoy para que
@@ -80,7 +83,15 @@
  *   T31 bordes que ninguna prueba vigilaba (pruebas de mutación, 2026-09-27): piso→cuarentena no es retiro; con
  *       p_minutos 5 y 30, la ventana de los retiros y el margen de lectura (2·W) siguen a p_minutos; «dudosa» manda sobre
  *       «corregida» y «corregida» sobre «en_curso»; en el empate de distancia manda la hora (la de antes) aunque su id sea
- *       mayor; una carga inicial 30 segundos antes, o de otra tienda, no marca la bajada.
+ *       mayor; una carga inicial 30 segundos antes o después, 1 segundo antes, o de otra tienda, no marca la bajada.
+ *       Desde la revisión 2 (2026-09-27): cuarentena → almacén no es retiro (definir el retiro solo por su destino
+ *       tapaba una tardía); almacén → cuarentena no es bajada ni se lleva el retiro de la bajada real; dos ventas iguales
+ *       del mismo instante se suman (un `union` en vez de `union all` las juntaba); leído con p_desde exacto, la bajada
+ *       que está justo en p_desde − 2W igual se lleva su retiro; la función entrega de la más nueva a la más vieja; sin
+ *       p_desde lee 30 días; un retiro con la bajada de después a medio segundo va a esa (el «después» empieza a 1 µs).
+ *   T32 LÍMITE CONOCIDO, la misma decisión pendiente que T30 en su otra forma: el retiro se le descontó a la bajada
+ *       ANTERIOR («colgaron de más»: nunca estuvo en el piso) y la siguiente igual lo suma a su piso de antes: 1 tardía
+ *       real que no se ve, también con la carga inicial y en el empate de T29 con ventas. Fija la regla de hoy.
  *
  * CÓMO. `now()` es constante dentro de una transacción y `movimientos` es inmutable: como `postgres`, cada caso inserta
  * sus movimientos con `created_at` explícito (colgados de t0 = ahora − 3 h) EN ORDEN CRONOLÓGICO y los aplica con
@@ -889,6 +900,51 @@ select 'SIN_NUCLEO|' || ${abortaCon("r2", "pega antes 20260928120100")};`,
 
 // ---------------------------------------------------------------------------
 correr(
+  "T23 (la puerta) · la guarda de 20260928120200 mira también la PUERTA: parchada en vivo con la 120200 ya pegada, o justo después de la 120100, aborta y no pisa el parche",
+  `-- Con la 120200 ya pegada, alguien parcha la PUERTA en vivo (las mismas columnas, otro cuerpo; por ejemplo, afloja el
+-- candado de líder en el SQL Editor). Volver a pegar la 120200 la recrearía con drop + create y borraría el parche.
+create or replace function retail.fn_bajadas_del_piso(p_ubicacion_id uuid, p_desde timestamptz default null,
+  p_hasta timestamptz default null, p_minutos integer default 10)
+returns table (movimiento_id uuid, bajada_id uuid, variante_id uuid, persona_id uuid, bajada_en timestamptz, cantidad integer,
+  piso_antes integer, vendidas_en_ventana integer, unidades_tardias integer, cerrada boolean, estado text,
+  retiradas_en_ventana integer, cantidad_efectiva integer, es_carga_inicial boolean)
+language plpgsql stable security definer set search_path = retail, public, extensions as $f$
+begin /* parche en vivo de la puerta */ return; end $f$;
+select ${MD5("fn_bajadas_del_piso")} as parche1, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo1 \\gset
+select ${intento(MIGRACION_RETIROS)} as r1 \\gset
+select 'REPEGAR|' || ${abortaCon("r1", "cambiaron desde que se escribió")} || ',' || (${MD5("fn_bajadas_del_piso")} = :'parche1')
+       || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo1');
+-- La cadena llega a la 120100 y, antes de pegar la 120200, alguien parcha la PUERTA (con las 11 columnas de entonces).
+${BORRAR_LAS_DOS}
+select ${intento(MIGRACION_0300)} ->> 'ok' as c1 \\gset
+select ${intento(MIGRACION_NUCLEO)} ->> 'ok' as c2 \\gset
+select ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo2 \\gset
+create or replace function retail.fn_bajadas_del_piso(p_ubicacion_id uuid, p_desde timestamptz default null,
+  p_hasta timestamptz default null, p_minutos integer default 10)
+returns table (movimiento_id uuid, bajada_id uuid, variante_id uuid, persona_id uuid, bajada_en timestamptz, cantidad integer,
+  piso_antes integer, vendidas_en_ventana integer, unidades_tardias integer, cerrada boolean, estado text)
+language plpgsql stable security definer set search_path = retail, public, extensions as $f$
+begin /* parche en vivo de la puerta, tras la 120100 */ return; end $f$;
+select ${MD5("fn_bajadas_del_piso")} as parche2 \\gset
+select ${intento(MIGRACION_RETIROS)} as r2 \\gset
+select 'TRAS120100|' || :'c1' || ',' || :'c2' || ',' || ${abortaCon("r2", "cambiaron desde que se escribió")}
+       || ',' || (${MD5("fn_bajadas_del_piso")} = :'parche2') || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo2');`,
+  ({ otras }) => {
+    afirmar(
+      "con la 120200 pegada y la PUERTA parchada en vivo, volver a pegarla aborta («cambiaron desde que se escribió») y no toca ni el parche ni el núcleo",
+      otras.REPEGAR === "false,true,true,true",
+      `REPEGAR=${otras.REPEGAR}`,
+    );
+    afirmar(
+      "justo después de la 120100, con la PUERTA parchada en vivo, la 120200 aborta y no toca ni el parche ni el núcleo de la 120100",
+      otras.TRAS120100 === "true,true,false,true,true,true",
+      `TRAS120100=${otras.TRAS120100}`,
+    );
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
   "T24 · el ejemplo de ADR-0208 (c): piso 2; se retiran 2 por error; al minuto se reponen 2; a los 5 se vende 1 → «corregida», sin tardía",
   `select pg_temp.variante('ZZ-FRE-T24') as v \\gset
 select pg_temp.llega(:'v', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
@@ -1250,6 +1306,17 @@ select pg_temp.mov(:'pa', 'entrada', 2, :'sp', 'recepcion', :'t0'::timestamptz -
 select pg_temp.mov(:'pa', 'traslado', 2, :'sp', 'movimiento_interno', :'t0'::timestamptz - interval '2 minutes', :'sa') as _34 \\gset
 select pg_temp.bajada(:'pa', 5, :'t0'::timestamptz) as _35 \\gset
 select pg_temp.vende(:'pa', 2, :'t0'::timestamptz + interval '3 minutes') as _36 \\gset
+-- IGUALES: piso 2; 9:56 se retira 1 (1); 9:58 se retira OTRO 1 (0); 10:00 se bajan 3; 10:03 se venden 2. Los dos
+-- retiros estaban colgados antes: piso de antes 0 + 1 + 1 = 2, y las 2 vendidas no son tardías. Con cantidades
+-- IGUALES, una suma «sin repetidos» (sum(distinct), un union en vez de union all) daría 1 y una tardía falsa; con 1 y 2
+-- (DOS-RETIROS) no se nota.
+select pg_temp.variante('ZZ-FRE-T29-IGUALES') as ig \\gset
+select pg_temp.llega(:'ig', 10, :'t0'::timestamptz - interval '60 minutes') as _37 \\gset
+select pg_temp.mov(:'ig', 'entrada', 2, :'sp', 'recepcion', :'t0'::timestamptz - interval '30 minutes') as _38 \\gset
+select pg_temp.mov(:'ig', 'traslado', 1, :'sp', 'movimiento_interno', :'t0'::timestamptz - interval '4 minutes', :'sa') as _39 \\gset
+select pg_temp.mov(:'ig', 'traslado', 1, :'sp', 'movimiento_interno', :'t0'::timestamptz - interval '2 minutes', :'sa') as _40 \\gset
+select pg_temp.bajada(:'ig', 3, :'t0'::timestamptz) as _41 \\gset
+select pg_temp.vende(:'ig', 2, :'t0'::timestamptz + interval '3 minutes') as _42 \\gset
 ${FILAS()}`,
   ({ filas }) => {
     const r2 = filas["ZZ-FRE-T29-DOS-RETIROS"] ?? [];
@@ -1257,6 +1324,12 @@ ${FILAS()}`,
       "dos retiros en la ventana de una bajada se SUMAN: piso_antes 0 + 1 + 2 = 3, retiradas 3, efectiva 2, «normal»",
       r2.length === 1 && es(r2[0], { cantidad: 5, pisoAntes: 3, retiradas: 3, efectiva: 2, estado: "normal" }),
       ver(r2),
+    );
+    const ig = filas["ZZ-FRE-T29-IGUALES"] ?? [];
+    afirmar(
+      "dos retiros IGUALES (1 y 1) se suman: piso_antes 0 + 1 + 1 = 2, retiradas 2, efectiva 1, vendidas 2 → 0 tardías, «normal»",
+      ig.length === 1 && es(ig[0], { cantidad: 3, pisoAntes: 2, retiradas: 2, efectiva: 1, vendidas: 2, tardias: 0, estado: "normal" }),
+      ver(ig),
     );
     const dt = filas["ZZ-FRE-T29-DUDOSA-TAPADA"] ?? [];
     afirmar(
@@ -1341,8 +1414,9 @@ ${FILAS()}`,
       v.length === 2 && es(v[0], { min: 1, cantidad: 2, pisoAntes: 2, retiradas: 2, efectiva: 0, tardias: 0, estado: "corregida" }),
       ver(v),
     );
-    // Si Felipe decide «sumar solo lo retirado que todavía no se volvió a colgar», esta fila pasa a piso_antes 2, 1
-    // tardía y «tardia» (como SIN), y esta afirmación se reescribe con esa decisión. Ver ADR-0208, «Paso 2 construido».
+    // Si Felipe decide «sumar al piso de antes solo lo retirado ANTES de la bajada que la regla le asignó a ESA misma
+    // bajada» (la salida que también arregla T32), esta fila pasa a piso_antes 2, 1 tardía y «tardia» (como SIN), y esta
+    // afirmación se reescribe con esa decisión. Ver ADR-0208, «Límites» del paso 2.
     afirmar(
       "HOY la bajada real de 10:03 sale piso_antes 4 (2 + el retiro ya repuesto), 0 tardías, «normal» — el límite que queda por decidir",
       es(v[1], { min: 3, cantidad: 1, pisoAntes: 4, vendidas: 3, retiradas: 0, efectiva: 1, tardias: 0, estado: "normal" }),
@@ -1424,11 +1498,73 @@ insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo
 select retail.fn_aplicar_movimiento(:'e_otra') as _27 \\gset
 select pg_temp.llega(:'co', 3, :'t0'::timestamptz - interval '10 minutes') as _28 \\gset
 select pg_temp.bajada(:'co', 2, :'t0'::timestamptz) as _29 \\gset
+-- CUAR-ALM: piso 2 y 1 en cuarentena; 9:58 la de cuarentena vuelve al ALMACÉN (mover_interno acepta cualquier par de la
+-- tienda); 10:00 se bajan 2; 10:03 se venden 3. No salió nada del piso: no es retiro, y la venta de 3 con 2 colgadas
+-- deja 1 tardía. Si el retiro se definiera solo por su destino (→ almacén), se la tragaría.
+select pg_temp.variante('ZZ-FRE-T31-CUAR-ALM') as ca \\gset
+select pg_temp.llega(:'ca', 10, :'t0'::timestamptz - interval '60 minutes') as _30 \\gset
+select pg_temp.mov(:'ca', 'entrada', 2, :'sp', 'recepcion', :'t0'::timestamptz - interval '30 minutes') as _31 \\gset
+select pg_temp.mov(:'ca', 'entrada', 1, :'sc', 'recepcion', :'t0'::timestamptz - interval '30 minutes') as _32 \\gset
+select pg_temp.mov(:'ca', 'traslado', 1, :'sc', 'movimiento_interno', :'t0'::timestamptz - interval '2 minutes', :'sa') as _33 \\gset
+select pg_temp.bajada(:'ca', 2, :'t0'::timestamptz) as _34 \\gset
+select pg_temp.vende(:'ca', 3, :'t0'::timestamptz + interval '3 minutes') as _35 \\gset
+-- ALM-CUAR: 10:00 se bajan 2; 10:04 se retiran 2 (piso → almacén); 10:05 pasa 1 del almacén a cuarentena. Almacén →
+-- cuarentena no es bajada: el retiro es de la de 10:00 (a 4 minutos), aunque ese otro traslado quede a 1 minuto.
+select pg_temp.variante('ZZ-FRE-T31-ALM-CUAR') as ac \\gset
+select pg_temp.llega(:'ac', 10, :'t0'::timestamptz - interval '60 minutes') as _36 \\gset
+select pg_temp.bajada(:'ac', 2, :'t0'::timestamptz) as _37 \\gset
+select pg_temp.mov(:'ac', 'traslado', 2, :'sp', 'movimiento_interno', :'t0'::timestamptz + interval '4 minutes', :'sa') as _38 \\gset
+select pg_temp.mov(:'ac', 'traslado', 1, :'sa', 'movimiento_interno', :'t0'::timestamptz + interval '5 minutes', :'sc') as _39 \\gset
+-- VENTAS-GEMELAS: piso 0; 10:00 se bajan 3; 10:03 dos ventas de 1 en el MISMO instante (dos tickets iguales). Son 2
+-- vendidas y 2 tardías; si las filas de venta se juntaran «sin repetidos», contaría 1.
+select pg_temp.variante('ZZ-FRE-T31-VENTAS-GEMELAS') as vg \\gset
+select pg_temp.llega(:'vg', 10, :'t0'::timestamptz - interval '60 minutes') as _40 \\gset
+select pg_temp.bajada(:'vg', 3, :'t0'::timestamptz) as _41 \\gset
+select pg_temp.vende(:'vg', 1, :'t0'::timestamptz + interval '3 minutes') as _42 \\gset
+select pg_temp.vende(:'vg', 1, :'t0'::timestamptz + interval '3 minutes') as _43 \\gset
+-- CARGA-1S y CARGA-DESPUES: la entrada «carga_inicial» 1 segundo antes, o 30 segundos DESPUÉS, de la bajada: no es el
+-- mismo instante, no se marca.
+select pg_temp.variante('ZZ-FRE-T31-CARGA-1S') as c1 \\gset
+select pg_temp.mov(:'c1', 'entrada', 3, :'sa', 'carga_inicial', :'t0'::timestamptz - interval '1 second') as _44 \\gset
+select pg_temp.bajada(:'c1', 3, :'t0'::timestamptz) as _45 \\gset
+select pg_temp.variante('ZZ-FRE-T31-CARGA-DESPUES') as cd \\gset
+select pg_temp.llega(:'cd', 3, :'t0'::timestamptz - interval '60 minutes') as _46 \\gset
+select pg_temp.bajada(:'cd', 3, :'t0'::timestamptz) as _47 \\gset
+select pg_temp.mov(:'cd', 'entrada', 3, :'sa', 'carga_inicial', :'t0'::timestamptz + interval '30 seconds') as _48 \\gset
+-- BORDE-DESDE: 9:40 se bajan 2; 9:50 se retira 1; 10:00 se bajan 2. Leído con p_desde = 10:00 EXACTO, el retiro empata
+-- (10 y 10 minutos) y es de la de 9:40, que cae justo en p_desde − 2W: hay que leerla.
+select pg_temp.variante('ZZ-FRE-T31-BORDE-DESDE') as bd \\gset
+select pg_temp.llega(:'bd', 10, :'t0'::timestamptz - interval '60 minutes') as _49 \\gset
+select pg_temp.bajada(:'bd', 2, :'t0'::timestamptz - interval '20 minutes') as _50 \\gset
+select pg_temp.mov(:'bd', 'traslado', 1, :'sp', 'movimiento_interno', :'t0'::timestamptz - interval '10 minutes', :'sa') as _51 \\gset
+select pg_temp.bajada(:'bd', 2, :'t0'::timestamptz) as _52 \\gset
+-- MEDIO-SEGUNDO: 9:55 se bajan 2; 10:00:00 se retiran 2; 10:00:00,5 se bajan 2. La de después está a medio segundo y
+-- la de antes a 5 minutos: el retiro es de la de después («un instante después» es 1 µs, no 1 segundo).
+select pg_temp.variante('ZZ-FRE-T31-MEDIO-SEGUNDO') as ms \\gset
+select pg_temp.llega(:'ms', 10, :'t0'::timestamptz - interval '60 minutes') as _59 \\gset
+select pg_temp.bajada(:'ms', 2, :'t0'::timestamptz - interval '5 minutes') as _60 \\gset
+select pg_temp.mov(:'ms', 'traslado', 2, :'sp', 'movimiento_interno', :'t0'::timestamptz, :'sa') as _61 \\gset
+select pg_temp.bajada(:'ms', 2, :'t0'::timestamptz + interval '0.5 seconds') as _62 \\gset
+-- ORDEN: dos bajadas a −10 y 0; la función las entrega de la más nueva a la más vieja.
+select pg_temp.variante('ZZ-FRE-T31-ORDEN') as od \\gset
+select pg_temp.llega(:'od', 10, :'t0'::timestamptz - interval '60 minutes') as _53 \\gset
+select pg_temp.bajada(:'od', 1, :'t0'::timestamptz - interval '10 minutes') as _54 \\gset
+select pg_temp.bajada(:'od', 1, :'t0'::timestamptz) as _55 \\gset
+select 'ORDEN|' || string_agg(round(extract(epoch from (r.bajada_en - :'t0'::timestamptz)) / 60.0)::text, ',' order by r.ordinality)
+  from retail.fn_bajadas_del_piso(:'ubic') with ordinality r join retail.variantes v on v.id = r.variante_id where v.sku = 'ZZ-FRE-T31-ORDEN';
+-- DEFECTO: sin p_desde se leen 30 días: la bajada de hace 2 días sale y la de hace 31, no.
+select pg_temp.variante('ZZ-FRE-T31-DEFECTO') as df \\gset
+select pg_temp.llega(:'df', 10, now() - interval '40 days') as _56 \\gset
+select pg_temp.bajada(:'df', 1, now() - interval '31 days') as _57 \\gset
+select pg_temp.bajada(:'df', 1, now() - interval '2 days') as _58 \\gset
+select 'DEFECTO|' || count(*) filter (where r.bajada_en > now() - interval '3 days') || ',' || count(*) filter (where r.bajada_en < now() - interval '30 days')
+  from retail.fn_bajadas_del_piso(:'ubic') r join retail.variantes v on v.id = r.variante_id where v.sku = 'ZZ-FRE-T31-DEFECTO';
 ${FILAS(", p_minutos => 5").replace("'R|' || v.sku", "'R|' || v.sku || '-W5'")}
 ${FILAS(", p_minutos => 30").replace("'R|' || v.sku", "'R|' || v.sku || '-W30'")}
 ${FILAS(", p_desde => :'t0'::timestamptz - interval '1 minute', p_minutos => 30").replace("'R|' || v.sku", "'R|' || v.sku || '-W30-BORDE'")}
+${FILAS(", p_desde => :'t0'::timestamptz").replace("'R|' || v.sku", "'R|' || v.sku || '-DESDE-T0'")}
 ${FILAS()}`,
-  ({ filas }) => {
+  ({ filas, otras }) => {
     afirmar(
       "piso → cuarentena no es retiro: piso_antes 2 (no 3), retiradas 0, efectiva 2, «normal»",
       es(filas["ZZ-FRE-T31-CUARENTENA"]?.[0], { cantidad: 2, pisoAntes: 2, retiradas: 0, efectiva: 2, estado: "normal" }),
@@ -1481,6 +1617,126 @@ ${FILAS()}`,
       "carga inicial de la misma prenda en OTRA tienda, en el mismo instante → no",
       es(filas["ZZ-FRE-T31-CARGA-OTRA"]?.[0], { cantidad: 2, carga: false }),
       ver(filas["ZZ-FRE-T31-CARGA-OTRA"]),
+    );
+    const ca = filas["ZZ-FRE-T31-CUAR-ALM"] ?? [];
+    afirmar(
+      "cuarentena → almacén no es retiro del piso: piso_antes 2, retiradas 0, efectiva 2, vendidas 3 → 1 tardía, «tardia»",
+      ca.length === 1 && es(ca[0], { cantidad: 2, pisoAntes: 2, retiradas: 0, efectiva: 2, vendidas: 3, tardias: 1, estado: "tardia" }),
+      ver(ca),
+    );
+    const ac = filas["ZZ-FRE-T31-ALM-CUAR"] ?? [];
+    afirmar(
+      "almacén → cuarentena no es bajada ni se lleva el retiro: una sola fila, la de 10:00, con retiradas 2, efectiva 0, «corregida»",
+      ac.length === 1 && es(ac[0], { min: 0, cantidad: 2, retiradas: 2, efectiva: 0, estado: "corregida" }),
+      ver(ac),
+    );
+    const vg = filas["ZZ-FRE-T31-VENTAS-GEMELAS"] ?? [];
+    afirmar(
+      "dos ventas iguales en el mismo instante se suman: vendidas 2 → 2 tardías, «tardia»",
+      vg.length === 1 && es(vg[0], { cantidad: 3, pisoAntes: 0, vendidas: 2, tardias: 2, estado: "tardia" }),
+      ver(vg),
+    );
+    afirmar(
+      "carga inicial 1 segundo antes, o 30 segundos después, de la bajada → no es carga inicial",
+      es(filas["ZZ-FRE-T31-CARGA-1S"]?.[0], { cantidad: 3, carga: false }) && es(filas["ZZ-FRE-T31-CARGA-DESPUES"]?.[0], { cantidad: 3, carga: false }),
+      ver([filas["ZZ-FRE-T31-CARGA-1S"], filas["ZZ-FRE-T31-CARGA-DESPUES"]]),
+    );
+    const bd = (filas["ZZ-FRE-T31-BORDE-DESDE"] ?? []).filter((x) => x.min === 0);
+    const bdT0 = filas["ZZ-FRE-T31-BORDE-DESDE-DESDE-T0"] ?? [];
+    afirmar(
+      "30 días: el retiro de −10 empata y es de la bajada de −20: la de t0 con piso_antes 2, retiradas 0, efectiva 2",
+      bd.length === 1 && es(bd[0], { pisoAntes: 2, retiradas: 0, efectiva: 2 }),
+      ver(bd),
+    );
+    afirmar(
+      "p_desde = t0 EXACTO: la MISMA fila (la bajada de −20 está justo en p_desde − 2W y hay que leerla)",
+      bdT0.length === 1 && es(bdT0[0], { min: 0, pisoAntes: 2, retiradas: 0, efectiva: 2 }),
+      ver(bdT0),
+    );
+    const ms = filas["ZZ-FRE-T31-MEDIO-SEGUNDO"] ?? [];
+    afirmar(
+      "un retiro con la bajada de después a medio segundo y la de antes a 5 minutos → va a la de después (retiradas 0 y 2, efectivas 2 y 0)",
+      ms.length === 2 && es(ms[0], { min: -5, retiradas: 0, efectiva: 2 }) && es(ms[1], { retiradas: 2, efectiva: 0, estado: "corregida" }),
+      ver(ms),
+    );
+    afirmar("entrega las bajadas de la más nueva a la más vieja (0, −10)", otras.ORDEN === "0,-10", `ORDEN=${otras.ORDEN}`);
+    afirmar("sin p_desde lee 30 días: la bajada de hace 2 días sale y la de hace 31 no", otras.DEFECTO === "1,0", `DEFECTO=${otras.DEFECTO}`);
+  },
+);
+
+// ---------------------------------------------------------------------------
+correr(
+  "T32 · LÍMITE CONOCIDO (la misma decisión pendiente que T30, ADR-0208): el retiro que se le descontó a la bajada ANTERIOR igual suma al piso de antes de la siguiente y tapa tardías reales",
+  `-- N1 («colgaron de más»): piso 0; 10:00 se bajan 3 y solo cabe 1; 10:02 se retiran 2; 10:08 otra colaboradora baja 1;
+-- 10:11 y 10:13 se vende 1 y 1. El libro marca 3, 1, 2, 1, 0. El retiro es de la de 10:00 (a 2 minutos, no a 6): esas 2
+-- nunca quedaron colgadas. Pero la regla de hoy suma TODO lo retirado en [t − W, t) al piso de antes de la de 10:08: 1 + 2.
+select pg_temp.variante('ZZ-FRE-T32-N1') as n1 \\gset
+select pg_temp.llega(:'n1', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
+select pg_temp.bajada(:'n1', 3, :'t0'::timestamptz) as _2 \\gset
+select pg_temp.mov(:'n1', 'traslado', 2, :'sp', 'movimiento_interno', :'t0'::timestamptz + interval '2 minutes', :'sa') as _3 \\gset
+select pg_temp.bajada(:'n1', 1, :'t0'::timestamptz + interval '8 minutes') as _4 \\gset
+select pg_temp.vende(:'n1', 1, :'t0'::timestamptz + interval '11 minutes') as _5 \\gset
+select pg_temp.vende(:'n1', 1, :'t0'::timestamptz + interval '13 minutes') as _6 \\gset
+-- N1-SIN: la misma tienda sin el error: 10:00 se baja 1; 10:08 se baja 1; se venden 2 → la de 10:08, 1 tardía.
+select pg_temp.variante('ZZ-FRE-T32-N1-SIN') as ns \\gset
+select pg_temp.llega(:'ns', 10, :'t0'::timestamptz - interval '60 minutes') as _7 \\gset
+select pg_temp.bajada(:'ns', 1, :'t0'::timestamptz) as _8 \\gset
+select pg_temp.bajada(:'ns', 1, :'t0'::timestamptz + interval '8 minutes') as _9 \\gset
+select pg_temp.vende(:'ns', 1, :'t0'::timestamptz + interval '11 minutes') as _10 \\gset
+select pg_temp.vende(:'ns', 1, :'t0'::timestamptz + interval '13 minutes') as _11 \\gset
+-- N1-CARGA: la carga inicial de 10 y su bajada en el mismo instante; 10:02 se retiran 4 (no cabían); 10:08 se baja 1;
+-- de 10:11 a 10:13 se venden 7. El libro marca 10, 6, 7, 0: antes de la de 10:08 había 6.
+select pg_temp.variante('ZZ-FRE-T32-N1-CARGA') as nc \\gset
+select pg_temp.mov(:'nc', 'entrada', 10, :'sa', 'carga_inicial', :'t0'::timestamptz) as _12 \\gset
+select pg_temp.bajada(:'nc', 10, :'t0'::timestamptz) as _13 \\gset
+select pg_temp.mov(:'nc', 'traslado', 4, :'sp', 'movimiento_interno', :'t0'::timestamptz + interval '2 minutes', :'sa') as _14 \\gset
+select pg_temp.bajada(:'nc', 1, :'t0'::timestamptz + interval '8 minutes') as _15 \\gset
+select pg_temp.vende(:'nc', 3, :'t0'::timestamptz + interval '11 minutes') as _16 \\gset
+select pg_temp.vende(:'nc', 2, :'t0'::timestamptz + interval '12 minutes') as _17 \\gset
+select pg_temp.vende(:'nc', 2, :'t0'::timestamptz + interval '13 minutes') as _18 \\gset
+-- EMPATE-VENTA (el EMPATE de T29 con una venta): 10:00 se bajan 2; 10:04 se retiran 2 (empate → la de 10:00,
+-- «corregida»); 10:08 se bajan 3; 10:11 se venden 3. El libro marca 2, 0, 3, 0: antes de la de 10:08 no había nada.
+select pg_temp.variante('ZZ-FRE-T32-EMPATE-VENTA') as ev \\gset
+select pg_temp.llega(:'ev', 10, :'t0'::timestamptz - interval '60 minutes') as _19 \\gset
+select pg_temp.bajada(:'ev', 2, :'t0'::timestamptz) as _20 \\gset
+select pg_temp.mov(:'ev', 'traslado', 2, :'sp', 'movimiento_interno', :'t0'::timestamptz + interval '4 minutes', :'sa') as _21 \\gset
+select pg_temp.bajada(:'ev', 3, :'t0'::timestamptz + interval '8 minutes') as _22 \\gset
+select pg_temp.vende(:'ev', 3, :'t0'::timestamptz + interval '11 minutes') as _23 \\gset
+${FILAS()}`,
+  ({ filas }) => {
+    // Si Felipe decide «sumar al piso de antes solo lo retirado ANTES de la bajada que la regla le asignó a ESA misma
+    // bajada» (ADR-0208, «Límites» del paso 2), estas tres filas pasan a piso_antes 1 / 6 / 0 y 1 / 1 / 3 tardías, y
+    // estas afirmaciones se reescriben con esa decisión. Hoy fijan la regla escrita.
+    const n1 = filas["ZZ-FRE-T32-N1"] ?? [];
+    afirmar(
+      "N1: la de 10:00 se lleva el retiro (a 2 minutos): retiradas 2, efectiva 1, «normal»",
+      n1.length === 2 && es(n1[0], { min: 0, cantidad: 3, pisoAntes: 0, retiradas: 2, efectiva: 1, estado: "normal" }),
+      ver(n1),
+    );
+    afirmar(
+      "N1: HOY la de 10:08 sale piso_antes 3 (el libro dice 1: el retiro ya se le descontó a la de 10:00), vendidas 2, 0 tardías — el límite que queda por decidir",
+      es(n1[1], { min: 8, cantidad: 1, pisoAntes: 3, vendidas: 2, retiradas: 0, efectiva: 1, tardias: 0, estado: "normal" }),
+      ver(n1[1]),
+    );
+    const ns = filas["ZZ-FRE-T32-N1-SIN"] ?? [];
+    afirmar(
+      "N1-SIN (sin el error): la de 10:08 sale piso_antes 1, vendidas 2 → 1 tardía, «tardia»",
+      ns.length === 2 && es(ns[1], { min: 8, cantidad: 1, pisoAntes: 1, vendidas: 2, tardias: 1, estado: "tardia" }),
+      ver(ns),
+    );
+    const nc = filas["ZZ-FRE-T32-N1-CARGA"] ?? [];
+    afirmar(
+      "N1-CARGA: la carga se lleva el retiro (efectiva 6, es_carga_inicial) y HOY la de 10:08 sale piso_antes 10 (el libro dice 6), vendidas 7, 0 tardías",
+      nc.length === 2 && es(nc[0], { min: 0, cantidad: 10, retiradas: 4, efectiva: 6, carga: true }) &&
+        es(nc[1], { min: 8, cantidad: 1, pisoAntes: 10, vendidas: 7, tardias: 0, estado: "normal" }),
+      ver(nc),
+    );
+    const ev = filas["ZZ-FRE-T32-EMPATE-VENTA"] ?? [];
+    afirmar(
+      "EMPATE-VENTA: la de 10:00 «corregida»; HOY la de 10:08 sale piso_antes 2 (el libro dice 0), vendidas 3 → 1 tardía y no 3",
+      ev.length === 2 && es(ev[0], { min: 0, cantidad: 2, retiradas: 2, efectiva: 0, estado: "corregida" }) &&
+        es(ev[1], { min: 8, cantidad: 3, pisoAntes: 2, vendidas: 3, retiradas: 0, efectiva: 3, tardias: 1, estado: "tardia" }),
+      ver(ev),
     );
   },
 );

@@ -18,7 +18,8 @@
 -- QUÉ CAMBIA (solo en el núcleo; la puerta `fn_bajadas_del_piso` sigue con el candado de líder). Para cada bajada
 -- (tienda, prenda, hora t, cantidad c), con la ventana W = p_minutos (10 por defecto):
 --   · RETIRO = lo que pasó del piso al almacén de la MISMA tienda («Retirar del piso»: el par inverso de la bajada, por
---     estructura, como la bajada y como Movimientos). Piso → cuarentena no es retiro.
+--     estructura, como la bajada y como Movimientos). Los dos se reconocen por su PAR exacto de origen y destino: piso →
+--     cuarentena y cuarentena → almacén no son retiro, y almacén → cuarentena no es bajada.
 --   · piso_antes = el nivel del piso justo antes de la bajada (como hoy) + TODO lo retirado del piso de esa prenda en
 --     [t − W, t), aunque ese retiro se descuente de otra bajada: el piso de antes describe lo que estaba colgado antes de
 --     que alguien lo retirara. Un retiro de la misma hora exacta no suma (en la tienda no pasa: retiro y bajada de la
@@ -63,47 +64,86 @@
 -- entradas en el mismo instante), T27 (bordes del rango por p_desde y por p_hasta, con la disputa de una bajada de
 -- fuera), T28 (la misma hora exacta, también con un retiro), T30 (el límite de abajo que queda por decidir), T31
 -- (piso→cuarentena no es retiro, la ventana y el margen siguen a p_minutos, el orden de los estados, el desempate por
--- hora antes que por id, la carga inicial de otro instante o de otra tienda), T22-T23 (las dos guardas).
+-- hora antes que por id, la carga inicial de otro instante o de otra tienda; desde la revisión 2: cuarentena → almacén
+-- no es retiro, almacén → cuarentena no es bajada ni se lleva un retiro, dos ventas iguales del mismo instante se suman,
+-- el borde exacto de p_desde − 2W, la carga de 1 segundo antes o 30 después, el retiro con la bajada de después a medio
+-- segundo, el orden de salida y el rango por defecto), T29 (dos retiros IGUALES que se suman y evitan una tardía), T32
+-- (tres límites más de la decisión pendiente), T22-T23 (las dos guardas; la de esta migración mira el núcleo Y la
+-- puerta, con cada una parchada en vivo).
 -- En PRODUCCIÓN (ensayo de solo lectura del 2026-09-27: este cuerpo como un `select` sobre Tienda TRU, sin crear nada):
 -- 40 bajadas (199 unidades) y ningún retiro en el rango; 0 filas cambian de piso_antes, de estado o de tardías
--- respecto de la 0300; 15 salen con es_carga_inicial (95 unidades, todas del 26-sep) y ninguna otra.
+-- respecto de la 0300; 15 salen con es_carga_inicial (95 unidades, todas del 26-sep) y ninguna otra. Repetido con el
+-- cuerpo de la revisión 2 (el mismo `select`): las mismas 40 filas, 0 distintas del cálculo anterior y de la 0300.
 --
+-- CÓMO SE CALCULA, y por qué así. Ningún paso cruza dos conjuntos CALCULADOS entre sí: todo se junta ordenando por
+-- prenda y hora (funciones de ventana: la bajada más cercana antes y después de cada retiro, lo retirado en la ventana,
+-- lo vendido en [t, t + W], la carga del mismo instante) o agrupando por id (cada bajada con su punto del libro). Los
+-- únicos cruces que quedan son búsquedas por índice en tablas (movimientos, venta_items, ventas, bajada_piso_items).
+-- Si no hay ningún retiro en el rango (lo normal hoy), los pasos de los retiros ni se recorren.
+--   DESCARTÉ (1) la versión anterior de este mismo archivo (nunca pegada; núcleo 94d587570d8db50cf69c9b6bd982a01e):
+--   cruzaba los retiros con sus bajadas y las bajadas con el libro y con las ventas. Con la tabla de movimientos de una
+--   sola tienda iba bien, pero con historia de OTRA tienda Postgres estima esos pasos en 1 a 30 filas cuando son miles,
+--   y los cruza fila por fila: con 60.000 entradas de Tienda Lima, 30 días pasaban de 39 ms a 417 ms y 60 días de
+--   129 ms a 2,97 s (revisión del 2026-09-27). La 120100 (el cálculo de producción) tiene el mismo defecto con más
+--   historia (60 días: 15,7 s con 300.000 movimientos de otra tienda); este núcleo la reemplaza.
+--   DESCARTÉ (2) apagar los bucles anidados (`set enable_nestloop = off`) en el núcleo: da las mismas filas y quita el
+--   colapso, pero también apaga las búsquedas por índice (la del libro en venta_items y ventas, la de las ventas en
+--   movimientos): cada llamada recorre esas tablas enteras, aunque pida un día. Medido: 1 día, de 11 a 41 ms con
+--   336.000 movimientos, y crece con la tabla, no con lo pedido.
 -- CUÁNTO CUESTA (Postgres 17 desechable, con el libro de 20260928120010; una tienda, 2.000 prendas, 20.001 bajadas y
--- 10.001 ventas a 120 días; mediana de 9 corridas intercaladas): de 301 ms (la 120100) a 315 ms (+5 %); con 4.001
--- retiros más, de 327 a 355 ms (+9 %). La primera versión (el nivel más alto) costaba 365 y 393 ms.
--- CÓMO, y por qué así: los retiros se cruzan con las bajadas de su prenda a una ventana o menos (`pares`, un cruce por
--- igualdad de prenda con un filtro de hora: los retiros son pocos), y de ahí salen la bajada elegida de cada retiro y
--- lo retirado antes de cada bajada. Todo eso se junta con las bajadas ANTES de cruzarlas con el libro, porque el
--- planificador estima los puntos del libro en UNA fila: cualquier cruce posterior con un conjunto grande podría ir
--- fila por fila (una prueba así tardó 22 s). Con funciones de ventana sobre todos los traslados costaba 420-450 ms.
+-- 10.001 ventas a 120 días; mediana de 5 a 7 corridas intercaladas):
+--   · sin retiros: 313 ms la 120100, 333 ms este núcleo (+6 %); a 30 días, 37 y 41 ms.
+--   · con 4.001 retiros (dos por prenda: mucho más de lo que pasa en una tienda): 338 y 409 ms (+21 %); a 30 días, 37 y
+--     45 ms. La versión anterior de este archivo: 328 y 368 ms, pero sin historia de otra tienda (abajo).
+--   · con 60.000 entradas de Tienda Lima en un año (y los retiros): 30 días 37 / 45 ms, 60 días 136 / 166 ms, 120 días
+--     350 / 443 ms (la versión anterior de este archivo: 438 ms, 2,93 s y 379 ms).
+--   · con 300.000 movimientos de otra tienda en dos años: 1 día 11 ms, 30 días 45 ms, 60 días 164 ms, 120 días 450 ms
+--     (la 120100 a 30 días: 673 ms; la versión anterior de este archivo: 430 ms).
 --
 -- LÍMITES (escritos en ADR-0208):
 --   · Un retiro legítimo de la misma prenda dentro de la ventana también se descuenta (no hay forma de distinguirlo
 --     hasta el motivo del retiro de 3b).
 --   · Con varios retiros y re-bajadas de la misma talla en 10 minutos, la corrección puede ir a la bajada equivocada (la
 --     más cercana no siempre es la que se corrigió), aunque el total de cantidades efectivas cuadra.
---   · DECISIÓN PENDIENTE (Felipe; prueba T30): el piso de antes suma TODO lo retirado en [t − W, t), también lo que una
---     re-bajada ya volvió a colgar, y el nivel justo antes ya incluye esa re-bajada: el retiro cuenta dos veces. Piso 2;
---     10:00 se retiran 2 por error; 10:01 se reponen 2; 10:03 se baja 1 de verdad; 10:05 se venden 3 → la de 10:03 sale
---     con piso_antes 4 (el libro nunca pasó de 3) y 0 tardías; sin el error, 1 tardía. Hoy en TRU no hay retiros.
+--   · DECISIÓN PENDIENTE (Felipe; pruebas T30 y T32): el piso de antes suma TODO lo retirado en [t − W, t), también un
+--     retiro que NO estuvo colgado antes de esta bajada. Pasa en dos formas:
+--       - una re-bajada ya repuso ese retiro, y el nivel justo antes ya la incluye: el retiro cuenta dos veces (T30).
+--         Piso 2; 10:00 se retiran 2 por error; 10:01 se reponen 2; 10:03 se baja 1 de verdad; 10:05 se venden 3 → la de
+--         10:03 sale con piso_antes 4 (el libro nunca pasó de 3) y 0 tardías; sin el error, 1 tardía.
+--       - el retiro se le descontó a la bajada ANTERIOR («colgaron de más»: esas prendas nunca quedaron en el piso), y la
+--         siguiente igual lo suma (T32). 10:00 se bajan 3 y solo cabe 1; 10:02 se retiran 2; 10:08 se baja 1; se venden 2
+--         → la de 10:08 sale con piso_antes 3 (el libro dice 1) y 0 tardías; sin el error, 1 tardía. Con la carga
+--         inicial es justo cuando la cuenta sale mal (carga de 10, se retiran 4, se baja 1, se venden 7: piso_antes 10,
+--         el libro dice 6). Y en el empate de T29 (bajadas de 2 y 3, retiro de 2 entre ellas que va a la primera) con 3
+--         vendidas, la segunda sale con 1 tardía y no 3.
+--     La salida escrita antes (sumar solo lo retirado que todavía no se volvió a colgar) arregla la primera forma, pero
+--     NO la segunda. La que arregla las dos: sumar al piso de antes solo lo retirado ANTES de la bajada que la regla de
+--     arriba le asignó a ESA misma bajada (en este cálculo, una suma más en el mismo recorrido). Y se decide junto con
+--     otra: con la corrección hecha en DOS re-bajadas (retiro de 2; se reponen 1 y 1), el retiro entero va a la primera
+--     y lo que sobra no pasa a la segunda (T29 «sobra»); con cualquiera de las dos salidas, esa segunda saldría
+--     «tardia» sin serlo. Hoy TRU no tiene retiros: en producción no cambia nada; sí pesará en el indicador del paso 3.
 --   · La carga inicial se reconoce por el instante exacto: si alguien la registra en dos transacciones (carga y, aparte,
 --     su bajada), no se marca.
 --
--- LA GUARDA. Solo sigue si las dos funciones vivas son las de 20260928120100 (núcleo 8d38d6dd6c657ab06b2e8a7c0b66a53b,
--- puerta 34a7e0cc5f421333761e8bda92a582eb) o las de esta misma migración ya pegada (se puede volver a pegar). Con
--- cualquier otro cuerpo aborta sin tocar nada. Sin el núcleo, pide pegar antes la 120100.
+-- LA GUARDA. Solo sigue si las DOS funciones vivas son las de 20260928120100 (núcleo 8d38d6dd6c657ab06b2e8a7c0b66a53b,
+-- puerta 34a7e0cc5f421333761e8bda92a582eb) o las de esta misma migración ya pegada (núcleo
+-- 08bfa7b8d2c90eaed85a5c4366a21db4, la misma puerta: se puede volver a pegar). Con cualquier otro cuerpo, en el
+-- núcleo o en la puerta, aborta sin tocar nada (T23 lo prueba con cada una parchada en vivo). Sin el núcleo, pide pegar
+-- antes la 120100.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. Sola, en el SQL Editor, tal cual (ya trae `retail.`), DESPUÉS de la 20260928120100. Cambia
 -- las columnas que devuelven las dos funciones, así que usa `drop function` + `create` (no toma las tablas de auth y
 -- storage: ADR-0195) y vuelve a dar los permisos. Sin políticas, sin `drop trigger`, sin `alter` de tablas. Todo en una
 -- transacción: nadie ve las funciones a medias. Re-ejecutable.
 -- Cómo se verifica después: `select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and
--- proname like 'fn_bajadas_del_piso%';` da núcleo 94d587570d8db50cf69c9b6bd982a01e y puerta 34a7e0cc5f421333761e8bda92a582eb
--- (el cuerpo de la puerta no cambia, solo sus columnas: mide lo mismo que tras la 120100).
+-- proname like 'fn_bajadas_del_piso%';` da núcleo 08bfa7b8d2c90eaed85a5c4366a21db4 y puerta
+-- 34a7e0cc5f421333761e8bda92a582eb (el cuerpo de la puerta no cambia, solo sus columnas: mide lo mismo que tras la
+-- 120100).
 --
 -- SE ROMPE SI la carga inicial deja de bajar en la misma transacción que su entrada (es_carga_inicial se apaga sin
--- aviso), o si «Retirar del piso» empieza a devolver a otra sububicación que no sea el almacén de la tienda (el retiro
--- dejaría de descontarse).
+-- aviso), si «Retirar del piso» empieza a devolver a otra sububicación que no sea el almacén de la tienda (el retiro
+-- dejaría de descontarse), o si alguien vuelve a escribir un cruce entre dos pasos calculados (con historia de otra
+-- tienda, la pantalla pasaría de milisegundos a segundos sin que ninguna prueba de conducta lo vea: se mide con carga).
 -- ============================================================================
 
 set search_path = retail, public, extensions;
@@ -122,7 +162,7 @@ begin
     raise exception 'Falta el núcleo de las bajadas: pega antes 20260928120100_bajadas_nucleo.sql';
   end if;
   if not ((v_nucleo = '8d38d6dd6c657ab06b2e8a7c0b66a53b' and v_puerta = '34a7e0cc5f421333761e8bda92a582eb')
-       or (v_nucleo = '94d587570d8db50cf69c9b6bd982a01e' and v_puerta = '34a7e0cc5f421333761e8bda92a582eb')) then
+       or (v_nucleo = '08bfa7b8d2c90eaed85a5c4366a21db4' and v_puerta = '34a7e0cc5f421333761e8bda92a582eb')) then
     raise exception 'fn_bajadas_del_piso o su núcleo cambiaron desde que se escribió esta migración (md5 núcleo %, puerta %; se esperaba 8d38d6dd6c657ab06b2e8a7c0b66a53b y 34a7e0cc5f421333761e8bda92a582eb). Alguien las parchó en vivo: reescribe desde su definición real antes de pegar.', v_nucleo, v_puerta;
   end if;
 end $$;
@@ -132,7 +172,8 @@ drop function if exists retail.fn_bajadas_del_piso(uuid, timestamptz, timestampt
 drop function if exists retail.fn_bajadas_del_piso_nucleo(uuid, timestamptz, timestamptz, integer);
 
 -- ----------------------------------------------------------------------------
--- 1. El núcleo: cada retiro a una sola bajada, el piso de antes con lo retirado, la carga inicial marcada
+-- 1. El núcleo: cada retiro a una sola bajada, el piso de antes con lo retirado, la carga inicial marcada. Sin cruces
+--    entre pasos calculados (ver «CÓMO SE CALCULA» arriba).
 -- ----------------------------------------------------------------------------
 
 create function retail.fn_bajadas_del_piso_nucleo(
@@ -166,6 +207,8 @@ as $fn$
 #variable_conflict use_column
 declare
   c_centinela constant uuid := '22222222-2222-4222-8222-222222222222';
+  -- La hora de Postgres tiene microsegundos: «un instante después» es + 1 µs, y [t − W, t) es [t − W, t − 1 µs].
+  c_instante constant interval := interval '1 microsecond';
   v_piso uuid;
   v_alm uuid;
   v_ventana interval;
@@ -190,12 +233,18 @@ begin
     return;
   end if;
 
+  -- CÓMO SE ARMA: ningún paso cruza dos conjuntos calculados entre sí. Postgres no sabe cuántas filas traen el libro ni
+  -- estos pasos (con historia de otra tienda los estima en 1 a 30 filas cuando son miles) y un cruce entre dos de ellos
+  -- se va fila por fila: 60 días pasaban de 0,13 s a 3 s (revisión del 2026-09-27). Aquí todo se junta ordenando por
+  -- prenda y hora (funciones de ventana) o agrupando por id; los únicos cruces son búsquedas por índice en tablas
+  -- (movimientos, venta_items, ventas, bajada_piso_items), que crecen con lo leído y no con su cuadrado.
   return query
   with internos as materialized (
     -- Los traslados entre el almacén y el piso de la MISMA tienda, por estructura (como Movimientos): la bajada
-    -- (almacén → piso) y su par inverso, el retiro («Retirar del piso», piso → almacén). Piso ↔ cuarentena no es ni
-    -- lo uno ni lo otro. Desde dos ventanas antes del rango hasta dos después: un retiro que toca a una bajada del
-    -- rango está a una ventana de ella, y la bajada que puede disputárselo, a una ventana más del retiro.
+    -- (almacén → piso) y su par inverso, el retiro («Retirar del piso», piso → almacén), cada uno por su PAR exacto:
+    -- piso ↔ cuarentena y almacén ↔ cuarentena no son ni lo uno ni lo otro. Desde dos ventanas antes del rango hasta
+    -- dos después: un retiro que toca a una bajada del rango está a una ventana de ella, y la bajada que puede
+    -- disputárselo, a una ventana más del retiro.
     select m.id, m.variante_id, m.usuario_id, m.created_at as t, m.cantidad, (m.sububicacion_id = v_alm) as es_bajada
       from movimientos m
      where m.ubicacion_id = p_ubicacion_id
@@ -205,103 +254,142 @@ begin
        and m.created_at >= v_desde - 2 * v_ventana and m.created_at <= v_hasta + 2 * v_ventana
        and m.variante_id <> c_centinela
   ),
-  pares as materialized (
-    -- Cada retiro con cada bajada de su prenda a una ventana o menos, antes o después (los dos extremos incluidos).
-    -- Casi siempre son pocos: los retiros son raros y una prenda tiene pocas bajadas en 20 minutos.
-    select r.id as r_id, r.t as r_t, r.cantidad as q, b.id as b_id, b.t as b_t
-      from internos r
-      join internos b on b.variante_id = r.variante_id and b.es_bajada
-                     and b.t >= r.t - v_ventana and b.t <= r.t + v_ventana
-     where not r.es_bajada
+  cercanas as (
+    -- Solo si hay algún retiro (lo normal es que no haya: entonces este paso ni se recorre). En la línea de tiempo de
+    -- cada prenda, a una ventana o menos: la hora de la bajada más cercana ANTES del retiro o en su mismo instante, la
+    -- de la más cercana DESPUÉS, y lo retirado en [t − W, t] (el mismo instante se descuenta abajo).
+    select i.id, i.variante_id, i.usuario_id, i.t, i.cantidad, i.es_bajada,
+           max(i.t) filter (where i.es_bajada) over hasta_ahora as t_antes,
+           coalesce(sum(i.cantidad) filter (where not i.es_bajada) over hasta_ahora, 0) as retirado_hasta,
+           min(i.t) filter (where i.es_bajada) over despues as t_despues
+      from internos i
+     where exists (select 1 from internos r where not r.es_bajada)
+    window hasta_ahora as (partition by i.variante_id order by i.t
+                           range between v_ventana preceding and current row),
+           despues as (partition by i.variante_id order by i.t
+                       range between c_instante following and v_ventana following)
   ),
-  elegidos as (
-    -- La regla: cada retiro se descuenta de UNA sola bajada, la más cercana en el tiempo; si dos quedan a la misma
-    -- distancia, la de antes del retiro (su hora <= la del retiro); si aún empatan, la de menor id.
-    select distinct on (x.r_id) x.b_id, x.q
-      from pares x
-     order by x.r_id, greatest(x.b_t - x.r_t, x.r_t - x.b_t), x.b_t > x.r_t, x.b_id
+  destinos as (
+    -- LA REGLA: cada retiro va al instante de la bajada más cercana; si las dos quedan a la misma distancia, a la de
+    -- ANTES del retiro. Sin bajada a una ventana o menos, a ninguno (nulo). Cada bajada, a su propio instante.
+    select c.*,
+           case when c.es_bajada then c.t
+                when c.t_antes is not null
+                     and (c.t_despues is null or c.t - c.t_antes <= c.t_despues - c.t) then c.t_antes
+                else c.t_despues end as t_destino
+      from cercanas c
   ),
-  asignadas as (
-    select e.b_id as id, sum(e.q)::integer as n from elegidos e group by e.b_id
-  ),
-  antes as (
-    -- TODO lo retirado en [t − ventana, t), aunque ese retiro se descuente de otra bajada: es lo que estaba colgado
-    -- antes de retirarlo, y se suma al piso de antes.
-    select x.b_id as id, sum(x.q)::integer as n from pares x where x.r_t < x.b_t group by x.b_id
-  ),
-  cargas as materialized (
-    -- La carga inicial (ADR-0212, ADR-0235) escribe su entrada «carga_inicial» y su bajada en la MISMA transacción: la
-    -- misma prenda en el mismo instante. Una fila por prenda e instante (dos entradas iguales no duplican la bajada).
-    select m.variante_id, m.created_at as t
-      from movimientos m
-     where m.ubicacion_id = p_ubicacion_id
-       and m.tipo = 'entrada' and m.motivo = 'carga_inicial'
-       and m.created_at >= v_desde and m.created_at < v_hasta
-     group by m.variante_id, m.created_at
+  repartidas as (
+    -- Por prenda e instante de destino, las bajadas primero y por id: lo retirado que va a ese instante se lo lleva UNA
+    -- sola bajada, la de menor id (dos bajadas de la prenda en el mismo instante solo se arman a mano). Aquí también se
+    -- cuenta lo retirado en el MISMO instante de cada bajada: todos esos retiros eligen ese instante (distancia 0).
+    select d.id, d.variante_id, d.usuario_id, d.t, d.cantidad, d.es_bajada, d.retirado_hasta,
+           row_number() over resto as puesto,
+           coalesce(sum(d.cantidad) filter (where not d.es_bajada) over resto, 0) as al_instante,
+           coalesce(sum(d.cantidad) filter (where not d.es_bajada and d.t = d.t_destino) over resto, 0)
+             as mismo_instante
+      from destinos d
+    window resto as (partition by d.variante_id, d.t_destino order by d.es_bajada desc, d.id
+                     rows between current row and unbounded following)
   ),
   bajadas as materialized (
-    -- Las bajadas del rango con lo que les toca de los retiros y la marca de carga, ANTES de cruzarlas con el libro:
-    -- cruces por igualdad entre conjuntos que el planificador sabe medir. (Los puntos del libro los estima en una
-    -- fila: todo lo que se cruce después de ellos con otro conjunto grande podría ir fila por fila.)
-    select i.id, i.variante_id, i.usuario_id, i.t, i.cantidad,
-           coalesce(a.n, 0) as retirado_antes, coalesce(s.n, 0) as retiradas, (k.variante_id is not null) as es_carga
+    -- Las bajadas del rango con lo retirado en [t − W, t) y lo que les tocó de los retiros. Sin ningún retiro, 0 y 0.
+    select i.id, i.variante_id, i.usuario_id, i.t, i.cantidad, 0 as retirado_antes, 0 as retiradas
       from internos i
-      left join antes a on a.id = i.id
-      left join asignadas s on s.id = i.id
-      left join cargas k on k.variante_id = i.variante_id and k.t = i.t
      where i.es_bajada and i.t >= v_desde and i.t < v_hasta
+       and not exists (select 1 from internos r where not r.es_bajada)
+    union all
+    select r.id, r.variante_id, r.usuario_id, r.t, r.cantidad, (r.retirado_hasta - r.mismo_instante)::integer,
+           (case when r.puesto = 1 then r.al_instante else 0 end)::integer
+      from repartidas r
+     where r.es_bajada and r.t >= v_desde and r.t < v_hasta
   ),
   piso as materialized (
     -- UNA llamada al libro con todas las prendas de las bajadas. Sin bajadas va un arreglo vacío, nunca nulo: nulo le
     -- pide al libro TODAS las prendas de la tienda.
-    select pt.oid, pt.variante_id, pt.delta, pt.nivel, pt.es_venta
+    select pt.oid, pt.variante_id, pt.ts, pt.delta, pt.nivel, pt.es_venta
       from fn_ledger_puntos(p_ubicacion_id, v_desde,
                             (select coalesce(array_agg(distinct b.variante_id), '{}'::uuid[]) from bajadas b)) pt
      where pt.bucket = 'piso' and pt.ord = 1
   ),
-  ventas_piso as materialized (
-    -- En el cubo del piso, delta negativo = la salida fue DEL piso (una venta desde el almacén no deja punto aquí).
-    select p.variante_id, coalesce(ve.created_at, m.created_at) as t_venta, (-p.delta)::integer as cantidad
+  linea as (
+    -- UNA línea de tiempo por prenda con tres clases de fila:
+    --   · cada punto del libro que SUBE el piso (entre ellos, el de cada bajada: mismo id, mismo instante), con el
+    --     nivel justo antes (nivel − delta);
+    --   · cada venta desde el piso, a la hora de la VENTA (en el cubo del piso, delta negativo = la salida fue DEL
+    --     piso; una venta desde el almacén no deja punto aquí; la «Prenda sin registrar» que se regulariza no cuenta);
+    --   · cada entrada de carga inicial (ADR-0212, ADR-0235: se escribe con su bajada en la MISMA transacción, así que
+    --     comparten el instante exacto).
+    select p.oid as id, p.variante_id, p.ts as t, (p.nivel - p.delta)::integer as nivel_antes, 0 as vendida,
+           null::timestamptz as t_carga
+      from piso p
+     where p.delta > 0
+    union all
+    select null, p.variante_id, coalesce(ve.created_at, m.created_at), null, (-p.delta)::integer, null
       from piso p
       join movimientos m on m.id = p.oid
       left join venta_items vi on vi.id = m.venta_item_id
       left join ventas ve on ve.id = vi.venta_id
      where p.es_venta and p.delta < 0
        and not exists (select 1 from prendas_por_regularizar pr where pr.venta_item_id = m.venta_item_id)
+    union all
+    select null, m.variante_id, m.created_at, null, 0, m.created_at
+      from movimientos m
+     where m.ubicacion_id = p_ubicacion_id
+       and m.tipo = 'entrada' and m.motivo = 'carga_inicial'
+       and m.created_at >= v_desde and m.created_at < v_hasta
   ),
-  vendidas as (
-    select b.id, coalesce(sum(vp.cantidad), 0)::integer as n
-      from bajadas b
-      left join ventas_piso vp on vp.variante_id = b.variante_id and vp.t_venta >= b.t and vp.t_venta <= b.t + v_ventana
-     group by b.id
+  medidas as (
+    -- Para cada punto, en UN recorrido: lo vendido en [t, t + W] (los dos extremos incluidos) y si hay una carga
+    -- inicial en su mismo instante (la más temprana de [t, t + W] es la de t).
+    select l.id, l.variante_id, l.t, l.nivel_antes,
+           sum(l.vendida) over w as vendidas,
+           coalesce(min(l.t_carga) over w = l.t, false) as es_carga
+      from linea l
+    window w as (partition by l.variante_id order by l.t range between current row and v_ventana following)
+  ),
+  juntas as (
+    -- Cada bajada con SU punto del libro: se agrupan por id (el punto y la bajada son el mismo movimiento), sin cruzar.
+    -- Una bajada sin punto no sale (toda bajada suma cantidad > 0 al piso de una tienda activa: no pasa).
+    select j.id, j.variante_id, j.t,
+           max(j.usuario::text)::uuid as usuario_id, max(j.cantidad) as cantidad,
+           max(j.nivel_antes) as nivel_antes, max(j.vendidas)::integer as vendidas, bool_or(j.es_carga) as es_carga,
+           max(j.retirado_antes) as retirado_antes, max(j.retiradas) as retiradas
+      from (select b.id, b.variante_id, b.t, b.usuario_id as usuario, b.cantidad, null::integer as nivel_antes,
+                   null::bigint as vendidas, null::boolean as es_carga, b.retirado_antes, b.retiradas, true as es_bajada
+              from bajadas b
+            union all
+            select x.id, x.variante_id, x.t, null, null, x.nivel_antes, x.vendidas, x.es_carga, null, null, false
+              from medidas x
+             where x.id is not null) j
+     group by j.id, j.variante_id, j.t
+    having bool_or(j.es_bajada) and max(j.nivel_antes) is not null
   ),
   calc as (
-    -- Toda bajada tiene su punto en el libro: suma cantidad (> 0 por constraint) al piso de una tienda activa.
-    --   el nivel justo antes (nivel − delta) negativo = el stock y el libro no cuadran → «dudosa», con ese nivel y sin
-    --   sumar retiros; si no, piso_antes = ese nivel + lo retirado en [t − ventana, t).
-    select b.id, b.variante_id, b.usuario_id, b.t, b.cantidad,
-           (p.nivel - p.delta) < 0 as dudosa,
-           (case when (p.nivel - p.delta) < 0 then p.nivel - p.delta
-                 else p.nivel - p.delta + b.retirado_antes end)::integer as piso_antes,
-           b.retiradas,
-           greatest(0, b.cantidad - b.retiradas)::integer as efectiva,
-           b.es_carga
-      from bajadas b
-      join piso p on p.oid = b.id
+    --   el nivel justo antes negativo = el stock y el libro no cuadran → «dudosa», con ese nivel y sin sumar retiros;
+    --   si no, piso_antes = ese nivel + lo retirado en [t − W, t).
+    select j.id, j.variante_id, j.usuario_id, j.t, j.cantidad,
+           j.nivel_antes < 0 as dudosa,
+           (case when j.nivel_antes < 0 then j.nivel_antes
+                 else j.nivel_antes + j.retirado_antes end)::integer as piso_antes,
+           j.vendidas,
+           j.retiradas,
+           greatest(0, j.cantidad - j.retiradas)::integer as efectiva,
+           j.es_carga
+      from juntas j
   )
-  select c.id, i.bajada_id, c.variante_id, c.usuario_id, c.t, c.cantidad, c.piso_antes, v.n,
-         case when c.dudosa then null else least(c.efectiva, greatest(0, v.n - c.piso_antes))::integer end,
+  select c.id, i.bajada_id, c.variante_id, c.usuario_id, c.t, c.cantidad, c.piso_antes, c.vendidas,
+         case when c.dudosa then null else least(c.efectiva, greatest(0, c.vendidas - c.piso_antes))::integer end,
          (c.t + v_ventana <= now()),
          case when c.dudosa then 'dudosa'
               when c.efectiva = 0 then 'corregida'
-              when least(c.efectiva, greatest(0, v.n - c.piso_antes)) > 0 then 'tardia'
+              when least(c.efectiva, greatest(0, c.vendidas - c.piso_antes)) > 0 then 'tardia'
               when c.t + v_ventana > now() then 'en_curso'
               else 'normal' end,
          c.retiradas,
          c.efectiva,
          c.es_carga
     from calc c
-    join vendidas v on v.id = c.id
     left join bajada_piso_items i on i.movimiento_id = c.id
    order by c.t desc, c.id;
 end
