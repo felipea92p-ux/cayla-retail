@@ -1,15 +1,19 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
+import { Search } from "lucide-react";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { MuestraEtiqueta, TONOS } from "@/components/MuestraEtiqueta";
 import { avisar } from "@/components/ui/Avisos";
-import { useDestinoFlotante, usePosicionLista } from "@/components/ui/useAnclaje";
-import { useComboLista } from "@/components/ui/useCombo";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { proponerEtiqueta, type ValorCreado } from "@/lib/alta-producto-ejes";
 import type { EtiquetaAlta } from "@/lib/alta-producto-datos";
+import { ayudaDeEtiqueta } from "@/lib/etiqueta-ayuda";
+import { estiloConocido } from "@/lib/etiqueta-grupos";
+import { hoyLima } from "@/lib/etiqueta-vigencia";
 import {
-  filtrarEtiquetas,
+  agruparEtiquetas,
+  coincideConTexto,
   fraseDeExistente,
   FRASE_ETIQUETA_INVALIDA,
   repartirEtiquetas,
@@ -19,38 +23,41 @@ import {
 import { useResponsable } from "@/lib/useResponsable";
 
 /* ====================================================================
-   ElegirEtiquetas · el campo «Etiquetas» del alta, como el de Shopify (2026-09-26)
+   ElegirEtiquetas · el campo «Etiquetas» del alta: todas a la vista, chicas y por grupo (2026-09-26)
 
-   Por qué existe: las etiquetas ya se podían poner al crear una prenda, pero vivían tras un enlace chico («+ Etiquetas
-   (opcional)») al final del paso de precios y solo mostraban las ya aprobadas: quien buscaba dónde etiquetar no lo
-   veía, y si la etiqueta que quería no existía no había salida sin dejar el formulario y perder lo llenado. Ahora es un
-   campo a la vista: escribes para buscar, tocas una y queda como chip (con su ✕), sigues con otra; y si la que quieres no
-   existe, «+ Crear» la crea ahí mismo (misma idea que «+ Nuevo tejido»: ProponerValor).
+   Por qué es así: la primera versión (2026-09-26) era un buscador con una lista que solo aparecía al enfocarlo: seguía
+   «semi oculto». Felipe pidió lo contrario: siempre visibles, chicas, ordenadas como en Catálogo ▸ Atributos ▸ Etiquetas
+   (Rotación · Artesanal · Campaña y festividad · General) y, al pasar el mouse, una ayuda que explique qué significa cada una.
+   Son pocas (24 hoy) y se ven de un vistazo; el buscador de arriba recorta la cuadrícula cuando crezcan, y sirve también
+   para CREAR una que no existe («+ Crear «X»»), sin salir del formulario.
 
    CONTRATO
-     PROMETE: `elegidas` (ids) es siempre lo que la persona ve como chips; lo que se ve en línea punteada («ya aplica por
-              campaña») NO está en `elegidas` y no se puede quitar: la campaña lo aplica sola a toda la categoría.
-              Enter agrega lo más parecido a lo escrito (primero la igual, luego las que empiezan igual) o, si lo escrito es
-              nuevo y las flechas no movieron nada, ofrece crearlo; nunca agrega algo distinto a lo que se ve resaltado.
+     PROMETE: `elegidas` (ids) es siempre lo que se ve marcado con ✓; lo que se ve en línea punteada («ya aplica») NO está
+              en `elegidas` y no se puede marcar: la campaña lo aplica sola a toda la categoría.
      ASUME:   `etiquetas` = aprobadas y activas (lo que trae `getContextoAlta`, más las creadas aquí). Quien no es líder no
               ve las que llevan descuento (`repartirEtiquetas`): la base las rechazaría, así que ni se ofrecen.
      NO HACE: no guarda la prenda ni sus etiquetas (eso es del envío del formulario, `p_etiqueta_ids`); solo crea una
               etiqueta NUEVA en el vocabulario, y solo con conexión y con un responsable de turno (ADR-0161).
 
-   Es la variante de SELECCIÓN MÚLTIPLE del combo del sistema: no puede ser `ComboBuscable` (que elige UNA opción y la deja
-   escrita en el campo), pero usa las mismas piezas — lista `fixed` por portal medida contra la caja (ADR-0185/0211,
-   `usePosicionLista`/`useDestinoFlotante`), buscador sin tildes y el paginado de la regla global (ADR-0209,
-   `useComboLista`) — y el mismo teclado: flechas y Enter; Escape cierra la lista y, con la lista cerrada, borra lo escrito
-   (cada uno con `stopPropagation`, ADR-0136); Retroceso con el campo vacío quita el último chip.
+   No es un combo (no hay lista flotante que abrir ni opción única que elegir): es un selector de tarjetas como el de
+   Tejido, Patrón y Colores, así que la regla global de combos (ADR-0209) no aplica; el buscador de arriba es su equivalente.
+   La ayuda sale con el mouse o con el teclado (foco). Sin mouse (celular, tablet de la tienda) no hay «pasar por encima»: al
+   tocar una etiqueta, la misma explicación aparece en una línea bajo la cuadrícula.
+
+   El dibujo de cada tarjeta (2026-09-27, ADR-0109 «Actualización b»): la primera versión con dibujo (2026-09-26) era solo
+   texto — el mismo error que tenía Tejido al lado, en el mismo paso. Ahora reusa `MuestraEtiqueta` (el ícono por concepto
+   de Atributos ▸ Etiquetas: chispa, reloj de arena, podio…) en una tarjeta de 96 px, igual que `MuestraPatron` y
+   `MuestraTejido`: una etiqueta que no calza con ningún dibujo conocido cae sola en el ícono genérico de `MuestraEtiqueta`,
+   sin nada que programar acá.
    ==================================================================== */
 
 type Props = {
   /** El vocabulario aprobado y vigente (incluye lo creado en esta pantalla). */
   etiquetas: readonly EtiquetaAlta[];
   categoriaId: string;
-  /** Ids elegidos a mano, en el orden en que se agregaron. */
+  /** Ids elegidos a mano. */
   elegidas: readonly string[];
-  /** El `setState` del formulario: se usa siempre con función (`prev => …`) para no pisar lo que se agregó mientras una respuesta venía en camino. */
+  /** El `setState` del formulario: se usa siempre con función (`prev => …`) para no pisar lo que se marcó mientras una respuesta venía en camino. */
   onElegidas: Dispatch<SetStateAction<string[]>>;
   /** Un líder: la base le deja dar etiquetas CON descuento. A los demás no se les ofrecen. */
   esLider: boolean;
@@ -60,332 +67,272 @@ type Props = {
   enLinea: boolean;
   /** Una etiqueta nueva quedó aprobada: el formulario la suma a su vocabulario. */
   onCreada: (e: EtiquetaAlta) => void;
-  /** Lo que alguien sin permiso de aprobar propuso en esta pantalla: espera a un líder, así que no se puede agregar ni proponer otra vez. Vive en el formulario para no perderse al plegar el paso. */
+  /** Lo que alguien sin permiso de aprobar propuso en esta pantalla: espera a un líder, así que no se puede marcar ni proponer otra vez. Vive en el formulario para no perderse al plegar el paso. */
   propuestas: readonly string[];
   onPropuesta: (nombre: string) => void;
 };
 
-const TITULO_CAMPANA = "Esta campaña ya rige sobre todas las prendas de esta categoría: se aplica sola, no hace falta elegirla.";
-
 export function ElegirEtiquetas({ etiquetas, categoriaId, elegidas, onElegidas, esLider, puedeAprobar, enLinea, onCreada, propuestas, onPropuesta }: Props) {
-  const id = useId();
-  const caja = useRef<HTMLDivElement>(null);
   const entrada = useRef<HTMLInputElement>(null);
-  const lista = useRef<HTMLUListElement>(null);
-  const sinAbrir = useRef(false);
   const [texto, setTexto] = useState("");
-  const [abierto, setAbierto] = useState(false);
-  const [activo, setActivo] = useState(0);
   /** El nombre que se está creando (la mini-hoja de confirmar con el responsable está abierta), o null. */
   const [creando, setCreando] = useState<string | null>(null);
-  // La lista va en `fixed`, medida contra la caja entera (no contra el input, que puede ser pequeño entre los chips).
-  const posLista = usePosicionLista(caja, abierto, 256, 4);
-  const destino = useDestinoFlotante(caja, abierto);
-  const { visibles, mostrarDesde, reiniciar, alHacerScroll } = useComboLista();
+  const hoy = useMemo(() => hoyLima(), []);
+  /** La última etiqueta tocada: su ayuda se lee en una línea aparte donde no hay mouse (`[@media(hover:none)]`). */
+  const [ultimaId, setUltimaId] = useState<string | null>(null);
 
   const reparto = useMemo(() => repartirEtiquetas(etiquetas, { categoriaId, daDescuentos: esLider }), [etiquetas, categoriaId, esLider]);
-  // Lo elegido que la campaña ya cubre no se muestra como chip quitable (ya está en «cubiertas»): si la persona la eligió y
-  // DESPUÉS cambió a una categoría que la cubre, el formulario tampoco la manda.
-  const chips = useMemo(
-    () =>
-      elegidas
-        .map((eid) => etiquetas.find((e) => e.id === eid))
-        .filter((e): e is EtiquetaAlta => Boolean(e) && !reparto.cubiertas.some((c) => c.id === e!.id)),
-    [elegidas, etiquetas, reparto.cubiertas]
-  );
-  const contexto = { todas: etiquetas, reparto, elegidas, propuestas };
-  const filtradas = useMemo(() => filtrarEtiquetas(reparto.elegibles, elegidas, texto), [reparto.elegibles, elegidas, texto]);
-  const mostradas = filtradas.slice(0, visibles);
+  const idsCubiertas = useMemo(() => new Set(reparto.cubiertas.map((c) => c.id)), [reparto.cubiertas]);
+  // Lo elegido que la campaña ya cubre no cuenta como elegido a mano (ya está «ya aplica»): si la persona la marcó y DESPUÉS
+  // cambió a una categoría que la cubre, el formulario tampoco la manda.
+  const marcadas = useMemo(() => new Set(elegidas.filter((eid) => etiquetas.some((e) => e.id === eid) && !idsCubiertas.has(eid))), [elegidas, etiquetas, idsCubiertas]);
+
+  // Lo que se ve: las elegibles y las que ya aplican solas, recortadas por lo escrito, por grupo.
+  const visibles = useMemo(() => [...reparto.elegibles, ...reparto.cubiertas].filter((e) => coincideConTexto(e, texto)), [reparto, texto]);
+  const grupos = useMemo(() => agruparEtiquetas(visibles), [visibles]);
+
+  const contexto = { todas: etiquetas, reparto, elegidas: [...marcadas], propuestas };
+  const ultimaEtiqueta = ultimaId ? (visibles.find((e) => e.id === ultimaId) ?? null) : null;
+  const ayudaUltima = ultimaEtiqueta ? ayudaDeEtiqueta(ultimaEtiqueta, { cubierta: idsCubiertas.has(ultimaEtiqueta.id), hoy }) : null;
   const significado = significadoDelTexto(texto, contexto);
   const hayCrear = significado.tipo === "nueva" && enLinea && creando === null;
-  const ultimo = mostradas.length - 1 + (hayCrear ? 1 : 0);
-  const activoSeguro = Math.max(0, Math.min(activo, ultimo));
-
-  // Una frase que dice POR QUÉ lo escrito no se puede agregar como etiqueta nueva (o ya está): reemplaza a un botón muerto.
-  const notaLista =
-    significado.tipo === "existe" && significado.motivo !== "elegible"
+  const notaTexto =
+    significado.tipo === "existe" && significado.motivo !== "elegible" && significado.motivo !== "elegida"
       ? fraseDeExistente(significado.motivo)
       : significado.tipo === "invalida"
         ? FRASE_ETIQUETA_INVALIDA
         : significado.tipo === "nueva" && !enLinea
           ? "Sin conexión no se pueden crear etiquetas nuevas. Elige entre las que ya existen."
           : null;
-  const mensajeVacio =
-    notaLista ??
-    (texto.trim()
-      ? `Nada coincide con «${texto.trim()}».`
-      : etiquetas.length === 0
-        ? enLinea
-          ? "Todavía no hay etiquetas. Escribe una para crearla."
-          : "Todavía no hay etiquetas."
-        : "Ya agregaste todas las etiquetas disponibles.");
 
-  useEffect(() => {
-    if (!abierto) return;
-    lista.current?.querySelector<HTMLElement>(`[data-i="${activoSeguro}"]`)?.scrollIntoView({ block: "nearest" });
-  }, [activoSeguro, abierto]);
-
-  function abrir() {
-    // Volver el foco al campo tras quitar un chip o crear una etiqueta no debe reabrir la lista (ni subir el teclado del celular).
-    if (sinAbrir.current) {
-      sinAbrir.current = false;
-      return;
-    }
-    setActivo(0);
-    mostrarDesde(0);
-    setAbierto(true);
-  }
-
-  function enfocarSinAbrir() {
-    const el = entrada.current;
-    if (!el || document.activeElement === el) return;
-    sinAbrir.current = true;
-    el.focus();
-    setTimeout(() => {
-      sinAbrir.current = false;
-    }, 0);
-  }
-
-  function agregar(et: EtiquetaAlta) {
-    onElegidas((prev) => (prev.includes(et.id) ? prev : [...prev, et.id]));
-    setTexto("");
-    setActivo(0);
-    reiniciar();
-    // La lista sigue abierta y el foco en el campo: se pueden agregar varias seguidas, como en Shopify.
-    setAbierto(true);
-    entrada.current?.focus();
-  }
-
-  function quitar(eid: string) {
-    onElegidas((prev) => prev.filter((x) => x !== eid));
-    enfocarSinAbrir();
+  function alternar(eid: string) {
+    onElegidas((prev) => (prev.includes(eid) ? prev.filter((x) => x !== eid) : [...prev, eid]));
   }
 
   function pedirCrear(nombre: string) {
     setCreando(nombre);
     setTexto("");
-    setAbierto(false);
   }
 
-  /** Enter (o coma): agrega lo resaltado —la igual va primero—, o abre «Crear» si lo resaltado es esa opción. Nunca agrega otra cosa. */
-  function confirmarTexto(t: string) {
-    if (!t.trim()) return;
-    const sig = significadoDelTexto(t, contexto);
-    // Ya la tiene, la cubre una campaña, no es de este rol, o trae comas: no se agrega ninguna parecida "de paso".
-    if (sig.tipo === "invalida" || (sig.tipo === "existe" && sig.motivo !== "elegible")) return;
-    const candidatas = filtrarEtiquetas(reparto.elegibles, elegidas, t);
-    const i = t === texto ? activoSeguro : 0;
-    if (candidatas[i]) agregar(candidatas[i]);
-    else if (sig.tipo === "nueva" && enLinea && creando === null) pedirCrear(sig.nombre);
-  }
-
-  function alTeclado(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (!abierto) abrir();
-      else setActivo(e.key === "ArrowDown" ? Math.min(ultimo, activoSeguro + 1) : Math.max(0, activoSeguro - 1));
-    } else if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault(); // Enter NO envía el formulario grande (el formulario ya lo frena) y la coma no se escribe.
-      confirmarTexto(texto);
-    } else if (e.key === "Backspace" && texto === "" && chips.length > 0 && !e.repeat) {
-      // `!e.repeat`: dejar Retroceso apretado para borrar lo escrito NO debe seguir de largo y llevarse los chips ya elegidos.
-      e.preventDefault();
-      const ultimoId = chips[chips.length - 1].id;
-      onElegidas((prev) => prev.filter((x) => x !== ultimoId));
-    } else if (e.key === "Escape") {
-      // Este Escape lo usó el campo (cerró la lista o borró lo escrito): que no siga y cierre también una hoja de
-      // afuera (useEscapeLibre.ts). Sin nada que cerrar ni borrar, se deja pasar.
-      if (abierto || texto) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (abierto) setAbierto(false);
-        else setTexto("");
-      }
-    } else if (e.key === "Tab") {
-      setAbierto(false);
+  /** Enter en el buscador: marca la igual a lo escrito; si queda UNA sola a la vista, esa; si lo escrito es nuevo, ofrece crearlo. */
+  function confirmar() {
+    if (!texto.trim()) return;
+    if (significado.tipo === "existe" && significado.motivo === "elegible" && significado.etiqueta) {
+      alternar(significado.etiqueta.id);
+      setTexto("");
+      return;
+    }
+    const soloUna = visibles.length === 1 && reparto.elegibles.some((e) => e.id === visibles[0].id) && !marcadas.has(visibles[0].id) ? visibles[0] : null;
+    if (soloUna) {
+      alternar(soloUna.id);
+      setTexto("");
+    } else if (visibles.length === 0 && hayCrear && significado.tipo === "nueva") {
+      // Solo si NO hay nada parecido a la vista: «Día» con cinco «Día de…» delante no debe ofrecer crear «Día». Con parecidas a la
+      // vista, crear queda en el botón «+ Crear «X»», a un clic y a la vista.
+      pedirCrear(significado.nombre);
     }
   }
 
   return (
-    <div>
-      <div
-        ref={caja}
-        // Tocar cualquier parte de la caja (no solo el hueco del input) enfoca el campo, como en Shopify.
-        onMouseDown={(e) => {
-          if (e.target === e.currentTarget) {
-            e.preventDefault();
-            entrada.current?.focus();
-          }
-        }}
-        className="caja-cayla flex min-h-10 flex-wrap items-center gap-1.5 px-2 py-1.5"
-      >
-        {reparto.cubiertas.map((et) => (
-          <span
-            key={et.id}
-            title={TITULO_CAMPANA}
-            // Texto corrido (no `flex`): en un celular angosto cada pedazo se volvía su propia columna y se partía en tres.
-            className="min-h-8 max-w-full rounded-md border border-dashed border-tinta/30 bg-tinta/[0.03] px-2 py-1 text-sm leading-snug text-tinta/70"
-          >
-            <span aria-hidden className="mr-1.5 text-[11px]">
-              ✓
-            </span>
-            {et.nombre}
-            {textoDeDescuento(et) && <span className="tabular-nums"> · {textoDeDescuento(et)}</span>}
-            <span className="text-[11px] text-tinta/50"> · ya aplica por campaña</span>
-          </span>
-        ))}
-        {chips.map((et) => (
-          <span key={et.id} className="flex min-h-8 max-w-full items-center gap-0.5 rounded-md border border-tinta bg-tinta/[0.07] py-0.5 pl-2.5 pr-0.5 text-sm text-tinta">
-            <span className="truncate">{et.nombre}</span>
-            {textoDeDescuento(et) && <span className="shrink-0 tabular-nums text-tinta/65">· {textoDeDescuento(et)}</span>}
-            <button
-              type="button"
-              aria-label={`Quitar la etiqueta «${et.nombre}»`}
-              onClick={() => quitar(et.id)}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded text-[13px] text-tinta/60 transition-colors hover:bg-tinta/10 hover:text-tinta"
-            >
-              <span aria-hidden>✕</span>
+    <TooltipProvider delayDuration={250}>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="caja-cayla flex h-9 w-full items-center gap-2 px-3 sm:w-72">
+            <Search aria-hidden size={14} className="shrink-0 text-tinta/45" />
+            <span className="sr-only">Buscar o crear una etiqueta</span>
+            <input
+              ref={entrada}
+              value={texto}
+              autoComplete="off"
+              placeholder="Buscar o crear una etiqueta…"
+              // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se descarta (las etiquetas van de a una).
+              onChange={(e) => setTexto(e.target.value.replace(/,+$/, ""))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault(); // Enter NO envía el formulario grande (el formulario ya lo frena) y la coma no se escribe.
+                  confirmar();
+                } else if (e.key === "Escape" && texto) {
+                  // Este Escape lo usó el campo (borró lo escrito): que no cierre también una hoja de afuera (useEscapeLibre.ts).
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setTexto("");
+                }
+              }}
+              className="h-full min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
+            />
+          </label>
+          {hayCrear && significado.tipo === "nueva" && (
+            <button type="button" onClick={() => pedirCrear(significado.nombre)} className="btn-cayla btn-secundario h-9">
+              + Crear «{significado.nombre}»
             </button>
-          </span>
-        ))}
-        <input
-          ref={entrada}
-          id={`${id}-campo`}
-          role="combobox"
-          aria-label="Etiquetas"
-          aria-expanded={abierto}
-          aria-controls={`${id}-lista`}
-          aria-activedescendant={abierto && ultimo >= 0 ? `${id}-op-${activoSeguro}` : undefined}
-          aria-autocomplete="list"
-          autoComplete="off"
-          value={texto}
-          placeholder={chips.length + reparto.cubiertas.length > 0 ? "Agregar otra…" : "Busca o crea una etiqueta…"}
-          onFocus={abrir}
-          onClick={() => !abierto && abrir()}
-          onChange={(e) => {
-            const v = e.target.value;
-            setActivo(0);
-            reiniciar();
-            if (!abierto) setAbierto(true);
-            // El teclado del celular no manda «coma» como tecla: llega escrita al final. Se trata como Enter.
-            if (v.endsWith(",") && !v.slice(0, -1).includes(",")) {
-              const sinComa = v.slice(0, -1);
-              setTexto(sinComa);
-              confirmarTexto(sinComa);
-              return;
-            }
-            setTexto(v);
-          }}
-          onKeyDown={alTeclado}
-          onBlur={() => setAbierto(false)}
-          className="h-8 min-w-[9rem] flex-1 bg-transparent px-1 text-sm text-tinta outline-none placeholder:text-tinta/45"
-        />
-      </div>
-
-      {abierto &&
-        posLista &&
-        destino &&
-        createPortal(
-          <ul
-            ref={lista}
-            id={`${id}-lista`}
-            role="listbox"
-            aria-multiselectable="true"
-            aria-label="Etiquetas disponibles"
-            style={{ position: "fixed", ...posLista }}
-            // Tocar la barra de desplazamiento o el borde de la lista no le quita el foco al campo (cerraría la lista).
-            onMouseDown={(e) => e.preventDefault()}
-            onScroll={alHacerScroll}
-            className="card-cayla z-50 overflow-y-auto shadow-lg"
-          >
-            {notaLista && mostradas.length > 0 && (
-              <li role="presentation" className="border-b border-sand px-3 py-2 text-xs text-tinta/65">
-                {notaLista}
-              </li>
-            )}
-            {mostradas.length === 0 && !hayCrear && (
-              <li role="presentation" className="px-3 py-3 text-sm text-tinta/65">
-                {mensajeVacio}
-              </li>
-            )}
-            {mostradas.map((et, i) => (
-              <li
-                key={et.id}
-                id={`${id}-op-${i}`}
-                data-i={i}
-                role="option"
-                aria-selected={false}
-                onMouseEnter={() => setActivo(i)}
-                // mousedown y no click: el blur del campo cerraría la lista antes de que llegara el click.
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  agregar(et);
-                }}
-                className={`cursor-pointer px-3 py-2 text-sm ${i === activoSeguro ? "bg-sand/60 text-tinta" : "text-tinta/85"}`}
-              >
-                {et.nombre}
-                {textoDeDescuento(et) && <span className="ml-2 text-xs tabular-nums text-tinta/55">{textoDeDescuento(et)}</span>}
-              </li>
-            ))}
-            {hayCrear && significado.tipo === "nueva" && (
-              <li
-                id={`${id}-op-${mostradas.length}`}
-                data-i={mostradas.length}
-                role="option"
-                aria-selected={false}
-                onMouseEnter={() => setActivo(mostradas.length)}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  pedirCrear(significado.nombre);
-                }}
-                className={`cursor-pointer px-3 py-2.5 text-sm font-semibold ${mostradas.length > 0 ? "border-t border-sand" : ""} ${activoSeguro === mostradas.length ? "bg-sand/60 text-tinta" : "text-tinta/85"}`}
-              >
-                + Crear «{significado.nombre}»
-              </li>
-            )}
-          </ul>,
-          destino
+          )}
+          {marcadas.size > 0 && (
+            <span className="text-xs tabular-nums text-taupe">
+              {marcadas.size} elegida{marcadas.size === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
+        {/* Lo escrito y no marcado ni creado se ve (y se dice), no se pierde en silencio al pulsar «Seguir». */}
+        {(notaTexto || (texto.trim() && creando === null)) && (
+          <p role="status" className="text-xs text-ambar-profundo">
+            {notaTexto ??
+              (hayCrear && significado.tipo === "nueva"
+                ? `Escribiste «${significado.nombre}»: elige una de abajo o pulsa «+ Crear» para agregarla.`
+                : `Escribiste «${texto.trim()}»: elige la etiqueta de abajo.`)}
+          </p>
         )}
 
-      {creando !== null && (
-        <CrearEtiquetaAbierta
-          nombre={creando}
-          puedeAprobar={puedeAprobar}
-          onAprobada={(valor) => {
-            onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [] });
-            onElegidas((prev) => (prev.includes(valor.id) ? prev : [...prev, valor.id]));
-            avisar.exito(`Etiqueta «${valor.texto}» creada y agregada`);
-            setCreando(null);
-            enfocarSinAbrir();
-          }}
-          onPendiente={(valor) => {
-            onPropuesta(valor.texto);
-            avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
-            setCreando(null);
-            enfocarSinAbrir();
-          }}
-          onCerrar={() => {
-            setCreando(null);
-            enfocarSinAbrir();
-          }}
-        />
-      )}
+        {creando !== null && (
+          <CrearEtiquetaAbierta
+            nombre={creando}
+            puedeAprobar={puedeAprobar}
+            onAprobada={(valor) => {
+              onCreada({ id: valor.id, nombre: valor.texto, estilo: "neutral", descuentoPct: null, categoriaIds: [], vigenteDesde: null, vigenteHasta: null });
+              onElegidas((prev) => (prev.includes(valor.id) ? prev : [...prev, valor.id]));
+              avisar.exito(`Etiqueta «${valor.texto}» creada y agregada`);
+              setCreando(null);
+              entrada.current?.focus();
+            }}
+            onPendiente={(valor) => {
+              onPropuesta(valor.texto);
+              avisar.aviso(`Propuesta enviada: ${valor.texto}`, { detalle: "Un líder tiene que aprobarla en Catálogo → Atributos antes de poder usarla." });
+              setCreando(null);
+              entrada.current?.focus();
+            }}
+            onCerrar={() => {
+              setCreando(null);
+              entrada.current?.focus();
+            }}
+          />
+        )}
 
-      {/* Lo escrito y no agregado se ve (y se dice), no se pierde en silencio al pulsar «Seguir»: la lista ya se cerró. */}
-      {texto.trim() && !abierto && creando === null && (
-        <p role="status" className="mt-1.5 text-xs text-ambar-profundo">
-          {notaLista ?? `Escribiste «${texto.trim()}» pero todavía no la agregaste: da Enter o elígela de la lista.`}
+        {etiquetas.length === 0 ? (
+          <p className="text-sm text-taupe">{enLinea ? "Todavía no hay etiquetas. Escribe una arriba para crearla." : "Todavía no hay etiquetas."}</p>
+        ) : grupos.length === 0 ? (
+          <p className="text-sm text-taupe">
+            {texto.trim() ? `Nada coincide con «${texto.trim()}».` : "Las etiquetas que hay llevan descuento y las pone un líder."}
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {grupos.map((g) => (
+              <section key={g.estilo} aria-label={g.nombre}>
+                <p className="label-cayla mb-1.5 flex items-center gap-1.5 text-[11px] text-tinta/65">
+                  <span aria-hidden className={`inline-block h-1.5 w-1.5 rounded-full ${g.punto}`} />
+                  {g.nombre}
+                  <span className="font-normal tabular-nums text-tinta/40">{g.etiquetas.length}</span>
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.etiquetas.map((et) => (
+                    <TarjetaEtiqueta
+                      key={et.id}
+                      et={et}
+                      hoy={hoy}
+                      cubierta={idsCubiertas.has(et.id)}
+                      marcada={marcadas.has(et.id)}
+                      onAlternar={() => alternar(et.id)}
+                      onTocar={() => setUltimaId(et.id)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        )}
+
+        {ultimaEtiqueta && (
+          <p role="status" className="text-xs text-taupe [@media(hover:hover)]:hidden">
+            <strong className="text-tinta">{ultimaEtiqueta.nombre}:</strong> {ayudaUltima?.queEs} {ayudaUltima?.datos.join(" ")}
+          </p>
+        )}
+
+        {propuestas.length > 0 && (
+          <p className="text-xs text-taupe">
+            Esperando a un líder: {propuestas.map((p) => `«${p}»`).join(", ")}. Cuando la apruebe podrás marcarla.
+          </p>
+        )}
+        <p className="text-xs text-taupe">
+          Se aplican a todas las variantes de la prenda.
+          <span className="hidden [@media(hover:hover)]:inline"> Pasa el mouse por una para ver qué significa.</span>
+          {reparto.ocultasPorDescuento > 0 && ` Las que llevan descuento (${reparto.ocultasPorDescuento}) las pone un líder.`}
         </p>
-      )}
-      <p className="mt-1.5 text-xs text-taupe">
-        Se aplican a todas las variantes de la prenda.
-        {reparto.ocultasPorDescuento > 0 && ` Las que llevan descuento (${reparto.ocultasPorDescuento}) las pone un líder.`}
-      </p>
-      <p className="sr-only" role="status" aria-live="polite">
-        {chips.length === 0 ? "Ninguna etiqueta agregada" : `${chips.length} etiqueta${chips.length === 1 ? "" : "s"} agregada${chips.length === 1 ? "" : "s"}: ${chips.map((c) => c.nombre).join(", ")}`}
-        {abierto && notaLista ? `. ${notaLista}` : ""}
-      </p>
-    </div>
+      </div>
+    </TooltipProvider>
+  );
+}
+
+/**
+ * Una etiqueta, tarjeta de 96 px con su dibujo (mismo patrón que `MuestraPatron`/`MuestraTejido`): se marca con un
+ * toque (✓ + borde tinta); al pasar el mouse o dar foco, el globo dice qué significa. Una CON descuento lleva el
+ * porcentaje en una insignia sobre el dibujo, en el tono de su propio grupo (nunca rojo: es el acento de marca).
+ */
+function TarjetaEtiqueta({
+  et,
+  hoy,
+  cubierta,
+  marcada,
+  onAlternar,
+  onTocar,
+}: {
+  et: EtiquetaAlta;
+  hoy: string;
+  cubierta: boolean;
+  marcada: boolean;
+  onAlternar: () => void;
+  onTocar: () => void;
+}) {
+  const ayuda = ayudaDeEtiqueta(et, { cubierta, hoy });
+  const dto = textoDeDescuento(et);
+  const acento = TONOS[estiloConocido(et.estilo)].acento;
+  // Las que la campaña ya aplica solas no se marcan: borde punteado y sin respuesta al toque de marcar (`aria-disabled`,
+  // no `disabled`, para que sigan recibiendo el foco y su ayuda se pueda leer con el teclado).
+  const base = "flex w-[96px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-[12.5px] transition-colors";
+  const estilo = cubierta
+    ? "cursor-default border-dashed border-tinta/30 bg-tinta/[0.03] text-tinta/70"
+    : marcada
+      ? "border-tinta bg-tinta/[0.07] text-tinta"
+      : "border-tinta/15 text-tinta/75 hover:border-tinta/40";
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-pressed={cubierta ? undefined : marcada}
+          aria-disabled={cubierta || undefined}
+          onClick={() => {
+            onTocar();
+            if (!cubierta) onAlternar();
+          }}
+          className={`${base} ${estilo}`}
+        >
+          <div className="relative">
+            <MuestraEtiqueta nombre={et.nombre} estilo={estiloConocido(et.estilo)} />
+            {dto && (
+              <span
+                aria-hidden
+                className="absolute right-1 top-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold leading-none text-crema"
+                style={{ backgroundColor: acento }}
+              >
+                {dto.replace(" dto", "")}
+              </span>
+            )}
+          </div>
+          <span className="px-0.5 leading-snug">
+            {(marcada || cubierta) && <span aria-hidden>✓ </span>}
+            {et.nombre}
+          </span>
+          {cubierta && <span className="px-0.5 text-[10px] leading-snug text-taupe">se aplica sola</span>}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="top" sideOffset={6} collisionPadding={8} className="max-w-[16rem] leading-snug">
+        <p className="font-semibold">{et.nombre}</p>
+        <p className="mt-0.5">{ayuda.queEs}</p>
+        {ayuda.datos.map((d) => (
+          <p key={d} className="mt-1 opacity-75">
+            {d}
+          </p>
+        ))}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -410,6 +357,13 @@ function CrearEtiquetaAbierta({
   const responsable = useResponsable();
   const [trabajando, setTrabajando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  // El foco va al PANEL, no al botón «Crear»: con el botón enfocado, el espacio o el Enter que la persona seguía tecleando
+  // («verano, otoño») lo activaba y creaba una etiqueta permanente sin que nadie la pidiera. Crear es un clic o un Tab
+  // deliberado hasta el botón; Escape sigue cerrando el panel (su `onKeyDown` vive en este contenedor).
+  useEffect(() => {
+    panel.current?.focus();
+  }, []);
 
   async function crear() {
     if (trabajando || !responsable.listo) return;
@@ -428,9 +382,11 @@ function CrearEtiquetaAbierta({
 
   return (
     <div
+      ref={panel}
+      tabIndex={-1}
       role="group"
       aria-label={`Crear la etiqueta ${nombre}`}
-      className="mt-2 space-y-2.5 rounded-md border border-sand bg-hueso p-3"
+      className="space-y-2.5 rounded-md border border-sand bg-hueso p-3 outline-none"
       onKeyDown={(e) => {
         if (e.key === "Escape" && !trabajando) {
           e.preventDefault();
@@ -444,12 +400,12 @@ function CrearEtiquetaAbierta({
       </p>
       <p className="text-xs text-taupe">
         {puedeAprobar
-          ? "Queda en el catálogo para usarla en otras prendas, y se agrega a esta."
-          : "Queda pendiente: un líder tiene que aprobarla en Catálogo → Atributos antes de poder agregarla a una prenda."}
+          ? "Queda en el catálogo para usarla en otras prendas, y se marca en esta."
+          : "Queda pendiente: un líder tiene que aprobarla en Catálogo → Atributos antes de poder marcarla en una prenda."}
       </p>
       <ComboResponsable control={responsable} deshabilitado={trabajando} compacto className="max-w-sm" />
       <div className="flex flex-wrap items-center gap-2">
-        <button type="button" autoFocus onClick={() => void crear()} disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
+        <button type="button" onClick={() => void crear()} disabled={trabajando || !responsable.listo} title={responsable.motivo ?? undefined} className="btn-cayla btn-primario">
           {trabajando ? "Creando…" : puedeAprobar ? "Crear y agregar" : "Proponer etiqueta"}
         </button>
         <button type="button" onClick={onCerrar} disabled={trabajando} className="btn-cayla btn-sutil">

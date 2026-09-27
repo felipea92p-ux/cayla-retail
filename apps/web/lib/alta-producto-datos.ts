@@ -37,6 +37,9 @@ export type EtiquetaAlta = {
   descuentoPct: number | null;
   /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
   categoriaIds: string[];
+  /** Temporada de la campaña (`YYYY-MM-DD`), o null si la etiqueta es permanente: lo que se lee al pasar el mouse por ella. */
+  vigenteDesde: string | null;
+  vigenteHasta: string | null;
 };
 
 export type ContextoAlta = CatalogoMarcas & {
@@ -122,6 +125,8 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       estilo: e.estilo,
       descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      vigenteDesde: e.vigente_desde,
+      vigenteHasta: e.vigente_hasta,
     }));
 
   return {

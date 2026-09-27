@@ -9,6 +9,7 @@ import { avisar } from "@/components/ui/Avisos";
 import { soltarPaginaEstable } from "@/components/ui/PaginaEstable";
 import { CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
+import { MuestraTejido } from "@/components/MuestraTejido";
 import { ArbolCategoria } from "@/components/alta-producto/ArbolCategoria";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirEtiquetas } from "@/components/alta-producto/ElegirEtiquetas";
@@ -63,11 +64,15 @@ import type { ContextoAlta, EtiquetaAlta } from "@/lib/alta-producto-datos";
 import type { EjesPorCategoria, ValorVocabulario } from "@/lib/catalogo-v2";
 
 // "Nuevo producto" en 5 PASOS (spike 2026-09-24, docs/maquetas/producto-nuevo-spike-2026-09; antes 7 bloques, ADR-0109):
-//   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor, etiquetas) ·
-//   3 Cómo se hace (tallas, tejido, patrón, colores, fotos) · 4 Precio y variantes (precio, costo, tabla talla × color) ·
-//   5 Cuántas tienes hoy (ADR-0212: la carga inicial de lo que ya está en tienda, en la misma transacción que el producto).
-// Las ETIQUETAS viven en el paso 2 y a la vista, como el campo de Shopify (2026-09-26, ADR-0109 «Actualización»): antes
-// estaban tras un enlace «+ Etiquetas» al final del paso 4 y nadie las encontraba.
+//   1 Qué es (familia → categoría) · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor) ·
+//   3 Cómo se hace (tallas, tejido, patrón, colores, etiquetas, fotos) · 4 Precio y variantes (precio, costo, tabla
+//   talla × color) · 5 Cuántas tienes hoy (ADR-0212: la carga inicial de lo que ya está en tienda, en la misma
+//   transacción que el producto).
+// Las ETIQUETAS viven en el paso 3, después de Colores (2026-09-27, ADR-0109 «Actualización b»): son un selector visual
+// con dibujo por concepto (`MuestraEtiqueta`, el mismo de Atributos ▸ Etiquetas), como Tejido, Patrón y Colores — no
+// encajaban entre los campos de puro texto del paso 2. Tejido gana la misma textura real que ya tenía Patrón (antes
+// texto plano, el mismo error que tenían las etiquetas). Historia: primero un enlace «+ Etiquetas» escondido al final
+// del paso 4 (hasta el 2026-09-26); después, siempre visibles pero solo texto (un día); ahora, con dibujo y en su lugar.
 // Un solo paso abierto a la vez: el terminado se pliega en una línea con «Cambiar» y el que viene es una línea
 // punteada. A la derecha, la prenda tal como va a quedar y UNA frase: el siguiente paso (no la lista entera de lo
 // que falta). En celular esa ficha baja a una barra pegada abajo con «Crear».
@@ -560,13 +565,14 @@ export function NuevoProductoForm({
   // ---------- la línea de cada paso plegado ----------
   const resumen: Record<NumeroPaso, string> = {
     1: categoria ? `${familia?.nombre ?? ""} › ${categoria.nombre}` : "",
-    2: [nombreFinal, marcaNombre && `${marcaNombre}${proveedorNombre ? ` (${proveedorNombre})` : ""}`, nombresEtiquetas.join(", ")].filter(Boolean).join(" · "),
+    2: [nombreFinal, marcaNombre && `${marcaNombre}${proveedorNombre ? ` (${proveedorNombre})` : ""}`].filter(Boolean).join(" · "),
     3: [
       tallasOrdenadas.map((t) => t.texto).join(" "),
       tejidosCategoria.find((t) => t.id === tejidoId)?.texto,
       patronesCategoria.find((t) => t.id === patronId)?.texto,
       temporada !== SIN_PROPIA ? nombreTemporada(listaTemporadas, temporada) : temporadaCategoria ? `${temporadaCategoria} (de su categoría)` : null,
       coloresElegidos.length ? `${coloresElegidos.length} color${coloresElegidos.length === 1 ? "" : "es"}` : "sin color",
+      nombresEtiquetas.join(", "),
       fotos.length ? `${fotos.length} foto${fotos.length === 1 ? "" : "s"}` : null,
     ]
       .filter(Boolean)
@@ -643,20 +649,6 @@ export function NuevoProductoForm({
               puedeCrear
             />
           </FilaAlta>
-          <FilaAlta etiqueta="Etiquetas" ayuda="Opcional · para buscar y agrupar">
-            <ElegirEtiquetas
-              etiquetas={vocabEtiquetas}
-              categoriaId={categoriaId}
-              elegidas={etiquetasElegidas}
-              onElegidas={setEtiquetasElegidas}
-              esLider={esLider}
-              puedeAprobar={puedeAprobarEtiquetas}
-              enLinea={enLinea}
-              onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
-              propuestas={etiquetasPropuestas}
-              onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
-            />
-          </FilaAlta>
         </div>
       );
     }
@@ -710,9 +702,21 @@ export function NuevoProductoForm({
                 <div className="space-y-2">
                   <div className="flex flex-wrap gap-1.5">
                     {tejidosCategoria.map((t) => (
-                      <ChipOpcion key={t.id} elegido={tejidoId === t.id} onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}>
-                        {t.texto}
-                      </ChipOpcion>
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setTejidoId((prev) => (prev === t.id ? "" : t.id))}
+                        aria-pressed={tejidoId === t.id}
+                        className={`flex w-[96px] flex-col gap-1.5 rounded-md border p-1.5 text-left text-[12.5px] transition-colors ${
+                          tejidoId === t.id ? "border-tinta bg-tinta/[0.07] text-tinta" : "border-tinta/15 text-tinta/75 hover:border-tinta/40"
+                        }`}
+                      >
+                        <MuestraTejido nombre={t.texto} />
+                        <span className="px-0.5">
+                          {tejidoId === t.id && <span aria-hidden>✓ </span>}
+                          {t.texto}
+                        </span>
+                      </button>
                     ))}
                   </div>
                   <ProponerValor tipo="tejidos" categoriaId={categoriaId} ejesActuales={ejesActuales()} universo={universo.tejidos} onCreado={(v) => agregarValor("tejidos", v)} />
@@ -801,6 +805,21 @@ export function NuevoProductoForm({
                 .
               </p>
             </div>
+          </FilaAlta>
+
+          <FilaAlta etiqueta="Etiquetas" ayuda="Opcional · para buscar y agrupar">
+            <ElegirEtiquetas
+              etiquetas={vocabEtiquetas}
+              categoriaId={categoriaId}
+              elegidas={etiquetasElegidas}
+              onElegidas={setEtiquetasElegidas}
+              esLider={esLider}
+              puedeAprobar={puedeAprobarEtiquetas}
+              enLinea={enLinea}
+              onCreada={(e) => setEtiquetasNuevas((prev) => [...prev, e])}
+              propuestas={etiquetasPropuestas}
+              onPropuesta={(nombre) => setEtiquetasPropuestas((prev) => [...prev, nombre])}
+            />
           </FilaAlta>
 
           <FilaAlta etiqueta="Fotos" ayuda="Opcional · una o más por color">

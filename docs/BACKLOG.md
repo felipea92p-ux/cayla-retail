@@ -28,6 +28,17 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🏷️ Etiquetas: con dibujo real, en el paso 3, y Tejido corrige el mismo error (2026-09-27, ADR-0109 act. c) — solo web, sin migración; rama `claude/etiquetas-alta-siempre-visibles`
+Felipe, tres capturas más: «mira dónde sale Etiquetas y analiza si es el lugar correcto… me pregunto por qué no lo muestras como
+la parte de textura, el mismo error en Tejido». 12 preguntas (`AskUserQuestion`) y un bosquejo (Artifact) aprobado antes de tocar código.
+- [x] `TarjetaEtiqueta` (antes `ChipEtiqueta`) reusa `MuestraEtiqueta` — el mismo ícono por concepto de Atributos ▸ Etiquetas —, tarjeta de 96 px como `MuestraPatron`, con la insignia de descuento sobre el dibujo. El genérico para un nombre sin concepto conocido no pide código: ya lo resuelve `MuestraEtiqueta`.
+- [x] Etiquetas se muda del paso 2 al paso 3 «Cómo se hace» (después de Colores, antes de Fotos): junto a sus pares visuales, no entre campos de texto. Colores NO se toca (pedido explícito de Felipe).
+- [x] **Tejido gana `MuestraTejido`** (ya existía, ya se usaba en Atributos ▸ Tejidos, nadie lo había conectado al alta): mismo error que tenía Etiquetas, en el mismo paso.
+- [x] Se mantiene todo lo de (b): cuadrícula siempre visible por grupo, buscador/crear arriba, globo de ayuda, línea táctil.
+- [ ] **Decide Felipe:** ¿una columna `descripcion` en `retail.etiquetas` escrita en lenguaje de tienda al aprobar (lo durable) en vez de las frases en código?
+- [ ] **Decide Felipe:** Editar producto (`ProductoForm`) sigue con las etiquetas por variante tras «Etiquetas (N)», en texto plano: ¿se le da el mismo selector visual (por variante) para que no haya dos formas de lo mismo?
+- [ ] Verificar con una colaboradora en una tablet de la tienda (ayuda táctil) y con un lector de pantalla.
+
 ## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
 Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
 - [x] Campo «Etiquetas» en el paso 2 (`ElegirEtiquetas.tsx`): buscar, elegir varias con chips y ✕, Retroceso quita la última, «+ Crear «X»» con el combo Responsable. Fila «Etiquetas» en la ficha de la derecha y en la línea del paso 2 plegado. Quita el enlace escondido del paso 4.
