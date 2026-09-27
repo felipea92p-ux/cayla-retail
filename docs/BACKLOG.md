@@ -930,11 +930,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     `problema_reposicion` («revisar reposición»), y la consulta 05 del termómetro. Hasta entonces el semáforo le pide al
     turno siguiente volver a bajar lo que se guardó: el aviso solo lo ve quien retira, y la nota solo se lee en el
     detalle de un movimiento.
-  - [ ] Contrato del bloque 3: un retiro correctivo DESPUÉS de una bajada no la netea en `fn_bajadas_del_piso` (se
-    escanearon 10, se colgaron 6, se retiran 4: la bajada sigue en 10). Netear también los retiros de la misma prenda en
-    [t, t + ventana], además de [t − ventana, t].
-  - [ ] Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
-    minutos sale «tardía» (límite anotado en ADR-0208).
+  - [x] ~~Contrato del bloque 3: un retiro correctivo DESPUÉS de una bajada no la netea en `fn_bajadas_del_piso` (se
+    escanearon 10, se colgaron 6, se retiran 4: la bajada sigue en 10)~~: construido en el paso 2 de Frescura 3c
+    (`20260928120200`, `cantidad_efectiva`; prueba T25). **Sin pegar:** ver «3c · paso 2», más abajo.
+  - [x] ~~Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
+    minutos sale «tardía»~~: con el paso 2 de 3c sale «corregida» sin tardías (T24).
   - [x] Probado en el navegador (2026-09-25, ruta temporal ya borrada, sin base): el formulario no cambia de alto al
     escribir (536 px con y sin aviso), el recorrido va bajo el título, «no alcanza» sale con su texto propio (no la
     burbuja del navegador), un corte de red da el mensaje honesto sin recargar la página, una respuesta que nunca llega
@@ -969,6 +969,17 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
     referencia de CAYLA, niveles «Pocos datos / Aceptable / Sólido», fin de estación con sugerencias, indicador de
     confianza (líder; y las Terminal de ventas con su propio pasado y un enlace discreto al ranking, como módulo aparte).
+    - [x] **Paso 2 · Núcleo de bajadas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
+      `claude/frescura-3c-bajadas`). `fn_bajadas_del_piso` pasa a envolver un núcleo interno
+      (`fn_bajadas_del_piso_nucleo`, mismo candado de líder) y el núcleo descuenta los retiros de la misma talla
+      (`retiradas_en_ventana`, `cantidad_efectiva`, estado `corregida`), toma como piso de antes el nivel más alto de
+      la ventana y marca la carga inicial (`es_carga_inicial`). Casos que cambian: T6, T9, T14 y el ejemplo de ADR-0208
+      (c). Prueba: `pnpm pruebas:frescura-bajadas` (90). Detalle: ADR-0208, «Paso 2 construido (2026-09-27)».
+      - [ ] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (cada una sola; a cualquier hora;
+        solo funciones). Después, `md5(prosrc)`: puerta `34a7e0cc5f421333761e8bda92a582eb`; núcleo
+        `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `20cc705b39b5015bff03e42d93d82b09` tras la segunda. Si el
+        cuerpo vivo cambió, la guarda aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
+        (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
   - [ ] **Aparte:** módulo «Ajustar stock» separado de Existencias (PR de roles; nace solo para el líder).
 - [ ] **Bloque 3 · La pantalla de Frescura (diseño original)** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:
