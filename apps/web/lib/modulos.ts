@@ -11,6 +11,7 @@
 import { PERMISOS, type Permiso } from "./menu";
 
 export const CLAVES_MODULO = [
+  "inicio",
   "vender", "apartados", "caja", "cambios", "devoluciones", "historial", "facturacion", "clientas",
   "existencias", "bajada_piso", "ajustar_stock", "conteos", "traslados", "movimientos",
   "productos", "atributos", "etiquetas",
@@ -25,7 +26,7 @@ export type ClaveModulo = (typeof CLAVES_MODULO)[number];
 
 export type Modulo = {
   clave: ClaveModulo;
-  grupo: "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
+  grupo: "General" | "Ventas" | "Inventario" | "Catálogo" | "Compras" | "Producción" | "Gestión" | "Finanzas";
   nombre: string;
   /** Lo que se da al encenderlo: quien ve el módulo hace todo esto. */
   incluye: string;
@@ -40,6 +41,11 @@ export type Modulo = {
 
 /** Espejo de `retail.modulos`. `modulos.test.ts` compara esta lista con la siembra de la migración. */
 export const MODULOS: readonly Modulo[] = [
+  // Inicio (20260925220000, Felipe 2026-09-25): antes no era de ningún módulo (lo veía toda persona, sin excepción).
+  // Excepción a «un módulo nuevo nace solo del líder» (CLAUDE.md): nace ENCENDIDO en los roles que ya existen, o cada
+  // cuenta se quedaba sin dónde aterrizar el mismo día. Una terminal de ventas no participa: su casa sigue siendo el
+  // mostrador (regla propia de `aterrizajeDe`, `lib/menu.ts`), tenga o no este módulo.
+  { clave: "inicio", grupo: "General", nombre: "Inicio", incluye: "Ver el tablero de inicio: lo del día, lo por atender y accesos rápidos a su tienda" },
   { clave: "vender", grupo: "Ventas", nombre: "Punto de venta", incluye: "Registrar ventas, descuento hasta su tope, dejar en espera, monto manual" },
   // Apartados (ADR-0196): se separó del Punto de venta a pedido de Felipe (2026-09-24). Nace sin rol: solo lo ve el líder.
   { clave: "apartados", grupo: "Ventas", nombre: "Apartados", incluye: "Apartar prendas con adelanto, entregar cobrando el saldo, extender, liberar y devolver el adelanto" },
@@ -50,12 +56,12 @@ export const MODULOS: readonly Modulo[] = [
   { clave: "facturacion", grupo: "Ventas", nombre: "Facturación", incluye: "Emitir boletas, facturas y notas; reenviar a SUNAT" },
   { clave: "clientas", grupo: "Ventas", nombre: "Clientas", incluye: "Registrar, editar y archivar clientas; ver sus compras" },
   // «Retirar del piso» (ADR-0208, bloque 2) vive en Existencias: el texto lo nombra para que el líder sepa qué da (20260926170000).
-  // «Ajustar stock» SALIÓ de este texto el 2026-09-27 (ADR-0247): ahora es su propio módulo, ver más abajo.
+  // «Ajustar stock» SALIÓ de este texto el 2026-09-27 (ADR-0249): ahora es su propio módulo, ver más abajo.
   { clave: "existencias", grupo: "Inventario", nombre: "Existencias", incluye: "Consultar stock, reponer y retirar del piso, apartar prendas" },
   // Bajada al piso (ADR-0208, 20260926000000): bajar lo del almacén sin darle a nadie todo Existencias. Nace sin rol: solo
   // lo ve el líder. Delegable: `bajar_al_piso` pregunta por este módulo, no por el líder.
   { clave: "bajada_piso", grupo: "Inventario", nombre: "Bajada al piso", incluye: "Bajar al piso las prendas del almacén de su tienda, escaneándolas y confirmando de una vez" },
-  // Ajustar stock (ADR-0247, 20260928110000): SALIÓ de Existencias — antes lo hacía cualquiera con Existencias, Conteos o
+  // Ajustar stock (ADR-0249, 20260928110000): SALIÓ de Existencias — antes lo hacía cualquiera con Existencias, Conteos o
   // Traslados (`fn_puede_ajustar_inventario`), sin que el líder lo hubiera decidido módulo por módulo. Nace sin rol: solo
   // lo ve el líder. Delegable: `registrar_movimiento` pregunta por este módulo (`fn_puede_ajustar_stock`), no por el líder.
   // No es una pantalla del lateral (como «Actividad»): se abre desde el botón «Ajustar» de Existencias, Productos y
@@ -169,8 +175,8 @@ export function modulosDeHoy(
  *  - facturar               ← ve Facturación
  *  - gestionarCaja          ← ve Caja, completo
  *  - ajustarInventario      ← ve Existencias, Conteos o Traslados, completo (cerrar conteo/traslado con diferencia;
- *                             sigue así desde antes de ADR-0247, a propósito: no es el botón «Ajustar»)
- *  - ajustarStock           ← ve Ajustar stock, completo (`fn_puede_ajustar_stock`, ADR-0247): el botón «Ajustar» de
+ *                             sigue así desde antes de ADR-0249, a propósito: no es el botón «Ajustar»)
+ *  - ajustarStock           ← ve Ajustar stock, completo (`fn_puede_ajustar_stock`, ADR-0249): el botón «Ajustar» de
  *                             Existencias, Productos y Movimientos. Deliberadamente NO se deriva de Existencias,
  *                             Conteos ni Traslados — es lo que este ADR separó de `ajustarInventario`.
  *  - editarCatalogo         ← ve Productos o Categorías/atributos, completo

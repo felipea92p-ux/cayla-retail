@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { EtiquetaAlta } from "./alta-producto-datos";
 import {
   claveEtiqueta,
-  filtrarEtiquetas,
+  agruparEtiquetas,
+  coincideConTexto,
   fraseDeExistente,
   FRASE_ETIQUETA_INVALIDA,
   nombreDeEtiqueta,
@@ -18,6 +19,8 @@ const et = (id: string, nombre: string, extra: Partial<EtiquetaAlta> = {}): Etiq
   estilo: "neutral",
   descuentoPct: null,
   categoriaIds: [],
+  vigenteDesde: null,
+  vigenteHasta: null,
   ...extra,
 });
 
@@ -63,32 +66,42 @@ describe("repartirEtiquetas", () => {
   });
 });
 
-describe("filtrarEtiquetas", () => {
-  const elegibles = [NUEVA, PRIMAVERA, LIQUIDAR];
-  it("sin texto devuelve todas las que aún no se eligieron", () => {
-    expect(filtrarEtiquetas(elegibles, ["e2"], "").map((e) => e.id)).toEqual(["e1", "e4"]);
+describe("coincideConTexto", () => {
+  it("sin texto coinciden todas", () => {
+    expect(coincideConTexto(NUEVA, "")).toBe(true);
+    expect(coincideConTexto(NUEVA, "   ")).toBe(true);
   });
   it("busca sin tildes ni mayúsculas y por cualquier parte del nombre", () => {
-    expect(filtrarEtiquetas(elegibles, [], "coleccion").map((e) => e.id)).toEqual(["e1"]);
-    expect(filtrarEtiquetas(elegibles, [], "PRIMA").map((e) => e.id)).toEqual(["e2"]);
-    expect(filtrarEtiquetas(elegibles, [], "liquid").map((e) => e.id)).toEqual(["e4"]);
-  });
-  it("una ya elegida no vuelve a ofrecerse", () => {
-    expect(filtrarEtiquetas(elegibles, ["e1"], "nueva")).toEqual([]);
-  });
-  it("la igual va primero, luego las que empiezan con lo escrito y al final las que solo lo contienen (Enter agrega la primera)", () => {
-    const outlet = et("x1", "Outlet Sale", { descuentoPct: 50 });
-    const sale = et("x2", "Sale");
-    const salero = et("x3", "Saleros de plata");
-    // orden de entrada = alfabético: Outlet Sale, Sale, Saleros de plata
-    expect(filtrarEtiquetas([outlet, sale, salero], [], "sale").map((e) => e.id)).toEqual(["x2", "x3", "x1"]);
-  });
-  it("con el mismo rango se respeta el orden de entrada", () => {
-    // «a» está dentro de las tres y no empieza ninguna: las tres son «contiene» y no se reordenan.
-    expect(filtrarEtiquetas([NUEVA, PRIMAVERA, LIQUIDAR], [], "a").map((e) => e.id)).toEqual(["e1", "e2", "e4"]);
+    expect(coincideConTexto(NUEVA, "coleccion")).toBe(true);
+    expect(coincideConTexto(PRIMAVERA, "PRIMA")).toBe(true);
+    expect(coincideConTexto(LIQUIDAR, "liquid")).toBe(true);
+    expect(coincideConTexto(LIQUIDAR, "nueva")).toBe(false);
   });
   it("reconoce un nombre guardado con espacios repetidos", () => {
-    expect(filtrarEtiquetas([et("d1", "Nueva   colección")], [], "nueva colección").map((e) => e.id)).toEqual(["d1"]);
+    expect(coincideConTexto(et("d1", "Nueva   colección"), "nueva colección")).toBe(true);
+  });
+});
+
+describe("agruparEtiquetas", () => {
+  it("ordena los grupos como Atributos (Rotación, Artesanal, Campaña y festividad, General) y cada uno por nombre", () => {
+    const grupos = agruparEtiquetas([
+      et("g1", "Navidad", { estilo: "campana" }),
+      et("g2", "Top ventas", { estilo: "urgencia" }),
+      et("g3", "Hecho a mano", { estilo: "positivo" }),
+      et("g4", "Aniversario CAYLA", { estilo: "campana" }),
+      et("g5", "Nuevo", { estilo: "urgencia" }),
+      et("g6", "Día del Niño"),
+    ]);
+    expect(grupos.map((g) => g.nombre)).toEqual(["Rotación", "Artesanal", "Campaña y festividad", "General"]);
+    expect(grupos.map((g) => g.etiquetas.map((e) => e.nombre))).toEqual([["Nuevo", "Top ventas"], ["Hecho a mano"], ["Aniversario CAYLA", "Navidad"], ["Día del Niño"]]);
+  });
+  it("un grupo sin etiquetas no sale, y un estilo desconocido cae en General", () => {
+    const grupos = agruparEtiquetas([et("g1", "Rara", { estilo: "inventado" })]);
+    expect(grupos.map((g) => g.nombre)).toEqual(["General"]);
+  });
+  it("no pierde ninguna etiqueta", () => {
+    const todas = [NUEVA, PRIMAVERA, CYBER, LIQUIDAR, et("x", "Otra", { estilo: "urgencia" })];
+    expect(agruparEtiquetas(todas).flatMap((g) => g.etiquetas)).toHaveLength(todas.length);
   });
 });
 
@@ -136,9 +149,9 @@ describe("textoDeDescuento", () => {
     expect(textoDeDescuento(CYBER)).toBe("20 % dto");
     expect(textoDeDescuento(NUEVA)).toBeNull();
   });
-  it("no redondea: un 12,5 % no se muestra como 13 %", () => {
-    expect(textoDeDescuento({ descuentoPct: 12.5 })).toBe("12,5 % dto");
-    expect(textoDeDescuento({ descuentoPct: 15.25 })).toBe("15,25 % dto");
+  it("no redondea: un 12.5 % no se muestra como 13 %", () => {
+    expect(textoDeDescuento({ descuentoPct: 12.5 })).toBe("12.5 % dto");
+    expect(textoDeDescuento({ descuentoPct: 15.25 })).toBe("15.25 % dto");
   });
 });
 

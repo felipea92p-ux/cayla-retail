@@ -25,7 +25,10 @@ export function Pestanas<T extends string>({
 }) {
   return (
     // Guía oficial (ADR-0169): pestañas subrayadas sobre la línea de sand; la elegida en tinta con el hilo rojo.
-    <div role="tablist" aria-label={etiqueta} className="flex max-w-full gap-1 overflow-x-auto border-b border-sand">
+    // Sin barra de scroll visible (2026-09-26): `overflow-x-auto` vuelve `auto` también el eje vertical, y el `-mb-px` de
+    // cada pestaña lo desborda 1 px; Safari dibujaba entonces una barra bajo las pestañas y otra al costado que tapaba el
+    // final de «Comparar períodos». Si no caben a lo ancho, se siguen desplazando con el dedo o la rueda.
+    <div role="tablist" aria-label={etiqueta} className="flex max-w-full gap-1 overflow-x-auto border-b border-sand [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {opciones.map((o) => (
         <button
           key={o.valor}

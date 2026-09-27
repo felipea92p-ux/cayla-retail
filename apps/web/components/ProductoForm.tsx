@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
-import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
@@ -19,6 +20,15 @@ import { useParecidos } from "@/lib/use-parecidos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
+import {
+  cambiosTemporadaPorColor,
+  coloresConVariantesActivas,
+  coloresSinTemporadaConocida,
+  MIN_COLORES_PARA_TEMPORADA_POR_COLOR,
+  ofrecerTemporadaPorColor,
+  temporadaHeredadaPorColor,
+} from "@/lib/temporada-ficha-reglas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -48,12 +58,25 @@ import { firmar } from "@/lib/responsable-reglas";
    arma el trigger `variantes_asignar_codigo` y que se ve recién después de
    guardar) — acá no se intenta adivinar ese código, solo el SKU.
 
+   TEMPORADA (2026-09-26, ADR-0246). Deja de ser texto libre: se elige de la
+   lista cerrada, y la primera opción dice qué pasa si no se elige nada
+   («Igual que su categoría (Verano)»). Vacío = hereda, como siempre. Si la
+   prenda tiene 2 o más colores (o uno solo que ya tenga la suya guardada),
+   cada color puede tener la suya («Temporada
+   por color»): se guarda en la MISMA acción, después del guardado principal,
+   con UNA llamada a `asignar_temporadas` y solo con los colores que cambiaron
+   — el mismo criterio que las etiquetas. Sin la lista en la base (SQL sin
+   pegar), la ficha lo dice y manda la temporada tal como la leyó.
+
    Identidad de variante: una variante con `id` (ya existe en la base) solo
    deja tocar precio, costo y activo — igual que decide la RPC
    `catalogo_actualizar_producto` (20260915150000). Cambiar color o talla de
    una variante que ya se etiquetó es el hueco 3 que V1 nunca cerró
    (docs/datos/modulos/02-catalogo-y-vocabulario.md); para eso se desactiva
-   y se agrega una fila nueva.
+   y se agrega una fila nueva. Hasta el 2026-09-26 la pantalla igual ofrecía
+   los combos de color/talla y el SKU en esas filas: se podían cambiar, la
+   RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
+   muestran de solo lectura (`fija`), con el código que lee la pistola.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
@@ -69,9 +92,17 @@ type FilaVariante = {
   skuManual: boolean;
   precio: string;
   costo: string;
+  /** El costo con el que se abrió la ficha. Una variante existente con el campo vacío lo conserva (antes se guardaba 0). */
+  costoOriginal: string;
+  /** Costo de solo lectura: la variante ya entró por Compras o por el Taller y su costo es el promedio ponderado
+   *  (20260927190000; la base lo vuelve a exigir). Se corrige a mano solo hasta la primera compra (Felipe, 2026-09-26). */
+  costoFijo: boolean;
   activo: boolean;
   /** Etiquetas de catálogo aplicadas a esta variante — solo editable si `id` ya existe. */
   etiquetaIds: string[];
+  /** Solo variantes existentes: lo que se muestra en lugar de los campos que ya no se pueden cambiar (color, talla y
+   *  código). `codigo` es el que lee la pistola (BLU-0042-AZM-M); el SKU queda como respaldo si todavía no lo tiene. */
+  fija: { color: string; talla: string; codigo: string } | null;
 };
 
 const NUMERO =
@@ -114,10 +145,12 @@ function sugerirSku(referencia: string, colorCodigo: string, talla: string): str
 
 /** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
  *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
- *  para lo que sale de dos que ya existen). */
+ *  para lo que sale de dos que ya existen). Sin costo no hay margen: antes
+ *  un campo vacío contaba como 0 y mostraba 100 %. */
 function margenPorcentaje(precio: string, costo: string): number | null {
+  if (costo.trim() === "") return null;
   const p = Number(precio);
-  const c = costo === "" ? 0 : Number(costo);
+  const c = Number(costo);
   if (!Number.isFinite(p) || p <= 0 || !Number.isFinite(c)) return null;
   return ((p - c) / p) * 100;
 }
@@ -131,8 +164,15 @@ function mismoConjunto(a: string[], b: string[]): boolean {
   return ordenA.every((id, i) => id === ordenB[i]);
 }
 
+/** El costo que se guarda y con el que se calcula el margen. Una variante existente con el campo vacío conserva el que
+ *  tenía (el vacío no es «cero»); una fila nueva vacía nace sin costo, como siempre. */
+function costoEfectivo(v: FilaVariante): string {
+  if (v.costoFijo) return v.costoOriginal;
+  return v.id && v.costo.trim() === "" ? v.costoOriginal : v.costo;
+}
+
 function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", activo: true, etiquetaIds: [] };
+  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
 }
 
 export function ProductoForm({
@@ -165,7 +205,14 @@ export function ProductoForm({
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [estado, setEstado] = useState<(typeof ESTADOS)[number]["valor"]>(producto?.estado ?? "activo");
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
-  const [temporada, setTemporada] = useState(producto?.temporada ?? "");
+  const [temporada, setTemporada] = useState(producto?.temporada ?? SIN_PROPIA);
+  // ADR-0246: la lista y lo que ya estaba guardado al abrir. `null` = la base todavía no la tiene (SQL sin pegar).
+  const temporadas = producto?.temporadas ?? null;
+  // color → clave de su temporada propia; un color sin entrada sigue a su prenda. `porColorGuardado` es la foto de lo
+  // que había en la base: contra ella se decide qué colores cambiaron (y se actualiza tras guardarlos, para que
+  // reintentar otra parte no los vuelva a mandar).
+  const [temporadaColor, setTemporadaColor] = useState<Record<string, string>>(() => temporadas?.porColor ?? {});
+  const porColorGuardado = useRef<Record<string, string>>(temporadas?.porColor ?? {});
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
   const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
   const [patronId, setPatronId] = useState(producto?.patronId ?? "");
@@ -202,8 +249,12 @@ export function ProductoForm({
           skuManual,
           precio: String(v.precio),
           costo: v.costo === null ? "" : String(v.costo),
+          costoOriginal: v.costo === null ? "" : String(v.costo),
+          // Sin saber si es oficial (la migración aún no está), se trata como oficial: es lo que no puede pisar nada.
+          costoFijo: v.costoOficial !== false,
           activo: v.activo,
           etiquetaIds: v.etiquetaIds,
+          fija: { color: v.color ?? (colorCodigo || "Sin color"), talla: talla || "Sin talla", codigo: v.codigo ?? v.sku },
         };
       });
   });
@@ -255,6 +306,31 @@ export function ProductoForm({
   }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
 
+  // ---------- temporada (ADR-0246) ----------
+  // La de su categoría se sigue de la categoría ELEGIDA en el formulario (no de la que tenía al abrir): si se cambia de
+  // categoría, «Igual que su categoría (…)» ya dice lo que va a heredar.
+  const temporadaCategoria = temporadas ? (temporadas.porCategoria[categoriaId] ?? null) : null;
+  const opcionesTemporadaPrenda = temporadas
+    ? opcionesTemporada(temporadas.lista, { nombre: nombreTemporada(temporadas.lista, temporadaCategoria), de: "categoría" })
+    : [];
+  const temporadaPrenda = temporadaHeredadaPorColor(temporada, temporadaCategoria);
+  const opcionesTemporadaColor = temporadas
+    ? opcionesTemporada(temporadas.lista, { nombre: nombreTemporada(temporadas.lista, temporadaPrenda), de: "prenda" })
+    : [];
+  const coloresFicha = coloresConVariantesActivas(variantes);
+  // Un color que estaba todo apagado al abrir y se reactiva: su excepción (si la tiene) no llegó a la ficha. No se le
+  // ofrece el desplegable (diría «Igual que su prenda» sin saberlo) ni se manda nada por él; se avisa.
+  const coloresInciertos = coloresSinTemporadaConocida(producto?.variantes ?? [], coloresFicha);
+  const coloresConTemporada = coloresFicha.filter((c) => !coloresInciertos.includes(c));
+  // Sin saber qué excepciones hay guardadas (`porColor` null) no se ofrece: mostraría «Igual que su prenda» sobre una
+  // excepción que sí existe. Con un solo color, se ofrece igual si ese color ya tiene la suya (o no se sabe).
+  const ofreceTemporadaPorColor =
+    !!temporadas?.porColor && ofrecerTemporadaPorColor(coloresFicha, temporadas.porColor, coloresInciertos);
+  const conTemporadaPropia = coloresConTemporada.filter((c) => (temporadaColor[c] ?? SIN_PROPIA) !== SIN_PROPIA).length;
+  const nombreColor = (codigo: string) => colores.find((c) => c.codigo === codigo)?.nombre ?? codigo;
+  // Plegada: casi ninguna prenda la usa. Abierta si ya hay algún color con la suya, para que se vea sin buscarla.
+  const [verTemporadaColor, setVerTemporadaColor] = useState(() => Object.keys(temporadas?.porColor ?? {}).length > 0);
+
   function elegirCategoria(id: string) {
     setCategoriaId(id);
     // Tejido/patrón están filtrados por categoría (20260917100400) — la
@@ -305,7 +381,8 @@ export function ProductoForm({
     if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
     const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
     if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
-    const sinSku = variantes.findIndex((v) => !v.sku.trim());
+    // Solo filas nuevas: en una variante que ya existe el SKU no se edita (la base tampoco lo cambiaría).
+    const sinSku = variantes.findIndex((v) => !v.id && !v.sku.trim());
     if (sinSku >= 0) return void avisar.error("Cada variante necesita un SKU.", { enfocar: `producto-variante-${sinSku}-sku` });
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
@@ -331,7 +408,7 @@ export function ProductoForm({
       talla_id: v.tallaId || null,
       sku: v.sku.trim(),
       precio: Number(v.precio),
-      costo: v.costo === "" ? 0 : Number(v.costo),
+      costo: costoEfectivo(v) === "" ? 0 : Number(costoEfectivo(v)),
       activo: v.activo,
     }));
 
@@ -396,24 +473,46 @@ export function ProductoForm({
     // un error que no tiene nada que ver con lo que la persona hizo.
     const asignacionesEtiquetas = variantes
       .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
-      .map((v) => ({ variante_id: v.id, etiqueta_ids: v.etiquetaIds }));
+      .map((v) => ({ variante_id: v.id as string, etiqueta_ids: v.etiquetaIds }));
     if (editando && asignacionesEtiquetas.length > 0) {
       const { error: errorEtiquetas } = await firmar(supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas }), firma);
-      cerrarProceso();
-      setLoading(false);
-      // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
-      responsable.despues(errorEtiquetas);
       if (errorEtiquetas) {
+        cerrarProceso();
+        setLoading(false);
+        // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
+        responsable.despues(errorEtiquetas);
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
           detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
         });
         return;
       }
-    } else {
-      cerrarProceso();
-      setLoading(false);
-      responsable.despues(null);
+      // Ya están en la base: si lo que sigue falla y se reintenta, no se vuelven a mandar.
+      for (const a of asignacionesEtiquetas) etiquetaIdsOriginales.current.set(a.variante_id, a.etiqueta_ids);
     }
+
+    // Temporada por color (ADR-0246): mismo gesto, después del guardado principal (un color recién agregado recién
+    // existe ahora) y UNA sola llamada con solo los colores que cambiaron. Todo o nada: si falla, ningún color cambió.
+    const cambiosColor = ofreceTemporadaPorColor ? cambiosTemporadaPorColor(coloresConTemporada, temporadaColor, porColorGuardado.current) : null;
+    if (cambiosColor) {
+      const { error: errorTemporada } = await firmar(
+        supabase.rpc("asignar_temporadas", { p_items: [{ producto_id: producto.id, colores: cambiosColor }] }),
+        firma,
+      );
+      if (errorTemporada) {
+        cerrarProceso();
+        setLoading(false);
+        responsable.despues(errorTemporada);
+        avisar.error(traducirError(errorTemporada, "guardar la temporada de los colores"), {
+          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para la temporada de los colores.`,
+        });
+        return;
+      }
+      porColorGuardado.current = { ...temporadaColor };
+    }
+
+    cerrarProceso();
+    setLoading(false);
+    responsable.despues(null);
 
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
@@ -535,13 +634,30 @@ export function ProductoForm({
               placeholder="Ej. 5"
               pie="Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."
             />
-            <CampoTexto
-              etiqueta="Temporada (opcional)"
-              id="producto-temporada"
-              value={temporada}
-              onChange={(e) => setTemporada(e.target.value)}
-              placeholder="Verano 26"
-            />
+            {temporadas ? (
+              <CampoSelect
+                etiqueta="Temporada (opcional)"
+                id="producto-temporada"
+                valor={temporada}
+                onValor={setTemporada}
+                opciones={opcionesTemporadaPrenda}
+                pie={
+                  // Una excepción por color manda sobre esta: se dice aquí, para que nadie crea que la prenda entera es de
+                  // la temporada que muestra el combo.
+                  conTemporadaPropia > 0
+                    ? `${conTemporadaPropia === 1 ? "1 de sus colores tiene" : `${conTemporadaPropia} de sus colores tienen`} su propia temporada, y esa manda: mira «Temporada por color», abajo.`
+                    : "Sin año: el sistema lo sabe por la fecha en que la prenda llega a cada tienda."
+                }
+              />
+            ) : (
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Temporada</p>
+                <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{producto?.temporada ?? "Sin temporada"}</p>
+                <p className="mt-1 text-xs text-tinta/55">
+                  La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Guardar no cambia la temporada.
+                </p>
+              </div>
+            )}
             <div className="flex items-end pb-2">
               <Interruptor
                 activo={permitirVentaSinStock}
@@ -550,6 +666,63 @@ export function ProductoForm({
                 pie="Deja vender este producto aunque el stock marque 0 (pedido especial / preventa)."
               />
             </div>
+            {ofreceTemporadaPorColor && (
+              <div className="border-t border-tinta/10 pt-3 sm:col-span-2">
+                <button
+                  type="button"
+                  aria-expanded={verTemporadaColor}
+                  aria-controls="producto-temporada-por-color"
+                  onClick={() => setVerTemporadaColor((v) => !v)}
+                  className="label-cayla inline-flex items-center gap-1 text-[11px] text-tinta/65 hover:text-rojo"
+                >
+                  Temporada por color
+                  {conTemporadaPropia > 0 ? ` (${conTemporadaPropia} con la suya)` : ""}
+                  {coloresInciertos.length > 0 ? ` · ${coloresInciertos.length} por revisar` : ""}
+                  <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${verTemporadaColor ? "rotate-180" : ""}`} />
+                </button>
+                {verTemporadaColor && (
+                  <div id="producto-temporada-por-color" className="mt-2">
+                    <p className="text-xs text-tinta/55">
+                      Solo si un color es de otra temporada que el modelo (un color de invierno en un modelo de verano). Si no, déjalo igual que
+                      su prenda. Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.
+                      {coloresFicha.length < MIN_COLORES_PARA_TEMPORADA_POR_COLOR &&
+                        " Con un solo color, lo normal es ponerle la temporada a la prenda (arriba) y dejar el color igual que su prenda."}
+                    </p>
+                    {coloresInciertos.length > 0 && (
+                      <p className="nota-cayla mt-2 text-xs">
+                        {coloresInciertos.map(nombreColor).join(", ")}{" "}
+                        {coloresInciertos.length === 1 ? "estaba apagado" : "estaban apagados"} al abrir esta ficha: si{" "}
+                        {coloresInciertos.length === 1 ? "tenía su propia temporada, la conserva" : "tenían su propia temporada, la conservan"}. Guarda
+                        y vuelve a abrir la ficha para verla o cambiarla.
+                      </p>
+                    )}
+                    <div className="mt-2 grid gap-x-4 sm:grid-cols-2">
+                      {coloresConTemporada.map((codigo) => {
+                        const color = colores.find((c) => c.codigo === codigo);
+                        return (
+                          <CampoSelect
+                            key={codigo}
+                            etiqueta={
+                              <span className="inline-flex items-center gap-1.5">
+                                <span
+                                  aria-hidden
+                                  className={`inline-block h-2.5 w-5 rounded-full border border-tinta/20 ${color?.hex ? "" : "bg-sand"}`}
+                                  style={color?.hex ? { background: color.hex } : undefined}
+                                />
+                                {nombreColor(codigo)}
+                              </span>
+                            }
+                            valor={temporadaColor[codigo] ?? SIN_PROPIA}
+                            onValor={(v) => setTemporadaColor((actual) => ({ ...actual, [codigo]: v }))}
+                            opciones={opcionesTemporadaColor}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -563,7 +736,7 @@ export function ProductoForm({
         <section className="card-cayla space-y-3 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Variantes (talla × color)</p>
           <div className={`hidden gap-2 border-b border-tinta/10 pb-1 sm:grid ${PLANTILLA}`}>
-            {["Color", "Talla", "SKU", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
+            {["Color", "Talla", "Código", "Precio", "Costo", "Margen", "Activa", ""].map((t, i) => (
               <span key={i} className={`label-cayla text-[11px] text-tinta/55 ${i >= 3 && i <= 5 ? "text-right" : ""}`}>
                 {t}
               </span>
@@ -572,27 +745,43 @@ export function ProductoForm({
           {variantes.map((v, i) => (
             <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
             <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
-              <ComboBuscable
-                etiquetaAccesible="Color"
-                valor={v.colorCodigo}
-                onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
-                opciones={opcionesColor}
-                marcador="Sin color"
-              />
-              <ComboBuscable
-                etiquetaAccesible="Talla"
-                valor={v.tallaId}
-                onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
-                opciones={opcionesTalla}
-                marcador={categoriaId ? "Sin talla" : "Elige categoría"}
-              />
-              <input
-                aria-label="SKU"
-                id={`producto-variante-${i}-sku`}
-                value={v.sku}
-                onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-              />
+              {v.fija ? (
+                <>
+                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
+                    {v.fija.color}
+                  </span>
+                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
+                    {v.fija.talla}
+                  </span>
+                  <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
+                    {v.fija.codigo}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <ComboBuscable
+                    etiquetaAccesible="Color"
+                    valor={v.colorCodigo}
+                    onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
+                    opciones={opcionesColor}
+                    marcador="Sin color"
+                  />
+                  <ComboBuscable
+                    etiquetaAccesible="Talla"
+                    valor={v.tallaId}
+                    onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                    opciones={opcionesTalla}
+                    marcador={categoriaId ? "Sin talla" : "Elige categoría"}
+                  />
+                  <input
+                    aria-label="SKU"
+                    id={`producto-variante-${i}-sku`}
+                    value={v.sku}
+                    onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
+                    className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                  />
+                </>
+              )}
               <input
                 type="number"
                 min={0}
@@ -604,7 +793,14 @@ export function ProductoForm({
                 onChange={(e) => actualizarFila(i, { precio: e.target.value })}
                 className={`${NUMERO} text-right`}
               />
-              {veCosto ? (
+              {veCosto && v.costoFijo ? (
+                <span
+                  className="py-2 text-right text-sm tabular-nums text-tinta/70"
+                  title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
+                >
+                  {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
+                </span>
+              ) : veCosto ? (
                 <input
                   type="number"
                   min={0}
@@ -621,7 +817,7 @@ export function ProductoForm({
               <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
                 {(() => {
                   if (!veCosto) return "—";
-                  const m = margenPorcentaje(v.precio, v.costo);
+                  const m = margenPorcentaje(v.precio, costoEfectivo(v));
                   return m === null ? "—" : `${m.toFixed(0)}%`;
                 })()}
               </span>
@@ -669,6 +865,19 @@ export function ProductoForm({
             )}
             </div>
           ))}
+          {variantes.some((v) => v.fija) && (
+            <p className="text-xs text-tinta/55">
+              Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
+              Si está mal, desactívala y agrega la correcta.
+            </p>
+          )}
+          {veCosto && variantes.some((v) => v.costoFijo) && (
+            <p className="text-xs text-tinta/55">
+              {producto?.variantes.some((v) => v.costoOficial === null)
+                ? "No se pudo comprobar qué costos ya vienen de compras, así que por ahora no se corrigen aquí."
+                : "El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí."}
+            </p>
+          )}
           <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
             + Agregar variante
           </button>

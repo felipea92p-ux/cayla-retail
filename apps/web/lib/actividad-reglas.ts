@@ -45,6 +45,10 @@ function hojasConModulo(nodos: readonly Nodo[]): { ruta: string; modulo: ClaveMo
   return nodos.flatMap((n) => {
     if (n.estado !== "viva") return [];
     if ("hijos" in n && n.hijos) return hojasConModulo(n.hijos);
+    // Inicio declara `modulo: "inicio"` desde 20260925220000 (para su candado en Roles y accesos y para saber a dónde
+    // aterriza cada rol), pero no es un módulo de TRABAJO: estar parado ahí no es «estar en el módulo Inicio» para la
+    // Actividad, que debe seguir mostrando todos (ver el comentario de `moduloDeRuta`, sin cambiar desde ADR-0207).
+    if (n.id === "inicio") return [];
     return "ruta" in n && n.modulo ? [{ ruta: n.ruta, modulo: n.modulo }] : [];
   });
 }

@@ -28,23 +28,84 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0247) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
+## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0249) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
 Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
-- [x] Módulo nuevo `ajustar_stock` (grupo Inventario, orden 86), nace SIN ROL — solo lo ve el líder (migración `20260928110000`).
+- [x] Módulo nuevo `ajustar_stock` (grupo Inventario, orden 86), nace SIN ROL — solo lo ve el líder (migración `20260928130000`).
 - [x] `retail.fn_puede_ajustar_stock()` y el candado real en `registrar_movimiento` (antes `fn_puede_ajustar_inventario()`); `ajustar_inventario` lo repite antes de tomar locks. `cerrar_conteo`, `cerrar_traslado_con_diferencia` y `cargar_stock_inicial` NO cambian (decisión de Felipe, 2026-09-26): siguen con `fn_puede_ajustar_inventario()`.
 - [x] Permiso nuevo `ajustarStock` (antes el botón usaba `ajustarInventario`, que sigue existiendo para cerrar conteo/traslado). El botón «Ajustar» de Existencias, Productos (grilla y agrupada) y el atajo «Corregir» de Movimientos piden `ajustarStock`.
 - [x] Sin pantalla nueva para pedir un ajuste (decisión de Felipe): quien no tiene el módulo ve el mensaje «pídele a una líder de tu sede que lo ajuste», sin botón.
 - [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** si algún rol necesita «Ajustar stock» de entrada (recomendado por default: ninguno — se delega después). Hoy en producción, «Integrante» (17 cuentas) pierde el botón «Ajustar» el día que se pega la migración.
-- [ ] Pegar `20260928110000` (sola; sin políticas ni `alter` de tablas en uso).
+- [ ] Pegar `20260928130000` (sola; sin políticas ni `alter` de tablas en uso).
 - [ ] Refrescar el volcado (`pnpm datos:refrescar`) y correr `pnpm datos:comparar`.
 - [ ] Verlo con sesión real de integrante y de líder en el navegador (no se hizo en esta sesión: la base compartida de desarrollo la están usando en paralelo 3+ sesiones sobre Existencias/Conteos/Traslados — ver `docs/SESIONES-ACTIVAS.md` — y pegar la migración ahí las afectaría a todas. Verificado con Postgres desechable propio, sin tocar la base compartida).
 - [ ] Sigue abierto (decisión de Felipe, aplazada a propósito): cerrar conteo y cerrar traslado con diferencia también dejan el stock en otra cifra con la misma capacidad amplia (Existencias/Conteos/Traslados); una integrante con Conteos puede seguir contando mal a propósito y cerrando ella misma.
 - Cómo verificas:
-  - `pnpm pruebas:existencias-candados-y-ajuste` (39/39, con los 6 casos nuevos de ADR-0247).
+  - `pnpm pruebas:existencias-candados-y-ajuste` (39/39, con los 6 casos nuevos de ADR-0249).
   - `pnpm pruebas:candado-lider` (23/23), `pnpm pruebas:reposicion-piso-cerrada` (10/10), `pnpm pruebas:ajuste-no-es-primera-carga` (25/25) — actualizadas: el mensaje de permiso de `registrar_movimiento` cambió.
   - `pnpm --filter web exec vitest run` (196 archivos, 151850 pruebas) y `pnpm --filter web exec tsc --noEmit`, ambos en verde.
   - Con una cuenta con Existencias/Conteos/Traslados pero SIN «Ajustar stock»: «Ajustar» no aparece en Existencias, Productos ni Movimientos; llamando a la base directo, `ajustar_inventario`/`registrar_movimiento` responden `ajuste_sin_modulo`.
+
+## 🏷️ Etiquetas: con dibujo real, en el paso 3, y Tejido corrige el mismo error (2026-09-27, ADR-0109 act. c) — solo web, sin migración; rama `claude/etiquetas-alta-siempre-visibles`
+Felipe, tres capturas más: «mira dónde sale Etiquetas y analiza si es el lugar correcto… me pregunto por qué no lo muestras como
+la parte de textura, el mismo error en Tejido». 12 preguntas (`AskUserQuestion`) y un bosquejo (Artifact) aprobado antes de tocar código.
+- [x] `TarjetaEtiqueta` (antes `ChipEtiqueta`) reusa `MuestraEtiqueta` — el mismo ícono por concepto de Atributos ▸ Etiquetas —, tarjeta de 96 px como `MuestraPatron`, con la insignia de descuento sobre el dibujo. El genérico para un nombre sin concepto conocido no pide código: ya lo resuelve `MuestraEtiqueta`.
+- [x] Etiquetas se muda del paso 2 al paso 3 «Cómo se hace» (después de Colores, antes de Fotos): junto a sus pares visuales, no entre campos de texto. Colores NO se toca (pedido explícito de Felipe).
+- [x] **Tejido gana `MuestraTejido`** (ya existía, ya se usaba en Atributos ▸ Tejidos, nadie lo había conectado al alta): mismo error que tenía Etiquetas, en el mismo paso.
+- [x] Se mantiene todo lo de (b): cuadrícula siempre visible por grupo, buscador/crear arriba, globo de ayuda, línea táctil.
+- [ ] **Decide Felipe:** ¿una columna `descripcion` en `retail.etiquetas` escrita en lenguaje de tienda al aprobar (lo durable) en vez de las frases en código?
+- [ ] **Decide Felipe:** Editar producto (`ProductoForm`) sigue con las etiquetas por variante tras «Etiquetas (N)», en texto plano: ¿se le da el mismo selector visual (por variante) para que no haya dos formas de lo mismo?
+- [ ] Verificar con una colaboradora en una tablet de la tienda (ayuda táctil) y con un lector de pantalla.
+
+## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
+Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
+- [x] Campo «Etiquetas» en el paso 2 (`ElegirEtiquetas.tsx`): buscar, elegir varias con chips y ✕, Retroceso quita la última, «+ Crear «X»» con el combo Responsable. Fila «Etiquetas» en la ficha de la derecha y en la línea del paso 2 plegado. Quita el enlace escondido del paso 4.
+- [x] Reglas puras y probadas en `lib/etiquetas-alta-reglas.ts` (26 casos); frase nueva para `etiquetas_clave_unica` en `lib/error-escritura.ts`.
+- [x] Quien no es líder no ve las etiquetas con descuento (la base las rechazaba con «Solo un líder puede asignar una etiqueta con descuento»: antes el alta chocaba al final).
+- [ ] **Felipe, en producción tras el despliegue:** crear una prenda con 2 etiquetas y comprobar en Productos ▸ Editar que quedaron en todas las variantes; probar «+ Crear» con tu cuenta (queda aprobada) y con una de colaboradora (queda pendiente en Atributos ▸ Etiquetas).
+- [ ] Pendiente sin decidir: si una etiqueta se desactiva mientras alguien llena el formulario, el alta se rechaza con «Recarga la pantalla» y se pierde lo llenado (ya pasaba; este cambio no lo empeora).
+
+## 🩹 Aprobar una etiqueta propuesta fallaba: la pantalla no pedía el comentario que la base exige (2026-09-26, ADR-0095 act.) — solo web + prueba, sin migración; rama `claude/youthful-gagarin-97a394`
+- [x] `EtiquetasLista.tsx`: «Aprobar» (pendiente) y «Reactivar» (rechazada) abren una ventana con «Comentario (obligatorio)» y el combo Responsable, y mandan `{ id, estado: "aprobado", notas }`. Reactivar una etiqueta solo desactivada no cambia (confirmación corta, sin comentario: no cambia de estado). Piezas puras y textos: `lib/etiqueta-aprobacion-reglas.ts` (+ su prueba).
+- [x] Aviso al proponer corregido: ya no dice «ya la puedes usar… no te frena»; dice que un Líder tiene que aprobarla antes de ponerla en una prenda (el alta y «Prendas» solo aceptan aprobadas y activas; lo prueba la base).
+- [x] Botones «Aprobar/Rechazar» cortados en la tarjeta angosta (medido a 1024 px: texto de 93 y 101 px en cajas de 71 y 73): `flex-wrap` + ancho mínimo, la solución de Tallas.
+- [x] Prueba `pnpm pruebas:etiquetas-aprobar` (10 casos, ROLLBACK, paso en `ci.yml`): pendiente → aprobar sin comentario falla, con comentario pasa; reactivar rechazada pide comentario nuevo; líder y rol con Etiquetas aprueban, sin el módulo no; una pendiente no entra al alta ni a «Prendas». Mutación hecha: quitar la exigencia del trigger pone en rojo 3 casos; aceptar pendientes en el alta, 1.
+- [ ] **Decide Felipe:** desde `20260923130000` quien puede editar etiquetas crea etiquetas ya aprobadas y quien no, no ve la pestaña: por pantalla nadie propone ya una etiqueta pendiente (solo la API directa, `POST /api/productos/etiquetas`, abierta a cualquier sesión, o las de antes del 23-sep). Si la colaboradora debe poder proponer una etiqueta que falta (desde Nuevo producto, como con tallas, tejidos y patrones), es una pantalla nueva y una decisión de negocio; hoy no existe en `main`.
+- [ ] Verificar en producción cuántas etiquetas `pendiente` hay (consulta de solo lectura): si hay, se aprueban con esta pantalla, con comentario.
+- [ ] **Decide Felipe:** la migración `20260917230000` decía «exigir motivo siempre» para cualquier propuesta pero solo lo puso en Etiquetas (Tallas ya lo tenía; Colores, Tejidos y Patrones siguen de un clic, como dice el ADR-0095). ¿Se completa o se corrige el texto de esa migración? La base no se toca sin su ok.
+- Cómo verificas: en Catálogo ▸ Atributos ▸ Etiquetas, con una etiqueta «Pendiente», «Aprobar» → escribe el comentario → «Confirmar aprobación». La etiqueta sale de Pendiente y el comentario aparece en el ícono (i) junto al nombre. Con el campo vacío, el botón queda apagado.
+
+## 🏷️ Categorías: los candados pasan a la tabla, tallas en orden y prefijo a la vista (2026-09-26) — migración `20260927200000` **YA en producción** (2026-09-26); rama `claude/categorias-mejoras`
+Del análisis [`docs/pantallas/productos-categorias.md`](pantallas/productos-categorias.md) (2026-09-21), Felipe ordenó el lote #2, #4, #5, #6 y parte de #10.
+- [x] **#2 Candados en la tabla.** El disparador `categorias_vigencia_candados` (`fn_categorias_vigencia_candados`) cumple, sea quien sea el que escriba: prefijo fijo con productos de cualquier estado; no desactivar con productos activos; no activar sin familia, sin prefijo o con la familia apagada. Antes vivía solo en las RPC, y así quedó «Blusas» desactivada con un producto activo.
+- [x] **#4 Reactivar valida.** Lo cubre el mismo disparador (sin reescribir `reactivar_categoria`). La «Polos» huérfana pasa a llamarse «Polos (V1, retirada)», con la nota en `notas`; la pantalla ya no le ofrece «Reactivar».
+- [x] **#5 Tallas en orden de tienda** (`compararTallas`) en Editar y en la Vista rápida.
+- [x] **#6 El prefijo se ve bloqueado** antes de guardar: «Fijo: N productos lo usan». `fn_productos_por_categoria` devuelve `n_total`.
+- [x] **#10 (parte)** Ícono de Accesorios (ya no parece candado) y el ejemplo «Kimonos / KIM».
+- [x] **`20260927200000` aplicada en producción (2026-09-26)**, tras un ensayo revertido contra los datos reales (los tres candados frenaron; renombrar pasó; dos pasadas). Las 5 consultas del pie dan lo esperado; `md5(prosrc)` de las dos funciones = el del archivo (`bec1a61e…`, `1e3afe55…`); permisos solo `authenticated`.
+- [x] Diccionario refrescado desde producción (foto 2026-09-26 23:17 UTC: 135 relaciones, 612 funciones; las 957 huellas coinciden). `datos:comparar` sin pantallas rotas tras corregir su lectura de `.rpc("x", ayudante({…}))`; `ajustes_inventario_intentos` recibió pájaro (Halcón).
+- [ ] Hueco hermano, fuera de este lote: un producto todavía puede apuntar a una categoría **inactiva** por UPDATE directo en `productos` (el alta y la edición lo impiden en la RPC). Toca el núcleo (`productos`): decide Felipe.
+- [ ] Del análisis quedan: #3 cabecera (hoy cuadra), #7 Editar en pasos, #8 una sola RPC, #9 más pruebas de pantalla, resto de #10, #11 (decide Felipe), #12.
+- Prueba nueva: `scripts/pruebas/categorias_candados.mjs` (`pnpm pruebas:categorias-candados`). **No corre en CI todavía:** la sesión no podía tocar `.github/workflows/`. Falta el paso junto a `pruebas:editar-marca` y sacarla de `EXCLUIDAS` en `lib/ci-paridad.test.ts`; su primera corrida real será esa.
+- Cómo verificas:
+  - **#2:** en el SQL Editor, `update retail.categorias set activo = false where nombre = 'Camisas y Blusas';` falla diciendo cuántos productos activos tiene.
+  - **#4:** en «Desactivadas», «Polos (V1, retirada)» dice «No se reactiva» en vez del botón.
+  - **#5:** Editar «Tops» → tallas «XS S M L XL XXL … Estándar».
+  - **#6:** Editar «Camisas y Blusas» → el prefijo sale gris, con «Fijo: N productos lo usan» (N ≥ 5: cuenta también los descontinuados).
+
+## 🧭 Análisis conectado: «Qué hacer», por prenda y celular (2026-09-26, ADR-0245) + Pedir a otra sede (ADR-0242 tanda 4) — web + migración `20260927210000` **SIN PEGAR en producción (pide OK de Felipe)**; rama `claude/analysis-screen-redesign-8ce079`
+Spike `docs/maquetas/analisis-conectado-2026-09/` (lo elegido marcado ✓).
+- [x] Cifras en palabras de tienda (2 × 2 en celular); «Qué hacer» con 4 grupos + «Pidieron y no había»; gráficos plegados.
+- [x] Tabla por prenda con «Por talla» a un toque (`?ver=talla`); cada fila con su botón (`accionPrincipal`, `lib/analisis-que-hacer.ts`).
+- [x] Detalle de la prenda, marcar varias (Bajar / Trasladar / Etiquetas), «Escanear prenda» en el celular.
+- [x] Defectos: barra de scroll de las pestañas, columnas montadas en «Por talla», aviso de Comparar cuando A es anterior al historial.
+- [x] «Pedir a otra sede» para todas (ADR-0242 D-7): migración + `PedidosEntreSedes` («Te piden / Pediste») en Traslados + `PedirAOtraSedeModal`.
+- [ ] **Pegar `20260927210000_pedir_a_otra_sede.sql` en producción** (una parte; sin políticas ni `drop trigger`) → fusionar → publicar → refrescar volcado y `pnpm datos:comparar`.
+- [ ] Verlo con una cuenta real (líder e integrante) y datos de TRU; la cámara en un teléfono.
+- [ ] «Reponer» con la lista cargada: `/compras/nueva` y `/produccion/ordenes` no leen `?variantes=` (hoy el botón abre la pantalla vacía).
+- [ ] «Pedir a otra sede» con la migración sin pegar muestra el error crudo de la base: un mensaje amable si falta la función.
+- [ ] `lib/resumen-acciones.ts` (`resolverAccion`) sigue sin uso: lo reemplazó `analisis-que-hacer.ts`. Borrarlo con sus pruebas en un PR aparte.
+- Cómo verificas: en `/inventario/resumen` de TRU, toca «Se agotaron» → la tabla muestra solo esas prendas y cada una trae Bajar al piso / Pedir a… / Reponer; marca dos → la barra lleva a `/inventario/bajar?lineas=…:1`; a 375 px, «Escanear prenda» abajo y tarjetas sin scroll lateral.
 
 ## 🏷️ Etiquetas a la vista en Nuevo producto (2026-09-26, ADR-0109 act.) — solo web, sin migración; rama `claude/product-creation-tags-options-ace599`
 Pedido de Felipe (captura del paso 3): «¿dónde están las opciones de etiquetas? Tiene que aparecer para poner varias, tipo Shopify».
@@ -80,7 +141,7 @@ Tareas #9, #10 y #11 del análisis `/pantalla` de Existencias.
 - [x] **#9.** «Pedir para una clienta» en «Dónde más hay». Usa el pedido para apartar de ADR-0233, el mismo modal de Apartados.
 - [x] **#10.** «Tallas» en vez de «variantes». La tarjeta distingue lo que pide reponer de lo que está por colgar.
 - [x] **#11.** Permisos del detalle, marcas, bajada con borrador y código repetido, con pruebas. Se arreglaron dos defectos: lo marcado se perdía con una bajada a medias, y un código repetido abría la primera prenda.
-- [ ] **Traslados, tanda 4 (ADR-0242 D-7):** pedir reposición SIN clienta. Necesita migración y la lista «Hoy te toca» (tanda 2). No se hizo aquí.
+- [x] **Traslados, tanda 4 (ADR-0242 D-7):** pedir reposición SIN clienta — construida en `claude/analysis-screen-redesign-8ce079` (ver «Análisis conectado» arriba; migración `20260927210000` sin pegar).
 - Cómo verificas: Existencias → una prenda → toca una talla que haya en otra tienda → «Pedir para una clienta» abre «Pedir a Tienda X para apartar».
 
 ## 🔎 Existencias: la letra chica cumple y las lecturas no tumban (2026-09-26, ADR-0237 act.) — solo web, sin migración; rama `claude/existencias-letra-chica-y-lecturas` (sobre la del #516)
@@ -124,7 +185,7 @@ Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
 - [x] **#1.** «Ajustar inventario» guarda todo en una sola llamada (`ajustar_inventario`): todo o nada, con marca de reintento. Si se corta la red, los campos quedan fijos y el reintento no duplica.
 - [ ] **ANTES de publicar: Felipe revisa en Roles y accesos** qué roles necesitan «Bajada al piso» y «Apartados». Al 2026-09-25, las Terminal Almacén y de ventas reponían con «Reponer» (ADR-0208) y, sin el módulo, lo pierden.
 - [x] **`20260927180000` y `20260927180100` aplicadas en producción** (2026-09-26). La web ya estaba publicada: el #514 se fusionó antes de pegarlas, y durante unos minutos las cuatro acciones fallaron. Huellas idénticas a local (ADR-0240, «Aplicación en producción»).
-- [ ] Pegar `20260927180200` (los `revoke`): ya es seguro, la web usa las puertas nuevas.
+- [x] **`20260927180200` (los `revoke`) pegada por Felipe el 2026-09-26** y verificada: `authenticated` ya no ejecuta `mover_interno` ni `apartar_stock`.
 - [ ] **Terminal Almacén y Terminal de ventas** ven Existencias sin «Bajada al piso» ni «Apartados»: hoy no ven «Reponer», «Retirar» ni «Apartar». Felipe decide si se los enciende.
 - [ ] Refrescar el volcado (`pnpm datos:refrescar`).
 - [ ] Verlo con una cuenta sin los módulos.
@@ -135,6 +196,32 @@ Tareas #3 (opción A de Felipe) y #1 del análisis `/pantalla` de Existencias.
   - `pnpm pruebas:existencias-candados-y-ajuste` (33/33).
   - Con una cuenta sin «Bajada al piso», en una prenda por colgar no aparece «Reponer al piso» y la talla dice «pídesela a quien tenga el módulo».
   - En «Ajustar», con la red cortada al confirmar: aparece «no sabemos si llegó a guardarse» y los campos quedan fijos.
+
+## 🏷️ Ficha de producto: lo que no se edita no lo parece; el costo, a mano solo hasta la primera compra (2026-09-26, ADR-0243) — web y migración `20260927190000` **SIN pegar en producción**; rama `claude/productos-ficha-variantes`
+Nace de la revisión de Productos con capturas de producción. Felipe dijo «vamos en orden»: 1a y 1c primero.
+- [x] **1a · Color, talla y código de una variante existente, de solo lectura.**
+  - Antes se podían cambiar, la base los ignoraba y el guardado decía «guardado».
+  - La fila muestra ahora el código que lee la pistola, no el SKU.
+  - Código: `fija` en `ProductoForm.tsx`.
+- [x] **1c · El costo se corrige a mano solo hasta la primera compra** (D-134; Felipe eligió entre tres opciones).
+  - La base lo exige con el disparador `variantes_costo_hasta_la_primera_compra`.
+  - La ficha muestra de solo lectura el costo oficial (`fn_variantes_con_costo_oficial`).
+  - Un campo vacío ya no guarda 0.
+  - Corregir un costo declarado se anota `costo_declarado` y no marca la prenda «alterada».
+- [ ] **Pegar `20260927190000` en producción ANTES de fusionar.** Trae `set search_path` y es re-pegable. Parcha
+      `fn_registrar_cambio_producto` sobre su definición viva: si el ancla no aparece exactamente una vez, aborta sin
+      tocar nada.
+- [ ] Después de pegar, correr la consulta del final de la migración: cuenta las prendas sin compras que ya quedaron
+      «alteradas» por correcciones anteriores.
+- Siguen de la misma revisión, en este orden:
+  - limpieza de productos de prueba (decisión de Felipe: ¿esconder `es_prueba` del catálogo?);
+  - 1d, tallas en orden S-M-L en la vista rápida y la Tabla;
+  - 1e, colores que se cortan en la tarjeta;
+  - 1f, la foto de la grilla ignora «Principal»;
+  - 1b, el margen sin IGV (decisión de Felipe pendiente).
+- Cómo verificas:
+  - En una prenda con compras, Editar: el costo sale como texto y el color, la talla y el código no se pueden cambiar.
+  - En una prenda de la carga inicial sin compras, el costo se corrige y se guarda.
 
 ## 🧺 Existencias tras el análisis del #500: Ajustar sin «Bajada al piso» y bajada por escanear (2026-09-26, ADR-0235 y ADR-0237 act.) — solo web, sin migración; rama `claude/ajustar-carga-inicial-sin-bajada`
 Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`docs/pantallas/inventario.md`](pantallas/inventario.md) (cumple 5/10, relevancia 7.8). Felipe ordenó la #2 y la #4.
@@ -268,7 +355,7 @@ Análisis `/pantalla` de la Existencias del PR #500, sin SQL de producción: [`d
 - [ ] Verlo con una integrante o la terminal de TRU recibiendo una caja de verdad.
 - [x] **Traslados conectado · spike** (`docs/maquetas/traslados-conectado-2026-09/`, PR #515): Felipe eligió «Hoy te toca», escanear + buscar, guía QR + WhatsApp, las cuatro conexiones y un solo Nuevo traslado en `/inventario/traslados/nuevo` (ADR-0242).
 - [ ] ADR-0242 tanda 1: Nuevo traslado (ruta nueva + redirección de `/inventario/mover`, escaneo y búsqueda con foto, destino en botones, llegada por día, «Volver» según el origen). Sin migración.
-- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: «Pedir a otra sede» (extiende `separacion_pedidos`, clienta opcional; **migración con OK de Felipe**, diseñar el agrupado antes). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
+- [ ] ADR-0242 tanda 2: lista «Hoy te toca» con pedidos de otras tiendas (ADR-0233) y sugeridos (Análisis). Tanda 3: «Lo siguiente» al recibir + guía con QR + WhatsApp. Tanda 4: **construida** en `claude/analysis-screen-redesign-8ce079` (ADR-0242 «Tanda 4 construida»; migración `20260927210000` sin pegar). Tanda 5: «Traslados · N por recibir» en Existencias, después de #514/#516/#517.
 
 ## ↩️ Devoluciones conectada y hecha para el celular (2026-09-26, ADR-0232) — solo web, sin migración; rama `claude/devoluciones-screen-improvements-a0f325`
 
@@ -842,10 +929,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
 - [ ] **1b:** guía de solo lectura por recepción (llegaron / ya bajadas / faltan) y «Bajadas de hoy».
 - [ ] Antes del bloque 3: comparar en producción, prenda por prenda, el stock con el libro (SELECT de solo lectura).
   Si no cuadran, las bajadas salen «dudosas» y el indicador no tiene con qué medir.
-- [ ] **`fn_ledger_puntos` más rápido** (lo midió el bloque 1): cambiar `variante_id = any(p_variante_ids)` por un
-  semi-join (`in (select unnest(…))`) en sus tres lugares baja `fn_bajadas_del_piso` de unos 560 a unos 330 ms a 120
-  días, con las mismas filas. Va en una migración nueva (la `20260924030000` ya está en producción), con la regla de
-  ADR-0195 y una nota en ADR-0202. Hoy igual queda bajo 1 s por tienda.
+- [x] ~~**`fn_ledger_puntos` más rápido** (lo midió el bloque 1): cambiar `variante_id = any(p_variante_ids)` por un
+  semi-join (`in (select unnest(…))`) en sus tres lugares~~: hecho en `20260928120010_ledger_semijoin.sql` (paso 1 de
+  Frescura 3c, rama `claude/frescura-3c-terreno`; nota en ADR-0202). Con carga sintética, `fn_bajadas_del_piso` a 120
+  días pasa de 489-506 a 295-307 ms, con 0 filas distintas.
+  - [ ] **Pegar `20260928120010` en producción** (sola, a cualquier hora; si el cuerpo vivo cambió, la guarda md5 aborta
+    sin tocar nada). Después, el md5 de `fn_ledger_puntos` debe dar `a3d9fb69f32e0df2bb7f082e4b14215b`.
 - [ ] Preguntas abiertas del bloque 1 (ADR-0208, punto (g)): ¿La exclusión de `prendas_por_regularizar` debe valer
   también en Análisis (`fn_es_venta_de_stock`)? ¿20 bajadas cerradas y 10 minutos para el indicador? ¿Hay pistola en
   el almacén donde se abre el fardo y etiqueta legible en cada prenda? ¿Se corrigen `CONTRIBUTING.md` §1 y ADR-0010,
@@ -885,11 +974,11 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
     `problema_reposicion` («revisar reposición»), y la consulta 05 del termómetro. Hasta entonces el semáforo le pide al
     turno siguiente volver a bajar lo que se guardó: el aviso solo lo ve quien retira, y la nota solo se lee en el
     detalle de un movimiento.
-  - [ ] Contrato del bloque 3: un retiro correctivo DESPUÉS de una bajada no la netea en `fn_bajadas_del_piso` (se
-    escanearon 10, se colgaron 6, se retiran 4: la bajada sigue en 10). Netear también los retiros de la misma prenda en
-    [t, t + ventana], además de [t − ventana, t].
-  - [ ] Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
-    minutos sale «tardía» (límite anotado en ADR-0208).
+  - [x] ~~Contrato del bloque 3: un retiro correctivo DESPUÉS de una bajada no la netea en `fn_bajadas_del_piso` (se
+    escanearon 10, se colgaron 6, se retiran 4: la bajada sigue en 10)~~: construido en el paso 2 de Frescura 3c
+    (`20260928120200`, `cantidad_efectiva`; prueba T25). **Sin pegar:** ver «3c · paso 2», más abajo.
+  - [x] ~~Prueba en `scripts/pruebas/frescura_bajadas.mjs`: retiro equivocado → re-bajada → venta en la ventana de 10
+    minutos sale «tardía»~~: con el paso 2 de 3c sale «corregida» sin tardías (T24).
   - [x] Probado en el navegador (2026-09-25, ruta temporal ya borrada, sin base): el formulario no cambia de alto al
     escribir (536 px con y sin aviso), el recorrido va bajo el título, «no alcanza» sale con su texto propio (no la
     burbuja del navegador), un corte de red da el mensaje honesto sin recargar la página, una respuesta que nunca llega
@@ -910,7 +999,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   piden ese módulo, así que sin él esas 3 terminales ya no los tienen.
 - [ ] **Bloque 3, decisiones tomadas el 2026-09-26** (ADR-0208, «Actualización 2026-09-26 — decisiones del bloque 3», y
   ADR-0246). Se construye en tres pasos, cada uno con su PR:
-  - [ ] **3a · Temporadas (ADR-0246):** pestaña «Temporadas» en Productos ▸ Atributos con 9 valores (Primavera-Verano,
+  - [x] **3a · Temporadas: CONSTRUIDO el 2026-09-26, NO está en producción** (rama `claude/frescura-3a-temporadas`).
+    Pegar `20260928100000` (partes 1 a 5, cada una sola, y la 6 para verificar: 9 temporadas, 12 fechas, 3 llaves, 1
+    alta) **ANTES de fusionar su web**: la ficha de hoy tiene la temporada como texto libre y, con la llave foránea
+    puesta, un texto a mano no se guardaría. Prueba: `pnpm pruebas:temporadas` (25). Detalle: ADR-0246, «Construcción».
+    Pendiente: confirmar las fechas desde el verano 2026-27 cuando SENAMHI las publique; agregar 2029 antes de fin de
+    2028. Lo que decía el plan: **3a · Temporadas (ADR-0246):** pestaña «Temporadas» en Productos ▸ Atributos con 9 valores (Primavera-Verano,
     Primavera, Verano, Otoño-Invierno, Otoño, Invierno y tres clásicos), calendario por año con las fechas de SENAMHI
     (ajustable solo el año en curso), una por prenda (color → producto → categoría), opcional en el alta, lista «Sin
     temporada». Retira el texto libre `productos.temporada` (vacío en producción).
@@ -919,6 +1013,44 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
   - [ ] **3c · La pantalla de Frescura** (módulo nuevo, solo del líder al nacer): semáforo contra la propia sede con la
     referencia de CAYLA, niveles «Pocos datos / Aceptable / Sólido», fin de estación con sugerencias, indicador de
     confianza (líder; y las Terminal de ventas con su propio pasado y un enlace discreto al ranking, como módulo aparte).
+    - [x] **Paso 2 · Núcleo de bajadas: CONSTRUIDO el 2026-09-27, NO está en producción** (rama
+      `claude/frescura-3c-bajadas`). `fn_bajadas_del_piso` pasa a envolver un núcleo interno
+      (`fn_bajadas_del_piso_nucleo`, mismo candado de líder) y el núcleo descuenta los retiros de la misma talla
+      (`retiradas_en_ventana`, `cantidad_efectiva`, estado `corregida`): cada retiro va a UNA sola bajada (la más
+      cercana a 10 minutos o menos; empate, la de antes del retiro), el piso de antes es el nivel justo antes más lo
+      retirado en los 10 minutos previos, y marca la carga inicial (`es_carga_inicial`). Regla corregida el 2026-09-27
+      antes de pegar: la primera versión tomaba el nivel más alto de la ventana (absorbía ventas) y descontaba un retiro
+      de dos bajadas. Casos que cambian respecto de producción: T9, T14 y el ejemplo de ADR-0208 (c). Prueba:
+      `pnpm pruebas:frescura-bajadas` (160: la revisión por mutantes del 2026-09-27 sumó el borde de `p_hasta`, dos
+      retiros que se suman, la «dudosa» que un retiro no tapa, el retiro previo que evita una tardía y los bordes de T31;
+      la revisión 2, la guarda con la PUERTA parchada, cuarentena ↔ almacén, dos retiros y dos ventas iguales y T32; la
+      revisión 3, los gemelos de T32, el único retiro de la tienda fuera del rango, el borde de `p_hasta` con retiros,
+      «cerrada» no es final y la guarda de la `120100` con el núcleo parchado).
+      **Revisión 2 (2026-09-27): el cálculo se rehízo sin cruces entre pasos calculados** — con historia de otra tienda,
+      el anterior (y el de producción) se iba fila por fila: 60 días de 0,13 a 2,97 s. Mismas filas; +6 % sin retiros.
+      Detalle: ADR-0208, «Paso 2 construido (2026-09-27)», su «Revisión 2» y su «Revisión 3».
+      - [x] **Decisión del piso de antes (2026-09-27): se queda la regla vigente.** El piso de antes suma todo lo
+        retirado en los 10 minutos previos, aunque la regla le haya dado ese retiro a otra bajada. El libro no distingue
+        «colgaron de más» (A, T32) de «retiro por error» (B, los gemelos de T32): la regla vigente nunca culpa a quien
+        corrige (B: 0 tardías) y a cambio puede esconder una tardía en A (T30, T32). Se descartó la «variante C» (sumar
+        solo lo retirado antes que se le asignó a ESA bajada): atrapa A pero culpa a quien corrige en B (2 tardías a la
+        re-bajada). Se rompe si una colaboradora cuelga menos de lo escaneado, retira el sobrante y en 10 minutos otra
+        baja la misma talla y se vende: esa tardía no se ve. Lo que los distingue es el motivo del retiro del 3b. Con esta
+        regla, que lo que sobra de un retiro no pase a la bajada siguiente ya no deja una tardía falsa (no hace falta
+        decidirlo aparte). Detalle: ADR-0208, «Límites» del paso 2.
+      - [ ] **Para el indicador del paso 3:** una fila «cerrada» todavía puede cambiar hasta 20 minutos (2W) después de
+        la bajada (T33: una bajada posterior se lleva su retiro y la «corregida» pasa a «tardia»). Si la cifra no debe
+        moverse, contar solo las bajadas de hace más de 2W. Detalle: ADR-0208, «Límites».
+      - [ ] **Revisión 3, fuera de este arreglo:** 13 de los 38 cambios de la revisión por mutantes siguen pasando la
+        prueba (la marca de carga con dos cargas de la misma prenda en 10 minutos, el orden de salida de dos bajadas del
+        mismo instante, el borde exacto de `p_hasta + 2W` y seis filtros de `internos`/`juntas`/el libro; dos son
+        equivalentes). Revisarlos uno por uno antes del paso 3. Lista: ADR-0208, «Revisión 3».
+      - [ ] **Pegar `20260928120100` y `20260928120200` en producción, en ese orden** (cada una sola; a cualquier hora;
+        solo funciones). Después, `md5(prosrc)`: puerta `34a7e0cc5f421333761e8bda92a582eb`; núcleo
+        `8d38d6dd6c657ab06b2e8a7c0b66a53b` tras la primera y `fcfd2c4b2c4f24dd2184eb2cd7a12678` tras la segunda (desde
+        la revisión 3; `08bfa7b8…` era el de la revisión 2 y nunca se pegó). Si el cuerpo vivo cambió (la puerta o el
+        núcleo, en las dos guardas), aborta sin tocar nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo
+        (hoy el diccionario no conoce el núcleo ni las columnas nuevas).
   - [ ] **Aparte:** módulo «Ajustar stock» separado de Existencias (PR de roles; nace solo para el líder).
 - [ ] **Bloque 3 · La pantalla de Frescura (diseño original)** (módulo nuevo, solo del líder al nacer), más el indicador de «confianza del
   registro» por sede:

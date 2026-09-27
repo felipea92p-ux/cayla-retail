@@ -537,6 +537,7 @@ export type Database = {
           nombre: string
           notas: string | null
           prefijo: string | null
+          temporada: string | null
         }
         Insert: {
           activo?: boolean
@@ -546,6 +547,7 @@ export type Database = {
           nombre: string
           notas?: string | null
           prefijo?: string | null
+          temporada?: string | null
         }
         Update: {
           activo?: boolean
@@ -555,6 +557,7 @@ export type Database = {
           nombre?: string
           notas?: string | null
           prefijo?: string | null
+          temporada?: string | null
         }
         Relationships: [
           {
@@ -3786,6 +3789,7 @@ export type Database = {
           id: string
           limitado_como_hoy: boolean
           nombre: string
+          pantalla_principal: string | null
           version: number
         }
         Insert: {
@@ -3800,6 +3804,7 @@ export type Database = {
           id?: string
           limitado_como_hoy?: boolean
           nombre: string
+          pantalla_principal?: string | null
           version?: number
         }
         Update: {
@@ -3814,9 +3819,18 @@ export type Database = {
           id?: string
           limitado_como_hoy?: boolean
           nombre?: string
+          pantalla_principal?: string | null
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "roles_pantalla_principal_fkey"
+            columns: ["pantalla_principal"]
+            isOneToOne: false
+            referencedRelation: "modulos"
+            referencedColumns: ["clave"]
+          },
+        ]
       }
       roles_historial: {
         Row: {
@@ -4896,6 +4910,7 @@ export type Database = {
       fn_costos_variantes_json: { Args: { p_ids?: string[] }; Returns: Json }
       fn_soles_diferencia_conteo: { Args: { p_conteo_id: string }; Returns: number }
       fn_catalogo_version: { Args: never; Returns: number }
+      fn_variantes_con_costo_oficial: { Args: { p_ids: string[] }; Returns: string[] }
       fn_vencer_separaciones: {
         Args: { p_ubicacion_id: string }
         Returns: number
@@ -4929,6 +4944,35 @@ export type Database = {
       separar_pedido_para_apartar: {
         Args: { p_datos: Json; p_pedido_id: string }
         Returns: string
+      }
+      pedir_a_otra_sede: {
+        Args: { p_lineas: Json; p_nota?: string; p_origen_id: string; p_token?: string; p_ubicacion_id: string }
+        Returns: string
+      }
+      enviar_pedido_a_otra_sede: {
+        Args: { p_fecha_estimada_llegada: string; p_grupo_id: string; p_token?: string }
+        Returns: string
+      }
+      cancelar_pedido_a_otra_sede: {
+        Args: { p_grupo_id: string; p_motivo?: string }
+        Returns: undefined
+      }
+      fn_pedidos_entre_sedes: {
+        Args: { p_ubicacion_id: string }
+        Returns: {
+          cancelado_motivo: string | null
+          created_at: string
+          creado_por_nombre: string | null
+          direccion: string
+          estado: string
+          grupo_id: string
+          lineas: Json
+          nota: string | null
+          otra_sede: string
+          otra_sede_id: string
+          traslado_id: string | null
+          traslado_numero: number | null
+        }[]
       }
       fn_pedidos_para_apartar: {
         Args: { p_ubicacion_id: string }
@@ -5244,6 +5288,56 @@ export type Database = {
         }
         Returns: number
       }
+      asignar_temporada_categoria: {
+        Args: { p_categoria_id: string; p_temporada: string | null }
+        Returns: undefined
+      }
+      asignar_temporadas: {
+        Args: { p_items: Json; p_solo_sin_temporada?: boolean }
+        Returns: number
+      }
+      fijar_fechas_temporada: {
+        Args: { p_fechas: Json }
+        Returns: number
+      }
+      fn_calendario_estaciones: {
+        Args: never
+        Returns: {
+          anio: number
+          editable: boolean
+          en_curso: boolean
+          estacion: string
+          fuente: string
+          hasta: string | null
+          inicio: string
+        }[]
+      }
+      fn_ocurrencia_temporada: {
+        Args: { p_fecha: string; p_temporada: string }
+        Returns: { desde: string; hasta: string | null }[]
+      }
+      fn_temporada_efectiva: {
+        Args: { p_producto_id?: string }
+        Returns: {
+          color_codigo: string | null
+          estado: string
+          origen: string | null
+          producto_id: string
+          temporada: string | null
+        }[]
+      }
+      fn_temporadas: {
+        Args: never
+        Returns: {
+          clave: string
+          es_clasico: boolean
+          estacion_desde: string | null
+          estacion_hasta: string | null
+          mitad: string | null
+          nombre: string
+          orden: number
+        }[]
+      }
       crear_producto_con_stock_inicial: {
         Args: {
           p_al_piso?: boolean
@@ -5256,6 +5350,7 @@ export type Database = {
           p_proveedor_id?: string
           p_referencia: string
           p_tejido_id?: string
+          p_temporada?: string
           p_token?: string
           p_ubicacion_id?: string
           p_variantes: Json
@@ -6490,10 +6585,12 @@ export type Database = {
       fn_rol_dentro_de_lo_mio: { Args: { p_rol_id: string }; Returns: boolean }
       // 20260923174500: «solo alcanzas a quien está por debajo de ti».
       fn_fuera_de_mi_alcance: { Args: never; Returns: { persona_id: string }[] }
+      // 20260925220000: Inicio módulo apagable + pantalla principal por rol.
+      fn_mi_pantalla_principal: { Args: never; Returns: string | null }
       // 20260925210000: la foto de perfil de Dynamic (ruta en el bucket fotos-perfil) de cada colaborador pedido.
       fn_fotos_personas: { Args: { p_ids: string[] }; Returns: { persona_id: string; foto_ruta: string }[] }
       guardar_modulos_rol: {
-        Args: { p_modulos: string[]; p_rol_id: string; p_version_esperada?: number }
+        Args: { p_modulos: string[]; p_pantalla_principal?: string | null; p_rol_id: string; p_version_esperada?: number }
         Returns: number
       }
       renombrar_rol: {

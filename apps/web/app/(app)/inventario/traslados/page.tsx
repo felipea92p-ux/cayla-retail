@@ -4,6 +4,9 @@ import { puede, requirePersonaActualV2 } from "@/lib/persona-actual";
 import { getTrasladosDeLaSede, type TrasladoResumen } from "@/lib/traslados";
 import { horaLima } from "@/lib/traslados-reglas";
 import { TrasladosPanel } from "@/components/TrasladosPanel";
+import { PedidosEntreSedes } from "@/components/PedidosEntreSedes";
+import { getPedidosEntreSedes } from "@/lib/pedidos-entre-sedes";
+import { hayPedidosQueMostrar } from "@/lib/pedidos-entre-sedes-reglas";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
 
 // Traslados en dos fases (20260916150000): lo que antes era instantáneo
@@ -24,7 +27,11 @@ const LIMITE_CERRADOS = 30;
 
 export default async function TrasladosPage() {
   const persona = await requirePersonaActualV2();
-  const { enCurso, cerrados, vacios, cerradosLeidos } = await getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS);
+  // «Pedir a otra sede» (ADR-0242 D-7) se lee en paralelo y es secundario: si falla, la tarjeta no aparece y la lista sigue.
+  const [{ enCurso, cerrados, vacios, cerradosLeidos }, pedidos] = await Promise.all([
+    getTrasladosDeLaSede(persona.ubicacionId, LIMITE_CERRADOS),
+    getPedidosEntreSedes(persona.ubicacionId),
+  ]);
   const puedeAjustar = puede(persona, "ajustarInventario");
   // Las dos lecturas corren en paralelo y son dos fotos de la base: un traslado que se cerró entre ellas
   // podría salir en ambas. Gana la de «cerrados», que es la más nueva — y así nunca hay dos filas iguales.
@@ -46,6 +53,16 @@ export default async function TrasladosPage() {
           </Link>
         }
       />
+
+      {/* Pedidos de reposición entre tiendas (ADR-0242 D-7), de la sede activa. Solo si hay algo: nunca una tarjeta vacía.
+          Lugar provisional hasta la bandeja «Hoy te toca» (tanda 2). */}
+      {hayPedidosQueMostrar(pedidos) && (
+        <PedidosEntreSedes
+          key={`pedidos-${persona.ubicacionId}`}
+          pedidos={pedidos}
+          ubicacion={{ ubicacionId: persona.ubicacionId, etiqueta: persona.ubicacionEtiqueta }}
+        />
+      )}
 
       {/* `key` por sede: al cambiar de sede con el selector, los filtros y la búsqueda de la sede anterior no se
           arrastran (una sede elegida en «Más filtros» ni siquiera existiría en la nueva). */}

@@ -48,6 +48,11 @@ export const AVIARIO = [
       "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
       // ADR-0181: la versión del catálogo que suben los disparadores de las tablas de arriba. Refresco del 2026-09-23.
       "catalogo_version",
+      // ADR-0246 (Frescura, paso 3a): la temporada como atributo del producto — el calendario de fechas por año/estación,
+      // la lista cerrada de temporadas y a qué temporada quedó cada color de cada producto. La cambia quien puede editar
+      // el catálogo (ADR-0246 §"quién decide"), igual que colores/tallas/tejidos arriba. Asignadas en el refresco del
+      // volcado del 2026-09-27.
+      "temporada_fechas", "temporadas", "producto_color_temporadas",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -64,6 +69,9 @@ export const AVIARIO = [
       // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
       // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
       "movimientos_internos_intentos",
+      // La marca de reintento de `ajustar_inventario` (ADR-0240): un ajuste reenviado tras un corte no se aplica dos veces.
+      // Misma razón que la de arriba: es parte del movimiento. Asignada en el refresco del 2026-09-26 (noche).
+      "ajustes_inventario_intentos",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },

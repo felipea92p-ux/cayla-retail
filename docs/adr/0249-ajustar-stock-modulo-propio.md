@@ -1,9 +1,9 @@
-# ADR-0247 · «Ajustar stock» se separa de Existencias, como módulo propio
+# ADR-0249 · «Ajustar stock» se separa de Existencias, como módulo propio
 
 - **Fecha:** 2026-09-27 · **Estado:** propuesto, sin pegar en producción.
 - **Pedido:** Felipe, 2026-09-26: sacar «Ajustar stock» de Existencias y darle su propio módulo en Roles y accesos,
   que nace disponible SOLO para el líder.
-- **Migración:** `20260928110000_ajustar_stock_modulo_propio.sql`.
+- **Migración:** `20260928130000_ajustar_stock_modulo_propio.sql`.
 - **Complementa:**
   - ADR-0161/0178: un rol decide solo «ve/no ve» por módulo; «solo das lo que tienes».
   - ADR-0240: «una puerta, un candado» — este ADR cierra la puerta que el 0240 dejó abierta a propósito.
@@ -78,7 +78,7 @@ esta puerta afuera a propósito (BACKLOG: «Existencias: una puerta, un candado�
 
 ## Cómo se despliega (producción: con el visto bueno de Felipe)
 
-1. Se pega `20260928110000` sola (crea un módulo y reemplaza dos funciones; sin políticas ni `alter` de tablas en uso).
+1. Se pega `20260928130000` sola (crea un módulo y reemplaza dos funciones; sin políticas ni `alter` de tablas en uso).
 2. Felipe revisa en Roles y accesos si algún rol necesita «Ajustar stock» ahora mismo (recomendado: ninguno, se delega
    después) y lo enciende si corresponde, ANTES de que las integrantes lo necesiten.
 3. Se publica la web.

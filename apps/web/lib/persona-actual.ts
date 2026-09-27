@@ -59,6 +59,10 @@ export type PersonaActualV2 = {
    *  su tienda si su rol ve un módulo de Compras, más las que el líder le sumó en `compradores_de_tienda` (la persona de
    *  Compras que atiende varias, R-10). Vacía para el líder (ve todas, no necesita la lista) y para quien no ve Compras. */
   tiendasCompra: { id: string; nombre: string }[];
+  /** A qué módulo aterriza esta cuenta al abrir `/` (20260925220000): lo que su rol eligió, o `null` sin preferencia
+   *  (la web calcula la primera pantalla que ve, `aterrizajeDe` en `lib/menu.ts`). `null` también si la base todavía
+   *  no tiene `fn_mi_pantalla_principal()`: nada cambia, sigue como hoy. Ausente para una terminal (no participa). */
+  pantallaPrincipal: string | null;
 };
 
 // Mismo nombre que en app/actions/ubicacion.ts — no se comparte como
@@ -98,12 +102,14 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     { data: filasModulos, error: errorModulos },
     { data: miPersonaId, error: errorPersonaId },
     { data: soyAdmin },
+    { data: pantallaPrincipal, error: errorPantallaPrincipal },
   ] = await Promise.all([
     supabase.rpc("fn_persona_actual_resumen").maybeSingle(),
     supabase.rpc("fn_mi_terminal"),
     supabase.rpc("fn_mis_modulos"),
     supabase.rpc("fn_actor_persona_id", { p_de_tienda: false }),
     supabase.rpc("fn_es_admin"),
+    supabase.rpc("fn_mi_pantalla_principal"),
   ]);
 
   if (error || !data || !data.ubicacion_id) {
@@ -170,6 +176,7 @@ export const requirePersonaActualV2 = cache(async (): Promise<PersonaActualV2> =
     permisos,
     modulos,
     tiendasCompra,
+    pantallaPrincipal: !terminal && !errorPantallaPrincipal && typeof pantallaPrincipal === "string" ? pantallaPrincipal : null,
   };
 });
 

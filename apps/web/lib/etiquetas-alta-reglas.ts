@@ -1,8 +1,9 @@
 import { clave } from "./buscar-prenda-v2";
 import type { EtiquetaAlta } from "./alta-producto-datos";
+import { estiloConocido, GRUPOS_ETIQUETA, ORDEN_GRUPOS_ETIQUETA, type EstiloEtiqueta } from "./etiqueta-grupos";
 
-// Las reglas del campo «Etiquetas» del alta de un producto (el que se ve como el de Shopify: escribes, eliges varias, y si
-// no existe la creas). Todo lo que decide QUÉ se ofrece y QUÉ pasa con lo escrito vive acá, puro y probado: el
+// Las reglas del campo «Etiquetas» del alta de un producto (todas las etiquetas a la vista por grupo, elegir varias, buscar, y si
+// no existe crearla). Todo lo que decide QUÉ se ofrece y QUÉ pasa con lo escrito vive acá, puro y probado: el
 // componente (`ElegirEtiquetas`) solo pinta lo que esto calcula.
 //
 // CONTRATO
@@ -48,29 +49,30 @@ export function repartirEtiquetas(
   return { elegibles, cubiertas, ocultasPorDescuento };
 }
 
-/**
- * Lo que la lista desplegable muestra: las elegibles que todavía no se eligieron y cuyo nombre contiene lo escrito, con la
- * MÁS PARECIDA primero: igual, después las que empiezan con lo escrito y al final las que solo lo contienen (el orden de
- * entrada, alfabético, desempata). Sin este orden, Enter agregaba la primera alfabética: escribir «Sale» agregaba «Outlet
- * Sale» (con su 50 % de descuento) en vez de «Sale».
- */
-export function filtrarEtiquetas(elegibles: readonly EtiquetaAlta[], yaElegidas: readonly string[], texto: string): EtiquetaAlta[] {
+/** ¿El nombre contiene lo escrito? Sin tildes ni mayúsculas ni espacios de más; sin texto, todas coinciden. */
+export function coincideConTexto(et: Pick<EtiquetaAlta, "nombre">, texto: string): boolean {
   const k = claveEtiqueta(texto);
-  const rango = (et: EtiquetaAlta) => {
-    const c = claveEtiqueta(et.nombre);
-    return c === k ? 0 : c.startsWith(k) ? 1 : 2;
-  };
-  return elegibles
-    .filter((et) => !yaElegidas.includes(et.id) && (!k || claveEtiqueta(et.nombre).includes(k)))
-    .map((et, i) => ({ et, i, r: k ? rango(et) : 0 }))
-    .sort((a, b) => a.r - b.r || a.i - b.i)
-    .map((x) => x.et);
+  return !k || claveEtiqueta(et.nombre).includes(k);
 }
 
-/** «20 % dto», «12,5 % dto»: lo que la campaña descuenta, tal cual (no se redondea: 12,5 no es 13), si descuenta. */
+export type GrupoDeEtiquetas = { estilo: EstiloEtiqueta; nombre: string; punto: string; etiquetas: EtiquetaAlta[] };
+
+/** Las etiquetas por grupo, en el orden y con los nombres de Atributos (`lib/etiqueta-grupos.ts`), y dentro de cada grupo por
+ *  nombre. Un grupo sin etiquetas no sale. Un estilo desconocido cae en «General»: ninguna etiqueta queda sin lugar. */
+export function agruparEtiquetas(etiquetas: readonly EtiquetaAlta[]): GrupoDeEtiquetas[] {
+  return ORDEN_GRUPOS_ETIQUETA.map((estilo) => ({
+    estilo,
+    nombre: GRUPOS_ETIQUETA[estilo].grupo,
+    punto: GRUPOS_ETIQUETA[estilo].dot,
+    etiquetas: etiquetas.filter((e) => estiloConocido(e.estilo) === estilo).sort((a, b) => a.nombre.localeCompare(b.nombre, "es")),
+  })).filter((g) => g.etiquetas.length > 0);
+}
+
+/** «20 % dto», «12.5 % dto»: lo que la campaña descuenta, tal cual (no se redondea: 12.5 no es 13), si descuenta. Mismo formato
+ *  que Catálogo ▸ Atributos ▸ Etiquetas (`es-PE`). */
 export function textoDeDescuento(et: Pick<EtiquetaAlta, "descuentoPct">): string | null {
   if (et.descuentoPct === null) return null;
-  return `${String(Number(et.descuentoPct.toFixed(2))).replace(".", ",")} % dto`;
+  return `${et.descuentoPct.toLocaleString("es-PE", { maximumFractionDigits: 2 })} % dto`;
 }
 
 /**

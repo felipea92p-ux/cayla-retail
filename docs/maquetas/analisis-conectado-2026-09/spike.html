@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Análisis conectado · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+/* ====================================================================
+   SPIKE VISUAL · Análisis conectado, computadora y celular (2026-09-26)
+   Felipe eligió las cuatro conexiones (Bajar al piso/Trasladar, Etiquetas
+   para rebajar, Pedidos no atendidos, Reponer por Compras/Producción) y
+   pidió VER, no elegir a ciegas, tres cosas: cómo se lista la tabla, qué
+   va arriba y qué pasa con Comparar. La barra oscura (no existe en el ERP)
+   alterna esas opciones y el rol (líder / integrante).
+   Tokens = apps/web/app/globals.css (ADR-0169). Cabecera = EncabezadoPagina
+   (ADR-0220). Hojas = efecto de <Modal> (ADR-0136). Celular sin barra de
+   navegación (ADR-0206). Regla de oro (ADR-0121): Análisis SUGIERE, nunca
+   mueve stock — cada botón lleva a la pantalla que ya hace el trabajo.
+   Datos inventados. Los botones no navegan: muestran a dónde irían.
+   ==================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-p:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--verde:#48603f;--ambar:#74501a;--pizarra:#4c5d6e;
+  --t80:rgba(26,26,24,.8);--t65:rgba(26,26,24,.65);--t50:rgba(26,26,24,.5);--t35:rgba(26,26,24,.35);--t10:rgba(26,26,24,.10);--t06:rgba(26,26,24,.06);
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,sans-serif;color:var(--tinta);background:#ddd5c6;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5;min-height:100vh}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.serif{font-family:'EB Garamond',Georgia,serif;font-weight:400}
+.lbl{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:10.5px;color:var(--t65)}
+svg.ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.num{font-variant-numeric:tabular-nums}
+
+/* ── barra del demo (no existe en el ERP) ── */
+.spk{position:sticky;top:0;z-index:90;background:var(--tinta);color:var(--crema);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:flex-end;font-size:12.5px}
+.spk .tit{font-family:'EB Garamond',serif;font-size:19px;margin-right:6px;align-self:center}
+.spk .g{display:flex;flex-direction:column;gap:4px}
+.spk .g>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:rgba(245,240,232,.55)}
+.seg{display:flex;border:1px solid rgba(245,240,232,.25);border-radius:8px;overflow:hidden}
+.seg button{padding:5px 10px;color:rgba(245,240,232,.75);white-space:nowrap}
+.seg button+button{border-left:1px solid rgba(245,240,232,.18)}
+.seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta);font-weight:600}
+.spk .rec{font-size:9.5px;color:#e9c79a;margin-left:3px}
+
+.nota-spk{max-width:1500px;margin:18px auto 0;padding:0 24px;color:var(--t80);font-size:13px}
+.nota-spk b{font-weight:600}
+.escena{display:grid;grid-template-columns:minmax(0,1fr) 395px;gap:28px;padding:18px 24px 24px;align-items:start;max-width:1800px;margin:0 auto}
+@media (max-width:1180px){.escena{grid-template-columns:1fr}.col-tel{justify-self:center}}
+.rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--t65);margin:0 0 8px 4px}
+
+/* ── marcos ── */
+.marco{position:relative;background:var(--crema);border-radius:14px;overflow:hidden;box-shadow:0 30px 64px -22px rgba(26,26,24,.28);border:1px solid rgba(26,26,24,.08)}
+.marco-pc{height:940px}
+.marco-tel{width:395px;height:820px;border-radius:44px;border:10px solid var(--tinta);background:var(--crema)}
+.scroll{position:absolute;inset:0;overflow:auto;scrollbar-width:thin}
+.marco-tel .scroll{padding-bottom:100px}
+
+/* ── app de computadora ── */
+.app{display:grid;grid-template-columns:196px minmax(0,1fr);min-height:100%}
+.lat{background:var(--crema);border-right:1px solid var(--sand);padding:20px 12px;position:sticky;top:0;height:940px}
+.lat .logo{display:flex;align-items:center;gap:8px;padding:0 8px 18px;letter-spacing:.3em;font-weight:600;font-size:13px}
+.lat .logo i{width:22px;height:18px;border:1.5px solid var(--rojo);border-radius:60% 10% 60% 10%;display:block}
+.lat a{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;color:var(--t80);font-size:13.5px;text-decoration:none}
+.lat a.sub{padding-left:26px;font-size:13px}
+.lat a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.top{height:54px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:flex-end;gap:14px;padding:0 22px}
+.top .sede{border:1px solid var(--sand);border-radius:8px;padding:4px 10px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.main{padding:24px 28px 120px}
+
+/* ── cabecera (EncabezadoPagina) ── */
+.cab{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.hilo{display:flex;align-items:center;gap:10px;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.hilo:before{content:"";width:30px;height:1px;background:var(--taupe)}
+h1.tit{font-family:'EB Garamond',serif;font-weight:400;font-size:46px;line-height:1.05;margin:10px 0 6px;letter-spacing:-.01em}
+.frase{color:var(--t65);max-width:520px}
+.act{font-size:11px;color:var(--t50);display:flex;align-items:center;gap:5px;margin-top:6px}
+.btn{display:inline-flex;align-items:center;gap:7px;border-radius:9px;padding:7px 13px;font-size:13px;font-weight:500;border:1px solid var(--sand);background:var(--papel);white-space:nowrap;transition:background .2s var(--ease),border-color .2s}
+.btn:hover{border-color:var(--taupe)}
+.btn.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.btn.sut{background:transparent;border-color:transparent;color:var(--t80)}
+.btn.chico{padding:5px 10px;font-size:12.5px;border-radius:8px}
+.btn.enl{border:0;background:none;padding:0;text-decoration:underline;text-underline-offset:3px;font-weight:600;font-size:12.5px}
+
+/* ── pestañas (arreglo: sin barra de scroll ni texto cortado) ── */
+.pest{display:flex;gap:4px;border-bottom:1px solid var(--sand);margin-top:16px}
+.pest button{padding:4px 14px 10px;font-size:14px;font-weight:600;color:var(--taupe);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.pest button[aria-selected=true]{color:var(--tinta);border-color:var(--rojo)}
+
+/* ── barra de período y búsqueda ── */
+.barra{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;margin-top:18px}
+.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.pil{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--sand);background:var(--papel);border-radius:99px;padding:4px 12px;font-size:12.5px;white-space:nowrap;transition:background .2s,border-color .2s}
+.pil:hover{border-color:var(--taupe)}
+.pil.on{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.pil .d{color:var(--t50);font-variant-numeric:tabular-nums}
+.pil.on .d{color:rgba(245,240,232,.6)}
+.pil .pt{width:7px;height:7px;border-radius:50%}
+.buscar{display:flex;align-items:center;gap:8px;background:var(--hueso);border-radius:10px;padding:0 6px 0 12px;height:38px;flex:1 1 100%;order:9;min-width:0}
+.barra .orden{margin-left:auto}
+.buscar input{flex:1;border:0;background:transparent;outline:none;font-size:13.5px;min-width:0}
+.buscar input::placeholder{color:var(--t50)}
+.buscar .cam{display:inline-flex;align-items:center;gap:6px;background:var(--papel);border:1px solid var(--sand);border-radius:8px;padding:4px 9px;font-size:12.5px;font-weight:500}
+.orden{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--sand);background:var(--papel);border-radius:9px;padding:7px 11px;font-size:13px;white-space:nowrap}
+.orden .lbl{font-size:9.5px}
+.vs{font-size:12px;color:var(--t65);display:flex;align-items:center;gap:6px}
+.vs .sw2{width:26px;height:15px;border-radius:99px;background:var(--verde);position:relative}
+.vs .sw2:after{content:"";position:absolute;right:2px;top:2px;width:11px;height:11px;border-radius:50%;background:var(--papel)}
+
+/* ── cifras ── */
+.cifras{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:16px}
+.cifra{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:13px 14px;text-align:left}
+.cifra .lbl{display:flex;align-items:center;gap:6px;font-size:10px}
+.cifra .v{font-family:'EB Garamond',serif;font-size:31px;line-height:1.1;margin-top:6px}
+.cifra .v small{font-family:'DM Sans';font-size:13px;color:var(--t65);margin-left:4px}
+.cifra .v .ant{font-size:19px;color:var(--t50)}
+.cifra p{font-size:12px;color:var(--t65);margin-top:2px}
+.delta{display:inline-flex;align-items:center;gap:3px;font-size:12px;font-weight:600;border-radius:99px;padding:0 7px;margin-top:4px}
+.delta.up{color:var(--verde);background:rgba(72,96,63,.1)}
+.delta.dn{color:var(--ambar);background:rgba(116,80,26,.1)}
+.delta span{font-weight:400;color:var(--t65)}
+.cifra.boton{cursor:pointer;transition:border-color .2s}
+.cifra.boton:hover{border-color:var(--taupe)}
+
+/* ── «Qué hacer» ── */
+.qh-tit{display:flex;align-items:baseline;gap:10px;margin-top:22px}
+.qh-tit h2{font-family:'EB Garamond',serif;font-weight:400;font-size:23px}
+.qh-tit p{font-size:12.5px;color:var(--t65)}
+.qh{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin-top:10px}
+.gr{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px 13px 11px;text-align:left;display:flex;flex-direction:column;gap:6px;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.gr:hover{border-color:var(--taupe)}
+.gr.on{border-color:var(--tinta);background:#f6efe4;box-shadow:inset 0 0 0 1px var(--tinta)}
+.gr .cab-g{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px}
+.gr .pt{width:8px;height:8px;border-radius:50%;flex:none}
+.gr .n{font-family:'EB Garamond',serif;font-size:28px;line-height:1}
+.gr .n small{font-family:'DM Sans';font-size:12px;color:var(--t65);margin-left:3px}
+.gr .q{font-size:12px;color:var(--t65);line-height:1.35;min-height:32px}
+.gr .ir{margin-top:auto;display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--tinta)}
+.gr .ir svg{width:14px;height:14px}
+.sinbase{margin-top:8px;font-size:12.5px;color:var(--t65);display:flex;gap:6px;align-items:center}
+.sinbase b{font-weight:600;color:var(--t80)}
+
+/* ── gráficos ── */
+.graf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+.gcard{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:14px 16px}
+.gcard h3{font-family:'EB Garamond',serif;font-weight:400;font-size:19px}
+.gcard p.s{font-size:12px;color:var(--t65)}
+.barras{display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:14px;border-bottom:1px solid var(--sand)}
+.barras div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;font-size:11px;color:var(--t65)}
+.barras i{display:block;width:100%;max-width:34px;border-radius:5px 5px 0 0;background:var(--taupe)}
+.barras i.a{background:var(--sand)}
+.ejes{display:flex;gap:10px;font-size:11px;color:var(--t65);margin-top:4px}
+.ejes span{flex:1;text-align:center}
+.top5{display:grid;gap:8px;margin-top:12px}
+.top5 div{display:grid;grid-template-columns:118px 1fr 34px;gap:8px;align-items:center;font-size:12.5px}
+.top5 .b{height:7px;border-radius:99px;background:var(--hueso);overflow:hidden}
+.top5 .b i{display:block;height:100%;background:var(--taupe);border-radius:99px}
+.top5 span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+details.plegar{margin-top:16px}
+details.plegar summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--t80);list-style:none;display:inline-flex;gap:6px;align-items:center}
+details.plegar summary::-webkit-details-marker{display:none}
+
+/* ── tarjeta tabla ── */
+.tarjeta{background:var(--papel);border:1px solid var(--sand);border-radius:16px;margin-top:18px;overflow:hidden}
+.t-cab{padding:16px 18px 10px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-content:space-between}
+.t-cab h2{font-family:'EB Garamond',serif;font-weight:400;font-size:22px;line-height:1.1}
+.t-cab p{font-size:12px;color:var(--t65)}
+.t-fil{padding:0 18px 12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.vista{margin-left:auto;display:flex;border:1px solid var(--sand);border-radius:8px;overflow:hidden;font-size:12px}
+.vista button{padding:4px 10px}
+.vista button[aria-pressed=true]{background:var(--hueso);font-weight:600}
+.t-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;font-weight:500;color:var(--t65);text-align:left;padding:9px 10px;background:var(--hueso);white-space:nowrap;vertical-align:bottom}
+th small{display:block;font-size:10px;color:var(--t50);font-weight:400}
+td{padding:10px;border-top:1px solid var(--sand);vertical-align:middle;font-size:13px}
+tr.fila{cursor:pointer;transition:background .15s}
+tr.fila:hover{background:#f6f1e8}
+tr.fila.sel{background:#f3ece0}
+.c{text-align:center}
+.apag{color:var(--t35)}
+.chk{width:17px;height:17px;border:1.5px solid var(--taupe);border-radius:5px;display:inline-grid;place-items:center;background:var(--papel);flex:none;cursor:pointer}
+.chk.on{background:var(--tinta);border-color:var(--tinta)}
+.chk.on:after{content:"";width:8px;height:4px;border:2px solid var(--crema);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.prenda{display:flex;align-items:center;gap:10px;min-width:0}
+.foto{width:36px;height:44px;border-radius:7px;flex:none;position:relative;overflow:hidden;background:var(--hueso)}
+.foto i{position:absolute;inset:6px 7px 0;border-radius:40% 40% 4px 4px}
+.prenda .n{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prenda .m{font-size:11.5px;color:var(--t65);white-space:nowrap;display:flex;align-items:center;gap:5px}
+.sw{width:10px;height:10px;border-radius:50%;border:1px solid rgba(26,26,24,.2);display:inline-block}
+.curva{display:flex;gap:4px}
+.tl{display:inline-flex;flex-direction:column;align-items:center;min-width:38px;border-radius:7px;padding:3px 4px;background:var(--hueso);font-size:11px;line-height:1.25}
+.tl b{font-weight:600;font-size:10px;color:var(--t65)}
+.tl .q{font-variant-numeric:tabular-nums;font-weight:600}
+.tl .s{font-size:9.5px;color:var(--t50);font-variant-numeric:tabular-nums}
+.tl.cero{background:transparent;box-shadow:inset 0 0 0 1px var(--sand)}
+.tl.cero .q{color:var(--t35)}
+.tl.agot{box-shadow:inset 0 0 0 1.5px var(--rojo)}
+.tl.agot .s{color:var(--rojo)}
+.tend{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;font-size:12.5px}
+.tend.up{color:var(--verde)}.tend.dn{color:var(--ambar)}.tend.eq{color:var(--t65)}
+.qhc{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:2px 9px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.rojo{color:var(--rojo);background:rgba(184,65,45,.09)}
+.chip.ambar{color:var(--ambar);background:rgba(116,80,26,.1)}
+.chip.verde{color:var(--verde);background:rgba(72,96,63,.1)}
+.chip.pizarra{color:var(--pizarra);background:rgba(76,93,110,.1)}
+.chip.gris{color:var(--t65);background:var(--t06)}
+.accion{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--tinta);border-radius:8px;padding:3px 9px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--papel);transition:background .2s}
+.accion:hover{background:var(--tinta);color:var(--crema)}
+.accion svg{width:13px;height:13px}
+.accion.sec{border-color:var(--sand);font-weight:500}
+.porque{font-size:11.5px;color:var(--t65);max-width:230px;line-height:1.35}
+.pie{padding:11px 18px;border-top:1px solid var(--sand);display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--t65)}
+.nota{margin-top:16px;background:var(--hueso);border-radius:12px;padding:11px 14px;font-size:12.5px;color:var(--t80);display:flex;gap:9px;align-items:flex-start}
+
+/* ── barra de marcadas ── */
+.lote{position:absolute;left:50%;bottom:18px;transform:translate(-50%,140%);background:var(--tinta);color:var(--crema);border-radius:14px;padding:9px 10px 9px 16px;display:flex;align-items:center;gap:8px;box-shadow:0 18px 40px -12px rgba(26,26,24,.5);transition:transform .35s var(--ease);z-index:30;white-space:nowrap}
+.lote.ver{transform:translate(-50%,0)}
+.lote .cuenta{font-size:13px;margin-right:6px}
+.lote .cuenta b{font-weight:600}
+.lote button.l{display:inline-flex;align-items:center;gap:6px;background:rgba(245,240,232,.1);border-radius:9px;padding:6px 11px;font-size:12.5px;font-weight:500}
+.lote button.l:hover{background:rgba(245,240,232,.2)}
+.lote button.x{color:rgba(245,240,232,.6);padding:4px 6px}
+
+/* ── hoja / panel (efecto <Modal>) ── */
+.velo{position:absolute;inset:0;background:rgba(26,26,24,.28);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s var(--ease);z-index:40}
+.velo.ver{opacity:1;pointer-events:auto}
+.hoja{position:absolute;z-index:41;background:var(--papel);overflow:auto;transition:transform .38s var(--ease),opacity .25s}
+.marco-pc .hoja{top:0;right:0;bottom:0;width:470px;border-left:1px solid var(--sand);transform:translateX(104%)}
+.marco-pc .hoja.ver{transform:none}
+.marco-tel .hoja{left:0;right:0;bottom:0;max-height:88%;border-radius:22px 22px 0 0;transform:translateY(104%)}
+.marco-tel .hoja.ver{transform:none}
+.hoja .asa{width:40px;height:4px;border-radius:99px;background:var(--sand);margin:8px auto 0}
+.h-in{padding:18px 20px 24px}
+.hoja.ver .h-in>*{animation:cascada .42s var(--ease) both}
+.hoja.ver .h-in>*:nth-child(2){animation-delay:.055s}.hoja.ver .h-in>*:nth-child(3){animation-delay:.11s}.hoja.ver .h-in>*:nth-child(4){animation-delay:.165s}.hoja.ver .h-in>*:nth-child(5){animation-delay:.22s}.hoja.ver .h-in>*:nth-child(n+6){animation-delay:.275s}
+@keyframes cascada{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.h-cab{display:flex;gap:12px;align-items:flex-start}
+.h-cab .foto{width:48px;height:58px}
+.h-cab h3{font-family:'EB Garamond',serif;font-weight:400;font-size:25px;line-height:1.1}
+.h-cab .cerrar{margin-left:auto;color:var(--t65);padding:2px}
+.h-sec{margin-top:18px}
+.h-sec>.lbl{display:block;margin-bottom:8px}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mini div{background:var(--crema);border-radius:10px;padding:8px 10px}
+.mini .v{font-family:'EB Garamond',serif;font-size:22px;line-height:1.1}
+.mini p{font-size:11px;color:var(--t65)}
+.ttab{width:100%;font-size:12.5px}
+.ttab th{background:transparent;padding:5px 6px;font-size:11px;border-bottom:1px solid var(--sand)}
+.ttab td{padding:7px 6px;font-size:12.5px}
+.acc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acc-grid button{display:flex;align-items:center;gap:8px;border:1px solid var(--sand);border-radius:10px;padding:9px 11px;font-size:13px;font-weight:500;text-align:left;background:var(--papel)}
+.acc-grid button:hover{border-color:var(--taupe)}
+.acc-grid button.pri{background:var(--tinta);color:var(--crema);border-color:var(--tinta);grid-column:1/-1}
+.acc-grid button small{display:block;font-size:11px;font-weight:400;color:var(--t65)}
+.acc-grid button.pri small{color:rgba(245,240,232,.65)}
+.red{display:grid;gap:6px}
+.red div{display:flex;justify-content:space-between;background:var(--crema);border-radius:9px;padding:7px 10px;font-size:12.5px}
+.tec{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px}
+.tec span:nth-child(odd){color:var(--t65)}
+.bloq{font-size:11.5px;color:var(--t50);display:flex;gap:5px;align-items:center}
+
+/* ── aviso «a dónde iría» ── */
+.toast{position:fixed;top:66px;right:20px;z-index:100;background:var(--tinta);color:var(--crema);border-radius:12px;padding:10px 14px;font-size:12.5px;max-width:430px;box-shadow:0 16px 36px -12px rgba(0,0,0,.45);opacity:0;transform:translateY(-8px);transition:opacity .25s,transform .3s var(--ease);pointer-events:none}
+.toast.ver{opacity:1;transform:none}
+.toast code{display:block;margin-top:4px;font-size:11.5px;color:#e9c79a;word-break:break-all}
+
+/* ── celular ── */
+.tel-top{height:52px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--sand);background:var(--crema);position:sticky;top:0;z-index:20}
+.tel-top .logo{letter-spacing:.3em;font-weight:600;font-size:12px}
+.tel-top .sede{margin-left:auto;border:1px solid var(--sand);border-radius:8px;padding:3px 8px;font-size:10.5px;letter-spacing:.1em;font-weight:600;background:var(--papel)}
+.tm{padding:16px 16px 20px}
+.tm h1.tit{font-size:36px;margin-top:8px}
+.tm .frase{font-size:13px}
+.tm .barra{margin-top:14px;gap:8px}
+.tm .buscar{min-width:0;height:40px;flex:1 1 100%}
+.tm .cifras{grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.tm .cifra{padding:10px 11px}
+.tm .cifra .v{font-size:25px}
+.tm .cifra p{font-size:11px}
+.tm .qh{grid-template-columns:1fr;gap:6px}
+.tm .gr{flex-direction:row;align-items:center;padding:10px 12px;gap:10px}
+.tm .gr .n{font-size:22px;min-width:34px;text-align:right}
+.tm .gr .q{min-height:0;font-size:11.5px}
+.tm .gr .ir{margin:0 0 0 auto;font-size:12px}
+.tm .gr .txt{flex:1;min-width:0}
+.tm .graf{grid-template-columns:1fr}
+.tm .pest{margin-top:12px}
+.tarj{background:var(--papel);border:1px solid var(--sand);border-radius:14px;padding:12px;margin-top:8px}
+.tarj.sel{border-color:var(--tinta);box-shadow:inset 0 0 0 1px var(--tinta)}
+.tarj .fila1{display:flex;gap:10px;align-items:flex-start}
+.tarj .fila1 .txt{flex:1;min-width:0}
+.tarj .dat{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--t65);margin-top:8px}
+.tarj .dat b{color:var(--tinta);font-weight:600}
+.tarj .curva{margin-top:8px;flex-wrap:wrap}
+.tarj .pie-t{display:flex;align-items:center;gap:8px;margin-top:10px}
+.tarj .pie-t .accion{padding:7px 12px;font-size:12.5px}
+.tarj .porque{max-width:none;margin-top:6px}
+.fijo{position:absolute;left:12px;right:12px;bottom:14px;z-index:30;display:flex;gap:8px}
+.fijo .esc{flex:1;display:flex;justify-content:center;align-items:center;gap:8px;background:var(--tinta);color:var(--crema);border-radius:14px;padding:13px;font-weight:600;font-size:14px;box-shadow:0 14px 30px -12px rgba(26,26,24,.55)}
+.fijo .lote-t{flex:1;background:var(--tinta);color:var(--crema);border-radius:14px;padding:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;box-shadow:0 14px 30px -12px rgba(26,26,24,.55)}
+.fijo .lote-t .cuenta{grid-column:1/-1;display:flex;justify-content:space-between;font-size:12px;padding:2px 4px 0}
+.fijo .lote-t button.l{background:rgba(245,240,232,.1);border-radius:9px;padding:8px 4px;font-size:12px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:3px}
+.escaner{height:220px;border-radius:14px;background:#2a2826;position:relative;overflow:hidden;margin-top:10px}
+.escaner:before{content:"";position:absolute;inset:40px 50px;border:2px solid rgba(245,240,232,.8);border-radius:12px}
+.escaner:after{content:"";position:absolute;left:56px;right:56px;top:50%;height:2px;background:var(--rojo);box-shadow:0 0 12px var(--rojo)}
+.escaner p{position:absolute;bottom:10px;left:0;right:0;text-align:center;color:rgba(245,240,232,.8);font-size:12px}
+</style>
+</head>
+<body>
+
+<div class="spk" id="spk">
+  <span class="tit">Análisis conectado · spike</span>
+  <div class="g"><span>Tabla</span><div class="seg" data-k="tabla">
+    <button data-v="prenda">Por prenda</button><button data-v="talla">Por talla</button><button data-v="interr">Interruptor <b class="rec">✓</b></button></div></div>
+  <div class="g"><span>Arriba</span><div class="seg" data-k="arriba">
+    <button data-v="qh">«Qué hacer»</button><button data-v="qhg">«Qué hacer» + gráficos <b class="rec">✓</b></button><button data-v="graf">Solo gráficos</button></div></div>
+  <div class="g"><span>Comparar</span><div class="seg" data-k="comparar">
+    <button data-v="cifra">En cada cifra</button><button data-v="tabs">Dos pestañas <b class="rec">✓</b></button><button data-v="no">Sin comparar</button></div></div>
+  <div class="g"><span>Quién mira</span><div class="seg" data-k="rol">
+    <button data-v="lider">Líder</button><button data-v="integ">Integrante</button></div></div>
+</div>
+
+<p class="nota-spk">✓ = lo que elegiste (2026-09-26); las otras opciones quedan para comparar. Cambia «Quién mira» a Integrante para ver «Pedir a AQP» (solicitud: la otra sede la envía). Toca un grupo de «Qué hacer», una fila, una casilla o un botón de acción: <b>ningún botón mueve stock</b>, te muestra a qué pantalla te llevaría y con qué lista. En el celular, «Escanear prenda» abre el análisis de una sola prenda.</p>
+
+<div class="escena">
+  <div>
+    <p class="rot">Computadora · 1440 px</p>
+    <div class="marco marco-pc" id="pc"></div>
+  </div>
+  <div class="col-tel">
+    <p class="rot">Celular · 375 px</p>
+    <div class="marco marco-tel" id="tel"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ───────────── íconos ───────────── */
+const I={
+  bajar:'<path d="M12 4v12M6 10l6 6 6-6M5 20h14"/>',
+  mover:'<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+  etiq:'<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
+  repo:'<path d="M3 7h18l-2 12H5z"/><path d="M8 7V5a4 4 0 0 1 8 0v2"/>',
+  pedido:'<path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18z"/><path d="M12 8v5M12 16h.01"/>',
+  top:'<path d="M4 17l5-5 4 4 7-8"/><path d="M15 8h5v5"/>',
+  esperar:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  buscar:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  cam:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  flecha:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  x:'<path d="M6 6l12 12M18 6L6 18"/>',
+  hist:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+  exis:'<path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+  filtro:'<path d="M4 6h16M7 12h10M10 18h4"/>',
+  cand:'<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+};
+const ic=(k,c='ic')=>`<svg class="${c}" viewBox="0 0 24 24">${I[k]}</svg>`;
+
+/* ───────────── datos inventados ───────────── */
+// t: talla · v: vendidas en el período · p/a: piso/almacén HOY · sv: días expuesta sin venta
+const P=[
+ {id:'p1',n:'Blusa Carlita',c:'Blanco',hex:'#f4f1ea',precio:89,g:'agotada',org:'produccion',v:14,va:9,pct:78,pa:61,sv:0,tend:['up',38],
+  tl:[{t:'XS',v:1,p:1,a:0},{t:'S',v:4,p:0,a:2},{t:'M',v:5,p:0,a:1},{t:'L',v:3,p:1,a:0},{t:'XL',v:1,p:1,a:0}],red:{AQP:6,LIM:4},
+  porque:'Vendió 9 en S y M y el piso quedó en 0; hay 3 en almacén.'},
+ {id:'p2',n:'Polo Básico M/corta',c:'Arena',hex:'#c8a57e',precio:49,g:'agotada',org:'compra',v:11,va:12,pct:92,pa:88,sv:0,tend:['eq',-4],
+  tl:[{t:'S',v:3,p:0,a:0},{t:'M',v:5,p:0,a:0},{t:'L',v:3,p:1,a:0}],red:{AQP:0,LIM:2},
+  porque:'Se vendió casi todo y ya no queda en almacén: hay que reponer.'},
+ {id:'p3',n:'Vestido Lino',c:'Terracota',hex:'#b8674a',precio:159,g:'duerme',org:'produccion',v:4,va:3,pct:67,pa:50,sv:3,tend:['up',22],
+  tl:[{t:'S',v:1,p:0,a:3},{t:'M',v:2,p:1,a:4},{t:'L',v:1,p:0,a:2}],red:{AQP:2,LIM:0},
+  porque:'Vende cuando está colgado, pero 9 esperan en almacén y el piso tiene 1.'},
+ {id:'p4',n:'Camisa Oxford',c:'Celeste',hex:'#a9c4dc',precio:119,g:'duerme',org:'compra',v:5,va:6,pct:71,pa:70,sv:2,tend:['eq',3],
+  tl:[{t:'S',v:1,p:1,a:2},{t:'M',v:3,p:0,a:5},{t:'L',v:1,p:0,a:3}],red:{AQP:4,LIM:5},
+  porque:'Rota bien en piso, mal en total: el almacén tiene 10 y el piso 1.'},
+ {id:'p5',n:'Falda Plisada',c:'Negro',hex:'#2b2a28',precio:99,g:'estancada',org:'compra',v:0,va:2,pct:0,pa:18,sv:23,tend:['dn',-100],
+  tl:[{t:'S',v:0,p:2,a:1},{t:'M',v:0,p:3,a:2},{t:'L',v:0,p:2,a:0}],red:{AQP:1,LIM:0},vendeEn:'AQP',
+  porque:'23 días colgada sin una venta. En Arequipa vendió 6 este mes.'},
+ {id:'p6',n:'Top Tejido',c:'Mostaza',hex:'#c99a2e',precio:69,g:'estancada',org:'produccion',v:0,va:0,pct:0,pa:0,sv:31,tend:null,
+  tl:[{t:'S',v:0,p:3,a:0},{t:'M',v:0,p:4,a:2},{t:'L',v:0,p:2,a:1}],red:{AQP:5,LIM:3},
+  porque:'31 días colgada sin venta y ninguna sede la vende: toca rebajar.'},
+ {id:'p7',n:'Pantalón Palazzo',c:'Crudo',hex:'#e6dcc8',precio:139,g:'top',org:'produccion',v:12,va:7,pct:55,pa:40,sv:0,tend:['up',41],
+  tl:[{t:'S',v:3,p:2,a:1},{t:'M',v:5,p:3,a:2},{t:'L',v:4,p:2,a:0}],red:{AQP:3,LIM:1},
+  porque:'La que más creció. Tallas bien cubiertas por ahora.'},
+ {id:'p8',n:'Blusa Carlita',c:'Rosa viejo',hex:'#c99a92',precio:89,g:'top',org:'produccion',v:9,va:8,pct:47,pa:44,sv:1,tend:['eq',6],
+  tl:[{t:'S',v:2,p:2,a:1},{t:'M',v:4,p:1,a:3},{t:'L',v:3,p:2,a:1}],red:{AQP:2,LIM:2},
+  porque:'Ritmo sostenido. M queda con 1 en piso y 3 en almacén.'},
+ {id:'p9',n:'Test de Producto 2',c:'Celeste',hex:'#8fb3cf',precio:59,g:'sinbase',org:'compra',v:2,va:0,pct:null,pa:null,sv:1,tend:null,
+  tl:[{t:'S',v:1,p:4,a:0},{t:'L',v:1,p:3,a:0}],red:{AQP:0,LIM:0},
+  porque:'Se colgó hace 4 días: todavía no hay base para juzgarla.'},
+ {id:'p10',n:'Cárdigan Punto',c:'Gris',hex:'#8d8a86',precio:129,g:'ok',org:'produccion',v:6,va:5,pct:35,pa:33,sv:2,tend:['eq',2],
+  tl:[{t:'S',v:2,p:2,a:1},{t:'M',v:2,p:2,a:2},{t:'L',v:2,p:3,a:1}],red:{AQP:2,LIM:1},
+  porque:'Vende parejo y el piso está bien cubierto.'},
+];
+const G={
+  agotada:{t:'Se agotaron',q:'Vendían y el piso quedó vacío',tono:'rojo',col:'var(--rojo)',ic:'repo'},
+  duerme:{t:'Duermen en almacén',q:'Venden al colgarse, pero están guardadas',tono:'ambar',col:'var(--ambar)',ic:'bajar'},
+  estancada:{t:'Estancadas',q:'14+ días colgadas sin una venta',tono:'ambar',col:'var(--ambar)',ic:'etiq'},
+  pedidos:{t:'Pidieron y no había',q:'Lo que la clienta buscó esta semana',tono:'pizarra',col:'var(--pizarra)',ic:'pedido'},
+  top:{t:'Las que más venden',q:'Cuida que no se corten las tallas',tono:'verde',col:'var(--verde)',ic:'top'},
+  sinbase:{t:'Aún sin base',q:'Recién colgadas: esperar',tono:'gris',col:'var(--t50)',ic:'esperar'},
+  ok:{t:'Sin novedad',q:'',tono:'gris',col:'var(--t50)',ic:'info'},
+};
+const PEDIDOS=3;
+
+/* La acción MÁS ADECUADA según lo que dice la prenda (lo que Felipe pidió analizar). Nunca cantidades: ADR-0231. */
+function accion(p,rol){
+  const alm=p.tl.reduce((s,t)=>s+t.a,0);
+  const redTot=Object.values(p.red).reduce((s,n)=>s+n,0);
+  if(p.g==='agotada'){
+    if(alm>0) return {k:'bajar',t:'Bajar al piso',href:'/inventario/bajar?lineas=…',sub:'las tallas vacías que tienen almacén'};
+    const donde=Object.entries(p.red).filter(e=>e[1]>0).sort((a,b)=>b[1]-a[1]);
+    if(rol==='lider'&&redTot>0) return {k:'mover',t:'Pedir traslado',href:'/inventario/mover?origen='+donde[0][0]+'&destino=TRU&lineas=…',sub:'traer de '+donde.map(e=>e[0]).join(' / ')};
+    // La integrante no puede iniciar un traslado desde otra sede (iniciar_traslado exige operar el origen): PIDE, y la otra sede lo envía (patrón de ADR-0233).
+    if(redTot>0) return {k:'mover',t:'Pedir a '+donde[0][0],href:'Solicitud nueva → '+donde[0][0]+' la ve en Traslados › «Te piden» y la envía con un toque',sub:donde[0][0]+' la envía; tú la recibes'};
+    return {k:'repo',t:p.org==='produccion'?'Pedir a Producción':'Reponer en Compras',href:p.org==='produccion'?'/produccion/ordenes?nueva=1&variantes=…':'/compras/nueva?variantes=…',sub:'según cómo se abastece',lider:true};
+  }
+  if(p.g==='duerme') return {k:'bajar',t:'Bajar al piso',href:'/inventario/bajar?lineas=…',sub:'lo que espera en almacén'};
+  if(p.g==='estancada'){
+    if(p.vendeEn) return {k:'mover',t:'Trasladar a '+p.vendeEn,href:'/inventario/mover?origen=TRU&destino='+p.vendeEn+'&lineas=…',sub:'donde sí se vende'};
+    return {k:'etiq',t:'Rebajar',href:'/etiquetas-de-precio?variantes=…',sub:'imprimir etiquetas nuevas'};
+  }
+  if(p.g==='top'){
+    const corta=p.tl.some(t=>t.p<=1&&t.a>0);
+    return corta?{k:'bajar',t:'Bajar al piso',href:'/inventario/bajar?lineas=…',sub:'la talla que se está cortando'}:null;
+  }
+  return null;
+}
+const CHIP={agotada:['rojo','Se agotó'],duerme:['ambar','Duerme en almacén'],estancada:['ambar','Estancada'],top:['verde','Vende bien'],sinbase:['gris','Recién colgada'],ok:['gris','Sin novedad']};
+
+/* ───────────── estado ───────────── */
+const S={tabla:'interr',arriba:'qhg',comparar:'tabs',rol:'lider',grupo:null,sel:new Set(),vistaT:'prenda',tab:'des',det:{pc:null,tel:null},esc:false,per:'30'};
+
+/* ───────────── piezas compartidas ───────────── */
+const foto=p=>`<span class="foto"><i style="background:${p.hex}"></i></span>`;
+const prendaCelda=(p,extra='')=>`<div class="prenda">${foto(p)}<div style="min-width:0"><div class="n">${p.n}</div><div class="m"><span class="sw" style="background:${p.hex}"></span>${p.c}${extra}</div></div></div>`;
+const tend=p=>{
+  if(!p.tend) return '<span class="apag">—</span>';
+  const [d,n]=p.tend; const f={up:'↑',dn:'↓',eq:'→'}[d];
+  const txt=S.comparar==='cifra'?`${n>0?'+':''}${n}% <span class="apag" style="font-size:11px">vs ant.</span>`:({up:'Aceleró',dn:'Desaceleró',eq:'Estable'}[d]);
+  return `<span class="tend ${d}">${f} ${txt}</span>`;
+};
+const curva=(p,chica)=>`<div class="curva">${p.tl.map(t=>{
+  const cls=t.v===0?'cero':(t.p===0?'agot':'');
+  return `<span class="tl ${cls}" title="${t.t}: vendió ${t.v} · hoy ${t.p} piso / ${t.a} almacén"><b>${t.t}</b><span class="q">${t.v}</span>${chica?'':`<span class="s">${t.p} · ${t.a}</span>`}</span>`;}).join('')}</div>`;
+const chipDe=p=>{const [t,x]=CHIP[p.g];return `<span class="chip ${t}"><i></i>${x}</span>`;};
+const botonAccion=(p,sec)=>{
+  const a=accion(p,S.rol); if(!a) return p.g==='sinbase'?'<span class="apag" style="font-size:12px">Esperar</span>':'<span class="apag">—</span>';
+  return `<button class="accion ${sec?'sec':''}" data-ir="${a.href}" data-que="${a.t}" data-p="${p.id}">${ic(a.k)}${a.t}</button>`;
+};
+const visibles=()=>P.filter(p=>!S.grupo||p.g===S.grupo);
+const cuenta=g=>P.filter(p=>p.g===g).length;
+
+function cifras(movil){
+  const cmp=S.comparar;
+  const tabCmp=cmp==='tabs'&&S.tab==='cmp';
+  const d=(up,n,txt)=>cmp==='cifra'?`<span class="delta ${up?'up':'dn'}">${up?'↑':'↓'} ${n}<span>vs 30 d antes</span></span>`:'';
+  const ab=(a,b)=>tabCmp?`<span class="ant">${a} → </span>${b}`:b;
+  const lider=S.rol==='lider';
+  return `<div class="cifras">
+    <div class="cifra"><span class="lbl">Vendido</span><div class="v">${ab('S/ 3,940','S/ 4,820')}<small>63 u.</small></div>${d(true,'22%')}${cmp!=='cifra'&&!tabCmp?'<p>63 unidades en 30 días</p>':''}</div>
+    <div class="cifra"><span class="lbl" title="Sell-through de exposición">Vendió de lo colgado</span><div class="v">${ab('31%','38%')}</div>${d(true,'7 pts')}${cmp!=='cifra'?'<p>de lo que estuvo en el piso</p>':''}</div>
+    <div class="cifra boton" data-grupo-ir="agotada"><span class="lbl">Piden algo hoy</span><div class="v" style="color:var(--rojo)">${cuenta('agotada')+cuenta('duerme')+cuenta('estancada')}<small>prendas</small></div><p>${movil?'agotadas, guardadas o quietas':'se agotaron, duermen o están quietas'}</p></div>
+    <div class="cifra"><span class="lbl">Quieto sin vender</span><div class="v">${lider?'S/ 1,870':'23'}<small>${lider?'23 u. a costo':'unidades'}</small></div>${cmp==='cifra'?`<span class="delta dn">↑ 5 u.<span>vs 30 d antes</span></span>`:'<p>14+ días colgadas sin venta</p>'}</div>
+  </div>`;
+}
+function grupos(movil){
+  const orden=['agotada','duerme','estancada','pedidos','top'];
+  return `<div class="qh-tit"><h2>Qué hacer</h2><p>${movil?'Toca un grupo para ver sus prendas':'Toca un grupo: la tabla muestra solo esas prendas y su acción'}</p></div>
+  <div class="qh">${orden.map(g=>{
+    const x=G[g]; const n=g==='pedidos'?PEDIDOS:cuenta(g);
+    const ir={agotada:'Reponer',duerme:'Bajar al piso',estancada:'Trasladar o rebajar',pedidos:'Ver pedidos',top:'Ver tallas'}[g];
+    const on=S.grupo===g?'on':'';
+    if(movil) return `<button class="gr ${on}" data-grupo="${g}"><span class="pt" style="background:${x.col}"></span><div class="txt"><div class="cab-g">${x.t}</div><div class="q">${x.q}</div></div><span class="n">${n}</span></button>`;
+    return `<button class="gr ${on}" data-grupo="${g}"><div class="cab-g"><span class="pt" style="background:${x.col}"></span>${x.t}</div><div class="n">${n}<small>${g==='pedidos'?'pedidos':'prendas'}</small></div><div class="q">${x.q}</div><div class="ir">${ir} ${ic('flecha')}</div></button>`;
+  }).join('')}</div>
+  <p class="sinbase">${ic('esperar')}<span><b>${cuenta('sinbase')} prenda recién colgada</b> no entra en ningún grupo todavía: se juzga cuando lleve 7 días en el piso.</span></p>`;
+}
+function graficos(movil){
+  const sem=[[9,11],[12,14],[8,16],[10,22]];
+  const max=22;
+  const tallas=[['XS',1],['S',17],['M',26],['L',17],['XL',1]];
+  const ma=26;
+  return `<div class="graf">
+   <div class="gcard"><h3>Ventas por semana</h3><p class="s">Unidades · ${S.comparar!=='no'?'claro = mismo tramo del período anterior':'últimas 4 semanas'}</p>
+     <div class="barras">${sem.map(([a,b])=>`<div><span>${b}</span><div style="display:flex;gap:3px;align-items:flex-end;width:100%;justify-content:center;height:100%">${S.comparar!=='no'?`<i class="a" style="height:${a/max*85}%;width:40%"></i>`:''}<i style="height:${b/max*85}%;width:${S.comparar!=='no'?'40%':'60%'}"></i></div></div>`).join('')}</div>
+     <div class="ejes"><span>S1</span><span>S2</span><span>S3</span><span>S4</span></div></div>
+   <div class="gcard"><h3>Qué tallas salen</h3><p class="s">Unidades vendidas por talla, todas las prendas</p>
+     <div class="barras">${tallas.map(([t,n])=>`<div><span>${n}</span><i style="height:${n/ma*85}%;width:60%"></i></div>`).join('')}</div>
+     <div class="ejes">${tallas.map(([t])=>`<span>${t}</span>`).join('')}</div></div>
+   <div class="gcard"><h3>Las que más venden</h3><p class="s">Unidades en el período</p>
+     <div class="top5">${P.slice().sort((a,b)=>b.v-a.v).slice(0,5).map(p=>`<div><span>${p.n} · ${p.c}</span><span class="b"><i style="width:${p.v/14*100}%"></i></span><span class="num" style="text-align:right">${p.v}</span></div>`).join('')}</div></div>
+  </div>`;
+}
+function arriba(movil){
+  if(S.comparar==='tabs'&&S.tab==='cmp') return comparaTab(movil);
+  if(S.arriba==='qh') return grupos(movil);
+  if(S.arriba==='qhg') return grupos(movil)+`<details class="plegar"><summary>${ic('top')} Ver gráficos del período</summary>${graficos(movil)}</details>`;
+  return graficos(movil);
+}
+function comparaTab(movil){
+  return `<div class="nota" style="margin-top:14px">${ic('info')}<span><b>A: 29 jul – 27 ago · B: 28 ago – 26 sep.</b> El historial de esta sede empieza el 1 de setiembre: A se compara solo desde esa fecha y lo que no existía sale como «nuevo», no como 0 → N/D.</span></div>`
+   + `<div class="t-fil" style="padding:12px 0 0">${['Todas · 10','Aceleraron · 3','Frenaron · 2','Nuevas en B · 1'].map((x,i)=>`<span class="pil ${i===0?'on':''}">${x}</span>`).join('')}</div>`;
+}
+
+/* ───────────── tabla (computadora) ───────────── */
+function tablaPC(){
+  const vista=S.tabla==='interr'?S.vistaT:S.tabla;
+  const filas=visibles();
+  const cmpTab=S.comparar==='tabs'&&S.tab==='cmp';
+  const filtros=`<div class="t-fil">
+     ${[['','Todas',P.length],['agotada','Se agotaron',cuenta('agotada')],['duerme','Duermen',cuenta('duerme')],['estancada','Estancadas',cuenta('estancada')],['top','Más venden',cuenta('top')],['sinbase','Sin base',cuenta('sinbase')]].map(([g,t,n])=>`<button class="pil ${(S.grupo||'')===g?'on':''}" data-grupo="${g}">${g?`<span class="pt" style="background:${G[g].col}"></span>`:''}${t} <span class="d">${n}</span></button>`).join('')}
+     ${S.tabla==='interr'?`<div class="vista"><button data-vista="prenda" aria-pressed="${S.vistaT==='prenda'}">Por prenda</button><button data-vista="talla" aria-pressed="${S.vistaT==='talla'}">Por talla</button></div>`:''}
+     <span class="orden" style="${S.tabla==='interr'?'':'margin-left:auto'}"><span class="lbl">Ordenar</span>Piden algo primero ▾</span>
+   </div>`;
+  let cuerpo='';
+  if(vista==='prenda'){
+    cuerpo=`<table><thead><tr><th style="width:34px"><span class="chk ${filas.length&&filas.every(p=>S.sel.has(p.id))?'on':''}" data-todas></span></th><th>Prenda</th><th>Tallas<small>vendidas · hoy piso·almacén</small></th><th class="c">Vendido${cmpTab?'<small>A → B</small>':'<small>en 30 d</small>'}</th><th class="c">Vendió de<small>lo colgado</small></th><th class="c">Sin venta<small>colgada</small></th><th>Tendencia${S.comparar==='cifra'?'<small>vs 30 d antes</small>':''}</th><th>Qué hacer</th></tr></thead><tbody>
+    ${filas.map(p=>`<tr class="fila ${S.sel.has(p.id)?'sel':''}" data-det="${p.id}">
+      <td><span class="chk ${S.sel.has(p.id)?'on':''}" data-chk="${p.id}"></span></td>
+      <td>${prendaCelda(p)}</td>
+      <td>${curva(p)}</td>
+      <td class="c num"><b style="font-weight:600" class="${p.v===0?'apag':''}">${cmpTab?`<span class="apag">${p.va} → </span>`:''}${p.v}</b><div style="font-size:11px;color:var(--t50)">S/ ${(p.v*p.precio).toLocaleString('es-PE')}</div></td>
+      <td class="c num ${p.pct===0?'apag':''}">${p.pct===null?'<span class="apag">aún no</span>':(cmpTab?`<span class="apag">${p.pa}% → </span>`:'')+p.pct+'%'}</td>
+      <td class="c num">${p.sv>=14?`<span style="color:var(--ambar);font-weight:600">${p.sv} días</span>`:(p.v>0&&p.sv<=1?'<span class="apag">vendió hoy</span>':p.sv+' días')}</td>
+      <td>${tend(p)}</td>
+      <td><div class="qhc">${chipDe(p)}${botonAccion(p)}</div></td>
+    </tr>`).join('')}</tbody></table>`;
+  } else {
+    const rows=[];
+    filas.forEach(p=>p.tl.forEach(t=>rows.push([p,t])));
+    cuerpo=`<table><thead><tr><th style="width:34px"><span class="chk"></span></th><th>Prenda / talla</th><th class="c">Hoy<small>piso / almacén</small></th><th class="c">Vendido<small>en 30 d</small></th><th class="c">Ritmo<small>u. por día colgada</small></th><th class="c">Vendió de<small>lo colgado</small></th><th class="c">Sin venta<small>colgada</small></th><th>Qué hacer</th></tr></thead><tbody>
+    ${rows.slice(0,15).map(([p,t])=>{
+      const ag=t.p===0&&t.v>0;
+      return `<tr class="fila" data-det="${p.id}"><td><span class="chk ${S.sel.has(p.id)?'on':''}" data-chk="${p.id}"></span></td>
+      <td>${prendaCelda(p,` · <b style="font-weight:600;color:var(--tinta)">${t.t}</b>`)}</td>
+      <td class="c num">${t.p} / ${t.a}</td><td class="c num ${t.v===0?'apag':''}"><b style="font-weight:600">${t.v}</b></td>
+      <td class="c num ${t.v===0?'apag':''}">${(t.v/26).toFixed(2)}</td><td class="c num">${p.pct===null?'<span class="apag">aún no</span>':p.pct+'%'}</td>
+      <td class="c num">${p.sv>=14?`<span style="color:var(--ambar);font-weight:600">${p.sv} días</span>`:p.sv+' días'}</td>
+      <td>${ag&&t.a>0?`<button class="accion" data-ir="/inventario/bajar?lineas=…" data-que="Bajar al piso">${ic('bajar')}Bajar al piso</button>`:(t.p===0&&t.v>0?botonAccion(p):(p.g==='estancada'?botonAccion(p,true):'<span class="apag">—</span>'))}</td></tr>`;}).join('')}
+    </tbody></table>`;
+  }
+  const tot=vista==='prenda'?filas.length:filas.reduce((s,p)=>s+p.tl.length,0);
+  return `<section class="tarjeta">
+    <div class="t-cab"><div><h2>${S.grupo?G[S.grupo].t:'Todas las prendas'}</h2><p>${S.grupo?G[S.grupo].q+' · cada fila trae su acción':'Cómo se vendió cada prenda en el período y qué conviene hacer con ella'}</p></div>
+    ${S.grupo&&S.grupo!=='pedidos'&&S.grupo!=='sinbase'?`<button class="btn chico" data-marcar-grupo>Marcar las ${filas.length}</button>`:''}</div>
+    ${S.grupo==='pedidos'?pedidosTabla():filtros+`<div class="t-scroll">${cuerpo}</div>`}
+    <div class="pie"><span>${S.grupo==='pedidos'?PEDIDOS+' pedidos esta semana':tot+(vista==='prenda'?' prendas':' tallas')+(S.grupo?' de '+P.length+' prendas':'')}</span><span>1 / 1</span></div>
+  </section>`;
+}
+function pedidosTabla(){
+  const L=[['Vestido Lino · Terracota','XL','3 veces','No hay en ninguna sede','repo','Pedir a Producción'],['Blusa Carlita · Blanco','S','2 veces','Arequipa tiene 2','mover','Pedir traslado'],['Jean Mom · Azul','28','1 vez','No existe en el catálogo','info','Solo anotar']];
+  return `<div class="t-scroll"><table><thead><tr><th>Lo que pidió la clienta</th><th class="c">Talla</th><th class="c">Cuántas veces</th><th>Dónde hay</th><th>Qué hacer</th></tr></thead><tbody>
+  ${L.map(r=>`<tr><td>${r[0]}</td><td class="c">${r[1]}</td><td class="c">${r[2]}</td><td style="color:var(--t65)">${r[3]}</td><td>${r[4]==='info'?'<span class="apag">'+r[5]+'</span>':`<button class="accion" data-ir="${r[4]==='repo'?'/produccion/ordenes?nueva=1':'/inventario/mover?destino=TRU'}" data-que="${r[5]}">${ic(r[4])}${r[5]}</button>`}</td></tr>`).join('')}
+  </tbody></table></div><div class="pie" style="border-top:0;padding-top:0"><button class="btn enl" data-ir="/pedidos-no-atendidos" data-que="Ver todos los pedidos">Ver todos en Pedidos no atendidos →</button><span></span></div>`;
+}
+
+/* ───────────── detalle (panel / hoja) ───────────── */
+function detalle(p,movil){
+  const a=accion(p,S.rol);
+  const lider=S.rol==='lider';
+  const tieneAlm=p.tl.some(t=>t.a>0);
+  return `${movil?'<div class="asa"></div>':''}<div class="h-in">
+   <div class="h-cab">${foto(p)}<div><div class="lbl" style="font-size:9.5px">${p.org==='produccion'?'Hecha en el Taller':'Comprada'} · S/ ${p.precio}</div><h3>${p.n}</h3><div class="m" style="font-size:12.5px;color:var(--t65);display:flex;gap:6px;align-items:center"><span class="sw" style="background:${p.hex}"></span>${p.c}</div></div><button class="cerrar" data-cerrar>${ic('x')}</button></div>
+   <div class="h-sec">${chipDe(p)}<p class="porque" style="max-width:none;margin-top:6px;font-size:13px;color:var(--t80)">${p.porque}</p></div>
+   <div class="h-sec"><div class="mini"><div><div class="v">${p.v}</div><p>vendidas en 30 d</p></div><div><div class="v">${p.pct===null?'—':p.pct+'%'}</div><p>de lo colgado</p></div><div><div class="v">${p.sv}<small style="font-size:12px"> d</small></div><p>sin venta</p></div></div></div>
+   <div class="h-sec"><span class="lbl">Por talla</span><table class="ttab"><thead><tr><th>Talla</th><th class="c">Vendió</th><th class="c">Piso</th><th class="c">Almacén</th><th></th></tr></thead><tbody>
+     ${p.tl.map(t=>`<tr><td><b style="font-weight:600">${t.t}</b></td><td class="c num">${t.v}</td><td class="c num" style="${t.p===0?'color:var(--rojo);font-weight:600':''}">${t.p}</td><td class="c num">${t.a}</td><td style="text-align:right">${t.p<=1&&t.a>0?`<button class="btn enl" data-ir="/inventario/bajar?lineas=${p.id}-${t.t}:1" data-que="Bajar ${t.t} al piso">Bajar</button>`:''}</td></tr>`).join('')}</tbody></table></div>
+   <div class="h-sec"><span class="lbl">Qué puedes hacer</span><div class="acc-grid">
+     ${a?`<button class="pri" data-ir="${a.href}" data-que="${a.t}">${ic(a.k)}<span>${a.t}<small>${a.sub}</small></span></button>`:''}
+     ${tieneAlm&&(!a||a.k!=='bajar')?`<button data-ir="/inventario/bajar?lineas=…" data-que="Bajar al piso">${ic('bajar')}<span>Bajar al piso<small>de su almacén</small></span></button>`:''}
+     ${!a||a.k!=='mover'?`<button data-ir="/inventario/mover?origen=TRU&lineas=…" data-que="Trasladar">${ic('mover')}<span>Trasladar<small>a otra sede</small></span></button>`:''}
+     ${!a||a.k!=='etiq'?`<button data-ir="/etiquetas-de-precio?variantes=…" data-que="Imprimir etiquetas">${ic('etiq')}<span>Etiquetas<small>imprimir o rebajar</small></span></button>`:''}
+     <button data-ir="/productos/${p.id}/historial" data-que="Historial del producto">${ic('hist')}<span>Historial<small>cada movimiento</small></span></button>
+     <button data-ir="/inventario?q=${encodeURIComponent(p.n)}" data-que="Ver en Existencias">${ic('exis')}<span>En Existencias<small>el stock de hoy</small></span></button>
+   </div></div>
+   <div class="h-sec"><span class="lbl">Dónde más hay</span><div class="red">${Object.entries(p.red).map(([s,n])=>`<div><span>Tienda ${s}</span><span class="num" style="${n===0?'color:var(--t35)':''}">${n} u.${s===p.vendeEn?' · <b style="color:var(--verde);font-weight:600">allí se vende</b>':''}</span></div>`).join('')}</div></div>
+   ${lider?`<div class="h-sec"><span class="lbl">Cifras técnicas · solo líder</span><div class="tec"><span>Rotación en piso</span><span class="num">${(p.v/1.9).toFixed(2)}×</span><span>Rotación total</span><span class="num">${(p.v/5.2).toFixed(2)}×</span><span>Rotación valorizada</span><span class="num">${(p.v/7.4).toFixed(2)}×</span><span>Ritmo observado</span><span class="num">${(p.v/26).toFixed(2)} u./día</span></div></div>`:`<div class="h-sec bloq">${ic('cand')}Rotaciones y costo: los ve el líder.</div>`}
+  </div>`;
+}
+
+/* ───────────── computadora ───────────── */
+function renderPC(){
+  const el=document.getElementById('pc');
+  const pDet=S.det.pc?P.find(p=>p.id===S.det.pc):null;
+  const n=S.sel.size;
+  const tabs=S.comparar==='tabs'?`<div class="pest" role="tablist"><button role="tab" data-tab="des" aria-selected="${S.tab==='des'}">Desempeño</button><button role="tab" data-tab="cmp" aria-selected="${S.tab==='cmp'}">Comparar períodos</button></div>`:'';
+  el.innerHTML=`<div class="scroll"><div class="app">
+    <aside class="lat"><div class="logo"><i></i>CAYLA</div>
+      <a>${ic('info')}Inicio</a><a>${ic('repo')}Ventas</a><a>${ic('exis')}Inventario</a>
+      <a class="sub">Existencias</a><a class="sub">Movimientos</a><a class="sub">Traslados</a><a class="sub">Conteo</a><a class="sub on">Análisis</a>
+      <a>${ic('etiq')}Catálogo</a><a>${ic('repo')}Compras</a></aside>
+    <div><div class="top"><span style="font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--t65)">ACTIVIDAD</span><span class="sede">TIENDA TRU ▾</span></div>
+    <main class="main">
+      <div class="cab"><div><div class="hilo">Tienda TRU · sábado, 26 de setiembre · 17:23</div><h1 class="tit">Análisis</h1><p class="frase">Cómo se vendió tu inventario y qué conviene hacer con cada prenda.</p></div>
+      <div class="act" style="margin-top:34px">${ic('esperar')}Actualizado 17:23</div></div>
+      ${tabs}
+      <div class="barra">
+        <div class="chips">${S.comparar==='tabs'&&S.tab==='cmp'?`<span class="pil">${ic('cal')} A: 29 jul – 27 ago</span><span class="pil">${ic('cal')} B: 28 ago – 26 sep</span>`:[['7','7 días'],['30','30 días'],['90','90 días'],['mes','Este mes']].map(([v,t])=>`<button class="pil ${S.per===v?'on':''}" data-per="${v}">${t}</button>`).join('')+`<button class="pil">${ic('cal')} Otro</button>`}</div>
+        <label class="buscar">${ic('buscar')}<input placeholder="Buscar o pasar la pistola por la etiqueta"><span class="cam">${ic('cam')}Escanear</span></label>
+        <span class="orden"><span class="lbl">Categoría</span>Todas ▾</span>
+        ${S.comparar==='cifra'?`<span class="vs"><span class="sw2"></span>vs 30 días antes</span>${S.rol==='lider'?`<button class="btn enl" data-ir="/inventario/resumen?modo=comparar" data-que="Comparar a medida (líder)">A vs B a medida</button>`:''}`:''}
+      </div>
+      ${cifras(false)}
+      ${arriba(false)}
+      ${tablaPC()}
+      <div class="nota">${ic('info')}<span>Análisis sugiere, nunca mueve stock: cada botón te lleva a la pantalla que ya hace el trabajo —Bajar al piso, Mover mercadería, Etiquetas, Compras o Producción— con la lista cargada, y allí confirmas. Las cantidades las pones tú.</span></div>
+    </main></div></div></div>
+    <div class="lote ${n?'ver':''}"><span class="cuenta"><b>${n} ${n===1?'prenda':'prendas'}</b> · ${[...S.sel].reduce((s,id)=>s+P.find(p=>p.id===id).tl.length,0)} tallas</span>
+      <button class="l" data-ir="/inventario/bajar?lineas=…" data-que="Bajar al piso las marcadas">${ic('bajar')}Bajar al piso</button>
+      <button class="l" data-ir="/inventario/mover?lineas=…" data-que="Trasladar las marcadas">${ic('mover')}Trasladar</button>
+      <button class="l" data-ir="/etiquetas-de-precio?variantes=…" data-que="Etiquetas de las marcadas">${ic('etiq')}Etiquetas</button>
+      ${S.rol==='lider'?`<button class="l" data-ir="/compras/nueva?variantes=…" data-que="Reponer las marcadas">${ic('repo')}Reponer</button>`:''}
+      <button class="x" data-limpiar>${ic('x')}</button></div>
+    <div class="velo ${pDet?'ver':''}" data-cerrar></div>
+    <div class="hoja ${pDet?'ver':''}">${pDet?detalle(pDet,false):''}</div>`;
+}
+
+/* ───────────── celular ───────────── */
+function tarjetaTel(p){
+  const cmpTab=S.comparar==='tabs'&&S.tab==='cmp';
+  return `<div class="tarj ${S.sel.has(p.id)?'sel':''}" data-det="${p.id}">
+    <div class="fila1">${foto(p)}<div class="txt"><div style="font-weight:500">${p.n}</div><div class="m" style="font-size:11.5px;color:var(--t65);display:flex;gap:5px;align-items:center"><span class="sw" style="background:${p.hex}"></span>${p.c}</div></div>${chipDe(p)}</div>
+    <div class="dat"><span>Vendió <b>${cmpTab?p.va+' → ':''}${p.v}</b></span><span><b>${p.pct===null?'—':p.pct+'%'}</b> de lo colgado</span>${p.sv>=14?`<span style="color:var(--ambar)"><b style="color:var(--ambar)">${p.sv} d</b> sin venta</span>`:''}<span>${tend(p)}</span></div>
+    ${curva(p,false)}
+    <p class="porque">${p.porque}</p>
+    <div class="pie-t">${botonAccion(p)}<span style="margin-left:auto" class="chk ${S.sel.has(p.id)?'on':''}" data-chk="${p.id}"></span></div>
+  </div>`;
+}
+function renderTel(){
+  const el=document.getElementById('tel');
+  const pDet=S.det.tel?P.find(p=>p.id===S.det.tel):null;
+  const n=S.sel.size;
+  const tabs=S.comparar==='tabs'?`<div class="pest" role="tablist"><button role="tab" data-tab="des" aria-selected="${S.tab==='des'}">Desempeño</button><button role="tab" data-tab="cmp" aria-selected="${S.tab==='cmp'}">Comparar</button></div>`:'';
+  const lista=S.grupo==='pedidos'
+    ? `<div class="tarj"><div style="font-weight:600">Pidieron y no había · ${PEDIDOS}</div><p class="porque">Vestido Lino Terracota XL (3 veces), Blusa Carlita Blanco S (2), Jean Mom 28 (1).</p><div class="pie-t"><button class="accion" data-ir="/pedidos-no-atendidos" data-que="Ver pedidos no atendidos">${ic('pedido')}Ver pedidos</button></div></div>`
+    : visibles().map(tarjetaTel).join('');
+  el.innerHTML=`<div class="scroll">
+    <div class="tel-top">${ic('menu')}<span class="logo">CAYLA</span><span class="sede">TRU ▾</span></div>
+    <div class="tm">
+      <div class="hilo">Tienda TRU · sáb 26 set</div><h1 class="tit">Análisis</h1><p class="frase">Qué se vendió y qué hacer con cada prenda.</p>
+      ${tabs}
+      <div class="barra">
+        <div class="chips" style="max-width:100%">${[['7','7 d'],['30','30 d'],['90','90 d'],['mes','Este mes']].map(([v,t])=>`<button class="pil ${S.per===v?'on':''}" data-per="${v}">${t}</button>`).join('')}<button class="pil">${ic('cal')}Otro</button><button class="pil">${ic('filtro')}Filtros</button></div>
+        <label class="buscar">${ic('buscar')}<input placeholder="Buscar prenda"></label>
+      </div>
+      ${cifras(true)}
+      ${arriba(true)}
+      <div class="qh-tit" style="margin-top:20px"><h2 style="font-size:21px">${S.grupo?G[S.grupo].t:'Todas las prendas'}</h2>${S.grupo?`<button class="btn enl" data-grupo="">Ver todas</button>`:''}</div>
+      ${S.grupo||S.arriba==='graf'?'':`<div class="chips" style="margin-top:8px">${[['','Todas'],['agotada','Agotadas'],['duerme','Duermen'],['estancada','Quietas'],['top','Más venden']].map(([g,t])=>`<button class="pil ${(S.grupo||'')===g?'on':''}" data-grupo="${g}">${t}</button>`).join('')}</div>`}
+      ${lista}
+      <div class="nota" style="font-size:12px">${ic('info')}<span>Cada botón te lleva a su pantalla con la lista cargada; allí confirmas.</span></div>
+    </div></div>
+    <div class="fijo">${n?`<div class="lote-t"><div class="cuenta"><b>${n} marcadas</b><button data-limpiar style="color:rgba(245,240,232,.7)">Quitar</button></div>
+      <button class="l" data-ir="/inventario/bajar?lineas=…" data-que="Bajar al piso">${ic('bajar')}Bajar</button><button class="l" data-ir="/inventario/mover?lineas=…" data-que="Trasladar">${ic('mover')}Trasladar</button><button class="l" data-ir="/etiquetas-de-precio?variantes=…" data-que="Etiquetas">${ic('etiq')}Etiquetas</button></div>`
+      :`<button class="esc" data-esc>${ic('cam')}Escanear prenda</button>`}</div>
+    <div class="velo ${pDet||S.esc?'ver':''}" data-cerrar></div>
+    <div class="hoja ${pDet||S.esc?'ver':''}">${pDet?detalle(pDet,true):(S.esc?`<div class="asa"></div><div class="h-in"><div class="h-cab"><div><div class="lbl">Escanear</div><h3>¿Esta prenda se vende?</h3></div><button class="cerrar" data-cerrar>${ic('x')}</button></div><div class="escaner"><p>Apunta a la etiqueta de la prenda</p></div><p class="porque" style="max-width:none;margin-top:10px">Lee UNA etiqueta (el mismo lector de Existencias y Cambios) y abre el análisis de esa prenda parada en su talla.</p><button class="btn pri" style="margin-top:12px;width:100%;justify-content:center" data-simular>Simular lectura · Falda Plisada M</button></div>`:'')}</div>`;
+}
+
+/* ───────────── eventos ───────────── */
+function render(){renderPC();renderTel();
+  document.querySelectorAll('.seg').forEach(s=>s.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',S[s.dataset.k]===b.dataset.v)));}
+let tt;
+function avisar(que,href){const t=document.getElementById('toast');t.innerHTML=`Iría a <b>${que}</b> con la lista cargada:<code>${href}</code>`;t.classList.add('ver');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('ver'),2600);}
+document.getElementById('spk').addEventListener('click',e=>{const b=e.target.closest('.seg button');if(!b)return;const k=b.parentElement.dataset.k;S[k]=b.dataset.v;if(k==='comparar')S.tab='des';render();});
+['pc','tel'].forEach(id=>document.getElementById(id).addEventListener('click',e=>{
+  const x=e.target.closest('[data-ir],[data-chk],[data-todas],[data-grupo],[data-grupo-ir],[data-det],[data-cerrar],[data-limpiar],[data-vista],[data-tab],[data-per],[data-marcar-grupo],[data-esc],[data-simular]');
+  if(!x) return;
+  const d=x.dataset;
+  if(d.ir!==undefined){avisar(d.que,d.ir);return;}
+  if(d.chk!==undefined){S.sel.has(d.chk)?S.sel.delete(d.chk):S.sel.add(d.chk);}
+  else if(d.todas!==undefined){const v=visibles();const todas=v.every(p=>S.sel.has(p.id));v.forEach(p=>todas?S.sel.delete(p.id):S.sel.add(p.id));}
+  else if(d.marcarGrupo!==undefined){visibles().forEach(p=>S.sel.add(p.id));}
+  else if(d.grupo!==undefined){S.grupo=(d.grupo===''||S.grupo===d.grupo)?null:d.grupo;}
+  else if(d.grupoIr!==undefined){S.grupo=d.grupoIr;}
+  else if(d.cerrar!==undefined){S.det[id]=null;S.esc=false;}
+  else if(d.limpiar!==undefined){S.sel.clear();}
+  else if(d.vista!==undefined){S.vistaT=d.vista;}
+  else if(d.tab!==undefined){S.tab=d.tab;}
+  else if(d.per!==undefined){S.per=d.per;}
+  else if(d.esc!==undefined){S.esc=true;}
+  else if(d.simular!==undefined){S.esc=false;S.det.tel='p5';}
+  else if(d.det!==undefined){S.det[id]=d.det;}
+  render();
+}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){S.det={pc:null,tel:null};S.esc=false;render();}});
+render();
+</script>
+</body>
+</html>

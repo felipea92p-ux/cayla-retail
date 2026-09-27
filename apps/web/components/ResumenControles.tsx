@@ -294,7 +294,10 @@ export function ResumenControles({
           {chipsPeriodo}
           <div className="w-full min-w-0 sm:w-52">{selectorCategoria}</div>
         </div>
-        <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null })} />
+        {/* `data-buscador-analisis`: «Escribir» desde el escáner del celular pone el foco aquí (AnalisisPrendas). */}
+        <div data-buscador-analisis>
+          <BuscadorDebounced valorUrl={alcance.q} onBuscar={(v) => actualizar({ q: v || null })} />
+        </div>
         {popoverPeriodo}
       </div>
     );

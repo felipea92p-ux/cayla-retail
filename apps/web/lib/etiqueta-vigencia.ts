@@ -28,3 +28,16 @@ export function vigenciaDe(desde: string | null, hasta: string | null, hoy: stri
   if (hasta && hasta < hoy) return { estado: "terminada", hasta };
   return { estado: "vigente", hasta };
 }
+
+const formatoFecha = new Intl.DateTimeFormat("es-PE", { day: "numeric", month: "short" });
+
+/** «23 set.»: una fecha `YYYY-MM-DD` como se lee en una tarjeta. */
+export const fechaCorta = (f: string) => formatoFecha.format(new Date(f + "T00:00:00"));
+
+/** «23 set. – 1 oct.», «Desde 23 set.», «Hasta 1 oct.», o `null` si no tiene fechas (la etiqueta es permanente). */
+export function textoRango(desde: string | null, hasta: string | null): string | null {
+  if (desde && hasta) return `${fechaCorta(desde)} – ${fechaCorta(hasta)}`;
+  if (desde) return `Desde ${fechaCorta(desde)}`;
+  if (hasta) return `Hasta ${fechaCorta(hasta)}`;
+  return null;
+}

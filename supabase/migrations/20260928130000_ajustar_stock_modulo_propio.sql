@@ -1,5 +1,5 @@
 -- ============================================================================
--- 20260928110000_ajustar_stock_modulo_propio.sql — CAYLA V2 · ADR-0247
+-- 20260928130000_ajustar_stock_modulo_propio.sql — CAYLA V2 · ADR-0249
 --
 -- EL PROBLEMA PRIMERO. `fn_puede_ajustar_inventario()` (D-13, ADR-0160) da la capacidad de ajustar stock a quien VE
 -- Existencias, Conteos o Traslados — no a quien tiene un módulo que lo diga. Hoy el rol «Integrante» (17 cuentas) tiene
@@ -64,7 +64,7 @@ as $function$
 $function$;
 
 comment on function retail.fn_puede_ajustar_stock() is
-  'ADR-0247: líder, o su rol ve el módulo «Ajustar stock». La usan registrar_movimiento (candado real) y ajustar_inventario (falla rápido, sin tomar locks). No la confundas con fn_puede_ajustar_inventario(), que sigue siendo Existencias/Conteos/Traslados para cerrar_conteo y cerrar_traslado_con_diferencia.';
+  'ADR-0249: líder, o su rol ve el módulo «Ajustar stock». La usan registrar_movimiento (candado real) y ajustar_inventario (falla rápido, sin tomar locks). No la confundas con fn_puede_ajustar_inventario(), que sigue siendo Existencias/Conteos/Traslados para cerrar_conteo y cerrar_traslado_con_diferencia.';
 
 revoke all on function retail.fn_puede_ajustar_stock() from public, anon;
 grant execute on function retail.fn_puede_ajustar_stock() to authenticated;
@@ -88,7 +88,7 @@ set search_path to retail, public, extensions
 as $function$
 declare v_id uuid; v_persona uuid; v_sub uuid;
 begin
-  -- CANDADO DE MÓDULO (ADR-0247, reemplaza el candado de líder D-13): va primero y cubre los tres tipos que esta
+  -- CANDADO DE MÓDULO (ADR-0249, reemplaza el candado de líder D-13): va primero y cubre los tres tipos que esta
   -- función acepta. Stock que se mueve sin una venta, una recepción o un traslado es un ajuste.
   if not fn_puede_ajustar_stock() then
     raise exception 'Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste' using errcode = '42501', hint = 'ajuste_sin_modulo';
@@ -182,7 +182,7 @@ begin
   if jsonb_array_length(v_ajustes) + jsonb_array_length(v_cargas) = 0 then
     raise exception 'Ingresa al menos un ajuste distinto de cero.' using hint = 'ajuste_vacio';
   end if;
-  -- ADR-0247: el módulo se pide ANTES de bloquear nada. Las cargas (prenda nueva) no lo necesitan; registrar_movimiento
+  -- ADR-0249: el módulo se pide ANTES de bloquear nada. Las cargas (prenda nueva) no lo necesitan; registrar_movimiento
   -- lo vuelve a exigir más abajo — este `if` solo evita tomar locks y llamar a cargar_stock_inicial en vano.
   if jsonb_array_length(v_ajustes) > 0 and not fn_puede_ajustar_stock() then
     raise exception 'Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste' using errcode = '42501', hint = 'ajuste_sin_modulo';

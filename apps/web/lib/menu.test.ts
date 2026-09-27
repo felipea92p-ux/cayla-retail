@@ -115,6 +115,32 @@ describe("el menú de hoy sigue igual (línea base capturada del AppShell real)"
 });
 
 /* ====================================================================
+   1b. UNA CABECERA NUNCA REPITE EL ÍCONO DE UNA HIJA SUYA
+
+   Una cabecera con 2+ hijas visibles se pinta EN LA MISMA PANTALLA que esas hijas (Inventario y Existencias, Producción y
+   Órdenes, Posventa y Cambios, Finanzas y Gastos ya cayeron en esto: la cabecera tomaba prestado el trazo de una hija
+   suya "porque total es la misma pantalla raíz", y las dos filas quedaban una debajo de la otra con el mismo dibujo — el
+   ícono deja de servir para ubicarse de un vistazo). Esta prueba no sabe de permisos ni de ubicación: mira el ÁRBOL
+   entero, a cualquier profundidad (un subgrupo cuenta como hija de su padre Y como cabecera de las suyas). No atrapa la
+   repetición entre DOS RAMAS del árbol que nunca se muestran juntas a la vez (Compras/Producción→Abastecimiento,
+   Proveedores, Facturas, Recibir, Por pagar: mutuamente excluyentes por ubicación o permiso, a propósito — ver los
+   comentarios de esos íconos en AppShell.tsx) — esa parte queda a criterio de quien agregue una fila nueva.
+   ==================================================================== */
+function iconosDeSubarbol(n: Nodo): string[] {
+  if (n.estado !== "viva") return [];
+  return esGrupo(n) ? [n.icono, ...n.hijos.flatMap(iconosDeSubarbol)] : [n.icono];
+}
+function gruposDelArbol(nodos: readonly Nodo[]): { id: string; icono: string; hijos: readonly Nodo[] }[] {
+  return nodos.flatMap((n) => (n.estado !== "viva" || !esGrupo(n) ? [] : [{ id: n.id, icono: n.icono, hijos: n.hijos }, ...gruposDelArbol(n.hijos)]));
+}
+
+describe("una cabecera nunca repite el ícono de una hija suya (a cualquier profundidad)", () => {
+  it.each(gruposDelArbol(ARBOL))("$id", ({ icono, hijos }) => {
+    expect(hijos.flatMap(iconosDeSubarbol)).not.toContain(icono);
+  });
+});
+
+/* ====================================================================
    2. INVARIANTES — valen para TODA combinación de permisos y de ubicación, no solo para los 4 perfiles de hoy: el día que
    nazcan Admin y Solo lectura (D-12) el árbol ya está probado contra ellos.
    ==================================================================== */
@@ -625,7 +651,7 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(esMostrador({ terminal: true, modulos: ["vender", "caja"] })).toBe(true);
     expect(esMostrador({ terminal: true, modulos: ["caja", "existencias"] })).toBe(false);
     expect(esMostrador({ terminal: false, modulos: ["vender", "caja"] })).toBe(false);
-    const persona = menuPara({ permisos: [], ubicacionTipo: "tienda", modulos: ["vender", "caja"] }).riel;
+    const persona = menuPara({ permisos: [], ubicacionTipo: "tienda", modulos: ["inicio", "vender", "caja"] }).riel;
     expect(etiquetasDe(persona)).toEqual(["Inicio", "Ventas"]);
     expect(hijasDe(persona, "Ventas")).toEqual(["Punto de Venta", "Caja"]);
   });
@@ -640,11 +666,22 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(terminalVeInicio(["vender", "caja"])).toBe(false);
   });
 
-  it("aterriza en /vender si ve el Punto de venta; si no, en su Inicio. Una persona, siempre en Inicio", () => {
+  it("una terminal aterriza en /vender si ve el Punto de venta; si no, en su Inicio — regla propia, no participa de «pantalla principal»", () => {
     expect(aterrizajeDe({ terminal: true, modulos: ["vender", "caja"] })).toBe("/vender");
     expect(aterrizajeDe({ terminal: true, modulos: ["existencias"] })).toBe("/");
-    expect(aterrizajeDe({ terminal: false, modulos: ["vender"] })).toBe("/");
     expect(aterrizajeDe({ terminal: true, modulos: null })).toBe("/");
+  });
+
+  it("una persona aterriza en Inicio si lo tiene; si no, en la primera pantalla que ve, en el orden del menú (20260925220000)", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "vender"] })).toBe("/");
+    expect(aterrizajeDe({ modulos: ["vender"] })).toBe("/vender");
+    expect(aterrizajeDe({ modulos: ["productos", "vender"] })).toBe("/vender"); // Ventas va antes que Catálogo en el árbol («mostrador primero»)
+    expect(aterrizajeDe({ modulos: [] })).toBe("/sin-acceso");
+  });
+
+  it("la pantalla principal elegida manda si el rol todavía la ve; si no (se apagó ese módulo), cae a la primera que ve", () => {
+    expect(aterrizajeDe({ modulos: ["inicio", "vender", "caja"], pantallaPrincipal: "caja" })).toBe("/caja");
+    expect(aterrizajeDe({ modulos: ["inicio", "vender"], pantallaPrincipal: "caja" })).toBe("/"); // ya no tiene «caja»: vuelve al default
   });
 });
 
@@ -680,7 +717,7 @@ describe("falla cerrado: una terminal solo ve lo que su rol nombra", () => {
     expect(etiquetasDe(riel)).toEqual(["Inicio"]);
   });
 
-  it("toda pantalla viva salvo Inicio declara su módulo (sin eso una terminal no podría verla)", () => {
-    expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual(["inicio"]);
+  it("toda pantalla viva declara su módulo (sin eso una terminal no podría verla; Inicio también desde 20260925220000)", () => {
+    expect(hojasVivas.filter((h) => !h.modulo).map((h) => h.id)).toEqual([]);
   });
 });

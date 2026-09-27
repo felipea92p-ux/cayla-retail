@@ -46,6 +46,7 @@ const MIGRACION = [
   "20260923163000_escalon_admin_desde_dynamic.sql",
   "20260923174500_alcanzas_solo_a_quien_esta_debajo.sql",
   "20260924000000_colaborador_a_integrante_paso1_codigo.sql",
+  "20260925211500_admin_se_reasigna_su_propio_rol.sql",
 ]
   .map((f) => readFileSync(join(RAIZ, "supabase", "migrations", f), "utf8"))
   .join("\n");
@@ -507,12 +508,16 @@ caso(
   "entre líderes con el módulo abierto: un LÍDER sigue subiendo a Líder y bajando a otro líder; nunca queda cero líderes",
   PERSONA_NUEVA +
     `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select :'nueva', 'colaborador', tru, 'activo' from ids;\n` +
+    // Desde #317 el seed trae a Sandra como segunda líder: fuera de esta transacción (mismo patrón que «protección 3»),
+    // para que Felipe sea de verdad el último líder activo en la última llamada de abajo.
+    `update retail.colaboradores set estado = 'pendiente_aprobacion' where rol = 'lider' and persona_id <> (select id from public.personas where auth_user_id = '${FELIPE_AUTH}');\n` +
     como(FELIPE_AUTH) +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'nueva')) from ids;\n` +
     `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, :'nueva', tru)) from ids;\n` +
     `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
-    // El único líder activo es Felipe: bajarlo lo impide «tu propio rol» y, si no, el candado de «último líder».
+    // El único líder activo es Felipe: como es Admin, «tu propio rol» (20260925211500) ya no lo frena — pero sigue
+    // siendo el único líder activo, así que lo frena el candado de «último líder».
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L, p_ubicacion_id => %L)', r_integ, felipe, tru)) from ids;`,
   (s) => {
     const l = s.split("\n");
@@ -1058,9 +1063,14 @@ caso(
   "SIN_ERROR\nt|t|t"
 );
 caso(
-  "nadie se cambia su propio rol (así nunca falta un líder)",
-  como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
-  (s) => s.startsWith("42501|")
+  // Antes de 20260925211500 esto lo frenaba «tu propio rol», sin mirar si era Admin. Ahora Felipe (Admin) sí pasa ese
+  // candado. Desde #317 el seed trae a Sandra como segunda líder Y segunda admin: fuera de esta transacción (mismo
+  // patrón que «protección 3»), para que Felipe sea de verdad el último líder (y el último admin) activo — si no, ni
+  // el candado de «último líder» ni el de «último admin» se ejercitan, y la prueba cae en «elige sede» en su lugar.
+  "un Admin sí se cambia su propio rol (20260925211500); pero no si lo deja sin ningún líder activo",
+  `update retail.colaboradores set estado = 'pendiente_aprobacion' where rol = 'lider' and persona_id <> (select id from public.personas where auth_user_id = '${FELIPE_AUTH}');\n` +
+    como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
+  (s) => s.startsWith("42501|") && s.includes("último líder activo")
 );
 
 // ---------------- Quién firma (convención del ADR-0162 F3, vigilada también en actor_firma_las_operaciones.mjs) ----------------

@@ -20,7 +20,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -33,7 +33,7 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
@@ -75,7 +75,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -88,7 +88,7 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
@@ -134,7 +134,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -148,11 +148,11 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
-              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "analisis" }
             ],
             "insignia": 3
           },
@@ -182,9 +182,9 @@
           {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
-            "icono": "gastos",
+            "icono": "finanzas",
             "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "panorama" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -215,7 +215,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -229,11 +229,11 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
-              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "analisis" }
             ]
           },
           {
@@ -262,9 +262,9 @@
           {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
-            "icono": "gastos",
+            "icono": "finanzas",
             "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "panorama" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -293,7 +293,7 @@
             "etiqueta": "Producción",
             "icono": "produccion",
             "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "ordenes" },
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
               { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
             ]
@@ -310,7 +310,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -323,7 +323,7 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
@@ -358,7 +358,7 @@
             "etiqueta": "Producción",
             "icono": "produccion",
             "hijos": [
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "ordenes" },
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
               { "etiqueta": "Recibir", "href": "/produccion/recibir", "icono": "recibir" }
             ]
@@ -375,7 +375,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -388,7 +388,7 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
@@ -428,7 +428,7 @@
             "icono": "produccion",
             "hijos": [
               { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "ordenes" },
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
               {
                 "grupo": "produccion.abastecimiento",
@@ -455,7 +455,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -469,11 +469,11 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
-              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "analisis" }
             ],
             "insignia": 3
           },
@@ -491,9 +491,9 @@
           {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
-            "icono": "gastos",
+            "icono": "finanzas",
             "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "panorama" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -518,7 +518,7 @@
             "icono": "produccion",
             "hijos": [
               { "etiqueta": "Resumen", "href": "/produccion", "icono": "resumen" },
-              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "produccion" },
+              { "etiqueta": "Órdenes", "href": "/produccion/ordenes", "icono": "ordenes" },
               { "etiqueta": "Insumos", "href": "/produccion/insumos", "icono": "insumos" },
               {
                 "grupo": "produccion.abastecimiento",
@@ -545,7 +545,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -559,11 +559,11 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
-              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "analisis" }
             ]
           },
           {
@@ -580,9 +580,9 @@
           {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
-            "icono": "gastos",
+            "icono": "finanzas",
             "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "panorama" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -618,7 +618,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -631,7 +631,7 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
@@ -673,7 +673,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -686,7 +686,7 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
@@ -732,7 +732,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -746,11 +746,11 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados", "insignia": 3 },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
-              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "analisis" }
             ],
             "insignia": 3
           },
@@ -780,9 +780,9 @@
           {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
-            "icono": "gastos",
+            "icono": "finanzas",
             "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "panorama" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },
@@ -813,7 +813,7 @@
               {
                 "grupo": "venta.posventa",
                 "etiqueta": "Posventa",
-                "icono": "cambios",
+                "icono": "posventa",
                 "hijos": [
                   { "etiqueta": "Cambios", "href": "/cambios", "icono": "cambios" },
                   { "etiqueta": "Devoluciones", "href": "/devoluciones", "icono": "devoluciones" }
@@ -827,11 +827,11 @@
             "etiqueta": "Inventario",
             "icono": "inventario",
             "hijos": [
-              { "etiqueta": "Existencias", "href": "/inventario", "icono": "inventario" },
+              { "etiqueta": "Existencias", "href": "/inventario", "icono": "existencias" },
               { "etiqueta": "Movimientos", "href": "/inventario/movimientos", "icono": "movimientos" },
               { "etiqueta": "Traslados", "href": "/inventario/traslados", "icono": "traslados" },
               { "etiqueta": "Conteo", "href": "/inventario/conteo", "icono": "conteo" },
-              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "resumen" }
+              { "etiqueta": "Análisis", "href": "/inventario/resumen", "icono": "analisis" }
             ]
           },
           {
@@ -860,9 +860,9 @@
           {
             "grupo": "finanzas",
             "etiqueta": "Finanzas",
-            "icono": "gastos",
+            "icono": "finanzas",
             "hijos": [
-              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "resumen" },
+              { "etiqueta": "Resumen", "href": "/finanzas/resumen", "icono": "panorama" },
               { "etiqueta": "Gastos", "href": "/finanzas/gastos", "icono": "gastos" },
               { "etiqueta": "Cuentas y dinero", "href": "/finanzas/dinero", "icono": "dinero" },
               { "etiqueta": "Reportes", "href": "/finanzas/reportes", "icono": "reportes" },

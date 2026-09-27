@@ -53,10 +53,10 @@ export type Pajaro = (typeof PAJAROS)[number];
  *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
  *  - ajustarInventario:      cerrar conteo, cerrar traslado con diferencia       (fn_puede_ajustar_inventario). Hasta el
- *                            2026-09-27 también abría el botón «Ajustar»: ADR-0247 lo separó en `ajustarStock` porque
+ *                            2026-09-27 también abría el botón «Ajustar»: ADR-0249 lo separó en `ajustarStock` porque
  *                            Existencias/Conteos/Traslados no es «el líder decidió dar el módulo de ajustar».
  *  - ajustarStock:           el botón «Ajustar» de Existencias, Productos y Movimientos (fn_puede_ajustar_stock,
- *                            ADR-0247): SOLO el módulo «Ajustar stock», nace sin rol.
+ *                            ADR-0249): SOLO el módulo «Ajustar stock», nace sin rol.
  *  - editarCatalogo:         escribir en el Catálogo                            (fn_puede_editar_catalogo)
  *  - editarCuentasProveedor: cuentas bancarias de proveedores                   (fn_puede_editar_cuentas_proveedor)
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
@@ -111,17 +111,12 @@ export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly Cla
   return !!perfil.terminal && !terminalVeInicio(perfil.modulos ?? []);
 }
 
-/** A dónde va una cuenta al abrir `/`: la caja del mostrador, a `/vender`; cualquier otra, a su Inicio. */
-export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): string {
-  return esMostrador(perfil) ? "/vender" : "/";
-}
-
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
-  | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
-  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
+  | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
+  | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "dinero" | "reportes" | "impuestos" | "cierre";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -204,7 +199,11 @@ export function esGrupo(n: Nodo): n is Grupo {
 
 export const ARBOL: readonly Nodo[] = [
   // Inicio y Análisis no son dueños de tablas: leen lo de otros. Águila es «Inteligencia y reportes» (lee lo de los demás).
-  { id: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
+  // `modulo: "inicio"` (20260925220000, Felipe 2026-09-25): antes era la única hoja SIN módulo (la veía toda persona,
+  // sin excepción); `modulos.test.ts` lo comprobaba a propósito. Ahora un rol lo puede apagar, como cualquier otro.
+  // Una TERMINAL sigue su regla propia (`terminalVeInicio`, más abajo en `esVisible`): vende → su casa es el
+  // mostrador, nunca Inicio, tenga o no este módulo en su rol.
+  { id: "inicio", modulo: "inicio", etiqueta: "Inicio", estado: "viva", ruta: "/", icono: "inicio", pajaro: "13 Águila" },
 
   // «Colaboradores» (a quién de Dynamic le doy entrada a retail) NO va en el menú lateral: se entra desde el perfil del
   // líder (`PerfilModal.tsx`), y adentro viven sus pestañas Terminales y Roles y accesos. Main lo había devuelto al
@@ -229,7 +228,7 @@ export const ARBOL: readonly Nodo[] = [
       // Va PRIMERA. Su ruta es la `raiz` del grupo: el riel resuelve la fila activa por coincidencia exacta y luego por el
       // prefijo más largo, así que en `/produccion/ordenes` sigue marcando Órdenes y no Resumen.
       { id: "produccion.resumenProduccion", modulo: "produccion", etiqueta: "Resumen", estado: "viva", ruta: "/produccion", icono: "resumen", pajaro: "10 Gallito", exige: "verDinero" },
-      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "produccion", pajaro: "10 Gallito" },
+      { id: "produccion.ordenes", modulo: "produccion", etiqueta: "Órdenes", estado: "viva", ruta: "/produccion/ordenes", icono: "ordenes", pajaro: "10 Gallito" },
       { id: "produccion.insumos", modulo: "produccion", etiqueta: "Insumos", estado: "viva", ruta: "/produccion/insumos", icono: "insumos", pajaro: "10 Gallito" },
       // Abastecimiento del Taller (F4a a F4d, ADR-0133): proveedores, comprobantes, recepción y deuda de tela y avíos, APARTE de
       // los de Compras (D-H). SUBGRUPO (D-84): antes eran 4 hijas sueltas de Producción; ahora cuelgan de esta cabecera, igual
@@ -280,7 +279,7 @@ export const ARBOL: readonly Nodo[] = [
       // DESPUÉS de una venta y se usan mucho menos que el mostrador y la caja: se agrupan en vez de subir el tope (ADR-0144).
       // `raiz` reutiliza la de su primera hija, como Abastecimiento.
       {
-        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "cambios", raiz: "/cambios", pajaro: "07 Colibrí",
+        id: "venta.posventa", etiqueta: "Posventa", estado: "viva", icono: "posventa", raiz: "/cambios", pajaro: "07 Colibrí",
         hijos: [
           { id: "venta.cambios", modulo: "cambios", etiqueta: "Cambios", estado: "viva", ruta: "/cambios", icono: "cambios", pajaro: "07 Colibrí" },
           { id: "venta.devoluciones", modulo: "devoluciones", etiqueta: "Devoluciones", estado: "viva", ruta: "/devoluciones", icono: "devoluciones", pajaro: "07 Colibrí" },
@@ -294,13 +293,13 @@ export const ARBOL: readonly Nodo[] = [
   {
     id: "inventario", etiqueta: "Inventario", estado: "viva", icono: "inventario", raiz: "/inventario", pajaro: "05 Halcón",
     hijos: [
-      { id: "inventario.existencias", modulo: "existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "inventario", pajaro: "05 Halcón" },
+      { id: "inventario.existencias", modulo: "existencias", etiqueta: "Existencias", estado: "viva", ruta: "/inventario", icono: "existencias", pajaro: "05 Halcón" },
       { id: "inventario.movimientos", modulo: "movimientos", etiqueta: "Movimientos", estado: "viva", ruta: "/inventario/movimientos", icono: "movimientos", pajaro: "05 Halcón" },
       // El único con insignia hoy: los traslados que esperan a quien mira (rediseño de Traslados, 2026-09-18).
       { id: "inventario.traslados", modulo: "traslados", etiqueta: "Traslados", estado: "viva", ruta: "/inventario/traslados", icono: "traslados", contador: "trasladosPorAtender", pajaro: "05 Halcón" },
       { id: "inventario.conteo", modulo: "conteos", etiqueta: "Conteo", estado: "viva", ruta: "/inventario/conteo", icono: "conteo", pajaro: "06 Lechuza" },
       // Quinta pantalla (ADR-0101): decisión a nivel sede.
-      { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "resumen", pajaro: "13 Águila", exige: "analizar" },
+      { id: "inventario.analisis", modulo: "analisis", etiqueta: "Análisis", estado: "viva", ruta: "/inventario/resumen", icono: "analisis", pajaro: "13 Águila", exige: "analizar" },
       // Quien no ve Compras no tiene el grupo donde vive «Recibir mercadería»: su puerta está acá, donde vive el stock.
       { id: "inventario.recibir", modulo: "recibir", etiqueta: "Recibir mercadería", estado: "viva", ruta: "/recibir", icono: "recibir", pajaro: "05 Halcón", soloSinPermiso: "verDineroCompras" },
     ],
@@ -355,11 +354,11 @@ export const ARBOL: readonly Nodo[] = [
   // suyo, y Gastos es de quien tenga el módulo (su tienda) o del líder (todas). Vive en todas las ubicaciones: el Taller
   // también paga luz y alquiler. Con el Resumen (F10) las seis hijas están vivas; `/finanzas` lleva al Resumen a quien lo ve.
   {
-    id: "finanzas", etiqueta: "Finanzas", estado: "viva", icono: "gastos", raiz: "/finanzas", pajaro: "11 Garza",
+    id: "finanzas", etiqueta: "Finanzas", estado: "viva", icono: "finanzas", raiz: "/finanzas", pajaro: "11 Garza",
     hijos: [
       // Las 6 hijas del spike (docs/maquetas/finanzas-2026-09/, PLAN-FINANZAS §6); las 11 piezas son pestañas dentro de ellas.
       // Cada fase pasa la suya a «viva» con su ruta, ícono y permiso (ADR-0195 F3–F10).
-      { id: "finanzas.resumen", modulo: "reportes_financieros", etiqueta: "Resumen", estado: "viva", ruta: "/finanzas/resumen", icono: "resumen", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
+      { id: "finanzas.resumen", modulo: "reportes_financieros", etiqueta: "Resumen", estado: "viva", ruta: "/finanzas/resumen", icono: "panorama", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
       { id: "finanzas.gastos", modulo: "gastos", etiqueta: "Gastos", estado: "viva", ruta: "/finanzas/gastos", icono: "gastos", pajaro: "11 Garza", exige: "registrarGastos" },
       { id: "finanzas.dinero", modulo: "cuentas_dinero", etiqueta: "Cuentas y dinero", estado: "viva", ruta: "/finanzas/dinero", icono: "dinero", pajaro: "12 Urraca", exige: "verCuentasDinero" },
       { id: "finanzas.reportes", modulo: "reportes_financieros", etiqueta: "Reportes", estado: "viva", ruta: "/finanzas/reportes", icono: "reportes", pajaro: "12 Urraca", exige: "verReportesFinancieros" },
@@ -379,6 +378,36 @@ export const ARBOL: readonly Nodo[] = [
   { id: "apartados", etiqueta: "Apartados", estado: "futura", pajaro: "05 Halcón", nota: "Stock apartado para una clienta." },
   { id: "comercial", etiqueta: "Comercial", estado: "futura", pajaro: "13 Águila", nota: "Inteligencia comercial: lee lo de los demás." },
 ];
+
+/** Todas las hojas VIVAS de `ARBOL`, en su orden (el orden del menú), sin filtrar por perfil: la usa `aterrizajeDe`
+ *  para encontrar «la primera pantalla que ve» sin repetir el árbol. Una `Futura` no cuenta: no existe todavía. */
+function hojasDelArbol(nodos: readonly Nodo[]): Hoja[] {
+  return nodos.flatMap((n) => (n.estado !== "viva" ? [] : esGrupo(n) ? hojasDelArbol(n.hijos) : [n]));
+}
+const HOJAS_DEL_ARBOL = hojasDelArbol(ARBOL);
+
+/** La ruta del módulo elegido si el rol todavía lo ve; si no (o no eligió), la primera ruta de `HOJAS_DEL_ARBOL` que
+ *  el rol ve, en el orden del menú; `null` si no le queda ninguna. */
+function primeraRutaDe(modulos: readonly ClaveModulo[], preferido?: string | null): string | null {
+  if (preferido && modulos.includes(preferido as ClaveModulo)) {
+    const elegida = HOJAS_DEL_ARBOL.find((h) => h.modulo === preferido);
+    if (elegida) return elegida.ruta;
+  }
+  return HOJAS_DEL_ARBOL.find((h) => h.modulo && modulos.includes(h.modulo))?.ruta ?? null;
+}
+
+/**
+ * A dónde ATERRIZA una cuenta al abrir `/` (20260925220000, Felipe 2026-09-25). Una TERMINAL manda aparte y siempre:
+ * si ve el Punto de venta, su casa es el mostrador (Felipe, 2026-09-21); si no, Inicio — no participa de «pantalla
+ * principal» ni de que Inicio se apague. Una PERSONA: la pantalla principal de su rol si todavía la ve; si no (o su
+ * rol nunca eligió una), la primera pantalla que ve, en el orden del menú (Inicio sale primero si la tiene, como
+ * antes); si no le queda NINGUNA (ni Inicio ni ningún otro módulo), «Sin acceso» — nunca queda sin saber a dónde ir.
+ */
+export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null; pantallaPrincipal?: string | null }): string {
+  const modulos = perfil.modulos ?? [];
+  if (perfil.terminal) return esMostrador(perfil) ? "/vender" : "/";
+  return primeraRutaDe(modulos, perfil.pantallaPrincipal) ?? "/sin-acceso";
+}
 
 /**
  * Las 4 columnas fijas de la barra del celular, por id de nodo. Punto de Venta y Caja son de uso diario en el mostrador; lo
@@ -453,16 +482,15 @@ function esVisible(n: Comun & { estado: string }, perfil: PerfilDelMenu): boolea
   // Una terminal se mira SIEMPRE por sus módulos (sin ellos, ninguno: falla cerrado). Una persona, solo si los trae.
   const modulos = perfil.terminal ? (perfil.modulos ?? []) : perfil.modulos;
   if (modulos) {
+    // La regla del mostrador manda sobre el módulo para una TERMINAL (Felipe, 2026-09-21): vende → su casa es el
+    // mostrador, nunca Inicio, tenga o no el módulo en su rol. Independiente de «Inicio apagable» (20260925220000):
+    // una terminal no participa de ese candado.
+    if (n.id === "inicio" && perfil.terminal) return terminalVeInicio(modulos);
     // Por rol (ADR-0161): la hoja sale si la cuenta ve su módulo; un grupo, si le queda alguna hija (lo resuelve
-    // `construirFila`). Una hoja sin módulo (Inicio): las personas siempre, las terminales según `terminalVeInicio`.
+    // `construirFila`).
     if (n.modulo) return modulos.includes(n.modulo) || (!!n.moduloAlterno && modulos.includes(n.moduloAlterno));
-    if (esHojaOAccion(n) && perfil.terminal) return terminalVeInicio(modulos);
   }
   return true;
-}
-
-function esHojaOAccion(n: object): boolean {
-  return !("hijos" in n);
 }
 
 /** Todas las rutas que cuelgan de `n` para este perfil: la propia si es una hoja, o `raiz` + las de sus hijos (recursivo:

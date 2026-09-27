@@ -309,9 +309,19 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:alta-con-stock-inicial
 
+      # Temporadas como atributo (ADR-0246): la lista cerrada de 9, el calendario de SENAMHI (lo que ya empezó no se mueve;
+      # solo el líder corre una fecha futura), una temporada por prenda (color → producto → categoría), asignar todo o
+      # nada con firma y rastro, el alta con p_temporada, el año por fecha de llegada y la guarda de la migración.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:temporadas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:temporadas
+
       # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
       # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
-      # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
+      # stock no cuadra con el libro la fila sale «dudosa». Desde el paso 2 de Frescura 3c: el cálculo vive en un núcleo
+      # interno, los retiros del piso se descuentan («corregida»), la carga inicial se marca y las dos guardas md5
+      # abortan ante un parche en vivo. Cada caso termina en ROLLBACK.
       - name: pruebas:frescura-bajadas
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:frescura-bajadas
@@ -423,12 +433,35 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:produccion-punta-a-punta
 
+      # Cotización de maquila externa (D-82/D-31, ADR-0156): cargarla es solo del líder (RLS), la vigente es la más
+      # reciente que no venció (nunca la primera), una vencida o sin ninguna da null (nunca un precio inventado),
+      # cualquier sesión la lee (D-80: la tienda ve el mismo costo de referencia que el Taller) y los dos estados
+      # imposibles del esquema (vence antes de empezar, precio negativo) no llegan a existir. Cada caso: ROLLBACK.
+      # Estaba en EXCLUIDAS de `ci-paridad.test.ts` a la espera de confirmarse en un Postgres real (medida en rojo,
+      # 10/11, en el stack donde se escribió): 11/11 en un Postgres 17 desechable con las migraciones y el seed —
+      # cableada el 2026-09-27.
+      - name: pruebas:cotizaciones-maquila
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cotizaciones-maquila
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-movimientos-referencias
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-movimientos-referencias
+
+      # Filtro de búsqueda especial de Movimientos (ADR-0127, migración 20260921153700): nombre + color + talla en
+      # cualquier orden y con plurales, sinónimos de color y singulares, comparado contra los MISMOS casos que la
+      # versión TypeScript (filtro-busqueda-especial.casos.json); texto raro/vacío no revienta y no busca nada;
+      # RLS + permisos de `fn_movimientos_variantes`/sus ayudas; y `fn_movimientos`/`fn_movimientos_resumen` usan
+      # esta misma búsqueda. Complementa a `fn-movimientos-referencias` (esa prueba el número de proceso; esta, la
+      # prenda) — no son la misma prueba. Cada caso: ROLLBACK. Estaba en EXCLUIDAS a la espera de confirmarse en un
+      # Postgres real (medida en rojo, 134/146, en el stack donde se escribió): 146/146 en un Postgres 17 desechable
+      # con las migraciones y el seed — cableada el 2026-09-27.
+      - name: pruebas:fn-movimientos-busqueda-especial
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-movimientos-busqueda-especial
 
       # Movimientos leído desde la tienda (ADR-0234): el traslado que llega cuenta en «Entradas» y en «Traslados», una
       # operación es lo guardado de una sola vez sobre un mismo documento (el cambio cuenta una vez; dos ventas en una
@@ -609,6 +642,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:traslados-recibir-sin-perder-nada
 
+      # Pedir a otra sede (ADR-0242 D-7): la reposición entre tiendas va en la tabla de pedidos de Apartados con la clienta
+      # opcional. Pedir arma un grupo (las prendas repetidas se suman, el token no duplica) y no deja pedir más de lo
+      # disponible, a la misma sede ni sin módulo; enviar arma UN traslado con todo el grupo (el reintento devuelve el
+      # mismo); al llegar queda «recibido» sin apartar nada (parcial: lo que no llegó se cancela); cancelar; y Apartados no
+      # ve la reposición mientras un pedido CON clienta se sigue apartando al llegar. Cada caso termina en ROLLBACK.
+      - name: pruebas:pedir-a-otra-sede
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:pedir-a-otra-sede
+
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y
       # el borde del día en Lima. Compara contra una línea base, no contra valores absolutos. Cada caso termina en ROLLBACK.
@@ -671,6 +713,18 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:colaboradores-alta-aprobacion
 
+      # Endurecimiento de colaboradores (ADR-0145): `authenticated`/`anon` ya no escriben `retail.colaboradores`
+      # directo (solo las RPC, security definer); el CHECK rechaza un colaborador sin ubicación y deja pasar a un
+      # líder sin ella; `agregar_colaborador`/`quitar_colaborador` avisan la segunda vez en vez de callar, y
+      # quitarse a uno mismo nombra a «otro líder». Cada caso termina en ROLLBACK. Estaba en EXCLUIDAS de
+      # `ci-paridad.test.ts` («nunca pudo pasar»): la prueba dependía de una persona «sobrante» del seed sin
+      # colaboradores, que no existe (Felipe/Micaela/Sandra ya son las tres colaboradoras) — se corrigió para crear
+      # su propia candidata, como el resto de las pruebas de este directorio. 7/7 en un Postgres 17 desechable,
+      # también en `--en-seco` — cableada el 2026-09-27.
+      - name: pruebas:colaboradores-endurecimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:colaboradores-endurecimiento
+
       # Devoluciones con motivo estructurado (D-79, ADR-0158): `crear_devolucion` rechaza motivo nulo o fuera de la lista cerrada de
       # seis códigos, guarda el código tal cual, y lo devuelto se descuenta de lo ya cambiado y de otras devoluciones (ADR-0189).
       # Cada caso termina en ROLLBACK.
@@ -709,6 +763,45 @@ jobs:
       - name: pruebas:candado-lider
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
+
+      # Cierre con traslado y apertura verificada (ADR-0186): el esperado que ve quien cierra es el mismo que
+      # congela `cerrar_caja` (y una colaboradora no lo lee); el traslado rechaza más de lo contado, un destino
+      # inválido o "entregado al líder" sin decir a quién (el depósito bancario SIN n.º de operación NO se
+      # rechaza desde el 2026-09-23: es opcional); el cierre con traslado deja su fila en `caja_traslados` y
+      # `monto_fondo` = contado − trasladado; `abrir_caja` compara con el último fondo y exige motivo si difiere;
+      # `revisar_apertura_caja` es solo del líder y una sola vez; y el check `caja_apertura_explica_diferencia`
+      # frena una escritura directa. Cada caso termina en ROLLBACK.
+      - name: pruebas:caja-cierre-traslado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:caja-cierre-traslado
+
+      # Tres candados de dinero que vivían solo en el modal, no en la base (20260922235000): `registrar_movimiento_caja`
+      # decide `es_ajuste` del MOTIVO (no de lo que manda el navegador) con vocabulario cerrado y referencia exigida
+      # para "Depósito bancario"/"Otro"; `registrar_cambio` con diferencia negativa no exige líder (revertido a
+      # propósito el 2026-09-23, "agilidad para la clienta"); `aprobar_devolucion` no la aprueba quien la registró y
+      # el reembolso no supera lo que la clienta pagó de verdad (con descuento); y un `update`/`insert`/`delete`
+      # directo sobre `devoluciones`/`devolucion_items`/`prendas_danadas`/`cambios` con el rol real de la API ya no
+      # tiene privilegio de tabla (con su prueba de mutación: sin el `revoke`, el mismo `update` sí pasaba). Cada
+      # caso termina en ROLLBACK.
+      - name: pruebas:candado-dinero-caja-cambios-devoluciones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-dinero-caja-cambios-devoluciones
+
+      # Archivar datos de prueba de producción sin borrar nada (D-54, ADR-0159): las cuatro funciones
+      # (`archivar_venta_prueba`, `archivar_caja_prueba`, `archivar_conteo_prueba`, `archivar_producto_prueba`)
+      # exigen líder primero; archivar una caja ABIERTA la cierra con el mismo cálculo que `cerrar_caja` y libera el
+      # índice único de la sede; archivar un conteo `abierto` se rechaza (22023); el trigger de `conteos` bloquea
+      # `es_prueba` por UPDATE directo aunque la colaboradora pueda editar su propio conteo; y el mismo candado
+      # ahora también en `productos` (20260928110000: `productos_write_lider` dejó de exigir líder para TODA
+      # escritura cuando ADR-0161 sumó el módulo Productos/Atributos, reabriendo la puerta que esta migración creía
+      # cerrada). Cada caso termina en ROLLBACK. Estaba en EXCLUIDAS («no pasa: 1 de 16»): el script llamaba a
+      # `ventas`/`cajas`/`archivar_venta_prueba()` sin el prefijo `retail.` — `search_path` por defecto de una
+      # conexión nueva es `"$user", public` (ni `supabase start` lo cambia para `-U postgres`: `extra_search_path`
+      # de `config.toml` solo lo aplica PostgREST a los roles de la API). 16/16 en un Postgres 17 desechable, en
+      # modo normal y en `--en-seco` — cableada el 2026-09-27.
+      - name: pruebas:archivar-datos-prueba
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:archivar-datos-prueba
 
       # Cuentas TERMINAL por tienda (poderes del ADR-0160, identidad del ADR-0162): la de ventas cierra caja y mueve caja; la
       # administrativa ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de
@@ -810,6 +903,16 @@ jobs:
       - name: pruebas:eliminar-marca
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-marca
+
+      # El costo se corrige a mano solo hasta la primera compra (20260927190000, Felipe 2026-09-26): sin compras
+      # (costo declarado) un líder lo corrige y el historial lo anota como 'costo_declarado', no 'costo' (Resumen no
+      # la lee como «alterada»); con compras (costo oficial) ni la API ni un update directo lo pisan; el camino
+      # oficial (recibir_compras, recibir_lote, cerrar_produccion) sigue anotando 'costo'; `fn_variantes_con_costo_oficial`
+      # distingue las dos y `anon` no la ejecuta; sin el disparador el update directo sí pisa (el hueco existía); el
+      # parche se puede pegar dos veces. Cada caso termina en ROLLBACK.
+      - name: pruebas:costo-hasta-primera-compra
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:costo-hasta-primera-compra
 
       # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
       # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
