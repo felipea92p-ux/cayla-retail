@@ -508,6 +508,9 @@ caso(
   "entre líderes con el módulo abierto: un LÍDER sigue subiendo a Líder y bajando a otro líder; nunca queda cero líderes",
   PERSONA_NUEVA +
     `insert into retail.colaboradores (persona_id, rol, ubicacion_asignada_id, estado) select :'nueva', 'colaborador', tru, 'activo' from ids;\n` +
+    // Desde #317 el seed trae a Sandra como segunda líder: fuera de esta transacción (mismo patrón que «protección 3»),
+    // para que Felipe sea de verdad el último líder activo en la última llamada de abajo.
+    `update retail.colaboradores set estado = 'pendiente_aprobacion' where rol = 'lider' and persona_id <> (select id from public.personas where auth_user_id = '${FELIPE_AUTH}');\n` +
     como(FELIPE_AUTH) +
     `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_lider, :'nueva')) from ids;\n` +
     `select rol from retail.colaboradores where persona_id = :'nueva';\n` +
@@ -1061,11 +1064,12 @@ caso(
 );
 caso(
   // Antes de 20260925211500 esto lo frenaba «tu propio rol», sin mirar si era Admin. Ahora Felipe (Admin) sí pasa ese
-  // candado, pero sigue siendo el único líder activo del escenario: lo frena el candado de «último líder», no el de
-  // «propio rol». El candado de «último admin» (`fn_exigir_otro_admin`) queda sin ejercitar aquí: pedirle un segundo
-  // admin a este seed es más de lo que esta prueba necesita para probar la excepción.
+  // candado. Desde #317 el seed trae a Sandra como segunda líder Y segunda admin: fuera de esta transacción (mismo
+  // patrón que «protección 3»), para que Felipe sea de verdad el último líder (y el último admin) activo — si no, ni
+  // el candado de «último líder» ni el de «último admin» se ejercitan, y la prueba cae en «elige sede» en su lugar.
   "un Admin sí se cambia su propio rol (20260925211500); pero no si lo deja sin ningún líder activo",
-  como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
+  `update retail.colaboradores set estado = 'pendiente_aprobacion' where rol = 'lider' and persona_id <> (select id from public.personas where auth_user_id = '${FELIPE_AUTH}');\n` +
+    como(FELIPE_AUTH) + `select pg_temp.intento(format('select retail.asignar_rol(%L, %L)', r_integ, felipe)) from ids;`,
   (s) => s.startsWith("42501|") && s.includes("último líder activo")
 );
 
