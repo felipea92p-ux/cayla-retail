@@ -1,16 +1,14 @@
-import Image from "next/image";
 import { CodigoQR } from "@/components/CodigoQR";
 import { esTallaUnica, fechaVigencia, precioEtiqueta, type EtiquetaPrecio as DatosEtiqueta } from "@/lib/etiqueta-precio-reglas";
 
-/** El QR, lo más grande que entra en 44 × 62 mm (Felipe, 2026-09-23: «hazlo más grande»). Sin campaña lo limita el
- *  ancho (el código de 16 caracteres al lado): 22 mm. Con campaña lo limita el alto (el «−20 %» y el motivo encima):
- *  20 mm. Los dos superan los 18 mm verificados con la pistola Zebra el 2026-09-10. El lado incluye la zona muda (`lib/qr.ts`).
- *  Medido en la maqueta `etiquetas-carton.html` y en el PDF de la hoja real (ADR-0180). */
-const LADO_QR_MM = 22;
-const LADO_QR_CON_CAMPANA_MM = 20;
+/** El QR, lo más grande que entra en 40,1 × 62 mm: 19 mm con o sin campaña (el lado incluye la zona muda, `lib/qr.ts`).
+ *  Lo limita el ancho: el código de 16 caracteres tiene que caber ENTERO a su lado (con 22 mm salía «CMS-0011-NAR…»), y
+ *  con campaña también el alto (el «−20 %» y el motivo encima). Supera los 18 mm verificados con la pistola Zebra el
+ *  2026-09-10: 7,7 puntos de la Brother por módulo, el mínimo práctico son 4 (ADR-0180, «Legibilidad en la térmica»). */
+const LADO_QR_MM = 19;
 
 /**
- * La etiqueta de precio impresa: 44 × 62 mm, para el cartón de 5 × 8 cm (ADR-0180). Diseño «D · Editorial», arreglo
+ * La etiqueta de precio impresa: 40,1 × 62 mm, para el cartón de 5 × 8 cm (ADR-0180). Diseño «D · Editorial», arreglo
  * «QR abajo». Las medidas viven en `globals.css` (`.etiqueta-precio`) y son milímetros: esto es papel, no pantalla.
  *
  * Para la clienta: marca, en qué tallas viene el modelo con la suya marcada, prenda, color y precio. Con una campaña
@@ -21,14 +19,20 @@ const LADO_QR_CON_CAMPANA_MM = 20;
 export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtiqueta; impreso: string }) {
   const unica = e.tallasDelModelo.length === 1 && esTallaUnica(e.tallasDelModelo[0]);
   const cobra = precioEtiqueta(e.campana ? e.precio - e.campana.descuento : e.precio);
-  // «1,136.90» (8 caracteres) con su % no entra a tamaño completo en 37 mm: un punto menos de letra.
+  // «1,136.90» (8 caracteres) con su % no entra a tamaño completo en 34 mm: un punto menos de letra.
   const claseCobra = cobra.length >= 8 ? "etq-precio etq-precio-largo" : "etq-precio";
   return (
     <article className={e.campana ? "etiqueta-precio etq-con-campana" : "etiqueta-precio"} aria-label={`Etiqueta de precio de ${e.prenda}`}>
       <header className="etq-cab">
-        {/* `unoptimized` + `eager`: el PNG original (la térmica no gana nada con WebP) y cargado aunque la hoja de
-            impresión esté oculta — una imagen perezosa dentro de un `display:none` puede no llegar al papel. */}
-        <Image src="/cayla-isotipo.png" alt="" width={223} height={150} unoptimized loading="eager" />
+        {/* El colibrí en vector (calcado de /cayla-isotipo.png, 223 × 150): el PNG de 223 px, ennegrecido con filtro,
+            salía serruchado en la Brother (Felipe, 2026-09-25). En vector la térmica lo dibuja nítido a su resolución.
+            Trazo 9 de 223 en 6,2 mm = 0,25 mm (3 puntos): con 7 quedaba en 2,3, bajo el mínimo de globals.css. */}
+        <svg viewBox="0 0 223 150" aria-hidden fill="none" stroke="#000" strokeWidth={9} strokeLinejoin="round">
+          <path d="M3,6 C45,14 95,28 118,50 C134,64 136,96 124,112 C110,130 80,138 47,146 L68,102" />
+          <path d="M3,6 C10,40 40,70 70,80 C85,85 100,87 112,87" />
+          <path d="M104,40 C102,22 118,6 140,5 C155,4 165,10 172,16 L220,12" />
+          <path d="M172,16 C156,22 144,38 134,62" />
+        </svg>
         <b>CAYLA</b>
       </header>
 
@@ -84,7 +88,7 @@ export function EtiquetaPrecio({ etiqueta: e, impreso }: { etiqueta: DatosEtique
           <small>cayla.pe</small>
         </div>
         <div className="etq-qr">
-          <CodigoQR texto={e.codigo} ladoMm={e.campana ? LADO_QR_CON_CAMPANA_MM : LADO_QR_MM} />
+          <CodigoQR texto={e.codigo} ladoMm={LADO_QR_MM} />
         </div>
       </footer>
     </article>

@@ -15,6 +15,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto, Hilo } from "@/components/ui/campos";
 import { MuestraEtiqueta } from "@/components/MuestraEtiqueta";
 import { PrendasDeEtiquetaModal } from "@/components/PrendasDeEtiquetaModal";
+import { AYUDA_COMENTARIO_APROBAR, avisoEtiquetaAgregada, cuerpoAprobarEtiqueta, verboAprobacion } from "@/lib/etiqueta-aprobacion-reglas";
 import { objecionVigencia, parsearDescuento, parsearFecha, prendasBajoCosto, type PrendaConCosto } from "@/lib/etiqueta-campana";
 import { hoyLima, vigenciaDe, type Vigencia } from "@/lib/etiqueta-vigencia";
 import { normalizarNombre } from "@/lib/patron-visual";
@@ -216,6 +217,10 @@ export function EtiquetasLista({
   const [agregando, setAgregando] = useState(false);
   const [nombre, setNombre] = useState("");
   const [guardando, setGuardando] = useState(false);
+  // Aprobar (y reactivar una rechazada) pide un comentario: la base lo exige en toda transición a «aprobado»
+  // (`lib/etiqueta-aprobacion-reglas.ts`). Mismo patrón que Tallas: una ventana con el comentario y el combo «Responsable».
+  const [aprobandoAbierto, setAprobandoAbierto] = useState<string | null>(null);
+  const [comentarioAprobar, setComentarioAprobar] = useState("");
   const [aprobandoId, setAprobandoId] = useState<string | null>(null);
   const [cambiandoId, setCambiandoId] = useState<string | null>(null);
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
@@ -253,6 +258,7 @@ export function EtiquetasLista({
   const activas = etiquetas.filter((e) => e.activo);
   const desactivadas = etiquetas.filter((e) => !e.activo);
   const rechazandoEtiqueta = etiquetas.find((e) => e.id === rechazandoAbierto) ?? null;
+  const aprobandoEtiqueta = etiquetas.find((e) => e.id === aprobandoAbierto) ?? null;
   const gruposConEtiquetas = ORDEN_GRUPOS.filter((g) => activas.some((e) => e.estilo === g));
   const vigentesHoy = activas.filter((e) => vigenciaEn(e)?.estado === "vigente").length;
   const activasVisibles = activas.filter(pasaFiltros);
@@ -289,10 +295,10 @@ export function EtiquetasLista({
         ])
       );
       responsable.despues(null);
-      avisar.exito(
-        datos.etiqueta.estado === "pendiente" ? `${datos.etiqueta.nombre} agregada — ya la puedes usar` : `Etiqueta ${datos.etiqueta.nombre} agregada`,
-        datos.etiqueta.estado === "pendiente" ? { detalle: "Queda pendiente de que un Líder la apruebe, pero eso no te frena." } : undefined
-      );
+      // Una propuesta pendiente NO se puede usar todavía (el alta de producto y «Prendas» solo aceptan aprobadas): el aviso
+      // ya no promete lo contrario. Los textos viven en `lib/etiqueta-aprobacion-reglas.ts`.
+      const { titulo, detalle } = avisoEtiquetaAgregada(datos.etiqueta.nombre, datos.etiqueta.estado);
+      avisar.exito(titulo, detalle ? { detalle } : undefined);
       setAgregando(false);
       setNombre("");
     } catch {
@@ -302,22 +308,37 @@ export function EtiquetasLista({
     }
   }
 
+  // Aprobar una pendiente o reactivar una rechazada es la MISMA transición para la base (estado → 'aprobado') y las dos exigen
+  // el comentario. Si llegara vacío, no se manda nada: el botón de la ventana ya está apagado, esto solo cierra la puerta.
+  function abrirAprobacion(e: Etiqueta) {
+    setAprobandoAbierto(e.id);
+    setComentarioAprobar("");
+  }
+
   async function aprobar(e: Etiqueta) {
+    const cuerpo = cuerpoAprobarEtiqueta(e.id, comentarioAprobar);
+    if (!cuerpo) return;
+    const verbo = verboAprobacion(e.estado);
     setAprobandoId(e.id);
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify({ id: e.id, estado: "aprobado" }),
+        body: JSON.stringify(cuerpo),
       });
       const datos = await res.json();
       if (!res.ok) {
-        avisar.error(datos.error ?? "No se pudo aprobar la etiqueta.");
+        avisar.error(datos.error ?? `No se pudo ${verbo.toLowerCase()} la etiqueta.`);
         return;
       }
-      setEtiquetas((actual) => ordenar(actual.map((x) => (x.id === e.id ? { ...x, estado: "aprobado" as const, activo: true } : x))));
+      // `notas` vuelve del servidor: es el comentario que se muestra como ayuda junto al nombre de la etiqueta.
+      setEtiquetas((actual) =>
+        ordenar(actual.map((x) => (x.id === e.id ? { ...x, estado: "aprobado" as const, activo: true, notas: datos.etiqueta.notas } : x)))
+      );
       responsable.despues(null);
-      avisar.exito(`${e.nombre} aprobada`);
+      avisar.exito(e.estado === "rechazado" ? `${e.nombre} reactivada` : `${e.nombre} aprobada`, e.estado === "rechazado" ? { detalle: "Vuelve a aparecer al etiquetar una variante." } : undefined);
+      setAprobandoAbierto(null);
+      setComentarioAprobar("");
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -350,13 +371,15 @@ export function EtiquetasLista({
     }
   }
 
+  // Solo para una etiqueta aprobada que alguien desactivó: no cambia su estado, así que no lleva comentario. Una RECHAZADA se
+  // reactiva por `abrirAprobacion`/`aprobar` (pasa a 'aprobado' y ahí la base sí pide el comentario).
   async function reactivar(e: Etiqueta) {
     setCambiandoId(e.id);
     try {
       const res = await fetch("/api/productos/etiquetas", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", ...responsable.encabezados() },
-        body: JSON.stringify(e.estado === "rechazado" ? { id: e.id, estado: "aprobado" } : { id: e.id, activo: true }),
+        body: JSON.stringify({ id: e.id, activo: true }),
       });
       const datos = await res.json();
       if (!res.ok) {
@@ -492,13 +515,15 @@ export function EtiquetasLista({
                     {/* Una etiqueta CON descuento cambia el precio en caja: sus acciones son solo del líder. */}
                     {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) &&
                       (e.estado === "pendiente" ? (
-                        <div className="flex gap-2">
-                          <Boton peso="primario" className="flex-1 px-2.5 py-1.5 text-[11px]" cargando={aprobandoId === e.id} onClick={() => setConfirmando(confirmacionCatalogo("aprobar", e.nombre, () => aprobar(e)))}>
+                        // Dos botones lado a lado no caben en una tarjeta angosta («Rechazar» se cortaba, medido a 1024 px): con
+                        // `flex-wrap` y un mínimo por botón, si no caben en fila pasan a dos filas (misma solución que Tallas).
+                        <div className="flex flex-wrap gap-2">
+                          <Boton peso="primario" className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-[11px] whitespace-nowrap" onClick={() => abrirAprobacion(e)}>
                             Aprobar
                           </Boton>
                           <Boton
                             peso="discreto"
-                            className="flex-1 px-2.5 py-1.5 text-[11px] text-rojo"
+                            className="min-w-[6.5rem] flex-1 px-2.5! py-1.5 text-[11px] whitespace-nowrap text-rojo"
                             onClick={() => {
                               setRechazandoAbierto(e.id);
                               setMotivoRechazo("");
@@ -558,7 +583,12 @@ export function EtiquetasLista({
               <TarjetaEtiqueta key={e.id} e={e} vigencia={null} apagada>
                 {puedeEditar && (e.descuentoPct === null || puedeDarDescuento) && (
                   <div className="px-1 pb-1">
-                    <Boton peso="discreto" className="w-full px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === e.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", e.nombre, () => reactivar(e)))}>
+                    <Boton
+                      peso="discreto"
+                      className="w-full px-2.5 py-1.5 text-[11px]"
+                      cargando={cambiandoId === e.id}
+                      onClick={() => (e.estado === "rechazado" ? abrirAprobacion(e) : setConfirmando(confirmacionCatalogo("reactivar", e.nombre, () => reactivar(e))))}
+                    >
                       Reactivar
                     </Boton>
                   </div>
@@ -614,6 +644,37 @@ export function EtiquetasLista({
             setConfigurando(null);
           }}
         />
+      )}
+
+      {aprobandoEtiqueta && (
+        <Modal
+          titulo={`${verboAprobacion(aprobandoEtiqueta.estado)} «${aprobandoEtiqueta.nombre}»`}
+          subtitulo={AYUDA_COMENTARIO_APROBAR}
+          ancho="max-w-sm"
+          onClose={() => setAprobandoAbierto(null)}
+        >
+          {(cerrar) => (
+            <div className="mt-5 space-y-4">
+              <CampoTexto etiqueta="Comentario (obligatorio)" value={comentarioAprobar} onChange={(e) => setComentarioAprobar(e.target.value)} autoFocus />
+              <ComboResponsable control={responsable} deshabilitado={aprobandoId === aprobandoEtiqueta.id} />
+              <div className="flex gap-2">
+                <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={aprobandoId === aprobandoEtiqueta.id}>
+                  Cancelar
+                </Boton>
+                <Boton
+                  peso="primario"
+                  className="flex-1"
+                  cargando={aprobandoId === aprobandoEtiqueta.id}
+                  disabled={!comentarioAprobar.trim() || !responsable.listo}
+                  title={responsable.motivo ?? undefined}
+                  onClick={() => aprobar(aprobandoEtiqueta)}
+                >
+                  {aprobandoEtiqueta.estado === "rechazado" ? "Confirmar reactivación" : "Confirmar aprobación"}
+                </Boton>
+              </div>
+            </div>
+          )}
+        </Modal>
       )}
 
       {rechazandoEtiqueta && (

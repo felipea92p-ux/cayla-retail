@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
-import { Boton, CampoSelectNativo } from "@/components/ui/campos";
+import { Boton, CampoSelect } from "@/components/ui/campos";
 import { CifraQueCuenta } from "@/components/ui/CifraQueCuenta";
 import { Confirmacion, DatosDelProveedor, MediosDePago, PILDORA, Tilde, type DatosPagoProveedor, type ResultadoPago } from "@/components/PagoPiezas";
 import { lineasPagoParaRpc, sumaLineasPago, type LineaPago } from "@/components/LineasPago";
@@ -389,13 +389,12 @@ export function PagoJuntosModal({
           {/* ADR-0184 (F4-F5): con una sola tienda propia se paga con ella sin preguntar; con varias, se elige —
               es UNA tienda para todo el lote, y la base exige que tenga parte en cada comprobante que reciba algo. */}
           {misTiendas && misTiendas.length > 1 && (
-            <CampoSelectNativo etiqueta="Pagas desde" value={ubicacionPago} onChange={(e) => setUbicacionPago(e.target.value)}>
-              {misTiendas.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </CampoSelectNativo>
+            <CampoSelect
+              etiqueta="Pagas desde"
+              valor={ubicacionPago}
+              onValor={(v) => setUbicacionPago(v)}
+              opciones={misTiendas.map((t) => ({ valor: t.id, texto: t.nombre }))}
+            />
           )}
 
           {todoConFavor ? (

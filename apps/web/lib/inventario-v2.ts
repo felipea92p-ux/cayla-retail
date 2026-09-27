@@ -1,25 +1,30 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir, leerTodas } from "@/lib/resultado";
 import { ID_CARGO_ESPECIAL } from "@/lib/cargo-especial";
-import { calcularEstado, fotoPrincipal, sumarCantidades, type Cantidades, type EstadoStock } from "@/lib/inventario-reglas";
+import { fotoPrincipal, sumarCantidades, type Cantidades } from "@/lib/inventario-reglas";
 import { agruparStockPorSede, type FilaStock as FilaStockSede, type SedeConStock } from "@/lib/stock-por-sede";
+import { codigoDeEtiqueta } from "@/lib/prenda-reglas";
+import type { CoberturaPiso, RitmoReciente } from "@/lib/existencias-ritmo";
+import type { AccionHoy } from "@/lib/existencias-recomendaciones";
 
 // Las páginas (server) importan todo desde acá; los componentes cliente
 // importan SOLO `inventario-reglas.ts`.
 export * from "@/lib/inventario-reglas";
-import type { Cobertura } from "@/lib/resumen-reglas";
 
 // Stock por ubicación para la pantalla de Inventario. `retail.stock` es un
 // snapshot derivado de `movimientos` (nunca se edita a mano) — acá solo se
 // LEE. Desde 20260914210000_inventario_piso_almacen.sql, `stock` tiene una
 // fila por (variante, sububicación) cuando la ubicación separa piso de
 // venta y almacén de tienda (las 2 tiendas) — Taller sigue con una sola
-// fila por variante (`sububicacion_id` null), y `piso`/`almacen`/`estado`
+// fila por variante (`sububicacion_id` null), y `piso`/`almacen`/`danado`
 // quedan en `null` para esa ubicación: "no aplica" nunca se disfraza de 0.
 export type FilaStock = {
   varianteId: string;
   /** Para abrir `AjustarInventarioModal` desde la fila (es por producto). */
   productoId: string;
+  /** Lo que se MUESTRA, se busca y se exporta como código de la prenda: `variantes.codigo` (el de la
+   *  etiqueta) y, solo si falta, el `sku` legado (`codigoDeEtiqueta`). El nombre quedó del legado: el `sku`
+   *  real es NULL en casi todas las variantes (ADR-0058). */
   sku: string;
   talla: string | null;
   color: string | null;
@@ -38,7 +43,6 @@ export type FilaStock = {
   total: number;
   piso: number | null;
   almacen: number | null;
-  estado: EstadoStock | null;
   /** Unidades de esta variante hoy en `cuarentena`, pendientes de resolver
    *  (Liquidada/Se botó/Donada). `null` en ubicaciones que no separan piso
    *  de almacén (Taller) — mismo criterio que `piso`/`almacen`. */
@@ -61,7 +65,6 @@ export type ResumenInventario = {
   disponible: number;
   piso: number | null;
   almacen: number | null;
-  requierenReposicion: number;
   separaPisoAlmacen: boolean;
 };
 
@@ -84,7 +87,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
       `variante_id, cantidad, cantidad_apartada,
        sububicacion:sububicaciones ( tipo ),
        variante:variantes!inner (
-         sku, talla:tallas ( valor ),
+         sku, codigo, talla:tallas ( valor ),
          color:colores ( nombre, hex ),
          producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
          codigos_barras ( codigo )
@@ -115,7 +118,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
               `variante_id, cantidad,
                sububicacion:sububicaciones ( tipo ),
                variante:variantes!inner (
-                 sku, talla:tallas ( valor ),
+                 sku, codigo, talla:tallas ( valor ),
                  color:colores ( nombre, hex ),
                  producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
                  codigos_barras ( codigo )
@@ -138,7 +141,7 @@ export async function getStockPorUbicacion(ubicacionId: string): Promise<FilaSto
     porVariante.set(f.variante_id, {
       varianteId: f.variante_id,
       productoId: f.variante?.producto?.id ?? "",
-      sku: f.variante?.sku ?? "",
+      sku: f.variante ? codigoDeEtiqueta(f.variante) : "",
       talla: f.variante?.talla?.valor ?? null,
       color: f.variante?.color?.nombre ?? null,
       colorHex: f.variante?.color?.hex ?? null,
@@ -190,7 +193,6 @@ export function resumirInventario(filas: FilaStock[]): ResumenInventario {
     disponible: filas.reduce((acc, f) => acc + f.disponible, 0),
     piso: separaPisoAlmacen ? filas.reduce((acc, f) => acc + (f.piso ?? 0), 0) : null,
     almacen: separaPisoAlmacen ? filas.reduce((acc, f) => acc + (f.almacen ?? 0), 0) : null,
-    requierenReposicion: filas.filter((f) => f.estado === "reponer_piso").length,
     separaPisoAlmacen,
   };
 }
@@ -211,11 +213,22 @@ export type FilaExistencias = FilaStock & {
   enTransito: number;
   /** Dónde más hay, de más a menos. Vacío si en ninguna otra sede. */
   enRed: SedeConStock[];
-  /** Cuánto dura el stock de hoy al ritmo de venta reciente (`getCoberturaPorVariante`). Solo tiendas;
-   *  ausente o null = «N/D» (no vende, no hay historial o el cálculo falló). */
-  cobertura?: Cobertura | null;
+  /** Ritmo reciente (7 días, ledger único — `existencias-ritmo.ts`, 2026-09-25). Solo tiendas;
+   *  ausente o null = no se pudo calcular (falló la RPC; ver `coberturaFallo` en el panel). */
+  ritmoReciente?: RitmoReciente | null;
+  /** Cuánto dura el piso de hoy al Ritmo reciente (`existencias-ritmo.ts`). Solo tiendas;
+   *  ausente o null = no se pudo calcular. */
+  coberturaPiso?: CoberturaPiso | null;
+  /** «Acción hoy» (2026-09-25): `calcularAccionHoy` (`existencias-recomendaciones.ts`) — MISMA fuente que
+   *  la tarjeta «Reponer a piso hoy», el filtro Acción y «Ver recomendaciones». Ausente o null = la sede no
+   *  vende (Taller): no se inventa una acción. No depende del Ritmo reciente. */
+  accionHoy?: AccionHoy | null;
   /** Producto marcado `es_prueba` (D-54, ADR-0159): solo llega con `incluirPrueba`. */
   esPrueba?: boolean;
+  /** La marca comercial del producto. NO la trae `getExistencias` (su `select` de stock lo comparte la caja): la pone la
+   *  página con `conMarca` (`existencias-catalogo-reglas.ts`) desde una lectura aparte y tolerante. Ausente o null = no se
+   *  pudo leer. */
+  marca?: string | null;
 };
 
 /** `fn_stock_por_sede()` entera: ~2.900 filas (variante × sede) y PostgREST corta en 1.000 — «¿dónde más hay?» decía
@@ -241,20 +254,26 @@ export async function getExistencias(
     // se descontó del stock al enviarse y no es «en camino» para esta pantalla.
     // RLS (transferencia_items_select) es bilateral, así que una integrante
     // de la sede destino ve estas filas sin ser líder.
-    supabase
-      .from("transferencia_items")
-      .select(
-        `variante_id, cantidad,
-         transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
-         variante:variantes (
-           sku, talla:tallas ( valor ),
-           color:colores ( nombre, hex ),
-           producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
-           codigos_barras ( codigo )
-         )`
-      )
-      .eq("transferencia.ubicacion_destino_id", ubicacionId)
-      .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"]),
+    // Por páginas (análisis de Existencias, tarea #8): PostgREST corta en 1.000 filas sin avisar, y en semana de campaña
+    // lo que viene en camino (unos 40 ítems por traslado, varios a la vez) se acerca a eso. Cortado, «En camino» mentía.
+    leerTodas((desde, hasta) =>
+      supabase
+        .from("transferencia_items")
+        .select(
+          `id, variante_id, cantidad,
+           transferencia:transferencias!inner ( estado, ubicacion_destino_id ),
+           variante:variantes (
+             sku, codigo, talla:tallas ( valor ),
+             color:colores ( nombre, hex ),
+             producto:productos ( id, referencia, categoria:categorias ( nombre ), producto_fotos ( url, orden, es_principal ) ),
+             codigos_barras ( codigo )
+           )`
+        )
+        .eq("transferencia.ubicacion_destino_id", ubicacionId)
+        .in("transferencia.estado", ["en_transito", "recibido_con_diferencia"])
+        .order("id")
+        .range(desde, hasta)
+    ),
     // D-54 (ADR-0159): qué productos están marcados `es_prueba`, para sacarlos de la lista por
     // defecto (Existencias no llama `getStockPorUbicacion` con un filtro propio — Vender, Cambios
     // y Traslados comparten esa misma función y NO estaban en el alcance de D-54, así que se
@@ -284,8 +303,8 @@ export async function getExistencias(
   // `stock` — y sin fila, la encargada no la vería llegar. Se le arma una
   // fila en cero con lo que trae el traslado (visto probando: Blusa Emma
   // viajando a Trujillo, que solo vendía Blusa Valentina, no aparecía).
-  // En Taller (`separaPisoAlmacen` falso) piso/almacén/estado quedan null
-  // como en cualquier fila suya.
+  // En Taller (`separaPisoAlmacen` falso) piso/almacén quedan null como en
+  // cualquier fila suya.
   const separa = stock.some((f) => f.piso !== null);
   const yaListadas = new Set(filas.map((f) => f.varianteId));
   for (const item of enCamino) {
@@ -296,7 +315,7 @@ export async function getExistencias(
     filas.push({
       varianteId: item.variante_id,
       productoId: item.variante?.producto?.id ?? "",
-      sku: item.variante?.sku ?? "",
+      sku: item.variante ? codigoDeEtiqueta(item.variante) : "",
       talla: item.variante?.talla?.valor ?? null,
       color: item.variante?.color?.nombre ?? null,
       colorHex: item.variante?.color?.hex ?? null,
@@ -312,7 +331,6 @@ export async function getExistencias(
       disponible: 0,
       pisoDisponible: separa ? 0 : null,
       almacenDisponible: separa ? 0 : null,
-      estado: separa ? calcularEstado(0, 0) : null,
       enTransito: transito.get(item.variante_id) ?? 0,
       enRed: red.get(item.variante_id)?.otrasSedes ?? [],
       esPrueba: productoEsPrueba,
@@ -322,21 +340,19 @@ export async function getExistencias(
 }
 
 export type ResumenExistencias = ResumenInventario & {
-  /** Prendas (variantes) en cada estado — para la tarjeta «Piden atención»
-   *  y su desglose. Solo tiene sentido si `separaPisoAlmacen`. */
-  porEstado: Record<EstadoStock, number>;
   /** Unidades en camino hacia esta ubicación, sumando todas las prendas. */
   enTransito: number;
+  /** Variantes con Acción hoy = «Reponer a piso» (2026-09-25) — SIEMPRE lo calcula quien llama
+   *  (`accionHoyPorVariante`, `existencias-recomendaciones.ts`), nunca acá: una sola fuente de
+   *  verdad para la tarjeta, la tabla y el filtro (nunca un `EstadoStock` calculado aparte). */
+  requierenReposicion: number;
 };
 
-export function resumirExistencias(filas: FilaExistencias[]): ResumenExistencias {
-  const base = resumirInventario(filas);
-  const porEstado: Record<EstadoStock, number> = { normal: 0, reponer_piso: 0, stock_bajo: 0, sin_stock: 0 };
-  for (const f of filas) if (f.estado) porEstado[f.estado] += 1;
+export function resumirExistencias(filas: FilaExistencias[], requierenReposicion: number): ResumenExistencias {
   return {
-    ...base,
-    porEstado,
+    ...resumirInventario(filas),
     enTransito: filas.reduce((acc, f) => acc + f.enTransito, 0),
+    requierenReposicion,
   };
 }
 
@@ -367,22 +383,27 @@ export type PrendaDanada = {
 
 export async function getPrendasDanadasPendientes(ubicacionId: string): Promise<PrendaDanada[]> {
   const supabase = await createClient();
+  // Por páginas (tarea #8): sin eso, pasado el tope de 1.000 filas de PostgREST las que sobran no aparecían, sin aviso.
   const filas = exigir(
-    await supabase
-      .from("prendas_danadas")
-      .select(
-        `id, cantidad, created_at,
-         variante:variantes ( id, sku, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
-      )
-      .eq("ubicacion_id", ubicacionId)
-      .eq("estado", "en_cuarentena")
-      .order("created_at"),
+    await leerTodas((desde, hasta) =>
+      supabase
+        .from("prendas_danadas")
+        .select(
+          `id, cantidad, created_at,
+           variante:variantes ( id, sku, codigo, talla:tallas ( valor ), precio, color:colores ( nombre ), producto:productos ( referencia ) )`
+        )
+        .eq("ubicacion_id", ubicacionId)
+        .eq("estado", "en_cuarentena")
+        .order("created_at")
+        .order("id")
+        .range(desde, hasta)
+    ),
     "las prendas dañadas pendientes"
   );
   return filas.map((f) => ({
     id: f.id,
     varianteId: f.variante?.id ?? "",
-    sku: f.variante?.sku ?? "",
+    sku: f.variante ? codigoDeEtiqueta(f.variante) : "",
     talla: f.variante?.talla?.valor ?? null,
     color: f.variante?.color?.nombre ?? null,
     referencia: f.variante?.producto?.referencia ?? "",

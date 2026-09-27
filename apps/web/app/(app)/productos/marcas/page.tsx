@@ -25,12 +25,16 @@ export default async function MarcasPage() {
   const productos = exigir(resProductos, "los productos");
 
   const nombreProveedor = new Map(proveedores.map((p) => [p.id, p.nombre]));
-  // Cuántos productos ACTIVOS hay por pareja: es lo que dice si una marca se puede desactivar sin fricción.
+  // Cuántos productos ACTIVOS hay por pareja: es lo que dice si una marca se puede desactivar sin fricción. Y cuántos en
+  // TOTAL (también descontinuados): mientras haya uno, la llave de `productos` no deja quitar esa pareja en «Editar».
   const usoPareja = new Map<string, number>();
+  const usoParejaTotal = new Map<string, number>();
   const usoMarca = new Map<string, number>();
   for (const p of productos) {
+    const pareja = `${p.marca_id}|${p.proveedor_id}`;
+    usoParejaTotal.set(pareja, (usoParejaTotal.get(pareja) ?? 0) + 1);
     if (p.estado !== "activo") continue;
-    usoPareja.set(`${p.marca_id}|${p.proveedor_id}`, (usoPareja.get(`${p.marca_id}|${p.proveedor_id}`) ?? 0) + 1);
+    usoPareja.set(pareja, (usoPareja.get(pareja) ?? 0) + 1);
     usoMarca.set(p.marca_id, (usoMarca.get(p.marca_id) ?? 0) + 1);
   }
 
@@ -41,7 +45,12 @@ export default async function MarcasPage() {
     productos: usoMarca.get(m.id) ?? 0,
     proveedores: vinculos
       .filter((v) => v.marca_id === m.id)
-      .map((v) => ({ id: v.proveedor_id, nombre: nombreProveedor.get(v.proveedor_id) ?? "(proveedor desactivado)", productos: usoPareja.get(`${m.id}|${v.proveedor_id}`) ?? 0 })),
+      .map((v) => ({
+        id: v.proveedor_id,
+        nombre: nombreProveedor.get(v.proveedor_id) ?? "(proveedor desactivado)",
+        productos: usoPareja.get(`${m.id}|${v.proveedor_id}`) ?? 0,
+        productosTotal: usoParejaTotal.get(`${m.id}|${v.proveedor_id}`) ?? 0,
+      })),
   }));
 
   return (
@@ -52,8 +61,10 @@ export default async function MarcasPage() {
           Marcas
           <Ayuda titulo="Marcas">
             De quién es cada prenda y qué proveedores la traen. Todo producto tiene una marca y un proveedor, y el proveedor tiene que traer esa marca:
-            la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Solo un Líder agrega, renombra o desactiva marcas; no
-            se puede desactivar una con productos activos.
+            la base no deja guardar otra pareja. Una marca puede llegar por más de un proveedor. Con «Editar» cambias el nombre y quién la trae: un
+            proveedor se quita solo si ninguno de sus productos lo usa. No se puede desactivar una marca con productos activos. «Eliminar» aparece
+            solo cuando ningún producto tiene la marca —tampoco uno descontinuado—: si se creó por error, primero cámbiale la marca a sus productos
+            en Productos.
           </Ayuda>
         </h1>
       </div>

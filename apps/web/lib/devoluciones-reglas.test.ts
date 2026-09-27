@@ -3,6 +3,7 @@ import { primerBloqueo } from "./cambios-reglas";
 import {
   condicionDeItem,
   esDevolucionTotal,
+  destinoPrendaResuelta,
   estadoPlazoDevolucion,
   estadoPrendaDevolucion,
   etiquetaCondicion,
@@ -63,8 +64,8 @@ describe("estadoPrendaDevolucion", () => {
     });
   });
 
-  it("a punto de vencer: sigue VERDE (está dentro) y dice los días que quedan", () => {
-    expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({ texto: "Vence en 2 días", tono: "verde" });
+  it("a punto de vencer: ámbar (sigue dentro, pero apura) y dice los días que quedan — spike 2026-09-26", () => {
+    expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 9, 5).toISOString() }, ahora)).toMatchObject({ texto: "Quedan 2 días", tono: "ambar", devolvible: true });
     expect(estadoPrendaDevolucion({ ...base, creadoEn: lima(2026, 9, 3).toISOString() }, ahora).texto).toBe("Último día del plazo");
   });
 
@@ -96,6 +97,22 @@ describe("estadoPlazoDevolucion (el chip de plazo de la VENTA, sin mirar cada l�
     expect(estadoPlazoDevolucion(lima(2026, 9, 18).toISOString(), ahora)).toMatchObject({ clave: "dentro_del_plazo", tono: "verde" });
     expect(estadoPlazoDevolucion(lima(2026, 8, 1).toISOString(), ahora)).toMatchObject({ clave: "fuera_de_plazo", tono: "rojo", icono: "alerta" });
     expect(estadoPlazoDevolucion(lima(2026, 9, 3).toISOString(), ahora).texto).toBe("Último día del plazo");
+  });
+
+  it("dice cuántos días quedan, y en ámbar los últimos 3", () => {
+    expect(estadoPlazoDevolucion(lima(2026, 9, 18).toISOString(), ahora).texto).toBe("Quedan 15 días");
+    expect(estadoPlazoDevolucion(lima(2026, 9, 6).toISOString(), ahora)).toMatchObject({ texto: "Quedan 3 días", tono: "ambar" });
+    expect(estadoPlazoDevolucion(lima(2026, 9, 4).toISOString(), ahora).texto).toBe("Quedan 1 día");
+    expect(estadoPlazoDevolucion(lima(2026, 9, 7).toISOString(), ahora)).toMatchObject({ texto: "Quedan 4 días", tono: "verde" });
+  });
+});
+
+describe("destinoPrendaResuelta", () => {
+  it("aprobada: impecable al piso, lo demás a cuarentena; rechazada: sigue con la clienta", () => {
+    expect(destinoPrendaResuelta("aprobada", "vendible")).toEqual({ texto: "Al piso", tono: "verde" });
+    expect(destinoPrendaResuelta("aprobada", "danada_donar").texto).toBe("En cuarentena");
+    expect(destinoPrendaResuelta("aprobada", "devolver_proveedor").texto).toBe("En cuarentena");
+    expect(destinoPrendaResuelta("rechazada", "vendible").texto).toBe("Se queda con la clienta");
   });
 });
 

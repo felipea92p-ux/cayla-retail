@@ -14,5 +14,14 @@
  *  directo deja un hueco vacío justo donde la colaboradora busca qué talla/color es.
  *  Solo se MUESTRA — para identificar una prenda se compara `varianteId`, nunca esto. */
 export function codigoPrenda(v: { codigo: string | null; sku: string | null }): string {
-  return v.codigo || v.sku || "sin código";
+  return codigoDeEtiqueta(v) || "sin código";
+}
+
+/** El mismo criterio, pero para los LECTORES de datos (Existencias, Productos…) que guardan el resultado en
+ *  un campo llamado `sku` y lo usan también para buscar, ordenar y exportar: sin código ni sku devuelve
+ *  `""`, nunca «sin código» (un texto de aviso metido en una búsqueda o en un CSV sería un dato falso).
+ *  Producción al 2026-09-26: 128 de 130 variantes tienen `sku` NULL (ADR-0058) y las 129 con `codigo`
+ *  lo tienen; leer solo `sku` dejaba la celda de la prenda en «· L ·». */
+export function codigoDeEtiqueta(v: { codigo?: string | null; sku?: string | null }): string {
+  return v.codigo || v.sku || "";
 }

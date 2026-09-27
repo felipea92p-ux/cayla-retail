@@ -1,11 +1,11 @@
 "use client";
 
 import { Plus, X } from "lucide-react";
-import { METODOS_PAGO, type MetodoPago } from "@/lib/comprobantes-produccion-reglas";
+import { METODOS_PAGO } from "@/lib/comprobantes-produccion-reglas";
 import { medioNuevo, montoSugerido, repartoDeMedios, type MedioForm } from "@/lib/medios-pago-reglas";
 import { soles } from "@/lib/compras-reglas";
-import { OpcionesCuenta } from "@/components/finanzas/CampoCuenta";
-import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
+import { Desplegable } from "@/components/ui/campos";
+import { ayudaCuenta, cuentaEfectiva, hayCuentasPara, opcionesDeCuenta, type CuentaElegible } from "@/lib/cuenta-sellada-reglas";
 
 // Pagar con uno o varios medios (ADR-0133, F4b/F4c): una transferencia + un efectivo son UN pago. Se usa al registrar un comprobante al
 // contado y al pagar un saldo desde Por pagar. Muestra cuánto FALTA o SOBRA mientras se escribe; la base vuelve a exigirlo.
@@ -36,18 +36,13 @@ export function MediosDePago({
       <ul className="space-y-2">
         {medios.map((m, i) => (
           <li key={i} className="grid grid-cols-[7.5rem_minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-2 max-sm:grid-cols-[6.5rem_minmax(0,1fr)_auto]">
-            <select
-              aria-label={`Medio ${i + 1}`}
-              value={m.metodo}
-              onChange={(e) => cambiar(i, { metodo: e.target.value as MetodoPago })}
-              className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
-            >
-              {METODOS_PAGO.map((x) => (
-                <option key={x.valor} value={x.valor}>
-                  {x.etiqueta}
-                </option>
-              ))}
-            </select>
+            <Desplegable
+              valor={m.metodo}
+              onValor={(v) => cambiar(i, { metodo: v })}
+              opciones={METODOS_PAGO.map((x) => ({ valor: x.valor, texto: x.etiqueta }))}
+              forma="pastilla"
+              etiquetaAccesible={`Medio ${i + 1}`}
+            />
             <input
               aria-label={`Monto del medio ${i + 1}`}
               inputMode="decimal"
@@ -104,20 +99,20 @@ function SaleDeCompacto({ cuentas, medio: m, i, onCuenta }: { cuentas: { lista: 
   const hay = cuentas.listo && hayCuentasPara(cuentas.lista, "pago", m.metodo);
   const valor = hay ? (cuentaEfectiva(cuentas.lista, "pago", m.metodo, m.cuentaId) ?? "") : "";
   return (
-    <label className="col-span-full grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 text-[12.5px] max-sm:grid-cols-[6.5rem_minmax(0,1fr)]">
+    <div className="col-span-full grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-2 text-[12.5px] max-sm:grid-cols-[6.5rem_minmax(0,1fr)]">
       <span className="text-tinta/65">Sale de</span>
       <span className="grid gap-0.5">
-        <select
-          aria-label={`De qué cuenta sale el medio ${i + 1}`}
-          value={valor}
-          disabled={!hay}
-          onChange={(e) => onCuenta(e.target.value)}
-          className="h-9 rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo disabled:text-tinta/55"
-        >
-          {hay ? <OpcionesCuenta cuentas={cuentas.lista} clase="pago" medio={m.metodo} /> : <option value="">{cuentas.listo ? "Sin cuentas: se agregan en Configuración" : "…"}</option>}
-        </select>
+        <Desplegable
+          forma="caja"
+          etiquetaAccesible={`De qué cuenta sale el medio ${i + 1}`}
+          valor={valor}
+          onValor={onCuenta}
+          opciones={hay ? opcionesDeCuenta(cuentas.lista, "pago", m.metodo) : []}
+          marcador={!cuentas.listo ? "…" : hay ? undefined : "Sin cuentas: se agregan en Configuración"}
+          deshabilitado={!hay}
+        />
         <span className="text-[11.5px] text-tinta/60">{hay ? ayudaCuenta(cuentas.lista.find((c) => c.id === valor) ?? null, "sale") : "Queda «sin cuenta»; el pago se registra igual."}</span>
       </span>
-    </label>
+    </div>
   );
 }

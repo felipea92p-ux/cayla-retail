@@ -4,27 +4,31 @@ import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta } from "@/lib/caja";
 import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { getUbicaciones } from "@/lib/ubicaciones";
-import { agruparStockPorSede } from "@/lib/stock-por-sede";
+import { agruparStockPorSede, nombreCortoSede } from "@/lib/stock-por-sede";
 import { getApartadosDeTienda } from "@/lib/separaciones";
 import { hoyLima } from "@/lib/fechas-lima";
 import { createClient } from "@/lib/supabase/server";
 import { ApartadosPanel } from "@/components/apartados/ApartadosPanel";
 import type { PrendaApartable } from "@/components/apartados/ApartarVista";
+import { leerPrendasDeUrl } from "@/lib/apartar-desde-ticket";
 
 /**
  * Apartados (ADR-0166): la clienta aparta prendas con un adelanto, las recoge pagando el saldo, o vencen y se le
  * devuelve el adelanto. Vive en Ventas junto al Punto de venta y usa su misma forma (hoja, panel de cobro, modales).
  * Solo tiendas: el adelanto entra a una caja y la prenda se guarda en el piso de una tienda.
  */
-export default async function ApartadosPage() {
+export default async function ApartadosPage({ searchParams }: { searchParams: Promise<{ prendas?: string; abrir?: string }> }) {
+  // «Apartar» desde el ticket del Punto de venta: las prendas ya elegidas llegan en la dirección (`lib/apartar-desde-ticket.ts`).
+  // `abrir=<id>`: un apartado concreto, desde su movimiento en Movimientos (ADR-0241).
+  const { prendas, abrir } = await searchParams;
   return (
     <Suspense fallback={null}>
-      <Apartados />
+      <Apartados desdeTicket={prendas ?? null} abrir={abrir ?? null} />
     </Suspense>
   );
 }
 
-async function Apartados() {
+async function Apartados({ desdeTicket, abrir }: { desdeTicket: string | null; abrir: string | null }) {
   const persona = await requirePersonaActualV2();
   if (persona.ubicacionTipo !== "tienda") {
     return (
@@ -87,6 +91,7 @@ async function Apartados() {
     <ApartadosPanel
       ubicacionId={persona.ubicacionId}
       ubicacionEtiqueta={persona.ubicacionEtiqueta}
+      abrir={abrir}
       hoy={hoyLima()}
       cajaAbierta={caja !== null}
       puedeGestionar={puede(persona, "gestionarCaja")}
@@ -95,6 +100,13 @@ async function Apartados() {
       resumen={datos.resumen}
       liberadosAhora={datos.liberadosAhora}
       hayMas={datos.hayMas}
+      avisos={datos.avisos}
+      apagadas={datos.apagadas}
+      pedidos={datos.pedidos}
+      // Las otras TIENDAS, con el nombre corto que usa «¿dónde más hay?» (AQP, LIM…): así se pide a la que la tiene.
+      tiendas={ubicaciones.filter((u) => u.tipo === "tienda" && u.id !== persona.ubicacionId).map((u) => ({ id: u.id, nombre: nombreCortoSede(u.nombre) }))}
+      esLider={persona.rol === "lider"}
+      lineasDesdeTicket={leerPrendasDeUrl(desdeTicket)}
     />
   );
 }

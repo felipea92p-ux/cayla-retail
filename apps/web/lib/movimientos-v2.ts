@@ -1,14 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
+import { fotoPrincipal, sumarCantidades, type Cantidades, type FilaCantidadCruda } from "@/lib/inventario-reglas";
+import { leerSaldos } from "@/lib/movimientos-saldo";
+import type { ApartadoDeMovimiento } from "@/lib/movimientos-atajos";
 import {
-  CATEGORIAS,
   leerCursorMovimientos,
+  leerResumenTienda,
   type CategoriaFila,
-  type CategoriaMovimiento,
   type CursorMovimientos,
   type FiltrosMovimientos,
   type Movimiento,
   type ParamsMovimientos,
+  type PrendaDeMovimiento,
+  type ResumenTienda,
   type TipoMovimiento,
 } from "@/lib/movimientos-reglas";
 import type { EstadoComprobante, TipoComprobante } from "@/lib/comprobantes-reglas";
@@ -31,8 +35,6 @@ export type PaginaMovimientos = {
   /** Cursor para pedir la página siguiente; null si esta es la última. */
   siguiente: CursorMovimientos | null;
 };
-
-export type ResumenMovimientos = Record<CategoriaMovimiento, { movimientos: number; unidades: number; delta: number }>;
 
 export const TAMANO_PAGINA = 50;
 
@@ -167,6 +169,9 @@ function paramsRpc(ubicacionId: string, filtros: FiltrosMovimientos) {
   };
 }
 
+/** El tope de `fn_movimientos` por llamada (su `least(p_limite, 200)`). */
+const LIMITE_RPC = 200;
+
 export async function listarMovimientos(
   ubicacionId: string,
   filtros: FiltrosMovimientos = {},
@@ -174,20 +179,43 @@ export async function listarMovimientos(
 ): Promise<PaginaMovimientos> {
   const supabase = await createClient();
   const limite = opciones.limite ?? TAMANO_PAGINA;
-  const filas = exigir(
-    await supabase.rpc("fn_movimientos", {
-      ...paramsRpc(ubicacionId, filtros),
-      ...(filtros.categoria ? { p_categoria: filtros.categoria } : {}),
-      ...(opciones.cursor ? { p_cursor_creado_en: opciones.cursor.creadoEn, p_cursor_id: opciones.cursor.id } : {}),
-      p_limite: limite,
-    }),
-    "los movimientos"
-  );
+  const pedir = async (cursor: CursorMovimientos | null, cuantas: number): Promise<Movimiento[]> =>
+    exigir(
+      await supabase.rpc("fn_movimientos", {
+        ...paramsRpc(ubicacionId, filtros),
+        ...(filtros.categoria ? { p_categoria: filtros.categoria } : {}),
+        ...(cursor ? { p_cursor_creado_en: cursor.creadoEn, p_cursor_id: cursor.id } : {}),
+        p_limite: cuantas,
+      }),
+      "los movimientos"
+    ).map((f) => aMovimiento(f as FilaRpc));
+
   // La función devuelve limite+1 filas a propósito: la de más solo dice "hay otra página".
-  const hayMas = filas.length > limite;
-  const pagina = (hayMas ? filas.slice(0, limite) : filas).map((f) => aMovimiento(f as FilaRpc));
+  const filas = await pedir(opciones.cursor ?? null, limite);
+  if (filas.length <= limite) return { filas, siguiente: null };
+
+  // ADR-0234: la página nunca corta una operación a la mitad. Todo lo de una operación comparte la hora exacta de su
+  // transacción: si la fila de más es de la misma hora que la última, se trae el resto de esa operación antes de cortar.
+  // Pasa pocas veces (una recepción grande justo en el borde) y cuesta una llamada más, nunca una por fila.
+  const pagina = filas.slice(0, limite);
+  const borde = pagina[pagina.length - 1].creadoEn;
+  let hayMas = true;
+  if (filas[limite].creadoEn === borde) {
+    for (let vuelta = 0; vuelta < 10; vuelta++) {
+      const ultima = pagina[pagina.length - 1];
+      const resto = await pedir({ creadoEn: ultima.creadoEn, id: ultima.id }, LIMITE_RPC);
+      let i = 0;
+      while (i < resto.length && resto[i].creadoEn === borde) i++;
+      pagina.push(...resto.slice(0, i));
+      if (i < resto.length) break; // después de la operación hay más filas: la página siguiente empieza ahí
+      if (resto.length <= LIMITE_RPC) {
+        hayMas = false; // la operación era lo último que había
+        break;
+      }
+    }
+  }
   const ultima = pagina[pagina.length - 1];
-  return { filas: pagina, siguiente: hayMas && ultima ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
+  return { filas: pagina, siguiente: hayMas ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
 }
 
 /** Historial de Producto (Sesión A3, 2026-09-15): los movimientos de TODAS
@@ -219,16 +247,99 @@ export async function listarMovimientosProducto(
   return { filas: pagina, siguiente: hayMas && ultima ? { creadoEn: ultima.creadoEn, id: ultima.id } : null };
 }
 
-/** Totales por categoría del mismo filtro que la lista (sin categoría ni
- *  cursor: el resumen describe el período, no la página). Siempre trae las
- *  cinco categorías, en cero si no hubo nada. */
-export async function getResumenMovimientos(ubicacionId: string, filtros: FiltrosMovimientos = {}): Promise<ResumenMovimientos> {
+/** Las cifras de la pantalla leídas desde la tienda (ADR-0234, `fn_movimientos_resumen_procesos`): por grupo de filtro y
+ *  proceso, operaciones y unidades que entraron, salieron o se movieron. Mismo filtro que la lista, sin tipo ni cursor:
+ *  describe el período, no la página. Null si la base todavía no tiene la función (web publicada antes que la
+ *  migración 20260927153000) o no respondió: la pantalla sigue con la lista y sin las cifras (principio 9). */
+export async function getResumenTienda(ubicacionId: string, filtros: FiltrosMovimientos = {}): Promise<ResumenTienda | null> {
   const supabase = await createClient();
-  const filas = exigir(await supabase.rpc("fn_movimientos_resumen", paramsRpc(ubicacionId, filtros)), "el resumen de movimientos");
-  const resumen = Object.fromEntries(CATEGORIAS.map((c) => [c, { movimientos: 0, unidades: 0, delta: 0 }])) as ResumenMovimientos;
-  for (const f of filas) {
-    const categoria = CATEGORIAS.find((c) => c === f.categoria);
-    if (categoria) resumen[categoria] = { movimientos: Number(f.movimientos ?? 0), unidades: Number(f.unidades ?? 0), delta: Number(f.delta ?? 0) };
+  const { data, error } = await supabase.rpc("fn_movimientos_resumen_procesos", paramsRpc(ubicacionId, filtros));
+  if (error || !data) {
+    console.error("Cifras de Movimientos:", error?.message);
+    return null;
   }
-  return resumen;
+  return leerResumenTienda(data);
+}
+
+const SIN_STOCK: Cantidades = { total: 0, piso: null, almacen: null, danado: null, apartado: 0, disponible: 0, pisoDisponible: null, almacenDisponible: null };
+
+/** La foto, el producto y el stock de HOY de las prendas de una página (ADR-0234). Dos lecturas chicas —una por las
+ *  variantes, otra por su stock en la sede— y las mismas reglas de Existencias (`fotoPrincipal`, `sumarCantidades`), para
+ *  que una prenda diga lo mismo en las dos pantallas. Son ayuda, no la lista: si una lectura falla, falta ese dato y
+ *  nada más. */
+export async function getPrendasDeMovimientos(ubicacionId: string, filas: readonly Movimiento[]): Promise<Record<string, PrendaDeMovimiento>> {
+  const ids = [...new Set(filas.map((f) => f.varianteId))];
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const [variantes, stock] = await Promise.all([
+    supabase.from("variantes").select("id, producto:productos ( id, producto_fotos ( url, orden, es_principal ) )").in("id", ids),
+    supabase.from("stock").select("variante_id, cantidad, cantidad_apartada, sububicacion:sububicaciones ( tipo )").eq("ubicacion_id", ubicacionId).in("variante_id", ids),
+  ]);
+  if (variantes.error) console.error("Fotos de Movimientos:", variantes.error.message);
+  if (stock.error) console.error("Stock de hoy en Movimientos:", stock.error.message);
+  const cantidades = stock.error ? null : sumarCantidades((stock.data ?? []) as unknown as FilaCantidadCruda[]);
+
+  type VarianteLeida = { id: string; producto: { id: string; producto_fotos: { url: string; orden: number; es_principal: boolean }[] | null } | null };
+  const leidas = new Map(((variantes.data ?? []) as unknown as VarianteLeida[]).map((v) => [v.id, v]));
+  return Object.fromEntries(
+    ids.map((id) => {
+      const v = leidas.get(id);
+      return [id, { productoId: v?.producto?.id ?? "", fotoUrl: fotoPrincipal(v?.producto?.producto_fotos), stockHoy: cantidades ? (cantidades.get(id) ?? SIN_STOCK) : null }];
+    })
+  );
+}
+
+/** Cuántas quedaron en la tienda al terminar la operación de cada movimiento de la página (ADR-0234, saldo). Lo calcula
+ *  la base desde el ledger único (`fn_movimientos_saldos` → `fn_ledger_puntos`); acá no se resta nada. Null si la base
+ *  todavía no tiene la función (web publicada antes que la migración 20260927173000) o no respondió: la lista sigue sin
+ *  el saldo (principio 9). */
+export async function getSaldosDeMovimientos(ubicacionId: string, filas: readonly Movimiento[]): Promise<Record<string, number> | null> {
+  if (filas.length === 0) return {};
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("fn_movimientos_saldos", { p_ubicacion_id: ubicacionId, p_movimiento_ids: filas.map((f) => f.id) });
+  if (error) {
+    console.error("Saldo de Movimientos:", error.message);
+    return null;
+  }
+  return leerSaldos(data);
+}
+
+/** El apartado de cada movimiento de apartar o liberar de la página (ADR-0241), para que la fila diga su código y el
+ *  detalle lleve a ESE apartado. Sin migración: `apartados` ya guarda qué movimiento lo creó (`movimiento_id`) y cuál
+ *  lo cerró (`movimiento_cierre_id`), y su `separacion_id` lleva al código y la clienta (ADR-0166). La RLS es la de
+ *  siempre (`fn_puede_operar_ubicacion`). Si falla, la lista sigue: el apartado sale sin código (principio 9). */
+export async function getApartadosDeMovimientos(filas: readonly Movimiento[]): Promise<Record<string, ApartadoDeMovimiento>> {
+  const ids = filas.filter((f) => f.categoria === "apartado" || f.categoria === "liberacion_apartado").map((f) => f.id);
+  if (ids.length === 0) return {};
+  const supabase = await createClient();
+  const lista = ids.join(",");
+  const { data, error } = await supabase
+    .from("apartados")
+    .select("movimiento_id, movimiento_cierre_id, separacion:separaciones ( id, codigo, clienta_nombres, clienta_apellidos, estado, vence_el )")
+    .or(`movimiento_id.in.(${lista}),movimiento_cierre_id.in.(${lista})`);
+  if (error) {
+    console.error("Apartados de Movimientos:", error.message);
+    return {};
+  }
+  type Leido = {
+    movimiento_id: string;
+    movimiento_cierre_id: string | null;
+    separacion: { id: string; codigo: string; clienta_nombres: string; clienta_apellidos: string; estado: string; vence_el: string | null } | null;
+  };
+  const porMovimiento: Record<string, ApartadoDeMovimiento> = {};
+  for (const a of (data ?? []) as unknown as Leido[]) {
+    const s = a.separacion;
+    if (!s) continue; // un apartado de antes de Apartados v2 (sin separación): sin código que mostrar
+    const inicial = s.clienta_apellidos?.trim().charAt(0);
+    const apartado: ApartadoDeMovimiento = {
+      separacionId: s.id,
+      codigo: s.codigo,
+      clienta: [s.clienta_nombres?.trim().split(/\s+/)[0], inicial ? `${inicial.toUpperCase()}.` : null].filter(Boolean).join(" "),
+      estado: s.estado,
+      venceEl: s.vence_el,
+    };
+    porMovimiento[a.movimiento_id] = apartado;
+    if (a.movimiento_cierre_id) porMovimiento[a.movimiento_cierre_id] = apartado;
+  }
+  return porMovimiento;
 }

@@ -1,8 +1,11 @@
 # ADR-0199 — Comportamiento comercial de variantes: piso vs. almacén en Análisis de inventario
 
-**Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto/GitHub) ·
-**Amplía:** ADR-0138 (Análisis de inventario), ADR-0171 (lectura por reglas) · **Migración:** local únicamente,
-`20260924010700_analisis_comercial_piso_almacen.sql` (NO aplicada a producción)
+**Fecha:** 2026-09-24 · **Estado:** aplicado (fusionado en el PR #397; sus 2 migraciones, `20260924010700` y `20260924030000`, están en
+producción — verificado por efectos en la base el 2026-09-25; la línea anterior decía «nada aplicado a producción») ·
+**Amplía:** ADR-0138 (Análisis de inventario), ADR-0171 (lectura por reglas) · **Migración:**
+`20260924010700_analisis_comercial_piso_almacen.sql` — aplicada en producción y **superada por `20260924030000`**
+(ADR-0202): **no volver a pegarla sola**. Borra y recrea `fn_resumen_comparacion` sin las columnas de stock actual ni
+`fn_ledger_puntos`, y la pantalla de Análisis que ya las lee se rompe.
 
 ## Contexto
 

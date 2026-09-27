@@ -8,6 +8,7 @@ import { TrasladosFiltros } from "@/components/TrasladosFiltros";
 import { TrasladosLista } from "@/components/TrasladosLista";
 import { TrasladosResumen } from "@/components/TrasladosResumen";
 import {
+  accionDeTraslado,
   coincideBusqueda,
   coincideDireccion,
   coincideFiltro,
@@ -160,7 +161,7 @@ export function TrasladosPanel({
       <p className="sr-only" aria-live="polite">
         {filtradas.length === 0 ? "Ningún traslado coincide con lo que buscas." : `Mostrando ${visibles.length} de ${filtradas.length} traslados.`}
       </p>
-      <TrasladosAtencion resumen={resumen} masUrgente={urgente ? { id: urgente.id, numero: urgente.numero } : null} />
+      <TrasladosAtencion resumen={resumen} masUrgente={urgente ? { id: urgente.id, numero: urgente.numero, accion: accionDeTraslado(situacionTraslado(urgente, ctx)).texto } : null} />
       <TrasladosResumen resumen={resumen} filtro={filtroEfectivo} onFiltro={alFiltrar(setFiltro)} />
       {/* Guía oficial (2026-09-22, ADR-0169): buscador, píldoras y tabla en UNA tarjeta. */}
       <div className="card-cayla overflow-hidden">

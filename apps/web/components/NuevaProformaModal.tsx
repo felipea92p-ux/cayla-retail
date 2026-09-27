@@ -14,7 +14,7 @@ import { traducirError } from "@/lib/error-escritura";
 import { ConsultaDocumento } from "@/components/ConsultaDocumento";
 import { Modal } from "@/components/ui/Modal";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/campos";
+import { Boton, CampoSelect, CampoTexto, Desplegable, Segmentado } from "@/components/ui/campos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -223,14 +223,14 @@ export function NuevaProformaModal({
                       %
                     </label>
                     {f.pct > 0 && (
-                      <select value={f.motivo} onChange={(e) => cambiar(id, { motivo: e.target.value })} aria-label={`Motivo del descuento de ${f.prenda.referencia}`} className={CONTROL}>
-                        <option value="">Motivo…</option>
-                        {RAZONES_DESCUENTO.map((r) => (
-                          <option key={r.valor} value={r.valor}>
-                            {r.etiqueta}
-                          </option>
-                        ))}
-                      </select>
+                      <Desplegable
+                        valor={f.motivo}
+                        onValor={(v) => cambiar(id, { motivo: v })}
+                        opciones={RAZONES_DESCUENTO.map((r) => ({ valor: r.valor, texto: r.etiqueta }))}
+                        marcador="Motivo…"
+                        forma="pastilla"
+                        etiquetaAccesible={`Motivo del descuento de ${f.prenda.referencia}`}
+                      />
                     )}
                     {f.pct > 0 && f.motivo === "otro" && (
                       <input value={f.detalle} onChange={(e) => cambiar(id, { detalle: e.target.value })} placeholder="¿Por qué?" aria-label="Detalle del motivo" className={`${CONTROL} w-32`} />

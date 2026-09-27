@@ -4,6 +4,7 @@
 // lo importan, y si estuviera junto con las consultas arrastraría
 // `next/headers` al navegador — Next lo rechaza en tiempo de compilación.
 
+import { codigoDeEtiqueta } from "./prenda-reglas";
 import { estadoDeMiTienda } from "./reparto-reglas";
 
 export type EstadoPago = "pendiente" | "parcial" | "pagada" | "anulada";
@@ -70,12 +71,23 @@ export type CompraResumen = {
   totalComprobante?: number;
 };
 
+/** El código con el que una línea de factura o de recepción nombra su prenda. En producción `variantes.sku` es NULL en
+ *  128 de 130 variantes (ADR-0058) y lo que la colaboradora lee en la etiqueta es `variantes.codigo`: leer solo `sku`
+ *  dejaba la línea sin decir qué talla y color era. Devuelve `null` —no `""` ni «sin código»— cuando la variante no tiene
+ *  ninguno, porque `LineaCompra.sku` es `string | null` y la pantalla de Recibir pinta «—» con `l.sku ?? "—"`.
+ *  Solo se MUESTRA: para identificar una prenda se compara `varianteId`, nunca esto. */
+export function codigoDeLinea(v: { codigo?: string | null; sku?: string | null } | null | undefined): string | null {
+  return (v ? codigoDeEtiqueta(v) : "") || null;
+}
+
 export type LineaCompra = {
   id: string;
   compraId: string;
   productoId: string;
   referencia: string;
   varianteId: string | null;
+  /** Código de etiqueta de la prenda (`variantes.codigo`, con respaldo al `sku` legado), `null` si no tiene ninguno.
+   *  El nombre quedó del legado: sale de `codigoDeLinea`. Solo se MUESTRA — la línea se identifica por `varianteId`. */
   sku: string | null;
   talla: string | null;
   color: string | null;
@@ -161,6 +173,7 @@ export type RecepcionCompra = {
 /** Una línea dentro del detalle de una recepción: qué variante, cuánto llegó. */
 export type LineaRecepcion = {
   referencia: string;
+  /** Código de etiqueta (`variantes.codigo`, con respaldo al `sku` legado) — ver `codigoDeLinea`. */
   sku: string | null;
   talla: string | null;
   color: string | null;

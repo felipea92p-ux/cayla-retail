@@ -92,7 +92,7 @@ describe("«Así queda su menú»", () => {
       { etiqueta: "Inicio", hijas: [] },
       { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Posventa"] }, // Apartados: módulo propio sin rol (ADR-0196)
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
-      { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Atributos"] },
+      { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Marcas", "Atributos"] },
     ]);
   });
 

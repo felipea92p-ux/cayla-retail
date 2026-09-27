@@ -6,14 +6,14 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { diaMes } from "@/lib/fechas-lima";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoTexto, Desplegable } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { etiquetaTipo } from "@/lib/comprobantes-produccion-reglas";
 import { UNIDADES_INSUMO, cantidadTexto } from "@/lib/insumos-reglas";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
-import { MOTIVOS_CIERRE, armarRecepcion, cantidadLlegada, entradaInicial, type ComprobantePorRecibir, type EntradaLinea, type MotivoCierre } from "@/lib/recibir-produccion-reglas";
+import { MOTIVOS_CIERRE, armarRecepcion, cantidadLlegada, entradaInicial, type ComprobantePorRecibir, type EntradaLinea } from "@/lib/recibir-produccion-reglas";
 
 // Recibir una entrega (ADR-0133, F4d). Por cada línea pendiente: cuánto llegó (en blanco = todo lo pendiente) y, si el resto no va a llegar,
 // se marca «no llegará» con su motivo. Cada línea que llega abre UN lote con el costo de la línea, que la base pone sola: aquí no aparece
@@ -104,18 +104,12 @@ export function RecibirComprobanteModal({ comprobante: c, tallerId, onClose }: {
                       El resto ({cantidadTexto(resto, l.unidad)}) no va a llegar
                     </label>
                     {e.noLlegara && (
-                      <select
-                        aria-label={`Motivo por el que no llega el resto de ${l.insumo}`}
-                        value={e.motivo}
-                        onChange={(ev) => cambiar(l.itemId, { motivo: ev.target.value as MotivoCierre })}
-                        className="h-9 w-full rounded-md border border-tinta/25 bg-papel px-2 text-sm text-tinta outline-none focus:border-rojo"
-                      >
-                        {MOTIVOS_CIERRE.map((m) => (
-                          <option key={m.valor} value={m.valor}>
-                            {m.etiqueta}
-                          </option>
-                        ))}
-                      </select>
+                      <Desplegable
+                        etiquetaAccesible={`Motivo por el que no llega el resto de ${l.insumo}`}
+                        valor={e.motivo}
+                        onValor={(v) => cambiar(l.itemId, { motivo: v })}
+                        opciones={MOTIVOS_CIERRE.map((m) => ({ valor: m.valor, texto: m.etiqueta }))}
+                      />
                     )}
                     {!e.noLlegara && q > 0 && <p className="text-xs text-tinta/60">El resto seguirá pendiente: podrás recibirlo en otra entrega.</p>}
                   </div>

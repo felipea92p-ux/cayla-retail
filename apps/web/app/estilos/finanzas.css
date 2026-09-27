@@ -151,17 +151,29 @@
   .fin-control::placeholder {
     color: color-mix(in oklab, var(--color-taupe) 80%, transparent);
   }
-  select.fin-control {
-    appearance: none;
+  /* El combo (2026-09-26, ADR-0209): `SelectFin` es un `Desplegable` del sistema que cerrado se ve como el <select> del
+     spike —esta flecha, este relleno— y abierto es la lista de todo el ERP. El botón lleva `fin-control fin-desplegable`;
+     su caja de afuera, `fin-desplegable-caja`, es la que ocupa lugar en la fila (anchos de las reglas de abajo). */
+  .fin-desplegable {
     padding-right: 30px;
     background-image: linear-gradient(45deg, transparent 50%, var(--color-taupe) 50%), linear-gradient(135deg, var(--color-taupe) 50%, transparent 50%);
     background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%;
     background-size: 5px 5px;
     background-repeat: no-repeat;
   }
-  .fin-herramientas select.fin-control {
+  /* Con la lista abierta el foco está en la lista, no en el botón: el borde sigue diciendo «estoy abierto». */
+  .fin-desplegable[aria-expanded="true"] {
+    border-color: color-mix(in oklab, var(--color-taupe) 55%, transparent);
+  }
+  .fin-herramientas .fin-desplegable-caja {
     width: auto;
     flex: 0 1 184px;
+  }
+  /* Una celda de tabla con poco alto (Régimen de renta en Configuración ▸ Impuestos). */
+  .fin-desplegable-caja.fin-compacto > .fin-desplegable {
+    min-height: 2rem;
+    padding-top: 5px;
+    padding-bottom: 5px;
   }
   .fin-buscar {
     position: relative;
@@ -527,7 +539,7 @@
     align-items: center;
     gap: 8px;
   }
-  .fin-ver select.fin-control {
+  .fin-ver .fin-desplegable-caja {
     width: auto;
     min-width: 170px;
   }
@@ -537,10 +549,10 @@
     .fin-dos-campos {
       grid-template-columns: 1fr;
     }
-    .fin-herramientas select.fin-control {
+    .fin-herramientas .fin-desplegable-caja {
       flex: 1 1 130px;
     }
-    .fin-ver select.fin-control {
+    .fin-ver .fin-desplegable-caja {
       min-width: 0;
     }
     /* La tabla se vuelve fichas: la encargada la usa de pie, con el celular. */
@@ -882,7 +894,7 @@
   .fin-metodo[data-m="transferencia"] {
     background: var(--color-metodo-transferencia);
   }
-  .fin-tabla-medios select.fin-control {
+  .fin-tabla-medios .fin-desplegable-caja {
     min-width: 150px;
   }
 }
@@ -1115,7 +1127,7 @@
     text-align: right;
   }
   /* El mes junto a los botones chicos de la franja: de su misma altura. */
-  .fin-herramientas select.fin-control.fin-mes-chico {
+  .fin-herramientas .fin-desplegable-caja.fin-mes-chico > .fin-desplegable {
     min-height: 32px;
     padding-top: 5px;
     padding-bottom: 5px;
@@ -1152,7 +1164,9 @@
 
 /* ---- F6 · Flujo de caja y Escenarios (ADR-0195; spike `vista-reportes.js`, `vistaFlujo` y `vistaEscenarios`) ---- */
 @layer components {
-  /* El mes o las semanas se eligen EN el sobretítulo, sin caja: se lee igual que el spike y sigue siendo un selector. */
+  /* El mes o las semanas se eligen EN el sobretítulo, sin caja: se lee igual que el spike y sigue siendo un selector.
+     Es el botón de un `Desplegable forma="finEnLinea"` (2026-09-26): su contorno de foco lo pone la forma, porque el
+     `outline-none` del combo le gana a cualquier regla de esta capa. */
   .fin-etq-select {
     appearance: none;
     margin: 0;
@@ -1173,10 +1187,6 @@
   }
   .fin-etq-select:hover {
     color: var(--color-tinta);
-  }
-  .fin-etq-select:focus-visible {
-    outline: 2px solid var(--color-rojo);
-    outline-offset: 2px;
   }
   /* «Entró S/ 80,600» y su lista: concepto a la izquierda, monto en negrita a la derecha. */
   .fin-h-flujo {

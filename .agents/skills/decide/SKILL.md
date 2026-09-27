@@ -1,9 +1,9 @@
 ---
 name: decide
-description: Fuerza el protocolo de pregunta de AGENTS.md sobre una decisión abierta puntual, con hasta 3 opciones comparadas (Ganas/Pagas) y una recomendación.
+description: Fuerza el protocolo de pregunta de CLAUDE.md sobre una decisión abierta puntual, con hasta 3 opciones comparadas (Ganas/Pagas) y una recomendación.
 ---
 
-Aplica la sección AUTONOMÍA de `~/.Codex/AGENTS.md` (global) sobre: $ARGUMENTS
+Aplica la sección AUTONOMÍA de `~/.claude/CLAUDE.md` (global) sobre: $ARGUMENTS
 
 Antes de preguntar, pasa este test y dile a Felipe en 1 línea si lo pasó o no:
 1. ¿La respuesta no vive en el repo, el schema, los ADRs (`/docs/adr/`) ni

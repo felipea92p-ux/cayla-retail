@@ -23,7 +23,7 @@ export async function getComprobantesMes(desde: string, hasta: string): Promise<
     supabase
       .from("comprobantes")
       .select(
-        "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id, respuesta_sunat"
+        "id, tipo, serie, numero, cliente_tipo_doc, cliente_num_doc, cliente_nombre, total, estado, entorno_transmision, motivo_rechazo, motivo_anulacion, motivo_no_emitido, anulacion_solicitada_at, created_at, ubicacion_id, respuesta_sunat, venta_id, comprobante_original_id"
       )
       // Facturación es lo que va (o fue) a SUNAT: la nota de venta es interna (ADR-0164) y vive en Vender e Historial.
       .neq("tipo", "nota_venta")
@@ -153,6 +153,9 @@ export type FilaColaReintento = {
   ultimo_intento_transmision_at: string | null;
   ultimo_error_transmision: string | null;
   horas_esperando: number | null;
+  /** De dónde sale la fila: la cola de reintento (`pendiente_reintento`), una que nunca se intentó
+   *  (`pendiente`) o una que SUNAT rechazó (`rechazado`). Sin él, es de la cola (la RPC no lo trae). */
+  estado?: "pendiente_reintento" | "pendiente" | "rechazado";
 };
 
 /** Cuándo se emitió cada comprobante de la cola (la RPC de la cola no lo trae): el plazo de SUNAT cuenta
@@ -176,3 +179,96 @@ export const getColaReintento = cache(async (ubicacionId: string | null): Promis
   if (fallo) console.error("Comprobantes: no se pudo leer la cola de reintento:", res.error?.message);
   return (datos as FilaColaReintento[] | null) ?? null;
 });
+
+/** «Por enviar» (2026-09-26): TODO lo que no llegó a SUNAT, no solo la cola de reintento. La RPC de la cola
+ *  lista `pendiente_reintento`; un `pendiente` que nunca se intentó (o que el barrido tomó y no llegó a
+ *  intentar) y un `rechazado` no salían en ninguna lista, y la pestaña decía «todo llegó» con boletas sin
+ *  enviar (visto en producción el 2026-09-26: 3 boletas con 0 intentos). Se juntan acá, de la más vieja a la más
+ *  nueva. `null` si falla la cola: el marco lo tolera, la vista lo exige. La nota de venta no va a SUNAT. */
+export const getPorEnviar = cache(async (ubicacionId: string | null): Promise<FilaColaReintento[] | null> => {
+  const cola = await getColaReintento(ubicacionId);
+  if (!cola) return null;
+  const supabase = await createClient();
+  let consulta = supabase
+    .from("comprobantes")
+    .select("id, ubicacion_id, tipo, serie, numero, estado, intentos_transmision, ultimo_intento_transmision_at, ultimo_error_transmision, motivo_rechazo, created_at")
+    .in("estado", ["pendiente", "rechazado"])
+    .neq("tipo", "nota_venta");
+  if (ubicacionId) consulta = consulta.eq("ubicacion_id", ubicacionId);
+  const res = await consulta.order("created_at", { ascending: true }).limit(500);
+  const { datos, fallo } = tolerar(res, "los comprobantes sin enviar");
+  if (fallo) console.error("Comprobantes: no se pudo leer los pendientes y rechazados:", res.error?.message);
+  const ahora = Date.now();
+  // Los tipos generados son anteriores a las columnas de transmisión (D-60): se leen con su forma real.
+  type Suelto = {
+    id: string; ubicacion_id: string; tipo: string; serie: string; numero: number; estado: string;
+    intentos_transmision: number | null; ultimo_intento_transmision_at: string | null; ultimo_error_transmision: string | null;
+    motivo_rechazo: string | null; created_at: string;
+  };
+  const sueltos: FilaColaReintento[] = ((datos ?? []) as unknown as Suelto[]).map((c) => ({
+    comprobante_id: c.id,
+    ubicacion_id: c.ubicacion_id,
+    tipo: c.tipo,
+    serie: c.serie,
+    numero: c.numero,
+    intentos_transmision: c.intentos_transmision ?? 0,
+    ultimo_intento_transmision_at: c.ultimo_intento_transmision_at,
+    ultimo_error_transmision: c.estado === "rechazado" ? (c.motivo_rechazo ?? c.ultimo_error_transmision) : c.ultimo_error_transmision,
+    horas_esperando: (ahora - Date.parse(c.created_at)) / 3_600_000,
+    estado: c.estado as "pendiente" | "rechazado",
+  }));
+  const deLaCola = cola.map((f) => ({ ...f, estado: "pendiente_reintento" as const }));
+  return [...deLaCola, ...sueltos].sort((a, b) => (b.horas_esperando ?? 0) - (a.horas_esperando ?? 0));
+});
+
+/** Lo que conecta cada comprobante con el resto del ERP (2026-09-26): su venta, el WhatsApp de la clienta, la nota
+ *  de crédito que lo corrige (o el comprobante que corrige una nota) y la devolución que la originó. */
+export type ExtraComprobante = {
+  telefono: string | null;
+  /** La nota de crédito que corrige a este comprobante, si hay una. */
+  notaDeCredito: { id: string; numero: string } | null;
+  /** Si este es una nota de crédito: el comprobante que corrige. */
+  corrige: { id: string; numero: string } | null;
+  /** La devolución que emitió la nota (en una nota) o que se hizo sobre este comprobante (en el original). */
+  devolucionId: string | null;
+};
+
+/** Se lee DESPUÉS de los comprobantes y nunca tumba la pantalla: si una de estas lecturas falla, la fila solo
+ *  pierde su enlace (`tolerar`), el comprobante se sigue viendo. */
+export async function getExtrasDeComprobantes(filas: Comprobante[]): Promise<Record<string, ExtraComprobante>> {
+  if (filas.length === 0) return {};
+  const supabase = await createClient();
+  const numero = (c: { serie: string; numero: number }) => `${c.serie}-${String(c.numero).padStart(6, "0")}`;
+  const ids = filas.map((c) => c.id);
+  const dnis = [...new Set(filas.filter((c) => c.cliente_tipo_doc === "dni" && c.cliente_num_doc).map((c) => c.cliente_num_doc as string))];
+  const originales = [...new Set(filas.map((c) => c.comprobante_original_id).filter((x): x is string => !!x))];
+  const notasDelMes = filas.filter((c) => c.tipo === "nota_credito").map((c) => c.id);
+
+  const [resClientas, resNotas, resOriginales, resDevoluciones] = await Promise.all([
+    dnis.length ? supabase.from("clientas").select("dni, telefono_whatsapp").in("dni", dnis) : Promise.resolve(null),
+    supabase.from("comprobantes").select("id, serie, numero, comprobante_original_id").eq("tipo", "nota_credito").in("comprobante_original_id", ids),
+    originales.length ? supabase.from("comprobantes").select("id, serie, numero").in("id", originales) : Promise.resolve(null),
+    supabase.from("devoluciones").select("id, nota_credito_id").not("nota_credito_id", "is", null).in("nota_credito_id", [...notasDelMes, ...ids]),
+  ]);
+  const telefonos = new Map<string, string>();
+  for (const cl of (resClientas ? tolerar(resClientas, "el WhatsApp de las clientas").datos : null) ?? []) {
+    if (cl.dni && cl.telefono_whatsapp) telefonos.set(cl.dni, cl.telefono_whatsapp);
+  }
+  const notaDe = new Map<string, { id: string; numero: string }>();
+  for (const n of (tolerar(resNotas, "las notas de crédito").datos ?? []) as { id: string; serie: string; numero: number; comprobante_original_id: string | null }[]) {
+    if (n.comprobante_original_id) notaDe.set(n.comprobante_original_id, { id: n.id, numero: numero(n) });
+  }
+  const originalPorId = new Map<string, string>();
+  for (const o of (resOriginales ? tolerar(resOriginales, "los comprobantes corregidos").datos : null) ?? []) originalPorId.set(o.id, numero(o));
+  const devolucionDeNota = new Map<string, string>();
+  for (const d of tolerar(resDevoluciones, "las devoluciones").datos ?? []) if (d.nota_credito_id) devolucionDeNota.set(d.nota_credito_id, d.id);
+
+  return Object.fromEntries(
+    filas.map((c) => {
+      const nc = notaDe.get(c.id) ?? null;
+      const corrige = c.comprobante_original_id ? { id: c.comprobante_original_id, numero: originalPorId.get(c.comprobante_original_id) ?? "otro mes" } : null;
+      const devolucionId = c.tipo === "nota_credito" ? (devolucionDeNota.get(c.id) ?? null) : nc ? (devolucionDeNota.get(nc.id) ?? null) : null;
+      return [c.id, { telefono: c.cliente_num_doc ? (telefonos.get(c.cliente_num_doc) ?? null) : null, notaDeCredito: nc, corrige, devolucionId }];
+    })
+  );
+}

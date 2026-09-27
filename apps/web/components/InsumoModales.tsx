@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { soles } from "@/lib/compras-reglas";
 import { avisar } from "@/components/ui/Avisos";
-import { Boton, CampoMonto, CampoSelectNativo, CampoTexto } from "@/components/ui/campos";
+import { Boton, CampoMonto, CampoSelect, CampoTexto } from "@/components/ui/campos";
 import { Modal } from "@/components/ui/Modal";
 import { TIPOS_INSUMO, UNIDADES_INSUMO, cantidadTexto, type TipoInsumo, type UnidadInsumo } from "@/lib/insumos-reglas";
 import type { InsumoVista } from "@/lib/insumos";
@@ -84,20 +84,13 @@ export function NuevoInsumoModal({ onClose }: { onClose: () => void }) {
     <Modal titulo="Nuevo insumo" subtitulo="Tela o avío que el Taller compra" onClose={onClose} ancho="max-w-md">
       <form onSubmit={guardar} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
-          <CampoSelectNativo etiqueta="Tipo" value={tipo} onChange={(e) => cambiarTipo(e.target.value as TipoInsumo)}>
-            {TIPOS_INSUMO.map((t) => (
-              <option key={t.valor} value={t.valor}>
-                {t.etiqueta}
-              </option>
-            ))}
-          </CampoSelectNativo>
-          <CampoSelectNativo etiqueta="Se mide en" value={unidad} onChange={(e) => setUnidad(e.target.value as UnidadInsumo)}>
-            {Object.entries(UNIDADES_INSUMO).map(([k, u]) => (
-              <option key={k} value={k}>
-                {u.larga}
-              </option>
-            ))}
-          </CampoSelectNativo>
+          <CampoSelect etiqueta="Tipo" valor={tipo} onValor={(v) => cambiarTipo(v)} opciones={TIPOS_INSUMO.map((t) => ({ valor: t.valor, texto: t.etiqueta }))} />
+          <CampoSelect
+            etiqueta="Se mide en"
+            valor={unidad}
+            onValor={(v) => setUnidad(v)}
+            opciones={Object.entries(UNIDADES_INSUMO).map(([k, u]) => ({ valor: k as UnidadInsumo, texto: u.larga }))}
+          />
         </div>
         <div className="grid grid-cols-[7rem_1fr] gap-3">
           <CampoTexto etiqueta="Código" mono placeholder="LIN-01" value={codigo} onChange={(e) => setCodigo(e.target.value)} maxLength={20} />
@@ -182,13 +175,12 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
   return (
     <Modal titulo="Ingresar insumo" subtitulo="Cada ingreso abre un lote con su propio costo" onClose={onClose} ancho="max-w-md">
       <form onSubmit={guardar} className="space-y-4">
-        <CampoSelectNativo etiqueta="¿Qué llegó?" value={insumoId} onChange={(e) => setInsumoId(e.target.value)}>
-          {insumos.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.nombre} · hay {cantidadTexto(i.saldo, i.unidad)}
-            </option>
-          ))}
-        </CampoSelectNativo>
+        <CampoSelect
+          etiqueta="¿Qué llegó?"
+          valor={insumoId}
+          onValor={(v) => setInsumoId(v)}
+          opciones={insumos.map((i) => ({ valor: i.id, texto: `${i.nombre} · hay ${cantidadTexto(i.saldo, i.unidad)}` }))}
+        />
         <div className="grid grid-cols-2 gap-3">
           <CampoTexto etiqueta={`Cantidad (${UNIDADES_INSUMO[unidad].corta})`} inputMode="decimal" placeholder="0" value={cantidad} onChange={(e) => setCantidad(e.target.value)} />
           <CampoMonto etiqueta={`Costo por ${UNIDADES_INSUMO[unidad].corta}`} pie="sin IGV" inputMode="decimal" placeholder="0.00" value={costo} onChange={(e) => setCosto(e.target.value)} />
@@ -197,15 +189,18 @@ export function IngresarInsumoModal({ insumos, insumoInicialId, tallerId, onClos
           <CampoTexto etiqueta="Código de lote" mono placeholder="Opcional" value={codigoLote} onChange={(e) => setCodigoLote(e.target.value)} />
           <CampoTexto etiqueta="Documento" mono placeholder="F001-0000" value={documento} onChange={(e) => setDocumento(e.target.value)} />
         </div>
-        <CampoSelectNativo
+        <CampoSelect
           etiqueta="Origen"
           pie={origen === "saldo_inicial" ? "Lo que ya había en el estante antes de usar el sistema" : "Una compra que ya llegó"}
-          value={origen}
-          onChange={(e) => setOrigen(e.target.value as "compra" | "saldo_inicial")}
-        >
-          <option value="compra">Compra</option>
-          <option value="saldo_inicial">Saldo inicial</option>
-        </CampoSelectNativo>
+          valor={origen}
+          onValor={(v) => setOrigen(v)}
+          opciones={
+            [
+              { valor: "compra", texto: "Compra" },
+              { valor: "saldo_inicial", texto: "Saldo inicial" },
+            ] as const
+          }
+        />
         <CampoTexto etiqueta="Nota" placeholder="Opcional" value={nota} onChange={(e) => setNota(e.target.value)} />
 
         <div className="flex items-baseline justify-between rounded-md bg-sand/60 px-3 py-2 text-sm">

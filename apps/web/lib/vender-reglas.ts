@@ -5,6 +5,7 @@
 
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { nombresCortos } from "./nombre-integrante";
+import { motivoNoCobrable } from "./vender-stock-local";
 
 /** Los momentos del ticket (ADR-0044). En «armar» solo se ven las líneas y el total;
  *  «descuento» es el apartado para decidir un descuento (vuelve a «armar»); «espera» es
@@ -40,7 +41,22 @@ export function conCodigoDelCatalogo<T extends { varianteId: string; codigo?: st
  *  para el efectivo: lo que entregó, para calcular el vuelto. `monto` es lo que el medio
  *  CUBRE (lo que suma contra los ítems); `recibido` viaja aparte (ver `pagosParaRpc`) y
  *  nunca sustituye a `monto`, o `registrar_venta` rechazaría la venta por no cuadrar. */
-export type PagoAplicado = { metodo: MetodoPago; monto: number; recibido?: number };
+export type PagoAplicado = {
+  metodo: MetodoPago;
+  monto: number;
+  recibido?: number;
+  /** El nº de operación de Yape, Plin o transferencia (opcional, ADR-0230): con él, Ventas ▸ Historial encuentra la venta
+   *  aunque la clienta haya perdido la boleta y solo tenga la captura del pago. */
+  referencia?: string;
+};
+
+/** Los medios que dan un nº de operación que la clienta ve en su celular. */
+export const METODOS_CON_OPERACION: readonly MetodoPago[] = ["yape", "plin", "transferencia"];
+
+/** El nº de operación tal como se guarda: sin espacios, solo letras y dígitos, hasta 40. Vacío = no se anotó. */
+export function limpiarOperacion(texto: string): string {
+  return texto.replace(/[^0-9a-z]/gi, "").slice(0, 40);
+}
 
 const redondear2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -125,12 +141,16 @@ export function pasoDelCobro(pagos: readonly PagoAplicado[], total: number): Pas
  *  `recibido` va únicamente en efectivo y solo si cubre lo que corresponde: la base lo
  *  guarda para reimprimir el vuelto y su candado (`venta_pagos_recibido_coherente`) rechaza
  *  TODA la venta si `recibido < monto`, así que una cifra a medio escribir no puede viajar. */
-export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number }[] {
+export function pagosParaRpc(pagos: readonly PagoAplicado[]): { metodo: MetodoPago; monto: number; recibido?: number; referencia?: string }[] {
   return pagos
     .filter((p) => p.monto > 0)
-    .map(({ metodo, monto, recibido }) =>
-      metodo === "efectivo" && recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto }
-    );
+    .map(({ metodo, monto, recibido, referencia }) => {
+      if (metodo === "efectivo") return recibido !== undefined && recibido >= monto ? { metodo, monto, recibido } : { metodo, monto };
+      // El nº de operación viaja solo si se anotó. Una base que todavía no tiene `venta_pagos.referencia` lo ignora (lee
+      // el pago clave por clave): la venta se registra igual.
+      const operacion = METODOS_CON_OPERACION.includes(metodo) ? limpiarOperacion(referencia ?? "") : "";
+      return operacion ? { metodo, monto, referencia: operacion } : { metodo, monto };
+    });
 }
 
 /**
@@ -187,14 +207,6 @@ export function descuentoUnitarioPorPorcentaje(precioUnitario: number, porcentaj
   return redondear2((precioUnitario * porcentaje) / 100);
 }
 
-/** Un monto en soles (no %) convertido a descuento por unidad, con 2 decimales. Nunca
- *  supera el precio — el candado `venta_items_descuento_no_supera_precio` lo rechazaría
- *  igual, pero acá se recorta antes para que "Quedaría en" no muestre un negativo. */
-export function descuentoUnitarioPorMonto(precioUnitario: number, montoUnitario: number): number {
-  if (!Number.isFinite(montoUnitario) || montoUnitario <= 0) return 0;
-  return redondear2(Math.min(montoUnitario, precioUnitario));
-}
-
 // ---- Motivo y argumento del descuento (R-45 / D-44, cerrado el 2026-09-15) ---------
 // Un texto libre no se puede sumar; una lista sí, y a fin de mes se ve cuánto margen se
 // fue por cada motivo (R-45, punto 2). El candado de verdad vive en `registrar_venta`
@@ -212,8 +224,8 @@ export const RAZONES_DESCUENTO = [
 ] as const;
 
 /** Lo que acompaña a un descuento aplicado: el motivo (uno de `RAZONES_DESCUENTO`), el
- *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide la banda
- *  20-35% de un Líder (`necesitaArgumentoEscrito`). Viajan por línea, igual que
+ *  texto de "otro" (solo si el motivo es ese) y el argumento escrito que pide todo
+ *  descuento pasado el 15 % (`necesitaArgumentoEscrito`). Viajan por línea, igual que
  *  `descuentoUnitario`: dos líneas con el mismo % pueden llevar motivos distintos si se
  *  aplicaron en dos acciones separadas del apartado. */
 export type DetalleDescuento = { razon: string; razonOtro: string; argumento: string };
@@ -348,12 +360,6 @@ export function aplicarDescuento<L extends LineaDescontable>(carrito: L[], porce
   return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorPorcentaje(l.precioUnitario, porcentaje));
 }
 
-/** Lo mismo que `aplicarDescuento`, pero con un monto en soles por unidad en vez de un %
- *  — la otra entrada del apartado «Descuento» (Xstore «Add Discount» admite las dos). */
-export function aplicarDescuentoMonto<L extends LineaDescontable>(carrito: L[], montoUnitario: number, claves: string[], detalle: DetalleDescuento): L[] {
-  return aplicarConMonto(carrito, claves, detalle, (l) => descuentoUnitarioPorMonto(l.precioUnitario, montoUnitario));
-}
-
 /** El % entero que se muestra en el chip de la línea, leído desde el monto guardado
  *  (el monto es la verdad; el % es solo cómo se lo contamos a la colaboradora). */
 export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario: number }): number {
@@ -361,11 +367,43 @@ export function porcentajeDeLinea(l: { precioUnitario: number; descuentoUnitario
   return Math.round((l.descuentoUnitario / l.precioUnitario) * 100);
 }
 
-/** Si el apartado tiene que pedir el argumento escrito: solo a un Líder, y solo pasado el
- *  20% (R-45). El candado real vive en `registrar_venta`; esto es progresividad de la
- *  pantalla, no una segunda copia de la regla — por eso no bloquea nada por sí solo. */
-export function necesitaArgumentoEscrito(esLider: boolean, porcentaje: number): boolean {
-  return esLider && porcentaje > 20;
+/** Desde qué % un descuento manual pide argumento escrito. Felipe, 2026-09-25: a cualquiera
+ *  que pase el 15 % (antes: solo a un Líder, pasado el 20 %). */
+export const UMBRAL_ARGUMENTO_PCT = 15;
+
+/** Si una línea pide el argumento escrito: su descuento por unidad pasa el 15 % del precio.
+ *  Misma cuenta que `registrar_venta` (el 15 % redondeado al céntimo, con 1 céntimo de
+ *  holgura) — así un 15 % justo que el redondeo deja en 15.003 % no lo pide en la pantalla
+ *  y sí en la base, ni al revés. El candado real vive en la base; esto decide cuándo el
+ *  apartado MUESTRA el campo. */
+export function necesitaArgumentoEscrito(precioUnitario: number, descuentoUnitario: number): boolean {
+  if (precioUnitario <= 0 || descuentoUnitario <= 0) return false;
+  return redondear2(descuentoUnitario - redondear2((precioUnitario * UMBRAL_ARGUMENTO_PCT) / 100)) > 0.01;
+}
+
+/** Los campos del apartado «Descuento», en el orden en que se llenan de arriba abajo. */
+export type PasoDescuento = "valor" | "motivo" | "motivoOtro" | "argumento" | "codigo" | "prendas" | "listo";
+
+/** El primer campo que falta llenar del apartado «Descuento»: la pantalla lo ilumina y, al
+ *  terminar uno, lleva el foco al siguiente. Solo GUÍA: lo que impide aplicar sigue siendo
+ *  el motivo del botón y, al cobrar, `registrar_venta`. */
+export function pasoDelDescuento(e: {
+  valorValido: boolean;
+  razon: string;
+  razonOtro: string;
+  pideArgumento: boolean;
+  argumento: string;
+  pideCodigo: boolean;
+  codigo: string;
+  prendas: number;
+}): PasoDescuento {
+  if (!e.valorValido) return "valor";
+  if (e.razon === "") return "motivo";
+  if (e.razon === "otro" && e.razonOtro.trim() === "") return "motivoOtro";
+  if (e.pideArgumento && e.argumento.trim() === "") return "argumento";
+  if (e.pideCodigo && e.codigo.trim() === "") return "codigo";
+  if (e.prendas === 0) return "prendas";
+  return "listo";
 }
 
 // ---- Quién atendió: el papel del ticket (ADR-0163 → ADR-0161) ------------------------------------------------------
@@ -381,4 +419,38 @@ export type Vendedora = { personaId: string; nombre: string };
 export function atendioCorto(vendedoras: readonly Vendedora[], id: string | null): string | null {
   const v = vendedoras.find((x) => x.personaId === id);
   return v ? (nombresCortos(vendedoras.map((x) => x.nombre)).get(v.nombre) ?? null) : null;
+}
+
+// ---- «Agotada» o «apartada para una clienta» ------------------------------------------------------------------------
+// Una prenda con todo el piso apartado NO está agotada: sigue ahí, en el piso, y es de una clienta. Decirle «agotada» a
+// la colaboradora que mira la bodega del piso es decirle que no ve lo que ve. La regla vive en UN solo lugar,
+// `motivoNoCobrable` (`lib/vender-stock-local.ts`, D-40): cobrable > «está en el almacén» > «apartada» > «agotada». Vender
+// la usa entera (con el almacén); Cambios, que no ofrece lo del almacén, le pasa solo el piso y lo apartado y le basta
+// esta frase (cada pantalla la sigue escribiendo a su manera: «sin stock aquí», «no queda aquí»…).
+
+/** Lo que la caja sabe de una prenda en ESTA sede. `stockAqui` es lo cobrable (piso disponible; en Taller, el total
+ *  disponible), `apartadoAqui` lo apartado en ese mismo lugar (`apartadoEnPiso`) y `almacenAqui` lo libre en el almacén
+ *  (solo Vender lo trae). Opcionales: quien no los trae dice «agotada» como siempre. */
+export type SinStockAqui = { stockAqui: number; apartadoAqui?: number | null; almacenAqui?: number | null };
+
+/** ¿Lo que impide vender la prenda aquí es que lo que queda en el PISO está apartado para una clienta? Es
+ *  `motivoNoCobrable(...) === "apartada"`: solo cuenta lo apartado en el piso, que es de donde vende la caja (una venta
+ *  nunca descuenta el almacén en silencio), y si hay piso libre no hay nada que explicar. Con stock libre en el almacén
+ *  gana «está en el almacén» —ahí HAY un camino de venta— y esto da `false`. */
+export function sinStockPorApartado(p: SinStockAqui): boolean {
+  return motivoNoCobrable(p) === "apartada";
+}
+
+/** La frase de una prenda que no se puede vender aquí: «apartada para una clienta» si lo único que queda en el piso es
+ *  de otra clienta, y si no, `agotada` (el texto de siempre de cada pantalla). Se llama cuando `stockAqui <= 0`. La
+ *  frase abre en mayúscula solo si `agotada` abre en mayúscula («Sin stock aquí» → «Apartada para una clienta»), para
+ *  que la pantalla no tenga que cuidar el caso.
+ *
+ *  La palabra describe el piso —lo que la caja puede cobrar—, igual que «agotada» lo describe cuando el piso está en 0;
+ *  decir «agotada» sería falso: la unidad está ahí, es de otra. En Vender, si además hay stock libre en el almacén, esta
+ *  frase ni se llega a usar: `motivoNoCobrable` dice «en_almacen». */
+export function textoSinStock(p: SinStockAqui, agotada = "agotada"): string {
+  if (!sinStockPorApartado(p)) return agotada;
+  const empiezaEnMayuscula = agotada.charAt(0) !== agotada.charAt(0).toLowerCase();
+  return empiezaEnMayuscula ? "Apartada para una clienta" : "apartada para una clienta";
 }

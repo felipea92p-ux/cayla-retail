@@ -104,7 +104,8 @@ Y dos pantallas mandan de más. No fallan a veces: fallan siempre.
 
 La misma historia dos veces: el riel local avanzó (`0014_gasto_metodo_pago.sql`,
 `0018_produccion.sql`), la pantalla se escribió contra local, y producción nunca recibió
-el cambio. `generado/DRIFT.md` las tiene listadas como *"Roto en producción — 2"*.
+el cambio. El `generado/DRIFT.md` de ese día las tenía listadas como *"Roto en producción — 2"* (hoy el informe
+habla de llamadas «sin respaldo en la foto» y ya no las lista: se corrigieron).
 
 **Qué cuesta.** Una tienda no puede registrar un gasto: la luz, el taxi, la costurera
 externa. Y no puede recibir la mercadería que el Taller acaba de mandar. Eso es el
@@ -118,7 +119,7 @@ mercadería física en la percha que el sistema no sabe que llegó.
 2. **Texto:** `unificacion/31:43-47` y `unificacion/12:56-66`, con la firma real y la
    fecha de verificación.
 
-`pnpm datos:comparar` sale con error cuando encuentra una pantalla rota (D-19). Debería
+`pnpm datos:comparar` sale con error cuando encuentra una llamada que la foto de producción no respalda (D-19). Debería
 correr en cada subida, no cuando alguien se acuerda.
 
 ---
@@ -363,8 +364,8 @@ equipo** cerrar caja, ajustar stock sin venta, registrar gastos y depósitos (D-
 O sea que el candado pregunta por **`admin`**, no por `lider`. Existe
 `retail.es_supervisor()` — `fn_rol_actual() = 'supervisor_sede'` — y **ninguna política la
 usa**: de las 70 políticas de producción, **26 llaman a `es_lider()` y 0 a
-`es_supervisor()`** (`generado/retail_policies.json`). `es_supervisor` aparece en la lista
-*"Funciones que nadie llama"* de `generado/DRIFT.md`.
+`es_supervisor()`** (`generado/retail_policies.json`). (Consulta del 2026-09-26: `es_supervisor`
+ya no existe en producción, así que tampoco figura en `generado/DRIFT.md`.)
 
 Y el sistema tampoco conoce cuatro niveles: hoy conoce dos por el lado de retail
 (`personas.rol` = `lider`/`integrante` en local) y resuelve la identidad real contra
@@ -402,15 +403,15 @@ comprobantes (`apps/web/components/ComprobantesPanel.tsx:240-249`) llama a
 `emitir_comprobante` **sin** `p_venta_id`. Como el parámetro tiene valor por defecto nulo
 (`0032:74`), la columna queda en `null` en todas las filas.
 
-`generado/DRIFT.md` lo ve y lo deja pasar como aviso: *"no manda `p_venta_id`, `p_items`
+`generado/DRIFT.md` lo veía (en su versión del 2026-09-12) y lo dejaba pasar como aviso: *"no manda `p_venta_id`, `p_items`
 (normal si tienen valor por defecto)"*. Tiene razón en que no rompe nada. Lo que ninguna
 herramienta puede ver es que ese parámetro opcional es justo el que amarra la boleta con
 la venta.
 
 Y hay un segundo tramo, peor: **`emitir_nota` no tiene ninguna pantalla.** Existe en
 producción con 7 argumentos y no la llama nadie en `apps/web` — solo la mencionan
-comentarios (`lucode.ts:3`, `api/lucode/emitir/route.ts:8,135`). Está en la lista
-*"Funciones que nadie llama"* de `DRIFT.md`.
+comentarios (`lucode.ts:3`, `transmitir-comprobante.ts:12,139`). Está en la lista
+*"Funciones sin llamada detectada desde `apps/web`"* de `DRIFT.md`.
 
 **Qué cuesta.** Tres cosas, encadenadas:
 - No se puede responder *"¿qué boleta corresponde a esta venta?"*, ni al revés.
@@ -853,9 +854,9 @@ pistola:
 
 O sea: escanear la etiqueta que CAYLA misma imprimió devuelve **"Sin coincidencias"**.
 
-Y las dos funciones que existían para este camino no las llama nadie:
-`registrar_codigo_barras` y `conteo_contar_por_codigo` están en la lista *"Funciones que
-nadie llama"* de `generado/DRIFT.md`.
+Y las dos funciones que existían para este camino no las llamaba nadie:
+`registrar_codigo_barras` y `conteo_contar_por_codigo` (consulta del 2026-09-26: ya no existen en producción, así que
+tampoco figuran en `generado/DRIFT.md`).
 
 **Qué cuesta.** Es la pantalla que Felipe nombró como el dolor número uno del negocio —el
 comentario de `buscar/page.tsx:11-13` lo cita: *"no saber si se tiene stock e ir a almacén
@@ -983,6 +984,36 @@ la regla que ya quedó anotada: **el número de ADR y el de migración se piden 
 
 ---
 
+### P-25 · El índice de proveedores promete juntar «SAC» y «s.a.c.», y no lo hace
+
+*(Descubierta el 2026-09-25, al construir la pregunta «¿no será un proveedor que ya tienes?».)*
+
+**Qué se promete.** El comentario del índice, **en la base**, viene de
+`supabase/migrations/20260914150000_proveedores_administrables.sql:55-56`: *"Impide que
+"Textiles Andina SAC" y "textiles andina s.a.c." convivan como dos proveedores."*
+
+**Qué pasa de verdad.** `proveedores_nombre_clave_unica` es un índice único sobre
+`retail.fn_clave_texto(nombre)`, que baja a minúsculas, quita tildes y junta espacios, pero
+**no quita puntos**. Preguntado a producción el 2026-09-25 (solo lectura):
+`fn_clave_texto('Textiles Andina SAC')` da `textiles andina sac`,
+`fn_clave_texto('textiles andina s.a.c.')` da `textiles andina s.a.c.`, y la comparación da
+`false`. Los dos conviven sin que nada avise.
+
+**Qué cuesta.** Plata repartida: un proveedor en dos fichas lleva sus facturas, su Por
+pagar y sus notas de crédito partidos, y el saldo a favor de una ficha no se ve desde la
+otra. Desde el 2026-09-25 la web pregunta antes de registrar (`proveedoresParecidos`,
+ADR-0109 act. (b)) en las tres puertas de la web —desde el act. (c), también el proveedor
+rápido de Gastos—, pero esa pregunta vive en la pantalla: una carga por SQL, o una puerta
+nueva que no la use, sigue pasando.
+
+**Qué hacer. Base (texto).** Corregir el comentario en la próxima migración de proveedores:
+que diga que junta mayúsculas, tildes y espacios, y que «SAC» contra «S.A.C.» lo pregunta
+la pantalla. **No** se agrega un candado por nombre sin forma societaria: «Jacard Peru SAC»
+y «Jacard Peru EIRL» pueden ser dos empresas con dos RUC (ver el «DESCARTÉ» del ADR-0109,
+actualización (b)).
+
+---
+
 ## Lo que se revisó y NO se confirma
 
 Tres cosas que estaban en la lista original no sobrevivieron a mirar el SQL. Van aquí por
@@ -1051,6 +1082,7 @@ ya está bien y meter una cláusula que sobra.
 | P-22 | `CORP` en local, `CCO` en las tiendas | MEDIO | SQL + texto |
 | P-23 | Comentario viejo de `recalcular_stock()` en la base | BAJO | SQL |
 | P-24 | Dos ADR `0003` y un `0043` que no existe | BAJO | Texto |
+| P-25 | El índice de proveedores promete juntar «SAC» y «s.a.c.» (2026-09-25) | MEDIO | Texto en la base |
 
 **Trece de las veinticuatro son ALTO, y siete de esas trece son contabilidad o
 historial** — los dos lugares donde una mentira cuesta plata o cuesta pasado. Ninguna es

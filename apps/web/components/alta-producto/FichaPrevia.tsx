@@ -16,6 +16,8 @@ export type DatosFicha = {
   categoria: string | null;
   marca: string | null;
   tallas: string;
+  /** Las etiquetas que se van a aplicar a todas las variantes (las que la campaña aplica sola no van: no se eligen). */
+  etiquetas: string[];
   tejidoPatron: string;
   variantes: number | null;
   precio: number | null;
@@ -23,6 +25,8 @@ export type DatosFicha = {
   /** Vista previa local de la foto que quedaría de principal. */
   foto: string | null;
   fotos: number;
+  /** Paso 5 (ADR-0212): las unidades de hoy y dónde («12 · piso»), «Ninguna todavía», o null si aún no se decidió. */
+  stock: string | null;
   siguiente: string | null;
 };
 
@@ -62,8 +66,12 @@ function Tarjeta({ d }: { d: DatosFicha }) {
           <dd className="text-right font-medium tabular-nums">{d.tallas || <Vacio />}</dd>
           <dt className="text-taupe">Tejido y patrón</dt>
           <dd className="text-right font-medium">{d.tejidoPatron || <Vacio />}</dd>
+          <dt className="text-taupe">Etiquetas</dt>
+          <dd className="text-right font-medium">{d.etiquetas.length > 0 ? d.etiquetas.join(" · ") : <Vacio />}</dd>
           <dt className="text-taupe">Variantes</dt>
           <dd className="text-right font-medium tabular-nums">{d.variantes ?? <Vacio />}</dd>
+          <dt className="text-taupe">Stock de hoy</dt>
+          <dd className="text-right font-medium tabular-nums">{d.stock ?? <Vacio />}</dd>
         </dl>
         {d.codigosVariantes.length > 0 && (
           <p className="mt-1.5 break-all font-mono text-[11px] tabular-nums text-tinta/45">
@@ -124,9 +132,9 @@ export function FichaPrevia({
       </aside>
 
       {/* Celular y tablet: barra pegada abajo */}
-      {/* En celular va ENCIMA de la barra de navegación de abajo (4.25 rem, la misma cuenta que `BarraFija`); desde `sm`
-          esa barra no existe y esta baja al fondo. */}
-      <div className="sticky bottom-[calc(4.25rem+env(safe-area-inset-bottom,0px))] z-20 -mx-4 border-t border-sand bg-papel px-4 pb-3 pt-2.5 sm:bottom-0 sm:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] lg:hidden">
+      {/* Pegada al fondo: desde 2026-09-25 el celular no tiene barra de navegación abajo (el menú es un cajón lateral).
+          El aire inferior respeta la zona segura del teléfono. */}
+      <div className="sticky bottom-0 z-20 -mx-4 border-t border-sand bg-papel px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] pt-2.5 lg:hidden">
         {verMovil && (
           <div className="mb-3 max-h-[60vh] space-y-3 overflow-y-auto [animation:cayla-revelar_240ms_var(--ease-cayla)]">
             <Tarjeta d={datos} />
@@ -138,6 +146,7 @@ export function FichaPrevia({
             <b className="block truncate text-sm text-tinta">{datos.nombre || "Nuevo producto"}</b>
             <span className="tabular-nums text-taupe">
               {datos.codigo ?? "—"} · {datos.variantes ?? 0} var. · {datos.precio !== null ? soles(datos.precio) : "S/ —"}
+              {datos.stock && ` · ${datos.stock}`}
             </span>
           </div>
           <button type="button" onClick={() => setVerMovil((v) => !v)} aria-expanded={verMovil} className="btn-cayla btn-secundario px-3">

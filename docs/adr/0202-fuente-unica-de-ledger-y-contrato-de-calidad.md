@@ -1,6 +1,7 @@
 # ADR-0202 — Fuente única del ledger de piso/almacén/total y contrato de calidad en el dominio (Felipe, 2026-09-24)
 
-**Fecha:** 2026-09-24 · **Estado:** propuesto (implementado y verificado LOCAL; nada aplicado a producción/remoto) ·
+**Fecha:** 2026-09-24 · **Estado:** aplicado (fusionado en el PR #397; sus 2 migraciones, `20260924010700` y `20260924030000`, están en
+producción — verificado por efectos en la base el 2026-09-25; la línea anterior decía «nada aplicado a producción») ·
 **Amplía:** [ADR-0201](0201-seis-decisiones-dominio-inventario.md) — cierra los dos puntos arquitectónicos que Felipe
 dejó explícitamente pendientes tras aprobar conceptualmente las seis decisiones de negocio de ese ADR.
 
@@ -130,3 +131,24 @@ sede, identidades de personas, estado de sedes) en algún punto de una sesión a
 silenciosamente decenas de `scripts/pruebas/*.mjs` preexistentes (confirmado en `fn_resumen_comparacion.mjs` y
 `roles_por_modulo.mjs`) — no por una regresión de este cambio, sino porque esos scripts hardcodean nombres/IDs que
 ya no existen en el seed actual. Se dejó anotado como tarea aparte (chip de sesión), no se intentó arreglar hoy.
+
+## Actualización 2026-09-25 — el «hallazgo aparte» sí era una regresión de este cambio
+
+El párrafo de arriba atribuyó la falla de `roles_por_modulo.mjs` a un seed local cambiado. Era de este ADR:
+`20260924030000` (y antes `20260924010700`) recrearon `fn_resumen_comparacion` copiando el cuerpo de
+`20260919220000`, que todavía decía `fn_es_lider()`. El permiso de Análisis para los roles (ADR-0161 P5) se había
+puesto **en vivo** (`20260923130000`, `reemplazar_vivo`), así que no estaba en ningún archivo que se pudiera copiar.
+Resultado: un rol con Análisis que no es líder recibía 0 filas de su propia sede, sin ningún error. Como las dos
+migraciones ya se habían pegado en producción, allí pasó lo mismo hasta que se pegó `20260925223000`.
+
+- **No fue una decisión:** ninguna ADR del 0199 al 0203 habla de permisos, y `fn_ledger_puntos` (misma migración)
+  exige `fn_puede_analizar()`.
+- **Arreglo:** `20260925223000` cambia solo ese filtro sobre la definición viva (PR #405, aplicada en producción), y
+  el PR #404 (`b633868c`) corrigió la línea en `010700` y `030000` para que una base limpia no vuelva a cerrarlo.
+- **Evidencia (2026-09-25):** con una base limpia de `0bec5912`, `pruebas:roles` da 69/70 con exactamente el mismo
+  resultado que el CI (`t,t,f,t,f,t`); con `main` da 70/70, y `fn_resumen_comparacion` 25/25, `fn_ledger_fuente_unica`
+  48/48 y `fn_resumen_variantes` 38/38. El cuerpo de la función en una base limpia de `main` y en producción es
+  idéntico: mismo md5 sin comentarios (`c2c0990c…`) y mismo comentario.
+- **Regla que queda:** antes de recrear una función existente copiando un cuerpo, buscar
+  `grep -n "reemplazar_vivo('retail.<función>" supabase/migrations/*.sql` y comparar con `pg_get_functiondef` de
+  producción. Y si una prueba de `scripts/pruebas` falla con una base limpia (el CI), no es el seed de nadie.

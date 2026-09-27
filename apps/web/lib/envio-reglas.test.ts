@@ -20,6 +20,7 @@ import {
   resumenPorComprobante,
   sumarUnidad,
   totalesEnvio,
+  pendienteEnCola,
   trasladoContadoEntero,
   type ExtraEnvio,
   type Reparto,
@@ -451,5 +452,21 @@ describe("movimientosDelEnvio: lo que queda escrito en el stock", () => {
   it("una prenda fuera de comprobante incompleta no se cuenta", () => {
     const m = movimientosDelEnvio({ bloques, reparto: {}, extras: [{ productoId: "p1", varianteId: "v9", cantidad: 2, costoUnitario: "", proveedorId: "", esRegalo: false }], traslados: [], dePrenda });
     expect(m).toEqual([]);
+  });
+});
+
+describe("pendienteEnCola (ADR-0210)", () => {
+  it("junta las líneas recibidas y cerradas, y los traslados, de los envíos que esperan en la cola", () => {
+    const r = pendienteEnCola([
+      { p_items: [{ compra_item_id: "l1", variante_id: "v1", cantidad: 2 }], p_cierres: [{ compra_item_id: "l2", cantidad: 1, motivo: "no_llego" }], p_traslados: [] },
+      { p_items: [], p_cierres: [], p_traslados: [{ transferencia_id: "t1", lineas: [] }] },
+    ]);
+    expect([...r.lineas].sort()).toEqual(["l1", "l2"]);
+    expect([...r.traslados]).toEqual(["t1"]);
+  });
+
+  it("sin cola, no oculta nada", () => {
+    const r = pendienteEnCola([]);
+    expect(r.lineas.size + r.traslados.size).toBe(0);
   });
 });

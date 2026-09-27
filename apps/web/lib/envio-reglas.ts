@@ -432,6 +432,24 @@ export function armarPedidoEnvio(p: {
   };
 }
 
+/**
+ * Lo que ya está contado en envíos guardados SIN CONEXIÓN que todavía no subieron (ADR-0210): las líneas de
+ * comprobante (recibidas o cerradas) y los traslados. La pantalla los saca de «pendientes» mientras esperan, igual
+ * que Vender descuenta del stock lo vendido sin red — si no, alguien volvería a contar el mismo comprobante y, al
+ * volver el internet, subirían dos recepciones de la misma mercadería. Un envío RECHAZADO no entra: la base no lo
+ * registró y ese comprobante sigue por recibir.
+ */
+export function pendienteEnCola(pedidos: Pick<PedidoEnvio, "p_items" | "p_cierres" | "p_traslados">[]): { lineas: Set<string>; traslados: Set<string> } {
+  const lineas = new Set<string>();
+  const traslados = new Set<string>();
+  for (const p of pedidos) {
+    for (const i of p.p_items ?? []) lineas.add(i.compra_item_id);
+    for (const c of p.p_cierres ?? []) lineas.add(c.compra_item_id);
+    for (const t of p.p_traslados ?? []) traslados.add(t.transferencia_id);
+  }
+  return { lineas, traslados };
+}
+
 /** ¿Todas las líneas enviadas de un traslado tienen su conteo? La base lo exige (aunque sea 0). */
 export function trasladoContadoEntero(lineas: LineaEnTraslado[], conteo: ConteoTraslado): boolean {
   return lineas.length > 0 && lineas.every((l) => conteo[l.varianteId] !== undefined);

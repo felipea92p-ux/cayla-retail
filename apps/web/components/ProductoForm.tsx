@@ -2,11 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChevronDown } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
-import { Boton, Campo, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
+import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
@@ -19,6 +20,15 @@ import { useParecidos } from "@/lib/use-parecidos";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
+import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
+import {
+  cambiosTemporadaPorColor,
+  coloresConVariantesActivas,
+  coloresSinTemporadaConocida,
+  MIN_COLORES_PARA_TEMPORADA_POR_COLOR,
+  ofrecerTemporadaPorColor,
+  temporadaHeredadaPorColor,
+} from "@/lib/temporada-ficha-reglas";
 
 /* ====================================================================
    ProductoForm · edición de producto+variantes (V2, 2026-09-15)
@@ -47,6 +57,16 @@ import { firmar } from "@/lib/responsable-reglas";
    Es DISTINTO de `variantes.codigo` (el código corto BLU-0042-AZM-M que
    arma el trigger `variantes_asignar_codigo` y que se ve recién después de
    guardar) — acá no se intenta adivinar ese código, solo el SKU.
+
+   TEMPORADA (2026-09-26, ADR-0246). Deja de ser texto libre: se elige de la
+   lista cerrada, y la primera opción dice qué pasa si no se elige nada
+   («Igual que su categoría (Verano)»). Vacío = hereda, como siempre. Si la
+   prenda tiene 2 o más colores (o uno solo que ya tenga la suya guardada),
+   cada color puede tener la suya («Temporada
+   por color»): se guarda en la MISMA acción, después del guardado principal,
+   con UNA llamada a `asignar_temporadas` y solo con los colores que cambiaron
+   — el mismo criterio que las etiquetas. Sin la lista en la base (SQL sin
+   pegar), la ficha lo dice y manda la temporada tal como la leyó.
 
    Identidad de variante: una variante con `id` (ya existe en la base) solo
    deja tocar precio, costo y activo — igual que decide la RPC
@@ -165,7 +185,14 @@ export function ProductoForm({
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? "");
   const [estado, setEstado] = useState<(typeof ESTADOS)[number]["valor"]>(producto?.estado ?? "activo");
   const [stockMinimo, setStockMinimo] = useState(producto?.stockMinimo != null ? String(producto.stockMinimo) : "");
-  const [temporada, setTemporada] = useState(producto?.temporada ?? "");
+  const [temporada, setTemporada] = useState(producto?.temporada ?? SIN_PROPIA);
+  // ADR-0246: la lista y lo que ya estaba guardado al abrir. `null` = la base todavía no la tiene (SQL sin pegar).
+  const temporadas = producto?.temporadas ?? null;
+  // color → clave de su temporada propia; un color sin entrada sigue a su prenda. `porColorGuardado` es la foto de lo
+  // que había en la base: contra ella se decide qué colores cambiaron (y se actualiza tras guardarlos, para que
+  // reintentar otra parte no los vuelva a mandar).
+  const [temporadaColor, setTemporadaColor] = useState<Record<string, string>>(() => temporadas?.porColor ?? {});
+  const porColorGuardado = useRef<Record<string, string>>(temporadas?.porColor ?? {});
   const [permitirVentaSinStock, setPermitirVentaSinStock] = useState(producto?.permitirVentaSinStock ?? false);
   const [tejidoId, setTejidoId] = useState(producto?.tejidoId ?? "");
   const [patronId, setPatronId] = useState(producto?.patronId ?? "");
@@ -254,6 +281,31 @@ export function ProductoForm({
     icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
   }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
+
+  // ---------- temporada (ADR-0246) ----------
+  // La de su categoría se sigue de la categoría ELEGIDA en el formulario (no de la que tenía al abrir): si se cambia de
+  // categoría, «Igual que su categoría (…)» ya dice lo que va a heredar.
+  const temporadaCategoria = temporadas ? (temporadas.porCategoria[categoriaId] ?? null) : null;
+  const opcionesTemporadaPrenda = temporadas
+    ? opcionesTemporada(temporadas.lista, { nombre: nombreTemporada(temporadas.lista, temporadaCategoria), de: "categoría" })
+    : [];
+  const temporadaPrenda = temporadaHeredadaPorColor(temporada, temporadaCategoria);
+  const opcionesTemporadaColor = temporadas
+    ? opcionesTemporada(temporadas.lista, { nombre: nombreTemporada(temporadas.lista, temporadaPrenda), de: "prenda" })
+    : [];
+  const coloresFicha = coloresConVariantesActivas(variantes);
+  // Un color que estaba todo apagado al abrir y se reactiva: su excepción (si la tiene) no llegó a la ficha. No se le
+  // ofrece el desplegable (diría «Igual que su prenda» sin saberlo) ni se manda nada por él; se avisa.
+  const coloresInciertos = coloresSinTemporadaConocida(producto?.variantes ?? [], coloresFicha);
+  const coloresConTemporada = coloresFicha.filter((c) => !coloresInciertos.includes(c));
+  // Sin saber qué excepciones hay guardadas (`porColor` null) no se ofrece: mostraría «Igual que su prenda» sobre una
+  // excepción que sí existe. Con un solo color, se ofrece igual si ese color ya tiene la suya (o no se sabe).
+  const ofreceTemporadaPorColor =
+    !!temporadas?.porColor && ofrecerTemporadaPorColor(coloresFicha, temporadas.porColor, coloresInciertos);
+  const conTemporadaPropia = coloresConTemporada.filter((c) => (temporadaColor[c] ?? SIN_PROPIA) !== SIN_PROPIA).length;
+  const nombreColor = (codigo: string) => colores.find((c) => c.codigo === codigo)?.nombre ?? codigo;
+  // Plegada: casi ninguna prenda la usa. Abierta si ya hay algún color con la suya, para que se vea sin buscarla.
+  const [verTemporadaColor, setVerTemporadaColor] = useState(() => Object.keys(temporadas?.porColor ?? {}).length > 0);
 
   function elegirCategoria(id: string) {
     setCategoriaId(id);
@@ -396,24 +448,46 @@ export function ProductoForm({
     // un error que no tiene nada que ver con lo que la persona hizo.
     const asignacionesEtiquetas = variantes
       .filter((v) => v.id && !mismoConjunto(v.etiquetaIds, etiquetaIdsOriginales.current.get(v.id) ?? []))
-      .map((v) => ({ variante_id: v.id, etiqueta_ids: v.etiquetaIds }));
+      .map((v) => ({ variante_id: v.id as string, etiqueta_ids: v.etiquetaIds }));
     if (editando && asignacionesEtiquetas.length > 0) {
       const { error: errorEtiquetas } = await firmar(supabase.rpc("actualizar_variantes_etiquetas", { p_asignaciones: asignacionesEtiquetas }), firma);
-      cerrarProceso();
-      setLoading(false);
-      // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
-      responsable.despues(errorEtiquetas);
       if (errorEtiquetas) {
+        cerrarProceso();
+        setLoading(false);
+        // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
+        responsable.despues(errorEtiquetas);
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
           detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
         });
         return;
       }
-    } else {
-      cerrarProceso();
-      setLoading(false);
-      responsable.despues(null);
+      // Ya están en la base: si lo que sigue falla y se reintenta, no se vuelven a mandar.
+      for (const a of asignacionesEtiquetas) etiquetaIdsOriginales.current.set(a.variante_id, a.etiqueta_ids);
     }
+
+    // Temporada por color (ADR-0246): mismo gesto, después del guardado principal (un color recién agregado recién
+    // existe ahora) y UNA sola llamada con solo los colores que cambiaron. Todo o nada: si falla, ningún color cambió.
+    const cambiosColor = ofreceTemporadaPorColor ? cambiosTemporadaPorColor(coloresConTemporada, temporadaColor, porColorGuardado.current) : null;
+    if (cambiosColor) {
+      const { error: errorTemporada } = await firmar(
+        supabase.rpc("asignar_temporadas", { p_items: [{ producto_id: producto.id, colores: cambiosColor }] }),
+        firma,
+      );
+      if (errorTemporada) {
+        cerrarProceso();
+        setLoading(false);
+        responsable.despues(errorTemporada);
+        avisar.error(traducirError(errorTemporada, "guardar la temporada de los colores"), {
+          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para la temporada de los colores.`,
+        });
+        return;
+      }
+      porColorGuardado.current = { ...temporadaColor };
+    }
+
+    cerrarProceso();
+    setLoading(false);
+    responsable.despues(null);
 
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
@@ -535,13 +609,30 @@ export function ProductoForm({
               placeholder="Ej. 5"
               pie="Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."
             />
-            <CampoTexto
-              etiqueta="Temporada (opcional)"
-              id="producto-temporada"
-              value={temporada}
-              onChange={(e) => setTemporada(e.target.value)}
-              placeholder="Verano 26"
-            />
+            {temporadas ? (
+              <CampoSelect
+                etiqueta="Temporada (opcional)"
+                id="producto-temporada"
+                valor={temporada}
+                onValor={setTemporada}
+                opciones={opcionesTemporadaPrenda}
+                pie={
+                  // Una excepción por color manda sobre esta: se dice aquí, para que nadie crea que la prenda entera es de
+                  // la temporada que muestra el combo.
+                  conTemporadaPropia > 0
+                    ? `${conTemporadaPropia === 1 ? "1 de sus colores tiene" : `${conTemporadaPropia} de sus colores tienen`} su propia temporada, y esa manda: mira «Temporada por color», abajo.`
+                    : "Sin año: el sistema lo sabe por la fecha en que la prenda llega a cada tienda."
+                }
+              />
+            ) : (
+              <div>
+                <p className="label-cayla text-[11px] text-tinta/65">Temporada</p>
+                <p className="mt-1.5 flex h-9 items-center text-sm text-tinta/65">{producto?.temporada ?? "Sin temporada"}</p>
+                <p className="mt-1 text-xs text-tinta/55">
+                  La lista de temporadas no está disponible ahora (todavía no se activa, o no se pudo leer). Guardar no cambia la temporada.
+                </p>
+              </div>
+            )}
             <div className="flex items-end pb-2">
               <Interruptor
                 activo={permitirVentaSinStock}
@@ -550,6 +641,63 @@ export function ProductoForm({
                 pie="Deja vender este producto aunque el stock marque 0 (pedido especial / preventa)."
               />
             </div>
+            {ofreceTemporadaPorColor && (
+              <div className="border-t border-tinta/10 pt-3 sm:col-span-2">
+                <button
+                  type="button"
+                  aria-expanded={verTemporadaColor}
+                  aria-controls="producto-temporada-por-color"
+                  onClick={() => setVerTemporadaColor((v) => !v)}
+                  className="label-cayla inline-flex items-center gap-1 text-[11px] text-tinta/65 hover:text-rojo"
+                >
+                  Temporada por color
+                  {conTemporadaPropia > 0 ? ` (${conTemporadaPropia} con la suya)` : ""}
+                  {coloresInciertos.length > 0 ? ` · ${coloresInciertos.length} por revisar` : ""}
+                  <ChevronDown aria-hidden className={`h-3.5 w-3.5 transition-transform ${verTemporadaColor ? "rotate-180" : ""}`} />
+                </button>
+                {verTemporadaColor && (
+                  <div id="producto-temporada-por-color" className="mt-2">
+                    <p className="text-xs text-tinta/55">
+                      Solo si un color es de otra temporada que el modelo (un color de invierno en un modelo de verano). Si no, déjalo igual que
+                      su prenda. Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.
+                      {coloresFicha.length < MIN_COLORES_PARA_TEMPORADA_POR_COLOR &&
+                        " Con un solo color, lo normal es ponerle la temporada a la prenda (arriba) y dejar el color igual que su prenda."}
+                    </p>
+                    {coloresInciertos.length > 0 && (
+                      <p className="nota-cayla mt-2 text-xs">
+                        {coloresInciertos.map(nombreColor).join(", ")}{" "}
+                        {coloresInciertos.length === 1 ? "estaba apagado" : "estaban apagados"} al abrir esta ficha: si{" "}
+                        {coloresInciertos.length === 1 ? "tenía su propia temporada, la conserva" : "tenían su propia temporada, la conservan"}. Guarda
+                        y vuelve a abrir la ficha para verla o cambiarla.
+                      </p>
+                    )}
+                    <div className="mt-2 grid gap-x-4 sm:grid-cols-2">
+                      {coloresConTemporada.map((codigo) => {
+                        const color = colores.find((c) => c.codigo === codigo);
+                        return (
+                          <CampoSelect
+                            key={codigo}
+                            etiqueta={
+                              <span className="inline-flex items-center gap-1.5">
+                                <span
+                                  aria-hidden
+                                  className={`inline-block h-2.5 w-5 rounded-full border border-tinta/20 ${color?.hex ? "" : "bg-sand"}`}
+                                  style={color?.hex ? { background: color.hex } : undefined}
+                                />
+                                {nombreColor(codigo)}
+                              </span>
+                            }
+                            valor={temporadaColor[codigo] ?? SIN_PROPIA}
+                            onValor={(v) => setTemporadaColor((actual) => ({ ...actual, [codigo]: v }))}
+                            opciones={opcionesTemporadaColor}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </section>
 

@@ -133,15 +133,16 @@ export function GastosPanel({
             {esLider ? (
               <label className="fin-ver">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin value={ver.clave} onChange={(e) => ir({ ver: e.target.value })} aria-label="Qué mirar">
-                  <option value="todas">Todas las tiendas</option>
-                  {ubicaciones.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                  <option value="empresa">De la empresa</option>
-                </SelectFin>
+                <SelectFin
+                  etiqueta="Qué mirar"
+                  valor={ver.clave}
+                  onValor={(v) => ir({ ver: v })}
+                  opciones={[
+                    { valor: "todas", texto: "Todas las tiendas" },
+                    ...ubicaciones.map((u) => ({ valor: u.id, texto: u.nombre })),
+                    { valor: "empresa", texto: "De la empresa" },
+                  ]}
+                />
               </label>
             ) : (
               <Chip versalitas={false}>{nombreCorto}</Chip>
@@ -344,21 +345,13 @@ function TablaGastos({
       <Superficie className="anim-sube">
         <Herramientas>
           <Buscador valor={busqueda} onValor={setBusqueda} placeholder="Buscar por descripción, proveedor o número" />
-          <SelectFin value={categoria} onChange={(e) => setCategoria(e.target.value)} aria-label="Categoría">
-            <option value="">Todas las categorías</option>
-            {categorias.map((c) => (
-              <option key={c.codigo} value={c.codigo}>
-                {c.nombre}
-              </option>
-            ))}
-          </SelectFin>
-          <SelectFin value={mes} onChange={(e) => onMes(e.target.value)} aria-label="Mes">
-            {mesesRecientes(hoy, 12).map((m) => (
-              <option key={m} value={m}>
-                {mayuscula(textoMes(m))}
-              </option>
-            ))}
-          </SelectFin>
+          <SelectFin
+            etiqueta="Categoría"
+            valor={categoria}
+            onValor={setCategoria}
+            opciones={[{ valor: "", texto: "Todas las categorías" }, ...categorias.map((c) => ({ valor: c.codigo, texto: c.nombre }))]}
+          />
+          <SelectFin etiqueta="Mes" valor={mes} onValor={onMes} opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: mayuscula(textoMes(m)) }))} />
         </Herramientas>
         {visibles.length === 0 ? (
           <p className="px-5 py-8 text-center text-sm text-taupe">
@@ -645,14 +638,13 @@ function ClasificarEgresoModal({
         <div data-sin-cascada>
           <div className="fin-dos-campos">
             <CampoFin etiqueta="Categoría" htmlFor="clas-categoria" ayuda={cat ? `Va a la cuenta ${cat.cuenta}. Nadie la elige: viene con la categoría.` : undefined}>
-              <SelectFin id="clas-categoria" value={categoria} onChange={(ev) => setCategoria(ev.target.value)}>
-                <option value="">Elige…</option>
-                {categorias.map((c) => (
-                  <option key={c.codigo} value={c.codigo}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </SelectFin>
+              <SelectFin
+                id="clas-categoria"
+                valor={categoria}
+                onValor={setCategoria}
+                marcador="Elige…"
+                opciones={categorias.map((c) => ({ valor: c.codigo, texto: c.nombre }))}
+              />
             </CampoFin>
             <CampoFin etiqueta="Qué se pagó" htmlFor="clas-descripcion">
               <InputFin id="clas-descripcion" value={descripcion} onChange={(ev) => setDescripcion(ev.target.value)} placeholder="Mototaxi al banco" />
@@ -669,13 +661,7 @@ function ClasificarEgresoModal({
       {aBanco && (
         <div data-sin-cascada>
           <CampoFin etiqueta="¿A qué cuenta llegó?" htmlFor="clas-destino" ayuda="Queda como depósito en Cuentas y dinero: el cajón ya bajó con esta salida y ahora sube el banco.">
-            <SelectFin id="clas-destino" value={destino} onChange={(ev) => setDestino(ev.target.value)}>
-              {destinosDeposito.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin id="clas-destino" valor={destino} onValor={setDestino} opciones={destinosDeposito.map((d) => ({ valor: d.id, texto: d.nombre }))} />
           </CampoFin>
         </div>
       )}

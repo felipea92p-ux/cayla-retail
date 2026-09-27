@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  codigoDeLinea,
   comprobanteDeFilaOperativa,
   costoBase,
   costoParaTipear,
@@ -235,5 +236,28 @@ describe("filtro «Destino» (?dest=…)", () => {
   it("el aviso de una base sin la migración le dice al usuario qué hacer, sin jerga", () => {
     expect(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE).toContain("Quita el filtro");
     expect(MENSAJE_FILTRO_DESTINO_NO_DISPONIBLE).not.toMatch(/PGRST|RPC|función/i);
+  });
+});
+
+// Las líneas de una factura y de una recepción rotulan su prenda con el código de la etiqueta. En producción
+// `variantes.sku` es NULL en 128 de 130 variantes (ADR-0058): leer solo `sku` dejaba «Blusa Emma» sin decir cuál era.
+describe("codigoDeLinea", () => {
+  it("una variante sin sku y con código muestra el código de la etiqueta", () => {
+    expect(codigoDeLinea({ sku: null, codigo: "POL-0004-VIO-L" })).toBe("POL-0004-VIO-L");
+  });
+
+  it("una variante con sku y sin código cae al sku legado", () => {
+    expect(codigoDeLinea({ sku: "VES-SOFI-NEG-M", codigo: null })).toBe("VES-SOFI-NEG-M");
+  });
+
+  it("si tiene los dos manda el código, que es el que imprime la etiqueta y lee la pistola", () => {
+    expect(codigoDeLinea({ sku: "VES-SOFI-NEG-M", codigo: "VES-0002-NEG-M" })).toBe("VES-0002-NEG-M");
+  });
+
+  it("sin ninguno (o sin variante, como una línea agrupada) devuelve null: la pantalla de Recibir pinta «—» con `?? \"—\"`", () => {
+    expect(codigoDeLinea({ sku: null, codigo: null })).toBeNull();
+    expect(codigoDeLinea({ sku: "", codigo: "" })).toBeNull();
+    expect(codigoDeLinea(null)).toBeNull();
+    expect(codigoDeLinea(undefined)).toBeNull();
   });
 });

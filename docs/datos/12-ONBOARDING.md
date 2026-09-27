@@ -34,8 +34,8 @@ aquí, literalmente cierto y literalmente insuficiente — y "lo reconstruyo des
 te da una base distinta a la real.
 
 Antes de asumir que algo está roto, corre `pnpm datos:comparar` y mira
-`generado/DRIFT.md`: te dice si esa pantalla está rota en las tiendas o solo en tu
-cabeza.
+`generado/DRIFT.md`: te dice si esa llamada tiene respaldo en la foto de producción o solo en tu
+cabeza (mira la fecha de la foto: una función posterior sale como «no está» aunque ya exista).
 
 ---
 
@@ -134,9 +134,10 @@ aprende es el circuito, no el cambio.**
 Agrega una columna a una tabla que no sea del núcleo — por ejemplo, un campo de
 notas en `proveedores` — y llévala de punta a punta:
 
-1. **Escribe la migración** en `supabase/migrations/`, con el número siguiente.
-   Sin el prefijo `retail.` (eso solo se agrega al pegar en producción, nunca en el
-   archivo del repo).
+1. **Escribe la migración** con `npx supabase migration new <nombre>`: nace con
+   timestamp, nunca con «el número siguiente» (ADR-0034). **Con el prefijo `retail.`** en
+   cada tabla, o `set search_path = retail, public, extensions;` al inicio: el Postgres
+   local vive en `retail` igual que producción, y ese mismo archivo es el que se pega.
 2. **Aplícala en local:** `npx supabase db reset`.
 3. **Regenera los tipos** y mira el diff. Si aparecen dos firmas de la misma función,
    algo salió mal — lee el paso 5 de la lista de `07-GOBIERNO.md`.

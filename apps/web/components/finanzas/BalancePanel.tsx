@@ -105,14 +105,13 @@ export function BalancePanel({
   };
 
   const selectorCorte = (
-    <SelectFin className="w-auto min-w-[190px]" value={corte} onChange={(e) => ir({ corte: e.target.value === hoy ? null : e.target.value })} aria-label="Fecha del Balance">
-      {cortes.some((c) => c.valor === corte) ? null : <option value={corte}>{tituloCorte(corte, hoy)}</option>}
-      {cortes.map((c) => (
-        <option key={c.valor} value={c.valor}>
-          {c.texto}
-        </option>
-      ))}
-    </SelectFin>
+    <SelectFin
+      etiqueta="Fecha del Balance"
+      className="w-fit min-w-[190px]"
+      valor={corte}
+      onValor={(v) => ir({ corte: v === hoy ? null : v })}
+      opciones={[...(cortes.some((c) => c.valor === corte) ? [] : [{ valor: corte, texto: tituloCorte(corte, hoy) }]), ...cortes]}
+    />
   );
 
   return (
@@ -130,14 +129,12 @@ export function BalancePanel({
             {esLider ? (
               <label className="fin-ver">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin value={ver} onChange={(e) => ir({ ver: e.target.value === "cayla" ? null : e.target.value })} aria-label="Qué mirar">
-                  <option value="cayla">CAYLA entera</option>
-                  {unidades.map((u) => (
-                    <option key={u.ubicacionId} value={u.ubicacionId}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                </SelectFin>
+                <SelectFin
+                  etiqueta="Qué mirar"
+                  valor={ver}
+                  onValor={(v) => ir({ ver: v === "cayla" ? null : v })}
+                  opciones={[{ valor: "cayla", texto: "CAYLA entera" }, ...unidades.map((u) => ({ valor: u.ubicacionId, texto: u.nombre }))]}
+                />
               </label>
             ) : (
               <Chip versalitas={false}>{tiendaNombre}</Chip>

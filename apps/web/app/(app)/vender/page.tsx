@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { exigirModulo, puede } from "@/lib/persona-actual";
+import { accesosVisibles } from "@/lib/vender-accesos";
 import { getCatalogo } from "@/lib/catalogo-v2";
 import { getCajaAbierta, getUltimoCierre } from "@/lib/caja";
 import { getUbicaciones } from "@/lib/ubicaciones";
@@ -8,12 +9,13 @@ import { getDisponibleEnSede, leerStockDeLasSedes } from "@/lib/inventario-v2";
 import { createClient } from "@/lib/supabase/server";
 import { exigir, tolerar } from "@/lib/resultado";
 import { PuntoDeVenta, type ProformaEnCobro } from "@/components/PuntoDeVenta";
-import { VentasDeHoyLista } from "@/components/VentasDeHoy";
-import { cantidadCobrable } from "@/lib/vender-stock-local";
+import { almacenDeLaSede, apartadoEnPiso, cantidadCobrable } from "@/lib/vender-stock-local";
 import { getProformaParaCobrar } from "@/lib/proformas";
 import { numeroDeProforma } from "@/lib/proformas-reglas";
 import { confirmacionDeConversion } from "@/lib/facturacion-proformas-reglas";
 import { lineasDelCarritoDesdeProforma } from "@/lib/proforma-al-carrito";
+import { lineasDelCarritoDesdeVenta, type RepeticionDeVenta } from "@/lib/repetir-venta";
+import { elegirComprobante, diaDeLima, type VentaCruda } from "@/lib/ventas-historial-reglas";
 import type { CampanaLinea } from "@/lib/vender-reglas";
 import { ordenTalla } from "@/lib/catalogo-grupos";
 import { getEjesPorCategoria } from "@/lib/catalogo-v2";
@@ -29,16 +31,16 @@ import { usoDeColores, type ListasPrendaLibre } from "@/lib/prenda-sin-registrar
  * `registrar_venta`. Vive dentro de `(app)` con el sidebar de AppShell,
  * sin el tope de ancho `max-w-5xl` (ver AppShell.tsx).
  */
-export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string }> }) {
-  const { proforma } = await searchParams;
+export default async function VenderPage({ searchParams }: { searchParams: Promise<{ proforma?: string; repetir?: string }> }) {
+  const { proforma, repetir } = await searchParams;
   return (
     <Suspense fallback={<p className="label-cayla text-[11px] text-tinta/50">Cargando caja…</p>}>
-      <Caja proformaId={proforma ?? null} />
+      <Caja proformaId={proforma ?? null} repetirVentaId={!proforma && repetir && /^[0-9a-f-]{36}$/i.test(repetir) ? repetir : null} />
     </Suspense>
   );
 }
 
-async function Caja({ proformaId }: { proformaId: string | null }) {
+async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null; repetirVentaId: string | null }) {
   const persona = await exigirModulo("vender"); // ADR-0161: URL directa sin el módulo en su rol → «Sin acceso»
   const supabase = await createClient();
   // Dos lecturas de stock con dos preguntas distintas:
@@ -53,7 +55,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   //   acceso a retail, sin ampliar esa policy. Sumadas por sede (piso + almacén: para un
   //   traslado importa lo que la otra tienda tiene, no lo que exhibe — decisión de Felipe,
   //   2026-09-14). Ver `lib/stock-por-sede.ts`.
-  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes] = await Promise.all([
+  const [variantes, caja, resStock, ubicaciones, stockAqui, resCampanas, resCategorias, resTallas, resColores, ejes, resVentasHoy] = await Promise.all([
     getCatalogo(),
     getCajaAbierta(persona.ubicacionId),
     leerStockDeLasSedes(),
@@ -68,9 +70,12 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     // sigue vendiendo: esa lista sale vacía y el modal no deja agregar la prenda.
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("tallas").select("id, valor").eq("activo", true).eq("estado", "aprobado"),
-    supabase.from("colores").select("codigo, nombre, hex, familia_color").eq("activo", true).order("orden").order("nombre"),
+    supabase.from("colores").select("codigo, nombre, hex, familia_color, sinonimos").eq("activo", true).order("orden").order("nombre"),
     // Las tallas de cada categoría (`categoria_tallas`). Si no cargan, el modal ofrece todas: la caja no se cae por esto.
     getEjesPorCategoria().catch(() => null),
+    // Las ventas de hoy de esta sede: la píldora «Hoy» de la cabecera y su lista (spike 2026-09-26). Secundario: si
+    // falla, la caja vende igual y la lista lo dice. Siempre esta sede, no un consolidado (para eso está Facturación).
+    supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: persona.ubicacionId }),
   ]);
   const campanasNoCargaron = resCampanas.error !== null && resCampanas.error.code !== "PGRST202";
   const campanaPorVariante = new Map<string, CampanaLinea>(
@@ -98,6 +103,12 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
       fotoUrl: v.fotoUrl,
       codigosBarras: v.codigosBarras,
       stockAqui: pisoPorVariante.get(v.varianteId) ?? 0,
+      // Del MISMO mapa, sin otra lectura: lo guardado en el almacén de esta sede. No se cobra (la venta descuenta el
+      // piso), pero con el piso en 0 la caja dice «está en el almacén» en vez de «agotada» (D-40).
+      almacenAqui: almacenDeLaSede(stockAqui.get(v.varianteId)),
+      // Del MISMO mapa: lo apartado para clientas en el piso. Con el piso y el almacén en 0 distingue «apartada para una
+      // clienta» de «agotada» (`motivoNoCobrable`).
+      apartadoAqui: apartadoEnPiso(stockAqui.get(v.varianteId)),
       stockOtrasSedes: stockPorVariante.get(v.varianteId)?.otrasSedes ?? [],
     }));
 
@@ -111,7 +122,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     else if (p.estado !== "vigente") avisoProforma = `${numeroDeProforma(p.numero)} ya no está vigente (está ${p.estado}).`;
     else if (p.ubicacion_id !== persona.ubicacionId) avisoProforma = `${numeroDeProforma(p.numero)} es de otra tienda: cóbrala desde esa sede.`;
     else {
-      const { lineas, faltan } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
+      const { lineas, faltan, faltanEnAlmacen, prometidas } = lineasDelCarritoDesdeProforma(p, variantesParaVenta);
       proformaEnCobro = {
         id: p.id,
         numero: numeroDeProforma(p.numero),
@@ -119,8 +130,41 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
         clienteDoc: p.cliente_num_doc,
         lineas,
         faltan,
+        faltanEnAlmacen,
+        prometidas,
         confirmacion: confirmacionDeConversion(p, ahora),
       };
+    }
+  }
+
+  // «Volver a vender» desde Ventas ▸ Historial (ADR-0230): las prendas de esa venta entran al ticket al precio de HOY. La
+  // RLS de `ventas` decide si esta cuenta la ve (una integrante, solo las de su tienda); si no, se avisa y el ticket va vacío.
+  let repeticion: RepeticionDeVenta | null = null;
+  let avisoRepeticion: string | null = null;
+  if (repetirVentaId) {
+    const res = await supabase
+      .from("ventas")
+      .select(
+        `created_at, venta_items ( variante_id, cantidad, variante:variantes ( talla:tallas ( valor ), color:colores ( nombre ), producto:productos ( referencia ) ) ),
+         comprobantes ( tipo, serie, numero, estado, created_at )`
+      )
+      .eq("id", repetirVentaId)
+      .maybeSingle();
+    if (res.error || !res.data) avisoRepeticion = "No se encontró esa venta para volver a venderla.";
+    else {
+      const v = res.data as unknown as {
+        created_at: string;
+        venta_items: { variante_id: string; cantidad: number; variante: { talla: { valor: string } | null; color: { nombre: string } | null; producto: { referencia: string } | null } | null }[];
+        comprobantes: VentaCruda["comprobantes"];
+      };
+      const comprobante = elegirComprobante(v.comprobantes);
+      const [, mes, dia] = diaDeLima(v.created_at).split("-");
+      const prendas = v.venta_items.map((i) => ({
+        varianteId: i.variante_id,
+        cantidad: i.cantidad,
+        descripcion: [i.variante?.producto?.referencia ?? "Prenda", i.variante?.talla?.valor, i.variante?.color?.nombre].filter(Boolean).join(" · "),
+      }));
+      repeticion = { origen: comprobante?.numero ?? `la venta del ${Number(dia)}/${Number(mes)}`, ...lineasDelCarritoDesdeVenta(prendas, variantesParaVenta) };
     }
   }
 
@@ -129,7 +173,7 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
   // «Prenda sin registrar» (ADR-0179): listas cerradas del modal. El uso de colores por categoría sale del mismo
   // catálogo que ya carga la caja (sin otra consulta): los usados en esa categoría se ofrecen primero.
   const categoriasLibre = resCategorias.data ?? [];
-  const coloresLibre = (resColores.data ?? []).map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "" }));
+  const coloresLibre = (resColores.data ?? []).map((c) => ({ codigo: c.codigo, nombre: c.nombre, hex: c.hex, familiaColor: c.familia_color ?? "", sinonimos: c.sinonimos ?? [] }));
   const listasPrendaLibre: ListasPrendaLibre = {
     categorias: categoriasLibre,
     tallas: [...(resTallas.data ?? [])].sort((a, b) => ordenTalla(a.valor, b.valor)),
@@ -138,12 +182,18 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
     usoColores: usoDeColores(variantes, categoriasLibre, coloresLibre),
   };
 
+  const ventasHoy = tolerar(resVentasHoy, "las ventas de hoy");
+  const modulos = persona.modulos.map((m) => m.clave);
+  // Proformas vive en Facturación, que además de su módulo pide el poder «facturar» (`exigirPermiso`).
+  const puedeProforma = puede(persona, "facturar");
+
   return (
     <PuntoDeVenta
       // Otra proforma (u otra vez la misma tras soltarla) arranca un ticket nuevo: el carrito se arma al montar.
-      key={proformaEnCobro?.id ?? "caja"}
+      key={proformaEnCobro?.id ?? (repeticion ? `repetir-${repetirVentaId}` : "caja")}
       proforma={proformaEnCobro}
-      avisoProforma={avisoProforma}
+      avisoProforma={avisoProforma ?? avisoRepeticion}
+      repeticion={repeticion}
       ubicacionId={persona.ubicacionId}
       // Solo decide qué se muestra (el campo «Código» del descuento): la regla de quién
       // descuenta la aplica `registrar_venta` (20260914215103_codigos_descuento.sql).
@@ -155,22 +205,11 @@ async function Caja({ proformaId }: { proformaId: string | null }) {
       variantes={variantesParaVenta}
       listasPrendaLibre={listasPrendaLibre}
       campanasNoCargaron={campanasNoCargaron}
-      ventasHoyNode={
-        <Suspense fallback={<p className="px-1 py-4 text-center text-xs text-tinta/50">Cargando ventas de hoy…</p>}>
-          <VentasDeHoy ubicacionId={persona.ubicacionId} ubicacionEtiqueta={persona.ubicacionEtiqueta} />
-        </Suspense>
-      }
+      ventasHoy={{ inicial: ventasHoy.datos ?? [], fallo: ventasHoy.fallo }}
+      metaVentaDiaria={ubicaciones.find((u) => u.id === persona.ubicacionId)?.metaVentaDiaria ?? null}
+      // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
+      accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
+      puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
     />
   );
-}
-
-/** `fn_ventas_del_dia` (0011_venta_con_comprobante.sql) ya trae ítems, vendedor y
- *  estado del comprobante. Se le pasa la ubicación siempre: aunque un Líder podría ver todas
- *  (parámetro null), en Vender importa lo que se vendió EN ESTA sede, no un consolidado —
- *  para eso está Facturación. La primera lectura es del servidor; tras cada venta la lista
- *  se relee sola en el navegador (`VentasDeHoyLista`, ADR-0192), sin recargar la caja. */
-async function VentasDeHoy({ ubicacionId, ubicacionEtiqueta }: { ubicacionId: string; ubicacionEtiqueta: string }) {
-  const supabase = await createClient();
-  const { datos, fallo } = tolerar(await supabase.rpc("fn_ventas_del_dia", { p_ubicacion_id: ubicacionId }), "las ventas de hoy");
-  return <VentasDeHoyLista ubicacionId={ubicacionId} ubicacionEtiqueta={ubicacionEtiqueta} inicial={datos ?? []} fallo={fallo} />;
 }

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
-import type { MetodoPago } from "@cayla-retail/shared";
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { soles } from "@/lib/compras-reglas";
-import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
+import { NOMBRE_METODO_HISTORIAL, agruparEnSemanas, pulsoDeVentas } from "@/lib/ventas-historial-reglas";
 import type { TotalesHistorial } from "@/lib/ventas-historial";
 
 // El pulso del período (Ventas ▸ Historial, ADR-0147), en la columna lateral: lo importante son las ventas y esto las
@@ -33,7 +33,10 @@ const conSemana = (fecha: string) => partes(fecha).toLocaleDateString("es-PE", {
 const sinSemana = (fecha: string) => partes(fecha).toLocaleDateString("es-PE", { day: "numeric", month: "short" }).replace(/\./g, "");
 
 const colorMetodo = (metodo: string) => `var(--color-metodo-${metodo})`;
-const nombreMetodo = (metodo: string) => NOMBRE_METODO[metodo as MetodoPago] ?? metodo;
+const nombreMetodo = (metodo: string) => (metodo === "anticipo" ? "Anticipo de apartados" : (NOMBRE_METODO_HISTORIAL[metodo] ?? metodo));
+
+/** Un atajo a una pantalla que trabaja de la mano con Historial (ADR-0230): qué es y cuánto hay ahí. */
+export type EnlacePulso = { href: string; texto: string; detalle: string };
 
 function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: ReactNode; nota?: string }) {
   return (
@@ -47,7 +50,7 @@ function Dato({ etiqueta, valor, nota }: { etiqueta: string; valor: ReactNode; n
   );
 }
 
-export function HistorialVentasPulso({ totales, periodo }: { totales: TotalesHistorial; periodo: string }) {
+export function HistorialVentasPulso({ totales, periodo, enlaces = [] }: { totales: TotalesHistorial; periodo: string; enlaces?: EnlacePulso[] }) {
   const { resumen, parcial, porDia, porMetodo } = totales;
   const [activo, setActivo] = useState<number | null>(null);
 
@@ -172,6 +175,20 @@ export function HistorialVentasPulso({ totales, periodo }: { totales: TotalesHis
             ))}
           </ul>
         </div>
+      )}
+
+      {enlaces.length > 0 && (
+        <nav aria-label="Pantallas relacionadas" className="mt-5 space-y-0.5 border-t border-dashed border-tinta/10 pt-3">
+          {enlaces.map((e) => (
+            <Link key={e.href} href={e.href} className="flex items-center gap-2 rounded-lg px-1.5 py-1.5 transition-colors hover:bg-hueso">
+              <span className="min-w-0 flex-1">
+                <span className="block text-[13px] font-medium text-tinta">{e.texto}</span>
+                <span className="block text-xs text-tinta/55">{e.detalle}</span>
+              </span>
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-tinta/40" aria-hidden />
+            </Link>
+          ))}
+        </nav>
       )}
     </section>
   );

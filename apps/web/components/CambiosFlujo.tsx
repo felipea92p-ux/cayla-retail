@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -23,16 +23,20 @@ import {
   useEscapeRetrocede,
   useFocoAlCambiarDePaso,
 } from "@/components/FlujoGuiado";
+import { CambioReemplazo } from "@/components/CambioReemplazo";
+import { CambioTicketHoja, type TicketCambio } from "@/components/CambioTicket";
+import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import {
-  CambioReemplazo,
   agruparCatalogo,
   derivarReemplazo,
   opcionesDePrenda,
   seleccionInicial,
   type Seleccion,
   type VarianteCatalogo,
-} from "@/components/CambioReemplazo";
+} from "@/lib/cambio-reemplazo-reglas";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
+import { conApartadoAjustado, conStockAjustado } from "@/lib/vender-stock-local";
+import { useStockEnVivo } from "@/lib/useStockEnVivo";
 import {
   estadoPrendaVendida,
   etiquetaDia,
@@ -57,15 +61,6 @@ const TITULOS: Record<Paso, string> = {
   exito: "Cambio registrado",
 };
 
-type Resultado = {
-  operacion: string;
-  devuelta: PrendaFicha;
-  nueva: PrendaFicha;
-  cantidad: number;
-  diferencia: number;
-  vaACuarentena: boolean;
-};
-
 function ficha(p: { referencia: string; talla: string | null; color: string | null; colorHex: string | null; fotoUrl: string | null }, precio: number): PrendaFicha {
   return { referencia: p.referencia, talla: p.talla, color: p.color, colorHex: p.colorHex, fotoUrl: p.fotoUrl, precio };
 }
@@ -86,7 +81,9 @@ export function CambiosFlujo({
   ubicacionId,
   sede,
   cajaAbierta,
-  catalogo,
+  esLider,
+  sedes,
+  catalogo: catalogoProp,
   ahora,
   onCerrar,
   onNuevo,
@@ -99,6 +96,9 @@ export function CambiosFlujo({
   /** Nombre de la sesión. Ya no se muestra: «Lo registra» es el responsable elegido (ADR-0161). */
   colaboradora: string;
   cajaAbierta: boolean;
+  /** Un líder puede pedir la prenda a otra sede desde aquí (el traslado prellenado solo respeta su origen). */
+  esLider: boolean;
+  sedes: SedeConId[];
   catalogo: VarianteCatalogo[];
   ahora: Date;
   onCerrar: () => void;
@@ -106,6 +106,33 @@ export function CambiosFlujo({
 }) {
   const router = useRouter();
   const compra = venta[0]!;
+  // Stock en vivo (2026-09-25, mismo hueco que Vender — ADR-0018, `lib/useStockEnVivo.ts`): `catalogoProp` es
+  // la foto del servidor al entrar; `ajustesStock` la corrige con lo que releyó el sondeo mientras la pantalla
+  // sigue abierta. Se reinicia si llega una foto nueva del servidor: esa ya es la verdad.
+  // Lo apartado en el piso se corrige igual (`ajustesApartado`): con el stock al día pero lo apartado de la carga, una
+  // prenda que otra caja aparta mientras esta pantalla sigue abierta diría «agotada» y no «apartada para una clienta».
+  const [ajustesStock, setAjustesStock] = useState<Map<string, number>>(() => new Map());
+  const [ajustesApartado, setAjustesApartado] = useState<Map<string, number>>(() => new Map());
+  const [catalogoPropPrevio, setCatalogoPropPrevio] = useState(catalogoProp);
+  if (catalogoProp !== catalogoPropPrevio) {
+    setCatalogoPropPrevio(catalogoProp);
+    setAjustesStock(new Map());
+    setAjustesApartado(new Map());
+  }
+  const catalogo = useMemo(
+    () => conApartadoAjustado(conStockAjustado(catalogoProp, ajustesStock), ajustesApartado),
+    [catalogoProp, ajustesStock, ajustesApartado],
+  );
+  useStockEnVivo(
+    ubicacionId,
+    useMemo(() => catalogoProp.map((v) => v.varianteId), [catalogoProp]),
+    cajaAbierta,
+    // El almacén (2.º argumento) es de Vender: Cambios no ofrece lo del almacén, solo necesita lo apartado (3.º).
+    (releido, _almacen, apartado) => {
+      setAjustesStock((prev) => new Map([...prev, ...releido]));
+      setAjustesApartado((prev) => new Map([...prev, ...apartado]));
+    },
+  );
   // Quién registra el cambio (ADR-0161): se elige al confirmar, entre quienes están de turno en la tienda.
   const responsable = useResponsable({ ubicacionId, etiqueta: sede }, { modo: "atencion" }); // atiende a la clienta: vacío al abrir
   const nombreResponsable = responsable.lista.elegibles.find((p) => p.personaId === responsable.elegidoId)?.nombre ?? null;
@@ -115,7 +142,7 @@ export function CambiosFlujo({
   const [seleccion, setSeleccion] = useState<Seleccion | null>(linea ? seleccionInicial(linea) : null);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [resultado, setResultado] = useState<TicketCambio | null>(null);
   const [avisoContinuar, setAvisoContinuar] = useState<string | null>(null);
   // Reintento (doble clic, o red que se corta después del commit y antes de la
   // respuesta — ADR-0032) debe mandar el MISMO token para que el índice único de
@@ -126,7 +153,7 @@ export function CambiosFlujo({
   const errorRef = useRef<HTMLDivElement>(null);
   const refMotivo = useRef<HTMLFieldSetElement>(null);
   const refPrenda = useRef<HTMLDivElement>(null);
-  const refMetodo = useRef<HTMLSelectElement>(null);
+  const refMetodo = useRef<HTMLButtonElement>(null);
 
   const porProducto = useMemo(() => agruparCatalogo(catalogo), [catalogo]);
   const opcionesPrenda = useMemo(() => (linea ? opcionesDePrenda(linea, porProducto) : []), [linea, porProducto]);
@@ -141,7 +168,9 @@ export function CambiosFlujo({
           disponible: unidadesDisponibles(linea),
           motivo: seleccion.motivo,
           eligioPrenda: r.eligioTodo,
-          nueva: r.varianteNueva ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, otrasSedes: r.otrasSedes } : null,
+          nueva: r.varianteNueva
+            ? { descripcion: r.descripcionNueva, stockAqui: r.varianteNueva.stockAqui, apartadoAqui: r.varianteNueva.apartadoAqui, otrasSedes: r.otrasSedes }
+            : null,
           sede,
           diferencia: r.diferencia,
           metodo: seleccion.metodo,
@@ -243,13 +272,20 @@ export function CambiosFlujo({
       setError(traducirError(fallo, "registrar el cambio"));
       return;
     }
+    // El ticket del cambio (spike 2026-09-26): lo que la clienta se lleva. `nombreResponsable` se lee ANTES de que el
+    // combo se vacíe tras guardar.
     setResultado({
       operacion: String(data ?? "").slice(0, 8).toUpperCase(),
-      devuelta: ficha(linea, linea.precioUnitario),
-      nueva: ficha(r.varianteNueva, r.varianteNueva.precio),
+      comprobante: compra.comprobante,
+      clienta: compra.clienta,
+      devolvio: `${linea.referencia} · ${varianteLegible(linea)}`,
+      sellevo: `${r.varianteNueva.referencia} · ${varianteLegible(r.varianteNueva)}`,
       cantidad: seleccion.cantidad,
       diferencia: r.diferencia,
       vaACuarentena: r.condicion === "no_vendible",
+      sede,
+      atendio: nombreResponsable,
+      registradoEn: new Date().toISOString(),
     });
     token.current = crypto.randomUUID();
     setPaso("exito");
@@ -285,7 +321,8 @@ export function CambiosFlujo({
                   return (
                     <label
                       key={l.ventaItemId}
-                      className={`flex items-center gap-4 rounded-lg p-3 transition-colors duration-200 ${
+                      // En el celular el chip baja a su propia línea (con 375 px se salía de la tarjeta).
+                      className={`flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg p-3 transition-colors duration-200 ${
                         estado.cambiable ? "cursor-pointer hover:bg-crema/70" : "cursor-not-allowed"
                       } ${elegida ? "bg-crema ring-1 ring-tinta/30" : ""}`}
                     >
@@ -305,7 +342,9 @@ export function CambiosFlujo({
                           <span className="font-mono">{codigoPrenda(l)}</span> · {soles(l.precioUnitario)}
                         </span>
                       </span>
-                      <ChipEstado estado={estado} />
+                      <span className="max-sm:basis-full max-sm:pl-8">
+                        <ChipEstado estado={estado} />
+                      </span>
                     </label>
                   );
                 })}
@@ -341,6 +380,7 @@ export function CambiosFlujo({
                   setAvisoContinuar(null);
                   setSeleccion((actual) => (actual ? { ...actual, ...cambio } : actual));
                 }}
+                salidas={{ sedes, ubicacionId, sede, esLider, responsable }}
               />
             </div>
             {/* Con la prenda nueva ya elegida, el panel muestra también qué pasará en el
@@ -412,37 +452,7 @@ export function CambiosFlujo({
         </div>
       )}
 
-      {paso === "exito" && resultado && (
-        <div className="anim-revelar mx-auto max-w-2xl rounded-[22px] bg-papel p-6 text-center ring-1 ring-tinta/[0.07] sm:p-10">
-          <CheckCircle2 className="anim-asentar mx-auto h-11 w-11 text-verde-profundo" aria-hidden />
-          <h2 ref={titulo} tabIndex={-1} className="font-display mt-4 text-3xl text-tinta outline-none">
-            {TITULOS.exito}
-          </h2>
-          <p className="mt-2 text-sm text-tinta/75">
-            {resultado.vaACuarentena
-              ? "La prenda que trajo quedó en cuarentena, esperando que un líder decida qué hacer con ella."
-              : "El stock ya refleja la prenda que volvió y la que salió."}
-          </p>
-          <dl className="mt-8 grid gap-4 text-left text-sm sm:grid-cols-2">
-            <Dato titulo="Devolvió">{`${resultado.devuelta.referencia} · ${varianteLegible(resultado.devuelta)}${resultado.cantidad > 1 ? ` (×${resultado.cantidad})` : ""}`}</Dato>
-            <Dato titulo="Se llevó">{`${resultado.nueva.referencia} · ${varianteLegible(resultado.nueva)}${resultado.cantidad > 1 ? ` (×${resultado.cantidad})` : ""}`}</Dato>
-            <Dato titulo="Diferencia">
-              {resultado.diferencia === 0
-                ? "Sin diferencia"
-                : resultado.diferencia > 0
-                  ? `${soles(resultado.diferencia)} cobrados`
-                  : `${soles(-resultado.diferencia)} devueltos`}
-            </Dato>
-            <Dato titulo="N.º de operación">
-              <span className="font-mono">{resultado.operacion}</span>
-            </Dato>
-          </dl>
-          <div className="mt-9 flex flex-wrap justify-center gap-2">
-            <BotonPrincipal onClick={onNuevo}>Nuevo cambio</BotonPrincipal>
-            <BotonSecundario onClick={onCerrar}>Volver a la actividad</BotonSecundario>
-          </div>
-        </div>
-      )}
+      {paso === "exito" && resultado && <CambioTicketHoja ticket={resultado} onNuevo={onNuevo} onCerrar={onCerrar} />}
     </div>
   );
 }

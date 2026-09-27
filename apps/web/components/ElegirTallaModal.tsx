@@ -1,11 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Modal } from "@/components/ui/Modal";
 import { money, type ItemCarrito, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import type { GrupoCatalogo } from "@/lib/catalogo-grupos";
 import { textoOtrasSedes } from "@/lib/stock-por-sede";
+import { DONDE_SE_BAJA, motivoNoCobrable } from "@/lib/vender-stock-local";
 
 type Props = {
   grupo: GrupoCatalogo<VarianteBusqueda>;
@@ -14,6 +15,8 @@ type Props = {
   onAgregar: (v: VarianteBusqueda) => void;
   onClose: () => void;
   alCerrarEnfocar: RefObject<HTMLElement | null>;
+  /** Debajo de las tallas: lo que el Punto de venta agrega (hoy, «Anotar que no había»). */
+  pie?: ReactNode;
 };
 
 /**
@@ -25,9 +28,11 @@ type Props = {
  * el atajo de un toque para quien ya sabe la talla.
  *
  * Elegir una talla AGREGA esa variante y cierra (con la misma animación que Escape);
- * una talla agotada se queda a la vista y dice dónde sí hay.
+ * una talla agotada se queda a la vista y dice dónde sí hay. Una talla con el piso en 0
+ * y prendas en el almacén de esta sede no está agotada (D-40): dice cuántas hay ahí y
+ * que la bajen, sin tacharla — todavía no entra al ticket (la venta descuenta el piso).
  */
-export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar }: Props) {
+export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar, onClose, alCerrarEnfocar, pie }: Props) {
   const nombre = [grupo.referencia, grupo.color].filter(Boolean).join(" ");
   return (
     <Modal titulo={grupo.referencia} subtitulo={`${grupo.color ?? "Sin color"} · ${ubicacionEtiqueta}`} onClose={onClose} alCerrarEnfocar={alCerrarEnfocar}>
@@ -48,40 +53,63 @@ export function ElegirTallaModal({ grupo, ubicacionEtiqueta, carrito, onAgregar,
           <div className="grid grid-cols-2 gap-2" role="group" aria-label="Tallas">
             {grupo.tallas.map((t) => {
               const enTicket = carrito.find((it) => it.claveLinea === t.variante.varianteId)?.cantidad ?? 0;
-              const agotada = t.stockAqui <= 0;
+              const motivo = motivoNoCobrable(t.variante);
+              const agotada = motivo === "agotada";
+              const enAlmacen = motivo === "en_almacen";
+              // Lo único que queda en el piso es de una clienta: no se vende desde aquí, pero no es «no hay» (puede venir por ella).
+              const apartada = motivo === "apartada";
               // Ya se llevó todo lo que hay: agregar otra no haría nada, y un botón que no
               // hace nada es justo lo que esta pantalla vino a quitar.
-              const tope = !agotada && enTicket >= t.stockAqui;
+              const tope = motivo === "cobrable" && enTicket >= t.stockAqui;
               const otras = textoOtrasSedes(t.variante.stockOtrasSedes ?? []);
               return (
                 <button
                   key={t.variante.varianteId}
                   type="button"
-                  disabled={agotada || tope}
+                  disabled={motivo !== "cobrable" || tope}
                   onClick={() => {
                     onAgregar(t.variante);
                     cerrar();
                   }}
                   aria-label={`Agregar ${nombre} talla ${t.talla}`}
                   className={`rounded-xl border p-3 text-left transition-[background-color,border-color,transform] duration-200 ease-[var(--ease-cayla)] ${
-                    agotada || tope
-                      ? "cursor-not-allowed border-dashed border-sand bg-crema text-tinta/45"
-                      : "border-sand bg-papel text-tinta hover:border-tinta/50 hover:bg-sand/40 active:translate-y-px"
+                    enAlmacen
+                      ? "cursor-not-allowed border-dashed border-ambar/60 bg-crema text-tinta/70"
+                      : agotada || apartada || tope
+                        ? "cursor-not-allowed border-dashed border-sand bg-crema text-tinta/45"
+                        : "border-sand bg-papel text-tinta hover:border-tinta/50 hover:bg-sand/40 active:translate-y-px"
                   }`}
                 >
                   <span className="flex items-baseline justify-between gap-2">
                     <span className={`font-display text-xl ${agotada ? "line-through" : ""}`}>{t.talla}</span>
                     {enTicket > 0 && <span className="text-[11px] font-semibold text-rojo">{enTicket} en el ticket</span>}
                   </span>
-                  <span className="mt-0.5 block text-xs">
-                    {agotada ? "Sin stock aquí" : tope ? "Ya tienes todas" : `${t.stockAqui} aquí`}
+                  <span className={`mt-0.5 block text-xs ${enAlmacen ? "text-ambar-profundo" : ""}`}>
+                    {agotada
+                      ? "Sin stock aquí"
+                      : apartada
+                        ? "Apartada para una clienta"
+                        : enAlmacen
+                          ? `${t.almacenAqui} en el almacén`
+                          : tope
+                            ? t.almacenAqui > 0
+                              ? t.stockAqui === 1
+                                ? "Ya tienes la del piso"
+                                : "Ya tienes las del piso"
+                              : "Ya tienes todas"
+                            : `${t.stockAqui} aquí`}
                   </span>
-                  {agotada && otras &&<span className="mt-0.5 block text-[11px]">{otras}</span>}
+                  {(agotada || apartada) && otras && <span className="mt-0.5 block text-[11px]">{otras}</span>}
+                  {/* Dónde se REGISTRA el paso al piso: «que la bajen» a secas se leía como traerla, y con la prenda ya
+                      en la mano no alcanza (`DONDE_SE_BAJA`). */}
+                  {enAlmacen && <span className="mt-0.5 block text-[11px]">Que la bajen en {DONDE_SE_BAJA}</span>}
+                  {tope && t.almacenAqui > 0 && <span className="mt-0.5 block text-[11px]">{t.almacenAqui} más en el almacén</span>}
                   {t.variante.precio !== grupo.precioMin && <span className="mt-0.5 block text-xs font-semibold">{money(t.variante.precio)}</span>}
                 </button>
               );
             })}
           </div>
+          {pie}
         </div>
       )}
     </Modal>

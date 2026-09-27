@@ -1,0 +1,1021 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apartados v2 · spike</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&family=EB+Garamond:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Tokens: copia de apps/web/app/globals.css (ADR-0169). Ningún hex fuera de aquí. */
+:root{
+  --crema:#f5f0e8;--papel:#fbf8f2;--tinta:#1a1a18;--rojo:#b8412d;--rojo-profundo:#8b2a1f;--sand:#e8e0d0;
+  --taupe:#805c4c;--hueso:#eae1d2;--pizarra:#4c5d6e;--verde:#48603f;--ambar:#74501a;
+  --sans:"DM Sans",ui-sans-serif,system-ui,sans-serif;--serif:"EB Garamond",ui-serif,Georgia,serif;--mono:"JetBrains Mono",ui-monospace,monospace;
+  --ease:cubic-bezier(.32,.72,.24,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--crema);color:var(--tinta);font-family:var(--sans);font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea,select{font:inherit;color:inherit}
+.disp{font-family:var(--serif);font-weight:400;letter-spacing:-.005em}
+.mono{font-family:var(--mono)}
+.label{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500}
+.t60{color:rgb(26 26 24/.6)}.t50{color:rgb(26 26 24/.5)}.taupe{color:var(--taupe)}.rojo{color:var(--rojo-profundo)}.verde{color:var(--verde)}.ambar{color:var(--ambar)}.piz{color:var(--pizarra)}
+.num{font-variant-numeric:tabular-nums}
+.row{display:flex;align-items:center}.gap4{gap:4px}.gap6{gap:6px}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}
+.between{justify-content:space-between}.wrap{flex-wrap:wrap}.grow{flex:1;min-width:0}.col{display:flex;flex-direction:column}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hide{display:none!important}
+svg.i{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.i.s{width:13px;height:13px}svg.i.l{width:20px;height:20px}svg.i.xl{width:28px;height:28px}
+
+/* ——— Barra de la DEMO (no es producto) ——— */
+.demo{position:sticky;top:0;z-index:60;background:var(--tinta);color:var(--crema);padding:10px 20px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:12.5px}
+.demo b{font-weight:600}
+.demo .grupo{display:flex;align-items:center;gap:8px}
+.demo .seg{display:inline-flex;border:1px solid rgb(245 240 232/.25);border-radius:999px;padding:2px}
+.demo .seg button{padding:5px 12px;border-radius:999px;font-size:12px;color:rgb(245 240 232/.75)}
+.demo .seg button[aria-pressed=true]{background:var(--crema);color:var(--tinta)}
+.demo .chk{display:inline-flex;align-items:center;gap:6px;cursor:pointer;color:rgb(245 240 232/.85)}
+.demo .etq{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgb(245 240 232/.55)}
+
+/* ——— Escritorio ——— */
+.escritorio{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:calc(100vh - 50px)}
+.lateral{border-right:1px solid var(--sand);padding:22px 14px;display:flex;flex-direction:column;gap:4px}
+.logo{display:flex;align-items:center;gap:10px;padding:0 10px 18px;letter-spacing:.32em;font-weight:600;font-size:14px}
+.logo i{width:26px;height:22px;border:1.6px solid var(--rojo);border-radius:0 60% 0 60%;display:inline-block}
+.nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:rgb(26 26 24/.8);font-size:14.5px}
+.nav.hijo{padding-left:32px}
+.nav.activo{background:var(--sand);color:var(--tinta)}
+.cabecera{height:64px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.pildora{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border:1px solid var(--sand);border-radius:10px;background:var(--papel)}
+.contenido{padding:28px 32px 48px}
+
+/* ——— Hoja de Apartados ——— */
+.hoja{background:var(--papel);border:1px solid var(--sand);border-radius:22px;overflow:hidden;display:flex;flex-direction:column;min-height:calc(100vh - 170px)}
+.hoja-cab{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--sand);padding:0 24px;min-height:64px;flex-wrap:wrap}
+.pestanas{display:flex;gap:24px;align-items:center}
+.pestana{position:relative;height:64px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:rgb(26 26 24/.55)}
+.pestana[aria-current=page]{color:var(--tinta)}
+.pestana[aria-current=page]::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--tinta)}
+.insignia{display:inline-grid;place-items:center;min-width:17px;height:17px;border-radius:999px;background:var(--rojo);color:var(--papel);font-size:10px;letter-spacing:0;padding:0 4px;margin-left:6px}
+.dos{display:grid;grid-template-columns:minmax(0,1fr) 420px;flex:1;min-height:0}
+.izq{padding:24px;border-right:1px solid var(--sand);display:flex;flex-direction:column;gap:16px;min-width:0}
+.der{display:flex;flex-direction:column;min-width:0}
+.der-cab{padding:18px 22px;border-bottom:1px solid var(--sand);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.der-cuerpo{padding:18px 22px;display:flex;flex-direction:column;gap:16px;flex:1}
+.der-pie{border-top:1px solid var(--sand);padding:18px 22px;display:flex;flex-direction:column;gap:12px;background:var(--papel)}
+
+.buscador{display:flex;align-items:center;gap:10px;height:54px;border:1px solid var(--sand);border-radius:14px;padding:0 16px;background:var(--papel)}
+.buscador:focus-within{border-color:var(--taupe)}
+.buscador input{border:0;outline:0;background:transparent;flex:1;min-width:0;font-size:15px}
+.buscador input::placeholder{color:rgb(26 26 24/.45)}
+.boton{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;border-radius:12px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;transition:background-color .2s var(--ease),border-color .2s var(--ease)}
+.b-prim{background:var(--tinta);color:var(--crema)}
+.b-prim[disabled]{background:rgb(26 26 24/.45);cursor:not-allowed}
+.b-sec{border:1px solid var(--sand);background:var(--papel)}
+.b-sec:hover{border-color:var(--taupe)}
+.b-sutil{color:rgb(26 26 24/.7);height:32px;padding:0 8px}
+.b-grande{height:56px;border-radius:12px;justify-content:space-between;padding:0 20px}
+.b-chico{height:32px;padding:0 10px;border-radius:9px;font-size:10px}
+.icono-b{display:inline-grid;place-items:center;width:44px;height:44px;border:1px solid var(--sand);border-radius:12px;background:var(--papel)}
+
+.tarjeta{border:1px solid var(--sand);border-radius:16px;background:var(--papel)}
+.nota{background:var(--hueso);border-radius:12px;padding:10px 12px;font-size:12.5px;color:rgb(26 26 24/.75)}
+.aviso{border-radius:12px;padding:12px 14px;font-size:13px;display:flex;gap:10px;align-items:flex-start}
+.aviso.piz{background:rgb(76 93 110/.08);color:var(--pizarra)}
+.aviso.ambar{background:rgb(116 80 26/.08);color:var(--ambar)}
+.aviso.verde{background:rgb(72 96 63/.08);color:var(--verde)}
+.chip{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:500;background:var(--hueso);color:rgb(26 26 24/.75);white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:999px;background:currentColor}
+.chip.sinpunto::before{display:none}
+.chip.verde{background:rgb(72 96 63/.1);color:var(--verde)}
+.chip.ambar{background:rgb(116 80 26/.1);color:var(--ambar)}
+.chip.rojo{background:rgb(184 65 45/.1);color:var(--rojo-profundo)}
+.chip.piz{background:rgb(76 93 110/.1);color:var(--pizarra)}
+.fijo{display:inline-flex;align-items:center;gap:4px;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--pizarra);border:1px dashed var(--pizarra);border-radius:6px;padding:1px 6px;vertical-align:middle;background:var(--papel)}
+.m-pie .fijo{align-self:flex-start}
+.telefono .aviso.lote{flex-direction:column;align-items:stretch}
+.nuevo{display:inline-flex;align-items:center;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--rojo-profundo);border:1px solid rgb(184 65 45/.35);border-radius:6px;padding:1px 6px;vertical-align:middle}
+
+.foto{flex:none;border-radius:10px;display:grid;place-items:center;font-family:var(--serif);color:rgb(26 26 24/.55);position:relative;overflow:hidden}
+.foto::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgb(255 255 255/.35),transparent 55%)}
+.lista{border:1px solid var(--sand);border-radius:16px;overflow:hidden;background:var(--papel)}
+.lista > * + *{border-top:1px solid var(--sand)}
+.fila{display:flex;align-items:center;gap:12px;padding:12px 16px;text-align:left;width:100%}
+button.fila:hover{background:rgb(245 240 232/.7)}
+.campo{display:flex;flex-direction:column;gap:6px}
+.campo > span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:500;color:rgb(26 26 24/.65)}
+.caja{height:44px;border:1px solid transparent;background:var(--hueso);border-radius:10px;padding:0 12px;outline:0;width:100%}
+.caja:focus{border-color:var(--taupe);background:var(--papel)}
+.caja.error{border-color:var(--rojo)}
+.err{font-size:12px;color:var(--rojo-profundo)}
+.medios{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;background:var(--hueso);border-radius:14px;padding:4px}
+.medio{height:56px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10.5px;color:rgb(26 26 24/.6)}
+.medio[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 1px 2px rgb(26 26 24/.08)}
+.rapidos{display:flex;gap:6px;flex-wrap:wrap}
+.rapido{height:32px;padding:0 12px;border:1px solid var(--sand);border-radius:999px;font-size:12.5px;background:var(--papel)}
+.rapido[aria-pressed=true]{border-color:var(--tinta)}
+.barra{height:6px;border-radius:99px;background:var(--sand);overflow:hidden}
+.barra i{display:block;height:100%;background:var(--tinta);border-radius:99px;transition:width .4s var(--ease)}
+.pasos{display:flex;gap:6px}.pasos i{height:3px;flex:1;border-radius:9px;background:var(--sand)}.pasos i.h{background:var(--tinta)}.pasos i.a{background:var(--rojo)}
+.segm{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--hueso);border-radius:12px;padding:4px;gap:4px}
+.segm button{height:38px;border-radius:9px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgb(26 26 24/.6)}
+.segm button[aria-pressed=true]{background:var(--papel);color:var(--tinta);box-shadow:0 1px 2px rgb(26 26 24/.08)}
+.cifras{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--sand);border-radius:16px;overflow:hidden}
+.cifra{padding:16px 20px}
+.cifra + .cifra{border-left:1px solid var(--sand)}
+.cifra b{display:block;font-family:var(--serif);font-weight:400;font-size:28px;line-height:1.1;margin:6px 0 2px}
+.filtro{height:36px;padding:0 14px;border:1px solid var(--sand);border-radius:999px;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:500;background:var(--papel)}
+.filtro[aria-pressed=true]{background:var(--tinta);color:var(--crema);border-color:var(--tinta)}
+.linea-tiempo{position:relative;display:flex;justify-content:space-between;padding-top:6px}
+.linea-tiempo::before{content:"";position:absolute;left:6px;right:6px;top:12px;height:1px;background:var(--sand)}
+.hito{position:relative;display:flex;flex-direction:column;gap:2px;font-size:12px;z-index:1}
+.hito i{width:12px;height:12px;border-radius:99px;border:1.5px solid var(--tinta);background:var(--papel);margin-bottom:6px}
+.hito.lleno i{background:var(--tinta)}.hito.venc i{border-color:var(--rojo)}.hito.abono i{border-color:var(--verde);background:var(--verde)}
+.hito.der{align-items:flex-end;text-align:right}.hito.cen{align-items:center;text-align:center}
+.popover{position:absolute;z-index:30;background:var(--papel);border:1px solid var(--sand);border-radius:14px;box-shadow:0 12px 32px rgb(26 26 24/.14);padding:8px}
+.check{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:10px;cursor:pointer;font-size:13px}
+.check:hover{background:var(--crema)}
+.check input{margin-top:3px;accent-color:var(--tinta)}
+.interruptor{width:34px;height:20px;border-radius:99px;background:var(--sand);position:relative;flex:none;transition:background .2s var(--ease)}
+.interruptor::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:99px;background:var(--papel);transition:transform .25s var(--ease);box-shadow:0 1px 2px rgb(26 26 24/.2)}
+.interruptor[aria-checked=true]{background:var(--tinta)}
+.interruptor[aria-checked=true]::after{transform:translateX(14px)}
+.estante{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11.5px;background:var(--hueso);border-radius:7px;padding:2px 8px}
+
+/* ——— Modales (ADR-0136: velo con desenfoque → hoja que sube 18 px → cascada) ——— */
+.velo{position:fixed;inset:0;z-index:80;background:rgb(26 26 24/.32);backdrop-filter:blur(3px);display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto;animation:velo .22s var(--ease) both}
+.velo.lado{justify-content:flex-end;padding:0;align-items:stretch}
+.modal{width:100%;max-width:440px;background:var(--crema);border-radius:22px;box-shadow:0 30px 80px rgb(26 26 24/.25);display:flex;flex-direction:column;max-height:88vh;animation:hoja .42s var(--ease) both}
+.modal.ancho{max-width:560px}
+.velo.lado .modal{max-width:420px;border-radius:22px 0 0 22px;max-height:none;height:100%;animation:lado .42s var(--ease) both}
+.m-cab{padding:22px 24px 8px}
+.m-cuerpo{padding:8px 24px 16px;overflow:auto;display:flex;flex-direction:column;gap:14px}
+.m-pie{padding:14px 24px 20px;border-top:1px solid var(--sand);display:flex;flex-direction:column;gap:8px;background:var(--crema);border-radius:0 0 22px 22px}
+.cascada > *{animation:cae .5s var(--ease) both}
+.cascada > *:nth-child(2){animation-delay:55ms}.cascada > *:nth-child(3){animation-delay:110ms}.cascada > *:nth-child(4){animation-delay:165ms}.cascada > *:nth-child(5){animation-delay:220ms}.cascada > *:nth-child(6){animation-delay:275ms}
+@keyframes velo{from{opacity:0}}
+@keyframes hoja{from{opacity:0;transform:translateY(18px) scale(.965)}}
+@keyframes lado{from{opacity:.4;transform:translateX(40px)}}
+@keyframes cae{from{opacity:0;transform:translateY(6px)}}
+@keyframes vuela{0%{opacity:0;transform:translateY(-10px) scale(.96)}100%{opacity:1;transform:none}}
+.entra{animation:vuela .36s var(--ease) both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ——— Celular ——— */
+.escena{display:flex;justify-content:center;gap:40px;padding:28px 16px 60px;flex-wrap:wrap}
+.telefono{width:390px;height:820px;border-radius:48px;border:11px solid var(--tinta);background:var(--crema);position:relative;overflow:hidden;flex:none;box-shadow:0 30px 60px rgb(26 26 24/.18)}
+.telefono .pantalla{position:absolute;inset:0;overflow:auto;display:flex;flex-direction:column}
+.telefono .muesca{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:110px;height:28px;border-radius:99px;background:var(--tinta);z-index:70}
+.estado-os{height:44px;flex:none;display:flex;align-items:flex-end;justify-content:space-between;padding:0 28px 4px;font-size:12px;font-weight:600}
+.cel-cab{position:sticky;top:0;z-index:20;background:var(--crema);border-bottom:1px solid var(--sand);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex:none}
+.cel-pestanas{display:flex;gap:18px;padding:0 16px;border-bottom:1px solid var(--sand);background:var(--papel);position:sticky;top:52px;z-index:19}
+.cel-pestanas .pestana{height:44px}
+.cel-cuerpo{padding:14px 14px 20px;display:flex;flex-direction:column;gap:14px;flex:1}
+.cel-barra{position:sticky;bottom:0;z-index:25;background:var(--tinta);color:var(--crema);padding:12px 16px 26px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:auto}
+.cel-barra .boton{background:var(--crema);color:var(--tinta);height:46px}
+.cel-barra .boton[disabled]{opacity:.45}
+.cel-tabs{position:sticky;bottom:0;z-index:25;background:var(--papel);border-top:1px solid var(--sand);display:grid;grid-template-columns:repeat(3,1fr);padding:6px 6px 24px;margin-top:auto}
+.cel-tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10.5px;padding:6px 0;color:rgb(26 26 24/.5);position:relative}
+.cel-tabs button[aria-current=page]{color:var(--tinta)}
+.cel-tabs .insignia{position:absolute;top:0;right:30%}
+.telefono .velo{position:absolute;padding:0;align-items:flex-end}
+.telefono .modal{max-width:none;border-radius:24px 24px 0 0;max-height:92%;animation:sube .42s var(--ease) both}
+.telefono .m-pie{border-radius:0;padding-bottom:28px}
+.telefono .velo.lado .modal{height:92%;border-radius:24px 24px 0 0}
+@keyframes sube{from{transform:translateY(40px);opacity:.3}}
+.camara{position:absolute;inset:0;z-index:90;background:#0e0e0d;color:var(--crema);display:flex;flex-direction:column;animation:velo .2s var(--ease) both}
+.visor{flex:1;position:relative;display:grid;place-items:center;background:radial-gradient(circle at 50% 42%,rgb(128 92 76/.45),transparent 60%),linear-gradient(180deg,#2a2622,#141311)}
+.marco{width:220px;height:220px;border-radius:26px;position:relative}
+.marco::before,.marco::after{content:"";position:absolute;inset:0;border-radius:26px;border:3px solid var(--crema);clip-path:polygon(0 0,28% 0,28% 6%,6% 6%,6% 28%,0 28%,0 72%,6% 72%,6% 94%,28% 94%,28% 100%,72% 100%,72% 94%,94% 94%,94% 72%,100% 72%,100% 28%,94% 28%,94% 6%,72% 6%,72% 0,100% 0,100% 100%,0 100%)}
+.marco::after{clip-path:none;border:0;background:linear-gradient(180deg,transparent 48%,rgb(184 65 45/.9) 50%,transparent 52%);animation:barre 2.2s ease-in-out infinite}
+@keyframes barre{0%,100%{transform:translateY(-38%)}50%{transform:translateY(38%)}}
+.bandeja{background:var(--crema);color:var(--tinta);border-radius:22px 22px 0 0;padding:14px 16px 28px;display:flex;flex-direction:column;gap:10px}
+
+/* Leyenda de la escena del celular */
+.leyenda{max-width:360px;display:flex;flex-direction:column;gap:14px;padding-top:30px}
+.leyenda h2{margin:0;font-size:30px}
+.leyenda ol{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;color:rgb(26 26 24/.75)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============================================================
+   Spike Apartados v2 — datos inventados, sin conexión a la base.
+   Todo lo que se ve se decide aquí: el estado `S` y `pintar()`.
+   ============================================================ */
+
+const ICON = {
+  scan:'<path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 8v8M11 8v8M14 8v8M17 8v8"/>',
+  buscar:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4-4"/>',
+  marca:'<path d="M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z"/>',
+  cartera:'<path d="M4 7a2 2 0 0 1 2-2h11v4"/><rect x="4" y="7" width="16" height="12" rx="2"/><path d="M16 13h2"/>',
+  camara:'<path d="M4 8a2 2 0 0 1 2-2h2l1.5-2h5L16 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/>',
+  persona:'<circle cx="12" cy="8" r="3.5"/><path d="M5 20c1-3.5 3.8-5.5 7-5.5s6 2 7 5.5"/>',
+  chat:'<path d="M5 18.5 4 21l3-1.2A8 8 0 1 0 5 18.5z"/>',
+  reloj:'<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>',
+  lapiz:'<path d="M14.5 5.5l4 4L9 19H5v-4z"/>',
+  mas:'<path d="M12 5v14M5 12h14"/>',
+  menos:'<path d="M5 12h14"/>',
+  basura:'<path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/>',
+  camion:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+  estante:'<path d="M4 4v16M20 4v16M4 9h16M4 15h16"/>',
+  check:'<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  menu:'<path d="M4 7h16M4 12h16M4 17h16"/>',
+  historia:'<path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v4h4"/><path d="M12 8v4l3 2"/>',
+  flecha:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  atras:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  impr:'<path d="M7 9V4h10v5M7 17H5v-6h14v6h-2"/><path d="M7 14h10v6H7z"/>',
+  ajustes:'<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+  escudo:'<path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6z"/><path d="m9 12 2 2 4-4"/>',
+  tarjeta:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/>',
+  efectivo:'<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/>',
+  yape:'<circle cx="12" cy="12" r="8"/><path d="M9 9l3 4 3-4M12 13v3"/>',
+  plin:'<circle cx="12" cy="12" r="8"/><path d="M10 16V8h3a2 2 0 0 1 0 4h-3"/>',
+  banco:'<path d="M4 10h16L12 5zM6 10v7M10 10v7M14 10v7M18 10v7M4 19h16"/>',
+  campana:'<path d="M6 16V11a6 6 0 1 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+  abajo:'<path d="m6 9 6 6 6-6"/>',
+  derecha:'<path d="m9 6 6 6-6 6"/>',
+  inicio:'<path d="M4 11 12 4l8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/>',
+  bolsa:'<path d="M6 8h12l-1 12H7zM9 8a3 3 0 0 1 6 0"/>',
+  carrito:'<path d="M4 5h2l2 10h10l2-7H7"/><circle cx="9" cy="19" r="1.3"/><circle cx="17" cy="19" r="1.3"/>',
+  dolar:'<path d="M12 4v16M16 7.5c-.7-1-2-1.5-4-1.5-2.2 0-3.6 1.1-3.6 2.7 0 3.8 7.6 2 7.6 6 0 1.7-1.6 2.8-4 2.8-2 0-3.4-.6-4.2-1.8"/>',
+  caja:'<path d="M4 8 12 4l8 4-8 4zM4 8v8l8 4 8-4V8"/>',
+};
+const ic = (n, c = '') => `<svg class="i ${c}" viewBox="0 0 24 24">${ICON[n] || ''}</svg>`;
+const money = (n) => 'S/' + n.toFixed(2);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* Colores de prenda para el marcador de foto (sin fotos reales en el spike). */
+const TONO = { Blanco: '#efe9de', Arena: '#dccbb0', Terracota: '#c98a6e', Crudo: '#e6dcc8', Roja: '#b65a4a', Negro: '#3a3834', Celeste: '#b9c9d3', Coñac: '#9b6a4a' };
+const foto = (p, t = 44) => `<span class="foto" style="width:${t}px;height:${Math.round(t * 1.15)}px;background:${TONO[p.color] || '#e8e0d0'};font-size:${Math.round(t * 0.34)}px">${p.ref.split(' ').slice(0, 2).map((w) => w[0]).join('')}</span>`;
+
+/* ——— Catálogo de ejemplo (Tienda TRU) ——— */
+const CAT = [
+  { id: 'v1', ref: 'Blusa Carlita', color: 'Blanco', talla: 'M', cod: 'CMS-0001-BLA-M', precio: 71.9, antes: 90, aqui: 1, otras: { AQP: 2 } },
+  { id: 'v2', ref: 'Vestido Lino Amapola', color: 'Terracota', talla: 'S', cod: 'VES-0012-TER-S', precio: 149, aqui: 3, otras: { LIM: 1 } },
+  { id: 'v3', ref: 'Vestido Lino Amapola', color: 'Terracota', talla: 'M', cod: 'VES-0012-TER-M', precio: 149, aqui: 2, otras: {} },
+  { id: 'v4', ref: 'Vestido Lino Amapola', color: 'Terracota', talla: 'L', cod: 'VES-0012-TER-L', precio: 149, aqui: 1, otras: {} },
+  { id: 'v5', ref: 'Polo Básico M/corta', color: 'Arena', talla: 'Estándar', cod: 'POL-0002-ARN-STD', precio: 39.9, aqui: 6, otras: {} },
+  { id: 'v6', ref: 'Pantalón Palazzo', color: 'Crudo', talla: 'M', cod: 'PAN-0007-CRU-M', precio: 119, aqui: 2, otras: { AQP: 1 } },
+  { id: 'v7', ref: 'Chompa Cuello Redondo Lana', color: 'Roja', talla: 'M', cod: 'CHO-0003-ROJ-M', precio: 129, aqui: 0, otras: { AQP: 2, LIM: 1 } },
+  { id: 'v8', ref: 'Blazer Oversize', color: 'Coñac', talla: 'S', cod: 'BLZ-0004-COÑ-S', precio: 219, aqui: 1, otras: {} },
+];
+const porId = (id) => CAT.find((p) => p.id === id);
+
+/* ——— Apartados abiertos y cerrados de ejemplo ——— */
+const HOY = 'sáb, 26 set';
+const APT = [
+  { cod: 'APT-TRU-0007', clienta: 'Ana Torres', cel: '987 654 210', dni: '70112233', club: true, lineas: [{ id: 'v7', n: 1 }], total: 129, pagos: [{ f: 'vie, 25 set', m: 'Yape', v: 40, tipo: 'Adelanto' }], vence: 'vie, 2 oct', dias: 6, estado: 'camino', sede: 'AQP', estante: null, asesora: 'Felipe Alvarez' },
+  { cod: 'APT-TRU-0006', clienta: 'Daniela Edrf', cel: '933 333 332', dni: '72345678', club: true, lineas: [{ id: 'v1', n: 1 }, { id: 'v2', n: 1 }], total: 220.9, pagos: [{ f: 'sáb, 26 set', m: 'Tarjeta', v: 66.3, tipo: 'Adelanto' }], vence: 'sáb, 3 oct', dias: 7, estado: 'vigente', estante: 'A-03', asesora: 'Felipe Alvarez' },
+  { cod: 'APT-TRU-0005', clienta: 'María Quispe', cel: '945 120 887', dni: '46781234', club: true, lineas: [{ id: 'v6', n: 1 }], total: 119, pagos: [{ f: 'jue, 17 set', m: 'Efectivo', v: 40, tipo: 'Adelanto' }, { f: 'mar, 22 set', m: 'Yape', v: 30, tipo: 'Abono' }], vence: 'lun, 28 set', dias: 2, estado: 'porvencer', estante: 'A-01', asesora: 'Rosa Mamani', avisada: false },
+  { cod: 'APT-TRU-0004', clienta: 'Rosa Huamán', cel: '912 004 551', dni: null, club: false, lineas: [{ id: 'v8', n: 1 }], total: 219, pagos: [{ f: 'dom, 20 set', m: 'Plin', v: 70, tipo: 'Adelanto' }], vence: 'dom, 27 set', dias: 1, estado: 'porvencer', estante: 'A-02', asesora: 'Rosa Mamani', avisada: false },
+  { cod: 'APT-TRU-0003', clienta: 'Lucía Paredes', cel: '956 330 102', dni: '41236655', club: false, lineas: [{ id: 'v3', n: 1 }], total: 149, pagos: [{ f: 'vie, 18 set', m: 'Efectivo', v: 50, tipo: 'Adelanto' }], vence: 'vie, 25 set', dias: -1, estado: 'vencida', estante: 'A-04', asesora: 'Felipe Alvarez', avisada: true },
+  { cod: 'APT-TRU-0002', clienta: 'Carla Ríos', cel: '999 110 245', dni: '45550987', club: true, lineas: [{ id: 'v5', n: 2 }], total: 79.8, pagos: [{ f: 'dom, 13 set', m: 'Yape', v: 45, tipo: 'Adelanto' }], vence: 'dom, 20 set', dias: -6, estado: 'devolver', estante: null, asesora: 'Rosa Mamani' },
+  { cod: 'APT-TRU-0001', clienta: 'Paola Salas', cel: '977 001 300', dni: '70998877', club: true, lineas: [{ id: 'v4', n: 1 }], total: 149, pagos: [{ f: 'sáb, 12 set', m: 'Tarjeta', v: 50, tipo: 'Adelanto' }, { f: 'mié, 16 set', m: 'Yape', v: 99, tipo: 'Saldo' }], vence: 'sáb, 19 set', dias: 0, estado: 'cerrada', estante: null, asesora: 'Felipe Alvarez' },
+];
+const pagado = (a) => a.pagos.reduce((s, p) => s + p.v, 0);
+const saldo = (a) => Math.max(0, +(a.total - pagado(a)).toFixed(2));
+const abiertos = () => APT.filter((a) => !['cerrada', 'devolver'].includes(a.estado));
+
+const ACTIVIDAD = [
+  { h: 'Hoy 11:42', q: 'Felipe Alvarez', t: 'apartó', d: 'APT-TRU-0006 · Daniela Edrf · adelanto S/66.30 con tarjeta', i: 'marca' },
+  { h: 'Hoy 10:05', q: 'Rosa Mamani', t: 'avisó por WhatsApp', d: 'APT-TRU-0003 · Lucía Paredes · venció ayer', i: 'chat' },
+  { h: 'Vie 18:20', q: 'Felipe Alvarez', t: 'pidió traslado', d: 'APT-TRU-0007 · Chompa Roja M desde Tienda AQP · llega el lun', i: 'camion' },
+  { h: 'Mar 16:11', q: 'Rosa Mamani', t: 'registró un abono', d: 'APT-TRU-0005 · María Quispe · S/30.00 por Yape', i: 'cartera' },
+  { h: 'Lun 09:30', q: 'Sistema', t: 'liberó solo', d: 'APT-TRU-0002 · Carla Ríos · venció hace 2 días; falta devolver S/45.00', i: 'reloj' },
+  { h: 'Dom 12:02', q: 'Rosa Mamani', t: 'extendió 7 días', d: 'APT-TRU-0005 · María Quispe · nueva fecha lun, 28 set', i: 'reloj' },
+];
+
+/* ——— Funciones que se encienden y apagan (Opciones) ——— */
+const FUNCIONES = [
+  { k: 'clienta', g: 'Apartar', t: 'Clienta por DNI o celular', d: 'Si ya es clienta, sus datos se llenan solos y el apartado queda ligado a su ficha y al club.' },
+  { k: 'qr', g: 'Apartar', t: 'Cámara QR en el celular', d: 'El mismo escáner de Vender: apartar desde el piso, sin pistola.' },
+  { k: 'otraSede', g: 'Apartar', t: 'Apartar de otra sede', d: 'Si aquí no queda, se ve qué sede la tiene y se pide traslado ligado al apartado.' },
+  { k: 'estante', g: 'Apartar', t: 'Estante «Apartados» real', d: 'La prenda sale del piso a un lugar numerado (A-01…) y Existencias sabe dónde está.' },
+  { k: 'abonos', g: 'Cobro', t: 'Abonos a cuenta', d: 'Pagar una parte entre el adelanto y el recojo, las veces que quiera.' },
+  { k: 'editar', g: 'Cobro', t: 'Editar un apartado abierto', d: 'Sumar, quitar o cambiar la talla sin liberar y volver a apartar.' },
+  { k: 'lote', g: 'Seguimiento', t: 'Recordar en lote', d: 'Escribir una por una a las que vencen pronto, con el mensaje listo y quién ya fue avisada.' },
+  { k: 'actividad', g: 'Seguimiento', t: 'Actividad del módulo', d: 'Quién apartó, abonó, extendió, liberó o devolvió, y cuándo (ADR-0207).' },
+];
+const PRESETS = {
+  esencial: { t: 'Esencial', d: 'Solo los arreglos. Lo de hoy, sin nada nuevo.', on: [] },
+  recomendado: { t: 'Recomendado', d: 'Lo que más ahorra tiempo en el piso y reduce vencidos.', on: ['clienta', 'qr', 'abonos', 'lote', 'estante'] },
+  completo: { t: 'Completo', d: 'Todo encendido, para verlo junto.', on: FUNCIONES.map((f) => f.k) },
+};
+/* Columnas y datos que «Qué ver» muestra en Todos, con sus valores de fábrica. */
+const COLS_DEF = { prendas: true, pagado: true, vence: true, estante: true, asesora: false, contacto: true };
+const COLS_T = { prendas: 'Prendas', pagado: 'Pagado y saldo', vence: 'Vence', estante: 'Estante', asesora: 'Quién atendió', contacto: 'Celular' };
+
+const S = {
+  device: 'pc', forma: 'pasos', tab: 'apartar', preset: 'recomendado',
+  f: Object.fromEntries(FUNCIONES.map((x) => [x.k, PRESETS.recomendado.on.includes(x.k)])),
+  marcar: true,
+  q: '', ticket: [{ id: 'v1', n: 1 }, { id: 'v2', n: 1 }], recien: 'v2', paso: 0, pasoCel: 0,
+  clientaQ: '', clientaModo: 'buscar', manual: { nombres: '', apellidos: '', cel: '', dni: '' },
+  medio: 'tarjeta', adelanto: 66.3, planAbonos: true, devol: 'yape', acepta: true, comprobante: 'boleta',
+  elegido: null, filtro: 'necesitan', cols: { ...COLS_DEF }, colsAbierto: false, buscarT: '',
+  modal: null, camara: false, opciones: false, avisadas: new Set(['APT-TRU-0003']), lotePos: 0,
+  abono: 30, abonoMedio: 'yape', edicion: null, medioSaldo: null,
+};
+const on = (k) => S.f[k];
+const cel = () => S.device === 'cel';
+const fijo = (n, t) => (S.marcar ? `<span class="fijo" title="${esc(t)}">${ic('check', 's')} Arreglo ${n}</span>` : '');
+const nuevo = (t = 'Nuevo') => (S.marcar ? `<span class="nuevo">${t}</span>` : '');
+
+/* ============================================================
+   Piezas
+   ============================================================ */
+const lineaTicket = () => S.ticket.map((l) => ({ ...porId(l.id), n: l.n, traslado: l.traslado }));
+const totalTicket = () => +lineaTicket().reduce((s, p) => s + p.precio * p.n, 0).toFixed(2);
+const prendasTicket = () => S.ticket.reduce((s, l) => s + l.n, 0);
+
+function buscador() {
+  const res = S.q ? CAT.filter((p) => (p.ref + ' ' + p.color + ' ' + p.cod).toLowerCase().includes(S.q.toLowerCase())) : [];
+  return `
+  <div style="position:relative;z-index:20" class="row gap8">
+    <label class="buscador grow">${ic('scan', 'l')}<input data-in="q" value="${esc(S.q)}" placeholder="${cel() ? 'Escanea o busca la prenda' : 'Escanea la etiqueta o busca la prenda por nombre'}" autocomplete="off">
+      ${S.q ? `<button data-a="limpiarQ" class="t50">${ic('x', 's')}</button>` : ''}</label>
+    ${on('qr') && cel() && !(S.forma === 'pasos' && S.tab === 'apartar' && S.pasoCel === 0 && !S.q) ? `<button class="icono-b" style="height:54px;width:54px;background:var(--tinta);color:var(--crema);border-color:var(--tinta)" data-a="camara" aria-label="Escanear con la cámara">${ic('camara', 'l')}</button>` : ''}
+    ${res.length ? `<div class="popover entra" style="top:60px;left:0;right:0;padding:0;overflow:hidden">${res.slice(0, 6).map((p) => {
+      const agot = p.aqui === 0;
+      return `<button class="fila" data-a="agregar" data-id="${p.id}" style="${agot && !on('otraSede') ? 'opacity:.55' : ''}">${foto(p)}<span class="grow"><b class="trunc" style="display:block;font-weight:600">${esc(p.ref)}</b><span class="t60" style="font-size:12.5px">${p.color} · ${p.talla} · <span class="mono">${p.cod}</span></span></span>
+      <span style="text-align:right">${p.antes ? `<s class="t50" style="font-size:11px">${money(p.antes)}</s> ` : ''}<b class="num">${money(p.precio)}</b><br><span style="font-size:12px" class="${agot ? 'ambar' : 't60'}">${agot ? (on('otraSede') ? 'Hay en ' + Object.keys(p.otras).join(' y ') : 'Sin stock aquí') : p.aqui + ' disp.'}</span></span></button>`;
+    }).join('')}</div>` : ''}
+  </div>`;
+}
+
+function recienEscaneada() {
+  const p = porId(S.recien);
+  if (!p) return '';
+  const hermanas = CAT.filter((x) => x.ref === p.ref && x.color === p.color);
+  const agot = p.aqui === 0;
+  return `
+  <article class="tarjeta entra" style="padding:16px;display:grid;gap:18px;grid-template-columns:${cel() ? '1fr' : '170px minmax(0,1fr)'}">
+    ${cel() ? `<div class="row gap12">${foto(p, 64)}<div><p class="label t60" style="margin:0">Recién escaneada</p><h3 class="disp" style="margin:2px 0 0;font-size:22px">${esc(p.ref)}</h3><p class="t60" style="margin:0">${p.color}</p></div></div>` : `<span class="foto" style="width:170px;height:210px;background:${TONO[p.color]};font-size:40px">${p.ref.split(' ').slice(0, 2).map((w) => w[0]).join('')}</span>`}
+    <div>
+      ${cel() ? '' : `<p class="label t60" style="margin:0">Recién escaneada</p><h3 class="disp" style="margin:4px 0 0;font-size:26px">${esc(p.ref)}</h3><p class="t60" style="margin:0 0 12px">${p.color}</p>`}
+      <div class="row gap6 wrap">${hermanas.map((h) => `<button data-a="talla" data-id="${h.id}" class="rapido" aria-pressed="${h.id === p.id}" style="min-width:40px;${h.id === p.id ? 'background:var(--tinta);color:var(--crema)' : ''}">${h.talla}</button>`).join('')}</div>
+      <dl style="margin:14px 0 0;font-size:13.5px">
+        <div class="row between" style="padding:8px 0;border-top:1px solid var(--sand)"><dt class="t60">Código ${fijo(2, 'Si la prenda no tiene SKU propio, se muestra el código armado (codigoPrenda) en vez de dejarlo vacío.')}</dt><dd class="mono" style="margin:0">${p.cod}</dd></div>
+        <div class="row between" style="padding:8px 0;border-top:1px solid var(--sand)"><dt class="t60">Precio</dt><dd class="num" style="margin:0">${p.antes ? `<s class="t50">${money(p.antes)}</s> ` : ''}${money(p.precio)}</dd></div>
+        <div class="row between" style="padding:8px 0;border-top:1px solid var(--sand)"><dt class="t60">En Tienda TRU</dt><dd style="margin:0" class="${agot ? 'ambar' : ''}">${agot ? 'No queda' : p.aqui + ' disponibles'}</dd></div>
+      </dl>
+      ${agot && on('otraSede') ? `
+      <div class="aviso ambar" style="margin-top:12px">${ic('camion')}<div class="grow"><b>No queda en TRU.</b> ${Object.entries(p.otras).map(([s, n]) => `${s} tiene ${n}`).join(' · ')}.
+        <div class="row gap8 wrap" style="margin-top:8px">${Object.keys(p.otras).map((s) => `<button class="boton b-sec b-chico" data-a="traslado" data-id="${p.id}" data-sede="${s}">${ic('camion', 's')} Apartar y traer de ${s}</button>`).join('')}</div>
+        <p style="margin:8px 0 0;font-size:12px">Se aparta en ${Object.keys(p.otras)[0]} ya mismo (nadie la vende allá) y se pide el traslado. El plazo corre desde que llega. ${nuevo()}</p></div></div>` : agot ? `<div class="aviso ambar" style="margin-top:12px">${ic('reloj')}No queda disponible en Tienda TRU.</div>` : `<p class="row gap6 t60" style="margin:10px 0 0;font-size:12.5px">${ic('escudo', 's')} Al apartarla, ninguna caja la podrá vender.</p>`}
+    </div>
+  </article>`;
+}
+
+function lineasTicket(compacto) {
+  const ls = lineaTicket();
+  if (!ls.length) return `<div style="text-align:center;padding:40px 10px"><p class="disp" style="font-size:20px;margin:0">Nada por apartar todavía</p><p class="t60" style="margin:4px 0 0">Escanea la etiqueta de la prenda.</p></div>`;
+  return `<div class="col" style="gap:0">${ls.map((p, i) => `
+    <div class="entra" style="padding:14px 0;${i ? 'border-top:1px solid var(--sand)' : ''}">
+      <div class="row gap10">${foto(p, compacto ? 38 : 42)}
+        <div class="grow"><p style="margin:0;font-weight:600" class="trunc">${esc(p.ref)}</p>
+          <p style="margin:0;font-size:12.5px" class="t60">${p.color} · ${p.talla} · <span class="mono" style="font-size:11px">${p.cod}</span> ${i === 0 ? fijo(1, 'Antes las dos líneas decían solo «Test de Produto 2»: ahora cada una lleva color, talla y código.') : ''}</p></div>
+        <button class="b-sutil rojo row gap4 label" style="font-size:10px" data-a="quitar" data-i="${i}">${ic('basura', 's')}${compacto ? '' : ' Quitar'}</button>
+      </div>
+      <div class="row between" style="margin-top:10px">
+        <div class="row" style="border:1px solid var(--sand);border-radius:10px;height:34px"><button style="width:32px" data-a="menos" data-i="${i}">${ic('menos', 's')}</button><span class="num" style="width:22px;text-align:center">${p.n}</span><button style="width:32px" data-a="masn" data-i="${i}">${ic('mas', 's')}</button></div>
+        <b class="num">${money(p.precio * p.n)}</b>
+      </div>
+      ${p.traslado ? `<p class="row gap6 ambar" style="margin:8px 0 0;font-size:12px">${ic('camion', 's')} Viene de Tienda ${p.traslado} · llega en 1–2 días</p>` : `<p class="taupe" style="margin:8px 0 0;font-size:11.5px">Quedan ${p.aqui - p.n} disponibles en sede tras apartar</p>`}
+    </div>`).join('')}</div>`;
+}
+
+/* Paso «clienta»: con la función encendida se busca por DNI o celular. */
+function bloqueClienta() {
+  if (!on('clienta')) return camposManuales(true);
+  if (S.clientaModo === 'encontrada') {
+    return `
+    <div class="tarjeta entra" style="padding:14px">
+      <div class="row gap12"><span class="foto" style="width:42px;height:42px;border-radius:99px;background:var(--hueso);font-size:15px">DE</span>
+        <div class="grow"><p style="margin:0;font-weight:600">Daniela Edrf Ramos</p><p class="t60 mono" style="margin:0;font-size:12px">DNI 72345678 · 933 333 332</p></div>
+        <button class="b-sutil label" style="font-size:10px" data-a="otraClienta">Cambiar</button></div>
+      <div class="row gap6 wrap" style="margin-top:10px"><span class="chip verde">Club CAYLA</span><span class="chip sinpunto">4 compras · última 12 set</span><span class="chip piz">WhatsApp aceptado</span></div>
+      <p class="t60" style="margin:10px 0 0;font-size:12.5px">Talla habitual M · compró Blusa Carlita en Blanco. Sin apartados vencidos.</p>
+    </div>`;
+  }
+  if (S.clientaModo === 'nueva') {
+    return `<div class="col gap10"><div class="aviso piz">${ic('persona')}<div>No está en la base. Con el DNI traemos su nombre del padrón (ADR-0008) y queda registrada al confirmar.</div></div>${camposManuales(false)}</div>`;
+  }
+  return `
+  <div class="col gap8">
+    <label class="campo"><span>DNI o celular de la clienta ${nuevo()}</span>
+      <div class="buscador" style="height:48px;background:var(--hueso);border-color:transparent">${ic('persona')}<input data-in="clientaQ" inputmode="numeric" value="${esc(S.clientaQ)}" placeholder="8 dígitos de DNI o 9 de celular"></div></label>
+    <div class="row gap8 wrap"><button class="rapido" data-a="probarClienta">Probar: 72345678 (ya es clienta)</button><button class="rapido" data-a="clientaNueva">Clienta nueva</button></div>
+  </div>`;
+}
+
+function camposManuales(conDni) {
+  const m = S.manual;
+  const errDni = m.dni && !/^\d{8}$/.test(m.dni) ? 'El DNI tiene 8 dígitos.' : '';
+  const errCel = m.cel && !/^9\d{8}$/.test(m.cel.replace(/\s/g, '')) ? 'El celular empieza con 9 y tiene 9 dígitos.' : '';
+  return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <label class="campo"><span>Nombres</span><input class="caja" data-in="m.nombres" value="${esc(m.nombres)}"></label>
+    <label class="campo"><span>Apellidos</span><input class="caja" data-in="m.apellidos" value="${esc(m.apellidos)}"></label>
+    <label class="campo"><span>Celular · WhatsApp</span><input class="caja mono ${errCel ? 'error' : ''}" data-in="m.cel" inputmode="numeric" placeholder="9 dígitos" value="${esc(m.cel)}">${errCel ? `<span class="err">${errCel}</span>` : ''}</label>
+    <label class="campo"><span>DNI ${conDni ? '(recomendado)' : ''} ${fijo(5, 'El DNI se valida con 8 dígitos y el celular con 9 (empieza en 9) antes de guardar.')}</span><input class="caja mono ${errDni ? 'error' : ''}" data-in="m.dni" inputmode="numeric" placeholder="8 dígitos" value="${esc(m.dni)}">${errDni ? `<span class="err">${errDni}</span>` : ''}</label>
+  </div>`;
+}
+
+const MEDIOS = [['efectivo', 'Efectivo'], ['tarjeta', 'Tarjeta'], ['yape', 'Yape'], ['plin', 'Plin'], ['transferencia', 'Transf.']];
+const medios = (clave, act) => `<div class="medios">${MEDIOS.map(([m, t]) => `<button class="medio" data-a="${act}" data-m="${m}" aria-pressed="${S[clave] === m}">${ic(m === 'transferencia' ? 'banco' : m)}${t}</button>`).join('')}</div>`;
+
+function bloqueAdelanto() {
+  const total = totalTicket();
+  const min = +(total * 0.3).toFixed(2);
+  const ad = Math.min(S.adelanto, total);
+  return `
+  <div class="col gap10">
+    <p class="row gap6 t60" style="margin:0;font-size:12.5px">${ic('cartera', 's')} Adelanto · cómo paga hoy</p>
+    ${medios('medio', 'medio')}
+    <div class="row between tarjeta" style="padding:10px 14px"><span class="row gap8">${ic('tarjeta')} ${MEDIOS.find((x) => x[0] === S.medio)[1]}</span><span class="row gap6"><span class="t50">S/</span><input data-in="adelanto" class="num" style="width:80px;text-align:right;border:0;border-bottom:1px solid var(--sand);background:transparent;outline:0;font-size:16px" value="${ad}"></span></div>
+    <div class="rapidos">${[[0.3, '30%'], [0.5, 'La mitad'], [1, 'Todo']].map(([k, t]) => `<button class="rapido" data-a="rapido" data-v="${(total * k).toFixed(2)}" aria-pressed="${Math.abs(ad - total * k) < 0.01}">${t} · ${money(total * k)}</button>`).join('')}</div>
+    <div class="barra"><i style="width:${(ad / total) * 100}%"></i></div>
+    <div class="row between" style="font-size:12.5px"><span class="t60">Deja ${money(ad)}</span><span class="t60">Saldo ${money(total - ad)}</span></div>
+    ${ad < min ? `<p class="err" style="margin:0">El adelanto mínimo es el 30 % (${money(min)}).</p>` : ''}
+    ${on('abonos') ? `
+    <div class="tarjeta" style="padding:12px 14px">
+      <div class="row between gap10"><div><p style="margin:0;font-weight:600">Puede abonar en partes ${nuevo()}</p><p class="t60" style="margin:2px 0 0;font-size:12.5px">Paga cuando quiera antes del sáb, 3 oct. Cada abono sale con su boleta de anticipo.</p></div>
+      <button class="interruptor" role="switch" aria-checked="${S.planAbonos}" data-a="planAbonos"></button></div>
+      ${S.planAbonos ? `<div class="row gap6 wrap" style="margin-top:10px">${[1, 2, 3].map((k) => `<span class="chip sinpunto">Sugerido ${k}: ${money((total - ad) / 3)}</span>`).join('')}</div>` : ''}
+    </div>` : ''}
+  </div>`;
+}
+
+function bloqueDevolucion() {
+  return `
+  <div class="col gap8">
+    <p class="row gap6 t60" style="margin:0;font-size:12.5px">${ic('atras', 's')} Si no recoge, le devolvemos por</p>
+    <div class="segm">${['yape', 'plin', 'transferencia'].map((m) => `<button data-a="devol" data-m="${m}" aria-pressed="${S.devol === m}">${m}</button>`).join('')}</div>
+    <label class="check" style="padding:6px 0"><input type="checkbox" ${S.acepta ? 'checked' : ''} data-a="acepta"><span>Le leí las condiciones: recoge hasta el <b>sáb, 3 oct</b> con su boleta o DNI; si no, se le devuelve el 100 % por ${S.devol}.</span></label>
+  </div>`;
+}
+
+function bloqueEstante() {
+  if (!on('estante')) return '';
+  return `<div class="aviso piz">${ic('estante')}<div class="grow"><b>Va al estante <span class="estante">A-05</span></b> ${nuevo()}<br><span style="font-size:12.5px">Al confirmar, las prendas pasan del piso a «Apartados · A-05». Existencias lo muestra así y la etiqueta sale con ese número.</span></div></div>`;
+}
+
+const responsable = () => `<div class="row between tarjeta" style="padding:10px 14px;font-size:13px"><span class="row gap8 t60">${ic('persona', 's')} ¿Quién está atendiendo?</span><span class="row gap6"><b>Rosa Mamani</b>${ic('abajo', 's')}</span></div>`;
+
+/* ============================================================
+   Pestaña APARTAR
+   ============================================================ */
+function vistaApartar() {
+  const total = totalTicket();
+  const n = prendasTicket();
+  const izq = `
+    ${buscador()}
+    ${S.q ? '' : recienEscaneada()}
+    ${S.q ? '' : `<div><p class="label t60" style="margin:6px 0 10px">Escaneadas hace poco</p><div class="row gap8 wrap">${['v2', 'v7', 'v6'].map((id) => { const p = porId(id); return `<button class="tarjeta row gap10" style="padding:8px 12px 8px 8px;max-width:230px" data-a="recien" data-id="${id}">${foto(p, 36)}<span style="text-align:left;min-width:0"><b class="trunc" style="display:block;font-size:13px;font-weight:600">${esc(p.ref)}</b><span class="t60" style="font-size:12px">${p.color} · ${p.talla} · ${p.aqui ? p.aqui + ' disp.' : 'no queda'}</span></span></button>`; }).join('')}</div></div>`}`;
+
+  if (S.paso === 0) {
+    return `<div class="dos"><div class="izq">${izq}</div>
+    <aside class="der">
+      <div class="der-cab"><h2 class="disp row gap8" style="margin:0;font-size:23px">${ic('marca', 'l')} Por apartar</h2><span class="t60" style="font-size:13px">${n} ${n === 1 ? 'prenda' : 'prendas'}</span></div>
+      <div class="der-cuerpo" style="padding-top:4px">${lineasTicket()}
+        ${n ? `<label class="campo"><span style="text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:400" class="row gap6">Nota del apartado (opcional)</span><input class="caja" placeholder="Viene el sábado, quiere probársela otra vez…"></label>` : ''}</div>
+      <div class="der-pie"><div class="row between" style="align-items:flex-end"><p class="t60" style="margin:0;font-size:12.5px">Precio congelado<br>hasta el sáb, 3 oct</p><div style="text-align:right"><p class="label t60" style="margin:0">Total</p><b class="disp num" style="font-size:38px;line-height:1">${money(total)}</b></div></div>
+        <button class="boton b-prim b-grande" ${n ? '' : 'disabled'} data-a="siguiente"><span class="row gap8">${ic('marca')} Apartar</span><span class="disp num" style="font-size:19px;letter-spacing:0;text-transform:none">${money(total)}</span></button>
+        <p class="t50" style="margin:0;text-align:center;font-size:12px">${n ? 'Sigue: los datos de la clienta y el adelanto.' : 'Agrega una prenda para apartar.'}</p></div>
+    </aside></div>`;
+  }
+  // Paso 1: clienta + adelanto
+  const ad = Math.min(S.adelanto, total);
+  const listo = ad >= total * 0.3 && S.acepta && (on('clienta') ? S.clientaModo !== 'buscar' : true);
+  return `<div class="dos"><div class="izq">${izq}</div>
+  <aside class="der">
+    <div class="der-cab"><button class="label t60 row gap4" style="font-size:10.5px" data-a="volver">${ic('atras', 's')} Ticket</button><div style="text-align:right"><h2 class="disp row gap8" style="margin:0;font-size:23px;justify-content:flex-end">${ic('marca', 'l')} Apartado</h2><p class="t60" style="margin:0;font-size:12.5px">${n} prendas · recoger hasta el sáb, 3 oct</p></div></div>
+    <div class="der-cuerpo cascada">
+      <div class="pasos"><i class="h"></i><i class="a"></i><i></i></div>
+      <div class="col gap8"><p class="row gap6 t60" style="margin:0;font-size:12.5px">${ic('persona', 's')} La clienta</p>${bloqueClienta()}</div>
+      <div class="segm"><button aria-pressed="${S.comprobante === 'boleta'}" data-a="comp" data-m="boleta">Boleta</button><button aria-pressed="${S.comprobante === 'factura'}" data-a="comp" data-m="factura">Factura</button></div>
+      ${bloqueAdelanto()}
+      ${bloqueEstante()}
+      ${bloqueDevolucion()}
+    </div>
+    <div class="der-pie">
+      <div class="row between" style="align-items:flex-end"><div style="font-size:12.5px" class="t60">Total prendas <b class="num" style="color:var(--tinta)">${money(total)}</b><br>Saldo al recoger <b class="num" style="color:var(--tinta)">${money(total - ad)}</b></div><div style="text-align:right"><p class="label t60" style="margin:0">Adelanto hoy</p><b class="disp num" style="font-size:36px;line-height:1">${money(ad)}</b></div></div>
+      ${responsable()}
+      <button class="boton b-prim b-grande" ${listo ? '' : 'disabled'} data-a="confirmar"><span class="row gap8">${ic('marca')} Confirmar apartado</span><span class="disp num" style="font-size:19px;letter-spacing:0;text-transform:none">${money(ad)}</span></button>
+      <p class="t50" style="margin:0;text-align:center;font-size:12px">${listo ? 'Todo listo.' : on('clienta') && S.clientaModo === 'buscar' ? 'Busca a la clienta por DNI o celular.' : 'Revisa el adelanto y las condiciones.'}</p>
+    </div>
+  </aside></div>`;
+}
+
+/* ============================================================
+   Pestaña ENTREGAR
+   ============================================================ */
+function vistaEntregar() {
+  const a = APT.find((x) => x.cod === S.elegido);
+  const lista = abiertos();
+  const izq = !a ? `
+    <div class="row gap8"><label class="buscador grow">${ic('buscar', 'l')}<input placeholder="${cel() ? 'Nombre, DNI, celular o boleta' : 'Nombre, DNI, celular o N.° de boleta de la clienta'}"></label>${on('qr') ? `<button class="icono-b" style="height:54px;width:54px" data-a="camara" title="Escanear el QR de su boleta">${ic('camara', 'l')}</button>` : ''}</div>
+    ${on('qr') ? `<p class="t60" style="margin:-6px 0 0;font-size:12.5px">La boleta de anticipo lleva el QR del apartado: al escanearlo se abre su saldo (como el recojo con QR de Oechsle). ${nuevo()}</p>` : ''}
+    <p class="label t60" style="margin:4px 0 0">Por recoger en Tienda TRU · ${lista.length}</p>
+    <div class="lista">${lista.map(filaEntregar).join('')}</div>` : detalleEntregar(a);
+  return `<div class="dos"><div class="izq">${izq}</div><aside class="der">${a ? panelSaldo(a) : `<div class="der-cab"><h2 class="disp row gap8" style="margin:0;font-size:23px">${ic('cartera', 'l')} Saldo</h2></div><div class="der-cuerpo" style="justify-content:center;text-align:center"><p class="disp" style="font-size:20px;margin:0">Elige un apartado</p><p class="t60" style="margin:4px 0 0">Sus datos ya están: aquí solo se cobra lo que falta.</p></div>`}</aside></div>`;
+}
+
+const iniciales = (n) => n.split(' ').map((w) => w[0]).slice(0, 2).join('');
+function chipEstado(a) {
+  if (a.estado === 'camino') return `<span class="chip piz">En camino desde ${a.sede}</span>`;
+  if (a.estado === 'vencida') return `<span class="chip rojo">Venció ayer</span>`;
+  if (a.estado === 'devolver') return `<span class="chip rojo">Devolver adelanto</span>`;
+  if (a.estado === 'cerrada') return `<span class="chip sinpunto">Entregado</span>`;
+  if (a.estado === 'porvencer') return `<span class="chip ambar">${a.dias === 1 ? 'Vence mañana' : `Vence en ${a.dias} días`}</span>`;
+  return `<span class="chip verde">Quedan ${a.dias} días</span>`;
+}
+function filaEntregar(a) {
+  return `<button class="fila" data-a="elegir" data-cod="${a.cod}"><span class="foto" style="width:38px;height:38px;border-radius:99px;background:var(--hueso);font-size:14px">${iniciales(a.clienta)}</span>
+    <span class="grow"><span class="row gap8"><b style="font-weight:600">${a.clienta}</b><span class="mono t50" style="font-size:11px">${a.cod}</span></span><span class="t60 trunc" style="display:block;font-size:12.5px">${a.lineas.map((l) => { const p = porId(l.id); return `${p.ref} ${p.color} · ${p.talla}`; }).join(' · ')}</span></span>
+    <span style="text-align:right">${chipEstado(a)}<br><span style="font-size:12.5px">saldo <b class="num">${money(saldo(a))}</b></span></span></button>`;
+}
+
+function detalleEntregar(a) {
+  const abonos = a.pagos.filter((p) => p.tipo === 'Abono');
+  return `
+  <label class="buscador">${ic('buscar', 'l')}<input placeholder="Nombre, DNI, celular o N.° de boleta de la clienta"></label>
+  <article class="tarjeta entra" style="padding:20px">
+    <div class="row gap12" style="align-items:flex-start;flex-wrap:wrap">
+      <span class="foto" style="width:48px;height:48px;border-radius:99px;background:var(--hueso);font-size:17px">${iniciales(a.clienta)}</span>
+      <div class="grow"><h3 class="disp" style="margin:0;font-size:25px">${a.clienta} ${a.club ? '<span class="chip verde" style="vertical-align:middle">Club</span>' : ''}</h3><p class="t60" style="margin:0;font-size:12.5px">${a.cel} · DNI ${a.dni || '—'} · atendió ${a.asesora}</p></div>
+      <div style="${cel() ? 'width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px' : 'text-align:right'}">${chipEstado(a)}<p class="mono t50" style="margin:${cel() ? '0' : '4px 0 0'};font-size:11px">${a.cod} · B004-000030</p>
+        <button class="b-sutil label" style="font-size:10px;padding:0" data-a="deselegir">Otra clienta</button></div>
+    </div>
+    <div class="linea-tiempo" style="margin:20px 0 6px">
+      <div class="hito"><i></i><b>Apartó</b><span class="t60">${a.pagos[0].f}</span></div>
+      ${abonos.map((p) => `<div class="hito cen abono"><i></i><b>Abonó ${money(p.v)}</b><span class="t60">${p.f}</span></div>`).join('')}
+      <div class="hito cen lleno"><i></i><b>Hoy</b><span class="t60">${HOY}</span></div>
+      <div class="hito der venc"><i></i><b>Vence</b><span class="t60">${a.vence}</span></div>
+    </div>
+    <div style="border-top:1px solid var(--sand);margin-top:14px">${a.lineas.map((l) => { const p = porId(l.id); return `
+      <div class="row gap12" style="padding:12px 0;border-bottom:1px solid var(--sand)">${foto(p, 42)}<div class="grow"><p style="margin:0;font-weight:600">${esc(p.ref)}</p><p class="t60" style="margin:0;font-size:12.5px">${p.color} · ${p.talla} · <span class="mono" style="font-size:11px">${p.cod}</span> · ${l.n} u. ${fijo(3, 'Antes se leía «· 1 u.» porque el SKU venía vacío: ahora sale color, talla y código.')}</p></div>
+      ${on('estante') && a.estante ? `<span class="estante">${ic('estante', 's')} ${a.estante}</span>` : ''}<b class="num">${money(p.precio * l.n)}</b></div>`; }).join('')}</div>
+    ${on('editar') ? `<div class="row gap8" style="margin-top:12px"><button class="boton b-sec b-chico" data-a="editar">${ic('lapiz', 's')} Editar prendas</button><span class="t60" style="font-size:12.5px">${cel() ? '' : 'Sumar otra, quitar una o cambiar la talla '}${nuevo()}</span></div>` : ''}
+    <div class="nota row gap8" style="margin-top:14px">${ic('escudo', 's')}<span>Antes de entregar: la prenda está en ${on('estante') && a.estante ? `el estante <b>${a.estante}</b>` : '«Apartados»'} con la etiqueta ${a.cod}, y el DNI de quien recoge coincide con el de la boleta.</span></div>
+  </article>`;
+}
+
+function panelSaldo(a) {
+  const s = saldo(a);
+  return `
+  <div class="der-cab"><h2 class="disp row gap8" style="margin:0;font-size:23px">${ic('cartera', 'l')} Saldo</h2><span class="mono t60" style="font-size:12px">${a.cod}</span></div>
+  <div class="der-cuerpo cascada">
+    <div class="nota" style="padding:14px 16px;background:var(--crema);border:1px solid var(--sand)">
+      <div class="row between" style="font-size:13px"><span>Total de las prendas</span><span class="num">${money(a.total)}</span></div>
+      ${a.pagos.map((p) => `<div class="row between" style="font-size:13px;margin-top:6px"><span>${p.tipo === 'Abono' ? 'Abonó' : 'Adelantó'} con ${p.m} · ${p.f}</span><span class="num">-${money(p.v)}</span></div>`).join('')}
+      <div class="row between" style="border-top:1px solid var(--sand);margin-top:10px;padding-top:10px;font-size:15px;color:var(--tinta)"><span>Falta pagar</span><b class="num">${money(s)}</b></div>
+    </div>
+    <p class="t60" style="margin:0;font-size:12.5px">Cómo paga el saldo</p>
+    ${medios('medioSaldo', 'medioSaldo')}
+    <p class="row gap6 t60" style="margin:0;font-size:12.5px">${ic('impr', 's')} Sale la boleta final por el saldo, que descuenta ${a.pagos.length > 1 ? 'los anticipos' : 'el anticipo'}. No se piden datos otra vez.</p>
+    ${on('abonos') && a.estado !== 'camino' ? `<div class="tarjeta row between gap10" style="padding:12px 14px"><div><p style="margin:0;font-weight:600">¿Viene solo a abonar? ${nuevo()}</p><p class="t60" style="margin:2px 0 0;font-size:12.5px">Paga una parte, la prenda se queda guardada.</p></div><button class="boton b-sec b-chico" data-a="abonar">${ic('cartera', 's')} Abonar</button></div>` : ''}
+    ${a.estado === 'camino' ? `<div class="aviso piz">${ic('camion')}<div>La prenda viene de Tienda ${a.sede}. Se entrega cuando llegue: Traslados avisa aquí.</div></div>` : ''}
+  </div>
+  <div class="der-pie">
+    <div class="row between" style="align-items:flex-end"><div class="t60" style="font-size:12.5px">Total <b class="num" style="color:var(--tinta)">${money(a.total)}</b><br>Ya pagó <b class="num" style="color:var(--tinta)">-${money(pagado(a))}</b></div><div style="text-align:right"><p class="label t60" style="margin:0">Saldo</p><b class="disp num" style="font-size:36px;line-height:1">${money(s)}</b></div></div>
+    ${responsable()}
+    <button class="boton b-prim b-grande" ${S.medioSaldo && a.estado !== 'camino' ? '' : 'disabled'} data-a="entregar"><span class="row gap8">${ic('bolsa')} Entregar y cobrar</span><span class="disp num" style="font-size:19px;letter-spacing:0;text-transform:none">${money(s)}</span></button>
+    <p class="t50" style="margin:0;text-align:center;font-size:12px">${a.estado === 'camino' ? 'Espera a que llegue la prenda.' : S.medioSaldo ? 'Listo: entrega la prenda y la boleta.' : 'Elige cómo paga el saldo.'}</p>
+  </div>`;
+}
+
+/* ============================================================
+   Pestaña TODOS
+   ============================================================ */
+function vistaTodos() {
+  const ab = abiertos();
+  const custodia = ab.reduce((s, a) => s + pagado(a), 0);
+  const devolver = APT.filter((a) => a.estado === 'devolver');
+  const pronto = APT.filter((a) => ['porvencer', 'vencida'].includes(a.estado));
+  const porAvisar = pronto.filter((a) => !S.avisadas.has(a.cod));
+  const filtros = { necesitan: 'Necesitan algo', recoger: 'Por recoger', camino: 'En camino', cerrados: 'Cerrados', todos: 'Todos' };
+  if (!on('otraSede')) delete filtros.camino;
+  const ver = APT.filter((a) => S.filtro === 'todos' ? true : S.filtro === 'necesitan' ? ['porvencer', 'vencida', 'devolver'].includes(a.estado) : S.filtro === 'recoger' ? ['vigente', 'porvencer', 'vencida'].includes(a.estado) : S.filtro === 'camino' ? a.estado === 'camino' : a.estado === 'cerrada');
+  const c = S.cols;
+  return `
+  <div class="col gap16" style="padding:${cel() ? '0' : '24px'}">
+    <div class="cifras" style="${cel() ? 'grid-template-columns:1fr 1fr' : ''}">
+      <div class="cifra"><span class="label t60">Por recoger</span><b>${ab.length}</b><span class="t60" style="font-size:12.5px">${ab.reduce((s, a) => s + a.lineas.reduce((t, l) => t + l.n, 0), 0)} prendas guardadas</span></div>
+      <div class="cifra" style="background:repeating-linear-gradient(135deg,transparent 0 9px,rgb(232 224 208/.35) 9px 10px)"><span class="label t60">En custodia</span><b>${money(custodia)}</b><span class="t60" style="font-size:12.5px">Anticipos: entran a ventas al entregar ${fijo(6, 'Antes decía «S/0.00 en el cajón», que parecía plata faltante.')}</span></div>
+      <div class="cifra" style="${cel() ? 'border-left:0;border-top:1px solid var(--sand)' : ''}"><span class="label t60">Por devolver</span><b class="${devolver.length ? 'rojo' : ''}">${money(devolver.reduce((s, a) => s + pagado(a), 0))}</b><span class="t60" style="font-size:12.5px">${devolver.length} ${devolver.length === 1 ? 'clienta espera' : 'clientas esperan'} su dinero</span></div>
+      <div class="cifra" style="${cel() ? 'border-top:1px solid var(--sand)' : ''}"><span class="label t60">Vencen en 2 días</span><b>${pronto.filter((a) => a.estado === 'porvencer').length}</b><span class="t60" style="font-size:12.5px">Buen momento para escribirles</span></div>
+    </div>
+
+    ${on('lote') && porAvisar.length ? `
+    <div class="aviso ambar entra lote" style="align-items:center;flex-wrap:wrap">${cel() ? '' : ic('campana', 'l')}<div class="grow"><b>${porAvisar.length} clientas por avisar hoy</b> · ${pronto.length - porAvisar.length} ya avisada${pronto.length - porAvisar.length === 1 ? '' : 's'} ${nuevo()}<br><span style="font-size:12.5px">Vencen pronto o ya vencieron. Se abre WhatsApp con el mensaje listo, una tras otra.</span></div>
+      <button class="boton b-prim b-chico" style="height:38px" data-a="lote">${ic('chat', 's')} Escribirles en lote</button></div>` : ''}
+
+    <div class="row between gap10 wrap" style="position:relative">
+      <div class="row gap8 wrap">${Object.entries(filtros).map(([k, t]) => `<button class="filtro" aria-pressed="${S.filtro === k}" data-a="filtro" data-k="${k}">${t}</button>`).join('')}</div>
+      <div class="row gap8 ${cel() ? 'grow' : ''}">
+        <label class="buscador grow" style="height:40px;border-radius:12px;${cel() ? '' : 'width:300px'}">${ic('buscar')}<input style="font-size:13.5px" placeholder="Nombre, DNI, celular, APT- o B004-"></label>
+        <button class="boton b-sec b-chico" style="height:40px" data-a="cols" aria-expanded="${S.colsAbierto}">${ic('ajustes', 's')} ${cel() ? '' : 'Qué ver'}</button>
+        ${on('actividad') ? `<button class="boton b-sec b-chico" style="height:40px" data-a="actividad">${ic('historia', 's')} ${cel() ? '' : 'Actividad'}</button>` : ''}
+      </div>
+      ${S.colsAbierto ? `<div class="popover entra" style="top:48px;right:0;width:280px">
+        <p class="label t60" style="margin:6px 10px 4px">Qué ver en cada apartado ${nuevo()}</p>
+        ${Object.entries(COLS_T).filter(([k]) => k !== 'estante' || on('estante')).map(([k, t]) => `<label class="check"><input type="checkbox" data-a="col" data-k="${k}" ${c[k] ? 'checked' : ''}><span class="grow">${t}</span>${COLS_DEF[k] ? '<span class="t50" style="font-size:11px">de fábrica</span>' : ''}</label>`).join('')}
+        <div class="row between" style="border-top:1px solid var(--sand);margin-top:6px;padding:8px 6px 2px"><button class="b-sutil label" style="font-size:10px" data-a="colsDef">Volver a lo de fábrica</button><button class="boton b-prim b-chico" data-a="cols">Listo</button></div>
+      </div>` : ''}
+    </div>
+
+    <div class="lista">${ver.length ? ver.map((a) => filaTodos(a)).join('') : `<div style="text-align:center;padding:36px"><p class="disp" style="font-size:20px;margin:0">Todo al día</p><p class="t60" style="margin:4px 0 0">Ningún apartado en este filtro.</p></div>`}</div>
+  </div>`;
+}
+
+function filaTodos(a) {
+  const c = S.cols;
+  const avisada = S.avisadas.has(a.cod);
+  const accion = a.estado === 'devolver' ? `<button class="boton b-prim b-chico" data-a="nada">Devolver ${money(pagado(a))}</button>` : a.estado === 'cerrada' ? '' : `<button class="boton b-prim b-chico" data-a="irEntregar" data-cod="${a.cod}" ${a.estado === 'camino' ? 'disabled' : ''}>Entregar</button>`;
+  const prendas = a.lineas.map((l) => { const p = porId(l.id); return `${p.ref} ${p.color} · ${p.talla}`; }).join(', ');
+  if (cel()) {
+    return `<div style="padding:14px 14px 12px">
+      <div class="row gap10"><span class="foto" style="width:36px;height:36px;border-radius:99px;background:var(--hueso);font-size:13px">${iniciales(a.clienta)}</span><div class="grow"><b style="font-weight:600">${a.clienta}</b><p class="t60 mono" style="margin:0;font-size:11px">${a.cod}${c.contacto ? ' · ' + a.cel : ''}</p></div>${chipEstado(a)}</div>
+      ${c.prendas ? `<p class="t60" style="margin:8px 0 0;font-size:12.5px">${prendas}</p>` : ''}
+      <div class="row between" style="margin-top:10px;gap:8px">
+        <span style="font-size:12.5px">${c.pagado ? `<b class="num">${money(pagado(a))}</b> <span class="t60">de ${money(a.total)}</span>` : ''} ${c.estante && on('estante') && a.estante ? `<span class="estante">${a.estante}</span>` : ''}</span>
+        <span class="row gap6">${a.estado !== 'cerrada' ? `<button class="icono-b" style="width:36px;height:36px;${avisada ? 'color:var(--verde)' : ''}" data-a="avisar" data-cod="${a.cod}">${ic(avisada ? 'check' : 'chat', 's')}</button>` : ''}${accion}</span>
+      </div></div>`;
+  }
+  return `<div class="row gap16" style="padding:14px 18px">
+    <span class="foto" style="width:38px;height:38px;border-radius:99px;background:var(--hueso);font-size:14px">${iniciales(a.clienta)}</span>
+    <div style="width:190px;min-width:0"><b style="font-weight:600" class="trunc">${a.clienta}</b><p class="t60 mono" style="margin:0;font-size:11px">${c.contacto ? a.cel + ' · ' : ''}${a.cod}</p></div>
+    ${c.prendas ? `<div class="grow row gap6" style="min-width:0">${a.lineas.map((l) => foto(porId(l.id), 26)).join('')}<span class="t60 trunc" style="font-size:12.5px">${prendas}</span></div>` : '<div class="grow"></div>'}
+    ${c.estante && on('estante') ? `<div style="width:62px">${a.estante ? `<span class="estante">${a.estante}</span>` : ''}</div>` : ''}
+    ${c.asesora ? `<div class="t60" style="width:110px;font-size:12.5px">${a.asesora}</div>` : ''}
+    ${c.pagado ? `<div style="width:150px;font-size:13px"><b class="num">${money(pagado(a))}</b> <span class="t60">de ${money(a.total)}</span>${on('abonos') && a.pagos.length > 1 ? `<br><span class="verde" style="font-size:11.5px">${a.pagos.length - 1} abono</span>` : !['cerrada', 'devolver'].includes(a.estado) ? `<br><span class="t60" style="font-size:12px">saldo ${money(saldo(a))}</span>` : ''}</div>` : ''}
+    ${c.vence ? `<div style="width:150px">${chipEstado(a)}<p class="t60" style="margin:4px 0 0;font-size:11.5px">${a.estado === 'camino' ? 'llega el lun, 28 set' : 'vence ' + a.vence}</p></div>` : ''}
+    <div class="row gap6" style="width:170px;justify-content:flex-end">${a.estado !== 'cerrada' ? `<button class="icono-b" style="width:36px;height:36px;${avisada ? 'color:var(--verde);border-color:rgb(72 96 63/.4)' : ''}" title="${avisada ? 'Avisada hoy' : 'Escribirle por WhatsApp'}" data-a="avisar" data-cod="${a.cod}">${ic(avisada ? 'check' : 'chat', 's')}</button>` : ''}${accion}</div>
+  </div>`;
+}
+
+/* ============================================================
+   Modales
+   ============================================================ */
+function modal() {
+  if (!S.modal) return '';
+  const cerrar = `<button class="b-sutil" style="position:absolute;right:18px;top:18px" data-a="cerrar" aria-label="Cerrar">${ic('x')}</button>`;
+  const m = S.modal;
+  if (m === 'registrado') {
+    const total = totalTicket(); const ad = Math.min(S.adelanto, total);
+    return `<div class="velo" data-a="velo"><div class="modal" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<h3 class="disp" style="margin:0;font-size:24px">Apartado registrado</h3><p class="t60 mono" style="margin:2px 0 0;font-size:12px">Tienda TRU · APT-TRU-0008</p></div>
+      <div class="m-cuerpo cascada">
+        <div class="tarjeta" style="padding:18px;text-align:center"><p class="label t60" style="margin:0">Listo</p><b class="disp num" style="font-size:34px">${money(ad)}</b><p class="t60" style="margin:0">adelanto de ${money(total)} · saldo ${money(total - ad)}</p></div>
+        <div class="tarjeta row gap12" style="padding:14px"><div style="width:52px;border-radius:10px;overflow:hidden;border:1px solid var(--sand);text-align:center;flex:none"><div style="background:var(--rojo);color:var(--papel);font-size:10px;letter-spacing:.12em;padding:2px 0">OCT</div><b class="disp" style="font-size:24px">3</b><div class="t60" style="font-size:10px;padding-bottom:3px">sáb</div></div>
+          <div class="grow"><p class="label t60" style="margin:0">Recoger hasta</p><p style="margin:2px 0 6px">sáb, 3 oct · 7 días</p><div class="row gap4">${[1, 2, 3, 4, 5, 6, 7].map((i) => `<i style="height:4px;flex:1;border-radius:9px;background:${i === 1 ? 'var(--tinta)' : i === 7 ? 'var(--rojo)' : 'var(--sand)'}"></i>`).join('')}</div><p class="t60" style="margin:6px 0 0;font-size:11.5px">${on('lote') ? 'Entra a «por avisar» el jue, 1 oct.' : 'El aviso para escribirle sale el jue, 1 oct.'}</p></div></div>
+        <div class="tarjeta" style="padding:14px;font-size:13px"><div class="row between"><span class="mono">Boleta B004–000031 · anticipo</span><span class="t60" style="font-size:12px">Pendiente de enviar</span></div>
+          <div class="row between" style="border-top:1px solid var(--sand);margin-top:10px;padding-top:10px"><span>${MEDIOS.find((x) => x[0] === S.medio)[1]}</span><span class="num">${money(ad)}</span></div>
+          ${on('qr') ? `<p class="row gap6 piz" style="margin:10px 0 0;font-size:12.5px">${ic('scan', 's')} La boleta lleva el QR del apartado: al volver, se escanea y abre su saldo.</p>` : ''}<p class="t60" style="margin:10px 0 0;font-size:12.5px">Clienta: <b style="color:var(--tinta)">${on('clienta') ? 'Daniela Edrf Ramos · Club' : S.manual.nombres || 'dani'}</b> · si no recoge: ${S.devol} 933 333 332</p></div>
+        <div class="tarjeta" style="padding:14px"><p class="label t60" style="margin:0 0 6px">Ahora, con la prenda en la mano</p>
+          ${[`Pega la etiqueta «APARTADO · APT-TRU-0008» en la prenda.`, on('estante') ? `Guárdala en el estante <b>A-05</b> de Apartados.` : `Guárdala en «Apartados» del almacén, no en el piso.`, `Envía la boleta por WhatsApp al 933 333 332.`].map((t) => `<label class="check" style="padding:6px 0"><input type="checkbox"><span>${t}</span></label>`).join('')}</div>
+      </div>
+      <div class="m-pie">${fijo(4, 'Los botones viven en un pie fijo: con la pantalla baja ya no se cortan.')}
+        <button class="boton b-prim" data-a="nuevoApartado">${ic('impr', 's')} Imprimir y nuevo apartado</button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="boton b-sec" data-a="nuevoApartado">Solo imprimir</button><button class="boton b-sec" data-a="nuevoApartado">Sin imprimir</button></div>
+        <p class="t50" style="margin:0;text-align:center;font-size:11.5px">Enter imprime · Esc sigue sin imprimir</p></div>
+    </div></div>`;
+  }
+  if (m === 'abonar') {
+    const a = APT.find((x) => x.cod === S.elegido); const s = saldo(a); const v = Math.min(S.abono, s);
+    return `<div class="velo" data-a="velo"><div class="modal" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<h3 class="disp" style="margin:0;font-size:24px">Abonar a cuenta</h3><p class="t60" style="margin:2px 0 0;font-size:13px">${a.clienta} · ${a.cod} · la prenda sigue guardada</p></div>
+      <div class="m-cuerpo cascada">
+        <div class="row between tarjeta" style="padding:14px"><span class="t60">Falta pagar hoy</span><b class="disp num" style="font-size:24px">${money(s)}</b></div>
+        ${medios('abonoMedio', 'abonoMedio')}
+        <div class="row between tarjeta" style="padding:10px 14px"><span>Abona</span><span class="row gap6"><span class="t50">S/</span><input data-in="abono" class="num" style="width:90px;text-align:right;border:0;border-bottom:1px solid var(--sand);background:transparent;outline:0;font-size:18px" value="${v}"></span></div>
+        <div class="rapidos">${[20, 30, 50].filter((x) => x < s).map((x) => `<button class="rapido" data-a="abonoRapido" data-v="${x}" aria-pressed="${v === x}">${money(x)}</button>`).join('')}<button class="rapido" data-a="abonoRapido" data-v="${s}">Todo · ${money(s)}</button></div>
+        <div class="barra"><i style="width:${((pagado(a) + v) / a.total) * 100}%"></i></div>
+        <div class="row between" style="font-size:12.5px"><span class="t60">Pagado ${money(pagado(a) + v)} de ${money(a.total)}</span><b>Queda ${money(s - v)}</b></div>
+        <div class="aviso piz">${ic('impr')}<div>Sale una boleta de anticipo por ${money(v)}. Al recoger, la boleta final descuenta todos los anticipos. ${v >= s ? '<b>Con esto queda pagado: al recoger no cobra nada.</b>' : ''}</div></div>
+        <label class="check" style="padding:4px 0"><input type="checkbox" checked><span>Extender el plazo 7 días por abonar (política de la tienda)</span></label>
+      </div>
+      <div class="m-pie">${responsable()}<button class="boton b-prim b-grande" data-a="confirmarAbono"><span class="row gap8">${ic('cartera')} Registrar abono</span><span class="disp num" style="font-size:19px;letter-spacing:0;text-transform:none">${money(v)}</span></button></div>
+    </div></div>`;
+  }
+  if (m === 'editar') {
+    const a = APT.find((x) => x.cod === S.elegido);
+    const ls = S.edicion;
+    const nuevoTotal = +ls.reduce((s, l) => s + porId(l.id).precio * l.n, 0).toFixed(2);
+    const pag = pagado(a);
+    return `<div class="velo" data-a="velo"><div class="modal ancho" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<h3 class="disp" style="margin:0;font-size:24px">Editar prendas del apartado</h3><p class="t60" style="margin:2px 0 0;font-size:13px">${a.clienta} · ${a.cod} · la fecha límite no cambia</p></div>
+      <div class="m-cuerpo cascada">
+        <div class="lista">${ls.map((l, i) => { const p = porId(l.id); const herm = CAT.filter((x) => x.ref === p.ref && x.color === p.color); return `
+          <div class="row gap12" style="padding:12px 14px;flex-wrap:wrap">${foto(p, 40)}<div class="grow"><p style="margin:0;font-weight:600">${esc(p.ref)} ${l.cambio ? '<span class="chip ambar">Talla cambiada</span>' : ''}${l.nueva ? '<span class="chip verde">Nueva</span>' : ''}</p><p class="t60" style="margin:0;font-size:12.5px">${p.color} · <span class="mono" style="font-size:11px">${p.cod}</span></p></div>
+          <div class="row gap4">${herm.map((h) => `<button class="rapido" style="height:30px;min-width:34px;padding:0 8px;${h.id === l.id ? 'background:var(--tinta);color:var(--crema)' : ''}" data-a="editTalla" data-i="${i}" data-id="${h.id}">${h.talla}</button>`).join('')}</div>
+          <b class="num" style="width:74px;text-align:right">${money(p.precio * l.n)}</b><button class="rojo" data-a="editQuitar" data-i="${i}">${ic('basura', 's')}</button></div>`; }).join('')}
+          <button class="fila t60" data-a="editSumar">${ic('mas')} Sumar una prenda (escanea o busca)</button></div>
+        <div class="tarjeta" style="padding:14px;font-size:13px">
+          <div class="row between"><span class="t60">Total antes</span><span class="num">${money(a.total)}</span></div>
+          <div class="row between" style="margin-top:4px"><span class="t60">Total ahora</span><b class="num">${money(nuevoTotal)}</b></div>
+          <div class="row between" style="margin-top:4px"><span class="t60">Ya pagó</span><span class="num">-${money(pag)}</span></div>
+          <div class="row between" style="border-top:1px solid var(--sand);margin-top:10px;padding-top:10px;font-size:15px"><span>${nuevoTotal >= pag ? 'Saldo al recoger' : 'A favor de la clienta'}</span><b class="num ${nuevoTotal < pag ? 'verde' : ''}">${money(Math.abs(nuevoTotal - pag))}</b></div>
+        </div>
+        <div class="aviso piz">${ic('escudo')}<div>La base cambia todo junto o nada: libera las prendas quitadas, aparta las nuevas y recalcula el saldo. ${nuevoTotal < pag ? 'Si la clienta ya pagó más que el nuevo total, lo que sobra se devuelve con el mismo medio que la devolución.' : 'No sale boleta nueva: el anticipo ya emitido sigue valiendo.'}</div></div>
+      </div>
+      <div class="m-pie">${responsable()}<button class="boton b-prim" data-a="guardarEdicion">${ic('check', 's')} Guardar cambios</button></div>
+    </div></div>`;
+  }
+  if (m === 'lote') {
+    const cola = APT.filter((a) => ['porvencer', 'vencida'].includes(a.estado));
+    const act = cola[Math.min(S.lotePos, cola.length - 1)];
+    const hechas = cola.filter((a) => S.avisadas.has(a.cod)).length;
+    return `<div class="velo" data-a="velo"><div class="modal ancho" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<h3 class="disp" style="margin:0;font-size:24px">Recordar en lote</h3><p class="t60" style="margin:2px 0 0;font-size:13px">${hechas} de ${cola.length} avisadas hoy · WhatsApp de Tienda TRU</p></div>
+      <div class="m-cuerpo cascada">
+        <div class="barra"><i style="width:${(hechas / cola.length) * 100}%"></i></div>
+        <div class="lista">${cola.map((a, i) => `<button class="fila" data-a="loteIr" data-i="${i}" style="${a === act ? 'background:var(--crema)' : ''}"><span class="foto" style="width:32px;height:32px;border-radius:99px;background:var(--hueso);font-size:12px">${iniciales(a.clienta)}</span><span class="grow"><b style="font-weight:600">${a.clienta}</b> <span class="t60" style="font-size:12px">${a.cel}</span></span>${chipEstado(a)}${S.avisadas.has(a.cod) ? `<span class="verde row gap4" style="font-size:12px">${ic('check', 's')} Avisada</span>` : ''}</button>`).join('')}</div>
+        <div class="tarjeta" style="padding:14px"><p class="label t60" style="margin:0 0 8px">Mensaje para ${act.clienta.split(' ')[0]}</p>
+          <p style="margin:0;background:var(--hueso);border-radius:12px 12px 12px 4px;padding:12px;font-size:13.5px">Hola ${act.clienta.split(' ')[0]}, tu apartado ${act.cod} te espera en CAYLA Tienda TRU (dirección y horario de la tienda) ${act.estado === 'vencida' ? 'desde el ' + act.vence + '. Aún podemos guardártelo hasta mañana' : 'hasta el ' + act.vence}. Saldo por pagar: ${money(saldo(act))}.${on('abonos') ? ' Si prefieres, puedes abonar una parte por Yape.' : ''}</p>
+          <p class="t60" style="margin:8px 0 0;font-size:12px">Se abre WhatsApp con este texto; lo envía la vendedora. Al volver, queda marcada como avisada.</p></div>
+      </div>
+      <div class="m-pie"><div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button class="boton b-sec" data-a="loteSaltar">Saltar</button><button class="boton b-prim" data-a="loteEnviar">${ic('chat', 's')} Abrir WhatsApp y seguir</button></div></div>
+    </div></div>`;
+  }
+  if (m === 'actividad') {
+    return `<div class="velo lado" data-a="velo"><div class="modal" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<p class="label rojo" style="margin:0">Actividad</p><h3 class="disp" style="margin:2px 0 0;font-size:24px">Apartados · Tienda TRU</h3><p class="t60" style="margin:2px 0 0;font-size:13px">Lo que se hizo, quién y cuándo. Solo se lee.</p></div>
+      <div class="m-cuerpo cascada"><div class="row gap6 wrap">${['Todo', 'Dinero', 'Plazos', 'Traslados'].map((t, i) => `<button class="filtro" style="height:30px" aria-pressed="${i === 0}">${t}</button>`).join('')}</div>
+        ${ACTIVIDAD.map((e) => `<div class="row gap12" style="align-items:flex-start;border-bottom:1px solid var(--sand);padding-bottom:12px"><span class="icono-b" style="width:34px;height:34px">${ic(e.i, 's')}</span><div class="grow"><p style="margin:0"><b>${e.q}</b> ${e.t}</p><p class="t60" style="margin:2px 0 0;font-size:12.5px">${e.d}</p></div><span class="t50" style="font-size:11.5px;white-space:nowrap">${e.h}</span></div>`).join('')}</div>
+    </div></div>`;
+  }
+  if (m === 'opciones') {
+    const grupos = [...new Set(FUNCIONES.map((f) => f.g))];
+    return `<div class="velo lado" data-a="velo"><div class="modal" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<p class="label rojo" style="margin:0">Opciones</p><h3 class="disp" style="margin:2px 0 0;font-size:24px">Personaliza Apartados</h3><p class="t60" style="margin:2px 0 0;font-size:13px">Elige un punto de partida y ajusta función por función.</p></div>
+      <div class="m-cuerpo cascada">
+        <div class="col gap8">${Object.entries(PRESETS).map(([k, p]) => `<button class="tarjeta row gap12" style="padding:12px 14px;text-align:left;${S.preset === k ? 'border-color:var(--tinta)' : ''}" data-a="preset" data-k="${k}"><span style="width:16px;height:16px;border-radius:99px;border:1.5px solid var(--tinta);display:grid;place-items:center;flex:none">${S.preset === k ? '<i style="width:8px;height:8px;border-radius:99px;background:var(--tinta)"></i>' : ''}</span><span class="grow"><b>${p.t}</b>${k === 'recomendado' ? ' <span class="chip piz sinpunto">de fábrica</span>' : ''}<br><span class="t60" style="font-size:12.5px">${p.d}</span></span></button>`).join('')}</div>
+        ${grupos.map((g) => `<div><p class="label t60" style="margin:6px 0 4px">${g}</p>${FUNCIONES.filter((f) => f.g === g).map((f) => `<div class="row gap12" style="padding:10px 0;border-bottom:1px solid var(--sand)"><div class="grow"><p style="margin:0;font-weight:500">${f.t}</p><p class="t60" style="margin:2px 0 0;font-size:12.5px">${f.d}</p></div><button class="interruptor" role="switch" aria-checked="${on(f.k)}" data-a="func" data-k="${f.k}"></button></div>`).join('')}</div>`).join('')}
+        <div class="nota">En el producto, esto lo decide el líder por tienda (Configuración ▸ Tiendas y caja) y cada rol ve lo que su módulo permite. En el spike sirve para comparar.</div>
+      </div>
+      <div class="m-pie"><button class="boton b-prim" data-a="cerrar">Listo</button></div>
+    </div></div>`;
+  }
+  if (m === 'entregado') {
+    const a = APT.find((x) => x.cod === S.elegido);
+    return `<div class="velo" data-a="velo"><div class="modal" style="position:relative" data-stop>
+      <div class="m-cab">${cerrar}<h3 class="disp" style="margin:0;font-size:24px">Apartado entregado</h3><p class="t60 mono" style="margin:2px 0 0;font-size:12px">Tienda TRU · ${a.cod}</p></div>
+      <div class="m-cuerpo cascada"><div class="tarjeta" style="padding:18px;text-align:center"><p class="label t60" style="margin:0">Liquidado</p><b class="disp num" style="font-size:34px">${money(a.total)}</b><p class="t60" style="margin:0">${a.pagos.map((p) => money(p.v)).join(' + ')} + ${money(saldo(a))} hoy · ${a.clienta.split(' ')[0]}</p></div>
+      <div class="tarjeta" style="padding:14px;font-size:13px">${a.pagos.map((p) => `<div class="row between" style="margin-bottom:6px"><span>(−) ${p.tipo === 'Abono' ? 'Abono' : 'Anticipo'} · ${p.f}</span><span class="num">-${money(p.v)}</span></div>`).join('')}<div class="row between"><span>Hoy · ${MEDIOS.find((x) => x[0] === S.medioSaldo)[1]}</span><span class="num">${money(saldo(a))}</span></div>
+      <p class="t60" style="margin:10px 0 0;border-top:1px solid var(--sand);padding-top:10px;font-size:12.5px">La venta de ${money(a.total)} entra hoy a ingresos y sale de «En custodia».${on('estante') && a.estante ? ` El estante ${a.estante} queda libre.` : ''}</p></div></div>
+      <div class="m-pie"><button class="boton b-prim" data-a="cerrarEntrega">${ic('impr', 's')} Imprimir y entregar</button><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="boton b-sec" data-a="cerrarEntrega">Solo imprimir</button><button class="boton b-sec" data-a="cerrarEntrega">Sin imprimir</button></div></div>
+    </div></div>`;
+  }
+  return '';
+}
+
+function camara() {
+  if (!S.camara) return '';
+  const ult = porId(S.recien);
+  return `<div class="camara">
+    <div class="row between" style="padding:52px 18px 12px"><button class="icono-b" style="background:rgb(255 255 255/.12);border:0;color:var(--crema)" data-a="cerrarCamara">${ic('x')}</button><span class="label" style="color:rgb(245 240 232/.8)">${S.tab === 'entregar' ? 'Escanear la boleta' : 'Escanear para apartar'}</span><button class="icono-b" style="background:rgb(255 255 255/.12);border:0;color:var(--crema)">${ic('buscar')}</button></div>
+    <div class="visor"><div class="col" style="align-items:center;gap:22px"><div class="marco"></div><p style="margin:0;color:rgb(245 240 232/.8);font-size:13px">${S.tab === 'entregar' ? 'Apunta al QR de la boleta de anticipo' : 'Apunta al QR de la etiqueta'}</p><button class="boton b-sec" style="background:var(--crema);color:var(--tinta)" data-a="simular">Simular lectura</button></div></div>
+    <div class="bandeja ${S.tab === 'entregar' ? 'hide' : ''}"><div class="row between"><span class="label t60">En el apartado · ${prendasTicket()}</span><b class="num">${money(totalTicket())}</b></div>
+      ${ult ? `<div class="row gap10 entra">${foto(ult, 38)}<div class="grow"><b style="font-weight:600">${esc(ult.ref)}</b><p class="t60" style="margin:0;font-size:12.5px">${ult.color} · ${ult.talla} · ${money(ult.precio)}</p></div><span class="chip verde">Agregada</span></div>` : ''}
+      <button class="boton b-prim" data-a="cerrarCamara">Listo, ver el apartado</button></div>
+  </div>`;
+}
+
+/* ============================================================
+   Marcos: escritorio y celular
+   ============================================================ */
+function cabeceraHoja() {
+  const necesitan = APT.filter((a) => ['porvencer', 'vencida', 'devolver'].includes(a.estado)).length;
+  const tabs = [['apartar', 'Apartar'], ['entregar', 'Entregar'], ['todos', 'Todos', necesitan]];
+  return `<header class="hoja-cab"><p class="label" style="margin:0;color:rgb(26 26 24/.8);font-size:11px">Apartados · Tienda TRU</p>
+    <div class="row gap16"><nav class="pestanas">${tabs.map(([k, t, n]) => `<button class="pestana" data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>
+    <button class="boton b-sec b-chico" data-a="opciones" title="Qué funciones usa esta pantalla">${ic('ajustes', 's')} Opciones</button></div></header>`;
+}
+
+function escritorio() {
+  const nav = [['inicio', 'Inicio'], ['bolsa', 'Ventas', 'grupo'], ['carrito', 'Punto de Venta', 'hijo'], ['marca', 'Apartados', 'hijo activo'], ['dolar', 'Caja', 'hijo'], ['historia', 'Historial', 'hijo'], ['caja', 'Inventario'], ['estante', 'Catálogo'], ['cartera', 'Finanzas']];
+  const cuerpo = S.tab === 'apartar' ? vistaApartar() : S.tab === 'entregar' ? vistaEntregar() : vistaTodos();
+  return `<div class="escritorio">
+    <aside class="lateral"><div class="logo"><i></i>CAYLA</div>${nav.map(([i, t, c = '']) => `<div class="nav ${c}">${ic(i)} ${t}</div>`).join('')}</aside>
+    <div style="min-width:0"><div class="cabecera"><span class="t60">${ic('menu')}</span><div class="row gap12"><span class="label row gap6 t60">${ic('historia', 's')} Actividad</span><span class="pildora label" style="font-size:11px">Tienda TRU ${ic('abajo', 's')}</span></div></div>
+      <div class="contenido"><section class="hoja">${cabeceraHoja()}${cuerpo}</section></div></div>
+    ${modal()}
+  </div>`;
+}
+
+/* ——— Celular: tres formas para comparar ——— */
+function celApartar() {
+  const total = totalTicket(); const n = prendasTicket(); const ad = Math.min(S.adelanto, total);
+  const pasos = S.forma === 'pasos';
+  if (!pasos) {
+    // Apilado: todo en una columna, como hoy, con barra «Ver ticket» (o sin barra si hay pestañas abajo).
+    return `<div class="cel-cuerpo">${buscador()}${S.q ? '' : recienEscaneada()}
+      <div class="tarjeta" style="padding:4px 14px 14px" id="ticket"><div class="row between" style="padding:12px 0 0"><h3 class="disp row gap8" style="margin:0;font-size:21px">${ic('marca')} Por apartar</h3><span class="t60">${n} prendas</span></div>${lineasTicket(true)}</div>
+      <div class="tarjeta" style="padding:14px;display:flex;flex-direction:column;gap:14px"><p class="row gap6 t60" style="margin:0;font-size:12.5px">${ic('persona', 's')} La clienta</p>${bloqueClienta()}${bloqueAdelanto()}${bloqueEstante()}${bloqueDevolucion()}${responsable()}
+        <button class="boton b-prim b-grande" data-a="confirmar"><span class="row gap8">${ic('marca')} Confirmar</span><span class="disp num" style="font-size:18px;letter-spacing:0">${money(ad)}</span></button></div>
+    </div>${S.forma === 'apilado' && n ? `<div class="cel-barra"><span class="label" style="font-size:11px">${n} prendas · ${money(total)}</span><span class="label row gap4" style="font-size:11px">Ver ticket ${ic('abajo', 's')}</span></div>` : ''}`;
+  }
+  // Pasos: una pantalla por paso y barra fija con el botón que sigue.
+  const p = S.pasoCel;
+  const titulos = ['Prendas', 'La clienta', 'Adelanto'];
+  const tope = `<div class="col gap8"><div class="row between"><span class="label t60">Paso ${p + 1} de 3 · ${titulos[p]}</span>${p ? `<button class="label t60 row gap4" style="font-size:10.5px" data-a="celAtras">${ic('atras', 's')} Atrás</button>` : ''}</div><div class="pasos">${[0, 1, 2].map((i) => `<i class="${i < p ? 'h' : i === p ? 'a' : ''}"></i>`).join('')}</div></div>`;
+  let cuerpo = '';
+  let barra = '';
+  if (p === 0) {
+    cuerpo = `${buscador()}
+      ${on('qr') && !S.q ? `<button class="tarjeta row gap12" style="padding:14px;text-align:left" data-a="camara"><span class="icono-b" style="background:var(--tinta);color:var(--crema);border-color:var(--tinta)">${ic('camara', 'l')}</span><span class="grow"><b>Escanear con la cámara</b> ${nuevo()}<br><span class="t60" style="font-size:12.5px">Apunta al QR de la etiqueta, sin pistola.</span></span>${ic('derecha')}</button>` : ''}
+      ${S.q ? '' : recienEscaneada()}
+      <div><p class="label t60" style="margin:6px 0 0">Por apartar · ${n}</p>${lineasTicket(true)}</div>`;
+    barra = `<div class="cel-barra"><div><p class="label" style="margin:0;font-size:10px;color:rgb(245 240 232/.6)">${n} prendas</p><b class="disp num" style="font-size:24px">${money(total)}</b></div><button class="boton" ${n ? '' : 'disabled'} data-a="celSig">Clienta ${ic('flecha', 's')}</button></div>`;
+  } else if (p === 1) {
+    cuerpo = `${bloqueClienta()}<div class="segm"><button aria-pressed="${S.comprobante === 'boleta'}" data-a="comp" data-m="boleta">Boleta</button><button aria-pressed="${S.comprobante === 'factura'}" data-a="comp" data-m="factura">Factura</button></div>
+      <div class="nota">Precio congelado hasta el sáb, 3 oct. La clienta recoge con su boleta o DNI.</div>`;
+    const ok = on('clienta') ? S.clientaModo !== 'buscar' : true;
+    barra = `<div class="cel-barra"><div><p class="label" style="margin:0;font-size:10px;color:rgb(245 240 232/.6)">${n} prendas</p><b class="disp num" style="font-size:24px">${money(total)}</b></div><button class="boton" ${ok ? '' : 'disabled'} data-a="celSig">Adelanto ${ic('flecha', 's')}</button></div>`;
+  } else {
+    cuerpo = `${bloqueAdelanto()}${bloqueEstante()}${bloqueDevolucion()}${responsable()}`;
+    const listo = ad >= total * 0.3 && S.acepta;
+    barra = `<div class="cel-barra"><div><p class="label" style="margin:0;font-size:10px;color:rgb(245 240 232/.6)">Adelanto hoy · saldo ${money(total - ad)}</p><b class="disp num" style="font-size:24px">${money(ad)}</b></div><button class="boton" ${listo ? '' : 'disabled'} data-a="confirmar">${ic('check', 's')} Confirmar</button></div>`;
+  }
+  return `<div class="cel-cuerpo cascada" style="padding-bottom:10px">${tope}${cuerpo}</div>${barra}`;
+}
+
+function celEntregar() {
+  const a = APT.find((x) => x.cod === S.elegido);
+  if (!a) return `<div class="cel-cuerpo">${vistaEntregar().replace(/^<div class="dos"><div class="izq">/, '').replace(/<\/div><aside[\s\S]*$/, '')}</div>`;
+  const s = saldo(a);
+  return `<div class="cel-cuerpo cascada">${detalleEntregar(a).replace(/<label class="buscador">[\s\S]*?<\/label>/, '')}
+    <div class="tarjeta" style="padding:14px;display:flex;flex-direction:column;gap:12px">
+      <div class="row between"><span>Falta pagar</span><b class="disp num" style="font-size:24px">${money(s)}</b></div>
+      ${medios('medioSaldo', 'medioSaldo')}
+      ${on('abonos') && a.estado !== 'camino' ? `<button class="boton b-sec" data-a="abonar">${ic('cartera', 's')} Solo abonar una parte</button>` : ''}
+      ${responsable()}
+    </div></div>
+    ${S.forma !== 'tabs' ? `<div class="cel-barra"><div><p class="label" style="margin:0;font-size:10px;color:rgb(245 240 232/.6)">Saldo · ${a.clienta.split(' ')[0]}</p><b class="disp num" style="font-size:24px">${money(s)}</b></div><button class="boton" ${S.medioSaldo && a.estado !== 'camino' ? '' : 'disabled'} data-a="entregar">${ic('bolsa', 's')} Cobrar</button></div>` : `<div style="padding:0 14px 14px"><button class="boton b-prim b-grande" style="width:100%" ${S.medioSaldo ? '' : 'disabled'} data-a="entregar"><span>Entregar y cobrar</span><span class="disp num" style="font-size:18px;letter-spacing:0">${money(s)}</span></button></div>`}`;
+}
+
+function telefono() {
+  const necesitan = APT.filter((a) => ['porvencer', 'vencida', 'devolver'].includes(a.estado)).length;
+  const tabs = [['apartar', 'Apartar', 'marca'], ['entregar', 'Entregar', 'bolsa'], ['todos', 'Todos', 'reloj', necesitan]];
+  const cuerpo = S.tab === 'apartar' ? celApartar() : S.tab === 'entregar' ? celEntregar() : `<div class="cel-cuerpo">${vistaTodos()}</div>`;
+  return `<div class="telefono"><div class="muesca"></div><div class="pantalla" id="pantalla">
+    <div class="estado-os"><span>9:41</span><span>●●● 5G ▮</span></div>
+    <div class="cel-cab"><span class="row gap10">${ic('menu', 'l')}<span class="label" style="font-size:11px">Apartados · TRU</span></span><span class="row gap12">${on('actividad') ? `<button data-a="actividad">${ic('historia', 'l')}</button>` : ''}<button data-a="opciones">${ic('ajustes', 'l')}</button></span></div>
+    ${S.forma !== 'tabs' ? `<nav class="cel-pestanas">${tabs.map(([k, t, , n]) => `<button class="pestana" data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>` : ''}
+    ${cuerpo}
+    ${S.forma === 'tabs' ? `<nav class="cel-tabs">${tabs.map(([k, t, i, n]) => `<button data-a="tab" data-k="${k}" aria-current="${S.tab === k ? 'page' : 'false'}">${ic(i, 'l')}${t}${n ? `<span class="insignia">${n}</span>` : ''}</button>`).join('')}</nav>` : ''}
+  </div>${modal()}${camara()}</div>`;
+}
+
+const FORMAS = {
+  pasos: ['Pasos + barra fija', ['Cada paso ocupa la pantalla: prendas → clienta → adelanto.', 'La barra negra de abajo siempre dice el total y el botón que sigue: nada queda enterrado.', 'Con la cámara encendida, el escáner es la primera tarjeta del paso 1.', 'Entregar: la barra dice el saldo y «Cobrar».']],
+  apilado: ['Apilado + «Ver ticket»', ['El orden de hoy, en una sola columna.', 'La barra «Ver ticket» (la de Vender) baja al ticket.', 'Es el cambio más chico, pero el formulario del adelanto sigue siendo largo.']],
+  tabs: ['Pestañas abajo', ['Apartar / Entregar / Todos quedan a la altura del pulgar.', 'Se siente como una app, pero choca con el cajón lateral ☰ (ADR-0206): hay dos menús.', 'El botón que guarda vuelve a quedar al final del contenido.']],
+};
+
+function escenaCelular() {
+  const [t, ps] = FORMAS[S.forma];
+  return `<div class="escena"><div class="leyenda"><p class="label rojo" style="margin:0">Celular · 375–390 px</p><h2 class="disp">${t}</h2><ol>${ps.map((p) => `<li>${p}</li>`).join('')}</ol>
+    <div class="nota">Toca los botones dentro del teléfono: todo el flujo funciona (buscar, cámara, paso a paso, entregar, abonar, recordar en lote).</div></div>${telefono()}</div>`;
+}
+
+function barraDemo() {
+  const seg = (k, ops) => `<span class="seg">${ops.map(([v, t]) => `<button data-a="demo" data-k="${k}" data-v="${v}" aria-pressed="${S[k] === v}">${t}</button>`).join('')}</span>`;
+  return `<div class="demo"><span class="grupo"><b>Spike · Apartados v2</b></span>
+    <span class="grupo"><span class="etq">Ver en</span>${seg('device', [['pc', 'Computador'], ['cel', 'Celular']])}</span>
+    ${cel() ? `<span class="grupo"><span class="etq">Forma</span>${seg('forma', [['pasos', 'Pasos + barra'], ['apilado', 'Apilado'], ['tabs', 'Pestañas abajo']])}</span>` : ''}
+    <span class="grupo"><span class="etq">Punto de partida</span>${seg('preset', Object.entries(PRESETS).map(([k, p]) => [k, p.t]))}</span>
+    <label class="chk"><input type="checkbox" data-a="marcar" ${S.marcar ? 'checked' : ''}> Marcar arreglos y lo nuevo</label>
+    <button class="chk" data-a="opciones" style="margin-left:auto">${ic('ajustes', 's')} Opciones una por una</button></div>`;
+}
+
+/* ============================================================
+   Pintar y eventos
+   ============================================================ */
+function pintar() {
+  const foco = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.in : null;
+  const pos = foco ? document.activeElement.selectionStart : null;
+  const scroll = document.getElementById('pantalla')?.scrollTop;
+  document.getElementById('app').innerHTML = barraDemo() + (cel() ? escenaCelular() : escritorio());
+  if (scroll != null && document.getElementById('pantalla')) document.getElementById('pantalla').scrollTop = scroll;
+  if (foco) { const el = document.querySelector(`[data-in="${foco}"]`); if (el) { el.focus(); try { el.setSelectionRange(pos, pos); } catch (e) {} } }
+}
+
+function aplicarPreset(k) { S.preset = k; FUNCIONES.forEach((f) => (S.f[f.k] = PRESETS[k].on.includes(f.k))); }
+function agregar(id) {
+  const p = porId(id);
+  if (p.aqui === 0 && !on('otraSede')) { S.recien = id; S.q = ''; return; }
+  if (p.aqui === 0) { S.recien = id; S.q = ''; return; }
+  const l = S.ticket.find((x) => x.id === id);
+  if (l) l.n = Math.min(l.n + 1, p.aqui); else S.ticket.push({ id, n: 1 });
+  S.recien = id; S.q = '';
+}
+
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-a]');
+  if (!el) return;
+  if (el.dataset.a === 'velo' && e.target.closest('[data-stop]')) return;
+  const d = el.dataset; const a = d.a;
+  const acciones = {
+    demo: () => { if (d.k === 'preset') aplicarPreset(d.v); else S[d.k] = d.v; if (d.k === 'device') S.modal = null; },
+    marcar: () => (S.marcar = el.checked),
+    opciones: () => (S.modal = 'opciones'),
+    preset: () => aplicarPreset(d.k),
+    func: () => { S.f[d.k] = !S.f[d.k]; S.preset = Object.keys(PRESETS).find((k) => FUNCIONES.every((f) => PRESETS[k].on.includes(f.k) === S.f[f.k])) || 'propio'; },
+    tab: () => { S.tab = d.k; S.colsAbierto = false; },
+    limpiarQ: () => (S.q = ''),
+    agregar: () => agregar(d.id),
+    recien: () => (S.recien = d.id),
+    talla: () => (S.recien = d.id),
+    quitar: () => S.ticket.splice(+d.i, 1),
+    menos: () => { const l = S.ticket[+d.i]; l.n > 1 ? l.n-- : S.ticket.splice(+d.i, 1); },
+    masn: () => { const l = S.ticket[+d.i]; const p = porId(l.id); if (l.traslado || l.n < p.aqui) l.n++; },
+    traslado: () => { if (!S.ticket.find((x) => x.id === d.id)) S.ticket.push({ id: d.id, n: 1, traslado: d.sede }); },
+    siguiente: () => (S.paso = 1),
+    volver: () => (S.paso = 0),
+    comp: () => (S.comprobante = d.m),
+    medio: () => (S.medio = d.m),
+    rapido: () => (S.adelanto = +d.v),
+    planAbonos: () => (S.planAbonos = !S.planAbonos),
+    devol: () => (S.devol = d.m),
+    acepta: () => (S.acepta = el.checked),
+    probarClienta: () => { S.clientaQ = '72345678'; S.clientaModo = 'encontrada'; },
+    clientaNueva: () => (S.clientaModo = 'nueva'),
+    otraClienta: () => { S.clientaModo = 'buscar'; S.clientaQ = ''; },
+    confirmar: () => (S.modal = 'registrado'),
+    nuevoApartado: () => { S.modal = null; S.ticket = []; S.paso = 0; S.pasoCel = 0; S.clientaModo = 'buscar'; S.clientaQ = ''; S.recien = null; },
+    cerrar: () => { S.modal = null; },
+    velo: () => { S.modal = null; },
+    elegir: () => { S.elegido = d.cod; S.medioSaldo = null; },
+    deselegir: () => (S.elegido = null),
+    irEntregar: () => { S.elegido = d.cod; S.tab = 'entregar'; S.medioSaldo = null; },
+    medioSaldo: () => (S.medioSaldo = d.m),
+    abonoMedio: () => (S.abonoMedio = d.m),
+    entregar: () => (S.modal = 'entregado'),
+    cerrarEntrega: () => { S.modal = null; S.elegido = null; },
+    abonar: () => { S.abono = 30; S.modal = 'abonar'; },
+    abonoRapido: () => (S.abono = +d.v),
+    confirmarAbono: () => { const ap = APT.find((x) => x.cod === S.elegido); ap.pagos.push({ f: HOY, m: MEDIOS.find((x) => x[0] === S.abonoMedio)[1], v: Math.min(S.abono, saldo(ap)), tipo: 'Abono' }); S.modal = null; },
+    editar: () => { const ap = APT.find((x) => x.cod === S.elegido); S.edicion = ap.lineas.map((l) => ({ ...l })); S.modal = 'editar'; },
+    editTalla: () => { const l = S.edicion[+d.i]; if (l.id !== d.id) { l.id = d.id; l.cambio = true; } },
+    editQuitar: () => S.edicion.splice(+d.i, 1),
+    editSumar: () => { if (!S.edicion.find((l) => l.id === 'v5')) S.edicion.push({ id: 'v5', n: 1, nueva: true }); },
+    guardarEdicion: () => { const ap = APT.find((x) => x.cod === S.elegido); ap.lineas = S.edicion.map(({ id, n }) => ({ id, n })); ap.total = +ap.lineas.reduce((s, l) => s + porId(l.id).precio * l.n, 0).toFixed(2); S.modal = null; },
+    filtro: () => (S.filtro = d.k),
+    cols: () => (S.colsAbierto = !S.colsAbierto),
+    col: () => (S.cols[d.k] = el.checked),
+    colsDef: () => (S.cols = { ...COLS_DEF }),
+    avisar: () => { S.avisadas.has(d.cod) ? S.avisadas.delete(d.cod) : S.avisadas.add(d.cod); },
+    lote: () => { const cola = APT.filter((x) => ['porvencer', 'vencida'].includes(x.estado)); S.lotePos = Math.max(0, cola.findIndex((x) => !S.avisadas.has(x.cod))); S.modal = 'lote'; },
+    loteIr: () => (S.lotePos = +d.i),
+    loteEnviar: () => { const cola = APT.filter((x) => ['porvencer', 'vencida'].includes(x.estado)); S.avisadas.add(cola[S.lotePos].cod); const sig = cola.findIndex((x) => !S.avisadas.has(x.cod)); if (sig < 0) S.modal = null; else S.lotePos = sig; },
+    loteSaltar: () => { const cola = APT.filter((x) => ['porvencer', 'vencida'].includes(x.estado)); S.lotePos = (S.lotePos + 1) % cola.length; },
+    actividad: () => (S.modal = 'actividad'),
+    camara: () => (S.camara = true),
+    cerrarCamara: () => (S.camara = false),
+    simular: () => { if (S.tab === 'entregar') { S.elegido = 'APT-TRU-0006'; S.medioSaldo = null; S.camara = false; return; }  const sig = ['v3', 'v5', 'v6', 'v8'].find((id) => !S.ticket.find((l) => l.id === id)); if (sig) agregar(sig); },
+    celSig: () => (S.pasoCel = Math.min(2, S.pasoCel + 1)),
+    celAtras: () => (S.pasoCel = Math.max(0, S.pasoCel - 1)),
+    nada: () => {},
+  };
+  if (acciones[a]) { acciones[a](); pintar(); }
+});
+
+document.addEventListener('input', (e) => {
+  const k = e.target.dataset.in;
+  if (!k) return;
+  const v = e.target.value;
+  if (k === 'q') S.q = v;
+  else if (k === 'clientaQ') { S.clientaQ = v.replace(/\D/g, ''); if (S.clientaQ.length >= 8) S.clientaModo = S.clientaQ === '72345678' || S.clientaQ.startsWith('9') ? 'encontrada' : 'nueva'; }
+  else if (k === 'adelanto') S.adelanto = +v || 0;
+  else if (k === 'abono') S.abono = +v || 0;
+  else if (k.startsWith('m.')) S.manual[k.slice(2)] = v;
+  pintar();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && (S.modal || S.camara)) { S.modal = null; S.camara = false; pintar(); } });
+
+/* Estado inicial por la URL, para capturar o compartir una vista: #device=cel&forma=pasos&tab=todos&preset=completo&paso=1 */
+(function desdeUrl() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('device')) S.device = h.get('device');
+  if (h.get('forma')) S.forma = h.get('forma');
+  if (h.get('tab')) S.tab = h.get('tab');
+  if (h.get('preset')) aplicarPreset(h.get('preset'));
+  if (h.get('paso')) { S.paso = +h.get('paso'); S.pasoCel = +h.get('paso'); }
+  if (h.get('clienta')) S.clientaModo = 'encontrada';
+  if (h.get('elegido')) { S.elegido = h.get('elegido'); S.medioSaldo = 'yape'; }
+  if (h.get('modal')) S.modal = h.get('modal');
+})();
+pintar();
+</script>
+</body>
+</html>

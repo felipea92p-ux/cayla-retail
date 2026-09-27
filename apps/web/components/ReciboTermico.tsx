@@ -94,9 +94,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
           <span className="rt-cant">{l.cantidad}</span>
           <span className="rt-desc">
             {l.descripcion}
-            {l.codigo && <span className="rt-detalle">{l.codigo}</span>}
+            {/* Código y P.U. en UNA línea (2026-09-25): con varias prendas, la línea extra por prenda
+                era lo que más alargaba el ticket. */}
             <span className="rt-detalle">
-              P.U. {l.precioUnitario.toFixed(2)}
+              {l.codigo && `${l.codigo} · `}P.U. {l.precioUnitario.toFixed(2)}
               {l.descuentoUnitario > 0 && ` · Dscto. -${l.descuentoUnitario.toFixed(2)} c/u`}
             </span>
           </span>
@@ -142,8 +143,10 @@ export function ReciboTermico({ recibo, emisor = EMISOR }: { recibo: ReciboVenta
 
       {qr && (
         <div className="rt-centro rt-qr">
-          {/* Nivel M y 32 mm: a esa medida los módulos aguantan una térmica de 203 dpi. */}
-          <QRCodeSVG value={qr} size={256} level="M" marginSize={0} style={{ width: "32mm", height: "32mm", margin: "0 auto" }} />
+          {/* Nivel M y 25 mm (antes 32, se achicó el 2026-09-25 para acortar el ticket): el texto de
+              SUNAT da un QR de ~41 módulos → ~0,6 mm por módulo, ~5 puntos de una térmica de 203 dpi;
+              los lectores del celular lo leen sin problema. No bajar de 22 mm. */}
+          <QRCodeSVG value={qr} size={256} level="M" marginSize={0} style={{ width: "25mm", height: "25mm", margin: "0 auto" }} />
         </div>
       )}
 

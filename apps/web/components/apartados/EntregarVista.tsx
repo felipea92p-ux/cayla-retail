@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Receipt, Search, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
+import { Archive, Pencil, Receipt, Search, ShieldCheck, ShoppingBag, Trash2, Wallet } from "lucide-react";
 import { METODOS_PAGO, type MetodoPago } from "@cayla-retail/shared";
 import { money, type VarianteBusqueda } from "@/components/PuntoDeVenta";
 import { ICONO_METODO } from "@/components/PuntoDeVentaTicket";
@@ -12,9 +12,11 @@ import { avisar } from "@/components/ui/Avisos";
 import { createClient } from "@/lib/supabase/client";
 import { traducirError } from "@/lib/error-escritura";
 import { NOMBRE_METODO } from "@/lib/recibo-reglas";
-import { cobroDelSaldo, coincide, diasEntre, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
-import { EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
-import { ApartadoEntregadoModal } from "@/components/apartados/ModalesApartado";
+import { cobroDelSaldo, coincide, diasEntre, encendida, estadoVisible, formatoCelular, pagosParaRpcApartado, type Apartado, type PagoAdelanto } from "@/lib/separaciones-reglas";
+import { BarraMovil, EstadoChip, FotoPrenda, fechaCorta } from "@/components/apartados/piezas";
+import { codigoPrenda } from "@/lib/prenda-reglas";
+import { AbonarModal, ApartadoEntregadoModal, EditarApartadoModal } from "@/components/apartados/ModalesApartado";
+import type { PrendaApartable } from "@/components/apartados/ApartarVista";
 import { ComboResponsable } from "@/components/ComboResponsable";
 import { useResponsable } from "@/lib/useResponsable";
 import { firmar } from "@/lib/responsable-reglas";
@@ -23,6 +25,14 @@ const OPCION_INACTIVA = "text-tinta/60 hover:bg-papel/60";
 const BOTON_PRINCIPAL =
   "alza-cayla flex h-14 w-full items-center justify-between rounded-md bg-tinta px-5 text-crema hover:bg-rojo disabled:opacity-50 disabled:hover:bg-tinta";
 const BILLETES = [10, 20, 50, 100, 200];
+
+/** «Terracota · M · VES-0012-TER-M»: el apartado solo guarda el `sku`, que en producción está vacío en casi todas las
+ *  variantes (ADR-0058: el código vive en `codigo`), y se leía «· 1 u.». Color, talla y código salen del catálogo; si la
+ *  prenda ya no está en él, queda el `sku` guardado. */
+function detallePrenda(v: VarianteBusqueda | undefined, sku: string): string {
+  if (!v) return sku;
+  return [v.color, v.talla, codigoPrenda(v)].filter(Boolean).join(" · ");
+}
 
 const iniciales = (a: Apartado) => `${a.nombres[0] ?? ""}${a.apellidos[0] ?? ""}`.toUpperCase();
 
@@ -35,21 +45,33 @@ export function EntregarVista({
   prendas,
   elegido,
   onElegir,
+  apagadas = [],
+  cabecera,
 }: {
   ubicacionId: string;
   ubicacionEtiqueta: string;
   hoy: string;
   cajaAbierta: boolean;
   apartados: Apartado[];
-  prendas: VarianteBusqueda[];
+  prendas: PrendaApartable[];
   elegido: string | null;
   onElegir: (id: string | null) => void;
+  /** Lo que la tienda apagó en «Opciones» (paso 5). */
+  apagadas?: string[];
+  /** Sede, pestañas, «Opciones» y avisos de la hoja: van al tope de la columna izquierda. */
+  cabecera?: React.ReactNode;
 }) {
   const router = useRouter();
-  const fotos = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p.fotoUrl])), [prendas]);
+  const porVariante = useMemo(() => new Map(prendas.map((p) => [p.varianteId, p])), [prendas]);
   const [texto, setTexto] = useState("");
   const [pagos, setPagos] = useState<PagoAdelanto[]>([]);
   const [enviando, setEnviando] = useState(false);
+  const [abonar, setAbonar] = useState(false);
+  const [editar, setEditar] = useState(false);
+  const conAbonos = encendida(apagadas, "abonos");
+  const conEditar = encendida(apagadas, "editar");
+  const conEstante = encendida(apagadas, "estante");
+  const ubicacion = { ubicacionId, etiqueta: ubicacionEtiqueta };
   const [entregado, setEntregado] = useState<{ apartado: Apartado; pagadoHoy: { metodo: string; monto: number }[]; vuelto: number } | null>(null);
   const token = useRef<string>(crypto.randomUUID());
   // Entregar guarda en la tienda (cobra el saldo y cierra la venta): pide Responsable (ADR-0161), vacío en cada entrega
@@ -107,8 +129,10 @@ export function EntregarVista({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_420px]">
-      <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-r lg:border-b-0">
+    <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div className="flex min-w-0 flex-col lg:border-r lg:border-sand">
+      {cabecera}
+      <div className="flex min-w-0 flex-col gap-4 border-b border-sand p-5 sm:p-6 lg:border-b-0">
         <label className="flex h-14 items-center gap-3 rounded-xl border border-sand bg-papel px-4 focus-within:border-taupe">
           <Search className="h-5 w-5 shrink-0 text-tinta/60" aria-hidden />
           <input
@@ -119,7 +143,7 @@ export function EntregarVista({
               elegir(null);
               setPagos([]);
             }}
-            placeholder="Nombre, DNI, celular o N.º de boleta de la clienta"
+            placeholder="Nombre, DNI, celular o N.º de boleta"
             aria-label="Buscar apartado"
             className="min-w-0 flex-1 bg-transparent text-base text-tinta outline-none placeholder:text-tinta/40"
           />
@@ -142,6 +166,9 @@ export function EntregarVista({
               <div className="text-right">
                 <EstadoChip {...estadoVisible(a, hoy)} />
                 <p className="mt-1 font-mono text-[11px] text-tinta/55">{a.codigo} · {a.comprobanteAnticipo}</p>
+                {conEstante && a.estante && (
+                  <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-hueso px-2 py-0.5 font-mono text-[11px]"><Archive className="h-3 w-3" aria-hidden /> Estante {a.estante}</p>
+                )}
                 <button type="button" onClick={() => elegir(null)} className="label-cayla mt-1 h-7 rounded-md px-2 text-[10.5px] text-tinta/70 hover:bg-sand/40">
                   Otra clienta
                 </button>
@@ -151,18 +178,28 @@ export function EntregarVista({
             <ul className="divide-y divide-sand border-t border-sand">
               {a.prendas.map((pr) => (
                 <li key={pr.varianteId} className="flex items-center gap-3 py-2.5">
-                  <FotoPrenda fotoUrl={fotos.get(pr.varianteId)} referencia={pr.referencia} ancho={44} className="w-11" />
+                  <FotoPrenda fotoUrl={porVariante.get(pr.varianteId)?.fotoUrl} referencia={pr.referencia} ancho={44} className="w-11" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-tinta">{pr.referencia}</p>
-                    <p className="font-mono text-[11px] text-tinta/55">{pr.sku} · {pr.cantidad} u.</p>
+                    <p className="text-[12px] text-tinta/60">{detallePrenda(porVariante.get(pr.varianteId), pr.sku)} · {pr.cantidad} u.</p>
                   </div>
                   <span className="text-sm font-semibold tabular-nums">{money((pr.precioUnitario - pr.descuentoUnitario) * pr.cantidad)}</span>
                 </li>
               ))}
             </ul>
+            {conEditar && (
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={() => setEditar(true)} className="label-cayla inline-flex h-9 items-center gap-1.5 rounded-lg border border-sand px-3 text-[10.5px] hover:border-taupe">
+                  <Pencil className="h-3.5 w-3.5" aria-hidden /> Editar prendas
+                </button>
+                <span className="text-xs text-tinta/55">Sumar otra, quitar una o cambiar la talla, sin liberar.</span>
+              </div>
+            )}
             <p className="flex items-start gap-2 rounded-xl border border-sand bg-crema px-3 py-2.5 text-[12.5px] text-tinta/80">
               <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-              Antes de entregar: la prenda está en «Apartados» con la etiqueta {a.codigo} y el DNI o la boleta de la clienta coinciden.
+              <span>
+                Antes de entregar: la prenda está en {conEstante && a.estante ? <>el estante <b>{a.estante}</b></> : "«Apartados»"} con la etiqueta {a.codigo}, y el DNI o la boleta de la clienta coinciden.
+              </span>
             </p>
           </article>
         ) : (
@@ -181,7 +218,7 @@ export function EntregarVista({
                       <span className="font-display grid h-9 w-9 place-items-center rounded-full bg-sand/70 text-sm">{iniciales(x)}</span>
                       <span className="min-w-0">
                         <b className="font-semibold">{x.nombres} {x.apellidos}</b> <span className="font-mono text-[11px] text-tinta/55">{x.codigo}</span>
-                        <span className="block truncate text-[12.5px] text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${pr.sku}`).join(" · ")}</span>
+                        <span className="block truncate text-[12.5px] text-tinta/60">{x.prendas.map((pr) => `${pr.referencia} ${detallePrenda(porVariante.get(pr.varianteId), pr.sku)}`).join(" · ")}</span>
                       </span>
                       <span className="text-right">
                         <EstadoChip {...estadoVisible(x, hoy)} />
@@ -195,9 +232,11 @@ export function EntregarVista({
           </>
         )}
       </div>
+      </div>
 
-      <aside className="flex min-h-0 flex-col">
-        <div className="flex min-h-[84px] items-center justify-between gap-3 border-b border-sand px-5 py-5">
+      {/* En el celular, sin apartado elegido el panel solo diría «Elige un apartado»: la lista de arriba ya lo dice. */}
+      <aside className={`flex min-h-0 flex-col ${a ? "" : "max-lg:hidden"}`}>
+        <div className="flex min-h-[65px] items-center justify-between gap-3 border-b border-sand px-5 py-2.5">
           <h2 className="font-display flex items-center gap-2.5 text-2xl leading-none text-tinta">
             <Wallet className="h-6 w-6 text-tinta/70" aria-hidden /> Saldo
           </h2>
@@ -217,7 +256,10 @@ export function EntregarVista({
                 <div className="space-y-1.5 rounded-xl border border-sand bg-crema p-4 text-[12.5px] text-tinta/75 tabular-nums">
                   <p className="flex justify-between"><span>Total de las prendas</span><span>{money(a.total)}</span></p>
                   {a.pagos.map((p, i) => (
-                    <p key={i} className="flex justify-between"><span>Adelantó con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(a.creadaEn)}</span><span>−{money(p.monto)}</span></p>
+                    <p key={i} className="flex justify-between">
+                      <span>{p.abono ? "Abonó" : "Adelantó"} con {NOMBRE_METODO[p.metodo] ?? p.metodo} · {fechaCorta(p.fecha ?? a.creadaEn)}</span>
+                      <span>−{money(p.monto)}</span>
+                    </p>
                   ))}
                   <p className="flex justify-between border-t border-sand pt-2 text-sm text-tinta"><span>Falta pagar</span><b>{money(saldo)}</b></p>
                 </div>
@@ -280,14 +322,29 @@ export function EntregarVista({
                     <span className="font-display text-2xl tabular-nums">{money(cobro.vuelto)}</span>
                   </div>
                 )}
+                {conAbonos && saldo > 0 && (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-sand bg-papel px-4 py-3">
+                    <div>
+                      <p className="text-sm font-semibold">¿Viene solo a abonar?</p>
+                      <p className="text-xs text-tinta/60">Paga una parte; la prenda se queda guardada.</p>
+                    </div>
+                    <button type="button" onClick={() => setAbonar(true)} disabled={!cajaAbierta} className="label-cayla inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-tinta/25 px-3 text-[10.5px] hover:border-rojo hover:text-rojo disabled:opacity-40">
+                      <Wallet className="h-3.5 w-3.5" aria-hidden /> Abonar
+                    </button>
+                  </div>
+                )}
                 <p className="flex items-start gap-1.5 text-xs text-tinta/60">
                   <Receipt className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {saldo > 0 ? `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.` : "Pagó todo al apartar: se entrega sin cobrar nada más."} No se piden datos otra vez.
+                  {saldo > 0
+                    ? a.pagos.some((p) => p.abono)
+                      ? "Sale la boleta final por el saldo, que descuenta todos los anticipos (el del apartado y los abonos)."
+                      : `Sale la boleta final por el saldo, que descuenta el anticipo ${a.comprobanteAnticipo}.`
+                    : "Ya pagó todo: se entrega sin cobrar nada más."} No se piden datos otra vez.
                 </p>
               </div>
             </div>
             <div className="space-y-3 border-t border-sand px-5 py-5">
-              <div className="flex items-end justify-between gap-3">
+              <div className="flex items-end justify-between gap-3 max-lg:hidden">
                 <dl className="grid grid-cols-[auto_auto] gap-x-3 text-[12.5px] text-tinta/60 tabular-nums">
                   <dt>Total</dt><dd className="text-tinta">{money(a.total)}</dd>
                   <dt>Ya pagó</dt><dd className="text-tinta">−{money(a.adelanto)}</dd>
@@ -304,7 +361,7 @@ export function EntregarVista({
                 disabled={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
                 title={cajaAbierta ? (responsable.motivo ?? undefined) : undefined}
                 onClick={entregar}
-                className={BOTON_PRINCIPAL}
+                className={`${BOTON_PRINCIPAL} max-lg:hidden`}
               >
                 <span className="label-cayla flex items-center gap-2.5 text-[11px]"><ShoppingBag className="h-4 w-4" aria-hidden /> {enviando ? "Guardando…" : "Entregar y cobrar"}</span>
                 <span className="font-display text-xl tabular-nums">{money(saldo)}</span>
@@ -314,6 +371,20 @@ export function EntregarVista({
           </>
         )}
       </aside>
+
+      {a && (
+        <BarraMovil
+          etiqueta={`Saldo · ${a.nombres}`}
+          monto={saldo}
+          accion={enviando ? "Guardando…" : saldo > 0 ? "Cobrar" : "Entregar"}
+          icono={<ShoppingBag className="h-4 w-4" aria-hidden />}
+          deshabilitado={enviando || !cobro.listo || !cajaAbierta || !responsable.listo || (efectivo?.recibido !== undefined && efectivo.recibido < efectivo.monto)}
+          onClick={entregar}
+        />
+      )}
+
+      {abonar && a && <AbonarModal apartado={a} ubicacion={ubicacion} cajaAbierta={cajaAbierta} onClose={() => setAbonar(false)} />}
+      {editar && a && <EditarApartadoModal apartado={a} prendas={prendas} ubicacion={ubicacion} onClose={() => setEditar(false)} />}
 
       {entregado && <ApartadoEntregadoModal apartado={entregado.apartado} pagadoHoy={entregado.pagadoHoy} vuelto={entregado.vuelto} sede={ubicacionEtiqueta} onClose={() => setEntregado(null)} />}
     </div>

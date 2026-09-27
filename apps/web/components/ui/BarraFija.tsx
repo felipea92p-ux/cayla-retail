@@ -6,8 +6,8 @@ import type { ReactNode } from "react";
    La usaba `RecepcionCompraFormV2` (unidades que se van a recibir + botón
    «Recibir») y la necesitan «Pagar juntos» (total de lo seleccionado) y la
    versión celular de Recibir. Una sola pieza para que se vea y se comporte
-   igual: en celular queda POR ENCIMA de las pestañas de navegación
-   (`bottom-[calc(4.25rem+…)]`), en escritorio pegada al fondo y a la
+   igual: pegada al fondo en celular (desde 2026-09-25 ya no hay pestañas
+   de navegación abajo: el menú es un cajón lateral), en escritorio a la
    derecha del lateral (`sm:left-lateral`).
 
    Quien la usa debe dejar aire abajo en su página (`pb-28 sm:pb-24`) para
@@ -40,7 +40,7 @@ export function BarraFija({
       // `left` también se anima (menú lateral plegable, ADR-0130): sin `sm:transition-[left]` la barra
       // saltaría al plegar mientras el contenido se desliza. Con `animada` comparte la transición del
       // `transform` (`sm:transition-[left,transform]`): dos utilidades `transition-*` no se suman solas.
-      className={`fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-20 border-t border-sand bg-crema/95 backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:bottom-0 sm:left-lateral ${
+      className={`fixed inset-x-0 bottom-0 z-20 border-t border-sand bg-crema/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-crema/80 sm:left-lateral ${
         animada
           ? `sm:transition-[left,transform] ${visible ? "translate-y-0 transition-transform duration-[420ms] ease-cayla" : "pointer-events-none translate-y-[110%] transition-transform duration-[240ms] ease-salida"}`
           : "sm:transition-[left] sm:duration-300 sm:ease-cayla"

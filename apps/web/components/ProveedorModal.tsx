@@ -11,7 +11,9 @@ import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { Boton, Campo, CampoTexto } from "@/components/ui/campos";
 import { traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
-import { normalizarCci, normalizarCelular, proveedorConRuc } from "@/lib/proveedores-reglas";
+import { agregarRubro, alternarRubro, claveRubro, normalizarCci, normalizarCelular, opcionesDeRubro, proveedorConRuc, proveedoresParecidos } from "@/lib/proveedores-reglas";
+import { PreguntaParecido } from "@/components/ui/PreguntaParecido";
+import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
 import {
   argsGuardarCuentas,
   avisoCuentasNoGuardadas,
@@ -42,7 +44,8 @@ import {
 //
 // El rubro sigue siendo texto libre (ADR-0094) pero sugiere los ya usados (`rubros`): así «Tela»,
 // «tela» y «Telas» no terminan siendo tres filtros distintos en la lista. ADR-0128: las sugerencias
-// ahora son botones a la vista (un toque) además de la lista desplegable del campo.
+// son botones a la vista (un toque). ADR-0213: se eligen VARIOS (tocar de nuevo quita); uno que no está en la
+// lista se escribe en «Otro rubro» y queda elegido como botón más.
 //
 // ADR-0128 (spike visual 2026-09-19): el formulario se rehízo con la carcasa y las piezas del spike — encabezado
 // con su rótulo, contador y validación del RUC («n/11», hilo verde, ✓ que se dibuja), plazo de crédito y forma de
@@ -60,6 +63,14 @@ import {
 // ADR-0128: el RUC duplicado se dice AL ESCRIBIR, con el nombre del proveedor con el que choca
 // (`existentes`). El candado de verdad sigue siendo el índice único de la base; esto solo evita que el
 // error llegue recién al guardar, después de haber llenado todo el formulario.
+//
+// «¿No será un proveedor que ya tienes?» (2026-09-25): al REGISTRAR (no al editar), mientras se escribe la razón
+// social, se pregunta por los parecidos (`proveedoresParecidos`: «Jacard Perú S.A.C.» ~ «Jacard Peru SAC»; «SAC» y
+// compañía no cuentan, y dos RUC válidos distintos no se preguntan). «Sí» lleva a la ficha del que ya existe (ahí se
+// completa lo que le falte o se registra su comprobante); «No, es otro» deja seguir. Registrar sin contestar no
+// registra: la pregunta cuesta un clic, un proveedor partido en dos reparte facturas, Por pagar y notas de crédito en
+// dos fichas. Con el nombre IGUAL no hay «no»: la base no dejaría registrar otro. Si el RUC ya choca, la pregunta
+// no sale: el RUC ya contestó.
 
 // Mismo vocabulario y orden que el selector de medio de pago en LineasPago.tsx (compra_pagos.metodo):
 // un solo catálogo de formas de pago en toda la app.
@@ -82,7 +93,7 @@ export type Borrador = {
   telefono: string;
   banco: string;
   cuentaBancaria: string;
-  rubro: string;
+  rubros: string[];
   plazoCreditoDias: string;
   formaPagoPreferida: string;
 } & CuentasForm;
@@ -95,7 +106,7 @@ export const BORRADOR_VACIO: Borrador = {
   telefono: "",
   banco: "",
   cuentaBancaria: "",
-  rubro: "",
+  rubros: [],
   plazoCreditoDias: "",
   formaPagoPreferida: "",
   ...CUENTAS_VACIAS,
@@ -110,7 +121,7 @@ export function borradorDe(p: {
   telefono: string | null;
   banco: string | null;
   cuenta_bancaria: string | null;
-  rubro: string | null;
+  rubros: string[];
   plazo_credito_dias: number | null;
   forma_pago_preferida: string | null;
   cci: string | null;
@@ -126,11 +137,16 @@ export function borradorDe(p: {
     telefono: p.telefono ?? "",
     banco: p.banco ?? "",
     cuentaBancaria: p.cuenta_bancaria ?? "",
-    rubro: p.rubro ?? "",
+    rubros: p.rubros,
     plazoCreditoDias: p.plazo_credito_dias != null ? String(p.plazo_credito_dias) : "",
     formaPagoPreferida: p.forma_pago_preferida ?? "",
     ...cuentasDeFila(p),
   };
+}
+
+/** Lo que ayuda a reconocer a un proveedor en la pregunta: su RUC y si está desactivado (sigue ocupando su nombre). */
+function detalleParecido(p: { ruc: string | null; activo?: boolean }): string {
+  return [p.ruc ? `RUC ${p.ruc}` : "sin RUC", p.activo === false ? "desactivado" : null].filter(Boolean).join(" · ");
 }
 
 export function ProveedorModal({
@@ -142,10 +158,10 @@ export function ProveedorModal({
   onDesactivar,
 }: {
   inicial: Borrador;
-  /** Rubros ya usados, para sugerir al escribir. */
+  /** Rubros ya usados en el directorio: los botones que se eligen con un toque. */
   rubros?: string[];
   /** Los proveedores ya registrados, para avisar de un RUC repetido mientras se escribe. */
-  existentes?: { id: string; nombre: string; ruc: string | null }[];
+  existentes?: { id: string; nombre: string; ruc: string | null; activo?: boolean }[];
   onClose: () => void;
   /** `id` del proveedor guardado (el nuevo, o el que se editó): la lista lo marca y lo lleva a la vista. */
   onGuardado: (id: string | null) => void;
@@ -158,7 +174,9 @@ export function ProveedorModal({
   const [telefono, setTelefono] = useState(inicial.telefono);
   const [banco, setBanco] = useState(inicial.banco);
   const [cuentaBancaria, setCuentaBancaria] = useState(inicial.cuentaBancaria);
-  const [rubro, setRubro] = useState(inicial.rubro);
+  const [rubrosElegidos, setRubrosElegidos] = useState<string[]>(inicial.rubros);
+  // «Otro rubro» a medio escribir: si se guarda sin presionar «Agregar», igual entra (ver onSubmit).
+  const [rubroNuevo, setRubroNuevo] = useState("");
   const [plazoCreditoDias, setPlazoCreditoDias] = useState(inicial.plazoCreditoDias);
   // «Otro» es un modo, no un valor: un plazo de 20 días no está entre los botones y el campo tiene que seguir visible.
   const [plazoOtro, setPlazoOtro] = useState(inicial.plazoCreditoDias !== "" && !PLAZOS.includes(inicial.plazoCreditoDias));
@@ -186,7 +204,10 @@ export function ProveedorModal({
   const editando = idActual !== null;
   const rucValido = ruc.length === 0 || validarDocumento("ruc", ruc).valido;
   const repetido = proveedorConRuc(ruc, existentes, idActual);
-  const puedeGuardar = !!nombre.trim() && rucValido && !repetido && fase === "reposo";
+  const pregunta = editando || repetido ? { igual: null, parecidos: [] } : proveedoresParecidos({ nombre, ruc }, existentes);
+  const [descartados, setDescartados] = useState<ReadonlySet<string>>(() => new Set());
+  const porResponder = pregunta.igual ? [] : pregunta.parecidos.filter((p) => !descartados.has(p.proveedor.id));
+  const puedeGuardar = !!nombre.trim() && rucValido && !repetido && !pregunta.igual && fase === "reposo";
 
   const cuentas: CuentasForm = { cci, celularBilletera: celular, billeteras, titularCuenta: titular };
   const errores = validarCuentas(cuentas);
@@ -209,6 +230,10 @@ export function ProveedorModal({
       setBanco(detectado);
     }
   }
+  function agregarRubroNuevo() {
+    setRubrosElegidos((v) => agregarRubro(v, rubroNuevo, rubros));
+    setRubroNuevo("");
+  }
   const alternarBilletera = (b: string) => setBilleteras((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]));
 
   // Cierre en dos tiempos, igual que `Modal`: se anima la salida y recién ahí se avisa al padre (que lo desmonta).
@@ -219,6 +244,14 @@ export function ProveedorModal({
     const t = setTimeout(() => (alCerrar.current ?? onClose)(), reducido ? 0 : MS_SALIDA);
     return () => clearTimeout(t);
   }, [cerrando, onClose]);
+  // Escape cierra la hoja solo si ningún control de adentro lo usó (useEscapeLibre.ts); mientras guarda, no la cierra.
+  const alEscape = useEscapeLibre(() => {
+    if (fase !== "guardando") pedirCierre();
+  });
+
+  // Los botones: los rubros del directorio y, al final, los elegidos que nadie más usa (el recién escrito).
+  const opcionesRubro = opcionesDeRubro(rubros, rubrosElegidos);
+  const clavesElegidas = new Set(rubrosElegidos.map(claveRubro));
 
   const modoPlazo = plazoOtro ? "otro" : plazoCreditoDias;
   function elegirPlazo(clave: string) {
@@ -237,19 +270,32 @@ export function ProveedorModal({
     if (!nombre.trim()) return void avisar.error("El proveedor necesita un nombre.", { enfocar: "documento-nombre" });
     if (!rucValido) return void avisar.error("El RUC tiene que ser de 11 dígitos. Si no tiene, déjalo en blanco.", { enfocar: "documento-numero" });
     if (repetido) return void avisar.error(`Ese RUC ya es de ${repetido.nombre}.`, { enfocar: "documento-numero" });
+    if (pregunta.igual) return void avisar.error(`«${pregunta.igual.nombre}» ya está registrado.`, { enfocar: "proveedor-parecido" });
+    if (porResponder.length > 0) {
+      return void avisar.error(
+        porResponder.length === 1
+          ? `Antes de registrar, dinos si «${nombre.trim()}» es el mismo proveedor que «${porResponder[0].proveedor.nombre}».`
+          : `Antes de registrar, dinos si «${nombre.trim()}» es alguno de los proveedores de la pregunta.`,
+        { enfocar: "proveedor-parecido" }
+      );
+    }
     // Las cuentas se validan ANTES del paso 1: no se guarda el proveedor para descubrir después que el CCI estaba mal.
     const problema = primerErrorCuentas(errores);
     if (problema) {
       setIntento(true);
       return void avisar.error(problema.mensaje, { enfocar: { cci: "proveedor-cci", celular: "proveedor-celular", billeteras: "proveedor-billeteras", titular: "proveedor-titular" }[problema.campo] });
     }
+    // Lo escrito en «Otro rubro» sin presionar «Agregar» también se guarda: quien lo escribió quería ese rubro.
+    const rubrosAGuardar = agregarRubro(rubrosElegidos, rubroNuevo, rubros);
+    setRubrosElegidos(rubrosAGuardar);
+    setRubroNuevo("");
     setFase("guardando");
     const supabase = createClient();
     const args = {
       p_nombre: nombre.trim(),
       p_ruc: ruc || undefined,
       p_contacto: contacto.trim() || undefined,
-      p_rubro: rubro.trim() || undefined,
+      p_rubros: rubrosAGuardar,
       p_plazo_credito_dias: plazoCreditoDias ? Number(plazoCreditoDias) : undefined,
       p_forma_pago_preferida: formaPagoPreferida || undefined,
       p_telefono: telefono.trim() || undefined,
@@ -299,6 +345,7 @@ export function ProveedorModal({
             en escritorio, como `<Modal>` (ADR-0185): centrada, cada cambio de alto movía el borde de arriba. */}
         <div className="pointer-events-none fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:p-6 sm:pt-[8vh]">
           <Dialog.Content
+            onEscapeKeyDown={alEscape}
             className={`pointer-events-auto flex max-h-[92dvh] w-full sm:max-h-[calc(100dvh-8vh-1.5rem)] max-w-[35rem] flex-col overflow-hidden rounded-t-2xl border border-sand bg-papel shadow-xl outline-none sm:rounded-2xl ${
               cerrando ? "anim-salida" : "anim-entrada"
             }`}
@@ -315,7 +362,7 @@ export function ProveedorModal({
                   <X aria-hidden className="h-4 w-4" />
                 </button>
               </div>
-              <Dialog.Description className="sr-only">Datos del proveedor: RUC, razón social, contacto, rubro, plazo de crédito, forma de pago y cómo pagarle.</Dialog.Description>
+              <Dialog.Description className="sr-only">Datos del proveedor: RUC, razón social, contacto, rubros, plazo de crédito, forma de pago y cómo pagarle.</Dialog.Description>
 
               <div className="scroll-cayla min-h-0 flex-1 space-y-2 overflow-y-auto px-6 pb-5 pt-2">
                 {/* La razón social y el RUC: el mismo <ConsultaDocumento> que usa Vender/Facturación (una sola copia de
@@ -332,38 +379,76 @@ export function ProveedorModal({
                   onNombre={setNombre}
                 />
 
+                {pregunta.igual && (
+                  <PreguntaParecido
+                    id="proveedor-parecido"
+                    titulo={`«${pregunta.igual.nombre}» ya está registrado`}
+                    bajada="Con el mismo nombre no se registra otro. Si le falta algo, complétalo en su ficha."
+                    opciones={[{ id: pregunta.igual.id, nombre: pregunta.igual.nombre, detalle: detalleParecido(pregunta.igual) }]}
+                    si={(o) => ({ texto: "Ver su ficha", href: `/compras/proveedores/${o.id}` })}
+                  />
+                )}
+                {porResponder.length > 0 && (
+                  <PreguntaParecido
+                    id="proveedor-parecido"
+                    titulo="¿No será un proveedor que ya tienes?"
+                    bajada="Si es el mismo, ábrelo: sus facturas y lo que se le debe tienen que quedar en una sola ficha."
+                    opciones={porResponder.map(({ proveedor }) => ({ id: proveedor.id, nombre: proveedor.nombre, detalle: detalleParecido(proveedor) }))}
+                    si={(o) => ({ texto: "Sí, es este: ver su ficha", href: `/compras/proveedores/${o.id}` })}
+                    no={{
+                      texto: `No, «${nombre.trim()}» es otro proveedor`,
+                      onClick: () => setDescartados((prev) => new Set([...prev, ...porResponder.map((p) => p.proveedor.id)])),
+                    }}
+                  />
+                )}
+
                 <div className="grid grid-cols-1 gap-x-4 sm:grid-cols-2">
                   <CampoTexto etiqueta="Contacto" autoComplete="off" placeholder="Con quién se coordina" value={contacto} onChange={(e) => setContacto(e.target.value)} />
                   <CampoTexto etiqueta="Teléfono" type="tel" autoComplete="off" placeholder="El WhatsApp de los pedidos" value={telefono} onChange={(e) => setTelefono(e.target.value)} />
                 </div>
 
-                <div>
-                  <CampoTexto
-                    etiqueta="Rubro"
-                    autoComplete="off"
-                    list="proveedor-rubros"
-                    placeholder="Tela, avíos, prenda terminada, servicios…"
-                    value={rubro}
-                    onChange={(e) => setRubro(e.target.value)}
-                  />
-                  <datalist id="proveedor-rubros">
-                    {rubros.map((r) => (
-                      <option key={r} value={r} />
-                    ))}
-                  </datalist>
-                  {rubros.length > 0 && (
-                    <div className="-mt-1 mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Rubros ya usados">
-                      {rubros.map((r) => {
-                        const elegido = rubro.trim().toLowerCase() === r.toLowerCase();
+                <Campo
+                  etiqueta={
+                    <>
+                      Rubros <span className="normal-case tracking-normal">(elige todos los que vende)</span>
+                    </>
+                  }
+                  idEtiqueta="etiqueta-rubros"
+                >
+                  {opcionesRubro.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5" role="group" aria-labelledby="etiqueta-rubros">
+                      {opcionesRubro.map((r) => {
+                        const elegido = clavesElegidas.has(claveRubro(r));
                         return (
-                          <button key={r} type="button" aria-pressed={elegido} onClick={() => setRubro(r)} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
+                          // Tocar de nuevo lo quita: son casillas, no una sola opción.
+                          <button key={r} type="button" aria-pressed={elegido} onClick={() => setRubrosElegidos((v) => alternarRubro(v, r))} className={`${CHIP} ${elegido ? CHIP_ON : CHIP_OFF}`}>
                             {r}
                           </button>
                         );
                       })}
                     </div>
                   )}
-                </div>
+                  <div className="mt-3 flex items-end gap-3">
+                    <div className="min-w-0 flex-1">
+                      <CampoTexto
+                        etiqueta="Otro rubro"
+                        autoComplete="off"
+                        placeholder="Si no está arriba, escríbelo"
+                        value={rubroNuevo}
+                        onChange={(e) => setRubroNuevo(e.target.value)}
+                        onKeyDown={(e) => {
+                          // Enter agrega el rubro; no guarda el formulario a medio llenar.
+                          if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+                          e.preventDefault();
+                          agregarRubroNuevo();
+                        }}
+                      />
+                    </div>
+                    <button type="button" onClick={agregarRubroNuevo} disabled={!claveRubro(rubroNuevo)} className={`${CHIP} ${CHIP_OFF} mb-[1.35rem] shrink-0 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-tinta/15 disabled:hover:text-tinta/75`}>
+                      Agregar
+                    </button>
+                  </div>
+                </Campo>
 
                 <Campo etiqueta="Plazo de crédito" idEtiqueta="etiqueta-plazo">
                   <SegmentoDeslizante

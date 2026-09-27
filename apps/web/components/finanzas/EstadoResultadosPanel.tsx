@@ -112,17 +112,16 @@ export function EstadoResultadosPanel({
             {esLider ? (
               <label className="fin-ver">
                 <span className="label-cayla text-[11px] text-taupe">Ver</span>
-                <SelectFin value={ver} onChange={(e) => ir({ ver: e.target.value })} aria-label="Qué mirar">
-                  <option value="todas">Todas las tiendas</option>
-                  {unidades
-                    .filter((u) => u.ubicacionId)
-                    .map((u) => (
-                      <option key={u.ubicacionId} value={u.ubicacionId ?? ""}>
-                        {u.nombre}
-                      </option>
-                    ))}
-                  {unidades.some((u) => u.unidad === "empresa") && <option value="empresa">De la empresa</option>}
-                </SelectFin>
+                <SelectFin
+                  etiqueta="Qué mirar"
+                  valor={ver}
+                  onValor={(v) => ir({ ver: v })}
+                  opciones={[
+                    { valor: "todas", texto: "Todas las tiendas" },
+                    ...unidades.filter((u) => u.ubicacionId).map((u) => ({ valor: u.ubicacionId ?? "", texto: u.nombre })),
+                    ...(unidades.some((u) => u.unidad === "empresa") ? [{ valor: "empresa", texto: "De la empresa" }] : []),
+                  ]}
+                />
               </label>
             ) : (
               <Chip versalitas={false}>{columnas[0]?.nombre ?? "Tu tienda"}</Chip>
@@ -143,14 +142,12 @@ export function EstadoResultadosPanel({
       <div {...entra(1)}>
         <Superficie>
           <Herramientas>
-            <SelectFin value={mes} onChange={(e) => ir({ mes: e.target.value })} aria-label="Mes">
-              {mesesRecientes(hoy, 12).map((m) => (
-                <option key={m} value={m}>
-                  {mesTitulo(m)}
-                  {m === mesDe(hoy) ? " · a la fecha" : ""}
-                </option>
-              ))}
-            </SelectFin>
+            <SelectFin
+              etiqueta="Mes"
+              valor={mes}
+              onValor={(v) => ir({ mes: v })}
+              opciones={mesesRecientes(hoy, 12).map((m) => ({ valor: m, texto: `${mesTitulo(m)}${m === mesDe(hoy) ? " · a la fecha" : ""}` }))}
+            />
             <label className="btn-cayla btn-sutil gap-2">
               <input type="checkbox" checked={comparar} onChange={(e) => ir({ comparar: e.target.checked ? "1" : null })} />
               Comparar con {mesNombre(mesPrevio)}

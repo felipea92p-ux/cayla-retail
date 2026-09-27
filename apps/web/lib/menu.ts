@@ -98,16 +98,25 @@ export function terminalVeInicio(modulos: readonly ClaveModulo[]): boolean {
   return !modulos.includes("vender");
 }
 
-/** A dónde va una cuenta al abrir `/`: una terminal que ve el Punto de venta, a `/vender`; cualquier otra, a su Inicio. */
+/**
+ * ¿Esta cuenta es una CAJA del mostrador? Una terminal que ve el Punto de venta. Es UNA sola definición para las dos cosas
+ * que la tratan distinto: a dónde aterriza (`aterrizajeDe`) y qué grupos ve sueltos (`sueltoEnMostrador`). Una persona
+ * nunca es mostrador, aunque venda: el mostrador es el aparato, no quien lo usa.
+ */
+export function esMostrador(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): boolean {
+  return !!perfil.terminal && !terminalVeInicio(perfil.modulos ?? []);
+}
+
+/** A dónde va una cuenta al abrir `/`: la caja del mostrador, a `/vender`; cualquier otra, a su Inicio. */
 export function aterrizajeDe(perfil: { terminal?: boolean; modulos?: readonly ClaveModulo[] | null }): string {
-  return perfil.terminal && !terminalVeInicio(perfil.modulos ?? []) ? "/vender" : "/";
+  return esMostrador(perfil) ? "/vender" : "/";
 }
 
 /** Claves de los íconos. Los trazos viven en `AppShell.tsx` (`IC`); acá solo se nombra cuál lleva cada nodo. */
 export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "cambios" | "devoluciones" | "venta"
-  | "catalogo" | "categorias" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
+  | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
   | "dinero" | "reportes" | "impuestos" | "cierre";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
@@ -159,6 +168,13 @@ export type Grupo = Comun & {
   /** La puerta del módulo: todo lo que cuelga de esta ruta es de este grupo (decide qué grupo se abre al aterrizar). */
   raiz: string;
   hijos: readonly (Hoja | Grupo | Futura)[];
+  /**
+   * En la caja del mostrador (`esMostrador`) este grupo no se pinta como cabecera: sus pantallas salen sueltas, cada una
+   * con su nombre y también las de sus subgrupos, en el lugar donde iba el grupo. Existe por Ventas (Felipe, 2026-09-25):
+   * la caja vive en el Punto de venta y la Caja, y abrir un grupo para llegar a ellas era un clic de más cada vez. Los
+   * demás grupos siguen agrupados para que el menú de la caja no pase de unas 8 filas.
+   */
+  sueltoEnMostrador?: true;
 };
 
 /** Algo que todavía no existe: vive en el árbol para que el aviario quede a la vista, y `menuPara` NO lo emite. */
@@ -244,8 +260,10 @@ export const ARBOL: readonly Nodo[] = [
 
   // «Ventas» (ADR-0057): el mostrador + lo legal del cobro. El id sigue siendo «venta» (es la clave con la que la pantalla
   // recuerda qué grupo está abierto). Facturación emite documentos ante SUNAT: es del Cuervo y exige `verDinero`.
+  // En la caja del mostrador sale SUELTO (Felipe, 2026-09-25): Punto de Venta, Caja, Historial, Cambios, Devoluciones…
+  // directo en el lateral, sin la cabecera «Ventas» ni la de «Posventa».
   {
-    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí",
+    id: "venta", etiqueta: "Ventas", estado: "viva", icono: "venta", raiz: "/vender", pajaro: "07 Colibrí", sueltoEnMostrador: true,
     hijos: [
       { id: "venta.puntoDeVenta", modulo: "vender", etiqueta: "Punto de Venta", estado: "viva", ruta: "/vender", icono: "vender", pajaro: "07 Colibrí" },
       // Apartados (ADR-0166): la clienta aparta con un adelanto y recoge pagando el saldo. Junto al Punto de venta en el
@@ -286,11 +304,15 @@ export const ARBOL: readonly Nodo[] = [
 
   // Catálogo (2026-09-16/17): qué ES una prenda y el vocabulario del que cuelga. Colores, tallas, tejidos, patrones y
   // etiquetas viven como pestañas de «Atributos».
+  // Marcas (2026-09-25): la pantalla existía desde el ADR-0109 pero nunca entró al menú; solo se llegaba por un enlace
+  // dentro de Nuevo producto. Felipe vio una marca mal cargada en Proveedores y no tenía por dónde corregirla. Mismo
+  // módulo que Categorías: «atributos» ya se llama «Categorías, marcas y atributos» en Roles y accesos.
   {
     id: "catalogo", etiqueta: "Catálogo", estado: "viva", icono: "catalogo", raiz: "/productos", pajaro: "02 Loro",
     hijos: [
       { id: "catalogo.productos", modulo: "productos", etiqueta: "Productos", estado: "viva", ruta: "/productos", icono: "productos", pajaro: "02 Loro" },
       { id: "catalogo.categorias", modulo: "atributos", etiqueta: "Categorías", estado: "viva", ruta: "/productos/categorias", icono: "categorias", pajaro: "02 Loro" },
+      { id: "catalogo.marcas", modulo: "atributos", etiqueta: "Marcas", estado: "viva", ruta: "/productos/marcas", icono: "marcas", pajaro: "02 Loro" },
       { id: "catalogo.atributos", modulo: "atributos", moduloAlterno: "etiquetas", etiqueta: "Atributos", estado: "viva", ruta: "/productos/atributos", icono: "atributos", pajaro: "02 Loro" },
     ],
   },
@@ -489,12 +511,19 @@ export function menuPara(perfil: PerfilDelMenu, { arbol, columnas }: FuenteMenu 
   };
 
   // ---- riel de escritorio ----
+  // Un grupo `sueltoEnMostrador`, en la caja, se arma como si fuera un SUBGRUPO (`esRaiz = false`): con una sola hija
+  // visible, esa hija sube con su propio nombre («Punto de Venta», no «Ventas»). Y en vez de su cabecera van sus hojas,
+  // las de sus subgrupos incluidas (`hojasDe`). Es la misma regla de disolver un grupo que ya existía, aplicada al primer
+  // nivel. `grupoDe` no cambia: pararse en `/caja` sigue siendo estar en Ventas, y moverse ahí cierra el grupo que
+  // estuviera abierto (Inventario), igual que para cualquier otra cuenta.
+  const mostrador = esMostrador(perfil);
   const riel: FilaMenu[] = [];
   const emitidos = new Map<string, FilaMenu>();
   for (const n of arbol) {
-    const fila = construirFila(n, true);
+    const suelto = mostrador && esGrupo(n) && !!n.sueltoEnMostrador;
+    const fila = construirFila(n, !suelto);
     if (!fila) continue;
-    riel.push(fila);
+    riel.push(...(suelto ? hojasDe(fila) : [fila]));
     emitidos.set(n.id, fila);
   }
 

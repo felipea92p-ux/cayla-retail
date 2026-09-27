@@ -109,6 +109,19 @@ const marca = (persona, sede, tipo, hora) =>
   `insert into public.marcajes (persona_id, sede_id, tipo, timestamp_marca) select ${persona}, ${sede}, '${tipo}', ${hora} from ids;\n`;
 const HOY = (hhmm) => `((now() at time zone 'America/Lima')::date + time '${hhmm}') at time zone 'America/Lima'`;
 
+// Los casos marcan la entrada a las 00:01 de HOY en Lima: justo pasada la medianoche ese «hoy» todavía no tiene pasado
+// (la entrada queda en el futuro, o «la venta de hace 1 minuto» cae antes de ella) y la base rechaza, con razón. Si la
+// suite arranca en esa ventana —o a segundos de entrar en ella—, espera a las 00:03 de Lima en vez de tolerar un rechazo
+// que fuera de ahí sería un error. Pasó en CI el 2026-09-26 a las 00:01:17 de Lima. (Perú no tiene horario de verano.)
+const DIA_MS = 24 * 3600e3;
+const msDelDiaLima = () => (((Date.now() - 5 * 3600e3) % DIA_MS) + DIA_MS) % DIA_MS;
+const listoDesde = 3 * 60e3;
+if (msDelDiaLima() < listoDesde || msDelDiaLima() > DIA_MS - 30e3) {
+  const espera = (listoDesde - msDelDiaLima() + DIA_MS) % DIA_MS;
+  console.log(`Pasada la medianoche de Lima los casos de «hoy 00:01» no tienen pasado: espero ${Math.ceil(espera / 1000)} s.`);
+  await new Promise((listo) => setTimeout(listo, espera));
+}
+
 let fallas = 0;
 let casos = 0;
 function caso(nombre, sql, esperado) {
@@ -186,7 +199,7 @@ caso(
   marca("micaela", "sede_tru", "entrada", HOY("00:01")) + marca("micaela", "sede_tru", "salida_final", `now() - interval '1 second'`) + como(T_VENTAS_AUTH) +
     `select set_config('request.headers', json_build_object('x-responsable', micaela, 'x-momento', (now() - interval '1 minute')::text)::text, true) from ids \\g /dev/null\n` +
     `select (retail.fn_actor_persona_id() = micaela)::text from ids;`,
-  (s) => s === "true" || /* justo pasada la medianoche de Lima no hay «hace 1 minuto» del mismo día */ s.includes("responsable_no_presente")
+  "true"
 );
 caso(
   "x-momento de hace 8 días → fuera de rango",
