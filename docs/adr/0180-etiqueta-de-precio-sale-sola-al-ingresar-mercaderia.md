@@ -247,20 +247,27 @@ crema de `.pildora-cayla[aria-pressed]`.
 
 ## Configurar la Brother (una vez por computadora que imprima)
 
-> Estos pasos no se probaron contra la impresora real: los nombres exactos del driver pueden variar según la versión.
+**Actualización 2026-09-26: la configuración vive en la pantalla, en la «Guía de impresión»** (botón junto a «Imprimir
+etiquetas» y en la nota del pie; `components/GuiaImpresion.tsx`). Esta sección decía, para Windows, lo contrario de lo que
+funcionó en la tienda, y no nombraba los tres ajustes que lo resolvieron. Lo probado por un colaborador en la computadora
+Windows de la tienda (fotos de Felipe, 2026-09-26, guardadas en `apps/web/public/guia-impresion/`):
 
-1. Instalar el **driver completo** de la QL-1110NWB desde la página de soporte de Brother, no el genérico de Windows ni el
-   AirPrint de la Mac: es el que ofrece cortar cada etiqueta.
-2. Crear un papel **62 × 40,1 mm** para el rollo continuo de 62 mm, con márgenes en 0:
-   - **Mac:** en Chrome, **⌥⌘P** abre el diálogo del sistema. Tamaño del papel → «Gestionar tamaños personalizados…» → «+» →
-     62 × 40,1 mm, área no imprimible definida por el usuario, en 0. Guardar los ajustes como preajuste («Etiquetas CAYLA»).
-     El diálogo propio de Chrome no muestra estos tamaños: en la Mac, las etiquetas se imprimen siempre con ⌥⌘P.
-   - **Windows:** en las Preferencias de impresión de la Brother, la configuración de tamaño de papel («Paper Size Setup»).
-   - Activar **corte automático cada 1 etiqueta**.
-3. Al imprimir: papel **62 × 40,1 mm**, márgenes **Ninguno**, escala **100 %** y **sin** encabezados ni pies de página.
-4. Primera prueba: imprimir 1 etiqueta y escanearla con la pistola en Vender. Debe salir completa, a tamaño real y a lo ancho
-   del rollo, en un corte de 40,1 mm; si sale a lo largo, probar la otra forma (A o B) en la pantalla. Debe decir «Impreso»
-   con la fecha de hoy: si dice otra, la página está vieja y hay que recargarla.
+- **Windows — PROBADO:** Configuración → Bluetooth y dispositivos → Impresoras y escáneres → Brother QL-1110NWB →
+  Preferencias de impresión: Tamaño de papel **62mm**, **Longitud 40.1**, Orientación **Vertical**, **Cortar cada 1
+  etiqueta** y Cortar al final → Aplicar. **Cerrar Chrome por completo** (Chrome lee el papel al abrirse). Al imprimir, en el
+  **diálogo de Chrome** (no en el del sistema): destino Brother, tamaño 62mm, páginas por hoja 1, márgenes **Ninguno**,
+  escala **Personalizado 100**, forma **A (girada)**.
+- **Mac — SIN PROBAR contra la Brother real:** ⌥⌘P (diálogo del sistema) → Tamaño del papel → «Gestionar tamaños
+  personalizados…» → «+» → «CAYLA 62 x 40,1», 62 × 40,1 mm, área no imprimible definida por el usuario en 0 → OK; escala
+  100 %; guardar como preajuste «Etiquetas CAYLA». Si al probarlo algo difiere, se corrige en `GuiaImpresion.tsx`.
+
+DECIDÍ: una guía paso a paso en un modal, con las fotos reales de la tienda y un número sobre cada clic que se enciende al
+leer su instrucción; el último paso es un diagnóstico por síntoma («sale chica / larga / girada») que devuelve al paso que
+lo arregla. DESCARTÉ: capturas sacadas de internet, porque mostrarían otra versión de Windows o del driver y en otro idioma
+(justo la ambigüedad que había que quitar) y su uso no es nuestro; y reescribir la nota, porque el problema era el formato
+—un párrafo que mezclaba impresora y campañas— y no solo el texto. SE ROMPE SI: Brother o Chrome cambian el diálogo (una
+foto deja de parecerse a la pantalla) o se cambia el rollo: las medidas viven una sola vez en `lib/guia-impresion-reglas.ts`
+(`MEDIDAS`), pero las fotos hay que volver a tomarlas.
 
 ## Lo que sigue
 

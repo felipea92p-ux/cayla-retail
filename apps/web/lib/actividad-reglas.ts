@@ -11,10 +11,20 @@ import { ARBOL, rutaActiva, type Nodo } from "./menu";
 import { MODULOS, type ClaveModulo } from "./modulos";
 
 /** Los módulos que ya anotan su actividad. Crece con cada migración que suma los disparadores de un módulo. */
-export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = ["vender", "historial", "caja", "cambios"];
+export const MODULOS_CON_ACTIVIDAD: readonly ClaveModulo[] = ["vender", "historial", "caja", "cambios", "apartados"];
 
 export function anotaActividad(clave: ClaveModulo): boolean {
   return MODULOS_CON_ACTIVIDAD.includes(clave);
+}
+
+/** Los módulos que solo CONSULTAN (ADR-0234): no cambian nada, así que nunca tendrán actividad propia. Decir que
+ *  «Movimientos todavía no anota su actividad» encima de una lista de movimientos era una contradicción para quien no
+ *  conoce el sistema. Desde ellos, el panel abre con todos los módulos: lo que pasó en la tienda. */
+export const MODULOS_SOLO_CONSULTA: readonly ClaveModulo[] = ["movimientos"];
+
+/** El módulo con que abre el panel desde una pantalla: el suyo, salvo que la pantalla solo consulte (entonces todos). */
+export function moduloInicialDelPanel(modulo: ClaveModulo | null): ClaveModulo | null {
+  return modulo && MODULOS_SOLO_CONSULTA.includes(modulo) ? null : modulo;
 }
 
 /** ¿Esta cuenta ve el botón «Actividad»? El líder (y el Admin, que es líder), o una PERSONA cuyo rol ve el módulo. Una
@@ -35,6 +45,10 @@ function hojasConModulo(nodos: readonly Nodo[]): { ruta: string; modulo: ClaveMo
   return nodos.flatMap((n) => {
     if (n.estado !== "viva") return [];
     if ("hijos" in n && n.hijos) return hojasConModulo(n.hijos);
+    // Inicio declara `modulo: "inicio"` desde 20260925220000 (para su candado en Roles y accesos y para saber a dónde
+    // aterriza cada rol), pero no es un módulo de TRABAJO: estar parado ahí no es «estar en el módulo Inicio» para la
+    // Actividad, que debe seguir mostrando todos (ver el comentario de `moduloDeRuta`, sin cambiar desde ADR-0207).
+    if (n.id === "inicio") return [];
     return "ruta" in n && n.modulo ? [{ ruta: n.ruta, modulo: n.modulo }] : [];
   });
 }

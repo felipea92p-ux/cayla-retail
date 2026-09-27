@@ -16,10 +16,11 @@ import {
   mensajeErrorMovimientoPiso,
   RETIRO_NO_ES_BAJA,
   SENTIDO_PISO,
-  TEXTOS_BLOQUE_RETIRO,
+  textosBloqueRetiro,
   topeMovimientoPiso,
   type SentidoPiso,
 } from "@/lib/inventario-reglas";
+import type { PoliticaOperativaInventario } from "@/lib/politica-operativa-inventario";
 /** Lo que el modal necesita de una prenda: sirve tanto a la fila de Existencias
  *  como a la de Resumen, que no comparten el resto de sus campos. */
 
@@ -34,7 +35,7 @@ export type FilaParaReponer = {
   almacen: number | null;
 };
 
-// Llama a `retail.mover_interno` (20260914230000_inventario_piso_almacen.sql; la marca, 20260926200100):
+// Llama a `retail.mover_entre_piso_y_almacen` (ADR-0240: `mover_interno` + el módulo «Bajada al piso»; la marca, 20260926200100):
 // mismo motor que un traslado entre sedes, pero dentro de la misma
 // ubicación — el total de la tienda no cambia, solo dónde vive físicamente
 // la prenda. Los UUID de piso/almacén ya vienen resueltos desde el server
@@ -51,6 +52,7 @@ export function ReponerPisoModal({
   sububicacionAlmacenId,
   cantidadInicial,
   alCerrarEnfocar,
+  politica,
   onClose,
 }: {
   /** «bajar» = del almacén al piso; «retirar» = del piso al almacén. */
@@ -64,6 +66,8 @@ export function ReponerPisoModal({
   cantidadInicial?: number;
   /** El control que abrió el modal (el «⋯» o el «Reponer» de la fila): al cerrar, el teclado vuelve ahí. */
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
+  /** La política de la sede (`politicaDe`): el aviso del retiro pregunta lo mismo que «Acción hoy» de la fila. */
+  politica: PoliticaOperativaInventario;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -92,7 +96,7 @@ export function ReponerPisoModal({
   const responsable = useResponsable();
 
   // Solo al retirar: si con esta cantidad la fila va a volver a pedir «Reponer», se dice antes de confirmar.
-  const avisoRetiro = sentido === "retirar" ? avisoTrasRetiro(fila, Number(cantidad)) : null;
+  const avisoRetiro = sentido === "retirar" ? avisoTrasRetiro(fila, Number(cantidad), politica) : null;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -117,7 +121,8 @@ export function ReponerPisoModal({
     // corte de red (mensaje honesto, se puede cerrar), porque la base pudo haber guardado igual.
     const control = new AbortController();
     const tope = window.setTimeout(() => control.abort(), TOPE_ESPERA_MS);
-    const { error: errorRpc } = await firmar(supabase.rpc("mover_interno", {
+    // La puerta con el candado de «Bajada al piso» (ADR-0240); `mover_interno` ya no se llama desde el navegador.
+    const { error: errorRpc } = await firmar(supabase.rpc("mover_entre_piso_y_almacen", {
       p_ubicacion_id: ubicacionId,
       p_variante_id: fila.varianteId,
       p_cantidad: n,
@@ -159,9 +164,9 @@ export function ReponerPisoModal({
           </p>
 
           {/* Las dos cifras llegan NETAS de lo apartado para clientas (Existencias pasa `pisoDisponible` y
-              `almacenDisponible`): por eso dicen «Disponible», la misma palabra que usa la tabla para lo que
-              se puede vender o mover. Rotularlas «actual» hacía creer que el sistema perdió prendas cuando la
-              tabla (que muestra lo físico en «Piso · Almacén») decía otra cifra. */}
+              `almacenDisponible`): por eso dicen «Disponible». Rotularlas «actual» hacía creer que el sistema
+              perdió prendas cuando la tabla mostraba lo físico y decía otra cifra; desde el 2026-09-26 la tabla
+              («Stock actual») también muestra lo libre, con lo apartado debajo: las dos dicen lo mismo. */}
           <div className="card-cayla grid grid-cols-2 divide-x divide-tinta/10 text-center">
             <div className="p-3">
               <p className="label-cayla text-[10px] text-tinta/55">Disponible en piso</p>
@@ -194,7 +199,7 @@ export function ReponerPisoModal({
           {sentido === "retirar" && (
             // Los textos posibles se apilan invisibles en la misma celda: mide lo del más largo y nada salta al tipear (ADR-0185).
             <div className="grid text-xs leading-snug" aria-live="polite">
-              {TEXTOS_BLOQUE_RETIRO.map((t) => (
+              {textosBloqueRetiro(politica).map((t) => (
                 <p key={t} aria-hidden inert className="invisible [grid-area:1/1]">
                   {t}
                 </p>

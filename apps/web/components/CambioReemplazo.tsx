@@ -5,6 +5,9 @@ import Link from "next/link";
 import { ComboBuscable, type OpcionCombo } from "@/components/ui/ComboBuscable";
 import { Desplegable } from "@/components/ui/campos";
 import { ComparacionPrendas } from "@/components/CambioResumen";
+import { CambioSalidas } from "@/components/CambioSalidas";
+import type { ControlResponsable } from "@/lib/useResponsable";
+import type { SedeConId } from "@/lib/cambios-atajos-reglas";
 import { OPCION, OPCION_ACTIVA, OPCION_INACTIVA } from "@/components/FlujoGuiado";
 import type { LineaVentaReciente } from "@/lib/ventas-v2";
 import { unidadesDisponibles, METODOS_DIFERENCIA, MOTIVOS_CAMBIO, type MetodoDiferencia } from "@/lib/cambios-reglas";
@@ -35,6 +38,7 @@ export function CambioReemplazo({
   refPrenda,
   refMetodo,
   onCambio,
+  salidas,
 }: {
   linea: LineaVentaReciente;
   seleccion: Seleccion;
@@ -45,6 +49,8 @@ export function CambioReemplazo({
   refPrenda: RefObject<HTMLDivElement | null>;
   refMetodo: RefObject<HTMLButtonElement | null>;
   onCambio: (cambio: Partial<Seleccion>) => void;
+  /** Lo que necesitan las salidas cuando la talla no está aquí (`CambioSalidas`). */
+  salidas: { sedes: SedeConId[]; ubicacionId: string; sede: string; esLider: boolean; responsable: ControlResponsable };
 }) {
   const disponible = unidadesDisponibles(linea);
   const idBase = `cambio-${linea.ventaItemId}`;
@@ -147,10 +153,18 @@ export function CambioReemplazo({
           </fieldset>
         )}
 
-        {r.avisoSinStock && (
-          <p className="anim-revelar mt-4 rounded-lg border border-dashed border-tinta/30 px-4 py-3 text-sm text-tinta/80" role="status">
-            {r.avisoSinStock}
-          </p>
+        {r.avisoSinStock && r.varianteNueva && (
+          <CambioSalidas
+            key={r.varianteNueva.varianteId}
+            aviso={r.avisoSinStock}
+            referencia={r.varianteNueva.referencia}
+            color={r.varianteNueva.color}
+            talla={r.varianteNueva.talla}
+            varianteId={r.varianteNueva.varianteId}
+            otrasSedes={r.varianteNueva.stockOtrasSedes}
+            ventaItemId={linea.ventaItemId}
+            {...salidas}
+          />
         )}
       </div>
 

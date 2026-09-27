@@ -1,8 +1,10 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { objecionFotoProducto } from "@/lib/producto-fotos";
+import { objecionFotoElegida } from "@/lib/producto-fotos";
+import { comoArchivo } from "@/lib/preparar-foto";
+import { RevisarFotosModal, type FotoElegida } from "@/components/RevisarFotosModal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
 
 // Las fotos del alta, POR COLOR, sin subir nada todavía (spike Nuevo producto, 2026-09-24).
@@ -15,10 +17,16 @@ import { Punto } from "@/components/alta-producto/ElegirColores";
 // cuando la base ya creó el producto (`NuevoProductoForm.onSubmit`). Cancelar no deja nada en el almacén, y crear el
 // producto sigue siendo una sola transacción: si una foto no sube, el producto ya existe y la pantalla de éxito dice
 // cuál faltó (principio 9: se degrada, no pierde el producto).
+//
+// Desde el ADR-0228 cada foto pasa antes por la revisión (`RevisarFotosModal`): lo que queda acá ya es la foto
+// preparada —1200×1500 sobre blanco, sin fondo o con su fondo— y su original, que se suben juntos al crear.
 
 export type FotoPendiente = {
   clave: string;
+  /** La foto preparada (encuadrada, con o sin fondo): la que se sube y se muestra. */
   archivo: File;
+  /** La foto tal cual la tomaron, reducida: se guarda al lado para poder reprocesarla (ADR-0228). */
+  original: Blob | null;
   /** URL local (blob:) solo para mostrarla; se libera al quitarla o al salir. */
   vista: string;
   colorCodigo: string | null;
@@ -39,16 +47,25 @@ export function FotosAlta({
   // Las vistas previas NO se liberan al desmontar: el paso 3 se pliega al seguir y se vuelve a abrir con «Cambiar», y
   // las fotos tienen que seguir ahí. Las libera el formulario (al quitarlas, al subirlas o al quitar su color).
 
+  const [porRevisar, setPorRevisar] = useState<{ archivos: File[]; colorCodigo: string | null } | null>(null);
   function agregar(archivos: File[], colorCodigo: string | null) {
-    const buenas: FotoPendiente[] = [];
+    const buenas: File[] = [];
     const malas: string[] = [];
     for (const archivo of archivos) {
-      const objecion = objecionFotoProducto(archivo);
+      const objecion = objecionFotoElegida(archivo);
       if (objecion) malas.push(`${archivo.name}: ${objecion}`);
-      else buenas.push({ clave: crypto.randomUUID(), archivo, vista: URL.createObjectURL(archivo), colorCodigo });
+      else buenas.push(archivo);
     }
     if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (buenas.length) onFotos([...fotos, ...buenas]);
+    if (buenas.length) setPorRevisar({ archivos: buenas, colorCodigo });
+  }
+
+  function usar(elegidas: FotoElegida[], colorCodigo: string | null) {
+    const nuevas: FotoPendiente[] = elegidas.map((e) => {
+      const archivo = comoArchivo(e.foto, "foto.jpg");
+      return { clave: crypto.randomUUID(), archivo, original: e.original, vista: URL.createObjectURL(archivo), colorCodigo };
+    });
+    onFotos([...fotos, ...nuevas]);
   }
 
   function quitar(clave: string) {
@@ -57,8 +74,14 @@ export function FotosAlta({
     onFotos(fotos.filter((x) => x.clave !== clave));
   }
 
-  // Sin colores, una sola casilla «General». Con colores, una por color y la general al final (fotos de detalle, etiqueta…).
-  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null }[] = [...colores, { codigo: null, nombre: colores.length ? "General" : "Fotos", hex: null }];
+  // La foto sin color va PRIMERO: una sola foto por prenda alcanza, y se ve en cada color que no tenga la suya
+  // (`fotoDeVariante`, decidido con Felipe el 2026-09-26: «una foto general y luego escoger la gama de colores»). Con
+  // colores se llama «Todos los colores» para que se entienda eso; las casillas por color quedan para quien sí tenga
+  // la foto de ese color.
+  const casillas: { codigo: string | null; nombre: string; hex: string | null; familiaColor?: string | null }[] = [
+    { codigo: null, nombre: colores.length ? "Todos los colores" : "Fotos", hex: null },
+    ...colores,
+  ];
 
   return (
     <div className="space-y-2">
@@ -95,8 +118,18 @@ export function FotosAlta({
         })}
       </div>
       <p className="text-xs text-taupe">
-        JPG, PNG o WebP, hasta 5 MB. Se suben al crear el producto; si cancelas, no se guarda nada. La primera del primer color queda de principal.
+        Una foto alcanza: la de «Todos los colores» se ve en cada color que no tenga la suya. JPG, PNG o WebP, hasta 25 MB; cada foto sale del mismo tamaño, sobre blanco, y antes de agregarla eliges si va sin fondo. Se suben al crear el producto; si cancelas, no se guarda nada.
       </p>
+      {porRevisar && (
+        <RevisarFotosModal
+          fuentes={porRevisar.archivos.map((a, i) => ({ clave: String(i), etiqueta: a.name, blob: a }))}
+          onListo={(elegidas, cerrar) => {
+            usar(elegidas, porRevisar.colorCodigo);
+            cerrar();
+          }}
+          onClose={() => setPorRevisar(null)}
+        />
+      )}
     </div>
   );
 }

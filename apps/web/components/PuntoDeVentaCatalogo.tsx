@@ -154,7 +154,7 @@ export function PuntoDeVentaCatalogo({
     // campo de escaneo nunca sale de la vista, por larga que sea la categoría.
     <section
       aria-label="Escanear o buscar prendas"
-      className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:border-r lg:border-b-0"
+      className="flex min-w-0 flex-col border-b border-sand lg:min-h-0 lg:flex-1 lg:border-b-0"
     >
       <div className="anim-sube px-4 pt-3 sm:px-6 sm:pt-4">
         {/* Fila de captura: el campo manda (flex-1); «Prenda sin registrar» (ADR-0179) es la

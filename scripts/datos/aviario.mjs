@@ -48,6 +48,11 @@ export const AVIARIO = [
       "patrones", "categoria_patrones", "etiquetas", "etiqueta_categorias", "variante_etiquetas",
       // ADR-0181: la versión del catálogo que suben los disparadores de las tablas de arriba. Refresco del 2026-09-23.
       "catalogo_version",
+      // ADR-0246 (Frescura, paso 3a): la temporada como atributo del producto — el calendario de fechas por año/estación,
+      // la lista cerrada de temporadas y a qué temporada quedó cada color de cada producto. La cambia quien puede editar
+      // el catálogo (ADR-0246 §"quién decide"), igual que colores/tallas/tejidos arriba. Asignadas en el refresco del
+      // volcado del 2026-09-27.
+      "temporada_fechas", "temporadas", "producto_color_temporadas",
     ] },
   // Tucán es la traducción al estándar de Shopify (ADR-0030); sus tablas no existen en V2.
   { n: "03", pajaro: "Tucán", modulo: "Taxonomía universal", tablas: [] },
@@ -61,6 +66,12 @@ export const AVIARIO = [
       "envios", "envio_extras", "envio_traslados",
       // ADR-0208: el documento de «Bajar prendas al piso» y sus líneas; cada línea es un movimiento almacén→piso.
       "bajadas_piso", "bajada_piso_items",
+      // La llave de reintento de `mover_interno` (token del cliente + huella): un pase piso↔almacén repetido por la red no
+      // mueve dos veces. Es parte del movimiento, no una tabla aparte de nadie. Asignada en el refresco del 2026-09-26.
+      "movimientos_internos_intentos",
+      // La marca de reintento de `ajustar_inventario` (ADR-0240): un ajuste reenviado tras un corte no se aplica dos veces.
+      // Misma razón que la de arriba: es parte del movimiento. Asignada en el refresco del 2026-09-26 (noche).
+      "ajustes_inventario_intentos",
     ] },
   { n: "06", pajaro: "Lechuza", modulo: "Conteo y censo físico",
     tablas: ["conteos", "conteo_items"] },
@@ -81,9 +92,17 @@ export const AVIARIO = [
       // escribir en ella no la hace de Garza, igual que escribir en `movimientos` no hace a nadie dueño de Halcón.
       // Asignadas en el refresco del volcado del 2026-09-25.
       "ubicacion_metas_dia", "campana_efecto_caja", "configuracion_historial",
+      // Apartados (ADR-0236, ADR-0233): abonos, avisos a la clienta, ediciones y prendas retiradas de una separación, las
+      // opciones que cada tienda apaga y el pedido a otra sede para una clienta. Todo nace en el mostrador, igual que
+      // `separaciones`. Asignadas en el refresco del volcado del 2026-09-26.
+      "separacion_abonos", "separacion_avisos", "separacion_ediciones", "separacion_items_retirados", "separacion_pedidos",
+      "apartados_opciones",
     ] },
   { n: "08", pajaro: "Cuervo", modulo: "Facturación SUNAT",
-    tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales"] },
+    tablas: ["comprobantes", "series_comprobantes", "proformas", "configuracion_empresa", "ubicacion_datos_fiscales",
+      // Qué comprobantes de anticipo descuenta una boleta o factura final (ADR-0236: el apartado se cobra en abonos). Es
+      // una relación entre comprobantes, así que responde quien responde por ellos. Refresco del 2026-09-26.
+      "comprobante_anticipos"] },
   { n: "09", pajaro: "Pelícano", modulo: "Compras y proveedores",
     tablas: ["proveedores", "compras", "compra_items", "compra_pagos", "compra_adjuntos", "compras_resumen", "compra_items_resumen",
       // ADR-0184 (Compras por tienda): la parte de cada tienda en un comprobante y quién compra por cada tienda.
@@ -137,8 +156,10 @@ export const AVIARIO = [
       // Balance y cierre de mes (F7/F9, ADR-0198): el punto de partida del Balance, el estado de cada mes, su historia de
       // cierres y el diario congelado al cerrar.
       "saldos_iniciales", "periodos", "periodo_cierres", "diario_cerrado"] },
-  // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá.
-  { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: [] },
+  // Águila lee lo de los demás; el día que escriba sus propios resúmenes, nacen acá. `actividad` (ADR-0207) es el primero:
+  // «quién hizo qué» de cada módulo, escrito por disparadores sobre ventas, caja, cambios y apartados, sin que ningún
+  // módulo lo escriba a mano. Asignada en el refresco del volcado del 2026-09-26.
+  { n: "13", pajaro: "Águila", modulo: "Inteligencia y reportes", tablas: ["actividad"] },
   { n: "14", pajaro: "Gorrión", modulo: "Plataforma y esquema", tablas: [] },
 ];
 

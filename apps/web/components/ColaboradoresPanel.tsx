@@ -215,7 +215,7 @@ export function ColaboradoresPanel({
   const avisos = porAtender(pendientes.length, inactivos.length);
   const terminalesActivas = terminales?.filter((t) => t.activo).length ?? 0;
   const rolesVigentes = roles?.filter((r) => !r.archivado) ?? [];
-  const rolesSoloInicio = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "solo_inicio").length : 0;
+  const rolesSinModulos = cuentas ? rolesVigentes.filter((r) => avisoDelRol(r, cuentasDelRol(cuentas, r.id).length) === "sin_modulos").length : 0;
   const conteoEstado: Record<EstadoCuenta, number> = {
     activas: colaboradores.length,
     pendientes: pendientes.length,
@@ -268,8 +268,8 @@ export function ColaboradoresPanel({
         </BotonSeccion>
         <BotonSeccion activa={seccion === "roles"} onClick={() => setSeccion("roles")} titulo="Roles y accesos">
           {plural(rolesVigentes.length, "rol", "roles")}
-          {rolesSoloInicio > 0 ? (
-            <strong className="font-semibold text-ambar-profundo"> · {rolesSoloInicio === 1 ? "1 deja" : `${rolesSoloInicio} dejan`} cuentas solo en Inicio</strong>
+          {rolesSinModulos > 0 ? (
+            <strong className="font-semibold text-ambar-profundo"> · {rolesSinModulos === 1 ? "1 deja" : `${rolesSinModulos} dejan`} cuentas sin ningún módulo</strong>
           ) : (
             " · qué ve cada cuenta"
           )}

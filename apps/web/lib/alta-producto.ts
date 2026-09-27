@@ -277,9 +277,10 @@ export function desbloqueos(e: EstadoAlta): Desbloqueos {
 // ---------------------------------------------------------------------------
 //
 // Los 7 bloques de antes se agrupan en pasos. Solo uno está abierto a la vez, y el terminado se pliega en una línea:
-//   1 Qué es · 2 Quién es y cómo se llama (nombre, marca, proveedor) · 3 Cómo se hace (tallas, tejido, patrón,
-//   colores, fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color, etiquetas) · 5 Cuántas tienes hoy
-//   (la carga inicial: lo que ya está en tienda, ADR-0212).
+//   1 Qué es · 2 Quién es y cómo se llama (nombre, descripción, marca, proveedor, etiquetas: a la vista desde el
+//   2026-09-26, antes tras un enlace en el paso 4, ADR-0109 act.) · 3 Cómo se hace (tallas, tejido, patrón, colores,
+//   fotos) · 4 Precio y variantes (precio, costo, la tabla talla × color) · 5 Cuántas tienes hoy (la carga inicial: lo
+//   que ya está en tienda, ADR-0212).
 // Cada problema de `problemasAlta` cae en un paso, así el paso dice qué le falta sin repetir las reglas.
 //
 // El 5 va aparte del 4 a propósito: el 4 dice qué ES el producto (catálogo) y el 5 cuánto HAY (inventario). En la misma
@@ -317,12 +318,13 @@ export function pasoAlcanzable(problemas: Problema[]): PasoAlta {
 // ---------------------------------------------------------------------------
 
 /**
- * El orden y la principal de las fotos del alta, igual que la galería de la edición: van primero las de color en el
- * orden de los colores, al final las generales (sin color), y la principal es la primera. Así la foto de la grilla es
- * la del primer color elegido, no la última que se agregó.
+ * El orden y la principal de las fotos del alta: primero las de «Todos los colores» (sin color), después las de cada
+ * color en el orden de los colores, y la principal es la primera. Desde el 2026-09-26 (Felipe: «una foto general y
+ * luego escoger la gama de colores») la foto sin color ES la foto de la prenda: se ve en cada color que no tenga la
+ * suya, así que también es la miniatura. Si solo hay fotos por color, la principal sigue siendo la del primer color.
  */
 export function ordenarFotosAlta<T extends { colorCodigo: string | null }>(fotos: T[], ordenColores: string[]): (T & { orden: number; esPrincipal: boolean })[] {
-  const rango = (c: string | null) => (c === null ? ordenColores.length : Math.max(0, ordenColores.indexOf(c)));
+  const rango = (c: string | null) => (c === null ? -1 : Math.max(0, ordenColores.indexOf(c)));
   return fotos
     .map((f, i) => ({ f, i }))
     .sort((a, b) => rango(a.f.colorCodigo) - rango(b.f.colorCodigo) || a.i - b.i)

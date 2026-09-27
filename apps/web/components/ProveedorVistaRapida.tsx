@@ -13,6 +13,7 @@ import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { PasoSugerido } from "@/components/ui/PasoSugerido";
 import { useEscapeLibre } from "@/components/ui/useEscapeLibre";
+import { useFlechasDelCajon } from "@/components/ui/useFlechasDelCajon";
 
 /** Debe coincidir con `.anim-cajon-salida` en globals.css. */
 const MS_SALIDA = 240;
@@ -57,6 +58,8 @@ export function ProveedorVistaRapida({
   }, [cerrando, onCerrar]);
   // Escape cierra el cajón solo si ningún control de adentro lo usó (useEscapeLibre.ts).
   const alEscape = useEscapeLibre(pedirCierre);
+  // ↑ ↓ pasan de proveedor solo con teclas del cajón: no con las de un modal abierto desde aquí (useFlechasDelCajon.ts).
+  const alFlecha = useFlechasDelCajon(onNavegar);
 
   const paso = siguientePaso(estadoDeProveedor(p));
   const sinCompras90 = p.dias_desde_ultima_compra != null && p.dias_desde_ultima_compra > 90;
@@ -67,10 +70,7 @@ export function ProveedorVistaRapida({
         <Dialog.Overlay className={`fixed inset-0 z-50 bg-tinta/25 backdrop-blur-[2px] ${cerrando ? "anim-velo-salida" : "anim-velo"}`} />
         <Dialog.Content
           onEscapeKeyDown={alEscape}
-          onKeyDown={(e) => {
-            if (e.key === "ArrowDown") { e.preventDefault(); onNavegar(1); }
-            if (e.key === "ArrowUp") { e.preventDefault(); onNavegar(-1); }
-          }}
+          onKeyDown={alFlecha}
           className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-[28.5rem] flex-col border-l border-sand bg-papel outline-none ${cerrando ? "anim-cajon-salida" : "anim-cajon"}`}
         >
           {/* `key`: al pasar de un proveedor a otro el contenido se re-asienta, el cajón no se cierra ni se vuelve a abrir. */}

@@ -133,12 +133,14 @@ const WEB = join(RAIZ, "apps", "web");
  * rebanadas y con decisión de Felipe por función: «la base pide el módulo en las funciones que guardan»).
  */
 const SOLO_PANTALLA = {
+  inicio:
+    "es un aterrizaje, no un candado (comentario propio de aterrizajeDe, 20260925220000): a quien no lo tiene, la propia " +
+    "página lo redirige a su primera pantalla o a /sin-acceso antes de leer nada. Lo que sí lee (fn_ventas_del_dia, " +
+    "fn_actividad, fn_asesoras_de_turno) son funciones compartidas que ya comprueban la sede, no el módulo — las mismas que " +
+    "usan Caja e Historial.",
   vender:
     "registrar_venta y emitir_comprobante solo comprueban que la cuenta opere esa sede (fn_puede_operar_ubicacion); fn_es_lider() " +
     "solo decide el tope de descuento. El módulo lo nombra únicamente fn_es_terminal, que lo usa para clasificar un aparato.",
-  apartados:
-    "separar_prendas, apartar_stock y entregar_separacion solo miran la sede. Extender, liberar y devolver el adelanto de un " +
-    "apartado piden el módulo Caja (fn_puede_gestionar_caja), no Apartados.",
   cambios: "registrar_cambio solo mira la sede; cambios_select deja leer a líder o a quien opera esa sede.",
   devoluciones: "crear_devolucion solo mira la sede; devoluciones_select y devoluciones_write son «líder o su sede».",
   historial:

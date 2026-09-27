@@ -521,3 +521,141 @@ mayúsculas, RUC antes que nombre, RUC válido distinto, RUC a medio escribir, m
 se aplica después de «es otro»). Verificado con un andamio (sin base local) a 800 y 375 px: la pregunta, «Sumar» sin
 contestar (no sale ninguna petición), «Sí» (queda elegido), «No» (sale `registrar_proveedor_de_gasto`), mismo RUC con otro
 nombre (elige sin petición ni opción duplicada) y mismo nombre escrito distinto.
+
+## Actualización 2026-09-26 — las etiquetas se ven, se eligen varias y se crean ahí mismo
+
+Felipe, con la captura del paso 3: «¿dónde están las opciones de etiquetas cuando creo el producto? Tiene que aparecer para poner
+varias, tipo Shopify». Las etiquetas SÍ estaban en el alta, pero vivían tras un enlace chico («+ Etiquetas (opcional)») al final
+del paso 4 (Precio y variantes) —justo donde nadie busca clasificar una prenda—, y solo mostraban las ya aprobadas: si la que
+querías no existía, la única salida era dejar el formulario (y perder lo llenado) para crearla en Catálogo ▸ Atributos. Es el mismo
+problema que en 2026-09-18 llevó a poner «+ Nuevo tejido» dentro del alta (`ProponerValor`).
+
+```
+DECIDÍ: el campo «Etiquetas» es una fila del PASO 2, a la vista, junto a nombre, descripción, marca y proveedor, y se comporta
+  como el de Shopify: escribes para buscar (sin tildes ni mayúsculas), tocas o das Enter y queda como chip con su ✕, y sigues
+  con otra; Retroceso con el campo vacío quita el último. Si la etiqueta no existe, la última opción de la lista es «+ Crear
+  «X»»: abre un mini-panel con el combo «Responsable» (ADR-0161) y crea con `POST /api/productos/etiquetas` —el mismo camino
+  que el vocabulario de tallas/tejidos/patrones—. Un líder la deja aprobada y se agrega a la prenda al instante; cualquier otro
+  rol la deja PENDIENTE (dice «Propuesta enviada») y no se agrega hasta que un líder la apruebe. La ficha de la derecha y la
+  línea del paso 2 plegado muestran las etiquetas elegidas, así se sabe que el campo existe aunque no se haya abierto.
+  Las campañas que ya rigen sobre la categoría siguen en línea punteada «ya aplica por campaña» (no se eligen ni se mandan).
+  Quien no es líder no ve las etiquetas con descuento (la base las rechazaría: «Solo un líder puede asignar una etiqueta con
+  descuento»), y el campo dice cuántas quedaron fuera.
+DESCARTÉ: (a) dejarlo en el paso 4 pero siempre desplegado — el paso 4 es plata y variantes; el problema no era solo el enlace,
+  era el lugar; (b) texto libre sin vocabulario, el tag de Shopify a secas — aquí una etiqueta puede llevar descuento de campaña
+  (ADR-0107): un «Cyber CAYLA» y un «cyber cayla » sueltos serían dos campañas; el índice `etiquetas_clave_unica`
+  (`fn_clave_texto`) y la aprobación ya lo impiden, y no hay razón para saltárselos solo porque el campo se vea igual; (c) un
+  muro de chips como el de tallas — hoy son 24 etiquetas y crecen con cada campaña: con más de 8 manda el buscador (ADR-0209);
+  (d) crear con el «Responsable» del pie del formulario — ADR-0161 pide que un guardado a mitad del formulario sea su propia
+  operación con su propio combo; para el Admin ese combo es un chip de una línea, no un paso más.
+SE ROMPE SI: dos personas crean «Día del Niño» y «Dia del niño» a la vez, o alguien escribe un nombre que existe PENDIENTE,
+  RECHAZADO o desactivado (la lista solo trae aprobadas y activas): el índice único deja entrar una sola y la otra recibe la
+  frase «Ya existe una etiqueta con ese nombre… Búscala en Catálogo → Atributos → Etiquetas» (`etiquetas_clave_unica` no tenía
+  traducción y salía como «Código: …»). Y si un líder desactiva una etiqueta mientras alguien llena el formulario, el alta se
+  rechaza («ya no está disponible… Recarga la pantalla») como ya pasaba: este cambio no lo empeora ni lo arregla.
+```
+
+**Revisión adversarial (4 revisores + un escéptico por hallazgo, 29 hallazgos) y qué se hizo con ellos.** Corregido: Enter agregaba
+la primera coincidencia alfabética, no la escrita (escribir «Sale» agregaba «Outlet Sale», con su descuento): ahora la igual va
+primero, luego las que empiezan igual, y si lo escrito ya está, lo cubre una campaña o no es de este rol, Enter no agrega otra
+«de paso»; Retroceso apretado para borrar lo escrito seguía de largo y se llevaba los chips (`!e.repeat`); lo escrito y no agregado
+se perdía sin aviso al pulsar «Seguir» (ahora el campo lo dice); pegar «a, b, c» creaba UNA etiqueta con comas (ahora se rechaza
+con una frase, y la coma del teclado del celular cuenta como Enter); quitar un chip reabría la lista y subía el teclado; una
+respuesta lenta de «Crear» podía pisar lo elegido mientras tanto (actualizaciones con función); lo propuesto por un no-líder
+se perdía al plegar el paso (vive en el formulario); un nombre guardado con espacios dobles pasaba por «nueva»; 12,5 % se
+mostraba 13 %; el panel de crear decidía «aprobada o pendiente» por ser líder y la base lo decide con
+`fn_puede_editar_etiquetas()` (líder o rol con el módulo Etiquetas): ahora son dos permisos separados (`esLider` para ofrecer
+descuentos, `puedeAprobarEtiquetas` para el texto). **Declarado, no corregido:**
+- **Es el quinto combo del sistema** (junto a `Desplegable`, `ComboBuscable`, `ComboResponsable` y `DesplegablePildora`, ADR-0209),
+  y el único de selección múltiple: no puede ser `ComboBuscable` (elige UNA opción y la deja escrita en el campo), pero comparte
+  sus piezas (lista `fixed` por portal, buscador sin tildes, `useComboLista`) y su teclado.
+- **Editar producto (`ProductoForm`) sigue con las etiquetas por variante tras el enlace «Etiquetas (N)» y sin poder crear**:
+  dos formas de hacer lo mismo (integridad conceptual). Se deja porque allí la etiqueta se pone por variante (ADR-0095), un modelo
+  distinto al «todas las variantes» del alta; unificarlo es una decisión de Felipe.
+- **Crear no recupera la etiqueta si ya existe** (la creó otra persona después de cargar la pantalla, o está pendiente, rechazada o
+  con la campaña terminada): sale la frase de `etiquetas_clave_unica`. Hacer que `POST /api/productos/etiquetas` devuelva la
+  existente cambiaría también «Nueva etiqueta» de Atributos, que hoy trata un duplicado como error.
+- **Etiqueta desactivada entre que carga la página y se envía el alta**: el alta se rechaza con «Recarga la pantalla» y se pierde
+  lo llenado. Ya pasaba; este cambio no lo empeora.
+- **Una propuesta de un no-líder no se podía aprobar desde Atributos ▸ Etiquetas** (`aprobar()` mandaba `{estado: 'aprobado'}` sin
+  comentario y `fn_etiquetas_estado_trigger` exige uno, 20260917230000). Lo encontró la revisión de este cambio y **ya lo arregló
+  `main`** (rama `claude/youthful-gagarin-97a394`, ADR-0095 act.: «Aprobar» pide el comentario). Ojo con lo que esa misma sesión
+  anotó: desde `20260923130000` quien no ve el módulo Etiquetas no ve esa pestaña, así que el campo del alta es hoy la única puerta
+  por pantalla para que un rol SIN ese módulo proponga una etiqueta; queda pendiente hasta que un líder la apruebe.
+- **La lista sigue midiéndose contra `window.innerHeight`** (`usePosicionLista`, compartido): en un teclado virtual que no achica
+  la ventana (iOS) puede quedar tapada. No verificado.
+
+Sin migración: reutiliza `POST /api/productos/etiquetas`, `crear_producto_con_stock_inicial` (`p_etiqueta_ids`) y las políticas de hoy.
+Piezas (**superadas en parte por la actualización (b)**: el componente ya no es un buscador con lista flotante): `components/alta-producto/ElegirEtiquetas.tsx` (chips + lista flotante por portal, teclado como `ComboBuscable`, Escape
+que cierra la lista y después borra lo escrito), `lib/etiquetas-alta-reglas.ts` (qué se ofrece, qué ya aplica, qué significa lo
+escrito; puro y probado), `proponerEtiqueta` en `lib/alta-producto-ejes.ts` (comparte el POST con `proponerValorVocabulario`) y la
+página `/productos/nuevo`, que ahora pasa `esLider`. «Crear otro parecido» aterriza en el paso 2, así que las etiquetas que
+conserva quedan a la vista para cambiarlas.
+
+Verificado con un andamio (sin base local; se borró) a 1440 y 375 px: elegir varias por clic y por teclado, quitar con ✕ y con
+Retroceso, «Ya la agregaste» al repetir, crear como líder (sale `{nombre}` con la firma del responsable y queda el chip), proponer
+como no líder (aviso, sin chip, sin descuento en la lista y con la nota «las que llevan descuento (3) las pone un líder»), sin
+conexión (no ofrece crear y dice por qué), cambio de categoría (la elegida se conserva; la de campaña deja de estar «ya aplica») y
+el alta completa, que envía `p_etiqueta_ids: [e1, e5]` y no manda la campaña que ya aplica sola. **No verificado:** contra la base
+real (la local no tiene API), el mismo camino en producción, y un teclado virtual de iOS.
+
+## Actualización 2026-09-26 (b) — las etiquetas, siempre a la vista, chicas y con ayuda al pasar el mouse
+
+Felipe, con dos capturas (el muro de chips viejo del paso 4 y las tarjetas de Atributos ▸ Etiquetas): «son opcionales, pero no
+deberían estar semi ocultas: mejor siempre visibles, chicas y ordenadas, y que al pasar el mouse te ayude a entender qué
+significa». La primera versión de esta actualización (buscador con lista flotante que solo aparecía al enfocarlo) seguía siendo
+«semi oculta», así que **se reemplaza** el componente por una cuadrícula siempre visible, agrupada como Atributos, con globo de
+ayuda. Superada a su vez por la actualización (c), que le agrega el dibujo — ver ahí el porqué.
+
+## Actualización 2026-09-27 (c) — con dibujo real, en el paso 3, y Tejido corrige el mismo error
+
+Felipe, con tres capturas más (el buscador sin dibujo de (b), Tejido en texto plano al lado de Patrón con textura, y las
+tarjetas con textura de Atributos ▸ Tejidos): «mira dónde sale Etiquetas y analiza si es el lugar correcto y la forma de
+mostrarlo… me pregunto por qué no lo muestras como la parte de textura, el mismo error en Tejido». Antes de tocar código, 12
+preguntas tipo `AskUserQuestion` (protocolo de pregunta, `~/.claude/CLAUDE.md`) y un bosquejo (Artifact, canvas de diseño) con
+los tokens y los íconos reales del sistema, aprobado por Felipe.
+
+**El hallazgo que disparó todo:** `Patrón` ya usaba `MuestraPatron` (una tarjeta de 96 px con dibujo real); `Tejido`, al lado,
+en el mismo paso, seguía en `ChipOpcion` de puro texto — aunque `MuestraTejido.tsx` ya existía y ya se usaba en Catálogo ▸
+Atributos ▸ Tejidos. Es exactamente el error que yo mismo acababa de repetir con Etiquetas en la actualización (b): reinventar
+en texto algo para lo que el sistema ya tiene un dibujo.
+
+```
+DECIDÍ: Etiquetas se muda al paso 3 «Cómo se hace» (después de Colores, antes de Fotos) y su tarjeta reusa `MuestraEtiqueta`
+  —el mismo ícono por concepto de Atributos ▸ Etiquetas (chispa, reloj de arena, podio…)—, en el mismo molde de 96 px que ya
+  usan `MuestraPatron` y (desde este cambio) `MuestraTejido`: dibujo arriba, nombre abajo, ✓ + borde tinta al marcar. El % de
+  descuento va como insignia sobre el dibujo (en el tono del propio grupo, nunca rojo: es el acento de marca). Tejido gana la
+  misma tarjeta con `MuestraTejido`, en vez de sus chips de texto. Colores NO se toca — pedido explícito de Felipe, ya está
+  bien con muchos elegidos. Se mantienen de (b): la cuadrícula siempre visible por grupo, el buscador/crear arriba, el globo
+  de ayuda y la línea táctil.
+DESCARTÉ: (a) dejar Etiquetas en el paso 2 — ese paso es puro texto (nombre, descripción, marca); una cuadrícula de tarjetas
+  con dibujo se ve fuera de lugar entre campos de texto, y al lado de Colores (multiselección + swatch, ya en el paso 3) se ve
+  como su par natural; (b) inventar una etiqueta con su propio dibujo por atributo en Etiquetas también — se evaluó y se
+  descartó: el ícono por CONCEPTO (`MuestraEtiqueta`) ya resuelve «reconocer de un vistazo» sin inventar nada nuevo, y el
+  fallback genérico ya existe; (c) arreglar Etiquetas y dejar Tejido para después — es el mismo defecto en el mismo paso: uno
+  sin el otro se habría notado enseguida.
+SE ROMPE SI: alguien busca «clasificar la prenda» en el paso 2 por costumbre de un día viendo Etiquetas ahí (cambio de hábito,
+  no solo visual); si las etiquetas pasan de ~60 (la cuadrícula deja de caber de un vistazo, igual que antes); o si se
+  construye la rotación automática («Top ventas»/«Últimas unidades» se marcan a mano y el globo lo dice — hay que cambiar esas
+  dos frases cuando eso exista).
+```
+
+**Revisado con 12 preguntas antes de construir**, no después: alcance (Etiquetas y Tejido juntos), estilo del dibujo (ícono como
+Atributos, no textura inventada), tamaño (96 px como Patrón), estado marcado (borde + fondo tinta, igual que siempre), ubicación
+(paso 3, con sus pares visuales — Felipe pidió que yo lo analizara y recomendara, no que eligiera a ciegas), buscador (se
+mantiene arriba), agrupación (se mantienen los 4 grupos con título), descuento (insignia, no texto), ayuda (se mantiene el
+globo), ícono para una etiqueta sin concepto conocido (el genérico que ya existe), y bosquejo antes de código.
+
+Piezas: `ElegirEtiquetas.tsx` (la tarjeta reemplaza al chip: `TarjetaEtiqueta`, con `MuestraEtiqueta`/`TONOS` de
+`components/MuestraEtiqueta.tsx` y `estiloConocido` de `lib/etiqueta-grupos.ts`), `NuevoProductoForm.tsx` (el bloque se mueve
+de paso 2 a paso 3; Tejido gana `MuestraTejido`; `resumen[2]`/`resumen[3]` se actualizan). Sin cambios en
+`lib/etiquetas-alta-reglas.ts`, `lib/etiqueta-ayuda.ts` ni `lib/etiqueta-grupos.ts` (la lógica de (b) seguía siendo correcta;
+solo cambió lo visual y la ubicación).
+
+Verificado con un andamio (sin base local; se borró) a 1440 y 375 px: los 19 íconos de la siembra se ven con su dibujo real
+(cake para Aniversario, reloj de arena para Últimas unidades…), el genérico sale solo para «Día del Niño» (sin código nuevo:
+lo resuelve `MuestraEtiqueta` por su cuenta), Tejido con textura real (Algodón/Denim/Licra), Colores intacto, Etiquetas entre
+Colores y Fotos, marcar/desmarcar, la insignia «20 %»/«10 %» sobre el dibujo, la campaña «se aplica sola» con borde punteado
+sin poder marcarse, crear una etiqueta nueva (queda marcada, cae sola en «General»), el globo con el mismo texto que ya tenía,
+y el rol sin permisos de líder sin ver «Para liquidar» (con la frase de por qué). **No verificado:** contra la base real, con
+un lector de pantalla, ni en una tablet de la tienda.

@@ -530,8 +530,8 @@ dice "no se pudo guardar", **siempre, no a veces**. Dos pantallas están así:
 | `apps/web/components/RegistrarGastoModal.tsx:57` | `p_metodo_pago` | `registrar_gasto` acepta **6** parámetros allá |
 | `apps/web/components/RecibirLoteForm.tsx:431` | `p_orden_produccion_id` | `recibir_lote` acepta **7** parámetros allá |
 
-(`generado/DRIFT.md`.) Registrar un gasto y recibir mercadería ligada a una
-producción fallan en las tres tiendas y en el Taller.
+(`generado/DRIFT.md` del 2026-09-12; ya corregido: hoy el informe no las lista.) Registrar un gasto y recibir mercadería ligada a una
+producción fallaban en las tres tiendas y en el Taller.
 
 **Causa.** Dos, encadenadas. Primera: `create or replace` con un parámetro nuevo
 **no reemplaza nada** — crea una segunda función, y una llamada que solo nombra
@@ -553,8 +553,10 @@ Medido hoy: producción tiene 56 funciones y ni un nombre repetido.
 2. **`pnpm datos:comparar` antes de dar por buena una pantalla.** Es la única
    herramienta que compara **la pantalla contra la base real** — `typecheck`
    compara contra tipos viejos y `migraciones:verificar` compara el repo contra
-   la base, pero ninguno de los dos mira esa tercera pareja. Sale con error si
-   encuentra una pantalla rota, así que sirve como la alarma automática de D-19.
+   la base, pero ninguno de los dos mira esa tercera pareja. Sale con código 1 si
+   encuentra una llamada que la foto de producción no respalda (D-19), así que sirve
+   como alarma. OJO: eso no es lo mismo que «pantalla rota» — la foto puede estar
+   vieja y una función posterior sale como «no está»; confirmarlo en producción.
 
 **Y una trampa que sigue armada.**
 `unificacion/31_una_sola_firma_por_funcion.sql:72` solo borra la firma vieja de

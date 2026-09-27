@@ -1,10 +1,35 @@
 {
+ "actividad": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "activos_fijos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
  },
+ "ajustes_inventario_intentos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "apartados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "apartados_opciones": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "bajada_piso_items": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "bajadas_piso": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -168,6 +193,11 @@
   "forzado": false,
   "relkind": "v",
   "rls": false
+ },
+ "comprobante_anticipos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
  },
  "comprobantes": {
   "forzado": false,
@@ -379,6 +409,11 @@
   "relkind": "r",
   "rls": true
  },
+ "movimientos_internos_intentos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "parametros_finanzas": {
   "forzado": false,
   "relkind": "r",
@@ -444,6 +479,11 @@
   "relkind": "r",
   "rls": true
  },
+ "producto_color_temporadas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "producto_fotos": {
   "forzado": false,
   "relkind": "r",
@@ -494,7 +534,22 @@
   "relkind": "r",
   "rls": true
  },
+ "separacion_abonos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_avisos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "separacion_correlativos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_ediciones": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -504,7 +559,17 @@
   "relkind": "r",
   "rls": true
  },
+ "separacion_items_retirados": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
  "separacion_pagos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "separacion_pedidos": {
   "forzado": false,
   "relkind": "r",
   "rls": true
@@ -535,6 +600,16 @@
   "rls": true
  },
  "tejidos": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "temporada_fechas": {
+  "forzado": false,
+  "relkind": "r",
+  "rls": true
+ },
+ "temporadas": {
   "forzado": false,
   "relkind": "r",
   "rls": true

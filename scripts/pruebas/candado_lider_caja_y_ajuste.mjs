@@ -146,6 +146,20 @@ select coalesce(sum(cantidad), 0) as s0 from retail.stock where variante_id = :'
 `;
 
 /**
+ * ADR-0235: un ajuste corrige lo que ya estaba — `registrar_movimiento` rechaza el ajuste que sería el PRIMER movimiento
+ * de la prenda en la tienda (`ajuste_sin_historia`), y la siembra no le da a esta prenda ninguno en Trujillo (sus
+ * operaciones son de Lima). Los casos donde un ajuste debe PASAR, o llegar hasta la validación del stock negativo, le dan
+ * antes esta historia: una carga inicial en el almacén, como la escribe `fn_cargar_stock_inicial`. El piso (`:s0`) no
+ * cambia. Va después de BASE.
+ */
+const CON_HISTORIA = `insert into retail.movimientos (variante_id, ubicacion_id, sububicacion_id, tipo, cantidad, motivo, nota)
+  select :'var', :'trujillo', id, 'entrada', 5, 'carga_inicial', 'historia previa de la prueba'
+    from retail.sububicaciones where ubicacion_id = :'trujillo' and tipo = 'almacen_tienda'
+  returning id as mov_previo \\gset
+select 1 as _aplicado from retail.fn_aplicar_movimiento(:'mov_previo') \\gset
+`;
+
+/**
  * Una caja abierta en Trujillo, abierta por MICAELA (abrir la caja sigue siendo cosa de la colaboradora),
  * con S/ 100 de apertura, un ingreso de S/ 30 y un egreso de S/ 40 que registra el líder. El efectivo que el
  * sistema espera al cierre es 100 + 30 - 40 = S/ 90.00. Deja `:caja`; termina con la sesión en Felipe.
@@ -380,7 +394,7 @@ exito(
   "líder: los rechazos de siempre siguen — tipo traslado, ajuste sin piso/almacén en una tienda que los separa, y ajuste que dejaría stock negativo",
   comoPersona(
     FELIPE,
-    `${INTENTO}${BASE}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''traslado'', 1)', :'var', :'trujillo')) as tipo_malo \\gset
+    `${INTENTO}${BASE}${CON_HISTORIA}select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''traslado'', 1)', :'var', :'trujillo')) as tipo_malo \\gset
 select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', 1)', :'var', :'trujillo')) as sin_sub \\gset
 select pg_temp.intento(format('select retail.registrar_movimiento(%L, %L, ''ajuste'', -999999, ''x'', ''y'', %L)', :'var', :'trujillo', :'sub_piso')) as negativo \\gset
 select split_part(:'tipo_malo', '|', 2) like 'registrar_movimiento es para entrada/salida/ajuste sueltos%',
@@ -466,7 +480,7 @@ exito(
 );
 exito(
   "colaboradora con un rol que ve Existencias: AHORA registra un ajuste en su tienda (B2d)",
-  comoPersona(FELIPE, `${BASE}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}${MOVER("ajuste", 1)} is not null as ok;\n`),
+  comoPersona(FELIPE, `${BASE}${CON_HISTORIA}${MICAELA_INTEGRANTE}${cambiaA(MICAELA)}${MOVER("ajuste", 1)} is not null as ok;\n`),
   ["t"]
 );
 

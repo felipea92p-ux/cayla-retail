@@ -150,3 +150,14 @@ lo escrito sigue; otro Escape → se cierra el modal. Sin nada abierto, un solo 
 apilados, cada Escape cierra solo el de más arriba. Verificado el 2026-09-26 en un banco de pruebas temporal (todos los
 combos, un acordeón, el buscador escalonado, un cajón propio, `bloqueado` y dos modales apilados, en escritorio y a
 375 px) y en Catálogo ▸ Atributos ▸ Colores ▸ «+ Agregar color» con sesión real.
+
+## Actualización 2026-09-26 (b) — la lista de un combo no es una pieza de la cascada
+
+La hoja tiene ahora una última hija vacía, `<div data-capa-flotante data-sin-cascada />`, y de ella cuelgan las listas de los
+combos (`useDestinoFlotante`). Colgadas directo en la hoja, la cascada las tomaba por contenido: un combo de «Registrar
+gasto» tardaba 1 s en verse entero, contra 0,33 s del selector de sede. Detalle, números y lo descartado: ADR-0211,
+«Actualización 2026-09-26 (b)». Lo vigila `lib/combos-fuera-de-la-cascada.test.ts`.
+
+**Sin resolver (decisión de Felipe):** la cascada también retrasa lo que aparece DESPUÉS de abrir el modal (hasta ~0,6 s
+de espera y 500 ms de entrada). Hoy se esquiva a mano con `data-sin-cascada`, en 14 bloques. Propuesta en el BACKLOG:
+limitar la cascada a la entrada de la hoja.

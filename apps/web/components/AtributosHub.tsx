@@ -6,6 +6,7 @@ import { TallasLista } from "@/components/TallasLista";
 import { TejidosLista } from "@/components/TejidosLista";
 import { PatronesLista } from "@/components/PatronesLista";
 import { EtiquetasLista } from "@/components/EtiquetasLista";
+import { TemporadasLista } from "@/components/TemporadasLista";
 import type { ComponentProps } from "react";
 
 /**
@@ -27,7 +28,7 @@ import type { ComponentProps } from "react";
  * de Categorías y Productos.
  */
 
-type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "etiquetas";
+type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "etiquetas" | "temporadas";
 
 // EL ORDEN ES DE RELEVANCIA, no cronológico ni alfabético:
 //   1. Etiquetas — lo comercial: campañas, fechas y descuentos. Es lo único que
@@ -36,7 +37,10 @@ type Tipo = "colores" | "tallas" | "tejidos" | "patrones" | "etiquetas";
 //      un colaborador las necesita al recibir mercadería. Colores va primero
 //      porque es el que más se propone (35 vs 22).
 //   4. Tejidos y 5. Patrones — opcionales, atributos del producto que además
-//      dependen de la categoría. Patrones al final: es el vocabulario más chico.
+//      dependen de la categoría. Patrones: es el vocabulario más chico.
+//   6. Temporadas (ADR-0246) — también de la prenda y opcional, pero lista CERRADA
+//      de nueve: aquí no se propone nada, se mira el calendario y se completa lo
+//      que quedó «Sin temporada». Por eso va al final.
 // La primera pestaña es también la que abre `/productos/atributos` sin `?tipo=`
 // (ver `page.tsx`); las rutas viejas `/productos/colores` etc. siguen entrando
 // directo a la suya.
@@ -51,6 +55,12 @@ const TABS: { tipo: Tipo; etiqueta: string; icono: string }[] = [
   { tipo: "tejidos", etiqueta: "Tejidos", icono: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
   // Rombos en quincunce: un estampado/patrón repetido.
   { tipo: "patrones", etiqueta: "Patrones", icono: "M12 2l2 2-2 2-2-2zM4 10l2 2-2 2-2-2zM20 10l2 2-2 2-2-2zM12 18l2 2-2 2-2-2zM12 10l2 2-2 2-2-2z" },
+  // Medio sol y medio copo: las dos mitades del año (Primavera-Verano, Otoño-Invierno).
+  {
+    tipo: "temporadas",
+    etiqueta: "Temporadas",
+    icono: "M11 7a5 5 0 000 10zM11 3v2M11 19v2M5 6l1.4 1.4M5 18l1.4-1.4M2 12h2M17.5 7v10M13.2 9.5l8.6 5M13.2 14.5l8.6-5",
+  },
 ];
 
 const AYUDA: Record<Tipo, string> = {
@@ -59,6 +69,8 @@ const AYUDA: Record<Tipo, string> = {
   tejidos: "Vocabulario cerrado de tejido — atributo del producto, no cambia entre tallas de la misma prenda.",
   patrones: "Vocabulario cerrado de patrón/estampado — igual que tejido, atributo del producto.",
   etiquetas: "Marcas comerciales que se le ponen a una prenda (Nuevo, Black Friday, Para liquidar). No es la etiqueta física de código de barras.",
+  temporadas:
+    "De qué temporada es la prenda: una sola, de una lista fija de nueve. La del color manda sobre la de la prenda, y la de la prenda sobre la de su categoría. Frescura la usa para comparar verano con verano y avisar cuando termina su estación.",
 };
 
 function IconoTab({ d, className = "h-4 w-4" }: { d: string; className?: string }) {
@@ -82,6 +94,9 @@ export function AtributosHub({
   puedeEditar,
   puedeEditarEtiquetas,
   puedeDarDescuento,
+  temporadas = null,
+  esLider = false,
+  veProductos = false,
   tipos,
 }: {
   tipo: Tipo;
@@ -100,6 +115,13 @@ export function AtributosHub({
   /** Poner, cambiar o quitar el descuento de una etiqueta, y tocar las que lo llevan: SOLO el líder (poder de precios,
    *  `fn_puede_dar_descuento_por_etiqueta`). */
   puedeDarDescuento: boolean;
+  /** Temporadas (ADR-0246): lo que armó el servidor al abrir esa pestaña, o la nota de por qué no pudo (su SQL todavía
+   *  no está en esta base). `null` en las demás pestañas: no se lee. */
+  temporadas?: ComponentProps<typeof TemporadasLista>["carga"];
+  /** Corregir el calendario de estaciones: SOLO el líder (y los Admin, que lo son). Asignar temporadas usa `puedeEditar`. */
+  esLider?: boolean;
+  /** La cuenta ve el módulo «Productos» (ADR-0161): solo entonces «Sin temporada» enlaza a la ficha de cada prenda. */
+  veProductos?: boolean;
   /** Las pestañas que ve esta cuenta. Un rol con Etiquetas y sin Categorías/atributos entra solo a la suya. Ausente = todas. */
   tipos?: readonly Tipo[];
 }) {
@@ -143,6 +165,7 @@ export function AtributosHub({
           puedeEditar={puedeEditarEtiquetas}
           puedeDarDescuento={puedeDarDescuento}
         />}
+      {tipo === "temporadas" && <TemporadasLista carga={temporadas} puedeEditar={puedeEditar} esLider={esLider} veProductos={veProductos} />}
     </div>
   );
 }

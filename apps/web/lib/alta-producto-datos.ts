@@ -1,6 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
-import { getCostosVariantes, getEjesPorCategoria, type EjesPorCategoria, type ValorVocabulario } from "@/lib/catalogo-v2";
+import {
+  getCostosVariantes,
+  getEjesPorCategoria,
+  getTemporadasCatalogo,
+  type EjesPorCategoria,
+  type TemporadasCatalogo,
+  type ValorVocabulario,
+} from "@/lib/catalogo-v2";
 import { hoyLima, vigenciaDe } from "@/lib/etiqueta-vigencia";
 import type { ColorAlta } from "@/lib/alta-producto";
 import { getCatalogoMarcas, type CatalogoMarcas } from "@/lib/marcas-datos";
@@ -30,6 +37,9 @@ export type EtiquetaAlta = {
   descuentoPct: number | null;
   /** Categorías donde la campaña rige SOLA sobre todas las prendas, sin etiquetarlas una por una. Vacío = solo las etiquetadas a mano. */
   categoriaIds: string[];
+  /** Temporada de la campaña (`YYYY-MM-DD`), o null si la etiqueta es permanente: lo que se lee al pasar el mouse por ella. */
+  vigenteDesde: string | null;
+  vigenteHasta: string | null;
 };
 
 export type ContextoAlta = CatalogoMarcas & {
@@ -46,13 +56,16 @@ export type ContextoAlta = CatalogoMarcas & {
   ejes: EjesPorCategoria;
   /** Todo el vocabulario aprobado: para configurar una categoría sin salir del alta. */
   universo: { tallas: ValorVocabulario[]; tejidos: ValorVocabulario[]; patrones: ValorVocabulario[] };
+  /** La lista de temporadas y la de cada categoría (ADR-0246). `null` = la base todavía no la tiene: el alta sigue
+   *  sin la fila de temporada (lo dice en una nota), nunca se cae por eso. */
+  temporadas: TemporadasCatalogo | null;
 };
 
 const VENTANA_VARIANTES = 2000;
 
 export async function getContextoAlta(): Promise<ContextoAlta> {
   const supabase = await createClient();
-  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas] =
+  const [resFamilias, resCategorias, resColores, resVariantes, resCorrelativos, resEtiquetas, resTallas, resTejidos, resPatrones, ejes, catalogoMarcas, temporadas] =
     await Promise.all([
       supabase.from("familias").select("codigo, nombre, exige_tejido_patron").eq("activo", true).order("orden"),
       supabase.from("categorias").select("id, nombre, familia, prefijo, categoria_padre_id").eq("activo", true).order("nombre"),
@@ -74,6 +87,7 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       supabase.from("patrones").select("id, nombre").eq("activo", true).eq("estado", "aprobado").order("nombre"),
       getEjesPorCategoria(),
       getCatalogoMarcas(),
+      getTemporadasCatalogo(),
     ]);
 
   const categoriasCrudas = exigir(resCategorias, "las categorías del catálogo");
@@ -111,6 +125,8 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       estilo: e.estilo,
       descuentoPct: e.descuento_pct === null ? null : Number(e.descuento_pct),
       categoriaIds: (e.etiqueta_categorias ?? []).map((c) => c.categoria_id),
+      vigenteDesde: e.vigente_desde,
+      vigenteHasta: e.vigente_hasta,
     }));
 
   return {
@@ -144,5 +160,6 @@ export async function getContextoAlta(): Promise<ContextoAlta> {
       tejidos: exigir(resTejidos, "los tejidos aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
       patrones: exigir(resPatrones, "los patrones aprobados").map((t) => ({ id: t.id, texto: t.nombre })),
     },
+    temporadas,
   };
 }

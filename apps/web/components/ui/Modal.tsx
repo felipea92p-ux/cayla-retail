@@ -143,6 +143,13 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
             <Dialog.Description className="sr-only">{titulo}</Dialog.Description>
           )}
           {typeof children === "function" ? children(pedirCierre) : children}
+          {/* La capa de las listas flotantes (2026-09-26): aquí cuelga `useDestinoFlotante` la lista de todo combo de esta
+              hoja. Colgada como hija DIRECTA de la hoja, la cascada de arriba (`.cascada-modal > *`, globals.css) la tomaba
+              por una pieza más del contenido: invisible hasta medio segundo y entrando en otro medio. Abrir un combo en
+              «Registrar gasto» tardaba 1 s en verse entero; el selector de sede de la cabecera, 0,33 s. `data-sin-cascada`
+              saca a la capa y lo que cuelga de ella ya no es hijo directo: la lista entra con su propio movimiento, el de
+              la sede. Va al final para no correr el turno (`--k`) de ninguna pieza; vacía no ocupa lugar. */}
+          <div data-capa-flotante data-sin-cascada />
           </Dialog.Content>
         </div>
       </Dialog.Portal>

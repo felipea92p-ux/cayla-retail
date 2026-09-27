@@ -115,6 +115,15 @@ jobs:
           node --test scripts/adr/numeros.test.mjs
           node scripts/adr/numeros.mjs
 
+      # La lectura de código de `pnpm datos:comparar` (la que escribe `DRIFT.md`): que un nombre de función entre comillas
+      # en una pantalla —en un ternario, en un ayudante— cuente como «la pantalla la usa», y que un comentario NO. Sin esto
+      # `DRIFT.md` decía «función que sobra y habría que retirar» de funciones en uso (Proveedores, Categorías, Cierre de
+      # mes). Lee el código con el parser de TypeScript (dependencia de la raíz), así que necesita la instalación: solo
+      # corre si salió bien (no hay base de datos).
+      - name: Lectura de código de datos:comparar
+        if: ${{ always() && steps.instalar.outcome == 'success' }}
+        run: node --test scripts/datos/comparar-lectura.test.mjs scripts/datos/comparar.test.mjs
+
   pruebas-postgres:
     name: Pruebas de RPC contra Postgres
     runs-on: ubuntu-latest
@@ -300,6 +309,14 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:alta-con-stock-inicial
 
+      # Temporadas como atributo (ADR-0246): la lista cerrada de 9, el calendario de SENAMHI (lo que ya empezó no se mueve;
+      # solo el líder corre una fecha futura), una temporada por prenda (color → producto → categoría), asignar todo o
+      # nada con firma y rastro, el alta con p_temporada, el año por fecha de llegada y la guarda de la migración.
+      # Cada caso termina en ROLLBACK.
+      - name: pruebas:temporadas
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:temporadas
+
       # Bajadas tardías (ADR-0208, paso 1): fn_bajadas_del_piso reconstruye el piso antes de cada bajada y cuenta las
       # ventas de los minutos siguientes; anuladas, entregas de apartado y la «Prenda sin registrar» no cuentan, y si el
       # stock no cuadra con el libro la fila sale «dudosa». Cada caso termina en ROLLBACK.
@@ -414,12 +431,63 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:produccion-punta-a-punta
 
+      # Cotización de maquila externa (D-82/D-31, ADR-0156): cargarla es solo del líder (RLS), la vigente es la más
+      # reciente que no venció (nunca la primera), una vencida o sin ninguna da null (nunca un precio inventado),
+      # cualquier sesión la lee (D-80: la tienda ve el mismo costo de referencia que el Taller) y los dos estados
+      # imposibles del esquema (vence antes de empezar, precio negativo) no llegan a existir. Cada caso: ROLLBACK.
+      # Estaba en EXCLUIDAS de `ci-paridad.test.ts` a la espera de confirmarse en un Postgres real (medida en rojo,
+      # 10/11, en el stack donde se escribió): 11/11 en un Postgres 17 desechable con las migraciones y el seed —
+      # cableada el 2026-09-27.
+      - name: pruebas:cotizaciones-maquila
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:cotizaciones-maquila
+
       # Movimientos con «Referencia» (ADR-0127): el número del traslado/conteo viaja en cada fila,
       # «Traslado 24» / «Boleta B001-000184» / «F001-210» encuentran su proceso, y la lista y las
       # tarjetas de arriba cuentan lo mismo. Cada caso termina en ROLLBACK.
       - name: pruebas:fn-movimientos-referencias
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-movimientos-referencias
+
+      # Filtro de búsqueda especial de Movimientos (ADR-0127, migración 20260921153700): nombre + color + talla en
+      # cualquier orden y con plurales, sinónimos de color y singulares, comparado contra los MISMOS casos que la
+      # versión TypeScript (filtro-busqueda-especial.casos.json); texto raro/vacío no revienta y no busca nada;
+      # RLS + permisos de `fn_movimientos_variantes`/sus ayudas; y `fn_movimientos`/`fn_movimientos_resumen` usan
+      # esta misma búsqueda. Complementa a `fn-movimientos-referencias` (esa prueba el número de proceso; esta, la
+      # prenda) — no son la misma prueba. Cada caso: ROLLBACK. Estaba en EXCLUIDAS a la espera de confirmarse en un
+      # Postgres real (medida en rojo, 134/146, en el stack donde se escribió): 146/146 en un Postgres 17 desechable
+      # con las migraciones y el seed — cableada el 2026-09-27.
+      - name: pruebas:fn-movimientos-busqueda-especial
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-movimientos-busqueda-especial
+
+      # Movimientos leído desde la tienda (ADR-0234): el traslado que llega cuenta en «Entradas» y en «Traslados», una
+      # operación es lo guardado de una sola vez sobre un mismo documento (el cambio cuenta una vez; dos ventas en una
+      # transacción son dos), los ajustes van aparte y quien no opera la sede no ve sus cifras. Cada caso en ROLLBACK.
+      - name: pruebas:movimientos-desde-la-tienda
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-desde-la-tienda
+
+      # Un ajuste no es la primera carga (ADR-0235): la base rechaza un ajuste que sería el primer movimiento de una prenda
+      # en la tienda (`ajuste_sin_historia`) y `cargar_stock_inicial` la carga como entrada, todas o ninguna, al almacén o
+      # al piso con su bajada; después, un ajuste de verdad pasa como siempre. Cada caso en ROLLBACK.
+      - name: pruebas:ajuste-no-es-primera-carga
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:ajuste-no-es-primera-carga
+
+      # Saldo por prenda de Movimientos (ADR-0234, saldo): cada movimiento dice cuántas quedaron en la tienda al terminar
+      # su operación, leído de `fn_ledger_puntos` (la bajada no lo cambia, la cuarentena lo baja, el último es el stock
+      # de hoy); otra sede no vuelve y sin sesión no responde. En ROLLBACK.
+      - name: pruebas:movimientos-saldo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:movimientos-saldo
+
+      # Existencias: una puerta, un candado; y «Ajustar» de una vez (ADR-0240). «Reponer», «Retirar del piso» y «Apartar»
+      # piden su módulo en la base, mover_interno y apartar_stock ya no se llaman desde afuera (y bajar_al_piso sigue
+      # bajando), y ajustar_inventario es todo o nada con marca de reintento. Cada caso en ROLLBACK.
+      - name: pruebas:existencias-candados-y-ajuste
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:existencias-candados-y-ajuste
 
       # Resumen de Inventario v2 (ADR-0121): días con stock reconstruidos del ledger,
       # demanda por FK, costo verificado. Cada caso termina en ROLLBACK.
@@ -444,6 +512,15 @@ jobs:
       - name: pruebas:fn-ledger-fuente-unica
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:fn-ledger-fuente-unica
+
+      # Ritmo reciente de Existencias (rediseño 2026-09-25): `fn_ritmo_reciente_json` reutiliza `fn_ledger_puntos`
+      # (ADR-0202) en vez de sumar una cuarta reconstrucción del ledger, sus eventos coinciden exactos con los de
+      # `fn_ledger_puntos` filtrado a 'piso', su permiso es el de todo el personal de tienda (nunca solo líder,
+      # a diferencia de `fn_resumen_comparacion`), y una variante sin movimiento en la ventana igual aparece con
+      # `[]` — nunca ausente. Cada caso termina en ROLLBACK.
+      - name: pruebas:fn-ritmo-reciente
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:fn-ritmo-reciente
 
       # Productos (ADR-0151): una prenda descontinuada no cuenta como «sin stock», «stock bajo» ni «para pedir»
       # (y por tanto no sale en «A quién pedirle»), el contador de arriba dice lo mismo que la lista de abajo, y
@@ -554,6 +631,15 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:recibir-envio
 
+      # Traslados: recibir sin perder nada (ADR-0239): entra ya lo que coincide y solo la línea con diferencia espera al
+      # líder (que la hace entrar en el mismo lugar), piso o almacén al confirmar (el Taller usa el de siempre), una línea
+      # que ya entró no se recuenta, anular devuelve cada prenda a su sububicación de origen (y se rechaza con conteo
+      # empezado, sin motivo o desde otra sede; el mismo token no duplica), y el pedido para apartar se aparta cuando su
+      # línea entra y vuelve a «pedido» al anular. Cada caso termina en ROLLBACK.
+      - name: pruebas:traslados-recibir-sin-perder-nada
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:traslados-recibir-sin-perder-nada
+
       # Indicadores de Compras (ADR-0111): las cifras de Por pagar, Recibir mercadería, Ingreso sin comprobante y Proveedores (deuda
       # por antigüedad, IGV del mes, concentración, quién cumple) son las de la lista, con permisos (integrante vs. líder, anon) y
       # el borde del día en Lima. Compara contra una línea base, no contra valores absolutos. Cada caso termina en ROLLBACK.
@@ -616,6 +702,18 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:colaboradores-alta-aprobacion
 
+      # Endurecimiento de colaboradores (ADR-0145): `authenticated`/`anon` ya no escriben `retail.colaboradores`
+      # directo (solo las RPC, security definer); el CHECK rechaza un colaborador sin ubicación y deja pasar a un
+      # líder sin ella; `agregar_colaborador`/`quitar_colaborador` avisan la segunda vez en vez de callar, y
+      # quitarse a uno mismo nombra a «otro líder». Cada caso termina en ROLLBACK. Estaba en EXCLUIDAS de
+      # `ci-paridad.test.ts` («nunca pudo pasar»): la prueba dependía de una persona «sobrante» del seed sin
+      # colaboradores, que no existe (Felipe/Micaela/Sandra ya son las tres colaboradoras) — se corrigió para crear
+      # su propia candidata, como el resto de las pruebas de este directorio. 7/7 en un Postgres 17 desechable,
+      # también en `--en-seco` — cableada el 2026-09-27.
+      - name: pruebas:colaboradores-endurecimiento
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:colaboradores-endurecimiento
+
       # Devoluciones con motivo estructurado (D-79, ADR-0158): `crear_devolucion` rechaza motivo nulo o fuera de la lista cerrada de
       # seis códigos, guarda el código tal cual, y lo devuelto se descuenta de lo ya cambiado y de otras devoluciones (ADR-0189).
       # Cada caso termina en ROLLBACK.
@@ -654,6 +752,45 @@ jobs:
       - name: pruebas:candado-lider
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:candado-lider
+
+      # Cierre con traslado y apertura verificada (ADR-0186): el esperado que ve quien cierra es el mismo que
+      # congela `cerrar_caja` (y una colaboradora no lo lee); el traslado rechaza más de lo contado, un destino
+      # inválido o "entregado al líder" sin decir a quién (el depósito bancario SIN n.º de operación NO se
+      # rechaza desde el 2026-09-23: es opcional); el cierre con traslado deja su fila en `caja_traslados` y
+      # `monto_fondo` = contado − trasladado; `abrir_caja` compara con el último fondo y exige motivo si difiere;
+      # `revisar_apertura_caja` es solo del líder y una sola vez; y el check `caja_apertura_explica_diferencia`
+      # frena una escritura directa. Cada caso termina en ROLLBACK.
+      - name: pruebas:caja-cierre-traslado
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:caja-cierre-traslado
+
+      # Tres candados de dinero que vivían solo en el modal, no en la base (20260922235000): `registrar_movimiento_caja`
+      # decide `es_ajuste` del MOTIVO (no de lo que manda el navegador) con vocabulario cerrado y referencia exigida
+      # para "Depósito bancario"/"Otro"; `registrar_cambio` con diferencia negativa no exige líder (revertido a
+      # propósito el 2026-09-23, "agilidad para la clienta"); `aprobar_devolucion` no la aprueba quien la registró y
+      # el reembolso no supera lo que la clienta pagó de verdad (con descuento); y un `update`/`insert`/`delete`
+      # directo sobre `devoluciones`/`devolucion_items`/`prendas_danadas`/`cambios` con el rol real de la API ya no
+      # tiene privilegio de tabla (con su prueba de mutación: sin el `revoke`, el mismo `update` sí pasaba). Cada
+      # caso termina en ROLLBACK.
+      - name: pruebas:candado-dinero-caja-cambios-devoluciones
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:candado-dinero-caja-cambios-devoluciones
+
+      # Archivar datos de prueba de producción sin borrar nada (D-54, ADR-0159): las cuatro funciones
+      # (`archivar_venta_prueba`, `archivar_caja_prueba`, `archivar_conteo_prueba`, `archivar_producto_prueba`)
+      # exigen líder primero; archivar una caja ABIERTA la cierra con el mismo cálculo que `cerrar_caja` y libera el
+      # índice único de la sede; archivar un conteo `abierto` se rechaza (22023); el trigger de `conteos` bloquea
+      # `es_prueba` por UPDATE directo aunque la colaboradora pueda editar su propio conteo; y el mismo candado
+      # ahora también en `productos` (20260928110000: `productos_write_lider` dejó de exigir líder para TODA
+      # escritura cuando ADR-0161 sumó el módulo Productos/Atributos, reabriendo la puerta que esta migración creía
+      # cerrada). Cada caso termina en ROLLBACK. Estaba en EXCLUIDAS («no pasa: 1 de 16»): el script llamaba a
+      # `ventas`/`cajas`/`archivar_venta_prueba()` sin el prefijo `retail.` — `search_path` por defecto de una
+      # conexión nueva es `"$user", public` (ni `supabase start` lo cambia para `-U postgres`: `extra_search_path`
+      # de `config.toml` solo lo aplica PostgREST a los roles de la API). 16/16 en un Postgres 17 desechable, en
+      # modo normal y en `--en-seco` — cableada el 2026-09-27.
+      - name: pruebas:archivar-datos-prueba
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:archivar-datos-prueba
 
       # Cuentas TERMINAL por tienda (poderes del ADR-0160, identidad del ADR-0162): la de ventas cierra caja y mueve caja; la
       # administrativa ajusta stock, cierra conteos y traslados con diferencia, escribe en el Catálogo y edita las cuentas de
@@ -694,6 +831,14 @@ jobs:
       - name: pruebas:roles-cobertura
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:roles-cobertura
+
+      # Aprobar una etiqueta propuesta (trigger `fn_etiquetas_estado_trigger`): la base exige un comentario en toda transición
+      # a «aprobado» —también al reactivar una rechazada— y la pantalla de Etiquetas tiene que mandarlo (cuerpo con `notas`;
+      # antes mandaba solo el estado y ninguna propuesta se podía aprobar). También fija que una propuesta pendiente no entra
+      # al alta de producto ni a «Prendas» hasta aprobarse, y quién puede aprobar (líder o rol con Etiquetas). ROLLBACK siempre.
+      - name: pruebas:etiquetas-aprobar
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:etiquetas-aprobar
 
       # Quién FIRMA (ADR-0162, F3): ninguna función de retail conserva `select id into … from personas where auth_user_id =
       # auth.uid()` salvo las de permiso/identidad listadas (una nueva obliga a clasificarla); 36 firman con el actor de tienda
@@ -747,6 +892,14 @@ jobs:
       - name: pruebas:eliminar-marca
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:eliminar-marca
+
+      # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
+      # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
+      # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
+      # entiende (otra venta, boleta, venta anulada, traslado, libro descuadrado). Cada caso termina en ROLLBACK.
+      - name: pruebas:purgar-producto
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:purgar-producto
 
       # Productos ▸ Eliminar (20260926220000, solo Líder/Admin): un producto que nunca se movió se elimina completo (variantes,
       # códigos de barras, fotos), deja UNA fila de rastro y libera su nombre; con historia (movimientos, ventas, un pedido no
