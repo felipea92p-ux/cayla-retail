@@ -2,7 +2,8 @@
 /**
  * Prueba de ADR-0208 «Frescura del piso» — la lectura de la bajada tardía `retail.fn_bajadas_del_piso`
  * (`20260926000300_frescura_lectura_bajadas.sql`; desde el paso 2 de Frescura 3c, su núcleo
- * `20260928120100_bajadas_nucleo.sql` y el cambio de conducta `20260928120200_bajadas_netear_retiros.sql`).
+ * `20260928120100_bajadas_nucleo.sql` y el cambio de conducta `20260928120200_bajadas_netear_retiros.sql`; desde el
+ * paso 4, el candado del módulo «Frescura del piso» en `20260929100000_frescura_modulo_y_candado.sql`).
  *
  * POR QUÉ. La marca «tardía» no se guarda: se deriva al leer, tomando el piso de antes del libro único
  * (`fn_ledger_puntos`, ADR-0202) y cruzándolo con las ventas desde el piso de los 10 minutos siguientes. Un error de
@@ -24,7 +25,7 @@
  *   T0  forma: una sola versión, security definer, plan a medida, anon sin EXECUTE y authenticated con EXECUTE, y las
  *       columnas del contrato; la prueba ESTRUCTURAL de ADR-0202 mira el NÚCLEO (`fn_bajadas_del_piso_nucleo`, interno:
  *       nadie de afuera lo ejecuta): llama a `fn_ledger_puntos(` una sola vez y no lee `stock` por su cuenta; la puerta
- *       `fn_bajadas_del_piso` (el candado de líder) llama al núcleo UNA vez y al libro ninguna.
+ *       `fn_bajadas_del_piso` (el candado) llama al núcleo UNA vez y al libro ninguna.
  *   T1  piso 0, baja 3, vende 1 a los 3 min → 1 tardía.            T2  piso 5, baja 3, vende 2 a los 2 min → 0.
  *   T3a venta a los 10:00 exactos → cuenta.   T3b a los 10:01 → no. Con ventana de 5 minutos, la de 10:00 no cuenta.
  *   T4  bajadas de 2 y 3 y una venta de 5 que necesita las dos → 2 y 3.
@@ -37,7 +38,10 @@
  *       (cambia en 120200: antes «normal» con piso_antes 1).
  *   T10 stock tocado a mano: una unidad de más cambia piso_antes; si queda negativo → «dudosa» y tardías nulas.
  *   T11 bajada de hace 2 minutos sin venta → «en_curso», sin cerrar; si ya se vendió, «tardia» aunque siga abierta.
- *   T12 Taller (sin piso ni almacén) → cero filas y sin error.   T13 cuenta que no es líder → su mensaje.
+ *   T12 Taller (sin piso ni almacén) → cero filas y sin error.
+ *   T13 el candado del paso 4 (ADR-0208, ADR-0253): una integrante SIN el módulo «Frescura del piso» → P0001
+ *       frescura_sin_permiso; CON el módulo, su sede sí (las mismas filas que el líder, con persona_id nulo) y otra sede
+ *       no; el líder ve persona_id.
  *   T14 historia mezclada (y una entrada de hace 40 días, fuera del rango): piso_antes = nivel justo antes + retiros de
  *       [t − W, t), recalculado desde cero (cambia en 120200: antes 4, 5, 7 y ahora 4, 6, 7; primera 120200: 4, 7, 8); el
  *       retiro a 10 minutos justos de dos bajadas va a la de antes (efectivas 2, 2, 1; primera 120200: 2, 1, 1).
@@ -51,9 +55,10 @@
  *   T20 tienda inactiva → cero filas y sin error (el libro no reconstruye sedes inactivas).
  *   T21 la venta se mide a la hora de la VENTA, no a la de su salida del libro, cuando las dos no coinciden.
  *   T22 la guarda de 20260928120100: con un parche en vivo aborta sin tocar nada; pegada DESPUÉS de la 120200, aborta
- *       con su aviso y no deshace nada. T22 (el núcleo), desde la revisión 3: pegada dos veces pasa, y con el NÚCLEO de la
+ *       con su aviso y no deshace nada (la cadena 0300 → 120100 → 120200 termina en la puerta de la 120200, 34a7e0cc…). T22 (el núcleo), desde la revisión 3: pegada dos veces pasa, y con el NÚCLEO de la
  *       120100 parchado en vivo aborta y no lo pisa (antes la guarda solo miraba la puerta).
- *   T23 la guarda de 20260928120200: pegada dos veces deja lo mismo; con un parche en vivo del núcleo aborta sin tocar;
+ *   T23 la guarda de 20260928120200 (sobre su propia puerta, la de antes del paso 4): pegada dos veces deja lo mismo;
+ *       con un parche en vivo del núcleo aborta sin tocar;
  *       con la PUERTA parchada en vivo (con la 120200 ya pegada, o justo después de la 120100) también aborta y no pisa
  *       el parche (revisión 2 del 2026-09-27: quitar la mitad de la guarda que mira la puerta pasaba sin que nada fallara).
  *   T24 el ejemplo de ADR-0208 (c): piso 2, se retiran 2 por error, se reponen 2 al minuto y se vende 1 → «corregida»,
@@ -109,6 +114,9 @@
  *   T35 dos bajadas del mismo instante salen por id (mutante 20: id descendente; en producción hay 69 pares así).
  *   T36 solo un traslado interno es bajada o retiro: una salida o una entrada con sububicación de destino suelta (la
  *       base la acepta) ni se descuenta ni se lleva un retiro (mutante 8: sin fn_es_traslado_interno).
+ *   T37 la guarda de 20260929100000 (paso 4) sobre la puerta: desde la 120200 entra y deja la puerta del paso 4
+ *       (9821874e…) con las mismas filas para el líder; pegada otra vez no cambia nada; con la puerta o el núcleo parchados
+ *       en vivo aborta y no los pisa; volver a pegar la 120200 después aborta y no la deshace.
  *
  * MUTANTES EQUIVALENTES (revisión 4): de los 38 cambios de la revisión 3, 9 no cambian ninguna fila posible, y ningún
  * caso puede matarlos. Diferencial aleatorio (8 historias densas: empates de minuto, retiros, cargas, la centinela,
@@ -144,6 +152,8 @@ const migracion = (archivo) => readFileSync(join(RAIZ, "supabase", "migrations",
 const MIGRACION_0300 = migracion("20260926000300_frescura_lectura_bajadas.sql");
 const MIGRACION_NUCLEO = migracion("20260928120100_bajadas_nucleo.sql");
 const MIGRACION_RETIROS = migracion("20260928120200_bajadas_netear_retiros.sql");
+/** Paso 4 (la pantalla): el módulo «Frescura del piso» y el candado nuevo de la puerta. */
+const MIGRACION_P4 = migracion("20260929100000_frescura_modulo_y_candado.sql");
 /** Una migración entera como literal de SQL (entre $m$), para ejecutarla con pg_temp.intento dentro del caso. */
 const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
@@ -636,16 +646,41 @@ ${probar("sin_tienda", "null")}`,
 
 // ---------------------------------------------------------------------------
 correr(
-  "T13 · una cuenta que no es líder no la ve",
-  `set local request.jwt.claim.sub = '${MICAELA}';
-${probar("integrante", ":'ubic'")}`,
-  ({ errores }) => {
-    const e = errores.integrante;
+  "T13 · el candado del paso 4: sin el módulo no; con «Frescura del piso» en su rol, su sede sí (sin persona_id) y otra no; el líder ve quién bajó",
+  `select pg_temp.variante('ZZ-FRE-T13') as v \\gset
+select pg_temp.llega(:'v', 5, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
+select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 2)), gen_random_uuid()) ->> 'bajada_id' as bid \\gset
+-- Como en T7: lo recién escrito se corre 1 minuto atrás para que la lectura, que va hasta now(), lo vea.
+alter table retail.movimientos disable trigger movimientos_inmutables;
+update retail.movimientos set created_at = created_at - interval '1 minute'
+ where id in (select movimiento_id from retail.bajada_piso_items where bajada_id = :'bid');
+alter table retail.movimientos enable always trigger movimientos_inmutables;
+select id as lim from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select 'LIDER|' || coalesce((select string_agg(coalesce(r.persona_id::text, 'null'), ',') from retail.fn_bajadas_del_piso(:'ubic') r where r.variante_id = :'v'), 'ninguna');
+select 'FELIPE|' || :'felipe';
+set local request.jwt.claim.sub = '${MICAELA}';
+${probar("sin_modulo", ":'ubic'")}
+-- El módulo en el rol Integrante, dentro de la transacción (el ROLLBACK lo quita). Ninguna migración lo hace: nace sin rol.
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'frescura');
+${probar("con_modulo", ":'ubic'")}
+${probar("con_modulo_otra", ":'lim'")}
+select 'MOD|' || coalesce((select string_agg(coalesce(r.persona_id::text, 'null'), ',') from retail.fn_bajadas_del_piso(:'ubic') r where r.variante_id = :'v'), 'ninguna');
+select 'MOD_TODAS|' || (select count(*) from retail.fn_bajadas_del_piso(:'ubic') r where r.persona_id is not null);
+set local request.jwt.claim.sub = '${FELIPE}';
+select 'LIDER_N|' || (select count(*) from retail.fn_bajadas_del_piso(:'ubic'));`,
+  ({ errores, otras }) => {
+    const sin = errores.sin_modulo;
     afirmar(
-      "«Solo el líder puede ver cómo se registran las bajadas al piso.» (P0001, hint bajadas_solo_lider)",
-      e?.ok === false && e?.estado === "P0001" && e?.hint === "bajadas_solo_lider" && e?.msg === "Solo el líder puede ver cómo se registran las bajadas al piso.",
-      ver(e),
+      "integrante SIN el módulo: P0001, hint frescura_sin_permiso, y el mensaje nombra el módulo «Frescura del piso»",
+      sin?.ok === false && sin?.estado === "P0001" && sin?.hint === "frescura_sin_permiso" && (sin?.msg ?? "").includes("«Frescura del piso»"),
+      ver(sin),
     );
+    const con = errores.con_modulo;
+    afirmar("integrante CON el módulo, en su sede: ok, con filas", con?.ok === true && con?.filas >= 1 && String(con?.filas) === otras.LIDER_N, `${ver(con)} LIDER_N=${otras.LIDER_N}`);
+    const otra = errores.con_modulo_otra;
+    afirmar("…en otra sede (Lima): P0001 frescura_sin_permiso", otra?.ok === false && otra?.estado === "P0001" && otra?.hint === "frescura_sin_permiso", ver(otra));
+    afirmar("el líder ve quién registró la bajada (persona_id)", otras.LIDER === otras.FELIPE, `LIDER=${otras.LIDER} FELIPE=${otras.FELIPE}`);
+    afirmar("la integrante con el módulo ve la misma bajada SIN persona_id, y ninguna fila de su sede trae persona", otras.MOD === "null" && otras.MOD_TODAS === "0", `MOD=${otras.MOD} MOD_TODAS=${otras.MOD_TODAS}`);
   },
 );
 
@@ -895,7 +930,7 @@ select ${intento(MIGRACION_0300)} ->> 'ok' as c1 \\gset
 select ${MD5("fn_bajadas_del_piso")} as md5_0300 \\gset
 select ${intento(MIGRACION_NUCLEO)} ->> 'ok' as c2 \\gset
 select ${intento(MIGRACION_RETIROS)} ->> 'ok' as c3 \\gset
-select 'CADENA|' || :'c1' || ',' || :'md5_0300' || ',' || :'c2' || ',' || :'c3' || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_hoy')
+select 'CADENA|' || :'c1' || ',' || :'md5_0300' || ',' || :'c2' || ',' || :'c3' || ',' || (${MD5("fn_bajadas_del_piso")} = '34a7e0cc5f421333761e8bda92a582eb')
        || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo_hoy') || ',' || ${CUANTAS};
 -- 3. Alguien parcha la puerta vieja en vivo (el mismo contrato de la 0300, otro cuerpo): la 120100 se niega a pisarlo.
 ${BORRAR_LAS_DOS}
@@ -912,7 +947,7 @@ select 'PARCHE|' || ${abortaCon("r3", "cambió desde que se escribió")} || ',' 
   ({ otras }) => {
     afirmar("pegada después de la 120200: aborta con «Ya está pegada la 20260928120200» y no toca ninguna de las dos", otras.TARDE === "false,true,true,true", `TARDE=${otras.TARDE}`);
     afirmar(
-      "la cadena 0300 → 120100 → 120200 pasa entera, la 0300 mide 91e2d0c1… (el md5 de producción) y termina igual que hoy",
+      "la cadena 0300 → 120100 → 120200 pasa entera, la 0300 mide 91e2d0c1… (el md5 de producción de entonces) y termina en la puerta de la 120200 (34a7e0cc…) y el núcleo de hoy",
       otras.CADENA === "true,91e2d0c19981952706c7b75d8514eb26,true,true,true,true,2",
       `CADENA=${otras.CADENA}`,
     );
@@ -962,7 +997,14 @@ select 'PARCHE_NUCLEO|' || ${abortaCon("r", "fn_bajadas_del_piso_nucleo cambió 
 // ---------------------------------------------------------------------------
 correr(
   "T23 · la guarda de 20260928120200: pegada dos veces deja lo mismo (y los permisos); un parche del núcleo o su falta la hacen abortar",
-  `select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
+  `-- Desde el paso 4 la puerta de hoy es otra (20260929100000): la 120200 se prueba sobre SU puerta, la de la cadena
+-- 0300 → 120100, como cuando se escribió. T37 prueba la guarda del paso 4.
+${BORRAR_LAS_DOS}
+select ${intento(MIGRACION_0300)} ->> 'ok' as c1 \\gset
+select ${intento(MIGRACION_NUCLEO)} ->> 'ok' as c2 \\gset
+select ${intento(MIGRACION_RETIROS)} ->> 'ok' as c3 \\gset
+select ${MD5("fn_bajadas_del_piso")} as puerta_hoy, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
+select 'CADENA|' || :'c1' || ',' || :'c2' || ',' || :'c3' || ',' || :'puerta_hoy';
 select ${intento(MIGRACION_RETIROS)} ->> 'ok' as p1 \\gset
 select ${intento(MIGRACION_RETIROS)} ->> 'ok' as p2 \\gset
 select 'DOS|' || :'p1' || ',' || :'p2' || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_hoy') || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo_hoy')
@@ -986,6 +1028,7 @@ drop function retail.fn_bajadas_del_piso_nucleo${FIRMA};
 select ${intento(MIGRACION_RETIROS)} as r2 \\gset
 select 'SIN_NUCLEO|' || ${abortaCon("r2", "pega antes 20260928120100")};`,
   ({ otras }) => {
+    afirmar("la cadena 0300 → 120100 → 120200 deja la puerta de la 120200 (34a7e0cc…)", otras.CADENA === "true,true,true,34a7e0cc5f421333761e8bda92a582eb", `CADENA=${otras.CADENA}`);
     afirmar(
       "pegada dos veces: pasan las dos, las dos funciones quedan iguales, authenticated ejecuta la puerta y no el núcleo, anon ninguna",
       otras.DOS === "true,true,true,true,2,true,false,false",
@@ -2155,6 +2198,82 @@ ${FILAS()}`,
       "ENTRADA: la recepción con destino suelto no es bajada (una sola fila) ni se lleva el retiro: la de 10:00 retiradas 1, efectiva 1",
       e.length === 1 && es(e[0], { min: 0, cantidad: 2, pisoAntes: 0, retiradas: 1, efectiva: 1, estado: "normal" }),
       ver(e),
+    );
+  },
+);
+
+// ---------------------------------------------------------------------------
+// T37 · La guarda del paso 4 (20260929100000) sobre la puerta. Lo que cambia es SOLO el candado y quién ve persona_id:
+// para el líder, las filas tienen que ser las mismas que con la puerta de la 120200. (La lectura de una sede y el
+// registro al colgar, que la misma migración reescribe, los prueba frescura_lectura, T12 y T12b.)
+const FILAS_TEXTO = `(select coalesce(string_agg(concat_ws(':', r.movimiento_id, coalesce(r.persona_id::text, '-'), r.cantidad, r.piso_antes,
+  r.vendidas_en_ventana, coalesce(r.unidades_tardias::text, '-'), r.cerrada, r.estado, r.retiradas_en_ventana, r.cantidad_efectiva,
+  r.es_carga_inicial), ',' order by r.movimiento_id), '') from retail.fn_bajadas_del_piso(:'ubic') r)`;
+correr(
+  "T37 · la guarda de 20260929100000 (paso 4): desde la 120200 entra y deja su puerta con las mismas filas para el líder; otra vez no cambia nada; con la puerta o el núcleo parchados aborta y no los pisa; la 120200 después aborta",
+  `select pg_temp.variante('ZZ-FRE-T37') as v \\gset
+select pg_temp.llega(:'v', 10, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
+select pg_temp.bajada(:'v', 3, :'t0'::timestamptz) as _2 \\gset
+select pg_temp.vende(:'v', 1, :'t0'::timestamptz + interval '3 minutes') as _3 \\gset
+select ${MD5("fn_bajadas_del_piso")} as puerta_p4, ${MD5("fn_bajadas_del_piso_nucleo")} as nucleo_hoy \\gset
+select ${FILAS_TEXTO} as filas_p4 \\gset
+-- La puerta de antes del paso 4: la de la cadena 0300 → 120100 → 120200 (producción hasta pegar el paso 4).
+${BORRAR_LAS_DOS}
+select ${intento(MIGRACION_0300)} ->> 'ok' as c1 \\gset
+select ${intento(MIGRACION_NUCLEO)} ->> 'ok' as c2 \\gset
+select ${intento(MIGRACION_RETIROS)} ->> 'ok' as c3 \\gset
+select ${MD5("fn_bajadas_del_piso")} as puerta_antes \\gset
+select ${FILAS_TEXTO} as filas_antes \\gset
+select ${intento(MIGRACION_P4)} as r1 \\gset
+select 'ENTRA|' || :'c1' || ',' || :'c2' || ',' || :'c3' || ',' || :'puerta_antes' || ',' || ((:'r1')::jsonb ->> 'ok')
+       || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_p4') || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'nucleo_hoy');
+select 'MISMAS|' || (:'filas_antes' = :'filas_p4') || ',' || (${FILAS_TEXTO} = :'filas_p4') || ',' || (length(:'filas_p4') > 0);
+select ${intento(MIGRACION_P4)} ->> 'ok' as r2 \\gset
+select 'OTRA_VEZ|' || :'r2' || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_p4');
+-- La 120200 después del paso 4: su guarda no conoce la puerta nueva, aborta y no la deshace.
+select ${intento(MIGRACION_RETIROS)} as r3 \\gset
+select 'TARDE|' || ${abortaCon("r3", "cambiaron desde que se escribió")} || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_p4');
+-- Alguien parcha la puerta en vivo (las mismas columnas, otro cuerpo): el paso 4 no la pisa.
+create or replace function retail.fn_bajadas_del_piso(p_ubicacion_id uuid, p_desde timestamptz default null,
+  p_hasta timestamptz default null, p_minutos integer default 10)
+returns table (movimiento_id uuid, bajada_id uuid, variante_id uuid, persona_id uuid, bajada_en timestamptz, cantidad integer,
+  piso_antes integer, vendidas_en_ventana integer, unidades_tardias integer, cerrada boolean, estado text,
+  retiradas_en_ventana integer, cantidad_efectiva integer, es_carga_inicial boolean)
+language plpgsql stable security definer set search_path = retail, public, extensions as $f$
+begin /* parche en vivo de la puerta, tras el paso 4 */ return; end $f$;
+select ${MD5("fn_bajadas_del_piso")} as parche \\gset
+select ${intento(MIGRACION_P4)} as r4 \\gset
+select 'PARCHE_PUERTA|' || ${abortaCon("r4", "fn_bajadas_del_piso tiene otro cuerpo")} || ',' || (${MD5("fn_bajadas_del_piso")} = :'parche');
+-- Y con el NÚCLEO parchado (la puerta del paso 4 lee sus columnas por nombre): también aborta.
+${BORRAR_LAS_DOS}
+select ${intento(MIGRACION_0300)} ->> 'ok' as d1 \\gset
+select ${intento(MIGRACION_NUCLEO)} ->> 'ok' as d2 \\gset
+select ${intento(MIGRACION_RETIROS)} ->> 'ok' as d3 \\gset
+create or replace function retail.fn_bajadas_del_piso_nucleo(p_ubicacion_id uuid, p_desde timestamptz default null,
+  p_hasta timestamptz default null, p_minutos integer default 10)
+returns table (movimiento_id uuid, bajada_id uuid, variante_id uuid, persona_id uuid, bajada_en timestamptz, cantidad integer,
+  piso_antes integer, vendidas_en_ventana integer, unidades_tardias integer, cerrada boolean, estado text,
+  retiradas_en_ventana integer, cantidad_efectiva integer, es_carga_inicial boolean)
+language plpgsql stable security definer set search_path = retail, public, extensions as $f$
+begin /* parche en vivo del núcleo, antes del paso 4 */ return; end $f$;
+select ${MD5("fn_bajadas_del_piso_nucleo")} as parche_n, ${MD5("fn_bajadas_del_piso")} as puerta_120200 \\gset
+select ${intento(MIGRACION_P4)} as r5 \\gset
+select 'PARCHE_NUCLEO|' || :'d1' || ',' || :'d2' || ',' || :'d3' || ',' || ${abortaCon("r5", "El núcleo de las bajadas no es el del paso 2")}
+       || ',' || (${MD5("fn_bajadas_del_piso_nucleo")} = :'parche_n') || ',' || (${MD5("fn_bajadas_del_piso")} = :'puerta_120200');`,
+  ({ otras }) => {
+    afirmar(
+      "desde la cadena 0300 → 120100 → 120200 (puerta 34a7e0cc…), el paso 4 entra y deja su puerta; el núcleo no cambia",
+      otras.ENTRA === "true,true,true,34a7e0cc5f421333761e8bda92a582eb,true,true,true",
+      `ENTRA=${otras.ENTRA}`,
+    );
+    afirmar("para el líder, las filas de la puerta de antes y de la del paso 4 son las mismas (con persona_id)", otras.MISMAS === "true,true,true", `MISMAS=${otras.MISMAS}`);
+    afirmar("pegada otra vez: ok y la puerta no cambia", otras.OTRA_VEZ === "true,true", `OTRA_VEZ=${otras.OTRA_VEZ}`);
+    afirmar("la 120200 después del paso 4 aborta («cambiaron desde que se escribió») y no deshace la puerta", otras.TARDE === "false,true,true", `TARDE=${otras.TARDE}`);
+    afirmar("con la puerta parchada en vivo, el paso 4 aborta nombrándola y el parche sigue", otras.PARCHE_PUERTA === "false,true,true", `PARCHE_PUERTA=${otras.PARCHE_PUERTA}`);
+    afirmar(
+      "con el núcleo parchado en vivo, el paso 4 aborta («El núcleo de las bajadas no es el del paso 2») y no toca ni el núcleo ni la puerta",
+      otras.PARCHE_NUCLEO === "true,true,true,false,true,true,true",
+      `PARCHE_NUCLEO=${otras.PARCHE_NUCLEO}`,
     );
   },
 );

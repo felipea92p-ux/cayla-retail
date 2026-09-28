@@ -4,7 +4,8 @@
  * (`supabase/migrations/20260928120300_frescura_lectura.sql`, sus correcciones de las revisiones 3 y 5 en
  * `20260928120310_frescura_lectura_revision3.sql`, las decisiones de Felipe de la revisión 7 en
  * `20260928120320_frescura_lectura_revision7.sql` y los hallazgos de la revisión 9 en
- * `20260928120330_frescura_lectura_revision9.sql`): `fn_es_llegada`, `fn_es_llegada_a_cayla`, `fn_frescura_sede`,
+ * `20260928120330_frescura_lectura_revision9.sql`; desde el paso 4, el candado del módulo «Frescura del piso» en
+ * `20260929100000_frescura_modulo_y_candado.sql`): `fn_es_llegada`, `fn_es_llegada_a_cayla`, `fn_frescura_sede`,
  * `fn_confianza_registro` y `fn_temporada_efectiva_nucleo`.
  *
  * POR QUÉ. La web arma la vara (Kaplan-Meier) y los tramos con lo que devuelve `fn_frescura_sede`: si una prenda colgada
@@ -18,15 +19,17 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración que manda cada una (20260928120320 para fn_frescura_sede, 20260928120310 para las otras cinco)
- *       nombra su md5 vivo (de las seis: también
+ *       de la migración que manda cada una (20260929100000 para fn_frescura_sede y fn_confianza_registro,
+ *       20260928120310 para las otras cuatro) nombra su md5 vivo (de las seis: también
  *       fn_temporada_efectiva_nucleo, sin EXECUTE para nadie de afuera, fn_temporada_efectiva, que conserva sus
  *       permisos, y fn_es_llegada_a_cayla, immutable, sin search_path propio y sin EXECUTE para nadie de afuera);
  *       fn_confianza_registro lee el mes en hora de Lima.
- *   T1  permisos: el líder sí; una integrante (sin líder) no, con la pista frescura_sin_permiso, en las dos (también
- *       fn_confianza_registro sin tienda); anon no (42501); si fn_puede_operar_ubicacion dice que no a esa tienda, el
- *       líder tampoco (hoy un líder opera todas: la prueba la reemplaza dentro de su transacción para vigilar que el
- *       candado la pregunte), y sin tienda fn_confianza_registro igual responde.
+ *   T1  permisos (paso 4, ADR-0253): el líder sí; una integrante SIN el módulo «Frescura del piso» no, con la pista
+ *       frescura_sin_permiso, en las dos (también fn_confianza_registro sin tienda); CON el módulo, su tienda sí y otra
+ *       no, y fn_confianza_registro sin tienda le da SOLO la suya (de las otras sedes no ve nada; el líder, todas); anon
+ *       no (42501); si fn_puede_operar_ubicacion dice que no a esa tienda, el líder tampoco (hoy un líder opera todas: la
+ *       prueba la reemplaza dentro de su transacción para vigilar que el candado la pregunte), y sin tienda
+ *       fn_confianza_registro igual responde, sin esa tienda.
  *   T2  qué prendas: la colgada sin movimiento en la ventana aparece con su saldo inicial (marca 4) y su primera
  *       exhibición de hace 149 días; la que solo está en el almacén aparece sin eventos; la que solo está en cuarentena
  *       no; la que se vendió entera en la ventana sí (sin ella no hay vara); la que se vendió antes de la ventana no; la
@@ -117,15 +120,16 @@
  *       a los 10 minutos y 1 segundo, sí.
  *   T4j la llegada a CAYLA de una orden del Taller solo cuenta si la orden sigue inventariada (R9-SQL-2): cerrar →
  *       revertir → anular y revertir sin volver a cerrar no mueven la temporada; cerrar → revertir → cerrar sí.
- *   T12 la guarda de 20260928120330 (la que manda fn_frescura_sede): pegada otra vez deja lo mismo; con fn_frescura_sede
- *       o una de las tres que usa (fn_es_llegada, fn_es_llegada_a_cayla, fn_temporada_efectiva_nucleo) parchada en vivo
- *       aborta sin tocarla; las dos que no usa ni reescribe siguen con su parche y la migración entra.
+ *   T12 la guarda de 20260929100000 (paso 4; la que manda fn_frescura_sede y fn_confianza_registro): pegada otra vez
+ *       deja lo mismo; con una de las dos parchada en vivo aborta sin tocarla; las cuatro que no reescribe siguen con su
+ *       parche y la migración entra. La de 20260928120330, pegada otra vez después del paso 4, aborta y no deshace nada.
  *   T12b el orden de las cuatro migraciones, desde el estado de producción del 2026-09-27 (ninguna pegada,
  *       fn_temporada_efectiva de 20260928100000): la de revisión 7 sobre la de main sola la pide; la de main entra y deja
  *       sus md5; la 120310 entra ENCIMA, deja los suyos y otra vez no cambia nada; la de revisión 9 sobre la 120310 sola
  *       pide la 120320; la de revisión 7 entra encima, deja los suyos y otra vez no cambia nada; la de revisión 9 entra
- *       encima, deja los suyos y otra vez no cambia nada; cualquier anterior otra vez aborta sin deshacer nada; sin la de
- *       main, las otras tres la piden. Antes, con la corrección editada en el mismo archivo, la corregida abortaba
+ *       encima, deja los suyos y otra vez no cambia nada; la del paso 4 ANTES de la de revisión 9 la pide; la del paso 4
+ *       entra encima de la de revisión 9, deja los md5 de una base con todas las migraciones y otra vez no cambia nada;
+ *       cualquier anterior otra vez aborta sin deshacer nada; sin la de main, las otras tres la piden. Antes, con la corrección editada en el mismo archivo, la corregida abortaba
  *       culpando a un «parche en vivo» (revisión 4, hallazgo 1).
  *   T13 el contrato con la web: siembra una tienda con de todo (la vara de las blusas, nueva, vieja, carga inicial,
  *       tardía, retiro, dudosa, solo almacén, apartada, chompa de invierno con otro lote en Trujillo —su llegada a la
@@ -163,8 +167,11 @@ const MIGRACION_R7 = leerMigracion("20260928120320_frescura_lectura_revision7.sq
  *  desempate del mismo instante): manda en fn_frescura_sede. Archivo propio porque 20260928120320 ya estaba en main
  *  (PR #545) cuando se encontraron. */
 const MIGRACION_R9 = leerMigracion("20260928120330_frescura_lectura_revision9.sql");
+/** Paso 4 (la pantalla, 2026-09-28): el módulo «Frescura del piso» y el candado nuevo de fn_frescura_sede y
+ *  fn_confianza_registro (el líder, o el módulo en su rol, en una sede que opera). Manda en esas dos. */
+const MIGRACION_P4 = leerMigracion("20260929100000_frescura_modulo_y_candado.sql");
 /** La migración cuya guarda nombra el cuerpo vivo de cada función. */
-const GUARDA_DE = (f) => (f === "fn_frescura_sede" ? MIGRACION_R9 : MIGRACION);
+const GUARDA_DE = (f) => (f === "fn_frescura_sede" || f === "fn_confianza_registro" ? MIGRACION_P4 : MIGRACION);
 /** El cuerpo de fn_temporada_efectiva de 20260928100000 (el que tiene producción antes de pegar 20260928120310). */
 const TEMPORADA_EFECTIVA_0100 = (() => {
   const t = leerMigracion("20260928100000_temporadas_como_atributo.sql");
@@ -495,13 +502,32 @@ ${k("MD5", `(select string_agg(proname || '=' || md5(prosrc), ',' order by prona
 
 // ---------------------------------------------------------------------------
 correr(
-  "T1 · permisos: el líder sí; una integrante no (frescura_sin_permiso); anon no; sin operar la tienda, tampoco el líder",
-  `${sesion(FELIPE)}${k("LIDER_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
+  "T1 · permisos: el líder sí; una integrante sin el módulo no (frescura_sin_permiso); con el módulo, su tienda sí y otra no, y sin tienda solo la suya; anon no; sin operar la tienda, tampoco el líder",
+  `-- Trujillo con piso y almacén (el seed no siempre los trae): así fn_confianza_registro la cuenta y «solo la suya» no
+-- pasa con cero filas.
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'tru', 'Piso de venta', 'piso_venta' where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'piso_venta');
+insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
+  select :'tru', 'Almacén de tienda', 'almacen_tienda' where not exists (select 1 from retail.sububicaciones where ubicacion_id = :'tru' and tipo = 'almacen_tienda');
+${sesion(FELIPE)}${k("LIDER_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
 ${k("LIDER_CONF", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'ubic'))")}
 ${k("LIDER_CONF_TODAS", "pg_temp.intento('select * from retail.fn_confianza_registro()')")}
+${k("LIDER_TODAS", "(select count(distinct c.ubicacion_id) || ',' || bool_or(c.ubicacion_id = :'ubic') || ',' || bool_or(c.ubicacion_id = :'tru') from retail.fn_confianza_registro() c)")}
 ${sesion(MICAELA)}${k("INT_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
 ${k("INT_CONF", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'tru'))")}
 ${k("INT_CONF_TODAS", "pg_temp.intento('select * from retail.fn_confianza_registro()')")}
+${COMO_POSTGRES}
+-- El módulo «Frescura del piso» en el rol Integrante, dentro de la transacción (el ROLLBACK lo quita). Ninguna migración
+-- lo hace: el módulo nace sin rol (ADR-0161); lo da el líder en Roles y accesos.
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('integrante'), 'frescura');
+${sesion(MICAELA)}${k("MOD_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
+${k("MOD_SEDE_LEE", "(select case when (pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru')) ->> 'ok') = 'true' then (retail.fn_frescura_sede(:'tru') ? 'separa_piso')::text else 'sin permiso' end)")}
+${k("MOD_OTRA", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
+${k("MOD_OTRA_LIMA", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'lim'))")}
+${k("MOD_CONF", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'tru'))")}
+${k("MOD_CONF_OTRA", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'ubic'))")}
+${k("MOD_CONF_TODAS", "(select count(*) || ',' || count(*) filter (where c.ubicacion_id <> :'tru') from retail.fn_confianza_registro() c)")}
+${k("MOD_CONF_SOLA", "(select count(*) from retail.fn_confianza_registro(:'tru'))")}
 reset role;
 set local role anon;
 ${k("ANON_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
@@ -518,15 +544,43 @@ ${sesion(FELIPE)}${k("NO_OPERA_SEDE", "pg_temp.intento(format('select retail.fn_
 ${k("NO_OPERA_CONF", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'ubic'))")}
 ${k("NO_OPERA_OTRA", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
 ${k("NO_OPERA_CONF_TODAS", "pg_temp.intento('select * from retail.fn_confianza_registro()')")}
+${k("NO_OPERA_TODAS_SIN_ELLA", "(select count(*) from retail.fn_confianza_registro() c where c.ubicacion_id = :'ubic')")}
 ${COMO_POSTGRES}`,
   (o) => {
     afirmar("líder: fn_frescura_sede, fn_confianza_registro de su tienda y de todas", [o.LIDER_SEDE, o.LIDER_CONF, o.LIDER_CONF_TODAS].every((x) => json(x)?.ok === true), `${o.LIDER_SEDE} ${o.LIDER_CONF} ${o.LIDER_CONF_TODAS}`);
     afirmar("integrante de TRU en TRU: P0001, frescura_sin_permiso", error(o.INT_SEDE, "P0001", "frescura_sin_permiso"), o.INT_SEDE);
     afirmar("integrante: fn_confianza_registro de TRU y de todas, P0001 frescura_sin_permiso", error(o.INT_CONF, "P0001", "frescura_sin_permiso") && error(o.INT_CONF_TODAS, "P0001", "frescura_sin_permiso"), `${o.INT_CONF} ${o.INT_CONF_TODAS}`);
+    afirmar(
+      "…y el aviso nombra el módulo que falta («Frescura del piso»)",
+      (json(o.INT_SEDE)?.msg ?? "").includes("«Frescura del piso»") && (json(o.INT_CONF_TODAS)?.msg ?? "").includes("«Frescura del piso»"),
+      `${o.INT_SEDE} ${o.INT_CONF_TODAS}`,
+    );
+    afirmar(
+      "el líder, sin tienda, recibe todas (la tienda de la prueba y Trujillo incluidas)",
+      /^\d+,true,true$/.test(o.LIDER_TODAS ?? "") && Number((o.LIDER_TODAS ?? "0").split(",")[0]) >= 2,
+      `LIDER_TODAS=${o.LIDER_TODAS}`,
+    );
+    afirmar("integrante CON el módulo: fn_frescura_sede de SU tienda (Trujillo) responde", json(o.MOD_SEDE)?.ok === true && o.MOD_SEDE_LEE === "true", `${o.MOD_SEDE} MOD_SEDE_LEE=${o.MOD_SEDE_LEE}`);
+    afirmar(
+      "…de otra tienda no (la de la prueba y Lima): P0001 frescura_sin_permiso",
+      error(o.MOD_OTRA, "P0001", "frescura_sin_permiso") && error(o.MOD_OTRA_LIMA, "P0001", "frescura_sin_permiso"),
+      `${o.MOD_OTRA} ${o.MOD_OTRA_LIMA}`,
+    );
+    afirmar(
+      "…fn_confianza_registro de su tienda sí; de otra, P0001 frescura_sin_permiso",
+      json(o.MOD_CONF)?.ok === true && error(o.MOD_CONF_OTRA, "P0001", "frescura_sin_permiso"),
+      `${o.MOD_CONF} ${o.MOD_CONF_OTRA}`,
+    );
+    afirmar(
+      "…y sin tienda, SOLO la suya: las mismas filas que pedida sola, ninguna de otra sede (lo que ve un no líder de las otras sedes: nada)",
+      Number(o.MOD_CONF_SOLA) >= 1 && o.MOD_CONF_TODAS === `${o.MOD_CONF_SOLA},0`,
+      `MOD_CONF_TODAS=${o.MOD_CONF_TODAS} MOD_CONF_SOLA=${o.MOD_CONF_SOLA}`,
+    );
     afirmar("anon: 42501 en las dos", error(o.ANON_SEDE, "42501") && error(o.ANON_CONF, "42501"), `${o.ANON_SEDE} ${o.ANON_CONF}`);
     afirmar("líder que no opera esta tienda: fn_frescura_sede P0001 frescura_sin_permiso", error(o.NO_OPERA_SEDE, "P0001", "frescura_sin_permiso"), o.NO_OPERA_SEDE);
     afirmar("líder que no opera esta tienda: fn_confianza_registro(esa) P0001 frescura_sin_permiso", error(o.NO_OPERA_CONF, "P0001", "frescura_sin_permiso"), o.NO_OPERA_CONF);
     afirmar("…y las que sí opera siguen respondiendo (otra tienda; todas en fn_confianza_registro)", json(o.NO_OPERA_OTRA)?.ok === true && json(o.NO_OPERA_CONF_TODAS)?.ok === true, `${o.NO_OPERA_OTRA} ${o.NO_OPERA_CONF_TODAS}`);
+    afirmar("…pero «todas» ya no trae la tienda que no opera", o.NO_OPERA_TODAS_SIN_ELLA === "0", `NO_OPERA_TODAS_SIN_ELLA=${o.NO_OPERA_TODAS_SIN_ELLA}`);
   },
 );
 
@@ -2272,21 +2326,32 @@ ${k(`${prefijo}PARCHE_${i}`, `pg_temp.intento(${comoLiteral(migracion)})`)}
 ${k(`${prefijo}SIGUE_${i}`, `(select md5(prosrc) = :'${prefijo}parchado${i}' and md5(prosrc) <> :'${prefijo}parche${i}' from pg_proc where oid = '${firma}'::regprocedure)`)}
 rollback to savepoint ${prefijo}${i};`;
   }).join("\n");
-/** Las que vigila la guarda de 20260928120330 (y la de 20260928120320): la que reescribe y las tres que usa. Las otras dos
- *  no las toca. */
-const VIGILA_R9 = new Set(["fn_frescura_sede", "fn_es_llegada", "fn_es_llegada_a_cayla", "fn_temporada_efectiva_nucleo"]);
+/** Las que vigila la guarda del paso 4 (20260929100000) de esta lista: las dos que reescribe. Las otras cuatro no las toca
+ *  (la puerta de las bajadas, que también reescribe, la prueba frescura_bajadas, T37). Hasta el paso 4 esta prueba miraba la
+ *  guarda de 20260928120330, que vigilaba fn_frescura_sede y las tres que usa: esa migración ya no manda. */
+const VIGILA_P4 = new Set(["fn_frescura_sede", "fn_confianza_registro"]);
 correr(
-  "T12 · la guarda de la que manda fn_frescura_sede (20260928120330): pegada otra vez deja lo mismo; con ella o una de las que usa parchada en vivo aborta y no la pisa; las que no toca siguen con su parche",
+  "T12 · la guarda de la que manda fn_frescura_sede y fn_confianza_registro (20260929100000, paso 4): pegada otra vez deja lo mismo; con una de las dos parchada en vivo aborta y no la pisa; las que no toca siguen con su parche; la de revisión 9 después aborta",
   `select ${MD5S} as antes \\gset
-${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
+${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
 ${k("MISMOS", `${MD5S} = :'antes'`)}
-${parches(MIGRACION_R9, "s")}`,
+${k("R9_DESPUES", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
+${k("MISMOS_TRAS_R9", `${MD5S} = :'antes'`)}
+${k("MODULO", "(select count(*) || ',' || string_agg(grupo || ',' || orden || ',' || solo_lider || ',' || delegable, ';') from retail.modulos where clave = 'frescura')")}
+${k("SIN_ROL", "(select count(*) from retail.rol_modulos where modulo = 'frescura')")}
+${parches(MIGRACION_P4, "s")}`,
   (o) => {
     afirmar("pegada otra vez: ok", json(o.OTRA_VEZ)?.ok === true, `OTRA_VEZ=${o.OTRA_VEZ}`);
     afirmar("…y los seis md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
+    afirmar("…y el módulo sigue siendo UNO, de Inventario, orden 115, delegable, sin rol", o.MODULO === "1,Inventario,115,false,true" && o.SIN_ROL === "0", `MODULO=${o.MODULO} SIN_ROL=${o.SIN_ROL}`);
+    afirmar(
+      "la de revisión 9 pegada DESPUÉS del paso 4 aborta («fn_frescura_sede tiene otro cuerpo») y no deshace nada",
+      json(o.R9_DESPUES)?.ok === false && (json(o.R9_DESPUES)?.msg ?? "").includes("fn_frescura_sede tiene otro cuerpo") && o.MISMOS_TRAS_R9 === "true",
+      `R9_DESPUES=${o.R9_DESPUES} MISMOS_TRAS_R9=${o.MISMOS_TRAS_R9}`,
+    );
     FUNCIONES.forEach((f, i) => {
       const e = json(o[`sPARCHE_${i}`]);
-      if (VIGILA_R9.has(f)) {
+      if (VIGILA_P4.has(f)) {
         afirmar(`${f} parchada en vivo: la migración aborta nombrándola`, e?.ok === false && (e?.msg ?? "").includes(`${f} tiene otro cuerpo`), o[`sPARCHE_${i}`]);
       } else {
         afirmar(`${f} parchada en vivo: la migración no la usa ni la reescribe, y entra`, e?.ok === true, o[`sPARCHE_${i}`]);
@@ -2308,8 +2373,13 @@ const MD5_0310 = "fn_confianza_registro=8c6f5e6c27916b99be10020b772bd6e0,fn_es_l
 const MD5_0320 = MD5_0310.replace(/fn_frescura_sede=[0-9a-f]{32}/, `fn_frescura_sede=${/'51babffc09da4073691ee251882967c8', '([0-9a-f]{32})'/.exec(MIGRACION_R7)?.[1]}`);
 /** Tras 20260928120330: las mismas con la fn_frescura_sede de la revisión 9 (el md5 que nombra su guarda). */
 const MD5_0330 = MD5_0310.replace(/fn_frescura_sede=[0-9a-f]{32}/, `fn_frescura_sede=${/'7da85d7b7010659ba5a36a2478c89ad4', '([0-9a-f]{32})'/.exec(MIGRACION_R9)?.[1]}`);
+/** Tras 20260929100000 (paso 4): las de la revisión 9 con fn_frescura_sede y fn_confianza_registro nuevas (los md5 que
+ *  nombra su guarda junto al de antes). */
+const MD5_P4 = MD5_0330
+  .replace(/fn_frescura_sede=[0-9a-f]{32}/, `fn_frescura_sede=${/'33970c94c7dddf9530ee6b8175862661', '([0-9a-f]{32})'/.exec(MIGRACION_P4)?.[1]}`)
+  .replace(/fn_confianza_registro=[0-9a-f]{32}/, `fn_confianza_registro=${/'8c6f5e6c27916b99be10020b772bd6e0', '([0-9a-f]{32})'/.exec(MIGRACION_P4)?.[1]}`);
 correr(
-  "T12b · desde producción de hoy: 120300 → 120310 (dos veces) → 120320 (dos veces) → 120330 (dos veces), cada una con sus md5; una fuera de orden o una anterior otra vez aborta sin deshacer nada; sin la de antes, cada una la pide",
+  "T12b · desde producción antes del paso 3: 120300 → 120310 (dos veces) → 120320 (dos veces) → 120330 (dos veces) → paso 4 (dos veces), cada una con sus md5; una fuera de orden o una anterior otra vez aborta sin deshacer nada; sin la de antes, cada una la pide",
   `select ${MD5S} as nuevos \\gset
 -- Producción antes de pegar nada del paso 3: sin las lecturas ni el núcleo de temporadas, fn_temporada_efectiva de
 -- 20260928100000. (Las funciones SQL y plpgsql no dejan dependencias de cuerpo: se pueden quitar en cualquier orden.)
@@ -2337,15 +2407,24 @@ ${k("MD5_R7", MD5S)}
 ${k("R7_LEE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
 ${k("R7_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
 ${k("MD5_R7_OTRA_VEZ", MD5S)}
+-- El paso 4 ANTES de la de revisión 9 (fuera de orden): aborta pidiendo las que faltan y no toca nada.
+${k("P4_SIN_R9", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
+${k("MD5_SIN_R9", MD5S)}
 ${k("R9", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
 ${k("MD5_R9", MD5S)}
-${k("R9_ES_EL_DE_HOY", `${MD5S} = :'nuevos'`)}
 ${k("R9_LEE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
 ${k("R9_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
 ${k("MD5_R9_OTRA_VEZ", MD5S)}
+${k("P4", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
+${k("MD5_P4", MD5S)}
+${k("P4_ES_EL_DE_HOY", `${MD5S} = :'nuevos'`)}
+${k("P4_LEE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
+${k("P4_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_P4)})`)}
+${k("MD5_P4_OTRA_VEZ", MD5S)}
 ${k("MAIN_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_0300)})`)}
 ${k("CORREGIDA_TRAS_R9", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
 ${k("R7_TRAS_R9", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
+${k("R9_TRAS_P4", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}
 ${k("MD5_SIGUEN", `${MD5S} = :'nuevos'`)}
 -- Sin la de main: las otras tres la piden.
 drop function retail.fn_es_llegada(text, text, uuid, uuid, uuid);
@@ -2380,21 +2459,33 @@ ${k("R9_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R9)})`)}`,
     afirmar("…pegada otra vez: ok y sin cambios", json(o.R7_OTRA_VEZ)?.ok === true && o.MD5_R7_OTRA_VEZ === MD5_0320, `${o.R7_OTRA_VEZ} ${o.MD5_R7_OTRA_VEZ}`);
     afirmar("la de revisión 9 se pega ENCIMA de la de revisión 7", json(o.R9)?.ok === true, `R9=${o.R9}`);
     afirmar(
-      "…y deja los md5 de su guarda (solo cambia fn_frescura_sede), los mismos de una base con todas las migraciones",
-      o.MD5_R9 === MD5_0330 && o.R9_ES_EL_DE_HOY === "true",
-      `MD5_R9=${o.MD5_R9} R9_ES_EL_DE_HOY=${o.R9_ES_EL_DE_HOY}`,
+      "el paso 4 ANTES que la de revisión 9 (fuera de orden) aborta pidiendo las que faltan hasta 20260928120330 y no toca nada",
+      aborta(o.P4_SIN_R9, "pega antes las que faltan hasta 20260928120330") && o.MD5_SIN_R9 === MD5_0320,
+      `P4_SIN_R9=${o.P4_SIN_R9} MD5_SIN_R9=${o.MD5_SIN_R9}`,
     );
+    afirmar("…y deja los md5 de su guarda (solo cambia fn_frescura_sede)", o.MD5_R9 === MD5_0330, `MD5_R9=${o.MD5_R9}`);
     afirmar("…y la lectura responde", json(o.R9_LEE)?.ok === true, `R9_LEE=${o.R9_LEE}`);
     afirmar("…pegada otra vez: ok y sin cambios", json(o.R9_OTRA_VEZ)?.ok === true && o.MD5_R9_OTRA_VEZ === MD5_0330, `${o.R9_OTRA_VEZ} ${o.MD5_R9_OTRA_VEZ}`);
+    afirmar("el paso 4 se pega ENCIMA de la de revisión 9", json(o.P4)?.ok === true, `P4=${o.P4}`);
+    afirmar(
+      "…y deja los md5 de su guarda (cambian fn_frescura_sede y fn_confianza_registro), los mismos de una base con todas las migraciones",
+      o.MD5_P4 === MD5_P4 && o.P4_ES_EL_DE_HOY === "true",
+      `MD5_P4=${o.MD5_P4} P4_ES_EL_DE_HOY=${o.P4_ES_EL_DE_HOY}`,
+    );
+    afirmar("…y la lectura responde", json(o.P4_LEE)?.ok === true, `P4_LEE=${o.P4_LEE}`);
+    afirmar("…pegada otra vez: ok y sin cambios", json(o.P4_OTRA_VEZ)?.ok === true && o.MD5_P4_OTRA_VEZ === MD5_P4, `${o.P4_OTRA_VEZ} ${o.MD5_P4_OTRA_VEZ}`);
     afirmar(
       "volver a pegar la de main después aborta (su guarda no conoce el cuerpo nuevo)",
       aborta(o.MAIN_OTRA_VEZ, "fn_frescura_sede ya existe con otro cuerpo"),
       `MAIN_OTRA_VEZ=${o.MAIN_OTRA_VEZ}`,
     );
     afirmar(
-      "volver a pegar la 120310 o la de revisión 7 después de la de revisión 9 también aborta, y ninguna deshizo nada",
-      aborta(o.CORREGIDA_TRAS_R9, "fn_frescura_sede tiene otro cuerpo") && aborta(o.R7_TRAS_R9, "fn_frescura_sede tiene otro cuerpo") && o.MD5_SIGUEN === "true",
-      `CORREGIDA_TRAS_R9=${o.CORREGIDA_TRAS_R9} R7_TRAS_R9=${o.R7_TRAS_R9} MD5_SIGUEN=${o.MD5_SIGUEN}`,
+      "volver a pegar la 120310, la de revisión 7 o la de revisión 9 después del paso 4 también aborta, y ninguna deshizo nada",
+      aborta(o.CORREGIDA_TRAS_R9, "fn_frescura_sede tiene otro cuerpo") &&
+        aborta(o.R7_TRAS_R9, "fn_frescura_sede tiene otro cuerpo") &&
+        aborta(o.R9_TRAS_P4, "fn_frescura_sede tiene otro cuerpo") &&
+        o.MD5_SIGUEN === "true",
+      `CORREGIDA_TRAS_R9=${o.CORREGIDA_TRAS_R9} R7_TRAS_R9=${o.R7_TRAS_R9} R9_TRAS_P4=${o.R9_TRAS_P4} MD5_SIGUEN=${o.MD5_SIGUEN}`,
     );
     afirmar(
       "sin la de main, la 120310, la de revisión 7 y la de revisión 9 abortan pidiendo pegarla antes",
