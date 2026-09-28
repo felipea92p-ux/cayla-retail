@@ -3,7 +3,7 @@
 > **Estado: propuesta, sin aprobar.** No toca `NuevoProductoForm.tsx` ni ninguna pieza de `components/alta-producto/`.
 
 `index.html`: un solo archivo, ábrelo en el navegador. Los datos son inventados. **No es la implementación.**
-La barra punteada salta a un estado (Vacío, Paso 2, Paso 3, Paso 4, Listo para crear, Mucho de todo, «Ver todos» abierto), muestra la pantalla a
+La barra punteada salta a un estado (Vacío, Paso 2, Paso 3, Paso 4, Listo para crear, Creado, Mucho de todo, «Ver todos» abierto), muestra la pantalla a
 375 px y esconde o muestra la comparación «Hoy vs. propuesta». También se abre directo en un estado: `#listo`,
 `#p3`, `#mucho`, `#hoja`, `#p4,celular`.
 
@@ -62,6 +62,24 @@ Marcas, proveedores y cantidades son inventados. El botón **«Mucho de todo (je
 | Etiquetas (24) | 6 más usadas (las elegidas primero) + **«Ver todas · 19»** en hoja, agrupadas (Campañas y fechas, La prenda, Para vender), selección múltiple |
 | Tabla (72 celdas) | Cabecera de tallas y columna del color **fijas** al desplazarse; en celular la tabla se desliza de lado sin mover la página. En el paso 4, **«Poner en todas: [n] Aplicar»** llena las 68 celdas de un golpe y después se corrige a mano lo distinto |
 | Ficha y resúmenes | Hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)» |
+
+## Revisión de claridad (2026-09-28, pedido de Felipe: «entendible para cualquier usuario»)
+
+Se leyó cada paso como alguien de tienda que abre la pantalla por primera vez:
+
+| Antes (en el spike) | Ahora |
+|---|---|
+| «OBLIGATORIO» en rojo en 4 campos | Sin la etiqueta roja: casi todo es obligatorio, así que se marca lo **opcional**. El rojo queda para errores |
+| Tejido y Patrón sin explicación | «De qué tela es» · «El dibujo de la tela. Si no tiene, elige Liso» |
+| Temporada «Sin temporada propia» | «Ninguna», con la aclaración de que usa la de su categoría |
+| «Curva habitual (28 30 32 34)» · «Todas» | «Solo las de siempre (28–34)» · «Todas las tallas» («curva» es palabra del taller, no de tienda) |
+| Tres formas de quitar en la tabla (celda, clic en la talla, × al final de la fila) | **Una por cosa:** la talla se quita arriba en Tallas, el color con su ×, y en la tabla solo se toca la combinación que no existe. La leyenda lo dice con un ejemplo de la misma prenda («como Terracota en L») |
+| Foto vacía como «+» | Ícono de cámara y «agrega su foto» |
+| «Cuántas hay hoy / Precios distintos» · «Poner en todas» | «Cuántas tienes hoy / ¿Alguna cuesta distinto?» · «Llenar todas con» · «— = no existe» |
+| «Quién lo registra» y «Crear» solo en la ficha de la derecha | **Al final del paso 4, donde la persona termina:** «Quién lo registra» (una sola vez) y «Crear producto». La ficha conserva su botón. El pie dice «Solo falta elegir quién lo registra» cuando es lo único que falta |
+| Sin pantalla final | «Blusa Lirio ya está en el catálogo»: código, variantes, unidades y fotos subiendo; **Crear otro parecido** o **Terminé, ir a Productos** (los mismos dos caminos que `ProductoCreado` en `main`). «Otro parecido» vuelve al paso 2 con categoría, marca, tejido, tallas y precio, y lo avisa arriba |
+| «Sano» / «Bajo para CAYLA» · «Para todas las variantes» | «Buen margen» / «Margen bajo» · «Para todas las tallas y colores» |
+| Sugerencias de marca sin título | «Las más usadas en Camisas y Blusas:», igual que en colores |
 
 ## Lo que NO cambia
 

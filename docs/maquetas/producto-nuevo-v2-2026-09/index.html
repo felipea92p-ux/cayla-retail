@@ -333,6 +333,11 @@ button.celda:hover{background:var(--t04)}
 .nada{font-size:13px;color:var(--taupe);padding:18px 0}
 
 .barra{display:none}
+.creado{margin:28px auto 0;max-width:620px;background:var(--papel);border:1px solid var(--sand);border-radius:16px;padding:32px 28px;text-align:center}
+.creado .ok-marca{width:52px;height:52px;border-radius:50%;background:var(--verde);color:var(--crema);display:grid;place-items:center;font-size:24px;margin:0 auto 14px}
+.creado h2{font-size:28px;line-height:1.15}
+.creado>p{margin-top:6px}
+.acciones-creado{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:20px}
 
 @container (max-width:820px){
   .grid{grid-template-columns:minmax(0,1fr)}
@@ -388,6 +393,7 @@ button.celda:hover{background:var(--t04)}
     <button data-preset="p3">Paso 3</button>
     <button data-preset="p4">Paso 4</button>
     <button data-preset="listo">Listo para crear</button>
+    <button data-preset="creado">Creado</button>
     <button data-preset="mucho">Mucho de todo (jean)</button>
     <button data-preset="hoja">«Ver todos» abierto</button>
     <span class="sep"></span>
@@ -422,7 +428,7 @@ button.celda:hover{background:var(--t04)}
         <li><b>El resto va detrás de «Ver todos · N»</b>: una hoja con buscador sin tildes y grupos (naturales, de punto…).</li>
         <li><b>Lo elegido nunca se esconde:</b> si viene de «Ver todos», pasa al primer lugar de la fila.</li>
         <li><b>Categorías:</b> buscador + «Las que más usas» (un toque) + familias con su cuenta.</li>
-        <li><b>La tabla:</b> la columna del color y la fila de tallas quedan fijas al desplazarte; «Poner en todas» llena 72 celdas de un golpe.</li>
+        <li><b>La tabla:</b> la columna del color y la fila de tallas quedan fijas al desplazarte; «Llenar todas con…» llena las 68 casillas de un golpe.</li>
         <li><b>La ficha y los resúmenes:</b> hasta 8 puntos de color y «+N»; las tallas largas se leen «26–42 (9)».</li>
       </ul>
     </div>
@@ -494,7 +500,7 @@ const SUGERIDAS = {"Camisas y Blusas":[[0,"12 blusas"],[1,"5 blusas"],[4,"3 blus
 const ETIQUETAS = {"Campañas y fechas":["Aniversario CAYLA","Black Friday","CyberWow","Día de la Madre","Día de la Mujer","Día de la Tierra","Día Internacional del Gato","Día Internacional del Perro","Fiestas Patrias","Halloween","Navidad","San Valentín"],"La prenda":["Hecho a mano","Pieza única","Reedición","Nuevo"],"Para vender":["Top ventas","Últimas unidades","Para liquidar"]};
 const TODAS_ETIQ = Object.values(ETIQUETAS).flat();
 const ETIQ_MAS_USADAS = ["Nuevo","Top ventas","Hecho a mano","Día de la Madre","Últimas unidades","Reedición"];
-const TEMPORADAS = ["Sin temporada propia","Verano","Otoño","Invierno","Primavera"];
+const TEMPORADAS = ["Ninguna","Verano","Otoño","Invierno","Primavera"];
 const EXISTENTES = ["Blusa Aurora","Blusa Aurora Manga Larga","Jean Mom Tiro Alto"];
 const SEDE = "TRU · Real Plaza";
 const RESPONSABLES = ["Elige quién registra…","Rosa Quispe","Milagros Díaz","Lucía Torres"];
@@ -507,7 +513,7 @@ function vacio(){ return {abierto:1, familia:null, cat:null, busCat:"", nombre:"
   mas:false, desc:"", temporada:0, etiquetas:[],
   tallas:[], colores:[], busColor:"", paleta:false, nuevoColor:false, ncNombre:"", ncHex:"#9c6b4f", fotos:{},
   fuera:[], precio:"", costo:"", modo:"cant", cant:{}, precios:{}, relleno:"", donde:"piso", sinStock:false, responsable:0,
-  hoja:null, celular:false}; }
+  hoja:null, celular:false, creado:false, copiado:""}; }
 const blusa = () => ({...vacio(), familia:"indumentaria", cat:"Camisas y Blusas", tallas:["S","M","L"]});
 const jean = () => ({...vacio(), familia:"indumentaria", cat:"Jeans"});
 const PRESETS = {
@@ -523,6 +529,7 @@ const PRESETS = {
     etiquetas:["Nuevo","Top ventas","Reedición","CyberWow"], tallas:["26","28","30","32","34","36","38","40","42"],
     colores:["Azul denim","Índigo","Celeste","Negro","Gris","Blanco","Caqui","Verde militar"], fotos:{"Azul denim":3,"Índigo":1,"Negro":2,"Caqui":1},
     fuera:["Blanco|40","Blanco|42","Caqui|42","Verde militar|42"], precio:"139.90", costo:"62.00"}),
+  creado: () => ({...PRESETS.listo(), creado:true}),
   hoja: () => ({...blusa(), abierto:2, nombre:"blusa lirio", pareja:0, hoja:{tipo:"tejido", q:""}}),
 };
 
@@ -602,6 +609,7 @@ function resumen(n){
 const $ = (sel, r = document) => r.querySelector(sel);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const punto = c => `<span class="punto" style="background:${COLORES[c]}"></span>`;
+const camara = `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 8h3l2-2.5h6L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
 const lupa = `<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>`;
 function marcar(texto, q){
   const t = q.trim(); if (!t) return esc(texto);
@@ -625,11 +633,19 @@ function paso(n){
       <button class="paso-cab" ${puede ? `data-abrir="${n}"` : "disabled"} style="${puede ? "" : "cursor:default"}"><span class="num">${n}</span><h2 class="paso-tit">${TIT[n]}</h2>${puede ? '<span class="paso-pista">Abrir</span>' : ""}</button>
     </section>`;
 }
+function textoPie(n){
+  const f = falta(n);
+  if (f) return [f, false];
+  if (n < 4) return ["Listo. Sigue cuando quieras.", true];
+  return s.responsable ? ["Todo listo. Revisa la ficha y crea el producto.", true] : ["Solo falta elegir quién lo registra.", false];
+}
 function pie(n){
   if (n === 1) return "";
-  const f = falta(n);
-  const siguiente = n < 4 ? `<button class="btn btn-primario" data-seguir="${n + 1}" ${f ? "disabled" : ""}>Seguir →</button>` : "";
-  return `<div class="paso-pie"><p class="falta ${f ? "" : "ok"}" data-vivo="falta-${n}">${esc(f ?? (n < 4 ? "Listo. Sigue cuando quieras." : "Listo. Revisa la ficha y crea el producto."))}</p>${siguiente}</div>`;
+  const [txt, ok] = textoPie(n);
+  const boton = n < 4
+    ? `<button class="btn btn-primario" data-seguir="${n + 1}" ${falta(n) ? "disabled" : ""}>Seguir →</button>`
+    : `<button class="btn btn-primario" data-accion="crear" ${primerFalta() ? "disabled" : ""}>Crear producto</button>`;
+  return `<div class="paso-pie"><p class="falta ${ok ? "ok" : ""}" data-vivo="falta-${n}">${esc(txt)}</p>${boton}</div>`;
 }
 const cuerpo = n => [null, cuerpo1, cuerpo2, cuerpo3, cuerpo4][n]();
 
@@ -638,7 +654,7 @@ function cuerpo1(){
   const q = s.busCat, f = fam();
   const halladas = q.trim() ? FAMILIAS.flatMap(x => x.cats.filter(c => coincide(c[0], q)).map(c => [x, c])) : [];
   return `
-    <p class="paso-intro">La categoría decide el código, las tallas, los tejidos y los patrones. Al elegirla pasas sola al siguiente paso.</p>
+    <p class="paso-intro">Con la categoría, el sistema ya sabe el código, las tallas y los tejidos que suele llevar. Al tocarla pasas solo al siguiente paso.</p>
     <div class="buscar">${lupa}<input class="caja" data-campo="busCat" placeholder="Busca entre las ${TOTAL_CATS} categorías: jeans, aretes, blazers…" value="${esc(q)}" autocomplete="off"></div>
     ${q.trim() ? `<div class="cats revela">${halladas.length ? halladas.map(([x, c]) => `<button class="cat" data-cat="${esc(c[0])}"><b>${marcar(c[0], q)}</b><small>${x.nombre} · ${CUENTA[c[0]]} productos</small></button>`).join("") : `<p class="nada">Ninguna categoría se llama así. Crear una es de Catálogo → Categorías.</p>`}</div>` : `
     <div class="rapidas"><span>Las que más usas:</span>${MAS_USADAS.map(n => `<button class="chip" data-cat="${esc(n)}">${n}</button>`).join("")}</div>
@@ -659,33 +675,33 @@ function cuerpo2(){
   const sug = SUGERIDAS[s.cat] ?? [[0, ""],[1, ""],[4, ""]];
   return `
     <div class="bloque">
-      <div class="et"><b>Nombre</b><span class="req">obligatorio</span><small>Como lo dirías en tienda</small></div>
+      <div class="et"><b>Nombre</b><small>Como se lo dirías a una clienta</small></div>
       <input class="caja grande" data-campo="nombre" placeholder="${s.cat === "Jeans" ? "Jean Mom Tiro Alto" : "Blusa Aurora"}" value="${esc(s.nombre)}" autocomplete="off">
       <p class="pie-campo" data-vivo="nombre-pie">${pieNombre()}</p>
       <div data-vivo="repetido">${rep ? avisoRepetido(rep) : ""}</div>
     </div>
     <div class="bloque">
-      <div class="et"><b>Marca y proveedor</b><span class="req">obligatorio</span><small>Quién la hace y quién la trae</small></div>
+      <div class="et"><b>Marca y proveedor</b><small>Quién la hace y quién te la trae</small></div>
       ${p ? `<div class="elegida"><div><b>${esc(p[0])}</b> <span class="taupe">· la trae ${esc(p[1])}</span></div><button class="btn-enlace" data-accion="quitar-pareja">Cambiar</button></div>`
-        : `<div class="chips">${sug.map(([i, uso]) => `<button class="chip pareja" data-pareja="${i}"><span>${esc(PAREJAS[i][0])}</span><small>${esc(PAREJAS[i][1])}${uso ? ` · ${uso}` : ""}</small></button>`).join("")}</div>
+        : `<div class="chips sugeridos" style="margin-top:0"><span class="taupe">Las más usadas en ${esc(s.cat)}:</span>${sug.map(([i, uso]) => `<button class="chip pareja" data-pareja="${i}"><span>${esc(PAREJAS[i][0])}</span><small>${esc(PAREJAS[i][1])}${uso ? ` · ${uso}` : ""}</small></button>`).join("")}</div>
            <div class="buscar" style="margin-top:8px">${lupa}
              <input class="caja" data-campo="busMP" placeholder="Busca entre ${MARCAS.length} marcas y ${PROVEEDORES.length} proveedores…" value="${esc(q)}" autocomplete="off">
              ${q.trim() ? `<div class="lista"><p class="enc">${plural(res.length, "resultado", "resultados")}</p>${res.map(([x, i]) => `<button class="opcion" data-pareja="${i}"><b>${marcar(x[0], q)}</b><small>${marcar(x[1], q)}</small></button>`).join("")}<button class="opcion crear">+ Registrar «${esc(titulo(q))}» como marca nueva</button></div>` : ""}
            </div>`}
     </div>
     ${c.tejidos.length || exige ? `<div class="bloque">
-      <div class="et"><b>Tejido</b>${exige ? '<span class="req">obligatorio</span>' : "<small>Opcional</small>"}<small>· los que más se usan en ${esc(s.cat)}</small></div>
+      <div class="et"><b>Tejido</b><small>${exige ? "" : "Opcional · "}De qué tela es</small></div>
       ${tiles("tejido", c.tejidos, s.tejido)}
     </div>` : ""}
     ${c.patrones.length || exige ? `<div class="bloque">
-      <div class="et"><b>Patrón</b>${exige ? '<span class="req">obligatorio</span><small>Sin diseño = Liso</small>' : "<small>Opcional</small>"}</div>
+      <div class="et"><b>Patrón</b><small>${exige ? "" : "Opcional · "}El dibujo de la tela. Si no tiene, elige Liso</small></div>
       ${tiles("patron", c.patrones, s.patron)}
     </div>` : ""}
     <div class="plegable ${s.mas ? "abierto" : ""}">
       <button data-accion="mas"><span class="flecha">›</span> Más detalles <small>· opcional · descripción, temporada, etiquetas${resumenMas()}</small></button>
       ${s.mas ? `<div class="dentro revela">
         <div class="bloque"><div class="et"><b>Descripción</b></div><input class="caja" data-campo="desc" placeholder="Tela, corte, detalle…" value="${esc(s.desc)}"></div>
-        <div class="bloque"><div class="et"><b>Temporada</b><small>Sin año: el sistema lo sabe por la fecha en que llega</small></div>
+        <div class="bloque"><div class="et"><b>Temporada</b><small>Sin año: el sistema lo sabe por la fecha en que llega. Si eliges «Ninguna», usa la de su categoría</small></div>
           <div class="chips">${TEMPORADAS.map((t, i) => `<button class="chip" data-temporada="${i}" aria-pressed="${s.temporada === i}">${t}</button>`).join("")}</div></div>
         <div class="bloque"><div class="et"><b>Etiquetas</b><small>Para buscar y agrupar${s.etiquetas.length ? ` · ${plural(s.etiquetas.length, "elegida", "elegidas")}` : ""}</small></div>
           <div class="chips">
@@ -712,11 +728,11 @@ function cuerpo3(){
   return `
     <div class="bloque">
       <div class="et"><b>Tallas</b><small>${esc(s.cat)} ofrece ${plural(c.tallas.length, "talla", "tallas")}</small>
-        <span class="der">${curva ? `<button class="btn-enlace" data-accion="curva">Curva habitual (${c.habituales.join(" ")})</button>` : ""}${s.tallas.length < c.tallas.length ? `<button class="btn-enlace" data-accion="todas-tallas">Todas</button>` : ""}</span></div>
+        <span class="der">${curva ? `<button class="btn-enlace" data-accion="curva">Solo las de siempre (${c.habituales.length > 3 ? c.habituales[0] + "–" + c.habituales[c.habituales.length - 1] : c.habituales.join(" ")})</button>` : ""}${s.tallas.length < c.tallas.length ? `<button class="btn-enlace" data-accion="todas-tallas">Todas las tallas</button>` : ""}</span></div>
       <div class="chips">${[...c.tallas, ...extra].map(t => `<button class="chip talla" data-talla="${t}" aria-pressed="${s.tallas.includes(t)}">${t}</button>`).join("")}<button class="chip agregar" data-hoja="talla">+ Otra talla</button></div>
     </div>
     <div class="bloque">
-      <div class="et"><b>Colores</b><small>${s.colores.length ? plural(s.colores.length, "elegido", "elegidos") : "Sin colores = una sola variante sin color"}</small></div>
+      <div class="et"><b>Colores</b><small>${s.colores.length ? plural(s.colores.length, "elegido", "elegidos") : "Si no tiene color (un llavero, un cuaderno), déjalo vacío"}</small></div>
       <div class="elegidos">${s.colores.length
         ? s.colores.map(x => `<span class="quitable">${punto(x)}${x}<button data-color="${x}" aria-label="Quitar ${x}">×</button></span>`).join("")
         : `<p class="taupe" style="font-size:12.5px">Todavía ninguno. Toca uno de abajo, búscalo o ábrelo en la carta.</p>`}</div>
@@ -739,7 +755,7 @@ function cuerpo3(){
     </div>
     <div class="bloque">
       <div class="tabla-cab">
-        <p><b class="tab">${incluidas().length}</b> <span class="taupe">variantes · toca una celda para quitarla; la talla, para quitar la columna</span></p>
+        <p><b class="tab">${incluidas().length}</b> <span class="taupe">variantes (cada talla en cada color). <span style="color:var(--verde);font-weight:700">✓</span> se crea. ¿Alguna no existe, como ${esc(s.colores.at(-1) ?? "esta prenda")} en ${tallasOrden().at(-1) ?? "una talla"}? Tócala y queda <span style="color:var(--t45)">—</span></span></p>
       </div>
       ${tablaVariantes()}
       <p class="ayuda">La foto va en la fila de su color. Una sola alcanza: se muestra en los colores que no tengan la suya. Se sube al crear el producto.</p>
@@ -748,17 +764,16 @@ function cuerpo3(){
 function filaColorHtml(c, conFotos){
   if (c === null) return `<div class="fila-color"><div class="nom"><b>Sin color</b><small>una sola variante por talla</small></div></div>`;
   const nf = s.fotos[c] || 0, h = COLORES[c];
-  const fotos = conFotos ? `<div class="fotos-fila">${nf ? `<button class="mini" style="background:${h}" data-foto="${c}" title="${plural(nf, "foto", "fotos")} de ${c} · toca para agregar otra"><i></i>${nf > 1 ? `<span class="n">${nf}</span>` : ""}</button>` : ""}<button class="mini-mas" data-foto="${c}" title="Agregar foto de ${c}">+</button></div>` : "";
-  return `<div class="fila-color">${fotos}<div class="nom"><b>${punto(c)}${c}</b>${conFotos ? `<small>${nf ? plural(nf, "foto", "fotos") : "sin foto"}</small>` : ""}</div></div>`;
+  const fotos = conFotos ? `<div class="fotos-fila">${nf ? `<button class="mini" style="background:${h}" data-foto="${c}" title="${plural(nf, "foto", "fotos")} de ${c} · toca para agregar otra"><i></i>${nf > 1 ? `<span class="n">${nf}</span>` : ""}</button>` : ""}<button class="mini-mas" data-foto="${c}" title="Agregar foto de ${c}" aria-label="Agregar foto de ${c}">${camara}</button></div>` : "";
+  return `<div class="fila-color">${fotos}<div class="nom"><b>${punto(c)}${c}</b>${conFotos ? `<small>${nf ? plural(nf, "foto", "fotos") : "agrega su foto"}</small>` : ""}</div></div>`;
 }
 function tablaVariantes(){
   if (!s.tallas.length) return `<div class="aviso">Elige al menos una talla y aquí aparece la prenda: una fila por color, una columna por talla.</div>`;
   const ts = tallasOrden();
   return `<div class="scroll"><table class="prenda">
-    <thead><tr><th class="izq">Color y fotos</th>${ts.map(t => `<th class="col" data-col="${t}" title="Quitar o volver a poner toda la talla ${t}">${t}</th>`).join("")}<th></th></tr></thead>
+    <thead><tr><th class="izq">Color y fotos</th>${ts.map(t => `<th>${t}</th>`).join("")}</tr></thead>
     <tbody>${filasColor().map(c => `<tr><th class="fila">${filaColorHtml(c, true)}</th>${ts.map(t => { const k = clave(c, t), no = s.fuera.includes(k);
-      return `<td><button class="celda ${no ? "no" : "si"}" data-celda="${k}" title="${no ? "No se crea · toca para volver a ponerla" : "Toca para quitarla"}">${no ? "—" : ""}</button></td>`; }).join("")}
-      <td>${c ? `<button class="quitar-fila" data-color="${c}" title="Quitar ${c}">×</button>` : ""}</td></tr>`).join("")}</tbody>
+      return `<td><button class="celda ${no ? "no" : "si"}" data-celda="${k}" title="${no ? "No se crea · toca para volver a ponerla" : "Toca para quitarla"}">${no ? "—" : ""}</button></td>`; }).join("")}</tr>`).join("")}</tbody>
   </table></div>`;
 }
 
@@ -767,25 +782,29 @@ function cuerpo4(){
   const m = margen();
   return `
     <div class="cifras">
-      <div><label>Precio de venta</label><input class="caja monto" data-campo="precio" inputmode="decimal" placeholder="0.00" value="${esc(s.precio)}"><p class="pie-campo">Para todas las variantes</p></div>
+      <div><label>Precio de venta</label><input class="caja monto" data-campo="precio" inputmode="decimal" placeholder="0.00" value="${esc(s.precio)}"><p class="pie-campo">Para todas las tallas y colores</p></div>
       <div><label>Costo</label><input class="caja monto" data-campo="costo" inputmode="decimal" placeholder="0.00" value="${esc(s.costo)}"><p class="pie-campo">Sugerido: el del último producto de ${esc(s.cat ?? "la categoría")}</p></div>
       <div><label>Margen</label><p class="margen disp ${nivel(m)}" data-vivo="margen">${m === null ? "—" : Math.round(m) + " %"}</p><p class="pie-campo" data-vivo="margen-txt">${textoMargen(m)}</p></div>
     </div>
     <div class="bloque" style="margin-top:14px">
       <div class="tabla-cab">
         <div class="segmento" role="group" aria-label="Qué escribes en la tabla">
-          <button data-modo="cant" aria-pressed="${s.modo === "cant"}">Cuántas hay hoy</button>
-          <button data-modo="precio" aria-pressed="${s.modo === "precio"}">Precios distintos</button>
+          <button data-modo="cant" aria-pressed="${s.modo === "cant"}">Cuántas tienes hoy</button>
+          <button data-modo="precio" aria-pressed="${s.modo === "precio"}">¿Alguna cuesta distinto?</button>
         </div>
-        ${s.modo === "cant" ? `<div class="rellenar">Poner en todas: <input data-campo="relleno" inputmode="numeric" placeholder="1" value="${esc(s.relleno)}" aria-label="Cantidad para todas las variantes"><button class="btn btn-secundario" data-accion="rellenar">Aplicar</button></div>` : ""}
+        ${s.modo === "cant" ? `<div class="rellenar">Llenar todas con <input data-campo="relleno" inputmode="numeric" placeholder="1" value="${esc(s.relleno)}" aria-label="Cantidad para todas las variantes"><button class="btn btn-secundario" data-accion="rellenar">Aplicar</button></div>` : ""}
       </div>
-      <p class="taupe" style="font-size:12.5px;margin:-2px 0 8px">${s.modo === "cant" ? `En ${SEDE}. Lo que no tengas, déjalo vacío.` : "Vacío = el precio de venta. Solo escribe el que cambia."}</p>
+      <p class="taupe" style="font-size:12.5px;margin:-2px 0 8px">${s.modo === "cant" ? `Lo que hay hoy en ${SEDE}. Lo que no tengas, déjalo vacío. <span style="color:var(--t45)">—</span> = no existe.` : `Escribe solo la que cuesta distinto. Vacía = ${num(s.precio) > 0 ? soles(num(s.precio)) : "el precio de venta"}.`}</p>
       ${tablaCantidades()}
       <div class="donde" data-vivo="donde">${dondeHtml()}</div>
       <p class="nota-mini">Es la carga inicial: entra al inventario de ${SEDE} sin comprobante y queda en Movimientos como «Carga inicial». Lo que llegue después se registra al recibirlo.</p>
+    </div>
+    <div class="bloque responsable">
+      <div class="et"><b>Quién lo registra</b><small>Queda a su nombre en el historial</small></div>
+      <button class="caja" data-accion="resp" style="text-align:left;display:flex;justify-content:space-between;max-width:360px;${s.responsable ? "" : "color:var(--t45)"}">${RESPONSABLES[s.responsable]}<span class="taupe">▾</span></button>
     </div>`;
 }
-function textoMargen(m){ return m === null ? "Con el costo, se calcula" : m < 0 ? "Pierdes dinero en cada venta" : m < 45 ? "Bajo para CAYLA" : "Sano"; }
+function textoMargen(m){ return m === null ? "Con el costo, se calcula" : m < 0 ? "Pierdes dinero en cada venta" : m < 45 ? "Margen bajo" : "Buen margen"; }
 function dondeHtml(){
   if (totalStock() > 0) return `<p>¿Dónde están?</p><div class="chips"><button class="chip" data-donde="piso" aria-pressed="${s.donde === "piso"}">Colgadas en el piso de venta</button><button class="chip" data-donde="almacen" aria-pressed="${s.donde === "almacen"}">Guardadas en el almacén</button></div>`;
   return `<button class="chip" data-accion="sin-stock" aria-pressed="${s.sinStock}">Todavía no tengo unidades de este producto</button>`;
@@ -797,7 +816,7 @@ function tablaCantidades(){
   return `<div class="scroll"><table class="prenda">
     <thead><tr><th class="izq">Color</th>${ts.map(t => `<th>${t}</th>`).join("")}${s.modo === "cant" ? '<th class="total">Total</th>' : ""}</tr></thead>
     <tbody>${filasColor().map(c => `<tr><th class="fila">${filaColorHtml(c, false)}</th>${ts.map(t => { const k = clave(c, t);
-      if (s.fuera.includes(k)) return `<td><span class="celda no" title="La quitaste en el paso 3">—</span></td>`;
+      if (s.fuera.includes(k)) return `<td><span class="celda no" title="Esta combinación no existe (la quitaste en el paso 3)">—</span></td>`;
       if (s.modo === "cant") return `<td><span class="celda"><input data-cant="${k}" inputmode="numeric" placeholder="0" value="${esc(s.cant[k] ?? "")}" aria-label="${c ?? "Sin color"} ${t}"></span></td>`;
       const v = s.precios[k] ?? "";
       return `<td><span class="celda"><input data-precio="${k}" inputmode="decimal" class="${v && num(v) !== precio ? "distinto" : ""}" placeholder="${precio > 0 ? precio.toFixed(2) : "0.00"}" value="${esc(v)}" style="width:66px"></span></td>`; }).join("")}
@@ -829,10 +848,21 @@ function ficha(){
       </div>
     </div>
     <nav class="avance" aria-label="Avance">${avance}</nav>
-    <div class="responsable"><label>Quién lo registra</label>
-      <button class="caja" data-accion="resp" style="text-align:left;display:flex;justify-content:space-between;${s.responsable ? "" : "color:var(--t45)"}">${RESPONSABLES[s.responsable]}<span class="taupe">▾</span></button></div>
     <div class="acciones"><button class="btn btn-secundario">Cancelar</button><button class="btn btn-primario" ${f ? "disabled" : ""} title="${esc(f ?? "")}">Crear producto</button></div>
     <p class="listo-msg" style="${f ? "color:var(--taupe)" : ""}">${f ? `Siguiente: ${esc(f)}` : "Todo listo para crear."}</p>`;
+}
+function creadoHtml(){
+  const st = totalStock();
+  return `<div class="creado revela">
+    <p class="ok-marca">✓</p>
+    <h2 class="disp">${esc(nombreFinal())} ya está en el catálogo</h2>
+    <p class="taupe">${codigo()} · ${plural(incluidas().length, "variante", "variantes")}${st ? ` · ${plural(st, "unidad", "unidades")} en ${SEDE}` : ""}${nFotos() ? ` · ${plural(nFotos(), "foto", "fotos")} subiendo` : ""}</p>
+    <div class="acciones-creado">
+      <button class="btn btn-primario" data-accion="otro-parecido">Crear otro parecido</button>
+      <button class="btn btn-secundario">Terminé, ir a Productos</button>
+    </div>
+    <p class="taupe" style="font-size:12.5px;margin-top:14px">«Otro parecido» guarda la categoría, la marca, las tallas y el precio: solo cambias el nombre y los colores.</p>
+  </div>`;
 }
 function barraCelular(){
   const f = primerFalta();
@@ -886,13 +916,13 @@ function render(){
       <header class="cab">
         <p class="eyebrow">Catálogo · Productos</p>
         <h1 class="disp">Nuevo producto</h1>
-        <p class="bajada">Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar.</p>
+        ${s.creado ? "" : `<p class="bajada">Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar.</p>`}
       </header>
-      <div class="grid">
-        <div>${[1,2,3,4].map(paso).join("")}</div>
+      ${s.creado ? creadoHtml() : `<div class="grid">
+        <div>${s.copiado ? `<div class="aviso" style="margin:0 0 10px">Empiezas desde <b>${esc(s.copiado)}</b>: mantuve la categoría, la marca, el tejido, el patrón, las tallas, el precio y las etiquetas. Ponle su nombre y sus colores.</div>` : ""}${[1,2,3,4].map(paso).join("")}</div>
         <aside class="ficha-col"><div class="ficha" id="ficha">${ficha()}</div></aside>
       </div>
-      ${barraCelular()}
+      ${barraCelular()}`}
     </div></div>`;
   $("#capa-hoja").innerHTML = hojaHtml();
   // Repintar una hoja ya abierta (buscar, marcar tallas) no repite su entrada: solo la primera vez se anima.
@@ -905,9 +935,11 @@ function render(){
 
 /* Refresco sin repintar el campo que se está escribiendo (foco y cursor quedan donde estaban). */
 function vivo(){
-  $("#ficha").innerHTML = ficha();
+  const fi = $("#ficha"); if (!fi) return; fi.innerHTML = ficha();
   const set = (k, html) => { const el = $(`[data-vivo="${k}"]`); if (el) el.innerHTML = html; };
-  [2,3,4].forEach(n => { const el = $(`[data-vivo="falta-${n}"]`); if (el) { const f = falta(n); el.textContent = f ?? (n < 4 ? "Listo. Sigue cuando quieras." : "Listo. Revisa la ficha y crea el producto."); el.classList.toggle("ok", !f); const b = $(`[data-seguir="${n + 1}"]`); if (b) b.disabled = !!f; } });
+  [2,3,4].forEach(n => { const el = $(`[data-vivo="falta-${n}"]`); if (el) { const [txt, ok] = textoPie(n); el.textContent = txt; el.classList.toggle("ok", ok); const b = $(`[data-seguir="${n + 1}"]`); if (b) b.disabled = !!falta(n); } });
+  const crear = $('.paso-pie [data-accion="crear"]'); if (crear) crear.disabled = !!primerFalta();
+  const resp = $('.paso [data-accion="resp"]'); if (resp) { resp.firstChild.textContent = RESPONSABLES[s.responsable]; resp.style.color = s.responsable ? "" : "var(--t45)"; }
   set("nombre-pie", pieNombre());
   const r = repetido(); set("repetido", r ? avisoRepetido(r) : "");
   const m = margen(), mg = $('[data-vivo="margen"]'); if (mg) { mg.textContent = m === null ? "—" : Math.round(m) + " %"; mg.className = `margen disp ${nivel(m)}`; }
@@ -965,6 +997,8 @@ document.addEventListener("click", e => {
   if (a === "nuevo-color") { s.nuevoColor = true; if (s.busColor.trim()) s.ncNombre = titulo(s.busColor); s.busColor = ""; return render(); }
   if (a === "crear-color") { const n = titulo(s.ncNombre); COLORES[n] = s.ncHex; FAM_COLOR[FAM_COLOR.length - 1][1].push([n, s.ncHex]); s.colores = [...s.colores, n]; s.nuevoColor = false; s.ncNombre = ""; return render(); }
   if (a === "rellenar") { if (s.relleno.trim()) { const v = String(Math.max(0, Math.floor(num(s.relleno)))); incluidas().forEach(k => s.cant[k] = v); if (+v > 0) s.sinStock = false; } return render(); }
+  if (a === "crear") { s.creado = true; render(); window.scrollTo({top:0}); return; }
+  if (a === "otro-parecido") { const base = {...s}; s = {...vacio(), familia:base.familia, cat:base.cat, pareja:base.pareja, tejido:base.tejido, patron:base.patron, tallas:base.tallas, precio:base.precio, costo:base.costo, temporada:base.temporada, etiquetas:base.etiquetas, mas:base.mas, abierto:2, responsable:base.responsable, celular:base.celular, copiado:titulo(base.nombre)}; render(); return; }
   if (a === "resp") { s.responsable = s.responsable % (RESPONSABLES.length - 1) + 1; return vivo(); } // en el ERP es <ComboResponsable>; aquí rota
   if (a === "sin-stock") { s.sinStock = !s.sinStock; return vivo(); }
 });
