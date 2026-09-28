@@ -101,3 +101,35 @@ export function avisoChoque(que: "prefijo" | "nombre", dueña: CategoriaExistent
   const desactivada = dueña.activo ? "" : " (desactivada)";
   return que === "prefijo" ? `Ya lo usa «${dueña.nombre}»${desactivada}` : `Ya existe «${dueña.nombre}»${desactivada}`;
 }
+
+/**
+ * PREFIJO PROPUESTO DESDE EL NOMBRE (2026-09-28, pedido de Felipe). El prefijo se vuelve permanente con el primer
+ * producto (va impreso en cada etiqueta: BAL-0042-NEG-38), así que conviene que se lea como el nombre y no como algo
+ * inventado apurado. Se propone; la persona lo puede cambiar.
+ *
+ * Orden de candidatos, el primero libre gana (activas y desactivadas, como el candado de la base):
+ *   1. Las 3 primeras letras («Ballerinas» → BAL). Es lo que ya hace el catálogo: BLU, POL, JEA.
+ *   2. Con 3 palabras o más, sus iniciales («Tarjetas de regalo» → TDR).
+ *   3. La primera letra y el esqueleto de consonantes («Blazers» → BLZ).
+ *   4. La primera letra más cualquier par de letras siguientes, en orden (BLL, BAE…): siempre empieza como el nombre.
+ * Sin tildes ni eñes (la base solo acepta A-Z: «Pañuelos» → PAN). `null` si el nombre no tiene 3 letras o si todo lo
+ * que sale ya está tomado: entonces el campo queda vacío y la persona lo escribe.
+ */
+export function prefijoDesdeNombre(nombre: string, categorias: readonly CategoriaExistente[], excluirId: string | null): string | null {
+  const palabras = claveNombre(nombre)
+    .toUpperCase()
+    .split(" ")
+    .map((p) => p.replace(/[^A-Z]/g, ""))
+    .filter(Boolean);
+  const letras = palabras.join("");
+  if (letras.length < 3) return null;
+
+  const tomados = new Set(categorias.filter((c) => c.id !== excluirId && c.prefijo).map((c) => c.prefijo));
+  const candidatos: string[] = [letras.slice(0, 3)];
+  if (palabras.length >= 3) candidatos.push(palabras.slice(0, 3).map((p) => p[0]).join(""));
+  const consonantes = letras.slice(1).replace(/[AEIOU]/g, "");
+  if (consonantes.length >= 2) candidatos.push(letras[0] + consonantes.slice(0, 2));
+  for (let i = 1; i < letras.length; i++) for (let j = i + 1; j < letras.length; j++) candidatos.push(letras[0] + letras[i] + letras[j]);
+
+  return candidatos.find((c) => !tomados.has(c)) ?? null;
+}

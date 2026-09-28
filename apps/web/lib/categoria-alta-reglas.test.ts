@@ -5,6 +5,7 @@ import {
   EJEMPLO_NEUTRO,
   EJEMPLOS_POR_FAMILIA,
   ejemploParaFamilia,
+  prefijoDesdeNombre,
   quienUsaNombre,
   quienUsaPrefijo,
   type CategoriaExistente,
@@ -65,5 +66,40 @@ describe("avisoChoque", () => {
   it("dice quién lo tiene y si está desactivada", () => {
     expect(avisoChoque("prefijo", cat("1", "Blusas", "BLU"))).toBe("Ya lo usa «Blusas»");
     expect(avisoChoque("nombre", cat("2", "Polos", "POL", false))).toBe("Ya existe «Polos» (desactivada)");
+  });
+});
+
+describe("prefijoDesdeNombre", () => {
+  it("propone las 3 primeras letras, sin tildes ni eñes", () => {
+    expect(prefijoDesdeNombre("Ballerinas", [], null)).toBe("BAL");
+    expect(prefijoDesdeNombre("  ñustas ", [], null)).toBe("NUS");
+    expect(prefijoDesdeNombre("Túnicas", [], null)).toBe("TUN");
+  });
+
+  it("si las 3 primeras están tomadas (aunque sea por una desactivada), prueba iniciales y luego consonantes", () => {
+    const tar = [cat("1", "Tarjetas", "TAR", false)];
+    expect(prefijoDesdeNombre("Tarjetas de regalo", tar, null)).toBe("TDR");
+    const bla = [cat("1", "Blanco", "BLA")];
+    expect(prefijoDesdeNombre("Blazers", bla, null)).toBe("BLZ");
+  });
+
+  it("siempre empieza con la letra del nombre y nunca devuelve uno tomado", () => {
+    const tomados = ["BLA", "BLZ", "BLR", "BLS"].map((p, i) => cat(String(i), p, p));
+    const p = prefijoDesdeNombre("Blazers", tomados, null);
+    expect(p).toMatch(/^B[A-Z]{2}$/);
+    expect(tomados.map((c) => c.prefijo)).not.toContain(p);
+  });
+
+  it("no cuenta el prefijo de la categoría que se está editando", () => {
+    expect(prefijoDesdeNombre("Blusas", [cat("1", "Blusas", "BLU")], "1")).toBe("BLU");
+  });
+
+  it("sin 3 letras no propone nada", () => {
+    expect(prefijoDesdeNombre("Té", [], null)).toBeNull();
+    expect(prefijoDesdeNombre("  12 ", [], null)).toBeNull();
+  });
+
+  it("si todo lo posible ya está tomado, devuelve null (la persona lo escribe)", () => {
+    expect(prefijoDesdeNombre("Ana", [cat("1", "x", "ANA")], null)).toBeNull();
   });
 });

@@ -7,6 +7,7 @@
 Qué hice: el ejemplo de «Nueva categoría» cambia con la familia (Calzado → Botines/BOT, Bisutería → Aretes/ARE…) y salta los que ya existen; si el prefijo o el nombre ya los tiene otra categoría —también una desactivada— el campo dice cuál y «Guardar» se bloquea. `CampoTexto` nace con `autoComplete="off"`. Regla pura en `lib/categoria-alta-reglas.ts` con pruebas; sin SQL.
 Por qué así: la base ya rechazaba el duplicado (`categorias_prefijo_unico`, `categorias_nombre_clave_unica`) pero solo al guardar y sin decir quién lo tenía; ambos índices cuentan las desactivadas, así que la pantalla compara contra todas. El candado real sigue en la base (dos líderes a la vez).
 Felipe se lleva: el ícono azul de persona era Safari ofreciendo llenar «Nombre» con la ficha de contactos de quien está en la caja; lo dispara la palabra de la etiqueta, no nuestro código.
+Después (mismo día): el prefijo se propone desde el nombre (`prefijoDesdeNombre`: 3 primeras letras → iniciales si son 3+ palabras → consonantes → cualquier combinación que empiece igual), saltando los tomados; lo que la persona escribe no se pisa.
 
 ## 2026-09-28 (Productos ▸ Eliminar con su historia de stock, solo Admin — ADR-0252)
 Qué hice: un Admin puede eliminar un producto cuya única historia es de stock (carga, ajustes, bajadas, conteos), con respaldo de cada fila, rastro y línea en Actividad; ventas, compras, traslados y separaciones siguen sin borrarse desde la web. La ventana dice cuánto se va y quién lo cargó. Migración `20260928230000` sin pegar.
