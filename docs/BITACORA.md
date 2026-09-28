@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Escribir en un buscador ya no abre el loader — ADR-0149, actualización)
+Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas, Por pagar, Recibidas, Historial de ventas) navegan con `useBusquedaEnUrl`: anuncian la dirección al loader, que la deja pasar, y mientras la base responde el campo dice «Buscando…» y la lista se atenúa. Un filtro por clic sigue con el loader.
+Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
+Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
+
 ## 2026-09-28 (Atributos ▸ Tejidos y Patrones: clic → foto y prendas — ADR-0256)
 Qué hice: cada tarjeta de Tejidos y Patrones abre un detalle con la muestra en grande y las prendas que la usan (activas primero, con foto y enlace a su ficha). Un Líder sube, cambia o quita la foto real: primero la ve, elige el Responsable y recién «Guardar foto» la guarda. Sin migración: `imagen_muestra_url` y el bucket ya estaban en producción desde el 18-09, sin uso.
 Por qué así: una foto por tejido es 1:1 → columna, no tabla (como ADR-0061); y la ruta solo acepta URLs del bucket en la carpeta de su tipo, para que nadie pegue en el catálogo una imagen de otro sitio que después se pinta en todas las sedes. Las prendas se leen al abrir, no con la grilla.
