@@ -615,8 +615,10 @@ jobs:
       # `create function` no conserva los `revoke`). emitir_comprobante / emitir_nota / fn_aplicar_movimiento /
       # recalcular_stock solo para su dueña (42501 para authenticated, anon y service_role); stock y movimientos sin
       # escritura directa para nadie de la app, con la lectura intacta; notas de crédito: un cierre deja de esperar su nota
-      # si tiene una atada o si el comprobante ya tiene la de faltante; fn_rentabilidad solo para el líder; y las dos
-      # migraciones pegadas sobre la foto de producción cambian solo lo que dicen. Cada caso termina en ROLLBACK.
+      # si tiene una atada o si el comprobante ya tiene la de faltante; fn_rentabilidad solo para el líder; las dos
+      # migraciones pegadas sobre la foto de producción cambian solo lo que dicen; y cerrar las puertas no rompe la tienda
+      # (como authenticated, la venta con boleta y la devolución aprobada siguen emitiendo, con su control: sin el EXECUTE
+      # de la dueña se caen). Cada caso termina en ROLLBACK.
       - name: pruebas:arreglos-en-vivo
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:arreglos-en-vivo
