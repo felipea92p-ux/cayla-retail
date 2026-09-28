@@ -2650,6 +2650,7 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descripcion_dibujo: string | null
           estado: string
           id: string
           imagen_muestra_url: string | null
@@ -2662,6 +2663,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -2674,6 +2676,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -3784,6 +3787,7 @@ export type Database = {
           aprobado_en: string | null
           aprobado_por: string | null
           created_at: string
+          descripcion_dibujo: string | null
           estado: string
           id: string
           imagen_muestra_url: string | null
@@ -3796,6 +3800,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
@@ -3808,6 +3813,7 @@ export type Database = {
           aprobado_en?: string | null
           aprobado_por?: string | null
           created_at?: string
+          descripcion_dibujo?: string | null
           estado?: string
           id?: string
           imagen_muestra_url?: string | null
