@@ -14,7 +14,7 @@ import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/
 import { FotosProducto, type FotoLocal } from "@/components/FotosProducto";
 import { AvisoParecidos } from "@/components/alta-producto/AvisoParecidos";
 import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProveedor";
-import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
+import { claveReferencia, codigoVariantePrevisto, codigosRepetidos, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -51,12 +51,14 @@ import {
    fila nueva no tiene fila en `variante_etiquetas` hasta que el RPC
    principal la cree, y esta sesión no intenta adivinar ese id.
 
-   SKU: se sugiere solo (referencia + talla + color, ver `sugerirSku`) y
-   queda editable — decidido con Felipe 2026-09-15. Si la persona lo toca,
-   `skuManual` se prende y deja de recalcularse aunque cambie color/talla.
-   Es DISTINTO de `variantes.codigo` (el código corto BLU-0042-AZM-M que
-   arma el trigger `variantes_asignar_codigo` y que se ve recién después de
-   guardar) — acá no se intenta adivinar ese código, solo el SKU.
+   CÓDIGO DE UNA FILA NUEVA (2026-09-28). Muestra el mismo código que la base
+   le va a dar (`codigoVariantePrevisto`, espejo del trigger
+   `variantes_asignar_codigo`): el código del producto (CMS-0001) + color +
+   talla, y cambia solo al elegir color o talla. Hasta hoy la fila nueva
+   ofrecía un SKU inventado desde el nombre (BLUSACARLITA-U) bajo la misma
+   columna «Código» que sus hermanas: parecía el código de la prenda y no lo
+   era — la pistola lee `codigo`, no el SKU. El SKU es legado (nullable desde
+   20260915221633) y Nuevo producto tampoco lo pide: aquí ya no se manda.
 
    TEMPORADA (2026-09-26, ADR-0246). Deja de ser texto libre: se elige de la
    lista cerrada, y la primera opción dice qué pasa si no se elige nada
@@ -88,8 +90,6 @@ type FilaVariante = {
   colorCodigo: string;
   /** FK a retail.tallas — talla dejó de ser texto libre (20260917100500). */
   tallaId: string;
-  sku: string;
-  skuManual: boolean;
   precio: string;
   costo: string;
   /** El costo con el que se abrió la ficha. Una variante existente con el campo vacío lo conserva (antes se guardaba 0). */
@@ -114,34 +114,6 @@ const ESTADOS = [
   { valor: "activo", texto: "Activo" },
   { valor: "descontinuado", texto: "Descontinuado" },
 ] as const;
-
-/** Referencia → token estable para el SKU sugerido: sin acentos, sin
- *  espacios, mayúsculas, cortado — no es `codigo` (eso lo arma el trigger
- *  con el correlativo real de la categoría; esto es solo una sugerencia
- *  legible que no gasta ningún número). */
-function tokenReferencia(referencia: string): string {
-  const limpio = referencia
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, "");
-  return limpio.slice(0, 12) || "PRENDA";
-}
-
-function tokenTalla(talla: string): string {
-  const t = talla
-    .trim()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toUpperCase();
-  if (!t) return "U";
-  if (["U", "UNICA", "UNICO", "TALLAUNICA"].includes(t.replace(/\s+/g, ""))) return "U";
-  return t.replace(/[^A-Z0-9]/g, "") || "U";
-}
-
-function sugerirSku(referencia: string, colorCodigo: string, talla: string): string {
-  return [tokenReferencia(referencia), tokenTalla(talla), colorCodigo || null].filter(Boolean).join("-");
-}
 
 /** Margen % = (precio − costo) / precio. Solo lectura, no se guarda —
  *  cálculo derivado en cliente (decisión F1: no vale una columna nueva
@@ -171,8 +143,8 @@ function costoEfectivo(v: FilaVariante): string {
   return v.id && v.costo.trim() === "" ? v.costoOriginal : v.costo;
 }
 
-function filaVacia(referencia: string): FilaVariante {
-  return { id: null, colorCodigo: "", tallaId: "", sku: referencia.trim() ? sugerirSku(referencia, "", "") : "", skuManual: false, precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
+function filaVacia(): FilaVariante {
+  return { id: null, colorCodigo: "", tallaId: "", precio: "", costo: "", costoOriginal: "", costoFijo: false, activo: true, etiquetaIds: [], fija: null };
 }
 
 export function ProductoForm({
@@ -229,24 +201,16 @@ export function ProductoForm({
       })) ?? []
   );
   const [variantes, setVariantes] = useState<FilaVariante[]>(() => {
-    if (!producto) return [filaVacia("")];
+    if (!producto) return [filaVacia()];
     return [...producto.variantes]
       .sort((a, b) => compararTallas(a.talla ?? "", b.talla ?? ""))
       .map((v) => {
         const colorCodigo = v.colorCodigo ?? "";
         const talla = v.talla ?? "";
-        // Una variante que ya trae SKU (alguien lo tocó a mano antes) se
-        // respeta tal cual. Una que llegó sin él (censo, o creada fuera del
-        // formulario) se trata como recién agregada: el sugerido corre solo,
-        // igual que en una fila nueva — no se deja en blanco esperando que
-        // alguien lo escriba a mano.
-        const skuManual = !!v.sku.trim();
         return {
           id: v.id,
           colorCodigo,
           tallaId: v.tallaId ?? "",
-          sku: skuManual ? v.sku : sugerirSku(producto.referencia, colorCodigo, talla),
-          skuManual,
           precio: String(v.precio),
           costo: v.costo === null ? "" : String(v.costo),
           costoOriginal: v.costo === null ? "" : String(v.costo),
@@ -305,6 +269,12 @@ export function ProductoForm({
     icono: <MuestraPatron nombre={t.texto} className="aspect-[3/1] w-[72px]" />,
   }));
   const tallaTexto = (tallaId: string) => tallasCategoria.find((t) => t.id === tallaId)?.texto ?? "";
+  // El código de cada fila: el guardado para las que existen; para las nuevas, el que la base les va a dar (sin código de
+  // producto todavía —prenda que nunca tuvo variantes— no hay cómo saberlo: lo asigna el correlativo al guardar).
+  const codigosFilas = variantes.map((v) =>
+    v.fija ? v.fija.codigo : producto?.codigo ? codigoVariantePrevisto(producto.codigo, v.colorCodigo || null, v.tallaId ? tallaTexto(v.tallaId) : null) : null
+  );
+  const repetidos = new Set(codigosRepetidos(codigosFilas));
 
   // ---------- temporada (ADR-0246) ----------
   // La de su categoría se sigue de la categoría ELEGIDA en el formulario (no de la que tenía al abrir): si se cambia de
@@ -343,28 +313,8 @@ export function ProductoForm({
     setVariantes((actual) => actual.map((f, n) => (n === i ? { ...f, ...cambio } : f)));
   }
 
-  // Al tocar color o talla de una fila SIN sku manual, el sugerido se
-  // recalcula con el estado ya actualizado — no con el de la fila vieja.
-  function cambiarColorOTalla(i: number, cambio: Partial<Pick<FilaVariante, "colorCodigo" | "tallaId">>) {
-    setVariantes((actual) =>
-      actual.map((f, n) => {
-        if (n !== i) return f;
-        const siguiente = { ...f, ...cambio };
-        if (siguiente.skuManual) return siguiente;
-        return { ...siguiente, sku: sugerirSku(referencia, siguiente.colorCodigo, tallaTexto(siguiente.tallaId)) };
-      })
-    );
-  }
-
-  function cambiarReferencia(v: string) {
-    setReferencia(v);
-    // Las filas nuevas (sin sku manual) siguen a la referencia; las que la
-    // persona ya editó a mano quedan como están.
-    setVariantes((actual) => actual.map((f) => (f.skuManual ? f : { ...f, sku: sugerirSku(v, f.colorCodigo, tallaTexto(f.tallaId)) })));
-  }
-
   function agregarFila() {
-    setVariantes((a) => [...a, filaVacia(referencia)]);
+    setVariantes((a) => [...a, filaVacia()]);
   }
 
   function quitarFila(i: number) {
@@ -381,9 +331,12 @@ export function ProductoForm({
     if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
     const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
     if (sinPrecio >= 0) return void avisar.error("Cada variante necesita un precio.", { enfocar: `producto-variante-${sinPrecio}-precio` });
-    // Solo filas nuevas: en una variante que ya existe el SKU no se edita (la base tampoco lo cambiaría).
-    const sinSku = variantes.findIndex((v) => !v.id && !v.sku.trim());
-    if (sinSku >= 0) return void avisar.error("Cada variante necesita un SKU.", { enfocar: `producto-variante-${sinSku}-sku` });
+    // Dos filas con el mismo color y talla darían el mismo código: la base rechazaría el guardado entero con un error
+    // técnico. Se avisa aquí, en la fila nueva que repite.
+    const repetida = codigosRepetidos(codigosFilas)[0];
+    if (repetida !== undefined) {
+      return void avisar.error(`Ya hay una variante ${codigosFilas[repetida]}: cambia el color o la talla de la nueva, o quítala.`, { enfocar: `producto-variante-${repetida}-codigo` });
+    }
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
@@ -406,7 +359,6 @@ export function ProductoForm({
       ...(v.id ? { id: v.id } : {}),
       color_codigo: v.colorCodigo || null,
       talla_id: v.tallaId || null,
-      sku: v.sku.trim(),
       precio: Number(v.precio),
       costo: costoEfectivo(v) === "" ? 0 : Number(costoEfectivo(v)),
       activo: v.activo,
@@ -532,7 +484,7 @@ export function ProductoForm({
               etiqueta="Referencia"
               id="producto-referencia"
               value={referencia}
-              onChange={(e) => cambiarReferencia(e.target.value)}
+              onChange={(e) => setReferencia(e.target.value)}
               placeholder="Blusa Lino"
               autoFocus
             />
@@ -762,24 +714,31 @@ export function ProductoForm({
                   <ComboBuscable
                     etiquetaAccesible="Color"
                     valor={v.colorCodigo}
-                    onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
+                    onValor={(c) => actualizarFila(i, { colorCodigo: c })}
                     opciones={opcionesColor}
                     marcador="Sin color"
                   />
                   <ComboBuscable
                     etiquetaAccesible="Talla"
                     valor={v.tallaId}
-                    onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                    onValor={(t) => actualizarFila(i, { tallaId: t })}
                     opciones={opcionesTalla}
                     marcador={categoriaId ? "Sin talla" : "Elige categoría"}
                   />
-                  <input
-                    aria-label="SKU"
-                    id={`producto-variante-${i}-sku`}
-                    value={v.sku}
-                    onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                    className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-                  />
+                  <span
+                    id={`producto-variante-${i}-codigo`}
+                    tabIndex={-1}
+                    className={`truncate py-2 font-mono text-xs tracking-wide outline-none ${codigosFilas[i] ? (repetidos.has(i) ? "text-rojo" : "text-tinta/70") : "text-tinta/45"}`}
+                    title={
+                      codigosFilas[i]
+                        ? repetidos.has(i)
+                          ? "Ya existe una variante con este color y talla."
+                          : "Así quedará al guardar. Cambia solo al elegir color o talla."
+                        : "Se asigna al guardar."
+                    }
+                  >
+                    {codigosFilas[i] ?? "Se asigna al guardar"}
+                  </span>
                 </>
               )}
               <input
