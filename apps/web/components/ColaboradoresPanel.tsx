@@ -473,6 +473,7 @@ export function ColaboradoresPanel({
               soyAdmin={soyAdmin}
               misModulos={misModulos}
               fueraDeAlcance={fueraDeAlcance}
+              admins={admins}
               acciones={accionesRoles}
               responsable={responsable}
             />

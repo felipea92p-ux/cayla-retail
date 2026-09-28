@@ -288,6 +288,206 @@ rollback;
 );
 
 // ---------------------------------------------------------------------------
+// 11: editar_clienta — candado optimista (ADR-0193 reusado, ver 20260928140000)
+// ---------------------------------------------------------------------------
+
+exito(
+  "editar_clienta con la version correcta guarda y sube la version",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444111', 'Editar Antes', '987444111', true, null, null) as id \\gset
+select retail.editar_clienta(:'id'::uuid, '90444111', 'Editar Después', '987444111', false, false, 5::smallint, 8::smallint, null, 1) as v \\gset
+select nombre, version from retail.clientas where id = :'id'::uuid;
+rollback;
+`
+  ),
+  ([nombre, version]) => nombre === "Editar Después" && version === "2"
+);
+
+error(
+  "editar_clienta con una version vieja rechaza con PT409 (alguien más editó entre medio)",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444112', 'Version Vieja', null, false, null, null) as id \\gset
+select retail.editar_clienta(:'id'::uuid, '90444112', 'Primer Cambio', null, false, false, null, null, null, 1) as v1 \\gset
+select retail.editar_clienta(:'id'::uuid, '90444112', 'Segundo Cambio Con Version Vieja', null, false, false, null, null, null, 1);
+`
+  ),
+  "Alguien más editó esta ficha"
+);
+
+exito(
+  "editar_clienta con p_revoca_whatsapp=true apaga el consentimiento a propósito",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444113', 'Con Permiso', '987444113', true, null, null) as id \\gset
+select retail.editar_clienta(:'id'::uuid, '90444113', 'Con Permiso', '987444113', false, true, null, null, null, 1) as v \\gset
+select whatsapp_consentimiento_en is null from retail.clientas where id = :'id'::uuid;
+rollback;
+`
+  ),
+  ([esNulo]) => esNulo === "t"
+);
+
+error(
+  "editar_clienta sobre una ficha archivada se rechaza",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444114', 'Sera Archivada', null, false, null, null) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, 'motivo de prueba', false, 1) as v \\gset
+select retail.editar_clienta(:'id'::uuid, null, 'No Debería Poder', null, false, false, null, null, null, :v);
+`
+  ),
+  "Esta ficha está archivada"
+);
+
+// ---------------------------------------------------------------------------
+// 12: archivar_clienta / reactivar_clienta — nunca delete (CLAUDE.md)
+// ---------------------------------------------------------------------------
+
+error(
+  "archivar_clienta sin motivo se rechaza",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444115', 'Sin Motivo', null, false, null, null) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, '', false, 1);
+`
+  ),
+  "Escribe un motivo"
+);
+
+exito(
+  "archivar_clienta simple conserva sus datos; reactivar_clienta la devuelve",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444116', 'Ida Y Vuelta', '987444116', false, null, null) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, 'ya no compra', false, 1) as v1 \\gset
+select retail.reactivar_clienta(:'id'::uuid, :v1) as v2 \\gset
+select archivada_en is null, telefono_whatsapp from retail.clientas where id = :'id'::uuid;
+rollback;
+`
+  ),
+  ([activa, telefono]) => activa === "t" && telefono === "987444116"
+);
+
+exito(
+  "archivar_clienta con p_anonimizar=true borra todo dato personal (Ley 29733)",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444117', 'A Anonimizar', '987444117', true, 5::smallint, 8::smallint) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, 'pedido de la clienta', true, 1) as v \\gset
+select dni, nombre, telefono_whatsapp, whatsapp_consentimiento_en, cumple_dia, anonimizada from retail.clientas where id = :'id'::uuid;
+rollback;
+`
+  ),
+  ([dni, nombre, tel, whats, dia, anon]) => dni === "" && nombre === "Clienta anonimizada" && tel === "" && whats === "" && dia === "" && anon === "t"
+);
+
+error(
+  "reactivar_clienta sobre una ficha anonimizada se rechaza — sus datos ya no existen",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444118', 'No Se Reactiva', null, false, null, null) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, 'pedido de la clienta', true, 1) as v \\gset
+select retail.reactivar_clienta(:'id'::uuid, :v);
+`
+  ),
+  "fue anonimizada"
+);
+
+error(
+  "estado imposible: un UPDATE directo que deje anonimizada=true con un nombre real viola el CHECK",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444119', 'Se Cuela', null, false, null, null) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, 'pedido de la clienta', true, 1) as v \\gset
+update retail.clientas set nombre = 'se coló un nombre real' where id = :'id'::uuid;
+`
+  ),
+  "clientas_anonimizada_sin_datos_personales"
+);
+
+// ---------------------------------------------------------------------------
+// 13: unir_clientas — D-99, una transacción que mueve ventas/separaciones/pedidos
+// ---------------------------------------------------------------------------
+
+exito(
+  "unir_clientas mueve una venta y un pedido no atendido a la ficha que se queda, y anonimiza a la perdedora",
+  comoPersona(
+    FELIPE,
+    `select id as ubic from retail.ubicaciones where nombre = 'Tienda Lima' \\gset
+select retail.registrar_clienta('90444120', 'Se Queda', '987444120', false, null, null) as mantiene \\gset
+select retail.registrar_clienta(null, 'Se Une', '987444121', false, null, null) as fusiona \\gset
+insert into retail.ventas (id, ubicacion_id, cliente_id, estado, es_prueba) values (gen_random_uuid(), :'ubic'::uuid, :'fusiona'::uuid, 'completada', true) returning id as venta \\gset
+insert into retail.pedidos_no_atendidos (id, ubicacion_id, descripcion_libre, clienta_id, created_at, resuelto)
+  values (gen_random_uuid(), :'ubic'::uuid, 'prueba clientas.mjs', :'fusiona'::uuid, now(), false);
+select (retail.unir_clientas(:'mantiene'::uuid, :'fusiona'::uuid, 1, 1)).dni as dni_ganadora \\gset
+select
+  (select cliente_id from retail.ventas where id = :'venta'::uuid) = :'mantiene'::uuid,
+  (select dni is null and nombre = 'Clienta anonimizada' and anonimizada and fusionada_en_id = :'mantiene'::uuid from retail.clientas where id = :'fusiona'::uuid),
+  (select ventas_movidas from retail.clientas_fusiones where clienta_fusionada_id = :'fusiona'::uuid);
+rollback;
+`
+  ),
+  ([ventaMovida, perdedoraOk, ventasMovidas]) => ventaMovida === "t" && perdedoraOk === "t" && ventasMovidas === "1"
+);
+
+error(
+  "unir_clientas contra una ficha que ya se unió a otra se rechaza (no se fusiona dos veces)",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta('90444122', 'Primera', null, false, null, null) as a \\gset
+select retail.registrar_clienta('90444123', 'Segunda', null, false, null, null) as b \\gset
+select retail.registrar_clienta(null, 'Tercera', '987444124', false, null, null) as c \\gset
+select retail.unir_clientas(:'a'::uuid, :'c'::uuid, 1, 1) as v1 \\gset
+select retail.unir_clientas(:'b'::uuid, :'c'::uuid, 1, 1);
+`
+  ),
+  "ya está archivada o ya se unió a otra"
+);
+
+// ---------------------------------------------------------------------------
+// 14: buscar_clienta con p_incluir_archivadas — no reaparece una anonimizada por accidente
+// ---------------------------------------------------------------------------
+
+exito(
+  "buscar_clienta no muestra archivadas por defecto, sí con p_incluir_archivadas=true",
+  comoPersona(
+    FELIPE,
+    `select retail.registrar_clienta(null, 'Buscar Archivada', '987444125', false, null, null) as id \\gset
+select retail.archivar_clienta(:'id'::uuid, 'motivo', false, 1) as v \\gset
+select
+  (select count(*) from retail.buscar_clienta('987444125')),
+  (select count(*) from retail.buscar_clienta('987444125', true));
+rollback;
+`
+  ),
+  ([sinArchivadas, conArchivadas]) => sinArchivadas === "0" && conArchivadas === "1"
+);
+
+// ---------------------------------------------------------------------------
+// 15: exportar_clientas — D-109/G.4, solo Admin, con rastro en retail.actividad
+// ---------------------------------------------------------------------------
+
+error(
+  "exportar_clientas rechaza a quien no es Admin (Micaela, colaboradora)",
+  comoPersona(MICAELA, `select retail.exportar_clientas();\n`),
+  "Solo un Admin puede exportar"
+);
+
+exito(
+  "exportar_clientas funciona para un Admin y queda anotado en retail.actividad",
+  comoPersona(
+    FELIPE,
+    `select count(*) from retail.exportar_clientas() \\gset total_
+select (select count(*) > 0 from retail.actividad where modulo = 'clientas' and accion = 'exportar');
+rollback;
+`
+  ),
+  ([hayRastro]) => hayRastro === "t"
+);
+
+// ---------------------------------------------------------------------------
 
 function main() {
   try {

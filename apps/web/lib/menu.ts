@@ -52,7 +52,11 @@ export type Pajaro = (typeof PAJAROS)[number];
  * pantalla y el candado dicen lo mismo:
  *  - facturar:               Facturación (emitir y ver comprobantes). Las anulaciones siguen siendo del líder.
  *  - gestionarCaja:          cerrar caja y mover caja                          (fn_puede_gestionar_caja)
- *  - ajustarInventario:      ajustar stock, cerrar conteo, cerrar traslado con diferencia (fn_puede_ajustar_inventario)
+ *  - ajustarInventario:      cerrar conteo, cerrar traslado con diferencia       (fn_puede_ajustar_inventario). Hasta el
+ *                            2026-09-27 también abría el botón «Ajustar»: ADR-0250 lo separó en `ajustarStock` porque
+ *                            Existencias/Conteos/Traslados no es «el líder decidió dar el módulo de ajustar».
+ *  - ajustarStock:           el botón «Ajustar» de Existencias, Productos y Movimientos (fn_puede_ajustar_stock,
+ *                            ADR-0250): SOLO el módulo «Ajustar stock», nace sin rol.
  *  - editarCatalogo:         escribir en el Catálogo                            (fn_puede_editar_catalogo)
  *  - editarCuentasProveedor: cuentas bancarias de proveedores                   (fn_puede_editar_cuentas_proveedor)
  *  - verDineroCompras:       los montos y el registro de Compras (Facturas de compra, Por pagar, Notas de crédito;
@@ -68,7 +72,7 @@ export type Pajaro = (typeof PAJAROS)[number];
  */
 export const PERMISOS = [
   "administrar", "verDinero", "analizar",
-  "facturar", "gestionarCaja", "ajustarInventario", "editarCatalogo", "editarCuentasProveedor",
+  "facturar", "gestionarCaja", "ajustarInventario", "ajustarStock", "editarCatalogo", "editarCuentasProveedor",
   "verDineroCompras", "editarEtiquetas", "registrarGastos",
   "verCuentasDinero", "verReportesFinancieros", "verImpuestos", "cerrarMes",
 ] as const;
@@ -112,7 +116,7 @@ export type ClaveIcono =
   | "inicio" | "vender" | "apartados" | "caja" | "historial" | "productos" | "inventario" | "existencias" | "movimientos" | "traslados" | "conteo" | "resumen"
   | "facturacion" | "compras" | "colaboradores" | "insumos" | "produccion" | "ordenes" | "cambios" | "posventa" | "devoluciones" | "venta"
   | "catalogo" | "categorias" | "marcas" | "atributos" | "proveedores" | "facturas" | "recibir" | "porPagar" | "notasCredito" | "gastos"
-  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama";
+  | "finanzas" | "dinero" | "reportes" | "impuestos" | "cierre" | "analisis" | "panorama" | "clientas";
 
 /** Números que una fila puede llevar de insignia («por atender»). Los calcula el servidor; el árbol solo dice cuál va dónde. */
 export type ClaveContador = "trasladosPorAtender";
@@ -362,7 +366,15 @@ export const ARBOL: readonly Nodo[] = [
       { id: "finanzas.cierreDeMes", modulo: "cierre_mes", etiqueta: "Cierre de mes", estado: "viva", ruta: "/finanzas/cierre", icono: "cierre", pajaro: "12 Urraca", exige: "cerrarMes" },
     ],
   },
-  { id: "clientas", etiqueta: "Clientas", estado: "futura", pajaro: "07 Colibrí", nota: "`clientes`: la libreta de clientas." },
+  // Clientas, paso 2 del acta (D-92, docs/datos/DECISIONES-2026-09-26-clientas.md): «crecer
+  // Clientas... como grupo propio del menú», no anidada bajo Ventas — aunque en Roles y accesos
+  // (`modulos.ts`) su grupo sigue siendo «Ventas» (D-92 pidió un grupo propio del MENÚ, no
+  // recategorizar el módulo). HOJA de primer nivel, no un Grupo de una sola hija: un grupo con
+  // una única hija que comparte su ícono choca con la prueba «una cabecera nunca repite el ícono
+  // de su hija» — y hoy no hay una segunda pantalla que lo justifique. Cuando los pasos 3/4 del
+  // acta (Avisos, Análisis) le sumen hermanas, ESE cambio hace el refactor a Grupo (Kent Beck:
+  // primero el terreno, después el cambio), no antes.
+  { id: "clientas", modulo: "clientas", etiqueta: "Clientas", estado: "viva", ruta: "/clientas", icono: "clientas", pajaro: "07 Colibrí" },
   {
     id: "configuracion", etiqueta: "Configuración", estado: "futura", pajaro: "01 Ganso", exige: "administrar",
     nota: "Módulo nuevo. Los nombres de las hijas son provisionales.",

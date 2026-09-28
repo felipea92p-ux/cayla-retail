@@ -209,7 +209,7 @@ describe("los nodos futuros: en el árbol para que el aviario quede a la vista, 
     expect(Object.fromEntries(futuros)).toEqual({
       "produccion.eficiencia": "10 Gallito",
       // Finanzas nació el 2026-09-24 con Gastos (ADR-0195 F2); con el Resumen (F10) ya no le queda ninguna hija futura.
-      clientas: "07 Colibrí",
+      // Clientas nació el 2026-09-27 (paso 2 del acta, D-92): ya no es futura, ver `menu.ts`.
       configuracion: "01 Ganso",
       "configuracion.accesos": "01 Ganso",
       "configuracion.empresa": "08 Cuervo",
@@ -591,8 +591,8 @@ describe("el menú de una terminal con el rol «Terminal de ventas»", () => {
 
   // Apartados no: desde el ADR-0196 es un módulo propio y la siembra de la terminal de ventas no lo trae.
   // Es la caja del mostrador: Ventas le sale SUELTO (Felipe, 2026-09-25), sin la cabecera «Ventas» ni la de «Posventa».
-  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones y Comprobantes, en ese orden y sin grupos que abrir", () => {
-    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
+  it("ve lo de Ventas suelto: Punto de Venta, Caja, Historial, Cambios, Devoluciones, Comprobantes y Clientas, en ese orden y sin grupos que abrir", () => {
+    expect(etiquetasDe(riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientas"]);
     expect(riel.some(esGrupoMenu)).toBe(false);
   });
 
@@ -644,7 +644,9 @@ describe("terminales sin tipo: el rol manda", () => {
     expect(etiquetasDe(caja)).toEqual(["Inicio", "Ventas", "Inventario"]);
     // Un grupo con una sola pantalla visible conserva el nombre del módulo (regla de siempre de `menuPara`).
     expect(caja.map((f) => ("href" in f ? f.href : null))).toEqual(["/", "/caja", "/inventario"]);
-    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual(["Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes"]);
+    expect(etiquetasDe(menuPara(perfilTerminal("ventas")).riel)).toEqual([
+      "Punto de Venta", "Caja", "Historial", "Cambios", "Devoluciones", "Comprobantes", "Clientas",
+    ]);
   });
 
   it("es caja del mostrador (Ventas suelto) solo la TERMINAL que ve el Punto de venta; una persona que vende lo sigue viendo agrupado", () => {

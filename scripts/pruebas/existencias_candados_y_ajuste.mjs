@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0240 contra el Postgres LOCAL:
+ * Prueba de ADR-0240 y ADR-0250 contra el Postgres LOCAL:
  *   · «Una puerta, un candado» (20260927180000 y 20260927180200): `mover_entre_piso_y_almacen` pide «Bajada al piso» y
  *     `apartar_prenda` pide «Apartados»; `mover_interno` y `apartar_stock` ya no se llaman desde el navegador, pero las
  *     funciones que las usan por dentro (`bajar_al_piso`) siguen funcionando.
  *   · «Ajustar de una vez» (20260927180100): `ajustar_inventario` es todo o nada y con marca de reintento.
+ *   · «Ajustar stock, módulo propio» (20260928110000, ADR-0250): Existencias/Conteos/Traslados YA NO alcanza para
+ *     ajustar — hace falta el módulo «Ajustar stock» — y el módulo solo, sin los otros tres, alcanza.
  *
  * CÓMO. Como `ajuste_no_es_primera_carga.mjs`: cada caso en su transacción con ROLLBACK (no deja nada en el Postgres
  * compartido), sesión simulada con `request.jwt.claim(s)`, y `pg_temp.intento` que devuelve el resultado o el error
@@ -270,13 +272,52 @@ ${K("repetida", ajustar({ ajustes: items(["v1", 1]), cargas: items(["v1", 1]) })
 );
 
 correr(
-  "9. Quien no puede ajustar, no ajusta (el candado de registrar_movimiento, ADR-0143)",
+  "9. Quien no puede ajustar, no ajusta (el candado de registrar_movimiento, hoy ADR-0250)",
   `select gen_random_uuid() as tok \\gset
 ${soloModulos("integrante", ["vender"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
 ${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
   (d) => {
     afirmar("se rechaza", j(d.r)?.ok === false, d.r);
     afirmar("y v1 sigue en 5", d.alm1 === "5", `alm=${d.alm1}`);
+  },
+);
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0250: «Ajustar stock» se separa de Existencias/Conteos/Traslados
+// ---------------------------------------------------------------------------------------------------------------------
+
+correr(
+  "10a. Existencias + Conteos + Traslados YA NO alcanza para ajustar (antes sí; ADR-0250)",
+  `select gen_random_uuid() as tok \\gset
+${soloModulos("integrante", ["existencias", "conteos", "traslados"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
+${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
+  (d) => {
+    afirmar("se rechaza con `ajuste_sin_modulo`", j(d.r)?.ok === false && j(d.r).hint === "ajuste_sin_modulo", d.r);
+    afirmar("y v1 sigue en 5", d.alm1 === "5", `alm=${d.alm1}`);
+  },
+);
+
+correr(
+  "10b. Solo «Ajustar stock» (sin Existencias, Conteos ni Traslados) alcanza para ajustar",
+  `select gen_random_uuid() as tok \\gset
+${soloModulos("integrante", ["ajustar_stock"])}${sesion(INTEGRANTE)}${COMO_API}${K("r", ajustar({ ajustes: items(["v1", 1]) }))}
+${COMO_POSTGRES}${K("alm1", stock("v1", "alm"))}`,
+  (d) => {
+    afirmar("pasa", j(d.r)?.ok === true, d.r);
+    afirmar("y v1 quedó en 6", d.alm1 === "6", `alm=${d.alm1}`);
+  },
+);
+
+correr(
+  "10c. Cerrar conteo y cerrar traslado con diferencia NO cambiaron: siguen pidiendo Existencias/Conteos/Traslados, no «Ajustar stock»",
+  `${soloModulos("integrante", ["ajustar_stock"])}${sesion(INTEGRANTE)}${COMO_API}${K("conteo", directo("select retail.cerrar_conteo('00000000-0000-4000-8000-000000000000')::text"))}
+${K("traslado", directo("select retail.cerrar_traslado_con_diferencia('00000000-0000-4000-8000-000000000000', null)::text"))}`,
+  (d) => {
+    // Con solo «Ajustar stock» (sin Conteos/Traslados), las dos deben frenar ANTES de buscar el id — mismo mensaje de
+    // siempre («Solo un líder puede cerrar…»), no `ajuste_sin_modulo`: es el candado de fn_puede_ajustar_inventario(),
+    // que este ADR no tocó.
+    afirmar("cerrar_conteo se rechaza (no por `ajuste_sin_modulo`)", j(d.conteo)?.ok === false && j(d.conteo).hint !== "ajuste_sin_modulo", d.conteo);
+    afirmar("cerrar_traslado_con_diferencia se rechaza (no por `ajuste_sin_modulo`)", j(d.traslado)?.ok === false && j(d.traslado).hint !== "ajuste_sin_modulo", d.traslado);
   },
 );
 

@@ -21,6 +21,7 @@ import {
   motivoParaNoArchivar,
   motivoParaNoEncender,
   motivoParaNoGuardar,
+  debeAvisarPerdidaAdmin,
   nombreDeCopia,
   pideUbicacion,
   rolesAsignables,
@@ -104,6 +105,9 @@ describe("«Así queda su menú»", () => {
       { etiqueta: "Ventas", hijas: ["Punto de Venta", "Caja", "Historial", "Posventa"] }, // Apartados: módulo propio sin rol (ADR-0196)
       { etiqueta: "Inventario", hijas: ["Existencias", "Movimientos", "Traslados", "Conteo", "Recibir mercadería"] },
       { etiqueta: "Catálogo", hijas: ["Productos", "Categorías", "Marcas", "Atributos"] },
+      // Clientas (2026-09-27, paso 2 del acta): ya estaba en MODULOS_DE_HOY.integrante desde antes (D-76/D-77), solo
+      // no se veía porque el nodo del menú era "futura" — ver `menu.ts`.
+      { etiqueta: "Clientas", hijas: [] },
     ]);
   });
 
@@ -163,6 +167,15 @@ describe("archivar, duplicar y asignar", () => {
     expect(pideUbicacion({ esLider: true, ubicacion: "Tienda Arequipa" }, INTEGRANTE)).toBe(false);
     expect(pideUbicacion({ esLider: true, ubicacion: null }, LIDER)).toBe(false);
     expect(pideUbicacion({ esLider: false, ubicacion: null }, INTEGRANTE)).toBe(false);
+  });
+
+  // ADR-0178: fn_es_admin() exige Líder activo en retail además de admin en Dynamic — bajar a un Admin de Líder le
+  // apaga el escalón en el acto, aunque el sistema siga teniendo otros Admin (2026-09-27, análisis /pantalla).
+  it("bajar a un Admin del rol Líder avisa que también pierde el escalón Admin", () => {
+    expect(debeAvisarPerdidaAdmin(true, INTEGRANTE)).toBe(true);
+    expect(debeAvisarPerdidaAdmin(false, INTEGRANTE)).toBe(false);
+    expect(debeAvisarPerdidaAdmin(true, LIDER)).toBe(false); // sube o se queda de líder: no pierde nada
+    expect(debeAvisarPerdidaAdmin(true, undefined)).toBe(false); // sin destino elegido todavía
   });
 });
 
