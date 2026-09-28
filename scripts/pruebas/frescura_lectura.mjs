@@ -29,7 +29,11 @@
  *       no, y fn_confianza_registro sin tienda le da SOLO la suya (de las otras sedes no ve nada; el líder, todas); anon
  *       no (42501); si fn_puede_operar_ubicacion dice que no a esa tienda, el líder tampoco (hoy un líder opera todas: la
  *       prueba la reemplaza dentro de su transacción para vigilar que el candado la pregunte), y sin tienda
- *       fn_confianza_registro igual responde, sin esa tienda.
+ *       fn_confianza_registro igual responde, sin esa tienda. La TERMINAL de ventas de Trujillo (lo que ve una cuenta,
+ *       persona o terminal, lo decide su rol: ADR-0161): sin el módulo, P0001 en las tres lecturas; con «Frescura del
+ *       piso» en terminal_ventas, lee su tienda (separa_piso), otra no en ninguna de las tres, y el registro sin tienda le
+ *       da solo Trujillo (corrección del paso 4: antes solo se probaban Felipe y Micaela, y un candado que dejara afuera a
+ *       la terminal pasaba todas las pruebas de conducta).
  *   T2  qué prendas: la colgada sin movimiento en la ventana aparece con su saldo inicial (marca 4) y su primera
  *       exhibición de hace 149 días; la que solo está en el almacén aparece sin eventos; la que solo está en cuarentena
  *       no; la que se vendió entera en la ventana sí (sin ella no hay vara); la que se vendió antes de la ventana no; la
@@ -95,7 +99,8 @@
  *   T2i lo apartado para una clienta no está colgado (R7-1, Felipe 2026-09-27): piso_hoy y almacen_hoy son lo libre y
  *       apartadas_hoy lo apartado; `apartados` trae lo apartado del PISO con el signo de lo libre (apartar −, liberar +),
  *       con el saldo al empezar la ventana (también con p_dias = 30, que parte una separación en dos); la entrega
- *       (liberar y vender en el mismo instante); lo apartado en el almacén no toca el piso.
+ *       (liberar y vender en el mismo instante); lo apartado en el almacén no toca el piso. Paso 4: apartadas_piso_hoy
+ *       es lo apartado en el PISO (la del almacén da 0) y cuadra con −Σ de sus puntos apartados.
  *   T11 niveles: 9 filas «pocos_datos», 10 y 19 «aceptable», 20 «solido».
  *   Revisión 9 (20260928120330):
  *   T9d lo apartado en los 10 minutos de una bajada cuenta como vendido en las tardías de la LECTURA (N1, F1, F2): la
@@ -183,6 +188,8 @@ const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
+/** La cuenta de una terminal de ventas de Trujillo que crea T1 (como terminales_por_tienda.mjs), dentro de su ROLLBACK. */
+const TERMINAL_TRU = "33333333-3333-4333-8333-0000000000f1";
 const CENTINELA = "22222222-2222-4222-8222-222222222222"; // «Prenda sin registrar» (ADR-0179)
 
 function psql(sql) {
@@ -502,7 +509,7 @@ ${k("MD5", `(select string_agg(proname || '=' || md5(prosrc), ',' order by prona
 
 // ---------------------------------------------------------------------------
 correr(
-  "T1 · permisos: el líder sí; una integrante sin el módulo no (frescura_sin_permiso); con el módulo, su tienda sí y otra no, y sin tienda solo la suya; anon no; sin operar la tienda, tampoco el líder",
+  "T1 · permisos: el líder sí; una integrante sin el módulo no (frescura_sin_permiso); con el módulo, su tienda sí y otra no, y sin tienda solo la suya; la terminal de TRU, igual; anon no; sin operar la tienda, tampoco el líder",
   `-- Trujillo con piso y almacén (el seed no siempre los trae): así fn_confianza_registro la cuenta y «solo la suya» no
 -- pasa con cero filas.
 insert into retail.sububicaciones (ubicacion_id, nombre, tipo)
@@ -528,6 +535,28 @@ ${k("MOD_CONF", "pg_temp.intento(format('select * from retail.fn_confianza_regis
 ${k("MOD_CONF_OTRA", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'ubic'))")}
 ${k("MOD_CONF_TODAS", "(select count(*) || ',' || count(*) filter (where c.ubicacion_id <> :'tru') from retail.fn_confianza_registro() c)")}
 ${k("MOD_CONF_SOLA", "(select count(*) from retail.fn_confianza_registro(:'tru'))")}
+${COMO_POSTGRES}
+-- LA TERMINAL (ADR-0161: lo que ve una cuenta, persona O terminal, lo decide su rol). Una terminal de ventas de Trujillo,
+-- como la crea terminales_por_tienda.mjs, dentro del ROLLBACK del caso. Primero sin el módulo: se quita «frescura» de
+-- todos los roles para no depender de lo que haya dejado otra prueba en una base compartida (terminales_por_tienda
+-- re-siembra los roles por lo mismo).
+delete from retail.rol_modulos where modulo = 'frescura';
+insert into auth.users (id, aud, role, email) values ('${TERMINAL_TRU}', 'authenticated', 'authenticated', 'terminal-frescura-tru@prueba.local');
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  values (:'tru', 'ZZ Terminal Ventas TRU', retail.fn_rol_por_clave('terminal_ventas'), '${TERMINAL_TRU}');
+${sesion(TERMINAL_TRU)}${k("TERM_SIN_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
+${k("TERM_SIN_CONF", "pg_temp.intento('select * from retail.fn_confianza_registro()')")}
+${k("TERM_SIN_BAJADAS", "pg_temp.intento(format('select * from retail.fn_bajadas_del_piso(%L)', :'tru'))")}
+${COMO_POSTGRES}
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_ventas'), 'frescura');
+${sesion(TERMINAL_TRU)}${k("TERM_VE", "(retail.fn_ve_modulo('frescura') and not retail.fn_es_lider())")}
+${k("TERM_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
+${k("TERM_SEDE_LEE", "(select case when (pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru')) ->> 'ok') = 'true' then retail.fn_frescura_sede(:'tru') ->> 'separa_piso' else 'sin permiso' end)")}
+${k("TERM_OTRA", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
+${k("TERM_LIMA", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'lim'))")}
+${k("TERM_CONF_LIMA", "pg_temp.intento(format('select * from retail.fn_confianza_registro(%L)', :'lim'))")}
+${k("TERM_BAJADAS_LIMA", "pg_temp.intento(format('select * from retail.fn_bajadas_del_piso(%L)', :'lim'))")}
+${k("TERM_CONF_TODAS", "(select case when (pg_temp.intento('select * from retail.fn_confianza_registro()') ->> 'ok') = 'true' then (select count(*) || ',' || count(*) filter (where c.ubicacion_id <> :'tru') from retail.fn_confianza_registro() c) else 'sin permiso' end)")}
 reset role;
 set local role anon;
 ${k("ANON_SEDE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'tru'))")}
@@ -575,6 +604,30 @@ ${COMO_POSTGRES}`,
       "…y sin tienda, SOLO la suya: las mismas filas que pedida sola, ninguna de otra sede (lo que ve un no líder de las otras sedes: nada)",
       Number(o.MOD_CONF_SOLA) >= 1 && o.MOD_CONF_TODAS === `${o.MOD_CONF_SOLA},0`,
       `MOD_CONF_TODAS=${o.MOD_CONF_TODAS} MOD_CONF_SOLA=${o.MOD_CONF_SOLA}`,
+    );
+    afirmar(
+      "terminal de ventas de TRU SIN el módulo: P0001 frescura_sin_permiso en las tres",
+      error(o.TERM_SIN_SEDE, "P0001", "frescura_sin_permiso") && error(o.TERM_SIN_CONF, "P0001", "frescura_sin_permiso") && error(o.TERM_SIN_BAJADAS, "P0001", "frescura_sin_permiso"),
+      `${o.TERM_SIN_SEDE} ${o.TERM_SIN_CONF} ${o.TERM_SIN_BAJADAS}`,
+    );
+    afirmar("…con «Frescura del piso» en el rol terminal_ventas, la terminal VE el módulo sin ser líder", o.TERM_VE === "true", `TERM_VE=${o.TERM_VE}`);
+    afirmar(
+      "…y lee SU tienda: fn_frescura_sede(Trujillo) responde con separa_piso = true",
+      json(o.TERM_SEDE)?.ok === true && o.TERM_SEDE_LEE === "true",
+      `${o.TERM_SEDE} TERM_SEDE_LEE=${o.TERM_SEDE_LEE}`,
+    );
+    afirmar(
+      "…de otra tienda no (la de la prueba y Lima): P0001 frescura_sin_permiso en las tres lecturas",
+      error(o.TERM_OTRA, "P0001", "frescura_sin_permiso") &&
+        error(o.TERM_LIMA, "P0001", "frescura_sin_permiso") &&
+        error(o.TERM_CONF_LIMA, "P0001", "frescura_sin_permiso") &&
+        error(o.TERM_BAJADAS_LIMA, "P0001", "frescura_sin_permiso"),
+      `${o.TERM_OTRA} ${o.TERM_LIMA} ${o.TERM_CONF_LIMA} ${o.TERM_BAJADAS_LIMA}`,
+    );
+    afirmar(
+      "…y fn_confianza_registro sin tienda le da solo Trujillo (al menos una fila, ninguna de otra sede)",
+      /^\d+,0$/.test(o.TERM_CONF_TODAS ?? "") && Number((o.TERM_CONF_TODAS ?? "0").split(",")[0]) >= 1,
+      `TERM_CONF_TODAS=${o.TERM_CONF_TODAS}`,
     );
     afirmar("anon: 42501 en las dos", error(o.ANON_SEDE, "42501") && error(o.ANON_CONF, "42501"), `${o.ANON_SEDE} ${o.ANON_CONF}`);
     afirmar("líder que no opera esta tienda: fn_frescura_sede P0001 frescura_sin_permiso", error(o.NO_OPERA_SEDE, "P0001", "frescura_sin_permiso"), o.NO_OPERA_SEDE);
@@ -1105,7 +1158,7 @@ ${k("CLAVES", "(select string_agg(k, ',' order by k) from jsonb_object_keys(:'j'
     afirmar("ninguna persona en la salida", o.PERSONA === "false", `PERSONA=${o.PERSONA}`);
     afirmar(
       "cada prenda trae las claves del contrato",
-      o.CLAVES_PRENDA === "almacen_hoy,apartadas_hoy,categoria_id,categoria_nombre,codigo,color_codigo,color_nombre,en_estacion_ahora,es_clasico,fin_estacion,piso_hoy,primera_exhibicion,producto_id,producto_nombre,talla,temporada,temporada_origen,ultima_llegada,ultima_llegada_cayla,variante_id",
+      o.CLAVES_PRENDA === "almacen_hoy,apartadas_hoy,apartadas_piso_hoy,categoria_id,categoria_nombre,codigo,color_codigo,color_nombre,en_estacion_ahora,es_clasico,fin_estacion,piso_hoy,primera_exhibicion,producto_id,producto_nombre,talla,temporada,temporada_origen,ultima_llegada,ultima_llegada_cayla,variante_id",
       `CLAVES_PRENDA=${o.CLAVES_PRENDA}`,
     );
     afirmar("la lectura trae las claves del contrato", o.CLAVES === "ahora,apartados,desde,dudosas,eventos,prendas,separa_piso,tardias", `CLAVES=${o.CLAVES}`);
@@ -1803,7 +1856,11 @@ ${k("D", "pg_temp.libre(:'j', 'ZZ-FL-T2I-LIBERADA') || ' ' || pg_temp.ap(:'j', :
 ${k("E", "pg_temp.libre(:'j', 'ZZ-FL-T2I-ENTREGA') || ' ' || pg_temp.ap(:'j', :'ve') || ' ' || pg_temp.ev(:'j', :'ve', :'t0')")}
 ${k("F", "pg_temp.libre(:'j', 'ZZ-FL-T2I-ALMACEN') || ' ' || pg_temp.ap(:'j', :'vf')")}
 ${k("CLAVES", "(select string_agg(k, ',' order by k) from jsonb_object_keys(:'j'::jsonb -> 'apartados') k) = (select string_agg(v, ',' order by v) from unnest(array[:'va', :'vb', :'vc', :'vd', :'ve']::text[]) v)")}
-${k("CUADRA", "pg_temp.cuadra(:'j') || ' ' || pg_temp.cuadra(:'j30')")}`,
+${k("CUADRA", "pg_temp.cuadra(:'j') || ' ' || pg_temp.cuadra(:'j30')")}
+-- Paso 4: lo apartado en el PISO de cada prenda (apartadas_piso_hoy), y que sea lo que la web deduciría de «apartados»
+-- (−Σ delta) cuando la lectura de producción todavía no trae la clave.
+${k("AP_PISO", "(select string_agg(substr(x ->> 'codigo', 11) || ':' || (x ->> 'apartadas_piso_hoy'), ',' order by x ->> 'codigo') from jsonb_array_elements(:'j'::jsonb -> 'prendas') x where x ->> 'codigo' like 'ZZ-FL-T2I-%')")}
+${k("AP_PISO_CUADRA", "(select coalesce(string_agg(x ->> 'codigo', ','), 'todas') from jsonb_array_elements(:'j'::jsonb -> 'prendas') x where (x ->> 'apartadas_piso_hoy')::int <> -coalesce((select sum((a ->> 1)::int) from jsonb_array_elements(:'j'::jsonb -> 'apartados' -> (x ->> 'variante_id')) a), 0) or (x ->> 'apartadas_piso_hoy')::int > (x ->> 'apartadas_hoy')::int)")}`,
   (o) => {
     afirmar("A · las 3 que quedan, apartadas hace 50 días: piso libre 0, apartadas 3 y un solo punto, −3 hace 50 días", o.A === "piso=0,alm=0,apartadas=3 50:-3", `A=${o.A}`);
     afirmar("B · apartada antes de la ventana: su saldo, −2 a la hora de «desde»; piso libre 1", o.B === "piso=1,alm=0,apartadas=2 S:-2", `B=${o.B}`);
@@ -1815,6 +1872,12 @@ ${k("CUADRA", "pg_temp.cuadra(:'j') || ' ' || pg_temp.cuadra(:'j30')")}`,
     afirmar("F · apartada en el almacén: almacen_hoy es lo libre (0), apartadas 2, y el piso no tiene puntos apartados", o.F === "piso=1,alm=0,apartadas=2 -", `F=${o.F}`);
     afirmar("solo las prendas con algo apartado en el piso traen `apartados`", o.CLAVES === "true", `CLAVES=${o.CLAVES}`);
     afirmar("en toda prenda, eventos + apartados = lo libre de hoy (a 120 y a 30 días)", o.CUADRA === "todas todas", `CUADRA=${o.CUADRA}`);
+    afirmar(
+      "paso 4 · apartadas_piso_hoy es lo apartado en el PISO: A 3, B 2, C 1, D 0, E 0 y F 0 (sus 2 apartadas están en el almacén)",
+      o.AP_PISO === "ALMACEN:0,ANTES:2,APARTADA:3,ENTREGA:0,LIBERADA:0,PARTIDA:1",
+      `AP_PISO=${o.AP_PISO}`,
+    );
+    afirmar("…y en toda prenda es −Σ de sus puntos apartados (lo que la web deduce sin la clave) y no pasa de apartadas_hoy", o.AP_PISO_CUADRA === "todas", `AP_PISO_CUADRA=${o.AP_PISO_CUADRA}`);
   },
 );
 

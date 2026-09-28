@@ -41,7 +41,9 @@
  *   T12 Taller (sin piso ni almacén) → cero filas y sin error.
  *   T13 el candado del paso 4 (ADR-0208, ADR-0253): una integrante SIN el módulo «Frescura del piso» → P0001
  *       frescura_sin_permiso; CON el módulo, su sede sí (las mismas filas que el líder, con persona_id nulo) y otra sede
- *       no; el líder ve persona_id.
+ *       no; el líder ve persona_id. La TERMINAL de ventas de Trujillo, igual: sin el módulo P0001; con él, las mismas
+ *       filas que el líder, la bajada que registró Felipe sin persona_id, Lima no, y el líder sigue viendo a Felipe
+ *       (corrección del paso 4: un candado que dejara afuera a la terminal, o le mostrara quién bajó, pasaba todo).
  *   T14 historia mezclada (y una entrada de hace 40 días, fuera del rango): piso_antes = nivel justo antes + retiros de
  *       [t − W, t), recalculado desde cero (cambia en 120200: antes 4, 5, 7 y ahora 4, 6, 7; primera 120200: 4, 7, 8); el
  *       retiro a 10 minutos justos de dos bajadas va a la de antes (efectivas 2, 2, 1; primera 120200: 2, 1, 1).
@@ -159,6 +161,8 @@ const comoLiteral = (sql) => `${"$"}m$${sql.replace(/\\/g, "\\\\")}${"$"}m$`;
 const CONTENEDOR_LOCAL = "supabase_db_cayla-retail";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante de Tienda Trujillo (seed)
+/** La cuenta de una terminal de ventas de Trujillo que crea T13 (como terminales_por_tienda.mjs), dentro de su ROLLBACK. */
+const TERMINAL_TRU = "33333333-3333-4333-8333-0000000000f2";
 const CENTINELA = "22222222-2222-4222-8222-222222222222"; // «Prenda sin registrar» (ADR-0179)
 
 function psql(sql) {
@@ -646,7 +650,7 @@ ${probar("sin_tienda", "null")}`,
 
 // ---------------------------------------------------------------------------
 correr(
-  "T13 · el candado del paso 4: sin el módulo no; con «Frescura del piso» en su rol, su sede sí (sin persona_id) y otra no; el líder ve quién bajó",
+  "T13 · el candado del paso 4: sin el módulo no; con «Frescura del piso» en su rol, su sede sí (sin persona_id) y otra no; la terminal de TRU, igual; el líder ve quién bajó",
   `select pg_temp.variante('ZZ-FRE-T13') as v \\gset
 select pg_temp.llega(:'v', 5, :'t0'::timestamptz - interval '60 minutes') as _1 \\gset
 select retail.bajar_al_piso(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'v', 'cantidad', 2)), gen_random_uuid()) ->> 'bajada_id' as bid \\gset
@@ -667,7 +671,32 @@ ${probar("con_modulo_otra", ":'lim'")}
 select 'MOD|' || coalesce((select string_agg(coalesce(r.persona_id::text, 'null'), ',') from retail.fn_bajadas_del_piso(:'ubic') r where r.variante_id = :'v'), 'ninguna');
 select 'MOD_TODAS|' || (select count(*) from retail.fn_bajadas_del_piso(:'ubic') r where r.persona_id is not null);
 set local request.jwt.claim.sub = '${FELIPE}';
-select 'LIDER_N|' || (select count(*) from retail.fn_bajadas_del_piso(:'ubic'));`,
+select 'LIDER_N|' || (select count(*) from retail.fn_bajadas_del_piso(:'ubic'));
+-- LA TERMINAL de ventas de Trujillo (ADR-0161: lo que ve una cuenta, persona o terminal, lo decide su rol), creada como
+-- en terminales_por_tienda.mjs dentro del ROLLBACK. Primero sin el módulo: se quita «frescura» de todos los roles (la
+-- integrante de arriba lo tenía) para no depender de lo que haya dejado otra prueba en una base compartida.
+delete from retail.rol_modulos where modulo = 'frescura';
+insert into auth.users (id, aud, role, email) values ('${TERMINAL_TRU}', 'authenticated', 'authenticated', 'terminal-frescura-bajadas@prueba.local');
+insert into retail.terminales (ubicacion_id, nombre, rol_id, auth_user_id)
+  values (:'ubic', 'ZZ Terminal Ventas TRU', retail.fn_rol_por_clave('terminal_ventas'), '${TERMINAL_TRU}');
+set local request.jwt.claim.sub = '${TERMINAL_TRU}';
+set local request.jwt.claims = '{"sub":"${TERMINAL_TRU}","role":"authenticated"}';
+${probar("term_sin_modulo", ":'ubic'")}
+insert into retail.rol_modulos (rol_id, modulo) values (retail.fn_rol_por_clave('terminal_ventas'), 'frescura');
+select 'TERM_VE|' || (retail.fn_ve_modulo('frescura') and not retail.fn_es_lider());
+${probar("term_con_modulo", ":'ubic'")}
+${probar("term_otra", ":'lim'")}
+-- Protegidas con pg_temp.intento: si el candado la dejara afuera, estas dos líneas dicen «sin permiso» en vez de cortar
+-- el caso (así cada afirmación dice qué se rompió).
+select 'TERM|' || case when (pg_temp.intento(format('select * from retail.fn_bajadas_del_piso(%L)', :'ubic')) ->> 'ok') = 'true'
+  then coalesce((select string_agg(coalesce(r.persona_id::text, 'null'), ',') from retail.fn_bajadas_del_piso(:'ubic') r where r.variante_id = :'v'), 'ninguna')
+  else 'sin permiso' end;
+select 'TERM_TODAS|' || case when (pg_temp.intento(format('select * from retail.fn_bajadas_del_piso(%L)', :'ubic')) ->> 'ok') = 'true'
+  then (select count(*) from retail.fn_bajadas_del_piso(:'ubic') r where r.persona_id is not null)::text
+  else 'sin permiso' end;
+set local request.jwt.claim.sub = '${FELIPE}';
+set local request.jwt.claims = '{"sub":"${FELIPE}","role":"authenticated"}';
+select 'LIDER_DESPUES|' || coalesce((select string_agg(coalesce(r.persona_id::text, 'null'), ',') from retail.fn_bajadas_del_piso(:'ubic') r where r.variante_id = :'v'), 'ninguna');`,
   ({ errores, otras }) => {
     const sin = errores.sin_modulo;
     afirmar(
@@ -681,6 +710,19 @@ select 'LIDER_N|' || (select count(*) from retail.fn_bajadas_del_piso(:'ubic'));
     afirmar("…en otra sede (Lima): P0001 frescura_sin_permiso", otra?.ok === false && otra?.estado === "P0001" && otra?.hint === "frescura_sin_permiso", ver(otra));
     afirmar("el líder ve quién registró la bajada (persona_id)", otras.LIDER === otras.FELIPE, `LIDER=${otras.LIDER} FELIPE=${otras.FELIPE}`);
     afirmar("la integrante con el módulo ve la misma bajada SIN persona_id, y ninguna fila de su sede trae persona", otras.MOD === "null" && otras.MOD_TODAS === "0", `MOD=${otras.MOD} MOD_TODAS=${otras.MOD_TODAS}`);
+    const tSin = errores.term_sin_modulo;
+    afirmar("terminal de ventas de TRU SIN el módulo: P0001 frescura_sin_permiso", tSin?.ok === false && tSin?.estado === "P0001" && tSin?.hint === "frescura_sin_permiso", ver(tSin));
+    afirmar("…con «Frescura del piso» en terminal_ventas, la terminal VE el módulo sin ser líder", otras.TERM_VE === "true", `TERM_VE=${otras.TERM_VE}`);
+    const tCon = errores.term_con_modulo;
+    afirmar("…y lee su sede: las MISMAS filas que el líder", tCon?.ok === true && tCon?.filas >= 1 && String(tCon?.filas) === otras.LIDER_N, `${ver(tCon)} LIDER_N=${otras.LIDER_N}`);
+    const tOtra = errores.term_otra;
+    afirmar("…otra sede (Lima): P0001 frescura_sin_permiso", tOtra?.ok === false && tOtra?.estado === "P0001" && tOtra?.hint === "frescura_sin_permiso", ver(tOtra));
+    afirmar(
+      "…la bajada que registró Felipe le llega SIN persona_id, y ninguna fila de su sede trae persona",
+      otras.TERM === "null" && otras.TERM_TODAS === "0",
+      `TERM=${otras.TERM} TERM_TODAS=${otras.TERM_TODAS}`,
+    );
+    afirmar("…y el líder, después, sigue viendo que la registró Felipe", otras.LIDER_DESPUES === otras.FELIPE, `LIDER_DESPUES=${otras.LIDER_DESPUES} FELIPE=${otras.FELIPE}`);
   },
 );
 

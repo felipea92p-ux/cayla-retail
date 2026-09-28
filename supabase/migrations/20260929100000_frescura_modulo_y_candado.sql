@@ -16,15 +16,19 @@
 -- QUÉ CAMBIA (el detalle, con DECIDÍ / DESCARTÉ / SE ROMPE SI, en ADR-0208, «Actualización 2026-09-28 — paso 4»):
 --   1. `retail.modulos` suma «frescura» (grupo Inventario, orden 115: después de Movimientos, antes de Catálogo), con
 --      solo_lider = false y delegable = true. SIN `rol_modulos`: el módulo nace sin rol (lo vigila `modulos.test.ts`).
---   2. `fn_frescura_sede` (el cuerpo de 20260928120330, `33970c94…`): cambia SOLO el candado y su mensaje.
+--   2. `fn_frescura_sede` (el cuerpo de 20260928120330, `33970c94…`): cambia el candado y su mensaje, y cada prenda suma
+--      `apartadas_piso_hoy` (lo apartado en el PISO; `apartadas_hoy` sigue siendo piso y almacén juntos). Sin ese dato la
+--      pantalla no sabía DÓNDE está lo apartado: una prenda agotada en el piso con una unidad apartada del almacén (lo que
+--      hace Apartar por defecto cuando el piso está vacío) salía «Apartada para clientas · tiene dueña», con 2 libres en
+--      el almacén (corrección del paso 4, 2026-09-28). Es una clave más, al final: nada de lo que ya devolvía cambia.
 --   3. `fn_confianza_registro` (el cuerpo de 20260928120310, `8c6f5e6c…`): cambia el candado y, sin tienda, cada cuenta
 --      recibe solo las tiendas que opera (el líder, todas; los demás, la suya). Así quien no es líder no ve el registro de
 --      las otras sedes. Con tienda, como antes: tiene que operarla.
 --   4. `fn_bajadas_del_piso` (la puerta de 20260928120200, `34a7e0cc…`): cambia el candado, y la columna `persona_id`
 --      (quién registró cada bajada) sale llena SOLO para el líder; para los demás, nula. Mismas columnas, mismo orden. El
 --      núcleo (`fn_bajadas_del_piso_nucleo`) no se toca.
--- El cálculo no cambia en ninguna: lo que devuelven al líder es exactamente lo de antes (lo prueban frescura_lectura y
--- frescura_bajadas sobre las mismas historias).
+-- El cálculo no cambia en ninguna: lo que devuelven al líder es exactamente lo de antes, más la clave nueva de la
+-- lectura (lo prueban frescura_lectura y frescura_bajadas sobre las mismas historias).
 --
 -- LA GUARDA. Cada función se reescribe desde el TEXTO de su migración vigente (la última que la define en main), y la
 -- guarda de abajo compara el md5 de su cuerpo vivo con el de antes (el de producción, consultado el 2026-09-28) y con el
@@ -47,7 +51,7 @@
 --     fn_bajadas_del_piso         9821874e6a32909680a9a5155bcdb68b
 --     fn_bajadas_del_piso_nucleo  fcfd2c4b2c4f24dd2184eb2cd7a12678   (sin cambio)
 --     fn_confianza_registro       dcedb83cff010817a17e023b9e8b2d92
---     fn_frescura_sede            473f5d985a7f515501d940a156aad0e5
+--     fn_frescura_sede            a22655be615d72555032a7df98258876
 --   select clave, grupo, orden, solo_lider, delegable from retail.modulos where clave = 'frescura';
 --     frescura | Inventario | 115 | f | t
 --   select count(*) from retail.rol_modulos where modulo = 'frescura';
@@ -55,7 +59,8 @@
 --
 -- SE ROMPE SI:
 --   · el líder le da Frescura a un rol de TERMINAL de una tienda: la terminal lee la frescura de su tienda (es lo que
---     pide el módulo). No ve nombres de personas en ninguna de las tres (persona_id solo para el líder).
+--     pide el módulo). No ve nombres de personas en ninguna de las tres (persona_id solo para el líder). Lo vigilan por
+--     conducta T1 de frescura_lectura y T13 de frescura_bajadas (una terminal de ventas de Trujillo, sin y con el módulo).
 --   · una encargada opera DOS sedes algún día (`fn_puede_operar_ubicacion` hoy es «líder o su sede»): vería las dos, y
 --     la referencia de CAYLA seguiría siendo solo del líder. Es el cambio de una sola función, no de estas tres.
 --   · alguien vuelve a crear una de las tres copiando una migración anterior del repo: le devuelve el candado de líder
@@ -85,7 +90,7 @@ begin
   if v_sede is null or v_conf is null then
     raise exception 'Faltan las lecturas de Frescura: pega antes 20260928120300, 20260928120310, 20260928120320 y 20260928120330.';
   end if;
-  if v_sede not in ('33970c94c7dddf9530ee6b8175862661', '473f5d985a7f515501d940a156aad0e5') then
+  if v_sede not in ('33970c94c7dddf9530ee6b8175862661', 'a22655be615d72555032a7df98258876') then
     raise exception 'fn_frescura_sede tiene otro cuerpo (md5 %): no es la de 20260928120330 ni la de este archivo (si es la de una migración anterior, pega antes las que faltan hasta 20260928120330; si no, alguien la cambió en vivo: reescribe desde su definición real antes de pegar).', v_sede;
   end if;
   if v_conf not in ('8c6f5e6c27916b99be10020b772bd6e0', 'dcedb83cff010817a17e023b9e8b2d92') then
@@ -108,7 +113,7 @@ insert into retail.modulos (clave, grupo, nombre, incluye, orden, solo_lider, de
 on conflict (clave) do nothing;
 
 -- ----------------------------------------------------------------------------
--- 2. La lectura de una tienda (la de 20260928120330; cambia solo el candado)
+-- 2. La lectura de una tienda (la de 20260928120330; cambia el candado y suma `apartadas_piso_hoy`)
 -- ----------------------------------------------------------------------------
 
 create or replace function retail.fn_frescura_sede(p_ubicacion_id uuid, p_dias integer default 120)
@@ -420,6 +425,7 @@ begin
            st.piso - st.apartadas_piso as piso_libre,
            (st.total - st.piso) - (st.apartadas - st.apartadas_piso) as almacen_libre,
            st.apartadas,
+           st.apartadas_piso,
            ((select pd.m from primera_de pd) ->> (u.producto_id::text || '|' || coalesce(u.color_codigo, '')))::timestamptz
              as primera_exhibicion,
            h.ultima_llegada,
@@ -477,7 +483,10 @@ begin
            'ultima_llegada_cayla', b.ultima_llegada_cayla,
            'piso_hoy', coalesce(b.piso_libre, 0),
            'almacen_hoy', coalesce(b.almacen_libre, 0),
-           'apartadas_hoy', coalesce(b.apartadas, 0))
+           'apartadas_hoy', coalesce(b.apartadas, 0),
+           -- Paso 4: lo apartado en el PISO. La pantalla lo necesita para saber si una prenda sin nada libre colgado está
+           -- «apartada» (lo apartado es del piso) o «guardada» (lo apartado está en el almacén).
+           'apartadas_piso_hoy', coalesce(b.apartadas_piso, 0))
          order by b.categoria_nombre nulls last, b.referencia, b.color_nombre nulls first, b.talla nulls first, b.variante_id),
          '[]'::jsonb)
     into v_prendas
@@ -496,7 +505,7 @@ end
 $fn$;
 
 comment on function retail.fn_frescura_sede(uuid, integer) is
-  'ADR-0208 (pasos 3 y 4 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de la llegada de su modelo+color A CAYLA que cuenta (ultima_llegada_cayla: la última por lote o producción —de una orden que sigue inventariada— en cualquier sede, fn_es_llegada_a_cayla; sin ninguna, la primera carga inicial; la recepción de un traslado no), si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla; lo que entra al piso y se aparta entero en el mismo instante no cuenta, pero sí su liberación sin entrega: desde ahí se cuelga) y su última llegada en esa tienda (fn_es_llegada), y su piso y almacén LIBRES de hoy (sin lo apartado) y lo apartado (apartadas_hoy); eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida; en un mismo instante, las entradas primero) para el FIFO de historiaDeCohortes; apartados del piso por prenda [ts, delta] (apartar resta, liberar suma; el saldo al empezar la ventana primero) para el reloj y la vara; tardias (las del núcleo de bajadas con lo que quedó apartado en sus 10 minutos contado como vendido, contra el piso libre de antes, y sin restar lo liberado sin entrega de lo apartado de antes: no son las del indicador de registro, que no lo cuenta) y dudosas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo (con W = 10 minutos). Candado (paso 4): el líder, o el módulo frescura en su rol, y en los dos casos una tienda que opera.';
+  'ADR-0208 (pasos 3 y 4 de Frescura 3c): la lectura de una tienda para Frescura del piso, en un solo jsonb. prendas (stock distinto de 0 hoy fuera de la cuarentena o algún movimiento en la ventana; sin la Prenda sin registrar ni productos es_prueba), con su temporada (fn_temporada_efectiva_nucleo, también de lo descontinuado), si es clásica, el fin de la estación de la llegada de su modelo+color A CAYLA que cuenta (ultima_llegada_cayla: la última por lote o producción —de una orden que sigue inventariada— en cualquier sede, fn_es_llegada_a_cayla; sin ninguna, la primera carga inicial; la recepción de un traslado no), si hoy es su estación, la primera exhibición de su modelo+color (cualquier talla; lo que entra al piso y se aparta entero en el mismo instante no cuenta, pero sí su liberación sin entrega: desde ahí se cuelga) y su última llegada en esa tienda (fn_es_llegada), y su piso y almacén LIBRES de hoy (sin lo apartado), lo apartado (apartadas_hoy, piso y almacén) y lo apartado en el piso (apartadas_piso_hoy, paso 4); eventos del piso por prenda [ts, delta, marcas, oid] (1 venta, 2 interno, 4 edad desconocida; en un mismo instante, las entradas primero) para el FIFO de historiaDeCohortes; apartados del piso por prenda [ts, delta] (apartar resta, liberar suma; el saldo al empezar la ventana primero) para el reloj y la vara; tardias (las del núcleo de bajadas con lo que quedó apartado en sus 10 minutos contado como vendido, contra el piso libre de antes, y sin restar lo liberado sin entrega de lo apartado de antes: no son las del indicador de registro, que no lo cuenta) y dudosas. Taller o tienda sin piso y almacén: {"separa_piso": false}. Solo lectura; una llamada al libro y una al núcleo (con W = 10 minutos). Candado (paso 4): el líder, o el módulo frescura en su rol, y en los dos casos una tienda que opera.';
 
 revoke all on function retail.fn_frescura_sede(uuid, integer) from public, anon;
 grant execute on function retail.fn_frescura_sede(uuid, integer) to authenticated;
