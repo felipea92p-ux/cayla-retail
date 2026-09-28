@@ -36,6 +36,9 @@ import { firmar } from "@/lib/responsable-reglas";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
+import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
+import { useStockEnSede } from "@/components/useStockEnSede";
+import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 
 /**
  * Productos ▸ Tabla (ADR-0254, rediseño 2026-09-28 sobre `docs/maquetas/productos-administrar-2026-09/`).
@@ -68,6 +71,9 @@ type Fila = {
   descontinuado: boolean;
 };
 
+/** Lo que se sabe del stock de un modelo EN ESTA SEDE (`useStockEnSede`): aún no se leyó, no se pudo, o por variante. */
+type StockSede = ReadonlyMap<string, number> | "error" | undefined;
+
 type Permisos = {
   puedeEditar: boolean;
   puedeAjustar: boolean;
@@ -78,6 +84,7 @@ type Permisos = {
 export function ProductosTabla({
   productos,
   ubicacionId,
+  sede,
   sububicaciones,
   puedeEditar,
   puedeAjustar,
@@ -88,6 +95,8 @@ export function ProductosTabla({
 }: {
   productos: ProductoListado[];
   ubicacionId: string;
+  /** El nombre de la sede de `ubicacionId`: el stock de la ficha y las etiquetas son de ella, no de la red. */
+  sede: string;
   sububicaciones: Sububicacion[];
   /** Editar la ficha y descontinuar/reactivar (`editarCatalogo`). */
   puedeEditar: boolean;
@@ -122,6 +131,7 @@ export function ProductosTabla({
   const [ajustando, setAjustando] = useState<string | null>(null);
   const [eliminando, setEliminando] = useState<ProductoListado | null>(null);
   const [cambiando, setCambiando] = useState<"activo" | "descontinuado" | null>(null);
+  const stockSede = useStockEnSede(ubicacionId);
 
   // Otra página u otros filtros = otras prendas: lo marcado de antes ya no está a la vista y no debe viajar escondido.
   // Se ajusta durante el render (no en un efecto, que pintaría una vez de más con la selección vieja).
@@ -165,6 +175,12 @@ export function ProductosTabla({
     historial: conDesde(`/productos/${f.p.productoId}/historial`, pantalla),
     etiquetas: urlEtiquetasDePrecio({ producto: f.p.productoId }, pantalla),
     etiquetasDe: (varianteId) => urlEtiquetasDePrecio({ variantes: [varianteId] }, pantalla),
+    // Se cuenta FRESCO al pedir imprimir: la ficha pudo quedar vieja (una venta, un traslado que acaba de llegar).
+    unidades: async (varianteIds) => {
+      const stock = await stockSede.leer([f.p.productoId]);
+      return stock ? unidadesEnSede(stock, varianteIds ?? f.p.variantes.map((v) => v.varianteId)) : null;
+    },
+    sede,
     ajustar: puedeAjustar ? () => setAjustando(f.p.productoId) : null,
     eliminar: puedeEliminar ? () => setEliminando(f.p) : null,
   });
@@ -211,7 +227,7 @@ export function ProductosTabla({
               onMarcar={() => marcar(f.p.productoId)}
               onClic={(e) => alClicFila(e, f.p.productoId)}
               conMargen={conMargen}
-              ficha={<FichaVariantes fila={f} permisos={permisos} acciones={acciones(f)} />}
+              ficha={<FichaVariantes fila={f} permisos={permisos} acciones={acciones(f)} stock={stockSede.de(f.p.productoId)} leer={stockSede.leer} />}
             />
           ))}
         </ul>
@@ -245,7 +261,7 @@ export function ProductosTabla({
               onClic={(e) => alClicFila(e, f.p.productoId)}
               conMargen={conMargen}
               acciones={acciones(f)}
-              ficha={<FichaVariantes fila={f} permisos={permisos} acciones={acciones(f)} />}
+              ficha={<FichaVariantes fila={f} permisos={permisos} acciones={acciones(f)} stock={stockSede.de(f.p.productoId)} leer={stockSede.leer} />}
             />
           ))}
         </table>
@@ -254,6 +270,11 @@ export function ProductosTabla({
       <BarraMarcadas
         seleccion={seleccion}
         puedeEditar={puedeEditar}
+        sede={sede}
+        unidades={async (varianteIds) => {
+          const stock = await stockSede.leer(seleccion.map((p) => p.productoId));
+          return stock ? unidadesEnSede(stock, varianteIds) : null;
+        }}
         onDescontinuar={() => setCambiando("descontinuado")}
         onReactivar={() => setCambiando("activo")}
         onLimpiar={() => setMarcados(new Set())}
@@ -372,6 +393,10 @@ type AccionesFila = {
   etiquetas: string;
   /** Las etiquetas de UNA sola variante (talla + color), para el ícono que flota sobre su tarjeta. */
   etiquetasDe: (varianteId: string) => string;
+  /** Unidades de esas variantes (sin lista: todo el modelo) en la sede, leídas en el momento; `null` si la base no
+   *  respondió. Con 0 no se abre Etiquetas: sale el aviso y el botón queda en rojo. */
+  unidades: (varianteIds?: string[]) => Promise<number | null>;
+  sede: string;
   ajustar: (() => void) | null;
   eliminar: (() => void) | null;
 };
@@ -500,6 +525,7 @@ function Tallas({ tallas }: { tallas: string[] }) {
  *  comen una columna. En una pantalla táctil no hay hover: las mismas acciones están en la ficha de la prenda. */
 function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; referencia: string }) {
   const boton = "grid h-8 w-8 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-hueso hover:text-tinta";
+  const botonNegado = "grid h-8 w-8 place-items-center rounded-md bg-rojo text-crema transition-colors hover:bg-rojo-profundo";
   return (
     <div
       className="pointer-events-none absolute right-4 top-1/2 flex -translate-y-1/2 translate-x-1.5 gap-0.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/fila:pointer-events-auto group-hover/fila:translate-x-0 group-hover/fila:opacity-100 group-focus-within/fila:pointer-events-auto group-focus-within/fila:translate-x-0 group-focus-within/fila:opacity-100 [@media(hover:none)]:hidden"
@@ -514,9 +540,17 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
           <PackageOpen aria-hidden className="h-4 w-4" />
         </button>
       )}
-      <Link href={acciones.etiquetas} className={boton} aria-label={`Etiquetas de precio de ${referencia}`} title="Etiquetas de precio">
+      <EnlaceEtiquetas
+        href={acciones.etiquetas}
+        unidades={() => acciones.unidades()}
+        que={referencia}
+        sede={acciones.sede}
+        className={(negado) => (negado ? botonNegado : boton)}
+        aria-label={`Etiquetas de precio de ${referencia}`}
+        title="Etiquetas de precio"
+      >
         <Printer aria-hidden className="h-4 w-4" />
-      </Link>
+      </EnlaceEtiquetas>
       <Link href={acciones.historial} className={boton} aria-label={`Historial de ${referencia}`} title="Historial">
         <History aria-hidden className="h-4 w-4" />
       </Link>
@@ -526,18 +560,26 @@ function AccionesFlotantes({ acciones, referencia }: { acciones: AccionesFila; r
 
 /** Lo que flota sobre la tarjeta de UNA variante al pasar el mouse: imprimir la etiqueta de esa talla y color, sin tener
  *  que imprimir las del modelo entero. Mismo gesto que `AccionesFlotantes` (que actúa sobre el modelo). Sin hover
- *  (celular) no aparece: ahí queda «Etiquetas» del modelo en la ficha. */
-function AccionesDeVariante({ href, descripcion }: { href: string; descripcion: string }) {
+ *  (celular) no aparece: ahí queda «Etiquetas» del modelo en la ficha. Flota sobre el precio, no sobre el stock: el stock
+ *  es justo lo que se quiere ver antes de imprimir. */
+function AccionesDeVariante({ href, unidades, descripcion, sede }: { href: string; unidades: () => Promise<number | null>; descripcion: string; sede: string }) {
   return (
-    <div className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
-      <Link
+    <div className="pointer-events-none absolute right-[5.25rem] top-1/2 flex -translate-y-1/2 translate-x-1.5 rounded-lg border border-sand bg-papel p-0.5 opacity-0 shadow-[0_8px_20px_-10px_rgba(26,26,24,0.35)] transition-[opacity,transform] duration-200 ease-cayla group-hover/variante:pointer-events-auto group-hover/variante:translate-x-0 group-hover/variante:opacity-100 group-focus-within/variante:pointer-events-auto group-focus-within/variante:translate-x-0 group-focus-within/variante:opacity-100 [@media(hover:none)]:hidden">
+      <EnlaceEtiquetas
         href={href}
-        className="grid h-8 w-8 place-items-center rounded-md text-tinta/60 transition-colors hover:bg-hueso hover:text-tinta"
+        unidades={unidades}
+        que={descripcion}
+        sede={sede}
+        className={(negado) =>
+          `grid h-8 w-8 place-items-center rounded-md transition-colors duration-200 ease-cayla ${
+            negado ? "bg-rojo text-crema hover:bg-rojo-profundo" : "text-tinta/60 hover:bg-hueso hover:text-tinta"
+          }`
+        }
         aria-label={`Etiqueta de precio de ${descripcion}`}
         title="Imprimir la etiqueta de esta variante"
       >
         <Printer aria-hidden className="h-4 w-4" />
-      </Link>
+      </EnlaceEtiquetas>
     </div>
   );
 }
@@ -602,28 +644,57 @@ function TarjetaFila({
 
 /* ─────────────────────────── Ficha de variantes ─────────────────────────── */
 
-function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Permisos; acciones: AccionesFila }) {
+function FichaVariantes({
+  fila,
+  permisos,
+  acciones,
+  stock,
+  leer,
+}: {
+  fila: Fila;
+  permisos: Permisos;
+  acciones: AccionesFila;
+  stock: StockSede;
+  leer: (productoIds: string[]) => Promise<unknown>;
+}) {
   const { p } = fila;
   const boton = "btn-cayla btn-secundario min-h-10 text-[12.5px]";
+  // Al abrir, y otra vez cada vez que la página se refresca (un ajuste, una venta en otra caja): `p` es otro objeto.
+  useEffect(() => {
+    void leer([p.productoId]);
+  }, [p, leer]);
+
+  // Costo y margen ya están en la fila del modelo. En cada variante solo se repiten si NO son iguales en todas (la fila
+  // dice «S/60–S/70» y hay que saber cuál es cuál): el costo de una talla que ya entró por Compras es su promedio
+  // ponderado, y dos tallas compradas a distinto precio terminan con costos distintos.
+  const costoPorVariante = permisos.veDinero && new Set(p.variantes.map((v) => (tieneCosto(v.costo) ? v.costo : null))).size > 1;
+  const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, p.variantes.map((v) => v.varianteId)) : null;
+
   return (
     <div className="anim-revelar px-4 pb-5 pt-3 @3xl:pl-[5.75rem] @3xl:pr-5">
-      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <p className="label-cayla text-[10.5px] text-tinta/60">
           {p.variantes.length} {p.variantes.length === 1 ? "variante" : "variantes"}
           {fila.colores.length > 0 && ` · ${fila.colores.length} ${fila.colores.length === 1 ? "color" : "colores"}`}
           {fila.tallas.length > 0 && ` · ${fila.tallas.length} ${fila.tallas.length === 1 ? "talla" : "tallas"}`}
         </p>
-        <p className="text-[12px] text-tinta/60 @6xl:hidden">
-          {p.marca} · {p.proveedor}
+        <p className="text-[12px] text-tinta/60">
+          <span className="@6xl:hidden">
+            {p.marca} · {p.proveedor} ·{" "}
+          </span>
+          {/* El total de la fila es de toda la red; el de cada variante, de esta sede: se dice cuál es cuál. */}
+          Stock en {acciones.sede || "tu sede"}
+          {totalSede !== null && <span className="tabular-nums text-tinta">: {totalSede.toLocaleString("es-PE")}</span>}
         </p>
       </div>
       <ul className="grid gap-2 @xl:grid-cols-2 @5xl:grid-cols-3">
         {ordenarVariantes(p.variantes).map((v) => {
-          const m = permisos.veDinero && tieneCosto(v.costo) ? margenPorcentaje(v.precio, v.costo) : null;
+          const m = costoPorVariante && tieneCosto(v.costo) ? margenPorcentaje(v.precio, v.costo) : null;
+          const descripcion = [v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta variante");
           return (
             <li
               key={v.varianteId}
-              className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel px-3 py-2.5 ${v.activo ? "" : "opacity-50"}`}
+              className={`group/variante relative grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3 gap-y-0.5 rounded-xl border border-sand bg-papel py-2.5 pl-3 pr-2 ${v.activo ? "" : "opacity-50"}`}
             >
               <span aria-hidden className="row-span-2 h-6 w-6 rounded-md ring-1 ring-inset ring-tinta/10" style={{ background: v.colorHex ?? "#e8e0d0" }} />
               <span className="min-w-0 truncate text-[13px] text-tinta">
@@ -632,12 +703,13 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
                 {!v.activo && <span className="ml-1.5 text-[11px] text-tinta/55">(inactiva)</span>}
               </span>
               <span className="text-right text-[13px] tabular-nums text-tinta">S/{v.precio.toFixed(2)}</span>
+              <StockDeVariante stock={stock} varianteId={v.varianteId} />
               <span className="min-w-0 truncate font-mono text-[10.5px] text-tinta/55" title={v.codigosBarras.join(", ")}>
                 {v.codigo ?? v.sku ?? "—"}
                 {v.codigosBarras.length > 0 && ` · ${v.codigosBarras.join(", ")}`}
               </span>
               <span className="whitespace-nowrap text-right text-[11px] tabular-nums text-tinta/55">
-                {!permisos.veDinero ? null : tieneCosto(v.costo) ? (
+                {!costoPorVariante ? null : tieneCosto(v.costo) ? (
                   <>
                     costo S/{v.costo.toFixed(2)}
                     {m !== null && <span className={m < UMBRAL_MARGEN_BAJO ? "text-ambar" : ""}> · {Math.round(m)} %</span>}
@@ -646,7 +718,12 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
                   "sin costo"
                 )}
               </span>
-              <AccionesDeVariante href={acciones.etiquetasDe(v.varianteId)} descripcion={[v.talla, v.color].filter(Boolean).join(" ") || (v.codigo ?? "esta variante")} />
+              <AccionesDeVariante
+                href={acciones.etiquetasDe(v.varianteId)}
+                unidades={() => acciones.unidades([v.varianteId])}
+                descripcion={descripcion}
+                sede={acciones.sede}
+              />
             </li>
           );
         })}
@@ -665,10 +742,16 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
             Ajustar inventario
           </button>
         )}
-        <Link href={acciones.etiquetas} className={boton}>
+        <EnlaceEtiquetas
+          href={acciones.etiquetas}
+          unidades={() => acciones.unidades()}
+          que={p.referencia}
+          sede={acciones.sede}
+          className={(negado) => (negado ? "btn-cayla min-h-10 bg-rojo text-[12.5px] text-crema hover:bg-rojo-profundo" : boton)}
+        >
           <Printer aria-hidden className="h-4 w-4" />
           Etiquetas
-        </Link>
+        </EnlaceEtiquetas>
         <Link href={acciones.historial} className={boton}>
           <History aria-hidden className="h-4 w-4" />
           Historial
@@ -684,6 +767,25 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
   );
 }
 
+/** El stock de UNA variante en la sede, grande: es lo único de la tarjeta que cambia de una talla a otra. Con 0 se
+ *  apaga (no es rojo: máximo dos rojos por pantalla, ADR-0151); mientras se lee, un guion, nunca un 0 que no es cierto. */
+function StockDeVariante({ stock, varianteId }: { stock: StockSede; varianteId: string }) {
+  const n = stock && stock !== "error" ? (stock.get(varianteId) ?? 0) : null;
+  return (
+    <span
+      className="row-span-2 flex w-[4.5rem] flex-col items-end justify-center self-stretch border-l border-sand pl-3"
+      title={stock === "error" ? "No se pudo leer el stock de la tienda" : undefined}
+    >
+      <span className={`font-display text-[24px] leading-none tabular-nums ${n === null ? "text-tinta/25" : n === 0 ? "text-tinta/35" : "text-tinta"}`}>
+        {n === null ? "—" : n.toLocaleString("es-PE")}
+      </span>
+      <span className="mt-1 text-[10.5px] leading-none text-tinta/55">
+        {n === null ? (stock === "error" ? "sin dato" : "stock") : n === 0 ? "sin stock" : n === 1 ? "unidad" : "unidades"}
+      </span>
+    </span>
+  );
+}
+
 /* ─────────────────────────── Lo marcado ─────────────────────────── */
 
 /** Sube desde abajo cuando hay algo marcado. En el celular ocupa el ancho y los botones van en columnas iguales (con
@@ -691,12 +793,17 @@ function FichaVariantes({ fila, permisos, acciones }: { fila: Fila; permisos: Pe
 function BarraMarcadas({
   seleccion,
   puedeEditar,
+  sede,
+  unidades,
   onDescontinuar,
   onReactivar,
   onLimpiar,
 }: {
   seleccion: ProductoListado[];
   puedeEditar: boolean;
+  sede: string;
+  /** Unidades en la sede de esas variantes, leídas en el momento (`null` si la base no respondió). */
+  unidades: (varianteIds: string[]) => Promise<number | null>;
   onDescontinuar: () => void;
   onReactivar: () => void;
   onLimpiar: () => void;
@@ -706,8 +813,9 @@ function BarraMarcadas({
   const variantes = seleccion.flatMap((p) => p.variantes.filter((v) => v.activo).map((v) => v.varianteId));
   const hayActivas = seleccion.some((p) => p.estado === "activo");
   const hayDescontinuadas = seleccion.some((p) => p.estado !== "activo");
-  const boton =
-    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors hover:bg-crema/10 disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
+  const forma =
+    "flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-lg px-3 text-[11.5px] text-crema transition-colors disabled:opacity-40 sm:flex-none sm:flex-row sm:gap-2 sm:text-[13px]";
+  const boton = `${forma} hover:bg-crema/10`;
   return (
     <div
       role="toolbar"
@@ -733,15 +841,23 @@ function BarraMarcadas({
           </button>
         </>
       )}
-      <Link
+      <EnlaceEtiquetas
+        // La clave cambia con lo marcado: el rojo de «esas no tienen stock» no debe quedarse pegado a otra selección.
+        key={variantes.join(",")}
         href={variantes.length > 0 ? urlEtiquetasDePrecio({ variantes }, pantalla) : "#"}
+        unidades={() => unidades(variantes)}
+        que={n === 1 ? (seleccion[0]?.referencia ?? "La prenda marcada") : `Las ${n} prendas marcadas`}
+        varias={n > 1}
+        sede={sede}
         aria-disabled={variantes.length === 0}
         tabIndex={n > 0 ? 0 : -1}
-        className={`${boton} ${variantes.length === 0 ? "pointer-events-none opacity-40" : ""}`}
+        className={(negado) =>
+          `${negado ? `${forma} bg-rojo hover:bg-rojo-profundo` : boton} ${variantes.length === 0 ? "pointer-events-none opacity-40" : ""}`
+        }
       >
         <Printer aria-hidden className="h-4 w-4" />
         Etiquetas
-      </Link>
+      </EnlaceEtiquetas>
       <span aria-hidden className="mx-1 hidden h-5 w-px bg-crema/20 sm:block" />
       <button
         type="button"
