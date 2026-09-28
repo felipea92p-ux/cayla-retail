@@ -923,6 +923,16 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:costo-hasta-primera-compra
 
+      # Corregir el color y la talla de una variante que ya existe (20260928235500, ADR-0257 D-136/137/138): una prenda
+      # «Sin color» con carga inicial se corrige a Negro desde la ficha sin mover stock ni movimientos, con códigos nuevos y
+      # los viejos sonando en la misma variante, historial firmado y versión nueva; el choque con una variante existente
+      # (activa o no) se rechaza todo o nada; vendida o separada, solo líder; el candado de la tabla frena el update directo;
+      # «Sin color» cuenta como un color (índice nulls not distinct); fotos y temporada siguen al color; sin mezcla «Sin
+      # color» + colores; fn_variantes_estado y la foto general en fn_productos. Cada caso termina en ROLLBACK.
+      - name: pruebas:corregir-variantes
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:corregir-variantes
+
       # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
       # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
       # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
