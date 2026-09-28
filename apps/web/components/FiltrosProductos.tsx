@@ -7,6 +7,7 @@ import { Slider } from "radix-ui";
 import { CampoTexto } from "@/components/ui/campos";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 
 // Filtros de /productos. Mismo patrón que `FiltrosMovimientos.tsx`: viven en
 // la URL, la página es un Server Component que filtra en Postgres
@@ -42,8 +43,16 @@ export function FiltrosProductos({
   const [precioMax, setPrecioMax] = useState(params.get("precioMax") ?? "");
   const [panelAbierto, setPanelAbierto] = useState(false);
   const primera = useRef(true);
+  const { buscando, buscar } = useBusquedaEnUrl();
+  const etiquetaBuscar = (
+    <span className="flex items-baseline justify-between gap-2">
+      Buscar
+      <SenalBuscando activo={buscando} />
+    </span>
+  );
 
-  function aplicar(cambios: Record<string, string>) {
+  /** `tipeado`: viene del buscador o del precio (se escribió o se arrastró): navega sin el loader, con «Buscando…». */
+  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -51,7 +60,9 @@ export function FiltrosProductos({
     }
     p.delete("pagina");
     const qs = p.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    if (tipeado) buscar(href);
+    else router.push(href);
   }
 
   // Búsqueda y precio se mandan solos al dejar de tipear/arrastrar (350 ms) —
@@ -67,7 +78,7 @@ export function FiltrosProductos({
       if ((params.get("q") ?? "") !== busqueda.trim()) cambios.q = busqueda.trim();
       if ((params.get("precioMin") ?? "") !== precioMin.trim()) cambios.precioMin = precioMin.trim();
       if ((params.get("precioMax") ?? "") !== precioMax.trim()) cambios.precioMax = precioMax.trim();
-      if (Object.keys(cambios).length > 0) aplicar(cambios);
+      if (Object.keys(cambios).length > 0) aplicar(cambios, { tipeado: true });
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -151,7 +162,8 @@ export function FiltrosProductos({
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <CampoTexto
-            etiqueta="Buscar"
+            etiqueta={etiquetaBuscar}
+            trabajando={buscando}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Prenda, código o código de barras…"

@@ -176,38 +176,41 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
         proveedores={exigir(resProveedores, "los proveedores")}
       />
 
-      {vista === "grilla" ? (
-        <ProductosGrilla
-          productos={resultado.productos}
-          ubicacionId={persona.ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeAjustar={puede(persona, "ajustarStock")}
-          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
-          puedeEliminar={persona.rol === "lider"}
-          mensajeVacio={mensajeSinResultados(filtros)}
-        />
-      ) : (
-        <ProductosTabla
-          productos={resultado.productos}
-          ubicacionId={persona.ubicacionId}
-          sububicaciones={sububicaciones}
-          puedeEditar={editaCatalogo}
-          puedeAjustar={puede(persona, "ajustarStock")}
-          puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
-          puedeEliminar={persona.rol === "lider"}
-          veDinero={puede(persona, "verDineroCompras")}
-          mensajeVacio={mensajeSinResultados(filtros)}
-        />
-      )}
+      {/* `data-resultados`: se atenúa mientras el buscador espera a la base (useBusquedaEnUrl). */}
+      <div data-resultados className="space-y-6">
+        {vista === "grilla" ? (
+          <ProductosGrilla
+            productos={resultado.productos}
+            ubicacionId={persona.ubicacionId}
+            sububicaciones={sububicaciones}
+            puedeAjustar={puede(persona, "ajustarStock")}
+            puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+            puedeEliminar={persona.rol === "lider"}
+            mensajeVacio={mensajeSinResultados(filtros)}
+          />
+        ) : (
+          <ProductosTabla
+            productos={resultado.productos}
+            ubicacionId={persona.ubicacionId}
+            sububicaciones={sububicaciones}
+            puedeEditar={editaCatalogo}
+            puedeAjustar={puede(persona, "ajustarStock")}
+            puedeBajarAlPiso={veModulo(persona, "bajada_piso")}
+            puedeEliminar={persona.rol === "lider"}
+            veDinero={puede(persona, "verDineroCompras")}
+            mensajeVacio={mensajeSinResultados(filtros)}
+          />
+        )}
 
-      <PaginacionPaginas
-        pagina={resultado.pagina}
-        totalPaginas={resultado.totalPaginas}
-        totalItems={resultado.totalProductos}
-        params={{ ...params, pagina: undefined }}
-        pathname="/productos"
-        sustantivo={["producto", "productos"]}
-      />
+        <PaginacionPaginas
+          pagina={resultado.pagina}
+          totalPaginas={resultado.totalPaginas}
+          totalItems={resultado.totalProductos}
+          params={{ ...params, pagina: undefined }}
+          pathname="/productos"
+          sustantivo={["producto", "productos"]}
+        />
+      </div>
     </div>
   );
 }

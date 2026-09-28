@@ -1021,6 +1021,21 @@ body {
   100% { transform: translate3d(300%, 0, 0); }
 }
 
+/* BÚSQUEDA EN CURSO (ADR-0149, «Actualización 2026-09-28»). Mientras un buscador por URL espera a la base
+   (`useBusquedaEnUrl` pone `data-buscando` en <html>), los resultados de antes se atenúan en vez de taparse con
+   el loader: se siguen viendo, pero no pasan por la respuesta nueva. La página marca su zona con `data-resultados`. */
+[data-resultados] {
+  transition: opacity 200ms var(--ease-cayla);
+}
+html[data-buscando] [data-resultados] {
+  opacity: 0.45;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-resultados] {
+    transition: none;
+  }
+}
+
 /* La barra de scroll nativa de Windows es gris cromo y aparece justo en el
    borde del modal, que es el único lugar donde el sistema no puede permitirse
    un cuarto color. */

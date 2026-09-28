@@ -6,6 +6,7 @@ import { AlarmClock, Banknote, Building2, CalendarRange, HandCoins, PackageCheck
 import { Popover } from "radix-ui";
 import { CampoTexto, Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { BotonFiltros, DesplegablePildora, PanelPildoras, TODOS } from "@/components/ui/FiltrosPildora";
 import {
   destinoDesdeParam,
@@ -86,6 +87,7 @@ export function FiltrosCompras({
   const [panelAbierto, setPanelAbierto] = useState(false);
   const [enfocado, setEnfocado] = useState(false);
   const primera = useRef(true);
+  const { buscando, buscar } = useBusquedaEnUrl();
 
   useEffect(() => {
     if (!atajoBuscar && !estiloSpike) return;
@@ -104,7 +106,8 @@ export function FiltrosCompras({
     return visibles.includes(f);
   }
 
-  function aplicar(cambios: Record<string, string>) {
+  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
+  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
     const p = new URLSearchParams(params.toString());
     for (const [k, v] of Object.entries(cambios)) {
       if (v) p.set(k, v);
@@ -112,7 +115,9 @@ export function FiltrosCompras({
     }
     p.delete("cursor");
     const qs = p.toString();
-    router.push(qs ? `${pathname}?${qs}` : pathname);
+    const href = qs ? `${pathname}?${qs}` : pathname;
+    if (tipeado) buscar(href);
+    else router.push(href);
   }
 
   // La búsqueda se manda sola al dejar de tipear (350 ms): sin botón, pero
@@ -123,7 +128,7 @@ export function FiltrosCompras({
       return;
     }
     const t = setTimeout(() => {
-      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() });
+      if ((params.get("q") ?? "") !== busqueda.trim()) aplicar({ q: busqueda.trim() }, { tipeado: true });
     }, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -198,7 +203,8 @@ export function FiltrosCompras({
                 <X aria-hidden className="h-3.5 w-3.5" />
               </button>
             )}
-            <Hilo activo={enfocado} />
+            <SenalBuscando activo={buscando} />
+            <Hilo activo={enfocado} trabajando={buscando} />
           </div>
         ) : (
         <div className="group relative min-w-0 flex-1">
@@ -213,7 +219,13 @@ export function FiltrosCompras({
           )}
           <CampoTexto
             id={atajoBuscar ? ID_BUSCADOR : undefined}
-            etiqueta="Buscar"
+            etiqueta={
+              <span className="flex items-baseline justify-between gap-2">
+                Buscar
+                <SenalBuscando activo={buscando} />
+              </span>
+            }
+            trabajando={buscando}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
             placeholder="Número de documento o proveedor"

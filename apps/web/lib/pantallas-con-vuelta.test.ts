@@ -65,7 +65,8 @@ function paginas(dir: string, salida: string[] = []): string[] {
 }
 
 function rutaDe(archivo: string): string {
-  const segmentos = relative(APP, archivo).split("/").slice(0, -1).filter((s) => !/^\(.*\)$/.test(s));
+  // `relative` usa `\` en Windows: partir solo por «/» dejaba cada ruta en un solo segmento y la prueba no veía ninguna pantalla.
+  const segmentos = relative(APP, archivo).split(/[\\/]/).slice(0, -1).filter((s) => !/^\(.*\)$/.test(s));
   return "/" + segmentos.join("/");
 }
 
