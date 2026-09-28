@@ -24,6 +24,23 @@ export function lineaDeClienta(c: ClientaDelTicket): { titulo: string; detalle: 
   return { titulo, detalle: partes.join(" · ") };
 }
 
+/**
+ * Qué muestra la fila «Clienta» del ticket (ADR-0249, actualización 2026-09-28). La libreta es del módulo «Clientas»: la
+ * base le rechaza la búsqueda a la cuenta cuyo rol no lo tiene (42501 `clientas_sin_modulo`), así que a esa cuenta no se le
+ * ofrece — un botón que siempre falla le enseña a la cajera que el sistema falla —, y se vende igual: el DNI y el nombre van
+ * en el comprobante. Una clienta que ya venía en el ticket (retomado de otra cuenta) se deja ver y quitar, no cambiar:
+ * cambiarla es buscar.
+ *   · `agregar`: sin clienta, con el módulo («Agregar clienta»).
+ *   · `nada`: sin clienta, sin el módulo (la fila no aparece).
+ *   · `elegida`: con clienta, se puede cambiar o quitar.
+ *   · `elegida_fija`: con clienta, sin el módulo: solo quitar.
+ */
+export type FilaClienta = "agregar" | "nada" | "elegida" | "elegida_fija";
+export function filaDeClienta(clienta: ClientaDelTicket | null, puedeBuscar: boolean): FilaClienta {
+  if (!clienta) return puedeBuscar ? "agregar" : "nada";
+  return puedeBuscar ? "elegida" : "elegida_fija";
+}
+
 /** Qué se busca: nada con menos de 3 caracteres (un «7» traería media libreta). */
 export function terminoBuscable(texto: string): string | null {
   const t = texto.trim();

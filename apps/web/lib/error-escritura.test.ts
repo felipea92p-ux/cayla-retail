@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esVersionCambiada, traducirError } from "./error-escritura";
+import { debeEncolarse, esErrorPasajero, esRespuestaIncierta, esSinModulo, esVersionCambiada, traducirError } from "./error-escritura";
 
 // Este traductor solo se ve cuando algo sale mal, o sea justo cuando nadie está mirando el
 // código. Si un día alguien renombra una restricción en una migración y no toca esta lista,
@@ -455,5 +455,45 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
       "guardar la fecha de la estación",
     );
     expect(repetida).toBe("Otra estación ya empieza en ese mismo instante. Elige otra hora.");
+  });
+});
+
+describe("sin el módulo (hint `<módulo>_sin_modulo`, ADR-0249 actualización 2026-09-28)", () => {
+  // Lo que escribe `retail.fn_exigir_modulo('clientas')` en las 11 funciones de la ficha de clienta.
+  const clientas = {
+    message: "Tu rol no tiene el módulo «Clientas». Pídele al líder que lo active en Roles y accesos.",
+    code: "42501",
+    hint: "clientas_sin_modulo",
+  };
+
+  it("buscar o guardar una clienta sin el módulo dice qué pedir, tal cual lo dice la base, y no manda a reintentar", () => {
+    const salida = traducirError(clientas, "buscar la clienta");
+    expect(salida).toBe(clientas.message);
+    expect(salida).not.toContain("Vuelve a intentar");
+    expect(salida).not.toContain("Código:");
+  });
+
+  it("vale para cualquier módulo con la misma forma de hint: el de «Ajustar stock», que llega con 42501, deja de caer al genérico", () => {
+    const ajuste = { message: "Tu rol no tiene el módulo «Ajustar stock» — pídele a una líder de tu sede que lo ajuste", code: "42501", hint: "ajuste_sin_modulo" };
+    expect(traducirError(ajuste, "ajustar el stock")).toBe(ajuste.message);
+  });
+
+  it("no gana sobre el responsable: un 42501 del combo sigue diciendo qué elegir", () => {
+    const salida = traducirError({ message: "falta el responsable", code: "42501", hint: "responsable_requerido" }, "registrar la clienta");
+    expect(salida).toContain("Responsable");
+  });
+
+  it("un 42501 sin ese hint (o con uno que solo se le parece) sigue cayendo al genérico, con su código", () => {
+    expect(traducirError({ message: "permission denied for table clientas", code: "42501", hint: null }, "buscar la clienta")).toContain("Código:");
+    expect(traducirError({ message: "x", code: "42501", hint: "clientas_sin_modulo_viejo" }, "buscar la clienta")).toContain("Código:");
+    expect(traducirError({ message: "x", code: "42501", hint: "Clientas_sin_modulo" }, "buscar la clienta")).toContain("Código:");
+  });
+
+  it("esSinModulo: sí con el hint y un mensaje; no sin mensaje, sin hint, con otro hint, ni sin error", () => {
+    expect(esSinModulo(clientas)).toBe(true);
+    expect(esSinModulo({ ...clientas, message: "" })).toBe(false);
+    expect(esSinModulo({ ...clientas, hint: null })).toBe(false);
+    expect(esSinModulo({ ...clientas, hint: "responsable_requerido" })).toBe(false);
+    expect(esSinModulo(null)).toBe(false);
   });
 });
