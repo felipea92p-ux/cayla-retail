@@ -1031,10 +1031,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:corregir-identidad-variante
 
-      # Purga de un producto de prueba con su venta (ADR-0224, `scripts/purga/`): ensayo por defecto que termina en excepción y no
-      # deja nada; corrida definitiva que devuelve a stock lo que la venta sacó de otras prendas, devuelve la serie, deja el libro
-      # de movimientos cuadrando con el stock y los candados en ALWAYS; el respaldo se restaura fila por fila; rechaza lo que no
-      # entiende (otra venta, boleta, venta anulada, traslado, libro descuadrado). Cada caso termina en ROLLBACK.
+      # Purga de un producto de prueba con sus documentos (ADR-0224 y su actualización del 2026-09-28, `scripts/purga/`): ventas
+      # (nota interna, boleta de sandbox o nunca enviada), separaciones y compras con su recepción. Ensayo por defecto que no deja
+      # nada (la base entera, tabla por tabla); corrida definitiva que devuelve a stock lo ajeno, deja el libro cuadrando y los
+      # candados en su modo, y nunca toca un comprobante que llegó a SUNAT en producción; purgar + restaurar devuelve la base
+      # idéntica; rechaza lo que no se nombró o no entiende (otra venta, separación o compra, venta anulada, cambio, proforma,
+      # efectivo en caja, pago de compra, libro descuadrado). Cada caso termina en ROLLBACK.
       - name: pruebas:purgar-producto
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:purgar-producto
