@@ -44,6 +44,31 @@ export async function reducirMuestra(archivo: File): Promise<{ archivo: File } |
   return { archivo: new File([blob], "muestra.jpg", { type: "image/jpeg" }) };
 }
 
+/**
+ * El dibujo generado (`dibujo-generado.ts`) pasa a JPG de 1200×600 para guardarse EXACTAMENTE como una foto: misma
+ * columna, mismo bucket, misma ruta. Así la pantalla no distingue entre foto y dibujo elegido, y el SVG (texto) nunca
+ * se guarda ni se inyecta en la página: solo viaja la imagen ya pintada.
+ */
+export async function svgAArchivo(url: string): Promise<{ archivo: File } | { error: string }> {
+  const imagen = new Image();
+  imagen.decoding = "async";
+  imagen.src = url;
+  try {
+    await imagen.decode();
+  } catch {
+    return { error: "No se pudo preparar el dibujo en este navegador." };
+  }
+  const lienzo = document.createElement("canvas");
+  lienzo.width = 1200;
+  lienzo.height = 600;
+  const ctx = lienzo.getContext("2d");
+  if (!ctx) return { error: "No se pudo preparar el dibujo en este navegador." };
+  ctx.drawImage(imagen, 0, 0, lienzo.width, lienzo.height);
+  const blob = await new Promise<Blob | null>((ok) => lienzo.toBlob(ok, "image/jpeg", 0.9));
+  if (!blob) return { error: "No se pudo preparar el dibujo en este navegador." };
+  return { archivo: new File([blob], "dibujo.jpg", { type: "image/jpeg" }) };
+}
+
 function leerErrorStorage(mensaje: string): string {
   const m = mensaje.toLowerCase();
   if (m.includes("bucket not found")) return "El almacén de fotos no está configurado en este entorno.";

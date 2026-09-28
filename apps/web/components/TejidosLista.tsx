@@ -10,6 +10,7 @@ import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { BOTON_TARJETA_MUESTRA, DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
+import type { ColorDibujo } from "@/lib/dibujo-generado";
 
 /**
  * Vocabulario cerrado de tejidos (ADR-0095/0096) — mismo mecanismo que
@@ -39,6 +40,7 @@ export function TejidosLista({
   puedeEditar,
   prendasPorId,
   veProductos,
+  colores,
 }: {
   tejidosIniciales: Tejido[];
   puedeEditar: boolean;
@@ -46,6 +48,8 @@ export function TejidosLista({
   prendasPorId: Record<string, number>;
   /** Solo quien ve Productos llega, desde el detalle, a la ficha de cada prenda. */
   veProductos: boolean;
+  /** Los colores activos del catálogo: con ellos pinta el generador de dibujos. */
+  colores: readonly ColorDibujo[];
 }) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
@@ -63,6 +67,9 @@ export function TejidosLista({
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
   // El detalle (foto + prendas, ADR-0256) se abre con un clic en la tarjeta.
   const [detalleId, setDetalleId] = useState<string | null>(null);
+  // Al crear con una descripción, el detalle abre con el generador ya propuesto desde esa frase (opcional).
+  const [descripcion, setDescripcion] = useState("");
+  const [generarCon, setGenerarCon] = useState<string | null>(null);
 
   const activos = tejidos.filter((t) => t.activo);
   const desactivados = tejidos.filter((t) => !t.activo);
@@ -90,6 +97,11 @@ export function TejidosLista({
       );
       setAgregando(false);
       setNombre("");
+      if (puedeEditar && descripcion.trim()) {
+        setGenerarCon(descripcion.trim());
+        setDetalleId(datos.tejido.id);
+      }
+      setDescripcion("");
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
     } finally {
@@ -192,6 +204,11 @@ export function TejidosLista({
   }
 
   const rechazandoTejido = tejidos.find((t) => t.id === rechazandoAbierto) ?? null;
+  function abrirDetalle(id: string) {
+    setGenerarCon(null);
+    setDetalleId(id);
+  }
+
   const detalle = tejidos.find((x) => x.id === detalleId) ?? null;
 
   return (
@@ -213,7 +230,7 @@ export function TejidosLista({
             key={t.id}
             className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
-            <button type="button" onClick={() => setDetalleId(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
+            <button type="button" onClick={() => abrirDetalle(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
               <MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />
               <span className="flex items-center justify-between gap-2">
                 <span className="text-sm font-medium text-tinta">{t.nombre}</span>
@@ -257,6 +274,16 @@ export function TejidosLista({
           {(cerrar) => (
             <div className="mt-5 space-y-4">
               <CampoTexto etiqueta="Nombre del tejido" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Algodón" autoFocus />
+              {puedeEditar && (
+                <CampoTexto
+                  etiqueta="Cómo se ve (opcional)"
+                  value={descripcion}
+                  onChange={(e) => setDescripcion(e.target.value)}
+                  placeholder="Ej. denim azul claro, grueso"
+                  maxLength={120}
+                  pie="Si lo describes, te proponemos un dibujo con los colores del catálogo. Lo usas solo si te gusta."
+                />
+              )}
               <ComboResponsable control={responsable} deshabilitado={guardando} />
               <div className="flex gap-2">
                 <Boton peso="fantasma" className="flex-1" onClick={cerrar} disabled={guardando}>
@@ -303,7 +330,7 @@ export function TejidosLista({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((t) => (
               <div key={t.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
-                <button type="button" onClick={() => setDetalleId(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
+                <button type="button" onClick={() => abrirDetalle(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
                   <MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />
                   <span className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-tinta">{t.nombre}</span>
@@ -331,7 +358,12 @@ export function TejidosLista({
           puedeEditar={puedeEditar}
           veProductos={veProductos}
           responsable={responsable}
-          onClose={() => setDetalleId(null)}
+          colores={colores}
+          generarCon={generarCon}
+          onClose={() => {
+            setDetalleId(null);
+            setGenerarCon(null);
+          }}
           onImagen={(id, url) => setTejidos((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url } : x)))}
         />
       )}

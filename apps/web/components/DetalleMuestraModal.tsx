@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ImagePlus, RotateCcw } from "lucide-react";
+import { ImagePlus, RotateCcw, Wand2 } from "lucide-react";
 import { avisar } from "@/components/ui/Avisos";
 import { Modal } from "@/components/ui/Modal";
 import { Boton } from "@/components/ui/campos";
 import { Chip } from "@/components/ui/Chip";
 import { MiniaturaPrenda } from "@/components/ui/PrendaCelda";
 import { ComboResponsable } from "@/components/ComboResponsable";
+import { GeneradorDibujo } from "@/components/GeneradorDibujo";
 import { MuestraTejido } from "@/components/MuestraTejido";
 import { MuestraPatron } from "@/components/MuestraPatron";
 import { createClient } from "@/lib/supabase/client";
@@ -17,13 +18,15 @@ import { fotoPrincipal } from "@/lib/inventario-reglas";
 import { ordenarPrendas, textoPrendas, type PrendaDeMuestra, type TipoMuestra } from "@/lib/muestra-atributo-reglas";
 import { reducirMuestra, subirMuestra } from "@/lib/muestra-atributo";
 import type { ControlResponsable } from "@/lib/useResponsable";
+import type { ColorDibujo } from "@/lib/dibujo-generado";
 
 /**
  * El detalle de un tejido o de un patrón (ADR-0256): se abre al hacer clic en su tarjeta de Atributos.
  *
- * Arriba, la muestra en grande: la foto real si un Líder la subió, o el dibujo que sale del nombre. Quien puede editar
- * el catálogo sube, cambia o quita la foto; nada se guarda al elegir el archivo: primero se ve cómo queda, se elige el
- * Responsable y recién «Guardar foto» la sube y la deja en la base.
+ * Arriba, la muestra en grande: la imagen que eligió un Líder (una foto, o un dibujo generado desde una frase con
+ * `GeneradorDibujo`), o el dibujo automático que sale del nombre. Quien puede editar el catálogo sube una foto, genera
+ * un dibujo o quita la imagen; nada se guarda al elegir: primero se ve cómo queda, se elige el Responsable y recién
+ * «Guardar» la sube y la deja en la base.
  *
  * Abajo, las prendas que usan este tejido o patrón (las activas primero: son las que impiden desactivarlo). Se leen al
  * abrir, no con la pantalla: la grilla no necesita la foto de cada prenda.
@@ -45,7 +48,8 @@ const PALABRA: Record<TipoMuestra, { el: string; foto: string; api: string; colu
 type Carga = { estado: "cargando" } | { estado: "error"; mensaje: string } | { estado: "listo"; prendas: PrendaDeMuestra[] };
 
 /** Lo que se va a guardar: una foto nueva (con su vista previa local) o quitar la que hay. */
-type Pendiente = { tipo: "subir"; archivo: File; vista: string } | { tipo: "quitar" };
+/** `origen` solo cambia los textos: una foto y un dibujo generado se guardan igual (JPG en el bucket). */
+type Pendiente = { tipo: "subir"; origen: "foto" | "dibujo"; archivo: File; vista: string } | { tipo: "quitar" };
 
 export function DetalleMuestraModal({
   tipo,
@@ -53,6 +57,8 @@ export function DetalleMuestraModal({
   puedeEditar,
   veProductos,
   responsable,
+  colores,
+  generarCon = null,
   onClose,
   onImagen,
 }: {
@@ -63,6 +69,10 @@ export function DetalleMuestraModal({
   veProductos: boolean;
   /** El combo de la lista (ADR-0161): uno por pantalla, no uno por modal. */
   responsable: ControlResponsable;
+  /** Los colores del catálogo: el generador dibuja con sus hex. */
+  colores: readonly ColorDibujo[];
+  /** Recién creado con una descripción: el detalle abre con el generador ya propuesto desde esa frase. */
+  generarCon?: string | null;
   onClose: () => void;
   onImagen: (id: string, url: string | null) => void;
 }) {
@@ -72,6 +82,9 @@ export function DetalleMuestraModal({
   const [pendiente, setPendiente] = useState<Pendiente | null>(null);
   const [preparando, setPreparando] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  // `null` = cerrado; un texto = abierto, con esa frase de partida.
+  const [generador, setGenerador] = useState<string | null>(puedeEditar ? generarCon : null);
+  const [propuesta, setPropuesta] = useState<string | null>(null);
   const selector = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -119,7 +132,7 @@ export function DetalleMuestraModal({
         avisar.error(reducida.error);
         return;
       }
-      setPendiente({ tipo: "subir", archivo: reducida.archivo, vista: URL.createObjectURL(reducida.archivo) });
+      setPendiente({ tipo: "subir", origen: "foto", archivo: reducida.archivo, vista: URL.createObjectURL(reducida.archivo) });
     } finally {
       setPreparando(false);
     }
@@ -151,8 +164,9 @@ export function DetalleMuestraModal({
       responsable.despues(null);
       onImagen(muestra.id, url);
       setPendiente(null);
-      avisar.exito(url ? `Foto de ${muestra.nombre} guardada` : `${muestra.nombre} vuelve al dibujo`, {
-        detalle: url ? "Ya se ve en Atributos." : "La foto se quitó; se muestra el dibujo que sale del nombre.",
+      const que = pendiente.tipo === "subir" && pendiente.origen === "dibujo" ? "Dibujo" : "Foto";
+      avisar.exito(url ? `${que} de ${muestra.nombre} guardado` : `${muestra.nombre} vuelve al dibujo automático`, {
+        detalle: url ? "Ya se ve en Atributos." : "La imagen se quitó; se muestra el dibujo que sale del nombre.",
       });
     } catch {
       avisar.error("No se pudo hablar con el servidor. Reintenta en un momento.");
@@ -162,7 +176,8 @@ export function DetalleMuestraModal({
   }
 
   // Lo que se ve arriba: lo que se está por guardar, o lo guardado.
-  const imagenVisible = pendiente ? (pendiente.tipo === "subir" ? pendiente.vista : null) : muestra.imagenUrl;
+  // Con el generador abierto se ve en grande la propuesta marcada.
+  const imagenVisible = pendiente ? (pendiente.tipo === "subir" ? pendiente.vista : null) : generador !== null && propuesta ? propuesta : muestra.imagenUrl;
   const Muestra = tipo === "tejido" ? MuestraTejido : MuestraPatron;
   const cantidad = carga.estado === "listo" ? carga.prendas.length : null;
 
@@ -181,25 +196,48 @@ export function DetalleMuestraModal({
             {pendiente
               ? pendiente.tipo === "subir"
                 ? "Así se verá. Todavía no se guardó."
-                : "Se quitará la foto y volverá el dibujo que sale del nombre. Todavía no se guardó."
-              : muestra.imagenUrl
-                ? "Foto real subida por el equipo."
-                : `Dibujo automático según el nombre. ${palabra.foto} ayuda a reconocerlo al recibir mercadería.`}
+                : "Se quitará la imagen y volverá el dibujo automático que sale del nombre. Todavía no se guardó."
+              : generador !== null
+                ? "Propuesta marcada. Si te gusta, «Usar este dibujo»; si no, cambia la frase o sube una foto."
+                : muestra.imagenUrl
+                  ? "Imagen elegida por el equipo."
+                  : `Dibujo automático según el nombre. ${palabra.foto} o un dibujo a tu medida ayudan a reconocerlo al recibir mercadería.`}
           </p>
 
-          {puedeEditar && !pendiente && (
+          {puedeEditar && !pendiente && generador !== null && (
+            <GeneradorDibujo
+              tipo={tipo}
+              nombre={muestra.nombre}
+              colores={colores}
+              descripcionInicial={generador}
+              onVista={setPropuesta}
+              onUsar={(archivo) => {
+                setGenerador(null);
+                setPendiente({ tipo: "subir", origen: "dibujo", archivo, vista: URL.createObjectURL(archivo) });
+              }}
+              onCancelar={() => setGenerador(null)}
+            />
+          )}
+
+          {puedeEditar && !pendiente && generador === null && (
             <div className="flex flex-wrap gap-2">
               <Boton peso="fantasma" className="px-3 py-2 text-[11px]" cargando={preparando} onClick={() => selector.current?.click()}>
                 <span className="inline-flex items-center gap-1.5">
                   <ImagePlus className="h-3.5 w-3.5" aria-hidden />
-                  {muestra.imagenUrl ? "Cambiar foto" : "Subir foto"}
+                  Subir foto
+                </span>
+              </Boton>
+              <Boton peso="fantasma" className="px-3 py-2 text-[11px]" onClick={() => setGenerador("")}>
+                <span className="inline-flex items-center gap-1.5">
+                  <Wand2 className="h-3.5 w-3.5" aria-hidden />
+                  Generar dibujo
                 </span>
               </Boton>
               {muestra.imagenUrl && (
                 <Boton peso="discreto" className="px-3 py-2 text-[11px]" onClick={() => setPendiente({ tipo: "quitar" })}>
                   <span className="inline-flex items-center gap-1.5">
                     <RotateCcw className="h-3.5 w-3.5" aria-hidden />
-                    Quitar foto
+                    Quitar imagen
                   </span>
                 </Boton>
               )}
@@ -235,7 +273,7 @@ export function DetalleMuestraModal({
                   title={responsable.motivo ?? undefined}
                   onClick={guardar}
                 >
-                  {pendiente.tipo === "quitar" ? "Quitar foto" : "Guardar foto"}
+                  {pendiente.tipo === "quitar" ? "Quitar imagen" : pendiente.origen === "dibujo" ? "Guardar dibujo" : "Guardar foto"}
                 </Boton>
               </div>
             </div>

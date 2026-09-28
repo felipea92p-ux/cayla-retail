@@ -55,3 +55,38 @@
   `ON CONFLICT (name, bucket_id)`), también la de fotos de prenda. La subida real se probó hasta la vista previa; el
   guardado, el candado de URL y «Quitar foto» se probaron contra la ruta local. En producción el mismo `upload` de
   supabase-js funciona (fotos de prenda subidas el 2026-09-28).
+
+## Actualización 2026-09-28 (tarde): dibujo generado desde una frase
+
+**Pedido:** Felipe, probando en local: «que se generen dibujos automáticamente al añadir alguna, opcional; una breve
+descripción y el sistema genera el dibujo; el usuario decide si le gusta, si lo usa o mejor sube una foto».
+
+**Decisión de Felipe (entre tres opciones): generador propio, sin IA.**
+
+- **Cómo funciona** (`lib/dibujo-generado.ts`, puro, 23 pruebas): la frase se lee por palabras clave. De ahí salen la
+  familia (rayas, cuadros, lunares, floral, animal print, estampado; o la textura de un tejido: trama, lino, sarga,
+  punto, canalé, piqué, pelo, satinado), los colores **del catálogo real** (`colores.hex` con sus sinónimos: «navy»
+  → Azul marino, «guinda» → Vino; «azul marino» gana sobre «azul»), cuál es el fondo («sobre…», «fondo…»), la escala
+  («finas», «anchas») y la orientación de las rayas. Arma un SVG determinista y propone tres variantes (fina, media,
+  ancha); «Otras variantes» cambia la semilla, la orientación y, si la frase no fijó el fondo, invierte dibujo y fondo.
+- **La pantalla dice qué entendió** («Entendí: Floral · Rojo sobre Crudo con Verde oliva») y, si no reconoció el dibujo,
+  lo dice y sugiere palabras que sí conoce. Así el límite del generador queda a la vista y quien escribe corrige la
+  frase.
+- **Dónde:** en el detalle, «Generar dibujo» junto a «Subir foto» (la propuesta marcada se ve en grande arriba); y en
+  «Nuevo tejido / patrón», un campo opcional «Cómo se ve»: si se llena, al guardar se abre el detalle con las
+  propuestas ya hechas. Solo para quien puede editar el catálogo (quien no, igual no podría guardar la imagen).
+- **Se guarda igual que una foto:** «Usar este dibujo» pinta el SVG en un JPG de 1200×600 (`svgAArchivo`) y sigue el
+  mismo camino: vista previa, Responsable, «Guardar dibujo» → bucket → `imagen_muestra_url`. Sin columna nueva, sin
+  migración; el SVG (texto) nunca se guarda ni se inyecta en la página, solo se muestra como `<img>` `data:`.
+
+- **DECIDÍ:** generador por reglas con los colores del catálogo.
+- **DESCARTÉ:** pedirle el dibujo a Claude (IA), porque exigía una clave de Anthropic en Vercel, ~1-3 céntimos de dólar
+  y 5-20 s por dibujo, y una API que puede no responder; y un patrón de tela es geometría que se repite, que las reglas
+  cubren. Queda como posible botón «Intentar con IA» si un día hace falta dibujar algo fuera de estas familias.
+- **SE ROMPE SI:** alguien describe algo fuera de las familias («paisley», «flores con loros»): sale un estampado
+  genérico o flores simples en esos colores. La pantalla lo avisa, pero no lo dibuja; para eso está «Subir foto».
+
+**Quedan dos formas de dibujar lo mismo** (lo dijo el propio pedido): el dibujo automático por nombre
+(`MuestraTejido`/`MuestraPatron`, tonos fijos a mano) y este generador (paramétrico, con el catálogo). No se unificaron
+aquí para no cambiar cómo se ven hoy las 33 tarjetas sin foto; unificarlas —que el automático sea el generador con la
+frase vacía— es el siguiente paso natural (BACKLOG).

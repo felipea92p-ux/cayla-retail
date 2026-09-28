@@ -139,6 +139,9 @@ export function AtributosHub({
   // entre navegaciones del App Router y un `useState` solo lee su valor
   // inicial una vez, nunca de nuevo — bug real, no hipotético, encontrado
   // verificando el redirect en el navegador antes de darlo por bueno.
+  // El generador de dibujos de Tejidos y Patrones pinta con los colores activos del catálogo (ADR-0256).
+  const coloresDibujo = colores.filter((c) => c.activo && c.hex).map((c) => ({ nombre: c.nombre, hex: c.hex as string, sinonimos: c.sinonimos }));
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap gap-0.5 rounded-lg bg-sand p-0.5">
@@ -161,8 +164,8 @@ export function AtributosHub({
 
       {tipo === "colores" && <ColoresLista coloresIniciales={colores} puedeEditar={puedeEditar} />}
       {tipo === "tallas" && <TallasLista tallasIniciales={tallas} puedeEditar={puedeEditar} />}
-      {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} prendasPorId={prendasPorTejido} veProductos={veProductos} />}
-      {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} prendasPorId={prendasPorPatron} veProductos={veProductos} />}
+      {tipo === "tejidos" && <TejidosLista tejidosIniciales={tejidos} puedeEditar={puedeEditar} prendasPorId={prendasPorTejido} veProductos={veProductos} colores={coloresDibujo} />}
+      {tipo === "patrones" && <PatronesLista patronesIniciales={patrones} puedeEditar={puedeEditar} prendasPorId={prendasPorPatron} veProductos={veProductos} colores={coloresDibujo} />}
       {tipo === "etiquetas" && <EtiquetasLista
           etiquetasIniciales={etiquetas}
           categorias={categorias}

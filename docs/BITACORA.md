@@ -8,6 +8,11 @@ Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas,
 Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
 Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
 
+## 2026-09-28 (Tejidos y Patrones: dibujo generado desde una frase — ADR-0256 act.)
+Qué hice: «rayas azul marino finas sobre crudo» y el sistema propone al instante tres dibujos con los colores reales del catálogo; dice qué entendió, ofrece otras variantes, y quien edita decide: usar el dibujo, cambiar la frase o subir una foto. También al crear un tejido o patrón, como campo opcional.
+Por qué así: Felipe eligió el generador propio sobre la IA: un patrón de tela es geometría que se repite, y así es gratis, instantáneo, no depende de una API y el azul es el Azul marino del catálogo, no el que imagine un modelo. El dibujo elegido se guarda como una foto (JPG, misma columna): nada nuevo en la base.
+Felipe se lleva: **cuando una herramienta tiene límites, la pantalla los muestra («Entendí: …») en vez de esconderlos**; quien la usa corrige la frase en lugar de desconfiar del resultado. Sin resolver: dos formas de dibujar lo mismo (automático por nombre y generador), por unificar.
+
 ## 2026-09-28 (Atributos ▸ Tejidos y Patrones: clic → foto y prendas — ADR-0256)
 Qué hice: cada tarjeta de Tejidos y Patrones abre un detalle con la muestra en grande y las prendas que la usan (activas primero, con foto y enlace a su ficha). Un Líder sube, cambia o quita la foto real: primero la ve, elige el Responsable y recién «Guardar foto» la guarda. Sin migración: `imagen_muestra_url` y el bucket ya estaban en producción desde el 18-09, sin uso.
 Por qué así: una foto por tejido es 1:1 → columna, no tabla (como ADR-0061); y la ruta solo acepta URLs del bucket en la carpeta de su tipo, para que nadie pegue en el catálogo una imagen de otro sitio que después se pinta en todas las sedes. Las prendas se leen al abrir, no con la grilla.
