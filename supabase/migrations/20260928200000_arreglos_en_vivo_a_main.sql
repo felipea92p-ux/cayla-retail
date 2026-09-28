@@ -48,8 +48,9 @@
 --     no un arreglo en vivo, y las políticas van solas en su pegada (ADR-0195).
 --
 -- DECIDÍ: quitar con `revoke` explícito SOLO lo que sobra (y nunca re-otorgar lo que ya está), con una guarda de md5 del
---   cuerpo vivo antes de recrear y una verificación final que aborta si el resultado no es el de producción. Así la misma
---   migración corre sobre una base de `main` (cierra) y sobre producción (no cambia nada salvo el punto 5).
+--   cuerpo vivo antes de recrear y una verificación final que aborta si el resultado no es EXACTAMENTE el de producción
+--   para los roles de la app (ni un permiso de más, tampoco por columna ni a `anon`). Así la misma migración corre sobre
+--   una base de `main` (cierra) y sobre producción (no cambia nada salvo el punto 5).
 -- DESCARTÉ: `revoke all` + `grant select` (dejar la lista «limpia»). En producción quitaría y volvería a dar permisos que
 --   hoy están bien; si alguno lo otorgó otro rol, quedarían dos entradas y la huella de producción cambiaría sin razón.
 -- DESCARTÉ: dejar `main` como está y anotar las diferencias como «conocidas» en `deriva.mjs`. El CI seguiría probando
@@ -60,7 +61,8 @@
 --   `security definer` con su candado, nunca devolver el permiso. (b) Alguien recrea una de las cuatro con
 --   `drop function` + `create function`: los `revoke` no sobreviven a eso (`create or replace` sí los conserva);
 --   `pnpm pruebas:arreglos-en-vivo` mira el estado vivo y se pone roja. (c) El PR #168 cambia el cuerpo de
---   `fn_rentabilidad`: la guarda de abajo aborta en el CI; el PR tiene que quitar su propia creación o dejarla idéntica.
+--   `fn_rentabilidad` antes de que esta entre: la guarda de abajo aborta en el CI; el PR tiene que quitar su propia
+--   creación o dejarla idéntica (si la cambia DESPUÉS, en una migración nueva, esta no se vuelve a correr y no pasa nada).
 --   (d) La dueña de alguna de las cuatro pierde su propio EXECUTE: la verificación final aborta el pegado nombrándola (de
 --   eso dependen las funciones que las llaman por dentro).
 --
@@ -122,7 +124,7 @@ begin
       raise exception 'Falta % en esta base: esta migración la recrea y no la crea. Revisa que estén pegadas las migraciones anteriores.', r.firma;
     end if;
     if v_md5 is distinct from r.md5_main and v_md5 is distinct from r.md5_produccion then
-      raise exception '% cambió después del 2026-09-28 (huella del cuerpo: %; se esperaba la de main % o la de producción %). No se tocó nada: reescribe esta migración desde su definición real (pg_get_functiondef).',
+      raise exception '% cambió después del 2026-09-28 (huella del cuerpo: %; se esperaba la de main % o la de producción %). No se tocó nada. Si esta migración ya está en main, no la edites: lo que falte va en una migración nueva que parta de la definición real (pg_get_functiondef).',
         r.firma, v_md5, coalesce(r.md5_main, '(no existe)'), r.md5_produccion;
     end if;
   end loop;
@@ -410,16 +412,21 @@ begin
       r.firma, r.duena, r.firma, r.duena;
   end loop;
 
-  -- (b) `stock` y `movimientos`: nadie de la app escribe; `authenticated` y `service_role` siguen leyendo.
+  -- (b) `stock` y `movimientos`: los roles de la app quedan EXACTAMENTE con lo de producción, ni un permiso de más
+  --     (`authenticated` solo lee; `service_role` lee, más references y trigger; `anon` y PUBLIC, nada). Se mira la tabla
+  --     Y cada columna: un `grant update (cantidad)` no aparece en has_table_privilege y deja escribir igual.
   for r in
     select c.relname, g.rol, x.priv
       from pg_class c
      cross join (values ('public'), ('anon'), ('authenticated'), ('service_role')) as g(rol)
-     cross join (values ('insert'), ('update'), ('delete'), ('truncate')) as x(priv)
+     cross join (values ('select'), ('insert'), ('update'), ('delete'), ('truncate'), ('references'), ('trigger')) as x(priv)
      where c.oid in ('retail.stock'::regclass, 'retail.movimientos'::regclass)
-       and has_table_privilege(g.rol, c.oid, x.priv)
+       and (has_table_privilege(g.rol, c.oid, x.priv)
+            or (x.priv in ('select', 'insert', 'update', 'references') and has_any_column_privilege(g.rol, c.oid, x.priv)))
+       and not (g.rol = 'authenticated' and x.priv = 'select')
+       and not (g.rol = 'service_role' and x.priv in ('select', 'references', 'trigger'))
   loop
-    raise exception '% todavía tiene % sobre retail.%: el libro y su foto se escriben solo por las funciones', r.rol, r.priv, r.relname;
+    raise exception '% todavía tiene % sobre retail.% (en la tabla o en alguna columna): el libro y su foto se escriben solo por las funciones, y en producción nadie más de la app tiene permisos ahí', r.rol, r.priv, r.relname;
   end loop;
   if not (has_table_privilege('authenticated', 'retail.stock', 'select') and has_table_privilege('authenticated', 'retail.movimientos', 'select')
           and has_table_privilege('service_role', 'retail.stock', 'select') and has_table_privilege('service_role', 'retail.movimientos', 'select')) then
@@ -427,7 +434,7 @@ begin
   end if;
 
   -- (c) Los cuerpos quedaron como se escribieron aquí (el de `main` para las `_json`, el de producción para
-  --     fn_rentabilidad), y fn_rentabilidad con los permisos de producción.
+  --     fn_rentabilidad).
   for r in
     select *
       from (values
@@ -445,11 +452,18 @@ begin
       raise exception '% quedó con la huella % y se esperaba %', r.firma, coalesce(v_md5, '(no existe)'), r.md5_esperado;
     end if;
   end loop;
-  if not has_function_privilege('authenticated', 'retail.fn_rentabilidad(date, integer, numeric)', 'execute')
-     or has_function_privilege('anon', 'retail.fn_rentabilidad(date, integer, numeric)', 'execute')
-     or has_function_privilege('public', 'retail.fn_rentabilidad(date, integer, numeric)', 'execute')
-     or has_function_privilege('service_role', 'retail.fn_rentabilidad(date, integer, numeric)', 'execute') then
-    raise exception 'fn_rentabilidad no quedó con los permisos de producción (solo authenticated)';
-  end if;
+
+  -- (d) fn_rentabilidad y las tres `_json`, con los permisos de producción: las ejecuta `authenticated` y nadie más de la app.
+  for r in
+    select f.firma
+      from (values ('retail.fn_stock_por_sede_json()'), ('retail.fn_resumen_comparacion_json(uuid, date, date, date, date)'),
+                   ('retail.fn_resumen_variantes_json(uuid, date, date, date, date)'), ('retail.fn_rentabilidad(date, integer, numeric)')) as f(firma)
+     where not has_function_privilege('authenticated', f.firma, 'execute')
+        or has_function_privilege('anon', f.firma, 'execute')
+        or has_function_privilege('public', f.firma, 'execute')
+        or has_function_privilege('service_role', f.firma, 'execute')
+  loop
+    raise exception '% no quedó con los permisos de producción (la ejecuta authenticated y nadie más de la app)', r.firma;
+  end loop;
 end
 $verifica$;

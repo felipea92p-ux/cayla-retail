@@ -37,7 +37,11 @@
 -- SE ROMPE SI: (1) una nota por descuento u «otro» SIN cierre atado no apaga el pendiente — es a propósito, la regla de
 --   siempre («solo la nota por faltante la apaga»); la pantalla solo ata el cierre en la nota por faltante, así que una
 --   nota por devolución registrada desde el modal tampoco lo apaga: para que lo haga, el modal tendría que mandar el
---   cierre también con ese motivo (cambio de pantalla, aparte). (2) Si algún día la nota por faltante deja de ser una
+--   cierre también con ese motivo (cambio de pantalla, aparte). (2) La regla (a) NO mira el monto: una nota chica
+--   atada a un cierre lo apaga entero (una devolución de S/ 59 atada a un cierre de S/ 590 borra el pendiente, y los
+--   S/ 531 que faltan dejan de verse). Hoy solo se llega a eso llamando a la RPC a mano, porque el modal ata el cierre
+--   solo en la nota por faltante; si la pantalla empieza a atar notas de otro motivo, solo puede hacerlo cuando la nota
+--   cubre el esperado de ese cierre (costo + IGV, con MARGEN_NOTA). (3) Si algún día la nota por faltante deja de ser una
 --   por comprobante, la regla (b) apagaría cierres que esa nota no cubre: hay que revisar esto el mismo día.
 --
 -- CÓMO SE PEGA EN PRODUCCIÓN. UNA sola parte, sola, en el SQL Editor, tal cual (ya trae `retail.`), a cualquier hora:
@@ -77,7 +81,7 @@ begin
       raise exception 'Falta % en esta base: pega antes 20260918220000 y 20260919211000.', r.firma;
     end if;
     if not v_md5 = any(r.aceptadas) then
-      raise exception '% cambió después del 2026-09-28 (huella del cuerpo: %; se esperaba una de %). No se tocó nada: reescribe esta migración desde su definición real (pg_get_functiondef).',
+      raise exception '% cambió después del 2026-09-28 (huella del cuerpo: %; se esperaba una de %). No se tocó nada. Si esta migración ya está en main, no la edites: lo que falte va en una migración nueva que parta de la definición real (pg_get_functiondef).',
         r.firma, v_md5, r.aceptadas;
     end if;
   end loop;
