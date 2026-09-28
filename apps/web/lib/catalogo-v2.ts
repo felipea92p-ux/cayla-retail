@@ -699,30 +699,3 @@ export async function getEjesPorCategoria(): Promise<EjesPorCategoria> {
     patrones: agrupar(patrones.map((f) => ({ categoria_id: f.categoria_id, id: f.patron.id, texto: f.patron.nombre }))),
   };
 }
-
-// ============================================================================
-// Alta al vuelo durante el censo (20260918): prendas creadas por alguien
-// que no es Líder mientras contaba, todavía sin revisar. `estado_alta` es
-// independiente de `estado` — un pendiente sigue activo y contable, este
-// listado es solo la cola de revisión del Líder.
-// ============================================================================
-
-export type ProductoPendienteAlta = {
-  id: string;
-  referencia: string;
-  categoria: string | null;
-  creadoEn: string;
-};
-
-export async function getProductosPendientesAlta(): Promise<ProductoPendienteAlta[]> {
-  const supabase = await createClient();
-  const filas = exigir(
-    await supabase
-      .from("productos")
-      .select("id, referencia, created_at, categoria:categorias ( nombre )")
-      .eq("estado_alta", "pendiente")
-      .order("created_at", { ascending: true }),
-    "las prendas pendientes de revisar"
-  );
-  return filas.map((f) => ({ id: f.id, referencia: f.referencia, categoria: f.categoria?.nombre ?? null, creadoEn: f.created_at }));
-}

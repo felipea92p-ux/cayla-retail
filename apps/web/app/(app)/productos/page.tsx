@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronDown, LayoutGrid, PackageX, Rows3, Shirt, TrendingDown, Truck } from "lucide-react";
+import { ChevronDown, LayoutGrid, Rows3 } from "lucide-react";
 import { exigirModulo, puede, veModulo } from "@/lib/persona-actual";
 import { createClient } from "@/lib/supabase/server";
 import { exigir } from "@/lib/resultado";
@@ -9,7 +9,6 @@ import {
   paginaProductosDesdeParams,
   listarProductos,
   getResumenProductos,
-  getProductosPendientesAlta,
   getReposicionPorProveedor,
   getSinTemporadaResumen,
   type ParamsProductosListado,
@@ -19,7 +18,6 @@ import { ProductosGrilla } from "@/components/ProductosGrilla";
 import { FiltrosProductos } from "@/components/FiltrosProductos";
 import { PaginacionPaginas } from "@/components/Paginacion";
 import { EncabezadoPagina } from "@/components/ui/EncabezadoPagina";
-import { ResumenSede } from "@/components/ui/ResumenSede";
 import { AQuienPedirle } from "@/components/AQuienPedirle";
 import { mensajeSinResultados } from "@/lib/productos-stock";
 
@@ -62,7 +60,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   const vista = params.vista === "tabla" ? "tabla" : "grilla";
   const supabase = await createClient();
 
-  // Grilla ⇄ tabla (ADR-0077) — mismo patrón que `hrefConStock` más abajo: reconstruye la URL con todos los filtros vigentes, solo
+  // Grilla ⇄ tabla (ADR-0077): reconstruye la URL con todos los filtros vigentes, solo
   // cambia `vista`. Grilla es el default, así que no ensucia la URL.
   function hrefConVista(v: "grilla" | "tabla") {
     const p = new URLSearchParams();
@@ -77,7 +75,7 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
   // módulo «Categorías, marcas y atributos». `editarCatalogo` también sale de ver Productos completo, así que el permiso
   // solo no basta: sin el módulo, «Completar» caería en «Sin acceso». A quien no puede completarlas no se le muestra.
   const completaTemporadas = editaCatalogo && veModulo(persona, "atributos");
-  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, pendientesAlta, sinTemporada] = await Promise.all([
+  const [resultado, resumen, categorias, colores, resMarcas, resProveedores, sububicaciones, sinTemporada] = await Promise.all([
     listarProductos(filtros, pagina),
     getResumenProductos(filtros),
     supabase.from("categorias").select("id, nombre").eq("activo", true).order("nombre"),
@@ -86,7 +84,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
     supabase.from("marcas").select("id, nombre").eq("activo", true).order("nombre"),
     supabase.from("proveedores").select("id, nombre").eq("activo", true).order("nombre"),
     getSububicaciones(persona.ubicacionId),
-    editaCatalogo ? getProductosPendientesAlta() : Promise.resolve([]),
     // ADR-0246: solo a quien puede completarlas en la pestaña. `null` si no se pudo saber (SQL sin pegar): no se muestra nada.
     completaTemporadas ? getSinTemporadaResumen() : Promise.resolve(null),
   ]);
@@ -96,15 +93,6 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
 
   const categoriasOpciones = exigir(categorias, "las categorías").map((c) => ({ id: c.id, nombre: c.nombre }));
   const coloresOpciones = exigir(colores, "los colores").map((c) => ({ id: c.codigo, nombre: c.nombre, hex: c.hex }));
-
-  // Las cuatro cifras de `fn_productos_resumen` (con los filtros vigentes, no solo esta página). Las tres de stock
-  // son atajos: tocarlas aplica ese filtro, igual que «Por aprobar» en Devoluciones.
-  function hrefConStock(stock: "sin_stock" | "bajo" | "reponer") {
-    const p = new URLSearchParams();
-    for (const [k, v] of Object.entries(params)) if (v && k !== "pagina" && k !== "stock") p.set(k, v);
-    p.set("stock", stock);
-    return `/productos?${p.toString()}`;
-  }
 
   const botonVista = (v: "grilla" | "tabla", Icono: typeof LayoutGrid, texto: string) => (
     <Link
@@ -148,46 +136,8 @@ export default async function ProductosPage({ searchParams }: { searchParams: Pr
             )}
           </>
         }
-      >
-        <ResumenSede
-          sede="el catálogo"
-          cifras={[
-            { valor: resumen.totalProductos, etiqueta: resumen.totalProductos === 1 ? "Producto" : "Productos", icono: Shirt },
-            {
-              valor: resumen.reponerDeProveedor,
-              etiqueta: "Para pedir",
-              icono: Truck,
-              href: hrefConStock("reponer"),
-              alerta: resumen.reponerDeProveedor > 0,
-            },
-            { valor: resumen.stockBajo, etiqueta: "Stock bajo", icono: TrendingDown, href: hrefConStock("bajo"), alerta: resumen.stockBajo > 0 },
-            { valor: resumen.sinStock, etiqueta: "Sin stock", icono: PackageX, href: hrefConStock("sin_stock") },
-          ]}
-        />
-      </EncabezadoPagina>
+      />
 
-      {pendientesAlta.length > 0 && (
-        // Plegado (2026-09-23): con 10 prendas la lista abierta ocupaba media pantalla; se abre al tocar.
-        <details className="group card-cayla border-l-2 border-l-rojo">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
-            <span className="text-sm font-semibold text-tinta">
-              {pendientesAlta.length} {pendientesAlta.length === 1 ? "prenda dada de alta" : "prendas dadas de alta"} durante un conteo, pendiente
-              {pendientesAlta.length === 1 ? "" : "s"} de revisar
-            </span>
-            <ChevronDown aria-hidden className="h-4 w-4 shrink-0 text-tinta/50 transition-transform group-open:rotate-180" />
-          </summary>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 px-4 pb-4 text-sm">
-            {pendientesAlta.map((p) => (
-              <li key={p.id}>
-                <Link href={`/productos/${p.id}/editar`} className="text-tinta underline underline-offset-2 hover:no-underline">
-                  {p.referencia}
-                </Link>
-                {p.categoria && <span className="text-tinta/55"> · {p.categoria}</span>}
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
 
       {sinTemporada && sinTemporada.prendas > 0 && (
         // ADR-0246: discreto (nota en hueso, no borde rojo): es trabajo de carga, no algo del mostrador. El porqué va
