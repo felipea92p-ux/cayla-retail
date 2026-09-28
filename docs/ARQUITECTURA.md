@@ -443,6 +443,11 @@ quinta pestaña 2026-09-17, ADR-0101).** El lateral tiene un grupo "Inventario"
   de `productos.estado` desde el cliente — sin RPC propia, ya alcanza con la
   RLS `productos_write_lider` (0004_rls.sql, solo líderes) y el trigger de
   arriba lo audita solo.
+- `/productos/atributos?tipo=tejidos|patrones` → `page.tsx` lee `tejidos`/`patrones` (con `imagen_muestra_url`) y cuenta
+  `productos` por `tejido_id`/`patron_id` → `TejidosLista`/`PatronesLista`; clic en la tarjeta → `DetalleMuestraModal`
+  (lee `productos` + `producto_fotos` del tejido al abrir; sube la foto con `lib/muestra-atributo.ts` al bucket
+  `retail-colores-muestras` y la guarda con PATCH `/api/productos/{tejidos,patrones}` → `imagenMuestraUrl`, validada por
+  `lib/muestra-atributo-reglas.ts:leerUrlMuestra`). ADR-0256.
 - `/productos/marcas` (Catálogo ▸ Marcas, módulo `atributos`) → `page.tsx` lee `marcas`, `proveedores`,
   `marca_proveedores` y `productos` (cuenta por pareja los activos y el TOTAL, también descontinuados) →
   `MarcasLista.tsx` (buscador por marca o proveedor, `lib/marcas.ts:filtrarMarcas`) + `EditarMarcaModal.tsx`

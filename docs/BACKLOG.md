@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧶 Tejidos y Patrones: clic → foto de muestra y prendas que lo usan (2026-09-28, ADR-0256) — solo web, sin migración; rama `claude/tejidos-edit-images-garments-a6a649`
+Felipe: «no se puede editar la imagen de tejidos y patrones, ni ver las prendas asociadas». La columna `imagen_muestra_url` y el bucket `retail-colores-muestras` ya estaban en producción sin uso (0 fotos).
+- [x] Clic en la tarjeta → `DetalleMuestraModal`: muestra en grande (foto o dibujo), subir / cambiar / quitar foto con vista previa y combo «Responsable», y la lista de prendas (activas primero, foto, código, categoría, «Descontinuada»; enlace a la ficha si ve Productos). Cada tarjeta dice «N prendas».
+- [x] La ruta PATCH de tejidos y patrones acepta `imagenMuestraUrl` solo del bucket y la carpeta de su tipo (`leerUrlMuestra`, 17 pruebas).
+- [ ] **Mostrar la foto también al elegir tejido/patrón en Nuevo producto y en la ficha** (`lib/alta-producto-datos.ts` → `imagenUrl`; los componentes ya lo aceptan). Esperar a que se fusione `claude/ver-mas-tejidos-4f8aea`, que toca el mismo paso.
+- [ ] Subir una foto real en producción con sesión de Líder (en local el Storage 1.72.1 rechaza toda subida, `42P10`; ver ADR-0256).
+- Cómo verificas: Catálogo ▸ Atributos ▸ Tejidos ▸ clic en «Denim» ▸ se ven las prendas de denim ▸ «Subir foto» ▸ elegir una foto ▸ «Así se verá» ▸ «Guardar foto» ▸ la tarjeta de Denim muestra la foto. «Quitar foto» vuelve al dibujo.
+
 ## 🗑️ Un Admin elimina un producto con su historia de stock (2026-09-28, ADR-0252) — migración `20260928230000` **EN PRODUCCIÓN** (aplicada 2026-09-28 como `20260928170424`, con ensayo revertido y verificada por md5); web en el PR de la rama `claude/delete-test-inventory-products-7ed0ff`
 Pedido de Felipe (2026-09-28): borrar su inventario de prueba y tener el permiso para eliminar directo desde las cuentas Admin. Eligió
 «historia de stock sí, ventas no», y dijo que lo cargado por el equipo de TRU (21 de los 26 productos con historia) también era práctica.

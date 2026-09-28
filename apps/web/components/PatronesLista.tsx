@@ -9,6 +9,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { MuestraPatron } from "@/components/MuestraPatron";
+import { BOTON_TARJETA_MUESTRA, DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
 
 /**
  * Vocabulario cerrado de patrones (ADR-0095/0096) — mismo mecanismo que
@@ -25,13 +26,27 @@ type Patron = {
   activo: boolean;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
+  /** La foto real (ADR-0256); `null` = el dibujo que sale del nombre. */
+  imagenUrl: string | null;
 };
 
 function ordenar(lista: Patron[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesIniciales: Patron[]; puedeEditar: boolean }) {
+export function PatronesLista({
+  patronesIniciales,
+  puedeEditar,
+  prendasPorId,
+  veProductos,
+}: {
+  patronesIniciales: Patron[];
+  puedeEditar: boolean;
+  /** Cuántos productos usan cada uno (activos y descontinuados): lo que dice cada tarjeta. */
+  prendasPorId: Record<string, number>;
+  /** Solo quien ve Productos llega, desde el detalle, a la ficha de cada prenda. */
+  veProductos: boolean;
+}) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
   // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
@@ -46,6 +61,8 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
+  // El detalle (foto + prendas, ADR-0256) se abre con un clic en la tarjeta.
+  const [detalleId, setDetalleId] = useState<string | null>(null);
 
   const activos = patrones.filter((p) => p.activo);
   const desactivados = patrones.filter((p) => !p.activo);
@@ -64,7 +81,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
         return;
       }
       setPatrones((actual) =>
-        ordenar([...actual, { id: datos.patron.id, nombre: datos.patron.nombre, activo: true, notas: datos.patron.notas, estado: datos.patron.estado }])
+        ordenar([...actual, { id: datos.patron.id, nombre: datos.patron.nombre, activo: true, notas: datos.patron.notas, estado: datos.patron.estado, imagenUrl: null }])
       );
       responsable.despues(null);
       avisar.exito(
@@ -175,6 +192,7 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
   }
 
   const rechazandoPatron = patrones.find((p) => p.id === rechazandoAbierto) ?? null;
+  const detalle = patrones.find((x) => x.id === detalleId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -195,13 +213,16 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
             key={p.id}
             className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
-            <MuestraPatron nombre={p.nombre} />
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-tinta">{p.nombre}</p>
-              {p.estado === "pendiente" && (
-                <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-              )}
-            </div>
+            <button type="button" onClick={() => setDetalleId(p.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
+              <MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-tinta">{p.nombre}</span>
+                {p.estado === "pendiente" && (
+                  <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
+                )}
+              </span>
+              <PieTarjetaMuestra prendas={prendasPorId[p.id] ?? 0} />
+            </button>
             {puedeEditar && (
               <div className="flex gap-2">
                 {p.estado === "pendiente" && (
@@ -282,13 +303,16 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((p) => (
               <div key={p.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
-                <MuestraPatron nombre={p.nombre} />
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-tinta">{p.nombre}</p>
-                  {p.estado === "rechazado" && (
-                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
-                  )}
-                </div>
+                <button type="button" onClick={() => setDetalleId(p.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
+                  <MuestraPatron nombre={p.nombre} imagenUrl={p.imagenUrl} />
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-tinta">{p.nombre}</span>
+                    {p.estado === "rechazado" && (
+                      <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
+                    )}
+                  </span>
+                  <PieTarjetaMuestra prendas={prendasPorId[p.id] ?? 0} />
+                </button>
                 {puedeEditar && (
                   <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === p.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", p.nombre, () => reactivar(p)))}>
                     Reactivar
@@ -298,6 +322,18 @@ export function PatronesLista({ patronesIniciales, puedeEditar }: { patronesInic
             ))}
           </div>
         </section>
+      )}
+
+      {detalle && (
+        <DetalleMuestraModal
+          tipo="patron"
+          muestra={detalle}
+          puedeEditar={puedeEditar}
+          veProductos={veProductos}
+          responsable={responsable}
+          onClose={() => setDetalleId(null)}
+          onImagen={(id, url) => setPatrones((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url } : x)))}
+        />
       )}
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}

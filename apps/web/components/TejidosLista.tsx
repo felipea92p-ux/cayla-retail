@@ -9,6 +9,7 @@ import { useResponsable } from "@/lib/useResponsable";
 import { Modal } from "@/components/ui/Modal";
 import { Boton, CampoTexto } from "@/components/ui/campos";
 import { MuestraTejido } from "@/components/MuestraTejido";
+import { BOTON_TARJETA_MUESTRA, DetalleMuestraModal, PieTarjetaMuestra } from "@/components/DetalleMuestraModal";
 
 /**
  * Vocabulario cerrado de tejidos (ADR-0095/0096) — mismo mecanismo que
@@ -25,13 +26,27 @@ type Tejido = {
   activo: boolean;
   notas: string | null;
   estado: "pendiente" | "aprobado" | "rechazado";
+  /** La foto real (ADR-0256); `null` = el dibujo que sale del nombre. */
+  imagenUrl: string | null;
 };
 
 function ordenar(lista: Tejido[]) {
   return [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
 
-export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosIniciales: Tejido[]; puedeEditar: boolean }) {
+export function TejidosLista({
+  tejidosIniciales,
+  puedeEditar,
+  prendasPorId,
+  veProductos,
+}: {
+  tejidosIniciales: Tejido[];
+  puedeEditar: boolean;
+  /** Cuántos productos usan cada uno (activos y descontinuados): lo que dice cada tarjeta. */
+  prendasPorId: Record<string, number>;
+  /** Solo quien ve Productos llega, desde el detalle, a la ficha de cada prenda. */
+  veProductos: boolean;
+}) {
   // Catálogo firma cada guardado con el combo «Responsable» (ADR-0161), pero nunca arriba de la lista: va dentro de cada
   // ventana (agregar, editar, rechazar) y los botones de un clic (aprobar, desactivar, reactivar) abren una confirmación
   // con el combo adentro (`ConfirmarConResponsable`, textos en lib/confirmar-catalogo.ts). Cada guardado lo vuelve a como vino.
@@ -46,6 +61,8 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
   const [rechazandoAbierto, setRechazandoAbierto] = useState<string | null>(null);
   const [motivoRechazo, setMotivoRechazo] = useState("");
   const [rechazandoId, setRechazandoId] = useState<string | null>(null);
+  // El detalle (foto + prendas, ADR-0256) se abre con un clic en la tarjeta.
+  const [detalleId, setDetalleId] = useState<string | null>(null);
 
   const activos = tejidos.filter((t) => t.activo);
   const desactivados = tejidos.filter((t) => !t.activo);
@@ -64,7 +81,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
         return;
       }
       setTejidos((actual) =>
-        ordenar([...actual, { id: datos.tejido.id, nombre: datos.tejido.nombre, activo: true, notas: datos.tejido.notas, estado: datos.tejido.estado }])
+        ordenar([...actual, { id: datos.tejido.id, nombre: datos.tejido.nombre, activo: true, notas: datos.tejido.notas, estado: datos.tejido.estado, imagenUrl: null }])
       );
       responsable.despues(null);
       avisar.exito(
@@ -175,6 +192,7 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
   }
 
   const rechazandoTejido = tejidos.find((t) => t.id === rechazandoAbierto) ?? null;
+  const detalle = tejidos.find((x) => x.id === detalleId) ?? null;
 
   return (
     <div className="space-y-6">
@@ -195,13 +213,16 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
             key={t.id}
             className="card-cayla flex flex-col gap-2 p-4 transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md"
           >
-            <MuestraTejido nombre={t.nombre} />
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-medium text-tinta">{t.nombre}</p>
-              {t.estado === "pendiente" && (
-                <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
-              )}
-            </div>
+            <button type="button" onClick={() => setDetalleId(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
+              <MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />
+              <span className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium text-tinta">{t.nombre}</span>
+                {t.estado === "pendiente" && (
+                  <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Pendiente</span>
+                )}
+              </span>
+              <PieTarjetaMuestra prendas={prendasPorId[t.id] ?? 0} />
+            </button>
             {puedeEditar && (
               <div className="flex gap-2">
                 {t.estado === "pendiente" && (
@@ -282,13 +303,16 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {desactivados.map((t) => (
               <div key={t.id} className="card-cayla flex flex-col gap-2 p-4 opacity-60">
-                <MuestraTejido nombre={t.nombre} />
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-tinta">{t.nombre}</p>
-                  {t.estado === "rechazado" && (
-                    <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
-                  )}
-                </div>
+                <button type="button" onClick={() => setDetalleId(t.id)} title="Ver la foto y las prendas" className={BOTON_TARJETA_MUESTRA}>
+                  <MuestraTejido nombre={t.nombre} imagenUrl={t.imagenUrl} />
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-tinta">{t.nombre}</span>
+                    {t.estado === "rechazado" && (
+                      <span className="label-cayla shrink-0 rounded-full bg-rojo/10 px-2 py-0.5 text-[10px] text-rojo">Rechazado</span>
+                    )}
+                  </span>
+                  <PieTarjetaMuestra prendas={prendasPorId[t.id] ?? 0} />
+                </button>
                 {puedeEditar && (
                   <Boton peso="discreto" className="px-2.5 py-1.5 text-[11px]" cargando={cambiandoId === t.id} onClick={() => setConfirmando(confirmacionCatalogo("reactivar", t.nombre, () => reactivar(t)))}>
                     Reactivar
@@ -298,6 +322,18 @@ export function TejidosLista({ tejidosIniciales, puedeEditar }: { tejidosInicial
             ))}
           </div>
         </section>
+      )}
+
+      {detalle && (
+        <DetalleMuestraModal
+          tipo="tejido"
+          muestra={detalle}
+          puedeEditar={puedeEditar}
+          veProductos={veProductos}
+          responsable={responsable}
+          onClose={() => setDetalleId(null)}
+          onImagen={(id, url) => setTejidos((actual) => actual.map((x) => (x.id === id ? { ...x, imagenUrl: url } : x)))}
+        />
       )}
 
       {confirmando && <ConfirmarConResponsable confirmacion={confirmando} control={responsable} onClose={() => setConfirmando(null)} />}

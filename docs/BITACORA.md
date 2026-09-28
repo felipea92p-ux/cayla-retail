@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Atributos ▸ Tejidos y Patrones: clic → foto y prendas — ADR-0256)
+Qué hice: cada tarjeta de Tejidos y Patrones abre un detalle con la muestra en grande y las prendas que la usan (activas primero, con foto y enlace a su ficha). Un Líder sube, cambia o quita la foto real: primero la ve, elige el Responsable y recién «Guardar foto» la guarda. Sin migración: `imagen_muestra_url` y el bucket ya estaban en producción desde el 18-09, sin uso.
+Por qué así: una foto por tejido es 1:1 → columna, no tabla (como ADR-0061); y la ruta solo acepta URLs del bucket en la carpeta de su tipo, para que nadie pegue en el catálogo una imagen de otro sitio que después se pinta en todas las sedes. Las prendas se leen al abrir, no con la grilla.
+Qué se rompería sin esto: «No se puede desactivar: 3 productos usan este tejido» seguía sin decir cuáles, y un tejido nuevo que el dibujo no reconoce quedaba «Sin muestra» para siempre. Sin resolver: la foto aún no se ve al elegir tejido en Nuevo producto (espera a `ver-mas-tejidos`), y el Storage local no acepta subidas (versión vieja del contenedor).
+
 ## 2026-09-28 (Categorías ▸ ejemplo según la familia, prefijo y nombre repetidos se avisan al tipear)
 Qué hice: el ejemplo de «Nueva categoría» cambia con la familia (Calzado → Botines/BOT, Bisutería → Aretes/ARE…) y salta los que ya existen; si el prefijo o el nombre ya los tiene otra categoría —también una desactivada— el campo dice cuál y «Guardar» se bloquea. `CampoTexto` nace con `autoComplete="off"`. Regla pura en `lib/categoria-alta-reglas.ts` con pruebas; sin SQL.
 Por qué así: la base ya rechazaba el duplicado (`categorias_prefijo_unico`, `categorias_nombre_clave_unica`) pero solo al guardar y sin decir quién lo tenía; ambos índices cuentan las desactivadas, así que la pantalla compara contra todas. El candado real sigue en la base (dos líderes a la vez).
