@@ -502,6 +502,12 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:ajuste-no-es-primera-carga
 
+      # Descontinuar/reactivar en bloque desde la Tabla de Productos (ADR-0254): todo o nada, al reactivar revisa marca y
+      # proveedor como «Editar» y nombra la prenda que falla; sin permiso lo dice en palabras. Cada caso en ROLLBACK.
+      - name: pruebas:productos-estado-en-bloque
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:productos-estado-en-bloque
+
       # Saldo por prenda de Movimientos (ADR-0234, saldo): cada movimiento dice cuántas quedaron en la tienda al terminar
       # su operación, leído de `fn_ledger_puntos` (la bajada no lo cambia, la cuarentena lo baja, el último es el stock
       # de hoy); otra sede no vuelve y sin sesión no responde. En ROLLBACK.

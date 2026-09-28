@@ -5561,6 +5561,10 @@ export type Database = {
         }
         Returns: string
       }
+      cambiar_estado_productos: {
+        Args: { p_estado: string; p_producto_ids: string[] }
+        Returns: number
+      }
       cambiar_estado_proveedor_produccion: {
         Args: { p_activo: boolean; p_proveedor_id: string }
         Returns: undefined

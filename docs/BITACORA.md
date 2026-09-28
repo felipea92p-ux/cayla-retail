@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Productos: la Tabla rediseñada para todos, la cabecera de Ventas y descontinuar en bloque — ADR-0254)
+Qué hice: la Tabla pasó de lista sin fotos a planilla con foto, colores, tallas en curva, precio, costo, margen, stock y estado, con ficha de variantes y tarjetas en el celular; Productos usa la cabecera de Ventas y los filtros plegables de la Grilla en las dos vistas; descontinuar/reactivar en bloque pasa por `cambiar_estado_productos` (todo o nada, revisa marca y proveedor al reactivar).
+Por qué así: la Tabla hacía lo que la Grilla no (marcar varias, costo y margen de un vistazo), pero con otra piel y otro camino de escritura que se saltaba la regla de «Editar»; y un costo en cero daba «100 %» de margen. El responsive sigue al ancho de la tabla, no de la ventana: con el menú abierto, 1.440 px de ventana dejan 1.071 de tabla.
+Felipe se lleva: **el ERP tiene tres umbrales de margen (30, 40/60 y ahora 45 %)** y ninguno lo decidió él por categoría; y que la cabecera quedó sin cifras ni aviso de altas del conteo (pedido suyo); `20260928235000` ya está en producción.
+
 ## 2026-09-28 (Escribir en un buscador ya no abre el loader — ADR-0149, actualización)
 Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas, Por pagar, Recibidas, Historial de ventas) navegan con `useBusquedaEnUrl`: anuncian la dirección al loader, que la deja pasar, y mientras la base responde el campo dice «Buscando…» y la lista se atenúa. Un filtro por clic sigue con el loader.
 Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
