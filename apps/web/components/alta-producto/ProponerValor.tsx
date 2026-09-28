@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { avisar } from "@/components/ui/Avisos";
-import { guardarEjesCategoria, proponerValorVocabulario, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
+import { guardarEjesCategoria, proponerValorVocabulario, sumarAlEje, type EjeIds, type TipoVocabulario } from "@/lib/alta-producto-ejes";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
 import { sinTildes } from "@/lib/marcas";
 import { ComboResponsable } from "@/components/ComboResponsable";
@@ -102,12 +102,7 @@ function ProponerValorAbierto({ tipo, categoriaId, ejesActuales, universo, onCre
       return;
     }
 
-    const nuevos: EjeIds = {
-      tallaIds: tipo === "tallas" ? [...ejesActuales.tallaIds, valor.id] : ejesActuales.tallaIds,
-      tejidoIds: tipo === "tejidos" ? [...ejesActuales.tejidoIds, valor.id] : ejesActuales.tejidoIds,
-      patronIds: tipo === "patrones" ? [...ejesActuales.patronIds, valor.id] : ejesActuales.patronIds,
-    };
-    const errOfrecer = await guardarEjesCategoria(categoriaId, nuevos, responsable.encabezados());
+    const errOfrecer = await guardarEjesCategoria(categoriaId, sumarAlEje(ejesActuales, tipo, valor.id), responsable.encabezados());
     setTrabajando(false);
     if (errOfrecer) {
       setError(`«${valor.texto}» ya está en el catálogo, pero no se pudo ofrecer en esta categoría: ${errOfrecer} Vuelve a tocar «Agregar»: no se crea otra vez.`);
