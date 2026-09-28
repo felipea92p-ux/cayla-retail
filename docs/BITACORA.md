@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Atributos ▸ Temporadas en cuatro vistas — ADR-0246, actualización)
+Qué hice: la pestaña dejó de ser cuatro secciones seguidas (~100 filas, lo pendiente al fondo) y pasó a cuatro vistas elegidas por tarjetas de cifra: «Por completar» (abre por defecto, agrupada por categoría con «Ponérsela a la categoría»), «Por categoría» (abre en «Con prendas»), «Calendario» y «Las nueve». La vista va en la URL sin ir al servidor; el movimiento es el del sistema (tarjeta viva, línea que viaja, entrada escalonada, grupo que se pliega). Probado en local como líder a 1440 y 375 px, con el atajo guardando y devuelto.
+Por qué así: en producción 31 de 33 prendas no tienen temporada y caen en solo 11 categorías: completar esas 11 las resuelve todas, y la pantalla antes lo decía en una nota al pie de la última sección. Ahora el atajo está en la cabecera de cada grupo, ordenado por lo que más rinde.
+Felipe se lleva: **el orden de una pantalla es el orden de uso, no el de la explicación**: lo que se trabaja va primero y la consulta al final. Y que 33 de las 44 categorías no tienen ni una prenda activa (algunas de prueba: «dsa», «prueba Lapicero»).
+
 ## 2026-09-28 (Productos: la Tabla rediseñada para todos, la cabecera de Ventas y descontinuar en bloque — ADR-0254)
 Qué hice: la Tabla pasó de lista sin fotos a planilla con foto, colores, tallas en curva, precio, costo, margen, stock y estado, con ficha de variantes y tarjetas en el celular; Productos usa la cabecera de Ventas y los filtros plegables de la Grilla en las dos vistas; descontinuar/reactivar en bloque pasa por `cambiar_estado_productos` (todo o nada, revisa marca y proveedor al reactivar).
 Por qué así: la Tabla hacía lo que la Grilla no (marcar varias, costo y margen de un vistazo), pero con otra piel y otro camino de escritura que se saltaba la regla de «Editar»; y un costo en cero daba «100 %» de margen. El responsive sigue al ancho de la tabla, no de la ventana: con el menú abierto, 1.440 px de ventana dejan 1.071 de tabla.

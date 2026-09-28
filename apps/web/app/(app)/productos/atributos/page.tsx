@@ -69,6 +69,7 @@ async function leerTemporadas(supabase: Supabase): Promise<{ datos: DatosPestana
         nombresDeCategorias(categorias),
       ),
       porTemporada: prendasPorTemporada(filas),
+      prendasActivas: productos.length,
       anioHoy: anioHoyLima(new Date()),
     },
   };
