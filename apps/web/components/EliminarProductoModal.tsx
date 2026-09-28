@@ -42,7 +42,10 @@ export function EliminarProductoModal({
   producto,
   onClose,
 }: {
-  producto: { productoId: string; referencia: string; estado: string; numVariantes: number };
+  /** `estado` y `numVariantes` solo redactan los textos; `null` = no se sabe (Existencias abre desde un color en una sede
+   *  y no sabe cuántas variantes tiene el producto; el estado, si su lectura del catálogo falló). Lo que se puede y lo que
+   *  se borra lo decide la base, no estos dos. */
+  producto: { productoId: string; referencia: string; estado: string | null; numVariantes: number | null };
   onClose: () => void;
 }) {
   const router = useRouter();
