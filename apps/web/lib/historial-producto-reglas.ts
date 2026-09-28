@@ -7,6 +7,10 @@
  * `temporada:<COLOR>` (la excepción de un color). El panel solo conocía tres y a cualquier otro lo pintaba como precio
  * («— → S/NaN» para una temporada). Aquí vive UNA tabla de campos; uno que no esté en ella se muestra con su valor tal
  * cual, nunca como dinero.
+ *
+ * Desde ADR-0257 (2026-09-28) la variante también anota `color` (el código; vacío = «Sin color»), `talla` (el VALOR,
+ * «S», no el uuid), `codigo` (el que lee la pistola, cuando se recalcula al corregir) y `activo` ('true'/'false'): el
+ * color y la talla de una variante se corrigen desde la ficha, y todo cambio tiene que quedar con quién lo hizo.
  */
 
 export type NombresHistorial = {
@@ -31,9 +35,16 @@ const ETIQUETA_CAMPO: Record<string, string> = {
   marca_id: "Marca",
   proveedor_id: "Proveedor",
   temporada: "Temporada",
+  color: "Color",
+  talla: "Talla",
+  codigo: "Código",
+  activo: "Estado",
 };
 
 const ETIQUETA_ESTADO: Record<string, string> = { activo: "Activo", descontinuado: "Descontinuado" };
+
+/** `activo` de una variante: la base lo anota como texto de un booleano. */
+const ETIQUETA_ACTIVA: Record<string, string> = { true: "Activa", false: "Desactivada" };
 
 /**
  * ¿Esta fila se muestra a esta cuenta? El `costo` solo a quien ve el dinero de compras (20260923193700: la base ya no deja
@@ -69,6 +80,9 @@ export function textoValorCambio(campo: string, valor: string | null, categoriaN
   if (colorDeCampo(campo)) return valor ? (nombres.temporadas.get(valor) ?? valor) : "Igual que su prenda";
   if (campo === "marca_id") return valor ? (nombres.marcas.get(valor) ?? "Una marca que ya no está") : "Sin marca";
   if (campo === "proveedor_id") return valor ? (nombres.proveedores.get(valor) ?? "Un proveedor que ya no está") : "Sin proveedor";
+  if (campo === "color") return valor ? (nombres.colores.get(valor) ?? valor) : "Sin color";
+  if (campo === "talla") return valor || "Sin talla";
+  if (campo === "activo") return valor ? (ETIQUETA_ACTIVA[valor] ?? valor) : "—";
   return valor ?? "—";
 }
 
@@ -87,6 +101,8 @@ export function nombresPorBuscar(filas: readonly { campo: string; valor_anterior
     const color = colorDeCampo(f.campo);
     if (f.campo === "temporada" || color) temporadas = true;
     if (color) colores.add(color);
+    // El color de una variante corregida (ADR-0257): se buscan los dos nombres, el de antes y el de ahora.
+    if (f.campo === "color") for (const v of [f.valor_anterior, f.valor_nuevo]) if (v) colores.add(v);
     const destino = f.campo === "marca_id" ? marcas : f.campo === "proveedor_id" ? proveedores : null;
     if (destino) for (const v of [f.valor_anterior, f.valor_nuevo]) if (v) destino.add(v);
   }

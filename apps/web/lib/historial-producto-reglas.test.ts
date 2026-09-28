@@ -97,3 +97,30 @@ describe("nombresPorBuscar — solo se consulta lo que hace falta", () => {
     expect(colorDeCampo("temporada:")).toBeNull();
   });
 });
+
+// ADR-0257: corregir el color o la talla de una variante, y activarla o desactivarla, deja rastro con quién lo hizo.
+describe("los campos de una variante corregida (ADR-0257)", () => {
+  it("color, talla, código y estado, con su nombre", () => {
+    expect(etiquetaCampo("color")).toBe("Color");
+    expect(etiquetaCampo("talla")).toBe("Talla");
+    expect(etiquetaCampo("codigo")).toBe("Código");
+    expect(etiquetaCampo("activo")).toBe("Estado");
+  });
+  it("el color por su nombre (vacío = «Sin color»); la talla tal cual (vacía = «Sin talla»)", () => {
+    expect(textoValorCambio("color", null, null, NOMBRES)).toBe("Sin color");
+    expect(textoValorCambio("color", "MAR", null, NOMBRES)).toBe("Marfil");
+    expect(textoValorCambio("color", "NEG", null, NOMBRES)).toBe("NEG");
+    expect(textoValorCambio("talla", "S", null)).toBe("S");
+    expect(textoValorCambio("talla", null, null)).toBe("Sin talla");
+  });
+  it("activa o desactivada en palabras; el código tal cual", () => {
+    expect(textoValorCambio("activo", "true", null)).toBe("Activa");
+    expect(textoValorCambio("activo", "false", null)).toBe("Desactivada");
+    expect(textoValorCambio("codigo", "BOD-0003-NEG-S", null)).toBe("BOD-0003-NEG-S");
+  });
+  it("se buscan los nombres de los dos colores de una corrección", () => {
+    const falta = nombresPorBuscar([{ campo: "color", valor_anterior: null, valor_nuevo: "NEG" }, { campo: "color", valor_anterior: "NEG", valor_nuevo: "AZU" }]);
+    expect(falta.colores).toEqual(["NEG", "AZU"]);
+    expect(falta.temporadas).toBe(false);
+  });
+});
