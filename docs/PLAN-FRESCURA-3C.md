@@ -4,8 +4,9 @@
 > `fn_ledger_puntos` = `a3d9fb69…`, `fn_bajadas_del_piso` = `34a7e0cc…`, `fn_bajadas_del_piso_nucleo` = `fcfd2c4b…`).
 > **El paso 3 está construido y sin pegar** (rama `claude/frescura-3c-lectura`; las migraciones son
 > `20260928120300_frescura_lectura.sql` y, después, `20260928120310_frescura_lectura_revision3.sql`, sin el módulo:
-> decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». **Sigue
-> el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
+> decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». Las revisiones 3 a 6 van en el PR #544; el orden de
+> pegado con sus md5, lo que queda para la pantalla y los 7 hallazgos abiertos de la revisión 7: ADR-0208, «Cierre del
+> paso 3». **Sigue el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
 > las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización 2026-09-27 — diseño 3c»).
 
 ## Decisiones de Felipe y técnicas que corrigen el plan (2026-09-27)

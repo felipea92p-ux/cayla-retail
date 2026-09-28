@@ -1075,8 +1075,15 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       md5): un pilar que lleva 30 días colgado sin vender ya no es pilar (el éxito con tallas rotas va a «Por decidir»);
       las ventas de una carga que se agotó antes de la reposición ya no dejan su rapidez sin dato; seis pruebas que
       faltaban (web y SQL). Pruebas: `pnpm pruebas:frescura-lectura` 184. ADR-0208, «Revisión 6 del paso 3».
-      - [ ] **Pegar `20260928120300` y DESPUÉS `20260928120310` en producción** (cada una sola, en el SQL Editor, a
-        cualquier hora: solo funciones). **No pegar solo la primera**: deja los errores de la revisión 3. Tras
+      **Cierre del ciclo de revisiones el 2026-09-27:** las revisiones 3 a 6 van en el **PR #544** (listo para revisar;
+      #542 llevó a main la versión de la integración). La revisión 7 dejó 7 hallazgos abiertos (abajo). ADR-0208,
+      «Cierre del paso 3».
+      - [ ] **Pegar en producción: `20260928120300` y después `20260928120310`** (cada una sola, en el SQL Editor, a
+        cualquier hora: solo funciones; primero se fusiona el #544 y se responden la 7 y R7-1, o se pega como está si
+        no hay respuesta). Producción el 2026-09-27 por la noche: ninguna función del paso 3, `fn_temporada_efectiva`
+        `1cc652ba…`. Archivos: `20260928120300` `40bf970f…` (idéntico a main), `20260928120310` `e121f11e…`. md5
+        reverificados ese día en una base nueva (sin la segunda, con ella encima en una transacción y pegada dos
+        veces). **No pegar solo la primera**: deja los errores de la revisión 3. Tras
         `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`, `fn_frescura_sede`
         `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`. Tras
         `20260928120310` (que también reescribe `fn_temporada_efectiva` como envoltorio, con las mismas filas, y crea
@@ -1094,6 +1101,28 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         la última llegada a CAYLA junto al aviso «Temporada pasada»; el texto de «sigue vendiendo»; qué muestra una prenda
         que solo está en el almacén (hoy «Nueva» con 0 segundos); y si se agrega `llegada_estimada` para las 34 prendas
         de TRU que no tienen ninguna llegada (sin eso nunca serán «Temporada pasada»). ADR-0208, «Límites» del paso 3.
+        La lista completa, con el texto propuesto («Cada prenda se compara con el resto de su categoría, sin contarse a
+        sí misma»): ADR-0208, «Cierre del paso 3».
+      - [ ] **Decisión de Felipe ANTES de pegar `20260928120310` (R7-1): ¿lo apartado para una clienta está «colgado»
+        para Frescura?** Hoy sí: `piso_hoy` suma `stock.cantidad` y `apartar` no la baja, así que una separación de 50
+        días sale Crítica, quieta y con «cambiar de lugar», igual que una prenda libre. El retiro del mismo ADR mide el
+        piso neto de lo apartado. TRU tiene 1 unidad apartada en el piso (select del 27-sep). Recomendado: no. En SQL,
+        `apartadas_hoy` en `fn_frescura_sede` (cambia su md5: editar `20260928120310` mientras #544 no se fusione, o un
+        archivo nuevo si ya se fusionó). En la web, `quieta` y las sugerencias sobre lo libre. ADR-0208, «Cierre del
+        paso 3».
+      - [ ] **Dos reglas de la web mal, ANTES de publicar la pantalla del paso 4 (no bloquean pegar el SQL; cada una con
+        su caso escrito en ADR-0208, «Cierre del paso 3»):**
+        - **R7-2:** el éxito que se agotó y se repuso ayer «dejó de vender»: `recientesDe` usa el reloj total y no lo
+          colgado en esos 30 días. Sale con «trasladar», y con la temporada pasada pierde «sigue vendiendo». Arreglo:
+          los segundos colgada desde la última venta.
+        - **R7-3:** una devolución, un cambio o un ajuste «reposicion» que se revende deja sin rapidez al éxito del
+          lote por toda la lectura. Con la temporada pasada recibe «cambiar de lugar» y «retirar». Arreglo: la rapidez
+          con y sin esas ventas, y sin dato solo si cambian el veredicto.
+      - [ ] **Pruebas que faltan (R7-4 a R7-7; no cambian código):** `ventasQueEsconden` con varias tallas (RZ-3, RZ-4,
+        RZ-5), el `en_estacion_ahora` nulo del clásico en `frescura-contrato.test.ts` (RZ-16), dos colores del mismo
+        modelo y el almacén en la segunda talla (RZ-1, RZ-2), y la vara: salida que no es venta, ventana sin P90 y P90
+        exacto en `restar` (RZ-6, RZ-7, RZ-8). Cada caso mata un cambio a propósito que hoy sobrevive las 127 pruebas.
+        ADR-0208, «Cierre del paso 3».
       - [x] **Decisiones de negocio de la revisión 3 (Felipe): DECIDIDAS el 2026-09-27** (revisión 5): (1) no, la
         temporada cuenta desde que llegó a CAYLA; (2) sí, con «sigue vendiendo»; (3) va a «Por decidir». Lo que se
         preguntaba: (1) ¿la recepción de un traslado es «llegada» para la
