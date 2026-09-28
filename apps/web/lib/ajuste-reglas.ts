@@ -129,6 +129,39 @@ export function textoTotalAjuste(variantes: readonly VarianteAjuste[], lugar: Lu
   return `${total} ${donde} · ${apartadas(apartado)} · ${libre} ${libre === 1 ? "libre" : "libres"}`;
 }
 
+/** Una talla con un ajuste escrito: cuánto hay en el lugar, cuánto cambia, cómo queda y cuánto hay apartado. */
+export type LineaAjuste = {
+  variante: VarianteAjuste;
+  delta: number;
+  actual: number;
+  resultado: number;
+  apartado: number;
+};
+
+/** Las tallas con un ajuste entero distinto de cero, en el orden del modal. Lo vacío, el 0 y lo que no es entero no son
+ *  un ajuste: no viajan a la base. */
+export function lineasDeAjuste(
+  variantes: readonly VarianteAjuste[],
+  cantidades: Readonly<Record<string, string>>,
+  lugar: LugarAjuste
+): LineaAjuste[] {
+  return variantes.flatMap((v) => {
+    const texto = (cantidades[v.varianteId] ?? "").trim();
+    if (texto === "") return [];
+    const delta = Number(texto);
+    if (!Number.isInteger(delta) || delta === 0) return [];
+    const actual = stockEn(v, lugar);
+    return [{ variante: v, delta, actual, resultado: actual + delta, apartado: apartadoEn(v, lugar) }];
+  });
+}
+
+/** Las tallas que quedarían en negativo: `fn_aplicar_movimiento` las rechaza; el modal lo dice antes, con los números de
+ *  la primera. */
+export function textoNegativas(negativas: readonly LineaAjuste[]): string {
+  const [primera] = negativas;
+  return `${negativas.map((l) => l.variante.sku).join(", ")}: el ajuste dejaría el stock en negativo — hay ${primera.actual} y se pide ${primera.delta}.`;
+}
+
 /** Lo apartado de una talla, al lado de su stock («stock 2 · 1 apartada»); vacío si no tiene. */
 export function textoApartadoTalla(apartado: number): string {
   return apartado > 0 ? ` · ${apartadas(apartado)}` : "";

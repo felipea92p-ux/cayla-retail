@@ -13,11 +13,13 @@ import {
   repartirLineasAjuste,
   textoPrendaNueva,
   apartadoEn,
+  lineasDeAjuste,
   lugarDeAjuste,
   soloDeLaPrenda,
   stockEn,
   textoApartadoTalla,
   textoBajoApartado,
+  textoNegativas,
   textoTotalAjuste,
   type FilaAjuste,
 } from "./ajuste-reglas";
@@ -61,6 +63,34 @@ describe("el modal abierto desde una prenda muestra solo su color (Felipe, 2026-
     const nueva: FilaAjuste = { ...colorido("7", "XL", "Celeste", 0), stock: [] };
     const [xl] = armarVariantesAjuste(soloDeLaPrenda([...modelo, nueva], { color: "Celeste" }), PISO, ALMACEN).filter((v) => v.talla === "XL");
     expect(xl.sinHistoria).toBe(true);
+  });
+});
+
+describe("las líneas del ajuste: qué de lo escrito se guarda", () => {
+  const [s, m] = armarVariantesAjuste(
+    [
+      fila("1", "S", { stock: [{ cantidad: 4, cantidad_apartada: 0, sububicacion_id: PISO }] }),
+      fila("2", "M", { stock: [{ cantidad: 2, cantidad_apartada: 1, sububicacion_id: PISO }] }),
+    ],
+    PISO,
+    ALMACEN
+  );
+
+  it("lo escrito se suma al stock del lugar y trae lo apartado", () => {
+    expect(lineasDeAjuste([s, m], { "1": "+2", "2": " -1 " }, "piso")).toEqual([
+      { variante: s, delta: 2, actual: 4, resultado: 6, apartado: 0 },
+      { variante: m, delta: -1, actual: 2, resultado: 1, apartado: 1 },
+    ]);
+  });
+
+  it("vacío, 0 y lo que no es entero no son un ajuste", () => {
+    expect(lineasDeAjuste([s, m], { "1": "", "2": "0" }, "piso")).toEqual([]);
+    expect(lineasDeAjuste([s], { "1": "1.5" }, "piso")).toEqual([]);
+  });
+
+  it("el negativo nombra las tallas y da los números de la primera", () => {
+    const negativas = lineasDeAjuste([s, m], { "1": "-5", "2": "-3" }, "piso");
+    expect(textoNegativas(negativas)).toBe("SKU-1, SKU-2: el ajuste dejaría el stock en negativo — hay 4 y se pide -5.");
   });
 });
 

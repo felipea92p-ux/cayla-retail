@@ -15,6 +15,7 @@ import {
   armarVariantesAjuste,
   cargaInicialAlPiso,
   leerResultadoAjuste,
+  lineasDeAjuste,
   lugarDeAjuste,
   motivosAjusteDisponibles,
   repartirLineasAjuste,
@@ -25,6 +26,7 @@ import {
   textoApartadoTalla,
   textoBajoApartado,
   textoExitoAjuste,
+  textoNegativas,
   textoPrendaNueva,
   textoTotalAjuste,
   type MotivoAjuste,
@@ -82,7 +84,8 @@ export function AjustarInventarioModal({
   const [cargando, setCargando] = useState(true);
   const [referencia, setReferencia] = useState("");
   const [variantes, setVariantes] = useState<VarianteAjuste[]>([]);
-  const [deltas, setDeltas] = useState<Record<string, string>>({});
+  // Lo escrito en cada talla, tal cual (texto): `lineasDeAjuste` decide qué es un ajuste.
+  const [cantidades, setCantidades] = useState<Record<string, string>>({});
   // Arranca en almacén, igual que Nuevo producto (Felipe 2026-09-28): el piso se elige a propósito. De paso ofrece
   // «Reposición», que en el piso de una tienda que separa piso y almacén está cerrada.
   const [ubicado, setUbicado] = useState<"piso" | "almacen">("almacen");
@@ -143,18 +146,10 @@ export function AjustarInventarioModal({
 
   const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
 
-  // Filas con un ajuste entero distinto de cero, y las que dejarían el stock negativo o por debajo de lo apartado —
-  // los mismos dos candados de `fn_aplicar_movimiento`, adelantados acá para no obligar a un viaje a la base a enterarse.
-  const lineas = variantes
-    .map((v) => {
-      const texto = (deltas[v.varianteId] ?? "").trim();
-      if (texto === "") return null;
-      const delta = Number(texto);
-      if (!Number.isInteger(delta) || delta === 0) return null;
-      const actual = stockEn(v, lugar);
-      return { variante: v, delta, actual, resultado: actual + delta, apartado: apartadoEn(v, lugar) };
-    })
-    .filter((l): l is NonNullable<typeof l> => l !== null);
+  // Tallas con un ajuste, y las que dejarían el stock negativo o por debajo de lo apartado — los mismos dos candados de
+  // `fn_aplicar_movimiento`, adelantados acá para no obligar a un viaje a la base a enterarse.
+  const lineas = lineasDeAjuste(variantes, cantidades, lugar);
+  const lineaDe = new Map(lineas.map((l) => [l.variante.varianteId, l]));
 
   const negativas = lineas.filter((l) => l.resultado < 0);
   const bajoApartado = lineas.filter((l) => l.resultado >= 0 && l.resultado < l.apartado);
@@ -212,9 +207,7 @@ export function AjustarInventarioModal({
     // Reenviar lo congelado no es un ajuste nuevo sino la pregunta «¿se guardó?»: el stock de la pantalla puede ya
     // incluir ese mismo envío, así que responde la base (con la misma marca devuelve lo guardado).
     if (!congelado && negativas.length > 0) {
-      setError(
-        `${negativas.map((l) => l.variante.sku).join(", ")}: el ajuste dejaría el stock en negativo — hay ${negativas[0].actual} y se pide ${negativas[0].delta}.`
-      );
+      setError(textoNegativas(negativas));
       return;
     }
     if (!congelado && bajoApartado.length > 0) {
@@ -311,9 +304,7 @@ export function AjustarInventarioModal({
                 </p>
                 {variantes.map((v) => {
                   const actual = stockEn(v, lugar);
-                  const texto = deltas[v.varianteId] ?? "";
-                  const delta = Number(texto);
-                  const conAjuste = texto.trim() !== "" && Number.isInteger(delta) && delta !== 0;
+                  const linea = lineaDe.get(v.varianteId);
                   return (
                     <div key={v.varianteId} className="flex items-center gap-3 border-b border-tinta/10 pb-2">
                       <div className="min-w-0 flex-1">
@@ -322,7 +313,7 @@ export function AjustarInventarioModal({
                         </p>
                         <p className="font-mono text-[11px] text-tinta/55">
                           {v.sku} · stock {actual}
-                          {conAjuste ? ` → ${actual + delta}` : ""}
+                          {linea ? ` → ${linea.resultado}` : ""}
                           {textoApartadoTalla(apartadoEn(v, lugar))}
                         </p>
                         {v.sinHistoria && <p className="text-[11px] text-taupe">{textoPrendaNueva(ubicado, separaPisoAlmacen, puedeBajarAlPiso)}</p>}
@@ -332,9 +323,9 @@ export function AjustarInventarioModal({
                         inputMode="numeric"
                         step={1}
                         placeholder="0"
-                        value={texto}
+                        value={cantidades[v.varianteId] ?? ""}
                         disabled={congelado}
-                        onChange={(e) => setDeltas((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
+                        onChange={(e) => setCantidades((prev) => ({ ...prev, [v.varianteId]: e.target.value }))}
                         className="w-20 border-b border-tinta/20 bg-transparent px-1 py-1.5 text-right text-sm text-tinta outline-none focus:border-rojo"
                       />
                     </div>
