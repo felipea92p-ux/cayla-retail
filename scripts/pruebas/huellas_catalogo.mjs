@@ -12,6 +12,10 @@
  *   2. Sin la llave, con otra llave o con null: 42501 con la pista 'huellas_llave'.
  *   3. Una llave nueva deja sin efecto a la anterior.
  *   4. anon y authenticated no crean llaves ni leen la tabla de la llave; authenticated tampoco llama a huellas_catalogo.
+ *   5. La huella MIRA lo que promete: cambiar un objeto de cada grupo (cuerpo, EXECUTE y configuración de una función,
+ *      política, disparador, permisos, RLS, columna, candado, índice, vista) cambia la línea de ese objeto y ninguna
+ *      otra; cambiar solo comentarios o espacios de un cuerpo no cambia nada. Sin esto, una consulta que dijera «igual»
+ *      de todo (la huella del grupo en vez de la del objeto, o sin los permisos) pasaba las pruebas 1-4.
  * USO: pnpm pruebas:huellas-catalogo   (necesita el stack local: `npx supabase start`)
  */
 import { spawnSync } from "node:child_process";
@@ -131,6 +135,63 @@ rollback;`);
     "service_role.retail.huellas_catalogo(text)=false",
   ].join(" ");
   esperar("EXECUTE: solo anon llama a huellas_catalogo y nadie crea llaves desde la API", permisos === esperado, permisos || r.avisos.slice(0, 300));
+}
+
+// 5. Sensibilidad: cada cambio mueve la huella de SU objeto y de ningún otro. Objetos de prueba propios (zz_huella*),
+// creados y deshechos en la misma transacción. Cada paso se compara con el anterior.
+{
+  const F = "retail.zz_huella_f(p int) returns int language sql";
+  const PASOS = [
+    ["crear los objetos de prueba", `create table retail.zz_huella (id int primary key, n int default 1, t text);
+      create function ${F} as $f$ select p + 1 $f$;
+      create function retail.zz_huella_trg() returns trigger language plpgsql as $f$ begin return new; end $f$;
+      create trigger zz_huella_t before insert on retail.zz_huella for each row execute function retail.zz_huella_trg();
+      create policy zz_huella_p on retail.zz_huella for select to authenticated using (n > 0);
+      create index zz_huella_i on retail.zz_huella (n);
+      create view retail.zz_huella_v as select id, n from retail.zz_huella where n > 0;
+      alter table retail.zz_huella add constraint zz_huella_c check (n >= 0);
+      grant select on retail.zz_huella to anon;
+      grant update (t) on retail.zz_huella to authenticated;`, null],
+    ["cuerpo de una función", `create or replace function ${F} as $f$ select p + 2 $f$;`, ["fn:zz_huella_f(p integer)"]],
+    ["solo comentarios y espacios del cuerpo", `create or replace function ${F} as $f$ -- suma dos
+        select   p /* dos */ +
+        2 $f$;`, []],
+    ["EXECUTE de una función", "grant execute on function retail.zz_huella_f(int) to anon;", ["fn:zz_huella_f(p integer)"]],
+    ["configuración de una función", "alter function retail.zz_huella_f(int) set search_path = pg_catalog;", ["fn:zz_huella_f(p integer)"]],
+    ["política", "alter policy zz_huella_p on retail.zz_huella using (n > 1);", ["politica:zz_huella.zz_huella_p"]],
+    ["disparador", "create or replace trigger zz_huella_t before update on retail.zz_huella for each row execute function retail.zz_huella_trg();", ["disparador:zz_huella.zz_huella_t"]],
+    ["permiso de tabla", "grant insert on retail.zz_huella to anon;", ["permiso:zz_huella.anon"]],
+    ["RLS", "alter table retail.zz_huella enable row level security;", ["rls:zz_huella"]],
+    ["permiso de columna", "grant insert (t) on retail.zz_huella to authenticated;", ["permiso_columna:zz_huella.t.authenticated"]],
+    ["permiso del schema", "grant create on schema retail to anon;", ["schema:retail.anon"]],
+    ["valor por defecto de una columna", "alter table retail.zz_huella alter column n set default 2;", ["columna:zz_huella.n"]],
+    ["candado", "alter table retail.zz_huella drop constraint zz_huella_c, add constraint zz_huella_c check (n >= 1);", ["candado:zz_huella.zz_huella_c"]],
+    ["índice", "drop index retail.zz_huella_i; create index zz_huella_i on retail.zz_huella (t);", ["indice:zz_huella_i"]],
+    ["vista", "create or replace view retail.zz_huella_v as select id, n from retail.zz_huella where n > 1;", ["vista:zz_huella_v"]],
+  ];
+  const foto = (n, paso) => `insert into zz_pasos select ${n}, '${paso}', split_part(l, E'\\t', 1), split_part(l, E'\\t', 2), split_part(l, E'\\t', 3)
+  from (${DERIVA}) d, regexp_split_to_table(d.huellas, E'\\n') l;`;
+  const r = psql(`begin;
+set local search_path = ${SEARCH_PATH};
+create temp table zz_pasos (n int, paso text, g text, k text, h text) on commit drop;
+${foto(0, "antes")}
+${PASOS.map(([paso, sql], i) => `${sql}\n${foto(i + 1, paso)}`).join("\n")}
+select 'S|' || b.paso || '|' || coalesce((
+  select string_agg(coalesce(x.g, y.g) || ':' || coalesce(x.k, y.k), ' ; ' order by coalesce(x.g, y.g), coalesce(x.k, y.k))
+  from (select * from zz_pasos where n = b.n - 1) x full join (select * from zz_pasos where n = b.n) y on x.g = y.g and x.k = y.k
+  where x.h is distinct from y.h), '')
+from (select distinct n, paso from zz_pasos where n > 0) b order by b.n;
+rollback;`);
+  const cambios = new Map([...r.salida.matchAll(/^S\|([^|]*)\|(.*)$/gm)].map((m) => [m[1], m[2] ? m[2].split(" ; ") : []]));
+  esperar("sensibilidad: la consulta corre con los objetos de prueba", r.ok && cambios.size === PASOS.length, `ok=${r.ok} ${r.avisos.slice(0, 300)}`);
+  const [creados, ...resto] = PASOS;
+  const nuevos = cambios.get(creados[0]) ?? [];
+  esperar("crear objetos solo agrega sus propias líneas", nuevos.length > 10 && nuevos.every((k) => k.includes("zz_huella")), nuevos.join(", "));
+  for (const [paso, , esperado] of resto) {
+    const visto = cambios.get(paso) ?? ["(sin resultado)"];
+    const texto = esperado.length ? `cambia la huella de ${esperado.join(", ")} y de nada más` : "no cambia ninguna huella";
+    esperar(`${paso}: ${texto}`, JSON.stringify(visto) === JSON.stringify(esperado), `cambió: ${visto.join(", ") || "nada"}`);
+  }
 }
 
 // CONTROL: el caso 1 muerde. Una función que devuelve otra cosa (una línea de menos) tiene otra huella.
