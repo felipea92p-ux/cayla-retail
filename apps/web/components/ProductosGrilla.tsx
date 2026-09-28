@@ -12,7 +12,7 @@ import type { Sububicacion } from "@/lib/sububicaciones";
 import type { ProductoListado } from "@/lib/catalogo-v2";
 import { coloresDe, mezclar, rangoSoles, type ColorDisponible } from "@/lib/productos-vista";
 import { IconoPercha, SwatchesColor } from "@/components/ProductoPiezas";
-import { alertaDeStock, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
+import { alertaDeStock, sinStockEnSede, textoDeStock, EXPLICACION_STOCK_TOTAL, MENSAJE_SIN_RESULTADOS } from "@/lib/productos-stock";
 import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
@@ -181,15 +181,29 @@ function TarjetaProducto({
               textoDeStock(producto.stockTotal)
             )}
             {/* El total es de toda la red; debajo, lo que hay aquí: lo que se puede vender, ajustar y etiquetar en la sede. */}
-            <span
-              className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
-              title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
-            >
-              En tu sede:{" "}
-              <span className={`font-semibold ${enSede === null ? "text-tinta/30" : enSede === 0 ? "text-tinta/45" : "text-tinta"}`}>
-                {enSede === null ? "—" : enSede.toLocaleString("es-PE")}
+            {sinStockEnSede(producto, enSede) ? (
+              // Hay en la red, no aquí: se avisa como el «Sin stock» de la red (neutro, no rojo: ADR-0151), para que nadie
+              // le prometa la prenda a la clienta leyendo solo el total.
+              // `whitespace-normal!`: en la grilla de dos columnas del celular la tarjeta mide ~130 px y la insignia en una
+              // línea se salía por el borde; ahí se parte en dos. En escritorio sigue en una.
+              <span className="mt-1 flex justify-end whitespace-normal" title={`Hay ${producto.stockTotal} en otras sedes; en ${sede || "tu sede"}, ninguna`}>
+                <Chip tono="neutro" versalitas={false} className="text-right whitespace-normal!">
+                  <span>
+                    <span className="whitespace-nowrap">Sin stock</span> <span className="whitespace-nowrap">en tu sede</span>
+                  </span>
+                </Chip>
               </span>
-            </span>
+            ) : (
+              <span
+                className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
+                title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
+              >
+                En tu sede:{" "}
+                <span className={`font-semibold ${enSede === null ? "text-tinta/30" : enSede === 0 ? "text-tinta/45" : "text-tinta"}`}>
+                  {enSede === null ? "—" : enSede.toLocaleString("es-PE")}
+                </span>
+              </span>
+            )}
           </span>
         </div>
         <div className="flex items-center justify-between">

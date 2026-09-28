@@ -17,3 +17,8 @@ Felipe se lleva: desde cualquier vista se puede reimprimir la etiqueta de una so
 Qué hice: bajo «Stock total» de cada tarjeta de la Grilla, «En tu sede: N». La Grilla lee el stock de la sede de TODA la página en una sola consulta (`useStockEnSede`, ahora uno solo para la grilla, compartido con la vista rápida) y lo relee cuando la página cambia o se refresca.
 Por qué así: una consulta por tarjeta serían 24 cada vez que se abre la página; una sola trae lo mismo. La vista rápida usa ese mismo dato y relee su modelo al abrirse, así la tarjeta y la hoja no pueden decir números distintos.
 Felipe se lleva: en la Grilla se ven los dos números a la vez: cuánto hay en toda la red y cuánto hay aquí.
+
+## 2026-09-28 (Productos ▸ Grilla: «Sin stock en tu sede» cuando la red tiene y la tienda no)
+Qué hice: con unidades en otras sedes y 0 en la tuya, la línea «En tu sede» de la tarjeta pasa a ser la insignia neutra «Sin stock en tu sede» (`sinStockEnSede` en `lib/productos-stock.ts`, junto a `alertaDeStock`, con prueba). Con 0 en toda la red sigue diciendo solo «Sin stock» arriba; una descontinuada no avisa.
+Por qué así: el «Stock total 117» de una prenda que aquí no está se lee como «sí hay» y la colaboradora se la promete a la clienta. Neutro y no rojo (ADR-0151, máximo dos rojos por pantalla), igual que el «Sin stock» de la red. Decisión de operación de Felipe (2026-09-28): el aviso de la Grilla es por sede.
+Felipe se lleva: la Grilla avisa por tu tienda; el filtro «Sin stock» de la barra y la Tabla siguen mirando la red (pendiente en `docs/backlog/2026-09-28-stock-display-print-validation-9a03f9.md`).
