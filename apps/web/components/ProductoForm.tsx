@@ -2,12 +2,12 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Undo2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { esVersionCambiada, traducirError } from "@/lib/error-escritura";
 import { avisar } from "@/components/ui/Avisos";
 import { MuestraPatron } from "@/components/MuestraPatron";
-import { Boton, Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
+import { Campo, CampoSelect, CampoTexto, Interruptor, Segmentado, SelectorMultiple } from "@/components/ui/campos";
 import { ComboBuscable } from "@/components/ui/ComboBuscable";
 import { compararTallas } from "@/lib/tallas";
 import type { EjesPorCategoria, ProductoDetalle, ValorVocabulario } from "@/lib/catalogo-v2";
@@ -17,9 +17,22 @@ import { ElegirMarcaProveedor } from "@/components/alta-producto/ElegirMarcaProv
 import { claveReferencia, leerErrorAlta, tituloReferencia } from "@/lib/alta-producto";
 import type { CatalogoMarcas } from "@/lib/marcas-datos";
 import { useParecidos } from "@/lib/use-parecidos";
-import { ComboResponsable } from "@/components/ComboResponsable";
+import { BarraDeCambios } from "@/components/BarraDeCambios";
+import { ConfirmarCambios } from "@/components/ConfirmarCambios";
+import { useAvisoDeSalida } from "@/components/AvisoDeSalida";
 import { useResponsable } from "@/lib/useResponsable";
-import { firmar } from "@/lib/responsable-reglas";
+import { esErrorDeResponsable, firmar } from "@/lib/responsable-reglas";
+import { nombresCortos } from "@/lib/nombre-integrante";
+import {
+  cambioDeDato,
+  cambiosDeVariante,
+  resumenDeCambios,
+  textoPendienteDeVariante,
+  type CampoDato,
+  type FichaEditable,
+  type NombresFicha,
+  type ResumenCambios,
+} from "@/lib/producto-cambios-reglas";
 import { nombreTemporada, opcionesTemporada, SIN_PROPIA } from "@/lib/temporada-reglas";
 import {
   cambiosTemporadaPorColor,
@@ -77,6 +90,23 @@ import {
    los combos de color/talla y el SKU en esas filas: se podían cambiar, la
    RPC los ignoraba y el guardado decía «guardado». Ahora esas filas los
    muestran de solo lectura (`fija`), con el código que lee la pistola.
+
+   GUARDAR EN DOS TIEMPOS (2026-09-28, ADR-0256). Antes el panel «Guardar
+   cambios» estaba a la derecha (al final de la página en una tablet), el botón
+   quedaba gris hasta elegir «Responsable» sin decir por qué, y «Cancelar» o el
+   menú salían sin preguntar: una colaboradora apagaba una talla, no sabía si
+   quedó hecho y a veces se iba sin guardar. Ahora (Felipe eligió la opción A de
+   cada pregunta):
+     · lo que se toca se marca (fila en ámbar, «antes: …», «Deshacer») y sube la
+       barra «Tienes N cambios sin guardar» (`BarraDeCambios`, sobre `BarraFija`);
+     · «Revisar y guardar» abre la hoja con lo que va a cambiar y el combo
+       «Responsable» adentro (`ConfirmarCambios`); recién «Confirmar y guardar»
+       llama a la base;
+     · salir con cambios pregunta (`useAvisoDeSalida`): enlaces, Atrás y cerrar
+       la pestaña; al guardar bien se sale sin preguntar.
+   Qué cambió lo decide UNA función pura (`lib/producto-cambios-reglas.ts`) que
+   compara TODO lo editable: sin barra no hay dónde guardar, así que un campo
+   que se escapara de esa comparación sería un campo que no se puede guardar.
    ==================================================================== */
 
 type Categoria = { id: string; nombre: string; prefijo: string | null; exigeTejidoPatron: boolean };
@@ -105,8 +135,30 @@ type FilaVariante = {
   fija: { color: string; talla: string; codigo: string } | null;
 };
 
+/** Todo lo que la pantalla deja editar, tal como está en sus `useState`. Es lo que se captura al abrir (para comparar y para
+ *  «Descartar») y lo que se vuelve a poner al descartar o al deshacer un descarte. */
+type EstadoFicha = {
+  referencia: string;
+  categoriaId: string;
+  descripcion: string;
+  estado: (typeof ESTADOS)[number]["valor"];
+  stockMinimo: string;
+  temporada: string;
+  temporadaColor: Record<string, string>;
+  permitirVentaSinStock: boolean;
+  tejidoId: string;
+  patronId: string;
+  marcaId: string;
+  proveedorId: string;
+  fotos: FotoLocal[];
+  variantes: FilaVariante[];
+};
+
 const NUMERO =
   "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-rojo [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+/** El mismo campo con la línea de abajo en ámbar: lo que se cambió y todavía no se guardó. Se arma cambiando la clase, no sumando
+ *  otra: dos utilidades de color de borde en el mismo elemento las resuelve el orden de la hoja de estilos, no el del atributo. */
+const NUMERO_CAMBIADO = NUMERO.replace("border-tinta/25", "border-ambar");
 
 const PLANTILLA = "sm:grid-cols-[1.6fr_4rem_1.1fr_5rem_5rem_3.5rem_4rem_2.5rem]";
 
@@ -331,6 +383,85 @@ export function ProductoForm({
   // Plegada: casi ninguna prenda la usa. Abierta si ya hay algún color con la suya, para que se vea sin buscarla.
   const [verTemporadaColor, setVerTemporadaColor] = useState(() => Object.keys(temporadas?.porColor ?? {}).length > 0);
 
+  // ---------- qué cambió, contra lo que había al abrir (ADR-0256) ----------
+  // De aquí salen la barra «Tienes N cambios sin guardar», las marcas de cada fila y la lista de la hoja «Revisa y guarda los
+  // cambios». Sin cambios no hay barra, y sin barra no hay dónde guardar: la comparación cubre TODO lo editable.
+  const [hojaAbierta, setHojaAbierta] = useState(false);
+  // Ya se guardó bien y la pantalla se está yendo: la barra baja y nada más pregunta.
+  const [guardado, setGuardado] = useState(false);
+
+  function capturar(): EstadoFicha {
+    return { referencia, categoriaId, descripcion, estado, stockMinimo, temporada, temporadaColor, permitirVentaSinStock, tejidoId, patronId, marcaId, proveedorId, fotos, variantes };
+  }
+  // Lo que había al abrir: se toma UNA vez. (Todo el estado se actualiza sin mutar, así que esta foto no se ensucia.)
+  const [inicial] = useState<EstadoFicha>(capturar);
+
+  function aplicar(e: EstadoFicha) {
+    setReferencia(e.referencia);
+    setCategoriaId(e.categoriaId);
+    setDescripcion(e.descripcion);
+    setEstado(e.estado);
+    setStockMinimo(e.stockMinimo);
+    setTemporada(e.temporada);
+    setTemporadaColor(e.temporadaColor);
+    setPermitirVentaSinStock(e.permitirVentaSinStock);
+    setTejidoId(e.tejidoId);
+    setPatronId(e.patronId);
+    setMarcaId(e.marcaId);
+    setProveedorId(e.proveedorId);
+    setFotos(e.fotos);
+    setVariantes(e.variantes);
+  }
+
+  /** «Beige XS»; una fila nueva sin color ni talla es «Variante nueva». */
+  function nombreDeVariante(v: FilaVariante): string {
+    const partes = v.fija
+      ? [v.fija.color === "Sin color" ? "" : v.fija.color, v.fija.talla === "Sin talla" ? "" : v.fija.talla]
+      : [v.colorCodigo ? nombreColor(v.colorCodigo) : "", tallaTexto(v.tallaId)];
+    return partes.filter(Boolean).join(" ") || (v.fija ? v.fija.codigo : "Variante nueva");
+  }
+
+  function instantanea(e: EstadoFicha): FichaEditable {
+    return {
+      referencia: e.referencia,
+      categoriaId: e.categoriaId,
+      descripcion: e.descripcion,
+      estado: e.estado,
+      stockMinimo: e.stockMinimo,
+      temporada: e.temporada,
+      permitirVentaSinStock: e.permitirVentaSinStock,
+      tejidoId: e.tejidoId,
+      patronId: e.patronId,
+      marcaId: e.marcaId,
+      proveedorId: e.proveedorId,
+      temporadaColor: e.temporadaColor,
+      fotos: e.fotos.map((f) => ({ id: f.id, url: f.url, esPrincipal: f.esPrincipal, colorCodigo: f.colorCodigo })),
+      // El costo que se GUARDARÍA (no el escrito): una variante existente con el campo vacío conserva el suyo.
+      variantes: e.variantes.map((v) => ({ id: v.id, nombre: nombreDeVariante(v), activo: v.activo, precio: v.precio, costo: costoEfectivo(v), etiquetaIds: v.etiquetaIds })),
+    };
+  }
+
+  const nombres: NombresFicha = {
+    categoria: (id) => categorias.find((c) => c.id === id)?.nombre ?? "otra categoría",
+    // Se busca en todas las categorías: si se cambió de categoría, el tejido de ANTES vive en la lista de la de antes.
+    tejido: (id) => Object.values(ejes.tejidos).flat().find((t) => t.id === id)?.texto ?? producto?.tejido ?? "otro tejido",
+    patron: (id) => Object.values(ejes.patrones).flat().find((t) => t.id === id)?.texto ?? producto?.patron ?? "otro patrón",
+    marca: (id) => marcas.marcas.find((m) => m.id === id)?.nombre ?? (id === producto?.marcaId ? producto.marcaNombre : "otra marca"),
+    proveedor: (id) => marcas.proveedores.find((p) => p.id === id)?.nombre ?? (id === producto?.proveedorId ? producto.proveedorNombre : "otro proveedor"),
+    temporada: (clave) => opcionesTemporadaPrenda.find((o) => o.valor === clave)?.texto ?? (clave === SIN_PROPIA ? "Sin temporada" : clave),
+    temporadaColor: (clave) => opcionesTemporadaColor.find((o) => o.valor === clave)?.texto ?? (clave === SIN_PROPIA ? "Igual que su prenda" : clave),
+    color: nombreColor,
+    etiqueta: (id) => etiquetas.find((e) => e.id === id)?.texto ?? "etiqueta",
+  };
+  const resumen: ResumenCambios = resumenDeCambios(instantanea(inicial), instantanea(capturar()), nombres);
+  const hayCambios = !guardado && resumen.total > 0;
+  // Salir con cambios sin guardar pregunta primero (ADR-0256): enlaces, Atrás y cerrar la pestaña.
+  const { dialogo: dialogoSalida, salirSinPreguntar } = useAvisoDeSalida({
+    activo: hayCambios,
+    cantidad: resumen.total,
+    nombre: producto?.referencia ?? referencia,
+  });
+
   function elegirCategoria(id: string) {
     setCategoriaId(id);
     // Tejido/patrón están filtrados por categoría (20260917100400) — la
@@ -375,8 +506,27 @@ export function ProductoForm({
     window.location.reload();
   }
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  /** ¿Ya se guardó algo de esta ficha (el guardado principal salió bien y otra parte falló)? Entonces lo de al abrir ya no es lo
+   *  que tiene la base, y «Descartar» recarga en vez de volver a esa foto vieja. */
+  const seGuardoAlgo = () => versionRef.current !== (producto?.version ?? null);
+
+  /** Quién firma, para decirlo en el aviso de éxito («Por Rosa · …»). Con nombre corto, igual que en el combo. */
+  function nombreDelResponsable(): string | null {
+    const todas = [...responsable.lista.elegibles, ...responsable.lista.enPausa];
+    const elegida = todas.find((p) => p.personaId === responsable.elegidoId);
+    if (!elegida) return null;
+    return nombresCortos(todas.map((p) => p.nombre)).get(elegida.nombre) ?? elegida.nombre;
+  }
+
+  /** «Revisar y guardar»: lo que la base exigiría igual, dicho aquí con el campo a enfocar. Recién con todo en orden se abre la
+   *  hoja «Revisa y guarda los cambios»; ahí se elige quién hace la operación y se confirma. */
+  function revisar(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
+    if (!hayCambios) return;
+    if (versionCambiada) {
+      return void avisar.error("Otra persona cambió esta prenda: recárgala para poder guardar.", { accion: { texto: "Recargar", onClick: recargar } });
+    }
     if (!referencia.trim()) return void avisar.error("Falta la referencia del producto.", { enfocar: "producto-referencia" });
     if (variantes.length === 0) return void avisar.error("Agrega al menos una variante (talla y/o color).", { enfocar: "producto-agregar-variante" });
     const sinPrecio = variantes.findIndex((v) => v.precio === "" || Number(v.precio) < 0);
@@ -387,7 +537,6 @@ export function ProductoForm({
     if (stockMinimo.trim() !== "" && (!/^\d+$/.test(stockMinimo.trim()) || Number(stockMinimo) < 0)) {
       return void avisar.error("El stock mínimo tiene que ser un número entero, 0 o mayor.", { enfocar: "producto-stock-minimo" });
     }
-    if (!producto) return void avisar.error("Esta pantalla solo edita productos. Para crear uno usa Nuevo producto.");
     if (!marcaId || !proveedorId) return void avisar.error("Elige la marca y el proveedor del producto.", { enfocar: "producto-marca" });
     if (nombreCambio && parecidos.comprobando) return void avisar.error("Espera un momento: se está comprobando que el nombre no exista todavía.", { enfocar: "producto-referencia" });
     if (nombreCambio && parecidos.hayIdentico) return void avisar.error("Ya existe un producto con ese nombre.", { enfocar: "producto-referencia" });
@@ -396,8 +545,22 @@ export function ProductoForm({
     }
     if (exigeTejido && !tejidoId) return void avisar.error(`Esta prenda ya tenía tejido y en ${categoriaActual?.nombre ?? "esta categoría"} no se puede dejar sin él. Elige uno.`);
     if (exigePatron && !patronId) return void avisar.error("Esta prenda ya tenía patrón y no se puede dejar sin él (si no tiene diseño, elige Liso).");
+    setHojaAbierta(true);
+  }
+
+  /** «Confirmar y guardar», desde la hoja. Devuelve si la hoja debe cerrarse: `false` solo cuando falló por el responsable (dejó
+   *  de estar de turno, por ejemplo) y hay que elegir a otra persona ahí mismo; con cualquier otro error se cierra para que se
+   *  vea la ficha y el campo a corregir. */
+  async function guardar(): Promise<boolean> {
+    if (!producto) return true;
     const firma = responsable.firma();
-    if (!responsable.listo || !firma) return void avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
+    if (!responsable.listo || !firma) {
+      avisar.error(responsable.motivo ?? "Elige quién hace esta operación.");
+      return false;
+    }
+    // Lo que dirá el aviso de éxito, tomado ANTES de que el guardado toque nada.
+    const quien = nombreDelResponsable();
+    const hecho = resumen.frasesPasado;
 
     setLoading(true);
     const cerrarProceso = avisar.proceso(`Guardando ${referencia.trim()}…`);
@@ -443,22 +606,26 @@ export function ProductoForm({
       cerrarProceso();
       setLoading(false);
       responsable.despues(error);
+      // Por el responsable la hoja sigue abierta (se elige a otra persona ahí); con cualquier otro error se cierra ANTES de
+      // avisar, para que el foco pueda irse al campo que hay que corregir.
+      const seguirEnLaHoja = esErrorDeResponsable(error);
+      if (!seguirEnLaHoja) setHojaAbierta(false);
       if (esVersionCambiada(error)) {
         // Otra persona guardó esta prenda mientras se editaba: el formulario NO se cierra (lo escrito sigue a la vista
-        // para anotarlo) y se ofrece recargar, que trae sus cambios.
+        // para anotarlo) y se ofrece recargar, que trae sus cambios. La barra pasa a decirlo y a ofrecer «Recargar».
         setVersionCambiada(true);
         avisar.error(traducirError(error, "guardar el producto"), { accion: { texto: "Recargar", onClick: recargar } });
-        return;
+        return true;
       }
       const lectura = leerErrorAlta(error);
       if (lectura.tipo !== "otro") {
         // Otra persona creó ese nombre mientras se editaba: se muestra en pantalla, no solo en un aviso.
         parecidos.reintentar();
         avisar.error(lectura.mensaje, { enfocar: "producto-referencia" });
-        return;
+        return true;
       }
       avisar.error(traducirError(error, "guardar el producto"));
-      return;
+      return !seguirEnLaHoja;
     }
     if (typeof versionNueva === "number") versionRef.current = versionNueva;
 
@@ -479,12 +646,14 @@ export function ProductoForm({
       if (errorEtiquetas) {
         cerrarProceso();
         setLoading(false);
-        // Si falla, el combo se queda: «vuelve a pulsar Guardar cambios» es el mismo gesto (salvo rechazo por responsable).
+        // Si falla, la barra sigue con los cambios: «Revisar y guardar» de nuevo es el mismo gesto (salvo rechazo por responsable).
         responsable.despues(errorEtiquetas);
+        const seguirEnLaHoja = esErrorDeResponsable(errorEtiquetas);
+        if (!seguirEnLaHoja) setHojaAbierta(false);
         avisar.error(traducirError(errorEtiquetas, "guardar las etiquetas de las variantes"), {
-          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para las etiquetas.`,
+          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para las etiquetas.`,
         });
-        return;
+        return !seguirEnLaHoja;
       }
       // Ya están en la base: si lo que sigue falla y se reintenta, no se vuelven a mandar.
       for (const a of asignacionesEtiquetas) etiquetaIdsOriginales.current.set(a.variante_id, a.etiqueta_ids);
@@ -502,10 +671,12 @@ export function ProductoForm({
         cerrarProceso();
         setLoading(false);
         responsable.despues(errorTemporada);
+        const seguirEnLaHoja = esErrorDeResponsable(errorTemporada);
+        if (!seguirEnLaHoja) setHojaAbierta(false);
         avisar.error(traducirError(errorTemporada, "guardar la temporada de los colores"), {
-          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar "Guardar cambios" para la temporada de los colores.`,
+          detalle: `${referencia.trim()} ya quedó guardado — vuelve a pulsar «Revisar y guardar» para la temporada de los colores.`,
         });
-        return;
+        return !seguirEnLaHoja;
       }
       porColorGuardado.current = { ...temporadaColor };
     }
@@ -514,16 +685,93 @@ export function ProductoForm({
     setLoading(false);
     responsable.despues(null);
 
+    // El aviso dice qué se guardó y quién lo firmó: la prueba de que quedó hecho (Felipe, 2026-09-28).
     avisar.exito(`${referencia.trim()} guardado`, {
-      detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
+      detalle: [quien ? `Por ${quien}` : null, hecho.length > 0 ? hecho.join(", ") : null].filter(Boolean).join(" · ") || undefined,
     });
-    router.replace("/productos");
-    router.refresh();
+    // La barra baja y nada más pregunta; se sale gastando antes la entrada extra del historial (ver `useAvisoDeSalida`).
+    setGuardado(true);
+    setHojaAbierta(false);
+    salirSinPreguntar(() => {
+      router.replace("/productos");
+      router.refresh();
+    });
+    return true;
   }
 
+  /** «Descartar»: todo vuelve a como estaba al abrir, y el aviso ofrece «Deshacer» (sin preguntar antes: 7 s alcanzan para arrepentirse). */
+  function descartar() {
+    if (seGuardoAlgo()) {
+      recargar();
+      return;
+    }
+    const antes = capturar();
+    aplicar(inicial);
+    setVersionCambiada(false);
+    setEtiquetasAbiertoEn(null);
+    avisar.exito("Cambios descartados", {
+      detalle: "La ficha volvió a como estaba guardada.",
+      accion: { texto: "Deshacer", onClick: () => aplicar(antes) },
+      duracion: 7000,
+    });
+  }
+
+  /** Una fila existente vuelve a su precio, costo, estado y etiquetas de al abrir. (Una fila nueva no tiene «antes»: se quita.) */
+  function deshacerFila(i: number) {
+    const original = inicial.variantes.find((v) => v.id !== null && v.id === variantes[i]?.id);
+    if (!original) return;
+    actualizarFila(i, { precio: original.precio, costo: original.costo, activo: original.activo, etiquetaIds: original.etiquetaIds });
+  }
+
+  /** Un dato de la prenda vuelve a lo de al abrir. */
+  function deshacerCampo(campo: CampoDato) {
+    switch (campo) {
+      case "referencia":
+        return cambiarReferencia(inicial.referencia);
+      case "categoria":
+        // Elegir categoría vacía el tejido y el patrón: se devuelven juntos.
+        setCategoriaId(inicial.categoriaId);
+        setTejidoId(inicial.tejidoId);
+        return setPatronId(inicial.patronId);
+      case "marcaProveedor":
+        setMarcaId(inicial.marcaId);
+        return setProveedorId(inicial.proveedorId);
+      case "descripcion":
+        return setDescripcion(inicial.descripcion);
+      case "tejido":
+        return setTejidoId(inicial.tejidoId);
+      case "patron":
+        return setPatronId(inicial.patronId);
+      case "estado":
+        return setEstado(inicial.estado);
+      case "stockMinimo":
+        return setStockMinimo(inicial.stockMinimo);
+      case "temporada":
+        return setTemporada(inicial.temporada);
+      case "ventaSinStock":
+        return setPermitirVentaSinStock(inicial.permitirVentaSinStock);
+    }
+  }
+
+  /** La línea «antes: … · Deshacer» bajo un dato de la prenda que cambió (en el pie del campo, que ya tiene su alto reservado). */
+  function antesDe(campo: CampoDato) {
+    const c = cambioDeDato(resumen, campo);
+    if (!c) return null;
+    return (
+      <span className="inline-flex flex-wrap items-center gap-x-2 text-ambar">
+        antes: {c.antes}
+        <button type="button" onClick={() => deshacerCampo(campo)} className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo">
+          <Undo2 aria-hidden className="h-3 w-3" />
+          Deshacer
+        </button>
+      </span>
+    );
+  }
+  const tonoDe = (campo: CampoDato) => (cambioDeDato(resumen, campo) ? ("aviso" as const) : undefined);
+
   return (
-    <form onSubmit={onSubmit} className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
-      <div className="min-w-0 space-y-6">
+    <>
+      <form onSubmit={revisar} className="max-w-[1080px] space-y-6 pb-28 sm:pb-24">
         {/* ---------- datos del producto ---------- */}
         <section className="card-cayla space-y-4 p-5">
           <p className="label-cayla text-[11px] text-tinta/65">Producto</p>
@@ -535,8 +783,10 @@ export function ProductoForm({
               onChange={(e) => cambiarReferencia(e.target.value)}
               placeholder="Blusa Lino"
               autoFocus
+              pie={antesDe("referencia")}
+              tono={tonoDe("referencia")}
             />
-            <Campo etiqueta="Categoría">
+            <Campo etiqueta="Categoría" pie={antesDe("categoria")} tono={tonoDe("categoria")}>
               <ComboBuscable etiquetaAccesible="Categoría" valor={categoriaId} onValor={elegirCategoria} opciones={opcionesCategoria} marcador="Busca una categoría…" />
             </Campo>
             {nombreCambio && (
@@ -550,7 +800,7 @@ export function ProductoForm({
               </div>
             )}
             <div className="sm:col-span-2" id="producto-marca">
-              <Campo etiqueta="Marca y proveedor">
+              <Campo etiqueta="Marca y proveedor" pie={antesDe("marcaProveedor")} tono={tonoDe("marcaProveedor")}>
                 <ElegirMarcaProveedor
                   marcas={marcas.marcas}
                   proveedores={marcas.proveedores}
@@ -572,8 +822,16 @@ export function ProductoForm({
                 />
               </Campo>
             </div>
-            <CampoTexto etiqueta="Descripción (opcional)" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Detalle interno, no se muestra a la clienta" className="sm:col-span-2" />
-            <Campo etiqueta={exigeTejido ? "Tejido" : "Tejido (opcional)"}>
+            <CampoTexto
+              etiqueta="Descripción (opcional)"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+              placeholder="Detalle interno, no se muestra a la clienta"
+              className="sm:col-span-2"
+              pie={antesDe("descripcion")}
+              tono={tonoDe("descripcion")}
+            />
+            <Campo etiqueta={exigeTejido ? "Tejido" : "Tejido (opcional)"} pie={antesDe("tejido")} tono={tonoDe("tejido")}>
               <ComboBuscable
                 etiquetaAccesible="Tejido"
                 valor={tejidoId}
@@ -590,7 +848,7 @@ export function ProductoForm({
                 <p className="mt-1 text-xs text-tinta/55">Indumentaria lleva tejido. Complétalo cuando puedas; no hace falta para guardar.</p>
               )}
             </Campo>
-            <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"}>
+            <Campo etiqueta={exigePatron ? "Patrón" : "Patrón (opcional)"} pie={antesDe("patron")} tono={tonoDe("patron")}>
               <ComboBuscable
                 etiquetaAccesible="Patrón"
                 valor={patronId}
@@ -620,7 +878,7 @@ export function ProductoForm({
                   </p>
                 </div>
               ) : (
-                <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} />
+                <Segmentado etiqueta="Estado" valor={estado} onValor={setEstado} opciones={ESTADOS} pie={antesDe("estado")} tono={tonoDe("estado")} />
               ))}
             <CampoTexto
               etiqueta="Stock mínimo (opcional)"
@@ -632,7 +890,8 @@ export function ProductoForm({
               value={stockMinimo}
               onChange={(e) => setStockMinimo(e.target.value)}
               placeholder="Ej. 5"
-              pie="Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."
+              pie={antesDe("stockMinimo") ?? "Suma el stock de todas las sedes. En blanco = este producto nunca entra en «Stock bajo» en /productos."}
+              tono={tonoDe("stockMinimo")}
             />
             {temporadas ? (
               <CampoSelect
@@ -642,12 +901,14 @@ export function ProductoForm({
                 onValor={setTemporada}
                 opciones={opcionesTemporadaPrenda}
                 pie={
+                  antesDe("temporada") ??
                   // Una excepción por color manda sobre esta: se dice aquí, para que nadie crea que la prenda entera es de
                   // la temporada que muestra el combo.
-                  conTemporadaPropia > 0
+                  (conTemporadaPropia > 0
                     ? `${conTemporadaPropia === 1 ? "1 de sus colores tiene" : `${conTemporadaPropia} de sus colores tienen`} su propia temporada, y esa manda: mira «Temporada por color», abajo.`
-                    : "Sin año: el sistema lo sabe por la fecha en que la prenda llega a cada tienda."
+                    : "Sin año: el sistema lo sabe por la fecha en que la prenda llega a cada tienda.")
                 }
+                tono={tonoDe("temporada")}
               />
             ) : (
               <div>
@@ -663,7 +924,7 @@ export function ProductoForm({
                 activo={permitirVentaSinStock}
                 onActivo={setPermitirVentaSinStock}
                 etiqueta="Permitir venta sin stock"
-                pie="Deja vender este producto aunque el stock marque 0 (pedido especial / preventa)."
+                pie={antesDe("ventaSinStock") ?? "Deja vender este producto aunque el stock marque 0 (pedido especial / preventa)."}
               />
             </div>
             {ofreceTemporadaPorColor && (
@@ -684,7 +945,7 @@ export function ProductoForm({
                   <div id="producto-temporada-por-color" className="mt-2">
                     <p className="text-xs text-tinta/55">
                       Solo si un color es de otra temporada que el modelo (un color de invierno en un modelo de verano). Si no, déjalo igual que
-                      su prenda. Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.
+                      su prenda. Se guarda junto con el resto al pulsar &ldquo;Revisar y guardar&rdquo;.
                       {coloresFicha.length < MIN_COLORES_PARA_TEMPORADA_POR_COLOR &&
                         " Con un solo color, lo normal es ponerle la temporada a la prenda (arriba) y dejar el color igual que su prenda."}
                     </p>
@@ -742,129 +1003,167 @@ export function ProductoForm({
               </span>
             ))}
           </div>
-          {variantes.map((v, i) => (
-            <div key={i} className="border-b border-tinta/10 pb-3 last:border-0">
-            <div className={`grid gap-2 sm:items-center ${PLANTILLA}`}>
-              {v.fija ? (
-                <>
-                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
-                    {v.fija.color}
-                  </span>
-                  <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
-                    {v.fija.talla}
-                  </span>
-                  <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
-                    {v.fija.codigo}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <ComboBuscable
-                    etiquetaAccesible="Color"
-                    valor={v.colorCodigo}
-                    onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
-                    opciones={opcionesColor}
-                    marcador="Sin color"
-                  />
-                  <ComboBuscable
-                    etiquetaAccesible="Talla"
-                    valor={v.tallaId}
-                    onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
-                    opciones={opcionesTalla}
-                    marcador={categoriaId ? "Sin talla" : "Elige categoría"}
-                  />
-                  <input
-                    aria-label="SKU"
-                    id={`producto-variante-${i}-sku`}
-                    value={v.sku}
-                    onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
-                    className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
-                  />
-                </>
-              )}
-              <input
-                type="number"
-                min={0}
-                step="0.01"
-                aria-label="Precio"
-                id={`producto-variante-${i}-precio`}
-                placeholder="0.00"
-                value={v.precio}
-                onChange={(e) => actualizarFila(i, { precio: e.target.value })}
-                className={`${NUMERO} text-right`}
-              />
-              {veCosto && v.costoFijo ? (
-                <span
-                  className="py-2 text-right text-sm tabular-nums text-tinta/70"
-                  title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
-                >
-                  {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
-                </span>
-              ) : veCosto ? (
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  aria-label="Costo"
-                  placeholder="0.00"
-                  value={v.costo}
-                  onChange={(e) => actualizarFila(i, { costo: e.target.value })}
-                  className={`${NUMERO} text-right`}
-                />
-              ) : (
-                <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
-              )}
-              <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
-                {(() => {
-                  if (!veCosto) return "—";
-                  const m = margenPorcentaje(v.precio, costoEfectivo(v));
-                  return m === null ? "—" : `${m.toFixed(0)}%`;
-                })()}
-              </span>
-              <span className="flex justify-center py-2">
-                {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
-              </span>
-              <span className="py-2 text-right">
-                {!v.id && (
-                  <button type="button" onClick={() => quitarFila(i)} className="text-xs text-rojo">
-                    Quitar
-                  </button>
-                )}
-              </span>
-            </div>
-            {v.id && (
-              <div className="mt-1">
-                <button
-                  type="button"
-                  disabled={loading}
-                  aria-expanded={etiquetasAbiertoEn === i}
-                  onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
-                  className={`label-cayla text-[11px] disabled:opacity-50 ${
-                    v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
+          <div>
+            {variantes.map((v, i) => {
+              // Lo que cambió en ESTA fila (ADR-0256): se marca en ámbar, con lo de antes y un «Deshacer», porque un interruptor
+              // o un precio se ven como algo ya hecho y no lo están hasta guardar.
+              const cambios = cambiosDeVariante(resumen, i);
+              const tocada = cambios.length > 0;
+              const seApaga = cambios.some((c) => c.tipo === "desactiva");
+              const precioCambio = cambios.some((c) => c.tipo === "precio");
+              const costoCambio = cambios.some((c) => c.tipo === "costo");
+              return (
+                <div
+                  key={i}
+                  className={`-mx-5 border-b border-tinta/10 px-5 pb-3 pt-2 transition-colors duration-300 ease-cayla last:border-0 ${
+                    tocada ? "bg-ambar/[0.08] shadow-[inset_3px_0_0_var(--color-ambar)]" : ""
                   }`}
                 >
-                  Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
-                </button>
-                {etiquetasAbiertoEn === i && (
-                  <div className="mt-2 space-y-1.5">
-                    {opcionesEtiqueta.length > 0 ? (
-                      <SelectorMultiple
-                        opciones={opcionesEtiqueta}
-                        seleccionadas={v.etiquetaIds}
-                        onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
-                        disabled={loading}
+                  <div className={`grid gap-2 sm:items-center ${PLANTILLA} ${seApaga ? "[&>span:nth-child(-n+3)]:opacity-55" : ""}`}>
+                    {v.fija ? (
+                      <>
+                        <span className="truncate py-2 text-sm text-tinta" title={v.fija.color}>
+                          {v.fija.color}
+                        </span>
+                        <span className="truncate py-2 text-sm text-tinta" title={v.fija.talla}>
+                          {v.fija.talla}
+                        </span>
+                        <span className="truncate py-2 font-mono text-xs tracking-wide text-tinta/70" title={v.fija.codigo}>
+                          {v.fija.codigo}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ComboBuscable
+                          etiquetaAccesible="Color"
+                          valor={v.colorCodigo}
+                          onValor={(c) => cambiarColorOTalla(i, { colorCodigo: c })}
+                          opciones={opcionesColor}
+                          marcador="Sin color"
+                        />
+                        <ComboBuscable
+                          etiquetaAccesible="Talla"
+                          valor={v.tallaId}
+                          onValor={(t) => cambiarColorOTalla(i, { tallaId: t })}
+                          opciones={opcionesTalla}
+                          marcador={categoriaId ? "Sin talla" : "Elige categoría"}
+                        />
+                        <input
+                          aria-label="SKU"
+                          id={`producto-variante-${i}-sku`}
+                          value={v.sku}
+                          onChange={(e) => actualizarFila(i, { sku: e.target.value, skuManual: true })}
+                          className="w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-2 font-mono text-xs tracking-wide text-tinta outline-none focus:border-b-2 focus:border-rojo"
+                        />
+                      </>
+                    )}
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      aria-label="Precio"
+                      id={`producto-variante-${i}-precio`}
+                      placeholder="0.00"
+                      value={v.precio}
+                      onChange={(e) => actualizarFila(i, { precio: e.target.value })}
+                      className={`${precioCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
+                    />
+                    {veCosto && v.costoFijo ? (
+                      <span
+                        className="py-2 text-right text-sm tabular-nums text-tinta/70"
+                        title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano."
+                      >
+                        {v.costoOriginal === "" ? "—" : Number(v.costoOriginal).toFixed(2)}
+                      </span>
+                    ) : veCosto ? (
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        aria-label="Costo"
+                        placeholder="0.00"
+                        value={v.costo}
+                        onChange={(e) => actualizarFila(i, { costo: e.target.value })}
+                        className={`${costoCambio ? NUMERO_CAMBIADO : NUMERO} text-right`}
                       />
                     ) : (
-                      <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
+                      <span className="py-2 text-right text-xs text-tinta/45" title="El costo solo lo ve quien tiene permiso de ver el dinero">—</span>
                     )}
-                    <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Guardar cambios&rdquo;.</p>
-                    {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
+                    <span className="py-2 text-right text-xs tabular-nums text-tinta/55">
+                      {(() => {
+                        if (!veCosto) return "—";
+                        const m = margenPorcentaje(v.precio, costoEfectivo(v));
+                        return m === null ? "—" : `${m.toFixed(0)}%`;
+                      })()}
+                    </span>
+                    <span className="flex justify-center py-2">
+                      {v.id && <Interruptor activo={v.activo} onActivo={(activo) => actualizarFila(i, { activo })} etiqueta={<span className="sr-only">Variante activa</span>} />}
+                    </span>
+                    <span className="py-2 text-right">
+                      {!v.id && (
+                        <button type="button" onClick={() => quitarFila(i)} className="text-xs text-rojo">
+                          Quitar
+                        </button>
+                      )}
+                    </span>
                   </div>
-                )}
-              </div>
-            )}
-            </div>
-          ))}
+                  {(v.id || tocada) && (
+                    <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                      {v.id ? (
+                        <button
+                          type="button"
+                          disabled={loading}
+                          aria-expanded={etiquetasAbiertoEn === i}
+                          onClick={() => setEtiquetasAbiertoEn(etiquetasAbiertoEn === i ? null : i)}
+                          className={`label-cayla text-[11px] disabled:opacity-50 ${
+                            v.etiquetaIds.length > 0 ? "font-semibold text-rojo hover:text-rojo/75" : "text-tinta/55 hover:text-rojo"
+                          }`}
+                        >
+                          Etiquetas{v.etiquetaIds.length > 0 ? ` (${v.etiquetaIds.length})` : ""}
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                      {tocada && (
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-ambar-profundo">
+                          <span className="inline-flex items-center gap-1.5 font-medium">
+                            <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                            {textoPendienteDeVariante(cambios)}
+                          </span>
+                          {v.id && (
+                            <button
+                              type="button"
+                              onClick={() => deshacerFila(i)}
+                              className="label-cayla inline-flex items-center gap-1 text-[10.5px] text-taupe hover:text-rojo"
+                            >
+                              <Undo2 aria-hidden className="h-3 w-3" />
+                              Deshacer
+                            </button>
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {v.id && etiquetasAbiertoEn === i && (
+                    <div className="mt-2 space-y-1.5">
+                      {opcionesEtiqueta.length > 0 ? (
+                        <SelectorMultiple
+                          opciones={opcionesEtiqueta}
+                          seleccionadas={v.etiquetaIds}
+                          onCambio={(ids) => actualizarFila(i, { etiquetaIds: ids })}
+                          disabled={loading}
+                        />
+                      ) : (
+                        <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
+                      )}
+                      <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar &ldquo;Revisar y guardar&rdquo;.</p>
+                      {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
           {variantes.some((v) => v.fija) && (
             <p className="text-xs text-tinta/55">
               Color, talla y código de una variante que ya existe no se cambian: puede tener stock, ventas y etiquetas impresas.
@@ -878,38 +1177,28 @@ export function ProductoForm({
                 : "El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí."}
             </p>
           )}
+          <p className="text-xs text-tinta/55">
+            El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar: no hace falta escribirlo.
+          </p>
           <button type="button" id="producto-agregar-variante" onClick={agregarFila} className="label-cayla text-[11px] text-tinta/65 hover:text-rojo">
             + Agregar variante
           </button>
         </section>
-      </div>
 
-      <aside className="card-cayla space-y-4 p-5 lg:sticky lg:top-24">
-        <p className="label-cayla text-[11px] text-tinta/65">{editando ? "Guardar cambios" : "Crear producto"}</p>
-        <p className="text-sm text-tinta/65">
-          El código corto de cada variante (para etiqueta y pistola) se asigna solo al guardar — no hace falta escribirlo.
-        </p>
-        <ComboResponsable control={responsable} deshabilitado={loading} />
-        {versionCambiada && (
-          <div className="nota-cayla space-y-2" role="alert">
-            <p>
-              Otra persona cambió esta prenda mientras la editabas. Recarga para ver sus cambios; lo que escribiste sigue aquí hasta
-              entonces, por si quieres anotarlo.
-            </p>
-            <Boton type="button" peso="fantasma" onClick={recargar} className="w-full">
-              Recargar la prenda
-            </Boton>
-          </div>
-        )}
-        <div className="flex flex-col gap-2">
-          <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
-            {editando ? "Guardar cambios" : "Crear producto"}
-          </Boton>
-          <Boton type="button" peso="discreto" onClick={() => router.push("/productos")} disabled={loading} className="w-full">
-            Cancelar
-          </Boton>
-        </div>
-      </aside>
-    </form>
+        {/* Lo pendiente, siempre a la vista: la única forma de guardar (ADR-0256). Va dentro del formulario para que «Revisar y guardar» lo envíe. */}
+        <BarraDeCambios cantidad={hayCambios ? resumen.total : 0} versionCambiada={versionCambiada} bloqueada={loading} onDescartar={descartar} onRecargar={recargar} />
+      </form>
+
+      {hojaAbierta && (
+        <ConfirmarCambios
+          nombre={producto?.referencia ?? referencia}
+          resumen={resumen}
+          control={responsable}
+          onConfirmar={guardar}
+          onClose={() => setHojaAbierta(false)}
+        />
+      )}
+      {dialogoSalida}
+    </>
   );
 }
