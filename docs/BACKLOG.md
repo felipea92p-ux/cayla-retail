@@ -54,6 +54,18 @@ reabrir un mes, quien tenga Cierre de mes.
   - `pnpm pruebas:roles`: 67/70; las 3 rojas (Etiquetas ×2, «P2 · Recibir») fallan igual sin este cambio.
   - `pnpm --filter web exec vitest run` (206 archivos) y `tsc --noEmit`, en verde.
 
+## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
+
+- [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos
+  funciones, sin políticas ni `drop trigger`). Después: `select retail.fn_huellas_nueva_llave();` y lo que devuelve va como el
+  secreto `DERIVA_LLAVE`; `SUPABASE_URL` y `SUPABASE_ANON_KEY` como variables (Settings ▸ Secrets and variables ▸ Actions).
+  Primera corrida: Actions ▸ «Deriva diaria» ▸ Run workflow.
+- [ ] **Cuando el PR esté en `main`: sumar «SQL pegado» a los checks exigidos de `main`** (hoy exige «Tipos, lint y
+  pruebas» y «Pruebas de RPC contra Postgres»; protegida el 2026-09-28 con el sí de Felipe).
+- [ ] **Deriva del 2026-09-28: 14 diferencias reales.** La política `clientas_fusiones_select` (va en el PR de Clientas),
+  `fn_rentabilidad` solo en producción y 12 arreglos en vivo o versiones distintas (van en el PR «arreglos en vivo a
+  main», ADR-0252). Después de fusionar los dos, la deriva debe quedar en 0.
+
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
 Pedido de Felipe (2026-09-26): sacar «Ajustar stock» de Existencias, que hoy cualquiera con Existencias, Conteos o
 Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el líder lo hubiera decidido módulo por módulo.
@@ -71,6 +83,16 @@ Traslados podía usar (rol Integrante, 17 cuentas en producción) sin que el lí
   - `pnpm pruebas:candado-lider` (23/23), `pnpm pruebas:reposicion-piso-cerrada` (10/10), `pnpm pruebas:ajuste-no-es-primera-carga` (25/25) — actualizadas: el mensaje de permiso de `registrar_movimiento` cambió.
   - `pnpm --filter web exec vitest run` (196 archivos, 151850 pruebas) y `pnpm --filter web exec tsc --noEmit`, ambos en verde.
   - Con una cuenta con Existencias/Conteos/Traslados pero SIN «Ajustar stock»: «Ajustar» no aparece en Existencias, Productos ni Movimientos; llamando a la base directo, `ajustar_inventario`/`registrar_movimiento` responden `ajuste_sin_modulo`.
+
+## 🧵 Nuevo producto ▸ Tejido: «Ver más» con el resto del catálogo (2026-09-28) — solo web, sin migración; rama `claude/ver-mas-tejidos-4f8aea`
+Felipe: «me aparezca la opción ver más en tejidos». En producción (consultado en vivo): 22 tejidos aprobados; cada categoría de
+Indumentaria ofrece de 3 (Jeans) a 10. Patrón no lo necesita (9 en el catálogo, hasta 8 por categoría).
+- [x] Tarjeta punteada «Ver más · N en el catálogo» al final de los tejidos de la categoría (el mismo gesto que las familias del paso 1). Abre los tejidos aprobados que la categoría todavía no ofrece (`fueraDeLaCategoria`, `lib/alta-producto.ts`).
+- [x] Tocar uno lo ofrece en la categoría (PUT `/api/productos/categorias/ejes`, firmado con su combo «Responsable») y lo deja elegido: la base rechaza crear el producto con un tejido que la categoría no ofrece. La pantalla lo dice antes del toque. Si falla, la frase de la base y nada cambia.
+- [x] Refactor previo sin cambio visible: `ElegirTejido` y `sumarAlEje` (lo usa también «+ Nuevo tejido»). 7 pruebas nuevas.
+- [ ] **Riesgo que ya existía y ahora se usará más (decide Felipe si vale una migración):** `actualizar_categoria_ejes` REEMPLAZA los tres ejes de la categoría con la copia que trae la pantalla. Dos altas a la vez en la misma categoría, o un alta abierta desde antes de que un Líder cambie la categoría en Catálogo, deshacen en silencio lo del otro (vuelve un tejido quitado, desaparece uno agregado). La salida sólida es una RPC que solo SUMA (`insert … on conflict do nothing`) para «Ver más» y «+ Nuevo …»; es cambio de base en producción.
+- [ ] Verlo con sesión real de Líder y de integrante con Productos (probado en andamio con la escritura simulada, escritorio y 375 px; el rechazo por permiso se ve con la frase de la base).
+- Cómo verificas: Productos ▸ Nuevo producto ▸ una categoría de Indumentaria (Jeans) ▸ paso 3 ▸ «Ver más» bajo Tejido ▸ tocar Lino ▸ Lino queda elegido arriba y la tarjeta dice un tejido menos; en Catálogo ▸ Categorías, Jeans ya ofrece Lino.
 
 ## 🏷️ Etiquetas: con dibujo real, en el paso 3, y Tejido corrige el mismo error (2026-09-27, ADR-0109 act. c) — solo web, sin migración; rama `claude/etiquetas-alta-siempre-visibles`
 Felipe, tres capturas más: «mira dónde sale Etiquetas y analiza si es el lugar correcto… me pregunto por qué no lo muestras como
