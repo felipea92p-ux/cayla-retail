@@ -50,6 +50,7 @@ export const PUNTO_MOVIMIENTO: Record<TonoChip, string> = {
   rojo: "bg-rojo",
   pizarra: "bg-pizarra",
   apagado: "bg-tinta/15",
+  tinta: "bg-tinta",
 };
 
 /** Lo que una fila necesita saber de la pantalla, igual para todas. */

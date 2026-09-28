@@ -242,10 +242,16 @@ describe("las rutas del menú existen", () => {
 // pantalla nueva no cabe, se REGRUPA (un subgrupo dentro del grupo, D-84); estos números no se suben para que la prueba pase.
 const TOPE_FILAS = 8;
 const TOPE_HIJAS = 6;
-// Escape documentado para cuando un grupo necesite más margen que el tope general — vacío hoy: Producción lo usó desde
-// #231 hasta que D-84/ADR-0155 (2026-09-21) lo regrupó (un subgrupo, «Abastecimiento», en vez de subir el tope), que es
-// el remedio esperado, no una excepción a mantener. Vive el mecanismo, no la deuda.
-const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = {};
+// Escape documentado para cuando un grupo necesite más margen que el tope general. Producción lo usó desde #231 hasta que
+// D-84/ADR-0155 (2026-09-21) lo regrupó (un subgrupo, «Abastecimiento», en vez de subir el tope), que es el remedio
+// esperado.
+// INVENTARIO, 7 (Felipe, 2026-09-27; ADR-0208, «Actualización 2026-09-27 — diseño 3c»): «Frescura del piso» va DIRECTO en
+// Inventario, como sexta fila. El líder ve 6 (Existencias, Movimientos, Traslados, Conteo, Análisis, Frescura: «Recibir
+// mercadería» solo sale a quien NO ve Compras). Llega a 7 únicamente un rol que vea Análisis y Frescura y reciba
+// mercadería sin ver Compras (hoy no existe). Se descartó el subgrupo «Diagnóstico» (Análisis + Frescura), que respetaba
+// el tope pero escondía un clic más adentro la pantalla que se debería mirar cada semana. SE ROMPE SI ese rol aparece y
+// Inventario suma otra pantalla: entonces sí se regrupa, sin subir más este número.
+const EXCEPCIONES_TOPE_HIJAS: Record<string, number> = { inventario: 7 };
 const topeDeHijas = (grupoId: string) => EXCEPCIONES_TOPE_HIJAS[grupoId] ?? TOPE_HIJAS;
 
 // Todos los grupos que hay dentro de `fs`, en cualquier profundidad: un subgrupo (D-84) tiene que cumplir el mismo tope

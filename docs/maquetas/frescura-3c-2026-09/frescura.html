@@ -1,0 +1,1282 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Frescura del piso · maqueta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=EB+Garamond:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ======================================================================================================
+   MAQUETA · Frescura del piso, paso 4 de ADR-0208 (2026-09-28)
+   Para que Felipe ELIJA colores y frases antes de construir la pantalla real. El panel «Elige» (tinta,
+   abajo a la izquierda, sobre el menú) NO existe en el ERP: cambia la maqueta en vivo y arma la respuesta
+   («colores B, frases A, pregunta 8: …»).
+   · Tokens: copia literal de apps/web/app/globals.css (ADR-0169). Ningún color fuera de ellos: los tintes
+     son `color-mix(token N %, transparent)`, igual que `bg-verde/15` de Tailwind.
+   · Rojo: máximo 2 manchas por pantalla, contando TODO lo rojo (pleno, profundo y tintes), como hizo
+     lib/productos-stock.ts con «Sin stock». Ninguna fila lleva rojo; el único es la zona Crítica de la
+     regla del detalle. El panel lo cuenta en vivo leyendo los estilos calculados.
+   · Orden de pantalla (Inventario, ADR-0220): EncabezadoPagina → filtros y tabla en UNA tarjeta → nota.
+   · Hoja de detalle: efecto de <Modal variante="hoja"> (ADR-0136): velo con desenfoque, hoja que sube
+     18 px y crece, contenido en cascada de 55 ms, salida corta; todo se apaga con movimiento reducido.
+   · Combos: sin <select> del navegador (ADR-0209); con más de 8 opciones, buscador.
+   · Modelo: lib/frescura-reglas.ts de la rama claude/frescura-3c-lectura (revisión 8).
+   TODAS LAS CIFRAS Y PRENDAS SON SIMULADAS.
+   ====================================================================================================== */
+:root{
+  --rojo:#b8412d;--rojo-profundo:#8b2a1f;--crema:#f5f0e8;--tinta:#1a1a18;--sand:#e8e0d0;--papel:#fbf8f2;--hueso:#eae1d2;
+  --taupe:#805c4c;--taupe-profundo:#805c4c;--pizarra:#4c5d6e;--verde:#48603f;--verde-profundo:#44583a;--ambar:#74501a;
+  --ambar-profundo:#734f15;--tinta-60:#5b544c;
+  --ease-cayla:cubic-bezier(.32,.72,.24,1);--ease-salida:cubic-bezier(.4,0,1,1);
+  --shadow-lg:0 18px 44px -14px rgb(26 26 24 / .16);
+  --r-md:8px;--r-lg:12px;--r-xl:16px;--r-2xl:20px;
+  /* tintes (bg-x/N de Tailwind) */
+  --verde-15:color-mix(in oklab,var(--verde) 15%,transparent);
+  --ambar-15:color-mix(in oklab,var(--ambar) 15%,transparent);
+  --rojo-10:color-mix(in oklab,var(--rojo) 10%,transparent);
+  --pizarra-15:color-mix(in oklab,var(--pizarra) 15%,transparent);
+  --tinta-6:color-mix(in oklab,var(--tinta) 6%,transparent);
+  --tinta-10:color-mix(in oklab,var(--tinta) 10%,transparent);
+  --tinta-12:color-mix(in oklab,var(--tinta) 12%,transparent);
+  --tinta-20:color-mix(in oklab,var(--tinta) 20%,transparent);
+  --tinta-35:color-mix(in oklab,var(--tinta) 35%,transparent);
+  --tinta-65:color-mix(in oklab,var(--tinta) 65%,transparent);
+  --tinta-70:color-mix(in oklab,var(--tinta) 70%,transparent);
+  --hueso-50:color-mix(in oklab,var(--hueso) 50%,transparent);
+  --hueso-85:color-mix(in oklab,var(--hueso) 85%,transparent);
+  --sand-40:color-mix(in oklab,var(--sand) 40%,transparent);
+  --sand-70:color-mix(in oklab,var(--sand) 70%,transparent);
+  --crema-60:color-mix(in oklab,var(--crema) 60%,transparent);
+  --lateral:17rem;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:'DM Sans',ui-sans-serif,system-ui,sans-serif;color:var(--tinta);background:var(--crema);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;text-align:inherit}
+input{font:inherit;color:inherit}
+a{color:inherit}
+.num{font-variant-numeric:tabular-nums lining-nums}
+.label{text-transform:uppercase;letter-spacing:.13em;font-weight:600;font-size:11px;color:var(--taupe)}
+svg.ic{width:16px;height:16px;flex:none;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+:focus-visible{outline:2px solid color-mix(in oklab,var(--rojo) 60%,transparent);outline-offset:2px;border-radius:6px}
+
+/* ───────── armazón del ERP (lateral + barra) ───────── */
+.app{display:grid;grid-template-columns:var(--lateral) minmax(0,1fr);min-height:100vh}
+.lateral{position:sticky;top:0;height:100vh;border-right:1px solid var(--sand);padding:22px 14px;overflow:auto;background:var(--crema)}
+.logo{display:flex;align-items:center;gap:10px;padding:0 10px 22px;font-weight:600;letter-spacing:.34em;font-size:13px}
+.logo i{width:20px;height:16px;border:1.5px solid var(--tinta);border-radius:60% 10% 60% 10%;display:block}
+.lateral nav{display:grid;gap:2px}
+.lateral a{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:10px;color:var(--tinta-60);font-size:14px;text-decoration:none;cursor:default}
+.lateral a.sub{padding-left:38px;font-size:13.5px}
+.lateral a.on{background:var(--hueso);color:var(--tinta);font-weight:500}
+.lateral a.grupo{color:var(--tinta);font-weight:500}
+.barra{height:60px;border-bottom:1px solid var(--sand);display:flex;align-items:center;gap:14px;padding:0 32px;justify-content:flex-end}
+.barra .menu{display:none}
+.sede-sel{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--sand);border-radius:var(--r-md);padding:5px 11px;font-size:11px;letter-spacing:.12em;font-weight:600;background:var(--papel)}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--hueso);display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--taupe)}
+.main{padding:34px 32px 140px;max-width:1240px}
+
+/* ───────── EncabezadoPagina (clases copiadas del componente) ───────── */
+.enc{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:20px 40px}
+.enc-izq{min-width:0;flex:1 1 340px}
+.hilo{display:flex;align-items:center;gap:12px;font-size:11px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--taupe-profundo)}
+.hilo:before{content:"";display:block;width:32px;height:1px;background:var(--taupe);flex:none;transform-origin:left;animation:dibuja 1.1s var(--ease-cayla) .25s backwards}
+h1.titulo{font-family:'EB Garamond',ui-serif,Georgia,serif;font-weight:600;font-size:46px;line-height:1;letter-spacing:-.01em;margin-top:12px}
+/* text-tinta/70 y max-w-md, como EncabezadoPagina */
+.frase{margin-top:10px;max-width:28rem;font-size:15px;color:var(--tinta-70)}
+.pie-enc{margin-top:18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;font-size:13px;color:var(--taupe)}
+.pie-enc b{color:var(--tinta);font-weight:600}
+.sube{animation:sube .85s var(--ease-cayla) backwards;animation-delay:calc(var(--i,0)*70ms + 80ms)}
+@keyframes sube{from{opacity:0;transform:translate3d(0,16px,0)}}
+@keyframes dibuja{from{transform:scaleX(0)}}
+
+/* ResumenSede (sin sombra: va pegado al fondo). La cifra «Por decidir» es `alerta` (ámbar): el componente
+   no admite rojo («el rojo es de lo urgente»). */
+.resumen{flex:none;border-radius:var(--r-2xl);background:color-mix(in oklab,var(--papel) 70%,transparent);box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--tinta) 7%,transparent);display:flex}
+/* 6 px a los lados (no 10): con 10, el hilo de la cabecera partía la hora a 1280 px */
+.resumen>*{position:relative;flex:1 1 0;min-width:6.4rem;display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 6px}
+.resumen>*+*:before{content:"";position:absolute;left:0;top:20px;bottom:20px;width:1px;background:linear-gradient(to bottom,transparent,color-mix(in oklab,var(--tinta) 20%,transparent),transparent)}
+.resumen button{margin:4px;border-radius:16px;transition:background-color .2s}
+.resumen button:hover,.resumen button[aria-pressed=true]{background:color-mix(in oklab,var(--hueso) 70%,transparent)}
+.cifra-v{font-family:'EB Garamond',serif;font-weight:600;font-size:42px;line-height:1;white-space:nowrap}
+.cifra-v small{font-size:22px;margin-left:1px}
+.cifra-pre{font-size:11px;color:var(--taupe);height:15px;line-height:15px;margin-bottom:2px}
+.cifra-l{margin-top:8px;font-size:12px;line-height:1.25;color:var(--tinta-70);display:flex;align-items:center;justify-content:center;gap:5px;max-width:7.5rem}
+.cifra-v .suf{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--taupe);margin-left:4px}
+.cifra-l svg{width:14px;height:14px;color:var(--taupe)}
+.cifra-v.alerta{color:var(--ambar-profundo)}.cifra-l.alerta{color:var(--ambar-profundo);font-weight:600}.cifra-l.alerta svg{color:currentColor}
+
+/* ───────── Chip (insignia con punto) · medidas y tonos de components/ui/Chip.tsx ───────── */
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:0 10px;font-size:12px;line-height:20px;white-space:nowrap;background:var(--sand);color:var(--taupe)}
+.chip:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.chip.sin-punto:before{display:none}
+/* los seis tonos que existen (TonoChip) */
+.chip.neutro{background:var(--sand);color:var(--taupe)}
+.chip.ambar{background:var(--ambar-15);color:var(--ambar)}
+.chip.verde{background:var(--verde-15);color:var(--verde)}
+.chip.pizarra{background:var(--pizarra-15);color:var(--pizarra)}
+.chip.apagado{background:transparent;box-shadow:inset 0 0 0 1px var(--tinta-10);color:var(--tinta-65)}
+.chip.apagado:before{display:none}
+.chip.chico{font-size:11.5px;padding:0 8px;line-height:18px}
+
+/* ───────── botones y controles ───────── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:var(--r-md);border:1px solid transparent;padding:8px 16px;font-size:13.5px;font-weight:500;line-height:1.25;white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.btn-chico{padding:5px 12px;font-size:12.5px}
+.btn-secundario{color:var(--tinta);border-color:var(--sand)}.btn-secundario:hover{border-color:color-mix(in oklab,var(--taupe) 40%,transparent);background:color-mix(in oklab,var(--sand) 50%,transparent)}
+.btn-enlace{padding:0;color:var(--tinta);text-decoration:underline;text-underline-offset:2px}.btn-enlace:hover{color:var(--taupe)}
+.pildora{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--sand);padding:5px 14px;font-size:13px;font-weight:600;color:var(--taupe);white-space:nowrap;transition:background-color .15s,border-color .15s,color .15s}
+.pildora:hover{color:var(--tinta);background:var(--sand-40)}
+.pildora[aria-pressed=true]{background:var(--tinta);border-color:var(--tinta);color:var(--crema)}
+/* sin opacidad: taupe al 80 % sobre papel daba 3,66:1 */
+.pildora .n{font-weight:500}
+.caja{background:var(--hueso);border:1px solid var(--sand);border-radius:var(--r-md);transition:border-color .15s}
+.caja:focus-within{border-color:color-mix(in oklab,var(--taupe) 55%,transparent)}
+.buscar{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;flex:1 1 220px;min-width:0;max-width:340px}
+.buscar input{border:0;background:transparent;outline:none;flex:1;min-width:0;font-size:14px}
+.buscar input::placeholder{color:var(--taupe)}
+.buscar svg{color:var(--taupe)}
+
+/* Desplegable (sin <select>) */
+.combo{position:relative}
+.combo>button{height:38px;padding:0 10px 0 12px;display:inline-flex;align-items:center;gap:8px;font-size:13.5px;min-width:170px;justify-content:space-between}
+.combo>button .que{color:var(--taupe);font-size:12px}
+.combo>button svg{color:var(--taupe);width:14px;height:14px}
+.lista{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:260px;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:6px;animation:revelar 240ms var(--ease-cayla) both}
+@keyframes revelar{from{opacity:0;transform:translate3d(0,-3px,0)}}
+.lista .busca{display:flex;align-items:center;gap:6px;margin:2px 2px 6px;padding:0 10px;height:34px}
+.lista .busca input{border:0;background:transparent;outline:none;flex:1;min-width:0;font-size:13px}
+.lista [role=option]{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;padding:7px 10px;border-radius:8px;font-size:13.5px;cursor:pointer}
+.lista [role=option]:hover,.lista [role=option].act{background:color-mix(in oklab,var(--tinta) 4%,transparent)}
+.lista [role=option][aria-selected=true]{font-weight:600}
+.lista [role=option] .n{color:var(--taupe);font-size:12px;font-weight:400}
+.lista .grupo-op{padding:8px 10px 3px;font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--taupe)}
+.lista .vacio,.lista .pie-op{padding:8px 10px;color:var(--taupe);font-size:12px}
+.lista .pie-op{border-top:1px solid var(--sand);margin-top:4px}
+
+/* ───────── tarjeta con filtros y tabla ───────── */
+.tarjeta{margin-top:30px;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-xl);overflow:hidden}
+.herr{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:16px 20px}
+.d5{display:flex;align-items:flex-start;gap:8px;padding:0 20px 14px;font-size:13px;color:var(--taupe)}
+.d5 svg{margin-top:2px;color:var(--taupe)}
+.d5 b{color:var(--tinta);font-weight:600}
+
+.grupo-cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:16px 20px 12px;border-top:1px solid var(--sand);background:var(--papel)}
+.grupo-cab h2{font-family:'EB Garamond',serif;font-weight:600;font-size:22px;line-height:1.1}
+.grupo-cab h2 .n{font-family:'DM Sans';font-size:12.5px;font-weight:500;color:var(--taupe);margin-left:6px}
+.grupo-cab .comp{flex:1 1 420px;font-size:13.5px;color:var(--tinta)}
+.grupo-cab .cayla{flex-basis:100%;font-size:12.5px;color:var(--taupe)}
+.grupo-cab .cayla b{color:var(--tinta);font-weight:600}
+.escala{flex-basis:100%;display:flex;gap:4px;margin-top:2px;flex-wrap:wrap}
+.escala span{font-size:11.5px;color:var(--taupe)}
+.escala span b{font-weight:600;color:var(--tinta)}
+
+.cols{grid-template-columns:minmax(170px,1.4fr) 124px 76px minmax(124px,.9fr) minmax(118px,.95fr) 50px minmax(150px,1.25fr);column-gap:14px}
+.desliza{overflow-x:auto;scrollbar-width:thin}
+.desliza .cols{min-width:900px}
+.enc-tabla{display:grid;padding:8px 20px;background:var(--sand-70);font-size:12.5px;color:var(--taupe)}
+.enc-tabla span small{display:block;font-size:10.5px;line-height:1.2}
+.enc-tabla .der,.fila .der{text-align:right}
+.fila{display:grid;align-items:start;padding:12px 20px;border-top:1px solid var(--sand);cursor:pointer;transition:background-color .15s;position:relative}
+.filas>.fila:nth-child(even){background:var(--hueso-50)}
+.fila:hover{background:var(--crema-60)!important}
+.fila:focus-visible{outline-offset:-2px;border-radius:0}
+.fila.quieta:after{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--tinta-35)}
+.prenda{display:flex;gap:10px;min-width:0}
+.foto{width:34px;height:42px;border-radius:7px;background:var(--hueso);flex:none;display:grid;place-items:center;color:var(--taupe)}
+.foto svg{width:18px;height:18px;stroke-width:1.3}
+.prenda .n{font-weight:600;font-size:14px;line-height:1.3}
+.prenda .m{font-size:12.5px;color:var(--taupe);line-height:1.35}
+.prenda .chips{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:5px;align-items:center}
+.prenda .chips .aux{font-size:11.5px;color:var(--taupe)}
+.tallas{display:flex;flex-wrap:wrap;gap:4px}
+.tl{display:inline-flex;flex-direction:column;align-items:center;min-width:38px;padding:3px 4px;border-radius:7px;background:var(--hueso);font-size:11.5px;line-height:1.25}
+.filas>.fila:nth-child(even) .tl{background:var(--sand)}
+.tl b{font-weight:600;font-size:10.5px;color:var(--taupe)}
+.tl .q{font-variant-numeric:tabular-nums}
+.tl .ap{font-size:10px;color:var(--taupe);font-weight:600}
+.tl.mal{box-shadow:inset 0 0 0 1.5px var(--tinta-60)}
+.tl.mal .q{font-weight:700}
+.mob-et{display:none;font-size:11px;color:var(--taupe);margin-bottom:3px}
+.dias{font-size:14px;white-space:nowrap}
+.dias b{font-family:'EB Garamond',serif;font-size:20px;font-weight:600;line-height:1}
+.dias .pre,.dias .suf{display:block;font-size:11px;color:var(--taupe);line-height:1.3;white-space:normal}
+.dias.apagado b{color:var(--taupe)}
+.rap .w{font-size:13.5px;line-height:1.35}
+.rap .d{font-size:12px;color:var(--taupe);line-height:1.4}
+.rap .chip{margin-top:4px}
+.vend{font-size:14px;text-align:right}
+.vend small{display:block;font-size:11px;color:var(--taupe);line-height:1.2}
+.sug{display:flex;flex-direction:column;gap:5px;align-items:flex-start}
+.sug .s{font-size:13px;line-height:1.35;display:flex;gap:6px;align-items:flex-start}
+.sug .s svg{width:14px;height:14px;margin-top:2px;color:var(--taupe);flex:none}
+.sug .nada{font-size:12.5px;color:var(--taupe)}
+.mob{display:none}
+.pie{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;padding:11px 20px;border-top:1px solid var(--sand);font-size:12.5px;color:var(--taupe)}
+.pie .ley{display:flex;flex-wrap:wrap;gap:4px 14px}
+.pie b{color:var(--tinta);font-weight:600}
+.pie .linea{flex-basis:100%}
+.vacio-tabla{padding:28px 20px;border-top:1px solid var(--sand);color:var(--tinta-60);font-size:14px}
+
+.nota{margin-top:18px;background:var(--hueso-85);border-radius:var(--r-xl);padding:14px 18px;font-size:13px;line-height:1.6;color:var(--taupe)}
+.nota b{color:var(--tinta);font-weight:600}
+.nota p+p{margin-top:6px}
+
+/* ───────── ESTADOS por opción de color ─────────
+   Ninguna opción pone rojo en una fila: con 3 críticas ya se pasaba del máximo de 2 por pantalla.
+   Lo que no es un TonoChip de Chip.tsx lleva «NUEVO»: habría que sumarlo al componente (con su ADR). */
+/* A · semáforo cálido: Chip verde → neutro → ámbar → contorno tinta */
+[data-colores=A] .t-nueva{background:var(--verde-15);color:var(--verde)}                  /* verde */
+[data-colores=A] .t-vigente{background:var(--sand);color:var(--taupe)}                    /* neutro */
+[data-colores=A] .t-envejecida{background:var(--ambar-15);color:var(--ambar)}             /* ambar */
+[data-colores=A] .t-critica{background:transparent;box-shadow:inset 0 0 0 1.5px var(--tinta);color:var(--tinta);font-weight:600} /* NUEVO «tinta» */
+/* B · escala de tinta: cuanto más vieja, más peso; sin color de semáforo */
+[data-colores=B] .t-nueva{background:transparent;box-shadow:inset 0 0 0 1px var(--tinta-35);color:var(--tinta)} /* NUEVO «contorno» */
+[data-colores=B] .t-vigente{background:var(--sand);color:var(--taupe)}                    /* neutro */
+[data-colores=B] .t-envejecida{background:var(--tinta-12);color:var(--tinta);font-weight:600} /* NUEVO «tinta suave» */
+[data-colores=B] .t-critica{background:var(--tinta);color:var(--crema);font-weight:600}  /* NUEVO «tinta llena» */
+/* especiales (A y B): pizarra = no entra a la comparación; apagado = no se juzga; neutro = en pausa */
+.e-info,.e-clasico{background:var(--pizarra-15);color:var(--pizarra)}
+.e-dudosa{background:transparent;box-shadow:inset 0 0 0 1px var(--tinta-10);color:var(--tinta-65)}
+.e-apartada{background:var(--sand);color:var(--taupe)}
+.calif{display:block;font-size:11px;line-height:1.35;color:var(--taupe)}
+.calif.arriba{margin-bottom:2px}.calif.abajo{margin-top:2px}
+.previo{display:block;font-size:11.5px;color:var(--taupe);margin-top:3px}
+/* en la celda de estado el chip puede partirse en dos líneas: la columna es angosta y el nombre no se corta */
+.c-estado .chip{white-space:normal;align-items:flex-start;line-height:1.35;padding-top:2px;padding-bottom:2px;border-radius:11px}
+.c-estado .chip:before{margin-top:6px}
+.c-estado .chip svg{margin-top:1px}
+
+/* C · barra de edad: 4 tramos que se llenan, sin chips de color (pieza NUEVA: «BarraEdad») */
+.barra-edad{display:flex;flex-direction:column;gap:5px}
+.barra-edad .seg4{display:grid;grid-template-columns:repeat(4,16px);gap:3px}
+.barra-edad .seg4 i{height:7px;border-radius:2px;background:var(--hueso)}
+.filas>.fila:nth-child(even) .barra-edad .seg4 i{background:var(--sand)}
+.barra-edad .seg4 i.lleno,.filas>.fila:nth-child(even) .barra-edad .seg4 i.lleno{background:var(--tinta-70)}
+.barra-edad.critica .seg4 i.lleno,.filas>.fila:nth-child(even) .barra-edad.critica .seg4 i.lleno{background:var(--tinta)}
+.barra-edad .seg4 i.quiza{background:repeating-linear-gradient(135deg,var(--tinta-35) 0 2px,transparent 2px 4px)!important}
+.barra-edad .seg4.vacia i{background:transparent!important;box-shadow:inset 0 0 0 1px color-mix(in oklab,var(--taupe) 45%,transparent)}
+.barra-edad .seg4.pausa{opacity:.45}
+.barra-edad .et{font-size:13px;line-height:1.3}
+.barra-edad .et .pre{color:var(--taupe)}
+.barra-edad.critica .et{font-weight:600}
+.barra-edad .et.esp{color:var(--taupe)}
+.barra-edad .et.fuerte{font-weight:600}
+
+/* ───────── hoja de detalle (efecto de <Modal variante="hoja">) ───────── */
+.velo{position:fixed;inset:0;z-index:50;background:color-mix(in oklab,var(--tinta) 35%,transparent);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);animation:velo 220ms var(--ease-cayla) both}
+.velo.sale{animation:velo-sale 220ms var(--ease-salida) both}
+@keyframes velo{from{opacity:0}}
+@keyframes velo-sale{to{opacity:0}}
+.capa{position:fixed;inset:0;z-index:51;display:flex;align-items:flex-start;justify-content:center;padding:8vh 24px 24px;pointer-events:none}
+/* sm:rounded-2xl del Modal = 20 px (globals.css: --radius-2xl) */
+.hoja{pointer-events:auto;position:relative;width:100%;min-width:0;max-width:40rem;max-height:calc(100dvh - 8vh - 1.5rem);overflow-y:auto;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-2xl);padding:24px;animation:modal-entra 420ms var(--ease-cayla) backwards;scrollbar-width:thin}
+.hoja.sale{animation:modal-sale 220ms var(--ease-salida) both}
+@keyframes modal-entra{from{opacity:0;transform:translate3d(0,18px,0) scale(.965)}}
+@keyframes modal-sale{to{opacity:0;transform:translate3d(0,10px,0) scale(.98)}}
+.cascada>*{animation:cascada 500ms var(--ease-cayla) backwards;animation-delay:calc(var(--k,0)*55ms + 120ms)}
+.cascada>:nth-child(1){--k:0}.cascada>:nth-child(2){--k:1}.cascada>:nth-child(3){--k:2}.cascada>:nth-child(4){--k:3}.cascada>:nth-child(5){--k:4}.cascada>:nth-child(6){--k:5}.cascada>:nth-child(7){--k:6}.cascada>:nth-child(n+8){--k:7}
+@keyframes cascada{from{opacity:0;transform:translate3d(0,10px,0)}}
+.hoja h2{font-family:'EB Garamond',serif;font-weight:600;font-size:26px;line-height:1.15;padding-right:8px}
+.hoja .bajada{margin:4px 0 18px;font-size:13.5px;color:var(--taupe)}
+.bloque{padding:16px 0;border-top:1px solid var(--sand)}
+.bloque:first-of-type{border-top:0;padding-top:0}
+.bloque>.label{display:block;margin-bottom:8px}
+.veredicto{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.veredicto .dias-g{font-family:'EB Garamond',serif;font-weight:600;font-size:30px;line-height:1}
+.veredicto .dias-g small{font-family:'DM Sans';font-size:13px;font-weight:500;color:var(--taupe);margin-left:4px}
+.veredicto .dias-g small.pre{margin:0 6px 0 0}
+.parrafo{font-size:14px;line-height:1.6;margin-top:10px}
+.parrafo+.parrafo{margin-top:6px}
+.parrafo.taupe{color:var(--taupe);font-size:13px}
+.parrafo b{font-weight:600}
+.d5-hoja{margin-top:10px;display:flex;gap:8px;align-items:flex-start;background:var(--hueso-85);border-radius:var(--r-lg);padding:10px 12px;font-size:13px;color:var(--taupe);line-height:1.5}
+.d5-hoja b{color:var(--tinta);font-weight:600}
+.d5-hoja svg{margin-top:2px}
+/* la regla de la categoría: dónde cae la prenda. Cada zona lleva su nombre escrito y un filete taupe
+   (5,5:1 contra el papel): el color ayuda, pero no es lo único que dice qué zona es. */
+.regla{margin-top:14px;padding-top:28px;position:relative}
+.regla .pista{position:relative;height:24px;border-radius:6px;overflow:hidden;display:flex;box-shadow:inset 0 0 0 1px var(--taupe)}
+.regla .pista i{height:100%;display:flex;align-items:center;justify-content:flex-start;min-width:0;padding:0 6px;font-style:normal;font-size:11px;color:var(--tinta);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.regla .pista i+i{border-left:1px solid var(--taupe)}
+.regla .pista i span{overflow:hidden;text-overflow:ellipsis}
+.regla .marcas{position:relative;height:30px}
+.regla .marcas span{position:absolute;top:6px;transform:translateX(-50%);font-size:11px;color:var(--taupe);white-space:nowrap;text-align:center;line-height:1.2}
+.regla .marcas span:before{content:"";position:absolute;left:50%;top:-6px;width:1px;height:5px;background:var(--taupe)}
+.regla .marcas span.ini{transform:none}.regla .marcas span.ini:before{left:0}
+.regla .marcas span.fin{transform:translateX(-100%)}.regla .marcas span.fin:before{left:auto;right:0}
+.regla .ella{position:absolute;top:0;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;font-size:11.5px;font-weight:600;white-space:nowrap}
+.regla .ella:after{content:"";width:2px;height:24px;background:var(--tinta);border-radius:2px;margin-top:2px}
+.z-nueva,.z-vigente,.z-envejecida,.z-critica,.z-nada{display:block}
+[data-colores=A] .z-nueva{background:var(--verde-15)}
+[data-colores=A] .z-vigente{background:var(--sand)}
+[data-colores=A] .z-envejecida{background:var(--ambar-15)}
+[data-colores=B] .z-nueva{background:var(--papel)}
+[data-colores=B] .z-vigente{background:var(--sand)}
+[data-colores=B] .z-envejecida{background:var(--tinta-12)}
+[data-colores=C] .z-nueva{background:var(--tinta-6)}
+[data-colores=C] .z-vigente{background:var(--tinta-12)}
+[data-colores=C] .z-envejecida{background:var(--tinta-20)}
+/* el único rojo de la pantalla: la zona Crítica de la regla (un tinte), en las tres opciones */
+.z-critica{background:var(--rojo-10)}
+.z-nada{background:repeating-linear-gradient(135deg,var(--sand) 0 3px,transparent 3px 6px)}
+.tallas-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+.tallas-g div{background:var(--hueso);border-radius:10px;padding:8px 10px;font-size:12.5px;line-height:1.45}
+.tallas-g div b{display:block;font-size:13px}
+.tallas-g div span{color:var(--taupe)}
+.tallas-g div.mal{box-shadow:inset 0 0 0 1.5px var(--tinta-60)}
+.acciones-h{display:grid;gap:8px}
+.acc{border:1px solid var(--sand);border-radius:var(--r-lg);padding:12px 14px;background:var(--papel)}
+.acc .t{font-weight:600;font-size:14px;display:flex;gap:8px;align-items:flex-start}
+.acc .t svg{margin-top:2px;color:var(--taupe)}
+.acc p{font-size:13px;color:var(--tinta-60);margin-top:4px;line-height:1.55}
+.acc .ir{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+.apoyo{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13px}
+.apoyo dt{color:var(--taupe)}
+.apoyo dd{color:var(--tinta)}
+.pie-hoja{display:flex;justify-content:flex-end;gap:8px;padding-top:16px;border-top:1px solid var(--sand)}
+
+/* aviso de a dónde iría (solo maqueta) */
+.aviso-ir{position:fixed;right:20px;top:20px;z-index:80;background:var(--papel);border:1px solid var(--sand);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:11px 14px;font-size:13px;max-width:380px;opacity:0;transform:translateY(-6px);transition:opacity .25s var(--ease-cayla),transform .25s var(--ease-cayla);pointer-events:none}
+.aviso-ir.on{opacity:1;transform:none}
+.aviso-ir code{display:block;margin-top:3px;font-size:12px;color:var(--taupe);font-family:ui-monospace,Menlo,monospace;word-break:break-word}
+
+/* ───────── panel «Elige» (NO existe en el ERP) ─────────
+   En escritorio vive encima del menú lateral (su ancho), para no tapar la tabla que se está comparando. */
+.elige{position:fixed;left:14px;bottom:14px;z-index:70;width:calc(var(--lateral) - 28px);background:var(--tinta);color:var(--crema);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);font-size:12px}
+.elige .cab{display:flex;align-items:center;gap:8px;width:100%;padding:10px 12px;flex-wrap:wrap}
+.elige .cab .t{font-family:'EB Garamond',serif;font-size:18px;font-weight:600}
+.elige .cab .r{color:color-mix(in oklab,var(--crema) 70%,transparent);font-size:11.5px}
+.elige .cab svg{margin-left:auto;transition:transform .25s var(--ease-cayla)}
+.elige[data-abierto=false] .cuerpo{display:none}
+.elige[data-abierto=true] .cab svg{transform:rotate(180deg)}
+.elige .cuerpo{padding:0 12px 12px;display:grid;gap:12px;max-height:min(72vh,680px);overflow:auto}
+.elige h3{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:color-mix(in oklab,var(--crema) 60%,transparent);margin-bottom:6px}
+.elige .ops{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;border:1px solid color-mix(in oklab,var(--crema) 22%,transparent);border-radius:10px;padding:3px}
+.elige .ops.dos{grid-template-columns:repeat(2,1fr)}
+.elige .ops button{padding:5px 4px;border-radius:7px;text-align:center;color:color-mix(in oklab,var(--crema) 78%,transparent);line-height:1.2}
+.elige .ops button b{display:block;font-size:14px}
+.elige .ops button span{font-size:10.5px}
+.elige .ops button[aria-pressed=true]{background:var(--crema);color:var(--tinta)}
+.elige .gp{margin-top:7px;display:grid;grid-template-columns:auto 1fr;gap:3px 8px;line-height:1.45;color:color-mix(in oklab,var(--crema) 85%,transparent)}
+.elige .gp b{font-weight:600;color:var(--crema)}
+.elige .preg{line-height:1.45;color:color-mix(in oklab,var(--crema) 85%,transparent);margin-bottom:7px}
+.elige .resp{display:grid;gap:8px;border-top:1px solid color-mix(in oklab,var(--crema) 18%,transparent);padding-top:12px}
+.elige .resp output{font-size:13px}
+.elige .resp output q{font-weight:600}
+.elige .resp button{justify-self:start;background:var(--crema);color:var(--tinta);border-radius:8px;padding:6px 12px;font-weight:600}
+.elige .rojos{font-size:11.5px;color:color-mix(in oklab,var(--crema) 70%,transparent)}
+.elige .rojos b{color:var(--crema)}
+.elige .sim{font-size:11px;color:color-mix(in oklab,var(--crema) 55%,transparent)}
+
+/* ───────── anchos intermedios y celular ───────── */
+@media (max-width:980px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .lateral{display:none}
+  .barra{padding:0 16px;justify-content:space-between}
+  .barra .menu{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:.3em;font-size:12px}
+  .main{padding:22px 16px 150px}
+  /* sin lateral, el panel va abajo a todo el ancho (arranca plegado) y queda bajo el velo con la hoja abierta:
+     antes tapaba el botón «Cerrar» de la hoja en el celular */
+  .elige{left:8px;right:8px;bottom:8px;width:auto}
+  body.con-hoja .elige{z-index:40}
+}
+@media (max-width:820px){
+  .desliza{overflow:visible}
+  .desliza .cols{min-width:0}
+  .enc-tabla{display:none}
+  .fila{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"prenda dias" "estado estado" "rap rap" "tallas tallas" "sug sug";gap:8px 12px;padding:14px 16px}
+  .fila>.c-prenda{grid-area:prenda}.fila>.c-dias{grid-area:dias;text-align:right}.fila>.c-estado{grid-area:estado}
+  .fila>.c-rap{grid-area:rap}.fila>.c-tallas{grid-area:tallas}.fila>.c-vend{display:none}.fila>.c-sug{grid-area:sug}
+  .fila>.c-rap .rap{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px}
+  .fila>.c-rap .rap .chip{margin-top:0}
+  .fila>.c-estado .previo{display:inline;margin-left:6px}
+  .fila>.c-estado .calif{display:inline;margin:0 6px 0 0}
+  .mob{display:inline}
+  .rap .mob{display:block;flex-basis:100%}
+  .mob-et{display:block}
+  .fila.quieta:after{top:14px;bottom:14px}
+  .grupo-cab,.herr,.pie{padding-left:16px;padding-right:16px}
+  .d5{padding:0 16px 14px}
+}
+@media (max-width:640px){
+  h1.titulo{font-size:36px;margin-top:10px}
+  .frase{font-size:14px}
+  .enc{gap:18px}
+  .resumen{width:100%}
+  .resumen>*{min-width:0;padding:12px 4px}
+  .resumen button{margin:3px}
+  .cifra-v{font-size:26px}.cifra-v small{font-size:15px}
+  .cifra-v .suf{display:block;font-size:11px;margin:2px 0 0}
+  .cifra-l{font-size:11px;margin-top:6px}.cifra-l svg{display:none}
+  .herr .buscar{max-width:none;flex-basis:100%}
+  .combo>button{min-width:0}
+  .grupo-cab h2{font-size:20px}
+  .grupo-cab .comp{font-size:13px;flex-basis:100%}
+  .capa{align-items:flex-end;padding:0}
+  /* rounded-t-2xl del Modal en el celular */
+  .hoja{max-width:none;max-height:90vh;border-radius:var(--r-2xl) var(--r-2xl) 0 0;padding:20px 16px;animation-name:hoja-sube;animation-duration:380ms}
+  .hoja.sale{animation-name:hoja-baja}
+  @keyframes hoja-sube{from{opacity:0;transform:translate3d(0,24px,0)}}
+  @keyframes hoja-baja{to{opacity:0;transform:translate3d(0,24px,0)}}
+  .aviso-ir{left:12px;right:12px;max-width:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*:before,*:after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body data-colores="A" data-frases="A">
+
+<div class="app">
+  <aside class="lateral" aria-label="Menú (maqueta, no navega)">
+    <div class="logo"><i></i>CAYLA</div>
+    <nav>
+      <a>Inicio</a>
+      <a>Ventas</a>
+      <a class="grupo">Inventario</a>
+      <a class="sub">Existencias</a>
+      <a class="sub">Movimientos</a>
+      <a class="sub">Traslados</a>
+      <a class="sub">Conteo</a>
+      <a class="sub">Análisis</a>
+      <a class="sub on" aria-current="page">Frescura del piso</a>
+      <a>Catálogo</a>
+      <a>Compras</a>
+      <a>Finanzas</a>
+      <a>Clientas</a>
+    </nav>
+  </aside>
+  <div>
+    <div class="barra">
+      <span class="menu"><svg class="ic" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>CAYLA</span>
+      <span style="display:flex;gap:12px;align-items:center"><button class="sede-sel" data-ir="#sede" data-que="Cambiar de sede: el líder ve Trujillo, Arequipa y Lima (en la maqueta, solo Trujillo)">TIENDA TRU<svg class="ic" viewBox="0 0 24 24" style="width:13px;height:13px"><path d="m6 9 6 6 6-6"/></svg></button><span class="avatar" aria-hidden="true">FA</span></span>
+    </div>
+    <main class="main" id="pantalla"></main>
+  </div>
+</div>
+
+<div class="aviso-ir" id="aviso" role="status" aria-live="polite"></div>
+<div id="modal-raiz"></div>
+
+<section class="elige" id="elige" data-abierto="true" aria-label="Elige colores y frases (solo en la maqueta)"></section>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   DATOS SIMULADOS · Tienda TRU (Trujillo), lunes 28 de setiembre de 2026. La lectura mira 120 días: desde
+   el 31 de mayo. Cada prenda es un modelo+color en la sede (tallas aparte). Los estados, sugerencias y
+   cifras siguen las reglas de lib/frescura-reglas.ts (revisión 8): estaQuieta, sugerenciasDe,
+   estadoFrescura, cifrasSede.
+   Días = reloj de novedad (solo cuenta con alguna talla LIBRE colgada). `sinElla` = su categoría SIN ella
+   (D5: cortes, lo más largo que se vio y las ventas con fecha del resto; `sinElla.vendidas` es el mismo
+   número que `rapidez.referencia`). Tallas: [talla, piso libre, almacén libre, apartadas].
+   `sinFecha`: lo primero que se colgó llegó sin fecha (carga inicial, ajuste o saldo) → su reloj es «al
+   menos». `antes`: se colgó por primera vez antes del 31 de mayo → también «al menos».
+   Dos juegos: «dia» (la tienda con dos meses de ventas registradas: aparecen todos los estados) y «hoy»
+   (como TRU hoy: casi todo llegó en la carga inicial, 89 de 89 sin temporada, casi nada con qué comparar).
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const SEDE={corta:'TRU',nombre:'Trujillo',fecha:'lunes, 28 de setiembre · 10:40',desde:'31 de mayo'};
+const CAYLA_BLUSAS={p50:16,p75:30,p90:47,vendidas:84},CAYLA_ENT={p50:26,p75:40,vendidas:23},CAYLA_PAN={p50:20,p75:37,vendidas:41},CAYLA_VES={p50:23,p75:44,vendidas:16};
+const DATOS={
+ dia:{
+  nombre:'En 2 meses',
+  CATS:{
+   blusas:{nombre:'Blusas',plural:'blusas',sing:'blusa',uno:'una blusa',art:'las',demas:'las demás blusas',f:true,ventana:60,vendidas:37,nivel:'solido',p50:18,p75:34,p90:52,tMax:60,alFinal:.96,cayla:CAYLA_BLUSAS},
+   enterizos:{nombre:'Enterizos',plural:'enterizos',sing:'enterizo',uno:'un enterizo',art:'los',demas:'los demás enterizos',f:false,ventana:120,vendidas:0,nivel:null,cayla:CAYLA_ENT},
+   pantalones:{nombre:'Pantalones',plural:'pantalones',sing:'pantalón',uno:'un pantalón',art:'los',demas:'los demás pantalones',f:false,ventana:120,vendidas:14,nivel:'aceptable',p50:22,p75:41,p90:null,tMax:63,alFinal:.81,cayla:CAYLA_PAN},
+   vestidos:{nombre:'Vestidos',plural:'vestidos',sing:'vestido',uno:'un vestido',art:'los',demas:'los demás vestidos',f:false,ventana:120,vendidas:7,nivel:'pocos_datos',p50:25,p75:null,p90:null,tMax:58,alFinal:.58,cayla:CAYLA_VES},
+  },
+  P:[
+   {id:'killa',n:'Blusa Killa',cod:'BLU-0112',color:'Marfil',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',2,1,0],['M',2,2,0],['L',1,1,0]],
+    dias:6,estado:{tipo:'semaforo',tramo:'nueva',alMenos:false},rapidez:{indice:158,vendidas:3,esperadas:1.9,referencia:34},recientes:3,
+    sinElla:{p50:18,p75:34,p90:52,tMax:60,vendidas:34},primera:'22 set',llegadaCayla:'19 set',origen:'producción del Taller',sug:[]},
+   {id:'paracas',n:'Blusa Paracas',cod:'BLU-0098',color:'Terracota',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',1,0,0],['M',2,1,1],['L',1,0,0]],
+    dias:24,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:104,vendidas:5,esperadas:4.8,referencia:32},recientes:5,recientesApartadas:1,
+    sinElla:{p50:18,p75:35,p90:52,tMax:60,vendidas:32},primera:'4 set',llegadaCayla:'2 set',origen:'lote de Gamarra',sug:[]},
+   {id:'wayra',n:'Blusa Wayra manga globo',cod:'BLU-0087',color:'Negro',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',1,2,0],['M',1,2,0],['L',2,2,0]],
+    dias:61,estado:{tipo:'semaforo',tramo:'critica',alMenos:false},rapidez:{indice:23,vendidas:1,esperadas:4.3,referencia:36},recientes:0,quieta:true,
+    sinElla:{p50:18,p75:33,p90:51,tMax:60,vendidas:36},primera:'29 jul',llegadaCayla:'24 jul',origen:'lote de Gamarra',sug:['cambiar_lugar','trasladar']},
+   {id:'tupay',n:'Blusa bordada Tupay',cod:'BLU-0079',color:'Fucsia',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',0,1,0],['M',1,2,0],['L',1,0,0]],
+    dias:58,estado:{tipo:'semaforo',tramo:'critica',alMenos:false},rapidez:{indice:130,vendidas:9,esperadas:6.9,referencia:28},recientes:0,quieta:true,
+    sinElla:{p50:18,p75:34,p90:51,tMax:60,vendidas:28},primera:'1 ago',llegadaCayla:'28 jul',origen:'lote de Gamarra',sug:['cambiar_lugar','trasladar']},
+   {id:'nazca',n:'Blusa Nazca de lanilla',cod:'BLU-0071',color:'Vino',cat:'blusas',temporada:'Otoño-Invierno',temporadaPasada:true,finEstacion:'22 set',estacion:'otoño-invierno',tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:44,estado:{tipo:'semaforo',tramo:'envejecida',alMenos:false},rapidez:{indice:148,vendidas:11,esperadas:7.4,referencia:26},recientes:4,quieta:true,
+    sinElla:{p50:17,p75:33,p90:51,tMax:60,vendidas:26},primera:'15 ago',llegadaCayla:'14 may',origen:'producción del Taller (llegó a TRU por traslado)',sug:['sigue_vendiendo']},
+   {id:'pukio-camel',n:'Blusa de lanilla Pukio',cod:'BLU-0124',color:'Camel',cat:'blusas',temporada:'Otoño-Invierno',temporadaPasada:true,finEstacion:'22 set',estacion:'otoño-invierno',gemelo:'lote',tallas:[['S',1,0,0],['M',0,0,0],['L',1,0,0]],
+    dias:26,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:190,vendidas:8,esperadas:4.2,referencia:29},recientes:8,quieta:true,
+    sinElla:{p50:18,p75:34,p90:52,tMax:60,vendidas:29},primera:'2 set',llegadaCayla:'1 set',origen:'lote de Gamarra',sug:['sigue_vendiendo']},
+   {id:'pukio-gris',n:'Blusa de lanilla Pukio',cod:'BLU-0124',color:'Gris',cat:'blusas',temporada:'Otoño-Invierno',temporadaPasada:true,finEstacion:'22 set',estacion:'otoño-invierno',gemelo:'carga',sinFecha:true,tallas:[['S',1,0,0],['M',1,0,0],['L',0,0,0]],
+    dias:26,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:null,recientes:8,quieta:true,
+    sinElla:{p50:18,p75:34,p90:52,tMax:60,vendidas:37},primera:'2 set',llegadaCayla:'2 set',origen:'carga inicial',sug:['revisar_ventas','cambiar_lugar','retirar']},
+   {id:'chaska',n:'Blusa Chaska',cod:'BLU-0120',color:'Celeste',cat:'blusas',temporada:'Primavera-Verano',sinFecha:true,tallas:[['S',1,0,0],['M',2,0,0],['L',1,1,0]],
+    dias:11,estado:{tipo:'sin_edad_conocida'},rapidez:null,recientes:2,
+    sinElla:{p50:18,p75:34,p90:52,tMax:60,vendidas:37},primera:'17 set',llegadaCayla:'17 set',origen:'carga inicial',sug:[]},
+   {id:'qantu',n:'Blusa Qantu',cod:'BLU-0064',color:'Blanco',cat:'blusas',temporada:'Primavera-Verano',sinFecha:true,tallas:[['S',1,1,0],['M',2,1,0],['L',1,0,0]],
+    dias:56,estado:{tipo:'semaforo',tramo:'critica',alMenos:true},rapidez:null,recientes:1,
+    sinElla:{p50:18,p75:34,p90:52,tMax:60,vendidas:37},primera:'3 ago',llegadaCayla:'3 ago',origen:'carga inicial',sug:['revisar_ventas']},
+   {id:'sumaq',n:'Blusa Sumaq cuello bebé',cod:'BLU-0105',color:'Rosa palo',cat:'blusas',temporada:'Primavera-Verano',tallas:[['S',1,0,0],['M',1,2,0],['L',2,0,0]],
+    dias:null,estado:{tipo:'dudosa'},tallaMal:'M',rapidez:null,recientes:null,sinElla:null,primera:'8 set',llegadaCayla:'5 set',origen:'lote de Gamarra',sug:[]},
+
+   {id:'tikay',n:'Enterizo Tikay',cod:'ENT-0006',color:'Negro',cat:'enterizos',temporada:null,tallas:[['S',1,1,0],['M',1,1,0],['L',1,0,0]],
+    dias:27,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:0,sinElla:null,primera:'1 set',llegadaCayla:'29 ago',origen:'lote de Gamarra',sug:[]},
+   {id:'winay',n:'Enterizo Wiñay',cod:'ENT-0003',color:'Azul noche',cat:'enterizos',temporada:'Primavera-Verano',sinFecha:true,tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:33,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:2,sinElla:null,primera:'26 ago',llegadaCayla:'26 ago',origen:'carga inicial',sug:[]},
+
+   {id:'inti',n:'Pantalón palazzo Inti',cod:'PAN-0044',color:'Arena',cat:'pantalones',temporada:'Primavera-Verano',tallas:[['S',1,1,0],['M',1,1,0],['L',1,0,0]],
+    dias:63,estado:{tipo:'semaforo',tramo:'envejecida',alMenos:true},rapidez:{indice:71,vendidas:2,esperadas:2.8,referencia:12},recientes:1,quieta:true,
+    sinElla:{p50:22,p75:41,p90:null,tMax:57,vendidas:12},primera:'27 jul',llegadaCayla:'22 jul',origen:'lote de Gamarra',sug:['cambiar_lugar']},
+   {id:'qori',n:'Pantalón recto Qori',cod:'PAN-0051',color:'Negro',cat:'pantalones',temporada:null,tallas:[['28',1,1,0],['30',2,1,0],['32',1,0,0]],
+    dias:29,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:118,vendidas:3,esperadas:2.5,referencia:11},recientes:3,
+    sinElla:{p50:22,p75:42,p90:null,tMax:63,vendidas:11},primera:'30 ago',llegadaCayla:'27 ago',origen:'producción del Taller',sug:[]},
+   {id:'ayni',n:'Jean mom Ayni',cod:'PAN-0039',color:'Azul medio',cat:'pantalones',temporada:'Primavera-Verano',sinFecha:true,tallas:[['28',1,0,0],['30',1,0,0],['32',1,0,0]],
+    dias:34,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:null,recientes:0,
+    sinElla:{p50:22,p75:41,p90:null,tMax:63,vendidas:14},primera:'26 ago',llegadaCayla:'26 ago',origen:'carga inicial',sug:['revisar_ventas']},
+   {id:'mayu',n:'Pantalón culotte Mayu',cod:'PAN-0047',color:'Verde oliva',cat:'pantalones',temporada:'Primavera-Verano',apartada:true,tallas:[['S',0,0,1],['M',0,0,2]],
+    dias:26,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:176,vendidas:3,esperadas:1.7,referencia:11},recientes:3,recientesApartadas:3,
+    sinElla:{p50:22,p75:41,p90:null,tMax:63,vendidas:11},primera:'20 ago',llegadaCayla:'18 ago',origen:'producción del Taller',sug:[]},
+   {id:'sami',n:'Pantalón de lino Sami',cod:'PAN-0012',color:'Crudo',cat:'pantalones',temporada:'Clásico · primavera-verano',estacionClasico:'primavera-verano',tallas:[['S',1,1,0],['M',2,1,0],['L',1,1,0]],
+    dias:45,estado:{tipo:'clasico',fueraDeSuEstacion:false},rapidez:null,recientes:2,sinElla:null,primera:'14 ago',llegadaCayla:'12 ago',origen:'producción del Taller',sug:[]},
+
+   {id:'pachamama',n:'Vestido camisero Pachamama',cod:'VES-0019',color:'Mostaza',cat:'vestidos',temporada:'Primavera-Verano',tallas:[['S',1,0,0],['M',1,1,0],['L',0,1,0]],
+    dias:31,estado:{tipo:'sin_vara'},rapidez:{indice:312,vendidas:5,esperadas:1.6,referencia:2},recientes:3,
+    sinElla:{p50:null,p75:null,p90:null,tMax:58,vendidas:2},suyas:5,primera:'28 ago',llegadaCayla:'26 ago',origen:'producción del Taller',sug:[]},
+   {id:'tika',n:'Vestido midi Tika',cod:'VES-0027',color:'Coral',cat:'vestidos',temporada:'Primavera-Verano',tallas:[['S',1,1,0],['M',2,1,0],['L',1,1,0]],
+    dias:9,estado:{tipo:'semaforo',tramo:'nueva',alMenos:false},rapidez:{indice:110,vendidas:1,esperadas:.9,referencia:6},recientes:1,
+    sinElla:{p50:25,p75:null,p90:null,tMax:58,vendidas:6},primera:'19 set',llegadaCayla:'17 set',origen:'lote de Gamarra',sug:[]},
+   {id:'qocha',n:'Vestido de lino Qocha',cod:'VES-0008',color:'Blanco',cat:'vestidos',temporada:'Clásico · verano',estacionClasico:'verano',tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:40,estado:{tipo:'clasico',fueraDeSuEstacion:true},rapidez:null,recientes:1,sinElla:null,primera:'19 ago',llegadaCayla:'15 ago',origen:'lote de Gamarra',sug:['guardar_hasta_su_estacion']},
+   {id:'illari',n:'Vestido de punto Illari',cod:'VES-0023',color:'Gris jaspeado',cat:'vestidos',temporada:'Otoño-Invierno',temporadaPasada:true,finEstacion:'22 set',estacion:'otoño-invierno',tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:58,calendario:116,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:{indice:40,vendidas:1,esperadas:2.5,referencia:6},recientes:0,quieta:true,
+    sinElla:{p50:25,p75:null,p90:null,tMax:47,vendidas:6},primera:'4 jun',llegadaCayla:'2 jun',origen:'lote de Gamarra',sug:['revisar_ventas','cambiar_lugar','retirar']},
+  ],
+  SOLO_ALMACEN:[{n:'Enterizo palazzo Rumi',color:'Terracota',uds:4},{n:'Blusa Killa',color:'Negro',uds:6}],
+  GUARDADAS:[{n:'Blusa Chumpi',color:'Mostaza',uds:4,iba:'Crítica'}],
+ },
+ hoy:{
+  nombre:'Como TRU hoy',
+  CATS:{
+   blusas:{nombre:'Blusas',plural:'blusas',sing:'blusa',uno:'una blusa',art:'las',demas:'las demás blusas',f:true,ventana:120,vendidas:6,nivel:'pocos_datos',p50:9,p75:null,p90:null,tMax:14,alFinal:.55,cayla:null},
+   enterizos:{nombre:'Enterizos',plural:'enterizos',sing:'enterizo',uno:'un enterizo',art:'los',demas:'los demás enterizos',f:false,ventana:120,vendidas:0,nivel:null,cayla:null},
+   pantalones:{nombre:'Pantalones',plural:'pantalones',sing:'pantalón',uno:'un pantalón',art:'los',demas:'los demás pantalones',f:false,ventana:120,vendidas:0,nivel:null,cayla:null},
+   vestidos:{nombre:'Vestidos',plural:'vestidos',sing:'vestido',uno:'un vestido',art:'los',demas:'los demás vestidos',f:false,ventana:120,vendidas:0,nivel:null,cayla:null},
+  },
+  P:[
+   {id:'killa',n:'Blusa Killa',cod:'BLU-0112',color:'Marfil',cat:'blusas',temporada:null,tallas:[['S',2,1,0],['M',2,2,0],['L',1,1,0]],
+    dias:6,estado:{tipo:'semaforo',tramo:'nueva',alMenos:false},rapidez:{indice:150,vendidas:2,esperadas:1.3,referencia:4},recientes:2,
+    sinElla:{p50:9,p75:null,p90:null,tMax:14,vendidas:4},primera:'22 set',llegadaCayla:'19 set',origen:'producción del Taller',sug:[]},
+   {id:'sumaq',n:'Blusa Sumaq cuello bebé',cod:'BLU-0105',color:'Rosa palo',cat:'blusas',temporada:null,tallas:[['S',1,0,0],['M',1,2,0],['L',2,0,0]],
+    dias:11,estado:{tipo:'semaforo',tramo:'vigente',alMenos:false},rapidez:{indice:60,vendidas:1,esperadas:1.7,referencia:5},recientes:1,
+    sinElla:{p50:9,p75:null,p90:null,tMax:14,vendidas:5},primera:'17 set',llegadaCayla:'16 set',origen:'lote de Gamarra',sug:[]},
+   {id:'paracas',n:'Blusa Paracas',cod:'BLU-0098',color:'Terracota',cat:'blusas',temporada:null,sinFecha:true,tallas:[['S',1,0,0],['M',2,1,0],['L',1,0,0]],
+    dias:14,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:null,recientes:3,
+    sinElla:{p50:9,p75:null,p90:null,tMax:14,vendidas:6},primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'wayra',n:'Blusa Wayra manga globo',cod:'BLU-0087',color:'Negro',cat:'blusas',temporada:null,sinFecha:true,tallas:[['S',1,2,0],['M',1,2,0],['L',2,2,0]],
+    dias:14,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:null,recientes:0,
+    sinElla:{p50:9,p75:null,p90:null,tMax:14,vendidas:6},primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'nazca',n:'Blusa Nazca de lanilla',cod:'BLU-0071',color:'Vino',cat:'blusas',temporada:null,sinFecha:true,tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:14,estado:{tipo:'semaforo',tramo:'vigente',alMenos:true},rapidez:null,recientes:4,
+    sinElla:{p50:9,p75:null,p90:null,tMax:14,vendidas:6},primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'chaska',n:'Blusa Chaska',cod:'BLU-0120',color:'Celeste',cat:'blusas',temporada:null,sinFecha:true,tallas:[['S',1,0,0],['M',2,0,0],['L',1,1,0]],
+    dias:6,estado:{tipo:'sin_edad_conocida'},rapidez:null,recientes:1,
+    sinElla:{p50:9,p75:null,p90:null,tMax:14,vendidas:6},primera:'22 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'tikay',n:'Enterizo Tikay',cod:'ENT-0006',color:'Negro',cat:'enterizos',temporada:null,sinFecha:true,tallas:[['S',1,1,0],['M',1,1,0],['L',1,0,0]],
+    dias:14,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:0,sinElla:null,primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'inti',n:'Pantalón palazzo Inti',cod:'PAN-0044',color:'Arena',cat:'pantalones',temporada:null,sinFecha:true,tallas:[['S',1,1,0],['M',1,1,0],['L',1,0,0]],
+    dias:14,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:2,sinElla:null,primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'qori',n:'Pantalón recto Qori',cod:'PAN-0051',color:'Negro',cat:'pantalones',temporada:null,sinFecha:true,tallas:[['28',1,1,0],['30',2,1,0],['32',1,0,0]],
+    dias:14,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:0,sinElla:null,primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'ayni',n:'Jean mom Ayni',cod:'PAN-0039',color:'Azul medio',cat:'pantalones',temporada:null,tallas:[['28',1,0,0],['30',1,0,0],['32',1,0,0]],
+    dias:7,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:0,sinElla:null,primera:'21 set',llegadaCayla:'20 set',origen:'lote de Gamarra',sug:[]},
+   {id:'pachamama',n:'Vestido camisero Pachamama',cod:'VES-0019',color:'Mostaza',cat:'vestidos',temporada:null,sinFecha:true,tallas:[['S',1,0,0],['M',1,1,0],['L',0,1,0]],
+    dias:14,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:3,sinElla:null,primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'illari',n:'Vestido de punto Illari',cod:'VES-0023',color:'Gris jaspeado',cat:'vestidos',temporada:null,sinFecha:true,tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:14,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:0,sinElla:null,primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+   {id:'qocha',n:'Vestido de lino Qocha',cod:'VES-0008',color:'Blanco',cat:'vestidos',temporada:null,sinFecha:true,tallas:[['S',1,0,0],['M',1,1,0],['L',1,0,0]],
+    dias:14,estado:{tipo:'sin_ventas_sede'},rapidez:null,recientes:1,sinElla:null,primera:'14 set',llegadaCayla:'14 set',origen:'carga inicial',sug:[]},
+  ],
+  SOLO_ALMACEN:[{n:'Enterizo palazzo Rumi',color:'Terracota',uds:4},{n:'Blusa Killa',color:'Negro',uds:6}],
+  GUARDADAS:[],
+ },
+};
+const REGISTRO={mes:'setiembre',unidades:104,tardias:1};
+let CATS,P,SOLO_ALMACEN,GUARDADAS;
+function usarDatos(k){({CATS,P,SOLO_ALMACEN,GUARDADAS}=DATOS[k]);P.forEach(p=>{p.quieta=!!p.quieta})}
+
+/* ─── derivados (mismas reglas que cifrasSede) ─── */
+const piso=p=>p.tallas.reduce((s,t)=>s+t[1],0);
+const alm=p=>p.tallas.reduce((s,t)=>s+t[2],0);
+const apart=p=>p.tallas.reduce((s,t)=>s+t[3],0);
+const relojAlMenos=p=>!!(p.sinFecha||p.antes);
+const SIN_TRAMO=['sin_ventas_sede','sin_vara','sin_edad_conocida'];
+const sinTramoFirme=p=>SIN_TRAMO.includes(p.estado.tipo)||(p.estado.tipo==='semaforo'&&p.estado.alMenos);
+function cifras(){
+  let uds=0,peso=0,suma=0,alMenos=false,nuevas=0,conTramo=0,porDecidir=0;
+  for(const p of P){
+    if(p.quieta)porDecidir++;
+    const n=piso(p); if(n<=0)continue; uds+=n;
+    if(p.estado.tipo==='clasico'||p.estado.tipo==='dudosa')continue;
+    peso+=n; suma+=n*p.dias; if(relojAlMenos(p))alMenos=true;
+    if(p.estado.tipo==='semaforo'){conTramo+=n; if(p.estado.tramo==='nueva')nuevas+=n}
+  }
+  return {uds,edad:peso?Math.round(suma/peso):null,alMenos,nuevas,conTramo,pctNuevas:conTramo?Math.round(nuevas/conTramo*100):null,porDecidir};
+}
+const nivelPor=v=>v<=0?null:v<10?'pocos_datos':v<20?'aceptable':'solido';
+/* decimales como el resto del ERP: es-PE escribe «4.8», con punto */
+const fmt=x=>Number(x).toLocaleString('es-PE',{maximumFractionDigits:1});
+const TRAMO={nueva:'Nueva',vigente:'Vigente',envejecida:'Envejecida',critica:'Crítica'};
+const ORDEN_T={nueva:1,vigente:2,envejecida:3,critica:4};
+const lasDemas=c=>c.f?'las demás':'los demás';
+
+/* ─── la rapidez en palabras: UNA escala para la fila y el detalle ───
+   El corte es el de esPilar (100 = igual que su categoría con los mismos días colgada). Con índice de 100 o más
+   y 30 días en el piso sin vender, dejó de venderse (esPilar la cuenta como lenta: revisión 6).
+   Con la categoría «aún sin referencia» (sin_vara) no se pone palabra en la fila: el índice sale de muy pocas
+   ventas del resto y chocaba con el estado de al lado. */
+function claveRapidez(p){
+  const r=p.rapidez;
+  if(p.estado.tipo==='clasico'||p.estado.tipo==='dudosa')return 'sin_dato';
+  if(p.estado.tipo==='sin_vara'&&r)return 'sin_medida';
+  if(!r)return 'sin_dato';
+  if(r.indice>=100&&p.recientes===0&&p.dias>=30)return 'dejo';
+  if(r.indice>=120)return 'rapida';
+  if(r.indice>=100)return 'ritmo';
+  if(r.indice>=60)return 'lenta';
+  return 'muy_lenta';
+}
+/* las causas: el texto de una sugerencia dice la que tiene esa prenda, no una sola para todas */
+const causaRevisar=p=>(sinTramoFirme(p)&&p.recientes===0&&p.dias>=30)?'callada':'sin_dato';
+const causaCambiar=p=>p.temporadaPasada?'temporada':claveRapidez(p)==='dejo'?'dejo':'vieja_lenta';
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   LAS TRES OPCIONES DE COLOR
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const COLORES={
+  A:{nombre:'Semáforo cálido',corto:'verde → neutro → ámbar → contorno tinta',nuevos:1,
+     gana:'Se lee de lejos y habla el mismo idioma que los chips de Compras: verde va bien, ámbar a medias. Usa 3 tonos que Chip ya tiene.',
+     paga:'El ámbar dice tres cosas (Envejecida, «Pocos datos» y «Temporada pasada»), y la Crítica no puede ser roja: con 3 o más ya se pasa del máximo. Pide 1 tono nuevo en Chip (contorno tinta).'},
+  B:{nombre:'Escala de tinta',corto:'contorno → arena → tinta suave → tinta llena',nuevos:3,
+     gana:'Cuanto más vieja, más oscura: la Crítica es la única mancha llena y el ojo va directo ahí, sin gastar ningún color de semáforo.',
+     paga:'Nueva y Vigente casi no se distinguen de lejos, y pide 3 tonos nuevos en Chip (con su ADR) antes de construir.'},
+  C:{nombre:'Barra de edad',corto:'cuatro tramos que se llenan',nuevos:0,
+     gana:'Se entiende sin aprender colores (cuánto de su vida en el piso ya gastó), sirve impresa y con daltonismo.',
+     paga:'Con muchas filas cuesta más encontrar las críticas de un vistazo; los estados especiales quedan como texto gris; y la barra es una pieza nueva del sistema.'},
+};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   LOS TRES JUEGOS DE FRASES
+   Nunca en pantalla: «P50», «percentil», «vara», «tramo», «Kaplan-Meier».
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const sinVentasTxt=c=>`${c.f?'ninguna':'ningún'} ${c.sing}`;
+const FRASES={
+ A:{nombre:'Pregunta corta',
+   gana:'Todo cabe en una línea y cada sugerencia suena a pregunta, no a orden.',
+   paga:'El porqué vive en el detalle: quien no abre la prenda no sabe por qué se le pregunta.',
+   encabezado:'Lo que se está quedando en tu piso y qué puedes hacer con cada prenda.',
+   d5:'Cada prenda se compara con el resto de su categoría, sin contarse a sí misma.',
+   grupo:(c)=>`La mitad se vende antes de ${c.p50} días`+(c.p75!=null?` · 3 de cada 4, antes de ${c.p75}`:'')+(c.p90!=null?` · 9 de cada 10, antes de ${c.p90}.`:` · a los ${c.tMax} días ya se vendieron ${Math.round(c.alFinal*10)} de cada 10; más allá todavía no se sabe.`),
+   grupoSinVentas:(c)=>`En ${SEDE.nombre} todavía no hay ${c.plural} vendid${c.f?'as':'os'} con fecha de llegada conocida: no hay con qué comparar.`,
+   esp:{sin_ventas_sede:'Sin con qué comparar aquí',sin_vara:'Aún sin referencia',sin_edad_conocida:'Edad desconocida',clasico:'Clásico',clasicoFuera:'Clásico fuera de estación',dudosa:'No cuadra',apartada:'Apartada'},
+   alMenos:{pre:'al menos',suf:''},
+   pocos:'con pocos datos',
+   rap:(k,p,c)=>{const r=p.rapidez;
+     if(k==='sin_dato')return ['Sin dato',''];
+     if(k==='sin_medida')return ['Sin con qué comparar',`vendió ${r.vendidas} · ${lasDemas(c)}, ${r.referencia}`];
+     if(k==='dejo')return ['Dejó de venderse','vendió bien al llegar; 30 d sin vender'];
+     return [{rapida:'Rápida',ritmo:'A su ritmo',lenta:'Lenta',muy_lenta:'Muy lenta'}[k],`vendió ${r.vendidas} · se esperaban ${fmt(r.esperadas)}`]},
+   tp:(p)=>`${p.estacion}, terminó el ${p.finEstacion} · llegó a CAYLA el ${p.llegadaCayla}`,
+   sinTemp:'Sin temporada · complétala',
+   pausa:'en pausa',
+   sug:{revisar_ventas:()=>'¿Revisas sus ventas?',cambiar_lugar:()=>'¿La cambias de lugar 7 días?',trasladar:()=>'¿La trasladas a otra sede?',retirar:()=>'¿La retiras del piso?',
+        sigue_vendiendo:()=>'Sigue vendiendo: ¿la dejas hasta agotar o la retiras?',guardar_hasta_su_estacion:()=>'¿La guardas hasta su estación?'}},
+ B:{nombre:'Lista de opciones',
+   gana:'Las sugerencias se leen como un menú parejo (el mismo verbo en todas las filas); es el tono más neutro.',
+   paga:'Suena más a sistema que a tienda, un infinitivo suelto puede leerse como tarea asignada, y la rapidez son dos números que hay que comparar.',
+   encabezado:'Cuánto lleva colgada cada prenda, comparado con lo que tardan en venderse las de su categoría en esta tienda.',
+   d5:'Cada prenda se mide contra las demás de su categoría en esta tienda, sin contarse a sí misma (ni lo que vendió ni lo que sigue colgado).',
+   grupo:(c)=>`En ${SEDE.nombre}, la mitad de ${c.art} ${c.plural} se vende antes de los ${c.p50} días`+(c.p75!=null?` y 3 de cada 4 antes de los ${c.p75}`:'')+(c.p90!=null?`; a los ${c.p90} ya se vendieron 9 de cada 10.`:`; a los ${c.tMax} días ya se vendieron ${Math.round(c.alFinal*10)} de cada 10 y más allá todavía no se sabe.`),
+   grupoSinVentas:(c)=>`En ${SEDE.nombre} todavía no se vendió ${sinVentasTxt(c)} con fecha de llegada conocida: no hay comparación.`,
+   esp:{sin_ventas_sede:'Sin comparación en esta tienda',sin_vara:'Sin referencia de días',sin_edad_conocida:'No se sabe cuándo llegó',clasico:'Clásico',clasicoFuera:'Clásico, no es su estación',dudosa:'Stock por revisar',apartada:'Toda apartada'},
+   alMenos:{pre:'',suf:'o más'},
+   pocos:'pocos datos',
+   rap:(k,p,c)=>{const r=p.rapidez;
+     if(k==='sin_dato')return ['Sin dato',''];
+     if(k==='sin_medida')return [`Vendió ${r.vendidas}`,`${lasDemas(c)}: ${r.referencia}, muy pocas para comparar`];
+     if(k==='dejo')return [`Vendió ${r.vendidas}`,'nada en sus últimos 30 d en el piso'];
+     return [`Vendió ${r.vendidas}`,`se esperaban ${fmt(r.esperadas)} a su edad`]},
+   tp:(p)=>`su ${p.estacion} terminó el ${p.finEstacion}; vino a CAYLA el ${p.llegadaCayla}`,
+   sinTemp:'Sin temporada · falta en Catálogo',
+   pausa:'en pausa',
+   sug:{revisar_ventas:()=>'Revisar sus ventas',cambiar_lugar:()=>'Cambiar de lugar 7 días',trasladar:()=>'Trasladar a otra sede',retirar:()=>'Retirar del piso',
+        sigue_vendiendo:()=>'Sigue vendiendo: decide si la dejas hasta agotar o la retiras',guardar_hasta_su_estacion:()=>'Guardar hasta su estación'}},
+ C:{nombre:'Con el porqué',
+   gana:'Cada sugerencia trae su razón, y la rapidez se dice «como las demás», que ya explica que la prenda no se cuenta a sí misma.',
+   paga:'Frases más largas: la columna se ensancha y en el celular cada sugerencia ocupa dos líneas.',
+   encabezado:'Cuánto lleva colgada cada prenda y qué tan rápido se vende, contra las demás de su categoría.',
+   d5:'Cada prenda se compara con las demás de su categoría, nunca consigo misma: así la que no se vende no hace parecer normal su propia lentitud.',
+   grupo:(c)=>`A los ${c.p50} días ya se vendió la mitad de ${c.art} ${c.plural} de ${SEDE.nombre}`+(c.p75!=null?`; a los ${c.p75}, 3 de cada 4`:'')+(c.p90!=null?`; a los ${c.p90}, casi ${c.f?'todas':'todos'}.`:`; a los ${c.tMax}, ${Math.round(c.alFinal*10)} de cada 10; más allá todavía no se sabe.`),
+   grupoSinVentas:(c)=>`Todavía no se vendió ${sinVentasTxt(c)} en ${SEDE.nombre} con fecha de llegada conocida: no hay con qué comparar.`,
+   esp:{sin_ventas_sede:'Aún no hay ventas que sirvan de medida',sin_vara:'Todavía no se sabe cuánto tardan',sin_edad_conocida:'Parece nueva, pero no se sabe cuándo llegó',clasico:'Clásico: no envejece',clasicoFuera:'Clásico, espera su estación',dudosa:'Sus números no cuadran',apartada:'Apartada para clientas'},
+   alMenos:{pre:'',suf:'quizá más'},
+   pocos:'con pocos datos',
+   rap:(k,p,c)=>{const r=p.rapidez,d=`${c.art} demás`;
+     if(k==='sin_dato')return ['Sin dato',''];
+     if(k==='sin_medida')return [`Vendió ${r.vendidas}; ${d}, solo ${r.referencia}`,''];
+     if(k==='dejo')return ['Vendió bien al llegar; hoy no se vende','30 días en el piso sin vender'];
+     return [{rapida:`Más rápida que ${d}`,ritmo:`Como ${d}`,lenta:`Más lenta que ${d}`,muy_lenta:`Mucho más lenta que ${d}`}[k],`vendió ${r.vendidas}, se esperaban ${fmt(r.esperadas)}`]},
+   tp:(p)=>`su ${p.estacion} terminó el ${p.finEstacion} · llegó a CAYLA el ${p.llegadaCayla}`,
+   sinTemp:'¿De qué temporada es? Complétala',
+   pausa:'parado: está apartada',
+   sug:{revisar_ventas:(p)=>causaRevisar(p)==='callada'?'30 días sin vender: mira qué le pasa':'No se sabe qué tan rápido se vende: mira sus ventas',
+        cambiar_lugar:(p)=>({temporada:'Pasó su estación: pruébala 7 días en otro lugar',dejo:'Ya no se vende: pruébala 7 días en otro lugar',vieja_lenta:'No se mueve: pruébala 7 días en otro lugar'})[causaCambiar(p)],
+        trasladar:(p)=>`Hay ${alm(p)} en el almacén: ¿otra sede la vende antes?`,retirar:()=>'Ya pasó su temporada: ¿la sacas del piso?',
+        sigue_vendiendo:()=>'Pasó su temporada y se sigue vendiendo: ¿hasta agotar o la sacas?',guardar_hasta_su_estacion:(p)=>`Es de ${p.estacionClasico}: ¿la guardas hasta su estación?`}},
+};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PREGUNTA 8 (ADR-0208, revisión 6): no es color ni frase, es una regla. Los dos Pukio son gemelos: la
+   misma historia, uno del lote y otro de la carga inicial.
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const P8={
+  hoy:{nombre:'Como hoy',sug:['revisar_ventas','cambiar_lugar','retirar'],
+       gana:'Ninguna regla nueva: sin dato de rapidez no se afirma que algo se vende bien.',
+       paga:'En TRU, 33 de 34 modelo+color vinieron solo en la carga: al terminar su estación, todos sus éxitos recibirán «cámbiala de lugar» y «retírala».'},
+  rec:{nombre:'Recomendada',sug:['sigue_vendiendo'],
+       gana:'Los gemelos reciben lo mismo; el éxito de la carga no recibe una orden de moverlo.',
+       paga:'Sin rapidez no se sabe si vende «bien»: una chompa que vendió 1 de 4 en 42 días también diría «sigue vendiendo».'},
+  otra:{nombre:'Sin mover',sug:['revisar_ventas','retirar'],
+       gana:'No se le pide mover lo que se vende, y la pregunta de retirarla sigue ahí.',
+       paga:'Los gemelos siguen distintos: uno «sigue vendiendo», el otro «revisa» y «retírala».'},
+};
+const sugDe=p=>p.gemelo==='carga'?P8[S.p8].sug:p.sug;
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   ESTADO DE LA MAQUETA
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const S={colores:'A',frases:'A',p8:'hoy',datos:'dia',cat:'todas',estado:'todos',porDecidir:false,q:'',abierta:null,elige:true};
+try{const g=JSON.parse(localStorage.getItem('maqueta-frescura')||'{}');if(g.colores in COLORES)S.colores=g.colores;if(g.frases in FRASES)S.frases=g.frases;if(g.p8 in P8)S.p8=g.p8;if(g.datos in DATOS)S.datos=g.datos;if(typeof g.elige==='boolean')S.elige=g.elige}catch(e){}
+(()=>{const u=new URLSearchParams(location.search);
+  if(u.get('colores') in COLORES)S.colores=u.get('colores');
+  if(u.get('frases') in FRASES)S.frases=u.get('frases');
+  if(u.get('p8') in P8)S.p8=u.get('p8');
+  if(u.get('datos') in DATOS)S.datos=u.get('datos');
+  if(u.get('elige')==='0')S.elige=false;
+  else if(u.get('elige')==='1')S.elige=true;
+  else if(window.matchMedia&&matchMedia('(max-width:980px)').matches)S.elige=false; // sin lateral arranca plegado: tapa la pantalla
+  if(u.get('abrir'))S.abrirAlCargar=u.get('abrir');
+  if(u.get('pordecidir')==='1')S.porDecidir=true;})();
+usarDatos(S.datos);
+const guardar=()=>{try{localStorage.setItem('maqueta-frescura',JSON.stringify({colores:S.colores,frases:S.frases,p8:S.p8,datos:S.datos,elige:S.elige}))}catch(e){}};
+
+/* ─── íconos (trazo, como lucide) ─── */
+const I={
+ percha:'<path d="M12 7a2 2 0 1 1 2-2c0 1.2-2 1.6-2 3v1"/><path d="M12 9 3 16.5a1 1 0 0 0 .6 1.8h16.8a1 1 0 0 0 .6-1.8z"/>',
+ buscar:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.8-3.8"/>',
+ abajo:'<path d="m6 9 6 6 6-6"/>',
+ reloj:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+ brote:'<path d="M12 20v-8"/><path d="M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5zM12 14c0-3-2.3-5-5.5-5 0 3 2.3 5 5.5 5z"/>',
+ pregunta:'<circle cx="12" cy="12" r="8.5"/><path d="M9.8 9.5a2.3 2.3 0 0 1 4.4.9c0 1.6-2.2 2-2.2 3.3M12 16.8h.01"/>',
+ capas:'<path d="m12 4 8.5 4.5L12 13 3.5 8.5z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5"/>',
+ info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+ lupa:'<circle cx="11" cy="11" r="6.5"/><path d="m20 20-3.8-3.8"/>',
+ mover:'<path d="M4 12h12m-4-5 5 5-5 5M20 5v14"/>',
+ camion:'<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+ retirar:'<path d="M12 4v11m-4-4 4 4 4-4M5 20h14"/>',
+ caja:'<path d="M3.5 8 12 4l8.5 4v8L12 20l-8.5-4z"/><path d="m3.5 8 8.5 4 8.5-4M12 12v8"/>',
+ contar:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12l2 2 4-4"/>',
+ copiar:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+};
+const ic=(k,st='')=>`<svg class="ic" viewBox="0 0 24 24" aria-hidden="true" ${st?`style="${st}"`:''}>${I[k]}</svg>`;
+const ICONO_SUG={revisar_ventas:'lupa',cambiar_lugar:'mover',trasladar:'camion',retirar:'retirar',sigue_vendiendo:'pregunta',guardar_hasta_su_estacion:'caja'};
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PIEZAS
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const F=()=>FRASES[S.frases];
+const cat=p=>CATS[p.cat];
+/* «al menos 34», «34 o más», «34 quizá más»: el juego de frases elegido, en toda la pantalla */
+const conAlMenos=(txt)=>{const f=F();return f.alMenos.pre?`${f.alMenos.pre} ${txt}`:`${txt} ${f.alMenos.suf}`};
+const nombreAlMenos=(tramo)=>tramo==='critica'?TRAMO.critica:conAlMenos(TRAMO[tramo]);
+const muchasSinTemporada=()=>P.filter(p=>p.temporada===null).length>P.length/2;
+
+/** El estado de la fila: chip (A y B) o barra de edad (C). */
+function estadoHTML(p){
+  const c=cat(p),f=F(),e=p.estado;
+  if(S.colores==='C')return barraEdad(p);
+  if(p.apartada)return `<span class="chip e-apartada">${f.esp.apartada}</span><span class="previo">iba en ${TRAMO[e.tramo]} · ${apart(p)} apartadas</span>`;
+  if(e.tipo==='semaforo'){
+    const t=TRAMO[e.tramo],pocos=c.nivel==='pocos_datos'?`<span class="calif abajo">${f.pocos}</span>`:'';
+    // «al menos Crítica» es Crítica: no hay nada después
+    if(!e.alMenos||e.tramo==='critica')return `<span class="chip t-${e.tramo}">${t}</span>${pocos}`;
+    return `${f.alMenos.pre?`<span class="calif arriba">${f.alMenos.pre}</span>`:''}<span class="chip t-${e.tramo}">${t}</span>${f.alMenos.suf?`<span class="calif abajo">${f.alMenos.suf}</span>`:''}${pocos}`;
+  }
+  if(e.tipo==='clasico')return `<span class="chip e-clasico">${e.fueraDeSuEstacion?f.esp.clasicoFuera:f.esp.clasico}</span>`;
+  if(e.tipo==='dudosa')return `<span class="chip e-dudosa">${ic('info','width:13px;height:13px')}${f.esp.dudosa}</span>`;
+  return `<span class="chip e-info">${f.esp[e.tipo]}</span>`;
+}
+function barraEdad(p){
+  const c=cat(p),f=F(),e=p.estado;
+  const seg=(n,quiza,extra='')=>`<span class="seg4 ${extra}" aria-hidden="true">${[1,2,3,4].map(i=>`<i class="${i<=n?'lleno':''} ${quiza&&i===n+1?'quiza':''}"></i>`).join('')}</span>`;
+  if(p.apartada){const n=ORDEN_T[e.tramo];return `<span class="barra-edad">${seg(n,false,'pausa')}<span class="et fuerte">${f.esp.apartada}</span><span class="previo" style="margin-top:0">iba en ${TRAMO[e.tramo]} · ${apart(p)} apartadas</span></span>`}
+  if(e.tipo==='semaforo'){
+    const n=ORDEN_T[e.tramo],t=TRAMO[e.tramo],am=e.alMenos&&n<4;
+    const et=am?(f.alMenos.pre?`<span class="pre">${f.alMenos.pre}</span> ${t}`:`${t} <span class="pre">${f.alMenos.suf}</span>`):t;
+    const pocos=c.nivel==='pocos_datos'?`<span class="calif">${f.pocos}</span>`:'';
+    return `<span class="barra-edad ${e.tramo==='critica'?'critica':''}">${seg(n,am)}<span class="et">${et}</span>${pocos}</span>`;
+  }
+  if(e.tipo==='clasico')return `<span class="barra-edad"><span class="et esp">${e.fueraDeSuEstacion?f.esp.clasicoFuera:f.esp.clasico}</span></span>`;
+  if(e.tipo==='dudosa')return `<span class="barra-edad"><span class="et fuerte">${ic('info','width:13px;height:13px;vertical-align:-2px')} ${f.esp.dudosa}</span></span>`;
+  return `<span class="barra-edad">${seg(0,false,'vacia')}<span class="et esp">${f.esp[e.tipo]}</span></span>`;
+}
+function diasHTML(p){
+  const f=F();
+  if(p.dias==null)return `<span class="dias apagado"><b>—</b></span>`;
+  const apagado=p.estado.tipo==='clasico'?'apagado':'';
+  const suf=p.apartada?`<span class="suf">${f.pausa}</span>`:'';
+  if(relojAlMenos(p)){
+    return f.alMenos.pre?`<span class="dias"><span class="pre">${f.alMenos.pre}</span><b class="num">${p.dias}</b> días</span>`:`<span class="dias"><b class="num">${p.dias}</b> días<span class="suf">${f.alMenos.suf}</span></span>`;
+  }
+  return `<span class="dias ${apagado}"><b class="num">${p.dias}</b> días${suf}</span>`;
+}
+function confianzaChip(nivel){
+  if(nivel==='pocos_datos')return `<span class="chip ambar chico conf">Pocos datos</span>`;
+  if(nivel==='aceptable')return `<span class="chip neutro chico conf">Aceptable</span>`;
+  return '';
+}
+function porqueSinDato(p){
+  if(p.estado.tipo==='clasico')return 'los clásicos no se miden';
+  if(p.estado.tipo==='dudosa')return 'no se mide mientras no cuadre';
+  if(p.sinFecha)return 'no se sabe cuándo llegó lo que vendió';
+  return 'su categoría no tiene ventas aquí con qué compararla';
+}
+function rapidezHTML(p){
+  const c=cat(p),k=claveRapidez(p),[w,d]=F().rap(k,p,c);
+  const conf=p.rapidez&&k!=='sin_dato'?confianzaChip(nivelPor(p.rapidez.referencia)):'';
+  const porque=k==='sin_dato'?porqueSinDato(p):'';
+  const vend=p.recientes==null?'':`<div class="d mob">vendió ${p.recientes} en sus últimos 30 d en el piso${p.recientesApartadas?` (${p.recientesApartadas===p.recientes?'todas':p.recientesApartadas} apartadas)`:''}</div>`;
+  return `<div class="rap"><div class="w">${w}</div>${d?`<div class="d num">${d}</div>`:''}${porque?`<div class="d">${porque}</div>`:''}${vend}${conf}</div>`;
+}
+function vendHTML(p){
+  if(p.recientes==null)return `<span class="vend">—</span>`;
+  return `<span class="vend num">${p.recientes}${p.recientesApartadas?`<small>${p.recientesApartadas===p.recientes?'todas':p.recientesApartadas} apartadas</small>`:''}</span>`;
+}
+function tallasHTML(p){
+  return `<span class="mob-et">Tallas: piso · almacén${p.tallas.some(t=>t[3])?' · apartadas':''}</span><span class="tallas">${p.tallas.map(([t,pi,al,ap])=>`<span class="tl ${p.tallaMal===t?'mal':''}" title="Talla ${t}: ${pi} en el piso, ${al} en el almacén${ap?`, ${ap} apartadas`:''}"><b>${t}</b><span class="q">${pi}·${al}</span>${ap?`<span class="ap">${ap} ap.</span>`:''}</span>`).join('')}</span>`;
+}
+function chipsTemporada(p){
+  const f=F(),out=[];
+  if(p.temporadaPasada)out.push(`<span class="chip ambar chico tp">Temporada pasada</span><span class="aux">${f.tp(p)}</span>`);
+  if(p.temporada===null&&!muchasSinTemporada())out.push(`<span class="chip neutro chico">${f.sinTemp}</span>`);
+  return out.join('');
+}
+function sugHTML(p){
+  const sg=sugDe(p);
+  if(!sg.length){
+    const txt=p.apartada?'Nada: tiene dueña':p.estado.tipo==='dudosa'?'Revisa su stock primero':'Nada por ahora';
+    return `<div class="sug"><span class="nada">${txt}</span></div>`;
+  }
+  return `<div class="sug">${sg.map(s=>`<span class="s">${ic(ICONO_SUG[s])}<span>${F().sug[s](p)}</span></span>`).join('')}</div>`;
+}
+function filaHTML(p){
+  const ch=chipsTemporada(p);
+  return `<div class="fila cols ${p.quieta?'quieta':''}" role="row" tabindex="0" data-abrir="${p.id}" aria-label="${p.n} ${p.color}: abrir el detalle">
+    <div class="c-prenda" role="cell"><div class="prenda"><span class="foto">${ic('percha')}</span><div style="min-width:0"><div class="n">${p.n}</div><div class="m">${p.color} · ${p.cod}${p.temporada&&!p.temporadaPasada?` · ${p.temporada}`:''}</div>${ch?`<div class="chips">${ch}</div>`:''}</div></div></div>
+    <div class="c-tallas" role="cell">${tallasHTML(p)}</div>
+    <div class="c-dias der" role="cell">${diasHTML(p)}</div>
+    <div class="c-estado" role="cell">${estadoHTML(p)}</div>
+    <div class="c-rap" role="cell">${rapidezHTML(p)}</div>
+    <div class="c-vend der" role="cell">${vendHTML(p)}</div>
+    <div class="c-sug" role="cell">${sugHTML(p)}</div>
+  </div>`;
+}
+function cabeceraGrupo(k,prendas){
+  const c=CATS[k],f=F();
+  const comp=c.vendidas>0&&c.p50!=null?f.grupo(c):f.grupoSinVentas(c);
+  const conf=c.nivel?confianzaChip(c.nivel):'';
+  const base=c.vendidas>0?`con ${c.vendidas} ventas de los últimos ${c.ventana} días`:'';
+  const tramos=c.p50!=null?[['Nueva',`antes de ${c.p50} d`],['Vigente',c.p75!=null?`${c.p50}–${c.p75} d`:`desde ${c.p50} d`],['Envejecida',c.p75!=null?(c.p90!=null?`${c.p75}–${c.p90} d`:`desde ${c.p75} d`):'sin datos aún'],['Crítica',c.p90!=null?`más de ${c.p90} d`:'sin datos aún']].map(([t,r])=>`<span><b>${t}</b> ${r}</span>`):[];
+  const esc=tramos.length?`<div class="escala">${tramos.join('<span aria-hidden="true">·</span>')}<span aria-hidden="true">·</span><span>${base}</span></div>`:'';
+  const cy=c.cayla;
+  const caylaTxt=cy?`Las 3 tiendas juntas: la mitad de ${c.art} ${c.plural} se vende antes de ${cy.p50} días${cy.p75!=null?`, 3 de cada 4 antes de ${cy.p75}`:''}.`:'todavía no alcanza (las otras tiendas no tienen ventas con fecha en el sistema).';
+  return `<div class="grupo-cab" role="rowgroup">
+     <h2>${c.nombre}<span class="n">${prendas.length} ${prendas.length===1?'prenda':'prendas'}</span></h2>
+     <p class="comp">${comp} ${conf}</p>
+     ${esc}
+     <p class="cayla"><b>Referencia de CAYLA:</b> ${caylaTxt}</p>
+   </div>`;
+}
+
+/* ─── filtros ───
+   Las opciones de «Cuánto lleva» no se pisan con «Otros»: las «al menos» cuentan en su edad, y «Sin comparación
+   todavía» son solo las que no tienen ninguna. «Temporada» sí se cruza con las de arriba (lo dice el pie). */
+const OP_CAT=()=>[['todas','Todas'],...Object.entries(CATS).map(([k,c])=>[k,c.nombre])];
+const OP_EST=()=>{const f=F();return [['todos','Todos',''],['nueva','Nueva','Cuánto lleva'],['vigente','Vigente','Cuánto lleva'],['envejecida','Envejecida','Cuánto lleva'],['critica','Crítica','Cuánto lleva'],
+  ['sin_comparar','Sin comparación todavía','Otros'],['clasico','Clásicos','Otros'],['dudosa',f.esp.dudosa,'Otros'],['apartada','Apartadas','Otros'],['temporada_pasada','Temporada pasada','Temporada'],['sin_temporada','Sin temporada','Temporada']]};
+function pasaEstado(p,e){
+  if(e==='todos')return true;
+  if(e==='apartada')return !!p.apartada;
+  if(e==='temporada_pasada')return !!p.temporadaPasada;
+  if(e==='sin_temporada')return p.temporada===null;
+  if(e==='clasico')return p.estado.tipo==='clasico';
+  if(e==='dudosa')return p.estado.tipo==='dudosa';
+  if(e==='sin_comparar')return SIN_TRAMO.includes(p.estado.tipo);
+  return p.estado.tipo==='semaforo'&&!p.apartada&&p.estado.tramo===e;
+}
+const sinTildes=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const visibles=()=>P.filter(p=>(S.cat==='todas'||p.cat===S.cat)&&pasaEstado(p,S.estado)&&(!S.porDecidir||p.quieta)&&(!S.q||sinTildes(`${p.n} ${p.color} ${p.cod}`).includes(sinTildes(S.q))));
+
+function combo(id,etiqueta,ops,valor){
+  const v=ops.find(o=>o[0]===valor)||ops[0];
+  return `<div class="combo" data-combo="${id}"><button type="button" class="caja" aria-haspopup="listbox" aria-expanded="false" data-abre-combo="${id}"><span><span class="que">${etiqueta}:</span> ${v[1]}</span>${ic('abajo')}</button></div>`;
+}
+function listaCombo(id){
+  const ops=id==='cat'?OP_CAT():OP_EST(),val=id==='cat'?S.cat:S.estado;
+  const buscar=ops.length>8; // ADR-0209: más de 8 opciones → buscador
+  const q=S['q_'+id]||'';
+  const filtradas=ops.filter(o=>!q||sinTildes(o[1]).includes(sinTildes(q)));
+  let html='',grupo=null;
+  for(const o of filtradas){
+    if(o[2]&&o[2]!==grupo){grupo=o[2];html+=`<div class="grupo-op">${grupo}</div>`}
+    const n=id==='cat'?(o[0]==='todas'?P.length:P.filter(p=>p.cat===o[0]).length):P.filter(p=>pasaEstado(p,o[0])).length;
+    html+=`<div role="option" tabindex="-1" aria-selected="${o[0]===val}" data-op="${o[0]}">${o[1]}<span class="n">${n}</span></div>`;
+  }
+  if(!filtradas.length)html=`<div class="vacio">Nada con «${q}»</div>`;
+  if(id==='est')html+=`<div class="pie-op">«Temporada» se cruza con las de arriba: una prenda puede estar en las dos.</div>`;
+  return `<div class="lista" role="listbox" aria-label="${id==='cat'?'Categoría':'Estado'}">${buscar?`<label class="busca caja">${ic('buscar','width:14px;height:14px;color:var(--taupe)')}<input data-busca-combo="${id}" placeholder="Buscar estado" value="${q}" aria-label="Buscar estado"></label>`:''}<div data-ops>${html}</div></div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PANTALLA
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function pantalla(){
+  const f=F(),k=cifras();
+  const edadPre=k.alMenos?(f.alMenos.pre||''):'';
+  const edadSuf=k.alMenos&&!f.alMenos.pre?f.alMenos.suf:'';
+  const enc=`<header class="enc">
+    <div class="enc-izq sube">
+      <p class="hilo"><span>Tienda ${SEDE.corta} · ${SEDE.fecha}</span></p>
+      <h1 class="titulo">Frescura del piso</h1>
+      <p class="frase">${f.encabezado}</p>
+      <div class="pie-enc"><span>En ${REGISTRO.mes} se registraron al colgarlas <b>${REGISTRO.unidades-REGISTRO.tardias} de ${REGISTRO.unidades}</b> unidades (${REGISTRO.tardias} recién al venderla) · Ventas a pedido: <b>sin datos todavía</b></span><button class="btn-enlace" data-ir="#registro" data-que="El registro al colgar de las 3 tiendas, este mes y el anterior (fn_confianza_registro): bajadas tardías y, cuando exista el bloque 3b, ventas «a pedido»">Ver las 3 tiendas</button></div>
+    </div>
+    <div class="resumen sube" style="--i:1" aria-label="Resumen de Trujillo">
+      <div title="Promedio de lo colgado, sin clásicos ni las que no cuadran${k.alMenos?'. Alguna prenda llegó sin fecha: el promedio también puede ser más':''}"><span class="cifra-pre">${edadPre}</span><span class="cifra-v num">${k.edad??'—'}${edadSuf?`<span class="suf">${edadSuf}</span>`:''}</span><span class="cifra-l">${ic('reloj')}días en el piso, en promedio</span></div>
+      <div title="${k.nuevas} de ${k.conTramo} unidades que se pueden comparar con su categoría"><span class="cifra-pre"></span><span class="cifra-v num">${k.pctNuevas??'—'}<small>%</small></span><span class="cifra-l">${ic('brote')}de lo medido es Nueva</span></div>
+      <button type="button" aria-pressed="${S.porDecidir}" data-act="porDecidir" title="Filtrar las que están por decidir"><span class="cifra-pre"></span><span class="cifra-v num alerta">${k.porDecidir}</span><span class="cifra-l alerta">${ic('pregunta')}por decidir</span></button>
+      <div><span class="cifra-pre"></span><span class="cifra-v num">${k.uds}</span><span class="cifra-l">${ic('capas')}unidades en el piso</span></div>
+    </div>
+  </header>`;
+
+  const vs=visibles();
+  const grupos=Object.keys(CATS).map(kc=>[kc,vs.filter(p=>p.cat===kc)]).filter(([,l])=>l.length);
+  const nSinTemp=P.filter(p=>p.temporada===null).length;
+  const avisoTemp=muchasSinTemporada()?`<p class="d5">${ic('info')}<span><b>${nSinTemp} de ${P.length} prendas no tienen temporada:</b> se miden igual, pero nunca van a avisar que pasó su estación. <button class="btn-enlace" data-ir="/catalogo?filtro=sin_temporada" data-que="Completar la temporada en Catálogo">Complétalas en Catálogo</button></span></p>`:'';
+  const herr=`<div class="herr">
+     <label class="buscar caja">${ic('buscar')}<input data-q placeholder="Prenda, color o código" value="${S.q}" aria-label="Buscar prenda"></label>
+     ${combo('cat','Categoría',OP_CAT(),S.cat)}
+     ${combo('est','Estado',OP_EST(),S.estado)}
+     <button type="button" class="pildora" aria-pressed="${S.porDecidir}" data-act="porDecidir">Por decidir <span class="n">${k.porDecidir}</span></button>
+     ${S.cat!=='todas'||S.estado!=='todos'||S.porDecidir||S.q?`<button type="button" class="btn-enlace" style="font-size:13px" data-act="limpiar">Quitar filtros</button>`:''}
+   </div>
+   <p class="d5">${ic('info')}<span><b>${f.d5}</b> Los días cuentan solo el tiempo con alguna talla libre colgada.</span></p>${avisoTemp}`;
+  const cuerpo=grupos.length?grupos.map(([kc,l])=>`${cabeceraGrupo(kc,l)}
+     <div class="desliza"><div class="enc-tabla cols" role="row"><span>Prenda</span><span>Tallas<small>piso · almacén</small></span><span class="der">En el piso</span><span>Estado</span><span>Rapidez<small>contra su categoría</small></span><span class="der">Vendió<small>30 d en piso</small></span><span>Qué hacer</span></div>
+     <div class="filas" role="rowgroup">${l.map(filaHTML).join('')}</div></div>`).join('')
+    :`<div class="vacio-tabla">Ninguna prenda con estos filtros. <button class="btn-enlace" data-act="limpiar">Quitar filtros</button></div>`;
+  const otras=P.filter(p=>!p.quieta&&sugDe(p).length).length;
+  const pie=`<div class="pie"><span>Mostrando <b>${vs.length}</b> de ${P.length} prendas · ${vs.reduce((s,p)=>s+piso(p),0)} unidades en el piso</span>
+     <span class="ley"><span><span aria-hidden="true" style="display:inline-block;width:2px;height:12px;border-radius:2px;background:var(--tinta-35);vertical-align:-1px;margin-right:6px"></span>Por decidir</span><span>Tallas: piso · almacén · <b>ap.</b> apartadas</span></span>
+     ${S.porDecidir&&otras?`<span class="linea"><b>Otras ${otras}</b> tienen una pregunta en «Qué hacer» sin estar por decidir. <button class="btn-enlace" data-act="porDecidir">Verlas todas</button></span>`:''}
+     ${GUARDADAS.length?`<span class="linea">Guardadas en el almacén después de colgarse (su reloj está en pausa): ${GUARDADAS.map(x=>`${x.n} ${x.color} (${x.uds}), iba en ${x.iba}`).join(', ')}.</span>`:''}
+     <span class="linea">Solo en el almacén, nunca colgadas: ${SOLO_ALMACEN.map(x=>`${x.n} ${x.color} (${x.uds})`).join(', ')}. No se miden hasta que se cuelguen.</span></div>`;
+
+  const nota=`<div class="nota"><p><b>Cómo se lee.</b> ${f.d5} La comparación es con lo vendido en esta tienda; la de CAYLA (las 3 tiendas juntas) es solo de apoyo. «Pocos datos» y «Aceptable» dicen cuánto creerle; sin etiqueta, es sólida. «Trasladar» solo aparece con una comparación sólida y algo en el almacén.</p>
+   <p><b>Las cifras de arriba.</b> Los días son el promedio de lo colgado, sin clásicos ni las que no cuadran. «% Nuevas» se cuenta sobre lo que se puede comparar (${k.nuevas} de ${k.conTramo} unidades), no sobre todo el piso.</p>
+   <p><b>«Por decidir»</b> son las que llevan tiempo sin venderse o ya pasó su temporada; otras pueden tener una pregunta más chica en «Qué hacer».</p>
+   <p><b>Lo apartado para una clienta no está colgado:</b> no envejece ni recibe sugerencias, y cuenta como vendido. Lo que llegó sin fecha (carga inicial, un ajuste) nunca es «Nueva»: no se sabe cuándo llegó. Aquí no se rebaja: la rebaja se decide aparte.</p>
+   <p>Solo el líder ve el registro al colgar y la referencia de CAYLA.</p></div>`;
+
+  document.getElementById('pantalla').innerHTML=enc+`<section class="tarjeta" role="table" aria-label="Prendas por categoría">${herr}${cuerpo}${pie}</section>`+nota;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   HOJA DE DETALLE
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function regla(p){
+  const c=cat(p),s=p.sinElla;
+  if(!s||s.p50==null||p.dias==null)return '';
+  const tope=Math.max((s.p90??s.tMax)*1.2,p.dias*1.12,30);
+  const pct=d=>Math.min(100,d/tope*100);
+  let zonas='',x=0;
+  const add=(cls,nombre,hasta)=>{if(hasta==null||hasta<=x)return;zonas+=`<i class="${cls}" style="width:${pct(hasta)-pct(x)}%" title="${nombre}"><span>${nombre}</span></i>`;x=hasta};
+  add('z-nueva','Nueva',s.p50);
+  add('z-vigente','Vigente',s.p75??s.tMax);
+  if(s.p75!=null)add('z-envejecida','Envejecida',s.p90??s.tMax);
+  if(s.p90!=null)add('z-critica','Crítica',tope); else add('z-nada','no se sabe',tope);
+  const marcas=[`<span class="ini" style="left:0">0</span>`,`<span style="left:${pct(s.p50)}%">${s.p50} d<br>la mitad</span>`]
+    .concat(s.p75!=null?[`<span style="left:${pct(s.p75)}%">${s.p75} d<br>3 de 4</span>`]:[])
+    .concat(s.p90!=null?[`<span style="left:${pct(s.p90)}%">${s.p90} d<br>9 de 10</span>`]:[`<span style="left:${pct(s.tMax)}%">${s.tMax} d<br>lo más largo visto</span>`]);
+  const ella=relojAlMenos(p)?conAlMenos(`${p.dias} d`):`${p.dias} d`;
+  return `<div class="regla" aria-label="Dónde cae entre ${c.demas}">
+     <span class="ella" style="left:${pct(p.dias)}%">${ella}</span>
+     <div class="pista">${zonas}</div>
+     <div class="marcas">${marcas.join('')}</div>
+   </div>`;
+}
+/** Por qué su reloj dice «al menos»: la única causa que la pantalla puede saber. */
+function causaAlMenos(p){
+  if(p.antes)return `Se colgó por primera vez antes del ${SEDE.desde}, más atrás de lo que mira esta pantalla (120 días): no se sabe cuánto lleva de verdad.`;
+  return 'Lo primero que se colgó llegó sin fecha (carga inicial, un ajuste o un saldo): no se sabe cuánto lleva de verdad.';
+}
+function porqueEstado(p){
+  const c=cat(p),s=p.sinElla,e=p.estado,T=TRAMO;
+  const d=p.dias,dTxt=relojAlMenos(p)?conAlMenos(`${d} días`):`${d} días`;
+  if(p.apartada)return `Todo lo que tenía colgado (${apart(p)}) está apartado para clientas. Mientras siga apartado no envejece: su reloj se detuvo en <b>${d} días</b>, cuando iba en ${T[e.tramo]}, y sigue desde ahí si alguna se libera. Esas ${apart(p)} cuentan como vendidas.`;
+  if(e.tipo==='dudosa')return `Su historial de movimientos en el piso no cuadra con lo que hay (talla <b>${p.tallaMal}</b>). Con los números así, cualquier juicio sería inventado: no se mide mientras no cuadre.`;
+  if(e.tipo==='clasico')return `Es un clásico de ${p.estacionClasico}: no pasa de moda, así que no entra al semáforo ni se compara con ${c.demas}. Lleva ${d} días en el piso. `+(e.fueraDeSuEstacion?`Hoy no es su estación (${p.estacionClasico}).`:'Hoy es su estación: no hay nada que decidir.');
+  if(e.tipo==='sin_ventas_sede'){
+    const apoyo=c.cayla?` Como apoyo, en CAYLA (las 3 tiendas) la mitad de ${c.art} ${c.plural} se vende antes de ${c.cayla.p50} días.`:'';
+    const suyas=p.recientes>0&&p.sinFecha?` Lo que vendió ella (${p.recientes}) llegó sin fecha, por eso no sirve de medida.`:'';
+    return `En ${SEDE.nombre} todavía no se vendió ${sinVentasTxt(c)} con fecha de llegada conocida: no hay con qué compararla. Lleva <b>${dTxt}</b> en el piso.${suyas}${apoyo}`;
+  }
+  if(e.tipo==='sin_vara')return `La cabecera dice que la mitad de ${c.art} ${c.plural} se vende antes de ${c.p50} días, pero eso lo hace ella: <b>${p.suyas} de las ${c.vendidas} ventas son suyas</b>. Sin ella, ${c.demas} vendieron solo ${s.vendidas} (lo más largo que se vio: ${s.tMax} días): todavía no se sabe cuánto tardan. Lleva ${d} días en el piso.`;
+  if(e.tipo==='sin_edad_conocida')return `${causaAlMenos(p)} Lleva <b>${dTxt}</b>: todavía no pasa los ${s.p50} días en que ya se vendió la mitad de ${c.demas}, pero no se puede decir que sea nueva.`;
+  // semáforo
+  let base;
+  if(e.tramo==='nueva')base=`Lleva <b>${dTxt}</b>: todavía no llega a los ${s.p50} en que ya se vendió la mitad de ${c.demas}.`;
+  if(e.tramo==='vigente')base=`Lleva <b>${dTxt}</b>: pasó los ${s.p50} en que se vende la mitad de ${c.demas}`+(s.p75!=null?`, pero no los ${s.p75} en que ya se vendieron 3 de cada 4.`:'.');
+  if(e.tramo==='envejecida')base=`Lleva <b>${dTxt}</b>: pasó los ${s.p75} en que ya se vendieron 3 de cada 4 de ${c.demas}`+(s.p90!=null?`; a los ${s.p90} se vendieron 9 de cada 10.`:'.');
+  if(e.tramo==='critica')base=`Lleva <b>${dTxt}</b>: pasó los ${s.p90} en que ya se vendieron 9 de cada 10 de ${c.demas} de ${SEDE.nombre}.`;
+  if(e.alMenos&&relojAlMenos(p))base+=` ${causaAlMenos(p)}`+(e.tramo==='critica'?' Aunque lleve más, ya es Crítica.':` Por eso es «${nombreAlMenos(e.tramo)}» y nunca «Nueva».`);
+  else if(e.alMenos){const sig=e.tramo==='vigente'?'Envejecida':'Crítica';base+=` Lo más largo que se vio de ${c.demas} en ${SEDE.nombre}, sin contarla, son ${s.tMax} días, y ella ya los pasó: todavía no hay ventas para saber dónde empieza ${sig}. Por eso es «${nombreAlMenos(e.tramo)}».`}
+  if(c.nivel==='pocos_datos')base+=` La comparación sale de solo ${c.vendidas} ventas: tómala con cuidado.`;
+  if(p.calendario)base+=` De los ${p.calendario} días desde que se colgó por primera vez, ${p.calendario-d} estuvo sin nada libre en el piso (agotada, guardada o apartada): esos no cuentan.`;
+  return base;
+}
+function porqueRapidez(p){
+  const c=cat(p),r=p.rapidez,k=claveRapidez(p);
+  if(p.estado.tipo==='clasico'||p.estado.tipo==='dudosa')return '';
+  if(k==='sin_dato'){
+    if(p.sinFecha)return `Sin dato de rapidez: no se sabe cuándo llegó lo que vendió, así que no se puede comparar con lo que tardan en venderse ${c.demas}.`;
+    return 'Sin dato de rapidez: su categoría no tiene ventas aquí con qué compararla.';
+  }
+  const v=r.vendidas,e=fmt(r.esperadas),conf=nivelPor(r.referencia);
+  const confTxt=conf==='solido'?'':` Se midió contra solo ${r.referencia} ${r.referencia===1?'venta':'ventas'} de ${c.demas}: ${confianzaChip(conf)}`;
+  if(k==='sin_medida')return `Vendió <b>${v}</b> en sus ${p.dias} días en el piso. Sin ella, ${c.demas} vendieron solo ${r.referencia}: con tan poco no se puede decir si vende rápido o lento. ${confianzaChip(conf)}`;
+  if(k==='dejo')return `Vendió <b>${v}</b> cuando para ${c.uno} con los mismos días en el piso se esperaban <b>${e}</b>: al llegar se vendió más rápido que ${c.demas}. Pero lleva 30 días en el piso sin vender, así que ya no cuenta como una que se vende bien.${confTxt}`;
+  const como={rapida:`vende más rápido que ${c.demas}`,ritmo:`vende como ${c.demas}`,lenta:`vende más lento que ${c.demas}`,muy_lenta:`vende mucho más lento que ${c.demas}`}[k];
+  return `Vendió <b>${v}</b>; para ${c.uno} con los mismos días en el piso se esperaban <b>${e}</b>: ${como}.${p.recientesApartadas&&p.recientesApartadas===p.recientes?` Las ${p.recientesApartadas} se apartaron para clientas: puede estar entre las que mejor se venden sin una sola boleta.`:''}${confTxt}`;
+}
+function porqueRecientes(p){
+  if(p.recientes==null)return '';
+  const txt=p.dias!=null&&p.dias<30?`En sus ${p.dias} días en el piso vendió <b>${p.recientes}</b>`:`En sus últimos 30 días en el piso vendió <b>${p.recientes}</b>`;
+  return `${txt}${p.recientesApartadas?`, contando ${p.recientesApartadas} ${p.recientesApartadas===1?'apartada':'apartadas'}`:''}.${p.recientes===0&&p.dias>=30?' Son días con algo colgado: lo que estuvo agotado o guardado no cuenta.':''}`;
+}
+const EXPLICA={
+  revisar_ventas:p=>causaRevisar(p)==='callada'
+    ?{p:`En sus últimos 30 días en el piso no se vendió ninguna. Antes de moverla, mira si está a la vista, si tiene sus tallas y su etiqueta de precio.`,ir:[['Ver sus ventas',`/vender/historial?prenda=${p.cod}`]]}
+    :{p:`No sabemos qué tan rápido se vende: no se sabe cuándo llegó lo que vendió, así que no hay con qué compararla. Mira sus ventas antes de decidir.`,ir:[['Ver sus ventas',`/vender/historial?prenda=${p.cod}`]]},
+  cambiar_lugar:p=>{const c=cat(p),cz=causaCambiar(p);
+    const pr=cz==='temporada'?`Ya pasó su estación${p.rapidez?` y se vende menos que ${c.demas}`:''}: pruébala 7 días en otro lugar antes de retirarla.`
+      :cz==='dejo'?`Vendió bien al llegar, pero lleva 30 días en el piso sin vender y ya pasó lo que tardan ${c.demas}. Pruébala 7 días en la entrada, en un maniquí o en una mesa.`
+      :`Lleva más tiempo colgada que ${c.demas} y se vende menos. Pruébala 7 días en la entrada, en un maniquí o en una mesa; cambiarla de lugar no cuesta nada.`;
+    return {p:pr,ir:[['Verla en Existencias',`/inventario?q=${p.cod}`]]}},
+  trasladar:p=>({p:`Tienes ${alm(p)} en el almacén de ${SEDE.nombre}. La comparación es sólida (${p.rapidez.referencia} ventas de ${cat(p).demas} aquí). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,ir:[['Armar un traslado',`/inventario/mover?variante=${p.cod}`]]}),
+  retirar:p=>({p:`Su ${p.estacion} terminó el ${p.finEstacion}. Retirarla con motivo «fin de temporada» deja de pedir que la repongas y le hace lugar a lo nuevo.`,ir:[['Retirar del piso',`/inventario (Retirar del piso · fin de temporada)`]]}),
+  sigue_vendiendo:p=>({p:`Su temporada pasó (su ${p.estacion} terminó el ${p.finEstacion}), pero sigue vendiendo: ${p.recientes} en sus últimos 30 días en el piso. Tú decides si la dejas hasta que se agote o la retiras. Mientras siga colgada, sigue en «Por decidir».`,
+    ir:[['Retirar del piso',`/inventario (Retirar del piso · fin de temporada)`],['La dejo hasta agotar','#decision','Hoy no hay dónde anotar esta decisión: sería un dato nuevo por sede (pregunta abierta para Felipe). Sin él, la prenda sigue en «Por decidir» cada semana.']]}),
+  guardar_hasta_su_estacion:p=>({p:`Es un clásico de ${p.estacionClasico}: no envejece, pero fuera de su estación ocupa percha. Guárdala hasta que empiece su estación.`,ir:[['Retirar del piso',`/inventario (Retirar del piso · cambio de exhibición)`]]}),
+};
+function detalleHTML(p){
+  const c=cat(p),f=F(),s=p.sinElla;
+  const temp=p.temporadaPasada?`<span class="chip ambar chico tp">Temporada pasada</span> <span style="color:var(--taupe);font-size:12.5px">${f.tp(p)}</span>`:p.temporada===null?`<span class="chip neutro chico">${f.sinTemp}</span>`:`<span style="color:var(--taupe);font-size:12.5px">${p.temporada}</span>`;
+  const conf=c.nivel?confianzaChip(c.nivel):'';
+  const sg=sugDe(p);
+  const sug=sg.length?`<div class="bloque"><span class="label">Qué puedes hacer</span><div class="acciones-h">${sg.map(k=>{const x=EXPLICA[k](p);return `<div class="acc"><div class="t">${ic(ICONO_SUG[k])}<span>${f.sug[k](p)}</span></div><p>${x.p}</p><div class="ir">${x.ir.map(([t,h,nota])=>`<button class="btn btn-secundario btn-chico" data-ir="${h}" data-que="${t}" ${nota?`data-nota="${nota}"`:''}>${t}</button>`).join('')}</div></div>`}).join('')}</div><p class="parrafo taupe">Son preguntas, no órdenes: la decisión es tuya. Aquí no se rebaja nada.</p></div>`
+    :p.estado.tipo==='dudosa'?`<div class="bloque"><span class="label">Qué puedes hacer</span><div class="acc"><div class="t">${ic('contar')}<span>Contar sus tallas</span></div><p>Un conteo de esta prenda revisa lo que de verdad hay en el piso y en el almacén.</p><div class="ir"><button class="btn btn-secundario btn-chico" data-ir="/inventario/conteo?nuevo=1&producto=${p.cod}" data-que="Contar esta prenda">Contar esta prenda</button></div></div></div>`
+    :`<div class="bloque"><span class="label">Qué puedes hacer</span><p class="parrafo" style="margin-top:0">${p.apartada?'Nada: tiene dueña. Vuelve a medirse si alguna se libera.':'Nada por ahora.'}</p></div>`;
+  const estadoGrande=S.colores==='C'?barraEdad(p):estadoHTML(p);
+  const diasG=p.dias==null?'':(()=>{const am=relojAlMenos(p);const pre=am&&f.alMenos.pre?`<small class="pre">${f.alMenos.pre}</small>`:'';const suf=am&&!f.alMenos.pre?` ${f.alMenos.suf}`:'';return `<span class="dias-g num">${pre}${p.dias}<small>días en el piso${suf}${p.apartada?' · '+f.pausa:''}</small></span>`})();
+  const d5txt=s?(s.p50!=null?`Sin contarla, ${c.demas}: la mitad se vende antes de ${s.p50} días${s.p75!=null?`, 3 de cada 4 antes de ${s.p75}`:''}${s.p90!=null?`, 9 de cada 10 antes de ${s.p90}`:''} (la cabecera de ${c.nombre}, con todas: ${c.p50}${c.p75!=null?`, ${c.p75}`:''}${c.p90!=null?` y ${c.p90}`:''}).`:`Sin contarla, ${c.demas} vendieron solo ${s.vendidas}.`):'';
+  return `<div class="velo" data-cerrar></div>
+  <div class="capa"><div class="hoja cascada" role="dialog" aria-modal="true" aria-labelledby="hoja-t" aria-describedby="hoja-b" tabindex="-1">
+    <h2 id="hoja-t">${p.n} · ${p.color}</h2>
+    <p class="bajada" id="hoja-b">${p.cod} · ${c.nombre} en ${SEDE.nombre} · ${temp}</p>
+    <div class="bloque">
+      <div class="veredicto">${diasG}${estadoGrande}</div>
+      <p class="parrafo">${porqueEstado(p)}</p>
+      ${regla(p)}
+      ${s?`<div class="d5-hoja">${ic('info')}<span><b>${f.d5}</b> ${d5txt} ${conf?`Con ${c.vendidas} ventas en ${SEDE.nombre}: ${conf}`:''}</span></div>`:''}
+    </div>
+    <div class="bloque"><span class="label">Cómo se vende</span>
+      ${porqueRapidez(p)?`<p class="parrafo" style="margin-top:0">${porqueRapidez(p)}</p>`:''}
+      ${porqueRecientes(p)?`<p class="parrafo">${porqueRecientes(p)}</p>`:''}
+      ${!porqueRapidez(p)&&!porqueRecientes(p)?`<p class="parrafo taupe" style="margin-top:0">No se mide.</p>`:''}
+    </div>
+    <div class="bloque"><span class="label">Tallas en ${SEDE.nombre}</span>
+      <div class="tallas-g">${p.tallas.map(([t,pi,al,ap])=>`<div class="${p.tallaMal===t?'mal':''}"><b>${t}${p.tallaMal===t?' · no cuadra':''}</b><span>Piso</span> ${pi}<br><span>Almacén</span> ${al}${ap?`<br><span>Apartadas</span> ${ap}`:''}</div>`).join('')}</div>
+    </div>
+    ${sug}
+    <div class="bloque"><span class="label">Datos de apoyo</span>
+      <dl class="apoyo">
+        <dt>Colgada por primera vez en ${SEDE.nombre}</dt><dd>${p.primera}</dd>
+        <dt>Llegó a CAYLA</dt><dd>${p.llegadaCayla} · ${p.origen}</dd>
+        <dt>Referencia de CAYLA</dt><dd>${c.cayla?`La mitad de ${c.art} ${c.plural} se vende antes de ${c.cayla.p50} días en las 3 tiendas juntas${c.cayla.p75!=null?`; 3 de cada 4, antes de ${c.cayla.p75}`:''}.`:'Todavía no alcanza (las otras tiendas no tienen ventas con fecha en el sistema).'}</dd>
+      </dl>
+    </div>
+    <div class="pie-hoja"><button class="btn btn-secundario" data-cerrar>Cerrar</button></div>
+  </div></div>`;
+}
+let ultimoFoco=null;
+function abrir(id){
+  const p=P.find(x=>x.id===id); if(!p)return;
+  S.abierta=id; ultimoFoco=document.activeElement;
+  const raiz=document.getElementById('modal-raiz');
+  raiz.innerHTML=detalleHTML(p);
+  document.body.style.overflow='hidden'; document.body.classList.add('con-hoja');
+  const hoja=raiz.querySelector('.hoja'); hoja.focus({preventScroll:true});
+  pintarElige(); setTimeout(pintarElige,700); // el rojo de la regla se cuenta cuando la hoja terminó de entrar
+}
+function cerrar(){
+  if(!S.abierta)return;
+  const raiz=document.getElementById('modal-raiz');
+  const hoja=raiz.querySelector('.hoja'),velo=raiz.querySelector('.velo');
+  const sinMov=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  hoja&&hoja.classList.add('sale'); velo&&velo.classList.add('sale');
+  S.abierta=null;
+  setTimeout(()=>{raiz.innerHTML='';document.body.style.overflow='';document.body.classList.remove('con-hoja');ultimoFoco&&ultimoFoco.focus&&ultimoFoco.focus({preventScroll:true});pintarElige()},sinMov?0:220);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   CONTADOR DE ROJO: lee los estilos calculados de lo que se ve (texto, fondo, borde, sombra) y cuenta
+   cada pieza con rojo, rojo profundo o un tinte de ellos. En oklab, los dos rojos tienen a > 0,1; taupe,
+   ámbar y el resto de la paleta quedan por debajo de 0,04.
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function rgbAOklab(r,g,b){
+  const lin=v=>{v/=255;return v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4)};
+  const R=lin(r),G=lin(g),B=lin(b);
+  const l=Math.cbrt(.4122214708*R+.5363325363*G+.0514459929*B),m=Math.cbrt(.2119034982*R+.6806995451*G+.1073969566*B),s=Math.cbrt(.0883024619*R+.2817188376*G+.6299787005*B);
+  return [.2104542553*l+.793617785*m-.0040720468*s,1.9779984951*l-2.428592205*m+.4505937099*s,.0259040371*l+.7827717662*m-.808675766*s];
+}
+function coloresEn(str){
+  const out=[];
+  for(const m of String(str).matchAll(/rgba?\(([^)]+)\)/g)){const v=m[1].split(/[\s,\/]+/).filter(Boolean).map(Number);const [L,a,b]=rgbAOklab(v[0],v[1],v[2]);out.push([L,a,b,v[3]??1])}
+  for(const m of String(str).matchAll(/oklab\(([^)]+)\)/g)){const v=m[1].split(/[\s\/]+/).filter(Boolean).map(Number);out.push([v[0],v[1],v[2],v[3]??1])}
+  return out;
+}
+const hayRojo=str=>coloresEn(str).some(([L,a,b,al])=>al>.02&&a>.08);
+function contarRojos(){
+  let n=0;
+  for(const el of document.querySelectorAll('#pantalla *, #modal-raiz *, .barra *')){
+    if(!el.getClientRects().length)continue;
+    const cs=getComputedStyle(el);
+    if(cs.visibility==='hidden'||+cs.opacity===0)continue;
+    const texto=[...el.childNodes].some(x=>x.nodeType===3&&x.textContent.trim())||el.tagName==='svg';
+    const heredado=el.parentElement&&getComputedStyle(el.parentElement).color===cs.color;
+    const bordes=['Top','Right','Bottom','Left'].some(k=>parseFloat(cs['border'+k+'Width'])>0&&hayRojo(cs['border'+k+'Color']));
+    if(hayRojo(cs.backgroundColor)||hayRojo(cs.backgroundImage)||hayRojo(cs.boxShadow)||bordes||(texto&&!heredado&&hayRojo(cs.color)))n++;
+  }
+  return n;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   PANEL «ELIGE»
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+const respuesta=()=>`colores ${S.colores}, frases ${S.frases}, pregunta 8: ${P8[S.p8].nombre.toLowerCase()}`;
+function pintarElige(){
+  const el=document.getElementById('elige'),c=COLORES[S.colores],fr=FRASES[S.frases],p8=P8[S.p8];
+  const rojos=contarRojos();
+  el.dataset.abierto=String(S.elige);
+  const ops=(obj,clave,nombre)=>`<div class="ops ${Object.keys(obj).length===2?'dos':''}" role="group" aria-label="${nombre}">${Object.entries(obj).map(([k,o])=>`<button aria-pressed="${S[clave]===k}" data-elegir="${clave}" data-valor="${k}">${clave==='colores'||clave==='frases'?`<b>${k}</b>`:''}<span>${o.nombre}</span></button>`).join('')}</div>`;
+  el.innerHTML=`<button class="cab" data-act="elige" aria-expanded="${S.elige}"><span class="t">Elige</span><span class="r">colores ${S.colores} · frases ${S.frases}</span>${ic('abajo')}</button>
+   <div class="cuerpo">
+     <div><h3>Colores de los estados</h3>${ops(COLORES,'colores','Colores')}
+       <div class="gp"><b>Gana</b><span>${c.gana}</span><b>Paga</b><span>${c.paga}</span></div></div>
+     <div><h3>Frases</h3>${ops(FRASES,'frases','Frases')}
+       <div class="gp"><b>Gana</b><span>${fr.gana}</span><b>Paga</b><span>${fr.paga}</span></div></div>
+     <div><h3>Pregunta 8 · una regla</h3>
+       <p class="preg">Lo que llegó sin fecha y se sigue vendiendo, ¿recibe «sigue vendiendo» cuando pasa su temporada? Mira las dos Pukio en Blusas: la Camel vino en un lote, la Gris en la carga inicial.</p>
+       ${ops(P8,'p8','Pregunta 8')}
+       <div class="gp"><b>Gana</b><span>${p8.gana}</span><b>Paga</b><span>${p8.paga}</span></div></div>
+     <div><h3>Datos de la maqueta</h3>${ops(DATOS,'datos','Datos')}
+       <p class="preg" style="margin:7px 0 0">${S.datos==='hoy'?'Casi todo llegó en la carga inicial: así se verá el primer mes. No es parte de la respuesta.':'Dos meses de ventas registradas: aparecen todos los estados. No es parte de la respuesta.'}</p></div>
+     <div class="resp"><output>Tu respuesta: <q>${respuesta()}</q></output><button data-act="copiar">${ic('copiar','width:14px;height:14px;vertical-align:-2px')} Copiar</button></div>
+     <p class="rojos">Rojo en pantalla: <b>${rojos} de 2</b> permitidos (cuenta todo: pleno, profundo y tintes).</p>
+     <p class="sim">Maqueta: todas las cifras y prendas son simuladas. Este panel no existe en el ERP.</p>
+   </div>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════════════════════════════
+   RENDER Y EVENTOS
+   ════════════════════════════════════════════════════════════════════════════════════════════════════ */
+function render(){
+  document.body.dataset.colores=S.colores; document.body.dataset.frases=S.frases;
+  pantalla();
+  if(S.abierta){const p=P.find(x=>x.id===S.abierta);const raiz=document.getElementById('modal-raiz');
+    if(!p){raiz.innerHTML='';S.abierta=null;document.body.style.overflow='';document.body.classList.remove('con-hoja')}
+    else{const sc=raiz.querySelector('.hoja')?.scrollTop||0;raiz.innerHTML=detalleHTML(p).replace('hoja cascada','hoja');raiz.querySelector('.velo').style.animation='none';raiz.querySelector('.hoja').style.animation='none';raiz.querySelector('.hoja').scrollTop=sc}}
+  pintarElige();
+}
+let tAviso;
+function aviso(que,ir,nota){
+  const a=document.getElementById('aviso');
+  a.innerHTML=`<b>${que}</b><code>${nota||(ir.startsWith('#')?'en la pantalla real se abre aquí mismo':'iría a '+ir)}</code>`;
+  a.classList.add('on'); clearTimeout(tAviso); tAviso=setTimeout(()=>a.classList.remove('on'),nota?5200:2800);
+}
+let comboAbierto=null;
+function abrirCombo(id){
+  cerrarCombo();
+  const cont=document.querySelector(`[data-combo="${id}"]`); if(!cont)return;
+  comboAbierto=id; cont.insertAdjacentHTML('beforeend',listaCombo(id));
+  cont.querySelector('[aria-expanded]').setAttribute('aria-expanded','true');
+  const inp=cont.querySelector('[data-busca-combo]'); (inp||cont.querySelector('[aria-selected=true]')||cont.querySelector('[role=option]'))?.focus();
+}
+function cerrarCombo(){
+  if(!comboAbierto)return;
+  const cont=document.querySelector(`[data-combo="${comboAbierto}"]`);
+  cont?.querySelector('.lista')?.remove(); cont?.querySelector('[aria-expanded]')?.setAttribute('aria-expanded','false');
+  S['q_'+comboAbierto]=''; comboAbierto=null;
+}
+document.addEventListener('click',e=>{
+  const g=k=>e.target.closest(`[data-${k}]`);
+  if(g('elegir')){const b=g('elegir'),k=b.dataset.elegir;S[k]=b.dataset.valor;if(k==='datos'){usarDatos(S.datos);S.cat='todas';S.estado='todos'}guardar();render();return}
+  if(g('abre-combo')){const id=g('abre-combo').dataset.abreCombo;comboAbierto===id?cerrarCombo():abrirCombo(id);return}
+  if(g('op')&&comboAbierto){const v=g('op').dataset.op;if(comboAbierto==='cat')S.cat=v;else S.estado=v;const id=comboAbierto;cerrarCombo();pantalla();pintarElige();document.querySelector(`[data-abre-combo="${id}"]`)?.focus();return}
+  if(comboAbierto&&!e.target.closest('.combo'))cerrarCombo();
+  if(g('cerrar')&&(e.target===g('cerrar')||g('cerrar').tagName==='BUTTON')){cerrar();return}
+  if(g('ir')){const b=g('ir');aviso(b.dataset.que,b.dataset.ir,b.dataset.nota);return}
+  const a=g('act')?.dataset.act;
+  if(a==='porDecidir'){S.porDecidir=!S.porDecidir;pantalla();pintarElige();return}
+  if(a==='limpiar'){S.cat='todas';S.estado='todos';S.porDecidir=false;S.q='';pantalla();pintarElige();return}
+  if(a==='elige'){S.elige=!S.elige;guardar();pintarElige();return}
+  if(a==='copiar'){const t=respuesta();try{navigator.clipboard.writeText(t).then(()=>aviso('Copiado',`#«${t}»`,`«${t}»`),()=>aviso('Cópialo a mano',`#«${t}»`,`«${t}»`))}catch(err){aviso('Cópialo a mano',`#«${t}»`,`«${t}»`)}return}
+  if(g('abrir')&&!e.target.closest('#modal-raiz')){abrir(g('abrir').dataset.abrir);return}
+});
+document.addEventListener('input',e=>{
+  if(e.target.matches('[data-q]')){S.q=e.target.value;const pos=e.target.selectionStart;pantalla();pintarElige();const i=document.querySelector('[data-q]');i.focus();i.setSelectionRange(pos,pos)}
+  if(e.target.matches('[data-busca-combo]')){const id=e.target.dataset.buscaCombo;S['q_'+id]=e.target.value;const cont=document.querySelector(`[data-combo="${id}"] [data-ops]`);const tmp=document.createElement('div');tmp.innerHTML=listaCombo(id);cont.innerHTML=tmp.querySelector('[data-ops]').innerHTML}
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(comboAbierto){e.stopPropagation();const id=comboAbierto;cerrarCombo();document.querySelector(`[data-abre-combo="${id}"]`)?.focus();return} // el combo usó el Escape (useEscapeLibre)
+    if(S.abierta){cerrar();return}
+  }
+  if(comboAbierto&&(e.key==='ArrowDown'||e.key==='ArrowUp')){
+    const ops=[...document.querySelectorAll(`[data-combo="${comboAbierto}"] [role=option]`)];if(!ops.length)return;
+    e.preventDefault();const i=ops.indexOf(document.activeElement);const n=e.key==='ArrowDown'?Math.min(ops.length-1,i+1):Math.max(0,i-1);ops[n].focus();return;
+  }
+  if(comboAbierto&&e.key==='Enter'&&document.activeElement?.matches('[role=option]')){document.activeElement.click();return}
+  if((e.key==='Enter'||e.key===' ')&&document.activeElement?.matches('.fila[data-abrir]')){e.preventDefault();abrir(document.activeElement.dataset.abrir);return}
+  if(e.key==='Tab'&&S.abierta){ // foco atrapado en la hoja, como Radix
+    const hoja=document.querySelector('.hoja');const fs=[...hoja.querySelectorAll('button,[href],input,[tabindex]:not([tabindex="-1"])')];if(!fs.length)return;
+    const pri=fs[0],ult=fs[fs.length-1];
+    if(e.shiftKey&&(document.activeElement===pri||document.activeElement===hoja)){e.preventDefault();ult.focus()}
+    else if(!e.shiftKey&&document.activeElement===ult){e.preventDefault();pri.focus()}
+  }
+});
+render();
+setTimeout(pintarElige,1200); // vuelve a contar el rojo cuando terminó de entrar la pantalla
+if(S.abrirAlCargar)abrir(S.abrirAlCargar);
+</script>
+</body>
+</html>
