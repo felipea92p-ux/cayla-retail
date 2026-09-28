@@ -6,6 +6,7 @@ import { Calendar, ChevronDown, Search } from "lucide-react";
 import { Popover } from "radix-ui";
 import { Hilo } from "@/components/ui/campos";
 import { CampoFecha } from "@/components/ui/CampoFecha";
+import { SenalBuscando, useBusquedaEnUrl } from "@/components/ui/BusquedaEnUrl";
 import { SegmentoDeslizante } from "@/components/ui/SegmentoDeslizante";
 import { usePosicionLista } from "@/components/ui/useAnclaje";
 import { useComboLista } from "@/components/ui/useCombo";
@@ -72,9 +73,13 @@ export function FiltrosRecibidas({
   const [busqueda, setBusqueda] = useState(filtros.busqueda ?? "");
   const [enfocado, setEnfocado] = useState(false);
   const temporizador = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const { buscando, buscar } = useBusquedaEnUrl();
 
-  function aplicar(cambios: Record<string, string>) {
-    router.push(hrefConCambios(pathname, params.toString(), cambios));
+  /** `tipeado`: viene del buscador (se escribió): navega sin el loader, con «Buscando…». */
+  function aplicar(cambios: Record<string, string>, { tipeado = false } = {}) {
+    const href = hrefConCambios(pathname, params.toString(), cambios);
+    if (tipeado) buscar(href);
+    else router.push(href);
   }
 
   // El temporizador de la búsqueda llama a la versión más reciente de `aplicar`: si mientras se
@@ -90,7 +95,7 @@ export function FiltrosRecibidas({
   function alTipear(texto: string) {
     setBusqueda(texto);
     clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(() => aplicarActual.current({ q: texto.trim() }), 350);
+    temporizador.current = setTimeout(() => aplicarActual.current({ q: texto.trim() }, { tipeado: true }), 350);
   }
 
   function limpiarTodo() {
@@ -113,7 +118,7 @@ export function FiltrosRecibidas({
           onKeyDown={(e) => {
             if (e.key !== "Enter") return;
             clearTimeout(temporizador.current);
-            aplicar({ q: busqueda.trim() });
+            aplicar({ q: busqueda.trim() }, { tipeado: true });
           }}
           onFocus={() => setEnfocado(true)}
           onBlur={() => setEnfocado(false)}
@@ -122,7 +127,8 @@ export function FiltrosRecibidas({
           autoComplete="off"
           className="h-9 min-w-0 flex-1 bg-transparent text-sm text-tinta outline-none placeholder:text-tinta/45"
         />
-        <Hilo activo={enfocado} />
+        <SenalBuscando activo={buscando} />
+        <Hilo activo={enfocado} trabajando={buscando} />
       </div>
 
       <PastillaProveedor proveedores={proveedores} proveedorId={filtros.proveedorId} onElegir={(id) => aplicar({ prov: id })} />
