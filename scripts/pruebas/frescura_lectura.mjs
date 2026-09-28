@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 /**
  * Prueba del paso 3 de Frescura 3c (ADR-0208, ADR-0246, ADR-0248): la lectura SQL
- * (`supabase/migrations/20260928120300_frescura_lectura.sql`, la de main, y sus correcciones de las revisiones 3 y 5 en
- * `20260928120310_frescura_lectura_revision3.sql`): `fn_es_llegada`, `fn_es_llegada_a_cayla`, `fn_frescura_sede`,
+ * (`supabase/migrations/20260928120300_frescura_lectura.sql`, sus correcciones de las revisiones 3 y 5 en
+ * `20260928120310_frescura_lectura_revision3.sql` y las decisiones de Felipe de la revisión 7 en
+ * `20260928120320_frescura_lectura_revision7.sql`): `fn_es_llegada`, `fn_es_llegada_a_cayla`, `fn_frescura_sede`,
  * `fn_confianza_registro` y `fn_temporada_efectiva_nucleo`.
  *
  * POR QUÉ. La web arma la vara (Kaplan-Meier) y los tramos con lo que devuelve `fn_frescura_sede`: si una prenda colgada
@@ -16,7 +17,8 @@
  *       authenticated las ejecuta y anon y public no; fn_es_llegada immutable y sin EXECUTE para nadie de afuera; el
  *       cuerpo de fn_frescura_sede llama UNA vez a `fn_ledger_puntos(` (con la lista `v_ids`, que nace con coalesce a
  *       '{}' y no se reasigna) y UNA a `fn_bajadas_del_piso_nucleo(`; fn_confianza_registro sin persona_id; la guarda
- *       de la migración que manda (20260928120310) nombra los md5 vivos (de las seis: también
+ *       de la migración que manda cada una (20260928120320 para fn_frescura_sede, 20260928120310 para las otras cinco)
+ *       nombra su md5 vivo (de las seis: también
  *       fn_temporada_efectiva_nucleo, sin EXECUTE para nadie de afuera, fn_temporada_efectiva, que conserva sus
  *       permisos, y fn_es_llegada_a_cayla, immutable, sin search_path propio y sin EXECUTE para nadie de afuera);
  *       fn_confianza_registro lee el mes en hora de Lima.
@@ -52,9 +54,10 @@
  *       CAYLA registrada, no tiene fin.
  *   T4h la llegada a CAYLA es del MODELO+COLOR: el color que llegó en 2025 conserva su fin aunque otro color del mismo
  *       modelo llegara en 2026.
- *   T4i PENDIENTE DE FELIPE (revisión 6): una carga inicial posterior del mismo modelo+color, en otra sede o de una talla
- *       nueva en esta, pasa a ser su última llegada a CAYLA y mueve el fin de lo que llegó por lote. Documenta la regla
- *       de hoy (la ÚLTIMA llegada, D1); si Felipe elige la recomendación, sus dos verificaciones se invierten.
+ *   T4i la carga inicial solo cuenta como llegada a CAYLA si el modelo+color no tiene lote ni producción, y entre
+ *       cargas manda la PRIMERA (pregunta 7 de la revisión 6, DECIDIDA por Felipe el 2026-09-27): una carga posterior
+ *       en otra sede, o de una talla nueva en esta, no mueve el fin de lo que llegó por lote; y un modelo+color que solo
+ *       vino en cargas conserva la estación de la primera.
  *   T4g fn_temporada_efectiva sigue security definer y authenticated (líder e integrante) la llama sin 42501 en las dos
  *       llamadas de la web (la ficha con p_producto_id y la lista paginada de /productos); el control sin security
  *       definer da 42501.
@@ -85,16 +88,23 @@
  *   T10d las tardías se cuentan en UNIDADES: una bajada de 3 con 2 tardías y otra normal de 3 = 2 filas, 6 unidades,
  *       2 tardías, 0,6667.
  *   T2h piso_hoy y almacen_hoy son solo de ESTA tienda: la misma talla con stock en Trujillo no suma.
+ *   T2i lo apartado para una clienta no está colgado (R7-1, Felipe 2026-09-27): piso_hoy y almacen_hoy son lo libre y
+ *       apartadas_hoy lo apartado; `apartados` trae lo apartado del PISO con el signo de lo libre (apartar −, liberar +),
+ *       con el saldo al empezar la ventana (también con p_dias = 30, que parte una separación en dos); la entrega
+ *       (liberar y vender en el mismo instante); lo apartado en el almacén no toca el piso.
  *   T11 niveles: 9 filas «pocos_datos», 10 y 19 «aceptable», 20 «solido».
- *   T12 la guarda de 20260928120310: pegada otra vez deja lo mismo; con cualquiera de las seis funciones parchada en
- *       vivo aborta sin tocarla.
- *   T12b el orden de las dos migraciones, desde el estado de producción del 2026-09-27 (ninguna pegada,
- *       fn_temporada_efectiva de 20260928100000): la de main entra y deja sus md5; la corregida entra ENCIMA; la de main
- *       otra vez aborta sin deshacer nada; sin la de main, la corregida la pide. Antes, con la corrección editada en el
- *       mismo archivo, la corregida abortaba culpando a un «parche en vivo» (revisión 4, hallazgo 1).
+ *   T12 la guarda de 20260928120320 (la que manda fn_frescura_sede): pegada otra vez deja lo mismo; con fn_frescura_sede
+ *       o una de las tres que usa (fn_es_llegada, fn_es_llegada_a_cayla, fn_temporada_efectiva_nucleo) parchada en vivo
+ *       aborta sin tocarla; las dos que no usa ni reescribe siguen con su parche y la migración entra.
+ *   T12b el orden de las tres migraciones, desde el estado de producción del 2026-09-27 (ninguna pegada,
+ *       fn_temporada_efectiva de 20260928100000): la de revisión 7 sobre la de main sola la pide; la de main entra y deja
+ *       sus md5; la 120310 entra ENCIMA, deja los suyos y otra vez no cambia nada; la de revisión 7 entra encima, deja
+ *       los suyos y otra vez no cambia nada; la de main o la 120310 otra vez abortan sin deshacer nada; sin la de main,
+ *       las otras dos la piden. Antes, con la corrección editada en el mismo archivo, la corregida abortaba culpando a un
+ *       «parche en vivo» (revisión 4, hallazgo 1).
  *   T13 el contrato con la web: siembra una tienda con de todo (la vara de las blusas, nueva, vieja, carga inicial,
- *       tardía, retiro, dudosa, solo almacén, chompa de invierno con otro lote en Trujillo —su llegada a la tienda y a
- *       CAYLA difieren—, clásico, sin temporada) y exige que la salida de las
+ *       tardía, retiro, dudosa, solo almacén, apartada, chompa de invierno con otro lote en Trujillo —su llegada a la
+ *       tienda y a CAYLA difieren—, clásico, sin temporada) y exige que la salida de las
  *       dos lecturas tenga la MISMA forma (claves y tipos) que `apps/web/lib/__fixtures__/frescura-sede.json`, la salida
  *       real con la que `frescura-contrato.test.ts` prueba la web. Con FRESCURA_FIXTURE_ESCRIBIR=1 reescribe ese archivo.
  *
@@ -116,8 +126,13 @@ const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
 const leerMigracion = (nombre) => readFileSync(join(RAIZ, "supabase", "migrations", nombre), "utf8");
 /** La lectura como la dejó main (PR #542): la primera versión, que se pega primero y ya no se edita. */
 const MIGRACION_0300 = leerMigracion("20260928120300_frescura_lectura.sql");
-/** Las correcciones de la revisión 3, en su propio archivo (revisión 4, hallazgo 1): es la que manda hoy. */
+/** Las correcciones de la revisión 3, en su propio archivo (revisión 4, hallazgo 1): manda hoy en cinco de las seis. */
 const MIGRACION = leerMigracion("20260928120310_frescura_lectura_revision3.sql");
+/** Las dos decisiones de Felipe de la revisión 7 (la llegada a CAYLA y lo apartado): manda en fn_frescura_sede. Archivo
+ *  propio porque 20260928120310 ya estaba en main (PR #544) cuando se decidieron. */
+const MIGRACION_R7 = leerMigracion("20260928120320_frescura_lectura_revision7.sql");
+/** La migración cuya guarda nombra el cuerpo vivo de cada función. */
+const GUARDA_DE = (f) => (f === "fn_frescura_sede" ? MIGRACION_R7 : MIGRACION);
 /** El cuerpo de fn_temporada_efectiva de 20260928100000 (el que tiene producción antes de pegar 20260928120310). */
 const TEMPORADA_EFECTIVA_0100 = (() => {
   const t = leerMigracion("20260928100000_temporadas_como_atributo.sql");
@@ -271,6 +286,15 @@ $$;
 -- Días antes de ahora (para fechas de toda la historia).
 create function pg_temp.dias(t text) returns text language sql as $$
   select coalesce(trim_scale(round(extract(epoch from (now() - t::timestamptz)) / 86400, 4))::text, 'null')
+$$;
+-- Lo apartado del piso de una prenda en una línea: «días antes de ahora:delta», con «S» para el saldo al empezar la
+-- ventana (a la hora de «desde»).
+create function pg_temp.ap(j jsonb, v uuid) returns text language sql as $$
+  select coalesce(string_agg(
+           case when (e ->> 0)::timestamptz = (j ->> 'desde')::timestamptz then 'S'
+                else trim_scale(round(extract(epoch from (now() - (e ->> 0)::timestamptz)) / 86400, 3))::text end
+           || ':' || (e ->> 1), ',' order by o), '-')
+    from jsonb_array_elements(j -> 'apartados' -> v::text) with ordinality as x(e, o)
 $$;
 -- Una prenda en una línea: piso, almacén, primera exhibición y última llegada (en días antes de ahora).
 create function pg_temp.resumen(j jsonb, p_codigo text) returns text language sql as $$
@@ -430,8 +454,8 @@ ${k("MD5", `(select string_agg(proname || '=' || md5(prosrc), ',' order by prona
     );
     const md5 = Object.fromEntries((o.MD5 ?? "").split(",").map((x) => x.split("=")));
     afirmar(
-      "la guarda de la migración nombra el md5 vivo de cada función (quien cambie un cuerpo tiene que cambiar la guarda)",
-      FUNCIONES.every((f) => md5[f] && MIGRACION.includes(`'${md5[f]}'`)),
+      "la guarda de la migración que manda cada función nombra su md5 vivo (quien cambie un cuerpo tiene que cambiar la guarda)",
+      FUNCIONES.every((f) => md5[f] && GUARDA_DE(f).includes(`'${md5[f]}'`)),
       `MD5=${o.MD5}`,
     );
   },
@@ -995,10 +1019,10 @@ ${k("CLAVES", "(select string_agg(k, ',' order by k) from jsonb_object_keys(:'j'
     afirmar("ninguna persona en la salida", o.PERSONA === "false", `PERSONA=${o.PERSONA}`);
     afirmar(
       "cada prenda trae las claves del contrato",
-      o.CLAVES_PRENDA === "almacen_hoy,categoria_id,categoria_nombre,codigo,color_codigo,color_nombre,en_estacion_ahora,es_clasico,fin_estacion,piso_hoy,primera_exhibicion,producto_id,producto_nombre,talla,temporada,temporada_origen,ultima_llegada,ultima_llegada_cayla,variante_id",
+      o.CLAVES_PRENDA === "almacen_hoy,apartadas_hoy,categoria_id,categoria_nombre,codigo,color_codigo,color_nombre,en_estacion_ahora,es_clasico,fin_estacion,piso_hoy,primera_exhibicion,producto_id,producto_nombre,talla,temporada,temporada_origen,ultima_llegada,ultima_llegada_cayla,variante_id",
       `CLAVES_PRENDA=${o.CLAVES_PRENDA}`,
     );
-    afirmar("la lectura trae las claves del contrato", o.CLAVES === "ahora,desde,dudosas,eventos,prendas,separa_piso,tardias", `CLAVES=${o.CLAVES}`);
+    afirmar("la lectura trae las claves del contrato", o.CLAVES === "ahora,apartados,desde,dudosas,eventos,prendas,separa_piso,tardias", `CLAVES=${o.CLAVES}`);
   },
 );
 
@@ -1508,7 +1532,7 @@ ${k("C2", "pg_temp.t4h(:'j', 'ZZ-FL-T4H-C2', :'fin25', :'fin26')")}`,
 );
 
 correr(
-  "T4i · PENDIENTE DE FELIPE (revisión 6, hallazgo 1): una carga inicial posterior del mismo modelo+color (en otra sede, o una talla nueva en esta) reinicia su temporada en TODAS las sedes. Hoy es la regla (la ÚLTIMA llegada a CAYLA, D1)",
+  "T4i · la carga inicial solo cuenta como llegada a CAYLA si el modelo+color no tiene lote ni producción, y entre cargas manda la PRIMERA (pregunta 7, DECIDIDA por Felipe el 2026-09-27): una carga posterior no le reinicia la temporada a lo que llegó por lote",
   `alter table retail.temporada_fechas disable trigger user;
 insert into retail.temporada_fechas (anio, estacion, inicio, fuente) values
   (2025, 'otono', '2025-03-20 04:01-05', 'usno'), (2025, 'invierno', '2025-06-20 21:42-05', 'usno'),
@@ -1553,13 +1577,109 @@ rollback to savepoint otra_sede;
 -- 2) ESTA tienda encuentra hoy la L, que nunca registró, y la carga por la misma puerta.
 select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vl', 'cantidad', 1)), null, false, gen_random_uuid()) as _4 \\gset
 select pg_temp.lectura() as j2 \\gset
-${k("MISMA_SEDE", "pg_temp.t4i(:'j2', :'fin_lote')")}`,
+${k("MISMA_SEDE", "pg_temp.t4i(:'j2', :'fin_lote')")}
+-- 3) Un modelo+color que SOLO vino en cargas: la S se cargó en esta tienda el 15-ene-2026 (el verano 2025-26) y HOY otra
+--    sede carga la M. Manda la PRIMERA carga: sigue siendo del verano 2025-26 y avisa «Temporada pasada».
+select pg_temp.producto('T4i Bikini solo carga', 'verano') as pc \\gset
+select pg_temp.variante('ZZ-FL-T4I-C-S', :'pc', :'c1') as vcs \\gset
+select pg_temp.variante('ZZ-FL-T4I-C-M', :'pc', :'c1') as vcm \\gset
+select retail.cargar_stock_inicial(:'ubic', jsonb_build_array(jsonb_build_object('variante_id', :'vcs', 'cantidad', 2)), null, true, gen_random_uuid()) as _5 \\gset
+alter table retail.movimientos disable trigger movimientos_inmutables;
+update retail.movimientos set created_at = '2026-01-15 10:00-05' where variante_id = :'vcs';
+alter table retail.movimientos enable always trigger movimientos_inmutables;
+select pg_temp.tienda('ZZ T4i Sede C') as uc \\gset
+select retail.cargar_stock_inicial(:'uc', jsonb_build_array(jsonb_build_object('variante_id', :'vcm', 'cantidad', 1)), null, false, gen_random_uuid()) as _6 \\gset
+select pg_temp.lectura() as j3 \\gset
+${k("SOLO_CARGAS", `(select format('cayla=%s,fin=%s,pasada=%s',
+    case when (x ->> 'ultima_llegada_cayla')::timestamptz = '2026-01-15 10:00-05'::timestamptz then 'primera_carga'
+         when (x ->> 'ultima_llegada_cayla')::timestamptz > now() - interval '1 minute' then 'carga_de_hoy'
+         else coalesce(x ->> 'ultima_llegada_cayla', 'null') end,
+    case when (x ->> 'fin_estacion')::timestamptz = :'fin_lote'::timestamptz then 'el_del_verano_2025_26' else coalesce(x ->> 'fin_estacion', 'null') end,
+    ((x ->> 'fin_estacion')::timestamptz <= now())::text)
+  from jsonb_array_elements(:'j3'::jsonb -> 'prendas') x where x ->> 'codigo' = 'ZZ-FL-T4I-C-S')`)}`,
   (o) => {
     afirmar("antes: la llegada a CAYLA es el lote de enero y su fin, el del verano 2025-26: «Temporada pasada»", o.ANTES === "cayla=lote,fin=el_del_lote,tienda=lote,pasada=true", `ANTES=${o.ANTES}`);
-    // Si Felipe elige la recomendación (la carga inicial cuenta solo si el modelo+color no tiene lote ni producción, y
-    // entre cargas la PRIMERA), estas dos pasan a exigir «cayla=lote,fin=el_del_lote,tienda=lote» (ADR-0208, revisión 6).
-    afirmar("PENDIENTE DE FELIPE: la carga de hoy en OTRA sede pasa a ser su llegada a CAYLA y mueve el fin de la S de esta tienda", o.OTRA_SEDE === "cayla=carga_de_hoy,fin=el_de_la_carga,tienda=lote", `OTRA_SEDE=${o.OTRA_SEDE}`);
-    afirmar("PENDIENTE DE FELIPE: lo mismo con una talla nueva cargada en ESTA tienda (la S sigue con su llegada de enero a la tienda)", o.MISMA_SEDE === "cayla=carga_de_hoy,fin=el_de_la_carga,tienda=lote", `MISMA_SEDE=${o.MISMA_SEDE}`);
+    // Hasta la revisión 7 las dos daban «cayla=carga_de_hoy,fin=el_de_la_carga»: la carga de AQP o LIM al incorporarse le
+    // borraba «Temporada pasada» a TRU (ADR-0208, «Revisión 6 del paso 3», pregunta 7).
+    afirmar("la carga de hoy en OTRA sede no es llegada a CAYLA: el modelo+color tiene lote (sigue el de enero y su fin)", o.OTRA_SEDE === "cayla=lote,fin=el_del_lote,tienda=lote", `OTRA_SEDE=${o.OTRA_SEDE}`);
+    afirmar("…ni una talla nueva cargada en ESTA tienda", o.MISMA_SEDE === "cayla=lote,fin=el_del_lote,tienda=lote", `MISMA_SEDE=${o.MISMA_SEDE}`);
+    afirmar("un modelo+color que solo vino en cargas: manda la PRIMERA (la de enero), no la de hoy en otra sede", o.SOLO_CARGAS === "cayla=primera_carga,fin=el_del_verano_2025_26,pasada=true", `SOLO_CARGAS=${o.SOLO_CARGAS}`);
+  },
+);
+
+// ======================= REVISIÓN 7 (2026-09-27): lo apartado para una clienta (R7-1, decisión de Felipe) =======================
+correr(
+  "T2i · lo apartado para una clienta no está colgado (R7-1, Felipe 2026-09-27): piso y almacén libres, apartadas_hoy y los puntos de lo apartado del piso con su saldo",
+  `select pg_temp.variante('ZZ-FL-T2I-APARTADA') as va \\gset
+select pg_temp.variante('ZZ-FL-T2I-ANTES') as vb \\gset
+select pg_temp.variante('ZZ-FL-T2I-PARTIDA') as vc \\gset
+select pg_temp.variante('ZZ-FL-T2I-LIBERADA') as vd \\gset
+select pg_temp.variante('ZZ-FL-T2I-ENTREGA') as ve \\gset
+select pg_temp.variante('ZZ-FL-T2I-ALMACEN') as vf \\gset
+-- A (el caso de la revisión 7): 4 llegan hace 61 días, se cuelgan hace 60, se vende 1 y las 3 que quedan se apartan
+-- hace 50.
+select pg_temp.llega(:'va', 4, now() - interval '61 days') as _a1 \\gset
+select pg_temp.bajada(:'va', 4, now() - interval '60 days') as _a2 \\gset
+select pg_temp.vende(:'va', 1, now() - interval '59 days') as _a3 \\gset
+select pg_temp.mov(:'va', 'apartado', 3, :'sp', 'apartado', now() - interval '50 days') as _a4 \\gset
+-- B: apartada ANTES de la ventana y todavía apartada: solo el saldo.
+select pg_temp.llega(:'vb', 3, now() - interval '150 days') as _b1 \\gset
+select pg_temp.bajada(:'vb', 3, now() - interval '149 days') as _b2 \\gset
+select pg_temp.mov(:'vb', 'apartado', 2, :'sp', 'apartado', now() - interval '140 days') as _b3 \\gset
+-- C: 2 apartadas hace 40 días y 1 liberada hace 20. A 30 días la separación queda partida por el borde de la ventana.
+select pg_temp.llega(:'vc', 3, now() - interval '45 days') as _c1 \\gset
+select pg_temp.bajada(:'vc', 3, now() - interval '41 days') as _c2 \\gset
+select pg_temp.mov(:'vc', 'apartado', 2, :'sp', 'apartado', now() - interval '40 days') as _c3 \\gset
+select pg_temp.mov(:'vc', 'liberacion_apartado', 1, :'sp', 'liberacion_apartado', now() - interval '20 days') as _c4 \\gset
+-- D: apartada hace 10 días y liberada hace 5 (la clienta no vino): vuelve a estar libre.
+select pg_temp.llega(:'vd', 2, now() - interval '20 days') as _d1 \\gset
+select pg_temp.bajada(:'vd', 2, now() - interval '19 days') as _d2 \\gset
+select pg_temp.mov(:'vd', 'apartado', 1, :'sp', 'apartado', now() - interval '10 days') as _d3 \\gset
+select pg_temp.mov(:'vd', 'liberacion_apartado', 1, :'sp', 'liberacion_apartado', now() - interval '5 days') as _d4 \\gset
+-- E: la entrega: se libera y se vende en el mismo instante (como entregar una separación).
+select pg_temp.llega(:'ve', 2, now() - interval '10 days') as _e1 \\gset
+select pg_temp.bajada(:'ve', 2, now() - interval '9 days') as _e2 \\gset
+select pg_temp.mov(:'ve', 'apartado', 1, :'sp', 'apartado', now() - interval '8 days') as _e3 \\gset
+select pg_temp.mov(:'ve', 'liberacion_apartado', 1, :'sp', 'liberacion_apartado', now() - interval '3 days') as _e4 \\gset
+select pg_temp.vende(:'ve', 1, now() - interval '3 days') as _e5 \\gset
+-- F: lo apartado está en el ALMACÉN: no toca el piso, pero no se puede trasladar.
+select pg_temp.llega(:'vf', 3, now() - interval '10 days') as _f1 \\gset
+select pg_temp.bajada(:'vf', 1, now() - interval '9 days') as _f2 \\gset
+select pg_temp.mov(:'vf', 'apartado', 2, :'sa', 'apartado', now() - interval '8 days') as _f3 \\gset
+select pg_temp.lectura() as j \\gset
+select pg_temp.lectura(30) as j30 \\gset
+create function pg_temp.libre(j jsonb, p_codigo text) returns text language sql as $f$
+  select coalesce((select format('piso=%s,alm=%s,apartadas=%s', x ->> 'piso_hoy', x ->> 'almacen_hoy', x ->> 'apartadas_hoy')
+                     from jsonb_array_elements(j -> 'prendas') x where x ->> 'codigo' = p_codigo), 'ausente')
+$f$;
+-- Lo que la web suma (eventos del piso + lo apartado del piso) tiene que dar lo LIBRE de hoy, en cada prenda.
+create function pg_temp.cuadra(j jsonb) returns text language sql as $f$
+  select coalesce(string_agg(x ->> 'codigo', ',' order by x ->> 'codigo'), 'todas')
+    from jsonb_array_elements(j -> 'prendas') x
+   where coalesce((select sum((e ->> 1)::int) from jsonb_array_elements(j -> 'eventos' -> (x ->> 'variante_id')) e), 0)
+       + coalesce((select sum((a ->> 1)::int) from jsonb_array_elements(j -> 'apartados' -> (x ->> 'variante_id')) a), 0)
+       <> (x ->> 'piso_hoy')::int
+$f$;
+${k("A", "pg_temp.libre(:'j', 'ZZ-FL-T2I-APARTADA') || ' ' || pg_temp.ap(:'j', :'va')")}
+${k("B", "pg_temp.libre(:'j', 'ZZ-FL-T2I-ANTES') || ' ' || pg_temp.ap(:'j', :'vb')")}
+${k("C", "pg_temp.libre(:'j', 'ZZ-FL-T2I-PARTIDA') || ' ' || pg_temp.ap(:'j', :'vc')")}
+${k("C30", "pg_temp.libre(:'j30', 'ZZ-FL-T2I-PARTIDA') || ' ' || pg_temp.ap(:'j30', :'vc')")}
+${k("D", "pg_temp.libre(:'j', 'ZZ-FL-T2I-LIBERADA') || ' ' || pg_temp.ap(:'j', :'vd')")}
+${k("E", "pg_temp.libre(:'j', 'ZZ-FL-T2I-ENTREGA') || ' ' || pg_temp.ap(:'j', :'ve') || ' ' || pg_temp.ev(:'j', :'ve', :'t0')")}
+${k("F", "pg_temp.libre(:'j', 'ZZ-FL-T2I-ALMACEN') || ' ' || pg_temp.ap(:'j', :'vf')")}
+${k("CLAVES", "(select string_agg(k, ',' order by k) from jsonb_object_keys(:'j'::jsonb -> 'apartados') k) = (select string_agg(v, ',' order by v) from unnest(array[:'va', :'vb', :'vc', :'vd', :'ve']::text[]) v)")}
+${k("CUADRA", "pg_temp.cuadra(:'j') || ' ' || pg_temp.cuadra(:'j30')")}`,
+  (o) => {
+    afirmar("A · las 3 que quedan, apartadas hace 50 días: piso libre 0, apartadas 3 y un solo punto, −3 hace 50 días", o.A === "piso=0,alm=0,apartadas=3 50:-3", `A=${o.A}`);
+    afirmar("B · apartada antes de la ventana: su saldo, −2 a la hora de «desde»; piso libre 1", o.B === "piso=1,alm=0,apartadas=2 S:-2", `B=${o.B}`);
+    afirmar("C · 2 apartadas hace 40 días y 1 liberada hace 20: −2 y +1; queda 1 apartada", o.C === "piso=2,alm=0,apartadas=1 40:-2,20:1", `C=${o.C}`);
+    afirmar("C · a 30 días: el saldo al empezar la ventana son las 2 (la liberación es de adentro)", o.C30 === "piso=2,alm=0,apartadas=1 S:-2,20:1", `C30=${o.C30}`);
+    afirmar("D · apartada y liberada: −1 y +1, y vuelve a estar libre entera", o.D === "piso=2,alm=0,apartadas=0 10:-1,5:1", `D=${o.D}`);
+    const e = (o.E ?? "").split(" ");
+    afirmar("E · la entrega: se libera (+1) y la venta sale en los eventos del piso", e[0] === "piso=1,alm=0,apartadas=0" && e[1] === "8:-1,3:1" && /:-1:1$/.test(e[2] ?? ""), `E=${o.E}`);
+    afirmar("F · apartada en el almacén: almacen_hoy es lo libre (0), apartadas 2, y el piso no tiene puntos apartados", o.F === "piso=1,alm=0,apartadas=2 -", `F=${o.F}`);
+    afirmar("solo las prendas con algo apartado en el piso traen `apartados`", o.CLAVES === "true", `CLAVES=${o.CLAVES}`);
+    afirmar("en toda prenda, eventos + apartados = lo libre de hoy (a 120 y a 30 días)", o.CUADRA === "todas todas", `CUADRA=${o.CUADRA}`);
   },
 );
 
@@ -1574,52 +1694,62 @@ const FIRMAS = {
   fn_temporada_efectiva_nucleo: FIRMA_NUCLEO_TEMP,
   fn_temporada_efectiva: FIRMA_TEMP,
 };
-/** Lo que dice la guarda al abortar por cada una (fn_temporada_efectiva se reescribe: su aviso es otro). */
+/** Lo que dice la guarda de 20260928120310 al abortar por cada una (fn_temporada_efectiva se reescribe: su aviso es otro). */
 const AVISO_GUARDA = (f) =>
   f === "fn_temporada_efectiva"
     ? "fn_temporada_efectiva cambió desde 20260928100000"
     : f === "fn_temporada_efectiva_nucleo" || f === "fn_es_llegada_a_cayla"
       ? `${f} ya existe con otro cuerpo`
       : `${f} tiene otro cuerpo`;
-correr(
-  "T12 · la guarda: pegada otra vez deja lo mismo; con una función parchada en vivo aborta y no la pisa",
-  `select ${MD5S} as antes \\gset
-${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
-${k("MISMOS", `${MD5S} = :'antes'`)}
-${FUNCIONES
-  .map((f, i) => {
+/** Un parche en vivo de cada una de las seis (el mismo cuerpo con un comentario más: cambia el md5, no la conducta), y
+ *  qué hace `migracion` con él; todo se deshace al final (savepoint). */
+const parches = (migracion, prefijo) =>
+  FUNCIONES.map((f, i) => {
     const firma = FIRMAS[f];
-    // Un parche en vivo: el mismo cuerpo con un comentario más (cambia el md5, no la conducta).
-    return `savepoint s${i};
-select md5(prosrc) as parche${i} from pg_proc where oid = '${firma}'::regprocedure \\gset
+    return `savepoint ${prefijo}${i};
+select md5(prosrc) as ${prefijo}parche${i} from pg_proc where oid = '${firma}'::regprocedure \\gset
 do $p$ begin
   execute replace(pg_get_functiondef('${firma}'::regprocedure), E'\\n$function$', E'\\n-- parche en vivo\\n$function$');
 end $p$;
-select md5(prosrc) as parchado${i} from pg_proc where oid = '${firma}'::regprocedure \\gset
-${k(`PARCHE_${i}`, `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
-${k(`SIGUE_${i}`, `(select md5(prosrc) = :'parchado${i}' and md5(prosrc) <> :'parche${i}' from pg_proc where oid = '${firma}'::regprocedure)`)}
-rollback to savepoint s${i};`;
-  })
-  .join("\n")}`,
+select md5(prosrc) as ${prefijo}parchado${i} from pg_proc where oid = '${firma}'::regprocedure \\gset
+${k(`${prefijo}PARCHE_${i}`, `pg_temp.intento(${comoLiteral(migracion)})`)}
+${k(`${prefijo}SIGUE_${i}`, `(select md5(prosrc) = :'${prefijo}parchado${i}' and md5(prosrc) <> :'${prefijo}parche${i}' from pg_proc where oid = '${firma}'::regprocedure)`)}
+rollback to savepoint ${prefijo}${i};`;
+  }).join("\n");
+/** Las que vigila la guarda de 20260928120320: la que reescribe y las tres que usa. Las otras dos no las toca. */
+const VIGILA_R7 = new Set(["fn_frescura_sede", "fn_es_llegada", "fn_es_llegada_a_cayla", "fn_temporada_efectiva_nucleo"]);
+correr(
+  "T12 · la guarda de la que manda fn_frescura_sede (20260928120320): pegada otra vez deja lo mismo; con ella o una de las que usa parchada en vivo aborta y no la pisa; las que no toca siguen con su parche",
+  `select ${MD5S} as antes \\gset
+${k("OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
+${k("MISMOS", `${MD5S} = :'antes'`)}
+${parches(MIGRACION_R7, "s")}`,
   (o) => {
     afirmar("pegada otra vez: ok", json(o.OTRA_VEZ)?.ok === true, `OTRA_VEZ=${o.OTRA_VEZ}`);
     afirmar("…y los seis md5 no cambian", o.MISMOS === "true", `MISMOS=${o.MISMOS}`);
     FUNCIONES.forEach((f, i) => {
-      const e = json(o[`PARCHE_${i}`]);
-      afirmar(`${f} parchada en vivo: la migración aborta nombrándola`, e?.ok === false && (e?.msg ?? "").includes(AVISO_GUARDA(f)), o[`PARCHE_${i}`]);
-      afirmar(`…y el parche de ${f} sigue ahí`, o[`SIGUE_${i}`] === "true", `SIGUE_${i}=${o[`SIGUE_${i}`]}`);
+      const e = json(o[`sPARCHE_${i}`]);
+      if (VIGILA_R7.has(f)) {
+        afirmar(`${f} parchada en vivo: la migración aborta nombrándola`, e?.ok === false && (e?.msg ?? "").includes(`${f} tiene otro cuerpo`), o[`sPARCHE_${i}`]);
+      } else {
+        afirmar(`${f} parchada en vivo: la migración no la usa ni la reescribe, y entra`, e?.ok === true, o[`sPARCHE_${i}`]);
+      }
+      afirmar(`…y el parche de ${f} sigue ahí`, o[`sSIGUE_${i}`] === "true", `sSIGUE_${i}=${o[`sSIGUE_${i}`]}`);
     });
   },
 );
 
 // ---------------------------------------------------------------------------
-// T12b · El orden de las dos migraciones (revisión 4, hallazgo 1). Producción el 2026-09-27: ninguna de las dos pegada y
-// fn_temporada_efectiva con su cuerpo de 20260928100000. Main trae 20260928120300 con la orden de pegarla; la corrección
-// vive en 20260928120310. Con la de main ya pegada, la corregida TIENE que entrar (antes, editada en su lugar, abortaba
-// culpando a un «parche en vivo» que no existía); y volver a pegar la de main después no deshace nada.
+// T12b · El orden de las tres migraciones (revisión 4, hallazgo 1; revisión 7). Producción el 2026-09-27: ninguna
+// pegada y fn_temporada_efectiva con su cuerpo de 20260928100000. Main trae 20260928120300, 20260928120310 (PR #544) y
+// 20260928120320, en ese orden. Cada una tiene que entrar sobre la anterior (nunca abortar culpando a un «parche en vivo»
+// que no existe), poder pegarse dos veces sin cambiar nada, y volver a pegar una anterior no deshace nada.
 const MD5_0300 = "fn_confianza_registro=9c714f98dd2776eebb505846eb24c33a,fn_es_llegada=5089ba50874f611d96d5df751b63ed57,fn_frescura_sede=644e10126796adc1111702290c14f2bb,fn_temporada_efectiva=1cc652ba0bef3e9783a014b840cb870f";
+const MD5_0310 = "fn_confianza_registro=8c6f5e6c27916b99be10020b772bd6e0,fn_es_llegada=5089ba50874f611d96d5df751b63ed57,fn_es_llegada_a_cayla=7e1ffb6d9853027ec685fef46ec72a4c,fn_frescura_sede=51babffc09da4073691ee251882967c8,fn_temporada_efectiva=e96b3c6c51fd12ca712e76d63efd6448,fn_temporada_efectiva_nucleo=2bf80eb239248cce88cf8062238f4dfc";
+/** Tras 20260928120320: las de 20260928120310 con fn_frescura_sede nueva (el md5 que nombra su guarda). */
+const MD5_0320 = MD5_0310.replace(/fn_frescura_sede=[0-9a-f]{32}/, `fn_frescura_sede=${/'51babffc09da4073691ee251882967c8', '([0-9a-f]{32})'/.exec(MIGRACION_R7)?.[1]}`);
 correr(
-  "T12b · con la versión de main (20260928120300) ya pegada, la corregida (20260928120310) se aplica; la de main otra vez aborta; sin la de main, la corregida no entra",
+  "T12b · desde producción de hoy: 120300 → 120310 (dos veces) → 120320 (dos veces), cada una con sus md5; una anterior otra vez aborta sin deshacer nada; sin la de antes, cada una la pide",
   `select ${MD5S} as nuevos \\gset
 -- Producción antes de pegar nada del paso 3: sin las lecturas ni el núcleo de temporadas, fn_temporada_efectiva de
 -- 20260928100000. (Las funciones SQL y plpgsql no dejan dependencias de cuerpo: se pueden quitar en cualquier orden.)
@@ -1630,32 +1760,61 @@ drop function retail.fn_es_llegada_a_cayla(text, text, uuid, uuid, uuid);
 ${k("TEMP_0100", `pg_temp.intento(${comoLiteral(TEMPORADA_EFECTIVA_0100)})`)}
 ${k("MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_0300)})`)}
 ${k("MD5_MAIN", MD5S)}
+${k("R7_SIN_0310", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
 ${k("CORREGIDA", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
-${k("MD5_CORREGIDA", `${MD5S} = :'nuevos'`)}
-${k("CORREGIDA_LEE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
-${k("MAIN_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_0300)})`)}
-${k("MD5_SIGUEN", `${MD5S} = :'nuevos'`)}
+${k("MD5_CORREGIDA", MD5S)}
 ${k("CORREGIDA_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
--- Sin la de main: la corregida la pide.
+${k("MD5_CORREGIDA_OTRA_VEZ", MD5S)}
+-- La guarda de la 120310 en su momento (con ella recién pegada): con cualquiera de las seis parchada en vivo, aborta.
+${parches(MIGRACION, "g")}
+${k("R7", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
+${k("MD5_R7", MD5S)}
+${k("R7_ES_EL_DE_HOY", `${MD5S} = :'nuevos'`)}
+${k("R7_LEE", "pg_temp.intento(format('select retail.fn_frescura_sede(%L)', :'ubic'))")}
+${k("R7_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}
+${k("MD5_R7_OTRA_VEZ", MD5S)}
+${k("MAIN_OTRA_VEZ", `pg_temp.intento(${comoLiteral(MIGRACION_0300)})`)}
+${k("CORREGIDA_TRAS_R7", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
+${k("MD5_SIGUEN", `${MD5S} = :'nuevos'`)}
+-- Sin la de main: las otras dos la piden.
 drop function retail.fn_es_llegada(text, text, uuid, uuid, uuid);
-${k("SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}`,
+${k("SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}
+${k("R7_SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION_R7)})`)}`,
   (o) => {
     afirmar("fn_temporada_efectiva vuelve a su cuerpo de 20260928100000", json(o.TEMP_0100)?.ok === true, `TEMP_0100=${o.TEMP_0100}`);
     afirmar("la de main se pega sobre producción de hoy", json(o.MAIN)?.ok === true, `MAIN=${o.MAIN}`);
-    afirmar("…y deja sus md5 (los que manda el BACKLOG de main)", o.MD5_MAIN === MD5_0300, `MD5_MAIN=${o.MD5_MAIN}`);
-    afirmar("la corregida se pega ENCIMA de la de main (su guarda acepta la versión anterior)", json(o.CORREGIDA)?.ok === true, `CORREGIDA=${o.CORREGIDA}`);
-    afirmar("…y deja los seis md5 de este archivo (con fn_es_llegada_a_cayla, que nace aquí)", o.MD5_CORREGIDA === "true", `MD5_CORREGIDA=${o.MD5_CORREGIDA}`);
-    afirmar("…y la lectura responde", json(o.CORREGIDA_LEE)?.ok === true, `CORREGIDA_LEE=${o.CORREGIDA_LEE}`);
+    afirmar("…y deja sus md5", o.MD5_MAIN === MD5_0300, `MD5_MAIN=${o.MD5_MAIN}`);
     afirmar(
-      "volver a pegar la de main después aborta (su guarda no conoce el cuerpo nuevo) y no deshace nada",
-      json(o.MAIN_OTRA_VEZ)?.ok === false && (json(o.MAIN_OTRA_VEZ)?.msg ?? "").includes("fn_frescura_sede ya existe con otro cuerpo") && o.MD5_SIGUEN === "true",
-      `MAIN_OTRA_VEZ=${o.MAIN_OTRA_VEZ} MD5_SIGUEN=${o.MD5_SIGUEN}`,
+      "la de revisión 7 sobre la de main sola aborta pidiendo 20260928120310",
+      json(o.R7_SIN_0310)?.ok === false && (json(o.R7_SIN_0310)?.msg ?? "").includes("pega antes 20260928120310"),
+      `R7_SIN_0310=${o.R7_SIN_0310}`,
     );
-    afirmar("la corregida otra vez: ok", json(o.CORREGIDA_OTRA_VEZ)?.ok === true, `CORREGIDA_OTRA_VEZ=${o.CORREGIDA_OTRA_VEZ}`);
+    afirmar("la 120310 se pega ENCIMA de la de main (su guarda acepta la versión anterior)", json(o.CORREGIDA)?.ok === true, `CORREGIDA=${o.CORREGIDA}`);
+    afirmar("…y deja sus seis md5 (con fn_es_llegada_a_cayla, que nace ahí)", o.MD5_CORREGIDA === MD5_0310, `MD5_CORREGIDA=${o.MD5_CORREGIDA}`);
+    afirmar("…pegada otra vez: ok y sin cambios", json(o.CORREGIDA_OTRA_VEZ)?.ok === true && o.MD5_CORREGIDA_OTRA_VEZ === MD5_0310, `${o.CORREGIDA_OTRA_VEZ} ${o.MD5_CORREGIDA_OTRA_VEZ}`);
+    FUNCIONES.forEach((f, i) => {
+      const e = json(o[`gPARCHE_${i}`]);
+      afirmar(`…con ${f} parchada en vivo, la 120310 aborta nombrándola y el parche sigue`, e?.ok === false && (e?.msg ?? "").includes(AVISO_GUARDA(f)) && o[`gSIGUE_${i}`] === "true", `${o[`gPARCHE_${i}`]} gSIGUE_${i}=${o[`gSIGUE_${i}`]}`);
+    });
+    afirmar("la de revisión 7 se pega ENCIMA de la 120310", json(o.R7)?.ok === true, `R7=${o.R7}`);
+    afirmar("…y deja los md5 de su guarda (solo cambia fn_frescura_sede), los mismos de una base con todas las migraciones", o.MD5_R7 === MD5_0320 && o.R7_ES_EL_DE_HOY === "true", `MD5_R7=${o.MD5_R7} R7_ES_EL_DE_HOY=${o.R7_ES_EL_DE_HOY}`);
+    afirmar("…y la lectura responde", json(o.R7_LEE)?.ok === true, `R7_LEE=${o.R7_LEE}`);
+    afirmar("…pegada otra vez: ok y sin cambios", json(o.R7_OTRA_VEZ)?.ok === true && o.MD5_R7_OTRA_VEZ === MD5_0320, `${o.R7_OTRA_VEZ} ${o.MD5_R7_OTRA_VEZ}`);
     afirmar(
-      "sin la de main, la corregida aborta pidiendo pegarla antes",
-      json(o.SIN_MAIN)?.ok === false && (json(o.SIN_MAIN)?.msg ?? "").includes("pega antes 20260928120300"),
-      `SIN_MAIN=${o.SIN_MAIN}`,
+      "volver a pegar la de main después aborta (su guarda no conoce el cuerpo nuevo)",
+      json(o.MAIN_OTRA_VEZ)?.ok === false && (json(o.MAIN_OTRA_VEZ)?.msg ?? "").includes("fn_frescura_sede ya existe con otro cuerpo"),
+      `MAIN_OTRA_VEZ=${o.MAIN_OTRA_VEZ}`,
+    );
+    afirmar(
+      "volver a pegar la 120310 después de la de revisión 7 también aborta, y ninguna de las dos deshizo nada",
+      json(o.CORREGIDA_TRAS_R7)?.ok === false && (json(o.CORREGIDA_TRAS_R7)?.msg ?? "").includes("fn_frescura_sede tiene otro cuerpo") && o.MD5_SIGUEN === "true",
+      `CORREGIDA_TRAS_R7=${o.CORREGIDA_TRAS_R7} MD5_SIGUEN=${o.MD5_SIGUEN}`,
+    );
+    afirmar(
+      "sin la de main, la 120310 y la de revisión 7 abortan pidiendo pegarla antes",
+      json(o.SIN_MAIN)?.ok === false && (json(o.SIN_MAIN)?.msg ?? "").includes("pega antes 20260928120300") &&
+        json(o.R7_SIN_MAIN)?.ok === false && (json(o.R7_SIN_MAIN)?.msg ?? "").includes("pega antes 20260928120300"),
+      `SIN_MAIN=${o.SIN_MAIN} R7_SIN_MAIN=${o.R7_SIN_MAIN}`,
     );
   },
 );
@@ -1669,8 +1828,8 @@ ${k("SIN_MAIN", `pg_temp.intento(${comoLiteral(MIGRACION)})`)}`,
 //   FRESCURA_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-lectura
 const FIXTURE = join(RAIZ, "apps", "web", "lib", "__fixtures__", "frescura-sede.json");
 
-/** La forma de un valor, sin sus datos: por cada ruta, los tipos que aparecen («string|null»). Los eventos van por
- *  variante (la clave es un uuid): se describen como un solo arreglo de tuplas. */
+/** La forma de un valor, sin sus datos: por cada ruta, los tipos que aparecen («string|null»). Los eventos y lo apartado
+ *  van por variante (la clave es un uuid): se describen como un solo arreglo de tuplas. */
 function forma(sede, conf) {
   const tipos = new Map();
   const anotar = (ruta, v) => {
@@ -1692,6 +1851,13 @@ function forma(sede, conf) {
     for (const e of lista) {
       anotar("evento.largo", String(e.length));
       e.forEach((x, i) => anotar(`evento[${i}]`, x));
+    }
+  }
+  for (const lista of Object.values(sede.apartados ?? {})) {
+    anotar("apartados[]", lista);
+    for (const a of lista) {
+      anotar("apartado.largo", String(a.length));
+      a.forEach((x, i) => anotar(`apartado[${i}]`, x));
     }
   }
   for (const f of conf ?? []) objeto("confianza", f);
@@ -1762,6 +1928,15 @@ update retail.stock set cantidad = 0 where variante_id = :'vdu' and ubicacion_id
 -- Blusa que solo está en el almacén.
 select pg_temp.talla(pg_temp.variante('ZZ-FX-ALMACEN-M', pg_temp.producto('FX Blusa en almacen', null, :'cat_a'), :'c1'), :'t_m') as val \\gset
 select pg_temp.llega(:'val', 2, now() - interval '3 days') as _a1 \\gset
+-- Vestido apartado (R7-1), en su propia categoría (sus unidades sin vender no mueven la vara de las blusas): 3 llegan
+-- hace 41 días, 2 se cuelgan hace 40; hace 30 se apartan las 2 del piso y la del almacén para una clienta. Nada libre: no
+-- envejece desde entonces (10 días colgado) ni recibe sugerencias.
+select id as cat_c from retail.categorias where nombre = 'Vestidos' \\gset
+select pg_temp.talla(pg_temp.variante('ZZ-FX-APARTADA-M', pg_temp.producto('FX Vestido apartado', null, :'cat_c'), :'c1'), :'t_m') as vap \\gset
+select pg_temp.llega(:'vap', 3, now() - interval '41 days') as _p1 \\gset
+select pg_temp.bajada(:'vap', 2, now() - interval '40 days') as _p2 \\gset
+select pg_temp.mov(:'vap', 'apartado', 2, :'sp', 'apartado', now() - interval '30 days') as _p3 \\gset
+select pg_temp.mov(:'vap', 'apartado', 1, :'sa', 'apartado', now() - interval '30 days') as _p4 \\gset
 -- Chompa de invierno: llegó el 15-ago-2026 (invierno; fecha fija, así su estación ya terminó con cualquier fecha en que
 -- se rehaga el archivo) y se colgó al día siguiente, en dos tallas; se vendió 1. El 20-ago llegó otro lote de la M a
 -- TRUJILLO: su última llegada a esta tienda sigue siendo el 15, y su última llegada a CAYLA (la de las dos tallas: es el
