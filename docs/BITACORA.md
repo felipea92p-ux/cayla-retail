@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Escribir en un buscador ya no abre el loader — ADR-0149, actualización)
+Qué hice: los buscadores que filtran por URL (Productos, Movimientos, Facturas, Por pagar, Recibidas, Historial de ventas) navegan con `useBusquedaEnUrl`: anuncian la dirección al loader, que la deja pasar, y mientras la base responde el campo dice «Buscando…» y la lista se atenúa. Un filtro por clic sigue con el loader.
+Por qué así: para el loader, `?q=fd` era «abrir una pantalla» y tapaba todo a mitad de palabra, quitándole el foco al campo. Vender y Apartados no lo sufren porque filtran en el navegador; aquí cada búsqueda va a la base, así que se cambió la señal, no el camino. Felipe eligió la opción A del spike (atenuar + «Buscando…») frente a no mostrar nada.
+Felipe se lleva: **el loader es para acciones decididas (abrir, guardar), no para cada tecla**. Un buscador nuevo que filtre por URL usa `buscar(href)`; si usa `router.push`, vuelve el loader al tipear.
+
 ## 2026-09-28 (Categorías ▸ ejemplo según la familia, prefijo y nombre repetidos se avisan al tipear)
 Qué hice: el ejemplo de «Nueva categoría» cambia con la familia (Calzado → Botines/BOT, Bisutería → Aretes/ARE…) y salta los que ya existen; si el prefijo o el nombre ya los tiene otra categoría —también una desactivada— el campo dice cuál y «Guardar» se bloquea. `CampoTexto` nace con `autoComplete="off"`. Regla pura en `lib/categoria-alta-reglas.ts` con pruebas; sin SQL.
 Por qué así: la base ya rechazaba el duplicado (`categorias_prefijo_unico`, `categorias_nombre_clave_unica`) pero solo al guardar y sin decir quién lo tenía; ambos índices cuentan las desactivadas, así que la pantalla compara contra todas. El candado real sigue en la base (dos líderes a la vez).
