@@ -1,4 +1,4 @@
-# BACKLOG VIVO — CAYLA Retail
+# BACKLOG VIVO — CAYLA Retail (secciones hasta el 2026-09-28; las nuevas van en `docs/backlog/`, ADR-0259)
 
 > Lo mantiene Claude. Se actualiza al cierre de cada sesión/paso. Máx. 3 ítems por
 > cubo — un décimo ítem no es señal de ambición, es señal de que no se está cerrando.

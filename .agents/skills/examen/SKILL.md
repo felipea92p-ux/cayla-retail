@@ -3,7 +3,7 @@ name: examen
 description: Verifica lo que Felipe realmente entendió de un módulo del ERP CAYLA. Él responde, Codex corrige. Úsala al cerrar un módulo o cuando lo pida.
 ---
 
-Sobre $ARGUMENTS (o el último módulo cerrado según `/docs/BITACORA.md`), hazle a Felipe
+Sobre $ARGUMENTS (o el último módulo cerrado según la bitácora: `ls docs/bitacora | tail`), hazle a Felipe
 3 preguntas, **una por vez**, esperando su respuesta antes de la siguiente:
 
 1. **Comprensión**: por qué se decidió así y no de la otra forma.

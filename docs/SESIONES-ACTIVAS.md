@@ -9,7 +9,7 @@ Nace del incidente del 2026-09-17: 6 colisiones de numeración de ADR, 2 migraci
 1. Antes de lanzar una sesión de IA o empezar una tarea de más de 30 minutos: agrégate abajo con una fila.
 2. Si ves que alguien ya está tocando lo mismo que ibas a tocar (misma tabla, mismo módulo, mismo rango de ADR/migración): para y coordina antes de seguir, no asumas que "no va a chocar".
 3. Al terminar: mueve tu fila a "Cerradas hoy" (no la borres — así queda el historial del día a la vista de todos).
-4. Al día siguiente, "Cerradas hoy" se limpia. El historial real y permanente vive en `BITACORA.md`, este archivo es solo el estado de "ahora mismo".
+4. Al día siguiente, "Cerradas hoy" se limpia. El historial real y permanente vive en `docs/bitacora/` (un archivo por entrada desde el 2026-09-29; lo anterior, en `BITACORA.md`), este archivo es solo el estado de "ahora mismo".
 
 ## Activas ahora
 

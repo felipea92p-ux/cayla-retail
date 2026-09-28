@@ -70,7 +70,7 @@ Lo que pasó el filtro "¿le sirve a 3 tiendas y 1 taller hoy?" pero es futuro. 
 ## 10 · Fuera de esta pantalla
 La única cosa de mayor consecuencia que nadie preguntó, y por qué.
 
-## 11 · Líneas propuestas para BACKLOG.md
+## 11 · Líneas propuestas para el backlog
 - [ ] `[pantalla:<slug>]` #n Título — esfuerzo
 
 ## Inventario de elementos *(omitir en rápido)*
