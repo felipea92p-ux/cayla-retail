@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Categorías: buscador en la lista)
+Qué hice: Productos ▸ Categorías no tenía cómo buscar; ahora tiene el mismo campo que Marcas y Tallas (nombre o prefijo, sin tildes ni mayúsculas, con «N de M categorías» y «Quitar búsqueda» si no hay nada). Regla pura en `lib/categorias-reglas.ts` con su prueba.
+Por qué así: las subcategorías no tienen tarjeta propia (viven dentro de la de su padre), así que escribir «largos» muestra la tarjeta de Vestidos con la línea «Sub: Vestidos largos»; si no, la búsqueda no encontraría nada aunque la categoría exista. Buscando, se ocultan las familias sin resultados.
+Felipe se lleva: una hija desactivada no hace aparecer a su padre activo (se buscan por separado). Sin migración.
+
 ## 2026-09-28 (Ningún módulo «solo del líder», y el Líder de equipo se edita — ADR-0253)
 Qué hice: el «candado» del Líder no le quitaba nada (era un rol `fijo` que veía todo y no se editaba); los que sí eran «solo líder por ahora» eran Configuración, Impuestos y Cierre de mes. Abrí los tres (36 funciones cambian solo su candado, reescritas desde la definición real de producción) e hice editable al Líder guardando lo que se le QUITA, no lo que ve: así un módulo nuevo le sigue apareciendo solo. Lo edita un Admin; «Roles y accesos» no se le quita. Dos migraciones sin pegar, prueba nueva de 13 casos y 16 pruebas SQL de Finanzas en verde sobre un Postgres desechable.
 Por qué así: «ser líder» en la base sale de `colaboradores.rol`, no del rol de la pantalla; quitarle un módulo al Líder es «ve / no ve», como en cualquier rol, y no le saca los poderes de «siempre solo del líder». Qué se rompería sin esto: guardar la lista de lo que el Líder VE obligaría a cada migración de un módulo nuevo a escribirle una fila, o el líder no lo vería nunca.
