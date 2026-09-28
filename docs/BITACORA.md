@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (La purga por script alcanza los productos con documentos; 2 de 4 purgados en producción — ADR-0224)
+Qué hice: el script de purga ahora deshace ventas con boleta de pruebas de SUNAT o nunca enviada, separaciones, compras con su recepción y la carga, bajadas y conteos; una sola lista de «qué se borra» alimenta el candado, el respaldo y la demostración. Con ensayo y tu «dale» se fueron Blusa Xd (con su factura de S/ 10,620) y Test de Produto 2 (con sus 2 separaciones).
+Por qué así: nada con alguien del otro lado se borra sin que tú lo nombres, y un comprobante que llegó a SUNAT en producción no se toca jamás (tres capas: aborta, no calza en ninguna clase permitida y su huella se compara al final). La prueba encontró un NULL que dejaba pasar una boleta que ya había intentado salir.
+Felipe se lleva: **el candado frenó a Polo Básico por 2 proformas vigentes que nadie recordaba** — una cotización también es un documento con una clienta del otro lado; y Blusa Carlita espera a Polo Básico solo para que la serie de notas no quede con un hueco.
+
 ## 2026-09-28 (Eliminar un producto también desde Existencias — ADR-0252, actualización)
 Qué hice: el detalle de cada prenda en Existencias termina con «Eliminar el producto» (en rojo, solo para un Admin en su sede); abre la misma ventana de Catálogo ▸ Productos, que pregunta a la base y dice que se van todas las tallas y colores, en todas las sedes. Solo web.
 Por qué así: Felipe buscó el botón donde mira su inventario y abrió «Ajustar inventario» creyendo que por ahí se borraba; el error era del lugar del botón. Un solo permiso (`permisosDelDetalle`) y una sola ventana: las dos pantallas preguntan lo mismo a la base.
