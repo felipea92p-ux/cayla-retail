@@ -1,16 +1,31 @@
 "use client";
 
+import { useState } from "react";
+import { Camera } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
 import { Punto } from "@/components/alta-producto/ElegirColores";
+import { BotonFoto, useFotosPendientes, type FotoPendiente } from "@/components/alta-producto/FotosAlta";
 import type { CeldaAlta } from "@/lib/alta-producto";
+import { leyendaVariantes, textoFotosDeFila } from "@/lib/tabla-alta-reglas";
 
-// Las variantes como TABLA talla × color (spike Nuevo producto, 2026-09-24). Antes eran una fila de casillas sueltas,
-// cada una con su campo de precio: con 4 tallas y 3 colores salían 12 cajitas y no se veía la forma del modelo.
+// La tabla de la prenda (paso 3 de Nuevo producto, spike v2 2026-09-28): una fila por color, una columna por talla, y
+// en la primera columna la foto de ese color. Antes eran dos piezas —una grilla de casillas de fotos (`FotosAlta`) y
+// esta tabla— y cada color aparecía dos veces en el mismo paso.
 //
-//   * clic en una celda la quita (queda rayada) o la vuelve a poner;
-//   * clic en el nombre de un color o en una talla quita o pone la fila o la columna entera;
-//   * «Poner un precio distinto a alguna» cambia las celdas por campos de precio; vacío = el precio de todas.
-// En celular la celda dice solo ✓ (el precio de todas ya está arriba); un precio distinto sí se ve, en ámbar.
-// La tabla se desplaza dentro de su caja si no entra: la página nunca se desplaza de costado.
+//   * cada celda es una variante: ✓ se crea; tocarla la quita (queda rayada con «—») y tocarla otra vez la devuelve;
+//   * UNA sola forma de quitar cada cosa (revisión de claridad del spike): la talla se quita arriba, en Tallas; el
+//     color, con su ×; aquí solo se toca la combinación que no existe. Por eso ni el encabezado ni la fila quitan nada;
+//   * la foto va en la fila de su color; la de «Todos los colores» (`colorCodigo: null`) va en su propia línea bajo la
+//     tabla, porque no es de ninguna fila: se ve en cada color que no tenga la suya (`fotoDeVariante`). Sin colores, la
+//     fila «Sin color» ES esa foto;
+//   * encabezado de tallas fijo arriba y columna del color fija a la izquierda: con 9 tallas × 8 colores (el peor caso
+//     real) la tabla se desplaza dentro de su caja y la página nunca se desborda a lo ancho (375 px incluidos).
+// El precio distinto por celda ya no vive aquí: pasó al segmento «¿Alguna cuesta distinto?» de `MatrizCantidades`.
+
+type Color = { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null };
+
+/** El rayado de «no existe»: el mismo en los pasos 3 y 4. */
+export const RAYADO_FUERA = "bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(26_26_24/0.05)_6px_7px)] text-tinta/25";
 
 export function MatrizVariantes({
   celdas,
@@ -18,134 +33,229 @@ export function MatrizVariantes({
   colores,
   excluidas,
   onExcluidas,
-  precioBase,
-  precios,
-  onPrecio,
-  editandoPrecios,
+  fotos,
+  onFotos,
+  disabled = false,
 }: {
   celdas: CeldaAlta[];
   /** Las tallas elegidas, ya ordenadas. Vacío = el producto no tiene talla (una sola columna). */
   tallas: { id: string; texto: string }[];
-  colores: { codigo: string; nombre: string; hex: string | null; familiaColor?: string | null }[];
+  colores: Color[];
   excluidas: Set<string>;
   onExcluidas: (s: Set<string>) => void;
-  precioBase: string;
-  precios: Record<string, string>;
-  onPrecio: (clave: string, valor: string) => void;
-  editandoPrecios: boolean;
+  fotos: FotoPendiente[];
+  onFotos: (f: FotoPendiente[]) => void;
+  disabled?: boolean;
 }) {
   const filas: (string | null)[] = colores.length ? colores.map((c) => c.codigo) : [null];
   const columnas: (string | null)[] = tallas.length ? tallas.map((t) => t.id) : [null];
   const celda = (color: string | null, talla: string | null) => celdas.find((c) => c.color === color && c.tallaId === talla);
-  const base = Number(precioBase) > 0 ? Number(precioBase).toFixed(2) : "";
+  const textoTalla = (talla: string | null) => (talla === null ? "Única" : (tallas.find((x) => x.id === talla)?.texto ?? ""));
+  const incluidas = celdas.filter((c) => !excluidas.has(c.clave)).length;
+  const leyenda = leyendaVariantes(
+    incluidas,
+    colores.map((c) => c.nombre),
+    tallas.map((t) => t.texto)
+  );
 
-  function alternar(claves: string[]) {
+  const { agregar, quitar, revision } = useFotosPendientes({ fotos, onFotos });
+  // De qué color se están mirando las fotos (para quitar alguna). `undefined` = ninguna hoja abierta; `null` = las de
+  // «Todos los colores» (o de la prenda, si no tiene colores).
+  const [viendo, setViendo] = useState<string | null | undefined>(undefined);
+  const generales = fotos.filter((f) => f.colorCodigo === null);
+  const nombreDe = (codigo: string | null) =>
+    codigo === null ? (colores.length ? "todos los colores" : "la prenda") : (colores.find((c) => c.codigo === codigo)?.nombre ?? codigo);
+
+  function alternar(clave: string) {
     const copia = new Set(excluidas);
-    const todasFuera = claves.every((k) => copia.has(k));
-    for (const k of claves) {
-      if (todasFuera) copia.delete(k);
-      else copia.add(k);
-    }
+    if (copia.has(clave)) copia.delete(clave);
+    else copia.add(clave);
     onExcluidas(copia);
   }
-  const clavesDeFila = (color: string | null) => celdas.filter((c) => c.color === color).map((c) => c.clave);
-  const clavesDeColumna = (talla: string | null) => celdas.filter((c) => c.tallaId === talla).map((c) => c.clave);
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-sand">
-      <table className="w-full border-collapse text-[13px]">
-        <thead>
-          <tr className="bg-hueso">
-            <th scope="col" className="px-3 py-2 text-left text-xs font-semibold text-tinta">
-              Color
-            </th>
-            {columnas.map((t) => (
-              <th key={t ?? "sin-talla"} scope="col" className="p-0 text-xs font-semibold text-tinta">
-                {t === null ? (
-                  <span className="block px-2 py-2">Única</span>
-                ) : (
-                  <button type="button" onClick={() => alternar(clavesDeColumna(t))} title="Quitar o poner toda la talla" className="w-full px-2 py-2 tabular-nums hover:bg-tinta/[0.05]">
-                    {tallas.find((x) => x.id === t)?.texto}
-                  </button>
-                )}
+    <div className="space-y-2">
+      <p className="text-[13px] leading-snug">
+        <b className="text-[15px] tabular-nums text-tinta">{incluidas}</b>{" "}
+        <span className="text-taupe">
+          variante{incluidas === 1 ? "" : "s"} ({leyenda.deDonde}). <span className="font-bold text-verde">✓</span> se crea.
+          {leyenda.ejemplo && (
+            <>
+              {" "}
+              ¿Alguna no existe, como {leyenda.ejemplo}? Tócala y queda <span className="text-tinta/45">—</span>
+            </>
+          )}
+        </span>
+      </p>
+
+      <div className="max-h-[520px] overflow-auto overscroll-x-contain rounded-xl border border-sand bg-papel">
+        <table className="w-full border-separate border-spacing-0 text-[13px]">
+          <thead>
+            <tr>
+              <th scope="col" className="sticky left-0 top-0 z-[3] whitespace-nowrap border-r border-sand bg-hueso py-2 pl-2 pr-2 text-left text-xs font-semibold text-tinta sm:pl-3.5">
+                {colores.length ? "Color y fotos" : "Fotos"}
               </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {filas.map((color) => {
-            const c = colores.find((x) => x.codigo === color);
-            return (
-              <tr key={color ?? "sin-color"} className="border-t border-sand">
-                <th scope="row" className="bg-papel p-0 text-left font-medium text-tinta">
-                  <button type="button" onClick={() => alternar(clavesDeFila(color))} title="Quitar o poner todo el color" className="flex w-full items-center gap-2 whitespace-nowrap px-3 py-2 text-left hover:bg-tinta/[0.04]">
-                    {c ? (
-                      <>
-                        <Punto hex={c.hex} familia={c.familiaColor} />
-                        {c.nombre}
-                      </>
-                    ) : (
-                      "Sin color"
-                    )}
-                  </button>
+              {columnas.map((t) => (
+                <th key={t ?? "sin-talla"} scope="col" className="sticky top-0 z-[2] whitespace-nowrap bg-hueso px-1 py-2 text-center text-xs font-semibold tabular-nums text-tinta sm:px-1.5">
+                  {textoTalla(t)}
                 </th>
-                {columnas.map((talla) => {
-                  const cel = celda(color, talla);
-                  if (!cel) return <td key={talla ?? "x"} />;
-                  const fuera = excluidas.has(cel.clave);
-                  const propio = precios[cel.clave];
-                  const etiqueta = [c?.nombre ?? "Sin color", tallas.find((x) => x.id === talla)?.texto ?? "Única"].join(" · ");
-                  if (!fuera && editandoPrecios) {
-                    return (
-                      <td key={cel.clave} className="border-l border-sand p-0 text-center">
-                        <input
-                          type="number"
-                          min={0}
-                          step="any"
-                          inputMode="decimal"
-                          aria-label={`Precio de ${etiqueta}`}
-                          placeholder={base || "0.00"}
-                          value={propio ?? ""}
-                          onChange={(e) => onPrecio(cel.clave, e.target.value)}
-                          className="h-10 w-16 border-b border-tinta/20 bg-transparent px-1 text-right text-[12.5px] tabular-nums outline-none focus:border-tinta"
-                        />
-                      </td>
-                    );
-                  }
-                  return (
-                    <td key={cel.clave} className="border-l border-sand p-0 text-center">
-                      <button
-                        type="button"
-                        onClick={() => alternar([cel.clave])}
-                        aria-pressed={!fuera}
-                        aria-label={fuera ? `${etiqueta}: fuera. Volver a incluir` : `${etiqueta}: incluida. Quitar`}
-                        className={`flex h-10 w-full min-w-11 items-center justify-center gap-1 px-2 tabular-nums transition-colors hover:bg-tinta/[0.04] ${
-                          fuera
-                            ? "bg-[repeating-linear-gradient(135deg,transparent_0_6px,rgb(26_26_24/0.05)_6px_7px)] text-tinta/25"
-                            : propio
-                              ? "font-semibold text-ambar"
-                              : "text-tinta"
-                        }`}
-                      >
-                        {fuera ? (
-                          "—"
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((color) => {
+              const c = colores.find((x) => x.codigo === color);
+              const suyas = fotos.filter((f) => f.colorCodigo === color);
+              const nombre = c?.nombre ?? "Sin color";
+              return (
+                <tr key={color ?? "sin-color"}>
+                  <th scope="row" className="sticky left-0 z-[1] whitespace-nowrap border-r border-t border-sand bg-papel py-1.5 pl-2 pr-2 text-left font-medium text-tinta sm:py-2 sm:pl-3 sm:pr-2.5">
+                    <div className="flex items-center gap-1.5 sm:gap-2.5">
+                      <FotosDeFila suyas={suyas} nombre={nombreDe(color)} disabled={disabled} onArchivos={(a) => agregar(a, color)} />
+                      <div className="flex min-w-0 flex-col leading-tight">
+                        <span className="flex items-center gap-1.5 text-[12.5px] font-semibold sm:text-[13.5px]">
+                          {c && <Punto hex={c.hex} familia={c.familiaColor} />}
+                          {nombre}
+                        </span>
+                        {suyas.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => setViendo(color)}
+                            aria-label={`Ver o quitar las fotos de ${nombreDe(color)}`}
+                            className="w-fit text-left text-[11px] font-normal text-taupe underline decoration-tinta/20 underline-offset-2 hover:text-tinta"
+                          >
+                            {textoFotosDeFila(suyas.length, false)}
+                          </button>
                         ) : (
-                          <>
-                            <span aria-hidden className="text-[10px] text-verde">
+                          <small className="text-[11px] font-normal text-taupe">{textoFotosDeFila(0, color !== null && generales.length > 0)}</small>
+                        )}
+                      </div>
+                    </div>
+                  </th>
+                  {columnas.map((talla) => {
+                    const cel = celda(color, talla);
+                    if (!cel) return <td key={talla ?? "x"} className="border-t border-sand" />;
+                    const fuera = excluidas.has(cel.clave);
+                    const etiqueta = `${nombre} en ${textoTalla(talla)}`;
+                    return (
+                      <td key={cel.clave} className="border-t border-sand p-0 text-center">
+                        <button
+                          type="button"
+                          onClick={() => alternar(cel.clave)}
+                          disabled={disabled}
+                          aria-pressed={!fuera}
+                          aria-label={fuera ? `${etiqueta}: no se crea. Toca para volver a ponerla` : `${etiqueta}: se crea. Toca para quitarla`}
+                          title={fuera ? "No se crea · toca para volver a ponerla" : "Toca para quitarla"}
+                          className={`flex h-12 w-full min-w-11 items-center justify-center text-[12.5px] transition-colors duration-150 hover:bg-tinta/[0.04] sm:h-[52px] sm:min-w-[54px] ${
+                            fuera ? RAYADO_FUERA : ""
+                          }`}
+                        >
+                          {fuera ? (
+                            "—"
+                          ) : (
+                            <span aria-hidden className="text-xs font-bold text-verde">
                               ✓
                             </span>
-                            {propio ? Number(propio).toFixed(2) : <span className="hidden sm:inline">{base}</span>}
-                          </>
-                        )}
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
+                          )}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* La foto de «Todos los colores»: no es de ninguna fila, así que va en su propia línea, justo bajo la tabla. Sin
+          colores no hace falta: la fila «Sin color» ya es esa foto. */}
+      {colores.length > 0 && (
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12.5px] text-tinta">
+          <span className="font-medium">Una foto para todos los colores:</span>
+          <FotosDeFila suyas={generales} nombre="todos los colores" disabled={disabled} onArchivos={(a) => agregar(a, null)} />
+          {generales.length > 0 && (
+            <button type="button" onClick={() => setViendo(null)} aria-label="Ver o quitar las fotos de todos los colores" className="btn-cayla btn-enlace text-xs">
+              {textoFotosDeFila(generales.length, false)}
+            </button>
+          )}
+        </div>
+      )}
+      <p className="text-xs text-taupe">
+        {colores.length > 0
+          ? "La foto va en la fila de su color. Una sola alcanza: la de todos los colores se muestra en los colores que no tengan la suya. Se sube al crear el producto."
+          : "La foto va en la fila de la prenda. Se sube al crear el producto."}
+      </p>
+
+      {viendo !== undefined && (
+        <Modal
+          titulo={`Fotos de ${nombreDe(viendo)}`}
+          subtitulo="Se suben al crear el producto. Para agregar otra, toca la foto en la tabla."
+          ancho="max-w-md"
+          onClose={() => setViendo(undefined)}
+        >
+          {(cerrar) => {
+            const estas = fotos.filter((f) => f.colorCodigo === viendo);
+            return (
+              <div className="space-y-4">
+                {estas.length === 0 ? (
+                  <p className="text-sm text-taupe">Ya no quedan fotos de {nombreDe(viendo)}.</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {estas.map((f, i) => (
+                      <div key={f.clave} className="space-y-1.5">
+                        <div className="aspect-[4/5] overflow-hidden rounded-md border border-sand bg-hueso">
+                          {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
+                          <img src={f.vista} alt={`Foto ${i + 1} de ${nombreDe(viendo)}`} className="h-full w-full object-cover" />
+                        </div>
+                        <button type="button" onClick={() => quitar(f.clave)} disabled={disabled} className="btn-cayla btn-sutil btn-chico w-full">
+                          Quitar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <button type="button" onClick={cerrar} className="btn-cayla btn-primario">
+                    Listo
+                  </button>
+                </div>
+              </div>
             );
-          })}
-        </tbody>
-      </table>
+          }}
+        </Modal>
+      )}
+      {revision}
     </div>
+  );
+}
+
+/** La foto de una fila: la miniatura (con el número si tiene varias; tocarla agrega otra) o, si no tiene, la cámara. */
+function FotosDeFila({ suyas, nombre, disabled, onArchivos }: { suyas: FotoPendiente[]; nombre: string; disabled: boolean; onArchivos: (a: File[]) => void }) {
+  if (suyas.length === 0) {
+    return (
+      <BotonFoto
+        onArchivos={onArchivos}
+        disabled={disabled}
+        etiqueta={`Agregar foto de ${nombre}`}
+        className="grid h-[42px] w-[34px] shrink-0 place-items-center rounded-[5px] border border-dashed border-tinta/25 text-taupe transition-colors hover:border-tinta/45 hover:text-tinta disabled:opacity-40"
+      >
+        <Camera aria-hidden className="h-[17px] w-[17px]" strokeWidth={1.7} />
+      </BotonFoto>
+    );
+  }
+  return (
+    <BotonFoto
+      onArchivos={onArchivos}
+      disabled={disabled}
+      etiqueta={`${suyas.length} foto${suyas.length === 1 ? "" : "s"} de ${nombre} · toca para agregar otra`}
+      className="relative h-[42px] w-[34px] shrink-0 rounded-[5px] border border-sand bg-hueso disabled:opacity-40"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:), next/image no la optimiza */}
+      <img src={suyas[0].vista} alt="" className="h-full w-full rounded-[4px] object-cover" />
+      {suyas.length > 1 && (
+        <span className="absolute -right-[5px] -top-1.5 rounded-full bg-tinta px-[5px] text-[9.5px] font-bold leading-[15px] tabular-nums text-crema">{suyas.length}</span>
+      )}
+    </BotonFoto>
   );
 }

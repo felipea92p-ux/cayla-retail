@@ -6,11 +6,12 @@ import { getContextoAlta } from "@/lib/alta-producto-datos";
 import { CabeceraPantalla } from "@/components/ui/CabeceraPantalla";
 import { Volver } from "@/components/ui/Volver";
 
-// Nuevo producto como árbol de decisión (ADR-0109): familia → categoría →
-// nombre → etiquetas → talla/tejido/patrón → colores → precio → cuántas hay
-// hoy (ADR-0212), en una sola transacción (`crear_producto_con_stock_inicial`),
-// en 5 pasos (spike 2026-09-24). Página propia y no modal: la
-// matriz puede crecer a 15-20 celdas — mismo criterio que `/compras/nueva`.
+// Nuevo producto como árbol de decisión (ADR-0109) en 4 preguntas (spike v2
+// 2026-09-28, docs/maquetas/producto-nuevo-v2-2026-09): categoría → cómo es
+// (nombre, marca, tejido, patrón) → tallas y colores (la tabla, con fotos) →
+// precio y cuántas hay hoy (ADR-0212), en una sola transacción
+// (`crear_producto_con_stock_inicial`). Página propia y no modal: la tabla
+// puede crecer a 9 tallas × 8 colores — mismo criterio que `/compras/nueva`.
 // El candado real (solo Líder) vive en la RPC; el redirect de acá es solo la
 // capa de UI.
 export default async function NuevoProductoPage() {
@@ -33,7 +34,7 @@ export default async function NuevoProductoPage() {
         <CabeceraPantalla
           sobretitulo="Catálogo · Productos"
           titulo="Nuevo producto"
-          bajada="Cinco pasos. Cada uno se cierra en una línea al terminarlo y a la derecha ves la prenda que se va a crear. El último carga lo que ya tienes en tienda."
+          bajada="Cuatro preguntas sobre la prenda que tienes en la mano. A la derecha la ves tal como va a quedar."
         />
       </div>
 
