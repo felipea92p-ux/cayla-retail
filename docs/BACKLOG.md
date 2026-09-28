@@ -96,7 +96,7 @@ Tres decisiones de Felipe (B-03 del 26-sep; (a) y (b) del 27-sep) que la base ti
 - [ ] Si Felipe crea un rol con Historial o Facturación y sin Clientas: ese rol vería las ventas sin el nombre y los comprobantes sin el botón de WhatsApp (hoy no existe; Integrante y Terminal de ventas tienen los tres).
 - Cómo verificas: `pnpm pruebas:clientas-modulo` (43/43; con `BASE_DESECHABLE=1`, 44/44 con la carrera que commitea), `pnpm pruebas:separaciones` (78/78), `pnpm pruebas:clientas`, `pnpm pruebas:roles`, `pnpm pruebas:roles-cobertura`; en la web, `vitest` de `error-escritura` y `clienta-ticket-reglas`.
 
-## 🔁 Los arreglos que vivían solo en producción, llevados a `main` (2026-09-28, ADR-0255) — dos migraciones **sin pegar en producción** (cambian solo 5 funciones de lectura); rama `claude/arreglos-en-vivo-a-main`
+## 🔁 Los arreglos que vivían solo en producción, llevados a `main` (2026-09-28, ADR-0255) — dos migraciones **YA en producción** (pegadas por Felipe el 2026-09-28, verificadas por md5); rama `claude/arreglos-en-vivo-a-main`
 La primera corrida de la deriva (ADR-0251) encontró 14 diferencias reales entre producción y `main`. Este cambio las deja
 en `main` y, al pegarse, deja la deriva solo con la política de Clientas que se decide en su PR.
 - [x] `20260928200000`: `emitir_comprobante`, `emitir_nota`, `fn_aplicar_movimiento` y `recalcular_stock` solo para su
@@ -115,8 +115,12 @@ en `main` y, al pegarse, deja la deriva solo con la política de Clientas que se
   armada desde el texto de cada migración; una migración posterior que cambie una `_json`, `fn_rentabilidad` o las
   notas no pone roja la suite ni pide editar una migración fusionada); los permisos se comparan contra la lista
   explícita de producción, también por columna; las notas se prueban con montos, por motivo, por comprobante y por sede.
-- [ ] **POR PEGAR:** `20260928200000` y `20260928200100`, cada una sola, en cualquier orden (md5 esperados en ADR-0255).
-- [ ] Después de pegar: correr la deriva (ADR-0251). Debe quedar solo `clientas_fusiones.clientas_fusiones_select`.
+- [x] **PEGADAS el 2026-09-28** y verificadas en solo lectura: las cinco huellas (`fn_stock_por_sede_json` `8ea080da…`,
+  `fn_resumen_comparacion_json` `29215793…`, `fn_resumen_variantes_json` `23e23e13…`, `compras_nota_pendiente` `a80fc315…`,
+  `notas_credito_tablero` `e9a4ec7b…`), `fn_rentabilidad` `1a61f192…`, las cuatro funciones cerradas solo para la dueña y
+  `stock`/`movimientos` con `authenticated=r` y `service_role=rxtm`.
+- [ ] Correr la deriva (ADR-0251) cuando esté la llave `DERIVA_LLAVE`: debe quedar en 0 (la política de
+  `clientas_fusiones` ya se quitó en producción con Clientas PARTE 2, #552).
 - [ ] **PR #168 (Rentabilidad):** quitar su creación de `fn_rentabilidad` o dejarla idéntica a la de producción. Si no,
   la guarda de `20260928200000` aborta en el CI.
 - [ ] Sigue abierto, aparte: el modal de nota de crédito solo ata el cierre cuando el motivo es «faltante», así que una

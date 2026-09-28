@@ -1,7 +1,7 @@
 # ADR-0255 · Los arreglos que vivían solo en producción, llevados a `main`
 
-- **Fecha:** 2026-09-28 · **Estado:** construido; **sin pegar en producción** (pegarlo cambia solo cinco funciones de
-  lectura, ver «Cómo se pega»).
+- **Fecha:** 2026-09-28 · **Estado:** **en producción desde el 2026-09-28** (Felipe pegó las dos partes; las huellas y
+  los permisos se verificaron en solo lectura). Pegarlo cambió solo cinco funciones de lectura, ver «Cómo se pega».
 - **Origen:** la primera corrida de la deriva (ADR-0251, 2026-09-28): 14 diferencias reales entre producción y `main`.
 - **Migraciones:** `20260928200000_arreglos_en_vivo_a_main.sql` y `20260928200100_nota_pendiente_por_cierre_o_faltante.sql`.
 - **Prueba:** `pnpm pruebas:arreglos-en-vivo` (`scripts/pruebas/arreglos_en_vivo.mjs`, en el job «Pruebas de RPC contra
