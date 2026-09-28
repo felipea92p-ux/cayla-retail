@@ -13,6 +13,11 @@ Qué hice: Productos ▸ Categorías no tenía cómo buscar; ahora tiene el mism
 Por qué así: las subcategorías no tienen tarjeta propia (viven dentro de la de su padre), así que escribir «largos» muestra la tarjeta de Vestidos con la línea «Sub: Vestidos largos»; si no, la búsqueda no encontraría nada aunque la categoría exista. Buscando, se ocultan las familias sin resultados.
 Felipe se lleva: una hija desactivada no hace aparecer a su padre activo (se buscan por separado). Sin migración.
 
+## 2026-09-28 (Atributos ▸ Temporadas: la vuelta «← Productos» y «← Categorías»)
+Qué hice: el enlace «Completar» del aviso «N prendas sin temporada» lleva `desde=productos`, y la sección «Prendas sin temporada» de Atributos ▸ Temporadas muestra «← Productos» sobre su título solo en ese caso. Lo mismo desde la ficha y el editor de una categoría: `desde=categorias` y «← Categorías» sobre «Por categoría», cuya ancla pasó del título a la sección (`#por-categoria`) para que la vuelta quede a la vista.
+Por qué así: «Completar» salta al ancla de la sección, lejos de la cabecera de Atributos, así que la vuelta va donde cae la vista; y como Atributos está en el menú, quien entra por el lateral no vino de Productos y no la ve (misma regla que `Volver`: dice adónde vuelve, enlace fijo y no `history.back()`).
+Felipe se lleva: una pantalla del menú no tiene «arriba»; la vuelta depende de por dónde se entró, y eso viaja en la URL, no en la memoria del navegador.
+
 ## 2026-09-28 (Productos ▸ Eliminar con su historia de stock, solo Admin — ADR-0252)
 Qué hice: un Admin puede eliminar un producto cuya única historia es de stock (carga, ajustes, bajadas, conteos), con respaldo de cada fila, rastro y línea en Actividad; ventas, compras, traslados y separaciones siguen sin borrarse desde la web. La ventana dice cuánto se va y quién lo cargó. Migración `20260928230000` sin pegar.
 Por qué así: de 33 productos, 22 solo tenían la carga inicial y ajustes, y el botón de ADR-0218 no los alcanzaba; la línea «¿hay una clienta, un proveedor, otra sede o dinero del otro lado?» deja al Admin limpiar pruebas sin poder borrar una venta cobrada. El candado del historial no aprendió excepciones: solo el dueño de la tabla lo apaga, dentro de su transacción, como la purga.
