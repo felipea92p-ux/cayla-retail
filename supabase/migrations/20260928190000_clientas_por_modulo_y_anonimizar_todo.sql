@@ -50,8 +50,10 @@
 --   ella datos de la clienta. Las funciones de Clientas dejan de escribir el nombre, el DNI, el celular y el motivo escrito
 --   a mano (puede nombrarla); las dos de Apartados (`fn_actividad_separacion`, `trg_actividad_separacion_hijas`) dejan de
 --   copiar el nombre del apartado: dicen «la clienta», y el resto de cada frase queda igual. Lo único que queda que limpiar
---   son las filas escritas ANTES de este archivo: se reescriben aquí, una sola vez, apagando el candado a la vista solo si
---   hay alguna (producción tenía 0 de Clientas y 0 de Apartados el 2026-09-28: ahí ni se toca la tabla). Y al anonimizar,
+--   es lo escrito ANTES de este archivo, una sola vez: las líneas de la actividad (sección 13, apagando el candado a la
+--   vista solo si hay alguna) y lo que la `archivar_clienta` de antes dejó de una ficha que ya anonimizó: el motivo escrito
+--   a mano y la foto de sus fusiones (sección 14). Producción tenía 0 clientas, 0 fusiones y 0 líneas de Clientas y de
+--   Apartados el 2026-09-28: ahí no cambia ninguna fila. Y al anonimizar,
 --   `archivar_clienta` vacía en la misma transacción la foto de `clientas_fusiones` de esa persona: la de cada ficha que se
 --   le unió (o que se unió a una que se le unió), porque son la misma persona. El motivo que se escribe al anonimizar se
 --   sigue pidiendo (es la pausa antes de algo que no se deshace) pero no se guarda: la ficha queda con «Anonimizada (Ley
@@ -64,8 +66,9 @@
 --   código del apartado lleva a él.
 -- SE ROMPE SI: una función nueva vuelve a copiar el nombre, el DNI o el celular de la clienta en `descripcion` o en
 --   `detalle`. Lo vigilan dos pruebas: clientas_por_modulo_y_anonimizar (busca el DNI, el nombre y el celular en todas las
---   columnas de clientas, clientas_fusiones y actividad después de anonimizar, y nombra toda función que anota actividad
---   leyendo las columnas de la clienta de un apartado) y separaciones.mjs (recorre un apartado entero sin encontrarla).
+--   columnas de clientas, clientas_fusiones y actividad después de anonimizar, recorre las cinco ramas de la actividad de
+--   un apartado —apartó, entregó, liberó, devolvió, extendió— y nombra toda función que anota actividad leyendo las
+--   columnas de la clienta de un apartado) y separaciones.mjs (recorre un apartado entero sin encontrarla).
 --   Fuera de esto, a propósito: lo que un apartado o un comprobante copiaron al hacerse (el nombre en `separaciones`, el
 --   documento en `comprobantes`) es un documento de esa operación y se conserva (docs/datos/06-DATOS-PERSONALES.md §7: «se
 --   anonimiza el dato, se conserva el documento»); el ADR-0249 lo deja como decisión aparte. Tampoco el texto libre que una
@@ -83,7 +86,8 @@
 -- CÓMO SE PEGA (dos partes, cada una SOLA en el SQL Editor de producción; se pueden pegar más de una vez, y en cualquier
 -- orden, aunque este es el recomendado):
 --   1. ESTE archivo: solo funciones, un candado nuevo en `clientas` (0 filas en producción), permisos de
---      `clientas_fusiones` y comentarios. Sin políticas ni `drop trigger` (CLAUDE.md, «Políticas y deadlocks»). Con
+--      `clientas_fusiones`, comentarios y la limpieza de lo escrito antes (secciones 13 y 14; en producción, nada que
+--      limpiar). Sin políticas ni `drop trigger` (CLAUDE.md, «Políticas y deadlocks»). Con
 --      `lock_timeout` de 3 s: si algo lo bloquea, falla limpio y se vuelve a pegar.
 --   2. 20260928190100_clientas_politicas_por_modulo.sql: SOLO las políticas.
 --
@@ -99,7 +103,8 @@
 --    order by 1;
 --
 -- CONCURRENCIA. Dos cajas registran a la vez a la misma clienta archivada: `registrar_clienta` toma la fila con `for update`
--- antes del upsert; la segunda espera, la encuentra ya activa y no anota una segunda reactivación. Anonimizar y unir a la
+-- antes del upsert; la segunda espera, la encuentra ya activa y no anota una segunda reactivación (lo vigila una carrera con
+-- dos conexiones reales en clientas_por_modulo_y_anonimizar: sin el `for update`, anota dos). Anonimizar y unir a la
 -- vez sobre la misma ficha: `unir_clientas` bloquea sus dos filas y `archivar_clienta` pide la versión que leyó (PT409): una
 -- de las dos gana entera y la otra se rechaza con un mensaje claro.
 -- CAÍDA EXTERNA. Nada de esto toca SUNAT/Lucode, el padrón ni WhatsApp.
@@ -958,5 +963,30 @@ begin
   end if;
 end
 $limpieza$;
+
+-- ---------- 14. las fichas anonimizadas ANTES de este archivo (b) ----------
+-- La `archivar_clienta` de antes, al anonimizar, guardaba el motivo escrito a mano (puede nombrarla: «Ana Pérez pidió que
+-- la borren») y no tocaba la foto de `clientas_fusiones`. Aquí se deja cada una como la habría dejado la de la sección 5:
+-- el motivo pasa a «Anonimizada (Ley 29733)» y la foto de cada ficha que se le unió, en cualquier nivel, queda solo con
+-- cuándo se anonimizó (la fecha de su archivo, que es la de ese momento). La RAÍZ es la ficha anonimizada a pedido
+-- (`fusionada_en_id is null`): una ficha unida a otra también está anonimizada, pero esa persona sigue viva en la ficha que
+-- se conservó y su foto es la evidencia para deshacer la fusión a mano, así que no se toma como raíz. Producción tenía 0
+-- clientas el 2026-09-28: no cambia ninguna fila. Idempotente: la segunda vez no encuentra nada que limpiar.
+update retail.clientas
+   set motivo_archivo = 'Anonimizada (Ley 29733)'
+ where anonimizada
+   and fusionada_en_id is null
+   and motivo_archivo is distinct from 'Anonimizada (Ley 29733)';
+
+with recursive arbol (id, anonimizada_en) as (
+  select c.id, c.archivada_en from retail.clientas c where c.anonimizada and c.fusionada_en_id is null
+  union
+  select c.id, a.anonimizada_en from retail.clientas c join arbol a on c.fusionada_en_id = a.id
+)
+update retail.clientas_fusiones f
+   set ficha_fusionada = jsonb_build_object('anonimizada_en', a.anonimizada_en)
+  from arbol a
+ where (f.clienta_mantiene_id = a.id or f.clienta_fusionada_id = a.id)
+   and f.ficha_fusionada - 'anonimizada_en' <> '{}'::jsonb;
 
 notify pgrst, 'reload schema';

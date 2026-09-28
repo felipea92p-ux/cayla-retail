@@ -23,8 +23,9 @@
  *      candado nuevo `clientas_fusionada_implica_anonimizada` hace imposible una ficha unida con datos.
  *   4. (b) Anonimizar deja CERO rastro del DNI, del nombre y de los celulares en todas las columnas de clientas,
  *      clientas_fusiones y actividad (cada fila entera como texto, jsonb incluido), también de las fichas que se le unieron
- *      y de un apartado suyo (apartar, abonar, avisar y editar anotan actividad); y antes de anonimizar, ninguna frase de la
- *      actividad (Clientas ni Apartados) los lleva.
+ *      y de un apartado suyo (apartar, abonar, avisar y editar anotan actividad); antes de anonimizar, ninguna frase de la
+ *      actividad (Clientas ni Apartados) los lleva; y las cinco ramas de la actividad de un apartado (apartó, entregó,
+ *      liberó, devolvió, extendió) dicen «la clienta» sin su nombre, celular ni DNI.
  *   5. Estructura: las 11 empiezan por `fn_exigir_modulo('clientas')` (lo primero que corre); el vigilante nombra toda
  *      función security definer nueva que toque la ficha sin él; otro vigilante nombra toda función que anota actividad
  *      leyendo las columnas de la clienta de un apartado; el ayudante no lo ejecuta nadie de la API; y los md5 «después»
@@ -32,17 +33,22 @@
  *   6. CONTROL y pegado: se deshace el cambio dentro de la transacción (las funciones y la política que tiene producción hoy,
  *      verificadas por md5 contra los «antes» de la PARTE 1) y el ataque PASA; se pegan los archivos tal como están en disco
  *      y el ataque se cierra; pegarlos dos veces, o en el orden equivocado, deja lo mismo; con una función cambiada en vivo
- *      la PARTE 1 aborta sin pisar nada; y la limpieza de la actividad vieja (Clientas y Apartados) la deja sin nombres, con
- *      las mismas filas, una sola vez.
+ *      la PARTE 1 aborta sin pisar nada; la limpieza de la actividad vieja (Clientas y Apartados) la deja sin nombres, con
+ *      las mismas filas, una sola vez; y una clienta anonimizada con las funciones de antes pierde, al pegar, el motivo
+ *      escrito y las fotos de sus fusiones (sin tocar la de una fusión cuya persona sigue viva).
+ *   7. Dos cajas a la vez con el mismo DNI, en dos conexiones reales: la segunda espera en la lectura de la ficha
+ *      (`for update`), antes de decidir si «vuelve» (ROLLBACK). Con BASE_DESECHABLE=1, además la misma carrera con COMMIT
+ *      sobre una ficha archivada: una sola línea «reactivó» (deja una ficha de prueba; no corre en el CI).
  *
  * FUERA A PROPÓSITO: los datos que un apartado o un comprobante copiaron al hacerse (documentos de esa operación; ADR-0249).
  *
  * USO
  *   pnpm pruebas:clientas-modulo                  → contra la base `postgres` del stack local (la del CI)
  *   pnpm pruebas:clientas-modulo --base cayla_x   → contra otra base del mismo contenedor
+ *   BASE_DESECHABLE=1 pnpm pruebas:clientas-modulo → además (7b), que commitea: SOLO contra un Postgres desechable
  */
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -85,12 +91,23 @@ const SIN_MODULO = "42501|clientas_sin_modulo";
 const SIN_RESPONSABLE = "42501|responsable_requerido";
 const SOLO_ADMIN = "P0001|Solo un Admin puede exportar la lista completa de clientas.";
 
+const ARGS_PSQL = ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"];
+
 function psql(sql) {
-  return execFileSync(
-    "docker",
-    ["exec", "-i", CONTENEDOR_LOCAL, "psql", "-q", "-U", "postgres", "-d", BASE, "-v", "ON_ERROR_STOP=1", "-t", "-A", "-F", "|", "-f", "-"],
-    { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] }
-  );
+  return execFileSync("docker", ARGS_PSQL, { input: sql, encoding: "utf8", maxBuffer: 16 * 1024 * 1024, stdio: ["pipe", "pipe", "pipe"] });
+}
+
+/** Una sesión de psql que corre en paralelo con las demás (para la carrera de la sección 7). */
+function psqlEnParalelo(sql) {
+  return new Promise((resolve) => {
+    const p = spawn("docker", ARGS_PSQL, { stdio: ["pipe", "pipe", "pipe"] });
+    let salida = "";
+    let error = "";
+    p.stdout.on("data", (d) => (salida += d));
+    p.stderr.on("data", (d) => (error += d));
+    p.on("close", (codigo) => resolve({ ok: codigo === 0, salida: salida.trim(), mensaje: error }));
+    p.stdin.end(sql);
+  });
 }
 
 function correr(sql) {
@@ -433,12 +450,14 @@ reset role;
 const RASTRO = ["90777555", "zorayda", "pruebaclientas", "huamanchumo", "987770001", "987770002", "987770003"];
 const cuentaRastro = (tabla) =>
   `(select count(*) from retail.${tabla} x where x::text ~* '(${RASTRO.join("|")})')`;
-const RECORRIDO = `${como(FELIPE)}select retail.registrar_clienta(null, 'Zorayda Q', '987770003', false, null, null) as z \\gset
+/** Las tres fichas de la misma persona: Z se une a Y, e Y a X (la que se conserva). Corre igual con las funciones de hoy y con las de producción. */
+const TRES_FICHAS = `${como(FELIPE)}select retail.registrar_clienta(null, 'Zorayda Q', '987770003', false, null, null) as z \\gset
 select retail.registrar_clienta(null, 'Zorayda Pruebaclientas', '987770002', true, 12::smallint, 5::smallint) as y \\gset
 select (retail.unir_clientas(:'y', :'z', null, null)).id as _u1 \\gset
 select retail.registrar_clienta('90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', true, 12::smallint, 5::smallint) as x \\gset
 select (retail.unir_clientas(:'x', :'y', null, null)).id as _u2 \\gset
-select retail.editar_clienta(:'x', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', false, false, 12::smallint, 5::smallint, '{"superior": "M"}'::jsonb, null) as _e \\gset
+`;
+const RECORRIDO = `${TRES_FICHAS}select retail.editar_clienta(:'x', '90777555', 'Zorayda Pruebaclientas Huamanchumo', '987770001', false, false, 12::smallint, 5::smallint, '{"superior": "M"}'::jsonb, null) as _e \\gset
 select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas se mudó a Arequipa (DNI 90777555)', false, null) as _a \\gset
 select retail.registrar_clienta('90777555', 'Zorayda Pruebaclientas Huamanchumo', null, false, null, null) as _r \\gset
 ${APARTADO({ codigo: "APT-TRU-9955", clienta: ":'x'", nombres: "Zorayda", apellidos: "Pruebaclientas Huamanchumo", celular: "987770001" })}reset role;
@@ -479,6 +498,31 @@ select count(*) from retail.actividad where modulo = 'clientas' and registro_id 
    and descripcion ~ '^unió dos fichas de una misma clienta: ';
 `,
   "anonimizar=anonimizó la ficha de una clienta (Ley 29733) ; archivar=archivó la ficha de una clienta ; editar=editó la ficha de una clienta ; reactivar=reactivó una clienta archivada al volver a registrarla\n2"
+);
+// Las cinco ramas de fn_actividad_separacion, una por una: apartó, entregó, liberó (sola y a mano), devolvió el adelanto
+// y extendió. El recorrido de arriba solo pasa por apartar, abonar, avisar y editar; aquí se llama a la función directo
+// sobre un apartado con nombre, apellidos, celular y DNI (cada rama escribe su línea sin mirar el estado: el paso de un
+// estado a otro lo prueba separaciones.mjs), para que ninguna rama quede sin prueba de comportamiento.
+const RAMAS_DEL_APARTADO = `reset role;
+insert into retail.separaciones (codigo, ubicacion_id, caja_id, clienta_nombres, clienta_apellidos, clienta_celular, clienta_dni,
+  comprobante_tipo, creado_por, total, adelanto, vence_el, devolucion_medio, devolucion_numero, devolucion_medio_real)
+values ('APT-TRU-9956', :'tru', (select id from retail.cajas order by id limit 1), 'Zorayda', 'Pruebaclientas Huamanchumo', '987770001', '90777555',
+  'boleta', (select id from public.personas where auth_user_id = '${FELIPE}'), 100, 50, current_date + 7, 'yape', '999888777', 'yape')
+returning id as ramas \\gset
+set constraints retail.actividad_separacion_creada immediate;
+select retail.fn_actividad_separacion(:'ramas', r) from unnest(array['apartado_entregado', 'apartado_liberado', 'adelanto_devuelto', 'apartado_extendido']) r;
+update retail.separaciones set liberada_por = (select id from public.personas where auth_user_id = '${FELIPE}'), liberada_motivo = 'clienta_desistio'
+ where id = :'ramas';
+select retail.fn_actividad_separacion(:'ramas', 'apartado_liberado');
+`;
+const LINEAS_DE_LAS_RAMAS = `(a.modulo = 'apartados' and a.tabla = 'separaciones' and split_part(a.registro_id, ':', 1) = :'ramas')`;
+caso(
+  "(4) las cinco ramas de la actividad de un apartado (apartó, entregó, liberó sola y a mano, devolvió, extendió) dicen «la clienta» y ninguna lleva su nombre, celular ni DNI",
+  `${RAMAS_DEL_APARTADO}select count(*), count(distinct a.accion), count(*) filter (where a.descripcion ~ ' la clienta( |:|$)'),
+       count(*) filter (where a::text ~* '(${RASTRO.join("|")})')
+  from retail.actividad a where ${LINEAS_DE_LAS_RAMAS};
+`,
+  "6|5|6|0"
 );
 
 // =====================================================================================================================
@@ -674,6 +718,142 @@ caso(
   DESHACER + VIGILANTE_ACTIVIDAD,
   "fn_actividad_separacion,trg_actividad_separacion_hijas"
 );
+caso(
+  "(6) CONTROL de las cinco ramas: con las funciones de producción, las 6 líneas del apartado llevan su nombre",
+  `${DESHACER}${RAMAS_DEL_APARTADO}select count(*), count(*) filter (where a::text ~* '(${RASTRO.join("|")})')
+  from retail.actividad a where ${LINEAS_DE_LAS_RAMAS};
+`,
+  "6|6"
+);
+// Una clienta anonimizada ANTES de pegar, con las funciones de producción: la de antes guardaba el motivo escrito a mano y
+// no vaciaba la foto de sus fusiones. La PARTE 1 (sección 14) la deja como la dejaría la de hoy, una sola vez; y la foto de
+// una fusión cuya persona sigue viva (P se quedó con Q) no se toca: es la evidencia para deshacerla a mano.
+const ANONIMIZADA_ANTES = `${DESHACER}${TRES_FICHAS}select retail.registrar_clienta(null, 'Viva Queda Prueba', '987770091', false, null, null) as p \\gset
+select retail.registrar_clienta('90777591', 'Viva Se Une Prueba', null, false, null, null) as q \\gset
+select (retail.unir_clientas(:'p', :'q', null, null)).id as _u3 \\gset
+select retail.archivar_clienta(:'x', 'Zorayda Pruebaclientas pidió que la borren, DNI 90777555', true, null) as _anon \\gset
+reset role;
+select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")};
+select version as v_antes from retail.clientas where id = :'x' \\gset
+`;
+caso(
+  "(6) una clienta anonimizada ANTES de pegar (motivo con su nombre, fotos de Z→Y→X con DNI y celulares): la PARTE 1 la deja sin rastro, una sola vez, y no toca la foto de una fusión viva",
+  ANONIMIZADA_ANTES + PEGAR(PARTE_1) + PEGAR(PARTE_1) +
+    `select ${cuentaRastro("clientas")}, ${cuentaRastro("clientas_fusiones")}, ${cuentaRastro("actividad")},
+       (select motivo_archivo from retail.clientas where id = :'x'),
+       (select version - :v_antes from retail.clientas where id = :'x'),
+       (select count(*) from retail.clientas_fusiones f join retail.clientas c on c.id = :'x'
+         where f.clienta_mantiene_id in (:'x', :'y') and f.ficha_fusionada = jsonb_build_object('anonimizada_en', c.archivada_en)),
+       (select ficha_fusionada ->> 'dni' from retail.clientas_fusiones where clienta_fusionada_id = :'q'),
+       (select string_agg(distinct motivo_archivo, ',') from retail.clientas where id in (:'y', :'z', :'q'));
+`,
+  "1|2\n0|0|0|Anonimizada (Ley 29733)|1|2|90777591|Se unió a otra ficha de clienta (unir_clientas)"
+);
+
+// =====================================================================================================================
+// 7. Dos cajas registran a la vez a la misma clienta (dos conexiones reales)
+// =====================================================================================================================
+// La caja A registra un DNI que ya tiene ficha y se queda con la transacción abierta; la caja B espera a verla dormida con
+// la fila tomada y registra el mismo DNI. `registrar_clienta` toma la ficha con `for update` ANTES de mirar si estaba
+// archivada: B tiene que esperar en ESA lectura, no más abajo. Sin el `for update`, B lee la ficha todavía archivada, decide
+// que «vuelve», y recién espera en el alta: cuando A confirma, anota una segunda «reactivó» (7b lo muestra con COMMIT).
+const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
+/** La sesión A: registra el DNI, duerme con la fila tomada y termina con `fin` (rollback o commit). */
+const cajaA = (app, dni, fin) => `set application_name = '${app}';
+begin;
+set local search_path = retail, public, extensions;
+${como(FELIPE)}select retail.registrar_clienta('${dni}', null, null, false, null, null);
+select pg_sleep(3);
+${fin};
+`;
+/** Antes de la sesión B: espera (hasta 10 s) a que A esté dormida con su transacción abierta, y dice si la vio. */
+const esperarA = (app) => `do $espera$ begin
+  for i in 1..200 loop
+    perform pg_stat_clear_snapshot();
+    exit when exists (select 1 from pg_stat_activity where application_name = '${app}' and wait_event = 'PgSleep');
+    perform pg_sleep(0.05);
+  end loop;
+end $espera$;
+select exists (select 1 from pg_stat_activity where application_name = '${app}' and wait_event = 'PgSleep');
+`;
+async function carrera(nombre, fn) {
+  casos++;
+  let obtenido;
+  let bien;
+  try {
+    [bien, obtenido] = await fn();
+  } catch (e) {
+    [bien, obtenido] = [false, `ERROR_DE_SCRIPT ${e.message}`];
+  }
+  if (!bien) fallas++;
+  console.log(`${bien ? "✓" : "✗"} ${nombre}${bien ? "" : `\n    obtenido: ${String(obtenido).split("\n").join("\n              ")}`}`);
+}
+
+await carrera(
+  "(7a) dos cajas a la vez con el mismo DNI: la segunda ESPERA en la lectura de la ficha (`for update`), antes de decidir si estaba archivada (sin COMMIT: las dos terminan en ROLLBACK)",
+  async () => {
+    const dni = correr(`select dni from retail.clientas where dni is not null and not anonimizada order by dni limit 1;`);
+    if (!dni.ok || !dni.salida) return [false, `no hay ninguna ficha con DNI en la base (el seed trae 9): ${dni.mensaje ?? ""}`];
+    const app = `clientas_modulo_a_${Date.now()}`;
+    const a = psqlEnParalelo(cajaA(app, dni.salida, "rollback"));
+    await dormir(100);
+    const b = await psqlEnParalelo(`${esperarA(app)}begin;
+set local search_path = retail, public, extensions;
+create function pg_temp.donde_espera(p_sql text) returns text language plpgsql as $f$
+declare v_estado text; v_contexto text;
+begin
+  execute p_sql;
+  return 'SIN_ESPERA';
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_contexto = pg_exception_context;
+  return v_estado || '|' || case when v_contexto ~* 'for update' then 'en la lectura de la ficha'
+                                 else 'en otra sentencia: ' || regexp_replace(v_contexto, '\\s+', ' ', 'g') end;
+end $f$;
+grant execute on function pg_temp.donde_espera(text) to authenticated;
+set local lock_timeout = '1s';
+${como(FELIPE)}select pg_temp.donde_espera($q$select retail.registrar_clienta('${dni.salida}', null, null, false, null, null)$q$);
+rollback;
+`);
+    const ra = await a;
+    const obtenido = `${ra.ok ? "A ok" : `A falló: ${ra.mensaje}`}\n${b.ok ? b.salida : `B falló: ${b.mensaje}`}`;
+    return [obtenido === "A ok\nt\n55P03|en la lectura de la ficha", obtenido];
+  }
+);
+
+// (7b) La misma carrera con COMMIT, para ver el resultado de negocio: una sola ficha, reactivada, y UNA sola línea
+// «reactivó». Deja rastro (una ficha de prueba y su línea de actividad, que no se borra), así que solo corre contra un
+// Postgres desechable, como bajada_al_piso_concurrencia: BASE_DESECHABLE=1. En el CI no corre (su Postgres lo comparten
+// todos los pasos); ahí vigila (7a).
+if (process.env.BASE_DESECHABLE === "1") {
+  await carrera(
+    "(7b) con COMMIT: dos cajas registran a la vez a la misma clienta ARCHIVADA → la misma ficha, reactivada, y una sola línea «reactivó»",
+    async () => {
+      const prep = correr(`select d from (select '8' || lpad(floor(random() * 1e7)::int::text, 7, '0') as d from generate_series(1, 50)) x
+ where not exists (select 1 from retail.clientas c where c.dni = x.d) limit 1 \\gset
+insert into retail.clientas (dni, nombre, archivada_en, motivo_archivo)
+  values (:'d', 'Prueba de concurrencia clientas-modulo', now(), 'prueba de concurrencia') returning id || '|' || dni;`);
+      if (!prep.ok) return [false, prep.mensaje];
+      const [id, dni] = prep.salida.split("|");
+      const app = `clientas_modulo_a_${Date.now()}`;
+      const a = psqlEnParalelo(cajaA(app, dni, "commit"));
+      await dormir(100);
+      const b = await psqlEnParalelo(`${esperarA(app)}begin;
+set local search_path = retail, public, extensions;
+${como(FELIPE)}select retail.registrar_clienta('${dni}', null, null, false, null, null);
+commit;
+`);
+      const ra = await a;
+      const fin = correr(`select count(*) from retail.actividad a where a.modulo = 'clientas' and a.accion = 'reactivar' and a.registro_id = '${id}';
+select count(*) || '|' || bool_and(archivada_en is null) from retail.clientas where dni = '${dni}';`);
+      const obtenido = [ra.ok ? ra.salida : `A falló: ${ra.mensaje}`, b.ok ? b.salida : `B falló: ${b.mensaje}`, fin.ok ? fin.salida : fin.mensaje]
+        .join("\n")
+        .replace(/\n+/g, "\n");
+      return [obtenido === `${id}\nt\n${id}\n1\n1|true`, obtenido];
+    }
+  );
+} else {
+  console.log("· (7b) la carrera con COMMIT no corrió: solo corre con BASE_DESECHABLE=1 (deja una ficha de prueba y su línea de actividad)");
+}
 
 console.log(`\n${casos - fallas}/${casos} casos en verde${fallas ? ` — ${fallas} en rojo` : ""} (base: ${BASE})`);
 process.exit(fallas ? 1 : 0);

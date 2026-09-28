@@ -721,7 +721,9 @@ jobs:
       # ficha archivada la reactiva (mismo id, historial, version+1). Anonimizar no deja el DNI, el nombre ni el celular en
       # clientas, clientas_fusiones ni en la actividad (Clientas y Apartados). Control con el cambio deshecho (el ataque pasa),
       # los archivos pegados sobre el estado de producción, dos veces y en el orden equivocado, candado de versión y
-      # vigilantes que muerden. Cada caso termina en ROLLBACK.
+      # vigilantes que muerden; las cinco ramas de la actividad de un apartado; y dos cajas a la vez con el mismo DNI (dos
+      # conexiones: la segunda espera en la lectura de la ficha). Cada caso termina en ROLLBACK (la carrera con COMMIT solo
+      # corre con BASE_DESECHABLE=1, no aquí).
       - name: pruebas:clientas-modulo
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:clientas-modulo
