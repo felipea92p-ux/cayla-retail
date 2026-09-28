@@ -1,388 +1,388 @@
 {
   "_comentario": "Salida REAL de retail.fn_frescura_sede y retail.fn_confianza_registro sobre la tienda sembrada en el caso T13 de scripts/pruebas/frescura_lectura.mjs. Se rehace con FRESCURA_FIXTURE_ESCRIBIR=1 pnpm pruebas:frescura-lectura; no se edita a mano.",
   "fn_frescura_sede": {
-    "ahora": "2026-09-27T17:37:16.71801-05:00",
-    "desde": "2026-05-30T17:37:16.71801-05:00",
+    "ahora": "2026-09-28T01:05:35.33301+00:00",
+    "desde": "2026-05-31T01:05:35.33301+00:00",
     "dudosas": [
-      "01ee6f1d-836f-458b-b7d9-be7913f1638d"
+      "4b533477-9409-40f3-8398-8cf81d033d8c"
     ],
     "eventos": {
-      "01ee6f1d-836f-458b-b7d9-be7913f1638d": [
+      "0e521e40-ee1c-4e30-9dc4-80559061fe92": [
         [
-          "2026-05-30T17:37:16.71801-05:00",
+          "2026-08-09T08:05:35.33301+00:00",
+          2,
+          2,
+          "c31f1521-dea6-43da-844e-cc8bffe63bd3"
+        ],
+        [
+          "2026-08-16T08:05:35.33301+00:00",
+          -1,
+          1,
+          "750c4fb5-99d3-4283-b618-f1eba1ed6c3b"
+        ],
+        [
+          "2026-08-23T08:05:35.33301+00:00",
+          -1,
+          1,
+          "b46c6c7e-1bb8-46eb-897a-01cda63f85f9"
+        ]
+      ],
+      "1539f82a-6ac2-4b5a-b192-422fde6e45f6": [
+        [
+          "2026-08-19T01:05:35.33301+00:00",
+          2,
+          2,
+          "8094b60a-1efd-4cbc-80ca-ea2a7024ec5e"
+        ]
+      ],
+      "1b23e0e8-cc51-4b2f-9ddb-edf3b1c20313": [
+        [
+          "2026-08-09T02:05:35.33301+00:00",
+          2,
+          2,
+          "ed4f4650-df3d-45f1-bdb9-d2eea2e4263d"
+        ],
+        [
+          "2026-08-10T02:05:35.33301+00:00",
+          -1,
+          1,
+          "701f1fe6-2921-4eb4-b32e-c0741f265942"
+        ],
+        [
+          "2026-08-11T02:05:35.33301+00:00",
+          -1,
+          1,
+          "231bcda8-09a1-431d-bb20-faa4193fb3a8"
+        ]
+      ],
+      "248bee53-f9a1-48ab-af80-8d0d9dd52270": [
+        [
+          "2026-08-09T12:05:35.33301+00:00",
+          2,
+          2,
+          "e6ec346b-a536-42f4-89f4-b1adcb13138c"
+        ],
+        [
+          "2026-08-20T12:05:35.33301+00:00",
+          -1,
+          1,
+          "1fefb2d9-d56b-42d7-a266-c1e2190ba2a6"
+        ],
+        [
+          "2026-08-31T12:05:35.33301+00:00",
+          -1,
+          1,
+          "6f14cd6e-793e-471b-8a5d-ecf2e0ad944e"
+        ]
+      ],
+      "2a4d41fa-329d-4e39-ab86-4645b23022ec": [
+        [
+          "2026-09-27T01:05:35.33301+00:00",
+          1,
+          2,
+          "36382329-19be-4ced-b702-c258c3dba6cb"
+        ]
+      ],
+      "4b22003c-5ed1-4d16-a5f8-6cba8e1168c0": [
+        [
+          "2026-09-27T01:05:35.33301+00:00",
+          1,
+          2,
+          "69fd2928-79a9-48ae-b1e8-f63456992bc5"
+        ]
+      ],
+      "4b533477-9409-40f3-8398-8cf81d033d8c": [
+        [
+          "2026-05-31T01:05:35.33301+00:00",
           -1,
           0,
           null
         ],
         [
-          "2026-09-21T17:37:16.71801-05:00",
+          "2026-09-22T01:05:35.33301+00:00",
           2,
           2,
-          "f62d58bd-dd0b-4b46-b75a-cf6de180ea0a"
+          "50485255-1f3e-4a2b-8d77-1f074d4c9fc4"
         ],
         [
-          "2026-09-21T17:40:16.71801-05:00",
+          "2026-09-22T01:08:35.33301+00:00",
           -1,
           1,
-          "31edeb5b-4c93-4df6-a4b0-ed6ce0d0aedd"
+          "59f6f6dd-5a21-45dc-9a60-1caa9fa045ee"
         ]
       ],
-      "05f9b431-4103-4f84-a49d-4c17549a35e5": [
+      "50ffffe4-09ab-44e6-aa78-44b209f1bdc5": [
         [
-          "2026-08-09T03:37:16.71801-05:00",
+          "2026-08-09T07:05:35.33301+00:00",
           2,
           2,
-          "a50b0b69-0c71-42a8-ac60-e2702041bfe0"
+          "d3003373-466b-4aff-a56b-9a72b15bbab1"
         ],
         [
-          "2026-08-19T03:37:16.71801-05:00",
+          "2026-08-15T07:05:35.33301+00:00",
           -1,
           1,
-          "797ecd04-000f-42be-bbc8-faed3f92c741"
+          "82f444c2-b593-49e9-b584-726e52ade549"
         ],
         [
-          "2026-08-29T03:37:16.71801-05:00",
+          "2026-08-21T07:05:35.33301+00:00",
           -1,
           1,
-          "0416cd3a-1657-4038-b0fc-03ceeddbcd1d"
+          "80bc830c-9f47-4fcd-b957-10bdf9173e74"
         ]
       ],
-      "1078b034-9445-4f3d-a63a-2c029410b83d": [
+      "556cc1ad-cce4-49ee-94b1-ba608499f7b7": [
         [
-          "2026-08-08T22:37:16.71801-05:00",
+          "2026-08-09T09:05:35.33301+00:00",
           2,
           2,
-          "ca2fec74-924a-43d6-b15d-73b42c15a490"
+          "f68310c7-4744-487d-bd6e-f9c2d008191a"
         ],
         [
-          "2026-08-13T22:37:16.71801-05:00",
+          "2026-08-17T09:05:35.33301+00:00",
           -1,
           1,
-          "4db1e498-e617-451a-a8ee-39d01da7ff7a"
+          "422c1591-3d81-4450-bea2-a60c16e77d5f"
         ],
         [
-          "2026-08-18T22:37:16.71801-05:00",
+          "2026-08-25T09:05:35.33301+00:00",
           -1,
           1,
-          "33e45025-073e-45c5-a963-06e0e84c2af3"
+          "644c5820-e148-464a-a9df-1f49f00567b7"
         ]
       ],
-      "1664ea46-fc88-415b-8633-e5dc6e4ab53e": [
+      "6a0e7917-9abc-4f87-bba8-99ba1f123462": [
         [
-          "2026-09-26T17:37:16.71801-05:00",
-          1,
-          2,
-          "2775f396-e89b-4238-817f-7ea33076fc24"
-        ]
-      ],
-      "1d729ce1-7705-4fd3-8081-64de1689c15e": [
-        [
-          "2026-08-18T17:37:16.71801-05:00",
+          "2026-08-09T06:05:35.33301+00:00",
           2,
           2,
-          "b09b154c-92e0-472a-8c1c-6e33353f572c"
-        ]
-      ],
-      "1dcfe7f9-d7aa-4a4a-99dc-b119a2139f47": [
-        [
-          "2026-08-08T20:37:16.71801-05:00",
-          2,
-          2,
-          "c2b61d34-12da-43a3-a6ee-e92e1bee1b54"
+          "47303cd9-e4b0-4339-b0af-69c938533574"
         ],
         [
-          "2026-08-11T20:37:16.71801-05:00",
+          "2026-08-14T06:05:35.33301+00:00",
           -1,
           1,
-          "7fe2820c-76da-48c4-922c-50a65ab5f51c"
+          "4b6ac375-2126-4260-9395-2b2c1af97ac0"
         ],
         [
-          "2026-08-14T20:37:16.71801-05:00",
+          "2026-08-19T06:05:35.33301+00:00",
           -1,
           1,
-          "871484f4-afe8-4202-af9a-39c049e51a7b"
+          "9b001310-7d37-455a-8aba-8f14a2058f07"
         ]
       ],
-      "268de014-2b5d-4da2-811f-170f667f4bcf": [
+      "70011362-bfe3-417f-b535-d2622aa5822e": [
         [
-          "2026-08-16T10:00:00-05:00",
+          "2026-08-09T05:05:35.33301+00:00",
           2,
           2,
-          "bd55bedc-b47a-49f4-9ae5-78b3fcc25380"
+          "1fc6bc1e-0f49-4784-aff9-6525c40d93ac"
+        ],
+        [
+          "2026-08-13T05:05:35.33301+00:00",
+          -1,
+          1,
+          "41f7190f-1dee-48a6-b946-5b5db075f048"
+        ],
+        [
+          "2026-08-17T05:05:35.33301+00:00",
+          -1,
+          1,
+          "a27fb51a-4564-4d4d-b3f4-3c209d03f722"
         ]
       ],
-      "3628b5ed-c272-481c-aaa7-5d0597b8b3e3": [
+      "71d8ca75-8456-4b74-8edc-1fa0957ec7f1": [
         [
-          "2026-08-09T00:37:16.71801-05:00",
+          "2026-08-09T13:05:35.33301+00:00",
           2,
           2,
-          "e9f7c938-a8ea-4c11-a969-f8485c0d0110"
+          "3c577335-8c42-489e-a9e8-3b44f901050c"
         ],
         [
-          "2026-08-16T00:37:16.71801-05:00",
+          "2026-08-21T13:05:35.33301+00:00",
           -1,
           1,
-          "bd3fbcad-a41f-4c8d-9fb8-c27c14da3308"
+          "4573c023-7f64-4d6c-877a-859733c325a3"
         ],
         [
-          "2026-08-23T00:37:16.71801-05:00",
+          "2026-09-02T13:05:35.33301+00:00",
           -1,
           1,
-          "0ab38534-9731-4229-b49a-0c411853bc6e"
+          "94c0c8a0-a138-4274-8eb7-516e4a204ed9"
         ]
       ],
-      "3ef35cce-fdba-4100-a24d-f5840762a039": [
+      "7fe523e4-d0e4-41cf-88d2-677e91a2e312": [
         [
-          "2026-08-09T01:37:16.71801-05:00",
+          "2026-08-09T10:05:35.33301+00:00",
           2,
           2,
-          "b35f91ed-50c2-414d-a170-5b21ea31924b"
+          "517aa82e-372e-47d1-ac65-5e10942a0db0"
         ],
         [
-          "2026-08-17T01:37:16.71801-05:00",
+          "2026-08-18T10:05:35.33301+00:00",
           -1,
           1,
-          "a05b18cf-cc5f-4217-8482-cb318e3c9efb"
+          "e62fb1c5-0a9d-468a-ad14-098b1b07dc0c"
         ],
         [
-          "2026-08-25T01:37:16.71801-05:00",
+          "2026-08-27T10:05:35.33301+00:00",
           -1,
           1,
-          "f9aaba0a-d75c-4820-86a0-7d9f030a9961"
+          "27a84d44-0798-4afa-aa46-32cc80cb63bc"
         ]
       ],
-      "4146dde3-7a78-46d0-bebd-d1c7f8f8fa3d": [
+      "a13f032a-9e3a-4511-ab5d-af8261235a70": [
         [
-          "2026-08-28T17:37:16.71801-05:00",
+          "2026-08-09T11:05:35.33301+00:00",
           2,
           2,
-          "4b957c78-1c43-4354-b248-f0ed085b0ebb"
-        ]
-      ],
-      "4c00aa89-d670-45fe-bea1-38231fb6123d": [
-        [
-          "2026-08-09T02:37:16.71801-05:00",
-          2,
-          2,
-          "f30433f5-a474-47d4-809c-43614983f19d"
+          "730f9b0f-0ece-4608-9520-c92515fc7549"
         ],
         [
-          "2026-08-18T02:37:16.71801-05:00",
+          "2026-08-19T11:05:35.33301+00:00",
           -1,
           1,
-          "b6477044-fcbd-4a23-9727-c3f7409ffc76"
+          "e35b9886-49c8-4b72-936d-c53c37d57e71"
         ],
         [
-          "2026-08-27T02:37:16.71801-05:00",
+          "2026-08-29T11:05:35.33301+00:00",
           -1,
           1,
-          "3f8552f3-ca70-4afa-a8f8-ff658d09c5fd"
+          "23280f08-a95a-477e-9c43-d157c7532a41"
         ]
       ],
-      "4c3673fe-e4be-49c5-8d39-1a544a24eae6": [
+      "b2ccc4b2-8267-4826-ac59-f0363e3cc487": [
         [
-          "2026-08-08T19:37:16.71801-05:00",
-          2,
-          2,
-          "35d703c9-709d-409f-a8d1-9d13fc21e0b2"
-        ],
-        [
-          "2026-08-10T19:37:16.71801-05:00",
-          -1,
-          1,
-          "10a10a2d-4697-4f22-87f0-4782dfa904a3"
-        ],
-        [
-          "2026-08-12T19:37:16.71801-05:00",
-          -1,
-          1,
-          "223bd2f6-0602-4fe8-a451-febc3d005bbd"
-        ]
-      ],
-      "4c86abf0-4984-4d54-8c7f-0454afadad75": [
-        [
-          "2026-08-08T18:37:16.71801-05:00",
-          2,
-          2,
-          "c00ee269-ca5a-41fc-8573-e2925ce642fe"
-        ],
-        [
-          "2026-08-09T18:37:16.71801-05:00",
-          -1,
-          1,
-          "91912a0e-ef26-49a9-aff6-dcf36db0eea7"
-        ],
-        [
-          "2026-08-10T18:37:16.71801-05:00",
-          -1,
-          1,
-          "bcbb5efd-564c-4920-ba52-ca9f9e6951ab"
-        ]
-      ],
-      "5ba8fabb-c654-41b9-97e0-d366031c55ad": [
-        [
-          "2026-09-26T17:37:16.71801-05:00",
-          1,
-          2,
-          "6e60647d-6b22-466d-a387-8f4fb570bcf0"
-        ]
-      ],
-      "6cdf4dd0-1d0b-4316-b9c3-3a1ef6665208": [
-        [
-          "2026-08-08T23:37:16.71801-05:00",
-          2,
-          2,
-          "1d3aa200-47dc-4d20-9cec-ab94827e2f2b"
-        ],
-        [
-          "2026-08-14T23:37:16.71801-05:00",
-          -1,
-          1,
-          "e24a9cc9-8388-44fe-87b2-90c851737b78"
-        ],
-        [
-          "2026-08-20T23:37:16.71801-05:00",
-          -1,
-          1,
-          "e8e7598f-38ca-464a-af65-0ef04bfeff0b"
-        ]
-      ],
-      "6d17c334-eff4-41db-b4b6-8444772956c7": [
-        [
-          "2026-09-12T17:37:16.71801-05:00",
-          2,
-          2,
-          "c4dd6086-d4e1-445d-b44f-9941ea92057d"
-        ]
-      ],
-      "6e2a70c3-c229-4c98-8b3d-78537dee7945": [
-        [
-          "2026-08-16T10:00:00-05:00",
-          2,
-          2,
-          "1ffa869d-2040-4a0d-8d52-2ff3d9777c0e"
-        ],
-        [
-          "2026-09-07T10:00:00-05:00",
-          -1,
-          1,
-          "bc3fac94-1faf-4688-be4a-3cb92be1195a"
-        ]
-      ],
-      "7c3ab29f-6ada-45d4-a8a3-259b98d2d613": [
-        [
-          "2026-08-09T04:37:16.71801-05:00",
-          2,
-          2,
-          "9103cb14-6630-483d-880e-a724c79c907a"
-        ],
-        [
-          "2026-08-20T04:37:16.71801-05:00",
-          -1,
-          1,
-          "3649bc91-46a6-4faf-b127-ff3df715659b"
-        ],
-        [
-          "2026-08-31T04:37:16.71801-05:00",
-          -1,
-          1,
-          "71965f29-a32a-4224-b390-5133b35accfe"
-        ]
-      ],
-      "bc581b63-988e-4aa8-a499-6533ca4852c5": [
-        [
-          "2026-09-26T17:37:16.71801-05:00",
-          1,
-          2,
-          "e3e7b608-8258-4cc7-accb-757f2857d0f0"
-        ]
-      ],
-      "bda3c79d-746b-45ec-bc46-467a76effa05": [
-        [
-          "2026-09-22T17:37:16.71801-05:00",
-          2,
-          6,
-          "e483a9a9-fe1e-4e6b-8e83-58275bebdd61"
-        ]
-      ],
-      "d594b9db-671c-4364-a528-95f1163e23a4": [
-        [
-          "2026-09-17T17:37:16.71801-05:00",
+          "2026-09-18T01:05:35.33301+00:00",
           3,
           2,
-          "2dace3a5-bf4f-4e02-b0c0-e15caa603213"
+          "2331c1e9-5a9d-46a5-8347-1b5be25db2a1"
         ],
         [
-          "2026-09-17T17:39:16.71801-05:00",
+          "2026-09-18T01:07:35.33301+00:00",
           -1,
           2,
-          "b8dff494-a0c5-4e04-9a3f-2719818f7143"
+          "44cc3512-6b86-4ace-8d72-fc5dd3ce031a"
         ],
         [
-          "2026-09-19T17:37:16.71801-05:00",
+          "2026-09-20T01:05:35.33301+00:00",
           -1,
           1,
-          "2f41c122-907a-421c-a92c-cd42255cf42d"
+          "0136a95f-3e8d-4bbf-bfbf-49f515587a83"
         ]
       ],
-      "d82a1eb9-090c-4db0-91e1-7ca919a06e60": [
+      "c5bb2ed0-c342-4488-ba8b-7a0d8f62c114": [
         [
-          "2026-08-09T05:37:16.71801-05:00",
+          "2026-09-23T01:05:35.33301+00:00",
           2,
-          2,
-          "9d1fca94-4b85-4f67-a797-dd5f2084afe4"
-        ],
-        [
-          "2026-08-21T05:37:16.71801-05:00",
-          -1,
-          1,
-          "cf5903f4-79da-4508-8769-533b169f7b1d"
-        ],
-        [
-          "2026-09-02T05:37:16.71801-05:00",
-          -1,
-          1,
-          "0ed0bf6a-4633-4c62-8f78-08a5293ba102"
+          6,
+          "b0a581d1-8bc9-463c-adc6-14d1a169a2f3"
         ]
       ],
-      "fa6a8eb7-b0dc-44ef-8d73-2bf365e3187e": [
+      "c5bcb164-e739-46c3-9d43-30216d3ffb0c": [
         [
-          "2026-08-08T21:37:16.71801-05:00",
+          "2026-08-16T15:00:00+00:00",
           2,
           2,
-          "91742297-0da5-4650-85d7-d0907e666f07"
+          "bb1c4ad5-d163-4494-9737-7e84735c35d9"
         ],
         [
-          "2026-08-12T21:37:16.71801-05:00",
+          "2026-09-07T15:00:00+00:00",
           -1,
           1,
-          "f4ec6b5d-0fb7-4cc3-964b-49679d4da747"
-        ],
-        [
-          "2026-08-16T21:37:16.71801-05:00",
-          -1,
-          1,
-          "4c1102bf-89c5-484b-851c-e88d0c408dee"
+          "87107d44-911f-4480-991c-de4cbef445e7"
         ]
       ],
-      "fc316d9e-c2d6-43aa-9e25-26128fc00d3e": [
+      "d1b0701f-74e3-4637-869d-ae18e301b81c": [
         [
-          "2026-09-24T17:37:16.71801-05:00",
-          1,
+          "2026-08-09T03:05:35.33301+00:00",
           2,
-          "9a79357f-751e-4ca0-bd65-0225744cd6fb"
+          2,
+          "eca506c9-f159-4f71-b703-e73f9bbca798"
         ],
         [
-          "2026-09-24T17:40:16.71801-05:00",
+          "2026-08-11T03:05:35.33301+00:00",
           -1,
           1,
-          "4ad9d26c-558f-4544-bf7c-10d5cb8d5e95"
+          "f34994f7-a3fd-4e3a-8479-6455f62a0f87"
         ],
         [
-          "2026-09-25T17:37:16.71801-05:00",
+          "2026-08-13T03:05:35.33301+00:00",
+          -1,
+          1,
+          "2054b86a-f633-4566-a0c1-9817d40db3c9"
+        ]
+      ],
+      "e05784ca-3e8b-46fd-b0fd-67570160e706": [
+        [
+          "2026-09-27T01:05:35.33301+00:00",
+          1,
+          2,
+          "ad6a02ea-54f2-4655-88e5-b01e5ee48505"
+        ]
+      ],
+      "e4ff01d4-2038-4a68-8875-1651ae73437d": [
+        [
+          "2026-09-13T01:05:35.33301+00:00",
           2,
           2,
-          "b57d1df8-a4ca-4612-9b61-3afe09c67962"
+          "1643d638-377c-4d59-b264-f06bd0b7fc95"
+        ]
+      ],
+      "ed70d474-1be6-4542-af44-4e08c16260df": [
+        [
+          "2026-08-29T01:05:35.33301+00:00",
+          2,
+          2,
+          "b887dd4f-e24a-423b-875c-2a234cdecf40"
+        ]
+      ],
+      "f39a7c28-cc3c-4924-aa19-e4a0164c1642": [
+        [
+          "2026-09-25T01:05:35.33301+00:00",
+          1,
+          2,
+          "becb1790-4641-4a65-a1ba-7a01123600b9"
+        ],
+        [
+          "2026-09-25T01:08:35.33301+00:00",
+          -1,
+          1,
+          "2d0f045e-11c1-4cb9-8984-e3a49aa8251a"
+        ],
+        [
+          "2026-09-26T01:05:35.33301+00:00",
+          2,
+          2,
+          "37cb7b34-be85-4a9c-9e9c-9b9e5a75e0b7"
+        ]
+      ],
+      "f7a41448-27f6-44eb-8080-624433346315": [
+        [
+          "2026-08-09T04:05:35.33301+00:00",
+          2,
+          2,
+          "f4e07ec0-0164-441d-a18d-04f8b09c89fe"
+        ],
+        [
+          "2026-08-12T04:05:35.33301+00:00",
+          -1,
+          1,
+          "ff014275-8dec-40e4-b808-6a2a487a4490"
+        ],
+        [
+          "2026-08-15T04:05:35.33301+00:00",
+          -1,
+          1,
+          "1810934d-ffff-4586-ae57-eb0174b8765f"
+        ]
+      ],
+      "fef6fef3-d03f-47de-b832-3b34d0397a0d": [
+        [
+          "2026-08-16T15:00:00+00:00",
+          2,
+          2,
+          "72a015cf-2e86-4cbb-9858-0710d9e25c5c"
         ]
       ]
     },
@@ -394,18 +394,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 0,
-        "producto_id": "281b382e-b0b4-4cc7-8c64-f2157e364d0b",
-        "variante_id": "bda3c79d-746b-45ec-bc46-467a76effa05",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "765f8565-d9ff-4224-8792-886099119c19",
+        "variante_id": "c5bb2ed0-c342-4488-ba8b-7a0d8f62c114",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AML",
         "color_nombre": "Amarillo limón",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-22T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-23T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Carga Inicial",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-22T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-23T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-23T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -414,18 +415,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "edf5821a-0811-4f1f-a6a5-0cb9628da7ec",
-        "variante_id": "01ee6f1d-836f-458b-b7d9-be7913f1638d",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "68035d80-fed5-4866-8fd1-22f2fc63033e",
+        "variante_id": "4b533477-9409-40f3-8398-8cf81d033d8c",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-20T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-21T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Dudosa",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-21T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-22T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-21T01:05:35.33301+00:00"
       },
       {
         "talla": "L",
@@ -434,18 +436,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 2,
-        "producto_id": "79af181a-0db1-4acc-b490-016865d7b422",
-        "variante_id": "1664ea46-fc88-415b-8633-e5dc6e4ab53e",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "b83fec73-8be9-4132-a4a7-111201748323",
+        "variante_id": "2a4d41fa-329d-4e39-ab86-4645b23022ec",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-25T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-26T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Nueva",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-26T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-27T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-26T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -454,18 +457,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 2,
-        "producto_id": "79af181a-0db1-4acc-b490-016865d7b422",
-        "variante_id": "bc581b63-988e-4aa8-a499-6533ca4852c5",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "b83fec73-8be9-4132-a4a7-111201748323",
+        "variante_id": "e05784ca-3e8b-46fd-b0fd-67570160e706",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-25T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-26T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Nueva",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-26T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-27T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-26T01:05:35.33301+00:00"
       },
       {
         "talla": "S",
@@ -474,18 +478,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 2,
-        "producto_id": "79af181a-0db1-4acc-b490-016865d7b422",
-        "variante_id": "5ba8fabb-c654-41b9-97e0-d366031c55ad",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "b83fec73-8be9-4132-a4a7-111201748323",
+        "variante_id": "4b22003c-5ed1-4d16-a5f8-6cba8e1168c0",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-25T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-26T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Nueva",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-26T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-27T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-26T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -494,18 +499,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 2,
-        "producto_id": "a2cc1bbb-3fb3-48d7-b470-64fad09d9e52",
-        "variante_id": "d594b9db-671c-4364-a528-95f1163e23a4",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "434fe6d9-75bb-47e0-a492-6c289a1fae46",
+        "variante_id": "b2ccc4b2-8267-4826-ac59-f0363e3cc487",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-16T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-17T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Retiro",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-17T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-18T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-17T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -514,18 +520,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "bfddd63f-ea84-4222-b6b4-76c2c1ceaee0",
-        "variante_id": "fc316d9e-c2d6-43aa-9e25-26128fc00d3e",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "2dd0caf8-7300-431f-9b3d-314a914f1395",
+        "variante_id": "f39a7c28-cc3c-4924-aa19-e4a0164c1642",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-23T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-24T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Tardia",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-24T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-25T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-24T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -534,18 +541,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "5eae9e34-2387-4ce2-94d7-b169559401a8",
-        "variante_id": "4c86abf0-4984-4d54-8c7f-0454afadad75",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "95990956-9f3e-4160-84b5-970c3b6954c2",
+        "variante_id": "1b23e0e8-cc51-4b2f-9ddb-edf3b1c20313",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-07T18:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T02:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 01",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-08T18:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T02:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T02:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -554,18 +562,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "6dfb105b-f5f3-452c-bbf1-cb055af1402b",
-        "variante_id": "4c3673fe-e4be-49c5-8d39-1a544a24eae6",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "b9c55c5a-d770-4cc3-8c32-10cdc55bc67c",
+        "variante_id": "d1b0701f-74e3-4637-869d-ae18e301b81c",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-07T19:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T03:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 02",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-08T19:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T03:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T03:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -574,18 +583,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "2384d4c2-d0f3-494c-ba33-ddd7441940e6",
-        "variante_id": "1dcfe7f9-d7aa-4a4a-99dc-b119a2139f47",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "1b90bd06-10df-4546-921d-7652c1fe0c19",
+        "variante_id": "f7a41448-27f6-44eb-8080-624433346315",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-07T20:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T04:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 03",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-08T20:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T04:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T04:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -594,18 +604,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "7292d9c3-423c-41dc-8c67-c7d053e5e018",
-        "variante_id": "fa6a8eb7-b0dc-44ef-8d73-2bf365e3187e",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "3c9ec636-3293-44ef-b3be-fe6d6a4bb697",
+        "variante_id": "70011362-bfe3-417f-b535-d2622aa5822e",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-07T21:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T05:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 04",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-08T21:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T05:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T05:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -614,18 +625,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "605e211c-60b5-4e7a-b4b3-4f789fffbad6",
-        "variante_id": "1078b034-9445-4f3d-a63a-2c029410b83d",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "82c4fd96-1f02-4c3b-81bb-883e157b5acd",
+        "variante_id": "6a0e7917-9abc-4f87-bba8-99ba1f123462",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-07T22:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T06:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 05",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-08T22:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T06:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T06:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -634,18 +646,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "14c11136-ea2a-4231-bed7-f55b754be4fe",
-        "variante_id": "6cdf4dd0-1d0b-4316-b9c3-3a1ef6665208",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "8cba3be6-1c9d-4a06-a590-3a1f14e14782",
+        "variante_id": "50ffffe4-09ab-44e6-aa78-44b209f1bdc5",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-07T23:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T07:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 06",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-08T23:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T07:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T07:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -654,18 +667,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "8f678d40-e5e7-4d23-9a89-64e63d8fc727",
-        "variante_id": "3628b5ed-c272-481c-aaa7-5d0597b8b3e3",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "efaa9c4f-6d8a-4732-ae5e-646bf02b7964",
+        "variante_id": "0e521e40-ee1c-4e30-9dc4-80559061fe92",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-08T00:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T08:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 07",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-09T00:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T08:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T08:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -674,18 +688,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "2ae3fcce-6619-455e-911a-f4cb48d4c8b1",
-        "variante_id": "3ef35cce-fdba-4100-a24d-f5840762a039",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "06f0842f-1c2e-4852-8f13-67f2da9b4bf7",
+        "variante_id": "556cc1ad-cce4-49ee-94b1-ba608499f7b7",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-08T01:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T09:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 08",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-09T01:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T09:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T09:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -694,18 +709,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "bb5517c1-fa2b-4f76-a6e4-49be00512cd8",
-        "variante_id": "4c00aa89-d670-45fe-bea1-38231fb6123d",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "e7246241-30c6-4dd1-9288-99cf82374f87",
+        "variante_id": "7fe523e4-d0e4-41cf-88d2-677e91a2e312",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-08T02:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T10:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 09",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-09T02:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T10:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T10:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -714,18 +730,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "f794da81-625f-42ec-8e3c-404110cd1e77",
-        "variante_id": "05f9b431-4103-4f84-a49d-4c17549a35e5",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "0794c55f-0639-42c4-ab9d-1e860364178a",
+        "variante_id": "a13f032a-9e3a-4511-ab5d-af8261235a70",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-08T03:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T11:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 10",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-09T03:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T11:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T11:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -734,18 +751,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "0bb4587b-9ae9-4a77-aa3d-04aa0bc9fe84",
-        "variante_id": "7c3ab29f-6ada-45d4-a8a3-259b98d2d613",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "ed47b471-f450-44d2-9824-2ba8c982c8e6",
+        "variante_id": "248bee53-f9a1-48ab-af80-8d0d9dd52270",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-08T04:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T12:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 11",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-09T04:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T12:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T12:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -754,18 +772,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "a42f8b0a-6e2b-41da-b04a-f42774c4cb27",
-        "variante_id": "d82a1eb9-090c-4db0-91e1-7ca919a06e60",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "5d50dc89-3fd7-4bb1-b373-9042f4f28861",
+        "variante_id": "71d8ca75-8456-4b74-8edc-1fa0957ec7f1",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-08T05:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-08T13:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vara 12",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-09T05:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-09T13:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-08T13:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -774,18 +793,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "d6481319-b624-4cdc-b3a5-c78d636ca10b",
-        "variante_id": "1d729ce1-7705-4fd3-8081-64de1689c15e",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "0b509280-b793-4832-9c51-15d4fb8ce7f3",
+        "variante_id": "1539f82a-6ac2-4b5a-b192-422fde6e45f6",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-17T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-18T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa Vieja",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-18T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-19T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-18T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -794,18 +814,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 2,
-        "producto_id": "4817b7fd-6811-4152-be46-628bd5780316",
-        "variante_id": "28df35e3-2b58-4f96-a1a9-123cc0364c3b",
-        "categoria_id": "2fb20560-cd55-4ae4-9cf3-2e4e530b54ac",
+        "producto_id": "b9f5ede7-b118-4f30-823d-b7c4d1a57ee4",
+        "variante_id": "6530f29b-dae7-4c90-88c4-40167aae5eeb",
+        "categoria_id": "8257dc88-0762-41b7-aa8e-b588a06bedd5",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-24T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-25T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Blusa en Almacen",
         "categoria_nombre": "Camisas y Blusas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": null
+        "primera_exhibicion": null,
+        "ultima_llegada_cayla": "2026-09-25T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -814,18 +835,19 @@
         "temporada": "invierno",
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "d5b4fb05-87e7-4ddd-8876-74d2c4fe4d40",
-        "variante_id": "268de014-2b5d-4da2-811f-170f667f4bcf",
-        "categoria_id": "c53c75b9-3361-42c8-a4b9-305bfb88f41d",
+        "producto_id": "9b0f2e73-5106-4460-8a23-d5b1c7a2335b",
+        "variante_id": "fef6fef3-d03f-47de-b832-3b34d0397a0d",
+        "categoria_id": "34c5600d-0abe-4b14-8dd3-63944f4aa9da",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
-        "fin_estacion": "2026-09-22T19:05:00-05:00",
-        "ultima_llegada": "2026-08-15T10:00:00-05:00",
+        "fin_estacion": "2026-09-23T00:05:00+00:00",
+        "ultima_llegada": "2026-08-15T15:00:00+00:00",
         "producto_nombre": "Zz Fx Chompa Invierno",
         "categoria_nombre": "Chompas",
         "temporada_origen": "producto",
         "en_estacion_ahora": false,
-        "primera_exhibicion": "2026-08-16T10:00:00-05:00"
+        "primera_exhibicion": "2026-08-16T15:00:00+00:00",
+        "ultima_llegada_cayla": "2026-08-20T15:00:00+00:00"
       },
       {
         "talla": "S",
@@ -834,18 +856,19 @@
         "temporada": "invierno",
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "d5b4fb05-87e7-4ddd-8876-74d2c4fe4d40",
-        "variante_id": "6e2a70c3-c229-4c98-8b3d-78537dee7945",
-        "categoria_id": "c53c75b9-3361-42c8-a4b9-305bfb88f41d",
+        "producto_id": "9b0f2e73-5106-4460-8a23-d5b1c7a2335b",
+        "variante_id": "c5bcb164-e739-46c3-9d43-30216d3ffb0c",
+        "categoria_id": "34c5600d-0abe-4b14-8dd3-63944f4aa9da",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
-        "fin_estacion": "2026-09-22T19:05:00-05:00",
-        "ultima_llegada": "2026-08-15T10:00:00-05:00",
+        "fin_estacion": "2026-09-23T00:05:00+00:00",
+        "ultima_llegada": "2026-08-15T15:00:00+00:00",
         "producto_nombre": "Zz Fx Chompa Invierno",
         "categoria_nombre": "Chompas",
         "temporada_origen": "producto",
         "en_estacion_ahora": false,
-        "primera_exhibicion": "2026-08-16T10:00:00-05:00"
+        "primera_exhibicion": "2026-08-16T15:00:00+00:00",
+        "ultima_llegada_cayla": "2026-08-20T15:00:00+00:00"
       },
       {
         "talla": "M",
@@ -854,18 +877,19 @@
         "temporada": null,
         "es_clasico": false,
         "almacen_hoy": 1,
-        "producto_id": "51ffa3cf-7ae8-4ae1-9dcc-e09ec31fff7c",
-        "variante_id": "6d17c334-eff4-41db-b4b6-8444772956c7",
-        "categoria_id": "c53c75b9-3361-42c8-a4b9-305bfb88f41d",
+        "producto_id": "bb52a79f-10fa-4168-8306-7d6de4d4a958",
+        "variante_id": "e4ff01d4-2038-4a68-8875-1651ae73437d",
+        "categoria_id": "34c5600d-0abe-4b14-8dd3-63944f4aa9da",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-09-11T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-09-12T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Chompa sin Temporada",
         "categoria_nombre": "Chompas",
         "temporada_origen": null,
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-09-12T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-09-13T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-09-12T01:05:35.33301+00:00"
       },
       {
         "talla": "M",
@@ -874,25 +898,26 @@
         "temporada": "clasico",
         "es_clasico": true,
         "almacen_hoy": 1,
-        "producto_id": "4c85b8da-fba9-4c4a-a4b1-50c0d4798829",
-        "variante_id": "4146dde3-7a78-46d0-bebd-d1c7f8f8fa3d",
-        "categoria_id": "c53c75b9-3361-42c8-a4b9-305bfb88f41d",
+        "producto_id": "c78c5477-374d-4f9e-a3c0-084e2b4fc37d",
+        "variante_id": "ed70d474-1be6-4542-af44-4e08c16260df",
+        "categoria_id": "34c5600d-0abe-4b14-8dd3-63944f4aa9da",
         "color_codigo": "AMA",
         "color_nombre": "Amarillo",
         "fin_estacion": null,
-        "ultima_llegada": "2026-08-27T17:37:16.71801-05:00",
+        "ultima_llegada": "2026-08-28T01:05:35.33301+00:00",
         "producto_nombre": "Zz Fx Polo Clasico",
         "categoria_nombre": "Chompas",
         "temporada_origen": "producto",
         "en_estacion_ahora": null,
-        "primera_exhibicion": "2026-08-28T17:37:16.71801-05:00"
+        "primera_exhibicion": "2026-08-29T01:05:35.33301+00:00",
+        "ultima_llegada_cayla": "2026-08-28T01:05:35.33301+00:00"
       }
     ],
     "tardias": [
       {
-        "oid": "9a79357f-751e-4ca0-bd65-0225744cd6fb",
-        "bajada_en": "2026-09-24T17:37:16.71801-05:00",
-        "variante_id": "fc316d9e-c2d6-43aa-9e25-26128fc00d3e",
+        "oid": "becb1790-4641-4a65-a1ba-7a01123600b9",
+        "bajada_en": "2026-09-25T01:05:35.33301+00:00",
+        "variante_id": "f39a7c28-cc3c-4924-aa19-e4a0164c1642",
         "unidades_tardias": 1
       }
     ],
@@ -907,7 +932,7 @@
       "tardias": 0,
       "unidades": 32,
       "confianza": 1,
-      "ubicacion_id": "08e4d497-b2b0-437b-8f9e-38a1218a1220"
+      "ubicacion_id": "34929f3f-b19f-499e-9354-738d65c70132"
     },
     {
       "mes": "2026-09-01",
@@ -917,7 +942,7 @@
       "tardias": 1,
       "unidades": 10,
       "confianza": 0.9,
-      "ubicacion_id": "08e4d497-b2b0-437b-8f9e-38a1218a1220"
+      "ubicacion_id": "34929f3f-b19f-499e-9354-738d65c70132"
     }
   ]
 }

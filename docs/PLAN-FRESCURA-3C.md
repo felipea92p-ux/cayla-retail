@@ -2,9 +2,11 @@
 
 > **Estado al 2026-09-27 (tarde).** Pasos 1 y 2 fusionados (#534, #537) y **pegados en producción** (verificado:
 > `fn_ledger_puntos` = `a3d9fb69…`, `fn_bajadas_del_piso` = `34a7e0cc…`, `fn_bajadas_del_piso_nucleo` = `fcfd2c4b…`).
-> **El paso 3 está construido y sin pegar** (rama `claude/frescura-3c-lectura`; la migración es
-> `20260928120300_frescura_lectura.sql`, sin el módulo: decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». **Sigue
-> el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
+> **El paso 3 está construido y sin pegar** (rama `claude/frescura-3c-lectura`; las migraciones son
+> `20260928120300_frescura_lectura.sql` y, después, `20260928120310_frescura_lectura_revision3.sql`, sin el módulo:
+> decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». Las revisiones 3 a 6 van en el PR #544; el orden de
+> pegado con sus md5, lo que queda para la pantalla y los 7 hallazgos abiertos de la revisión 7: ADR-0208, «Cierre del
+> paso 3». **Sigue el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
 > las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización 2026-09-27 — diseño 3c»).
 
 ## Decisiones de Felipe y técnicas que corrigen el plan (2026-09-27)
@@ -172,7 +174,7 @@
 - `nivelPorVentas`: cuenta unidades vendidas **con edad conocida**.
 - `rapidez`: solo con edad conocida.
 - `estadoFrescura`, un tipo cerrado: `semaforo | sin_ventas_sede | sin_vara | sin_edad_conocida | clasico | dudosa`. Lleva `temporadaPasada` y sus sugerencias. «Trasladar» existe solo con «Sólido» y almacén > 0. «Rebajar» no existe.
-- `estaQuieta`: (Envejecida o Crítica) y más lenta que su categoría, o de temporada pasada.
+- `estaQuieta`: (Envejecida o Crítica) y más lenta que su categoría, o de temporada pasada. *Precisado el 2026-09-27 (Felipe, ADR-0208, «Revisión 5 del paso 3»): un pilar de venta de temporada pasada también entra, con su propia sugerencia («sigue vendiendo: decide si la dejas hasta agotar o la retiras»); un pilar nunca entra por viejo. Revisión 6: un pilar tiene que seguir vendiéndose (el que lleva 30 días colgado sin vender es lento).*
 - `clavePrenda` en un solo lugar compartido con Análisis.
 
 **Web: `lib/frescura.ts` (servidor)**
@@ -276,7 +278,7 @@
 - **SE ROMPE SI:** la puerta de carga inicial se usa para mercadería que llega de verdad (ADR-0212:47-50). Esas prendas nunca tendrían edad.
 
 **Temporada pasada**
-- **DECIDÍ:** la estación de la **última llegada** a la sede (A).
+- **DECIDÍ:** la estación de la **última llegada** a la sede (A). *Precisado por Felipe el 2026-09-27 (ADR-0208, «Revisión 5 del paso 3»): la última llegada del modelo+color **a CAYLA** (lote, producción o carga inicial, en cualquier sede), no a la sede; la recepción de un traslado no cuenta. Así el «SE ROMPE SI» de abajo ya no pasa.*
 - **DESCARTÉ:** la cohorte más vieja con saldo (B). Un modelo que el Taller repite en temporada saldría «pasado» por 2 unidades viejas, y sugeriría retirar lo recién llegado.
 - **SE ROMPE SI:** llega un traslado de una prenda vieja a mitad de camino entre dos estaciones. Oculta el aviso de toda la prenda.
 

@@ -10,7 +10,7 @@ publica cada push a `main`). **En producción, según Felipe (2026-09-25):** la 
 `fn_verificar_bajadas()` devuelve 0 filas; la `0000` y la `0300` están sin confirmar; la `0100` no se confirmó por
 separado, pero sus dos tablas tienen que existir, porque `fn_verificar_bajadas()` las lee y respondió. **Actualización 2026-09-26: todo pegado**, verificado por efectos el 2026-09-26 (consulta de solo lectura de Felipe y lectura directa): `0000` a `0400`, `20260926170000`, `20260926200000` y `20260926200100`. «Bajada al piso» está encendido en el rol Integrante (no en las
 terminales; ver (f)). El bloque 1 se probó en el navegador sin base de datos (respuestas simuladas; escritorio y 375 px):
-ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final.
+ver «Verificación en local». Del bloque 3 en adelante no hay nada construido; **sus decisiones se tomaron el 2026-09-26** (ver «Actualización 2026-09-26 — decisiones del bloque 3» y ADR-0246, temporadas). *2026-09-27:* el paso 3a (temporadas, ADR-0246) ya está en producción, y el diseño del 3c está en «Actualización 2026-09-27 — diseño 3c». El paso 2 del 3c (núcleo de bajadas: retiros descontados, `corregida`, carga inicial marcada) está construido y sin pegar: «Paso 2 construido (2026-09-27)», al final (con su revisión 2: el cálculo rehecho sin cruces, por el colapso con historia de otra tienda; y su revisión 3: la regla del piso de antes, decidida — se queda la vigente —, y cuatro huecos más vigilados). *2026-09-27 (noche):* los pasos 1 y 2 del 3c ya están **pegados en producción** (md5 verificados: libro `a3d9fb69…`, núcleo `fcfd2c4b…`, puerta `34a7e0cc…`), y el **paso 3 (la lectura) está construido y sin pegar**: «Paso 3 construido (2026-09-27)», al final. *2026-09-27 (revisión 5):* los cinco hallazgos que quedaban del paso 3 y sus seis decisiones pendientes, cerrados (dos de Felipe: la temporada cuenta desde que la prenda llegó a CAYLA, y un pilar de temporada pasada entra a «Por decidir»): «Revisión 5 del paso 3», al final.
 **Número:** se escribió como 0198 (2026-09-24), pasó a 0199 porque Finanzas tomó el 0198, y a 0207 porque main tomó
 hasta el 0206, y a 0208 porque el PR #424 (actividad por módulo, ya con su migración en producción) tomó el 0207. El ADR-0199 de main es otro tema («comportamiento comercial piso vs
 almacén»), y este ADR se apoya en él (ver (d)).
@@ -1489,8 +1489,12 @@ fila con destino suelto. T34 y T36 describen estados que hoy solo se arman a man
 
 **Estado:** construido en la rama `claude/frescura-3c-lectura`, **sin pegar en producción** (las tres funciones no existen
 allá; consulta de solo lectura del 2026-09-27). Se pega `20260928120300_frescura_lectura.sql` sola en el SQL Editor, a
-cualquier hora (solo `create or replace function`, `revoke` y `grant`: sin políticas, sin `drop trigger`, sin `alter`).
-Ninguna pantalla la llama todavía: la web que la usa es la del paso 4.
+cualquier hora (solo `create or replace function`, `revoke` y `grant`: sin políticas, sin `drop trigger`, sin `alter`), y
+DESPUÉS `20260928120310_frescura_lectura_revision3.sql`, también sola (las correcciones de la revisión 3; ver «Revisión 4
+del paso 3»).
+Ninguna pantalla la llama todavía: la web que la usa es la del paso 4. *El PR #542 llevó a main la versión de la
+integración; las revisiones 3 a 6 van en el PR #544. Los md5 esperados, lo que queda para el paso 4 y los hallazgos que
+siguen abiertos: «Cierre del paso 3», al final.*
 
 **Qué hay.**
 - `retail.fn_es_llegada(tipo, motivo, lote, producción, recepción)`, `immutable`, sin EXECUTE para nadie de afuera: el
@@ -1558,17 +1562,19 @@ llegada, bajada de la carga inicial: la carga por la puerta real llega con 6).
   después de su observación más larga, y toda prenda antes de ese punto tiene tramo: en la salida real, la chompa de
   invierno lleva 39 días colgada y sale «Nueva» (su categoría vendió 1 de 6, `pocos_datos`). Es honesto (menos de la
   mitad se vendió en 39 días), pero en la pantalla se lee como «recién llegada»; con 7 ventas en producción va a ser lo
-  común al principio. La maqueta tiene que decidir si «Nueva» con `pocos_datos` se dice distinto.
+  común al principio. La maqueta tiene que decidir si «Nueva» con `pocos_datos` se dice distinto. *Corregido en la
+  revisión 3 (abajo): sin P50 no hay tramo, «aún sin referencia», como dice la decisión 6.*
 - **La rapidez con pocos datos se compara contra sí misma.** La misma chompa tiene índice 100 porque es casi toda la curva
   de su categoría: queda como «pilar», no va a «por decidir» aunque su temporada pasó, y el aviso «Temporada pasada» sale
-  sin sugerencias.
+  sin sugerencias. *Corregido en la revisión 3: la rapidez se mide contra el resto de su categoría, y la temporada
+  pasada sugiere «retirar» aunque sea un pilar.*
 - **Lo que solo está en el almacén** viaja sin eventos y sale con estado «Nueva» y 0 segundos (no pesa en las cifras del
   piso). La pantalla la filtra o la nombra aparte; el tipo cerrado no tiene un estado «nunca colgada».
 - Los clásicos solo traen «fuera de su estación» y «guardar hasta su estación»: todavía no se comparan contra su propia
   historia.
 - `en_estacion_ahora` es «hoy cae en alguna aparición de su temporada», no en la de su última llegada. Una variante
   inactiva con stock, sin ninguna activa en su modelo+color, sale sin temporada (`fn_temporada_efectiva` solo mira
-  activas).
+  activas). *Lo de la variante inactiva, corregido en la revisión 3 (`fn_temporada_efectiva_nucleo`).*
 - Hoy un líder opera todas las sedes, así que «líder de otra sede» no se puede armar con datos: la prueba reemplaza
   `fn_puede_operar_ubicacion` dentro de su transacción para vigilar que el candado la pregunte.
 
@@ -1579,3 +1585,578 @@ pocos datos», «nunca colgada» y la temporada pasada de un pilar); el módulo 
 (`persona_id` solo para el líder); el menú (directo en Inventario, 6.ª fila, con `EXCEPCIONES_TOPE_HIJAS`); la ruta
 `/inventario/frescura` con `exigirModulo("frescura")`, `loading.tsx` con `<EsperaPantalla/>`; y verificar en TRU como
 líder, en escritorio y a 375 px.
+
+### Revisión 3 del paso 3 (2026-09-27): lo que se corrigió y lo que queda para Felipe
+
+Tres revisores (SQL, reglas, pruebas) encontraron 16 problemas, todos confirmados ejecutando. Se arreglaron con una
+prueba que falla con el código de antes (o con el cambio a propósito que la dejaba pasar) y pasa con el de ahora. Nada
+de esto está en producción: la migración sigue sin pegar y se corrigió en su lugar (sus md5 cambiaron en la guarda). *Eso
+fue un error: `20260928120300` ya estaba en main con la orden de pegarla. Las correcciones pasaron a su propio archivo,
+`20260928120310_frescura_lectura_revision3.sql`, y `20260928120300` volvió a ser la de main («Revisión 4 del paso 3»).*
+
+**Qué cambió en la base (hoy en `20260928120310_frescura_lectura_revision3.sql`):**
+- `fn_confianza_registro` ya no cuenta las bajadas de productos `es_prueba` (fn_frescura_sede ya los sacaba). Una
+  bajada de práctica tardía ponía la confianza del mes en 0 (T10b).
+- **`primera_exhibicion` es del modelo+color, no de la talla** (cambia lo que significa el campo, no su forma): la
+  primera vez que CUALQUIER talla de ese modelo+color entró al piso de la tienda, esté o no en la lista. Antes, si la
+  talla S se colgó hace 149 días y se agotó antes de la ventana, y la M se colgó hace 10, la S no llegaba (sin stock ni
+  movimiento en la ventana) y la prenda volvía a ser «Nueva»; repuesta en la MISMA talla, no. La novedad es del
+  modelo+color (decisiones 4 y 9), así que el dato también (T2d).
+- **La temporada incluye lo descontinuado.** `fn_temporada_efectiva` solo mira variantes activas (es la lista de lo que
+  se puede completar); una talla desactivada con stock perdía su temporada, nunca avisaba «Temporada pasada» y pedía
+  completar una temporada que ya tenía. La regla (color → producto → categoría) pasó a `fn_temporada_efectiva_nucleo(p,
+  p_con_inactivas)`, y `fn_temporada_efectiva(p)` la envuelve con `false`: misma firma, mismas filas (la prueba lo
+  compara en todo el catálogo), mismos permisos, y la regla sigue en UNA función (ADR-0246). Frescura llama al núcleo con
+  `true` (T4d). La guarda exige que `fn_temporada_efectiva` tenga su cuerpo de `20260928100000` (1cc652ba…, el mismo que
+  producción el 2026-09-27) o el nuevo.
+- Costo con la carga sintética: 754 ms a 120 días (antes 733), 233 ms a 30; la confianza, 128-140 ms.
+
+**Qué cambió en la web (`lib/frescura-reglas.ts`):**
+- **Una bajada tardía ya no deja a la prenda sin «Nueva».** Sus unidades siguen saliendo de la vara (`excluirTardias`),
+  pero la tardía no es «edad desconocida»: ADR-0248 (decisión 3) enumera qué lo es (saldo inicial, entrada al piso que no
+  es interna ni llegada, bajada de la carga inicial) y la tardía no está. Marcarla «al menos» dejaba sin «Nueva» para
+  siempre al fardo nuevo que se vende a los 3 minutos y, antes del 3b, a lo traído a pedido; en TRU, la única tardía es
+  justo la primera bajada de su modelo+color. `relojNovedad` ya no recibe las tardías.
+- **Sin P50 no hay tramo** («aún sin referencia», con el % vendido que ya trae `VaraCategoria.vendidoAlFinal`, como dice la
+  decisión 6). Antes toda prenda con edad conocida de una categoría que no vendió la mitad salía «Nueva», aunque llevara
+  60 días sin vender una, y con nivel «Sólido». La regla «antes de `tMax`» queda solo para P75 y P90 cuando hay P50.
+- **La rapidez se mide contra el RESTO de su categoría** (`curvaSin`, restando instante por instante, sin reordenar).
+  Con la prenda adentro, la identidad de Nelson-Aalen daba 100 exacto a la única prenda de su categoría: «pilar» siempre,
+  nunca «quieta», aunque fuera Crítica. Si el resto no vendió a esas edades, la rapidez es «sin dato» → «revisa sus
+  ventas», nunca «pilar».
+- **La temporada pasada sugiere «retirar» aunque la prenda sea un pilar** (con algo en el piso): ADR-0246, decisión 10,
+  y el ejemplo del bikini que se vende bien hasta el 20 de marzo.
+- Pruebas nuevas que vigilan lo que ningún caso vigilaba: la repuesta a través del borde de la ventana (T2b y su gemela en
+  la web), piso + almacén + cuarentena (T2c), la última llegada en una aparición ANTERIOR de su temporada (T4c), el mes de
+  Lima con la sesión en UTC como producción (el preludio de la prueba ahora corre en UTC; T10c y la lectura del texto en
+  T0), las dos tallas con llegadas de estaciones distintas, la talla dudosa en una prenda de dos tallas, la ventana de la
+  rapidez igual a la de la vara, y una respuesta sin `separa_piso` que nunca se lee como «el Taller».
+- Cifras: `frescura_lectura.mjs` 132 (antes 109); `frescura-reglas.test.ts` 80 y `frescura-contrato.test.ts` 18; vitest
+  completo 205 archivos, 78.396 pruebas; vecinas sin cambios (`temporadas` 25, `frescura_bajadas` 166, `roles_por_modulo`
+  70, `roles_cobertura_modulos` 31, `una_sola_firma` 2, `fn_ledger_fuente_unica` 48, `bajada_al_piso` 51,
+  `alta_con_stock_inicial` 28, `actor_firma_las_operaciones` 30, `reposicion_piso_cerrada` 10, `mover_interno_marca` 12,
+  `fn_resumen_comparacion` 25). Mutación: 9 cambios a propósito en el SQL y 11 en la web; todos hacen fallar la prueba (y el código de antes falla 3 casos SQL y 11 de la web).
+  El archivo de la web (`__fixtures__/frescura-sede.json`) se rehízo con la salida nueva.
+
+**Decisiones pendientes para Felipe** (no se tocaron: son reglas del negocio, no del código). **Las cuatro, DECIDIDAS el
+2026-09-27** (las 1 y 2 por Felipe, las 3 y 4 técnicas): ver «Revisión 5 del paso 3».
+1. **¿Un traslado entre tiendas es «llegada» para la temporada?** *DECIDIDA (Felipe, 2026-09-27): no; la temporada
+   cuenta desde que la prenda llegó a CAYLA (`fn_es_llegada_a_cayla`, `ultima_llegada_cayla`).* Hoy `fin_estacion` sale de la última llegada a la
+   TIENDA, y la recepción de un traslado cuenta (el predicado es el de Análisis, donde «entradas» es lo que recibió la
+   sede). La chompa que llegó del proveedor en julio de 2025 y se trasladó en abril de 2026 queda con el fin del invierno
+   2026: la tienda que la recibe no ve «Temporada pasada» hasta setiembre, justo cuando se trasladó para liquidarla.
+   Recomendación del revisor: para la temporada, la última llegada a CAYLA (lote, producción o carga inicial, en
+   cualquier tienda), con un segundo predicado de nombre propio; `fn_es_llegada` no se toca.
+2. **¿Un pilar de venta de temporada pasada entra en «Por decidir»?** Hoy no (un pilar nunca va al perchero), pero ya
+   recibe «retirar». El plan dice las dos cosas. *DECIDIDA (Felipe, 2026-09-27): sí, con su propia sugerencia
+   («sigue vendiendo: decide si la dejas hasta agotar o la retiras»), nunca «trasladar» ni «rebajar».*
+3. **«Colgada 100 días sin vender en una categoría que rota en días»**: hoy dice «revisa sus ventas» (en la ventana de 30
+   días de la vara su edad es desconocida, así que su rapidez es «sin dato») y no «por decidir». Lo decide la ventana de
+   la vara y no estaba escrito. *DECIDIDA (técnica, 2026-09-27): va a «Por decidir»; la rapidez se mide con toda la
+   lectura (hallazgo 1 de la revisión 5).*
+4. **Una prenda sin tramo (categoría sin P50) no recibe sugerencias** aunque lleve 60 días sin vender una: la maqueta
+   del paso 4 decide cómo se dice «aún sin referencia» y si esa prenda merece un «revisa sus ventas». *DECIDIDA (técnica,
+   2026-09-27): la recibe si lleva 30 días o más colgada sin ninguna venta en los últimos 30 (la regla «callada»).*
+
+### Revisión 4 del paso 3 (2026-09-27): la migración partida en dos, la rapidez de lo que vino en la carga y los tramos «al menos»
+
+Tres revisores (SQL, reglas, pruebas) encontraron 10 problemas, todos confirmados ejecutando. Cada arreglo lleva una
+prueba que falla con el código de antes (o con el mutante que la dejaba pasar) y pasa con el de ahora. Nada de esto está
+en producción; consultado con un `select` el 2026-09-27: ninguna de las funciones del paso 3 existe y
+`fn_temporada_efectiva` tiene su cuerpo de `20260928100000` (`1cc652ba…`).
+
+**La migración, partida en dos (hallazgo 1).** La revisión 3 corrigió `20260928120300` editándola en su lugar, pero el PR
+#542 ya la había llevado a main con la orden de pegarla (en el BACKLOG de main, con los md5 viejos). Quien siguiera esa
+orden dejaba producción con los errores de la revisión 3, y la versión corregida ya no entraba: su guarda veía un cuerpo
+que no conocía y abortaba con «alguien la cambió en vivo», cuando era la versión anterior del mismo archivo. Además, una
+base local que ya corrió `20260928120300` no vuelve a ejecutar el archivo editado. Ahora:
+- `20260928120300_frescura_lectura.sql` es exactamente la de main (md5 del archivo `40bf970f…`).
+- `20260928120310_frescura_lectura_revision3.sql` trae las correcciones (`fn_temporada_efectiva_nucleo`, el envoltorio de
+  `fn_temporada_efectiva`, `fn_frescura_sede` y `fn_confianza_registro`, con los mismos cuerpos que la revisión 3). Su
+  guarda pide `20260928120300` ya pegada (`fn_es_llegada` `5089ba50…`, y las dos lecturas presentes) y, para cada función
+  que reescribe, acepta solo dos cuerpos: el de `20260928120300` (`644e1012…`, `9c714f98…`; `1cc652ba…` para
+  `fn_temporada_efectiva`) o el suyo. Se puede pegar dos veces. Al revés también es seguro: con ella pegada, volver a pegar
+  `20260928120300` aborta y no deshace nada.
+- La prueba T12b parte del estado real de producción y lo recorre: la de main entra, la corregida entra encima, la de main
+  otra vez aborta, y sin la de main la corregida la pide. Con la corrección editada en el mismo archivo, T12b falla en 5
+  verificaciones. Regla que queda: **una migración que ya está en main no se edita; la corrección va en un archivo nuevo
+  cuya guarda acepta el cuerpo anterior** (como `20260928120200` con `20260928120100`).
+
+**Qué cambió en la web (`lib/frescura-reglas.ts`):**
+- **La rapidez es «sin dato» si alguna venta de la ventana salió de lo que tiene edad desconocida** (hallazgo 2).
+  `historiaDeCohortes` le da las ventas a la cohorte más vieja: una talla de la carga inicial que se repone vende primero
+  lo de la carga, y las unidades repuestas (con edad conocida) parecían sin vender. La rapidez salía 0, «lenta», y la
+  prenda iba a «Por decidir» con «Trasladar», justo lo que prohíbe la corrección 4 del plan. Dos gemelas con la misma
+  historia física: K (todo con edad conocida) sale Crítica con rapidez 125, un pilar; U (la primera bajada de la carga)
+  salía rapidez 0 con [cambiar_lugar, trasladar] y ahora sale sin dato, con «revisa sus ventas». `unidadesParaVara`
+  (reemplaza a `observacionesDe`) devuelve, además de las unidades con edad conocida, cuántas ventas salieron de lo
+  desconocido; `rapidez` recibe ese número. En TRU (select del 27-sep) hay 21 tallas con unidades de edad desconocida en
+  el piso: la primera reposición de cualquiera lo habría disparado.
+- **«Trasladar» exige «Sólido» en la referencia que de verdad midió la rapidez** (hallazgo 3): 20 o más ventas del RESTO
+  de su categoría (`Rapidez.referencia`, que sale de `curvaSin`). La vara cuenta las ventas de la propia prenda: la
+  falda que es 28 de las 30 ventas de su categoría tenía vara «Sólido» y se medía contra 2. Ahora recibe solo
+  «cambiar de lugar». En TRU, 5 de las 8 categorías con stock tienen 1 o 2 modelo+color.
+- **Sin el corte siguiente, el tramo que ya pasó, como piso** (hallazgo 4, parte b): si falta P75 o P90 y la prenda ya
+  pasó todo lo que la curva vio (`tMax`), se sabe igual que pasó el corte anterior. Antes salía «aún sin referencia»
+  (null) y sin ninguna sugerencia; ahora es, por ejemplo, «al menos Envejecida» (`estado.alMenos`) y, si es vieja y sin
+  dato de rapidez, «revisa sus ventas». Es el caso de la prenda de la carga inicial, que siempre tiene el reloj más largo.
+  `tramoDe` devuelve `{ tramo, alMenos }`; `sin_vara` queda solo para la categoría sin P50. `estado.alMenos` pasa a decir
+  «el tramo es un piso» (por el reloj o por la curva).
+- **Tolerancia y reloj en milisegundos enteros** (hallazgo 5). El reloj sumaba tramos ya divididos entre 1000 y la
+  exposición de la unidad colgada era una sola resta: en 293 de 2.000 historias al azar el reloj de la prenda más vieja
+  quedaba 1e-11 arriba de `tMax` y salía «aún sin referencia» en vez de «Vigente». `relojNovedad` suma en milisegundos
+  y divide una vez, y `tramoDe` compara con 1 microsegundo de tolerancia hacia los dos lados (`tMax` y los cortes).
+- Pruebas nuevas (mataban mutantes vivos): el corte exacto con S = 0,5 y 0,25 (w15), el borde `segundos = tMax` (w20),
+  `curvaSin` con las unidades propias desordenadas como vienen del FIFO (x20), el reloj exacto con horas con
+  milisegundos, y las historias de las gemelas, la falda, el pantalón de la carga y la prenda más vieja por `analizarSede`.
+  En SQL: la talla cuyo único movimiento de la ventana es la venta o un ajuste negativo (T2e, T2f; mutantes m01 y m02: sin
+  ella, un modelo de 110 días colgado parecía recién llegado), el almacén → cuarentena que no es exhibición (T2g, p07), la
+  última llegada de ESTA tienda (T4e, m50: un lote de Trujillo movía el fin de estación), y tres casos de borde (T7b, T9b,
+  T9c).
+- Cifras: `frescura_lectura.mjs` 152 (antes 132); `frescura-reglas.test.ts` 94 (antes 80) y `frescura-contrato.test.ts` 18;
+  vitest completo 205 archivos, 78.410 pruebas; vecinas sin cambios (`temporadas` 25, `frescura_bajadas` 166,
+  `fn_resumen_comparacion` 25, `roles_por_modulo` 70, `roles_cobertura_modulos` 31, `fn_ledger_fuente_unica` 48,
+  `bajada_al_piso` 51). El código de antes falla 22 pruebas de la web; cada mutante (w15, w20, x20, el reloj por tramos y
+  la tolerancia quitada) hace fallar al menos una; los mutantes SQL m01, m02, m50 y p07 hacen fallar su caso nuevo.
+
+**Decisiones pendientes para Felipe** (no se tocaron; se suman a las cuatro de la revisión 3). **Las dos, DECIDIDAS el
+2026-09-27 (técnicas): ver «Revisión 5 del paso 3».**
+5. **¿El tramo de una prenda se mide contra su categoría SIN ella, como ya se mide su rapidez?** Hoy los cortes (P50, P75,
+   P90 y `tMax`) incluyen las unidades de la propia prenda, y dos casos quedan mal: el pantalón de 70 días con 0 de 3
+   vendidas (edad conocida) sale «Vigente», porque sus 3 unidades sin vender llevan el P50 de su categoría de 10 a 30 días
+   y borran el P75 (sin ella: P50 10, P75 30, y sería «al menos Envejecida» y, lenta, «por decidir»); y la falda que es 28
+   de las 30 ventas de su categoría sale Crítica contra un P90 de 67,5 días que puso ella misma. Recomendación: sí.
+   Ganas: lo más quieto de cada categoría deja de esconderse detrás de sus propias unidades. Pagas: cada prenda se juzga
+   con cortes un poco distintos de los que la cabecera de su categoría muestra (hay que decirlo en la pantalla) y una
+   curva por prenda (medir antes de publicar). La prueba «PENDIENTE DE FELIPE: el pantalón de 70 días…» documenta lo de
+   hoy. Si no responde, el paso 4 lo construye así y la maqueta lo muestra para que lo objete. *DECIDIDA (2026-09-27):
+   sí, construido en la revisión 5; esa prueba ahora exige «al menos Envejecida» y «Por decidir».*
+6. **«Al menos Vigente» sin dato de rapidez no recibe «revisa sus ventas».** El pantalón de la carga inicial (70 días,
+   nada vendido) en una categoría cuyo P75 no existe sale «al menos Vigente» y sin sugerencia: «revisa sus ventas» hoy
+   es solo para Envejecida y Crítica. Recomendación: que un tramo «al menos» sin dato también la reciba. *DECIDIDA
+   (2026-09-27): la recibe, junto con la 4, bajo la regla «callada».*
+
+
+### Revisión 5 del paso 3 (2026-09-27): los cinco hallazgos que quedaban y las seis decisiones
+
+Cinco hallazgos de la revisión anterior (uno de la regla, tres de pruebas de SQL que faltaban y uno de la web) y las seis
+decisiones pendientes de las revisiones 3 y 4, dos de Felipe y cuatro técnicas. Cada cambio lleva una prueba que falla con
+el código de antes (o con el cambio a propósito que la dejaba pasar) y pasa con el de ahora. Nada de esto está en
+producción: consultado con un `select` el 2026-09-27, ninguna función del paso 3 existe y `fn_temporada_efectiva` sigue
+con su cuerpo de `20260928100000` (`1cc652ba…`). La base va en `20260928120310_frescura_lectura_revision3.sql`, editada
+en su lugar (no está en main ni en producción); `20260928120300` no se toca.
+
+**Los cinco hallazgos.**
+1. **La rapidez se mide con las unidades de TODA la lectura** (`lib/frescura-reglas.ts`, `analizarSede`). Se medía con
+   las unidades recortadas a la ventana de la vara, y el recorte convertía en «edad desconocida» lo que ya estaba colgado
+   al empezar esa ventana: la prenda colgada hace 60 días que vendió 2 en la ventana de 30 salía «sin dato». ADR-0248
+   solo reconoce como desconocido el saldo con que arranca la LECTURA, la carga inicial y los ajustes. La vara de la
+   categoría no cambia (sigue en su ventana); cada talla guarda sus unidades de la lectura entera (`todas`) además de las
+   de cada ventana, y si la ventana cubre la lectura son el mismo objeto. Prueba: «la venta de lo que YA colgaba al empezar
+   la ventana de la vara…» (antes, rapidez nula; ahora 2 vendidas contra 25 del resto) y la del saldo de la lectura, que
+   sigue sin dato.
+2. **`piso_hoy` y `almacen_hoy` son solo de ESTA tienda**: T2h (la misma talla con 3 en el piso y 1 en el almacén de
+   Trujillo no suma). El cambio a propósito que quita `s.ubicacion_id = p_ubicacion_id` la hace fallar (`piso=5,alm=1`).
+3. **`fn_temporada_efectiva` sigue `security definer`**: T4g la llama como `authenticated` (líder e integrante) de las dos
+   formas en que la usa la web (`catalogo-v2.ts`: la ficha con `p_producto_id` y la lista paginada de /productos sin
+   argumentos). Lleva su propio control: con `security invoker`, dentro de un savepoint, da 42501 (el envoltorio llama al
+   núcleo, que nadie de afuera puede ejecutar).
+4. **`fn_confianza_registro` cuenta las tardías en UNIDADES**: T10d, una bajada de 3 con 2 tardías y otra normal de 3 = 2
+   filas, 6 unidades, 2 tardías, 0,6667 (contando filas tardías daría 1 y 0,8333: el cambio a propósito lo muestra).
+5. **Las ventas sin edad de OTRA talla del mismo modelo+color dejan la rapidez sin dato** (E-Y08): el modelo con la talla
+   conocida primero (L, 4 repuestas sin vender) y la carga inicial en la S (10 vendidas) no queda «lenta» ni recibe
+   «Trasladar». Ya pasaba con el código de antes; la prueba vigila el cambio a propósito que suma solo las de la primera
+   talla.
+
+**Decisión 1 (Felipe): la temporada de una prenda cuenta desde que LLEGÓ A CAYLA.**
+- **DECIDÍ:** `fin_estacion` sale de la última llegada A CAYLA de su MODELO+COLOR (cualquier talla, activa o no, en
+  cualquier sede): lote o recepción de compra, producción del Taller o carga inicial. Predicado nuevo con nombre propio,
+  `retail.fn_es_llegada_a_cayla(tipo, motivo, lote, producción, recepción)` = `fn_es_llegada(...)` y sin recepción de
+  traslado (immutable, sin `search_path` propio para que se expanda en la consulta, sin EXECUTE para nadie de afuera).
+  `fn_es_llegada` no se toca (es el predicado de Análisis). La lectura trae un campo nuevo, `ultima_llegada_cayla` (en la
+  web, `ultimaLlegadaCayla`); `ultima_llegada` sigue siendo la de esa talla a esa tienda, con la recepción de un traslado.
+  La novedad («Nueva») sigue siendo por tienda (decisión 9). `en_estacion_ahora` no cambia: no depende de ninguna llegada.
+- **DESCARTÉ:** seguir con la última llegada a la tienda, porque la chompa que llegó del proveedor en julio de 2025 y se
+  trasladó en abril de 2026 para liquidarla quedaba con el fin del invierno 2026 y no avisaba «Temporada pasada» hasta
+  setiembre, justo en la tienda que la recibió para sacarla. Y descarté reescribir la lista de llegadas en el predicado
+  nuevo: se escribe como `fn_es_llegada` menos la recepción, así una llegada que se agregue allá (con su prueba contra
+  Análisis) la hereda la temporada.
+- **SE ROMPE SI** la mercadería que llega de afuera entra por una puerta que no deja lote, producción ni `carga_inicial`
+  (hoy, los ajustes «reposicion» y «conteo_fisico» de TRU): ese modelo+color no tiene llegada a CAYLA y nunca avisa
+  «Temporada pasada», tampoco en la tienda que lo recibe trasladado (antes, la recepción le daba un fin). Y si el Taller
+  repite un modelo+color en su temporada, las unidades viejas de ese modelo+color en otra tienda dejan de avisar hasta el
+  fin de la estación nueva: es la regla (el modelo está en temporada en CAYLA), pero la tienda lo va a preguntar.
+- Pruebas: T8b (≡ `fn_es_llegada` sin recepción en el seed y en todas las combinaciones, nunca nula, y la tabla de verdad
+  escrita a mano), T4f (la chompa trasladada: tienda 2026-04-10, CAYLA 2025-07-15, fin primavera 2025, en sus dos tallas
+  aunque la M nunca llegó por su cuenta; la producción del Taller y la carga inicial de Trujillo cuentan; lo solo
+  trasladado queda sin fin), T4e cambia (el lote de Trujillo de 2026 ahora SÍ mueve el fin, no la última llegada a la
+  tienda), T4 y T13 con el campo nuevo (la chompa M del archivo de la web tiene otro lote en Trujillo: los dos campos
+  difieren y `frescura-contrato.test.ts` exige que la web no los cruce). Tres cambios a propósito (predicado sin la
+  exclusión, llegada solo de esta tienda, fin desde `ultima_llegada`) hacen fallar T4e, T4f y T8b.
+- En producción hoy no cambia nada: el 2026-09-27 las entradas son 64 de carga inicial (33 modelo+color) y 3 de un lote
+  (1 modelo+color); ninguna recepción de traslado.
+
+**Decisión 2 (Felipe): un pilar de venta de temporada pasada SÍ entra a «Por decidir».**
+- **DECIDÍ:** `estaQuieta` devuelve verdadero con la temporada pasada aunque sea pilar (un pilar sigue sin entrar por
+  viejo), y `sugerenciasDe` le da SOLO una sugerencia propia, `sigue_vendiendo` («Sigue vendiendo: decide si la dejas
+  hasta agotar o la retiras»): ni «cambiar de lugar», ni «trasladar», ni «retirar» a secas.
+- **DESCARTÉ:** dejarlo fuera de «Por decidir» con «retirar» (lo de la revisión 3), porque lo que no está en «Por
+  decidir» el líder no lo revisa, y «retirar» era una orden donde hay una decisión (el bikini que se vende bien el 21 de
+  marzo puede quedarse hasta agotarse). Y descarté la escalera normal (cambiar de lugar, trasladar): mover lo que se vende
+  no tiene sentido.
+- **SE ROMPE SI** un pilar por su índice de la lectura entera dejó de venderse en las últimas semanas: igual dice «sigue
+  vendiendo». Es raro (el índice cuenta 120 días) y la pregunta sigue siendo la correcta; si pasa, se le suma la
+  condición de haber vendido en los últimos 30 días. *No era raro (el éxito que deja tallas sueltas): la condición se sumó en la revisión 6
+  (corrección 1).*
+- Pruebas: el bikini (quieta, `["sigue_vendiendo"]`, con vara «Sólido», almacén y 20 ventas del resto: todo lo que
+  «trasladar» pide), el pilar por viejo sin temporada pasada sigue fuera, y la combinatoria de sugerencias (ningún pilar
+  de temporada pasada con algo en el piso recibe otra cosa; nadie más recibe `sigue_vendiendo`).
+
+**Decisión 3 (técnica): «colgada 100 días sin vender en una categoría que rota en días» va a «Por decidir».** Queda
+resuelta por el hallazgo 1: con toda la lectura, sus 2 unidades colgadas 100 días esperaban lo que la categoría vende en
+días; rapidez 0, Crítica, quieta, «cambiar de lugar» (sin almacén, sin «trasladar»). La prueba que decía «sin dato, no
+lenta» ahora exige esto.
+
+**Decisiones 4 y 6 (técnicas): la prenda «callada» recibe «revisa sus ventas».**
+- **DECIDÍ:** sin tramo firme (su categoría sin P50, sin ventas en la sede, sin edad conocida, o un tramo «al menos»),
+  en el piso, colgada 30 días o más (`DIAS_CALLADA`, la ventana más corta de la vara) y sin ninguna venta de su
+  modelo+color en la tienda en los últimos 30: «revisa sus ventas», con o sin dato de rapidez. Nunca queda una prenda
+  quieta sin ninguna pista. Si la lectura no cubre 30 días (p_dias < 30), no se sabe y no se sugiere (`ventasRecientes`
+  nulo). La web lleva `ventasRecientes` por prenda.
+- **DESCARTÉ:** la regla literal sin exigir 30 días colgada, porque marcaba «revisa sus ventas» a lo que se colgó hace 3
+  días en una categoría sin P50 (no vendió en 30 días porque no estuvo 30 días). Y descarté exigir «sin dato de rapidez»:
+  una prenda sin tramo con rapidez 0 no es «vieja» (no hay tramo), no está quieta y se quedaba sin ninguna pista.
+- **SE ROMPE SI** una categoría entera vende por temporadas cortas (un modelo que se vende en diciembre y nada el resto
+  del año): en noviembre pide «revisa sus ventas» aunque esté esperando su mes. Hoy la temporada lo explica al lado.
+- Pruebas: «al menos Vigente» a los 70 días (antes, ninguna sugerencia), sin tramo, sin ventas en la sede y sin edad
+  conocida; y las que NO la reciben (vendió 1 en 30 días, lectura corta, 29 días colgada, sin piso, tramo firme, clásico,
+  dudosa).
+
+**Decisión 5 (técnica): el TRAMO se mide contra su categoría SIN la prenda, como la rapidez.**
+- **DECIDÍ:** los cortes (P50, P75, P90) y la observación más larga contra los que se ubica cada prenda son los de su
+  categoría sin sus unidades (las de la ventana de la vara). La cabecera de la categoría (`VaraCategoria`) sigue
+  mostrando la curva completa. `FrescuraPrenda.categoriaSinElla` trae contra qué se midió (cortes, tMax y ventas del
+  resto). **Para el paso 4: la pantalla tiene que decir que cada prenda se mide sin ella** (una prenda que es mucho de su
+  categoría puede quedar en un tramo que los cortes de la cabecera no explican). La única prenda de su categoría que
+  vende queda «aún sin referencia» (sin ella no hay contra qué medirla) en vez de Crítica contra cortes que ella ponía.
+- **DESCARTÉ:** los cortes con la prenda adentro, porque lo más quieto se escondía detrás de sus propias unidades: el
+  pantalón de 70 días con 0 de 3 vendidas llevaba el P50 de 10 a 30 días, borraba el P75 y salía «Vigente»; ahora es «al
+  menos Envejecida», lento y «Por decidir» (la prueba «PENDIENTE DE FELIPE» ahora exige esto). Y descarté rearmar la
+  curva del resto por prenda (`kaplanMeier` sobre el resto, un orden por prenda) o guardarla por prenda: guardándola,
+  `analizarSede` pasó de 191 a 372 ms en la carga sintética.
+- **SE ROMPE SI** una categoría pasa de decenas de miles de ventas en 120 días en una sede con miles de modelo+color: cada
+  prenda recorre los instantes con venta de su categoría (lo mismo que ya hacía la rapidez desde la revisión 3). Entonces,
+  sumas prefijas por cada «en riesgo» distinto (se descartaron ahora por memoria: crecen con prendas × instantes).
+- Cómo se calcula: `contraElResto(curva, propias, suyas)` resta sobre la curva acumulada de la categoría, en una
+  pasada por sus instantes con venta y por tramos entre los instantes de la prenda, sin guardar la curva del resto; en
+  la misma pasada salen los cortes, la observación más larga, las ventas del resto y lo que espera cada unidad para la
+  rapidez. `rapidez(vendidas, esperadas, referencia, ventasSinEdad)` pasa a recibir esas cuentas. `curvaSin` (la curva
+  del resto guardada) y `riesgoAcumuladoEn` se borraron: solo las usaban las pruebas, y el candado «probado = en
+  pantalla» (`reglas-sin-uso.test.ts`, ADR-0234) no deja exportar una regla que ninguna pantalla usa; las pruebas miden
+  ahora el mismo camino que la pantalla. Una prueba de 400 categorías al azar (empates, pesos, unidades sin vender en el
+  instante de una venta) exige que `contraElResto` sea `kaplanMeier` del resto (cortes, observación más larga, ventas y
+  lo esperado en cada medio día); cuatro cambios a propósito en la resta la hacen fallar.
+
+**Costo (medido el 2026-09-27; Postgres 17 desechable; mediana de 7 corridas en SQL y de 9 en la web).**
+- SQL, la carga del paso 3 (una tienda, 2.000 prendas en 200 modelos con temporada, 20.000 bajadas, 10.000 ventas):
+  `fn_frescura_sede` 763 ms a 120 días (antes, en la misma base, 759) y 221 a 30 (antes 229). La llegada a CAYLA es una
+  búsqueda por índice por modelo+color, como la primera exhibición.
+- Web, `leerFrescuraSede` + `analizarSede` sobre la salida real de esa carga (1.006 modelo+color, 2.016 tallas, una
+  categoría con 6.604 ventas): **~155 ms** (antes de esta revisión, ~193; con D5 sin optimizar, 372). Sobre la carga de
+  `p1/carga.sql` (2.000 tallas de un solo modelo): ~158 ms (antes ~155). Queda en el borde del objetivo de ~150 ms, sin
+  quebrar el límite de 1 s por sede. Lo que queda: ~73 ms armar las unidades de cada talla en cada ventana de la vara
+  (cuando ninguna ventana alcanza, se arman las cuatro) y ~50 ms la pasada por prenda (medido con un perfil de cada paso).
+
+**Cifras.** `frescura_lectura.mjs` **177** (antes 152); `frescura-reglas.test.ts` **101** (antes 94) y
+`frescura-contrato.test.ts` 18; el archivo de la web (`__fixtures__/frescura-sede.json`) se rehízo con la salida nueva.
+Con el código de antes fallan 21 pruebas de la web (varias porque `contraElResto` no existía y `rapidez` recibía la
+curva) y 14 verificaciones de SQL; los 14 cambios a propósito de la web y los 6 del SQL hacen fallar su prueba.
+
+
+### Revisión 6 del paso 3 (2026-09-27): el pilar que dejó de venderse, la reposición de lo que vino en la carga, y dos preguntas para Felipe
+
+Tres revisores (SQL, reglas, pruebas) miraron la revisión 5 y encontraron 10 problemas, todos confirmados ejecutando. Ocho
+se corrigen (dos reglas de la web y seis pruebas que faltaban), cada uno con una prueba que falla con el código de antes
+o con el cambio a propósito que la dejaba pasar. Dos cambiarían una decisión de Felipe (la 1 y la 2 de la revisión 5): no se tocaron y quedan abajo como preguntas, con una
+prueba marcada «PENDIENTE DE FELIPE» que documenta lo de hoy. **La base no cambia**: `20260928120310` es la misma de la
+revisión 5 (mismos md5). Lo que se agrega son pruebas.
+
+En producción no hay nada de esto (consultado con un `select` el 2026-09-27): de las funciones del paso 3 solo existe
+`fn_temporada_efectiva`, con su cuerpo de `20260928100000` (`1cc652ba…`). Tienda AQP y Tienda LIM tienen 0 movimientos y
+Tienda TRU 161. De los 34 modelo+color que entraron alguna vez, 33 entraron solo por carga inicial y 1 por lote.
+
+**Corrección 1: el pilar que dejó de venderse ya no es pilar** (hallazgo de reglas). `lib/frescura-reglas.ts`.
+- **El problema.** Desde que la rapidez se mide con toda la lectura (A1), un éxito que vendió 14 de 20 en sus 3 primeros
+  días y después nada (le quedaron 1 S y 5 L) seguía «más rápido que su categoría» durante los 120 días. Salía Crítica y
+  no entraba a «Por decidir» porque era pilar. Tampoco recibía sugerencia, porque su tramo es firme y no contaba como
+  callada. Con la temporada pasada le decía «Sigue vendiendo» a algo que llevaba 112 días sin vender. Es lo normal en un
+  éxito de moda que deja tallas sueltas, no algo raro.
+- **DECIDÍ:** aplicar lo que ya decía el «SE ROMPE SI» de la decisión 2: un pilar tiene que seguir vendiéndose. El tipo
+  `Recientes` es ahora la ÚNICA medida de «¿se sigue vendiendo?» (la usan el pilar y la prenda callada):
+  - `vendio`: su modelo+color vendió algo en la tienda en los últimos 30 días.
+  - `dejo_de_vender`: lleva 30 días o más colgada y no vendió nada en esos 30.
+  - `no_se_sabe`: la lectura no cubre 30 días, o no vendió pero lleva menos tiempo colgada.
+
+  `esPilar(rapidez, recientes)` exige índice ≥ 100 y no `dejo_de_vender`. Con dato de rapidez, una prenda es pilar o
+  lenta, nunca las dos ni ninguna: `estaQuieta` toma por lenta a la que dejó de venderse. `callada` es `recientes =
+  dejo_de_vender` sin tramo firme: la misma cuenta, no una copia. El éxito de las tallas rotas ahora es Crítica, quieta,
+  con «cambiar de lugar». Con la temporada pasada recibe «cambiar de lugar» y «retirar», no «sigue vendiendo».
+- **DESCARTÉ:**
+  - Darle también «revisa sus ventas», porque la escalera ya es una pista, y «revisa sus ventas» quedó para cuando no
+    hay dato (decisiones 4 y 6).
+  - Medir «reciente» con la vara de su categoría (su P50) en vez de 30 días fijos, porque sería otra ventana distinta
+    en cada categoría. Los 30 días son lo que la pantalla ya llama «reciente».
+- **SE ROMPE SI** una categoría lenta (P50 de más de 30 días, como un abrigo caro) tiene un pilar verdadero que pasa 30
+  días sin vender por azar. Pierde el «pilar» y, si es Envejecida o Crítica, va a «Por decidir» con «cambiar de lugar»,
+  que es la sugerencia que no mueve plata. Con 5 unidades en el piso y P50 de 45 días, la chance de 30 días sin una
+  venta ronda el 10 %. Si pasa seguido, «reciente» se mide contra lo que la categoría vende en esos días, no contra cero.
+  *Revisión 7 (abierto): `recientesDe` compara con el reloj TOTAL de la prenda, no con lo que estuvo colgada en esos 30
+  días. Un pilar que se agotó (piso en 0, sin poder vender) y se repone queda «dejó de vender» apenas se cuelga. Ver
+  «Cierre del paso 3», hallazgo R7-2.*
+
+**Corrección 2: las ventas de una carga que se agotó antes de la reposición ya no vetan la rapidez** (hallazgo de reglas).
+- **El problema.** La rapidez era «sin dato» si había CUALQUIER venta de lo que no tiene edad (carga inicial, ajuste,
+  saldo de la lectura) en toda la lectura. La regla nació para las gemelas K y U: la carga y lo repuesto cuelgan juntos y
+  el FIFO le da las ventas a la carga. Pero con A1 una venta de la carga de hace 100 días vetaba 120 días la rapidez de lo
+  repuesto aunque la carga se hubiera agotado mucho antes. Es el camino normal en producción: carga inicial, se agota, se
+  repone por lote. Durante 120 días la reposición nunca salía «lenta» y no llegaba a «Por decidir» ni a «Trasladar».
+- **DECIDÍ:** solo cuentan las ventas sin edad hechas DESDE que la prenda (cualquiera de sus tallas) colgó su primera
+  unidad con edad conocida en la lectura (`ventasQueEsconden`; `unidadesParaVara` devuelve cada venta sin edad con su
+  hora, y `primeraConEdad`). Una venta en el mismo instante en que cuelga lo repuesto también cuenta: ahí tampoco se sabe
+  cuál se vendió. K y U siguen sin dato: sus ventas de la carga son posteriores a la bajada de lo repuesto. E-Y08
+  también: la S de la carga vende después de que cuelga la L. La reposición de la carga agotada vuelve a ser lenta,
+  quieta, con «cambiar de lugar» y «trasladar».
+- **DESCARTÉ:** la regla exacta, «mientras había en el piso alguna unidad con edad conocida de la prenda», porque pide
+  la historia del FIFO de cada talla en cada instante de las otras tallas: otro recorrido por talla o cambiar el FIFO
+  único de `inventario-exposicion.ts`, que es de Análisis también.
+- **SE ROMPE SI** lo conocido se vendió entero y DESPUÉS se vende algo sin edad (un ajuste positivo de conteo que se
+  vende, o la carga de otra talla), y luego llega otra reposición: la rapidez sigue sin dato aunque no haya ambigüedad.
+  Es el lado seguro: sin dato nunca da «Trasladar». *Mal descrito (revisión 7, R7-3): no hace falta otra reposición, y
+  la puerta más común no está nombrada. Una devolución (`aprobar_devolucion`), un cambio de talla (`registrar_cambio`) o
+  un ajuste «reposicion» al piso entran sin lote y llevan la marca 4. Si esa unidad se revende después de que la prenda
+  colgó lo conocido, la rapidez de TODA la prenda queda sin dato por la lectura entera. Y «sin dato» no es el lado
+  seguro para la decisión 2: el éxito de temporada pasada deja de recibir «sigue vendiendo» y recibe «cambiar de lugar»
+  y «retirar». Abierto: ver «Cierre del paso 3».*
+
+**Las pruebas que faltaban** (hallazgos de pruebas). Cada una mata el cambio a propósito que el revisor dejó vivo:
+- **A1, lo que se resta de la curva** (web). La prenda que vendió 4 (o 12) antes de la ventana de la vara y hoy tiene 2
+  recién colgadas: índice 147, con las esperadas escritas a mano (2,72). Restando también sus unidades viejas, el índice
+  bajaba a 85 y el pilar de 12 iba a «Por decidir».
+- **Tardías en la rapidez y en la vara de 120 días** (web): 50 ventas en la categoría y 0 vendidas en la prenda. Sin
+  excluir las tardías eran 52.
+- **Ventas recientes** (web). Un retiro al almacén no es una venta: la prenda callada sigue con «revisa sus ventas». La
+  venta de OTRA talla del mismo modelo+color sí cuenta. Con esto mueren los tres cambios a propósito: cualquier salida
+  contada como venta, solo la primera talla y 7 días en vez de 30.
+- **D1, la llegada a CAYLA es del modelo+color** (SQL, T4h). El color que llegó en 2025 conserva la primavera 2025 aunque
+  otro color del mismo modelo llegara en 2026.
+- **`fn_temporada_efectiva` contra su cuerpo de `20260928100000`** (SQL, T4d). Se crea como `pg_temp` y se compara en
+  los dos sentidos. Compararla solo con el núcleo era circular: con el estado del producto nulo en el núcleo cambiaban los
+  dos lados y «Sin temporada» quedaba en 0. Ahora da 34 filas distintas.
+- **La recepción de un traslado directo al piso tiene fecha** (SQL, T3): marca 0. Con `fn_es_llegada_a_cayla` en la
+  marca, salía 4 (edad desconocida).
+
+**Pendientes para Felipe** (se suman a las de las revisiones 3 y 4, ya decididas). Ninguna bloquea pegar la base: la 7
+cambiaría una línea de `20260928120310` antes de pegarla, y la 8 solo cambia la web.
+
+7. **¿Una carga inicial posterior reinicia la temporada de lo que llegó de verdad?** Hoy sí: la llegada a CAYLA es la
+   ÚLTIMA (decisión 1) y la carga inicial cuenta. Un bikini de verano llegó por lote a esta tienda el 15 de enero de
+   2026 y sigue colgado: es «Temporada pasada». Si HOY otra sede (AQP o LIM, que tienen 0 movimientos, al incorporarse) o
+   esta misma tienda carga otra talla del mismo modelo+color por Existencias ▸ Ajustar stock (`cargar_stock_inicial`,
+   abierta a quien ajusta stock), su fin pasa al verano siguiente y deja de avisar en TODAS las sedes. La carga inicial no
+   es mercadería que llega: es stock que ya estaba y el sistema recién conoce (ADR-0248). Prueba T4i, «PENDIENTE DE
+   FELIPE».
+   - **Recomendación:** la carga inicial cuenta como llegada a CAYLA solo si el modelo+color no tiene lote ni producción,
+     y entre varias cargas manda la PRIMERA. En `llegada_cayla_de`:
+     `coalesce(max(m.created_at) filter (where m.motivo is distinct from 'carga_inicial'), min(m.created_at) filter
+     (where m.motivo = 'carga_inicial'))`. Probado como cambio a propósito: solo cambian las dos verificaciones de T4i y el
+     resto de la suite pasa.
+   - **Ganas:** incorporar AQP y LIM no le borra «Temporada pasada» a TRU.
+   - **Pagas:** una prenda que de verdad volvió a llegar y se registró como carga inicial no reinicia su estación. Es
+     poco probable: la carga inicial es de una vez por tienda y talla.
+   - Si Felipe mantiene la regla de hoy, esto se escribe en el «SE ROMPE SI» de la decisión 1 y en la nota de ADR-0246.
+   - **Si no responde**, se pega `20260928120310` como está (la regla de hoy). La recomendación entraría después en
+     una migración nueva cuya guarda acepte el cuerpo `51babffc…`.
+8. **¿Lo que no tiene dato de rapidez y se sigue vendiendo recibe «sigue vendiendo» con la temporada pasada?** Hoy no:
+   la decisión 2 alcanza solo al pilar, que necesita índice. Dos bikinis con la misma historia (10 colgados, 8 vendidos
+   en 16 horas, temporada pasada) reciben respuestas distintas. El del lote recibe «sigue vendiendo». El de la carga
+   inicial (sin dato: no se le puede medir la edad) recibe «revisa sus ventas», «cambiar de lugar» y «retirar», justo lo
+   que la decisión 2 descartó para lo que se vende. En TRU, 33 de los 34 modelo+color vinieron solo en la carga: cuando
+   termine su estación, todos sus éxitos recibirán esto. Prueba «PENDIENTE DE FELIPE» de los gemelos en
+   `frescura-reglas.test.ts`.
+   - **Recomendación:** que lo sin dato que vendió en los últimos 30 días (`recientes = vendio`) reciba «sigue vendiendo».
+   - **Ganas:** los gemelos iguales; el éxito de la carga no recibe una orden de moverlo.
+   - **Pagas:** sin índice no se sabe si vende «bien». La chompa del archivo de la web (1 de 4 vendida en 42 días, en
+     una categoría sin referencia) también diría «sigue vendiendo», no «retirar». Ese cambio se probó y rompe
+     `frescura-contrato.test.ts` en ese punto: por eso no se aplicó sin preguntar.
+   - **La otra opción** del revisor: solo quitarle «cambiar de lugar» y dejarle «revisa sus ventas» y «retirar».
+   - **Si no responde**, el paso 4 lo muestra en la maqueta con los dos bikinis lado a lado para que lo decida viéndolo.
+
+**Cifras.**
+- `frescura_lectura.mjs`: **184** (antes 177).
+- `frescura-reglas.test.ts`: **109** (antes 101), y `frescura-contrato.test.ts` 18.
+- Con el código de antes fallan 6 pruebas de la web: las dos correcciones, la forma nueva de `unidadesParaVara` y la
+  combinatoria.
+- De los 18 cambios a propósito de la web (los 5 del revisor y 13 nuevos sobre las dos correcciones) mueren 17. El otro
+  es equivalente: sin nada con edad conocida, la rapidez ya es «sin dato». Mueren los 3 del SQL.
+- Los 63 cambios a propósito de la web de la revisión 5, corridos contra este código: mueren 57 (con el código de antes,
+  49). Siguen vivos 6 que ningún revisor dio como hallazgo: clásicos medidos contra el resto, el umbral de P90 menos EPS,
+  «la lectura cubre 30 días» estricto o siempre, «revisa sus ventas» sin piso, y `ultimaLlegadaCayla` de la talla más
+  vieja (la base ya la da igual en todas las tallas).
+- La recomendación de la pregunta 7, aplicada como cambio a propósito, cambia solo las dos verificaciones de T4i.
+- Costo: `analizarSede` sobre las dos cargas sintéticas de la revisión 5 tarda ~160 ms antes y después (mediana de 9,
+  dentro del ruido de ±5 ms). La hora de cada venta sin edad se lee solo si la prenda colgó algo con edad conocida.
+  Leerla siempre (también en las ventanas de la vara, donde no se usa) sumaba hasta ~10 ms.
+- Vecinas sin cambios: `frescura_bajadas` 166, `temporadas` 25, `roles_por_modulo` 70, `roles_cobertura_modulos` 31,
+  `una_sola_firma` 2, `fn_ledger_fuente_unica` 48, `bajada_al_piso` 51, `fn_resumen_comparacion` 25; vitest completo
+  206 archivos.
+
+
+### Cierre del paso 3 (2026-09-27, noche): cómo se pega, qué queda para el paso 4 y qué sigue abierto
+
+**Dónde quedó.** El PR #542 llevó a main la versión de la integración (`20260928120300` y la web de entonces). Las
+revisiones 3 a 6 van en el **PR #544** (rama `claude/frescura-3c-lectura`): la web corregida, las pruebas y
+`20260928120310_frescura_lectura_revision3.sql`. `20260928120300` sigue idéntica a la de main (md5 del archivo
+`40bf970f…`); `20260928120310` es `e121f11e…`. Aquí se cierra el ciclo de revisiones. Los siete hallazgos de la revisión
+7 no se corrigieron y quedan abajo, con su caso escrito para rehacerlo.
+
+**Producción hoy** (un `select` del 2026-09-27 por la noche). Los pasos 1 y 2 están pegados: `fn_ledger_puntos`
+`a3d9fb69…`, `fn_bajadas_del_piso` `34a7e0cc…`, `fn_bajadas_del_piso_nucleo` `fcfd2c4b…`. `fn_temporada_efectiva`
+tiene `1cc652ba…`. No existe ninguna función del paso 3.
+
+**Cómo se pega.** Cada migración va sola en el SQL Editor, a cualquier hora: solo trae funciones, `revoke` y `grant`, sin
+políticas, sin `drop trigger` y sin `alter` (ADR-0195). Después de cada una se verifica con
+`select proname, md5(prosrc) from pg_proc where pronamespace = 'retail'::regnamespace and proname in (…)`.
+
+1. `20260928120300_frescura_lectura.sql`. Tiene que dar:
+   - `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`
+   - `fn_frescura_sede` `644e10126796adc1111702290c14f2bb`
+   - `fn_confianza_registro` `9c714f98dd2776eebb505846eb24c33a`
+   - `fn_temporada_efectiva` sin cambio: `1cc652ba0bef3e9783a014b840cb870f`
+2. `20260928120310_frescura_lectura_revision3.sql`. **Nunca se pega solo la primera**: eso deja en producción los errores
+   de la revisión 3. Tiene que dar:
+   - `fn_es_llegada` igual
+   - `fn_es_llegada_a_cayla` (nueva) `7e1ffb6d9853027ec685fef46ec72a4c`
+   - `fn_frescura_sede` `51babffc09da4073691ee251882967c8`
+   - `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`
+   - `fn_temporada_efectiva_nucleo` (nueva) `2bf80eb239248cce88cf8062238f4dfc`
+   - `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448`: el envoltorio, que da las mismas filas.
+
+Lo verifiqué el 2026-09-27 en una base nueva:
+- Con todas las migraciones menos `20260928120310`, la base da los md5 del punto 1.
+- Pegando `20260928120310` encima, en una sola transacción como el SQL Editor, da los del punto 2.
+- Pegándola otra vez no cambia nada.
+
+Después se corre `pnpm datos:generar:produccion` con un volcado nuevo y `pnpm datos:comparar`, y se regeneran los tipos
+de `packages/database`.
+
+**Antes de pegar la segunda, dos preguntas para Felipe:** la 7 (revisión 6) y R7-1 (abajo). Si alguna respuesta cambia
+`fn_frescura_sede`:
+- Mientras el #544 no se fusione, `20260928120310` se edita en su lugar. Cambia su md5 aquí, en la guarda y en T12b.
+- Después de fusionarlo, la corrección va en un archivo nuevo cuya guarda acepte `51babffc…` (la regla de la revisión 4).
+- Si Felipe no responde, se pega como está.
+
+**Las decisiones.** Las seis de las revisiones 3 y 4 están DECIDIDAS («Revisión 5 del paso 3»):
+- **D1 (Felipe):** la temporada cuenta desde la última llegada A CAYLA del modelo+color. La recepción de un traslado no
+  cuenta.
+- **D2 (Felipe):** un pilar de temporada pasada entra a «Por decidir» con «sigue vendiendo». Desde la revisión 6, solo si
+  se sigue vendiendo.
+- **D3 (técnica):** la prenda colgada 100 días sin vender en una categoría que rota en días va a «Por decidir».
+- **D4 y D6 (técnicas):** la prenda callada recibe «revisa sus ventas». Callada es la que no tiene tramo firme, lleva 30
+  días colgada y no vendió nada en esos 30.
+- **D5 (técnica):** el tramo se mide contra la categoría sin la prenda.
+
+Quedan abiertas la 7 y la 8 (revisión 6) y R7-1.
+
+**Lo que queda para el paso 4 (la pantalla)**, además de lo de «Paso 3 construido»:
+- **La frase de que cada prenda se mide sin ella (D5).** Los cortes de la cabecera son de la categoría entera, pero cada
+  prenda se ubica contra el resto de su categoría (`categoriaSinElla`). Sin la frase, una prenda que pesa mucho en su
+  categoría cae en un tramo que la cabecera no explica, y el líder lo lee como un error. Texto para la maqueta: «Cada
+  prenda se compara con el resto de su categoría, sin contarse a sí misma».
+- Cómo se dicen «aún sin referencia» (la categoría sin P50) y el tramo «al menos».
+- Qué se muestra de lo que solo está en el almacén. Nunca estuvo colgado y hoy sale «Nueva» con 0 segundos.
+- La última llegada a CAYLA (`ultima_llegada_cayla`) junto al aviso «Temporada pasada», y el texto de «sigue vendiendo».
+- Los dos bikinis gemelos lado a lado, si la pregunta 8 sigue sin respuesta.
+- Si se agrega `llegada_estimada` para lo que no tiene ninguna llegada: sin ella, esas prendas nunca son «Temporada
+  pasada».
+- Cómo se muestra lo apartado, según R7-1.
+- El módulo `frescura`, el candado de las tres lecturas («ve Frescura y opera la sede»), el menú y la ruta, y la
+  verificación en TRU en escritorio y a 375 px.
+- **R7-2 y R7-3 corregidas antes de publicar.** Son reglas de la web que el líder vería apenas exista la pantalla. No
+  bloquean pegar el SQL.
+
+**Los hallazgos de la revisión 7, abiertos.** Tres revisores (SQL, reglas y pruebas) miraron la revisión 6 y encontraron
+siete hallazgos. Cada revisor confirmó el suyo ejecutándolo. Las reproducciones quedaron en el espacio temporal de la
+sesión, que no se guarda: por eso cada hallazgo lleva su caso escrito.
+
+- **R7-1 (SQL; decide Felipe antes de pegar `20260928120310`): `piso_hoy` cuenta lo apartado para una clienta.**
+  - **El problema.** `apartar` sube `stock.cantidad_apartada` y no baja `cantidad`. El lateral `st` de
+    `fn_frescura_sede` suma `cantidad`, y el jsonb no trae lo apartado, así que la web no puede separarlo.
+  - **El caso.** 4 llegan hace 61 días, se cuelgan hace 60 y se vende 1. Las 3 que quedan se apartan hace 50 días. Sale
+    Crítica, quieta y con «cambiar de lugar», exactamente igual que su gemela sin apartar: `porDecidir` 2 en vez de 1.
+  - **Por qué importa.** Contradice a la herramienta de retiro de este mismo ADR, que mide el piso neto de lo apartado.
+    En producción, TRU tiene 1 unidad apartada en el piso (select del 27-sep), y una separación con abonos dura semanas.
+  - **Recomendación: lo apartado no está colgado para Frescura.**
+    - En SQL: `apartadas_hoy` en el lateral y en el jsonb.
+    - En la web: `quieta` y las sugerencias sobre `piso_hoy − apartadas_hoy`, y si todo está apartado, fuera de «Por
+      decidir».
+    - Pruebas: T2 con una prenda apartada, y en la web la apartada contra su gemela.
+    - **Ganas:** el líder no ve como quieta una prenda que ya tiene dueña.
+    - **Pagas:** un campo más en el contrato; T13 y el archivo de la web se rehacen.
+  - Si Felipe decide que sí cuenta, se escribe con su SE ROMPE SI: «una separación de semanas aparece como Crítica».
+- **R7-2 (regla de la web; la corrección 1 de la revisión 6 la introdujo): el pilar que se agotó y se repuso «dejó de
+  vender».**
+  - **El problema.** `recientesDe` compara las ventas de los últimos 30 días con el reloj TOTAL de la prenda. No mira si
+    la prenda estuvo en el piso en esos 30 días.
+  - **El caso.** Una categoría con vara de 30 días «Sólido» (P50 de 4 días). Llegan 60 por lote hace 100 días y se vende
+    1 por día. El piso quedó en 0 hace 35 días; ayer se colgaron 5 y quedan 15 en el almacén. Sale Crítica, quieta, con
+    «cambiar de lugar» y «trasladar». Con la temporada pasada recibe «cambiar de lugar», «trasladar» y «retirar» en vez
+    de «sigue vendiendo».
+  - **Por qué importa.** Es el camino normal de un éxito, y dura hasta su primera venta después de reponer.
+  - **Arreglo sugerido:** medir «dejó de vender» con los segundos colgada desde la última venta del modelo+color en la
+    sede (`relojNovedad` desde la última venta, o desde el inicio de la lectura si es posterior). El revisor lo probó y
+    pasan las 127 pruebas.
+- **R7-3 (regla de la web): una devolución, un cambio o un ajuste «reposicion» que se revende deja sin rapidez a todo el
+  éxito.**
+  - **El problema.** Esas unidades entran al piso sin lote y llevan la marca 4 (un `registrar_cambio` real da el evento
+    `…:1:4`). Si se revenden después de que la prenda colgó lo conocido, `ventasQueEsconden` deja sin dato la rapidez de
+    la lectura entera. Es lo que describe mal el «SE ROMPE SI» de la corrección 2.
+  - **El caso.** Un bikini de invierno (estación terminada el 22-sep): llegan 13 por lote hace 10 días, se cuelgan 10 y se
+    venden 8 en 16 horas. A las 20 horas una clienta devuelve uno. Se venden 3 más, y la última es la devuelta. A las 48
+    horas bajan los 3 del almacén. Sale sin rapidez, con «revisa sus ventas», «cambiar de lugar» y «retirar». Su gemelo
+    sin la devolución sale con rapidez 261 y «sigue vendiendo».
+  - **En producción,** según el revisor, TRU ya tiene 6 ajustes «reposicion» directo al piso (12 unidades).
+  - **Arreglo sugerido:** calcular la rapidez dos veces, sin contar esas ventas y contándolas como vendidas. Si las dos
+    dan el mismo veredicto (pilar o lenta), vale ese; si no, queda sin dato. El revisor lo probó: de las pruebas del repo
+    cambia una, la reposición «ambigua» de la carga, que pasa de sin dato a lenta. La alternativa es la regla exacta que
+    la corrección 2 descartó.
+- **R7-4 a R7-7: pruebas que faltan.** No cambian código: el comportamiento de hoy es el que documenta este ADR. Son
+  cambios a propósito que sobreviven las 127 pruebas de la web:
+  - **R7-4, `ventasQueEsconden` con varias tallas.** Sobreviven tres cambios: tomar la MAYOR `primeraConEdad`, mirar solo
+    la primera talla, y medir sobre la ventana de la vara (`enLaVara` en lugar de `suyas`). Dos de ellos terminan en
+    «Trasladar». Casos:
+    - RZ-3: la M conocida el día 40, la S de la carga vendiendo los días 70 a 85 y la L el día 100. Rapidez nula, sin
+      «trasladar».
+    - RZ-4: E-Y08 con la talla de la carga primero en la lista.
+    - RZ-5: una reposición dentro de la ventana de la vara, con 2 vendidas.
+  - **R7-5, el lector de la lectura.** Si convierte en `false` un `en_estacion_ahora` nulo, nada lo nota. Es el caso del
+    clásico: `fn_ocurrencia_temporada` no da fila y el valor llega nulo. Con ese cambio, todo clásico recibe «guardar
+    hasta su estación». Falta, en `frescura-contrato.test.ts`, exigir para el clásico `fueraDeSuEstacion: false` y
+    `sugerencias: []`, y `enEstacionAhora: null` en la lectura.
+  - **R7-6, el modelo+color en `analizarSede`.** Sobreviven agrupar sin el color y tomar el almacén de la primera talla.
+    Casos:
+    - RZ-1: dos colores del mismo producto, uno viejo y quieto y el otro «Nueva». Tienen que salir dos prendas.
+    - RZ-2: el almacén solo en la segunda talla. Tiene que dar `almacenHoy` 3 y «trasladar».
+  - **R7-7, la vara.** Sobreviven tres cambios:
+    - Contar como venta toda salida con edad conocida. Un traslado o una merma acortarían la curva. Caso RZ-6.
+    - `alcanza` sin exigir el P90. RZ-7: 20 vendidas con P75 y sin P90 en 30 días; se elige 60.
+    - El P90 exacto en `restar`, el «umbral de P90 menos EPS» que la revisión 6 ya listó vivo. RZ-8: el resto con 9 de
+      10 vendidas da un P90 de 9 días.
+
+**Cifras del cierre** (2026-09-27; cada suite SQL en una base nueva con todas las migraciones).
+- SQL: `frescura_lectura` 184, `frescura_bajadas` 166, `temporadas` 25, `roles_por_modulo` 70, `roles_cobertura_modulos`
+  31, `una_sola_firma` 2, `fn_ledger_fuente_unica` 48, `bajada_al_piso` 51, `fn_resumen_comparacion` 25. Todas en verde.
+- Web: vitest completo, 206 archivos y 152.162 pruebas, todas en verde (147.543 son de `menu.test.ts`, de main, que
+  este PR no toca); `frescura-reglas.test.ts` 109 y `frescura-contrato.test.ts` 18; `tsc` limpio.
+- `scripts/migraciones/versiones.mjs`: 351 archivos, ninguna versión repetida. `scripts/adr/numeros.mjs`: 236 ADR, ningún
+  número repetido.
+- `origin/main` no avanzó desde el último merge (`7440eddf`): no hubo nada que traer.
