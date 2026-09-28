@@ -10,17 +10,25 @@ import { Boton, CampoSelect, CampoTexto, Segmentado } from "@/components/ui/camp
 import {
   MOTIVOS_AJUSTE,
   NOTA_REPOSICION_CERRADA,
+  apartadoEn,
   argumentosDeAjuste,
   armarVariantesAjuste,
   cargaInicialAlPiso,
   leerResultadoAjuste,
+  lugarDeAjuste,
   motivosAjusteDisponibles,
   repartirLineasAjuste,
   reposicionCerrada,
+  soloDeLaPrenda,
+  stockEn,
   TEXTO_AJUSTE_INCIERTO,
+  textoApartadoTalla,
+  textoBajoApartado,
   textoExitoAjuste,
   textoPrendaNueva,
+  textoTotalAjuste,
   type MotivoAjuste,
+  type PrendaAjuste,
   type VarianteAjuste,
 } from "@/lib/ajuste-reglas";
 import { descargarCsv } from "@/lib/exportar-csv";
@@ -46,12 +54,16 @@ const TOPE_ESPERA_MS = 20_000;
 
 export function AjustarInventarioModal({
   productoId,
+  prenda,
   ubicacionId,
   sububicaciones,
   puedeBajarAlPiso,
   onClose,
 }: {
   productoId: string;
+  /** La prenda (modelo + color) de la fila que lo abre: el modal muestra solo ese color. Sin ella, el modelo entero
+   *  (Productos). `soloDeLaPrenda`. */
+  prenda?: PrendaAjuste;
   ubicacionId: string;
   sububicaciones: Sububicacion[];
   /** ¿El rol de la cuenta ve «Bajada al piso»? Lo decide la página, en el servidor (`veModulo`), como en Nuevo producto. */
@@ -62,6 +74,10 @@ export function AjustarInventarioModal({
   const sububicacionPiso = sububicaciones.find((s) => s.tipo === "piso_venta") ?? null;
   const sububicacionAlmacen = sububicaciones.find((s) => s.tipo === "almacen_tienda") ?? null;
   const separaPisoAlmacen = !!sububicacionPiso && !!sububicacionAlmacen;
+  // La prenda llega como objeto nuevo en cada render de quien abre el modal: la carga depende de sus valores, no del objeto
+  // (si no, se volvería a pedir a la base en cada render).
+  const hayPrenda = prenda !== undefined;
+  const colorPrenda = prenda?.color ?? null;
 
   const [cargando, setCargando] = useState(true);
   const [referencia, setReferencia] = useState("");
@@ -100,7 +116,7 @@ export function AjustarInventarioModal({
          talla:tallas ( valor ),
          color:colores ( nombre ),
          producto:productos ( referencia ),
-         stock ( cantidad, sububicacion_id )`
+         stock ( cantidad, cantidad_apartada, sububicacion_id )`
       )
       .eq("producto_id", productoId)
       .eq("stock.ubicacion_id", ubicacionId)
@@ -114,34 +130,32 @@ export function AjustarInventarioModal({
         }
         const filas = data ?? [];
         setReferencia(filas[0]?.producto?.referencia ?? "");
-        setVariantes(armarVariantesAjuste(filas, sububicacionPiso?.id, sububicacionAlmacen?.id));
+        const deLaPrenda = soloDeLaPrenda(filas, hayPrenda ? { color: colorPrenda } : undefined);
+        setVariantes(armarVariantesAjuste(deLaPrenda, sububicacionPiso?.id, sububicacionAlmacen?.id));
         setCargando(false);
       });
     return () => {
       vigente = false;
     };
-  }, [productoId, ubicacionId, sububicacionPiso?.id, sububicacionAlmacen?.id]);
+  }, [productoId, hayPrenda, colorPrenda, ubicacionId, sububicacionPiso?.id, sububicacionAlmacen?.id]);
 
-  function stockActual(v: VarianteAjuste): number {
-    if (!separaPisoAlmacen) return v.stockSinDividir;
-    return ubicado === "piso" ? v.stockPiso : v.stockAlmacen;
-  }
+  const lugar = lugarDeAjuste(ubicado, separaPisoAlmacen);
 
-  // Filas con un ajuste entero distinto de cero, y las que dejarían el stock
-  // negativo — mismo cálculo que hace `fn_aplicar_movimiento`, adelantado acá
-  // para no obligar a un viaje a la base a enterarse.
+  // Filas con un ajuste entero distinto de cero, y las que dejarían el stock negativo o por debajo de lo apartado —
+  // los mismos dos candados de `fn_aplicar_movimiento`, adelantados acá para no obligar a un viaje a la base a enterarse.
   const lineas = variantes
     .map((v) => {
       const texto = (deltas[v.varianteId] ?? "").trim();
       if (texto === "") return null;
       const delta = Number(texto);
       if (!Number.isInteger(delta) || delta === 0) return null;
-      const actual = stockActual(v);
-      return { variante: v, delta, actual, resultado: actual + delta };
+      const actual = stockEn(v, lugar);
+      return { variante: v, delta, actual, resultado: actual + delta, apartado: apartadoEn(v, lugar) };
     })
     .filter((l): l is NonNullable<typeof l> => l !== null);
 
   const negativas = lineas.filter((l) => l.resultado < 0);
+  const bajoApartado = lineas.filter((l) => l.resultado >= 0 && l.resultado < l.apartado);
   // Lo que se ajusta (prendas con historia en esta tienda) y lo que entra como stock inicial (prendas nuevas en ella).
   const { ajustes, cargaInicial } = repartirLineasAjuste(lineas);
 
@@ -201,6 +215,10 @@ export function AjustarInventarioModal({
       );
       return;
     }
+    if (!congelado && bajoApartado.length > 0) {
+      setError(textoBajoApartado(bajoApartado[0]));
+      return;
+    }
 
     enVuelo.current = true;
     setEnviando(true);
@@ -252,13 +270,24 @@ export function AjustarInventarioModal({
   }
 
   return (
-    <Modal titulo="Ajustar inventario" subtitulo={referencia} onClose={onClose} ancho="max-w-md" bloqueado={enviando}>
+    <Modal
+      titulo="Ajustar inventario"
+      // El color va en el título: es lo que distingue esta prenda de las otras del mismo modelo en la lista de Existencias.
+      subtitulo={[referencia, colorPrenda].filter(Boolean).join(" · ")}
+      onClose={onClose}
+      ancho="max-w-md"
+      bloqueado={enviando}
+    >
       {(cerrar) => (
         <form onSubmit={onSubmit} className="mt-2 space-y-4">
           {cargando ? (
             <p className="text-sm text-tinta/65">Cargando variantes…</p>
           ) : variantes.length === 0 ? (
-            <p className="text-sm text-tinta/65">Este producto no tiene variantes.</p>
+            <p className="text-sm text-tinta/65">
+              {hayPrenda
+                ? "No encontramos las tallas de esta prenda. Cierra y vuelve a abrirla desde la lista."
+                : "Este producto no tiene variantes."}
+            </p>
           ) : (
             <>
               {separaPisoAlmacen && (
@@ -274,8 +303,12 @@ export function AjustarInventarioModal({
               )}
 
               <div className="space-y-2">
+                {/* El total del lugar, con lo apartado aparte: lo libre es la cifra de la fila de Existencias. */}
+                <p className="text-xs tabular-nums text-tinta/65" aria-live="polite">
+                  {textoTotalAjuste(variantes, lugar)}
+                </p>
                 {variantes.map((v) => {
-                  const actual = stockActual(v);
+                  const actual = stockEn(v, lugar);
                   const texto = deltas[v.varianteId] ?? "";
                   const delta = Number(texto);
                   const conAjuste = texto.trim() !== "" && Number.isInteger(delta) && delta !== 0;
@@ -288,6 +321,7 @@ export function AjustarInventarioModal({
                         <p className="font-mono text-[11px] text-tinta/55">
                           {v.sku} · stock {actual}
                           {conAjuste ? ` → ${actual + delta}` : ""}
+                          {textoApartadoTalla(apartadoEn(v, lugar))}
                         </p>
                         {v.sinHistoria && <p className="text-[11px] text-taupe">{textoPrendaNueva(ubicado, separaPisoAlmacen, puedeBajarAlPiso)}</p>}
                       </div>

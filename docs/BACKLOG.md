@@ -28,6 +28,21 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🧮 «Ajustar inventario» decía 12 afuera y 78 adentro (2026-09-28) — solo web, sin migración; rama `claude/informacion-contradictoria-fb2275`
+Captura de Felipe: la fila «Test de Produto 2» (Celeste) de Existencias decía 12 en el piso y el modal mostraba los
+cuatro colores (78 en producción). La fila es una prenda (modelo + color) y suma lo libre; el modal cargaba el modelo
+entero y contaba lo físico.
+- [x] Desde Existencias y desde «Corregir con un ajuste» (Movimientos) el modal muestra solo ese color, con el color en
+      el título (`soloDeLaPrenda`, prop `prenda`). Productos sigue abriendo el modelo entero.
+- [x] Total del lugar arriba de las tallas, con lo apartado aparte («9 en el piso · 1 apartada · 8 libres»: el 8 es la
+      cifra de la fila); cada talla dice su apartada; el ajuste que deja menos que lo apartado se frena en pantalla.
+- [ ] **Abierto (lo decide Felipe):** el modal pide la DIFERENCIA («+4», «−2»), no lo contado, y nada en la fila lo dice
+      antes de escribir: quien contó 4 prendas y escribe 4 deja 8. El «→ 8» aparece después, en letra de 11 px.
+- Cómo verificas: abre Existencias en TRU, fila «Test de Produto 2» Celeste ▸ Ajustar: 3 tallas (S 4 · M 5 · L 3) y
+  «12 en el piso». La fila Gris (8, «Apartado 1») ▸ Ajustar: «9 en el piso · 1 apartada · 8 libres»; escribe −2 en
+  M/Gris con un motivo y Confirmar: la pantalla lo frena sin ir a la base. `pnpm --filter web exec vitest run
+  lib/ajuste-reglas.test.ts`.
+
 ## 🧾 SQL pegado en producción: casilla, check, candado de `drop trigger` y deriva diaria (2026-09-28, ADR-0251) — migración `20260928210000` **POR PEGAR**; rama `claude/proceso-sql-pegado`
 
 - [ ] **Felipe pega `20260928210000_huellas_catalogo_con_llave.sql`** sola en el SQL Editor (tabla nueva sin uso, dos

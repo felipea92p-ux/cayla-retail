@@ -12,11 +12,106 @@ import {
   reposicionCerrada,
   repartirLineasAjuste,
   textoPrendaNueva,
+  apartadoEn,
+  lugarDeAjuste,
+  soloDeLaPrenda,
+  stockEn,
+  textoApartadoTalla,
+  textoBajoApartado,
+  textoTotalAjuste,
   type FilaAjuste,
 } from "./ajuste-reglas";
 
 const PISO = "sub-piso";
 const ALMACEN = "sub-almacen";
+
+describe("el modal abierto desde una prenda muestra solo su color (Felipe, 2026-09-28)", () => {
+  // «Test de Produto 2» en TRU: la fila de Existencias (Celeste) decía 12 en el piso y el modal traía los cuatro colores, 78.
+  const colorido = (id: string, talla: string, color: string | null, piso: number): FilaAjuste => ({
+    id,
+    sku: `SKU-${id}`,
+    talla: { valor: talla },
+    color: color === null ? null : { nombre: color },
+    stock: [{ cantidad: piso, cantidad_apartada: 0, sububicacion_id: PISO }],
+  });
+  const modelo = [
+    colorido("1", "S", "Celeste", 4),
+    colorido("2", "S", "Esmeralda", 5),
+    colorido("3", "M", "Celeste", 5),
+    colorido("4", "M", "Esmeralda", 20),
+    colorido("5", "L", "Celeste", 3),
+    colorido("6", "U", null, 1),
+  ];
+
+  it("con prenda, solo las tallas de ese color — y su total es el de la fila", () => {
+    const celeste = armarVariantesAjuste(soloDeLaPrenda(modelo, { color: "Celeste" }), PISO, ALMACEN);
+    expect(celeste.map((v) => v.varianteId)).toEqual(["1", "3", "5"]);
+    expect(textoTotalAjuste(celeste, "piso")).toBe("12 en el piso");
+  });
+
+  it("sin prenda (Productos), el modelo entero", () => {
+    expect(soloDeLaPrenda(modelo, undefined)).toHaveLength(6);
+  });
+
+  it("una prenda sin color es la de las variantes sin color, no «todas»", () => {
+    expect(soloDeLaPrenda(modelo, { color: null }).map((f) => f.id)).toEqual(["6"]);
+  });
+
+  it("incluye la talla del color que nunca estuvo en la tienda: se carga ahí como stock inicial (ADR-0235)", () => {
+    const nueva: FilaAjuste = { ...colorido("7", "XL", "Celeste", 0), stock: [] };
+    const [xl] = armarVariantesAjuste(soloDeLaPrenda([...modelo, nueva], { color: "Celeste" }), PISO, ALMACEN).filter((v) => v.talla === "XL");
+    expect(xl.sinHistoria).toBe(true);
+  });
+});
+
+describe("lo apartado: la fila de Existencias muestra lo libre, el modal lo físico", () => {
+  const gris = armarVariantesAjuste(
+    [
+      fila("1", "S", { stock: [{ cantidad: 5, cantidad_apartada: 0, sububicacion_id: PISO }] }),
+      fila("2", "M", {
+        stock: [
+          { cantidad: 2, cantidad_apartada: 1, sububicacion_id: PISO },
+          { cantidad: 3, cantidad_apartada: 2, sububicacion_id: ALMACEN },
+        ],
+      }),
+      fila("3", "L", { stock: [{ cantidad: 2, cantidad_apartada: 0, sububicacion_id: PISO }] }),
+    ],
+    PISO,
+    ALMACEN
+  );
+
+  it("parte lo apartado por lugar, igual que el stock", () => {
+    const m = gris[1];
+    expect([apartadoEn(m, "piso"), apartadoEn(m, "almacen"), apartadoEn(m, "sede")]).toEqual([1, 2, 3]);
+    expect([stockEn(m, "piso"), stockEn(m, "almacen"), stockEn(m, "sede")]).toEqual([2, 3, 5]);
+  });
+
+  it("el total dice lo físico y lo libre: «8» es la cifra de la fila, «9» la de las tallas", () => {
+    expect(textoTotalAjuste(gris, "piso")).toBe("9 en el piso · 1 apartada · 8 libres");
+    expect(textoTotalAjuste(gris, "almacen")).toBe("3 en el almacén · 2 apartadas · 1 libre");
+  });
+
+  it("cada talla lleva lo suyo al lado del stock, y nada si no tiene", () => {
+    expect(textoApartadoTalla(1)).toBe(" · 1 apartada");
+    expect(textoApartadoTalla(0)).toBe("");
+  });
+
+  it("el ajuste que deja menos que lo apartado se frena con el código de la etiqueta", () => {
+    expect(textoBajoApartado({ variante: { sku: "POL-0005-GRI-M" }, resultado: 0, apartado: 1 })).toBe(
+      "POL-0005-GRI-M: quedarían 0 y hay 1 apartada para clientas. Libera o resuelve esos apartados primero."
+    );
+  });
+
+  it("sin la columna de apartados (filas viejas de las pruebas), cuenta 0", () => {
+    const [v] = armarVariantesAjuste([fila("1", "M", { stock: [{ cantidad: 4, sububicacion_id: PISO }] })], PISO, ALMACEN);
+    expect(v.apartadoPiso).toBe(0);
+  });
+
+  it("donde no se separa piso y almacén, el lugar es la sede entera", () => {
+    expect(lugarDeAjuste("piso", false)).toBe("sede");
+    expect(lugarDeAjuste("almacen", true)).toBe("almacen");
+  });
+});
 
 function fila(id: string, talla: string | null, extra: Partial<FilaAjuste> = {}): FilaAjuste {
   return {
