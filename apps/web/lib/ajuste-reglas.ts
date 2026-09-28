@@ -25,7 +25,8 @@ export type FilaAjuste = {
   codigo?: string | null;
   talla: { valor: string } | null;
   color: { nombre: string | null } | null;
-  stock: { cantidad: number; sububicacion_id: string | null }[] | null;
+  /** `cantidad_apartada` es opcional solo para las pruebas: el modal siempre la pide. */
+  stock: { cantidad: number; cantidad_apartada?: number; sububicacion_id: string | null }[] | null;
 };
 
 export type VarianteAjuste = {
@@ -37,6 +38,11 @@ export type VarianteAjuste = {
   stockAlmacen: number;
   /** Suma de todas las sububicaciones: es el stock que se ve en una sede que no separa piso de almacén. */
   stockSinDividir: number;
+  /** Lo apartado para clientas en cada lugar (ADR-0141). Sigue en la tienda y cuenta en el stock, pero Existencias muestra
+   *  el stock SIN ello (lo libre): el modal lo muestra para que sus cifras calcen con la fila de la que se abrió. */
+  apartadoPiso: number;
+  apartadoAlmacen: number;
+  apartadoSinDividir: number;
   /** Nunca tuvo un movimiento en esta sede (ni una fila de stock): su primera cantidad es stock inicial, no un ajuste
    *  (ADR-0235; la base lo exige con `ajuste_sin_historia`). Toda fila de `stock` nace de un movimiento, así que «sin
    *  filas de stock» es «sin historia». */
@@ -58,20 +64,173 @@ export function armarVariantesAjuste(
   return filas
     .map((v): VarianteAjuste => {
       const porSub = v.stock ?? [];
+      const piso = porSub.find((s) => s.sububicacion_id === sububicacionPisoId);
+      const almacen = porSub.find((s) => s.sububicacion_id === sububicacionAlmacenId);
       return {
         varianteId: v.id,
         sku: codigoDeEtiqueta(v),
         talla: v.talla?.valor ?? null,
         color: v.color?.nombre ?? null,
-        stockPiso: porSub.find((s) => s.sububicacion_id === sububicacionPisoId)?.cantidad ?? 0,
-        stockAlmacen: porSub.find((s) => s.sububicacion_id === sububicacionAlmacenId)?.cantidad ?? 0,
+        stockPiso: piso?.cantidad ?? 0,
+        stockAlmacen: almacen?.cantidad ?? 0,
         stockSinDividir: porSub.reduce((acc, s) => acc + s.cantidad, 0),
+        apartadoPiso: piso?.cantidad_apartada ?? 0,
+        apartadoAlmacen: almacen?.cantidad_apartada ?? 0,
+        apartadoSinDividir: porSub.reduce((acc, s) => acc + (s.cantidad_apartada ?? 0), 0),
         sinHistoria: porSub.length === 0,
       };
     })
     // `sort` es estable: dentro de una misma talla queda el orden en que llegaron (por SKU,
     // lo pide el modal a la base), así que la lista no cambia de un refresco al siguiente.
     .sort((a, b) => compararTallaOpcional(a.talla, b.talla));
+}
+
+/** La prenda desde la que se abre el modal. En Existencias y Movimientos cada fila es UNA prenda: un modelo en un color
+ *  (`clavePercha`). Si el modal cargaba el modelo entero, la fila decía «12 en el piso» y adentro aparecían los cuatro
+ *  colores con 78 (Felipe, 2026-09-28). Productos lo abre sin prenda: su fila es el modelo con todos sus colores. */
+export type PrendaAjuste = { color: string | null };
+
+/** Solo las variantes del color de la prenda; sin prenda, todas. Compara por NOMBRE porque es lo que trae la fila de
+ *  Existencias, y en la base es único (`colores_clave_unica`). Deja pasar las tallas del color que nunca estuvieron en la
+ *  tienda: se cargan aquí como stock inicial (ADR-0235), por eso no se filtra por las tallas que la fila ya conoce. */
+export function soloDeLaPrenda<F extends FilaAjuste>(filas: readonly F[], prenda: PrendaAjuste | undefined): F[] {
+  if (!prenda) return [...filas];
+  return filas.filter((f) => (f.color?.nombre ?? null) === prenda.color);
+}
+
+/** Dónde se ajusta: el piso o el almacén de una tienda que los separa, o la sede entera donde no (Taller). */
+export type LugarAjuste = "piso" | "almacen" | "sede";
+
+export function lugarDeAjuste(ubicado: "piso" | "almacen", separaPisoAlmacen: boolean): LugarAjuste {
+  return separaPisoAlmacen ? ubicado : "sede";
+}
+
+export function stockEn(v: VarianteAjuste, lugar: LugarAjuste): number {
+  return lugar === "piso" ? v.stockPiso : lugar === "almacen" ? v.stockAlmacen : v.stockSinDividir;
+}
+
+export function apartadoEn(v: VarianteAjuste, lugar: LugarAjuste): number {
+  return lugar === "piso" ? v.apartadoPiso : lugar === "almacen" ? v.apartadoAlmacen : v.apartadoSinDividir;
+}
+
+function apartadas(n: number): string {
+  return `${n} ${n === 1 ? "apartada" : "apartadas"}`;
+}
+
+/** La línea sobre las tallas: cuánto hay en el lugar y, si hay apartados, cuánto queda libre. Lo libre es la cifra de la
+ *  fila de Existencias (`agruparPorPrenda` suma `pisoDisponible`): sin esta línea, «8» afuera y «9» adentro parecen dos
+ *  inventarios distintos cuando la diferencia es una prenda apartada para una clienta. */
+export function textoTotalAjuste(variantes: readonly VarianteAjuste[], lugar: LugarAjuste): string {
+  const total = variantes.reduce((acc, v) => acc + stockEn(v, lugar), 0);
+  const apartado = variantes.reduce((acc, v) => acc + apartadoEn(v, lugar), 0);
+  const donde = lugar === "piso" ? "en el piso" : lugar === "almacen" ? "en el almacén" : "en la sede";
+  if (apartado === 0) return `${total} ${donde}`;
+  const libre = total - apartado;
+  return `${total} ${donde} · ${apartadas(apartado)} · ${libre} ${libre === 1 ? "libre" : "libres"}`;
+}
+
+/** Una talla con un ajuste escrito: cuánto hay en el lugar, cuánto cambia, cómo queda y cuánto hay apartado. */
+export type LineaAjuste = {
+  variante: VarianteAjuste;
+  delta: number;
+  actual: number;
+  resultado: number;
+  apartado: number;
+};
+
+/** Qué pregunta cada talla (Felipe, 2026-09-28). Con «Conteo físico», CUÁNTAS HAY: quien contó 4 escribe 4 y el modal
+ *  calcula la diferencia; antes el mismo 4 SUMABA 4 y el stock quedaba en el doble. Con los demás motivos (y sin motivo
+ *  todavía), cuánto se suma o se resta. La base guarda siempre una diferencia, calculada contra el stock que la pantalla
+ *  muestra: la misma regla que Conteo (`contado − foto`, aplicada sobre el stock del momento; ADR-0189). */
+export type ModoAjuste = "diferencia" | "contado";
+
+export function modoDeAjuste(motivo: MotivoAjuste | ""): ModoAjuste {
+  return motivo === "conteo_fisico" ? "contado" : "diferencia";
+}
+
+/** Las tallas con un ajuste, en el orden del modal. Lo vacío y lo que no es entero no son un ajuste, y tampoco lo que no
+ *  cambia nada (sumar 0, o contar lo mismo que dice el sistema): no viajan a la base. Al contar, vacío es «no la conté»,
+ *  no «conté 0». */
+export function lineasDeAjuste(
+  variantes: readonly VarianteAjuste[],
+  cantidades: Readonly<Record<string, string>>,
+  lugar: LugarAjuste,
+  modo: ModoAjuste
+): LineaAjuste[] {
+  return variantes.flatMap((v) => {
+    const texto = (cantidades[v.varianteId] ?? "").trim();
+    if (texto === "") return [];
+    const n = Number(texto);
+    if (!Number.isInteger(n)) return [];
+    const actual = stockEn(v, lugar);
+    const delta = modo === "contado" ? n - actual : n;
+    if (delta === 0) return [];
+    return [{ variante: v, delta, actual, resultado: actual + delta, apartado: apartadoEn(v, lugar) }];
+  });
+}
+
+/** Al cambiar de motivo, lo escrito cambia de forma pero no de resultado: «+2» sobre 4 pasa a «6» contadas, y «3»
+ *  contadas sobre 4 pasa a «−1». Así cambiar el motivo nunca cambia en silencio lo que se va a guardar (sin esto, un «+2»
+ *  escrito antes de elegir «Conteo físico» pasaría a leerse «conté 2» y restaría 2). Lo que no era un ajuste queda vacío. */
+export function pasarCantidades(
+  variantes: readonly VarianteAjuste[],
+  cantidades: Readonly<Record<string, string>>,
+  lugar: LugarAjuste,
+  de: ModoAjuste,
+  a: ModoAjuste
+): Record<string, string> {
+  if (de === a) return { ...cantidades };
+  return Object.fromEntries(
+    lineasDeAjuste(variantes, cantidades, lugar, de).map((l) => [l.variante.varianteId, String(a === "contado" ? l.resultado : l.delta)])
+  );
+}
+
+/** El rótulo sobre las cantidades. Al contar nombra el lugar: el modal arranca en el almacén, y contar el piso con el
+ *  almacén elegido SUMARÍA al almacén lo que está colgado. */
+export function etiquetaCantidad(modo: ModoAjuste, lugar: LugarAjuste): string {
+  if (modo === "diferencia") return "Suma o resta";
+  return lugar === "piso" ? "Contaste en el piso" : lugar === "almacen" ? "Contaste en el almacén" : "Contaste";
+}
+
+function conSigno(n: number): string {
+  return n > 0 ? `+${n}` : `−${-n}`;
+}
+
+/** Cómo queda la talla, al lado de su stock: «→ 6». Al contar, también la diferencia, que es lo que queda en Movimientos
+ *  («→ 3 (−1)»). */
+export function textoCambioTalla(l: LineaAjuste | undefined, modo: ModoAjuste): string {
+  if (!l) return "";
+  return modo === "contado" ? ` → ${l.resultado} (${conSigno(l.delta)})` : ` → ${l.resultado}`;
+}
+
+/** Las tallas que quedarían en negativo: `fn_aplicar_movimiento` las rechaza; el modal lo dice antes, con los números de
+ *  la primera. */
+export function textoNegativas(negativas: readonly LineaAjuste[], modo: ModoAjuste): string {
+  const codigos = negativas.map((l) => l.variante.sku).join(", ");
+  if (modo === "contado") return `${codigos}: lo contado no puede ser negativo.`;
+  const [primera] = negativas;
+  return `${codigos}: el ajuste dejaría el stock en negativo — hay ${primera.actual} y se pide ${primera.delta}.`;
+}
+
+/** Lo apartado de una talla, al lado de su stock («stock 2 · 1 apartada»); vacío si no tiene. Al contar, pide contarlas:
+ *  la prenda apartada sigue en la tienda y en el stock (ADR-0141: el conteo lee `cantidad`, no lo libre). */
+export function textoApartadoTalla(apartado: number, modo: ModoAjuste): string {
+  if (apartado === 0) return "";
+  if (modo === "contado") return ` · ${apartadas(apartado)} (${apartado === 1 ? "cuéntala" : "cuéntalas"})`;
+  return ` · ${apartadas(apartado)}`;
+}
+
+/** Un ajuste no puede dejar menos prendas que las apartadas: `fn_aplicar_movimiento` lo rechaza. El modal lo dice antes, con
+ *  el código de la etiqueta (el error de la base usa el `sku`, que casi siempre es NULL, ADR-0058). Al contar, lo más
+ *  probable es que la apartada esté guardada aparte y no se contó: lo dice antes de mandar a liberar nada. */
+export function textoBajoApartado(
+  l: { variante: Pick<VarianteAjuste, "sku">; resultado: number; apartado: number },
+  modo: ModoAjuste
+): string {
+  if (modo === "contado") {
+    return `${l.variante.sku}: contaste ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Las apartadas siguen en la tienda: cuéntalas también; si de verdad falta, libera ese apartado primero.`;
+  }
+  return `${l.variante.sku}: quedarían ${l.resultado} y hay ${apartadas(l.apartado)} para clientas. Libera o resuelve esos apartados primero.`;
 }
 
 // Motivos del ajuste. «Reposición» no se ofrece en el PISO de una tienda que separa piso y almacén: lo que sube del
