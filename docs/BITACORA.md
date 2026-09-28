@@ -3,6 +3,11 @@
 > 3 líneas por cierre de sesión/paso: fecha, qué se cerró, qué aprendió Felipe.
 > Se acumula, no se reescribe — es historia, no un resumen que se actualiza.
 
+## 2026-09-28 (Categorías: buscador en la lista)
+Qué hice: Productos ▸ Categorías no tenía cómo buscar; ahora tiene el mismo campo que Marcas y Tallas (nombre o prefijo, sin tildes ni mayúsculas, con «N de M categorías» y «Quitar búsqueda» si no hay nada). Regla pura en `lib/categorias-reglas.ts` con su prueba.
+Por qué así: las subcategorías no tienen tarjeta propia (viven dentro de la de su padre), así que escribir «largos» muestra la tarjeta de Vestidos con la línea «Sub: Vestidos largos»; si no, la búsqueda no encontraría nada aunque la categoría exista. Buscando, se ocultan las familias sin resultados.
+Felipe se lleva: una hija desactivada no hace aparecer a su padre activo (se buscan por separado). Sin migración.
+
 ## 2026-09-28 (Productos ▸ Eliminar con su historia de stock, solo Admin — ADR-0252)
 Qué hice: un Admin puede eliminar un producto cuya única historia es de stock (carga, ajustes, bajadas, conteos), con respaldo de cada fila, rastro y línea en Actividad; ventas, compras, traslados y separaciones siguen sin borrarse desde la web. La ventana dice cuánto se va y quién lo cargó. Migración `20260928230000` sin pegar.
 Por qué así: de 33 productos, 22 solo tenían la carga inicial y ajustes, y el botón de ADR-0218 no los alcanzaba; la línea «¿hay una clienta, un proveedor, otra sede o dinero del otro lado?» deja al Admin limpiar pruebas sin poder borrar una venta cobrada. El candado del historial no aprendió excepciones: solo el dueño de la tabla lo apaga, dentro de su transacción, como la purga.
