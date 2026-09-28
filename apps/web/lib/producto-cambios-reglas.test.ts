@@ -44,9 +44,9 @@ const ficha = (): FichaEditable => ({
     { id: "f2", url: "u2", esPrincipal: false, colorCodigo: "BEI" },
   ],
   variantes: [
-    { id: "v1", nombre: "Beige XS", activo: false, precio: "90", costo: "60", etiquetaIds: ["e1", "e2"] },
-    { id: "v2", nombre: "Gris XS", activo: true, precio: "90", costo: "60", etiquetaIds: [] },
-    { id: "v3", nombre: "Beige S", activo: true, precio: "90.5", costo: "", etiquetaIds: [] },
+    { id: "v1", nombre: "Beige XS", activo: false, precio: "90", costo: "60", etiquetaIds: ["e1", "e2"], colorCodigo: "BEI", tallaId: "xs" },
+    { id: "v2", nombre: "Gris XS", activo: true, precio: "90", costo: "60", etiquetaIds: [], colorCodigo: "GRI", tallaId: "xs" },
+    { id: "v3", nombre: "Beige S", activo: true, precio: "90.5", costo: "", etiquetaIds: [], colorCodigo: "BEI", tallaId: "s" },
   ],
 });
 
@@ -118,7 +118,9 @@ describe("resumenDeCambios — variantes", () => {
   });
 
   it("una fila nueva es UN cambio, con lo que trae escrito; quitarla lo deja en cero", () => {
-    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "50", etiquetaIds: [] }));
+    const conFila = cambiar((f) =>
+      f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "50", etiquetaIds: [], colorCodigo: "ROJ", tallaId: "m" })
+    );
     const r = resumenDeCambios(ficha(), conFila, nombres);
     expect(r.cambios).toEqual([{ tipo: "nueva", indice: 3, nombre: "Rojo M", precio: "80" }]);
     expect(r.frases).toEqual(["1 variante se agrega"]);
@@ -128,6 +130,52 @@ describe("resumenDeCambios — variantes", () => {
     expect(resumenDeCambios(ficha(), conFila, nombres).total).toBe(1);
     conFila.variantes.pop();
     expect(resumenDeCambios(ficha(), conFila, nombres).total).toBe(0);
+  });
+
+  it("corregir color o talla de una variante (ADR-0258) es un cambio, con el nombre de antes y el de ahora", () => {
+    const r = resumen((f) => {
+      f.variantes[0].colorCodigo = "GRI";
+      f.variantes[0].nombre = "Gris XS"; // en la pantalla lo recalcula nombreDeVariante(); acá se imita a mano.
+    });
+    expect(r.cambios).toEqual([{ tipo: "identidad", indice: 0, nombre: "Gris XS", antes: "Beige XS", despues: "Gris XS" }]);
+    expect(r.frases).toEqual(["1 variante corrige color o talla"]);
+    expect(r.frasesPasado).toEqual(["1 variante con color o talla corregidos"]);
+  });
+
+  it("corregir solo la talla también cuenta, y cambiar los dos sigue siendo UN cambio de identidad", () => {
+    const soloTalla = resumen((f) => {
+      f.variantes[2].tallaId = "m";
+      f.variantes[2].nombre = "Beige M";
+    });
+    expect(soloTalla.cambios).toEqual([{ tipo: "identidad", indice: 2, nombre: "Beige M", antes: "Beige S", despues: "Beige M" }]);
+
+    const ambos = resumen((f) => {
+      f.variantes[2].colorCodigo = "GRI";
+      f.variantes[2].tallaId = "m";
+      f.variantes[2].nombre = "Gris M";
+    });
+    expect(ambos.total).toBe(1);
+    expect(ambos.cambios).toEqual([{ tipo: "identidad", indice: 2, nombre: "Gris M", antes: "Beige S", despues: "Gris M" }]);
+  });
+
+  it("devolver color y talla a lo de antes deja la variante sin cambios, aunque haya pasado por otro valor", () => {
+    const r = resumen((f) => {
+      f.variantes[0].colorCodigo = "BEI"; // el mismo que ya tenía
+    });
+    expect(r.total).toBe(0);
+  });
+
+  it("identidad y precio de la misma variante son dos cambios que conviven", () => {
+    const r = resumen((f) => {
+      f.variantes[1].colorCodigo = "BEI";
+      f.variantes[1].nombre = "Beige XS";
+      f.variantes[1].precio = "95";
+    });
+    expect(r.total).toBe(2);
+    expect(r.cambios).toEqual([
+      { tipo: "identidad", indice: 1, nombre: "Beige XS", antes: "Gris XS", despues: "Beige XS" },
+      { tipo: "precio", indice: 1, nombre: "Beige XS", antes: "90", despues: "95" },
+    ]);
   });
 });
 
@@ -245,15 +293,28 @@ describe("agruparCambios — lo que lee la hoja «Revisa y guarda los cambios»"
       f.variantes[1].activo = false;
       f.variantes[1].precio = "95";
       f.variantes[2].etiquetaIds = ["e1"];
+      f.variantes[2].colorCodigo = "GRI";
+      f.variantes[2].nombre = "Gris S";
       f.fotos = [];
-      f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80.5", costo: "", etiquetaIds: [] });
+      f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80.5", costo: "", etiquetaIds: [], colorCodigo: "ROJ", tallaId: "m" });
     });
     const grupos = agruparCambios(r.cambios);
-    expect(grupos.map((g) => g.clave)).toEqual(["desactivan", "activan", "agregan", "precios", "etiquetas", "fotos", "datos"]);
-    expect(grupos.map((g) => g.titulo)).toEqual(["Se desactivan", "Se activan", "Se agregan", "Precios", "Etiquetas", "Fotos", "Datos de la prenda"]);
+    expect(grupos.map((g) => g.clave)).toEqual(["desactivan", "activan", "agregan", "identidad", "precios", "etiquetas", "fotos", "datos"]);
+    expect(grupos.map((g) => g.titulo)).toEqual([
+      "Se desactivan",
+      "Se activan",
+      "Se agregan",
+      "Color y talla corregidos",
+      "Precios",
+      "Etiquetas",
+      "Fotos",
+      "Datos de la prenda",
+    ]);
     expect(grupos.find((g) => g.clave === "agregan")?.lineas).toEqual([{ texto: "Rojo M", detalle: "S/ 80.50" }]);
+    expect(grupos.find((g) => g.clave === "identidad")?.lineas).toEqual([{ texto: "Color y talla", antes: "Beige S", despues: "Gris S" }]);
     expect(grupos.find((g) => g.clave === "precios")?.lineas).toEqual([{ texto: "Gris XS", antes: "S/ 90", despues: "S/ 95" }]);
-    expect(grupos.find((g) => g.clave === "etiquetas")?.lineas).toEqual([{ texto: "Beige S", detalle: "+ Etiqueta e1" }]);
+    // La misma variante (índice 2) cambió etiquetas Y color: cada una en su grupo, con su nombre ACTUAL («Gris S»).
+    expect(grupos.find((g) => g.clave === "etiquetas")?.lineas).toEqual([{ texto: "Gris S", detalle: "+ Etiqueta e1" }]);
     expect(grupos.find((g) => g.clave === "fotos")?.lineas).toEqual([{ texto: "Se quitan 2 fotos" }, { texto: "Cambia la foto principal" }]);
   });
 
@@ -276,9 +337,19 @@ describe("las filas de la tabla", () => {
   });
 
   it("una fila nueva dice que se agrega", () => {
-    const conFila = cambiar((f) => f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "", etiquetaIds: [] }));
+    const conFila = cambiar((f) =>
+      f.variantes.push({ id: null, nombre: "Rojo M", activo: true, precio: "80", costo: "", etiquetaIds: [], colorCodigo: "ROJ", tallaId: "m" })
+    );
     const r = resumenDeCambios(ficha(), conFila, nombres);
     expect(textoPendienteDeVariante(cambiosDeVariante(r, 3))).toBe("Se agrega al guardar");
+  });
+
+  it("una corrección de color o talla (ADR-0258) dice de qué variante venía", () => {
+    const r = resumen((f) => {
+      f.variantes[0].tallaId = "s";
+      f.variantes[0].nombre = "Beige S";
+    });
+    expect(textoPendienteDeVariante(cambiosDeVariante(r, 0))).toBe("Antes: Beige XS");
   });
 });
 

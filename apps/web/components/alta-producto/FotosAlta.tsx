@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { avisar } from "@/components/ui/Avisos";
 import { objecionFotoElegida } from "@/lib/producto-fotos";
 import { comoArchivo } from "@/lib/preparar-foto";
@@ -46,33 +46,7 @@ export function FotosAlta({
 }) {
   // Las vistas previas NO se liberan al desmontar: el paso 3 se pliega al seguir y se vuelve a abrir con «Cambiar», y
   // las fotos tienen que seguir ahí. Las libera el formulario (al quitarlas, al subirlas o al quitar su color).
-
-  const [porRevisar, setPorRevisar] = useState<{ archivos: File[]; colorCodigo: string | null } | null>(null);
-  function agregar(archivos: File[], colorCodigo: string | null) {
-    const buenas: File[] = [];
-    const malas: string[] = [];
-    for (const archivo of archivos) {
-      const objecion = objecionFotoElegida(archivo);
-      if (objecion) malas.push(`${archivo.name}: ${objecion}`);
-      else buenas.push(archivo);
-    }
-    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
-    if (buenas.length) setPorRevisar({ archivos: buenas, colorCodigo });
-  }
-
-  function usar(elegidas: FotoElegida[], colorCodigo: string | null) {
-    const nuevas: FotoPendiente[] = elegidas.map((e) => {
-      const archivo = comoArchivo(e.foto, "foto.jpg");
-      return { clave: crypto.randomUUID(), archivo, original: e.original, vista: URL.createObjectURL(archivo), colorCodigo };
-    });
-    onFotos([...fotos, ...nuevas]);
-  }
-
-  function quitar(clave: string) {
-    const f = fotos.find((x) => x.clave === clave);
-    if (f) URL.revokeObjectURL(f.vista);
-    onFotos(fotos.filter((x) => x.clave !== clave));
-  }
+  const { agregar, quitar, revision } = useFotosPendientes({ fotos, onFotos });
 
   // La foto sin color va PRIMERO: una sola foto por prenda alcanza, y se ve en cada color que no tenga la suya
   // (`fotoDeVariante`, decidido con Felipe el 2026-09-26: «una foto general y luego escoger la gama de colores»). Con
@@ -120,21 +94,71 @@ export function FotosAlta({
       <p className="text-xs text-taupe">
         Una foto alcanza: la de «Todos los colores» se ve en cada color que no tenga la suya. JPG, PNG o WebP, hasta 25 MB; cada foto sale del mismo tamaño, sobre blanco, y antes de agregarla eliges si va sin fondo. Se suben al crear el producto; si cancelas, no se guarda nada.
       </p>
-      {porRevisar && (
-        <RevisarFotosModal
-          fuentes={porRevisar.archivos.map((a, i) => ({ clave: String(i), etiqueta: a.name, blob: a }))}
-          onListo={(elegidas, cerrar) => {
-            usar(elegidas, porRevisar.colorCodigo);
-            cerrar();
-          }}
-          onClose={() => setPorRevisar(null)}
-        />
-      )}
+      {revision}
     </div>
   );
 }
 
-function BotonFoto({ onArchivos, disabled, etiqueta }: { onArchivos: (f: File[]) => void; disabled: boolean; etiqueta: string }) {
+/** Agregar y quitar fotos pendientes, compartido por esta grilla y por la tabla de la prenda (`MatrizVariantes`, spike
+ *  v2 2026-09-28: la foto va en la fila de su color). Cada archivo elegido pasa primero por `RevisarFotosModal`
+ *  (ADR-0228); `revision` es ese modal, y quien use el hook lo pinta donde quiera. */
+export function useFotosPendientes({ fotos, onFotos }: { fotos: FotoPendiente[]; onFotos: (f: FotoPendiente[]) => void }) {
+  const [porRevisar, setPorRevisar] = useState<{ archivos: File[]; colorCodigo: string | null } | null>(null);
+  function agregar(archivos: File[], colorCodigo: string | null) {
+    const buenas: File[] = [];
+    const malas: string[] = [];
+    for (const archivo of archivos) {
+      const objecion = objecionFotoElegida(archivo);
+      if (objecion) malas.push(`${archivo.name}: ${objecion}`);
+      else buenas.push(archivo);
+    }
+    if (malas.length) avisar.error(malas.length === 1 ? "Una foto no se puede usar" : `${malas.length} fotos no se pueden usar`, { detalle: malas.join(" · ") });
+    if (buenas.length) setPorRevisar({ archivos: buenas, colorCodigo });
+  }
+
+  function usar(elegidas: FotoElegida[], colorCodigo: string | null) {
+    const nuevas: FotoPendiente[] = elegidas.map((e) => {
+      const archivo = comoArchivo(e.foto, "foto.jpg");
+      return { clave: crypto.randomUUID(), archivo, original: e.original, vista: URL.createObjectURL(archivo), colorCodigo };
+    });
+    onFotos([...fotos, ...nuevas]);
+  }
+
+  function quitar(clave: string) {
+    const f = fotos.find((x) => x.clave === clave);
+    if (f) URL.revokeObjectURL(f.vista);
+    onFotos(fotos.filter((x) => x.clave !== clave));
+  }
+
+  const revision = porRevisar ? (
+    <RevisarFotosModal
+      fuentes={porRevisar.archivos.map((a, i) => ({ clave: String(i), etiqueta: a.name, blob: a }))}
+      onListo={(elegidas, cerrar) => {
+        usar(elegidas, porRevisar.colorCodigo);
+        cerrar();
+      }}
+      onClose={() => setPorRevisar(null)}
+    />
+  ) : null;
+
+  return { agregar, quitar, revision };
+}
+
+/** El botón que abre el selector de archivos. Sin `children` es la casilla «+» de siempre; la tabla de la prenda le
+ *  pasa su propio aspecto (cámara, miniatura) con `className` y `children`. */
+export function BotonFoto({
+  onArchivos,
+  disabled,
+  etiqueta,
+  className = "grid h-16 w-[3.25rem] place-items-center rounded-md border border-dashed border-tinta/25 text-lg text-taupe transition-colors hover:border-tinta/50 hover:text-tinta disabled:opacity-40",
+  children = "+",
+}: {
+  onArchivos: (f: File[]) => void;
+  disabled: boolean;
+  etiqueta: string;
+  className?: string;
+  children?: ReactNode;
+}) {
   const input = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -157,9 +181,9 @@ function BotonFoto({ onArchivos, disabled, etiqueta }: { onArchivos: (f: File[])
         disabled={disabled}
         aria-label={etiqueta}
         title={etiqueta}
-        className="grid h-16 w-[3.25rem] place-items-center rounded-md border border-dashed border-tinta/25 text-lg text-taupe transition-colors hover:border-tinta/50 hover:text-tinta disabled:opacity-40"
+        className={className}
       >
-        +
+        {children}
       </button>
     </>
   );

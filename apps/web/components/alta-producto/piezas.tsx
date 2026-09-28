@@ -115,9 +115,11 @@ export function AvisoInline({ tono, children, alerta = false }: { tono: TonoAvis
 }
 
 /**
- * Un paso del alta en acordeón (spike 2026-09-24): reemplaza a `Bloque` en Nuevo producto. Solo uno está abierto; el
- * hecho se pliega en UNA línea con su resumen y «Cambiar»; el que viene es una línea punteada, sin texto que leer.
- * El paso abierto lleva abajo qué le falta y el botón «Seguir» (el último no: ahí manda «Crear producto»).
+ * Un paso del alta en acordeón (spike 2026-09-24; 4 preguntas desde el spike v2 del 2026-09-28): reemplaza a `Bloque` en
+ * Nuevo producto. Solo uno está abierto; el hecho se pliega en UNA línea con su resumen y «Cambiar»; el que viene es una
+ * línea punteada, sin texto que leer. El paso abierto lleva abajo su `pie`: qué le falta (o «Listo…», en verde) y la
+ * acción que lo cierra —«Seguir →» en los pasos 2 y 3, «Crear producto» en el 4—. El 1 no lleva pie: avanza solo al
+ * elegir la categoría.
  */
 export function PasoAlta({
   numero,
@@ -125,22 +127,17 @@ export function PasoAlta({
   estado,
   resumen,
   onAbrir,
-  falta,
-  onSeguir,
-  textoSeguir = "Seguir",
+  pie,
   children,
 }: {
   numero: number;
   titulo: string;
   estado: "abierto" | "hecho" | "pendiente";
-  /** La línea del paso plegado («Blusa Lirio · CAYLA (Taller Lima)»). */
+  /** La línea del paso plegado («Blusa Lirio · CAYLA · Popelina · Liso»). */
   resumen?: ReactNode;
   onAbrir: () => void;
-  /** Lo primero que le falta; null = el paso está completo. */
-  falta?: string | null;
-  /** Sin esto, el paso no lleva pie (el paso 1 avanza solo al elegir la categoría). */
-  onSeguir?: () => void;
-  textoSeguir?: string;
+  /** `texto`: lo primero que falta, o la frase de «listo» (`listo` la pinta en verde). `accion`: el botón que cierra el paso. */
+  pie?: { texto: string; listo: boolean; accion: ReactNode };
   children: ReactNode;
 }) {
   const id = `paso-${numero}`;
@@ -189,12 +186,12 @@ export function PasoAlta({
           medirían contra este cuadro y no contra la ventana, y abrirían corridas lejos de su campo. */}
       <div className="px-4 pb-5 pt-3 [animation:cayla-revelar_240ms_var(--ease-cayla)] sm:pl-14 sm:pr-5">
         {children}
-        {onSeguir && (
-          <div className="mt-5 flex items-center justify-end gap-3 border-t border-sand pt-4">
-            <p className="mr-auto text-[12.5px] text-taupe">{falta}</p>
-            <button type="button" onClick={onSeguir} disabled={Boolean(falta)} className="btn-cayla btn-primario">
-              {textoSeguir} →
-            </button>
+        {pie && (
+          <div className="mt-5 flex flex-wrap items-center justify-end gap-3 border-t border-sand pt-4">
+            <p role="status" className={`mr-auto text-[12.5px] ${pie.listo ? "text-verde" : "text-taupe"}`}>
+              {pie.texto}
+            </p>
+            {pie.accion}
           </div>
         )}
       </div>
@@ -202,15 +199,65 @@ export function PasoAlta({
   );
 }
 
-/** Una fila de campo dentro de un paso: etiqueta y ayuda a la izquierda, controles a la derecha (apilados en celular). */
-export function FilaAlta({ etiqueta, ayuda, children }: { etiqueta: string; ayuda?: ReactNode; children: ReactNode }) {
+/**
+ * Un campo dentro de un paso (spike v2, 2026-09-28): el título ARRIBA y su ayuda al lado, en la misma línea; los controles
+ * debajo, a todo el ancho. Antes el título iba en una columna de 8rem a la izquierda y le robaba ancho a las muestras de
+ * tejido y a la tabla. Sin «obligatorio» en rojo: casi todo lo es, así que la ayuda marca lo opcional («Opcional · …») y
+ * el rojo queda para los errores.
+ */
+export function FilaAlta({ etiqueta, ayuda, accion, children }: { etiqueta: string; ayuda?: ReactNode; /** A la derecha del título (atajos). */ accion?: ReactNode; children: ReactNode }) {
   return (
-    <div className="grid gap-x-4 gap-y-2 border-t border-sand py-3.5 first:border-t-0 first:pt-1 md:grid-cols-[8rem_minmax(0,1fr)]">
-      <div className="md:pt-2">
-        <p className="text-[12.5px] font-semibold text-tinta">{etiqueta}</p>
-        {ayuda && <p className="text-[11.5px] leading-snug text-taupe">{ayuda}</p>}
+    <div className="border-t border-sand py-3.5 first:border-t-0 first:pt-0.5">
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <span className="text-[13px] font-semibold text-tinta">{etiqueta}</span>
+        {ayuda && <span className="text-[12px] leading-snug text-taupe">{ayuda}</span>}
+        {accion && <span className="ml-auto">{accion}</span>}
       </div>
       <div className="min-w-0">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * Un grupo opcional que arranca plegado («Temporada y etiquetas · opcional»). Plegado, la línea dice qué se eligió
+ * («— Verano, 2 etiquetas»): nadie tiene que abrirlo para saber si ya lo llenó. Lo de adentro se desmonta al plegar,
+ * así que su estado tiene que vivir en el formulario (las etiquetas propuestas ya viven ahí por eso).
+ */
+export function PlegableAlta({
+  titulo,
+  resumen,
+  abierto,
+  onAlternar,
+  children,
+}: {
+  titulo: string;
+  /** Lo elegido adentro, o null si nada. */
+  resumen: string | null;
+  abierto: boolean;
+  onAlternar: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="border-t border-sand pt-3">
+      <button type="button" onClick={onAlternar} aria-expanded={abierto} className="flex w-full items-baseline gap-2 text-left text-[13px] font-semibold text-tinta">
+        <span
+          aria-hidden
+          className={`inline-block transition-transform duration-200 [transition-timing-function:var(--ease-cayla)] motion-reduce:transition-none ${abierto ? "rotate-90" : ""}`}
+        >
+          ›
+        </span>
+        {titulo}
+        <span className="font-normal text-taupe">
+          · opcional
+          {resumen && (
+            <>
+              {" — "}
+              <b className="font-semibold text-tinta">{resumen}</b>
+            </>
+          )}
+        </span>
+      </button>
+      {abierto && <div className="mt-1.5 [animation:cayla-revelar_240ms_var(--ease-cayla)]">{children}</div>}
     </div>
   );
 }

@@ -28,6 +28,14 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
+## 🎨 Color y talla de una variante se corrigen mientras no tenga historia (2026-09-28, ADR-0258) — web + migración `20260928235500` **EN PRODUCCIÓN** (pegada por Felipe y verificada el 2026-09-28); rama `claude/product-sizes-colors-edit-a83b77`
+
+- [x] Migración: `fn_variantes_con_historia` (por llave foránea, se adapta sola a tablas nuevas), candado `variantes_identidad_sin_historia` en la tabla (cierra el hueco 3), `fn_corregir_identidad_variante` (recalcula el código y renombra su código de barras) y parches por ancla de `catalogo_actualizar_producto` y `fn_registrar_cambio_producto`. Anclas verificadas contra la definición viva de producción el 2026-09-28.
+- [x] Ficha: la variante sin historia muestra combos de color y talla y el código que le dará la base; la que tiene historia sigue fija. Sin la migración, todo sigue fijo como antes.
+- [x] `pnpm pruebas:corregir-identidad-variante` (11 casos, en CI).
+- [x] Migración pegada en producción y verificada (2026-09-28): funciones, candado y los dos parches; una sola firma de `catalogo_actualizar_producto`. 86 de 192 variantes quedan corregibles.
+- [ ] **Sin probar con cuenta real:** corregir una variante recién creada en la ficha y ver el código nuevo; la pantalla solo se vio con datos de prueba y la base con transacciones que se deshacen.
+- [ ] **Rama `claude/product-variant-editing-9307ed`** (reservó otro «ADR-0254» con D-136 a D-138: corregir siempre, y solo líder si se vendió): choca con esta. Felipe eligió «solo sin historia» el 2026-09-28; esa rama tiene que volver a preguntarle antes de seguir.
 ## 🧮 «Ajustar inventario» decía 12 afuera y 78 adentro (2026-09-28) — solo web, sin migración; rama `claude/informacion-contradictoria-fb2275`
 Captura de Felipe: la fila «Test de Produto 2» (Celeste) de Existencias decía 12 en el piso y el modal mostraba los
 cuatro colores (78 en producción). La fila es una prenda (modelo + color) y suma lo libre; el modal cargaba el modelo

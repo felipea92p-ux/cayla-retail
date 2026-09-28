@@ -15,7 +15,11 @@ import {
   limpiarCantidad,
   ordenarFotosAlta,
   PASOS_ALTA,
+  pasoAbrible,
+  piePaso,
   resumenStock,
+  siguienteDelAlta,
+  textoTallas,
   textoDestinoStock,
   pasoAlcanzable,
   pasoDeProblema,
@@ -212,7 +216,7 @@ describe("problemasAlta — qué falta, en frases de la persona", () => {
   });
 });
 
-describe("paso 5 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
+describe("paso 4 — cuántas hay hoy (carga inicial, ADR-0212)", () => {
   it("leerCantidad: vacío es 0; enteros de 0 a 9999; lo demás no es una cantidad (espejo de la RPC)", () => {
     expect(leerCantidad("")).toBe(0);
     expect(leerCantidad("  ")).toBe(0);
@@ -372,37 +376,92 @@ describe("sumarAlEje — ofrecer un valor más sin quitarle nada a la categoría
   });
 });
 
-describe("pasos del alta — cada problema cae en su paso", () => {
-  it("con todo resuelto, los 5 pasos están hechos y se llega al 5", () => {
+describe("pasos del alta — cada problema cae en su paso (4 preguntas, spike v2 2026-09-28)", () => {
+  it("con todo resuelto, las 4 preguntas están contestadas y se llega a la 4", () => {
     const p = problemasAlta(base);
-    expect(PASOS_ALTA).toEqual([1, 2, 3, 4, 5]);
-    expect(PASOS_ALTA.map((n) => pasoHecho(p, n))).toEqual([true, true, true, true, true]);
-    expect(pasoAlcanzable(p)).toBe(5);
+    expect(PASOS_ALTA).toEqual([1, 2, 3, 4]);
+    expect(PASOS_ALTA.map((n) => pasoHecho(p, n))).toEqual([true, true, true, true]);
+    expect(pasoAlcanzable(p)).toBe(4);
   });
-  it("lo del stock cae en el paso 5, y con el 4 completo se entra al 5", () => {
+  it("el stock cae en el paso 4, junto al precio: con el 3 completo se entra al 4", () => {
     const p = problemasAlta({ ...base, stockTotal: 0 });
-    expect(p.map(pasoDeProblema)).toEqual([5]);
-    expect(pasoHecho(p, 4)).toBe(true);
-    expect(pasoHecho(p, 5)).toBe(false);
-    expect(pasoAlcanzable(p)).toBe(5);
+    expect(p.map(pasoDeProblema)).toEqual([4]);
+    expect(pasoHecho(p, 3)).toBe(true);
+    expect(pasoHecho(p, 4)).toBe(false);
+    expect(pasoAlcanzable(p)).toBe(4);
   });
   it("sin categoría todo está pendiente y solo se entra al paso 1", () => {
     const p = problemasAlta({ ...base, categoriaId: "" });
     expect(pasoAlcanzable(p)).toBe(1);
     expect(pasoHecho(p, 3)).toBe(false);
   });
-  it("nombre y marca son el paso 2; tallas, tejido y patrón el 3; tabla y precio el 4", () => {
+  it("nombre, marca, tejido y patrón son el paso 2; tallas y tabla el 3; precio y stock el 4", () => {
     expect(pasoDeProblema(problemasAlta({ ...base, marcaId: "" })[0])).toBe(2);
     expect(pasoDeProblema(problemasAlta({ ...base, referencia: "" })[0])).toBe(2);
-    expect(pasoDeProblema(problemasAlta({ ...base, tejidoId: "" })[0])).toBe(3);
-    expect(pasoDeProblema(problemasAlta({ ...base, celdasIncluidas: 0 })[0])).toBe(4);
+    expect(pasoDeProblema(problemasAlta({ ...base, tejidoId: "" })[0])).toBe(2);
+    expect(pasoDeProblema(problemasAlta({ ...base, patronId: "" })[0])).toBe(2);
+    expect(pasoDeProblema(problemasAlta({ ...base, hayPatronesEnCategoria: false })[0])).toBe(2);
+    expect(pasoDeProblema(problemasAlta({ ...base, tallasElegidas: 0 })[0])).toBe(3);
+    expect(pasoDeProblema(problemasAlta({ ...base, categoriaSinTallas: true })[0])).toBe(3);
+    expect(pasoDeProblema(problemasAlta({ ...base, celdasIncluidas: 0 })[0])).toBe(3);
     expect(pasoDeProblema(problemasAlta({ ...base, precioBase: "" })[0])).toBe(4);
+    expect(pasoDeProblema(problemasAlta({ ...base, stockInvalidas: 2 })[0])).toBe(4);
+  });
+  it("lo que falta sale en el orden de la pantalla: primero el nombre, después la marca, después el tejido", () => {
+    const p = problemasAlta({ ...base, referencia: "", marcaId: "", tejidoId: "", tallasElegidas: 0 });
+    expect(p.map((x) => x.bloque)).toEqual(["nombre", "marca", "tela", "tallas"]);
   });
   it("un paso con lo suyo resuelto no está hecho si falta uno anterior", () => {
     const p = problemasAlta({ ...base, marcaId: "" });
     expect(faltaDelPaso(p, 3)).toBeNull();
     expect(pasoHecho(p, 3)).toBe(false);
     expect(faltaDelPaso(p, 2)).toMatch(/marca/);
+  });
+  it("desde la lista «Avance» se abre un paso solo si los anteriores están contestados", () => {
+    const p = problemasAlta({ ...base, tejidoId: "" });
+    expect([1, 2, 3, 4].map((n) => pasoAbrible(p, n as 1 | 2 | 3 | 4))).toEqual([true, true, false, false]);
+    expect(PASOS_ALTA.every((n) => pasoAbrible([], n))).toBe(true);
+    expect(PASOS_ALTA.map((n) => pasoAbrible(problemasAlta({ ...base, categoriaId: "" }), n))).toEqual([true, false, false, false]);
+  });
+});
+
+describe("piePaso y siguienteDelAlta — el pie de cada paso y la línea de la ficha", () => {
+  const listo = { listo: true, faltaElegir: false, motivo: null };
+  const sinElegir = { listo: false, faltaElegir: true, motivo: "Elige quién hace esta operación." };
+  const nadie = { listo: false, faltaElegir: false, motivo: "Nadie de turno en TRU: marca tu entrada en el kiosco para poder guardar." };
+
+  it("un paso con algo pendiente dice qué le falta", () => {
+    const p = problemasAlta({ ...base, tejidoId: "" });
+    expect(piePaso(p, 2, listo)).toEqual({ texto: "Elige el tejido.", listo: false });
+  });
+  it("los pasos 2 y 3 completos invitan a seguir", () => {
+    expect(piePaso([], 2, sinElegir)).toEqual({ texto: "Listo. Sigue cuando quieras.", listo: true });
+    expect(piePaso([], 3, sinElegir).listo).toBe(true);
+  });
+  it("en el paso 4, si lo único que falta es el responsable, lo dice así", () => {
+    expect(piePaso([], 4, sinElegir)).toEqual({ texto: "Solo falta elegir quién lo registra.", listo: false });
+    expect(piePaso([], 4, nadie)).toEqual({ texto: nadie.motivo, listo: false });
+    expect(piePaso([], 4, listo)).toEqual({ texto: "Todo listo. Revisa la ficha y crea el producto.", listo: true });
+  });
+  it("el paso 4 completo no dice «Todo listo» si falta algo de un paso anterior", () => {
+    const p = problemasAlta({ ...base, marcaId: "" });
+    expect(piePaso(p, 4, listo)).toEqual({ texto: "Elige la marca y el proveedor.", listo: false });
+  });
+  it("la ficha dice lo siguiente que falta; el responsable va al final, cuando todo lo demás está", () => {
+    expect(siguienteDelAlta(problemasAlta({ ...base, precioBase: "" }), sinElegir)).toBe("Pon el precio de venta.");
+    expect(siguienteDelAlta([], sinElegir)).toBe("Elige quién lo registra.");
+    expect(siguienteDelAlta([], nadie)).toBe(nadie.motivo);
+    expect(siguienteDelAlta([], listo)).toBeNull();
+  });
+});
+
+describe("textoTallas — las tallas en el resumen del paso 3", () => {
+  it("hasta 5 se leen todas", () => {
+    expect(textoTallas(["S", "M", "L"])).toBe("S M L");
+    expect(textoTallas([])).toBe("");
+  });
+  it("con más de 5, primera–última y cuántas", () => {
+    expect(textoTallas(["26", "28", "30", "32", "34", "36", "38", "40", "42"])).toBe("26–42 (9)");
   });
 });
 

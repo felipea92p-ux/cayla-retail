@@ -30,6 +30,9 @@ export type VarianteFicha = {
   /** El costo que se GUARDARÍA, no el que está escrito: una variante existente con el campo vacío conserva el suyo. */
   costo: string;
   etiquetaIds: string[];
+  /** Solo cambian en una variante `corregible` (sin historia, ADR-0258); en una fija quedan igual que al abrir. */
+  colorCodigo: string;
+  tallaId: string;
 };
 
 export type FichaEditable = {
@@ -104,6 +107,7 @@ export type Cambio =
   | { tipo: "desactiva"; indice: number; nombre: string }
   | { tipo: "activa"; indice: number; nombre: string }
   | { tipo: "nueva"; indice: number; nombre: string; precio: string }
+  | { tipo: "identidad"; indice: number; nombre: string; antes: string; despues: string }
   | { tipo: "precio"; indice: number; nombre: string; antes: string; despues: string }
   | { tipo: "costo"; indice: number; nombre: string; antes: string; despues: string }
   | { tipo: "etiquetas"; indice: number; nombre: string; suman: string[]; quitan: string[] }
@@ -198,6 +202,11 @@ function cambiosDeVariantes(inicial: readonly VarianteFicha[], actual: readonly 
       return;
     }
     if (v.activo !== antes.activo) cambios.push({ tipo: v.activo ? "activa" : "desactiva", indice, nombre: v.nombre });
+    // Solo una variante corregible (sin historia, ADR-0258) deja tocar esto; en cualquier otra colorCodigo/tallaId nunca
+    // se apartan de lo que había al abrir, así que esta comparación no hace falta apagarla por variante.
+    if (v.colorCodigo !== antes.colorCodigo || v.tallaId !== antes.tallaId) {
+      cambios.push({ tipo: "identidad", indice, nombre: v.nombre, antes: antes.nombre, despues: v.nombre });
+    }
     if (!mismoNumero(v.precio, antes.precio)) cambios.push({ tipo: "precio", indice, nombre: v.nombre, antes: antes.precio, despues: v.precio });
     if (!mismoNumero(v.costo, antes.costo)) cambios.push({ tipo: "costo", indice, nombre: v.nombre, antes: antes.costo, despues: v.costo });
     const suman = v.etiquetaIds.filter((id) => !antes.etiquetaIds.includes(id));
@@ -275,6 +284,7 @@ function frasesDe(cambios: readonly Cambio[], pasado: boolean): string[] {
     [de("desactiva"), "variante se desactiva", "variantes se desactivan", "variante desactivada", "variantes desactivadas"],
     [de("activa"), "variante se activa", "variantes se activan", "variante activada", "variantes activadas"],
     [de("nueva"), "variante se agrega", "variantes se agregan", "variante agregada", "variantes agregadas"],
+    [de("identidad"), "variante corrige color o talla", "variantes corrigen color o talla", "variante con color o talla corregidos", "variantes con color o talla corregidos"],
     [de("precio"), "precio cambia", "precios cambian", "precio cambiado", "precios cambiados"],
     [de("costo"), "costo cambia", "costos cambian", "costo cambiado", "costos cambiados"],
     [de("etiquetas"), "variante cambia sus etiquetas", "variantes cambian sus etiquetas", "variante con etiquetas nuevas", "variantes con etiquetas nuevas"],
@@ -306,7 +316,7 @@ export const formatoCosto = (valor: string): string => soles(valor, "sin costo")
 
 /* ====================== para la hoja «Revisa y guarda los cambios» ====================== */
 
-export type ClaveGrupo = "desactivan" | "activan" | "agregan" | "precios" | "costos" | "etiquetas" | "fotos" | "datos" | "temporadaColor";
+export type ClaveGrupo = "desactivan" | "activan" | "agregan" | "identidad" | "precios" | "costos" | "etiquetas" | "fotos" | "datos" | "temporadaColor";
 
 export type LineaCambio = { texto: string; antes?: string; despues?: string; detalle?: string };
 export type GrupoCambios = { clave: ClaveGrupo; titulo: string; lineas: LineaCambio[] };
@@ -315,6 +325,7 @@ const TITULO_GRUPO: Record<ClaveGrupo, string> = {
   desactivan: "Se desactivan",
   activan: "Se activan",
   agregan: "Se agregan",
+  identidad: "Color y talla corregidos",
   precios: "Precios",
   costos: "Costos",
   etiquetas: "Etiquetas",
@@ -355,6 +366,9 @@ export function agruparCambios(cambios: readonly Cambio[]): GrupoCambios[] {
         break;
       case "nueva":
         sumar("agregan", { texto: c.nombre, detalle: formatoPrecio(c.precio) });
+        break;
+      case "identidad":
+        sumar("identidad", { texto: "Color y talla", antes: c.antes, despues: c.despues });
         break;
       case "precio":
         sumar("precios", { texto: c.nombre, antes: formatoPrecio(c.antes), despues: formatoPrecio(c.despues) });
@@ -408,6 +422,7 @@ export function textoPendienteDeVariante(cambios: readonly Cambio[]): string {
     if (c.tipo === "desactiva") partes.push("Se desactiva al guardar");
     else if (c.tipo === "activa") partes.push("Se activa al guardar");
     else if (c.tipo === "nueva") partes.push("Se agrega al guardar");
+    else if (c.tipo === "identidad") partes.push(`Antes: ${c.antes}`);
     else if (c.tipo === "precio") partes.push(`Precio: antes ${formatoPrecio(c.antes)}`);
     else if (c.tipo === "costo") partes.push(`Costo: antes ${formatoCosto(c.antes)}`);
     else if (c.tipo === "etiquetas") partes.push("Etiquetas cambian");
