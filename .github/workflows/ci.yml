@@ -610,6 +610,17 @@ jobs:
         if: ${{ always() && steps.supabase.outcome == 'success' }}
         run: pnpm pruebas:notas-credito
 
+      # Arreglos que vivían SOLO en producción, traídos a main (ADR-0252, 20260928200000 y 20260928200100): mira el
+      # ESTADO VIVO de la base, así que se pone roja el día que una migración vuelva a abrir una puerta (un `drop function` +
+      # `create function` no conserva los `revoke`). emitir_comprobante / emitir_nota / fn_aplicar_movimiento /
+      # recalcular_stock solo para su dueña (42501 para authenticated, anon y service_role); stock y movimientos sin
+      # escritura directa para nadie de la app, con la lectura intacta; notas de crédito: un cierre deja de esperar su nota
+      # si tiene una atada o si el comprobante ya tiene la de faltante; fn_rentabilidad solo para el líder; y las dos
+      # migraciones pegadas sobre la foto de producción cambian solo lo que dicen. Cada caso termina en ROLLBACK.
+      - name: pruebas:arreglos-en-vivo
+        if: ${{ always() && steps.supabase.outcome == 'success' }}
+        run: pnpm pruebas:arreglos-en-vivo
+
       # ── Pruebas que ya existían y pasaban pero no corrían en ningún sitio (cableadas el 2026-09-25) ────────────────────
       # Un script en `scripts/pruebas/` que nadie corre es una intención, no un candado (mismo problema que `deriva-produccion`,
       # abajo). Este bloque va en el MEDIO del job, junto a los de Compras, a propósito: cada fase de Finanzas anexa su paso al
