@@ -17,7 +17,7 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
-import { useStockEnSede } from "@/components/useStockEnSede";
+import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 
 /**
@@ -53,6 +53,14 @@ export function ProductosGrilla({
   puedeEliminar: boolean;
   mensajeVacio?: string;
 }) {
+  // El stock de la sede de TODA la página en una sola lectura (una por tarjeta serían 24), y otra vez cuando la página
+  // cambia o se refresca (un ajuste): `productos` es otro arreglo.
+  const stockSede = useStockEnSede(ubicacionId);
+  const { leer } = stockSede;
+  useEffect(() => {
+    if (productos.length > 0) void leer(productos.map((p) => p.productoId));
+  }, [productos, leer]);
+
   if (productos.length === 0) {
     return <p className="card-cayla p-5 text-sm text-tinta/75">{mensajeVacio}</p>;
   }
@@ -60,7 +68,14 @@ export function ProductosGrilla({
   return (
     <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-4">
       {productos.map((p) => (
-        <TarjetaProducto key={p.productoId} producto={p} ubicacionId={ubicacionId} sede={sede} sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
+        <TarjetaProducto
+          key={p.productoId}
+          producto={p}
+          stock={stockSede.de(p.productoId)}
+          leer={leer}
+          ubicacionId={ubicacionId}
+          sede={sede}
+          sububicaciones={sububicaciones} puedeAjustar={puedeAjustar} puedeBajarAlPiso={puedeBajarAlPiso} puedeEliminar={puedeEliminar} />
       ))}
     </div>
   );
@@ -68,6 +83,8 @@ export function ProductosGrilla({
 
 function TarjetaProducto({
   producto,
+  stock,
+  leer,
   ubicacionId,
   sede,
   sububicaciones,
@@ -76,6 +93,9 @@ function TarjetaProducto({
   puedeEliminar,
 }: {
   producto: ProductoListado;
+  /** Stock de este modelo en la sede (`useStockEnSede`, leído una vez para toda la página). */
+  stock: StockDeModelo;
+  leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   ubicacionId: string;
   sede: string;
   sububicaciones: Sububicacion[];
@@ -99,6 +119,7 @@ function TarjetaProducto({
   const descontinuado = producto.estado !== "activo";
   const alerta = alertaDeStock(producto);
   const tonoStock = descontinuado ? "text-tinta/70" : "text-tinta/75";
+  const enSede = stock && stock !== "error" ? unidadesEnSede(stock, producto.variantes.map((v) => v.varianteId)) : null;
 
   return (
     <div className="card-cayla flex flex-col overflow-hidden transition-transform duration-260 ease-cayla hover:-translate-y-0.5 hover:shadow-md">
@@ -159,6 +180,16 @@ function TarjetaProducto({
             ) : (
               textoDeStock(producto.stockTotal)
             )}
+            {/* El total es de toda la red; debajo, lo que hay aquí: lo que se puede vender, ajustar y etiquetar en la sede. */}
+            <span
+              className="mt-1 block text-right text-[11.5px] font-normal text-tinta/60"
+              title={stock === "error" ? "No se pudo leer el stock de la tienda" : `Unidades en ${sede || "tu sede"}`}
+            >
+              En tu sede:{" "}
+              <span className={`font-semibold ${enSede === null ? "text-tinta/30" : enSede === 0 ? "text-tinta/45" : "text-tinta"}`}>
+                {enSede === null ? "—" : enSede.toLocaleString("es-PE")}
+              </span>
+            </span>
           </span>
         </div>
         <div className="flex items-center justify-between">
@@ -170,7 +201,8 @@ function TarjetaProducto({
       {vistaRapida && (
         <VistaRapidaModal
           producto={producto}
-          ubicacionId={ubicacionId}
+          stock={stock}
+          leer={leer}
           sede={sede}
           colores={colores}
           colorInicial={nombreActivo}
@@ -208,7 +240,8 @@ function TarjetaProducto({
 
 function VistaRapidaModal({
   producto,
-  ubicacionId,
+  stock,
+  leer,
   sede,
   colores,
   colorInicial,
@@ -219,7 +252,8 @@ function VistaRapidaModal({
   puedeEliminar,
 }: {
   producto: ProductoListado;
-  ubicacionId: string;
+  stock: StockDeModelo;
+  leer: (productoIds: string[]) => Promise<Map<string, number> | null>;
   sede: string;
   colores: ColorDisponible[];
   colorInicial: string | null;
@@ -238,13 +272,10 @@ function VistaRapidaModal({
   const tinte = activo ? mezclar(activo.hex, 0.16) : "#efe9dd";
 
   // Stock por talla EN ESTA SEDE, como la ficha de la Tabla: es el mismo número con el que Etiquetas decide cuántas salen.
-  // El «Stock» de la tarjeta de afuera es de toda la red; por eso la tabla dice de qué sede es el suyo.
-  const stockSede = useStockEnSede(ubicacionId);
-  const { leer } = stockSede;
+  // Viene de la lectura de toda la página; al abrir se relee este modelo, por si cambió desde que se cargó la grilla.
   useEffect(() => {
     void leer([producto.productoId]);
   }, [producto, leer]);
-  const stock = stockSede.de(producto.productoId);
   const ids = producto.variantes.map((v) => v.varianteId);
   const totalSede = stock && stock !== "error" ? unidadesEnSede(stock, ids) : null;
 
@@ -372,7 +403,7 @@ function VistaRapidaModal({
 
 /** Stock de una talla en la sede, en negrita: es lo que cambia de una talla a otra. Con 0 se apaga (no es rojo:
  *  ADR-0151); mientras se lee, un guion, nunca un 0 que no es cierto. */
-function StockDeTalla({ stock, varianteId }: { stock: ReadonlyMap<string, number> | "error" | undefined; varianteId: string }) {
+function StockDeTalla({ stock, varianteId }: { stock: StockDeModelo; varianteId: string }) {
   if (!stock || stock === "error") {
     return (
       <span className="text-tinta/30" title={stock === "error" ? "No se pudo leer el stock de la tienda" : undefined}>

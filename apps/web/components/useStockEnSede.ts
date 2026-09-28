@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { leerTodas } from "@/lib/resultado";
 import { sumarEntradas } from "@/lib/etiqueta-precio-reglas";
 
+/** Lo que se sabe del stock de un modelo en la sede: aún no se leyó, no se pudo leer, o unidades por variante. */
+export type StockDeModelo = ReadonlyMap<string, number> | "error" | undefined;
+
 /**
  * Stock por prenda (variante) EN LA SEDE de quien mira, por modelo. Promete: `de(id)` devuelve lo último leído de ese
  * modelo (`undefined` si nunca se pidió, `"error"` si la lectura falló); `leer(ids)` lo lee FRESCO, lo guarda y lo
@@ -59,6 +62,6 @@ export function useStockEnSede(ubicacionId: string) {
     [ubicacionId],
   );
 
-  const de = useCallback((productoId: string) => porModelo.get(productoId), [porModelo]);
+  const de = useCallback((productoId: string): StockDeModelo => porModelo.get(productoId), [porModelo]);
   return { de, leer };
 }

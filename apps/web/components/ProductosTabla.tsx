@@ -37,7 +37,7 @@ import { urlEtiquetasDePrecio } from "@/lib/etiqueta-precio-reglas";
 import { usePantallaActual } from "@/lib/usePantallaActual";
 import { conDesde } from "@/lib/vuelta-productos";
 import { unidadesEnSede } from "@/lib/stock-en-sede-reglas";
-import { useStockEnSede } from "@/components/useStockEnSede";
+import { useStockEnSede, type StockDeModelo } from "@/components/useStockEnSede";
 import { EnlaceEtiquetas } from "@/components/EnlaceEtiquetas";
 
 /**
@@ -70,9 +70,6 @@ type Fila = {
   rotacion: string | null;
   descontinuado: boolean;
 };
-
-/** Lo que se sabe del stock de un modelo EN ESTA SEDE (`useStockEnSede`): aún no se leyó, no se pudo, o por variante. */
-type StockSede = ReadonlyMap<string, number> | "error" | undefined;
 
 type Permisos = {
   puedeEditar: boolean;
@@ -654,7 +651,7 @@ function FichaVariantes({
   fila: Fila;
   permisos: Permisos;
   acciones: AccionesFila;
-  stock: StockSede;
+  stock: StockDeModelo;
   leer: (productoIds: string[]) => Promise<unknown>;
 }) {
   const { p } = fila;
@@ -769,7 +766,7 @@ function FichaVariantes({
 
 /** El stock de UNA variante en la sede, grande: es lo único de la tarjeta que cambia de una talla a otra. Con 0 se
  *  apaga (no es rojo: máximo dos rojos por pantalla, ADR-0151); mientras se lee, un guion, nunca un 0 que no es cierto. */
-function StockDeVariante({ stock, varianteId }: { stock: StockSede; varianteId: string }) {
+function StockDeVariante({ stock, varianteId }: { stock: StockDeModelo; varianteId: string }) {
   const n = stock && stock !== "error" ? (stock.get(varianteId) ?? 0) : null;
   return (
     <span

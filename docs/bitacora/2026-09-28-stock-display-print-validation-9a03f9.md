@@ -12,3 +12,8 @@ Felipe se lleva: da igual la vista que uses — el número por talla es el de tu
 Qué hice: cada talla de la vista rápida tiene su impresora, siempre visible (con la misma regla de `EnlaceEtiquetas`: sin stock en la sede, aviso y botón rojo). En el celular la columna «Código» se esconde para que la impresora quepa, y la fila de botones se parte en dos líneas (antes «Eliminar» se salía de la hoja a 375 px).
 Por qué así: en la Tabla la impresora de la talla aparece al pasar el mouse; la vista rápida también se abre en el celular, donde no hay mouse, así que aquí se ve siempre.
 Felipe se lleva: desde cualquier vista se puede reimprimir la etiqueta de una sola prenda sin sacar las del modelo entero.
+
+## 2026-09-28 (Productos ▸ Grilla: cada tarjeta dice «En tu sede: N» debajo del stock total)
+Qué hice: bajo «Stock total» de cada tarjeta de la Grilla, «En tu sede: N». La Grilla lee el stock de la sede de TODA la página en una sola consulta (`useStockEnSede`, ahora uno solo para la grilla, compartido con la vista rápida) y lo relee cuando la página cambia o se refresca.
+Por qué así: una consulta por tarjeta serían 24 cada vez que se abre la página; una sola trae lo mismo. La vista rápida usa ese mismo dato y relee su modelo al abrirse, así la tarjeta y la hoja no pueden decir números distintos.
+Felipe se lleva: en la Grilla se ven los dos números a la vez: cuánto hay en toda la red y cuánto hay aquí.
