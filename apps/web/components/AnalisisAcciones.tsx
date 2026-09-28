@@ -22,14 +22,14 @@ const ICONO: Record<AccionAnalisis["clave"], typeof ArrowRight> = {
 
 export type PedidoAbierto = Extract<AccionAnalisis, { clave: "pedir" }>;
 
-/** El botón de una acción. `forma`: `fila` (chico, en la tabla), `tarjeta` (celular, más alto para el pulgar) o `detalle`. */
+/** El botón de una acción. `forma`: `fila` (chico, en la tabla), `tarjeta` (celular, de 44 px de alto para el pulgar) o `detalle`. */
 export function BotonAccion({ accion, forma = "fila", onPedir }: { accion: AccionAnalisis; forma?: "fila" | "tarjeta" | "detalle"; onPedir: (a: PedidoAbierto) => void }) {
   const Icono = ICONO[accion.clave];
   const clase =
     forma === "detalle"
       ? "flex w-full items-center gap-2.5 rounded-xl border border-sand bg-papel px-3 py-2.5 text-left text-sm font-medium text-tinta transition-colors hover:border-taupe"
       : `inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-tinta bg-papel font-semibold text-tinta transition-colors hover:bg-tinta hover:text-crema ${
-          forma === "tarjeta" ? "px-3 py-2 text-[13px]" : "px-2.5 py-1 text-xs"
+          forma === "tarjeta" ? "min-h-11 px-4 py-2 text-sm" : "px-2.5 py-1 text-xs"
         }`;
   const contenido =
     forma === "detalle" ? (
