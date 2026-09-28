@@ -45,10 +45,10 @@ export default async function EditarProductoPage({
     getCatalogoMarcas(),
     supabase.from("familias").select("codigo, exige_tejido_patron"),
     getImagenesMuestra(),
-    // ADR-0257: unidades y ventas por variante. Tolerante: si falla, la ficha sigue sin la columna de stock y la base
+    // ADR-0263: unidades y ventas por variante. Tolerante: si falla, la ficha sigue sin la columna de stock y la base
     // decide sola quién corrige una variante vendida. Si la función NO EXISTE, la base tampoco sabe corregir (es el mismo
     // SQL): ver `puedeCorregir`, abajo.
-    supabase.rpc("fn_variantes_estado" as never, { p_producto_id: id } as never),
+    supabase.rpc("fn_variantes_estado", { p_producto_id: id }),
   ]);
   // Qué familias exigen tejido y patrón (Indumentaria): la edición hereda la misma regla que el alta.
   const exigen = new Set(exigir(familias, "las familias del catálogo").filter((f) => f.exige_tejido_patron).map((f) => f.codigo));
@@ -71,7 +71,7 @@ export default async function EditarProductoPage({
 
   if (!producto) notFound();
 
-  // La web puede llegar a producción antes que el SQL de ADR-0257 (ya pasó). Sin él, la base ignora la corrección de color
+  // La web puede llegar a producción antes que el SQL de ADR-0263 (ya pasó). Sin él, la base ignora la corrección de color
   // o talla de una variante SIN error, pero sí guarda las fotos que se movieron con ella: las variantes quedarían Negro y
   // sus fotos Azul. Por eso, sin la función la ficha no ofrece corregir (lo dice en una línea); cualquier otro fallo de la
   // lectura (red, permiso) no dice que la función falte y deja corregir: la base vuelve a exigir todo.

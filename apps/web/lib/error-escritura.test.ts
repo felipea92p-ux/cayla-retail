@@ -458,16 +458,16 @@ describe("temporadas (ADR-0246): la lista cerrada y sus funciones", () => {
   });
 });
 
-// ADR-0257 (20260928235900): corregir el color y la talla de una variante que ya existe. Las funciones dicen qué pasó y
+// ADR-0263 (20260929045000): corregir el color y la talla de una variante que ya existe. Las funciones dicen qué pasó y
 // qué hacer, con el código de la variante que ya está; dos de sus rechazos llegan con 42501 (permiso) y no deben caer al
 // genérico con «Código:».
-describe("corregir color y talla de una variante (ADR-0257)", () => {
+describe("corregir color y talla de una variante (ADR-0263)", () => {
   it("los rechazos con hint pasan tal cual, también los de permiso (42501)", () => {
     const casos = [
       { message: "El color, la talla y el código de una variante se corrigen desde su ficha, no directo.", code: "42501", hint: "identidad_variante" },
       { message: "No tienes permiso para corregir el color o la talla de una prenda.", code: "42501", hint: "catalogo_sin_permiso" },
       {
-        message: "BOD-0003-S ya se vendió (o una clienta la apartó): solo un líder puede corregir su color o su talla.",
+        message: "La variante BOD-0003-S ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder puede corregir su color o su talla.",
         code: "42501",
         hint: "correccion_solo_lider",
       },

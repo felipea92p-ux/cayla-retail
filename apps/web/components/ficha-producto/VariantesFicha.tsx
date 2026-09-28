@@ -8,6 +8,7 @@ import { MenuAcciones, type ItemMenu } from "@/components/ui/MenuAcciones";
 import { ChipOpcion } from "@/components/alta-producto/piezas";
 import { nivelMargen, type ColorAlta } from "@/lib/alta-producto";
 import type { ValorVocabulario } from "@/lib/catalogo-v2";
+import { cambiosDeVariante, textoPendienteDeVariante, type Cambio, type ResumenCambios } from "@/lib/producto-cambios-reglas";
 import {
   agregarCombinaciones,
   agruparPorColor,
@@ -24,15 +25,17 @@ import {
   filasDelEje,
   margenDeFila,
   nombreVariante,
-  problemasVariantes,
   quitarNueva,
   textoChoque,
+  textosCostoFijo,
   textoSedes,
+  todasNuevas,
   unidadesEnStock,
   type CampoBloque,
   type Destino,
   type FilaFicha,
   type Identidad,
+  type ProblemaFicha,
 } from "@/lib/variantes-ficha-reglas";
 import { AgregarColoresModal, type ResultadoAgregarColores } from "./AgregarColoresModal";
 import { AgregarTallasModal } from "./AgregarTallasModal";
@@ -40,7 +43,7 @@ import { CambiarEnBloque } from "./CambiarEnBloque";
 import { CorregirVarianteModal, type EjesCorreccion } from "./CorregirVarianteModal";
 import { PuntoColor, type ContextoFicha } from "./piezas";
 
-// La sección «Variantes» de la ficha de una prenda (ADR-0257). La prenda se ve como en el alta: por EJES. Arriba, sus
+// La sección «Variantes» de la ficha de una prenda (ADR-0263). La prenda se ve como en el alta: por EJES. Arriba, sus
 // colores y sus tallas (cada chip corrige ese color o esa talla si se registró mal; «+ Agregar» es para lo que llegó
 // nuevo); debajo, las variantes agrupadas por color, con su stock. Corregir y agregar son dos gestos distintos con dos
 // palabras distintas, porque para quien está en la tienda son dos cosas distintas: «Corregir» = se registró mal (conserva
@@ -48,12 +51,17 @@ import { PuntoColor, type ContextoFicha } from "./piezas";
 // fila NUEVA (todavía no existe: cambiarla no toca nada).
 //
 // Nada se guarda aquí: cada gesto cambia las filas de la ficha (y ProductoForm mueve fotos y temporada con el color) y
-// todo viaja en un solo «Guardar cambios». Las reglas son de `lib/variantes-ficha-reglas.ts`.
+// todo viaja en un solo «Revisar y guardar» (ADR-0257: la barra de abajo y la hoja). Lo que cambió en cada fila se marca en
+// ámbar con la MISMA cuenta que la barra (`resumen`, de `lib/producto-cambios-reglas.ts`). Las reglas de la sección son
+// de `lib/variantes-ficha-reglas.ts`.
 
 type ModalAbierto = { tipo: "corregir"; claves: string[]; ejes: EjesCorreccion } | { tipo: "agregar-color" } | { tipo: "agregar-talla" } | null;
 
 const NUMERO =
   "w-full min-w-0 border-b border-tinta/25 bg-transparent px-0.5 py-1.5 text-sm tabular-nums text-tinta outline-none placeholder:text-tinta/40 focus:border-b-2 focus:border-tinta sm:text-right [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none";
+/** El mismo campo con la línea de abajo en ámbar: cambió y todavía no se guardó (ADR-0257). Se arma cambiando la clase, no
+ *  sumando otra: dos colores de borde en el mismo elemento los resuelve el orden de la hoja de estilos, no el del atributo. */
+const NUMERO_CAMBIADO = NUMERO.replace("border-tinta/25", "border-ambar");
 
 /** En celular la fila es una tarjeta (identidad y menú arriba; precio, costo y margen; stock). En escritorio, una línea. */
 function columnas(conStock: boolean): string {
@@ -67,6 +75,7 @@ const ROTULO = "block text-[10.5px] font-medium uppercase tracking-wide text-tau
 export function VariantesFicha({
   ctx,
   filas,
+  problemas,
   onFilas,
   onBloquePendiente,
   tallasCategoria,
@@ -75,9 +84,13 @@ export function VariantesFicha({
   etiquetas,
   avisoEtiquetas,
   deshabilitado,
+  resumen,
 }: {
   ctx: ContextoFicha;
   filas: FilaFicha[];
+  /** Lo que impide guardar (`problemasVariantes`, armado en ProductoForm con la categoría ELEGIDA): la MISMA lista con que
+   *  «Revisar y guardar» decide. Aquí marca cada fila con el suyo. */
+  problemas: readonly ProblemaFicha[];
   /** Todo cambio de las filas pasa por aquí (ProductoForm mueve con el color las fotos y la temporada). */
   onFilas: (siguiente: FilaFicha[]) => void;
   /** Hay un monto escrito en «Cambiar en bloque» sin aplicar (o ya no): el guardado lo avisa y no lo pierde en silencio. */
@@ -91,6 +104,9 @@ export function VariantesFicha({
   etiquetas: { valor: string; texto: string }[];
   avisoEtiquetas?: string;
   deshabilitado: boolean;
+  /** Lo que cambió contra lo guardado (la cuenta de la barra, armada con `variantesParaResumen(filas)`: el índice de cada
+   *  cambio es el de su fila). Sin él, las filas no se marcan. */
+  resumen?: ResumenCambios;
 }) {
   const n = ctx.nombres;
   const [modal, setModal] = useState<ModalAbierto>(null);
@@ -102,7 +118,6 @@ export function VariantesFicha({
   const conStock = ctx.estado !== null;
   const activas = filas.filter((f) => f.activo).length;
   const unidades = unidadesEnStock(filas, ctx.estado);
-  const problemas = problemasVariantes(filas, n);
   const problemaDe = (clave: string) => problemas.find((p) => p.clave === clave)?.texto ?? null;
   const comunes = etiquetasComunes(
     filas,
@@ -153,6 +168,7 @@ export function VariantesFicha({
       conStock={conStock}
       mostrarColor={mostrarColor}
       problema={problemaDe(f.clave)}
+      cambios={resumen ? cambiosDeVariante(resumen, filas.findIndex((x) => x.clave === f.clave)) : []}
       bloqueo={bloqueoPorVenta([f], ctx.estado, ctx.esLider, n)}
       etiquetas={etiquetas}
       avisoEtiquetas={avisoEtiquetas}
@@ -184,12 +200,13 @@ export function VariantesFicha({
       <div className="space-y-2.5">
         <Eje titulo="Colores">
           {ejes.colores.map((c) => {
-            const bloqueo = bloqueoPorVenta(filasDelEje(filas, "color", c), ctx.estado, ctx.esLider, n);
+            const delColor = filasDelEje(filas, "color", c);
+            const bloqueo = bloqueoPorVenta(delColor, ctx.estado, ctx.esLider, n);
             return (
               <ChipEje
                 key={c ?? "sin-color"}
                 deshabilitado={deshabilitado || !!bloqueo}
-                titulo={bloqueo ?? `Corregir el color ${n.color(c)}, si se registró mal`}
+                titulo={bloqueo ?? (todasNuevas(delColor) ? `Cambiar el color ${n.color(c)} (recién agregado, sin guardar)` : `Corregir el color ${n.color(c)}, si se registró mal`)}
                 onClick={ctx.puedeCorregir ? () => setModal({ tipo: "corregir", claves: filasDelEje(filas, "color", c).map((f) => f.clave), ejes: "color" }) : null}
               >
                 <PuntoColor codigo={c} colores={ctx.colores} />
@@ -203,12 +220,18 @@ export function VariantesFicha({
         </Eje>
         <Eje titulo="Tallas">
           {ejes.tallas.map((t) => {
-            const bloqueo = bloqueoPorVenta(filasDelEje(filas, "talla", t), ctx.estado, ctx.esLider, n);
+            const deLaTalla = filasDelEje(filas, "talla", t);
+            const bloqueo = bloqueoPorVenta(deLaTalla, ctx.estado, ctx.esLider, n);
             return (
               <ChipEje
                 key={t ?? "sin-talla"}
                 deshabilitado={deshabilitado || !!bloqueo}
-                titulo={bloqueo ?? `Corregir la talla ${n.talla(t) || "(sin talla)"}, si se registró mal`}
+                titulo={
+                  bloqueo ??
+                  (todasNuevas(deLaTalla)
+                    ? `Cambiar la talla ${n.talla(t) || "(sin talla)"} (recién agregada, sin guardar)`
+                    : `Corregir la talla ${n.talla(t) || "(sin talla)"}, si se registró mal`)
+                }
                 onClick={ctx.puedeCorregir ? () => setModal({ tipo: "corregir", claves: filasDelEje(filas, "talla", t).map((f) => f.clave), ejes: "talla" }) : null}
               >
                 <span className="tabular-nums">{n.talla(t) || "Sin talla"}</span>
@@ -240,6 +263,9 @@ export function VariantesFicha({
           const bloqueo = bloqueoPorVenta(g.filas, ctx.estado, ctx.esLider, n);
           const activasGrupo = g.filas.filter((f) => f.activo).length;
           const u = unidadesEnStock(g.filas, ctx.estado);
+          // Un color recién agregado todavía no existe: no hay nada «registrado mal» que corregir, se cambia (el modal dice lo
+          // mismo). Con una sola variante que ya exista en el grupo, es «Corregir».
+          const verbo = todasNuevas(g.filas) ? "Cambiar" : "Corregir";
           return (
             <section key={g.colorCodigo ?? "sin-color"} className="rounded-xl border border-sand" aria-label={`Color ${n.color(g.colorCodigo)}`}>
               <header className="flex flex-wrap items-center gap-x-2.5 gap-y-1 border-b border-sand px-3 py-2.5">
@@ -249,16 +275,22 @@ export function VariantesFicha({
                   {activasGrupo} {activasGrupo === 1 ? "variante" : "variantes"}
                   {u !== null ? ` · ${u} u.` : ""}
                 </span>
-                {/* «Corregir», no «Cambiar»: si la prenda ahora viene en otro color, eso es «Agregar color» (D-136). */}
+                {/* «Corregir», no «Cambiar»: si la prenda ahora viene en otro color, eso es «Agregar color» (D-136). «Cambiar»
+                    solo para un grupo que todavía no existe (recién agregado). */}
                 {ctx.puedeCorregir && (
                   <button
                     type="button"
                     disabled={deshabilitado || !!bloqueo}
-                    title={bloqueo ?? `Corregir el color ${n.color(g.colorCodigo)}, si se registró mal`}
+                    title={
+                      bloqueo ??
+                      (verbo === "Cambiar"
+                        ? `Cambiar el color ${n.color(g.colorCodigo)} (recién agregado, sin guardar)`
+                        : `Corregir el color ${n.color(g.colorCodigo)}, si se registró mal`)
+                    }
                     onClick={() => setModal({ tipo: "corregir", claves: g.filas.map((f) => f.clave), ejes: "color" })}
                     className="btn-cayla btn-enlace ml-auto text-[12.5px]"
                   >
-                    Corregir color
+                    {verbo} color
                   </button>
                 )}
                 {ctx.puedeCorregir && bloqueo && <p className="w-full text-[11.5px] text-taupe">{bloqueo}</p>}
@@ -299,11 +331,7 @@ export function VariantesFicha({
         </div>
       )}
 
-      {ctx.veCosto && filas.some((f) => f.costoFijo) && (
-        <p className="text-xs text-tinta/55">
-          El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí.
-        </p>
-      )}
+      {ctx.veCosto && filas.some((f) => f.costoFijo) && <p className="text-xs text-tinta/55">{textosCostoFijo(ctx.costoSinComprobar).nota}</p>}
 
       {modal?.tipo === "corregir" && (
         <CorregirVarianteModal
@@ -381,6 +409,7 @@ function FilaVariante({
   conStock,
   mostrarColor,
   problema,
+  cambios,
   bloqueo,
   etiquetas,
   avisoEtiquetas,
@@ -400,6 +429,8 @@ function FilaVariante({
   /** Fuera de un grupo de color (las desactivadas): la fila dice también su color. */
   mostrarColor: boolean;
   problema: string | null;
+  /** Lo que cambió en esta fila contra lo guardado (ADR-0257): la marca en ámbar y el «antes» de su precio o su costo. */
+  cambios: readonly Cambio[];
   bloqueo: string | null;
   etiquetas: { valor: string; texto: string }[];
   avisoEtiquetas?: string;
@@ -420,6 +451,12 @@ function FilaVariante({
   const aviso = avisoDesactivar(f, ctx.estado);
   const esCorregida = corregida(f);
   const nombre = nombreVariante(f, n);
+  // Lo que cambió en la fila: la identidad, «nueva» y «activa» ya tienen su chip y su Deshacer; precio, costo y etiquetas se
+  // dicen en una línea con lo de antes (lo que se ve como hecho y no lo está hasta guardar).
+  const tocada = cambios.length > 0;
+  const menores = cambios.filter((c) => c.tipo === "precio" || c.tipo === "costo" || c.tipo === "etiquetas");
+  const precioCambio = cambios.some((c) => c.tipo === "precio");
+  const costoCambio = cambios.some((c) => c.tipo === "costo");
   const items: ItemMenu[] = [
     // «Corregir» si ya existe (se registró mal); «Cambiar» solo en una nueva, que todavía no existe.
     ...(onCorregir
@@ -438,7 +475,11 @@ function FilaVariante({
   ];
 
   return (
-    <li className={`py-3 ${!f.activo ? "text-tinta/60" : ""}`}>
+    <li
+      className={`py-3 transition-colors duration-300 ease-cayla ${!f.activo ? "text-tinta/60" : ""} ${
+        tocada ? "-mx-3 bg-ambar/[0.08] px-3 shadow-[inset_3px_0_0_var(--color-ambar)]" : ""
+      }`}
+    >
       <div className={`grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-x-3 gap-y-2 sm:items-center ${columnas(conStock)}`}>
         {/* Qué variante es */}
         <div className="col-span-2 min-w-0 sm:col-span-1">
@@ -472,7 +513,7 @@ function FilaVariante({
             value={f.precio}
             disabled={deshabilitado}
             onChange={(ev) => onCambio({ precio: ev.target.value })}
-            className={NUMERO}
+            className={precioCambio ? NUMERO_CAMBIADO : NUMERO}
           />
         </label>
 
@@ -483,7 +524,7 @@ function FilaVariante({
               —
             </span>
           ) : f.costoFijo ? (
-            <span className="block py-1.5 text-sm tabular-nums text-tinta/70 sm:text-right" title="Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano.">
+            <span className="block py-1.5 text-sm tabular-nums text-tinta/70 sm:text-right" title={textosCostoFijo(ctx.costoSinComprobar).celda}>
               {g?.costo ? Number(g.costo).toFixed(2) : "—"}
             </span>
           ) : (
@@ -497,7 +538,7 @@ function FilaVariante({
               value={f.costo}
               disabled={deshabilitado}
               onChange={(ev) => onCambio({ costo: ev.target.value })}
-              className={NUMERO}
+              className={costoCambio ? NUMERO_CAMBIADO : NUMERO}
             />
           )}
         </div>
@@ -527,7 +568,7 @@ function FilaVariante({
       </div>
 
       {/* Qué le pasa a esta fila al guardar (nueva, corregida, se desactiva…): en su propia línea, a todo el ancho. */}
-      {(!g || esCorregida || (g && f.activo !== g.activo) || !f.activo) && (
+      {(!g || esCorregida || (g && f.activo !== g.activo) || !f.activo || menores.length > 0) && (
         <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
           {!g && (
             <>
@@ -568,6 +609,22 @@ function FilaVariante({
               Desactivada
             </Chip>
           )}
+          {g && menores.length > 0 && (
+            <>
+              <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ambar-profundo">
+                <span aria-hidden className="h-1.5 w-1.5 shrink-0 rounded-full bg-ambar" />
+                {textoPendienteDeVariante(menores)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onCambio({ precio: g.precio, costo: g.costo, etiquetaIds: [...g.etiquetaIds] })}
+                disabled={deshabilitado}
+                className="btn-cayla btn-enlace text-[12px]"
+              >
+                Deshacer
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -605,7 +662,7 @@ function FilaVariante({
             ) : (
               <p className="text-xs italic text-tinta/55">Todavía no hay etiquetas aprobadas.</p>
             )}
-            <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar «Guardar cambios».</p>
+            <p className="text-xs text-tinta/55">Se guarda junto con el resto al pulsar «Revisar y guardar».</p>
             {avisoEtiquetas && <p className="text-xs text-tinta/55">{avisoEtiquetas}</p>}
           </div>
         )}

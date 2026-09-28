@@ -1,18 +1,22 @@
-# ADR-0257 · Corregir el color y la talla de una variante que ya existe (y editar variantes como matriz)
+# ADR-0263 · Corregir el color y la talla de una variante que ya existe (y editar variantes como matriz)
 
-- **Fecha:** 2026-09-28 · **Estado:** aprobado por Felipe (tres preguntas, 2026-09-28); construido (base y ficha), SQL sin
-  pegar en producción.
+- **Fecha:** 2026-09-28 · **Estado:** aprobado por Felipe (tres preguntas, 2026-09-28; «Integrar sobre main», la misma
+  noche); construido (base y ficha), SQL sin pegar en producción.
 - **Pedido:** Felipe, 2026-09-28, con captura de BOD-0003 «Body Amir»: «una vez creado el producto la edición es muy
   limitada, no me deja editar color y demás variantes de una forma adecuada o mejor de lo que haría Shopify».
 - **Número:** nació como ADR-0254 y migración `20260928233000` (reservados el 2026-09-28 y subidos a la rama); el 0254 lo
   tomó en `main` la Tabla de Productos (#561) antes de fusionar esta rama, y la migración tiene que correr después de
   `20260928235000`, que ya estaba en `main` y en producción. Cede quien llega después a `main`: pasó a 0257 y `235500`.
   Después pasó a `235900`: la migración rival de ADR-0258 usaba `235500` y dejó esa misma marca en dos funciones de
-  producción, y el parche de esta migración la habría leído como «ya estaba» (ver «Actualización: ADR-0258»).
-- **Migración:** `20260928235900_corregir_color_y_talla_de_variantes.sql` (sin pegar en producción). Antes, en su propia
-  parte: `scripts/migraciones/retirar-adr-0258-de-produccion.sql`.
-- **Reemplaza:** ADR-0243 D-133 («color, talla y código de una variante existente son de solo lectura») y ADR-0258
-  (PR #572, «solo sin historia»), que llegó a pegarse en producción.
+  producción, y el parche de esta migración la habría leído como «ya estaba». El mismo día `main` tomó el 0257
+  («Editar producto guarda en dos tiempos», #568) y el 0262 (la cabecera con buscador global, #583): pasó a **0263**. Al
+  integrarse sobre el 0258 la migración se reescribió y pasó a `20260929045000` (ver «Actualización: integración sobre
+  `main`»). Las menciones a «ADR-0257» que quedan en el código hablan del guardado en dos tiempos, no de este ADR.
+- **Migración:** `20260929045000_corregir_siempre_color_y_talla_de_variantes.sql` (sin pegar en producción; se pega sola,
+  encima del 0258 ya pegado). Reemplaza a `20260928235900_corregir_color_y_talla_de_variantes.sql`, que nunca se pegó.
+- **Reemplaza:** ADR-0243 D-133 («color, talla y código de una variante existente son de solo lectura») y la regla de
+  ADR-0258 (PR #572, «solo sin historia»): sus D-139 y D-140 quedan superadas por D-136, D-137 y D-138. Su migración
+  `20260928235500` está en `main` y en producción y se queda: la de este ADR se construye encima.
 - **Actualiza:** ADR-0025, invariante 1 (el código «nunca se recalcula, ni al corregir el color»).
 - **Complementa:** ADR-0069 (identidad de la variante), ADR-0193 (edición simultánea), ADR-0212 (alta con stock),
   ADR-0218 (qué es «historia»), ADR-0246 (temporada por color), ADR-0228 (fotos).
@@ -51,6 +55,13 @@ SE ROMPE SI: alguien «recicla» una variante vendida para OTRO producto (vendi�
         pantalla separa «Corregir» de «Agregar color»), y el rastro queda en el historial.
 ```
 
+«Una clienta la apartó» es, en el sistema, una **separación con abonos** (Apartados, `separacion_items`); el «Apartar»
+de Existencias (`retail.apartados`, sin dinero) no cuenta (T7). Por eso la frase de la ficha y de la base (revisión del
+2026-09-28) nombra solo lo que cuenta: «ya salió con una clienta (venta, separación en Apartados o cambio): solo un
+líder…». Antes decía «ya se vendió (o una clienta la apartó)», y al lado la fila de una prenda apartada en Existencias
+(«· 1 ap.») se dejaba corregir: la misma pantalla se contradecía. Si Felipe decide que el apartado de Existencias
+también bloquea, se suman los `retail.apartados` abiertos a `vendida` y a la regla, y la frase se amplía.
+
 ### D-137 · Al corregir, el código se recalcula y el viejo sigue sonando
 
 ```
@@ -77,8 +88,8 @@ SE ROMPE SI: aparece un duplicado real con stock en las dos: hasta la fase «Uni
 
 ## Decisiones técnicas
 
-Base: `supabase/migrations/20260928235900_corregir_color_y_talla_de_variantes.sql` (su cabecera tiene el detalle y cómo
-se deshace). Web: `apps/web/lib/variantes-ficha-reglas.ts` (reglas puras, con su contrato en la cabecera) y
+Base: `supabase/migrations/20260929045000_corregir_siempre_color_y_talla_de_variantes.sql` (su cabecera tiene el detalle,
+de qué estado parte y las consultas de solo lectura de antes y después de pegar). Web: `apps/web/lib/variantes-ficha-reglas.ts` (reglas puras, con su contrato en la cabecera) y
 `apps/web/components/ficha-producto/`. Prueba de la base: `pnpm pruebas:corregir-variantes` (en el CI).
 
 ### T1 · La corrección va DENTRO de `catalogo_actualizar_producto`
@@ -91,8 +102,9 @@ DECIDÍ: una variante existente que llega en p_variantes con la clave color_codi
         la combinación que una corregida deja libre).
 DESCARTÉ: una RPC aparte que la ficha llama antes de guardar: dos llamadas no son todo o nada (la corrección quedaba
         hecha y el precio no, o al revés) y la versión de la prenda (ADR-0193) se desfasaba entre las dos.
-SE ROMPE SI: la web llega a producción antes que el SQL: la función vieja ignora esas claves SIN error, pero sí guarda
-        las fotos que se movieron con el color. Por eso la página pregunta si existe `fn_variantes_estado` (del mismo SQL;
+SE ROMPE SI: la web llega a producción antes que el SQL: la base que hay hoy (con el 0258) corregiría solo las variantes
+        sin historia, renombrando su código de barras (la etiqueta pegada deja de sonar), y rechazaría las demás; una base
+        sin ninguno de los dos ignora esas claves SIN error, pero sí guarda las fotos que se movieron con el color. Por eso la página pregunta si existe `fn_variantes_estado` (del mismo SQL;
         `esFuncionAusente`: PGRST202 o 42883) y, si no, pasa `puedeCorregir = false`: la ficha no ofrece corregir (ni
         chips, ni «Corregir color», ni la opción del menú, ni darle color a una «Sin color» al agregar) y lo dice en una
         línea. Como red, al guardar relee las variantes y, si una corrección no se aplicó, lo dice sin jerga («avisa a un
@@ -145,16 +157,27 @@ SE ROMPE SI: alguien vuelve a mover fotos o temporadas dentro de un `setFilas` (
         de donde se eligió), probada en `variantes-ficha-reglas.test.ts`.
 ```
 
-### T5 · «Sin color» junto a colores se revisa al final del guardado, no en cada corrección
+### T5 · «Sin color» junto a colores: un candado de la tabla, por fila y «no empeora»
 
 ```
-DECIDÍ: catalogo_actualizar_producto rechaza (hint mezcla_sin_color) una prenda que QUEDARÍA con variantes activas «Sin
-        color» y otras activas con color; la ficha lo avisa antes con la misma frase. Las desactivadas no cuentan.
-DESCARTÉ: revisarlo en fn_corregir_identidad_variante: BOD-0003 (S, M, L «Sin color» → Negro) pasa por la mezcla entre
-        la primera corrección y la última del mismo guardado.
-SE ROMPE SI: alguien arma la mezcla por fuera de la ficha (insertar una variante o reactivarla con un update directo, o
-        llamar fn_corregir_identidad_variante suelta): la base no lo frena por esos caminos. Hoy no los usa ninguna
-        pantalla; si aparece uno, el candado tiene que ser un disparador diferido sobre `variantes`.
+DECIDÍ: el disparador de restricción `variantes_sin_mezcla_de_color` (DEFERRABLE INITIALLY IMMEDIATE) rechaza (hint
+        mezcla_sin_color) la variante que una escritura crea, recolorea, activa o cambia de prenda si queda activa junto
+        a otra activa del otro lado (con color / «Sin color»). Lo cumple TODO camino: la ficha, el censo del Conteo
+        (`censo_crear_variante`), el alta, una corrección suelta y hasta postgres. catalogo_actualizar_producto lo
+        difiere antes de tocar las variantes y lo vuelve inmediato al final (`set constraints`), así el error sale en
+        su llamada. «No empeora»: lo que la escritura no tocó no se revisa. La ficha avisa antes con la misma regla
+        (`problemasVariantes`): bloquea si lo que ESTE guardado toca queda en la mezcla; si la prenda ya venía
+        mezclada, avisa sin bloquear. El Conteo traduce el hint a su frase (`mensajeMezclaEnCenso`).
+DESCARTÉ: (a) revisarlo en fn_corregir_identidad_variante: BOD-0003 (S, M, L «Sin color» → Negro) pasa por la mezcla
+        entre la primera corrección y la última del mismo guardado; (b) la primera versión, una revisión de TODA la
+        prenda al final de catalogo_actualizar_producto: el censo (una pantalla, SECURITY DEFINER) le creaba una Negro S
+        a una prenda «Sin color» y desde ahí la ficha ya no guardaba NADA de esa prenda, ni un precio; a quien no es
+        líder no le quedaba salida (ponerle Negro a la «Sin color S» choca con la del censo, D-138); (c) un `if` más en
+        censo_crear_variante: arregla un camino y deja los demás (el alta, un update directo, la corrección suelta).
+SE ROMPE SI: dos altas de variante casi en el mismo instante sobre una prenda SIN ninguna variante activa, una «Sin
+        color» y otra con color: cada una ve la prenda vacía y las dos entran (el disparador no toma candado propio,
+        para no sumar un orden nuevo a T8). No hay pantalla que lo haga hoy. También si alguien quita el `set
+        constraints … deferred` de catalogo_actualizar_producto: corregir S, M, L a Negro fallaría en la primera.
 ```
 
 ### T6 · Lo que la ficha necesita saber de cada variante, en una lectura
@@ -230,8 +253,16 @@ SE ROMPE SI: una operación cita VARIAS de las variantes que se corrigen en el m
   si cae la ficha, repite el guardado UNA vez (`conUnReintentoSiChoca`: la base deshizo todo, repetir es seguro; medido
   en psql: el segundo intento pasa en ~20 ms) y, si vuelve a caer, lo dice con palabras (`FRASE_CHOQUE_DE_CANDADOS`) en
   vez de «deadlock detected».
+- **`fn_productos` también la reescribe el PR #580** (ADR-0270, `20260929020000`, sin fusionar al 2026-09-28): con un
+  `create or replace` entero. En CI y en local no hay problema (corre antes que esta, y el ancla de esta sigue en su
+  cuerpo: revisado). En producción, si se pega DESPUÉS de esta, borra sin aviso el parche de la foto general (sección 9 de
+  la migración). Quien pegue el segundo de los dos revisa `fn_productos` con la consulta de DESPUÉS DE PEGAR.
 
-## Actualización 2026-09-28 (noche): ADR-0258 llegó primero a producción y se retira
+## Actualización 2026-09-28 (noche, SUPERADA): ADR-0258 llegó primero a producción y se retira
+
+> **Este plan no se ejecutó.** Antes de pegar nada, el PR #572 se fusionó en `main`; lo reemplaza la actualización
+> siguiente («integración sobre `main`»): no se retira nada, la migración nueva se construye encima del 0258, y el script
+> `scripts/migraciones/retirar-adr-0258-de-produccion.sql` ya no existe. Se deja como registro de por qué se descartó.
 
 **Qué pasó.** Otra sesión construyó en paralelo lo mismo (ADR-0258, rama `claude/product-sizes-colors-edit-a83b77`,
 PR #572) con la regla «solo sin historia» (D-139) y «el código viejo deja de leerse» (D-140). Su migración usaba el
@@ -241,7 +272,7 @@ número `20260928235500` —el mismo que esta tenía entonces— y se pegó en p
 
 ```
 DECIDÍ (Felipe, 2026-09-28: «Opción 1 y permíteme limpiar todo porque solo hemos estado en fase prueba»): se queda
-        ADR-0257 (D-136/D-137/D-138). Lo de ADR-0258 se retira de producción con un script propio
+        este ADR (D-136/D-137/D-138). Lo de ADR-0258 se retira de producción con un script propio
         (scripts/migraciones/retirar-adr-0258-de-produccion.sql), que se pega SOLO y ANTES de 20260928235900: deshace sus
         dos parches por texto exacto, borra su disparador (drop trigger: por eso va aparte, regla de ADR-0195) y sus tres
         funciones, y comprueba que las dos funciones volvieron a su huella de la mañana (a66ff20a…, c4f2676e…) o aborta.
@@ -262,3 +293,86 @@ limpia; `corregir_variantes` 44/44 y las suites de catálogo en verde sobre esa 
 **Lo que había de más en el 0258 en producción mientras tanto:** su corrección bloqueaba cada variante (`for update`)
 antes de mirar si cambiaba algo, y la ficha actual manda color y talla de todas: cada guardado de una ficha bloqueaba
 todas sus variantes y podía chocar con una venta (40P01). La limpieza lo quita.
+
+## Actualización 2026-09-28 (madrugada del 29): integración sobre `main`
+
+**Qué cambió.** Antes de pegar nada se fusionaron en `main` el PR #572 (ADR-0258, con su migración `20260928235500`, ya
+pegada en producción) y el #568 (ADR-0257, «Editar producto guarda en dos tiempos»: `BarraDeCambios.tsx`,
+`ConfirmarCambios.tsx`, `lib/producto-cambios-reglas.ts`), que reescribió `ProductoForm.tsx`. Felipe eligió «Integrar
+sobre main»: se conserva el guardado en dos tiempos del #568; la sección de variantes de esta rama reemplaza a la del
+0258, y su regla también (D-139 y D-140 quedan superadas por D-136, D-137 y D-138).
+
+```
+DECIDÍ: una sola migración, 20260929045000_corregir_siempre_color_y_talla_de_variantes.sql, que parte del estado de main
+        y de producción (con 20260928235500 aplicada) y lo lleva a la regla de este ADR sin retirar nada antes:
+        - renombra el disparador del 0258 (variantes_identidad_sin_historia → variantes_identidad_solo_por_funcion, con
+          `alter trigger … rename` y `create or replace trigger`, nunca `drop trigger`: ADR-0195) y le pone la regla nueva;
+        - conserva la firma de fn_corregir_identidad_variante (p_variante_id, p_producto_id, p_categoria_id, p_variante),
+          porque catalogo_actualizar_producto del 0258 ya la llama así, y la pasa a SECURITY DEFINER con la lógica de
+          D-136/137/138 y la salida sin candado de T8 (lo que el 0258 tenía de más en producción, abajo, se va con esto);
+          la talla se valida contra la categoría de la prenda EN LA BASE, no contra p_categoria_id;
+        - reemplaza (no suma) el bloque del historial del 0258 por 'color', 'talla' (el valor), 'codigo' y 'activo'. Las
+          filas 'color_codigo' y 'talla_id' que el 0258 alcance a escribir se quedan, y la ficha las muestra con palabras
+          (apps/web/lib/historial-producto-reglas.ts);
+        - borra fn_identidad_variante_sin_historia y fn_variantes_con_historia (la ficha de main tolera que falte: muestra
+          todas las variantes fijas).
+        En la web, ProductoForm conserva la barra y la hoja del #568 y cuenta las variantes con la sección de esta rama
+        (variantesParaResumen, lib/variantes-ficha-reglas.ts); lo pendiente se mide contra lo que tiene la base (no contra
+        la foto de al abrir), así un reintento tras un guardado a medias no vuelve a crear las variantes nuevas.
+DESCARTÉ: (a) el plan de la noche (retirar el 0258 con un script aparte y pegar 20260928235900): con el 0258 ya en main,
+        cada base nueva lo aplica igual, y el script tendría que correr también en CI y en local: dos migraciones y un
+        `drop trigger` pegado aparte para llegar al mismo lugar; (b) quedarse con la regla del 0258: no arregla BOD-0003
+        (su carga inicial es historia) y deja de leer las etiquetas pegadas.
+SE ROMPE SI: alguien vuelve a pegar 20260928235500 en producción después de esta: su sección 3 recrea el disparador del
+        0258 y la regla «solo sin historia» vuelve (la marca 20260929045000 evita el doble parche del historial, no el
+        disparador). Ese archivo no se vuelve a pegar; la consulta de DESPUÉS DE PEGAR lo delata en `candado`.
+```
+
+**Contrato web ↔ base (revisado en la integración).** `p_variantes` lleva `color_codigo`/`talla_id` SOLO en las
+corregidas (`""` = «Sin color» / sin talla; `payloadVariantes`), las corregidas primero y las nuevas al final
+(`ordenDeGuardado`). Los `hint` que llegan con `42501` (`identidad_variante`, `catalogo_sin_permiso`,
+`correccion_solo_lider`) y los que traen un código de prenda en el mensaje (`variante_ya_existe`, `mezcla_sin_color`) los
+pasa tal cual `traducirError` (`HINTS_VARIANTE`); `color_inactivo`, `talla_no_habilitada`, `producto_inexistente` y
+`variante_de_otra_prenda` llegan como `P0001` y también pasan tal cual. `fn_variantes_estado` devuelve
+`{variante_id, stock, apartado, sedes: [{ubicacion_id, nombre, cantidad}], vendida}`, lo que lee `leerEstadoVariantes`.
+
+**Cómo se probó.** Una base rehecha desde cero (todas las migraciones) y una réplica de producción (las de `main` con el
+0258, sin esta; después esta pegada con `psql -1` y vuelta a pegar): funciones, disparadores, índices, restricciones,
+políticas y permisos de `retail` idénticos entre las dos (664 funciones), y las ocho huellas de DESPUÉS DE PEGAR iguales.
+`pnpm pruebas:corregir-variantes` 50/50 en las dos: incluye la ficha de `main` guardando solo precio en prendas con una
+variante vendida, una separada, una desactivada, una con SKU y una «Sin color» (no toca identidad, SKU ni códigos, no pide
+líder) y el control con el disparador apagado. Las suites de catálogo, en verde en la base desde cero. Se retiró
+`pnpm pruebas:corregir-identidad-variante` (la del 0258: afirmaba la regla que se reemplaza); lo que seguía valiendo lo
+cubre `corregir_variantes`.
+
+**Orden para producción.** Se pega SOLO `20260929045000`, entera, y después se publica la web. Con la web de `main` y la
+base nueva todo sigue igual (sin `fn_variantes_con_historia`, todas las variantes fijas); con la web nueva y la base de hoy,
+la ficha no ofrece corregir.
+
+## Actualización 2026-09-29: revisión de la integración
+
+**La mezcla «Sin color» + colores pasa a ser un candado de la tabla (T5, reescrito arriba).** Una réplica de producción
+mostró que el censo del Conteo (`censo_crear_variante`, SECURITY DEFINER) le creaba una Negro S a una prenda «Sin color»
+y desde ahí la ficha no guardaba nada de esa prenda, ni un precio: la regla vivía solo al final de
+`catalogo_actualizar_producto` y miraba la prenda entera. Ahora la cumple `variantes_sin_mezcla_de_color` en todo camino,
+por fila y «no empeora»; la ficha y el Conteo lo dicen antes o con su frase. La consulta ANTES DE PEGAR suma
+`mezcladas` (las prendas que el censo alcanzó a mezclar hasta hoy): no impide pegar, porque esas prendas se siguen
+guardando.
+
+**En la ficha.** (1) La talla de toda variante nueva o corregida se revisa contra la categoría ELEGIDA antes de abrir la
+hoja (cambiar de categoría después de agregar una talla dejaba abrir la hoja y la base rechazaba todo); `ProductoForm`
+arma la lista de problemas una vez y la sección la recibe. (2) Tras un guardado a medias, la barra dice «Lo demás ya
+quedó guardado; falta esto», no «Aún no se guardó nada». (3) Si no se pudo saber qué costos vienen de compras, la nota lo
+dice (como la ficha de `main`), en vez de afirmar que «ya entraron por Compras». (4) «Descartar» (y su «Deshacer»)
+vuelve a nacer la sección de variantes: «Cambiar en bloque» ya no afirma un precio que se descartó. (5) Textos: el grupo
+de un color recién agregado dice «Cambiar color» y su hoja habla en plural; «Corregir» nombra variantes y prendas por su
+nombre («estas 4 variantes (19 prendas)», «etiquetas de campaña» / «etiquetas de precio»); el aviso de desactivar ya no
+manda a trasladar (activo es de la variante, no de la sede); el bloqueo de líder nombra solo lo que cuenta (D-136, T7).
+(6) La hoja «Corregir» abre con el foco en la hoja (`<Modal focoEnLaHoja>`): en el celular el combo de color abría su
+lista hacia arriba y tapaba la advertencia de usar «Agregar color».
+
+**Cómo se probó.** Base desde cero y réplica de producción (main con el 0258, sin esta; después esta pegada dos veces con
+`psql -1`, con una prenda ya mezclada por el censo antes de pegar): las nueve huellas de DESPUÉS DE PEGAR iguales en las
+dos; en la réplica, la ficha de `main` guarda el precio de la prenda ya mezclada y un censo nuevo que mezclaría se
+rechaza con `mezcla_sin_color`. `pnpm pruebas:corregir-variantes` 56/56 (suma el censo, la corrección suelta, postgres y
+«no empeora»).

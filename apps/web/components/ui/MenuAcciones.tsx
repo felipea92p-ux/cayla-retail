@@ -9,7 +9,7 @@ export type ItemMenu = {
   onSelect: () => void;
   /** Baja definitiva o algo que no se deshace solo: el texto va en rojo profundo. */
   peligro?: boolean;
-  /** La opción se ve pero no se elige, y dice por qué debajo («ya se vendió: solo un líder la corrige», ADR-0257). Sigue
+  /** La opción se ve pero no se elige, y dice por qué debajo («ya se vendió: solo un líder la corrige», ADR-0263). Sigue
    *  alcanzable con las flechas (`aria-disabled`, no `disabled`): un lector de pantalla también tiene que oír el porqué. */
   motivo?: string;
 };

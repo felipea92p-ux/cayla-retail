@@ -11,6 +11,7 @@ import {
   nombreVariante,
   puedeQuedarSinColor,
   textoChoque,
+  todasNuevas,
   unidadesEnStock,
   vistaPreviaCorreccion,
   type Destino,
@@ -23,11 +24,12 @@ import { ElegirUnColor, PieModal, SIN_COLOR, VistaPreviaCodigos, type ContextoFi
 // único error caro de esta pantalla (se vendieron 20 Negro S, llega Azul y alguien le cambia el color en vez de
 // agregarlo: el análisis diría que se vendieron 20 Azul). La corrección conserva id, stock, historia y etiquetas; el
 // código se recalcula y el viejo sigue sonando (D-137). Si cae sobre una combinación que ya existe, no deja confirmar
-// y dice cuál es y qué hacer (D-138). Nada se guarda aquí: se aplica en la ficha y viaja con «Guardar cambios».
+// y dice cuál es y qué hacer (D-138). Nada se guarda aquí: se aplica en la ficha y viaja con «Revisar y guardar».
 //
 // Corrigiendo UN eje (el chip de un color o de una talla, «Corregir color») no se ofrece el valor que ya tiene: la
-// pregunta es «¿cuál es el de verdad?», y elegir el mismo apagaba el botón sin decir por qué. Para una fila NUEVA
-// (todavía no existe) el mismo modal es «Cambiar»: no hay stock ni historia que conservar.
+// pregunta es «¿cuál es el de verdad?», y elegir el mismo apagaba el botón sin decir por qué. Si TODO lo que se toca es
+// nuevo (una fila nueva, o el grupo de un color recién agregado) el mismo modal es «Cambiar color» / «Cambiar talla»: no
+// hay stock ni historia que conservar, y el botón que lo abre dice el mismo verbo (`todasNuevas`).
 
 export type EjesCorreccion = "color" | "talla" | "ambos";
 
@@ -62,7 +64,7 @@ export function CorregirVarianteModal({
   const [talla, setTalla] = useState<string | null>(ejes === "ambos" ? tallaActual : null);
   // Se eligió algo (para decir «es el que ya tiene» solo después de elegir, no al abrir).
   const [tocado, setTocado] = useState(false);
-  const nuevas = afectadas.length > 0 && afectadas.every((f) => !f.guardada);
+  const nuevas = todasNuevas(afectadas);
 
   const tocaColor = ejes !== "talla";
   const tocaTalla = ejes !== "color";
@@ -91,17 +93,22 @@ export function CorregirVarianteModal({
   const esElQueTiene = tocado && sinCambio;
 
   const cuantas = afectadas.length;
-  const cuales = cuantas === 1 ? "esta prenda" : `estas ${cuantas} prendas`;
+  // Cada cosa por su nombre (revisión 2026-09-28): una VARIANTE es una fila (Negro S); una PRENDA es una unidad física
+  // (las 19 u. de la tienda). «Estas 4 prendas (19 u.)» se leía como 4 unidades, y el resto de la ficha llama «la prenda»
+  // al producto.
+  const prendas = unidades ? ` (${unidades} ${unidades === 1 ? "prenda" : "prendas"})` : "";
+  const cuales = cuantas === 1 ? `esta variante${prendas}` : `estas ${cuantas} variantes${prendas}`;
   const deQue = ejes === "color" ? "de otro color" : ejes === "talla" ? "de otra talla" : "de otro color o de otra talla";
   const otroGesto = ejes === "talla" ? "«Agregar talla»" : ejes === "color" ? "«Agregar color»" : "«Agregar color» o «Agregar talla»";
-  // El mismo verbo que el botón que lo abre: «Corregir color», «Corregir talla»; «Cambiar» solo para una fila nueva.
-  const titulo = nuevas
-    ? "Cambiar color o talla"
-    : ejes === "color"
-      ? "Corregir color"
-      : ejes === "talla"
-        ? "Corregir talla"
-        : "Corregir color o talla";
+  // El mismo verbo y el mismo eje que el botón que lo abre: «Corregir color», «Corregir talla»; «Cambiar color» si todo lo
+  // que se toca es nuevo (el grupo de un color recién agregado, o una fila nueva).
+  const verbo = nuevas ? "Cambiar" : "Corregir";
+  const titulo = ejes === "color" ? `${verbo} color` : ejes === "talla" ? `${verbo} talla` : `${verbo} color o talla`;
+  const subtitulo = !nuevas
+    ? "Para cuando se registró mal"
+    : cuantas === 1
+      ? "De una variante nueva, antes de guardarla"
+      : `De ${cuantas} variantes nuevas, antes de guardarlas`;
   const alcance =
     ejes === "color"
       ? `${n.color(colorActual)} · ${afectadas.map((f) => n.talla(f.tallaId) || "sin talla").join(", ")}`
@@ -118,16 +125,20 @@ export function CorregirVarianteModal({
           : "Es la que ya tiene: elige su color o su talla de verdad.";
 
   return (
-    <Modal titulo={titulo} subtitulo={nuevas ? "De una variante nueva, antes de guardarla" : "Para cuando se registró mal"} onClose={onClose} ancho="max-w-lg">
+    // Abre con el foco en la hoja, no en el buscador de color: en el celular, el combo abría su lista hacia ARRIBA al
+    // recibir el foco y tapaba entera la primera línea («Si llegó mercadería nueva, usa Agregar color»), que es la defensa
+    // contra el único error caro de esta pantalla. Primero se lee; el combo se abre al tocarlo.
+    <Modal titulo={titulo} subtitulo={subtitulo} onClose={onClose} ancho="max-w-lg" focoEnLaHoja>
       {(cerrar) => (
         <div className="space-y-4">
           {nuevas ? (
-            <p className="text-sm text-tinta/80">Todavía no existe: cambiarla no toca stock ni historia.</p>
+            <p className="text-sm text-tinta/80">
+              {cuantas === 1 ? "Todavía no existe: cambiarla no toca stock ni historia." : "Todavía no existen: cambiarlas no toca stock ni historia."}
+            </p>
           ) : (
             <p className="text-sm text-tinta/80">
-              Úsalo si {cuales}
-              {unidades ? ` (${unidades} u.)` : ""} en realidad {cuantas === 1 ? "es" : "son"} {deQue}: {cuantas === 1 ? "conserva" : "conservan"} su stock, su
-              historia y sus etiquetas. Si llegó mercadería nueva, usa {otroGesto}.
+              Úsalo si {cuales} en realidad {cuantas === 1 ? "es" : "son"} {deQue}: {cuantas === 1 ? "conserva" : "conservan"} su stock, su historia y sus
+              etiquetas de campaña. Si llegó mercadería nueva, usa {otroGesto}.
             </p>
           )}
           <p className="text-[12.5px] text-taupe">
@@ -190,7 +201,7 @@ export function CorregirVarianteModal({
 
           <PieModal
             onCancelar={cerrar}
-            texto={nuevas ? "Cambiar" : cuantas === 1 ? "Corregir" : `Corregir ${cuantas} variantes`}
+            texto={cuantas === 1 ? verbo : `${verbo} ${cuantas} variantes`}
             deshabilitado={sinCambio || !!choque || !!bloqueo}
             onConfirmar={() => {
               onConfirmar(destino);

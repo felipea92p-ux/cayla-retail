@@ -8,9 +8,9 @@ import { alcancesDeBloque, aplicarEnBloque, type CampoBloque, type FilaFicha, ty
 // Precio o costo en bloque: «Cambiar [Precio|Costo] de [Todas | Color: Negro | Talla: S] a [monto] · Aplicar». Es la
 // fila de grupo de Shopify («si cambias el precio del grupo, cambia en todas sus variantes») y el «Price extra» de Odoo,
 // sin tener que entender ninguno de los dos: se lee como una frase. Aplica a las activas (y nuevas) del alcance; el costo
-// no toca las que ya lo traen de compras, y lo dice. Nada se guarda: queda en la ficha hasta «Guardar cambios».
+// no toca las que ya lo traen de compras, y lo dice. Nada se guarda: queda en la ficha hasta «Revisar y guardar».
 //
-// Un monto escrito y NO aplicado se avisa hacia afuera (`onPendiente`): «Guardar cambios» no lo deja perderse en silencio
+// Un monto escrito y NO aplicado se avisa hacia afuera (`onPendiente`): «Revisar y guardar» no lo deja perderse en silencio
 // (revisión 2026-09-28: se escribía 79.90 para las XL, se guardaba otro cambio y las XL seguían al precio viejo).
 
 export function CambiarEnBloque({
@@ -53,7 +53,7 @@ export function CambiarEnBloque({
     const que = campo === "precio" ? "Precio" : "Costo";
     const partes = [`${que} puesto en ${r.aplicadas} ${r.aplicadas === 1 ? "variante" : "variantes"}`];
     if (r.fijas > 0) partes.push(`${r.fijas} no ${r.fijas === 1 ? "cambia" : "cambian"}: su costo viene de compras`);
-    setResultado({ texto: `${partes.join(" · ")}. Se guarda con «Guardar cambios».`, error: false });
+    setResultado({ texto: `${partes.join(" · ")}. Se guarda con «Revisar y guardar».`, error: false });
     escribir("");
   }
 

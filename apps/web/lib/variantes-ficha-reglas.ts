@@ -1,6 +1,7 @@
 /**
- * Las variantes en la ficha de una prenda que YA existe (ADR-0257): corregir su color o su talla, agregar colores y
- * tallas, cambiar precio o costo en bloque y decir en palabras qué va a pasar al guardar. Puro: sin React ni red.
+ * Las variantes en la ficha de una prenda que YA existe (ADR-0263): corregir su color o su talla, agregar colores y
+ * tallas, cambiar precio o costo en bloque y traducir todo eso a la cuenta de «qué va a cambiar» del guardado en dos
+ * tiempos (ADR-0257, `variantesParaResumen`). Puro: sin React ni red.
  *
  * EL PROBLEMA. Hasta el 2026-09-28 la ficha era una lista de filas sueltas: el color y la talla de una variante que ya
  * existía eran de solo lectura (D-133), agregar Azul a una prenda S/M/L eran tres filas escritas a mano, y el alta —que
@@ -15,8 +16,8 @@
  * CONTRATO
  *   PROMETE: dado el estado local de las filas, decir qué se ve en cada grupo de color, qué corrección choca con otra
  *            variante (D-138, «Sin color» cuenta como un color), qué viaja en `p_variantes` y en qué orden (las claves
- *            de identidad SOLO en las corregidas), qué falta para guardar y qué va a pasar al guardar, en palabras.
- *   ASUME:   la base es la que manda (`fn_corregir_identidad_variante`, 20260928235900): lo de aquí es para avisar
+ *            de identidad SOLO en las corregidas), qué falta para guardar y cómo cuenta cada fila en la barra y la hoja.
+ *   ASUME:   la base es la que manda (`fn_corregir_identidad_variante`, 20260929045000): lo de aquí es para avisar
  *            ANTES y mostrar lo mismo que va a quedar (código previsto, fotos y temporada que siguen al color). Si
  *            algo de aquí se equivoca, la base rechaza y la ficha muestra su frase.
  *   NO HACE: no lee ni escribe en la base; no decide permisos (el «solo líder» lo exige la base con la cuenta);
@@ -24,6 +25,7 @@
  */
 
 import { claveCelda, codigoVariantePrevisto, margenPorcentaje } from "./alta-producto";
+import type { VarianteFicha } from "./producto-cambios-reglas";
 import { compararTallas } from "./tallas";
 import { SIN_PROPIA } from "./temporada-reglas";
 
@@ -110,7 +112,7 @@ export function filasDeProducto(variantes: readonly VarianteOrigen[], n: Nombres
   return [...variantes]
     .sort((a, b) => rango(a.colorCodigo).localeCompare(rango(b.colorCodigo), "es") || compararTallas(n.talla(a.tallaId), n.talla(b.tallaId)))
     .map((v) => {
-      // Con dos decimales (59.90, no 59.9): se lee como un precio. Comparar para «¿cambió?» es por número (`mismoMonto`).
+      // Con dos decimales (59.90, no 59.9): se lee como un precio. Comparar para «¿cambió?» es por número (`resumenDeCambios`, lib/producto-cambios-reglas.ts).
       const precio = v.precio.toFixed(2);
       const costo = v.costo === null ? "" : v.costo.toFixed(2);
       return {
@@ -130,7 +132,8 @@ export function filasDeProducto(variantes: readonly VarianteOrigen[], n: Nombres
         codigosBarras: v.codigosBarras,
         precio,
         costo,
-        // Sin saber si es oficial (la migración aún no está), se trata como oficial: es lo que no puede pisar nada.
+        // Sin saber si es oficial (la migración aún no está, o la lectura falló), se trata como oficial: es lo que no puede
+        // pisar nada. La ficha lo dice aparte (`costoSinComprobar`), para no afirmar que «ya entró por Compras».
         costoFijo: v.costoOficial !== false,
         activo: v.activo,
         etiquetaIds: v.etiquetaIds,
@@ -257,6 +260,12 @@ export function unidadesEnStock(filas: readonly FilaFicha[], estado: Readonly<Re
 // Corregir (D-136 · D-137 · D-138)
 // ---------------------------------------------------------------------------
 
+/** Todas son nuevas (todavía no existen): cambiarlas no es «corregir» nada, es «cambiar» (el botón, el chip y el modal
+ *  dicen el mismo verbo). Una sola que ya exista y el gesto es «Corregir». */
+export function todasNuevas(filas: readonly FilaFicha[]): boolean {
+  return filas.length > 0 && filas.every((f) => !f.guardada);
+}
+
 /** ¿Esta fila (que ya existe) tiene otro color o talla que en la base? */
 export function corregida(f: FilaFicha): boolean {
   return !!f.guardada && (f.colorCodigo !== f.guardada.colorCodigo || f.tallaId !== f.guardada.tallaId);
@@ -348,8 +357,11 @@ export function textoChoque(c: Choque, destino: Destino, filas: readonly FilaFic
 }
 
 /**
- * D-136: si alguna de estas variantes ya se vendió (o una clienta la apartó) y la cuenta no es de un líder, el porqué en
- * palabras; `null` = se puede. Sin saber (`estado` null: la función no está en la base) se permite y decide la base.
+ * D-136: si alguna de estas variantes ya salió con una clienta (una venta, una separación con abonos en Apartados o la
+ * prenda que se llevó en un cambio: `EstadoVariante.vendida`) y la cuenta no es de un líder, el porqué en palabras;
+ * `null` = se puede. Sin saber (`estado` null: la función no está en la base) se permite y decide la base.
+ * La frase nombra SOLO lo que cuenta, igual que la base (`fn_corregir_identidad_variante`): «Apartar» de Existencias
+ * (sin dinero, la fila muestra «· N ap.») no bloquea, y decir «o una clienta la apartó» contradecía a esa misma fila.
  */
 export function bloqueoPorVenta(
   filas: readonly FilaFicha[],
@@ -362,7 +374,7 @@ export function bloqueoPorVenta(
   if (vendidas.length === 0) return null;
   const nombres = vendidas.map((f) => f.guardada?.codigo ?? nombreVariante(f, n));
   const lista = nombres.length <= 3 ? nombres.join(", ") : `${nombres.slice(0, 2).join(", ")} y ${nombres.length - 2} más`;
-  return `${lista} ya se ${vendidas.length === 1 ? "vendió" : "vendieron"} (o una clienta la apartó): solo un líder corrige su color o su talla.`;
+  return `${lista} ya ${vendidas.length === 1 ? "salió" : "salieron"} con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.`;
 }
 
 /** «Sin color» se ofrece al corregir solo si no deja a la prenda mezclando: todas las demás activas ya son «Sin color». */
@@ -419,7 +431,7 @@ export function vistaPreviaCorreccion(
 // Nada se mueve «gesto a gesto». Todo lo que tiene color —una foto guardada, una recién subida, la temporada elegida a
 // mano para un color— se guarda con su COLOR DE ORIGEN (un color de lo guardado) y se ubica en cada pintada con las
 // mudanzas que la base haría HOY (`mudanzasAlGuardar`). Así «Deshacer» una corrección lo devuelve todo solo: la
-// integración de ADR-0257 lo hizo para las fotos guardadas y la revisión del 2026-09-28 encontró el mismo desfase en las
+// integración de ADR-0263 lo hizo para las fotos guardadas y la revisión del 2026-09-28 encontró el mismo desfase en las
 // fotos nuevas y en la temporada elegida a mano (se quedaban en el color en que se fundieron y se guardaban ahí).
 // ---------------------------------------------------------------------------
 
@@ -431,7 +443,7 @@ export type Mudanza = readonly [string, string | null];
  * las variantes en el orden de `payloadVariantes` y, tras cada una, si su color viejo ya no lo tiene ninguna variante que
  * EXISTA (activa o no; las nuevas todavía no se crearon), sus fotos y su temporada pasan al color nuevo.
  *
- * Se calcula SIEMPRE desde lo guardado, no gesto a gesto (integración ADR-0257). Gesto a gesto había dos diferencias con
+ * Se calcula SIEMPRE desde lo guardado, no gesto a gesto (integración ADR-0263). Gesto a gesto había dos diferencias con
  * la base: (1) «Deshacer» después de fundir un color en otro que ya existía (Negro S → Azul S con un Azul M) no devolvía
  * las fotos del Negro —el Azul no desaparecía— y el guardado las mandaba como Azul sin que nadie lo pidiera; (2) corregir
  * todo el Negro a Azul y en el mismo guardado agregar una Negro M nueva: la ficha veía que el Negro seguía (por la nueva)
@@ -673,6 +685,28 @@ export function costoEfectivo(f: FilaFicha): string {
   return f.costo;
 }
 
+/**
+ * ¿Se pudo saber qué costos vienen de compras? `costoOficial` llega `null` cuando `fn_variantes_con_costo_oficial` falló
+ * (red, permiso) o no está en la base: todas quedan fijas (`filasDeProducto`) y la ficha tiene que decir POR QUÉ, no que
+ * «ya entraron por Compras» (la ficha de `main` lo distinguía; la integración de ADR-0263 lo había perdido).
+ */
+export function costosSinComprobar(variantes: readonly Pick<VarianteOrigen, "costoOficial">[]): boolean {
+  return variantes.some((v) => v.costoOficial === null);
+}
+
+/** La nota bajo las variantes cuando hay costos que no se tocan, y el porqué de la celda de uno de ellos. */
+export function textosCostoFijo(sinComprobar: boolean): { nota: string; celda: string } {
+  return sinComprobar
+    ? {
+        nota: "No se pudo comprobar qué costos ya vienen de compras, así que por ahora no se corrigen aquí.",
+        celda: "No se pudo comprobar si este costo ya viene de compras: por ahora no se corrige aquí.",
+      }
+    : {
+        nota: "El costo de una variante que ya entró por Compras o por el Taller es su promedio ponderado: no se corrige a mano. Hasta su primera compra, sí.",
+        celda: "Viene de sus compras y del Taller (promedio ponderado): no se corrige a mano.",
+      };
+}
+
 /** Margen sobre el precio, en %. `null` sin costo o sin precio (sin costo no hay margen: antes el vacío mostraba 100 %). */
 export function margenDeFila(f: FilaFicha): number | null {
   const costo = costoEfectivo(f);
@@ -781,21 +815,9 @@ export function payloadVariantes(filas: readonly FilaFicha[]): VariantePayload[]
 }
 
 const mismoConjunto = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x) => b.includes(x));
-const mismoMonto = (a: string, b: string) => normalizarMonto(a) === normalizarMonto(b);
 
-function precioCambio(f: FilaFicha): boolean {
-  return !!f.guardada && !mismoMonto(f.precio, f.guardada.precio);
-}
-function costoCambio(f: FilaFicha): boolean {
-  return !!f.guardada && !f.costoFijo && f.costo.trim() !== "" && !mismoMonto(f.costo, f.guardada.costo);
-}
 function etiquetasCambiaron(f: FilaFicha): boolean {
   return f.guardada ? !mismoConjunto(f.etiquetaIds, f.guardada.etiquetaIds) : f.etiquetaIds.length > 0;
-}
-
-/** ¿Hay algo de las variantes que guardar? */
-export function hayCambiosVariantes(filas: readonly FilaFicha[]): boolean {
-  return filas.some((f) => !f.guardada || corregida(f) || f.activo !== f.guardada.activo || precioCambio(f) || costoCambio(f) || etiquetasCambiaron(f));
 }
 
 /** Las etiquetas que cambiaron, para UNA llamada a `actualizar_variantes_etiquetas`. Solo filas con id (las nuevas lo
@@ -812,7 +834,7 @@ export function marcarEtiquetasGuardadas(filas: readonly FilaFicha[]): FilaFicha
 /** Una variante como la devuelve la base tras guardar (`select id, color_codigo, talla_id, codigo from variantes`). */
 export type VarianteDeLaBase = { id: string; color_codigo: string | null; talla_id: string | null; codigo: string | null };
 
-/** Las corregidas que la base NO dejó como se pidió: con la base sin el SQL de ADR-0257, la corrección se ignora sin error. */
+/** Las corregidas que la base NO dejó como se pidió: con la base sin el SQL de ADR-0263, la corrección se ignora sin error. */
 export function correccionesSinAplicar(filas: readonly FilaFicha[], deLaBase: readonly VarianteDeLaBase[]): FilaFicha[] {
   return filas.filter((f) => {
     if (!corregida(f)) return false;
@@ -824,7 +846,7 @@ export function correccionesSinAplicar(filas: readonly FilaFicha[], deLaBase: re
 /**
  * Tras un guardado principal bueno, la foto de la base pasa a ser lo «guardado»: las nuevas reciben su id (por su
  * combinación, que es única en la prenda) y lo corregido deja de estar pendiente. Así, si falla lo que sigue (etiquetas,
- * temporada) y se vuelve a pulsar «Guardar cambios», no se crean dos veces ni se corrigen dos veces. Las etiquetas quedan
+ * temporada) y se vuelve a pulsar «Revisar y guardar», no se crean dos veces ni se corrigen dos veces. Las etiquetas quedan
  * como estaban guardadas: todavía falta mandarlas.
  */
 export function consolidar(filas: readonly FilaFicha[], deLaBase: readonly VarianteDeLaBase[]): FilaFicha[] {
@@ -859,54 +881,59 @@ export function consolidar(filas: readonly FilaFicha[], deLaBase: readonly Varia
 
 const plural = (k: number, uno: string, varios: string) => (k === 1 ? uno : varios);
 
-function listaCorta(nombres: readonly string[]): string {
-  return nombres.length <= 4 ? nombres.join(", ") : `${nombres.slice(0, 3).join(", ")} y ${nombres.length - 3} más`;
-}
-
-/** Lo que el lateral dice que va a pasar, en palabras de tienda («3 variantes pasan de Sin color a Negro»). */
-export function resumenDeCambios(filas: readonly FilaFicha[], n: NombresFicha, estado: Readonly<Record<string, EstadoVariante>> | null): string[] {
-  const lineas: string[] = [];
-  const porColor = new Map<string, { de: string; a: string; k: number }>();
-  const porTalla = new Map<string, { de: string; a: string; k: number }>();
-  for (const f of filas.filter(corregida)) {
-    const g = f.guardada!;
-    const cambiaColor = f.colorCodigo !== g.colorCodigo;
-    const cambiaTalla = f.tallaId !== g.tallaId;
-    if (cambiaColor && cambiaTalla) {
-      lineas.push(`${nombreVariante(g, n)} pasa a ser ${nombreVariante(f, n)}`);
-    } else {
-      const [mapa, de, a] = cambiaColor
-        ? [porColor, n.color(g.colorCodigo), n.color(f.colorCodigo)]
-        : [porTalla, n.talla(g.tallaId) || "sin talla", n.talla(f.tallaId) || "sin talla"];
-      const k = `${de}→${a}`;
-      const previo = mapa.get(k);
-      mapa.set(k, { de, a, k: (previo?.k ?? 0) + 1 });
-    }
-  }
-  for (const { de, a, k } of porColor.values()) lineas.push(`${k} ${plural(k, "variante pasa", "variantes pasan")} de ${de} a ${a}`);
-  for (const { de, a, k } of porTalla.values()) lineas.push(`${k} ${plural(k, "variante pasa", "variantes pasan")} de talla ${de} a ${a}`);
-
-  const nuevas = filas.filter((f) => !f.guardada);
-  if (nuevas.length > 0) {
-    lineas.push(`${nuevas.length} ${plural(nuevas.length, "variante nueva", "variantes nuevas")} (${listaCorta(nuevas.map((f) => nombreVariante(f, n)))})`);
-  }
-  const reactivadas = filas.filter((f) => f.guardada && f.activo && !f.guardada.activo);
-  if (reactivadas.length > 0) {
-    lineas.push(`${reactivadas.length} ${plural(reactivadas.length, "vuelve", "vuelven")} a venderse (${listaCorta(reactivadas.map((f) => nombreVariante(f, n)))})`);
-  }
-  const apagadas = filas.filter((f) => f.guardada?.activo && !f.activo);
-  if (apagadas.length > 0) {
-    const u = unidadesEnStock(apagadas, estado);
-    const conStock = u && u > 0 ? ` (${plural(apagadas.length, "tiene", "tienen")} ${u} u.)` : "";
-    lineas.push(`${apagadas.length} se ${plural(apagadas.length, "desactiva", "desactivan")}${conStock}`);
-  }
-  const precios = filas.filter(precioCambio).length;
-  if (precios > 0) lineas.push(`Precio: ${precios} ${plural(precios, "cambia", "cambian")}`);
-  const costos = filas.filter(costoCambio).length;
-  if (costos > 0) lineas.push(`Costo: ${costos} ${plural(costos, "cambia", "cambian")}`);
-  const etiquetas = filas.filter((f) => f.guardada && etiquetasCambiaron(f)).length;
-  if (etiquetas > 0) lineas.push(`Etiquetas: cambian en ${etiquetas} ${plural(etiquetas, "variante", "variantes")}`);
-  return lineas;
+/**
+ * Las variantes como las compara `resumenDeCambios` de `lib/producto-cambios-reglas.ts` (ADR-0257, guardar en dos
+ * tiempos): la barra «Tienes N cambios sin guardar», la marca de cada fila y la hoja «Revisa y guarda los cambios» salen
+ * de UNA cuenta, y esta es la traducción de la sección de ADR-0263 a esa cuenta (antes, la sección tenía su propio
+ * resumen para un lateral que ya no existe: dos formas de contar lo mismo).
+ *
+ *   - `guardadas`: cómo está cada variante que YA existe en la base (su `guardada`). Tras un guardado principal bueno,
+ *     `consolidar` la actualiza: lo que ya quedó deja de contar y la barra dice solo lo que falta (etiquetas, temporada).
+ *   - `ahora`: lo que está en la ficha, en el MISMO orden que `filas` (el `indice` de cada cambio es el de su fila). Una
+ *     nueva va sin id («se agrega»); una corregida lleva su color y su talla nuevos con sus ejes, para que la hoja diga
+ *     «3 variantes pasan de Sin color a Negro»; el costo es el que se GUARDARÍA (`costoEfectivo`).
+ */
+export function variantesParaResumen(
+  filas: readonly FilaFicha[],
+  n: NombresFicha,
+  estado: Readonly<Record<string, EstadoVariante>> | null,
+): { guardadas: VarianteFicha[]; ahora: VarianteFicha[] } {
+  const identidad = (v: Identidad): VarianteFicha["identidad"] => ({
+    clave: `${v.colorCodigo ?? ""}|${v.tallaId ?? ""}`,
+    texto: nombreVariante(v, n),
+    ejes: {
+      color: { clave: v.colorCodigo ?? "", texto: n.color(v.colorCodigo) },
+      talla: { clave: v.tallaId ?? "", texto: n.talla(v.tallaId) || "sin talla" },
+    },
+  });
+  const guardadas = filas.flatMap((f): VarianteFicha[] =>
+    f.guardada && f.id
+      ? [
+          {
+            id: f.id,
+            nombre: nombreVariante(f.guardada, n),
+            activo: f.guardada.activo,
+            precio: f.guardada.precio,
+            costo: f.guardada.costo,
+            etiquetaIds: f.guardada.etiquetaIds,
+            identidad: identidad(f.guardada),
+          },
+        ]
+      : [],
+  );
+  const ahora = filas.map(
+    (f): VarianteFicha => ({
+      id: f.guardada ? f.id : null,
+      nombre: nombreVariante(f, n),
+      activo: f.activo,
+      precio: f.precio,
+      costo: costoEfectivo(f),
+      etiquetaIds: f.etiquetaIds,
+      identidad: identidad(f),
+      unidades: f.id && estado ? (estado[f.id]?.stock ?? 0) : null,
+    }),
+  );
+  return { guardadas, ahora };
 }
 
 export type ProblemaFicha = {
@@ -921,8 +948,26 @@ export type ProblemaFicha = {
 export const FRASE_MEZCLA_SIN_COLOR =
   "Esta prenda quedaría con variantes «Sin color» junto a otras con color. Ponle color a las que no lo tienen o desactívalas.";
 
-/** Lo que impide guardar (o avisa), antes de ir a la base. En orden: primero lo que bloquea. */
-export function problemasVariantes(filas: readonly FilaFicha[], n: NombresFicha): ProblemaFicha[] {
+/** Una prenda que YA venía mezclada (el censo del Conteo podía armarla antes de ADR-0263 T5): se avisa, no se frena. */
+export const FRASE_MEZCLA_PREVIA =
+  "Esta prenda ya tenía variantes «Sin color» junto a otras con color. Puedes guardar igual; para ordenarla, ponle color a las «Sin color» o desactívalas.";
+
+/** La categoría ELEGIDA en el formulario (puede no ser la guardada): la base valida contra ella la talla de toda variante
+ *  nueva o corregida, y rechaza el guardado ENTERO si una no está habilitada. */
+export type CategoriaElegida = {
+  /** Los ids de las tallas que habilita. */
+  tallasHabilitadas: readonly string[];
+  nombre?: string;
+  /** Es otra que la guardada: «vuelve a la categoría anterior» es una salida. */
+  cambio: boolean;
+};
+
+/**
+ * Lo que impide guardar (o avisa), antes de ir a la base. En orden: primero lo que bloquea. Con `categoria`, revisa además
+ * que la talla de cada variante nueva o corregida esté habilitada en ella (sin eso, cambiar de categoría después de agregar
+ * una talla dejaba abrir la hoja y la base rechazaba todo con «Esa talla no está habilitada…», sin decir qué fila era).
+ */
+export function problemasVariantes(filas: readonly FilaFicha[], n: NombresFicha, categoria?: CategoriaElegida): ProblemaFicha[] {
   const p: ProblemaFicha[] = [];
   if (filas.length === 0) return [{ texto: "Agrega al menos una variante con «Agregar color» o «Agregar talla».", bloquea: true }];
   for (const f of filas) {
@@ -942,9 +987,26 @@ export function problemasVariantes(filas: readonly FilaFicha[], n: NombresFicha)
     if (vistas.has(k)) p.push({ texto: `${nombreVariante(f, n)} está dos veces: quita o corrige una.`, bloquea: true, clave: f.clave });
     vistas.add(k);
   }
+  if (categoria) {
+    const habilitadas = new Set(categoria.tallasHabilitadas);
+    const donde = categoria.nombre ? `en ${categoria.nombre}` : "en la categoría elegida";
+    for (const f of filas) {
+      // Solo lo que la base va a validar: una nueva, o una talla corregida. Una que existe y no cambia de talla no se revisa.
+      const tallaQueSeValida = !f.guardada || f.tallaId !== f.guardada.tallaId;
+      if (!tallaQueSeValida || f.tallaId === null || habilitadas.has(f.tallaId)) continue;
+      const nombre = nombreVariante(f, n);
+      const salida = f.guardada ? `deshaz la corrección de ${nombre}` : `quita ${nombre}`;
+      const otra = categoria.cambio ? "o vuelve a la categoría anterior" : "o pide que la habiliten en Catálogo → Categorías";
+      p.push({ texto: `${n.talla(f.tallaId) || "Esa talla"} no está habilitada ${donde}: ${salida}, ${otra}.`, bloquea: true, clave: f.clave });
+    }
+  }
   const activas = filas.filter((f) => f.activo);
   if (activas.some((f) => f.colorCodigo === null) && activas.some((f) => f.colorCodigo !== null)) {
-    p.push({ texto: FRASE_MEZCLA_SIN_COLOR, bloquea: true });
+    // «No empeora», la misma regla que la base (`variantes_sin_mezcla_de_color`): frena solo si ESTE guardado crea, recolorea
+    // o reactiva una variante que queda en la mezcla. Una prenda que ya venía mezclada se sigue guardando (un precio) con
+    // un aviso; antes se bloqueaba entera y a quien no es líder no le quedaba salida.
+    const tocaLaRegla = (f: FilaFicha) => !f.guardada || f.colorCodigo !== f.guardada.colorCodigo || !f.guardada.activo;
+    p.push(activas.some(tocaLaRegla) ? { texto: FRASE_MEZCLA_SIN_COLOR, bloquea: true } : { texto: FRASE_MEZCLA_PREVIA, bloquea: false });
   }
   if (ordenDeGuardado(filas) === null) {
     p.push({ texto: "Dos variantes se intercambian el color o la talla: eso no se puede en un solo guardado. Deshaz una, guarda, y corrígela después.", bloquea: true });
@@ -992,14 +1054,16 @@ export function textoSedes(e: EstadoVariante): string {
 /**
  * Una fila que se desactiva con unidades lo dice en la fila (no bloquea: desactivar se permite siempre, Felipe). Dice la
  * verdad: desactivar NO saca las unidades del inventario —siguen en el stock de la ficha, en /productos y en el conteo—,
- * solo deja de venderlas (Vender ya no la encuentra). Si las prendas están, hay que moverlas; si no están, un ajuste.
+ * solo deja de venderlas (Vender ya no la encuentra). Y deja de venderlas en TODAS las sedes: `activo` es de la variante,
+ * no de la sede, así que trasladarlas antes no sirve (la receta vieja decía «trasládalas»). Si las prendas están, que se
+ * vendan antes o un ajuste las pase a otra variante; si no están, un ajuste las deja en 0.
  */
 export function avisoDesactivar(f: FilaFicha, estado: Readonly<Record<string, EstadoVariante>> | null): string | null {
   if (f.activo || !f.guardada?.activo || !f.id || !estado) return null;
   const e = estado[f.id];
   if (!e || e.stock <= 0) return null;
   const donde = e.sedes.length === 1 ? `en ${e.sedes[0].nombre}` : e.sedes.length > 1 ? `en ${e.sedes.length} sedes` : "";
-  return `Sus ${e.stock} u.${donde ? ` ${donde}` : ""} siguen en el inventario, pero ya no se podrán vender. Si existen, trasládalas o pide un ajuste antes; si no existen, pide un ajuste.`;
+  return `Sus ${e.stock} u.${donde ? ` ${donde}` : ""} siguen en el inventario, pero ya no se podrán vender en ninguna sede. Si existen, no la desactives todavía: véndelas o pide un ajuste que las pase a otra variante; si no existen, pide un ajuste para dejarla en 0.`;
 }
 
 /**
@@ -1010,7 +1074,7 @@ export function avisoDesactivar(f: FilaFicha, estado: Readonly<Record<string, Es
 export const NACEN_SIN_UNIDADES = "Nacen sin unidades: lo que llegó se registra al recibirlo, en «Recibir mercadería».";
 
 /**
- * El único círculo de candados que el orden de ADR-0257 T8 no cierra: una venta o un traslado de VARIAS tallas de esta
+ * El único círculo de candados que el orden de ADR-0263 T8 no cierra: una venta o un traslado de VARIAS tallas de esta
  * prenda (en otro orden que el id) en el mismo instante en que la ficha corrige esas tallas. Postgres lo corta con 40P01 y
  * deshace ENTERA a una de las dos: si la que cae es la ficha, no se guardó nada (ni la versión de la prenda se movió), así
  * que repetir la misma llamada es seguro. Se repite UNA vez —la otra operación ya tiene sus candados y termina en
@@ -1028,7 +1092,7 @@ export function esChoqueDeCandados(error: { code?: string | null } | null | unde
 }
 
 export const FRASE_CHOQUE_DE_CANDADOS =
-  "Otra operación de la tienda (una venta, un traslado) estaba usando estas mismas prendas en el mismo instante. No se guardó nada: vuelve a pulsar «Guardar cambios».";
+  "Otra operación de la tienda (una venta, un traslado) estaba usando estas mismas prendas en el mismo instante. No se guardó nada: vuelve a pulsar «Revisar y guardar».";
 
 /**
  * Un monto escrito en «Cambiar precio (o costo) en bloque» que no se aplicó: se perdería en silencio al guardar lo demás.

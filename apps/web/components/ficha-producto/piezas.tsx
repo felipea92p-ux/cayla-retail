@@ -6,7 +6,7 @@ import { RAYADO_FUERA } from "@/components/alta-producto/MatrizVariantes";
 import type { CeldaAlta, ColorAlta } from "@/lib/alta-producto";
 import type { EstadoVariante, NombresFicha } from "@/lib/variantes-ficha-reglas";
 
-// Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0257). Lo que comparten la sección y sus modales:
+// Piezas de la sección «Variantes» de la ficha de una prenda (ADR-0263). Lo que comparten la sección y sus modales:
 // cómo se nombra y se pinta un color, cómo se elige UNO (corregir), cómo se muestra el código que va a tener cada
 // variante y los dos montos con que nacen las nuevas. Las reglas viven en `lib/variantes-ficha-reglas.ts`.
 
@@ -23,7 +23,9 @@ export type ContextoFicha = {
   esLider: boolean;
   /** La cuenta ve el dinero de compras: sin eso no se muestra ni se toca el costo. */
   veCosto: boolean;
-  /** La base sabe corregir el color y la talla (tiene `fn_variantes_estado` y el resto del SQL de ADR-0257). Sin eso no
+  /** No se pudo saber qué costos vienen de compras (`costosSinComprobar`): todos quedan fijos y la ficha dice por qué. */
+  costoSinComprobar: boolean;
+  /** La base sabe corregir el color y la talla (tiene `fn_variantes_estado` y el resto del SQL de ADR-0263). Sin eso no
    *  se ofrece corregir: una base vieja ignoraba la corrección pero guardaba las fotos que se movieron con ella. */
   puedeCorregir: boolean;
 };

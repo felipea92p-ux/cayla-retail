@@ -28,30 +28,35 @@ el módulo todavía existe — este documento no se ha reescrito para reflejar V
 
 ---
 
-## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0257; D-136 a D-138) — web + migración `20260928235900` **SIN PEGAR (va ANTES de fusionar, tras retirar el ADR-0258 de producción)**; rama `claude/product-variant-editing-9307ed`
+## 🎨 Ficha de producto: editar variantes como matriz y corregir color o talla (2026-09-28, ADR-0263; D-136 a D-138) — web + migración `20260929045000` **SIN PEGAR (se pega ANTES de fusionar la web)**; rama `claude/product-variant-editing-9307ed`
 Pedido de Felipe (2026-09-28, captura de BOD-0003 «Body Amir», 3 variantes «Sin color» con 17 u. de carga inicial): «una vez
 creado el producto la edición es muy limitada… mejor de lo que haría Shopify». Reemplaza ADR-0243 D-133 (color, talla y código
-de solo lectura).
-- [x] Base: `fn_corregir_identidad_variante` (misma prenda, mal registrada: conserva id, stock e historia; vendida por venta,
-  separación o cambio → solo líder; choque con otra variante → aviso), código recalculado con el viejo sonando en `codigos_barras`,
-  fotos y temporada que siguen al color, índice `variantes_identidad_unica` NULLS NOT DISTINCT, candado de identidad en la tabla
-  (cierra el hueco 3 para variantes), historial de color/talla/código/activa, `fn_variantes_estado`, foto general en `fn_productos`.
+de solo lectura) y la regla del ADR-0258 («solo sin historia», D-139/D-140), integrado sobre `main` (Felipe: «Integrar sobre
+main»): se conserva el guardado en dos tiempos del #568 (ADR-0257) y la migración se construye encima del 0258 ya pegado.
+- [x] Base: `fn_corregir_identidad_variante` (misma firma que la del 0258, ahora SECURITY DEFINER; misma prenda, mal registrada:
+  conserva id, stock e historia; vendida por venta, separación o cambio → solo líder; choque con otra variante → aviso), código
+  recalculado con el viejo sonando en `codigos_barras`, fotos y temporada que siguen al color, índice `variantes_identidad_unica`
+  NULLS NOT DISTINCT, candado de identidad en la tabla (el disparador del 0258, renombrado y con la regla nueva), historial de
+  color/talla/código/activa (reemplaza el bloque del 0258), `fn_variantes_estado`, foto general en `fn_productos`; se borran
+  `fn_variantes_con_historia` y `fn_identidad_variante_sin_historia`.
 - [x] Ficha: variantes por ejes y agrupadas por color; «Corregir color/talla» separado de «Agregar color/talla» (matriz del alta,
-  tallas habilitadas, etiquetas de las activas, «nacen sin unidades»); precio/costo en bloque; stock por sede; el lateral dice en
-  palabras qué se guarda; guardia «¿Salir sin guardar?» compartida y barra fija de `main` conservadas.
-- [x] Pruebas: `pnpm pruebas:corregir-variantes` 44/44 (carreras reales con COMMIT y mutación) en el CI; 16 suites de catálogo en
-  verde sobre una base rehecha desde cero con `main` fusionado; web 215 archivos / 152.384 pruebas; revisión adversarial de 5
-  lentes: 17 hallazgos confirmados, todos resueltos.
-- [ ] **Pegar en producción ANTES de fusionar, en dos partes y en este orden** (Felipe eligió ADR-0257 sobre ADR-0258, que
-  ya estaba pegado: ver la «Actualización» del ADR):
-  1. `scripts/migraciones/retirar-adr-0258-de-produccion.sql` — sola (trae `drop trigger`). Deshace lo del ADR-0258 y aborta si
-     las dos funciones no vuelven a su huella de la mañana.
-  2. `supabase/migrations/20260928235900_corregir_color_y_talla_de_variantes.sql` — sola; toma `access exclusive` sobre
-     `variantes` con `lock_timeout` de 3 s (si la tienda la tiene tomada, falla limpio y se vuelve a pegar).
-  Con la web nueva y la base vieja, la ficha no ofrece corregir (lo dice); con la web vieja y la base nueva, todo sigue igual.
-  Después: refrescar el diccionario. **El pegado automático desde Claude Code lo bloqueó el clasificador de seguridad
-  (2026-09-28):** lo pega Felipe en el SQL Editor, o da el permiso para que se pegue por el conector.
-- [ ] **Cerrar el PR #572 (ADR-0258)** sin fusionar su SQL, para que nadie lo vuelva a pegar.
+  tallas habilitadas, etiquetas de las activas, «nacen sin unidades»); precio/costo en bloque; stock por sede; la barra «Tienes N
+  cambios sin guardar» y la hoja «Revisa y guarda los cambios» del #568 cuentan las variantes con una sola cuenta
+  (`variantesParaResumen`); lo pendiente se mide contra lo que tiene la base.
+- [x] Pruebas: `pnpm pruebas:corregir-variantes` 50/50 (carreras reales con COMMIT, mutación y la ficha de `main` sobre la base
+  nueva) en el CI, en una base desde cero y en una réplica de producción (`main` con el 0258 + esta), con `retail` idéntico entre
+  las dos; suites de catálogo en verde; revisión adversarial de 5 lentes: 17 hallazgos confirmados, todos resueltos. Se retiró
+  `pnpm pruebas:corregir-identidad-variante` (la del 0258): afirmaba la regla que se reemplaza.
+- [ ] **Pegar en producción ANTES de fusionar la web: SOLO `supabase/migrations/20260929045000_corregir_siempre_color_y_talla_de_variantes.sql`,
+  entera y sola.** Primero la consulta de ANTES DE PEGAR de su cola (solo lectura: huellas del 0258 y 0 repetidas); después
+  pegarla (toma `access exclusive` sobre `variantes` con `lock_timeout` de 3 s: si la tienda la tiene tomada, falla limpia y se
+  vuelve a pegar); después la consulta de DESPUÉS DE PEGAR (las ocho huellas). No hay script de limpieza del 0258 (ya no
+  existe) y `20260928235500` NO se vuelve a pegar: devolvería el candado «solo sin historia». Con la web nueva y la base de hoy,
+  la ficha no ofrece corregir (lo dice); con la web de `main` y la base nueva, todo sigue igual. Después: refrescar el
+  diccionario. **El pegado automático desde Claude Code lo bloqueó el clasificador de seguridad (2026-09-28):** lo pega Felipe
+  en el SQL Editor, o da el permiso para que se pegue por el conector.
+- [ ] **Coordinar con el PR #580 (ADR-0270):** su `20260929020000` reescribe `fn_productos` entera. Si en producción se pega
+  DESPUÉS de esta, borra el parche de la foto general; quien pegue el segundo revisa la huella de `fn_productos`.
 - [ ] **Abierto (T8):** una venta de dos tallas en orden inverso al id contra la corrección de esas dos tallas todavía puede dar
   40P01; la ficha reintenta una vez y, si vuelve, lo dice con palabras. Cerrarlo del todo es que `fn_bloquear_en_orden` tome
   `for key share` en Ventas, Traslados, Compras y Producción (decisión de varios módulos).
@@ -62,6 +67,14 @@ de solo lectura).
   - «+ Agregar color» ▸ Azul marino: nacen S/M/L con el precio de la prenda y la etiqueta «Nuevo»; «Nacen sin unidades».
   - Con una integrante no líder, «Corregir» una variante ya vendida: el menú la muestra apagada con su porqué.
 
+## 🎨 Color y talla de una variante se corrigen mientras no tenga historia (2026-09-28, ADR-0258) — web + migración `20260928235500` **EN PRODUCCIÓN** (pegada por Felipe y verificada el 2026-09-28); rama `claude/product-sizes-colors-edit-a83b77`
+
+- [x] Migración: `fn_variantes_con_historia` (por llave foránea, se adapta sola a tablas nuevas), candado `variantes_identidad_sin_historia` en la tabla (cierra el hueco 3), `fn_corregir_identidad_variante` (recalcula el código y renombra su código de barras) y parches por ancla de `catalogo_actualizar_producto` y `fn_registrar_cambio_producto`. Anclas verificadas contra la definición viva de producción el 2026-09-28.
+- [x] Ficha: la variante sin historia muestra combos de color y talla y el código que le dará la base; la que tiene historia sigue fija. Sin la migración, todo sigue fijo como antes.
+- [x] `pnpm pruebas:corregir-identidad-variante` (11 casos, en CI).
+- [x] Migración pegada en producción y verificada (2026-09-28): funciones, candado y los dos parches; una sola firma de `catalogo_actualizar_producto`. 86 de 192 variantes quedan corregibles.
+- [ ] **Sin probar con cuenta real:** corregir una variante recién creada en la ficha y ver el código nuevo; la pantalla solo se vio con datos de prueba y la base con transacciones que se deshacen.
+- [ ] **Rama `claude/product-variant-editing-9307ed`** (reservó otro «ADR-0254» con D-136 a D-138: corregir siempre, y solo líder si se vendió): choca con esta. Felipe eligió «solo sin historia» el 2026-09-28; esa rama tiene que volver a preguntarle antes de seguir.
 ## 🧮 «Ajustar inventario» decía 12 afuera y 78 adentro (2026-09-28) — solo web, sin migración; rama `claude/informacion-contradictoria-fb2275`
 Captura de Felipe: la fila «Test de Produto 2» (Celeste) de Existencias decía 12 en el piso y el modal mostraba los
 cuatro colores (78 en producción). La fila es una prenda (modelo + color) y suma lo libre; el modal cargaba el modelo

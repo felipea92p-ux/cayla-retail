@@ -24,6 +24,10 @@ type Props = {
   alCerrarEnfocar?: RefObject<HTMLElement | null>;
   /** Escape, el velo y la ✕ no cierran mientras guarda algo sin token: cerrar y reabrir dejaría enviarlo dos veces. */
   bloqueado?: boolean;
+  /** Al abrir, el foco va a la hoja y no a su primer campo. Para una hoja cuya primera línea hay que LEER antes de elegir:
+      un combo (`ComboBuscable`) abre su lista al recibir el foco y, en el celular, la abre hacia arriba tapando esa línea
+      («Corregir color», ADR-0263). El foco sigue atrapado en la hoja y Tab entra al primer campo. */
+  focoEnLaHoja?: boolean;
   /** «papel» (Por pagar, 2026-09-19, spike): el panel en `papel` con borde fino y SIN sombra —la profundidad viene del tiempo, no del
       espacio (regla v3.1)— y una ✕ para cerrar arriba a la derecha. Sin esto, el panel de siempre (`crema` con sombra). */
   variante?: "papel" | "hoja" | "camara" | "ticket";
@@ -47,8 +51,9 @@ type Props = {
 // a mano el overlay (`fixed inset-0 ...`) y ninguno atrapaba el foco ni cerraba con
 // Escape — Radix Dialog resuelve eso una sola vez; el look sigue siendo 100% CAYLA
 // (Radix no trae estilo propio, solo comportamiento de accesibilidad).
-export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, variante }: Props) {
+export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm", alCerrarEnfocar, bloqueado = false, focoEnLaHoja = false, variante }: Props) {
   const [cerrando, setCerrando] = useState(false);
+  const hoja = useRef<HTMLDivElement>(null);
 
   // Cierre en dos tiempos: se anima la salida y recién ahí se le avisa al padre
   // que desmonte. Sin esto, un modal que entra suave se iba de un corte seco —
@@ -105,6 +110,7 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
           }`}
         >
           <Dialog.Content
+            ref={hoja}
             className={`pointer-events-auto relative w-full outline-none ${
               variante === "camara"
                 ? "flex h-dvh flex-col overflow-hidden bg-tinta"
@@ -118,6 +124,15 @@ export function Modal({ titulo, subtitulo, onClose, children, ancho = "max-w-sm"
               cerrando ? "anim-modal-sale" : "anim-modal-entra"
             } cascada-modal`}
             onEscapeKeyDown={alEscape}
+            // Radix enfoca el primer control al abrir; con `focoEnLaHoja`, la hoja misma (Radix le da tabIndex -1).
+            onOpenAutoFocus={
+              focoEnLaHoja
+                ? (e) => {
+                    e.preventDefault();
+                    hoja.current?.focus({ preventScroll: true });
+                  }
+                : undefined
+            }
             // Radix dispara esto al desmontar el diálogo; `preventDefault` evita que
             // su default (enfocar el trigger) pise el foco que se pone acá.
             onCloseAutoFocus={

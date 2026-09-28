@@ -46,7 +46,7 @@ Reglas que valen para cualquier lista larga del alta (volumen de producción al 
   nuevo, y un proveedor nuevo para una marca que ya existe (`crear_marca` suma el vínculo en `marca_proveedores` si la
   marca existe; `registrar_proveedor` antes si el proveedor es nuevo). Una pareja que ya existe se avisa y no se
   duplica.
-- **Color** (`NuevoColorAlta`): `POST /api/productos/colores` (el mismo de Catálogo → Atributos) con nombre, código
+- **Color** (`NuevoColorAlta`, con el mismo `SelectorColor` de Atributos: muestra + #hex o RGB; actualización 2026-09-28): `POST /api/productos/colores` (el mismo de Catálogo → Atributos) con nombre, código
   sugerido (`sugerirCodigoColor`), familia y tono; nace pendiente si quien lo crea no es Líder, y se puede usar ya.
 - **Tejido, patrón o talla del catálogo que la categoría no ofrece**: se ofrece a la categoría (`guardarEjesCategoria`)
   desde la hoja, con su combo Responsable, igual que el «Ver más» de `main`. La base exige que la talla esté en la

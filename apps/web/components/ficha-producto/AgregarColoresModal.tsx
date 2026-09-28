@@ -114,8 +114,14 @@ export function AgregarColoresModal({
 
   const faltaPrimero = eraSinColor && !colorDeLasQueTiene;
   const puede = !noSePuedeCorregir && !faltaPrimero && !choque && !bloqueo && (combos.length > 0 || !!destinoPrimero) && (nacen === 0 || precioOk);
-  // Sin colores nuevos, lo único que hace es darles color a las que ya tiene: eso es corregir (se registraron sin color).
-  const texto = combos.length === 0 ? "Corregir el color" : `Agregar ${combos.length} ${combos.length === 1 ? "variante" : "variantes"}`;
+  // Sin colores nuevos, en una prenda «Sin color» lo único que hace es darles color a las que ya tiene: eso es corregir (se
+  // registraron sin color). En una prenda con colores, sin elegir nada todavía, el botón dice lo que hará: agregar.
+  const texto =
+    combos.length > 0
+      ? `Agregar ${combos.length} ${combos.length === 1 ? "variante" : "variantes"}`
+      : destinoPrimero
+        ? "Corregir el color"
+        : "Agregar color";
   const tallasDeDesactivadas = ejesDeReferencia(filas, n).deDesactivadas && tallasDeLaPrenda.length > 0;
   const unidades = unidadesEnStock(sinColor, ctx.estado);
 
@@ -232,7 +238,7 @@ export function AgregarColoresModal({
           {faltaPrimero && nuevos.length > 0 && <p className="text-[12.5px] text-ambar-profundo">Primero di de qué color son las que ya tienes (arriba).</p>}
 
           {nacen > 0 && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
-          <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Guardar cambios».</p>
+          <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieModal
             onCancelar={cerrar}
             texto={texto}

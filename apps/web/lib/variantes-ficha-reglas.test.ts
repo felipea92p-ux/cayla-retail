@@ -22,6 +22,7 @@ import {
   corregida,
   corregir,
   costoEfectivo,
+  costosSinComprobar,
   destinoGuardado,
   ejesDeLaPrenda,
   ejesDeReferencia,
@@ -32,14 +33,15 @@ import {
   filasDelEje,
   filasDeProducto,
   FRASE_CHOQUE_DE_CANDADOS,
+  FRASE_MEZCLA_PREVIA,
   FRASE_MEZCLA_SIN_COLOR,
   fotosComoSeVen,
-  hayCambiosVariantes,
   leerEstadoVariantes,
   marcarEtiquetasGuardadas,
   margenDeFila,
   moverTemporadas,
   mudanzasAlGuardar,
+  NACEN_SIN_UNIDADES,
   nombreVariante,
   ordenDeGuardado,
   payloadVariantes,
@@ -47,14 +49,16 @@ import {
   problemasVariantes,
   puedeQuedarSinColor,
   quitarNueva,
-  resumenDeCambios,
   tallasParaAgregarColor,
   textoChoque,
+  textosCostoFijo,
   textoSedes,
   textoTallasApagadas,
+  todasNuevas,
   ubicar,
   ubicarTemporadas,
   unidadesEnStock,
+  variantesParaResumen,
   vistaPreviaCorreccion,
   type ContextoTextos,
   type EstadoVariante,
@@ -63,6 +67,16 @@ import {
   type TemporadaElegida,
   type VarianteOrigen,
 } from "./variantes-ficha-reglas";
+import {
+  agruparCambios,
+  cambiosDeVariante,
+  NOTA_CORREGIDAS,
+  NOTA_DESACTIVADAS_CON_STOCK,
+  resumenDeCambios,
+  type FichaEditable,
+  type NombresFicha as NombresCambios,
+  type VarianteFicha,
+} from "./producto-cambios-reglas";
 
 // Vocabulario de prueba: tallas por id (t-s = «S»…) y colores por código.
 const TALLAS: Record<string, string> = { "t-xs": "XS", "t-s": "S", "t-m": "M", "t-l": "L" };
@@ -100,6 +114,40 @@ const claves = (filas: FilaFicha[]) => filas.map((f) => f.clave);
 /** Lo que los textos necesitan: sin saber el stock (`estado` null), como con la base sin la función. */
 const CTX: ContextoTextos = { nombres: N, codigoProducto: "BOD-0003", estado: null };
 
+/** Lo que la barra «Tienes N cambios sin guardar» y la hoja cuentan de estas filas (ADR-0257), con la traducción de
+ *  `variantesParaResumen`: solo las variantes (lo demás de la prenda, igual). */
+const NOMBRES_CAMBIOS: NombresCambios = {
+  categoria: (id) => id,
+  tejido: (id) => id,
+  patron: (id) => id,
+  marca: (id) => id,
+  proveedor: (id) => id,
+  temporada: (clave) => clave,
+  temporadaColor: (clave) => clave,
+  color: (codigo) => N.color(codigo),
+  etiqueta: (id) => id,
+};
+function cuenta(filas: readonly FilaFicha[], estado: Record<string, EstadoVariante> | null = null) {
+  const { guardadas, ahora } = variantesParaResumen(filas, N, estado);
+  const ficha = (variantes: VarianteFicha[]): FichaEditable => ({
+    referencia: "Body Amir",
+    categoriaId: "",
+    descripcion: "",
+    estado: "activo",
+    stockMinimo: "",
+    temporada: "",
+    permitirVentaSinStock: false,
+    tejidoId: "",
+    patronId: "",
+    marcaId: "",
+    proveedorId: "",
+    temporadaColor: {},
+    fotos: [],
+    variantes,
+  });
+  return resumenDeCambios(ficha(guardadas), ficha(ahora), NOMBRES_CAMBIOS);
+}
+
 describe("filasDeProducto y agruparPorColor — la prenda por ejes, como en el alta", () => {
   it("ordena «Sin color» primero y cada color por talla (S, M, L; no alfabético)", () => {
     const filas = filasDeProducto([variante("a", "NEG", "t-l"), variante("b", null, "t-m"), variante("c", "AZU", "t-s"), variante("d", "NEG", "t-s")], N);
@@ -129,6 +177,25 @@ describe("filasDeProducto y agruparPorColor — la prenda por ejes, como en el a
     const [f] = filasDeProducto([variante("a", "NEG", "t-s", { costoOficial: null })], N);
     expect(f.costoFijo).toBe(true);
   });
+
+  it("…y la ficha dice que NO SE PUDO comprobar, no que «ya entró por Compras» (la ficha de main lo distinguía)", () => {
+    expect(costosSinComprobar([{ costoOficial: null }, { costoOficial: null }])).toBe(true);
+    expect(costosSinComprobar([{ costoOficial: true }, { costoOficial: false }])).toBe(false);
+    expect(textosCostoFijo(true).nota).toBe("No se pudo comprobar qué costos ya vienen de compras, así que por ahora no se corrigen aquí.");
+    expect(textosCostoFijo(true).celda).toMatch(/^No se pudo comprobar/);
+    expect(textosCostoFijo(false).nota).toMatch(/^El costo de una variante que ya entró por Compras/);
+  });
+
+  it("todasNuevas: «Cambiar» solo si nada de lo que se toca existe todavía", () => {
+    const conAzul = agregarCombinaciones(BOD(), [{ colorCodigo: "AZU", tallaId: "t-s" }, { colorCodigo: "AZU", tallaId: "t-m" }], {
+      precio: "59.9",
+      costo: "",
+      etiquetaIds: [],
+    });
+    expect(todasNuevas(filasDelEje(conAzul, "color", "AZU"))).toBe(true);
+    expect(todasNuevas(filasDelEje(conAzul, "talla", "t-s"))).toBe(false);
+    expect(todasNuevas([])).toBe(false);
+  });
 });
 
 describe("corregir (D-136) y choques (D-138)", () => {
@@ -155,7 +222,7 @@ describe("corregir (D-136) y choques (D-138)", () => {
   it("una talla corregida sobre otra que ya está activa: otra combinación, o PRIMERO pasar sus unidades y DESPUÉS desactivar", () => {
     const filas = filasDeProducto([variante("a", "NEG", "t-s"), variante("b", "NEG", "t-m")], N);
     const choque = choqueDeCorreccion(filas, ["a"], { tallaId: "t-m" });
-    // Sin saber el stock: la misma frase que la base (hint variante_ya_existe, 20260928235900).
+    // Sin saber el stock: la misma frase que la base (hint variante_ya_existe, 20260929045000).
     expect(textoChoque(choque!, { tallaId: "t-m" }, filas, CTX)).toBe(
       "Ya existe Negro M en esta prenda (BOD-0003-NEG-M). Elige otra combinación; si de verdad son la misma prenda, pasa su stock a esa con un ajuste y después desactiva esta.",
     );
@@ -207,7 +274,12 @@ describe("corregir (D-136) y choques (D-138)", () => {
 describe("bloqueoPorVenta (D-136): vendida = solo un líder", () => {
   it("quien no es líder no corrige una que ya se vendió; el líder sí", () => {
     const filas = BOD();
-    expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).toBe("BOD-0003-L ya se vendió (o una clienta la apartó): solo un líder corrige su color o su talla.");
+    // Nombra SOLO lo que cuenta (venta, separación con abonos, cambio): «Apartar» de Existencias no bloquea, y la fila que
+    // lo muestra («· 1 ap.») queda corrigiéndose al lado (revisión 2026-09-28).
+    expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).toBe(
+      "BOD-0003-L ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder corrige su color o su talla.",
+    );
+    expect(bloqueoPorVenta(filas, ESTADO_BOD, false, N)).not.toMatch(/apartó/);
     expect(bloqueoPorVenta(filas, ESTADO_BOD, true, N)).toBeNull();
   });
   it("sin saber (la función no está en la base) se permite: decide la base", () => {
@@ -270,7 +342,7 @@ describe("fotos y temporada siguen al color (como la base)", () => {
   });
 });
 
-// Integración ADR-0257: lo que la ficha muestra de fotos y temporada tiene que ser lo que la BASE deja al guardar
+// Integración ADR-0263: lo que la ficha muestra de fotos y temporada tiene que ser lo que la BASE deja al guardar
 // (`fn_corregir_identidad_variante` muda un color cuando ninguna variante que EXISTE lo conserva), y «Deshacer» lo
 // devuelve todo. Nada se mueve gesto a gesto: todo se guarda con su color de ORIGEN y se ubica con las mudanzas de hoy.
 describe("mudanzasAlGuardar, anclar y ubicar — igual que la base, y Deshacer devuelve", () => {
@@ -365,7 +437,7 @@ describe("lo elegido a mano se ancla a su color de origen: Deshacer lo devuelve"
     expect(fotosComoSeVen(fotos, mudanzasAlGuardar(fundida)).map((f) => f.colorCodigo)).toEqual(["AZU", "AZU"]);
 
     const deshecha = corregir(fundida, ["n"], { colorCodigo: "NEG" });
-    expect(hayCambiosVariantes(deshecha)).toBe(false);
+    expect(cuenta(deshecha).total).toBe(0);
     // Antes: [{id:null, AZU}, {id:'f1', NEG}] — la nueva se quedaba en el Azul y viajaba así al guardar.
     expect(fotosComoSeVen(fotos, mudanzasAlGuardar(deshecha)).map((f) => f.colorCodigo)).toEqual(["NEG", "NEG"]);
   });
@@ -576,6 +648,79 @@ describe("problemas antes de guardar", () => {
     expect(problemasVariantes(filas, N)).toContainEqual({ texto: FRASE_MEZCLA_SIN_COLOR, bloquea: true });
   });
 
+  // La misma regla que la base (variantes_sin_mezcla_de_color, 20260929045000): frena lo que ESTE guardado crea, recolorea
+  // o reactiva; una prenda que YA venía mezclada (el censo del Conteo le sumaba una Negro S a una «Sin color») se sigue
+  // guardando con un aviso. Antes se bloqueaba entera: ni un precio.
+  describe("mezcla «no empeora» (ADR-0263 T5)", () => {
+    const yaMezclada = () =>
+      filasDeProducto([variante("v-s", null, "t-s"), variante("v-m", null, "t-m"), variante("censo", "NEG", "t-s")], N);
+
+    it("guardar solo un precio de una prenda que ya venía mezclada: avisa y deja guardar", () => {
+      const filas = cambiarFila(yaMezclada(), "v-m", { precio: "65" });
+      const p = problemasVariantes(filas, N);
+      expect(p).toContainEqual({ texto: FRASE_MEZCLA_PREVIA, bloquea: false });
+      expect(p.some((x) => x.bloquea)).toBe(false);
+    });
+
+    it("desactivar su «Sin color S» (la arregla a medias) tampoco bloquea", () => {
+      const filas = cambiarFila(yaMezclada(), "v-s", { activo: false });
+      expect(problemasVariantes(filas, N).some((x) => x.bloquea)).toBe(false);
+    });
+
+    it("recolorear o reactivar una variante que queda en la mezcla sí bloquea (la base también)", () => {
+      const recoloreada = corregir(yaMezclada(), ["v-m"], { colorCodigo: "AZU" });
+      expect(problemasVariantes(recoloreada, N)).toContainEqual({ texto: FRASE_MEZCLA_SIN_COLOR, bloquea: true });
+      const conApagada = filasDeProducto(
+        [variante("v-s", null, "t-s"), variante("v-m", null, "t-m", { activo: false }), variante("censo", "NEG", "t-s")],
+        N,
+      );
+      const reactivada = cambiarFila(conApagada, "v-m", { activo: true });
+      expect(problemasVariantes(reactivada, N)).toContainEqual({ texto: FRASE_MEZCLA_SIN_COLOR, bloquea: true });
+    });
+
+    it("corregir las «Sin color» a Negro (sin chocar con la Negro S) y desactivar la que chocaría la ordena: nada que avisar", () => {
+      let filas = corregir(yaMezclada(), ["v-m"], { colorCodigo: "NEG" });
+      filas = cambiarFila(filas, "v-s", { activo: false });
+      expect(problemasVariantes(filas, N).some((x) => x.texto === FRASE_MEZCLA_SIN_COLOR || x.texto === FRASE_MEZCLA_PREVIA)).toBe(false);
+    });
+  });
+
+  // La base valida contra la categoría ELEGIDA la talla de toda variante nueva o corregida, y rechaza el guardado entero
+  // («Esa talla no está habilitada…», sin decir qué fila). Cambiar la categoría DESPUÉS de agregar una talla dejaba abrir la
+  // hoja igual (revisión 2026-09-28).
+  describe("talla habilitada en la categoría elegida", () => {
+    const TOPS = { tallasHabilitadas: ["t-s", "t-m", "t-l"], nombre: "Tops", cambio: true };
+
+    it("una talla nueva que la categoría elegida no habilita bloquea, con su fila y las dos salidas", () => {
+      const filas = agregarCombinaciones(BOD(), [{ colorCodigo: null, tallaId: "t-xs" }], { precio: "59.9", costo: "", etiquetaIds: [] });
+      const nueva = filas.find((f) => f.tallaId === "t-xs")!;
+      expect(problemasVariantes(filas, N, TOPS)).toContainEqual({
+        texto: "XS no está habilitada en Tops: quita Sin color XS, o vuelve a la categoría anterior.",
+        bloquea: true,
+        clave: nueva.clave,
+      });
+    });
+
+    it("una talla corregida también; si la categoría no cambió, la salida es habilitarla", () => {
+      const filas = corregir(BOD(), ["v-s"], { tallaId: "t-xs" });
+      expect(problemasVariantes(filas, N, { ...TOPS, cambio: false })).toContainEqual({
+        texto: "XS no está habilitada en Tops: deshaz la corrección de Sin color XS, o pide que la habiliten en Catálogo → Categorías.",
+        bloquea: true,
+        clave: "v-s",
+      });
+    });
+
+    it("una que ya existe y no cambia de talla no se revisa (la base tampoco la valida)", () => {
+      const soloS = { tallasHabilitadas: ["t-s"], nombre: "Tops", cambio: true };
+      expect(problemasVariantes(cambiarFila(BOD(), "v-m", { precio: "70" }), N, soloS).some((x) => x.bloquea)).toBe(false);
+    });
+
+    it("sin categoría que revisar (las pruebas de siempre), no se revisa", () => {
+      const filas = agregarCombinaciones(BOD(), [{ colorCodigo: null, tallaId: "t-xs" }], { precio: "59.9", costo: "", etiquetaIds: [] });
+      expect(problemasVariantes(filas, N).some((x) => x.bloquea)).toBe(false);
+    });
+  });
+
   it("desactivarlas todas avisa pero deja guardar (y no dice que dejan de contarse: siguen en el inventario)", () => {
     const filas = BOD().map((f) => ({ ...f, activo: false }));
     const p = problemasVariantes(filas, N);
@@ -590,8 +735,8 @@ describe("problemas antes de guardar", () => {
   });
 });
 
-describe("resumenDeCambios — el lateral dice en palabras qué va a pasar", () => {
-  it("BOD-0003 a Negro, dos nuevas, un precio y una que se desactiva con stock", () => {
+describe("variantesParaResumen — la barra y la hoja cuentan la sección con UNA cuenta (ADR-0257 + ADR-0263)", () => {
+  it("BOD-0003 a Negro, dos nuevas, un precio y una que se desactiva con stock: la hoja lo dice en cuatro grupos", () => {
     let filas = BOD();
     filas = corregir(filas, claves(filas), { colorCodigo: "NEG" });
     filas = agregarCombinaciones(
@@ -604,22 +749,50 @@ describe("resumenDeCambios — el lateral dice en palabras qué va a pasar", () 
     );
     filas = cambiarFila(filas, "v-m", { precio: "64.9" });
     filas = cambiarFila(filas, "v-s", { activo: false });
-    expect(resumenDeCambios(filas, N, ESTADO_BOD)).toEqual([
-      "3 variantes pasan de Sin color a Negro",
-      "2 variantes nuevas (Azul S, Azul M)",
-      "1 se desactiva (tiene 8 u.)",
-      "Precio: 1 cambia",
+    const r = cuenta(filas, ESTADO_BOD);
+    expect(r.total).toBe(7);
+    expect(r.frases).toEqual(["1 variante se desactiva", "2 variantes se agregan", "3 variantes cambian de color o talla", "1 precio cambia"]);
+    expect(agruparCambios(r.cambios)).toEqual([
+      { clave: "desactivan", titulo: "Se desactivan", lineas: [{ texto: "Negro S", detalle: "8 u. en stock" }], cantidad: 1, nota: NOTA_DESACTIVADAS_CON_STOCK },
+      { clave: "agregan", titulo: "Se agregan", lineas: [{ texto: "2 variantes: Azul S, Azul M", detalle: "S/ 59.90" }], cantidad: 2, nota: NACEN_SIN_UNIDADES },
+      {
+        clave: "identidad",
+        titulo: "Color o talla corregidos",
+        lineas: [{ texto: "3 variantes pasan de Sin color a Negro", detalle: "S, M, L" }],
+        cantidad: 3,
+        nota: NOTA_CORREGIDAS,
+      },
+      { clave: "precios", titulo: "Precios", lineas: [{ texto: "Negro M", antes: "S/ 59.90", despues: "S/ 64.90" }], cantidad: 1 },
     ]);
   });
 
-  it("sin cambios, nada que decir", () => {
-    expect(resumenDeCambios(BOD(), N, ESTADO_BOD)).toEqual([]);
-    expect(hayCambiosVariantes(BOD())).toBe(false);
+  it("el índice de cada cambio es el de su fila: la marca de la fila sale de la misma cuenta que la barra", () => {
+    const filas = cambiarFila(corregir(BOD(), ["v-m"], { tallaId: "t-xs" }), "v-l", { precio: "70" });
+    const r = cuenta(filas);
+    expect(filas.map((f) => cambiosDeVariante(r, filas.indexOf(f)).map((c) => c.tipo))).toEqual([[], ["identidad"], ["precio"]]);
+    expect(agruparCambios(r.cambios)[0].lineas).toEqual([{ texto: "1 variante pasa de talla M a XS" }]);
+  });
+
+  it("sin cambios, nada que contar", () => {
+    expect(cuenta(BOD(), ESTADO_BOD).total).toBe(0);
   });
 
   it("un precio reescrito igual (59.9 vs 59.90) no es un cambio; se abre con dos decimales", () => {
     expect(BOD()[0].precio).toBe("59.90");
-    expect(hayCambiosVariantes(cambiarFila(BOD(), "v-s", { precio: "59.9" }))).toBe(false);
+    expect(cuenta(cambiarFila(BOD(), "v-s", { precio: "59.9" })).total).toBe(0);
+  });
+
+  it("el costo que cuenta es el que se guardaría: vacío en una que existe conserva el suyo; el de compras no se toca", () => {
+    const [libre] = filasDeProducto([variante("a", "NEG", "t-s")], N);
+    expect(cuenta([{ ...libre, costo: "" }]).total).toBe(0);
+    expect(cuenta([{ ...libre, costo: "18" }]).cambios).toEqual([{ tipo: "costo", indice: 0, nombre: "Negro S", antes: "20.00", despues: "18" }]);
+    const [fijo] = filasDeProducto([variante("a", "NEG", "t-s", { costoOficial: true })], N);
+    expect(cuenta([{ ...fijo, costo: "18" }]).total).toBe(0);
+  });
+
+  it("sin saber el stock (`estado` null), desactivar no inventa unidades", () => {
+    const r = cuenta(cambiarFila(BOD(), "v-s", { activo: false }), null);
+    expect(r.cambios).toEqual([{ tipo: "desactiva", indice: 0, nombre: "Sin color S" }]);
   });
 });
 
@@ -644,7 +817,7 @@ describe("después de guardar: consolidar, verificar y etiquetas de las nuevas",
     // La nueva todavía tiene que recibir sus etiquetas; la corregida no cambió las suyas.
     expect(asignacionesDeEtiquetas(hechas)).toEqual([{ variante_id: "n1", etiqueta_ids: ["nuevo"] }]);
     expect(asignacionesDeEtiquetas(marcarEtiquetasGuardadas(hechas))).toEqual([]);
-    expect(hayCambiosVariantes(marcarEtiquetasGuardadas(hechas))).toBe(false);
+    expect(cuenta(marcarEtiquetasGuardadas(hechas)).total).toBe(0);
   });
 
   it("con la base sin el SQL (ignora el color de una que existe), la corrección se detecta y sigue pendiente", () => {
@@ -680,13 +853,13 @@ describe("stock visible (fn_variantes_estado)", () => {
     const filas = cambiarFila(BOD(), "v-s", { activo: false });
     // Desactivar no saca las unidades del inventario: solo deja de venderlas (hallazgo 10 de la revisión 2026-09-28).
     expect(avisoDesactivar(filas.find((f) => f.id === "v-s")!, ESTADO_BOD)).toBe(
-      "Sus 8 u. en Tienda TRU siguen en el inventario, pero ya no se podrán vender. Si existen, trasládalas o pide un ajuste antes; si no existen, pide un ajuste.",
+      "Sus 8 u. en Tienda TRU siguen en el inventario, pero ya no se podrán vender en ninguna sede. Si existen, no la desactives todavía: véndelas o pide un ajuste que las pase a otra variante; si no existen, pide un ajuste para dejarla en 0.",
     );
     expect(avisoDesactivar(filas.find((f) => f.id === "v-m")!, ESTADO_BOD)).toBeNull();
   });
 });
 
-describe("conUnReintentoSiChoca — el círculo de candados que T8 no cierra (ADR-0257)", () => {
+describe("conUnReintentoSiChoca — el círculo de candados que T8 no cierra (ADR-0263)", () => {
   const choque = { data: null, error: { code: "40P01", message: "deadlock detected" } };
   const bien = { data: 9, error: null };
   const otro = { data: null, error: { code: "PT409", message: "Otra persona cambió esta prenda…" } };

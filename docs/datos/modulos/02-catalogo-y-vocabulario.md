@@ -369,7 +369,7 @@ Las cuatro pasan porque `variantes_update_lider`, `productos_update_lider`,
 `colores_update_lider` y `categorias_update_lider` permiten UPDATE de **cualquier columna** a
 quien sea Líder. Nada en la base impide que uno de esos updates toque `codigo` (hueco 3).
 
-> **Actualización 2026-09-28 (ADR-0257, `20260928235900`, sin pegar en producción):** para `variantes` el hueco 3 se cierra con el disparador `variantes_identidad_solo_por_funcion`: una sesión de la API ya no cambia `codigo`, `color_codigo`, `talla_id` ni `producto_id` con un update directo. El color y la talla se corrigen desde la ficha (`catalogo_actualizar_producto` → `fn_corregir_identidad_variante`): conserva id, stock e historia, recalcula el código (-2, -3… si ya lo usa otra) y deja el viejo en `codigos_barras` apuntando a la misma variante. `productos.codigo` sigue abierto por la API.
+> **Actualización 2026-09-28 (ADR-0263, `20260929045000`, sin pegar en producción; reemplaza al candado «solo sin historia» del ADR-0258, que producción tiene desde el 2026-09-28):** para `variantes` el hueco 3 se cierra con el disparador `variantes_identidad_solo_por_funcion`: una sesión de la API ya no cambia `codigo`, `color_codigo`, `talla_id` ni `producto_id` con un update directo. El color y la talla se corrigen desde la ficha (`catalogo_actualizar_producto` → `fn_corregir_identidad_variante`): conserva id, stock e historia, recalcula el código (-2, -3… si ya lo usa otra) y deja el viejo en `codigos_barras` apuntando a la misma variante. `productos.codigo` sigue abierto por la API.
 
 ---
 

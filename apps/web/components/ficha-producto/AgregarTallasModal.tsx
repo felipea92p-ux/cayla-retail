@@ -139,7 +139,7 @@ export function AgregarTallasModal({
           )}
 
           {nacen > 0 && <p className="text-[12.5px] font-medium text-tinta">{NACEN_SIN_UNIDADES}</p>}
-          <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Guardar cambios».</p>
+          <p className="text-[12.5px] text-taupe">Nada se guarda todavía: se suma a la ficha y se guarda con «Revisar y guardar».</p>
           <PieModal
             onCancelar={cerrar}
             texto={combos.length === 0 ? "Agregar" : `Agregar ${combos.length} ${combos.length === 1 ? "variante" : "variantes"}`}

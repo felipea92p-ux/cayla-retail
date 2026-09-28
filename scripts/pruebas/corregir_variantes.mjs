@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
- * Prueba de ADR-0257 «corregir el color y la talla de una variante que ya existe» (D-136, D-137, D-138) contra el
- * Postgres LOCAL: migración `20260928235900_corregir_color_y_talla_de_variantes.sql`.
+ * Prueba de ADR-0263 «corregir el color y la talla de una variante que ya existe, siempre» (D-136, D-137, D-138) contra
+ * el Postgres LOCAL: migración `20260929045000_corregir_siempre_color_y_talla_de_variantes.sql`, que corre DESPUÉS de
+ * `20260928235500` (ADR-0258, «solo sin historia», ya pegada en producción) y reemplaza su regla. La base local rehecha
+ * desde cero pasa por los dos en ese orden, el mismo de producción: todo lo de abajo se prueba sobre ese estado.
  *
  * QUÉ CUBRE (los números son los del contrato de la base)
  *   1. BOD-0003 tal cual: una prenda «Sin color» S/M/L con su carga inicial (8/5/4 en Trujillo) se corrige a Negro desde
@@ -22,6 +24,8 @@
  *   7. Fotos y temporada del color siguen al color cuando el viejo se queda sin variantes (y si el nuevo ya tenía
  *      temporada, manda la suya); si queda una variante del color viejo, no se mueve nada; las fotos generales nunca.
  *   8. Una prenda no queda con variantes activas «Sin color» junto a otras con color (mezcla_sin_color); desactivadas sí.
+ *      El candado es de la tabla (variantes_sin_mezcla_de_color): frena también al censo del Conteo, a una corrección
+ *      suelta y a postgres; y «no empeora»: una prenda que ya venía mezclada se sigue guardando y desactivar la arregla.
  *   9. Talla no habilitada en la categoría, color inactivo o inexistente: error y nada cambia (también al agregar).
  *  10. La ficha vieja (manda el mismo color y talla): no cambia nada, no deja filas de identidad en el historial, no pide
  *      líder aunque la variante esté vendida.
@@ -32,8 +36,18 @@
  *  15. Desactivar y reactivar deja filas 'activo' en el historial.
  *  16. Candados (T8), con DOS sesiones reales: un cierre de producción (movimiento → costo) contra una corrección de esa
  *      variante ya no termina en 40P01; y la ficha vieja no espera a una operación que tiene tomada una de sus variantes.
- *   +  Permisos de las funciones nuevas, variante de otra prenda, la guarda de duplicados y que la migración se pega dos
- *      veces.
+ *  17. Sobre el 0258 (el orden real): la ficha de `main` —la que publicó el 0258, que manda id, color, talla, precio,
+ *      costo y activo de TODAS las variantes, y las fotos— sigue guardando el precio de prendas con una variante
+ *      vendida, una separada, una desactivada y una «Sin color», por una integrante NO líder: sin tocar color, talla,
+ *      código, SKU ni códigos de barras, sin pedir líder y sin filas de identidad en el historial (ni las nuevas ni las
+ *      'color_codigo'/'talla_id' del 0258). Una variante SIN historia tampoco se corrige ya con un update directo (el
+ *      0258 la dejaba).
+ *  18. El candado queda UNO solo con la regla nueva: el disparador del 0258 se renombró, cubre también `producto_id` y
+ *      llama a la función nueva; la función vieja y `fn_variantes_con_historia` ya no existen; fn_corregir_identidad_
+ *      variante conserva la firma de 4 argumentos del 0258 y ahora es SECURITY DEFINER; el historial anota cada campo
+ *      una sola vez (CONTROL: con el disparador apagado, el update directo sí pasaba).
+ *   +  Permisos de las funciones nuevas, variante de otra prenda, categoría que no es la de la prenda, la guarda de
+ *      duplicados y que la migración se pega dos veces.
  *
  * CÓMO. Cada caso en su transacción con ROLLBACK (el Postgres local no cambia). La escena se arma como postgres con la
  * sesión de Felipe (líder); cada caso cambia a la sesión de quien guarda con `request.jwt.claim(s)` + `set local role
@@ -54,7 +68,8 @@ import { fileURLToPath } from "node:url";
 
 const CONTENEDOR_LOCAL = process.env.RETAIL_CONTENEDOR_PG ?? "supabase_db_cayla-retail";
 const RAIZ = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..");
-const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20260928235900_corregir_color_y_talla_de_variantes.sql"), "utf8");
+const MIGRACION = readFileSync(join(RAIZ, "supabase/migrations/20260929045000_corregir_siempre_color_y_talla_de_variantes.sql"), "utf8");
+const MARCA = "20260929045000";
 const FELIPE = "22222222-2222-4222-8222-000000000001"; // líder (seed)
 const MICAELA = "22222222-2222-4222-8222-000000000003"; // integrante con Productos (seed): edita el catálogo, no es líder
 const NADIE = "22222222-2222-4222-8222-0000000000ff"; // una sesión sin persona: no edita el catálogo
@@ -157,8 +172,50 @@ create function pg_temp.huella(p uuid) returns text language sql security define
     (select string_agg(t.color_codigo || ':' || t.temporada, ',' order by t.color_codigo) from retail.producto_color_temporadas t where t.producto_id = p),
     (select version from retail.productos where id = p)));
 $f$;
+-- La ficha de \`main\`, la que publicó el 0258 (ProductoForm antes de ADR-0263): manda TODAS las variantes con id, color,
+-- talla, precio, costo y activo (sin sku), y TODAS las fotos con id, url, es_principal y color. Aquí, con un precio nuevo
+-- para todas. Como postgres: el costo lo lee esa ficha con fn_costos_variantes_json.
+create function pg_temp.payload_viejo(p_producto uuid, p_precio numeric) returns jsonb language sql security definer as $f$
+  select jsonb_build_object(
+    'variantes', (select coalesce(jsonb_agg(jsonb_build_object('id', v.id, 'color_codigo', v.color_codigo, 'talla_id', v.talla_id,
+                                                               'precio', p_precio, 'costo', v.costo, 'activo', v.activo)
+                                            order by v.id), '[]'::jsonb)
+                    from retail.variantes v where v.producto_id = p_producto),
+    'fotos', (select coalesce(jsonb_agg(jsonb_build_object('id', f.id, 'url', f.url, 'es_principal', f.es_principal,
+                                                           'color_codigo', f.color_codigo) order by f.orden), '[]'::jsonb)
+                from retail.producto_fotos f where f.producto_id = p_producto));
+$f$;
+create function pg_temp.guardar_vieja(p_producto uuid, p_precio numeric) returns jsonb
+language plpgsql as $f$
+declare v_estado text; v_msg text; v_hint text; v_det text; p jsonb; x jsonb; v_ver integer;
+begin
+  p := pg_temp.producto(p_producto);
+  x := pg_temp.payload_viejo(p_producto, p_precio);
+  v_ver := retail.catalogo_actualizar_producto(
+    p_producto_id => p_producto, p_referencia => p ->> 'referencia', p_estado => p ->> 'estado', p_variantes => x -> 'variantes',
+    p_categoria_id => (p ->> 'categoria_id')::uuid, p_descripcion => p ->> 'descripcion',
+    p_stock_minimo => (p ->> 'stock_minimo')::integer, p_temporada => p ->> 'temporada',
+    p_permitir_venta_sin_stock => (p ->> 'permitir_venta_sin_stock')::boolean, p_fotos => x -> 'fotos',
+    p_tejido_id => (p ->> 'tejido_id')::uuid, p_patron_id => (p ->> 'patron_id')::uuid,
+    p_version_esperada => (p ->> 'version')::integer);
+  return jsonb_build_object('ok', true, 'version', v_ver);
+exception when others then
+  get stacked diagnostics v_estado = returned_sqlstate, v_msg = message_text, v_hint = pg_exception_hint, v_det = pg_exception_detail;
+  return jsonb_build_object('ok', false, 'estado', v_estado, 'hint', nullif(v_hint, ''), 'msg', v_msg, 'detail', nullif(v_det, ''));
+end;
+$f$;
+-- La identidad de una prenda, sin precio ni historial: color, talla, código, SKU y activo de cada variante, y sus códigos
+-- de barras.
+create function pg_temp.identidad(p uuid) returns text language sql security definer as $f$
+  select md5(concat_ws('#',
+    (select string_agg(concat_ws(':', v.id, v.color_codigo, v.talla_id, v.codigo, v.sku, v.activo), ',' order by v.id)
+       from retail.variantes v where v.producto_id = p),
+    (select string_agg(cb.codigo || '>' || cb.variante_id, ',' order by cb.codigo)
+       from retail.codigos_barras cb join retail.variantes v on v.id = cb.variante_id where v.producto_id = p)));
+$f$;
 grant execute on function pg_temp.intento(text), pg_temp.guardar(uuid, jsonb, integer), pg_temp.ficha(uuid, jsonb),
-  pg_temp.producto(uuid), pg_temp.huella(uuid) to authenticated;
+  pg_temp.producto(uuid), pg_temp.huella(uuid), pg_temp.payload_viejo(uuid, numeric), pg_temp.guardar_vieja(uuid, numeric),
+  pg_temp.identidad(uuid) to authenticated;
 `;
 
 const ESCENA = `
@@ -290,9 +347,10 @@ const ficha = (producto, cambios = []) => `pg_temp.ficha(:'${producto}', jsonb_b
 const guardar = (producto, cambios = [], version = null) =>
   `select 'r', pg_temp.guardar(:'${producto}', ${ficha(producto, cambios)}${version ? `, ${version}` : ""});\n`;
 const HUELLA = (producto, clave = "huella") => `select '${clave}', pg_temp.huella(:'${producto}');\n`;
-/** Corrección directa por la API (la RPC nueva). */
-const corregir = (producto, variante, datos) =>
-  `select 'r', pg_temp.intento(format('select retail.fn_corregir_identidad_variante(%L, %L, %L)', :'${producto}', :'${variante}', ${datos}));\n`;
+/** Corrección directa por la API, con la firma que dejó el 0258 y que se conserva: (variante, prenda, categoría, datos).
+ *  Las tres prendas de la escena son Bodys (:'cat'); `categoria` permite mandar otra a propósito. */
+const corregir = (producto, variante, datos, categoria = "cat") =>
+  `select 'r', pg_temp.intento(format('select retail.fn_corregir_identidad_variante(%L, %L, %L, %L)', :'${variante}', :'${producto}', :'${categoria}', ${datos}));\n`;
 
 // ===========================================================================
 // 1 · BOD-0003 tal cual
@@ -428,7 +486,7 @@ caso("3 · vendida: la integrante no la corrige (correccion_solo_lider, 42501) y
 ${guardar("pb", [cambio("b_negs", { color_codigo: "'BEI'" })])}
 ${COMO_POSTGRES}${HUELLA("pb", "despues")}`);
   const r = json(f.r);
-  return error(r, "correccion_solo_lider", "42501") ?? (r.msg.includes("ya se vendió (o una clienta la apartó): solo un líder") ? null : r.msg) ?? (f.antes === f.despues ? null : "la prenda cambió");
+  return error(r, "correccion_solo_lider", "42501") ?? (r.msg.includes("ya salió con una clienta (venta, separación en Apartados o cambio): solo un líder") ? null : r.msg) ?? (f.antes === f.despues ? null : "la prenda cambió");
 });
 
 caso("3 · vendida: el líder sí la corrige", () => {
@@ -501,8 +559,9 @@ select 'estado', concat_ws(':', color_codigo, precio) from retail.variantes wher
 });
 
 caso("4 · postgres (el camino de las funciones SECURITY DEFINER) sí cambia la identidad", () => {
-  const f = correr(`${COMO_POSTGRES}${DIRECTO("color_codigo = ''NEG''", "color")}`);
-  if (!json(f.color)?.ok) return f.color;
+  // La talla: el color de UNA sola de las tres «Sin color» lo frena otra regla, también a postgres (8, mezcla_sin_color).
+  const f = correr(`${COMO_POSTGRES}${DIRECTO("talla_id = ''' || :'t_xl' || '''", "talla")}`);
+  if (!json(f.talla)?.ok) return f.talla;
 });
 
 // ===========================================================================
@@ -625,6 +684,69 @@ caso("8 · …pero corregir la S y desactivar M y L sí pasa (las desactivadas n
 caso("8 · agregar una «Sin color» a una prenda con colores: mezcla_sin_color", () => {
   const f = correr(`${sesion(MICAELA)}${guardar("pb", [nueva({ talla_id: ":'t_xl'", precio: 69, costo: 25 })])}`);
   return error(json(f.r), "mezcla_sin_color");
+});
+
+/** El alta al vuelo del Conteo (SECURITY DEFINER): cuelga la variante de la prenda que ya tiene ese nombre. */
+const CENSO = (clave, referencia, codigo, talla, color) =>
+  `select '${clave}', pg_temp.intento(format('select * from retail.censo_crear_variante(%L, %L, %L, %L, %L, 0, 0)', ${referencia}, :'cat', '${codigo}', :'${talla}', ${color}));\n`;
+
+caso("8 · el censo (alta al vuelo del Conteo) no le suma un color a una prenda «Sin color» ni un «Sin color» a una con colores: mezcla_sin_color, sin variante ni código nuevos", () => {
+  const f = correr(`${HUELLA("pa", "antes_a")}${HUELLA("pb", "antes_b")}${sesion(MICAELA)}
+${CENSO("negro", "'ZZ Body Amir Prueba'", "7759990000017", "t_s", "'NEG'")}
+${CENSO("sin_color", "'ZZ Body Colores Prueba'", "7759990000024", "t_xl", "null")}
+${COMO_POSTGRES}${HUELLA("pa", "despues_a")}${HUELLA("pb", "despues_b")}
+select 'codigos', count(*) from retail.codigos_barras where codigo in ('7759990000017', '7759990000024');`);
+  return (
+    error(json(f.negro), "mezcla_sin_color") ??
+    error(json(f.sin_color), "mezcla_sin_color") ??
+    espera(f, { codigos: "0" }) ??
+    (f.antes_a === f.despues_a && f.antes_b === f.despues_b ? null : "una prenda cambió")
+  );
+});
+
+caso("8 · CONTROL: el censo sí le suma a una prenda «Sin color» otra talla «Sin color» (la regla no frena el alta al vuelo en sí)", () => {
+  const f = correr(`${sesion(MICAELA)}${CENSO("r", "'ZZ Body Amir Prueba'", "7759990000031", "t_xl", "null")}`);
+  if (!json(f.r)?.ok) return f.r;
+});
+
+caso("8 · una corrección suelta (fn_corregir_identidad_variante por la API, sin la ficha) tampoco deja la mezcla", () => {
+  const f = correr(`${HUELLA("pa", "antes")}${sesion(FELIPE)}${corregir("pa", "a_s", `jsonb_build_object('color_codigo', 'NEG')`)}${COMO_POSTGRES}${HUELLA("pa", "despues")}`);
+  return error(json(f.r), "mezcla_sin_color") ?? (f.antes === f.despues ? null : "la prenda cambió");
+});
+
+caso("8 · el candado es de la tabla: ni postgres inserta una Negro S en la prenda «Sin color»", () => {
+  const f = correr(`${COMO_POSTGRES}
+select 'r', pg_temp.intento(format('insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo) values (%L, ''NEG'', %L, 59, 20)', :'pa', :'t_xl'));`);
+  return error(json(f.r), "mezcla_sin_color");
+});
+
+// Una prenda que YA venía mezclada (el censo la armaba hasta esta migración): se arma saltándose los disparadores.
+const YA_MEZCLADA = `${COMO_POSTGRES}set local session_replication_role = replica;
+insert into retail.variantes (producto_id, color_codigo, talla_id, precio, costo, codigo)
+  values (:'pa', 'NEG', :'t_s', 59, 20, 'ZZ-MEZCLA-NEG-S') returning id as a_negs \\gset
+set local session_replication_role = origin;
+`;
+
+caso("8 · no empeora: una prenda que YA venía mezclada se sigue guardando (precio, con la ficha de main y con la nueva) y desactivar su «Sin color» pasa", () => {
+  const f = correr(`${YA_MEZCLADA}${sesion(MICAELA)}
+select 'vieja', pg_temp.guardar_vieja(:'pa', 65);
+${guardar("pa", [cambio("a_m", { precio: 66 })]).replace("'r'", "'nueva'")}
+${guardar("pa", [cambio("a_s", { activo: "false" })]).replace("'r'", "'desactivar'")}
+${COMO_POSTGRES}
+select 'precio_m', precio from retail.variantes where id = :'a_m';
+select 'activa_s', activo::text from retail.variantes where id = :'a_s';`);
+  if (!json(f.vieja)?.ok) return `la ficha de main no guardó el precio: ${f.vieja}`;
+  if (!json(f.nueva)?.ok) return `la ficha nueva no guardó el precio: ${f.nueva}`;
+  if (!json(f.desactivar)?.ok) return `desactivar la «Sin color S» no pasó: ${f.desactivar}`;
+  return espera(f, { precio_m: "66.00", activa_s: "false" });
+});
+
+caso("8 · no empeora: en esa prenda mezclada, recolorear la «Sin color M» (queda la L) o reactivar una se frena", () => {
+  const f = correr(`${YA_MEZCLADA}${COMO_POSTGRES}update retail.variantes set activo = false where id = :'a_l';
+${sesion(MICAELA)}
+${guardar("pa", [cambio("a_m", { color_codigo: "'BEI'" })]).replace("'r'", "'recolorear'")}
+${guardar("pa", [cambio("a_l", { activo: "true" })]).replace("'r'", "'reactivar'")}`);
+  return error(json(f.recolorear), "mezcla_sin_color") ?? error(json(f.reactivar), "mezcla_sin_color");
 });
 
 // ===========================================================================
@@ -791,8 +913,8 @@ caso("+ una variante de otra prenda: variante_de_otra_prenda", () => {
 caso("+ permisos: authenticated ejecuta corregir y estado; anon no; fn_codigo_variante_libre no la ejecuta la API", () => {
   const f = correr(`${COMO_POSTGRES}
 select 'permisos', concat_ws(',',
-  has_function_privilege('authenticated', 'retail.fn_corregir_identidad_variante(uuid, uuid, jsonb)', 'execute'),
-  has_function_privilege('anon', 'retail.fn_corregir_identidad_variante(uuid, uuid, jsonb)', 'execute'),
+  has_function_privilege('authenticated', 'retail.fn_corregir_identidad_variante(uuid, uuid, uuid, jsonb)', 'execute'),
+  has_function_privilege('anon', 'retail.fn_corregir_identidad_variante(uuid, uuid, uuid, jsonb)', 'execute'),
   has_function_privilege('authenticated', 'retail.fn_variantes_estado(uuid)', 'execute'),
   has_function_privilege('authenticated', 'retail.fn_codigo_variante_libre(text, uuid)', 'execute'),
   has_function_privilege('anon', 'retail.fn_codigo_variante_libre(text, uuid)', 'execute'));`);
@@ -812,23 +934,153 @@ rollback;`);
     return "la migración pasó con duplicados";
   } catch (e) {
     const msg = String(e.stderr ?? e.message);
-    if (!msg.includes("20260928235900: hay variantes repetidas") || !msg.includes("GEN-")) return msg.split("\n").slice(0, 4).join("\n");
+    if (!msg.includes(`${MARCA}: hay variantes repetidas`) || !msg.includes("GEN-")) return msg.split("\n").slice(0, 4).join("\n");
   }
 });
 
-caso("+ la migración se puede pegar dos veces: un candado, un índice, cada función parchada una sola vez", () => {
+caso("+ la migración se puede pegar dos veces más (la base ya la tiene): un candado, un índice, cada función parchada una sola vez", () => {
   const salida = psql(`begin;\n${MIGRACION}\n${MIGRACION}
 select 'x', (select count(*) from pg_trigger where tgname = 'variantes_identidad_solo_por_funcion')
   || ',' || (select count(*) from pg_indexes where indexname = 'variantes_identidad_unica')
   || ',' || (select count(*) from pg_constraint where conname = 'variantes_producto_talla_color_unico')
-  || ',' || (select string_agg(((length(prosrc) - length(replace(prosrc, '20260928235900', ''))) / 14)::text, ',' order by proname)
+  || ',' || (select string_agg(((length(prosrc) - length(replace(prosrc, '${MARCA}', ''))) / 14)::text, ',' order by proname)
                from pg_proc where pronamespace = 'retail'::regnamespace
-                and proname in ('catalogo_actualizar_producto', 'fn_asignar_codigo_variante', 'fn_productos', 'fn_registrar_cambio_producto'));
+                and proname in ('catalogo_actualizar_producto', 'fn_asignar_codigo_variante', 'fn_productos', 'fn_registrar_cambio_producto'))
+  || ',' || (select count(*) from pg_trigger where tgname = 'variantes_identidad_sin_historia')
+  || ',' || (select (length(prosrc) - length(replace(prosrc, 'perform retail.fn_corregir_identidad_variante(', '')))
+                    / length('perform retail.fn_corregir_identidad_variante(')
+               from pg_proc where oid = 'retail.catalogo_actualizar_producto(uuid,text,text,jsonb,uuid,text,integer,text,boolean,jsonb,uuid,uuid,uuid,uuid,boolean,integer)'::regprocedure)
+  || ',' || (select count(*) from pg_trigger where tgname = 'variantes_sin_mezcla_de_color')
+  || ',' || (select string_agg(t.tgdeferrable::text || '/' || t.tginitdeferred::text, ',') from pg_trigger t where t.tgname = 'variantes_sin_mezcla_de_color');
 rollback;`);
   const linea = salida.split("\n").find((l) => l.startsWith("x|"));
-  // catalogo_actualizar_producto lleva la marca en sus 4 bloques (candados, corrección, color de la nueva, mezcla); las
-  // otras, en 1.
-  if (linea !== "x|1,1,0,4,1,1,1") return `salió ${linea}`;
+  // catalogo_actualizar_producto lleva la marca en sus 4 bloques (candados, comentario de la corrección, color de la
+  // nueva, mezcla); las otras, en 1. Ningún disparador con el nombre del 0258 y UNA llamada a la corrección (la del 0258).
+  // Y UN solo disparador de la mezcla, diferible e inmediato de entrada.
+  if (linea !== "x|1,1,0,4,1,1,1,0,1,1,true/false") return `salió ${linea}`;
+});
+
+caso("+ una llamada directa no valida la talla contra otra categoría: XXL no está en Bodys aunque se mande una categoría que la tiene", () => {
+  const f = correr(`select categoria_id as cat_xxl from retail.categoria_tallas where talla_id = :'t_xxl' order by categoria_id limit 1 \\gset
+${HUELLA("pb", "antes")}${sesion(FELIPE)}${corregir("pb", "b_azml", `jsonb_build_object('talla_id', :'t_xxl')`, "cat_xxl")}
+${COMO_POSTGRES}${HUELLA("pb", "despues")}`);
+  return error(json(f.r), "talla_no_habilitada") ?? (f.antes === f.despues ? null : "la prenda cambió");
+});
+
+// ===========================================================================
+// 17 · Sobre el 0258: la ficha de main sigue guardando
+// ===========================================================================
+// La base local pasa por 20260928235500 (ADR-0258) y después por esta migración: el orden de producción, donde el 0258
+// ya está pegado y su ficha (la de `main`) sigue viva hasta que se publique la web nueva.
+
+const CAMPOS_VARIANTES = (p, clave) => `select '${clave}', coalesce(string_agg(distinct h.campo, ',' order by h.campo), '-')
+  from retail.historial_producto_cambios h where h.entidad = 'variante' and h.entidad_id in (select id from retail.variantes where producto_id = :'${p}');\n`;
+
+caso("17 · sobre el 0258, la ficha de main guarda el precio (integrante NO líder) de una prenda con una variante vendida, otra con una separada y una con SKU, y de una «Sin color»: identidad, códigos y SKU intactos, sin pedir líder ni filas de identidad", () => {
+  const f = correr(`${COMO_POSTGRES}
+update retail.variantes set sku = 'ZZ-SKU-FOTOS-M' where id = :'c_negm';
+select pg_temp.identidad(:'pc') as ident_c \\gset
+select pg_temp.identidad(:'pa') as ident_a \\gset
+select pg_temp.identidad(:'pb') as ident_b \\gset
+select version as v0 from retail.productos where id = :'pc' \\gset
+${sesion(MICAELA)}
+select 'es_lider', retail.fn_es_lider()::text;
+select 'vendida_beil', (select e ->> 'vendida' from jsonb_array_elements(retail.fn_variantes_estado(:'pc')) e where e ->> 'variante_id' = :'c_beil');
+select 'r', pg_temp.guardar_vieja(:'pc', 99);
+select 'r2', pg_temp.guardar_vieja(:'pa', 65);
+select 'r3', pg_temp.guardar_vieja(:'pb', 75);
+${COMO_POSTGRES}
+select 'ident_c', (pg_temp.identidad(:'pc') = :'ident_c')::text;
+select 'ident_a', (pg_temp.identidad(:'pa') = :'ident_a')::text;
+select 'ident_b', (pg_temp.identidad(:'pb') = :'ident_b')::text;
+select 'precios', string_agg(distinct precio::text, ',' order by precio::text) from retail.variantes where producto_id in (:'pc', :'pa', :'pb');
+${CAMPOS_VARIANTES("pc", "campos_c")}${CAMPOS_VARIANTES("pa", "campos_a")}${CAMPOS_VARIANTES("pb", "campos_b")}
+select 'version', (select version from retail.productos where id = :'pc') - :v0;
+select 'fotos', string_agg(coalesce(color_codigo, '-'), ',' order by orden) from retail.producto_fotos where producto_id = :'pc';`);
+  if (!json(f.r)?.ok) return `la ficha de main no guardó la prenda con variantes vendidas: ${f.r}`;
+  if (!json(f.r2)?.ok) return `la ficha de main no guardó la prenda «Sin color»: ${f.r2}`;
+  if (!json(f.r3)?.ok) return `la ficha de main no guardó la prenda con una variante vendida: ${f.r3}`;
+  return espera(f, {
+    es_lider: "false",
+    vendida_beil: "true",
+    ident_c: "true",
+    ident_a: "true",
+    ident_b: "true",
+    precios: "65.00,75.00,99.00",
+    campos_c: "precio",
+    campos_a: "precio",
+    campos_b: "precio",
+    version: "1",
+    fotos: "NEG,-",
+  });
+});
+
+caso("17 · una variante SIN historia (ni un movimiento) tampoco cambia de color con un update directo: el 0258 la dejaba, la regla nueva no", () => {
+  const f = correr(`${COMO_POSTGRES}
+select 'sin_movimientos', count(*) from retail.movimientos where variante_id = :'b_azml';
+${sesion(FELIPE)}
+select 'r', pg_temp.intento(format('update retail.variantes set color_codigo = ''BEI'' where id = %L', :'b_azml'));
+${COMO_POSTGRES}
+select 'color', color_codigo from retail.variantes where id = :'b_azml';`);
+  return espera(f, { sin_movimientos: "0", color: "AZM" }) ?? error(json(f.r), "identidad_variante", "42501");
+});
+
+// ===========================================================================
+// 18 · Un solo candado, con la regla nueva
+// ===========================================================================
+
+caso("18 · el candado queda UNO solo: el del 0258 renombrado, sobre color, talla, código y prenda, con la función nueva; sin restos del 0258", () => {
+  const f = correr(`${COMO_POSTGRES}
+select 'candados', string_agg(t.tgname || '>' || p.proname, ',' order by t.tgname)
+  from pg_trigger t join pg_proc p on p.oid = t.tgfoid
+ where t.tgrelid = 'retail.variantes'::regclass and not t.tgisinternal and (t.tgname like '%identidad%' or p.proname like '%identidad%');
+select 'columnas', string_agg(a.attname, ',' order by a.attname)
+  from pg_trigger t join pg_attribute a on a.attrelid = t.tgrelid and a.attnum = any (t.tgattr::int2[])
+ where t.tgrelid = 'retail.variantes'::regclass and t.tgname = 'variantes_identidad_solo_por_funcion';
+select 'restos_0258', concat_ws(',', to_regprocedure('retail.fn_identidad_variante_sin_historia()')::text,
+  to_regprocedure('retail.fn_variantes_con_historia(uuid[])')::text,
+  (select count(*) from pg_trigger where tgname = 'variantes_identidad_sin_historia'));
+select 'corregir', string_agg(p.proname || '(' || pg_get_function_identity_arguments(p.oid) || '):' || p.prosecdef::text || ':' ||
+  coalesce(array_to_string(p.proconfig, ';'), '-'), ' | ')
+  from pg_proc p where p.pronamespace = 'retail'::regnamespace and p.proname = 'fn_corregir_identidad_variante';`);
+  return espera(f, {
+    candados: "variantes_identidad_solo_por_funcion>fn_variante_identidad_solo_por_funcion",
+    columnas: "codigo,color_codigo,producto_id,talla_id",
+    restos_0258: "0",
+    corregir:
+      "fn_corregir_identidad_variante(p_variante_id uuid, p_producto_id uuid, p_categoria_id uuid, p_variante jsonb):true:search_path=retail, public, extensions",
+  });
+});
+
+caso("18 · el historial anota cada campo UNA vez con los nombres nuevos (color, talla legible, código, activo): el bloque del 0258 se reemplazó, no se sumó", () => {
+  const f = correr(`${COMO_POSTGRES}
+select 'bloques', concat_ws(',',
+  (length(d) - length(replace(d, '''color_codigo'', old', ''))) / length('''color_codigo'', old'),
+  (length(d) - length(replace(d, '''talla_id'', old', ''))) / length('''talla_id'', old'),
+  (length(d) - length(replace(d, '''color'', old.color_codigo', ''))) / length('''color'', old.color_codigo'),
+  (length(d) - length(replace(d, '''talla'',', ''))) / length('''talla'','),
+  (length(d) - length(replace(d, '''codigo'', old.codigo', ''))) / length('''codigo'', old.codigo'),
+  (length(d) - length(replace(d, '''activo'', old.activo', ''))) / length('''activo'', old.activo'))
+  from (select prosrc as d from pg_proc where oid = 'retail.fn_registrar_cambio_producto()'::regprocedure) x;
+${sesion(FELIPE)}
+${guardar("pb", [cambio("b_azml", { color_codigo: "'BEI'", talla_id: ":'t_xl'", activo: "false" })])}
+${COMO_POSTGRES}
+select 'filas', string_agg(campo || '=' || n, ',' order by campo) from (
+  select campo, count(*) as n from retail.historial_producto_cambios where entidad = 'variante' and entidad_id = :'b_azml' group by campo) x;
+select 'talla', string_agg(valor_anterior || '>' || valor_nuevo, ',') from retail.historial_producto_cambios
+ where entidad = 'variante' and entidad_id = :'b_azml' and campo = 'talla';`);
+  if (!json(f.r)?.ok) return f.r;
+  return espera(f, { bloques: "0,0,1,1,1,1", filas: "activo=1,codigo=1,color=1,talla=1", talla: "L>XL" });
+});
+
+caso("18 · CONTROL: con el candado apagado, el update directo por la API sí cambiaba el color (el hueco existía)", () => {
+  const f = correr(`${COMO_POSTGRES}alter table retail.variantes disable trigger variantes_identidad_solo_por_funcion;
+${sesion(FELIPE)}
+select 'r', pg_temp.intento(format('update retail.variantes set color_codigo = ''BEI'' where id = %L', :'b_azml'));
+${COMO_POSTGRES}
+select 'color', color_codigo from retail.variantes where id = :'b_azml';`);
+  if (!json(f.r)?.ok) return f.r;
+  return espera(f, { color: "BEI" });
 });
 
 // ===========================================================================
@@ -886,7 +1138,7 @@ await casoAsync("16 · el Taller cierra una producción (movimiento y después c
   if (!d.v || !d.c || !d.sub) return `la semilla no trae una prenda para la carrera: ${JSON.stringify(d)}`;
   // A toma la variante al insertar el movimiento; 1,5 s después recalcula el costo (update de la variante y
   // catalogo_version), como cerrar_produccion. B entra en medio. Con la variante bloqueada DESPUÉS de catalogo_version
-  // (la primera versión de ADR-0257), A caía con «deadlock detected … catalogo_version».
+  // (la primera versión de ADR-0263), A caía con «deadlock detected … catalogo_version».
   const a = sesionParalela(
     TIENE_LA_VARIANTE(
       d,
