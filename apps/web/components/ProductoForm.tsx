@@ -177,6 +177,7 @@ export function ProductoForm({
   avisoEtiquetas,
   marcas,
   producto,
+  volverA = "/productos",
 }: {
   categorias: Categoria[];
   colores: Color[];
@@ -192,6 +193,8 @@ export function ProductoForm({
   marcas: CatalogoMarcas;
   /** Presente = modo edición. */
   producto?: ProductoDetalle;
+  /** Adónde va al guardar o cancelar: la Tabla o Grilla de Productos de donde se salió, con sus filtros. */
+  volverA?: string;
 }) {
   const router = useRouter();
   const editando = !!producto;
@@ -526,7 +529,7 @@ export function ProductoForm({
     avisar.exito(`${referencia.trim()} guardado`, {
       detalle: `${variantes.length} ${variantes.length === 1 ? "variante" : "variantes"}`,
     });
-    router.replace("/productos");
+    router.replace(volverA);
     router.refresh();
   }
 
@@ -960,7 +963,7 @@ export function ProductoForm({
           <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined} className="w-full">
             {editando ? "Guardar cambios" : "Crear producto"}
           </Boton>
-          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/productos")} disabled={loading} className="w-full">
+          <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir(volverA)} disabled={loading} className="w-full">
             Cancelar
           </Boton>
         </div>
@@ -987,7 +990,7 @@ export function ProductoForm({
         }
         acciones={
           <>
-            <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir("/productos")} disabled={loading}>
+            <Boton type="button" peso="discreto" onClick={() => salida.pedirSalir(volverA)} disabled={loading}>
               Cancelar
             </Boton>
             <Boton type="submit" peso="primario" cargando={loading} disabled={!responsable.listo} title={responsable.motivo ?? undefined}>
