@@ -27,7 +27,8 @@ arreglo (le pasó a Análisis con el PR 397). La deriva encontró:
 1. **Traer a `main` lo que producción tiene** (primera migración): los `revoke` de las cuatro funciones y de la
    escritura de las dos tablas, y `fn_rentabilidad` con su cuerpo exacto. Solo se quita lo que sobra, con `revoke`
    explícito. Una guarda de md5 aborta si el cuerpo vivo no es el de `main` ni el de producción, y una verificación final
-   aborta si el resultado no quedó como producción: si otro rol dejó una puerta abierta, o si la dueña perdió su EXECUTE.
+   aborta si el resultado no quedó EXACTAMENTE como producción para los roles de la app: si otro rol dejó una puerta
+   abierta, si hay un permiso de más (también por columna, o cualquiera para `anon`), o si la dueña perdió su EXECUTE.
 2. **Las tres `_json`: se queda la de `main`**, copiada tal cual. Es lo único que esa migración cambia en producción.
 3. **Notas de crédito: ni la de `main` ni la de producción, sino la regla combinada** (segunda migración, decisión
    técnica del 2026-09-28). Un cierre deja de esperar su nota si **(a)** tiene una nota atada, de cualquier motivo, **o
@@ -37,10 +38,19 @@ arreglo (le pasó a Análisis con el PR 397). La deriva encontró:
    último cierre, que es como la manda la pantalla (reproducido; y `pruebas:compras-faltantes` se pone roja). Va sin
    esperar otro visto bueno porque junta dos reglas que ya estaban escritas, cumple lo pedido el 22-sep, y producción no
    tiene hoy ni un cierre ni una nota: ninguna cifra que el líder ya vio cambia.
-4. **Una suite que mira el estado vivo** (`pruebas:arreglos-en-vivo`, 39 casos): si una migración futura vuelve a abrir
-   una de estas puertas (por ejemplo con `drop function` + `create function`, que no conserva los `revoke`), se pone roja.
-   También prueba que cerrar las puertas no rompe la tienda: como `authenticated`, una venta con boleta sigue emitiendo
-   su comprobante y bajando el stock, y aprobar una devolución de una venta aceptada sigue emitiendo su nota de crédito.
+4. **Una suite que mira el estado vivo** (`pruebas:arreglos-en-vivo`, 47 casos, los mismos con y sin superusuario, o sea
+   también en el CI): si una migración futura vuelve a abrir una de estas puertas (por ejemplo con `drop function` +
+   `create function`, que no conserva los `revoke`), se pone roja. Los permisos se comparan contra la lista EXPLÍCITA de
+   producción, no contra una foto de la misma base (sería circular). También prueba que cerrar las puertas no rompe la
+   tienda: como `authenticated`, una venta con boleta sigue emitiendo su comprobante y bajando el stock, y aprobar una
+   devolución de una venta aceptada sigue emitiendo su nota de crédito.
+5. **Las pruebas del PEGADO no congelan las funciones** (revisión del 2026-09-28). Pegan cada migración sobre la foto de
+   producción armada dentro del ROLLBACK desde el TEXTO de la propia migración, no sobre los cuerpos vivos. Una migración
+   posterior que cambie una `_json`, `fn_rentabilidad` o las notas de crédito —algo legítimo— no pone roja la suite ni
+   le pide a nadie editar una migración ya fusionada (medido: con un `where true` sumado a `fn_stock_por_sede_json`, antes
+   caían 7 casos). Si cambia la FIRMA de una de las cuatro que A exige, A ya no se puede pegar sobre esa base y sus
+   pruebas de pegado se omiten con un aviso que lo dice. Lo que queda en la base lo siguen vigilando los candados de
+   estado vivo y los casos de negocio de las notas (con montos, por motivo, por comprobante y por sede).
 
 ## Descarté
 
@@ -58,8 +68,14 @@ arreglo (le pasó a Análisis con el PR 397). La deriva encontró:
 - **Alguien recrea una de las cuatro con `drop` + `create`**: la suite se pone roja en el CI.
 - **La dueña (`postgres`) pierde su EXECUTE de una de las cuatro**: se caen las ventas, devoluciones y movimientos. La
   verificación de la migración aborta nombrándola, y la suite lo prueba con una dueña que no es superusuaria.
+- **Una nota chica atada a un cierre lo apaga entero**: la regla (a) no mira el monto (una devolución de S/ 59 atada a un
+  cierre de S/ 590 borra el pendiente, y los S/ 531 que faltan dejan de verse). Hoy solo se llega llamando a la RPC a
+  mano: el modal ata el cierre solo en la nota por faltante. **Si la pantalla empieza a atar notas de otro motivo, solo
+  puede hacerlo cuando la nota cubre el esperado de ese cierre** (costo + IGV, con `MARGEN_NOTA`); si no, el cambio va en
+  la base (que la regla (a) sume las notas atadas y las compare con el esperado). `pruebas:arreglos-en-vivo` deja el
+  comportamiento a la vista («una nota por descuento de S/ 50 atada a un cierre de S/ 590 lo apaga entero»).
 - **La nota por faltante deja de ser una por comprobante**: la regla (b) apagaría cierres que esa nota no cubre.
-- **El PR #168 cambia el cuerpo de `fn_rentabilidad`**: la guarda aborta. **El PR #168 tiene que quitar su propia
+- **El PR #168 cambia el cuerpo de `fn_rentabilidad` antes de que esta migración entre**: la guarda aborta. **El PR #168 tiene que quitar su propia
   creación de `fn_rentabilidad` (`20260918194000_panel_rentabilidad.sql`) o dejarla idéntica** (hoy lo es: mismo
   `pg_get_functiondef`, comprobado pegándola antes de la de este ADR).
 

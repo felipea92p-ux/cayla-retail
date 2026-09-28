@@ -34,24 +34,40 @@ en `main` y, al pegarse, deja la deriva solo con la política de Clientas que se
 - [x] `20260928200000`: `emitir_comprobante`, `emitir_nota`, `fn_aplicar_movimiento` y `recalcular_stock` solo para su
   dueña; `stock` y `movimientos` sin escritura directa para `authenticated` ni `service_role` (la lectura intacta);
   `fn_rentabilidad` con el cuerpo exacto de producción; las tres `_json`, la versión de `main`. Guarda de md5 y
-  verificación final que aborta si algo no quedó como en producción.
+  verificación final que aborta si algo no quedó EXACTAMENTE como en producción (ni un permiso de más, tampoco por
+  columna ni a `anon`).
 - [x] `20260928200100`: notas de crédito de compras con la regla combinada (un cierre deja de esperar si tiene una nota
   atada o si su comprobante ya tiene la nota por faltante). Decisión técnica: junta las dos reglas escritas, cumple lo
   que Felipe pidió el 22-sep, y producción no tiene cierres ni notas hoy.
 - [x] Antes de cerrar las puertas: la web de `main` no llama a ninguna de las cuatro ni escribe `stock`/`movimientos`;
   las 31 funciones que lo hacen son `security definer` de `postgres`; producción ya opera así desde el 26-sep.
-- [x] `pnpm pruebas:arreglos-en-vivo` (39/39), en `package.json` y en el job «Pruebas de RPC contra Postgres».
+- [x] `pnpm pruebas:arreglos-en-vivo` (47/47, los mismos casos con y sin superusuario: en el CI ya no se omite
+  ninguno), en `package.json` y en el job «Pruebas de RPC contra Postgres».
+- [x] Revisión (2026-09-28): las pruebas del PEGADO ya no congelan las funciones (pegan sobre la foto de producción
+  armada desde el texto de cada migración; una migración posterior que cambie una `_json`, `fn_rentabilidad` o las
+  notas no pone roja la suite ni pide editar una migración fusionada); los permisos se comparan contra la lista
+  explícita de producción, también por columna; las notas se prueban con montos, por motivo, por comprobante y por sede.
 - [ ] **POR PEGAR:** `20260928200000` y `20260928200100`, cada una sola, en cualquier orden (md5 esperados en ADR-0252).
 - [ ] Después de pegar: correr la deriva (ADR-0251). Debe quedar solo `clientas_fusiones.clientas_fusiones_select`.
 - [ ] **PR #168 (Rentabilidad):** quitar su creación de `fn_rentabilidad` o dejarla idéntica a la de producción. Si no,
   la guarda de `20260928200000` aborta en el CI.
-- [ ] Sigue abierto, aparte: el modal de nota de crédito solo ata el cierre cuando el motivo es «faltante». Una nota
-  por devolución registrada desde la pantalla no apaga el pendiente de su cierre (la base ya lo permite: falta mandar
-  `cierre_id` también con ese motivo).
+- [ ] Sigue abierto, aparte: el modal de nota de crédito solo ata el cierre cuando el motivo es «faltante», así que una
+  nota por devolución registrada desde la pantalla no apaga el pendiente de su cierre. **Antes de hacer que el modal
+  mande `cierre_id` con otro motivo:** la regla (a) NO mira el monto, y una nota chica atada apaga el cierre entero (una
+  devolución de S/ 59 atada a un cierre de S/ 590 borra el pendiente y los S/ 531 que faltan dejan de verse). El modal
+  solo puede atar una nota que no es por faltante cuando su monto cubre el esperado de ESE cierre (costo + IGV, con
+  `MARGEN_NOTA`); si eso no alcanza, el cambio va en la base (que la regla (a) sume las notas atadas y las compare con el
+  esperado), con su migración nueva. Ver ADR-0252, «Se rompe si».
 - Cómo verificas:
-  - `pnpm pruebas:arreglos-en-vivo` (39/39) y el job completo de Postgres: 102 de 104 pasos en verde. Los 2 rojos
-    (`proveedores-produccion` y `dinero-compras`) salen igual en `main` sin este cambio: son del Postgres desechable.
-  - Mutaciones: 14 del estado vivo y 7 de los archivos. Las 21 dejan la suite en rojo.
+  - `pnpm pruebas:arreglos-en-vivo` (47/47, con y sin superusuario) y el job completo de Postgres: 102 de 104 pasos
+    en verde. Los 2 rojos (`proveedores-produccion` y `dinero-compras`) salen igual en `main` sin este cambio: son del
+    Postgres desechable.
+  - Mutaciones, en los dos modos: 34 del estado vivo (32 la ponen roja; `R13`, la lista con comprobantes anulados, la
+    atrapa `compras-faltantes`; `R10`, la lista sin su candado de líder, es equivalente: el candado de sede ya exige lo
+    mismo) y 13 de los archivos (las 13 la ponen roja).
+  - Cambios futuros legítimos (una `_json` o `fn_rentabilidad` con otro cuerpo, `fn_rentabilidad` con otra columna,
+    `compras_nota_pendiente` con otra condición): la suite sigue en verde. Con otra firma de `emitir_nota`, las 11
+    pruebas del pegado de A se omiten con un aviso que lo dice.
   - En producción, después de pegar, la consulta de huellas de cada encabezado da los md5 de ADR-0252.
 
 ## 🔒 «Ajustar stock» se separa de Existencias, módulo propio (2026-09-27, ADR-0250) — web + migración **sin pegar en producción**; rama `claude/ajustar-stock-modulo-propio`
