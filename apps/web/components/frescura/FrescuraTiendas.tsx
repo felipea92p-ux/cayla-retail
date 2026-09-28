@@ -2,7 +2,7 @@
 
 import type { RefObject } from "react";
 import { Modal } from "@/components/ui/Modal";
-import { QUIZA_MAS, cifrasVista, registroCorto } from "@/lib/frescura-pantalla";
+import { QUIZA_MAS, cifrasVista, palabraDias, registroCorto } from "@/lib/frescura-pantalla";
 import type { FilaConfianza } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
 import type { Tolerado } from "@/lib/resultado";
@@ -51,9 +51,9 @@ export function FrescuraTiendas({
                     <p className="mt-1 text-[13px] text-taupe">{t.lectura.fallo}</p>
                   ) : c ? (
                     <p className="mt-1 text-[13px] leading-relaxed">
-                      <b className="font-semibold tabular-nums">{c.edad ?? "—"}</b> días en el piso en promedio{c.edad !== null && c.edadQuizaMas ? ` ${QUIZA_MAS}` : ""} ·{" "}
+                      <b className="font-semibold tabular-nums">{c.edad ?? "—"}</b> {palabraDias(c.edad ?? 0)} en el piso en promedio{c.edad !== null && c.edadQuizaMas ? ` ${QUIZA_MAS}` : ""} ·{" "}
                       <b className="font-semibold tabular-nums">{c.pctNuevas === null ? "—" : `${c.pctNuevas}%`}</b> de lo medido es Nueva ·{" "}
-                      <b className="font-semibold tabular-nums">{c.porDecidir}</b> por decidir · <b className="font-semibold tabular-nums">{c.unidades}</b> unidades en el piso
+                      <b className="font-semibold tabular-nums">{c.porDecidir}</b> por decidir · <b className="font-semibold tabular-nums">{c.unidades}</b> {c.unidades === 1 ? "unidad" : "unidades"} en el piso
                     </p>
                   ) : (
                     <p className="mt-1 text-[13px] text-taupe">No separa piso y almacén: Frescura no la mide.</p>

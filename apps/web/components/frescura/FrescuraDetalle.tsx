@@ -5,7 +5,7 @@ import { Info } from "lucide-react";
 import type { CSSProperties, ReactNode, RefObject } from "react";
 import { Chip } from "@/components/ui/Chip";
 import { Modal } from "@/components/ui/Modal";
-import { FRASE_SIN_ELLA, QUIZA_MAS, type DetalleVista, type ReglaVista } from "@/lib/frescura-pantalla";
+import { FRASE_SIN_ELLA, QUIZA_MAS, palabraDias, type DetalleVista, type ReglaVista } from "@/lib/frescura-pantalla";
 import type { Tramo } from "@/lib/frescura-reglas";
 import { EstadoChip, ICONO_SUGERENCIA, NivelChip, TextoConNegritas } from "./piezas";
 
@@ -129,7 +129,7 @@ export function FrescuraDetalle({
                 <span className="font-display text-[30px] font-semibold leading-none tabular-nums">
                   {detalle.dias}
                   <small className="ml-1 font-sans text-[13px] font-medium text-taupe">
-                    días en el piso{detalle.quizaMas ? ` ${QUIZA_MAS}` : ""}
+                    {palabraDias(detalle.dias)} en el piso{detalle.quizaMas ? ` ${QUIZA_MAS}` : ""}
                     {detalle.pausa ? " · parado: está apartada" : ""}
                   </small>
                 </span>
@@ -145,10 +145,10 @@ export function FrescuraDetalle({
                 <Info aria-hidden strokeWidth={1.6} className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
                   <b className="font-semibold text-tinta">{FRASE_SIN_ELLA}</b> <TextoConNegritas texto={detalle.sinContarla} />
-                  {detalle.nivelCategoria && detalle.nivelCategoria !== "solido" && (
+                  {detalle.confianzaSinElla && (
                     <>
                       {" "}
-                      Con {detalle.ventasCategoria} ventas en {sede}: <NivelChip nivel={detalle.nivelCategoria} />
+                      {detalle.confianzaSinElla.texto} <NivelChip nivel={detalle.confianzaSinElla.nivel} />
                     </>
                   )}
                 </span>

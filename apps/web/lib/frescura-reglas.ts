@@ -129,6 +129,10 @@ export type TallaFrescuraCruda = {
   almacenHoy: number;
   /** Lo apartado para clientas en esta sede (piso y almacén): la pantalla lo dice, y no cuenta como colgado. */
   apartadasHoy: number;
+  /** De lo apartado, lo que está en el PISO (paso 4, `apartadas_piso_hoy`). La pantalla lo necesita para saber si una
+   *  prenda sin nada libre colgado está «apartada» (lo apartado es del piso) o «guardada» (está en el almacén): Apartar
+   *  toma del almacén cuando el piso está vacío. Con una lectura de antes del paso 4, sale de `apartados` (−Σ delta). */
+  apartadasPisoHoy: number;
 };
 
 export type TardiaCruda = { oid: string; varianteId: string; bajadaEn: string; unidadesTardias: number };
@@ -274,7 +278,13 @@ export function leerEventosFrescura(v: unknown): EventoPiso[] {
 
 const ORIGENES = ["color", "producto", "categoria"] as const;
 
-function leerTalla(v: unknown): TallaFrescuraCruda | null {
+/** Lo apartado en el piso de una talla según sus puntos de `apartados`: el saldo al empezar la ventana más lo de adentro,
+ *  con el signo de lo libre (apartar resta), así que lo apartado de hoy es −Σ delta. Es lo que devuelve
+ *  `apartadas_piso_hoy` (lo prueba T2i de frescura_lectura); sirve mientras producción no tenga la clave. */
+const apartadasPisoSegun = (puntos: readonly PuntoApartado[] | undefined, apartadasHoy: number): number =>
+  Math.max(0, Math.min(apartadasHoy, -(puntos ?? []).reduce((s, p) => s + p.delta, 0)));
+
+function leerTalla(v: unknown, apartados: Readonly<Record<string, PuntoApartado[]>>): TallaFrescuraCruda | null {
   if (!esObjeto(v)) return null;
   const varianteId = texto(v.variante_id);
   const productoId = texto(v.producto_id);
@@ -301,6 +311,10 @@ function leerTalla(v: unknown): TallaFrescuraCruda | null {
     pisoHoy: numero(v.piso_hoy),
     almacenHoy: numero(v.almacen_hoy),
     apartadasHoy: numero(v.apartadas_hoy),
+    apartadasPisoHoy:
+      v.apartadas_piso_hoy === undefined || v.apartadas_piso_hoy === null
+        ? apartadasPisoSegun(apartados[varianteId], numero(v.apartadas_hoy))
+        : numero(v.apartadas_piso_hoy),
   };
 }
 
@@ -324,11 +338,11 @@ export function leerFrescuraSede(v: unknown): LecturaFrescuraSede | null {
   if (!esObjeto(v)) return null;
   if (v.separa_piso === false) return { separaPiso: false };
   if (v.separa_piso !== true || !esFecha(v.desde) || !esFecha(v.ahora) || !Array.isArray(v.prendas)) return null;
-  const tallas = v.prendas.map(leerTalla).filter((t): t is TallaFrescuraCruda => t !== null);
-  const eventos: Record<string, EventoPiso[]> = {};
-  if (esObjeto(v.eventos)) for (const [id, lista] of Object.entries(v.eventos)) eventos[id] = leerEventosFrescura(lista);
   const apartados: Record<string, PuntoApartado[]> = {};
   if (esObjeto(v.apartados)) for (const [id, lista] of Object.entries(v.apartados)) apartados[id] = leerApartados(lista);
+  const tallas = v.prendas.map((p) => leerTalla(p, apartados)).filter((t): t is TallaFrescuraCruda => t !== null);
+  const eventos: Record<string, EventoPiso[]> = {};
+  if (esObjeto(v.eventos)) for (const [id, lista] of Object.entries(v.eventos)) eventos[id] = leerEventosFrescura(lista);
   const tardias: TardiaCruda[] = [];
   if (Array.isArray(v.tardias)) {
     for (const t of v.tardias) {
@@ -1239,13 +1253,16 @@ export type FrescuraPrenda = {
   colorNombre: string | null;
   categoriaId: string;
   categoriaNombre: string;
-  tallas: { varianteId: string; talla: string | null; pisoHoy: number; almacenHoy: number; apartadasHoy: number }[];
+  tallas: { varianteId: string; talla: string | null; pisoHoy: number; almacenHoy: number; apartadasHoy: number; apartadasPisoHoy: number }[];
   /** Lo libre en el piso y en el almacén (sin lo apartado: R7-1). */
   pisoHoy: number;
   almacenHoy: number;
   /** Lo apartado para clientas (piso y almacén). Con el piso entero apartado, `pisoHoy` es 0: no envejece ni recibe
    *  sugerencias, y la pantalla la muestra como apartada. */
   apartadasHoy: number;
+  /** De lo apartado, lo del PISO (paso 4): «apartada» solo si hay algo aquí; si todo lo apartado está en el almacén, la
+   *  prenda está guardada. */
+  apartadasPisoHoy: number;
   reloj: RelojNovedad;
   primeraExhibicion: string | null;
   /** La última llegada de cualquiera de sus tallas a ESTA sede (incluye la recepción de un traslado). */
@@ -1413,6 +1430,7 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
     const pisoHoy = tallas.reduce((s, t) => s + t.pisoHoy, 0);
     const almacenHoy = tallas.reduce((s, t) => s + t.almacenHoy, 0);
     const apartadasHoy = tallas.reduce((s, t) => s + t.apartadasHoy, 0);
+    const apartadasPisoHoy = tallas.reduce((s, t) => s + t.apartadasPisoHoy, 0);
     const eventosPorTalla = tallas.map((t) => l.eventos[t.varianteId] ?? []);
     const entradaReloj: EntradaReloj = {
       eventosPorTalla,
@@ -1479,10 +1497,18 @@ export function analizarSede(l: LecturaFrescuraConPiso): { sede: FrescuraSede; o
       colorNombre: f.colorNombre,
       categoriaId: cat,
       categoriaNombre,
-      tallas: tallas.map((t) => ({ varianteId: t.varianteId, talla: t.talla, pisoHoy: t.pisoHoy, almacenHoy: t.almacenHoy, apartadasHoy: t.apartadasHoy })),
+      tallas: tallas.map((t) => ({
+        varianteId: t.varianteId,
+        talla: t.talla,
+        pisoHoy: t.pisoHoy,
+        almacenHoy: t.almacenHoy,
+        apartadasHoy: t.apartadasHoy,
+        apartadasPisoHoy: t.apartadasPisoHoy,
+      })),
       pisoHoy,
       almacenHoy,
       apartadasHoy,
+      apartadasPisoHoy,
       reloj,
       primeraExhibicion: primeras[0] ?? null,
       ultimaLlegada: llegadas[llegadas.length - 1] ?? null,

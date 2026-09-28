@@ -8,6 +8,7 @@ import {
   type LlamarRpcFrescura,
   type VaraCategoria,
 } from "@/lib/frescura-reglas";
+import type { NombresDeTemporadas } from "@/lib/frescura-pantalla";
 import type { Tolerado } from "@/lib/resultado";
 import type { PersonaActualV2 } from "@/lib/persona-actual";
 
@@ -57,15 +58,20 @@ export type DatosFrescura = {
   cayla: Tolerado<VaraCategoria[]> | null;
   /** Solo el líder: cada tienda con sus cifras, para «Las N tiendas». */
   tiendas: { id: string; nombre: string; lectura: Tolerado<CifrasDeTienda> }[] | null;
-  /** clave → nombre de cada temporada. Vacío si no se pudo leer (la pantalla muestra la clave). */
-  temporadas: Record<string, string>;
+  /** clave → nombre de cada temporada y la estación en que empieza. Vacío si no se pudo leer (la pantalla dice «su
+   *  estación» en las frases y muestra la clave junto al color). */
+  temporadas: NombresDeTemporadas;
 };
 
-async function nombresDeTemporadas(supabase: Supabase): Promise<Record<string, string>> {
+async function nombresDeTemporadas(supabase: Supabase): Promise<NombresDeTemporadas> {
   try {
     const { data, error } = await supabase.rpc("fn_temporadas");
     if (error || !data) return {};
-    return Object.fromEntries((data as { clave: string; nombre: string }[]).map((t) => [t.clave, t.nombre]));
+    // `estacion_desde` es la CLAVE de la estación («verano»): la pantalla la nombra con el nombre de esa temporada
+    // («Verano»), así el clásico de verano dice «Es de verano» y no «Es de clásico · verano».
+    return Object.fromEntries(
+      (data as { clave: string; nombre: string; estacion_desde: string | null }[]).map((t) => [t.clave, { nombre: t.nombre, estacionDesde: t.estacion_desde ?? null }]),
+    );
   } catch {
     return {};
   }

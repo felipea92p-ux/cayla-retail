@@ -37,7 +37,7 @@ type Crudo = {
     separa_piso: boolean;
     desde: string;
     ahora: string;
-    prendas: { variante_id: string; codigo: string; piso_hoy: number; almacen_hoy: number; apartadas_hoy: number }[];
+    prendas: { variante_id: string; codigo: string; piso_hoy: number; almacen_hoy: number; apartadas_hoy: number; apartadas_piso_hoy: number }[];
     eventos: Record<string, [string, number, number, string | null][]>;
     apartados: Record<string, [string, number][]>;
     tardias: { oid: string; variante_id: string; bajada_en: string; unidades_tardias: number }[];
@@ -156,6 +156,15 @@ describe("contrato fn_frescura_sede → leerFrescuraSede: la web lee ENTERA la s
       expect(l.apartados?.[id]).toEqual(crudos.map(([ts, delta]) => ({ ts, delta })));
     }
     for (const t of l.tallas) expect(t.apartadasHoy, t.codigo ?? t.varianteId).toBe(SEDE.prendas.find((p) => p.variante_id === t.varianteId)!.apartadas_hoy);
+    // Paso 4: lo apartado en el PISO llega tal cual, y es lo mismo que la web deduce sin la clave (producción de antes).
+    const sinClave = leerFrescuraSede({ ...SEDE, prendas: SEDE.prendas.map((p) => Object.fromEntries(Object.entries(p).filter(([k]) => k !== "apartadas_piso_hoy"))) });
+    if (!sinClave?.separaPiso) throw new Error("sin lectura");
+    for (const t of l.tallas) {
+      const cruda = SEDE.prendas.find((p) => p.variante_id === t.varianteId)!;
+      expect(typeof cruda.apartadas_piso_hoy, t.codigo ?? t.varianteId).toBe("number");
+      expect(t.apartadasPisoHoy, t.codigo ?? t.varianteId).toBe(cruda.apartadas_piso_hoy);
+      expect(sinClave.tallas.find((x) => x.varianteId === t.varianteId)!.apartadasPisoHoy, t.codigo ?? t.varianteId).toBe(cruda.apartadas_piso_hoy);
+    }
     // El vestido apartado: nada libre en el piso ni en el almacén, 3 apartadas, y lo del piso se apartó en un solo punto.
     const apartada = l.tallas.find((t) => t.codigo === "ZZ-FX-APARTADA-M")!;
     expect(apartada).toMatchObject({ pisoHoy: 0, almacenHoy: 0, apartadasHoy: 3 });

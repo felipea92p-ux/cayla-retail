@@ -3,7 +3,7 @@
 import { Shirt } from "lucide-react";
 import type { KeyboardEvent } from "react";
 import { Chip } from "@/components/ui/Chip";
-import { QUIZA_MAS, type FilaVista, type RapidezVista } from "@/lib/frescura-pantalla";
+import { QUIZA_MAS, palabraDias, type FilaVista, type RapidezVista } from "@/lib/frescura-pantalla";
 import { EstadoChip, ICONO_SUGERENCIA, NivelChip } from "./piezas";
 
 // Una prenda (modelo+color) de Frescura del piso: la fila de la tabla en la computadora y la tarjeta en el celular
@@ -51,22 +51,20 @@ function Dias({ fila, derecha = false }: { fila: FilaVista; derecha?: boolean })
     );
   return (
     <span className={`block whitespace-nowrap text-sm ${derecha ? "text-right" : ""}`}>
-      <b className="font-display text-[20px] font-semibold leading-none tabular-nums">{fila.dias}</b> días
+      <b className="font-display text-[20px] font-semibold leading-none tabular-nums">{fila.dias}</b> {palabraDias(fila.dias)}
       {fila.quizaMas && <span className="block text-[11px] leading-snug text-taupe">{QUIZA_MAS}</span>}
       {fila.apartada && <span className="block whitespace-normal text-[11px] leading-snug text-taupe">parado: está apartada</span>}
     </span>
   );
 }
 
-function Rapidez({ r, vendio }: { r: RapidezVista; vendio?: number | null }) {
+function Rapidez({ r, vendio }: { r: RapidezVista; vendio?: string | null }) {
   return (
     <div className="flex flex-col items-start gap-0.5">
       <span className="text-[13.5px] leading-snug">{r.texto}</span>
       {r.detalle && <span className="text-xs tabular-nums leading-snug text-taupe">{r.detalle}</span>}
       {r.porque && <span className="text-xs leading-snug text-taupe">{r.porque}</span>}
-      {vendio !== undefined && vendio !== null && (
-        <span className="text-xs leading-snug text-taupe md:hidden">vendió {vendio} en sus últimos 30 d en el piso</span>
-      )}
+      {vendio && <span className="text-xs leading-snug text-taupe md:hidden">{vendio}</span>}
       {r.nivel && r.nivel !== "solido" && (
         <span className="mt-1">
           <NivelChip nivel={r.nivel} />
@@ -163,7 +161,7 @@ export function FrescuraFila({ fila, muchasSinTemporada, onAbrir }: { fila: Fila
           <Dias fila={fila} derecha />
         </div>
         <EstadoChip estado={fila.estado} apilado={false} />
-        <Rapidez r={fila.rapidez} vendio={fila.vendio} />
+        <Rapidez r={fila.rapidez} vendio={fila.vendioTexto} />
         <Tallas fila={fila} leyenda />
         <Sugerencias fila={fila} />
       </div>

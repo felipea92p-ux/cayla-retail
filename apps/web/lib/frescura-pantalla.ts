@@ -72,6 +72,26 @@ export function diasDeCorte(segundos: number): number {
   return Math.max(1, Math.round(segundos / SEGUNDOS_DIA));
 }
 
+/** «día» o «días»: la prenda colgada ayer lleva «1 día», no «1 días». La única forma de escribirlo en la pantalla. */
+export const palabraDias = (n: number): string => (n === 1 ? "día" : "días");
+/** «1 día», «18 días». */
+export const textoDias = (n: number): string => `${n} ${palabraDias(n)}`;
+/** «1 venta», «7 ventas» (con decimal: lo vendido con peso puede no ser entero). */
+const textoVentas = (n: number): string => `${decimal(n)} ${n === 1 ? "venta" : "ventas"}`;
+/** «se esperaba 1», «se esperaban 4.8». */
+const seEsperaban = (esperadas: string): string => (esperadas === "1" ? `se esperaba ${esperadas}` : `se esperaban ${esperadas}`);
+
+/**
+ * Un porcentaje entero que no miente en los bordes: 249 de 250 no es «100 %» ni 1 de 250 es «0 %». Se redondea, pero si
+ * falta alguna unidad el tope es 99, y si hay alguna el piso es 1.
+ */
+export function porcentajeEntero(pct: number, parte: number, total: number): number {
+  const r = Math.round(pct);
+  if (parte < total && r >= 100) return 99;
+  if (parte > 0 && r <= 0) return 1;
+  return r;
+}
+
 /** «4.8»: un decimal con punto, como el resto del ERP en es-PE; sin decimal si es entero. */
 export function decimal(n: number): string {
   const r = Math.round(n * 10) / 10;
@@ -108,34 +128,64 @@ export type ContextoFrescura = {
   cayla: ReadonlyMap<string, VaraCategoria> | null;
   /** Si la referencia de CAYLA no se pudo armar, por qué (solo líder). */
   caylaFallo: string | null;
-  /** clave → nombre de la temporada («invierno» → «Invierno»). Si no se pudo leer, se muestra la clave. */
-  temporadas: Readonly<Record<string, string>>;
+  /** Cada temporada por su clave, con su nombre y la estación en que empieza (`fn_temporadas`). Vacío si no se pudo leer:
+   *  las frases dicen «su estación» y junto al color se muestra la clave. */
+  temporadas: NombresDeTemporadas;
   acceso: AccesoFrescura;
 };
 
-const nombreTemporada = (ctx: ContextoFrescura, clave: string | null): string | null => (clave ? (ctx.temporadas[clave] ?? clave) : null);
+/** Cada temporada por su clave: su nombre («Clásico · verano») y la CLAVE de la estación en que empieza («verano»; null:
+ *  todo el año). La estación de un clásico se nombra con el nombre de la temporada de esa clave («Verano»). */
+export type NombresDeTemporadas = Readonly<Record<string, { nombre: string; estacionDesde: string | null }>>;
+
+/** El nombre de la temporada, o null si no se conoce (las frases dicen entonces «su estación»). */
+const nombreTemporada = (ctx: ContextoFrescura, clave: string | null): string | null => (clave ? (ctx.temporadas[clave]?.nombre ?? null) : null);
+/** Junto al color y en la cabecera de la hoja: el nombre, o la clave si el catálogo no se pudo leer. */
+const nombreTemporadaOClave = (ctx: ContextoFrescura, clave: string | null): string | null => (clave ? (ctx.temporadas[clave]?.nombre ?? clave) : null);
 /** El nombre de una temporada dentro de una frase: «su otoño-invierno terminó…». */
 const minuscula = (s: string) => s.toLowerCase();
+
+/**
+ * De qué estación es un clásico, para una frase: «verano» (el NOMBRE de la temporada cuya clave es su `estacionDesde`, en
+ * minúsculas), «todo el año» si no tiene estación, o null si el catálogo no se pudo leer. Nunca el nombre de la temporada
+ * del clásico: «Es de clásico · verano» no se entiende (corrección del paso 4).
+ */
+type EstacionClasico = { tipo: "estacion"; nombre: string } | { tipo: "todo_el_ano" } | null;
+function estacionDelClasico(ctx: ContextoFrescura, clave: string | null): EstacionClasico {
+  const t = clave ? ctx.temporadas[clave] : undefined;
+  if (!t) return null;
+  if (t.estacionDesde === null) return { tipo: "todo_el_ano" };
+  const estacion = ctx.temporadas[t.estacionDesde]?.nombre;
+  return estacion ? { tipo: "estacion", nombre: minuscula(estacion) } : null;
+}
+/** « de verano», « de todo el año» o nada: lo que sigue a «Es un clásico». */
+const deClasico = (e: EstacionClasico): string => (e === null ? "" : e.tipo === "todo_el_ano" ? " de todo el año" : ` de ${e.nombre}`);
 
 // ---------------------------------------------------------------------------
 // Dónde está cada prenda: la tabla es solo lo que está colgado (o apartado desde el piso)
 // ---------------------------------------------------------------------------
 
 /**
- * `en_piso`: algo libre colgado (la tabla). `apartada`: nada libre en el piso y algo apartado para una clienta después de
- * haberse colgado (la tabla, «en pausa»). `guardada`: se colgó alguna vez y hoy solo está en el almacén (al pie).
- * `nunca_colgada`: nunca estuvo libre en el piso — solo en el almacén, o apartada al llegar (al pie; la lectura la trae
- * como «Nueva» con 0 días y en la tabla se vería como un error). `agotada`: nada en la sede (al pie, solo el número).
+ * `en_piso`: algo libre colgado (la tabla). `apartada`: nada libre en el piso y algo apartado EN EL PISO para una clienta
+ * después de haberse colgado (la tabla, «en pausa»). `guardada`: se colgó alguna vez y hoy solo está en el almacén, libre
+ * o apartado ahí (al pie): Apartar toma del almacén cuando el piso está vacío, y esa prenda no tiene nada colgado ni
+ * apartado del piso (corrección del paso 4). `nunca_colgada`: nunca estuvo libre en el piso — solo en el almacén, o
+ * apartada al llegar (al pie; la lectura la trae como «Nueva» con 0 días y en la tabla se vería como un error).
+ * `agotada`: nada en la sede (al pie, solo el número).
  */
 export type Presencia = "en_piso" | "apartada" | "guardada" | "nunca_colgada" | "agotada";
 
-export function presenciaDe(p: Pick<FrescuraPrenda, "pisoHoy" | "almacenHoy" | "apartadasHoy" | "primeraExhibicion">): Presencia {
+export function presenciaDe(p: Pick<FrescuraPrenda, "pisoHoy" | "almacenHoy" | "apartadasHoy" | "apartadasPisoHoy" | "primeraExhibicion">): Presencia {
   if (p.pisoHoy > 0) return "en_piso";
   if (p.primeraExhibicion === null) return p.almacenHoy > 0 || p.apartadasHoy > 0 ? "nunca_colgada" : "agotada";
-  if (p.apartadasHoy > 0) return "apartada";
-  if (p.almacenHoy > 0) return "guardada";
+  if (p.apartadasPisoHoy > 0) return "apartada";
+  if (enElAlmacen(p) > 0) return "guardada";
   return "agotada";
 }
+
+/** Lo que hay en el almacén, libre o apartado ahí (lo apartado que no es del piso). */
+const enElAlmacen = (p: Pick<FrescuraPrenda, "almacenHoy" | "apartadasHoy" | "apartadasPisoHoy">): number =>
+  p.almacenHoy + Math.max(0, p.apartadasHoy - p.apartadasPisoHoy);
 
 export const enLaTabla = (p: FrescuraPrenda) => {
   const donde = presenciaDe(p);
@@ -167,22 +217,30 @@ const TEXTO_ESPECIAL = {
   apartada: "Apartada para clientas",
 } as const;
 
-export function estadoVista(p: FrescuraPrenda, ctx: ContextoFrescura): EstadoVista {
+export function estadoVista(p: FrescuraPrenda): EstadoVista {
   const e = p.estado;
   if (presenciaDe(p) === "apartada") {
     const iba = e.tipo === "semaforo" ? `iba en ${NOMBRE_TRAMO[e.tramo]} · ` : "";
-    return { texto: TEXTO_ESPECIAL.apartada, tono: "neutro", icono: false, debajo: [], previo: `${iba}${p.apartadasHoy} ${p.apartadasHoy === 1 ? "apartada" : "apartadas"}` };
+    return { texto: TEXTO_ESPECIAL.apartada, tono: "neutro", icono: false, debajo: [], previo: `${iba}${p.apartadasPisoHoy} ${p.apartadasPisoHoy === 1 ? "apartada" : "apartadas"}` };
   }
   if (e.tipo === "semaforo") {
     const debajo: string[] = [];
     // «Crítica quizá más» no existe: no hay nada después de Crítica.
     if (e.alMenos && e.tramo !== "critica") debajo.push(QUIZA_MAS);
-    if (ctx.categorias.get(p.categoriaId)?.nivel === "pocos_datos") debajo.push("con pocos datos");
+    // «Con pocos datos» se mide con las ventas de las demás SIN ella, las mismas que ubicaron su estado (D5): una
+    // categoría sólida hecha casi toda de sus propias ventas la compara contra muy poco (corrección del paso 4).
+    if (nivelSinElla(p) === "pocos_datos") debajo.push("con pocos datos");
     return { texto: NOMBRE_TRAMO[e.tramo], tono: TONO_TRAMO[e.tramo], icono: false, debajo, previo: null };
   }
   if (e.tipo === "clasico") return { texto: e.fueraDeSuEstacion ? TEXTO_ESPECIAL.clasico_fuera : TEXTO_ESPECIAL.clasico, tono: "pizarra", icono: false, debajo: [], previo: null };
   if (e.tipo === "dudosa") return { texto: TEXTO_ESPECIAL.dudosa, tono: "apagado", icono: true, debajo: [], previo: null };
   return { texto: TEXTO_ESPECIAL[e.tipo], tono: "pizarra", icono: false, debajo: [], previo: null };
+}
+
+/** Cuánto creerle a la comparación de una prenda: por las ventas de las demás de su categoría SIN ella (D5). Null si no
+ *  se compara (clásico, que no cuadra) o si las demás no vendieron nada. */
+function nivelSinElla(p: FrescuraPrenda): NivelConfianza | null {
+  return p.categoriaSinElla ? nivelPorVentas(p.categoriaSinElla.vendidas) : null;
 }
 
 /** El nombre de un estado «al menos» como se dice en una frase: «Vigente quizá más»; «Crítica», sola. */
@@ -245,7 +303,7 @@ export function rapidezVista(p: FrescuraPrenda): RapidezVista {
   const nivel = nivelPorVentas(r.referencia);
   if (k === "sin_medida") return { texto: `Vendió ${decimal(r.vendidas)}; las demás, solo ${decimal(r.referencia)}`, detalle: null, porque: null, nivel };
   if (k === "dejo") return { texto: "Vendió bien al llegar; hoy no se vende", detalle: "30 días en el piso sin vender", porque: null, nivel };
-  return { texto: COMO[k], detalle: `vendió ${decimal(r.vendidas)}, se esperaban ${decimal(r.esperadas)}`, porque: null, nivel };
+  return { texto: COMO[k], detalle: `vendió ${decimal(r.vendidas)}, ${seEsperaban(decimal(r.esperadas))}`, porque: null, nivel };
 }
 
 // ---------------------------------------------------------------------------
@@ -287,8 +345,8 @@ export function textoSugerencia(s: Sugerencia, p: FrescuraPrenda, ctx: ContextoF
     case "sigue_vendiendo":
       return "Pasó su temporada y se sigue vendiendo: ¿hasta agotar o la sacas?";
     case "guardar_hasta_su_estacion": {
-      const t = nombreTemporada(ctx, p.temporada);
-      return t ? `Es de ${minuscula(t)}: ¿la guardas hasta su estación?` : "¿La guardas hasta su estación?";
+      const e = estacionDelClasico(ctx, p.temporada);
+      return e?.tipo === "estacion" ? `Es de ${e.nombre}: ¿la guardas hasta su estación?` : "¿La guardas hasta su estación?";
     }
   }
 }
@@ -332,6 +390,9 @@ export type FilaVista = {
   rapidez: RapidezVista;
   /** Vendidas en sus últimos 30 días en el piso (lo apartado cuenta como vendido); null si no se mide. */
   vendio: number | null;
+  /** Lo mismo en una frase, con el lapso de verdad («vendió 0 en sus 1 día…» no: «en sus 12 días en el piso» o «en sus
+   *  últimos 30 días en el piso»): la tarjeta del celular lo dice bajo la rapidez. */
+  vendioTexto: string | null;
   sugerencias: { clave: Sugerencia; texto: string }[];
   /** Lo que dice «Qué hacer» sin sugerencias. */
   nada: string;
@@ -342,7 +403,7 @@ export type FilaVista = {
 export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
   const apartada = presenciaDe(p) === "apartada";
   const dudosa = p.estado.tipo === "dudosa";
-  const temporada = nombreTemporada(ctx, p.temporada);
+  const temporada = nombreTemporadaOClave(ctx, p.temporada);
   return {
     clave: p.clave,
     nombre: p.productoNombre,
@@ -356,9 +417,10 @@ export function filaVista(p: FrescuraPrenda, ctx: ContextoFrescura): FilaVista {
     dias: dudosa ? null : diasDe(p.reloj.segundos),
     quizaMas: !dudosa && p.reloj.alMenos,
     apartada,
-    estado: estadoVista(p, ctx),
+    estado: estadoVista(p),
     rapidez: rapidezVista(p),
     vendio: dudosa ? null : p.ventasRecientes,
+    vendioTexto: dudosa ? null : `vendió ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}`,
     sugerencias: p.estado.sugerencias.map((s) => ({ clave: s, texto: textoSugerencia(s, p, ctx) })),
     nada: apartada ? "Nada: tiene dueña" : dudosa ? "Revisa su stock primero" : "Nada por ahora",
     quieta: p.estado.quieta,
@@ -390,11 +452,15 @@ export const TODAS_LAS_CATEGORIAS = "todas";
 export type Filtros = { cat: string; estado: FiltroEstado; porDecidir: boolean; q: string };
 export const SIN_FILTROS: Filtros = { cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, q: "" };
 
-/** Los filtros de la URL (`?cat=`, `?estado=`, `?pordecidir=1`, `?q=`). Lo que no se entiende se ignora. */
+/**
+ * Los filtros de la URL (`?cat=`, `?estado=`, `?pordecidir=1`, `?q=`). Lo que no se entiende se ignora. `cat=` vacío es
+ * «Sin categoría» (su id es "", el de `analizarSede`), no «todas». Una categoría que ya no está en la tabla la descarta
+ * el panel, que conoce las opciones.
+ */
 export function filtrosDeUrl(leer: (clave: string) => string | null | undefined): Filtros {
   const estado = leer("estado");
   return {
-    cat: leer("cat") || TODAS_LAS_CATEGORIAS,
+    cat: leer("cat") ?? TODAS_LAS_CATEGORIAS,
     estado: estado && ES_FILTRO_ESTADO.has(estado) ? (estado as FiltroEstado) : "todos",
     porDecidir: leer("pordecidir") === "1",
     q: (leer("q") ?? "").slice(0, 80),
@@ -470,7 +536,9 @@ function textoComparacion(v: VaraCategoria | undefined, nombre: string, sede: st
   if (!v || v.vendidas <= 0) return `Todavía no se vendió ninguna prenda de ${nombre} en ${sede} con fecha de llegada conocida: no hay con qué comparar.`;
   const { p50, p75, p90 } = v.cortes;
   const tMax = diasDeCorte(v.tMax);
-  const deCadaDiez = Math.round(v.vendidoAlFinal * 10);
+  // Hacia abajo: sin la mitad, lo vendido es menos de 0.5, y redondear podía decir «5 de cada 10» junto a «todavía no se
+  // sabe cuánto tarda la mitad» (y «9 de cada 10» sin llegar a 9). La tolerancia evita que 1 − 0.9 = 0.0999… diga 0.
+  const deCadaDiez = Math.floor(v.vendidoAlFinal * 10 + 1e-9);
   const alFinal = deCadaDiez > 0 ? `${deCadaDiez} de cada 10` : "menos de 1 de cada 10";
   if (p50 === null) return `A los ${tMax} días ya se vendieron ${alFinal} de ${deCategoria} en ${sede}: todavía no se sabe cuánto tarda la mitad.`;
   let t = `A los ${diasDeCorte(p50)} días ya se vendió la mitad de ${deCategoria} en ${sede}`;
@@ -479,6 +547,9 @@ function textoComparacion(v: VaraCategoria | undefined, nombre: string, sede: st
   return t;
 }
 
+/** «18–34 d»; si los dos cortes caen en el mismo día, «18 d» (nunca «18–18 d»). */
+const rangoDias = (desde: number, hasta: number): string => (desde === hasta ? `${desde} d` : `${desde}–${hasta} d`);
+
 function escalaDe(v: VaraCategoria | undefined): { nombre: string; rango: string }[] {
   if (!v || v.cortes.p50 === null) return [];
   const d50 = diasDeCorte(v.cortes.p50);
@@ -486,8 +557,8 @@ function escalaDe(v: VaraCategoria | undefined): { nombre: string; rango: string
   const d90 = v.cortes.p90 === null ? null : diasDeCorte(v.cortes.p90);
   return [
     { nombre: "Nueva", rango: `antes de ${d50} d` },
-    { nombre: "Vigente", rango: d75 !== null ? `${d50}–${d75} d` : `desde ${d50} d` },
-    { nombre: "Envejecida", rango: d75 !== null ? (d90 !== null ? `${d75}–${d90} d` : `desde ${d75} d`) : "sin datos aún" },
+    { nombre: "Vigente", rango: d75 !== null ? rangoDias(d50, d75) : `desde ${d50} d` },
+    { nombre: "Envejecida", rango: d75 !== null ? (d90 !== null ? rangoDias(d75, d90) : `desde ${d75} d`) : "sin datos aún" },
     { nombre: "Crítica", rango: d90 !== null ? `más de ${d90} d` : "sin datos aún" },
   ];
 }
@@ -507,7 +578,7 @@ export function grupoVista(categoriaId: string, nombre: string, ctx: ContextoFre
     comparacion: textoComparacion(v, nombre, ctx.sede),
     nivel: v?.nivel ?? null,
     escala: escalaDe(v),
-    base: v && v.vendidas > 0 ? `con ${decimal(v.vendidas)} ${v.vendidas === 1 ? "venta" : "ventas"} de los últimos ${v.ventanaDias} días` : null,
+    base: v && v.vendidas > 0 ? `con ${textoVentas(v.vendidas)} de los últimos ${v.ventanaDias} días` : null,
     cayla: ctx.cayla === null ? null : (ctx.caylaFallo ?? `${textoCayla(ctx.cayla.get(categoriaId))}.`),
   };
 }
@@ -546,7 +617,7 @@ export function cifrasVista(c: CifrasSede): CifrasVista {
   return {
     edad: c.edadDelPisoDias === null ? null : Math.round(c.edadDelPisoDias),
     edadQuizaMas: c.edadDelPisoAlMenos,
-    pctNuevas: c.pctNuevas === null ? null : Math.round(c.pctNuevas),
+    pctNuevas: c.pctNuevas === null ? null : porcentajeEntero(c.pctNuevas, c.unidadesNuevas, c.unidadesConTramo),
     nuevas: c.unidadesNuevas,
     conTramo: c.unidadesConTramo,
     porDecidir: c.porDecidir,
@@ -569,11 +640,23 @@ export function pieVista(prendas: readonly FrescuraPrenda[]): PieVista {
     const donde = presenciaDe(p);
     if (donde === "guardada") {
       const iba = p.estado.tipo === "semaforo" ? `, iba en ${NOMBRE_TRAMO[p.estado.tramo]}` : "";
-      pie.guardadas.push(`${nombreConColor(p)} (${p.almacenHoy})${iba}`);
+      // Lo apartado en el almacén también está guardado: se cuenta y se dice.
+      const apartadas = Math.max(0, p.apartadasHoy - p.apartadasPisoHoy);
+      pie.guardadas.push(`${nombreConColor(p)} (${enElAlmacen(p)}${apartadas > 0 ? `, ${apartadas} ${apartadas === 1 ? "apartada" : "apartadas"}` : ""})${iba}`);
     } else if (donde === "nunca_colgada") pie.nuncaColgadas.push(`${nombreConColor(p)} (${p.almacenHoy + p.apartadasHoy})`);
     else if (donde === "agotada") pie.agotadas++;
   }
   return pie;
+}
+
+/** «1 unidad», «45 unidades». */
+export const textoUnidades = (n: number): string => `${n} ${n === 1 ? "unidad" : "unidades"}`;
+
+/** Con «Por decidir» filtrado: cuántas otras tienen una pregunta más chica en «Qué hacer», en singular o plural. */
+export function textoOtrasConPregunta(n: number): TextoRico {
+  return n === 1
+    ? "**Otra** tiene una pregunta en «Qué hacer» sin estar por decidir."
+    : `**Otras ${n}** tienen una pregunta en «Qué hacer» sin estar por decidir.`;
 }
 
 /** El registro al colgar de la sede, este mes (solo el líder lo ve en el paso 4; ADR-0208, decisión 2 del 2026-09-27). */
@@ -660,8 +743,8 @@ export type DetalleVista = {
   porque: TextoRico;
   regla: ReglaVista | null;
   sinContarla: TextoRico | null;
-  nivelCategoria: NivelConfianza | null;
-  ventasCategoria: number;
+  /** Cuánto creerle a la comparación, por las ventas de las demás SIN ella (D5); null si es sólida o no hay. */
+  confianzaSinElla: { texto: string; nivel: NivelConfianza } | null;
   rapidez: TextoRico | null;
   rapidezNivel: NivelConfianza | null;
   recientes: TextoRico | null;
@@ -679,22 +762,34 @@ function causaAlMenos(p: FrescuraPrenda, ctx: ContextoFrescura): string {
   return "Lo primero que se colgó llegó sin fecha (carga inicial, un ajuste o un saldo): no se sabe cuánto lleva de verdad.";
 }
 
+/**
+ * «18 días» contra un corte de «18»: el estado se decide con segundos exactos, pero la prenda y el corte se muestran
+ * redondeados cada uno por su lado. Con una sola regla de redondeo (la de siempre), lo que cambia es la frase cuando los
+ * dos enteros coinciden: «está por llegar a los 18» si todavía no los pasó, «justo en los 18» si ya (corrección del paso
+ * 4: antes decía «Lleva 18 días: todavía no llega a los 18»).
+ */
+const yaPaso = (d: number, corte: number): string => (d === corte ? `justo en los ${corte}` : `pasó los ${corte}`);
+const noLlega = (d: number, corte: number, todavia = "todavía no llega a"): string => (d === corte ? `está por llegar a los ${corte}` : `${todavia} los ${corte}`);
+
+/** Las demás de su categoría SIN ella no vendieron nada: dicho así, y no «vendieron solo 0». */
+const sinVentasDeLasDemas = (s: { vendidas: number }): boolean => s.vendidas <= 0;
+
 function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   const e = p.estado;
   const s = p.categoriaSinElla;
   const d = diasDe(p.reloj.segundos);
-  const dTxt = p.reloj.alMenos ? `${d} días ${QUIZA_MAS}` : `${d} días`;
+  const dTxt = p.reloj.alMenos ? `${textoDias(d)} ${QUIZA_MAS}` : textoDias(d);
   const cat = ctx.categorias.get(p.categoriaId);
   const deCategoria = `las prendas de ${p.categoriaNombre}`;
   if (presenciaDe(p) === "apartada") {
     const iba = e.tipo === "semaforo" ? `, cuando iba en ${NOMBRE_TRAMO[e.tramo]}` : "";
-    return `Todo lo que tenía colgado está apartado para clientas (${p.apartadasHoy}). Mientras siga apartado no envejece: su reloj se detuvo en **${d} días**${iba}, y sigue desde ahí si alguna se libera. Lo apartado cuenta como vendido.`;
+    return `Todo lo que tenía colgado está apartado para clientas (${p.apartadasPisoHoy}). Mientras siga apartado no envejece: su reloj se detuvo en **${textoDias(d)}**${iba}, y sigue desde ahí si alguna se libera. Lo apartado cuenta como vendido.`;
   }
   if (e.tipo === "dudosa")
     return "El historial de movimientos del piso de alguna de sus tallas no cuadra con lo que hay. Con los números así, cualquier juicio sería inventado: no se mide mientras no cuadre.";
   if (e.tipo === "clasico") {
-    const t = nombreTemporada(ctx, p.temporada);
-    return `Es un clásico${t ? ` (${minuscula(t)})` : ""}: no pasa de moda, así que no entra al semáforo ni se compara con las demás. Lleva ${d} días en el piso. ${e.fueraDeSuEstacion ? "Hoy no es su estación." : "Hoy es su estación: no hay nada que decidir."}`;
+    const estacion = estacionDelClasico(ctx, p.temporada);
+    return `Es un clásico${deClasico(estacion)}: no pasa de moda, así que no entra al semáforo ni se compara con las demás. Lleva ${textoDias(d)} en el piso. ${e.fueraDeSuEstacion ? "Hoy no es su estación." : "Hoy es su estación: no hay nada que decidir."}`;
   }
   if (e.tipo === "sin_ventas_sede") {
     const suyas = p.ventasRecientes > 0 && p.reloj.alMenos ? " Lo que vendió ella llegó sin fecha: por eso no sirve de medida." : "";
@@ -704,12 +799,15 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   if (e.tipo === "sin_vara") {
     if (cat && cat.cortes.p50 !== null && s) {
       const suyas = Math.max(0, cat.vendidas - s.vendidas);
-      return `La cabecera dice que la mitad de ${deCategoria} se vende antes de ${diasDeCorte(cat.cortes.p50)} días, pero eso lo hace ella: **${decimal(suyas)} de las ${decimal(cat.vendidas)} ventas son suyas**. Sin ella, las demás vendieron solo ${decimal(s.vendidas)} (lo más largo que se vio: ${diasDeCorte(s.tMax)} días): todavía no se sabe cuánto tardan. Lleva ${dTxt} en el piso.`;
+      const deEllas =
+        suyas >= cat.vendidas ? (cat.vendidas === 1 ? "**la única venta es suya**" : `**las ${decimal(cat.vendidas)} ventas son suyas**`) : `**${decimal(suyas)} de las ${decimal(cat.vendidas)} ventas son suyas**`;
+      const lasDemas = sinVentasDeLasDemas(s) ? "ninguna de las demás se vendió todavía" : `las demás vendieron solo ${decimal(s.vendidas)}`;
+      return `La cabecera dice que la mitad de ${deCategoria} se vende antes de ${textoDias(diasDeCorte(cat.cortes.p50))}, pero eso lo hace ella: ${deEllas}. Sin ella, ${lasDemas} (lo más largo que se vio: ${textoDias(diasDeCorte(s.tMax))}): todavía no se sabe cuánto tardan. Lleva ${dTxt} en el piso.`;
     }
     return `Todavía no se vendió ni la mitad de ${deCategoria} en ${ctx.sede}: no se sabe cuánto tardan. Lleva **${dTxt}** en el piso.`;
   }
   if (e.tipo === "sin_edad_conocida") {
-    const mitad = s?.cortes.p50 != null ? `todavía no pasa los ${diasDeCorte(s.cortes.p50)} días en que ya se vendió la mitad de las demás, pero ` : "";
+    const mitad = s?.cortes.p50 != null ? `${noLlega(d, diasDeCorte(s.cortes.p50), "todavía no pasa")} días en que ya se vendió la mitad de las demás, pero ` : "";
     return `${causaAlMenos(p, ctx)} Lleva **${dTxt}**: ${mitad}no se puede decir que sea nueva.`;
   }
   // El semáforo, contra las demás de su categoría SIN ella (D5).
@@ -717,24 +815,26 @@ function porqueEstado(p: FrescuraPrenda, ctx: ContextoFrescura): TextoRico {
   const c75 = s?.cortes.p75 != null ? diasDeCorte(s.cortes.p75) : null;
   const c90 = s?.cortes.p90 != null ? diasDeCorte(s.cortes.p90) : null;
   let base: string;
-  if (e.tramo === "nueva") base = `Lleva **${dTxt}**: todavía no llega a los ${c50} en que ya se vendió la mitad de las demás.`;
+  if (e.tramo === "nueva") base = `Lleva **${dTxt}**: ${noLlega(d, c50 ?? 0)} en que ya se vendió la mitad de las demás.`;
   else if (e.tramo === "vigente")
-    base = `Lleva **${dTxt}**: pasó los ${c50} en que se vende la mitad de las demás${c75 !== null ? `, pero no los ${c75} en que ya se vendieron 3 de cada 4.` : "."}`;
+    base = `Lleva **${dTxt}**: ${yaPaso(d, c50 ?? 0)} en que se vende la mitad de las demás${c75 !== null ? `, pero ${noLlega(d, c75, "no")} en que ya se vendieron 3 de cada 4.` : "."}`;
   else if (e.tramo === "envejecida")
-    base = `Lleva **${dTxt}**: pasó los ${c75} en que ya se vendieron 3 de cada 4 de las demás${c90 !== null ? `; a los ${c90} se vendieron 9 de cada 10.` : "."}`;
-  else base = `Lleva **${dTxt}**: pasó los ${c90} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
+    base = `Lleva **${dTxt}**: ${yaPaso(d, c75 ?? 0)} en que ya se vendieron 3 de cada 4 de las demás${c90 !== null ? (d === c90 ? `; ${noLlega(d, c90)} en que se vendieron 9 de cada 10.` : `; a los ${c90} se vendieron 9 de cada 10.`) : "."}`;
+  else base = `Lleva **${dTxt}**: ${yaPaso(d, c90 ?? 0)} en que ya se vendieron 9 de cada 10 de las demás de ${ctx.sede}.`;
   if (e.alMenos && p.reloj.alMenos)
     base += ` ${causaAlMenos(p, ctx)}${e.tramo === "critica" ? " Aunque lleve más, ya es Crítica." : ` Por eso es «${nombreAlMenos(e.tramo)}» y nunca «Nueva».`}`;
   else if (e.alMenos && s) {
     const sig = e.tramo === "vigente" ? "Envejecida" : "Crítica";
-    base += ` Lo más largo que se vio de las demás en ${ctx.sede}, sin contarla, son ${diasDeCorte(s.tMax)} días, y ella ya los pasó: todavía no hay ventas para saber dónde empieza ${sig}. Por eso es «${nombreAlMenos(e.tramo)}».`;
+    const tMax = diasDeCorte(s.tMax);
+    base += ` Lo más largo que se vio de las demás en ${ctx.sede}, sin contarla, son ${textoDias(tMax)}, y ella ya ${d === tMax ? "los alcanzó" : "los pasó"}: todavía no hay ventas para saber dónde empieza ${sig}. Por eso es «${nombreAlMenos(e.tramo)}».`;
   }
-  if (cat?.nivel === "pocos_datos") base += ` La comparación sale de solo ${decimal(cat.vendidas)} ${cat.vendidas === 1 ? "venta" : "ventas"}: tómala con cuidado.`;
+  // La comparación sale de las demás SIN ella (D5): sus ventas dicen cuánto creerle, no las de toda la categoría.
+  if (s && nivelSinElla(p) === "pocos_datos") base += ` La comparación sale de solo ${textoVentas(s.vendidas)} de las demás: tómala con cuidado.`;
   // Los días que no cuentan: desde que se colgó por primera vez (dentro de la lectura) hasta hoy, los que estuvo sin nada libre.
   if (p.primeraExhibicion !== null && !p.reloj.alMenos) {
     const calendario = Math.round((Date.parse(ctx.ahora) - Date.parse(p.primeraExhibicion)) / 86_400_000);
     if (calendario - d >= 1)
-      base += ` De los ${calendario} días desde que se colgó por primera vez, ${calendario - d} estuvo sin nada libre en el piso (agotada, guardada o apartada): esos no cuentan.`;
+      base += ` De los ${textoDias(calendario)} desde que se colgó por primera vez, ${calendario - d} estuvo sin nada libre en el piso (agotada, guardada o apartada): esos no cuentan.`;
   }
   return base;
 }
@@ -752,27 +852,40 @@ function porqueRapidez(p: FrescuraPrenda): { texto: TextoRico | null; nivel: Niv
   const nivel = nivelPorVentas(r.referencia);
   const v = decimal(r.vendidas);
   const esp = decimal(r.esperadas);
-  const contra = nivel === "solido" ? "" : ` Se midió contra solo ${decimal(r.referencia)} ${r.referencia === 1 ? "venta" : "ventas"} de las demás.`;
+  const esperaban = esp === "1" ? "se esperaba" : "se esperaban";
+  const contra = nivel === "solido" ? "" : ` Se midió contra solo ${textoVentas(r.referencia)} de las demás.`;
   if (k === "sin_medida")
     return {
-      texto: `Vendió **${v}** en sus ${diasDe(p.reloj.segundos)} días en el piso. Sin ella, las demás vendieron solo ${decimal(r.referencia)}: con tan poco no se puede decir si vende rápido o lento.`,
+      texto: `Vendió **${v}** ${cuandoRecientes(p, "total")}. Sin ella, las demás vendieron solo ${decimal(r.referencia)}: con tan poco no se puede decir si vende rápido o lento.`,
       nivel,
     };
   if (k === "dejo")
     return {
-      texto: `Vendió **${v}** cuando para una prenda de su categoría con los mismos días en el piso se esperaban **${esp}**: al llegar se vendió más rápido que las demás. Pero lleva ${DIAS_CALLADA} días en el piso sin vender, así que ya no cuenta como una que se vende bien.${contra}`,
+      texto: `Vendió **${v}** cuando para una prenda de su categoría con los mismos días en el piso ${esperaban} **${esp}**: al llegar se vendió más rápido que las demás. Pero lleva ${DIAS_CALLADA} días en el piso sin vender, así que ya no cuenta como una que se vende bien.${contra}`,
       nivel,
     };
   const como = { rapida: "vende más rápido que las demás", ritmo: "vende como las demás", lenta: "vende más lento que las demás", muy_lenta: "vende mucho más lento que las demás" }[k];
-  return { texto: `Vendió **${v}**; para una prenda de su categoría con los mismos días en el piso se esperaban **${esp}**: ${como}.${contra}`, nivel };
+  return { texto: `Vendió **${v}**; para una prenda de su categoría con los mismos días en el piso ${esperaban} **${esp}**: ${como}.${contra}`, nivel };
+}
+
+/**
+ * El lapso de lo vendido «reciente», dicho UNA vez para el bloque «Cómo se vende» y para «sigue vendiendo»: «en sus 12
+ * días en el piso» si lleva menos de 30, «en sus últimos 30 días en el piso» si no. Antes la acción decía «últimos 30»
+ * de una prenda con 12 días colgada (corrección del paso 4). `total`: sus días en el piso, lleve lo que lleve.
+ */
+function cuandoRecientes(p: FrescuraPrenda, modo: "recientes" | "total" = "recientes"): string {
+  const d = diasDe(p.reloj.segundos);
+  if (modo === "recientes" && d >= DIAS_CALLADA) return `en sus últimos ${DIAS_CALLADA} días en el piso`;
+  // «En sus 1 día» y «en sus 0 días» no se dicen: con un día o menos colgada, «desde que se colgó».
+  return d <= 1 ? "desde que se colgó" : `en sus ${textoDias(d)} en el piso`;
 }
 
 function porqueRecientes(p: FrescuraPrenda): TextoRico | null {
   if (p.estado.tipo === "dudosa") return null;
   const d = diasDe(p.reloj.segundos);
-  const cuando = d < DIAS_CALLADA ? `En sus ${d} días en el piso` : `En sus últimos ${DIAS_CALLADA} días en el piso`;
+  const cuando = cuandoRecientes(p);
   const nada = p.ventasRecientes === 0 && d >= DIAS_CALLADA ? " Son días con algo colgado: lo que estuvo agotado o guardado no cuenta." : "";
-  return `${cuando} vendió **${decimal(p.ventasRecientes)}** (lo apartado para una clienta cuenta como vendido).${nada}`;
+  return `${cuando.charAt(0).toUpperCase()}${cuando.slice(1)} vendió **${decimal(p.ventasRecientes)}** (lo apartado para una clienta cuenta como vendido).${nada}`;
 }
 
 const lineasTraslado = (p: FrescuraPrenda) =>
@@ -819,7 +932,7 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: `Tienes ${p.almacenHoy} en el almacén de ${ctx.sede}. La comparación es sólida (${decimal(p.rapidez?.referencia ?? 0)} ventas de las demás aquí). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,
+          texto: `Tienes ${p.almacenHoy} en el almacén de ${ctx.sede}. La comparación es sólida (${textoVentas(p.rapidez?.referencia ?? 0)} de las demás aquí). En otra sede podría venderse antes: mira allá cómo va su categoría antes de mandarla.`,
           botones: a.traslados && lineasTraslado(p) ? [{ texto: "Armar un traslado", href: `/inventario/mover?lineas=${lineasTraslado(p)}` }] : [],
         };
       case "retirar":
@@ -833,14 +946,14 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
         return {
           clave: s,
           titulo,
-          texto: `Su temporada pasó (${suEstacion} terminó el ${fechaCorta(p.finEstacion)}), pero sigue vendiendo: ${decimal(p.ventasRecientes)} en sus últimos ${DIAS_CALLADA} días en el piso. Tú decides si la dejas hasta que se agote o la retiras. Mientras siga colgada, sigue en «Por decidir»: todavía no hay dónde anotar lo que decidiste.`,
+          texto: `Su temporada pasó (${suEstacion} terminó el ${fechaCorta(p.finEstacion)}), pero sigue vendiendo: ${decimal(p.ventasRecientes)} ${cuandoRecientes(p)}. Tú decides si la dejas hasta que se agote o la retiras. Mientras siga colgada, sigue en «Por decidir»: todavía no hay dónde anotar lo que decidiste.`,
           botones: retirar,
         };
       case "guardar_hasta_su_estacion":
         return {
           clave: s,
           titulo,
-          texto: `Es un clásico${temporada ? ` (${minuscula(temporada)})` : ""}: no envejece, pero fuera de su estación ocupa percha. Guárdala hasta que empiece su estación: se retira del piso desde Existencias.`,
+          texto: `Es un clásico${deClasico(estacionDelClasico(ctx, p.temporada))}: no envejece, pero fuera de su estación ocupa percha. Guárdala hasta que empiece su estación: se retira del piso desde Existencias.`,
           botones: retirar,
         };
     }
@@ -850,20 +963,24 @@ function accionesDe(p: FrescuraPrenda, ctx: ContextoFrescura): AccionVista[] {
 export function detalleVista(p: FrescuraPrenda, ctx: ContextoFrescura): DetalleVista {
   const s = p.categoriaSinElla;
   const cat = ctx.categorias.get(p.categoriaId);
-  const temporada = nombreTemporada(ctx, p.temporada);
+  const temporada = nombreTemporadaOClave(ctx, p.temporada);
   const apartada = presenciaDe(p) === "apartada";
   const dudosa = p.estado.tipo === "dudosa";
   const rap = porqueRapidez(p);
+  // La caja «sin contarla» solo cuando hay algo que comparar: sin ventas en la sede no hay nada que decir de las demás (su
+  // porqué ya lo explica), y «vendieron solo 0» no le dice nada a nadie (corrección del paso 4).
   let sinContarla: TextoRico | null = null;
-  if (s && cat) {
+  if (s && cat && p.estado.tipo !== "sin_ventas_sede") {
     if (s.cortes.p50 !== null) {
-      const partes = [`la mitad se vende antes de ${diasDeCorte(s.cortes.p50)} días`];
+      const partes = [`la mitad se vende antes de ${textoDias(diasDeCorte(s.cortes.p50))}`];
       if (s.cortes.p75 !== null) partes.push(`3 de cada 4 antes de ${diasDeCorte(s.cortes.p75)}`);
       if (s.cortes.p90 !== null) partes.push(`9 de cada 10 antes de ${diasDeCorte(s.cortes.p90)}`);
       const conTodas = [cat.cortes.p50, cat.cortes.p75, cat.cortes.p90].filter((x): x is number => x !== null).map(diasDeCorte);
       sinContarla = `Sin contarla, las demás: ${partes.join(", ")}${conTodas.length ? ` (la cabecera de ${p.categoriaNombre}, con todas: ${conTodas.join(", ")})` : ""}.`;
-    } else sinContarla = `Sin contarla, las demás vendieron solo ${decimal(s.vendidas)}.`;
+    } else sinContarla = sinVentasDeLasDemas(s) ? "Sin contarla, ninguna de las demás se vendió todavía." : `Sin contarla, las demás vendieron solo ${decimal(s.vendidas)}.`;
   }
+  const nivel = sinContarla !== null ? nivelSinElla(p) : null;
+  const confianzaSinElla = s && nivel && nivel !== "solido" ? { texto: `Salen de ${textoVentas(s.vendidas)} de las demás en ${ctx.sede}:`, nivel } : null;
   const acciones = accionesDe(p, ctx);
   if (dudosa)
     acciones.push({
@@ -894,12 +1011,11 @@ export function detalleVista(p: FrescuraPrenda, ctx: ContextoFrescura): DetalleV
     dias: dudosa ? null : diasDe(p.reloj.segundos),
     quizaMas: !dudosa && p.reloj.alMenos,
     pausa: apartada,
-    estado: estadoVista(p, ctx),
+    estado: estadoVista(p),
     porque: porqueEstado(p, ctx),
     regla: reglaVista(p),
     sinContarla,
-    nivelCategoria: cat?.nivel ?? null,
-    ventasCategoria: cat?.vendidas ?? 0,
+    confianzaSinElla,
     rapidez: rap.texto,
     rapidezNivel: rap.nivel,
     recientes: porqueRecientes(p),

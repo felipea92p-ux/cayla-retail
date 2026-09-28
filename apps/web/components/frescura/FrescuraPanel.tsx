@@ -12,6 +12,7 @@ import {
   FRASE_ENCABEZADO,
   FRASE_SIN_ELLA,
   QUIZA_MAS,
+  SIN_FILTROS,
   TODAS_LAS_CATEGORIAS,
   agrupar,
   cifrasVista,
@@ -23,9 +24,12 @@ import {
   grupoVista,
   hayFiltros,
   muchasSinTemporada,
+  palabraDias,
   pasaFiltros,
   pieVista,
+  textoOtrasConPregunta,
   textoRegistro,
+  textoUnidades,
   type AccesoFrescura,
   type ContextoFrescura,
   type FiltroEstado,
@@ -33,7 +37,7 @@ import {
 } from "@/lib/frescura-pantalla";
 import type { FrescuraSede } from "@/lib/frescura-reglas";
 import type { DatosFrescura } from "@/lib/frescura";
-import { NivelChip } from "./piezas";
+import { NivelChip, TextoConNegritas } from "./piezas";
 import { ANCHO_MINIMO_TABLA, FrescuraFila, PLANTILLA_FRESCURA } from "./FrescuraFila";
 import { FrescuraDetalle } from "./FrescuraDetalle";
 import { FrescuraTiendas } from "./FrescuraTiendas";
@@ -44,10 +48,11 @@ import { FrescuraTiendas } from "./FrescuraTiendas";
 // nota en hueso.
 //
 // Todo llega ya calculado del servidor (`getFrescuraPantalla` → `frescura-reglas.ts`); aquí solo se decide qué se ve. Los
-// filtros y la prenda abierta viven en la URL (`?cat=&estado=&pordecidir=1&q=&prenda=`), escritos con
-// `history.replaceState`: Next sincroniza `useSearchParams` sin volver a pedir la página (pedirla otra vez leería las tres
-// tiendas de nuevo y abriría el loader por un cambio que no trae datos nuevos). Un enlace con esos parámetros abre
-// exactamente lo mismo.
+// filtros y la prenda abierta viven en el ESTADO del panel y se copian a la URL (`?cat=&estado=&pordecidir=1&q=&prenda=`)
+// con `history.replaceState`, como MovimientosLista: la URL se lee UNA vez, al abrir, y después solo se escribe. Así un
+// enlace abre exactamente lo mismo, cambiar un filtro no vuelve a pedir la página (leería las tres tiendas de nuevo y
+// abriría el loader) y el buscador no depende de que Next le devuelva lo escrito: cuando lo leía de la URL, el espacio de
+// «blusa wayra» se perdía al recortarse y el cursor saltaba al final (corrección del paso 4).
 
 function escribirUrl(f: Filtros, prenda: string | null) {
   const qs = consultaDe(f, prenda);
@@ -62,8 +67,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   const router = useRouter();
   const [verTiendas, setVerTiendas] = useState(false);
   const botonTiendas = useRef<HTMLButtonElement | null>(null);
-  const filtros = filtrosDeUrl((k) => params.get(k));
-  const prendaAbierta = params.get("prenda");
+  const [pedidos, setPedidos] = useState<Filtros>(() => filtrosDeUrl((k) => params.get(k)));
+  const [prendaAbierta, setPrendaAbierta] = useState<string | null>(() => params.get("prenda"));
 
   const lectura = datos.lectura.datos;
   const sede: FrescuraSede | null = lectura && lectura.separaPiso ? lectura : null;
@@ -84,26 +89,10 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
   }, [sede, datos, acceso]);
 
   const enTabla = useMemo(() => (sede ? sede.prendas.filter(enLaTabla) : []), [sede]);
-  const visibles = enTabla.filter((p) => pasaFiltros(p, filtros));
   const muchasSin = muchasSinTemporada(enTabla);
   const cifras = sede ? cifrasVista(sede.cifras) : null;
   const pie = sede ? pieVista(sede.prendas) : null;
   const abierta = ctx && prendaAbierta ? (enTabla.find((p) => p.clave === prendaAbierta) ?? null) : null;
-
-  const cambiar = (cambio: Partial<Filtros>) => escribirUrl({ ...filtros, ...cambio }, prendaAbierta);
-  // Al cerrar la hoja, el foco vuelve a la fila que la abrió (también si se abrió desde un enlace con `?prenda=`).
-  const volverA = useRef<HTMLElement | null>(null);
-  const filaDe = (clave: string) => document.querySelector<HTMLElement>(`[data-prenda="${CSS.escape(clave)}"]`);
-  const abrir = (clave: string | null) => {
-    if (clave) volverA.current = filaDe(clave);
-    escribirUrl(filtros, clave);
-  };
-  useEffect(() => {
-    if (prendaAbierta && !volverA.current) volverA.current = filaDe(prendaAbierta);
-  }, [prendaAbierta]);
-
-  const registro = datos.registro?.datos ? textoRegistro(datos.registro.datos, datos.sede.id) : null;
-  const porDecidirOtras = enTabla.filter((p) => !p.estado.quieta && p.estado.sugerencias.length > 0).length;
 
   // Las opciones de los combos (ADR-0209: sin <select>; Estado tiene 11 y trae buscador solo).
   const opcionesCategoria: Opcion<string>[] = useMemo(() => {
@@ -112,6 +101,37 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
     return [{ valor: TODAS_LAS_CATEGORIAS, texto: "Todas las categorías" }, ...[...vistas].map(([valor, texto]) => ({ valor, texto }))];
   }, [enTabla]);
   const opcionesEstado: Opcion<FiltroEstado>[] = FILTROS_ESTADO.map((f) => ({ valor: f.valor, texto: f.texto, ...("grupo" in f ? { grupo: f.grupo } : {}) }));
+
+  // Una categoría que no está en la tabla (un enlace viejo, o la otra sede del selector con `?cat=` puesto) es «todas»:
+  // si no, el combo decía «Elegir» —que en todo el sistema es «falta elegir»— y la tabla salía vacía sin explicar por qué.
+  // El próximo cambio de filtro la borra de la URL.
+  const filtros: Filtros = opcionesCategoria.some((o) => o.valor === pedidos.cat) ? pedidos : { ...pedidos, cat: TODAS_LAS_CATEGORIAS };
+  const visibles = enTabla.filter((p) => pasaFiltros(p, filtros));
+
+  const cambiar = (cambio: Partial<Filtros>) => {
+    const f = { ...filtros, ...cambio };
+    setPedidos(f);
+    escribirUrl(f, prendaAbierta);
+  };
+  const quitarFiltros = (prenda: string | null) => {
+    setPedidos(SIN_FILTROS);
+    setPrendaAbierta(prenda);
+    escribirUrl(SIN_FILTROS, prenda);
+  };
+  // Al cerrar la hoja, el foco vuelve a la fila que la abrió (también si se abrió desde un enlace con `?prenda=`).
+  const volverA = useRef<HTMLElement | null>(null);
+  const filaDe = (clave: string) => document.querySelector<HTMLElement>(`[data-prenda="${CSS.escape(clave)}"]`);
+  const abrir = (clave: string | null) => {
+    if (clave) volverA.current = filaDe(clave);
+    setPrendaAbierta(clave);
+    escribirUrl(filtros, clave);
+  };
+  useEffect(() => {
+    if (prendaAbierta && !volverA.current) volverA.current = filaDe(prendaAbierta);
+  }, [prendaAbierta]);
+
+  const registro = datos.registro?.datos ? textoRegistro(datos.registro.datos, datos.sede.id) : null;
+  const porDecidirOtras = enTabla.filter((p) => !p.estado.quieta && p.estado.sugerencias.length > 0).length;
 
   // ---- La cabecera ----
   const pieCabecera = datos.esLider ? (
@@ -146,7 +166,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
         {
           valor: cifras.edad,
           nota: cifras.edadQuizaMas ? QUIZA_MAS : undefined,
-          etiqueta: "días en el piso, en promedio",
+          etiqueta: `${palabraDias(cifras.edad ?? 0)} en el piso, en promedio`,
           icono: Clock,
           titulo: `Promedio de lo colgado, sin clásicos ni las que no cuadran${cifras.edadQuizaMas ? ". Alguna prenda llegó sin fecha: el promedio también puede ser más" : ""}`,
         },
@@ -161,12 +181,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           valor: cifras.porDecidir,
           etiqueta: "por decidir",
           icono: CircleHelp,
-          alerta: true,
+          // Ámbar solo si hay algo esperando a alguien (el contrato de ResumenSede, como Devoluciones y Apartados): un
+          // «0 por decidir» en ámbar llevaba la vista a la única cifra que no pide nada.
+          alerta: cifras.porDecidir > 0,
           alTocar: () => cambiar({ porDecidir: !filtros.porDecidir }),
           presionada: filtros.porDecidir,
           titulo: "Filtrar las que están por decidir",
         },
-        { valor: cifras.unidades, etiqueta: "unidades en el piso", icono: Layers },
+        { valor: cifras.unidades, etiqueta: `${cifras.unidades === 1 ? "unidad" : "unidades"} en el piso`, icono: Layers },
       ]}
     />
   );
@@ -182,13 +204,14 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
           <EstadoSinLectura datos={datos} onReintentar={() => router.refresh()} />
         ) : (
           <>
-            {/* Filtros: en la URL. */}
+            {/* Filtros: en el estado del panel, copiados a la URL. */}
             <div className="flex flex-wrap items-center gap-2.5 px-4 py-4 sm:px-5">
               <div className="caja-cayla relative flex h-10 min-w-0 flex-[1_1_220px] items-center sm:max-w-[340px]">
                 <Search aria-hidden strokeWidth={1.5} className="pointer-events-none absolute left-3 h-4 w-4 text-taupe" />
                 <input
                   type="text"
                   value={filtros.q}
+                  maxLength={80}
                   onChange={(e) => cambiar({ q: e.target.value })}
                   placeholder="Prenda, color o código"
                   aria-label="Buscar prenda, color o código"
@@ -228,7 +251,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
                 Por decidir <span className="font-medium tabular-nums">{cifras?.porDecidir ?? 0}</span>
               </button>
               {hayFiltros(filtros) && (
-                <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => escribirUrl({ cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, q: "" }, prendaAbierta)}>
+                <button type="button" className="btn-cayla btn-enlace text-[13px]" onClick={() => quitarFiltros(prendaAbierta)}>
                   Quitar filtros
                 </button>
               )}
@@ -261,7 +284,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
             ) : visibles.length === 0 ? (
               <p className="border-t border-sand px-5 py-7 text-sm text-tinta/75">
                 Ninguna prenda con estos filtros.{" "}
-                <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => escribirUrl({ cat: TODAS_LAS_CATEGORIAS, estado: "todos", porDecidir: false, q: "" }, null)}>
+                <button type="button" className="btn-cayla btn-enlace text-sm" onClick={() => quitarFiltros(null)}>
                   Quitar filtros
                 </button>
               </p>
@@ -336,8 +359,8 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-sand px-4 py-3 text-[12.5px] text-taupe sm:px-5">
               <span>
-                Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} prendas ·{" "}
-                {visibles.reduce((s, p) => s + p.pisoHoy, 0)} unidades en el piso
+                Mostrando <b className="font-semibold text-tinta">{visibles.length}</b> de {enTabla.length} {enTabla.length === 1 ? "prenda" : "prendas"} ·{" "}
+                {textoUnidades(visibles.reduce((s, p) => s + p.pisoHoy, 0))} en el piso
               </span>
               <span className="flex flex-wrap gap-x-3.5 gap-y-1">
                 <span>
@@ -350,7 +373,7 @@ export function FrescuraPanel({ datos, acceso }: { datos: DatosFrescura; acceso:
               </span>
               {filtros.porDecidir && porDecidirOtras > 0 && (
                 <span className="w-full">
-                  <b className="font-semibold text-tinta">Otras {porDecidirOtras}</b> tienen una pregunta en «Qué hacer» sin estar por decidir.{" "}
+                  <TextoConNegritas texto={textoOtrasConPregunta(porDecidirOtras)} />{" "}
                   <button type="button" className="btn-cayla btn-enlace text-[12.5px]" onClick={() => cambiar({ porDecidir: false })}>
                     Verlas todas
                   </button>
