@@ -210,6 +210,8 @@ async function Caja({ proformaId, repetirVentaId }: { proformaId: string | null;
       // Solo las puertas que su rol abre (ADR-0161): Caja, Apartados, Cambios… y las acciones del ticket que llevan allí.
       accesos={accesosVisibles(modulos).filter((a) => a.modulo !== "facturacion" || puedeProforma)}
       puedeApartar={modulos.includes("apartados") && persona.ubicacionTipo === "tienda"}
+      // La libreta de clientas es del módulo «Clientas» (ADR-0249, 2026-09-28): sin él, el ticket no ofrece buscarla.
+      puedeBuscarClienta={modulos.includes("clientas")}
     />
   );
 }

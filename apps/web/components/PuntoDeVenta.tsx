@@ -237,6 +237,8 @@ type Props = {
   accesos: readonly AccesoVenta[];
   /** «Apartar» desde el ticket: su rol ve Apartados y la sede es una tienda. */
   puedeApartar: boolean;
+  /** La fila «Clienta» del ticket: su rol ve Clientas (la base rechaza la búsqueda sin el módulo, ADR-0249 2026-09-28). */
+  puedeBuscarClienta: boolean;
   /** «Cobrar» desde Proformas (`/vender?proforma=<id>`, ADR-0167): el carrito arranca con sus prendas. */
   proforma?: ProformaEnCobro | null;
   /** Por qué la proforma pedida no se cargó («ya se cobró», «es de otra tienda»…), para avisarlo. */
@@ -263,7 +265,7 @@ export type ProformaEnCobro = {
   confirmacion: { titulo: string; detalle: string; casilla: string } | null;
 };
 
-export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, proforma = null, avisoProforma = null, repeticion = null }: Props) {
+export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCerrarCaja, cajaId, fondoUltimoCierre = null, variantes, listasPrendaLibre, campanasNoCargaron = false, ventasHoy, metaVentaDiaria, accesos, puedeApartar, puedeBuscarClienta, proforma = null, avisoProforma = null, repeticion = null }: Props) {
   const bloqueado = cajaId === null;
   const router = useRouter();
   const buscador = useRef<HTMLInputElement>(null);
@@ -1319,7 +1321,7 @@ export function PuntoDeVenta({ ubicacionId, ubicacionEtiqueta, esLider, puedeCer
           arriba={
             <>
               <TiraDeEsperas enEspera={enEspera} onRetomar={retomar} bloqueado={bloqueado} />
-              <ClientaDelTicket clienta={clienta} onElegir={elegirClienta} onQuitar={quitarClienta} bloqueado={bloqueado} />
+              <ClientaDelTicket clienta={clienta} onElegir={elegirClienta} onQuitar={quitarClienta} bloqueado={bloqueado} puedeBuscar={puedeBuscarClienta} />
             </>
           }
         />
