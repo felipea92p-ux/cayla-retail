@@ -2166,6 +2166,11 @@ sesión, que no se guarda: por eso cada hallazgo lleva su caso escrito.
 
 ### Revisión 7 del paso 3 (2026-09-27, noche): las dos decisiones de Felipe, las dos reglas de la web y las pruebas que faltaban
 
+*Actualización (revisión 8, 2026-09-27, noche): R7-1 quedaba a medias. «El FIFO de la vara no los ve», abajo, ya no
+rige: lo apartado es una venta desde que se apartó, o una pausa si la clienta no se la llevó. `20260928120320` solo cambió
+comentarios, pero su `fn_frescura_sede` da otro md5: `7da85d7b7010659ba5a36a2478c89ad4` (archivo `81e3ddeb…`). Ver
+«Revisión 8 del paso 3», abajo.*
+
 Felipe respondió las dos preguntas que quedaban antes de pegar (la 7 de la revisión 6 y R7-1). Los otros cinco hallazgos
 de la revisión 7 eran técnicos y se corrigen aquí. Cada arreglo lleva una prueba que falla con el código de antes.
 
@@ -2323,10 +2328,11 @@ Después de cada uno se verifica con `select proname, md5(prosrc) from pg_proc w
    - `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`
    - `fn_temporada_efectiva_nucleo` (nueva) `2bf80eb239248cce88cf8062238f4dfc`
    - `fn_temporada_efectiva` `e96b3c6c51fd12ca712e76d63efd6448`
-3. `20260928120320_frescura_lectura_revision7.sql` (archivo `63e0894b…`). **Nunca se detiene en la segunda**: sin esta, la
-   pantalla contaría lo apartado como colgado y la carga de AQP o LIM reiniciaría temporadas. Tiene que dar las cinco de
-   la segunda sin cambio y:
-   - `fn_frescura_sede` `09e154ad85152859ab312be580a4a788`
+3. `20260928120320_frescura_lectura_revision7.sql` (archivo `81e3ddeb…` desde la revisión 8; antes `63e0894b…`). **Nunca
+   se detiene en la segunda**: sin esta, la pantalla contaría lo apartado como colgado y la carga de AQP o LIM reiniciaría
+   temporadas. Tiene que dar las cinco de la segunda sin cambio y:
+   - `fn_frescura_sede` `7da85d7b7010659ba5a36a2478c89ad4` (revisión 8: solo cambiaron comentarios de adentro; antes
+     `09e154ad…`, que nunca se pegó en ninguna parte)
 
 **Lo verifiqué el 2026-09-27, en bases nuevas** (Postgres 17 desechable, cada archivo en UNA transacción, como el SQL
 Editor):
@@ -2372,3 +2378,136 @@ Después se corre `pnpm datos:generar:produccion` con un volcado nuevo y `pnpm d
   - La separación: 10 días colgada, sin sugerencias; «Por decidir» 1 y no 2.
 - `scripts/migraciones/versiones.mjs`: 352 archivos, ninguna versión repetida. `scripts/adr/numeros.mjs`: 236 ADR, ningún
   número repetido.
+
+### Revisión 8 del paso 3 (2026-09-27, noche): lo apartado en la vara y la rapidez (R7-1 completo)
+
+La verificación de la revisión 7 encontró que R7-1 quedaba a medias, y dos pruebas que faltaban. Los tres hallazgos se
+confirmaron ejecutándolos. Esta revisión NO cambia ninguna decisión de Felipe: completa la de R7-1 («lo apartado no está
+colgado») en la parte que la revisión 7 dejó fuera. Lo que se revierte es una elección técnica de la revisión 7 («El FIFO
+de la vara no los ve»).
+
+**El problema (importante).** El reloj de novedad ya restaba lo apartado de lo libre, pero el FIFO de la vara no lo veía.
+Cada unidad apartada entraba a la rapidez de su prenda como colgada y sin vender, y sumaba ventas esperadas. En la curva
+de la categoría quedaba como una observación «al menos N días», que corría los cortes de las demás prendas. Tampoco
+contaba como venta reciente. La salida real de una sede sembrada (vara de 24 blusas, `analizarSede`) daba:
+- **P**, 6 colgadas hace 60 días: le apartan 4 en los días 1 a 4 y 1 hace 10 días; queda 1 libre y 2 en el almacén. Salía
+  rapidez 0 (0 de 9,39), Envejecida, quieta, con «cambiar de lugar» y «trasladar».
+- **Q**, su gemela, vendió esas 5 en los mismos instantes. Salía 136 (5 de 3,68), Vigente y sin sugerencias.
+- **PE** apartó 4 y las entregó hace 20 días. Salía 52, lenta, porque cada entrega contaba como venta a los 40 días de
+  colgada.
+
+La rapidez alimenta el estado y «Por decidir»: lo apartado seguía pesando justo donde Felipe dijo que no.
+
+**DECIDÍ: lo apartado es una venta desde que se apartó, o una pausa si la clienta no se la llevó.**
+`eventosConApartados` en `apps/web/lib/frescura-reglas.ts` lo aplica, talla por talla, a los eventos que leen la vara de la
+categoría, la rapidez y las ventas recientes. El reloj sigue igual: resta lo apartado de lo libre. Cada liberación cierra
+lo más viejo que seguía apartado de la talla.
+- **Lo que sigue apartado hoy:** una venta a la hora en que se apartó. La clienta ya la eligió: es demanda.
+- **Lo que se entregó:** una venta a la hora en que se apartó, y la venta de la entrega no se cuenta otra vez. Se
+  reconoce la entrega porque la liberación va seguida de una venta de la misma talla dentro de los 10 minutos
+  (`VENTANA_ENTREGA_SEGUNDOS`). Entregar una separación libera y vende en la misma operación: las 2 entregas de TRU (26-sep)
+  tienen 0 segundos entre las dos. «Se la entrego a la clienta ahora», de Apartados, se cobra enseguida en Vender.
+- **Lo que se liberó sin venderse** (la clienta no vino, un error): una PAUSA, como guardarla en el almacén. No suma días
+  colgada mientras estuvo apartada, y vuelve con la edad que tenía. En `historiaDeCohortes` es la misma pausa que usa un
+  traslado piso↔almacén; `inventario-exposicion.ts` no cambia.
+- **Ventas recientes:** lo que se apartó en sus últimos 30 días en el piso cuenta como venta de esos días. Lo que ya estaba
+  apartado al empezar la lectura (el saldo, a la hora de `desde`) no, porque no se sabe cuándo se apartó.
+
+La misma sede, con la regla nueva: P, Q y PE dan **las tres 92 (5 de 5,42)**, el mismo estado, las mismas sugerencias y 1
+venta reciente. Q cambió de 136 a 92, y «Por decidir» de 7 a 9. Las apartadas de las demás prendas (X, Z, P y PE) ahora
+son lo que eran: ventas rápidas. La categoría es más rápida de lo que la curva vieja decía, y Q, con 1 unidad colgada 60
+días, queda un poco más lenta que ella. En las otras tres sedes del verificador las gemelas también coinciden: 102 y 102
+(antes 0 y 132), 54 y 54 (antes 0 y 73), y 95, 95 y 95 (antes 0, 139 y 53).
+
+**DESCARTÉ:**
+- **Solo la pausa** (lo apartado no suma días, pero tampoco es venta). P quedaba con su unidad libre colgada 60 días y 0
+  vendidas: rapidez 0, lenta y «trasladar». La demanda de 5 clientas no contaba para nada.
+- **Leer `apartados.cierre_motivo` en la base** y mandarlo en un tercer campo de cada punto. Es exacto para «entregada»,
+  pero «entregada» también cierra el apartado de un pedido que llegó para volver a apartarlo como separación
+  (`20260927140000`, sin venta después). Además cambiaba el contrato de `20260928120320` y el archivo de la web. La ventana
+  de 10 minutos cubre los dos caminos reales de una entrega sin tocar la base.
+- **Dejar la revisión 7 como estaba:** es el hallazgo.
+
+**SE ROMPE SI:**
+- **Una separación larga termina abandonada.** Mientras está abierta cuenta como venta desde que se apartó, y la prenda
+  parece que se vende. Al liberarse, la lectura siguiente la vuelve pausa, y el veredicto puede cambiar de un día a otro.
+  Con 1 unidad apartada hoy en TRU no mueve nada. Si pasa seguido, la separación vencida se lee como pausa desde que vence.
+- **Lo entregado por Apartados se cobra más de 10 minutos después.** Se lee como pausa más una venta normal, y el FIFO se
+  la da a la unidad libre más vieja, como a cualquier venta. El conteo es el mismo; los días de esa venta, no.
+- **Una clienta libera y otra compra la misma talla dentro de los 10 minutos.** Se lee como entrega, y esa venta queda a la
+  hora en que se apartó. El conteo es el mismo.
+- **Varias separaciones de la misma talla a la vez.** La base no dice qué apartado cierra cada liberación: se cierra el más
+  viejo. Con entregas y abandonos mezclados, la hora de cada venta puede correrse lo que separa a esos apartados.
+
+**Pregunta para Felipe, que no bloquea pegar.** Hoy una separación cuenta como venta desde que se aparta. Si él prefiere que
+cuente solo cuando se entrega, es un cambio en `eventosConApartados`: lo abierto pasa de venta a pausa. En ese caso, P
+vuelve a salir lenta mientras sus 5 separaciones sigan abiertas.
+
+**Las dos pruebas que faltaban (hallazgos menores, confirmados).**
+- **SQL, T4i:** lote más producción, y dos producciones con una carga después. Antes, tratar la producción como una carga
+  (la PRIMERA en vez de la última) solo fallaba en las verificaciones de md5 y de guarda. Además le ponía «Temporada
+  pasada» a lo que el Taller acaba de producir. Ahora fallan 2 verificaciones de conducta: LOTE_Y_TALLER y
+  DOS_PRODUCCIONES dan `cayla=octubre_2025,fin=primavera_2025`.
+- **Web:** la prenda de dos tallas con la S apartada (el reloj se detiene y es venta reciente, aunque la S no sea la
+  primera talla), y el borde 100 en las dos cuentas de R7-3 (`rapidez(4, 4, 30, 1)` sigue pilar; `rapidez(3, 4, 30, 1)` es
+  sin dato). Los dos cambios a propósito que sobrevivían ahora mueren.
+
+**La base.** `20260928120320` solo cambia comentarios, en la cabecera y adentro de `fn_frescura_sede` (el de adentro decía
+«el FIFO no lo ve»). La conducta es la misma, pero su md5 pasa de `09e154ad…` a **`7da85d7b7010659ba5a36a2478c89ad4`**, y la
+guarda nombra el nuevo. El archivo pasa a `81e3ddeb…`. El `09e154ad…` no se pegó en ninguna parte: `20260928120320` no
+está en main ni en producción. Producción, en un `select` del 2026-09-27 por la noche: solo `fn_temporada_efectiva`,
+`1cc652ba…`.
+
+**Cómo se pega (reemplaza el punto 3 de «Revisión 7 del paso 3»).** Cada archivo va solo, en el SQL Editor, en este orden:
+1. `20260928120300` (archivo `40bf970f…`).
+2. `20260928120310` (archivo `e121f11e…`). Los md5 de estas dos no cambian.
+3. `20260928120320` (archivo `81e3ddeb…`). Tiene que dar las cinco de la segunda sin cambio y `fn_frescura_sede`
+   `7da85d7b7010659ba5a36a2478c89ad4`.
+
+Lo reproduje en bases nuevas, cada archivo en UNA transacción:
+- 120320 sin 120310 aborta y no cambia nada.
+- 120310 y 120320, pegadas dos veces cada una, no cambian nada la segunda vez.
+- Tras 120320, volver a pegar 120310 o 120300 aborta y no deshace nada.
+- Da los mismos md5 que una base con todas las migraciones.
+- Sobre producción de hoy, 120310 sola y 120320 sola abortan.
+
+T12b recorre el mismo orden dentro de la suite: lee el md5 nuevo de la guarda.
+
+**Costo.**
+- **Web:** `analizarSede`, con la carga sintética de siempre (2.016 prendas, 200 apartados), tarda 157-162 ms contra
+  144-147 de la revisión 7 (5 corridas de 9). Son unos 12 ms más: las tallas con algo apartado arman sus eventos dos veces,
+  una para la vara y otra para las ventas recientes.
+- **Base:** no cambia, porque solo cambiaron comentarios.
+
+**Pruebas nuevas** (con el código de la revisión 7 fallan 6 de las 8 de la web; las otras 2 vigilan lo que ya estaba
+bien: sin nada apartado, y lo liberado que no es venta):
+- `eventosConApartados`:
+  - Sin nada apartado.
+  - Lo abierto y el saldo.
+  - La entrega: mismo instante, a los 5 minutos, una venta de 2 y una entrega parcial.
+  - La pausa, con su edad de 25 días y no 40.
+  - Cobrada a los 11 minutos.
+  - Apartada y liberada en el mismo instante.
+  - Una venta de otra unidad antes de liberarla.
+  - Cerrar lo más viejo.
+  - El libro que no cuadra.
+- `analizarSede`:
+  - P, Q y PE iguales, con la misma vara de categoría.
+  - Lo liberado no es venta, y el saldo no es reciente.
+  - La segunda talla.
+
+13 cambios a propósito sobre `eventosConApartados` y su uso mueren todos. Los 35 de la revisión 7 (18 del constructor y
+17 del verificador) mueren, menos uno que da lo mismo (el orden de lo apartado frente a los eventos del mismo instante en
+el reloj).
+
+**Cifras** (2026-09-27; cada suite SQL en una base nueva con todas las migraciones).
+- **SQL:** `frescura_lectura` **207** (antes 205), `frescura_bajadas` 166, `temporadas` 25, `roles_por_modulo` 70,
+  `roles_cobertura_modulos` 31, `una_sola_firma` 2, `fn_ledger_fuente_unica` 48, `bajada_al_piso` 51,
+  `fn_resumen_comparacion` 25. Todas en verde; el único error del armado es el conocido de la talla «Única».
+- **Web:** vitest completo, 206 archivos y 152.197 pruebas en verde. `frescura-reglas.test.ts` tiene **141** (antes 133)
+  y `frescura-contrato.test.ts` 21. `tsc` limpio.
+- `scripts/migraciones/versiones.mjs`: 352 archivos, ninguna versión repetida. `scripts/adr/numeros.mjs`: 236 ADR, ningún
+  número repetido.
+
+**Para la pantalla (paso 4), además de lo de antes:** «ventas recientes» incluye lo que se apartó en esos días. Una prenda
+con separaciones abiertas puede ser pilar sin una sola boleta: la pantalla tiene que poder decir «3 apartadas».

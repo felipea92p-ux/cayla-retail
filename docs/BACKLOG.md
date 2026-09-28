@@ -1081,12 +1081,19 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       decisiones de Felipe van en un tercer archivo, `20260928120320` (la 7: la carga inicial no le reinicia la temporada
       a lo que llegó por lote; R7-1: lo apartado para una clienta no está colgado); R7-2 y R7-3 corregidas en la web y
       las pruebas de R7-4 a R7-7 escritas. Pruebas: `pnpm pruebas:frescura-lectura` 205, `frescura-reglas.test.ts` 133,
-      `frescura-contrato.test.ts` 21. ADR-0208, «Revisión 7 del paso 3».
+      `frescura-contrato.test.ts` 21. ADR-0208, «Revisión 7 del paso 3». **Revisión 8 el 2026-09-27 (noche):** R7-1
+      completo. Lo apartado también sale de la vara y la rapidez: es una venta desde que se apartó (abierto o entregado)
+      o una pausa (liberado sin venderse), con `eventosConApartados`; la gemela con 5 de 6 apartadas ya no sale lenta y
+      con «trasladar». `20260928120320` solo cambió comentarios (su `fn_frescura_sede` pasa a `7da85d7b…`). Más las dos
+      pruebas que faltaban (lote + producción en T4i; la segunda talla apartada y el borde 100 en la web). Pruebas:
+      `pnpm pruebas:frescura-lectura` 207, `frescura-reglas.test.ts` 141. ADR-0208, «Revisión 8 del paso 3». PR nuevo
+      (el #544 ya se fusionó).
       - [ ] **Pegar en producción: `20260928120300`, `20260928120310` y `20260928120320`, en ese orden** (cada una
-        sola, en el SQL Editor, a cualquier hora: solo funciones; primero se fusiona el PR de la revisión 7). Producción
+        sola, en el SQL Editor, a cualquier hora: solo funciones; primero se fusiona el PR de las revisiones 7 y 8). Producción
         el 2026-09-27 por la noche: ninguna función del paso 3, `fn_temporada_efectiva` `1cc652ba…`. Archivos:
         `20260928120300` `40bf970f…` y `20260928120310` `e121f11e…` (los dos idénticos a main), `20260928120320`
-        `63e0894b…`. md5 reverificados ese día en bases nuevas (cada archivo en una transacción, dos veces cada uno).
+        `81e3ddeb…` (revisión 8). md5 reverificados ese día en bases nuevas (cada archivo en una transacción, dos veces
+        cada uno).
         **No detenerse en la segunda**: sin la tercera, lo apartado cuenta como colgado y la carga de AQP o LIM reinicia
         temporadas. Tras `20260928120300`, `md5(prosrc)`: `fn_es_llegada` `5089ba50874f611d96d5df751b63ed57`,
         `fn_frescura_sede` `644e10126796adc1111702290c14f2bb`, `fn_confianza_registro`
@@ -1095,9 +1102,9 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
         `51babffc09da4073691ee251882967c8`, `fn_confianza_registro` `8c6f5e6c27916b99be10020b772bd6e0`,
         `fn_temporada_efectiva_nucleo` `2bf80eb239248cce88cf8062238f4dfc`, `fn_temporada_efectiva`
         `e96b3c6c51fd12ca712e76d63efd6448`. Tras `20260928120320`: las mismas cinco y `fn_frescura_sede`
-        `09e154ad85152859ab312be580a4a788`. Cada guarda acepta el cuerpo anterior o el suyo y aborta sin tocar nada con
-        cualquier otro; la tercera sin la segunda aborta pidiéndola, y volver a pegar una anterior aborta sin deshacer
-        nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a
+        `7da85d7b7010659ba5a36a2478c89ad4` (revisión 8; antes `09e154ad…`, que nunca se pegó). Cada guarda acepta el
+        cuerpo anterior o el suyo y aborta sin tocar nada con cualquier otro; la tercera sin la segunda aborta pidiéndola,
+        y volver a pegar una anterior aborta sin deshacer nada. Luego `pnpm datos:generar:produccion` con el volcado nuevo y `pnpm datos:comparar`; regenerar los tipos a
         mano de `packages/database` con `supabase gen types`. ADR-0208, «Revisión 7 del paso 3».
       - [ ] **Para la maqueta del paso 4 (decide Felipe):** cómo se dice «aún sin referencia» (categoría sin P50: la
         chompa de la salida real ya no sale «Nueva»; si está callada 30 días ya recibe «revisa sus ventas»); que cada
@@ -1112,7 +1119,12 @@ antes de pegar el 1; y sin decisión explícita, la web del bloque 1 salió con 
       - [x] **R7-1 DECIDIDA por Felipe el 2026-09-27: lo apartado para una clienta no está colgado.** En
         `20260928120320`: `piso_hoy` y `almacen_hoy` son lo libre, `apartadas_hoy` lo apartado y `apartados` los puntos
         de lo apartado del piso (con su saldo). En la web, el reloj no corre mientras todo está apartado, y la prenda sin
-        nada libre no es quieta ni recibe sugerencias. ADR-0208, «Revisión 7 del paso 3».
+        nada libre no es quieta ni recibe sugerencias. ADR-0208, «Revisión 7 del paso 3». Completada en la revisión 8:
+        lo apartado tampoco cuenta como colgado en la vara ni en la rapidez (venta desde que se apartó, o pausa si se
+        liberó sin venderse). ADR-0208, «Revisión 8 del paso 3».
+      - [ ] **Pregunta para Felipe (no bloquea pegar):** una separación abierta cuenta como venta desde que se aparta
+        (revisión 8). Si prefiere que cuente solo al entregarse, lo abierto pasa a pausa en `eventosConApartados`; la
+        prenda con 5 de 6 separadas volvería a salir lenta mientras sigan abiertas. ADR-0208, «Revisión 8 del paso 3».
       - [x] **R7-2 y R7-3 corregidas el 2026-09-27** (revisión 7): «dejó de vender» se mide con sus últimos 30 días EN
         EL PISO (el éxito repuesto ayer sigue pilar); con ventas que pudieron esconderse, la rapidez se mide contándolas y
         sin contarlas, y queda sin dato solo si cambian el veredicto (la devolución revendida ya no deja sin rapidez al

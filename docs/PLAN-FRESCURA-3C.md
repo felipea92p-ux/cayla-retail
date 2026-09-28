@@ -6,8 +6,9 @@
 > `20260928120310_frescura_lectura_revision3.sql` y `20260928120320_frescura_lectura_revision7.sql`, en ese orden y sin
 > el módulo: decisión 4). Lo que quedó: ADR-0208, «Paso 3 construido». Las revisiones 3 a 6 entraron a main con el PR
 > #544; la revisión 7 (las preguntas 7 y R7-1, decididas por Felipe el 27-sep, y los otros cinco hallazgos corregidos)
-> va en la misma rama, en un PR nuevo. El orden de pegado con sus md5 y lo que queda para la pantalla: ADR-0208,
-> «Revisión 7 del paso 3». **Sigue el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
+> y la revisión 8 (R7-1 también en la vara y la rapidez: lo apartado es venta desde que se apartó, o pausa) van en la
+> misma rama, en un PR nuevo. El orden de pegado con sus md5 y lo que queda para la pantalla: ADR-0208, «Revisión 7 del
+> paso 3» y «Revisión 8 del paso 3» (que cambia el md5 de la tercera). **Sigue el paso 4.** Este archivo es el plan escrito el 27-sep; donde choque con
 > las decisiones de abajo, **mandan las decisiones** (ADR-0208, «Actualización 2026-09-27 — diseño 3c»).
 
 ## Decisiones de Felipe y técnicas que corrigen el plan (2026-09-27)
